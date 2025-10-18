@@ -19,5 +19,5 @@ protected:
 public:
     explicit SourceFile(Fs::path path);
     Result loadContent(CompilerInstance& ci, CompilerContext& ctx);
-    Result tokenize(CompilerInstance& ci, CompilerContext& ctx);
+    Result tokenize(CompilerInstance& ci, const CompilerContext& ctx);
 };

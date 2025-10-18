@@ -10,5 +10,5 @@ class Lexer
     std::vector<Token> tokens_;
     
 public:
-    Result tokenize(CompilerInstance& ci, CompilerContext& ctx, const SourceFile& file);
+    Result tokenize(CompilerInstance& ci, const CompilerContext& ctx);
 };

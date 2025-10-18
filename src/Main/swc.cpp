@@ -21,6 +21,7 @@ void parseFolder(CompilerInstance& ci, CompilerContext &ctx, const Fs::path& dir
             if (ext == ".swg" || ext == ".swgs") {
                 auto f = new SourceFile(entry.path());
                 f->loadContent(ci, ctx);
+                ctx.setSourceFile(f);
                 f->tokenize(ci, ctx);
                 // std::cout << entry.path().string() << std::endl;
                 // You can add your file parsing logic here

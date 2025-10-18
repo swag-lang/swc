@@ -24,5 +24,5 @@ public:
 
     static std::string_view diagnosticMessage(DiagnosticId id);
 
-    void report(CompilerInstance& ci, CompilerContext& ctx, Diagnostic& diag);
+    void report(CompilerInstance& ci, const CompilerContext& ctx, Diagnostic& diag);
 };

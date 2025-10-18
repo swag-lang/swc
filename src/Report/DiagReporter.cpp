@@ -26,7 +26,7 @@ std::string_view DiagReporter::diagnosticMessage(DiagnosticId id)
     return g_DiagnosticIdMessages[static_cast<int>(id)];
 }
 
-void DiagReporter::report(CompilerInstance& ci, CompilerContext& cxt, Diagnostic& diag)
+void DiagReporter::report(CompilerInstance& ci, const CompilerContext& cxt, Diagnostic& diag)
 {
     diag.log(ci.logger());
 }

@@ -31,5 +31,5 @@ public:
         arguments_.emplace_back(std::forward<T>(arg));
     }
 
-    void log(Logger& logger);
+    void log(Logger& logger) const;
 };

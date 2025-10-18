@@ -54,9 +54,9 @@ std::string Diagnostic::format() const
     return result;
 }
 
-void Diagnostic::log(Logger& logger)
+void Diagnostic::log(Logger& logger) const
 {
-    auto errMsg = format();
+    const auto errMsg = format();
     logger.lock();
     logger.log(errMsg);
     logger.unlock();

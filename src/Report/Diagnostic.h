@@ -10,7 +10,7 @@ private:
     using Argument = std::variant<std::string, uint64_t, int64_t>;
 
     std::string argumentToString(const Argument& arg) const;
-    std::string format(const std::string& formatString) const;
+    std::string format() const;
 
     DiagnosticId          id_;
     std::vector<Argument> arguments_;

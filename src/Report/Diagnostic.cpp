@@ -32,9 +32,9 @@ std::string Diagnostic::argumentToString(const Argument& arg) const
 }
 
 // Format a string by replacing %0, %1, etc. with registered arguments
-std::string Diagnostic::format(const std::string& formatString) const
+std::string Diagnostic::format() const
 {
-    std::string result = formatString;
+    std::string result{DiagReporter::diagnosticMessage(id_)};
         
     // Replace placeholders in reverse order to avoid issues with %10 versus %1
     for (int i = static_cast<int>(arguments_.size()) - 1; i >= 0; --i)
@@ -55,7 +55,7 @@ std::string Diagnostic::format(const std::string& formatString) const
 
 void Diagnostic::log(Logger& logger)
 {
-    std::string errMsg = format(g_DiagnosticIdMessages[(int) id_]);
+    auto errMsg = format();
     logger.lock();
     logger.log(errMsg);   
     logger.unlock();

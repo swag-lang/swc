@@ -16,9 +16,9 @@ namespace
 #undef SWAG_DIAG
 };
 
-std::unique_ptr<Diagnostic> DiagReporter::diagnostic(DiagnosticId id)
+std::unique_ptr<Diagnostic> DiagReporter::diagnostic(DiagnosticKind kind, DiagnosticId id)
 {
-    return std::make_unique<Diagnostic>(id);
+    return std::make_unique<Diagnostic>(kind, id);
 }
 
 std::string_view DiagReporter::diagnosticMessage(DiagnosticId id)

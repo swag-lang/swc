@@ -1,5 +1,6 @@
 #pragma once
 
+enum class DiagnosticKind;
 class CompilerContext;
 class CompilerInstance;
 class Diagnostic;
@@ -14,7 +15,7 @@ enum class DiagnosticId
 class DiagReporter
 {
 public:
-    static std::unique_ptr<Diagnostic> diagnostic(DiagnosticId id);
+    static std::unique_ptr<Diagnostic> diagnostic(DiagnosticKind kind, DiagnosticId id);
 
     static std::string_view diagnosticMessage(DiagnosticId id);
 

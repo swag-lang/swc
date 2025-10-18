@@ -8,7 +8,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/src/swc.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/swc.cpp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Lexer/Lexer.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Lexer/Token.cpp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Lexer/Token.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Main/swc.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/swc.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/swc.vcxproj" beforeDir="false" afterPath="$PROJECT_DIR$/swc.vcxproj" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -23,9 +30,13 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="cidr-memory-view://11" root0="FORCE_HIGHLIGHTING" />
+    <setting file="cidr-memory-view://15" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/Lexer/Lexer.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/Lexer/Lexer.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Lexer/SourceFile.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Lexer/SourceFile.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/Lexer/Token.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/Lexer/Token.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Main/CompilerContext.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Main/CompilerContext.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Main/CompilerInstance.cpp" root0="FORCE_HIGHLIGHTING" />
@@ -117,7 +128,7 @@
       <workItem from="1760798847281" duration="362000" />
       <workItem from="1760799230882" duration="271000" />
       <workItem from="1760799516648" duration="1911000" />
-      <workItem from="1760801501480" duration="5651000" />
+      <workItem from="1760801501480" duration="7554000" />
     </task>
     <task id="LOCAL-00001" summary="Initialize `swc` project with basic folder parsing functionality and Visual Studio configuration files.">
       <option name="closed" value="true" />
@@ -175,7 +186,15 @@
       <option name="project" value="LOCAL" />
       <updated>1760807106779</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="Refactor project structure by relocating `swc.cpp` to `src/Main` and updating Visual Studio project configuration.">
+      <option name="closed" value="true" />
+      <created>1760807257607</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1760807257607</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -192,7 +211,8 @@
     <MESSAGE value="Simplify diagnostic formatting by embedding messages in `DiagReporter` and adjusting related API." />
     <MESSAGE value="Add format validation for source files and enhance diagnostics system." />
     <MESSAGE value="Refactor diagnostics system by introducing shorthand methods in `DiagReporter` and renaming diagnostic identifiers for clarity. Adjust source file error reporting to use new methods." />
-    <option name="LAST_COMMIT_MESSAGE" value="Refactor diagnostics system by introducing shorthand methods in `DiagReporter` and renaming diagnostic identifiers for clarity. Adjust source file error reporting to use new methods." />
+    <MESSAGE value="Refactor project structure by relocating `swc.cpp` to `src/Main` and updating Visual Studio project configuration." />
+    <option name="LAST_COMMIT_MESSAGE" value="Refactor project structure by relocating `swc.cpp` to `src/Main` and updating Visual Studio project configuration." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

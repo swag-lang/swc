@@ -81,3 +81,8 @@ Result SourceFile::loadContent(CompilerInstance &ci, CompilerContext &ctx)
     
     return Result::Success;
 }
+
+Result SourceFile::tokenize(CompilerInstance& ci, CompilerContext& ctx)
+{
+    return lexer_.tokenize(ci, ctx, *this);
+}

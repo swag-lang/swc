@@ -97,7 +97,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\Lexer\Lexer.cpp" />
     <ClCompile Include="src\Lexer\SourceFile.cpp" />
+    <ClCompile Include="src\Lexer\Token.cpp" />
     <ClCompile Include="src\Main\CompilerContext.cpp" />
     <ClCompile Include="src\Main\CompilerInstance.cpp" />
     <ClCompile Include="src\Main\swc.cpp">
@@ -186,7 +188,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Check.h" />
+    <ClInclude Include="src\Lexer\Lexer.h" />
     <ClInclude Include="src\Lexer\SourceFile.h" />
+    <ClInclude Include="src\Lexer\Token.h" />
     <ClInclude Include="src\Main\CompilerContext.h" />
     <ClInclude Include="src\Main\CompilerInstance.h" />
     <ClInclude Include="src\pch.h" />

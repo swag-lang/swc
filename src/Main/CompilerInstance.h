@@ -1,11 +1,12 @@
 #pragma once
 
-struct DiagReporter;
+class DiagReporter;
 
-struct CompilerInstance
+class CompilerInstance
 {
-    CompilerInstance();
-
-private:
     std::unique_ptr<DiagReporter> diagReporter_;
+
+public:
+    CompilerInstance();
+    [[nodiscard]] std::unique_ptr<DiagReporter>& diagReporter() { return diagReporter_; }
 };

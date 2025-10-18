@@ -1,26 +1,37 @@
 ﻿#include "pch.h"
 #include "Lexer/SourceFile.h"
+#include "Main/CompilerInstance.h"
+#include "Report/DiagReporter.h"
+#include "Report/Diagnostic.h"
 
 SourceFile::SourceFile(std::filesystem::path path) :
-    path(std::move(path))
+    path_(std::move(path))
 {
 }
 
-void SourceFile::loadContent(const CompilerInstance &ci)
+Result SourceFile::loadContent(CompilerInstance &ci)
 {
-    std::ifstream file(path, std::ios::binary | std::ios::ate);
+    std::ifstream file(path_, std::ios::binary | std::ios::ate);
 
     if (!file)
     {
-        throw std::runtime_error("Failed to open file: " + path.string());
+        const auto diag = DiagReporter::diagnostic(DiagnosticId::ErrFileOpen);
+        diag->addArgument(path_.string());
+        ci.diagReporter().get()->report(diag);
+        return Result::Error;
     }
 
     const auto fileSize = file.tellg();
     file.seekg(0, std::ios::beg);
-    content.resize(fileSize);
+    content_.resize(fileSize);
     
-    if (!file.read(reinterpret_cast<char*>(content.data()), fileSize))
+    if (!file.read(reinterpret_cast<char*>(content_.data()), fileSize))
     {
-        throw std::runtime_error("Failed to read file: " + path.string());
+        const auto diag = DiagReporter::diagnostic(DiagnosticId::ErrFileRead);
+        diag->addArgument(path_.string());
+        ci.diagReporter().get()->report(diag);
+        return Result::Error;        
     }
+
+    return Result::Success;
 }

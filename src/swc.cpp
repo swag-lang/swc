@@ -6,7 +6,7 @@
 #include <filesystem>
 #include <iostream>
 
-void parseFolder(const CompilerInstance& ci, const Fs::path& directory)
+void parseFolder(CompilerInstance& ci, const Fs::path& directory)
 {
     if (!Fs::exists(directory) || !Fs::is_directory(directory)) {
         std::cerr << "Invalid directory: " << directory << std::endl;

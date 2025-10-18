@@ -1,12 +1,13 @@
 ﻿#pragma once
 
-struct CompilerInstance;
+class CompilerInstance;
 
-struct SourceFile
+class SourceFile
 {
-    Fs::path             path;
-    std::vector<uint8_t> content;
+    Fs::path             path_;
+    std::vector<uint8_t> content_;
 
+public:
     explicit SourceFile(Fs::path path);
-    void loadContent(const CompilerInstance& ci);
+    Result loadContent(CompilerInstance& ci);
 };

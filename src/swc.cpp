@@ -1,12 +1,14 @@
 #include "pch.h"
 
 #include "Lexer/SourceFile.h"
-#include "Report/DiagReporter.h"
+#include "Main/CompilerContext.h"
 #include "Main/CompilerInstance.h"
+#include "Report/DiagReporter.h"
+#include "Report/Logger.h"
 #include <filesystem>
 #include <iostream>
 
-void parseFolder(CompilerInstance& ci, const Fs::path& directory)
+void parseFolder(CompilerInstance& ci, CompilerContext &ctx, const Fs::path& directory)
 {
     if (!Fs::exists(directory) || !Fs::is_directory(directory)) {
         std::cerr << "Invalid directory: " << directory << std::endl;
@@ -18,7 +20,7 @@ void parseFolder(CompilerInstance& ci, const Fs::path& directory)
             auto ext = entry.path().extension().string();
             if (ext == ".swg" || ext == ".swgs") {
                 auto f = new SourceFile(entry.path());
-                f->loadContent(ci);
+                f->loadContent(ci, ctx);
                 // std::cout << entry.path().string() << std::endl;
                 // You can add your file parsing logic here
             }
@@ -29,6 +31,7 @@ void parseFolder(CompilerInstance& ci, const Fs::path& directory)
 int main(int argc, char* argv[])
 {
     CompilerInstance ci;
-    parseFolder(ci, "c:/perso/swag-lang");
+    CompilerContext ctx;
+    parseFolder(ci, ctx, "c:/perso/swag-lang");
     return 0;
 }

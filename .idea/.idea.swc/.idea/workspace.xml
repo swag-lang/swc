@@ -8,10 +8,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/Core/Check.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Main/CompilerContext.cpp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Main/CompilerContext.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Report/Logger.cpp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Report/Logger.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Main/CompilerInstance.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/CompilerInstance.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Main/CompilerInstance.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/CompilerInstance.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Report/DiagReporter.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagReporter.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Report/DiagReporter.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagReporter.h" afterDir="false" />
@@ -34,8 +38,11 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
+    <setting file="cidr-memory-view://4" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Lexer/SourceFile.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Lexer/SourceFile.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/Main/CompilerContext.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/Main/CompilerContext.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Main/CompilerInstance.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Main/CompilerInstance.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Report/DiagReporter.cpp" root0="FORCE_HIGHLIGHTING" />
@@ -43,6 +50,8 @@
     <setting file="file://$PROJECT_DIR$/src/Report/Diagnostic.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Report/Diagnostic.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Report/DiagnosticList.h" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/Report/Logger.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/Report/Logger.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/pch.h" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="MetaFilesCheckinStateConfiguration" checkMetaFiles="true" />
@@ -88,7 +97,7 @@
         <option name="PROGRAM_PARAMETERS" value="$(LocalDebuggerCommandArguments)" />
         <option name="WORKING_DIRECTORY" value="$(LocalDebuggerWorkingDirectory)" />
         <option name="PASS_PARENT_ENVS" value="1" />
-        <option name="USE_EXTERNAL_CONSOLE" value="0" />
+        <option name="USE_EXTERNAL_CONSOLE" value="1" />
         <option name="TERMINAL_INTERACTION_BEHAVIOR" value="AUTO_DETECT" />
         <option name="PROJECT_FILE_PATH" value="$PROJECT_DIR$/swc.vcxproj" />
       </configuration_1>
@@ -100,7 +109,7 @@
         <option name="PROGRAM_PARAMETERS" value="$(LocalDebuggerCommandArguments)" />
         <option name="WORKING_DIRECTORY" value="$(LocalDebuggerWorkingDirectory)" />
         <option name="PASS_PARENT_ENVS" value="1" />
-        <option name="USE_EXTERNAL_CONSOLE" value="0" />
+        <option name="USE_EXTERNAL_CONSOLE" value="1" />
         <option name="TERMINAL_INTERACTION_BEHAVIOR" value="AUTO_DETECT" />
         <option name="PROJECT_FILE_PATH" value="$PROJECT_DIR$/swc.vcxproj" />
       </configuration_2>
@@ -123,7 +132,7 @@
       <workItem from="1760798847281" duration="362000" />
       <workItem from="1760799230882" duration="271000" />
       <workItem from="1760799516648" duration="1911000" />
-      <workItem from="1760801501480" duration="2221000" />
+      <workItem from="1760801501480" duration="4045000" />
     </task>
     <task id="LOCAL-00001" summary="Initialize `swc` project with basic folder parsing functionality and Visual Studio configuration files.">
       <option name="closed" value="true" />
@@ -141,7 +150,15 @@
       <option name="project" value="LOCAL" />
       <updated>1760801958452</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Refactor diagnostic system, improve file handling, and streamline project structure.">
+      <option name="closed" value="true" />
+      <created>1760803742579</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1760803742579</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -153,7 +170,8 @@
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
     <MESSAGE value="Initialize `swc` project with basic folder parsing functionality and Visual Studio configuration files." />
     <MESSAGE value="Refactor project structure, add precompiled headers, introduce diagnostic system, and implement source file content loading." />
-    <option name="LAST_COMMIT_MESSAGE" value="Refactor project structure, add precompiled headers, introduce diagnostic system, and implement source file content loading." />
+    <MESSAGE value="Refactor diagnostic system, improve file handling, and streamline project structure." />
+    <option name="LAST_COMMIT_MESSAGE" value="Refactor diagnostic system, improve file handling, and streamline project structure." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -170,6 +188,16 @@
           <properties exception="System.Threading.ThreadAbortException" breakIfHandledByOtherCode="false" displayValue="System.Threading.ThreadAbortException" />
           <option name="timeStamp" value="3" />
         </breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/src/Lexer/SourceFile.cpp</url>
+          <line>18</line>
+          <option name="timeStamp" value="4" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/src/Report/Diagnostic.cpp</url>
+          <line>58</line>
+          <option name="timeStamp" value="5" />
+        </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
   </component>

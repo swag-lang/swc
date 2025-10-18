@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "Lexer/SourceFile.h"
+#include "Main/CompilerContext.h"
 #include "Main/CompilerInstance.h"
 #include "Report/DiagReporter.h"
 #include "Report/Diagnostic.h"
@@ -9,15 +10,15 @@ SourceFile::SourceFile(std::filesystem::path path) :
 {
 }
 
-Result SourceFile::loadContent(CompilerInstance &ci)
+Result SourceFile::loadContent(CompilerInstance &ci, CompilerContext &ctx)
 {
     std::ifstream file(path_, std::ios::binary | std::ios::ate);
 
-    if (!file)
+    //if (!file)
     {
         const auto diag = DiagReporter::diagnostic(DiagnosticId::ErrFileOpen);
         diag->addArgument(path_.string());
-        ci.diagReporter().get()->report(diag);
+        ci.diagReporter().report(ci, ctx, *diag);
         return Result::Error;
     }
 
@@ -29,7 +30,7 @@ Result SourceFile::loadContent(CompilerInstance &ci)
     {
         const auto diag = DiagReporter::diagnostic(DiagnosticId::ErrFileRead);
         diag->addArgument(path_.string());
-        ci.diagReporter().get()->report(diag);
+        ci.diagReporter().report(ci, ctx, *diag);
         return Result::Error;        
     }
 

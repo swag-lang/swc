@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+class CompilerContext;
 class CompilerInstance;
 
 class SourceFile
@@ -9,5 +10,5 @@ class SourceFile
 
 public:
     explicit SourceFile(Fs::path path);
-    Result loadContent(CompilerInstance& ci);
+    Result loadContent(CompilerInstance& ci, CompilerContext &ctx);
 };

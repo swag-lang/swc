@@ -1,3 +1,3 @@
-SWAG_DIAG(ErrFileOpen, "failed to open file %0")
-SWAG_DIAG(ErrFileRead, "failed to read file %0")
-SWAG_DIAG(InvalidSourceFileFormat, "source file %0 is invalid")
+SWAG_DIAG(CannotOpenFile, "failed to open file %0")
+SWAG_DIAG(CannotReadFile, "failed to read file %0")
+SWAG_DIAG(FileNotUtf8, "source file %0 is not utf8")

@@ -38,7 +38,7 @@ Result SourceFile::checkFormat(CompilerInstance &ci, CompilerContext &ctx)
         || (c1 == 0x84 && c2 == 0x31 && c3 == 0x95 && c4 == 0x33) // GB-18030
     )
     {
-        const auto diag = DiagReporter::diagnostic(DiagnosticKind::Error, DiagnosticId::InvalidSourceFileFormat);
+        const auto diag = DiagReporter::error(DiagnosticId::FileNotUtf8);
         diag->addArgument(path_.string());
         ci.diagReporter().report(ci, ctx, *diag);
         return Result::Error;
@@ -53,7 +53,7 @@ Result SourceFile::loadContent(CompilerInstance &ci, CompilerContext &ctx)
 
     if (!file)
     {
-        const auto diag = DiagReporter::diagnostic(DiagnosticKind::Error, DiagnosticId::ErrFileOpen);
+        const auto diag = DiagReporter::error(DiagnosticId::CannotOpenFile);
         diag->addArgument(path_.string());
         ci.diagReporter().report(ci, ctx, *diag);
         return Result::Error;
@@ -65,7 +65,7 @@ Result SourceFile::loadContent(CompilerInstance &ci, CompilerContext &ctx)
     
     if (!file.read(reinterpret_cast<char*>(content_.data()), fileSize))
     {
-        const auto diag = DiagReporter::diagnostic(DiagnosticKind::Error, DiagnosticId::ErrFileRead);
+        const auto diag = DiagReporter::error(DiagnosticId::CannotReadFile);
         diag->addArgument(path_.string());
         ci.diagReporter().report(ci, ctx, *diag);
         return Result::Error;        

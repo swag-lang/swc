@@ -8,10 +8,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/src/Core/Check.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Check.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticList.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticList.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/swc.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/swc.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/swc.vcxproj" beforeDir="false" afterPath="$PROJECT_DIR$/swc.vcxproj" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -25,7 +23,7 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="cidr-memory-view://10" root0="FORCE_HIGHLIGHTING" />
+    <setting file="cidr-memory-view://11" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Lexer/SourceFile.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Lexer/SourceFile.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Main/CompilerContext.cpp" root0="FORCE_HIGHLIGHTING" />
@@ -119,7 +117,7 @@
       <workItem from="1760798847281" duration="362000" />
       <workItem from="1760799230882" duration="271000" />
       <workItem from="1760799516648" duration="1911000" />
-      <workItem from="1760801501480" duration="4990000" />
+      <workItem from="1760801501480" duration="5651000" />
     </task>
     <task id="LOCAL-00001" summary="Initialize `swc` project with basic folder parsing functionality and Visual Studio configuration files.">
       <option name="closed" value="true" />
@@ -161,7 +159,23 @@
       <option name="project" value="LOCAL" />
       <updated>1760805999049</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="Add format validation for source files and enhance diagnostics system.">
+      <option name="closed" value="true" />
+      <created>1760806818934</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1760806818934</updated>
+    </task>
+    <task id="LOCAL-00007" summary="Refactor diagnostics system by introducing shorthand methods in `DiagReporter` and renaming diagnostic identifiers for clarity. Adjust source file error reporting to use new methods.">
+      <option name="closed" value="true" />
+      <created>1760807106779</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1760807106779</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -176,7 +190,9 @@
     <MESSAGE value="Refactor diagnostic system, improve file handling, and streamline project structure." />
     <MESSAGE value="Introduce logging system, refine diagnostics management, incorporate `CompilerContext`, and enhance file handling." />
     <MESSAGE value="Simplify diagnostic formatting by embedding messages in `DiagReporter` and adjusting related API." />
-    <option name="LAST_COMMIT_MESSAGE" value="Simplify diagnostic formatting by embedding messages in `DiagReporter` and adjusting related API." />
+    <MESSAGE value="Add format validation for source files and enhance diagnostics system." />
+    <MESSAGE value="Refactor diagnostics system by introducing shorthand methods in `DiagReporter` and renaming diagnostic identifiers for clarity. Adjust source file error reporting to use new methods." />
+    <option name="LAST_COMMIT_MESSAGE" value="Refactor diagnostics system by introducing shorthand methods in `DiagReporter` and renaming diagnostic identifiers for clarity. Adjust source file error reporting to use new methods." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -195,7 +211,7 @@
         </breakpoint>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/src/Report/Diagnostic.cpp</url>
-          <line>57</line>
+          <line>58</line>
           <option name="timeStamp" value="6" />
         </line-breakpoint>
       </breakpoints>

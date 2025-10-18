@@ -1,0 +1,1 @@
+SWAG_DIAG(CannotOpenFile)

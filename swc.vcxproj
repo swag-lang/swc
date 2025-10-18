@@ -51,16 +51,18 @@
     <OutDir>.out/x64/</OutDir>
     <IntDir>.tmp/x64/debug/</IntDir>
     <TargetName>swc_debug</TargetName>
+    <IncludePath>src/</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>.out/x64/</OutDir>
     <IntDir>.tmp/x64/release/</IntDir>
     <TargetName>swc</TargetName>
+    <IncludePath>src/</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
@@ -76,7 +78,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -95,7 +97,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="swc.cpp" />
+    <ClCompile Include="src\Lexer\SourceFile.cpp" />
+    <ClCompile Include="src\Main\CompilerInstance.cpp" />
+    <ClCompile Include="src\pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\Report\Diagnostic.cpp" />
+    <ClCompile Include="src\Report\DiagReporter.cpp" />
+    <ClCompile Include="src\swc.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Lexer\SourceFile.h" />
+    <ClInclude Include="src\Main\CompilerInstance.h" />
+    <ClInclude Include="src\pch.h" />
+    <ClInclude Include="src\Report\Diagnostic.h" />
+    <ClInclude Include="src\Report\DiagnosticList.h" />
+    <ClInclude Include="src\Report\DiagReporter.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

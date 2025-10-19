@@ -18,7 +18,7 @@ void Lexer::reportError(const Diagnostic& diag) const
 {
     if (lexerFlags_.has(LEXER_EXTRACT_COMMENTS_MODE))
         return;
-    (void) diag.report(*ci_);
+    diag.report(*ci_);
 }
 
 // Consume exactly one logical EOL (CRLF | CR | LF). Push the next line start.

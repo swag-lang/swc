@@ -41,4 +41,5 @@ void DiagnosticIds::initErrors()
     SWAG_DIAG(NumberSepEnd, "a number cannot have '_' at the end");
     SWAG_DIAG(MissingHexDigits, "missing hex digits");
     SWAG_DIAG(SyntaxHexNumber, "malformed hex number");
+    SWAG_DIAG(UnRaisedDirective, "unraised directive");
 }

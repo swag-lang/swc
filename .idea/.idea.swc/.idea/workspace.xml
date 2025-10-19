@@ -21,7 +21,15 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="" />
+    <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Main/swc.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/swc.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticIds.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticIds.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticIds.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticIds.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/Verifier.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Verifier.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/Verifier.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Verifier.h" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -34,7 +42,7 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="cidr-memory-view://261" root0="FORCE_HIGHLIGHTING" />
+    <setting file="cidr-memory-view://271" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Core/Utf8.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/Os.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/OsWin32.cpp" root0="SKIP_HIGHLIGHTING" />
@@ -157,14 +165,6 @@
       <workItem from="1760799230882" duration="271000" />
       <workItem from="1760799516648" duration="1911000" />
       <workItem from="1760801501480" duration="9485000" />
-    </task>
-    <task id="LOCAL-00004" summary="Introduce logging system, refine diagnostics management, incorporate `CompilerContext`, and enhance file handling.">
-      <option name="closed" value="true" />
-      <created>1760805620553</created>
-      <option name="number" value="00004" />
-      <option name="presentableId" value="LOCAL-00004" />
-      <option name="project" value="LOCAL" />
-      <updated>1760805620553</updated>
     </task>
     <task id="LOCAL-00005" summary="Simplify diagnostic formatting by embedding messages in `DiagReporter` and adjusting related API.">
       <option name="closed" value="true" />
@@ -550,7 +550,15 @@
       <option name="project" value="LOCAL" />
       <updated>1760891530046</updated>
     </task>
-    <option name="localTasksCounter" value="53" />
+    <task id="LOCAL-00053" summary="Update hex literal diagnostics: rename `NumberSepAtEnd` to `NumberSepEnd`, refine error handling in `Lexer`, and enhance unit tests with comprehensive cases for separator validation. Adjust `.idea/workspace.xml` and project files.">
+      <option name="closed" value="true" />
+      <created>1760891899656</created>
+      <option name="number" value="00053" />
+      <option name="presentableId" value="LOCAL-00053" />
+      <option name="project" value="LOCAL" />
+      <updated>1760891899656</updated>
+    </task>
+    <option name="localTasksCounter" value="54" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -560,7 +568,6 @@
   <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Refactor `LangSpec` and `Lexer` to enhance blank space handling with UTF-8 support. Adjust related methods, types, and tokenization logic. Update project files and `.idea/workspace.xml`." />
     <MESSAGE value="Refactor `Lexer::tokenize` by extracting handling of blank spaces, line breaks, and comments into dedicated methods. Adjust related logic for improved readability and maintainability. Update project files and `.idea/workspace.xml`." />
     <MESSAGE value="Enhance `Lexer` with string literal parsing support. Detect unclosed strings and invalid EOL within literals. Update diagnostics system and related tokenization logic for improved error handling. Modify project files and `.idea/workspace.xml`." />
     <MESSAGE value="Refactor `Lexer` parsing methods for enhanced encapsulation and consistency. Introduce instance variables for `Lexer` state, replace method parameters with member accesses, and return `Result` for improved error handling. Update `.idea/workspace.xml` accordingly." />
@@ -585,7 +592,8 @@
     <MESSAGE value="Introduce `Verifier::verify` method to validate diagnostics against directives in comments. Extend `SourceFile` with `Verifier` accessor and update `Diagnostic` to conditionally suppress logs. Adjust `Lexer` tokenization and update `.idea/workspace.xml`." />
     <MESSAGE value="Remove `Reporter` class and replace with a streamlined `DiagnosticIds` system. Refactor diagnostics handling, integrating `DiagnosticIds` for error messages and identification. Update related modules and adjust `.idea/workspace.xml` and project files accordingly." />
     <MESSAGE value="Refactor diagnostics to simplify naming in `DiagnosticIds` and `Diagnostic` usage. Update related modules, including `Lexer` and `Verifier`, to align with streamlined diagnostics handling. Adjust `.idea/workspace.xml` and project files accordingly." />
-    <option name="LAST_COMMIT_MESSAGE" value="Refactor diagnostics to simplify naming in `DiagnosticIds` and `Diagnostic` usage. Update related modules, including `Lexer` and `Verifier`, to align with streamlined diagnostics handling. Adjust `.idea/workspace.xml` and project files accordingly." />
+    <MESSAGE value="Update hex literal diagnostics: rename `NumberSepAtEnd` to `NumberSepEnd`, refine error handling in `Lexer`, and enhance unit tests with comprehensive cases for separator validation. Adjust `.idea/workspace.xml` and project files." />
+    <option name="LAST_COMMIT_MESSAGE" value="Update hex literal diagnostics: rename `NumberSepAtEnd` to `NumberSepEnd`, refine error handling in `Lexer`, and enhance unit tests with comprehensive cases for separator validation. Adjust `.idea/workspace.xml` and project files." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -604,7 +612,7 @@
         </breakpoint>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/src/Main/swc.cpp</url>
-          <line>39</line>
+          <line>44</line>
           <option name="timeStamp" value="9" />
         </line-breakpoint>
       </breakpoints>

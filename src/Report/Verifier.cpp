@@ -90,3 +90,19 @@ bool Verifier::verify(const CompilerInstance& ci, const Diagnostic& diag) const
 
     return false;
 }
+
+Result Verifier::verify(const CompilerInstance& ci, const CompilerContext& ctx) const
+{
+    for (const auto& directive : directives_)
+    {
+        if (!directive.touched)
+        {
+            Diagnostic diag(ctx.sourceFile());
+            const auto elem = diag.addError(DiagnosticId::UnRaisedDirective);
+            elem->setLocation(directive.location);
+            diag.report(ci);
+        }
+    }
+
+    return Result::Success;
+}

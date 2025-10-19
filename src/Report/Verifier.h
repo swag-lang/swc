@@ -20,4 +20,5 @@ class Verifier
 public:
     Result tokenize(const CompilerInstance& ci, const CompilerContext& ctx);
     bool   verify(const CompilerInstance& ci, const Diagnostic& diag) const;
+    Result verify(const CompilerInstance& ci, const CompilerContext& ctx) const;
 };

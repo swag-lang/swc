@@ -38,6 +38,13 @@ public:
         len_    = len;
     }
 
+    void setLocation(const SourceCodeLocation& loc)
+    {
+        file_   = loc.file;
+        offset_ = loc.offset;
+        len_    = loc.len;
+    }
+
     SourceCodeLocation location(const CompilerInstance& ci) const;
     std::string_view   idName(const CompilerInstance& ci) const;
 

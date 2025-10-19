@@ -12,6 +12,7 @@ enum class DiagnosticId
     NumberSepEnd,
     MissingHexDigits,
     SyntaxHexNumber,
+    UnRaisedDirective,
 };
 
 struct DiagnosticIdInfo

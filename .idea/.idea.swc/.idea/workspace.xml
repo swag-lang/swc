@@ -22,6 +22,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/src/Lexer/LangSpec.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/LangSpec.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -36,7 +37,7 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="cidr-memory-view://68" root0="FORCE_HIGHLIGHTING" />
+    <setting file="cidr-memory-view://72" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/Os.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/OsWin32.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Report/Assert.h" root0="FORCE_HIGHLIGHTING" />
@@ -360,7 +361,15 @@
       <option name="project" value="LOCAL" />
       <updated>1760857066532</updated>
     </task>
-    <option name="localTasksCounter" value="27" />
+    <task id="LOCAL-00027" summary="Refactor `Lexer::tokenize` to improve buffer safety by adding bounds checking for comments. Update `.idea/workspace.xml` to reflect recent project changes.">
+      <option name="closed" value="true" />
+      <created>1760857436380</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1760857436380</updated>
+    </task>
+    <option name="localTasksCounter" value="28" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -370,7 +379,6 @@
   <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Refactor project structure, add precompiled headers, introduce diagnostic system, and implement source file content loading." />
     <MESSAGE value="Refactor diagnostic system, improve file handling, and streamline project structure." />
     <MESSAGE value="Introduce logging system, refine diagnostics management, incorporate `CompilerContext`, and enhance file handling." />
     <MESSAGE value="Simplify diagnostic formatting by embedding messages in `DiagReporter` and adjusting related API." />
@@ -395,7 +403,8 @@
     <MESSAGE value="Refactor `SourceFile` methods to use `const` references for improved consistency. Integrate UTF-8 decoding in `SourceCodeLocation` column calculation and update project files to include `Utf8` utility." />
     <MESSAGE value="Introduce `LangSpec` class and integrate it into `CompilerInstance`. Enhance UTF-8 utility to return structured output and improve tokenization by reordering blank handling logic. Update project and configuration files accordingly." />
     <MESSAGE value="Introduce `Flags` and `EnumFlags` templates to encapsulate bitwise operations. Extend `LangSpec` with character flag utilities for `isBlank`, `isDigit`, `isLetter`, and `isAscii` checks. Update `Lexer` to use `LangSpec` for enhanced tokenization. Modify project files to include `Flags.h`." />
-    <option name="LAST_COMMIT_MESSAGE" value="Introduce `Flags` and `EnumFlags` templates to encapsulate bitwise operations. Extend `LangSpec` with character flag utilities for `isBlank`, `isDigit`, `isLetter`, and `isAscii` checks. Update `Lexer` to use `LangSpec` for enhanced tokenization. Modify project files to include `Flags.h`." />
+    <MESSAGE value="Refactor `Lexer::tokenize` to improve buffer safety by adding bounds checking for comments. Update `.idea/workspace.xml` to reflect recent project changes." />
+    <option name="LAST_COMMIT_MESSAGE" value="Refactor `Lexer::tokenize` to improve buffer safety by adding bounds checking for comments. Update `.idea/workspace.xml` to reflect recent project changes." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

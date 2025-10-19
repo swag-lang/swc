@@ -10,12 +10,12 @@
 
 Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
 {
-    const auto  file        = ctx.sourceFile();
-    const auto  base        = reinterpret_cast<const char*>(file->content_.data());
-    const char* buffer      = base + file->offsetStartBuffer_;
-    const char* end         = base + file->content_.size();
-    const char* startBuffer = buffer;
-    const auto& langSpec    = ci.langSpec();
+    const auto     file        = ctx.sourceFile();
+    const auto     base        = reinterpret_cast<const uint8_t*>(file->content_.data());
+    const uint8_t* buffer      = base + file->offsetStartBuffer_;
+    const uint8_t* end         = base + file->content_.size();
+    const uint8_t* startBuffer = buffer;
+    const auto&    langSpec    = ci.langSpec();
 
     tokens_.reserve(file->content_.size() / 8);
     lines_.reserve(file->content_.size() / 80);
@@ -29,15 +29,23 @@ Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
 
         // End of line
         /////////////////////////////////////////
-        if (buffer[0] == '\n')
+        if (buffer[0] == '\n' || buffer[0] == '\r')
         {
             token_.id = TokenId::Eol;
-            buffer++;
+
+            // Consume \r or \n
+            const char eol = *buffer++;
+            if (eol == '\r' && buffer < end && *buffer == '\n')
+                buffer++; // handle Windows-style \r\n
+
             lines_.push_back(static_cast<uint32_t>(buffer - startBuffer));
 
-            while (buffer < end && buffer[0] == '\n')
+            // Handle consecutive empty lines (any of \n, \r, or \r\n)
+            while (buffer < end && (*buffer == '\n' || *buffer == '\r'))
             {
-                buffer++;
+                const char nextEol = *buffer++;
+                if (nextEol == '\r' && buffer < end && *buffer == '\n')
+                    buffer++;
                 lines_.push_back(static_cast<uint32_t>(buffer - startBuffer));
             }
 
@@ -48,13 +56,14 @@ Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
 
         // Blanks
         /////////////////////////////////////////
-        if (langSpec.isBlank(buffer[0]))
+        uint32_t offset = 0;
+        if (langSpec.isBlank(buffer, end, offset))
         {
             token_.id = TokenId::Blank;
-            buffer++;
+            buffer += offset;
 
-            while (buffer < end && langSpec.isBlank(buffer[0]))
-                buffer++;
+            while (buffer < end && langSpec.isBlank(buffer, end, offset))
+                buffer += offset;
 
             token_.len = static_cast<uint32_t>(buffer - startToken);
             tokens_.push_back(token_);

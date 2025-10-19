@@ -39,3 +39,20 @@ void LangSpec::initCharFlags()
     // Underscore is often considered a letter in identifiers
     charFlags_['_'].add(CHAR_LETTER);
 }
+
+bool LangSpec::isBlank(const uint8_t* buffer, const uint8_t* end, uint32_t& offset) const
+{
+    if (isBlank(buffer[0]))
+    {
+        offset = 1;
+        return true;
+    }
+        
+    if (buffer < end + 1 && buffer[0] == 0xC2 && buffer[1] == 0xA0)
+    {
+        offset = 2;
+        return true;
+    }
+        
+    return false;
+}

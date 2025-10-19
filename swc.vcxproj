@@ -194,6 +194,7 @@
     <ClCompile Include="src\Report\Logger.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Core\Flags.h" />
     <ClInclude Include="src\Core\Utf8.h" />
     <ClInclude Include="src\Lexer\LangSpec.h" />
     <ClInclude Include="src\Lexer\Lexer.h" />

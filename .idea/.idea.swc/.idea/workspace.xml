@@ -22,17 +22,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/Lexer/LangSpec.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Lexer/LangSpec.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/Utf8.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Utf8.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/Utf8.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Utf8.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Lexer/LangSpec.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/LangSpec.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Lexer/LangSpec.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/LangSpec.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/SourceCodeLocation.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceCodeLocation.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Main/CompilerInstance.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/CompilerInstance.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Main/CompilerInstance.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/CompilerInstance.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Main/swc.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/swc.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pch.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/pch.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/swc.vcxproj" beforeDir="false" afterPath="$PROJECT_DIR$/swc.vcxproj" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -47,7 +39,7 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="cidr-memory-view://65" root0="FORCE_HIGHLIGHTING" />
+    <setting file="cidr-memory-view://66" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/Os.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/OsWin32.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Report/Assert.h" root0="FORCE_HIGHLIGHTING" />
@@ -354,7 +346,15 @@
       <option name="project" value="LOCAL" />
       <updated>1760855828904</updated>
     </task>
-    <option name="localTasksCounter" value="25" />
+    <task id="LOCAL-00025" summary="Introduce `LangSpec` class and integrate it into `CompilerInstance`. Enhance UTF-8 utility to return structured output and improve tokenization by reordering blank handling logic. Update project and configuration files accordingly.">
+      <option name="closed" value="true" />
+      <created>1760856491710</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1760856491710</updated>
+    </task>
+    <option name="localTasksCounter" value="26" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -388,7 +388,8 @@
     <MESSAGE value="Refactor `Lexer` by introducing token-specific attributes and methods for improved encapsulation. Enhance tokenization logic to support blank spaces, line breaks, and comments effectively. Update related classes (`SourceFile`, `Token`, `SourceCodeLocation`) for consistency." />
     <MESSAGE value="Add UTF-8 decoding utility and reorder blank token handling in `Lexer`. Update project files to include new `Utf8` utility." />
     <MESSAGE value="Refactor `SourceFile` methods to use `const` references for improved consistency. Integrate UTF-8 decoding in `SourceCodeLocation` column calculation and update project files to include `Utf8` utility." />
-    <option name="LAST_COMMIT_MESSAGE" value="Refactor `SourceFile` methods to use `const` references for improved consistency. Integrate UTF-8 decoding in `SourceCodeLocation` column calculation and update project files to include `Utf8` utility." />
+    <MESSAGE value="Introduce `LangSpec` class and integrate it into `CompilerInstance`. Enhance UTF-8 utility to return structured output and improve tokenization by reordering blank handling logic. Update project and configuration files accordingly." />
+    <option name="LAST_COMMIT_MESSAGE" value="Introduce `LangSpec` class and integrate it into `CompilerInstance`. Enhance UTF-8 utility to return structured output and improve tokenization by reordering blank handling logic. Update project and configuration files accordingly." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

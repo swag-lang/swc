@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "Core/Utf8.h"
+#include "LangSpec.h"
 #include "Lexer/Lexer.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CompilerContext.h"
@@ -13,6 +14,7 @@ Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
     const char* buffer      = reinterpret_cast<const char*>(file->content_.data()) + file->offsetStartBuffer_;
     const char* startBuffer = buffer;
     const char* end         = buffer + file->content_.size();
+    const auto& langSpec    = ci.langSpec();
 
     tokens_.reserve(file->content_.size() / 8);
     lines_.reserve(file->content_.size() / 80);
@@ -45,12 +47,12 @@ Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
 
         // Blanks
         /////////////////////////////////////////
-        if (std::isblank(buffer[0]))
+        if (langSpec.isBlank(buffer[0]))
         {
             token_.id = TokenId::Blank;
             buffer++;
 
-            while (buffer < end && std::isblank(buffer[0]))
+            while (buffer < end && langSpec.isBlank(buffer[0]))
                 buffer++;
 
             token_.len = static_cast<uint32_t>(buffer - startToken);

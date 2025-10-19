@@ -22,22 +22,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/Main/CommandLine.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Main/CommandLine.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/SourceCodeLocation.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceCodeLocation.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/SourceCodeLocation.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceCodeLocation.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Main/CompilerInstance.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/CompilerInstance.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Main/CompilerInstance.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/CompilerInstance.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Main/swc.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/swc.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Report/Diagnostic.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Diagnostic.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Report/Diagnostic.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Diagnostic.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticElement.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticElement.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticElement.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticElement.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Report/Reporter.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Reporter.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Report/Reporter.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Reporter.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/swc.vcxproj" beforeDir="false" afterPath="$PROJECT_DIR$/swc.vcxproj" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -51,7 +41,7 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="cidr-memory-view://159" root0="FORCE_HIGHLIGHTING" />
+    <setting file="cidr-memory-view://167" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/Os.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/OsWin32.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Report/Assert.h" root0="FORCE_HIGHLIGHTING" />
@@ -466,7 +456,15 @@
       <option name="project" value="LOCAL" />
       <updated>1760866732341</updated>
     </task>
-    <option name="localTasksCounter" value="38" />
+    <task id="LOCAL-00038" summary="Introduce `CommandLine` utility to manage configuration options like tab size. Refactor diagnostics system in `Reporter` to improve column calculation and error highlighting with tab expansion. Update `SourceFile`, `SourceCodeLocation`, and dependent modules for compatibility. Adjust project files and `.idea/workspace.xml`.">
+      <option name="closed" value="true" />
+      <created>1760867615682</created>
+      <option name="number" value="00038" />
+      <option name="presentableId" value="LOCAL-00038" />
+      <option name="project" value="LOCAL" />
+      <updated>1760867615682</updated>
+    </task>
+    <option name="localTasksCounter" value="39" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -476,7 +474,6 @@
   <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Refactor diagnostics system by renaming `DiagReporter` to `Reporter`, updating associated includes, and modifying code references to improve clarity and consistency." />
     <MESSAGE value="Refactor `Reporter` by replacing `SWAG_DIAG` macro with `addError` method for improved maintainability and clarity. Update `initErrors` to use the new method." />
     <MESSAGE value="Enhance diagnostics system by introducing location tracking in `DiagnosticElement`. Refactor `Lexer` and `SourceFile` to use `addError` with location data for improved error reporting." />
     <MESSAGE value="Implement `SourceCodeLocation` structure to enhance error reporting with accurate line and column details. Refactor `Lexer` and `DiagnosticElement` to support location-aware diagnostics and improve logging with contextual information." />
@@ -501,7 +498,8 @@
     <MESSAGE value="Simplify `consumeOneEol` logic in `Lexer` by refactoring EOL handling and consolidating line tracking." />
     <MESSAGE value="Add support for hexadecimal and binary number literals in `Lexer`. Introduce `LangSpec` utilities for number parsing and validation, including separator and malformed number diagnostics. Update project files and `.idea/workspace.xml` for related changes." />
     <MESSAGE value="Improve diagnostics with enhanced error reporting. Add detailed code line display with marking for errors in `Logger`. Refactor `SourceFile` to include `codeLine` utility to extract specific lines. Update `Lexer` for separator validation and hex digits diagnostics. Adjust `.idea/workspace.xml` and project files." />
-    <option name="LAST_COMMIT_MESSAGE" value="Improve diagnostics with enhanced error reporting. Add detailed code line display with marking for errors in `Logger`. Refactor `SourceFile` to include `codeLine` utility to extract specific lines. Update `Lexer` for separator validation and hex digits diagnostics. Adjust `.idea/workspace.xml` and project files." />
+    <MESSAGE value="Introduce `CommandLine` utility to manage configuration options like tab size. Refactor diagnostics system in `Reporter` to improve column calculation and error highlighting with tab expansion. Update `SourceFile`, `SourceCodeLocation`, and dependent modules for compatibility. Adjust project files and `.idea/workspace.xml`." />
+    <option name="LAST_COMMIT_MESSAGE" value="Introduce `CommandLine` utility to manage configuration options like tab size. Refactor diagnostics system in `Reporter` to improve column calculation and error highlighting with tab expansion. Update `SourceFile`, `SourceCodeLocation`, and dependent modules for compatibility. Adjust project files and `.idea/workspace.xml`." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -525,23 +523,8 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/src/Lexer/Lexer.cpp</url>
-          <line>244</line>
-          <option name="timeStamp" value="27" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/src/Lexer/Lexer.cpp</url>
-          <line>254</line>
-          <option name="timeStamp" value="28" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/src/Lexer/Lexer.cpp</url>
-          <line>264</line>
-          <option name="timeStamp" value="29" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/src/Lexer/SourceFile.cpp</url>
-          <line>126</line>
-          <option name="timeStamp" value="30" />
+          <line>159</line>
+          <option name="timeStamp" value="34" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

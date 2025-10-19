@@ -15,7 +15,7 @@ DiagnosticElement* Diagnostic::addElement(DiagnosticKind kind, DiagnosticId id)
     return raw;
 }
 
-void Diagnostic::log(const CompilerInstance& ci) const
+Result Diagnostic::report(const CompilerInstance& ci) const
 {
     auto&       logger   = ci.logger();
     const auto& reporter = ci.diagReporter();
@@ -52,4 +52,5 @@ void Diagnostic::log(const CompilerInstance& ci) const
     }
 
     logger.unlock();
+    return Result::Error;   
 }

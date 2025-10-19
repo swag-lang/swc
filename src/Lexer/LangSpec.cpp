@@ -23,10 +23,6 @@ void LangSpec::initCharFlags()
     charFlags_['\f'].add(CHAR_BLANK); // Form feed (0x0C)
     charFlags_['\v'].add(CHAR_BLANK); // Vertical tab (0x0B)
 
-    // Eol
-    charFlags_['\r'].add(CHAR_EOL); // Carriage return (0x0D)
-    charFlags_['\n'].add(CHAR_EOL); // Line
-
     // Digits (0-9)
     for (char c = '0'; c <= '9'; c++)
         charFlags_[static_cast<uint8_t>(c)].add(CHAR_DIGIT);

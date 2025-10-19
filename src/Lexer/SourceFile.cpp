@@ -42,7 +42,7 @@ Result SourceFile::checkFormat(const CompilerInstance& ci, const CompilerContext
         Diagnostic diag;
         const auto elem = diag.addElement(DiagnosticKind::Error, DiagnosticId::FileNotUtf8);
         elem->addArgument(path_.string());
-        ci.diagReporter().report(ci, ctx, diag);
+        diag.report(ci);
         return Result::Error;
     }
 
@@ -62,7 +62,7 @@ Result SourceFile::loadContent(const CompilerInstance& ci, const CompilerContext
         const auto elem = diag.addError(DiagnosticId::CannotOpenFile);
         elem->setLocation(this);
         elem->addArgument(path_.string());
-        ci.diagReporter().report(ci, ctx, diag);
+        diag.report(ci);
         return Result::Error;
     }
 
@@ -76,7 +76,7 @@ Result SourceFile::loadContent(const CompilerInstance& ci, const CompilerContext
         const auto elem = diag.addError(DiagnosticId::CannotReadFile);
         elem->setLocation(this);
         elem->addArgument(path_.string());
-        ci.diagReporter().report(ci, ctx, diag);
+        diag.report(ci);
         return Result::Error;
     }
 

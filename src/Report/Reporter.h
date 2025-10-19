@@ -13,8 +13,6 @@ public:
     
     std::string_view diagMessage(DiagnosticId id) const;
 
-    static void report(const CompilerInstance& ci, const CompilerContext& ctx, const Diagnostic& diag);
-
 private:
     std::vector<std::string_view> diagMsgs_;
 

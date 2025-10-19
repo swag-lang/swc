@@ -36,7 +36,7 @@ Result Lexer::parseEol()
     consumeOneEol();
 
     // Collapse subsequent EOLs (any mix of CR/LF/CRLF).
-    while (buffer_ < end_ && langSpec_->isEol(buffer_[0]))
+    while (buffer_ < end_ && (buffer_[0] == '\r' || buffer_[0] == '\n'))
         consumeOneEol();
 
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
@@ -72,16 +72,16 @@ Result Lexer::parseSingleLineStringLiteral()
         if (buffer_[0] == '"')
             break;
 
-        if (langSpec_->isEol(buffer_[0]))
+        if (buffer_[0] == '\n' || buffer_[0] == '\r')
         {
             consumeOneEol();
             Diagnostic diag;
             const auto elem = diag.addError(DiagnosticId::EolInStringLiteral);
             elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
-            ci_->diagReporter().report(*ci_, *ctx_, diag);
-            return Result::Error;
+            return diag.report(*ci_);
         }
 
+        // Escaped char
         if (buffer_[0] == '\\')
         {
             // Need one more char to escape
@@ -90,8 +90,7 @@ Result Lexer::parseSingleLineStringLiteral()
                 Diagnostic diag;
                 const auto elem = diag.addError(DiagnosticId::UnclosedStringLiteral);
                 elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_));
-                ci_->diagReporter().report(*ci_, *ctx_, diag);
-                return Result::Error;
+                return diag.report(*ci_);
             }
 
             buffer_ += 2; // skip '\' and escaped char
@@ -106,8 +105,7 @@ Result Lexer::parseSingleLineStringLiteral()
         Diagnostic diag;
         const auto elem = diag.addError(DiagnosticId::UnclosedStringLiteral);
         elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_));
-        ci_->diagReporter().report(*ci_, *ctx_, diag);
-        return Result::Error;
+        return diag.report(*ci_);
     }
 
     buffer_ += 1; // consume closing '"'
@@ -128,20 +126,27 @@ Result Lexer::parseMultiLineStringLiteral()
     while (buffer_ < end_)
     {
         // Track line starts for accurate diagnostics later
-        if (langSpec_->isEol(buffer_[0]))
+        if (buffer_[0] == '\n' || buffer_[0] == '\r')
         {
             consumeOneEol();
             continue;
         }
 
-        // Support escaping inside multi-line strings
-        if (*buffer_ == '\\')
+        // Escaped char
+        if (buffer_[0] == '\\')
         {
+            // Need one more char to escape
             if (buffer_ + 1 >= end_)
-                break; // will report unclosed below
-            buffer_ += 2;
+            {
+                Diagnostic diag;
+                const auto elem = diag.addError(DiagnosticId::UnclosedStringLiteral);
+                elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_));
+                return diag.report(*ci_);
+            }
+
+            buffer_ += 2; // skip '\' and escaped char
             continue;
-        }
+        }        
 
         // Closing delimiter
         if (buffer_ + 2 < end_ && buffer_[0] == '"' && buffer_[1] == '"' && buffer_[2] == '"')
@@ -158,10 +163,8 @@ Result Lexer::parseMultiLineStringLiteral()
     // EOF before closing delimiter
     Diagnostic diag;
     const auto elem = diag.addError(DiagnosticId::UnclosedStringLiteral);
-    elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_));
-    ci_->diagReporter().report(*ci_, *ctx_, diag);
-
-    return Result::Error;
+    elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_), 3);
+    return diag.report(*ci_);
 }
 
 Result Lexer::parseRawStringLiteral()
@@ -175,7 +178,7 @@ Result Lexer::parseRawStringLiteral()
 
     while (buffer_ < end_ - 1 && (buffer_[0] != '"' || buffer_[1] != '#'))
     {
-        if (langSpec_->isEol(buffer_[0]))
+        if (buffer_[0] == '\n' || buffer_[0] == '\r')
         {
             consumeOneEol();
             continue;
@@ -184,12 +187,12 @@ Result Lexer::parseRawStringLiteral()
         buffer_++;
     }
 
-    if (buffer_ >= end_ - 1)
+    if (buffer_ + 1 >= end_)
     {
         Diagnostic diag;
         const auto elem = diag.addError(DiagnosticId::UnclosedStringLiteral);
-        elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_));
-        ci_->diagReporter().report(*ci_, *ctx_, diag);
+        elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_), 2);
+        diag.report(*ci_);
         return Result::Error;
     }
 
@@ -222,7 +225,7 @@ Result Lexer::parseHexNumber()
                 while (buffer_ < end_ && langSpec_->isNumberSep(buffer_[0]))
                     buffer_++;
                 elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startSep - startBuffer_), static_cast<uint32_t>(buffer_ - startSep));
-                ci_->diagReporter().report(*ci_, *ctx_, diag);
+                diag.report(*ci_);
                 return Result::Error;
             }
 
@@ -243,7 +246,7 @@ Result Lexer::parseHexNumber()
         Diagnostic diag;
         const auto elem = diag.addError(DiagnosticId::SyntaxMissingHexDigits);
         elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_), 2);
-        ci_->diagReporter().report(*ci_, *ctx_, diag);
+        diag.report(*ci_);
         return Result::Error;
     }
 
@@ -253,7 +256,7 @@ Result Lexer::parseHexNumber()
         Diagnostic diag;
         const auto elem = diag.addError(DiagnosticId::SyntaxNumberSepAtEnd);
         elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
-        ci_->diagReporter().report(*ci_, *ctx_, diag);
+        diag.report(*ci_);
         return Result::Error;
     }
 
@@ -263,7 +266,7 @@ Result Lexer::parseHexNumber()
         Diagnostic diag;
         const auto elem = diag.addError(DiagnosticId::SyntaxMalformedHexNumber);
         elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(buffer_ - startBuffer_));
-        ci_->diagReporter().report(*ci_, *ctx_, diag);
+        diag.report(*ci_);
         return Result::Error;
     }
 
@@ -324,7 +327,7 @@ Result Lexer::parseMultiLineComment()
 
     while (buffer_ < end_ && depth > 0)
     {
-        if (langSpec_->isEol(buffer_[0]))
+        if (buffer_[0] == '\n' || buffer_[0] == '\r')
         {
             consumeOneEol();
             continue;
@@ -356,7 +359,7 @@ Result Lexer::parseMultiLineComment()
         Diagnostic diag;
         const auto elem = diag.addError(DiagnosticId::UnclosedComment);
         elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_), 2);
-        ci_->diagReporter().report(*ci_, *ctx_, diag);
+        diag.report(*ci_);
         return Result::Error;
     }
 
@@ -388,7 +391,7 @@ Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
         token_.len            = 1;
 
         // End of line (LF, CRLF, or CR)
-        if (langSpec_->isEol(buffer_[0]))
+        if (buffer_[0] == '\n' || buffer_[0] == '\r')
         {
             SWAG_CHECK(parseEol());
             continue;

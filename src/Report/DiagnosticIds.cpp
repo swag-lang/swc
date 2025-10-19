@@ -2,16 +2,18 @@
 
 #include "Report/Reporter.h"
 
-#define SWAG_DIAG(__n, __msg)                         \
-    do                                                \
-    {                                                 \
-        diagMsgs_[(int) (DiagnosticId::__n)] = __msg; \
-    } while (0)
+void Reporter::addError(DiagnosticId id, std::string_view msg)
+{
+    const auto index = static_cast<size_t>(id);
+    if (index >= diagMsgs_.size())
+        diagMsgs_.resize(index + 1);
+    diagMsgs_[index] = msg;
+}
 
 void Reporter::initErrors()
 {
-    SWAG_DIAG(CannotOpenFile, "failed to open file %0");
-    SWAG_DIAG(CannotReadFile, "failed to read file %0");
-    SWAG_DIAG(FileNotUtf8, "source file %0 is not utf8");
-    SWAG_DIAG(UnclosedComment, "unclose multi-line comment");
+    addError(DiagnosticId::CannotOpenFile, "failed to open file %0");
+    addError(DiagnosticId::CannotReadFile, "failed to read file %0");
+    addError(DiagnosticId::FileNotUtf8, "source file %0 is not utf8");
+    addError(DiagnosticId::UnclosedComment, "unclose multi-line comment");
 }

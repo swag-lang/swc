@@ -19,5 +19,6 @@ public:
 private:
     std::vector<std::string_view> diagMsgs_;
 
+    void addError(DiagnosticId id, std::string_view msg);
     void initErrors();
 };

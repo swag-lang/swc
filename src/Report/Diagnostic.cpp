@@ -32,7 +32,7 @@ Result Diagnostic::report(const CompilerInstance& ci) const
             if (e->len_ != 0)
             {
                 const auto  loc = e->getLocation(ci);
-                std::string s   = std::format("{}:{}", loc.line, loc.column);
+                Utf8 s   = std::format("{}:{}", loc.line, loc.column);
                 logger.log(s);
                 logger.logEol();
                 const auto code = e->file_->codeLine(ci, loc.line);

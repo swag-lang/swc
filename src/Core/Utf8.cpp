@@ -1,6 +1,32 @@
 #include "pch.h"
 #include "Utf8.h"
 
+#include <algorithm>
+
+void Utf8::trimStart()
+{
+    auto isNotSpace = [](unsigned char ch) {
+        return !std::isspace(ch);
+    };
+
+    erase(begin(), std::ranges::find_if(begin(), end(), isNotSpace));
+}
+
+void Utf8::trimEnd()
+{
+    auto isNotSpace = [](unsigned char ch) {
+        return !std::isspace(ch);
+    };
+
+    erase(std::ranges::find_if(rbegin(), rend(), isNotSpace).base(), end());
+}
+
+void Utf8::trim()
+{
+    trimStart();
+    trimEnd();
+}
+
 // Returns {next_ptr, code_point, bytes_consumed}.
 // On error: {nullptr, 0, 0}.
 std::tuple<const char*, uint32_t, unsigned> Utf8::decode(const char* p, const char* end)

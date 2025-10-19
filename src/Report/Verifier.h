@@ -6,8 +6,8 @@ enum class DiagnosticKind;
 
 struct VerifierDirective
 {
-    DiagnosticKind   kind;
-    std::string_view match;
+    DiagnosticKind kind;
+    Utf8           match;
 };
 
 class Verifier

@@ -18,17 +18,15 @@ Result Verifier::tokenize(const CompilerInstance& ci, const CompilerContext& ctx
     SWAG_CHECK(lexer.tokenize(ci, ctx, LEXER_EXTRACT_COMMENTS_MODE));
 
     // Parse all comments to find a verify directive
+    constexpr std::string_view needle = "expected-";
     for (const auto& token : lexer.tokens())
     {
-        auto comment = token.toString(file);
-
-        std::string_view           sv(comment);
-        size_t                     pos    = 0;
-        constexpr std::string_view needle = "expected-";
+        auto   comment = token.toString(file);
+        size_t pos     = 0;
         while (true)
         {
             pos = comment.find(needle, pos);
-            if (pos == std::string::npos)
+            if (pos == Utf8::npos)
                 break;
 
             VerifierDirective directive;
@@ -49,9 +47,12 @@ Result Verifier::tokenize(const CompilerInstance& ci, const CompilerContext& ctx
 
             // Get directive string
             directive.match = comment.substr(j, comment.size());
+            directive.match.trim();
 
             // One more
             directives_.emplace_back(directive);
+
+            pos = j;
         }
     }
 

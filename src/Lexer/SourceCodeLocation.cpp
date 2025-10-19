@@ -1,6 +1,5 @@
 #include "pch.h"
 
-#include "Core/Utf8.h"
 #include "Lexer/Lexer.h"
 #include "Lexer/SourceCodeLocation.h"
 #include "Lexer/SourceFile.h"

@@ -2,7 +2,7 @@
 #include "Logger.h"
 #include <iostream>
 
-void Logger::log(std::string message)
+void Logger::log(Utf8 message)
 {
     std::cout << message;   
 }

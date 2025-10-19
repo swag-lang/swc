@@ -54,27 +54,32 @@ Result SourceFile::tokenize(const CompilerInstance& ci, const CompilerContext& c
     return lexer_.tokenize(ci, ctx);
 }
 
-std::string SourceFile::codeLine(const CompilerInstance& ci, uint32_t line) const
+Utf8 SourceFile::codeLine(const CompilerInstance& ci, uint32_t line) const
 {
     line--;
     SWAG_ASSERT(line < lexer_.lines().size());
 
-    std::string result;
-    const auto  offset = lexer_.lines()[line];
+    Utf8       result;
+    const auto offset      = lexer_.lines()[line];
+    const auto startBuffer = reinterpret_cast<const char*>(content_.data() + offset);
+
     if (line == lexer_.lines().size() - 1)
     {
-        auto       buffer = content_.data() + offset;
-        const auto end    = content_.data() + content_.size();
+        auto       buffer = startBuffer;
+        const auto end    = reinterpret_cast<const char*>(content_.data() + content_.size());
         while (buffer + 1 < end && buffer[0] != '\n' && buffer[0] != '\r')
             buffer++;
-        result = {content_.data() + offset, buffer};
+        result = Utf8{std::string_view{startBuffer, buffer}};
     }
     else
-        result = {content_.data() + offset, content_.data() + lexer_.lines()[line + 1] - 1};
+    {
+        const auto end = reinterpret_cast<const char*>(content_.data() + lexer_.lines()[line + 1]);
+        result         = Utf8{std::string_view{startBuffer, end}};
+    }
 
     // Transform tabulations to blanks in order for columns to match
     const uint32_t tabSize = ci.cmdLine().tabSize;
-    std::string    expanded;
+    Utf8           expanded;
     expanded.reserve(result.size());
 
     size_t column = 0;

@@ -10,7 +10,7 @@ enum class DiagnosticId;
 class DiagnosticElement
 {
     friend class Diagnostic;
-    using Argument = std::variant<std::string, uint64_t, int64_t>;
+    using Argument = std::variant<Utf8, uint64_t, int64_t>;
 
     DiagnosticId      id_;
     DiagnosticKind    kind_;
@@ -20,7 +20,7 @@ class DiagnosticElement
 
     std::vector<Argument> arguments_;
 
-    std::string argumentToString(const Argument& arg) const;
+    Utf8 argumentToString(const Argument& arg) const;
 
 public:
     explicit DiagnosticElement(DiagnosticKind kind, DiagnosticId id);
@@ -46,5 +46,5 @@ public:
         arguments_.emplace_back(std::forward<T>(arg));
     }
 
-    std::string format(const Reporter& reporter) const;
+    Utf8 format(const Reporter& reporter) const;
 };

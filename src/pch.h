@@ -15,3 +15,4 @@ namespace fs = std::filesystem;
 #define SWAG_HAS_ASSERT 1
 
 #include "Report/Check.h"
+#include "Core/Utf8.h"

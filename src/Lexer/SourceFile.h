@@ -23,7 +23,7 @@ public:
     const Lexer&                lexer() const { return lexer_; }
     const std::vector<Token>&   tokens() const { return lexer_.tokens(); }
 
-    Result      loadContent(const CompilerInstance& ci, const CompilerContext& ctx);
-    Result      tokenize(const CompilerInstance& ci, const CompilerContext& ctx);
-    std::string codeLine(const CompilerInstance& ci, uint32_t line) const;
+    Result loadContent(const CompilerInstance& ci, const CompilerContext& ctx);
+    Result tokenize(const CompilerInstance& ci, const CompilerContext& ctx);
+    Utf8   codeLine(const CompilerInstance& ci, uint32_t line) const;
 };

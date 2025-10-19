@@ -10,11 +10,11 @@ DiagnosticElement::DiagnosticElement(DiagnosticKind kind, DiagnosticId id) :
 }
 
 // Helper function to convert variant argument to string
-std::string DiagnosticElement::argumentToString(const Argument& arg) const
+Utf8 DiagnosticElement::argumentToString(const Argument& arg) const
 {
-    return std::visit([]<typename T0>(const T0& value) -> std::string {
+    return std::visit([]<typename T0>(const T0& value) -> Utf8 {
         using T = std::decay_t<T0>;
-        if constexpr (std::is_same_v<T, std::string>)
+        if constexpr (std::is_same_v<T, Utf8>)
         {
             return value;
         }
@@ -39,18 +39,18 @@ SourceCodeLocation DiagnosticElement::getLocation(const CompilerInstance& ci) co
 }
 
 // Format a string by replacing %0, %1, etc. with registered arguments
-std::string DiagnosticElement::format(const Reporter& reporter) const
+Utf8 DiagnosticElement::format(const Reporter& reporter) const
 {
-    std::string result{reporter.diagMessage(id_)};
+    Utf8 result{reporter.diagMessage(id_)};
 
     // Replace placeholders in reverse order to avoid issues with %10 versus %1
     for (int i = static_cast<int>(arguments_.size()) - 1; i >= 0; --i)
     {
-        std::string placeholder = "%" + std::to_string(i);
-        std::string replacement = argumentToString(arguments_[i]);
+        Utf8 placeholder = "%" + std::to_string(i);
+        Utf8 replacement = argumentToString(arguments_[i]);
 
         size_t pos = 0;
-        while ((pos = result.find(placeholder, pos)) != std::string::npos)
+        while ((pos = result.find(placeholder, pos)) != Utf8::npos)
         {
             result.replace(pos, placeholder.length(), replacement);
             pos += replacement.length();

@@ -262,7 +262,7 @@ void Lexer::parseHexNumber()
     if (!error && lastWasSep)
     {
         Diagnostic diag(ctx_->sourceFile());
-        const auto elem = diag.addError(DiagnosticId::NumberSepAtEnd);
+        const auto elem = diag.addError(DiagnosticId::NumberSepEnd);
         elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
         reportError(diag);
         error = true;

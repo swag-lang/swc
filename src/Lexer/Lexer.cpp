@@ -70,10 +70,10 @@ Result Lexer::tokenize(CompilerInstance& ci, const CompilerContext& ctx)
 
             if (depth > 0)
             {
-                const auto diag = Diagnostic::instance();
-                const auto elem = diag->addError(DiagnosticId::UnclosedComment);
+                Diagnostic diag;
+                const auto elem = diag.addError(DiagnosticId::UnclosedComment);
                 elem->setLocation(ctx.sourceFile(), static_cast<uint32_t>(startComment - start), 2);
-                ci.diagReporter().report(ci, ctx, *diag);
+                ci.diagReporter().report(ci, ctx, diag);
                 return Result::Error;
             }
 

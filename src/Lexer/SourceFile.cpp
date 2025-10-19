@@ -38,10 +38,10 @@ Result SourceFile::checkFormat(CompilerInstance &ci, CompilerContext &ctx)
         || (c1 == 0x84 && c2 == 0x31 && c3 == 0x95 && c4 == 0x33) // GB-18030
     )
     {
-        const auto diag = Diagnostic::instance();
-        const auto elem = diag->addElement(DiagnosticKind::Error, DiagnosticId::FileNotUtf8);
+        Diagnostic diag;
+        const auto elem = diag.addElement(DiagnosticKind::Error, DiagnosticId::FileNotUtf8);
         elem->addArgument(path_.string());
-        ci.diagReporter().report(ci, ctx, *diag);
+        ci.diagReporter().report(ci, ctx, diag);
         return Result::Error;
     }
 
@@ -57,11 +57,11 @@ Result SourceFile::loadContent(CompilerInstance &ci, CompilerContext &ctx)
 
     if (!file)
     {
-        const auto diag = Diagnostic::instance();
-        const auto elem = diag->addError(DiagnosticId::CannotOpenFile);
+        Diagnostic diag;
+        const auto elem = diag.addError(DiagnosticId::CannotOpenFile);
         elem->setLocation(this);
         elem->addArgument(path_.string());
-        ci.diagReporter().report(ci, ctx, *diag);
+        ci.diagReporter().report(ci, ctx, diag);
         return Result::Error;
     }
 
@@ -71,11 +71,11 @@ Result SourceFile::loadContent(CompilerInstance &ci, CompilerContext &ctx)
     
     if (!file.read(reinterpret_cast<char*>(content_.data()), fileSize))
     {
-        const auto diag = Diagnostic::instance();
-        const auto elem = diag->addError(DiagnosticId::CannotReadFile);
+        Diagnostic diag;
+        const auto elem = diag.addError(DiagnosticId::CannotReadFile);
         elem->setLocation(this);
         elem->addArgument(path_.string());
-        ci.diagReporter().report(ci, ctx, *diag);
+        ci.diagReporter().report(ci, ctx, diag);
         return Result::Error;        
     }
 

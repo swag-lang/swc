@@ -67,14 +67,16 @@ Utf8 SourceFile::codeLine(const CompilerInstance& ci, uint32_t line) const
     {
         auto       buffer = startBuffer;
         const auto end    = reinterpret_cast<const char*>(content_.data() + content_.size());
+
         while (buffer + 1 < end && buffer[0] != '\n' && buffer[0] != '\r')
             buffer++;
-        result = Utf8{std::string_view{startBuffer, buffer}};
+        result = std::string_view{startBuffer, buffer};
     }
     else
     {
         const auto end = reinterpret_cast<const char*>(content_.data() + lexer_.lines()[line + 1]);
-        result         = Utf8{std::string_view{startBuffer, end}};
+
+        result = std::string_view{startBuffer, end};
     }
 
     // Transform tabulations to blanks in order for columns to match

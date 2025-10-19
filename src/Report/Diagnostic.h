@@ -20,6 +20,8 @@ class Diagnostic
 {
     std::vector<std::unique_ptr<DiagnosticElement>> elements_;
 
+    Utf8 build(const CompilerInstance& ci) const;
+    
 public:
     Result report(const CompilerInstance& ci) const;
 

@@ -5,7 +5,6 @@
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticElement.h"
 #include "Report/Logger.h"
-#include "Reporter.h"
 
 DiagnosticElement* Diagnostic::addElement(DiagnosticKind kind, DiagnosticId id)
 {
@@ -15,42 +14,50 @@ DiagnosticElement* Diagnostic::addElement(DiagnosticKind kind, DiagnosticId id)
     return raw;
 }
 
-Result Diagnostic::report(const CompilerInstance& ci) const
+Utf8 Diagnostic::build(const CompilerInstance& ci) const
 {
-    auto&       logger   = ci.logger();
     const auto& reporter = ci.diagReporter();
+    Utf8        result;
 
-    logger.lock();
-
-    logger.logEol();
     for (auto& e : elements_)
     {
         if (e->file_ != nullptr)
         {
-            logger.log(e->file_->fullName().string());
-            logger.log(": ");
+            result += e->file_->fullName().string();
+            result += ": ";
             if (e->len_ != 0)
             {
-                const auto  loc = e->getLocation(ci);
-                Utf8 s   = std::format("{}:{}", loc.line, loc.column);
-                logger.log(s);
-                logger.logEol();
+                const auto loc = e->getLocation(ci);
+                Utf8       s   = std::format("{}:{}", loc.line, loc.column);
+                result += s;
+                result += "\n";
                 const auto code = e->file_->codeLine(ci, loc.line);
-                logger.log(code);
-                logger.logEol();
+                result += code;
+                result += "\n";
                 for (uint32_t i = 1; i < loc.column; ++i)
-                    logger.log(" ");
+                    result += " ";
                 for (uint32_t i = 0; i < e->len_; ++i)
-                    logger.log("^");
-                logger.logEol();
+                    result += "^";
+                result += "\n";
             }
         }
 
         const auto errMsg = e->format(reporter);
-        logger.log(errMsg);
-        logger.logEol();
+        result += errMsg;
+        result += "\n";
     }
 
+    return result;
+}
+
+Result Diagnostic::report(const CompilerInstance& ci) const
+{
+    auto& logger = ci.logger();
+
+    logger.lock();
+    logger.logEol();
+    logger.log(build(ci));
     logger.unlock();
-    return Result::Error;   
+    
+    return Result::Error;
 }

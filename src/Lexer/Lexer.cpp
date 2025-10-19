@@ -1,12 +1,109 @@
 #include "pch.h"
 
-#include "Core/Utf8.h"
 #include "LangSpec.h"
 #include "Lexer/Lexer.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CompilerContext.h"
 #include "Main/CompilerInstance.h"
 #include "Report/Reporter.h"
+
+const uint8_t* Lexer::parseEol(const uint8_t* buffer, const uint8_t* startBuffer, const uint8_t* end)
+{
+    token_.id                 = TokenId::Eol;
+    const uint8_t* startToken = buffer;
+
+    buffer++;
+    lines_.push_back(static_cast<uint32_t>(buffer - startBuffer));
+
+    while (buffer < end && buffer[0] == '\n')
+    {
+        buffer++;
+        lines_.push_back(static_cast<uint32_t>(buffer - startBuffer));
+    }
+
+    token_.len = static_cast<uint32_t>(buffer - startToken);
+    tokens_.push_back(token_);
+
+    return buffer;
+}
+
+const uint8_t* Lexer::parseBlank(const LangSpec& langSpec, const uint8_t* buffer, const uint8_t* startBuffer, const uint8_t* end)
+{
+    token_.id                 = TokenId::Blank;
+    const uint8_t* startToken = buffer;
+
+    buffer++;
+
+    while (buffer < end && langSpec.isBlank(buffer[0]))
+        buffer++;
+
+    token_.len = static_cast<uint32_t>(buffer - startToken);
+    tokens_.push_back(token_);
+
+    return buffer;
+}
+
+const uint8_t* Lexer::parseSingleLineComment(const uint8_t* buffer, const uint8_t* startBuffer, const uint8_t* end)
+{
+    token_.id                 = TokenId::LineComment;
+    const uint8_t* startToken = buffer;
+
+    while (buffer < end && buffer[0] != '\n')
+    {
+        buffer++;
+    }
+
+    token_.len = static_cast<uint32_t>(buffer - startToken);
+    tokens_.push_back(token_);
+
+    return buffer;
+}
+
+const uint8_t* Lexer::parseMultiLineComment(const CompilerInstance& ci, const CompilerContext& ctx, const uint8_t* buffer, const uint8_t* startBuffer, const uint8_t* end)
+{
+    token_.id                 = TokenId::MultiLineComment;
+    const uint8_t* startToken = buffer;
+
+    buffer += 2;
+    uint32_t depth = 1;
+
+    while (buffer < end && depth > 0)
+    {
+        // Need two chars to check either "/*" or "*/"
+        if (buffer + 1 >= end)
+            break;
+
+        if (buffer[0] == '/' && buffer[1] == '*')
+        {
+            depth++;
+            buffer += 2;
+            continue;
+        }
+
+        if (buffer[0] == '*' && buffer[1] == '/')
+        {
+            depth--;
+            buffer += 2;
+            continue;
+        }
+
+        buffer++;
+    }
+
+    if (depth > 0)
+    {
+        Diagnostic diag;
+        const auto elem = diag.addError(DiagnosticId::UnclosedComment);
+        elem->setLocation(ctx.sourceFile(), static_cast<uint32_t>(startToken - startBuffer), 2);
+        ci.diagReporter().report(ci, ctx, diag);
+        return nullptr;
+    }
+
+    token_.len = static_cast<uint32_t>(buffer - startToken);
+    tokens_.push_back(token_);
+
+    return buffer;
+}
 
 Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
 {
@@ -28,107 +125,38 @@ Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
         token_.len            = 1;
 
         // End of line
-        /////////////////////////////////////////
-        if (buffer[0] == '\n' || buffer[0] == '\r')
+        if (buffer[0] == '\n')
         {
-            token_.id = TokenId::Eol;
-
-            // Consume \r or \n
-            const char eol = *buffer++;
-            if (eol == '\r' && buffer < end && *buffer == '\n')
-                buffer++; // handle Windows-style \r\n
-
-            lines_.push_back(static_cast<uint32_t>(buffer - startBuffer));
-
-            // Handle consecutive empty lines (any of \n, \r, or \r\n)
-            while (buffer < end && (*buffer == '\n' || *buffer == '\r'))
-            {
-                const char nextEol = *buffer++;
-                if (nextEol == '\r' && buffer < end && *buffer == '\n')
-                    buffer++;
-                lines_.push_back(static_cast<uint32_t>(buffer - startBuffer));
-            }
-
-            token_.len = static_cast<uint32_t>(buffer - startToken);
-            tokens_.push_back(token_);
-            continue;
-        }
-
-        // Blanks
-        /////////////////////////////////////////
-        uint32_t offset = 0;
-        if (langSpec.isBlank(buffer, end, offset))
-        {
-            token_.id = TokenId::Blank;
-            buffer += offset;
-
-            while (buffer < end && langSpec.isBlank(buffer, end, offset))
-                buffer += offset;
-
-            token_.len = static_cast<uint32_t>(buffer - startToken);
-            tokens_.push_back(token_);
+            buffer = parseEol(buffer, startBuffer, end);
+            if (!buffer)
+                return Result::Error;            
             continue;
         }
 
         // Line comment
-        /////////////////////////////////////////
-        if (buffer + 1 < end && buffer[0] == '/' && buffer[1] == '/')
+        if (buffer[0] == '/' && buffer[1] == '/')
         {
-            token_.id = TokenId::LineComment;
-
-            while (buffer < end && buffer[0] != '\n')
-            {
-                token_.len++;
-                buffer++;
-            }
-
-            token_.len = static_cast<uint32_t>(buffer - startToken);
-            tokens_.push_back(token_);
+            buffer = parseSingleLineComment(buffer, startBuffer, end);
+            if (!buffer)
+                return Result::Error;            
             continue;
         }
 
         // Multi-line comment
-        /////////////////////////////////////////
-        if (buffer + 1 < end && buffer[0] == '/' && buffer[1] == '*')
+        if (buffer[0] == '/' && buffer[1] == '*')
         {
-            token_.id = TokenId::MultiLineComment;
-
-            buffer += 2;
-            uint32_t depth = 1;
-            while (buffer < end && depth > 0)
-            {
-                // Need two chars to check either "/*" or "*/"
-                if (buffer + 1 >= end)
-                    break;
-
-                if (buffer[0] == '/' && buffer[1] == '*')
-                {
-                    depth++;
-                    buffer += 2;
-                    continue;
-                }
-
-                while (buffer[0] == '*' && buffer[1] == '/')
-                {
-                    depth--;
-                    buffer += 2;
-                    continue;
-                }
-
-                buffer++;
-            }
-
-            if (depth > 0)
-            {
-                Diagnostic diag;
-                const auto elem = diag.addError(DiagnosticId::UnclosedComment);
-                elem->setLocation(ctx.sourceFile(), static_cast<uint32_t>(startToken - startBuffer), 2);
-                ci.diagReporter().report(ci, ctx, diag);
+            buffer = parseMultiLineComment(ci, ctx, buffer, startBuffer, end);
+            if (!buffer)
                 return Result::Error;
-            }
+            continue;
+        }
 
-            token_.len = static_cast<uint32_t>(buffer - startToken);
-            tokens_.push_back(token_);
+        // Blanks
+        if (langSpec.isBlank(buffer[0]))
+        {
+            buffer = parseBlank(langSpec, buffer, startBuffer, end);
+            if (!buffer)
+                return Result::Error;            
             continue;
         }
 

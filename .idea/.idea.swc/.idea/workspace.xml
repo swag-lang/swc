@@ -22,8 +22,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/src/Lexer/LangSpec.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/LangSpec.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,7 +37,7 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="cidr-memory-view://72" root0="FORCE_HIGHLIGHTING" />
+    <setting file="cidr-memory-view://75" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/Os.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/OsWin32.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Report/Assert.h" root0="FORCE_HIGHLIGHTING" />
@@ -369,7 +369,15 @@
       <option name="project" value="LOCAL" />
       <updated>1760857436380</updated>
     </task>
-    <option name="localTasksCounter" value="28" />
+    <task id="LOCAL-00028" summary="Refactor `LangSpec` and `Lexer` to enhance blank space handling with UTF-8 support. Adjust related methods, types, and tokenization logic. Update project files and `.idea/workspace.xml`.">
+      <option name="closed" value="true" />
+      <created>1760858454928</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1760858454928</updated>
+    </task>
+    <option name="localTasksCounter" value="29" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -379,8 +387,6 @@
   <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Refactor diagnostic system, improve file handling, and streamline project structure." />
-    <MESSAGE value="Introduce logging system, refine diagnostics management, incorporate `CompilerContext`, and enhance file handling." />
     <MESSAGE value="Simplify diagnostic formatting by embedding messages in `DiagReporter` and adjusting related API." />
     <MESSAGE value="Add format validation for source files and enhance diagnostics system." />
     <MESSAGE value="Refactor diagnostics system by introducing shorthand methods in `DiagReporter` and renaming diagnostic identifiers for clarity. Adjust source file error reporting to use new methods." />
@@ -404,7 +410,9 @@
     <MESSAGE value="Introduce `LangSpec` class and integrate it into `CompilerInstance`. Enhance UTF-8 utility to return structured output and improve tokenization by reordering blank handling logic. Update project and configuration files accordingly." />
     <MESSAGE value="Introduce `Flags` and `EnumFlags` templates to encapsulate bitwise operations. Extend `LangSpec` with character flag utilities for `isBlank`, `isDigit`, `isLetter`, and `isAscii` checks. Update `Lexer` to use `LangSpec` for enhanced tokenization. Modify project files to include `Flags.h`." />
     <MESSAGE value="Refactor `Lexer::tokenize` to improve buffer safety by adding bounds checking for comments. Update `.idea/workspace.xml` to reflect recent project changes." />
-    <option name="LAST_COMMIT_MESSAGE" value="Refactor `Lexer::tokenize` to improve buffer safety by adding bounds checking for comments. Update `.idea/workspace.xml` to reflect recent project changes." />
+    <MESSAGE value="fix " />
+    <MESSAGE value="Refactor `LangSpec` and `Lexer` to enhance blank space handling with UTF-8 support. Adjust related methods, types, and tokenization logic. Update project files and `.idea/workspace.xml`." />
+    <option name="LAST_COMMIT_MESSAGE" value="Refactor `LangSpec` and `Lexer` to enhance blank space handling with UTF-8 support. Adjust related methods, types, and tokenization logic. Update project files and `.idea/workspace.xml`." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

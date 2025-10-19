@@ -4,6 +4,7 @@
 class CompilerContext;
 class CompilerInstance;
 class SourceFile;
+class LangSpec;
 
 class Lexer
 {
@@ -11,6 +12,11 @@ class Lexer
 
     std::vector<Token>    tokens_;
     std::vector<uint32_t> lines_;
+
+    const uint8_t* parseEol(const uint8_t* buffer, const uint8_t* startBuffer, const uint8_t* end);
+    const uint8_t* parseBlank(const LangSpec& langSpec, const uint8_t* buffer, const uint8_t* startBuffer, const uint8_t* end);
+    const uint8_t* parseSingleLineComment(const uint8_t* buffer, const uint8_t* startBuffer, const uint8_t* end);
+    const uint8_t* parseMultiLineComment(const CompilerInstance& ci, const CompilerContext& ctx, const uint8_t* buffer, const uint8_t* startBuffer, const uint8_t* end);
 
 public:
     const std::vector<Token>&    tokens() const { return tokens_; }

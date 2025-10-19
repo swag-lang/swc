@@ -11,6 +11,7 @@ Result Lexer::tokenize(CompilerInstance& ci, const CompilerContext& ctx)
 {
     const auto  file   = ctx.sourceFile();
     const char* buffer = reinterpret_cast<const char*>(file->content_.data()) + file->offsetStartBuffer_;
+    const char* start  = buffer;
     const char* end    = buffer + file->content_.size();
 
     tokens_.reserve(file->content_.size() / 8); // Heuristic
@@ -58,11 +59,12 @@ Result Lexer::tokenize(CompilerInstance& ci, const CompilerContext& ctx)
             if (depth > 0)
             {
                 const auto diag = Reporter::diagnostic();
-                const auto elem = diag->addElement(DiagnosticKind::Error, DiagnosticId::UnclosedComment);
+                const auto elem = diag->addError(DiagnosticId::UnclosedComment);
+                elem->setLocation(ctx.sourceFile(), static_cast<uint32_t>(buffer - start), 2);
                 ci.diagReporter().report(ci, ctx, *diag);
-                return Result::Error;           
+                return Result::Error;
             }
-            
+
             continue;
         }
 

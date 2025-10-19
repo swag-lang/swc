@@ -55,7 +55,8 @@ Result SourceFile::loadContent(CompilerInstance &ci, CompilerContext &ctx)
     if (!file)
     {
         const auto diag = Reporter::diagnostic();
-        const auto elem = diag->addElement(DiagnosticKind::Error, DiagnosticId::CannotOpenFile);
+        const auto elem = diag->addError(DiagnosticId::CannotOpenFile);
+        elem->setLocation(this);
         elem->addArgument(path_.string());
         ci.diagReporter().report(ci, ctx, *diag);
         return Result::Error;
@@ -68,7 +69,8 @@ Result SourceFile::loadContent(CompilerInstance &ci, CompilerContext &ctx)
     if (!file.read(reinterpret_cast<char*>(content_.data()), fileSize))
     {
         const auto diag = Reporter::diagnostic();
-        const auto elem = diag->addElement(DiagnosticKind::Error, DiagnosticId::CannotReadFile);
+        const auto elem = diag->addError(DiagnosticId::CannotReadFile);
+        elem->setLocation(this);
         elem->addArgument(path_.string());
         ci.diagReporter().report(ci, ctx, *diag);
         return Result::Error;        

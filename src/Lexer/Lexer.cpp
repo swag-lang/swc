@@ -7,55 +7,55 @@
 #include "Main/CompilerInstance.h"
 #include "Report/Reporter.h"
 
+// Consume exactly one logical EOL (CRLF | CR | LF). Push next line start.
+// Returns true if it consumed one logical EOL.
+void Lexer::consumeOneEol()
+{
+    SWAG_ASSERT(buffer_ < end_);
+
+    if (buffer_[0] == '\r')
+    {
+        if (buffer_ + 1 < end_ && buffer_[1] == '\n')
+            buffer_ += 2;
+        else
+            buffer_ += 1;
+        
+        lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
+        return;
+    }
+
+    if (buffer_[0] == '\n')
+    {
+        buffer_ += 1;
+        lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
+    }
+}
+
 Result Lexer::parseEol()
 {
     token_.id                 = TokenId::Eol;
     const uint8_t* startToken = buffer_;
 
-    // First EOL (handle CRLF and lone CR/LF)
-    if (buffer_[0] == '\r' && buffer_ + 1 < end_ && buffer_[1] == '\n')
-    {
-        buffer_ += 2;
-        lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
-    }
-    else if (buffer_[0] == '\r' || buffer_[0] == '\n')
-    {
-        buffer_ += 1;
-        lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
-    }
+    // Consume the first logical EOL.
+    consumeOneEol();
 
-    // Collapse subsequent EOLs (any mix of CR/LF/CRLF)
-    while (buffer_ < end_)
-    {
-        if (buffer_[0] == '\r' && buffer_ + 1 < end_ && buffer_[1] == '\n')
-        {
-            buffer_ += 2;
-            lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
-        }
-        else if (buffer_[0] == '\r' || buffer_[0] == '\n')
-        {
-            buffer_ += 1;
-            lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
-        }
-        else
-        {
-            break;
-        }
-    }
+    // Collapse subsequent EOLs (any mix of CR/LF/CRLF).
+    while (buffer_ < end_ && langSpec_->isEol(buffer_[0]))
+        consumeOneEol();
 
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
     tokens_.push_back(token_);
     return Result::Success;
 }
 
-Result Lexer::parseBlank(const LangSpec& langSpec)
+Result Lexer::parseBlank()
 {
     token_.id                 = TokenId::Blank;
     const uint8_t* startToken = buffer_;
 
     buffer_++;
 
-    while (buffer_ < end_ && langSpec.isBlank(buffer_[0]))
+    while (buffer_ < end_ && langSpec_->isBlank(buffer_[0]))
         buffer_++;
 
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
@@ -133,10 +133,9 @@ Result Lexer::parseMultiLineStringLiteral()
     while (buffer_ < end_)
     {
         // Track line starts for accurate diagnostics later
-        if (*buffer_ == '\n')
+        if (langSpec_->isEol(buffer_[0]))
         {
-            buffer_++;
-            lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
+            consumeOneEol();
             continue;
         }
 
@@ -176,17 +175,17 @@ Result Lexer::parseRawStringLiteral()
     token_.subTokenStringId   = SubTokenStringId::RawString;
     const uint8_t* startToken = buffer_;
 
+    // Opening is #"
     buffer_ += 2;
 
     while (buffer_ < end_ - 1 && (buffer_[0] != '"' || buffer_[1] != '#'))
     {
-        if (*buffer_ == '\n')
+        if (langSpec_->isEol(buffer_[0]))
         {
-            buffer_++;
-            lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
+            consumeOneEol();
             continue;
         }
-        
+
         buffer_++;
     }
 
@@ -199,6 +198,7 @@ Result Lexer::parseRawStringLiteral()
         return Result::Error;
     }
 
+    // Consume closing "#"
     buffer_ += 2;
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
     tokens_.push_back(token_);
@@ -211,7 +211,8 @@ Result Lexer::parseSingleLineComment()
     token_.id                 = TokenId::LineComment;
     const uint8_t* startToken = buffer_;
 
-    while (buffer_ < end_ && buffer_[0] != '\n')
+    // Stop before EOL (LF or CR), do not consume it here.
+    while (buffer_ < end_ && buffer_[0] != '\n' && buffer_[0] != '\r')
         buffer_++;
 
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
@@ -229,10 +230,9 @@ Result Lexer::parseMultiLineComment()
 
     while (buffer_ < end_ && depth > 0)
     {
-        if (*buffer_ == '\n')
+        if (langSpec_->isEol(buffer_[0]))
         {
-            buffer_++;
-            lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
+            consumeOneEol();
             continue;
         }
 
@@ -273,10 +273,10 @@ Result Lexer::parseMultiLineComment()
 
 Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
 {
-    const auto  file     = ctx.sourceFile();
-    const auto& langSpec = ci.langSpec();
-    ci_                  = &ci;
-    ctx_                 = &ctx;
+    const auto file = ctx.sourceFile();
+    langSpec_       = &ci.langSpec();
+    ci_             = &ci;
+    ctx_            = &ctx;
 
     const auto base = reinterpret_cast<const uint8_t*>(file->content_.data());
     buffer_         = base + file->offsetStartBuffer_;
@@ -293,17 +293,17 @@ Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
         token_.start          = static_cast<uint32_t>(startToken - startBuffer_);
         token_.len            = 1;
 
-        // End of line
-        if (buffer_[0] == '\n')
+        // End of line (LF, CRLF, or CR)
+        if (langSpec_->isEol(buffer_[0]))
         {
             SWAG_CHECK(parseEol());
             continue;
         }
 
         // Blanks
-        if (langSpec.isBlank(buffer_[0]))
+        if (langSpec_->isBlank(buffer_[0]))
         {
-            SWAG_CHECK(parseBlank(langSpec));
+            SWAG_CHECK(parseBlank());
             continue;
         }
 
@@ -334,7 +334,7 @@ Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
         }
 
         // Multi-line comment
-        if (buffer_  + 1 < end_ && buffer_[0] == '/' && buffer_[1] == '*')
+        if (buffer_ + 1 < end_ && buffer_[0] == '/' && buffer_[1] == '*')
         {
             SWAG_CHECK(parseMultiLineComment());
             continue;

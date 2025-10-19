@@ -18,9 +18,12 @@ class Lexer
     const uint8_t*          startBuffer_ = nullptr;
     const CompilerInstance* ci_          = nullptr;
     const CompilerContext*  ctx_         = nullptr;
+    const LangSpec*         langSpec_    = nullptr;
+
+    void consumeOneEol();
 
     Result parseEol();
-    Result parseBlank(const LangSpec& langSpec);
+    Result parseBlank();
     Result parseSingleLineStringLiteral();
     Result parseMultiLineStringLiteral();
     Result parseRawStringLiteral();

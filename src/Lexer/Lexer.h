@@ -15,6 +15,7 @@ class Lexer
 
     const uint8_t* parseEol(const uint8_t* buffer, const uint8_t* startBuffer, const uint8_t* end);
     const uint8_t* parseBlank(const LangSpec& langSpec, const uint8_t* buffer, const uint8_t* startBuffer, const uint8_t* end);
+    const uint8_t* parseSingleLineString(const CompilerInstance& ci, const CompilerContext& ctx, const uint8_t* buffer, const uint8_t* startBuffer, const uint8_t* end);
     const uint8_t* parseSingleLineComment(const uint8_t* buffer, const uint8_t* startBuffer, const uint8_t* end);
     const uint8_t* parseMultiLineComment(const CompilerInstance& ci, const CompilerContext& ctx, const uint8_t* buffer, const uint8_t* startBuffer, const uint8_t* end);
 

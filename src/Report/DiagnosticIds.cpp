@@ -12,8 +12,10 @@ void Reporter::addError(DiagnosticId id, std::string_view msg)
 
 void Reporter::initErrors()
 {
-    addError(DiagnosticId::CannotOpenFile, "failed to open file %0");
-    addError(DiagnosticId::CannotReadFile, "failed to read file %0");
-    addError(DiagnosticId::FileNotUtf8, "source file %0 is not utf8");
-    addError(DiagnosticId::UnclosedComment, "unclose multi-line comment");
+    addError(DiagnosticId::CannotOpenFile, "failed to open file");
+    addError(DiagnosticId::CannotReadFile, "failed to read file");
+    addError(DiagnosticId::FileNotUtf8, "source file is not utf8");
+    addError(DiagnosticId::UnclosedComment, "unclosed multi-line comment");
+    addError(DiagnosticId::EolInStringLiteral, "invalid eol in string");
+    addError(DiagnosticId::UnclosedStringLiteral, "unclosed string literal");   
 }

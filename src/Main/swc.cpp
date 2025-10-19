@@ -24,6 +24,7 @@ void parseFolder(CompilerInstance& ci, CompilerContext &ctx, const fs::path& dir
                 f->loadContent(ci, ctx);
                 ctx.setSourceFile(f);
                 f->tokenize(ci, ctx);
+                //printf(" %lld tokens", f->tokens().size());
             }
         }
     }

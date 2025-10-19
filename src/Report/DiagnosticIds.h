@@ -6,4 +6,6 @@ enum class DiagnosticId
     CannotReadFile,
     FileNotUtf8,
     UnclosedComment,
+    EolInStringLiteral,
+    UnclosedStringLiteral,
 };

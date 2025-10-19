@@ -7,6 +7,7 @@ enum class TokenId : uint32_t
     Eol,
     LineComment,
     MultiLineComment,
+    StringLiteral,
 };
 
 struct Token

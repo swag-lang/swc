@@ -12,6 +12,7 @@ Reporter::Reporter()
 
 std::string_view Reporter::diagMessage(DiagnosticId id) const
 {
+    SWAG_ASSERT(static_cast<int>(id) < diagMsgs_.size());
     return diagMsgs_[static_cast<int>(id)];
 }
 

@@ -23,13 +23,12 @@
   <component name="ChangeListManager">
     <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/LangSpec.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/LangSpec.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/LangSpec.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/LangSpec.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/Token.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Token.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticIds.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticIds.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticIds.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticIds.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/Diagnostic.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Diagnostic.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/Logger.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Logger.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/Logger.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Logger.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -43,7 +42,7 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="cidr-memory-view://99" root0="FORCE_HIGHLIGHTING" />
+    <setting file="cidr-memory-view://157" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/Os.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/OsWin32.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Report/Assert.h" root0="FORCE_HIGHLIGHTING" />
@@ -440,7 +439,15 @@
       <option name="project" value="LOCAL" />
       <updated>1760862837871</updated>
     </task>
-    <option name="localTasksCounter" value="36" />
+    <task id="LOCAL-00036" summary="Add support for hexadecimal and binary number literals in `Lexer`. Introduce `LangSpec` utilities for number parsing and validation, including separator and malformed number diagnostics. Update project files and `.idea/workspace.xml` for related changes.">
+      <option name="closed" value="true" />
+      <created>1760864849244</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1760864849244</updated>
+    </task>
+    <option name="localTasksCounter" value="37" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -450,7 +457,6 @@
   <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Refactor diagnostics system by introducing `DiagnosticElement` for improved error representation, embedding diagnostic messages in `DiagReporter`, and updating related APIs to enhance modularity and maintainability." />
     <MESSAGE value="Refactor diagnostics system by replacing `DiagList.h` with `DiagIds.h`, embedding `DiagnosticId` enum directly, and updating includes and project configuration for simplicity and maintainability." />
     <MESSAGE value="Refactor diagnostics system by renaming `DiagReporter` to `Reporter`, updating associated includes, and modifying code references to improve clarity and consistency." />
     <MESSAGE value="Refactor `Reporter` by replacing `SWAG_DIAG` macro with `addError` method for improved maintainability and clarity. Update `initErrors` to use the new method." />
@@ -475,7 +481,8 @@
     <MESSAGE value="Refactor `Lexer` EOL and string literal handling for improved robustness and readability. Add support for collapsing consecutive EOLs, escaping within multi-line strings, and detailed diagnostics for unclosed literals. Update project files and `.idea/workspace.xml`." />
     <MESSAGE value="Refactor `Lexer` to delegate EOL and blank handling to `LangSpec`. Introduce `consumeOneEol` utility for consistent line tracking. Update `.idea/workspace.xml` and project files for related changes." />
     <MESSAGE value="Simplify `consumeOneEol` logic in `Lexer` by refactoring EOL handling and consolidating line tracking." />
-    <option name="LAST_COMMIT_MESSAGE" value="Simplify `consumeOneEol` logic in `Lexer` by refactoring EOL handling and consolidating line tracking." />
+    <MESSAGE value="Add support for hexadecimal and binary number literals in `Lexer`. Introduce `LangSpec` utilities for number parsing and validation, including separator and malformed number diagnostics. Update project files and `.idea/workspace.xml` for related changes." />
+    <option name="LAST_COMMIT_MESSAGE" value="Add support for hexadecimal and binary number literals in `Lexer`. Introduce `LangSpec` utilities for number parsing and validation, including separator and malformed number diagnostics. Update project files and `.idea/workspace.xml` for related changes." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -496,6 +503,21 @@
           <url>file://$PROJECT_DIR$/src/Main/swc.cpp</url>
           <line>37</line>
           <option name="timeStamp" value="9" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/src/Lexer/Lexer.cpp</url>
+          <line>244</line>
+          <option name="timeStamp" value="27" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/src/Lexer/Lexer.cpp</url>
+          <line>254</line>
+          <option name="timeStamp" value="28" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/src/Lexer/Lexer.cpp</url>
+          <line>264</line>
+          <option name="timeStamp" value="29" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

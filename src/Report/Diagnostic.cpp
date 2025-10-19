@@ -17,20 +17,33 @@ void Diagnostic::log(const Reporter& reporter, Logger& logger) const
 {
     logger.lock();
 
+    logger.logEol();
     for (auto& e : elements_)
     {
         if (e->file_ != nullptr)
-            logger.log(e->file_->fullName().string());
-
-        if (e->len_ != 0)
         {
-            const auto loc = e->getLocation();
-            std::string s = std::format("{}:{}", loc.line, loc.column);
-            logger.log(s);
+            logger.log(e->file_->fullName().string());
+            logger.log(": ");
+            if (e->len_ != 0)
+            {
+                const auto loc = e->getLocation();
+                std::string s = std::format("{}:{}", loc.line, loc.column);
+                logger.log(s);
+                logger.logEol();
+                const auto code = e->file_->codeLine(loc.line);
+                logger.log(code);
+                logger.logEol();
+                for (uint32_t i = 1; i < loc.column; ++i)
+                    logger.log(" ");
+                for (uint32_t i = 0; i < e->len_; ++i)
+                    logger.log("^");
+                logger.logEol();
+            }
         }
             
         const auto errMsg = e->format(reporter);
         logger.log(errMsg);
+        logger.logEol();
     }
 
     logger.unlock();

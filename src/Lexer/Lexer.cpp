@@ -69,21 +69,20 @@ Result Lexer::parseSingleLineStringLiteral()
 
     while (buffer_ < end_)
     {
-        const uint8_t c = buffer_[0];
-
-        if (c == '"')
+        if (buffer_[0] == '"')
             break;
 
-        if (c == '\n' || c == '\r')
+        if (langSpec_->isEol(buffer_[0]))
         {
+            consumeOneEol();
             Diagnostic diag;
             const auto elem = diag.addError(DiagnosticId::EolInStringLiteral);
-            elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(buffer_ - startBuffer_));
+            elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
             ci_->diagReporter().report(*ci_, *ctx_, diag);
             return Result::Error;
         }
 
-        if (c == '\\')
+        if (buffer_[0] == '\\')
         {
             // Need one more char to escape
             if (buffer_ + 1 >= end_)
@@ -209,8 +208,9 @@ Result Lexer::parseHexNumber()
 
     buffer_ += 2;
 
-    bool     lastWasSep = true;
-    uint32_t digits     = 0;
+    bool           lastWasSep = false;
+    uint32_t       digits     = 0;
+    const uint8_t* startSep   = buffer_;
     while (langSpec_->isHexNumber(buffer_[0]))
     {
         if (langSpec_->isNumberSep(buffer_[0]))
@@ -219,11 +219,14 @@ Result Lexer::parseHexNumber()
             {
                 Diagnostic diag;
                 const auto elem = diag.addError(DiagnosticId::SyntaxNumberSepMulti);
-                elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(buffer_ - startBuffer_));
+                while (buffer_ < end_ && langSpec_->isNumberSep(buffer_[0]))
+                    buffer_++;
+                elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startSep - startBuffer_), static_cast<uint32_t>(buffer_ - startSep));
                 ci_->diagReporter().report(*ci_, *ctx_, diag);
                 return Result::Error;
             }
 
+            startSep   = buffer_;
             lastWasSep = true;
             buffer_++;
             continue;
@@ -239,10 +242,10 @@ Result Lexer::parseHexNumber()
     {
         Diagnostic diag;
         const auto elem = diag.addError(DiagnosticId::SyntaxMissingHexDigits);
-        elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_));
+        elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_), 2);
         ci_->diagReporter().report(*ci_, *ctx_, diag);
         return Result::Error;
-    }    
+    }
 
     // No trailing separator
     if (lastWasSep)

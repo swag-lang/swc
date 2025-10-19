@@ -9,7 +9,7 @@ SourceFile::SourceFile(std::filesystem::path path) :
 {
 }
 
-Result SourceFile::checkFormat(const CompilerInstance &ci, const CompilerContext &ctx)
+Result SourceFile::checkFormat(const CompilerInstance& ci, const CompilerContext& ctx)
 {
     // Read header
     const uint8_t c1 = content_[0];
@@ -48,11 +48,11 @@ Result SourceFile::checkFormat(const CompilerInstance &ci, const CompilerContext
     return Result::Success;
 }
 
-Result SourceFile::loadContent(const CompilerInstance &ci, const CompilerContext &ctx)
+Result SourceFile::loadContent(const CompilerInstance& ci, const CompilerContext& ctx)
 {
     if (!content_.empty())
         return Result::Success;
-    
+
     std::ifstream file(path_, std::ios::binary | std::ios::ate);
 
     if (!file)
@@ -68,7 +68,7 @@ Result SourceFile::loadContent(const CompilerInstance &ci, const CompilerContext
     const auto fileSize = file.tellg();
     file.seekg(0, std::ios::beg);
     content_.resize(fileSize);
-    
+
     if (!file.read(reinterpret_cast<char*>(content_.data()), fileSize))
     {
         Diagnostic diag;
@@ -76,7 +76,7 @@ Result SourceFile::loadContent(const CompilerInstance &ci, const CompilerContext
         elem->setLocation(this);
         elem->addArgument(path_.string());
         ci.diagReporter().report(ci, ctx, diag);
-        return Result::Error;        
+        return Result::Error;
     }
 
     // Ensure we have at least 4 characters in the buffer
@@ -84,13 +84,30 @@ Result SourceFile::loadContent(const CompilerInstance &ci, const CompilerContext
     content_.push_back(0);
     content_.push_back(0);
     content_.push_back(0);
-    
+
     SWAG_CHECK(checkFormat(ci, ctx));
-    
+
     return Result::Success;
 }
 
 Result SourceFile::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
 {
     return lexer_.tokenize(ci, ctx);
+}
+
+std::string SourceFile::codeLine(uint32_t line) const
+{
+    line--;
+    SWAG_ASSERT(line < lexer_.lines().size());
+    const auto offset = lexer_.lines()[line];
+    if (line == lexer_.lines().size() - 1)
+    {
+        auto       buffer = content_.data() + offset;
+        const auto end    = content_.data() + content_.size();
+        while (buffer + 1 < end && buffer[0] != '\n' && buffer[0] != '\r')
+            buffer++;
+        return {content_.data() + offset, buffer};
+    }
+
+    return {content_.data() + offset, content_.data() + lexer_.lines()[line + 1] - 1};
 }

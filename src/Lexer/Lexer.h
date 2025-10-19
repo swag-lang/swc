@@ -8,7 +8,7 @@ class LangSpec;
 
 class Lexer
 {
-    Token token_;
+    Token token_ = {};
 
     std::vector<Token>    tokens_;
     std::vector<uint32_t> lines_;
@@ -32,6 +32,8 @@ class Lexer
     Result parseNumber();
     Result parseSingleLineComment();
     Result parseMultiLineComment();
+
+    static Result checkFormat(const CompilerInstance& ci, const CompilerContext& ctx, uint32_t& startOffset);
 
 public:
     const std::vector<Token>&    tokens() const { return tokens_; }

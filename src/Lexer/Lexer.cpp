@@ -146,7 +146,7 @@ Result Lexer::parseMultiLineStringLiteral()
 
             buffer_ += 2; // skip '\' and escaped char
             continue;
-        }        
+        }
 
         // Closing delimiter
         if (buffer_ + 2 < end_ && buffer_[0] == '"' && buffer_[1] == '"' && buffer_[2] == '"')
@@ -361,6 +361,46 @@ Result Lexer::parseMultiLineComment()
     return Result::Success;
 }
 
+Result Lexer::checkFormat(const CompilerInstance& ci, const CompilerContext& ctx, uint32_t& startOffset)
+{
+    // Read header
+    const auto    file = ctx.sourceFile();
+    const uint8_t c1   = file->content_[0];
+    const uint8_t c2   = file->content_[1];
+    const uint8_t c3   = file->content_[2];
+    const uint8_t c4   = file->content_[3];
+
+    if (c1 == 0xEF && c2 == 0xBB && c3 == 0xBF)
+    {
+        startOffset = 3;
+        return Result::Success;
+    }
+
+    if ((c1 == 0xFE && c2 == 0xFF)                                // UTF-16 BigEndian
+        || (c1 == 0xFF && c2 == 0xFE)                             // UTF-16 LittleEndian
+        || (c1 == 0x0E && c2 == 0xFE && c3 == 0xFF)               // SCSU
+        || (c1 == 0xFB && c2 == 0xEE && c3 == 0x28)               // BOCU-1
+        || (c1 == 0xF7 && c2 == 0x64 && c3 == 0x4C)               // UTF-1 BigEndian
+        || (c1 == 0x00 && c2 == 0x00 && c3 == 0xFE && c4 == 0xFF) // UTF-32 BigEndian
+        || (c1 == 0xFF && c2 == 0xFE && c3 == 0x00 && c4 == 0x00) // UTF-32 BigEndian
+        || (c1 == 0xDD && c2 == 0x73 && c3 == 0x66 && c4 == 0x73) // UTF-EBCDIC
+        || (c1 == 0x2B && c2 == 0x2F && c3 == 0x76 && c4 == 0x38) // UTF-7
+        || (c1 == 0x2B && c2 == 0x2F && c3 == 0x76 && c4 == 0x39) // UTF-7
+        || (c1 == 0x2B && c2 == 0x2F && c3 == 0x76 && c4 == 0x2B) // UTF-7
+        || (c1 == 0x2B && c2 == 0x2F && c3 == 0x76 && c4 == 0x2F) // UTF-7
+        || (c1 == 0x84 && c2 == 0x31 && c3 == 0x95 && c4 == 0x33) // GB-18030
+    )
+    {
+        Diagnostic diag;
+        const auto elem = diag.addElement(DiagnosticKind::Error, DiagnosticId::FileNotUtf8);
+        elem->addArgument(file->path_.string());
+        return diag.report(ci);
+    }
+
+    startOffset = 1;
+    return Result::Success;
+}
+
 Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
 {
     const auto file = ctx.sourceFile();
@@ -368,8 +408,11 @@ Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
     ci_             = &ci;
     ctx_            = &ctx;
 
+    uint32_t startOffset = 0;
+    SWAG_CHECK(checkFormat(ci, ctx, startOffset));
+
     const auto base = reinterpret_cast<const uint8_t*>(file->content_.data());
-    buffer_         = base + file->offsetStartBuffer_;
+    buffer_         = base + startOffset;
     end_            = base + file->content_.size();
     startBuffer_    = buffer_;
 

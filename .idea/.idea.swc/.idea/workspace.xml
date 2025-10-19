@@ -22,8 +22,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,7 +39,7 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="cidr-memory-view://175" root0="FORCE_HIGHLIGHTING" />
+    <setting file="cidr-memory-view://177" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/Os.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/OsWin32.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Report/Assert.h" root0="FORCE_HIGHLIGHTING" />
@@ -55,6 +57,7 @@
     <setting file="file://$PROJECT_DIR$/src/Lexer/SourceCodeLocation.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Lexer/SourceCodeLocation.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Lexer/SourceFile.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock://C:/Perso/swag-lang/swc/src/Lexer/SourceFile.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Lexer/SourceFile.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Lexer/Token.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Lexer/Token.h" root0="FORCE_HIGHLIGHTING" />
@@ -485,7 +488,15 @@
       <option name="project" value="LOCAL" />
       <updated>1760868312149</updated>
     </task>
-    <option name="localTasksCounter" value="42" />
+    <task id="LOCAL-00042" summary="Refactor `SourceFile` to streamline diagnostic reporting by returning `diag.report(ci)` directly. Integrate related updates to `.idea/workspace.xml`.">
+      <option name="closed" value="true" />
+      <created>1760874264662</created>
+      <option name="number" value="00042" />
+      <option name="presentableId" value="LOCAL-00042" />
+      <option name="project" value="LOCAL" />
+      <updated>1760874264662</updated>
+    </task>
+    <option name="localTasksCounter" value="43" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -495,7 +506,6 @@
   <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Refactor project structure by moving `Check` utilities to `Report` module, introducing `swagAssert` with platform-specific implementation, and replacing `Fs` with `fs` for standardized namespace consistency." />
     <MESSAGE value="Fix `SWAG_ASSERT` condition in `SourceCodeLocation::fromOffset` and reorder member variables for clarity. Update task and configuration in `.idea/workspace.xml`." />
     <MESSAGE value="Refactor diagnostics creation by replacing `Reporter::diagnostic` with `Diagnostic::instance` for improved encapsulation and consistency." />
     <MESSAGE value="Replace `Diagnostic::instance` with direct instantiation for improved simplicity and remove unused factory method. Update related `Lexer` and `SourceFile` code for consistency." />
@@ -520,7 +530,8 @@
     <MESSAGE value="Refactor diagnostics system to simplify error reporting. Replace `report` method in `Reporter` with `report` method in `Diagnostic` for consistent usage. Remove `isEol` utility from `LangSpec` and refactor `Lexer` EOL handling accordingly. Cleanup project files and `.idea/workspace.xml`." />
     <MESSAGE value="Clean up `Lexer` by removing redundant comments and simplifying diagnostic error reporting." />
     <MESSAGE value="Simplify `consumeOneEol` in `Lexer` by adding assertion for consistent EOL handling and cleaning up `.idea/workspace.xml`." />
-    <option name="LAST_COMMIT_MESSAGE" value="Simplify `consumeOneEol` in `Lexer` by adding assertion for consistent EOL handling and cleaning up `.idea/workspace.xml`." />
+    <MESSAGE value="Refactor `SourceFile` to streamline diagnostic reporting by returning `diag.report(ci)` directly. Integrate related updates to `.idea/workspace.xml`." />
+    <option name="LAST_COMMIT_MESSAGE" value="Refactor `SourceFile` to streamline diagnostic reporting by returning `diag.report(ci)` directly. Integrate related updates to `.idea/workspace.xml`." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

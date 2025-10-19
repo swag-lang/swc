@@ -11,10 +11,7 @@ class SourceFile
 protected:
     fs::path             path_;
     std::vector<uint8_t> content_;
-    uint32_t             offsetStartBuffer_ = 0;
     Lexer                lexer_;
-
-    Result checkFormat(const CompilerInstance& ci, const CompilerContext& ctx);
 
 public:
     explicit SourceFile(fs::path path);

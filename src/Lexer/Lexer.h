@@ -8,8 +8,8 @@ class CompilerInstance;
 class SourceFile;
 class LangSpec;
 
-using LexerFlags                    = Flags<uint32_t>;
-constexpr LexerFlags LEXER_DEFAULT  = 0x00000000;
+using LexerFlags                                 = Flags<uint32_t>;
+constexpr LexerFlags LEXER_DEFAULT               = 0x00000000;
 constexpr LexerFlags LEXER_EXTRACT_COMMENTS_MODE = 0x00000001;
 
 class Lexer
@@ -27,22 +27,21 @@ class Lexer
     const CompilerContext*  ctx_         = nullptr;
     const LangSpec*         langSpec_    = nullptr;
 
-    void   consumeOneEol();
-    void   pushToken();
-    Result reportError(const Diagnostic& diag) const;
+    void consumeOneEol();
+    void pushToken();
+    void reportError(const Diagnostic& diag) const;
+    void checkFormat(const CompilerInstance& ci, const CompilerContext& ctx, uint32_t& startOffset) const;
 
-    Result parseEol();
-    Result parseBlank();
-    Result parseSingleLineStringLiteral();
-    Result parseMultiLineStringLiteral();
-    Result parseRawStringLiteral();
-    Result parseHexNumber();
-    Result parseBinNumber();
-    Result parseNumber();
-    Result parseSingleLineComment();
-    Result parseMultiLineComment();
-
-    static Result checkFormat(const CompilerInstance& ci, const CompilerContext& ctx, uint32_t& startOffset);
+    void parseEol();
+    void parseBlank();
+    void parseSingleLineStringLiteral();
+    void parseMultiLineStringLiteral();
+    void parseRawStringLiteral();
+    void parseHexNumber();
+    void parseBinNumber();
+    void parseNumber();
+    void parseSingleLineComment();
+    void parseMultiLineComment();
 
 public:
     const std::vector<Token>&    tokens() const { return tokens_; }

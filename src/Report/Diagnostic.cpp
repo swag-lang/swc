@@ -53,7 +53,6 @@ Utf8 Diagnostic::build(const CompilerInstance& ci) const
 Result Diagnostic::report(const CompilerInstance& ci) const
 {
     auto& logger = ci.logger();
-
     logger.lock();
     logger.logEol();
     logger.log(build(ci));

@@ -13,11 +13,11 @@ void Lexer::pushToken()
         tokens_.push_back(token_);
 }
 
-Result Lexer::reportError(const Diagnostic& diag) const
+void Lexer::reportError(const Diagnostic& diag) const
 {
     if (lexerFlags_.has(LEXER_EXTRACT_COMMENTS_MODE))
-        return Result::Success;
-    return diag.report(*ci_);
+        return;
+    (void) diag.report(*ci_);
 }
 
 // Consume exactly one logical EOL (CRLF | CR | LF). Push the next line start.
@@ -41,7 +41,7 @@ void Lexer::consumeOneEol()
     lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
 }
 
-Result Lexer::parseEol()
+void Lexer::parseEol()
 {
     token_.id                 = TokenId::Eol;
     const uint8_t* startToken = buffer_;
@@ -55,10 +55,9 @@ Result Lexer::parseEol()
 
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
     pushToken();
-    return Result::Success;
 }
 
-Result Lexer::parseBlank()
+void Lexer::parseBlank()
 {
     token_.id                 = TokenId::Blank;
     const uint8_t* startToken = buffer_;
@@ -70,10 +69,9 @@ Result Lexer::parseBlank()
 
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
     pushToken();
-    return Result::Success;
 }
 
-Result Lexer::parseSingleLineStringLiteral()
+void Lexer::parseSingleLineStringLiteral()
 {
     token_.id                 = TokenId::StringLiteral;
     token_.subTokenStringId   = SubTokenStringId::Line;
@@ -125,10 +123,9 @@ Result Lexer::parseSingleLineStringLiteral()
     buffer_ += 1;
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
     pushToken();
-    return Result::Success;
 }
 
-Result Lexer::parseMultiLineStringLiteral()
+void Lexer::parseMultiLineStringLiteral()
 {
     token_.id                 = TokenId::StringLiteral;
     token_.subTokenStringId   = SubTokenStringId::MultiLine;
@@ -167,7 +164,7 @@ Result Lexer::parseMultiLineStringLiteral()
             buffer_ += 3;
             token_.len = static_cast<uint32_t>(buffer_ - startToken);
             pushToken();
-            return Result::Success;
+            return;
         }
 
         buffer_++;
@@ -177,10 +174,10 @@ Result Lexer::parseMultiLineStringLiteral()
     Diagnostic diag;
     const auto elem = diag.addError(DiagnosticId::UnclosedStringLiteral);
     elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_), 3);
-    return reportError(diag);
+    reportError(diag);
 }
 
-Result Lexer::parseRawStringLiteral()
+void Lexer::parseRawStringLiteral()
 {
     token_.id                 = TokenId::StringLiteral;
     token_.subTokenStringId   = SubTokenStringId::Raw;
@@ -211,11 +208,9 @@ Result Lexer::parseRawStringLiteral()
     buffer_ += 2;
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
     pushToken();
-
-    return Result::Success;
 }
 
-Result Lexer::parseHexNumber()
+void Lexer::parseHexNumber()
 {
     token_.subTokenNumberId   = SubTokenNumberId::Hexadecimal;
     const uint8_t* startToken = buffer_;
@@ -224,6 +219,7 @@ Result Lexer::parseHexNumber()
 
     bool           lastWasSep = false;
     uint32_t       digits     = 0;
+    bool error = false;
     const uint8_t* startSep   = buffer_;
     while (langSpec_->isHexNumber(buffer_[0]))
     {
@@ -237,6 +233,7 @@ Result Lexer::parseHexNumber()
                     buffer_++;
                 elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startSep - startBuffer_), static_cast<uint32_t>(buffer_ - startSep));
                 reportError(diag);
+                error = true;
             }
 
             startSep   = buffer_;
@@ -251,66 +248,65 @@ Result Lexer::parseHexNumber()
     }
 
     // Require at least one digit
-    if (digits == 0)
+    if (!error && digits == 0)
     {
         Diagnostic diag;
         const auto elem = diag.addError(DiagnosticId::SyntaxMissingHexDigits);
-        elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_), 2);
+        elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_), 2 + (lastWasSep ? 1 : 0));
         reportError(diag);
+        error = true;
     }
 
     // No trailing separator
-    if (lastWasSep)
+    if (!error && lastWasSep)
     {
         Diagnostic diag;
         const auto elem = diag.addError(DiagnosticId::SyntaxNumberSepAtEnd);
         elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
         reportError(diag);
+        error = true;
     }
 
     // Letters immediately following the literal
-    if (buffer_ < end_ && langSpec_->isLetter(buffer_[0]))
+    if (!error && buffer_ < end_ && langSpec_->isLetter(buffer_[0]))
     {
         Diagnostic diag;
         const auto elem = diag.addError(DiagnosticId::SyntaxMalformedHexNumber);
         elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(buffer_ - startBuffer_));
         reportError(diag);
+        error = true;
     }
 
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
     pushToken();
-    return Result::Success;
 }
 
-Result Lexer::parseBinNumber()
+void Lexer::parseBinNumber()
 {
     token_.subTokenNumberId = SubTokenNumberId::Binary;
     buffer_ += 2;
-
-    return Result::Success;
 }
 
-Result Lexer::parseNumber()
+void Lexer::parseNumber()
 {
     token_.id = TokenId::NumberLiteral;
 
     if (buffer_[0] == '0' && buffer_ + 1 < end_ && (buffer_[1] == 'x' || buffer_[1] == 'X'))
     {
-        SWAG_CHECK(parseHexNumber());
-        return Result::Success;
+        parseHexNumber();
+        return;
     }
 
     if (buffer_[0] == '0' && buffer_ + 1 < end_ && (buffer_[1] == 'b' || buffer_[1] == 'B'))
     {
-        SWAG_CHECK(parseBinNumber());
-        return Result::Success;
+        parseBinNumber();
+        return;
     }
 
     buffer_++;
-    return Result::Success;
 }
 
-Result Lexer::parseSingleLineComment()
+void Lexer::parseSingleLineComment()
 {
     token_.id                 = TokenId::Comment;
     token_.subTokenCommentId  = SubTokenCommentId::Line;
@@ -322,10 +318,9 @@ Result Lexer::parseSingleLineComment()
 
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
     pushToken();
-    return Result::Success;
 }
 
-Result Lexer::parseMultiLineComment()
+void Lexer::parseMultiLineComment()
 {
     token_.id                 = TokenId::Comment;
     token_.subTokenCommentId  = SubTokenCommentId::MultiLine;
@@ -373,10 +368,9 @@ Result Lexer::parseMultiLineComment()
 
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
     pushToken();
-    return Result::Success;
 }
 
-Result Lexer::checkFormat(const CompilerInstance& ci, const CompilerContext& ctx, uint32_t& startOffset)
+void Lexer::checkFormat(const CompilerInstance& ci, const CompilerContext& ctx, uint32_t& startOffset) const
 {
     // Read header
     const auto    file = ctx.sourceFile();
@@ -388,7 +382,7 @@ Result Lexer::checkFormat(const CompilerInstance& ci, const CompilerContext& ctx
     if (c1 == 0xEF && c2 == 0xBB && c3 == 0xBF)
     {
         startOffset = 3;
-        return Result::Success;
+        return;
     }
 
     bool badFormat = false;
@@ -425,12 +419,12 @@ Result Lexer::checkFormat(const CompilerInstance& ci, const CompilerContext& ctx
     {
         Diagnostic diag;
         const auto elem = diag.addElement(DiagnosticKind::Error, DiagnosticId::FileNotUtf8);
+        elem->setLocation(ctx.sourceFile());
         elem->addArgument(file->path_.string());
-        return diag.report(ci);
+        reportError(diag);
     }
 
     startOffset = 0;
-    return Result::Success;
 }
 
 Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx, LexerFlags flags)
@@ -442,7 +436,7 @@ Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx, L
     lexerFlags_     = flags;
 
     uint32_t startOffset = 0;
-    SWAG_CHECK(checkFormat(ci, ctx, startOffset));
+    checkFormat(ci, ctx, startOffset);
 
     const auto base = reinterpret_cast<const uint8_t*>(file->content_.data());
     buffer_         = base + startOffset;
@@ -462,54 +456,54 @@ Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx, L
         // End of line (LF, CRLF, or CR)
         if (buffer_[0] == '\n' || buffer_[0] == '\r')
         {
-            SWAG_CHECK(parseEol());
+            parseEol();
             continue;
         }
 
         // Blanks
         if (langSpec_->isBlank(buffer_[0]))
         {
-            SWAG_CHECK(parseBlank());
+            parseBlank();
             continue;
         }
 
         // Number literal
         if (langSpec_->isDigit(buffer_[0]))
         {
-            SWAG_CHECK(parseNumber());
+            parseNumber();
             continue;
         }
 
         // String literal
         if (buffer_ + 1 < end_ && buffer_[0] == '#' && buffer_[1] == '"')
         {
-            SWAG_CHECK(parseRawStringLiteral());
+            parseRawStringLiteral();
             continue;
         }
 
         if (buffer_ + 2 < end_ && buffer_[0] == '"' && buffer_[1] == '"' && buffer_[2] == '"')
         {
-            SWAG_CHECK(parseMultiLineStringLiteral());
+            parseMultiLineStringLiteral();
             continue;
         }
 
         if (buffer_[0] == '"')
         {
-            SWAG_CHECK(parseSingleLineStringLiteral());
+            parseSingleLineStringLiteral();
             continue;
         }
 
         // Line comment
         if (buffer_ + 1 < end_ && buffer_[0] == '/' && buffer_[1] == '/')
         {
-            SWAG_CHECK(parseSingleLineComment());
+            parseSingleLineComment();
             continue;
         }
 
         // Multi-line comment
         if (buffer_ + 1 < end_ && buffer_[0] == '/' && buffer_[1] == '*')
         {
-            SWAG_CHECK(parseMultiLineComment());
+            parseMultiLineComment();
             continue;
         }
 

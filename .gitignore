@@ -1,6 +1,7 @@
 .out/
 .tmp/
 .vs/
+.idea/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/

@@ -97,6 +97,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\Core\Utf8.cpp" />
     <ClCompile Include="src\Lexer\Lexer.cpp" />
     <ClCompile Include="src\Lexer\SourceCodeLocation.cpp" />
     <ClCompile Include="src\Lexer\SourceFile.cpp" />
@@ -192,6 +193,7 @@
     <ClCompile Include="src\Report\Logger.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Core\Utf8.h" />
     <ClInclude Include="src\Lexer\Lexer.h" />
     <ClInclude Include="src\Lexer\SourceCodeLocation.h" />
     <ClInclude Include="src\Lexer\SourceFile.h" />
@@ -206,9 +208,6 @@
     <ClInclude Include="src\Report\DiagnosticElement.h" />
     <ClInclude Include="src\Report\Reporter.h" />
     <ClInclude Include="src\Report\Logger.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="src\Core\" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

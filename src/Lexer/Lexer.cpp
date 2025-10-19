@@ -42,21 +42,6 @@ Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
             continue;
         }
 
-        // Blanks
-        /////////////////////////////////////////
-        if (std::isblank(buffer[0]))
-        {
-            token_.id = TokenId::Blank;
-            buffer++;
-
-            while (buffer < end && std::isblank(buffer[0]))
-                buffer++;
-
-            token_.len = static_cast<uint32_t>(buffer - startToken);
-            tokens_.push_back(token_);
-            continue;
-        }
-
         // Line comment
         /////////////////////////////////////////
         if (buffer[0] == '/' && buffer[1] == '/')
@@ -118,6 +103,21 @@ Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
             tokens_.push_back(token_);
             continue;
         }
+
+        // Blanks
+        /////////////////////////////////////////
+        if (std::isblank(buffer[0]))
+        {
+            token_.id = TokenId::Blank;
+            buffer++;
+
+            while (buffer < end && std::isblank(buffer[0]))
+                buffer++;
+
+            token_.len = static_cast<uint32_t>(buffer - startToken);
+            tokens_.push_back(token_);
+            continue;
+        }        
 
         buffer++;
     }

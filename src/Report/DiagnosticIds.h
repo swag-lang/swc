@@ -8,4 +8,8 @@ enum class DiagnosticId
     UnclosedComment,
     EolInStringLiteral,
     UnclosedStringLiteral,
+    SyntaxNumberSepMulti,
+    SyntaxNumberSepAtEnd,
+    SyntaxMissingHexDigits,
+    SyntaxMalformedHexNumber,
 };

@@ -23,7 +23,7 @@ void Lexer::consumeOneEol()
     {
         buffer_ += 1;
     }
-    
+
     lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
 }
 
@@ -135,7 +135,7 @@ Result Lexer::parseMultiLineStringLiteral()
             continue;
         }
 
-        // Optional: support escaping inside multi-line strings
+        // Support escaping inside multi-line strings
         if (*buffer_ == '\\')
         {
             if (buffer_ + 1 >= end_)
@@ -199,6 +199,101 @@ Result Lexer::parseRawStringLiteral()
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
     tokens_.push_back(token_);
 
+    return Result::Success;
+}
+
+Result Lexer::parseHexNumber()
+{
+    token_.subTokenNumberId   = SubTokenNumberId::Hexadecimal;
+    const uint8_t* startToken = buffer_;
+
+    buffer_ += 2;
+
+    bool     lastWasSep = true;
+    uint32_t digits     = 0;
+    while (langSpec_->isHexNumber(buffer_[0]))
+    {
+        if (langSpec_->isNumberSep(buffer_[0]))
+        {
+            if (lastWasSep)
+            {
+                Diagnostic diag;
+                const auto elem = diag.addError(DiagnosticId::SyntaxNumberSepMulti);
+                elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(buffer_ - startBuffer_));
+                ci_->diagReporter().report(*ci_, *ctx_, diag);
+                return Result::Error;
+            }
+
+            lastWasSep = true;
+            buffer_++;
+            continue;
+        }
+
+        digits++;
+        lastWasSep = false;
+        buffer_++;
+    }
+
+    // Require at least one digit
+    if (digits == 0)
+    {
+        Diagnostic diag;
+        const auto elem = diag.addError(DiagnosticId::SyntaxMissingHexDigits);
+        elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_));
+        ci_->diagReporter().report(*ci_, *ctx_, diag);
+        return Result::Error;
+    }    
+
+    // No trailing separator
+    if (lastWasSep)
+    {
+        Diagnostic diag;
+        const auto elem = diag.addError(DiagnosticId::SyntaxNumberSepAtEnd);
+        elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
+        ci_->diagReporter().report(*ci_, *ctx_, diag);
+        return Result::Error;
+    }
+
+    // Letters immediately following the literal
+    if (buffer_ < end_ && langSpec_->isLetter(buffer_[0]))
+    {
+        Diagnostic diag;
+        const auto elem = diag.addError(DiagnosticId::SyntaxMalformedHexNumber);
+        elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(buffer_ - startBuffer_));
+        ci_->diagReporter().report(*ci_, *ctx_, diag);
+        return Result::Error;
+    }
+
+    token_.len = static_cast<uint32_t>(buffer_ - startToken);
+    tokens_.push_back(token_);
+    return Result::Success;
+}
+
+Result Lexer::parseBinNumber()
+{
+    token_.subTokenNumberId = SubTokenNumberId::Binary;
+    buffer_ += 2;
+
+    return Result::Success;
+}
+
+Result Lexer::parseNumber()
+{
+    token_.id = TokenId::NumberLiteral;
+
+    if (buffer_[0] == '0' && buffer_ + 1 < end_ && (buffer_[1] == 'x' || buffer_[1] == 'X'))
+    {
+        SWAG_CHECK(parseHexNumber());
+        return Result::Success;
+    }
+
+    if (buffer_[0] == '0' && buffer_ + 1 < end_ && (buffer_[1] == 'b' || buffer_[1] == 'B'))
+    {
+        SWAG_CHECK(parseBinNumber());
+        return Result::Success;
+    }
+
+    buffer_++;
     return Result::Success;
 }
 
@@ -303,7 +398,14 @@ Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
             continue;
         }
 
-        // String
+        // Number literal
+        if (langSpec_->isDigit(buffer_[0]))
+        {
+            SWAG_CHECK(parseNumber());
+            continue;
+        }
+
+        // String literal
         if (buffer_ + 1 < end_ && buffer_[0] == '#' && buffer_[1] == '"')
         {
             SWAG_CHECK(parseRawStringLiteral());

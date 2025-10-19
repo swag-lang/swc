@@ -8,6 +8,7 @@ enum class TokenId : uint32_t
     LineComment,
     MultiLineComment,
     StringLiteral,
+    NumberLiteral,
 };
 
 enum class SubTokenStringId : uint32_t
@@ -17,6 +18,14 @@ enum class SubTokenStringId : uint32_t
     MultiLineString,
 };
 
+enum class SubTokenNumberId : uint32_t
+{
+    Hexadecimal,
+    Binary,
+    Integer,
+    Float,
+};
+
 struct Token
 {
     TokenId  id    = TokenId::Invalid;
@@ -24,6 +33,7 @@ struct Token
     uint32_t len   = 0;
     union
     {
-        SubTokenStringId subTokenStringId;  // Valid if id is StringLiteral 
+        SubTokenStringId subTokenStringId;  // Valid if id is StringLiteral
+        SubTokenNumberId subTokenNumberId;  // Valid if id is NumberLiteral
     };
 };

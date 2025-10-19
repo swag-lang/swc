@@ -27,6 +27,9 @@ class Lexer
     Result parseSingleLineStringLiteral();
     Result parseMultiLineStringLiteral();
     Result parseRawStringLiteral();
+    Result parseHexNumber();
+    Result parseBinNumber();
+    Result parseNumber();
     Result parseSingleLineComment();
     Result parseMultiLineComment();
 

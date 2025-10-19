@@ -22,19 +22,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/Os/Os.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Os/OsWin32.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Report/Check.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Report/Check.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/Check.h" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/SourceCodeLocation.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceCodeLocation.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/SourceCodeLocation.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceCodeLocation.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/Reporter.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Reporter.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/Reporter.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Reporter.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pch.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/pch.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/swc.vcxproj" beforeDir="false" afterPath="$PROJECT_DIR$/swc.vcxproj" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -48,7 +37,7 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="cidr-memory-view://51" root0="FORCE_HIGHLIGHTING" />
+    <setting file="cidr-memory-view://56" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/Os.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/OsWin32.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Report/Assert.h" root0="FORCE_HIGHLIGHTING" />
@@ -295,7 +284,15 @@
       <option name="project" value="LOCAL" />
       <updated>1760851731341</updated>
     </task>
-    <option name="localTasksCounter" value="18" />
+    <task id="LOCAL-00018" summary="Refactor project structure by moving `Check` utilities to `Report` module, introducing `swagAssert` with platform-specific implementation, and replacing `Fs` with `fs` for standardized namespace consistency.">
+      <option name="closed" value="true" />
+      <created>1760853214569</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1760853214569</updated>
+    </task>
+    <option name="localTasksCounter" value="19" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -322,7 +319,8 @@
     <MESSAGE value="Refactor `Reporter` by replacing `SWAG_DIAG` macro with `addError` method for improved maintainability and clarity. Update `initErrors` to use the new method." />
     <MESSAGE value="Enhance diagnostics system by introducing location tracking in `DiagnosticElement`. Refactor `Lexer` and `SourceFile` to use `addError` with location data for improved error reporting." />
     <MESSAGE value="Implement `SourceCodeLocation` structure to enhance error reporting with accurate line and column details. Refactor `Lexer` and `DiagnosticElement` to support location-aware diagnostics and improve logging with contextual information." />
-    <option name="LAST_COMMIT_MESSAGE" value="Implement `SourceCodeLocation` structure to enhance error reporting with accurate line and column details. Refactor `Lexer` and `DiagnosticElement` to support location-aware diagnostics and improve logging with contextual information." />
+    <MESSAGE value="Refactor project structure by moving `Check` utilities to `Report` module, introducing `swagAssert` with platform-specific implementation, and replacing `Fs` with `fs` for standardized namespace consistency." />
+    <option name="LAST_COMMIT_MESSAGE" value="Refactor project structure by moving `Check` utilities to `Report` module, introducing `swagAssert` with platform-specific implementation, and replacing `Fs` with `fs` for standardized namespace consistency." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

@@ -19,8 +19,9 @@ void Lexer::consumeOneEol()
         else
             buffer_ += 1;
     }
-    else if (buffer_[0] == '\n')
+    else
     {
+        SWAG_ASSERT(buffer_[0] == '\n');
         buffer_ += 1;
     }
 

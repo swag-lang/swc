@@ -23,11 +23,6 @@
   <component name="ChangeListManager">
     <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/Diagnostic.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Diagnostic.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/Diagnostic.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Diagnostic.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/Reporter.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Reporter.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/Reporter.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Reporter.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -41,7 +36,7 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="cidr-memory-view://167" root0="FORCE_HIGHLIGHTING" />
+    <setting file="cidr-memory-view://175" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/Os.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/OsWin32.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Report/Assert.h" root0="FORCE_HIGHLIGHTING" />
@@ -54,6 +49,7 @@
     <setting file="file://$PROJECT_DIR$/src/Lexer/LangSpec.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Lexer/LangSpec.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Lexer/Lexer.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock://C:/Perso/swag-lang/swc/src/Lexer/Lexer.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Lexer/Lexer.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Lexer/SourceCodeLocation.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Lexer/SourceCodeLocation.h" root0="FORCE_HIGHLIGHTING" />
@@ -464,7 +460,23 @@
       <option name="project" value="LOCAL" />
       <updated>1760867615682</updated>
     </task>
-    <option name="localTasksCounter" value="39" />
+    <task id="LOCAL-00039" summary="Refactor diagnostics system to simplify error reporting. Replace `report` method in `Reporter` with `report` method in `Diagnostic` for consistent usage. Remove `isEol` utility from `LangSpec` and refactor `Lexer` EOL handling accordingly. Cleanup project files and `.idea/workspace.xml`.">
+      <option name="closed" value="true" />
+      <created>1760868145661</created>
+      <option name="number" value="00039" />
+      <option name="presentableId" value="LOCAL-00039" />
+      <option name="project" value="LOCAL" />
+      <updated>1760868145661</updated>
+    </task>
+    <task id="LOCAL-00040" summary="Clean up `Lexer` by removing redundant comments and simplifying diagnostic error reporting.">
+      <option name="closed" value="true" />
+      <created>1760868238706</created>
+      <option name="number" value="00040" />
+      <option name="presentableId" value="LOCAL-00040" />
+      <option name="project" value="LOCAL" />
+      <updated>1760868238706</updated>
+    </task>
+    <option name="localTasksCounter" value="41" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -474,8 +486,6 @@
   <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Refactor `Reporter` by replacing `SWAG_DIAG` macro with `addError` method for improved maintainability and clarity. Update `initErrors` to use the new method." />
-    <MESSAGE value="Enhance diagnostics system by introducing location tracking in `DiagnosticElement`. Refactor `Lexer` and `SourceFile` to use `addError` with location data for improved error reporting." />
     <MESSAGE value="Implement `SourceCodeLocation` structure to enhance error reporting with accurate line and column details. Refactor `Lexer` and `DiagnosticElement` to support location-aware diagnostics and improve logging with contextual information." />
     <MESSAGE value="Refactor project structure by moving `Check` utilities to `Report` module, introducing `swagAssert` with platform-specific implementation, and replacing `Fs` with `fs` for standardized namespace consistency." />
     <MESSAGE value="Fix `SWAG_ASSERT` condition in `SourceCodeLocation::fromOffset` and reorder member variables for clarity. Update task and configuration in `.idea/workspace.xml`." />
@@ -499,7 +509,9 @@
     <MESSAGE value="Add support for hexadecimal and binary number literals in `Lexer`. Introduce `LangSpec` utilities for number parsing and validation, including separator and malformed number diagnostics. Update project files and `.idea/workspace.xml` for related changes." />
     <MESSAGE value="Improve diagnostics with enhanced error reporting. Add detailed code line display with marking for errors in `Logger`. Refactor `SourceFile` to include `codeLine` utility to extract specific lines. Update `Lexer` for separator validation and hex digits diagnostics. Adjust `.idea/workspace.xml` and project files." />
     <MESSAGE value="Introduce `CommandLine` utility to manage configuration options like tab size. Refactor diagnostics system in `Reporter` to improve column calculation and error highlighting with tab expansion. Update `SourceFile`, `SourceCodeLocation`, and dependent modules for compatibility. Adjust project files and `.idea/workspace.xml`." />
-    <option name="LAST_COMMIT_MESSAGE" value="Introduce `CommandLine` utility to manage configuration options like tab size. Refactor diagnostics system in `Reporter` to improve column calculation and error highlighting with tab expansion. Update `SourceFile`, `SourceCodeLocation`, and dependent modules for compatibility. Adjust project files and `.idea/workspace.xml`." />
+    <MESSAGE value="Refactor diagnostics system to simplify error reporting. Replace `report` method in `Reporter` with `report` method in `Diagnostic` for consistent usage. Remove `isEol` utility from `LangSpec` and refactor `Lexer` EOL handling accordingly. Cleanup project files and `.idea/workspace.xml`." />
+    <MESSAGE value="Clean up `Lexer` by removing redundant comments and simplifying diagnostic error reporting." />
+    <option name="LAST_COMMIT_MESSAGE" value="Clean up `Lexer` by removing redundant comments and simplifying diagnostic error reporting." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -520,11 +532,6 @@
           <url>file://$PROJECT_DIR$/src/Main/swc.cpp</url>
           <line>38</line>
           <option name="timeStamp" value="9" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/src/Lexer/Lexer.cpp</url>
-          <line>159</line>
-          <option name="timeStamp" value="34" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

@@ -10,7 +10,7 @@
 #include <filesystem>
 #include <iostream>
 
-void parseFolder(CompilerInstance& ci, CompilerContext& ctx, const fs::path& directory)
+static void parseFolder(const CompilerInstance& ci, CompilerContext& ctx, const fs::path& directory)
 {
     if (!fs::exists(directory) || !fs::is_directory(directory))
     {
@@ -25,12 +25,11 @@ void parseFolder(CompilerInstance& ci, CompilerContext& ctx, const fs::path& dir
             auto ext = entry.path().extension().string();
             if (ext == ".swg" || ext == ".swgs")
             {
-                auto f = new SourceFile(entry.path());
+                const auto f = new SourceFile(entry.path());
                 f->loadContent(ci, ctx);
                 ctx.setSourceFile(f);
                 f->tokenize(ci, ctx);
-                f->verifier().verify(ci, ctx);
-                // printf(" %lld tokens", f->tokens().size());
+                (void) f->verifier().verify(ci, ctx);
             }
         }
     }
@@ -38,7 +37,7 @@ void parseFolder(CompilerInstance& ci, CompilerContext& ctx, const fs::path& dir
 
 int main(int argc, char* argv[])
 {
-    CompilerInstance ci;
+    const CompilerInstance ci;
     CompilerContext  ctx;
     // parseFolder(ci, ctx, "c:/perso/swag-lang");
     parseFolder(ci, ctx, "c:/perso/swag-lang/swc");

@@ -61,25 +61,27 @@ Utf8 SourceFile::codeLine(const CompilerInstance& ci, uint32_t line) const
     line--;
     SWAG_ASSERT(line < lexer_.lines().size());
 
-    Utf8       result;
-    const auto offset      = lexer_.lines()[line];
-    const auto startBuffer = reinterpret_cast<const char*>(content_.data() + offset);
+    const auto  offset      = lexer_.lines()[line];
+    const auto  startBuffer = reinterpret_cast<const char*>(content_.data() + offset);
+    const char* end;
 
     if (line == lexer_.lines().size() - 1)
-    {
-        auto       buffer = startBuffer;
-        const auto end    = reinterpret_cast<const char*>(content_.data() + content_.size());
-
-        while (buffer + 1 < end && buffer[0] != '\n' && buffer[0] != '\r')
-            buffer++;
-        result = std::string_view{startBuffer, buffer};
-    }
+        end = reinterpret_cast<const char*>(content_.data() + content_.size());
     else
-    {
-        const auto end = reinterpret_cast<const char*>(content_.data() + lexer_.lines()[line + 1]);
+        end = reinterpret_cast<const char*>(content_.data() + lexer_.lines()[line + 1]);
 
-        result = std::string_view{startBuffer, end};
+    auto buffer = startBuffer;
+    bool hasTab = false;
+    while (buffer + 1 < end && buffer[0] != '\n' && buffer[0] != '\r')
+    {
+        if (buffer[0] == '\t')
+            hasTab = true;
+        buffer++;
     }
+    
+    const auto result = std::string_view{startBuffer, buffer};
+    if (!hasTab)
+        return result;
 
     // Transform tabulations to blanks in order for columns to match
     const uint32_t tabSize = ci.cmdLine().tabSize;

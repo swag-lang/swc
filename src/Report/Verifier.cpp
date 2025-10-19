@@ -51,7 +51,7 @@ Result Verifier::tokenize(const CompilerInstance& ci, const CompilerContext& ctx
             directive.match.trim();
 
             // Location
-            directive.location.fromOffset(ci, file, token.start, 1);
+            directive.location.fromOffset(ci, file, token.start + pos, needle.size() + kindWord.size());
 
             // One more
             directives_.emplace_back(directive);

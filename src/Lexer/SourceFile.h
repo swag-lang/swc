@@ -7,10 +7,9 @@ class CompilerInstance;
 
 class SourceFile
 {
-    friend class Lexer;
+    fs::path path_;
 
-protected:
-    fs::path             path_;
+private:
     std::vector<uint8_t> content_;
     Verifier             verifier_;
     Lexer                lexer_;
@@ -18,7 +17,7 @@ protected:
 public:
     explicit SourceFile(fs::path path);
 
-    fs::path                    fullName() const { return path_; }
+    fs::path                    path() const { return path_; }
     const std::vector<uint8_t>& content() const { return content_; }
     Lexer&                      lexer() { return lexer_; }
     Verifier&                   verifier() { return verifier_; }

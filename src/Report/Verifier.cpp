@@ -42,7 +42,7 @@ Result Verifier::tokenize(const CompilerInstance& ci, const CompilerContext& ctx
                 directive.kind = DiagnosticKind::Error;
             else
             {
-                i = j;
+                pos = j;
                 continue;
             }
 
@@ -51,7 +51,7 @@ Result Verifier::tokenize(const CompilerInstance& ci, const CompilerContext& ctx
             directive.match.trim();
 
             // Location
-            directive.location.fromOffset(ci, file, token.start + pos, needle.size() + kindWord.size());
+            directive.location.fromOffset(ci, file, token.start + static_cast<uint32_t>(pos), static_cast<uint32_t>(needle.size()) + static_cast<uint32_t>(kindWord.size()));
 
             // One more
             directives_.emplace_back(directive);

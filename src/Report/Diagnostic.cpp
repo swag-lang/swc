@@ -27,7 +27,7 @@ Utf8 Diagnostic::build(const CompilerInstance& ci) const
 
         if (e->file_ != nullptr)
         {
-            result += e->file_->fullName().string();
+            result += e->file_->path().string();
             result += ": ";
             if (e->len_ != 0)
             {

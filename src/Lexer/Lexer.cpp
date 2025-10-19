@@ -223,7 +223,7 @@ void Lexer::parseHexNumber()
     {
         Diagnostic diag(ctx_->sourceFile());
         const auto elem = diag.addError(DiagnosticId::NumberSepStart);
-        elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_));
+        elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_ + 2));
         reportError(diag);
         error = true;
     }
@@ -383,10 +383,10 @@ void Lexer::checkFormat(const CompilerInstance& ci, const CompilerContext& ctx, 
 {
     // Read header
     const auto    file = ctx.sourceFile();
-    const uint8_t c1   = file->content_[0];
-    const uint8_t c2   = file->content_[1];
-    const uint8_t c3   = file->content_[2];
-    const uint8_t c4   = file->content_[3];
+    const uint8_t c1   = file->content()[0];
+    const uint8_t c2   = file->content()[1];
+    const uint8_t c3   = file->content()[2];
+    const uint8_t c4   = file->content()[3];
 
     if (c1 == 0xEF && c2 == 0xBB && c3 == 0xBF)
     {
@@ -429,7 +429,7 @@ void Lexer::checkFormat(const CompilerInstance& ci, const CompilerContext& ctx, 
         Diagnostic diag(ctx_->sourceFile());
         const auto elem = diag.addElement(DiagnosticKind::Error, DiagnosticId::FileNotUtf8);
         elem->setLocation(ctx.sourceFile());
-        elem->addArgument(file->path_.string());
+        elem->addArgument(file->path().string());
         reportError(diag);
     }
 
@@ -450,13 +450,13 @@ Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx, L
     uint32_t startOffset = 0;
     checkFormat(ci, ctx, startOffset);
 
-    const auto base = reinterpret_cast<const uint8_t*>(file->content_.data());
+    const auto base = file->content().data();
     buffer_         = base + startOffset;
-    end_            = base + file->content_.size();
+    end_            = base + file->content().size();
     startBuffer_    = base;
 
-    tokens_.reserve(file->content_.size() / 8);
-    lines_.reserve(file->content_.size() / 80);
+    tokens_.reserve(file->content().size() / 8);
+    lines_.reserve(file->content().size() / 80);
     lines_.push_back(0);
 
     while (buffer_ < end_)

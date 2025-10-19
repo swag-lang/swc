@@ -1,6 +1,6 @@
 #include "pch.h"
 
-#include "Report/DiagReporter.h"
+#include "Report/Reporter.h"
 
 #define SWAG_DIAG(__n, __msg)                         \
     do                                                \
@@ -8,7 +8,7 @@
         diagMsgs_[(int) (DiagnosticId::__n)] = __msg; \
     } while (0)
 
-void DiagReporter::initErrors()
+void Reporter::initErrors()
 {
     SWAG_DIAG(CannotOpenFile, "failed to open file %0");
     SWAG_DIAG(CannotReadFile, "failed to read file %0");

@@ -1,9 +1,9 @@
 #include "pch.h"
 
-#include "DiagReporter.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticElement.h"
 #include "Report/Logger.h"
+#include "Reporter.h"
 
 DiagnosticElement* Diagnostic::addElement(DiagnosticKind kind, DiagnosticId id)
 {
@@ -12,7 +12,7 @@ DiagnosticElement* Diagnostic::addElement(DiagnosticKind kind, DiagnosticId id)
     return ptr.get();
 }
 
-void Diagnostic::log(const DiagReporter& reporter, Logger& logger) const
+void Diagnostic::log(const Reporter& reporter, Logger& logger) const
 {
     logger.lock();
 

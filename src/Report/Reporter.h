@@ -6,10 +6,10 @@ class CompilerContext;
 class CompilerInstance;
 class Diagnostic;
 
-class DiagReporter
+class Reporter
 {
 public:
-    DiagReporter();
+    Reporter();
     static std::unique_ptr<Diagnostic> diagnostic();
     
     std::string_view diagMessage(DiagnosticId id) const;

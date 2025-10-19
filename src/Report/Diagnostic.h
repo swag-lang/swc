@@ -1,6 +1,6 @@
 #pragma once
-#include "Report/DiagIds.h"
 #include "Report/DiagnosticElement.h"
+#include "Report/DiagnosticIds.h"
 
 class CompilerContext;
 class CompilerInstance;
@@ -21,6 +21,6 @@ class Diagnostic
     std::vector<std::unique_ptr<DiagnosticElement>> elements_;
 
 public:
-    void               log(const DiagReporter& reporter, Logger& logger) const;
+    void               log(const Reporter& reporter, Logger& logger) const;
     DiagnosticElement* addElement(DiagnosticKind kind, DiagnosticId id);
 };

@@ -4,8 +4,8 @@
 #include "Lexer/SourceFile.h"
 #include "Main/CompilerContext.h"
 #include "Main/CompilerInstance.h"
-#include "Report/DiagReporter.h"
 #include "Report/Logger.h"
+#include "Report/Reporter.h"
 
 Result Lexer::tokenize(CompilerInstance& ci, const CompilerContext& ctx)
 {
@@ -57,7 +57,7 @@ Result Lexer::tokenize(CompilerInstance& ci, const CompilerContext& ctx)
 
             if (depth > 0)
             {
-                const auto diag = DiagReporter::diagnostic();
+                const auto diag = Reporter::diagnostic();
                 const auto elem = diag->addElement(DiagnosticKind::Error, DiagnosticId::UnclosedComment);
                 ci.diagReporter().report(ci, ctx, *diag);
                 return Result::Error;           

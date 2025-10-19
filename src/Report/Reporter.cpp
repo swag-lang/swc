@@ -2,25 +2,25 @@
 
 #include "Main/CompilerContext.h"
 #include "Main/CompilerInstance.h"
-#include "Report/DiagReporter.h"
 #include "Report/Diagnostic.h"
+#include "Report/Reporter.h"
 
-DiagReporter::DiagReporter()
+Reporter::Reporter()
 {
     initErrors();
 }
 
-std::unique_ptr<Diagnostic> DiagReporter::diagnostic()
+std::unique_ptr<Diagnostic> Reporter::diagnostic()
 {
     return std::make_unique<Diagnostic>();
 }
 
-std::string_view DiagReporter::diagMessage(DiagnosticId id) const
+std::string_view Reporter::diagMessage(DiagnosticId id) const
 {
     return diagMsgs_[static_cast<int>(id)];
 }
 
-void DiagReporter::report(CompilerInstance& ci, const CompilerContext& ctx, Diagnostic& diag)
+void Reporter::report(CompilerInstance& ci, const CompilerContext& ctx, Diagnostic& diag)
 {
     diag.log(*this, ci.logger());
 }

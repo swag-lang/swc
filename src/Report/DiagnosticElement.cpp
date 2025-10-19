@@ -1,7 +1,7 @@
 #include "pch.h"
 
-#include "Report/DiagReporter.h"
 #include "Report/DiagnosticElement.h"
+#include "Report/Reporter.h"
 
 DiagnosticElement::DiagnosticElement(DiagnosticKind kind, DiagnosticId id) :
     id_(id),
@@ -32,7 +32,7 @@ std::string DiagnosticElement::argumentToString(const Argument& arg) const
 }
 
 // Format a string by replacing %0, %1, etc. with registered arguments
-std::string DiagnosticElement::format(const DiagReporter& reporter) const
+std::string DiagnosticElement::format(const Reporter& reporter) const
 {
     std::string result{reporter.diagMessage(id_)};
 

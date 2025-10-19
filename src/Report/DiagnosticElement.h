@@ -1,6 +1,6 @@
 #pragma once
 
-class DiagReporter;
+class Reporter;
 enum class DiagnosticKind;
 enum class DiagnosticId;
 
@@ -24,5 +24,5 @@ public:
         arguments_.emplace_back(std::forward<T>(arg));
     }
 
-    std::string format(const DiagReporter& reporter) const;
+    std::string format(const Reporter& reporter) const;
 };

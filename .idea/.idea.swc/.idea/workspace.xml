@@ -8,18 +8,19 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/Report/DiagIds.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Report/DiagnosticElement.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Report/DiagnosticElement.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/DiagReporter.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagReporter.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/DiagReporter.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagReporter.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Main/CompilerInstance.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/CompilerInstance.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Main/CompilerInstance.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/CompilerInstance.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Main/swc.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/swc.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/DiagIds.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticIds.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/DiagIds.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticIds.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/DiagReporter.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Reporter.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/DiagReporter.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Reporter.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Report/Diagnostic.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Diagnostic.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Report/Diagnostic.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Diagnostic.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticList.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagList.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pch.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/pch.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticElement.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticElement.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticElement.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticElement.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/swc.vcxproj" beforeDir="false" afterPath="$PROJECT_DIR$/swc.vcxproj" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -228,7 +229,23 @@
       <option name="project" value="LOCAL" />
       <updated>1760846400447</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="Refactor diagnostics system by introducing `DiagnosticElement` for improved error representation, embedding diagnostic messages in `DiagReporter`, and updating related APIs to enhance modularity and maintainability.">
+      <option name="closed" value="true" />
+      <created>1760848605099</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1760848605099</updated>
+    </task>
+    <task id="LOCAL-00013" summary="Refactor diagnostics system by replacing `DiagList.h` with `DiagIds.h`, embedding `DiagnosticId` enum directly, and updating includes and project configuration for simplicity and maintainability.">
+      <option name="closed" value="true" />
+      <created>1760848724836</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1760848724836</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -249,7 +266,9 @@
     <MESSAGE value="Introduce `Lexer` component with tokenization support, integrate it with `SourceFile`, and update project configuration." />
     <MESSAGE value="Refactor `Lexer` and `SourceFile` tokenization by introducing `CompilerContext::sourceFile`, simplifying tokenization API, and updating project configuration." />
     <MESSAGE value="Update `.gitignore` to exclude `.idea/` directory for IDE compatibility" />
-    <option name="LAST_COMMIT_MESSAGE" value="Update `.gitignore` to exclude `.idea/` directory for IDE compatibility" />
+    <MESSAGE value="Refactor diagnostics system by introducing `DiagnosticElement` for improved error representation, embedding diagnostic messages in `DiagReporter`, and updating related APIs to enhance modularity and maintainability." />
+    <MESSAGE value="Refactor diagnostics system by replacing `DiagList.h` with `DiagIds.h`, embedding `DiagnosticId` enum directly, and updating includes and project configuration for simplicity and maintainability." />
+    <option name="LAST_COMMIT_MESSAGE" value="Refactor diagnostics system by replacing `DiagList.h` with `DiagIds.h`, embedding `DiagnosticId` enum directly, and updating includes and project configuration for simplicity and maintainability." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

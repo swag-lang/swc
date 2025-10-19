@@ -2,7 +2,6 @@
 #include "Lexer/SourceCodeLocation.h"
 
 class SourceFile;
-class Reporter;
 class CompilerInstance;
 enum class DiagnosticKind;
 enum class DiagnosticId;
@@ -28,8 +27,8 @@ public:
 
     void setLocation(const SourceFile* file)
     {
-        file_   = file;
-        len_    = 0;
+        file_ = file;
+        len_  = 0;
     }
 
     void setLocation(const SourceFile* file, uint32_t offset, uint32_t len = 1)
@@ -39,7 +38,8 @@ public:
         len_    = len;
     }
 
-    SourceCodeLocation getLocation(const CompilerInstance& ci) const;
+    SourceCodeLocation location(const CompilerInstance& ci) const;
+    std::string_view   idName(const CompilerInstance& ci) const;
 
     template<typename T>
     void addArgument(T&& arg)
@@ -47,5 +47,5 @@ public:
         arguments_.emplace_back(std::forward<T>(arg));
     }
 
-    Utf8 format(const Reporter& reporter) const;
+    Utf8 message(const CompilerInstance& ci) const;
 };

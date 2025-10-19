@@ -24,12 +24,19 @@
     <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Main/CompilerInstance.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/CompilerInstance.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Main/CompilerInstance.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/CompilerInstance.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Main/swc.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/swc.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Report/Diagnostic.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Diagnostic.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/Diagnostic.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Diagnostic.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticElement.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticElement.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticElement.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticElement.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticIds.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticIds.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticIds.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticIds.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/Reporter.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/Reporter.h" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Report/Verifier.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Verifier.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Report/Verifier.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Verifier.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/swc.vcxproj" beforeDir="false" afterPath="$PROJECT_DIR$/swc.vcxproj" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -43,7 +50,7 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="cidr-memory-view://249" root0="FORCE_HIGHLIGHTING" />
+    <setting file="cidr-memory-view://251" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Core/Utf8.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/Os.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/OsWin32.cpp" root0="SKIP_HIGHLIGHTING" />
@@ -83,8 +90,6 @@
     <setting file="file://$PROJECT_DIR$/src/Report/DiagnosticIds.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Report/Logger.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Report/Logger.h" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/src/Report/Reporter.cpp" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/src/Report/Reporter.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Report/Verifier.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Report/Verifier.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/pch.h" root0="FORCE_HIGHLIGHTING" />
@@ -168,14 +173,6 @@
       <workItem from="1760799230882" duration="271000" />
       <workItem from="1760799516648" duration="1911000" />
       <workItem from="1760801501480" duration="9485000" />
-    </task>
-    <task id="LOCAL-00001" summary="Initialize `swc` project with basic folder parsing functionality and Visual Studio configuration files.">
-      <option name="closed" value="true" />
-      <created>1760798918219</created>
-      <option name="number" value="00001" />
-      <option name="presentableId" value="LOCAL-00001" />
-      <option name="project" value="LOCAL" />
-      <updated>1760798918219</updated>
     </task>
     <task id="LOCAL-00002" summary="Refactor project structure, add precompiled headers, introduce diagnostic system, and implement source file content loading.">
       <option name="closed" value="true" />
@@ -561,7 +558,15 @@
       <option name="project" value="LOCAL" />
       <updated>1760886683246</updated>
     </task>
-    <option name="localTasksCounter" value="50" />
+    <task id="LOCAL-00050" summary="Introduce `Verifier::verify` method to validate diagnostics against directives in comments. Extend `SourceFile` with `Verifier` accessor and update `Diagnostic` to conditionally suppress logs. Adjust `Lexer` tokenization and update `.idea/workspace.xml`.">
+      <option name="closed" value="true" />
+      <created>1760890034420</created>
+      <option name="number" value="00050" />
+      <option name="presentableId" value="LOCAL-00050" />
+      <option name="project" value="LOCAL" />
+      <updated>1760890034421</updated>
+    </task>
+    <option name="localTasksCounter" value="51" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -571,7 +576,6 @@
   <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Introduce `Flags` and `EnumFlags` templates to encapsulate bitwise operations. Extend `LangSpec` with character flag utilities for `isBlank`, `isDigit`, `isLetter`, and `isAscii` checks. Update `Lexer` to use `LangSpec` for enhanced tokenization. Modify project files to include `Flags.h`." />
     <MESSAGE value="Refactor `Lexer::tokenize` to improve buffer safety by adding bounds checking for comments. Update `.idea/workspace.xml` to reflect recent project changes." />
     <MESSAGE value="fix " />
     <MESSAGE value="Refactor `LangSpec` and `Lexer` to enhance blank space handling with UTF-8 support. Adjust related methods, types, and tokenization logic. Update project files and `.idea/workspace.xml`." />
@@ -596,7 +600,8 @@
     <MESSAGE value="Refactor `Diagnostic` to introduce `build` method for constructing error messages. Simplify error reporting logic by delegating to `build`. Update `Diagnostic.h`, `SourceFile`, and related modules for consistency. Adjust `.idea/workspace.xml` accordingly." />
     <MESSAGE value="Refactor `Lexer` to remove redundant `Result` returns from parsing methods. Replace `Result` with direct `void` returns for improved clarity. Simplify error handling in diagnostics and tokenization logic. Update unit test cases and `.idea/workspace.xml` as needed." />
     <MESSAGE value="Refactor `Diagnostic` to include `fileOwner` for contextual error reporting. Replace `Result` returns in `SourceFile` and `Diagnostic` methods with direct `void` alternatives. Simplify diagnostic construction in `Lexer`. Update `.idea/workspace.xml` and related components." />
-    <option name="LAST_COMMIT_MESSAGE" value="Refactor `Diagnostic` to include `fileOwner` for contextual error reporting. Replace `Result` returns in `SourceFile` and `Diagnostic` methods with direct `void` alternatives. Simplify diagnostic construction in `Lexer`. Update `.idea/workspace.xml` and related components." />
+    <MESSAGE value="Introduce `Verifier::verify` method to validate diagnostics against directives in comments. Extend `SourceFile` with `Verifier` accessor and update `Diagnostic` to conditionally suppress logs. Adjust `Lexer` tokenization and update `.idea/workspace.xml`." />
+    <option name="LAST_COMMIT_MESSAGE" value="Introduce `Verifier::verify` method to validate diagnostics against directives in comments. Extend `SourceFile` with `Verifier` accessor and update `Diagnostic` to conditionally suppress logs. Adjust `Lexer` tokenization and update `.idea/workspace.xml`." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -617,11 +622,6 @@
           <url>file://$PROJECT_DIR$/src/Main/swc.cpp</url>
           <line>39</line>
           <option name="timeStamp" value="9" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/src/Report/Verifier.cpp</url>
-          <line>72</line>
-          <option name="timeStamp" value="55" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

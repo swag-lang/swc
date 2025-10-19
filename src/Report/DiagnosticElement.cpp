@@ -1,7 +1,8 @@
 #include "pch.h"
 
+#include "DiagnosticIds.h"
+#include "Main/CompilerInstance.h"
 #include "Report/DiagnosticElement.h"
-#include "Report/Reporter.h"
 
 DiagnosticElement::DiagnosticElement(DiagnosticKind kind, DiagnosticId id) :
     id_(id),
@@ -31,17 +32,22 @@ Utf8 DiagnosticElement::argumentToString(const Argument& arg) const
                       arg);
 }
 
-SourceCodeLocation DiagnosticElement::getLocation(const CompilerInstance& ci) const
+SourceCodeLocation DiagnosticElement::location(const CompilerInstance& ci) const
 {
     SourceCodeLocation loc;
     loc.fromOffset(ci, file_, offset_, len_);
     return loc;
 }
 
-// Format a string by replacing %0, %1, etc. with registered arguments
-Utf8 DiagnosticElement::format(const Reporter& reporter) const
+std::string_view DiagnosticElement::idName(const CompilerInstance& ci) const
 {
-    Utf8 result{reporter.diagMessage(id_)};
+    return ci.diagIds().diagName(id_);
+}
+
+// Format a string by replacing %0, %1, etc. with registered arguments
+Utf8 DiagnosticElement::message(const CompilerInstance& ci) const
+{
+    Utf8 result{ci.diagIds().diagMessage(id_)};
 
     // Replace placeholders in reverse order to avoid issues with %10 versus %1
     for (int i = static_cast<int>(arguments_.size()) - 1; i >= 0; --i)

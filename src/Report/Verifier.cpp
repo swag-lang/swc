@@ -63,25 +63,27 @@ Result Verifier::tokenize(const CompilerInstance& ci, const CompilerContext& ctx
     return Result::Success;
 }
 
-bool Verifier::verify(const CompilerInstance& ci, const Diagnostic& diag)
+bool Verifier::verify(const CompilerInstance& ci, const Diagnostic& diag) const
 {
     if (directives_.empty())
         return true;
 
     for (auto& elem : diag.elements())
     {
-        const auto loc = elem->getLocation(ci);
-        
+        const auto loc = elem->location(ci);
+
         for (auto& directive : directives_)
         {
             if (directive.kind != elem->kind_)
                 continue;
             if (directive.location.line != loc.line)
                 continue;
-            const auto errMsg = elem->format(ci.diagReporter());
-            if (errMsg.find(directive.match) == Utf8::npos)
+
+            if (elem->idName(ci).find(directive.match) == Utf8::npos &&
+                elem->message(ci).find(directive.match) == Utf8::npos)
                 continue;
-            
+
+            directive.touched = true;
             return false;
         }
     }

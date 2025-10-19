@@ -191,7 +191,6 @@
     <ClCompile Include="src\Report\Diagnostic.cpp" />
     <ClCompile Include="src\Report\DiagnosticIds.cpp" />
     <ClCompile Include="src\Report\DiagnosticElement.cpp" />
-    <ClCompile Include="src\Report\Reporter.cpp" />
     <ClCompile Include="src\Report\Logger.cpp" />
     <ClCompile Include="src\Report\Verifier.cpp" />
   </ItemGroup>
@@ -212,7 +211,6 @@
     <ClInclude Include="src\Report\Diagnostic.h" />
     <ClInclude Include="src\Report\DiagnosticIds.h" />
     <ClInclude Include="src\Report\DiagnosticElement.h" />
-    <ClInclude Include="src\Report\Reporter.h" />
     <ClInclude Include="src\Report\Logger.h" />
     <ClInclude Include="src\Report\Verifier.h" />
   </ItemGroup>

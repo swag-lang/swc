@@ -1,25 +1,44 @@
 #include "pch.h"
 
-#include "Report/Reporter.h"
+#include "Report/DiagnosticIds.h"
 
-void Reporter::addError(DiagnosticId id, std::string_view msg)
+DiagnosticIds::DiagnosticIds()
 {
-    const auto index = static_cast<size_t>(id);
-    if (index >= diagMsgs_.size())
-        diagMsgs_.resize(index + 1);
-    diagMsgs_[index] = msg;
+    initErrors();
 }
 
-void Reporter::initErrors()
+std::string_view DiagnosticIds::diagMessage(DiagnosticId id) const
 {
-    addError(DiagnosticId::CannotOpenFile, "failed to open file");
-    addError(DiagnosticId::CannotReadFile, "failed to read file");
-    addError(DiagnosticId::FileNotUtf8, "source file is not utf8");
-    addError(DiagnosticId::UnclosedComment, "unclosed multi-line comment");
-    addError(DiagnosticId::EolInStringLiteral, "invalid eol in string");
-    addError(DiagnosticId::UnclosedStringLiteral, "unclosed string literal");
-    addError(DiagnosticId::SyntaxNumberSepMulti, "a number cannot have multiple consecutive '_'");
-    addError(DiagnosticId::SyntaxNumberSepAtEnd, "a number cannot have '_' at the end");
-    addError(DiagnosticId::SyntaxMissingHexDigits, "missing hex digits");
-    addError(DiagnosticId::SyntaxMalformedHexNumber, "malformed hex number");
+    SWAG_ASSERT(static_cast<size_t>(id) < infos_.size());
+    return infos_[static_cast<size_t>(id)].msg;
+}
+
+std::string_view DiagnosticIds::diagName(DiagnosticId id) const
+{
+    SWAG_ASSERT(static_cast<size_t>(id) < infos_.size());
+    return infos_[static_cast<size_t>(id)].name;
+}
+
+void DiagnosticIds::addId(DiagnosticId id, const std::string_view name, std::string_view msg)
+{
+    const auto index = static_cast<size_t>(id);
+    if (index >= infos_.size())
+        infos_.resize(index + 1);
+    infos_[index] = {.id = id, .name = name, .msg = msg};
+}
+
+void DiagnosticIds::initErrors()
+{
+#define SWAG_DIAG(id, msg) addId(DiagnosticId::id, #id, msg);
+
+    SWAG_DIAG(CannotOpenFile, "failed to open file");
+    SWAG_DIAG(CannotReadFile, "failed to read file");
+    SWAG_DIAG(FileNotUtf8, "source file is not utf8");
+    SWAG_DIAG(UnclosedComment, "unclosed multi-line comment");
+    SWAG_DIAG(EolInStringLiteral, "invalid eol in string");
+    SWAG_DIAG(UnclosedStringLiteral, "unclosed string literal");
+    SWAG_DIAG(SyntaxNumberSepMulti, "a number cannot have multiple consecutive '_'");
+    SWAG_DIAG(SyntaxNumberSepAtEnd, "a number cannot have '_' at the end");
+    SWAG_DIAG(SyntaxMissingHexDigits, "missing hex digits");
+    SWAG_DIAG(SyntaxMalformedHexNumber, "malformed hex number");
 }

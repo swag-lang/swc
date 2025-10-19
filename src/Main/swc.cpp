@@ -4,7 +4,7 @@
 #include "Main/CompilerContext.h"
 #include "Main/CompilerInstance.h"
 #include "Report/Logger.h"
-#include "Report/Reporter.h"
+#include "Report/DiagnosticIds.h"
 #include "Lexer/LangSpec.h"
 #include "Main/CommandLine.h"
 #include <filesystem>

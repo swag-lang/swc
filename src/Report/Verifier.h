@@ -10,6 +10,7 @@ struct VerifierDirective
     DiagnosticKind     kind;
     Utf8               match;
     SourceCodeLocation location;
+    mutable bool       touched = false;
 };
 
 class Verifier
@@ -18,5 +19,5 @@ class Verifier
 
 public:
     Result tokenize(const CompilerInstance& ci, const CompilerContext& ctx);
-    bool   verify(const CompilerInstance& ci, const Diagnostic& diag);
+    bool   verify(const CompilerInstance& ci, const Diagnostic& diag) const;
 };

@@ -5,7 +5,8 @@
 #include "Lexer/SourceFile.h"
 #include "Main/CompilerContext.h"
 #include "Main/CompilerInstance.h"
-#include "Report/Reporter.h"
+#include "Report/Diagnostic.h"
+#include "Report/DiagnosticIds.h"
 
 void Lexer::pushToken()
 {

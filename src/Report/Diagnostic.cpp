@@ -16,18 +16,22 @@ DiagnosticElement* Diagnostic::addElement(DiagnosticKind kind, DiagnosticId id)
 
 Utf8 Diagnostic::build(const CompilerInstance& ci) const
 {
-    const auto& reporter = ci.diagReporter();
+    const auto& ids = ci.diagIds();
     Utf8        result;
 
     for (auto& e : elements_)
     {
+        const auto idName = e->idName(ci);
+        result += idName;
+        result += "\n";
+
         if (e->file_ != nullptr)
         {
             result += e->file_->fullName().string();
             result += ": ";
             if (e->len_ != 0)
             {
-                const auto loc = e->getLocation(ci);
+                const auto loc = e->location(ci);
                 Utf8       s   = std::format("{}:{}", loc.line, loc.column);
                 result += s;
                 result += "\n";
@@ -42,8 +46,8 @@ Utf8 Diagnostic::build(const CompilerInstance& ci) const
             }
         }
 
-        const auto errMsg = e->format(reporter);
-        result += errMsg;
+        const auto msg = e->message(ci);
+        result += msg;
         result += "\n";
     }
 
@@ -52,8 +56,8 @@ Utf8 Diagnostic::build(const CompilerInstance& ci) const
 
 void Diagnostic::report(const CompilerInstance& ci) const
 {
-    const auto msg = build(ci);
-    bool canLog = true;
+    const auto msg    = build(ci);
+    bool       canLog = true;
 
     if (fileOwner_ != nullptr)
     {

@@ -21,7 +21,9 @@ class Lexer
 
     Result parseEol();
     Result parseBlank(const LangSpec& langSpec);
-    Result parseSingleLineString();
+    Result parseSingleLineStringLiteral();
+    Result parseMultiLineStringLiteral();
+    Result parseRawStringLiteral();
     Result parseSingleLineComment();
     Result parseMultiLineComment();
 

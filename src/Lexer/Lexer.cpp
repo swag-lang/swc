@@ -43,12 +43,13 @@ Result Lexer::parseBlank(const LangSpec& langSpec)
     return Result::Success;
 }
 
-Result Lexer::parseSingleLineString()
+Result Lexer::parseSingleLineStringLiteral()
 {
     token_.id                 = TokenId::StringLiteral;
+    token_.subTokenStringId   = SubTokenStringId::LineString;
     const uint8_t* startToken = buffer_;
 
-    buffer_++;
+    buffer_ += 1;
 
     while (buffer_ < end_ && buffer_[0] != '"')
     {
@@ -78,6 +79,44 @@ Result Lexer::parseSingleLineString()
     }
 
     buffer_++;
+    token_.len = static_cast<uint32_t>(buffer_ - startToken);
+    tokens_.push_back(token_);
+
+    return Result::Success;
+}
+
+Result Lexer::parseMultiLineStringLiteral()
+{
+    token_.id                 = TokenId::StringLiteral;
+    token_.subTokenStringId   = SubTokenStringId::MultiLineString;
+    const uint8_t* startToken = buffer_;
+
+    return Result::Success;
+}
+
+Result Lexer::parseRawStringLiteral()
+{
+    token_.id                 = TokenId::StringLiteral;
+    token_.subTokenStringId   = SubTokenStringId::RawString;
+    const uint8_t* startToken = buffer_;
+
+    buffer_ += 2;
+
+    while (buffer_ < end_ - 1 && (buffer_[0] != '"' || buffer_[1] != '#'))
+    {
+        buffer_++;
+    }
+
+    if (buffer_ >= end_ - 1)
+    {
+        Diagnostic diag;
+        const auto elem = diag.addError(DiagnosticId::UnclosedStringLiteral);
+        elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_));
+        ci_->diagReporter().report(*ci_, *ctx_, diag);
+        return Result::Error;
+    }
+
+    buffer_ += 2;
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
     tokens_.push_back(token_);
 
@@ -183,29 +222,35 @@ Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
         }
 
         // String
+        if (buffer_ < end_ - 1 && buffer_[0] == '#' && buffer_[1] == '"')
+        {
+            SWAG_CHECK(parseRawStringLiteral());
+            continue;
+        }
+
+        if (buffer_ < end_ - 2 && buffer_[0] == '"' && buffer_[1] == '"' && buffer_[2] == '"')
+        {
+            SWAG_CHECK(parseMultiLineStringLiteral());
+            continue;
+        }
+
         if (buffer_[0] == '"')
         {
-            SWAG_CHECK(parseSingleLineString());
-            if (!buffer_)
-                return Result::Error;
+            SWAG_CHECK(parseSingleLineStringLiteral());
             continue;
         }
 
         // Line comment
-        if (buffer_[0] == '/' && buffer_[1] == '/')
+        if (buffer_ < end_ - 1 && buffer_[0] == '/' && buffer_[1] == '/')
         {
             SWAG_CHECK(parseSingleLineComment());
-            if (!buffer_)
-                return Result::Error;
             continue;
         }
 
         // Multi-line comment
-        if (buffer_[0] == '/' && buffer_[1] == '*')
+        if (buffer_ < end_ - 1 && buffer_[0] == '/' && buffer_[1] == '*')
         {
             SWAG_CHECK(parseMultiLineComment());
-            if (!buffer_)
-                return Result::Error;
             continue;
         }
 

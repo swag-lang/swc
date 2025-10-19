@@ -22,7 +22,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -476,7 +477,15 @@
       <option name="project" value="LOCAL" />
       <updated>1760868238706</updated>
     </task>
-    <option name="localTasksCounter" value="41" />
+    <task id="LOCAL-00041" summary="Simplify `consumeOneEol` in `Lexer` by adding assertion for consistent EOL handling and cleaning up `.idea/workspace.xml`.">
+      <option name="closed" value="true" />
+      <created>1760868312149</created>
+      <option name="number" value="00041" />
+      <option name="presentableId" value="LOCAL-00041" />
+      <option name="project" value="LOCAL" />
+      <updated>1760868312149</updated>
+    </task>
+    <option name="localTasksCounter" value="42" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -486,7 +495,6 @@
   <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Implement `SourceCodeLocation` structure to enhance error reporting with accurate line and column details. Refactor `Lexer` and `DiagnosticElement` to support location-aware diagnostics and improve logging with contextual information." />
     <MESSAGE value="Refactor project structure by moving `Check` utilities to `Report` module, introducing `swagAssert` with platform-specific implementation, and replacing `Fs` with `fs` for standardized namespace consistency." />
     <MESSAGE value="Fix `SWAG_ASSERT` condition in `SourceCodeLocation::fromOffset` and reorder member variables for clarity. Update task and configuration in `.idea/workspace.xml`." />
     <MESSAGE value="Refactor diagnostics creation by replacing `Reporter::diagnostic` with `Diagnostic::instance` for improved encapsulation and consistency." />
@@ -511,7 +519,8 @@
     <MESSAGE value="Introduce `CommandLine` utility to manage configuration options like tab size. Refactor diagnostics system in `Reporter` to improve column calculation and error highlighting with tab expansion. Update `SourceFile`, `SourceCodeLocation`, and dependent modules for compatibility. Adjust project files and `.idea/workspace.xml`." />
     <MESSAGE value="Refactor diagnostics system to simplify error reporting. Replace `report` method in `Reporter` with `report` method in `Diagnostic` for consistent usage. Remove `isEol` utility from `LangSpec` and refactor `Lexer` EOL handling accordingly. Cleanup project files and `.idea/workspace.xml`." />
     <MESSAGE value="Clean up `Lexer` by removing redundant comments and simplifying diagnostic error reporting." />
-    <option name="LAST_COMMIT_MESSAGE" value="Clean up `Lexer` by removing redundant comments and simplifying diagnostic error reporting." />
+    <MESSAGE value="Simplify `consumeOneEol` in `Lexer` by adding assertion for consistent EOL handling and cleaning up `.idea/workspace.xml`." />
+    <option name="LAST_COMMIT_MESSAGE" value="Simplify `consumeOneEol` in `Lexer` by adding assertion for consistent EOL handling and cleaning up `.idea/workspace.xml`." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

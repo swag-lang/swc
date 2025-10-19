@@ -3,10 +3,10 @@
 #include "Main/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Report/Diagnostic.h"
-#include "Report/Reporter.h"
 
 SourceFile::SourceFile(std::filesystem::path path) :
-    path_(std::move(path))
+    path_(std::move(path)),
+    lexer_()
 {
 }
 
@@ -42,8 +42,7 @@ Result SourceFile::checkFormat(const CompilerInstance& ci, const CompilerContext
         Diagnostic diag;
         const auto elem = diag.addElement(DiagnosticKind::Error, DiagnosticId::FileNotUtf8);
         elem->addArgument(path_.string());
-        diag.report(ci);
-        return Result::Error;
+        return diag.report(ci);
     }
 
     return Result::Success;
@@ -62,8 +61,7 @@ Result SourceFile::loadContent(const CompilerInstance& ci, const CompilerContext
         const auto elem = diag.addError(DiagnosticId::CannotOpenFile);
         elem->setLocation(this);
         elem->addArgument(path_.string());
-        diag.report(ci);
-        return Result::Error;
+        return diag.report(ci);
     }
 
     const auto fileSize = file.tellg();
@@ -76,8 +74,7 @@ Result SourceFile::loadContent(const CompilerInstance& ci, const CompilerContext
         const auto elem = diag.addError(DiagnosticId::CannotReadFile);
         elem->setLocation(this);
         elem->addArgument(path_.string());
-        diag.report(ci);
-        return Result::Error;
+        return diag.report(ci);
     }
 
     // Ensure we have at least 4 characters in the buffer

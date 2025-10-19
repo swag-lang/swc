@@ -1,7 +1,8 @@
 #pragma once
-#include <variant>
+#include "Report/DiagnosticElement.h"
 
-class Logger;
+class CompilerContext;
+class CompilerInstance;
 enum class DiagnosticId;
 
 enum class DiagnosticKind
@@ -12,24 +13,13 @@ enum class DiagnosticKind
     Hint,
 };
 
+class Logger;
+
 class Diagnostic
 {
-    using Argument = std::variant<std::string, uint64_t, int64_t>;
-    DiagnosticId          id_;
-    DiagnosticKind        kind_;
-    std::vector<Argument> arguments_;
-
-    std::string argumentToString(const Argument& arg) const;
-    std::string format() const;
+    std::vector<std::unique_ptr<DiagnosticElement>> elements_;
 
 public:
-    explicit Diagnostic(DiagnosticKind kind, DiagnosticId id);
-
-    template<typename T>
-    void addArgument(T&& arg)
-    {
-        arguments_.emplace_back(std::forward<T>(arg));
-    }
-
-    void log(Logger& logger) const;
+    void               log(const DiagReporter& reporter, Logger& logger) const;
+    DiagnosticElement* addElement(DiagnosticKind kind, DiagnosticId id);
 };

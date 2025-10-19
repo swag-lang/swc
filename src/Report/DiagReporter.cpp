@@ -5,28 +5,22 @@
 #include "Report/DiagReporter.h"
 #include "Report/Diagnostic.h"
 
-namespace
+DiagReporter::DiagReporter()
 {
-#define SWAG_DIAG(__id, __txt) __txt,
-    std::string_view g_DiagnosticIdMessages[] =
-    {
-#include "Report/DiagnosticList.h"
-
-    };
-#undef SWAG_DIAG
-};
-
-std::unique_ptr<Diagnostic> DiagReporter::diagnostic(DiagnosticKind kind, DiagnosticId id)
-{
-    return std::make_unique<Diagnostic>(kind, id);
+    initErrors();
 }
 
-std::string_view DiagReporter::diagnosticMessage(DiagnosticId id)
+std::unique_ptr<Diagnostic> DiagReporter::diagnostic()
 {
-    return g_DiagnosticIdMessages[static_cast<int>(id)];
+    return std::make_unique<Diagnostic>();
 }
 
-void DiagReporter::report(CompilerInstance& ci, const CompilerContext& cxt, Diagnostic& diag)
+std::string_view DiagReporter::diagMessage(DiagnosticId id) const
 {
-    diag.log(ci.logger());
+    return diagMsgs_[static_cast<int>(id)];
+}
+
+void DiagReporter::report(CompilerInstance& ci, const CompilerContext& ctx, Diagnostic& diag)
+{
+    diag.log(*this, ci.logger());
 }

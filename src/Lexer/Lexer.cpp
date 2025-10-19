@@ -57,7 +57,8 @@ Result Lexer::tokenize(CompilerInstance& ci, const CompilerContext& ctx)
 
             if (depth > 0)
             {
-                const auto diag = DiagReporter::error(DiagnosticId::UnclosedComment);
+                const auto diag = DiagReporter::diagnostic();
+                const auto elem = diag->addElement(DiagnosticKind::Error, DiagnosticId::UnclosedComment);
                 ci.diagReporter().report(ci, ctx, *diag);
                 return Result::Error;           
             }

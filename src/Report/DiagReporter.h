@@ -6,23 +6,25 @@ class CompilerContext;
 class CompilerInstance;
 class Diagnostic;
 
-#define SWAG_DIAG(__id, __txt) __id,
+#define SWAG_DIAG(__id) __id,
 enum class DiagnosticId
 {
-#include "Report/DiagnosticList.h"
+#include "Report/DiagList.h"
 };
 #undef SWAG_DIAG
 
 class DiagReporter
 {
 public:
-    static std::unique_ptr<Diagnostic> diagnostic(DiagnosticKind kind, DiagnosticId id);
-    static std::unique_ptr<Diagnostic> error(DiagnosticId id) { return diagnostic(DiagnosticKind::Error, id); }
-    static std::unique_ptr<Diagnostic> warning(DiagnosticId id) { return diagnostic(DiagnosticKind::Warning, id); }
-    static std::unique_ptr<Diagnostic> note(DiagnosticId id) { return diagnostic(DiagnosticKind::Note, id); }
-    static std::unique_ptr<Diagnostic> hint(DiagnosticId id) { return diagnostic(DiagnosticKind::Hint, id); }
-
-    static std::string_view diagnosticMessage(DiagnosticId id);
+    DiagReporter();
+    static std::unique_ptr<Diagnostic> diagnostic();
+    
+    std::string_view diagMessage(DiagnosticId id) const;
 
     void report(CompilerInstance& ci, const CompilerContext& ctx, Diagnostic& diag);
+
+private:
+    std::vector<std::string_view> diagMsgs_;
+
+    void initErrors();
 };

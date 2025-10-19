@@ -108,6 +108,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\Report\Diagnostic.cpp" />
+    <ClCompile Include="src\Report\DiagIds.cpp" />
+    <ClCompile Include="src\Report\DiagnosticElement.cpp" />
     <ClCompile Include="src\Report\DiagReporter.cpp" />
     <ClCompile Include="src\Report\Logger.cpp" />
   </ItemGroup>
@@ -120,7 +122,8 @@
     <ClInclude Include="src\Main\CompilerInstance.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\Report\Diagnostic.h" />
-    <ClInclude Include="src\Report\DiagnosticList.h" />
+    <ClInclude Include="src\Report\DiagList.h" />
+    <ClInclude Include="src\Report\DiagnosticElement.h" />
     <ClInclude Include="src\Report\DiagReporter.h" />
     <ClInclude Include="src\Report\Logger.h" />
   </ItemGroup>

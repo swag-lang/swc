@@ -1,0 +1,1 @@
+0x // expected-error toto

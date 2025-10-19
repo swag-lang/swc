@@ -193,6 +193,7 @@
     <ClCompile Include="src\Report\DiagnosticElement.cpp" />
     <ClCompile Include="src\Report\Reporter.cpp" />
     <ClCompile Include="src\Report\Logger.cpp" />
+    <ClCompile Include="src\Report\Verifier.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Flags.h" />
@@ -213,6 +214,7 @@
     <ClInclude Include="src\Report\DiagnosticElement.h" />
     <ClInclude Include="src\Report\Reporter.h" />
     <ClInclude Include="src\Report\Logger.h" />
+    <ClInclude Include="src\Report\Verifier.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

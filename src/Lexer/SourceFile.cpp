@@ -50,16 +50,7 @@ Result SourceFile::loadContent(const CompilerInstance& ci, const CompilerContext
 
 Result SourceFile::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
 {
-    if (ci.cmdLine().verify)
-    {
-        Lexer lexer;
-        SWAG_CHECK(lexer.tokenize(ci, ctx, LEXER_EXTRACT_COMMENTS_MODE));
-        for (const auto& token : lexer.tokens())
-        {
-            auto tt = token.toString(this);
-        }
-    }
-    
+    SWAG_CHECK(verifier_.tokenize(ci, ctx));
     return lexer_.tokenize(ci, ctx);
 }
 

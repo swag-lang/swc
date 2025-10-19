@@ -391,20 +391,37 @@ Result Lexer::checkFormat(const CompilerInstance& ci, const CompilerContext& ctx
         return Result::Success;
     }
 
-    if ((c1 == 0xFE && c2 == 0xFF)                                // UTF-16 BigEndian
-        || (c1 == 0xFF && c2 == 0xFE)                             // UTF-16 LittleEndian
-        || (c1 == 0x0E && c2 == 0xFE && c3 == 0xFF)               // SCSU
-        || (c1 == 0xFB && c2 == 0xEE && c3 == 0x28)               // BOCU-1
-        || (c1 == 0xF7 && c2 == 0x64 && c3 == 0x4C)               // UTF-1 BigEndian
-        || (c1 == 0x00 && c2 == 0x00 && c3 == 0xFE && c4 == 0xFF) // UTF-32 BigEndian
-        || (c1 == 0xFF && c2 == 0xFE && c3 == 0x00 && c4 == 0x00) // UTF-32 BigEndian
-        || (c1 == 0xDD && c2 == 0x73 && c3 == 0x66 && c4 == 0x73) // UTF-EBCDIC
+    bool badFormat = false;
+    if ((c1 == 0xFE && c2 == 0xFF)     // UTF-16 BigEndian
+        || (c1 == 0xFF && c2 == 0xFE)) // UTF-16 LittleEndian
+    {
+        startOffset = 2;
+        badFormat   = true;
+    }
+
+    if ((c1 == 0x0E && c2 == 0xFE && c3 == 0xFF)     // SCSU
+        || (c1 == 0xFB && c2 == 0xEE && c3 == 0x28)  // BOCU-1
+        || (c1 == 0xF7 && c2 == 0x64 && c3 == 0x4C)) // UTF-1 BigEndian
+    {
+        startOffset = 3;
+        badFormat   = true;
+    }
+
+    if ((c1 == 0x00 && c2 == 0x00 && c3 == 0xFE && c4 == 0xFF)    // UTF-32 BigEndian
+        || (c1 == 0xFF && c2 == 0xFE && c3 == 0x00 && c4 == 0x00) // UTF-32 LittleEndian
         || (c1 == 0x2B && c2 == 0x2F && c3 == 0x76 && c4 == 0x38) // UTF-7
         || (c1 == 0x2B && c2 == 0x2F && c3 == 0x76 && c4 == 0x39) // UTF-7
         || (c1 == 0x2B && c2 == 0x2F && c3 == 0x76 && c4 == 0x2B) // UTF-7
         || (c1 == 0x2B && c2 == 0x2F && c3 == 0x76 && c4 == 0x2F) // UTF-7
+        || (c1 == 0xDD && c2 == 0x73 && c3 == 0x66 && c4 == 0x73) // UTF-EBCDIC
         || (c1 == 0x84 && c2 == 0x31 && c3 == 0x95 && c4 == 0x33) // GB-18030
     )
+    {
+        startOffset = 4;
+        badFormat   = true;
+    }
+
+    if (badFormat)
     {
         Diagnostic diag;
         const auto elem = diag.addElement(DiagnosticKind::Error, DiagnosticId::FileNotUtf8);
@@ -412,7 +429,7 @@ Result Lexer::checkFormat(const CompilerInstance& ci, const CompilerContext& ctx
         return diag.report(ci);
     }
 
-    startOffset = 1;
+    startOffset = 0;
     return Result::Success;
 }
 

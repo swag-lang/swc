@@ -35,6 +35,7 @@ int main(int argc, char* argv[])
 {
     CompilerInstance ci;
     CompilerContext ctx;
-    parseFolder(ci, ctx, "c:/perso/swag-lang");
+    //parseFolder(ci, ctx, "c:/perso/swag-lang");
+    parseFolder(ci, ctx, "c:/perso/swag-lang/swc");
     return 0;
 }

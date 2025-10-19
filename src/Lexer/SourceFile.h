@@ -1,5 +1,6 @@
 ﻿#pragma once
-#include "Lexer.h"
+#include "Lexer/Lexer.h"
+#include "Report/Verifier.h"
 
 class CompilerContext;
 class CompilerInstance;
@@ -11,6 +12,7 @@ class SourceFile
 protected:
     fs::path             path_;
     std::vector<uint8_t> content_;
+    Verifier             verifier_;
     Lexer                lexer_;
 
 public:

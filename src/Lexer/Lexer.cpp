@@ -14,10 +14,21 @@ Result Lexer::tokenize(CompilerInstance& ci, const CompilerContext& ctx)
     const char* start  = buffer;
     const char* end    = buffer + file->content_.size();
 
-    tokens_.reserve(file->content_.size() / 8); // Heuristic
+    tokens.reserve(file->content_.size() / 8);
+    lines.reserve(file->content_.size() / 80);
+    lines.push_back(0);
 
     while (buffer < end)
     {
+        // End of line
+        /////////////////////////////////////////
+        if (buffer[0] == '\n')
+        {
+            buffer++;
+            lines.push_back(static_cast<uint32_t>(buffer - start));
+            continue;
+        }
+
         // Line comment
         /////////////////////////////////////////
         if (buffer[0] == '/' && buffer[1] == '/')
@@ -31,6 +42,7 @@ Result Lexer::tokenize(CompilerInstance& ci, const CompilerContext& ctx)
         /////////////////////////////////////////
         if (buffer[0] == '/' && buffer[1] == '*')
         {
+            const auto startComment = buffer;
             buffer += 2;
             uint32_t depth = 1;
             while (buffer < end && depth > 0)
@@ -60,7 +72,7 @@ Result Lexer::tokenize(CompilerInstance& ci, const CompilerContext& ctx)
             {
                 const auto diag = Reporter::diagnostic();
                 const auto elem = diag->addError(DiagnosticId::UnclosedComment);
-                elem->setLocation(ctx.sourceFile(), static_cast<uint32_t>(buffer - start), 2);
+                elem->setLocation(ctx.sourceFile(), static_cast<uint32_t>(startComment - start), 2);
                 ci.diagReporter().report(ci, ctx, *diag);
                 return Result::Error;
             }

@@ -50,6 +50,9 @@ Result SourceFile::checkFormat(CompilerInstance &ci, CompilerContext &ctx)
 
 Result SourceFile::loadContent(CompilerInstance &ci, CompilerContext &ctx)
 {
+    if (!content_.empty())
+        return Result::Success;
+    
     std::ifstream file(path_, std::ios::binary | std::ios::ate);
 
     if (!file)

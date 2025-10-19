@@ -6,8 +6,8 @@ class CompilerInstance;
 
 class SourceFile
 {
-    friend class Lexer;
-    
+    friend struct Lexer;
+
 protected:
     Fs::path             path_;
     std::vector<uint8_t> content_;
@@ -18,6 +18,9 @@ protected:
 
 public:
     explicit SourceFile(Fs::path path);
+    Fs::path     fullName() const { return path_; }
+    const Lexer& lexer() const { return lexer_; }
+
     Result loadContent(CompilerInstance& ci, CompilerContext& ctx);
     Result tokenize(CompilerInstance& ci, const CompilerContext& ctx);
 };

@@ -31,6 +31,13 @@ std::string DiagnosticElement::argumentToString(const Argument& arg) const
                       arg);
 }
 
+SourceCodeLocation DiagnosticElement::getLocation() const
+{
+    SourceCodeLocation loc;
+    loc.fromOffset(file_, offset_, len_);
+    return loc;
+}
+
 // Format a string by replacing %0, %1, etc. with registered arguments
 std::string DiagnosticElement::format(const Reporter& reporter) const
 {

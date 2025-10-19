@@ -1,4 +1,5 @@
 #pragma once
+#include "Lexer/SourceCodeLocation.h"
 
 class SourceFile;
 class Reporter;
@@ -12,8 +13,8 @@ class DiagnosticElement
 
     DiagnosticId      id_;
     DiagnosticKind    kind_;
-    const SourceFile* file_;
-    uint32_t          offset_ = UINT32_MAX;
+    const SourceFile* file_   = nullptr;
+    uint32_t          offset_ = 0;
     uint32_t          len_    = 0;
 
     std::vector<Argument> arguments_;
@@ -26,7 +27,6 @@ public:
     void setLocation(const SourceFile* file)
     {
         file_   = file;
-        offset_ = UINT32_MAX;
         len_    = 0;
     }
 
@@ -36,6 +36,8 @@ public:
         offset_ = offset;
         len_    = len;
     }
+
+    SourceCodeLocation getLocation() const;
 
     template<typename T>
     void addArgument(T&& arg)

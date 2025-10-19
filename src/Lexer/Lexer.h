@@ -5,10 +5,10 @@ class CompilerContext;
 class CompilerInstance;
 class SourceFile;
 
-class Lexer
+struct Lexer
 {
-    std::vector<Token> tokens_;
-    
-public:
+    std::vector<Token>    tokens;
+    std::vector<uint32_t> lines;
+
     Result tokenize(CompilerInstance& ci, const CompilerContext& ctx);
 };

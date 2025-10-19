@@ -19,11 +19,17 @@ class Logger;
 class Diagnostic
 {
     std::vector<std::unique_ptr<DiagnosticElement>> elements_;
+    SourceFile*                                     fileOwner_ = nullptr;
 
     Utf8 build(const CompilerInstance& ci) const;
-    
+
 public:
-    Result report(const CompilerInstance& ci) const;
+    explicit Diagnostic(SourceFile* fileOwner = nullptr) :
+        fileOwner_(fileOwner)
+    {
+    }
+
+    void report(const CompilerInstance& ci) const;
 
     DiagnosticElement* addElement(DiagnosticKind kind, DiagnosticId id);
     DiagnosticElement* addError(DiagnosticId id) { return addElement(DiagnosticKind::Error, id); }

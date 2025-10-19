@@ -50,13 +50,17 @@ Utf8 Diagnostic::build(const CompilerInstance& ci) const
     return result;
 }
 
-Result Diagnostic::report(const CompilerInstance& ci) const
+void Diagnostic::report(const CompilerInstance& ci) const
 {
+    const auto msg = build(ci);
+
+    if (fileOwner_ != nullptr)
+    {
+    }
+
     auto& logger = ci.logger();
     logger.lock();
     logger.logEol();
-    logger.log(build(ci));
+    logger.log(msg);
     logger.unlock();
-    
-    return Result::Error;
 }

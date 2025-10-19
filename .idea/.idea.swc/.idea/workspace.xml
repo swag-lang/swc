@@ -22,11 +22,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bin/unittests/errors/error1.swg" beforeDir="false" afterPath="$PROJECT_DIR$/bin/unittests/errors/error1.swg" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Report/Diagnostic.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Diagnostic.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/Diagnostic.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Diagnostic.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -40,7 +39,7 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="cidr-memory-view://225" root0="FORCE_HIGHLIGHTING" />
+    <setting file="cidr-memory-view://233" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Core/Utf8.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/Os.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/OsWin32.cpp" root0="SKIP_HIGHLIGHTING" />
@@ -542,7 +541,15 @@
       <option name="project" value="LOCAL" />
       <updated>1760885503547</updated>
     </task>
-    <option name="localTasksCounter" value="48" />
+    <task id="LOCAL-00048" summary="Refactor `Lexer` to remove redundant `Result` returns from parsing methods. Replace `Result` with direct `void` returns for improved clarity. Simplify error handling in diagnostics and tokenization logic. Update unit test cases and `.idea/workspace.xml` as needed.">
+      <option name="closed" value="true" />
+      <created>1760886215170</created>
+      <option name="number" value="00048" />
+      <option name="presentableId" value="LOCAL-00048" />
+      <option name="project" value="LOCAL" />
+      <updated>1760886215170</updated>
+    </task>
+    <option name="localTasksCounter" value="49" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -552,7 +559,6 @@
   <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Refactor `SourceFile` methods to use `const` references for improved consistency. Integrate UTF-8 decoding in `SourceCodeLocation` column calculation and update project files to include `Utf8` utility." />
     <MESSAGE value="Introduce `LangSpec` class and integrate it into `CompilerInstance`. Enhance UTF-8 utility to return structured output and improve tokenization by reordering blank handling logic. Update project and configuration files accordingly." />
     <MESSAGE value="Introduce `Flags` and `EnumFlags` templates to encapsulate bitwise operations. Extend `LangSpec` with character flag utilities for `isBlank`, `isDigit`, `isLetter`, and `isAscii` checks. Update `Lexer` to use `LangSpec` for enhanced tokenization. Modify project files to include `Flags.h`." />
     <MESSAGE value="Refactor `Lexer::tokenize` to improve buffer safety by adding bounds checking for comments. Update `.idea/workspace.xml` to reflect recent project changes." />
@@ -577,7 +583,8 @@
     <MESSAGE value="Introduce `Verifier` class to process diagnostic verification directives from comments. Refactor `SourceFile` to integrate `Verifier`. Update `Lexer` tokenization logic for comment processing. Adjust project files and `.idea/workspace.xml`." />
     <MESSAGE value="Introduce `Utf8` wrapper class for UTF-8 string handling. Refactor `Logger`, `DiagnosticElement`, `Verifier`, `SourceFile`, and related modules to use `Utf8` for improved encoding consistency. Add string trimming utilities to `Utf8`. Update project files and `.idea/workspace.xml`." />
     <MESSAGE value="Refactor `Diagnostic` to introduce `build` method for constructing error messages. Simplify error reporting logic by delegating to `build`. Update `Diagnostic.h`, `SourceFile`, and related modules for consistency. Adjust `.idea/workspace.xml` accordingly." />
-    <option name="LAST_COMMIT_MESSAGE" value="Refactor `Diagnostic` to introduce `build` method for constructing error messages. Simplify error reporting logic by delegating to `build`. Update `Diagnostic.h`, `SourceFile`, and related modules for consistency. Adjust `.idea/workspace.xml` accordingly." />
+    <MESSAGE value="Refactor `Lexer` to remove redundant `Result` returns from parsing methods. Replace `Result` with direct `void` returns for improved clarity. Simplify error handling in diagnostics and tokenization logic. Update unit test cases and `.idea/workspace.xml` as needed." />
+    <option name="LAST_COMMIT_MESSAGE" value="Refactor `Lexer` to remove redundant `Result` returns from parsing methods. Replace `Result` with direct `void` returns for improved clarity. Simplify error handling in diagnostics and tokenization logic. Update unit test cases and `.idea/workspace.xml` as needed." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

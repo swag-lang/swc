@@ -19,11 +19,12 @@ Result SourceFile::loadContent(const CompilerInstance& ci, const CompilerContext
 
     if (!file)
     {
-        Diagnostic diag;
+        Diagnostic diag(this);
         const auto elem = diag.addError(DiagnosticId::CannotOpenFile);
         elem->setLocation(this);
         elem->addArgument(path_.string());
-        return diag.report(ci);
+        diag.report(ci);
+        return Result::Error;
     }
 
     const auto fileSize = file.tellg();
@@ -32,11 +33,12 @@ Result SourceFile::loadContent(const CompilerInstance& ci, const CompilerContext
 
     if (!file.read(reinterpret_cast<char*>(content_.data()), fileSize))
     {
-        Diagnostic diag;
+        Diagnostic diag(this);
         const auto elem = diag.addError(DiagnosticId::CannotReadFile);
         elem->setLocation(this);
         elem->addArgument(path_.string());
-        return diag.report(ci);
+        diag.report(ci);
+        return Result::Error;
     }
 
     // Ensure we have at least 4 characters in the buffer

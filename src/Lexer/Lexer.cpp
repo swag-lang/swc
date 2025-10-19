@@ -87,7 +87,7 @@ void Lexer::parseSingleLineStringLiteral()
         if (buffer_[0] == '\n' || buffer_[0] == '\r')
         {
             consumeOneEol();
-            Diagnostic diag;
+            Diagnostic diag(ctx_->sourceFile());
             const auto elem = diag.addError(DiagnosticId::EolInStringLiteral);
             elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
             reportError(diag);
@@ -99,7 +99,7 @@ void Lexer::parseSingleLineStringLiteral()
             // Need one more char to escape
             if (buffer_ + 1 >= end_)
             {
-                Diagnostic diag;
+                Diagnostic diag(ctx_->sourceFile());
                 const auto elem = diag.addError(DiagnosticId::UnclosedStringLiteral);
                 elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_));
                 reportError(diag);
@@ -114,7 +114,7 @@ void Lexer::parseSingleLineStringLiteral()
 
     if (buffer_ == end_)
     {
-        Diagnostic diag;
+        Diagnostic diag(ctx_->sourceFile());
         const auto elem = diag.addError(DiagnosticId::UnclosedStringLiteral);
         elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_));
         reportError(diag);
@@ -148,7 +148,7 @@ void Lexer::parseMultiLineStringLiteral()
             // Need one more char to escape
             if (buffer_ + 1 >= end_)
             {
-                Diagnostic diag;
+                Diagnostic diag(ctx_->sourceFile());
                 const auto elem = diag.addError(DiagnosticId::UnclosedStringLiteral);
                 elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_));
                 reportError(diag);
@@ -171,7 +171,7 @@ void Lexer::parseMultiLineStringLiteral()
     }
 
     // EOF before closing delimiter
-    Diagnostic diag;
+    Diagnostic diag(ctx_->sourceFile());
     const auto elem = diag.addError(DiagnosticId::UnclosedStringLiteral);
     elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_), 3);
     reportError(diag);
@@ -198,7 +198,7 @@ void Lexer::parseRawStringLiteral()
 
     if (buffer_ + 1 >= end_)
     {
-        Diagnostic diag;
+        Diagnostic diag(ctx_->sourceFile());
         const auto elem = diag.addError(DiagnosticId::UnclosedStringLiteral);
         elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_), 2);
         reportError(diag);
@@ -227,7 +227,7 @@ void Lexer::parseHexNumber()
         {
             if (lastWasSep)
             {
-                Diagnostic diag;
+                Diagnostic diag(ctx_->sourceFile());
                 const auto elem = diag.addError(DiagnosticId::SyntaxNumberSepMulti);
                 while (buffer_ < end_ && langSpec_->isNumberSep(buffer_[0]))
                     buffer_++;
@@ -250,7 +250,7 @@ void Lexer::parseHexNumber()
     // Require at least one digit
     if (!error && digits == 0)
     {
-        Diagnostic diag;
+        Diagnostic diag(ctx_->sourceFile());
         const auto elem = diag.addError(DiagnosticId::SyntaxMissingHexDigits);
         elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_), 2 + (lastWasSep ? 1 : 0));
         reportError(diag);
@@ -260,7 +260,7 @@ void Lexer::parseHexNumber()
     // No trailing separator
     if (!error && lastWasSep)
     {
-        Diagnostic diag;
+        Diagnostic diag(ctx_->sourceFile());
         const auto elem = diag.addError(DiagnosticId::SyntaxNumberSepAtEnd);
         elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
         reportError(diag);
@@ -270,11 +270,10 @@ void Lexer::parseHexNumber()
     // Letters immediately following the literal
     if (!error && buffer_ < end_ && langSpec_->isLetter(buffer_[0]))
     {
-        Diagnostic diag;
+        Diagnostic diag(ctx_->sourceFile());
         const auto elem = diag.addError(DiagnosticId::SyntaxMalformedHexNumber);
         elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(buffer_ - startBuffer_));
         reportError(diag);
-        error = true;
     }
 
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
@@ -360,7 +359,7 @@ void Lexer::parseMultiLineComment()
 
     if (depth > 0)
     {
-        Diagnostic diag;
+        Diagnostic diag(ctx_->sourceFile());
         const auto elem = diag.addError(DiagnosticId::UnclosedComment);
         elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_), 2);
         reportError(diag);
@@ -417,7 +416,7 @@ void Lexer::checkFormat(const CompilerInstance& ci, const CompilerContext& ctx, 
 
     if (badFormat)
     {
-        Diagnostic diag;
+        Diagnostic diag(ctx_->sourceFile());
         const auto elem = diag.addElement(DiagnosticKind::Error, DiagnosticId::FileNotUtf8);
         elem->setLocation(ctx.sourceFile());
         elem->addArgument(file->path_.string());

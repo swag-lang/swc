@@ -13,11 +13,17 @@ class Lexer
     std::vector<Token>    tokens_;
     std::vector<uint32_t> lines_;
 
-    const uint8_t* parseEol(const uint8_t* buffer, const uint8_t* startBuffer, const uint8_t* end);
-    const uint8_t* parseBlank(const LangSpec& langSpec, const uint8_t* buffer, const uint8_t* startBuffer, const uint8_t* end);
-    const uint8_t* parseSingleLineString(const CompilerInstance& ci, const CompilerContext& ctx, const uint8_t* buffer, const uint8_t* startBuffer, const uint8_t* end);
-    const uint8_t* parseSingleLineComment(const uint8_t* buffer, const uint8_t* startBuffer, const uint8_t* end);
-    const uint8_t* parseMultiLineComment(const CompilerInstance& ci, const CompilerContext& ctx, const uint8_t* buffer, const uint8_t* startBuffer, const uint8_t* end);
+    const uint8_t*          buffer_      = nullptr;
+    const uint8_t*          end_         = nullptr;
+    const uint8_t*          startBuffer_ = nullptr;
+    const CompilerInstance* ci_          = nullptr;
+    const CompilerContext*  ctx_         = nullptr;
+
+    Result parseEol();
+    Result parseBlank(const LangSpec& langSpec);
+    Result parseSingleLineString();
+    Result parseSingleLineComment();
+    Result parseMultiLineComment();
 
 public:
     const std::vector<Token>&    tokens() const { return tokens_; }

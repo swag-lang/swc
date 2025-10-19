@@ -22,14 +22,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/Token.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Token.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Main/swc.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/swc.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticIds.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticIds.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticIds.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticIds.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/Reporter.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Reporter.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -43,7 +37,7 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="cidr-memory-view://82" root0="FORCE_HIGHLIGHTING" />
+    <setting file="cidr-memory-view://86" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/Os.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/OsWin32.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Report/Assert.h" root0="FORCE_HIGHLIGHTING" />
@@ -392,7 +386,15 @@
       <option name="project" value="LOCAL" />
       <updated>1760858927315</updated>
     </task>
-    <option name="localTasksCounter" value="30" />
+    <task id="LOCAL-00030" summary="Enhance `Lexer` with string literal parsing support. Detect unclosed strings and invalid EOL within literals. Update diagnostics system and related tokenization logic for improved error handling. Modify project files and `.idea/workspace.xml`.">
+      <option name="closed" value="true" />
+      <created>1760859740074</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1760859740074</updated>
+    </task>
+    <option name="localTasksCounter" value="31" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -402,7 +404,6 @@
   <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Add format validation for source files and enhance diagnostics system." />
     <MESSAGE value="Refactor diagnostics system by introducing shorthand methods in `DiagReporter` and renaming diagnostic identifiers for clarity. Adjust source file error reporting to use new methods." />
     <MESSAGE value="Refactor project structure by relocating `swc.cpp` to `src/Main` and updating Visual Studio project configuration." />
     <MESSAGE value="Introduce `Lexer` component with tokenization support, integrate it with `SourceFile`, and update project configuration." />
@@ -427,7 +428,8 @@
     <MESSAGE value="fix " />
     <MESSAGE value="Refactor `LangSpec` and `Lexer` to enhance blank space handling with UTF-8 support. Adjust related methods, types, and tokenization logic. Update project files and `.idea/workspace.xml`." />
     <MESSAGE value="Refactor `Lexer::tokenize` by extracting handling of blank spaces, line breaks, and comments into dedicated methods. Adjust related logic for improved readability and maintainability. Update project files and `.idea/workspace.xml`." />
-    <option name="LAST_COMMIT_MESSAGE" value="Refactor `Lexer::tokenize` by extracting handling of blank spaces, line breaks, and comments into dedicated methods. Adjust related logic for improved readability and maintainability. Update project files and `.idea/workspace.xml`." />
+    <MESSAGE value="Enhance `Lexer` with string literal parsing support. Detect unclosed strings and invalid EOL within literals. Update diagnostics system and related tokenization logic for improved error handling. Modify project files and `.idea/workspace.xml`." />
+    <option name="LAST_COMMIT_MESSAGE" value="Enhance `Lexer` with string literal parsing support. Detect unclosed strings and invalid EOL within literals. Update diagnostics system and related tokenization logic for improved error handling. Modify project files and `.idea/workspace.xml`." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

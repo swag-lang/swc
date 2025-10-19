@@ -65,7 +65,7 @@ Result Lexer::parseSingleLineStringLiteral()
     token_.subTokenStringId   = SubTokenStringId::LineString;
     const uint8_t* startToken = buffer_;
 
-    buffer_ += 1; // skip opening '"'
+    buffer_ += 1;
 
     while (buffer_ < end_)
     {
@@ -108,7 +108,7 @@ Result Lexer::parseSingleLineStringLiteral()
         return diag.report(*ci_);
     }
 
-    buffer_ += 1; // consume closing '"'
+    buffer_ += 1;
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
     tokens_.push_back(token_);
     return Result::Success;
@@ -120,7 +120,6 @@ Result Lexer::parseMultiLineStringLiteral()
     token_.subTokenStringId   = SubTokenStringId::MultiLineString;
     const uint8_t* startToken = buffer_;
 
-    // Precondition: tokenizer checked for starting '"""'
     buffer_ += 3;
 
     while (buffer_ < end_)
@@ -173,7 +172,6 @@ Result Lexer::parseRawStringLiteral()
     token_.subTokenStringId   = SubTokenStringId::RawString;
     const uint8_t* startToken = buffer_;
 
-    // Opening is #"
     buffer_ += 2;
 
     while (buffer_ < end_ - 1 && (buffer_[0] != '"' || buffer_[1] != '#'))
@@ -192,8 +190,7 @@ Result Lexer::parseRawStringLiteral()
         Diagnostic diag;
         const auto elem = diag.addError(DiagnosticId::UnclosedStringLiteral);
         elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_), 2);
-        diag.report(*ci_);
-        return Result::Error;
+        return diag.report(*ci_);
     }
 
     // Consume closing "#"
@@ -225,8 +222,7 @@ Result Lexer::parseHexNumber()
                 while (buffer_ < end_ && langSpec_->isNumberSep(buffer_[0]))
                     buffer_++;
                 elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startSep - startBuffer_), static_cast<uint32_t>(buffer_ - startSep));
-                diag.report(*ci_);
-                return Result::Error;
+                return diag.report(*ci_);
             }
 
             startSep   = buffer_;
@@ -246,8 +242,7 @@ Result Lexer::parseHexNumber()
         Diagnostic diag;
         const auto elem = diag.addError(DiagnosticId::SyntaxMissingHexDigits);
         elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_), 2);
-        diag.report(*ci_);
-        return Result::Error;
+        return diag.report(*ci_);
     }
 
     // No trailing separator
@@ -256,8 +251,7 @@ Result Lexer::parseHexNumber()
         Diagnostic diag;
         const auto elem = diag.addError(DiagnosticId::SyntaxNumberSepAtEnd);
         elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
-        diag.report(*ci_);
-        return Result::Error;
+        return diag.report(*ci_);
     }
 
     // Letters immediately following the literal
@@ -266,8 +260,7 @@ Result Lexer::parseHexNumber()
         Diagnostic diag;
         const auto elem = diag.addError(DiagnosticId::SyntaxMalformedHexNumber);
         elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(buffer_ - startBuffer_));
-        diag.report(*ci_);
-        return Result::Error;
+        return diag.report(*ci_);
     }
 
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
@@ -359,8 +352,7 @@ Result Lexer::parseMultiLineComment()
         Diagnostic diag;
         const auto elem = diag.addError(DiagnosticId::UnclosedComment);
         elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_), 2);
-        diag.report(*ci_);
-        return Result::Error;
+        return diag.report(*ci_);
     }
 
     token_.len = static_cast<uint32_t>(buffer_ - startToken);

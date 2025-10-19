@@ -21,7 +21,8 @@ class Diagnostic
     std::vector<std::unique_ptr<DiagnosticElement>> elements_;
 
 public:
-    void log(const Reporter& reporter, Logger& logger) const;
+    static std::unique_ptr<Diagnostic> instance();
+    void                               log(const Reporter& reporter, Logger& logger) const;
 
     DiagnosticElement* addElement(DiagnosticKind kind, DiagnosticId id);
     DiagnosticElement* addError(DiagnosticId id) { return addElement(DiagnosticKind::Error, id); }

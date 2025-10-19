@@ -10,11 +10,6 @@ Reporter::Reporter()
     initErrors();
 }
 
-std::unique_ptr<Diagnostic> Reporter::diagnostic()
-{
-    return std::make_unique<Diagnostic>();
-}
-
 std::string_view Reporter::diagMessage(DiagnosticId id) const
 {
     return diagMsgs_[static_cast<int>(id)];

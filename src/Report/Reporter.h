@@ -10,7 +10,6 @@ class Reporter
 {
 public:
     Reporter();
-    static std::unique_ptr<Diagnostic> diagnostic();
     
     std::string_view diagMessage(DiagnosticId id) const;
 

@@ -5,6 +5,11 @@
 #include "Report/DiagnosticElement.h"
 #include "Report/Logger.h"
 
+std::unique_ptr<Diagnostic> Diagnostic::instance()
+{
+    return std::make_unique<Diagnostic>();
+}
+
 DiagnosticElement* Diagnostic::addElement(DiagnosticKind kind, DiagnosticId id)
 {
     auto ptr = std::make_unique<DiagnosticElement>(kind, id);

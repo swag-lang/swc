@@ -12,18 +12,39 @@ Result Lexer::parseEol()
     token_.id                 = TokenId::Eol;
     const uint8_t* startToken = buffer_;
 
-    buffer_++;
-    lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
-
-    while (buffer_ < end_ && buffer_[0] == '\n')
+    // First EOL (handle CRLF and lone CR/LF)
+    if (buffer_[0] == '\r' && buffer_ + 1 < end_ && buffer_[1] == '\n')
     {
-        buffer_++;
+        buffer_ += 2;
         lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
+    }
+    else if (buffer_[0] == '\r' || buffer_[0] == '\n')
+    {
+        buffer_ += 1;
+        lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
+    }
+
+    // Collapse subsequent EOLs (any mix of CR/LF/CRLF)
+    while (buffer_ < end_)
+    {
+        if (buffer_[0] == '\r' && buffer_ + 1 < end_ && buffer_[1] == '\n')
+        {
+            buffer_ += 2;
+            lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
+        }
+        else if (buffer_[0] == '\r' || buffer_[0] == '\n')
+        {
+            buffer_ += 1;
+            lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
+        }
+        else
+        {
+            break;
+        }
     }
 
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
     tokens_.push_back(token_);
-
     return Result::Success;
 }
 
@@ -39,7 +60,6 @@ Result Lexer::parseBlank(const LangSpec& langSpec)
 
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
     tokens_.push_back(token_);
-
     return Result::Success;
 }
 
@@ -49,11 +69,16 @@ Result Lexer::parseSingleLineStringLiteral()
     token_.subTokenStringId   = SubTokenStringId::LineString;
     const uint8_t* startToken = buffer_;
 
-    buffer_ += 1;
+    buffer_ += 1; // skip opening '"'
 
-    while (buffer_ < end_ && buffer_[0] != '"')
+    while (buffer_ < end_)
     {
-        if (buffer_[0] == '\n' || buffer_[0] == '\r')
+        const uint8_t c = buffer_[0];
+
+        if (c == '"')
+            break;
+
+        if (c == '\n' || c == '\r')
         {
             Diagnostic diag;
             const auto elem = diag.addError(DiagnosticId::EolInStringLiteral);
@@ -62,11 +87,23 @@ Result Lexer::parseSingleLineStringLiteral()
             return Result::Error;
         }
 
-        // Escape sequence
-        if (buffer_ < end_ + 1 && buffer_[0] == '\\')
-            buffer_++;
+        if (c == '\\')
+        {
+            // Need one more char to escape
+            if (buffer_ + 1 >= end_)
+            {
+                Diagnostic diag;
+                const auto elem = diag.addError(DiagnosticId::UnclosedStringLiteral);
+                elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_));
+                ci_->diagReporter().report(*ci_, *ctx_, diag);
+                return Result::Error;
+            }
 
-        buffer_++;
+            buffer_ += 2; // skip '\' and escaped char
+            continue;
+        }
+
+        buffer_ += 1;
     }
 
     if (buffer_ == end_)
@@ -78,10 +115,9 @@ Result Lexer::parseSingleLineStringLiteral()
         return Result::Error;
     }
 
-    buffer_++;
+    buffer_ += 1; // consume closing '"'
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
     tokens_.push_back(token_);
-
     return Result::Success;
 }
 
@@ -91,7 +127,47 @@ Result Lexer::parseMultiLineStringLiteral()
     token_.subTokenStringId   = SubTokenStringId::MultiLineString;
     const uint8_t* startToken = buffer_;
 
-    return Result::Success;
+    // Precondition: tokenizer checked for starting '"""'
+    buffer_ += 3;
+
+    while (buffer_ < end_)
+    {
+        // Track line starts for accurate diagnostics later
+        if (*buffer_ == '\n')
+        {
+            buffer_++;
+            lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
+            continue;
+        }
+
+        // Optional: support escaping inside multi-line strings
+        if (*buffer_ == '\\')
+        {
+            if (buffer_ + 1 >= end_)
+                break; // will report unclosed below
+            buffer_ += 2;
+            continue;
+        }
+
+        // Closing delimiter
+        if (buffer_ + 2 < end_ && buffer_[0] == '"' && buffer_[1] == '"' && buffer_[2] == '"')
+        {
+            buffer_ += 3;
+            token_.len = static_cast<uint32_t>(buffer_ - startToken);
+            tokens_.push_back(token_);
+            return Result::Success;
+        }
+
+        buffer_++;
+    }
+
+    // EOF before closing delimiter
+    Diagnostic diag;
+    const auto elem = diag.addError(DiagnosticId::UnclosedStringLiteral);
+    elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_));
+    ci_->diagReporter().report(*ci_, *ctx_, diag);
+
+    return Result::Error;
 }
 
 Result Lexer::parseRawStringLiteral()
@@ -104,6 +180,13 @@ Result Lexer::parseRawStringLiteral()
 
     while (buffer_ < end_ - 1 && (buffer_[0] != '"' || buffer_[1] != '#'))
     {
+        if (*buffer_ == '\n')
+        {
+            buffer_++;
+            lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
+            continue;
+        }
+        
         buffer_++;
     }
 
@@ -146,6 +229,13 @@ Result Lexer::parseMultiLineComment()
 
     while (buffer_ < end_ && depth > 0)
     {
+        if (*buffer_ == '\n')
+        {
+            buffer_++;
+            lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
+            continue;
+        }
+
         // Need two chars to check either "/*" or "*/"
         if (buffer_ + 1 >= end_)
             break;
@@ -207,8 +297,6 @@ Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
         if (buffer_[0] == '\n')
         {
             SWAG_CHECK(parseEol());
-            if (!buffer_)
-                return Result::Error;
             continue;
         }
 
@@ -216,19 +304,17 @@ Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
         if (langSpec.isBlank(buffer_[0]))
         {
             SWAG_CHECK(parseBlank(langSpec));
-            if (!buffer_)
-                return Result::Error;
             continue;
         }
 
         // String
-        if (buffer_ < end_ - 1 && buffer_[0] == '#' && buffer_[1] == '"')
+        if (buffer_ + 1 < end_ && buffer_[0] == '#' && buffer_[1] == '"')
         {
             SWAG_CHECK(parseRawStringLiteral());
             continue;
         }
 
-        if (buffer_ < end_ - 2 && buffer_[0] == '"' && buffer_[1] == '"' && buffer_[2] == '"')
+        if (buffer_ + 2 < end_ && buffer_[0] == '"' && buffer_[1] == '"' && buffer_[2] == '"')
         {
             SWAG_CHECK(parseMultiLineStringLiteral());
             continue;
@@ -241,14 +327,14 @@ Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
         }
 
         // Line comment
-        if (buffer_ < end_ - 1 && buffer_[0] == '/' && buffer_[1] == '/')
+        if (buffer_ + 1 < end_ && buffer_[0] == '/' && buffer_[1] == '/')
         {
             SWAG_CHECK(parseSingleLineComment());
             continue;
         }
 
         // Multi-line comment
-        if (buffer_ < end_ - 1 && buffer_[0] == '/' && buffer_[1] == '*')
+        if (buffer_  + 1 < end_ && buffer_[0] == '/' && buffer_[1] == '*')
         {
             SWAG_CHECK(parseMultiLineComment());
             continue;

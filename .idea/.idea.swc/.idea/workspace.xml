@@ -22,12 +22,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/Utf8.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Utf8.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/SourceCodeLocation.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceCodeLocation.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/Token.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Token.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -47,6 +45,8 @@
     <setting file="file://$PROJECT_DIR$/../swag/src/Report/Assert.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Report/ErrorIds.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Syntax/Tokenizer/Tokenizer.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/Core/Utf8.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/Core/Utf8.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Lexer/Lexer.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Lexer/Lexer.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Lexer/SourceCodeLocation.cpp" root0="FORCE_HIGHLIGHTING" />
@@ -320,7 +320,23 @@
       <option name="project" value="LOCAL" />
       <updated>1760853697991</updated>
     </task>
-    <option name="localTasksCounter" value="22" />
+    <task id="LOCAL-00022" summary="Refactor `Lexer` by introducing token-specific attributes and methods for improved encapsulation. Enhance tokenization logic to support blank spaces, line breaks, and comments effectively. Update related classes (`SourceFile`, `Token`, `SourceCodeLocation`) for consistency.">
+      <option name="closed" value="true" />
+      <created>1760855112657</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1760855112657</updated>
+    </task>
+    <task id="LOCAL-00023" summary="Add UTF-8 decoding utility and reorder blank token handling in `Lexer`. Update project files to include new `Utf8` utility.">
+      <option name="closed" value="true" />
+      <created>1760855492153</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1760855492153</updated>
+    </task>
+    <option name="localTasksCounter" value="24" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -351,7 +367,9 @@
     <MESSAGE value="Fix `SWAG_ASSERT` condition in `SourceCodeLocation::fromOffset` and reorder member variables for clarity. Update task and configuration in `.idea/workspace.xml`." />
     <MESSAGE value="Refactor diagnostics creation by replacing `Reporter::diagnostic` with `Diagnostic::instance` for improved encapsulation and consistency." />
     <MESSAGE value="Replace `Diagnostic::instance` with direct instantiation for improved simplicity and remove unused factory method. Update related `Lexer` and `SourceFile` code for consistency." />
-    <option name="LAST_COMMIT_MESSAGE" value="Replace `Diagnostic::instance` with direct instantiation for improved simplicity and remove unused factory method. Update related `Lexer` and `SourceFile` code for consistency." />
+    <MESSAGE value="Refactor `Lexer` by introducing token-specific attributes and methods for improved encapsulation. Enhance tokenization logic to support blank spaces, line breaks, and comments effectively. Update related classes (`SourceFile`, `Token`, `SourceCodeLocation`) for consistency." />
+    <MESSAGE value="Add UTF-8 decoding utility and reorder blank token handling in `Lexer`. Update project files to include new `Utf8` utility." />
+    <option name="LAST_COMMIT_MESSAGE" value="Add UTF-8 decoding utility and reorder blank token handling in `Lexer`. Update project files to include new `Utf8` utility." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

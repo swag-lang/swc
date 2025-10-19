@@ -1,22 +1,38 @@
 #include "pch.h"
 
-#include "Lexer/SourceCodeLocation.h"
+#include "Core/Utf8.h"
 #include "Lexer/Lexer.h"
+#include "Lexer/SourceCodeLocation.h"
 #include "Lexer/SourceFile.h"
 
 namespace
 {
     uint32_t calculateColumn(const uint8_t* content, uint32_t lineStart, uint32_t offset)
     {
-        constexpr uint32_t tabWidth = 4; // Standard tab width
+        static constexpr uint32_t TAB_WIDTH = 4; // Standard tab width
 
-        uint32_t column = 1; // Columns are 1-based
-        for (uint32_t i = lineStart; i < offset; ++i)
+        uint32_t   column = 1; // Columns are 1-based
+        auto       ptr    = reinterpret_cast<const char*>(content + lineStart);
+        const auto end    = reinterpret_cast<const char*>(content + offset);
+
+        while (ptr < end)
         {
-            if (content[i] == '\t')
-                column = ((column - 1) / tabWidth + 1) * tabWidth + 1;
+            if (*ptr == '\t')
+            {
+                // Tab advances to the next multiple of TAB_WIDTH
+                column = ((column - 1) / TAB_WIDTH + 1) * TAB_WIDTH + 1;
+                ptr++;
+            }
             else
+            {
+                // Decode UTF-8 character
+                uint32_t wc;
+                unsigned utfOffset;
+                ptr = Utf8::decode(ptr, wc, utfOffset);
+
+                // Each UTF-8 character counts as one column
                 column++;
+            }
         }
 
         return column;
@@ -26,8 +42,8 @@ namespace
 void SourceCodeLocation::fromOffset(const SourceFile* inFile, uint32_t inOffset, uint32_t inLen)
 {
     SWAG_ASSERT(inFile);
-    
-    file = inFile;
+
+    file   = inFile;
     offset = inOffset;
     len    = inLen;
 

@@ -9,7 +9,7 @@ SourceFile::SourceFile(std::filesystem::path path) :
 {
 }
 
-Result SourceFile::checkFormat(CompilerInstance &ci, CompilerContext &ctx)
+Result SourceFile::checkFormat(const CompilerInstance &ci, const CompilerContext &ctx)
 {
     // Read header
     const uint8_t c1 = content_[0];
@@ -48,7 +48,7 @@ Result SourceFile::checkFormat(CompilerInstance &ci, CompilerContext &ctx)
     return Result::Success;
 }
 
-Result SourceFile::loadContent(CompilerInstance &ci, CompilerContext &ctx)
+Result SourceFile::loadContent(const CompilerInstance &ci, const CompilerContext &ctx)
 {
     if (!content_.empty())
         return Result::Success;
@@ -90,7 +90,7 @@ Result SourceFile::loadContent(CompilerInstance &ci, CompilerContext &ctx)
     return Result::Success;
 }
 
-Result SourceFile::tokenize(CompilerInstance& ci, const CompilerContext& ctx)
+Result SourceFile::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
 {
     return lexer_.tokenize(ci, ctx);
 }

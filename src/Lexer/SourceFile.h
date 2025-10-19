@@ -14,7 +14,7 @@ protected:
     uint32_t             offsetStartBuffer_ = 0;
     Lexer                lexer_;
 
-    Result checkFormat(CompilerInstance& ci, CompilerContext& ctx);
+    Result checkFormat(const CompilerInstance& ci, const CompilerContext& ctx);
 
 public:
     explicit SourceFile(fs::path path);
@@ -23,6 +23,6 @@ public:
     const Lexer&                lexer() const { return lexer_; }
     const std::vector<Token>&   tokens() const { return lexer_.tokens(); }
 
-    Result loadContent(CompilerInstance& ci, CompilerContext& ctx);
-    Result tokenize(CompilerInstance& ci, const CompilerContext& ctx);
+    Result loadContent(const CompilerInstance& ci, const CompilerContext& ctx);
+    Result tokenize(const CompilerInstance& ci, const CompilerContext& ctx);
 };

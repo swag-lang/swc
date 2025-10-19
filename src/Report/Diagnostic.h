@@ -1,4 +1,5 @@
 #pragma once
+#include "Report/DiagIds.h"
 #include "Report/DiagnosticElement.h"
 
 class CompilerContext;

@@ -6,13 +6,6 @@ class CompilerContext;
 class CompilerInstance;
 class Diagnostic;
 
-#define SWAG_DIAG(__id) __id,
-enum class DiagnosticId
-{
-#include "Report/DiagList.h"
-};
-#undef SWAG_DIAG
-
 class DiagReporter
 {
 public:

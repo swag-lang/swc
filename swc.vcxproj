@@ -122,7 +122,7 @@
     <ClInclude Include="src\Main\CompilerInstance.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\Report\Diagnostic.h" />
-    <ClInclude Include="src\Report\DiagList.h" />
+    <ClInclude Include="src\Report\DiagIds.h" />
     <ClInclude Include="src\Report\DiagnosticElement.h" />
     <ClInclude Include="src\Report\DiagReporter.h" />
     <ClInclude Include="src\Report\Logger.h" />

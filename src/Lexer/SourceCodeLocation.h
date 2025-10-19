@@ -10,5 +10,5 @@ struct SourceCodeLocation
     uint32_t          offset = 0;
     uint32_t          len    = 0;
 
-    void fromOffset(const SourceFile* file, uint32_t offset, uint32_t len = 1);
+    void fromOffset(const SourceFile* inFile, uint32_t inOffset, uint32_t inLen = 1);
 };

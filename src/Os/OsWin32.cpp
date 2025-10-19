@@ -1,0 +1,36 @@
+#include "pch.h"
+
+#include "Os/Os.h"
+#ifdef _WIN32
+#include <windows.h>
+
+namespace Os
+{
+    void assertBox(const char* expr, const char* file, int line)
+    {
+        char msg[2048];
+
+        (void) snprintf(msg, sizeof(msg),
+                        "Assertion failed\n\n"
+                        "File: %s\n"
+                        "Line: %d\n"
+                        "Expression: %s\n",
+                        file, line, expr);
+
+        const auto result = MessageBoxA(nullptr, msg, "Swag meditation !", MB_CANCELTRYCONTINUE | MB_ICONERROR);
+        switch (result)
+        {
+            case IDCANCEL:
+                exit(-1);  // NOLINT(concurrency-mt-unsafe)
+            case IDTRYAGAIN:
+                DebugBreak();
+                break;
+            case IDCONTINUE:
+                break;
+            default:
+                break;
+        }
+    }
+}
+
+#endif // _WIN32

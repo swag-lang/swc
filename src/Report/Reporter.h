@@ -14,7 +14,7 @@ public:
     
     std::string_view diagMessage(DiagnosticId id) const;
 
-    void report(CompilerInstance& ci, const CompilerContext& ctx, Diagnostic& diag);
+    void report(const CompilerInstance& ci, const CompilerContext& ctx, const Diagnostic& diag) const;
 
 private:
     std::vector<std::string_view> diagMsgs_;

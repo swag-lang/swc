@@ -1,4 +1,6 @@
 #pragma once
+// ReSharper disable CppInconsistentNaming
+
 #include <filesystem>
 #include <fstream>
 #include <mutex>
@@ -6,6 +8,8 @@
 #include <variant>
 #include <vector>
 
-#include "Core/Check.h"
+namespace fs = std::filesystem; 
 
-namespace Fs = std::filesystem;
+#define SWAG_HAS_ASSERT 1
+
+#include "Report/Check.h"

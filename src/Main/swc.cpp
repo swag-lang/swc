@@ -8,14 +8,14 @@
 #include <filesystem>
 #include <iostream>
 
-void parseFolder(CompilerInstance& ci, CompilerContext &ctx, const Fs::path& directory)
+void parseFolder(CompilerInstance& ci, CompilerContext &ctx, const fs::path& directory)
 {
-    if (!Fs::exists(directory) || !Fs::is_directory(directory)) {
+    if (!fs::exists(directory) || !fs::is_directory(directory)) {
         std::cerr << "Invalid directory: " << directory << std::endl;
         return;
     }
 
-    for (const auto& entry : Fs::recursive_directory_iterator(directory)) {
+    for (const auto& entry : fs::recursive_directory_iterator(directory)) {
         if (entry.is_regular_file()) {
             auto ext = entry.path().extension().string();
             if (ext == ".swg" || ext == ".swgs") {

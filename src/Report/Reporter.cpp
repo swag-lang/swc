@@ -20,7 +20,7 @@ std::string_view Reporter::diagMessage(DiagnosticId id) const
     return diagMsgs_[static_cast<int>(id)];
 }
 
-void Reporter::report(CompilerInstance& ci, const CompilerContext& ctx, Diagnostic& diag)
+void Reporter::report(const CompilerInstance& ci, const CompilerContext& ctx, const Diagnostic& diag) const
 {
     diag.log(*this, ci.logger());
 }

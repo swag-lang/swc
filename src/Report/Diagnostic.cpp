@@ -53,14 +53,19 @@ Utf8 Diagnostic::build(const CompilerInstance& ci) const
 void Diagnostic::report(const CompilerInstance& ci) const
 {
     const auto msg = build(ci);
+    bool canLog = true;
 
     if (fileOwner_ != nullptr)
     {
+        canLog = fileOwner_->verifier().verify(ci, *this);
     }
 
-    auto& logger = ci.logger();
-    logger.lock();
-    logger.logEol();
-    logger.log(msg);
-    logger.unlock();
+    if (canLog)
+    {
+        auto& logger = ci.logger();
+        logger.lock();
+        logger.logEol();
+        logger.log(msg);
+        logger.unlock();
+    }
 }

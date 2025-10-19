@@ -29,7 +29,9 @@ public:
     {
     }
 
-    void report(const CompilerInstance& ci) const;
+    void                                                   report(const CompilerInstance& ci) const;
+    const std::vector<std::unique_ptr<DiagnosticElement>>& elements() const { return elements_; }
+    SourceFile*                                            fileOwner() const { return fileOwner_; }
 
     DiagnosticElement* addElement(DiagnosticKind kind, DiagnosticId id);
     DiagnosticElement* addError(DiagnosticId id) { return addElement(DiagnosticKind::Error, id); }

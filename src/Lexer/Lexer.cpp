@@ -428,6 +428,9 @@ void Lexer::checkFormat(const CompilerInstance& ci, const CompilerContext& ctx, 
 
 Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx, LexerFlags flags)
 {
+    tokens_.clear();
+    lines_.clear();
+
     const auto file = ctx.sourceFile();
     langSpec_       = &ci.langSpec();
     ci_             = &ci;

@@ -5,6 +5,7 @@
 #include "Main/CompilerContext.h"
 #include "Main/CompilerInstance.h"
 #include "Report/Verifier.h"
+#include <windows.h>
 
 Result Verifier::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
 {
@@ -14,7 +15,7 @@ Result Verifier::tokenize(const CompilerInstance& ci, const CompilerContext& ctx
     const auto file = ctx.sourceFile();
 
     // Get all comments from the file
-    Lexer lexer;
+    auto& lexer = file->lexer();
     SWAG_CHECK(lexer.tokenize(ci, ctx, LEXER_EXTRACT_COMMENTS_MODE));
 
     // Parse all comments to find a verify directive
@@ -49,6 +50,9 @@ Result Verifier::tokenize(const CompilerInstance& ci, const CompilerContext& ctx
             directive.match = comment.substr(j, comment.size());
             directive.match.trim();
 
+            // Location
+            directive.location.fromOffset(ci, file, token.start, 1);
+
             // One more
             directives_.emplace_back(directive);
 
@@ -57,4 +61,30 @@ Result Verifier::tokenize(const CompilerInstance& ci, const CompilerContext& ctx
     }
 
     return Result::Success;
+}
+
+bool Verifier::verify(const CompilerInstance& ci, const Diagnostic& diag)
+{
+    if (directives_.empty())
+        return true;
+
+    for (auto& elem : diag.elements())
+    {
+        const auto loc = elem->getLocation(ci);
+        
+        for (auto& directive : directives_)
+        {
+            if (directive.kind != elem->kind_)
+                continue;
+            if (directive.location.line != loc.line)
+                continue;
+            const auto errMsg = elem->format(ci.diagReporter());
+            if (errMsg.find(directive.match) == Utf8::npos)
+                continue;
+            
+            return false;
+        }
+    }
+
+    return true;
 }

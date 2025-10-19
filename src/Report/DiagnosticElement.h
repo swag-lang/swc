@@ -10,6 +10,7 @@ enum class DiagnosticId;
 class DiagnosticElement
 {
     friend class Diagnostic;
+    friend class Verifier;
     using Argument = std::variant<Utf8, uint64_t, int64_t>;
 
     DiagnosticId      id_;

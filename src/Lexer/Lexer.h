@@ -1,10 +1,16 @@
 #pragma once
-#include "Token.h"
+#include "Core/Flags.h"
+#include "Lexer/Token.h"
 
+class Diagnostic;
 class CompilerContext;
 class CompilerInstance;
 class SourceFile;
 class LangSpec;
+
+using LexerFlags                    = Flags<uint32_t>;
+constexpr LexerFlags LEXER_DEFAULT  = 0x00000000;
+constexpr LexerFlags LEXER_EXTRACT_COMMENTS_MODE = 0x00000001;
 
 class Lexer
 {
@@ -13,6 +19,7 @@ class Lexer
     std::vector<Token>    tokens_;
     std::vector<uint32_t> lines_;
 
+    LexerFlags              lexerFlags_  = LEXER_DEFAULT;
     const uint8_t*          buffer_      = nullptr;
     const uint8_t*          end_         = nullptr;
     const uint8_t*          startBuffer_ = nullptr;
@@ -20,7 +27,9 @@ class Lexer
     const CompilerContext*  ctx_         = nullptr;
     const LangSpec*         langSpec_    = nullptr;
 
-    void consumeOneEol();
+    void   consumeOneEol();
+    void   pushToken();
+    Result reportError(const Diagnostic& diag) const;
 
     Result parseEol();
     Result parseBlank();
@@ -39,5 +48,5 @@ public:
     const std::vector<Token>&    tokens() const { return tokens_; }
     const std::vector<uint32_t>& lines() const { return lines_; }
 
-    Result tokenize(const CompilerInstance& ci, const CompilerContext& ctx);
+    Result tokenize(const CompilerInstance& ci, const CompilerContext& ctx, LexerFlags flags = LEXER_DEFAULT);
 };

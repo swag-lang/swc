@@ -1,21 +1,22 @@
 #pragma once
 
+class SourceFile;
+
 enum class TokenId : uint32_t
 {
     Invalid,
     Blank,
     Eol,
-    LineComment,
-    MultiLineComment,
+    Comment,
     StringLiteral,
     NumberLiteral,
 };
 
 enum class SubTokenStringId : uint32_t
 {
-    LineString,
-    RawString,
-    MultiLineString,
+    Line,
+    Raw,
+    MultiLine,
 };
 
 enum class SubTokenNumberId : uint32_t
@@ -26,6 +27,12 @@ enum class SubTokenNumberId : uint32_t
     Float,
 };
 
+enum class SubTokenCommentId : uint32_t
+{
+    Line,
+    MultiLine,
+};
+
 struct Token
 {
     TokenId  id    = TokenId::Invalid;
@@ -33,7 +40,10 @@ struct Token
     uint32_t len   = 0;
     union
     {
-        SubTokenStringId subTokenStringId;  // Valid if id is StringLiteral
-        SubTokenNumberId subTokenNumberId;  // Valid if id is NumberLiteral
+        SubTokenStringId  subTokenStringId;  // Valid if id is StringLiteral
+        SubTokenNumberId  subTokenNumberId;  // Valid if id is NumberLiteral
+        SubTokenCommentId subTokenCommentId; // Valid if id is Comment
     };
+
+    std::string_view toString(const SourceFile* file) const;
 };

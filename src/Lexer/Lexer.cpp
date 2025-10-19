@@ -1,5 +1,6 @@
 #include "pch.h"
 
+#include "Core/Utf8.h"
 #include "Lexer/Lexer.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CompilerContext.h"
@@ -36,6 +37,21 @@ Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
                 buffer++;
                 lines_.push_back(static_cast<uint32_t>(buffer - startBuffer));
             }
+
+            token_.len = static_cast<uint32_t>(buffer - startToken);
+            tokens_.push_back(token_);
+            continue;
+        }
+
+        // Blanks
+        /////////////////////////////////////////
+        if (std::isblank(buffer[0]))
+        {
+            token_.id = TokenId::Blank;
+            buffer++;
+
+            while (buffer < end && std::isblank(buffer[0]))
+                buffer++;
 
             token_.len = static_cast<uint32_t>(buffer - startToken);
             tokens_.push_back(token_);
@@ -103,21 +119,6 @@ Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
             tokens_.push_back(token_);
             continue;
         }
-
-        // Blanks
-        /////////////////////////////////////////
-        if (std::isblank(buffer[0]))
-        {
-            token_.id = TokenId::Blank;
-            buffer++;
-
-            while (buffer < end && std::isblank(buffer[0]))
-                buffer++;
-
-            token_.len = static_cast<uint32_t>(buffer - startToken);
-            tokens_.push_back(token_);
-            continue;
-        }        
 
         buffer++;
     }

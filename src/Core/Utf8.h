@@ -3,5 +3,5 @@
 class Utf8
 {
 public:
-    static const char* decode(const char* pz, uint32_t& wc, unsigned& offset);
+    static std::tuple<const char*, uint32_t, unsigned> decode(const char* p, const char* end);
 };

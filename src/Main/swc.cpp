@@ -5,6 +5,7 @@
 #include "Main/CompilerInstance.h"
 #include "Report/Logger.h"
 #include "Report/Reporter.h"
+#include "Lexer/LangSpec.h"
 #include <filesystem>
 #include <iostream>
 

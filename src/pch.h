@@ -7,6 +7,8 @@
 #include <string>
 #include <variant>
 #include <vector>
+#include <tuple>
+#include <cstdint>
 
 namespace fs = std::filesystem; 
 

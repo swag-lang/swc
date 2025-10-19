@@ -98,6 +98,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Utf8.cpp" />
+    <ClCompile Include="src\Lexer\LangSpec.cpp" />
     <ClCompile Include="src\Lexer\Lexer.cpp" />
     <ClCompile Include="src\Lexer\SourceCodeLocation.cpp" />
     <ClCompile Include="src\Lexer\SourceFile.cpp" />
@@ -194,6 +195,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Utf8.h" />
+    <ClInclude Include="src\Lexer\LangSpec.h" />
     <ClInclude Include="src\Lexer\Lexer.h" />
     <ClInclude Include="src\Lexer\SourceCodeLocation.h" />
     <ClInclude Include="src\Lexer\SourceFile.h" />

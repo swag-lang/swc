@@ -25,12 +25,9 @@ namespace
             }
             else
             {
-                // Decode UTF-8 character
-                uint32_t wc;
-                unsigned utfOffset;
-                ptr = Utf8::decode(ptr, wc, utfOffset);
-
                 // Each UTF-8 character counts as one column
+                auto [next, wc, n] = Utf8::decode(ptr, end);
+                ptr = next;
                 column++;
             }
         }

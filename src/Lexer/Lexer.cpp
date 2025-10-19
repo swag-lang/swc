@@ -89,7 +89,7 @@ void Lexer::parseSingleLineStringLiteral()
         {
             consumeOneEol();
             Diagnostic diag(ctx_->sourceFile());
-            const auto elem = diag.addError(DiagnosticId::EolInStringLiteral);
+            const auto elem = diag.addError(DiagnosticId::StringLiteralEol);
             elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
             reportError(diag);
         }
@@ -229,7 +229,7 @@ void Lexer::parseHexNumber()
             if (lastWasSep)
             {
                 Diagnostic diag(ctx_->sourceFile());
-                const auto elem = diag.addError(DiagnosticId::SyntaxNumberSepMulti);
+                const auto elem = diag.addError(DiagnosticId::NumberSepMulti);
                 while (buffer_ < end_ && langSpec_->isNumberSep(buffer_[0]))
                     buffer_++;
                 elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startSep - startBuffer_), static_cast<uint32_t>(buffer_ - startSep));
@@ -252,7 +252,7 @@ void Lexer::parseHexNumber()
     if (!error && digits == 0)
     {
         Diagnostic diag(ctx_->sourceFile());
-        const auto elem = diag.addError(DiagnosticId::SyntaxMissingHexDigits);
+        const auto elem = diag.addError(DiagnosticId::MissingHexDigits);
         elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_), 2 + (lastWasSep ? 1 : 0));
         reportError(diag);
         error = true;
@@ -262,7 +262,7 @@ void Lexer::parseHexNumber()
     if (!error && lastWasSep)
     {
         Diagnostic diag(ctx_->sourceFile());
-        const auto elem = diag.addError(DiagnosticId::SyntaxNumberSepAtEnd);
+        const auto elem = diag.addError(DiagnosticId::NumberSepAtEnd);
         elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
         reportError(diag);
         error = true;
@@ -272,7 +272,7 @@ void Lexer::parseHexNumber()
     if (!error && buffer_ < end_ && langSpec_->isLetter(buffer_[0]))
     {
         Diagnostic diag(ctx_->sourceFile());
-        const auto elem = diag.addError(DiagnosticId::SyntaxMalformedHexNumber);
+        const auto elem = diag.addError(DiagnosticId::SyntaxHexNumber);
         elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(buffer_ - startBuffer_));
         reportError(diag);
     }

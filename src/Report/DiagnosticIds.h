@@ -6,12 +6,12 @@ enum class DiagnosticId
     CannotReadFile,
     FileNotUtf8,
     UnclosedComment,
-    EolInStringLiteral,
+    StringLiteralEol,
     UnclosedStringLiteral,
-    SyntaxNumberSepMulti,
-    SyntaxNumberSepAtEnd,
-    SyntaxMissingHexDigits,
-    SyntaxMalformedHexNumber,
+    NumberSepMulti,
+    NumberSepAtEnd,
+    MissingHexDigits,
+    SyntaxHexNumber,
 };
 
 struct DiagnosticIdInfo

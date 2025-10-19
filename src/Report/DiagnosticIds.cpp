@@ -35,10 +35,10 @@ void DiagnosticIds::initErrors()
     SWAG_DIAG(CannotReadFile, "failed to read file");
     SWAG_DIAG(FileNotUtf8, "source file is not utf8");
     SWAG_DIAG(UnclosedComment, "unclosed multi-line comment");
-    SWAG_DIAG(EolInStringLiteral, "invalid eol in string");
+    SWAG_DIAG(StringLiteralEol, "invalid eol in string");
     SWAG_DIAG(UnclosedStringLiteral, "unclosed string literal");
-    SWAG_DIAG(SyntaxNumberSepMulti, "a number cannot have multiple consecutive '_'");
-    SWAG_DIAG(SyntaxNumberSepAtEnd, "a number cannot have '_' at the end");
-    SWAG_DIAG(SyntaxMissingHexDigits, "missing hex digits");
-    SWAG_DIAG(SyntaxMalformedHexNumber, "malformed hex number");
+    SWAG_DIAG(NumberSepMulti, "a number cannot have multiple consecutive '_'");
+    SWAG_DIAG(NumberSepAtEnd, "a number cannot have '_' at the end");
+    SWAG_DIAG(MissingHexDigits, "missing hex digits");
+    SWAG_DIAG(SyntaxHexNumber, "malformed hex number");
 }

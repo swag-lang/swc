@@ -66,7 +66,7 @@ Result Verifier::tokenize(const CompilerInstance& ci, const CompilerContext& ctx
 bool Verifier::verify(const CompilerInstance& ci, const Diagnostic& diag) const
 {
     if (directives_.empty())
-        return true;
+        return false;
 
     for (auto& elem : diag.elements())
     {
@@ -84,9 +84,9 @@ bool Verifier::verify(const CompilerInstance& ci, const Diagnostic& diag) const
                 continue;
 
             directive.touched = true;
-            return false;
+            return true;
         }
     }
 
-    return true;
+    return false;
 }

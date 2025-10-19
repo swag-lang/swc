@@ -11,9 +11,10 @@
 Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
 {
     const auto  file        = ctx.sourceFile();
-    const char* buffer      = reinterpret_cast<const char*>(file->content_.data()) + file->offsetStartBuffer_;
+    const auto  base        = reinterpret_cast<const char*>(file->content_.data());
+    const char* buffer      = base + file->offsetStartBuffer_;
+    const char* end         = base + file->content_.size();
     const char* startBuffer = buffer;
-    const char* end         = buffer + file->content_.size();
     const auto& langSpec    = ci.langSpec();
 
     tokens_.reserve(file->content_.size() / 8);
@@ -62,7 +63,7 @@ Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
 
         // Line comment
         /////////////////////////////////////////
-        if (buffer[0] == '/' && buffer[1] == '/')
+        if (buffer + 1 < end && buffer[0] == '/' && buffer[1] == '/')
         {
             token_.id = TokenId::LineComment;
 
@@ -79,7 +80,7 @@ Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
 
         // Multi-line comment
         /////////////////////////////////////////
-        if (buffer[0] == '/' && buffer[1] == '*')
+        if (buffer + 1 < end && buffer[0] == '/' && buffer[1] == '*')
         {
             token_.id = TokenId::MultiLineComment;
 

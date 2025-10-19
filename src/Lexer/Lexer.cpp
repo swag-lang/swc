@@ -4,28 +4,56 @@
 #include "Lexer/SourceFile.h"
 #include "Main/CompilerContext.h"
 #include "Main/CompilerInstance.h"
-#include "Report/Logger.h"
 #include "Report/Reporter.h"
 
-Result Lexer::tokenize(CompilerInstance& ci, const CompilerContext& ctx)
+Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
 {
-    const auto  file   = ctx.sourceFile();
-    const char* buffer = reinterpret_cast<const char*>(file->content_.data()) + file->offsetStartBuffer_;
-    const char* start  = buffer;
-    const char* end    = buffer + file->content_.size();
+    const auto  file        = ctx.sourceFile();
+    const char* buffer      = reinterpret_cast<const char*>(file->content_.data()) + file->offsetStartBuffer_;
+    const char* startBuffer = buffer;
+    const char* end         = buffer + file->content_.size();
 
-    tokens.reserve(file->content_.size() / 8);
-    lines.reserve(file->content_.size() / 80);
-    lines.push_back(0);
+    tokens_.reserve(file->content_.size() / 8);
+    lines_.reserve(file->content_.size() / 80);
+    lines_.push_back(0);
 
     while (buffer < end)
     {
+        const auto startToken = buffer;
+        token_.start          = static_cast<uint32_t>(startToken - startBuffer);
+        token_.len            = 1;
+
         // End of line
         /////////////////////////////////////////
         if (buffer[0] == '\n')
         {
+            token_.id = TokenId::Eol;
             buffer++;
-            lines.push_back(static_cast<uint32_t>(buffer - start));
+            lines_.push_back(static_cast<uint32_t>(buffer - startBuffer));
+
+            while (buffer < end && buffer[0] == '\n')
+            {
+                buffer++;
+                lines_.push_back(static_cast<uint32_t>(buffer - startBuffer));
+            }
+
+            token_.len = static_cast<uint32_t>(buffer - startToken);
+            tokens_.push_back(token_);
+            continue;
+        }
+
+        // Blanks
+        /////////////////////////////////////////
+        if (std::isblank(buffer[0]))
+        {
+            token_.id = TokenId::Blank;
+            buffer++;
+
+            while (buffer < end && std::isblank(buffer[0]))
+                buffer++;
+
+            token_.len = static_cast<uint32_t>(buffer - startToken);
+            tokens_.push_back(token_);
             continue;
         }
 
@@ -33,8 +61,16 @@ Result Lexer::tokenize(CompilerInstance& ci, const CompilerContext& ctx)
         /////////////////////////////////////////
         if (buffer[0] == '/' && buffer[1] == '/')
         {
+            token_.id = TokenId::LineComment;
+
             while (buffer < end && buffer[0] != '\n')
+            {
+                token_.len++;
                 buffer++;
+            }
+
+            token_.len = static_cast<uint32_t>(buffer - startToken);
+            tokens_.push_back(token_);
             continue;
         }
 
@@ -42,7 +78,8 @@ Result Lexer::tokenize(CompilerInstance& ci, const CompilerContext& ctx)
         /////////////////////////////////////////
         if (buffer[0] == '/' && buffer[1] == '*')
         {
-            const auto startComment = buffer;
+            token_.id = TokenId::MultiLineComment;
+
             buffer += 2;
             uint32_t depth = 1;
             while (buffer < end && depth > 0)
@@ -72,11 +109,13 @@ Result Lexer::tokenize(CompilerInstance& ci, const CompilerContext& ctx)
             {
                 Diagnostic diag;
                 const auto elem = diag.addError(DiagnosticId::UnclosedComment);
-                elem->setLocation(ctx.sourceFile(), static_cast<uint32_t>(startComment - start), 2);
+                elem->setLocation(ctx.sourceFile(), static_cast<uint32_t>(startToken - startBuffer), 2);
                 ci.diagReporter().report(ci, ctx, diag);
                 return Result::Error;
             }
 
+            token_.len = static_cast<uint32_t>(buffer - startToken);
+            tokens_.push_back(token_);
             continue;
         }
 

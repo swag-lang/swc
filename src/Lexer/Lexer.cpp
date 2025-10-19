@@ -218,15 +218,24 @@ void Lexer::parseHexNumber()
 
     buffer_ += 2;
 
+    bool error = false;
+    if (langSpec_->isNumberSep(buffer_[0]))
+    {
+        Diagnostic diag(ctx_->sourceFile());
+        const auto elem = diag.addError(DiagnosticId::NumberSepStart);
+        elem->setLocation(ctx_->sourceFile(), static_cast<uint32_t>(startToken - startBuffer_));
+        reportError(diag);
+        error = true;
+    }
+
     bool           lastWasSep = false;
     uint32_t       digits     = 0;
-    bool error = false;
     const uint8_t* startSep   = buffer_;
     while (langSpec_->isHexNumber(buffer_[0]))
     {
         if (langSpec_->isNumberSep(buffer_[0]))
         {
-            if (lastWasSep)
+            if (!error && lastWasSep)
             {
                 Diagnostic diag(ctx_->sourceFile());
                 const auto elem = diag.addError(DiagnosticId::NumberSepMulti);

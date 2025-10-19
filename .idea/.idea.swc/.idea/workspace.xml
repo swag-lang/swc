@@ -23,9 +23,9 @@
   <component name="ChangeListManager">
     <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Main/swc.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/swc.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/Verifier.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Verifier.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticIds.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticIds.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticIds.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticIds.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -39,7 +39,7 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="cidr-memory-view://295" root0="FORCE_HIGHLIGHTING" />
+    <setting file="cidr-memory-view://297" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Core/Utf8.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/Os.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/OsWin32.cpp" root0="SKIP_HIGHLIGHTING" />
@@ -162,14 +162,6 @@
       <workItem from="1760799230882" duration="271000" />
       <workItem from="1760799516648" duration="1911000" />
       <workItem from="1760801501480" duration="9485000" />
-    </task>
-    <task id="LOCAL-00006" summary="Add format validation for source files and enhance diagnostics system.">
-      <option name="closed" value="true" />
-      <created>1760806818934</created>
-      <option name="number" value="00006" />
-      <option name="presentableId" value="LOCAL-00006" />
-      <option name="project" value="LOCAL" />
-      <updated>1760806818934</updated>
     </task>
     <task id="LOCAL-00007" summary="Refactor diagnostics system by introducing shorthand methods in `DiagReporter` and renaming diagnostic identifiers for clarity. Adjust source file error reporting to use new methods.">
       <option name="closed" value="true" />
@@ -555,7 +547,15 @@
       <option name="project" value="LOCAL" />
       <updated>1760892356800</updated>
     </task>
-    <option name="localTasksCounter" value="55" />
+    <task id="LOCAL-00055" summary="Refactor `SourceFile` handling to optimize tabulation replacement and line parsing logic. Use `std::string_view` for efficiency and enhance `Verifier` diagnostics location calculation. Update `.idea/workspace.xml` and related modules.">
+      <option name="closed" value="true" />
+      <created>1760893268246</created>
+      <option name="number" value="00055" />
+      <option name="presentableId" value="LOCAL-00055" />
+      <option name="project" value="LOCAL" />
+      <updated>1760893268246</updated>
+    </task>
+    <option name="localTasksCounter" value="56" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -565,7 +565,6 @@
   <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Enhance `Lexer` with string literal parsing support. Detect unclosed strings and invalid EOL within literals. Update diagnostics system and related tokenization logic for improved error handling. Modify project files and `.idea/workspace.xml`." />
     <MESSAGE value="Refactor `Lexer` parsing methods for enhanced encapsulation and consistency. Introduce instance variables for `Lexer` state, replace method parameters with member accesses, and return `Result` for improved error handling. Update `.idea/workspace.xml` accordingly." />
     <MESSAGE value="Enhance `Lexer` with support for raw and multi-line string literals. Add sub-token identifiers for string literal types. Refactor tokenization logic to improve readability and maintainability. Update project files and `.idea/workspace.xml` accordingly." />
     <MESSAGE value="Refactor `Lexer` EOL and string literal handling for improved robustness and readability. Add support for collapsing consecutive EOLs, escaping within multi-line strings, and detailed diagnostics for unclosed literals. Update project files and `.idea/workspace.xml`." />
@@ -590,7 +589,8 @@
     <MESSAGE value="Refactor diagnostics to simplify naming in `DiagnosticIds` and `Diagnostic` usage. Update related modules, including `Lexer` and `Verifier`, to align with streamlined diagnostics handling. Adjust `.idea/workspace.xml` and project files accordingly." />
     <MESSAGE value="Update hex literal diagnostics: rename `NumberSepAtEnd` to `NumberSepEnd`, refine error handling in `Lexer`, and enhance unit tests with comprehensive cases for separator validation. Adjust `.idea/workspace.xml` and project files." />
     <MESSAGE value="Add `Verifier::verify` for unraised directive validation, update diagnostics with `UnRaisedDirective`, and refine project structure. Adjust `.idea/workspace.xml` and related modules." />
-    <option name="LAST_COMMIT_MESSAGE" value="Add `Verifier::verify` for unraised directive validation, update diagnostics with `UnRaisedDirective`, and refine project structure. Adjust `.idea/workspace.xml` and related modules." />
+    <MESSAGE value="Refactor `SourceFile` handling to optimize tabulation replacement and line parsing logic. Use `std::string_view` for efficiency and enhance `Verifier` diagnostics location calculation. Update `.idea/workspace.xml` and related modules." />
+    <option name="LAST_COMMIT_MESSAGE" value="Refactor `SourceFile` handling to optimize tabulation replacement and line parsing logic. Use `std::string_view` for efficiency and enhance `Verifier` diagnostics location calculation. Update `.idea/workspace.xml` and related modules." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

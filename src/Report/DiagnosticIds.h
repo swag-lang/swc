@@ -9,6 +9,7 @@ enum class DiagnosticId
     StringLiteralEol,
     UnclosedStringLiteral,
     NumberSepMulti,
+    NumberSepStart,
     NumberSepEnd,
     MissingHexDigits,
     SyntaxHexNumber,

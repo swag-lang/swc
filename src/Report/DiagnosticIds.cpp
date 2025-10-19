@@ -38,7 +38,8 @@ void DiagnosticIds::initErrors()
     SWAG_DIAG(StringLiteralEol, "invalid eol in string");
     SWAG_DIAG(UnclosedStringLiteral, "unclosed string literal");
     SWAG_DIAG(NumberSepMulti, "a number cannot have multiple consecutive '_'");
-    SWAG_DIAG(NumberSepEnd, "a number cannot have '_' at the end");
+    SWAG_DIAG(NumberSepStart, "a number cannot start with '_'");   
+    SWAG_DIAG(NumberSepEnd, "a number cannot end with '_'");
     SWAG_DIAG(MissingHexDigits, "missing hex digits");
     SWAG_DIAG(SyntaxHexNumber, "malformed hex number");
     SWAG_DIAG(UnRaisedDirective, "unraised directive");

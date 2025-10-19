@@ -3,6 +3,7 @@
 
 class SourceFile;
 class Reporter;
+class CompilerInstance;
 enum class DiagnosticKind;
 enum class DiagnosticId;
 
@@ -37,7 +38,7 @@ public:
         len_    = len;
     }
 
-    SourceCodeLocation getLocation() const;
+    SourceCodeLocation getLocation(const CompilerInstance& ci) const;
 
     template<typename T>
     void addArgument(T&& arg)

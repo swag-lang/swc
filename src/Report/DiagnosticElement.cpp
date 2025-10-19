@@ -31,10 +31,10 @@ std::string DiagnosticElement::argumentToString(const Argument& arg) const
                       arg);
 }
 
-SourceCodeLocation DiagnosticElement::getLocation() const
+SourceCodeLocation DiagnosticElement::getLocation(const CompilerInstance& ci) const
 {
     SourceCodeLocation loc;
-    loc.fromOffset(file_, offset_, len_);
+    loc.fromOffset(ci, file_, offset_, len_);
     return loc;
 }
 

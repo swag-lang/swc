@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "Lexer/SourceFile.h"
+#include "Main/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Report/Diagnostic.h"
 #include "Report/Reporter.h"
@@ -95,19 +96,44 @@ Result SourceFile::tokenize(const CompilerInstance& ci, const CompilerContext& c
     return lexer_.tokenize(ci, ctx);
 }
 
-std::string SourceFile::codeLine(uint32_t line) const
+std::string SourceFile::codeLine(const CompilerInstance& ci, uint32_t line) const
 {
     line--;
     SWAG_ASSERT(line < lexer_.lines().size());
-    const auto offset = lexer_.lines()[line];
+
+    std::string result;
+    const auto  offset = lexer_.lines()[line];
     if (line == lexer_.lines().size() - 1)
     {
         auto       buffer = content_.data() + offset;
         const auto end    = content_.data() + content_.size();
         while (buffer + 1 < end && buffer[0] != '\n' && buffer[0] != '\r')
             buffer++;
-        return {content_.data() + offset, buffer};
+        result = {content_.data() + offset, buffer};
+    }
+    else
+        result = {content_.data() + offset, content_.data() + lexer_.lines()[line + 1] - 1};
+
+    // Transform tabulations to blanks in order for columns to match
+    const uint32_t tabSize = ci.cmdLine().tabSize;
+    std::string    expanded;
+    expanded.reserve(result.size());
+
+    size_t column = 0;
+    for (const char c : result)
+    {
+        if (c == '\t')
+        {
+            const size_t spaces = tabSize - (column % tabSize);
+            expanded.append(spaces, ' ');
+            column += spaces;
+        }
+        else
+        {
+            expanded.push_back(c);
+            column++;
+        }
     }
 
-    return {content_.data() + offset, content_.data() + lexer_.lines()[line + 1] - 1};
+    return expanded;
 }

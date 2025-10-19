@@ -1,20 +1,25 @@
 #include "pch.h"
 
 #include "Lexer/SourceFile.h"
+#include "Main/CompilerInstance.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticElement.h"
 #include "Report/Logger.h"
+#include "Reporter.h"
 
 DiagnosticElement* Diagnostic::addElement(DiagnosticKind kind, DiagnosticId id)
 {
-    auto ptr = std::make_unique<DiagnosticElement>(kind, id);
+    auto       ptr = std::make_unique<DiagnosticElement>(kind, id);
     const auto raw = ptr.get();
     elements_.emplace_back(std::move(ptr));
     return raw;
 }
 
-void Diagnostic::log(const Reporter& reporter, Logger& logger) const
+void Diagnostic::log(const CompilerInstance& ci) const
 {
+    auto&       logger   = ci.logger();
+    const auto& reporter = ci.diagReporter();
+
     logger.lock();
 
     logger.logEol();
@@ -26,11 +31,11 @@ void Diagnostic::log(const Reporter& reporter, Logger& logger) const
             logger.log(": ");
             if (e->len_ != 0)
             {
-                const auto loc = e->getLocation();
-                std::string s = std::format("{}:{}", loc.line, loc.column);
+                const auto  loc = e->getLocation(ci);
+                std::string s   = std::format("{}:{}", loc.line, loc.column);
                 logger.log(s);
                 logger.logEol();
-                const auto code = e->file_->codeLine(loc.line);
+                const auto code = e->file_->codeLine(ci, loc.line);
                 logger.log(code);
                 logger.logEol();
                 for (uint32_t i = 1; i < loc.column; ++i)
@@ -40,7 +45,7 @@ void Diagnostic::log(const Reporter& reporter, Logger& logger) const
                 logger.logEol();
             }
         }
-            
+
         const auto errMsg = e->format(reporter);
         logger.log(errMsg);
         logger.logEol();

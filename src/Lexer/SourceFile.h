@@ -26,5 +26,5 @@ public:
 
     Result      loadContent(const CompilerInstance& ci, const CompilerContext& ctx);
     Result      tokenize(const CompilerInstance& ci, const CompilerContext& ctx);
-    std::string codeLine(uint32_t line) const;
+    std::string codeLine(const CompilerInstance& ci, uint32_t line) const;
 };

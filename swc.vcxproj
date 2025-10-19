@@ -103,6 +103,7 @@
     <ClCompile Include="src\Lexer\SourceCodeLocation.cpp" />
     <ClCompile Include="src\Lexer\SourceFile.cpp" />
     <ClCompile Include="src\Lexer\Token.cpp" />
+    <ClCompile Include="src\Main\CommandLine.cpp" />
     <ClCompile Include="src\Main\CompilerContext.cpp" />
     <ClCompile Include="src\Main\CompilerInstance.cpp" />
     <ClCompile Include="src\Main\swc.cpp" />
@@ -201,6 +202,7 @@
     <ClInclude Include="src\Lexer\SourceCodeLocation.h" />
     <ClInclude Include="src\Lexer\SourceFile.h" />
     <ClInclude Include="src\Lexer\Token.h" />
+    <ClInclude Include="src\Main\CommandLine.h" />
     <ClInclude Include="src\Main\CompilerContext.h" />
     <ClInclude Include="src\Main\CompilerInstance.h" />
     <ClInclude Include="src\Os\Os.h" />

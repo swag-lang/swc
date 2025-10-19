@@ -6,6 +6,7 @@
 #include "Report/Logger.h"
 #include "Report/Reporter.h"
 #include "Lexer/LangSpec.h"
+#include "Main/CommandLine.h"
 #include <filesystem>
 #include <iostream>
 

@@ -7,8 +7,7 @@
 #include "Main/CompilerInstance.h"
 #include "Report/Reporter.h"
 
-// Consume exactly one logical EOL (CRLF | CR | LF). Push next line start.
-// Returns true if it consumed one logical EOL.
+// Consume exactly one logical EOL (CRLF | CR | LF). Push the next line start.
 void Lexer::consumeOneEol()
 {
     SWAG_ASSERT(buffer_ < end_);
@@ -19,16 +18,13 @@ void Lexer::consumeOneEol()
             buffer_ += 2;
         else
             buffer_ += 1;
-        
-        lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
-        return;
     }
-
-    if (buffer_[0] == '\n')
+    else if (buffer_[0] == '\n')
     {
         buffer_ += 1;
-        lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
     }
+    
+    lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
 }
 
 Result Lexer::parseEol()

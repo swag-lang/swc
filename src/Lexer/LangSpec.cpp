@@ -62,7 +62,22 @@ void LangSpec::initCharFlags()
         charFlags_[static_cast<uint8_t>(c)].add(CHAR_IDENTIFIER_START | CHAR_IDENTIFIER_PART);
     for (char c = '0'; c <= '9'; c++)
         charFlags_[static_cast<uint8_t>(c)].add(CHAR_IDENTIFIER_START | CHAR_IDENTIFIER_PART);
-    
+
+    // Escape character
+    charFlags_['0'].add(CHAR_ESCAPE);
+    charFlags_['a'].add(CHAR_ESCAPE);
+    charFlags_['b'].add(CHAR_ESCAPE);
+    charFlags_['\\'].add(CHAR_ESCAPE);
+    charFlags_['t'].add(CHAR_ESCAPE);
+    charFlags_['n'].add(CHAR_ESCAPE);
+    charFlags_['f'].add(CHAR_ESCAPE);
+    charFlags_['r'].add(CHAR_ESCAPE);
+    charFlags_['v'].add(CHAR_ESCAPE);
+    charFlags_['\''].add(CHAR_ESCAPE);
+    charFlags_['\"'].add(CHAR_ESCAPE);
+    charFlags_['x'].add(CHAR_ESCAPE);
+    charFlags_['u'].add(CHAR_ESCAPE);
+    charFlags_['U'].add(CHAR_ESCAPE);
 }
 
 bool LangSpec::isBlank(const uint8_t* buffer, const uint8_t* end, uint32_t& offset) const

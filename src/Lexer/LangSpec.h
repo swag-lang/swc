@@ -11,6 +11,7 @@ constexpr CharFlags CHAR_BIN_NUMBER       = 0x00000020;
 constexpr CharFlags CHAR_NUMBER_SEP       = 0x00000040;
 constexpr CharFlags CHAR_IDENTIFIER_START = 0x00000080;
 constexpr CharFlags CHAR_IDENTIFIER_PART  = 0x00000100;
+constexpr CharFlags CHAR_ESCAPE           = 0x00000200;
 
 class LangSpec
 {
@@ -27,6 +28,7 @@ public:
     bool isNumberSep(uint8_t c) const { return charFlags_[c].has(CHAR_NUMBER_SEP); }
     bool isIdentifierStart(uint8_t c) const { return charFlags_[c].has(CHAR_IDENTIFIER_START); }
     bool isIdentifierPart(uint8_t c) const { return charFlags_[c].has(CHAR_IDENTIFIER_PART); }
+    bool isEscape(uint8_t c) const { return charFlags_[c].has(CHAR_ESCAPE); }
 
 private:
     CharFlags charFlags_[256];

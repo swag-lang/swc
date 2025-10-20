@@ -23,13 +23,11 @@
   <component name="ChangeListManager">
     <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bin/unittests/errors/error1.swg" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/LangSpec.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/LangSpec.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/LangSpec.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/LangSpec.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/Token.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Token.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticIds.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticIds.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticIds.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticIds.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -43,7 +41,7 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="cidr-memory-view://313" root0="FORCE_HIGHLIGHTING" />
+    <setting file="cidr-memory-view://339" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Core/Utf8.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/Os.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/OsWin32.cpp" root0="SKIP_HIGHLIGHTING" />
@@ -100,26 +98,26 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "C/C++ Project.swc.executor": "Debug",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "master",
-    "ignore.virus.scanning.warn.message": "true",
-    "junie.onboarding.icon.badge.shown": "true",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.sourceCode.C++",
-    "to.speed.mode.migration.done": "true",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;C/C++ Project.swc.executor&quot;: &quot;Debug&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.sourceCode.C++&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager">
     <configuration name="swc" type="CppProject" factoryName="C++ Project">
       <configuration_1 setup="1">
@@ -166,22 +164,6 @@
       <workItem from="1760799230882" duration="271000" />
       <workItem from="1760799516648" duration="1911000" />
       <workItem from="1760801501480" duration="9485000" />
-    </task>
-    <task id="LOCAL-00009" summary="Introduce `Lexer` component with tokenization support, integrate it with `SourceFile`, and update project configuration.">
-      <option name="closed" value="true" />
-      <created>1760810154278</created>
-      <option name="number" value="00009" />
-      <option name="presentableId" value="LOCAL-00009" />
-      <option name="project" value="LOCAL" />
-      <updated>1760810154278</updated>
-    </task>
-    <task id="LOCAL-00010" summary="Refactor `Lexer` and `SourceFile` tokenization by introducing `CompilerContext::sourceFile`, simplifying tokenization API, and updating project configuration.">
-      <option name="closed" value="true" />
-      <created>1760810557300</created>
-      <option name="number" value="00010" />
-      <option name="presentableId" value="LOCAL-00010" />
-      <option name="project" value="LOCAL" />
-      <updated>1760810557300</updated>
     </task>
     <task id="LOCAL-00011" summary="Update `.gitignore` to exclude `.idea/` directory for IDE compatibility">
       <option name="closed" value="true" />
@@ -559,7 +541,23 @@
       <option name="project" value="LOCAL" />
       <updated>1760898085363</updated>
     </task>
-    <option name="localTasksCounter" value="58" />
+    <task id="LOCAL-00058" summary="Refactor `Lexer` to refine diagnostics handling and improve robustness. Introduce `isValidEscapeSequence`, enhance string literal parsing with detailed error reporting, and extend support for binary and decimal numbers. Update BOM detection in `checkFormat`, streamline logic, and adjust `.idea/workspace.xml`.">
+      <option name="closed" value="true" />
+      <created>1760934308617</created>
+      <option name="number" value="00058" />
+      <option name="presentableId" value="LOCAL-00058" />
+      <option name="project" value="LOCAL" />
+      <updated>1760934308617</updated>
+    </task>
+    <task id="LOCAL-00059" summary="Remove unused type suffix parsing logic in `Lexer` to simplify tokenization.">
+      <option name="closed" value="true" />
+      <created>1760934448441</created>
+      <option name="number" value="00059" />
+      <option name="presentableId" value="LOCAL-00059" />
+      <option name="project" value="LOCAL" />
+      <updated>1760934448441</updated>
+    </task>
+    <option name="localTasksCounter" value="60" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -569,8 +567,6 @@
   <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Refactor `Lexer` EOL and string literal handling for improved robustness and readability. Add support for collapsing consecutive EOLs, escaping within multi-line strings, and detailed diagnostics for unclosed literals. Update project files and `.idea/workspace.xml`." />
-    <MESSAGE value="Refactor `Lexer` to delegate EOL and blank handling to `LangSpec`. Introduce `consumeOneEol` utility for consistent line tracking. Update `.idea/workspace.xml` and project files for related changes." />
     <MESSAGE value="Simplify `consumeOneEol` logic in `Lexer` by refactoring EOL handling and consolidating line tracking." />
     <MESSAGE value="Add support for hexadecimal and binary number literals in `Lexer`. Introduce `LangSpec` utilities for number parsing and validation, including separator and malformed number diagnostics. Update project files and `.idea/workspace.xml` for related changes." />
     <MESSAGE value="Improve diagnostics with enhanced error reporting. Add detailed code line display with marking for errors in `Logger`. Refactor `SourceFile` to include `codeLine` utility to extract specific lines. Update `Lexer` for separator validation and hex digits diagnostics. Adjust `.idea/workspace.xml` and project files." />
@@ -594,7 +590,9 @@
     <MESSAGE value="Refactor `SourceFile` handling to optimize tabulation replacement and line parsing logic. Use `std::string_view` for efficiency and enhance `Verifier` diagnostics location calculation. Update `.idea/workspace.xml` and related modules." />
     <MESSAGE value="Add `NumberSepStart` to diagnostics for invalid leading underscores in numeric literals. Refine error handling in `Lexer` and update related unit tests. Adjust `.idea/workspace.xml` and project files." />
     <MESSAGE value="Refactor `SourceFile` and `Lexer` for improved encapsulation and consistency. Replace `fullName` with `path` in `SourceFile`, adjust `Lexer` diagnostics handling, and refine `Verifier` logic. Update `.idea/workspace.xml` and project files." />
-    <option name="LAST_COMMIT_MESSAGE" value="Refactor `SourceFile` and `Lexer` for improved encapsulation and consistency. Replace `fullName` with `path` in `SourceFile`, adjust `Lexer` diagnostics handling, and refine `Verifier` logic. Update `.idea/workspace.xml` and project files." />
+    <MESSAGE value="Refactor `Lexer` to refine diagnostics handling and improve robustness. Introduce `isValidEscapeSequence`, enhance string literal parsing with detailed error reporting, and extend support for binary and decimal numbers. Update BOM detection in `checkFormat`, streamline logic, and adjust `.idea/workspace.xml`." />
+    <MESSAGE value="Remove unused type suffix parsing logic in `Lexer` to simplify tokenization." />
+    <option name="LAST_COMMIT_MESSAGE" value="" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

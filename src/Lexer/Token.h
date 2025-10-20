@@ -2,7 +2,7 @@
 
 class SourceFile;
 
-enum class TokenId : uint32_t
+enum class TokenId : uint8_t
 {
     Invalid,
     Blank,
@@ -15,14 +15,14 @@ enum class TokenId : uint32_t
     Operator,
 };
 
-enum class SubTokenStringId : uint32_t
+enum class SubTokenStringId : uint16_t
 {
     Line,
     Raw,
     MultiLine,
 };
 
-enum class SubTokenNumberId : uint32_t
+enum class SubTokenNumberId : uint16_t
 {
     Hexadecimal,
     Binary,
@@ -30,13 +30,13 @@ enum class SubTokenNumberId : uint32_t
     Float,
 };
 
-enum class SubTokenCommentId : uint32_t
+enum class SubTokenCommentId : uint16_t
 {
     Line,
     MultiLine,
 };
 
-enum class SubTokenOperatorId : uint32_t
+enum class SubTokenOperatorId : uint16_t
 {
     Quote,
     BackSlash,
@@ -92,11 +92,14 @@ enum class SubTokenOperatorId : uint32_t
     GreaterGreaterEqual
 };
 
+#pragma pack(push, 1)
 struct Token
 {
-    TokenId  id    = TokenId::Invalid;
     uint32_t start = 0;
     uint32_t len   = 0;
+
+    TokenId id      = TokenId::Invalid;
+    uint8_t padding = 0;
     union
     {
         SubTokenStringId   subTokenStringId;   // Valid if id is StringLiteral
@@ -107,3 +110,4 @@ struct Token
 
     std::string_view toString(const SourceFile* file) const;
 };
+#pragma pack(pop)

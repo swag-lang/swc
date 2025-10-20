@@ -57,8 +57,19 @@ Result UnitTest::tokenize(CompilerContext& ctx)
             if (i < comment.size() && comment[i] == '@')
             {
                 i++;
-                if (i < comment.size() && comment[i] == '*')
-                    directive.loc.line = 0;
+                if (i < comment.size())
+                {
+                    if (comment[i] == '*')
+                    {
+                        directive.loc.line = 0;
+                        i++;
+                    }
+                    else if (comment[i] == '+')
+                    {
+                        directive.loc.line++;
+                        i++;
+                    }
+                }
             }
 
             // Get directive string

@@ -70,7 +70,7 @@ uint32_t Lexer::parseEscape(const uint8_t* pos, bool& hasError) const
             const uint32_t offset       = static_cast<uint32_t>(pos - startBuffer_);
 
             if (actualDigits == 0)
-                reportError(DiagnosticId::InvalidHexDigits, offset + 2, 1);
+                reportError(DiagnosticId::InvalidHexDigit, offset + 2, 1);
             else
                 reportError(DiagnosticId::IncompleteHexEscape, offset, 2 + actualDigits);
 

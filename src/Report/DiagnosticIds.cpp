@@ -33,8 +33,11 @@ void DiagnosticIds::initErrors()
 
     SWAG_DIAG(CannotOpenFile);
     SWAG_DIAG(CannotReadFile);
+
+    SWAG_DIAG(UnRaisedDirective);
     
     SWAG_DIAG(FileNotUtf8);
+    
     SWAG_DIAG(UnclosedComment);
     SWAG_DIAG(StringLiteralEol);
     SWAG_DIAG(UnclosedStringLiteral);
@@ -46,13 +49,12 @@ void DiagnosticIds::initErrors()
     SWAG_DIAG(MissingExponentDigits);
     SWAG_DIAG(SyntaxHexNumber);
     SWAG_DIAG(SyntaxBinNumber);
-    SWAG_DIAG(UnRaisedDirective);
     SWAG_DIAG(InvalidEscapeSequence);
     SWAG_DIAG(InvalidCharacter);
     SWAG_DIAG(EmptyCharLiteral);
     SWAG_DIAG(UnclosedCharLiteral);
     SWAG_DIAG(CharLiteralEol);
     SWAG_DIAG(TooManyCharsInLiteral);
-    SWAG_DIAG(InvalidHexDigits);
+    SWAG_DIAG(InvalidHexDigit);
     SWAG_DIAG(IncompleteHexEscape);
 }

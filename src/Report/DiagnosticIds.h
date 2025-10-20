@@ -23,7 +23,7 @@ enum class DiagnosticId
     UnclosedCharLiteral,
     CharLiteralEol,
     TooManyCharsInLiteral,
-    InvalidHexDigits,
+    InvalidHexDigit,
     IncompleteHexEscape,
 };
 

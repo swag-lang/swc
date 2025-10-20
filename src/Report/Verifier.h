@@ -18,7 +18,7 @@ class Verifier
     std::vector<VerifierDirective> directives_;
 
 public:
-    Result tokenize(const CompilerInstance& ci, const CompilerContext& ctx);
-    bool   verify(const CompilerInstance& ci, const Diagnostic& diag) const;
-    Result verify(const CompilerInstance& ci, const CompilerContext& ctx) const;
+    Result tokenize(CompilerContext& ctx);
+    bool   verify(CompilerContext& ctx, const Diagnostic& diag) const;
+    Result verify(CompilerContext& ctx) const;
 };

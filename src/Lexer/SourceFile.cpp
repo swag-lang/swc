@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
+#include "Main/CompilerContext.h"
 #include "Main/CompilerInstance.h"
 #include "Report/Diagnostic.h"
 
@@ -10,7 +11,7 @@ SourceFile::SourceFile(std::filesystem::path path) :
 {
 }
 
-Result SourceFile::loadContent(const CompilerInstance& ci, const CompilerContext& ctx)
+Result SourceFile::loadContent(CompilerContext& ctx)
 {
     if (!content_.empty())
         return Result::Success;
@@ -23,7 +24,7 @@ Result SourceFile::loadContent(const CompilerInstance& ci, const CompilerContext
         const auto elem = diag.addError(DiagnosticId::CannotOpenFile);
         elem->setLocation(this);
         elem->addArgument(path_.string());
-        diag.report(ci);
+        diag.report(ctx);
         return Result::Error;
     }
 
@@ -37,7 +38,7 @@ Result SourceFile::loadContent(const CompilerInstance& ci, const CompilerContext
         const auto elem = diag.addError(DiagnosticId::CannotReadFile);
         elem->setLocation(this);
         elem->addArgument(path_.string());
-        diag.report(ci);
+        diag.report(ctx);
         return Result::Error;
     }
 
@@ -50,13 +51,13 @@ Result SourceFile::loadContent(const CompilerInstance& ci, const CompilerContext
     return Result::Success;
 }
 
-Result SourceFile::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
+Result SourceFile::tokenize(CompilerContext& ctx)
 {
-    SWAG_CHECK(verifier_.tokenize(ci, ctx));
-    return lexer_.tokenize(ci, ctx);
+    SWAG_CHECK(verifier_.tokenize(ctx));
+    return lexer_.tokenize(ctx);
 }
 
-Utf8 SourceFile::codeLine(const CompilerInstance& ci, uint32_t line) const
+Utf8 SourceFile::codeLine(CompilerContext& ctx, uint32_t line) const
 {
     line--;
     SWAG_ASSERT(line < lexer_.lines().size());
@@ -84,7 +85,7 @@ Utf8 SourceFile::codeLine(const CompilerInstance& ci, uint32_t line) const
         return result;
 
     // Transform tabulations to blanks in order for columns to match
-    const uint32_t tabSize = ci.cmdLine().tabSize;
+    const uint32_t tabSize = ctx.ci().cmdLine().tabSize;
     Utf8           expanded;
     expanded.reserve(result.size());
 

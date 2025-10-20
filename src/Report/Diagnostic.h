@@ -3,7 +3,6 @@
 #include "Report/DiagnosticIds.h"
 
 class CompilerContext;
-class CompilerInstance;
 enum class DiagnosticId;
 
 enum class DiagnosticKind
@@ -21,7 +20,7 @@ class Diagnostic
     std::vector<std::unique_ptr<DiagnosticElement>> elements_;
     SourceFile*                                     fileOwner_ = nullptr;
 
-    Utf8 build(const CompilerInstance& ci) const;
+    Utf8 build(CompilerContext& ctx) const;
 
 public:
     explicit Diagnostic(SourceFile* fileOwner = nullptr) :
@@ -29,7 +28,7 @@ public:
     {
     }
 
-    void                                                   report(const CompilerInstance& ci) const;
+    void                                                   report(CompilerContext& ctx) const;
     const std::vector<std::unique_ptr<DiagnosticElement>>& elements() const { return elements_; }
     SourceFile*                                            fileOwner() const { return fileOwner_; }
 

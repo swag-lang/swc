@@ -25,7 +25,7 @@ public:
     const Verifier&             verifier() const { return verifier_; }
     const std::vector<Token>&   tokens() const { return lexer_.tokens(); }
 
-    Result loadContent(const CompilerInstance& ci, const CompilerContext& ctx);
-    Result tokenize(const CompilerInstance& ci, const CompilerContext& ctx);
-    Utf8   codeLine(const CompilerInstance& ci, uint32_t line) const;
+    Result loadContent(CompilerContext& ctx);
+    Result tokenize(CompilerContext& ctx);
+    Utf8   codeLine(CompilerContext& ctx, uint32_t line) const;
 };

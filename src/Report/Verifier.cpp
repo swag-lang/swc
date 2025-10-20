@@ -7,16 +7,16 @@
 #include "Report/Verifier.h"
 #include <windows.h>
 
-Result Verifier::tokenize(const CompilerInstance& ci, const CompilerContext& ctx)
+Result Verifier::tokenize(CompilerContext& ctx)
 {
-    if (!ci.cmdLine().verify)
+    if (!ctx.ci().cmdLine().verify)
         return Result::Success;
 
     const auto file = ctx.sourceFile();
 
     // Get all comments from the file
     auto& lexer = file->lexer();
-    SWAG_CHECK(lexer.tokenize(ci, ctx, LEXER_EXTRACT_COMMENTS_MODE));
+    SWAG_CHECK(lexer.tokenize(ctx, LEXER_EXTRACT_COMMENTS_MODE));
 
     // Parse all comments to find a verify directive
     constexpr std::string_view needle = "expected-";
@@ -51,7 +51,7 @@ Result Verifier::tokenize(const CompilerInstance& ci, const CompilerContext& ctx
             directive.match.trim();
 
             // Location
-            directive.location.fromOffset(ci, file, token.start + static_cast<uint32_t>(pos), static_cast<uint32_t>(needle.size()) + static_cast<uint32_t>(kindWord.size()));
+            directive.location.fromOffset(ctx, file, token.start + static_cast<uint32_t>(pos), static_cast<uint32_t>(needle.size()) + static_cast<uint32_t>(kindWord.size()));
 
             // One more
             directives_.emplace_back(directive);
@@ -63,14 +63,14 @@ Result Verifier::tokenize(const CompilerInstance& ci, const CompilerContext& ctx
     return Result::Success;
 }
 
-bool Verifier::verify(const CompilerInstance& ci, const Diagnostic& diag) const
+bool Verifier::verify(CompilerContext& ctx, const Diagnostic& diag) const
 {
     if (directives_.empty())
         return false;
 
     for (auto& elem : diag.elements())
     {
-        const auto loc = elem->location(ci);
+        const auto loc = elem->location(ctx);
 
         for (auto& directive : directives_)
         {
@@ -79,8 +79,8 @@ bool Verifier::verify(const CompilerInstance& ci, const Diagnostic& diag) const
             if (directive.location.line != loc.line)
                 continue;
 
-            if (elem->idName(ci).find(directive.match) == Utf8::npos &&
-                elem->message(ci).find(directive.match) == Utf8::npos)
+            if (elem->idName(ctx).find(directive.match) == Utf8::npos &&
+                elem->message(ctx).find(directive.match) == Utf8::npos)
                 continue;
 
             directive.touched = true;
@@ -91,7 +91,7 @@ bool Verifier::verify(const CompilerInstance& ci, const Diagnostic& diag) const
     return false;
 }
 
-Result Verifier::verify(const CompilerInstance& ci, const CompilerContext& ctx) const
+Result Verifier::verify(CompilerContext& ctx) const
 {
     for (const auto& directive : directives_)
     {
@@ -100,7 +100,7 @@ Result Verifier::verify(const CompilerInstance& ci, const CompilerContext& ctx) 
             Diagnostic diag(ctx.sourceFile());
             const auto elem = diag.addError(DiagnosticId::UnRaisedDirective);
             elem->setLocation(directive.location);
-            diag.report(ci);
+            diag.report(ctx);
         }
     }
 

@@ -32,7 +32,7 @@ void Lexer::reportError(DiagnosticId id, uint32_t offset, uint32_t len) const
     Diagnostic diag(ctx_->sourceFile());
     const auto elem = diag.addError(id);
     elem->setLocation(ctx_->sourceFile(), offset, len);
-    diag.report(*ci_);
+    diag.report(*ctx_);
 }
 
 // Consume exactly one logical EOL (CRLF | CR | LF). Push the next line start.
@@ -436,7 +436,7 @@ void Lexer::parseDecimalNumber()
         {
             reportError(DiagnosticId::NumberSepStart, static_cast<uint32_t>(buffer_ - startBuffer_));
             hasError = true;
-        }           
+        }
 
         while (langSpec_->isDigit(buffer_[0]) || langSpec_->isNumberSep(buffer_[0]))
         {
@@ -479,7 +479,7 @@ void Lexer::parseDecimalNumber()
         {
             reportError(DiagnosticId::NumberSepStart, static_cast<uint32_t>(buffer_ - startBuffer_));
             hasError = true;
-        }           
+        }
 
         uint32_t expDigits = 0;
         while (langSpec_->isDigit(buffer_[0]) || langSpec_->isNumberSep(buffer_[0]))
@@ -500,11 +500,11 @@ void Lexer::parseDecimalNumber()
                 buffer_++;
                 continue;
             }
-            
+
             expDigits++;
             lastWasSep = false;
             buffer_++;
-        }        
+        }
 
         if (!hasError && expDigits == 0)
         {
@@ -518,7 +518,7 @@ void Lexer::parseDecimalNumber()
     if (!hasError && lastWasSep)
     {
         reportError(DiagnosticId::NumberSepEnd, static_cast<uint32_t>(buffer_ - startBuffer_));
-    }          
+    }
 
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
     pushToken();
@@ -682,7 +682,7 @@ void Lexer::parseMultiLineComment()
     pushToken();
 }
 
-void Lexer::checkFormat(const CompilerInstance& ci, const CompilerContext& ctx, uint32_t& startOffset) const
+void Lexer::checkFormat(CompilerContext& ctx, uint32_t& startOffset) const
 {
     const auto file    = ctx.sourceFile();
     const auto content = file->content();
@@ -755,19 +755,20 @@ void Lexer::checkFormat(const CompilerInstance& ci, const CompilerContext& ctx, 
     startOffset = 0;
 }
 
-Result Lexer::tokenize(const CompilerInstance& ci, const CompilerContext& ctx, LexerFlags flags)
+Result Lexer::tokenize(CompilerContext& ctx, LexerFlags flags)
 {
     tokens_.clear();
     lines_.clear();
 
-    const auto file = ctx.sourceFile();
-    langSpec_       = &ci.langSpec();
-    ci_             = &ci;
-    ctx_            = &ctx;
-    lexerFlags_     = flags;
+    const auto  file = ctx.sourceFile();
+    const auto& ci   = ctx.ci();
+    langSpec_        = &ci.langSpec();
+    ci_              = &ci;
+    ctx_             = &ctx;
+    lexerFlags_      = flags;
 
     uint32_t startOffset = 0;
-    checkFormat(ci, ctx, startOffset);
+    checkFormat(ctx, startOffset);
 
     const auto base = file->content().data();
     buffer_         = base + startOffset;

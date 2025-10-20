@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "Lexer/SourceFile.h"
+#include "Main/CompilerContext.h"
 #include "Main/CompilerInstance.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticElement.h"
@@ -14,14 +15,14 @@ DiagnosticElement* Diagnostic::addElement(DiagnosticKind kind, DiagnosticId id)
     return raw;
 }
 
-Utf8 Diagnostic::build(const CompilerInstance& ci) const
+Utf8 Diagnostic::build(CompilerContext& ctx) const
 {
-    const auto& ids = ci.diagIds();
+    const auto& ci  = ctx.ci();
     Utf8        result;
 
     for (auto& e : elements_)
     {
-        const auto idName = e->idName(ci);
+        const auto idName = e->idName(ctx);
         result += idName;
         result += "\n";
 
@@ -31,11 +32,11 @@ Utf8 Diagnostic::build(const CompilerInstance& ci) const
             result += ": ";
             if (e->len_ != 0)
             {
-                const auto loc = e->location(ci);
+                const auto loc = e->location(ctx);
                 Utf8       s   = std::format("{}:{}", loc.line, loc.column);
                 result += s;
                 result += "\n";
-                const auto code = e->file_->codeLine(ci, loc.line);
+                const auto code = e->file_->codeLine(ctx, loc.line);
                 result += code;
                 result += "\n";
                 for (uint32_t i = 1; i < loc.column; ++i)
@@ -46,7 +47,7 @@ Utf8 Diagnostic::build(const CompilerInstance& ci) const
             }
         }
 
-        const auto msg = e->message(ci);
+        const auto msg = e->message(ctx);
         result += msg;
         result += "\n";
     }
@@ -54,14 +55,15 @@ Utf8 Diagnostic::build(const CompilerInstance& ci) const
     return result;
 }
 
-void Diagnostic::report(const CompilerInstance& ci) const
+void Diagnostic::report(CompilerContext& ctx) const
 {
-    const auto msg     = build(ci);
-    bool       dismiss = false;
+    const auto& ci      = ctx.ci();
+    const auto  msg     = build(ctx);
+    bool        dismiss = false;
 
     if (fileOwner_ != nullptr)
     {
-        dismiss = fileOwner_->verifier().verify(ci, *this);
+        dismiss = fileOwner_->verifier().verify(ctx, *this);
     }
 
     if (!dismiss)

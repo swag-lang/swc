@@ -23,20 +23,17 @@
   <component name="ChangeListManager">
     <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bin/unittests/errors/lexer1.swg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/bin/unittests/errors/lexer2.swg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/bin/unittests/errors/lexer3.swg" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/SourceCodeLocation.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceCodeLocation.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/SourceCodeLocation.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceCodeLocation.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Main/CompilerContext.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/CompilerContext.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Main/swc.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/swc.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/Diagnostic.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Diagnostic.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/Diagnostic.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Diagnostic.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticElement.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticElement.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticElement.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticElement.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/Verifier.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Verifier.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/Verifier.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/Verifier.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/Verifier.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/UnitTest.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/Verifier.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/UnitTest.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/swc.vcxproj" beforeDir="false" afterPath="$PROJECT_DIR$/swc.vcxproj" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -50,7 +47,7 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="cidr-memory-view://365" root0="FORCE_HIGHLIGHTING" />
+    <setting file="cidr-memory-view://398" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Core/Utf8.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/Os.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/OsWin32.cpp" root0="SKIP_HIGHLIGHTING" />
@@ -90,8 +87,8 @@
     <setting file="file://$PROJECT_DIR$/src/Report/DiagnosticIds.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Report/Logger.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Report/Logger.h" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/src/Report/Verifier.cpp" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/src/Report/Verifier.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/Report/UnitTest.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/Report/UnitTest.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/pch.h" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="MetaFilesCheckinStateConfiguration" checkMetaFiles="true" />
@@ -173,14 +170,6 @@
       <workItem from="1760799230882" duration="271000" />
       <workItem from="1760799516648" duration="1911000" />
       <workItem from="1760801501480" duration="9485000" />
-    </task>
-    <task id="LOCAL-00013" summary="Refactor diagnostics system by replacing `DiagList.h` with `DiagIds.h`, embedding `DiagnosticId` enum directly, and updating includes and project configuration for simplicity and maintainability.">
-      <option name="closed" value="true" />
-      <created>1760848724836</created>
-      <option name="number" value="00013" />
-      <option name="presentableId" value="LOCAL-00013" />
-      <option name="project" value="LOCAL" />
-      <updated>1760848724836</updated>
     </task>
     <task id="LOCAL-00014" summary="Refactor diagnostics system by renaming `DiagReporter` to `Reporter`, updating associated includes, and modifying code references to improve clarity and consistency.">
       <option name="closed" value="true" />
@@ -566,7 +555,15 @@
       <option name="project" value="LOCAL" />
       <updated>1760936309997</updated>
     </task>
-    <option name="localTasksCounter" value="62" />
+    <task id="LOCAL-00062" summary="Refactor `CompilerContext` to centralize `CompilerInstance` usage. Update `Lexer`, `Verifier`, and diagnostics logic to replace direct `CompilerInstance` references with `CompilerContext`. Adjust `.idea/workspace.xml` and project files.">
+      <option name="closed" value="true" />
+      <created>1760937342571</created>
+      <option name="number" value="00062" />
+      <option name="presentableId" value="LOCAL-00062" />
+      <option name="project" value="LOCAL" />
+      <updated>1760937342571</updated>
+    </task>
+    <option name="localTasksCounter" value="63" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -576,7 +573,6 @@
   <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Improve diagnostics with enhanced error reporting. Add detailed code line display with marking for errors in `Logger`. Refactor `SourceFile` to include `codeLine` utility to extract specific lines. Update `Lexer` for separator validation and hex digits diagnostics. Adjust `.idea/workspace.xml` and project files." />
     <MESSAGE value="Introduce `CommandLine` utility to manage configuration options like tab size. Refactor diagnostics system in `Reporter` to improve column calculation and error highlighting with tab expansion. Update `SourceFile`, `SourceCodeLocation`, and dependent modules for compatibility. Adjust project files and `.idea/workspace.xml`." />
     <MESSAGE value="Refactor diagnostics system to simplify error reporting. Replace `report` method in `Reporter` with `report` method in `Diagnostic` for consistent usage. Remove `isEol` utility from `LangSpec` and refactor `Lexer` EOL handling accordingly. Cleanup project files and `.idea/workspace.xml`." />
     <MESSAGE value="Clean up `Lexer` by removing redundant comments and simplifying diagnostic error reporting." />
@@ -601,7 +597,8 @@
     <MESSAGE value="Remove unused type suffix parsing logic in `Lexer` to simplify tokenization." />
     <MESSAGE value="Optimize `Lexer` logic by replacing boundary checks with null terminator validation for improved performance and safety. Streamline token parsing in `.cpp` files and make adjustments in `.idea/workspace.xml`." />
     <MESSAGE value="Refine `Lexer` numeric parsing logic by introducing `MissingExponentDigits` diagnostic for improved error reporting. Enhance handling of number separators with additional checks for validity, consolidate diagnostics, and update unit tests. Adjust `.idea/workspace.xml` and project files." />
-    <option name="LAST_COMMIT_MESSAGE" value="Refine `Lexer` numeric parsing logic by introducing `MissingExponentDigits` diagnostic for improved error reporting. Enhance handling of number separators with additional checks for validity, consolidate diagnostics, and update unit tests. Adjust `.idea/workspace.xml` and project files." />
+    <MESSAGE value="Refactor `CompilerContext` to centralize `CompilerInstance` usage. Update `Lexer`, `Verifier`, and diagnostics logic to replace direct `CompilerInstance` references with `CompilerContext`. Adjust `.idea/workspace.xml` and project files." />
+    <option name="LAST_COMMIT_MESSAGE" value="" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -623,6 +620,11 @@
           <line>43</line>
           <option name="timeStamp" value="9" />
         </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/src/Lexer/Lexer.cpp</url>
+          <line>747</line>
+          <option name="timeStamp" value="64" />
+        </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
     <watches-manager>
@@ -631,7 +633,8 @@
         <watch expression="comment[j]" language="C++" />
         <watch expression="result" />
         <watch expression="expanded" />
-        <watch expression="buffer_" />
+        <watch expression="file" language="C++" />
+        <watch expression="data" language="C++" />
       </configuration>
     </watches-manager>
   </component>

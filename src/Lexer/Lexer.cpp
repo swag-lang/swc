@@ -8,16 +8,6 @@
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticIds.h"
 
-// BOM (Byte Order Mark) constants
-namespace BOM
-{
-    constexpr uint8_t UTF8[]     = {0xEF, 0xBB, 0xBF};
-    constexpr uint8_t UTF16_BE[] = {0xFE, 0xFF};
-    constexpr uint8_t UTF16_LE[] = {0xFF, 0xFE};
-    constexpr uint8_t UTF32_BE[] = {0x00, 0x00, 0xFE, 0xFF};
-    constexpr uint8_t UTF32_LE[] = {0xFF, 0xFE, 0x00, 0x00};
-}
-
 void Lexer::pushToken()
 {
     if (!lexerFlags_.has(LEXER_EXTRACT_COMMENTS_MODE) || token_.id == TokenId::Comment)
@@ -682,8 +672,15 @@ void Lexer::parseMultiLineComment()
     pushToken();
 }
 
-void Lexer::checkFormat(CompilerContext& ctx, uint32_t& startOffset) const
+void Lexer::checkFormat(const CompilerContext& ctx, uint32_t& startOffset) const
 {
+    // BOM (Byte Order Mark) constants
+    static constexpr uint8_t UTF8[]     = {0xEF, 0xBB, 0xBF};
+    static constexpr uint8_t UTF16_BE[] = {0xFE, 0xFF};
+    static constexpr uint8_t UTF16_LE[] = {0xFF, 0xFE};
+    static constexpr uint8_t UTF32_BE[] = {0x00, 0x00, 0xFE, 0xFF};
+    static constexpr uint8_t UTF32_LE[] = {0xFF, 0xFE, 0x00, 0x00};
+    
     const auto file    = ctx.sourceFile();
     const auto content = file->content();
 
@@ -698,7 +695,7 @@ void Lexer::checkFormat(CompilerContext& ctx, uint32_t& startOffset) const
 
     // UTF-8 BOM
     if (content.size() >= 3 &&
-        data[0] == BOM::UTF8[0] && data[1] == BOM::UTF8[1] && data[2] == BOM::UTF8[2])
+        data[0] == UTF8[0] && data[1] == UTF8[1] && data[2] == UTF8[2])
     {
         startOffset = 3;
         return;
@@ -709,8 +706,8 @@ void Lexer::checkFormat(CompilerContext& ctx, uint32_t& startOffset) const
     // UTF-16 BOMs (2 bytes)
     if (content.size() >= 2)
     {
-        if ((data[0] == BOM::UTF16_BE[0] && data[1] == BOM::UTF16_BE[1]) ||
-            (data[0] == BOM::UTF16_LE[0] && data[1] == BOM::UTF16_LE[1]))
+        if ((data[0] == UTF16_BE[0] && data[1] == UTF16_BE[1]) ||
+            (data[0] == UTF16_LE[0] && data[1] == UTF16_LE[1]))
         {
             startOffset = 2;
             badFormat   = true;
@@ -732,10 +729,10 @@ void Lexer::checkFormat(CompilerContext& ctx, uint32_t& startOffset) const
     // 4-byte BOMs
     if (!badFormat && content.size() >= 4)
     {
-        if ((data[0] == BOM::UTF32_BE[0] && data[1] == BOM::UTF32_BE[1] &&
-             data[2] == BOM::UTF32_BE[2] && data[3] == BOM::UTF32_BE[3]) ||
-            (data[0] == BOM::UTF32_LE[0] && data[1] == BOM::UTF32_LE[1] &&
-             data[2] == BOM::UTF32_LE[2] && data[3] == BOM::UTF32_LE[3]) ||
+        if ((data[0] == UTF32_BE[0] && data[1] == UTF32_BE[1] &&
+             data[2] == UTF32_BE[2] && data[3] == UTF32_BE[3]) ||
+            (data[0] == UTF32_LE[0] && data[1] == UTF32_LE[1] &&
+             data[2] == UTF32_LE[2] && data[3] == UTF32_LE[3]) ||
             (data[0] == 0x2B && data[1] == 0x2F && data[2] == 0x76 &&
              (data[3] == 0x38 || data[3] == 0x39 || data[3] == 0x2B || data[3] == 0x2F)) || // UTF-7
             (data[0] == 0xDD && data[1] == 0x73 && data[2] == 0x66 && data[3] == 0x73) ||   // UTF-EBCDIC
@@ -760,12 +757,10 @@ Result Lexer::tokenize(CompilerContext& ctx, LexerFlags flags)
     tokens_.clear();
     lines_.clear();
 
-    const auto  file = ctx.sourceFile();
-    const auto& ci   = ctx.ci();
-    langSpec_        = &ci.langSpec();
-    ci_              = &ci;
-    ctx_             = &ctx;
-    lexerFlags_      = flags;
+    const auto file = ctx.sourceFile();
+    langSpec_       = &ctx.ci().langSpec();
+    ctx_            = &ctx;
+    lexerFlags_     = flags;
 
     uint32_t startOffset = 0;
     checkFormat(ctx, startOffset);

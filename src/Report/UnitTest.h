@@ -9,11 +9,12 @@ struct VerifierDirective
 {
     DiagnosticKind     kind;
     Utf8               match;
-    SourceCodeLocation location;
+    SourceCodeLocation loc;   // Location to raise the error
+    SourceCodeLocation myLoc; // Location of the directive itself
     mutable bool       touched = false;
 };
 
-class Verifier
+class UnitTest
 {
     std::vector<VerifierDirective> directives_;
 

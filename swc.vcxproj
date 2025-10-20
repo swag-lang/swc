@@ -192,7 +192,7 @@
     <ClCompile Include="src\Report\DiagnosticIds.cpp" />
     <ClCompile Include="src\Report\DiagnosticElement.cpp" />
     <ClCompile Include="src\Report\Logger.cpp" />
-    <ClCompile Include="src\Report\Verifier.cpp" />
+    <ClCompile Include="src\Report\UnitTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Flags.h" />
@@ -212,7 +212,7 @@
     <ClInclude Include="src\Report\DiagnosticIds.h" />
     <ClInclude Include="src\Report\DiagnosticElement.h" />
     <ClInclude Include="src\Report\Logger.h" />
-    <ClInclude Include="src\Report\Verifier.h" />
+    <ClInclude Include="src\Report\UnitTest.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,18 +1,19 @@
 #include "pch.h"
 
 #include "Diagnostic.h"
+#include "Lexer/LangSpec.h"
 #include "Main/CommandLine.h"
 #include "Main/CompilerContext.h"
 #include "Main/CompilerInstance.h"
-#include "Report/Verifier.h"
-#include <windows.h>
+#include "Report/UnitTest.h"
 
-Result Verifier::tokenize(CompilerContext& ctx)
+Result UnitTest::tokenize(CompilerContext& ctx)
 {
     if (!ctx.ci().cmdLine().verify)
         return Result::Success;
 
-    const auto file = ctx.sourceFile();
+    const auto  file     = ctx.sourceFile();
+    const auto& langSpec = ctx.ci().langSpec();
 
     // Get all comments from the file
     auto& lexer = file->lexer();
@@ -33,37 +34,48 @@ Result Verifier::tokenize(CompilerContext& ctx)
             VerifierDirective directive;
 
             // Get directive kind
-            size_t i = pos + needle.size();
-            size_t j = i;
-            while (j < comment.size() && std::isalpha(comment[j]))
-                j++;
-            const auto kindWord = comment.substr(i, j - i);
+            const size_t start = pos + needle.size();
+            size_t       i     = start;
+            while (i < comment.size() && langSpec.isLetter(comment[i]))
+                i++;
+            const auto kindWord = comment.substr(start, i - start);
             if (kindWord == "error")
                 directive.kind = DiagnosticKind::Error;
+            else if (kindWord == "warning")
+                directive.kind = DiagnosticKind::Warning;
             else
             {
-                pos = j;
+                pos = i;
                 continue;
             }
 
-            // Get directive string
-            directive.match = comment.substr(j, comment.size());
-            directive.match.trim();
-
             // Location
-            directive.location.fromOffset(ctx, file, token.start + static_cast<uint32_t>(pos), static_cast<uint32_t>(needle.size()) + static_cast<uint32_t>(kindWord.size()));
+            directive.myLoc.fromOffset(ctx, file, token.start + static_cast<uint32_t>(pos), static_cast<uint32_t>(needle.size()) + static_cast<uint32_t>(kindWord.size()));
+            directive.loc = directive.myLoc;
+
+            // Parse location
+            if (i < comment.size() && comment[i] == '@')
+            {
+                i++;
+                if (i < comment.size() && comment[i] == '*')
+                    directive.loc.line = 0;
+            }
+
+            // Get directive string
+            directive.match = comment.substr(i, comment.size());
+            directive.match.trim();
 
             // One more
             directives_.emplace_back(directive);
 
-            pos = j;
+            pos = i;
         }
     }
 
     return Result::Success;
 }
 
-bool Verifier::verify(CompilerContext& ctx, const Diagnostic& diag) const
+bool UnitTest::verify(CompilerContext& ctx, const Diagnostic& diag) const
 {
     if (directives_.empty())
         return false;
@@ -76,7 +88,7 @@ bool Verifier::verify(CompilerContext& ctx, const Diagnostic& diag) const
         {
             if (directive.kind != elem->kind_)
                 continue;
-            if (directive.location.line != loc.line)
+            if (directive.loc.line == 0 || directive.loc.line != loc.line)
                 continue;
 
             if (elem->idName(ctx).find(directive.match) == Utf8::npos &&
@@ -91,7 +103,7 @@ bool Verifier::verify(CompilerContext& ctx, const Diagnostic& diag) const
     return false;
 }
 
-Result Verifier::verify(CompilerContext& ctx) const
+Result UnitTest::verify(CompilerContext& ctx) const
 {
     for (const auto& directive : directives_)
     {
@@ -99,7 +111,7 @@ Result Verifier::verify(CompilerContext& ctx) const
         {
             Diagnostic diag(ctx.sourceFile());
             const auto elem = diag.addError(DiagnosticId::UnRaisedDirective);
-            elem->setLocation(directive.location);
+            elem->setLocation(directive.myLoc);
             diag.report(ctx);
         }
     }

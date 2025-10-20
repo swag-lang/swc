@@ -1,8 +1,8 @@
 // --- Missing digits / incomplete literals ---
 0b          // expected-error MissingBinDigit
-0b_         // expected-error NumberSepStart
-0b__        // expected-error NumberSepStart
-0b___       // expected-error NumberSepStart
+0b_         // expected-error MissingBinDigit
+0b__        // expected-error NumberSepMulti
+0b___       // expected-error NumberSepMulti
 0b0_        // expected-error NumberSepEnd
 0b1_        // expected-error NumberSepEnd
 
@@ -29,12 +29,14 @@
 0b1_1
 0b1100_1100_1010_1010
 0b11_00_11_00
+0b_1
+0b_0
+0b_1010
+0b_1_0_1_0
 
 // --- Invalid separators ---
-0b__1       // expected-error NumberSepStart
+0b__1       // expected-error NumberSepMulti
 0b1__0      // expected-error NumberSepMulti
-0b_1        // expected-error NumberSepStart
-0b_0        // expected-error NumberSepStart
 0b1_        // expected-error NumberSepEnd
 0b0_        // expected-error NumberSepEnd
 0b10__01    // expected-error NumberSepMulti
@@ -45,7 +47,7 @@
 0b11111111
 0b0000000000000000
 0b1111111111111111
-0b_         // expected-error NumberSepStart
+0b_         // expected-error MissingBinDigit
 0b0_______  // expected-error NumberSepMulti
 0b1_______  // expected-error NumberSepMulti
 
@@ -71,16 +73,14 @@
 0b1010_1010_0101_0101
 
 // --- Invalid with misplaced underscores ---
-0b_1010         // expected-error NumberSepStart
 0b10_10_        // expected-error NumberSepEnd
 0b101__010      // expected-error NumberSepMulti
 0b1010__        // expected-error NumberSepMulti
-0b__1010        // expected-error NumberSepStart
+0b__1010        // expected-error NumberSepMulti
 0b1_0_1_0_      // expected-error NumberSepEnd
-0b_1_0_1_0      // expected-error NumberSepStart
 
 // --- Edge cases ---
 0b0_0_0_0
 0b1_1_1_1
-0b__           // expected-error NumberSepStart
-0b___          // expected-error NumberSepStart
+0b__           // expected-error NumberSepMulti
+0b___          // expected-error NumberSepMulti

@@ -257,20 +257,10 @@ void Lexer::parseCharacterLiteral()
         return;
     }
 
-    // Check for EOL or EOF
-    if (buffer_[0] == '\n' || buffer_[0] == '\r' || buffer_[0] == '\0')
+    while (buffer_[0] != '\'')
     {
-        reportError(DiagnosticId::UnclosedCharLiteral, static_cast<uint32_t>(startToken - startBuffer_));
-        token_.len = static_cast<uint32_t>(buffer_ - startToken);
-        pushToken();
-        return;
-    }
-
-    // Handle escape sequence
-    if (buffer_[0] == '\\')
-    {
-        // Safe to read buffer_[1] due to null padding
-        if (buffer_[1] == '\0')
+        // Check for EOL or EOF
+        if (buffer_[0] == '\n' || buffer_[0] == '\r' || buffer_[0] == '\0')
         {
             reportError(DiagnosticId::UnclosedCharLiteral, static_cast<uint32_t>(startToken - startBuffer_));
             token_.len = static_cast<uint32_t>(buffer_ - startToken);
@@ -278,41 +268,44 @@ void Lexer::parseCharacterLiteral()
             return;
         }
 
-        if (buffer_[1] == '\n' || buffer_[1] == '\r')
+        // Handle escape sequence
+        if (buffer_[0] == '\\')
         {
-            reportError(DiagnosticId::CharLiteralEol, static_cast<uint32_t>(buffer_ - startBuffer_) + 1);
-            token_.len = static_cast<uint32_t>(buffer_ - startToken);
-            pushToken();
-            return;
-        }
+            // Safe to read buffer_[1] due to null padding
+            if (buffer_[1] == '\0')
+            {
+                reportError(DiagnosticId::UnclosedCharLiteral, static_cast<uint32_t>(startToken - startBuffer_));
+                token_.len = static_cast<uint32_t>(buffer_ - startToken);
+                pushToken();
+                return;
+            }
 
-        // Validate escape sequence
-        if (!langSpec_->isEscape(buffer_[1]))
+            if (buffer_[1] == '\n' || buffer_[1] == '\r')
+            {
+                reportError(DiagnosticId::CharLiteralEol, static_cast<uint32_t>(buffer_ - startBuffer_) + 1);
+                token_.len = static_cast<uint32_t>(buffer_ - startToken);
+                pushToken();
+                return;
+            }
+
+            // Validate escape sequence
+            if (!langSpec_->isEscape(buffer_[1]))
+            {
+                reportError(DiagnosticId::InvalidEscapeSequence, static_cast<uint32_t>(buffer_ - startBuffer_), 2);
+            }
+
+            buffer_ += 2; // skip '\' and escaped char
+        }
+        else
         {
-            reportError(DiagnosticId::InvalidEscapeSequence, static_cast<uint32_t>(buffer_ - startBuffer_), 2);
+            buffer_ += 1; // consume the character
         }
-
-        buffer_ += 2; // skip '\' and escaped char
-    }
-    else
-    {
-        buffer_ += 1; // consume the character
     }
 
     // Expect closing quote
     if (buffer_[0] != '\'')
     {
-        // Check if we hit EOL or EOF
-        if (buffer_[0] == '\n' || buffer_[0] == '\r' || buffer_[0] == '\0')
-        {
-            reportError(DiagnosticId::UnclosedCharLiteral, static_cast<uint32_t>(startToken - startBuffer_));
-        }
-        else
-        {
-            // Too many characters in literal
-            reportError(DiagnosticId::TooManyCharsInLiteral, static_cast<uint32_t>(startToken - startBuffer_));
-        }
-
+        reportError(DiagnosticId::UnclosedCharLiteral, static_cast<uint32_t>(startToken - startBuffer_));
         token_.len = static_cast<uint32_t>(buffer_ - startToken);
         pushToken();
         return;
@@ -330,16 +323,10 @@ void Lexer::parseHexNumber()
 
     buffer_ += 2;
 
-    bool hasError = false;
-
-    if (langSpec_->isNumberSep(buffer_[0]))
-    {
-        reportError(DiagnosticId::NumberSepStart, static_cast<uint32_t>(buffer_ - startBuffer_));
-        hasError = true;
-    }
-
-    bool     lastWasSep = false;
-    uint32_t digits     = 0;
+    bool           hasError   = false;
+    bool           lastWasSep = false;
+    const uint8_t* sepStart   = nullptr;
+    uint32_t       digits     = 0;
 
     // Optimized: null will fail isHexNumber check
     while (langSpec_->isHexNumber(buffer_[0]))
@@ -348,7 +335,6 @@ void Lexer::parseHexNumber()
         {
             if (!hasError && lastWasSep)
             {
-                const uint8_t* sepStart = buffer_;
                 while (langSpec_->isNumberSep(buffer_[0]))
                     buffer_++;
                 reportError(DiagnosticId::NumberSepMulti, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
@@ -356,6 +342,7 @@ void Lexer::parseHexNumber()
                 continue;
             }
 
+            sepStart   = buffer_;
             lastWasSep = true;
             buffer_++;
             continue;
@@ -397,16 +384,10 @@ void Lexer::parseBinNumber()
 
     buffer_ += 2;
 
-    bool hasError = false;
-
-    if (langSpec_->isNumberSep(buffer_[0]))
-    {
-        reportError(DiagnosticId::NumberSepStart, static_cast<uint32_t>(buffer_ - startBuffer_));
-        hasError = true;
-    }
-
-    bool     lastWasSep = false;
-    uint32_t digits     = 0;
+    bool           hasError   = false;
+    bool           lastWasSep = false;
+    const uint8_t* sepStart   = nullptr;
+    uint32_t       digits     = 0;
 
     // Optimized: null will fail the check
     while (buffer_[0] == '0' || buffer_[0] == '1' || langSpec_->isNumberSep(buffer_[0]))
@@ -415,7 +396,6 @@ void Lexer::parseBinNumber()
         {
             if (!hasError && lastWasSep)
             {
-                const uint8_t* sepStart = buffer_;
                 while (langSpec_->isNumberSep(buffer_[0]))
                     buffer_++;
                 reportError(DiagnosticId::NumberSepMulti, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
@@ -423,6 +403,7 @@ void Lexer::parseBinNumber()
                 continue;
             }
 
+            sepStart   = buffer_;
             lastWasSep = true;
             buffer_++;
             continue;

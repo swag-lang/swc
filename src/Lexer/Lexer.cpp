@@ -417,15 +417,6 @@ void Lexer::parseDecimalNumber()
     // Parse decimal part
     if (buffer_[0] == '.')
     {
-        // Look ahead to ensure it's not a range operator (..)
-        if (buffer_[1] == '.')
-        {
-            // This is a range operator, stop number parsing
-            token_.len = static_cast<uint32_t>(buffer_ - startToken);
-            pushToken();
-            return;
-        }
-
         hasDot = true;
         buffer_++;
         lastWasSep = false;

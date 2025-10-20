@@ -12,6 +12,7 @@ void Lexer::pushToken()
 {
     if (!lexerFlags_.has(LEXER_EXTRACT_COMMENTS_MODE) || token_.id == TokenId::Comment)
         tokens_.push_back(token_);
+    prevToken_ = token_;
 }
 
 void Lexer::reportError(DiagnosticId id, uint32_t offset, uint32_t len) const
@@ -235,6 +236,89 @@ void Lexer::parseRawStringLiteral()
         reportError(DiagnosticId::UnclosedStringLiteral, static_cast<uint32_t>(startToken - startBuffer_));
     }
 
+    token_.len = static_cast<uint32_t>(buffer_ - startToken);
+    pushToken();
+}
+
+void Lexer::parseCharacterLiteral()
+{
+    token_.id                 = TokenId::CharacterLiteral;
+    const uint8_t* startToken = buffer_;
+
+    buffer_ += 1; // skip opening '
+
+    // Check for empty character literal
+    if (buffer_[0] == '\'')
+    {
+        reportError(DiagnosticId::EmptyCharLiteral, static_cast<uint32_t>(startToken - startBuffer_));
+        buffer_ += 1;
+        token_.len = static_cast<uint32_t>(buffer_ - startToken);
+        pushToken();
+        return;
+    }
+
+    // Check for EOL or EOF
+    if (buffer_[0] == '\n' || buffer_[0] == '\r' || buffer_[0] == '\0')
+    {
+        reportError(DiagnosticId::UnclosedCharLiteral, static_cast<uint32_t>(startToken - startBuffer_));
+        token_.len = static_cast<uint32_t>(buffer_ - startToken);
+        pushToken();
+        return;
+    }
+
+    // Handle escape sequence
+    if (buffer_[0] == '\\')
+    {
+        // Safe to read buffer_[1] due to null padding
+        if (buffer_[1] == '\0')
+        {
+            reportError(DiagnosticId::UnclosedCharLiteral, static_cast<uint32_t>(startToken - startBuffer_));
+            token_.len = static_cast<uint32_t>(buffer_ - startToken);
+            pushToken();
+            return;
+        }
+
+        if (buffer_[1] == '\n' || buffer_[1] == '\r')
+        {
+            reportError(DiagnosticId::CharLiteralEol, static_cast<uint32_t>(buffer_ - startBuffer_) + 1);
+            token_.len = static_cast<uint32_t>(buffer_ - startToken);
+            pushToken();
+            return;
+        }
+
+        // Validate escape sequence
+        if (!langSpec_->isEscape(buffer_[1]))
+        {
+            reportError(DiagnosticId::InvalidEscapeSequence, static_cast<uint32_t>(buffer_ - startBuffer_), 2);
+        }
+
+        buffer_ += 2; // skip '\' and escaped char
+    }
+    else
+    {
+        buffer_ += 1; // consume the character
+    }
+
+    // Expect closing quote
+    if (buffer_[0] != '\'')
+    {
+        // Check if we hit EOL or EOF
+        if (buffer_[0] == '\n' || buffer_[0] == '\r' || buffer_[0] == '\0')
+        {
+            reportError(DiagnosticId::UnclosedCharLiteral, static_cast<uint32_t>(startToken - startBuffer_));
+        }
+        else
+        {
+            // Too many characters in literal
+            reportError(DiagnosticId::TooManyCharsInLiteral, static_cast<uint32_t>(startToken - startBuffer_));
+        }
+
+        token_.len = static_cast<uint32_t>(buffer_ - startToken);
+        pushToken();
+        return;
+    }
+
+    buffer_ += 1; // consume closing quote
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
     pushToken();
 }
@@ -1082,6 +1166,7 @@ Result Lexer::tokenize(CompilerContext& ctx, LexerFlags flags)
 {
     tokens_.clear();
     lines_.clear();
+    prevToken_ = {};
 
     const auto file = ctx.sourceFile();
     langSpec_       = &ctx.ci().langSpec();
@@ -1172,6 +1257,20 @@ Result Lexer::tokenize(CompilerContext& ctx, LexerFlags flags)
         {
             parseIdentifier();
             continue;
+        }
+
+        // Character literal or quote operator - context-sensitive
+        // A single quote is a character literal only after blank, identifier, number, or string
+        if (buffer_[0] == '\'')
+        {
+            if (prevToken_.id != TokenId::Identifier &&
+                prevToken_.id != TokenId::CharacterLiteral &&
+                prevToken_.id != TokenId::NumberLiteral &&
+                prevToken_.id != TokenId::StringLiteral)
+            {
+                parseCharacterLiteral();
+                continue;
+            }
         }
 
         // Operators and punctuation

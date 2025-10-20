@@ -10,6 +10,7 @@ enum class TokenId : uint32_t
     Comment,
     StringLiteral,
     NumberLiteral,
+    CharacterLiteral,
     Identifier,
     Operator,
 };

@@ -15,7 +15,8 @@ constexpr LexerFlags LEXER_EXTRACT_COMMENTS_MODE = 0x00000001;
 
 class Lexer
 {
-    Token token_ = {};
+    Token token_     = {};
+    Token prevToken_ = {};
 
     std::vector<Token>    tokens_;
     std::vector<uint32_t> lines_;
@@ -37,6 +38,7 @@ class Lexer
     void parseSingleLineStringLiteral();
     void parseMultiLineStringLiteral();
     void parseRawStringLiteral();
+    void parseCharacterLiteral();
     void parseHexNumber();
     void parseBinNumber();
     void parseDecimalNumber();

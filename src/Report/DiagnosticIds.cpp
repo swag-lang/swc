@@ -48,4 +48,8 @@ void DiagnosticIds::initErrors()
     SWAG_DIAG(UnRaisedDirective, "unraised directive");
     SWAG_DIAG(InvalidEscapeSequence, "invalid escape sequence");
     SWAG_DIAG(InvalidCharacter, "invalid character");
+    SWAG_DIAG(EmptyCharLiteral, "");
+    SWAG_DIAG(UnclosedCharLiteral, "");
+    SWAG_DIAG(CharLiteralEol, "");
+    SWAG_DIAG(TooManyCharsInLiteral, "");    
 }

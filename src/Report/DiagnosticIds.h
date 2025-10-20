@@ -19,6 +19,10 @@ enum class DiagnosticId
     UnRaisedDirective,
     InvalidEscapeSequence,
     InvalidCharacter,
+    EmptyCharLiteral,
+    UnclosedCharLiteral,
+    CharLiteralEol,
+    TooManyCharsInLiteral,
 };
 
 struct DiagnosticIdInfo

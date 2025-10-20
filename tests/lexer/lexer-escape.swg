@@ -16,7 +16,7 @@
 "\z"              // expected-error InvalidEscapeSequence
 "\q"              // expected-error InvalidEscapeSequence
 "\9"              // expected-error InvalidEscapeSequence
-// expected-error@+ StringLiteralEol
+// expected-error@+ NewlineInStringLiteral
 "\"
 "\\ "
 "\ "              // expected-error InvalidEscapeSequence

@@ -1,10 +1,10 @@
 // --- Missing digits / incomplete literals ---
 0b          // expected-error MissingBinDigit
 0b_         // expected-error MissingBinDigit
-0b__        // expected-error NumberSepMulti
-0b___       // expected-error NumberSepMulti
-0b0_        // expected-error NumberSepEnd
-0b1_        // expected-error NumberSepEnd
+0b__        // expected-error ConsecutiveNumberSeparators
+0b___       // expected-error ConsecutiveNumberSeparators
+0b0_        // expected-error TrailingNumberSeparator
+0b1_        // expected-error TrailingNumberSeparator
 
 // --- Valid simple cases ---
 0b0
@@ -35,12 +35,12 @@
 0b_1_0_1_0
 
 // --- Invalid separators ---
-0b__1       // expected-error NumberSepMulti
-0b1__0      // expected-error NumberSepMulti
-0b1_        // expected-error NumberSepEnd
-0b0_        // expected-error NumberSepEnd
-0b10__01    // expected-error NumberSepMulti
-0b101_      // expected-error NumberSepEnd
+0b__1       // expected-error ConsecutiveNumberSeparators
+0b1__0      // expected-error ConsecutiveNumberSeparators
+0b1_        // expected-error TrailingNumberSeparator
+0b0_        // expected-error TrailingNumberSeparator
+0b10__01    // expected-error ConsecutiveNumberSeparators
+0b101_      // expected-error TrailingNumberSeparator
 
 // --- Boundary and format checks ---
 0b00000000
@@ -48,8 +48,8 @@
 0b0000000000000000
 0b1111111111111111
 0b_         // expected-error MissingBinDigit
-0b0_______  // expected-error NumberSepMulti
-0b1_______  // expected-error NumberSepMulti
+0b0_______  // expected-error ConsecutiveNumberSeparators
+0b1_______  // expected-error ConsecutiveNumberSeparators
 
 // --- Valid with long sequences ---
 0b1010_1010_1010_1010
@@ -73,14 +73,14 @@
 0b1010_1010_0101_0101
 
 // --- Invalid with misplaced underscores ---
-0b10_10_        // expected-error NumberSepEnd
-0b101__010      // expected-error NumberSepMulti
-0b1010__        // expected-error NumberSepMulti
-0b__1010        // expected-error NumberSepMulti
-0b1_0_1_0_      // expected-error NumberSepEnd
+0b10_10_        // expected-error TrailingNumberSeparator
+0b101__010      // expected-error ConsecutiveNumberSeparators
+0b1010__        // expected-error ConsecutiveNumberSeparators
+0b__1010        // expected-error ConsecutiveNumberSeparators
+0b1_0_1_0_      // expected-error TrailingNumberSeparator
 
 // --- Edge cases ---
 0b0_0_0_0
 0b1_1_1_1
-0b__           // expected-error NumberSepMulti
-0b___          // expected-error NumberSepMulti
+0b__           // expected-error ConsecutiveNumberSeparators
+0b___          // expected-error ConsecutiveNumberSeparators

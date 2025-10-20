@@ -19,10 +19,10 @@
 99_99_99
 
 // --- Invalid separators in integers ---
-123_        // expected-error NumberSepEnd
-12__34      // expected-error NumberSepMulti
-1__2        // expected-error NumberSepMulti
-123___      // expected-error NumberSepMulti
+123_        // expected-error TrailingNumberSeparator
+12__34      // expected-error ConsecutiveNumberSeparators
+1__2        // expected-error ConsecutiveNumberSeparators
+123___      // expected-error ConsecutiveNumberSeparators
 
 // --- Valid floats with decimal point ---
 0.0
@@ -42,11 +42,11 @@
 1_000_000.999_999
 
 // --- Invalid separators in floats ---
-123_.456    // expected-error NumberSepEnd
-123._456    // expected-error NumberSepStart
-123.456_    // expected-error NumberSepEnd
-1__2.34     // expected-error NumberSepMulti
-12.3__4     // expected-error NumberSepMulti
+123_.456    // expected-error TrailingNumberSeparator
+123._456    // expected-error LeadingNumberSeparator
+123.456_    // expected-error TrailingNumberSeparator
+1__2.34     // expected-error ConsecutiveNumberSeparators
+12.3__4     // expected-error ConsecutiveNumberSeparators
 
 // --- Valid with exponents (lowercase e) ---
 1e10
@@ -130,17 +130,17 @@
 1.0e-10
 
 // --- Invalid separator patterns ---
-1_000_      // expected-error NumberSepEnd
-1__000      // expected-error NumberSepMulti
-1_00__0     // expected-error NumberSepMulti
-1_.5        // expected-error NumberSepEnd
-1._5        // expected-error NumberSepStart
+1_000_      // expected-error TrailingNumberSeparator
+1__000      // expected-error ConsecutiveNumberSeparators
+1_00__0     // expected-error ConsecutiveNumberSeparators
+1_.5        // expected-error TrailingNumberSeparator
+1._5        // expected-error LeadingNumberSeparator
 
 // --- Multiple separators in different parts ---
 1_2_3.4_5_6e7_8_9   // This would only be valid if exponent allows separators (check your grammar)
 1_000.000_000e-1_0  // Same note as above
 
 // --- Boundary cases ---
-0_ // expected-error NumberSepEnd
-1_ // expected-error NumberSepEnd
-9_ // expected-error NumberSepEnd
+0_ // expected-error TrailingNumberSeparator
+1_ // expected-error TrailingNumberSeparator
+9_ // expected-error TrailingNumberSeparator

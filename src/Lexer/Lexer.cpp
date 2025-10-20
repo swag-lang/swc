@@ -193,7 +193,7 @@ void Lexer::parseSingleLineStringLiteral()
     if ((!hasError && buffer_[0] == '\n') || buffer_[0] == '\r')
     {
         const auto errorOffset = static_cast<uint32_t>(buffer_ - startBuffer_);
-        reportError(DiagnosticId::StringLiteralEol, errorOffset);
+        reportError(DiagnosticId::NewlineInStringLiteral, errorOffset);
         token_.len = static_cast<uint32_t>(buffer_ - startToken);
         pushToken();
         return;
@@ -368,7 +368,7 @@ void Lexer::parseHexNumber()
             {
                 while (langSpec_->isNumberSep(buffer_[0]))
                     buffer_++;
-                reportError(DiagnosticId::NumberSepMulti, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
+                reportError(DiagnosticId::ConsecutiveNumberSeparators, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
                 hasError = true;
                 continue;
             }
@@ -394,14 +394,14 @@ void Lexer::parseHexNumber()
     // No trailing separator
     if (!hasError && lastWasSep)
     {
-        reportError(DiagnosticId::NumberSepEnd, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
+        reportError(DiagnosticId::TrailingNumberSeparator, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
         hasError = true;
     }
 
     // Letters immediately following the literal
     if (!hasError && langSpec_->isLetter(buffer_[0]))
     {
-        reportError(DiagnosticId::SyntaxHexNumber, static_cast<uint32_t>(buffer_ - startBuffer_));
+        reportError(DiagnosticId::InvalidHexNumber, static_cast<uint32_t>(buffer_ - startBuffer_));
     }
 
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
@@ -429,7 +429,7 @@ void Lexer::parseBinNumber()
             {
                 while (langSpec_->isNumberSep(buffer_[0]))
                     buffer_++;
-                reportError(DiagnosticId::NumberSepMulti, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
+                reportError(DiagnosticId::ConsecutiveNumberSeparators, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
                 hasError = true;
                 continue;
             }
@@ -455,14 +455,14 @@ void Lexer::parseBinNumber()
     // No trailing separator
     if (!hasError && lastWasSep)
     {
-        reportError(DiagnosticId::NumberSepEnd, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
+        reportError(DiagnosticId::TrailingNumberSeparator, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
         hasError = true;
     }
 
     // Letters immediately following the literal
     if (!hasError && langSpec_->isLetter(buffer_[0]))
     {
-        reportError(DiagnosticId::SyntaxBinNumber, static_cast<uint32_t>(buffer_ - startBuffer_));
+        reportError(DiagnosticId::InvalidBinNumberSuffix, static_cast<uint32_t>(buffer_ - startBuffer_));
     }
 
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
@@ -489,7 +489,7 @@ void Lexer::parseDecimalNumber()
                 const uint8_t* sepStart = buffer_;
                 while (langSpec_->isNumberSep(buffer_[0]))
                     buffer_++;
-                reportError(DiagnosticId::NumberSepMulti, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
+                reportError(DiagnosticId::ConsecutiveNumberSeparators, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
                 hasError = true;
                 continue;
             }
@@ -506,7 +506,7 @@ void Lexer::parseDecimalNumber()
     // Check for trailing separator before the decimal point
     if (!hasError && lastWasSep)
     {
-        reportError(DiagnosticId::NumberSepEnd, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
+        reportError(DiagnosticId::TrailingNumberSeparator, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
         hasError = true;
     }
 
@@ -519,7 +519,7 @@ void Lexer::parseDecimalNumber()
 
         if (!hasError && langSpec_->isNumberSep(buffer_[0]))
         {
-            reportError(DiagnosticId::NumberSepStart, static_cast<uint32_t>(buffer_ - startBuffer_));
+            reportError(DiagnosticId::LeadingNumberSeparator, static_cast<uint32_t>(buffer_ - startBuffer_));
             hasError = true;
         }
 
@@ -532,7 +532,7 @@ void Lexer::parseDecimalNumber()
                     const uint8_t* sepStart = buffer_;
                     while (langSpec_->isNumberSep(buffer_[0]))
                         buffer_++;
-                    reportError(DiagnosticId::NumberSepMulti, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
+                    reportError(DiagnosticId::ConsecutiveNumberSeparators, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
                     hasError = true;
                     continue;
                 }
@@ -562,7 +562,7 @@ void Lexer::parseDecimalNumber()
 
         if (!hasError && langSpec_->isNumberSep(buffer_[0]))
         {
-            reportError(DiagnosticId::NumberSepStart, static_cast<uint32_t>(buffer_ - startBuffer_));
+            reportError(DiagnosticId::LeadingNumberSeparator, static_cast<uint32_t>(buffer_ - startBuffer_));
             hasError = true;
         }
 
@@ -576,7 +576,7 @@ void Lexer::parseDecimalNumber()
                     const uint8_t* sepStart = buffer_;
                     while (langSpec_->isNumberSep(buffer_[0]))
                         buffer_++;
-                    reportError(DiagnosticId::NumberSepMulti, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
+                    reportError(DiagnosticId::ConsecutiveNumberSeparators, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
                     hasError = true;
                     continue;
                 }
@@ -602,7 +602,7 @@ void Lexer::parseDecimalNumber()
 
     if (!hasError && lastWasSep)
     {
-        reportError(DiagnosticId::NumberSepEnd, static_cast<uint32_t>(buffer_ - startBuffer_));
+        reportError(DiagnosticId::TrailingNumberSeparator, static_cast<uint32_t>(buffer_ - startBuffer_));
     }
 
     token_.len = static_cast<uint32_t>(buffer_ - startToken);

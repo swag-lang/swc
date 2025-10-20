@@ -39,16 +39,16 @@ void DiagnosticIds::initErrors()
     SWAG_DIAG(FileNotUtf8);
     
     SWAG_DIAG(UnclosedComment);
-    SWAG_DIAG(StringLiteralEol);
+    SWAG_DIAG(NewlineInStringLiteral);
     SWAG_DIAG(UnclosedStringLiteral);
-    SWAG_DIAG(NumberSepMulti);
-    SWAG_DIAG(NumberSepStart);   
-    SWAG_DIAG(NumberSepEnd);
+    SWAG_DIAG(ConsecutiveNumberSeparators);
+    SWAG_DIAG(LeadingNumberSeparator);   
+    SWAG_DIAG(TrailingNumberSeparator);
     SWAG_DIAG(MissingHexDigits);
     SWAG_DIAG(MissingBinDigits);
     SWAG_DIAG(MissingExponentDigits);
-    SWAG_DIAG(SyntaxHexNumber);
-    SWAG_DIAG(SyntaxBinNumber);
+    SWAG_DIAG(InvalidHexNumber);
+    SWAG_DIAG(InvalidBinNumberSuffix);
     SWAG_DIAG(InvalidEscapeSequence);
     SWAG_DIAG(InvalidCharacter);
     SWAG_DIAG(EmptyCharLiteral);

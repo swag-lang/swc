@@ -54,13 +54,13 @@
 "\2"        // expected-error InvalidEscapeSequence
 
 // --- Unclosed string literals (missing closing quote) ---
-// expected-error@+ StringLiteralEol
+// expected-error@+ NewlineInStringLiteral
 "unclosed
-// expected-error@+ StringLiteralEol
+// expected-error@+ NewlineInStringLiteral
 "hello world
-// expected-error@+ StringLiteralEol
+// expected-error@+ NewlineInStringLiteral
 "test       
-// expected-error@+ StringLiteralEol
+// expected-error@+ NewlineInStringLiteral
 "with\"escape
 
 // --- Unclosed with trailing backslash at EOF ---
@@ -70,7 +70,7 @@
 // --- Empty and whitespace ---
 "   "
 "\t\t\t"
-" \t \n "           // This has \n which would cause StringLiteralEol
+" \t \n "           // This has \n which would cause NewlineInStringLiteral
 "     "
 
 // ============================================================================

@@ -1,9 +1,9 @@
 // --- Missing digits / incomplete literals ---
 0x          // expected-error MissingHexDigit
 0x_         // expected-error MissingHexDigit
-0x__        // expected-error NumberSepMulti
-0x___       // expected-error NumberSepMulti
-0x0_        // expected-error NumberSepEnd
+0x__        // expected-error ConsecutiveNumberSeparators
+0x___       // expected-error ConsecutiveNumberSeparators
+0x0_        // expected-error TrailingNumberSeparator
 
 // --- Valid simple cases ---
 0x0
@@ -24,11 +24,11 @@
 0x0_0
 0xABC_DEF_123
 // --- Invalid separators ---
-0x__1       // expected-error NumberSepMulti
-0x1__2      // expected-error NumberSepMulti
-0x1_        // expected-error NumberSepEnd
-0xA__B      // expected-error NumberSepMulti
-0xAB_       // expected-error NumberSepEnd
+0x__1       // expected-error ConsecutiveNumberSeparators
+0x1__2      // expected-error ConsecutiveNumberSeparators
+0x1_        // expected-error TrailingNumberSeparator
+0xA__B      // expected-error ConsecutiveNumberSeparators
+0xAB_       // expected-error TrailingNumberSeparator
 
 // --- Lowercase and mixed-case checks ---
 0xabc
@@ -40,7 +40,7 @@
 0xFFFFFFFF
 0xffffFFFF
 0x_         // expected-error MissingHexDigit
-0x0_______  // expected-error NumberSepMulti
+0x0_______  // expected-error ConsecutiveNumberSeparators
 
 // --- Valid with long sequences ---
 0x1234_5678_9ABC_DEF0
@@ -48,7 +48,7 @@
 0xF00D_F00D
 
 // --- Invalid with misplaced underscores ---
-0x12_34_        // expected-error NumberSepEnd
-0x123__456      // expected-error NumberSepMulti
-0x1234__        // expected-error NumberSepMulti
-0x__1234        // expected-error NumberSepMulti
+0x12_34_        // expected-error TrailingNumberSeparator
+0x123__456      // expected-error ConsecutiveNumberSeparators
+0x1234__        // expected-error ConsecutiveNumberSeparators
+0x__1234        // expected-error ConsecutiveNumberSeparators

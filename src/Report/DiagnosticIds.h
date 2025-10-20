@@ -23,6 +23,8 @@ enum class DiagnosticId
     UnclosedCharLiteral,
     CharLiteralEol,
     TooManyCharsInLiteral,
+    InvalidHexDigits,
+    IncompleteHexEscape,
 };
 
 struct DiagnosticIdInfo

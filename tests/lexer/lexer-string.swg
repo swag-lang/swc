@@ -64,7 +64,7 @@
 "with\"escape
 
 // --- Unclosed with trailing backslash at EOF ---
-// expected-error@+ StringLiteralEol
+// expected-error@+ InvalidEscapeSequence
 "test\
 
 // --- Empty and whitespace ---

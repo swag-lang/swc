@@ -18,15 +18,15 @@
 "\9"              // expected-error InvalidEscapeSequence
 // expected-error@+ StringLiteralEol
 "\"
-"\\ "             // valid — escaped backslash + space
+"\\ "
 "\ "              // expected-error InvalidEscapeSequence
 
 // --- Hexadecimal escapes (\xXX) ---
-"\x00"            // valid (NUL)
-"\x1F"            // valid
-"\x7E"            // valid (~)
-"\xFF"            // valid
-"\x0A"            // valid (newline)
+"\x00"
+"\x1F"
+"\x7E"
+"\xFF"
+"\x0A"
 "\xG0"            // expected-error InvalidHexDigit
 "\x"              // expected-error InvalidHexDigit
 "\x0"             // expected-error IncompleteHexEscape

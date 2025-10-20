@@ -66,6 +66,9 @@ void Diagnostic::report(CompilerContext& ctx) const
         dismiss = fileOwner_->verifier().verify(ctx, *this);
     }
 
+    if (msg.find("InvalidHexDigits") != Utf8::npos)
+        dismiss = false;
+
     if (!dismiss)
     {
         auto& logger = ci.logger();

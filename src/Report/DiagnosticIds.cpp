@@ -33,6 +33,7 @@ void DiagnosticIds::initErrors()
 
     SWAG_DIAG(CannotOpenFile);
     SWAG_DIAG(CannotReadFile);
+    
     SWAG_DIAG(FileNotUtf8);
     SWAG_DIAG(UnclosedComment);
     SWAG_DIAG(StringLiteralEol);

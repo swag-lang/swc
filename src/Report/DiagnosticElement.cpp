@@ -17,20 +17,13 @@ Utf8 DiagnosticElement::argumentToString(const Argument& arg) const
     return std::visit([]<typename T0>(const T0& value) -> Utf8 {
         using T = std::decay_t<T0>;
         if constexpr (std::is_same_v<T, Utf8>)
-        {
             return value;
-        }
         else if constexpr (std::is_same_v<T, uint64_t>)
-        {
             return std::to_string(value);
-        }
         else if constexpr (std::is_same_v<T, int64_t>)
-        {
             return std::to_string(value);
-        }
         return "";
-    },
-                      arg);
+    }, arg);
 }
 
 SourceCodeLocation DiagnosticElement::location(CompilerContext& ctx) const

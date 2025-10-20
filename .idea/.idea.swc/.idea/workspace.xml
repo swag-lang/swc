@@ -23,17 +23,8 @@
   <component name="ChangeListManager">
     <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bin/unittests/errors/lexer1.swg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/bin/unittests/errors/lexer2.swg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/bin/unittests/errors/lexer3.swg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/bin/unittests/errors/lexer-string.swg" beforeDir="false" afterPath="$PROJECT_DIR$/bin/unittests/errors/lexer-string.swg" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/SourceFile.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/SourceFile.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Main/swc.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/swc.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticElement.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticElement.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/Verifier.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/UnitTest.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/Verifier.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/UnitTest.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/swc.vcxproj" beforeDir="false" afterPath="$PROJECT_DIR$/swc.vcxproj" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -47,7 +38,7 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="cidr-memory-view://398" root0="FORCE_HIGHLIGHTING" />
+    <setting file="cidr-memory-view://438" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Core/Utf8.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/Os.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/OsWin32.cpp" root0="SKIP_HIGHLIGHTING" />
@@ -61,6 +52,8 @@
     <setting file="file://$PROJECT_DIR$/src/Lexer/LangSpec.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Lexer/LangSpec.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Lexer/Lexer.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock://C:/Perso/swag-lang/swc/src/Lexer/Lexer.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Perso/swag-lang/swc/src/Lexer/Lexer.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://C:/Perso/swag-lang/swc/src/Lexer/Lexer.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://C:/Perso/swag-lang/swc/src/Lexer/Lexer.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Lexer/Lexer.h" root0="FORCE_HIGHLIGHTING" />
@@ -84,10 +77,16 @@
     <setting file="file://$PROJECT_DIR$/src/Report/Diagnostic.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Report/DiagnosticElement.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Report/DiagnosticElement.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock://C:/Perso/swag-lang/swc/src/Report/DiagnosticElement.h" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Perso/swag-lang/swc/src/Report/DiagnosticIds.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Perso/swag-lang/swc/src/Report/DiagnosticIds.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Perso/swag-lang/swc/src/Report/DiagnosticIds.h" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Report/DiagnosticIds.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock://C:/Perso/swag-lang/swc/src/Report/DiagnosticIds.h" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Report/Logger.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Report/Logger.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Report/UnitTest.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock://C:/Perso/swag-lang/swc/src/Report/UnitTest.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/Report/UnitTest.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/pch.h" root0="FORCE_HIGHLIGHTING" />
   </component>
@@ -622,7 +621,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/src/Lexer/Lexer.cpp</url>
-          <line>747</line>
+          <line>755</line>
           <option name="timeStamp" value="64" />
         </line-breakpoint>
       </breakpoints>

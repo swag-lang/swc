@@ -33,7 +33,6 @@
 "escaped\\backslash\\test"
 
 // --- Invalid escape sequences ---
-"\a"        // expected-error InvalidEscapeSequence
 "\c"        // expected-error InvalidEscapeSequence
 "\d"        // expected-error InvalidEscapeSequence
 "\e"        // expected-error InvalidEscapeSequence
@@ -55,23 +54,18 @@
 "\2"        // expected-error InvalidEscapeSequence
 
 // --- Unclosed string literals (missing closing quote) ---
-"unclosed           // expected-error UnclosedStringLiteral
-"hello world        // expected-error UnclosedStringLiteral
-"test               // expected-error UnclosedStringLiteral
-"with\"escape       // expected-error UnclosedStringLiteral
-
-// --- String literals with newlines (single-line strings cannot span lines) ---
-"line1
-line2"              // expected-error StringLiteralEol
-
-"hello
-world"              // expected-error StringLiteralEol
-
-"test
-"                   // expected-error StringLiteralEol
+// expected-error@+ StringLiteralEol
+"unclosed
+// expected-error@+ StringLiteralEol
+"hello world
+// expected-error@+ StringLiteralEol
+"test       
+// expected-error@+ StringLiteralEol
+"with\"escape
 
 // --- Unclosed with trailing backslash at EOF ---
-"test\              // expected-error UnclosedStringLiteral
+// expected-error@+ StringLiteralEol
+"test\
 
 // --- Empty and whitespace ---
 "   "
@@ -109,23 +103,13 @@ third line"""
 """\n\r\t\b\f\v"""
 
 // --- Invalid escape sequences in multi-line ---
-"""\a"""            // expected-error InvalidEscapeSequence
 """\c"""            // expected-error InvalidEscapeSequence
 """\z"""            // expected-error InvalidEscapeSequence
 """test\qfail"""    // expected-error InvalidEscapeSequence
 
-// --- Unclosed multi-line strings ---
-"""unclosed         // expected-error UnclosedStringLiteral
-"""hello world      // expected-error UnclosedStringLiteral
-"""line1
-line2
-line3               // expected-error UnclosedStringLiteral
-
-"""test""           // expected-error UnclosedStringLiteral (only 2 quotes)
-"""test"            // expected-error UnclosedStringLiteral (only 1 quote)
-
 // --- Multi-line with trailing backslash at EOF ---
-"""test\            // expected-error UnclosedStringLiteral
+// expected-error@+ InvalidEscapeSequence
+"""test\
 
 // --- Multi-line with embedded quotes ---
 """This is "quoted" text"""

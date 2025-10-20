@@ -100,6 +100,14 @@ void Lexer::parseSingleLineStringLiteral()
                 return;
             }
 
+            if (buffer_[1] == '\n' || buffer_[1] == '\r')
+            {
+                reportError(DiagnosticId::StringLiteralEol, static_cast<uint32_t>(buffer_ - startBuffer_) + 1);
+                token_.len = static_cast<uint32_t>(buffer_ - startToken);
+                pushToken();
+                return;
+            }            
+
             // Validate escape sequence
             if (!langSpec_->isEscape(buffer_[1]))
             {

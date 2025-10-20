@@ -22,12 +22,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Lexer/LangSpec.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/LangSpec.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Lexer/Token.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Token.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Main/swc.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/swc.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticIds.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticIds.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticIds.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticIds.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -41,7 +37,7 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="cidr-memory-view://468" root0="FORCE_HIGHLIGHTING" />
+    <setting file="cidr-memory-view://472" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Core/Utf8.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/Os.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/OsWin32.cpp" root0="SKIP_HIGHLIGHTING" />
@@ -172,14 +168,6 @@
       <workItem from="1760799230882" duration="271000" />
       <workItem from="1760799516648" duration="1911000" />
       <workItem from="1760801501480" duration="9485000" />
-    </task>
-    <task id="LOCAL-00019" summary="Fix `SWAG_ASSERT` condition in `SourceCodeLocation::fromOffset` and reorder member variables for clarity. Update task and configuration in `.idea/workspace.xml`.">
-      <option name="closed" value="true" />
-      <created>1760853346584</created>
-      <option name="number" value="00019" />
-      <option name="presentableId" value="LOCAL-00019" />
-      <option name="project" value="LOCAL" />
-      <updated>1760853346584</updated>
     </task>
     <task id="LOCAL-00020" summary="Refactor diagnostics creation by replacing `Reporter::diagnostic` with `Diagnostic::instance` for improved encapsulation and consistency.">
       <option name="closed" value="true" />
@@ -565,7 +553,15 @@
       <option name="project" value="LOCAL" />
       <updated>1760941983694</updated>
     </task>
-    <option name="localTasksCounter" value="68" />
+    <task id="LOCAL-00068" summary="Add detailed operator parsing support in `Lexer` with `SubTokenOperatorId`. Introduce `InvalidCharacter` diagnostic for error handling. Update `workspace.xml` and relevant files to reflect changes.">
+      <option name="closed" value="true" />
+      <created>1760942732093</created>
+      <option name="number" value="00068" />
+      <option name="presentableId" value="LOCAL-00068" />
+      <option name="project" value="LOCAL" />
+      <updated>1760942732093</updated>
+    </task>
+    <option name="localTasksCounter" value="69" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -575,7 +571,6 @@
   <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Refactor `Lexer` to handle file format validation via `checkFormat` method. Move format checking from `SourceFile` to `Lexer` for improved modularity. Update related diagnostics and adjust `.idea/workspace.xml`." />
     <MESSAGE value="Refactor `Lexer` to support comment tokenization with `pushToken` utility and customizable flags. Introduce `LEXER_EXTRACT_COMMENTS_MODE` feature to extract comments independently. Update related diagnostics, `CommandLine`, and `SourceFile`. Adjust `.idea/workspace.xml` and project files." />
     <MESSAGE value="Introduce `Verifier` class to process diagnostic verification directives from comments. Refactor `SourceFile` to integrate `Verifier`. Update `Lexer` tokenization logic for comment processing. Adjust project files and `.idea/workspace.xml`." />
     <MESSAGE value="Introduce `Utf8` wrapper class for UTF-8 string handling. Refactor `Logger`, `DiagnosticElement`, `Verifier`, `SourceFile`, and related modules to use `Utf8` for improved encoding consistency. Add string trimming utilities to `Utf8`. Update project files and `.idea/workspace.xml`." />
@@ -600,7 +595,8 @@
     <MESSAGE value="Add unit tests for binary, decimal, hexadecimal, and string literals in `Lexer`. Validate separators, edge cases, and various formats. Update `.idea/workspace.xml`." />
     <MESSAGE value="Remove redundant range operator check in `Lexer` decimal parsing to simplify logic. Update `.idea/workspace.xml` to reflect latest changes." />
     <MESSAGE value="Rename `Decimal` to `Integer` in `Lexer` and `Token` for improved clarity. Remove outdated optimization comment in operator parsing logic." />
-    <option name="LAST_COMMIT_MESSAGE" value="Rename `Decimal` to `Integer` in `Lexer` and `Token` for improved clarity. Remove outdated optimization comment in operator parsing logic." />
+    <MESSAGE value="Add detailed operator parsing support in `Lexer` with `SubTokenOperatorId`. Introduce `InvalidCharacter` diagnostic for error handling. Update `workspace.xml` and relevant files to reflect changes." />
+    <option name="LAST_COMMIT_MESSAGE" value="Add detailed operator parsing support in `Lexer` with `SubTokenOperatorId`. Introduce `InvalidCharacter` diagnostic for error handling. Update `workspace.xml` and relevant files to reflect changes." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

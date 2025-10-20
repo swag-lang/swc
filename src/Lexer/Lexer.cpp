@@ -1,6 +1,6 @@
 #include "pch.h"
 
-#include "LangSpec.h"
+#include "Lexer/LangSpec.h"
 #include "Lexer/Lexer.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CompilerContext.h"

@@ -1,6 +1,6 @@
 #include "pch.h"
 
-#include "LangSpec.h"
+#include "Lexer/LangSpec.h"
 
 LangSpec::LangSpec()
 {

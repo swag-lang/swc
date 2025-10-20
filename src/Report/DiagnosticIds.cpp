@@ -51,5 +51,7 @@ void DiagnosticIds::initErrors()
     SWAG_DIAG(EmptyCharLiteral, "");
     SWAG_DIAG(UnclosedCharLiteral, "");
     SWAG_DIAG(CharLiteralEol, "");
-    SWAG_DIAG(TooManyCharsInLiteral, "");    
+    SWAG_DIAG(TooManyCharsInLiteral, "");
+    SWAG_DIAG(InvalidHexDigits, "");
+    SWAG_DIAG(IncompleteHexEscape, "");
 }

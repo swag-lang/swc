@@ -36,7 +36,7 @@ void LangSpec::initCharFlags()
         charFlags_[static_cast<uint8_t>(c)].add(CHAR_LETTER);
 
     // Underscore is considered a letter in identifiers
-    charFlags_['_'].add(CHAR_LETTER);
+    charFlags_['_'].add(CHAR_LETTER | CHAR_NUMBER_SEP);
 
     // Hexadecimal number
     for (char c = '0'; c <= '9'; c++)
@@ -45,12 +45,10 @@ void LangSpec::initCharFlags()
         charFlags_[static_cast<uint8_t>(c)].add(CHAR_HEX_NUMBER);
     for (char c = 'A'; c <= 'F'; c++)
         charFlags_[static_cast<uint8_t>(c)].add(CHAR_HEX_NUMBER);
-    charFlags_['_'].add(CHAR_HEX_NUMBER | CHAR_NUMBER_SEP);
 
     // Binary number
     for (char c = '0'; c <= '1'; c++)
         charFlags_[static_cast<uint8_t>(c)].add(CHAR_BIN_NUMBER);
-    charFlags_['_'].add(CHAR_BIN_NUMBER | CHAR_NUMBER_SEP);
 
     // Identifier
     charFlags_['_'].add(CHAR_IDENTIFIER_START | CHAR_IDENTIFIER_PART);

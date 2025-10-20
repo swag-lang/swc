@@ -26,6 +26,63 @@ void Lexer::reportError(DiagnosticId id, uint32_t offset, uint32_t len) const
     diag.report(*ctx_);
 }
 
+// Validate hex/Unicode escape sequences (\xXX, \uXXXX, \UXXXXXXXX)
+// Returns the number of characters to skip (including the backslash), or 0 if invalid
+uint32_t Lexer::parseEscape(const uint8_t* pos, bool& hasError) const
+{
+    if (!langSpec_->isEscape(buffer_[1]))
+    {
+        reportError(DiagnosticId::InvalidEscapeSequence, static_cast<uint32_t>(buffer_ - startBuffer_), 2);
+        hasError = true;
+    }
+    
+    // pos points to the backslash
+    if (pos[1] != 'x' && pos[1] != 'u' && pos[1] != 'U')
+    {
+        return 2;
+    }
+
+    const uint8_t escapeType     = pos[1];
+    uint32_t      expectedDigits = 0;
+
+    switch (escapeType)
+    {
+        case 'x':
+            expectedDigits = 2; // \xXX
+            break;
+        case 'u':
+            expectedDigits = 4; // \uXXXX
+            break;
+        case 'U':
+            expectedDigits = 8; // \UXXXXXXXX
+            break;
+        default:
+            SWAG_ASSERT(false);
+    }
+
+    // Check if we have the required number of hex digits
+    for (uint32_t i = 0; i < expectedDigits; i++)
+    {
+        if (!langSpec_->isHexNumber(pos[2 + i]))
+        {
+            // Not enough or invalid hex digits
+            const uint32_t actualDigits = i;
+            const uint32_t offset       = static_cast<uint32_t>(pos - startBuffer_);
+
+            if (actualDigits == 0)
+                reportError(DiagnosticId::InvalidHexDigits, offset + 2, 1);
+            else
+                reportError(DiagnosticId::IncompleteHexEscape, offset, 2 + actualDigits);
+
+            hasError = true;
+            return 2 + actualDigits; // Return what we found so far
+        }
+    }
+
+    // Valid escape sequence
+    return 2 + expectedDigits;
+}
+
 // Consume exactly one logical EOL (CRLF | CR | LF). Push the next line start.
 void Lexer::consumeOneEol()
 {
@@ -85,6 +142,7 @@ void Lexer::parseSingleLineStringLiteral()
     const uint8_t* startToken = buffer_;
 
     buffer_ += 1;
+    bool hasError = false;
 
     // Optimized: check for null terminator along with other terminators
     while (buffer_[0] != '"' && buffer_[0] != '\n' && buffer_[0] != '\r' && buffer_[0] != '\0')
@@ -92,30 +150,7 @@ void Lexer::parseSingleLineStringLiteral()
         // Escaped char
         if (buffer_[0] == '\\')
         {
-            // Safe to read buffer_[1] due to null padding
-            if (buffer_[1] == '\0')
-            {
-                reportError(DiagnosticId::UnclosedStringLiteral, static_cast<uint32_t>(startToken - startBuffer_));
-                token_.len = static_cast<uint32_t>(buffer_ - startToken);
-                pushToken();
-                return;
-            }
-
-            if (buffer_[1] == '\n' || buffer_[1] == '\r')
-            {
-                reportError(DiagnosticId::StringLiteralEol, static_cast<uint32_t>(buffer_ - startBuffer_) + 1);
-                token_.len = static_cast<uint32_t>(buffer_ - startToken);
-                pushToken();
-                return;
-            }
-
-            // Validate escape sequence
-            if (!langSpec_->isEscape(buffer_[1]))
-            {
-                reportError(DiagnosticId::InvalidEscapeSequence, static_cast<uint32_t>(buffer_ - startBuffer_), 2);
-            }
-
-            buffer_ += 2; // skip '\' and escaped char
+            buffer_ += parseEscape(buffer_, hasError);
             continue;
         }
 
@@ -123,7 +158,7 @@ void Lexer::parseSingleLineStringLiteral()
     }
 
     // Handle newline in string literal
-    if (buffer_[0] == '\n' || buffer_[0] == '\r')
+    if (!hasError && buffer_[0] == '\n' || buffer_[0] == '\r')
     {
         const auto errorOffset = static_cast<uint32_t>(buffer_ - startBuffer_);
         reportError(DiagnosticId::StringLiteralEol, errorOffset);
@@ -133,7 +168,7 @@ void Lexer::parseSingleLineStringLiteral()
     }
 
     // Handle EOF
-    if (buffer_[0] == '\0')
+    if (!hasError && buffer_[0] == '\0')
     {
         reportError(DiagnosticId::UnclosedStringLiteral, static_cast<uint32_t>(startToken - startBuffer_));
         token_.len = static_cast<uint32_t>(buffer_ - startToken);
@@ -153,6 +188,7 @@ void Lexer::parseMultiLineStringLiteral()
     const uint8_t* startToken = buffer_;
 
     buffer_ += 3;
+    bool hasError = false;
 
     while (buffer_[0] != '\0')
     {
@@ -166,22 +202,7 @@ void Lexer::parseMultiLineStringLiteral()
         // Escaped char
         if (buffer_[0] == '\\')
         {
-            // Safe to read buffer_[1] due to null padding
-            if (buffer_[1] == '\0')
-            {
-                reportError(DiagnosticId::UnclosedStringLiteral, static_cast<uint32_t>(startToken - startBuffer_), 3);
-                token_.len = static_cast<uint32_t>(buffer_ - startToken);
-                pushToken();
-                return;
-            }
-
-            // Validate escape sequence
-            if (!langSpec_->isEscape(buffer_[1]))
-            {
-                reportError(DiagnosticId::InvalidEscapeSequence, static_cast<uint32_t>(buffer_ - startBuffer_), 2);
-            }
-
-            buffer_ += 2; // skip '\' and escaped char
+            buffer_ += parseEscape(buffer_, hasError);
             continue;
         }
 
@@ -246,6 +267,7 @@ void Lexer::parseCharacterLiteral()
     const uint8_t* startToken = buffer_;
 
     buffer_ += 1; // skip opening '
+    bool hasError = false;
 
     // Check for empty character literal
     if (buffer_[0] == '\'')
@@ -271,30 +293,7 @@ void Lexer::parseCharacterLiteral()
         // Handle escape sequence
         if (buffer_[0] == '\\')
         {
-            // Safe to read buffer_[1] due to null padding
-            if (buffer_[1] == '\0')
-            {
-                reportError(DiagnosticId::UnclosedCharLiteral, static_cast<uint32_t>(startToken - startBuffer_));
-                token_.len = static_cast<uint32_t>(buffer_ - startToken);
-                pushToken();
-                return;
-            }
-
-            if (buffer_[1] == '\n' || buffer_[1] == '\r')
-            {
-                reportError(DiagnosticId::CharLiteralEol, static_cast<uint32_t>(buffer_ - startBuffer_) + 1);
-                token_.len = static_cast<uint32_t>(buffer_ - startToken);
-                pushToken();
-                return;
-            }
-
-            // Validate escape sequence
-            if (!langSpec_->isEscape(buffer_[1]))
-            {
-                reportError(DiagnosticId::InvalidEscapeSequence, static_cast<uint32_t>(buffer_ - startBuffer_), 2);
-            }
-
-            buffer_ += 2; // skip '\' and escaped char
+            buffer_ += parseEscape(buffer_, hasError);
         }
         else
         {
@@ -329,7 +328,7 @@ void Lexer::parseHexNumber()
     uint32_t       digits     = 0;
 
     // Optimized: null will fail isHexNumber check
-    while (langSpec_->isHexNumber(buffer_[0]))
+    while (langSpec_->isHexNumber(buffer_[0]) || langSpec_->isNumberSep(buffer_[0]))
     {
         if (langSpec_->isNumberSep(buffer_[0]))
         {
@@ -390,7 +389,7 @@ void Lexer::parseBinNumber()
     uint32_t       digits     = 0;
 
     // Optimized: null will fail the check
-    while (buffer_[0] == '0' || buffer_[0] == '1' || langSpec_->isNumberSep(buffer_[0]))
+    while (langSpec_->isBinNumber(buffer_[0]) || langSpec_->isNumberSep(buffer_[0]))
     {
         if (langSpec_->isNumberSep(buffer_[0]))
         {
@@ -486,7 +485,7 @@ void Lexer::parseDecimalNumber()
         buffer_++;
         lastWasSep = false;
 
-        if (langSpec_->isNumberSep(buffer_[0]))
+        if (!hasError && langSpec_->isNumberSep(buffer_[0]))
         {
             reportError(DiagnosticId::NumberSepStart, static_cast<uint32_t>(buffer_ - startBuffer_));
             hasError = true;
@@ -529,7 +528,7 @@ void Lexer::parseDecimalNumber()
         if (buffer_[0] == '+' || buffer_[0] == '-')
             buffer_++;
 
-        if (langSpec_->isNumberSep(buffer_[0]))
+        if (!hasError && langSpec_->isNumberSep(buffer_[0]))
         {
             reportError(DiagnosticId::NumberSepStart, static_cast<uint32_t>(buffer_ - startBuffer_));
             hasError = true;

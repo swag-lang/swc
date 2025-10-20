@@ -25,7 +25,7 @@ enum class SubTokenNumberId : uint32_t
 {
     Hexadecimal,
     Binary,
-    Decimal,
+    Integer,
     Float,
 };
 

@@ -375,7 +375,7 @@ void Lexer::parseBinNumber()
 
 void Lexer::parseDecimalNumber()
 {
-    token_.subTokenNumberId   = SubTokenNumberId::Decimal;
+    token_.subTokenNumberId   = SubTokenNumberId::Integer;
     const uint8_t* startToken = buffer_;
 
     bool hasError   = false;
@@ -558,7 +558,7 @@ void Lexer::parseOperator()
 {
     token_.id = TokenId::Operator;
 
-    // Optimized: safe to read buffer_[1] and buffer_[2] due to null padding
+    // Safe to read buffer_[1] and buffer_[2] due to null padding
     const uint8_t c1 = buffer_[0];
     const uint8_t c2 = buffer_[1];
     const uint8_t c3 = buffer_[2];

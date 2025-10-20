@@ -46,7 +46,7 @@ void Lexer::reportError(DiagnosticId id, uint32_t offset, uint32_t len) const
 // Returns the number of characters to skip (including the backslash), or 0 if invalid
 uint32_t Lexer::parseEscape(const uint8_t* pos, TokenId containerToken, bool& hasError) const
 {
-    if (!langSpec_->isEscape(buffer_[1]))
+    if (!langSpec_->isEscape(pos[1]))
     {
         reportError(DiagnosticId::InvalidEscapeSequence, static_cast<uint32_t>(buffer_ - startBuffer_), 2);
         hasError = true;
@@ -333,15 +333,6 @@ void Lexer::parseCharacterLiteral()
         }
     }
 
-    // Expect closing quote
-    if (buffer_[0] != '\'')
-    {
-        reportError(DiagnosticId::UnclosedCharLiteral, static_cast<uint32_t>(startToken - startBuffer_));
-        token_.len = static_cast<uint32_t>(buffer_ - startToken);
-        pushToken();
-        return;
-    }
-
     buffer_ += 1; // consume closing quote
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
     pushToken();
@@ -594,6 +585,7 @@ void Lexer::parseDecimalNumber()
         if (!hasError && expDigits == 0)
         {
             reportError(DiagnosticId::MissingExponentDigits, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
+            hasError = true;
         }
 
         if (hasExp)
@@ -603,6 +595,7 @@ void Lexer::parseDecimalNumber()
     if (!hasError && lastWasSep)
     {
         reportError(DiagnosticId::TrailingNumberSeparator, static_cast<uint32_t>(buffer_ - startBuffer_));
+        hasError = true;        
     }
 
     token_.len = static_cast<uint32_t>(buffer_ - startToken);

@@ -35,6 +35,62 @@ enum class SubTokenCommentId : uint32_t
     MultiLine,
 };
 
+enum class SubTokenOperatorId : uint32_t
+{
+    Quote,
+    BackSlash,
+    LeftParen,
+    RightParen,
+    LeftSquare,
+    RightSquare,
+    LeftCurly,
+    RightCurly,
+    SemiColon,
+    Comma,
+    At,
+    Question,
+    Tilde,
+    Equal,
+    EqualEqual,
+    EqualGreater,
+    Colon,
+    Exclam,
+    ExclamEqual,
+    Minus,
+    MinusEqual,
+    MinusGreater,
+    MinusMinus,
+    Plus,
+    PlusEqual,
+    PlusPlus,
+    Asterisk,
+    AsteriskEqual,
+    Slash,
+    SlashEqual,
+    Ampersand,
+    AmpersandEqual,
+    AmpersandAmpersand,
+    Vertical,
+    VerticalEqual,
+    VerticalVertical,
+    Circumflex,
+    CircumflexEqual,
+    Percent,
+    PercentEqual,
+    Dot,
+    DotDot,
+    DotDotDot,
+    Lower,
+    LowerEqual,
+    LowerEqualGreater,
+    LowerLower,
+    LowerLowerEqual,
+    Greater,
+    GreaterEqual,
+    GreaterGreater,
+    GreaterGreaterEqual
+};
+
 struct Token
 {
     TokenId  id    = TokenId::Invalid;
@@ -42,9 +98,10 @@ struct Token
     uint32_t len   = 0;
     union
     {
-        SubTokenStringId  subTokenStringId;  // Valid if id is StringLiteral
-        SubTokenNumberId  subTokenNumberId;  // Valid if id is NumberLiteral
-        SubTokenCommentId subTokenCommentId; // Valid if id is Comment
+        SubTokenStringId   subTokenStringId;   // Valid if id is StringLiteral
+        SubTokenNumberId   subTokenNumberId;   // Valid if id is NumberLiteral
+        SubTokenCommentId  subTokenCommentId;  // Valid if id is Comment
+        SubTokenOperatorId subTokenOperatorId; // Valid if id is Operator
     };
 
     std::string_view toString(const SourceFile* file) const;

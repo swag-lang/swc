@@ -28,7 +28,10 @@ namespace
             {
                 // Each UTF-8 character counts as one column
                 auto [next, wc, n] = Utf8::decode(ptr, end);
-                ptr                = next;
+                if (!next)
+                    ptr++;
+                else
+                    ptr = next;
                 column++;
             }
         }

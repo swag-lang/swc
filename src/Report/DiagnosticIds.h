@@ -18,6 +18,7 @@ enum class DiagnosticId
     SyntaxBinNumber,
     UnRaisedDirective,
     InvalidEscapeSequence,
+    InvalidCharacter,
 };
 
 struct DiagnosticIdInfo

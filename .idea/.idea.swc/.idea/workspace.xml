@@ -22,7 +22,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dbc16a4a-ed07-41f7-901f-536cda7088df" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.swc/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Lexer.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Lexer/Token.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Lexer/Token.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Main/swc.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main/swc.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticIds.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticIds.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Report/DiagnosticIds.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Report/DiagnosticIds.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -36,7 +41,7 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="cidr-memory-view://460" root0="FORCE_HIGHLIGHTING" />
+    <setting file="cidr-memory-view://468" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Core/Utf8.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/Os.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../swag/src/Os/OsWin32.cpp" root0="SKIP_HIGHLIGHTING" />
@@ -167,22 +172,6 @@
       <workItem from="1760799230882" duration="271000" />
       <workItem from="1760799516648" duration="1911000" />
       <workItem from="1760801501480" duration="9485000" />
-    </task>
-    <task id="LOCAL-00017" summary="Implement `SourceCodeLocation` structure to enhance error reporting with accurate line and column details. Refactor `Lexer` and `DiagnosticElement` to support location-aware diagnostics and improve logging with contextual information.">
-      <option name="closed" value="true" />
-      <created>1760851731341</created>
-      <option name="number" value="00017" />
-      <option name="presentableId" value="LOCAL-00017" />
-      <option name="project" value="LOCAL" />
-      <updated>1760851731341</updated>
-    </task>
-    <task id="LOCAL-00018" summary="Refactor project structure by moving `Check` utilities to `Report` module, introducing `swagAssert` with platform-specific implementation, and replacing `Fs` with `fs` for standardized namespace consistency.">
-      <option name="closed" value="true" />
-      <created>1760853214569</created>
-      <option name="number" value="00018" />
-      <option name="presentableId" value="LOCAL-00018" />
-      <option name="project" value="LOCAL" />
-      <updated>1760853214569</updated>
     </task>
     <task id="LOCAL-00019" summary="Fix `SWAG_ASSERT` condition in `SourceCodeLocation::fromOffset` and reorder member variables for clarity. Update task and configuration in `.idea/workspace.xml`.">
       <option name="closed" value="true" />
@@ -560,7 +549,23 @@
       <option name="project" value="LOCAL" />
       <updated>1760941583521</updated>
     </task>
-    <option name="localTasksCounter" value="66" />
+    <task id="LOCAL-00066" summary="Remove redundant range operator check in `Lexer` decimal parsing to simplify logic. Update `.idea/workspace.xml` to reflect latest changes.">
+      <option name="closed" value="true" />
+      <created>1760941896154</created>
+      <option name="number" value="00066" />
+      <option name="presentableId" value="LOCAL-00066" />
+      <option name="project" value="LOCAL" />
+      <updated>1760941896154</updated>
+    </task>
+    <task id="LOCAL-00067" summary="Rename `Decimal` to `Integer` in `Lexer` and `Token` for improved clarity. Remove outdated optimization comment in operator parsing logic.">
+      <option name="closed" value="true" />
+      <created>1760941983694</created>
+      <option name="number" value="00067" />
+      <option name="presentableId" value="LOCAL-00067" />
+      <option name="project" value="LOCAL" />
+      <updated>1760941983694</updated>
+    </task>
+    <option name="localTasksCounter" value="68" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -570,8 +575,6 @@
   <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Simplify `consumeOneEol` in `Lexer` by adding assertion for consistent EOL handling and cleaning up `.idea/workspace.xml`." />
-    <MESSAGE value="Refactor `SourceFile` to streamline diagnostic reporting by returning `diag.report(ci)` directly. Integrate related updates to `.idea/workspace.xml`." />
     <MESSAGE value="Refactor `Lexer` to handle file format validation via `checkFormat` method. Move format checking from `SourceFile` to `Lexer` for improved modularity. Update related diagnostics and adjust `.idea/workspace.xml`." />
     <MESSAGE value="Refactor `Lexer` to support comment tokenization with `pushToken` utility and customizable flags. Introduce `LEXER_EXTRACT_COMMENTS_MODE` feature to extract comments independently. Update related diagnostics, `CommandLine`, and `SourceFile`. Adjust `.idea/workspace.xml` and project files." />
     <MESSAGE value="Introduce `Verifier` class to process diagnostic verification directives from comments. Refactor `SourceFile` to integrate `Verifier`. Update `Lexer` tokenization logic for comment processing. Adjust project files and `.idea/workspace.xml`." />
@@ -595,7 +598,9 @@
     <MESSAGE value="Refine string literal diagnostics in `Lexer` by adding `StringLiteralEol` error reporting for unclosed strings and invalid trailing backslashes. Update unit tests and adjust `.idea/workspace.xml`." />
     <MESSAGE value="Add unit tests to validate single-line, multi-line, and nested comment parsing in `Lexer`. Cover edge cases, special characters, and mixed comment styles. Update `.idea/workspace.xml`." />
     <MESSAGE value="Add unit tests for binary, decimal, hexadecimal, and string literals in `Lexer`. Validate separators, edge cases, and various formats. Update `.idea/workspace.xml`." />
-    <option name="LAST_COMMIT_MESSAGE" value="Add unit tests for binary, decimal, hexadecimal, and string literals in `Lexer`. Validate separators, edge cases, and various formats. Update `.idea/workspace.xml`." />
+    <MESSAGE value="Remove redundant range operator check in `Lexer` decimal parsing to simplify logic. Update `.idea/workspace.xml` to reflect latest changes." />
+    <MESSAGE value="Rename `Decimal` to `Integer` in `Lexer` and `Token` for improved clarity. Remove outdated optimization comment in operator parsing logic." />
+    <option name="LAST_COMMIT_MESSAGE" value="Rename `Decimal` to `Integer` in `Lexer` and `Token` for improved clarity. Remove outdated optimization comment in operator parsing logic." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -619,7 +624,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/src/Lexer/Lexer.cpp</url>
-          <line>746</line>
+          <line>1073</line>
           <option name="timeStamp" value="64" />
         </line-breakpoint>
       </breakpoints>

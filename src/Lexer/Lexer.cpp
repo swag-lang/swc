@@ -106,7 +106,7 @@ void Lexer::parseSingleLineStringLiteral()
                 token_.len = static_cast<uint32_t>(buffer_ - startToken);
                 pushToken();
                 return;
-            }            
+            }
 
             // Validate escape sequence
             if (!langSpec_->isEscape(buffer_[1]))
@@ -559,53 +559,380 @@ void Lexer::parseOperator()
     token_.id = TokenId::Operator;
 
     // Safe to read buffer_[1] and buffer_[2] due to null padding
-    const uint8_t c1 = buffer_[0];
-    const uint8_t c2 = buffer_[1];
-    const uint8_t c3 = buffer_[2];
+    const uint8_t c = buffer_[0];
 
-    // Three-character operators
-    if ((c1 == '<' && c2 == '<' && c3 == '=') || // <<=
-        (c1 == '>' && c2 == '>' && c3 == '=') || // >>=
-        (c1 == '.' && c2 == '.' && c3 == '.'))   // ...
+    switch (c)
     {
-        buffer_ += 3;
-        token_.len = 3;
-        pushToken();
-        return;
+        case '\'':
+            token_.subTokenOperatorId = SubTokenOperatorId::Quote;
+            token_.len                = 1;
+            buffer_++;
+            break;
+
+        case '\\':
+            token_.subTokenOperatorId = SubTokenOperatorId::BackSlash;
+            token_.len                = 1;
+            buffer_++;
+            break;
+
+        case '(':
+            token_.subTokenOperatorId = SubTokenOperatorId::LeftParen;
+            token_.len                = 1;
+            buffer_++;
+            break;
+
+        case ')':
+            token_.subTokenOperatorId = SubTokenOperatorId::RightParen;
+            token_.len                = 1;
+            buffer_++;
+            break;
+
+        case '[':
+            token_.subTokenOperatorId = SubTokenOperatorId::LeftSquare;
+            token_.len                = 1;
+            buffer_++;
+            break;
+
+        case ']':
+            token_.subTokenOperatorId = SubTokenOperatorId::RightSquare;
+            token_.len                = 1;
+            buffer_++;
+            break;
+
+        case '{':
+            token_.subTokenOperatorId = SubTokenOperatorId::LeftCurly;
+            token_.len                = 1;
+            buffer_++;
+            break;
+
+        case '}':
+            token_.subTokenOperatorId = SubTokenOperatorId::RightCurly;
+            token_.len                = 1;
+            buffer_++;
+            break;
+
+        case ';':
+            token_.subTokenOperatorId = SubTokenOperatorId::SemiColon;
+            token_.len                = 1;
+            buffer_++;
+            break;
+
+        case ',':
+            token_.subTokenOperatorId = SubTokenOperatorId::Comma;
+            token_.len                = 1;
+            buffer_++;
+            break;
+
+        case '@':
+            token_.subTokenOperatorId = SubTokenOperatorId::At;
+            token_.len                = 1;
+            buffer_++;
+            break;
+
+        case '?':
+            token_.subTokenOperatorId = SubTokenOperatorId::Question;
+            token_.len                = 1;
+            buffer_++;
+            break;
+
+        case '~':
+            token_.subTokenOperatorId = SubTokenOperatorId::Tilde;
+            token_.len                = 1;
+            buffer_++;
+            break;
+
+        case '=':
+            if (buffer_[1] == '=')
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::EqualEqual;
+                token_.len                = 2;
+                buffer_ += 2;
+            }
+            else if (buffer_[1] == '>')
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::EqualGreater;
+                token_.len                = 2;
+                buffer_ += 2;
+            }
+            else
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::Equal;
+                token_.len                = 1;
+                buffer_++;
+            }
+            break;
+
+        case ':':
+            token_.subTokenOperatorId = SubTokenOperatorId::Colon;
+            token_.len                = 1;
+            buffer_++;
+            break;
+
+        case '!':
+            if (buffer_[1] == '=')
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::ExclamEqual;
+                token_.len                = 2;
+                buffer_ += 2;
+            }
+            else
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::Exclam;
+                token_.len                = 1;
+                buffer_++;
+            }
+            break;
+
+        case '-':
+            if (buffer_[1] == '=')
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::MinusEqual;
+                token_.len                = 2;
+                buffer_ += 2;
+            }
+            else if (buffer_[1] == '>')
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::MinusGreater;
+                token_.len                = 2;
+                buffer_ += 2;
+            }
+            else if (buffer_[1] == '-')
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::MinusMinus;
+                token_.len                = 2;
+                buffer_ += 2;
+            }
+            else
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::Minus;
+                token_.len                = 1;
+                buffer_++;
+            }
+            break;
+
+        case '+':
+            if (buffer_[1] == '=')
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::PlusEqual;
+                token_.len                = 2;
+                buffer_ += 2;
+            }
+            else if (buffer_[1] == '+')
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::PlusPlus;
+                token_.len                = 2;
+                buffer_ += 2;
+            }
+            else
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::Plus;
+                token_.len                = 1;
+                buffer_++;
+            }
+            break;
+
+        case '*':
+            if (buffer_[1] == '=')
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::AsteriskEqual;
+                token_.len                = 2;
+                buffer_ += 2;
+            }
+            else
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::Asterisk;
+                token_.len                = 1;
+                buffer_++;
+            }
+            break;
+
+        case '/':
+            if (buffer_[1] == '=')
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::SlashEqual;
+                token_.len                = 2;
+                buffer_ += 2;
+            }
+            else
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::Slash;
+                token_.len                = 1;
+                buffer_++;
+            }
+            break;
+
+        case '&':
+            if (buffer_[1] == '=')
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::AmpersandEqual;
+                token_.len                = 2;
+                buffer_ += 2;
+            }
+            else if (buffer_[1] == '&')
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::AmpersandAmpersand;
+                token_.len                = 2;
+                buffer_ += 2;
+            }
+            else
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::Ampersand;
+                token_.len                = 1;
+                buffer_++;
+            }
+            break;
+
+        case '|':
+            if (buffer_[1] == '=')
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::VerticalEqual;
+                token_.len                = 2;
+                buffer_ += 2;
+            }
+            else if (buffer_[1] == '|')
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::VerticalVertical;
+                token_.len                = 2;
+                buffer_ += 2;
+            }
+            else
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::Vertical;
+                token_.len                = 1;
+                buffer_++;
+            }
+            break;
+
+        case '^':
+            if (buffer_[1] == '=')
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::CircumflexEqual;
+                token_.len                = 2;
+                buffer_ += 2;
+            }
+            else
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::Circumflex;
+                token_.len                = 1;
+                buffer_++;
+            }
+            break;
+
+        case '%':
+            if (buffer_[1] == '=')
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::PercentEqual;
+                token_.len                = 2;
+                buffer_ += 2;
+            }
+            else
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::Percent;
+                token_.len                = 1;
+                buffer_++;
+            }
+            break;
+
+        case '.':
+            if (buffer_[1] == '.')
+            {
+                if (buffer_[2] == '.')
+                {
+                    token_.subTokenOperatorId = SubTokenOperatorId::DotDotDot;
+                    token_.len                = 3;
+                    buffer_ += 3;
+                }
+                else
+                {
+                    token_.subTokenOperatorId = SubTokenOperatorId::DotDot;
+                    token_.len                = 2;
+                    buffer_ += 2;
+                }
+            }
+            else
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::Dot;
+                token_.len                = 1;
+                buffer_++;
+            }
+            break;
+
+        case '<':
+            if (buffer_[1] == '=')
+            {
+                if (buffer_[2] == '>')
+                {
+                    token_.subTokenOperatorId = SubTokenOperatorId::LowerEqualGreater;
+                    token_.len                = 3;
+                    buffer_ += 3;
+                }
+                else
+                {
+                    token_.subTokenOperatorId = SubTokenOperatorId::LowerEqual;
+                    token_.len                = 2;
+                    buffer_ += 2;
+                }
+            }
+            else if (buffer_[1] == '<')
+            {
+                if (buffer_[2] == '=')
+                {
+                    token_.subTokenOperatorId = SubTokenOperatorId::LowerLowerEqual;
+                    token_.len                = 3;
+                    buffer_ += 3;
+                }
+                else
+                {
+                    token_.subTokenOperatorId = SubTokenOperatorId::LowerLower;
+                    token_.len                = 2;
+                    buffer_ += 2;
+                }
+            }
+            else
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::Lower;
+                token_.len                = 1;
+                buffer_++;
+            }
+            break;
+
+        case '>':
+            if (buffer_[1] == '=')
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::GreaterEqual;
+                token_.len                = 2;
+                buffer_ += 2;
+            }
+            else if (buffer_[1] == '>')
+            {
+                if (buffer_[2] == '=')
+                {
+                    token_.subTokenOperatorId = SubTokenOperatorId::GreaterGreaterEqual;
+                    token_.len                = 3;
+                    buffer_ += 3;
+                }
+                else
+                {
+                    token_.subTokenOperatorId = SubTokenOperatorId::GreaterGreater;
+                    token_.len                = 2;
+                    buffer_ += 2;
+                }
+            }
+            else
+            {
+                token_.subTokenOperatorId = SubTokenOperatorId::Greater;
+                token_.len                = 1;
+                buffer_++;
+            }
+            break;
+
+        default:
+            reportError(DiagnosticId::InvalidCharacter, static_cast<uint32_t>(buffer_ - startBuffer_), 1);
+            token_.len = 1;
+            buffer_++;
+            break;
     }
 
-    // Two-character operators
-    if ((c1 == '=' && c2 == '=') || // ==
-        (c1 == '!' && c2 == '=') || // !=
-        (c1 == '<' && c2 == '=') || // <=
-        (c1 == '>' && c2 == '=') || // >=
-        (c1 == '&' && c2 == '&') || // &&
-        (c1 == '|' && c2 == '|') || // ||
-        (c1 == '+' && c2 == '=') || // +=
-        (c1 == '-' && c2 == '=') || // -=
-        (c1 == '*' && c2 == '=') || // *=
-        (c1 == '/' && c2 == '=') || // /=
-        (c1 == '%' && c2 == '=') || // %=
-        (c1 == '&' && c2 == '=') || // &=
-        (c1 == '|' && c2 == '=') || // |=
-        (c1 == '^' && c2 == '=') || // ^=
-        (c1 == '+' && c2 == '+') || // ++
-        (c1 == '-' && c2 == '-') || // --
-        (c1 == '<' && c2 == '<') || //
-        (c1 == '>' && c2 == '>') || // >>
-        (c1 == '-' && c2 == '>') || // ->
-        (c1 == ':' && c2 == ':') || // ::
-        (c1 == '.' && c2 == '.'))   // ..
-    {
-        buffer_ += 2;
-        token_.len = 2;
-        pushToken();
-        return;
-    }
-
-    // Single-character operators and punctuation
-    buffer_++;
-    token_.len = 1;
     pushToken();
 }
 
@@ -679,7 +1006,7 @@ void Lexer::checkFormat(const CompilerContext& ctx, uint32_t& startOffset) const
     static constexpr uint8_t UTF16_LE[] = {0xFF, 0xFE};
     static constexpr uint8_t UTF32_BE[] = {0x00, 0x00, 0xFE, 0xFF};
     static constexpr uint8_t UTF32_LE[] = {0xFF, 0xFE, 0x00, 0x00};
-    
+
     const auto file    = ctx.sourceFile();
     const auto content = file->content();
 
@@ -779,6 +1106,10 @@ Result Lexer::tokenize(CompilerContext& ctx, LexerFlags flags)
         const auto startToken = buffer_;
         token_.start          = static_cast<uint32_t>(startToken - startBuffer_);
         token_.len            = 1;
+
+        // End of file
+        if (buffer_[0] == '\0')
+            break;
 
         // End of line (LF, CRLF, or CR)
         if (buffer_[0] == '\n' || buffer_[0] == '\r')

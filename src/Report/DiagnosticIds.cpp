@@ -47,4 +47,5 @@ void DiagnosticIds::initErrors()
     SWAG_DIAG(SyntaxBinNumber, "malformed binary number");
     SWAG_DIAG(UnRaisedDirective, "unraised directive");
     SWAG_DIAG(InvalidEscapeSequence, "invalid escape sequence");
+    SWAG_DIAG(InvalidCharacter, "invalid character");
 }

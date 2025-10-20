@@ -475,26 +475,50 @@ void Lexer::parseDecimalNumber()
         if (buffer_[0] == '+' || buffer_[0] == '-')
             buffer_++;
 
-        uint32_t expDigits = 0;
-        while (langSpec_->isDigit(buffer_[0]))
+        if (langSpec_->isNumberSep(buffer_[0]))
         {
-            expDigits++;
-            buffer_++;
-        }
+            reportError(DiagnosticId::NumberSepStart, static_cast<uint32_t>(buffer_ - startBuffer_));
+            hasError = true;
+        }           
 
-        if (expDigits == 0)
+        uint32_t expDigits = 0;
+        while (langSpec_->isDigit(buffer_[0]) || langSpec_->isNumberSep(buffer_[0]))
         {
-            reportError(DiagnosticId::InvalidExponent, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
+            if (langSpec_->isNumberSep(buffer_[0]))
+            {
+                if (!hasError && lastWasSep)
+                {
+                    const uint8_t* sepStart = buffer_;
+                    while (langSpec_->isNumberSep(buffer_[0]))
+                        buffer_++;
+                    reportError(DiagnosticId::NumberSepMulti, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
+                    hasError = true;
+                    continue;
+                }
+
+                lastWasSep = true;
+                buffer_++;
+                continue;
+            }
+            
+            expDigits++;
+            lastWasSep = false;
+            buffer_++;
+        }        
+
+        if (!hasError && expDigits == 0)
+        {
+            reportError(DiagnosticId::MissingExponentDigits, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
         }
 
         if (hasExp)
             token_.subTokenNumberId = SubTokenNumberId::Float;
     }
 
-    if (langSpec_->isNumberSep(buffer_[0]))
+    if (!hasError && lastWasSep)
     {
         reportError(DiagnosticId::NumberSepEnd, static_cast<uint32_t>(buffer_ - startBuffer_));
-    }
+    }          
 
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
     pushToken();

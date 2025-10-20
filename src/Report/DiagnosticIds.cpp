@@ -42,9 +42,9 @@ void DiagnosticIds::initErrors()
     SWAG_DIAG(NumberSepEnd, "a number cannot end with '_'");
     SWAG_DIAG(MissingHexDigits, "missing hexadecimal digits");
     SWAG_DIAG(MissingBinDigits, "missing binary digits");
+    SWAG_DIAG(MissingExponentDigits, "missing exponent digit");
     SWAG_DIAG(SyntaxHexNumber, "malformed hexadecimal number");
     SWAG_DIAG(SyntaxBinNumber, "malformed binary number");
     SWAG_DIAG(UnRaisedDirective, "unraised directive");
     SWAG_DIAG(InvalidEscapeSequence, "invalid escape sequence");
-    SWAG_DIAG(InvalidExponent, "invalid exponent");
 }

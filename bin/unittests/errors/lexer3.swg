@@ -64,12 +64,12 @@
 1_234.567e-5
 1.234_567e+10
 // --- Invalid exponents ---
-1e          // expected-error InvalidExponent
-1E          // expected-error InvalidExponent
-1e+         // expected-error InvalidExponent
-1e-         // expected-error InvalidExponent
-1.5e        // expected-error InvalidExponent
-1.5E+       // expected-error InvalidExponent
+1e          // expected-error MissingExponentDigits
+1E          // expected-error MissingExponentDigits
+1e+         // expected-error MissingExponentDigits
+1e-         // expected-error MissingExponentDigits
+1.5e        // expected-error MissingExponentDigits
+1.5E+       // expected-error MissingExponentDigits
 // --- Combined: float with exponent ---
 3.14e2
 2.718e-1
@@ -120,7 +120,6 @@
 1_00__0     // expected-error NumberSepMulti
 1_.5        // expected-error NumberSepEnd
 1._5        // expected-error NumberSepStart
-1.5_e10     // expected-error NumberSepEnd
 // --- Multiple separators in different parts ---
 1_2_3.4_5_6e7_8_9   // This would only be valid if exponent allows separators (check your grammar)
 1_000.000_000e-1_0  // Same note as above

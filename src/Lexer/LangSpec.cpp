@@ -51,6 +51,18 @@ void LangSpec::initCharFlags()
     for (char c = '0'; c <= '1'; c++)
         charFlags_[static_cast<uint8_t>(c)].add(CHAR_BIN_NUMBER);
     charFlags_['_'].add(CHAR_BIN_NUMBER | CHAR_NUMBER_SEP);
+
+    // Identifier
+    charFlags_['_'].add(CHAR_IDENTIFIER_START);
+    charFlags_['#'].add(CHAR_IDENTIFIER_START);
+    charFlags_['@'].add(CHAR_IDENTIFIER_START);
+    for (char c = 'a'; c <= 'z'; c++)
+        charFlags_[static_cast<uint8_t>(c)].add(CHAR_IDENTIFIER_START | CHAR_IDENTIFIER_PART);
+    for (char c = 'A'; c <= 'Z'; c++)
+        charFlags_[static_cast<uint8_t>(c)].add(CHAR_IDENTIFIER_START | CHAR_IDENTIFIER_PART);
+    for (char c = '0'; c <= '9'; c++)
+        charFlags_[static_cast<uint8_t>(c)].add(CHAR_IDENTIFIER_START | CHAR_IDENTIFIER_PART);
+    
 }
 
 bool LangSpec::isBlank(const uint8_t* buffer, const uint8_t* end, uint32_t& offset) const

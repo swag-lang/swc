@@ -10,6 +10,8 @@ enum class TokenId : uint32_t
     Comment,
     StringLiteral,
     NumberLiteral,
+    Identifier,
+    Operator,
 };
 
 enum class SubTokenStringId : uint32_t
@@ -23,7 +25,7 @@ enum class SubTokenNumberId : uint32_t
 {
     Hexadecimal,
     Binary,
-    Integer,
+    Decimal,
     Float,
 };
 

@@ -1,14 +1,16 @@
 #pragma once
 #include "Core/Flags.h"
 
-using CharFlags                     = Flags<uint8_t>;
-constexpr CharFlags CHAR_BLANK      = 0x00000001;
-constexpr CharFlags CHAR_DIGIT      = 0x00000002;
-constexpr CharFlags CHAR_LETTER     = 0x00000004;
-constexpr CharFlags CHAR_ASCII      = 0x00000008;
-constexpr CharFlags CHAR_HEX_NUMBER = 0x00000010;
-constexpr CharFlags CHAR_BIN_NUMBER = 0x00000020;
-constexpr CharFlags CHAR_NUMBER_SEP = 0x00000040;
+using CharFlags                           = Flags<uint32_t>;
+constexpr CharFlags CHAR_BLANK            = 0x00000001;
+constexpr CharFlags CHAR_DIGIT            = 0x00000002;
+constexpr CharFlags CHAR_LETTER           = 0x00000004;
+constexpr CharFlags CHAR_ASCII            = 0x00000008;
+constexpr CharFlags CHAR_HEX_NUMBER       = 0x00000010;
+constexpr CharFlags CHAR_BIN_NUMBER       = 0x00000020;
+constexpr CharFlags CHAR_NUMBER_SEP       = 0x00000040;
+constexpr CharFlags CHAR_IDENTIFIER_START = 0x00000080;
+constexpr CharFlags CHAR_IDENTIFIER_PART  = 0x00000100;
 
 class LangSpec
 {
@@ -23,6 +25,8 @@ public:
     bool isHexNumber(uint8_t c) const { return charFlags_[c].has(CHAR_HEX_NUMBER); }
     bool isBinNumber(uint8_t c) const { return charFlags_[c].has(CHAR_BIN_NUMBER); }
     bool isNumberSep(uint8_t c) const { return charFlags_[c].has(CHAR_NUMBER_SEP); }
+    bool isIdentifierStart(uint8_t c) const { return charFlags_[c].has(CHAR_IDENTIFIER_START); }
+    bool isIdentifierPart(uint8_t c) const { return charFlags_[c].has(CHAR_IDENTIFIER_PART); }
 
 private:
     CharFlags charFlags_[256];

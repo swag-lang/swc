@@ -2,6 +2,7 @@
 #include "Core/Flags.h"
 #include "Lexer/Token.h"
 
+enum class DiagnosticId;
 class Diagnostic;
 class CompilerContext;
 class CompilerInstance;
@@ -29,8 +30,9 @@ class Lexer
 
     void consumeOneEol();
     void pushToken();
-    void reportError(const Diagnostic& diag) const;
+    void reportError(DiagnosticId id, uint32_t offset, uint32_t len) const;
     void checkFormat(const CompilerInstance& ci, const CompilerContext& ctx, uint32_t& startOffset) const;
+    bool isValidEscapeSequence(uint8_t c) const;
 
     void parseEol();
     void parseBlank();
@@ -39,7 +41,10 @@ class Lexer
     void parseRawStringLiteral();
     void parseHexNumber();
     void parseBinNumber();
+    void parseDecimalNumber();
     void parseNumber();
+    void parseOperator();
+    void parseIdentifier();
     void parseSingleLineComment();
     void parseMultiLineComment();
 

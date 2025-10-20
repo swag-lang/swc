@@ -507,17 +507,6 @@ void Lexer::parseDecimalNumber()
             token_.subTokenNumberId = SubTokenNumberId::Float;
     }
 
-    // Check for type suffix (u, l, f, etc.)
-    if (buffer_ < end_ && langSpec_->isLetter(buffer_[0]))
-    {
-        const uint8_t* suffixStart = buffer_;
-        while (buffer_ < end_ && langSpec_->isLetter(buffer_[0]))
-            buffer_++;
-
-        // Store suffix information if needed
-        // For now, just consume it
-    }
-
     token_.len = static_cast<uint32_t>(buffer_ - startToken);
     pushToken();
 }

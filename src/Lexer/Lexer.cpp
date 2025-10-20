@@ -8,6 +8,22 @@
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticIds.h"
 
+namespace
+{
+    // Helper: does the next char after the 'x'/'u'/'U' count as a hard terminator
+    // for an escape in the given container token?
+    bool isTerminatorAfterEscapeChar(uint8_t c, TokenId container)
+    {
+        // We only distinguish broadly between char and string by TokenId.
+        // For strings (single-line or multi-line), treat quote/EOL/EOF similarly.
+        if (container == TokenId::CharacterLiteral)
+            return c == '\'' || c == '\n' || c == '\r' || c == '\0';
+
+        // Strings
+        return c == '"' || c == '\n' || c == '\r' || c == '\0';
+    }
+}
+
 void Lexer::pushToken()
 {
     if (!lexerFlags_.has(LEXER_EXTRACT_COMMENTS_MODE) || token_.id == TokenId::Comment)
@@ -28,14 +44,14 @@ void Lexer::reportError(DiagnosticId id, uint32_t offset, uint32_t len) const
 
 // Validate hex/Unicode escape sequences (\xXX, \uXXXX, \UXXXXXXXX)
 // Returns the number of characters to skip (including the backslash), or 0 if invalid
-uint32_t Lexer::parseEscape(const uint8_t* pos, bool& hasError) const
+uint32_t Lexer::parseEscape(const uint8_t* pos, TokenId containerToken, bool& hasError) const
 {
     if (!langSpec_->isEscape(buffer_[1]))
     {
         reportError(DiagnosticId::InvalidEscapeSequence, static_cast<uint32_t>(buffer_ - startBuffer_), 2);
         hasError = true;
     }
-    
+
     // pos points to the backslash
     if (pos[1] != 'x' && pos[1] != 'u' && pos[1] != 'U')
     {
@@ -70,12 +86,28 @@ uint32_t Lexer::parseEscape(const uint8_t* pos, bool& hasError) const
             const uint32_t offset       = static_cast<uint32_t>(pos - startBuffer_);
 
             if (actualDigits == 0)
-                reportError(DiagnosticId::InvalidHexDigit, offset + 2, 1);
+            {
+                // Distinguish between truly "empty" escape (\x<quote/eol/eof>) and bad first digit (\xG)
+                const uint8_t first = pos[2]; // first expected hex digit (may be '\0')
+                if (isTerminatorAfterEscapeChar(first, containerToken))
+                {
+                    // Highlight only the introducer, e.g. "\x"
+                    reportError(DiagnosticId::EmptyHexEscape, offset, 2);
+                }
+                else
+                {
+                    // First char exists but isn't hex (e.g. \xG)
+                    reportError(DiagnosticId::InvalidHexDigit, offset + 2, 1);
+                }
+            }
             else
+            {
+                // Some digits present but not enough
                 reportError(DiagnosticId::IncompleteHexEscape, offset, 2 + actualDigits);
+            }
 
             hasError = true;
-            return 2 + actualDigits; // Return what we found so far
+            return 2 + actualDigits; // Return what we consumed so far
         }
     }
 
@@ -150,7 +182,7 @@ void Lexer::parseSingleLineStringLiteral()
         // Escaped char
         if (buffer_[0] == '\\')
         {
-            buffer_ += parseEscape(buffer_, hasError);
+            buffer_ += parseEscape(buffer_, TokenId::StringLiteral, hasError);
             continue;
         }
 
@@ -158,7 +190,7 @@ void Lexer::parseSingleLineStringLiteral()
     }
 
     // Handle newline in string literal
-    if (!hasError && buffer_[0] == '\n' || buffer_[0] == '\r')
+    if ((!hasError && buffer_[0] == '\n') || buffer_[0] == '\r')
     {
         const auto errorOffset = static_cast<uint32_t>(buffer_ - startBuffer_);
         reportError(DiagnosticId::StringLiteralEol, errorOffset);
@@ -202,7 +234,7 @@ void Lexer::parseMultiLineStringLiteral()
         // Escaped char
         if (buffer_[0] == '\\')
         {
-            buffer_ += parseEscape(buffer_, hasError);
+            buffer_ += parseEscape(buffer_, TokenId::StringLiteral, hasError);
             continue;
         }
 
@@ -293,7 +325,7 @@ void Lexer::parseCharacterLiteral()
         // Handle escape sequence
         if (buffer_[0] == '\\')
         {
-            buffer_ += parseEscape(buffer_, hasError);
+            buffer_ += parseEscape(buffer_, TokenId::CharacterLiteral, hasError);
         }
         else
         {

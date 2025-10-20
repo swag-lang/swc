@@ -25,6 +25,7 @@ enum class DiagnosticId
     TooManyCharsInLiteral,
     InvalidHexDigit,
     IncompleteHexEscape,
+    EmptyHexEscape,
 };
 
 struct DiagnosticIdInfo

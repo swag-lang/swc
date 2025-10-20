@@ -1,6 +1,11 @@
 #pragma once
 
-constexpr uint64_t fnv1a64(const char* s, size_t n)
+enum class SubTokenIdentifierId : uint16_t
+{
+    Identifier = 0,
+};
+
+constexpr uint64_t fnv1A64(const char* s, size_t n)
 {
     uint64_t h = 1469598103934665603ull;
     for (size_t i = 0; i < n; ++i)
@@ -8,38 +13,33 @@ constexpr uint64_t fnv1a64(const char* s, size_t n)
         h ^= static_cast<unsigned char>(s[i]);
         h *= 1099511628211ull;
     }
-    return h ? h : 1ull; // 0 réservé comme "vide"
+
+    return h ? h : 1ull;
 }
 
-enum class KeywordId : uint16_t
+struct KwPair
 {
-    Identifier = 0,
-    // ... vos 300 ids (If, Else, While, Return, ...)
-};
-
-struct KWPair
-{
-    const char* key;
-    uint16_t    len;
-    KeywordId   id;
+    const char*          key;
+    uint16_t             len;
+    SubTokenIdentifierId id;
 };
 
 template<size_t N>
-struct KWTable
+struct KwTable
 {
     static_assert((N & (N - 1)) == 0, "N must be power of two");
     struct Slot
     {
-        uint64_t    hash = 0; // 0 => vide
-        const char* key  = nullptr;
-        uint16_t    len  = 0;
-        KeywordId   id   = KeywordId::Identifier;
+        uint64_t             hash = 0;
+        const char*          key  = nullptr;
+        uint16_t             len  = 0;
+        SubTokenIdentifierId id   = SubTokenIdentifierId::Identifier;
     };
     std::array<Slot, N> slots{};
 
-    consteval void insert(const KWPair& p)
+    consteval void insert(const KwPair& p)
     {
-        const uint64_t h   = fnv1a64(p.key, p.len);
+        const uint64_t h   = fnv1A64(p.key, p.len);
         size_t         idx = static_cast<size_t>(h) & (N - 1);
         while (slots[idx].hash)
         {
@@ -55,7 +55,7 @@ struct KWTable
     }
 
     template<size_t M>
-    consteval KWTable(const std::array<KWPair, M>& arr) :
+    explicit consteval KwTable(const std::array<KwPair, M>& arr) :
         slots{}
     {
         static_assert(M < N, "Table too full; increase N");
@@ -63,17 +63,17 @@ struct KWTable
             insert(e);
     }
 
-    KeywordId find(std::string_view s) const noexcept
+    SubTokenIdentifierId find(std::string_view s) const noexcept
     {
-        if (s.size() == 0)
-            return KeywordId::Identifier;
-        uint64_t h   = fnv1a64(s.data(), s.size());
+        if (s.empty())
+            return SubTokenIdentifierId::Identifier;
+        uint64_t h   = fnv1A64(s.data(), s.size());
         size_t   idx = static_cast<size_t>(h) & (N - 1);
         while (true)
         {
             const Slot& sl = slots[idx];
             if (sl.hash == 0)
-                return KeywordId::Identifier; // miss
+                return SubTokenIdentifierId::Identifier; // miss
             if (sl.hash == h && sl.len == s.size() &&
                 std::memcmp(sl.key, s.data(), s.size()) == 0)
                 return sl.id;
@@ -82,21 +82,21 @@ struct KWTable
     }
 };
 
-constexpr std::array<KWPair, 14> K_KEYWORDS = {{
-    {"if", 2, KeywordId::Identifier /* ex: KeywordId::If */},
-    {"else", 4, KeywordId::Identifier /* Else */},
-    {"for", 3, KeywordId::Identifier /* For */},
-    {"while", 5, KeywordId::Identifier /* While */},
-    {"return", 6, KeywordId::Identifier /* Return */},
-    {"func", 4, KeywordId::Identifier /* Func */},
-    {"var", 3, KeywordId::Identifier /* Var */},
-    {"let", 3, KeywordId::Identifier /* Let */},
-    {"true", 4, KeywordId::Identifier /* True */},
-    {"false", 5, KeywordId::Identifier /* False */},
-    {"null", 4, KeywordId::Identifier /* Null */},
-    {"struct", 6, KeywordId::Identifier /* Struct */},
-    {"enum", 4, KeywordId::Identifier /* Enum */},
-    {"import", 6, KeywordId::Identifier /* Import */},
+constexpr std::array<KwPair, 14> K_KEYWORDS = {{
+    {"if", 2, SubTokenIdentifierId::Identifier /* ex: KeywordId::If */},
+    {"else", 4, SubTokenIdentifierId::Identifier /* Else */},
+    {"for", 3, SubTokenIdentifierId::Identifier /* For */},
+    {"while", 5, SubTokenIdentifierId::Identifier /* While */},
+    {"return", 6, SubTokenIdentifierId::Identifier /* Return */},
+    {"func", 4, SubTokenIdentifierId::Identifier /* Func */},
+    {"var", 3, SubTokenIdentifierId::Identifier /* Var */},
+    {"let", 3, SubTokenIdentifierId::Identifier /* Let */},
+    {"true", 4, SubTokenIdentifierId::Identifier /* True */},
+    {"false", 5, SubTokenIdentifierId::Identifier /* False */},
+    {"null", 4, SubTokenIdentifierId::Identifier /* Null */},
+    {"struct", 6, SubTokenIdentifierId::Identifier /* Struct */},
+    {"enum", 4, SubTokenIdentifierId::Identifier /* Enum */},
+    {"import", 6, SubTokenIdentifierId::Identifier /* Import */},
 }};
 
-constexpr KWTable<1024> gKeywordTable{K_KEYWORDS};
+constexpr KwTable<1024> G_KEYWORD_TABLE{K_KEYWORDS};

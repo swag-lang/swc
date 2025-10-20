@@ -57,4 +57,5 @@ void DiagnosticIds::initErrors()
     SWAG_DIAG(TooManyCharsInLiteral);
     SWAG_DIAG(InvalidHexDigit);
     SWAG_DIAG(IncompleteHexEscape);
+    SWAG_DIAG(EmptyHexEscape);
 }

@@ -31,7 +31,7 @@ class Lexer
     void     consumeOneEol();
     void     pushToken();
     void     reportError(DiagnosticId id, uint32_t offset, uint32_t len = 1) const;
-    uint32_t parseEscape(const uint8_t* pos, bool& hasError) const;
+    uint32_t parseEscape(const uint8_t* pos, TokenId containerToken, bool& hasError) const;
     void     checkFormat(const CompilerContext& ctx, uint32_t& startOffset) const;
 
     void parseEol();

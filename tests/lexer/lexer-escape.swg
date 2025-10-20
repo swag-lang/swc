@@ -28,19 +28,19 @@
 "\xFF"
 "\x0A"
 "\xG0"            // expected-error InvalidHexDigit
-"\x"              // expected-error InvalidHexDigit
+"\x"              // expected-error EmptyHexEscape
 "\x0"             // expected-error IncompleteHexEscape
 "\x_0"            // expected-error InvalidHexDigit
 
 // --- Unicode short escapes (\uXXXX) ---
-"\u0000"          // valid
-"\u0041"          // valid ('A')
-"\u00E9"          // valid (é)
-"\uabcd"          // valid
-"\uFFFF"          // valid (last BMP code point)
+"\u0000"
+"\u0041"
+"\u00E9"
+"\uabcd"
+"\uFFFF"
 "\uG000"          // expected-error InvalidHexDigit
 "\u123"           // expected-error IncompleteHexEscape
-"\u"              // expected-error InvalidHexDigit
+"\u"              // expected-error EmptyHexEscape
 "\u_"             // expected-error InvalidHexDigit
 
 // --- Unicode long escapes (\UXXXXXXXX) ---
@@ -53,7 +53,7 @@
 "\U1234567"       // expected-error IncompleteHexEscape
 "\U0000000G"      // expected-error IncompleteHexEscape
 "\U000000"        // expected-error IncompleteHexEscape
-"\U"              // expected-error InvalidHexDigit
+"\U"              // expected-error EmptyHexEscape
 
 // --- Mixed / complex sequences ---
 "abc\\ndef"       // valid (escaped backslash + newline)

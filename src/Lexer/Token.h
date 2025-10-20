@@ -1,4 +1,5 @@
 #pragma once
+#include "Keywords.h"
 
 class SourceFile;
 
@@ -102,10 +103,11 @@ struct Token
     uint8_t padding = 0;
     union
     {
-        SubTokenStringId   subTokenStringId;   // Valid if id is StringLiteral
-        SubTokenNumberId   subTokenNumberId;   // Valid if id is NumberLiteral
-        SubTokenCommentId  subTokenCommentId;  // Valid if id is Comment
-        SubTokenOperatorId subTokenOperatorId; // Valid if id is Operator
+        SubTokenStringId     subTokenStringId;     // Valid if id is StringLiteral
+        SubTokenNumberId     subTokenNumberId;     // Valid if id is NumberLiteral
+        SubTokenCommentId    subTokenCommentId;    // Valid if id is Comment
+        SubTokenOperatorId   subTokenOperatorId;   // Valid if id is Operator
+        SubTokenIdentifierId subTokenIdentifierId; // Valid if id is Identifier
     };
 
     std::string_view toString(const SourceFile* file) const;

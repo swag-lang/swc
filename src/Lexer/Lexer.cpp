@@ -122,8 +122,6 @@ void Lexer::parseEscape(TokenId containerToken, bool eatEol, bool& hasError)
 // Consume exactly one logical EOL (CRLF | CR | LF). Push the next line start.
 void Lexer::consumeOneEol()
 {
-    SWAG_ASSERT(buffer_ < end_);
-
     if (buffer_[0] == '\r')
     {
         if (buffer_[1] == '\n')
@@ -1183,15 +1181,15 @@ Result Lexer::tokenize(CompilerContext& ctx, LexerFlags flags)
 
     const auto base = file->content().data();
     buffer_         = base + startOffset;
-    end_            = base + file->content().size();
     startBuffer_    = base;
+    endBuffer_      = startBuffer_ + file->size();
 
     // Reserve space based on file size
     tokens_.reserve(file->content().size() / 8);
     lines_.reserve(file->content().size() / 80);
     lines_.push_back(0);
 
-    while (buffer_ < end_)
+    while (buffer_ < endBuffer_)
     {
         const auto startToken = buffer_;
         token_.start          = static_cast<uint32_t>(startToken - startBuffer_);

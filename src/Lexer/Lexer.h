@@ -23,8 +23,8 @@ class Lexer
 
     LexerFlags       lexerFlags_  = LEXER_DEFAULT;
     const uint8_t*   buffer_      = nullptr;
-    const uint8_t*   end_         = nullptr;
     const uint8_t*   startBuffer_ = nullptr;
+    const uint8_t*   endBuffer_   = nullptr;
     CompilerContext* ctx_         = nullptr;
     const LangSpec*  langSpec_    = nullptr;
 

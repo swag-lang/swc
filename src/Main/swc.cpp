@@ -28,7 +28,7 @@ static void parseFolder(CompilerContext& ctx, const fs::path& directory)
             {
                 const auto f = new SourceFile(entry.path());
                 f->loadContent(ctx);
-                if (f->codeView(0, f->content().size()).find("#global testerror") == Utf8::npos)
+                if (f->codeView(0, (uint32_t) f->content().size()).find("#global testerror") == Utf8::npos)
                 {
                     ctx.setSourceFile(f);
                     f->tokenize(ctx);

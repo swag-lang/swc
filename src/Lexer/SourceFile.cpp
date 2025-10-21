@@ -40,10 +40,8 @@ Result SourceFile::loadContent(CompilerContext& ctx)
     }
 
     // Ensure we have at least 4 characters in the buffer
-    content_.push_back(0);
-    content_.push_back(0);
-    content_.push_back(0);
-    content_.push_back(0);
+    for (int i = 0; i < TRAILING_0; i++)
+        content_.push_back(0);
 
     return Result::Success;
 }

@@ -7,9 +7,9 @@ class CompilerInstance;
 
 class SourceFile
 {
-    fs::path path_;
+    static constexpr int TRAILING_0 = 4; // Number of '\0' forced at the end of the file
 
-private:
+    fs::path             path_;
     std::vector<uint8_t> content_;
     UnitTest             verifier_;
     Lexer                lexer_;
@@ -19,6 +19,7 @@ public:
 
     fs::path                    path() const { return path_; }
     const std::vector<uint8_t>& content() const { return content_; }
+    size_t                      size() const { return content_.size() - TRAILING_0; }
     Lexer&                      lexer() { return lexer_; }
     UnitTest&                   verifier() { return verifier_; }
     const Lexer&                lexer() const { return lexer_; }

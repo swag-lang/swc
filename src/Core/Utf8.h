@@ -51,5 +51,5 @@ public:
     void trimEnd();
     void trim();
 
-    static std::tuple<const char*, uint32_t, unsigned> decode(const char* p, const char* end);
+    static std::tuple<const uint8_t*, uint32_t, uint32_t> decode(const uint8_t* p, const uint8_t* end);
 };

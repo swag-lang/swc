@@ -43,7 +43,7 @@ void Lexer::reportError(DiagnosticId id, uint32_t offset, uint32_t len) const
         Utf8 arg = ctx_->sourceFile()->codeView(offset, len);
         diag.last()->addArgument(arg);
     }
-    
+
     diag.report(*ctx_);
 }
 
@@ -199,7 +199,7 @@ void Lexer::parseSingleLineStringLiteral()
                 reportError(DiagnosticId::FileNotUtf8, static_cast<uint32_t>(buffer_ - startBuffer_), 1);
                 hasError = true;
             }
-            
+
             buffer_++;
             continue;
         }
@@ -392,7 +392,18 @@ void Lexer::parseCharacterLiteral()
         if (buffer_[0] == '\\')
             parseEscape(TokenId::CharacterLiteral, false, hasError);
         else
-            buffer_ += 1;
+        {
+            auto [buf, wc, eat] = Utf8::decode(buffer_, endBuffer_);
+            if (!buf)
+            {
+                reportError(DiagnosticId::FileNotUtf8, static_cast<uint32_t>(buffer_ - startBuffer_), 1);
+                hasError = true;
+                buf      = buffer_ + 1;
+            }
+
+            buffer_ = buf;
+        }
+
         charCount++;
 
         // Check for too many characters (only report once)
@@ -642,7 +653,7 @@ void Lexer::parseDecimalNumber()
         }
 
         uint32_t expDigits = 0;
-        lastWasSep = false;
+        lastWasSep         = false;
         while (buffer_ < endBuffer_ && (langSpec_->isDigit(buffer_[0]) || langSpec_->isNumberSep(buffer_[0])))
         {
             if (langSpec_->isNumberSep(buffer_[0]))

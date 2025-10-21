@@ -27,10 +27,10 @@ void Utf8::trim()
 
 // Returns {next_ptr, code_point, bytes_consumed}.
 // On error: {nullptr, 0, 0}.
-std::tuple<const char*, uint32_t, unsigned> Utf8::decode(const char* p, const char* end)
+std::tuple<const uint8_t*, uint32_t, uint32_t> Utf8::decode(const uint8_t* p, const uint8_t* end)
 {
-    const auto u = reinterpret_cast<const uint8_t*>(p);
-    const auto e = reinterpret_cast<const uint8_t*>(end);
+    const auto u = p;
+    const auto e = end;
 
     if (u >= e)
         return {nullptr, 0, 0};
@@ -40,7 +40,7 @@ std::tuple<const char*, uint32_t, unsigned> Utf8::decode(const char* p, const ch
     // Fast ASCII path
     if (b0 < 0x80)
     {
-        return {reinterpret_cast<const char*>(u + 1), static_cast<uint32_t>(b0), 1};
+        return {u + 1, static_cast<uint32_t>(b0), 1};
     }
 
     // 2-byte: 110xxxxx 10xxxxxx (U+0080..U+07FF), no overlongs (b0 >= 0xC2)
@@ -52,7 +52,7 @@ std::tuple<const char*, uint32_t, unsigned> Utf8::decode(const char* p, const ch
         if (b0 < 0xC2 || (b1 & 0xC0) != 0x80)
             return {nullptr, 0, 0};
         uint32_t wc = ((b0 & 0x1F) << 6) | (b1 & 0x3F);
-        return {reinterpret_cast<const char*>(u + 2), wc, 2};
+        return {u + 2, wc, 2};
     }
 
     // 3-byte: 1110xxxx 10xxxxxx 10xxxxxx (U+0800..U+FFFF excluding surrogates)
@@ -69,7 +69,7 @@ std::tuple<const char*, uint32_t, unsigned> Utf8::decode(const char* p, const ch
         if (b0 == 0xED && b1 >= 0xA0)
             return {nullptr, 0, 0}; // surrogates
         uint32_t wc = ((b0 & 0x0F) << 12) | ((b1 & 0x3F) << 6) | (b2 & 0x3F);
-        return {reinterpret_cast<const char*>(u + 3), wc, 3};
+        return {u + 3, wc, 3};
     }
 
     // 4-byte: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx (U+10000..U+10FFFF)
@@ -86,9 +86,8 @@ std::tuple<const char*, uint32_t, unsigned> Utf8::decode(const char* p, const ch
             return {nullptr, 0, 0}; // overlong
         if (b0 > 0xF4 || (b0 == 0xF4 && b1 > 0x8F))
             return {nullptr, 0, 0}; // > U+10FFFF
-        uint32_t wc = ((b0 & 0x07) << 18) | ((b1 & 0x3F) << 12) |
-                      ((b2 & 0x3F) << 6) | (b3 & 0x3F);
-        return {reinterpret_cast<const char*>(u + 4), wc, 4};
+        uint32_t wc = ((b0 & 0x07) << 18) | ((b1 & 0x3F) << 12) | ((b2 & 0x3F) << 6) | (b3 & 0x3F);
+        return {u + 4, wc, 4};
     }
 
     // Invalid lead byte

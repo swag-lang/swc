@@ -9,12 +9,12 @@
 
 namespace
 {
-    uint32_t calculateColumn(CompilerContext& ctx, const uint8_t* content, uint32_t lineStart, uint32_t offset)
+    uint32_t calculateColumn(const CompilerContext& ctx, const uint8_t* content, uint32_t lineStart, uint32_t offset)
     {
         const uint32_t tabSize = ctx.ci().cmdLine().tabSize;
         uint32_t       column  = 1; // Columns are 1-based
-        auto           ptr     = reinterpret_cast<const char*>(content + lineStart);
-        const auto     end     = reinterpret_cast<const char*>(content + offset);
+        auto           ptr     = content + lineStart;
+        const auto     end     = content + offset;
 
         while (ptr < end)
         {
@@ -40,7 +40,7 @@ namespace
     }
 }
 
-void SourceCodeLocation::fromOffset(CompilerContext& ctx, const SourceFile* inFile, uint32_t inOffset, uint32_t inLen)
+void SourceCodeLocation::fromOffset(const CompilerContext& ctx, const SourceFile* inFile, uint32_t inOffset, uint32_t inLen)
 {
     SWAG_ASSERT(inFile);
 

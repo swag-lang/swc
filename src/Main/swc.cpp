@@ -28,9 +28,12 @@ static void parseFolder(CompilerContext& ctx, const fs::path& directory)
             {
                 const auto f = new SourceFile(entry.path());
                 f->loadContent(ctx);
-                ctx.setSourceFile(f);
-                f->tokenize(ctx);
-                (void) f->verifier().verify(ctx);
+                if (f->codeView(0, f->content().size()).find("#global testerror") == Utf8::npos)
+                {
+                    ctx.setSourceFile(f);
+                    f->tokenize(ctx);
+                    (void) f->verifier().verify(ctx);
+                }
             }
         }
     }
@@ -46,7 +49,7 @@ int main(int argc, char* argv[])
     if (!parser.parse(ctx, argc, argv, "build"))
         return 1;
 
-    // parseFolder(ctx, "c:/perso/swag-lang");
+    parseFolder(ctx, "c:/perso/swag-lang");
     parseFolder(ctx, "c:/perso/swag-lang/swc");
     return 0;
 }

@@ -3,6 +3,7 @@ SWAG_DIAG_DEF(CmdLineInvalidArg, "invalid command line argument '%0'")
 SWAG_DIAG_DEF(CmdLineInvalidArgForCmd, "invalid argument '%0' for command '%1'")
 SWAG_DIAG_DEF(CmdLineInvalidEnumValue, "invalid value '%0' for enum '%1'")
 SWAG_DIAG_DEF(CmdLineMissingArgValue, "missing value for argument '%0'")
+SWAG_DIAG_DEF(CmdLineInvalidBoolArg, "invalid argument '%0' because '%1' is not boolean")
 
 // File errors
 SWAG_DIAG_DEF(CannotOpenFile, "cannot open file '%0'")

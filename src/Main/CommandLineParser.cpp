@@ -9,14 +9,14 @@
 
 namespace
 {
-    constexpr const char* LONG_PREFIX         = "--";
-    constexpr const char* SHORT_PREFIX        = "-";
-    constexpr const char* LONG_NO_PREFIX      = "--no-";
-    constexpr const char* SHORT_NO_PREFIX     = "-no-";
-    constexpr size_t      LONG_PREFIX_LEN     = 2;
-    constexpr size_t      SHORT_PREFIX_LEN    = 1;
-    constexpr size_t      LONG_NO_PREFIX_LEN  = 5;
-    constexpr size_t      SHORT_NO_PREFIX_LEN = 4;
+    constexpr auto   LONG_PREFIX         = "--";
+    constexpr auto   SHORT_PREFIX        = "-";
+    constexpr auto   LONG_NO_PREFIX      = "--no-";
+    constexpr auto   SHORT_NO_PREFIX     = "-no-";
+    constexpr size_t LONG_PREFIX_LEN     = 2;
+    constexpr size_t SHORT_PREFIX_LEN    = 1;
+    constexpr size_t LONG_NO_PREFIX_LEN  = 5;
+    constexpr size_t SHORT_NO_PREFIX_LEN = 4;
 
     bool getNextValue(CompilerContext& ctx, const Utf8& arg, int& index, int argc, char* argv[], Utf8& value)
     {
@@ -31,7 +31,6 @@ namespace
         value = argv[++index];
         return true;
     }
-
 }
 
 bool CommandLineParser::commandMatches(const Utf8& cmdToCheck, const Utf8& allowedCmds)
@@ -165,7 +164,10 @@ const ArgInfo* CommandLineParser::findNegatedArgument(CompilerContext& ctx, cons
     const ArgInfo* info = &it->second;
     if (info->type != CommandLineType::Bool)
     {
-        reportInvalidBooleanNegation(ctx, arg);
+        const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidBoolArg);
+        diag.last()->addArgument(arg);
+        diag.last()->addArgument(baseArg);
+        diag.report(ctx);
         return nullptr;
     }
 
@@ -174,13 +176,6 @@ const ArgInfo* CommandLineParser::findNegatedArgument(CompilerContext& ctx, cons
 }
 
 void CommandLineParser::reportInvalidArgument(CompilerContext& ctx, const Utf8& arg)
-{
-    const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidArg);
-    diag.last()->addArgument(arg);
-    diag.report(ctx);
-}
-
-void CommandLineParser::reportInvalidBooleanNegation(CompilerContext& ctx, const Utf8& arg)
 {
     const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidArg);
     diag.last()->addArgument(arg);

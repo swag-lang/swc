@@ -46,7 +46,6 @@ class CommandLineParser
     const ArgInfo*        findShortFormArgument(CompilerContext& ctx, const Utf8& arg, bool& invertBoolean);
     static const ArgInfo* findNegatedArgument(CompilerContext& ctx, const Utf8& arg, const char* prefix, size_t noPrefixLen, const std::map<Utf8, ArgInfo>& argMap, bool& invertBoolean);
     static void           reportInvalidArgument(CompilerContext& ctx, const Utf8& arg);
-    static void           reportInvalidBooleanNegation(CompilerContext& ctx, const Utf8& arg);
     static bool           processArgument(CompilerContext& ctx, const ArgInfo* info, const Utf8& arg, bool invertBoolean, int& index, int argc, char* argv[]);
     void                  addArg(const char* commands, const char* longForm, const char* shortForm, CommandLineType type, void* target, const char* enumValues, const char* description);
     static bool           reportEnumError(CompilerContext& ctx, const Utf8& value, const Utf8& enumValues);

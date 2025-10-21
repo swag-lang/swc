@@ -30,7 +30,9 @@ void DiagnosticIds::addId(DiagnosticId id, const std::string_view name)
 void DiagnosticIds::initErrors()
 {
 #define SWAG_DIAG(id) addId(DiagnosticId::id, #id);
-
+    
+    SWAG_DIAG(CmdLineInvalidEnumValue);
+    
     SWAG_DIAG(CannotOpenFile);
     SWAG_DIAG(CannotReadFile);
 

@@ -27,5 +27,5 @@ public:
 
     Result loadContent(CompilerContext& ctx);
     Result tokenize(CompilerContext& ctx);
-    Utf8   codeLine(CompilerContext& ctx, uint32_t line) const;
+    Utf8   codeLine(const CompilerContext& ctx, uint32_t line) const;
 };

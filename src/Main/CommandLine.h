@@ -1,8 +1,7 @@
 #pragma once
 
-class CommandLine
+struct CommandLine
 {
-public:
     uint32_t tabSize = 4;
 
     bool verboseErrors = false;

@@ -2,9 +2,13 @@
 
 enum class DiagnosticId
 {
+    CmdLineInvalidEnumValue,
+    
     CannotOpenFile,
     CannotReadFile,
+    
     FileNotUtf8,
+    
     UnclosedComment,
     NewlineInStringLiteral,
     UnclosedStringLiteral,

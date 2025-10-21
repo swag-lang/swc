@@ -19,10 +19,9 @@ Result SourceFile::loadContent(CompilerContext& ctx)
 
     if (!file)
     {
-        Diagnostic diag(this);
-        const auto elem = diag.addError(DiagnosticId::CannotOpenFile);
-        elem->setLocation(this);
-        elem->addArgument(path_.string());
+        const auto diag = Diagnostic::error(DiagnosticId::CannotOpenFile, this);
+        diag.last()->setLocation(this);
+        diag.last()->addArgument(path_.string());
         diag.report(ctx);
         return Result::Error;
     }
@@ -33,10 +32,9 @@ Result SourceFile::loadContent(CompilerContext& ctx)
 
     if (!file.read(reinterpret_cast<char*>(content_.data()), fileSize))
     {
-        Diagnostic diag(this);
-        const auto elem = diag.addError(DiagnosticId::CannotReadFile);
-        elem->setLocation(this);
-        elem->addArgument(path_.string());
+        const auto diag = Diagnostic::error(DiagnosticId::CannotReadFile, this);
+        diag.last()->setLocation(this);
+        diag.last()->addArgument(path_.string());
         diag.report(ctx);
         return Result::Error;
     }
@@ -56,7 +54,7 @@ Result SourceFile::tokenize(CompilerContext& ctx)
     return lexer_.tokenize(ctx);
 }
 
-Utf8 SourceFile::codeLine(CompilerContext& ctx, uint32_t line) const
+Utf8 SourceFile::codeLine(const CompilerContext& ctx, uint32_t line) const
 {
     line--;
     SWAG_ASSERT(line < lexer_.lines().size());

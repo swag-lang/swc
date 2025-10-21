@@ -3,7 +3,7 @@
 class Logger;
 class DiagnosticIds;
 class LangSpec;
-class CommandLine;
+struct CommandLine;
 
 class CompilerInstance
 {

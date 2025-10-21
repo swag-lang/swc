@@ -13,8 +13,6 @@ enum class DiagnosticKind
     Hint,
 };
 
-class Logger;
-
 class Diagnostic
 {
     std::vector<std::unique_ptr<DiagnosticElement>> elements_;
@@ -34,4 +32,19 @@ public:
 
     DiagnosticElement* addElement(DiagnosticKind kind, DiagnosticId id);
     DiagnosticElement* addError(DiagnosticId id) { return addElement(DiagnosticKind::Error, id); }
+
+    DiagnosticElement* last() const { return elements_.empty() ? nullptr : elements_.back().get(); }
+
+    static Diagnostic error(DiagnosticId id, SourceFile* fileOwner = nullptr)
+    {
+        Diagnostic diag(fileOwner);
+        diag.addError(id);
+        return diag;
+    }
+
+    static void reportError(CompilerContext& ctx, DiagnosticId id)
+    {
+        const auto diag = error(id);
+        diag.report(ctx);
+    }
 };

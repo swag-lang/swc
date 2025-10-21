@@ -36,9 +36,8 @@ void Lexer::reportError(DiagnosticId id, uint32_t offset, uint32_t len) const
     if (lexerFlags_.has(LEXER_EXTRACT_COMMENTS_MODE))
         return;
 
-    Diagnostic diag(ctx_->sourceFile());
-    const auto elem = diag.addError(id);
-    elem->setLocation(ctx_->sourceFile(), offset, len);
+    const auto diag = Diagnostic::error(id, ctx_->sourceFile());
+    diag.last()->setLocation(ctx_->sourceFile(), offset, len);
     diag.report(*ctx_);
 }
 

@@ -2,35 +2,9 @@
 
 enum class DiagnosticId
 {
-    CmdLineInvalidEnumValue,
-    CmdLineMissingArgValue,
-    CmdLineInvalidArg,
-    CmdLineInvalidArgForCmd,
-    
-    CannotOpenFile,
-    CannotReadFile,
-    
-    FileNotUtf8,
-    
-    UnclosedComment,
-    NewlineInStringLiteral,
-    UnclosedStringLiteral,
-    ConsecutiveNumberSeparators,
-    LeadingNumberSeparator,
-    TrailingNumberSeparator,
-    MissingHexDigits,
-    MissingBinDigits,
-    MissingExponentDigits,
-    InvalidHexNumberSuffix,
-    InvalidBinNumberSuffix,
-    UnRaisedDirective,
-    InvalidEscapeSequence,
-    InvalidCharacter,
-    EmptyCharLiteral,
-    UnclosedCharLiteral,
-    InvalidHexDigit,
-    IncompleteHexEscape,
-    EmptyHexEscape,
+#define SWAG_DIAG_DEF(id, msg) id,
+#include "DiagnosticIds.inc"
+#undef SWAG_DIAG_DEF
 };
 
 struct DiagnosticIdInfo
@@ -51,6 +25,6 @@ public:
 private:
     std::vector<DiagnosticIdInfo> infos_;
 
-    void addId(DiagnosticId id, std::string_view name);
-    void initErrors();
+    void addId(DiagnosticId id, std::string_view name, const std::string_view msg);
+    void initIds();
 };

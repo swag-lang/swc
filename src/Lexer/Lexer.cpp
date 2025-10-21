@@ -38,6 +38,8 @@ void Lexer::reportError(DiagnosticId id, uint32_t offset, uint32_t len) const
 
     const auto diag = Diagnostic::error(id, ctx_->sourceFile());
     diag.last()->setLocation(ctx_->sourceFile(), offset, len);
+    if (len)
+        diag.last()->addArgument(ctx_->sourceFile()->codeView(offset, len));
     diag.report(*ctx_);
 }
 
@@ -87,7 +89,7 @@ uint32_t Lexer::parseEscape(const uint8_t* pos, TokenId containerToken, bool& ha
             if (actualDigits == 0)
             {
                 // Distinguish between truly "empty" escape (\x<quote/eol/eof>) and bad first digit (\xG)
-                const uint8_t first = pos[2]; // first expected hex digit (may be '\0')
+                const uint8_t first = pos[2]; // first expected a hex digit (maybe '\0')
                 if (isTerminatorAfterEscapeChar(first, containerToken))
                 {
                     // Highlight only the introducer, e.g. "\x"
@@ -95,7 +97,7 @@ uint32_t Lexer::parseEscape(const uint8_t* pos, TokenId containerToken, bool& ha
                 }
                 else
                 {
-                    // First char exists but isn't hex (e.g. \xG)
+                    // The first char exists but isn't hex (e.g. \xG)
                     reportError(DiagnosticId::InvalidHexDigit, offset + 2, 1);
                 }
             }
@@ -594,7 +596,7 @@ void Lexer::parseDecimalNumber()
     if (!hasError && lastWasSep)
     {
         reportError(DiagnosticId::TrailingNumberSeparator, static_cast<uint32_t>(buffer_ - startBuffer_));
-        hasError = true;        
+        hasError = true;
     }
 
     token_.len = static_cast<uint32_t>(buffer_ - startToken);

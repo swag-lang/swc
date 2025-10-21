@@ -25,7 +25,8 @@ public:
     const UnitTest&             verifier() const { return verifier_; }
     const std::vector<Token>&   tokens() const { return lexer_.tokens(); }
 
-    Result loadContent(CompilerContext& ctx);
-    Result tokenize(CompilerContext& ctx);
-    Utf8   codeLine(const CompilerContext& ctx, uint32_t line) const;
+    Result           loadContent(CompilerContext& ctx);
+    Result           tokenize(CompilerContext& ctx);
+    Utf8             codeLine(const CompilerContext& ctx, uint32_t line) const;
+    std::string_view codeView(uint32_t offset, uint32_t len) const;
 };

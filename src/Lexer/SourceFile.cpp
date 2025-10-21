@@ -76,7 +76,7 @@ Utf8 SourceFile::codeLine(const CompilerContext& ctx, uint32_t line) const
             hasTab = true;
         buffer++;
     }
-    
+
     const auto result = std::string_view{startBuffer, buffer};
     if (!hasTab)
         return result;
@@ -103,4 +103,10 @@ Utf8 SourceFile::codeLine(const CompilerContext& ctx, uint32_t line) const
     }
 
     return expanded;
+}
+
+std::string_view SourceFile::codeView(uint32_t offset, uint32_t len) const
+{
+    SWAG_ASSERT(offset + len <= content_.size());
+    return std::string_view{reinterpret_cast<const char*>(content_.data() + offset), len};
 }

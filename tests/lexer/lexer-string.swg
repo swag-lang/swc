@@ -107,9 +107,14 @@ third line"""
 """\z"""            // expected-error InvalidEscapeSequence
 """test\qfail"""    // expected-error InvalidEscapeSequence
 
-// --- Multi-line with trailing backslash at EOF ---
-// expected-error@+ InvalidEscapeSequence
+// --- Multi-line with trailing backslash at EOL ---
 """test\
+A\
+B\
+"""
+"""test\
+A\
+B"""
 
 // --- Multi-line with embedded quotes ---
 """This is "quoted" text"""

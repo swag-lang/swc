@@ -7,6 +7,7 @@
 #include "Main/CompilerInstance.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticIds.h"
+#include <windows.h>
 
 namespace
 {
@@ -44,22 +45,33 @@ void Lexer::reportError(DiagnosticId id, uint32_t offset, uint32_t len) const
 }
 
 // Validate hex/Unicode escape sequences (\xXX, \uXXXX, \UXXXXXXXX)
-// Returns the number of characters to skip (including the backslash), or 0 if invalid
-uint32_t Lexer::parseEscape(const uint8_t* pos, TokenId containerToken, bool& hasError) const
+void Lexer::parseEscape(TokenId containerToken, bool eatEol, bool& hasError)
 {
-    if (!langSpec_->isEscape(pos[1]))
+    // Eat the EOL right after the escape character
+    if (eatEol)
+    {
+        if (buffer_[1] == '\r' || buffer_[1] == '\n')
+        {
+            buffer_++;
+            consumeOneEol();
+            return;
+        }
+    }
+
+    if (!langSpec_->isEscape(buffer_[1]))
     {
         reportError(DiagnosticId::InvalidEscapeSequence, static_cast<uint32_t>(buffer_ - startBuffer_), 2);
         hasError = true;
     }
 
     // pos points to the backslash
-    if (pos[1] != 'x' && pos[1] != 'u' && pos[1] != 'U')
+    if (buffer_[1] != 'x' && buffer_[1] != 'u' && buffer_[1] != 'U')
     {
-        return 2;
+        buffer_ += 2;
+        return;
     }
 
-    const uint8_t escapeType     = pos[1];
+    const uint8_t escapeType     = buffer_[1];
     uint32_t      expectedDigits = 0;
 
     switch (escapeType)
@@ -80,15 +92,15 @@ uint32_t Lexer::parseEscape(const uint8_t* pos, TokenId containerToken, bool& ha
     // Check if we have the required number of hex digits
     for (uint32_t i = 0; i < expectedDigits; i++)
     {
-        if (!langSpec_->isHexNumber(pos[2 + i]))
+        if (!langSpec_->isHexNumber(buffer_[2 + i]))
         {
             // Not enough or invalid hex digits
             const uint32_t actualDigits = i;
-            const uint32_t offset       = static_cast<uint32_t>(pos - startBuffer_);
+            const uint32_t offset       = static_cast<uint32_t>(buffer_ - startBuffer_);
 
             if (actualDigits == 0)
             {
-                const uint8_t first = pos[2]; // first expected a hex digit (maybe '\0')
+                const uint8_t first = buffer_[2]; // first expected a hex digit (maybe '\0')
                 if (isTerminatorAfterEscapeChar(first, containerToken))
                     reportError(DiagnosticId::EmptyHexEscape, offset, 2);
                 else
@@ -98,12 +110,13 @@ uint32_t Lexer::parseEscape(const uint8_t* pos, TokenId containerToken, bool& ha
                 reportError(DiagnosticId::IncompleteHexEscape, offset, 2 + actualDigits);
 
             hasError = true;
-            return 2 + actualDigits; // Return what we consumed so far
+            buffer_ += 2 + actualDigits;
+            return;
         }
     }
 
     // Valid escape sequence
-    return 2 + expectedDigits;
+    buffer_ += 2 + expectedDigits;
 }
 
 // Consume exactly one logical EOL (CRLF | CR | LF). Push the next line start.
@@ -173,7 +186,7 @@ void Lexer::parseSingleLineStringLiteral()
         // Escaped char
         if (buffer_[0] == '\\')
         {
-            buffer_ += parseEscape(buffer_, TokenId::StringLiteral, hasError);
+            parseEscape(TokenId::StringLiteral, false, hasError);
             continue;
         }
 
@@ -225,7 +238,7 @@ void Lexer::parseMultiLineStringLiteral()
         // Escaped char
         if (buffer_[0] == '\\')
         {
-            buffer_ += parseEscape(buffer_, TokenId::StringLiteral, hasError);
+            parseEscape(TokenId::StringLiteral, true, hasError);
             continue;
         }
 
@@ -315,7 +328,7 @@ void Lexer::parseCharacterLiteral()
 
         // Handle escape sequence
         if (buffer_[0] == '\\')
-            buffer_ += parseEscape(buffer_, TokenId::CharacterLiteral, hasError);
+            parseEscape(TokenId::CharacterLiteral, false, hasError);
         else
             buffer_ += 1;
     }

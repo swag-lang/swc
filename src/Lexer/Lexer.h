@@ -28,11 +28,11 @@ class Lexer
     CompilerContext* ctx_         = nullptr;
     const LangSpec*  langSpec_    = nullptr;
 
-    void     consumeOneEol();
-    void     pushToken();
-    void     reportError(DiagnosticId id, uint32_t offset, uint32_t len = 1) const;
-    uint32_t parseEscape(const uint8_t* pos, TokenId containerToken, bool& hasError) const;
-    void     checkFormat(const CompilerContext& ctx, uint32_t& startOffset) const;
+    void consumeOneEol();
+    void pushToken();
+    void reportError(DiagnosticId id, uint32_t offset, uint32_t len = 1) const;
+    void parseEscape(TokenId containerToken, bool eatEol, bool& hasError);
+    void checkFormat(const CompilerContext& ctx, uint32_t& startOffset) const;
 
     void parseEol();
     void parseBlank();

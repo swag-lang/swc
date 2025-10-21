@@ -190,7 +190,7 @@ void Lexer::parseSingleLineStringLiteral()
     }
 
     // Handle newline in string literal
-    if ((!hasError && buffer_[0] == '\n') || buffer_[0] == '\r')
+    if (!hasError && (buffer_[0] == '\n' || buffer_[0] == '\r'))
     {
         const auto errorOffset = static_cast<uint32_t>(buffer_ - startBuffer_);
         reportError(DiagnosticId::NewlineInStringLiteral, errorOffset);
@@ -314,7 +314,7 @@ void Lexer::parseCharacterLiteral()
     while (buffer_[0] != '\'')
     {
         // Check for EOL or EOF
-        if (buffer_[0] == '\n' || buffer_[0] == '\r' || buffer_[0] == '\0')
+        if (!hasError && (buffer_[0] == '\n' || buffer_[0] == '\r' || buffer_[0] == '\0'))
         {
             reportError(DiagnosticId::UnclosedCharLiteral, static_cast<uint32_t>(startToken - startBuffer_));
             token_.len = static_cast<uint32_t>(buffer_ - startToken);

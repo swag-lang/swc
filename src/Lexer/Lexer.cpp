@@ -61,7 +61,7 @@ void Lexer::parseEscape(TokenId containerToken, bool eatEol, bool& hasError)
         }
     }
 
-    if (!langSpec_->isEscape(buffer_[1]))
+    if (!hasError && !langSpec_->isEscape(buffer_[1]))
     {
         reportError(DiagnosticId::InvalidEscapeSequence, static_cast<uint32_t>(buffer_ - startBuffer_), 2);
         hasError = true;
@@ -105,16 +105,19 @@ void Lexer::parseEscape(TokenId containerToken, bool eatEol, bool& hasError)
             const uint32_t actualDigits = i;
             const uint32_t offset       = static_cast<uint32_t>(buffer_ - startBuffer_);
 
-            if (actualDigits == 0)
+            if (!hasError)
             {
-                const uint8_t first = buffer_[2]; // first expected a hex digit
-                if (isTerminatorAfterEscapeChar(first, containerToken))
-                    reportError(DiagnosticId::EmptyHexEscape, offset, 2);
+                if (actualDigits == 0)
+                {
+                    const uint8_t first = buffer_[2]; // first expected a hex digit
+                    if (isTerminatorAfterEscapeChar(first, containerToken))
+                        reportError(DiagnosticId::EmptyHexEscape, offset, 2);
+                    else
+                        reportError(DiagnosticId::InvalidHexDigit, offset + 2, 1);
+                }
                 else
-                    reportError(DiagnosticId::InvalidHexDigit, offset + 2, 1);
+                    reportError(DiagnosticId::IncompleteHexEscape, offset, 2 + actualDigits);
             }
-            else
-                reportError(DiagnosticId::IncompleteHexEscape, offset, 2 + actualDigits);
 
             hasError = true;
             buffer_ += 2 + actualDigits;
@@ -393,7 +396,9 @@ void Lexer::parseCharacterLiteral()
     // Check for EOF
     if (buffer_ >= endBuffer_)
     {
-        reportError(DiagnosticId::UnclosedCharLiteral, static_cast<uint32_t>(startToken - startBuffer_));
+        if (!hasError)
+            reportError(DiagnosticId::UnclosedCharLiteral, static_cast<uint32_t>(startToken - startBuffer_));
+        
         token_.len = static_cast<uint32_t>(buffer_ - startToken);
         pushToken();
         return;

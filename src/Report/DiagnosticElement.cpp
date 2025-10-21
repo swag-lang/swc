@@ -33,13 +33,13 @@ SourceCodeLocation DiagnosticElement::location(CompilerContext& ctx) const
     return loc;
 }
 
-std::string_view DiagnosticElement::idName(CompilerContext& ctx) const
+std::string_view DiagnosticElement::idName(const CompilerContext& ctx) const
 {
     return ctx.ci().diagIds().diagName(id_);
 }
 
 // Format a string by replacing %0, %1, etc. with registered arguments
-Utf8 DiagnosticElement::message(CompilerContext& ctx) const
+Utf8 DiagnosticElement::message(const CompilerContext& ctx) const
 {
     Utf8 result{ctx.ci().diagIds().diagMessage(id_)};
 

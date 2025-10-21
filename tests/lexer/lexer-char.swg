@@ -83,7 +83,7 @@
 '\t
 
 // --- Character literal with newline inside ---
-// expected-error@+ UnclosedCharLiteral
+// expected-error@+ TooManyCharsInCharLiteral
 'test
 multiple
 lines'
@@ -96,16 +96,16 @@ lines'
 // expected-error@+ InvalidEscapeSequence
 '\
 
-// --- Multiple characters (lexer accepts, semantic analysis may reject) ---
-'ab'
-'abc'
-'test'
-'hello'
+// --- Multiple characters ---
+'ab'		// expected-error TooManyCharsInCharLiteral
+'abc'		// expected-error TooManyCharsInCharLiteral
+'test'		// expected-error TooManyCharsInCharLiteral
+'hello'		// expected-error TooManyCharsInCharLiteral
 
 // --- Multiple characters with escapes ---
-'a\n'
-'\nz'
-'x\ty'
+'a\n'		// expected-error TooManyCharsInCharLiteral
+'\nz'		// expected-error TooManyCharsInCharLiteral
+'x\ty'		// expected-error TooManyCharsInCharLiteral
 
 // --- Special punctuation characters ---
 '('
@@ -157,8 +157,8 @@ lines'
 '\U0000000' // expected-error IncompleteHexEscape
 
 // --- Character literals with tabs and spaces ---
-'	'       // Tab character
-'   '       // Multiple spaces
+'	'       
+'   '       // expected-error TooManyCharsInCharLiteral
 
 // --- Adjacent character literals (separate tokens) ---
 'a' 'b'
@@ -176,7 +176,7 @@ lines'
 // ============================================================================
 
 // --- Backslash at end ---
-// expected-error@+ InvalidEscapeSequence
+// expected-error@+ TooManyCharsInCharLiteral
 'test\
 
 // --- Valid maximum values ---
@@ -212,4 +212,4 @@ lines'
 
 'a''s32
 // expected-error@+ UnclosedCharLiteral
-'a' 's32
+'a' 's

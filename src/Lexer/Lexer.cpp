@@ -66,7 +66,11 @@ void Lexer::parseEscape(TokenId containerToken, bool eatEol, bool& hasError)
     // pos points to the backslash
     if (buffer_[1] != 'x' && buffer_[1] != 'u' && buffer_[1] != 'U')
     {
-        buffer_ += 2;
+        buffer_ += 1;
+        if (buffer_[0] == '\r' || buffer_[0] == '\n')
+            consumeOneEol();
+        else
+            buffer_ += 1;
         return;
     }
 
@@ -341,6 +345,7 @@ void Lexer::parseCharacterLiteral()
         return;
     }
 
+    uint32_t charCount = 0;
     while (buffer_ < endBuffer_ && buffer_[0] != '\'')
     {
         // Check for null byte (invalid UTF-8)
@@ -353,10 +358,15 @@ void Lexer::parseCharacterLiteral()
         }
 
         // Check for EOL
-        if (!hasError && (buffer_[0] == '\n' || buffer_[0] == '\r'))
+        if (buffer_[0] == '\n' || buffer_[0] == '\r')
         {
-            reportError(DiagnosticId::UnclosedCharLiteral, static_cast<uint32_t>(startToken - startBuffer_));
-            token_.len = static_cast<uint32_t>(buffer_ - startToken);
+            if (!hasError)
+            {
+                reportError(DiagnosticId::UnclosedCharLiteral, static_cast<uint32_t>(startToken - startBuffer_));
+                token_.len = static_cast<uint32_t>(buffer_ - startToken);
+            }
+
+            consumeOneEol();
             pushToken();
             return;
         }
@@ -366,6 +376,14 @@ void Lexer::parseCharacterLiteral()
             parseEscape(TokenId::CharacterLiteral, false, hasError);
         else
             buffer_ += 1;
+        charCount++;
+
+        // Check for too many characters (only report once)
+        if (!hasError && charCount > 1)
+        {
+            reportError(DiagnosticId::TooManyCharsInCharLiteral, static_cast<uint32_t>(startToken - startBuffer_), static_cast<uint32_t>(buffer_ - startToken));
+            hasError = true;
+        }
     }
 
     // Check for EOF
@@ -1200,8 +1218,8 @@ void Lexer::checkFormat(const CompilerContext& ctx, uint32_t& startOffset) const
         if ((data[0] == UTF32_BE[0] && data[1] == UTF32_BE[1] && data[2] == UTF32_BE[2] && data[3] == UTF32_BE[3]) ||
             (data[0] == UTF32_LE[0] && data[1] == UTF32_LE[1] && data[2] == UTF32_LE[2] && data[3] == UTF32_LE[3]) ||
             (data[0] == 0x2B && data[1] == 0x2F && data[2] == 0x76 && (data[3] == 0x38 || data[3] == 0x39 || data[3] == 0x2B || data[3] == 0x2F)) || // UTF-7
-            (data[0] == 0xDD && data[1] == 0x73 && data[2] == 0x66 && data[3] == 0x73) ||   // UTF-EBCDIC
-            (data[0] == 0x84 && data[1] == 0x31 && data[2] == 0x95 && data[3] == 0x33))     // GB-18030
+            (data[0] == 0xDD && data[1] == 0x73 && data[2] == 0x66 && data[3] == 0x73) ||                                                            // UTF-EBCDIC
+            (data[0] == 0x84 && data[1] == 0x31 && data[2] == 0x95 && data[3] == 0x33))                                                              // GB-18030
         {
             startOffset = 4;
             badFormat   = true;

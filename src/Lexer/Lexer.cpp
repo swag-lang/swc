@@ -39,7 +39,11 @@ void Lexer::reportError(DiagnosticId id, uint32_t offset, uint32_t len) const
     const auto diag = Diagnostic::error(id, ctx_->sourceFile());
     diag.last()->setLocation(ctx_->sourceFile(), offset, len);
     if (len)
-        diag.last()->addArgument(ctx_->sourceFile()->codeView(offset, len));
+    {
+        Utf8 arg = ctx_->sourceFile()->codeView(offset, len);
+        diag.last()->addArgument(arg);
+    }
+    
     diag.report(*ctx_);
 }
 

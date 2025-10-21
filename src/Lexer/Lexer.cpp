@@ -88,24 +88,14 @@ uint32_t Lexer::parseEscape(const uint8_t* pos, TokenId containerToken, bool& ha
 
             if (actualDigits == 0)
             {
-                // Distinguish between truly "empty" escape (\x<quote/eol/eof>) and bad first digit (\xG)
                 const uint8_t first = pos[2]; // first expected a hex digit (maybe '\0')
                 if (isTerminatorAfterEscapeChar(first, containerToken))
-                {
-                    // Highlight only the introducer, e.g. "\x"
                     reportError(DiagnosticId::EmptyHexEscape, offset, 2);
-                }
                 else
-                {
-                    // The first char exists but isn't hex (e.g. \xG)
                     reportError(DiagnosticId::InvalidHexDigit, offset + 2, 1);
-                }
             }
             else
-            {
-                // Some digits present but not enough
                 reportError(DiagnosticId::IncompleteHexEscape, offset, 2 + actualDigits);
-            }
 
             hasError = true;
             return 2 + actualDigits; // Return what we consumed so far
@@ -325,13 +315,9 @@ void Lexer::parseCharacterLiteral()
 
         // Handle escape sequence
         if (buffer_[0] == '\\')
-        {
             buffer_ += parseEscape(buffer_, TokenId::CharacterLiteral, hasError);
-        }
         else
-        {
-            buffer_ += 1; // consume the character
-        }
+            buffer_ += 1;
     }
 
     buffer_ += 1; // consume closing quote

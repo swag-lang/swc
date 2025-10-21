@@ -41,16 +41,9 @@ int main(int argc, char* argv[])
     const CompilerInstance ci;
     CompilerContext        ctx(&ci);
     CommandLineParser      parser;
-    Utf8                   command = "build";
-
-    if (argc > 1 && std::string(argv[1]) == "--help")
-    {
-        parser.printHelp();
-        return 0;
-    }
 
     parser.setupCommandLine(ctx);
-    if (!parser.parse(ctx, argc, argv, command))
+    if (!parser.parse(ctx, argc, argv, "build"))
         return 1;
 
     // parseFolder(ctx, "c:/perso/swag-lang");

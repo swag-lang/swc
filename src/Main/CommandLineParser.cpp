@@ -255,15 +255,6 @@ bool CommandLineParser::parse(CompilerContext& ctx, int argc, char* argv[], cons
     return checkCommandLine(ctx);
 }
 
-void CommandLineParser::printHelp(const Utf8& command) const
-{
-    for (const auto& info : args_)
-    {
-        if (!commandMatches(command, info.commands))
-            continue;
-    }
-}
-
 bool CommandLineParser::checkCommandLine(const CompilerContext& ctx)
 {
     auto& cmdLine = ctx.ci().cmdLine();

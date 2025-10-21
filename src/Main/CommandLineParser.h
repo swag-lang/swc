@@ -54,5 +54,4 @@ class CommandLineParser
 public:
     void setupCommandLine(const CompilerContext& ctx);
     bool parse(CompilerContext& ctx, int argc, char* argv[], const Utf8& command);
-    void printHelp(const Utf8& command = "all") const;
 };

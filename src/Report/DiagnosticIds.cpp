@@ -31,6 +31,8 @@ void DiagnosticIds::initErrors()
 {
 #define SWAG_DIAG(id) addId(DiagnosticId::id, #id);
     
+    SWAG_DIAG(CmdLineInvalidArg);
+    SWAG_DIAG(CmdLineInvalidArgForCmd);
     SWAG_DIAG(CmdLineInvalidEnumValue);
     SWAG_DIAG(CmdLineMissingArgValue);
     

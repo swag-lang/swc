@@ -73,7 +73,10 @@ bool CommandLineParser::parseEnumInt(CompilerContext& ctx, const Utf8& value, co
         index++;
     }
 
-    // std::cerr << "Error: Invalid enum value '" << value << "'. Allowed: " << enumValues << std::endl;
+    const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidEnumValue);
+    diag.last()->addArgument(value);
+    diag.last()->addArgument(enumValues);
+    diag.report(ctx);
     return false;
 }
 
@@ -126,16 +129,22 @@ bool CommandLineParser::parse(CompilerContext& ctx, int argc, char* argv[], cons
         {
             if (!ignoreBadParams)
             {
-                // std::cerr << "Error: Unknown argument: " << arg << std::endl;
+                const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidArg);
+                diag.last()->addArgument(arg);
+                diag.report(ctx);
                 return false;
             }
+            
             continue;
         }
 
         // Check if this argument is valid for the current command
         if (!commandMatches(command, info->commands))
         {
-            // std::cerr << "Error: Argument " << arg << " not valid for command '" << command << "'" << std::endl;
+            const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidArgForCmd);
+            diag.last()->addArgument(arg);
+            diag.last()->addArgument(command);
+            diag.report(ctx);
             return false;
         }
 
@@ -149,7 +158,9 @@ bool CommandLineParser::parse(CompilerContext& ctx, int argc, char* argv[], cons
             case CommandLineType::Int:
                 if (i + 1 >= argc)
                 {
-                    // std::cerr << "Error: Missing value for " << arg << std::endl;
+                    const auto diag = Diagnostic::error(DiagnosticId::CmdLineMissingArgValue);
+                    diag.last()->addArgument(arg);
+                    diag.report(ctx);
                     return false;
                 }
                 *static_cast<int*>(info->target) = std::stoi(argv[++i]);
@@ -170,7 +181,9 @@ bool CommandLineParser::parse(CompilerContext& ctx, int argc, char* argv[], cons
             case CommandLineType::StringSet:
                 if (i + 1 >= argc)
                 {
-                    // std::cerr << "Error: Missing value for " << arg << std::endl;
+                    const auto diag = Diagnostic::error(DiagnosticId::CmdLineMissingArgValue);
+                    diag.last()->addArgument(arg);
+                    diag.report(ctx);
                     return false;
                 }
                 static_cast<std::set<Utf8>*>(info->target)->insert(argv[++i]);
@@ -179,7 +192,9 @@ bool CommandLineParser::parse(CompilerContext& ctx, int argc, char* argv[], cons
             case CommandLineType::EnumString:
                 if (i + 1 >= argc)
                 {
-                    // std::cerr << "Error: Missing value for " << arg << std::endl;
+                    const auto diag = Diagnostic::error(DiagnosticId::CmdLineMissingArgValue);
+                    diag.last()->addArgument(arg);
+                    diag.report(ctx);
                     return false;
                 }
                 if (!parseEnumString(ctx, argv[++i], info->enumValues, static_cast<Utf8*>(info->target)))
@@ -189,7 +204,9 @@ bool CommandLineParser::parse(CompilerContext& ctx, int argc, char* argv[], cons
             case CommandLineType::EnumInt:
                 if (i + 1 >= argc)
                 {
-                    // std::cerr << "Error: Missing value for " << arg << std::endl;
+                    const auto diag = Diagnostic::error(DiagnosticId::CmdLineMissingArgValue);
+                    diag.last()->addArgument(arg);
+                    diag.report(ctx);
                     return false;
                 }
                 if (!parseEnumInt(ctx, argv[++i], info->enumValues, static_cast<int*>(info->target)))

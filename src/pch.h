@@ -23,6 +23,7 @@
 #include <array>
 #include <map>
 #include <set>
+#include <algorithm>
 
 namespace fs = std::filesystem; 
 

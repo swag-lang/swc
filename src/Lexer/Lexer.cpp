@@ -392,7 +392,7 @@ void Lexer::parseHexNumber()
     // Letters immediately following the literal
     if (!hasError && langSpec_->isLetter(buffer_[0]))
     {
-        reportError(DiagnosticId::InvalidHexNumber, static_cast<uint32_t>(buffer_ - startBuffer_));
+        reportError(DiagnosticId::InvalidHexNumberSuffix, static_cast<uint32_t>(buffer_ - startBuffer_));
     }
 
     token_.len = static_cast<uint32_t>(buffer_ - startToken);

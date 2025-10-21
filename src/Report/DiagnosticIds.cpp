@@ -47,14 +47,12 @@ void DiagnosticIds::initErrors()
     SWAG_DIAG(MissingHexDigits);
     SWAG_DIAG(MissingBinDigits);
     SWAG_DIAG(MissingExponentDigits);
-    SWAG_DIAG(InvalidHexNumber);
+    SWAG_DIAG(InvalidHexNumberSuffix);
     SWAG_DIAG(InvalidBinNumberSuffix);
     SWAG_DIAG(InvalidEscapeSequence);
     SWAG_DIAG(InvalidCharacter);
     SWAG_DIAG(EmptyCharLiteral);
     SWAG_DIAG(UnclosedCharLiteral);
-    SWAG_DIAG(CharLiteralEol);
-    SWAG_DIAG(TooManyCharsInLiteral);
     SWAG_DIAG(InvalidHexDigit);
     SWAG_DIAG(IncompleteHexEscape);
     SWAG_DIAG(EmptyHexEscape);

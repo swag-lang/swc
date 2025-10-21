@@ -47,6 +47,9 @@
 0xABCDE_F1234
 0xF00D_F00D
 
+// --- Invalid suffix ---
+0xAFG			// expected-error InvalidHexNumberSuffix
+
 // --- Invalid with misplaced underscores ---
 0x12_34_        // expected-error TrailingNumberSeparator
 0x123__456      // expected-error ConsecutiveNumberSeparators

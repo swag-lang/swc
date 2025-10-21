@@ -99,7 +99,7 @@ bool UnitTest::verify(CompilerContext& ctx, const Diagnostic& diag) const
         {
             if (directive.kind != elem->severity_)
                 continue;
-            if (directive.loc.line == 0 || directive.loc.line != loc.line)
+            if (directive.loc.line && directive.loc.line != loc.line)
                 continue;
 
             if (elem->idName(ctx).find(directive.match) == Utf8::npos &&

@@ -3,11 +3,11 @@
 
 class CompilerContext;
 class CompilerInstance;
-enum class DiagnosticKind;
+enum class DiagnosticSeverity;
 
 struct VerifierDirective
 {
-    DiagnosticKind     kind;
+    DiagnosticSeverity     kind;
     Utf8               match;
     SourceCodeLocation loc;   // Location to raise the error
     SourceCodeLocation myLoc; // Location of the directive itself

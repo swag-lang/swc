@@ -213,6 +213,7 @@
     <ClInclude Include="src\Os\Os.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\Report\Check.h" />
+    <ClInclude Include="src\Report\Color.h" />
     <ClInclude Include="src\Report\Diagnostic.h" />
     <ClInclude Include="src\Report\DiagnosticIds.h" />
     <ClInclude Include="src\Report\DiagnosticElement.h" />

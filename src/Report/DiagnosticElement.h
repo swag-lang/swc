@@ -3,7 +3,7 @@
 
 class SourceFile;
 class CompilerContext;
-enum class DiagnosticKind;
+enum class DiagnosticSeverity;
 enum class DiagnosticId;
 
 class DiagnosticElement
@@ -12,8 +12,9 @@ class DiagnosticElement
     friend class UnitTest;
     using Argument = std::variant<Utf8, uint64_t, int64_t>;
 
-    DiagnosticId      id_;
-    DiagnosticKind    kind_;
+    DiagnosticId       id_;
+    DiagnosticSeverity severity_;
+
     const SourceFile* file_   = nullptr;
     uint32_t          offset_ = 0;
     uint32_t          len_    = 0;
@@ -23,7 +24,7 @@ class DiagnosticElement
     Utf8 argumentToString(const Argument& arg) const;
 
 public:
-    explicit DiagnosticElement(DiagnosticKind kind, DiagnosticId id);
+    explicit DiagnosticElement(DiagnosticSeverity kind, DiagnosticId id);
 
     void setLocation(const SourceFile* file)
     {
@@ -47,12 +48,13 @@ public:
 
     SourceCodeLocation location(CompilerContext& ctx) const;
     std::string_view   idName(CompilerContext& ctx) const;
+    DiagnosticId       id() const { return id_; }
+    DiagnosticSeverity severity() const { return severity_; }
+    Utf8               message(CompilerContext& ctx) const;
 
     template<typename T>
     void addArgument(T&& arg)
     {
         arguments_.emplace_back(std::forward<T>(arg));
     }
-
-    Utf8 message(CompilerContext& ctx) const;
 };

@@ -5,9 +5,9 @@
 #include "Main/CompilerInstance.h"
 #include "Report/DiagnosticElement.h"
 
-DiagnosticElement::DiagnosticElement(DiagnosticKind kind, DiagnosticId id) :
+DiagnosticElement::DiagnosticElement(DiagnosticSeverity kind, DiagnosticId id) :
     id_(id),
-    kind_(kind)
+    severity_(kind)
 {
 }
 

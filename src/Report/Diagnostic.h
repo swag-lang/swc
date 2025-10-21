@@ -5,7 +5,7 @@
 class CompilerContext;
 enum class DiagnosticId;
 
-enum class DiagnosticKind
+enum class DiagnosticSeverity
 {
     Error,
     Warning,
@@ -30,8 +30,8 @@ public:
     const std::vector<std::unique_ptr<DiagnosticElement>>& elements() const { return elements_; }
     SourceFile*                                            fileOwner() const { return fileOwner_; }
 
-    DiagnosticElement* addElement(DiagnosticKind kind, DiagnosticId id);
-    DiagnosticElement* addError(DiagnosticId id) { return addElement(DiagnosticKind::Error, id); }
+    DiagnosticElement* addElement(DiagnosticSeverity kind, DiagnosticId id);
+    DiagnosticElement* addError(DiagnosticId id) { return addElement(DiagnosticSeverity::Error, id); }
 
     DiagnosticElement* last() const { return elements_.empty() ? nullptr : elements_.back().get(); }
 

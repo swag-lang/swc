@@ -1,11 +1,23 @@
 #include "pch.h"
 
 #include "Os/Os.h"
+
 #ifdef _WIN32
 #include <windows.h>
 
 namespace Os
 {
+    void setup()
+    {
+        const HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+        DWORD  mode = 0;
+        if (GetConsoleMode(hOut, &mode))
+        {
+            mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+            SetConsoleMode(hOut, mode);
+        }        
+    }
+
     void assertBox(const char* expr, const char* file, int line)
     {
         char msg[2048];

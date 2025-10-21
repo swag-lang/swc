@@ -40,9 +40,9 @@ Result UnitTest::tokenize(CompilerContext& ctx)
                 i++;
             const auto kindWord = comment.substr(start, i - start);
             if (kindWord == "error")
-                directive.kind = DiagnosticKind::Error;
+                directive.kind = DiagnosticSeverity::Error;
             else if (kindWord == "warning")
-                directive.kind = DiagnosticKind::Warning;
+                directive.kind = DiagnosticSeverity::Warning;
             else
             {
                 pos = i;
@@ -97,7 +97,7 @@ bool UnitTest::verify(CompilerContext& ctx, const Diagnostic& diag) const
 
         for (auto& directive : directives_)
         {
-            if (directive.kind != elem->kind_)
+            if (directive.kind != elem->severity_)
                 continue;
             if (directive.loc.line == 0 || directive.loc.line != loc.line)
                 continue;

@@ -1,5 +1,6 @@
 #include "pch.h"
 
+#include "Color.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
 #include "Main/CompilerContext.h"
@@ -8,7 +9,7 @@
 #include "Report/DiagnosticElement.h"
 #include "Report/Logger.h"
 
-DiagnosticElement* Diagnostic::addElement(DiagnosticKind kind, DiagnosticId id)
+DiagnosticElement* Diagnostic::addElement(DiagnosticSeverity kind, DiagnosticId id)
 {
     auto       ptr = std::make_unique<DiagnosticElement>(kind, id);
     const auto raw = ptr.get();
@@ -18,35 +19,107 @@ DiagnosticElement* Diagnostic::addElement(DiagnosticKind kind, DiagnosticId id)
 
 Utf8 Diagnostic::build(CompilerContext& ctx) const
 {
-    Utf8 result;
+    const auto& ci      = ctx.ci();
+    const auto  cmdLine = ci.cmdLine();
+    Utf8        result;
 
     for (auto& e : elements_)
     {
-        const auto idName = e->idName(ctx);
+        const auto severity = e->severity();
+        const auto idName   = e->idName(ctx);
+
+        // Colorize severity level
+        if (cmdLine.logColor)
+        {
+            result += Color::Bold;
+            switch (severity)
+            {
+                case DiagnosticSeverity::Error:
+                    result += Color::BrightRed;
+                    break;
+                case DiagnosticSeverity::Warning:
+                    result += Color::BrightYellow;
+                    break;
+                case DiagnosticSeverity::Note:
+                    result += Color::BrightCyan;
+                    break;
+                case DiagnosticSeverity::Hint:
+                    result += Color::BrightGreen;
+                    break;
+            }
+        }
+
         result += idName;
+
+        if (cmdLine.logColor)
+            result += Color::Reset;
+
         result += "\n";
 
         if (e->file_ != nullptr)
         {
+            // File path
+            if (cmdLine.logColor)
+            {
+                result += Color::Bold;
+                result += Color::Cyan;
+            }
+
             result += e->file_->path().string();
-            result += ": ";
+            result += ":";
+
+            // Location
+            SourceCodeLocation loc;
             if (e->len_ != 0)
             {
-                const auto loc = e->location(ctx);
-                Utf8       s   = std::format("{}:{}", loc.line, loc.column);
-                result += s;
+                loc = e->location(ctx);
+                result += std::format("{}:{}", loc.line, loc.column);
                 result += "\n";
+            }
+
+            if (cmdLine.logColor)
+                result += Color::Reset;
+
+            // Code line
+            if (e->len_ != 0)
+            {
                 const auto code = e->file_->codeLine(ctx, loc.line);
                 result += code;
                 result += "\n";
+            }
+
+            // Carets
+            if (e->len_ != 0)
+            {
+                if (cmdLine.logColor)
+                {
+                    result += Color::Bold;
+                    switch (severity)
+                    {
+                        case DiagnosticSeverity::Error:
+                            result += Color::BrightRed;
+                            break;
+                        case DiagnosticSeverity::Warning:
+                            result += Color::BrightYellow;
+                            break;
+                        default:
+                            result += Color::BrightCyan;
+                            break;
+                    }
+                }
+
                 for (uint32_t i = 1; i < loc.column; ++i)
                     result += " ";
                 for (uint32_t i = 0; i < e->len_; ++i)
                     result += "^";
-                result += "\n";
             }
+
+            if (cmdLine.logColor)
+                result += Color::Reset;
+            result += "\n";
         }
 
+        // Message text
         const auto msg = e->message(ctx);
         result += msg;
         result += "\n";

@@ -7,5 +7,5 @@ struct CommandLine
 
     bool verboseErrors = false;
     Utf8 verboseErrorsFilter;
-    bool unittest = true;
+    bool verify = true;
 };

@@ -6,7 +6,6 @@
 #include "CompilerInstance.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticIds.h"
-#include <windows.h>
 
 bool CommandLineParser::commandMatches(const Utf8& cmdToCheck, const Utf8& allowedCmds)
 {
@@ -100,7 +99,7 @@ void CommandLineParser::addArg(const char* commands, const char* longForm, const
         shortFormMap_[info.shortForm] = args_.back();
 }
 
-bool CommandLineParser::parse(CompilerContext& ctx, int argc, char* argv[], const Utf8& command, bool ignoreBadParams)
+bool CommandLineParser::parse(CompilerContext& ctx, int argc, char* argv[], const Utf8& command)
 {
     for (int i = 1; i < argc; i++)
     {
@@ -127,15 +126,10 @@ bool CommandLineParser::parse(CompilerContext& ctx, int argc, char* argv[], cons
 
         if (!info)
         {
-            if (!ignoreBadParams)
-            {
-                const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidArg);
-                diag.last()->addArgument(arg);
-                diag.report(ctx);
-                return false;
-            }
-            
-            continue;
+            const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidArg);
+            diag.last()->addArgument(arg);
+            diag.report(ctx);
+            return false;
         }
 
         // Check if this argument is valid for the current command
@@ -215,7 +209,7 @@ bool CommandLineParser::parse(CompilerContext& ctx, int argc, char* argv[], cons
         }
     }
 
-    return true;
+    return checkCommandLine(ctx);
 }
 
 void CommandLineParser::printHelp(const Utf8& command) const
@@ -227,10 +221,20 @@ void CommandLineParser::printHelp(const Utf8& command) const
     }
 }
 
+bool CommandLineParser::checkCommandLine(const CompilerContext& ctx)
+{
+    auto &cmdLine = ctx.ci().cmdLine();
+    
+    if (!cmdLine.verboseErrorsFilter.empty())
+        cmdLine.verboseErrors = true;
+    
+    return true;
+}
+
 void CommandLineParser::setupCommandLine(const CompilerContext& ctx)
 {
     auto& cmdLine = ctx.ci().cmdLine();
-    addArg("all", "--verify", "-v", CommandLineType::Bool, &cmdLine.unittest, nullptr, "verify special unittest comments");
+    addArg("all", "--verify", "-v", CommandLineType::Bool, &cmdLine.verify, nullptr, "verify special test comments");
     addArg("all", "--verbose-errors", "-ve", CommandLineType::Bool, &cmdLine.verboseErrors, nullptr, "log silent errors during tests");
     addArg("all", "--verbose-errors-filter", "-vef", CommandLineType::String, &cmdLine.verboseErrorsFilter, nullptr, "filter log silent errors during tests");
 }

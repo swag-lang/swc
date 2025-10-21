@@ -9,7 +9,7 @@
 
 Result UnitTest::tokenize(CompilerContext& ctx)
 {
-    if (!ctx.ci().cmdLine().unittest)
+    if (!ctx.ci().cmdLine().verify)
         return Result::Success;
 
     const auto  file     = ctx.sourceFile();

@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
     }
 
     parser.setupCommandLine(ctx);
-    if (!parser.parse(ctx, argc, argv, command, ctx.ci().cmdLine().ignoreBadParams))
+    if (!parser.parse(ctx, argc, argv, command))
         return 1;
 
     // parseFolder(ctx, "c:/perso/swag-lang");

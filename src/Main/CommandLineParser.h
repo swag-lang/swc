@@ -42,9 +42,10 @@ class CommandLineParser
     static bool parseEnumString(CompilerContext& ctx, const Utf8& value, const Utf8& enumValues, Utf8* target);
     static bool parseEnumInt(CompilerContext& ctx, const Utf8& value, const Utf8& enumValues, int* target);
     void        addArg(const char* commands, const char* longForm, const char* shortForm, CommandLineType type, void* target, const char* enumValues, const char* description);
+    static bool checkCommandLine(const CompilerContext& ctx);
 
 public:
     void setupCommandLine(const CompilerContext& ctx);
-    bool parse(CompilerContext& ctx, int argc, char* argv[], const Utf8& command, bool ignoreBadParams = false);
+    bool parse(CompilerContext& ctx, int argc, char* argv[], const Utf8& command);
     void printHelp(const Utf8& command = "all") const;
 };

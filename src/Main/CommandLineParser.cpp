@@ -1,6 +1,9 @@
 #include "pch.h"
 
+#include "CommandLine.h"
 #include "CommandLineParser.h"
+#include "CompilerContext.h"
+#include "CompilerInstance.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticIds.h"
 #include <windows.h>
@@ -12,7 +15,7 @@ bool CommandLineParser::commandMatches(const Utf8& cmdToCheck, const Utf8& allow
 
     // Split allowedCmds by spaces
     std::istringstream iss(allowedCmds);
-    Utf8        cmd;
+    Utf8               cmd;
     while (iss >> cmd)
     {
         if (cmd == cmdToCheck)
@@ -31,7 +34,7 @@ bool CommandLineParser::parseEnumString(CompilerContext& ctx, const Utf8& value,
 
     // Check if the value is in the allowed enum values
     std::istringstream iss(enumValues);
-    Utf8        allowed;
+    Utf8               allowed;
     while (std::getline(iss, allowed, '|'))
     {
         if (allowed == value)
@@ -58,7 +61,7 @@ bool CommandLineParser::parseEnumInt(CompilerContext& ctx, const Utf8& value, co
 
     // Map string to int index
     std::istringstream iss(enumValues);
-    Utf8        allowed;
+    Utf8               allowed;
     int                index = 0;
     while (std::getline(iss, allowed, '|'))
     {
@@ -89,9 +92,9 @@ void CommandLineParser::addArg(const char* commands, const char* longForm, const
 
     // Register in maps for a quick lookup
     if (!info.longForm.empty())
-        longFormMap_[info.longForm] = &args_.back();
+        longFormMap_[info.longForm] = args_.back();
     if (!info.shortForm.empty())
-        shortFormMap_[info.shortForm] = &args_.back();
+        shortFormMap_[info.shortForm] = args_.back();
 }
 
 bool CommandLineParser::parse(CompilerContext& ctx, int argc, char* argv[], const Utf8& command, bool ignoreBadParams)
@@ -107,7 +110,7 @@ bool CommandLineParser::parse(CompilerContext& ctx, int argc, char* argv[], cons
             auto it = longFormMap_.find(arg);
             if (it != longFormMap_.end())
             {
-                info = it->second;
+                info = &it->second;
             }
         }
         else if (arg.substr(0, 1) == "-" && arg.length() > 1)
@@ -115,7 +118,7 @@ bool CommandLineParser::parse(CompilerContext& ctx, int argc, char* argv[], cons
             auto it = shortFormMap_.find(arg);
             if (it != shortFormMap_.end())
             {
-                info = it->second;
+                info = &it->second;
             }
         }
 
@@ -156,7 +159,9 @@ bool CommandLineParser::parse(CompilerContext& ctx, int argc, char* argv[], cons
             case CommandLineType::StringPath:
                 if (i + 1 >= argc)
                 {
-                    // std::cerr << "Error: Missing value for " << arg << std::endl;
+                    const auto diag = Diagnostic::error(DiagnosticId::CmdLineMissingArgValue);
+                    diag.last()->addArgument(arg);
+                    diag.report(ctx);
                     return false;
                 }
                 *static_cast<Utf8*>(info->target) = argv[++i];
@@ -203,4 +208,12 @@ void CommandLineParser::printHelp(const Utf8& command) const
         if (!commandMatches(command, info.commands))
             continue;
     }
+}
+
+void CommandLineParser::setupCommandLine(const CompilerContext& ctx)
+{
+    auto& cmdLine = ctx.ci().cmdLine();
+    addArg("all", "--verify", "-v", CommandLineType::Bool, &cmdLine.unittest, nullptr, "verify special unittest comments");
+    addArg("all", "--verbose-errors", "-ve", CommandLineType::Bool, &cmdLine.verboseErrors, nullptr, "log silent errors during tests");
+    addArg("all", "--verbose-errors-filter", "-vef", CommandLineType::String, &cmdLine.verboseErrorsFilter, nullptr, "filter log silent errors during tests");
 }

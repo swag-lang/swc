@@ -34,16 +34,17 @@ struct ArgInfo
 
 class CommandLineParser
 {
-    std::vector<ArgInfo>     args_;
-    std::map<Utf8, ArgInfo*> longFormMap_;
-    std::map<Utf8, ArgInfo*> shortFormMap_;
+    std::vector<ArgInfo>    args_;
+    std::map<Utf8, ArgInfo> longFormMap_;
+    std::map<Utf8, ArgInfo> shortFormMap_;
 
     static bool commandMatches(const Utf8& cmdToCheck, const Utf8& allowedCmds);
     static bool parseEnumString(CompilerContext& ctx, const Utf8& value, const Utf8& enumValues, Utf8* target);
     static bool parseEnumInt(CompilerContext& ctx, const Utf8& value, const Utf8& enumValues, int* target);
+    void        addArg(const char* commands, const char* longForm, const char* shortForm, CommandLineType type, void* target, const char* enumValues, const char* description);
 
 public:
-    void addArg(const char* commands, const char* longForm, const char* shortForm, CommandLineType type, void* target, const char* enumValues, const char* description);
+    void setupCommandLine(const CompilerContext& ctx);
     bool parse(CompilerContext& ctx, int argc, char* argv[], const Utf8& command, bool ignoreBadParams = false);
     void printHelp(const Utf8& command = "all") const;
 };

@@ -3,6 +3,7 @@
 enum class DiagnosticId
 {
     CmdLineInvalidEnumValue,
+    CmdLineMissingArgValue,
     
     CannotOpenFile,
     CannotReadFile,

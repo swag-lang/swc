@@ -32,6 +32,7 @@ void DiagnosticIds::initErrors()
 #define SWAG_DIAG(id) addId(DiagnosticId::id, #id);
     
     SWAG_DIAG(CmdLineInvalidEnumValue);
+    SWAG_DIAG(CmdLineMissingArgValue);
     
     SWAG_DIAG(CannotOpenFile);
     SWAG_DIAG(CannotReadFile);

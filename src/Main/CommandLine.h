@@ -2,7 +2,8 @@
 
 struct CommandLine
 {
-    uint32_t tabSize = 4;
+    bool     ignoreBadParams = false;
+    uint32_t tabSize         = 4;
 
     bool verboseErrors = false;
     Utf8 verboseErrorsFilter;

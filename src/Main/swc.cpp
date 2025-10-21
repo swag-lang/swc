@@ -3,6 +3,7 @@
 #include "Lexer/LangSpec.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
+#include "Main/CommandLineParser.h"
 #include "Main/CompilerContext.h"
 #include "Main/CompilerInstance.h"
 #include "Report/DiagnosticIds.h"
@@ -38,8 +39,21 @@ static void parseFolder(CompilerContext& ctx, const fs::path& directory)
 int main(int argc, char* argv[])
 {
     const CompilerInstance ci;
-    CompilerContext  ctx(&ci);
-    //parseFolder(ctx, "c:/perso/swag-lang");
+    CompilerContext        ctx(&ci);
+    CommandLineParser      parser;
+    Utf8                   command = "build";
+
+    if (argc > 1 && std::string(argv[1]) == "--help")
+    {
+        parser.printHelp();
+        return 0;
+    }
+
+    parser.setupCommandLine(ctx);
+    if (!parser.parse(ctx, argc, argv, command, ctx.ci().cmdLine().ignoreBadParams))
+        return 1;
+
+    // parseFolder(ctx, "c:/perso/swag-lang");
     parseFolder(ctx, "c:/perso/swag-lang/swc");
     return 0;
 }

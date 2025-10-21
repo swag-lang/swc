@@ -5,9 +5,8 @@
 #include "Main/CompilerInstance.h"
 #include "Report/Diagnostic.h"
 
-SourceFile::SourceFile(std::filesystem::path path) :
-    path_(std::move(path)),
-    lexer_()
+SourceFile::SourceFile(const fs::path& path) :
+    path_(weakly_canonical(path))
 {
 }
 

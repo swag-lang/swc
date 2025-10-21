@@ -1,11 +1,13 @@
 #include "pch.h"
 
 #include "Lexer/SourceFile.h"
+#include "Main/CommandLine.h"
 #include "Main/CompilerContext.h"
 #include "Main/CompilerInstance.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticElement.h"
 #include "Report/Logger.h"
+#include <windows.h>
 
 DiagnosticElement* Diagnostic::addElement(DiagnosticKind kind, DiagnosticId id)
 {
@@ -17,7 +19,7 @@ DiagnosticElement* Diagnostic::addElement(DiagnosticKind kind, DiagnosticId id)
 
 Utf8 Diagnostic::build(CompilerContext& ctx) const
 {
-    const auto& ci  = ctx.ci();
+    const auto& ci = ctx.ci();
     Utf8        result;
 
     for (auto& e : elements_)
@@ -58,6 +60,7 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
 void Diagnostic::report(CompilerContext& ctx) const
 {
     const auto& ci      = ctx.ci();
+    const auto& cmdLine = ci.cmdLine();
     const auto  msg     = build(ctx);
     bool        dismiss = false;
 
@@ -66,8 +69,12 @@ void Diagnostic::report(CompilerContext& ctx) const
         dismiss = fileOwner_->verifier().verify(ctx, *this);
     }
 
-    //if (msg.find("InvalidHexDigit") != Utf8::npos)
-    //    dismiss = false;
+    if (cmdLine.verboseErrors)
+    {
+        dismiss = false;
+        if (!cmdLine.verboseErrorsFilter.empty() && msg.find(cmdLine.verboseErrorsFilter) == Utf8::npos)
+            dismiss = true;
+    }
 
     if (!dismiss)
     {

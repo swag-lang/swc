@@ -7,7 +7,6 @@
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticElement.h"
 #include "Report/Logger.h"
-#include <windows.h>
 
 DiagnosticElement* Diagnostic::addElement(DiagnosticKind kind, DiagnosticId id)
 {
@@ -19,8 +18,7 @@ DiagnosticElement* Diagnostic::addElement(DiagnosticKind kind, DiagnosticId id)
 
 Utf8 Diagnostic::build(CompilerContext& ctx) const
 {
-    const auto& ci = ctx.ci();
-    Utf8        result;
+    Utf8 result;
 
     for (auto& e : elements_)
     {

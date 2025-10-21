@@ -7,12 +7,38 @@
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticIds.h"
 
+namespace
+{
+    constexpr const char* LONG_PREFIX         = "--";
+    constexpr const char* SHORT_PREFIX        = "-";
+    constexpr const char* LONG_NO_PREFIX      = "--no-";
+    constexpr const char* SHORT_NO_PREFIX     = "-no-";
+    constexpr size_t      LONG_PREFIX_LEN     = 2;
+    constexpr size_t      SHORT_PREFIX_LEN    = 1;
+    constexpr size_t      LONG_NO_PREFIX_LEN  = 5;
+    constexpr size_t      SHORT_NO_PREFIX_LEN = 4;
+
+    bool getNextValue(CompilerContext& ctx, const Utf8& arg, int& index, int argc, char* argv[], Utf8& value)
+    {
+        if (index + 1 >= argc)
+        {
+            const auto diag = Diagnostic::error(DiagnosticId::CmdLineMissingArgValue);
+            diag.last()->addArgument(arg);
+            diag.report(ctx);
+            return false;
+        }
+
+        value = argv[++index];
+        return true;
+    }
+
+}
+
 bool CommandLineParser::commandMatches(const Utf8& cmdToCheck, const Utf8& allowedCmds)
 {
     if (allowedCmds == "all")
         return true;
 
-    // Split allowedCmds by spaces
     std::istringstream iss(allowedCmds);
     Utf8               cmd;
     while (iss >> cmd)
@@ -31,7 +57,6 @@ bool CommandLineParser::parseEnumString(CompilerContext& ctx, const Utf8& value,
         return true;
     }
 
-    // Check if the value is in the allowed enum values
     std::istringstream iss(enumValues);
     Utf8               allowed;
     while (std::getline(iss, allowed, '|'))
@@ -43,11 +68,7 @@ bool CommandLineParser::parseEnumString(CompilerContext& ctx, const Utf8& value,
         }
     }
 
-    const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidEnumValue);
-    diag.last()->addArgument(value);
-    diag.last()->addArgument(enumValues);
-    diag.report(ctx);
-    return false;
+    return reportEnumError(ctx, value, enumValues);
 }
 
 bool CommandLineParser::parseEnumInt(CompilerContext& ctx, const Utf8& value, const Utf8& enumValues, int* target)
@@ -58,7 +79,6 @@ bool CommandLineParser::parseEnumInt(CompilerContext& ctx, const Utf8& value, co
         return true;
     }
 
-    // Map string to int index
     std::istringstream iss(enumValues);
     Utf8               allowed;
     int                index = 0;
@@ -72,6 +92,11 @@ bool CommandLineParser::parseEnumInt(CompilerContext& ctx, const Utf8& value, co
         index++;
     }
 
+    return reportEnumError(ctx, value, enumValues);
+}
+
+bool CommandLineParser::reportEnumError(CompilerContext& ctx, const Utf8& value, const Utf8& enumValues)
+{
     const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidEnumValue);
     diag.last()->addArgument(value);
     diag.last()->addArgument(enumValues);
@@ -92,47 +117,133 @@ void CommandLineParser::addArg(const char* commands, const char* longForm, const
 
     args_.push_back(info);
 
-    // Register in maps for a quick lookup
     if (!info.longForm.empty())
         longFormMap_[info.longForm] = args_.back();
     if (!info.shortForm.empty())
         shortFormMap_[info.shortForm] = args_.back();
 }
 
+const ArgInfo* CommandLineParser::findArgument(CompilerContext& ctx, const Utf8& arg, bool& invertBoolean)
+{
+    invertBoolean = false;
+
+    if (arg.substr(0, LONG_PREFIX_LEN) == LONG_PREFIX)
+        return findLongFormArgument(ctx, arg, invertBoolean);
+    if (arg.substr(0, SHORT_PREFIX_LEN) == SHORT_PREFIX && arg.length() > SHORT_PREFIX_LEN)
+        return findShortFormArgument(ctx, arg, invertBoolean);
+
+    return nullptr;
+}
+
+const ArgInfo* CommandLineParser::findLongFormArgument(CompilerContext& ctx, const Utf8& arg, bool& invertBoolean)
+{
+    if (arg.substr(0, LONG_NO_PREFIX_LEN) == LONG_NO_PREFIX && arg.length() > LONG_NO_PREFIX_LEN)
+        return findNegatedArgument(ctx, arg, LONG_PREFIX, LONG_NO_PREFIX_LEN, longFormMap_, invertBoolean);
+    const auto it = longFormMap_.find(arg);
+    return (it != longFormMap_.end()) ? &it->second : nullptr;
+}
+
+const ArgInfo* CommandLineParser::findShortFormArgument(CompilerContext& ctx, const Utf8& arg, bool& invertBoolean)
+{
+    if (arg.substr(0, SHORT_NO_PREFIX_LEN) == SHORT_NO_PREFIX && arg.length() > SHORT_NO_PREFIX_LEN)
+        return findNegatedArgument(ctx, arg, SHORT_PREFIX, SHORT_NO_PREFIX_LEN, shortFormMap_, invertBoolean);
+    const auto it = shortFormMap_.find(arg);
+    return (it != shortFormMap_.end()) ? &it->second : nullptr;
+}
+
+const ArgInfo* CommandLineParser::findNegatedArgument(CompilerContext& ctx, const Utf8& arg, const char* prefix, size_t noPrefixLen, const std::map<Utf8, ArgInfo>& argMap, bool& invertBoolean)
+{
+    const Utf8 baseArg = Utf8(prefix) + arg.substr(noPrefixLen);
+    const auto it      = argMap.find(baseArg);
+
+    if (it == argMap.end())
+    {
+        reportInvalidArgument(ctx, arg);
+        return nullptr;
+    }
+
+    const ArgInfo* info = &it->second;
+    if (info->type != CommandLineType::Bool)
+    {
+        reportInvalidBooleanNegation(ctx, arg);
+        return nullptr;
+    }
+
+    invertBoolean = true;
+    return info;
+}
+
+void CommandLineParser::reportInvalidArgument(CompilerContext& ctx, const Utf8& arg)
+{
+    const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidArg);
+    diag.last()->addArgument(arg);
+    diag.report(ctx);
+}
+
+void CommandLineParser::reportInvalidBooleanNegation(CompilerContext& ctx, const Utf8& arg)
+{
+    const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidArg);
+    diag.last()->addArgument(arg);
+    diag.report(ctx);
+}
+
+bool CommandLineParser::processArgument(CompilerContext& ctx, const ArgInfo* info, const Utf8& arg, bool invertBoolean, int& index, int argc, char* argv[])
+{
+    Utf8 value;
+
+    switch (info->type)
+    {
+        case CommandLineType::Bool:
+            *static_cast<bool*>(info->target) = !invertBoolean;
+            return true;
+
+        case CommandLineType::Int:
+            if (!getNextValue(ctx, arg, index, argc, argv, value))
+                return false;
+            *static_cast<int*>(info->target) = std::stoi(value);
+            return true;
+
+        case CommandLineType::String:
+        case CommandLineType::StringPath:
+            if (!getNextValue(ctx, arg, index, argc, argv, value))
+                return false;
+            *static_cast<Utf8*>(info->target) = value;
+            return true;
+
+        case CommandLineType::StringSet:
+            if (!getNextValue(ctx, arg, index, argc, argv, value))
+                return false;
+            static_cast<std::set<Utf8>*>(info->target)->insert(value);
+            return true;
+
+        case CommandLineType::EnumString:
+            if (!getNextValue(ctx, arg, index, argc, argv, value))
+                return false;
+            return parseEnumString(ctx, value, info->enumValues, static_cast<Utf8*>(info->target));
+
+        case CommandLineType::EnumInt:
+            if (!getNextValue(ctx, arg, index, argc, argv, value))
+                return false;
+            return parseEnumInt(ctx, value, info->enumValues, static_cast<int*>(info->target));
+    }
+
+    return false;
+}
+
 bool CommandLineParser::parse(CompilerContext& ctx, int argc, char* argv[], const Utf8& command)
 {
     for (int i = 1; i < argc; i++)
     {
-        Utf8 arg = argv[i];
+        Utf8 arg           = argv[i];
+        bool invertBoolean = false;
 
-        // Find the argument definition
-        const ArgInfo* info = nullptr;
-        if (arg.substr(0, 2) == "--")
-        {
-            auto it = longFormMap_.find(arg);
-            if (it != longFormMap_.end())
-            {
-                info = &it->second;
-            }
-        }
-        else if (arg.substr(0, 1) == "-" && arg.length() > 1)
-        {
-            auto it = shortFormMap_.find(arg);
-            if (it != shortFormMap_.end())
-            {
-                info = &it->second;
-            }
-        }
-
+        const ArgInfo* info = findArgument(ctx, arg, invertBoolean);
         if (!info)
         {
-            const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidArg);
-            diag.last()->addArgument(arg);
-            diag.report(ctx);
+            reportInvalidArgument(ctx, arg);
             return false;
         }
 
-        // Check if this argument is valid for the current command
         if (!commandMatches(command, info->commands))
         {
             const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidArgForCmd);
@@ -142,71 +253,8 @@ bool CommandLineParser::parse(CompilerContext& ctx, int argc, char* argv[], cons
             return false;
         }
 
-        // Parse the value based on type
-        switch (info->type)
-        {
-            case CommandLineType::Bool:
-                *static_cast<bool*>(info->target) = true;
-                break;
-
-            case CommandLineType::Int:
-                if (i + 1 >= argc)
-                {
-                    const auto diag = Diagnostic::error(DiagnosticId::CmdLineMissingArgValue);
-                    diag.last()->addArgument(arg);
-                    diag.report(ctx);
-                    return false;
-                }
-                *static_cast<int*>(info->target) = std::stoi(argv[++i]);
-                break;
-
-            case CommandLineType::String:
-            case CommandLineType::StringPath:
-                if (i + 1 >= argc)
-                {
-                    const auto diag = Diagnostic::error(DiagnosticId::CmdLineMissingArgValue);
-                    diag.last()->addArgument(arg);
-                    diag.report(ctx);
-                    return false;
-                }
-                *static_cast<Utf8*>(info->target) = argv[++i];
-                break;
-
-            case CommandLineType::StringSet:
-                if (i + 1 >= argc)
-                {
-                    const auto diag = Diagnostic::error(DiagnosticId::CmdLineMissingArgValue);
-                    diag.last()->addArgument(arg);
-                    diag.report(ctx);
-                    return false;
-                }
-                static_cast<std::set<Utf8>*>(info->target)->insert(argv[++i]);
-                break;
-
-            case CommandLineType::EnumString:
-                if (i + 1 >= argc)
-                {
-                    const auto diag = Diagnostic::error(DiagnosticId::CmdLineMissingArgValue);
-                    diag.last()->addArgument(arg);
-                    diag.report(ctx);
-                    return false;
-                }
-                if (!parseEnumString(ctx, argv[++i], info->enumValues, static_cast<Utf8*>(info->target)))
-                    return false;
-                break;
-
-            case CommandLineType::EnumInt:
-                if (i + 1 >= argc)
-                {
-                    const auto diag = Diagnostic::error(DiagnosticId::CmdLineMissingArgValue);
-                    diag.last()->addArgument(arg);
-                    diag.report(ctx);
-                    return false;
-                }
-                if (!parseEnumInt(ctx, argv[++i], info->enumValues, static_cast<int*>(info->target)))
-                    return false;
-                break;
-        }
+        if (!processArgument(ctx, info, arg, invertBoolean, i, argc, argv))
+            return false;
     }
 
     return checkCommandLine(ctx);
@@ -223,11 +271,11 @@ void CommandLineParser::printHelp(const Utf8& command) const
 
 bool CommandLineParser::checkCommandLine(const CompilerContext& ctx)
 {
-    auto &cmdLine = ctx.ci().cmdLine();
-    
+    auto& cmdLine = ctx.ci().cmdLine();
+
     if (!cmdLine.verboseErrorsFilter.empty())
         cmdLine.verboseErrors = true;
-    
+
     return true;
 }
 

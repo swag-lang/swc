@@ -38,11 +38,19 @@ class CommandLineParser
     std::map<Utf8, ArgInfo> longFormMap_;
     std::map<Utf8, ArgInfo> shortFormMap_;
 
-    static bool commandMatches(const Utf8& cmdToCheck, const Utf8& allowedCmds);
-    static bool parseEnumString(CompilerContext& ctx, const Utf8& value, const Utf8& enumValues, Utf8* target);
-    static bool parseEnumInt(CompilerContext& ctx, const Utf8& value, const Utf8& enumValues, int* target);
-    void        addArg(const char* commands, const char* longForm, const char* shortForm, CommandLineType type, void* target, const char* enumValues, const char* description);
-    static bool checkCommandLine(const CompilerContext& ctx);
+    static bool           commandMatches(const Utf8& cmdToCheck, const Utf8& allowedCmds);
+    static bool           parseEnumString(CompilerContext& ctx, const Utf8& value, const Utf8& enumValues, Utf8* target);
+    static bool           parseEnumInt(CompilerContext& ctx, const Utf8& value, const Utf8& enumValues, int* target);
+    const ArgInfo*        findArgument(CompilerContext& ctx, const Utf8& arg, bool& invertBoolean);
+    const ArgInfo*        findLongFormArgument(CompilerContext& ctx, const Utf8& arg, bool& invertBoolean);
+    const ArgInfo*        findShortFormArgument(CompilerContext& ctx, const Utf8& arg, bool& invertBoolean);
+    static const ArgInfo* findNegatedArgument(CompilerContext& ctx, const Utf8& arg, const char* prefix, size_t noPrefixLen, const std::map<Utf8, ArgInfo>& argMap, bool& invertBoolean);
+    static void           reportInvalidArgument(CompilerContext& ctx, const Utf8& arg);
+    static void           reportInvalidBooleanNegation(CompilerContext& ctx, const Utf8& arg);
+    static bool           processArgument(CompilerContext& ctx, const ArgInfo* info, const Utf8& arg, bool invertBoolean, int& index, int argc, char* argv[]);
+    void                  addArg(const char* commands, const char* longForm, const char* shortForm, CommandLineType type, void* target, const char* enumValues, const char* description);
+    static bool           reportEnumError(CompilerContext& ctx, const Utf8& value, const Utf8& enumValues);
+    static bool           checkCommandLine(const CompilerContext& ctx);
 
 public:
     void setupCommandLine(const CompilerContext& ctx);

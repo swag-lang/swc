@@ -1197,12 +1197,9 @@ void Lexer::checkFormat(const CompilerContext& ctx, uint32_t& startOffset) const
     // 4-byte BOMs
     if (!badFormat && content.size() >= 4)
     {
-        if ((data[0] == UTF32_BE[0] && data[1] == UTF32_BE[1] &&
-             data[2] == UTF32_BE[2] && data[3] == UTF32_BE[3]) ||
-            (data[0] == UTF32_LE[0] && data[1] == UTF32_LE[1] &&
-             data[2] == UTF32_LE[2] && data[3] == UTF32_LE[3]) ||
-            (data[0] == 0x2B && data[1] == 0x2F && data[2] == 0x76 &&
-             (data[3] == 0x38 || data[3] == 0x39 || data[3] == 0x2B || data[3] == 0x2F)) || // UTF-7
+        if ((data[0] == UTF32_BE[0] && data[1] == UTF32_BE[1] && data[2] == UTF32_BE[2] && data[3] == UTF32_BE[3]) ||
+            (data[0] == UTF32_LE[0] && data[1] == UTF32_LE[1] && data[2] == UTF32_LE[2] && data[3] == UTF32_LE[3]) ||
+            (data[0] == 0x2B && data[1] == 0x2F && data[2] == 0x76 && (data[3] == 0x38 || data[3] == 0x39 || data[3] == 0x2B || data[3] == 0x2F)) || // UTF-7
             (data[0] == 0xDD && data[1] == 0x73 && data[2] == 0x66 && data[3] == 0x73) ||   // UTF-EBCDIC
             (data[0] == 0x84 && data[1] == 0x31 && data[2] == 0x95 && data[3] == 0x33))     // GB-18030
         {

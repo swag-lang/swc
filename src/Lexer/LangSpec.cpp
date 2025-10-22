@@ -15,7 +15,7 @@ void LangSpec::initCharFlags()
         charFlag.clear();
 
     // ASCII characters (0-127)
-    for (int i = 0; i < 128; i++)
+    for (uint8_t i = 0; i < 128; i++)
         charFlags_[i].add(CharFlagsEnum::Ascii);
 
     // Blank characters
@@ -25,42 +25,42 @@ void LangSpec::initCharFlags()
     charFlags_['\v'].add(CharFlagsEnum::Blank); // Vertical tab (0x0B)
 
     // Digits (0-9)
-    for (char c = '0'; c <= '9'; c++)
-        charFlags_[static_cast<uint8_t>(c)].add(CharFlagsEnum::Digit);
+    for (unsigned char c = '0'; c <= '9'; c++)
+        charFlags_[c].add(CharFlagsEnum::Digit);
 
     // Uppercase letters (A-Z)
-    for (char c = 'A'; c <= 'Z'; c++)
-        charFlags_[static_cast<uint8_t>(c)].add(CharFlagsEnum::Letter);
+    for (unsigned char c = 'A'; c <= 'Z'; c++)
+        charFlags_[c].add(CharFlagsEnum::Letter);
 
     // Lowercase letters (a-z)
-    for (char c = 'a'; c <= 'z'; c++)
-        charFlags_[static_cast<uint8_t>(c)].add(CharFlagsEnum::Letter);
+    for (unsigned char c = 'a'; c <= 'z'; c++)
+        charFlags_[c].add(CharFlagsEnum::Letter);
 
     // Underscore is considered a letter in identifiers
     charFlags_['_'].add(CharFlagsEnum::Letter, CharFlagsEnum::NumberSep);
 
     // Hexadecimal number
-    for (char c = '0'; c <= '9'; c++)
-        charFlags_[static_cast<uint8_t>(c)].add(CharFlagsEnum::HexNumber);
-    for (char c = 'a'; c <= 'f'; c++)
-        charFlags_[static_cast<uint8_t>(c)].add(CharFlagsEnum::HexNumber);
-    for (char c = 'A'; c <= 'F'; c++)
-        charFlags_[static_cast<uint8_t>(c)].add(CharFlagsEnum::HexNumber);
+    for (unsigned char c = '0'; c <= '9'; c++)
+        charFlags_[c].add(CharFlagsEnum::HexNumber);
+    for (unsigned char c = 'a'; c <= 'f'; c++)
+        charFlags_[c].add(CharFlagsEnum::HexNumber);
+    for (unsigned char c = 'A'; c <= 'F'; c++)
+        charFlags_[c].add(CharFlagsEnum::HexNumber);
 
     // Binary number
-    for (char c = '0'; c <= '1'; c++)
-        charFlags_[static_cast<uint8_t>(c)].add(CharFlagsEnum::BinNumber);
+    for (unsigned char c = '0'; c <= '1'; c++)
+        charFlags_[c].add(CharFlagsEnum::BinNumber);
 
     // Identifier
     charFlags_['_'].add(CharFlagsEnum::IdentifierStart, CharFlagsEnum::IdentifierPart);
     charFlags_['#'].add(CharFlagsEnum::IdentifierStart);
     charFlags_['@'].add(CharFlagsEnum::IdentifierStart);
-    for (char c = 'a'; c <= 'z'; c++)
-        charFlags_[static_cast<uint8_t>(c)].add(CharFlagsEnum::IdentifierStart, CharFlagsEnum::IdentifierPart);
-    for (char c = 'A'; c <= 'Z'; c++)
-        charFlags_[static_cast<uint8_t>(c)].add(CharFlagsEnum::IdentifierStart, CharFlagsEnum::IdentifierPart);
-    for (char c = '0'; c <= '9'; c++)
-        charFlags_[static_cast<uint8_t>(c)].add(CharFlagsEnum::IdentifierPart);
+    for (unsigned char c = 'a'; c <= 'z'; c++)
+        charFlags_[c].add(CharFlagsEnum::IdentifierStart, CharFlagsEnum::IdentifierPart);
+    for (unsigned char c = 'A'; c <= 'Z'; c++)
+        charFlags_[c].add(CharFlagsEnum::IdentifierStart, CharFlagsEnum::IdentifierPart);
+    for (unsigned char c = '0'; c <= '9'; c++)
+        charFlags_[c].add(CharFlagsEnum::IdentifierPart);
 
     // Escape character
     charFlags_['0'].add(CharFlagsEnum::Escape);

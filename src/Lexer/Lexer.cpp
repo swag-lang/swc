@@ -394,13 +394,6 @@ void Lexer::parseCharacterLiteral()
         }
 
         charCount++;
-
-        // Check for too many characters (only report once)
-        if (!hasError && charCount > 1)
-        {
-            reportError(DiagnosticId::TooManyCharsInCharLiteral, static_cast<uint32_t>(startToken_ - startBuffer_), static_cast<uint32_t>(buffer_ - startToken_));
-            hasError = true;
-        }
     }
 
     // Check for EOF
@@ -413,6 +406,13 @@ void Lexer::parseCharacterLiteral()
     // Consume closing quote if present
     if (buffer_ < endBuffer_ && buffer_[0] == '\'')
         buffer_ += 1;
+
+    // Check for too many characters
+    if (!hasError && charCount > 1)
+    {
+        reportError(DiagnosticId::TooManyCharsInCharLiteral, static_cast<uint32_t>(startToken_ - startBuffer_), static_cast<uint32_t>(buffer_ - startToken_));
+        hasError = true;
+    }    
 
     pushToken();
 }

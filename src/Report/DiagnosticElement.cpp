@@ -23,7 +23,8 @@ Utf8 DiagnosticElement::argumentToString(const Argument& arg) const
         else if constexpr (std::is_same_v<T, int64_t>)
             return std::to_string(value);
         return "";
-    }, arg);
+    },
+                      arg);
 }
 
 SourceCodeLocation DiagnosticElement::location(CompilerContext& ctx) const
@@ -58,4 +59,27 @@ Utf8 DiagnosticElement::message(const CompilerContext& ctx) const
     }
 
     return result;
+}
+
+void DiagnosticElement::addArgument(std::string_view arg)
+{
+    Utf8 sanitized;
+    sanitized.reserve(arg.size());
+
+    for (const unsigned char ch : arg)
+    {
+        if (std::isprint(ch))
+            sanitized += ch;
+        else if (ch == '\t' || ch == '\n' || ch == '\r')
+            sanitized += ' ';
+        else
+        {
+            // Convert to \xHH format
+            char hex[5];
+            std::snprintf(hex, sizeof(hex), "\\x%02X", ch);
+            sanitized += hex;
+        }
+    }
+
+    arguments_.emplace_back(std::move(sanitized));
 }

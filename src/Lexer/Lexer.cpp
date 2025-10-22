@@ -41,7 +41,7 @@ void Lexer::reportError(DiagnosticId id, uint32_t offset, uint32_t len) const
     diag.last()->setLocation(ctx_->sourceFile(), offset, len);
     if (len)
     {
-        Utf8 arg = ctx_->sourceFile()->codeView(offset, len);
+        std::string_view arg = ctx_->sourceFile()->codeView(offset, len);
         diag.last()->addArgument(arg);
     }
 

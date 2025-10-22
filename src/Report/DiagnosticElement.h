@@ -57,4 +57,6 @@ public:
     {
         arguments_.emplace_back(std::forward<T>(arg));
     }
+
+    void addArgument(std::string_view arg);
 };

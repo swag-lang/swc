@@ -176,7 +176,7 @@ lines'
 // ============================================================================
 
 // --- Backslash at end ---
-// expected-error@+ 1InvalidEscapeSequence
+// expected-error@+ InvalidEscapeSequence
 'test\
 
 // --- Valid maximum values ---

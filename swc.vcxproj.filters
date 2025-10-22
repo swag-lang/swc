@@ -23,6 +23,7 @@
     <ClCompile Include="src\Report\UnitTest.cpp" />
     <ClCompile Include="src\Thread\Job.cpp" />
     <ClCompile Include="src\Thread\JobManager.cpp" />
+    <ClCompile Include="src\Memory\mimalloc\src\static.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Lexer\SourceFile.h" />

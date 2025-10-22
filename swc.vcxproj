@@ -51,14 +51,14 @@
     <OutDir>.out/x64/</OutDir>
     <IntDir>.tmp/x64/debug/</IntDir>
     <TargetName>swc_debug</TargetName>
-    <IncludePath>src/</IncludePath>
+    <IncludePath>src/;src/memory/mimalloc/include</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>.out/x64/</OutDir>
     <IntDir>.tmp/x64/release/</IntDir>
     <TargetName>swc</TargetName>
-    <IncludePath>src/</IncludePath>
+    <IncludePath>src/;src/memory/mimalloc/include</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -109,6 +109,11 @@
     <ClCompile Include="src\Main\CompilerContext.cpp" />
     <ClCompile Include="src\Main\CompilerInstance.cpp" />
     <ClCompile Include="src\Main\swc.cpp" />
+    <ClCompile Include="src\Memory\mimalloc\Allocator.cpp" />
+    <ClCompile Include="src\Memory\mimalloc\src\static.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\Os\OsWin32.cpp" />
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

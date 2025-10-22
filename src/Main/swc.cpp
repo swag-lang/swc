@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
     const CompilerInstance ci;
     CompilerContext        ctx(&ci);
     CommandLineParser      parser;
-
+    
     parser.setupCommandLine(ctx);
     if (!parser.parse(ctx, argc, argv, "build"))
         return 1;

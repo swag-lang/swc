@@ -33,6 +33,7 @@ static void parseFolder(CompilerContext& ctx, const fs::path& directory)
                     SourceFile* f;
                     JobResult process() override
                     {
+                        printf("PROCESS: %s\n", f->path().string().c_str());
                         f->loadContent(ctx_);
                         if (f->codeView(0, static_cast<uint32_t>(f->content().size())).find("#global testerror") == Utf8::npos)
                         {
@@ -48,6 +49,7 @@ static void parseFolder(CompilerContext& ctx, const fs::path& directory)
                 auto k = std::make_shared<t>(ctx);
                 k->f = f;
                 ctx.ci().jobMgr().enqueue(k, JobPriority::Normal);
+                //printf("ADDED: %s\n", f->path().string().c_str());
             }
         }
     }
@@ -65,7 +67,7 @@ int main(int argc, char* argv[])
 
     ci.jobMgr().setNumThreads(ci.cmdLine().numCores);
     
-    parseFolder(ctx, "c:/perso/swag-lang/swag/bin");
+    //parseFolder(ctx, "c:/perso/swag-lang/swag/bin");
     parseFolder(ctx, "c:/perso/swag-lang/swc");
     return 0;
 }

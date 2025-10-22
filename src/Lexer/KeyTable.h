@@ -1,11 +1,13 @@
 #pragma once
 
 enum class SubTokenIdentifierId : uint16_t;
+using KeywordFlags = Flags<uint32_t>;
 
 struct KwPair
 {
     std::string_view     key;
     SubTokenIdentifierId id;
+    KeywordFlags         flags;
 };
 
 template<size_t N>
@@ -29,7 +31,9 @@ struct KwTable
         uint64_t             hash = 0;
         std::string_view     key;
         SubTokenIdentifierId id;
+        KeywordFlags         flags;
     };
+
     std::array<Slot, N> slots{};
 
     consteval void insert(const KwPair& p)
@@ -45,7 +49,7 @@ struct KwTable
             }
             idx = (idx + 1) & (N - 1);
         }
-        slots[idx] = Slot{h, p.key, p.id};
+        slots[idx] = Slot{h, p.key, p.id, p.flags};
     }
 
     template<size_t M>

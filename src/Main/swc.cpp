@@ -48,6 +48,7 @@ int main(int argc, char* argv[])
     if (!parser.parse(ctx, argc, argv, "build"))
         return 1;
 
+    ci.jobMgr().setNumThreads(ci.cmdLine().numCores);
     parseFolder(ctx, "c:/perso/swag-lang");
     parseFolder(ctx, "c:/perso/swag-lang/swc");
     return 0;

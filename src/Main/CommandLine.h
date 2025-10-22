@@ -2,8 +2,9 @@
 
 struct CommandLine
 {
-    bool logColor = true;
-    bool silent   = false;
+    bool     logColor = true;
+    bool     silent   = false;
+    uint32_t numCores = 0;
 
     uint32_t tabSize = 4;
 

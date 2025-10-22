@@ -269,6 +269,7 @@ void CommandLineParser::setupCommandLine(const CompilerContext& ctx)
 {
     auto& cmdLine = ctx.ci().cmdLine();
     addArg("all", "--silent", nullptr, CommandLineType::Bool, &cmdLine.silent, nullptr, "no log output");
+    addArg("all", "--num-cores", nullptr, CommandLineType::Int, &cmdLine.numCores, nullptr, "maximum number of cpu to use (0 = automatic)");
     addArg("all", "--log-color", nullptr, CommandLineType::Bool, &cmdLine.logColor, nullptr, "log output can be colored");
     addArg("all", "--verify", "-v", CommandLineType::Bool, &cmdLine.verify, nullptr, "verify special test comments");
     addArg("all", "--verbose-errors", "-ve", CommandLineType::Bool, &cmdLine.verboseErrors, nullptr, "log silent errors during tests");

@@ -245,10 +245,12 @@ void JobManager::workerLoop()
                 std::this_thread::yield();
                 continue;
             }
+            
             std::unique_lock lk(mtx_);
             cv_.wait(lk, [this] { return readyCount_.load(std::memory_order_acquire) > 0 || !accepting_; });
             if (!accepting_ && readyCount_.load(std::memory_order_acquire) == 0)
                 return;
+            
             rec = popReadyLocked();
             if (rec)
             {
@@ -257,9 +259,11 @@ void JobManager::workerLoop()
                     rec = nullptr;
                     continue;
                 }
+                
                 rec->state = JobRecord::State::Running;
                 ++activeWorkers_;
             }
+            
             goto have_job;
         }
 

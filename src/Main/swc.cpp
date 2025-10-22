@@ -1,17 +1,13 @@
 #include "pch.h"
 
 #include "Lexer/SourceFile.h"
+#include "Main/CommandLine.h"
 #include "Main/CommandLineParser.h"
 #include "Main/CompilerContext.h"
 #include "Main/CompilerInstance.h"
-#include "Lexer/LangSpec.h"
-#include "Main/CommandLine.h"
-#include "Report/DiagnosticIds.h"
-#include "Report/Logger.h"
-#include "Report/Stats.h"
 #include "Thread/JobManager.h"
 
-static void parseFolder(CompilerContext& ctx, const fs::path& directory)
+static void parseFolder(const fs::path& directory)
 {
     if (!fs::exists(directory) || !fs::is_directory(directory))
     {
@@ -30,9 +26,8 @@ static void parseFolder(CompilerContext& ctx, const fs::path& directory)
 
                 struct t : Job
                 {
-                    t(CompilerContext& ctx) : Job(ctx) {} 
                     SourceFile* f;
-                    JobResult process() override
+                    JobResult   process() override
                     {
                         f->loadContent(ctx_);
                         if (f->codeView(0, static_cast<uint32_t>(f->content().size())).find("#global testerror") == Utf8::npos)
@@ -41,15 +36,15 @@ static void parseFolder(CompilerContext& ctx, const fs::path& directory)
                             f->tokenize(ctx_);
                             (void) f->verifier().verify(ctx_);
                         }
-                        
+
                         return JobResult::Done;
                     }
                 };
-        
-                auto k = std::make_shared<t>(ctx);
-                k->f = f;
-                ctx.ci().jobMgr().enqueue(k, JobPriority::Normal);
-                //printf("ADDED: %s\n", f->path().string().c_str());
+
+                auto k = std::make_shared<t>();
+                k->f   = f;
+                CompilerInstance::get().jobMgr().enqueue(k, JobPriority::Normal);
+                // printf("ADDED: %s\n", f->path().string().c_str());
             }
         }
     }
@@ -57,18 +52,18 @@ static void parseFolder(CompilerContext& ctx, const fs::path& directory)
 
 int main(int argc, char* argv[])
 {
-    const CompilerInstance ci;
-    CompilerContext        ctx(&ci);
-    CommandLineParser      parser;
-    
-    parser.setupCommandLine(ctx);
-    if (!parser.parse(ctx, argc, argv, "build"))
+    auto& ci = CompilerInstance::get();
+    ci.setup();
+
+    CommandLineParser parser;
+    parser.setupCommandLine();
+    if (!parser.parse(argc, argv, "build"))
         return 1;
 
     ci.jobMgr().setNumThreads(ci.cmdLine().numCores);
-    
-    parseFolder(ctx, "c:/perso/swag-lang/swag/bin");
-    parseFolder(ctx, "c:/perso/swag-lang/swc");
+
+    parseFolder("c:/perso/swag-lang/swag/bin");
+    parseFolder("c:/perso/swag-lang/swc");
 
     ci.jobMgr().waitAll();
     return 0;

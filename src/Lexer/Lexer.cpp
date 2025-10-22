@@ -1138,7 +1138,7 @@ Result Lexer::tokenize(CompilerContext& ctx, LexerFlags flags)
     prevToken_ = {};
 
     const auto file = ctx.sourceFile();
-    langSpec_       = &ctx.ci().langSpec();
+    langSpec_       = &CompilerInstance::get().langSpec();
     ctx_            = &ctx;
     lexerFlags_     = flags;
 

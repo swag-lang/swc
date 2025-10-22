@@ -20,6 +20,6 @@ class UnitTest
 
 public:
     Result tokenize(CompilerContext& ctx);
-    bool   verify(CompilerContext& ctx, const Diagnostic& diag) const;
+    bool   verify(const Diagnostic& diag) const;
     Result verify(CompilerContext& ctx) const;
 };

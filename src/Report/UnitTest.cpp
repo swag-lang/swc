@@ -9,11 +9,11 @@
 
 Result UnitTest::tokenize(CompilerContext& ctx)
 {
-    if (!ctx.ci().cmdLine().verify)
+    if (!CompilerInstance::get().cmdLine().verify)
         return Result::Success;
 
     const auto  file     = ctx.sourceFile();
-    const auto& langSpec = ctx.ci().langSpec();
+    const auto& langSpec = CompilerInstance::get().langSpec();
 
     // Get all comments from the file
     auto& lexer = file->lexer();
@@ -50,7 +50,7 @@ Result UnitTest::tokenize(CompilerContext& ctx)
             }
 
             // Location
-            directive.myLoc.fromOffset(ctx, file, token.start + static_cast<uint32_t>(pos), static_cast<uint32_t>(needle.size()) + static_cast<uint32_t>(kindWord.size()));
+            directive.myLoc.fromOffset(file, token.start + static_cast<uint32_t>(pos), static_cast<uint32_t>(needle.size()) + static_cast<uint32_t>(kindWord.size()));
             directive.loc = directive.myLoc;
 
             // Parse location
@@ -86,14 +86,14 @@ Result UnitTest::tokenize(CompilerContext& ctx)
     return Result::Success;
 }
 
-bool UnitTest::verify(CompilerContext& ctx, const Diagnostic& diag) const
+bool UnitTest::verify(const Diagnostic& diag) const
 {
     if (directives_.empty())
         return false;
 
     for (auto& elem : diag.elements())
     {
-        const auto loc = elem->location(ctx);
+        const auto loc = elem->location();
 
         for (auto& directive : directives_)
         {
@@ -102,8 +102,8 @@ bool UnitTest::verify(CompilerContext& ctx, const Diagnostic& diag) const
             if (directive.loc.line && directive.loc.line != loc.line)
                 continue;
 
-            if (elem->idName(ctx).find(directive.match) == Utf8::npos &&
-                elem->message(ctx).find(directive.match) == Utf8::npos)
+            if (elem->idName().find(directive.match) == Utf8::npos &&
+                elem->message().find(directive.match) == Utf8::npos)
                 continue;
 
             directive.touched = true;

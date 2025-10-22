@@ -5,14 +5,13 @@
 #include "Lexer/SourceCodeLocation.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
-#include "Main/CompilerContext.h"
 #include "Main/CompilerInstance.h"
 
 namespace
 {
-    uint32_t calculateColumn(const CompilerContext& ctx, const uint8_t* content, uint32_t lineStart, uint32_t offset)
+    uint32_t calculateColumn(const uint8_t* content, uint32_t lineStart, uint32_t offset)
     {
-        const uint32_t tabSize = ctx.ci().cmdLine().tabSize;
+        const uint32_t tabSize = CompilerInstance::get().cmdLine().tabSize;
         uint32_t       column  = 1; // Columns are 1-based
         auto           ptr     = content + lineStart;
         const auto     end     = content + offset;
@@ -41,7 +40,7 @@ namespace
     }
 }
 
-void SourceCodeLocation::fromOffset(const CompilerContext& ctx, const SourceFile* inFile, uint32_t inOffset, uint32_t inLen)
+void SourceCodeLocation::fromOffset(const SourceFile* inFile, uint32_t inOffset, uint32_t inLen)
 {
     SWAG_ASSERT(inFile);
 
@@ -61,7 +60,7 @@ void SourceCodeLocation::fromOffset(const CompilerContext& ctx, const SourceFile
     {
         // Offset is before the first line start
         line   = 1;
-        column = calculateColumn(ctx, inFile->content().data(), 0, inOffset);
+        column = calculateColumn(inFile->content().data(), 0, inOffset);
     }
     else
     {
@@ -74,6 +73,6 @@ void SourceCodeLocation::fromOffset(const CompilerContext& ctx, const SourceFile
         line = static_cast<uint32_t>(lineIndex + 1);
 
         // Column is the offset from the start of the line (1-based)
-        column = calculateColumn(ctx, inFile->content().data(), lineStartOffset, inOffset);
+        column = calculateColumn(inFile->content().data(), lineStartOffset, inOffset);
     }
 }

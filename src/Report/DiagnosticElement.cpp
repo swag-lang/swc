@@ -28,22 +28,22 @@ Utf8 DiagnosticElement::argumentToString(const Argument& arg) const
                       arg);
 }
 
-SourceCodeLocation DiagnosticElement::location(CompilerContext& ctx) const
+SourceCodeLocation DiagnosticElement::location() const
 {
     SourceCodeLocation loc;
-    loc.fromOffset(ctx, file_, offset_, len_);
+    loc.fromOffset(file_, offset_, len_);
     return loc;
 }
 
-std::string_view DiagnosticElement::idName(const CompilerContext& ctx) const
+std::string_view DiagnosticElement::idName() const
 {
-    return ctx.ci().diagIds().diagName(id_);
+    return CompilerInstance::get().diagIds().diagName(id_);
 }
 
 // Format a string by replacing %0, %1, etc. with registered arguments
-Utf8 DiagnosticElement::message(const CompilerContext& ctx) const
+Utf8 DiagnosticElement::message() const
 {
-    Utf8 result{ctx.ci().diagIds().diagMessage(id_)};
+    Utf8 result{CompilerInstance::get().diagIds().diagMessage(id_)};
 
     // Replace placeholders in reverse order to avoid issues with %10 versus %1
     for (int i = static_cast<int>(arguments_.size()) - 1; i >= 0; --i)

@@ -9,15 +9,22 @@ struct Stats;
 
 class CompilerInstance
 {
-    std::unique_ptr<DiagnosticIds> diagIds_;
-    std::unique_ptr<Logger>        logger_;
-    std::unique_ptr<LangSpec>      langSpec_;
-    std::unique_ptr<CommandLine>   cmdLine_;
-    std::unique_ptr<JobManager>    jobMgr_;
-    std::unique_ptr<Stats>         stats_;
+    DiagnosticIds* diagIds_  = nullptr;
+    Logger*        logger_   = nullptr;
+    LangSpec*      langSpec_ = nullptr;
+    CommandLine*   cmdLine_  = nullptr;
+    JobManager*    jobMgr_   = nullptr;
+    Stats*         stats_    = nullptr;
 
 public:
-    CompilerInstance();
+    static CompilerInstance& get()
+    {
+        static CompilerInstance instance;
+        return instance;
+    }
+
+    void setup();
+
     const DiagnosticIds& diagIds() const { return *diagIds_; }
     Logger&              logger() const { return *logger_; }
     LangSpec&            langSpec() const { return *langSpec_; }

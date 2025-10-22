@@ -28,6 +28,6 @@ public:
 
     Result           loadContent(CompilerContext& ctx);
     Result           tokenize(CompilerContext& ctx);
-    Utf8             codeLine(const CompilerContext& ctx, uint32_t line) const;
+    Utf8             codeLine(uint32_t line) const;
     std::string_view codeView(uint32_t offset, uint32_t len) const;
 };

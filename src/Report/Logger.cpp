@@ -1,12 +1,11 @@
 #include "pch.h"
 #include "Logger.h"
 #include "Main/CommandLine.h"
-#include "Main/CompilerContext.h"
 #include "Main/CompilerInstance.h"
 
-void Logger::log(const CompilerContext &ctx, std::string_view message)
+void Logger::log(std::string_view message)
 {
-    if (ctx.ci().cmdLine().silent)
+    if (CompilerInstance::get().cmdLine().silent)
         return;
     std::cout << message;   
 }

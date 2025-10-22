@@ -9,13 +9,13 @@
 #include "Report/Stats.h"
 #include "Thread/JobManager.h"
 
-CompilerInstance::CompilerInstance()
+void CompilerInstance::setup()
 {
     Os::setup();
-    diagIds_  = std::make_unique<DiagnosticIds>();
-    logger_   = std::make_unique<Logger>();
-    langSpec_ = std::make_unique<LangSpec>();
-    cmdLine_  = std::make_unique<CommandLine>();
-    jobMgr_   = std::make_unique<JobManager>();
-    stats_    = std::make_unique<Stats>();
+    diagIds_  = new DiagnosticIds();
+    logger_   = new Logger();
+    langSpec_ = new LangSpec();
+    cmdLine_  = new CommandLine();
+    jobMgr_   = new JobManager();
+    stats_    = new Stats();
 }

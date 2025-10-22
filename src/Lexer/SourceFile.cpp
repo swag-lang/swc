@@ -1,7 +1,6 @@
 ﻿#include "pch.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
-#include "Main/CompilerContext.h"
 #include "Main/CompilerInstance.h"
 #include "Report/Diagnostic.h"
 
@@ -52,7 +51,7 @@ Result SourceFile::tokenize(CompilerContext& ctx)
     return lexer_.tokenize(ctx);
 }
 
-Utf8 SourceFile::codeLine(const CompilerContext& ctx, uint32_t line) const
+Utf8 SourceFile::codeLine(uint32_t line) const
 {
     line--;
     SWAG_ASSERT(line < lexer_.lines().size());
@@ -80,7 +79,7 @@ Utf8 SourceFile::codeLine(const CompilerContext& ctx, uint32_t line) const
         return result;
 
     // Transform tabulations to blanks in order for columns to match
-    const uint32_t tabSize = ctx.ci().cmdLine().tabSize;
+    const uint32_t tabSize = CompilerInstance::get().cmdLine().tabSize;
     Utf8           expanded;
     expanded.reserve(result.size());
 

@@ -20,14 +20,14 @@ DiagnosticElement* Diagnostic::addElement(DiagnosticSeverity kind, DiagnosticId 
 
 Utf8 Diagnostic::build(CompilerContext& ctx) const
 {
-    const auto& ci      = ctx.ci();
+    const auto& ci      = CompilerInstance::get();
     const auto  cmdLine = ci.cmdLine();
     Utf8        result;
 
     for (auto& e : elements_)
     {
         const auto severity = e->severity();
-        const auto idName   = e->idName(ctx);
+        const auto idName   = e->idName();
 
         // Colorize severity level
         if (cmdLine.logColor)
@@ -73,7 +73,7 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
             SourceCodeLocation loc;
             if (e->len_ != 0)
             {
-                loc = e->location(ctx);
+                loc = e->location();
                 result += std::format("{}:{}", loc.line, loc.column);
                 result += "\n";
             }
@@ -84,7 +84,7 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
             // Code line
             if (e->len_ != 0)
             {
-                const auto code = e->file_->codeLine(ctx, loc.line);
+                const auto code = e->file_->codeLine(loc.line);
                 result += code;
                 result += "\n";
             }
@@ -124,7 +124,7 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
         }
 
         // Message text
-        const auto msg = e->message(ctx);
+        const auto msg = e->message();
         result += msg;
         result += "\n";
     }
@@ -134,14 +134,14 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
 
 void Diagnostic::report(CompilerContext& ctx) const
 {
-    const auto& ci      = ctx.ci();
+    const auto& ci      = CompilerInstance::get();
     const auto& cmdLine = ci.cmdLine();
     const auto  msg     = build(ctx);
     bool        dismiss = false;
 
     if (fileOwner_ != nullptr)
     {
-        dismiss = fileOwner_->verifier().verify(ctx, *this);
+        dismiss = fileOwner_->verifier().verify(*this);
     }
 
     if (cmdLine.verboseErrors)
@@ -156,7 +156,7 @@ void Diagnostic::report(CompilerContext& ctx) const
         auto& logger = ci.logger();
         logger.lock();
         logger.logEol();
-        logger.log(ctx, msg);
+        logger.log(msg);
         logger.unlock();
     }
 }

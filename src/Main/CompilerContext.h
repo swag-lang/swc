@@ -3,16 +3,9 @@
 
 class CompilerContext
 {
-    SourceFile*             sourceFile_ = nullptr;
-    const CompilerInstance* ci_         = nullptr;
+    SourceFile* sourceFile_ = nullptr;
 
 public:
-    explicit CompilerContext(const CompilerInstance* ci) :
-        ci_(ci)
-    {
-    }
-
-    const CompilerInstance& ci() const { return *ci_; }
-    SourceFile*             sourceFile() const { return sourceFile_; }
-    void                    setSourceFile(SourceFile* sourceFile) { sourceFile_ = sourceFile; }
+    SourceFile* sourceFile() const { return sourceFile_; }
+    void        setSourceFile(SourceFile* sourceFile) { sourceFile_ = sourceFile; }
 };

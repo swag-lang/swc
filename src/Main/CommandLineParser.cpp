@@ -268,8 +268,9 @@ bool CommandLineParser::checkCommandLine(const CompilerContext& ctx)
 void CommandLineParser::setupCommandLine(const CompilerContext& ctx)
 {
     auto& cmdLine = ctx.ci().cmdLine();
+    addArg("all", "--silent", nullptr, CommandLineType::Bool, &cmdLine.silent, nullptr, "no log output");
+    addArg("all", "--log-color", nullptr, CommandLineType::Bool, &cmdLine.logColor, nullptr, "log output can be colored");
     addArg("all", "--verify", "-v", CommandLineType::Bool, &cmdLine.verify, nullptr, "verify special test comments");
-    addArg("all", "--log-color", nullptr, CommandLineType::Bool, &cmdLine.logColor, nullptr, "output to console can be colored");
     addArg("all", "--verbose-errors", "-ve", CommandLineType::Bool, &cmdLine.verboseErrors, nullptr, "log silent errors during tests");
-    addArg("all", "--verbose-errors-filter", "-vef", CommandLineType::String, &cmdLine.verboseErrorsFilter, nullptr, "filter log silent errors during tests");
+    addArg("all", "--verbose-errors-filter", "-vef", CommandLineType::String, &cmdLine.verboseErrorsFilter, nullptr, "filter logged silent errors during tests");
 }

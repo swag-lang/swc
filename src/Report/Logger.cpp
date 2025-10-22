@@ -1,9 +1,13 @@
 #include "pch.h"
 #include "Logger.h"
-#include <iostream>
+#include "Main/CommandLine.h"
+#include "Main/CompilerContext.h"
+#include "Main/CompilerInstance.h"
 
-void Logger::log(Utf8 message)
+void Logger::log(const CompilerContext &ctx, std::string_view message)
 {
+    if (ctx.ci().cmdLine().silent)
+        return;
     std::cout << message;   
 }
 

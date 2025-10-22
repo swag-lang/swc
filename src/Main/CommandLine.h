@@ -2,8 +2,8 @@
 
 struct CommandLine
 {
-    bool ignoreBadParams = false;
-    bool logColor        = true;
+    bool logColor = true;
+    bool silent   = false;
 
     uint32_t tabSize = 4;
 

@@ -156,7 +156,7 @@ void Diagnostic::report(CompilerContext& ctx) const
         auto& logger = ci.logger();
         logger.lock();
         logger.logEol();
-        logger.log(msg);
+        logger.log(ctx, msg);
         logger.unlock();
     }
 }

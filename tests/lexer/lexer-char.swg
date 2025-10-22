@@ -83,7 +83,7 @@
 '\t
 
 // --- Character literal with newline inside ---
-// expected-error@+ TooManyCharsInCharLiteral
+// expected-error@+ UnclosedCharLiteral
 'test
 multiple
 lines'
@@ -176,7 +176,7 @@ lines'
 // ============================================================================
 
 // --- Backslash at end ---
-// expected-error@+ TooManyCharsInCharLiteral
+// expected-error@+ 1InvalidEscapeSequence
 'test\
 
 // --- Valid maximum values ---

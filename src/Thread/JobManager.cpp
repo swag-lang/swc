@@ -2,16 +2,6 @@
 
 #include "Thread/JobManager.h"
 
-// ========================= Record pool (recycling) =========================
-//
-// We use a simple hybrid pool:
-//  • A thread_local vector for super-fast alloc/free on the same thread.
-//  • A small global fallback vector under a mutex.
-// This avoids per-job heap allocation and keeps Record* stable while in use.
-//
-// Records are POD-like and reset by the manager before reuse.
-//
-
 struct JobManager::RecordPool
 {
     // Thread-local free list (LIFO for cache locality).
@@ -37,14 +27,16 @@ JobRecord* JobManager::allocRecord()
         v.pop_back();
         return r;
     }
+
     // Slow path: global pool
-    std::lock_guard<std::mutex> lk(RecordPool::gMutex);
+    std::lock_guard lk(RecordPool::gMutex);
     if (!RecordPool::gFree.empty())
     {
         JobRecord* r = RecordPool::gFree.back();
         RecordPool::gFree.pop_back();
         return r;
     }
+
     // Fallback: heap
     return new JobRecord();
 }
@@ -68,7 +60,7 @@ void JobManager::freeRecord(JobRecord* r)
         v.push_back(r);
         return;
     }
-    std::lock_guard<std::mutex> lk(RecordPool::gMutex);
+    std::lock_guard lk(RecordPool::gMutex);
     RecordPool::gFree.push_back(r);
 }
 
@@ -91,7 +83,7 @@ void JobManager::setNumThreads(std::size_t count)
         workers_.emplace_back([this] { workerLoop(); });
 }
 
-bool JobManager::enqueue(const JobRef& job, JobPriority prio)
+bool JobManager::enqueue(const JobRef& job, JobPriority priority)
 {
     if (!job)
         return false;
@@ -107,7 +99,7 @@ bool JobManager::enqueue(const JobRef& job, JobPriority prio)
     // Acquire a Record from the pool and wire it up.
     JobRecord* rec = allocRecord();
     rec->job       = job; // keep job alive while scheduled
-    rec->prio      = prio;
+    rec->prio      = priority;
     rec->state     = JobRecord::State::Ready;
     rec->dependents.clear();
     rec->wakeGen.store(0, std::memory_order_relaxed);
@@ -115,7 +107,7 @@ bool JobManager::enqueue(const JobRef& job, JobPriority prio)
     job->owner_ = this;
     job->rec_   = rec;
 
-    pushReady(rec, prio);
+    pushReady(rec, priority);
     cv_.notify_one();
     return true;
 }
@@ -131,7 +123,8 @@ bool JobManager::wake(const JobRef& job)
         return false;
 
     JobRecord* rec = job->rec_;
-    // Arm against lost-wake during a run.
+
+    // Arm against a lost-wake during a run.
     ++rec->wakeGen;
 
     if (rec->state == JobRecord::State::Waiting)
@@ -140,6 +133,7 @@ bool JobManager::wake(const JobRef& job)
         pushReady(rec, rec->prio);
         cv_.notify_one();
     }
+
     return true;
 }
 
@@ -160,17 +154,15 @@ void JobManager::shutdown() noexcept
         accepting_ = false;
         cv_.notify_all();
     }
-    joinAll();
 
-    // NOTE: Remaining sleepers (if any) are still owned by user code.
-    // They are not runnable; their rec_ remains set until they complete or are canceled.
+    joinAll();
+    // NOTE: User code still owns remaining sleepers (if any).
+    // They are not runnable; their rec_ remains set until they are complete or are canceled.
 }
 
-// =============================== internals =============================
-
-void JobManager::pushReady(JobRecord* rec, JobPriority prio)
+void JobManager::pushReady(JobRecord* rec, JobPriority priority)
 {
-    readyQ_[static_cast<int>(prio)].push_back(rec);
+    readyQ_[static_cast<int>(priority)].push_back(rec);
     readyCount_.fetch_add(1, std::memory_order_release);
 }
 
@@ -185,18 +177,18 @@ bool JobManager::linkOrSkip(JobRecord* waiter, JobRecord* dep)
 }
 
 // Wake everyone waiting on 'finished'.
-// We copy out the vector (move) to minimize lock hold time and avoid re-entrancy pitfalls.
+// We copy out the vector (move) to minimize lock hold time and avoid reentrancy pitfalls.
 void JobManager::notifyDependents(JobRecord* finished)
 {
     const auto deps = std::move(finished->dependents);
     finished->dependents.clear();
 
-    for (const Job* wjob : deps)
+    for (const Job* job : deps)
     {
-        // If the waiter is still scheduled here, it must have a non-null rec_.
-        if (wjob && wjob->owner_ == this && wjob->rec_)
+        // If the waiter is still scheduled here, it must have non-null 'rec_'.
+        if (job && job->owner_ == this && job->rec_)
         {
-            JobRecord* rec = wjob->rec_;
+            JobRecord* rec = job->rec_;
             ++rec->wakeGen; // make future Sleep a no-op (requeue)
             if (rec->state == JobRecord::State::Waiting)
             {
@@ -210,7 +202,7 @@ void JobManager::notifyDependents(JobRecord* finished)
         cv_.notify_all();
 }
 
-// Favor High → Normal → Low. Caller must hold mtx_.
+// Favor High: Normal: Low. Caller must hold mtx_.
 JobRecord* JobManager::popReadyLocked()
 {
     for (auto& q : readyQ_)
@@ -229,69 +221,88 @@ JobRecord* JobManager::popReadyLocked()
 
 void JobManager::workerLoop()
 {
-    // Small spin to avoid CV storms for micro-jobs under bursts.
-    constexpr int spinIters = 200;
+    auto popReadyAndMarkRunningLocked = [this]() -> JobRecord* {
+        JobRecord* rec = popReadyLocked();
+        if (!rec)
+            return nullptr;
+
+        if (rec->state == JobRecord::State::Done) // defensive; should rarely happen
+            return nullptr;
+
+        rec->state = JobRecord::State::Running;
+        ++activeWorkers_;
+        return rec;
+    };
+
+    auto maybeExitIfDrainedLocked = [this]() -> bool {
+        if (!accepting_ && readyCount_.load(std::memory_order_acquire) == 0)
+            return true;
+        return false;
+    };
 
     for (;;)
     {
         JobRecord* rec = nullptr;
 
-        // Spin/yield briefly if no ready work, then fall back to CV wait.
+        // Fast path: brief spin/yield if no ready work
         int spins = 0;
         while (readyCount_.load(std::memory_order_acquire) == 0 && accepting_)
         {
-            if (++spins < spinIters)
+            // Small spin to avoid CV storms for micro-jobs under bursts.
+            constexpr int spinMax = 200;
+            if (++spins < spinMax)
             {
                 std::this_thread::yield();
                 continue;
             }
-            
-            std::unique_lock lk(mtx_);
-            cv_.wait(lk, [this] { return readyCount_.load(std::memory_order_acquire) > 0 || !accepting_; });
-            if (!accepting_ && readyCount_.load(std::memory_order_acquire) == 0)
-                return;
-            
-            rec = popReadyLocked();
-            if (rec)
+
+            // Slow path: fall back to CV wait
             {
-                if (rec->state == JobRecord::State::Done)
-                {
-                    rec = nullptr;
-                    continue;
-                }
-                
-                rec->state = JobRecord::State::Running;
-                ++activeWorkers_;
+                std::unique_lock lk(mtx_);
+                cv_.wait(lk, [this] {
+                    return readyCount_.load(std::memory_order_acquire) > 0 || !accepting_;
+                });
+
+                if (maybeExitIfDrainedLocked())
+                    return;
+                rec = popReadyAndMarkRunningLocked();
             }
-            
-            goto have_job;
+
+            // leave the spin loop (either with a job or to try fast pop)
+            break;
         }
 
-        // We observed ready work; pop with a short lock.
+        // If the spin loop did not acquire a job yet, but we observed ready work, do a short locked pop.
+        if (!rec)
         {
             std::unique_lock lk(mtx_);
-            if (!accepting_ && readyCount_.load(std::memory_order_acquire) == 0)
+            if (maybeExitIfDrainedLocked())
                 return;
-            rec = popReadyLocked();
-            if (rec)
-            {
-                if (rec->state == JobRecord::State::Done)
-                {
-                    rec = nullptr;
-                    continue;
-                }
-                rec->state = JobRecord::State::Running;
-                ++activeWorkers_;
-            }
+            rec = popReadyAndMarkRunningLocked();
         }
 
-    have_job:
         if (!rec)
             continue;
 
-        // Snapshot wake ticket at start.
+        // From here on, we’re an active worker for this job.
+        struct ActiveGuard
+        {
+            size_t*                  ref;
+            std::atomic<uint64_t>*   ready;
+            std::condition_variable* idleCv;
+            ~ActiveGuard()
+            {
+                if (--*ref == 0 && ready->load(std::memory_order_acquire) == 0)
+                    idleCv->notify_all();
+            }
+        };
+
+        ActiveGuard activeGuard{.ref = &activeWorkers_, .ready = &readyCount_, .idleCv = &idleCv_};
+
+        // Snapshot wake ticket at the start for lost-wake prevention on Sleep.
         const auto wakeAtStart = rec->wakeGen.load(std::memory_order_acquire);
 
+        // Execute job
         Job::Result res;
         try
         {
@@ -302,6 +313,7 @@ void JobManager::workerLoop()
             res = Job::Result::Done;
         }
 
+        // Completion / state transition handling
         {
             std::unique_lock lk(mtx_);
 
@@ -320,12 +332,12 @@ void JobManager::workerLoop()
                     freeRecord(rec);
                     break;
                 }
-                    
+
                 case Job::Result::Sleep:
                 {
                     if (lostWakePrevented)
                     {
-                        // Someone called wake() while running → don't park.
+                        // Someone called wake() while we were running: keep runnable.
                         rec->state = JobRecord::State::Ready;
                         pushReady(rec, rec->prio);
                         cv_.notify_one();
@@ -337,35 +349,31 @@ void JobManager::workerLoop()
                     rec->job->clearIntents(); // consume any stale intent
                     break;
                 }
-                    
+
                 case Job::Result::SleepOn:
                 {
                     JobRecord* depRec = nullptr;
                     if (rec->job->dep_ && rec->job->dep_->owner_ == this)
                         depRec = rec->job->dep_->rec_;
 
-                    if (depRec && linkOrSkip(rec, depRec))
+                    if (!depRec || !linkOrSkip(rec, depRec))
                     {
-                        // parked successfully
-                    }
-                    else
-                    {
-                        // dependency already done/unknown → keep runnable
+                        // dependency already done/unknown: keep runnable
                         rec->state = JobRecord::State::Ready;
                         pushReady(rec, rec->prio);
                         cv_.notify_one();
                     }
+
                     rec->job->clearIntents();
                     break;
                 }
-                    
+
                 case Job::Result::SpawnAndSleep:
                 {
                     // Create or reuse child's record and enqueue.
                     JobRecord* childRec = nullptr;
                     if (rec->job->child_)
                     {
-                        // If the child is already owned/enqueued here, refuse (defensive).
                         if (rec->job->child_->owner_ != this || rec->job->child_->rec_ == nullptr)
                         {
                             JobRecord* r = allocRecord();
@@ -392,7 +400,7 @@ void JobManager::workerLoop()
                         pushReady(childRec, childRec->prio);
                         cv_.notify_one();
                     }
-                    
+
                     if (!parked)
                     {
                         // Parent stays runnable.
@@ -400,14 +408,11 @@ void JobManager::workerLoop()
                         pushReady(rec, rec->prio);
                         cv_.notify_one();
                     }
-                    
+
                     rec->job->clearIntents();
                     break;
                 }
             }
-
-            if (--activeWorkers_ == 0 && readyCount_.load(std::memory_order_acquire) == 0)
-                idleCv_.notify_all();
         }
     }
 }

@@ -18,7 +18,7 @@ public:
     //  - not accepting, or
     //  - job is null, or
     //  - job is already enqueued on this manager (job->rec_ != nullptr && job->owner_ == this).
-    bool enqueue(const JobRef& job, JobPriority prio);
+    bool enqueue(const JobRef& job, JobPriority priority);
 
     // Wake a sleeping job.
     // If it's waiting, it becomes ready immediately.
@@ -37,7 +37,7 @@ protected:
 
 private:
     // Ready-queue helpers
-    void       pushReady(JobRecord* rec, JobPriority prio);
+    void       pushReady(JobRecord* rec, JobPriority priority);
     JobRecord* popReadyLocked(); // High → Normal → Low
 
     // Dependencies

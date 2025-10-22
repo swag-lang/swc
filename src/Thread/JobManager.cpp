@@ -202,7 +202,7 @@ void JobManager::notifyDependents(JobRecord* finished)
         cv_.notify_all();
 }
 
-// Favor High: Normal: Low. Caller must hold mtx_.
+// Favor High: Normal: Low. Caller must hold 'mtx_'.
 JobRecord* JobManager::popReadyLocked()
 {
     for (auto& q : readyQ_)
@@ -317,9 +317,7 @@ void JobManager::workerLoop()
         {
             std::unique_lock lk(mtx_);
 
-            const bool lostWakePrevented =
-            (res == Job::Result::Sleep) &&
-            (rec->wakeGen.load(std::memory_order_acquire) != wakeAtStart);
+            const bool lostWakePrevented = (res == Job::Result::Sleep) && (rec->wakeGen.load(std::memory_order_acquire) != wakeAtStart);
 
             switch (res)
             {
@@ -421,9 +419,15 @@ void JobManager::joinAll() noexcept
 {
     if (joined_)
         return;
+    
     for (auto& t : workers_)
+    {
         if (t.joinable())
+        {
             t.join();
+        }
+    }
+    
     joined_ = true;
 }
 

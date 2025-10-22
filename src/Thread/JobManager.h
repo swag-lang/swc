@@ -4,9 +4,9 @@
 class JobManager
 {
 public:
-    JobManager();
     ~JobManager();
 
+    JobManager()                             = default;
     JobManager(const JobManager&)            = delete;
     JobManager& operator=(const JobManager&) = delete;
 
@@ -37,7 +37,7 @@ protected:
 
 private:
     // Ready-queue helpers
-    void    pushReady(JobRecord* rec, JobPriority prio);
+    void       pushReady(JobRecord* rec, JobPriority prio);
     JobRecord* popReadyLocked(); // High → Normal → Low
 
     // Dependencies
@@ -70,5 +70,5 @@ private:
     // We keep a tiny interface here; implementation detail is in .cpp.
     struct RecordPool;
     static JobRecord* allocRecord(); // may use TLS fast path
-    static void    freeRecord(JobRecord* r);
+    static void       freeRecord(JobRecord* r);
 };

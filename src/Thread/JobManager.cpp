@@ -18,13 +18,13 @@ struct JobManager::RecordPool
     static thread_local std::vector<JobRecord*> tls;
 
     // Global fallback (small), guarded by a mutex.
-    static std::mutex            gMutex;
-    static std::vector<JobRecord*>  gFree;
-    static constexpr std::size_t K_TLS_MAX = 1024; // cap per thread to avoid unbounded growth
+    static std::mutex              gMutex;
+    static std::vector<JobRecord*> gFree;
+    static constexpr std::size_t   K_TLS_MAX = 1024; // cap per thread to avoid unbounded growth
 };
 
 thread_local std::vector<JobRecord*> JobManager::RecordPool::tls;
-std::mutex                        JobManager::RecordPool::gMutex;
+std::mutex                           JobManager::RecordPool::gMutex;
 std::vector<JobRecord*>              JobManager::RecordPool::gFree;
 
 JobRecord* JobManager::allocRecord()
@@ -72,36 +72,18 @@ void JobManager::freeRecord(JobRecord* r)
     RecordPool::gFree.push_back(r);
 }
 
-// ============================== ctor/dtor ==============================
-
-JobManager::JobManager() = default;
-
 JobManager::~JobManager()
 {
     shutdown();
 }
 
-// ====================== public: threads & lifecycle ====================
-
 void JobManager::setNumThreads(std::size_t count)
 {
+    SWAG_ASSERT(workers_.empty());
+
     if (count == 0)
         count = std::thread::hardware_concurrency();
 
-    std::unique_lock<std::mutex> lk(mtx_);
-
-    if (!workers_.empty())
-    {
-        // Stop the current pool cleanly.
-        accepting_ = false;
-        cv_.notify_all();
-        lk.unlock();
-        joinAll();
-        lk.lock();
-        clearThreads();
-    }
-
-    // Start a fresh pool.
     accepting_ = true;
     joined_    = false;
     workers_.reserve(count);
@@ -114,7 +96,7 @@ bool JobManager::enqueue(const JobRef& job, JobPriority prio)
     if (!job)
         return false;
 
-    std::unique_lock<std::mutex> lk(mtx_);
+    std::unique_lock lk(mtx_);
     if (!accepting_)
         return false;
 
@@ -124,9 +106,9 @@ bool JobManager::enqueue(const JobRef& job, JobPriority prio)
 
     // Acquire a Record from the pool and wire it up.
     JobRecord* rec = allocRecord();
-    rec->job    = job; // keep job alive while scheduled
-    rec->prio   = prio;
-    rec->state  = JobRecord::State::Ready;
+    rec->job       = job; // keep job alive while scheduled
+    rec->prio      = prio;
+    rec->state     = JobRecord::State::Ready;
     rec->dependents.clear();
     rec->wakeGen.store(0, std::memory_order_relaxed);
 
@@ -143,7 +125,7 @@ bool JobManager::wake(const JobRef& job)
     if (!job)
         return false;
 
-    std::unique_lock<std::mutex> lk(mtx_);
+    std::unique_lock lk(mtx_);
     // If not scheduled on this manager (or already completed), ignore.
     if (job->owner_ != this || job->rec_ == nullptr)
         return false;
@@ -163,7 +145,7 @@ bool JobManager::wake(const JobRef& job)
 
 void JobManager::waitAll()
 {
-    std::unique_lock<std::mutex> lk(mtx_);
+    std::unique_lock lk(mtx_);
     idleCv_.wait(lk, [this] {
         return readyCount_.load(std::memory_order_acquire) == 0 && activeWorkers_ == 0;
     });
@@ -172,7 +154,7 @@ void JobManager::waitAll()
 void JobManager::shutdown() noexcept
 {
     {
-        std::unique_lock<std::mutex> lk(mtx_);
+        std::unique_lock lk(mtx_);
         if (joined_)
             return;
         accepting_ = false;
@@ -223,7 +205,7 @@ void JobManager::notifyDependents(JobRecord* finished)
             }
         }
     }
-    
+
     if (!deps.empty())
         cv_.notify_all();
 }
@@ -241,7 +223,7 @@ JobRecord* JobManager::popReadyLocked()
             return rec;
         }
     }
-    
+
     return nullptr;
 }
 
@@ -263,7 +245,7 @@ void JobManager::workerLoop()
                 std::this_thread::yield();
                 continue;
             }
-            std::unique_lock<std::mutex> lk(mtx_);
+            std::unique_lock lk(mtx_);
             cv_.wait(lk, [this] { return readyCount_.load(std::memory_order_acquire) > 0 || !accepting_; });
             if (!accepting_ && readyCount_.load(std::memory_order_acquire) == 0)
                 return;
@@ -283,7 +265,7 @@ void JobManager::workerLoop()
 
         // We observed ready work; pop with a short lock.
         {
-            std::unique_lock<std::mutex> lk(mtx_);
+            std::unique_lock lk(mtx_);
             if (!accepting_ && readyCount_.load(std::memory_order_acquire) == 0)
                 return;
             rec = popReadyLocked();
@@ -314,19 +296,10 @@ void JobManager::workerLoop()
         catch (...)
         {
             res = Job::Result::Done;
-        } // keep the pool alive
+        }
 
         {
-            std::unique_lock<std::mutex> lk(mtx_);
-
-            auto finish = [&](JobRecord* r) {
-                r->state = JobRecord::State::Done;
-                notifyDependents(r); // auto-wake all dependents
-                // cut the link from job → rec, then recycle the record memory
-                r->job->rec_   = nullptr;
-                r->job->owner_ = nullptr; // job is no longer owned by this manager
-                freeRecord(r);
-            };
+            std::unique_lock lk(mtx_);
 
             const bool lostWakePrevented =
             (res == Job::Result::Sleep) &&
@@ -336,9 +309,14 @@ void JobManager::workerLoop()
             {
                 case Job::Result::Done:
                 {
-                    finish(rec);
+                    rec->state = JobRecord::State::Done;
+                    notifyDependents(rec);
+                    rec->job->rec_   = nullptr;
+                    rec->job->owner_ = nullptr;
+                    freeRecord(rec);
                     break;
                 }
+                    
                 case Job::Result::Sleep:
                 {
                     if (lostWakePrevented)
@@ -355,6 +333,7 @@ void JobManager::workerLoop()
                     rec->job->clearIntents(); // consume any stale intent
                     break;
                 }
+                    
                 case Job::Result::SleepOn:
                 {
                     JobRecord* depRec = nullptr;
@@ -375,6 +354,7 @@ void JobManager::workerLoop()
                     rec->job->clearIntents();
                     break;
                 }
+                    
                 case Job::Result::SpawnAndSleep:
                 {
                     // Create or reuse child's record and enqueue.
@@ -385,9 +365,9 @@ void JobManager::workerLoop()
                         if (rec->job->child_->owner_ != this || rec->job->child_->rec_ == nullptr)
                         {
                             JobRecord* r = allocRecord();
-                            r->job    = rec->job->child_;
-                            r->prio   = rec->job->childPriority_;
-                            r->state  = JobRecord::State::Ready;
+                            r->job       = rec->job->child_;
+                            r->prio      = rec->job->childPriority_;
+                            r->state     = JobRecord::State::Ready;
                             r->dependents.clear();
                             r->wakeGen.store(0, std::memory_order_relaxed);
 
@@ -408,6 +388,7 @@ void JobManager::workerLoop()
                         pushReady(childRec, childRec->prio);
                         cv_.notify_one();
                     }
+                    
                     if (!parked)
                     {
                         // Parent stays runnable.
@@ -415,6 +396,7 @@ void JobManager::workerLoop()
                         pushReady(rec, rec->prio);
                         cv_.notify_one();
                     }
+                    
                     rec->job->clearIntents();
                     break;
                 }

@@ -2,7 +2,7 @@
 
 #include "Thread/JobManager.h"
 
-void Job::wakeDependents()
+void Job::wakeDependents() const
 {
     if (!owner_ || !rec_)
         return; // not scheduled

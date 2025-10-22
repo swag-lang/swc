@@ -187,7 +187,7 @@ void Lexer::parseEol()
     eatOneEol();
 
     // Collapse subsequent EOLs (any mix of CR/LF/CRLF).
-    while (buffer_ < endBuffer_ && (buffer_[0] == '\r' || buffer_[0] == '\n'))
+    while (buffer_[0] == '\r' || buffer_[0] == '\n')
         eatOneEol();
 
     pushToken();
@@ -197,9 +197,8 @@ void Lexer::parseBlank()
 {
     token_.id = TokenId::Blank;
 
-    // Safe lookahead: zeros after endBuffer_ will stop the loop
     buffer_++;
-    while (buffer_ < endBuffer_ && langSpec_->isBlank(buffer_[0]))
+    while (langSpec_->isBlank(buffer_[0]))
         buffer_++;
 
     pushToken();
@@ -642,10 +641,9 @@ void Lexer::parseNumber()
 void Lexer::parseIdentifier()
 {
     token_.id = TokenId::Identifier;
-    buffer_++;
 
-    // Safe lookahead: zeros after endBuffer_ will fail isIdentifierPart check
-    while (buffer_ < endBuffer_ && langSpec_->isIdentifierPart(buffer_[0]))
+    buffer_++;
+    while (langSpec_->isIdentifierPart(buffer_[0]))
         buffer_++;
 
     const auto name             = std::string_view(reinterpret_cast<std::string_view::const_pointer>(startToken_), buffer_ - startToken_);
@@ -1065,8 +1063,8 @@ void Lexer::checkFormat(const CompilerContext& ctx, uint32_t& startOffset)
     static constexpr uint8_t UTF32_BE[] = {0x00, 0x00, 0xFE, 0xFF};
     static constexpr uint8_t UTF32_LE[] = {0xFF, 0xFE, 0x00, 0x00};
 
-    const auto file    = ctx.sourceFile();
-    const auto content = file->content();
+    const auto  file    = ctx.sourceFile();
+    const auto& content = file->content();
 
     // Ensure we have enough bytes to check
     if (content.size() < 3)

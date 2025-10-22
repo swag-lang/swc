@@ -303,25 +303,25 @@ void JobManager::workerLoop()
         const auto wakeAtStart = rec->wakeGen.load(std::memory_order_acquire);
 
         // Execute job
-        Job::Result res;
+        JobResult res;
         try
         {
             res = rec->job->process();
         }
         catch (...)
         {
-            res = Job::Result::Done;
+            res = JobResult::Done;
         }
 
         // Completion / state transition handling
         {
             std::unique_lock lk(mtx_);
 
-            const bool lostWakePrevented = (res == Job::Result::Sleep) && (rec->wakeGen.load(std::memory_order_acquire) != wakeAtStart);
+            const bool lostWakePrevented = (res == JobResult::Sleep) && (rec->wakeGen.load(std::memory_order_acquire) != wakeAtStart);
 
             switch (res)
             {
-                case Job::Result::Done:
+                case JobResult::Done:
                 {
                     rec->state = JobRecord::State::Done;
                     notifyDependents(rec);
@@ -331,7 +331,7 @@ void JobManager::workerLoop()
                     break;
                 }
 
-                case Job::Result::Sleep:
+                case JobResult::Sleep:
                 {
                     if (lostWakePrevented)
                     {
@@ -348,7 +348,7 @@ void JobManager::workerLoop()
                     break;
                 }
 
-                case Job::Result::SleepOn:
+                case JobResult::SleepOn:
                 {
                     JobRecord* depRec = nullptr;
                     if (rec->job->dep_ && rec->job->dep_->owner_ == this)
@@ -366,7 +366,7 @@ void JobManager::workerLoop()
                     break;
                 }
 
-                case Job::Result::SpawnAndSleep:
+                case JobResult::SpawnAndSleep:
                 {
                     // Create or reuse child's record and enqueue.
                     JobRecord* childRec = nullptr;

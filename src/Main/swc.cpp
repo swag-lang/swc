@@ -26,13 +26,28 @@ static void parseFolder(CompilerContext& ctx, const fs::path& directory)
             if (ext == ".swg" || ext == ".swgs")
             {
                 const auto f = new SourceFile(entry.path());
-                f->loadContent(ctx);
-                if (f->codeView(0, (uint32_t) f->content().size()).find("#global testerror") == Utf8::npos)
+
+                struct t : Job
                 {
-                    ctx.setSourceFile(f);
-                    f->tokenize(ctx);
-                    (void) f->verifier().verify(ctx);
-                }
+                    t(CompilerContext& ctx) : Job(ctx) {} 
+                    SourceFile* f;
+                    JobResult process() override
+                    {
+                        f->loadContent(ctx_);
+                        if (f->codeView(0, static_cast<uint32_t>(f->content().size())).find("#global testerror") == Utf8::npos)
+                        {
+                            ctx_.setSourceFile(f);
+                            f->tokenize(ctx_);
+                            (void) f->verifier().verify(ctx_);
+                        }
+                        
+                        return JobResult::Done;
+                    }
+                };
+        
+                auto k = std::make_shared<t>(ctx);
+                k->f = f;
+                ctx.ci().jobMgr().enqueue(k, JobPriority::Normal);
             }
         }
     }
@@ -49,7 +64,8 @@ int main(int argc, char* argv[])
         return 1;
 
     ci.jobMgr().setNumThreads(ci.cmdLine().numCores);
-    parseFolder(ctx, "c:/perso/swag-lang");
+    
+    parseFolder(ctx, "c:/perso/swag-lang/swag/bin");
     parseFolder(ctx, "c:/perso/swag-lang/swc");
     return 0;
 }

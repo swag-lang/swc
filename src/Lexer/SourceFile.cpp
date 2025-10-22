@@ -6,7 +6,7 @@
 #include "Report/Diagnostic.h"
 
 SourceFile::SourceFile(const fs::path& path) :
-    path_(weakly_canonical(path))
+    path_(path)
 {
 }
 

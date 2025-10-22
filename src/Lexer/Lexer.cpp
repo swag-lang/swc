@@ -395,18 +395,7 @@ void Lexer::parseCharacterLiteral()
         if (buffer_[0] == '\\')
             parseEscape(TokenId::CharacterLiteral, false);
         else
-        {
-            auto [buf, wc, eat] = Utf8::decode(buffer_, endBuffer_);
-            if (!buf)
-            {
-                reportError(DiagnosticId::FileNotUtf8, static_cast<uint32_t>(buffer_ - startBuffer_));
-                hasUtf8Error_  = true;
-                hasTokenError_ = true;
-                buf            = buffer_ + 1;
-            }
-
-            buffer_ = buf;
-        }
+            eatUtf8Char();
 
         charCount++;
     }
@@ -1063,7 +1052,7 @@ void Lexer::parseOperator()
 
         default:
             eatUtf8Char();
-            reportError(DiagnosticId::InvalidCharacter, static_cast<uint32_t>(startToken_ - startBuffer_));
+            reportError(DiagnosticId::InvalidCharacter, static_cast<uint32_t>(startToken_ - startBuffer_), static_cast<uint32_t>(buffer_ - startToken_));
             break;
     }
 

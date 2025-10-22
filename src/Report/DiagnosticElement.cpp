@@ -66,19 +66,33 @@ void DiagnosticElement::addArgument(std::string_view arg)
     Utf8 sanitized;
     sanitized.reserve(arg.size());
 
-    for (const uint8_t ch : arg)
+    auto           ptr = reinterpret_cast<const uint8_t*>(arg.data());
+    const uint8_t* end = ptr + arg.size();
+    while (ptr < end)
     {
-        if (std::isprint(ch))
-            sanitized += ch;
-        else if (ch == '\t' || ch == '\n' || ch == '\r')
-            sanitized += ' ';
-        else
+        auto [buf, wc, eat] = Utf8::decode(ptr, end);
+        if (!buf)
+        {
+            ptr++;
+            continue;
+        }
+
+        if (wc < 128 && !std::isprint(wc))
         {
             // Convert to \xHH format
             char hex[5];
-            (void) std::snprintf(hex, sizeof(hex), "\\x%02X", ch);
+            (void) std::snprintf(hex, sizeof(hex), "\\x%02X", wc);
             sanitized += hex;
         }
+        else if (wc == '\t' || wc == '\n' || wc == '\r')
+            sanitized += ' ';
+        else
+        {
+            while (ptr < buf)
+                sanitized += *ptr++;
+        }
+        
+        ptr = buf;
     }
 
     arguments_.emplace_back(std::move(sanitized));

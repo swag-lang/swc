@@ -8,6 +8,7 @@
 #include "Main/CommandLine.h"
 #include "Report/DiagnosticIds.h"
 #include "Report/Logger.h"
+#include "Report/Stats.h"
 #include "Thread/JobManager.h"
 
 static void parseFolder(CompilerContext& ctx, const fs::path& directory)

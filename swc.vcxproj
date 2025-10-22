@@ -124,6 +124,7 @@
     <ClCompile Include="src\Report\DiagnosticIds.cpp" />
     <ClCompile Include="src\Report\DiagnosticElement.cpp" />
     <ClCompile Include="src\Report\Logger.cpp" />
+    <ClCompile Include="src\Report\Stats.cpp" />
     <ClCompile Include="src\Report\UnitTest.cpp" />
     <ClCompile Include="src\Thread\Job.cpp" />
     <ClCompile Include="src\Thread\JobManager.cpp" />
@@ -152,6 +153,7 @@
     <ClInclude Include="src\Report\DiagnosticElement.h" />
     <ClInclude Include="src\Report\DiagnosticIds.inc" />
     <ClInclude Include="src\Report\Logger.h" />
+    <ClInclude Include="src\Report\Stats.h" />
     <ClInclude Include="src\Report\UnitTest.h" />
     <ClInclude Include="src\Thread\Job.h" />
     <ClInclude Include="src\Thread\JobManager.h" />

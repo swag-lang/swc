@@ -5,6 +5,7 @@ class DiagnosticIds;
 class LangSpec;
 class JobManager;
 struct CommandLine;
+struct Stats;
 
 class CompilerInstance
 {
@@ -13,6 +14,7 @@ class CompilerInstance
     std::unique_ptr<LangSpec>      langSpec_;
     std::unique_ptr<CommandLine>   cmdLine_;
     std::unique_ptr<JobManager>    jobMgr_;
+    std::unique_ptr<Stats>         stats_;
 
 public:
     CompilerInstance();
@@ -21,4 +23,5 @@ public:
     LangSpec&            langSpec() const { return *langSpec_; }
     CommandLine&         cmdLine() const { return *cmdLine_; }
     JobManager&          jobMgr() const { return *jobMgr_; }
+    Stats&               stats() const { return *stats_; }
 };

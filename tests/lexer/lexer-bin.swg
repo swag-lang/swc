@@ -86,4 +86,4 @@
 0b___          // expected-error ConsecutiveNumberSeparators
 
 // --- Invalid suffix ---
-0b01G			// expected-error InvalidBinNumberSuffix
+0b01G			// expected-error InvalidBinDigit

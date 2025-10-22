@@ -25,19 +25,21 @@ class Lexer
     std::vector<Token>    tokens_;
     std::vector<uint32_t> lines_;
 
-    LexerFlags       lexerFlags_  = LexerFlagsEnum::Default;
-    const uint8_t*   buffer_      = nullptr;
-    const uint8_t*   startBuffer_ = nullptr;
-    const uint8_t*   endBuffer_   = nullptr;
-    const uint8_t*   startToken_  = nullptr;
-    CompilerContext* ctx_         = nullptr;
-    const LangSpec*  langSpec_    = nullptr;
+    LexerFlags       lexerFlags_    = LexerFlagsEnum::Default;
+    const uint8_t*   buffer_        = nullptr;
+    const uint8_t*   startBuffer_   = nullptr;
+    const uint8_t*   endBuffer_     = nullptr;
+    const uint8_t*   startToken_    = nullptr;
+    CompilerContext* ctx_           = nullptr;
+    const LangSpec*  langSpec_      = nullptr;
+    bool             hasTokenError_ = false;
+    bool             hasUtf8Error_  = false;
 
     void consumeOneEol();
     void pushToken();
     void reportError(DiagnosticId id, uint32_t offset, uint32_t len = 1) const;
-    void parseEscape(TokenId containerToken, bool eatEol, bool& hasError);
-    void checkFormat(const CompilerContext& ctx, uint32_t& startOffset) const;
+    void parseEscape(TokenId containerToken, bool eatEol);
+    void checkFormat(const CompilerContext& ctx, uint32_t& startOffset);
 
     void parseEol();
     void parseBlank();

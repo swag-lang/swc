@@ -144,3 +144,6 @@
 0_ // expected-error TrailingNumberSeparator
 1_ // expected-error TrailingNumberSeparator
 9_ // expected-error TrailingNumberSeparator
+
+123abc		// expected-error InvalidNumberSuffix
+42e10var	// expected-error InvalidNumberSuffix

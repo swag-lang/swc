@@ -48,7 +48,7 @@
 0xF00D_F00D
 
 // --- Invalid suffix ---
-0xAFG			// expected-error InvalidHexNumberSuffix
+0xAFG			// expected-error InvalidHexDigit
 
 // --- Invalid with misplaced underscores ---
 0x12_34_        // expected-error TrailingNumberSeparator

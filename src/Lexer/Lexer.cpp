@@ -448,7 +448,6 @@ void Lexer::parseHexNumber()
         {
             if (!hasError && lastWasSep)
             {
-                sepStart = buffer_;
                 while (buffer_ < endBuffer_ && langSpec_->isNumberSep(buffer_[0]))
                     buffer_++;
                 reportError(DiagnosticId::ConsecutiveNumberSeparators, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
@@ -511,7 +510,6 @@ void Lexer::parseBinNumber()
         {
             if (!hasError && lastWasSep)
             {
-                sepStart = buffer_;
                 while (buffer_ < endBuffer_ && langSpec_->isNumberSep(buffer_[0]))
                     buffer_++;
                 reportError(DiagnosticId::ConsecutiveNumberSeparators, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
@@ -560,10 +558,11 @@ void Lexer::parseDecimalNumber()
     token_.subTokenNumberId   = SubTokenNumberId::Integer;
     const uint8_t* startToken = buffer_;
 
-    bool hasError   = false;
-    bool lastWasSep = false;
-    bool hasDot     = false;
-    bool hasExp     = false;
+    bool           hasError   = false;
+    bool           lastWasSep = false;
+    const uint8_t* sepStart   = nullptr;
+    bool           hasDot     = false;
+    bool           hasExp     = false;
 
     // Parse integer part - safe lookahead: zeros after endBuffer_ will fail the check
     while (buffer_ < endBuffer_ && (langSpec_->isDigit(buffer_[0]) || langSpec_->isNumberSep(buffer_[0])))
@@ -572,7 +571,6 @@ void Lexer::parseDecimalNumber()
         {
             if (!hasError && lastWasSep)
             {
-                const uint8_t* sepStart = buffer_;
                 while (buffer_ < endBuffer_ && langSpec_->isNumberSep(buffer_[0]))
                     buffer_++;
                 reportError(DiagnosticId::ConsecutiveNumberSeparators, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
@@ -580,6 +578,7 @@ void Lexer::parseDecimalNumber()
                 continue;
             }
 
+            sepStart   = buffer_;
             lastWasSep = true;
             buffer_++;
             continue;
@@ -615,7 +614,6 @@ void Lexer::parseDecimalNumber()
             {
                 if (!hasError && lastWasSep)
                 {
-                    const uint8_t* sepStart = buffer_;
                     while (buffer_ < endBuffer_ && langSpec_->isNumberSep(buffer_[0]))
                         buffer_++;
                     reportError(DiagnosticId::ConsecutiveNumberSeparators, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
@@ -623,6 +621,7 @@ void Lexer::parseDecimalNumber()
                     continue;
                 }
 
+                sepStart   = buffer_;
                 lastWasSep = true;
                 buffer_++;
                 continue;
@@ -660,7 +659,6 @@ void Lexer::parseDecimalNumber()
             {
                 if (!hasError && lastWasSep)
                 {
-                    const uint8_t* sepStart = buffer_;
                     while (buffer_ < endBuffer_ && langSpec_->isNumberSep(buffer_[0]))
                         buffer_++;
                     reportError(DiagnosticId::ConsecutiveNumberSeparators, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
@@ -668,6 +666,7 @@ void Lexer::parseDecimalNumber()
                     continue;
                 }
 
+                sepStart   = buffer_;
                 lastWasSep = true;
                 buffer_++;
                 continue;

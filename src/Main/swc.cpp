@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
     if (!parser.parse(ctx, argc, argv, "build"))
         return 1;
 
-    parseFolder(ctx, "c:/perso/swag-lang");
-    //parseFolder(ctx, "c:/perso/swag-lang/swc");
+    //parseFolder(ctx, "c:/perso/swag-lang");
+    parseFolder(ctx, "c:/perso/swag-lang/swc");
     return 0;
 }

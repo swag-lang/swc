@@ -1,7 +1,108 @@
 #pragma once
 
-class Job
+class Job;
+using JobRef = std::shared_ptr<Job>;
+
+enum class JobPriority : std::uint8_t
 {
+    High   = 0,
+    Normal = 1,
+    Low    = 2
+};
+
+// Internal scheduler state for a job (kept small, cache-friendly).
+struct JobRecord
+{
+    // Keep the job alive while scheduled (the user may drop their last ref).
+    JobRef job;
+
+    JobPriority prio{JobPriority::Normal};
+
+    enum class State : std::uint8_t
+    {
+        Ready,
+        Running,
+        Waiting,
+        Done
+    };
+    State state{State::Ready};
+
+    // "Wake ticket" to prevent lost-wake races.
+    // If a wake() occurs while the job is running, a following Sleep will NOT park it.
+    std::atomic<std::uint64_t> wakeGen{0};
+
+    // Jobs currently waiting for this job to complete (stored as Job*).
+    // We look up their Record via job->rec_ under the manager lock.
+    std::vector<Job*> dependents;
+};
+
+class Job : public std::enable_shared_from_this<Job>
+{
+    friend class JobManager;
+
 public:
-    
+    // What the manager should do after process().
+    enum class Result : std::uint8_t
+    {
+        Done,         // finished; remove and wake dependents
+        Sleep,        // pause until woken via JobManager::wake(job)
+        SleepOn,      // sleep until dep_ completes (set via setDependency / sleepOn)
+        SpawnAndSleep // enqueue child_ (at childPriority_) and sleep until it completes
+    };
+
+    virtual ~Job() = default;
+
+    // Write your work here. Return a Result.
+    // If returning SleepOn / SpawnAndSleep, be sure to set intent in 'this' before returning.
+    virtual Result process() = 0;
+
+    // Wake all jobs currently waiting on this job (even before finishing).
+    void wakeDependents();
+
+protected:
+    // For Result::SleepOn
+    void setDependency(const JobRef& dep) { dep_ = dep; }
+
+    // For Result::SpawnAndSleep
+    void setChildAndPriority(const JobRef& child, JobPriority prio)
+    {
+        child_         = child;
+        childPriority_ = prio;
+    }
+
+    // Convenience shorthands
+    Result sleep()
+    {
+        clearIntents();
+        return Result::Sleep;
+    }
+    Result sleepOn(const JobRef& dep)
+    {
+        dep_ = dep;
+        return Result::SleepOn;
+    }
+    Result spawnAndSleep(const JobRef& child, JobPriority prio)
+    {
+        child_         = child;
+        childPriority_ = prio;
+        return Result::SpawnAndSleep;
+    }
+
+private:
+    // Back-pointers / scheduler hooks (manager-owned, but stored on the job)
+    JobManager* owner_{nullptr}; // which manager, if any, owns this job right now
+    JobRecord*     rec_{nullptr};   // scheduler state for THIS manager run (from the pool)
+
+    // User intent (read by manager under lock after process()):
+    JobRef   dep_;   // dependency for SleepOn
+    JobRef   child_; // child for SpawnAndSleep
+    JobPriority childPriority_{JobPriority::Normal};
+
+    // Cleared by manager after consuming intent.
+    void clearIntents()
+    {
+        dep_.reset();
+        child_.reset();
+        childPriority_ = JobPriority::Normal;
+    }
 };

@@ -1,15 +1,14 @@
 #include "pch.h"
 
-#include "Lexer/LangSpec.h"
 #include "Lexer/SourceFile.h"
-#include "Main/CommandLine.h"
 #include "Main/CommandLineParser.h"
 #include "Main/CompilerContext.h"
 #include "Main/CompilerInstance.h"
+#include "Lexer/LangSpec.h"
+#include "Main/CommandLine.h"
 #include "Report/DiagnosticIds.h"
 #include "Report/Logger.h"
-#include <filesystem>
-#include <iostream>
+#include "Thread/JobManager.h"
 
 static void parseFolder(CompilerContext& ctx, const fs::path& directory)
 {

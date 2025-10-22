@@ -6,12 +6,14 @@
 #include "Os/Os.h"
 #include "Report/DiagnosticIds.h"
 #include "Report/Logger.h"
+#include "Thread/JobManager.h"
 
 CompilerInstance::CompilerInstance()
 {
     Os::setup();
-    diagIds_ = std::make_unique<DiagnosticIds>();
-    logger_ = std::make_unique<Logger>();
+    diagIds_  = std::make_unique<DiagnosticIds>();
+    logger_   = std::make_unique<Logger>();
     langSpec_ = std::make_unique<LangSpec>();
-    cmdLine_ = std::make_unique<CommandLine>();
+    cmdLine_  = std::make_unique<CommandLine>();
+    jobMgr_   = std::make_unique<JobManager>();
 }

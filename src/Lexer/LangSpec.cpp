@@ -16,67 +16,67 @@ void LangSpec::initCharFlags()
 
     // ASCII characters (0-127)
     for (int i = 0; i < 128; i++)
-        charFlags_[i].add(CHAR_ASCII);
+        charFlags_[i].add(CharFlagsEnum::Ascii);
 
     // Blank characters
-    charFlags_[' '].add(CHAR_BLANK);  // Space (0x20)
-    charFlags_['\t'].add(CHAR_BLANK); // Horizontal tab (0x09)
-    charFlags_['\f'].add(CHAR_BLANK); // Form feed (0x0C)
-    charFlags_['\v'].add(CHAR_BLANK); // Vertical tab (0x0B)
+    charFlags_[' '].add(CharFlagsEnum::Blank);  // Space (0x20)
+    charFlags_['\t'].add(CharFlagsEnum::Blank); // Horizontal tab (0x09)
+    charFlags_['\f'].add(CharFlagsEnum::Blank); // Form feed (0x0C)
+    charFlags_['\v'].add(CharFlagsEnum::Blank); // Vertical tab (0x0B)
 
     // Digits (0-9)
     for (char c = '0'; c <= '9'; c++)
-        charFlags_[static_cast<uint8_t>(c)].add(CHAR_DIGIT);
+        charFlags_[static_cast<uint8_t>(c)].add(CharFlagsEnum::Digit);
 
     // Uppercase letters (A-Z)
     for (char c = 'A'; c <= 'Z'; c++)
-        charFlags_[static_cast<uint8_t>(c)].add(CHAR_LETTER);
+        charFlags_[static_cast<uint8_t>(c)].add(CharFlagsEnum::Letter);
 
     // Lowercase letters (a-z)
     for (char c = 'a'; c <= 'z'; c++)
-        charFlags_[static_cast<uint8_t>(c)].add(CHAR_LETTER);
+        charFlags_[static_cast<uint8_t>(c)].add(CharFlagsEnum::Letter);
 
     // Underscore is considered a letter in identifiers
-    charFlags_['_'].add(CHAR_LETTER | CHAR_NUMBER_SEP);
+    charFlags_['_'].add(CharFlagsEnum::Letter, CharFlagsEnum::NumberSep);
 
     // Hexadecimal number
     for (char c = '0'; c <= '9'; c++)
-        charFlags_[static_cast<uint8_t>(c)].add(CHAR_HEX_NUMBER);
+        charFlags_[static_cast<uint8_t>(c)].add(CharFlagsEnum::HexNumber);
     for (char c = 'a'; c <= 'f'; c++)
-        charFlags_[static_cast<uint8_t>(c)].add(CHAR_HEX_NUMBER);
+        charFlags_[static_cast<uint8_t>(c)].add(CharFlagsEnum::HexNumber);
     for (char c = 'A'; c <= 'F'; c++)
-        charFlags_[static_cast<uint8_t>(c)].add(CHAR_HEX_NUMBER);
+        charFlags_[static_cast<uint8_t>(c)].add(CharFlagsEnum::HexNumber);
 
     // Binary number
     for (char c = '0'; c <= '1'; c++)
-        charFlags_[static_cast<uint8_t>(c)].add(CHAR_BIN_NUMBER);
+        charFlags_[static_cast<uint8_t>(c)].add(CharFlagsEnum::BinNumber);
 
     // Identifier
-    charFlags_['_'].add(CHAR_IDENTIFIER_START | CHAR_IDENTIFIER_PART);
-    charFlags_['#'].add(CHAR_IDENTIFIER_START);
-    charFlags_['@'].add(CHAR_IDENTIFIER_START);
+    charFlags_['_'].add(CharFlagsEnum::IdentifierStart, CharFlagsEnum::IdentifierPart);
+    charFlags_['#'].add(CharFlagsEnum::IdentifierStart);
+    charFlags_['@'].add(CharFlagsEnum::IdentifierStart);
     for (char c = 'a'; c <= 'z'; c++)
-        charFlags_[static_cast<uint8_t>(c)].add(CHAR_IDENTIFIER_START | CHAR_IDENTIFIER_PART);
+        charFlags_[static_cast<uint8_t>(c)].add(CharFlagsEnum::IdentifierStart, CharFlagsEnum::IdentifierPart);
     for (char c = 'A'; c <= 'Z'; c++)
-        charFlags_[static_cast<uint8_t>(c)].add(CHAR_IDENTIFIER_START | CHAR_IDENTIFIER_PART);
+        charFlags_[static_cast<uint8_t>(c)].add(CharFlagsEnum::IdentifierStart, CharFlagsEnum::IdentifierPart);
     for (char c = '0'; c <= '9'; c++)
-        charFlags_[static_cast<uint8_t>(c)].add(CHAR_IDENTIFIER_PART);
+        charFlags_[static_cast<uint8_t>(c)].add(CharFlagsEnum::IdentifierPart);
 
     // Escape character
-    charFlags_['0'].add(CHAR_ESCAPE);
-    charFlags_['a'].add(CHAR_ESCAPE);
-    charFlags_['b'].add(CHAR_ESCAPE);
-    charFlags_['\\'].add(CHAR_ESCAPE);
-    charFlags_['t'].add(CHAR_ESCAPE);
-    charFlags_['n'].add(CHAR_ESCAPE);
-    charFlags_['f'].add(CHAR_ESCAPE);
-    charFlags_['r'].add(CHAR_ESCAPE);
-    charFlags_['v'].add(CHAR_ESCAPE);
-    charFlags_['\''].add(CHAR_ESCAPE);
-    charFlags_['\"'].add(CHAR_ESCAPE);
-    charFlags_['x'].add(CHAR_ESCAPE);
-    charFlags_['u'].add(CHAR_ESCAPE);
-    charFlags_['U'].add(CHAR_ESCAPE);
+    charFlags_['0'].add(CharFlagsEnum::Escape);
+    charFlags_['a'].add(CharFlagsEnum::Escape);
+    charFlags_['b'].add(CharFlagsEnum::Escape);
+    charFlags_['\\'].add(CharFlagsEnum::Escape);
+    charFlags_['t'].add(CharFlagsEnum::Escape);
+    charFlags_['n'].add(CharFlagsEnum::Escape);
+    charFlags_['f'].add(CharFlagsEnum::Escape);
+    charFlags_['r'].add(CharFlagsEnum::Escape);
+    charFlags_['v'].add(CharFlagsEnum::Escape);
+    charFlags_['\''].add(CharFlagsEnum::Escape);
+    charFlags_['\"'].add(CharFlagsEnum::Escape);
+    charFlags_['x'].add(CharFlagsEnum::Escape);
+    charFlags_['u'].add(CharFlagsEnum::Escape);
+    charFlags_['U'].add(CharFlagsEnum::Escape);
 }
 
 bool LangSpec::isBlank(const uint8_t* buffer, const uint8_t* end, uint32_t& offset) const

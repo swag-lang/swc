@@ -9,9 +9,13 @@ class CompilerInstance;
 class SourceFile;
 class LangSpec;
 
-using LexerFlags                                 = Flags<uint32_t>;
-constexpr LexerFlags LEXER_DEFAULT               = 0x00000000;
-constexpr LexerFlags LEXER_EXTRACT_COMMENTS_MODE = 0x00000001;
+enum class LexerFlagsEnum : uint32_t
+{
+    Default,
+    ExtractCommentsMode,
+};
+
+using LexerFlags = Flags<LexerFlagsEnum>;
 
 class Lexer
 {
@@ -21,7 +25,7 @@ class Lexer
     std::vector<Token>    tokens_;
     std::vector<uint32_t> lines_;
 
-    LexerFlags       lexerFlags_  = LEXER_DEFAULT;
+    LexerFlags       lexerFlags_  = LexerFlagsEnum::Default;
     const uint8_t*   buffer_      = nullptr;
     const uint8_t*   startBuffer_ = nullptr;
     const uint8_t*   endBuffer_   = nullptr;
@@ -54,5 +58,5 @@ public:
     const std::vector<Token>&    tokens() const { return tokens_; }
     const std::vector<uint32_t>& lines() const { return lines_; }
 
-    Result tokenize(CompilerContext& ctx, LexerFlags flags = LEXER_DEFAULT);
+    Result tokenize(CompilerContext& ctx, LexerFlags flags = LexerFlagsEnum::Default);
 };

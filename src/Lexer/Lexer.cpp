@@ -27,14 +27,14 @@ namespace
 void Lexer::pushToken()
 {
     token_.len = static_cast<uint32_t>(buffer_ - startToken_);
-    if (!lexerFlags_.has(LEXER_EXTRACT_COMMENTS_MODE) || token_.id == TokenId::Comment)
+    if (!lexerFlags_.has(LexerFlagsEnum::ExtractCommentsMode) || token_.id == TokenId::Comment)
         tokens_.push_back(token_);
     prevToken_ = token_;
 }
 
 void Lexer::reportError(DiagnosticId id, uint32_t offset, uint32_t len) const
 {
-    if (lexerFlags_.has(LEXER_EXTRACT_COMMENTS_MODE))
+    if (lexerFlags_.has(LexerFlagsEnum::ExtractCommentsMode))
         return;
 
     const auto diag = Diagnostic::error(id, ctx_->sourceFile());

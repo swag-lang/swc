@@ -1,7 +1,8 @@
 #pragma once
 
 enum class SubTokenIdentifierId : uint16_t;
-using KeywordFlags = Flags<uint32_t>;
+enum class KeywordFlagsEnum : uint32_t;
+using KeywordFlags = Flags<KeywordFlagsEnum>;
 
 struct KeywordInfo
 {

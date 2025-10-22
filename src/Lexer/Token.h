@@ -13,6 +13,9 @@ enum class TokenId : uint8_t
     NumberLiteral,
     CharacterLiteral,
     Identifier,
+    Keyword,
+    Intrinsic,
+    Compiler,
     Operator,
 };
 

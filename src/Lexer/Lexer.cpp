@@ -177,8 +177,8 @@ void Lexer::parseBlank()
 
 void Lexer::parseSingleLineStringLiteral()
 {
-    token_.id                 = TokenId::StringLiteral;
-    token_.subTokenStringId   = SubTokenStringId::Line;
+    token_.id               = TokenId::StringLiteral;
+    token_.subTokenStringId = SubTokenStringId::Line;
 
     buffer_ += 1;
     bool hasError = false;
@@ -232,8 +232,8 @@ void Lexer::parseSingleLineStringLiteral()
 
 void Lexer::parseMultiLineStringLiteral()
 {
-    token_.id                 = TokenId::StringLiteral;
-    token_.subTokenStringId   = SubTokenStringId::MultiLine;
+    token_.id               = TokenId::StringLiteral;
+    token_.subTokenStringId = SubTokenStringId::MultiLine;
 
     buffer_ += 3;
     bool hasError = false;
@@ -287,8 +287,8 @@ void Lexer::parseMultiLineStringLiteral()
 
 void Lexer::parseRawStringLiteral()
 {
-    token_.id                 = TokenId::StringLiteral;
-    token_.subTokenStringId   = SubTokenStringId::Raw;
+    token_.id               = TokenId::StringLiteral;
+    token_.subTokenStringId = SubTokenStringId::Raw;
 
     buffer_ += 2;
 
@@ -335,7 +335,7 @@ void Lexer::parseRawStringLiteral()
 
 void Lexer::parseCharacterLiteral()
 {
-    token_.id                 = TokenId::CharacterLiteral;
+    token_.id = TokenId::CharacterLiteral;
 
     buffer_ += 1; // skip opening '
     bool hasError = false;
@@ -412,14 +412,14 @@ void Lexer::parseCharacterLiteral()
     {
         reportError(DiagnosticId::TooManyCharsInCharLiteral, static_cast<uint32_t>(startToken_ - startBuffer_), static_cast<uint32_t>(buffer_ - startToken_));
         hasError = true;
-    }    
+    }
 
     pushToken();
 }
 
 void Lexer::parseHexNumber()
 {
-    token_.subTokenNumberId   = SubTokenNumberId::Hexadecimal;
+    token_.subTokenNumberId = SubTokenNumberId::Hexadecimal;
 
     buffer_ += 2;
 
@@ -480,7 +480,7 @@ void Lexer::parseHexNumber()
 
 void Lexer::parseBinNumber()
 {
-    token_.subTokenNumberId   = SubTokenNumberId::Binary;
+    token_.subTokenNumberId = SubTokenNumberId::Binary;
 
     buffer_ += 2;
 
@@ -540,7 +540,7 @@ void Lexer::parseBinNumber()
 
 void Lexer::parseDecimalNumber()
 {
-    token_.subTokenNumberId   = SubTokenNumberId::Integer;
+    token_.subTokenNumberId = SubTokenNumberId::Integer;
 
     bool           hasError   = false;
     bool           lastWasSep = false;
@@ -705,17 +705,25 @@ void Lexer::parseNumber()
 
 void Lexer::parseIdentifier()
 {
-    token_.id                 = TokenId::Identifier;
-
+    token_.id = TokenId::Identifier;
     buffer_++;
 
     // Safe lookahead: zeros after endBuffer_ will fail isIdentifierPart check
     while (buffer_ < endBuffer_ && langSpec_->isIdentifierPart(buffer_[0]))
         buffer_++;
 
-    // Check if this is a keyword
-    // This would require a keyword lookup table in langSpec_
-    // For now, just push as identifier
+    const auto name             = std::string_view(reinterpret_cast<std::string_view::const_pointer>(startToken_), buffer_ - startToken_);
+    token_.subTokenIdentifierId = LangSpec::keyword(name);
+    if (token_.subTokenIdentifierId != SubTokenIdentifierId::Invalid)
+    {
+        if (name[0] == '#')
+            token_.id = TokenId::Compiler;
+        else if (name[0] == '@')
+            token_.id = TokenId::Intrinsic;
+        else
+            token_.id = TokenId::Keyword;
+    }
+
     pushToken();
 }
 
@@ -1103,8 +1111,8 @@ void Lexer::parseOperator()
 
 void Lexer::parseSingleLineComment()
 {
-    token_.id                 = TokenId::Comment;
-    token_.subTokenCommentId  = SubTokenCommentId::Line;
+    token_.id                = TokenId::Comment;
+    token_.subTokenCommentId = SubTokenCommentId::Line;
 
     // Skip //
     buffer_ += 2;
@@ -1119,8 +1127,8 @@ void Lexer::parseSingleLineComment()
 
 void Lexer::parseMultiLineComment()
 {
-    token_.id                 = TokenId::Comment;
-    token_.subTokenCommentId  = SubTokenCommentId::MultiLine;
+    token_.id                = TokenId::Comment;
+    token_.subTokenCommentId = SubTokenCommentId::MultiLine;
 
     buffer_ += 2;
     uint32_t depth    = 1;

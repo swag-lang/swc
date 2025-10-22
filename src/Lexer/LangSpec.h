@@ -1,6 +1,8 @@
 #pragma once
 #include "Core/Flags.h"
 
+enum class SubTokenIdentifierId : uint16_t;
+
 using CharFlags                           = Flags<uint32_t>;
 constexpr CharFlags CHAR_BLANK            = 0x00000001;
 constexpr CharFlags CHAR_DIGIT            = 0x00000002;
@@ -29,6 +31,8 @@ public:
     bool isIdentifierStart(uint8_t c) const { return charFlags_[c].has(CHAR_IDENTIFIER_START); }
     bool isIdentifierPart(uint8_t c) const { return charFlags_[c].has(CHAR_IDENTIFIER_PART); }
     bool isEscape(uint8_t c) const { return charFlags_[c].has(CHAR_ESCAPE); }
+
+    static SubTokenIdentifierId keyword(std::string_view name);
 
 private:
     CharFlags charFlags_[256];

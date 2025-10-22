@@ -3,7 +3,7 @@
 enum class SubTokenIdentifierId : uint16_t;
 using KeywordFlags = Flags<uint32_t>;
 
-struct KwPair
+struct KeywordInfo
 {
     std::string_view     key;
     SubTokenIdentifierId id;
@@ -11,7 +11,7 @@ struct KwPair
 };
 
 template<size_t N>
-struct KwTable
+struct KeywordTable
 {
     static constexpr uint64_t fnv1A64(std::string_view s)
     {
@@ -36,7 +36,7 @@ struct KwTable
 
     std::array<Slot, N> slots{};
 
-    consteval void insert(const KwPair& p)
+    consteval void insert(const KeywordInfo& p)
     {
         const uint64_t h   = fnv1A64(p.key);
         size_t         idx = static_cast<size_t>(h) & (N - 1);
@@ -53,7 +53,7 @@ struct KwTable
     }
 
     template<size_t M>
-    explicit consteval KwTable(const std::array<KwPair, M>& arr)
+    explicit consteval KeywordTable(const std::array<KeywordInfo, M>& arr)
     {
         static_assert(M < N, "Table too full; increase N");
         for (const auto& e : arr)

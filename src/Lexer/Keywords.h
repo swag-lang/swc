@@ -1,6 +1,6 @@
 // ReSharper disable CppClangTidyModernizeUseDesignatedInitializers
 #pragma once
-#include "Lexer/KeyTable.h"
+#include "Lexer/KeywordTable.h"
 
 enum class SubTokenIdentifierId : uint16_t
 {
@@ -289,7 +289,7 @@ enum class SubTokenIdentifierId : uint16_t
 
 using KeywordFlags = Flags<uint32_t>;
 
-constexpr std::array<KwPair, 249> K_KEYWORDS = {{
+constexpr std::array<KeywordInfo, 249> K_KEYWORDS = {{
     // Control flow
     {"if", SubTokenIdentifierId::If, 0},
     {"else", SubTokenIdentifierId::Else, 0},
@@ -571,4 +571,4 @@ constexpr std::array<KwPair, 249> K_KEYWORDS = {{
     {"typeinfo", SubTokenIdentifierId::TypeInfo, 0},
 }};
 
-constexpr KwTable<1024> KEYWORD_TABLE{K_KEYWORDS};
+constexpr KeywordTable<1024> KEYWORD_TABLE{K_KEYWORDS};

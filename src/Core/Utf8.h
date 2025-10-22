@@ -50,6 +50,4 @@ public:
     void trimStart();
     void trimEnd();
     void trim();
-
-    static std::tuple<const uint8_t*, uint32_t, uint32_t> decode(const uint8_t* p, const uint8_t* end);
 };

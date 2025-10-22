@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "DiagnosticIds.h"
+#include "Core/Utf8Helpers.h"
 #include "Main/CompilerContext.h"
 #include "Main/CompilerInstance.h"
 #include "Report/DiagnosticElement.h"
@@ -70,7 +71,7 @@ void DiagnosticElement::addArgument(std::string_view arg)
     const uint8_t* end = ptr + arg.size();
     while (ptr < end)
     {
-        auto [buf, wc, eat] = Utf8::decode(ptr, end);
+        auto [buf, wc, eat] = Utf8Helpers::decodeOneChar(ptr, end);
         if (!buf)
         {
             ptr++;
@@ -79,20 +80,21 @@ void DiagnosticElement::addArgument(std::string_view arg)
 
         if (wc < 128 && !std::isprint(wc))
         {
-            // Convert to \xHH format
             char hex[5];
             (void) std::snprintf(hex, sizeof(hex), "\\x%02X", wc);
             sanitized += hex;
+            ptr = buf;
         }
         else if (wc == '\t' || wc == '\n' || wc == '\r')
+        {
             sanitized += ' ';
+            ptr = buf;
+        }
         else
         {
             while (ptr < buf)
                 sanitized += *ptr++;
         }
-        
-        ptr = buf;
     }
 
     arguments_.emplace_back(std::move(sanitized));

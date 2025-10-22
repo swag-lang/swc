@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "Color.h"
+#include "Core/Utf8Helpers.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
 #include "Main/CompilerContext.h"
@@ -110,7 +111,10 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
 
                 for (uint32_t i = 1; i < loc.column; ++i)
                     result += " ";
-                for (uint32_t i = 0; i < e->len_; ++i)
+
+                std::string_view tokenStr = e->file_->codeView(e->offset_, e->len_);
+                uint32_t         tokenLen = Utf8Helpers::countChars(tokenStr);
+                for (uint32_t i = 0; i < tokenLen; ++i)
                     result += "^";
             }
 

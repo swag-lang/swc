@@ -1,5 +1,6 @@
 #include "pch.h"
 
+#include "Core/Utf8Helpers.h"
 #include "Lexer/LangSpec.h"
 #include "Lexer/Lexer.h"
 #include "Lexer/SourceFile.h"
@@ -26,7 +27,7 @@ namespace
 
 void Lexer::eatUtf8Char()
 {
-    auto [buf, wc, eat] = Utf8::decode(buffer_, endBuffer_);
+    auto [buf, wc, eat] = Utf8Helpers::decodeOneChar(buffer_, endBuffer_);
     if (!buf)
     {
         reportError(DiagnosticId::FileNotUtf8, static_cast<uint32_t>(buffer_ - startBuffer_));

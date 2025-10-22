@@ -1,5 +1,6 @@
 #include "pch.h"
 
+#include "Core/Utf8Helpers.h"
 #include "Lexer/Lexer.h"
 #include "Lexer/SourceCodeLocation.h"
 #include "Lexer/SourceFile.h"
@@ -27,7 +28,7 @@ namespace
             else
             {
                 // Each UTF-8 character counts as one column
-                auto [next, wc, n] = Utf8::decode(ptr, end);
+                auto [next, wc, n] = Utf8Helpers::decodeOneChar(ptr, end);
                 if (!next)
                     ptr++;
                 else

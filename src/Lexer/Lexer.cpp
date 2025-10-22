@@ -24,6 +24,41 @@ namespace
     }
 }
 
+void Lexer::eatUtf8Char()
+{
+    auto [buf, wc, eat] = Utf8::decode(buffer_, endBuffer_);
+    if (!buf)
+    {
+        reportError(DiagnosticId::FileNotUtf8, static_cast<uint32_t>(buffer_ - startBuffer_));
+        hasUtf8Error_  = true;
+        hasTokenError_ = true;
+        buffer_++;
+    }
+    else
+    {
+        buffer_ = buf;
+    }
+}
+
+// Consume exactly one logical EOL (CRLF | CR | LF). Push the next line start.
+void Lexer::eatOneEol()
+{
+    if (buffer_[0] == '\r')
+    {
+        if (buffer_[1] == '\n')
+            buffer_ += 2;
+        else
+            buffer_ += 1;
+    }
+    else
+    {
+        SWAG_ASSERT(buffer_[0] == '\n');
+        buffer_ += 1;
+    }
+
+    lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
+}
+
 void Lexer::pushToken()
 {
     token_.len = static_cast<uint32_t>(buffer_ - startToken_);
@@ -59,7 +94,7 @@ void Lexer::parseEscape(TokenId containerToken, bool eatEol)
         if (buffer_[1] == '\r' || buffer_[1] == '\n')
         {
             buffer_++;
-            consumeOneEol();
+            eatOneEol();
             return;
         }
     }
@@ -75,7 +110,7 @@ void Lexer::parseEscape(TokenId containerToken, bool eatEol)
     {
         buffer_ += 1;
         if (buffer_[0] == '\r' || buffer_[0] == '\n')
-            consumeOneEol();
+            eatOneEol();
         else
             buffer_ += 1;
         return;
@@ -132,35 +167,16 @@ void Lexer::parseEscape(TokenId containerToken, bool eatEol)
     buffer_ += 2 + expectedDigits;
 }
 
-// Consume exactly one logical EOL (CRLF | CR | LF). Push the next line start.
-void Lexer::consumeOneEol()
-{
-    if (buffer_[0] == '\r')
-    {
-        if (buffer_[1] == '\n')
-            buffer_ += 2;
-        else
-            buffer_ += 1;
-    }
-    else
-    {
-        SWAG_ASSERT(buffer_[0] == '\n');
-        buffer_ += 1;
-    }
-
-    lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
-}
-
 void Lexer::parseEol()
 {
     token_.id = TokenId::Eol;
 
     // Consume the first logical EOL.
-    consumeOneEol();
+    eatOneEol();
 
     // Collapse subsequent EOLs (any mix of CR/LF/CRLF).
     while (buffer_ < endBuffer_ && (buffer_[0] == '\r' || buffer_[0] == '\n'))
-        consumeOneEol();
+        eatOneEol();
 
     pushToken();
 }
@@ -252,7 +268,7 @@ void Lexer::parseMultiLineStringLiteral()
         // Track line starts for accurate diagnostics later
         if (buffer_[0] == '\n' || buffer_[0] == '\r')
         {
-            consumeOneEol();
+            eatOneEol();
             continue;
         }
 
@@ -315,7 +331,7 @@ void Lexer::parseRawStringLiteral()
 
         if (buffer_[0] == '\n' || buffer_[0] == '\r')
         {
-            consumeOneEol();
+            eatOneEol();
             continue;
         }
 
@@ -371,7 +387,7 @@ void Lexer::parseCharacterLiteral()
             }
 
             pushToken();
-            consumeOneEol();
+            eatOneEol();
             return;
         }
 
@@ -384,6 +400,7 @@ void Lexer::parseCharacterLiteral()
             if (!buf)
             {
                 reportError(DiagnosticId::FileNotUtf8, static_cast<uint32_t>(buffer_ - startBuffer_));
+                hasUtf8Error_  = true;
                 hasTokenError_ = true;
                 buf            = buffer_ + 1;
             }
@@ -735,79 +752,66 @@ void Lexer::parseOperator()
     {
         case '\'':
             token_.subTokenOperatorId = SubTokenOperatorId::Quote;
-            token_.len                = 1;
             buffer_++;
             break;
 
         case '\\':
             token_.subTokenOperatorId = SubTokenOperatorId::BackSlash;
-            token_.len                = 1;
             buffer_++;
             break;
 
         case '(':
             token_.subTokenOperatorId = SubTokenOperatorId::LeftParen;
-            token_.len                = 1;
             buffer_++;
             break;
 
         case ')':
             token_.subTokenOperatorId = SubTokenOperatorId::RightParen;
-            token_.len                = 1;
             buffer_++;
             break;
 
         case '[':
             token_.subTokenOperatorId = SubTokenOperatorId::LeftSquare;
-            token_.len                = 1;
             buffer_++;
             break;
 
         case ']':
             token_.subTokenOperatorId = SubTokenOperatorId::RightSquare;
-            token_.len                = 1;
             buffer_++;
             break;
 
         case '{':
             token_.subTokenOperatorId = SubTokenOperatorId::LeftCurly;
-            token_.len                = 1;
             buffer_++;
             break;
 
         case '}':
             token_.subTokenOperatorId = SubTokenOperatorId::RightCurly;
-            token_.len                = 1;
             buffer_++;
             break;
 
         case ';':
             token_.subTokenOperatorId = SubTokenOperatorId::SemiColon;
-            token_.len                = 1;
             buffer_++;
             break;
 
         case ',':
             token_.subTokenOperatorId = SubTokenOperatorId::Comma;
-            token_.len                = 1;
             buffer_++;
             break;
 
         case '@':
             token_.subTokenOperatorId = SubTokenOperatorId::At;
-            token_.len                = 1;
             buffer_++;
             break;
 
         case '?':
             token_.subTokenOperatorId = SubTokenOperatorId::Question;
-            token_.len                = 1;
             buffer_++;
             break;
 
         case '~':
             token_.subTokenOperatorId = SubTokenOperatorId::Tilde;
-            token_.len                = 1;
             buffer_++;
             break;
 
@@ -815,26 +819,22 @@ void Lexer::parseOperator()
             if (buffer_[1] == '=')
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::EqualEqual;
-                token_.len                = 2;
                 buffer_ += 2;
             }
             else if (buffer_[1] == '>')
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::EqualGreater;
-                token_.len                = 2;
                 buffer_ += 2;
             }
             else
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::Equal;
-                token_.len                = 1;
                 buffer_++;
             }
             break;
 
         case ':':
             token_.subTokenOperatorId = SubTokenOperatorId::Colon;
-            token_.len                = 1;
             buffer_++;
             break;
 
@@ -842,13 +842,11 @@ void Lexer::parseOperator()
             if (buffer_[1] == '=')
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::ExclamEqual;
-                token_.len                = 2;
                 buffer_ += 2;
             }
             else
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::Exclam;
-                token_.len                = 1;
                 buffer_++;
             }
             break;
@@ -857,25 +855,21 @@ void Lexer::parseOperator()
             if (buffer_[1] == '=')
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::MinusEqual;
-                token_.len                = 2;
                 buffer_ += 2;
             }
             else if (buffer_[1] == '>')
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::MinusGreater;
-                token_.len                = 2;
                 buffer_ += 2;
             }
             else if (buffer_[1] == '-')
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::MinusMinus;
-                token_.len                = 2;
                 buffer_ += 2;
             }
             else
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::Minus;
-                token_.len                = 1;
                 buffer_++;
             }
             break;
@@ -884,19 +878,16 @@ void Lexer::parseOperator()
             if (buffer_[1] == '=')
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::PlusEqual;
-                token_.len                = 2;
                 buffer_ += 2;
             }
             else if (buffer_[1] == '+')
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::PlusPlus;
-                token_.len                = 2;
                 buffer_ += 2;
             }
             else
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::Plus;
-                token_.len                = 1;
                 buffer_++;
             }
             break;
@@ -905,13 +896,11 @@ void Lexer::parseOperator()
             if (buffer_[1] == '=')
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::AsteriskEqual;
-                token_.len                = 2;
                 buffer_ += 2;
             }
             else
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::Asterisk;
-                token_.len                = 1;
                 buffer_++;
             }
             break;
@@ -920,13 +909,11 @@ void Lexer::parseOperator()
             if (buffer_[1] == '=')
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::SlashEqual;
-                token_.len                = 2;
                 buffer_ += 2;
             }
             else
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::Slash;
-                token_.len                = 1;
                 buffer_++;
             }
             break;
@@ -935,19 +922,16 @@ void Lexer::parseOperator()
             if (buffer_[1] == '=')
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::AmpersandEqual;
-                token_.len                = 2;
                 buffer_ += 2;
             }
             else if (buffer_[1] == '&')
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::AmpersandAmpersand;
-                token_.len                = 2;
                 buffer_ += 2;
             }
             else
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::Ampersand;
-                token_.len                = 1;
                 buffer_++;
             }
             break;
@@ -956,19 +940,16 @@ void Lexer::parseOperator()
             if (buffer_[1] == '=')
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::VerticalEqual;
-                token_.len                = 2;
                 buffer_ += 2;
             }
             else if (buffer_[1] == '|')
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::VerticalVertical;
-                token_.len                = 2;
                 buffer_ += 2;
             }
             else
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::Vertical;
-                token_.len                = 1;
                 buffer_++;
             }
             break;
@@ -977,13 +958,11 @@ void Lexer::parseOperator()
             if (buffer_[1] == '=')
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::CircumflexEqual;
-                token_.len                = 2;
                 buffer_ += 2;
             }
             else
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::Circumflex;
-                token_.len                = 1;
                 buffer_++;
             }
             break;
@@ -992,13 +971,11 @@ void Lexer::parseOperator()
             if (buffer_[1] == '=')
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::PercentEqual;
-                token_.len                = 2;
                 buffer_ += 2;
             }
             else
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::Percent;
-                token_.len                = 1;
                 buffer_++;
             }
             break;
@@ -1009,20 +986,17 @@ void Lexer::parseOperator()
                 if (buffer_[2] == '.')
                 {
                     token_.subTokenOperatorId = SubTokenOperatorId::DotDotDot;
-                    token_.len                = 3;
                     buffer_ += 3;
                 }
                 else
                 {
                     token_.subTokenOperatorId = SubTokenOperatorId::DotDot;
-                    token_.len                = 2;
                     buffer_ += 2;
                 }
             }
             else
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::Dot;
-                token_.len                = 1;
                 buffer_++;
             }
             break;
@@ -1033,13 +1007,11 @@ void Lexer::parseOperator()
                 if (buffer_[2] == '>')
                 {
                     token_.subTokenOperatorId = SubTokenOperatorId::LowerEqualGreater;
-                    token_.len                = 3;
                     buffer_ += 3;
                 }
                 else
                 {
                     token_.subTokenOperatorId = SubTokenOperatorId::LowerEqual;
-                    token_.len                = 2;
                     buffer_ += 2;
                 }
             }
@@ -1048,20 +1020,17 @@ void Lexer::parseOperator()
                 if (buffer_[2] == '=')
                 {
                     token_.subTokenOperatorId = SubTokenOperatorId::LowerLowerEqual;
-                    token_.len                = 3;
                     buffer_ += 3;
                 }
                 else
                 {
                     token_.subTokenOperatorId = SubTokenOperatorId::LowerLower;
-                    token_.len                = 2;
                     buffer_ += 2;
                 }
             }
             else
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::Lower;
-                token_.len                = 1;
                 buffer_++;
             }
             break;
@@ -1070,7 +1039,6 @@ void Lexer::parseOperator()
             if (buffer_[1] == '=')
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::GreaterEqual;
-                token_.len                = 2;
                 buffer_ += 2;
             }
             else if (buffer_[1] == '>')
@@ -1078,28 +1046,24 @@ void Lexer::parseOperator()
                 if (buffer_[2] == '=')
                 {
                     token_.subTokenOperatorId = SubTokenOperatorId::GreaterGreaterEqual;
-                    token_.len                = 3;
                     buffer_ += 3;
                 }
                 else
                 {
                     token_.subTokenOperatorId = SubTokenOperatorId::GreaterGreater;
-                    token_.len                = 2;
                     buffer_ += 2;
                 }
             }
             else
             {
                 token_.subTokenOperatorId = SubTokenOperatorId::Greater;
-                token_.len                = 1;
                 buffer_++;
             }
             break;
 
         default:
-            reportError(DiagnosticId::InvalidCharacter, static_cast<uint32_t>(buffer_ - startBuffer_));
-            token_.len = 1;
-            buffer_++;
+            eatUtf8Char();
+            reportError(DiagnosticId::InvalidCharacter, static_cast<uint32_t>(startToken_ - startBuffer_));
             break;
     }
 
@@ -1143,7 +1107,7 @@ void Lexer::parseMultiLineComment()
 
         if (buffer_[0] == '\n' || buffer_[0] == '\r')
         {
-            consumeOneEol();
+            eatOneEol();
             continue;
         }
 

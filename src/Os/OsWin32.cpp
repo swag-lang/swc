@@ -9,6 +9,7 @@ namespace Os
 {
     void setup()
     {
+        SetConsoleOutputCP(65001);
         const HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
         DWORD  mode = 0;
         if (GetConsoleMode(hOut, &mode))

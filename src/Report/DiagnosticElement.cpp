@@ -66,7 +66,7 @@ void DiagnosticElement::addArgument(std::string_view arg)
     Utf8 sanitized;
     sanitized.reserve(arg.size());
 
-    for (const unsigned char ch : arg)
+    for (const uint8_t ch : arg)
     {
         if (std::isprint(ch))
             sanitized += ch;
@@ -76,7 +76,7 @@ void DiagnosticElement::addArgument(std::string_view arg)
         {
             // Convert to \xHH format
             char hex[5];
-            std::snprintf(hex, sizeof(hex), "\\x%02X", ch);
+            (void) std::snprintf(hex, sizeof(hex), "\\x%02X", ch);
             sanitized += hex;
         }
     }

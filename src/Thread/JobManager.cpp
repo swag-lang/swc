@@ -141,7 +141,7 @@ void JobManager::waitAll()
 {
     std::unique_lock lk(mtx_);
     idleCv_.wait(lk, [this] {
-        return readyCount_.load(std::memory_order_acquire) == 0 && activeWorkers_ == 0;
+        return readyCount_.load(std::memory_order_acquire) == 0 && activeWorkers_.load(std::memory_order_acquire) == 0;
     });
 }
 
@@ -230,7 +230,7 @@ void JobManager::workerLoop()
             return nullptr;
 
         rec->state = JobRecord::State::Running;
-        ++activeWorkers_;
+        activeWorkers_.fetch_add(1, std::memory_order_acq_rel);
         return rec;
     };
 
@@ -287,12 +287,12 @@ void JobManager::workerLoop()
         // From here on, we’re an active worker for this job.
         struct ActiveGuard
         {
-            size_t*                  ref;
+            std::atomic<size_t>*     ref;
             std::atomic<uint64_t>*   ready;
             std::condition_variable* idleCv;
             ~ActiveGuard()
             {
-                if (--*ref == 0 && ready->load(std::memory_order_acquire) == 0)
+                if (ref->fetch_sub(1, std::memory_order_acq_rel) == 1 && ready->load(std::memory_order_acquire) == 0)
                     idleCv->notify_all();
             }
         };
@@ -419,7 +419,7 @@ void JobManager::joinAll() noexcept
 {
     if (joined_)
         return;
-    
+
     for (auto& t : workers_)
     {
         if (t.joinable())
@@ -427,7 +427,7 @@ void JobManager::joinAll() noexcept
             t.join();
         }
     }
-    
+
     joined_ = true;
 }
 

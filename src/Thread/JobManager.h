@@ -55,7 +55,7 @@ private:
     std::atomic<std::uint64_t> readyCount_{0};
 
     // Running job count (protected by mtx_).
-    std::size_t activeWorkers_{0};
+    std::atomic<std::size_t> activeWorkers_{0};
 
     // Threading & sync
     std::vector<std::thread> workers_;

@@ -44,7 +44,6 @@ static void parseFolder(const fs::path& directory)
                 auto k = std::make_shared<t>();
                 k->f   = f;
                 CompilerInstance::get().jobMgr().enqueue(k, JobPriority::Normal);
-                // printf("ADDED: %s\n", f->path().string().c_str());
             }
         }
     }

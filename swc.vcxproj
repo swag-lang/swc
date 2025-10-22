@@ -128,7 +128,7 @@
     <ClInclude Include="src\Core\Utf8.h" />
     <ClInclude Include="src\Core\Utf8Helpers.h" />
     <ClInclude Include="src\Lexer\KeywordTable.h" />
-    <ClInclude Include="src\Lexer\Keywords.h" />
+    <ClInclude Include="src\Lexer\Keyword.h" />
     <ClInclude Include="src\Lexer\LangSpec.h" />
     <ClInclude Include="src\Lexer\Lexer.h" />
     <ClInclude Include="src\Lexer\SourceCodeLocation.h" />

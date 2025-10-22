@@ -1,5 +1,4 @@
 #pragma once
-#include "Core/Flags.h"
 #include "Lexer/Token.h"
 
 enum class DiagnosticId;

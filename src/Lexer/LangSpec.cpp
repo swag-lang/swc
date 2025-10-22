@@ -1,7 +1,7 @@
 #include "pch.h"
 
+#include "Lexer/Keyword.h"
 #include "Lexer/LangSpec.h"
-#include "Lexer/Keywords.h"
 
 LangSpec::LangSpec()
 {

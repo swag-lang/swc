@@ -1,5 +1,4 @@
 #pragma once
-#include "Core/Flags.h"
 
 enum class SubTokenIdentifierId : uint16_t;
 

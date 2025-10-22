@@ -32,3 +32,4 @@ namespace fs = std::filesystem;
 
 #include "Report/Check.h"
 #include "Core/Utf8.h"
+#include "Core/Flags.h"

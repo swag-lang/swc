@@ -5,13 +5,13 @@
 #include "Lexer/SourceCodeLocation.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
-#include "Main/CompilerInstance.h"
+#include "Main/Global.h"
 
 namespace
 {
     uint32_t calculateColumn(const uint8_t* content, uint32_t lineStart, uint32_t offset)
     {
-        const uint32_t tabSize = CompilerInstance::get().cmdLine().tabSize;
+        const uint32_t tabSize = Global::get().cmdLine().tabSize;
         uint32_t       column  = 1; // Columns are 1-based
         auto           ptr     = content + lineStart;
         const auto     end     = content + offset;

@@ -4,7 +4,7 @@
 enum class DiagnosticId;
 class Diagnostic;
 class CompilerContext;
-class CompilerInstance;
+class Global;
 class SourceFile;
 class LangSpec;
 

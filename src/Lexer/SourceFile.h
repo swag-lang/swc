@@ -3,7 +3,7 @@
 #include "Report/UnitTest.h"
 
 class CompilerContext;
-class CompilerInstance;
+class Global;
 
 class SourceFile
 {

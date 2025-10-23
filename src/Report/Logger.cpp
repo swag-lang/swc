@@ -1,11 +1,11 @@
 #include "pch.h"
 #include "Logger.h"
 #include "Main/CommandLine.h"
-#include "Main/CompilerInstance.h"
+#include "Main/Global.h"
 
 void Logger::log(std::string_view message)
 {
-    if (CompilerInstance::get().cmdLine().silent)
+    if (Global::get().cmdLine().silent)
         return;
     std::cout << message;   
 }

@@ -1,35 +1,31 @@
 #pragma once
 // ReSharper disable CppInconsistentNaming
 
-#include <filesystem>
-#include <fstream>
-#include <mutex>
-#include <string>
-#include <variant>
-#include <vector>
-#include <tuple>
-#include <cstdint>
-#include <mutex>
-#include <vector>
-#include <cassert>
+#include <algorithm>
+#include <array>
 #include <atomic>
+#include <cassert>
 #include <condition_variable>
 #include <cstdint>
 #include <deque>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <map>
 #include <memory>
 #include <mutex>
-#include <thread>
-#include <vector>
-#include <array>
-#include <map>
 #include <set>
-#include <algorithm>
-#include <iostream>
+#include <string>
+#include <thread>
+#include <tuple>
+#include <variant>
+#include <vector>
 
-namespace fs = std::filesystem; 
+namespace fs = std::filesystem;
 
-#define SWAG_HAS_ASSERT 1
+#define SWC_HAS_ASSERT 1
+#define SWC_HAS_STATS  1
 
-#include "Report/Check.h"
-#include "Core/Utf8.h"
 #include "Core/Flags.h"
+#include "Core/Utf8.h"
+#include "Report/Check.h"

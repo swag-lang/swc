@@ -3,7 +3,7 @@
 #include "CommandLine.h"
 #include "CommandLineParser.h"
 #include "CompilerContext.h"
-#include "CompilerInstance.h"
+#include "Global.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticIds.h"
 
@@ -255,7 +255,7 @@ bool CommandLineParser::parse(int argc, char* argv[], const Utf8& command)
 
 bool CommandLineParser::checkCommandLine()
 {
-    auto& cmdLine = CompilerInstance::get().cmdLine();
+    auto& cmdLine = Global::get().cmdLine();
 
     if (!cmdLine.verboseErrorsFilter.empty())
         cmdLine.verboseErrors = true;
@@ -265,7 +265,7 @@ bool CommandLineParser::checkCommandLine()
 
 void CommandLineParser::setupCommandLine()
 {
-    auto& cmdLine = CompilerInstance::get().cmdLine();
+    auto& cmdLine = Global::get().cmdLine();
     addArg("all", "--silent", nullptr, CommandLineType::Bool, &cmdLine.silent, nullptr, "no log output");
     addArg("all", "--num-cores", nullptr, CommandLineType::Int, &cmdLine.numCores, nullptr, "maximum number of cpu to use (0 = automatic)");
     addArg("all", "--log-color", nullptr, CommandLineType::Bool, &cmdLine.logColor, nullptr, "log output can be colored");

@@ -5,7 +5,7 @@
 #include "Lexer/Lexer.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CompilerContext.h"
-#include "Main/CompilerInstance.h"
+#include "Main/Global.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticIds.h"
 
@@ -1138,7 +1138,7 @@ Result Lexer::tokenize(CompilerContext& ctx, LexerFlags flags)
     prevToken_ = {};
 
     const auto file = ctx.sourceFile();
-    langSpec_       = &CompilerInstance::get().langSpec();
+    langSpec_       = &Global::get().langSpec();
     ctx_            = &ctx;
     lexerFlags_     = flags;
 

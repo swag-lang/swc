@@ -2,7 +2,7 @@
 #include "Lexer/SourceCodeLocation.h"
 
 class CompilerContext;
-class CompilerInstance;
+class Global;
 enum class DiagnosticSeverity;
 
 struct VerifierDirective

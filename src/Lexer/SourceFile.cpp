@@ -1,7 +1,7 @@
 ﻿#include "pch.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
-#include "Main/CompilerInstance.h"
+#include "Main/Global.h"
 #include "Report/Diagnostic.h"
 
 SourceFile::SourceFile(const fs::path& path) :
@@ -79,7 +79,7 @@ Utf8 SourceFile::codeLine(uint32_t line) const
         return result;
 
     // Transform tabulations to blanks in order for columns to match
-    const uint32_t tabSize = CompilerInstance::get().cmdLine().tabSize;
+    const uint32_t tabSize = Global::get().cmdLine().tabSize;
     Utf8           expanded;
     expanded.reserve(result.size());
 

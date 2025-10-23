@@ -17,7 +17,7 @@ enum class Result : bool
         } while (0);                   \
     }
 
-#if SWAG_HAS_ASSERT
+#if SWC_HAS_ASSERT
 #define SWAG_ASSERT(__expr)                          \
     do                                               \
     {                                                \

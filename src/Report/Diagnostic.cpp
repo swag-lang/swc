@@ -5,7 +5,7 @@
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
 #include "Main/CompilerContext.h"
-#include "Main/CompilerInstance.h"
+#include "Main/Global.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticElement.h"
 #include "Report/Logger.h"
@@ -20,7 +20,7 @@ DiagnosticElement* Diagnostic::addElement(DiagnosticSeverity kind, DiagnosticId 
 
 Utf8 Diagnostic::build(CompilerContext& ctx) const
 {
-    const auto& ci      = CompilerInstance::get();
+    const auto& ci      = Global::get();
     const auto  cmdLine = ci.cmdLine();
     Utf8        result;
 
@@ -134,7 +134,7 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
 
 void Diagnostic::report(CompilerContext& ctx) const
 {
-    const auto& ci      = CompilerInstance::get();
+    const auto& ci      = Global::get();
     const auto& cmdLine = ci.cmdLine();
     const auto  msg     = build(ctx);
     bool        dismiss = false;

@@ -1,9 +1,9 @@
 #include "pch.h"
 
-#include "DiagnosticIds.h"
 #include "Core/Utf8Helpers.h"
+#include "DiagnosticIds.h"
 #include "Main/CompilerContext.h"
-#include "Main/CompilerInstance.h"
+#include "Main/Global.h"
 #include "Report/DiagnosticElement.h"
 
 DiagnosticElement::DiagnosticElement(DiagnosticSeverity kind, DiagnosticId id) :
@@ -37,13 +37,13 @@ SourceCodeLocation DiagnosticElement::location() const
 
 std::string_view DiagnosticElement::idName() const
 {
-    return CompilerInstance::get().diagIds().diagName(id_);
+    return Global::get().diagIds().diagName(id_);
 }
 
 // Format a string by replacing %0, %1, etc. with registered arguments
 Utf8 DiagnosticElement::message() const
 {
-    Utf8 result{CompilerInstance::get().diagIds().diagMessage(id_)};
+    Utf8 result{Global::get().diagIds().diagMessage(id_)};
 
     // Replace placeholders in reverse order to avoid issues with %10 versus %1
     for (int i = static_cast<int>(arguments_.size()) - 1; i >= 0; --i)

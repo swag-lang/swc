@@ -7,7 +7,7 @@ class JobManager;
 struct CommandLine;
 struct Stats;
 
-class CompilerInstance
+class Global
 {
     DiagnosticIds* diagIds_  = nullptr;
     Logger*        logger_   = nullptr;
@@ -17,9 +17,11 @@ class CompilerInstance
     Stats*         stats_    = nullptr;
 
 public:
-    static CompilerInstance& get()
+    Global();
+    
+    static Global& get()
     {
-        static CompilerInstance instance;
+        static Global instance;
         return instance;
     }
 

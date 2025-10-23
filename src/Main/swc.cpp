@@ -4,7 +4,7 @@
 #include "Main/CommandLine.h"
 #include "Main/CommandLineParser.h"
 #include "Main/CompilerContext.h"
-#include "Main/CompilerInstance.h"
+#include "Main/Global.h"
 #include "Thread/JobManager.h"
 
 static void parseFolder(const fs::path& directory)
@@ -43,7 +43,7 @@ static void parseFolder(const fs::path& directory)
 
                 auto k = std::make_shared<t>();
                 k->f   = f;
-                CompilerInstance::get().jobMgr().enqueue(k, JobPriority::Normal);
+                Global::get().jobMgr().enqueue(k, JobPriority::Normal);
             }
         }
     }
@@ -51,7 +51,7 @@ static void parseFolder(const fs::path& directory)
 
 int main(int argc, char* argv[])
 {
-    auto& ci = CompilerInstance::get();
+    auto& ci = Global::get();
     ci.setup();
 
     CommandLineParser parser;

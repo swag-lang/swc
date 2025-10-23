@@ -4,16 +4,16 @@
 #include "Lexer/LangSpec.h"
 #include "Main/CommandLine.h"
 #include "Main/CompilerContext.h"
-#include "Main/CompilerInstance.h"
+#include "Main/Global.h"
 #include "Report/UnitTest.h"
 
 Result UnitTest::tokenize(CompilerContext& ctx)
 {
-    if (!CompilerInstance::get().cmdLine().verify)
+    if (!Global::get().cmdLine().verify)
         return Result::Success;
 
     const auto  file     = ctx.sourceFile();
-    const auto& langSpec = CompilerInstance::get().langSpec();
+    const auto& langSpec = Global::get().langSpec();
 
     // Get all comments from the file
     auto& lexer = file->lexer();

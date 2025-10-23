@@ -2,14 +2,20 @@
 
 #include "Lexer/LangSpec.h"
 #include "Main/CommandLine.h"
-#include "Main/CompilerInstance.h"
+#include "Main/Global.h"
 #include "Os/Os.h"
 #include "Report/DiagnosticIds.h"
 #include "Report/Logger.h"
 #include "Report/Stats.h"
 #include "Thread/JobManager.h"
 
-void CompilerInstance::setup()
+Global::Global()
+{
+    static Stats stats;
+    stats_ = &stats;
+}
+
+void Global::setup()
 {
     Os::setup();
     diagIds_  = new DiagnosticIds();
@@ -17,5 +23,4 @@ void CompilerInstance::setup()
     langSpec_ = new LangSpec();
     cmdLine_  = new CommandLine();
     jobMgr_   = new JobManager();
-    stats_    = new Stats();
 }

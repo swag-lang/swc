@@ -5,6 +5,7 @@ struct Stats
 {
     std::atomic<uint32_t> memAllocated    = 0;
     std::atomic<uint32_t> memMaxAllocated = 0;
+    std::atomic<uint32_t> numFiles        = 0;
 
     static Stats& get()
     {

@@ -3,9 +3,10 @@
 #include "Main/CommandLine.h"
 #include "Main/Global.h"
 #include "Report/Diagnostic.h"
+#include "Report/Stats.h"
 
-SourceFile::SourceFile(const fs::path& path) :
-    path_(path)
+SourceFile::SourceFile(fs::path path) :
+    path_(std::move(path))
 {
 }
 
@@ -14,6 +15,10 @@ Result SourceFile::loadContent(CompilerContext& ctx)
     if (!content_.empty())
         return Result::Success;
 
+#if SWC_HAS_STATS
+    Stats::get().numFiles.fetch_add(1);
+#endif
+    
     std::ifstream file(path_, std::ios::binary | std::ios::ate);
 
     if (!file)

@@ -19,7 +19,7 @@ void Logger::printEol()
     std::cout << std::endl;   
 }
 
-void Logger::printHeaderDot(const Utf8& header, const Utf8& message, Color headerColor, Color msgColor, std::string_view dot, size_t messageColumn)
+void Logger::printHeaderDot(Color headerColor, std::string_view header, Color msgColor, std::string_view message, std::string_view dot, size_t messageColumn)
 {
     if (Global::get().cmdLine().silent)
         return;
@@ -27,7 +27,7 @@ void Logger::printHeaderDot(const Utf8& header, const Utf8& message, Color heade
     lock();
     print(toAnsi(headerColor));
     print(header);
-    for (size_t i = message.size(); i < messageColumn; ++i)
+    for (size_t i = header.size(); i < messageColumn; ++i)
         print(dot);
     print(toAnsi(msgColor));
     print(message);

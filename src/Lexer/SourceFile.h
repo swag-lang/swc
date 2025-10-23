@@ -15,7 +15,7 @@ class SourceFile
     Lexer                lexer_;
 
 public:
-    explicit SourceFile(const fs::path& path);
+    explicit SourceFile(fs::path path);
 
     fs::path                    path() const { return path_; }
     const std::vector<uint8_t>& content() const { return content_; }

@@ -12,5 +12,5 @@ public:
     CommandLine&       cmdLine() { return cmdLine_; }
     const CommandLine& cmdLine() const { return cmdLine_; }
 
-    int go(int argc, char* argv[]);
+    int run(int argc, char* argv[]);
 };

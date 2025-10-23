@@ -74,7 +74,7 @@ int Swc::process(int argc, char* argv[])
     return 0;
 }
 
-int Swc::go(int argc, char* argv[])
+int Swc::run(int argc, char* argv[])
 {
     const auto result = process(argc, argv);
 #if SWC_HAS_STATS

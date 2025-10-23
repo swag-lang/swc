@@ -9,5 +9,5 @@ int main(int argc, char* argv[])
     glb.initialize();
 
     Swc swc;
-    return swc.go(argc, argv);
+    return swc.run(argc, argv);
 }

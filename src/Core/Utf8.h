@@ -47,6 +47,11 @@ public:
         return *this;
     }
 
+    operator std::string_view() const
+    {
+        return std::string_view(data(), size());
+    }
+
     void trimStart();
     void trimEnd();
     void trim();

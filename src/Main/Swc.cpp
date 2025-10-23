@@ -53,7 +53,7 @@ namespace
         for (const auto& f : Global::get().fileMgr().files())
         {
             auto k = std::make_shared<t>();
-            k->f   = f.get();
+            k->f   = f;
             Global::get().jobMgr().enqueue(k, JobPriority::Normal);
         }
 

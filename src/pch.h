@@ -15,9 +15,11 @@
 #include <memory>
 #include <mutex>
 #include <set>
+#include <shared_mutex>
 #include <string>
 #include <thread>
 #include <tuple>
+#include <unordered_map>
 #include <variant>
 #include <vector>
 

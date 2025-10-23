@@ -3,7 +3,15 @@
 
 FileRef FileManager::addFile(fs::path path)
 {
-    std::lock_guard lock(mutex_);
+    std::unique_lock lock(mutex_);
+
+    path          = fs::weakly_canonical(path);
+    const auto it = paths_.find(path);
+    if (it != paths_.end())
+        return it->second;
+
+    const auto fileRef = static_cast<FileRef>(files_.size());
+    paths_[path]       = fileRef;
     files_.emplace_back(std::make_unique<SourceFile>(std::move(path)));
-    return static_cast<FileRef>(files_.size()) - 1;   
+    return fileRef;
 }

@@ -6,11 +6,26 @@ using FileRef = uint32_t;
 class FileManager
 {
     std::vector<std::unique_ptr<SourceFile>> files_;
-    std::mutex                               mutex_;
+    std::unordered_map<fs::path, FileRef>    paths_;
+    mutable std::shared_mutex                mutex_;
 
 public:
     FileRef addFile(fs::path path);
 
-    const std::vector<std::unique_ptr<SourceFile>>& files() const { return files_; }
-    SourceFile*                                     file(FileRef ref) const { return files_[ref].get(); }
+    std::vector<SourceFile*> files() const
+    {
+        std::shared_lock lock(mutex_);
+
+        std::vector<SourceFile*> result;
+        result.reserve(files_.size());
+        for (const auto& f : files_)
+            result.push_back(f.get());
+        return result;
+    }
+
+    SourceFile* file(FileRef ref) const
+    {
+        std::shared_lock lock(mutex_);
+        return files_[ref].get();
+    }
 };

@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "Core/Timer.h"
+#include "FileManager.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
 #include "Main/CommandLineParser.h"
@@ -11,12 +12,6 @@
 
 static void parseFolder(const fs::path& directory)
 {
-    if (!fs::exists(directory) || !fs::is_directory(directory))
-    {
-        std::cerr << "Invalid directory: " << directory << std::endl;
-        return;
-    }
-
     for (const auto& entry : fs::recursive_directory_iterator(directory))
     {
         if (entry.is_regular_file())
@@ -24,30 +19,34 @@ static void parseFolder(const fs::path& directory)
             auto ext = entry.path().extension().string();
             if (ext == ".swg" || ext == ".swgs")
             {
-                const auto f = new SourceFile(entry.path());
-
-                struct t : Job
-                {
-                    SourceFile* f;
-                    JobResult   process() override
-                    {
-                        f->loadContent(ctx_);
-                        if (f->codeView(0, static_cast<uint32_t>(f->content().size())).find("#global testerror") == Utf8::npos)
-                        {
-                            ctx_.setSourceFile(f);
-                            f->tokenize(ctx_);
-                            (void) f->verifier().verify(ctx_);
-                        }
-
-                        return JobResult::Done;
-                    }
-                };
-
-                auto k = std::make_shared<t>();
-                k->f   = f;
-                Global::get().jobMgr().enqueue(k, JobPriority::Normal);
+                Global::get().fileMgr().addFile(entry.path());
             }
         }
+    }
+
+    struct t : Job
+    {
+        SourceFile* f;
+
+        JobResult process() override
+        {
+            f->loadContent(ctx_);
+            if (f->codeView(0, static_cast<uint32_t>(f->content().size())).find("#global testerror") == Utf8::npos)
+            {
+                ctx_.setSourceFile(f);
+                f->tokenize(ctx_);
+                (void) f->verifier().verify(ctx_);
+            }
+
+            return JobResult::Done;
+        }
+    };
+
+    for (const auto& f : Global::get().fileMgr().files())
+    {
+        auto k = std::make_shared<t>();
+        k->f   = f.get();
+        Global::get().jobMgr().enqueue(k, JobPriority::Normal);
     }
 }
 

@@ -107,6 +107,7 @@
     <ClCompile Include="src\Main\CommandLine.cpp" />
     <ClCompile Include="src\Main\CommandLineParser.cpp" />
     <ClCompile Include="src\Main\CompilerContext.cpp" />
+    <ClCompile Include="src\Main\FileManager.cpp" />
     <ClCompile Include="src\Main\Global.cpp" />
     <ClCompile Include="src\Main\swc.cpp" />
     <ClCompile Include="src\Memory\Allocator.cpp" />
@@ -145,6 +146,7 @@
     <ClInclude Include="src\Main\CommandLine.h" />
     <ClInclude Include="src\Main\CommandLineParser.h" />
     <ClInclude Include="src\Main\CompilerContext.h" />
+    <ClInclude Include="src\Main\FileManager.h" />
     <ClInclude Include="src\Main\Global.h" />
     <ClInclude Include="src\Os\Os.h" />
     <ClInclude Include="src\pch.h" />

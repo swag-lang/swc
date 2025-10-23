@@ -63,9 +63,18 @@ void Lexer::eatOneEol()
 void Lexer::pushToken()
 {
     token_.len = static_cast<uint32_t>(buffer_ - startToken_);
-    if (!lexerFlags_.has(LexerFlagsEnum::ExtractCommentsMode) || token_.id == TokenId::Comment)
-        tokens_.push_back(token_);
     prevToken_ = token_;
+
+    if (rawMode_ && token_.id != TokenId::Comment)
+        return;
+    if (token_.id == TokenId::Blank && !lexerFlags_.has(LexerFlagsEnum::ExtractBlanks))
+        return;
+    if (token_.id == TokenId::Eol && !lexerFlags_.has(LexerFlagsEnum::ExtractEols))
+        return;    
+    if (token_.id == TokenId::Comment && !lexerFlags_.has(LexerFlagsEnum::ExtractComments))
+        return;    
+
+    tokens_.push_back(token_);
 }
 
 void Lexer::reportUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len)
@@ -74,7 +83,7 @@ void Lexer::reportUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len)
         return;
     hasUtf8Error_ = true;
 
-    if (lexerFlags_.has(LexerFlagsEnum::ExtractCommentsMode))
+    if (rawMode_)
         return;
 
     const auto diag = Diagnostic::error(id, ctx_->sourceFile());
@@ -88,7 +97,7 @@ void Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len)
         return;
     hasTokenError_ = true;
 
-    if (lexerFlags_.has(LexerFlagsEnum::ExtractCommentsMode))
+    if (rawMode_)
         return;
 
     const auto diag = Diagnostic::error(id, ctx_->sourceFile());
@@ -1129,6 +1138,14 @@ void Lexer::checkFormat(const CompilerContext& ctx, uint32_t& startOffset)
     }
 
     startOffset = 0;
+}
+
+Result Lexer::tokenizeRaw(CompilerContext& ctx)
+{
+    rawMode_ = true;
+    const auto result = tokenize(ctx, LexerFlagsEnum::ExtractComments);
+    rawMode_ = false;
+    return result;
 }
 
 Result Lexer::tokenize(CompilerContext& ctx, LexerFlags flags)

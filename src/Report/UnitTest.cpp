@@ -17,7 +17,7 @@ Result UnitTest::tokenize(CompilerContext& ctx)
 
     // Get all comments from the file
     auto& lexer = file->lexer();
-    SWAG_CHECK(lexer.tokenize(ctx, LexerFlagsEnum::ExtractCommentsMode));
+    SWAG_CHECK(lexer.tokenizeRaw(ctx));
 
     // Parse all comments to find a verify directive
     constexpr std::string_view needle = "expected-";

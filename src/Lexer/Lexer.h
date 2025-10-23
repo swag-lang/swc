@@ -11,7 +11,9 @@ class LangSpec;
 enum class LexerFlagsEnum : uint32_t
 {
     Default,
-    ExtractCommentsMode,
+    ExtractBlanks,
+    ExtractEols,
+    ExtractComments,
 };
 
 using LexerFlags = Flags<LexerFlagsEnum>;
@@ -33,6 +35,7 @@ class Lexer
     const LangSpec*  langSpec_      = nullptr;
     bool             hasTokenError_ = false;
     bool             hasUtf8Error_  = false;
+    bool             rawMode_       = false;
 
     void eatOneEol();
     void eatUtf8Char();
@@ -62,4 +65,5 @@ public:
     const std::vector<uint32_t>& lines() const { return lines_; }
 
     Result tokenize(CompilerContext& ctx, LexerFlags flags = LexerFlagsEnum::Default);
+    Result tokenizeRaw(CompilerContext& ctx);
 };

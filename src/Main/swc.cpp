@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
     ci.jobMgr().setNumThreads(ci.cmdLine().numCores);
 
     parseFolder("c:/perso/swag-lang/swag/bin");
-    parseFolder("c:/perso/swag-lang/swc");
+    parseFolder("c:/perso/swag-lang/swc/tests");
 
     ci.jobMgr().waitAll();
     Stats::get().print();

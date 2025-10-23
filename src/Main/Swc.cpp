@@ -62,15 +62,16 @@ namespace
 
     int process(int argc, char* argv[])
     {
-        auto& ci = Global::get();
-        ci.initialize();
+        Timer time(&Stats::get().timeTotal);
+        auto& glb = Global::get();
+        glb.initialize();
 
         CommandLineParser parser;
         parser.setupCommandLine();
         if (!parser.parse(argc, argv, "build"))
             return -1;
 
-        ci.jobMgr().setNumThreads(ci.cmdLine().numCores);
+        glb.jobMgr().setNumThreads(glb.cmdLine().numCores);
 
         test();
         return 0;
@@ -79,7 +80,6 @@ namespace
 
 int Swc::go(int argc, char* argv[])
 {
-    Timer      time(&Stats::get().timeTotal);
     const auto result = process(argc, argv);
 #if SWC_HAS_STATS
     Stats::get().print();

@@ -20,8 +20,8 @@ DiagnosticElement* Diagnostic::addElement(DiagnosticSeverity kind, DiagnosticId 
 
 Utf8 Diagnostic::build(CompilerContext& ctx) const
 {
-    const auto& ci      = Global::get();
-    const auto  cmdLine = ci.cmdLine();
+    const auto& glb      = Global::get();
+    const auto  cmdLine = glb.cmdLine();
     Utf8        result;
 
     for (auto& e : elements_)
@@ -119,8 +119,8 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
 
 void Diagnostic::report(CompilerContext& ctx) const
 {
-    const auto& ci      = Global::get();
-    const auto& cmdLine = ci.cmdLine();
+    const auto& glb      = Global::get();
+    const auto& cmdLine = glb.cmdLine();
     const auto  msg     = build(ctx);
     bool        dismiss = false;
 
@@ -138,7 +138,7 @@ void Diagnostic::report(CompilerContext& ctx) const
 
     if (!dismiss)
     {
-        auto& logger = ci.logger();
+        auto& logger = glb.logger();
         logger.lock();
         logger.printEol();
         logger.print(msg);

@@ -1,5 +1,6 @@
 #pragma once
 #include "CompilerContext.h"
+#include "Swc.h"
 
 class CompilerContext;
 
@@ -35,6 +36,7 @@ struct ArgInfo
 
 class CommandLineParser
 {
+    CommandLine&            cmdLine_;
     std::vector<ArgInfo>    args_;
     std::map<Utf8, ArgInfo> longFormMap_;
     std::map<Utf8, ArgInfo> shortFormMap_;
@@ -52,9 +54,15 @@ class CommandLineParser
     bool           processArgument(const ArgInfo* info, const Utf8& arg, bool invertBoolean, int& index, int argc, char* argv[]);
     void           addArg(const char* commands, const char* longForm, const char* shortForm, CommandLineType type, void* target, const char* enumValues, const char* description);
     bool           reportEnumError(const Utf8& value, const Utf8& enumValues);
-    static bool    checkCommandLine();
+    bool           checkCommandLine() const;
 
 public:
+    explicit CommandLineParser(Swc& swc) :
+        cmdLine_(swc.cmdLine()),
+        ctx_(swc)
+    {
+    }
+
     void setupCommandLine();
     bool parse(int argc, char* argv[], const Utf8& command);
 };

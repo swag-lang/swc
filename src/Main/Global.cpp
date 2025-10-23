@@ -1,7 +1,6 @@
 #include "pch.h"
 
 #include "Lexer/LangSpec.h"
-#include "Main/CommandLine.h"
 #include "Main/FileManager.h"
 #include "Main/Global.h"
 #include "Os/Os.h"
@@ -21,7 +20,6 @@ void Global::initialize()
     diagIds_     = std::make_unique<DiagnosticIds>();
     logger_      = std::make_unique<Logger>();
     langSpec_    = std::make_unique<LangSpec>();
-    cmdLine_     = std::make_unique<CommandLine>();
     jobManager_  = std::make_unique<JobManager>();
     fileManager_ = std::make_unique<FileManager>();
 }

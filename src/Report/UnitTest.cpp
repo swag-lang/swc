@@ -5,11 +5,12 @@
 #include "Main/CommandLine.h"
 #include "Main/CompilerContext.h"
 #include "Main/Global.h"
+#include "Main/Swc.h"
 #include "Report/UnitTest.h"
 
 Result UnitTest::tokenize(CompilerContext& ctx)
 {
-    if (!Global::get().cmdLine().verify)
+    if (!ctx.swc().cmdLine().verify)
         return Result::Success;
 
     const auto  file     = ctx.sourceFile();
@@ -50,7 +51,7 @@ Result UnitTest::tokenize(CompilerContext& ctx)
             }
 
             // Location
-            directive.myLoc.fromOffset(file, token.start + static_cast<uint32_t>(pos), static_cast<uint32_t>(needle.size()) + static_cast<uint32_t>(kindWord.size()));
+            directive.myLoc.fromOffset(ctx, file, token.start + static_cast<uint32_t>(pos), static_cast<uint32_t>(needle.size()) + static_cast<uint32_t>(kindWord.size()));
             directive.loc = directive.myLoc;
 
             // Parse location
@@ -86,14 +87,14 @@ Result UnitTest::tokenize(CompilerContext& ctx)
     return Result::Success;
 }
 
-bool UnitTest::verify(const Diagnostic& diag) const
+bool UnitTest::verify(const CompilerContext& ctx, const Diagnostic& diag) const
 {
     if (directives_.empty())
         return false;
 
     for (auto& elem : diag.elements())
     {
-        const auto loc = elem->location();
+        const auto loc = elem->location(ctx);
 
         for (auto& directive : directives_)
         {

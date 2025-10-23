@@ -51,6 +51,11 @@ class Job : public std::enable_shared_from_this<Job>
     friend class JobManager;
 
 public:
+    explicit Job(Swc &swc) :
+        ctx_(swc)
+    {
+    }
+
     virtual ~Job() = default;
 
     // Write your work here. Return a Result.

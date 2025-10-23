@@ -3,34 +3,41 @@
 #include "LogColor.h"
 #include "Logger.h"
 #include "Main/CommandLine.h"
-#include "Main/Global.h"
+#include "Main/CompilerContext.h"
+#include "Main/Swc.h"
 
-void Logger::print(std::string_view message)
+void Logger::print(const CompilerContext& ctx, std::string_view message)
 {
-    if (Global::get().cmdLine().silent)
+    if (ctx.swc().cmdLine().silent)
         return;
-    std::cout << message;   
+    std::cout << message;
 }
 
-void Logger::printEol()
+void Logger::printEol(const CompilerContext& ctx)
 {
-    if (Global::get().cmdLine().silent)
-        return;    
-    std::cout << std::endl;   
+    if (ctx.swc().cmdLine().silent)
+        return;
+    std::cout << std::endl;
 }
 
-void Logger::printHeaderDot(LogColor headerColor, std::string_view header, LogColor msgColor, std::string_view message, std::string_view dot, size_t messageColumn)
+void Logger::printHeaderDot(const CompilerContext& ctx,
+                            LogColor               headerColor,
+                            std::string_view       header,
+                            LogColor               msgColor,
+                            std::string_view       message,
+                            std::string_view       dot,
+                            size_t                 messageColumn)
 {
-    if (Global::get().cmdLine().silent)
+    if (ctx.swc().cmdLine().silent)
         return;
-    
+
     lock();
-    print(Color::toAnsi(headerColor));
-    print(header);
+    print(ctx, Color::toAnsi(ctx, headerColor));
+    print(ctx, header);
     for (size_t i = header.size(); i < messageColumn; ++i)
-        print(dot);
-    print(Color::toAnsi(msgColor));
-    print(message);
-    printEol();
+        print(ctx, dot);
+    print(ctx, Color::toAnsi(ctx, msgColor));
+    print(ctx, message);
+    printEol(ctx);
     unlock();
 }

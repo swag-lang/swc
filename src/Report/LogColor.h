@@ -1,5 +1,6 @@
 #pragma once
-#include "Main/Global.h"
+
+class CompilerContext;
 
 enum class LogColor
 {
@@ -25,5 +26,5 @@ enum class LogColor
 
 namespace Color
 {
-    std::string_view toAnsi(LogColor c);
+    std::string_view toAnsi(const CompilerContext& ctx, LogColor c);
 }

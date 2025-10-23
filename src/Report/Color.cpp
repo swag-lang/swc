@@ -1,11 +1,13 @@
 #include "pch.h"
 
 #include "Main/CommandLine.h"
+#include "Main/CompilerContext.h"
+#include "Main/Swc.h"
 #include "Report/LogColor.h"
 
-std::string_view Color::toAnsi(LogColor c)
+std::string_view Color::toAnsi(const CompilerContext& ctx, LogColor c)
 {
-    if (!Global::get().cmdLine().logColor)
+    if (!ctx.swc().cmdLine().logColor)
         return "";
 
     using enum LogColor;

@@ -46,7 +46,7 @@ public:
         len_    = loc.len;
     }
 
-    SourceCodeLocation location() const;
+    SourceCodeLocation location(const CompilerContext& ctx) const;
     std::string_view   idName() const;
     DiagnosticId       id() const { return id_; }
     DiagnosticSeverity severity() const { return severity_; }

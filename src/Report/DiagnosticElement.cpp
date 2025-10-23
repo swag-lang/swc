@@ -28,10 +28,10 @@ Utf8 DiagnosticElement::argumentToString(const Argument& arg) const
                       arg);
 }
 
-SourceCodeLocation DiagnosticElement::location() const
+SourceCodeLocation DiagnosticElement::location(const CompilerContext& ctx) const
 {
     SourceCodeLocation loc;
-    loc.fromOffset(file_, offset_, len_);
+    loc.fromOffset(ctx, file_, offset_, len_);
     return loc;
 }
 

@@ -1,5 +1,6 @@
 #pragma once
 #if SWC_HAS_STATS
+class CompilerContext;
 
 struct Stats
 {
@@ -24,7 +25,7 @@ struct Stats
         }
     }
 
-    void print() const;
+    void print(const CompilerContext& ctx) const;
 };
 
 #endif // SWC_HAS_STATS

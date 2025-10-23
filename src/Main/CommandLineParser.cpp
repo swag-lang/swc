@@ -93,11 +93,10 @@ bool CommandLineParser::parseEnumInt(const Utf8& value, const Utf8& enumValues, 
 
 bool CommandLineParser::reportEnumError(const Utf8& value, const Utf8& enumValues)
 {
-    CompilerContext ctx;
     const auto      diag = Diagnostic::error(DiagnosticId::CmdLineInvalidEnumValue);
     diag.last()->addArgument(value);
     diag.last()->addArgument(enumValues);
-    diag.report(ctx);
+    diag.report(ctx_);
     return false;
 }
 
@@ -253,23 +252,19 @@ bool CommandLineParser::parse(int argc, char* argv[], const Utf8& command)
     return checkCommandLine();
 }
 
-bool CommandLineParser::checkCommandLine()
+bool CommandLineParser::checkCommandLine() const
 {
-    auto& cmdLine = Global::get().cmdLine();
-
-    if (!cmdLine.verboseErrorsFilter.empty())
-        cmdLine.verboseErrors = true;
-
+    if (!cmdLine_.verboseErrorsFilter.empty())
+        cmdLine_.verboseErrors = true;
     return true;
 }
 
 void CommandLineParser::setupCommandLine()
 {
-    auto& cmdLine = Global::get().cmdLine();
-    addArg("all", "--silent", nullptr, CommandLineType::Bool, &cmdLine.silent, nullptr, "no log output");
-    addArg("all", "--num-cores", nullptr, CommandLineType::Int, &cmdLine.numCores, nullptr, "maximum number of cpu to use (0 = automatic)");
-    addArg("all", "--log-color", nullptr, CommandLineType::Bool, &cmdLine.logColor, nullptr, "log output can be colored");
-    addArg("all", "--verify", "-v", CommandLineType::Bool, &cmdLine.verify, nullptr, "verify special test comments");
-    addArg("all", "--verbose-errors", "-ve", CommandLineType::Bool, &cmdLine.verboseErrors, nullptr, "log silent errors during tests");
-    addArg("all", "--verbose-errors-filter", "-vef", CommandLineType::String, &cmdLine.verboseErrorsFilter, nullptr, "filter logged silent errors during tests");
+    addArg("all", "--silent", nullptr, CommandLineType::Bool, &cmdLine_.silent, nullptr, "no log output");
+    addArg("all", "--num-cores", nullptr, CommandLineType::Int, &cmdLine_.numCores, nullptr, "maximum number of cpu to use (0 = automatic)");
+    addArg("all", "--log-color", nullptr, CommandLineType::Bool, &cmdLine_.logColor, nullptr, "log output can be colored");
+    addArg("all", "--verify", "-v", CommandLineType::Bool, &cmdLine_.verify, nullptr, "verify special test comments");
+    addArg("all", "--verbose-errors", "-ve", CommandLineType::Bool, &cmdLine_.verboseErrors, nullptr, "log silent errors during tests");
+    addArg("all", "--verbose-errors-filter", "-vef", CommandLineType::String, &cmdLine_.verboseErrorsFilter, nullptr, "filter logged silent errors during tests");
 }

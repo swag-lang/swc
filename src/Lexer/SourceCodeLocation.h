@@ -1,5 +1,6 @@
 #pragma once
 
+class Swc;
 class SourceFile;
 class CompilerContext;
 
@@ -11,5 +12,5 @@ struct SourceCodeLocation
     uint32_t          line   = 0;
     uint32_t          column = 0;
 
-    void fromOffset(const SourceFile* inFile, uint32_t inOffset, uint32_t inLen = 1);
+    void fromOffset(const CompilerContext& ctx, const SourceFile* inFile, uint32_t inOffset, uint32_t inLen = 1);
 };

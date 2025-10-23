@@ -6,6 +6,7 @@
 #include "Main/CommandLine.h"
 #include "Main/CompilerContext.h"
 #include "Main/Global.h"
+#include "Main/Swc.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticElement.h"
 #include "Report/Logger.h"
@@ -20,9 +21,8 @@ DiagnosticElement* Diagnostic::addElement(DiagnosticSeverity kind, DiagnosticId 
 
 Utf8 Diagnostic::build(CompilerContext& ctx) const
 {
-    const auto& glb      = Global::get();
-    const auto  cmdLine = glb.cmdLine();
-    Utf8        result;
+    const auto cmdLine = ctx.swc().cmdLine();
+    Utf8       result;
 
     for (auto& e : elements_)
     {
@@ -30,32 +30,32 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
         const auto idName   = e->idName();
 
         // Colorize severity level
-        result += Color::toAnsi(LogColor::Bold);
+        result += Color::toAnsi(ctx, LogColor::Bold);
         switch (severity)
         {
             case DiagnosticSeverity::Error:
-                result += Color::toAnsi(LogColor::BrightRed);
+                result += Color::toAnsi(ctx, LogColor::BrightRed);
                 break;
             case DiagnosticSeverity::Warning:
-                result += Color::toAnsi(LogColor::BrightYellow);
+                result += Color::toAnsi(ctx, LogColor::BrightYellow);
                 break;
             case DiagnosticSeverity::Note:
-                result += Color::toAnsi(LogColor::BrightCyan);
+                result += Color::toAnsi(ctx, LogColor::BrightCyan);
                 break;
             case DiagnosticSeverity::Hint:
-                result += Color::toAnsi(LogColor::BrightGreen);
+                result += Color::toAnsi(ctx, LogColor::BrightGreen);
                 break;
         }
 
         result += idName;
-        result += Color::toAnsi(LogColor::Reset);
+        result += Color::toAnsi(ctx, LogColor::Reset);
         result += "\n";
 
         if (e->file_ != nullptr)
         {
             // File path
-            result += Color::toAnsi(LogColor::Bold);
-            result += Color::toAnsi(LogColor::Cyan);
+            result += Color::toAnsi(ctx, LogColor::Bold);
+            result += Color::toAnsi(ctx, LogColor::Cyan);
             result += e->file_->path().string();
             result += ":";
 
@@ -63,17 +63,17 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
             SourceCodeLocation loc;
             if (e->len_ != 0)
             {
-                loc = e->location();
+                loc = e->location(ctx);
                 result += std::format("{}:{}", loc.line, loc.column);
                 result += "\n";
             }
 
-            result += Color::toAnsi(LogColor::Reset);
+            result += Color::toAnsi(ctx, LogColor::Reset);
 
             // Code line
             if (e->len_ != 0)
             {
-                const auto code = e->file_->codeLine(loc.line);
+                const auto code = e->file_->codeLine(ctx, loc.line);
                 result += code;
                 result += "\n";
             }
@@ -81,17 +81,17 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
             // Carets
             if (e->len_ != 0)
             {
-                result += Color::toAnsi(LogColor::Bold);
+                result += Color::toAnsi(ctx, LogColor::Bold);
                 switch (severity)
                 {
                     case DiagnosticSeverity::Error:
-                        result += Color::toAnsi(LogColor::BrightRed);
+                        result += Color::toAnsi(ctx, LogColor::BrightRed);
                         break;
                     case DiagnosticSeverity::Warning:
-                        result += Color::toAnsi(LogColor::BrightYellow);
+                        result += Color::toAnsi(ctx, LogColor::BrightYellow);
                         break;
                     default:
-                        result += Color::toAnsi(LogColor::BrightCyan);
+                        result += Color::toAnsi(ctx, LogColor::BrightCyan);
                         break;
                 }
 
@@ -104,7 +104,7 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
                     result += "^";
             }
 
-            result += Color::toAnsi(LogColor::Reset);
+            result += Color::toAnsi(ctx, LogColor::Reset);
             result += "\n";
         }
 
@@ -119,14 +119,13 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
 
 void Diagnostic::report(CompilerContext& ctx) const
 {
-    const auto& glb      = Global::get();
-    const auto& cmdLine = glb.cmdLine();
+    const auto& cmdLine = ctx.swc().cmdLine();
     const auto  msg     = build(ctx);
     bool        dismiss = false;
 
     if (fileOwner_ != nullptr)
     {
-        dismiss = fileOwner_->verifier().verify(*this);
+        dismiss = fileOwner_->verifier().verify(ctx, *this);
     }
 
     if (cmdLine.verboseErrors)
@@ -138,10 +137,10 @@ void Diagnostic::report(CompilerContext& ctx) const
 
     if (!dismiss)
     {
-        auto& logger = glb.logger();
+        auto& logger = Global::get().logger();
         logger.lock();
-        logger.printEol();
-        logger.print(msg);
+        logger.printEol(ctx);
+        logger.print(ctx, msg);
         logger.unlock();
     }
 }

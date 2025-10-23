@@ -5,7 +5,7 @@ FileRef FileManager::addFile(fs::path path)
 {
     std::unique_lock lock(mutex_);
 
-    path          = fs::weakly_canonical(path);
+    path          = fs::absolute(path);
     const auto it = paths_.find(path);
     if (it != paths_.end())
         return it->second;

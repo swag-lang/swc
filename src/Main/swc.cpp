@@ -1,5 +1,6 @@
 #include "pch.h"
 
+#include "Core/Timer.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
 #include "Main/CommandLineParser.h"
@@ -52,21 +53,24 @@ static void parseFolder(const fs::path& directory)
 
 int main(int argc, char* argv[])
 {
-    auto& ci = Global::get();
-    ci.initialize();
+    {
+        Timer time(&Stats::get().timeTotal);
+        auto& ci = Global::get();
+        ci.initialize();
 
-    CommandLineParser parser;
-    parser.setupCommandLine();
-    if (!parser.parse(argc, argv, "build"))
-        return 1;
+        CommandLineParser parser;
+        parser.setupCommandLine();
+        if (!parser.parse(argc, argv, "build"))
+            return 1;
 
-    ci.jobMgr().setNumThreads(ci.cmdLine().numCores);
+        ci.jobMgr().setNumThreads(ci.cmdLine().numCores);
 
-    parseFolder("c:/perso/swag-lang/swag/bin");
-    parseFolder("c:/perso/swag-lang/swc/tests");
+        parseFolder("c:/perso/swag-lang/swag/bin");
+        parseFolder("c:/perso/swag-lang/swc/tests");
 
-    ci.jobMgr().waitAll();
-    Stats::get().print();
+        ci.jobMgr().waitAll();
+    }
     
+    Stats::get().print();
     return 0;
 }

@@ -3,10 +3,11 @@
 
 struct Stats
 {
-    std::atomic<size_t> memAllocated    = 0;
-    std::atomic<size_t> memMaxAllocated = 0;
-    std::atomic<size_t> numFiles        = 0;
-    std::atomic<size_t> numTokens       = 0;
+    std::atomic<size_t>   memAllocated    = 0;
+    std::atomic<size_t>   memMaxAllocated = 0;
+    std::atomic<size_t>   numFiles        = 0;
+    std::atomic<size_t>   numTokens       = 0;
+    std::atomic<uint64_t> timeTotal       = 0;
 
     static Stats& get()
     {

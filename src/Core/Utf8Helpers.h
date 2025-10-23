@@ -6,4 +6,5 @@ namespace Utf8Helpers
     uint32_t                                       countChars(std::string_view str);
     Utf8                                           toNiceSize(size_t size);
     Utf8                                           toNiceBigNumber(std::size_t number);
+    Utf8                                           toNiceTime(double seconds);
 };

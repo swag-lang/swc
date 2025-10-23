@@ -121,3 +121,9 @@ Utf8 Utf8Helpers::toNiceBigNumber(std::size_t number)
 
     return str;
 }
+
+Utf8 Utf8Helpers::toNiceTime(double seconds)
+{
+    auto str = std::format("{:.3f}s", seconds);
+    return str;
+}

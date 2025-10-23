@@ -2,6 +2,7 @@
 
 #include "Core/Utf8Helpers.h"
 #include "Main/Global.h"
+#include "Os/Os.h"
 #include "Report/LogColor.h"
 #include "Report/Logger.h"
 #include "Report/Stats.h"
@@ -22,5 +23,8 @@ void Stats::print() const
 
     log.printHeaderDot(colorHeader, "numFiles", colorMsg, Utf8Helpers::toNiceBigNumber(numFiles.load()));
     log.printHeaderDot(colorHeader, "numTokens", colorMsg, Utf8Helpers::toNiceBigNumber(numTokens.load()));
+    log.printEol();
+
+    log.printHeaderDot(colorHeader, "timeTotal", colorMsg, Utf8Helpers::toNiceTime(Os::timerToSeconds(timeTotal.load())));
     log.printEol();
 }

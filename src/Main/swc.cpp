@@ -10,19 +10,25 @@
 #include "Report/Stats.h"
 #include "Thread/JobManager.h"
 
-static void parseFolder(const fs::path& directory)
+void test()
 {
-    for (const auto& entry : fs::recursive_directory_iterator(directory))
+    auto parseFolder = [](const fs::path& directory)
     {
-        if (entry.is_regular_file())
+        for (const auto& entry : fs::recursive_directory_iterator(directory))
         {
-            auto ext = entry.path().extension().string();
-            if (ext == ".swg" || ext == ".swgs")
+            if (entry.is_regular_file())
             {
-                Global::get().fileMgr().addFile(entry.path());
+                auto ext = entry.path().extension().string();
+                if (ext == ".swg" || ext == ".swgs")
+                {
+                    Global::get().fileMgr().addFile(entry.path());
+                }
             }
         }
-    }
+    };
+    
+    parseFolder("c:/perso/swag-lang/swag/bin");
+    parseFolder("c:/perso/swag-lang/swc/tests");
 
     struct t : Job
     {
@@ -48,28 +54,32 @@ static void parseFolder(const fs::path& directory)
         k->f   = f.get();
         Global::get().jobMgr().enqueue(k, JobPriority::Normal);
     }
+
+    Global::get().jobMgr().waitAll();
+}
+
+int process(int argc, char* argv[])
+{
+    auto& ci = Global::get();
+    ci.initialize();
+
+    CommandLineParser parser;
+    parser.setupCommandLine();
+    if (!parser.parse(argc, argv, "build"))
+        return -1;
+
+    ci.jobMgr().setNumThreads(ci.cmdLine().numCores);
+
+    test();
+    return 0;
 }
 
 int main(int argc, char* argv[])
 {
-    {
-        Timer time(&Stats::get().timeTotal);
-        auto& ci = Global::get();
-        ci.initialize();
-
-        CommandLineParser parser;
-        parser.setupCommandLine();
-        if (!parser.parse(argc, argv, "build"))
-            return 1;
-
-        ci.jobMgr().setNumThreads(ci.cmdLine().numCores);
-
-        parseFolder("c:/perso/swag-lang/swag/bin");
-        parseFolder("c:/perso/swag-lang/swc/tests");
-
-        ci.jobMgr().waitAll();
-    }
-
+    Timer time(&Stats::get().timeTotal);
+    auto result = process(argc, argv);
+#if SWC_HAS_STATS
     Stats::get().print();
-    return 0;
+#endif
+    return result;
 }

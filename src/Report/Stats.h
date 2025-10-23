@@ -1,9 +1,16 @@
 #pragma once
+#if SWC_HAS_STATS
 
 struct Stats
 {
     std::atomic<uint32_t> memAllocated    = 0;
     std::atomic<uint32_t> memMaxAllocated = 0;
+
+    static Stats& get()
+    {
+        static Stats stats;
+        return stats;
+    }
 
     static void setMax(const std::atomic<uint32_t>& cur, std::atomic<uint32_t>& max)
     {
@@ -13,4 +20,8 @@ struct Stats
         {
         }
     }
+
+    void print();
 };
+
+#endif // SWC_HAS_STATS

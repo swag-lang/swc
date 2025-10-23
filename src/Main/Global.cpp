@@ -6,21 +6,20 @@
 #include "Os/Os.h"
 #include "Report/DiagnosticIds.h"
 #include "Report/Logger.h"
-#include "Report/Stats.h"
 #include "Thread/JobManager.h"
 
-Global::Global()
+Global& Global::get()
 {
-    static Stats stats;
-    stats_ = &stats;
+    static Global instance;
+    return instance;
 }
 
-void Global::setup()
+void Global::initialize()
 {
-    Os::setup();
-    diagIds_  = new DiagnosticIds();
-    logger_   = new Logger();
-    langSpec_ = new LangSpec();
-    cmdLine_  = new CommandLine();
-    jobMgr_   = new JobManager();
+    Os::initialize();
+    diagIds_  = std::make_unique<DiagnosticIds>();
+    logger_   = std::make_unique<Logger>();
+    langSpec_ = std::make_unique<LangSpec>();
+    cmdLine_  = std::make_unique<CommandLine>();
+    jobMgr_   = std::make_unique<JobManager>();
 }

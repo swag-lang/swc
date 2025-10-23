@@ -5,6 +5,7 @@
 #include "Main/CommandLineParser.h"
 #include "Main/CompilerContext.h"
 #include "Main/Global.h"
+#include "Report/Stats.h"
 #include "Thread/JobManager.h"
 
 static void parseFolder(const fs::path& directory)
@@ -52,7 +53,7 @@ static void parseFolder(const fs::path& directory)
 int main(int argc, char* argv[])
 {
     auto& ci = Global::get();
-    ci.setup();
+    ci.initialize();
 
     CommandLineParser parser;
     parser.setupCommandLine();
@@ -65,5 +66,7 @@ int main(int argc, char* argv[])
     parseFolder("c:/perso/swag-lang/swc");
 
     ci.jobMgr().waitAll();
+    Stats::get().print();
+    
     return 0;
 }

@@ -83,3 +83,23 @@ uint32_t Utf8Helpers::countChars(std::string_view str)
 
     return result;
 }
+
+Utf8 Utf8Helpers::toNiceSize(std::size_t size)
+{
+    static constexpr size_t KB = 1024;
+    static constexpr size_t MB = KB * 1024;
+    static constexpr size_t GB = MB * 1024;
+    static constexpr size_t TB = GB * 1024;
+
+    if (size == 1)
+        return "1 byte";
+    if (size < 1024)
+        return std::format("{} bytes", size);
+    if (size < MB)
+        return std::format("{:.1f} KB", static_cast<double>(size) / KB);
+    if (size < GB)
+        return std::format("{:.1f} MB", static_cast<double>(size) / MB);
+    if (size < TB)
+        return std::format("{:.1f} GB", static_cast<double>(size) / GB);
+    return std::format("{:.1f} TB", static_cast<double>(size) / TB);
+}

@@ -5,32 +5,23 @@ class DiagnosticIds;
 class LangSpec;
 class JobManager;
 struct CommandLine;
-struct Stats;
 
 class Global
 {
-    DiagnosticIds* diagIds_  = nullptr;
-    Logger*        logger_   = nullptr;
-    LangSpec*      langSpec_ = nullptr;
-    CommandLine*   cmdLine_  = nullptr;
-    JobManager*    jobMgr_   = nullptr;
-    Stats*         stats_    = nullptr;
+    std::unique_ptr<DiagnosticIds> diagIds_;
+    std::unique_ptr<Logger>        logger_;
+    std::unique_ptr<LangSpec>      langSpec_;
+    std::unique_ptr<CommandLine>   cmdLine_;
+    std::unique_ptr<JobManager>    jobMgr_;
 
 public:
-    Global();
-    
-    static Global& get()
-    {
-        static Global instance;
-        return instance;
-    }
+    void initialize();
 
-    void setup();
+    static Global& get();
 
     const DiagnosticIds& diagIds() const { return *diagIds_; }
     Logger&              logger() const { return *logger_; }
     LangSpec&            langSpec() const { return *langSpec_; }
     CommandLine&         cmdLine() const { return *cmdLine_; }
     JobManager&          jobMgr() const { return *jobMgr_; }
-    Stats&               stats() const { return *stats_; }
 };

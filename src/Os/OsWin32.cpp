@@ -7,7 +7,7 @@
 
 namespace Os
 {
-    void setup()
+    void initialize()
     {
         SetConsoleOutputCP(65001);
         const HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);

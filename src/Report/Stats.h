@@ -3,9 +3,10 @@
 
 struct Stats
 {
-    std::atomic<uint32_t> memAllocated    = 0;
-    std::atomic<uint32_t> memMaxAllocated = 0;
-    std::atomic<uint32_t> numFiles        = 0;
+    std::atomic<size_t> memAllocated    = 0;
+    std::atomic<size_t> memMaxAllocated = 0;
+    std::atomic<size_t> numFiles        = 0;
+    std::atomic<size_t> numTokens       = 0;
 
     static Stats& get()
     {
@@ -13,10 +14,10 @@ struct Stats
         return stats;
     }
 
-    static void setMax(const std::atomic<uint32_t>& cur, std::atomic<uint32_t>& max)
+    static void setMax(const std::atomic<size_t>& cur, std::atomic<size_t>& max)
     {
-        const uint32_t current = cur.load(std::memory_order_relaxed);
-        uint32_t       prevMax = max.load(std::memory_order_relaxed);
+        const size_t current = cur.load(std::memory_order_relaxed);
+        size_t       prevMax = max.load(std::memory_order_relaxed);
         while (current > prevMax && !max.compare_exchange_weak(prevMax, current, std::memory_order_relaxed))
         {
         }

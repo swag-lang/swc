@@ -103,3 +103,21 @@ Utf8 Utf8Helpers::toNiceSize(std::size_t size)
         return std::format("{:.1f} GB", static_cast<double>(size) / GB);
     return std::format("{:.1f} TB", static_cast<double>(size) / TB);
 }
+
+Utf8 Utf8Helpers::toNiceBigNumber(std::size_t number)
+{
+    auto str = std::format("{}", number);
+
+    // Insert separators from right to left
+    int count = 0;
+    for (auto it = str.rbegin(); it != str.rend(); ++it)
+    {
+        if (++count == 4)
+        {
+            str.insert(it.base(), '_');
+            count = 1;
+        }
+    }
+
+    return str;
+}

@@ -8,6 +8,7 @@
 #include "Main/Global.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticIds.h"
+#include "Report/Stats.h"
 
 namespace
 {
@@ -1269,5 +1270,10 @@ Result Lexer::tokenize(CompilerContext& ctx, LexerFlags flags)
         parseOperator();
     }
 
+#if SWC_HAS_STATS
+    if (!rawMode_)
+        Stats::get().numTokens.fetch_add(tokens_.size());
+#endif
+    
     return Result::Success;
 }

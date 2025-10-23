@@ -126,36 +126,35 @@ Utf8 Utf8Helpers::toNiceTime(double seconds)
 {
     static constexpr double MICROSECOND = 0.000001;
     static constexpr double MILLISECOND = 0.001;
-    static constexpr double MINUTE = 60.0;
-    static constexpr double HOUR = MINUTE * 60.0;
-    static constexpr double DAY = HOUR * 24.0;
+    static constexpr double MINUTE      = 60.0;
 
-    // Handle special cases
     if (seconds == 0.0)
         return "0s";
 
-    const double absSeconds = std::abs(seconds);
-    
-    // Very small times - microseconds
-    if (absSeconds < MILLISECOND)
-        return std::format("{:.1f}µs", seconds / MICROSECOND);
-    
-    // Small times - milliseconds
-    if (absSeconds < 1.0)
-        return std::format("{:.1f}ms", seconds / MILLISECOND);
-    
-    // Seconds
-    if (absSeconds < MINUTE)
-        return std::format("{:.2f}s", seconds);
-    
-    // Minutes
-    if (absSeconds < HOUR)
-        return std::format("{:.1f}min", seconds / MINUTE);
-    
-    // Hours
-    if (absSeconds < DAY)
-        return std::format("{:.1f}h", seconds / HOUR);
-    
-    // Days
-    return std::format("{:.1f}d", seconds / DAY);
+    // Microseconds (< 1ms)
+    if (seconds < MILLISECOND)
+    {
+        auto us = static_cast<size_t>(seconds / MICROSECOND);
+        return std::format("{} µs", us);
+    }
+
+    // Milliseconds (< 1s)
+    if (seconds < 1.0)
+    {
+        auto ms = static_cast<size_t>(seconds / MILLISECOND);
+        return std::format("{} ms", ms);
+    }
+
+    // Seconds only (< 1min)
+    if (seconds < MINUTE)
+    {
+        auto wholeSeconds = static_cast<size_t>(seconds);
+        auto ms           = static_cast<size_t>((seconds - static_cast<double>(wholeSeconds)) / MILLISECOND);
+        return std::format("{} s {} ms", wholeSeconds, ms);
+    }
+
+    // Minutes and seconds (>= 1min)
+    auto minutes          = static_cast<size_t>(seconds / MINUTE);
+    auto remainingSeconds = static_cast<size_t>(seconds - (static_cast<double>(minutes) * MINUTE));
+    return std::format("{} min {} s", minutes, remainingSeconds);
 }

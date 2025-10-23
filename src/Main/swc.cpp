@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
 
         ci.jobMgr().waitAll();
     }
-    
+
     Stats::get().print();
     return 0;
 }

@@ -3,6 +3,5 @@
 
 int main(int argc, char* argv[])
 {
-    Swc swc;
-    return swc.go(argc, argv);
+    return Swc::go(argc, argv);
 }

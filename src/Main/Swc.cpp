@@ -11,67 +11,70 @@
 #include "Swc.h"
 #include "Thread/JobManager.h"
 
-void test()
+namespace
 {
-    auto parseFolder = [](const fs::path& directory) {
-        for (const auto& entry : fs::recursive_directory_iterator(directory))
-        {
-            if (entry.is_regular_file())
+    void test()
+    {
+        auto parseFolder = [](const fs::path& directory) {
+            for (const auto& entry : fs::recursive_directory_iterator(directory))
             {
-                auto ext = entry.path().extension().string();
-                if (ext == ".swg" || ext == ".swgs")
+                if (entry.is_regular_file())
                 {
-                    Global::get().fileMgr().addFile(entry.path());
+                    auto ext = entry.path().extension().string();
+                    if (ext == ".swg" || ext == ".swgs")
+                    {
+                        Global::get().fileMgr().addFile(entry.path());
+                    }
                 }
             }
-        }
-    };
+        };
 
-    parseFolder("c:/perso/swag-lang/swag/bin");
-    parseFolder("c:/perso/swag-lang/swc/tests");
+        parseFolder("c:/perso/swag-lang/swag/bin");
+        parseFolder("c:/perso/swag-lang/swc/tests");
 
-    struct t : Job
-    {
-        SourceFile* f;
-
-        JobResult process() override
+        struct t : Job
         {
-            f->loadContent(ctx_);
-            if (f->codeView(0, static_cast<uint32_t>(f->content().size())).find("#global testerror") == Utf8::npos)
+            SourceFile* f;
+
+            JobResult process() override
             {
-                ctx_.setSourceFile(f);
-                f->tokenize(ctx_);
-                (void) f->verifier().verify(ctx_);
+                f->loadContent(ctx_);
+                if (f->codeView(0, static_cast<uint32_t>(f->content().size())).find("#global testerror") == Utf8::npos)
+                {
+                    ctx_.setSourceFile(f);
+                    f->tokenize(ctx_);
+                    (void) f->verifier().verify(ctx_);
+                }
+
+                return JobResult::Done;
             }
+        };
 
-            return JobResult::Done;
+        for (const auto& f : Global::get().fileMgr().files())
+        {
+            auto k = std::make_shared<t>();
+            k->f   = f.get();
+            Global::get().jobMgr().enqueue(k, JobPriority::Normal);
         }
-    };
 
-    for (const auto& f : Global::get().fileMgr().files())
-    {
-        auto k = std::make_shared<t>();
-        k->f   = f.get();
-        Global::get().jobMgr().enqueue(k, JobPriority::Normal);
+        Global::get().jobMgr().waitAll();
     }
 
-    Global::get().jobMgr().waitAll();
-}
+    int process(int argc, char* argv[])
+    {
+        auto& ci = Global::get();
+        ci.initialize();
 
-int Swc::process(int argc, char* argv[])
-{
-    auto& ci = Global::get();
-    ci.initialize();
+        CommandLineParser parser;
+        parser.setupCommandLine();
+        if (!parser.parse(argc, argv, "build"))
+            return -1;
 
-    CommandLineParser parser;
-    parser.setupCommandLine();
-    if (!parser.parse(argc, argv, "build"))
-        return -1;
+        ci.jobMgr().setNumThreads(ci.cmdLine().numCores);
 
-    ci.jobMgr().setNumThreads(ci.cmdLine().numCores);
-
-    test();
-    return 0;
+        test();
+        return 0;
+    }
 }
 
 int Swc::go(int argc, char* argv[])

@@ -1,12 +1,13 @@
 #include "pch.h"
 
+#include "Color.h"
 #include "Core/Utf8Helpers.h"
 #include "Logger.h"
 #include "Main/Global.h"
 #include "Report/Stats.h"
 
-void Stats::print()
+void Stats::print() const
 {
-    auto msg = std::format("memMaxAllocated: {}\n", Utf8Helpers::toNiceSize(memMaxAllocated.load()).c_str());
-    Global::get().logger().log(msg);   
+    auto& log = Global::get().logger();
+    log.printHeaderDot("memMaxAllocated", Utf8Helpers::toNiceSize(memMaxAllocated.load()), Color::Yellow, Color::White, ".");   
 }

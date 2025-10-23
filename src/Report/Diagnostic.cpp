@@ -32,20 +32,20 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
         // Colorize severity level
         if (cmdLine.logColor)
         {
-            result += Color::Bold;
+            result += toAnsi(Color::Bold);
             switch (severity)
             {
                 case DiagnosticSeverity::Error:
-                    result += Color::BrightRed;
+                    result += toAnsi(Color::BrightRed);
                     break;
                 case DiagnosticSeverity::Warning:
-                    result += Color::BrightYellow;
+                    result += toAnsi(Color::BrightYellow);
                     break;
                 case DiagnosticSeverity::Note:
-                    result += Color::BrightCyan;
+                    result += toAnsi(Color::BrightCyan);
                     break;
                 case DiagnosticSeverity::Hint:
-                    result += Color::BrightGreen;
+                    result += toAnsi(Color::BrightGreen);
                     break;
             }
         }
@@ -53,7 +53,7 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
         result += idName;
 
         if (cmdLine.logColor)
-            result += Color::Reset;
+            result += toAnsi(Color::Reset);
 
         result += "\n";
 
@@ -62,8 +62,8 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
             // File path
             if (cmdLine.logColor)
             {
-                result += Color::Bold;
-                result += Color::Cyan;
+                result += toAnsi(Color::Bold);
+                result += toAnsi(Color::Cyan);
             }
 
             result += e->file_->path().string();
@@ -79,7 +79,7 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
             }
 
             if (cmdLine.logColor)
-                result += Color::Reset;
+                result += toAnsi(Color::Reset);
 
             // Code line
             if (e->len_ != 0)
@@ -94,17 +94,17 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
             {
                 if (cmdLine.logColor)
                 {
-                    result += Color::Bold;
+                    result += toAnsi(Color::Bold);
                     switch (severity)
                     {
                         case DiagnosticSeverity::Error:
-                            result += Color::BrightRed;
+                            result += toAnsi(Color::BrightRed);
                             break;
                         case DiagnosticSeverity::Warning:
-                            result += Color::BrightYellow;
+                            result += toAnsi(Color::BrightYellow);
                             break;
                         default:
-                            result += Color::BrightCyan;
+                            result += toAnsi(Color::BrightCyan);
                             break;
                     }
                 }
@@ -119,7 +119,7 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
             }
 
             if (cmdLine.logColor)
-                result += Color::Reset;
+                result += toAnsi(Color::Reset);
             result += "\n";
         }
 
@@ -155,8 +155,8 @@ void Diagnostic::report(CompilerContext& ctx) const
     {
         auto& logger = ci.logger();
         logger.lock();
-        logger.logEol();
-        logger.log(msg);
+        logger.printEol();
+        logger.print(msg);
         logger.unlock();
     }
 }

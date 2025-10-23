@@ -1,26 +1,67 @@
 #pragma once
 
-struct Color
+enum class Color
 {
-    // ANSI color codes
-    static constexpr std::string_view Reset = "\033[0m";
-    static constexpr std::string_view Bold  = "\033[1m";
-    static constexpr std::string_view Dim   = "\033[2m";
+    Reset,
+    Bold,
+    Dim,
 
-    // Foreground colors
-    static constexpr std::string_view Red     = "\033[31m";
-    static constexpr std::string_view Green   = "\033[32m";
-    static constexpr std::string_view Yellow  = "\033[33m";
-    static constexpr std::string_view Blue    = "\033[34m";
-    static constexpr std::string_view Magenta = "\033[35m";
-    static constexpr std::string_view Cyan    = "\033[36m";
-    static constexpr std::string_view White   = "\033[37m";
+    Red,
+    Green,
+    Yellow,
+    Blue,
+    Magenta,
+    Cyan,
+    White,
 
-    // Bright variants
-    static constexpr std::string_view BrightRed     = "\033[91m";
-    static constexpr std::string_view BrightGreen   = "\033[92m";
-    static constexpr std::string_view BrightYellow  = "\033[93m";
-    static constexpr std::string_view BrightBlue    = "\033[94m";
-    static constexpr std::string_view BrightMagenta = "\033[95m";
-    static constexpr std::string_view BrightCyan    = "\033[96m";
+    BrightRed,
+    BrightGreen,
+    BrightYellow,
+    BrightBlue,
+    BrightMagenta,
+    BrightCyan
 };
+
+constexpr std::string_view toAnsi(Color c)
+{
+    using enum Color;
+
+    switch (c)
+    {
+        case Reset:
+        default:
+            return "\033[0m";
+        case Bold:
+            return "\033[1m";
+        case Dim:
+            return "\033[2m";
+
+        case Red:
+            return "\033[31m";
+        case Green:
+            return "\033[32m";
+        case Yellow:
+            return "\033[33m";
+        case Blue:
+            return "\033[34m";
+        case Magenta:
+            return "\033[35m";
+        case Cyan:
+            return "\033[36m";
+        case White:
+            return "\033[37m";
+
+        case BrightRed:
+            return "\033[91m";
+        case BrightGreen:
+            return "\033[92m";
+        case BrightYellow:
+            return "\033[93m";
+        case BrightBlue:
+            return "\033[94m";
+        case BrightMagenta:
+            return "\033[95m";
+        case BrightCyan:
+            return "\033[96m";
+    }
+}

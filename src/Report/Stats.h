@@ -21,7 +21,7 @@ struct Stats
         }
     }
 
-    void print();
+    void print() const;
 };
 
 #endif // SWC_HAS_STATS

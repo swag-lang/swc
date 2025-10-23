@@ -1,8 +1,8 @@
 #include "pch.h"
 
-#include "Color.h"
 #include "Core/Utf8Helpers.h"
 #include "Lexer/SourceFile.h"
+#include "LogColor.h"
 #include "Main/CommandLine.h"
 #include "Main/CompilerContext.h"
 #include "Main/Global.h"
@@ -30,42 +30,32 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
         const auto idName   = e->idName();
 
         // Colorize severity level
-        if (cmdLine.logColor)
+        result += Color::toAnsi(LogColor::Bold);
+        switch (severity)
         {
-            result += toAnsi(Color::Bold);
-            switch (severity)
-            {
-                case DiagnosticSeverity::Error:
-                    result += toAnsi(Color::BrightRed);
-                    break;
-                case DiagnosticSeverity::Warning:
-                    result += toAnsi(Color::BrightYellow);
-                    break;
-                case DiagnosticSeverity::Note:
-                    result += toAnsi(Color::BrightCyan);
-                    break;
-                case DiagnosticSeverity::Hint:
-                    result += toAnsi(Color::BrightGreen);
-                    break;
-            }
+            case DiagnosticSeverity::Error:
+                result += Color::toAnsi(LogColor::BrightRed);
+                break;
+            case DiagnosticSeverity::Warning:
+                result += Color::toAnsi(LogColor::BrightYellow);
+                break;
+            case DiagnosticSeverity::Note:
+                result += Color::toAnsi(LogColor::BrightCyan);
+                break;
+            case DiagnosticSeverity::Hint:
+                result += Color::toAnsi(LogColor::BrightGreen);
+                break;
         }
 
         result += idName;
-
-        if (cmdLine.logColor)
-            result += toAnsi(Color::Reset);
-
+        result += Color::toAnsi(LogColor::Reset);
         result += "\n";
 
         if (e->file_ != nullptr)
         {
             // File path
-            if (cmdLine.logColor)
-            {
-                result += toAnsi(Color::Bold);
-                result += toAnsi(Color::Cyan);
-            }
-
+            result += Color::toAnsi(LogColor::Bold);
+            result += Color::toAnsi(LogColor::Cyan);
             result += e->file_->path().string();
             result += ":";
 
@@ -78,8 +68,7 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
                 result += "\n";
             }
 
-            if (cmdLine.logColor)
-                result += toAnsi(Color::Reset);
+            result += Color::toAnsi(LogColor::Reset);
 
             // Code line
             if (e->len_ != 0)
@@ -92,21 +81,18 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
             // Carets
             if (e->len_ != 0)
             {
-                if (cmdLine.logColor)
+                result += Color::toAnsi(LogColor::Bold);
+                switch (severity)
                 {
-                    result += toAnsi(Color::Bold);
-                    switch (severity)
-                    {
-                        case DiagnosticSeverity::Error:
-                            result += toAnsi(Color::BrightRed);
-                            break;
-                        case DiagnosticSeverity::Warning:
-                            result += toAnsi(Color::BrightYellow);
-                            break;
-                        default:
-                            result += toAnsi(Color::BrightCyan);
-                            break;
-                    }
+                    case DiagnosticSeverity::Error:
+                        result += Color::toAnsi(LogColor::BrightRed);
+                        break;
+                    case DiagnosticSeverity::Warning:
+                        result += Color::toAnsi(LogColor::BrightYellow);
+                        break;
+                    default:
+                        result += Color::toAnsi(LogColor::BrightCyan);
+                        break;
                 }
 
                 for (uint32_t i = 1; i < loc.column; ++i)
@@ -118,8 +104,7 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
                     result += "^";
             }
 
-            if (cmdLine.logColor)
-                result += toAnsi(Color::Reset);
+            result += Color::toAnsi(LogColor::Reset);
             result += "\n";
         }
 

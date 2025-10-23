@@ -2,7 +2,7 @@
 
 #include "Core/Utf8Helpers.h"
 #include "Main/Global.h"
-#include "Report/Color.h"
+#include "Report/LogColor.h"
 #include "Report/Logger.h"
 #include "Report/Stats.h"
 #include "Thread/JobManager.h"
@@ -11,8 +11,8 @@ void Stats::print() const
 {
     auto& log = Global::get().logger();
 
-    constexpr auto colorHeader = Color::Yellow;
-    constexpr auto colorMsg    = Color::White;
+    constexpr auto colorHeader = LogColor::Yellow;
+    constexpr auto colorMsg    = LogColor::White;
 
     log.printHeaderDot(colorHeader, "numWorkers", colorMsg, Utf8Helpers::toNiceBigNumber(Global::get().jobMgr().numWorkers()));
     log.printEol();

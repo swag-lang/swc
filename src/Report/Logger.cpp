@@ -1,6 +1,6 @@
 #include "pch.h"
 
-#include "Color.h"
+#include "LogColor.h"
 #include "Logger.h"
 #include "Main/CommandLine.h"
 #include "Main/Global.h"
@@ -19,17 +19,17 @@ void Logger::printEol()
     std::cout << std::endl;   
 }
 
-void Logger::printHeaderDot(Color headerColor, std::string_view header, Color msgColor, std::string_view message, std::string_view dot, size_t messageColumn)
+void Logger::printHeaderDot(LogColor headerColor, std::string_view header, LogColor msgColor, std::string_view message, std::string_view dot, size_t messageColumn)
 {
     if (Global::get().cmdLine().silent)
         return;
     
     lock();
-    print(toAnsi(headerColor));
+    print(Color::toAnsi(headerColor));
     print(header);
     for (size_t i = header.size(); i < messageColumn; ++i)
         print(dot);
-    print(toAnsi(msgColor));
+    print(Color::toAnsi(msgColor));
     print(message);
     printEol();
     unlock();

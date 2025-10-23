@@ -11,12 +11,12 @@ namespace Os
     {
         SetConsoleOutputCP(65001);
         const HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-        DWORD  mode = 0;
+        DWORD        mode = 0;
         if (GetConsoleMode(hOut, &mode))
         {
             mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
             SetConsoleMode(hOut, mode);
-        }        
+        }
     }
 
     void assertBox(const char* expr, const char* file, int line)
@@ -34,7 +34,7 @@ namespace Os
         switch (result)
         {
             case IDCANCEL:
-                exit(-1);  // NOLINT(concurrency-mt-unsafe)
+                exit(-1); // NOLINT(concurrency-mt-unsafe)
             case IDTRYAGAIN:
                 DebugBreak();
                 break;
@@ -50,7 +50,14 @@ namespace Os
         LARGE_INTEGER res;
         QueryPerformanceCounter(&res);
         return res.QuadPart;
-    }    
+    }
+
+    double timerToSeconds(uint64_t timer)
+    {
+        LARGE_INTEGER freq;
+        QueryPerformanceFrequency(&freq);
+        return static_cast<double>(timer) / static_cast<double>(freq.QuadPart);
+    }
 }
 
 #endif // _WIN32

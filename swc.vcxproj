@@ -120,6 +120,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\Report\Check.cpp" />
+    <ClCompile Include="src\Report\Color.cpp" />
     <ClCompile Include="src\Report\Diagnostic.cpp" />
     <ClCompile Include="src\Report\DiagnosticIds.cpp" />
     <ClCompile Include="src\Report\DiagnosticElement.cpp" />
@@ -148,7 +149,7 @@
     <ClInclude Include="src\Os\Os.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\Report\Check.h" />
-    <ClInclude Include="src\Report\Color.h" />
+    <ClInclude Include="src\Report\LogColor.h" />
     <ClInclude Include="src\Report\Diagnostic.h" />
     <ClInclude Include="src\Report\DiagnosticIds.h" />
     <ClInclude Include="src\Report\DiagnosticElement.h" />

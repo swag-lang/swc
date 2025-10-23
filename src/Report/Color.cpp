@@ -1,31 +1,14 @@
-#pragma once
+#include "pch.h"
 
-enum class Color
+#include "Main/CommandLine.h"
+#include "Report/LogColor.h"
+
+std::string_view Color::toAnsi(LogColor c)
 {
-    Reset,
-    Bold,
-    Dim,
+    if (!Global::get().cmdLine().logColor)
+        return "";
 
-    Red,
-    Green,
-    Yellow,
-    Blue,
-    Magenta,
-    Cyan,
-    White,
-
-    BrightRed,
-    BrightGreen,
-    BrightYellow,
-    BrightBlue,
-    BrightMagenta,
-    BrightCyan
-};
-
-constexpr std::string_view toAnsi(Color c)
-{
-    using enum Color;
-
+    using enum LogColor;
     switch (c)
     {
         case Reset:

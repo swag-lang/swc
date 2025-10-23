@@ -44,6 +44,13 @@ namespace Os
                 break;
         }
     }
+
+    uint64_t timerNow()
+    {
+        LARGE_INTEGER res;
+        QueryPerformanceCounter(&res);
+        return res.QuadPart;
+    }    
 }
 
 #endif // _WIN32

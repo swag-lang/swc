@@ -2,6 +2,8 @@
 
 namespace Os
 {
-    void assertBox(const char* expr, const char* file, int line);
     void initialize();
+
+    void     assertBox(const char* expr, const char* file, int line);
+    uint64_t timerNow();
 }

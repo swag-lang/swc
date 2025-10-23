@@ -58,7 +58,7 @@ void Lexer::eatOneEol()
         buffer_++;
     }
 
-    lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
+    file_->lexOut_.lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
 }
 
 void Lexer::pushToken()
@@ -75,7 +75,7 @@ void Lexer::pushToken()
     if (token_.id == TokenId::Comment && !lexerFlags_.has(LexerFlagsEnum::ExtractComments))
         return;    
 
-    tokens_.push_back(token_);
+    file_->lexOut_.tokens_.push_back(token_);
 }
 
 void Lexer::reportUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len)
@@ -1151,11 +1151,12 @@ Result Lexer::tokenizeRaw(CompilerContext& ctx)
 
 Result Lexer::tokenize(CompilerContext& ctx, LexerFlags flags)
 {
-    tokens_.clear();
-    lines_.clear();
+    file_ = ctx.sourceFile();
+    
+    file_->lexOut_.tokens_.clear();
+    file_->lexOut_.lines_.clear();
     prevToken_ = {};
 
-    const auto file = ctx.sourceFile();
     langSpec_       = &Global::get().langSpec();
     ctx_            = &ctx;
     lexerFlags_     = flags;
@@ -1163,16 +1164,16 @@ Result Lexer::tokenize(CompilerContext& ctx, LexerFlags flags)
     uint32_t startOffset = 0;
     checkFormat(ctx, startOffset);
 
-    const auto base = file->content().data();
+    const auto base = file_->content().data();
     buffer_         = base + startOffset;
     startBuffer_    = base;
-    endBuffer_      = startBuffer_ + file->size();
+    endBuffer_      = startBuffer_ + file_->size();
 
     // Reserve space based on file size
-    tokens_.reserve(file->content().size() / 10);
+    file_->lexOut_.tokens_.reserve(file_->content().size() / 10);
     if (!rawMode_)
-        lines_.reserve(file->content().size() / 60);
-    lines_.push_back(0);
+        file_->lexOut_.lines_.reserve(file_->content().size() / 60);
+    file_->lexOut_.lines_.push_back(0);
 
     while (buffer_ < endBuffer_)
     {
@@ -1273,7 +1274,7 @@ Result Lexer::tokenize(CompilerContext& ctx, LexerFlags flags)
 
 #if SWC_HAS_STATS
     if (!rawMode_)
-        Stats::get().numTokens.fetch_add(tokens_.size());
+        Stats::get().numTokens.fetch_add(file_->lexOut_.tokens_.size());
 #endif
     
     return Result::Success;

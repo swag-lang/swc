@@ -12,8 +12,7 @@
 
 void test()
 {
-    auto parseFolder = [](const fs::path& directory)
-    {
+    auto parseFolder = [](const fs::path& directory) {
         for (const auto& entry : fs::recursive_directory_iterator(directory))
         {
             if (entry.is_regular_file())
@@ -26,7 +25,7 @@ void test()
             }
         }
     };
-    
+
     parseFolder("c:/perso/swag-lang/swag/bin");
     parseFolder("c:/perso/swag-lang/swc/tests");
 
@@ -76,8 +75,8 @@ int process(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
-    Timer time(&Stats::get().timeTotal);
-    auto result = process(argc, argv);
+    Timer      time(&Stats::get().timeTotal);
+    const auto result = process(argc, argv);
 #if SWC_HAS_STATS
     Stats::get().print();
 #endif

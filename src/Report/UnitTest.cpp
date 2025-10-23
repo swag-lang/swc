@@ -16,12 +16,12 @@ Result UnitTest::tokenize(CompilerContext& ctx)
     const auto& langSpec = Global::get().langSpec();
 
     // Get all comments from the file
-    auto& lexer = file->lexer();
+    Lexer lexer;
     SWAG_CHECK(lexer.tokenizeRaw(ctx));
 
     // Parse all comments to find a verify directive
     constexpr std::string_view needle = "expected-";
-    for (const auto& token : lexer.tokens())
+    for (const auto& token : file->lexOut().tokens())
     {
         auto   comment = token.toString(file);
         size_t pos     = 0;

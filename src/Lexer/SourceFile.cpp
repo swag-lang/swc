@@ -53,22 +53,23 @@ Result SourceFile::loadContent(CompilerContext& ctx)
 Result SourceFile::tokenize(CompilerContext& ctx)
 {
     SWAG_CHECK(verifier_.tokenize(ctx));
-    return lexer_.tokenize(ctx);
+    Lexer lexer;
+    return lexer.tokenize(ctx);
 }
 
 Utf8 SourceFile::codeLine(uint32_t line) const
 {
     line--;
-    SWAG_ASSERT(line < lexer_.lines().size());
+    SWAG_ASSERT(line < lexOut_.lines().size());
 
-    const auto  offset      = lexer_.lines()[line];
+    const auto  offset      = lexOut_.lines()[line];
     const auto  startBuffer = reinterpret_cast<const char*>(content_.data() + offset);
     const char* end;
 
-    if (line == lexer_.lines().size() - 1)
+    if (line == lexOut_.lines().size() - 1)
         end = reinterpret_cast<const char*>(content_.data() + content_.size());
     else
-        end = reinterpret_cast<const char*>(content_.data() + lexer_.lines()[line + 1]);
+        end = reinterpret_cast<const char*>(content_.data() + lexOut_.lines()[line + 1]);
 
     auto buffer = startBuffer;
     bool hasTab = false;

@@ -12,7 +12,10 @@ class SourceFile
     fs::path             path_;
     std::vector<uint8_t> content_;
     UnitTest             verifier_;
-    Lexer                lexer_;
+
+protected:
+    friend class Lexer;
+    LexerOutput lexOut_;
 
 public:
     explicit SourceFile(fs::path path);
@@ -20,11 +23,9 @@ public:
     fs::path                    path() const { return path_; }
     const std::vector<uint8_t>& content() const { return content_; }
     size_t                      size() const { return content_.size() - TRAILING_0; }
-    Lexer&                      lexer() { return lexer_; }
+    const LexerOutput&          lexOut() const { return lexOut_; }
     UnitTest&                   verifier() { return verifier_; }
-    const Lexer&                lexer() const { return lexer_; }
     const UnitTest&             verifier() const { return verifier_; }
-    const std::vector<Token>&   tokens() const { return lexer_.tokens(); }
 
     Result           loadContent(CompilerContext& ctx);
     Result           tokenize(CompilerContext& ctx);

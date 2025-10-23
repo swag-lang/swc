@@ -18,14 +18,24 @@ enum class LexerFlagsEnum : uint32_t
 
 using LexerFlags = Flags<LexerFlagsEnum>;
 
+class LexerOutput
+{
+protected:
+    friend class Lexer;
+    std::vector<Token>    tokens_;
+    std::vector<uint32_t> lines_;
+
+public:
+    const std::vector<Token>&    tokens() const { return tokens_; }
+    const std::vector<uint32_t>& lines() const { return lines_; }
+};
+
 class Lexer
 {
     Token token_     = {};
     Token prevToken_ = {};
 
-    std::vector<Token>    tokens_;
-    std::vector<uint32_t> lines_;
-
+    SourceFile*      file_          = nullptr;
     LexerFlags       lexerFlags_    = LexerFlagsEnum::Default;
     const uint8_t*   buffer_        = nullptr;
     const uint8_t*   startBuffer_   = nullptr;
@@ -61,9 +71,6 @@ class Lexer
     void lexMultiLineComment();
 
 public:
-    const std::vector<Token>&    tokens() const { return tokens_; }
-    const std::vector<uint32_t>& lines() const { return lines_; }
-
     Result tokenize(CompilerContext& ctx, LexerFlags flags = LexerFlagsEnum::Default);
     Result tokenizeRaw(CompilerContext& ctx);
 };

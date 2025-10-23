@@ -48,7 +48,7 @@ void SourceCodeLocation::fromOffset(const SourceFile* inFile, uint32_t inOffset,
     offset = inOffset;
     len    = inLen;
 
-    const auto& lines = inFile->lexer().lines();
+    const auto& lines = inFile->lexOut().lines();
     if (lines.empty())
         return;
 

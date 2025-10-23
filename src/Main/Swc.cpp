@@ -63,15 +63,13 @@ namespace
     int process(int argc, char* argv[])
     {
         Timer time(&Stats::get().timeTotal);
-        auto& glb = Global::get();
-        glb.initialize();
 
         CommandLineParser parser;
         parser.setupCommandLine();
         if (!parser.parse(argc, argv, "build"))
             return -1;
 
-        glb.jobMgr().setNumThreads(glb.cmdLine().numCores);
+        Global::get().jobMgr().setNumThreads(Global::get().cmdLine().numCores);
 
         test();
         return 0;

@@ -96,7 +96,6 @@ enum class SubTokenOperatorId : uint16_t
     GreaterGreaterEqual
 };
 
-#pragma pack(push, 1)
 struct Token
 {
     uint32_t start = 0;
@@ -115,4 +114,3 @@ struct Token
 
     std::string_view toString(const SourceFile* file) const;
 };
-#pragma pack(pop)

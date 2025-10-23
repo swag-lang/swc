@@ -109,7 +109,8 @@
     <ClCompile Include="src\Main\CompilerContext.cpp" />
     <ClCompile Include="src\Main\FileManager.cpp" />
     <ClCompile Include="src\Main\Global.cpp" />
-    <ClCompile Include="src\Main\swc.cpp" />
+    <ClCompile Include="src\Main\main.cpp" />
+    <ClCompile Include="src\Main\Swc.cpp" />
     <ClCompile Include="src\Memory\Allocator.cpp" />
     <ClCompile Include="src\Memory\mimalloc\src\static.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
@@ -148,6 +149,7 @@
     <ClInclude Include="src\Main\CompilerContext.h" />
     <ClInclude Include="src\Main\FileManager.h" />
     <ClInclude Include="src\Main\Global.h" />
+    <ClInclude Include="src\Main\Swc.h" />
     <ClInclude Include="src\Os\Os.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\Report\Check.h" />

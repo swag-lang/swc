@@ -8,6 +8,7 @@
 #include "Main/CompilerContext.h"
 #include "Main/Global.h"
 #include "Report/Stats.h"
+#include "Swc.h"
 #include "Thread/JobManager.h"
 
 void test()
@@ -57,7 +58,7 @@ void test()
     Global::get().jobMgr().waitAll();
 }
 
-int process(int argc, char* argv[])
+int Swc::process(int argc, char* argv[])
 {
     auto& ci = Global::get();
     ci.initialize();
@@ -73,7 +74,7 @@ int process(int argc, char* argv[])
     return 0;
 }
 
-int main(int argc, char* argv[])
+int Swc::go(int argc, char* argv[])
 {
     Timer      time(&Stats::get().timeTotal);
     const auto result = process(argc, argv);

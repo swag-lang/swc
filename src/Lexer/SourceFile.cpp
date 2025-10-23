@@ -32,8 +32,9 @@ Result SourceFile::loadContent(CompilerContext& ctx)
 
     const auto fileSize = file.tellg();
     file.seekg(0, std::ios::beg);
+    content_.reserve(static_cast<size_t>(fileSize) + TRAILING_0);
     content_.resize(fileSize);
-
+    
     if (!file.read(reinterpret_cast<char*>(content_.data()), fileSize))
     {
         const auto diag = Diagnostic::error(DiagnosticId::CannotReadFile, this);

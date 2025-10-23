@@ -1169,8 +1169,9 @@ Result Lexer::tokenize(CompilerContext& ctx, LexerFlags flags)
     endBuffer_      = startBuffer_ + file->size();
 
     // Reserve space based on file size
-    tokens_.reserve(file->content().size() / 8);
-    lines_.reserve(file->content().size() / 80);
+    tokens_.reserve(file->content().size() / 10);
+    if (!rawMode_)
+        lines_.reserve(file->content().size() / 60);
     lines_.push_back(0);
 
     while (buffer_ < endBuffer_)

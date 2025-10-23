@@ -31,6 +31,8 @@ public:
     // Stop accepting, drain ready/running work, and stop all threads.
     void shutdown() noexcept;
 
+    uint32_t numWorkers() const noexcept { return static_cast<uint32_t>(workers_.size()); }
+
 protected:
     friend class Job;
     void notifyDependents(JobRecord* finished); // wake all waiting on 'finished'

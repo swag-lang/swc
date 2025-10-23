@@ -124,6 +124,38 @@ Utf8 Utf8Helpers::toNiceBigNumber(std::size_t number)
 
 Utf8 Utf8Helpers::toNiceTime(double seconds)
 {
-    auto str = std::format("{:.3f}s", seconds);
-    return str;
+    static constexpr double MICROSECOND = 0.000001;
+    static constexpr double MILLISECOND = 0.001;
+    static constexpr double MINUTE = 60.0;
+    static constexpr double HOUR = MINUTE * 60.0;
+    static constexpr double DAY = HOUR * 24.0;
+
+    // Handle special cases
+    if (seconds == 0.0)
+        return "0s";
+
+    const double absSeconds = std::abs(seconds);
+    
+    // Very small times - microseconds
+    if (absSeconds < MILLISECOND)
+        return std::format("{:.1f}µs", seconds / MICROSECOND);
+    
+    // Small times - milliseconds
+    if (absSeconds < 1.0)
+        return std::format("{:.1f}ms", seconds / MILLISECOND);
+    
+    // Seconds
+    if (absSeconds < MINUTE)
+        return std::format("{:.2f}s", seconds);
+    
+    // Minutes
+    if (absSeconds < HOUR)
+        return std::format("{:.1f}min", seconds / MINUTE);
+    
+    // Hours
+    if (absSeconds < DAY)
+        return std::format("{:.1f}h", seconds / HOUR);
+    
+    // Days
+    return std::format("{:.1f}d", seconds / DAY);
 }

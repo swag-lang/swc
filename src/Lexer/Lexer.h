@@ -42,23 +42,23 @@ class Lexer
     void pushToken();
     void reportUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len = 1);
     void reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len = 1);
-    void parseEscape(TokenId containerToken, bool eatEol);
     void checkFormat(const CompilerContext& ctx, uint32_t& startOffset);
+    void lexEscape(TokenId containerToken, bool eatEol);
 
-    void parseEol();
-    void parseBlank();
-    void parseSingleLineStringLiteral();
-    void parseMultiLineStringLiteral();
-    void parseRawStringLiteral();
-    void parseCharacterLiteral();
-    void parseHexNumber();
-    void parseBinNumber();
-    void parseDecimalNumber();
-    void parseNumber();
-    void parseOperator();
-    void parseIdentifier();
-    void parseSingleLineComment();
-    void parseMultiLineComment();
+    void lexEol();
+    void lexBlank();
+    void lexSingleLineStringLiteral();
+    void lexMultiLineStringLiteral();
+    void lexRawStringLiteral();
+    void lexCharacterLiteral();
+    void lexHexNumber();
+    void lexBinNumber();
+    void lexDecimalNumber();
+    void lexNumber();
+    void lexOperator();
+    void lexIdentifier();
+    void lexSingleLineComment();
+    void lexMultiLineComment();
 
 public:
     const std::vector<Token>&    tokens() const { return tokens_; }

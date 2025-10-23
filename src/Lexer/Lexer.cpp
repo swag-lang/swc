@@ -115,7 +115,7 @@ void Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len)
 }
 
 // Validate hex/Unicode escape sequences (\xXX, \uXXXX, \UXXXXXXXX)
-void Lexer::parseEscape(TokenId containerToken, bool eatEol)
+void Lexer::lexEscape(TokenId containerToken, bool eatEol)
 {
     // Eat the EOL right after the escape character
     if (eatEol)
@@ -189,7 +189,7 @@ void Lexer::parseEscape(TokenId containerToken, bool eatEol)
     buffer_ += 2 + expectedDigits;
 }
 
-void Lexer::parseEol()
+void Lexer::lexEol()
 {
     token_.id = TokenId::Eol;
 
@@ -203,7 +203,7 @@ void Lexer::parseEol()
     pushToken();
 }
 
-void Lexer::parseBlank()
+void Lexer::lexBlank()
 {
     token_.id = TokenId::Blank;
 
@@ -214,7 +214,7 @@ void Lexer::parseBlank()
     pushToken();
 }
 
-void Lexer::parseSingleLineStringLiteral()
+void Lexer::lexSingleLineStringLiteral()
 {
     token_.id               = TokenId::StringLiteral;
     token_.subTokenStringId = SubTokenStringId::Line;
@@ -235,7 +235,7 @@ void Lexer::parseSingleLineStringLiteral()
         // Escaped char
         if (buffer_[0] == '\\')
         {
-            parseEscape(TokenId::StringLiteral, false);
+            lexEscape(TokenId::StringLiteral, false);
             continue;
         }
 
@@ -257,7 +257,7 @@ void Lexer::parseSingleLineStringLiteral()
     pushToken();
 }
 
-void Lexer::parseMultiLineStringLiteral()
+void Lexer::lexMultiLineStringLiteral()
 {
     token_.id               = TokenId::StringLiteral;
     token_.subTokenStringId = SubTokenStringId::MultiLine;
@@ -284,7 +284,7 @@ void Lexer::parseMultiLineStringLiteral()
         // Escaped char
         if (buffer_[0] == '\\')
         {
-            parseEscape(TokenId::StringLiteral, true);
+            lexEscape(TokenId::StringLiteral, true);
             continue;
         }
 
@@ -305,7 +305,7 @@ void Lexer::parseMultiLineStringLiteral()
     pushToken();
 }
 
-void Lexer::parseRawStringLiteral()
+void Lexer::lexRawStringLiteral()
 {
     token_.id               = TokenId::StringLiteral;
     token_.subTokenStringId = SubTokenStringId::Raw;
@@ -347,7 +347,7 @@ void Lexer::parseRawStringLiteral()
     pushToken();
 }
 
-void Lexer::parseCharacterLiteral()
+void Lexer::lexCharacterLiteral()
 {
     token_.id = TokenId::CharacterLiteral;
     buffer_++;
@@ -383,7 +383,7 @@ void Lexer::parseCharacterLiteral()
 
         // Handle escape sequence
         if (buffer_[0] == '\\')
-            parseEscape(TokenId::CharacterLiteral, false);
+            lexEscape(TokenId::CharacterLiteral, false);
         else
             eatUtf8Char();
 
@@ -405,7 +405,7 @@ void Lexer::parseCharacterLiteral()
     pushToken();
 }
 
-void Lexer::parseHexNumber()
+void Lexer::lexHexNumber()
 {
     token_.subTokenNumberId = SubTokenNumberId::Hexadecimal;
 
@@ -454,7 +454,7 @@ void Lexer::parseHexNumber()
     pushToken();
 }
 
-void Lexer::parseBinNumber()
+void Lexer::lexBinNumber()
 {
     token_.subTokenNumberId = SubTokenNumberId::Binary;
 
@@ -503,7 +503,7 @@ void Lexer::parseBinNumber()
     pushToken();
 }
 
-void Lexer::parseDecimalNumber()
+void Lexer::lexDecimalNumber()
 {
     token_.subTokenNumberId = SubTokenNumberId::Integer;
 
@@ -627,28 +627,28 @@ void Lexer::parseDecimalNumber()
     pushToken();
 }
 
-void Lexer::parseNumber()
+void Lexer::lexNumber()
 {
     token_.id = TokenId::NumberLiteral;
 
     // Hexadecimal: 0x or 0X - safe to read buffer_[1] due to padding after endBuffer_
     if (buffer_[0] == '0' && (buffer_[1] == 'x' || buffer_[1] == 'X'))
-        parseHexNumber();
+        lexHexNumber();
 
     // Binary: 0b or 0B - safe to read buffer_[1] due to padding after endBuffer_
     else if (buffer_[0] == '0' && (buffer_[1] == 'b' || buffer_[1] == 'B'))
-        parseBinNumber();
+        lexBinNumber();
 
     // Decimal (including floats)
     else
-        parseDecimalNumber();
+        lexDecimalNumber();
 
     // Letters immediately following the literal
     if (langSpec_->isLetter(buffer_[0]))
         reportTokenError(DiagnosticId::InvalidNumberSuffix, static_cast<uint32_t>(buffer_ - startBuffer_));
 }
 
-void Lexer::parseIdentifier()
+void Lexer::lexIdentifier()
 {
     token_.id = TokenId::Identifier;
 
@@ -671,7 +671,7 @@ void Lexer::parseIdentifier()
     pushToken();
 }
 
-void Lexer::parseOperator()
+void Lexer::lexOperator()
 {
     token_.id = TokenId::Operator;
 
@@ -1000,7 +1000,7 @@ void Lexer::parseOperator()
     pushToken();
 }
 
-void Lexer::parseSingleLineComment()
+void Lexer::lexSingleLineComment()
 {
     token_.id                = TokenId::Comment;
     token_.subTokenCommentId = SubTokenCommentId::Line;
@@ -1016,7 +1016,7 @@ void Lexer::parseSingleLineComment()
     pushToken();
 }
 
-void Lexer::parseMultiLineComment()
+void Lexer::lexMultiLineComment()
 {
     token_.id                = TokenId::Comment;
     token_.subTokenCommentId = SubTokenCommentId::MultiLine;
@@ -1193,63 +1193,63 @@ Result Lexer::tokenize(CompilerContext& ctx, LexerFlags flags)
         // End of line (LF, CRLF, or CR)
         if (buffer_[0] == '\n' || buffer_[0] == '\r')
         {
-            parseEol();
+            lexEol();
             continue;
         }
 
         // Blanks
         if (langSpec_->isBlank(buffer_[0]))
         {
-            parseBlank();
+            lexBlank();
             continue;
         }
 
         // Number literal
         if (langSpec_->isDigit(buffer_[0]))
         {
-            parseNumber();
+            lexNumber();
             continue;
         }
 
         // String literal (raw) - safe to read buffer_[1] due to padding after endBuffer_
         if (buffer_[0] == '#' && buffer_[1] == '"')
         {
-            parseRawStringLiteral();
+            lexRawStringLiteral();
             continue;
         }
 
         // String literal (multi-line) - safe to read buffer_[1] and buffer_[2] due to padding after endBuffer_
         if (buffer_[0] == '"' && buffer_[1] == '"' && buffer_[2] == '"')
         {
-            parseMultiLineStringLiteral();
+            lexMultiLineStringLiteral();
             continue;
         }
 
         // String literal (single-line)
         if (buffer_[0] == '"')
         {
-            parseSingleLineStringLiteral();
+            lexSingleLineStringLiteral();
             continue;
         }
 
         // Line comment - safe to read buffer_[1] due to padding after endBuffer_
         if (buffer_[0] == '/' && buffer_[1] == '/')
         {
-            parseSingleLineComment();
+            lexSingleLineComment();
             continue;
         }
 
         // Multi-line comment - safe to read buffer_[1] due to padding after endBuffer_
         if (buffer_[0] == '/' && buffer_[1] == '*')
         {
-            parseMultiLineComment();
+            lexMultiLineComment();
             continue;
         }
 
         // Identifier or keyword
         if (langSpec_->isIdentifierStart(buffer_[0]))
         {
-            parseIdentifier();
+            lexIdentifier();
             continue;
         }
 
@@ -1262,13 +1262,13 @@ Result Lexer::tokenize(CompilerContext& ctx, LexerFlags flags)
                 prevToken_.id != TokenId::NumberLiteral &&
                 prevToken_.id != TokenId::StringLiteral)
             {
-                parseCharacterLiteral();
+                lexCharacterLiteral();
                 continue;
             }
         }
 
         // Operators and punctuation
-        parseOperator();
+        lexOperator();
     }
 
 #if SWC_HAS_STATS

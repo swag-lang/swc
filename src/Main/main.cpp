@@ -7,12 +7,12 @@
 
 int main(int argc, char* argv[])
 {
+    swc::Global            global;
     swc::CommandLine       cmdLine;
-    swc::CommandLineParser parser(cmdLine);
+    swc::CommandLineParser parser(cmdLine, global);
     if (!parser.parse(argc, argv))
         return -1;
 
-    swc::Global global;
     global.initialize(cmdLine);
 
     swc::Compiler compiler(cmdLine, global);

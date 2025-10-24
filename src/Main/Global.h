@@ -15,7 +15,8 @@ class Global
     FileManager*   fileManager_ = nullptr;
 
 public:
-    void initialize(const CommandLine& cmdLine);
+    Global();
+    void initialize(const CommandLine& cmdLine) const;
 
     Logger&              logger() const { return *logger_; }
     LangSpec&            langSpec() const { return *langSpec_; }

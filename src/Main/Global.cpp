@@ -5,24 +5,26 @@
 #include "Lexer/LangSpec.h"
 #include "Main/Global.h"
 #include "Os/Os.h"
-#include "Report/DiagnosticIds.h"
 #include "Report/Logger.h"
 #include "Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
-void Global::initialize(const CommandLine& cmdLine)
+Global::Global()
 {
-    static Logger        logger;
-    static LangSpec      langSpec;
-    static JobManager    jobManager;
-    static FileManager   fileManager;
+    static Logger      logger;
+    static LangSpec    langSpec;
+    static JobManager  jobManager;
+    static FileManager fileManager;
 
     logger_      = &logger;
     langSpec_    = &langSpec;
     jobManager_  = &jobManager;
     fileManager_ = &fileManager;
+}
 
+void Global::initialize(const CommandLine& cmdLine) const
+{
     Os::initialize();
     jobManager_->setNumThreads(cmdLine.numCores);
 }

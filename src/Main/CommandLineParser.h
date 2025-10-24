@@ -3,6 +3,7 @@ SWC_BEGIN_NAMESPACE()
 
 class CompilerContext;
 struct CommandLine;
+class Global;
 
 // Enum for command line argument types
 enum class CommandLineType
@@ -40,6 +41,7 @@ class CommandLineParser
     std::map<Utf8, ArgInfo> longFormMap_;
     std::map<Utf8, ArgInfo> shortFormMap_;
     CommandLine&            cmdLine_;
+    Global&                 global_;
 
     static bool    getNextValue(CompilerContext& ctx, const Utf8& arg, int& index, int argc, char* argv[], Utf8& value);
     static bool    commandMatches(const Utf8& cmdToCheck, const Utf8& commandList);
@@ -56,7 +58,7 @@ class CommandLineParser
     bool           checkCommandLine() const;
 
 public:
-    explicit CommandLineParser(CommandLine& cmdLine);
+    explicit CommandLineParser(CommandLine& cmdLine, Global& global);
     bool parse(int argc, char* argv[]);
 };
 

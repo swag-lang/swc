@@ -1,5 +1,6 @@
 #include "pch.h"
 
+#include "Global.h"
 #include "Main/CommandLineParser.h"
 #include "Main/CompilerContext.h"
 #include "Report/Diagnostic.h"
@@ -224,7 +225,7 @@ bool CommandLineParser::processArgument(CompilerContext& ctx, const ArgInfo* inf
 
 bool CommandLineParser::parse(int argc, char* argv[])
 {
-    CompilerContext ctx(&cmdLine_, nullptr);
+    CompilerContext ctx(&cmdLine_, &global_);
     const Utf8      command = "build";
 
     for (int i = 1; i < argc; i++)
@@ -262,8 +263,9 @@ bool CommandLineParser::checkCommandLine() const
     return true;
 }
 
-CommandLineParser::CommandLineParser(CommandLine& cmdLine) :
-    cmdLine_(cmdLine)
+CommandLineParser::CommandLineParser(CommandLine& cmdLine, Global& global) :
+    cmdLine_(cmdLine),
+    global_(global)
 {
     addArg("all", "--silent", nullptr, CommandLineType::Bool, &cmdLine_.silent, nullptr, "no log output");
     addArg("all", "--num-cores", nullptr, CommandLineType::Int, &cmdLine_.numCores, nullptr, "maximum number of cpu to use (0 = automatic)");

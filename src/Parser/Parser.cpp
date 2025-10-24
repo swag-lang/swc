@@ -27,10 +27,12 @@ Result Parser::parse(EvalContext& ctx)
     SWC_CHECK(file_->loadContent(ctx));
     SWC_CHECK(file_->tokenize(ctx));
 
+    // Root node
     ast_->root_ = ast_->makeNode(AstNodeId::File, file_->ref());
     if (file_->lexOut_.tokens_.empty())
         return Result::Success;
 
+    // Top level
     curToken_  = &file_->lexOut_.tokens_.front();
     lastToken_ = &file_->lexOut_.tokens_.back();
     while (curToken_ < lastToken_)

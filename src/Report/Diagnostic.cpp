@@ -1,10 +1,14 @@
+#include <algorithm>
+
 #include "pch.h"
-#include "Report/Diagnostic.h"
+
 #include "Core/Utf8Helpers.h"
 #include "Lexer/SourceFile.h"
+#include "LogSymbol.h"
 #include "Main/CommandLine.h"
 #include "Main/EvalContext.h"
 #include "Main/Global.h"
+#include "Report/Diagnostic.h"
 #include "Report/DiagnosticElement.h"
 #include "Report/LogColor.h"
 #include "Report/Logger.h"
@@ -42,7 +46,7 @@ Utf8 Diagnostic::toAnsiSeq(const EvalContext& ctx, const AnsiSeq& s)
 {
     Utf8 out;
     for (const auto c : s.seq)
-        out += Color::toAnsi(ctx, c);
+        out += ColorHelpers::toAnsi(ctx, c);
     return out;
 }
 
@@ -73,13 +77,13 @@ Utf8 Diagnostic::severityColor(const EvalContext& ctx, DiagnosticSeverity s)
     switch (s)
     {
         case DiagnosticSeverity::Error:
-            return Color::toAnsi(ctx, LogColor::BrightRed);
+            return ColorHelpers::toAnsi(ctx, LogColor::BrightRed);
         case DiagnosticSeverity::Warning:
-            return Color::toAnsi(ctx, LogColor::BrightYellow);
+            return ColorHelpers::toAnsi(ctx, LogColor::BrightYellow);
         case DiagnosticSeverity::Note:
-            return Color::toAnsi(ctx, LogColor::BrightCyan);
+            return ColorHelpers::toAnsi(ctx, LogColor::BrightCyan);
         case DiagnosticSeverity::Hint:
-            return Color::toAnsi(ctx, LogColor::BrightGreen);
+            return ColorHelpers::toAnsi(ctx, LogColor::BrightGreen);
     }
     return {};
 }
@@ -139,7 +143,8 @@ void Diagnostic::writeGutterSep(Utf8& out, const EvalContext& ctx, uint32_t gutt
 {
     out.append(gutterW, ' ');
     out += partStyle(ctx, DiagPart::GutterBar);
-    out += " |";
+    out += " ";
+    out += LogSymbolHelper::toString(ctx, LogSymbol::VerticalLine);
     out += partStyle(ctx, DiagPart::Reset);
     out += "\n";
 }
@@ -152,7 +157,9 @@ void Diagnostic::writeCodeLine(Utf8& out, const EvalContext& ctx, uint32_t gutte
     out += partStyle(ctx, DiagPart::Reset);
 
     out += partStyle(ctx, DiagPart::GutterBar);
-    out += " | ";
+    out += " ";
+    out += LogSymbolHelper::toString(ctx, LogSymbol::VerticalLine);
+    out += " ";
     out += partStyle(ctx, DiagPart::Reset);
 
     out += partStyle(ctx, DiagPart::CodeText);
@@ -165,7 +172,9 @@ void Diagnostic::writeFullUnderline(Utf8& out, const EvalContext& ctx, Diagnosti
 {
     out.append(gutterW, ' ');
     out += partStyle(ctx, DiagPart::GutterBar);
-    out += " | ";
+    out += " ";
+    out += LogSymbolHelper::toString(ctx, LogSymbol::VerticalLine);
+    out += " ";
     out += partStyle(ctx, DiagPart::Reset);
 
     // Carets use severity color + caret style
@@ -226,10 +235,10 @@ Utf8 Diagnostic::build(const EvalContext& ctx) const
         if (e->hasCodeLocation())
         {
             const auto locLine = e->location(ctx).line;
-            if (locLine > maxLine)
-                maxLine = locLine;
+            maxLine            = std::max(locLine, maxLine);
         }
     }
+
     const uint32_t gutterW = maxLine ? digits(maxLine) : 0;
 
     // Primary element: the first one

@@ -27,7 +27,7 @@ enum class LogColor
     BrightBlack,
 };
 
-namespace Color
+namespace ColorHelpers
 {
     Utf8 colorToVts(int r, int g, int b);
     Utf8 toAnsi(const EvalContext& ctx, LogColor c);

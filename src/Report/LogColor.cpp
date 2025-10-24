@@ -6,12 +6,12 @@
 
 SWC_BEGIN_NAMESPACE();
 
-Utf8 Color::colorToVts(int r, int g, int b)
+Utf8 ColorHelpers::colorToVts(int r, int g, int b)
 {
     return std::format("\x1b[38;2;{};{};{}m", r, g, b);
 }
 
-Utf8 Color::toAnsi(const EvalContext& ctx, LogColor c)
+Utf8 ColorHelpers::toAnsi(const EvalContext& ctx, LogColor c)
 {
     if (!ctx.cmdLine().logColor)
         return "";

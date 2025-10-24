@@ -32,9 +32,9 @@ void Logger::printHeaderDot(const EvalContext& ctx,
     if (ctx.cmdLine().silent)
         return;
 
-    print(ctx, Color::toAnsi(ctx, headerColor));
+    print(ctx, ColorHelpers::toAnsi(ctx, headerColor));
     print(ctx, header);
-    print(ctx, Color::toAnsi(ctx, msgColor));
+    print(ctx, ColorHelpers::toAnsi(ctx, msgColor));
     for (size_t i = header.size(); i < messageColumn - 1; ++i)
         print(ctx, dot);
     print(ctx, " ");

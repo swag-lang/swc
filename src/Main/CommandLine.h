@@ -4,6 +4,7 @@ SWC_BEGIN_NAMESPACE();
 struct CommandLine
 {
     bool     logColor      = true;
+    bool     logAscii      = false;
     bool     errorAbsolute = false;
     bool     silent        = false;
     bool     stats         = false;

@@ -15,8 +15,9 @@ protected:
 
 class Parser
 {
-    SourceFile* file_ = nullptr;
-    Ast*        ast_  = nullptr;
+    SourceFile* file_     = nullptr;
+    Ast*        ast_      = nullptr;
+    TokenRef    curToken_ = INVALID_TOKEN_REF;
 
 public:
     Result parse(EvalContext& ctx);

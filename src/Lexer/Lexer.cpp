@@ -1,7 +1,9 @@
 #include "pch.h"
-#include "Lexer/Lexer.h"
+
+#include "Core/Timer.h"
 #include "Core/Utf8Helpers.h"
 #include "Lexer/LangSpec.h"
+#include "Lexer/Lexer.h"
 #include "Lexer/SourceFile.h"
 #include "Main/EvalContext.h"
 #include "Main/Global.h"
@@ -1151,6 +1153,10 @@ Result Lexer::tokenizeRaw(EvalContext& ctx)
 
 Result Lexer::tokenize(EvalContext& ctx, LexerFlags flags)
 {
+#if SWC_HAS_STATS
+    Timer time(&Stats::get().timeLexer);
+#endif
+
     file_ = ctx.sourceFile();
 
     file_->lexOut_.tokens_.clear();

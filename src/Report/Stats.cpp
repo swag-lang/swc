@@ -21,6 +21,8 @@ void Stats::print(const EvalContext& ctx) const
     Logger::printHeaderDot(ctx, colorHeader, "timeTotal", colorMsg, Utf8Helpers::toNiceTime(Os::timerToSeconds(timeTotal.load())));
 
 #if SWC_HAS_STATS
+    Logger::printHeaderDot(ctx, colorHeader, "timeLexer", colorMsg, Utf8Helpers::toNiceTime(Os::timerToSeconds(timeLexer.load())));
+    Logger::printHeaderDot(ctx, colorHeader, "timeParser", colorMsg, Utf8Helpers::toNiceTime(Os::timerToSeconds(timeParser.load())));
     Logger::printHeaderDot(ctx, colorHeader, "memMaxAllocated", colorMsg, Utf8Helpers::toNiceSize(memMaxAllocated.load()));
     Logger::printHeaderDot(ctx, colorHeader, "numFiles", colorMsg, Utf8Helpers::toNiceBigNumber(numFiles.load()));
     Logger::printHeaderDot(ctx, colorHeader, "numTokens", colorMsg, Utf8Helpers::toNiceBigNumber(numTokens.load()));

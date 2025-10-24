@@ -24,6 +24,7 @@ class LexerOutput
 {
 protected:
     friend class Lexer;
+    friend class Parser;
     std::vector<Token>    tokens_;
     std::vector<uint32_t> lines_;
 

@@ -8,10 +8,12 @@ struct Stats
     std::atomic<uint64_t> timeTotal = 0;
 
 #if SWC_HAS_STATS
-    std::atomic<size_t> memAllocated    = 0;
-    std::atomic<size_t> memMaxAllocated = 0;
-    std::atomic<size_t> numFiles        = 0;
-    std::atomic<size_t> numTokens       = 0;
+    std::atomic<uint64_t> timeLexer       = 0;
+    std::atomic<uint64_t> timeParser      = 0;
+    std::atomic<size_t>   memAllocated    = 0;
+    std::atomic<size_t>   memMaxAllocated = 0;
+    std::atomic<size_t>   numFiles        = 0;
+    std::atomic<size_t>   numTokens       = 0;
 #endif // SWC_HAS_STATS
 
     static Stats& get()

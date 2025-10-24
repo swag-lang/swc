@@ -128,6 +128,7 @@ Result UnitTest::verify(EvalContext& ctx) const
             const auto elem = diag.addError(DiagnosticId::UnRaisedDirective);
             elem->setLocation(directive.myLoc);
             diag.report(ctx);
+            ctx.sourceFile()->setHasError();
         }
     }
 

@@ -26,6 +26,7 @@ Result SourceFile::loadContent(EvalContext& ctx)
 
     if (!file)
     {
+        setHasError();
         const auto diag = Diagnostic::error(DiagnosticId::CannotOpenFile, this);
         diag.last()->setLocation(this);
         diag.last()->addArgument(path_.string());
@@ -40,6 +41,7 @@ Result SourceFile::loadContent(EvalContext& ctx)
 
     if (!file.read(reinterpret_cast<char*>(content_.data()), fileSize))
     {
+        setHasError();
         const auto diag = Diagnostic::error(DiagnosticId::CannotReadFile, this);
         diag.last()->setLocation(this);
         diag.last()->addArgument(path_.string());

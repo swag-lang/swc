@@ -11,20 +11,17 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
+// Helper: does the next char after the 'x'/'u'/'U' count as a hard terminator
+// for an escape in the given container token?
+bool Lexer::isTerminatorAfterEscapeChar(uint8_t c, TokenId container)
 {
-    // Helper: does the next char after the 'x'/'u'/'U' count as a hard terminator
-    // for an escape in the given container token?
-    bool isTerminatorAfterEscapeChar(uint8_t c, TokenId container)
-    {
-        // We only distinguish broadly between char and string by TokenId.
-        // For strings (single-line or multi-line), treat quote/EOL similarly.
-        if (container == TokenId::CharacterLiteral)
-            return c == '\'' || c == '\n' || c == '\r';
+    // We only distinguish broadly between char and string by TokenId.
+    // For strings (single-line or multi-line), treat quote/EOL similarly.
+    if (container == TokenId::CharacterLiteral)
+        return c == '\'' || c == '\n' || c == '\r';
 
-        // Strings
-        return c == '"' || c == '\n' || c == '\r';
-    }
+    // Strings
+    return c == '"' || c == '\n' || c == '\r';
 }
 
 void Lexer::eatUtf8Char()
@@ -91,6 +88,7 @@ void Lexer::reportUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len)
     const auto diag = Diagnostic::error(id, ctx_->sourceFile());
     diag.last()->setLocation(ctx_->sourceFile(), offset, len);
     diag.report(*ctx_);
+    file_->setHasError();
 }
 
 void Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len)
@@ -113,6 +111,7 @@ void Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len)
     }
 
     diag.report(*ctx_);
+    file_->setHasError();
 }
 
 // Validate hex/Unicode escape sequences (\xXX, \uXXXX, \UXXXXXXXX)

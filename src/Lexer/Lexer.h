@@ -49,13 +49,14 @@ class Lexer
     bool            hasUtf8Error_  = false;
     bool            rawMode_       = false;
 
-    void eatOneEol();
-    void eatUtf8Char();
-    void pushToken();
-    void reportUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len = 1);
-    void reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len = 1);
-    void checkFormat(const EvalContext& ctx, uint32_t& startOffset);
-    void lexEscape(TokenId containerToken, bool eatEol);
+    static bool isTerminatorAfterEscapeChar(uint8_t c, TokenId container);
+    void        eatOneEol();
+    void        eatUtf8Char();
+    void        pushToken();
+    void        reportUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len = 1);
+    void        reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len = 1);
+    void        checkFormat(const EvalContext& ctx, uint32_t& startOffset);
+    void        lexEscape(TokenId containerToken, bool eatEol);
 
     void lexEol();
     void lexBlank();

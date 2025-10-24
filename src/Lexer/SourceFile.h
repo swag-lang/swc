@@ -9,11 +9,14 @@ class Global;
 
 class SourceFile
 {
-    static constexpr int TRAILING_0 = 4; // Number of '\0' forced at the end of the file
+    // Number of '\0' forced at the end of the file
+    static constexpr int TRAILING_0 = 4;
 
     fs::path             path_;
     std::vector<uint8_t> content_;
     UnitTest             verifier_;
+
+    mutable bool hasError_ = false;
 
 protected:
     friend class Lexer;
@@ -28,6 +31,8 @@ public:
     const LexerOutput&          lexOut() const { return lexOut_; }
     UnitTest&                   verifier() { return verifier_; }
     const UnitTest&             verifier() const { return verifier_; }
+    bool                        hasError() const { return hasError_; }
+    void                        setHasError() const { hasError_ = true; }
 
     Result           loadContent(EvalContext& ctx);
     Result           tokenize(EvalContext& ctx);

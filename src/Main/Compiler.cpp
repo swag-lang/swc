@@ -11,6 +11,12 @@
 
 SWC_BEGIN_NAMESPACE()
 
+Compiler::Compiler(const CommandLine& cmdLine, const Global& global) :
+    context_(cmdLine, global)
+{
+    context_.jobClientId_ = global.jobMgr().newClientId();
+}
+
 void Compiler::test() const
 {
     auto parseFolder = [&](const fs::path& directory) {
@@ -57,18 +63,16 @@ void Compiler::test() const
     {
         auto k = std::make_shared<T>(context_);
         k->f   = f;
-        context_.global().jobMgr().enqueue(k, JobPriority::Normal, context_.clientId_);
+        context_.global().jobMgr().enqueue(k, JobPriority::Normal, context_.jobClientId());
     }
 }
 
-int Compiler::run()
+int Compiler::run() const
 {
-    context_.clientId_ = context_.global().jobMgr().newClientId();
-
     {
         Timer time(&Stats::get().timeTotal);
         test();
-        context_.global().jobMgr().waitAll(context_.clientId_);
+        context_.global().jobMgr().waitAll(context_.jobClientId());
     }
 
     if (context_.cmdLine().stats)

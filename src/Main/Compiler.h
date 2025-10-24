@@ -13,12 +13,8 @@ class Compiler
     void test() const;
 
 public:
-    Compiler(const CommandLine& cmdLine, const Global& global) :
-        context_(cmdLine, global)
-    {
-    }
-
-    int run();
+    Compiler(const CommandLine& cmdLine, const Global& global);
+    int run() const;
 };
 
 SWC_END_NAMESPACE()

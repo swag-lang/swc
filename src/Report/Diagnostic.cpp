@@ -45,24 +45,6 @@ namespace
         return {};
     }
 
-    // Factorized header for the primary element
-    void writeHeader(Utf8& out, const EvalContext& ctx, DiagnosticSeverity sev, std::string_view idName, std::string_view msg)
-    {
-        out += severityColor(ctx, sev);
-        out += severityStr(sev);
-        if (!idName.empty())
-        {
-            out += "[";
-            out += idName;
-            out += "]";
-        }
-
-        out += Color::toAnsi(ctx, LogColor::Reset);
-        out += ": ";
-        out += msg;
-        out += "\n";
-    }
-
     // Short label line used for secondary elements (note/help/etc.)
     void writeSubLabel(Utf8& out, const EvalContext& ctx, DiagnosticSeverity sev, std::string_view idName, std::string_view msg)
     {
@@ -111,7 +93,7 @@ namespace
         out += "\n";
     }
 
-    void writeFullUnderline(Utf8& out, const EvalContext& ctx, DiagnosticSeverity sev, uint32_t gutterW, uint32_t columnOneBased, uint32_t underlineLen)
+    void writeFullUnderline(Utf8& out, const EvalContext& ctx, DiagnosticSeverity sev, const Utf8& msg, uint32_t gutterW, uint32_t columnOneBased, uint32_t underlineLen)
     {
         out.append(gutterW, ' ');
         out += " | ";
@@ -126,6 +108,11 @@ namespace
         const uint32_t len = underlineLen == 0 ? 1u : underlineLen;
         out.append(len, '^');
 
+        out += " ";
+        out += severityStr(sev);
+        out += ": ";
+        out += msg;
+        
         out += Color::toAnsi(ctx, LogColor::Reset);
         out += "\n";
     }
@@ -151,7 +138,7 @@ namespace
         // underline the entire span with carets
         const std::string_view tokenView     = el.location(ctx).file->codeView(el.location(ctx).offset, el.location(ctx).len);
         const uint32_t         tokenLenChars = Utf8Helpers::countChars(tokenView);
-        writeFullUnderline(out, ctx, el.severity(), gutterW, loc.column, tokenLenChars);
+        writeFullUnderline(out, ctx, el.severity(), el.message(), gutterW, loc.column, tokenLenChars);
     }
 }
 
@@ -166,9 +153,6 @@ Utf8 Diagnostic::build(const EvalContext& ctx) const
     const auto  pSev    = primary->severity();
     const auto  pId     = primary->idName();
     const auto  pMsg    = primary->message();
-
-    // Header for the whole diagnostic
-    writeHeader(out, ctx, pSev, pId, pMsg);
 
     // Render primary element body (location/code) if any
     const bool pHasLoc = primary->hasCodeLocation();

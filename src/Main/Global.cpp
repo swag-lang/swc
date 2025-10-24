@@ -13,13 +13,11 @@ SWC_BEGIN_NAMESPACE()
 
 void Global::initialize(const CommandLine& cmdLine)
 {
-    static DiagnosticIds diagIds;
     static Logger        logger;
     static LangSpec      langSpec;
     static JobManager    jobManager;
     static FileManager   fileManager;
 
-    diagIds_     = &diagIds;
     logger_      = &logger;
     langSpec_    = &langSpec;
     jobManager_  = &jobManager;

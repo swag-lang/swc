@@ -3,7 +3,6 @@
 #include "Core/Utf8Helpers.h"
 #include "DiagnosticIds.h"
 #include "Main/CompilerContext.h"
-#include "Main/Global.h"
 #include "Report/DiagnosticElement.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -37,15 +36,15 @@ SourceCodeLocation DiagnosticElement::location(const CompilerContext& ctx) const
     return loc;
 }
 
-std::string_view DiagnosticElement::idName(const CompilerContext& ctx) const
+std::string_view DiagnosticElement::idName() const
 {
-    return ctx.global()->diagIds().diagName(id_);
+    return DiagnosticIds::diagName(id_);
 }
 
 // Format a string by replacing %0, %1, etc. with registered arguments
-Utf8 DiagnosticElement::message(const CompilerContext& ctx) const
+Utf8 DiagnosticElement::message() const
 {
-    Utf8 result{ctx.global()->diagIds().diagMessage(id_)};
+    Utf8 result{DiagnosticIds::diagMessage(id_)};
 
     // Replace placeholders in reverse order to avoid issues with %10 versus %1
     for (int i = static_cast<int>(arguments_.size()) - 1; i >= 0; --i)

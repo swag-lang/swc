@@ -16,19 +16,23 @@ struct DiagnosticIdInfo
     std::string_view msg;
 };
 
-class DiagnosticIds
+constexpr DiagnosticIdInfo DIAGNOSTIC_INFOS[] = {
+#define SWAG_DIAG_DEF(id, msg) { DiagnosticId::id, #id, msg },
+#include "DiagnosticIds.inc"
+#undef SWAG_DIAG_DEF
+};
+
+namespace DiagnosticIds
 {
-public:
-    DiagnosticIds();
+    inline std::string_view diagMessage(DiagnosticId id)
+    {
+        return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].msg;
+    }
 
-    std::string_view diagMessage(DiagnosticId id) const;
-    std::string_view diagName(DiagnosticId id) const;
-
-private:
-    std::vector<DiagnosticIdInfo> infos_;
-
-    void addId(DiagnosticId id, std::string_view name, const std::string_view msg);
-    void initIds();
+    inline std::string_view diagName(DiagnosticId id)
+    {
+        return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].name;
+    }
 };
 
 SWC_END_NAMESPACE()

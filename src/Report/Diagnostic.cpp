@@ -27,7 +27,7 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
     for (auto& e : elements_)
     {
         const auto severity = e->severity();
-        const auto idName   = e->idName(ctx);
+        const auto idName   = e->idName();
 
         // Colorize severity level
         result += Color::toAnsi(ctx, LogColor::Bold);
@@ -109,7 +109,7 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
         }
 
         // Message text
-        const auto msg = e->message(ctx);
+        const auto msg = e->message();
         result += msg;
         result += "\n";
     }

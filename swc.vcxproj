@@ -122,7 +122,6 @@
     <ClCompile Include="src\Report\Check.cpp" />
     <ClCompile Include="src\Report\Color.cpp" />
     <ClCompile Include="src\Report\Diagnostic.cpp" />
-    <ClCompile Include="src\Report\DiagnosticIds.cpp" />
     <ClCompile Include="src\Report\DiagnosticElement.cpp" />
     <ClCompile Include="src\Report\Logger.cpp" />
     <ClCompile Include="src\Report\Stats.cpp" />

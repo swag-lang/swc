@@ -40,8 +40,8 @@ class CommandLineParser
     std::vector<ArgInfo>    args_;
     std::map<Utf8, ArgInfo> longFormMap_;
     std::map<Utf8, ArgInfo> shortFormMap_;
-    CommandLine&            cmdLine_;
-    Global&                 global_;
+    CommandLine*            cmdLine_ = nullptr;
+    Global*                 global_  = nullptr;
 
     static bool           getNextValue(EvalContext& ctx, const Utf8& arg, int& index, int argc, char* argv[], Utf8& value);
     static bool           commandMatches(const Utf8& cmdToCheck, const Utf8& commandList);

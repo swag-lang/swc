@@ -1,7 +1,7 @@
 #include "pch.h"
 
-#include "Main/CompilerContext.h"
 #include "Main/CommandLineParser.h"
+#include "Main/CompilerContext.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticIds.h"
 
@@ -30,12 +30,12 @@ bool CommandLineParser::getNextValue(CompilerContext& ctx, const Utf8& arg, int&
     return true;
 }
 
-bool CommandLineParser::commandMatches(const Utf8& cmdToCheck, const Utf8& allowedCmds)
+bool CommandLineParser::commandMatches(const Utf8& cmdToCheck, const Utf8& commandList)
 {
-    if (allowedCmds == "all")
+    if (commandList == "all")
         return true;
 
-    std::istringstream iss(allowedCmds);
+    std::istringstream iss(commandList);
     Utf8               cmd;
     while (iss >> cmd)
     {
@@ -93,7 +93,7 @@ bool CommandLineParser::parseEnumInt(CompilerContext& ctx, const Utf8& value, co
 
 bool CommandLineParser::reportEnumError(CompilerContext& ctx, const Utf8& value, const Utf8& enumValues)
 {
-    const auto      diag = Diagnostic::error(DiagnosticId::CmdLineInvalidEnumValue);
+    const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidEnumValue);
     diag.last()->addArgument(value);
     diag.last()->addArgument(enumValues);
     diag.report(ctx);
@@ -222,10 +222,11 @@ bool CommandLineParser::processArgument(CompilerContext& ctx, const ArgInfo* inf
     return false;
 }
 
-bool CommandLineParser::parse(int argc, char* argv[], const Utf8& command)
+bool CommandLineParser::parse(int argc, char* argv[])
 {
     CompilerContext ctx(&cmdLine_, nullptr);
-    
+    const Utf8      command = "build";
+
     for (int i = 1; i < argc; i++)
     {
         Utf8 arg           = argv[i];
@@ -261,7 +262,8 @@ bool CommandLineParser::checkCommandLine() const
     return true;
 }
 
-void CommandLineParser::setupCommandLine()
+CommandLineParser::CommandLineParser(CommandLine& cmdLine) :
+    cmdLine_(cmdLine)
 {
     addArg("all", "--silent", nullptr, CommandLineType::Bool, &cmdLine_.silent, nullptr, "no log output");
     addArg("all", "--num-cores", nullptr, CommandLineType::Int, &cmdLine_.numCores, nullptr, "maximum number of cpu to use (0 = automatic)");

@@ -23,12 +23,14 @@ enum class LogColor
     BrightYellow,
     BrightBlue,
     BrightMagenta,
-    BrightCyan
+    BrightCyan,
+    BrightBlack,
 };
 
 namespace Color
 {
-    std::string_view toAnsi(const EvalContext& ctx, LogColor c);
+    Utf8 colorToVts(int r, int g, int b);
+    Utf8 toAnsi(const EvalContext& ctx, LogColor c);
 }
 
 SWC_END_NAMESPACE();

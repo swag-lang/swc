@@ -6,7 +6,12 @@
 
 SWC_BEGIN_NAMESPACE();
 
-std::string_view Color::toAnsi(const EvalContext& ctx, LogColor c)
+Utf8 Color::colorToVts(int r, int g, int b)
+{
+    return std::format("\x1b[38;2;{};{};{}m", r, g, b);
+}
+
+Utf8 Color::toAnsi(const EvalContext& ctx, LogColor c)
 {
     if (!ctx.cmdLine().logColor)
         return "";
@@ -16,39 +21,41 @@ std::string_view Color::toAnsi(const EvalContext& ctx, LogColor c)
     {
         case Reset:
         default:
-            return "\033[0m";
+            return "\x1b[0m";
         case Bold:
-            return "\033[1m";
+            return "\x1b[1m";
         case Dim:
-            return "\033[2m";
+            return "\x1b[2m";
 
         case Red:
-            return "\033[31m";
+            return "\x1b[31m";
         case Green:
-            return "\033[32m";
+            return "\x1b[32m";
         case Yellow:
-            return "\033[33m";
+            return "\x1b[33m";
         case Blue:
-            return "\033[34m";
+            return "\x1b[34m";
         case Magenta:
-            return "\033[35m";
+            return "\x1b[35m";
         case Cyan:
-            return "\033[36m";
+            return "\x1b[36m";
         case White:
-            return "\033[37m";
+            return "\x1b[37m";
 
+        case BrightBlack:
+            return "\x1b[90m";
         case BrightRed:
-            return "\033[91m";
+            return "\x1b[91m";
         case BrightGreen:
-            return "\033[92m";
+            return "\x1b[92m";
         case BrightYellow:
-            return "\033[93m";
+            return "\x1b[93m";
         case BrightBlue:
-            return "\033[94m";
+            return "\x1b[94m";
         case BrightMagenta:
-            return "\033[95m";
+            return "\x1b[95m";
         case BrightCyan:
-            return "\033[96m";
+            return "\x1b[96m";
     }
 }
 

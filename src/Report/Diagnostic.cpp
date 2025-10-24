@@ -28,7 +28,11 @@ namespace
 
     struct AnsiSeq
     {
-        std::initializer_list<LogColor> seq;
+        std::vector<LogColor> seq;
+        AnsiSeq(std::initializer_list<LogColor> s) :
+            seq(s)
+        {
+        }
     };
 
     // Centralized palette for all diagnostic colors
@@ -38,24 +42,24 @@ namespace
         switch (p)
         {
             case DiagPart::FileLocationArrow:
-                return {{White}};
+                return {BrightBlue};
             case DiagPart::FileLocationPath:
-                return {{Cyan}};
+                return {BrightCyan};
             case DiagPart::FileLocationSep:
-                return {{Bold}};
+                return {BrightBlack};
             case DiagPart::GutterBar:
-                return {{White}};
+                return {BrightBlack};
             case DiagPart::LineNumber:
-                return {{White}};
+                return {BrightBlack};
             case DiagPart::CodeText:
-                return {{White}};
+                return {White};
             case DiagPart::SubLabelPrefix:
-                return {{White}};
+                return {BrightMagenta, Bold};
             case DiagPart::Reset:
-                return {{Reset}};
+                return {Reset};
         }
-        
-        return {{White}};
+
+        return {White};
     }
 
     Utf8 toAnsiSeq(const EvalContext& ctx, AnsiSeq s)
@@ -84,7 +88,7 @@ namespace
             case DiagnosticSeverity::Hint:
                 return "help";
         }
-        
+
         return "unknown";
     }
 

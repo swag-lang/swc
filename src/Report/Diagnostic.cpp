@@ -45,19 +45,25 @@ namespace
         return {};
     }
 
+    void writeHeader(Utf8& out, const EvalContext& ctx, DiagnosticSeverity sev, std::string_view idName, std::string_view msg)
+    {
+        out += severityColor(ctx, sev);
+        out += severityStr(sev);
+        if (!idName.empty())
+        {
+            out += "[";
+            out += idName;
+            out += "]";
+        }
+        out += Color::toAnsi(ctx, LogColor::Reset);
+        out += ": ";
+        out += msg;
+        out += "\n";
+    }
+
     uint32_t digits(uint32_t n)
     {
-        if (n < 10)
-            return 1;
-        if (n < 100)
-            return 2;
-        if (n < 1000)
-            return 3;
-        if (n < 10000)
-            return 4;
-        if (n < 100000)
-            return 5;
-        return 6;
+        return static_cast<uint32_t>(std::to_string(n).size());
     }
 
     void writeArrowLine(Utf8& out, const EvalContext& ctx, const std::string& path, uint32_t line, uint32_t col)
@@ -125,19 +131,8 @@ Utf8 Diagnostic::build(EvalContext& ctx) const
         {
             const auto loc = e->location(ctx);
 
-            out += severityColor(ctx, sev);
-            out += severityStr(sev);
-            if (!idName.empty())
-            {
-                out += "[";
-                out += idName;
-                out += "]";
-            }
-
-            out += Color::toAnsi(ctx, LogColor::Reset);
-            out += ": ";
-            out += msg;
-            out += "\n";
+            // Factorized header
+            writeHeader(out, ctx, sev, idName, msg);
 
             Utf8 fileName;
             if (ctx.cmdLine().errorAbsolute)
@@ -161,19 +156,8 @@ Utf8 Diagnostic::build(EvalContext& ctx) const
         // No location
         else
         {
-            out += severityColor(ctx, sev);
-            out += severityStr(sev);
-            if (!idName.empty())
-            {
-                out += "[";
-                out += idName;
-                out += "]";
-            }
-
-            out += Color::toAnsi(ctx, LogColor::Reset);
-            out += ": ";
-            out += msg;
-            out += "\n";
+            // Factorized header
+            writeHeader(out, ctx, sev, idName, msg);
         }
 
         out += "\n"; // blank line between diagnostics

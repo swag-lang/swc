@@ -2,6 +2,8 @@
 
 #include "Os/Os.h"
 
+SWC_BEGIN_NAMESPACE()
+
 #ifdef _WIN32
 #include <windows.h>
 
@@ -61,3 +63,5 @@ namespace Os
 }
 
 #endif // _WIN32
+
+SWC_END_NAMESPACE()

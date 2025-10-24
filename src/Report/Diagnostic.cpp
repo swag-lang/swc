@@ -4,12 +4,13 @@
 #include "Lexer/SourceFile.h"
 #include "LogColor.h"
 #include "Main/CommandLine.h"
-#include "Main/Compiler.h"
 #include "Main/CompilerContext.h"
 #include "Main/Global.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticElement.h"
 #include "Report/Logger.h"
+
+SWC_BEGIN_NAMESPACE()
 
 DiagnosticElement* Diagnostic::addElement(DiagnosticSeverity kind, DiagnosticId id)
 {
@@ -142,3 +143,5 @@ void Diagnostic::report(CompilerContext& ctx) const
         logger.unlock();
     }
 }
+
+SWC_END_NAMESPACE()

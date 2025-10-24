@@ -6,6 +6,8 @@
 #include "Main/Global.h"
 #include "Report/DiagnosticElement.h"
 
+SWC_BEGIN_NAMESPACE()
+
 DiagnosticElement::DiagnosticElement(DiagnosticSeverity kind, DiagnosticId id) :
     id_(id),
     severity_(kind)
@@ -99,3 +101,5 @@ void DiagnosticElement::addArgument(std::string_view arg)
 
     arguments_.emplace_back(std::move(sanitized));
 }
+
+SWC_END_NAMESPACE()

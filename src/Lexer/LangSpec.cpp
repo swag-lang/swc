@@ -3,6 +3,8 @@
 #include "Lexer/Keyword.h"
 #include "Lexer/LangSpec.h"
 
+SWC_BEGIN_NAMESPACE()
+
 LangSpec::LangSpec()
 {
     initCharFlags();
@@ -100,3 +102,5 @@ SubTokenIdentifierId LangSpec::keyword(std::string_view name)
 {
     return KEYWORD_TABLE.find(name);
 }
+
+SWC_END_NAMESPACE()

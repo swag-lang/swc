@@ -2,6 +2,8 @@
 #include "Report/DiagnosticElement.h"
 #include "Report/DiagnosticIds.h"
 
+SWC_BEGIN_NAMESPACE()
+
 class CompilerContext;
 enum class DiagnosticId;
 
@@ -48,3 +50,5 @@ public:
         diag.report(ctx);
     }
 };
+
+SWC_END_NAMESPACE()

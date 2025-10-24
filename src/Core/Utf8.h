@@ -1,6 +1,8 @@
 // ReSharper disable CppNonExplicitConvertingConstructor
 #pragma once
 
+SWC_BEGIN_NAMESPACE()
+
 class Utf8 : public std::string
 {
 public:
@@ -56,3 +58,5 @@ public:
     void trimEnd();
     void trim();
 };
+
+SWC_END_NAMESPACE()

@@ -1,6 +1,8 @@
 #pragma once
 #include "Thread/Job.h"
 
+SWC_BEGIN_NAMESPACE()
+
 class JobManager
 {
 public:
@@ -74,3 +76,5 @@ private:
     static JobRecord* allocRecord(); // may use TLS fast path
     static void       freeRecord(JobRecord* r);
 };
+
+SWC_END_NAMESPACE()

@@ -1,4 +1,5 @@
 #pragma once
+SWC_BEGIN_NAMESPACE()
 
 class Logger;
 class DiagnosticIds;
@@ -24,3 +25,5 @@ public:
     JobManager&          jobMgr() const { return *jobManager_; }
     FileManager&         fileMgr() const { return *fileManager_; }
 };
+
+SWC_END_NAMESPACE()

@@ -1,5 +1,7 @@
 #pragma once
 
+SWC_BEGIN_NAMESPACE()
+
 class CompilerContext;
 
 enum class LogColor
@@ -28,3 +30,5 @@ namespace Color
 {
     std::string_view toAnsi(const CompilerContext& ctx, LogColor c);
 }
+
+SWC_END_NAMESPACE()

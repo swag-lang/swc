@@ -9,6 +9,8 @@
 #include "Report/Logger.h"
 #include "Thread/JobManager.h"
 
+SWC_BEGIN_NAMESPACE()
+
 void Global::initialize(const CommandLine& cmdLine)
 {
     static DiagnosticIds diagIds;
@@ -26,3 +28,5 @@ void Global::initialize(const CommandLine& cmdLine)
     Os::initialize();
     jobManager_->setNumThreads(cmdLine.numCores);
 }
+
+SWC_END_NAMESPACE()

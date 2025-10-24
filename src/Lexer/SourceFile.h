@@ -2,6 +2,8 @@
 #include "Lexer/Lexer.h"
 #include "Report/UnitTest.h"
 
+SWC_BEGIN_NAMESPACE()
+
 class CompilerContext;
 class Global;
 
@@ -32,3 +34,5 @@ public:
     Utf8             codeLine(const CompilerContext& ctx, uint32_t line) const;
     std::string_view codeView(uint32_t offset, uint32_t len) const;
 };
+
+SWC_END_NAMESPACE()

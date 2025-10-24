@@ -2,6 +2,8 @@
 
 #include "Thread/JobManager.h"
 
+SWC_BEGIN_NAMESPACE()
+
 void Job::wakeDependents() const
 {
     if (!owner_ || !rec_)
@@ -9,3 +11,5 @@ void Job::wakeDependents() const
     std::unique_lock<std::mutex> lk(owner_->mtx_);
     owner_->notifyDependents(rec_);
 }
+
+SWC_END_NAMESPACE()

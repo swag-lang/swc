@@ -1,6 +1,8 @@
 #pragma once
 #include "Lexer/SourceFile.h"
 
+SWC_BEGIN_NAMESPACE()
+
 using FileRef = uint32_t;
 
 class FileManager
@@ -29,3 +31,5 @@ public:
         return files_[ref].get();
     }
 };
+
+SWC_END_NAMESPACE()

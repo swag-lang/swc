@@ -11,6 +11,8 @@
 #include "Report/DiagnosticIds.h"
 #include "Report/Stats.h"
 
+SWC_BEGIN_NAMESPACE()
+
 namespace
 {
     // Helper: does the next char after the 'x'/'u'/'U' count as a hard terminator
@@ -1280,3 +1282,5 @@ Result Lexer::tokenize(CompilerContext& ctx, LexerFlags flags)
     
     return Result::Success;
 }
+
+SWC_END_NAMESPACE()

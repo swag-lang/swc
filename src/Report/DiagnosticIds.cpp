@@ -2,6 +2,8 @@
 
 #include "Report/DiagnosticIds.h"
 
+SWC_BEGIN_NAMESPACE()
+
 DiagnosticIds::DiagnosticIds()
 {
     initIds();
@@ -33,3 +35,5 @@ void DiagnosticIds::initIds()
 #include "DiagnosticIds.inc"
 #undef SWAG_DIAG_DEF
 }
+
+SWC_END_NAMESPACE()

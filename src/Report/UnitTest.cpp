@@ -7,6 +7,8 @@
 #include "Main/Global.h"
 #include "Report/UnitTest.h"
 
+SWC_BEGIN_NAMESPACE()
+
 Result UnitTest::tokenize(CompilerContext& ctx)
 {
     if (!ctx.cmdLine()->verify)
@@ -129,3 +131,5 @@ Result UnitTest::verify(CompilerContext& ctx) const
 
     return Result::Success;
 }
+
+SWC_END_NAMESPACE()

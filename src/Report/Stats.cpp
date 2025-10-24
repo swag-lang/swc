@@ -8,6 +8,8 @@
 #include "Report/Stats.h"
 #include "Thread/JobManager.h"
 
+SWC_BEGIN_NAMESPACE()
+
 void Stats::print(const CompilerContext& ctx) const
 {
     auto& log = ctx.global()->logger();
@@ -28,3 +30,5 @@ void Stats::print(const CompilerContext& ctx) const
     log.printHeaderDot(ctx, colorHeader, "timeTotal", colorMsg, Utf8Helpers::toNiceTime(Os::timerToSeconds(timeTotal.load())));
     log.printEol(ctx);
 }
+
+SWC_END_NAMESPACE()

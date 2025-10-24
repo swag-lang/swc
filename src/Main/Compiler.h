@@ -1,4 +1,5 @@
 #pragma once
+SWC_BEGIN_NAMESPACE()
 
 class Global;
 struct CommandLine;
@@ -23,3 +24,5 @@ public:
 
     int run();
 };
+
+SWC_END_NAMESPACE()

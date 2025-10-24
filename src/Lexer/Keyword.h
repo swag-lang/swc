@@ -2,6 +2,8 @@
 #pragma once
 #include "Lexer/KeywordTable.h"
 
+SWC_BEGIN_NAMESPACE()
+
 enum class SubTokenIdentifierId : uint16_t
 {
     Invalid = 0,
@@ -577,3 +579,5 @@ constexpr std::array<KeywordInfo, 249> K_KEYWORDS = {{
 }};
 
 constexpr KeywordTable<1024> KEYWORD_TABLE{K_KEYWORDS};
+
+SWC_END_NAMESPACE()

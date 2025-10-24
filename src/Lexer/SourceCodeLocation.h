@@ -1,4 +1,5 @@
 #pragma once
+SWC_BEGIN_NAMESPACE()
 
 class Compiler;
 class SourceFile;
@@ -14,3 +15,5 @@ struct SourceCodeLocation
 
     void fromOffset(const CompilerContext& ctx, const SourceFile* inFile, uint32_t inOffset, uint32_t inLen = 1);
 };
+
+SWC_END_NAMESPACE()

@@ -1,4 +1,5 @@
 #pragma once
+SWC_BEGIN_NAMESPACE()
 
 template<typename T>
 struct Flags
@@ -26,3 +27,5 @@ struct Flags
 
     U flags = 0;
 };
+
+SWC_END_NAMESPACE()

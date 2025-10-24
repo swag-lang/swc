@@ -1,4 +1,5 @@
 #pragma once
+SWC_BEGIN_NAMESPACE()
 
 void swagAssert(const char* expr, const char* file, int line);
 
@@ -32,3 +33,5 @@ enum class Result : bool
     {                       \
     } while (0)
 #endif
+
+SWC_END_NAMESPACE()

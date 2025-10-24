@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Utf8Helpers.h"
 
+SWC_BEGIN_NAMESPACE()
+
 // Returns {next_ptr, code_point, bytes_consumed}.
 // On error: {nullptr, 0, 0}.
 std::tuple<const uint8_t*, uint32_t, uint32_t> Utf8Helpers::decodeOneChar(const uint8_t* p, const uint8_t* end)
@@ -158,3 +160,5 @@ Utf8 Utf8Helpers::toNiceTime(double seconds)
     auto remainingSeconds = static_cast<size_t>(seconds - (static_cast<double>(minutes) * MINUTE));
     return std::format("{} min {} s", minutes, remainingSeconds);
 }
+
+SWC_END_NAMESPACE()

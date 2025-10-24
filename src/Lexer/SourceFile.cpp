@@ -1,10 +1,12 @@
 ﻿#include "pch.h"
+
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
-#include "Main/Compiler.h"
 #include "Main/CompilerContext.h"
 #include "Report/Diagnostic.h"
 #include "Report/Stats.h"
+
+SWC_BEGIN_NAMESPACE()
 
 SourceFile::SourceFile(fs::path path) :
     path_(std::move(path))
@@ -115,3 +117,5 @@ std::string_view SourceFile::codeView(uint32_t offset, uint32_t len) const
     SWAG_ASSERT(offset + len <= content_.size());
     return std::string_view{reinterpret_cast<const char*>(content_.data() + offset), len};
 }
+
+SWC_END_NAMESPACE()

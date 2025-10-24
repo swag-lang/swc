@@ -5,8 +5,9 @@
 #include "Lexer/SourceCodeLocation.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
-#include "Main/Compiler.h"
 #include "Main/CompilerContext.h"
+
+SWC_BEGIN_NAMESPACE()
 
 class Compiler;
 namespace
@@ -78,3 +79,5 @@ void SourceCodeLocation::fromOffset(const CompilerContext& ctx, const SourceFile
         column = calculateColumn(ctx, inFile->content().data(), lineStartOffset, inOffset);
     }
 }
+
+SWC_END_NAMESPACE()

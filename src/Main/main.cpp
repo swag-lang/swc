@@ -1,20 +1,21 @@
 #include "pch.h"
 
 #include "Main/CommandLineParser.h"
-#include "Main/Global.h"
+#include "Main/CommandLine.h"
 #include "Main/Compiler.h"
+#include "Main/Global.h"
 
 int main(int argc, char* argv[])
 {
-    CommandLine       cmdLine;
-    CommandLineParser parser(cmdLine);
+    swc::CommandLine       cmdLine;
+    swc::CommandLineParser parser(cmdLine);
     parser.setupCommandLine();
     if (!parser.parse(argc, argv, "build"))
         return -1;
 
-    Global global;
+    swc::Global global;
     global.initialize(cmdLine);
 
-    Compiler compiler(cmdLine, global);
+    swc::Compiler compiler(cmdLine, global);
     return compiler.run();
 }

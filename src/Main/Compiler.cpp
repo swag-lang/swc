@@ -9,6 +9,8 @@
 #include "Report/Stats.h"
 #include "Thread/JobManager.h"
 
+SWC_BEGIN_NAMESPACE()
+
 void Compiler::test()
 {
     auto parseFolder = [&](const fs::path& directory) {
@@ -36,7 +38,7 @@ void Compiler::test()
             Job(cmdLine, global)
         {
         }
-        
+
         JobResult process() override
         {
             f->loadContent(ctx_);
@@ -75,3 +77,5 @@ int Compiler::run()
 
     return 0;
 }
+
+SWC_END_NAMESPACE()

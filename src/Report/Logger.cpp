@@ -3,8 +3,9 @@
 #include "LogColor.h"
 #include "Logger.h"
 #include "Main/CommandLine.h"
-#include "Main/Compiler.h"
 #include "Main/CompilerContext.h"
+
+SWC_BEGIN_NAMESPACE()
 
 void Logger::print(const CompilerContext& ctx, std::string_view message)
 {
@@ -41,3 +42,5 @@ void Logger::printHeaderDot(const CompilerContext& ctx,
     printEol(ctx);
     unlock();
 }
+
+SWC_END_NAMESPACE()

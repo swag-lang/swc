@@ -1,6 +1,8 @@
 #pragma once
 #include "Keyword.h"
 
+SWC_BEGIN_NAMESPACE()
+
 class SourceFile;
 
 enum class TokenId : uint8_t
@@ -114,3 +116,5 @@ struct Token
 
     std::string_view toString(const SourceFile* file) const;
 };
+
+SWC_END_NAMESPACE()

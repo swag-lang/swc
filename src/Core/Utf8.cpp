@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Utf8.h"
 
+SWC_BEGIN_NAMESPACE()
+
 void Utf8::trimStart()
 {
     auto isNotSpace = [](unsigned char ch) {
@@ -25,3 +27,4 @@ void Utf8::trim()
     trimEnd();
 }
 
+SWC_END_NAMESPACE()

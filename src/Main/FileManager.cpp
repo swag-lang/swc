@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Main/FileManager.h"
+SWC_BEGIN_NAMESPACE()
 
 FileRef FileManager::addFile(fs::path path)
 {
@@ -15,3 +16,5 @@ FileRef FileManager::addFile(fs::path path)
     files_.emplace_back(std::make_unique<SourceFile>(std::move(path)));
     return fileRef;
 }
+
+SWC_END_NAMESPACE()

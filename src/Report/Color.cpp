@@ -4,6 +4,8 @@
 #include "Main/CompilerContext.h"
 #include "Report/LogColor.h"
 
+SWC_BEGIN_NAMESPACE()
+
 std::string_view Color::toAnsi(const CompilerContext& ctx, LogColor c)
 {
     if (!ctx.cmdLine()->logColor)
@@ -49,3 +51,5 @@ std::string_view Color::toAnsi(const CompilerContext& ctx, LogColor c)
             return "\033[96m";
     }
 }
+
+SWC_END_NAMESPACE()

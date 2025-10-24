@@ -1,6 +1,8 @@
 #pragma once
 #include "Main/CompilerContext.h"
 
+SWC_BEGIN_NAMESPACE()
+
 class Job;
 using JobRef = std::shared_ptr<Job>;
 
@@ -119,3 +121,5 @@ private:
         childPriority_ = JobPriority::Normal;
     }
 };
+
+SWC_END_NAMESPACE()

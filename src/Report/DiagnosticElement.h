@@ -1,6 +1,8 @@
 #pragma once
 #include "Lexer/SourceCodeLocation.h"
 
+SWC_BEGIN_NAMESPACE()
+
 class SourceFile;
 class CompilerContext;
 enum class DiagnosticSeverity;
@@ -60,3 +62,5 @@ public:
 
     void addArgument(std::string_view arg);
 };
+
+SWC_END_NAMESPACE()

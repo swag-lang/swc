@@ -1,6 +1,8 @@
 #pragma once
 #include "Lexer/SourceCodeLocation.h"
 
+SWC_BEGIN_NAMESPACE()
+
 class CompilerContext;
 class Global;
 enum class DiagnosticSeverity;
@@ -23,3 +25,5 @@ public:
     bool   verify(const CompilerContext& ctx, const Diagnostic& diag) const;
     Result verify(CompilerContext& ctx) const;
 };
+
+SWC_END_NAMESPACE()

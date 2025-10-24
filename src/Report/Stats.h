@@ -1,4 +1,6 @@
 #pragma once
+SWC_BEGIN_NAMESPACE()
+
 #if SWC_HAS_STATS
 class CompilerContext;
 
@@ -29,3 +31,5 @@ struct Stats
 };
 
 #endif // SWC_HAS_STATS
+
+SWC_END_NAMESPACE()

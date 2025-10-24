@@ -25,6 +25,11 @@
 
 namespace fs = std::filesystem;
 
+#define SWC_BEGIN_NAMESPACE() \
+    namespace swc             \
+    {
+#define SWC_END_NAMESPACE() }
+
 #define SWC_HAS_ASSERT 1
 #define SWC_HAS_STATS  1
 

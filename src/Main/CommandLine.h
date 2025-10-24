@@ -1,4 +1,5 @@
 #pragma once
+SWC_BEGIN_NAMESPACE()
 
 struct CommandLine
 {
@@ -12,3 +13,5 @@ struct CommandLine
     Utf8 verboseErrorsFilter;
     bool verify = true;
 };
+
+SWC_END_NAMESPACE()

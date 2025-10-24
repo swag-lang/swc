@@ -2,6 +2,8 @@
 
 #include "Thread/JobManager.h"
 
+SWC_BEGIN_NAMESPACE()
+
 struct JobManager::RecordPool
 {
     // Thread-local free list (LIFO for cache locality).
@@ -435,3 +437,5 @@ void JobManager::clearThreads()
 {
     workers_.clear();
 }
+
+SWC_END_NAMESPACE()

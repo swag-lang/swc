@@ -1,5 +1,7 @@
 #pragma once
 
+SWC_BEGIN_NAMESPACE()
+
 enum class DiagnosticId
 {
 #define SWAG_DIAG_DEF(id, msg) id,
@@ -28,3 +30,5 @@ private:
     void addId(DiagnosticId id, std::string_view name, const std::string_view msg);
     void initIds();
 };
+
+SWC_END_NAMESPACE()

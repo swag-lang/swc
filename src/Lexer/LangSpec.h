@@ -1,5 +1,7 @@
 #pragma once
 
+SWC_BEGIN_NAMESPACE()
+
 enum class SubTokenIdentifierId : uint16_t;
 
 enum class CharFlagsEnum : uint32_t
@@ -42,3 +44,5 @@ private:
 
     void initCharFlags();
 };
+
+SWC_END_NAMESPACE()

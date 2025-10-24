@@ -1,4 +1,5 @@
 #pragma once
+SWC_BEGIN_NAMESPACE()
 
 enum class SubTokenIdentifierId : uint16_t;
 enum class KeywordFlagsEnum : uint32_t;
@@ -76,3 +77,5 @@ struct KeywordTable
         }
     }
 };
+
+SWC_END_NAMESPACE()

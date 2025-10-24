@@ -1,6 +1,8 @@
 #pragma once
 #include "Lexer/Token.h"
 
+SWC_BEGIN_NAMESPACE()
+
 enum class DiagnosticId;
 class Diagnostic;
 class CompilerContext;
@@ -74,3 +76,5 @@ public:
     Result tokenize(CompilerContext& ctx, LexerFlags flags = LexerFlagsEnum::Default);
     Result tokenizeRaw(CompilerContext& ctx);
 };
+
+SWC_END_NAMESPACE()

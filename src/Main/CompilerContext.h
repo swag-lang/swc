@@ -2,6 +2,8 @@
 #include "CommandLine.h"
 #include "Lexer/SourceFile.h"
 
+SWC_BEGIN_NAMESPACE()
+
 class CompilerContext
 {
     const CommandLine* cmdLine_    = nullptr;
@@ -20,3 +22,5 @@ public:
     SourceFile*        sourceFile() const { return sourceFile_; }
     void               setSourceFile(SourceFile* sourceFile) { sourceFile_ = sourceFile; }
 };
+
+SWC_END_NAMESPACE()

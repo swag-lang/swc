@@ -125,12 +125,7 @@ void Diagnostic::writeFileLocation(Utf8& out, const EvalContext& ctx, const std:
     out += std::to_string(col);
 
     out += partStyle(ctx, DiagPart::FileLocationSep);
-    out += ":";
-    out += partStyle(ctx, DiagPart::Reset);
-    out += std::to_string(line);
-
-    out += partStyle(ctx, DiagPart::FileLocationSep);
-    out += ":";
+    out += "-";
     out += partStyle(ctx, DiagPart::Reset);
     out += std::to_string(col + len);
 

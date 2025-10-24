@@ -35,6 +35,6 @@ namespace DiagnosticIds
     {
         return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].name;
     }
-};
+}
 
 SWC_END_NAMESPACE()

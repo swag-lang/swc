@@ -1,10 +1,8 @@
 #include "pch.h"
-
+#include "Lexer/Lexer.h"
 #include "Core/Utf8Helpers.h"
 #include "Lexer/LangSpec.h"
-#include "Lexer/Lexer.h"
 #include "Lexer/SourceFile.h"
-#include "Main/Compiler.h"
 #include "Main/CompilerContext.h"
 #include "Main/Global.h"
 #include "Report/Diagnostic.h"

@@ -1,6 +1,6 @@
 #include "pch.h"
 
-#include "Core/Utf8Helpers.h"
+#include "Core/Utf8Helper.h"
 #include "Lexer/SourceFile.h"
 #include "LogSymbol.h"
 #include "Main/CommandLine.h"
@@ -44,7 +44,7 @@ Utf8 Diagnostic::toAnsiSeq(const EvalContext& ctx, const AnsiSeq& s)
 {
     Utf8 out;
     for (const auto c : s.seq)
-        out += ColorHelpers::toAnsi(ctx, c);
+        out += LogColorHelper::toAnsi(ctx, c);
     return out;
 }
 
@@ -75,13 +75,13 @@ Utf8 Diagnostic::severityColor(const EvalContext& ctx, DiagnosticSeverity s)
     switch (s)
     {
         case DiagnosticSeverity::Error:
-            return ColorHelpers::toAnsi(ctx, LogColor::BrightRed);
+            return LogColorHelper::toAnsi(ctx, LogColor::BrightRed);
         case DiagnosticSeverity::Warning:
-            return ColorHelpers::toAnsi(ctx, LogColor::BrightYellow);
+            return LogColorHelper::toAnsi(ctx, LogColor::BrightYellow);
         case DiagnosticSeverity::Note:
-            return ColorHelpers::toAnsi(ctx, LogColor::BrightCyan);
+            return LogColorHelper::toAnsi(ctx, LogColor::BrightCyan);
         case DiagnosticSeverity::Hint:
-            return ColorHelpers::toAnsi(ctx, LogColor::BrightGreen);
+            return LogColorHelper::toAnsi(ctx, LogColor::BrightGreen);
     }
     return {};
 }
@@ -206,7 +206,7 @@ void Diagnostic::writeCodeBlock(Utf8& out, const EvalContext& ctx, const Diagnos
 
     // underline the entire span with carets
     const std::string_view tokenView     = el.location(ctx).file->codeView(el.location(ctx).offset, el.location(ctx).len);
-    const uint32_t         tokenLenChars = Utf8Helpers::countChars(tokenView);
+    const uint32_t         tokenLenChars = Utf8Helper::countChars(tokenView);
     writeFullUnderline(out, ctx, el.severity(), el.message(), gutterW, loc.column, tokenLenChars);
 
     writeGutterSep(out, ctx, gutterW);

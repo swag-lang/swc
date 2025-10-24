@@ -1,7 +1,7 @@
 #include "pch.h"
 
 #include "Core/Timer.h"
-#include "Core/Utf8Helpers.h"
+#include "Core/Utf8Helper.h"
 #include "Lexer/LangSpec.h"
 #include "Lexer/Lexer.h"
 #include "Lexer/SourceFile.h"
@@ -28,7 +28,7 @@ bool Lexer::isTerminatorAfterEscapeChar(uint8_t c, TokenId container)
 
 void Lexer::eatUtf8Char()
 {
-    auto [buf, wc, eat] = Utf8Helpers::decodeOneChar(buffer_, endBuffer_);
+    auto [buf, wc, eat] = Utf8Helper::decodeOneChar(buffer_, endBuffer_);
     if (!buf)
     {
         reportTokenError(DiagnosticId::FileNotUtf8, static_cast<uint32_t>(buffer_ - startBuffer_));

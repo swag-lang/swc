@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "DiagnosticElement.h"
-#include "Core/Utf8Helpers.h"
+#include "Core/Utf8Helper.h"
 #include "Report/DiagnosticIds.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -70,7 +70,7 @@ void DiagnosticElement::addArgument(std::string_view arg)
     const uint8_t* end = ptr + arg.size();
     while (ptr < end)
     {
-        auto [buf, wc, eat] = Utf8Helpers::decodeOneChar(ptr, end);
+        auto [buf, wc, eat] = Utf8Helper::decodeOneChar(ptr, end);
         if (!buf)
         {
             ptr++;

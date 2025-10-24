@@ -1,11 +1,11 @@
 #include "pch.h"
-#include "Utf8Helpers.h"
+#include "Utf8Helper.h"
 
 SWC_BEGIN_NAMESPACE();
 
 // Returns {next_ptr, code_point, bytes_consumed}.
 // On error: {nullptr, 0, 0}.
-std::tuple<const uint8_t*, uint32_t, uint32_t> Utf8Helpers::decodeOneChar(const uint8_t* p, const uint8_t* end)
+std::tuple<const uint8_t*, uint32_t, uint32_t> Utf8Helper::decodeOneChar(const uint8_t* p, const uint8_t* end)
 {
     const auto u = p;
     const auto e = end;
@@ -72,7 +72,7 @@ std::tuple<const uint8_t*, uint32_t, uint32_t> Utf8Helpers::decodeOneChar(const 
     return {nullptr, 0, 0};
 }
 
-uint32_t Utf8Helpers::countChars(std::string_view str)
+uint32_t Utf8Helper::countChars(std::string_view str)
 {
     int result = 0;
     for (size_t i = 0; i < str.size(); i++)
@@ -86,7 +86,7 @@ uint32_t Utf8Helpers::countChars(std::string_view str)
     return result;
 }
 
-Utf8 Utf8Helpers::toNiceSize(std::size_t size)
+Utf8 Utf8Helper::toNiceSize(std::size_t size)
 {
     static constexpr size_t KB = 1024;
     static constexpr size_t MB = KB * 1024;
@@ -106,7 +106,7 @@ Utf8 Utf8Helpers::toNiceSize(std::size_t size)
     return std::format("{:.1f} TB", static_cast<double>(size) / TB);
 }
 
-Utf8 Utf8Helpers::toNiceBigNumber(std::size_t number)
+Utf8 Utf8Helper::toNiceBigNumber(std::size_t number)
 {
     auto str = std::format("{}", number);
 
@@ -124,7 +124,7 @@ Utf8 Utf8Helpers::toNiceBigNumber(std::size_t number)
     return str;
 }
 
-Utf8 Utf8Helpers::toNiceTime(double seconds)
+Utf8 Utf8Helper::toNiceTime(double seconds)
 {
     static constexpr double MICROSECOND = 0.000001;
     static constexpr double MILLISECOND = 0.001;

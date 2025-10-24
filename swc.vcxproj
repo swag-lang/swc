@@ -98,7 +98,7 @@
     </ItemDefinitionGroup>
     <ItemGroup>
         <ClCompile Include="src\Core\Utf8.cpp"/>
-        <ClCompile Include="src\Core\Utf8Helpers.cpp"/>
+        <ClCompile Include="src\Core\Utf8Helper.cpp" />
         <ClCompile Include="src\Lexer\LangSpec.cpp"/>
         <ClCompile Include="src\Lexer\Lexer.cpp"/>
         <ClCompile Include="src\Lexer\SourceCodeLocation.cpp"/>
@@ -138,7 +138,7 @@
         <ClInclude Include="src\Core\Timer.h"/>
         <ClInclude Include="src\Core\Types.h"/>
         <ClInclude Include="src\Core\Utf8.h"/>
-        <ClInclude Include="src\Core\Utf8Helpers.h"/>
+        <ClInclude Include="src\Core\Utf8Helper.h" />
         <ClInclude Include="src\Lexer\KeywordTable.h"/>
         <ClInclude Include="src\Lexer\Keyword.h"/>
         <ClInclude Include="src\Lexer\LangSpec.h"/>

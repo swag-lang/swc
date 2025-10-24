@@ -1,6 +1,5 @@
 #include "pch.h"
-
-#include "Compiler.h"
+#include "Main/Compiler.h"
 #include "Core/Timer.h"
 #include "FileManager.h"
 #include "Lexer/SourceFile.h"
@@ -11,7 +10,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void Compiler::test()
+void Compiler::test() const
 {
     auto parseFolder = [&](const fs::path& directory) {
         for (const auto& entry : fs::recursive_directory_iterator(directory))
@@ -30,11 +29,11 @@ void Compiler::test()
     parseFolder("c:/perso/swag-lang/swag/bin");
     parseFolder("c:/perso/swag-lang/swc/tests");
 
-    struct t : Job
+    struct T : Job
     {
-        SourceFile* f;
+        SourceFile* f = nullptr;
 
-        explicit t(const CommandLine& cmdLine, Global& global) :
+        explicit T(const CommandLine& cmdLine, Global& global) :
             Job(cmdLine, global)
         {
         }
@@ -55,7 +54,7 @@ void Compiler::test()
 
     for (const auto& f : global_.fileMgr().files())
     {
-        auto k = std::make_shared<t>(cmdLine_, global_);
+        auto k = std::make_shared<T>(cmdLine_, global_);
         k->f   = f;
         global_.jobMgr().enqueue(k, JobPriority::Normal);
     }
@@ -63,7 +62,7 @@ void Compiler::test()
     global_.jobMgr().waitAll();
 }
 
-int Compiler::run()
+int Compiler::run() const
 {
     {
         Timer time(&Stats::get().timeTotal);

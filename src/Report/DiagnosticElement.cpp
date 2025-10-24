@@ -1,9 +1,8 @@
 #include "pch.h"
-
+#include "DiagnosticElement.h"
 #include "Core/Utf8Helpers.h"
-#include "DiagnosticIds.h"
 #include "Main/CompilerContext.h"
-#include "Report/DiagnosticElement.h"
+#include "Report/DiagnosticIds.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -79,7 +78,7 @@ void DiagnosticElement::addArgument(std::string_view arg)
             continue;
         }
 
-        if (wc < 128 && !std::isprint(wc))
+        if (wc < 128 && !std::isprint(static_cast<int>(wc)))
         {
             char hex[5];
             (void) std::snprintf(hex, sizeof(hex), "\\x%02X", wc);

@@ -9,6 +9,6 @@ namespace Utf8Helpers
     Utf8                                           toNiceSize(size_t size);
     Utf8                                           toNiceBigNumber(std::size_t number);
     Utf8                                           toNiceTime(double seconds);
-};
+}
 
 SWC_END_NAMESPACE()

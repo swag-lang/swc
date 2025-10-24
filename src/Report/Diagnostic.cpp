@@ -1,13 +1,12 @@
 #include "pch.h"
-
+#include "Diagnostic.h"
 #include "Core/Utf8Helpers.h"
 #include "Lexer/SourceFile.h"
-#include "LogColor.h"
 #include "Main/CommandLine.h"
 #include "Main/CompilerContext.h"
 #include "Main/Global.h"
-#include "Report/Diagnostic.h"
 #include "Report/DiagnosticElement.h"
+#include "Report/LogColor.h"
 #include "Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -138,8 +137,8 @@ void Diagnostic::report(CompilerContext& ctx) const
     {
         auto& logger = ctx.global()->logger();
         logger.lock();
-        logger.printEol(ctx);
-        logger.print(ctx, msg);
+        Logger::printEol(ctx);
+        Logger::print(ctx, msg);
         logger.unlock();
     }
 }

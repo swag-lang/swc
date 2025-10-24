@@ -1,5 +1,4 @@
 #include "pch.h"
-
 #include "Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -7,8 +6,8 @@ SWC_BEGIN_NAMESPACE()
 void Job::wakeDependents() const
 {
     if (!owner_ || !rec_)
-        return; // not scheduled
-    std::unique_lock<std::mutex> lk(owner_->mtx_);
+        return;
+    std::unique_lock lk(owner_->mtx_);
     owner_->notifyDependents(rec_);
 }
 

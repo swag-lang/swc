@@ -1,6 +1,6 @@
 #pragma once
-#include "CommandLine.h"
 #include "Lexer/SourceFile.h"
+#include "Main/CommandLine.h"
 
 SWC_BEGIN_NAMESPACE()
 

@@ -1,6 +1,4 @@
 #include "pch.h"
-
-#include "Global.h"
 #include "Main/CommandLineParser.h"
 #include "Main/CompilerContext.h"
 #include "Report/Diagnostic.h"

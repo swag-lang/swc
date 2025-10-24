@@ -8,11 +8,12 @@ class CompilerContext;
 class Logger
 {
 public:
-    void        lock() { mutexAccess_.lock(); }
-    void        unlock() { mutexAccess_.unlock(); }
+    void lock() { mutexAccess_.lock(); }
+    void unlock() { mutexAccess_.unlock(); }
+
     static void print(const CompilerContext& ctx, std::string_view message);
     static void printEol(const CompilerContext& ctx);
-    void        printHeaderDot(const CompilerContext& ctx, LogColor headerColor, std::string_view header, LogColor msgColor, std::string_view message, std::string_view dot = ".", size_t messageColumn = 40);
+    static void printHeaderDot(const CompilerContext& ctx, LogColor headerColor, std::string_view header, LogColor msgColor, std::string_view message, std::string_view dot = ".", size_t messageColumn = 40);
 
 private:
     std::mutex mutexAccess_;

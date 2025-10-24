@@ -43,19 +43,19 @@ class CommandLineParser
     CommandLine&            cmdLine_;
     Global&                 global_;
 
-    static bool    getNextValue(CompilerContext& ctx, const Utf8& arg, int& index, int argc, char* argv[], Utf8& value);
-    static bool    commandMatches(const Utf8& cmdToCheck, const Utf8& commandList);
-    static bool    parseEnumString(CompilerContext& ctx, const Utf8& value, const Utf8& enumValues, Utf8* target);
-    bool           parseEnumInt(CompilerContext& ctx, const Utf8& value, const Utf8& enumValues, int* target);
-    const ArgInfo* findArgument(CompilerContext& ctx, const Utf8& arg, bool& invertBoolean);
-    const ArgInfo* findLongFormArgument(CompilerContext& ctx, const Utf8& arg, bool& invertBoolean);
-    const ArgInfo* findShortFormArgument(CompilerContext& ctx, const Utf8& arg, bool& invertBoolean);
-    const ArgInfo* findNegatedArgument(CompilerContext& ctx, const Utf8& arg, const char* prefix, size_t noPrefixLen, const std::map<Utf8, ArgInfo>& argMap, bool& invertBoolean);
-    static void    reportInvalidArgument(CompilerContext& ctx, const Utf8& arg);
-    bool           processArgument(CompilerContext& ctx, const ArgInfo* info, const Utf8& arg, bool invertBoolean, int& index, int argc, char* argv[]);
-    void           addArg(const char* commands, const char* longForm, const char* shortForm, CommandLineType type, void* target, const char* enumValues, const char* description);
-    static bool    reportEnumError(CompilerContext& ctx, const Utf8& value, const Utf8& enumValues);
-    bool           checkCommandLine() const;
+    static bool           getNextValue(CompilerContext& ctx, const Utf8& arg, int& index, int argc, char* argv[], Utf8& value);
+    static bool           commandMatches(const Utf8& cmdToCheck, const Utf8& commandList);
+    static bool           parseEnumString(CompilerContext& ctx, const Utf8& value, const Utf8& enumValues, Utf8* target);
+    static bool           parseEnumInt(CompilerContext& ctx, const Utf8& value, const Utf8& enumValues, int* target);
+    const ArgInfo*        findArgument(CompilerContext& ctx, const Utf8& arg, bool& invertBoolean);
+    const ArgInfo*        findLongFormArgument(CompilerContext& ctx, const Utf8& arg, bool& invertBoolean);
+    const ArgInfo*        findShortFormArgument(CompilerContext& ctx, const Utf8& arg, bool& invertBoolean);
+    static const ArgInfo* findNegatedArgument(CompilerContext& ctx, const Utf8& arg, const char* prefix, size_t noPrefixLen, const std::map<Utf8, ArgInfo>& argMap, bool& invertBoolean);
+    static void           reportInvalidArgument(CompilerContext& ctx, const Utf8& arg);
+    static bool           processArgument(CompilerContext& ctx, const ArgInfo* info, const Utf8& arg, bool invertBoolean, int& index, int argc, char* argv[]);
+    void                  addArg(const char* commands, const char* longForm, const char* shortForm, CommandLineType type, void* target, const char* enumValues, const char* description);
+    static bool           reportEnumError(CompilerContext& ctx, const Utf8& value, const Utf8& enumValues);
+    bool                  checkCommandLine() const;
 
 public:
     explicit CommandLineParser(CommandLine& cmdLine, Global& global);

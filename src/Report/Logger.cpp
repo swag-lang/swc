@@ -18,7 +18,7 @@ void Logger::printEol(const CompilerContext& ctx)
 {
     if (ctx.cmdLine()->silent)
         return;
-    std::cout << std::endl;
+    std::cout << '\n';
 }
 
 void Logger::printHeaderDot(const CompilerContext& ctx,
@@ -32,7 +32,6 @@ void Logger::printHeaderDot(const CompilerContext& ctx,
     if (ctx.cmdLine()->silent)
         return;
 
-    lock();
     print(ctx, Color::toAnsi(ctx, headerColor));
     print(ctx, header);
     for (size_t i = header.size(); i < messageColumn; ++i)
@@ -40,7 +39,6 @@ void Logger::printHeaderDot(const CompilerContext& ctx,
     print(ctx, Color::toAnsi(ctx, msgColor));
     print(ctx, message);
     printEol(ctx);
-    unlock();
 }
 
 SWC_END_NAMESPACE()

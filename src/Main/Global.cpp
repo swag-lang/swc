@@ -1,9 +1,8 @@
 #include "pch.h"
-
-#include "CommandLine.h"
-#include "FileManager.h"
-#include "Lexer/LangSpec.h"
 #include "Main/Global.h"
+#include "Lexer/LangSpec.h"
+#include "Main/CommandLine.h"
+#include "Main/FileManager.h"
 #include "Os/Os.h"
 #include "Report/Logger.h"
 #include "Thread/JobManager.h"

@@ -1,3 +1,4 @@
+// ReSharper disable CppParameterNamesMismatch
 #include "pch.h"
 
 #include "Memory/mimalloc/include/mimalloc.h"

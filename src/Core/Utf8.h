@@ -49,9 +49,10 @@ public:
         return *this;
     }
 
+    // ReSharper disable once CppNonExplicitConversionOperator
     operator std::string_view() const
     {
-        return std::string_view(data(), size());
+        return {data(), size()};
     }
 
     void trimStart();

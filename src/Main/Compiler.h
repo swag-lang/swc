@@ -9,7 +9,7 @@ class Compiler
     const CommandLine& cmdLine_;
     Global&            global_;
 
-    void test();
+    void test() const;
 
 public:
     Compiler(const CommandLine& cmdLine, Global& global) :
@@ -22,7 +22,7 @@ public:
     Global&            global() { return global_; }
     const Global&      global() const { return global_; }
 
-    int run();
+    int run() const;
 };
 
 SWC_END_NAMESPACE()

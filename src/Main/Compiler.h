@@ -1,6 +1,7 @@
 #pragma once
-#include "Global.h"
-#include "Main/CommandLine.h"
+
+class Global;
+struct CommandLine;
 
 class Compiler
 {

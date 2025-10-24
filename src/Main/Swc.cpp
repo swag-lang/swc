@@ -34,7 +34,10 @@ void Swc::test()
     {
         SourceFile* f;
 
-        explicit t(Swc& swc) : Job(swc) {}
+        explicit t(Swc& swc) :
+            Job(swc)
+        {
+        }
         JobResult process() override
         {
             f->loadContent(ctx_);
@@ -77,9 +80,13 @@ int Swc::process(int argc, char* argv[])
 int Swc::run(int argc, char* argv[])
 {
     const auto result = process(argc, argv);
+    if (result)
+        return result;
+
 #if SWC_HAS_STATS
     const CompilerContext ctx(*this);
     Stats::get().print(ctx);
 #endif
-    return result;
+
+    return 0;
 }

@@ -6,7 +6,7 @@
 SWC_BEGIN_NAMESPACE()
 
 //==============================
-// Record pool (unchanged shape)
+// Record pool
 //==============================
 struct JobManager::RecordPool
 {
@@ -56,9 +56,9 @@ void JobManager::freeRecord(JobRecord* r)
     r->job.reset();
     r->dependents.clear();
     r->wakeGen.store(0, std::memory_order_relaxed);
-    r->state = JobRecord::State::Ready;
-    r->prio  = JobPriority::Normal;
-    // NOTE: client is tracked in JobManager::recClient_, not on JobRecord.
+    r->state    = JobRecord::State::Ready;
+    r->priority = JobPriority::Normal;
+    r->client   = 0;
 
     // Try to return to TLS; spill to global if TLS is full.
     auto& v = RecordPool::tls;
@@ -78,30 +78,11 @@ JobManager::~JobManager()
     shutdown();
 }
 
-int JobManager::prioToIndex(JobPriority p) noexcept
-{
-    // Stable mapping regardless of enum underlying values.
-    switch (p)
-    {
-        case JobPriority::High:
-            return 0;
-        case JobPriority::Normal:
-            return 1;
-        case JobPriority::Low:
-            return 2;
-        default:
-            return 1;
-    }
-}
-
 void JobManager::setNumThreads(std::size_t count)
 {
-    // If already running, stop them cleanly first.
-    if (!workers_.empty())
-    {
-        shutdown();     // stop & join current workers
-        clearThreads(); // drop joined thread objects
-    }
+    // One-shot only.
+    SWAG_ASSERT(workers_.empty());
+    SWAG_ASSERT(!accepting_);
 
     if (count == 0)
         count = std::thread::hardware_concurrency();
@@ -122,6 +103,9 @@ bool JobManager::enqueue(const JobRef& job, JobPriority priority, ClientId clien
     if (!accepting_)
         return false;
 
+    if (cancellingClients_.contains(client))
+        return false;
+
     // If already scheduled on this manager, refuse (simplifies invariants).
     if (job->owner_ == this && job->rec_ != nullptr)
         return false;
@@ -129,18 +113,17 @@ bool JobManager::enqueue(const JobRef& job, JobPriority priority, ClientId clien
     // Acquire a Record from the pool and wire it up.
     JobRecord* rec = allocRecord();
     rec->job       = job; // keep job alive while scheduled
-    rec->prio      = priority;
+    rec->priority  = priority;
+    rec->client    = client;
     rec->state     = JobRecord::State::Ready;
     rec->dependents.clear();
     rec->wakeGen.store(0, std::memory_order_relaxed);
 
-    // Associate record with its client (side map).
-    recClient_[rec] = client;
-
     job->owner_ = this;
     job->rec_   = rec;
 
-    bumpClientCountLocked(client, +1); // READY enters counted set
+    liveRecs_.insert(rec);
+    bumpClientCountLocked(client, +1); // READY enters a counted set
     pushReady(rec, priority);
     cv_.notify_one();
     return true;
@@ -164,8 +147,8 @@ bool JobManager::wake(const JobRef& job)
     if (rec->state == JobRecord::State::Waiting)
     {
         rec->state = JobRecord::State::Ready;
-        bumpClientCountLocked(clientOfLocked(rec), +1); // WAITING -> READY enters counted set
-        pushReady(rec, rec->prio);
+        bumpClientCountLocked(rec->client, +1); // WAITING -> READY enters a counted set
+        pushReady(rec, rec->priority);
         cv_.notify_one();
     }
 
@@ -185,10 +168,49 @@ void JobManager::waitAll(ClientId client)
 {
     std::unique_lock lk(mtx_);
     idleCv_.wait(lk, [this, client] {
-        auto              it = clientReadyRunning_.find(client);
+        const auto        it = clientReadyRunning_.find(client);
         const std::size_t n  = (it == clientReadyRunning_.end()) ? 0 : it->second;
         return n == 0;
     });
+}
+
+void JobManager::cancelAll(ClientId client)
+{
+    std::unique_lock lk(mtx_);
+
+    // Block new enqueues and drop any future spawned children for this client.
+    cancellingClients_.insert(client);
+
+    // Cancel all current non-running jobs of this client (READY & WAITING) and
+    // recursively cancel same-client dependents to avoid wake/requeue churn.
+    // We work on a snapshot because cancel mutates liveRecs_.
+    std::vector<JobRecord*> snapshot;
+    snapshot.reserve(liveRecs_.size());
+    for (JobRecord* r : liveRecs_)
+        snapshot.push_back(r);
+
+    for (JobRecord* r : snapshot)
+    {
+        if (!r)
+            continue;
+        if (r->client != client)
+            continue;
+        if (r->state == JobRecord::State::Running || r->state == JobRecord::State::Done)
+            continue;
+
+        cancelCascadeLocked(r, client);
+    }
+
+    // Now wait for the client's RUNNING jobs to drain. Because we block new enqueues and
+    // cancel children spawned in SpawnAndSleep (see workerLoop), the count will reach zero.
+    idleCv_.wait(lk, [this, client] {
+        const auto        it = clientReadyRunning_.find(client);
+        const std::size_t n  = (it == clientReadyRunning_.end()) ? 0 : it->second;
+        return n == 0;
+    });
+
+    // Unblock the client for future work.
+    cancellingClients_.erase(client);
 }
 
 void JobManager::shutdown() noexcept
@@ -201,8 +223,13 @@ void JobManager::shutdown() noexcept
         cv_.notify_all();
     }
 
-    joinAll();
-    clearThreads(); // drop joined threads
+    for (auto& t : workers_)
+    {
+        if (t.joinable())
+            t.join();
+    }
+    workers_.clear();
+    joined_ = true;
 
     // NOTE: User code still owns remaining sleepers (if any).
     // They are not runnable; their rec_ remains set until they are complete or are canceled.
@@ -210,8 +237,25 @@ void JobManager::shutdown() noexcept
 
 void JobManager::pushReady(JobRecord* rec, JobPriority priority)
 {
-    readyQ_[prioToIndex(priority)].push_back(rec);
+    readyQ_[static_cast<int>(priority)].push_back(rec);
     readyCount_.fetch_add(1, std::memory_order_release);
+}
+
+// Remove a specific record from the ready queues (if present).
+bool JobManager::removeFromReadyQueuesLocked(JobRecord* rec)
+{
+    const int idx = static_cast<int>(rec->priority);
+    auto&     q   = readyQ_[idx];
+    for (auto it = q.begin(); it != q.end(); ++it)
+    {
+        if (*it == rec)
+        {
+            q.erase(it);
+            readyCount_.fetch_sub(1, std::memory_order_acq_rel);
+            return true;
+        }
+    }
+    return false;
 }
 
 // Link waiter to dep; returns false if dep already Done (no parking needed).
@@ -226,7 +270,6 @@ bool JobManager::linkOrSkip(JobRecord* waiter, JobRecord* dep)
 
 // Wake everyone waiting on 'finished'.
 // NOTE: This function is called with mtx_ held by the caller.
-// We keep the lock while we move and requeue to keep things simple and avoid reentrancy.
 void JobManager::notifyDependents(JobRecord* finished)
 {
     const auto deps = std::move(finished->dependents);
@@ -242,8 +285,8 @@ void JobManager::notifyDependents(JobRecord* finished)
             if (rec->state == JobRecord::State::Waiting)
             {
                 rec->state = JobRecord::State::Ready;
-                bumpClientCountLocked(clientOfLocked(rec), +1); // WAITING -> READY
-                pushReady(rec, rec->prio);
+                bumpClientCountLocked(rec->client, +1); // WAITING -> READY
+                pushReady(rec, rec->priority);
             }
         }
     }
@@ -256,7 +299,7 @@ void JobManager::notifyDependents(JobRecord* finished)
 JobRecord* JobManager::popReadyLocked()
 {
     static constexpr int order[] = {0, 1, 2}; // High(0) -> Normal(1) -> Low(2)
-    for (int idx : order)
+    for (const int idx : order)
     {
         auto& q = readyQ_[idx];
         if (!q.empty())
@@ -287,7 +330,7 @@ void JobManager::workerLoop()
 
     auto maybeExitIfDrainedLocked = [this]() -> bool {
         // Once we stop accepting, threads should exit as soon as the READY queues are empty.
-        // A currently-running worker will finish and either requeue or also exit.
+        // A currently running worker will finish and either requeue or also exit.
         return !accepting_ && readyCount_.load(std::memory_order_acquire) == 0;
     };
 
@@ -343,7 +386,7 @@ void JobManager::workerLoop()
             std::condition_variable* idleCv;
             ~ActiveGuard()
             {
-                // Notify global idle waiters when the last active worker finishes
+                // Notify global/per-client idle waiters when the last active worker finishes
                 // and there is no ready work left.
                 if (ref->fetch_sub(1, std::memory_order_acq_rel) == 1 &&
                     ready->load(std::memory_order_acquire) == 0)
@@ -375,22 +418,21 @@ void JobManager::workerLoop()
             (res == JobResult::Sleep) &&
             (rec->wakeGen.load(std::memory_order_acquire) != wakeAtStart);
 
-            const ClientId c = clientOfLocked(rec);
-
             switch (res)
             {
                 case JobResult::Done:
                 {
                     rec->state = JobRecord::State::Done;
+
                     notifyDependents(rec);
 
                     // RUNNING leaves the counted set.
-                    bumpClientCountLocked(c, -1);
+                    bumpClientCountLocked(rec->client, -1);
 
                     // Detach and recycle
                     rec->job->rec_   = nullptr;
                     rec->job->owner_ = nullptr;
-                    recClient_.erase(rec);
+                    liveRecs_.erase(rec);
                     freeRecord(rec);
                     break;
                 }
@@ -402,14 +444,14 @@ void JobManager::workerLoop()
                         // Someone called wake() while we were running: keep runnable.
                         rec->state = JobRecord::State::Ready;
                         // Still in counted set (READY/RUNNING), no bump.
-                        pushReady(rec, rec->prio);
+                        pushReady(rec, rec->priority);
                         cv_.notify_one();
                     }
                     else
                     {
                         // Park: RUNNING -> WAITING leaves the counted set.
                         rec->state = JobRecord::State::Waiting;
-                        bumpClientCountLocked(c, -1);
+                        bumpClientCountLocked(rec->client, -1);
                     }
                     rec->job->clearIntents(); // consume any stale intent
                     break;
@@ -425,13 +467,13 @@ void JobManager::workerLoop()
                     {
                         // Parked on dependency: RUNNING -> WAITING leaves counted set.
                         rec->state = JobRecord::State::Waiting;
-                        bumpClientCountLocked(c, -1);
+                        bumpClientCountLocked(rec->client, -1);
                     }
                     else
                     {
                         // Dependency already done/unknown: keep runnable (still counted)
                         rec->state = JobRecord::State::Ready;
-                        pushReady(rec, rec->prio);
+                        pushReady(rec, rec->priority);
                         cv_.notify_one();
                     }
 
@@ -449,7 +491,8 @@ void JobManager::workerLoop()
                         {
                             JobRecord* r = allocRecord();
                             r->job       = rec->job->child_;
-                            r->prio      = rec->job->childPriority_;
+                            r->priority  = rec->job->childPriority_;
+                            r->client    = rec->client; // inherit parent's client
                             r->state     = JobRecord::State::Ready;
                             r->dependents.clear();
                             r->wakeGen.store(0, std::memory_order_relaxed);
@@ -459,12 +502,24 @@ void JobManager::workerLoop()
 
                             childRec = r;
 
-                            // Inherit parent's client by default.
-                            const ClientId childClient = c;
-                            recClient_[childRec]       = childClient;
-
-                            // Child READY enters counted set.
-                            bumpClientCountLocked(childClient, +1);
+                            // If the client is being canceled, drop the child immediately.
+                            if (cancellingClients_.contains(r->client))
+                            {
+                                // No counting bump (never enters READY set); cancel directly.
+                                // Cancel dependents of child (same client cascade handled in cancel).
+                                // Here we mimic a Done without ever exposing the record.
+                                r->state = JobRecord::State::Done;
+                                notifyDependents(r);
+                                r->job->rec_   = nullptr;
+                                r->job->owner_ = nullptr;
+                                freeRecord(r);
+                                childRec = nullptr;
+                            }
+                            else
+                            {
+                                liveRecs_.insert(r);
+                                bumpClientCountLocked(r->client, +1);
+                            }
                         }
                         else
                         {
@@ -476,7 +531,7 @@ void JobManager::workerLoop()
                     const bool parked = childRec && linkOrSkip(rec, childRec);
                     if (childRec)
                     {
-                        pushReady(childRec, childRec->prio);
+                        pushReady(childRec, childRec->priority);
                         cv_.notify_one();
                     }
 
@@ -484,14 +539,14 @@ void JobManager::workerLoop()
                     {
                         // Parent stays runnable (still counted).
                         rec->state = JobRecord::State::Ready;
-                        pushReady(rec, rec->prio);
+                        pushReady(rec, rec->priority);
                         cv_.notify_one();
                     }
                     else
                     {
                         // Parent parked: RUNNING -> WAITING leaves counted set.
                         rec->state = JobRecord::State::Waiting;
-                        bumpClientCountLocked(c, -1);
+                        bumpClientCountLocked(rec->client, -1);
                     }
 
                     rec->job->clearIntents();
@@ -502,38 +557,14 @@ void JobManager::workerLoop()
     }
 }
 
-void JobManager::joinAll() noexcept
-{
-    if (joined_)
-        return;
-
-    for (auto& t : workers_)
-    {
-        if (t.joinable())
-        {
-            t.join();
-        }
-    }
-
-    joined_ = true;
-}
-
-void JobManager::clearThreads()
-{
-    // Only clear after joining to avoid UB.
-    // (In debug you could assert(joined_) here.)
-    workers_.clear();
-}
-
 //==============================
-// Client helpers
+// Client / Cancel helpers
 //==============================
 
 void JobManager::bumpClientCountLocked(ClientId client, int delta)
 {
     auto& c = clientReadyRunning_[client];
-    // Simple saturating behavior is not required; invariants preserve correctness.
-    c = static_cast<std::size_t>(static_cast<long long>(c) + delta);
+    c       = static_cast<std::size_t>(static_cast<long long>(c) + delta);
     if (c == 0)
     {
         // Someone may be waiting for this client.
@@ -541,10 +572,61 @@ void JobManager::bumpClientCountLocked(ClientId client, int delta)
     }
 }
 
-JobManager::ClientId JobManager::clientOfLocked(JobRecord* rec) const
+bool JobManager::cancelCascadeLocked(JobRecord* rec, ClientId client)
 {
-    auto it = recClient_.find(rec);
-    return (it == recClient_.end()) ? ClientId{0} : it->second;
+    if (!rec)
+        return false;
+    if (rec->client != client)
+        return false;
+    if (rec->state == JobRecord::State::Done)
+        return false;
+    if (rec->state == JobRecord::State::Running)
+        return false;
+
+    // Recursively cancel same-client dependents (they are WAITING on this).
+    // Copy out list to avoid iterator invalidation.
+    const std::vector<Job*> deps = std::move(rec->dependents);
+    rec->dependents.clear();
+    for (Job* j : deps)
+    {
+        if (!j)
+            continue;
+        if (j->owner_ != this || !j->rec_)
+            continue;
+        JobRecord* w = j->rec_;
+        if (w->client == client)
+            cancelCascadeLocked(w, client);
+        else
+        {
+            // Different client: keep dependent for notify in a moment
+            rec->dependents.push_back(j);
+        }
+    }
+
+    // Remove from ready queues if present and adjust counts.
+    if (rec->state == JobRecord::State::Ready)
+    {
+        removeFromReadyQueuesLocked(rec);       // adjusts readyCount_
+        bumpClientCountLocked(rec->client, -1); // READY leaves counted set
+    }
+    else
+    {
+        // WAITING is not counted; nothing to do for clientReadyRunning_.
+        SWAG_ASSERT(rec->state == JobRecord::State::Waiting);
+    }
+
+    // Mark done, wake dependents (of other clients), detach, and free.
+    rec->state = JobRecord::State::Done;
+    notifyDependents(rec);
+
+    if (rec->job)
+    {
+        rec->job->rec_   = nullptr;
+        rec->job->owner_ = nullptr;
+    }
+    liveRecs_.erase(rec);
+    freeRecord(rec);
+    return true;
 }
 
 SWC_END_NAMESPACE()

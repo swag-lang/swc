@@ -4,7 +4,8 @@
 SWC_BEGIN_NAMESPACE()
 
 class Job;
-using JobRef = std::shared_ptr<Job>;
+using JobRef   = std::shared_ptr<Job>;
+using ClientId = std::uint64_t;
 
 enum class JobPriority : std::uint8_t
 {
@@ -28,7 +29,8 @@ struct JobRecord
     // Keep the job alive while scheduled (the user may drop their last ref).
     JobRef job;
 
-    JobPriority prio{JobPriority::Normal};
+    JobPriority priority{JobPriority::Normal};
+    ClientId    client = 0;
 
     enum class State : std::uint8_t
     {
@@ -104,7 +106,7 @@ protected:
     }
 
 private:
-    // Back-pointers / scheduler hooks (manager-owned, but stored on the job)
+    // Back-pointers / scheduler hooks (manager-owned but stored on the job)
     JobManager* owner_{nullptr}; // which manager, if any, owns this job right now
     JobRecord*  rec_{nullptr};   // scheduler state for THIS manager run (from the pool)
 

@@ -3,6 +3,7 @@
 #include "Core/Timer.h"
 #include "FileManager.h"
 #include "Lexer/SourceFile.h"
+#include "Main/CommandLine.h"
 #include "Main/CompilerContext.h"
 #include "Main/Global.h"
 #include "Report/Stats.h"

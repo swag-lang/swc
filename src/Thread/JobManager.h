@@ -41,6 +41,9 @@ public:
     // in READY/RUNNING/WAITING.
     void cancelAll(ClientId client);
 
+    // Generate a new unique client ID (thread-safe).
+    ClientId newClientId();
+
     uint32_t numWorkers() const noexcept { return static_cast<uint32_t>(workers_.size()); }
 
 protected:
@@ -82,6 +85,7 @@ private:
     std::atomic<bool> joined_{false};
 
     // Per-client READY/RUNNING counters (protected by mtx_)
+    std::atomic<ClientId>                     nextClientId_{1}; // start at 1, 0 reserved as "default client"
     std::unordered_map<ClientId, std::size_t> clientReadyRunning_;
 
     // All currently scheduled records (any state except free), to allow cancellation scans.

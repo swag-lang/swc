@@ -1,8 +1,10 @@
 #pragma once
-#include "Lexer/SourceFile.h"
-#include "Main/CommandLine.h"
 
 SWC_BEGIN_NAMESPACE()
+
+struct CommandLine;
+class Global;
+class SourceFile;
 
 class CompilerContext
 {

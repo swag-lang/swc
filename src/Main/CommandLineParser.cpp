@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Main/CommandLineParser.h"
+#include "Main/CommandLine.h"
 #include "Main/CompilerContext.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticIds.h"

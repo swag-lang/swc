@@ -298,8 +298,13 @@ void JobManager::notifyDependents(JobRecord* finished)
 // Favor High: Normal: Low. Caller must hold 'mtx_'.
 JobRecord* JobManager::popReadyLocked()
 {
-    static constexpr int order[] = {0, 1, 2}; // High(0) -> Normal(1) -> Low(2)
-    for (const int idx : order)
+    static constexpr int ORDER[] =
+    {
+        static_cast<int>(JobPriority::High),
+        static_cast<int>(JobPriority::Normal),
+        static_cast<int>(JobPriority::Low)};
+
+    for (const int idx : ORDER)
     {
         auto& q = readyQ_[idx];
         if (!q.empty())
@@ -310,6 +315,7 @@ JobRecord* JobManager::popReadyLocked()
             return rec;
         }
     }
+
     return nullptr;
 }
 
@@ -627,6 +633,11 @@ bool JobManager::cancelCascadeLocked(JobRecord* rec, ClientId client)
     liveRecs_.erase(rec);
     freeRecord(rec);
     return true;
+}
+
+JobManager::ClientId JobManager::newClientId()
+{
+    return nextClientId_.fetch_add(1, std::memory_order_relaxed);
 }
 
 SWC_END_NAMESPACE()

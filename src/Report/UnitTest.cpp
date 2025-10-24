@@ -2,6 +2,8 @@
 
 #include "Diagnostic.h"
 #include "Lexer/LangSpec.h"
+#include "Lexer/Lexer.h"
+#include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
 #include "Main/CompilerContext.h"
 #include "Main/Global.h"

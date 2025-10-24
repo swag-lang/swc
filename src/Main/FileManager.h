@@ -1,9 +1,8 @@
 #pragma once
+#include "Core/Types.h"
 #include "Lexer/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
-
-using FileRef = uint32_t;
 
 class FileManager
 {

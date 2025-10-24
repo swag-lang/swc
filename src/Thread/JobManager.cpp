@@ -79,7 +79,6 @@ void JobManager::setNumThreads(std::size_t count)
         count = std::thread::hardware_concurrency();
 
     accepting_ = true;
-    joined_    = false;
     workers_.reserve(count);
     for (std::size_t i = 0; i < count; ++i)
         workers_.emplace_back([this] { workerLoop(); });
@@ -151,15 +150,19 @@ void JobManager::shutdown() noexcept
 {
     {
         std::unique_lock lk(mtx_);
-        if (joined_)
-            return;
         accepting_ = false;
         cv_.notify_all();
     }
 
-    joinAll();
-    // NOTE: User code still owns remaining sleepers (if any).
-    // They are not runnable; their rec_ remains set until they are complete or are canceled.
+    for (auto& t : workers_)
+    {
+        if (t.joinable())
+        {
+            t.join();
+        }
+    }
+
+    workers_.clear();
 }
 
 void JobManager::pushReady(JobRecord* rec, JobPriority priority)
@@ -415,27 +418,6 @@ void JobManager::workerLoop()
             }
         }
     }
-}
-
-void JobManager::joinAll() noexcept
-{
-    if (joined_)
-        return;
-
-    for (auto& t : workers_)
-    {
-        if (t.joinable())
-        {
-            t.join();
-        }
-    }
-
-    joined_ = true;
-}
-
-void JobManager::clearThreads()
-{
-    workers_.clear();
 }
 
 SWC_END_NAMESPACE()

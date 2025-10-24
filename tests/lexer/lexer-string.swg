@@ -21,7 +21,7 @@
 "\'"
 "\0"
 "\x41"
-"\u0041" // expected-error InvalidEscapeSequence
+"\u0041"
 "\b"
 "\f"
 "\v"

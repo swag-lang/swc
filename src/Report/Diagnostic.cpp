@@ -121,18 +121,21 @@ void Diagnostic::report(EvalContext& ctx) const
     const auto msg     = build(ctx);
     bool       dismiss = false;
 
+    // Check that diagnostic was not awaited
     if (fileOwner_ != nullptr)
     {
         dismiss = fileOwner_->verifier().verify(ctx, *this);
     }
 
-    if (ctx.cmdLine().verboseErrors)
+    // In tests, suppress diagnostics unless verbose errors are explicitly requested and match the filter.
+    if (dismiss && ctx.cmdLine().verboseErrors)
     {
-        dismiss = false;
-        if (!ctx.cmdLine().verboseErrorsFilter.empty() && msg.find(ctx.cmdLine().verboseErrorsFilter) == Utf8::npos)
-            dismiss = true;
+        const auto& filter = ctx.cmdLine().verboseErrorsFilter;
+        if (filter.empty() || msg.find(filter) != Utf8::npos)
+            dismiss = false;
     }
 
+    // Log diagnostic
     if (!dismiss)
     {
         auto& logger = ctx.global().logger();

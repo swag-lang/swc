@@ -26,7 +26,6 @@ Result Parser::parse(EvalContext& ctx)
 
     SWC_CHECK(file_->loadContent(ctx));
     SWC_CHECK(file_->tokenize(ctx));
-    SWC_CHECK(file_->verifier().verify(ctx));
 
     ast_->root_ = ast_->makeNode(AstNodeId::File, file_->ref());
     if (file_->lexOut_.tokens_.empty())

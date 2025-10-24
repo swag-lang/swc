@@ -9,6 +9,9 @@ SWAG_DIAG_DEF(CmdLineInvalidBoolArg, "invalid argument '%0' because '%1' is not 
 SWAG_DIAG_DEF(CannotOpenFile, "cannot open file '%0'")
 SWAG_DIAG_DEF(CannotReadFile, "cannot read file '%0'")
 
+// Tests
+SWAG_DIAG_DEF(UnRaisedDirective, "un-raised directive")
+
 // Lexer errors
 SWAG_DIAG_DEF(FileNotUtf8, "file is not valid UTF-8")
 SWAG_DIAG_DEF(UnclosedComment, "unclosed comment")
@@ -21,7 +24,6 @@ SWAG_DIAG_DEF(MissingHexDigits, "missing hexadecimal digits after '0x'")
 SWAG_DIAG_DEF(MissingBinDigits, "missing binary digits after '0b'")
 SWAG_DIAG_DEF(MissingExponentDigits, "missing digits after exponent")
 SWAG_DIAG_DEF(InvalidBinDigit, "invalid binary digit '%0'")
-SWAG_DIAG_DEF(UnRaisedDirective, "un-raised directive '%0'")
 SWAG_DIAG_DEF(InvalidEscapeSequence, "invalid escape sequence '%0'")
 SWAG_DIAG_DEF(EmptyCharLiteral, "empty character literal")
 SWAG_DIAG_DEF(UnclosedCharLiteral, "unclosed character literal")

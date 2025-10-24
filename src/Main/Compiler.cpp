@@ -54,6 +54,14 @@ void Compiler::test() const
 
         context_.global().jobMgr().enqueue(k, JobPriority::Normal, context_.jobClientId());
     }
+
+    context_.global().jobMgr().waitAll(context_.jobClientId());
+
+    EvalContext ctx(context_);
+    for (const auto& f : context_.global().fileMgr().files())
+    {
+        f->verifier().verify(ctx);
+    }
 }
 
 int Compiler::run() const
@@ -61,7 +69,6 @@ int Compiler::run() const
     {
         Timer time(&Stats::get().timeTotal);
         test();
-        context_.global().jobMgr().waitAll(context_.jobClientId());
     }
 
     if (context_.cmdLine().stats)

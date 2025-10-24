@@ -6,6 +6,7 @@ SWC_BEGIN_NAMESPACE();
 enum class AstNodeId : uint16_t
 {
     Invalid = 0,
+    File,
 };
 
 enum class AstNodeFlagsEnum : uint16_t

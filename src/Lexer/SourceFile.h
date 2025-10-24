@@ -1,5 +1,7 @@
 ﻿#pragma once
+#include "Core/Types.h"
 #include "Lexer/Lexer.h"
+#include "Parser/Parser.h"
 #include "Report/UnitTest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -12,6 +14,7 @@ class SourceFile
     // Number of '\0' forced at the end of the file
     static constexpr int TRAILING_0 = 4;
 
+    FileRef              ref_ = INVALID_FILE_REF;
     fs::path             path_;
     std::vector<uint8_t> content_;
     UnitTest             verifier_;
@@ -20,7 +23,9 @@ class SourceFile
 
 protected:
     friend class Lexer;
-    LexerOutput lexOut_;
+    friend class Parser;
+    LexerOutput  lexOut_;
+    ParserOutput parserOut_;
 
 public:
     explicit SourceFile(fs::path path);
@@ -29,10 +34,12 @@ public:
     const std::vector<uint8_t>& content() const { return content_; }
     size_t                      size() const { return content_.size() - TRAILING_0; }
     const LexerOutput&          lexOut() const { return lexOut_; }
+    const ParserOutput&         parserOut() const { return parserOut_; }
     UnitTest&                   verifier() { return verifier_; }
     const UnitTest&             verifier() const { return verifier_; }
     bool                        hasError() const { return hasError_; }
     void                        setHasError() const { hasError_ = true; }
+    FileRef                     ref() const { return ref_; }
 
     Result           loadContent(EvalContext& ctx);
     Result           tokenize(EvalContext& ctx);

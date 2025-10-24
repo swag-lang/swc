@@ -18,13 +18,13 @@ Diagnostic::AnsiSeq Diagnostic::diagPalette(DiagPart p)
     switch (p)
     {
         case DiagPart::FileLocationArrow:
-            return {BrightBlue};
+            return {BrightBlack};
         case DiagPart::FileLocationPath:
-            return {BrightCyan};
+            return {BrightBlack};
         case DiagPart::FileLocationSep:
             return {BrightBlack};
         case DiagPart::GutterBar:
-            return {BrightBlack};
+            return {BrightCyan};
         case DiagPart::LineNumber:
             return {BrightBlack};
         case DiagPart::CodeText:
@@ -91,9 +91,9 @@ uint32_t Diagnostic::digits(uint32_t n)
 }
 
 // Short label line used for secondary elements (note/help/etc.)
-void Diagnostic::writeSubLabel(Utf8& out, const EvalContext& ctx, DiagnosticSeverity sev, std::string_view msg)
+void Diagnostic::writeSubLabel(Utf8& out, const EvalContext& ctx, DiagnosticSeverity sev, std::string_view msg, uint32_t gutterW)
 {
-    out += "  ";
+    out.append(gutterW, ' ');
     out += partStyle(ctx, DiagPart::SubLabelPrefix);
     out += severityColor(ctx, sev);
     out += severityStr(sev);
@@ -103,9 +103,9 @@ void Diagnostic::writeSubLabel(Utf8& out, const EvalContext& ctx, DiagnosticSeve
     out += "\n";
 }
 
-void Diagnostic::writeFileLocation(Utf8& out, const EvalContext& ctx, const std::string& path, uint32_t line, uint32_t col, uint32_t len)
+void Diagnostic::writeFileLocation(Utf8& out, const EvalContext& ctx, const std::string& path, uint32_t line, uint32_t col, uint32_t len, uint32_t gutterW)
 {
-    out += "  ";
+    out.append(gutterW, ' ');
     out += partStyle(ctx, DiagPart::FileLocationArrow);
     out += "--> ";
     out += partStyle(ctx, DiagPart::FileLocationPath);
@@ -188,7 +188,8 @@ void Diagnostic::writeFullUnderline(Utf8& out, const EvalContext& ctx, Diagnosti
 }
 
 // Renders a single element's location/code/underline block
-void Diagnostic::writeCodeBlock(Utf8& out, const EvalContext& ctx, const DiagnosticElement& el)
+// NOTE: gutterW is computed once per diagnostic (max line number across all elements)
+void Diagnostic::writeCodeBlock(Utf8& out, const EvalContext& ctx, const DiagnosticElement& el, uint32_t gutterW)
 {
     const auto loc = el.location(ctx);
 
@@ -197,9 +198,8 @@ void Diagnostic::writeCodeBlock(Utf8& out, const EvalContext& ctx, const Diagnos
         fileName = el.location(ctx).file->path().string();
     else
         fileName = el.location(ctx).file->path().filename().string();
-    writeFileLocation(out, ctx, fileName, loc.line, loc.column, loc.len);
+    writeFileLocation(out, ctx, fileName, loc.line, loc.column, loc.len, gutterW);
 
-    const uint32_t gutterW = digits(loc.line);
     writeGutterSep(out, ctx, gutterW);
 
     const auto codeLine = el.location(ctx).file->codeLine(ctx, loc.line);
@@ -219,6 +219,19 @@ Utf8 Diagnostic::build(const EvalContext& ctx) const
     if (elements_.empty())
         return out;
 
+    // Compute a unified gutter width based on the maximum line number among all located elements
+    uint32_t maxLine = 0;
+    for (const auto& e : elements_)
+    {
+        if (e->hasCodeLocation())
+        {
+            const auto locLine = e->location(ctx).line;
+            if (locLine > maxLine)
+                maxLine = locLine;
+        }
+    }
+    const uint32_t gutterW = maxLine ? digits(maxLine) : 0;
+
     // Primary element: the first one
     const auto& primary = elements_.front();
     const auto  pMsg    = primary->message();
@@ -226,7 +239,7 @@ Utf8 Diagnostic::build(const EvalContext& ctx) const
     // Render primary element body (location/code) if any
     const bool pHasLoc = primary->hasCodeLocation();
     if (pHasLoc)
-        writeCodeBlock(out, ctx, *primary);
+        writeCodeBlock(out, ctx, *primary, gutterW);
 
     // Now render all secondary elements as part of the same diagnostic
     for (size_t i = 1; i < elements_.size(); ++i)
@@ -237,11 +250,11 @@ Utf8 Diagnostic::build(const EvalContext& ctx) const
         const bool  eHasLoc = e->hasCodeLocation();
 
         // Sub label line
-        writeSubLabel(out, ctx, sev, msg);
+        writeSubLabel(out, ctx, sev, msg, gutterW);
 
         // Optional location/code block
         if (eHasLoc)
-            writeCodeBlock(out, ctx, *e);
+            writeCodeBlock(out, ctx, *e, gutterW);
     }
 
     // single blank line after the whole diagnostic

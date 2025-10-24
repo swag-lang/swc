@@ -116,7 +116,7 @@
         </ClCompile>
         <ClCompile Include="src\Os\OsWin32.cpp"/>
         <ClCompile Include="src\Parser\Ast.cpp"/>
-        <ClCompile Include="src\Parser\AstNodeExt.cpp"/>
+        <ClCompile Include="src\Parser\AstExtStore.cpp"/>
         <ClCompile Include="src\pch.cpp">
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
@@ -154,7 +154,7 @@
         <ClInclude Include="src\Os\Os.h"/>
         <ClInclude Include="src\Parser\Ast.h"/>
         <ClInclude Include="src\Parser\AstNode.h"/>
-        <ClInclude Include="src\Parser\AstNodeExt.h"/>
+        <ClInclude Include="src\Parser\AstExtStore.h"/>
         <ClInclude Include="src\pch.h"/>
         <ClInclude Include="src\Report\Check.h"/>
         <ClInclude Include="src\Report\LogColor.h"/>

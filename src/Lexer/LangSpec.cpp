@@ -5,12 +5,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-LangSpec::LangSpec()
-{
-    initCharFlags();
-}
-
-void LangSpec::initCharFlags()
+void LangSpec::setup()
 {
     // Initialize all flags to 0
     for (auto& charFlag : charFlags_)

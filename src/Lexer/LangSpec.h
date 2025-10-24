@@ -22,9 +22,10 @@ using CharFlags = Flags<CharFlagsEnum>;
 
 class LangSpec
 {
+    friend class Global;
+    void setup();
+    
 public:
-    LangSpec();
-
     bool isBlank(uint8_t c) const { return charFlags_[c].has(CharFlagsEnum::Blank); }
     bool isBlank(const uint8_t* buffer, const uint8_t* end, uint32_t& offset) const;
     bool isDigit(uint8_t c) const { return charFlags_[c].has(CharFlagsEnum::Digit); }
@@ -41,8 +42,6 @@ public:
 
 private:
     CharFlags charFlags_[256];
-
-    void initCharFlags();
 };
 
 SWC_END_NAMESPACE()

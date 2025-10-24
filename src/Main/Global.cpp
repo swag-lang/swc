@@ -26,6 +26,7 @@ Global::Global()
 void Global::initialize(const CommandLine& cmdLine) const
 {
     Os::initialize();
+    langSpec_->setup();
     jobManager_->setNumThreads(cmdLine.numCores);
 }
 

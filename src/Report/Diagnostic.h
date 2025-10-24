@@ -2,7 +2,9 @@
 #include "Report/DiagnosticElement.h"
 #include "Report/DiagnosticIds.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
+
+enum class LogColor;
 
 class EvalContext;
 enum class DiagnosticId;
@@ -19,6 +21,41 @@ class Diagnostic
 {
     std::vector<std::unique_ptr<DiagnosticElement>> elements_;
     SourceFile*                                     fileOwner_ = nullptr;
+
+    // Enum for colorable diagnostic parts
+    enum class DiagPart : uint8_t
+    {
+        FileLocationArrow, // "-->"
+        FileLocationPath,  // file path or filename
+        FileLocationSep,   // ":" between file/line/col
+        GutterBar,         // " |"
+        LineNumber,        // left-hand line numbers
+        CodeText,          // source code line
+        SubLabelPrefix,    // secondary label ("note", "help", etc.)
+        Reset,             // reset sequence
+    };
+
+    struct AnsiSeq
+    {
+        std::vector<LogColor> seq;
+        AnsiSeq(std::initializer_list<LogColor> s) :
+            seq(s)
+        {
+        }
+    };
+
+    static AnsiSeq          diagPalette(DiagPart p);
+    static Utf8             toAnsiSeq(const EvalContext& ctx, const AnsiSeq& s);
+    static Utf8             partStyle(const EvalContext& ctx, DiagPart p);
+    static std::string_view severityStr(DiagnosticSeverity s);
+    static Utf8             severityColor(const EvalContext& ctx, DiagnosticSeverity s);
+    static uint32_t         digits(uint32_t n);
+    static void             writeSubLabel(Utf8& out, const EvalContext& ctx, DiagnosticSeverity sev, std::string_view msg);
+    static void             writeFileLocation(Utf8& out, const EvalContext& ctx, const std::string& path, uint32_t line, uint32_t col, uint32_t len);
+    static void             writeGutterSep(Utf8& out, const EvalContext& ctx, uint32_t gutterW);
+    static void             writeCodeLine(Utf8& out, const EvalContext& ctx, uint32_t gutterW, uint32_t lineNo, std::string_view code);
+    static void             writeFullUnderline(Utf8& out, const EvalContext& ctx, DiagnosticSeverity sev, const Utf8& msg, uint32_t gutterW, uint32_t columnOneBased, uint32_t underlineLen);
+    static void             writeCodeBlock(Utf8& out, const EvalContext& ctx, const DiagnosticElement& el);
 
     Utf8 build(const EvalContext& ctx) const;
 

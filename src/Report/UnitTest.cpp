@@ -5,19 +5,19 @@
 #include "Lexer/Lexer.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
-#include "Main/CompilerContext.h"
+#include "Main/EvalContext.h"
 #include "Main/Global.h"
 #include "Report/UnitTest.h"
 
 SWC_BEGIN_NAMESPACE()
 
-Result UnitTest::tokenize(CompilerContext& ctx)
+Result UnitTest::tokenize(EvalContext& ctx)
 {
-    if (!ctx.cmdLine()->verify)
+    if (!ctx.cmdLine().verify)
         return Result::Success;
 
     const auto  file     = ctx.sourceFile();
-    const auto& langSpec = ctx.global()->langSpec();
+    const auto& langSpec = ctx.global().langSpec();
 
     // Get all comments from the file
     Lexer lexer;
@@ -90,7 +90,7 @@ Result UnitTest::tokenize(CompilerContext& ctx)
     return Result::Success;
 }
 
-bool UnitTest::verify(const CompilerContext& ctx, const Diagnostic& diag) const
+bool UnitTest::verify(const EvalContext& ctx, const Diagnostic& diag) const
 {
     if (directives_.empty())
         return false;
@@ -118,7 +118,7 @@ bool UnitTest::verify(const CompilerContext& ctx, const Diagnostic& diag) const
     return false;
 }
 
-Result UnitTest::verify(CompilerContext& ctx) const
+Result UnitTest::verify(EvalContext& ctx) const
 {
     for (const auto& directive : directives_)
     {

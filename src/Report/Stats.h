@@ -1,7 +1,7 @@
 #pragma once
 SWC_BEGIN_NAMESPACE()
 
-class CompilerContext;
+class EvalContext;
 
 struct Stats
 {
@@ -29,7 +29,7 @@ struct Stats
         }
     }
 
-    void print(const CompilerContext& ctx) const;
+    void print(const EvalContext& ctx) const;
 };
 
 SWC_END_NAMESPACE()

@@ -1,11 +1,12 @@
 #pragma once
-#include "Main/CompilerContext.h"
+#include "Main/EvalContext.h"
 
 SWC_BEGIN_NAMESPACE()
 
 class Job;
-using JobRef   = std::shared_ptr<Job>;
-using ClientId = std::uint64_t;
+using JobRef      = std::shared_ptr<Job>;
+using JobClientId = std::uint64_t;
+class CompilerContext;
 
 enum class JobPriority : std::uint8_t
 {
@@ -30,7 +31,7 @@ struct JobRecord
     JobRef job;
 
     JobPriority priority{JobPriority::Normal};
-    ClientId    client = 0;
+    JobClientId clientId = 0;
 
     enum class State : std::uint8_t
     {
@@ -55,8 +56,8 @@ class Job : public std::enable_shared_from_this<Job>
     friend class JobManager;
 
 public:
-    explicit Job(const CommandLine& cmdLine, Global& global) :
-        ctx_(&cmdLine, &global)
+    explicit Job(const CompilerContext& cmpContext) :
+        ctx_(cmpContext)
     {
     }
 
@@ -70,7 +71,7 @@ public:
     void wakeDependents() const;
 
 protected:
-    CompilerContext ctx_;
+    EvalContext ctx_;
 
     // For Result::SleepOn
     void setDependency(const JobRef& dep)

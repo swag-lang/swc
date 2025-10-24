@@ -3,7 +3,7 @@
 #include "Core/Utf8Helpers.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
-#include "Main/CompilerContext.h"
+#include "Main/EvalContext.h"
 #include "Main/Global.h"
 #include "Report/DiagnosticElement.h"
 #include "Report/LogColor.h"
@@ -19,7 +19,7 @@ DiagnosticElement* Diagnostic::addElement(DiagnosticSeverity kind, DiagnosticId 
     return raw;
 }
 
-Utf8 Diagnostic::build(CompilerContext& ctx) const
+Utf8 Diagnostic::build(EvalContext& ctx) const
 {
     Utf8 result;
 
@@ -116,7 +116,7 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
     return result;
 }
 
-void Diagnostic::report(CompilerContext& ctx) const
+void Diagnostic::report(EvalContext& ctx) const
 {
     const auto msg     = build(ctx);
     bool       dismiss = false;
@@ -126,16 +126,16 @@ void Diagnostic::report(CompilerContext& ctx) const
         dismiss = fileOwner_->verifier().verify(ctx, *this);
     }
 
-    if (ctx.cmdLine()->verboseErrors)
+    if (ctx.cmdLine().verboseErrors)
     {
         dismiss = false;
-        if (!ctx.cmdLine()->verboseErrorsFilter.empty() && msg.find(ctx.cmdLine()->verboseErrorsFilter) == Utf8::npos)
+        if (!ctx.cmdLine().verboseErrorsFilter.empty() && msg.find(ctx.cmdLine().verboseErrorsFilter) == Utf8::npos)
             dismiss = true;
     }
 
     if (!dismiss)
     {
-        auto& logger = ctx.global()->logger();
+        auto& logger = ctx.global().logger();
         logger.lock();
         Logger::printEol(ctx);
         Logger::print(ctx, msg);

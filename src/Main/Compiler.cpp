@@ -4,7 +4,7 @@
 #include "FileManager.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
-#include "Main/CompilerContext.h"
+#include "Main/EvalContext.h"
 #include "Main/Global.h"
 #include "Report/Stats.h"
 #include "Thread/JobManager.h"
@@ -21,7 +21,7 @@ void Compiler::test() const
                 auto ext = entry.path().extension().string();
                 if (ext == ".swg" || ext == ".swgs")
                 {
-                    global_.fileMgr().addFile(entry.path());
+                    context_.global().fileMgr().addFile(entry.path());
                 }
             }
         }
@@ -34,8 +34,8 @@ void Compiler::test() const
     {
         SourceFile* f = nullptr;
 
-        explicit T(const CommandLine& cmdLine, Global& global) :
-            Job(cmdLine, global)
+        explicit T(const CompilerContext& cmpCtx) :
+            Job(cmpCtx)
         {
         }
 
@@ -53,26 +53,28 @@ void Compiler::test() const
         }
     };
 
-    for (const auto& f : global_.fileMgr().files())
+    for (const auto& f : context_.global().fileMgr().files())
     {
-        auto k = std::make_shared<T>(cmdLine_, global_);
+        auto k = std::make_shared<T>(context_);
         k->f   = f;
-        global_.jobMgr().enqueue(k, JobPriority::Normal);
+        context_.global().jobMgr().enqueue(k, JobPriority::Normal);
     }
 
-    global_.jobMgr().waitAll();
+    context_.global().jobMgr().waitAll();
 }
 
-int Compiler::run() const
+int Compiler::run()
 {
+    context_.clientId_ = context_.global().jobMgr().newClientId();
+
     {
         Timer time(&Stats::get().timeTotal);
         test();
     }
 
-    if (cmdLine_.stats)
+    if (context_.cmdLine().stats)
     {
-        const CompilerContext ctx(&cmdLine_, &global_);
+        const EvalContext ctx(context_);
         Stats::get().print(ctx);
     }
 

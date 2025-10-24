@@ -3,7 +3,7 @@
 SWC_BEGIN_NAMESPACE()
 
 enum class LogColor;
-class CompilerContext;
+class EvalContext;
 
 class Logger
 {
@@ -11,9 +11,9 @@ public:
     void lock() { mutexAccess_.lock(); }
     void unlock() { mutexAccess_.unlock(); }
 
-    static void print(const CompilerContext& ctx, std::string_view message);
-    static void printEol(const CompilerContext& ctx);
-    static void printHeaderDot(const CompilerContext& ctx, LogColor headerColor, std::string_view header, LogColor msgColor, std::string_view message, std::string_view dot = ".", size_t messageColumn = 40);
+    static void print(const EvalContext& ctx, std::string_view message);
+    static void printEol(const EvalContext& ctx);
+    static void printHeaderDot(const EvalContext& ctx, LogColor headerColor, std::string_view header, LogColor msgColor, std::string_view message, std::string_view dot = ".", size_t messageColumn = 40);
 
 private:
     std::mutex mutexAccess_;

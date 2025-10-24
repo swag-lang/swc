@@ -3,7 +3,7 @@
 #include "Core/Utf8Helpers.h"
 #include "Lexer/LangSpec.h"
 #include "Lexer/SourceFile.h"
-#include "Main/CompilerContext.h"
+#include "Main/EvalContext.h"
 #include "Main/Global.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticIds.h"
@@ -1065,7 +1065,7 @@ void Lexer::lexMultiLineComment()
     pushToken();
 }
 
-void Lexer::checkFormat(const CompilerContext& ctx, uint32_t& startOffset)
+void Lexer::checkFormat(const EvalContext& ctx, uint32_t& startOffset)
 {
     // BOM (Byte Order Mark) constants
     static constexpr uint8_t UTF8[]     = {0xEF, 0xBB, 0xBF};
@@ -1142,7 +1142,7 @@ void Lexer::checkFormat(const CompilerContext& ctx, uint32_t& startOffset)
     startOffset = 0;
 }
 
-Result Lexer::tokenizeRaw(CompilerContext& ctx)
+Result Lexer::tokenizeRaw(EvalContext& ctx)
 {
     rawMode_          = true;
     const auto result = tokenize(ctx, LexerFlagsEnum::ExtractComments);
@@ -1150,7 +1150,7 @@ Result Lexer::tokenizeRaw(CompilerContext& ctx)
     return result;
 }
 
-Result Lexer::tokenize(CompilerContext& ctx, LexerFlags flags)
+Result Lexer::tokenize(EvalContext& ctx, LexerFlags flags)
 {
     file_ = ctx.sourceFile();
 
@@ -1158,7 +1158,7 @@ Result Lexer::tokenize(CompilerContext& ctx, LexerFlags flags)
     file_->lexOut_.lines_.clear();
     prevToken_ = {};
 
-    langSpec_   = &ctx.global()->langSpec();
+    langSpec_   = &ctx.global().langSpec();
     ctx_        = &ctx;
     lexerFlags_ = flags;
 

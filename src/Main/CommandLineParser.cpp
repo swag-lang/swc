@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Main/CommandLineParser.h"
 #include "Main/CommandLine.h"
-#include "Main/CompilerContext.h"
+#include "Main/EvalContext.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticIds.h"
 
@@ -16,7 +16,7 @@ constexpr size_t SHORT_PREFIX_LEN    = 1;
 constexpr size_t LONG_NO_PREFIX_LEN  = 5;
 constexpr size_t SHORT_NO_PREFIX_LEN = 4;
 
-bool CommandLineParser::getNextValue(CompilerContext& ctx, const Utf8& arg, int& index, int argc, char* argv[], Utf8& value)
+bool CommandLineParser::getNextValue(EvalContext& ctx, const Utf8& arg, int& index, int argc, char* argv[], Utf8& value)
 {
     if (index + 1 >= argc)
     {
@@ -45,7 +45,7 @@ bool CommandLineParser::commandMatches(const Utf8& cmdToCheck, const Utf8& comma
     return false;
 }
 
-bool CommandLineParser::parseEnumString(CompilerContext& ctx, const Utf8& value, const Utf8& enumValues, Utf8* target)
+bool CommandLineParser::parseEnumString(EvalContext& ctx, const Utf8& value, const Utf8& enumValues, Utf8* target)
 {
     if (enumValues.empty())
     {
@@ -67,7 +67,7 @@ bool CommandLineParser::parseEnumString(CompilerContext& ctx, const Utf8& value,
     return reportEnumError(ctx, value, enumValues);
 }
 
-bool CommandLineParser::parseEnumInt(CompilerContext& ctx, const Utf8& value, const Utf8& enumValues, int* target)
+bool CommandLineParser::parseEnumInt(EvalContext& ctx, const Utf8& value, const Utf8& enumValues, int* target)
 {
     if (enumValues.empty())
     {
@@ -91,7 +91,7 @@ bool CommandLineParser::parseEnumInt(CompilerContext& ctx, const Utf8& value, co
     return reportEnumError(ctx, value, enumValues);
 }
 
-bool CommandLineParser::reportEnumError(CompilerContext& ctx, const Utf8& value, const Utf8& enumValues)
+bool CommandLineParser::reportEnumError(EvalContext& ctx, const Utf8& value, const Utf8& enumValues)
 {
     const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidEnumValue);
     diag.last()->addArgument(value);
@@ -119,7 +119,7 @@ void CommandLineParser::addArg(const char* commands, const char* longForm, const
         shortFormMap_[info.shortForm] = args_.back();
 }
 
-const ArgInfo* CommandLineParser::findArgument(CompilerContext& ctx, const Utf8& arg, bool& invertBoolean)
+const ArgInfo* CommandLineParser::findArgument(EvalContext& ctx, const Utf8& arg, bool& invertBoolean)
 {
     invertBoolean = false;
 
@@ -131,7 +131,7 @@ const ArgInfo* CommandLineParser::findArgument(CompilerContext& ctx, const Utf8&
     return nullptr;
 }
 
-const ArgInfo* CommandLineParser::findLongFormArgument(CompilerContext& ctx, const Utf8& arg, bool& invertBoolean)
+const ArgInfo* CommandLineParser::findLongFormArgument(EvalContext& ctx, const Utf8& arg, bool& invertBoolean)
 {
     if (arg.substr(0, LONG_NO_PREFIX_LEN) == LONG_NO_PREFIX && arg.length() > LONG_NO_PREFIX_LEN)
         return findNegatedArgument(ctx, arg, LONG_PREFIX, LONG_NO_PREFIX_LEN, longFormMap_, invertBoolean);
@@ -139,7 +139,7 @@ const ArgInfo* CommandLineParser::findLongFormArgument(CompilerContext& ctx, con
     return (it != longFormMap_.end()) ? &it->second : nullptr;
 }
 
-const ArgInfo* CommandLineParser::findShortFormArgument(CompilerContext& ctx, const Utf8& arg, bool& invertBoolean)
+const ArgInfo* CommandLineParser::findShortFormArgument(EvalContext& ctx, const Utf8& arg, bool& invertBoolean)
 {
     if (arg.substr(0, SHORT_NO_PREFIX_LEN) == SHORT_NO_PREFIX && arg.length() > SHORT_NO_PREFIX_LEN)
         return findNegatedArgument(ctx, arg, SHORT_PREFIX, SHORT_NO_PREFIX_LEN, shortFormMap_, invertBoolean);
@@ -147,7 +147,7 @@ const ArgInfo* CommandLineParser::findShortFormArgument(CompilerContext& ctx, co
     return (it != shortFormMap_.end()) ? &it->second : nullptr;
 }
 
-const ArgInfo* CommandLineParser::findNegatedArgument(CompilerContext& ctx, const Utf8& arg, const char* prefix, size_t noPrefixLen, const std::map<Utf8, ArgInfo>& argMap, bool& invertBoolean)
+const ArgInfo* CommandLineParser::findNegatedArgument(EvalContext& ctx, const Utf8& arg, const char* prefix, size_t noPrefixLen, const std::map<Utf8, ArgInfo>& argMap, bool& invertBoolean)
 {
     const Utf8 baseArg = Utf8(prefix) + arg.substr(noPrefixLen);
     const auto it      = argMap.find(baseArg);
@@ -172,14 +172,14 @@ const ArgInfo* CommandLineParser::findNegatedArgument(CompilerContext& ctx, cons
     return info;
 }
 
-void CommandLineParser::reportInvalidArgument(CompilerContext& ctx, const Utf8& arg)
+void CommandLineParser::reportInvalidArgument(EvalContext& ctx, const Utf8& arg)
 {
     const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidArg);
     diag.last()->addArgument(arg);
     diag.report(ctx);
 }
 
-bool CommandLineParser::processArgument(CompilerContext& ctx, const ArgInfo* info, const Utf8& arg, bool invertBoolean, int& index, int argc, char* argv[])
+bool CommandLineParser::processArgument(EvalContext& ctx, const ArgInfo* info, const Utf8& arg, bool invertBoolean, int& index, int argc, char* argv[])
 {
     Utf8 value;
 
@@ -224,8 +224,9 @@ bool CommandLineParser::processArgument(CompilerContext& ctx, const ArgInfo* inf
 
 bool CommandLineParser::parse(int argc, char* argv[])
 {
-    CompilerContext ctx(&cmdLine_, &global_);
-    const Utf8      command = "build";
+    const CompilerContext context(cmdLine_, global_);
+    EvalContext           ctx(context);
+    const Utf8            command = "build";
 
     for (int i = 1; i < argc; i++)
     {

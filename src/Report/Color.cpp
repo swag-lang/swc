@@ -1,14 +1,14 @@
 #include "pch.h"
 
 #include "Main/CommandLine.h"
-#include "Main/CompilerContext.h"
+#include "Main/EvalContext.h"
 #include "Report/LogColor.h"
 
 SWC_BEGIN_NAMESPACE()
 
-std::string_view Color::toAnsi(const CompilerContext& ctx, LogColor c)
+std::string_view Color::toAnsi(const EvalContext& ctx, LogColor c)
 {
-    if (!ctx.cmdLine()->logColor)
+    if (!ctx.cmdLine().logColor)
         return "";
 
     using enum LogColor;

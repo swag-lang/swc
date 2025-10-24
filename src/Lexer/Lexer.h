@@ -5,7 +5,7 @@ SWC_BEGIN_NAMESPACE()
 
 enum class DiagnosticId;
 class Diagnostic;
-class CompilerContext;
+class EvalContext;
 class Global;
 class SourceFile;
 class LangSpec;
@@ -37,24 +37,24 @@ class Lexer
     Token token_     = {};
     Token prevToken_ = {};
 
-    SourceFile*      file_          = nullptr;
-    LexerFlags       lexerFlags_    = LexerFlagsEnum::Default;
-    const uint8_t*   buffer_        = nullptr;
-    const uint8_t*   startBuffer_   = nullptr;
-    const uint8_t*   endBuffer_     = nullptr;
-    const uint8_t*   startToken_    = nullptr;
-    CompilerContext* ctx_           = nullptr;
-    const LangSpec*  langSpec_      = nullptr;
-    bool             hasTokenError_ = false;
-    bool             hasUtf8Error_  = false;
-    bool             rawMode_       = false;
+    SourceFile*     file_          = nullptr;
+    LexerFlags      lexerFlags_    = LexerFlagsEnum::Default;
+    const uint8_t*  buffer_        = nullptr;
+    const uint8_t*  startBuffer_   = nullptr;
+    const uint8_t*  endBuffer_     = nullptr;
+    const uint8_t*  startToken_    = nullptr;
+    EvalContext*    ctx_           = nullptr;
+    const LangSpec* langSpec_      = nullptr;
+    bool            hasTokenError_ = false;
+    bool            hasUtf8Error_  = false;
+    bool            rawMode_       = false;
 
     void eatOneEol();
     void eatUtf8Char();
     void pushToken();
     void reportUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len = 1);
     void reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len = 1);
-    void checkFormat(const CompilerContext& ctx, uint32_t& startOffset);
+    void checkFormat(const EvalContext& ctx, uint32_t& startOffset);
     void lexEscape(TokenId containerToken, bool eatEol);
 
     void lexEol();
@@ -73,8 +73,8 @@ class Lexer
     void lexMultiLineComment();
 
 public:
-    Result tokenize(CompilerContext& ctx, LexerFlags flags = LexerFlagsEnum::Default);
-    Result tokenizeRaw(CompilerContext& ctx);
+    Result tokenize(EvalContext& ctx, LexerFlags flags = LexerFlagsEnum::Default);
+    Result tokenizeRaw(EvalContext& ctx);
 };
 
 SWC_END_NAMESPACE()

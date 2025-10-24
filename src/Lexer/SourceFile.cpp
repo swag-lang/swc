@@ -2,7 +2,7 @@
 
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
-#include "Main/CompilerContext.h"
+#include "Main/EvalContext.h"
 #include "Report/Diagnostic.h"
 #include "Report/Stats.h"
 
@@ -13,7 +13,7 @@ SourceFile::SourceFile(fs::path path) :
 {
 }
 
-Result SourceFile::loadContent(CompilerContext& ctx)
+Result SourceFile::loadContent(EvalContext& ctx)
 {
     if (!content_.empty())
         return Result::Success;
@@ -54,14 +54,14 @@ Result SourceFile::loadContent(CompilerContext& ctx)
     return Result::Success;
 }
 
-Result SourceFile::tokenize(CompilerContext& ctx)
+Result SourceFile::tokenize(EvalContext& ctx)
 {
     SWAG_CHECK(verifier_.tokenize(ctx));
     Lexer lexer;
     return lexer.tokenize(ctx);
 }
 
-Utf8 SourceFile::codeLine(const CompilerContext& ctx, uint32_t line) const
+Utf8 SourceFile::codeLine(const EvalContext& ctx, uint32_t line) const
 {
     line--;
     SWAG_ASSERT(line < lexOut_.lines().size());
@@ -89,7 +89,7 @@ Utf8 SourceFile::codeLine(const CompilerContext& ctx, uint32_t line) const
         return result;
 
     // Transform tabulations to blanks in order for columns to match
-    const uint32_t tabSize = ctx.cmdLine()->tabSize;
+    const uint32_t tabSize = ctx.cmdLine().tabSize;
     Utf8           expanded;
     expanded.reserve(result.size());
 

@@ -4,7 +4,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-class CompilerContext;
+class EvalContext;
 enum class DiagnosticId;
 
 enum class DiagnosticSeverity
@@ -20,7 +20,7 @@ class Diagnostic
     std::vector<std::unique_ptr<DiagnosticElement>> elements_;
     SourceFile*                                     fileOwner_ = nullptr;
 
-    Utf8 build(CompilerContext& ctx) const;
+    Utf8 build(EvalContext& ctx) const;
 
 public:
     explicit Diagnostic(SourceFile* fileOwner = nullptr) :
@@ -28,7 +28,7 @@ public:
     {
     }
 
-    void                                                   report(CompilerContext& ctx) const;
+    void                                                   report(EvalContext& ctx) const;
     const std::vector<std::unique_ptr<DiagnosticElement>>& elements() const { return elements_; }
     SourceFile*                                            fileOwner() const { return fileOwner_; }
 
@@ -44,7 +44,7 @@ public:
         return diag;
     }
 
-    static void reportError(CompilerContext& ctx, DiagnosticId id)
+    static void reportError(EvalContext& ctx, DiagnosticId id)
     {
         const auto diag = error(id);
         diag.report(ctx);

@@ -4,25 +4,24 @@ SWC_BEGIN_NAMESPACE()
 
 struct CommandLine;
 class Global;
-class SourceFile;
+using JobClientId = uint64_t;
 
 class CompilerContext
 {
-    const CommandLine* cmdLine_    = nullptr;
-    Global*            global_     = nullptr;
-    SourceFile*        sourceFile_ = nullptr;
+    friend class Compiler;
+    const CommandLine& cmdLine_;
+    const Global&      global_;
+    JobClientId        clientId_;
 
 public:
-    explicit CompilerContext(const CommandLine* cmdLine, Global* global) :
+    explicit CompilerContext(const CommandLine& cmdLine, const Global& global) :
         cmdLine_(cmdLine),
         global_(global)
     {
     }
 
-    Global*            global() const { return global_; }
-    const CommandLine* cmdLine() const { return cmdLine_; }
-    SourceFile*        sourceFile() const { return sourceFile_; }
-    void               setSourceFile(SourceFile* sourceFile) { sourceFile_ = sourceFile; }
+    const Global&      global() const { return global_; }
+    const CommandLine& cmdLine() const { return cmdLine_; }
 };
 
 SWC_END_NAMESPACE()

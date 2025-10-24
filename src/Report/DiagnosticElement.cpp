@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "DiagnosticElement.h"
 #include "Core/Utf8Helpers.h"
-#include "Main/CompilerContext.h"
+#include "Main/EvalContext.h"
 #include "Report/DiagnosticIds.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -28,7 +28,7 @@ Utf8 DiagnosticElement::argumentToString(const Argument& arg) const
                       arg);
 }
 
-SourceCodeLocation DiagnosticElement::location(const CompilerContext& ctx) const
+SourceCodeLocation DiagnosticElement::location(const EvalContext& ctx) const
 {
     SourceCodeLocation loc;
     loc.fromOffset(ctx, file_, offset_, len_);

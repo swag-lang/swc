@@ -3,33 +3,33 @@
 #include "LogColor.h"
 #include "Logger.h"
 #include "Main/CommandLine.h"
-#include "Main/CompilerContext.h"
+#include "Main/EvalContext.h"
 
 SWC_BEGIN_NAMESPACE()
 
-void Logger::print(const CompilerContext& ctx, std::string_view message)
+void Logger::print(const EvalContext& ctx, std::string_view message)
 {
-    if (ctx.cmdLine()->silent)
+    if (ctx.cmdLine().silent)
         return;
     std::cout << message;
 }
 
-void Logger::printEol(const CompilerContext& ctx)
+void Logger::printEol(const EvalContext& ctx)
 {
-    if (ctx.cmdLine()->silent)
+    if (ctx.cmdLine().silent)
         return;
     std::cout << '\n';
 }
 
-void Logger::printHeaderDot(const CompilerContext& ctx,
-                            LogColor               headerColor,
-                            std::string_view       header,
-                            LogColor               msgColor,
-                            std::string_view       message,
-                            std::string_view       dot,
-                            size_t                 messageColumn)
+void Logger::printHeaderDot(const EvalContext& ctx,
+                            LogColor           headerColor,
+                            std::string_view   header,
+                            LogColor           msgColor,
+                            std::string_view   message,
+                            std::string_view   dot,
+                            size_t             messageColumn)
 {
-    if (ctx.cmdLine()->silent)
+    if (ctx.cmdLine().silent)
         return;
 
     print(ctx, Color::toAnsi(ctx, headerColor));

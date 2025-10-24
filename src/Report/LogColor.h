@@ -2,7 +2,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-class CompilerContext;
+class EvalContext;
 
 enum class LogColor
 {
@@ -28,7 +28,7 @@ enum class LogColor
 
 namespace Color
 {
-    std::string_view toAnsi(const CompilerContext& ctx, LogColor c);
+    std::string_view toAnsi(const EvalContext& ctx, LogColor c);
 }
 
 SWC_END_NAMESPACE()

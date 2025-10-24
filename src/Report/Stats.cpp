@@ -9,15 +9,15 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void Stats::print(const CompilerContext& ctx) const
+void Stats::print(const EvalContext& ctx) const
 {
-    auto& log = ctx.global()->logger();
+    auto& log = ctx.global().logger();
     log.lock();
 
     constexpr auto colorHeader = LogColor::Yellow;
     constexpr auto colorMsg    = LogColor::White;
 
-    Logger::printHeaderDot(ctx, colorHeader, "numWorkers", colorMsg, Utf8Helpers::toNiceBigNumber(ctx.global()->jobMgr().numWorkers()));
+    Logger::printHeaderDot(ctx, colorHeader, "numWorkers", colorMsg, Utf8Helpers::toNiceBigNumber(ctx.global().jobMgr().numWorkers()));
     Logger::printHeaderDot(ctx, colorHeader, "timeTotal", colorMsg, Utf8Helpers::toNiceTime(Os::timerToSeconds(timeTotal.load())));
 
 #if SWC_HAS_STATS

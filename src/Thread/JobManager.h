@@ -6,8 +6,6 @@ SWC_BEGIN_NAMESPACE()
 class JobManager
 {
 public:
-    using ClientId = std::uint64_t;
-
     ~JobManager();
 
     JobManager()                             = default;
@@ -22,7 +20,7 @@ public:
     //  - job is null, or
     //  - job is already enqueued on this manager (job->rec_ != nullptr && job->owner_ == this), or
     //  - the client is currently being cancelled (see cancelAll()).
-    bool enqueue(const JobRef& job, JobPriority priority, ClientId client = 0);
+    bool enqueue(const JobRef& job, JobPriority priority, JobClientId client = 0);
 
     // Wake a sleeping job.
     // If it's waiting, it becomes ready immediately.
@@ -33,16 +31,16 @@ public:
     void waitAll();
 
     // Wait until there are no READY or RUNNING jobs left for 'client' (sleepers are ignored).
-    void waitAll(ClientId client);
+    void waitAll(JobClientId client);
 
     // Cancel all **pending** jobs (READY or WAITING) for 'client',
     // block new enqueues for that client, then wait for any RUNNING jobs
     // of that client to finish. When this returns, the client has no jobs
     // in READY/RUNNING/WAITING.
-    void cancelAll(ClientId client);
+    void cancelAll(JobClientId client);
 
     // Generate a new unique client ID (thread-safe).
-    ClientId newClientId();
+    JobClientId newClientId();
 
     uint32_t numWorkers() const noexcept { return static_cast<uint32_t>(workers_.size()); }
 
@@ -85,21 +83,21 @@ private:
     std::atomic<bool> joined_{false};
 
     // Per-client READY/RUNNING counters (protected by mtx_)
-    std::atomic<ClientId>                     nextClientId_{1}; // start at 1, 0 reserved as "default client"
-    std::unordered_map<ClientId, std::size_t> clientReadyRunning_;
+    std::atomic<JobClientId>                     nextClientId_{1}; // start at 1, 0 reserved as "default client"
+    std::unordered_map<JobClientId, std::size_t> clientReadyRunning_;
 
     // All currently scheduled records (any state except free), to allow cancellation scans.
     std::unordered_set<JobRecord*> liveRecs_;
 
     // Clients currently under cancellation (block new enqueues; children are dropped)
-    std::unordered_set<ClientId> cancellingClients_;
+    std::unordered_set<JobClientId> cancellingClients_;
 
     // Helpers for client accounting. Callers must hold mtx_.
-    void bumpClientCountLocked(ClientId client, int delta);
+    void bumpClientCountLocked(JobClientId client, int delta);
 
     // Cancel a single record and recursively cancel same-client dependents.
     // Assumes mtx_ held. Skips RUNNING/DONE. Returns true if this rec was canceled.
-    bool cancelCascadeLocked(JobRecord* rec, ClientId client);
+    bool cancelCascadeLocked(JobRecord* rec, JobClientId client);
 
     // We keep a tiny interface here; implementation detail is in .cpp.
     struct RecordPool;

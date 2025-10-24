@@ -4,7 +4,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-class CompilerContext;
+class EvalContext;
 class Global;
 
 class SourceFile
@@ -29,9 +29,9 @@ public:
     UnitTest&                   verifier() { return verifier_; }
     const UnitTest&             verifier() const { return verifier_; }
 
-    Result           loadContent(CompilerContext& ctx);
-    Result           tokenize(CompilerContext& ctx);
-    Utf8             codeLine(const CompilerContext& ctx, uint32_t line) const;
+    Result           loadContent(EvalContext& ctx);
+    Result           tokenize(EvalContext& ctx);
+    Utf8             codeLine(const EvalContext& ctx, uint32_t line) const;
     std::string_view codeView(uint32_t offset, uint32_t len) const;
 };
 

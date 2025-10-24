@@ -1,5 +1,5 @@
 #pragma once
-#include "Main/EvalContext.h"
+#include "Main/Context.h"
 #include <functional>
 
 SWC_BEGIN_NAMESPACE();
@@ -64,10 +64,10 @@ public:
     // Wake all jobs currently waiting on this job (even before finishing).
     void wakeDependents() const;
 
-    std::function<JobResult(EvalContext&)> func_;
+    std::function<JobResult(Context&)> func_;
 
 protected:
-    EvalContext ctx_;
+    Context ctx_;
 
     // For Result::SleepOn
     void setDependency(const JobRef& dep)

@@ -6,7 +6,7 @@ SWC_BEGIN_NAMESPACE()
 
 enum class LogColor;
 
-class EvalContext;
+class Context;
 enum class DiagnosticId;
 
 enum class DiagnosticSeverity
@@ -45,21 +45,21 @@ class Diagnostic
     };
 
     static AnsiSeq          diagPalette(DiagPart p);
-    static Utf8             toAnsiSeq(const EvalContext& ctx, const AnsiSeq& s);
-    static Utf8             partStyle(const EvalContext& ctx, DiagPart p);
+    static Utf8             toAnsiSeq(const Context& ctx, const AnsiSeq& s);
+    static Utf8             partStyle(const Context& ctx, DiagPart p);
     static std::string_view severityStr(DiagnosticSeverity s);
-    static Utf8             severityColor(const EvalContext& ctx, DiagnosticSeverity s);
+    static Utf8             severityColor(const Context& ctx, DiagnosticSeverity s);
     static uint32_t         digits(uint32_t n);
-    static void             writeSubLabel(Utf8& out, const EvalContext& ctx, DiagnosticSeverity sev, std::string_view msg, uint32_t gutterW);
-    static void             writeFileLocation(Utf8& out, const EvalContext& ctx, const std::string& path, uint32_t line, uint32_t col, uint32_t len, uint32_t gutterW);
-    static void             writeGutter(Utf8& out, const EvalContext& ctx, uint32_t gutterW);
+    static void             writeSubLabel(Utf8& out, const Context& ctx, DiagnosticSeverity sev, std::string_view msg, uint32_t gutterW);
+    static void             writeFileLocation(Utf8& out, const Context& ctx, const std::string& path, uint32_t line, uint32_t col, uint32_t len, uint32_t gutterW);
+    static void             writeGutter(Utf8& out, const Context& ctx, uint32_t gutterW);
     ;
-    static void writeGutterSep(Utf8& out, const EvalContext& ctx, uint32_t gutterW);
-    static void writeCodeLine(Utf8& out, const EvalContext& ctx, uint32_t gutterW, uint32_t lineNo, std::string_view code);
-    static void writeFullUnderline(Utf8& out, const EvalContext& ctx, DiagnosticSeverity sev, const Utf8& msg, uint32_t gutterW, uint32_t columnOneBased, uint32_t underlineLen);
-    static void writeCodeBlock(Utf8& out, const EvalContext& ctx, const DiagnosticElement& el, uint32_t gutterW);
+    static void writeGutterSep(Utf8& out, const Context& ctx, uint32_t gutterW);
+    static void writeCodeLine(Utf8& out, const Context& ctx, uint32_t gutterW, uint32_t lineNo, std::string_view code);
+    static void writeFullUnderline(Utf8& out, const Context& ctx, DiagnosticSeverity sev, const Utf8& msg, uint32_t gutterW, uint32_t columnOneBased, uint32_t underlineLen);
+    static void writeCodeBlock(Utf8& out, const Context& ctx, const DiagnosticElement& el, uint32_t gutterW);
 
-    Utf8 build(const EvalContext& ctx) const;
+    Utf8 build(const Context& ctx) const;
 
 public:
     explicit Diagnostic(SourceFile* fileOwner = nullptr) :
@@ -67,7 +67,7 @@ public:
     {
     }
 
-    void                                                   report(const EvalContext& ctx) const;
+    void                                                   report(const Context& ctx) const;
     const std::vector<std::unique_ptr<DiagnosticElement>>& elements() const { return elements_; }
     SourceFile*                                            fileOwner() const { return fileOwner_; }
 
@@ -84,7 +84,7 @@ public:
         return diag;
     }
 
-    static void reportError(EvalContext& ctx, DiagnosticId id)
+    static void reportError(Context& ctx, DiagnosticId id)
     {
         const auto diag = error(id);
         diag.report(ctx);

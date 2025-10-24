@@ -2,7 +2,7 @@
 #include "Parser/Parser.h"
 #include "Core/Timer.h"
 #include "Lexer/SourceFile.h"
-#include "Main/EvalContext.h"
+#include "Main/Context.h"
 #include "Report/Stats.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -15,7 +15,7 @@ void Parser::nextToken()
         curToken_++;
 }
 
-Result Parser::parse(EvalContext& ctx)
+Result Parser::parse(Context& ctx)
 {
 #if SWC_HAS_STATS
     Timer time(&Stats::get().timeParser);

@@ -5,7 +5,7 @@
 SWC_BEGIN_NAMESPACE()
 
 class SourceFile;
-class EvalContext;
+class Context;
 
 class ParserOutput
 {
@@ -24,7 +24,7 @@ class Parser
     void nextToken();
 
 public:
-    Result parse(EvalContext& ctx);
+    Result parse(Context& ctx);
 };
 
 SWC_END_NAMESPACE();

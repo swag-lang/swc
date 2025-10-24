@@ -9,7 +9,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-void Stats::print(const EvalContext& ctx) const
+void Stats::print(const Context& ctx) const
 {
     auto& log = ctx.global().logger();
     log.lock();

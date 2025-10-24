@@ -6,7 +6,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-class EvalContext;
+class Context;
 class Global;
 
 class SourceFile
@@ -41,9 +41,9 @@ public:
     void                        setHasError() const { hasError_ = true; }
     FileRef                     ref() const { return ref_; }
 
-    Result           loadContent(EvalContext& ctx);
-    Result           tokenize(EvalContext& ctx);
-    Utf8             codeLine(const EvalContext& ctx, uint32_t line) const;
+    Result           loadContent(Context& ctx);
+    Result           tokenize(Context& ctx);
+    Utf8             codeLine(const Context& ctx, uint32_t line) const;
     std::string_view codeView(uint32_t offset, uint32_t len) const;
 };
 

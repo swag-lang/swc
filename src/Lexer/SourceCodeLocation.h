@@ -3,7 +3,7 @@ SWC_BEGIN_NAMESPACE();
 
 class Compiler;
 class SourceFile;
-class EvalContext;
+class Context;
 
 struct SourceCodeLocation
 {
@@ -13,7 +13,7 @@ struct SourceCodeLocation
     uint32_t          line   = 0;
     uint32_t          column = 0;
 
-    void fromOffset(const EvalContext& ctx, const SourceFile* inFile, uint32_t inOffset, uint32_t inLen = 1);
+    void fromOffset(const Context& ctx, const SourceFile* inFile, uint32_t inOffset, uint32_t inLen = 1);
 };
 
 SWC_END_NAMESPACE();

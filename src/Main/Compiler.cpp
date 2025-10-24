@@ -4,7 +4,7 @@
 #include "FileManager.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
-#include "Main/EvalContext.h"
+#include "Main/Context.h"
 #include "Main/Global.h"
 #include "Parser/Parser.h"
 #include "Report/Stats.h"
@@ -45,7 +45,7 @@ void Compiler::test() const
     for (const auto& f : context_.global().fileMgr().files())
     {
         auto k   = std::make_shared<Job>(context_);
-        k->func_ = [f](EvalContext& ctx) {
+        k->func_ = [f](Context& ctx) {
             Parser parser;
             ctx.setSourceFile(f);
             parser.parse(ctx);
@@ -57,7 +57,7 @@ void Compiler::test() const
 
     context_.global().jobMgr().waitAll(context_.jobClientId());
 
-    EvalContext ctx(context_);
+    Context ctx(context_);
     for (const auto& f : context_.global().fileMgr().files())
     {
         f->verifier().verify(ctx);
@@ -73,7 +73,7 @@ int Compiler::run() const
 
     if (context_.cmdLine().stats)
     {
-        const EvalContext ctx(context_);
+        const Context ctx(context_);
         Stats::get().print(ctx);
     }
 

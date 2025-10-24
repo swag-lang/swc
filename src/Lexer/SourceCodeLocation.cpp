@@ -5,14 +5,14 @@
 #include "Lexer/SourceCodeLocation.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
-#include "Main/EvalContext.h"
+#include "Main/Context.h"
 
 SWC_BEGIN_NAMESPACE();
 
 class Compiler;
 namespace
 {
-    uint32_t calculateColumn(const EvalContext& ctx, const uint8_t* content, uint32_t lineStart, uint32_t offset)
+    uint32_t calculateColumn(const Context& ctx, const uint8_t* content, uint32_t lineStart, uint32_t offset)
     {
         const uint32_t tabSize = ctx.cmdLine().tabSize;
         uint32_t       column  = 1; // Columns are 1-based
@@ -43,7 +43,7 @@ namespace
     }
 }
 
-void SourceCodeLocation::fromOffset(const EvalContext& ctx, const SourceFile* inFile, uint32_t inOffset, uint32_t inLen)
+void SourceCodeLocation::fromOffset(const Context& ctx, const SourceFile* inFile, uint32_t inOffset, uint32_t inLen)
 {
     SWC_ASSERT(inFile);
 

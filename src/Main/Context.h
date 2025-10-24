@@ -8,13 +8,13 @@ class Global;
 struct CommandLine;
 class SourceFile;
 
-class EvalContext
+class Context
 {
     const CompilerContext* cmpContext_ = nullptr;
     SourceFile*            sourceFile_ = nullptr;
 
 public:
-    explicit EvalContext(const CompilerContext& compContext) :
+    explicit Context(const CompilerContext& compContext) :
         cmpContext_(&compContext)
     {
     }

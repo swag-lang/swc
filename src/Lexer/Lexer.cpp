@@ -5,7 +5,7 @@
 #include "Lexer/LangSpec.h"
 #include "Lexer/Lexer.h"
 #include "Lexer/SourceFile.h"
-#include "Main/EvalContext.h"
+#include "Main/Context.h"
 #include "Main/Global.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticIds.h"
@@ -1070,7 +1070,7 @@ void Lexer::lexMultiLineComment()
     pushToken();
 }
 
-void Lexer::checkFormat(const EvalContext& ctx, uint32_t& startOffset)
+void Lexer::checkFormat(const Context& ctx, uint32_t& startOffset)
 {
     // BOM (Byte Order Mark) constants
     static constexpr uint8_t UTF8[]     = {0xEF, 0xBB, 0xBF};
@@ -1147,7 +1147,7 @@ void Lexer::checkFormat(const EvalContext& ctx, uint32_t& startOffset)
     startOffset = 0;
 }
 
-Result Lexer::tokenizeRaw(EvalContext& ctx)
+Result Lexer::tokenizeRaw(Context& ctx)
 {
     rawMode_          = true;
     const auto result = tokenize(ctx, LexerFlagsEnum::ExtractComments);
@@ -1155,7 +1155,7 @@ Result Lexer::tokenizeRaw(EvalContext& ctx)
     return result;
 }
 
-Result Lexer::tokenize(EvalContext& ctx, LexerFlags flags)
+Result Lexer::tokenize(Context& ctx, LexerFlags flags)
 {
 #if SWC_HAS_STATS
     Timer time(&Stats::get().timeLexer);

@@ -149,7 +149,7 @@
         <ClInclude Include="src\Main\CommandLine.h"/>
         <ClInclude Include="src\Main\CommandLineParser.h"/>
         <ClInclude Include="src\Main\CompilerContext.h"/>
-        <ClInclude Include="src\Main\EvalContext.h"/>
+        <ClInclude Include="src\Main\Context.h" />
         <ClInclude Include="src\Main\FileManager.h"/>
         <ClInclude Include="src\Main\Global.h"/>
         <ClInclude Include="src\Main\Compiler.h"/>

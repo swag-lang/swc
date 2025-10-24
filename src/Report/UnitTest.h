@@ -3,7 +3,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-class EvalContext;
+class Context;
 class Global;
 enum class DiagnosticSeverity;
 
@@ -21,9 +21,9 @@ class UnitTest
     std::vector<VerifierDirective> directives_;
 
 public:
-    Result tokenize(EvalContext& ctx);
-    bool   verify(const EvalContext& ctx, const Diagnostic& diag) const;
-    Result verify(EvalContext& ctx) const;
+    Result tokenize(Context& ctx);
+    bool   verify(const Context& ctx, const Diagnostic& diag) const;
+    Result verify(Context& ctx) const;
 };
 
 SWC_END_NAMESPACE();

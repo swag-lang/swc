@@ -4,7 +4,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class SourceFile;
-class EvalContext;
+class Context;
 enum class DiagnosticSeverity;
 enum class DiagnosticId;
 
@@ -48,7 +48,7 @@ public:
         len_    = loc.len;
     }
 
-    SourceCodeLocation location(const EvalContext& ctx) const;
+    SourceCodeLocation location(const Context& ctx) const;
     std::string_view   idName() const;
     DiagnosticId       id() const { return id_; }
     DiagnosticSeverity severity() const { return severity_; }

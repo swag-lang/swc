@@ -2,7 +2,7 @@
 
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
-#include "Main/EvalContext.h"
+#include "Main/Context.h"
 #include "Report/Diagnostic.h"
 #include "Report/Stats.h"
 
@@ -13,7 +13,7 @@ SourceFile::SourceFile(fs::path path) :
 {
 }
 
-Result SourceFile::loadContent(EvalContext& ctx)
+Result SourceFile::loadContent(Context& ctx)
 {
     if (!content_.empty())
         return Result::Success;
@@ -56,14 +56,14 @@ Result SourceFile::loadContent(EvalContext& ctx)
     return Result::Success;
 }
 
-Result SourceFile::tokenize(EvalContext& ctx)
+Result SourceFile::tokenize(Context& ctx)
 {
     SWC_CHECK(verifier_.tokenize(ctx));
     Lexer lexer;
     return lexer.tokenize(ctx);
 }
 
-Utf8 SourceFile::codeLine(const EvalContext& ctx, uint32_t line) const
+Utf8 SourceFile::codeLine(const Context& ctx, uint32_t line) const
 {
     line--;
     SWC_ASSERT(line < lexOut_.lines().size());

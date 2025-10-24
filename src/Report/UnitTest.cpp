@@ -5,13 +5,13 @@
 #include "Lexer/Lexer.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
-#include "Main/EvalContext.h"
+#include "Main/Context.h"
 #include "Main/Global.h"
 #include "Report/UnitTest.h"
 
 SWC_BEGIN_NAMESPACE();
 
-Result UnitTest::tokenize(EvalContext& ctx)
+Result UnitTest::tokenize(Context& ctx)
 {
     if (!ctx.cmdLine().verify)
         return Result::Success;
@@ -90,7 +90,7 @@ Result UnitTest::tokenize(EvalContext& ctx)
     return Result::Success;
 }
 
-bool UnitTest::verify(const EvalContext& ctx, const Diagnostic& diag) const
+bool UnitTest::verify(const Context& ctx, const Diagnostic& diag) const
 {
     if (directives_.empty())
         return false;
@@ -118,7 +118,7 @@ bool UnitTest::verify(const EvalContext& ctx, const Diagnostic& diag) const
     return false;
 }
 
-Result UnitTest::verify(EvalContext& ctx) const
+Result UnitTest::verify(Context& ctx) const
 {
     for (const auto& directive : directives_)
     {

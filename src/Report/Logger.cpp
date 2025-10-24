@@ -3,25 +3,25 @@
 #include "LogColor.h"
 #include "Logger.h"
 #include "Main/CommandLine.h"
-#include "Main/EvalContext.h"
+#include "Main/Context.h"
 
 SWC_BEGIN_NAMESPACE();
 
-void Logger::print(const EvalContext& ctx, std::string_view message)
+void Logger::print(const Context& ctx, std::string_view message)
 {
     if (ctx.cmdLine().silent)
         return;
     std::cout << message;
 }
 
-void Logger::printEol(const EvalContext& ctx)
+void Logger::printEol(const Context& ctx)
 {
     if (ctx.cmdLine().silent)
         return;
     std::cout << '\n';
 }
 
-void Logger::printHeaderDot(const EvalContext& ctx,
+void Logger::printHeaderDot(const Context& ctx,
                             LogColor           headerColor,
                             std::string_view   header,
                             LogColor           msgColor,

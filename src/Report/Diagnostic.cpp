@@ -4,7 +4,7 @@
 #include "Lexer/SourceFile.h"
 #include "LogSymbol.h"
 #include "Main/CommandLine.h"
-#include "Main/EvalContext.h"
+#include "Main/Context.h"
 #include "Main/Global.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticElement.h"
@@ -40,7 +40,7 @@ Diagnostic::AnsiSeq Diagnostic::diagPalette(DiagPart p)
     return {White};
 }
 
-Utf8 Diagnostic::toAnsiSeq(const EvalContext& ctx, const AnsiSeq& s)
+Utf8 Diagnostic::toAnsiSeq(const Context& ctx, const AnsiSeq& s)
 {
     Utf8 out;
     for (const auto c : s.seq)
@@ -48,7 +48,7 @@ Utf8 Diagnostic::toAnsiSeq(const EvalContext& ctx, const AnsiSeq& s)
     return out;
 }
 
-Utf8 Diagnostic::partStyle(const EvalContext& ctx, DiagPart p)
+Utf8 Diagnostic::partStyle(const Context& ctx, DiagPart p)
 {
     return toAnsiSeq(ctx, diagPalette(p));
 }
@@ -70,7 +70,7 @@ std::string_view Diagnostic::severityStr(DiagnosticSeverity s)
     return "unknown";
 }
 
-Utf8 Diagnostic::severityColor(const EvalContext& ctx, DiagnosticSeverity s)
+Utf8 Diagnostic::severityColor(const Context& ctx, DiagnosticSeverity s)
 {
     switch (s)
     {
@@ -93,7 +93,7 @@ uint32_t Diagnostic::digits(uint32_t n)
 }
 
 // Short label line used for secondary elements (note/help/etc.)
-void Diagnostic::writeSubLabel(Utf8& out, const EvalContext& ctx, DiagnosticSeverity sev, std::string_view msg, uint32_t gutterW)
+void Diagnostic::writeSubLabel(Utf8& out, const Context& ctx, DiagnosticSeverity sev, std::string_view msg, uint32_t gutterW)
 {
     out.append(gutterW, ' ');
     out += partStyle(ctx, DiagPart::SubLabelPrefix);
@@ -105,7 +105,7 @@ void Diagnostic::writeSubLabel(Utf8& out, const EvalContext& ctx, DiagnosticSeve
     out += "\n";
 }
 
-void Diagnostic::writeFileLocation(Utf8& out, const EvalContext& ctx, const std::string& path, uint32_t line, uint32_t col, uint32_t len, uint32_t gutterW)
+void Diagnostic::writeFileLocation(Utf8& out, const Context& ctx, const std::string& path, uint32_t line, uint32_t col, uint32_t len, uint32_t gutterW)
 {
     out.append(gutterW, ' ');
     out += partStyle(ctx, DiagPart::FileLocationArrow);
@@ -132,7 +132,7 @@ void Diagnostic::writeFileLocation(Utf8& out, const EvalContext& ctx, const std:
     out += "\n";
 }
 
-void Diagnostic::writeGutter(Utf8& out, const EvalContext& ctx, uint32_t gutterW)
+void Diagnostic::writeGutter(Utf8& out, const Context& ctx, uint32_t gutterW)
 {
     out.append(gutterW, ' ');
     out += partStyle(ctx, DiagPart::GutterBar);
@@ -142,13 +142,13 @@ void Diagnostic::writeGutter(Utf8& out, const EvalContext& ctx, uint32_t gutterW
     out += " ";
 }
 
-void Diagnostic::writeGutterSep(Utf8& out, const EvalContext& ctx, uint32_t gutterW)
+void Diagnostic::writeGutterSep(Utf8& out, const Context& ctx, uint32_t gutterW)
 {
     writeGutter(out, ctx, gutterW);
     out += "\n";
 }
 
-void Diagnostic::writeCodeLine(Utf8& out, const EvalContext& ctx, uint32_t gutterW, uint32_t lineNo, std::string_view code)
+void Diagnostic::writeCodeLine(Utf8& out, const Context& ctx, uint32_t gutterW, uint32_t lineNo, std::string_view code)
 {
     out.append(gutterW - digits(lineNo), ' ');
     out += partStyle(ctx, DiagPart::LineNumber);
@@ -163,7 +163,7 @@ void Diagnostic::writeCodeLine(Utf8& out, const EvalContext& ctx, uint32_t gutte
     out += "\n";
 }
 
-void Diagnostic::writeFullUnderline(Utf8& out, const EvalContext& ctx, DiagnosticSeverity sev, const Utf8& msg, uint32_t gutterW, uint32_t columnOneBased, uint32_t underlineLen)
+void Diagnostic::writeFullUnderline(Utf8& out, const Context& ctx, DiagnosticSeverity sev, const Utf8& msg, uint32_t gutterW, uint32_t columnOneBased, uint32_t underlineLen)
 {
     writeGutter(out, ctx, gutterW);
 
@@ -188,7 +188,7 @@ void Diagnostic::writeFullUnderline(Utf8& out, const EvalContext& ctx, Diagnosti
 
 // Renders a single element's location/code/underline block
 // NOTE: gutterW is computed once per diagnostic (max line number across all elements)
-void Diagnostic::writeCodeBlock(Utf8& out, const EvalContext& ctx, const DiagnosticElement& el, uint32_t gutterW)
+void Diagnostic::writeCodeBlock(Utf8& out, const Context& ctx, const DiagnosticElement& el, uint32_t gutterW)
 {
     const auto loc = el.location(ctx);
 
@@ -212,7 +212,7 @@ void Diagnostic::writeCodeBlock(Utf8& out, const EvalContext& ctx, const Diagnos
     writeGutterSep(out, ctx, gutterW);
 }
 
-Utf8 Diagnostic::build(const EvalContext& ctx) const
+Utf8 Diagnostic::build(const Context& ctx) const
 {
     Utf8 out;
     if (elements_.empty())
@@ -269,7 +269,7 @@ DiagnosticElement* Diagnostic::addElement(DiagnosticSeverity kind, DiagnosticId 
     return raw;
 }
 
-void Diagnostic::report(const EvalContext& ctx) const
+void Diagnostic::report(const Context& ctx) const
 {
     const auto msg     = build(ctx);
     bool       dismiss = false;

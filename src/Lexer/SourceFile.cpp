@@ -56,7 +56,7 @@ Result SourceFile::loadContent(EvalContext& ctx)
 
 Result SourceFile::tokenize(EvalContext& ctx)
 {
-    SWAG_CHECK(verifier_.tokenize(ctx));
+    SWC_CHECK(verifier_.tokenize(ctx));
     Lexer lexer;
     return lexer.tokenize(ctx);
 }
@@ -64,7 +64,7 @@ Result SourceFile::tokenize(EvalContext& ctx)
 Utf8 SourceFile::codeLine(const EvalContext& ctx, uint32_t line) const
 {
     line--;
-    SWAG_ASSERT(line < lexOut_.lines().size());
+    SWC_ASSERT(line < lexOut_.lines().size());
 
     const auto  offset      = lexOut_.lines()[line];
     const auto  startBuffer = reinterpret_cast<const char*>(content_.data() + offset);
@@ -114,7 +114,7 @@ Utf8 SourceFile::codeLine(const EvalContext& ctx, uint32_t line) const
 
 std::string_view SourceFile::codeView(uint32_t offset, uint32_t len) const
 {
-    SWAG_ASSERT(offset + len <= content_.size());
+    SWC_ASSERT(offset + len <= content_.size());
     return std::string_view{reinterpret_cast<const char*>(content_.data() + offset), len};
 }
 

@@ -81,8 +81,8 @@ JobManager::~JobManager()
 void JobManager::setNumThreads(std::size_t count)
 {
     // One-shot only.
-    SWAG_ASSERT(workers_.empty());
-    SWAG_ASSERT(!accepting_);
+    SWC_ASSERT(workers_.empty());
+    SWC_ASSERT(!accepting_);
 
     if (count == 0)
         count = std::thread::hardware_concurrency();
@@ -618,7 +618,7 @@ bool JobManager::cancelCascadeLocked(JobRecord* rec, JobClientId client)
     else
     {
         // WAITING is not counted; nothing to do for clientReadyRunning_.
-        SWAG_ASSERT(rec->state == JobRecord::State::Waiting);
+        SWC_ASSERT(rec->state == JobRecord::State::Waiting);
     }
 
     // Mark done, wake dependents (of other clients), detach, and free.

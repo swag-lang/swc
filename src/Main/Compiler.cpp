@@ -6,6 +6,7 @@
 #include "Main/CommandLine.h"
 #include "Main/EvalContext.h"
 #include "Main/Global.h"
+#include "Parser/Parser.h"
 #include "Report/Stats.h"
 #include "Thread/JobManager.h"
 
@@ -45,10 +46,9 @@ void Compiler::test() const
     {
         auto k   = std::make_shared<Job>(context_);
         k->func_ = [f](EvalContext& ctx) {
+            Parser parser;
             ctx.setSourceFile(f);
-            f->loadContent(ctx);
-            f->tokenize(ctx);
-            (void) f->verifier().verify(ctx);
+            parser.parse(ctx);
             return JobResult::Done;
         };
 

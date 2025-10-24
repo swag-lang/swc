@@ -9,7 +9,7 @@ enum class Result : bool
     Success = true,
 };
 
-#define SWAG_CHECK(__result)           \
+#define SWC_CHECK(__result)            \
     if ((__result) != Result::Success) \
     {                                  \
         do                             \
@@ -19,7 +19,7 @@ enum class Result : bool
     }
 
 #if SWC_HAS_ASSERT
-#define SWAG_ASSERT(__expr)                          \
+#define SWC_ASSERT(__expr)                           \
     do                                               \
     {                                                \
         if (!(__expr))                               \
@@ -28,7 +28,7 @@ enum class Result : bool
         }                                            \
     } while (0)
 #else
-#define SWAG_ASSERT(__expr) \
+#define SWC_ASSERT(__expr) \
     do                      \
     {                       \
     } while (0)

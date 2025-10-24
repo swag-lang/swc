@@ -45,7 +45,7 @@ namespace
 
 void SourceCodeLocation::fromOffset(const EvalContext& ctx, const SourceFile* inFile, uint32_t inOffset, uint32_t inLen)
 {
-    SWAG_ASSERT(inFile);
+    SWC_ASSERT(inFile);
 
     file   = inFile;
     offset = inOffset;

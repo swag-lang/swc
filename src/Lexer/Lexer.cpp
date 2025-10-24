@@ -55,7 +55,7 @@ void Lexer::eatOneEol()
     }
     else
     {
-        SWAG_ASSERT(buffer_[0] == '\n');
+        SWC_ASSERT(buffer_[0] == '\n');
         buffer_++;
     }
 
@@ -158,7 +158,7 @@ void Lexer::lexEscape(TokenId containerToken, bool eatEol)
             expectedDigits = 8; // \UXXXXXXXX
             break;
         default:
-            SWAG_ASSERT(false);
+            SWC_ASSERT(false);
     }
 
     // Check if we have the required number of hex digits

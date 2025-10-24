@@ -21,7 +21,7 @@ Result UnitTest::tokenize(EvalContext& ctx)
 
     // Get all comments from the file
     Lexer lexer;
-    SWAG_CHECK(lexer.tokenizeRaw(ctx));
+    SWC_CHECK(lexer.tokenizeRaw(ctx));
 
     // Parse all comments to find a verify directive
     constexpr std::string_view needle = "expected-";

@@ -69,10 +69,11 @@ int Compiler::run() const
         test();
     }
 
-#if SWC_HAS_STATS
-    const CompilerContext ctx(&cmdLine_, &global_);
-    Stats::get().print(ctx);
-#endif
+    if (cmdLine_.stats)
+    {
+        const CompilerContext ctx(&cmdLine_, &global_);
+        Stats::get().print(ctx);
+    }
 
     return 0;
 }

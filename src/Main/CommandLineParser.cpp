@@ -266,6 +266,7 @@ CommandLineParser::CommandLineParser(CommandLine& cmdLine, Global& global) :
     global_(global)
 {
     addArg("all", "--silent", nullptr, CommandLineType::Bool, &cmdLine_.silent, nullptr, "no log output");
+    addArg("all", "--stats", nullptr, CommandLineType::Bool, &cmdLine_.stats, nullptr, "log some statistics");
     addArg("all", "--num-cores", nullptr, CommandLineType::Int, &cmdLine_.numCores, nullptr, "maximum number of cpu to use (0 = automatic)");
     addArg("all", "--log-color", nullptr, CommandLineType::Bool, &cmdLine_.logColor, nullptr, "log output can be colored");
     addArg("all", "--verify", "-v", CommandLineType::Bool, &cmdLine_.verify, nullptr, "verify special test comments");

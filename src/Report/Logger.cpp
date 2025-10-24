@@ -34,9 +34,10 @@ void Logger::printHeaderDot(const CompilerContext& ctx,
 
     print(ctx, Color::toAnsi(ctx, headerColor));
     print(ctx, header);
-    for (size_t i = header.size(); i < messageColumn; ++i)
-        print(ctx, dot);
     print(ctx, Color::toAnsi(ctx, msgColor));
+    for (size_t i = header.size(); i < messageColumn - 1; ++i)
+        print(ctx, dot);
+    print(ctx, " ");
     print(ctx, message);
     printEol(ctx);
 }

@@ -5,10 +5,10 @@ SWC_BEGIN_NAMESPACE()
 
 struct Timer
 {
-    explicit Timer(std::atomic<uint64_t>* dest, bool force = false) :
+    explicit Timer(std::atomic<uint64_t>* dest) :
         destValue{dest}
     {
-        start(force);
+        start();
     }
 
     ~Timer()
@@ -16,14 +16,9 @@ struct Timer
         stop();
     }
 
-    void start([[maybe_unused]] bool force)
+    void start()
     {
-#ifdef SWC_HAS_STATS
         timeBefore = Os::timerNow();
-#else
-        if (force)
-            timeBefore = OS::timerNow();
-#endif
     }
 
     void stop() const

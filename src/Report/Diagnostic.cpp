@@ -1,5 +1,3 @@
-#include <algorithm>
-
 #include "pch.h"
 
 #include "Core/Utf8Helpers.h"
@@ -139,13 +137,19 @@ void Diagnostic::writeFileLocation(Utf8& out, const EvalContext& ctx, const std:
     out += "\n";
 }
 
-void Diagnostic::writeGutterSep(Utf8& out, const EvalContext& ctx, uint32_t gutterW)
+void Diagnostic::writeGutter(Utf8& out, const EvalContext& ctx, uint32_t gutterW)
 {
     out.append(gutterW, ' ');
     out += partStyle(ctx, DiagPart::GutterBar);
     out += " ";
     out += LogSymbolHelper::toString(ctx, LogSymbol::VerticalLine);
     out += partStyle(ctx, DiagPart::Reset);
+    out += " ";
+}
+
+void Diagnostic::writeGutterSep(Utf8& out, const EvalContext& ctx, uint32_t gutterW)
+{
+    writeGutter(out, ctx, gutterW);
     out += "\n";
 }
 
@@ -156,11 +160,7 @@ void Diagnostic::writeCodeLine(Utf8& out, const EvalContext& ctx, uint32_t gutte
     out += std::to_string(lineNo);
     out += partStyle(ctx, DiagPart::Reset);
 
-    out += partStyle(ctx, DiagPart::GutterBar);
-    out += " ";
-    out += LogSymbolHelper::toString(ctx, LogSymbol::VerticalLine);
-    out += " ";
-    out += partStyle(ctx, DiagPart::Reset);
+    writeGutter(out, ctx, 0);
 
     out += partStyle(ctx, DiagPart::CodeText);
     out += code;
@@ -170,14 +170,9 @@ void Diagnostic::writeCodeLine(Utf8& out, const EvalContext& ctx, uint32_t gutte
 
 void Diagnostic::writeFullUnderline(Utf8& out, const EvalContext& ctx, DiagnosticSeverity sev, const Utf8& msg, uint32_t gutterW, uint32_t columnOneBased, uint32_t underlineLen)
 {
-    out.append(gutterW, ' ');
-    out += partStyle(ctx, DiagPart::GutterBar);
-    out += " ";
-    out += LogSymbolHelper::toString(ctx, LogSymbol::VerticalLine);
-    out += " ";
-    out += partStyle(ctx, DiagPart::Reset);
+    writeGutter(out, ctx, gutterW);
 
-    // Carets use severity color + caret style
+    // Carets use severity color and caret style
     out += severityColor(ctx, sev);
 
     for (uint32_t i = 1; i < columnOneBased; ++i)

@@ -33,3 +33,7 @@ SWAG_DIAG_DEF(EmptyHexEscape, "empty hexadecimal escape sequence '%0'")
 SWAG_DIAG_DEF(TooManyCharsInCharLiteral, "too many characters in literal")
 SWAG_DIAG_DEF(InvalidNumberSuffix, "invalid number suffix '%0'")
 SWAG_DIAG_DEF(InvalidCharacter, "invalid character '%0'")
+
+// Notes
+SWAG_DIAG_DEF(NoteEscapesSequence, "toto")
+

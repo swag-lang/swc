@@ -4,6 +4,7 @@ SWC_BEGIN_NAMESPACE();
 
 enum class DiagnosticId
 {
+    None = 0,
 #define SWAG_DIAG_DEF(id, msg) id,
 #include "DiagnosticIds.inc"
 
@@ -18,6 +19,7 @@ struct DiagnosticIdInfo
 };
 
 constexpr DiagnosticIdInfo DIAGNOSTIC_INFOS[] = {
+    {DiagnosticId::None, "", ""},
 #define SWAG_DIAG_DEF(id, msg) {DiagnosticId::id, #id, msg},
 #include "DiagnosticIds.inc"
 

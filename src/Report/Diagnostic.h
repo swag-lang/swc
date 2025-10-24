@@ -20,7 +20,7 @@ class Diagnostic
     std::vector<std::unique_ptr<DiagnosticElement>> elements_;
     SourceFile*                                     fileOwner_ = nullptr;
 
-    Utf8 build(EvalContext& ctx) const;
+    Utf8 build(const EvalContext& ctx) const;
 
 public:
     explicit Diagnostic(SourceFile* fileOwner = nullptr) :
@@ -28,12 +28,13 @@ public:
     {
     }
 
-    void                                                   report(EvalContext& ctx) const;
+    void                                                   report(const EvalContext& ctx) const;
     const std::vector<std::unique_ptr<DiagnosticElement>>& elements() const { return elements_; }
     SourceFile*                                            fileOwner() const { return fileOwner_; }
 
     DiagnosticElement* addElement(DiagnosticSeverity kind, DiagnosticId id);
     DiagnosticElement* addError(DiagnosticId id) { return addElement(DiagnosticSeverity::Error, id); }
+    DiagnosticElement* addNote(DiagnosticId id) { return addElement(DiagnosticSeverity::Note, id); }
 
     DiagnosticElement* last() const { return elements_.empty() ? nullptr : elements_.back().get(); }
 

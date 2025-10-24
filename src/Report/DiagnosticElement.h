@@ -53,6 +53,7 @@ public:
     DiagnosticId       id() const { return id_; }
     DiagnosticSeverity severity() const { return severity_; }
     Utf8               message() const;
+    bool               hasCodeLocation() const { return file_ != nullptr && len_ > 0; }
 
     template<typename T>
     void addArgument(T&& arg)

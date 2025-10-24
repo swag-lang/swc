@@ -45,6 +45,7 @@ namespace
         return {};
     }
 
+    // Factorized header for the primary element
     void writeHeader(Utf8& out, const EvalContext& ctx, DiagnosticSeverity sev, std::string_view idName, std::string_view msg)
     {
         out += severityColor(ctx, sev);
@@ -55,12 +56,33 @@ namespace
             out += idName;
             out += "]";
         }
+
         out += Color::toAnsi(ctx, LogColor::Reset);
         out += ": ";
         out += msg;
         out += "\n";
     }
 
+    // Short label line used for secondary elements (note/help/etc.)
+    void writeSubLabel(Utf8& out, const EvalContext& ctx, DiagnosticSeverity sev, std::string_view idName, std::string_view msg)
+    {
+        out += "  "; // slight indent to visually group under the header
+        out += severityColor(ctx, sev);
+        out += severityStr(sev);
+        if (!idName.empty())
+        {
+            out += "[";
+            out += idName;
+            out += "]";
+        }
+
+        out += Color::toAnsi(ctx, LogColor::Reset);
+        out += ": ";
+        out += msg;
+        out += "\n";
+    }
+
+    // Generic digit counter (no hard cap)
     uint32_t digits(uint32_t n)
     {
         return static_cast<uint32_t>(std::to_string(n).size());
@@ -114,55 +136,72 @@ namespace
         out += Color::toAnsi(ctx, LogColor::Reset);
         out += "\n";
     }
+
+    // Renders a single element's location/code/underline block
+    void renderElementBlock(Utf8& out, const EvalContext& ctx, const DiagnosticElement& el)
+    {
+        const auto loc = el.location(ctx);
+
+        Utf8 fileName;
+        if (ctx.cmdLine().errorAbsolute)
+            fileName = el.location(ctx).file->path().string();
+        else
+            fileName = el.location(ctx).file->path().filename().string();
+        writeArrowLine(out, ctx, fileName, loc.line, loc.column);
+
+        const uint32_t gutterW = digits(loc.line);
+        writeGutterSep(out, gutterW);
+
+        const auto codeLine = el.location(ctx).file->codeLine(ctx, loc.line);
+        writeCodeLine(out, gutterW, loc.line, codeLine);
+
+        // underline the entire span with carets
+        std::string_view tokenView     = el.location(ctx).file->codeView(el.location(ctx).offset, el.location(ctx).len);
+        uint32_t         tokenLenChars = Utf8Helpers::countChars(tokenView);
+        writeFullUnderline(out, ctx, el.severity(), gutterW, loc.column, tokenLenChars);
+    }
 }
 
-Utf8 Diagnostic::build(EvalContext& ctx) const
+Utf8 Diagnostic::build(const EvalContext& ctx) const
 {
     Utf8 out;
+    if (elements_.empty())
+        return out;
 
-    for (auto& e : elements_)
+    // Primary element: the first one
+    const auto& primary = elements_.front();
+    const auto  pSev    = primary->severity();
+    const auto  pId     = primary->idName();
+    const auto  pMsg    = primary->message();
+
+    // Header for the whole diagnostic
+    writeHeader(out, ctx, pSev, pId, pMsg);
+
+    // Render primary element body (location/code) if any
+    const bool pHasLoc = (primary->file_ != nullptr) && (primary->len_ != 0);
+    if (pHasLoc)
     {
-        const auto sev    = e->severity();
-        const auto idName = e->idName();
-        const auto msg    = e->message();
-        const bool hasLoc = (e->file_ != nullptr) && (e->len_ != 0);
-
-        if (hasLoc)
-        {
-            const auto loc = e->location(ctx);
-
-            // Factorized header
-            writeHeader(out, ctx, sev, idName, msg);
-
-            Utf8 fileName;
-            if (ctx.cmdLine().errorAbsolute)
-                fileName = e->file_->path().string();
-            else
-                fileName = e->file_->path().filename().string();
-            writeArrowLine(out, ctx, fileName, loc.line, loc.column);
-
-            const uint32_t gutterW = digits(loc.line);
-            writeGutterSep(out, gutterW);
-
-            const auto codeLine = e->file_->codeLine(ctx, loc.line);
-            writeCodeLine(out, gutterW, loc.line, codeLine);
-
-            // underline the entire span with carets
-            std::string_view tokenView     = e->file_->codeView(e->offset_, e->len_);
-            uint32_t         tokenLenChars = Utf8Helpers::countChars(tokenView);
-            writeFullUnderline(out, ctx, sev, gutterW, loc.column, tokenLenChars);
-        }
-
-        // No location
-        else
-        {
-            // Factorized header
-            writeHeader(out, ctx, sev, idName, msg);
-        }
-
-        out += "\n"; // blank line between diagnostics
+        renderElementBlock(out, ctx, *primary);
     }
 
+    // Now render all secondary elements as part of the same diagnostic
+    for (size_t i = 1; i < elements_.size(); ++i)
+    {
+        const auto& e      = elements_[i];
+        const auto  sev    = e->severity();
+        const auto  id     = e->idName();
+        const auto  msg    = e->message();
+        const bool  hasLoc = e->hasCodeLocation();
+
+        // Sub label line like: "  note: ..." or "  help: ..."
+        writeSubLabel(out, ctx, sev, id, msg);
+
+        // Optional location/code block
+        if (hasLoc)
+            renderElementBlock(out, ctx, *e);
+    }
+
+    out += "\n"; // single blank line after the whole diagnostic
     return out;
 }
 
@@ -174,7 +213,7 @@ DiagnosticElement* Diagnostic::addElement(DiagnosticSeverity kind, DiagnosticId 
     return raw;
 }
 
-void Diagnostic::report(EvalContext& ctx) const
+void Diagnostic::report(const EvalContext& ctx) const
 {
     const auto msg     = build(ctx);
     bool       dismiss = false;

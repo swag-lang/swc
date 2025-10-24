@@ -1,4 +1,5 @@
 #pragma once
+#include "Lexer/Token.h"
 #include "Parser/Ast.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -15,9 +16,12 @@ protected:
 
 class Parser
 {
-    SourceFile* file_     = nullptr;
-    Ast*        ast_      = nullptr;
-    TokenRef    curToken_ = INVALID_TOKEN_REF;
+    SourceFile*  file_      = nullptr;
+    Ast*         ast_       = nullptr;
+    const Token* curToken_  = nullptr;
+    const Token* lastToken_ = nullptr;
+
+    void nextToken();
 
 public:
     Result parse(EvalContext& ctx);

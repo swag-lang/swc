@@ -19,6 +19,7 @@ enum class TokenId : uint8_t
     Intrinsic,
     Compiler,
     Operator,
+    EndOfFile,
 };
 
 enum class SubTokenStringId : uint16_t

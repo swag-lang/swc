@@ -1278,6 +1278,11 @@ Result Lexer::tokenize(EvalContext& ctx, LexerFlags flags)
         lexOperator();
     }
 
+    // End marker
+    token_.id  = TokenId::EndOfFile;
+    token_.len = 0;
+    file_->lexOut_.tokens_.push_back(token_);
+
 #if SWC_HAS_STATS
     if (!rawMode_)
         Stats::get().numTokens.fetch_add(file_->lexOut_.tokens_.size());

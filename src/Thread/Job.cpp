@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Thread/JobManager.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 void Job::wakeDependents() const
 {
@@ -11,4 +11,4 @@ void Job::wakeDependents() const
     owner_->notifyDependents(rec_);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

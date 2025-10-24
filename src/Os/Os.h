@@ -1,5 +1,5 @@
 #pragma once
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 namespace Os
 {
@@ -10,4 +10,4 @@ namespace Os
     double   timerToSeconds(uint64_t timer);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

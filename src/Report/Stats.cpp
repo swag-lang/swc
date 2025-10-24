@@ -7,7 +7,7 @@
 #include "Report/Logger.h"
 #include "Thread/JobManager.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 void Stats::print(const EvalContext& ctx) const
 {
@@ -29,4 +29,4 @@ void Stats::print(const EvalContext& ctx) const
     log.unlock();
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

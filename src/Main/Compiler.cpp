@@ -9,7 +9,7 @@
 #include "Report/Stats.h"
 #include "Thread/JobManager.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 Compiler::Compiler(const CommandLine& cmdLine, const Global& global) :
     context_(cmdLine, global)
@@ -85,4 +85,4 @@ int Compiler::run() const
     return 0;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

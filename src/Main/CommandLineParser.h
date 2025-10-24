@@ -1,5 +1,5 @@
 #pragma once
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class EvalContext;
 struct CommandLine;
@@ -62,4 +62,4 @@ public:
     bool parse(int argc, char* argv[]);
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

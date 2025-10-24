@@ -1,7 +1,7 @@
 #pragma once
 #include "Lexer/Token.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 enum class DiagnosticId;
 class Diagnostic;
@@ -14,7 +14,7 @@ enum class LexerFlagsEnum : uint32_t
 {
     Default,
     ExtractBlanks,
-    ExtractEols,
+    ExtractLineEnds,
     ExtractComments,
 };
 
@@ -77,4 +77,4 @@ public:
     Result tokenizeRaw(EvalContext& ctx);
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -1,7 +1,7 @@
 #pragma once
 #include "Keyword.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class SourceFile;
 
@@ -117,4 +117,4 @@ struct Token
     std::string_view toString(const SourceFile* file) const;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

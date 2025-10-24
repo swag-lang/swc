@@ -1,7 +1,7 @@
 #pragma once
 #include "Lexer/SourceCodeLocation.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class SourceFile;
 class EvalContext;
@@ -63,4 +63,4 @@ public:
     void addArgument(std::string_view arg);
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

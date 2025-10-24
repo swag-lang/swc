@@ -9,7 +9,7 @@
 #include "Report/DiagnosticIds.h"
 #include "Report/Stats.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 namespace
 {
@@ -71,7 +71,7 @@ void Lexer::pushToken()
         return;
     if (token_.id == TokenId::Blank && !lexerFlags_.has(LexerFlagsEnum::ExtractBlanks))
         return;
-    if (token_.id == TokenId::Eol && !lexerFlags_.has(LexerFlagsEnum::ExtractEols))
+    if (token_.id == TokenId::Eol && !lexerFlags_.has(LexerFlagsEnum::ExtractLineEnds))
         return;
     if (token_.id == TokenId::Comment && !lexerFlags_.has(LexerFlagsEnum::ExtractComments))
         return;
@@ -1281,4 +1281,4 @@ Result Lexer::tokenize(EvalContext& ctx, LexerFlags flags)
     return Result::Success;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

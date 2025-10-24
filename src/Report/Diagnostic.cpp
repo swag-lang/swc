@@ -9,7 +9,7 @@
 #include "Report/LogColor.h"
 #include "Report/Logger.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 DiagnosticElement* Diagnostic::addElement(DiagnosticSeverity kind, DiagnosticId id)
 {
@@ -143,4 +143,4 @@ void Diagnostic::report(EvalContext& ctx) const
     }
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

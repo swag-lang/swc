@@ -1,7 +1,7 @@
 #pragma once
 #include "Lexer/SourceFile.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 using FileRef = uint32_t;
 
@@ -32,4 +32,4 @@ public:
     }
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

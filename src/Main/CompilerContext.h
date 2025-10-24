@@ -1,10 +1,10 @@
 #pragma once
+#include "Core/Types.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 struct CommandLine;
 class Global;
-using JobClientId = uint64_t;
 
 class CompilerContext
 {
@@ -25,4 +25,4 @@ public:
     JobClientId        jobClientId() const { return jobClientId_; }
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -5,7 +5,7 @@
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticIds.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 constexpr auto   LONG_PREFIX         = "--";
 constexpr auto   SHORT_PREFIX        = "-";
@@ -276,4 +276,4 @@ CommandLineParser::CommandLineParser(CommandLine& cmdLine, Global& global) :
     addArg("all", "--verbose-errors-filter", "-vef", CommandLineType::String, &cmdLine_->verboseErrorsFilter, nullptr, "filter logged silent errors during tests");
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

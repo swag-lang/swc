@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Utf8Helpers.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 // Returns {next_ptr, code_point, bytes_consumed}.
 // On error: {nullptr, 0, 0}.
@@ -161,4 +161,4 @@ Utf8 Utf8Helpers::toNiceTime(double seconds)
     return std::format("{} min {} s", minutes, remainingSeconds);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

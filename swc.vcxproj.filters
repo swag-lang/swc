@@ -9,21 +9,23 @@
     <ClCompile Include="src\Lexer\Lexer.cpp" />
     <ClCompile Include="src\Lexer\SourceCodeLocation.cpp" />
     <ClCompile Include="src\Lexer\Token.cpp" />
-    <ClCompile Include="src\Main\CommandLine.cpp" />
     <ClCompile Include="src\Main\CommandLineParser.cpp" />
-    <ClCompile Include="src\Main\CompilerContext.cpp" />
-    <ClCompile Include="src\Main\CompilerInstance.cpp" />
-    <ClCompile Include="src\Main\swc.cpp" />
     <ClCompile Include="src\Os\OsWin32.cpp" />
     <ClCompile Include="src\Report\Check.cpp" />
     <ClCompile Include="src\Report\Diagnostic.cpp" />
-    <ClCompile Include="src\Report\DiagnosticIds.cpp" />
     <ClCompile Include="src\Report\DiagnosticElement.cpp" />
     <ClCompile Include="src\Report\Logger.cpp" />
     <ClCompile Include="src\Report\UnitTest.cpp" />
     <ClCompile Include="src\Thread\Job.cpp" />
     <ClCompile Include="src\Thread\JobManager.cpp" />
     <ClCompile Include="src\Memory\mimalloc\src\static.c" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\Main\FileManager.cpp" />
+    <ClCompile Include="src\Main\Global.cpp" />
+    <ClCompile Include="src\Main\Compiler.cpp" />
+    <ClCompile Include="src\Memory\Allocator.cpp" />
+    <ClCompile Include="src\Report\Color.cpp" />
+    <ClCompile Include="src\Report\Stats.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Lexer\SourceFile.h" />
@@ -40,10 +42,8 @@
     <ClInclude Include="src\Main\CommandLine.h" />
     <ClInclude Include="src\Main\CommandLineParser.h" />
     <ClInclude Include="src\Main\CompilerContext.h" />
-    <ClInclude Include="src\Main\CompilerInstance.h" />
     <ClInclude Include="src\Os\Os.h" />
     <ClInclude Include="src\Report\Check.h" />
-    <ClInclude Include="src\Report\Color.h" />
     <ClInclude Include="src\Report\Diagnostic.h" />
     <ClInclude Include="src\Report\DiagnosticIds.h" />
     <ClInclude Include="src\Report\DiagnosticElement.h" />
@@ -52,5 +52,13 @@
     <ClInclude Include="src\Report\UnitTest.h" />
     <ClInclude Include="src\Thread\Job.h" />
     <ClInclude Include="src\Thread\JobManager.h" />
+    <ClInclude Include="src\Core\Timer.h" />
+    <ClInclude Include="src\Main\EvalContext.h" />
+    <ClInclude Include="src\Main\FileManager.h" />
+    <ClInclude Include="src\Main\Global.h" />
+    <ClInclude Include="src\Main\Compiler.h" />
+    <ClInclude Include="src\Report\LogColor.h" />
+    <ClInclude Include="src\Report\Stats.h" />
+    <ClInclude Include="src\Parser\AstNode.h" />
   </ItemGroup>
 </Project>

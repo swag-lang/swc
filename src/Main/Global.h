@@ -1,5 +1,5 @@
 #pragma once
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class Logger;
 class LangSpec;
@@ -24,4 +24,4 @@ public:
     FileManager& fileMgr() const { return *fileManager_; }
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

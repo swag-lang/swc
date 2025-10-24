@@ -2,7 +2,7 @@
 #include "Lexer/LangSpec.h"
 #include "Lexer/Keyword.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 void LangSpec::setup()
 {
@@ -97,4 +97,4 @@ SubTokenIdentifierId LangSpec::keyword(std::string_view name)
     return KEYWORD_TABLE.find(name);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

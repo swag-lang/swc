@@ -4,7 +4,7 @@
 #include "Main/EvalContext.h"
 #include "Report/LogColor.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 std::string_view Color::toAnsi(const EvalContext& ctx, LogColor c)
 {
@@ -52,4 +52,4 @@ std::string_view Color::toAnsi(const EvalContext& ctx, LogColor c)
     }
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

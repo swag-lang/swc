@@ -1,11 +1,10 @@
 #pragma once
 #include "Main/EvalContext.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class Job;
-using JobRef      = std::shared_ptr<Job>;
-using JobClientId = std::uint64_t;
+using JobRef = std::shared_ptr<Job>;
 class CompilerContext;
 
 enum class JobPriority : std::uint8_t
@@ -125,4 +124,4 @@ private:
     }
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

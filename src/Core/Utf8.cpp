@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Utf8.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 void Utf8::trimStart()
 {
@@ -27,4 +27,4 @@ void Utf8::trim()
     trimEnd();
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

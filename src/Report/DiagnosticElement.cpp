@@ -3,7 +3,7 @@
 #include "Core/Utf8Helpers.h"
 #include "Report/DiagnosticIds.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 DiagnosticElement::DiagnosticElement(DiagnosticSeverity kind, DiagnosticId id) :
     id_(id),
@@ -99,4 +99,4 @@ void DiagnosticElement::addArgument(std::string_view arg)
     arguments_.emplace_back(std::move(sanitized));
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

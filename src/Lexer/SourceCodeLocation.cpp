@@ -7,7 +7,7 @@
 #include "Main/CommandLine.h"
 #include "Main/EvalContext.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class Compiler;
 namespace
@@ -80,4 +80,4 @@ void SourceCodeLocation::fromOffset(const EvalContext& ctx, const SourceFile* in
     }
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

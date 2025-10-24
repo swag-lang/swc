@@ -1,7 +1,7 @@
 #pragma once
 #include "Os/Os.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 struct Timer
 {
@@ -31,4 +31,4 @@ struct Timer
     uint64_t               timeBefore = 0;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

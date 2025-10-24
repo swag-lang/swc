@@ -2,7 +2,7 @@
 #include "Report/DiagnosticElement.h"
 #include "Report/DiagnosticIds.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class EvalContext;
 enum class DiagnosticId;
@@ -51,4 +51,4 @@ public:
     }
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

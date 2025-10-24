@@ -1,7 +1,7 @@
 #pragma once
 #include "Main/CompilerContext.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class CompilerContext;
 class Global;
@@ -25,4 +25,4 @@ public:
     void               setSourceFile(SourceFile* sourceFile) { sourceFile_ = sourceFile; }
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -1,7 +1,7 @@
 #pragma once
 #include "Main/CompilerContext.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class Global;
 struct CommandLine;
@@ -17,4 +17,4 @@ public:
     int run() const;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

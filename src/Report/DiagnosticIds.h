@@ -1,6 +1,6 @@
 #pragma once
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 enum class DiagnosticId
 {
@@ -37,4 +37,4 @@ namespace DiagnosticIds
     }
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

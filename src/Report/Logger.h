@@ -1,6 +1,6 @@
 #pragma once
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 enum class LogColor;
 class EvalContext;
@@ -19,4 +19,4 @@ private:
     std::mutex mutexAccess_;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

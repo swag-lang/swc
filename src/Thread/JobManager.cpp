@@ -3,7 +3,7 @@
 
 #include <algorithm>
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 //==============================
 // Record pool
@@ -640,4 +640,4 @@ JobClientId JobManager::newClientId()
     return nextClientId_.fetch_add(1, std::memory_order_relaxed);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

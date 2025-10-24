@@ -2,7 +2,7 @@
 #include "Lexer/Lexer.h"
 #include "Report/UnitTest.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class EvalContext;
 class Global;
@@ -35,4 +35,4 @@ public:
     std::string_view codeView(uint32_t offset, uint32_t len) const;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

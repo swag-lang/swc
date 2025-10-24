@@ -9,7 +9,7 @@
 #include "Main/Global.h"
 #include "Report/UnitTest.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 Result UnitTest::tokenize(EvalContext& ctx)
 {
@@ -134,4 +134,4 @@ Result UnitTest::verify(EvalContext& ctx) const
     return Result::Success;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

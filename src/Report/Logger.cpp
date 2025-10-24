@@ -5,7 +5,7 @@
 #include "Main/CommandLine.h"
 #include "Main/EvalContext.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 void Logger::print(const EvalContext& ctx, std::string_view message)
 {
@@ -42,4 +42,4 @@ void Logger::printHeaderDot(const EvalContext& ctx,
     printEol(ctx);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

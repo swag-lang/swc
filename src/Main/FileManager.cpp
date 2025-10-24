@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Main/FileManager.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 FileRef FileManager::addFile(fs::path path)
 {
@@ -19,4 +19,4 @@ FileRef FileManager::addFile(fs::path path)
     return fileRef;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

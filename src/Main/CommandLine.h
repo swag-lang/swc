@@ -1,5 +1,5 @@
 #pragma once
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 struct CommandLine
 {
@@ -15,4 +15,4 @@ struct CommandLine
     bool verify = true;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -1,6 +1,6 @@
 #pragma once
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 namespace Utf8Helpers
 {
@@ -11,4 +11,4 @@ namespace Utf8Helpers
     Utf8                                           toNiceTime(double seconds);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

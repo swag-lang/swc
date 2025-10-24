@@ -33,7 +33,12 @@ void Compiler::test() const
         }
     };
 
-    parseFolder("c:/perso/swag-lang/swag/bin");
+    parseFolder("C:/perso/swag-lang/swag/bin/testsuite/tests/compiler/src/legacy");
+    parseFolder("C:/perso/swag-lang/swag/bin/std");
+    parseFolder("C:/perso/swag-lang/swag/bin/examples");
+    parseFolder("C:/perso/swag-lang/swag/bin/runtime");
+    parseFolder("C:/perso/swag-lang/swag/bin/reference");
+
     parseFolder("c:/perso/swag-lang/swc/tests");
 
     struct T : Job
@@ -48,13 +53,9 @@ void Compiler::test() const
         JobResult process() override
         {
             f->loadContent(ctx_);
-            if (f->codeView(0, static_cast<uint32_t>(f->content().size())).find("#global testerror") == Utf8::npos)
-            {
-                ctx_.setSourceFile(f);
-                f->tokenize(ctx_);
-                (void) f->verifier().verify(ctx_);
-            }
-
+            ctx_.setSourceFile(f);
+            f->tokenize(ctx_);
+            (void) f->verifier().verify(ctx_);
             return JobResult::Done;
         }
     };

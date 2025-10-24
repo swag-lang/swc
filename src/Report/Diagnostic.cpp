@@ -112,7 +112,7 @@ namespace
         out += severityStr(sev);
         out += ": ";
         out += msg;
-        
+
         out += Color::toAnsi(ctx, LogColor::Reset);
         out += "\n";
     }
@@ -150,8 +150,6 @@ Utf8 Diagnostic::build(const EvalContext& ctx) const
 
     // Primary element: the first one
     const auto& primary = elements_.front();
-    const auto  pSev    = primary->severity();
-    const auto  pId     = primary->idName();
     const auto  pMsg    = primary->message();
 
     // Render primary element body (location/code) if any

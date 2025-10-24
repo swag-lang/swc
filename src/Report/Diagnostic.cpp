@@ -69,13 +69,6 @@ namespace
         out += "  "; // slight indent to visually group under the header
         out += severityColor(ctx, sev);
         out += severityStr(sev);
-        if (!idName.empty())
-        {
-            out += "[";
-            out += idName;
-            out += "]";
-        }
-
         out += Color::toAnsi(ctx, LogColor::Reset);
         out += ": ";
         out += msg;
@@ -138,7 +131,7 @@ namespace
     }
 
     // Renders a single element's location/code/underline block
-    void renderElementBlock(Utf8& out, const EvalContext& ctx, const DiagnosticElement& el)
+    void writeCodeBlock(Utf8& out, const EvalContext& ctx, const DiagnosticElement& el)
     {
         const auto loc = el.location(ctx);
 
@@ -156,8 +149,8 @@ namespace
         writeCodeLine(out, gutterW, loc.line, codeLine);
 
         // underline the entire span with carets
-        std::string_view tokenView     = el.location(ctx).file->codeView(el.location(ctx).offset, el.location(ctx).len);
-        uint32_t         tokenLenChars = Utf8Helpers::countChars(tokenView);
+        const std::string_view tokenView     = el.location(ctx).file->codeView(el.location(ctx).offset, el.location(ctx).len);
+        const uint32_t         tokenLenChars = Utf8Helpers::countChars(tokenView);
         writeFullUnderline(out, ctx, el.severity(), gutterW, loc.column, tokenLenChars);
     }
 }
@@ -178,30 +171,29 @@ Utf8 Diagnostic::build(const EvalContext& ctx) const
     writeHeader(out, ctx, pSev, pId, pMsg);
 
     // Render primary element body (location/code) if any
-    const bool pHasLoc = (primary->file_ != nullptr) && (primary->len_ != 0);
+    const bool pHasLoc = primary->hasCodeLocation();
     if (pHasLoc)
-    {
-        renderElementBlock(out, ctx, *primary);
-    }
+        writeCodeBlock(out, ctx, *primary);
 
     // Now render all secondary elements as part of the same diagnostic
     for (size_t i = 1; i < elements_.size(); ++i)
     {
-        const auto& e      = elements_[i];
-        const auto  sev    = e->severity();
-        const auto  id     = e->idName();
-        const auto  msg    = e->message();
-        const bool  hasLoc = e->hasCodeLocation();
+        const auto& e       = elements_[i];
+        const auto  sev     = e->severity();
+        const auto  id      = e->idName();
+        const auto  msg     = e->message();
+        const bool  eHasLoc = e->hasCodeLocation();
 
-        // Sub label line like: "  note: ..." or "  help: ..."
+        // Sub label line
         writeSubLabel(out, ctx, sev, id, msg);
 
         // Optional location/code block
-        if (hasLoc)
-            renderElementBlock(out, ctx, *e);
+        if (eHasLoc)
+            writeCodeBlock(out, ctx, *e);
     }
 
-    out += "\n"; // single blank line after the whole diagnostic
+    // single blank line after the whole diagnostic
+    out += "\n";
     return out;
 }
 

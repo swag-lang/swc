@@ -52,8 +52,8 @@ void Compiler::test() const
 
         JobResult process() override
         {
-            f->loadContent(ctx_);
             ctx_.setSourceFile(f);
+            f->loadContent(ctx_);
             f->tokenize(ctx_);
             (void) f->verifier().verify(ctx_);
             return JobResult::Done;

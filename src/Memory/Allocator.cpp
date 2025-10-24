@@ -35,5 +35,5 @@ void operator delete(void* block, std::size_t size) noexcept
 
 #if SWC_HAS_STATS
     swc::Stats::get().memAllocated.fetch_sub(static_cast<uint32_t>(size), std::memory_order_relaxed);
-#endif    
+#endif
 }

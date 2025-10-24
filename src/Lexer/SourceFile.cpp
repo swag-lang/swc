@@ -21,7 +21,7 @@ Result SourceFile::loadContent(CompilerContext& ctx)
 #if SWC_HAS_STATS
     Stats::get().numFiles.fetch_add(1);
 #endif
-    
+
     std::ifstream file(path_, std::ios::binary | std::ios::ate);
 
     if (!file)
@@ -37,7 +37,7 @@ Result SourceFile::loadContent(CompilerContext& ctx)
     file.seekg(0, std::ios::beg);
     content_.reserve(static_cast<size_t>(fileSize) + TRAILING_0);
     content_.resize(fileSize);
-    
+
     if (!file.read(reinterpret_cast<char*>(content_.data()), fileSize))
     {
         const auto diag = Diagnostic::error(DiagnosticId::CannotReadFile, this);

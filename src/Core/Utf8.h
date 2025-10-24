@@ -17,7 +17,7 @@ public:
         std::string(other)
     {
     }
-    
+
     Utf8(Utf8&& other) noexcept :
         std::string(other)
     {
@@ -31,7 +31,7 @@ public:
     Utf8(const std::string_view& other) :
         std::string(other)
     {
-    }     
+    }
 
     Utf8& operator=(const Utf8& other)
     {

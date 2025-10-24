@@ -24,7 +24,7 @@ class LangSpec
 {
     friend class Global;
     void setup();
-    
+
 public:
     bool isBlank(uint8_t c) const { return charFlags_[c].has(CharFlagsEnum::Blank); }
     bool isBlank(const uint8_t* buffer, const uint8_t* end, uint32_t& offset) const;

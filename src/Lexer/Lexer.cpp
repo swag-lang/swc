@@ -74,9 +74,9 @@ void Lexer::pushToken()
     if (token_.id == TokenId::Blank && !lexerFlags_.has(LexerFlagsEnum::ExtractBlanks))
         return;
     if (token_.id == TokenId::Eol && !lexerFlags_.has(LexerFlagsEnum::ExtractEols))
-        return;    
+        return;
     if (token_.id == TokenId::Comment && !lexerFlags_.has(LexerFlagsEnum::ExtractComments))
-        return;    
+        return;
 
     file_->lexOut_.tokens_.push_back(token_);
 }
@@ -1146,23 +1146,23 @@ void Lexer::checkFormat(const CompilerContext& ctx, uint32_t& startOffset)
 
 Result Lexer::tokenizeRaw(CompilerContext& ctx)
 {
-    rawMode_ = true;
+    rawMode_          = true;
     const auto result = tokenize(ctx, LexerFlagsEnum::ExtractComments);
-    rawMode_ = false;
+    rawMode_          = false;
     return result;
 }
 
 Result Lexer::tokenize(CompilerContext& ctx, LexerFlags flags)
 {
     file_ = ctx.sourceFile();
-    
+
     file_->lexOut_.tokens_.clear();
     file_->lexOut_.lines_.clear();
     prevToken_ = {};
 
-    langSpec_       = &ctx.global()->langSpec();
-    ctx_            = &ctx;
-    lexerFlags_     = flags;
+    langSpec_   = &ctx.global()->langSpec();
+    ctx_        = &ctx;
+    lexerFlags_ = flags;
 
     uint32_t startOffset = 0;
     checkFormat(ctx, startOffset);
@@ -1279,7 +1279,7 @@ Result Lexer::tokenize(CompilerContext& ctx, LexerFlags flags)
     if (!rawMode_)
         Stats::get().numTokens.fetch_add(file_->lexOut_.tokens_.size());
 #endif
-    
+
     return Result::Success;
 }
 

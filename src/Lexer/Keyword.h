@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE()
 enum class SubTokenIdentifierId : uint16_t
 {
     Invalid = 0,
-    
+
     // Control flow
     If,
     Else,

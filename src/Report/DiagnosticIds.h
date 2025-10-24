@@ -6,6 +6,7 @@ enum class DiagnosticId
 {
 #define SWAG_DIAG_DEF(id, msg) id,
 #include "DiagnosticIds.inc"
+
 #undef SWAG_DIAG_DEF
 };
 
@@ -17,8 +18,9 @@ struct DiagnosticIdInfo
 };
 
 constexpr DiagnosticIdInfo DIAGNOSTIC_INFOS[] = {
-#define SWAG_DIAG_DEF(id, msg) { DiagnosticId::id, #id, msg },
+#define SWAG_DIAG_DEF(id, msg) {DiagnosticId::id, #id, msg},
 #include "DiagnosticIds.inc"
+
 #undef SWAG_DIAG_DEF
 };
 

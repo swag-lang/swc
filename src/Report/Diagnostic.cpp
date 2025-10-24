@@ -116,22 +116,15 @@ Utf8 Diagnostic::build(EvalContext& ctx) const
 
     for (auto& e : elements_)
     {
-        const auto sev     = e->severity();
-        const auto idName  = e->idName();
-        const auto msg     = e->message();
-        const bool has_loc = (e->file_ != nullptr) && (e->len_ != 0);
+        const auto sev    = e->severity();
+        const auto idName = e->idName();
+        const auto msg    = e->message();
+        const bool hasLoc = (e->file_ != nullptr) && (e->len_ != 0);
 
-        if (has_loc)
+        if (hasLoc)
         {
             const auto loc = e->location(ctx);
 
-            out += Color::toAnsi(ctx, LogColor::Bold);
-            out += e->file_->path().string();
-            out += ":";
-            out += std::to_string(loc.line);
-            out += ":";
-            out += std::to_string(loc.column);
-            out += ": ";
             out += severityColor(ctx, sev);
             out += severityStr(sev);
             if (!idName.empty())
@@ -146,25 +139,28 @@ Utf8 Diagnostic::build(EvalContext& ctx) const
             out += msg;
             out += "\n";
 
-            // === rust-style context
-            writeArrowLine(out, ctx, e->file_->path().string(), loc.line, loc.column);
+            Utf8 fileName;
+            if (ctx.cmdLine().errorAbsolute)
+                fileName = e->file_->path().string();
+            else
+                fileName = e->file_->path().filename().string();
+            writeArrowLine(out, ctx, fileName, loc.line, loc.column);
 
-            const uint32_t gutter_w = digits(loc.line);
-            writeGutterSep(out, gutter_w);
+            const uint32_t gutterW = digits(loc.line);
+            writeGutterSep(out, gutterW);
 
             const auto codeLine = e->file_->codeLine(ctx, loc.line);
-            writeCodeLine(out, gutter_w, loc.line, codeLine);
+            writeCodeLine(out, gutterW, loc.line, codeLine);
 
             // underline the entire span with carets
             std::string_view tokenView     = e->file_->codeView(e->offset_, e->len_);
             uint32_t         tokenLenChars = Utf8Helpers::countChars(tokenView);
-            writeFullUnderline(out, ctx, sev, gutter_w, loc.column, tokenLenChars);
-
-            writeGutterSep(out, gutter_w);
+            writeFullUnderline(out, ctx, sev, gutterW, loc.column, tokenLenChars);
         }
+
+        // No location
         else
         {
-            // No location: simplified header
             out += severityColor(ctx, sev);
             out += severityStr(sev);
             if (!idName.empty())

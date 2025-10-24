@@ -3,10 +3,11 @@ SWC_BEGIN_NAMESPACE();
 
 struct CommandLine
 {
-    bool     logColor = true;
-    bool     silent   = false;
-    bool     stats    = false;
-    uint32_t numCores = 0;
+    bool     logColor      = true;
+    bool     errorAbsolute = false;
+    bool     silent        = false;
+    bool     stats         = false;
+    uint32_t numCores      = 0;
 
     uint32_t tabSize = 4;
 

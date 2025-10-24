@@ -57,10 +57,8 @@ void Compiler::test() const
     {
         auto k = std::make_shared<T>(context_);
         k->f   = f;
-        context_.global().jobMgr().enqueue(k, JobPriority::Normal);
+        context_.global().jobMgr().enqueue(k, JobPriority::Normal, context_.clientId_);
     }
-
-    context_.global().jobMgr().waitAll();
 }
 
 int Compiler::run()
@@ -70,6 +68,7 @@ int Compiler::run()
     {
         Timer time(&Stats::get().timeTotal);
         test();
+        context_.global().jobMgr().waitAll(context_.clientId_);
     }
 
     if (context_.cmdLine().stats)

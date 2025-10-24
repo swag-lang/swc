@@ -225,7 +225,7 @@ bool CommandLineParser::processArgument(const Context& ctx, const ArgInfo* info,
 bool CommandLineParser::parse(int argc, char* argv[])
 {
     const CompilerContext context(*cmdLine_, *global_);
-    Context           ctx(context);
+    const Context         ctx(context);
     const Utf8            command = "build";
 
     for (int i = 1; i < argc; i++)
@@ -267,15 +267,24 @@ CommandLineParser::CommandLineParser(CommandLine& cmdLine, Global& global) :
     cmdLine_(&cmdLine),
     global_(&global)
 {
-    addArg("all", "--silent", nullptr, CommandLineType::Bool, &cmdLine_->silent, nullptr, "no log output");
-    addArg("all", "--stats", nullptr, CommandLineType::Bool, &cmdLine_->stats, nullptr, "log some statistics");
-    addArg("all", "--num-cores", nullptr, CommandLineType::Int, &cmdLine_->numCores, nullptr, "maximum number of cpu to use (0 = automatic)");
-    addArg("all", "--log-color", nullptr, CommandLineType::Bool, &cmdLine_->logColor, nullptr, "log output can be colored");
-    addArg("all", "--log-ascii", nullptr, CommandLineType::Bool, &cmdLine_->logAscii, nullptr, "output to console only use ascii characters (no unicode)");
-    addArg("all", "--error-absolute", "-ea", CommandLineType::Bool, &cmdLine_->errorAbsolute, nullptr, "display absolute paths when an error is raised");
-    addArg("all", "--verify", "-v", CommandLineType::Bool, &cmdLine_->verify, nullptr, "verify special test comments");
-    addArg("all", "--verbose-errors", "-ve", CommandLineType::Bool, &cmdLine_->verboseErrors, nullptr, "log silent errors during tests");
-    addArg("all", "--verbose-errors-filter", "-vef", CommandLineType::String, &cmdLine_->verboseErrorsFilter, nullptr, "filter logged silent errors during tests");
+    addArg("all", "--silent", nullptr, CommandLineType::Bool, &cmdLine_->silent, nullptr,
+           "Suppress all log output.");
+    addArg("all", "--stats", nullptr, CommandLineType::Bool, &cmdLine_->stats, nullptr,
+           "Display runtime statistics after execution.");
+    addArg("all", "--num-cores", nullptr, CommandLineType::Int, &cmdLine_->numCores, nullptr,
+           "Set the maximum number of CPU cores to use (0 = auto-detect).");
+    addArg("all", "--log-color", nullptr, CommandLineType::Bool, &cmdLine_->logColor, nullptr,
+           "Enable colored log output for better readability.");
+    addArg("all", "--log-ascii", nullptr, CommandLineType::Bool, &cmdLine_->logAscii, nullptr,
+           "Restrict console output to ASCII characters (disable Unicode).");
+    addArg("all", "--error-absolute", "-ea", CommandLineType::Bool, &cmdLine_->errorAbsolute, nullptr,
+           "Show absolute file paths in error messages.");
+    addArg("all", "--verify", "-v", CommandLineType::Bool, &cmdLine_->verify, nullptr,
+           "Verify special test annotations or comments.");
+    addArg("all", "--verbose-errors", "-ve", CommandLineType::Bool, &cmdLine_->verboseErrors, nullptr,
+           "Log raised errors during tests.");
+    addArg("all", "--verbose-errors-filter", "-vef", CommandLineType::String, &cmdLine_->verboseErrorsFilter, nullptr,
+           "Filter verbose error logs by matching a specific string.");
 }
 
 SWC_END_NAMESPACE();

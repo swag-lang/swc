@@ -93,7 +93,7 @@ void Lexer::reportUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len)
     file_->setHasError();
 }
 
-void Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len, DiagnosticId note)
+void Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len, DiagnosticId help)
 {
     if (hasTokenError_)
         return;
@@ -113,8 +113,8 @@ void Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len, Dia
     }
 
     // Note
-    if (note != DiagnosticId::None)
-        diag.addNote(note);
+    if (help != DiagnosticId::None)
+        diag.addHelp(help);
 
     diag.report(*ctx_);
     file_->setHasError();

@@ -56,7 +56,7 @@ class Lexer
     void        eatUtf8Char();
     void        pushToken();
     void        reportUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len = 1);
-    void        reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len = 1, DiagnosticId note = DiagnosticId::None);
+    void        reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len = 1, DiagnosticId help = DiagnosticId::None);
     void        checkFormat(const Context& ctx, uint32_t& startOffset);
     void        lexEscape(TokenId containerToken, bool eatEol);
 

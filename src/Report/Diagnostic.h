@@ -14,7 +14,7 @@ enum class DiagnosticSeverity
     Error,
     Warning,
     Note,
-    Hint,
+    Help,
 };
 
 class Diagnostic
@@ -74,6 +74,7 @@ public:
     DiagnosticElement* addElement(DiagnosticSeverity kind, DiagnosticId id);
     DiagnosticElement* addError(DiagnosticId id) { return addElement(DiagnosticSeverity::Error, id); }
     DiagnosticElement* addNote(DiagnosticId id) { return addElement(DiagnosticSeverity::Note, id); }
+    DiagnosticElement* addHelp(DiagnosticId id) { return addElement(DiagnosticSeverity::Help, id); }
 
     DiagnosticElement* last() const { return elements_.empty() ? nullptr : elements_.back().get(); }
 

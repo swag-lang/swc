@@ -63,7 +63,7 @@ std::string_view Diagnostic::severityStr(DiagnosticSeverity s)
             return "warning";
         case DiagnosticSeverity::Note:
             return "note";
-        case DiagnosticSeverity::Hint:
+        case DiagnosticSeverity::Help:
             return "help";
     }
 
@@ -80,7 +80,7 @@ Utf8 Diagnostic::severityColor(const Context& ctx, DiagnosticSeverity s)
             return LogColorHelper::toAnsi(ctx, LogColor::BrightYellow);
         case DiagnosticSeverity::Note:
             return LogColorHelper::toAnsi(ctx, LogColor::BrightCyan);
-        case DiagnosticSeverity::Hint:
+        case DiagnosticSeverity::Help:
             return LogColorHelper::toAnsi(ctx, LogColor::BrightGreen);
     }
     return {};
@@ -239,6 +239,13 @@ Utf8 Diagnostic::build(const Context& ctx) const
     const bool pHasLoc = primary->hasCodeLocation();
     if (pHasLoc)
         writeCodeBlock(out, ctx, *primary, gutterW);
+    else
+    {
+        out += severityColor(ctx, primary->severity());
+        out += severityStr(primary->severity());
+        out += ": ";
+        out += pMsg;
+    }
 
     // Now render all secondary elements as part of the same diagnostic
     for (size_t i = 1; i < elements_.size(); ++i)
@@ -257,6 +264,7 @@ Utf8 Diagnostic::build(const Context& ctx) const
     }
 
     // single blank line after the whole diagnostic
+    out += partStyle(ctx, DiagPart::Reset);
     out += "\n";
     return out;
 }

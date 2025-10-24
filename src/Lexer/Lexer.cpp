@@ -114,9 +114,7 @@ void Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len, Dia
 
     // Note
     if (note != DiagnosticId::None)
-    {
         diag.addNote(note);
-    }
 
     diag.report(*ctx_);
     file_->setHasError();

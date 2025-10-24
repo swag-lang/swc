@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Diagnostic.h"
+#include "Report/Diagnostic.h"
 #include "Core/Utf8Helpers.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
@@ -13,6 +13,64 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    // Enum for colorable diagnostic parts
+    enum class DiagPart : uint8_t
+    {
+        FileLocationArrow, // "-->"
+        FileLocationPath,  // file path or filename
+        FileLocationSep,   // ":" between file/line/col
+        GutterBar,         // " |"
+        LineNumber,        // left-hand line numbers
+        CodeText,          // source code line
+        SubLabelPrefix,    // secondary label ("note", "help", etc.)
+        Reset,             // reset sequence
+    };
+
+    struct AnsiSeq
+    {
+        std::initializer_list<LogColor> seq;
+    };
+
+    // Centralized palette for all diagnostic colors
+    AnsiSeq diagPalette(DiagPart p)
+    {
+        using enum LogColor;
+        switch (p)
+        {
+            case DiagPart::FileLocationArrow:
+                return {{White}};
+            case DiagPart::FileLocationPath:
+                return {{Cyan}};
+            case DiagPart::FileLocationSep:
+                return {{Bold}};
+            case DiagPart::GutterBar:
+                return {{White}};
+            case DiagPart::LineNumber:
+                return {{White}};
+            case DiagPart::CodeText:
+                return {{White}};
+            case DiagPart::SubLabelPrefix:
+                return {{White}};
+            case DiagPart::Reset:
+                return {{Reset}};
+        }
+        
+        return {{White}};
+    }
+
+    Utf8 toAnsiSeq(const EvalContext& ctx, AnsiSeq s)
+    {
+        Utf8 out;
+        for (const auto c : s.seq)
+            out += Color::toAnsi(ctx, c);
+        return out;
+    }
+
+    Utf8 partStyle(const EvalContext& ctx, DiagPart p)
+    {
+        return toAnsiSeq(ctx, diagPalette(p));
+    }
+
     std::string_view severityStr(DiagnosticSeverity s)
     {
         switch (s)
@@ -26,6 +84,7 @@ namespace
             case DiagnosticSeverity::Hint:
                 return "help";
         }
+        
         return "unknown";
     }
 
@@ -46,12 +105,13 @@ namespace
     }
 
     // Short label line used for secondary elements (note/help/etc.)
-    void writeSubLabel(Utf8& out, const EvalContext& ctx, DiagnosticSeverity sev, std::string_view idName, std::string_view msg)
+    void writeSubLabel(Utf8& out, const EvalContext& ctx, DiagnosticSeverity sev, std::string_view msg)
     {
-        out += "  "; // slight indent to visually group under the header
+        out += "  ";
+        out += partStyle(ctx, DiagPart::SubLabelPrefix);
         out += severityColor(ctx, sev);
         out += severityStr(sev);
-        out += Color::toAnsi(ctx, LogColor::Reset);
+        out += partStyle(ctx, DiagPart::Reset);
         out += ": ";
         out += msg;
         out += "\n";
@@ -63,57 +123,76 @@ namespace
         return static_cast<uint32_t>(std::to_string(n).size());
     }
 
-    void writeArrowLine(Utf8& out, const EvalContext& ctx, const std::string& path, uint32_t line, uint32_t col)
+    void writeFileLocation(Utf8& out, const EvalContext& ctx, const std::string& path, uint32_t line, uint32_t col)
     {
         out += "  ";
-        out += Color::toAnsi(ctx, LogColor::Bold);
+        out += partStyle(ctx, DiagPart::FileLocationArrow);
         out += "--> ";
-        out += Color::toAnsi(ctx, LogColor::Cyan);
+        out += partStyle(ctx, DiagPart::FileLocationPath);
         out += path;
-        out += Color::toAnsi(ctx, LogColor::Reset);
+        out += partStyle(ctx, DiagPart::Reset);
+
+        out += partStyle(ctx, DiagPart::FileLocationSep);
         out += ":";
+        out += partStyle(ctx, DiagPart::Reset);
         out += std::to_string(line);
+
+        out += partStyle(ctx, DiagPart::FileLocationSep);
         out += ":";
+        out += partStyle(ctx, DiagPart::Reset);
         out += std::to_string(col);
         out += "\n";
     }
 
-    void writeGutterSep(Utf8& out, uint32_t gutterW)
+    void writeGutterSep(Utf8& out, const EvalContext& ctx, uint32_t gutterW)
     {
         out.append(gutterW, ' ');
-        out += " |\n";
+        out += partStyle(ctx, DiagPart::GutterBar);
+        out += " |";
+        out += partStyle(ctx, DiagPart::Reset);
+        out += "\n";
     }
 
-    void writeCodeLine(Utf8& out, uint32_t gutterW, uint32_t lineNo, std::string_view code)
+    void writeCodeLine(Utf8& out, const EvalContext& ctx, uint32_t gutterW, uint32_t lineNo, std::string_view code)
     {
         out.append(gutterW - digits(lineNo), ' ');
+        out += partStyle(ctx, DiagPart::LineNumber);
         out += std::to_string(lineNo);
+        out += partStyle(ctx, DiagPart::Reset);
+
+        out += partStyle(ctx, DiagPart::GutterBar);
         out += " | ";
+        out += partStyle(ctx, DiagPart::Reset);
+
+        out += partStyle(ctx, DiagPart::CodeText);
         out += code;
+        out += partStyle(ctx, DiagPart::Reset);
         out += "\n";
     }
 
     void writeFullUnderline(Utf8& out, const EvalContext& ctx, DiagnosticSeverity sev, const Utf8& msg, uint32_t gutterW, uint32_t columnOneBased, uint32_t underlineLen)
     {
         out.append(gutterW, ' ');
+        out += partStyle(ctx, DiagPart::GutterBar);
         out += " | ";
-        out += severityColor(ctx, sev);
-        out += Color::toAnsi(ctx, LogColor::Bold);
+        out += partStyle(ctx, DiagPart::Reset);
 
-        // column is 1-based, so indent by (column - 1) spaces
+        // Carets use severity color + caret style
+        out += severityColor(ctx, sev);
+
         for (uint32_t i = 1; i < columnOneBased; ++i)
             out += ' ';
 
-        // underline entire span with '^'
         const uint32_t len = underlineLen == 0 ? 1u : underlineLen;
         out.append(len, '^');
 
+        // Label message
         out += " ";
         out += severityStr(sev);
         out += ": ";
         out += msg;
 
-        out += Color::toAnsi(ctx, LogColor::Reset);
+        out += partStyle(ctx, DiagPart::Reset);
         out += "\n";
     }
 
@@ -127,13 +206,13 @@ namespace
             fileName = el.location(ctx).file->path().string();
         else
             fileName = el.location(ctx).file->path().filename().string();
-        writeArrowLine(out, ctx, fileName, loc.line, loc.column);
+        writeFileLocation(out, ctx, fileName, loc.line, loc.column);
 
         const uint32_t gutterW = digits(loc.line);
-        writeGutterSep(out, gutterW);
+        writeGutterSep(out, ctx, gutterW);
 
         const auto codeLine = el.location(ctx).file->codeLine(ctx, loc.line);
-        writeCodeLine(out, gutterW, loc.line, codeLine);
+        writeCodeLine(out, ctx, gutterW, loc.line, codeLine);
 
         // underline the entire span with carets
         const std::string_view tokenView     = el.location(ctx).file->codeView(el.location(ctx).offset, el.location(ctx).len);
@@ -162,12 +241,11 @@ Utf8 Diagnostic::build(const EvalContext& ctx) const
     {
         const auto& e       = elements_[i];
         const auto  sev     = e->severity();
-        const auto  id      = e->idName();
         const auto  msg     = e->message();
         const bool  eHasLoc = e->hasCodeLocation();
 
         // Sub label line
-        writeSubLabel(out, ctx, sev, id, msg);
+        writeSubLabel(out, ctx, sev, msg);
 
         // Optional location/code block
         if (eHasLoc)

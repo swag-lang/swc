@@ -41,29 +41,17 @@ void Compiler::test() const
 
     parseFolder("c:/perso/swag-lang/swc/tests");
 
-    struct T : Job
-    {
-        SourceFile* f = nullptr;
-
-        explicit T(const CompilerContext& cmpCtx) :
-            Job(cmpCtx)
-        {
-        }
-
-        JobResult process() override
-        {
-            ctx_.setSourceFile(f);
-            f->loadContent(ctx_);
-            f->tokenize(ctx_);
-            (void) f->verifier().verify(ctx_);
-            return JobResult::Done;
-        }
-    };
-
     for (const auto& f : context_.global().fileMgr().files())
     {
-        auto k = std::make_shared<T>(context_);
-        k->f   = f;
+        auto k   = std::make_shared<Job>(context_);
+        k->func_ = [f](EvalContext& ctx) {
+            ctx.setSourceFile(f);
+            f->loadContent(ctx);
+            f->tokenize(ctx);
+            (void) f->verifier().verify(ctx);
+            return JobResult::Done;
+        };
+
         context_.global().jobMgr().enqueue(k, JobPriority::Normal, context_.jobClientId());
     }
 }

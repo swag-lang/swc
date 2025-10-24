@@ -1,5 +1,6 @@
 #pragma once
 #include "Main/EvalContext.h"
+#include <functional>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -60,14 +61,10 @@ public:
     {
     }
 
-    virtual ~Job() = default;
-
-    // Write your work here. Return a Result.
-    // If returning SleepOn / SpawnAndSleep, be sure to set intent in 'this' before returning.
-    virtual JobResult process() = 0;
-
     // Wake all jobs currently waiting on this job (even before finishing).
     void wakeDependents() const;
+
+    std::function<JobResult(EvalContext&)> func_;
 
 protected:
     EvalContext ctx_;

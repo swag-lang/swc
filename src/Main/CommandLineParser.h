@@ -1,6 +1,5 @@
 #pragma once
 #include "CompilerContext.h"
-#include "Swc.h"
 
 class CompilerContext;
 
@@ -36,10 +35,10 @@ struct ArgInfo
 
 class CommandLineParser
 {
-    CommandLine&            cmdLine_;
     std::vector<ArgInfo>    args_;
     std::map<Utf8, ArgInfo> longFormMap_;
     std::map<Utf8, ArgInfo> shortFormMap_;
+    CommandLine&            cmdLine_;
     CompilerContext         ctx_;
 
     bool           getNextValue(const Utf8& arg, int& index, int argc, char* argv[], Utf8& value);
@@ -57,9 +56,9 @@ class CommandLineParser
     bool           checkCommandLine() const;
 
 public:
-    explicit CommandLineParser(Swc& swc) :
-        cmdLine_(swc.cmdLine()),
-        ctx_(swc)
+    explicit CommandLineParser(CommandLine& cmdLine) :
+        cmdLine_(cmdLine),
+        ctx_(&cmdLine, nullptr)
     {
     }
 

@@ -1,6 +1,6 @@
 #pragma once
 
-class Swc;
+class Compiler;
 class SourceFile;
 class CompilerContext;
 

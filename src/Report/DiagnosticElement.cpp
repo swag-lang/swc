@@ -35,15 +35,15 @@ SourceCodeLocation DiagnosticElement::location(const CompilerContext& ctx) const
     return loc;
 }
 
-std::string_view DiagnosticElement::idName() const
+std::string_view DiagnosticElement::idName(const CompilerContext& ctx) const
 {
-    return Global::get().diagIds().diagName(id_);
+    return ctx.global()->diagIds().diagName(id_);
 }
 
 // Format a string by replacing %0, %1, etc. with registered arguments
-Utf8 DiagnosticElement::message() const
+Utf8 DiagnosticElement::message(const CompilerContext& ctx) const
 {
-    Utf8 result{Global::get().diagIds().diagMessage(id_)};
+    Utf8 result{ctx.global()->diagIds().diagMessage(id_)};
 
     // Replace placeholders in reverse order to avoid issues with %10 versus %1
     for (int i = static_cast<int>(arguments_.size()) - 1; i >= 0; --i)

@@ -3,19 +3,19 @@
 #include "LogColor.h"
 #include "Logger.h"
 #include "Main/CommandLine.h"
+#include "Main/Compiler.h"
 #include "Main/CompilerContext.h"
-#include "Main/Swc.h"
 
 void Logger::print(const CompilerContext& ctx, std::string_view message)
 {
-    if (ctx.swc().cmdLine().silent)
+    if (ctx.cmdLine()->silent)
         return;
     std::cout << message;
 }
 
 void Logger::printEol(const CompilerContext& ctx)
 {
-    if (ctx.swc().cmdLine().silent)
+    if (ctx.cmdLine()->silent)
         return;
     std::cout << std::endl;
 }
@@ -28,7 +28,7 @@ void Logger::printHeaderDot(const CompilerContext& ctx,
                             std::string_view       dot,
                             size_t                 messageColumn)
 {
-    if (ctx.swc().cmdLine().silent)
+    if (ctx.cmdLine()->silent)
         return;
 
     lock();

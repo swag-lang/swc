@@ -5,19 +5,18 @@ class DiagnosticIds;
 class LangSpec;
 class JobManager;
 class FileManager;
+struct CommandLine;
 
 class Global
 {
-    std::unique_ptr<DiagnosticIds> diagIds_;
-    std::unique_ptr<Logger>        logger_;
-    std::unique_ptr<LangSpec>      langSpec_;
-    std::unique_ptr<JobManager>    jobManager_;
-    std::unique_ptr<FileManager>   fileManager_;
+    DiagnosticIds* diagIds_     = nullptr;
+    Logger*        logger_      = nullptr;
+    LangSpec*      langSpec_    = nullptr;
+    JobManager*    jobManager_  = nullptr;
+    FileManager*   fileManager_ = nullptr;
 
 public:
-    void initialize();
-
-    static Global& get();
+    void initialize(const CommandLine& cmdLine);
 
     const DiagnosticIds& diagIds() const { return *diagIds_; }
     Logger&              logger() const { return *logger_; }

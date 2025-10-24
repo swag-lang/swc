@@ -4,9 +4,9 @@
 #include "Lexer/SourceFile.h"
 #include "LogColor.h"
 #include "Main/CommandLine.h"
+#include "Main/Compiler.h"
 #include "Main/CompilerContext.h"
 #include "Main/Global.h"
-#include "Main/Swc.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticElement.h"
 #include "Report/Logger.h"
@@ -21,13 +21,12 @@ DiagnosticElement* Diagnostic::addElement(DiagnosticSeverity kind, DiagnosticId 
 
 Utf8 Diagnostic::build(CompilerContext& ctx) const
 {
-    const auto cmdLine = ctx.swc().cmdLine();
-    Utf8       result;
+    Utf8 result;
 
     for (auto& e : elements_)
     {
         const auto severity = e->severity();
-        const auto idName   = e->idName();
+        const auto idName   = e->idName(ctx);
 
         // Colorize severity level
         result += Color::toAnsi(ctx, LogColor::Bold);
@@ -109,7 +108,7 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
         }
 
         // Message text
-        const auto msg = e->message();
+        const auto msg = e->message(ctx);
         result += msg;
         result += "\n";
     }
@@ -119,25 +118,24 @@ Utf8 Diagnostic::build(CompilerContext& ctx) const
 
 void Diagnostic::report(CompilerContext& ctx) const
 {
-    const auto& cmdLine = ctx.swc().cmdLine();
-    const auto  msg     = build(ctx);
-    bool        dismiss = false;
+    const auto msg     = build(ctx);
+    bool       dismiss = false;
 
     if (fileOwner_ != nullptr)
     {
         dismiss = fileOwner_->verifier().verify(ctx, *this);
     }
 
-    if (cmdLine.verboseErrors)
+    if (ctx.cmdLine()->verboseErrors)
     {
         dismiss = false;
-        if (!cmdLine.verboseErrorsFilter.empty() && msg.find(cmdLine.verboseErrorsFilter) == Utf8::npos)
+        if (!ctx.cmdLine()->verboseErrorsFilter.empty() && msg.find(ctx.cmdLine()->verboseErrorsFilter) == Utf8::npos)
             dismiss = true;
     }
 
     if (!dismiss)
     {
-        auto& logger = Global::get().logger();
+        auto& logger = ctx.global()->logger();
         logger.lock();
         logger.printEol(ctx);
         logger.print(ctx, msg);

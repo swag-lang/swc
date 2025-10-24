@@ -1,18 +1,22 @@
 #pragma once
+#include "CommandLine.h"
 #include "Lexer/SourceFile.h"
 
 class CompilerContext
 {
-    Swc&        swc_;
-    SourceFile* sourceFile_ = nullptr;
+    const CommandLine* cmdLine_    = nullptr;
+    Global*            global_     = nullptr;
+    SourceFile*        sourceFile_ = nullptr;
 
 public:
-    explicit CompilerContext(Swc& swc) :
-        swc_(swc)
+    explicit CompilerContext(const CommandLine* cmdLine, Global* global) :
+        cmdLine_(cmdLine),
+        global_(global)
     {
     }
 
-    Swc&        swc() const { return swc_; }
-    SourceFile* sourceFile() const { return sourceFile_; }
-    void        setSourceFile(SourceFile* sourceFile) { sourceFile_ = sourceFile; }
+    Global*            global() const { return global_; }
+    const CommandLine* cmdLine() const { return cmdLine_; }
+    SourceFile*        sourceFile() const { return sourceFile_; }
+    void               setSourceFile(SourceFile* sourceFile) { sourceFile_ = sourceFile; }
 };

@@ -51,8 +51,8 @@ class Job : public std::enable_shared_from_this<Job>
     friend class JobManager;
 
 public:
-    explicit Job(Swc &swc) :
-        ctx_(swc)
+    explicit Job(const CommandLine &cmdLine, Global& global) :
+        ctx_(&cmdLine, &global)
     {
     }
 

@@ -1,19 +1,17 @@
 #include "pch.h"
 
+#include "Compiler.h"
 #include "Core/Timer.h"
 #include "FileManager.h"
 #include "Lexer/SourceFile.h"
-#include "Main/CommandLine.h"
-#include "Main/CommandLineParser.h"
 #include "Main/CompilerContext.h"
 #include "Main/Global.h"
 #include "Report/Stats.h"
-#include "Swc.h"
 #include "Thread/JobManager.h"
 
-void Swc::test()
+void Compiler::test()
 {
-    auto parseFolder = [](const fs::path& directory) {
+    auto parseFolder = [&](const fs::path& directory) {
         for (const auto& entry : fs::recursive_directory_iterator(directory))
         {
             if (entry.is_regular_file())
@@ -21,7 +19,7 @@ void Swc::test()
                 auto ext = entry.path().extension().string();
                 if (ext == ".swg" || ext == ".swgs")
                 {
-                    Global::get().fileMgr().addFile(entry.path());
+                    global_.fileMgr().addFile(entry.path());
                 }
             }
         }
@@ -34,10 +32,11 @@ void Swc::test()
     {
         SourceFile* f;
 
-        explicit t(Swc& swc) :
-            Job(swc)
+        explicit t(const CommandLine& cmdLine, Global& global) :
+            Job(cmdLine, global)
         {
         }
+        
         JobResult process() override
         {
             f->loadContent(ctx_);
@@ -52,39 +51,25 @@ void Swc::test()
         }
     };
 
-    for (const auto& f : Global::get().fileMgr().files())
+    for (const auto& f : global_.fileMgr().files())
     {
-        auto k = std::make_shared<t>(*this);
+        auto k = std::make_shared<t>(cmdLine_, global_);
         k->f   = f;
-        Global::get().jobMgr().enqueue(k, JobPriority::Normal);
+        global_.jobMgr().enqueue(k, JobPriority::Normal);
     }
 
-    Global::get().jobMgr().waitAll();
+    global_.jobMgr().waitAll();
 }
 
-int Swc::process(int argc, char* argv[])
+int Compiler::run()
 {
-    Timer time(&Stats::get().timeTotal);
-
-    CommandLineParser parser(*this);
-    parser.setupCommandLine();
-    if (!parser.parse(argc, argv, "build"))
-        return -1;
-
-    Global::get().jobMgr().setNumThreads(cmdLine_.numCores);
-
-    test();
-    return 0;
-}
-
-int Swc::run(int argc, char* argv[])
-{
-    const auto result = process(argc, argv);
-    if (result)
-        return result;
+    {
+        Timer time(&Stats::get().timeTotal);
+        test();
+    }
 
 #if SWC_HAS_STATS
-    const CompilerContext ctx(*this);
+    const CompilerContext ctx(&cmdLine_, &global_);
     Stats::get().print(ctx);
 #endif
 

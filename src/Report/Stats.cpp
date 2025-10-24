@@ -10,12 +10,12 @@
 
 void Stats::print(const CompilerContext& ctx) const
 {
-    auto& log = Global::get().logger();
+    auto& log = ctx.global()->logger();
 
     constexpr auto colorHeader = LogColor::Yellow;
     constexpr auto colorMsg    = LogColor::White;
 
-    log.printHeaderDot(ctx, colorHeader, "numWorkers", colorMsg, Utf8Helpers::toNiceBigNumber(Global::get().jobMgr().numWorkers()));
+    log.printHeaderDot(ctx, colorHeader, "numWorkers", colorMsg, Utf8Helpers::toNiceBigNumber(ctx.global()->jobMgr().numWorkers()));
     log.printEol(ctx);
 
     log.printHeaderDot(ctx, colorHeader, "memMaxAllocated", colorMsg, Utf8Helpers::toNiceSize(memMaxAllocated.load()));

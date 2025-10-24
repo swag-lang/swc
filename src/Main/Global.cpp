@@ -1,25 +1,28 @@
 #include "pch.h"
 
+#include "CommandLine.h"
+#include "FileManager.h"
 #include "Lexer/LangSpec.h"
-#include "Main/FileManager.h"
 #include "Main/Global.h"
 #include "Os/Os.h"
 #include "Report/DiagnosticIds.h"
 #include "Report/Logger.h"
 #include "Thread/JobManager.h"
 
-Global& Global::get()
+void Global::initialize(const CommandLine& cmdLine)
 {
-    static Global instance;
-    return instance;
-}
+    static DiagnosticIds diagIds;
+    static Logger        logger;
+    static LangSpec      langSpec;
+    static JobManager    jobManager;
+    static FileManager   fileManager;
 
-void Global::initialize()
-{
+    diagIds_     = &diagIds;
+    logger_      = &logger;
+    langSpec_    = &langSpec;
+    jobManager_  = &jobManager;
+    fileManager_ = &fileManager;
+
     Os::initialize();
-    diagIds_     = std::make_unique<DiagnosticIds>();
-    logger_      = std::make_unique<Logger>();
-    langSpec_    = std::make_unique<LangSpec>();
-    jobManager_  = std::make_unique<JobManager>();
-    fileManager_ = std::make_unique<FileManager>();
+    jobManager_->setNumThreads(cmdLine.numCores);
 }

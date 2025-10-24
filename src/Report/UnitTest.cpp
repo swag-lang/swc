@@ -5,16 +5,15 @@
 #include "Main/CommandLine.h"
 #include "Main/CompilerContext.h"
 #include "Main/Global.h"
-#include "Main/Swc.h"
 #include "Report/UnitTest.h"
 
 Result UnitTest::tokenize(CompilerContext& ctx)
 {
-    if (!ctx.swc().cmdLine().verify)
+    if (!ctx.cmdLine()->verify)
         return Result::Success;
 
     const auto  file     = ctx.sourceFile();
-    const auto& langSpec = Global::get().langSpec();
+    const auto& langSpec = ctx.global()->langSpec();
 
     // Get all comments from the file
     Lexer lexer;
@@ -103,8 +102,8 @@ bool UnitTest::verify(const CompilerContext& ctx, const Diagnostic& diag) const
             if (directive.loc.line && directive.loc.line != loc.line)
                 continue;
 
-            if (elem->idName().find(directive.match) == Utf8::npos &&
-                elem->message().find(directive.match) == Utf8::npos)
+            if (elem->idName(ctx).find(directive.match) == Utf8::npos &&
+                elem->message(ctx).find(directive.match) == Utf8::npos)
                 continue;
 
             directive.touched = true;

@@ -47,10 +47,10 @@ public:
     }
 
     SourceCodeLocation location(const CompilerContext& ctx) const;
-    std::string_view   idName() const;
+    std::string_view   idName(const CompilerContext& ctx) const;
     DiagnosticId       id() const { return id_; }
     DiagnosticSeverity severity() const { return severity_; }
-    Utf8               message() const;
+    Utf8               message(const CompilerContext& ctx) const;
 
     template<typename T>
     void addArgument(T&& arg)

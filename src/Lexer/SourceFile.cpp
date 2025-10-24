@@ -1,8 +1,8 @@
 ﻿#include "pch.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
+#include "Main/Compiler.h"
 #include "Main/CompilerContext.h"
-#include "Main/Swc.h"
 #include "Report/Diagnostic.h"
 #include "Report/Stats.h"
 
@@ -87,7 +87,7 @@ Utf8 SourceFile::codeLine(const CompilerContext& ctx, uint32_t line) const
         return result;
 
     // Transform tabulations to blanks in order for columns to match
-    const uint32_t tabSize = ctx.swc().cmdLine().tabSize;
+    const uint32_t tabSize = ctx.cmdLine()->tabSize;
     Utf8           expanded;
     expanded.reserve(result.size());
 

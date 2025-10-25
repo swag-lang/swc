@@ -1,9 +1,9 @@
 // Command line errors
 SWC_DIAG_DEF(CmdLineInvalidArg, "invalid command-line argument '{arg}'")
 SWC_DIAG_DEF(CmdLineInvalidArgForCmd, "invalid argument '{arg}' for command '{command}'")
-SWC_DIAG_DEF(CmdLineInvalidEnumValue, "invalid value '{arg}' for option '{arg}'")
+SWC_DIAG_DEF(CmdLineInvalidEnumValue, "invalid value '{value}' for argument '{arg}'; value must be one of '{values}'")
 SWC_DIAG_DEF(CmdLineMissingArgValue, "missing value for argument '{arg}'")
-SWC_DIAG_DEF(CmdLineInvalidBoolArg, "invalid negation '{arg}' for argument '{basearg}'; '{basearg}' is not a boolean")
+SWC_DIAG_DEF(CmdLineInvalidBoolArg, "invalid negation for argument '{arg}'; '{arg}' is not a boolean")
 
 // File errors
 SWC_DIAG_DEF(CannotOpenFile, "cannot open file '{path}'; check that the file exists and you have read permissions")

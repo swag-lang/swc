@@ -46,8 +46,8 @@ class CommandLineParser
 
     static bool    getNextValue(const Context& ctx, const Utf8& arg, int& index, int argc, char* argv[], Utf8& value);
     static bool    commandMatches(const Utf8& cmdToCheck, const Utf8& commandList);
-    bool           parseEnumString(const Context& ctx, const Utf8& value, const Utf8& enumValues, Utf8* target);
-    bool           parseEnumInt(const Context& ctx, const Utf8& value, const Utf8& enumValues, int* target);
+    bool           parseEnumString(const Context& ctx, const Utf8& arg, const Utf8& value, const Utf8& enumValues, Utf8* target);
+    bool           parseEnumInt(const Context& ctx, const Utf8& arg, const Utf8& value, const Utf8& enumValues, int* target);
     const ArgInfo* findArgument(const Context& ctx, const Utf8& arg, bool& invertBoolean);
     const ArgInfo* findLongFormArgument(const Context& ctx, const Utf8& arg, bool& invertBoolean);
     const ArgInfo* findShortFormArgument(const Context& ctx, const Utf8& arg, bool& invertBoolean);
@@ -55,7 +55,7 @@ class CommandLineParser
     static void    reportInvalidArgument(const Context& ctx, const Utf8& arg);
     bool           processArgument(const Context& ctx, const ArgInfo* info, const Utf8& arg, bool invertBoolean, int& index, int argc, char* argv[]);
     void           addArg(const char* commands, const char* longForm, const char* shortForm, CommandLineType type, void* target, const char* enumValues, const char* description);
-    bool           reportEnumError(const Context& ctx, const Utf8& value, const Utf8& enumValues);
+    bool           reportEnumError(const Context& ctx, const Utf8& arg, const Utf8& value, const Utf8& enumValues);
     bool           checkCommandLine() const;
 
 public:

@@ -45,7 +45,7 @@ bool CommandLineParser::commandMatches(const Utf8& cmdToCheck, const Utf8& comma
     return false;
 }
 
-bool CommandLineParser::parseEnumString(const Context& ctx, const Utf8& value, const Utf8& enumValues, Utf8* target)
+bool CommandLineParser::parseEnumString(const Context& ctx, const Utf8& arg, const Utf8& value, const Utf8& enumValues, Utf8* target)
 {
     if (enumValues.empty())
     {
@@ -64,10 +64,10 @@ bool CommandLineParser::parseEnumString(const Context& ctx, const Utf8& value, c
         }
     }
 
-    return reportEnumError(ctx, value, enumValues);
+    return reportEnumError(ctx, arg, value, enumValues);
 }
 
-bool CommandLineParser::parseEnumInt(const Context& ctx, const Utf8& value, const Utf8& enumValues, int* target)
+bool CommandLineParser::parseEnumInt(const Context& ctx, const Utf8& arg, const Utf8& value, const Utf8& enumValues, int* target)
 {
     if (enumValues.empty())
     {
@@ -88,12 +88,13 @@ bool CommandLineParser::parseEnumInt(const Context& ctx, const Utf8& value, cons
         index++;
     }
 
-    return reportEnumError(ctx, value, enumValues);
+    return reportEnumError(ctx, arg, value, enumValues);
 }
 
-bool CommandLineParser::reportEnumError(const Context& ctx, const Utf8& value, const Utf8& enumValues)
+bool CommandLineParser::reportEnumError(const Context& ctx, const Utf8& arg, const Utf8& value, const Utf8& enumValues)
 {
     const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidEnumValue);
+    diag.last()->addArgument("arg", arg);
     diag.last()->addArgument("value", value);
     diag.last()->addArgument("values", enumValues);
     diag.report(ctx);
@@ -163,8 +164,7 @@ const ArgInfo* CommandLineParser::findNegatedArgument(const Context& ctx, const 
     if (info->type != CommandLineType::Bool)
     {
         const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidBoolArg);
-        diag.last()->addArgument("arg", arg);
-        diag.last()->addArgument("basearg", baseArg);
+        diag.last()->addArgument("arg", baseArg);
         diag.report(ctx);
         errorRaised_ = true;
         return nullptr;
@@ -213,12 +213,12 @@ bool CommandLineParser::processArgument(const Context& ctx, const ArgInfo* info,
         case CommandLineType::EnumString:
             if (!getNextValue(ctx, arg, index, argc, argv, value))
                 return false;
-            return parseEnumString(ctx, value, info->enumValues, static_cast<Utf8*>(info->target));
+            return parseEnumString(ctx, arg, value, info->enumValues, static_cast<Utf8*>(info->target));
 
         case CommandLineType::EnumInt:
             if (!getNextValue(ctx, arg, index, argc, argv, value))
                 return false;
-            return parseEnumInt(ctx, value, info->enumValues, static_cast<int*>(info->target));
+            return parseEnumInt(ctx, arg, value, info->enumValues, static_cast<int*>(info->target));
     }
 
     return false;
@@ -289,7 +289,9 @@ CommandLineParser::CommandLineParser(CommandLine& cmdLine, Global& global) :
     addArg("all", "--verbose-errors-filter", "-vef", CommandLineType::String, &cmdLine_->verboseErrorsFilter, nullptr,
            "Filter verbose error logs by matching a specific string.");
     addArg("all", "--file-filter", "-ff", CommandLineType::String, &cmdLine_->fileFilter, nullptr,
-           "Will only compile files that match the filter");
+           "Will only compile files that match the filter.");
+    addArg("all", "--file-filter", "-aa", CommandLineType::EnumString, &cmdLine_->fileFilter, "A|B|C",
+           "Will only compile files that match the filter.");
 }
 
 SWC_END_NAMESPACE();

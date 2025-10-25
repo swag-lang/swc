@@ -362,6 +362,7 @@ enum class TokenId : uint16_t
     TypeCVarArgs,
 };
 
+#pragma pack(push, 1)
 struct Token
 {
     uint32_t start = 0;
@@ -371,5 +372,6 @@ struct Token
 
     std::string_view toString(const SourceFile* file) const;
 };
+#pragma pack(pop)
 
 SWC_END_NAMESPACE();

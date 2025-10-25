@@ -43,6 +43,7 @@ struct AstChildrenView
     size_t            size() const { return n; }
 };
 
+#pragma pack(push, 1)
 struct AstNode
 {
     AstNodeId    id    = AstNodeId::Invalid;
@@ -52,5 +53,6 @@ struct AstNode
     AstPayloadKind payloadKind = AstPayloadKind::Invalid;
     AstPayloadRef  payloadRef  = INVALID_REF;
 };
+#pragma pack(pop)
 
 SWC_END_NAMESPACE();

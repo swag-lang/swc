@@ -34,7 +34,7 @@ class Arena
     }
 
 public:
-    explicit Arena(size_t blockSize = 64 * 1024) :
+    explicit Arena(size_t blockSize = 32 * 1024) :
         blockSize_(blockSize)
     {
     }

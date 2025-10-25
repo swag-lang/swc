@@ -25,7 +25,10 @@ AstNodeRef Parser::parseTopLevelCurlyBlock()
     const auto myToken    = curToken_;
     const auto startCurly = ast_->makeNode(AstNodeId::Delimiter, eat());
 
-    std::vector stmts = {startCurly};
+    std::vector<AstNodeRef> stmts;
+    stmts.reserve(16);
+    stmts.push_back(startCurly);
+
     while (!atEnd() && id() != TokenId::OpRightCurly)
     {
         const auto result = parseTopLevelDecl();
@@ -39,7 +42,7 @@ AstNodeRef Parser::parseTopLevelCurlyBlock()
     }
     else
     {
-        stmts.push_back(ast_->makeNode(AstNodeId::Invalid, tokenRef()));
+        stmts.push_back(ast_->makeNode(AstNodeId::MissingToken, tokenRef()));
         const auto diag = Diagnostic::error(DiagnosticId::UnterminatedCurlyBlock, file_);
         diag.last()->setLocation(file_, myToken->byteStart, myToken->byteLength);
         diag.report(*ctx_);

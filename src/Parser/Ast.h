@@ -17,27 +17,27 @@ protected:
     PagedStore<AstPayLoad::SliceKids> sliceStore_{arena_};
 
 public:
-    AstNodeRef makeNode(AstNodeId id, FileRef file, TokenRef token = INVALID_REF, AstPayloadKind payloadKind = AstPayloadKind::Invalid, AstPayloadRef payloadRef = INVALID_REF)
-    {
-        return nodes_.emplace_back(id, AstNodeFlagsEnum::Zero, file, token, payloadKind, payloadRef);
-    }
-
     AstNode*       node(AstNodeRef ref) { return nodes_.ptr(ref); }
     const AstNode* node(AstNodeRef ref) const { return nodes_.ptr(ref); }
 
     // Produce a uniform ChildrenView regardless of payload kind.
-    AstNode::ChildrenView children(const AstNode& n) const
+    AstNodeChildrenView children(const AstNode& n) const
     {
         switch (n.payloadKind)
         {
             case AstPayloadKind::SliceKids:
             {
                 const auto& sl = sliceStore_.at(n.payloadRef);
-                return {nodeRefs_.ptr(sl.first), sl.count};
+                return {.ptr = nodeRefs_.ptr(sl.first), .n = sl.count};
             }
             default:
                 return {};
         }
+    }
+
+    AstNodeRef makeNode(AstNodeId id, FileRef file, TokenRef token = INVALID_REF, AstPayloadKind payloadKind = AstPayloadKind::Invalid, AstPayloadRef payloadRef = INVALID_REF)
+    {
+        return nodes_.emplace_back(id, AstNodeFlagsEnum::Zero, file, token, payloadKind, payloadRef);
     }
 
     AstNodeRef makeBlock(AstNodeId id, TokenRef token, const std::vector<AstNodeRef>& stmts)

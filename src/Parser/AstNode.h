@@ -31,6 +31,15 @@ namespace AstPayLoad
     };
 }
 
+struct AstNodeChildrenView
+{
+    const AstNodeRef* ptr = nullptr;
+    uint32_t          n   = 0;
+    const AstNodeRef* begin() const { return ptr; }
+    const AstNodeRef* end() const { return ptr + n; }
+    size_t            size() const { return n; }
+};
+
 struct AstNode
 {
     AstNodeId    id    = AstNodeId::Invalid;
@@ -41,15 +50,6 @@ struct AstNode
 
     AstPayloadKind payloadKind = AstPayloadKind::Invalid;
     AstPayloadRef  payloadRef  = INVALID_REF;
-
-    struct ChildrenView
-    {
-        const AstNodeRef* ptr = nullptr;
-        uint32_t          n   = 0;
-        const AstNodeRef* begin() const { return ptr; }
-        const AstNodeRef* end() const { return ptr + n; }
-        size_t            size() const { return n; }
-    };
 };
 
 SWC_END_NAMESPACE();

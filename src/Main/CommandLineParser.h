@@ -1,5 +1,7 @@
 #pragma once
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
+class DiagnosticElement;
+;
 
 class Context;
 struct CommandLine;
@@ -43,19 +45,21 @@ class CommandLineParser
     CommandLine*            cmdLine_     = nullptr;
     Global*                 global_      = nullptr;
     bool                    errorRaised_ = false;
+    Utf8                    command_;
 
+    void           errorArguments(DiagnosticElement* elem, const ArgInfo* info, const Utf8& arg);
     static bool    getNextValue(const Context& ctx, const Utf8& arg, int& index, int argc, char* argv[], Utf8& value);
-    static bool    commandMatches(const Utf8& cmdToCheck, const Utf8& commandList);
-    bool           parseEnumString(const Context& ctx, const Utf8& arg, const Utf8& value, const Utf8& enumValues, Utf8* target);
-    bool           parseEnumInt(const Context& ctx, const Utf8& arg, const Utf8& value, const Utf8& enumValues, int* target);
+    bool           commandMatches(const Utf8& commandList) const;
+    bool           parseEnumString(const Context& ctx, const ArgInfo* info, const Utf8& arg, const Utf8& value, Utf8* target);
+    bool           parseEnumInt(const Context& ctx, const ArgInfo* info, const Utf8& arg, const Utf8& value, int* target);
     const ArgInfo* findArgument(const Context& ctx, const Utf8& arg, bool& invertBoolean);
     const ArgInfo* findLongFormArgument(const Context& ctx, const Utf8& arg, bool& invertBoolean);
     const ArgInfo* findShortFormArgument(const Context& ctx, const Utf8& arg, bool& invertBoolean);
     const ArgInfo* findNegatedArgument(const Context& ctx, const Utf8& arg, const char* prefix, size_t noPrefixLen, const std::map<Utf8, ArgInfo>& argMap, bool& invertBoolean);
-    static void    reportInvalidArgument(const Context& ctx, const Utf8& arg);
+    void           reportInvalidArgument(const Context& ctx, const Utf8& arg);
     bool           processArgument(const Context& ctx, const ArgInfo* info, const Utf8& arg, bool invertBoolean, int& index, int argc, char* argv[]);
     void           addArg(const char* commands, const char* longForm, const char* shortForm, CommandLineType type, void* target, const char* enumValues, const char* description);
-    bool           reportEnumError(const Context& ctx, const Utf8& arg, const Utf8& value, const Utf8& enumValues);
+    bool           reportEnumError(const Context& ctx, const ArgInfo* info, const Utf8& arg, const Utf8& value);
     bool           checkCommandLine() const;
 
 public:

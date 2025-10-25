@@ -16,6 +16,20 @@ constexpr size_t SHORT_PREFIX_LEN    = 1;
 constexpr size_t LONG_NO_PREFIX_LEN  = 5;
 constexpr size_t SHORT_NO_PREFIX_LEN = 4;
 
+void CommandLineParser::errorArguments(DiagnosticElement* elem, const ArgInfo* info, const Utf8& arg)
+{
+    elem->addArgument("arg", arg);
+    elem->addArgument("command", command_);
+    if (info)
+    {
+        elem->addArgument("long", info->longForm);
+        elem->addArgument("short", info->shortForm);
+        elem->addArgument("values", info->enumValues);
+    }
+    
+    errorRaised_ = true;
+}
+
 bool CommandLineParser::getNextValue(const Context& ctx, const Utf8& arg, int& index, int argc, char* argv[], Utf8& value)
 {
     if (index + 1 >= argc)
@@ -30,7 +44,7 @@ bool CommandLineParser::getNextValue(const Context& ctx, const Utf8& arg, int& i
     return true;
 }
 
-bool CommandLineParser::commandMatches(const Utf8& cmdToCheck, const Utf8& commandList)
+bool CommandLineParser::commandMatches(const Utf8& commandList) const
 {
     if (commandList == "all")
         return true;
@@ -39,21 +53,21 @@ bool CommandLineParser::commandMatches(const Utf8& cmdToCheck, const Utf8& comma
     Utf8               cmd;
     while (iss >> cmd)
     {
-        if (cmd == cmdToCheck)
+        if (cmd == command_)
             return true;
     }
     return false;
 }
 
-bool CommandLineParser::parseEnumString(const Context& ctx, const Utf8& arg, const Utf8& value, const Utf8& enumValues, Utf8* target)
+bool CommandLineParser::parseEnumString(const Context& ctx, const ArgInfo* info, const Utf8& arg, const Utf8& value, Utf8* target)
 {
-    if (enumValues.empty())
+    if (info->enumValues.empty())
     {
         *target = value;
         return true;
     }
 
-    std::istringstream iss(enumValues);
+    std::istringstream iss(info->enumValues);
     Utf8               allowed;
     while (std::getline(iss, allowed, '|'))
     {
@@ -64,18 +78,18 @@ bool CommandLineParser::parseEnumString(const Context& ctx, const Utf8& arg, con
         }
     }
 
-    return reportEnumError(ctx, arg, value, enumValues);
+    return reportEnumError(ctx, info, arg, value);
 }
 
-bool CommandLineParser::parseEnumInt(const Context& ctx, const Utf8& arg, const Utf8& value, const Utf8& enumValues, int* target)
+bool CommandLineParser::parseEnumInt(const Context& ctx, const ArgInfo* info, const Utf8& arg, const Utf8& value, int* target)
 {
-    if (enumValues.empty())
+    if (info->enumValues.empty())
     {
         *target = std::stoi(value);
         return true;
     }
 
-    std::istringstream iss(enumValues);
+    std::istringstream iss(info->enumValues);
     Utf8               allowed;
     int                index = 0;
     while (std::getline(iss, allowed, '|'))
@@ -85,20 +99,19 @@ bool CommandLineParser::parseEnumInt(const Context& ctx, const Utf8& arg, const 
             *target = index;
             return true;
         }
+
         index++;
     }
 
-    return reportEnumError(ctx, arg, value, enumValues);
+    return reportEnumError(ctx, info, arg, value);
 }
 
-bool CommandLineParser::reportEnumError(const Context& ctx, const Utf8& arg, const Utf8& value, const Utf8& enumValues)
+bool CommandLineParser::reportEnumError(const Context& ctx, const ArgInfo* info, const Utf8& arg, const Utf8& value)
 {
     const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidEnumValue);
-    diag.last()->addArgument("arg", arg);
+    errorArguments(diag.last(), info, arg);
     diag.last()->addArgument("value", value);
-    diag.last()->addArgument("values", enumValues);
     diag.report(ctx);
-    errorRaised_ = true;
     return false;
 }
 
@@ -164,9 +177,8 @@ const ArgInfo* CommandLineParser::findNegatedArgument(const Context& ctx, const 
     if (info->type != CommandLineType::Bool)
     {
         const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidBoolArg);
-        diag.last()->addArgument("arg", baseArg);
+        errorArguments(diag.last(), info, arg);
         diag.report(ctx);
-        errorRaised_ = true;
         return nullptr;
     }
 
@@ -177,7 +189,7 @@ const ArgInfo* CommandLineParser::findNegatedArgument(const Context& ctx, const 
 void CommandLineParser::reportInvalidArgument(const Context& ctx, const Utf8& arg)
 {
     const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidArg);
-    diag.last()->addArgument("arg", arg);
+    errorArguments(diag.last(), nullptr, arg);
     diag.report(ctx);
 }
 
@@ -213,12 +225,12 @@ bool CommandLineParser::processArgument(const Context& ctx, const ArgInfo* info,
         case CommandLineType::EnumString:
             if (!getNextValue(ctx, arg, index, argc, argv, value))
                 return false;
-            return parseEnumString(ctx, arg, value, info->enumValues, static_cast<Utf8*>(info->target));
+            return parseEnumString(ctx, info, arg, value, static_cast<Utf8*>(info->target));
 
         case CommandLineType::EnumInt:
             if (!getNextValue(ctx, arg, index, argc, argv, value))
                 return false;
-            return parseEnumInt(ctx, arg, value, info->enumValues, static_cast<int*>(info->target));
+            return parseEnumInt(ctx, info, arg, value, static_cast<int*>(info->target));
     }
 
     return false;
@@ -228,7 +240,8 @@ bool CommandLineParser::parse(int argc, char* argv[])
 {
     const CompilerContext context(*cmdLine_, *global_);
     const Context         ctx(context);
-    const Utf8            command = "build";
+
+    command_ = "build";
 
     for (int i = 1; i < argc; i++)
     {
@@ -243,11 +256,10 @@ bool CommandLineParser::parse(int argc, char* argv[])
             return false;
         }
 
-        if (!commandMatches(command, info->commands))
+        if (!commandMatches(info->commands))
         {
             const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidArgForCmd);
-            diag.last()->addArgument("arg", arg);
-            diag.last()->addArgument("command", command);
+            errorArguments(diag.last(), info, arg);
             diag.report(ctx);
             return false;
         }
@@ -289,8 +301,6 @@ CommandLineParser::CommandLineParser(CommandLine& cmdLine, Global& global) :
     addArg("all", "--verbose-errors-filter", "-vef", CommandLineType::String, &cmdLine_->verboseErrorsFilter, nullptr,
            "Filter verbose error logs by matching a specific string.");
     addArg("all", "--file-filter", "-ff", CommandLineType::String, &cmdLine_->fileFilter, nullptr,
-           "Will only compile files that match the filter.");
-    addArg("all", "--file-filter", "-aa", CommandLineType::EnumString, &cmdLine_->fileFilter, "A|B|C",
            "Will only compile files that match the filter.");
 }
 

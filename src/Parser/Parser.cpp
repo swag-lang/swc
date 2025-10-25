@@ -26,19 +26,20 @@ Result Parser::parse(Context& ctx)
 
     SWC_CHECK(file_->loadContent(ctx));
     SWC_CHECK(file_->tokenize(ctx));
+    SWC_ASSERT(!file_->lexOut_.tokens_.empty());
 
-    // Root node
-    ast_->root_ = ast_->makeNode(AstNodeId::File, file_->ref());
-    if (file_->lexOut_.tokens_.empty())
-        return Result::Success;
+    firstToken_ = &file_->lexOut_.tokens_.front();
+    lastToken_  = &file_->lexOut_.tokens_.back();
+    curToken_   = firstToken_;
 
     // Top level
-    curToken_  = &file_->lexOut_.tokens_.front();
-    lastToken_ = &file_->lexOut_.tokens_.back();
+    std::vector<AstNodeRef> stmts;
     while (curToken_ < lastToken_)
     {
-        nextToken();
+        stmts.push_back(parseTopLevelInstruction());
     }
+
+    ast_->root_ = ast_->makeBlock(AstNodeId::File, 0, stmts);
 
     return Result::Success;
 }

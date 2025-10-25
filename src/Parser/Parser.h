@@ -16,12 +16,15 @@ protected:
 
 class Parser
 {
-    SourceFile*  file_      = nullptr;
-    Ast*         ast_       = nullptr;
-    const Token* curToken_  = nullptr;
-    const Token* lastToken_ = nullptr;
+    SourceFile*  file_       = nullptr;
+    Ast*         ast_        = nullptr;
+    const Token* firstToken_ = nullptr;
+    const Token* curToken_   = nullptr;
+    const Token* lastToken_  = nullptr;
 
     void nextToken();
+
+    AstNodeRef parseTopLevelInstruction();
 
 public:
     Result parse(Context& ctx);

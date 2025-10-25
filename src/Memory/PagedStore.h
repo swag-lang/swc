@@ -7,7 +7,7 @@
 SWC_BEGIN_NAMESPACE();
 
 // PagedStore: grow-only container backed by an Arena, IDs are dense [0..size)
-template<class T, uint32_t N = 4096> // items per page by default
+template<class T, uint32_t N = 1024> // items per page by default
 class PagedStore
 {
     static_assert(N > 0 && (N & (N - 1)) == 0, "N must be a power of two");
@@ -31,7 +31,7 @@ class PagedStore
 
     T* newPage()
     {
-        T* base = arena_->template allocArray<T>(N);
+        T* base = arena_->allocArray<T>(N);
         pages_.push_back(base);
         return base;
     }

@@ -12,7 +12,12 @@ class DiagnosticElement
 {
     friend class Diagnostic;
     friend class UnitTest;
-    using Argument = std::variant<Utf8, uint64_t, int64_t>;
+
+    struct Argument
+    {
+        std::string_view                      name;
+        std::variant<Utf8, uint64_t, int64_t> val;
+    };
 
     Utf8               message_;
     DiagnosticId       id_;
@@ -66,12 +71,12 @@ public:
     bool               hasCodeLocation() const { return file_ != nullptr && len_ > 0; }
 
     template<typename T>
-    void addArgument(T&& arg)
+    void addArgument(std::string_view name, T&& arg)
     {
-        arguments_.emplace_back(std::forward<T>(arg));
+        arguments_.emplace_back(Argument{name, std::forward<T>(arg)});
     }
 
-    void addArgument(std::string_view arg);
+    void addArgument(std::string_view name, std::string_view arg);
 };
 
 SWC_END_NAMESPACE();

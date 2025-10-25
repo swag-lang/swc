@@ -21,7 +21,7 @@ bool CommandLineParser::getNextValue(const Context& ctx, const Utf8& arg, int& i
     if (index + 1 >= argc)
     {
         const auto diag = Diagnostic::error(DiagnosticId::CmdLineMissingArgValue);
-        diag.last()->addArgument(arg);
+        diag.last()->addArgument("arg", arg);
         diag.report(ctx);
         return false;
     }
@@ -94,8 +94,8 @@ bool CommandLineParser::parseEnumInt(const Context& ctx, const Utf8& value, cons
 bool CommandLineParser::reportEnumError(const Context& ctx, const Utf8& value, const Utf8& enumValues)
 {
     const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidEnumValue);
-    diag.last()->addArgument(value);
-    diag.last()->addArgument(enumValues);
+    diag.last()->addArgument("value", value);
+    diag.last()->addArgument("values", enumValues);
     diag.report(ctx);
     errorRaised_ = true;
     return false;
@@ -163,8 +163,8 @@ const ArgInfo* CommandLineParser::findNegatedArgument(const Context& ctx, const 
     if (info->type != CommandLineType::Bool)
     {
         const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidBoolArg);
-        diag.last()->addArgument(arg);
-        diag.last()->addArgument(baseArg);
+        diag.last()->addArgument("arg", arg);
+        diag.last()->addArgument("basearg", baseArg);
         diag.report(ctx);
         errorRaised_ = true;
         return nullptr;
@@ -177,7 +177,7 @@ const ArgInfo* CommandLineParser::findNegatedArgument(const Context& ctx, const 
 void CommandLineParser::reportInvalidArgument(const Context& ctx, const Utf8& arg)
 {
     const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidArg);
-    diag.last()->addArgument(arg);
+    diag.last()->addArgument("arg", arg);
     diag.report(ctx);
 }
 
@@ -246,8 +246,8 @@ bool CommandLineParser::parse(int argc, char* argv[])
         if (!commandMatches(command, info->commands))
         {
             const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidArgForCmd);
-            diag.last()->addArgument(arg);
-            diag.last()->addArgument(command);
+            diag.last()->addArgument("arg", arg);
+            diag.last()->addArgument("command", command);
             diag.report(ctx);
             return false;
         }

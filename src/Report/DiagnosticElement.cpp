@@ -24,7 +24,7 @@ Utf8 DiagnosticElement::argumentToString(const Argument& arg) const
             return std::to_string(value);
         return "";
     },
-                      arg);
+                      arg.val);
 }
 
 SourceCodeLocation DiagnosticElement::location(const Context& ctx) const
@@ -50,7 +50,7 @@ Utf8 DiagnosticElement::message() const
     // Replace placeholders in reverse order to avoid issues with %10 versus %1
     for (int i = static_cast<int>(arguments_.size()) - 1; i >= 0; --i)
     {
-        Utf8 placeholder = "%" + std::to_string(i);
+        Utf8 placeholder = Utf8("{") + Utf8(arguments_[i].name) + Utf8("}");
         Utf8 replacement = argumentToString(arguments_[i]);
 
         size_t pos = 0;
@@ -64,7 +64,7 @@ Utf8 DiagnosticElement::message() const
     return result;
 }
 
-void DiagnosticElement::addArgument(std::string_view arg)
+void DiagnosticElement::addArgument(std::string_view name, std::string_view arg)
 {
     Utf8 sanitized;
     sanitized.reserve(arg.size());
@@ -99,7 +99,7 @@ void DiagnosticElement::addArgument(std::string_view arg)
         }
     }
 
-    arguments_.emplace_back(std::move(sanitized));
+    arguments_.emplace_back(Argument{.name = name, .val = std::move(sanitized)});
 }
 
 SWC_END_NAMESPACE();

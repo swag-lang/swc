@@ -28,7 +28,7 @@ Result SourceFile::loadContent(Context& ctx)
     {
         const auto diag = Diagnostic::error(DiagnosticId::CannotOpenFile, this);
         diag.last()->setLocation(this);
-        diag.last()->addArgument(path_.string());
+        diag.last()->addArgument("path", path_.string());
         diag.report(ctx);
         return Result::Error;
     }
@@ -42,7 +42,7 @@ Result SourceFile::loadContent(Context& ctx)
     {
         const auto diag = Diagnostic::error(DiagnosticId::CannotReadFile, this);
         diag.last()->setLocation(this);
-        diag.last()->addArgument(path_.string());
+        diag.last()->addArgument("path", path_.string());
         diag.report(ctx);
         return Result::Error;
     }

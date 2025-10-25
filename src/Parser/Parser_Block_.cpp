@@ -10,7 +10,7 @@ AstNodeRef Parser::parseTopLevelDecl()
 {
     switch (curToken_->id)
     {
-        case TokenId::OpLeftCurly:
+        case TokenId::SymLeftCurly:
             return parseTopLevelCurlyBlock();
         default:
             break;
@@ -29,14 +29,14 @@ AstNodeRef Parser::parseTopLevelCurlyBlock()
     stmts.reserve(16);
     stmts.push_back(startCurly);
 
-    while (!atEnd() && id() != TokenId::OpRightCurly)
+    while (!atEnd() && id() != TokenId::SymRightCurly)
     {
         const auto result = parseTopLevelDecl();
         if (result != INVALID_REF)
             stmts.push_back(result);
     }
 
-    if (id() == TokenId::OpRightCurly)
+    if (id() == TokenId::SymRightCurly)
     {
         stmts.push_back(ast_->makeNode(AstNodeId::Delimiter, eat()));
     }

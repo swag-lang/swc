@@ -662,102 +662,102 @@ void Lexer::lexOperator()
     switch (c)
     {
         case '\'':
-            token_.id = TokenId::OpQuote;
+            token_.id = TokenId::SymQuote;
             buffer_++;
             break;
 
         case '\\':
-            token_.id = TokenId::OpBackSlash;
+            token_.id = TokenId::SymBackSlash;
             buffer_++;
             break;
 
         case '(':
-            token_.id = TokenId::OpLeftParen;
+            token_.id = TokenId::SymLeftParen;
             buffer_++;
             break;
 
         case ')':
-            token_.id = TokenId::OpRightParen;
+            token_.id = TokenId::SymRightParen;
             buffer_++;
             break;
 
         case '[':
-            token_.id = TokenId::OpLeftSquare;
+            token_.id = TokenId::SymLeftSquare;
             buffer_++;
             break;
 
         case ']':
-            token_.id = TokenId::OpRightSquare;
+            token_.id = TokenId::SymRightSquare;
             buffer_++;
             break;
 
         case '{':
-            token_.id = TokenId::OpLeftCurly;
+            token_.id = TokenId::SymLeftCurly;
             buffer_++;
             break;
 
         case '}':
-            token_.id = TokenId::OpRightCurly;
+            token_.id = TokenId::SymRightCurly;
             buffer_++;
             break;
 
         case ';':
-            token_.id = TokenId::OpSemiColon;
+            token_.id = TokenId::SymSemiColon;
             buffer_++;
             break;
 
         case ',':
-            token_.id = TokenId::OpComma;
+            token_.id = TokenId::SymComma;
             buffer_++;
             break;
 
         case '@':
-            token_.id = TokenId::OpAt;
+            token_.id = TokenId::SymAt;
             buffer_++;
             break;
 
         case '?':
-            token_.id = TokenId::OpQuestion;
+            token_.id = TokenId::SymQuestion;
             buffer_++;
             break;
 
         case '~':
-            token_.id = TokenId::OpTilde;
+            token_.id = TokenId::SymTilde;
             buffer_++;
             break;
 
         case '=':
             if (buffer_[1] == '=')
             {
-                token_.id = TokenId::OpEqualEqual;
+                token_.id = TokenId::SymEqualEqual;
                 buffer_ += 2;
             }
             else if (buffer_[1] == '>')
             {
-                token_.id = TokenId::OpEqualGreater;
+                token_.id = TokenId::SymEqualGreater;
                 buffer_ += 2;
             }
             else
             {
-                token_.id = TokenId::OpEqual;
+                token_.id = TokenId::SymEqual;
                 buffer_++;
             }
             break;
 
         case ':':
-            token_.id = TokenId::OpColon;
+            token_.id = TokenId::SymColon;
             buffer_++;
             break;
 
         case '!':
             if (buffer_[1] == '=')
             {
-                token_.id = TokenId::OpExclamationEqual;
+                token_.id = TokenId::SymExclamationEqual;
                 buffer_ += 2;
             }
             else
             {
-                token_.id = TokenId::OpExclamation;
+                token_.id = TokenId::SymExclamation;
                 buffer_++;
             }
             break;
@@ -765,22 +765,22 @@ void Lexer::lexOperator()
         case '-':
             if (buffer_[1] == '=')
             {
-                token_.id = TokenId::OpMinusEqual;
+                token_.id = TokenId::SymMinusEqual;
                 buffer_ += 2;
             }
             else if (buffer_[1] == '>')
             {
-                token_.id = TokenId::OpMinusGreater;
+                token_.id = TokenId::SymMinusGreater;
                 buffer_ += 2;
             }
             else if (buffer_[1] == '-')
             {
-                token_.id = TokenId::OpMinusMinus;
+                token_.id = TokenId::SymMinusMinus;
                 buffer_ += 2;
             }
             else
             {
-                token_.id = TokenId::OpMinus;
+                token_.id = TokenId::SymMinus;
                 buffer_++;
             }
             break;
@@ -788,17 +788,17 @@ void Lexer::lexOperator()
         case '+':
             if (buffer_[1] == '=')
             {
-                token_.id = TokenId::OpPlusEqual;
+                token_.id = TokenId::SymPlusEqual;
                 buffer_ += 2;
             }
             else if (buffer_[1] == '+')
             {
-                token_.id = TokenId::OpPlusPlus;
+                token_.id = TokenId::SymPlusPlus;
                 buffer_ += 2;
             }
             else
             {
-                token_.id = TokenId::OpPlus;
+                token_.id = TokenId::SymPlus;
                 buffer_++;
             }
             break;
@@ -806,12 +806,12 @@ void Lexer::lexOperator()
         case '*':
             if (buffer_[1] == '=')
             {
-                token_.id = TokenId::OpAsteriskEqual;
+                token_.id = TokenId::SymAsteriskEqual;
                 buffer_ += 2;
             }
             else
             {
-                token_.id = TokenId::OpAsterisk;
+                token_.id = TokenId::SymAsterisk;
                 buffer_++;
             }
             break;
@@ -819,12 +819,12 @@ void Lexer::lexOperator()
         case '/':
             if (buffer_[1] == '=')
             {
-                token_.id = TokenId::OpSlashEqual;
+                token_.id = TokenId::SymSlashEqual;
                 buffer_ += 2;
             }
             else
             {
-                token_.id = TokenId::OpSlash;
+                token_.id = TokenId::SymSlash;
                 buffer_++;
             }
             break;
@@ -832,17 +832,17 @@ void Lexer::lexOperator()
         case '&':
             if (buffer_[1] == '=')
             {
-                token_.id = TokenId::OpAmpersandEqual;
+                token_.id = TokenId::SymAmpersandEqual;
                 buffer_ += 2;
             }
             else if (buffer_[1] == '&')
             {
-                token_.id = TokenId::OpAmpersandAmpersand;
+                token_.id = TokenId::SymAmpersandAmpersand;
                 buffer_ += 2;
             }
             else
             {
-                token_.id = TokenId::OpAmpersand;
+                token_.id = TokenId::SymAmpersand;
                 buffer_++;
             }
             break;
@@ -850,17 +850,17 @@ void Lexer::lexOperator()
         case '|':
             if (buffer_[1] == '=')
             {
-                token_.id = TokenId::OpVerticalEqual;
+                token_.id = TokenId::SymVerticalEqual;
                 buffer_ += 2;
             }
             else if (buffer_[1] == '|')
             {
-                token_.id = TokenId::OpVerticalVertical;
+                token_.id = TokenId::SymVerticalVertical;
                 buffer_ += 2;
             }
             else
             {
-                token_.id = TokenId::OpVertical;
+                token_.id = TokenId::SymVertical;
                 buffer_++;
             }
             break;
@@ -868,12 +868,12 @@ void Lexer::lexOperator()
         case '^':
             if (buffer_[1] == '=')
             {
-                token_.id = TokenId::OpCircumflexEqual;
+                token_.id = TokenId::SymCircumflexEqual;
                 buffer_ += 2;
             }
             else
             {
-                token_.id = TokenId::OpCircumflex;
+                token_.id = TokenId::SymCircumflex;
                 buffer_++;
             }
             break;
@@ -881,12 +881,12 @@ void Lexer::lexOperator()
         case '%':
             if (buffer_[1] == '=')
             {
-                token_.id = TokenId::OpPercentEqual;
+                token_.id = TokenId::SymPercentEqual;
                 buffer_ += 2;
             }
             else
             {
-                token_.id = TokenId::OpPercent;
+                token_.id = TokenId::SymPercent;
                 buffer_++;
             }
             break;
@@ -896,18 +896,18 @@ void Lexer::lexOperator()
             {
                 if (buffer_[2] == '.')
                 {
-                    token_.id = TokenId::OpDotDotDot;
+                    token_.id = TokenId::SymDotDotDot;
                     buffer_ += 3;
                 }
                 else
                 {
-                    token_.id = TokenId::OpDotDot;
+                    token_.id = TokenId::SymDotDot;
                     buffer_ += 2;
                 }
             }
             else
             {
-                token_.id = TokenId::OpDot;
+                token_.id = TokenId::SymDot;
                 buffer_++;
             }
             break;
@@ -917,12 +917,12 @@ void Lexer::lexOperator()
             {
                 if (buffer_[2] == '>')
                 {
-                    token_.id = TokenId::OpLowerEqualGreater;
+                    token_.id = TokenId::SymLowerEqualGreater;
                     buffer_ += 3;
                 }
                 else
                 {
-                    token_.id = TokenId::OpLowerEqual;
+                    token_.id = TokenId::SymLowerEqual;
                     buffer_ += 2;
                 }
             }
@@ -930,18 +930,18 @@ void Lexer::lexOperator()
             {
                 if (buffer_[2] == '=')
                 {
-                    token_.id = TokenId::OpLowerLowerEqual;
+                    token_.id = TokenId::SymLowerLowerEqual;
                     buffer_ += 3;
                 }
                 else
                 {
-                    token_.id = TokenId::OpLowerLower;
+                    token_.id = TokenId::SymLowerLower;
                     buffer_ += 2;
                 }
             }
             else
             {
-                token_.id = TokenId::OpLower;
+                token_.id = TokenId::SymLower;
                 buffer_++;
             }
             break;
@@ -949,25 +949,25 @@ void Lexer::lexOperator()
         case '>':
             if (buffer_[1] == '=')
             {
-                token_.id = TokenId::OpGreaterEqual;
+                token_.id = TokenId::SymGreaterEqual;
                 buffer_ += 2;
             }
             else if (buffer_[1] == '>')
             {
                 if (buffer_[2] == '=')
                 {
-                    token_.id = TokenId::OpGreaterGreaterEqual;
+                    token_.id = TokenId::SymGreaterGreaterEqual;
                     buffer_ += 3;
                 }
                 else
                 {
-                    token_.id = TokenId::OpGreaterGreater;
+                    token_.id = TokenId::SymGreaterGreater;
                     buffer_ += 2;
                 }
             }
             else
             {
-                token_.id = TokenId::OpGreater;
+                token_.id = TokenId::SymGreater;
                 buffer_++;
             }
             break;

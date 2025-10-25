@@ -17,12 +17,23 @@ AstChildrenView Ast::children(const AstNode& n) const
     {
         case AstNodeIdArity::None:
             return {};
+
         case AstNodeIdArity::One:
-            return {.ptr = &n.one.first, .count = 1};
+        {
+            const auto& o = std::get<AstChildrenOne>(n.children);
+            return {.ptr = &o.first, .count = 1};
+        }
         case AstNodeIdArity::Two:
-            return {.ptr = &n.two.first, .count = 2};
+        {
+            const auto& o = std::get<AstChildrenTwo>(n.children);
+            return {.ptr = &o.first, .count = 2};
+        }
+
         case AstNodeIdArity::Many:
-            return {.ptr = nodeRefs_.ptr(n.slice.index), .count = n.slice.count};
+        {
+            const auto& o = std::get<AstChildrenMany>(n.children);
+            return {.ptr = nodeRefs_.ptr(o.index), .count = o.count};
+        }
     }
 
     return {};

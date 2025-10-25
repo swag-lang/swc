@@ -37,7 +37,7 @@ constexpr std::array<AstNodeIdInfo, static_cast<size_t>(AstNodeId::Count)> AST_N
 #undef SWC_NODE_ID_DEF
 };
 
-struct AstChildrenSlice
+struct AstChildrenMany
 {
     uint32_t index = 0; // Index in Ast::nodeRefs_
     uint32_t count = 0;
@@ -68,12 +68,7 @@ struct AstNode
     AstNodeId id    = AstNodeId::Invalid;
     TokenRef  token = INVALID_REF;
 
-    union
-    {
-        AstChildrenSlice slice{};
-        AstChildrenOne   one;
-        AstChildrenTwo   two;
-    };
+    std::variant<std::monostate, AstChildrenMany, AstChildrenOne, AstChildrenTwo> children;
 
     AstNode()
     {
@@ -88,21 +83,21 @@ struct AstNode
     AstNode(AstNodeId nodeId, TokenRef tok, const AstChildrenOne& s) :
         id(nodeId),
         token(tok),
-        one(s)
+        children(s)
     {
     }
 
     AstNode(AstNodeId nodeId, TokenRef tok, const AstChildrenTwo& s) :
         id(nodeId),
         token(tok),
-        two(s)
+        children(s)
     {
     }
 
-    AstNode(AstNodeId nodeId, TokenRef tok, const AstChildrenSlice& s) :
+    AstNode(AstNodeId nodeId, TokenRef tok, const AstChildrenMany& s) :
         id(nodeId),
         token(tok),
-        slice(s)
+        children(s)
     {
     }
 };

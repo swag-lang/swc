@@ -46,7 +46,7 @@ public:
     AstNodeRef makeNode(AstNodeId id, TokenRef token);
     AstNodeRef makeNode(AstNodeId id, TokenRef token, const AstChildrenOne& kids);
     AstNodeRef makeNode(AstNodeId id, TokenRef token, const AstChildrenTwo& kids);
-    AstNodeRef makeNode(AstNodeId id, TokenRef token, const AstChildrenSlice& kids);
+    AstNodeRef makeNode(AstNodeId id, TokenRef token, const AstChildrenMany& kids);
     AstNodeRef makeBlock(AstNodeId id, TokenRef token, const std::vector<AstNodeRef>& stmts);
 };
 

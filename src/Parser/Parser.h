@@ -16,6 +16,7 @@ protected:
 
 class Parser
 {
+    Context*     ctx_        = nullptr;
     SourceFile*  file_       = nullptr;
     Ast*         ast_        = nullptr;
     const Token* firstToken_ = nullptr;

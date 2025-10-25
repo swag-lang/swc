@@ -28,6 +28,8 @@ void Compiler::test() const
                 auto ext = entry.path().extension().string();
                 if (ext == ".swg" || ext == ".swgs")
                 {
+                    if (!context_.cmdLine().fileFilter.empty() && entry.path().filename().string().find(context_.cmdLine().fileFilter) == Utf8::npos)
+                        continue;
                     context_.global().fileMgr().addFile(entry.path());
                 }
             }

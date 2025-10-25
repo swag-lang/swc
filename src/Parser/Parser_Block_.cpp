@@ -1,6 +1,8 @@
 #include "pch.h"
 
+#include "Lexer/SourceFile.h"
 #include "Parser/Parser.h"
+#include "Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -20,6 +22,7 @@ AstNodeRef Parser::parseTopLevelDecl()
 AstNodeRef Parser::parseTopLevelCurlyBlock()
 {
     const auto myTokenRef = tokenRef();
+    const auto myToken    = curToken_;
     const auto startCurly = ast_->makeNode(AstNodeId::Delimiter, takeToken());
 
     std::vector stmts = {startCurly};
@@ -36,7 +39,11 @@ AstNodeRef Parser::parseTopLevelCurlyBlock()
     }
     else
     {
-        stmts.push_back(ast_->makeNode(AstNodeId::Invalid, takeToken()));
+        stmts.push_back(ast_->makeNode(AstNodeId::Invalid, tokenRef()));
+        const auto diag = Diagnostic::error(DiagnosticId::CannotOpenFile, file_);
+        diag.last()->setLocation(file_, myToken->byteStart, myToken->byteLength);
+        diag.report(*ctx_);
+        file_->setHasError();
     }
 
     return ast_->makeBlock(AstNodeId::CurlyBlock, myTokenRef, stmts);

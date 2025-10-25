@@ -15,6 +15,7 @@ Result Parser::parse(Context& ctx)
 
     file_ = ctx.sourceFile();
     ast_  = &file_->parserOut_.ast_;
+    ctx_  = &ctx;
 
     SWC_CHECK(file_->loadContent(ctx));
     SWC_CHECK(file_->tokenize(ctx));

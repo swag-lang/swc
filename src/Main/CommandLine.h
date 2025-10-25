@@ -15,6 +15,7 @@ struct CommandLine
     bool verboseErrors = false;
     Utf8 verboseErrorsFilter;
     bool verify = true;
+    Utf8 fileFilter;
 };
 
 SWC_END_NAMESPACE();

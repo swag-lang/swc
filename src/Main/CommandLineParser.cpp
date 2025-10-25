@@ -288,6 +288,8 @@ CommandLineParser::CommandLineParser(CommandLine& cmdLine, Global& global) :
            "Log raised errors during tests.");
     addArg("all", "--verbose-errors-filter", "-vef", CommandLineType::String, &cmdLine_->verboseErrorsFilter, nullptr,
            "Filter verbose error logs by matching a specific string.");
+    addArg("all", "--file-filter", "-ff", CommandLineType::String, &cmdLine_->fileFilter, nullptr,
+           "Will only compile files that match the filter");
 }
 
 SWC_END_NAMESPACE();

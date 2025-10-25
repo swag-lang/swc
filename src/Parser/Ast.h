@@ -20,20 +20,7 @@ public:
     AstNode*       node(AstNodeRef ref) { return nodes_.ptr(ref); }
     const AstNode* node(AstNodeRef ref) const { return nodes_.ptr(ref); }
 
-    // Produce a uniform ChildrenView regardless of payload kind.
-    AstNodeChildrenView children(const AstNode& n) const
-    {
-        switch (n.payloadKind)
-        {
-            case AstPayloadKind::SliceKids:
-            {
-                const auto& sl = sliceStore_.at(n.payloadRef);
-                return {.ptr = nodeRefs_.ptr(sl.first), .n = sl.count};
-            }
-            default:
-                return {};
-        }
-    }
+    AstChildrenView children(const AstNode& n) const;
 
     AstNodeRef makeNode(AstNodeId id, FileRef file, TokenRef token = INVALID_REF, AstPayloadKind payloadKind = AstPayloadKind::Invalid, AstPayloadRef payloadRef = INVALID_REF);
     AstNodeRef makeBlock(AstNodeId id, TokenRef token, const std::vector<AstNodeRef>& stmts);

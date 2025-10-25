@@ -31,7 +31,7 @@ namespace AstPayLoad
     };
 }
 
-struct AstNodeChildrenView
+struct AstChildrenView
 {
     const AstNodeRef* ptr = nullptr;
     uint32_t          n   = 0;

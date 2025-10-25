@@ -4,26 +4,34 @@
 
 SWC_BEGIN_NAMESPACE();
 
-AstNodeRef Parser::parseTopLevelBlock(AstNodeId id)
+ParserResult Parser::parseTopLevelBlock(AstNodeId id)
 {
-    const auto start = static_cast<TokenRef>(curToken_ - firstToken_);
+    const auto myRef = tokenRef();
 
+    ParserResult            result;
     std::vector<AstNodeRef> stmts;
+
     while (curToken_ < lastToken_)
     {
-        const auto stmt = parseTopLevelInstruction();
-        if (stmt != INVALID_REF)
-            stmts.push_back(stmt);
+        result = parseTopLevelInstruction();
+        if (result.node != INVALID_REF)
+            stmts.push_back(result.node);
     }
 
-    return ast_->makeBlock(id, start, stmts);
+    result.node = ast_->makeBlock(id, myRef, stmts);
+    result.ok   = true;
+    return result;
 }
 
-AstNodeRef Parser::parseTopLevelInstruction()
+ParserResult Parser::parseTopLevelInstruction()
 {
-    const auto start = static_cast<TokenRef>(curToken_ - firstToken_);
+    const auto myRef = tokenRef();
     nextToken();
-    return ast_->makeNode(AstNodeId::Invalid, start);
+
+    ParserResult result;
+    result.node = ast_->makeNode(AstNodeId::Invalid, myRef);
+    result.ok   = true;
+    return result;
 }
 
 SWC_END_NAMESPACE();

@@ -11,23 +11,14 @@ class FileManager
     mutable std::shared_mutex                mutex_;
 
 public:
-    FileRef addFile(fs::path path);
-
-    std::vector<SourceFile*> files() const
-    {
-        std::shared_lock lock(mutex_);
-
-        std::vector<SourceFile*> result;
-        result.reserve(files_.size());
-        for (const auto& f : files_)
-            result.push_back(f.get());
-        return result;
-    }
+    FileRef                  addFile(fs::path path);
+    std::vector<SourceFile*> files() const;
 
     SourceFile* file(FileRef ref) const
     {
         std::shared_lock lock(mutex_);
-        return files_[ref].get();
+        SWC_ASSERT(ref != INVALID_REF);
+        return files_[ref - 1].get();
     }
 };
 

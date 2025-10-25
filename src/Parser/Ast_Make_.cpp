@@ -5,7 +5,7 @@ SWC_BEGIN_NAMESPACE();
 
 AstNodeRef Ast::makeNode(AstNodeId id, TokenRef token, AstPayloadKind payloadKind, AstPayloadRef payloadRef)
 {
-    return nodes_.emplace_back(id, AstNodeFlagsEnum::Zero, token, payloadKind, payloadRef);
+    return nodes_.emplace_back(id, AstNodeFlagsEnum::Zero, token, payloadKind, payloadRef) + 1;
 }
 
 AstNodeRef Ast::makeBlock(AstNodeId id, TokenRef token, const std::vector<AstNodeRef>& stmts)

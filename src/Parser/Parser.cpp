@@ -32,8 +32,10 @@ Result Parser::parse(Context& ctx)
     lastToken_  = &file_->lexOut_.tokens_.back();
     curToken_   = firstToken_;
 
-    ast_->root_ = parseTopLevelBlock(AstNodeId::File);
-    return Result::Success;
+    const auto result = parseTopLevelBlock(AstNodeId::File);
+    ast_->root_       = result.node;
+
+    return file_->hasError() ? Result::Error : Result::Success;
 }
 
 SWC_END_NAMESPACE();

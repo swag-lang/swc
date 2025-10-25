@@ -1,7 +1,7 @@
 #pragma once
 
 using Ref                 = uint32_t;
-constexpr Ref INVALID_REF = UINT32_MAX;
+constexpr Ref INVALID_REF = 0;
 
 using AstNodeRef    = Ref;
 using AstPayloadRef = Ref;

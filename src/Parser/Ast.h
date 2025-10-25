@@ -17,8 +17,21 @@ protected:
     PagedStore<AstPayLoad::SliceKids> sliceStore_{arena_};
 
 public:
-    AstNode*       node(AstNodeRef ref) { return nodes_.ptr(ref); }
-    const AstNode* node(AstNodeRef ref) const { return nodes_.ptr(ref); }
+    Ast();
+
+    AstNode* node(AstNodeRef ref)
+    {
+        SWC_ASSERT(ref != INVALID_REF);
+        SWC_ASSERT(ref < nodes_.size());
+        return nodes_.ptr(ref);
+    }
+
+    const AstNode* node(AstNodeRef ref) const
+    {
+        SWC_ASSERT(ref != INVALID_REF);
+        SWC_ASSERT(ref < nodes_.size());
+        return nodes_.ptr(ref);
+    }
 
     AstChildrenView children(const AstNode& n) const;
 

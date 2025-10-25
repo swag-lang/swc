@@ -37,18 +37,18 @@ constexpr std::array<AstNodeIdInfo, static_cast<size_t>(AstNodeId::Count)> AST_N
 #undef SWC_NODE_ID_DEF
 };
 
-struct AstKidsSlice
+struct AstChildrenSlice
 {
     uint32_t index = 0; // Index in Ast::nodeRefs_
     uint32_t count = 0;
 };
 
-struct AstKidsOne
+struct AstChildrenOne
 {
     AstNodeRef first;
 };
 
-struct AstKidsTwo
+struct AstChildrenTwo
 {
     AstNodeRef first;
     AstNodeRef second;
@@ -56,11 +56,11 @@ struct AstKidsTwo
 
 struct AstChildrenView
 {
-    const AstNodeRef* ptr = nullptr;
-    uint32_t          n   = 0;
+    const AstNodeRef* ptr   = nullptr;
+    uint32_t          count = 0;
     const AstNodeRef* begin() const { return ptr; }
-    const AstNodeRef* end() const { return ptr + n; }
-    size_t            size() const { return n; }
+    const AstNodeRef* end() const { return ptr + count; }
+    size_t            size() const { return count; }
 };
 
 struct AstNode
@@ -70,9 +70,9 @@ struct AstNode
 
     union
     {
-        AstKidsSlice slice{};
-        AstKidsOne   one;
-        AstKidsTwo   two;
+        AstChildrenSlice slice{};
+        AstChildrenOne   one;
+        AstChildrenTwo   two;
     };
 
     AstNode()
@@ -85,21 +85,21 @@ struct AstNode
     {
     }
 
-    AstNode(AstNodeId nodeId, TokenRef tok, const AstKidsOne& s) :
+    AstNode(AstNodeId nodeId, TokenRef tok, const AstChildrenOne& s) :
         id(nodeId),
         token(tok),
         one(s)
     {
     }
 
-    AstNode(AstNodeId nodeId, TokenRef tok, const AstKidsTwo& s) :
+    AstNode(AstNodeId nodeId, TokenRef tok, const AstChildrenTwo& s) :
         id(nodeId),
         token(tok),
         two(s)
     {
     }
 
-    AstNode(AstNodeId nodeId, TokenRef tok, const AstKidsSlice& s) :
+    AstNode(AstNodeId nodeId, TokenRef tok, const AstChildrenSlice& s) :
         id(nodeId),
         token(tok),
         slice(s)

@@ -18,11 +18,11 @@ AstChildrenView Ast::children(const AstNode& n) const
         case AstNodeIdArity::None:
             return {};
         case AstNodeIdArity::One:
-            return {.ptr = &n.one.first, .n = 1};
+            return {.ptr = &n.one.first, .count = 1};
         case AstNodeIdArity::Two:
-            return {.ptr = &n.two.first, .n = 2};
+            return {.ptr = &n.two.first, .count = 2};
         case AstNodeIdArity::Many:
-            return {.ptr = nodeRefs_.ptr(n.slice.index), .n = n.slice.count};
+            return {.ptr = nodeRefs_.ptr(n.slice.index), .count = n.slice.count};
     }
 
     return {};

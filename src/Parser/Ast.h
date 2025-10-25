@@ -22,7 +22,7 @@ public:
 
     AstChildrenView children(const AstNode& n) const;
 
-    AstNodeRef makeNode(AstNodeId id, FileRef file, TokenRef token = INVALID_REF, AstPayloadKind payloadKind = AstPayloadKind::Invalid, AstPayloadRef payloadRef = INVALID_REF);
+    AstNodeRef makeNode(AstNodeId id, TokenRef token, AstPayloadKind payloadKind = AstPayloadKind::Invalid, AstPayloadRef payloadRef = INVALID_REF);
     AstNodeRef makeBlock(AstNodeId id, TokenRef token, const std::vector<AstNodeRef>& stmts);
 };
 

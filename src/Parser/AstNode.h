@@ -44,9 +44,7 @@ struct AstNode
 {
     AstNodeId    id    = AstNodeId::Invalid;
     AstNodeFlags flags = AstNodeFlagsEnum::Zero;
-
-    FileRef  file  = INVALID_REF;
-    TokenRef token = INVALID_REF;
+    TokenRef     token = INVALID_REF;
 
     AstPayloadKind payloadKind = AstPayloadKind::Invalid;
     AstPayloadRef  payloadRef  = INVALID_REF;

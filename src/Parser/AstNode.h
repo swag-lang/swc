@@ -7,6 +7,9 @@ enum class AstNodeId : uint16_t
 {
     Invalid = 0,
     File,
+    StringLiteral,
+    NumberLiteral,
+    CharacterLiteral,
 };
 
 enum class AstNodeFlagsEnum : uint16_t

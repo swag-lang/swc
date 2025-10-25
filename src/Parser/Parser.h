@@ -22,7 +22,20 @@ class Parser
     const Token* curToken_   = nullptr;
     const Token* lastToken_  = nullptr;
 
-    void nextToken();
+    void nextToken()
+    {
+        SWC_ASSERT(curToken_->id != TokenId::EndOfFile);
+        curToken_++;
+        while (curToken_->id == TokenId::Blank || curToken_->id == TokenId::Eol)
+            curToken_++;
+    }
+
+    TokenRef takeToken()
+    {
+        const auto ref = tokenRef();
+        nextToken();
+        return ref;
+    }
 
     TokenRef tokenRef() const
     {
@@ -31,6 +44,7 @@ class Parser
 
     AstNodeRef parseTopLevelDecl();
     AstNodeRef parseTopLevelBlock(AstNodeId id);
+    AstNodeRef parseLiteral(AstNodeId id);
 
 public:
     Result parse(Context& ctx);

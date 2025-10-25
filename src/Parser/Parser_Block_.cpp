@@ -6,7 +6,7 @@ SWC_BEGIN_NAMESPACE();
 
 AstNodeRef Parser::parseTopLevelBlock(AstNodeId id)
 {
-    const auto myRef = tokenRef();
+    const auto myTokenRef = tokenRef();
 
     std::vector<AstNodeRef> stmts;
 
@@ -17,14 +17,16 @@ AstNodeRef Parser::parseTopLevelBlock(AstNodeId id)
             stmts.push_back(result);
     }
 
-    return ast_->makeBlock(id, myRef, stmts);
+    return ast_->makeBlock(id, myTokenRef, stmts);
 }
 
 AstNodeRef Parser::parseTopLevelDecl()
 {
-    const auto myRef = tokenRef();
-    nextToken();
-    return ast_->makeNode(AstNodeId::Invalid, myRef);
+    switch (curToken_->id)
+    {
+    }
+    
+    return ast_->makeNode(AstNodeId::Invalid, takeToken());
 }
 
 SWC_END_NAMESPACE();

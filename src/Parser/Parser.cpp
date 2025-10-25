@@ -7,14 +7,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-void Parser::nextToken()
-{
-    SWC_ASSERT(curToken_->id != TokenId::EndOfFile);
-    curToken_++;
-    while (curToken_->id == TokenId::Blank || curToken_->id == TokenId::Eol)
-        curToken_++;
-}
-
 Result Parser::parse(Context& ctx)
 {
 #if SWC_HAS_STATS

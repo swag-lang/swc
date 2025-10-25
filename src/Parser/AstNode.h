@@ -16,15 +16,40 @@ enum class AstNodeFlagsEnum : uint16_t
 
 using AstNodeFlags = Flags<AstNodeFlagsEnum>;
 
+enum class AstPayloadKind : uint16_t
+{
+    Invalid = 0,
+    SliceKids,
+};
+
+namespace AstPayLoad
+{
+    struct SliceKids
+    {
+        AstNodeRef first;
+        uint32_t   count;
+    };
+}
+
 struct AstNode
 {
-    AstNodeId    id     = AstNodeId::Invalid;
-    AstNodeFlags flags  = AstNodeFlagsEnum::Zero;
-    FileRef      file   = INVALID_FILE_REF;
-    TokenRef     token  = INVALID_TOKEN_REF;
-    AstNodeRef   parent = INVALID_AST_NODE_REF;
-    AstNodeRef   left   = INVALID_AST_NODE_REF;
-    AstNodeRef   right  = INVALID_AST_NODE_REF;
+    AstNodeId    id    = AstNodeId::Invalid;
+    AstNodeFlags flags = AstNodeFlagsEnum::Zero;
+
+    FileRef  file  = INVALID_REF;
+    TokenRef token = INVALID_REF;
+
+    AstPayloadKind payloadKind = AstPayloadKind::Invalid;
+    AstPayloadRef  payloadRef  = INVALID_REF;
+
+    struct ChildrenView
+    {
+        const AstNodeRef* ptr = nullptr;
+        uint32_t          n   = 0;
+        const AstNodeRef* begin() const { return ptr; }
+        const AstNodeRef* end() const { return ptr + n; }
+        size_t            size() const { return n; }
+    };
 };
 
 SWC_END_NAMESPACE();

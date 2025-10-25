@@ -14,7 +14,7 @@ class SourceFile
     // Number of '\0' forced at the end of the file
     static constexpr int TRAILING_0 = 4;
 
-    FileRef              ref_ = INVALID_FILE_REF;
+    FileRef              ref_ = INVALID_REF;
     fs::path             path_;
     std::vector<uint8_t> content_;
     UnitTest             verifier_;

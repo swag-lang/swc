@@ -110,14 +110,13 @@
         <ClCompile Include="src\Main\Global.cpp"/>
         <ClCompile Include="src\Main\Compiler.cpp"/>
         <ClCompile Include="src\Memory\Allocator.cpp"/>
-        <ClCompile Include="src\Memory\Arena.cpp" />
+        <ClCompile Include="src\Memory\Arena.cpp"/>
         <ClCompile Include="src\Memory\mimalloc\src\static.c">
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
         </ClCompile>
         <ClCompile Include="src\Os\OsWin32.cpp"/>
         <ClCompile Include="src\Parser\Ast.cpp"/>
-        <ClCompile Include="src\Parser\AstExtStore.cpp"/>
         <ClCompile Include="src\Parser\Parser.cpp"/>
         <ClCompile Include="src\pch.cpp">
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -154,12 +153,11 @@
         <ClInclude Include="src\Main\FileManager.h"/>
         <ClInclude Include="src\Main\Global.h"/>
         <ClInclude Include="src\Main\Compiler.h"/>
-        <ClInclude Include="src\Memory\Arena.h" />
+        <ClInclude Include="src\Memory\Arena.h"/>
         <ClInclude Include="src\Memory\PagedStore.h"/>
         <ClInclude Include="src\Os\Os.h"/>
         <ClInclude Include="src\Parser\Ast.h"/>
         <ClInclude Include="src\Parser\AstNode.h"/>
-        <ClInclude Include="src\Parser\AstExtStore.h"/>
         <ClInclude Include="src\Parser\Parser.h"/>
         <ClInclude Include="src\pch.h"/>
         <ClInclude Include="src\Report\Check.h"/>

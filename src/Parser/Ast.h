@@ -34,6 +34,8 @@ public:
     AstChildrenView children(const AstNode& n) const;
 
     AstNodeRef makeNode(AstNodeId id, TokenRef token);
+    AstNodeRef makeNode(AstNodeId id, TokenRef token, const AstKidsOne& kids);
+    AstNodeRef makeNode(AstNodeId id, TokenRef token, const AstKidsTwo& kids);
     AstNodeRef makeNode(AstNodeId id, TokenRef token, const AstKidsSlice& kids);
     AstNodeRef makeBlock(AstNodeId id, TokenRef token, const std::vector<AstNodeRef>& stmts);
 };

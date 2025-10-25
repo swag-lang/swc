@@ -51,7 +51,7 @@ struct AstKidsOne
     AstNodeRef first;
 };
 
-struct AstKidTwo
+struct AstKidsTwo
 {
     AstNodeRef first;
     AstNodeRef second;
@@ -76,7 +76,7 @@ struct AstNode
     {
         AstKidsSlice slice{};
         AstKidsOne   one;
-        AstKidTwo    two;
+        AstKidsTwo   two;
     };
 
     AstNode()
@@ -88,6 +88,21 @@ struct AstNode
         token(tok)
     {
     }
+
+    AstNode(AstNodeId nodeId, TokenRef tok, const AstKidsOne& s) :
+        id(nodeId),
+        token(tok),
+        one(s)
+    {
+    }
+
+    AstNode(AstNodeId nodeId, TokenRef tok, const AstKidsTwo& s) :
+        id(nodeId),
+        token(tok),
+        two(s)
+    {
+    }    
+
     AstNode(AstNodeId nodeId, TokenRef tok, const AstKidsSlice& s) :
         id(nodeId),
         token(tok),

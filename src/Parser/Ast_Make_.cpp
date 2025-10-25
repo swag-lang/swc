@@ -8,6 +8,16 @@ AstNodeRef Ast::makeNode(AstNodeId id, TokenRef token)
     return nodes_.emplace_back(id, token) + 1;
 }
 
+AstNodeRef Ast::makeNode(AstNodeId id, TokenRef token, const AstKidsOne& kids)
+{
+    return nodes_.emplace_back(id, token, kids) + 1;
+}
+
+AstNodeRef Ast::makeNode(AstNodeId id, TokenRef token, const AstKidsTwo& kids)
+{
+    return nodes_.emplace_back(id, token, kids) + 1;
+}
+
 AstNodeRef Ast::makeNode(AstNodeId id, TokenRef token, const AstKidsSlice& kids)
 {
     return nodes_.emplace_back(id, token, kids) + 1;

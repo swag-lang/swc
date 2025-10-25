@@ -63,43 +63,51 @@ struct AstChildrenView
     size_t            size() const { return count; }
 };
 
+#pragma pack(push, 1)
 struct AstNode
 {
     AstNodeId id    = AstNodeId::Invalid;
-    TokenRef  token = INVALID_REF;
 
-    std::variant<std::monostate, AstChildrenMany, AstChildrenOne, AstChildrenTwo> children;
+    union
+    {
+        AstChildrenOne  one;
+        AstChildrenTwo  two;
+        AstChildrenMany many;
+    };
+
+    TokenRef  token = INVALID_REF;
 
     AstNode()
     {
     }
 
     AstNode(AstNodeId nodeId, TokenRef tok) :
-        id(nodeId),
-        token(tok)
+        token(tok),
+        id(nodeId)
     {
     }
 
     AstNode(AstNodeId nodeId, TokenRef tok, const AstChildrenOne& s) :
-        id(nodeId),
         token(tok),
-        children(s)
+        id(nodeId),
+        one(s)
     {
     }
 
     AstNode(AstNodeId nodeId, TokenRef tok, const AstChildrenTwo& s) :
-        id(nodeId),
         token(tok),
-        children(s)
+        id(nodeId),
+        two(s)
     {
     }
 
     AstNode(AstNodeId nodeId, TokenRef tok, const AstChildrenMany& s) :
-        id(nodeId),
         token(tok),
-        children(s)
+        id(nodeId),
+        many(s)
     {
     }
 };
+#pragma pack(pop)
 
 SWC_END_NAMESPACE();

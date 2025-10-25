@@ -1,9 +1,10 @@
 #pragma once
 
-using AstNodeRef  = uint32_t;
-using FileRef     = uint32_t;
-using TokenRef    = uint32_t;
-using JobClientId = uint32_t;
+using Ref         = uint32_t;
+using AstNodeRef  = Ref;
+using FileRef     = Ref;
+using TokenRef    = Ref;
+using JobClientId = Ref;
 
 constexpr AstNodeRef  INVALID_AST_NODE_REF  = UINT32_MAX;
 constexpr FileRef     INVALID_FILE_REF      = UINT32_MAX;

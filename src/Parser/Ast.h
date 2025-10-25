@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Types.h"
+#include "Memory/PagedStore.h"
 #include "Parser/AstExtStore.h"
 #include "Parser/AstNode.h"
 
@@ -9,18 +10,21 @@ class Ast
 {
 protected:
     friend class Parser;
-    std::vector<AstNode> nodes_;
-    AstNodeRef           root_ = INVALID_AST_NODE_REF;
-    AstExtStore          extensions_;
+    Arena           arena_;
+    PagedStore<AstNode> nodes_{arena_};
+    AstNodeRef          root_ = INVALID_AST_NODE_REF;
+    AstExtStore         extensions_;
 
 public:
     AstNodeRef makeNode(AstNodeId id, FileRef file, TokenRef token = INVALID_TOKEN_REF, AstNodeRef left = INVALID_AST_NODE_REF, uint32_t right = INVALID_AST_NODE_REF)
     {
-        nodes_.emplace_back(id, AstNodeFlagsEnum::Zero, file, token, left, right);
-        return static_cast<AstNodeRef>(nodes_.size() - 1);
+        return nodes_.emplace_back(id, AstNodeFlagsEnum::Zero, file, token, left, right);
     }
 
-    AstNode* node(AstNodeRef ref) { return &nodes_[ref]; }
+    AstNode* node(AstNodeRef ref)
+    {
+        return nodes_.ptr(ref);
+    }
 };
 
 SWC_END_NAMESPACE();

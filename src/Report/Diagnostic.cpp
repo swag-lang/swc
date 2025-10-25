@@ -15,88 +15,32 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    // whitespace helpers
-    static inline std::string_view ltrim(std::string_view s)
-    {
-        while (!s.empty() && (s.front() == ' ' || s.front() == '\t'))
-            s.remove_prefix(1);
-        return s;
-    }
-    static inline std::string_view rtrim(std::string_view s)
-    {
-        while (!s.empty() && (s.back() == ' ' || s.back() == '\t'))
-            s.remove_suffix(1);
-        return s;
-    }
-    static inline std::string_view trim(std::string_view s)
-    {
-        return rtrim(ltrim(s));
-    }
-
-    // ASCII-case-insensitive starts-with
-    static bool istarts_with(std::string_view s, std::string_view pfx)
-    {
-        if (s.size() < pfx.size())
-            return false;
-        for (size_t i = 0; i < pfx.size(); ++i)
-        {
-            char a = s[i], b = pfx[i];
-            if ('A' <= a && a <= 'Z')
-                a = char(a - 'A' + 'a');
-            if ('A' <= b && b <= 'Z')
-                b = char(b - 'A' + 'a');
-            if (a != b)
-                return false;
-        }
-        return true;
-    }
-
     // tag → severity mapping
-    static std::optional<DiagnosticSeverity> tagToSeverity(std::string_view s)
+    std::optional<DiagnosticSeverity> tagToSeverity(std::string_view s)
     {
-        if (istarts_with(s, "[note]"))
+        if (Utf8Helper::startsWith(s, "[note]"))
             return DiagnosticSeverity::Note;
-        if (istarts_with(s, "[help]"))
+        if (Utf8Helper::startsWith(s, "[help]"))
             return DiagnosticSeverity::Help;
         return std::nullopt;
     }
 
-    // remove header like [note] or note:
-    static std::string_view stripLeadingTagHeader(std::string_view s)
+    // remove a header like [note] or [help]
+    std::string_view stripLeadingTagHeader(std::string_view s)
     {
-        auto t = trim(s);
+        auto t = Utf8Helper::trim(s);
         if (!t.empty() && t.front() == '[')
         {
-            auto close = t.find(']');
+            const auto close = t.find(']');
             if (close != std::string_view::npos)
                 t.remove_prefix(close + 1);
         }
-        t = ltrim(t);
-        if (istarts_with(t, "note:"))
-        {
-            t.remove_prefix(5);
-            t = ltrim(t);
-        }
-        else if (istarts_with(t, "help:"))
-        {
-            t.remove_prefix(5);
-            t = ltrim(t);
-        }
-        else if (istarts_with(t, "warning:"))
-        {
-            t.remove_prefix(8);
-            t = ltrim(t);
-        }
-        else if (istarts_with(t, "error:"))
-        {
-            t.remove_prefix(6);
-            t = ltrim(t);
-        }
+        t = Utf8Helper::trimLeft(t);
         return t;
     }
 
     // split message on ';' ignoring ';' inside quotes and escaped quotes
-    static std::vector<std::string_view> splitMessageSafe(std::string_view msg)
+    std::vector<std::string_view> splitMessage(std::string_view msg)
     {
         std::vector<std::string_view> parts;
         size_t                        start   = 0;
@@ -104,7 +48,7 @@ namespace
 
         for (size_t i = 0; i < msg.size(); ++i)
         {
-            char c = msg[i];
+            const char c = msg[i];
             if (inQuote)
             {
                 if (c == '\\')
@@ -123,13 +67,13 @@ namespace
                     inQuote = true;
                 else if (c == ';')
                 {
-                    parts.emplace_back(trim(msg.substr(start, i - start)));
+                    parts.emplace_back(Utf8Helper::trim(msg.substr(start, i - start)));
                     start = i + 1;
                 }
             }
         }
         if (start <= msg.size())
-            parts.emplace_back(trim(msg.substr(start)));
+            parts.emplace_back(Utf8Helper::trim(msg.substr(start)));
         return parts;
     }
 
@@ -142,18 +86,17 @@ namespace
     std::vector<Part> parseParts(std::string_view msg)
     {
         std::vector<Part> out;
-        for (auto raw : splitMessageSafe(msg))
+        for (auto raw : splitMessage(msg))
         {
             if (raw.empty())
                 continue;
             const auto sev  = tagToSeverity(raw);
             auto       body = stripLeadingTagHeader(raw);
-            out.push_back({sev, std::string(body)});
+            out.push_back({.tag = sev, .text = std::string(body)});
         }
         return out;
     }
-
-} // namespace
+}
 
 // Centralized palette for all diagnostic colors
 Diagnostic::AnsiSeq Diagnostic::diagPalette(DiagPart p)
@@ -230,23 +173,16 @@ Utf8 Diagnostic::severityColor(const Context& ctx, DiagnosticSeverity s)
 
 Utf8 Diagnostic::quoteColor(const Context& ctx, DiagnosticSeverity sev)
 {
-    using enum LogColor;
-
-    // Chosen to complement the base severity colors:
-    // - Error   (BrightRed)    -> BrightMagenta for quotes
-    // - Warning (BrightYellow) -> BrightBlue
-    // - Note    (BrightCyan)   -> BrightWhite
-    // - Help    (BrightGreen)  -> BrightWhite
     switch (sev)
     {
         case DiagnosticSeverity::Error:
-            return LogColorHelper::toAnsi(ctx, BrightMagenta);
+            return LogColorHelper::toAnsi(ctx, LogColor::BrightMagenta);
         case DiagnosticSeverity::Warning:
-            return LogColorHelper::toAnsi(ctx, BrightBlue);
+            return LogColorHelper::toAnsi(ctx, LogColor::BrightBlue);
         case DiagnosticSeverity::Note:
-            return LogColorHelper::toAnsi(ctx, BrightBlack);
+            return LogColorHelper::toAnsi(ctx, LogColor::BrightBlack);
         case DiagnosticSeverity::Help:
-            return LogColorHelper::toAnsi(ctx, BrightBlack);
+            return LogColorHelper::toAnsi(ctx, LogColor::BrightBlack);
     }
 
     return LogColorHelper::toAnsi(ctx, LogColor::White);
@@ -335,6 +271,7 @@ void Diagnostic::writeSubLabel(Utf8& out, const Context& ctx, DiagnosticSeverity
 
     writeHighlightedMessage(out, ctx, sev, msg, severityColor(ctx, sev));
 
+    out += partStyle(ctx, DiagPart::Reset);
     out += "\n";
 }
 
@@ -455,7 +392,7 @@ Utf8 Diagnostic::build(const Context& ctx) const
     // Make a copy of elements to modify them if necessary
     std::vector<std::unique_ptr<DiagnosticElement>> elements;
     elements.reserve(elements_.size());
-    for (auto &e : elements_)
+    for (auto& e : elements_)
         elements.push_back(std::make_unique<DiagnosticElement>(*e.get()));
     expandMessageParts(elements);
 
@@ -487,6 +424,7 @@ Utf8 Diagnostic::build(const Context& ctx) const
         out += ": ";
         writeHighlightedMessage(out, ctx, primary->severity(), pMsg, severityColor(ctx, primary->severity()));
         out += partStyle(ctx, DiagPart::Reset);
+        out += "\n";
     }
 
     // Now render all secondary elements as part of the same diagnostic
@@ -506,7 +444,6 @@ Utf8 Diagnostic::build(const Context& ctx) const
     }
 
     // single blank line after the whole diagnostic
-    out += partStyle(ctx, DiagPart::Reset);
     out += "\n";
     return out;
 }

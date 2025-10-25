@@ -161,4 +161,47 @@ Utf8 Utf8Helper::toNiceTime(double seconds)
     return std::format("{} min {} s", minutes, remainingSeconds);
 }
 
+// whitespace helpers
+std::string_view Utf8Helper::trimLeft(std::string_view s)
+{
+    while (!s.empty() && std::isspace(s.front()))
+        s.remove_prefix(1);
+    return s;
+}
+
+std::string_view Utf8Helper::trimRight(std::string_view s)
+{
+    while (!s.empty() && std::isspace(s.back()))
+        s.remove_suffix(1);
+    return s;
+}
+
+std::string_view Utf8Helper::trim(std::string_view s)
+{
+    return trimRight(trimLeft(s));
+}
+
+// ASCII-case-insensitive starts-with
+bool Utf8Helper::startsWith(std::string_view s, std::string_view pfx, bool matchCase)
+{
+    if (s.size() < pfx.size())
+        return false;
+    for (size_t i = 0; i < pfx.size(); ++i)
+    {
+        char a = s[i], b = pfx[i];
+
+        if (!matchCase)
+        {
+            if ('A' <= a && a <= 'Z')
+                a = static_cast<char>(a - 'A' + 'a');
+            if ('A' <= b && b <= 'Z')
+                b = static_cast<char>(b - 'A' + 'a');
+        }
+
+        if (a != b)
+            return false;
+    }
+    return true;
+}
+
 SWC_END_NAMESPACE();

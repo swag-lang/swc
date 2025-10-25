@@ -9,6 +9,11 @@ namespace Utf8Helper
     Utf8                                           toNiceSize(size_t size);
     Utf8                                           toNiceBigNumber(std::size_t number);
     Utf8                                           toNiceTime(double seconds);
+
+    std::string_view trimLeft(std::string_view s);
+    std::string_view trimRight(std::string_view s);
+    std::string_view trim(std::string_view s);
+    bool             startsWith(std::string_view s, std::string_view pfx, bool matchCase = false);
 }
 
 SWC_END_NAMESPACE();

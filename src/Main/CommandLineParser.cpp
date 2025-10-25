@@ -97,6 +97,7 @@ bool CommandLineParser::reportEnumError(const Context& ctx, const Utf8& value, c
     diag.last()->addArgument(value);
     diag.last()->addArgument(enumValues);
     diag.report(ctx);
+    errorRaised_ = true;
     return false;
 }
 
@@ -165,6 +166,7 @@ const ArgInfo* CommandLineParser::findNegatedArgument(const Context& ctx, const 
         diag.last()->addArgument(arg);
         diag.last()->addArgument(baseArg);
         diag.report(ctx);
+        errorRaised_ = true;
         return nullptr;
     }
 
@@ -236,7 +238,8 @@ bool CommandLineParser::parse(int argc, char* argv[])
         const ArgInfo* info = findArgument(ctx, arg, invertBoolean);
         if (!info)
         {
-            reportInvalidArgument(ctx, arg);
+            if (!errorRaised_)
+                reportInvalidArgument(ctx, arg);
             return false;
         }
 

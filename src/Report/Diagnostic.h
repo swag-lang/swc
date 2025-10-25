@@ -32,6 +32,8 @@ class Diagnostic
         LineNumber,        // left-hand line numbers
         CodeText,          // source code line
         SubLabelPrefix,    // secondary label ("note", "help", etc.)
+        Severity,          // color for severity labels/underlines
+        QuoteText,         // color for quoted text based on severity
         Reset,             // reset sequence
     };
 
@@ -44,19 +46,18 @@ class Diagnostic
         }
     };
 
-    static AnsiSeq          diagPalette(DiagPart p);
+    static AnsiSeq          diagPalette(DiagPart p, std::optional<DiagnosticSeverity> sev = std::nullopt);
     static Utf8             toAnsiSeq(const Context& ctx, const AnsiSeq& s);
     static Utf8             partStyle(const Context& ctx, DiagPart p);
+    static Utf8             partStyle(const Context& ctx, DiagPart p, DiagnosticSeverity sev);
     static std::string_view severityStr(DiagnosticSeverity s);
-    static Utf8             severityColor(const Context& ctx, DiagnosticSeverity s);
     static uint32_t         digits(uint32_t n);
-    static Utf8             quoteColor(const Context& ctx, DiagnosticSeverity sev);
     static void             expandMessageParts(std::vector<std::unique_ptr<DiagnosticElement>>& elements);
 
     static void writeSubLabel(Utf8& out, const Context& ctx, DiagnosticSeverity sev, std::string_view msg, uint32_t gutterW);
     static void writeFileLocation(Utf8& out, const Context& ctx, const std::string& path, uint32_t line, uint32_t col, uint32_t len, uint32_t gutterW);
     static void writeGutter(Utf8& out, const Context& ctx, uint32_t gutterW);
-    static void writeHighlightedMessage(Utf8& out, const Context& ctx, DiagnosticSeverity sev, std::string_view msg, Utf8 reset);
+    static void writeHighlightedMessage(Utf8& out, const Context& ctx, DiagnosticSeverity sev, std::string_view msg, const Utf8& reset);
     static void writeGutterSep(Utf8& out, const Context& ctx, uint32_t gutterW);
     static void writeCodeLine(Utf8& out, const Context& ctx, uint32_t gutterW, uint32_t lineNo, std::string_view code);
     static void writeFullUnderline(Utf8& out, const Context& ctx, DiagnosticSeverity sev, const Utf8& msg, uint32_t gutterW, uint32_t columnOneBased, uint32_t underlineLen);

@@ -99,7 +99,7 @@ namespace
 }
 
 // Centralized palette for all diagnostic colors
-Diagnostic::AnsiSeq Diagnostic::diagPalette(DiagPart p)
+Diagnostic::AnsiSeq Diagnostic::diagPalette(DiagPart p, std::optional<DiagnosticSeverity> sev)
 {
     using enum LogColor;
     switch (p)
@@ -118,6 +118,36 @@ Diagnostic::AnsiSeq Diagnostic::diagPalette(DiagPart p)
             return {White};
         case DiagPart::SubLabelPrefix:
             return {BrightMagenta, Bold};
+        case DiagPart::Severity:
+            if (!sev)
+                return {White};
+            switch (*sev)
+            {
+                case DiagnosticSeverity::Error:
+                    return {BrightRed};
+                case DiagnosticSeverity::Warning:
+                    return {BrightYellow};
+                case DiagnosticSeverity::Note:
+                    return {BrightCyan};
+                case DiagnosticSeverity::Help:
+                    return {BrightGreen};
+            }
+            break;
+        case DiagPart::QuoteText:
+            if (!sev)
+                return {White};
+            switch (*sev)
+            {
+                case DiagnosticSeverity::Error:
+                    return {BrightMagenta};
+                case DiagnosticSeverity::Warning:
+                    return {BrightBlue};
+                case DiagnosticSeverity::Note:
+                    return {BrightBlack};
+                case DiagnosticSeverity::Help:
+                    return {BrightBlack};
+            }
+            break;
         case DiagPart::Reset:
             return {Reset};
     }
@@ -135,7 +165,12 @@ Utf8 Diagnostic::toAnsiSeq(const Context& ctx, const AnsiSeq& s)
 
 Utf8 Diagnostic::partStyle(const Context& ctx, DiagPart p)
 {
-    return toAnsiSeq(ctx, diagPalette(p));
+    return toAnsiSeq(ctx, diagPalette(p, std::nullopt));
+}
+
+Utf8 Diagnostic::partStyle(const Context& ctx, DiagPart p, DiagnosticSeverity sev)
+{
+    return toAnsiSeq(ctx, diagPalette(p, sev));
 }
 
 std::string_view Diagnostic::severityStr(DiagnosticSeverity s)
@@ -155,48 +190,15 @@ std::string_view Diagnostic::severityStr(DiagnosticSeverity s)
     return "unknown";
 }
 
-Utf8 Diagnostic::severityColor(const Context& ctx, DiagnosticSeverity s)
-{
-    switch (s)
-    {
-        case DiagnosticSeverity::Error:
-            return LogColorHelper::toAnsi(ctx, LogColor::BrightRed);
-        case DiagnosticSeverity::Warning:
-            return LogColorHelper::toAnsi(ctx, LogColor::BrightYellow);
-        case DiagnosticSeverity::Note:
-            return LogColorHelper::toAnsi(ctx, LogColor::BrightCyan);
-        case DiagnosticSeverity::Help:
-            return LogColorHelper::toAnsi(ctx, LogColor::BrightGreen);
-    }
-    return {};
-}
-
-Utf8 Diagnostic::quoteColor(const Context& ctx, DiagnosticSeverity sev)
-{
-    switch (sev)
-    {
-        case DiagnosticSeverity::Error:
-            return LogColorHelper::toAnsi(ctx, LogColor::BrightMagenta);
-        case DiagnosticSeverity::Warning:
-            return LogColorHelper::toAnsi(ctx, LogColor::BrightBlue);
-        case DiagnosticSeverity::Note:
-            return LogColorHelper::toAnsi(ctx, LogColor::BrightBlack);
-        case DiagnosticSeverity::Help:
-            return LogColorHelper::toAnsi(ctx, LogColor::BrightBlack);
-    }
-
-    return LogColorHelper::toAnsi(ctx, LogColor::White);
-}
-
 // Generic digit counter (no hard cap)
 uint32_t Diagnostic::digits(uint32_t n)
 {
     return static_cast<uint32_t>(std::to_string(n).size());
 }
 
-void Diagnostic::writeHighlightedMessage(Utf8& out, const Context& ctx, DiagnosticSeverity sev, std::string_view msg, Utf8 reset)
+void Diagnostic::writeHighlightedMessage(Utf8& out, const Context& ctx, DiagnosticSeverity sev, std::string_view msg, const Utf8& reset)
 {
-    const Utf8  qColor  = quoteColor(ctx, sev);
+    const Utf8  qColor  = partStyle(ctx, DiagPart::QuoteText, sev);
     bool        inQuote = false;
     std::string quotedBuf;
     quotedBuf.reserve(32);
@@ -264,12 +266,12 @@ void Diagnostic::writeSubLabel(Utf8& out, const Context& ctx, DiagnosticSeverity
 {
     out.append(gutterW, ' ');
     out += partStyle(ctx, DiagPart::SubLabelPrefix);
-    out += severityColor(ctx, sev);
+    out += partStyle(ctx, DiagPart::Severity, sev);
     out += severityStr(sev);
     out += partStyle(ctx, DiagPart::Reset);
     out += ": ";
 
-    writeHighlightedMessage(out, ctx, sev, msg, severityColor(ctx, sev));
+    writeHighlightedMessage(out, ctx, sev, msg, partStyle(ctx, DiagPart::Severity, sev));
 
     out += partStyle(ctx, DiagPart::Reset);
     out += "\n";
@@ -337,7 +339,7 @@ void Diagnostic::writeFullUnderline(Utf8& out, const Context& ctx, DiagnosticSev
 {
     writeGutter(out, ctx, gutterW);
 
-    out += severityColor(ctx, sev);
+    out += partStyle(ctx, DiagPart::Severity, sev);
 
     const uint32_t col = std::max<uint32_t>(1, columnOneBased);
     for (uint32_t i = 1; i < col; ++i)
@@ -350,7 +352,7 @@ void Diagnostic::writeFullUnderline(Utf8& out, const Context& ctx, DiagnosticSev
     out += severityStr(sev);
     out += ": ";
 
-    writeHighlightedMessage(out, ctx, sev, std::string_view(msg), severityColor(ctx, sev));
+    writeHighlightedMessage(out, ctx, sev, std::string_view(msg), partStyle(ctx, DiagPart::Severity, sev));
 
     out += partStyle(ctx, DiagPart::Reset);
     out += "\n";
@@ -419,10 +421,10 @@ Utf8 Diagnostic::build(const Context& ctx) const
         writeCodeBlock(out, ctx, *primary, gutterW);
     else
     {
-        out += severityColor(ctx, primary->severity());
+        out += partStyle(ctx, DiagPart::Severity, primary->severity());
         out += severityStr(primary->severity());
         out += ": ";
-        writeHighlightedMessage(out, ctx, primary->severity(), pMsg, severityColor(ctx, primary->severity()));
+        writeHighlightedMessage(out, ctx, primary->severity(), pMsg, partStyle(ctx, DiagPart::Severity, primary->severity()));
         out += partStyle(ctx, DiagPart::Reset);
         out += "\n";
     }

@@ -35,19 +35,8 @@ public:
         }
     }
 
-    AstNodeRef makeNode(AstNodeId id, FileRef file, TokenRef token = INVALID_REF, AstPayloadKind payloadKind = AstPayloadKind::Invalid, AstPayloadRef payloadRef = INVALID_REF)
-    {
-        return nodes_.emplace_back(id, AstNodeFlagsEnum::Zero, file, token, payloadKind, payloadRef);
-    }
-
-    AstNodeRef makeBlock(AstNodeId id, TokenRef token, const std::vector<AstNodeRef>& stmts)
-    {
-        const AstNodeRef first = nodeRefs_.size();
-        for (auto s : stmts)
-            nodeRefs_.emplace_back(s);
-        const auto sid = sliceStore_.emplace_back(AstPayLoad::SliceKids{.first = first, .count = static_cast<uint32_t>(stmts.size())});
-        return makeNode(id, 0, token, AstPayloadKind::SliceKids, sid);
-    }
+    AstNodeRef makeNode(AstNodeId id, FileRef file, TokenRef token = INVALID_REF, AstPayloadKind payloadKind = AstPayloadKind::Invalid, AstPayloadRef payloadRef = INVALID_REF);
+    AstNodeRef makeBlock(AstNodeId id, TokenRef token, const std::vector<AstNodeRef>& stmts);
 };
 
 SWC_END_NAMESPACE();

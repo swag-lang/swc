@@ -117,6 +117,7 @@
         </ClCompile>
         <ClCompile Include="src\Os\OsWin32.cpp"/>
         <ClCompile Include="src\Parser\Ast.cpp"/>
+        <ClCompile Include="src\Parser\Ast_Make_.cpp"/>
         <ClCompile Include="src\Parser\Parser.cpp"/>
         <ClCompile Include="src\pch.cpp">
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

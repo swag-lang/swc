@@ -26,7 +26,7 @@ class Parser
     {
         SWC_ASSERT(curToken_->id != TokenId::EndOfFile);
         curToken_++;
-        while (curToken_->id == TokenId::Blank || curToken_->id == TokenId::Eol)
+        while (curToken_->id == TokenId::Blank || curToken_->id == TokenId::EndOfLine)
             curToken_++;
     }
 

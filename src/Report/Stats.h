@@ -14,6 +14,7 @@ struct Stats
     std::atomic<size_t>   memMaxAllocated = 0;
     std::atomic<size_t>   numFiles        = 0;
     std::atomic<size_t>   numTokens       = 0;
+    std::atomic<size_t>   numAstNodes     = 0;
 #endif // SWC_HAS_STATS
 
     static Stats& get()

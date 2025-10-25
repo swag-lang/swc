@@ -10,7 +10,7 @@ class Ast
 {
 protected:
     friend class Parser;
-    Arena           arena_;
+    Arena               arena_;
     PagedStore<AstNode> nodes_{arena_};
     AstNodeRef          root_ = INVALID_AST_NODE_REF;
     AstExtStore         extensions_;

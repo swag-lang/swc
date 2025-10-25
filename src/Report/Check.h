@@ -29,8 +29,8 @@ enum class Result : bool
     } while (0)
 #else
 #define SWC_ASSERT(__expr) \
-    do                      \
-    {                       \
+    do                     \
+    {                      \
     } while (0)
 #endif
 

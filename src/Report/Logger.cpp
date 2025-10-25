@@ -21,13 +21,13 @@ void Logger::printEol(const Context& ctx)
     std::cout << '\n';
 }
 
-void Logger::printHeaderDot(const Context& ctx,
-                            LogColor           headerColor,
-                            std::string_view   header,
-                            LogColor           msgColor,
-                            std::string_view   message,
-                            std::string_view   dot,
-                            size_t             messageColumn)
+void Logger::printHeaderDot(const Context&   ctx,
+                            LogColor         headerColor,
+                            std::string_view header,
+                            LogColor         msgColor,
+                            std::string_view message,
+                            std::string_view dot,
+                            size_t           messageColumn)
 {
     if (ctx.cmdLine().silent)
         return;

@@ -42,8 +42,8 @@ constexpr std::array<AstNodeIdInfo, static_cast<size_t>(AstNodeId::Count)> AST_N
 
 struct AstKidsSlice
 {
-    AstNodeRef first;
-    uint32_t   count;
+    uint32_t index = 0; // Index in Ast::nodeRefs_
+    uint32_t count = 0;
 };
 
 struct AstKidsOne
@@ -68,28 +68,26 @@ struct AstChildrenView
 
 struct AstNode
 {
-    AstNodeId id    = AstNodeId::Invalid;
-    TokenRef  token = INVALID_REF;
+    AstNodeId id      = AstNodeId::Invalid;
+    uint16_t  padding = 0;
+    TokenRef  token   = INVALID_REF;
 
     union
     {
-        AstKidsSlice slice;
+        AstKidsSlice slice{};
         AstKidsOne   one;
         AstKidTwo    two;
     };
 
-    AstNode() :
-        slice{}
+    AstNode()
     {
     }
 
     AstNode(AstNodeId nodeId, TokenRef tok) :
         id(nodeId),
-        token(tok),
-        slice{}
+        token(tok)
     {
     }
-
     AstNode(AstNodeId nodeId, TokenRef tok, const AstKidsSlice& s) :
         id(nodeId),
         token(tok),

@@ -15,10 +15,10 @@ AstNodeRef Ast::makeNode(AstNodeId id, TokenRef token, const AstKidsSlice& kids)
 
 AstNodeRef Ast::makeBlock(AstNodeId id, TokenRef token, const std::vector<AstNodeRef>& stmts)
 {
-    const AstNodeRef first = nodeRefs_.size();
+    const uint32_t first = nodeRefs_.size();
     for (auto s : stmts)
         nodeRefs_.emplace_back(s);
-    return makeNode(id, token, AstKidsSlice{.first = first, .count = static_cast<uint32_t>(stmts.size())});
+    return makeNode(id, token, AstKidsSlice{.index = first, .count = static_cast<uint32_t>(stmts.size())});
 }
 
 SWC_END_NAMESPACE();

@@ -15,7 +15,7 @@ AstChildrenView Ast::children(const AstNode& n) const
 
     if (info.flags.has(AstNodeIdFlagsEnum::ArityMany))
     {
-        return {.ptr = nodeRefs_.ptr(n.slice.first), .n = n.slice.count};
+        return {.ptr = nodeRefs_.ptr(n.slice.index), .n = n.slice.count};
     }
 
     return {};

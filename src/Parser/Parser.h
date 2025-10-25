@@ -7,12 +7,6 @@ SWC_BEGIN_NAMESPACE()
 class SourceFile;
 class Context;
 
-struct ParserResult
-{
-    AstNodeRef node = INVALID_REF;
-    bool       ok   = false;
-};
-
 class ParserOutput
 {
 protected:
@@ -35,8 +29,8 @@ class Parser
         return static_cast<TokenRef>(curToken_ - firstToken_) + 1;
     }
 
-    ParserResult parseTopLevelInstruction();
-    ParserResult parseTopLevelBlock(AstNodeId id);
+    AstNodeRef parseTopLevelDecl();
+    AstNodeRef parseTopLevelBlock(AstNodeId id);
 
 public:
     Result parse(Context& ctx);

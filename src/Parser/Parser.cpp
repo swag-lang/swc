@@ -32,8 +32,7 @@ Result Parser::parse(Context& ctx)
     lastToken_  = &file_->lexOut_.tokens_.back();
     curToken_   = firstToken_;
 
-    const auto result = parseTopLevelBlock(AstNodeId::File);
-    ast_->root_       = result.node;
+    ast_->root_ = parseTopLevelBlock(AstNodeId::File);
 
     return file_->hasError() ? Result::Error : Result::Success;
 }

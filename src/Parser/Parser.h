@@ -25,6 +25,7 @@ class Parser
     void nextToken();
 
     AstNodeRef parseTopLevelInstruction();
+    AstNodeRef parseTopLevelBlock(AstNodeId id);
 
 public:
     Result parse(Context& ctx);

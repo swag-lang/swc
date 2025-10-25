@@ -32,15 +32,7 @@ Result Parser::parse(Context& ctx)
     lastToken_  = &file_->lexOut_.tokens_.back();
     curToken_   = firstToken_;
 
-    // Top level
-    std::vector<AstNodeRef> stmts;
-    while (curToken_ < lastToken_)
-    {
-        stmts.push_back(parseTopLevelInstruction());
-    }
-
-    ast_->root_ = ast_->makeBlock(AstNodeId::File, 0, stmts);
-
+    ast_->root_ = parseTopLevelBlock(AstNodeId::File);
     return Result::Success;
 }
 

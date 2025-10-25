@@ -490,6 +490,16 @@ DiagnosticElement* Diagnostic::addElement(DiagnosticSeverity kind, DiagnosticId 
 
 void Diagnostic::report(const Context& ctx) const
 {
+    SWC_ASSERT(!elements_.empty());
+
+    if (fileOwner_)
+    {
+        if (elements_.front()->severity() == DiagnosticSeverity::Error)
+            fileOwner_->setHasError();
+        if (elements_.front()->severity() == DiagnosticSeverity::Warning)
+            fileOwner_->setHasWarning();
+    }
+
     const auto msg     = build(ctx);
     bool       dismiss = false;
 

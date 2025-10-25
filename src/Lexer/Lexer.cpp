@@ -92,7 +92,6 @@ void Lexer::reportUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len)
     const auto diag = Diagnostic::error(id, ctx_->sourceFile());
     diag.last()->setLocation(ctx_->sourceFile(), offset, len);
     diag.report(*ctx_);
-    file_->setHasError();
 }
 
 void Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len)
@@ -115,7 +114,6 @@ void Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len)
     }
 
     diag.report(*ctx_);
-    file_->setHasError();
 }
 
 // Validate hex/Unicode escape sequences (\xXX, \uXXXX, \UXXXXXXXX)

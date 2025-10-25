@@ -19,7 +19,8 @@ class SourceFile
     std::vector<uint8_t> content_;
     UnitTest             verifier_;
 
-    mutable bool hasError_ = false;
+    bool hasError_   = false;
+    bool hasWarning_ = false;
 
 protected:
     friend class Lexer;
@@ -38,7 +39,8 @@ public:
     UnitTest&                   verifier() { return verifier_; }
     const UnitTest&             verifier() const { return verifier_; }
     bool                        hasError() const { return hasError_; }
-    void                        setHasError() const { hasError_ = true; }
+    void                        setHasError() { hasError_ = true; }
+    void                        setHasWarning() { hasWarning_ = true; }
     FileRef                     ref() const { return ref_; }
 
     Result           loadContent(Context& ctx);

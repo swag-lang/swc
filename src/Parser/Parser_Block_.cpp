@@ -43,7 +43,6 @@ AstNodeRef Parser::parseTopLevelCurlyBlock()
         const auto diag = Diagnostic::error(DiagnosticId::CannotOpenFile, file_);
         diag.last()->setLocation(file_, myToken->byteStart, myToken->byteLength);
         diag.report(*ctx_);
-        file_->setHasError();
     }
 
     return ast_->makeBlock(AstNodeId::CurlyBlock, myTokenRef, stmts);

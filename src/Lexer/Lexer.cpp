@@ -63,8 +63,8 @@ void Lexer::eatOneEol()
 
 void Lexer::pushToken()
 {
-    token_.len = static_cast<uint32_t>(buffer_ - startToken_);
-    prevToken_ = token_;
+    token_.byteLength = static_cast<uint32_t>(buffer_ - startToken_);
+    prevToken_        = token_;
 
     if (rawMode_ && token_.id != TokenId::CommentLine && token_.id != TokenId::CommentMultiLine)
         return;
@@ -293,7 +293,7 @@ void Lexer::lexMultiLineStringLiteral()
         if (buffer_[0] == '"' && buffer_[1] == '"' && buffer_[2] == '"')
         {
             buffer_ += 3;
-            token_.len = static_cast<uint32_t>(buffer_ - startToken_);
+            token_.byteLength = static_cast<uint32_t>(buffer_ - startToken_);
             pushToken();
             return;
         }
@@ -1161,10 +1161,10 @@ Result Lexer::tokenize(Context& ctx, LexerFlags flags)
 
     while (buffer_ < endBuffer_)
     {
-        hasTokenError_ = false;
-        startToken_    = buffer_;
-        token_.start   = static_cast<uint32_t>(startToken_ - startBuffer_);
-        token_.len     = 1;
+        hasTokenError_    = false;
+        startToken_       = buffer_;
+        token_.byteStart  = static_cast<uint32_t>(startToken_ - startBuffer_);
+        token_.byteLength = 1;
 
         // Check for null byte (invalid UTF-8)
         if (buffer_[0] == '\0')
@@ -1262,8 +1262,8 @@ Result Lexer::tokenize(Context& ctx, LexerFlags flags)
     }
 
     // End marker
-    token_.id  = TokenId::EndOfFile;
-    token_.len = 0;
+    token_.id         = TokenId::EndOfFile;
+    token_.byteLength = 0;
     file_->lexOut_.tokens_.push_back(token_);
 
 #if SWC_HAS_STATS

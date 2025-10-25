@@ -54,7 +54,7 @@ Result UnitTest::tokenize(Context& ctx)
             }
 
             // Location
-            directive.myLoc.fromOffset(ctx, file, token.start + static_cast<uint32_t>(pos), static_cast<uint32_t>(needle.size()) + static_cast<uint32_t>(kindWord.size()));
+            directive.myLoc.fromOffset(ctx, file, token.byteStart + static_cast<uint32_t>(pos), static_cast<uint32_t>(needle.size()) + static_cast<uint32_t>(kindWord.size()));
             directive.loc = directive.myLoc;
 
             // Parse location

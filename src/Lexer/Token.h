@@ -34,14 +34,16 @@ constexpr std::array<TokenIdInfo, static_cast<size_t>(TokenId::Count)> TOKEN_ID_
 #undef SWC_TOKEN_DEF
 };
 
+#pragma pack(push, 1)
 struct Token
 {
-    uint32_t start = 0;
-    uint32_t len   = 0;
+    uint32_t byteStart  = 0; // Byte offset in the source file buffer
+    uint32_t byteLength = 0; // Length in bytes
 
     TokenId id = TokenId::Count;
 
     std::string_view toString(const SourceFile* file) const;
 };
+#pragma pack(pop)
 
 SWC_END_NAMESPACE();

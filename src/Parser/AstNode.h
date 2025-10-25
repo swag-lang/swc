@@ -68,9 +68,8 @@ struct AstChildrenView
 
 struct AstNode
 {
-    AstNodeId id      = AstNodeId::Invalid;
-    uint16_t  padding = 0;
-    TokenRef  token   = INVALID_REF;
+    AstNodeId id    = AstNodeId::Invalid;
+    TokenRef  token = INVALID_REF;
 
     union
     {
@@ -84,8 +83,8 @@ struct AstNode
     }
 
     AstNode(AstNodeId nodeId, TokenRef tok) :
-        id(nodeId),
-        token(tok)
+        token(tok),
+        id(nodeId)
     {
     }
 
@@ -101,7 +100,7 @@ struct AstNode
         token(tok),
         two(s)
     {
-    }    
+    }
 
     AstNode(AstNodeId nodeId, TokenRef tok, const AstKidsSlice& s) :
         id(nodeId),

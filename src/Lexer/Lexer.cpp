@@ -19,7 +19,7 @@ bool Lexer::isTerminatorAfterEscapeChar(uint8_t c, TokenId container)
 {
     // We only distinguish broadly between char and string by TokenId.
     // For strings (single-line or multi-line), treat quote/EOL similarly.
-    if (container == TokenId::CharacterLiteral)
+    if (container == TokenId::Character)
         return c == '\'' || c == '\n' || c == '\r';
 
     // Strings
@@ -218,8 +218,7 @@ void Lexer::lexBlank()
 
 void Lexer::lexSingleLineStringLiteral()
 {
-    token_.id               = TokenId::StringLiteral;
-    token_.subTokenStringId = SubTokenStringId::Line;
+    token_.id = TokenId::StringLine;
 
     buffer_++;
 
@@ -237,7 +236,7 @@ void Lexer::lexSingleLineStringLiteral()
         // Escaped char
         if (buffer_[0] == '\\')
         {
-            lexEscape(TokenId::StringLiteral, false);
+            lexEscape(TokenId::StringLine, false);
             continue;
         }
 
@@ -261,9 +260,7 @@ void Lexer::lexSingleLineStringLiteral()
 
 void Lexer::lexMultiLineStringLiteral()
 {
-    token_.id               = TokenId::StringLiteral;
-    token_.subTokenStringId = SubTokenStringId::MultiLine;
-
+    token_.id = TokenId::StringMultiLine;
     buffer_ += 3;
 
     while (buffer_ < endBuffer_)
@@ -286,7 +283,7 @@ void Lexer::lexMultiLineStringLiteral()
         // Escaped char
         if (buffer_[0] == '\\')
         {
-            lexEscape(TokenId::StringLiteral, true);
+            lexEscape(TokenId::StringMultiLine, true);
             continue;
         }
 
@@ -309,9 +306,7 @@ void Lexer::lexMultiLineStringLiteral()
 
 void Lexer::lexRawStringLiteral()
 {
-    token_.id               = TokenId::StringLiteral;
-    token_.subTokenStringId = SubTokenStringId::Raw;
-
+    token_.id = TokenId::StringRaw;
     buffer_ += 2;
 
     bool foundClosing = false;
@@ -351,7 +346,7 @@ void Lexer::lexRawStringLiteral()
 
 void Lexer::lexCharacterLiteral()
 {
-    token_.id = TokenId::CharacterLiteral;
+    token_.id = TokenId::Character;
     buffer_++;
 
     // Check for empty character literal
@@ -385,7 +380,7 @@ void Lexer::lexCharacterLiteral()
 
         // Handle escape sequence
         if (buffer_[0] == '\\')
-            lexEscape(TokenId::CharacterLiteral, false);
+            lexEscape(TokenId::Character, false);
         else
             eatUtf8Char();
 
@@ -409,8 +404,7 @@ void Lexer::lexCharacterLiteral()
 
 void Lexer::lexHexNumber()
 {
-    token_.subTokenNumberId = SubTokenNumberId::Hexadecimal;
-
+    token_.id = TokenId::NumberHexadecimal;
     buffer_ += 2;
 
     bool           lastWasSep = false;
@@ -458,8 +452,7 @@ void Lexer::lexHexNumber()
 
 void Lexer::lexBinNumber()
 {
-    token_.subTokenNumberId = SubTokenNumberId::Binary;
-
+    token_.id = TokenId::NumberBinary;
     buffer_ += 2;
 
     bool           lastWasSep = false;
@@ -507,7 +500,7 @@ void Lexer::lexBinNumber()
 
 void Lexer::lexDecimalNumber()
 {
-    token_.subTokenNumberId = SubTokenNumberId::Integer;
+    token_.id = TokenId::NumberInteger;
 
     bool           lastWasSep = false;
     const uint8_t* sepStart   = nullptr;
@@ -574,7 +567,7 @@ void Lexer::lexDecimalNumber()
         }
 
         if (hasDot)
-            token_.subTokenNumberId = SubTokenNumberId::Float;
+            token_.id = TokenId::NumberFloat;
     }
 
     // Parse exponent part
@@ -619,7 +612,7 @@ void Lexer::lexDecimalNumber()
             reportTokenError(DiagnosticId::MissingExponentDigits, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
 
         if (hasExp)
-            token_.subTokenNumberId = SubTokenNumberId::Float;
+            token_.id = TokenId::NumberFloat;
     }
 
     // Final trailing separator check
@@ -631,8 +624,6 @@ void Lexer::lexDecimalNumber()
 
 void Lexer::lexNumber()
 {
-    token_.id = TokenId::NumberLiteral;
-
     // Hexadecimal: 0x or 0X - safe to read buffer_[1] due to padding after endBuffer_
     if (buffer_[0] == '0' && (buffer_[1] == 'x' || buffer_[1] == 'X'))
         lexHexNumber();
@@ -1265,9 +1256,14 @@ Result Lexer::tokenize(Context& ctx, LexerFlags flags)
         if (buffer_[0] == '\'')
         {
             if (prevToken_.id != TokenId::Identifier &&
-                prevToken_.id != TokenId::CharacterLiteral &&
-                prevToken_.id != TokenId::NumberLiteral &&
-                prevToken_.id != TokenId::StringLiteral)
+                prevToken_.id != TokenId::Character &&
+                prevToken_.id != TokenId::NumberHexadecimal &&
+                prevToken_.id != TokenId::NumberBinary &&
+                prevToken_.id != TokenId::NumberInteger &&
+                prevToken_.id != TokenId::NumberFloat &&
+                prevToken_.id != TokenId::StringLine &&
+                prevToken_.id != TokenId::StringMultiLine &&
+                prevToken_.id != TokenId::StringRaw)
             {
                 lexCharacterLiteral();
                 continue;

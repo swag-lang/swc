@@ -11,30 +11,23 @@ enum class TokenId : uint8_t
     Blank,
     Eol,
     Comment,
-    StringLiteral,
-    NumberLiteral,
-    CharacterLiteral,
+
+    StringLine,
+    StringRaw,
+    StringMultiLine,
+
+    NumberHexadecimal,
+    NumberBinary,
+    NumberInteger,
+    NumberFloat,
+
+    Character,
     Identifier,
     Keyword,
     Intrinsic,
     Compiler,
     Operator,
     EndOfFile,
-};
-
-enum class SubTokenStringId : uint16_t
-{
-    Line,
-    Raw,
-    MultiLine,
-};
-
-enum class SubTokenNumberId : uint16_t
-{
-    Hexadecimal,
-    Binary,
-    Integer,
-    Float,
 };
 
 enum class SubTokenCommentId : uint16_t
@@ -108,8 +101,6 @@ struct Token
     uint8_t padding = 0;
     union
     {
-        SubTokenStringId     subTokenStringId;     // Valid if id is StringLiteral
-        SubTokenNumberId     subTokenNumberId;     // Valid if id is NumberLiteral
         SubTokenCommentId    subTokenCommentId;    // Valid if id is Comment
         SubTokenOperatorId   subTokenOperatorId;   // Valid if id is Operator
         SubTokenIdentifierId subTokenIdentifierId; // Valid if id is Identifier

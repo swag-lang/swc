@@ -22,10 +22,6 @@ AstNodeRef Parser::parseTopLevelBlock(AstNodeId id)
 
 AstNodeRef Parser::parseTopLevelDecl()
 {
-    switch (curToken_->id)
-    {
-    }
-    
     return ast_->makeNode(AstNodeId::Invalid, takeToken());
 }
 

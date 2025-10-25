@@ -266,9 +266,6 @@ enum class SubTokenIdentifierId : uint16_t
     IntrinsicCVaEnd,
     IntrinsicCVaArg,
 
-    // CVarArgs keyword
-    CVarArgs,
-
     // Native types
     Any,
     Void,
@@ -287,6 +284,7 @@ enum class SubTokenIdentifierId : uint16_t
     String,
     CString,
     TypeInfo,
+    CVarArgs,
 };
 
 enum class KeywordFlagsEnum : uint32_t
@@ -555,9 +553,6 @@ constexpr std::array<KeywordInfo, 249> K_KEYWORDS = {{
     {"@cvaend", SubTokenIdentifierId::IntrinsicCVaEnd, KeywordFlagsEnum::Zero},
     {"@cvaarg", SubTokenIdentifierId::IntrinsicCVaArg, KeywordFlagsEnum::Zero},
 
-    // CVarArgs keyword
-    {"cvarargs", SubTokenIdentifierId::CVarArgs, KeywordFlagsEnum::Zero},
-
     // Native types
     {"any", SubTokenIdentifierId::Any, KeywordFlagsEnum::Zero},
     {"void", SubTokenIdentifierId::Void, KeywordFlagsEnum::Zero},
@@ -576,6 +571,7 @@ constexpr std::array<KeywordInfo, 249> K_KEYWORDS = {{
     {"string", SubTokenIdentifierId::String, KeywordFlagsEnum::Zero},
     {"cstring", SubTokenIdentifierId::CString, KeywordFlagsEnum::Zero},
     {"typeinfo", SubTokenIdentifierId::TypeInfo, KeywordFlagsEnum::Zero},
+    {"cvarargs", SubTokenIdentifierId::CVarArgs, KeywordFlagsEnum::Zero},
 }};
 
 constexpr KeywordTable<1024> KEYWORD_TABLE{K_KEYWORDS};

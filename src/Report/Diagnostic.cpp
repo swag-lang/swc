@@ -105,9 +105,7 @@ Diagnostic::AnsiSeq Diagnostic::diagPalette(DiagPart p, std::optional<Diagnostic
     switch (p)
     {
         case DiagPart::FileLocationArrow:
-            return {BrightBlack};
         case DiagPart::FileLocationPath:
-            return {BrightBlack};
         case DiagPart::FileLocationSep:
             return {BrightBlack};
         case DiagPart::GutterBar:
@@ -116,8 +114,23 @@ Diagnostic::AnsiSeq Diagnostic::diagPalette(DiagPart p, std::optional<Diagnostic
             return {BrightBlack};
         case DiagPart::CodeText:
             return {White};
+
+        case DiagPart::SubLabelText:
+            if (!sev)
+                return {White};
+            switch (*sev)
+            {
+                case DiagnosticSeverity::Error:
+                    return {BrightRed};
+                case DiagnosticSeverity::Warning:
+                    return {BrightYellow};
+                case DiagnosticSeverity::Note:
+                case DiagnosticSeverity::Help:
+                    return {White};
+            }
+            break;
+
         case DiagPart::SubLabelPrefix:
-            return {BrightMagenta, Bold};
         case DiagPart::Severity:
             if (!sev)
                 return {White};
@@ -133,6 +146,7 @@ Diagnostic::AnsiSeq Diagnostic::diagPalette(DiagPart p, std::optional<Diagnostic
                     return {BrightGreen};
             }
             break;
+
         case DiagPart::QuoteText:
             if (!sev)
                 return {White};
@@ -148,6 +162,7 @@ Diagnostic::AnsiSeq Diagnostic::diagPalette(DiagPart p, std::optional<Diagnostic
                     return {BrightBlack};
             }
             break;
+
         case DiagPart::Reset:
             return {Reset};
     }
@@ -261,22 +276,6 @@ void Diagnostic::writeHighlightedMessage(Utf8& out, const Context& ctx, Diagnost
     }
 }
 
-// Short label line used for secondary elements (note/help/etc.)
-void Diagnostic::writeSubLabel(Utf8& out, const Context& ctx, DiagnosticSeverity sev, std::string_view msg, uint32_t gutterW)
-{
-    out.append(gutterW, ' ');
-    out += partStyle(ctx, DiagPart::SubLabelPrefix);
-    out += partStyle(ctx, DiagPart::Severity, sev);
-    out += severityStr(sev);
-    out += partStyle(ctx, DiagPart::Reset);
-    out += ": ";
-
-    writeHighlightedMessage(out, ctx, sev, msg, partStyle(ctx, DiagPart::Severity, sev));
-
-    out += partStyle(ctx, DiagPart::Reset);
-    out += "\n";
-}
-
 void Diagnostic::writeFileLocation(Utf8& out, const Context& ctx, const std::string& path, uint32_t line, uint32_t col, uint32_t len, uint32_t gutterW)
 {
     out.append(gutterW, ' ');
@@ -335,27 +334,34 @@ void Diagnostic::writeCodeLine(Utf8& out, const Context& ctx, uint32_t gutterW, 
     out += "\n";
 }
 
+void Diagnostic::writeSubLabel(Utf8& out, const Context& ctx, DiagnosticSeverity sev, std::string_view msg, uint32_t gutterW)
+{
+    out += partStyle(ctx, DiagPart::SubLabelPrefix, sev);
+    out += severityStr(sev);
+    out += ": ";
+    out += partStyle(ctx, DiagPart::Reset);
+
+    out += partStyle(ctx, DiagPart::SubLabelText, sev);
+    writeHighlightedMessage(out, ctx, sev, msg, partStyle(ctx, DiagPart::SubLabelText, sev));
+    out += partStyle(ctx, DiagPart::Reset);
+    out += "\n";
+}
+
 void Diagnostic::writeFullUnderline(Utf8& out, const Context& ctx, DiagnosticSeverity sev, const Utf8& msg, uint32_t gutterW, uint32_t columnOneBased, uint32_t underlineLen)
 {
     writeGutter(out, ctx, gutterW);
 
+    // Underline
     out += partStyle(ctx, DiagPart::Severity, sev);
-
     const uint32_t col = std::max<uint32_t>(1, columnOneBased);
     for (uint32_t i = 1; i < col; ++i)
         out += ' ';
-
     const uint32_t len = underlineLen == 0 ? 1u : underlineLen;
     out.append(len, '^');
-
     out += " ";
-    out += severityStr(sev);
-    out += ": ";
 
-    writeHighlightedMessage(out, ctx, sev, std::string_view(msg), partStyle(ctx, DiagPart::Severity, sev));
-
-    out += partStyle(ctx, DiagPart::Reset);
-    out += "\n";
+    // Message
+    writeSubLabel(out, ctx, sev, msg, gutterW);
 }
 
 // Renders a single element's location/code/underline block
@@ -437,12 +443,14 @@ Utf8 Diagnostic::build(const Context& ctx) const
         const auto  msg     = e->message();
         const bool  eHasLoc = e->hasCodeLocation();
 
-        // Sub label line
-        writeSubLabel(out, ctx, sev, msg, gutterW);
-
         // Optional location/code block
         if (eHasLoc)
             writeCodeBlock(out, ctx, *e, gutterW);
+        else
+        {
+            out.append(gutterW, ' ');
+            writeSubLabel(out, ctx, sev, msg, gutterW);
+        }
     }
 
     // single blank line after the whole diagnostic
@@ -467,7 +475,6 @@ void Diagnostic::expandMessageParts(std::vector<std::unique_ptr<DiagnosticElemen
         DiagnosticSeverity sev = p.tag.value_or(DiagnosticSeverity::Note);
 
         auto extra = std::make_unique<DiagnosticElement>(sev, front->id());
-        extra->inheritLocationFrom(*front);
         extra->setMessage(Utf8(p.text));
         elements.emplace_back(std::move(extra));
     }

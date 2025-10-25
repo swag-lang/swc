@@ -32,6 +32,7 @@ class Diagnostic
         LineNumber,        // left-hand line numbers
         CodeText,          // source code line
         SubLabelPrefix,    // secondary label ("note", "help", etc.)
+        SubLabelText,      // secondary label message
         Severity,          // color for severity labels/underlines
         QuoteText,         // color for quoted text based on severity
         Reset,             // reset sequence

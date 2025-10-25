@@ -45,6 +45,7 @@ public:
     }
 
     void* allocate(size_t n, size_t align = alignof(std::max_align_t));
+    void  shrinkToFit();
 
     template<class T>
     T* allocArray(size_t count)

@@ -23,4 +23,14 @@ void* Arena::allocate(size_t n, size_t align)
     return mem;
 }
 
+void Arena::shrinkToFit()
+{
+    // Drop any *trailing* blocks that were never used
+    while (!blocks_.empty() && blocks_.back()->used == 0)
+        blocks_.pop_back();
+
+    // Reduce the vector's capacity as well
+    blocks_.shrink_to_fit();
+}
+
 SWC_END_NAMESPACE();

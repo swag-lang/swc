@@ -29,7 +29,7 @@ Result Parser::parse(Context& ctx)
 #if SWC_HAS_STATS
     Stats::get().numAstNodes.fetch_add(ast_->nodes_.size());
 #endif    
-    
+
     return file_->hasError() ? Result::Error : Result::Success;
 }
 

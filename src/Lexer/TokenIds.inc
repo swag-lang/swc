@@ -1,4 +1,5 @@
 SWC_TOKEN_DEF(Invalid, Zero)
+
 SWC_TOKEN_DEF(Blank, Zero)
 SWC_TOKEN_DEF(EndOfLine, Zero)
 SWC_TOKEN_DEF(EndOfFile, Zero)

@@ -5,7 +5,6 @@ SWC_BEGIN_NAMESPACE();
 
 class SourceFile;
 
-// Your existing Flags<>. Keep this as-is.
 enum class AstNodeIdArity : uint32_t
 {
     None,
@@ -22,7 +21,6 @@ struct AstNodeIdInfo
 
 enum class AstNodeId : uint16_t
 {
-    Invalid = 0,
 #define SWC_NODE_ID_DEF(enum, arity) enum,
 #include "AstNodeIds.inc"
 
@@ -30,7 +28,7 @@ enum class AstNodeId : uint16_t
     Count
 };
 
-constexpr std::array<AstNodeIdInfo, static_cast<size_t>(AstNodeId::Count)> AST_NODE_ID_INFOS = {
+constexpr std::array AST_NODE_ID_INFOS = {
 #define SWC_NODE_ID_DEF(enum, arity) AstNodeIdInfo{#enum, AstNodeIdArity::arity},
 #include "AstNodeIds.inc"
 
@@ -66,7 +64,7 @@ struct AstChildrenView
 #pragma pack(push, 1)
 struct AstNode
 {
-    AstNodeId id    = AstNodeId::Invalid;
+    AstNodeId id = AstNodeId::Invalid;
 
     union
     {
@@ -75,36 +73,36 @@ struct AstNode
         AstChildrenMany many;
     };
 
-    TokenRef  token = INVALID_REF;
+    TokenRef token = INVALID_REF;
 
     AstNode()
     {
     }
 
     AstNode(AstNodeId nodeId, TokenRef tok) :
-        token(tok),
-        id(nodeId)
+        id(nodeId),
+        token(tok)
     {
     }
 
     AstNode(AstNodeId nodeId, TokenRef tok, const AstChildrenOne& s) :
-        token(tok),
         id(nodeId),
-        one(s)
+        one(s),
+        token(tok)
     {
     }
 
     AstNode(AstNodeId nodeId, TokenRef tok, const AstChildrenTwo& s) :
-        token(tok),
         id(nodeId),
-        two(s)
+        two(s),
+        token(tok)
     {
     }
 
     AstNode(AstNodeId nodeId, TokenRef tok, const AstChildrenMany& s) :
-        token(tok),
         id(nodeId),
-        many(s)
+        many(s),
+        token(tok)
     {
     }
 };

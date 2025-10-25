@@ -27,7 +27,7 @@ enum class TokenId : uint16_t
     Count
 };
 
-constexpr std::array<TokenIdInfo, static_cast<size_t>(TokenId::Count)> TOKEN_ID_INFOS = {
+constexpr std::array TOKEN_ID_INFOS = {
 #define SWC_TOKEN_DEF(enum, flags) TokenIdInfo{#enum, TokenIdFlagsEnum::flags},
 #include "TokenIds.inc"
 
@@ -40,7 +40,7 @@ struct Token
     uint32_t byteStart  = 0; // Byte offset in the source file buffer
     uint32_t byteLength = 0; // Length in bytes
 
-    TokenId id = TokenId::Count;
+    TokenId id = TokenId::Invalid;
 
     std::string_view toString(const SourceFile* file) const;
 };

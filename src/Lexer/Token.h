@@ -11,25 +11,28 @@ enum class TokenId : uint16_t
     EndOfLine,
     EndOfFile,
 
+    // Comments
     CommentLine,
     CommentMultiLine,
 
+    // String literal
     StringLine,
     StringRaw,
     StringMultiLine,
 
+    // Character literal
     Character,
 
+    // Number literal
     NumberHexadecimal,
     NumberBinary,
     NumberInteger,
     NumberFloat,
 
+    // Identifier
     Identifier,
-    Keyword,
-    Intrinsic,
-    Compiler,
 
+    // Operators
     OpQuote,
     OpBackSlash,
     OpLeftParen,

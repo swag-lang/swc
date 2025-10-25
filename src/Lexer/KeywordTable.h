@@ -1,15 +1,17 @@
 #pragma once
-SWC_BEGIN_NAMESPACE();
+#include "Token.h"
+SWC_BEGIN_NAMESPACE()
 
-enum class SubTokenIdentifierId : uint16_t;
+enum class TokenId : uint16_t;
+enum class TokenId : uint16_t;
 enum class KeywordFlagsEnum : uint32_t;
 using KeywordFlags = Flags<KeywordFlagsEnum>;
 
 struct KeywordInfo
 {
-    std::string_view     key;
-    SubTokenIdentifierId id;
-    KeywordFlags         flags;
+    std::string_view key;
+    TokenId          id;
+    KeywordFlags     flags;
 };
 
 template<size_t N>
@@ -30,10 +32,10 @@ struct KeywordTable
     static_assert((N & (N - 1)) == 0, "N must be power of two");
     struct Slot
     {
-        uint64_t             hash = 0;
-        std::string_view     key;
-        SubTokenIdentifierId id;
-        KeywordFlags         flags;
+        uint64_t         hash = 0;
+        std::string_view key;
+        TokenId          id;
+        KeywordFlags     flags;
     };
 
     std::array<Slot, N> slots{};
@@ -62,7 +64,7 @@ struct KeywordTable
             insert(e);
     }
 
-    SubTokenIdentifierId find(std::string_view s) const noexcept
+    TokenId find(std::string_view s) const noexcept
     {
         uint64_t h   = fnv1A64(s);
         size_t   idx = h & (N - 1);
@@ -70,7 +72,7 @@ struct KeywordTable
         {
             const Slot& sl = slots[idx];
             if (sl.hash == 0)
-                return static_cast<SubTokenIdentifierId>(0);
+                return TokenId::Identifier;
             if (sl.hash == h && sl.key == s)
                 return sl.id;
             idx = (idx + 1) & (N - 1);

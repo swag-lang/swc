@@ -2,7 +2,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-enum class SubTokenIdentifierId : uint16_t;
+enum class TokenId : uint16_t;
 
 enum class CharFlagsEnum : uint32_t
 {
@@ -38,7 +38,7 @@ public:
     bool isIdentifierPart(uint8_t c) const { return charFlags_[c].has(CharFlagsEnum::IdentifierPart); }
     bool isEscape(uint8_t c) const { return charFlags_[c].has(CharFlagsEnum::Escape); }
 
-    static SubTokenIdentifierId keyword(std::string_view name);
+    static TokenId keyword(std::string_view name);
 
 private:
     CharFlags charFlags_[256];

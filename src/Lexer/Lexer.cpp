@@ -651,18 +651,8 @@ void Lexer::lexIdentifier()
     while (langSpec_->isIdentifierPart(buffer_[0]))
         buffer_++;
 
-    const auto name             = std::string_view(reinterpret_cast<std::string_view::const_pointer>(startToken_), buffer_ - startToken_);
-    token_.subTokenIdentifierId = LangSpec::keyword(name);
-    if (token_.subTokenIdentifierId != SubTokenIdentifierId::Invalid)
-    {
-        if (name[0] == '#')
-            token_.id = TokenId::Compiler;
-        else if (name[0] == '@')
-            token_.id = TokenId::Intrinsic;
-        else
-            token_.id = TokenId::Keyword;
-    }
-
+    const auto name = std::string_view(reinterpret_cast<std::string_view::const_pointer>(startToken_), buffer_ - startToken_);
+    token_.id       = LangSpec::keyword(name);
     pushToken();
 }
 

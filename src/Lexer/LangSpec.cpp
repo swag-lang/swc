@@ -92,7 +92,7 @@ bool LangSpec::isBlank(const uint8_t* buffer, const uint8_t* end, uint32_t& offs
     return false;
 }
 
-SubTokenIdentifierId LangSpec::keyword(std::string_view name)
+TokenId LangSpec::keyword(std::string_view name)
 {
     return KEYWORD_TABLE.find(name);
 }

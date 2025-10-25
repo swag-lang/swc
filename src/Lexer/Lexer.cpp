@@ -773,12 +773,12 @@ void Lexer::lexOperator()
         case '!':
             if (buffer_[1] == '=')
             {
-                token_.subTokenOperatorId = SubTokenOperatorId::ExclamEqual;
+                token_.subTokenOperatorId = SubTokenOperatorId::ExclamationEqual;
                 buffer_ += 2;
             }
             else
             {
-                token_.subTokenOperatorId = SubTokenOperatorId::Exclam;
+                token_.subTokenOperatorId = SubTokenOperatorId::Exclamation;
                 buffer_++;
             }
             break;

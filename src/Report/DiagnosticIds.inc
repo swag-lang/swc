@@ -34,5 +34,3 @@ SWAG_DIAG_DEF(TooManyCharsInCharLiteral, "too many characters in character liter
 SWAG_DIAG_DEF(InvalidNumberSuffix, "invalid number suffix '%0'; not a recognized numeric type suffix")
 SWAG_DIAG_DEF(InvalidCharacter, "invalid character '%0'; not allowed in source file")
 
-// Notes
-SWAG_DIAG_DEF(NoteEscapesSequence, "valid escape sequences are '\\n', '\\r', '\\t', '\\x', '\\u', '\\U'...")

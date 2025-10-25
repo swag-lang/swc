@@ -93,7 +93,7 @@ void Lexer::reportUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len)
     file_->setHasError();
 }
 
-void Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len, DiagnosticId help)
+void Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len)
 {
     if (hasTokenError_)
         return;
@@ -111,10 +111,6 @@ void Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len, Dia
         const std::string_view arg = ctx_->sourceFile()->codeView(offset, len);
         diag.last()->addArgument(arg);
     }
-
-    // Note
-    if (help != DiagnosticId::None)
-        diag.addHelp(help);
 
     diag.report(*ctx_);
     file_->setHasError();
@@ -135,7 +131,7 @@ void Lexer::lexEscape(TokenId containerToken, bool eatEol)
     }
 
     if (!langSpec_->isEscape(buffer_[1]))
-        reportTokenError(DiagnosticId::InvalidEscapeSequence, static_cast<uint32_t>(buffer_ - startBuffer_), 2, DiagnosticId::NoteEscapesSequence);
+        reportTokenError(DiagnosticId::InvalidEscapeSequence, static_cast<uint32_t>(buffer_ - startBuffer_), 2);
 
     // pos points to the backslash
     if (buffer_[1] != 'x' && buffer_[1] != 'u' && buffer_[1] != 'U')

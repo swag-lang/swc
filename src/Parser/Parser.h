@@ -43,8 +43,8 @@ class Parser
     }
 
     AstNodeRef parseTopLevelDecl();
-    AstNodeRef parseTopLevelBlock(AstNodeId id);
-    AstNodeRef parseLiteral(AstNodeId id);
+    AstNodeRef parseTopLevelCurlyBlock();
+    AstNodeRef parseFile();
 
 public:
     Result parse(Context& ctx);

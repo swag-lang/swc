@@ -24,11 +24,11 @@ Result Parser::parse(Context& ctx)
     lastToken_  = &file_->lexOut_.tokens_.back();
     curToken_   = firstToken_;
 
-    ast_->root_ = parseTopLevelBlock(AstNodeId::File);
+    ast_->root_ = parseFile();
 
 #if SWC_HAS_STATS
     Stats::get().numAstNodes.fetch_add(ast_->nodes_.size());
-#endif    
+#endif
 
     return file_->hasError() ? Result::Error : Result::Success;
 }

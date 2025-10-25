@@ -16,26 +16,26 @@ AstNodeRef Parser::parseTopLevelDecl()
             break;
     }
 
-    return ast_->makeNode(AstNodeId::Invalid, takeToken());
+    return ast_->makeNode(AstNodeId::Invalid, eat());
 }
 
 AstNodeRef Parser::parseTopLevelCurlyBlock()
 {
     const auto myTokenRef = tokenRef();
     const auto myToken    = curToken_;
-    const auto startCurly = ast_->makeNode(AstNodeId::Delimiter, takeToken());
+    const auto startCurly = ast_->makeNode(AstNodeId::Delimiter, eat());
 
     std::vector stmts = {startCurly};
-    while (curToken_ < lastToken_ && curToken_->id != TokenId::OpRightCurly)
+    while (!atEnd() && id() != TokenId::OpRightCurly)
     {
         const auto result = parseTopLevelDecl();
         if (result != INVALID_REF)
             stmts.push_back(result);
     }
 
-    if (curToken_->id == TokenId::OpRightCurly)
+    if (id() == TokenId::OpRightCurly)
     {
-        stmts.push_back(ast_->makeNode(AstNodeId::Delimiter, takeToken()));
+        stmts.push_back(ast_->makeNode(AstNodeId::Delimiter, eat()));
     }
     else
     {

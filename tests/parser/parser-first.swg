@@ -1,1 +1,1 @@
-{
+{ // expected-error UnterminatedCurlyBlock

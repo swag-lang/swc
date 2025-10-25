@@ -1,4 +1,5 @@
 #pragma once
+SWC_BEGIN_NAMESPACE();
 
 class Arena
 {
@@ -72,3 +73,5 @@ public:
         return total;
     }
 };
+
+SWC_END_NAMESPACE();

@@ -2,79 +2,101 @@
 #pragma once
 #include "Core/Types.h"
 #include "Memory/Arena.h"
+#include "Report/Check.h"
 
-template<class T, uint32_t PAGE_SHIFT = 12> // 4096 items/page by default
+SWC_BEGIN_NAMESPACE();
+
+// PagedStore: grow-only container backed by an Arena, IDs are dense [0..size)
+template<class T, uint32_t N = 4096> // items per page by default
 class PagedStore
 {
-    static constexpr uint32_t PAGE_SIZE = 1u << PAGE_SHIFT;
-    static constexpr uint32_t PAGE_MASK = PAGE_SIZE - 1;
+    static_assert(N > 0 && (N & (N - 1)) == 0, "N must be a power of two");
+    static_assert(std::is_trivially_destructible_v<T>, "T must be trivially destructible");
+
+    static constexpr uint32_t PAGE_SHIFT = []() {
+        uint32_t shift = 0, size = N;
+        while (size >>= 1)
+            ++shift;
+        return shift;
+    }();
+
+    static constexpr uint32_t PAGE_MASK = N - 1u;
 
     Arena*          arena_ = nullptr;
-    std::vector<T*> pages_; // small side array of page bases
+    std::vector<T*> pages_;
     uint32_t        count_ = 0;
+
+    static uint32_t pageIndex(uint32_t id) noexcept { return id >> PAGE_SHIFT; }
+    static uint32_t pageOffset(uint32_t id) noexcept { return id & PAGE_MASK; }
 
     T* newPage()
     {
-        T* base = arena_->allocArray<T>(PAGE_SIZE);
+        T* base = arena_->template allocArray<T>(N);
         pages_.push_back(base);
         return base;
     }
 
 public:
-    explicit PagedStore(Arena& arena) :
+    explicit PagedStore(Arena& arena) noexcept :
         arena_(&arena)
     {
     }
 
     Ref push_back(const T& v)
     {
-        const uint32_t id   = count_++;
-        uint32_t       page = id >> PAGE_SHIFT;
-        uint32_t       off  = id & PAGE_MASK;
-        if (page >= pages_.size())
+        const uint32_t id = count_++;
+        const uint32_t p  = pageIndex(id);
+        const uint32_t o  = pageOffset(id);
+        if (p >= pages_.size())
             newPage();
-        pages_[page][off] = v;
+        ::new (static_cast<void*>(&pages_[p][o])) T(v);
         return id;
     }
 
     template<class... Args>
     Ref emplace_back(Args&&... args)
     {
-        const uint32_t id   = count_++;
-        uint32_t       page = id >> PAGE_SHIFT;
-        uint32_t       off  = id & PAGE_MASK;
-        if (page >= pages_.size())
+        const uint32_t id = count_++;
+        const uint32_t p  = pageIndex(id);
+        const uint32_t o  = pageOffset(id);
+        if (p >= pages_.size())
             newPage();
-        ::new (&pages_[page][off]) T(std::forward<Args>(args)...);
+        ::new (static_cast<void*>(&pages_[p][o])) T(std::forward<Args>(args)...);
         return id;
     }
 
     T& at(Ref id)
     {
-        uint32_t page = id >> PAGE_SHIFT, off = id & PAGE_MASK;
-        return pages_[page][off];
+        SWC_ASSERT(id < count_);
+        return pages_[pageIndex(id)][pageOffset(id)];
     }
 
     const T& at(Ref id) const
     {
-        uint32_t page = id >> PAGE_SHIFT, off = id & PAGE_MASK;
-        return pages_[page][off];
+        SWC_ASSERT(id < count_);
+        return pages_[pageIndex(id)][pageOffset(id)];
     }
 
     T* ptr(Ref id)
     {
-        uint32_t page = id >> PAGE_SHIFT, off = id & PAGE_MASK;
-        return &pages_[page][off];
+        SWC_ASSERT(id < count_);
+        return &pages_[pageIndex(id)][pageOffset(id)];
     }
 
     const T* ptr(Ref id) const
     {
-        uint32_t page = id >> PAGE_SHIFT, off = id & PAGE_MASK;
-        return &pages_[page][off];
+        SWC_ASSERT(id < count_);
+        return &pages_[pageIndex(id)][pageOffset(id)];
     }
 
-    uint32_t size() const
+    void reserve(uint32_t expected)
     {
-        return count_;
+        const uint32_t pagesNeeded = (expected + N - 1u) / N;
+        pages_.reserve(pagesNeeded);
     }
+
+    uint32_t size() const noexcept { return count_; }
+    void     clear() noexcept { count_ = 0; }
 };
+
+SWC_END_NAMESPACE();

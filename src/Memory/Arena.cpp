@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Memory/Arena.h"
 
+SWC_BEGIN_NAMESPACE();
+
 void* Arena::allocate(size_t n, size_t align)
 {
     if (blocks_.empty())
@@ -20,3 +22,5 @@ void* Arena::allocate(size_t n, size_t align)
     b->used   = off + n;
     return mem;
 }
+
+SWC_END_NAMESPACE();

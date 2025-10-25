@@ -10,7 +10,9 @@ enum class TokenId : uint8_t
     Invalid,
     Blank,
     Eol,
-    Comment,
+
+    CommentLine,
+    CommentMultiLine,
 
     StringLine,
     StringRaw,
@@ -28,12 +30,6 @@ enum class TokenId : uint8_t
     Compiler,
     Operator,
     EndOfFile,
-};
-
-enum class SubTokenCommentId : uint16_t
-{
-    Line,
-    MultiLine,
 };
 
 enum class SubTokenOperatorId : uint16_t
@@ -101,7 +97,6 @@ struct Token
     uint8_t padding = 0;
     union
     {
-        SubTokenCommentId    subTokenCommentId;    // Valid if id is Comment
         SubTokenOperatorId   subTokenOperatorId;   // Valid if id is Operator
         SubTokenIdentifierId subTokenIdentifierId; // Valid if id is Identifier
     };

@@ -66,13 +66,15 @@ void Lexer::pushToken()
     token_.len = static_cast<uint32_t>(buffer_ - startToken_);
     prevToken_ = token_;
 
-    if (rawMode_ && token_.id != TokenId::Comment)
+    if (rawMode_ && token_.id != TokenId::CommentLine && token_.id != TokenId::CommentMultiLine)
         return;
     if (token_.id == TokenId::Blank && !lexerFlags_.has(LexerFlagsEnum::ExtractBlanks))
         return;
     if (token_.id == TokenId::Eol && !lexerFlags_.has(LexerFlagsEnum::ExtractLineEnds))
         return;
-    if (token_.id == TokenId::Comment && !lexerFlags_.has(LexerFlagsEnum::ExtractComments))
+    if (token_.id == TokenId::CommentLine && !lexerFlags_.has(LexerFlagsEnum::ExtractComments))
+        return;
+    if (token_.id == TokenId::CommentMultiLine && !lexerFlags_.has(LexerFlagsEnum::ExtractComments))
         return;
 
     file_->lexOut_.tokens_.push_back(token_);
@@ -995,8 +997,7 @@ void Lexer::lexOperator()
 
 void Lexer::lexSingleLineComment()
 {
-    token_.id                = TokenId::Comment;
-    token_.subTokenCommentId = SubTokenCommentId::Line;
+    token_.id = TokenId::CommentLine;
 
     // Skip //
     buffer_ += 2;
@@ -1011,12 +1012,10 @@ void Lexer::lexSingleLineComment()
 
 void Lexer::lexMultiLineComment()
 {
-    token_.id                = TokenId::Comment;
-    token_.subTokenCommentId = SubTokenCommentId::MultiLine;
-
+    token_.id = TokenId::CommentMultiLine;
     buffer_ += 2;
-    uint32_t depth = 1;
 
+    uint32_t depth = 1;
     while (buffer_ < endBuffer_ && depth > 0)
     {
         // Check for null byte (invalid UTF-8)

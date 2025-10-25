@@ -31,6 +31,16 @@ public:
         return nodes_.ptr(ref);
     }
 
+    static constexpr const AstNodeIdInfo& nodeIdInfos(AstNodeId id)
+    {
+        return AST_NODE_ID_INFOS[static_cast<size_t>(id)];
+    }
+
+    static constexpr std::string_view nodeIdName(AstNodeId id) noexcept
+    {
+        return nodeIdInfos(id).name;
+    }
+
     AstChildrenView children(const AstNode& n) const;
 
     AstNodeRef makeNode(AstNodeId id, TokenRef token);

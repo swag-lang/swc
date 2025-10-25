@@ -1,1 +1,1 @@
-SWC_NODE_ID_DEF(File, ArityMany)
+SWC_NODE_ID_DEF(File, Many)

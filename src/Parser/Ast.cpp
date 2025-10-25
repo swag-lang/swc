@@ -11,11 +11,18 @@ Ast::Ast()
 
 AstChildrenView Ast::children(const AstNode& n) const
 {
-    const auto& info = AST_NODE_ID_INFOS[static_cast<int>(n.id)];
+    const auto& info = nodeIdInfos(n.id);
 
-    if (info.flags.has(AstNodeIdFlagsEnum::ArityMany))
+    switch (info.arity)
     {
-        return {.ptr = nodeRefs_.ptr(n.slice.index), .n = n.slice.count};
+        case AstNodeIdArity::None:
+            return {};
+        case AstNodeIdArity::One:
+            return {.ptr = &n.one.first, .n = 1};
+        case AstNodeIdArity::Two:
+            return {.ptr = &n.two.first, .n = 2};
+        case AstNodeIdArity::Many:
+            return {.ptr = nodeRefs_.ptr(n.slice.index), .n = n.slice.count};
     }
 
     return {};

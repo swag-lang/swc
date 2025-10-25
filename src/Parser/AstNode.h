@@ -6,27 +6,24 @@ SWC_BEGIN_NAMESPACE();
 class SourceFile;
 
 // Your existing Flags<>. Keep this as-is.
-enum class AstNodeIdFlagsEnum : uint32_t
+enum class AstNodeIdArity : uint32_t
 {
-    Zero      = 0,
-    ArityNone = 1u << 0,
-    ArityOne  = 1u << 1,
-    ArityTwo  = 1u << 2,
-    ArityMany = 1u << 3,
+    None,
+    One,
+    Two,
+    Many,
 };
-
-using AstNodeIdFlagsFlags = Flags<AstNodeIdFlagsEnum>;
 
 struct AstNodeIdInfo
 {
-    std::string_view    name;
-    AstNodeIdFlagsFlags flags;
+    std::string_view name;
+    AstNodeIdArity   arity;
 };
 
 enum class AstNodeId : uint16_t
 {
     Invalid = 0,
-#define SWC_NODE_ID_DEF(enum, flags) enum,
+#define SWC_NODE_ID_DEF(enum, arity) enum,
 #include "AstNodeIds.inc"
 
 #undef SWC_NODE_ID_DEF
@@ -34,7 +31,7 @@ enum class AstNodeId : uint16_t
 };
 
 constexpr std::array<AstNodeIdInfo, static_cast<size_t>(AstNodeId::Count)> AST_NODE_ID_INFOS = {
-#define SWC_NODE_ID_DEF(enum, flags) AstNodeIdInfo{#enum, AstNodeIdFlagsEnum::flags},
+#define SWC_NODE_ID_DEF(enum, arity) AstNodeIdInfo{#enum, AstNodeIdArity::arity},
 #include "AstNodeIds.inc"
 
 #undef SWC_NODE_ID_DEF
@@ -83,8 +80,8 @@ struct AstNode
     }
 
     AstNode(AstNodeId nodeId, TokenRef tok) :
-        token(tok),
-        id(nodeId)
+        id(nodeId),
+        token(tok)
     {
     }
 

@@ -42,6 +42,9 @@ std::string_view DiagnosticElement::idName() const
 // Format a string by replacing %0, %1, etc. with registered arguments
 Utf8 DiagnosticElement::message() const
 {
+    if (!message_.empty())
+        return message_;
+
     Utf8 result{DiagnosticIds::diagMessage(id_)};
 
     // Replace placeholders in reverse order to avoid issues with %10 versus %1

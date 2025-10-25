@@ -45,7 +45,8 @@ namespace
 
 void SourceCodeLocation::fromOffset(const Context& ctx, const SourceFile* inFile, uint32_t inOffset, uint32_t inLen)
 {
-    SWC_ASSERT(inFile);
+    if (!inFile || inOffset >= inFile->content().size() || inLen == 0)
+        return;
 
     file   = inFile;
     offset = inOffset;

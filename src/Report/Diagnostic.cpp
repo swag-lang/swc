@@ -13,6 +13,148 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    // whitespace helpers
+    static inline std::string_view ltrim(std::string_view s)
+    {
+        while (!s.empty() && (s.front() == ' ' || s.front() == '\t'))
+            s.remove_prefix(1);
+        return s;
+    }
+    static inline std::string_view rtrim(std::string_view s)
+    {
+        while (!s.empty() && (s.back() == ' ' || s.back() == '\t'))
+            s.remove_suffix(1);
+        return s;
+    }
+    static inline std::string_view trim(std::string_view s)
+    {
+        return rtrim(ltrim(s));
+    }
+
+    // ASCII-case-insensitive starts-with
+    static bool istarts_with(std::string_view s, std::string_view pfx)
+    {
+        if (s.size() < pfx.size())
+            return false;
+        for (size_t i = 0; i < pfx.size(); ++i)
+        {
+            char a = s[i], b = pfx[i];
+            if ('A' <= a && a <= 'Z')
+                a = char(a - 'A' + 'a');
+            if ('A' <= b && b <= 'Z')
+                b = char(b - 'A' + 'a');
+            if (a != b)
+                return false;
+        }
+        return true;
+    }
+
+    // tag → severity mapping
+    static std::optional<DiagnosticSeverity> tagToSeverity(std::string_view s)
+    {
+        if (istarts_with(s, "[note]"))
+            return DiagnosticSeverity::Note;
+        if (istarts_with(s, "[help]"))
+            return DiagnosticSeverity::Help;
+        return std::nullopt;
+    }
+
+    // remove header like [note] or note:
+    static std::string_view stripLeadingTagHeader(std::string_view s)
+    {
+        auto t = trim(s);
+        if (!t.empty() && t.front() == '[')
+        {
+            auto close = t.find(']');
+            if (close != std::string_view::npos)
+                t.remove_prefix(close + 1);
+        }
+        t = ltrim(t);
+        if (istarts_with(t, "note:"))
+        {
+            t.remove_prefix(5);
+            t = ltrim(t);
+        }
+        else if (istarts_with(t, "help:"))
+        {
+            t.remove_prefix(5);
+            t = ltrim(t);
+        }
+        else if (istarts_with(t, "warning:"))
+        {
+            t.remove_prefix(8);
+            t = ltrim(t);
+        }
+        else if (istarts_with(t, "error:"))
+        {
+            t.remove_prefix(6);
+            t = ltrim(t);
+        }
+        return t;
+    }
+
+    // split message on ';' ignoring ';' inside quotes and escaped quotes
+    static std::vector<std::string_view> splitMessageSafe(std::string_view msg)
+    {
+        std::vector<std::string_view> parts;
+        size_t                        start   = 0;
+        bool                          inQuote = false;
+
+        for (size_t i = 0; i < msg.size(); ++i)
+        {
+            char c = msg[i];
+            if (inQuote)
+            {
+                if (c == '\\')
+                {
+                    if (i + 1 < msg.size())
+                        ++i;
+                }
+                else if (c == '\'')
+                {
+                    inQuote = false;
+                }
+            }
+            else
+            {
+                if (c == '\'')
+                    inQuote = true;
+                else if (c == ';')
+                {
+                    parts.emplace_back(trim(msg.substr(start, i - start)));
+                    start = i + 1;
+                }
+            }
+        }
+        if (start <= msg.size())
+            parts.emplace_back(trim(msg.substr(start)));
+        return parts;
+    }
+
+    struct Part
+    {
+        std::optional<DiagnosticSeverity> tag;
+        std::string                       text;
+    };
+
+    std::vector<Part> parseParts(std::string_view msg)
+    {
+        std::vector<Part> out;
+        for (auto raw : splitMessageSafe(msg))
+        {
+            if (raw.empty())
+                continue;
+            const auto sev  = tagToSeverity(raw);
+            auto       body = stripLeadingTagHeader(raw);
+            out.push_back({sev, std::string(body)});
+        }
+        return out;
+    }
+
+} // namespace
+
 // Centralized palette for all diagnostic colors
 Diagnostic::AnsiSeq Diagnostic::diagPalette(DiagPart p)
 {
@@ -306,12 +448,20 @@ void Diagnostic::writeCodeBlock(Utf8& out, const Context& ctx, const DiagnosticE
 Utf8 Diagnostic::build(const Context& ctx) const
 {
     Utf8 out;
+
     if (elements_.empty())
         return out;
 
+    // Make a copy of elements to modify them if necessary
+    std::vector<std::unique_ptr<DiagnosticElement>> elements;
+    elements.reserve(elements_.size());
+    for (auto &e : elements_)
+        elements.push_back(std::make_unique<DiagnosticElement>(*e.get()));
+    expandMessageParts(elements);
+
     // Compute a unified gutter width based on the maximum line number among all located elements
     uint32_t maxLine = 0;
-    for (const auto& e : elements_)
+    for (const auto& e : elements)
     {
         if (e->hasCodeLocation())
         {
@@ -323,7 +473,7 @@ Utf8 Diagnostic::build(const Context& ctx) const
     const uint32_t gutterW = maxLine ? digits(maxLine) : 0;
 
     // Primary element: the first one
-    const auto& primary = elements_.front();
+    const auto& primary = elements.front();
     const auto  pMsg    = primary->message();
 
     // Render primary element body (location/code) if any
@@ -340,9 +490,9 @@ Utf8 Diagnostic::build(const Context& ctx) const
     }
 
     // Now render all secondary elements as part of the same diagnostic
-    for (size_t i = 1; i < elements_.size(); ++i)
+    for (size_t i = 1; i < elements.size(); ++i)
     {
-        const auto& e       = elements_[i];
+        const auto& e       = elements[i];
         const auto  sev     = e->severity();
         const auto  msg     = e->message();
         const bool  eHasLoc = e->hasCodeLocation();
@@ -359,6 +509,29 @@ Utf8 Diagnostic::build(const Context& ctx) const
     out += partStyle(ctx, DiagPart::Reset);
     out += "\n";
     return out;
+}
+
+void Diagnostic::expandMessageParts(std::vector<std::unique_ptr<DiagnosticElement>>& elements)
+{
+    const auto front = elements.front().get();
+    const Utf8 msg   = front->message();
+    const auto parts = parseParts(std::string_view(msg));
+    if (parts.size() <= 1)
+        return;
+
+    // base element keeps first
+    front->setMessage(Utf8(parts[0].text));
+
+    for (size_t i = 1; i < parts.size(); ++i)
+    {
+        const auto&        p   = parts[i];
+        DiagnosticSeverity sev = p.tag.value_or(DiagnosticSeverity::Note);
+
+        auto extra = std::make_unique<DiagnosticElement>(sev, front->id());
+        extra->inheritLocationFrom(*front);
+        extra->setMessage(Utf8(p.text));
+        elements.emplace_back(std::move(extra));
+    }
 }
 
 DiagnosticElement* Diagnostic::addElement(DiagnosticSeverity kind, DiagnosticId id)

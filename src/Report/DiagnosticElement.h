@@ -14,6 +14,7 @@ class DiagnosticElement
     friend class UnitTest;
     using Argument = std::variant<Utf8, uint64_t, int64_t>;
 
+    Utf8               message_;
     DiagnosticId       id_;
     DiagnosticSeverity severity_;
 
@@ -48,11 +49,20 @@ public:
         len_    = loc.len;
     }
 
+    void inheritLocationFrom(const DiagnosticElement& other)
+    {
+        file_   = other.file_;
+        offset_ = other.offset_;
+        len_    = other.len_;
+    }
+
+    Utf8 message() const;
+    void setMessage(Utf8 m) { message_ = std::move(m); }
+
     SourceCodeLocation location(const Context& ctx) const;
     std::string_view   idName() const;
     DiagnosticId       id() const { return id_; }
     DiagnosticSeverity severity() const { return severity_; }
-    Utf8               message() const;
     bool               hasCodeLocation() const { return file_ != nullptr && len_ > 0; }
 
     template<typename T>

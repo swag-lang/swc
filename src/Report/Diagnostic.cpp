@@ -86,10 +86,99 @@ Utf8 Diagnostic::severityColor(const Context& ctx, DiagnosticSeverity s)
     return {};
 }
 
+Utf8 Diagnostic::quoteColor(const Context& ctx, DiagnosticSeverity sev)
+{
+    using enum LogColor;
+
+    // Chosen to complement the base severity colors:
+    // - Error   (BrightRed)    -> BrightMagenta for quotes
+    // - Warning (BrightYellow) -> BrightBlue
+    // - Note    (BrightCyan)   -> BrightWhite
+    // - Help    (BrightGreen)  -> BrightWhite
+    switch (sev)
+    {
+        case DiagnosticSeverity::Error:
+            return LogColorHelper::toAnsi(ctx, BrightMagenta);
+        case DiagnosticSeverity::Warning:
+            return LogColorHelper::toAnsi(ctx, BrightBlue);
+        case DiagnosticSeverity::Note:
+            return LogColorHelper::toAnsi(ctx, BrightBlack);
+        case DiagnosticSeverity::Help:
+            return LogColorHelper::toAnsi(ctx, BrightBlack);
+    }
+
+    return LogColorHelper::toAnsi(ctx, LogColor::White);
+}
+
 // Generic digit counter (no hard cap)
 uint32_t Diagnostic::digits(uint32_t n)
 {
     return static_cast<uint32_t>(std::to_string(n).size());
+}
+
+void Diagnostic::writeHighlightedMessage(Utf8& out, const Context& ctx, DiagnosticSeverity sev, std::string_view msg, Utf8 reset)
+{
+    const Utf8  qColor  = quoteColor(ctx, sev);
+    bool        inQuote = false;
+    std::string quotedBuf;
+    quotedBuf.reserve(32);
+
+    for (size_t i = 0; i < msg.size(); ++i)
+    {
+        const char ch = msg[i];
+
+        if (!inQuote)
+        {
+            if (ch == '\'')
+            {
+                inQuote   = true;
+                quotedBuf = '\'';
+            }
+            else
+            {
+                out += ch;
+            }
+        }
+        else
+        {
+            // Inside quotes: watch for escaped '\'' and closing '\''
+            if (ch == '\\')
+            {
+                // Lookahead for escaped quote
+                if (i + 1 < msg.size() && msg[i + 1] == '\'')
+                {
+                    quotedBuf += '\''; // Keep a literal single quote in the content
+                    ++i;               // Consume the escape
+                }
+                else
+                {
+                    // Preserve other escapes/backslashes verbatim inside the content
+                    quotedBuf += '\\';
+                }
+            }
+            else if (ch == '\'')
+            {
+                quotedBuf += '\'';
+                out += qColor;
+                out += quotedBuf;
+                out += reset;
+                inQuote = false;
+                quotedBuf.clear();
+            }
+            else
+            {
+                quotedBuf += ch;
+            }
+        }
+    }
+
+    // If the message ended while still "inQuote", emit what we have plainly with the opening quote.
+    if (inQuote)
+    {
+        out += qColor;
+        out += quotedBuf; // inside without a closing quote — still highlighted
+        out += reset;
+    }
 }
 
 // Short label line used for secondary elements (note/help/etc.)
@@ -101,7 +190,9 @@ void Diagnostic::writeSubLabel(Utf8& out, const Context& ctx, DiagnosticSeverity
     out += severityStr(sev);
     out += partStyle(ctx, DiagPart::Reset);
     out += ": ";
-    out += msg;
+
+    writeHighlightedMessage(out, ctx, sev, msg, severityColor(ctx, sev));
+
     out += "\n";
 }
 
@@ -167,20 +258,20 @@ void Diagnostic::writeFullUnderline(Utf8& out, const Context& ctx, DiagnosticSev
 {
     writeGutter(out, ctx, gutterW);
 
-    // Carets use severity color and caret style
     out += severityColor(ctx, sev);
 
-    for (uint32_t i = 1; i < columnOneBased; ++i)
+    const uint32_t col = std::max<uint32_t>(1, columnOneBased);
+    for (uint32_t i = 1; i < col; ++i)
         out += ' ';
 
     const uint32_t len = underlineLen == 0 ? 1u : underlineLen;
     out.append(len, '^');
 
-    // Label message
     out += " ";
     out += severityStr(sev);
     out += ": ";
-    out += msg;
+
+    writeHighlightedMessage(out, ctx, sev, std::string_view(msg), severityColor(ctx, sev));
 
     out += partStyle(ctx, DiagPart::Reset);
     out += "\n";
@@ -244,7 +335,8 @@ Utf8 Diagnostic::build(const Context& ctx) const
         out += severityColor(ctx, primary->severity());
         out += severityStr(primary->severity());
         out += ": ";
-        out += pMsg;
+        writeHighlightedMessage(out, ctx, primary->severity(), pMsg, severityColor(ctx, primary->severity()));
+        out += partStyle(ctx, DiagPart::Reset);
     }
 
     // Now render all secondary elements as part of the same diagnostic

@@ -3,36 +3,59 @@
 
 SWC_BEGIN_NAMESPACE();
 
+class SourceFile;
+
+// Your existing Flags<>. Keep this as-is.
+enum class AstNodeIdFlagsEnum : uint32_t
+{
+    Zero      = 0,
+    ArityNone = 1u << 0,
+    ArityOne  = 1u << 1,
+    ArityTwo  = 1u << 2,
+    ArityMany = 1u << 3,
+};
+
+using AstNodeIdFlagsFlags = Flags<AstNodeIdFlagsEnum>;
+
+struct AstNodeIdInfo
+{
+    std::string_view    name;
+    AstNodeIdFlagsFlags flags;
+};
+
 enum class AstNodeId : uint16_t
 {
     Invalid = 0,
-    File,
-    StringLiteral,
-    NumberLiteral,
-    CharacterLiteral,
+#define SWC_NODE_ID_DEF(enum, flags) enum,
+#include "AstNodeIds.inc"
+
+#undef SWC_NODE_ID_DEF
+    Count
 };
 
-enum class AstNodeFlagsEnum : uint16_t
-{
-    Zero = 0,
+constexpr std::array<AstNodeIdInfo, static_cast<size_t>(AstNodeId::Count)> AST_NODE_ID_INFOS = {
+#define SWC_NODE_ID_DEF(enum, flags) AstNodeIdInfo{#enum, AstNodeIdFlagsEnum::flags},
+#include "AstNodeIds.inc"
+
+#undef SWC_NODE_ID_DEF
 };
 
-using AstNodeFlags = Flags<AstNodeFlagsEnum>;
-
-enum class AstPayloadKind : uint16_t
+struct AstKidsSlice
 {
-    Invalid = 0,
-    SliceKids,
+    AstNodeRef first;
+    uint32_t   count;
 };
 
-namespace AstPayLoad
+struct AstKidsOne
 {
-    struct SliceKids
-    {
-        AstNodeRef first;
-        uint32_t   count;
-    };
-}
+    AstNodeRef first;
+};
+
+struct AstKidTwo
+{
+    AstNodeRef first;
+    AstNodeRef second;
+};
 
 struct AstChildrenView
 {
@@ -45,12 +68,34 @@ struct AstChildrenView
 
 struct AstNode
 {
-    AstNodeId    id    = AstNodeId::Invalid;
-    AstNodeFlags flags = AstNodeFlagsEnum::Zero;
-    TokenRef     token = INVALID_REF;
+    AstNodeId id    = AstNodeId::Invalid;
+    TokenRef  token = INVALID_REF;
 
-    AstPayloadKind payloadKind = AstPayloadKind::Invalid;
-    AstPayloadRef  payloadRef  = INVALID_REF;
+    union
+    {
+        AstKidsSlice slice;
+        AstKidsOne   one;
+        AstKidTwo    two;
+    };
+
+    AstNode() :
+        slice{}
+    {
+    }
+
+    AstNode(AstNodeId nodeId, TokenRef tok) :
+        id(nodeId),
+        token(tok),
+        slice{}
+    {
+    }
+
+    AstNode(AstNodeId nodeId, TokenRef tok, const AstKidsSlice& s) :
+        id(nodeId),
+        token(tok),
+        slice(s)
+    {
+    }
 };
 
 SWC_END_NAMESPACE();

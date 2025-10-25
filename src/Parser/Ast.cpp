@@ -11,16 +11,14 @@ Ast::Ast()
 
 AstChildrenView Ast::children(const AstNode& n) const
 {
-    switch (n.payloadKind)
+    const auto& info = AST_NODE_ID_INFOS[static_cast<int>(n.id)];
+
+    if (info.flags.has(AstNodeIdFlagsEnum::ArityMany))
     {
-        case AstPayloadKind::SliceKids:
-        {
-            const auto& sl = sliceStore_.at(n.payloadRef);
-            return {.ptr = nodeRefs_.ptr(sl.first), .n = sl.count};
-        }
-        default:
-            return {};
+        return {.ptr = nodeRefs_.ptr(n.slice.first), .n = n.slice.count};
     }
+
+    return {};
 }
 
 SWC_END_NAMESPACE();

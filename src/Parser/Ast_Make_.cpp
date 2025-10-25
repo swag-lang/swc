@@ -3,9 +3,14 @@
 
 SWC_BEGIN_NAMESPACE();
 
-AstNodeRef Ast::makeNode(AstNodeId id, TokenRef token, AstPayloadKind payloadKind, AstPayloadRef payloadRef)
+AstNodeRef Ast::makeNode(AstNodeId id, TokenRef token)
 {
-    return nodes_.emplace_back(id, AstNodeFlagsEnum::Zero, token, payloadKind, payloadRef) + 1;
+    return nodes_.emplace_back(id, token) + 1;
+}
+
+AstNodeRef Ast::makeNode(AstNodeId id, TokenRef token, const AstKidsSlice& kids)
+{
+    return nodes_.emplace_back(id, token, kids) + 1;
 }
 
 AstNodeRef Ast::makeBlock(AstNodeId id, TokenRef token, const std::vector<AstNodeRef>& stmts)
@@ -13,8 +18,7 @@ AstNodeRef Ast::makeBlock(AstNodeId id, TokenRef token, const std::vector<AstNod
     const AstNodeRef first = nodeRefs_.size();
     for (auto s : stmts)
         nodeRefs_.emplace_back(s);
-    const auto sid = sliceStore_.emplace_back(AstPayLoad::SliceKids{.first = first, .count = static_cast<uint32_t>(stmts.size())});
-    return makeNode(id, token, AstPayloadKind::SliceKids, sid);
+    return makeNode(id, token, AstKidsSlice{.first = first, .count = static_cast<uint32_t>(stmts.size())});
 }
 
 SWC_END_NAMESPACE();

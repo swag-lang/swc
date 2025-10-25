@@ -14,8 +14,6 @@ protected:
     PagedStore<AstNodeRef> nodeRefs_{arena_};
     AstNodeRef             root_ = INVALID_REF;
 
-    PagedStore<AstPayLoad::SliceKids> sliceStore_{arena_};
-
 public:
     Ast();
 
@@ -35,7 +33,8 @@ public:
 
     AstChildrenView children(const AstNode& n) const;
 
-    AstNodeRef makeNode(AstNodeId id, TokenRef token, AstPayloadKind payloadKind = AstPayloadKind::Invalid, AstPayloadRef payloadRef = INVALID_REF);
+    AstNodeRef makeNode(AstNodeId id, TokenRef token);
+    AstNodeRef makeNode(AstNodeId id, TokenRef token, const AstKidsSlice& kids);
     AstNodeRef makeBlock(AstNodeId id, TokenRef token, const std::vector<AstNodeRef>& stmts);
 };
 

@@ -15,7 +15,7 @@ SWAG_DIAG_DEF(UnRaisedDirective, "directive was declared but never raised")
 // Lexer errors
 SWAG_DIAG_DEF(FileNotUtf8, "file '%0' is not valid UTF-8; ensure the file is encoded in UTF-8 format")
 SWAG_DIAG_DEF(UnclosedComment, "unclosed comment; expected '*/' before end of file")
-SWAG_DIAG_DEF(NewlineInStringLiteral, "unexpected newline in string literal; close the string with a matching quote")
+SWAG_DIAG_DEF(NewlineInStringLiteral, "unexpected newline in string literal; [HELP] close the string with a matching quote")
 SWAG_DIAG_DEF(UnclosedStringLiteral, "unclosed string literal; missing closing quote")
 SWAG_DIAG_DEF(ConsecutiveNumberSeparators, "invalid numeric literal; consecutive number separators are not allowed")
 SWAG_DIAG_DEF(LeadingNumberSeparator, "invalid numeric literal; leading number separator not allowed")

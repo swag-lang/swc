@@ -19,7 +19,7 @@ constexpr size_t LONG_PREFIX_LEN     = 2;
 constexpr size_t SHORT_PREFIX_LEN    = 1;
 constexpr size_t LONG_NO_PREFIX_LEN  = 5;
 constexpr size_t SHORT_NO_PREFIX_LEN = 4;
-constexpr auto   ALLOWED_COMMANDS    = "build|run|format";
+constexpr auto   ALLOWED_COMMANDS    = "syntax|format";
 
 namespace
 {
@@ -234,10 +234,15 @@ bool CommandLineParser::processArgument(const Context& ctx, const ArgInfo* info,
             return true;
 
         case CommandLineType::String:
-        case CommandLineType::StringPath:
             if (!getNextValue(ctx, arg, index, argc, argv, value))
                 return false;
             *static_cast<Utf8*>(info->target) = value;
+            return true;
+
+        case CommandLineType::Path:
+            if (!getNextValue(ctx, arg, index, argc, argv, value))
+                return false;
+            *static_cast<fs::path*>(info->target) = value.c_str();
             return true;
 
         case CommandLineType::StringSet:
@@ -329,13 +334,65 @@ bool CommandLineParser::parse(int argc, char* argv[])
             return false;
     }
 
-    return checkCommandLine();
+    return checkCommandLine(ctx);
 }
 
-bool CommandLineParser::checkCommandLine() const
+bool CommandLineParser::checkCommandLine(const Context& ctx) const
 {
     if (!cmdLine_->verboseErrorsFilter.empty())
         cmdLine_->verboseErrors = true;
+
+    if (!cmdLine_->folder.empty())
+    {
+        std::error_code ec;
+
+        // Make absolute first (preserves input if it's already absolute)
+        fs::path folder = fs::absolute(cmdLine_->folder, ec);
+        if (ec)
+        {
+            const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidFolder);
+            diag.last()->addArgument("path", cmdLine_->folder.string());
+            diag.last()->addArgument("reason", "cannot make absolute: " + ec.message());
+            diag.report(ctx);
+            return false;
+        }
+
+        // Normalize/symlink-resolve if possible (does not throw)
+        const fs::path normalized = fs::weakly_canonical(folder, ec);
+        if (!ec)
+            folder = normalized;
+        ec.clear();
+
+        // Check existence and type; don't conflate errors with "not found"
+        if (!fs::exists(folder, ec))
+        {
+            const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidFolder);
+            diag.last()->addArgument("path", cmdLine_->folder.string());
+            if (ec)
+                diag.last()->addArgument("reason", "filesystem error: " + ec.message());
+            else
+                diag.last()->addArgument("reason", "path does not exist");
+            diag.report(ctx);
+            return false;
+        }
+        ec.clear();
+
+        // Be sure it's a folder
+        if (!fs::is_directory(folder, ec))
+        {
+            const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidFolder);
+            diag.last()->addArgument("path", cmdLine_->folder.string());
+            if (ec)
+                diag.last()->addArgument("reason", "filesystem error: " + ec.message());
+            else
+                diag.last()->addArgument("reason", "not a directory");
+            diag.report(ctx);
+            return false;
+        }
+
+        cmdLine_->folder = folder;
+    }
+
     return true;
 }
 
@@ -361,6 +418,10 @@ CommandLineParser::CommandLineParser(CommandLine& cmdLine, Global& global) :
            "Log raised errors during tests.");
     addArg("all", "--verbose-errors-filter", "-vef", CommandLineType::String, &cmdLine_->verboseErrorsFilter, nullptr,
            "Filter verbose error logs by matching a specific string.");
+    addArg("all", "--folder", nullptr, CommandLineType::Path, &cmdLine_->folder, nullptr,
+           "");
+    addArg("all", "--file", nullptr, CommandLineType::Path, &cmdLine_->file, nullptr,
+           "");
 }
 
 SWC_END_NAMESPACE();

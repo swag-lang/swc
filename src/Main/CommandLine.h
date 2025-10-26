@@ -19,9 +19,11 @@ struct CommandLine
 
     uint32_t tabSize = 4;
 
-    bool verboseErrors = false;
-    Utf8 verboseErrorsFilter;
-    bool verify = true;
+    bool     verboseErrors = false;
+    Utf8     verboseErrorsFilter;
+    fs::path folder;
+    fs::path file;
+    bool     verify = true;
 };
 
 SWC_END_NAMESPACE();

@@ -6,6 +6,7 @@ SWC_DIAG_DEF(CmdLineMissingArgValue, "missing value for argument '{arg}'")
 SWC_DIAG_DEF(CmdLineInvalidBoolArg, "invalid negation for argument '{arg}'; '{long}' is not a boolean")
 SWC_DIAG_DEF(CmdLineMissingCommand, "missing command before arguments")
 SWC_DIAG_DEF(CmdLineInvalidCommand, "invalid command '{arg}'; command must be one of '{values}'")
+SWC_DIAG_DEF(CmdLineInvalidFolder, "invalid folder '{path}'; {reason}")
 
 
 // File errors

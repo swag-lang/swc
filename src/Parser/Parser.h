@@ -9,6 +9,16 @@ enum class DiagnosticId;
 class SourceFile;
 class Context;
 
+enum class SkipUntilFlagsEnum : uint32_t
+{
+    Zero          = 0,
+    StopAfterEol  = 1 << 0,
+    StopBeforeEol = 1 << 1,
+    DoNotConsume  = 1 << 2,
+};
+
+using SkipUntilFlags = Flags<SkipUntilFlagsEnum>;
+
 class ParserOutput
 {
 protected:
@@ -53,8 +63,7 @@ class Parser
     AstNodeRef parseTopLevelCurlyBlock();
     AstNodeRef parseFile();
 
-    void skipToOrEol(std::initializer_list<TokenId> tokens);
-
+    bool skipUntil(std::initializer_list<TokenId> targets, SkipUntilFlags flags);
     void reportError(DiagnosticId id, const Token* myToken) const;
 
 public:

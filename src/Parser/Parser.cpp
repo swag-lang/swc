@@ -1,27 +1,46 @@
+#include <algorithm>
+
 #include "pch.h"
-#include "Parser/Parser.h"
 #include "Core/Timer.h"
 #include "Lexer/SourceFile.h"
 #include "Main/Context.h"
+#include "Parser/Parser.h"
 #include "Report/Stats.h"
+#include <any>
 
 SWC_BEGIN_NAMESPACE();
 
-void Parser::skipToOrEol(std::initializer_list<TokenId> tokens)
+bool Parser::skipUntil(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
 {
     int parenDepth  = 0;
     int squareDepth = 0;
-    int curlyDepth  = 0;
+    int braceDepth  = 0;
 
     while (!atEnd())
     {
-        if (curToken_->flags.has(TokenFlagsEnum::EolBefore))
-            return;
-        if (parenDepth == 0 && squareDepth == 0 && curlyDepth == 0 &&
-            std::ranges::find(tokens, id()) != tokens.end())
-            return;
+        const auto& tok = *curToken_;
 
-        // adjust nesting
+        const bool atTopLevel = (parenDepth | squareDepth | braceDepth) == 0;
+
+        if (atTopLevel)
+        {
+            // Stop at the synthetic EOL boundary (top level only), if requested.
+            if (flags.has(SkipUntilFlagsEnum::StopAfterEol) && tok.flags.has(TokenFlagsEnum::EolBefore))
+                return true;
+            if (flags.has(SkipUntilFlagsEnum::StopBeforeEol) && tok.flags.has(TokenFlagsEnum::EolAfter))
+                return true;
+
+            // Stop at any target token (top level only).
+            if (std::ranges::find(targets, id()) != targets.end())
+            {
+                if (!flags.has(SkipUntilFlagsEnum::DoNotConsume))
+                    consume();
+                return true;
+            }
+        }
+
+        // Update delimiter depths first (so we won't prematurely stop
+        // on a target that appears inside a nested construct).
         switch (id())
         {
             case TokenId::SymLeftParen:
@@ -37,17 +56,25 @@ void Parser::skipToOrEol(std::initializer_list<TokenId> tokens)
                 --squareDepth;
                 break;
             case TokenId::SymLeftCurly:
-                ++curlyDepth;
+                ++braceDepth;
                 break;
             case TokenId::SymRightCurly:
-                --curlyDepth;
+                --braceDepth;
                 break;
             default:
                 break;
         }
 
+        // Never let depths go negative (keeps recovery robust even on stray closers).
+        parenDepth  = std::max(parenDepth, 0);
+        squareDepth = std::max(squareDepth, 0);
+        braceDepth  = std::max(braceDepth, 0);
+
         consume();
     }
+
+    // Hit EOF without finding a sync point.
+    return false;
 }
 
 Result Parser::parse(Context& ctx)

@@ -15,6 +15,26 @@ constexpr size_t LONG_PREFIX_LEN     = 2;
 constexpr size_t SHORT_PREFIX_LEN    = 1;
 constexpr size_t LONG_NO_PREFIX_LEN  = 5;
 constexpr size_t SHORT_NO_PREFIX_LEN = 4;
+constexpr auto   ALLOWED_COMMANDS    = "build|run|format";
+
+namespace
+{
+    // Pipe-delimited list of allowed command names.
+    // Adjust to match your tool's commands.
+    bool isAllowedCommand(const Utf8& cmd)
+    {
+        const Utf8 ac = ALLOWED_COMMANDS;
+        if (ac.empty())
+            return true;
+
+        std::istringstream iss(ac);
+        Utf8               allowed;
+        while (std::getline(iss, allowed, '|'))
+            if (allowed == cmd)
+                return true;
+        return false;
+    }
+}
 
 void CommandLineParser::errorArguments(DiagnosticElement* elem, const ArgInfo* info, const Utf8& arg)
 {
@@ -26,7 +46,7 @@ void CommandLineParser::errorArguments(DiagnosticElement* elem, const ArgInfo* i
         elem->addArgument("short", info->shortForm);
         elem->addArgument("values", info->enumValues);
     }
-    
+
     errorRaised_ = true;
 }
 
@@ -241,9 +261,31 @@ bool CommandLineParser::parse(int argc, char* argv[])
     const CompilerContext context(*cmdLine_, *global_);
     const Context         ctx(context);
 
-    command_ = "build";
+    // Require a command as the first positional token (no leading '-').
+    if (argc <= 1 || argv[1][0] == '-')
+    {
+        // Missing command name
+        const auto diag = Diagnostic::error(DiagnosticId::CmdLineMissingCommand);
+        diag.report(ctx);
+        return false;
+    }
 
-    for (int i = 1; i < argc; i++)
+    // Validate and set the command
+    {
+        const Utf8 candidate = argv[1];
+        if (!isAllowedCommand(candidate))
+        {
+            const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidCommand);
+            errorArguments(diag.last(), nullptr, argv[1]);
+            diag.last()->addArgument("values", ALLOWED_COMMANDS);
+            diag.report(ctx);
+            return false;
+        }
+
+        command_ = candidate;
+    }
+
+    for (int i = 2; i < argc; i++)
     {
         Utf8 arg           = argv[i];
         bool invertBoolean = false;
@@ -300,8 +342,6 @@ CommandLineParser::CommandLineParser(CommandLine& cmdLine, Global& global) :
            "Log raised errors during tests.");
     addArg("all", "--verbose-errors-filter", "-vef", CommandLineType::String, &cmdLine_->verboseErrorsFilter, nullptr,
            "Filter verbose error logs by matching a specific string.");
-    addArg("all", "--file-filter", "-ff", CommandLineType::String, &cmdLine_->fileFilter, nullptr,
-           "Will only compile files that match the filter.");
 }
 
 SWC_END_NAMESPACE();

@@ -4,6 +4,9 @@ SWC_DIAG_DEF(CmdLineInvalidArgForCmd, "invalid argument '{arg}' for command '{co
 SWC_DIAG_DEF(CmdLineInvalidEnumValue, "invalid value '{value}' for argument '{arg}'; value of '{long}' must be one of '{values}'")
 SWC_DIAG_DEF(CmdLineMissingArgValue, "missing value for argument '{arg}'")
 SWC_DIAG_DEF(CmdLineInvalidBoolArg, "invalid negation for argument '{arg}'; '{long}' is not a boolean")
+SWC_DIAG_DEF(CmdLineMissingCommand, "missing 'swc' command before arguments")
+SWC_DIAG_DEF(CmdLineInvalidCommand, "invalid command '{arg}'; command must be one of '{values}'")
+
 
 // File errors
 SWC_DIAG_DEF(CannotOpenFile, "cannot open file '{path}'; check that the file exists and you have read permissions")

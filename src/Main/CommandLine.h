@@ -1,8 +1,15 @@
 #pragma once
 SWC_BEGIN_NAMESPACE();
 
+enum class Command
+{
+    Format,
+};
+
 struct CommandLine
 {
+    Command command = Command::Format;
+
     bool     logColor      = true;
     bool     logAscii      = false;
     bool     errorAbsolute = false;
@@ -15,7 +22,6 @@ struct CommandLine
     bool verboseErrors = false;
     Utf8 verboseErrorsFilter;
     bool verify = true;
-    Utf8 fileFilter;
 };
 
 SWC_END_NAMESPACE();

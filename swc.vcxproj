@@ -123,6 +123,7 @@
         <ClCompile Include="src\Parser\Ast_Make_.cpp"/>
         <ClCompile Include="src\Parser\Parser.cpp"/>
         <ClCompile Include="src\Parser\Parser_Block_.cpp"/>
+        <ClCompile Include="src\Parser\Parser_Errors_.cpp"/>
         <ClCompile Include="src\pch.cpp">
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
@@ -140,7 +141,7 @@
     </ItemGroup>
     <ItemGroup>
         <ClInclude Include="src\Core\Flags.h"/>
-        <ClInclude Include="src\Core\PagedStore.h" />
+        <ClInclude Include="src\Core\PagedStore.h"/>
         <ClInclude Include="src\Core\SmallVector.h"/>
         <ClInclude Include="src\Core\Timer.h"/>
         <ClInclude Include="src\Core\Types.h"/>

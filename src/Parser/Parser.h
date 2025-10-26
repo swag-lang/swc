@@ -3,6 +3,8 @@
 #include "Parser/Ast.h"
 
 SWC_BEGIN_NAMESPACE()
+class DiagnosticElement;
+enum class DiagnosticId;
 
 class SourceFile;
 class Context;
@@ -49,6 +51,8 @@ class Parser
     AstNodeRef parseTopLevelDecl();
     AstNodeRef parseTopLevelCurlyBlock();
     AstNodeRef parseFile();
+
+    void reportError(DiagnosticId id, const Token* myToken) const;
 
 public:
     Result parse(Context& ctx);

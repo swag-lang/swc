@@ -7,7 +7,7 @@ class Context;
 class Global;
 enum class DiagnosticSeverity;
 
-struct VerifierDirective
+struct UnitTestDirective
 {
     DiagnosticSeverity kind;
     Utf8               match;
@@ -19,7 +19,7 @@ struct VerifierDirective
 class UnitTest
 {
     SourceFile*                    file_;
-    std::vector<VerifierDirective> directives_;
+    std::vector<UnitTestDirective> directives_;
 
     static void tokenizeOption(const Context& ctx, const TriviaSpan& trivia, std::string_view comment);
     void        tokenizeExpected(const Context& ctx, const TriviaSpan& trivia, std::string_view comment);
@@ -34,7 +34,7 @@ protected:
 public:
     Result tokenize(const Context& ctx);
     bool   verifyExpected(const Context& ctx, const Diagnostic& diag) const;
-    Result verifyExpected(const Context& ctx) const;
+    Result verifyUntouchedExpected(const Context& ctx) const;
 };
 
 SWC_END_NAMESPACE();

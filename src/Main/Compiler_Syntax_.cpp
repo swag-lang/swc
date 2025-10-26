@@ -53,7 +53,7 @@ Result CompilerInstance::cmdSyntax()
     auto result = Result::Success;
     for (const auto& f : global.fileMgr().files())
     {
-        if (f->unittest().verifyExpected(ctx) == Result::Error)
+        if (f->unittest().verifyUntouchedExpected(ctx) == Result::Error)
             result = Result::Error;
     }
 

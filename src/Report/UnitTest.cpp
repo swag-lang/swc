@@ -76,7 +76,7 @@ void UnitTest::tokenizeExpected(const Context& ctx, const TriviaSpan& trivia, st
         if (pos == Utf8::npos)
             break;
 
-        VerifierDirective directive;
+        UnitTestDirective directive;
 
         // Get directive word
         const size_t start = pos + LangSpec::VERIFY_COMMENT_EXPECTED.size();
@@ -135,10 +135,11 @@ Result UnitTest::tokenize(const Context& ctx)
     if (!ctx.cmdLine().verify)
         return Result::Success;
 
-    // Get all comments from the file
-    Lexer   lexer;
     Context lexerCtx(ctx);
     lexerCtx.setSourceFile(file_);
+
+    // Get all comments from the file
+    Lexer lexer;
     SWC_CHECK(lexer.tokenizeRaw(lexerCtx));
 
     // Parse all comments to find a verify directive
@@ -159,6 +160,7 @@ bool UnitTest::verifyExpected(const Context& ctx, const Diagnostic& diag) const
 
     Context lexerCtx(ctx);
     lexerCtx.setSourceFile(file_);
+
     for (auto& elem : diag.elements())
     {
         const auto loc = elem->location(lexerCtx);
@@ -182,7 +184,7 @@ bool UnitTest::verifyExpected(const Context& ctx, const Diagnostic& diag) const
     return false;
 }
 
-Result UnitTest::verifyExpected(const Context& ctx) const
+Result UnitTest::verifyUntouchedExpected(const Context& ctx) const
 {
     Context lexerCtx(ctx);
     lexerCtx.setSourceFile(file_);

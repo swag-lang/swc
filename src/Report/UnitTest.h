@@ -22,8 +22,8 @@ class UnitTest
 
 public:
     Result tokenize(Context& ctx);
-    bool   verify(const Context& ctx, const Diagnostic& diag) const;
-    Result verify(Context& ctx) const;
+    bool   verifyExpected(const Context& ctx, const Diagnostic& diag) const;
+    Result verifyExpected(const Context& ctx) const;
 };
 
 SWC_END_NAMESPACE();

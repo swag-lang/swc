@@ -49,7 +49,7 @@ Result CompilerInstance::cmdSyntax()
     global.jobMgr().waitAll(context_.jobClientId());
 
     for (const auto& f : global.fileMgr().files())
-        f->verifier().verify(ctx);
+        f->verifier().verifyExpected(ctx);
 
     return Result::Success;
 }

@@ -90,7 +90,7 @@ Result UnitTest::tokenize(Context& ctx)
     return Result::Success;
 }
 
-bool UnitTest::verify(const Context& ctx, const Diagnostic& diag) const
+bool UnitTest::verifyExpected(const Context& ctx, const Diagnostic& diag) const
 {
     if (directives_.empty())
         return false;
@@ -118,7 +118,7 @@ bool UnitTest::verify(const Context& ctx, const Diagnostic& diag) const
     return false;
 }
 
-Result UnitTest::verify(Context& ctx) const
+Result UnitTest::verifyExpected(const Context& ctx) const
 {
     for (const auto& directive : directives_)
     {

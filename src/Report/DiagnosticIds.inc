@@ -10,8 +10,8 @@ SWC_DIAG_DEF(CmdLineInvalidFolder, "invalid folder '{path}'; {reason}")
 SWC_DIAG_DEF(CmdLineInvalidFile, "invalid file '{path}'; {reason}")
 
 // File errors
-SWC_DIAG_DEF(CannotOpenFile, "cannot open file '{path}'; check that the file exists and you have read permissions")
-SWC_DIAG_DEF(CannotReadFile, "cannot read file '{path}'; the file may be corrupted or inaccessible")
+SWC_DIAG_DEF(CannotOpenFile, "cannot open file '{path}'; {reason}")
+SWC_DIAG_DEF(CannotReadFile, "cannot read file '{path}'; {reason}")
 
 // Tests
 SWC_DIAG_DEF(UnRaisedDirective, "directive was declared but never raised")

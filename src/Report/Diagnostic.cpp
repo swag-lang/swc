@@ -67,13 +67,21 @@ namespace
                     inQuote = true;
                 else if (c == ';')
                 {
-                    parts.emplace_back(Utf8Helper::trim(msg.substr(start, i - start)));
+                    auto p = Utf8Helper::trim(msg.substr(start, i - start));
+                    if (!p.empty())
+                        parts.emplace_back(p);
                     start = i + 1;
                 }
             }
         }
+
         if (start <= msg.size())
-            parts.emplace_back(Utf8Helper::trim(msg.substr(start)));
+        {
+            auto p = Utf8Helper::trim(msg.substr(start, start));
+            if (!p.empty())
+                parts.emplace_back(p);
+        }
+
         return parts;
     }
 
@@ -92,8 +100,9 @@ namespace
                 continue;
             const auto sev  = tagToSeverity(raw);
             auto       body = stripLeadingTagHeader(raw);
-            out.push_back({.tag = sev, .text = std::string(body)});
+            out.push_back({.tag = sev, .text = Utf8(body)});
         }
+        
         return out;
     }
 }
@@ -463,12 +472,13 @@ void Diagnostic::expandMessageParts(std::vector<std::unique_ptr<DiagnosticElemen
     const auto front = elements.front().get();
     const Utf8 msg   = front->message();
     const auto parts = parseParts(std::string_view(msg));
-    if (parts.size() <= 1)
-        return;
 
     // base element keeps first
     front->setMessage(Utf8(parts[0].text));
 
+    if (parts.size() <= 1)
+        return;
+    
     for (size_t i = 1; i < parts.size(); ++i)
     {
         const auto&        p   = parts[i];

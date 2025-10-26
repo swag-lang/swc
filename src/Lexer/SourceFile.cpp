@@ -3,6 +3,7 @@
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
 #include "Main/Context.h"
+#include "Os/Os.h"
 #include "Report/Diagnostic.h"
 #include "Report/Stats.h"
 
@@ -13,7 +14,7 @@ SourceFile::SourceFile(fs::path path) :
 {
 }
 
-Result SourceFile::loadContent(Context& ctx)
+Result SourceFile::loadContent(const Context& ctx)
 {
     if (!content_.empty())
         return Result::Success;
@@ -29,6 +30,7 @@ Result SourceFile::loadContent(Context& ctx)
         const auto diag = Diagnostic::error(DiagnosticId::CannotOpenFile, this);
         diag.last()->setLocation(this);
         diag.last()->addArgument("path", path_.string());
+        diag.last()->addArgument("reason", Os::systemError());
         diag.report(ctx);
         return Result::Error;
     }
@@ -43,6 +45,7 @@ Result SourceFile::loadContent(Context& ctx)
         const auto diag = Diagnostic::error(DiagnosticId::CannotReadFile, this);
         diag.last()->setLocation(this);
         diag.last()->addArgument("path", path_.string());
+        diag.last()->addArgument("reason", Os::systemError());
         diag.report(ctx);
         return Result::Error;
     }

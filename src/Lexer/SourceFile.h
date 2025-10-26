@@ -43,7 +43,7 @@ public:
     void                        setHasWarning() { hasWarning_ = true; }
     FileRef                     ref() const { return ref_; }
 
-    Result           loadContent(Context& ctx);
+    Result           loadContent(const Context& ctx);
     Result           tokenize(Context& ctx);
     Utf8             codeLine(const Context& ctx, uint32_t line) const;
     std::string_view codeView(uint32_t offset, uint32_t len) const;

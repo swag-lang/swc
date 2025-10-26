@@ -58,6 +58,9 @@ public:
     void trimStart();
     void trimEnd();
     void trim();
+    void clean();
+    void makeLower();
+    void makeUpper();
 };
 
 SWC_END_NAMESPACE();

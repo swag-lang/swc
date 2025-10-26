@@ -53,7 +53,7 @@ class Parser
     AstNodeRef parseTopLevelCurlyBlock();
     AstNodeRef parseFile();
 
-    void skipTopOrEol(std::initializer_list<TokenId> tokens);
+    void skipToOrEol(std::initializer_list<TokenId> tokens);
 
     void reportError(DiagnosticId id, const Token* myToken) const;
 

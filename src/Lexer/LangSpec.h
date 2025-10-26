@@ -6,16 +6,17 @@ enum class TokenId : uint16_t;
 
 enum class CharFlagsEnum : uint32_t
 {
-    Blank           = 0x00000001,
-    Digit           = 0x00000002,
-    Letter          = 0x00000004,
-    Ascii           = 0x00000008,
-    HexNumber       = 0x00000010,
-    BinNumber       = 0x00000020,
-    NumberSep       = 0x00000040,
-    IdentifierStart = 0x00000080,
-    IdentifierPart  = 0x00000100,
-    Escape          = 0x00000200,
+    Blank           = 1 << 0,
+    Digit           = 1 << 1,
+    Letter          = 1 << 2,
+    Ascii           = 1 << 3,
+    HexNumber       = 1 << 4,
+    BinNumber       = 1 << 5,
+    NumberSep       = 1 << 6,
+    IdentifierStart = 1 << 7,
+    IdentifierPart  = 1 << 8,
+    Escape          = 1 << 9,
+    Option          = 1 << 10,
 };
 
 using CharFlags = Flags<CharFlagsEnum>;
@@ -37,6 +38,7 @@ public:
     bool isIdentifierStart(uint8_t c) const { return charFlags_[c].has(CharFlagsEnum::IdentifierStart); }
     bool isIdentifierPart(uint8_t c) const { return charFlags_[c].has(CharFlagsEnum::IdentifierPart); }
     bool isEscape(uint8_t c) const { return charFlags_[c].has(CharFlagsEnum::Escape); }
+    bool isOption(uint8_t c) const { return charFlags_[c].has(CharFlagsEnum::Option); }
 
     static TokenId keyword(std::string_view name);
 

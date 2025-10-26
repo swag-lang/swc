@@ -51,10 +51,22 @@ void LangSpec::setup()
     charFlags_['_'].add(CharFlagsEnum::IdentifierStart, CharFlagsEnum::IdentifierPart);
     charFlags_['#'].add(CharFlagsEnum::IdentifierStart);
     charFlags_['@'].add(CharFlagsEnum::IdentifierStart);
+    charFlags_['-'].add(CharFlagsEnum::Option);
+
     for (unsigned char c = 'a'; c <= 'z'; c++)
-        charFlags_[c].add(CharFlagsEnum::IdentifierStart, CharFlagsEnum::IdentifierPart);
+    {
+        charFlags_[c].add(CharFlagsEnum::IdentifierStart);
+        charFlags_[c].add(CharFlagsEnum::IdentifierPart);
+        charFlags_[c].add(CharFlagsEnum::Option);
+    }
+
     for (unsigned char c = 'A'; c <= 'Z'; c++)
-        charFlags_[c].add(CharFlagsEnum::IdentifierStart, CharFlagsEnum::IdentifierPart);
+    {
+        charFlags_[c].add(CharFlagsEnum::IdentifierStart);
+        charFlags_[c].add(CharFlagsEnum::IdentifierPart);
+        charFlags_[c].add(CharFlagsEnum::Option);
+    }
+
     for (unsigned char c = '0'; c <= '9'; c++)
         charFlags_[c].add(CharFlagsEnum::IdentifierPart);
 

@@ -21,23 +21,48 @@ void UnitTest::tokenizeOption(const Context& ctx, const TriviaSpan& trivia, std:
     size_t pos = 0;
     while (true)
     {
-        pos = comment.find(needle, pos);
-        if (pos == Utf8::npos)
+        const auto found = comment.find(needle, pos);
+        if (found == std::string_view::npos)
             break;
 
-        // Get directive word
-        size_t i = pos + needle.size();
-        while (i < comment.size() && langSpec.isBlank(comment[i]))
-            i++;
-        const size_t start = i;
-        i                  = start;
-        while (i < comment.size() && (langSpec.isLetter(comment[i]) || comment[i] == '-'))
-            i++;
-        const auto kindWord = comment.substr(start, i - start);
-        if (kindWord == "lex-only")
-            file->flags().add(FileFlagsEnum::LexOnly);
+        size_t i = found + needle.size();
 
-        pos = i;
+        // Skip blanks and any non-ASCII noise safely
+        while (i < comment.size() && langSpec.isBlank(static_cast<unsigned char>(comment[i])))
+            ++i;
+
+        // There can be multiple options after "swc-option"
+        // Parse words until we hit something that's not an option token
+        while (i < comment.size())
+        {
+            // Skip any extra blanks / non-ASCII between options
+            while (i < comment.size() && langSpec.isBlank(static_cast<unsigned char>(comment[i])))
+                ++i;
+
+            // Collect the option token
+            const size_t start = i;
+            while (i < comment.size() && langSpec.isOption(static_cast<unsigned char>(comment[i])))
+                ++i;
+
+            // No token? we're done with this swc-option block
+            if (i == start)
+                break;
+
+            const std::string_view kindWord = comment.substr(start, i - start);
+
+            // Handle known options
+            if (kindWord == "lex-only")
+                file->flags().add(FileFlagsEnum::LexOnly);
+
+            // If options might be comma-separated, skip trailing commas/spacers
+            while (i < comment.size() && (langSpec.isBlank(static_cast<unsigned char>(comment[i])) || comment[i] == ','))
+                ++i;
+        }
+
+        // Move past this occurrence so we can find the next one
+        pos = std::max(i, found + needle.size());
+        if (pos == found) // paranoia: guarantee forward progress on pathological inputs
+            ++pos;
     }
 }
 

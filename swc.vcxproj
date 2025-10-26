@@ -156,6 +156,7 @@
         <ClInclude Include="src\Main\FileManager.h"/>
         <ClInclude Include="src\Main\Global.h"/>
         <ClInclude Include="src\Main\Compiler.h"/>
+        <ClInclude Include="src\Main\Version.h"/>
         <ClInclude Include="src\Memory\Arena.h"/>
         <ClInclude Include="src\Memory\PagedStore.h"/>
         <ClInclude Include="src\Os\Os.h"/>

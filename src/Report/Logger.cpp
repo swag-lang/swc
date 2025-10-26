@@ -1,9 +1,9 @@
 #include "pch.h"
 
-#include "LogColor.h"
-#include "Logger.h"
 #include "Main/CommandLine.h"
 #include "Main/Context.h"
+#include "Report/LogColor.h"
+#include "Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -14,11 +14,14 @@ void Logger::print(const Context& ctx, std::string_view message)
     std::cout << message;
 }
 
-void Logger::printEol(const Context& ctx)
+void Logger::printDim(const Context& ctx, std::string_view message)
 {
     if (ctx.cmdLine().silent)
         return;
-    std::cout << '\n';
+
+    std::cout << LogColorHelper::toAnsi(ctx, LogColor::Dim);
+    std::cout << message;
+    std::cout << LogColorHelper::toAnsi(ctx, LogColor::Reset);
 }
 
 void Logger::printHeaderDot(const Context&   ctx,
@@ -39,7 +42,7 @@ void Logger::printHeaderDot(const Context&   ctx,
         print(ctx, dot);
     print(ctx, " ");
     print(ctx, message);
-    printEol(ctx);
+    print(ctx, "\n");
 }
 
 SWC_END_NAMESPACE();

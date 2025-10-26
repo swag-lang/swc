@@ -12,7 +12,7 @@ public:
     void unlock() { mutexAccess_.unlock(); }
 
     static void print(const Context& ctx, std::string_view message);
-    static void printEol(const Context& ctx);
+    static void printDim(const Context& ctx, std::string_view message);
     static void printHeaderDot(const Context& ctx, LogColor headerColor, std::string_view header, LogColor msgColor, std::string_view message, std::string_view dot = ".", size_t messageColumn = 40);
 
 private:

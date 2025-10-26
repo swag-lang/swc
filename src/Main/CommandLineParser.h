@@ -47,6 +47,7 @@ class CommandLineParser
     bool                    errorRaised_ = false;
     Utf8                    command_;
 
+    static void    printHelp(const Context& ctx);
     void           errorArguments(DiagnosticElement* elem, const ArgInfo* info, const Utf8& arg);
     static bool    getNextValue(const Context& ctx, const Utf8& arg, int& index, int argc, char* argv[], Utf8& value);
     bool           commandMatches(const Utf8& commandList) const;

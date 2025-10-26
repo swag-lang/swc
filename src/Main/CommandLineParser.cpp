@@ -1,9 +1,13 @@
 #include "pch.h"
-#include "Main/CommandLineParser.h"
+
+#include "Global.h"
 #include "Main/CommandLine.h"
+#include "Main/CommandLineParser.h"
 #include "Main/Context.h"
+#include "Main/Version.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticIds.h"
+#include "Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -256,10 +260,25 @@ bool CommandLineParser::processArgument(const Context& ctx, const ArgInfo* info,
     return false;
 }
 
+void CommandLineParser::printHelp(const Context& ctx)
+{
+    ctx.global().logger().lock();
+    Logger::printDim(ctx, std::format("swag version {}.{}.{}\n", SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM));
+    Logger::printDim(ctx, "Usage:\n");
+    Logger::printDim(ctx, "    swag <command> [options]\n");
+    ctx.global().logger().unlock();
+}
+
 bool CommandLineParser::parse(int argc, char* argv[])
 {
     const CompilerContext context(*cmdLine_, *global_);
     const Context         ctx(context);
+
+    if (argc == 1)
+    {
+        printHelp(ctx);
+        return false;
+    }
 
     // Require a command as the first positional token (no leading '-').
     if (argc <= 1 || argv[1][0] == '-')

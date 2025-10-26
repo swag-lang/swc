@@ -1,3 +1,5 @@
+// swc-option lex-only
+
 // Identifiers & keywords coverage
 
 // --- Simple identifiers ---

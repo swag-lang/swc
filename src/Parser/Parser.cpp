@@ -43,7 +43,7 @@ Result Parser::parse(Context& ctx)
     Stats::get().numAstNodes.fetch_add(ast_->nodes_.size());
 #endif
 
-    return file_->hasError() ? Result::Error : Result::Success;
+    return file_->hasErrors() ? Result::Error : Result::Success;
 }
 
 SWC_END_NAMESPACE();

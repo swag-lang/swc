@@ -1,3 +1,5 @@
+// swc-option lex-only
+
 // --- Valid simple integers ---
 0
 1

@@ -9,6 +9,16 @@ SWC_BEGIN_NAMESPACE();
 class Context;
 class Global;
 
+enum class FileFlagsEnum : uint32_t
+{
+    Zero        = 0,
+    HasErrors   = 1 << 0,
+    HasWarnings = 1 << 1,
+    LexOnly     = 1 << 2,
+};
+
+using FileFlags = Flags<FileFlagsEnum>;
+
 class SourceFile
 {
     // Number of '\0' forced at the end of the file
@@ -18,9 +28,7 @@ class SourceFile
     fs::path             path_;
     std::vector<uint8_t> content_;
     UnitTest             verifier_;
-
-    bool hasError_   = false;
-    bool hasWarning_ = false;
+    FileFlags            flags_ = FileFlagsEnum::Zero;
 
 protected:
     friend class Lexer;
@@ -38,9 +46,12 @@ public:
     const ParserOutput&         parserOut() const { return parserOut_; }
     UnitTest&                   verifier() { return verifier_; }
     const UnitTest&             verifier() const { return verifier_; }
-    bool                        hasError() const { return hasError_; }
-    void                        setHasError() { hasError_ = true; }
-    void                        setHasWarning() { hasWarning_ = true; }
+    bool                        hasErrors() const { return flags_.has(FileFlagsEnum::HasErrors); }
+    bool                        hasWarnings() const { return flags_.has(FileFlagsEnum::HasWarnings); }
+    void                        setHasError() { flags_.add(FileFlagsEnum::HasErrors); }
+    void                        setHasWarning() { flags_.add(FileFlagsEnum::HasWarnings); }
+    FileFlags&                  flags() { return flags_; }
+    const FileFlags&            flags() const { return flags_; }
     FileRef                     ref() const { return ref_; }
 
     Result           loadContent(const Context& ctx);

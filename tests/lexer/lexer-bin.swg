@@ -1,3 +1,5 @@
+// swc-option lex-only
+
 // --- Missing digits / incomplete literals ---
 0b          // swc-expected-error MissingBinDigit
 0b_         // swc-expected-error MissingBinDigit

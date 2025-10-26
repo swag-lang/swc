@@ -1,3 +1,5 @@
+// swc-option lex-only
+
 // Operator & punctuation lexing coverage
 
 // --- Single-character operators & delimiters ---

@@ -1,5 +1,6 @@
 #include "pch.h"
 
+#include "FileSystem.h"
 #include "Global.h"
 #include "Main/CommandLine.h"
 #include "Main/CommandLineParser.h"
@@ -343,55 +344,9 @@ Result CommandLineParser::checkCommandLine(const Context& ctx) const
         cmdLine_->verboseErrors = true;
 
     if (!cmdLine_->folder.empty())
-    {
-        std::error_code ec;
-
-        // Make absolute first (preserves input if it's already absolute)
-        fs::path folder = fs::absolute(cmdLine_->folder, ec);
-        if (ec)
-        {
-            const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidFolder);
-            diag.last()->addArgument("path", cmdLine_->folder.string());
-            diag.last()->addArgument("reason", "cannot make absolute: " + ec.message());
-            diag.report(ctx);
-            return Result::Error;
-        }
-
-        // Normalize/symlink-resolve if possible (does not throw)
-        const fs::path normalized = fs::weakly_canonical(folder, ec);
-        if (!ec)
-            folder = normalized;
-        ec.clear();
-
-        // Check existence and type; don't conflate errors with "not found"
-        if (!fs::exists(folder, ec))
-        {
-            const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidFolder);
-            diag.last()->addArgument("path", cmdLine_->folder.string());
-            if (ec)
-                diag.last()->addArgument("reason", "filesystem error: " + ec.message());
-            else
-                diag.last()->addArgument("reason", "path does not exist");
-            diag.report(ctx);
-            return Result::Error;
-        }
-        ec.clear();
-
-        // Be sure it's a folder
-        if (!fs::is_directory(folder, ec))
-        {
-            const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidFolder);
-            diag.last()->addArgument("path", cmdLine_->folder.string());
-            if (ec)
-                diag.last()->addArgument("reason", "filesystem error: " + ec.message());
-            else
-                diag.last()->addArgument("reason", "not a directory");
-            diag.report(ctx);
-            return Result::Error;
-        }
-
-        cmdLine_->folder = folder;
-    }
+        SWC_CHECK(FileSystem::resolveFolder(ctx, cmdLine_->folder));
+    if (!cmdLine_->file.empty())
+        SWC_CHECK(FileSystem::resolveFile(ctx, cmdLine_->file));
 
     return Result::Success;
 }

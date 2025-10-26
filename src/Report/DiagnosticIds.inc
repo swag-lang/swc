@@ -7,7 +7,7 @@ SWC_DIAG_DEF(CmdLineInvalidBoolArg, "invalid negation for argument '{arg}'; '{lo
 SWC_DIAG_DEF(CmdLineMissingCommand, "missing command before arguments")
 SWC_DIAG_DEF(CmdLineInvalidCommand, "invalid command '{arg}'; command must be one of '{values}'")
 SWC_DIAG_DEF(CmdLineInvalidFolder, "invalid folder '{path}'; {reason}")
-
+SWC_DIAG_DEF(CmdLineInvalidFile, "invalid file '{path}'; {reason}")
 
 // File errors
 SWC_DIAG_DEF(CannotOpenFile, "cannot open file '{path}'; check that the file exists and you have read permissions")

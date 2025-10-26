@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Types.h"
 #include "Lexer/Token.h"
 #include "Report/DiagnosticIds.h"
 
@@ -14,24 +15,30 @@ class LangSpec;
 enum class LexerFlagsEnum : uint32_t
 {
     Default,
-    ExtractBlanks,
-    ExtractLineEnds,
-    ExtractComments,
+    ExtractTrivia,
 };
 
 using LexerFlags = Flags<LexerFlagsEnum>;
+
+struct TriviaSpan
+{
+    TokenRef tokenRef;
+    Token    token;
+};
 
 class LexerOutput
 {
 protected:
     friend class Lexer;
     friend class Parser;
-    std::vector<Token>    tokens_;
-    std::vector<uint32_t> lines_;
+    std::vector<Token>      tokens_;
+    std::vector<TriviaSpan> trivia_;
+    std::vector<uint32_t>   lines_;
 
 public:
-    const std::vector<Token>&    tokens() const { return tokens_; }
-    const std::vector<uint32_t>& lines() const { return lines_; }
+    const std::vector<Token>&      tokens() const { return tokens_; }
+    const std::vector<TriviaSpan>& trivias() const { return trivia_; }
+    const std::vector<uint32_t>&   lines() const { return lines_; }
 };
 
 class Lexer

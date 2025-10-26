@@ -25,9 +25,9 @@ Result UnitTest::tokenize(Context& ctx)
 
     // Parse all comments to find a verify directive
     constexpr std::string_view needle = "expected-";
-    for (const auto& token : file->lexOut().tokens())
+    for (const auto& trivia : file->lexOut().trivias())
     {
-        auto   comment = token.toString(file);
+        auto   comment = trivia.token.toString(file);
         size_t pos     = 0;
         while (true)
         {
@@ -54,7 +54,7 @@ Result UnitTest::tokenize(Context& ctx)
             }
 
             // Location
-            directive.myLoc.fromOffset(ctx, file, token.byteStart + static_cast<uint32_t>(pos), static_cast<uint32_t>(needle.size()) + static_cast<uint32_t>(kindWord.size()));
+            directive.myLoc.fromOffset(ctx, file, trivia.token.byteStart + static_cast<uint32_t>(pos), static_cast<uint32_t>(needle.size()) + static_cast<uint32_t>(kindWord.size()));
             directive.loc = directive.myLoc;
 
             // Parse location
@@ -131,7 +131,7 @@ Result UnitTest::verifyExpected(const Context& ctx) const
         }
     }
 
-    return Result::Success;
+    return ctx.sourceFile()->hasError() ? Result::Error : Result::Success;
 }
 
 SWC_END_NAMESPACE();

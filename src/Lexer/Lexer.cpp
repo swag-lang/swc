@@ -89,31 +89,27 @@ void Lexer::pushToken()
     // Always update prevToken, even for filtered tokens
     prevToken_ = token_;
 
-    // Now filter: early return if token should not be added to output
-    if (rawMode_ && tokenId != TokenId::CommentLine && tokenId != TokenId::CommentMultiLine)
-        return;
-
     // Use switch for better branch prediction and consolidate similar checks
     switch (tokenId)
     {
         case TokenId::Blank:
-            if (!lexerFlags_.has(LexerFlagsEnum::ExtractBlanks))
-                return;
-            break;
         case TokenId::EndOfLine:
-            if (!lexerFlags_.has(LexerFlagsEnum::ExtractLineEnds))
+            if (rawMode_ || !lexerFlags_.has(LexerFlagsEnum::ExtractTrivia))
                 return;
+            file_->lexOut_.trivia_.push_back({.tokenRef = static_cast<uint32_t>(file_->lexOut_.tokens_.size()), .token = token_});
             break;
         case TokenId::CommentLine:
         case TokenId::CommentMultiLine:
-            if (!lexerFlags_.has(LexerFlagsEnum::ExtractComments))
+            if (!rawMode_ && !lexerFlags_.has(LexerFlagsEnum::ExtractTrivia))
                 return;
+            file_->lexOut_.trivia_.push_back({.tokenRef = static_cast<uint32_t>(file_->lexOut_.tokens_.size()), .token = token_});
             break;
         default:
+            if (rawMode_)
+                return;
+            file_->lexOut_.tokens_.push_back(token_);
             break;
     }
-
-    file_->lexOut_.tokens_.push_back(token_);
 }
 
 void Lexer::reportUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len)
@@ -1158,7 +1154,7 @@ void Lexer::checkFormat(const Context& ctx, uint32_t& startOffset)
 Result Lexer::tokenizeRaw(Context& ctx)
 {
     rawMode_          = true;
-    const auto result = tokenize(ctx, LexerFlagsEnum::ExtractComments);
+    const auto result = tokenize(ctx);
     rawMode_          = false;
     return result;
 }

@@ -10,6 +10,7 @@
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticIds.h"
 #include "Report/Stats.h"
+#include <ppltasks.h>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -64,7 +65,22 @@ void Lexer::eatOneEol()
 void Lexer::pushToken()
 {
     token_.byteLength = static_cast<uint32_t>(buffer_ - startToken_);
-    prevToken_        = token_;
+
+    if (!file_->lexOut_.tokens_.empty())
+    {
+        auto& back = file_->lexOut_.tokens_.back();
+        if (token_.id == TokenId::Blank)
+            back.flags.add(TokenFlagsEnum::BlankAfter);
+        if (token_.id == TokenId::EndOfLine)
+            back.flags.add(TokenFlagsEnum::EolAfter);        
+    }
+        
+    if (prevToken_.id == TokenId::Blank)
+        token_.flags.add(TokenFlagsEnum::BlankBefore);
+    if (prevToken_.id == TokenId::EndOfLine)
+        token_.flags.add(TokenFlagsEnum::EolBefore);
+
+    prevToken_ = token_;
 
     if (rawMode_ && token_.id != TokenId::CommentLine && token_.id != TokenId::CommentMultiLine)
         return;

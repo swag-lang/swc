@@ -4,13 +4,22 @@ SWC_BEGIN_NAMESPACE();
 
 class SourceFile;
 
-// Your existing Flags<>. Keep this as-is.
 enum class TokenIdFlagsEnum : uint32_t
 {
     Zero = 0,
 };
 
+enum class TokenFlagsEnum : uint16_t
+{
+    Zero        = 0,
+    BlankBefore = 1 << 0,
+    BlankAfter  = 1 << 1,
+    EolBefore   = 1 << 2,
+    EolAfter    = 1 << 3,
+};
+
 using TokenIdFlags = Flags<TokenIdFlagsEnum>;
+using TokenFlags   = Flags<TokenFlagsEnum>;
 
 struct TokenIdInfo
 {
@@ -40,7 +49,8 @@ struct Token
     uint32_t byteStart  = 0; // Byte offset in the source file buffer
     uint32_t byteLength = 0; // Length in bytes
 
-    TokenId id = TokenId::Invalid;
+    TokenId    id    = TokenId::Invalid;
+    TokenFlags flags = TokenFlagsEnum::Zero;
 
     std::string_view toString(const SourceFile* file) const;
 };

@@ -714,12 +714,12 @@ void Lexer::lexOperator()
             break;
 
         case '[':
-            token_.id = TokenId::SymLeftSquare;
+            token_.id = TokenId::SymLeftBracket;
             buffer_++;
             break;
 
         case ']':
-            token_.id = TokenId::SymRightSquare;
+            token_.id = TokenId::SymRightBracket;
             buffer_++;
             break;
 

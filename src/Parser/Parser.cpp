@@ -9,12 +9,43 @@ SWC_BEGIN_NAMESPACE();
 
 void Parser::skipToOrEol(std::initializer_list<TokenId> tokens)
 {
+    int parenDepth  = 0;
+    int squareDepth = 0;
+    int curlyDepth  = 0;
+
     while (!atEnd())
     {
         if (curToken_->flags.has(TokenFlagsEnum::EolBefore))
             return;
-        if (std::ranges::find(tokens, id()) != tokens.end())
+        if (parenDepth == 0 && squareDepth == 0 && curlyDepth == 0 &&
+            std::ranges::find(tokens, id()) != tokens.end())
             return;
+
+        // adjust nesting
+        switch (id())
+        {
+            case TokenId::SymLeftParen:
+                ++parenDepth;
+                break;
+            case TokenId::SymRightParen:
+                --parenDepth;
+                break;
+            case TokenId::SymLeftBracket:
+                ++squareDepth;
+                break;
+            case TokenId::SymRightBracket:
+                --squareDepth;
+                break;
+            case TokenId::SymLeftCurly:
+                ++curlyDepth;
+                break;
+            case TokenId::SymRightCurly:
+                --curlyDepth;
+                break;
+            default:
+                break;
+        }
+
         consume();
     }
 }

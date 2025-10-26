@@ -254,6 +254,12 @@ bool CommandLineParser::processArgument(const Context& ctx, const ArgInfo* info,
             static_cast<std::set<Utf8>*>(info->target)->insert(value);
             return true;
 
+        case CommandLineType::PathSet:
+            if (!getNextValue(ctx, arg, index, argc, argv, value))
+                return false;
+            static_cast<std::set<fs::path>*>(info->target)->insert(value.c_str());
+            return true;
+
         case CommandLineType::EnumString:
             if (!getNextValue(ctx, arg, index, argc, argv, value))
                 return false;
@@ -346,19 +352,25 @@ Result CommandLineParser::checkCommandLine(const Context& ctx) const
     if (!cmdLine_->verboseErrorsFilter.empty())
         cmdLine_->verboseErrors = true;
 
-    if (!cmdLine_->folder.empty() && !cmdLine_->file.empty())
+    // Resolve all folders
+    std::set<fs::path> resolvedFolders;
+    for (const auto& folder : cmdLine_->directories)
     {
-        const auto diag = Diagnostic::error(DiagnosticId::CmdLineIncompatibleArgs);
-        diag.last()->addArgument("arg0", "--folder");
-        diag.last()->addArgument("arg1", "--file");
-        diag.report(ctx);
-        return Result::Error;
+        fs::path temp = folder;
+        SWC_CHECK(FileSystem::resolveFolder(ctx, temp));
+        resolvedFolders.insert(std::move(temp));
     }
+    cmdLine_->directories = std::move(resolvedFolders);
 
-    if (!cmdLine_->folder.empty())
-        SWC_CHECK(FileSystem::resolveFolder(ctx, cmdLine_->folder));
-    if (!cmdLine_->file.empty())
-        SWC_CHECK(FileSystem::resolveFile(ctx, cmdLine_->file));
+    // Resolve all files
+    std::set<fs::path> resolvedFiles;
+    for (const auto& file : cmdLine_->files)
+    {
+        fs::path temp = file;
+        SWC_CHECK(FileSystem::resolveFile(ctx, temp));
+        resolvedFiles.insert(std::move(temp));
+    }
+    cmdLine_->files = std::move(resolvedFiles);
 
     return Result::Success;
 }
@@ -385,9 +397,9 @@ CommandLineParser::CommandLineParser(CommandLine& cmdLine, Global& global) :
            "Log raised errors during tests.");
     addArg("all", "--verbose-errors-filter", "-vef", CommandLineType::String, &cmdLine_->verboseErrorsFilter, nullptr,
            "Filter verbose error logs by matching a specific string.");
-    addArg("all", "--folder", nullptr, CommandLineType::Path, &cmdLine_->folder, nullptr,
+    addArg("all", "--directory", "-d", CommandLineType::PathSet, &cmdLine_->directories, nullptr,
            "");
-    addArg("all", "--file", nullptr, CommandLineType::Path, &cmdLine_->file, nullptr,
+    addArg("all", "--file", "-f", CommandLineType::PathSet, &cmdLine_->files, nullptr,
            "");
 }
 

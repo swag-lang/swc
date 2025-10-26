@@ -15,6 +15,7 @@ enum class CommandLineType
     String,
     Path,
     StringSet,
+    PathSet,
     EnumInt,
     EnumString
 };

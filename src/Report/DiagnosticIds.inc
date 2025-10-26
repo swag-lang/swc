@@ -11,7 +11,7 @@ SWC_DIAG_DEF(CmdLineInvalidFile, "invalid file '{path}'; {reason}")
 SWC_DIAG_DEF(CmdLineIncompatibleArgs, "cannot used arguments '{arg0}' and '{arg1}' together")
 
 // Compiler command specific errors 
-SWC_DIAG_DEF(CmdSyntaxNoInput, "invalid 'syntax' command; you need to specify a '--folder' or a '--file'")
+SWC_DIAG_DEF(CmdSyntaxNoInput, "invalid 'syntax' command; you need to specify at least one '--directory' or '--file'")
 
 // File errors
 SWC_DIAG_DEF(CannotOpenFile, "cannot open file '{path}'; {reason}")

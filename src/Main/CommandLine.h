@@ -22,11 +22,11 @@ struct CommandLine
 
     uint32_t tabSize = 4;
 
-    bool     verboseErrors = false;
-    Utf8     verboseErrorsFilter;
-    fs::path folder;
-    fs::path file;
-    bool     verify = true;
+    bool               verboseErrors = false;
+    Utf8               verboseErrorsFilter;
+    std::set<fs::path> directories;
+    std::set<fs::path> files;
+    bool               verify = true;
 };
 
 SWC_END_NAMESPACE();

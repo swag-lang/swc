@@ -19,10 +19,10 @@
 99_99_99
 
 // --- Invalid separators in integers ---
-123_        // expected-error TrailingNumberSeparator
-12__34      // expected-error ConsecutiveNumberSeparators
-1__2        // expected-error ConsecutiveNumberSeparators
-123___      // expected-error ConsecutiveNumberSeparators
+123_        // swc-expected-error TrailingNumberSeparator
+12__34      // swc-expected-error ConsecutiveNumberSeparators
+1__2        // swc-expected-error ConsecutiveNumberSeparators
+123___      // swc-expected-error ConsecutiveNumberSeparators
 
 // --- Valid floats with decimal point ---
 0.0
@@ -42,11 +42,11 @@
 1_000_000.999_999
 
 // --- Invalid separators in floats ---
-123_.456    // expected-error TrailingNumberSeparator
-123._456    // expected-error LeadingNumberSeparator
-123.456_    // expected-error TrailingNumberSeparator
-1__2.34     // expected-error ConsecutiveNumberSeparators
-12.3__4     // expected-error ConsecutiveNumberSeparators
+123_.456    // swc-expected-error TrailingNumberSeparator
+123._456    // swc-expected-error LeadingNumberSeparator
+123.456_    // swc-expected-error TrailingNumberSeparator
+1__2.34     // swc-expected-error ConsecutiveNumberSeparators
+12.3__4     // swc-expected-error ConsecutiveNumberSeparators
 
 // --- Valid with exponents (lowercase e) ---
 1e10
@@ -72,12 +72,12 @@
 1.234_567e+10
 
 // --- Invalid exponents ---
-1e          // expected-error MissingExponentDigits
-1E          // expected-error MissingExponentDigits
-1e+         // expected-error MissingExponentDigits
-1e-         // expected-error MissingExponentDigits
-1.5e        // expected-error MissingExponentDigits
-1.5E+       // expected-error MissingExponentDigits
+1e          // swc-expected-error MissingExponentDigits
+1E          // swc-expected-error MissingExponentDigits
+1e+         // swc-expected-error MissingExponentDigits
+1e-         // swc-expected-error MissingExponentDigits
+1.5e        // swc-expected-error MissingExponentDigits
+1.5E+       // swc-expected-error MissingExponentDigits
 
 // --- Combined: float with exponent ---
 3.14e2
@@ -130,20 +130,20 @@
 1.0e-10
 
 // --- Invalid separator patterns ---
-1_000_      // expected-error TrailingNumberSeparator
-1__000      // expected-error ConsecutiveNumberSeparators
-1_00__0     // expected-error ConsecutiveNumberSeparators
-1_.5        // expected-error TrailingNumberSeparator
-1._5        // expected-error LeadingNumberSeparator
+1_000_      // swc-expected-error TrailingNumberSeparator
+1__000      // swc-expected-error ConsecutiveNumberSeparators
+1_00__0     // swc-expected-error ConsecutiveNumberSeparators
+1_.5        // swc-expected-error TrailingNumberSeparator
+1._5        // swc-expected-error LeadingNumberSeparator
 
 // --- Multiple separators in different parts ---
 1_2_3.4_5_6e7_8_9   // This would only be valid if exponent allows separators (check your grammar)
 1_000.000_000e-1_0  // Same note as above
 
 // --- Boundary cases ---
-0_ // expected-error TrailingNumberSeparator
-1_ // expected-error TrailingNumberSeparator
-9_ // expected-error TrailingNumberSeparator
+0_ // swc-expected-error TrailingNumberSeparator
+1_ // swc-expected-error TrailingNumberSeparator
+9_ // swc-expected-error TrailingNumberSeparator
 
-123abc		// expected-error InvalidNumberSuffix
-42e10var	// expected-error InvalidNumberSuffix
+123abc		// swc-expected-error InvalidNumberSuffix
+42e10var	// swc-expected-error InvalidNumberSuffix

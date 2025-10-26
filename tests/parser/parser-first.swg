@@ -1,2 +1,2 @@
-} // expected-error ParserUnexpectedToken
-{ // expected-error ParserUnterminatedCurlyBlock
+} // swc-expected-error ParserUnexpectedToken
+{ // swc-expected-error ParserUnterminatedCurlyBlock

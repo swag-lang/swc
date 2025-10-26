@@ -1,9 +1,9 @@
 // --- Missing digits / incomplete literals ---
-0x          // expected-error MissingHexDigit
-0x_         // expected-error MissingHexDigit
-0x__        // expected-error ConsecutiveNumberSeparators
-0x___       // expected-error ConsecutiveNumberSeparators
-0x0_        // expected-error TrailingNumberSeparator
+0x          // swc-expected-error MissingHexDigit
+0x_         // swc-expected-error MissingHexDigit
+0x__        // swc-expected-error ConsecutiveNumberSeparators
+0x___       // swc-expected-error ConsecutiveNumberSeparators
+0x0_        // swc-expected-error TrailingNumberSeparator
 
 // --- Valid simple cases ---
 0x0
@@ -24,11 +24,11 @@
 0x0_0
 0xABC_DEF_123
 // --- Invalid separators ---
-0x__1       // expected-error ConsecutiveNumberSeparators
-0x1__2      // expected-error ConsecutiveNumberSeparators
-0x1_        // expected-error TrailingNumberSeparator
-0xA__B      // expected-error ConsecutiveNumberSeparators
-0xAB_       // expected-error TrailingNumberSeparator
+0x__1       // swc-expected-error ConsecutiveNumberSeparators
+0x1__2      // swc-expected-error ConsecutiveNumberSeparators
+0x1_        // swc-expected-error TrailingNumberSeparator
+0xA__B      // swc-expected-error ConsecutiveNumberSeparators
+0xAB_       // swc-expected-error TrailingNumberSeparator
 
 // --- Lowercase and mixed-case checks ---
 0xabc
@@ -39,8 +39,8 @@
 0x00000000
 0xFFFFFFFF
 0xffffFFFF
-0x_         // expected-error MissingHexDigit
-0x0_______  // expected-error ConsecutiveNumberSeparators
+0x_         // swc-expected-error MissingHexDigit
+0x0_______  // swc-expected-error ConsecutiveNumberSeparators
 
 // --- Valid with long sequences ---
 0x1234_5678_9ABC_DEF0
@@ -48,10 +48,10 @@
 0xF00D_F00D
 
 // --- Invalid suffix ---
-0xAFG			// expected-error InvalidHexDigit
+0xAFG			// swc-expected-error InvalidHexDigit
 
 // --- Invalid with misplaced underscores ---
-0x12_34_        // expected-error TrailingNumberSeparator
-0x123__456      // expected-error ConsecutiveNumberSeparators
-0x1234__        // expected-error ConsecutiveNumberSeparators
-0x__1234        // expected-error ConsecutiveNumberSeparators
+0x12_34_        // swc-expected-error TrailingNumberSeparator
+0x123__456      // swc-expected-error ConsecutiveNumberSeparators
+0x1234__        // swc-expected-error ConsecutiveNumberSeparators
+0x__1234        // swc-expected-error ConsecutiveNumberSeparators

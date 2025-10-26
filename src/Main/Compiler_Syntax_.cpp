@@ -48,10 +48,14 @@ Result CompilerInstance::cmdSyntax()
 
     global.jobMgr().waitAll(context_.jobClientId());
 
+    auto result = Result::Success;
     for (const auto& f : global.fileMgr().files())
-        f->verifier().verifyExpected(ctx);
+    {
+        if (f->verifier().verifyExpected(ctx) == Result::Error)
+            result = Result::Error;
+    }
 
-    return Result::Success;
+    return result;
 }
 
 SWC_END_NAMESPACE();

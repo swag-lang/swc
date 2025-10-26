@@ -33,38 +33,38 @@
 "escaped\\backslash\\test"
 
 // --- Invalid escape sequences ---
-"\c"        // expected-error InvalidEscapeSequence
-"\d"        // expected-error InvalidEscapeSequence
-"\e"        // expected-error InvalidEscapeSequence
-"\g"        // expected-error InvalidEscapeSequence
-"\h"        // expected-error InvalidEscapeSequence
-"\i"        // expected-error InvalidEscapeSequence
-"\j"        // expected-error InvalidEscapeSequence
-"\k"        // expected-error InvalidEscapeSequence
-"\l"        // expected-error InvalidEscapeSequence
-"\m"        // expected-error InvalidEscapeSequence
-"\o"        // expected-error InvalidEscapeSequence
-"\p"        // expected-error InvalidEscapeSequence
-"\q"        // expected-error InvalidEscapeSequence
-"\s"        // expected-error InvalidEscapeSequence
-"\w"        // expected-error InvalidEscapeSequence
-"\y"        // expected-error InvalidEscapeSequence
-"\z"        // expected-error InvalidEscapeSequence
-"\1"        // expected-error InvalidEscapeSequence
-"\2"        // expected-error InvalidEscapeSequence
+"\c"        // swc-expected-error InvalidEscapeSequence
+"\d"        // swc-expected-error InvalidEscapeSequence
+"\e"        // swc-expected-error InvalidEscapeSequence
+"\g"        // swc-expected-error InvalidEscapeSequence
+"\h"        // swc-expected-error InvalidEscapeSequence
+"\i"        // swc-expected-error InvalidEscapeSequence
+"\j"        // swc-expected-error InvalidEscapeSequence
+"\k"        // swc-expected-error InvalidEscapeSequence
+"\l"        // swc-expected-error InvalidEscapeSequence
+"\m"        // swc-expected-error InvalidEscapeSequence
+"\o"        // swc-expected-error InvalidEscapeSequence
+"\p"        // swc-expected-error InvalidEscapeSequence
+"\q"        // swc-expected-error InvalidEscapeSequence
+"\s"        // swc-expected-error InvalidEscapeSequence
+"\w"        // swc-expected-error InvalidEscapeSequence
+"\y"        // swc-expected-error InvalidEscapeSequence
+"\z"        // swc-expected-error InvalidEscapeSequence
+"\1"        // swc-expected-error InvalidEscapeSequence
+"\2"        // swc-expected-error InvalidEscapeSequence
 
 // --- Unclosed string literals (missing closing quote) ---
-// expected-error@+ NewlineInStringLiteral
+// swc-expected-error@+ NewlineInStringLiteral
 "unclosed
-// expected-error@+ NewlineInStringLiteral
+// swc-expected-error@+ NewlineInStringLiteral
 "hello world
-// expected-error@+ NewlineInStringLiteral
+// swc-expected-error@+ NewlineInStringLiteral
 "test       
-// expected-error@+ NewlineInStringLiteral
+// swc-expected-error@+ NewlineInStringLiteral
 "with\"escape
 
 // --- Unclosed with trailing backslash at EOF ---
-// expected-error@+ InvalidEscapeSequence
+// swc-expected-error@+ InvalidEscapeSequence
 "test\
 
 // --- Empty and whitespace ---
@@ -103,9 +103,9 @@ third line"""
 """\n\r\t\b\f\v"""
 
 // --- Invalid escape sequences in multi-line ---
-"""\c"""            // expected-error InvalidEscapeSequence
-"""\z"""            // expected-error InvalidEscapeSequence
-"""test\qfail"""    // expected-error InvalidEscapeSequence
+"""\c"""            // swc-expected-error InvalidEscapeSequence
+"""\z"""            // swc-expected-error InvalidEscapeSequence
+"""test\qfail"""    // swc-expected-error InvalidEscapeSequence
 
 // --- Multi-line with trailing backslash at EOL ---
 """test\
@@ -166,12 +166,12 @@ line
 #"<html>\n\t<body></body>\n</html>"#
 
 // --- Unclosed raw strings ---
-#"unclosed          // expected-error UnclosedStringLiteral
-#"hello world       // expected-error UnclosedStringLiteral
-#"test              // expected-error UnclosedStringLiteral
+#"unclosed          // swc-expected-error UnclosedStringLiteral
+#"hello world       // swc-expected-error UnclosedStringLiteral
+#"test              // swc-expected-error UnclosedStringLiteral
 
 #"line1
-line2              // expected-error UnclosedStringLiteral
+line2              // swc-expected-error UnclosedStringLiteral
 
 // --- Raw strings with embedded quotes ---
 #"This is "quoted" text"#

@@ -13,17 +13,15 @@ class Context
 {
     const CompilerContext* cmpContext_ = nullptr;
     SourceFile*            sourceFile_ = nullptr;
-    CommandLine            cmdLine_;
 
 public:
     explicit Context(const CompilerContext& compContext) :
-        cmpContext_(&compContext),
-        cmdLine_(compContext.cmdLine())
+        cmpContext_(&compContext)
     {
     }
 
     const Global&      global() const { return cmpContext_->global(); }
-    const CommandLine& cmdLine() const { return cmdLine_; }
+    const CommandLine& cmdLine() const { return cmpContext_->cmdLine(); }
     SourceFile*        sourceFile() const { return sourceFile_; }
     void               setSourceFile(SourceFile* sourceFile) { sourceFile_ = sourceFile; }
 };

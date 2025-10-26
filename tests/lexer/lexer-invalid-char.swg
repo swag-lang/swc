@@ -1,1 +1,1 @@
-¤ // expected-error InvalidCharacter
+¤ // swc-expected-error InvalidCharacter

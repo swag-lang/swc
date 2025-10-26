@@ -252,4 +252,4 @@ int y = 10;
 // ============================================================================
 
 // --- Unclosed comment at EOF ---
-/* This comment is never closed                // expected-error UnclosedComment
+/* This comment is never closed                // swc-expected-error UnclosedComment

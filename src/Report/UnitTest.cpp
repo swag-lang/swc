@@ -24,7 +24,7 @@ Result UnitTest::tokenize(Context& ctx)
     SWC_CHECK(lexer.tokenizeRaw(ctx));
 
     // Parse all comments to find a verify directive
-    constexpr std::string_view needle = "expected-";
+    constexpr std::string_view needle = "swc-expected-";
     for (const auto& trivia : file->lexOut().trivia())
     {
         auto   comment = trivia.token.toString(file);

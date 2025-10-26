@@ -48,64 +48,64 @@
 '\U0010FFFF'
 
 // --- Invalid escape sequences ---
-'\c'        // expected-error InvalidEscapeSequence
-'\d'        // expected-error InvalidEscapeSequence
-'\e'        // expected-error InvalidEscapeSequence
-'\g'        // expected-error InvalidEscapeSequence
-'\h'        // expected-error InvalidEscapeSequence
-'\i'        // expected-error InvalidEscapeSequence
-'\j'        // expected-error InvalidEscapeSequence
-'\k'        // expected-error InvalidEscapeSequence
-'\l'        // expected-error InvalidEscapeSequence
-'\m'        // expected-error InvalidEscapeSequence
-'\o'        // expected-error InvalidEscapeSequence
-'\p'        // expected-error InvalidEscapeSequence
-'\q'        // expected-error InvalidEscapeSequence
-'\s'        // expected-error InvalidEscapeSequence
-'\w'        // expected-error InvalidEscapeSequence
-'\y'        // expected-error InvalidEscapeSequence
-'\z'        // expected-error InvalidEscapeSequence
-'\1'        // expected-error InvalidEscapeSequence
-'\2'        // expected-error InvalidEscapeSequence
+'\c'        // swc-expected-error InvalidEscapeSequence
+'\d'        // swc-expected-error InvalidEscapeSequence
+'\e'        // swc-expected-error InvalidEscapeSequence
+'\g'        // swc-expected-error InvalidEscapeSequence
+'\h'        // swc-expected-error InvalidEscapeSequence
+'\i'        // swc-expected-error InvalidEscapeSequence
+'\j'        // swc-expected-error InvalidEscapeSequence
+'\k'        // swc-expected-error InvalidEscapeSequence
+'\l'        // swc-expected-error InvalidEscapeSequence
+'\m'        // swc-expected-error InvalidEscapeSequence
+'\o'        // swc-expected-error InvalidEscapeSequence
+'\p'        // swc-expected-error InvalidEscapeSequence
+'\q'        // swc-expected-error InvalidEscapeSequence
+'\s'        // swc-expected-error InvalidEscapeSequence
+'\w'        // swc-expected-error InvalidEscapeSequence
+'\y'        // swc-expected-error InvalidEscapeSequence
+'\z'        // swc-expected-error InvalidEscapeSequence
+'\1'        // swc-expected-error InvalidEscapeSequence
+'\2'        // swc-expected-error InvalidEscapeSequence
 
 // --- Empty character literal ---
-// expected-error@+ EmptyCharLiteral
+// swc-expected-error@+ EmptyCharLiteral
 ''
 
 // --- Unclosed character literals (missing closing quote) ---
-// expected-error@+ UnclosedCharLiteral
+// swc-expected-error@+ UnclosedCharLiteral
 'a
-// expected-error@+ UnclosedCharLiteral
+// swc-expected-error@+ UnclosedCharLiteral
 'x
-// expected-error@+ UnclosedCharLiteral
+// swc-expected-error@+ UnclosedCharLiteral
 '\n
-// expected-error@+ UnclosedCharLiteral
+// swc-expected-error@+ UnclosedCharLiteral
 '\t
 
 // --- Character literal with newline inside ---
-// expected-error@+ UnclosedCharLiteral
+// swc-expected-error@+ UnclosedCharLiteral
 'test
 multiple
 lines'
 
 // --- Unclosed at EOF ---
-// expected-error@+ UnclosedCharLiteral
+// swc-expected-error@+ UnclosedCharLiteral
 'z
 
 // --- Unclosed with escape at EOF ---
-// expected-error@+ InvalidEscapeSequence
+// swc-expected-error@+ InvalidEscapeSequence
 '\
 
 // --- Multiple characters ---
-'ab'		// expected-error TooManyCharsInCharLiteral
-'abc'		// expected-error TooManyCharsInCharLiteral
-'test'		// expected-error TooManyCharsInCharLiteral
-'hello'		// expected-error TooManyCharsInCharLiteral
+'ab'		// swc-expected-error TooManyCharsInCharLiteral
+'abc'		// swc-expected-error TooManyCharsInCharLiteral
+'test'		// swc-expected-error TooManyCharsInCharLiteral
+'hello'		// swc-expected-error TooManyCharsInCharLiteral
 
 // --- Multiple characters with escapes ---
-'a\n'		// expected-error TooManyCharsInCharLiteral
-'\nz'		// expected-error TooManyCharsInCharLiteral
-'x\ty'		// expected-error TooManyCharsInCharLiteral
+'a\n'		// swc-expected-error TooManyCharsInCharLiteral
+'\nz'		// swc-expected-error TooManyCharsInCharLiteral
+'x\ty'		// swc-expected-error TooManyCharsInCharLiteral
 
 // --- Special punctuation characters ---
 '('
@@ -135,30 +135,30 @@ lines'
 '\''        // Escaped single quote (valid)
 
 // --- Incomplete hex escapes ---
-'\x'        // expected-error EmptyHexEscape
-'\x1'       // expected-error IncompleteHexEscape
-'\xG'       // expected-error InvalidHexDigit
+'\x'        // swc-expected-error EmptyHexEscape
+'\x1'       // swc-expected-error IncompleteHexEscape
+'\xG'       // swc-expected-error InvalidHexDigit
 
 // --- Incomplete unicode escapes ---
-'\u'        // expected-error EmptyHexEscape
-'\u0'       // expected-error IncompleteHexEscape
-'\u00'      // expected-error IncompleteHexEscape
-'\u000'     // expected-error IncompleteHexEscape
-'\uGGGG'    // expected-error InvalidHexDigit
+'\u'        // swc-expected-error EmptyHexEscape
+'\u0'       // swc-expected-error IncompleteHexEscape
+'\u00'      // swc-expected-error IncompleteHexEscape
+'\u000'     // swc-expected-error IncompleteHexEscape
+'\uGGGG'    // swc-expected-error InvalidHexDigit
 
 // --- Incomplete extended unicode escapes ---
-'\U'        // expected-error EmptyHexEscape
-'\U0'       // expected-error IncompleteHexEscape
-'\U00'      // expected-error IncompleteHexEscape
-'\U000'     // expected-error IncompleteHexEscape
-'\U0000'    // expected-error IncompleteHexEscape
-'\U00000'   // expected-error IncompleteHexEscape
-'\U000000'  // expected-error IncompleteHexEscape
-'\U0000000' // expected-error IncompleteHexEscape
+'\U'        // swc-expected-error EmptyHexEscape
+'\U0'       // swc-expected-error IncompleteHexEscape
+'\U00'      // swc-expected-error IncompleteHexEscape
+'\U000'     // swc-expected-error IncompleteHexEscape
+'\U0000'    // swc-expected-error IncompleteHexEscape
+'\U00000'   // swc-expected-error IncompleteHexEscape
+'\U000000'  // swc-expected-error IncompleteHexEscape
+'\U0000000' // swc-expected-error IncompleteHexEscape
 
 // --- Character literals with tabs and spaces ---
 '	'       
-'   '       // expected-error TooManyCharsInCharLiteral
+'   '       // swc-expected-error TooManyCharsInCharLiteral
 
 // --- Adjacent character literals (separate tokens) ---
 'a' 'b'
@@ -176,7 +176,7 @@ lines'
 // ============================================================================
 
 // --- Backslash at end ---
-// expected-error@+ InvalidEscapeSequence
+// swc-expected-error@+ InvalidEscapeSequence
 'test\
 
 // --- Valid maximum values ---
@@ -222,5 +222,5 @@ lines'
 // ============================================================================
 
 'a''s32
-// expected-error@+ UnclosedCharLiteral
+// swc-expected-error@+ UnclosedCharLiteral
 'a' 's

@@ -46,20 +46,6 @@ namespace Os
                 break;
         }
     }
-
-    uint64_t timerNow()
-    {
-        LARGE_INTEGER res;
-        QueryPerformanceCounter(&res);
-        return res.QuadPart;
-    }
-
-    double timerToSeconds(uint64_t timer)
-    {
-        LARGE_INTEGER freq;
-        QueryPerformanceFrequency(&freq);
-        return static_cast<double>(timer) / static_cast<double>(freq.QuadPart);
-    }
 }
 
 #endif // _WIN32

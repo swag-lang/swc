@@ -1,6 +1,7 @@
 #include "pch.h"
 #ifdef _WIN32
 
+#include "Main/FileSystem.h"
 #include "Os/Os.h"
 #include <windows.h>
 
@@ -85,13 +86,7 @@ namespace Os
         }
         LocalFree(buf);
 
-        msg.clean();
-        msg.trim();
-        msg.makeLower();
-        if (msg.back() == '.')
-            msg.pop_back();
-        
-        return msg;
+        return FileSystem::normalizeSystemMessage(msg);
     }
 }
 

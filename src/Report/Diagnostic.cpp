@@ -77,7 +77,7 @@ namespace
 
         if (start <= msg.size())
         {
-            auto p = Utf8Helper::trim(msg.substr(start, start));
+            auto p = Utf8Helper::trim(msg.substr(start));
             if (!p.empty())
                 parts.emplace_back(p);
         }
@@ -102,7 +102,7 @@ namespace
             auto       body = stripLeadingTagHeader(raw);
             out.push_back({.tag = sev, .text = Utf8(body)});
         }
-        
+
         return out;
     }
 }
@@ -478,7 +478,7 @@ void Diagnostic::expandMessageParts(std::vector<std::unique_ptr<DiagnosticElemen
 
     if (parts.size() <= 1)
         return;
-    
+
     for (size_t i = 1; i < parts.size(); ++i)
     {
         const auto&        p   = parts[i];

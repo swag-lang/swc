@@ -274,7 +274,7 @@ void CommandLineParser::printHelp(const Context& ctx)
     ctx.global().logger().unlock();
 }
 
-bool CommandLineParser::parse(int argc, char* argv[])
+Result CommandLineParser::parse(int argc, char* argv[])
 {
     const CompilerContext context(*cmdLine_, *global_);
     const Context         ctx(context);
@@ -282,7 +282,7 @@ bool CommandLineParser::parse(int argc, char* argv[])
     if (argc == 1)
     {
         printHelp(ctx);
-        return false;
+        return Result::Error;
     }
 
     // Require a command as the first positional token (no leading '-').
@@ -291,7 +291,7 @@ bool CommandLineParser::parse(int argc, char* argv[])
         // Missing command name
         const auto diag = Diagnostic::error(DiagnosticId::CmdLineMissingCommand);
         diag.report(ctx);
-        return false;
+        return Result::Error;
     }
 
     // Validate and set the command
@@ -303,7 +303,7 @@ bool CommandLineParser::parse(int argc, char* argv[])
             errorArguments(diag.last(), nullptr, argv[1]);
             diag.last()->addArgument("values", ALLOWED_COMMANDS);
             diag.report(ctx);
-            return false;
+            return Result::Error;
         }
 
         command_ = candidate;
@@ -319,7 +319,7 @@ bool CommandLineParser::parse(int argc, char* argv[])
         {
             if (!errorRaised_)
                 reportInvalidArgument(ctx, arg);
-            return false;
+            return Result::Error;
         }
 
         if (!commandMatches(info->commands))
@@ -327,17 +327,17 @@ bool CommandLineParser::parse(int argc, char* argv[])
             const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidArgForCmd);
             errorArguments(diag.last(), info, arg);
             diag.report(ctx);
-            return false;
+            return Result::Error;
         }
 
         if (!processArgument(ctx, info, arg, invertBoolean, i, argc, argv))
-            return false;
+            return Result::Error;
     }
 
     return checkCommandLine(ctx);
 }
 
-bool CommandLineParser::checkCommandLine(const Context& ctx) const
+Result CommandLineParser::checkCommandLine(const Context& ctx) const
 {
     if (!cmdLine_->verboseErrorsFilter.empty())
         cmdLine_->verboseErrors = true;
@@ -354,7 +354,7 @@ bool CommandLineParser::checkCommandLine(const Context& ctx) const
             diag.last()->addArgument("path", cmdLine_->folder.string());
             diag.last()->addArgument("reason", "cannot make absolute: " + ec.message());
             diag.report(ctx);
-            return false;
+            return Result::Error;
         }
 
         // Normalize/symlink-resolve if possible (does not throw)
@@ -373,7 +373,7 @@ bool CommandLineParser::checkCommandLine(const Context& ctx) const
             else
                 diag.last()->addArgument("reason", "path does not exist");
             diag.report(ctx);
-            return false;
+            return Result::Error;
         }
         ec.clear();
 
@@ -387,13 +387,13 @@ bool CommandLineParser::checkCommandLine(const Context& ctx) const
             else
                 diag.last()->addArgument("reason", "not a directory");
             diag.report(ctx);
-            return false;
+            return Result::Error;
         }
 
         cmdLine_->folder = folder;
     }
 
-    return true;
+    return Result::Success;
 }
 
 CommandLineParser::CommandLineParser(CommandLine& cmdLine, Global& global) :

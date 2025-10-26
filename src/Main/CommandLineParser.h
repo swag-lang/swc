@@ -61,11 +61,11 @@ class CommandLineParser
     bool           processArgument(const Context& ctx, const ArgInfo* info, const Utf8& arg, bool invertBoolean, int& index, int argc, char* argv[]);
     void           addArg(const char* commands, const char* longForm, const char* shortForm, CommandLineType type, void* target, const char* enumValues, const char* description);
     bool           reportEnumError(const Context& ctx, const ArgInfo* info, const Utf8& arg, const Utf8& value);
-    bool           checkCommandLine(const Context& ctx) const;
+    Result         checkCommandLine(const Context& ctx) const;
 
 public:
     explicit CommandLineParser(CommandLine& cmdLine, Global& global);
-    bool parse(int argc, char* argv[]);
+    Result parse(int argc, char* argv[]);
 };
 
 SWC_END_NAMESPACE();

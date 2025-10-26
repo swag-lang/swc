@@ -22,7 +22,6 @@ class PagedStore
 
     static constexpr uint32_t PAGE_MASK = N - 1u;
 
-    Arena*          arena_ = nullptr;
     std::vector<T*> pages_;
     uint32_t        count_ = 0;
 
@@ -31,17 +30,12 @@ class PagedStore
 
     T* newPage()
     {
-        T* base = arena_->allocArray<T>(N);
+        T* base = new T[N];
         pages_.push_back(base);
         return base;
     }
 
 public:
-    explicit PagedStore(Arena& arena) noexcept :
-        arena_(&arena)
-    {
-    }
-
     Ref push_back(const T& v)
     {
         const uint32_t id = count_++;

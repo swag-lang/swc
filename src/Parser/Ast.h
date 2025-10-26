@@ -9,9 +9,8 @@ class Ast
 {
 protected:
     friend class Parser;
-    Arena                  arena_;
-    PagedStore<AstNode>    nodes_{arena_};
-    PagedStore<AstNodeRef> nodeRefs_{arena_};
+    PagedStore<AstNode>    nodes_;
+    PagedStore<AstNodeRef> nodeRefs_;
     AstNodeRef             root_ = INVALID_REF;
 
 public:

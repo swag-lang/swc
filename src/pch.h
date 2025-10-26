@@ -16,6 +16,7 @@
 #include <mutex>
 #include <set>
 #include <shared_mutex>
+#include <span>
 #include <string>
 #include <thread>
 #include <tuple>
@@ -35,5 +36,6 @@ namespace fs = std::filesystem;
 #define SWC_HAS_STATS  1
 
 #include "Core/Flags.h"
+#include "Core/SmallVector.h"
 #include "Core/Utf8.h"
 #include "Report/Check.h"

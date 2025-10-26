@@ -53,7 +53,7 @@ class Diagnostic
     static Utf8             partStyle(const Context& ctx, DiagPart p, DiagnosticSeverity sev);
     static std::string_view severityStr(DiagnosticSeverity s);
     static uint32_t         digits(uint32_t n);
-    static void             expandMessageParts(std::vector<std::unique_ptr<DiagnosticElement>>& elements);
+    static void             expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements);
 
     static void writeSubLabel(Utf8& out, const Context& ctx, DiagnosticSeverity sev, std::string_view msg, uint32_t gutterW);
     static void writeFileLocation(Utf8& out, const Context& ctx, const std::string& path, uint32_t line, uint32_t col, uint32_t len, uint32_t gutterW);

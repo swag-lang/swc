@@ -40,9 +40,9 @@ namespace
     }
 
     // split message on ';' ignoring ';' inside quotes and escaped quotes
-    std::vector<std::string_view> splitMessage(std::string_view msg)
+    SmallVector<std::string_view> splitMessage(std::string_view msg)
     {
-        std::vector<std::string_view> parts;
+        SmallVector<std::string_view> parts;
         size_t                        start   = 0;
         bool                          inQuote = false;
 
@@ -91,9 +91,9 @@ namespace
         std::string                       text;
     };
 
-    std::vector<Part> parseParts(std::string_view msg)
+    SmallVector<Part> parseParts(std::string_view msg)
     {
-        std::vector<Part> out;
+        SmallVector<Part> out;
         for (auto raw : splitMessage(msg))
         {
             if (raw.empty())
@@ -407,7 +407,7 @@ Utf8 Diagnostic::build(const Context& ctx) const
         return out;
 
     // Make a copy of elements to modify them if necessary
-    std::vector<std::unique_ptr<DiagnosticElement>> elements;
+    SmallVector<std::unique_ptr<DiagnosticElement>> elements;
     elements.reserve(elements_.size());
     for (auto& e : elements_)
         elements.push_back(std::make_unique<DiagnosticElement>(*e.get()));
@@ -467,7 +467,7 @@ Utf8 Diagnostic::build(const Context& ctx) const
     return out;
 }
 
-void Diagnostic::expandMessageParts(std::vector<std::unique_ptr<DiagnosticElement>>& elements)
+void Diagnostic::expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements)
 {
     const auto front = elements.front().get();
     const Utf8 msg   = front->message();

@@ -1,6 +1,5 @@
 #include "pch.h"
 
-#include "Lexer/SourceFile.h"
 #include "Parser/Parser.h"
 #include "Report/Diagnostic.h"
 
@@ -25,8 +24,7 @@ AstNodeRef Parser::parseTopLevelCurlyBlock()
     const auto myToken    = curToken_;
     const auto startCurly = ast_->makeNode(AstNodeId::Delimiter, eat());
 
-    std::vector<AstNodeRef> stmts;
-    stmts.reserve(16);
+    SmallVector<AstNodeRef> stmts;
     stmts.push_back(startCurly);
 
     while (!atEnd() && id() != TokenId::SymRightCurly)
@@ -55,7 +53,7 @@ AstNodeRef Parser::parseFile()
 {
     const auto myTokenRef = tokenRef();
 
-    std::vector<AstNodeRef> stmts;
+    SmallVector<AstNodeRef> stmts;
     while (curToken_ < lastToken_)
     {
         const auto result = parseTopLevelDecl();

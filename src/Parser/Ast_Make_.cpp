@@ -23,12 +23,12 @@ AstNodeRef Ast::makeNode(AstNodeId id, TokenRef token, const AstChildrenMany& ki
     return nodes_.emplace_back(id, token, kids) + 1;
 }
 
-AstNodeRef Ast::makeBlock(AstNodeId id, TokenRef token, const std::vector<AstNodeRef>& stmts)
+AstNodeRef Ast::makeBlock(AstNodeId id, TokenRef token, const std::span<AstNodeRef>& span)
 {
     const uint32_t first = nodeRefs_.size();
-    for (auto s : stmts)
+    for (auto s : span)
         nodeRefs_.emplace_back(s);
-    return makeNode(id, token, AstChildrenMany{.index = first, .count = static_cast<uint32_t>(stmts.size())});
+    return makeNode(id, token, AstChildrenMany{.index = first, .count = static_cast<uint32_t>(span.size())});
 }
 
 SWC_END_NAMESPACE();

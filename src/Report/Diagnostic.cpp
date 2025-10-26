@@ -523,8 +523,18 @@ void Diagnostic::report(const Context& ctx) const
     if (dismiss && ctx.cmdLine().verboseErrors)
     {
         const auto& filter = ctx.cmdLine().verboseErrorsFilter;
-        if (filter.empty() || msg.find(filter) != Utf8::npos)
+        if (filter.empty())
             dismiss = false;
+        else if (msg.find(filter) != Utf8::npos)
+            dismiss = false;
+        else
+        {
+            for (const auto& e : elements_)
+            {
+                if (e.get()->idName().find(filter) != Utf8::npos)
+                    dismiss = false;
+            }
+        }
     }
 
     // Log diagnostic

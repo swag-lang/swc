@@ -41,7 +41,7 @@ AstNodeRef Parser::parseTopLevelCurlyBlock()
     else
     {
         stmts.push_back(ast_->makeNode(AstNodeId::MissingToken, tokenRef()));
-        const auto diag = Diagnostic::error(DiagnosticId::UnterminatedCurlyBlock, file_);
+        const auto diag = Diagnostic::error(DiagnosticId::ParserUnterminatedCurlyBlock, file_);
         diag.last()->setLocation(file_, myToken->byteStart, myToken->byteLength);
         diag.report(*ctx_);
     }

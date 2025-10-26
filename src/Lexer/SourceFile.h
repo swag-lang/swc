@@ -42,20 +42,24 @@ public:
     fs::path                    path() const { return path_; }
     const std::vector<uint8_t>& content() const { return content_; }
     size_t                      size() const { return content_.size() - TRAILING_0; }
-    const LexerOutput&          lexOut() const { return lexOut_; }
-    const ParserOutput&         parserOut() const { return parserOut_; }
-    UnitTest&                   verifier() { return verifier_; }
-    const UnitTest&             verifier() const { return verifier_; }
-    bool                        hasErrors() const { return flags_.has(FileFlagsEnum::HasErrors); }
-    bool                        hasWarnings() const { return flags_.has(FileFlagsEnum::HasWarnings); }
-    void                        setHasError() { flags_.add(FileFlagsEnum::HasErrors); }
-    void                        setHasWarning() { flags_.add(FileFlagsEnum::HasWarnings); }
-    FileFlags&                  flags() { return flags_; }
-    const FileFlags&            flags() const { return flags_; }
     FileRef                     ref() const { return ref_; }
 
-    Result           loadContent(const Context& ctx);
-    Result           tokenize(Context& ctx);
+    const LexerOutput&  lexOut() const { return lexOut_; }
+    const ParserOutput& parserOut() const { return parserOut_; }
+    UnitTest&           verifier() { return verifier_; }
+    const UnitTest&     verifier() const { return verifier_; }
+
+    FileFlags&       flags() { return flags_; }
+    const FileFlags& flags() const { return flags_; }
+    void             setHasError() { flags_.add(FileFlagsEnum::HasErrors); }
+    void             setHasWarning() { flags_.add(FileFlagsEnum::HasWarnings); }
+    bool             hasErrors() const { return flags_.has(FileFlagsEnum::HasErrors); }
+    bool             hasWarnings() const { return flags_.has(FileFlagsEnum::HasWarnings); }
+    bool             hasFlag(FileFlagsEnum flag) const { return flags_.has(flag); }
+
+    Result loadContent(const Context& ctx);
+    Result tokenize(Context& ctx);
+
     Utf8             codeLine(const Context& ctx, uint32_t line) const;
     std::string_view codeView(uint32_t offset, uint32_t len) const;
 };

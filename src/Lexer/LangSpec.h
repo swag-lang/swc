@@ -42,6 +42,9 @@ public:
 
     static TokenId keyword(std::string_view name);
 
+    static constexpr std::string_view VERIFY_COMMENT_OPTION   = "swc-option";
+    static constexpr std::string_view VERIFY_COMMENT_EXPECTED = "swc-expected-";
+
 private:
     CharFlags charFlags_[256];
 };

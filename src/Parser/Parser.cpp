@@ -32,6 +32,8 @@ Result Parser::parse(Context& ctx)
     SWC_CHECK(file_->loadContent(ctx));
     SWC_CHECK(file_->tokenize(ctx));
     SWC_ASSERT(!file_->lexOut_.tokens_.empty());
+    if (file_->hasFlag(FileFlagsEnum::LexOnly))
+        return Result::Success;
 
     firstToken_ = &file_->lexOut_.tokens_.front();
     lastToken_  = &file_->lexOut_.tokens_.back();

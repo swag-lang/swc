@@ -13,8 +13,9 @@ SWC_BEGIN_NAMESPACE();
 
 Result CompilerInstance::cmdSyntax()
 {
-    Context ctx(context_);
+    const Context ctx(context_);
 
+    // Syntax source files must be defined
     if (context_.cmdLine_->directories.empty() && context_.cmdLine_->files.empty())
     {
         const auto diag = Diagnostic::error(DiagnosticId::CmdSyntaxNoInput);
@@ -24,6 +25,7 @@ Result CompilerInstance::cmdSyntax()
 
     const auto global = context_.global();
 
+    // Collect files
     std::vector<fs::path> paths;
     for (const auto& folder : context_.cmdLine_->directories)
         FileSystem::collectSwagFilesRec(folder, paths);
@@ -35,15 +37,15 @@ Result CompilerInstance::cmdSyntax()
 
     for (const auto& f : global.fileMgr().files())
     {
-        auto k   = std::make_shared<Job>(context_);
-        k->func_ = [f](Context& fnCtx) {
+        auto job   = std::make_shared<Job>(context_);
+        job->func_ = [f](Context& fnCtx) {
             Parser parser;
             fnCtx.setSourceFile(f);
             parser.parse(fnCtx);
             return JobResult::Done;
         };
 
-        global.jobMgr().enqueue(k, JobPriority::Normal, context_.jobClientId());
+        global.jobMgr().enqueue(job, JobPriority::Normal, context_.jobClientId());
     }
 
     global.jobMgr().waitAll(context_.jobClientId());

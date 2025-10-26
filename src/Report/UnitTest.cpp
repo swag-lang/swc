@@ -1,6 +1,5 @@
 #include "pch.h"
 
-#include "Core/Utf8Helper.h"
 #include "Diagnostic.h"
 #include "Lexer/LangSpec.h"
 #include "Lexer/Lexer.h"
@@ -14,18 +13,17 @@ SWC_BEGIN_NAMESPACE();
 
 void UnitTest::tokenizeOption(const Context& ctx, const TriviaSpan& trivia, std::string_view comment)
 {
-    constexpr std::string_view needle   = "swc-option";
-    const auto                 file     = ctx.sourceFile();
-    const auto&                langSpec = ctx.global().langSpec();
+    const auto  file     = ctx.sourceFile();
+    const auto& langSpec = ctx.global().langSpec();
 
     size_t pos = 0;
     while (true)
     {
-        const auto found = comment.find(needle, pos);
+        const auto found = comment.find(LangSpec::VERIFY_COMMENT_OPTION, pos);
         if (found == std::string_view::npos)
             break;
 
-        size_t i = found + needle.size();
+        size_t i = found + LangSpec::VERIFY_COMMENT_OPTION.size();
 
         // Skip blanks and any non-ASCII noise safely
         while (i < comment.size() && langSpec.isBlank(static_cast<unsigned char>(comment[i])))
@@ -60,7 +58,7 @@ void UnitTest::tokenizeOption(const Context& ctx, const TriviaSpan& trivia, std:
         }
 
         // Move past this occurrence so we can find the next one
-        pos = std::max(i, found + needle.size());
+        pos = std::max(i, found + LangSpec::VERIFY_COMMENT_OPTION.size());
         if (pos == found) // paranoia: guarantee forward progress on pathological inputs
             ++pos;
     }
@@ -68,21 +66,20 @@ void UnitTest::tokenizeOption(const Context& ctx, const TriviaSpan& trivia, std:
 
 void UnitTest::tokenizeExpected(const Context& ctx, const TriviaSpan& trivia, std::string_view comment)
 {
-    constexpr std::string_view needle   = "swc-expected-";
-    const auto                 file     = ctx.sourceFile();
-    const auto&                langSpec = ctx.global().langSpec();
+    const auto  file     = ctx.sourceFile();
+    const auto& langSpec = ctx.global().langSpec();
 
     size_t pos = 0;
     while (true)
     {
-        pos = comment.find(needle, pos);
+        pos = comment.find(LangSpec::VERIFY_COMMENT_EXPECTED, pos);
         if (pos == Utf8::npos)
             break;
 
         VerifierDirective directive;
 
         // Get directive word
-        const size_t start = pos + needle.size();
+        const size_t start = pos + LangSpec::VERIFY_COMMENT_EXPECTED.size();
         size_t       i     = start;
         while (i < comment.size() && langSpec.isLetter(comment[i]))
             i++;
@@ -98,7 +95,9 @@ void UnitTest::tokenizeExpected(const Context& ctx, const TriviaSpan& trivia, st
         }
 
         // Location
-        directive.myLoc.fromOffset(ctx, file, trivia.token.byteStart + static_cast<uint32_t>(pos), static_cast<uint32_t>(needle.size()) + static_cast<uint32_t>(word.size()));
+        directive.myLoc.fromOffset(ctx, file,
+                                   trivia.token.byteStart + static_cast<uint32_t>(pos),
+                                   static_cast<uint32_t>(LangSpec::VERIFY_COMMENT_EXPECTED.size()) + static_cast<uint32_t>(word.size()));
         directive.loc = directive.myLoc;
 
         // Parse location

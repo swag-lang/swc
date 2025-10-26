@@ -1,7 +1,6 @@
 // ReSharper disable CppInconsistentNaming
 #pragma once
 #include "Core/Types.h"
-#include "Memory/Arena.h"
 #include "Report/Check.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -87,6 +86,22 @@ public:
     {
         const uint32_t pagesNeeded = (expected + N - 1u) / N;
         pages_.reserve(pagesNeeded);
+    }
+
+    void shrink_to_fit() noexcept
+    {
+        // Number of pages actually needed to store [0..count_)
+        const uint32_t needed = (count_ + N - 1u) / N;
+
+        // Delete any extra pages beyond 'needed'
+        for (uint32_t i = static_cast<uint32_t>(pages_.size()); i > needed; --i)
+        {
+            delete[] pages_[i - 1];
+            pages_.pop_back();
+        }
+
+        // Optionally reduce the vector's capacity, too
+        pages_.shrink_to_fit();
     }
 
     uint32_t size() const noexcept { return count_; }

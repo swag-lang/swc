@@ -1,6 +1,6 @@
 #pragma once
 #include "Core/Types.h"
-#include "Memory/PagedStore.h"
+#include "Core/PagedStore.h"
 #include "Parser/AstNode.h"
 
 SWC_BEGIN_NAMESPACE();

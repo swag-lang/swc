@@ -27,7 +27,8 @@ class Parser
 
     void consume()
     {
-        SWC_ASSERT(curToken_->id != TokenId::EndOfFile);
+        if (atEnd())
+            return;
         curToken_++;
         while (curToken_->id == TokenId::Blank || curToken_->id == TokenId::EndOfLine)
             curToken_++;
@@ -51,6 +52,8 @@ class Parser
     AstNodeRef parseTopLevelDecl();
     AstNodeRef parseTopLevelCurlyBlock();
     AstNodeRef parseFile();
+
+    void skipTopOrEol(std::initializer_list<TokenId> tokens);
 
     void reportError(DiagnosticId id, const Token* myToken) const;
 

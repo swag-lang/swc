@@ -18,7 +18,9 @@ AstNodeRef Parser::parseTopLevelDecl()
             break;
     }
 
-    return ast_->makeNode(AstNodeId::Invalid, eat());
+    const auto curTokenRef = tokenRef();
+    skipTopOrEol({TokenId::SymSemiColon, TokenId::SymRightCurly});
+    return ast_->makeNode(AstNodeId::Invalid, curTokenRef);
 }
 
 AstNodeRef Parser::parseTopLevelCurlyBlock()
@@ -32,9 +34,12 @@ AstNodeRef Parser::parseTopLevelCurlyBlock()
 
     while (!atEnd() && id() != TokenId::SymRightCurly)
     {
+        const auto before = curToken_;
         const auto result = parseTopLevelDecl();
         if (result != INVALID_REF)
             stmts.push_back(result);
+        if (curToken_ == before)
+            stmts.push_back(ast_->makeNode(AstNodeId::Invalid, eat()));
     }
 
     if (id() == TokenId::SymRightCurly)
@@ -57,9 +62,12 @@ AstNodeRef Parser::parseFile()
     SmallVector<AstNodeRef> stmts;
     while (!atEnd())
     {
+        const auto before = curToken_;
         const auto result = parseTopLevelDecl();
         if (result != INVALID_REF)
             stmts.push_back(result);
+        if (curToken_ == before)
+            stmts.push_back(ast_->makeNode(AstNodeId::Invalid, eat()));
     }
 
     return ast_->makeBlock(AstNodeId::File, myTokenRef, stmts);

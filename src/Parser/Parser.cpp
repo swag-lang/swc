@@ -7,6 +7,19 @@
 
 SWC_BEGIN_NAMESPACE();
 
+void Parser::skipTopOrEol(std::initializer_list<TokenId> tokens)
+{
+    while (!atEnd())
+    {
+        if (curToken_->flags.has(TokenFlagsEnum::EolAfter))
+            return;
+        const auto cur = curToken_->id;
+        if (std::ranges::find(tokens, cur) != tokens.end())
+            return;
+        consume();
+    }
+}
+
 Result Parser::parse(Context& ctx)
 {
 #if SWC_HAS_STATS

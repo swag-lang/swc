@@ -44,4 +44,6 @@ SWC_DIAG_DEF(LexInvalidCharacter, "invalid character '{tkn}'; not allowed in sou
 
 // Parser errors
 SWC_DIAG_DEF(ParserUnterminatedCurlyBlock, "unterminated curly block; expected '}' before end of file")
+SWC_DIAG_DEF(ParserUnexpectedToken, "unexpected '{tkn}'")
+
 

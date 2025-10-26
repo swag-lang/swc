@@ -11,6 +11,9 @@ AstNodeRef Parser::parseTopLevelDecl()
     {
         case TokenId::SymLeftCurly:
             return parseTopLevelCurlyBlock();
+        case TokenId::SymRightCurly:
+            reportError(DiagnosticId::ParserUnexpectedToken, curToken_);
+            return ast_->makeNode(AstNodeId::Invalid, eat());
         default:
             break;
     }
@@ -52,7 +55,7 @@ AstNodeRef Parser::parseFile()
     const auto myTokenRef = tokenRef();
 
     SmallVector<AstNodeRef> stmts;
-    while (curToken_ < lastToken_)
+    while (!atEnd())
     {
         const auto result = parseTopLevelDecl();
         if (result != INVALID_REF)

@@ -1,7 +1,7 @@
 #include "pch.h"
 
 #include "Main/CommandLine.h"
-#include "Main/Compiler.h"
+#include "Main/CompilerInstance.h"
 #include "Main/FileManager.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
@@ -11,7 +11,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-Result Compiler::cmdSyntax()
+Result CompilerInstance::cmdSyntax()
 {
     Context ctx(context_);
 

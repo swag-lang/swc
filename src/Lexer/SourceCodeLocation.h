@@ -1,7 +1,7 @@
 #pragma once
 SWC_BEGIN_NAMESPACE();
 
-class Compiler;
+class CompilerInstance;
 class SourceFile;
 class Context;
 

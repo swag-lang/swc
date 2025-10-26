@@ -8,7 +8,7 @@ class Global;
 
 class CompilerContext
 {
-    friend class Compiler;
+    friend class CompilerInstance;
     const CommandLine* cmdLine_     = nullptr;
     const Global*      global_      = nullptr;
     JobClientId        jobClientId_ = 0;

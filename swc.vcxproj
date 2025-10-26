@@ -111,7 +111,7 @@
         <ClCompile Include="src\Main\FileManager.cpp"/>
         <ClCompile Include="src\Main\FileSystem.cpp"/>
         <ClCompile Include="src\Main\Global.cpp"/>
-        <ClCompile Include="src\Main\Compiler.cpp"/>
+        <ClCompile Include="src\Main\CompilerInstance.cpp" />
         <ClCompile Include="src\Memory\Allocator.cpp"/>
         <ClCompile Include="src\Memory\Arena.cpp"/>
         <ClCompile Include="src\Memory\mimalloc\src\static.c">
@@ -162,7 +162,7 @@
         <ClInclude Include="src\Main\FileManager.h"/>
         <ClInclude Include="src\Main\FileSystem.h"/>
         <ClInclude Include="src\Main\Global.h"/>
-        <ClInclude Include="src\Main\Compiler.h"/>
+        <ClInclude Include="src\Main\CompilerInstance.h" />
         <ClInclude Include="src\Main\Version.h"/>
         <ClInclude Include="src\Memory\Arena.h"/>
         <ClInclude Include="src\Os\Os.h"/>

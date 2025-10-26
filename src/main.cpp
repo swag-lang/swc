@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Main/CommandLine.h"
 #include "Main/CommandLineParser.h"
-#include "Main/Compiler.h"
+#include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 
 int main(int argc, char* argv[])
@@ -14,6 +14,6 @@ int main(int argc, char* argv[])
 
     global.initialize(cmdLine);
 
-    swc::Compiler compiler(cmdLine, global);
+    swc::CompilerInstance compiler(cmdLine, global);
     return compiler.run();
 }

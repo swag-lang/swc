@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "Main/Compiler.h"
 #include "Core/Timer.h"
 #include "Main/CommandLine.h"
+#include "Main/CompilerInstance.h"
 #include "Main/Context.h"
 #include "Main/Global.h"
 #include "Report/Stats.h"
@@ -9,13 +9,13 @@
 
 SWC_BEGIN_NAMESPACE();
 
-Compiler::Compiler(const CommandLine& cmdLine, const Global& global) :
+CompilerInstance::CompilerInstance(const CommandLine& cmdLine, const Global& global) :
     context_(cmdLine, global)
 {
     context_.jobClientId_ = global.jobMgr().newClientId();
 }
 
-int Compiler::run()
+int CompilerInstance::run()
 {
     {
         Timer time(&Stats::get().timeTotal);

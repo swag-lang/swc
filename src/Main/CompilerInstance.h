@@ -6,14 +6,14 @@ SWC_BEGIN_NAMESPACE();
 class Global;
 struct CommandLine;
 
-class Compiler
+class CompilerInstance
 {
     CompilerContext context_;
 
     Result cmdSyntax();
 
 public:
-    Compiler(const CommandLine& cmdLine, const Global& global);
+    CompilerInstance(const CommandLine& cmdLine, const Global& global);
     int run();
 };
 

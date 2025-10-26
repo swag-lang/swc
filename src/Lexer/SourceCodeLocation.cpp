@@ -9,7 +9,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-class Compiler;
+class CompilerInstance;
 namespace
 {
     uint32_t calculateColumn(const Context& ctx, const uint8_t* content, uint32_t lineStart, uint32_t offset)

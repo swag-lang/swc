@@ -36,14 +36,14 @@ Result Compiler::cmdSyntax()
     for (const auto& f : global.fileMgr().files())
     {
         auto k   = std::make_shared<Job>(context_);
-        k->func_ = [f](Context& ctx) {
+        k->func_ = [f](Context& fnCtx) {
             Parser parser;
-            ctx.setSourceFile(f);
-            parser.parse(ctx);
+            fnCtx.setSourceFile(f);
+            parser.parse(fnCtx);
             return JobResult::Done;
         };
 
-        context_.global().jobMgr().enqueue(k, JobPriority::Normal, context_.jobClientId());
+        global.jobMgr().enqueue(k, JobPriority::Normal, context_.jobClientId());
     }
 
     global.jobMgr().waitAll(context_.jobClientId());

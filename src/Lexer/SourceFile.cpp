@@ -57,13 +57,6 @@ Result SourceFile::loadContent(const Context& ctx)
     return Result::Success;
 }
 
-Result SourceFile::tokenize(Context& ctx)
-{
-    SWC_CHECK(verifier_.tokenize(ctx));
-    Lexer lexer;
-    return lexer.tokenize(ctx);
-}
-
 Utf8 SourceFile::codeLine(const Context& ctx, uint32_t line) const
 {
     line--;

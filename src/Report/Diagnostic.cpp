@@ -516,7 +516,7 @@ void Diagnostic::report(const Context& ctx) const
     // Check that diagnostic was not awaited
     if (fileOwner_ != nullptr)
     {
-        dismiss = fileOwner_->verifier().verifyExpected(ctx, *this);
+        dismiss = fileOwner_->unittest().verifyExpected(ctx, *this);
     }
 
     // In tests, suppress diagnostics unless verbose errors are explicitly requested and match the filter.

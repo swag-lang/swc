@@ -130,21 +130,21 @@ void UnitTest::tokenizeExpected(const Context& ctx, const TriviaSpan& trivia, st
     }
 }
 
-Result UnitTest::tokenize(Context& ctx)
+Result UnitTest::tokenize(const Context& ctx)
 {
     if (!ctx.cmdLine().verify)
         return Result::Success;
 
-    const auto file = ctx.sourceFile();
-
     // Get all comments from the file
-    Lexer lexer;
-    SWC_CHECK(lexer.tokenizeRaw(ctx));
+    Lexer   lexer;
+    Context lexerCtx(ctx);
+    lexerCtx.setSourceFile(file_);
+    SWC_CHECK(lexer.tokenizeRaw(lexerCtx));
 
     // Parse all comments to find a verify directive
-    for (const auto& trivia : file->lexOut().trivia())
+    for (const auto& trivia : file_->lexOut().trivia())
     {
-        const auto comment = trivia.token.toString(file);
+        const auto comment = trivia.token.toString(file_);
         tokenizeExpected(ctx, trivia, comment);
         tokenizeOption(ctx, trivia, comment);
     }
@@ -157,9 +157,11 @@ bool UnitTest::verifyExpected(const Context& ctx, const Diagnostic& diag) const
     if (directives_.empty())
         return false;
 
+    Context lexerCtx(ctx);
+    lexerCtx.setSourceFile(file_);
     for (auto& elem : diag.elements())
     {
-        const auto loc = elem->location(ctx);
+        const auto loc = elem->location(lexerCtx);
 
         for (auto& directive : directives_)
         {
@@ -182,18 +184,21 @@ bool UnitTest::verifyExpected(const Context& ctx, const Diagnostic& diag) const
 
 Result UnitTest::verifyExpected(const Context& ctx) const
 {
+    Context lexerCtx(ctx);
+    lexerCtx.setSourceFile(file_);
+
     for (const auto& directive : directives_)
     {
         if (!directive.touched)
         {
-            Diagnostic diag(ctx.sourceFile());
+            Diagnostic diag(file_);
             const auto elem = diag.addError(DiagnosticId::UnRaisedDirective);
             elem->setLocation(directive.myLoc);
-            diag.report(ctx);
+            diag.report(lexerCtx);
         }
     }
 
-    return ctx.sourceFile()->hasErrors() ? Result::Error : Result::Success;
+    return file_->hasErrors() ? Result::Error : Result::Success;
 }
 
 SWC_END_NAMESPACE();

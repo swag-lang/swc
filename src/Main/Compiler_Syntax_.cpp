@@ -13,7 +13,7 @@ SWC_BEGIN_NAMESPACE();
 
 Result CompilerInstance::cmdSyntax()
 {
-    const Context ctx(context_);
+    Context ctx(context_);
 
     // Syntax source files must be defined
     if (context_.cmdLine_->directories.empty() && context_.cmdLine_->files.empty())
@@ -53,7 +53,7 @@ Result CompilerInstance::cmdSyntax()
     auto result = Result::Success;
     for (const auto& f : global.fileMgr().files())
     {
-        if (f->verifier().verifyExpected(ctx) == Result::Error)
+        if (f->unittest().verifyExpected(ctx) == Result::Error)
             result = Result::Error;
     }
 

@@ -27,7 +27,7 @@ class SourceFile
     FileRef              ref_ = INVALID_REF;
     fs::path             path_;
     std::vector<uint8_t> content_;
-    UnitTest             verifier_;
+    UnitTest             unittest_{this};
     FileFlags            flags_ = FileFlagsEnum::Zero;
 
 protected:
@@ -46,8 +46,8 @@ public:
 
     const LexerOutput&  lexOut() const { return lexOut_; }
     const ParserOutput& parserOut() const { return parserOut_; }
-    UnitTest&           verifier() { return verifier_; }
-    const UnitTest&     verifier() const { return verifier_; }
+    UnitTest&           unittest() { return unittest_; }
+    const UnitTest&     unittest() const { return unittest_; }
 
     FileFlags&       flags() { return flags_; }
     const FileFlags& flags() const { return flags_; }
@@ -57,9 +57,7 @@ public:
     bool             hasWarnings() const { return flags_.has(FileFlagsEnum::HasWarnings); }
     bool             hasFlag(FileFlagsEnum flag) const { return flags_.has(flag); }
 
-    Result loadContent(const Context& ctx);
-    Result tokenize(Context& ctx);
-
+    Result           loadContent(const Context& ctx);
     Utf8             codeLine(const Context& ctx, uint32_t line) const;
     std::string_view codeView(uint32_t offset, uint32_t len) const;
 };

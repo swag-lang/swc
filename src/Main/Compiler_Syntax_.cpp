@@ -1,9 +1,11 @@
 #include "pch.h"
 
-#include "FileManager.h"
-#include "Global.h"
+#include "Main/CommandLine.h"
 #include "Main/Compiler.h"
+#include "Main/FileManager.h"
 #include "Main/FileSystem.h"
+#include "Main/Global.h"
+#include "Report/Diagnostic.h"
 #include "Thread/Job.h"
 #include "Thread/JobManager.h"
 
@@ -11,14 +13,20 @@ SWC_BEGIN_NAMESPACE();
 
 Result Compiler::cmdSyntax()
 {
-    std::vector<fs::path> paths;
+    Context ctx(context_);
 
-    FileSystem::collectSwagFilesRec("C:/perso/swag-lang/swag/bin/testsuite/tests/compiler/src/legacy", paths);
-    FileSystem::collectSwagFilesRec("C:/perso/swag-lang/swag/bin/std", paths);
-    FileSystem::collectSwagFilesRec("C:/perso/swag-lang/swag/bin/examples", paths);
-    FileSystem::collectSwagFilesRec("C:/perso/swag-lang/swag/bin/runtime", paths);
-    FileSystem::collectSwagFilesRec("C:/perso/swag-lang/swag/bin/reference", paths);
-    FileSystem::collectSwagFilesRec("c:/perso/swag-lang/swc/tests", paths);
+    if (context_.cmdLine_->folder.empty() && context_.cmdLine_->file.empty())
+    {
+        const auto diag = Diagnostic::error(DiagnosticId::CmdSyntaxNoInput);
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    std::vector<fs::path> paths;
+    if (!context_.cmdLine_->folder.empty())
+        FileSystem::collectSwagFilesRec(context_.cmdLine_->folder, paths);
+    else
+        paths.push_back(context_.cmdLine_->file);
 
     for (const auto& f : paths)
         context_.global().fileMgr().addFile(f);
@@ -38,7 +46,6 @@ Result Compiler::cmdSyntax()
 
     context_.global().jobMgr().waitAll(context_.jobClientId());
 
-    Context ctx(context_);
     for (const auto& f : context_.global().fileMgr().files())
         f->verifier().verify(ctx);
 

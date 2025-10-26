@@ -1,11 +1,9 @@
 #include "pch.h"
 #include "Main/Compiler.h"
 #include "Core/Timer.h"
-#include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
 #include "Main/Context.h"
 #include "Main/Global.h"
-#include "Parser/Parser.h"
 #include "Report/Stats.h"
 #include "Thread/JobManager.h"
 

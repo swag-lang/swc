@@ -300,7 +300,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
     // Validate and set the command
     {
         const Utf8 candidate = argv[1];
-        cmdLine_->command = isAllowedCommand(candidate);
+        cmdLine_->command    = isAllowedCommand(candidate);
         if (cmdLine_->command == Command::Invalid)
         {
             const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidCommand);
@@ -345,6 +345,15 @@ Result CommandLineParser::checkCommandLine(const Context& ctx) const
 {
     if (!cmdLine_->verboseErrorsFilter.empty())
         cmdLine_->verboseErrors = true;
+
+    if (!cmdLine_->folder.empty() && !cmdLine_->file.empty())
+    {
+        const auto diag = Diagnostic::error(DiagnosticId::CmdLineIncompatibleArgs);
+        diag.last()->addArgument("arg0", "--folder");
+        diag.last()->addArgument("arg1", "--file");
+        diag.report(ctx);
+        return Result::Error;
+    }
 
     if (!cmdLine_->folder.empty())
         SWC_CHECK(FileSystem::resolveFolder(ctx, cmdLine_->folder));

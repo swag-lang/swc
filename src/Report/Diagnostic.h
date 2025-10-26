@@ -89,12 +89,6 @@ public:
         diag.addError(id);
         return diag;
     }
-
-    static void reportError(Context& ctx, DiagnosticId id)
-    {
-        const auto diag = error(id);
-        diag.report(ctx);
-    }
 };
 
 SWC_END_NAMESPACE();

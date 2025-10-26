@@ -21,26 +21,23 @@ constexpr size_t SHORT_PREFIX_LEN    = 1;
 constexpr size_t LONG_NO_PREFIX_LEN  = 5;
 constexpr size_t SHORT_NO_PREFIX_LEN = 4;
 
-namespace
+// Pipe-delimited list of allowed command names.
+// Adjust to match your tool's commands.
+Command CommandLineParser::isAllowedCommand(const Utf8& cmd)
 {
-    // Pipe-delimited list of allowed command names.
-    // Adjust to match your tool's commands.
-    Command isAllowedCommand(const Utf8& cmd)
+    const Utf8         ac = ALLOWED_COMMANDS;
+    std::istringstream iss(ac);
+
+    Utf8 allowed;
+    int  index = 0;
+    while (std::getline(iss, allowed, '|'))
     {
-        const Utf8         ac = ALLOWED_COMMANDS;
-        std::istringstream iss(ac);
-
-        Utf8 allowed;
-        int  index = 0;
-        while (std::getline(iss, allowed, '|'))
-        {
-            if (allowed == cmd)
-                return static_cast<Command>(index);
-            index++;
-        }
-
-        return Command::Invalid;
+        if (allowed == cmd)
+            return static_cast<Command>(index);
+        index++;
     }
+
+    return Command::Invalid;
 }
 
 void CommandLineParser::errorArguments(DiagnosticElement* elem, const ArgInfo* info, const Utf8& arg)
@@ -62,7 +59,7 @@ bool CommandLineParser::getNextValue(const Context& ctx, const Utf8& arg, int& i
     if (index + 1 >= argc)
     {
         const auto diag = Diagnostic::error(DiagnosticId::CmdLineMissingArgValue);
-        diag.last()->addArgument("arg", arg);
+        errorArguments(diag.last(), nullptr, arg);
         diag.report(ctx);
         return false;
     }

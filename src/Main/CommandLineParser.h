@@ -49,8 +49,9 @@ class CommandLineParser
     Utf8                    command_;
 
     static void    printHelp(const Context& ctx);
+    static Command isAllowedCommand(const Utf8& cmd);
     void           errorArguments(DiagnosticElement* elem, const ArgInfo* info, const Utf8& arg);
-    static bool    getNextValue(const Context& ctx, const Utf8& arg, int& index, int argc, char* argv[], Utf8& value);
+    bool           getNextValue(const Context& ctx, const Utf8& arg, int& index, int argc, char* argv[], Utf8& value);
     bool           commandMatches(const Utf8& commandList) const;
     bool           parseEnumString(const Context& ctx, const ArgInfo* info, const Utf8& arg, const Utf8& value, Utf8* target);
     bool           parseEnumInt(const Context& ctx, const ArgInfo* info, const Utf8& arg, const Utf8& value, int* target);

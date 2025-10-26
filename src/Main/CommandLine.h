@@ -1,9 +1,12 @@
 #pragma once
 SWC_BEGIN_NAMESPACE();
 
+inline constexpr auto ALLOWED_COMMANDS = "syntax|format";
 enum class Command
 {
-    Format,
+    Syntax  = 0,
+    Format  = 1,
+    Invalid = -1,
 };
 
 struct CommandLine

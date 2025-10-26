@@ -125,4 +125,17 @@ Utf8 FileSystem::normalizeSystemMessage(std::error_code ec)
     return normalizeSystemMessage(ec.message());
 }
 
+void FileSystem::collectSwagFilesRec(const fs::path& folder, std::vector<fs::path>& files)
+{
+    for (const auto& entry : fs::recursive_directory_iterator(folder))
+    {
+        if (!entry.is_regular_file())
+            continue;
+        auto ext = entry.path().extension().string();
+        if (ext != ".swg" && ext != ".swgs")
+            continue;
+        files.push_back(entry.path());
+    }
+}
+
 SWC_END_NAMESPACE();

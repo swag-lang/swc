@@ -10,11 +10,11 @@ class Compiler
 {
     CompilerContext context_;
 
-    void test() const;
+    Result cmdSyntax();
 
 public:
     Compiler(const CommandLine& cmdLine, const Global& global);
-    int run() const;
+    int run();
 };
 
 SWC_END_NAMESPACE();

@@ -20,24 +20,26 @@ constexpr size_t LONG_PREFIX_LEN     = 2;
 constexpr size_t SHORT_PREFIX_LEN    = 1;
 constexpr size_t LONG_NO_PREFIX_LEN  = 5;
 constexpr size_t SHORT_NO_PREFIX_LEN = 4;
-constexpr auto   ALLOWED_COMMANDS    = "syntax|format";
 
 namespace
 {
     // Pipe-delimited list of allowed command names.
     // Adjust to match your tool's commands.
-    bool isAllowedCommand(const Utf8& cmd)
+    Command isAllowedCommand(const Utf8& cmd)
     {
-        const Utf8 ac = ALLOWED_COMMANDS;
-        if (ac.empty())
-            return true;
-
+        const Utf8         ac = ALLOWED_COMMANDS;
         std::istringstream iss(ac);
-        Utf8               allowed;
+
+        Utf8 allowed;
+        int  index = 0;
         while (std::getline(iss, allowed, '|'))
+        {
             if (allowed == cmd)
-                return true;
-        return false;
+                return static_cast<Command>(index);
+            index++;
+        }
+
+        return Command::Invalid;
     }
 }
 
@@ -298,7 +300,8 @@ Result CommandLineParser::parse(int argc, char* argv[])
     // Validate and set the command
     {
         const Utf8 candidate = argv[1];
-        if (!isAllowedCommand(candidate))
+        cmdLine_->command = isAllowedCommand(candidate);
+        if (cmdLine_->command == Command::Invalid)
         {
             const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidCommand);
             errorArguments(diag.last(), nullptr, argv[1]);

@@ -66,32 +66,52 @@ void Lexer::pushToken()
 {
     token_.byteLength = static_cast<uint32_t>(buffer_ - startToken_);
 
+    const TokenId tokenId = token_.id;
+
+    // Update previous token's flags before filtering
+    // This must happen even for tokens that will be filtered out
     if (!file_->lexOut_.tokens_.empty())
     {
         auto& back = file_->lexOut_.tokens_.back();
-        if (token_.id == TokenId::Blank)
+        if (tokenId == TokenId::Blank)
             back.flags.add(TokenFlagsEnum::BlankAfter);
-        if (token_.id == TokenId::EndOfLine)
-            back.flags.add(TokenFlagsEnum::EolAfter);        
+        else if (tokenId == TokenId::EndOfLine)
+            back.flags.add(TokenFlagsEnum::EolAfter);
     }
-        
-    if (prevToken_.id == TokenId::Blank)
+
+    // Update the current token's flags based on the previous token
+    const TokenId prevId = prevToken_.id;
+    if (prevId == TokenId::Blank)
         token_.flags.add(TokenFlagsEnum::BlankBefore);
-    if (prevToken_.id == TokenId::EndOfLine)
+    else if (prevId == TokenId::EndOfLine)
         token_.flags.add(TokenFlagsEnum::EolBefore);
 
+    // Always update prevToken, even for filtered tokens
     prevToken_ = token_;
 
-    if (rawMode_ && token_.id != TokenId::CommentLine && token_.id != TokenId::CommentMultiLine)
+    // Now filter: early return if token should not be added to output
+    if (rawMode_ && tokenId != TokenId::CommentLine && tokenId != TokenId::CommentMultiLine)
         return;
-    if (token_.id == TokenId::Blank && !lexerFlags_.has(LexerFlagsEnum::ExtractBlanks))
-        return;
-    if (token_.id == TokenId::EndOfLine && !lexerFlags_.has(LexerFlagsEnum::ExtractLineEnds))
-        return;
-    if (token_.id == TokenId::CommentLine && !lexerFlags_.has(LexerFlagsEnum::ExtractComments))
-        return;
-    if (token_.id == TokenId::CommentMultiLine && !lexerFlags_.has(LexerFlagsEnum::ExtractComments))
-        return;
+
+    // Use switch for better branch prediction and consolidate similar checks
+    switch (tokenId)
+    {
+        case TokenId::Blank:
+            if (!lexerFlags_.has(LexerFlagsEnum::ExtractBlanks))
+                return;
+            break;
+        case TokenId::EndOfLine:
+            if (!lexerFlags_.has(LexerFlagsEnum::ExtractLineEnds))
+                return;
+            break;
+        case TokenId::CommentLine:
+        case TokenId::CommentMultiLine:
+            if (!lexerFlags_.has(LexerFlagsEnum::ExtractComments))
+                return;
+            break;
+        default:
+            break;
+    }
 
     file_->lexOut_.tokens_.push_back(token_);
 }

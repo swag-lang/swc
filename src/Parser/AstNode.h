@@ -5,23 +5,14 @@ SWC_BEGIN_NAMESPACE();
 
 class SourceFile;
 
-enum class AstNodeIdArity : uint32_t
-{
-    None,
-    One,
-    Two,
-    Many,
-};
-
 struct AstNodeIdInfo
 {
     std::string_view name;
-    AstNodeIdArity   arity;
 };
 
 enum class AstNodeId : uint16_t
 {
-#define SWC_NODE_ID_DEF(enum, arity) enum,
+#define SWC_NODE_ID_DEF(enum) enum,
 #include "AstNodeIds.inc"
 
 #undef SWC_NODE_ID_DEF
@@ -29,13 +20,12 @@ enum class AstNodeId : uint16_t
 };
 
 constexpr std::array AST_NODE_ID_INFOS = {
-#define SWC_NODE_ID_DEF(enum, arity) AstNodeIdInfo{#enum, AstNodeIdArity::arity},
+#define SWC_NODE_ID_DEF(enum) AstNodeIdInfo{#enum},
 #include "AstNodeIds.inc"
 
 #undef SWC_NODE_ID_DEF
 };
 
-#pragma pack(push, 1)
 struct AstNode
 {
     AstNodeId id    = AstNodeId::Invalid;
@@ -48,6 +38,5 @@ struct AstNode
     {
     }
 };
-#pragma pack(pop)
 
 SWC_END_NAMESPACE();

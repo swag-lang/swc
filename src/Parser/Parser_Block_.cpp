@@ -58,7 +58,7 @@ AstNodeRef Parser::parseTopLevelDecl()
             reportError(DiagnosticId::ParserUnexpectedToken, curToken_);
             return ast_->makeNode(AstNodeId::Invalid, eat());
         case TokenId::SymSemiColon:
-            return ast_->makeNode(AstNodeId::Delimiter, eat());
+            return ast_->makeNode(AstNodeId::SemiCol, eat());
         case TokenId::KwdEnum:
             return parseEnum();
         default:

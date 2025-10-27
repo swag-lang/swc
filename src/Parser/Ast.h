@@ -39,7 +39,8 @@ public:
         return nodes_.push_back<AstNode>(node);
     }
 
-    AstNodeRef makeCompound(AstNodeId id, TokenRef token, const std::span<AstNodeRef>& span);
+    AstNodeRef makeBlock(AstNodeId id, TokenRef token, const std::span<AstNodeRef>& span);
+    AstNodeRef makeBlock(AstNodeId id, TokenRef token, const std::span<AstNodeRef>& span, TokenRef closeToken);
 };
 
 SWC_END_NAMESPACE();

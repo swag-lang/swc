@@ -7,13 +7,10 @@ SWC_BEGIN_NAMESPACE();
 
 AstNodeRef Parser::parseTopLevelCurlyBlock()
 {
-    const auto myTokenRef = tokenRef();
-    const auto myToken    = curToken_;
-    const auto startCurly = ast_->makeNode(AstNodeId::Delimiter, eat());
+    const auto openToken    = curToken_;
+    const auto openTokenRef = eat();
 
     SmallVector<AstNodeRef> stmts;
-    stmts.push_back(startCurly);
-
     while (!atEnd() && id() != TokenId::SymRightCurly)
     {
         const auto before = curToken_;
@@ -24,17 +21,13 @@ AstNodeRef Parser::parseTopLevelCurlyBlock()
             stmts.push_back(ast_->makeNode(AstNodeId::Invalid, eat()));
     }
 
+    TokenRef closeTokenRef = INVALID_REF;
     if (id() == TokenId::SymRightCurly)
-    {
-        stmts.push_back(ast_->makeNode(AstNodeId::Delimiter, eat()));
-    }
+        closeTokenRef = eat();
     else
-    {
-        stmts.push_back(ast_->makeNode(AstNodeId::MissingToken, tokenRef()));
-        reportError(DiagnosticId::ParserUnterminatedCurlyBlock, myToken);
-    }
+        reportError(DiagnosticId::ParserUnterminatedCurlyBlock, openToken);
 
-    return ast_->makeCompound(AstNodeId::CurlyBlock, myTokenRef, stmts);
+    return ast_->makeBlock(AstNodeId::CurlyBlock, openTokenRef, stmts, closeTokenRef);
 }
 
 AstNodeRef Parser::parseFile()
@@ -52,7 +45,7 @@ AstNodeRef Parser::parseFile()
             stmts.push_back(ast_->makeNode(AstNodeId::Invalid, eat()));
     }
 
-    return ast_->makeCompound(AstNodeId::File, myTokenRef, stmts);
+    return ast_->makeBlock(AstNodeId::File, myTokenRef, stmts);
 }
 
 AstNodeRef Parser::parseTopLevelDecl()

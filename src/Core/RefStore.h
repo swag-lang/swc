@@ -6,7 +6,7 @@ using Ref = uint32_t;
 
 // Simple page-based POD store.
 // Each page holds up to N bytes of raw data.
-// Items are packed sequentially; alignment preserved relative to a max-aligned base.
+// Items are packed sequentially; alignment is preserved relative to a max-aligned base.
 // Ref is a 32-bit index in BYTES from the start of the store.
 template<uint32_t N = 16 * 1024>
 class RefStore
@@ -23,15 +23,13 @@ class RefStore
         const uint8_t* bytes() const noexcept { return reinterpret_cast<const uint8_t*>(&storage); }
     };
 
-    std::vector<Page*> pages_;
-    uint32_t           totalBytes_ = 0; // total bytes of payload stored
+    std::vector<std::unique_ptr<Page>> pages_;
+    uint32_t                           totalBytes_ = 0; // total bytes of payload stored
 
     Page* newPage()
     {
-        Page* p = new Page();
-        p->used = 0;
-        pages_.push_back(p);
-        return p;
+        pages_.emplace_back(std::make_unique<Page>());
+        return pages_.back().get();
     }
 
     // Convert (page, offset) -> global byte index Ref
@@ -75,14 +73,8 @@ public:
             other.pages_.clear();
             other.totalBytes_ = 0;
         }
-        
-        return *this;
-    }
 
-    ~RefStore()
-    {
-        for (auto* p : pages_)
-            delete p;
+        return *this;
     }
 
     void clear() noexcept
@@ -103,7 +95,7 @@ public:
         const uint32_t align = alignof(T);
         const uint32_t size  = sizeof(T);
 
-        Page* page = pages_.empty() ? newPage() : pages_.back();
+        auto page = pages_.empty() ? newPage() : pages_.back().get();
 
         // align current position (base is max-aligned)
         uint32_t offset = (page->used + (align - 1)) & ~(align - 1);
@@ -121,7 +113,7 @@ public:
         totalBytes_ += size;
 
         const uint32_t pageIndex = static_cast<uint32_t>(pages_.size() - 1);
-        return makeRef(pageIndex, offset); // True byte index
+        return makeRef(pageIndex, offset);
     }
 
     template<class T>

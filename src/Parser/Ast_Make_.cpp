@@ -13,6 +13,7 @@ AstNodeRef Ast::makeBlock(AstNodeId id, TokenRef token, const std::span<AstNodeR
 
     auto [r, p]    = nodes_.emplace_uninit<AstNodeBlock>();
     p->id          = id;
+    p->flags       = 0;
     p->token       = token;
     p->firstChild  = first;
     p->numChildren = static_cast<uint32_t>(span.size());
@@ -28,6 +29,7 @@ AstNodeRef Ast::makeBlock(AstNodeId id, TokenRef openToken, TokenRef closeToken,
 
     auto [r, p]    = nodes_.emplace_uninit<AstNodeDelimitedBlock>();
     p->id          = id;
+    p->flags       = 0;
     p->token       = openToken;
     p->closeToken  = closeToken;
     p->firstChild  = first;

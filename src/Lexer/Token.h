@@ -4,12 +4,13 @@ SWC_BEGIN_NAMESPACE();
 
 class SourceFile;
 
-enum class TokenIdFlagsEnum : uint32_t
+enum class TokenIdFlags : uint32_t
 {
     Zero = 0,
 };
+SWC_ENABLE_BITMASK(TokenIdFlags);
 
-enum class TokenFlagsEnum : uint16_t
+enum class TokenFlags : uint16_t
 {
     Zero        = 0,
     BlankBefore = 1 << 0,
@@ -17,9 +18,7 @@ enum class TokenFlagsEnum : uint16_t
     EolBefore   = 1 << 2,
     EolAfter    = 1 << 3,
 };
-
-using TokenIdFlags = Flags<TokenIdFlagsEnum>;
-using TokenFlags   = Flags<TokenFlagsEnum>;
+SWC_ENABLE_BITMASK(TokenFlags);
 
 struct TokenIdInfo
 {
@@ -37,7 +36,7 @@ enum class TokenId : uint16_t
 };
 
 constexpr std::array TOKEN_ID_INFOS = {
-#define SWC_TOKEN_DEF(enum, flags) TokenIdInfo{#enum, TokenIdFlagsEnum::flags},
+#define SWC_TOKEN_DEF(enum, flags) TokenIdInfo{#enum, TokenIdFlags::flags},
 #include "TokenIds.inc"
 
 #undef SWC_TOKEN_DEF
@@ -50,7 +49,7 @@ struct Token
     uint32_t byteLength = 0; // Length in bytes
 
     TokenId    id    = TokenId::Invalid;
-    TokenFlags flags = TokenFlagsEnum::Zero;
+    TokenFlags flags = TokenFlags::Zero;
 
     std::string_view toString(const SourceFile* file) const;
 };

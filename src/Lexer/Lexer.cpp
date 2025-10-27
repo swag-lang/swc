@@ -74,17 +74,17 @@ void Lexer::pushToken()
     {
         auto& back = file_->lexOut_.tokens_.back();
         if (tokenId == TokenId::Blank)
-            back.flags.add(TokenFlagsEnum::BlankAfter);
+            back.flags |= TokenFlags::BlankAfter;
         else if (tokenId == TokenId::EndOfLine)
-            back.flags.add(TokenFlagsEnum::EolAfter);
+            back.flags |= TokenFlags::EolAfter;
     }
 
     // Update the current token's flags based on the previous token
     const TokenId prevId = prevToken_.id;
     if (prevId == TokenId::Blank)
-        token_.flags.add(TokenFlagsEnum::BlankBefore);
+        token_.flags |= TokenFlags::BlankBefore;
     else if (prevId == TokenId::EndOfLine)
-        token_.flags.add(TokenFlagsEnum::EolBefore);
+        token_.flags |= TokenFlags::EolBefore;
 
     // Always update prevToken, even for filtered tokens
     prevToken_ = token_;

@@ -107,7 +107,7 @@ public:
             offset = 0;
         }
 
-        std::memcpy(page->bytes() + offset, &v, size);
+        *reinterpret_cast<T*>(page->bytes() + offset) = v;
 
         page->used = offset + size;
         totalBytes_ += size;

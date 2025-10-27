@@ -389,7 +389,7 @@ public:
             chunk_iterator it;
             it.store   = store_;
             it.nextHdr = head_;
-            ++it; // load first
+            ++it;
             return it;
         }
 
@@ -415,26 +415,40 @@ public:
             reference operator*() const { return *curPtr; }
             pointer   operator->() const { return curPtr; }
 
+            // In SpanView<T>::const_iterator
             const_iterator& operator++()
             {
+                // Still inside the current chunk: move to the next element
                 if (leftInChunk > 1)
                 {
                     --leftInChunk;
                     ++curPtr;
+                    return *this;
                 }
-                else if (curHdr != INVALID_REF)
+
+                // We were on the last element of this chunk
+                if (leftInChunk == 1)
                 {
+                    // If no next chunk, we reach end()
+                    if (curHdr == INVALID_REF)
+                    {
+                        leftInChunk = 0;
+                        curPtr      = nullptr;
+                        return *this;
+                    }
+
+                    // Load the next chunk and point to its first element
                     uint32_t cnt = 0;
                     Ref      nxt = INVALID_REF;
-                    curPtr       = SpanView::data_ptr(store, curHdr, cnt, nxt);
-                    leftInChunk  = cnt;
-                    curHdr       = nxt;
-                    if (leftInChunk > 0)
-                    {
-                        --leftInChunk;
-                        ++curPtr;
-                    }
+                    const T* p   = SpanView::data_ptr(store, curHdr, cnt, nxt);
+
+                    curHdr      = nxt;
+                    leftInChunk = cnt;
+                    curPtr      = (cnt ? p : nullptr); // defensive for empty chunk
+                    return *this;
                 }
+
+                // Already at end() → no-op
                 return *this;
             }
 
@@ -466,7 +480,7 @@ public:
             const T* p     = data_ptr(store_, head_, cnt, nxt);
             it.curHdr      = nxt;
             it.curPtr      = p;
-            it.leftInChunk = cnt ? cnt : 0;
+            it.leftInChunk = cnt;
             if (it.leftInChunk == 0)
             {
                 it.curHdr = INVALID_REF;

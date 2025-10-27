@@ -5,7 +5,7 @@ SWC_BEGIN_NAMESPACE();
 using Ref = uint32_t;
 
 // Simple page-based POD store.
-// Each page holds up to N bytes of raw data.
+// Each page holds up to N bytes of raw data (N must be a power of two).
 // Items are packed sequentially; alignment is preserved relative to a max-aligned base.
 // Ref is a 32-bit index in BYTES from the start of the store.
 template<uint32_t N = 16 * 1024>
@@ -16,7 +16,7 @@ class RefStore
     struct Page
     {
         using Storage = std::aligned_storage_t<N, alignof(std::max_align_t)>;
-        Storage  storage;
+        Storage  storage{};
         uint32_t used = 0;
 
         uint8_t*       bytes() noexcept { return reinterpret_cast<uint8_t*>(&storage); }
@@ -24,12 +24,18 @@ class RefStore
     };
 
     std::vector<std::unique_ptr<Page>> pages_;
-    uint32_t                           totalBytes_ = 0; // total bytes of payload stored
+    uint64_t                           totalBytes_ = 0; // payload bytes (wider to avoid overflow)
+
+    // Fast-path cache for the current page
+    Page*    cur_      = nullptr;
+    uint32_t curIndex_ = 0;
 
     Page* newPage()
     {
         pages_.emplace_back(std::make_unique<Page>());
-        return pages_.back().get();
+        cur_      = pages_.back().get();
+        curIndex_ = static_cast<uint32_t>(pages_.size() - 1);
+        return cur_;
     }
 
     // Convert (page, offset) -> global byte index Ref
@@ -47,105 +53,144 @@ class RefStore
         offset    = ref % N;
     }
 
+    // Allocate raw bytes with alignment; returns (ref, ptr) pair
+    std::pair<Ref, void*> allocate(uint32_t size, uint32_t align)
+    {
+        SWC_ASSERT(size <= N && (align & (align - 1)) == 0 && align <= alignof(std::max_align_t));
+
+        Page* page = cur_ ? cur_ : newPage();
+
+        // Align current position (page start is already max-aligned)
+        uint32_t offset = (page->used + (align - 1)) & ~(align - 1);
+
+        // New page if not enough space
+        if (offset + size > N)
+        {
+            page   = newPage();
+            offset = 0; // page start is max-aligned -> OK for all T
+        }
+
+        page->used = offset + size;
+        totalBytes_ += size;
+
+        const Ref r = makeRef(curIndex_, offset);
+        return {r, static_cast<void*>(page->bytes() + offset)};
+    }
+
 public:
     RefStore() = default;
 
-    // Non-copyable (owning raw pointers)
+    // Non-copyable (owning raw buffers)
     RefStore(const RefStore&)            = delete;
     RefStore& operator=(const RefStore&) = delete;
 
     // Movable
     RefStore(RefStore&& other) noexcept :
         pages_(std::move(other.pages_)),
-        totalBytes_(other.totalBytes_)
+        totalBytes_(other.totalBytes_),
+        cur_(other.cur_),
+        curIndex_(other.curIndex_)
     {
-        other.pages_.clear();
         other.totalBytes_ = 0;
+        other.cur_        = nullptr;
+        other.curIndex_   = 0;
     }
 
     RefStore& operator=(RefStore&& other) noexcept
     {
         if (this != &other)
         {
-            this->~RefStore();
-            pages_      = std::move(other.pages_);
-            totalBytes_ = other.totalBytes_;
-            other.pages_.clear();
-            other.totalBytes_ = 0;
+            using std::swap;
+            swap(pages_, other.pages_);
+            swap(totalBytes_, other.totalBytes_);
+            swap(cur_, other.cur_);
+            swap(curIndex_, other.curIndex_);
         }
-
         return *this;
     }
 
     void clear() noexcept
     {
-        for (auto* p : pages_)
-            p->used = 0;
+        for (auto& up : pages_)
+            up->used = 0;
         totalBytes_ = 0;
+        // keep capacity and current page for reuse
+        if (!pages_.empty())
+        {
+            cur_      = pages_.back().get();
+            curIndex_ = static_cast<uint32_t>(pages_.size() - 1);
+        }
+        else
+        {
+            cur_      = nullptr;
+            curIndex_ = 0;
+        }
     }
 
-    uint32_t size() const noexcept { return totalBytes_; } // payload bytes
+    // payload bytes (clamped to 32 bits to match the previous signature)
+    uint32_t size() const noexcept
+    {
+        return static_cast<uint32_t>(std::min<uint64_t>(totalBytes_, std::numeric_limits<uint32_t>::max()));
+    }
 
-    // Emplace a POD (construct in-place)
+    // Allocate and copy a POD value (bitwise)
     template<class T>
     Ref push_back(const T& v)
     {
         static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
-
-        const uint32_t align = alignof(T);
-        const uint32_t size  = sizeof(T);
-
-        auto page = pages_.empty() ? newPage() : pages_.back().get();
-
-        // align current position (base is max-aligned)
-        uint32_t offset = (page->used + (align - 1)) & ~(align - 1);
-
-        // new page if not enough space
-        if (offset + size > N)
-        {
-            page   = newPage();
-            offset = 0;
-        }
-
-        *reinterpret_cast<T*>(page->bytes() + offset) = v;
-
-        page->used = offset + size;
-        totalBytes_ += size;
-
-        const uint32_t pageIndex = static_cast<uint32_t>(pages_.size() - 1);
-        return makeRef(pageIndex, offset);
+        auto [r, p] = allocate(static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)));
+        *static_cast<T*>(p) = v;
+        return r;
     }
 
+    // Allocate uninitialized storage for T; returns a pointer to fill in-place.
     template<class T>
-    T* ptr(Ref ref)
+    std::pair<Ref, T*> emplace_uninit()
+    {
+        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
+        auto [r, p] = allocate(static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)));
+        return {r, static_cast<T*>(p)};
+    }
+
+    // Allocate raw bytes with chosen alignment
+    std::pair<Ref, void*> push_back_raw(uint32_t size, uint32_t align = alignof(std::max_align_t))
+    {
+        return allocate(size, align);
+    }
+
+private:
+    template<class T>
+    static T* ptr_impl(const std::vector<std::unique_ptr<Page>>& pages, Ref ref)
     {
         static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
         uint32_t pageIndex, offset;
         decodeRef(ref, pageIndex, offset);
-        SWC_ASSERT(pageIndex < pages_.size());
+        SWC_ASSERT(pageIndex < pages.size());
         SWC_ASSERT(offset + sizeof(T) <= N);
-        return reinterpret_cast<T*>(pages_[pageIndex]->bytes() + offset);
+        return reinterpret_cast<T*>(pages[pageIndex]->bytes() + offset);
     }
 
+public:
     template<class T>
-    const T* ptr(Ref ref) const
+    T* ptr(Ref ref) noexcept
     {
-        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
-        uint32_t pageIndex, offset;
-        decodeRef(ref, pageIndex, offset);
-        SWC_ASSERT(pageIndex < pages_.size());
-        SWC_ASSERT(offset + sizeof(T) <= N);
-        return reinterpret_cast<const T*>(pages_[pageIndex]->bytes() + offset);
+        return ptr_impl<T>(pages_, ref);
     }
 
     template<class T>
-    T& at(Ref ref)
+    const T* ptr(Ref ref) const noexcept
+    {
+        return ptr_impl<T>(pages_, ref);
+    }
+
+    template<class T>
+    T& at(Ref ref) noexcept
     {
         return *ptr<T>(ref);
     }
 
     template<class T>
-    const T& at(Ref ref) const
+    const T& at(Ref ref) const noexcept
     {
         return *ptr<T>(ref);
     }

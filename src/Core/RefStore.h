@@ -1,5 +1,6 @@
 // ReSharper disable CppInconsistentNaming
 #pragma once
+SWC_BEGIN_NAMESPACE();
 
 using Ref = uint32_t;
 
@@ -43,9 +44,8 @@ class RefStore
     // Convert (page, offset) -> global byte index Ref
     static constexpr Ref makeRef(uint32_t pageIndex, uint32_t offset) noexcept
     {
-        // since N is power-of-two, this arithmetic is exact
-        // Use 64-bit intermediate to avoid overflow then narrow to 32-bit
         const uint64_t r = static_cast<uint64_t>(pageIndex) * static_cast<uint64_t>(N) + offset;
+        SWC_ASSERT(r < std::numeric_limits<Ref>::max());
         return static_cast<Ref>(r);
     }
 
@@ -138,8 +138,8 @@ public:
         static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
         uint32_t pageIndex, offset;
         decodeRef(ref, pageIndex, offset);
-        assert(pageIndex < pages_.size());
-        assert(offset + sizeof(T) <= N);
+        SWC_ASSERT(pageIndex < pages_.size());
+        SWC_ASSERT(offset + sizeof(T) <= N);
         return reinterpret_cast<T*>(pages_[pageIndex]->bytes() + offset);
     }
 
@@ -149,8 +149,8 @@ public:
         static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
         uint32_t pageIndex, offset;
         decodeRef(ref, pageIndex, offset);
-        assert(pageIndex < pages_.size());
-        assert(offset + sizeof(T) <= N);
+        SWC_ASSERT(pageIndex < pages_.size());
+        SWC_ASSERT(offset + sizeof(T) <= N);
         return reinterpret_cast<const T*>(pages_[pageIndex]->bytes() + offset);
     }
 
@@ -166,3 +166,5 @@ public:
         return *ptr<T>(ref);
     }
 };
+
+SWC_END_NAMESPACE();

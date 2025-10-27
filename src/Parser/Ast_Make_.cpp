@@ -9,7 +9,7 @@ AstNodeRef Ast::makeCompound(AstNodeId id, TokenRef token, const std::span<AstNo
 {
     const uint32_t first = nodeRefs_.size();
     for (auto s : span)
-        nodeRefs_.emplace_back<AstNodeRef>(s);
+        nodeRefs_.push_back<AstNodeRef>(s);
 
     AstNodeCompound cmp{id, token};
     cmp.firstChild  = first;

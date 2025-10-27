@@ -30,13 +30,13 @@ public:
     template<class T>
     AstNodeRef makeNode(T& node)
     {
-        return nodes_.emplace_back<T>(node);
+        return nodes_.push_back<T>(node);
     }
 
     AstNodeRef makeNode(AstNodeId id, TokenRef token)
     {
-        AstNode node{id, token};
-        return nodes_.emplace_back<AstNode>(node);
+        const AstNode node{id, token};
+        return nodes_.push_back<AstNode>(node);
     }
 
     AstNodeRef makeCompound(AstNodeId id, TokenRef token, const std::span<AstNodeRef>& span);

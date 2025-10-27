@@ -1,171 +1,168 @@
 // ReSharper disable CppInconsistentNaming
 #pragma once
-#include "Core/Types.h"
-#include "Report/Check.h"
-#include <memory>
-#include <typeindex>
-#include <typeinfo>
-#include <vector>
 
-SWC_BEGIN_NAMESPACE();
+using Ref = uint32_t;
 
-// Grow-only heterogeneous container with Ref-based lookup.
-// Stores any type, keeping items densely indexed [0..size).
-template<uint32_t N = 1024> // items per page by default
+// Simple page-based POD store.
+// Each page holds up to N bytes of raw data.
+// Items are packed sequentially; alignment preserved relative to a max-aligned base.
+// Ref is a 32-bit index in BYTES from the start of the store.
+template<uint32_t N = 16 * 1024>
 class RefStore
 {
     static_assert(N > 0 && (N & (N - 1)) == 0, "N must be a power of two");
 
-    // Base entry for type-erased storage
-    struct EntryBase
+    struct Page
     {
-        virtual ~EntryBase()                                = default;
-        virtual void*                 ptr() noexcept        = 0;
-        virtual const std::type_info& type() const noexcept = 0;
+        // Make the storage itself max-aligned so any T alignment is valid.
+        using Storage = std::aligned_storage_t<N, alignof(std::max_align_t)>;
+        Storage  storage;
+        uint32_t used = 0;
+
+        uint8_t* bytes() noexcept
+        {
+            return reinterpret_cast<uint8_t*>(&storage);
+        }
+        const uint8_t* bytes() const noexcept
+        {
+            return reinterpret_cast<const uint8_t*>(&storage);
+        }
     };
 
-    // Concrete typed entry
-    template<class T>
-    struct Entry final : EntryBase
+    std::vector<Page*> pages_;
+    uint32_t           totalBytes_ = 0; // total bytes of payload stored (debug/metrics)
+
+    Page* newPage()
     {
-        T value;
-        explicit Entry(const T& v) :
-            value(v)
-        {
-        }
-        explicit Entry(T&& v) :
-            value(std::move(v))
-        {
-        }
-        void*                 ptr() noexcept override { return &value; }
-        const std::type_info& type() const noexcept override { return typeid(T); }
-    };
+        Page* p = new Page();
+        p->used = 0;
+        pages_.push_back(p);
+        return p;
+    }
 
-    // Compute log2(N) at compile time for fast page math
-    static constexpr uint32_t PAGE_SHIFT = []() {
-        uint32_t shift = 0, size = N;
-        while (size >>= 1)
-            ++shift;
-        return shift;
-    }();
-
-    static constexpr uint32_t PAGE_MASK = N - 1u;
-
-    std::vector<std::unique_ptr<EntryBase>*> pages_;     // array of page pointers
-    uint32_t                                 count_ = 0; // total elements stored
-
-    // Compute page index and offset from an ID
-    static uint32_t pageIndex(uint32_t id) noexcept { return id >> PAGE_SHIFT; }
-    static uint32_t pageOffset(uint32_t id) noexcept { return id & PAGE_MASK; }
-
-    // Allocate and register a new page
-    std::unique_ptr<EntryBase>* newPage()
+    // Convert (page, offset) -> global byte index Ref
+    static constexpr Ref makeRef(uint32_t pageIndex, uint32_t offset) noexcept
     {
-        auto* base = new std::unique_ptr<EntryBase>[N];
-        pages_.push_back(base);
-        return base;
+        // since N is power-of-two, this arithmetic is exact
+        // Use 64-bit intermediate to avoid overflow then narrow to 32-bit
+        const uint64_t r = static_cast<uint64_t>(pageIndex) * static_cast<uint64_t>(N) + offset;
+        return static_cast<Ref>(r);
+    }
+
+    // Convert Ref -> (page, offset)
+    static constexpr void decodeRef(Ref ref, uint32_t& pageIndex, uint32_t& offset) noexcept
+    {
+        pageIndex = ref / N;
+        offset    = ref % N;
     }
 
 public:
     RefStore() = default;
 
-    // Destroy all allocated pages
-    ~RefStore()
+    // Non-copyable (owning raw pointers)
+    RefStore(const RefStore&)            = delete;
+    RefStore& operator=(const RefStore&) = delete;
+
+    // Movable
+    RefStore(RefStore&& other) noexcept
+        :
+        pages_(std::move(other.pages_)),
+        totalBytes_(other.totalBytes_)
     {
-        for (auto* page : pages_)
-            delete[] page;
+        other.pages_.clear();
+        other.totalBytes_ = 0;
     }
 
-    // Add a copy of an existing object
+    RefStore& operator=(RefStore&& other) noexcept
+    {
+        if (this != &other)
+        {
+            this->~RefStore();
+            pages_      = std::move(other.pages_);
+            totalBytes_ = other.totalBytes_;
+            other.pages_.clear();
+            other.totalBytes_ = 0;
+        }
+        return *this;
+    }
+
+    ~RefStore()
+    {
+        for (auto* p : pages_)
+            delete p; // FIX: match new/delete
+    }
+
+    void clear() noexcept
+    {
+        for (auto* p : pages_)
+            p->used = 0;
+        totalBytes_ = 0;
+    }
+
+    uint32_t size() const noexcept { return totalBytes_; } // payload bytes
+
+    // Emplace a POD (construct in-place)
     template<class T>
     Ref push_back(const T& v)
     {
-        const uint32_t id = count_++;
-        const uint32_t p  = pageIndex(id);
-        const uint32_t o  = pageOffset(id);
-        if (p >= pages_.size())
-            newPage();
-        pages_[p][o] = std::make_unique<Entry<T>>(v);
-        return id;
-    }
+        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
 
-    // Construct an object in-place with forwarded arguments
-    template<class T, class... Args>
-    Ref emplace_back(Args&&... args)
-    {
-        const uint32_t id = count_++;
-        const uint32_t p  = pageIndex(id);
-        const uint32_t o  = pageOffset(id);
-        if (p >= pages_.size())
-            newPage();
-        pages_[p][o] = std::make_unique<Entry<T>>(T(std::forward<Args>(args)...));
-        return id;
-    }
+        const uint32_t align = alignof(T);
+        const uint32_t size  = sizeof(T);
 
-    // Get mutable reference by ID and expected type
-    template<class T>
-    T& at(Ref id)
-    {
-        SWC_ASSERT(id < count_);
-        auto* e = pages_[pageIndex(id)][pageOffset(id)].get();
-        SWC_ASSERT(e && e->type() == typeid(T));
-        return *static_cast<T*>(e->ptr());
-    }
+        Page* page = pages_.empty() ? newPage() : pages_.back();
 
-    // Get const reference by ID and expected type
-    template<class T>
-    const T& at(Ref id) const
-    {
-        SWC_ASSERT(id < count_);
-        auto* e = pages_[pageIndex(id)][pageOffset(id)].get();
-        SWC_ASSERT(e && e->type() == typeid(T));
-        return *static_cast<const T*>(e->ptr());
-    }
+        // align current position (base is max-aligned)
+        uint32_t offset = (page->used + (align - 1)) & ~(align - 1);
 
-    // Get mutable pointer by ID and expected type
-    template<class T>
-    T* ptr(Ref id)
-    {
-        SWC_ASSERT(id < count_);
-        auto* e = pages_[pageIndex(id)][pageOffset(id)].get();
-        SWC_ASSERT(e && e->type() == typeid(T));
-        return static_cast<T*>(e->ptr());
-    }
-
-    // Get const reference by ID and expected type
-    template<class T>
-    const T* ptr(Ref id) const
-    {
-        SWC_ASSERT(id < count_);
-        auto* e = pages_[pageIndex(id)][pageOffset(id)].get();
-        SWC_ASSERT(e && e->type() == typeid(T));
-        return static_cast<const T*>(e->ptr());
-    }
-
-    // Preallocate enough pages for 'expected' bytes
-    void reserve(uint32_t expected)
-    {
-        const uint32_t pagesNeeded = (expected + N - 1u) / N;
-        pages_.reserve(pagesNeeded);
-    }
-
-    // Free any unused pages and shrink vector capacity
-    void shrink_to_fit() noexcept
-    {
-        const uint32_t needed = (count_ + N - 1u) / N;
-        for (uint32_t i = static_cast<uint32_t>(pages_.size()); i > needed; --i)
+        // new page if not enough space
+        if (offset + size > N)
         {
-            delete[] pages_[i - 1];
-            pages_.pop_back();
+            page   = newPage();
+            offset = 0;
         }
-        pages_.shrink_to_fit();
+
+        // Construct a temporary (in case Args != T), then memcpy
+        std::memcpy(page->bytes() + offset, &v, size);
+
+        page->used = offset + size;
+        totalBytes_ += size;
+
+        const uint32_t pageIndex = static_cast<uint32_t>(pages_.size() - 1);
+        return makeRef(pageIndex, offset); // True byte index
     }
 
-    // Current number of stored elements
-    uint32_t size() const noexcept { return count_; }
+    template<class T>
+    T* ptr(Ref ref)
+    {
+        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
+        uint32_t pageIndex, offset;
+        decodeRef(ref, pageIndex, offset);
+        assert(pageIndex < pages_.size());
+        assert(offset + sizeof(T) <= N);
+        return reinterpret_cast<T*>(pages_[pageIndex]->bytes() + offset);
+    }
 
-    // Reset logical size (does not free memory)
-    void clear() noexcept { count_ = 0; }
+    template<class T>
+    const T* ptr(Ref ref) const
+    {
+        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
+        uint32_t pageIndex, offset;
+        decodeRef(ref, pageIndex, offset);
+        assert(pageIndex < pages_.size());
+        assert(offset + sizeof(T) <= N);
+        return reinterpret_cast<const T*>(pages_[pageIndex]->bytes() + offset);
+    }
+
+    template<class T>
+    T& at(Ref ref)
+    {
+        return *ptr<T>(ref);
+    }
+
+    template<class T>
+    const T& at(Ref ref) const
+    {
+        return *ptr<T>(ref);
+    }
 };
-
-SWC_END_NAMESPACE();

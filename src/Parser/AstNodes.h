@@ -24,4 +24,12 @@ struct AstNodeDelimitedBlock : AstNode
     }
 };
 
+struct AstNodeEnumDecl : AstNode
+{
+    TokenRef   name;
+    TokenRef   dotType;
+    AstNodeRef type;
+    AstNodeRef members;
+};
+
 SWC_END_NAMESPACE();

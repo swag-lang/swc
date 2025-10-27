@@ -15,23 +15,16 @@ class RefStore
 
     struct Page
     {
-        // Make the storage itself max-aligned so any T alignment is valid.
         using Storage = std::aligned_storage_t<N, alignof(std::max_align_t)>;
         Storage  storage;
         uint32_t used = 0;
 
-        uint8_t* bytes() noexcept
-        {
-            return reinterpret_cast<uint8_t*>(&storage);
-        }
-        const uint8_t* bytes() const noexcept
-        {
-            return reinterpret_cast<const uint8_t*>(&storage);
-        }
+        uint8_t*       bytes() noexcept { return reinterpret_cast<uint8_t*>(&storage); }
+        const uint8_t* bytes() const noexcept { return reinterpret_cast<const uint8_t*>(&storage); }
     };
 
     std::vector<Page*> pages_;
-    uint32_t           totalBytes_ = 0; // total bytes of payload stored (debug/metrics)
+    uint32_t           totalBytes_ = 0; // total bytes of payload stored
 
     Page* newPage()
     {
@@ -64,8 +57,7 @@ public:
     RefStore& operator=(const RefStore&) = delete;
 
     // Movable
-    RefStore(RefStore&& other) noexcept
-        :
+    RefStore(RefStore&& other) noexcept :
         pages_(std::move(other.pages_)),
         totalBytes_(other.totalBytes_)
     {
@@ -83,13 +75,14 @@ public:
             other.pages_.clear();
             other.totalBytes_ = 0;
         }
+        
         return *this;
     }
 
     ~RefStore()
     {
         for (auto* p : pages_)
-            delete p; // FIX: match new/delete
+            delete p;
     }
 
     void clear() noexcept
@@ -122,7 +115,6 @@ public:
             offset = 0;
         }
 
-        // Construct a temporary (in case Args != T), then memcpy
         std::memcpy(page->bytes() + offset, &v, size);
 
         page->used = offset + size;

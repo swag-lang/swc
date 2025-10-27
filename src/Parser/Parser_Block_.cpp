@@ -14,9 +14,7 @@ AstNodeRef Parser::parseTopLevelCurlyBlock()
     while (!atEnd() && id() != TokenId::SymRightCurly)
     {
         const auto before = curToken_;
-        const auto result = parseTopLevelDecl();
-        if (result != INVALID_REF)
-            stmts.push_back(result);
+        stmts.push_back(parseTopLevelDecl());
         if (curToken_ == before)
             stmts.push_back(ast_->makeNode(AstNodeId::Invalid, eat()));
     }
@@ -38,9 +36,7 @@ AstNodeRef Parser::parseFile()
     while (!atEnd())
     {
         const auto before = curToken_;
-        const auto result = parseTopLevelDecl();
-        if (result != INVALID_REF)
-            stmts.push_back(result);
+        stmts.push_back(parseTopLevelDecl());
         if (curToken_ == before)
             stmts.push_back(ast_->makeNode(AstNodeId::Invalid, eat()));
     }

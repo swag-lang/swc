@@ -59,6 +59,7 @@ class Parser
     TokenId id() const { return curToken_->id; }
     bool    atEnd() const { return curToken_ >= lastToken_; }
 
+    AstNodeRef parseEnum();
     AstNodeRef parseTopLevelDecl();
     AstNodeRef parseTopLevelCurlyBlock();
     AstNodeRef parseFile();

@@ -5,24 +5,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-AstNodeRef Parser::parseTopLevelDecl()
-{
-    switch (curToken_->id)
-    {
-        case TokenId::SymLeftCurly:
-            return parseTopLevelCurlyBlock();
-        case TokenId::SymRightCurly:
-            reportError(DiagnosticId::ParserUnexpectedToken, curToken_);
-            return ast_->makeNode(AstNodeId::Invalid, eat());
-        default:
-            break;
-    }
-
-    const auto curTokenRef = tokenRef();
-    skipUntil({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsEnum::StopAfterEol);
-    return ast_->makeNode(AstNodeId::Invalid, curTokenRef);
-}
-
 AstNodeRef Parser::parseTopLevelCurlyBlock()
 {
     const auto myTokenRef = tokenRef();
@@ -71,6 +53,28 @@ AstNodeRef Parser::parseFile()
     }
 
     return ast_->makeBlock(AstNodeId::File, myTokenRef, stmts);
+}
+
+AstNodeRef Parser::parseTopLevelDecl()
+{
+    switch (curToken_->id)
+    {
+        case TokenId::SymLeftCurly:
+            return parseTopLevelCurlyBlock();
+        case TokenId::SymRightCurly:
+            reportError(DiagnosticId::ParserUnexpectedToken, curToken_);
+            return ast_->makeNode(AstNodeId::Invalid, eat());
+        case TokenId::SymSemiColon:
+            return ast_->makeNode(AstNodeId::Delimiter, eat());
+        case TokenId::KwdEnum:
+            return parseEnum();
+        default:
+            break;
+    }
+
+    const auto curTokenRef = tokenRef();
+    skipUntil({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsEnum::StopAfterEol);
+    return ast_->makeNode(AstNodeId::Invalid, curTokenRef);
 }
 
 SWC_END_NAMESPACE();

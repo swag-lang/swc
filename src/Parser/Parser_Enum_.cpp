@@ -1,19 +1,18 @@
 #include "pch.h"
 
 #include "Parser/Parser.h"
+#include "Parser/AstNodes.h"
 #include "Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
 
 AstNodeRef Parser::parseEnum()
 {
-    const auto myTokenRef = tokenRef();
-    const auto myToken    = curToken_;
+    auto [ref, node] = ast_->makeNodePtr<AstNodeEnumDecl>(AstNodeId::File, eat());
 
     SmallVector<AstNodeRef> stmts;
-    consume();
 
-    return ast_->makeBlock(AstNodeId::Enum, myTokenRef, stmts);
+    return ref;
 }
 
 SWC_END_NAMESPACE();

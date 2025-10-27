@@ -27,6 +27,42 @@ bool Lexer::isTerminatorAfterEscapeChar(uint8_t c, TokenId container)
     return c == '"' || c == '\n' || c == '\r';
 }
 
+void Lexer::reportUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len)
+{
+    if (hasUtf8Error_)
+        return;
+    hasUtf8Error_ = true;
+
+    if (rawMode_)
+        return;
+
+    const auto diag = Diagnostic::error(id, ctx_->sourceFile());
+    diag.last()->setLocation(ctx_->sourceFile(), offset, len);
+    diag.report(*ctx_);
+}
+
+void Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len)
+{
+    if (hasTokenError_)
+        return;
+    hasTokenError_ = true;
+
+    if (rawMode_)
+        return;
+
+    const auto diag = Diagnostic::error(id, ctx_->sourceFile());
+    diag.last()->setLocation(ctx_->sourceFile(), offset, len);
+
+    // Add an argument with the token string
+    if (len)
+    {
+        const std::string_view tkn = ctx_->sourceFile()->codeView(offset, len);
+        diag.last()->addArgument("tkn", tkn);
+    }
+
+    diag.report(*ctx_);
+}
+
 void Lexer::eatUtf8Char()
 {
     auto [buf, wc, eat] = Utf8Helper::decodeOneChar(buffer_, endBuffer_);
@@ -110,42 +146,6 @@ void Lexer::pushToken()
             file_->lexOut_.tokens_.push_back(token_);
             break;
     }
-}
-
-void Lexer::reportUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len)
-{
-    if (hasUtf8Error_)
-        return;
-    hasUtf8Error_ = true;
-
-    if (rawMode_)
-        return;
-
-    const auto diag = Diagnostic::error(id, ctx_->sourceFile());
-    diag.last()->setLocation(ctx_->sourceFile(), offset, len);
-    diag.report(*ctx_);
-}
-
-void Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len)
-{
-    if (hasTokenError_)
-        return;
-    hasTokenError_ = true;
-
-    if (rawMode_)
-        return;
-
-    const auto diag = Diagnostic::error(id, ctx_->sourceFile());
-    diag.last()->setLocation(ctx_->sourceFile(), offset, len);
-
-    // Add an argument with the token string
-    if (len)
-    {
-        const std::string_view tkn = ctx_->sourceFile()->codeView(offset, len);
-        diag.last()->addArgument("tkn", tkn);
-    }
-
-    diag.report(*ctx_);
 }
 
 // Validate hex/Unicode escape sequences (\xXX, \uXXXX, \UXXXXXXXX)
@@ -444,13 +444,13 @@ void Lexer::lexHexNumber()
     uint32_t       digits     = 0;
 
     // Safe lookahead: zeros after endBuffer_ will fail isHexNumber check
-    while (buffer_ < endBuffer_ && (langSpec_->isHexNumber(buffer_[0]) || langSpec_->isNumberSep(buffer_[0])))
+    while (langSpec_->isHexNumber(buffer_[0]) || langSpec_->isNumberSep(buffer_[0]))
     {
         if (langSpec_->isNumberSep(buffer_[0]))
         {
             if (lastWasSep)
             {
-                while (buffer_ < endBuffer_ && langSpec_->isNumberSep(buffer_[0]))
+                while (langSpec_->isNumberSep(buffer_[0]))
                     buffer_++;
                 reportTokenError(DiagnosticId::LexConsecutiveNumberSeparators, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
                 continue;
@@ -492,13 +492,13 @@ void Lexer::lexBinNumber()
     uint32_t       digits     = 0;
 
     // Safe lookahead: zeros after endBuffer_ will fail the check
-    while (buffer_ < endBuffer_ && (langSpec_->isBinNumber(buffer_[0]) || langSpec_->isNumberSep(buffer_[0])))
+    while (langSpec_->isBinNumber(buffer_[0]) || langSpec_->isNumberSep(buffer_[0]))
     {
         if (langSpec_->isNumberSep(buffer_[0]))
         {
             if (lastWasSep)
             {
-                while (buffer_ < endBuffer_ && langSpec_->isNumberSep(buffer_[0]))
+                while (langSpec_->isNumberSep(buffer_[0]))
                     buffer_++;
                 reportTokenError(DiagnosticId::LexConsecutiveNumberSeparators, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
                 continue;
@@ -540,13 +540,13 @@ void Lexer::lexDecimalNumber()
     bool           hasExp     = false;
 
     // Parse integer part - safe lookahead: zeros after endBuffer_ will fail the check
-    while (buffer_ < endBuffer_ && (langSpec_->isDigit(buffer_[0]) || langSpec_->isNumberSep(buffer_[0])))
+    while (langSpec_->isDigit(buffer_[0]) || langSpec_->isNumberSep(buffer_[0]))
     {
         if (langSpec_->isNumberSep(buffer_[0]))
         {
             if (lastWasSep)
             {
-                while (buffer_ < endBuffer_ && langSpec_->isNumberSep(buffer_[0]))
+                while (langSpec_->isNumberSep(buffer_[0]))
                     buffer_++;
                 reportTokenError(DiagnosticId::LexConsecutiveNumberSeparators, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
                 continue;
@@ -582,7 +582,7 @@ void Lexer::lexDecimalNumber()
             {
                 if (lastWasSep)
                 {
-                    while (buffer_ < endBuffer_ && langSpec_->isNumberSep(buffer_[0]))
+                    while (langSpec_->isNumberSep(buffer_[0]))
                         buffer_++;
                     reportTokenError(DiagnosticId::LexConsecutiveNumberSeparators, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
                     continue;
@@ -602,14 +602,18 @@ void Lexer::lexDecimalNumber()
             token_.id = TokenId::NumberFloat;
     }
 
+    // Final trailing separator check
+    if (lastWasSep)
+        reportTokenError(DiagnosticId::LexTrailingNumberSeparator, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
+
     // Parse exponent part
-    if (buffer_ < endBuffer_ && (buffer_[0] == 'e' || buffer_[0] == 'E'))
+    if (buffer_[0] == 'e' || buffer_[0] == 'E')
     {
         hasExp = true;
         buffer_++;
 
         // Optional sign
-        if (buffer_ < endBuffer_ && (buffer_[0] == '+' || buffer_[0] == '-'))
+        if (buffer_[0] == '+' || buffer_[0] == '-')
             buffer_++;
 
         if (langSpec_->isNumberSep(buffer_[0]))
@@ -617,13 +621,13 @@ void Lexer::lexDecimalNumber()
 
         uint32_t expDigits = 0;
         lastWasSep         = false;
-        while (buffer_ < endBuffer_ && (langSpec_->isDigit(buffer_[0]) || langSpec_->isNumberSep(buffer_[0])))
+        while (langSpec_->isDigit(buffer_[0]) || langSpec_->isNumberSep(buffer_[0]))
         {
             if (langSpec_->isNumberSep(buffer_[0]))
             {
                 if (lastWasSep)
                 {
-                    while (buffer_ < endBuffer_ && langSpec_->isNumberSep(buffer_[0]))
+                    while (langSpec_->isNumberSep(buffer_[0]))
                         buffer_++;
                     reportTokenError(DiagnosticId::LexConsecutiveNumberSeparators, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
                     continue;

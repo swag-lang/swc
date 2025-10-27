@@ -41,9 +41,6 @@ public:
     {
         return makeNodePtr<AstNode>(id, token).first;
     }
-
-    AstNodeRef makeBlock(AstNodeId id, TokenRef token, const std::span<AstNodeRef>& span);
-    AstNodeRef makeBlock(AstNodeId id, TokenRef openToken, TokenRef closeToken, const std::span<AstNodeRef>& span);
 };
 
 SWC_END_NAMESPACE();

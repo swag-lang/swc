@@ -137,6 +137,10 @@
 1_00__0     // swc-expected-error ConsecutiveNumberSeparators
 1_.5        // swc-expected-error TrailingNumberSeparator
 1._5        // swc-expected-error LeadingNumberSeparator
+1.5_e2		// swc-expected-error TrailingNumberSeparator
+1.5e_2		// swc-expected-error LeadingNumberSeparator
+1.5e+_2		// swc-expected-error LeadingNumberSeparator
+1.5e_+2		// swc-expected-error LeadingNumberSeparator
 
 // --- Multiple separators in different parts ---
 1_2_3.4_5_6e7_8_9   // This would only be valid if exponent allows separators (check your grammar)

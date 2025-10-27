@@ -266,7 +266,7 @@ private:
 public:
     // Store a span of T split across pages. Returns Ref to the FIRST CHUNK HEADER.
     template<class T>
-    Ref push_span(std::span<T> s)
+    Ref push_span(const std::span<T>& s)
     {
         static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
 

@@ -1,14 +1,15 @@
 #include "pch.h"
 
 #include "Parser/Parser.h"
+#include "Parser/AstNodes.h"
 #include "Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
 
 AstNodeRef Parser::parseTopLevelCurlyBlock()
 {
-    const auto openToken    = curToken_;
-    const auto openTokenRef = eat();
+    const auto openToken = curToken_;
+    auto [ref, node] = ast_->makeNodePtr<AstNodeDelimitedBlock>(AstNodeId::CurlyBlock, eat());
 
     SmallVector<AstNodeRef> stmts;
     while (!atEnd() && id() != TokenId::SymRightCurly)
@@ -19,18 +20,18 @@ AstNodeRef Parser::parseTopLevelCurlyBlock()
             stmts.push_back(ast_->makeNode(AstNodeId::Invalid, eat()));
     }
 
-    TokenRef closeTokenRef = INVALID_REF;
     if (id() == TokenId::SymRightCurly)
-        closeTokenRef = eat();
+        node->closeToken = eat();
     else
         reportError(DiagnosticId::ParserUnterminatedCurlyBlock, openToken);
 
-    return ast_->makeBlock(AstNodeId::CurlyBlock, openTokenRef, closeTokenRef, stmts);
+    node->children = ast_->store_.push_span(std::span<AstNodeRef>(stmts.data(), stmts.size()));
+    return ref;
 }
 
 AstNodeRef Parser::parseFile()
 {
-    const auto myTokenRef = tokenRef();
+    auto [ref, node] = ast_->makeNodePtr<AstNodeBlock>(AstNodeId::File, tokenRef());
 
     SmallVector<AstNodeRef> stmts;
     while (!atEnd())
@@ -41,7 +42,8 @@ AstNodeRef Parser::parseFile()
             stmts.push_back(ast_->makeNode(AstNodeId::Invalid, eat()));
     }
 
-    return ast_->makeBlock(AstNodeId::File, myTokenRef, stmts);
+    node->children = ast_->store_.push_span(std::span<AstNodeRef>(stmts.data(), stmts.size()));
+    return ref;
 }
 
 AstNodeRef Parser::parseTopLevelDecl()

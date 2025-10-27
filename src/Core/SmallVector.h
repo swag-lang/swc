@@ -267,10 +267,12 @@ public:
     {
         return emplace(pos, value);
     }
+
     iterator insert(const_iterator pos, T&& value)
     {
         return emplace(pos, std::move(value));
     }
+
     template<class... Args>
     iterator emplace(const_iterator cpos, Args&&... args)
     {

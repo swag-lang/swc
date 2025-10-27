@@ -9,15 +9,14 @@ enum class DiagnosticId;
 class SourceFile;
 class Context;
 
-enum class SkipUntilFlagsEnum : uint32_t
+enum class SkipUntilFlags : uint32_t
 {
     Zero          = 0,
     StopAfterEol  = 1 << 0,
     StopBeforeEol = 1 << 1,
     DoNotConsume  = 1 << 2,
 };
-
-using SkipUntilFlags = Flags<SkipUntilFlagsEnum>;
+SWC_ENABLE_BITMASK(SkipUntilFlags);
 
 class ParserOutput
 {

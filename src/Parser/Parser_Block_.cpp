@@ -66,7 +66,7 @@ AstNodeRef Parser::parseTopLevelDecl()
     }
 
     const auto curTokenRef = tokenRef();
-    skipUntil({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsEnum::StopAfterEol);
+    skipUntil({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::StopAfterEol);
     return ast_->makeNode(AstNodeId::Invalid, curTokenRef);
 }
 

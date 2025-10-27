@@ -25,15 +25,15 @@ bool Parser::skipUntil(std::initializer_list<TokenId> targets, SkipUntilFlags fl
         if (atTopLevel)
         {
             // Stop at the synthetic EOL boundary (top level only), if requested.
-            if (flags.has(SkipUntilFlagsEnum::StopAfterEol) && tok.flags.has(TokenFlagsEnum::EolBefore))
+            if (has_any(flags, SkipUntilFlags::StopAfterEol) && tok.flags.has(TokenFlagsEnum::EolBefore))
                 return true;
-            if (flags.has(SkipUntilFlagsEnum::StopBeforeEol) && tok.flags.has(TokenFlagsEnum::EolAfter))
+            if (has_any(flags, SkipUntilFlags::StopBeforeEol) && tok.flags.has(TokenFlagsEnum::EolAfter))
                 return true;
 
             // Stop at any target token (top level only).
             if (std::ranges::find(targets, id()) != targets.end())
             {
-                if (!flags.has(SkipUntilFlagsEnum::DoNotConsume))
+                if (!has_any(flags, SkipUntilFlags::DoNotConsume))
                     consume();
                 return true;
             }

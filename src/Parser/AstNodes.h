@@ -5,8 +5,7 @@ SWC_BEGIN_NAMESPACE();
 
 struct AstNodeBlock : AstNode
 {
-    Ref      firstChild  = INVALID_REF;
-    uint32_t numChildren = 0;
+    Ref children = INVALID_REF;
 
     AstNodeBlock(AstNodeId nodeId, TokenRef tok) :
         AstNode(nodeId, tok)
@@ -16,9 +15,8 @@ struct AstNodeBlock : AstNode
 
 struct AstNodeDelimitedBlock : AstNode
 {
-    TokenRef closeToken  = INVALID_REF;
-    Ref      firstChild  = INVALID_REF;
-    uint32_t numChildren = 0;
+    TokenRef closeToken = INVALID_REF;
+    Ref      children   = INVALID_REF;
 
     AstNodeDelimitedBlock(AstNodeId nodeId, TokenRef tok) :
         AstNode(nodeId, tok)

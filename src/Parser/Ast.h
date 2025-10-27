@@ -9,20 +9,19 @@ class Ast
 {
 protected:
     friend class Parser;
-    RefStore<> nodes_;
-    RefStore<> nodeRefs_;
+    RefStore<> store_;
     AstNodeRef root_ = INVALID_REF;
 
 public:
-    AstNode*       node(AstNodeRef ref) { return nodes_.ptr<AstNode>(ref); }
-    const AstNode* node(AstNodeRef ref) const { return nodes_.ptr<AstNode>(ref); }
+    AstNode*       node(AstNodeRef ref) { return store_.ptr<AstNode>(ref); }
+    const AstNode* node(AstNodeRef ref) const { return store_.ptr<AstNode>(ref); }
 
     static constexpr const AstNodeIdInfo& nodeIdInfos(AstNodeId id) { return AST_NODE_ID_INFOS[static_cast<size_t>(id)]; }
     static constexpr std::string_view     nodeIdName(AstNodeId id) { return nodeIdInfos(id).name; }
 
     AstNodeRef makeNode(AstNodeId id, TokenRef token)
     {
-        auto [r, p] = nodes_.emplace_uninit<AstNode>();
+        auto [r, p] = store_.emplace_uninit<AstNode>();
         p->id       = id;
         p->token    = token;
         return r;

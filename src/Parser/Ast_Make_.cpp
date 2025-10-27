@@ -11,10 +11,13 @@ AstNodeRef Ast::makeBlock(AstNodeId id, TokenRef token, const std::span<AstNodeR
     for (auto s : span)
         nodeRefs_.push_back<AstNodeRef>(s);
 
-    AstNodeBlock cmp{id, token};
-    cmp.firstChild  = first;
-    cmp.numChildren = static_cast<uint32_t>(span.size());
-    return makeNode<AstNodeBlock>(cmp);
+    auto [r, p]    = nodes_.emplace_uninit<AstNodeBlock>();
+    p->id          = id;
+    p->token       = token;
+    p->firstChild  = first;
+    p->numChildren = static_cast<uint32_t>(span.size());
+
+    return r;
 }
 
 AstNodeRef Ast::makeBlock(AstNodeId id, TokenRef openToken, TokenRef closeToken, const std::span<AstNodeRef>& span)
@@ -23,11 +26,14 @@ AstNodeRef Ast::makeBlock(AstNodeId id, TokenRef openToken, TokenRef closeToken,
     for (auto s : span)
         nodeRefs_.push_back<AstNodeRef>(s);
 
-    AstNodeDelimitedBlock cmp{id, openToken};
-    cmp.closeToken  = closeToken;
-    cmp.firstChild  = first;
-    cmp.numChildren = static_cast<uint32_t>(span.size());
-    return makeNode<AstNodeDelimitedBlock>(cmp);
+    auto [r, p]    = nodes_.emplace_uninit<AstNodeDelimitedBlock>();
+    p->id          = id;
+    p->token       = openToken;
+    p->closeToken  = closeToken;
+    p->firstChild  = first;
+    p->numChildren = static_cast<uint32_t>(span.size());
+
+    return r;
 }
 
 SWC_END_NAMESPACE();

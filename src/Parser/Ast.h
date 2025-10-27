@@ -17,25 +17,15 @@ public:
     AstNode*       node(AstNodeRef ref) { return nodes_.ptr<AstNode>(ref); }
     const AstNode* node(AstNodeRef ref) const { return nodes_.ptr<AstNode>(ref); }
 
-    static constexpr const AstNodeIdInfo& nodeIdInfos(AstNodeId id)
-    {
-        return AST_NODE_ID_INFOS[static_cast<size_t>(id)];
-    }
-
-    static constexpr std::string_view nodeIdName(AstNodeId id) noexcept
-    {
-        return nodeIdInfos(id).name;
-    }
-
-    template<class T>
-    AstNodeRef makeNode(const T& node)
-    {
-        return nodes_.push_back<T>(node);
-    }
+    static constexpr const AstNodeIdInfo& nodeIdInfos(AstNodeId id) { return AST_NODE_ID_INFOS[static_cast<size_t>(id)]; }
+    static constexpr std::string_view     nodeIdName(AstNodeId id) { return nodeIdInfos(id).name; }
 
     AstNodeRef makeNode(AstNodeId id, TokenRef token)
     {
-        return nodes_.push_back<AstNode>({id, token});
+        auto [r, p] = nodes_.emplace_uninit<AstNode>();
+        p->id       = id;
+        p->token    = token;
+        return r;
     }
 
     AstNodeRef makeBlock(AstNodeId id, TokenRef token, const std::span<AstNodeRef>& span);

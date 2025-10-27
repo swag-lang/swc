@@ -50,12 +50,17 @@ class Parser
         return ref;
     }
 
+    TokenRef expectAndConsume(TokenId expected);
+
     TokenRef tokenRef() const
     {
         return static_cast<TokenRef>(curToken_ - firstToken_) + 1;
     }
 
     TokenId id() const { return curToken_->id; }
+    bool    is(TokenId id0) const { return curToken_->id == id0; }
+    bool    is(TokenId id0, TokenId id1) const { return curToken_->id == id0 || curToken_->id == id1; }
+    bool    isNot(TokenId nid) const { return curToken_->id != nid; }
     bool    atEnd() const { return curToken_ >= lastToken_; }
 
     AstNodeRef parseEnum();

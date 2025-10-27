@@ -25,7 +25,7 @@ AstNodeRef Parser::parseTopLevelCurlyBlock()
     else
         reportError(DiagnosticId::ParserUnterminatedCurlyBlock, openToken);
 
-    node->children = ast_->store_.push_span(std::span<AstNodeRef>(stmts.data(), stmts.size()));
+    node->children = ast_->store_.push_span(std::span(stmts.data(), stmts.size()));
     return ref;
 }
 
@@ -42,7 +42,7 @@ AstNodeRef Parser::parseFile()
             stmts.push_back(ast_->makeNode(AstNodeId::Invalid, eat()));
     }
 
-    node->children = ast_->store_.push_span(std::span<AstNodeRef>(stmts.data(), stmts.size()));
+    node->children = ast_->store_.push_span(std::span(stmts.data(), stmts.size()));
     return ref;
 }
 

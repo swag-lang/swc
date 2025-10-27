@@ -77,6 +77,13 @@ bool Parser::skipUntil(std::initializer_list<TokenId> targets, SkipUntilFlags fl
     return false;
 }
 
+TokenRef Parser::expectAndConsume(TokenId expected)
+{
+    if (is(expected))
+        return eat();
+    return INVALID_REF;
+}
+
 Result Parser::parse(Context& ctx)
 {
 #if SWC_HAS_STATS

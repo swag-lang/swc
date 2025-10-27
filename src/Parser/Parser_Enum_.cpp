@@ -1,8 +1,7 @@
 #include "pch.h"
 
-#include "Parser/Parser.h"
 #include "Parser/AstNodes.h"
-#include "Report/Diagnostic.h"
+#include "Parser/Parser.h"
 
 SWC_BEGIN_NAMESPACE();
 

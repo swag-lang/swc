@@ -1,6 +1,6 @@
 #pragma once
+#include "Core/RefStore.h"
 #include "Core/Types.h"
-#include "Core/PagedStore.h"
 #include "Parser/AstNode.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -9,9 +9,9 @@ class Ast
 {
 protected:
     friend class Parser;
-    PagedStore<AstNode>    nodes_;
-    PagedStore<AstNodeRef> nodeRefs_;
-    AstNodeRef             root_ = INVALID_REF;
+    RefStore<> nodes_;
+    RefStore<> nodeRefs_;
+    AstNodeRef root_ = INVALID_REF;
 
 public:
     Ast();
@@ -19,15 +19,13 @@ public:
     AstNode* node(AstNodeRef ref)
     {
         SWC_ASSERT(ref != INVALID_REF);
-        SWC_ASSERT(ref < nodes_.size());
-        return nodes_.ptr(ref);
+        return nodes_.ptr<AstNode>(ref);
     }
 
     const AstNode* node(AstNodeRef ref) const
     {
         SWC_ASSERT(ref != INVALID_REF);
-        SWC_ASSERT(ref < nodes_.size());
-        return nodes_.ptr(ref);
+        return nodes_.ptr<AstNode>(ref);
     }
 
     static constexpr const AstNodeIdInfo& nodeIdInfos(AstNodeId id)

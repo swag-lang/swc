@@ -23,7 +23,7 @@ AstChildrenView Ast::children(const AstNode& n) const
         case AstNodeIdArity::Two:
             return {.ptr = &n.two.first, .count = 2};
         case AstNodeIdArity::Many:
-            return {.ptr = nodeRefs_.ptr(n.many.index), .count = n.many.count};
+            return {.ptr = nodeRefs_.ptr<AstNodeRef>(n.many.index), .count = n.many.count};
     }
 
     return {};

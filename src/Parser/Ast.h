@@ -28,19 +28,18 @@ public:
     }
 
     template<class T>
-    AstNodeRef makeNode(T& node)
+    AstNodeRef makeNode(const T& node)
     {
         return nodes_.push_back<T>(node);
     }
 
     AstNodeRef makeNode(AstNodeId id, TokenRef token)
     {
-        const AstNode node{id, token};
-        return nodes_.push_back<AstNode>(node);
+        return nodes_.push_back<AstNode>({id, token});
     }
 
     AstNodeRef makeBlock(AstNodeId id, TokenRef token, const std::span<AstNodeRef>& span);
-    AstNodeRef makeBlock(AstNodeId id, TokenRef token, const std::span<AstNodeRef>& span, TokenRef closeToken);
+    AstNodeRef makeBlock(AstNodeId id, TokenRef openToken, TokenRef closeToken, const std::span<AstNodeRef>& span);
 };
 
 SWC_END_NAMESPACE();

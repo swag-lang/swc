@@ -27,7 +27,7 @@ AstNodeRef Parser::parseTopLevelCurlyBlock()
     else
         reportError(DiagnosticId::ParserUnterminatedCurlyBlock, openToken);
 
-    return ast_->makeBlock(AstNodeId::CurlyBlock, openTokenRef, stmts, closeTokenRef);
+    return ast_->makeBlock(AstNodeId::CurlyBlock, openTokenRef, closeTokenRef, stmts);
 }
 
 AstNodeRef Parser::parseFile()

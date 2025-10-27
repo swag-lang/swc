@@ -3,9 +3,7 @@
 SWC_BEGIN_NAMESPACE()
 
 enum class TokenId : uint16_t;
-enum class TokenId : uint16_t;
-enum class KeywordFlagsEnum : uint32_t;
-using KeywordFlags = Flags<KeywordFlagsEnum>;
+enum class KeywordFlags : uint32_t;
 
 struct KeywordInfo
 {

@@ -14,19 +14,8 @@ protected:
     AstNodeRef root_ = INVALID_REF;
 
 public:
-    Ast();
-
-    AstNode* node(AstNodeRef ref)
-    {
-        SWC_ASSERT(ref != INVALID_REF);
-        return nodes_.ptr<AstNode>(ref);
-    }
-
-    const AstNode* node(AstNodeRef ref) const
-    {
-        SWC_ASSERT(ref != INVALID_REF);
-        return nodes_.ptr<AstNode>(ref);
-    }
+    AstNode*       node(AstNodeRef ref) { return nodes_.ptr<AstNode>(ref); }
+    const AstNode* node(AstNodeRef ref) const { return nodes_.ptr<AstNode>(ref); }
 
     static constexpr const AstNodeIdInfo& nodeIdInfos(AstNodeId id)
     {
@@ -38,13 +27,19 @@ public:
         return nodeIdInfos(id).name;
     }
 
-    AstChildrenView children(const AstNode& n) const;
+    template<class T>
+    AstNodeRef makeNode(T& node)
+    {
+        return nodes_.emplace_back<T>(node);
+    }
 
-    AstNodeRef makeNode(AstNodeId id, TokenRef token);
-    AstNodeRef makeNode(AstNodeId id, TokenRef token, const AstChildrenOne& kids);
-    AstNodeRef makeNode(AstNodeId id, TokenRef token, const AstChildrenTwo& kids);
-    AstNodeRef makeNode(AstNodeId id, TokenRef token, const AstChildrenMany& kids);
-    AstNodeRef makeBlock(AstNodeId id, TokenRef token, const std::span<AstNodeRef>& span);
+    AstNodeRef makeNode(AstNodeId id, TokenRef token)
+    {
+        AstNode node{id, token};
+        return nodes_.emplace_back<AstNode>(node);
+    }
+
+    AstNodeRef makeCompound(AstNodeId id, TokenRef token, const std::span<AstNodeRef>& span);
 };
 
 SWC_END_NAMESPACE();

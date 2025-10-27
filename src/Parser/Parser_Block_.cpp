@@ -34,7 +34,7 @@ AstNodeRef Parser::parseTopLevelCurlyBlock()
         reportError(DiagnosticId::ParserUnterminatedCurlyBlock, myToken);
     }
 
-    return ast_->makeBlock(AstNodeId::CurlyBlock, myTokenRef, stmts);
+    return ast_->makeCompound(AstNodeId::CurlyBlock, myTokenRef, stmts);
 }
 
 AstNodeRef Parser::parseFile()
@@ -52,7 +52,7 @@ AstNodeRef Parser::parseFile()
             stmts.push_back(ast_->makeNode(AstNodeId::Invalid, eat()));
     }
 
-    return ast_->makeBlock(AstNodeId::File, myTokenRef, stmts);
+    return ast_->makeCompound(AstNodeId::File, myTokenRef, stmts);
 }
 
 AstNodeRef Parser::parseTopLevelDecl()

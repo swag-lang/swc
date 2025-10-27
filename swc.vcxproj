@@ -170,6 +170,7 @@
         <ClInclude Include="src\Parser\Ast.h"/>
         <ClInclude Include="src\Parser\AstNode.h"/>
         <ClInclude Include="src\Parser\AstNodeIds.inc"/>
+        <ClInclude Include="src\Parser\AstNodes.h"/>
         <ClInclude Include="src\Parser\Parser.h"/>
         <ClInclude Include="src\pch.h"/>
         <ClInclude Include="src\Report\Check.h"/>

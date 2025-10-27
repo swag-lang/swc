@@ -13,7 +13,7 @@ AstNodeRef Parser::parseEnum()
     SmallVector<AstNodeRef> stmts;
     consume();
 
-    return ast_->makeBlock(AstNodeId::Enum, myTokenRef, stmts);
+    return ast_->makeCompound(AstNodeId::Enum, myTokenRef, stmts);
 }
 
 SWC_END_NAMESPACE();

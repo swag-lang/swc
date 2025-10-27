@@ -94,13 +94,13 @@ void Lexer::pushToken()
     {
         case TokenId::Blank:
         case TokenId::EndOfLine:
-            if (rawMode_ || !lexerFlags_.has(LexerFlagsEnum::ExtractTrivia))
+            if (rawMode_ || !has_any(lexerFlags_, LexerFlags::ExtractTrivia))
                 return;
             file_->lexOut_.trivia_.push_back({.tokenRef = static_cast<uint32_t>(file_->lexOut_.tokens_.size()), .token = token_});
             break;
         case TokenId::CommentLine:
         case TokenId::CommentMultiLine:
-            if (!rawMode_ && !lexerFlags_.has(LexerFlagsEnum::ExtractTrivia))
+            if (!rawMode_ && !has_any(lexerFlags_, LexerFlags::ExtractTrivia))
                 return;
             file_->lexOut_.trivia_.push_back({.tokenRef = static_cast<uint32_t>(file_->lexOut_.tokens_.size()), .token = token_});
             break;

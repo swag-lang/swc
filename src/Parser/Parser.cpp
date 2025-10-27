@@ -96,7 +96,7 @@ Result Parser::parse(Context& ctx)
     SWC_CHECK(lexer.tokenize(ctx));
 
     SWC_ASSERT(!file_->lexOut_.tokens_.empty());
-    if (file_->hasFlag(FileFlagsEnum::LexOnly))
+    if (file_->hasFlag(FileFlags::LexOnly))
         return Result::Success;
 
     // Parser

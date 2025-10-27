@@ -50,7 +50,7 @@ void UnitTest::tokenizeOption(const Context& ctx, const TriviaSpan& trivia, std:
 
             // Handle known options
             if (kindWord == "lex-only")
-                file->flags().add(FileFlagsEnum::LexOnly);
+                file->addFlag(FileFlags::LexOnly);
 
             // If options might be comma-separated, skip trailing commas/spacers
             while (i < comment.size() && (langSpec.isBlank(static_cast<unsigned char>(comment[i])) || comment[i] == ','))

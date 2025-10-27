@@ -13,13 +13,12 @@ class SourceFile;
 class LangSpec;
 
 // Flags controlling lexer behavior
-enum class LexerFlagsEnum : uint32_t
+enum class LexerFlags : uint32_t
 {
     Default,
     ExtractTrivia, // Extract whitespace and comments as separate tokens
 };
-
-using LexerFlags = Flags<LexerFlagsEnum>;
+SWC_ENABLE_BITMASK(LexerFlags);
 
 // Represents a piece of trivia (whitespace/comments) with position info
 struct TriviaSpan
@@ -51,7 +50,7 @@ class Lexer
     Token prevToken_ = {}; // Previous token for context-sensitive parsing
 
     SourceFile*     file_          = nullptr; // Source file being lexed
-    LexerFlags      lexerFlags_    = LexerFlagsEnum::Default;
+    LexerFlags      lexerFlags_    = LexerFlags::Default;
     const uint8_t*  buffer_        = nullptr; // Current position in source
     const uint8_t*  startBuffer_   = nullptr; // Start of source buffer
     const uint8_t*  endBuffer_     = nullptr; // End of source buffer
@@ -104,7 +103,7 @@ class Lexer
 
 public:
     // Main tokenization entry point
-    Result tokenize(Context& ctx, LexerFlags flags = LexerFlagsEnum::Default);
+    Result tokenize(Context& ctx, LexerFlags flags = LexerFlags::Default);
 
     // Tokenize including all trivia (for comment extraction)
     Result tokenizeRaw(Context& ctx);

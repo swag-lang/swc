@@ -81,7 +81,7 @@ public:
     DiagnosticElement* addNote(DiagnosticId id) { return addElement(DiagnosticSeverity::Note, id); }
     DiagnosticElement* addHelp(DiagnosticId id) { return addElement(DiagnosticSeverity::Help, id); }
 
-    DiagnosticElement* last() const { return elements_.empty() ? nullptr : elements_.back().get(); }
+    DiagnosticElement& last() const { return *elements_.back(); }
 
     static Diagnostic error(DiagnosticId id, SourceFile* fileOwner = nullptr)
     {

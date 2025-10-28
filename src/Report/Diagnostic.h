@@ -20,7 +20,7 @@ enum class DiagnosticSeverity
 class Diagnostic
 {
     std::vector<std::unique_ptr<DiagnosticElement>> elements_;
-    SourceFile*                                     fileOwner_ = nullptr;
+    std::optional<SourceFile*>                      fileOwner_;
 
     // Enum for colorable diagnostic parts
     enum class DiagPart : uint8_t
@@ -67,14 +67,14 @@ class Diagnostic
     Utf8 build(const Context& ctx) const;
 
 public:
-    explicit Diagnostic(SourceFile* fileOwner = nullptr) :
+    explicit Diagnostic(const std::optional<SourceFile*>& fileOwner = std::nullopt) :
         fileOwner_(fileOwner)
     {
     }
 
     void                                                   report(const Context& ctx) const;
     const std::vector<std::unique_ptr<DiagnosticElement>>& elements() const { return elements_; }
-    SourceFile*                                            fileOwner() const { return fileOwner_; }
+    const std::optional<SourceFile*>&                      fileOwner() const { return fileOwner_; }
 
     DiagnosticElement* addElement(DiagnosticSeverity kind, DiagnosticId id);
     DiagnosticElement* addError(DiagnosticId id) { return addElement(DiagnosticSeverity::Error, id); }

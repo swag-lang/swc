@@ -505,18 +505,18 @@ void Diagnostic::report(const Context& ctx) const
     if (fileOwner_)
     {
         if (elements_.front()->severity() == DiagnosticSeverity::Error)
-            fileOwner_->setHasError();
+            fileOwner_.value()->setHasError();
         if (elements_.front()->severity() == DiagnosticSeverity::Warning)
-            fileOwner_->setHasWarning();
+            fileOwner_.value()->setHasWarning();
     }
 
     const auto msg     = build(ctx);
     bool       dismiss = false;
 
     // Check that diagnostic was not awaited
-    if (fileOwner_ != nullptr)
+    if (fileOwner_)
     {
-        dismiss = fileOwner_->unittest().verifyExpected(ctx, *this);
+        dismiss = fileOwner_.value()->unittest().verifyExpected(ctx, *this);
     }
 
     // In tests, suppress diagnostics unless verbose errors are explicitly requested and match the filter.

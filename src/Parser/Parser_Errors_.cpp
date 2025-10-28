@@ -28,6 +28,11 @@ Diagnostic Parser::reportExpected(TokenId expected, DiagnosticId diagId) const
         diag.last().addArgument(Diagnostic::ARG_AFTER, Token::toName(curToken_[-1].id));
     }
 
+    if (expected == TokenId::Identifier && tok().id == TokenId::KwdEnum)
+    {
+        diag.addElement(DiagnosticId::ParserKeywordAsIdentifier).addArgument(Diagnostic::ARG_TOK, Token::toName(tok().id));
+    }
+
     return diag;
 }
 

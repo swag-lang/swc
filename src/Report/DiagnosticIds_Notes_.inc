@@ -1,0 +1,1 @@
+SWC_DIAG_DEF(ParserKeywordAsIdentifier, Note,  "keyword '{tok}' cannot be used as an identifier")

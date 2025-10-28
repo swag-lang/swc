@@ -20,7 +20,9 @@ enum class DiagnosticId
 {
     None = 0,
 #define SWC_DIAG_DEF(id, sev, msg) id,
-#include "DiagnosticIds.inc"
+#include "Report/DiagnosticIds_Errors_.inc"
+
+#include "Report/DiagnosticIds_Notes_.inc"
 
 #undef SWC_DIAG_DEF
 };
@@ -34,9 +36,11 @@ struct DiagnosticIdInfo
 };
 
 constexpr DiagnosticIdInfo DIAGNOSTIC_INFOS[] = {
-    {DiagnosticId::None, DiagnosticSeverity::Error, "", ""},
+    {.id = DiagnosticId::None, .severity = DiagnosticSeverity::Error, .name = "", .msg = ""},
 #define SWC_DIAG_DEF(id, sev, msg) {DiagnosticId::id, DiagnosticSeverity::sev, #id, msg},
-#include "DiagnosticIds.inc"
+#include "DiagnosticIds_Errors_.inc"
+
+#include "DiagnosticIds_Notes_.inc"
 
 #undef SWC_DIAG_DEF
 };

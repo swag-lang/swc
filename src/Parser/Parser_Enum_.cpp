@@ -12,6 +12,7 @@ AstNodeRef Parser::parseEnum()
     if (isNot(TokenId::Identifier))
     {
         expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenAfter);
+        skipUntil({TokenId::SymLeftCurly, TokenId::SymColon}, SkipUntilFlags::DoNotConsume);
     }
     else
         nodePtr->name = consume();

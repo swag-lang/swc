@@ -3,13 +3,13 @@
 SWC_BEGIN_NAMESPACE()
 
 enum class TokenId : uint16_t;
-enum class KeywordFlags : uint32_t;
+enum class KeywordIdFlags : uint32_t;
 
-struct KeywordInfo
+struct KeywordIdInfo
 {
     std::string_view key;
     TokenId          id;
-    KeywordFlags     flags;
+    KeywordIdFlags   flags;
 };
 
 template<size_t N>
@@ -33,12 +33,12 @@ struct KeywordTable
         uint64_t         hash = 0;
         std::string_view key;
         TokenId          id;
-        KeywordFlags     flags;
+        KeywordIdFlags   flags;
     };
 
     std::array<Slot, N> slots{};
 
-    consteval void insert(const KeywordInfo& p)
+    consteval void insert(const KeywordIdInfo& p)
     {
         const uint64_t h   = fnv1A64(p.key);
         size_t         idx = static_cast<size_t>(h) & (N - 1);
@@ -55,7 +55,7 @@ struct KeywordTable
     }
 
     template<size_t M>
-    explicit consteval KeywordTable(const std::array<KeywordInfo, M>& arr)
+    explicit consteval KeywordTable(const std::array<KeywordIdInfo, M>& arr)
     {
         static_assert(M < N, "Table too full; increase N");
         for (const auto& e : arr)

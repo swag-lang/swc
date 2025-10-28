@@ -1,1 +1,1 @@
-enum A { }
+enum  { }

@@ -13,8 +13,10 @@ std::string_view Token::toString(const SourceFile* file) const
 
 std::string_view Token::toName(TokenId tknId)
 {
-    if (has_any(toFlags(tknId), TokenIdFlags::Symbol))
-        return TOKEN_ID_INFOS[static_cast<size_t>(tknId)].displayName;
+    const auto result = TOKEN_ID_INFOS[static_cast<size_t>(tknId)].displayName;
+    if (!result.empty())
+        return result;
+
     return LangSpec::keywordName(tknId);
 }
 

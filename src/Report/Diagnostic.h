@@ -112,9 +112,10 @@ public:
     DiagnosticElement& last() const { return *elements_.back(); }
 
     template<typename T>
-    void addArgument(std::string_view name, T&& arg)
+    Diagnostic addArgument(std::string_view name, T&& arg)
     {
         last().addArgument(name, std::forward<T>(arg));
+        return *this;
     }
 
     static Diagnostic raise(const Context& ctx, DiagnosticId id, std::optional<SourceFile*> fileOwner = std::nullopt)

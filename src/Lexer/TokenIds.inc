@@ -23,7 +23,7 @@ SWC_TOKEN_DEF(NumberInteger, "",  Zero)
 SWC_TOKEN_DEF(NumberFloat, "",  Zero)
 
 // Identifier
-SWC_TOKEN_DEF(Identifier, "",  Zero)
+SWC_TOKEN_DEF(Identifier, "identifier",  Zero)
 
 // Symbols
 SWC_TOKEN_DEF(SymQuote, "\"", Symbol)

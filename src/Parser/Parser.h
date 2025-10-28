@@ -47,7 +47,7 @@ class Parser
         consume();
     }
 
-    TokenRef expectAndConsume(TokenId expected);
+    TokenRef expectAndConsume(TokenId expected, DiagnosticId diagId = DiagnosticId::None);
 
     const Token& tok() const { return *curToken_; }
     TokenRef     ref() const { return static_cast<TokenRef>(curToken_ - firstToken_) + 1; }
@@ -62,8 +62,10 @@ class Parser
     AstNodeRef parseBlock(AstNodeId nodeId, TokenId endStmt);
     AstNodeRef parseFile();
 
-    bool       skipUntil(std::initializer_list<TokenId> targets, SkipUntilFlags flags);
+    bool skipUntil(std::initializer_list<TokenId> targets, SkipUntilFlags flags);
+
     Diagnostic reportError(DiagnosticId id, const Token& myToken) const;
+    Diagnostic reportExpected(TokenId expected, DiagnosticId diagId) const;
 
 public:
     Result parse(Context& ctx);

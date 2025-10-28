@@ -31,19 +31,22 @@ SWC_DIAG_DEF(LexTrailingNumberSeparator, Error,  "invalid numeric literal; trail
 SWC_DIAG_DEF(LexMissingHexDigits, Error,  "invalid hexadecimal literal; missing digits after '0x'")
 SWC_DIAG_DEF(LexMissingBinDigits, Error,  "invalid binary literal; missing digits after '0b'")
 SWC_DIAG_DEF(LexMissingExponentDigits, Error,  "invalid numeric literal; missing digits after exponent")
-SWC_DIAG_DEF(LexInvalidBinDigit, Error,  "invalid binary digit '{tkn}'; only '0' or '1' are allowed")
-SWC_DIAG_DEF(LexInvalidEscapeSequence, Error,  "invalid escape sequence '{tkn}'; unknown or unsupported escape")
+SWC_DIAG_DEF(LexInvalidBinDigit, Error,  "invalid binary digit '{tok}'; only '0' or '1' are allowed")
+SWC_DIAG_DEF(LexInvalidEscapeSequence, Error,  "invalid escape sequence '{tok}'; unknown or unsupported escape")
 SWC_DIAG_DEF(LexEmptyCharLiteral, Error,  "empty character literal; expected a single character")
 SWC_DIAG_DEF(LexUnclosedCharLiteral, Error,  "unclosed character literal; missing closing quote")
-SWC_DIAG_DEF(LexInvalidHexDigit, Error,  "invalid hexadecimal digit '{tkn}'; valid digits are 0–9 and A–F")
-SWC_DIAG_DEF(LexIncompleteHexEscape, Error,  "incomplete hexadecimal escape sequence '{tkn}'; expected two hex digits")
-SWC_DIAG_DEF(LexEmptyHexEscape, Error,  "empty hexadecimal escape sequence '{tkn}'; expected at least one hex digit")
+SWC_DIAG_DEF(LexInvalidHexDigit, Error,  "invalid hexadecimal digit '{tok}'; valid digits are 0–9 and A–F")
+SWC_DIAG_DEF(LexIncompleteHexEscape, Error,  "incomplete hexadecimal escape sequence '{tok}'; expected two hex digits")
+SWC_DIAG_DEF(LexEmptyHexEscape, Error,  "empty hexadecimal escape sequence '{tok}'; expected at least one hex digit")
 SWC_DIAG_DEF(LexTooManyCharsInCharLiteral, Error,  "too many characters in character literal; only one allowed")
-SWC_DIAG_DEF(LexInvalidNumberSuffix, Error,  "invalid number suffix '{tkn}'; not a recognized numeric type suffix")
-SWC_DIAG_DEF(LexInvalidCharacter, Error,  "invalid character '{tkn}'; not allowed in source file")
+SWC_DIAG_DEF(LexInvalidNumberSuffix, Error,  "invalid number suffix '{tok}'; not a recognized numeric type suffix")
+SWC_DIAG_DEF(LexInvalidCharacter, Error,  "invalid character '{tok}'; not allowed in source file")
 
 // Parser errors
 SWC_DIAG_DEF(ParserUnterminatedBlock, Error,  "unterminated block; expected '{end}' before end of file")
-SWC_DIAG_DEF(ParserUnexpectedToken, Error,  "unexpected '{tkn}'")
+SWC_DIAG_DEF(ParserUnexpectedToken, Error,  "unexpected '{tok}'")
+SWC_DIAG_DEF(ParserExpectedToken, Error,  "expected '{expect}'; found '{tok}'")
+SWC_DIAG_DEF(ParserExpectedTokenAfter, Error,  "expected '{expect}' after '{after}', found '{tok}'")
+
 
 

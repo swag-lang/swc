@@ -77,10 +77,11 @@ bool Parser::skipUntil(std::initializer_list<TokenId> targets, SkipUntilFlags fl
     return false;
 }
 
-TokenRef Parser::expectAndConsume(TokenId expected)
+TokenRef Parser::expectAndConsume(TokenId expected, DiagnosticId diagId)
 {
     if (is(expected))
         return consume();
+    (void) reportExpected(expected, diagId);
     return INVALID_REF;
 }
 

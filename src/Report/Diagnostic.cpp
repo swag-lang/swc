@@ -113,67 +113,67 @@ Diagnostic::AnsiSeq Diagnostic::diagPalette(DiagPart p, std::optional<Diagnostic
     using enum LogColor;
     switch (p)
     {
-        case DiagPart::FileLocationArrow:
-        case DiagPart::FileLocationPath:
-        case DiagPart::FileLocationSep:
-            return {BrightBlack};
-        case DiagPart::GutterBar:
-            return {BrightCyan};
-        case DiagPart::LineNumber:
-            return {BrightBlack};
-        case DiagPart::CodeText:
+    case DiagPart::FileLocationArrow:
+    case DiagPart::FileLocationPath:
+    case DiagPart::FileLocationSep:
+        return {BrightBlack};
+    case DiagPart::GutterBar:
+        return {BrightCyan};
+    case DiagPart::LineNumber:
+        return {BrightBlack};
+    case DiagPart::CodeText:
+        return {White};
+
+    case DiagPart::SubLabelText:
+        if (!sev)
             return {White};
+        switch (*sev)
+        {
+        case DiagnosticSeverity::Error:
+            return {BrightRed};
+        case DiagnosticSeverity::Warning:
+            return {BrightYellow};
+        case DiagnosticSeverity::Note:
+        case DiagnosticSeverity::Help:
+            return {White};
+        }
+        break;
 
-        case DiagPart::SubLabelText:
-            if (!sev)
-                return {White};
-            switch (*sev)
-            {
-                case DiagnosticSeverity::Error:
-                    return {BrightRed};
-                case DiagnosticSeverity::Warning:
-                    return {BrightYellow};
-                case DiagnosticSeverity::Note:
-                case DiagnosticSeverity::Help:
-                    return {White};
-            }
-            break;
+    case DiagPart::SubLabelPrefix:
+    case DiagPart::Severity:
+        if (!sev)
+            return {White};
+        switch (*sev)
+        {
+        case DiagnosticSeverity::Error:
+            return {BrightRed};
+        case DiagnosticSeverity::Warning:
+            return {BrightYellow};
+        case DiagnosticSeverity::Note:
+            return {BrightCyan};
+        case DiagnosticSeverity::Help:
+            return {BrightGreen};
+        }
+        break;
 
-        case DiagPart::SubLabelPrefix:
-        case DiagPart::Severity:
-            if (!sev)
-                return {White};
-            switch (*sev)
-            {
-                case DiagnosticSeverity::Error:
-                    return {BrightRed};
-                case DiagnosticSeverity::Warning:
-                    return {BrightYellow};
-                case DiagnosticSeverity::Note:
-                    return {BrightCyan};
-                case DiagnosticSeverity::Help:
-                    return {BrightGreen};
-            }
-            break;
+    case DiagPart::QuoteText:
+        if (!sev)
+            return {White};
+        switch (*sev)
+        {
+        case DiagnosticSeverity::Error:
+            return {BrightMagenta};
+        case DiagnosticSeverity::Warning:
+            return {BrightBlue};
+        case DiagnosticSeverity::Note:
+            return {BrightBlack};
+        case DiagnosticSeverity::Help:
+            return {BrightBlack};
+        }
+        break;
 
-        case DiagPart::QuoteText:
-            if (!sev)
-                return {White};
-            switch (*sev)
-            {
-                case DiagnosticSeverity::Error:
-                    return {BrightMagenta};
-                case DiagnosticSeverity::Warning:
-                    return {BrightBlue};
-                case DiagnosticSeverity::Note:
-                    return {BrightBlack};
-                case DiagnosticSeverity::Help:
-                    return {BrightBlack};
-            }
-            break;
-
-        case DiagPart::Reset:
-            return {Reset};
+    case DiagPart::Reset:
+        return {Reset};
     }
 
     return {White};
@@ -201,14 +201,14 @@ std::string_view Diagnostic::severityStr(DiagnosticSeverity s)
 {
     switch (s)
     {
-        case DiagnosticSeverity::Error:
-            return "error";
-        case DiagnosticSeverity::Warning:
-            return "warning";
-        case DiagnosticSeverity::Note:
-            return "note";
-        case DiagnosticSeverity::Help:
-            return "help";
+    case DiagnosticSeverity::Error:
+        return "error";
+    case DiagnosticSeverity::Warning:
+        return "warning";
+    case DiagnosticSeverity::Note:
+        return "note";
+    case DiagnosticSeverity::Help:
+        return "help";
     }
 
     return "unknown";

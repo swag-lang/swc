@@ -22,12 +22,12 @@ AstNodeRef Parser::parseBlock(AstNodeId nodeId, TokenId endStmt)
         AstNodeRef stmt;
         switch (nodeId)
         {
-            case AstNodeId::File:
-            case AstNodeId::TopLevelCurlyBlock:
-                stmt = parseTopLevelDecl();
-                break;
-            default:
-                std::unreachable();
+        case AstNodeId::File:
+        case AstNodeId::TopLevelBlock:
+            stmt = parseTopLevelDecl();
+            break;
+        default:
+            std::unreachable();
         }
 
         if (stmt != INVALID_REF)
@@ -60,18 +60,18 @@ AstNodeRef Parser::parseTopLevelDecl()
 {
     switch (id())
     {
-        case TokenId::SymLeftCurly:
-            return parseBlock(AstNodeId::TopLevelCurlyBlock, TokenId::SymRightCurly);
-        case TokenId::SymRightCurly:
-            reportError(DiagnosticId::ParserUnexpectedToken, tok());
-            return ast_->makeNode(AstNodeId::Invalid, consume());
-        case TokenId::SymSemiColon:
-            consume();
-            return INVALID_REF;
-        case TokenId::KwdEnum:
-            return parseEnum();
-        default:
-            break;
+    case TokenId::SymLeftCurly:
+        return parseBlock(AstNodeId::TopLevelBlock, TokenId::SymRightCurly);
+    case TokenId::SymRightCurly:
+        reportError(DiagnosticId::ParserUnexpectedToken, tok());
+        return ast_->makeNode(AstNodeId::Invalid, consume());
+    case TokenId::SymSemiColon:
+        consumeTrivia();
+        return INVALID_REF;
+    case TokenId::KwdEnum:
+        return parseEnum();
+    default:
+        break;
     }
 
     const auto curTokenRef = ref();

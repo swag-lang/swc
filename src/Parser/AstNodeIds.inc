@@ -3,6 +3,6 @@ SWC_NODE_ID_DEF(MissingToken)
 
 SWC_NODE_ID_DEF(File)
 SWC_NODE_ID_DEF(SemiCol)
-SWC_NODE_ID_DEF(CurlyBlock)
-SWC_NODE_ID_DEF(TopLevelCurlyBlock)
+SWC_NODE_ID_DEF(Block)
+SWC_NODE_ID_DEF(TopLevelBlock)
 SWC_NODE_ID_DEF(Enum)

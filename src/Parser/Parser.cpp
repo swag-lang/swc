@@ -43,26 +43,26 @@ bool Parser::skipUntil(std::initializer_list<TokenId> targets, SkipUntilFlags fl
         // on a target that appears inside a nested construct).
         switch (id())
         {
-            case TokenId::SymLeftParen:
-                ++parenDepth;
-                break;
-            case TokenId::SymRightParen:
-                --parenDepth;
-                break;
-            case TokenId::SymLeftBracket:
-                ++squareDepth;
-                break;
-            case TokenId::SymRightBracket:
-                --squareDepth;
-                break;
-            case TokenId::SymLeftCurly:
-                ++braceDepth;
-                break;
-            case TokenId::SymRightCurly:
-                --braceDepth;
-                break;
-            default:
-                break;
+        case TokenId::SymLeftParen:
+            ++parenDepth;
+            break;
+        case TokenId::SymRightParen:
+            --parenDepth;
+            break;
+        case TokenId::SymLeftBracket:
+            ++squareDepth;
+            break;
+        case TokenId::SymRightBracket:
+            --squareDepth;
+            break;
+        case TokenId::SymLeftCurly:
+            ++braceDepth;
+            break;
+        case TokenId::SymRightCurly:
+            --braceDepth;
+            break;
+        default:
+            break;
         }
 
         // Never let depths go negative (keeps recovery robust even on stray closers).

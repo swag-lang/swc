@@ -1,7 +1,7 @@
 #include "pch.h"
+#include "Main/CompilerInstance.h"
 #include "Core/Timer.h"
 #include "Main/CommandLine.h"
-#include "Main/CompilerInstance.h"
 #include "Main/Context.h"
 #include "Main/Global.h"
 #include "Report/Stats.h"
@@ -21,13 +21,13 @@ int CompilerInstance::run()
         Timer time(&Stats::get().timeTotal);
         switch (context_.cmdLine().command)
         {
-            case Command::Syntax:
-                cmdSyntax();
-                break;
-            case Command::Format:
-                break;
-            case Command::Invalid:
-                break;
+        case Command::Syntax:
+            cmdSyntax();
+            break;
+        case Command::Format:
+            break;
+        case Command::Invalid:
+            break;
         }
     }
 

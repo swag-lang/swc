@@ -223,49 +223,49 @@ bool CommandLineParser::processArgument(const Context& ctx, const ArgInfo* info,
 
     switch (info->type)
     {
-        case CommandLineType::Bool:
-            *static_cast<bool*>(info->target) = !invertBoolean;
-            return true;
+    case CommandLineType::Bool:
+        *static_cast<bool*>(info->target) = !invertBoolean;
+        return true;
 
-        case CommandLineType::Int:
-            if (!getNextValue(ctx, arg, index, argc, argv, value))
-                return false;
-            *static_cast<int*>(info->target) = std::stoi(value);
-            return true;
+    case CommandLineType::Int:
+        if (!getNextValue(ctx, arg, index, argc, argv, value))
+            return false;
+        *static_cast<int*>(info->target) = std::stoi(value);
+        return true;
 
-        case CommandLineType::String:
-            if (!getNextValue(ctx, arg, index, argc, argv, value))
-                return false;
-            *static_cast<Utf8*>(info->target) = value;
-            return true;
+    case CommandLineType::String:
+        if (!getNextValue(ctx, arg, index, argc, argv, value))
+            return false;
+        *static_cast<Utf8*>(info->target) = value;
+        return true;
 
-        case CommandLineType::Path:
-            if (!getNextValue(ctx, arg, index, argc, argv, value))
-                return false;
-            *static_cast<fs::path*>(info->target) = value.c_str();
-            return true;
+    case CommandLineType::Path:
+        if (!getNextValue(ctx, arg, index, argc, argv, value))
+            return false;
+        *static_cast<fs::path*>(info->target) = value.c_str();
+        return true;
 
-        case CommandLineType::StringSet:
-            if (!getNextValue(ctx, arg, index, argc, argv, value))
-                return false;
-            static_cast<std::set<Utf8>*>(info->target)->insert(value);
-            return true;
+    case CommandLineType::StringSet:
+        if (!getNextValue(ctx, arg, index, argc, argv, value))
+            return false;
+        static_cast<std::set<Utf8>*>(info->target)->insert(value);
+        return true;
 
-        case CommandLineType::PathSet:
-            if (!getNextValue(ctx, arg, index, argc, argv, value))
-                return false;
-            static_cast<std::set<fs::path>*>(info->target)->insert(value.c_str());
-            return true;
+    case CommandLineType::PathSet:
+        if (!getNextValue(ctx, arg, index, argc, argv, value))
+            return false;
+        static_cast<std::set<fs::path>*>(info->target)->insert(value.c_str());
+        return true;
 
-        case CommandLineType::EnumString:
-            if (!getNextValue(ctx, arg, index, argc, argv, value))
-                return false;
-            return parseEnumString(ctx, info, arg, value, static_cast<Utf8*>(info->target));
+    case CommandLineType::EnumString:
+        if (!getNextValue(ctx, arg, index, argc, argv, value))
+            return false;
+        return parseEnumString(ctx, info, arg, value, static_cast<Utf8*>(info->target));
 
-        case CommandLineType::EnumInt:
-            if (!getNextValue(ctx, arg, index, argc, argv, value))
-                return false;
-            return parseEnumInt(ctx, info, arg, value, static_cast<int*>(info->target));
+    case CommandLineType::EnumInt:
+        if (!getNextValue(ctx, arg, index, argc, argv, value))
+            return false;
+        return parseEnumInt(ctx, info, arg, value, static_cast<int*>(info->target));
     }
 
     return false;

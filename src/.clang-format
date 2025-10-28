@@ -11,7 +11,7 @@ AllowShortFunctionsOnASingleLine: InlineOnly
 AlwaysBreakAfterDefinitionReturnType: false
 AlwaysBreakTemplateDeclarations: Yes
 BinPackParameters: false
-BraceWrapping: 
+BraceWrapping:
   AfterCaseLabel: true
   AfterClass: true
   AfterControlStatement: true
@@ -34,7 +34,7 @@ BreakConstructorInitializers: AfterColon
 ColumnLimit: 0
 ContinuationIndentWidth: 0
 FixNamespaceComments: false
-IndentCaseLabels: true
+IndentCaseLabels: false
 IndentWidth: 4
 InsertNewlineAtEOF: true
 KeepEmptyLinesAtTheStartOfBlocks: false
@@ -50,7 +50,7 @@ SpaceAfterCStyleCast: true
 SpaceAfterTemplateKeyword: false
 SpacesInAngles: false
 TabWidth: 4
-IncludeCategories: 
+IncludeCategories:
   - Regex: 'pch.*'
     Priority: -1
     SortPriority: -1

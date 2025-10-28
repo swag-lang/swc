@@ -40,7 +40,7 @@ std::string_view DiagnosticElement::idName() const
     return Diagnostic::diagIdName(id_);
 }
 
-// Format a string by replacing %0, %1, etc. with registered arguments
+// Format a string by replacing registered arguments
 Utf8 DiagnosticElement::message() const
 {
     if (!message_.empty())
@@ -51,13 +51,12 @@ Utf8 DiagnosticElement::message() const
     // Replace placeholders in reverse order to avoid issues with %10 versus %1
     for (int i = static_cast<int>(arguments_.size()) - 1; i >= 0; --i)
     {
-        Utf8 placeholder = Utf8("{") + Utf8(arguments_[i].name) + Utf8("}");
         Utf8 replacement = argumentToString(arguments_[i]);
 
         size_t pos = 0;
-        while ((pos = result.find(placeholder, pos)) != Utf8::npos)
+        while ((pos = result.find(arguments_[i].name, pos)) != Utf8::npos)
         {
-            result.replace(pos, placeholder.length(), replacement);
+            result.replace(pos, arguments_[i].name.length(), replacement);
             pos += replacement.length();
         }
     }

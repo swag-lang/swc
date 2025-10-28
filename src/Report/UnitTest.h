@@ -21,7 +21,7 @@ class UnitTest
     SourceFile*                    file_;
     std::vector<UnitTestDirective> directives_;
 
-    static void tokenizeOption(const Context& ctx, const TriviaSpan& trivia, std::string_view comment);
+    static void tokenizeOption(const Context& ctx, std::string_view comment);
     void        tokenizeExpected(const Context& ctx, const TriviaSpan& trivia, std::string_view comment);
 
 protected:

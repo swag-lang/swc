@@ -11,7 +11,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-void UnitTest::tokenizeOption(const Context& ctx, const TriviaSpan& trivia, std::string_view comment)
+void UnitTest::tokenizeOption(const Context& ctx, std::string_view comment)
 {
     const auto  file     = ctx.sourceFile();
     const auto& langSpec = ctx.global().langSpec();
@@ -145,9 +145,9 @@ Result UnitTest::tokenize(const Context& ctx)
     // Parse all comments to find a verify directive
     for (const auto& trivia : file_->lexOut().trivia())
     {
-        const auto comment = trivia.token.toString(file_);
+        const std::string_view comment = trivia.token.toString(file_);
         tokenizeExpected(ctx, trivia, comment);
-        tokenizeOption(ctx, trivia, comment);
+        tokenizeOption(ctx, comment);
     }
 
     return Result::Success;
@@ -163,7 +163,7 @@ bool UnitTest::verifyExpected(const Context& ctx, const Diagnostic& diag) const
 
     for (auto& elem : diag.elements())
     {
-        const auto loc = elem->location(lexerCtx);
+        const SourceCodeLocation loc = elem->location(lexerCtx);
 
         for (auto& directive : directives_)
         {

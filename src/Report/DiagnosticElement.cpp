@@ -1,13 +1,14 @@
 #include "pch.h"
-#include "DiagnosticElement.h"
+
 #include "Core/Utf8Helper.h"
-#include "Report/DiagnosticIds.h"
+#include "Diagnostic.h"
+#include "DiagnosticElement.h"
 
 SWC_BEGIN_NAMESPACE();
 
-DiagnosticElement::DiagnosticElement(DiagnosticSeverity kind, DiagnosticId id) :
+DiagnosticElement::DiagnosticElement(DiagnosticId id) :
     id_(id),
-    severity_(kind)
+    severity_(Diagnostic::diagIdSeverity(id))
 {
 }
 
@@ -36,7 +37,7 @@ SourceCodeLocation DiagnosticElement::location(const Context& ctx) const
 
 std::string_view DiagnosticElement::idName() const
 {
-    return DiagnosticIds::diagName(id_);
+    return Diagnostic::diagIdName(id_);
 }
 
 // Format a string by replacing %0, %1, etc. with registered arguments
@@ -45,7 +46,7 @@ Utf8 DiagnosticElement::message() const
     if (!message_.empty())
         return message_;
 
-    Utf8 result{DiagnosticIds::diagMessage(id_)};
+    Utf8 result{Diagnostic::diagIdMessage(id_)};
 
     // Replace placeholders in reverse order to avoid issues with %10 versus %1
     for (int i = static_cast<int>(arguments_.size()) - 1; i >= 0; --i)

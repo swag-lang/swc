@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Main/FileSystem.h"
 #include "Report/Diagnostic.h"
-#include "Report/DiagnosticIds.h"
 
 SWC_BEGIN_NAMESPACE();
 

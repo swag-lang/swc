@@ -1,7 +1,6 @@
 #pragma once
 #include "Core/Types.h"
 #include "Lexer/Token.h"
-#include "Report/DiagnosticIds.h"
 
 SWC_BEGIN_NAMESPACE();
 

@@ -177,7 +177,6 @@
         <ClInclude Include="src\Report\Check.h"/>
         <ClInclude Include="src\Report\LogColor.h"/>
         <ClInclude Include="src\Report\Diagnostic.h"/>
-        <ClInclude Include="src\Report\DiagnosticIds.h"/>
         <ClInclude Include="src\Report\DiagnosticElement.h"/>
         <ClInclude Include="src\Report\DiagnosticIds.inc"/>
         <ClInclude Include="src\Report\Logger.h"/>

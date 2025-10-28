@@ -3,7 +3,6 @@
 #include "Lexer/SourceFile.h"
 #include "Parser/Parser.h"
 #include "Report/Diagnostic.h"
-#include "Report/DiagnosticIds.h"
 
 SWC_BEGIN_NAMESPACE();
 

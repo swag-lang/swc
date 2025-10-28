@@ -7,7 +7,6 @@
 #include "Main/Context.h"
 #include "Main/Version.h"
 #include "Report/Diagnostic.h"
-#include "Report/DiagnosticIds.h"
 #include "Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();

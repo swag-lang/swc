@@ -1,6 +1,5 @@
 #pragma once
 #include "Report/DiagnosticElement.h"
-#include "Report/DiagnosticIds.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -17,10 +16,35 @@ enum class DiagnosticSeverity
     Help,
 };
 
+enum class DiagnosticId
+{
+    None = 0,
+#define SWC_DIAG_DEF(id, sev, msg) id,
+#include "DiagnosticIds.inc"
+
+#undef SWC_DIAG_DEF
+};
+
+struct DiagnosticIdInfo
+{
+    DiagnosticId       id;
+    DiagnosticSeverity severity;
+    std::string_view   name;
+    std::string_view   msg;
+};
+
+constexpr DiagnosticIdInfo DIAGNOSTIC_INFOS[] = {
+    {DiagnosticId::None, DiagnosticSeverity::Error, "", ""},
+#define SWC_DIAG_DEF(id, sev, msg) {DiagnosticId::id, DiagnosticSeverity::sev, #id, msg},
+#include "DiagnosticIds.inc"
+
+#undef SWC_DIAG_DEF
+};
+
 class Diagnostic
 {
     std::vector<std::unique_ptr<DiagnosticElement>> elements_;
-    std::optional<SourceFile*>                      fileOwner_;
+    std::optional<SourceFile*>                      fileOwner_ = std::nullopt;
 
     // Enum for colorable diagnostic parts
     enum class DiagPart : uint8_t
@@ -76,19 +100,19 @@ public:
     const std::vector<std::unique_ptr<DiagnosticElement>>& elements() const { return elements_; }
     const std::optional<SourceFile*>&                      fileOwner() const { return fileOwner_; }
 
-    DiagnosticElement& addElement(DiagnosticSeverity kind, DiagnosticId id);
-    DiagnosticElement& addError(DiagnosticId id) { return addElement(DiagnosticSeverity::Error, id); }
-    DiagnosticElement& addNote(DiagnosticId id) { return addElement(DiagnosticSeverity::Note, id); }
-    DiagnosticElement& addHelp(DiagnosticId id) { return addElement(DiagnosticSeverity::Help, id); }
-
+    DiagnosticElement& addElement(DiagnosticId id);
     DiagnosticElement& last() const { return *elements_.back(); }
 
-    static Diagnostic error(DiagnosticId id, SourceFile* fileOwner = nullptr)
+    static Diagnostic error(DiagnosticId id, std::optional<SourceFile*> fileOwner = std::nullopt)
     {
         Diagnostic diag(fileOwner);
-        diag.addError(id);
+        diag.addElement(id);
         return diag;
     }
+
+    static std::string_view   diagIdMessage(DiagnosticId id) { return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].msg; }
+    static std::string_view   diagIdName(DiagnosticId id) { return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].name; }
+    static DiagnosticSeverity diagIdSeverity(DiagnosticId id) { return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].severity; }
 };
 
 SWC_END_NAMESPACE();

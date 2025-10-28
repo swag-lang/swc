@@ -32,7 +32,13 @@ class DiagnosticElement
     Utf8 argumentToString(const Argument& arg) const;
 
 public:
-    explicit DiagnosticElement(DiagnosticSeverity kind, DiagnosticId id);
+    explicit DiagnosticElement(DiagnosticId id);
+
+    explicit DiagnosticElement(DiagnosticSeverity severity, DiagnosticId id) :
+        id_(id),
+        severity_(severity)
+    {
+    }    
 
     void setLocation(const SourceFile* file)
     {

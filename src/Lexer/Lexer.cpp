@@ -8,7 +8,6 @@
 #include "Main/Context.h"
 #include "Main/Global.h"
 #include "Report/Diagnostic.h"
-#include "Report/DiagnosticIds.h"
 #include "Report/Stats.h"
 #include <ppltasks.h>
 

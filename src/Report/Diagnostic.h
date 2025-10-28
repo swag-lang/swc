@@ -43,8 +43,9 @@ constexpr DiagnosticIdInfo DIAGNOSTIC_INFOS[] = {
 
 class Diagnostic
 {
-    std::vector<std::unique_ptr<DiagnosticElement>> elements_;
+    std::vector<std::shared_ptr<DiagnosticElement>> elements_;
     std::optional<SourceFile*>                      fileOwner_ = std::nullopt;
+    const Context*                                  context_   = nullptr;
 
     // Enum for colorable diagnostic parts
     enum class DiagPart : uint8_t
@@ -89,23 +90,30 @@ class Diagnostic
     static void writeCodeBlock(Utf8& out, const Context& ctx, const DiagnosticElement& el, uint32_t gutterW);
 
     Utf8 build(const Context& ctx) const;
+    void report(const Context& ctx) const;
 
 public:
-    explicit Diagnostic(const std::optional<SourceFile*>& fileOwner = std::nullopt) :
-        fileOwner_(fileOwner)
+    explicit Diagnostic(const Context& context, const std::optional<SourceFile*>& fileOwner = std::nullopt) :
+        fileOwner_(fileOwner),
+        context_(&context)
     {
     }
 
-    void                                                   report(const Context& ctx) const;
-    const std::vector<std::unique_ptr<DiagnosticElement>>& elements() const { return elements_; }
+    ~Diagnostic()
+    {
+        SWC_ASSERT(context_);
+        report(*context_);
+    }
+
+    const std::vector<std::shared_ptr<DiagnosticElement>>& elements() const { return elements_; }
     const std::optional<SourceFile*>&                      fileOwner() const { return fileOwner_; }
 
     DiagnosticElement& addElement(DiagnosticId id);
     DiagnosticElement& last() const { return *elements_.back(); }
 
-    static Diagnostic raise(DiagnosticId id, std::optional<SourceFile*> fileOwner = std::nullopt)
+    static Diagnostic raise(const Context& ctx, DiagnosticId id, std::optional<SourceFile*> fileOwner = std::nullopt)
     {
-        Diagnostic diag(fileOwner);
+        Diagnostic diag(ctx, fileOwner);
         diag.addElement(id);
         return diag;
     }

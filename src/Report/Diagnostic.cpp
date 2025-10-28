@@ -469,6 +469,9 @@ Utf8 Diagnostic::build(const Context& ctx) const
 
 void Diagnostic::expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements)
 {
+    if (elements.empty())
+        return;
+
     const auto front = elements.front().get();
     const Utf8 msg   = front->message();
     const auto parts = parseParts(std::string_view(msg));
@@ -478,6 +481,9 @@ void Diagnostic::expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElemen
 
     if (parts.size() <= 1)
         return;
+
+    // Reserve capacity upfront to avoid reallocations during emplace_back
+    elements.reserve(elements.size() + parts.size() - 1);
 
     for (size_t i = 1; i < parts.size(); ++i)
     {
@@ -492,7 +498,7 @@ void Diagnostic::expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElemen
 
 DiagnosticElement& Diagnostic::addElement(DiagnosticId id)
 {
-    auto       ptr = std::make_unique<DiagnosticElement>(id);
+    auto       ptr = std::make_shared<DiagnosticElement>(id);
     const auto raw = ptr.get();
     elements_.emplace_back(std::move(ptr));
     return *raw;

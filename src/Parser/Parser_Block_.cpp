@@ -8,7 +8,7 @@ SWC_BEGIN_NAMESPACE();
 
 AstNodeRef Parser::parseBlock(AstNodeId nodeId, TokenId endStmt)
 {
-    const auto& openToken = tok();
+    const Token& openToken = tok();
 
     auto [nodeRef, nodePtr] = ast_->makeNodePtr<AstNodeBlock>(nodeId, ref());
     if (endStmt != TokenId::Invalid)
@@ -74,7 +74,7 @@ AstNodeRef Parser::parseTopLevelDecl()
         break;
     }
 
-    const auto curTokenRef = ref();
+    const TokenRef curTokenRef = ref();
     skipUntil({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::StopAfterEol);
     return ast_->makeNode(AstNodeId::Invalid, curTokenRef);
 }

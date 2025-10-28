@@ -1,10 +1,9 @@
 #pragma once
 #include "Lexer/Token.h"
 #include "Parser/Ast.h"
+#include "Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE()
-class DiagnosticElement;
-enum class DiagnosticId;
 
 class SourceFile;
 class Context;
@@ -63,8 +62,8 @@ class Parser
     AstNodeRef parseBlock(AstNodeId nodeId, TokenId endStmt);
     AstNodeRef parseFile();
 
-    bool skipUntil(std::initializer_list<TokenId> targets, SkipUntilFlags flags);
-    void reportError(DiagnosticId id, const Token& myToken) const;
+    bool       skipUntil(std::initializer_list<TokenId> targets, SkipUntilFlags flags);
+    Diagnostic reportError(DiagnosticId id, const Token& myToken) const;
 
 public:
     Result parse(Context& ctx);

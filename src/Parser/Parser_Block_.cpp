@@ -44,7 +44,7 @@ AstNodeRef Parser::parseBlock(AstNodeId nodeId, TokenId endStmt)
         if (is(endStmt))
             consumeTrivia();
         else
-            reportError(DiagnosticId::ParserUnterminatedBlock, openToken);
+            reportError(DiagnosticId::ParserUnterminatedBlock, openToken).last().addArgument("end", Token::toName(Token::toRelated(openToken.id)));
     }
 
     nodePtr->children = ast_->store_.push_span(std::span(stmts.data(), stmts.size()));
@@ -63,7 +63,7 @@ AstNodeRef Parser::parseTopLevelDecl()
     case TokenId::SymLeftCurly:
         return parseBlock(AstNodeId::TopLevelBlock, TokenId::SymRightCurly);
     case TokenId::SymRightCurly:
-        reportError(DiagnosticId::ParserUnexpectedToken, tok());
+        (void) reportError(DiagnosticId::ParserUnexpectedToken, tok());
         return ast_->makeNode(AstNodeId::Invalid, consume());
     case TokenId::SymSemiColon:
         consumeTrivia();

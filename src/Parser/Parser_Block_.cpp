@@ -44,7 +44,8 @@ AstNodeRef Parser::parseBlock(AstNodeId nodeId, TokenId endStmt)
         if (is(endStmt))
             consumeTrivia();
         else
-            reportError(DiagnosticId::ParserUnterminatedBlock, openToken).last().addArgument("end", Token::toName(Token::toRelated(openToken.id)));
+            reportError(DiagnosticId::ParserUnterminatedBlock, openToken)
+                .addArgument("end", Token::toName(Token::toRelated(openToken.id)));
     }
 
     nodePtr->children = ast_->store_.push_span(std::span(stmts.data(), stmts.size()));

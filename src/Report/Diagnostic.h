@@ -111,6 +111,12 @@ public:
     DiagnosticElement& addElement(DiagnosticId id);
     DiagnosticElement& last() const { return *elements_.back(); }
 
+    template<typename T>
+    void addArgument(std::string_view name, T&& arg)
+    {
+        last().addArgument(name, std::forward<T>(arg));
+    }
+
     static Diagnostic raise(const Context& ctx, DiagnosticId id, std::optional<SourceFile*> fileOwner = std::nullopt)
     {
         Diagnostic diag(ctx, fileOwner);

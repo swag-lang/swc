@@ -32,7 +32,7 @@ BracedInitializerIndentWidth: 4
 BreakBeforeBraces: Custom
 BreakConstructorInitializers: AfterColon
 ColumnLimit: 0
-ContinuationIndentWidth: 0
+ContinuationIndentWidth: 4
 FixNamespaceComments: false
 IndentCaseLabels: false
 IndentWidth: 4

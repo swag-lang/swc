@@ -41,19 +41,19 @@ Command CommandLineParser::isAllowedCommand(const Utf8& cmd)
 
 void CommandLineParser::errorArguments(DiagnosticElement& elem, const Utf8& arg)
 {
-    elem.addArgument("arg", arg);
-    elem.addArgument("command", command_);
+    elem.addArgument(Diagnostic::ARG_ARG, arg);
+    elem.addArgument(Diagnostic::ARG_COMMAND, command_);
     errorRaised_ = true;
 }
 
 void CommandLineParser::errorArguments(DiagnosticElement& elem, const ArgInfo& info, const Utf8& arg)
 {
     errorArguments(elem, arg);
-    elem.addArgument("arg", arg);
-    elem.addArgument("command", command_);
-    elem.addArgument("long", info.longForm);
-    elem.addArgument("short", info.shortForm);
-    elem.addArgument("values", info.enumValues);
+    elem.addArgument(Diagnostic::ARG_ARG, arg);
+    elem.addArgument(Diagnostic::ARG_COMMAND, command_);
+    elem.addArgument(Diagnostic::ARG_LONG, info.longForm);
+    elem.addArgument(Diagnostic::ARG_SHORT, info.shortForm);
+    elem.addArgument(Diagnostic::ARG_VALUES, info.enumValues);
     errorRaised_ = true;
 }
 
@@ -310,7 +310,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
         {
             const auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineInvalidCommand);
             errorArguments(diag.last(), argv[1]);
-            diag.last().addArgument("values", ALLOWED_COMMANDS);
+            diag.last().addArgument(Diagnostic::ARG_VALUES, ALLOWED_COMMANDS);
             return Result::Error;
         }
 

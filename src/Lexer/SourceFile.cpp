@@ -29,8 +29,8 @@ Result SourceFile::loadContent(const Context& ctx)
     {
         const auto diag = Diagnostic::raise(ctx, DiagnosticId::CannotOpenFile, this);
         diag.last().setLocation(this);
-        diag.last().addArgument("path", path_.string());
-        diag.last().addArgument("reason", Os::systemError());
+        diag.last().addArgument(Diagnostic::ARG_PATH, path_.string());
+        diag.last().addArgument(Diagnostic::ARG_REASON, Os::systemError());
         return Result::Error;
     }
 
@@ -43,8 +43,8 @@ Result SourceFile::loadContent(const Context& ctx)
     {
         const auto diag = Diagnostic::raise(ctx, DiagnosticId::CannotReadFile, this);
         diag.last().setLocation(this);
-        diag.last().addArgument("path", path_.string());
-        diag.last().addArgument("reason", Os::systemError());
+        diag.last().addArgument(Diagnostic::ARG_PATH, path_.string());
+        diag.last().addArgument(Diagnostic::ARG_REASON, Os::systemError());
         return Result::Error;
     }
 

@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE();
 
 AstNodeRef Parser::parseEnum()
 {
-    auto [ref, node] = ast_->makeNodePtr<AstNodeEnumDecl>(AstNodeId::File, eat());
+    auto [ref, node] = ast_->makeNodePtr<AstNodeEnumDecl>(AstNodeId::File, consume());
 
     SmallVector<AstNodeRef> stmts;
 

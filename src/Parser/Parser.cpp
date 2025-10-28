@@ -80,7 +80,7 @@ bool Parser::skipUntil(std::initializer_list<TokenId> targets, SkipUntilFlags fl
 TokenRef Parser::expectAndConsume(TokenId expected)
 {
     if (is(expected))
-        return eat();
+        return consume();
     return INVALID_REF;
 }
 

@@ -102,11 +102,10 @@ public:
     {
         if (this != &other)
         {
-            using std::swap;
-            swap(pages_, other.pages_);
-            swap(totalBytes_, other.totalBytes_);
-            swap(cur_, other.cur_);
-            swap(curIndex_, other.curIndex_);
+            std::swap(pages_, other.pages_);
+            std::swap(totalBytes_, other.totalBytes_);
+            std::swap(cur_, other.cur_);
+            std::swap(curIndex_, other.curIndex_);
         }
         return *this;
     }
@@ -116,6 +115,7 @@ public:
         for (auto& up : pages_)
             up->used = 0;
         totalBytes_ = 0;
+
         // keep capacity and current page for reuse
         if (!pages_.empty())
         {

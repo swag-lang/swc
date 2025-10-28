@@ -1,7 +1,7 @@
 #include "pch.h"
 
-#include "Parser/Parser.h"
 #include "Parser/AstNodes.h"
+#include "Parser/Parser.h"
 #include "Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -9,19 +9,19 @@ SWC_BEGIN_NAMESPACE();
 AstNodeRef Parser::parseTopLevelCurlyBlock()
 {
     const auto openToken = curToken_;
-    auto [ref, node] = ast_->makeNodePtr<AstNodeDelimitedBlock>(AstNodeId::CurlyBlock, eat());
+    auto [ref, node]     = ast_->makeNodePtr<AstNodeDelimitedBlock>(AstNodeId::CurlyBlock, consume());
 
     SmallVector<AstNodeRef> stmts;
-    while (!atEnd() && id() != TokenId::SymRightCurly)
+    while (!atEnd() && isNot(TokenId::SymRightCurly))
     {
         const auto before = curToken_;
         stmts.push_back(parseTopLevelDecl());
         if (curToken_ == before)
-            stmts.push_back(ast_->makeNode(AstNodeId::Invalid, eat()));
+            stmts.push_back(ast_->makeNode(AstNodeId::Invalid, consume()));
     }
 
     if (id() == TokenId::SymRightCurly)
-        node->closeToken = eat();
+        node->closeToken = consume();
     else
         reportError(DiagnosticId::ParserUnterminatedCurlyBlock, openToken);
 
@@ -39,7 +39,7 @@ AstNodeRef Parser::parseFile()
         const auto before = curToken_;
         stmts.push_back(parseTopLevelDecl());
         if (curToken_ == before)
-            stmts.push_back(ast_->makeNode(AstNodeId::Invalid, eat()));
+            stmts.push_back(ast_->makeNode(AstNodeId::Invalid, consume()));
     }
 
     node->children = ast_->store_.push_span(std::span(stmts.data(), stmts.size()));
@@ -54,9 +54,9 @@ AstNodeRef Parser::parseTopLevelDecl()
             return parseTopLevelCurlyBlock();
         case TokenId::SymRightCurly:
             reportError(DiagnosticId::ParserUnexpectedToken, curToken_);
-            return ast_->makeNode(AstNodeId::Invalid, eat());
+            return ast_->makeNode(AstNodeId::Invalid, consume());
         case TokenId::SymSemiColon:
-            return ast_->makeNode(AstNodeId::SemiCol, eat());
+            return ast_->makeNode(AstNodeId::SemiCol, consume());
         case TokenId::KwdEnum:
             return parseEnum();
         default:

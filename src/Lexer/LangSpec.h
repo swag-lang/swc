@@ -41,7 +41,8 @@ public:
     bool isEscape(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Escape); }
     bool isOption(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Option); }
 
-    static TokenId keyword(std::string_view name);
+    static TokenId          keyword(std::string_view name);
+    static std::string_view keywordName(TokenId tknId);
 
     static constexpr std::string_view VERIFY_COMMENT_OPTION   = "swc-option";
     static constexpr std::string_view VERIFY_COMMENT_EXPECTED = "swc-expected-";

@@ -109,4 +109,15 @@ TokenId LangSpec::keyword(std::string_view name)
     return KEYWORD_TABLE.find(name);
 }
 
+std::string_view LangSpec::keywordName(TokenId tknId)
+{
+    for (const auto& [name, id, flags] : KEYWORD_ID_INFOS)
+    {
+        if (id == tknId)
+            return name;
+    }
+
+    return "";
+}
+
 SWC_END_NAMESPACE();

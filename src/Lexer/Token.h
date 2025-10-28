@@ -63,7 +63,7 @@ struct Token
 
     std::string_view        toString(const SourceFile* file) const;
     static TokenIdFlags     toFlags(TokenId tkn) { return TOKEN_ID_INFOS[static_cast<size_t>(tkn)].flags; }
-    static std::string_view toName(TokenId tkn);
+    static std::string_view toName(TokenId tknId);
     static TokenId          toRelated(TokenId tkn);
 };
 #pragma pack(pop)

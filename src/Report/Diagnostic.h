@@ -76,10 +76,10 @@ public:
     const std::vector<std::unique_ptr<DiagnosticElement>>& elements() const { return elements_; }
     const std::optional<SourceFile*>&                      fileOwner() const { return fileOwner_; }
 
-    DiagnosticElement* addElement(DiagnosticSeverity kind, DiagnosticId id);
-    DiagnosticElement* addError(DiagnosticId id) { return addElement(DiagnosticSeverity::Error, id); }
-    DiagnosticElement* addNote(DiagnosticId id) { return addElement(DiagnosticSeverity::Note, id); }
-    DiagnosticElement* addHelp(DiagnosticId id) { return addElement(DiagnosticSeverity::Help, id); }
+    DiagnosticElement& addElement(DiagnosticSeverity kind, DiagnosticId id);
+    DiagnosticElement& addError(DiagnosticId id) { return addElement(DiagnosticSeverity::Error, id); }
+    DiagnosticElement& addNote(DiagnosticId id) { return addElement(DiagnosticSeverity::Note, id); }
+    DiagnosticElement& addHelp(DiagnosticId id) { return addElement(DiagnosticSeverity::Help, id); }
 
     DiagnosticElement& last() const { return *elements_.back(); }
 

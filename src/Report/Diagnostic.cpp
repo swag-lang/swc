@@ -490,12 +490,12 @@ void Diagnostic::expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElemen
     }
 }
 
-DiagnosticElement* Diagnostic::addElement(DiagnosticSeverity kind, DiagnosticId id)
+DiagnosticElement& Diagnostic::addElement(DiagnosticSeverity kind, DiagnosticId id)
 {
     auto       ptr = std::make_unique<DiagnosticElement>(kind, id);
     const auto raw = ptr.get();
     elements_.emplace_back(std::move(ptr));
-    return raw;
+    return *raw;
 }
 
 void Diagnostic::report(const Context& ctx) const

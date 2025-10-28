@@ -38,27 +38,33 @@ class Parser
     {
         if (atEnd())
             return INVALID_REF;
-        const auto ref = tokenRef();
+        const auto result = ref();
         curToken_++;
-        return ref;
+        return result;
+    }
+
+    void consumeTrivia()
+    {
+        consume();
     }
 
     TokenRef expectAndConsume(TokenId expected);
 
-    TokenRef tokenRef() const { return static_cast<TokenRef>(curToken_ - firstToken_) + 1; }
-    TokenId  id() const { return curToken_->id; }
-    bool     is(TokenId id0) const { return curToken_->id == id0; }
-    bool     is(TokenId id0, TokenId id1) const { return curToken_->id == id0 || curToken_->id == id1; }
-    bool     isNot(TokenId nid) const { return curToken_->id != nid; }
-    bool     atEnd() const { return curToken_ >= lastToken_; }
+    const Token& tok() const { return *curToken_; }
+    TokenRef     ref() const { return static_cast<TokenRef>(curToken_ - firstToken_) + 1; }
+    TokenId      id() const { return curToken_->id; }
+    bool         is(TokenId id0) const { return curToken_->id == id0; }
+    bool         is(TokenId id0, TokenId id1) const { return curToken_->id == id0 || curToken_->id == id1; }
+    bool         isNot(TokenId nid) const { return curToken_->id != nid; }
+    bool         atEnd() const { return curToken_ >= lastToken_; }
 
     AstNodeRef parseEnum();
     AstNodeRef parseTopLevelDecl();
-    AstNodeRef parseTopLevelCurlyBlock();
+    AstNodeRef parseBlock(AstNodeId nodeId, TokenId endStmt);
     AstNodeRef parseFile();
 
     bool skipUntil(std::initializer_list<TokenId> targets, SkipUntilFlags flags);
-    void reportError(DiagnosticId id, const Token* myToken) const;
+    void reportError(DiagnosticId id, const Token& myToken) const;
 
 public:
     Result parse(Context& ctx);

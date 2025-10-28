@@ -21,7 +21,6 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Main\FileManager.cpp" />
     <ClCompile Include="src\Main\Global.cpp" />
-    <ClCompile Include="src\Main\Compiler.cpp" />
     <ClCompile Include="src\Memory\Allocator.cpp" />
     <ClCompile Include="src\Report\Stats.cpp" />
     <ClCompile Include="src\Core\Utf8Helper.cpp" />
@@ -34,6 +33,9 @@
     <ClCompile Include="src\Parser\Parser_Block_.cpp" />
     <ClCompile Include="src\Report\LogColor.cpp" />
     <ClCompile Include="src\Report\LogSymbol.cpp" />
+    <ClCompile Include="src\Main\CompilerInstance.cpp" />
+    <ClCompile Include="src\Parser\Parser_Enum_.cpp" />
+    <ClCompile Include="src\Parser\Parser_Errors_.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Lexer\SourceFile.h" />
@@ -62,7 +64,6 @@
     <ClInclude Include="src\Core\Timer.h" />
     <ClInclude Include="src\Main\FileManager.h" />
     <ClInclude Include="src\Main\Global.h" />
-    <ClInclude Include="src\Main\Compiler.h" />
     <ClInclude Include="src\Report\LogColor.h" />
     <ClInclude Include="src\Report\Stats.h" />
     <ClInclude Include="src\Parser\AstNode.h" />
@@ -73,10 +74,13 @@
     <ClInclude Include="src\Main\FileSystem.h" />
     <ClInclude Include="src\Main\Version.h" />
     <ClInclude Include="src\Memory\Arena.h" />
-    <ClInclude Include="src\Memory\PagedStore.h" />
     <ClInclude Include="src\Parser\Ast.h" />
     <ClInclude Include="src\Parser\AstNodeIds.inc" />
     <ClInclude Include="src\Parser\Parser.h" />
     <ClInclude Include="src\Report\LogSymbol.h" />
+    <ClInclude Include="src\Core\RefStore.h" />
+    <ClInclude Include="src\Core\SmallVector.h" />
+    <ClInclude Include="src\Main\CompilerInstance.h" />
+    <ClInclude Include="src\Parser\AstNodes.h" />
   </ItemGroup>
 </Project>

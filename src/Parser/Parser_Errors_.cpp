@@ -7,11 +7,11 @@
 
 SWC_BEGIN_NAMESPACE();
 
-void Parser::reportError(DiagnosticId id, const Token* myToken) const
+void Parser::reportError(DiagnosticId id, const Token& myToken) const
 {
     const auto diag = Diagnostic::error(id, file_);
-    diag.last()->setLocation(file_, myToken->byteStart, myToken->byteLength);
-    diag.last()->addArgument("tkn", file_->codeView(myToken->byteStart, myToken->byteLength));
+    diag.last()->setLocation(file_, myToken.byteStart, myToken.byteLength);
+    diag.last()->addArgument("tkn", file_->codeView(myToken.byteStart, myToken.byteLength));
     diag.report(*ctx_);
 }
 

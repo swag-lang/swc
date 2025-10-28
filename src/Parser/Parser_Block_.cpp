@@ -6,64 +6,75 @@
 
 SWC_BEGIN_NAMESPACE();
 
-AstNodeRef Parser::parseTopLevelCurlyBlock()
+AstNodeRef Parser::parseBlock(AstNodeId nodeId, TokenId endStmt)
 {
-    const auto openToken = curToken_;
-    auto [ref, node]     = ast_->makeNodePtr<AstNodeDelimitedBlock>(AstNodeId::CurlyBlock, consume());
+    const auto& openToken = tok();
+
+    auto [nodeRef, nodePtr] = ast_->makeNodePtr<AstNodeBlock>(nodeId, ref());
+    if (endStmt != TokenId::Invalid)
+        consume();
 
     SmallVector<AstNodeRef> stmts;
-    while (!atEnd() && isNot(TokenId::SymRightCurly))
+    while (!atEnd() && isNot(endStmt))
     {
         const auto before = curToken_;
-        stmts.push_back(parseTopLevelDecl());
+
+        AstNodeRef stmt;
+        switch (nodeId)
+        {
+            case AstNodeId::File:
+            case AstNodeId::TopLevelCurlyBlock:
+                stmt = parseTopLevelDecl();
+                break;
+            default:
+                std::unreachable();
+        }
+
+        if (stmt != INVALID_REF)
+            stmts.push_back(stmt);
+
+        // Be sure to advance one token
         if (curToken_ == before)
             stmts.push_back(ast_->makeNode(AstNodeId::Invalid, consume()));
     }
 
-    if (id() == TokenId::SymRightCurly)
-        node->closeToken = consume();
-    else
-        reportError(DiagnosticId::ParserUnterminatedCurlyBlock, openToken);
+    // Consume end token if necessary
+    if (endStmt != TokenId::Invalid)
+    {
+        if (is(endStmt))
+            consumeTrivia();
+        else
+            reportError(DiagnosticId::ParserUnterminatedBlock, openToken);
+    }
 
-    node->children = ast_->store_.push_span(std::span(stmts.data(), stmts.size()));
-    return ref;
+    nodePtr->children = ast_->store_.push_span(std::span(stmts.data(), stmts.size()));
+    return nodeRef;
 }
 
 AstNodeRef Parser::parseFile()
 {
-    auto [ref, node] = ast_->makeNodePtr<AstNodeBlock>(AstNodeId::File, tokenRef());
-
-    SmallVector<AstNodeRef> stmts;
-    while (!atEnd())
-    {
-        const auto before = curToken_;
-        stmts.push_back(parseTopLevelDecl());
-        if (curToken_ == before)
-            stmts.push_back(ast_->makeNode(AstNodeId::Invalid, consume()));
-    }
-
-    node->children = ast_->store_.push_span(std::span(stmts.data(), stmts.size()));
-    return ref;
+    return parseBlock(AstNodeId::File, TokenId::Invalid);
 }
 
 AstNodeRef Parser::parseTopLevelDecl()
 {
-    switch (curToken_->id)
+    switch (id())
     {
         case TokenId::SymLeftCurly:
-            return parseTopLevelCurlyBlock();
+            return parseBlock(AstNodeId::TopLevelCurlyBlock, TokenId::SymRightCurly);
         case TokenId::SymRightCurly:
-            reportError(DiagnosticId::ParserUnexpectedToken, curToken_);
+            reportError(DiagnosticId::ParserUnexpectedToken, tok());
             return ast_->makeNode(AstNodeId::Invalid, consume());
         case TokenId::SymSemiColon:
-            return ast_->makeNode(AstNodeId::SemiCol, consume());
+            consume();
+            return INVALID_REF;
         case TokenId::KwdEnum:
             return parseEnum();
         default:
             break;
     }
 
-    const auto curTokenRef = tokenRef();
+    const auto curTokenRef = ref();
     skipUntil({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::StopAfterEol);
     return ast_->makeNode(AstNodeId::Invalid, curTokenRef);
 }

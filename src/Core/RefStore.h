@@ -17,8 +17,7 @@ class RefStore
 
     struct Page
     {
-        using Storage = std::aligned_storage_t<N, alignof(std::max_align_t)>;
-        Storage  storage{};
+        alignas(alignof(std::max_align_t)) std::byte storage[N]{};
         uint32_t used = 0;
 
         uint8_t*       bytes() noexcept { return reinterpret_cast<uint8_t*>(&storage); }

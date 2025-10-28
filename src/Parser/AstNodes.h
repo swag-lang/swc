@@ -13,17 +13,6 @@ struct AstNodeBlock : AstNode
     }
 };
 
-struct AstNodeDelimitedBlock : AstNode
-{
-    TokenRef closeToken = INVALID_REF;
-    Ref      children   = INVALID_REF;
-
-    AstNodeDelimitedBlock(AstNodeId nodeId, TokenRef tok) :
-        AstNode(nodeId, tok)
-    {
-    }
-};
-
 struct AstNodeEnumDecl : AstNode
 {
     TokenRef   name;

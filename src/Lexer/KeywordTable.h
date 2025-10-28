@@ -1,8 +1,8 @@
 #pragma once
-#include "Token.h"
+#include "Lexer/Token.h"
+
 SWC_BEGIN_NAMESPACE()
 
-enum class TokenId : uint16_t;
 enum class KeywordIdFlags : uint32_t;
 
 struct KeywordIdInfo

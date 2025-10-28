@@ -4,11 +4,43 @@ SWC_BEGIN_NAMESPACE();
 
 class SourceFile;
 
+//------------------------------------
+// Token ids information's
+//------------------------------------
+
 enum class TokenIdFlags : uint32_t
 {
-    Zero = 0,
+    Zero   = 0,
+    Symbol = 1 << 0,
 };
 SWC_ENABLE_BITMASK(TokenIdFlags);
+
+struct TokenIdInfo
+{
+    std::string_view enumName;
+    std::string_view displayName;
+    TokenIdFlags     flags;
+};
+
+enum class TokenId : uint16_t
+{
+#define SWC_TOKEN_DEF(enum, name, flags) enum,
+#include "TokenIds.inc"
+
+#undef SWC_TOKEN_DEF
+    Count
+};
+
+constexpr std::array TOKEN_ID_INFOS = {
+#define SWC_TOKEN_DEF(enum, name, flags) TokenIdInfo{#enum, name, TokenIdFlags::flags},
+#include "TokenIds.inc"
+
+#undef SWC_TOKEN_DEF
+};
+
+//------------------------------------
+// Tokens
+//------------------------------------
 
 enum class TokenFlags : uint16_t
 {
@@ -20,28 +52,6 @@ enum class TokenFlags : uint16_t
 };
 SWC_ENABLE_BITMASK(TokenFlags);
 
-struct TokenIdInfo
-{
-    std::string_view name;
-    TokenIdFlags     flags;
-};
-
-enum class TokenId : uint16_t
-{
-#define SWC_TOKEN_DEF(enum, flags) enum,
-#include "TokenIds.inc"
-
-#undef SWC_TOKEN_DEF
-    Count
-};
-
-constexpr std::array TOKEN_ID_INFOS = {
-#define SWC_TOKEN_DEF(enum, flags) TokenIdInfo{#enum, TokenIdFlags::flags},
-#include "TokenIds.inc"
-
-#undef SWC_TOKEN_DEF
-};
-
 #pragma pack(push, 1)
 struct Token
 {
@@ -51,7 +61,10 @@ struct Token
     TokenId    id    = TokenId::Invalid;
     TokenFlags flags = TokenFlags::Zero;
 
-    std::string_view toString(const SourceFile* file) const;
+    std::string_view        toString(const SourceFile* file) const;
+    static TokenIdFlags     toFlags(TokenId tkn) { return TOKEN_ID_INFOS[static_cast<size_t>(tkn)].flags; }
+    static std::string_view toName(TokenId tkn);
+    static TokenId          toRelated(TokenId tkn);
 };
 #pragma pack(pop)
 

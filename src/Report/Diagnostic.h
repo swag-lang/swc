@@ -103,7 +103,7 @@ public:
     DiagnosticElement& addElement(DiagnosticId id);
     DiagnosticElement& last() const { return *elements_.back(); }
 
-    static Diagnostic error(DiagnosticId id, std::optional<SourceFile*> fileOwner = std::nullopt)
+    static Diagnostic raise(DiagnosticId id, std::optional<SourceFile*> fileOwner = std::nullopt)
     {
         Diagnostic diag(fileOwner);
         diag.addElement(id);

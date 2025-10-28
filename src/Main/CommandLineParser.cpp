@@ -61,7 +61,7 @@ bool CommandLineParser::getNextValue(const Context& ctx, const Utf8& arg, int& i
 {
     if (index + 1 >= argc)
     {
-        const auto diag = Diagnostic::error(DiagnosticId::CmdLineMissingArgValue);
+        const auto diag = Diagnostic::raise(DiagnosticId::CmdLineMissingArgValue);
         errorArguments(diag.last(), arg);
         diag.report(ctx);
         return false;
@@ -135,7 +135,7 @@ bool CommandLineParser::parseEnumInt(const Context& ctx, const ArgInfo& info, co
 
 bool CommandLineParser::reportEnumError(const Context& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value)
 {
-    const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidEnumValue);
+    const auto diag = Diagnostic::raise(DiagnosticId::CmdLineInvalidEnumValue);
     errorArguments(diag.last(), info, arg);
     diag.last().addArgument("value", value);
     diag.report(ctx);
@@ -207,7 +207,7 @@ std::optional<ArgInfo> CommandLineParser::findNegatedArgument(const Context& ctx
     const ArgInfo& info = it->second;
     if (info.type != CommandLineType::Bool)
     {
-        const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidBoolArg);
+        const auto diag = Diagnostic::raise(DiagnosticId::CmdLineInvalidBoolArg);
         errorArguments(diag.last(), info, arg);
         diag.report(ctx);
         return std::nullopt;
@@ -219,7 +219,7 @@ std::optional<ArgInfo> CommandLineParser::findNegatedArgument(const Context& ctx
 
 void CommandLineParser::reportInvalidArgument(const Context& ctx, const Utf8& arg)
 {
-    const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidArg);
+    const auto diag = Diagnostic::raise(DiagnosticId::CmdLineInvalidArg);
     errorArguments(diag.last(), arg);
     diag.report(ctx);
 }
@@ -302,7 +302,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
     if (argc <= 1 || argv[1][0] == '-')
     {
         // Missing command name
-        const auto diag = Diagnostic::error(DiagnosticId::CmdLineMissingCommand);
+        const auto diag = Diagnostic::raise(DiagnosticId::CmdLineMissingCommand);
         diag.report(ctx);
         return Result::Error;
     }
@@ -313,7 +313,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
         cmdLine_->command    = isAllowedCommand(candidate);
         if (cmdLine_->command == Command::Invalid)
         {
-            const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidCommand);
+            const auto diag = Diagnostic::raise(DiagnosticId::CmdLineInvalidCommand);
             errorArguments(diag.last(), argv[1]);
             diag.last().addArgument("values", ALLOWED_COMMANDS);
             diag.report(ctx);
@@ -338,7 +338,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
 
         if (!commandMatches(info.value().commands))
         {
-            const auto diag = Diagnostic::error(DiagnosticId::CmdLineInvalidArgForCmd);
+            const auto diag = Diagnostic::raise(DiagnosticId::CmdLineInvalidArgForCmd);
             errorArguments(diag.last(), info.value(), arg);
             diag.report(ctx);
             return Result::Error;

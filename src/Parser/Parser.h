@@ -13,7 +13,7 @@ enum class SkipUntilFlags : uint32_t
     Zero          = 0,
     StopAfterEol  = 1 << 0,
     StopBeforeEol = 1 << 1,
-    DoNotConsume  = 1 << 2,
+    Consume       = 1 << 2,
 };
 SWC_ENABLE_BITMASK(SkipUntilFlags);
 
@@ -47,6 +47,7 @@ class Parser
         consume();
     }
 
+    TokenRef expect(TokenId expected, DiagnosticId diagId = DiagnosticId::None);
     TokenRef expectAndConsume(TokenId expected, DiagnosticId diagId = DiagnosticId::None);
 
     const Token& tok() const { return *curToken_; }
@@ -62,8 +63,9 @@ class Parser
     AstNodeRef parseBlock(AstNodeId nodeId, TokenId endStmt);
     AstNodeRef parseFile();
 
-    bool skipUntil(std::initializer_list<TokenId> targets, SkipUntilFlags flags);
+    bool skipUntil(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlags::Zero);
 
+    void       reportArguments(Diagnostic& diag, const Token& myToken) const;
     Diagnostic reportError(DiagnosticId id, const Token& myToken) const;
     Diagnostic reportExpected(TokenId expected, DiagnosticId diagId) const;
 

@@ -13,6 +13,16 @@
 
 SWC_BEGIN_NAMESPACE()
 
+DiagnosticIdInfo DIAGNOSTIC_INFOS[] = {
+    {.id = DiagnosticId::None, .severity = DiagnosticSeverity::Error, .name = "", .msg = ""},
+#define SWC_DIAG_DEF(id, sev, msg) {DiagnosticId::id, DiagnosticSeverity::sev, #id, msg},
+#include "DiagnosticIds_Errors_.msg"
+
+#include "DiagnosticIds_Notes_.msg"
+
+#undef SWC_DIAG_DEF
+};
+
 namespace
 {
     // tag → severity mapping
@@ -375,7 +385,7 @@ void Diagnostic::writeFullUnderline(Utf8& out, const Context& ctx, DiagnosticSev
 
 // Renders a single element's location/code/underline block
 // NOTE: gutterW is computed once per diagnostic (max line number across all elements)
-void Diagnostic::writeCodeBlock(Utf8& out, const Context& ctx, const DiagnosticElement& el, uint32_t gutterW)
+void Diagnostic::writeCodeBlock(Utf8& out, const Context& ctx, const DiagnosticElement& el, uint32_t gutterW) const
 {
     const auto loc = el.location(ctx);
 
@@ -394,10 +404,30 @@ void Diagnostic::writeCodeBlock(Utf8& out, const Context& ctx, const DiagnosticE
     // underline the entire span with carets
     const std::string_view tokenView     = el.location(ctx).file->codeView(el.location(ctx).offset, el.location(ctx).len);
     const uint32_t         tokenLenChars = Utf8Helper::countChars(tokenView);
-    writeFullUnderline(out, ctx, el.severity(), el.message(), gutterW, loc.column, tokenLenChars);
+    writeFullUnderline(out, ctx, el.severity(), message(el), gutterW, loc.column, tokenLenChars);
 
     writeGutterSep(out, ctx, gutterW);
 }
+
+    Utf8 Diagnostic::message(const DiagnosticElement& el) const
+    {
+        auto result = el.message();
+
+        // Replace placeholders in reverse order to avoid issues with %10 versus %1
+        for (int i = static_cast<int>(arguments_.size()) - 1; i >= 0; --i)
+        {
+            Utf8 replacement = argumentToString(arguments_[i]);
+
+            size_t pos = 0;
+            while ((pos = result.find(arguments_[i].name, pos)) != Utf8::npos)
+            {
+                result.replace(pos, arguments_[i].name.length(), replacement);
+                pos += replacement.length();
+            }
+        }
+
+        return result;
+    }
 
 Utf8 Diagnostic::build(const Context& ctx) const
 {
@@ -428,7 +458,7 @@ Utf8 Diagnostic::build(const Context& ctx) const
 
     // Primary element: the first one
     const auto& primary = elements.front();
-    const auto  pMsg    = primary->message();
+    const auto  pMsg    = message(*primary);
 
     // Render primary element body (location/code) if any
     const bool pHasLoc = primary->hasCodeLocation();
@@ -449,7 +479,7 @@ Utf8 Diagnostic::build(const Context& ctx) const
     {
         const auto& e       = elements[i];
         const auto  sev     = e->severity();
-        const auto  msg     = e->message();
+        const auto  msg     = message(*e);
         const bool  eHasLoc = e->hasCodeLocation();
 
         // Optional location/code block
@@ -467,13 +497,13 @@ Utf8 Diagnostic::build(const Context& ctx) const
     return out;
 }
 
-void Diagnostic::expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements)
+void Diagnostic::expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements) const
 {
     if (elements.empty())
         return;
 
     const auto front = elements.front().get();
-    const Utf8 msg   = front->message();
+    const Utf8 msg   = message(*front);
     const auto parts = parseParts(std::string_view(msg));
 
     // base element keeps first
@@ -553,4 +583,73 @@ void Diagnostic::report(const Context& ctx) const
     }
 }
 
-SWC_END_NAMESPACE()
+// Helper function to convert variant argument to string
+Utf8 Diagnostic::argumentToString(const Argument& arg) const
+{
+    return std::visit([&]<typename T0>(const T0 & value) -> Utf8 {
+        using T = std::decay_t<T0>;
+        Utf8 result;
+        if constexpr (std::is_same_v<T, Utf8>)
+            result = value;
+        else if constexpr (std::is_same_v<T, uint64_t>)
+            result = std::to_string(value);
+        else if constexpr (std::is_same_v<T, int64_t>)
+            result = std::to_string(value);
+        if (arg.quoted)
+            return Utf8("'") + result + Utf8("'");
+
+        return result;
+    },
+        arg.val);
+}
+
+void Diagnostic::addArgument(std::string_view name, std::string_view arg, bool quoted)
+{
+    Utf8 sanitized;
+    sanitized.reserve(arg.size());
+
+    auto           ptr = reinterpret_cast<const uint8_t*>(arg.data());
+    const uint8_t* end = ptr + arg.size();
+    while (ptr < end)
+    {
+        auto [buf, wc, eat] = Utf8Helper::decodeOneChar(ptr, end);
+        if (!buf)
+        {
+            ptr++;
+            continue;
+        }
+
+        if (wc < 128 && !std::isprint(static_cast<int>(wc)))
+        {
+            char hex[10];
+            (void)std::snprintf(hex, sizeof(hex), "<0x%02X>", wc);
+            sanitized += hex;
+            ptr = buf;
+        }
+        else if (wc == '\t' || wc == '\n' || wc == '\r')
+        {
+            sanitized += ' ';
+            ptr = buf;
+        }
+        else
+        {
+            while (ptr < buf)
+                sanitized += *ptr++;
+        }
+    }
+
+    // Replace if the same argument already exists
+    for (auto& arg : arguments_)
+    {
+        if (arg.name == name)
+        {
+            arg.val = std::move(sanitized);
+            arg.quoted = quoted;
+            return;
+        }
+    }
+
+    arguments_.emplace_back(Argument{ .name = name, .val = std::move(sanitized), .quoted = quoted });
+}
+
+SWC_END_NAMESPACE();

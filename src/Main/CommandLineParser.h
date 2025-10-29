@@ -1,8 +1,7 @@
 #pragma once
 SWC_BEGIN_NAMESPACE()
-class DiagnosticElement;
-;
 
+class Diagnostic;
 class Context;
 struct CommandLine;
 class Global;
@@ -50,8 +49,8 @@ class CommandLineParser
 
     static void            printHelp(const Context& ctx);
     static Command         isAllowedCommand(const Utf8& cmd);
-    void                   errorArguments(DiagnosticElement& elem, const Utf8& arg);
-    void                   errorArguments(DiagnosticElement& elem, const ArgInfo& info, const Utf8& arg);
+    void                   errorArguments(Diagnostic& elem, const Utf8& arg);
+    void                   errorArguments(Diagnostic& elem, const ArgInfo& info, const Utf8& arg);
     bool                   getNextValue(const Context& ctx, const Utf8& arg, int& index, int argc, char* argv[], Utf8& value);
     bool                   commandMatches(const Utf8& commandList) const;
     bool                   parseEnumString(const Context& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value, Utf8* target);

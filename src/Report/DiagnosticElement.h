@@ -13,12 +13,6 @@ class DiagnosticElement
     friend class Diagnostic;
     friend class UnitTest;
 
-    struct Argument
-    {
-        std::string_view                      name;
-        std::variant<Utf8, uint64_t, int64_t> val;
-    };
-
     Utf8               message_;
     DiagnosticId       id_;
     DiagnosticSeverity severity_;
@@ -26,10 +20,6 @@ class DiagnosticElement
     const SourceFile* file_   = nullptr;
     uint32_t          offset_ = 0;
     uint32_t          len_    = 0;
-
-    std::vector<Argument> arguments_;
-
-    Utf8 argumentToString(const Argument& arg) const;
 
 public:
     explicit DiagnosticElement(DiagnosticId id);
@@ -75,14 +65,6 @@ public:
     DiagnosticId       id() const { return id_; }
     DiagnosticSeverity severity() const { return severity_; }
     bool               hasCodeLocation() const { return file_ != nullptr && len_ > 0; }
-
-    template<typename T>
-    void addArgument(std::string_view name, T&& arg)
-    {
-        arguments_.emplace_back(Argument{name, std::forward<T>(arg)});
-    }
-
-    void addArgument(std::string_view name, std::string_view arg);
 };
 
 SWC_END_NAMESPACE()

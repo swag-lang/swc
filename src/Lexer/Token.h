@@ -1,4 +1,5 @@
 #pragma once
+#include "Lexer/SourceCodeLocation.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -8,6 +9,14 @@ enum class TokenIdFlags : uint32_t
 {
     Zero   = 0,
     Symbol = 1 << 0,
+    Keyword = 1 << 1,
+    Trivia = 1 << 2,
+    Compiler = 1 << 3,
+    Intrinsic = 1 << 4,
+    Type = 1 << 5,
+    Literal = 1 << 6,
+    Modifier = 1 << 7,
+    ReservedWord = Keyword | Compiler | Intrinsic | Type | Modifier,
 };
 SWC_ENABLE_BITMASK(TokenIdFlags);
 
@@ -52,10 +61,20 @@ struct Token
     TokenId    id    = TokenId::Invalid;
     TokenFlags flags = TokenFlags::Zero;
 
-    std::string_view        toString(const SourceFile* file) const;
+    std::string_view        toString(const SourceFile& file) const;
+    SourceCodeLocation      toLocation(const Context& ctx, const SourceFile& file) const;
     static TokenIdFlags     toFlags(TokenId tkn) { return TOKEN_ID_INFOS[static_cast<size_t>(tkn)].flags; }
     static std::string_view toName(TokenId tknId);
+    static std::string_view toFamily(TokenId tknId);
+    static std::string_view toAFamily(TokenId tknId);
     static TokenId          toRelated(TokenId tkn);
+
+    bool isSymbol() const { return has_any(Token::toFlags(id), TokenIdFlags::Symbol); }
+    bool isKeyword() const { return has_any(Token::toFlags(id), TokenIdFlags::Keyword); }
+    bool isCompiler() const { return has_any(Token::toFlags(id), TokenIdFlags::Compiler); }
+    bool isIntrinsic() const { return has_any(Token::toFlags(id), TokenIdFlags::Intrinsic); }
+    bool isType() const { return has_any(Token::toFlags(id), TokenIdFlags::Type); }
+    bool isReserved() const { return isKeyword() || isCompiler() || isIntrinsic() || isType(); }
 };
 
 SWC_END_NAMESPACE()

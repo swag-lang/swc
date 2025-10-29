@@ -1,16 +1,38 @@
 #include "pch.h"
-
 #include "Lexer/SourceFile.h"
+#include "Lexer/SourceCodeLocation.h"
 #include "Parser/Parser.h"
 #include "Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE()
 
+void Parser::reportArguments(Diagnostic& diag, const Token& myToken) const
+{
+    if (atEnd())
+    {
+        diag.addArgument(Diagnostic::ARG_TOK, "<eof>");
+        diag.addArgument(Diagnostic::ARG_TOK_FAM, "end of file", false);
+        diag.addArgument(Diagnostic::ARG_A_TOK_FAM, "end of file", false);
+    }
+    else
+    {
+        diag.addArgument(Diagnostic::ARG_TOK, myToken.toString(*file_));
+        diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(myToken.id), false);
+        diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Token::toAFamily(myToken.id), false);
+    }
+
+    if (curToken_ != firstToken_)
+    {
+        const auto& prevToken = curToken_[-1];
+        diag.addArgument(Diagnostic::ARG_AFTER, prevToken.toString(*file_));
+    }
+}
+
 Diagnostic Parser::reportError(DiagnosticId id, const Token& myToken) const
 {
     auto diag = Diagnostic::raise(*ctx_, id, file_);
-    diag.last().setLocation(file_, myToken.byteStart, myToken.byteLength);
-    diag.last().addArgument(Diagnostic::ARG_TOK, file_->codeView(myToken.byteStart, myToken.byteLength));
+    reportArguments(diag, myToken);
+    diag.last().setLocation(myToken.toLocation(*ctx_, *file_));
     return diag;
 }
 
@@ -20,18 +42,14 @@ Diagnostic Parser::reportExpected(TokenId expected, DiagnosticId diagId) const
         diagId = DiagnosticId::ParserExpectedToken;
 
     auto diag = reportError(diagId, tok());
-    diag.last().addArgument(Diagnostic::ARG_EXPECT, Token::toName(expected));
+    reportArguments(diag, tok());
 
-    if (diagId == DiagnosticId::ParserExpectedTokenAfter)
-    {
-        SWC_ASSERT(curToken_ != firstToken_);
-        diag.last().addArgument(Diagnostic::ARG_AFTER, Token::toName(curToken_[-1].id));
-    }
+    diag.addArgument(Diagnostic::ARG_EXPECT, Token::toName(expected));
+    diag.addArgument(Diagnostic::ARG_EXPECT_FAM, Token::toFamily(expected), false);
+    diag.addArgument(Diagnostic::ARG_A_EXPECT_FAM, Token::toAFamily(expected), false);
 
-    if (expected == TokenId::Identifier && tok().id == TokenId::KwdEnum)
-    {
-        diag.addElement(DiagnosticId::ParserKeywordAsIdentifier).addArgument(Diagnostic::ARG_TOK, Token::toName(tok().id));
-    }
+    if (expected == TokenId::Identifier && tok().isReserved())
+        diag.addElement(DiagnosticId::ParserReservedAsIdentifier);
 
     return diag;
 }

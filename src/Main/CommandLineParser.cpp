@@ -39,21 +39,21 @@ Command CommandLineParser::isAllowedCommand(const Utf8& cmd)
     return Command::Invalid;
 }
 
-void CommandLineParser::errorArguments(DiagnosticElement& elem, const Utf8& arg)
+void CommandLineParser::errorArguments(Diagnostic& diag, const Utf8& arg)
 {
-    elem.addArgument(Diagnostic::ARG_ARG, arg);
-    elem.addArgument(Diagnostic::ARG_COMMAND, command_);
+    diag.addArgument(Diagnostic::ARG_ARG, arg);
+    diag.addArgument(Diagnostic::ARG_COMMAND, command_);
     errorRaised_ = true;
 }
 
-void CommandLineParser::errorArguments(DiagnosticElement& elem, const ArgInfo& info, const Utf8& arg)
+void CommandLineParser::errorArguments(Diagnostic& diag, const ArgInfo& info, const Utf8& arg)
 {
-    errorArguments(elem, arg);
-    elem.addArgument(Diagnostic::ARG_ARG, arg);
-    elem.addArgument(Diagnostic::ARG_COMMAND, command_);
-    elem.addArgument(Diagnostic::ARG_LONG, info.longForm);
-    elem.addArgument(Diagnostic::ARG_SHORT, info.shortForm);
-    elem.addArgument(Diagnostic::ARG_VALUES, info.enumValues);
+    errorArguments(diag, arg);
+    diag.addArgument(Diagnostic::ARG_ARG, arg);
+    diag.addArgument(Diagnostic::ARG_COMMAND, command_);
+    diag.addArgument(Diagnostic::ARG_LONG, info.longForm);
+    diag.addArgument(Diagnostic::ARG_SHORT, info.shortForm);
+    diag.addArgument(Diagnostic::ARG_VALUES, info.enumValues);
     errorRaised_ = true;
 }
 
@@ -61,8 +61,8 @@ bool CommandLineParser::getNextValue(const Context& ctx, const Utf8& arg, int& i
 {
     if (index + 1 >= argc)
     {
-        const auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineMissingArgValue);
-        errorArguments(diag.last(), arg);
+        auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineMissingArgValue);
+        errorArguments(diag, arg);
         return false;
     }
 
@@ -134,9 +134,9 @@ bool CommandLineParser::parseEnumInt(const Context& ctx, const ArgInfo& info, co
 
 bool CommandLineParser::reportEnumError(const Context& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value)
 {
-    const auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineInvalidEnumValue);
-    errorArguments(diag.last(), info, arg);
-    diag.last().addArgument("value", value);
+    auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineInvalidEnumValue);
+    errorArguments(diag, info, arg);
+    diag.addArgument(Diagnostic::ARG_VALUE, value);
     return false;
 }
 
@@ -205,8 +205,8 @@ std::optional<ArgInfo> CommandLineParser::findNegatedArgument(const Context& ctx
     const ArgInfo& info = it->second;
     if (info.type != CommandLineType::Bool)
     {
-        const auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineInvalidBoolArg);
-        errorArguments(diag.last(), info, arg);
+        auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineInvalidBoolArg);
+        errorArguments(diag, info, arg);
         return std::nullopt;
     }
 
@@ -216,8 +216,8 @@ std::optional<ArgInfo> CommandLineParser::findNegatedArgument(const Context& ctx
 
 void CommandLineParser::reportInvalidArgument(const Context& ctx, const Utf8& arg)
 {
-    const auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineInvalidArg);
-    errorArguments(diag.last(), arg);
+    auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineInvalidArg);
+    errorArguments(diag, arg);
 }
 
 bool CommandLineParser::processArgument(const Context& ctx, const ArgInfo& info, const Utf8& arg, bool invertBoolean, int& index, int argc, char* argv[])
@@ -308,9 +308,9 @@ Result CommandLineParser::parse(int argc, char* argv[])
         cmdLine_->command    = isAllowedCommand(candidate);
         if (cmdLine_->command == Command::Invalid)
         {
-            const auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineInvalidCommand);
-            errorArguments(diag.last(), argv[1]);
-            diag.last().addArgument(Diagnostic::ARG_VALUES, ALLOWED_COMMANDS);
+            auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineInvalidCommand);
+            errorArguments(diag, argv[1]);
+            diag.addArgument(Diagnostic::ARG_VALUES, ALLOWED_COMMANDS);
             return Result::Error;
         }
 
@@ -332,8 +332,8 @@ Result CommandLineParser::parse(int argc, char* argv[])
 
         if (!commandMatches(info.value().commands))
         {
-            const auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineInvalidArgForCmd);
-            errorArguments(diag.last(), info.value(), arg);
+            auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineInvalidArgForCmd);
+            errorArguments(diag, info.value(), arg);
             return Result::Error;
         }
 

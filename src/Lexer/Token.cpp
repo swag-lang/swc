@@ -6,28 +6,78 @@
 
 SWC_BEGIN_NAMESPACE()
 
-std::string_view Token::toString(const SourceFile* file) const
+std::string_view Token::toString(const SourceFile& file) const
 {
-    auto start = reinterpret_cast<const char*>(file->content().data());
+    auto start = reinterpret_cast<const char*>(file.content().data());
 
     // In the case of an identifier, 'byteStart' is the index in the file identifier table.
     // And the real 'byteStart' is stored in that table
     if (id == TokenId::Identifier)
     {
-        const auto offset = file->lexOut().identifiers()[byteStart].byteStart;
+        const auto offset = file.lexOut().identifiers()[byteStart].byteStart;
         return {start + offset, static_cast<size_t>(byteLength)};
     }
 
     return {start + byteStart, static_cast<size_t>(byteLength)};
 }
 
+SourceCodeLocation Token::toLocation(const Context& ctx, const SourceFile& file) const
+{
+    SourceCodeLocation loc;
+    uint32_t offset;
+    if (id == TokenId::Identifier)
+        offset = file.lexOut().identifiers()[byteStart].byteStart;
+    else
+        offset = byteStart;
+    loc.fromOffset(ctx, file, offset, byteLength);
+    return loc;
+}    
+
 std::string_view Token::toName(TokenId tknId)
 {
-    const auto result = TOKEN_ID_INFOS[static_cast<size_t>(tknId)].displayName;
-    if (!result.empty())
-        return result;
+    return TOKEN_ID_INFOS[static_cast<size_t>(tknId)].displayName;
+}
 
-    return LangSpec::keywordName(tknId);
+std::string_view Token::toFamily(TokenId tknId)
+{
+    const auto& infos = TOKEN_ID_INFOS[static_cast<size_t>(tknId)];
+    if (has_any(infos.flags, TokenIdFlags::Symbol))
+        return "symbol";
+    if(tknId == TokenId::Identifier)
+        return "identifier";
+    if (has_any(infos.flags, TokenIdFlags::Keyword))
+        return "keyword";
+    if (has_any(infos.flags, TokenIdFlags::Type))
+        return "type";
+    if (has_any(infos.flags, TokenIdFlags::Compiler))
+        return "compiler instruction";
+    if (has_any(infos.flags, TokenIdFlags::Intrinsic))
+        return "intrinsic";
+    if (has_any(infos.flags, TokenIdFlags::Modifier))
+        return "modifier";
+
+    return "token";
+}
+
+std::string_view Token::toAFamily(TokenId tknId)
+{
+    const auto& infos = TOKEN_ID_INFOS[static_cast<size_t>(tknId)];
+    if (has_any(infos.flags, TokenIdFlags::Symbol))
+        return "a symbol";
+    if (tknId == TokenId::Identifier)
+        return "an identifier";
+    if (has_any(infos.flags, TokenIdFlags::Keyword))
+        return "a keyword";
+    if (has_any(infos.flags, TokenIdFlags::Type))
+        return "a type";
+    if (has_any(infos.flags, TokenIdFlags::Compiler))
+        return "a compiler instruction";
+    if (has_any(infos.flags, TokenIdFlags::Intrinsic))
+        return "an intrinsic";
+    if (has_any(infos.flags, TokenIdFlags::Modifier))
+        return "a modifier";
+
+    return "a token";
 }
 
 TokenId Token::toRelated(TokenId tkn)
@@ -41,7 +91,7 @@ TokenId Token::toRelated(TokenId tkn)
     case TokenId::SymLeftCurly:
         return TokenId::SymRightCurly;
     default:
-        std::unreachable();
+        return TokenId::Invalid;
     }
 }
 

@@ -16,9 +16,8 @@ struct AstNodeBlock : AstNode
 struct AstNodeEnumDecl : AstNode
 {
     TokenRef   name;
-    TokenRef   dotType;
     AstNodeRef type;
-    AstNodeRef members;
+    AstNodeRef body;
 };
 
 SWC_END_NAMESPACE()

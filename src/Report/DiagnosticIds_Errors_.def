@@ -1,0 +1,49 @@
+// Command line errors
+SWC_DIAG_DEF(CmdLineInvalidArg)
+SWC_DIAG_DEF(CmdLineInvalidArgForCmd)
+SWC_DIAG_DEF(CmdLineInvalidEnumValue)
+SWC_DIAG_DEF(CmdLineMissingArgValue)
+SWC_DIAG_DEF(CmdLineInvalidBoolArg)
+SWC_DIAG_DEF(CmdLineMissingCommand)
+SWC_DIAG_DEF(CmdLineInvalidCommand)
+SWC_DIAG_DEF(CmdLineInvalidFolder)
+SWC_DIAG_DEF(CmdLineInvalidFile)
+
+// Compiler command specific errors 
+SWC_DIAG_DEF(CmdSyntaxNoInput)
+
+// File errors
+SWC_DIAG_DEF(CannotOpenFile)
+SWC_DIAG_DEF(CannotReadFile)
+
+// Tests
+SWC_DIAG_DEF(UnRaisedDirective)
+
+// Lexer errors
+SWC_DIAG_DEF(LexFileNotUtf8)
+SWC_DIAG_DEF(LexUnclosedComment)
+SWC_DIAG_DEF(LexNewlineInStringLiteral)
+SWC_DIAG_DEF(LexUnclosedStringLiteral)
+SWC_DIAG_DEF(LexConsecutiveNumberSeparators)
+SWC_DIAG_DEF(LexLeadingNumberSeparator)
+SWC_DIAG_DEF(LexTrailingNumberSeparator)
+SWC_DIAG_DEF(LexMissingHexDigits)
+SWC_DIAG_DEF(LexMissingBinDigits)
+SWC_DIAG_DEF(LexMissingExponentDigits)
+SWC_DIAG_DEF(LexInvalidBinDigit)
+SWC_DIAG_DEF(LexInvalidEscapeSequence)
+SWC_DIAG_DEF(LexEmptyCharLiteral)
+SWC_DIAG_DEF(LexUnclosedCharLiteral)
+SWC_DIAG_DEF(LexInvalidHexDigit)
+SWC_DIAG_DEF(LexIncompleteHexEscape)
+SWC_DIAG_DEF(LexEmptyHexEscape)
+SWC_DIAG_DEF(LexTooManyCharsInCharLiteral)
+SWC_DIAG_DEF(LexInvalidNumberSuffix)
+SWC_DIAG_DEF(LexInvalidCharacter)
+
+// Parser errors
+SWC_DIAG_DEF(ParserUnterminatedBlock)
+SWC_DIAG_DEF(ParserUnexpectedToken)
+SWC_DIAG_DEF(ParserExpectedToken)
+SWC_DIAG_DEF(ParserExpectedTokenAfter)
+SWC_DIAG_DEF(ParserExpectedTokenFamAfter)

@@ -1,5 +1,4 @@
 #include "pch.h"
-
 #include "Parser/AstNodes.h"
 #include "Parser/Parser.h"
 #include "Report/Diagnostic.h"
@@ -45,8 +44,10 @@ AstNodeRef Parser::parseBlock(AstNodeId nodeId, TokenId endStmt)
         if (is(endStmt))
             consumeTrivia();
         else
-            reportError(DiagnosticId::ParserUnterminatedBlock, openToken)
-                .addArgument("end", Token::toName(Token::toRelated(openToken.id)));
+        {
+            auto diag = reportError(DiagnosticId::ParserUnterminatedBlock, openToken);
+            diag.addArgument(Diagnostic::ARG_END, Token::toName(Token::toRelated(openToken.id)));
+        }
     }
 
     nodePtr->children = ast_->store_.push_span(std::span(stmts.data(), stmts.size()));
@@ -81,7 +82,7 @@ AstNodeRef Parser::parseTopLevelDecl()
     }
 
     const TokenRef curTokenRef = ref();
-    skipUntil({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::StopAfterEol | SkipUntilFlags::DoNotConsume);
+    skipUntil({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::StopAfterEol);
     return ast_->makeNode(AstNodeId::Invalid, curTokenRef);
 }
 

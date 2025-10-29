@@ -1,5 +1,4 @@
 #include "pch.h"
-
 #include "Parser/AstNodes.h"
 #include "Parser/Parser.h"
 
@@ -7,18 +6,26 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseEnum()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNodePtr<AstNodeEnumDecl>(AstNodeId::File, consume());
+    auto [nodeRef, nodePtr] = ast_->makeNodePtr<AstNodeEnumDecl>(AstNodeId::EnumDecl, consume());
 
-    if (isNot(TokenId::Identifier))
+    nodePtr->name = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFamAfter);
+    if (nodePtr->name == INVALID_REF)
+        skipUntil({ TokenId::SymLeftCurly, TokenId::SymColon, TokenId::SymSemiColon });
+
+    auto leftCurly = expect(TokenId::SymLeftCurly, DiagnosticId::ParserExpectedTokenAfter);
+    if (leftCurly == INVALID_REF)
     {
-        expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenAfter);
-        skipUntil({TokenId::SymLeftCurly, TokenId::SymColon}, SkipUntilFlags::DoNotConsume);
+        skipUntil({ TokenId::SymLeftCurly, TokenId::SymRightCurly, TokenId::SymSemiColon });
+        if (isNot(TokenId::SymLeftCurly))
+        {
+            nodePtr->body = INVALID_REF;
+            if (is(TokenId::SymRightCurly) || is(TokenId::SymSemiColon))
+                consume();
+            return nodeRef;
+        }
     }
-    else
-        nodePtr->name = consume();
 
-    SmallVector<AstNodeRef> stmts;
-
+    nodePtr->body = parseBlock(AstNodeId::EnumBody, TokenId::SymRightCurly);
     return nodeRef;
 }
 

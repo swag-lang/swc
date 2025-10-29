@@ -19,10 +19,10 @@ enum class DiagnosticSeverity
 enum class DiagnosticId
 {
     None = 0,
-#define SWC_DIAG_DEF(id, sev, msg) id,
-#include "Report/DiagnosticIds_Errors_.inc"
+#define SWC_DIAG_DEF(id) id,
+#include "Report/DiagnosticIds_Errors_.def"
 
-#include "Report/DiagnosticIds_Notes_.inc"
+#include "Report/DiagnosticIds_Notes_.def"
 
 #undef SWC_DIAG_DEF
 };
@@ -35,19 +35,19 @@ struct DiagnosticIdInfo
     std::string_view   msg;
 };
 
-constexpr DiagnosticIdInfo DIAGNOSTIC_INFOS[] = {
-    {.id = DiagnosticId::None, .severity = DiagnosticSeverity::Error, .name = "", .msg = ""},
-#define SWC_DIAG_DEF(id, sev, msg) {DiagnosticId::id, DiagnosticSeverity::sev, #id, msg},
-#include "DiagnosticIds_Errors_.inc"
-
-#include "DiagnosticIds_Notes_.inc"
-
-#undef SWC_DIAG_DEF
-};
+DiagnosticIdInfo DIAGNOSTIC_INFOS[];
 
 class Diagnostic
 {
+    struct Argument
+    {
+        std::string_view                      name;
+        std::variant<Utf8, uint64_t, int64_t> val;
+        bool                                  quoted;
+    };
+
     std::vector<std::shared_ptr<DiagnosticElement>> elements_;
+    std::vector<Argument>                           arguments_;
     std::optional<SourceFile*>                      fileOwner_ = std::nullopt;
     const Context*                                  context_   = nullptr;
 
@@ -82,7 +82,8 @@ class Diagnostic
     static Utf8             partStyle(const Context& ctx, DiagPart p, DiagnosticSeverity sev);
     static std::string_view severityStr(DiagnosticSeverity s);
     static uint32_t         digits(uint32_t n);
-    static void             expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements);
+
+    void expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements) const;
 
     static void writeSubLabel(Utf8& out, const Context& ctx, DiagnosticSeverity sev, std::string_view msg, uint32_t gutterW);
     static void writeFileLocation(Utf8& out, const Context& ctx, const std::string& path, uint32_t line, uint32_t col, uint32_t len, uint32_t gutterW);
@@ -91,14 +92,23 @@ class Diagnostic
     static void writeGutterSep(Utf8& out, const Context& ctx, uint32_t gutterW);
     static void writeCodeLine(Utf8& out, const Context& ctx, uint32_t gutterW, uint32_t lineNo, std::string_view code);
     static void writeFullUnderline(Utf8& out, const Context& ctx, DiagnosticSeverity sev, const Utf8& msg, uint32_t gutterW, uint32_t columnOneBased, uint32_t underlineLen);
-    static void writeCodeBlock(Utf8& out, const Context& ctx, const DiagnosticElement& el, uint32_t gutterW);
+
+    Utf8 message(const DiagnosticElement& el) const;
+    void writeCodeBlock(Utf8& out, const Context& ctx, const DiagnosticElement& el, uint32_t gutterW) const;
 
     Utf8 build(const Context& ctx) const;
     void report(const Context& ctx) const;
 
+    Utf8 argumentToString(const Argument& arg) const;
+
 public:
-    constexpr static std::string_view ARG_TOK     = "{tok}";
+    constexpr static std::string_view ARG_TOK      = "{tok}";
+    constexpr static std::string_view ARG_END      = "{end}";
+    constexpr static std::string_view ARG_TOK_FAM  = "{tok-fam}";
+    constexpr static std::string_view ARG_A_TOK_FAM = "{a-tok-fam}";
     constexpr static std::string_view ARG_EXPECT  = "{expect}";
+    constexpr static std::string_view ARG_EXPECT_FAM = "{expect-fam}";
+    constexpr static std::string_view ARG_A_EXPECT_FAM = "{a-expect-fam}";
     constexpr static std::string_view ARG_AFTER   = "{after}";
     constexpr static std::string_view ARG_REASON  = "{reason}";
     constexpr static std::string_view ARG_PATH    = "{path}";
@@ -128,11 +138,12 @@ public:
     DiagnosticElement& last() const { return *elements_.back(); }
 
     template<typename T>
-    Diagnostic addArgument(std::string_view name, T&& arg)
+    void addArgument(std::string_view name, T&& arg, bool quoted = true)
     {
-        last().addArgument(name, std::forward<T>(arg));
-        return *this;
+        arguments_.emplace_back(Argument{name, std::forward<T>(arg), quoted});
     }
+
+    void addArgument(std::string_view name, std::string_view arg, bool quoted = true);
 
     static Diagnostic raise(const Context& ctx, DiagnosticId id, std::optional<SourceFile*> fileOwner = std::nullopt)
     {

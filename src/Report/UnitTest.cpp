@@ -95,7 +95,7 @@ void UnitTest::tokenizeExpected(const Context& ctx, const LexTrivia& trivia, std
         }
 
         // Location
-        directive.myLoc.fromOffset(ctx, file,
+        directive.myLoc.fromOffset(ctx, *file,
                                    trivia.token.byteStart + static_cast<uint32_t>(pos),
                                    static_cast<uint32_t>(LangSpec::VERIFY_COMMENT_EXPECTED.size()) + static_cast<uint32_t>(word.size()));
         directive.loc = directive.myLoc;
@@ -145,7 +145,7 @@ Result UnitTest::tokenize(const Context& ctx)
     // Parse all comments to find a verify directive
     for (const auto& trivia : file_->lexOut().trivia())
     {
-        const std::string_view comment = trivia.token.toString(file_);
+        const std::string_view comment = trivia.token.toString(*file_);
         tokenizeExpected(ctx, trivia, comment);
         tokenizeOption(ctx, comment);
     }

@@ -1,8 +1,7 @@
 #include "pch.h"
 #include "Lexer/LangSpec.h"
+#include "Lexer/Token.h"
 #include "Core/Hash.h"
-
-#include "Lexer/Keyword.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -14,12 +13,16 @@ void LangSpec::setup()
 
 void LangSpec::setupKeywords()
 {
-#define SWC_KEYWORD_DEF(__name, __id, __flags) \
-    keywordMap_.insert_or_assign(__name, hash(__name), {__name, TokenId::__id, KeywordIdFlags::__flags});
+#define SWC_TOKEN_DEF(__id, __name, __flags) \
+    if(has_any(TokenIdFlags::__flags, TokenIdFlags::ReservedWord)) \
+    { \
+        keywordMap_.insert_or_assign(__name, hash(__name), TokenId::__id); \
+        keywordIdMap_[TokenId::__id] = __name; \
+    }   
 
-#include "KeywordIds.inc"
+#include "TokenIds.inc"
 
-#undef SWC_KEYWORD_DEF
+#undef SWC_TOKEN_DEF
 }
 
 void LangSpec::setupCharFlags()
@@ -127,18 +130,7 @@ TokenId LangSpec::keyword(std::string_view name, uint64_t hash)
     const auto ptr = keywordMap_.find(name, hash);
     if (!ptr)
         return TokenId::Identifier;
-    return ptr->id;
-}
-
-std::string_view LangSpec::keywordName(TokenId tknId)
-{
-    for (const auto& [name, id, flags] : KEYWORD_ID_INFOS)
-    {
-        if (id == tknId)
-            return name;
-    }
-
-    return "";
+    return *ptr;
 }
 
 SWC_END_NAMESPACE()

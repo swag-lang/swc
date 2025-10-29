@@ -1,12 +1,9 @@
-#include <algorithm>
-
 #include "pch.h"
 #include "Core/Timer.h"
 #include "Lexer/SourceFile.h"
 #include "Main/Context.h"
 #include "Parser/Parser.h"
 #include "Report/Stats.h"
-#include <any>
 
 SWC_BEGIN_NAMESPACE()
 
@@ -33,7 +30,7 @@ bool Parser::skipUntil(std::initializer_list<TokenId> targets, SkipUntilFlags fl
             // Stop at any target token (top level only).
             if (std::ranges::find(targets, id()) != targets.end())
             {
-                if (!has_any(flags, SkipUntilFlags::DoNotConsume))
+                if (has_any(flags, SkipUntilFlags::Consume))
                     consume();
                 return true;
             }
@@ -75,6 +72,14 @@ bool Parser::skipUntil(std::initializer_list<TokenId> targets, SkipUntilFlags fl
 
     // Hit EOF without finding a sync point.
     return false;
+}
+
+TokenRef Parser::expect(TokenId expected, DiagnosticId diagId)
+{
+    if (is(expected))
+        return ref();
+    (void) reportExpected(expected, diagId);
+    return INVALID_REF;
 }
 
 TokenRef Parser::expectAndConsume(TokenId expected, DiagnosticId diagId)

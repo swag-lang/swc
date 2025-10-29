@@ -49,14 +49,14 @@ void Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len)
     if (rawMode_)
         return;
 
-    const auto diag = Diagnostic::raise(*ctx_, id, ctx_->sourceFile());
+    auto diag = Diagnostic::raise(*ctx_, id, ctx_->sourceFile());
     diag.last().setLocation(ctx_->sourceFile(), offset, len);
 
     // Add an argument with the token string
     if (len)
     {
         const std::string_view tkn = ctx_->sourceFile()->codeView(offset, len);
-        diag.last().addArgument(Diagnostic::ARG_TOK, tkn);
+        diag.addArgument(Diagnostic::ARG_TOK, tkn);
     }
 }
 
@@ -401,7 +401,7 @@ void Lexer::lexCharacterLiteral()
         // Check for EOL
         if (buffer_[0] == '\n' || buffer_[0] == '\r')
         {
-            reportTokenError(DiagnosticId::LexUnclosedCharLiteral, static_cast<uint32_t>(startToken_ - startBuffer_));
+            reportTokenError(DiagnosticId::LexUnclosedCharLiteral, static_cast<uint32_t>(startToken_ - startBuffer_), static_cast<uint32_t>(buffer_ - startToken_));
             pushToken();
             eatOneEol();
             return;
@@ -418,7 +418,7 @@ void Lexer::lexCharacterLiteral()
 
     // Check for EOF
     if (buffer_ >= endBuffer_)
-        reportTokenError(DiagnosticId::LexUnclosedCharLiteral, static_cast<uint32_t>(startToken_ - startBuffer_));
+        reportTokenError(DiagnosticId::LexUnclosedCharLiteral, static_cast<uint32_t>(startToken_ - startBuffer_), static_cast<uint32_t>(buffer_ - startToken_));
 
     // Consume closing quote if present
     if (buffer_[0] == '\'')

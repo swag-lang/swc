@@ -43,15 +43,15 @@ public:
     bool isEscape(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Escape); }
     bool isOption(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Option); }
 
-    TokenId                 keyword(std::string_view name, uint64_t hash);
-    static std::string_view keywordName(TokenId tknId);
+    TokenId keyword(std::string_view name, uint64_t hash);
 
     static constexpr std::string_view VERIFY_COMMENT_OPTION   = "swc-option";
     static constexpr std::string_view VERIFY_COMMENT_EXPECTED = "swc-expected-";
 
 private:
-    CharFlags                charFlags_[256];
-    StringMap<KeywordIdInfo> keywordMap_;
+    CharFlags          charFlags_[256];
+    StringMap<TokenId> keywordMap_;
+    std::unordered_map<TokenId, std::string_view> keywordIdMap_;
 
     void setupKeywords();
     void setupCharFlags();

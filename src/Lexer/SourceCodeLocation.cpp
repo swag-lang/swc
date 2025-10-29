@@ -43,16 +43,16 @@ namespace
     }
 }
 
-void SourceCodeLocation::fromOffset(const Context& ctx, const SourceFile* inFile, uint32_t inOffset, uint32_t inLen)
+void SourceCodeLocation::fromOffset(const Context& ctx, const SourceFile& inFile, uint32_t inOffset, uint32_t inLen)
 {
-    if (!inFile || inOffset >= inFile->content().size() || inLen == 0)
+    if (inOffset >= inFile.content().size() || inLen == 0)
         return;
 
-    file   = inFile;
+    file   = &inFile;
     offset = inOffset;
     len    = inLen;
 
-    const auto& lines = inFile->lexOut().lines();
+    const auto& lines = inFile.lexOut().lines();
     if (lines.empty())
         return;
 
@@ -64,7 +64,7 @@ void SourceCodeLocation::fromOffset(const Context& ctx, const SourceFile* inFile
     {
         // Offset is before the first line start
         line   = 1;
-        column = calculateColumn(ctx, inFile->content().data(), 0, inOffset);
+        column = calculateColumn(ctx, inFile.content().data(), 0, inOffset);
     }
     else
     {
@@ -77,7 +77,7 @@ void SourceCodeLocation::fromOffset(const Context& ctx, const SourceFile* inFile
         line = static_cast<uint32_t>(lineIndex + 1);
 
         // Column is the offset from the start of the line (1-based)
-        column = calculateColumn(ctx, inFile->content().data(), lineStartOffset, inOffset);
+        column = calculateColumn(ctx, inFile.content().data(), lineStartOffset, inOffset);
     }
 }
 

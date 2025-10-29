@@ -1,6 +1,5 @@
 #include "pch.h"
 
-#include "Core/Utf8Helper.h"
 #include "Diagnostic.h"
 #include "DiagnosticElement.h"
 

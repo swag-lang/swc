@@ -1,5 +1,4 @@
 #pragma once
-// ReSharper disable CppInconsistentNaming
 
 #include <algorithm>
 #include <array>
@@ -25,6 +24,7 @@
 #include <variant>
 #include <vector>
 
+// ReSharper disable CppInconsistentNaming
 namespace fs = std::filesystem;
 
 // clang-format off

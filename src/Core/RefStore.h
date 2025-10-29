@@ -223,9 +223,9 @@ private:
     {
         Page* page = cur_ ? cur_ : newPage();
 
-        // Attempt on current page
-        uint32_t off        = page->used; // header has no special alignment
-        uint32_t bytesAvail = N - off;
+        // Attempt on the current page
+        uint32_t       off        = page->used; // header has no special alignment
+        const uint32_t bytesAvail = N - off;
 
         const uint32_t dataOffset = data_offset_from_hdr<T>(off);
         const uint32_t padBytes   = dataOffset - (off + static_cast<uint32_t>(sizeof(SpanHdrRaw)));
@@ -233,9 +233,8 @@ private:
         // If we can't fit header+pad+one T, start a fresh page (header at 0)
         if (sizeof(SpanHdrRaw) + padBytes + sizeof(T) > bytesAvail)
         {
-            page       = newPage();
-            off        = 0;
-            bytesAvail = N;
+            page = newPage();
+            off  = 0;
         }
 
         // Recompute for (potentially) new page
@@ -327,7 +326,7 @@ public:
         }
 
         // Given a header on some page and remaining elements, compute this chunk's count.
-        static uint32_t chunk_count_from_layout(const RefStore* st, Ref hdrRef, uint32_t remaining)
+        static uint32_t chunk_count_from_layout(Ref hdrRef, uint32_t remaining)
         {
             uint32_t pageIndex, off;
             decodeRef(hdrRef, pageIndex, off);
@@ -378,15 +377,14 @@ public:
                 }
 
                 // Next chunk starts at the beginning of the next page
-                uint32_t pageIndex, off;
-                Ref      cur = hdrRef;
-                Ref      nextHdr;
+                uint32_t  pageIndex, off;
+                const Ref cur = hdrRef;
                 decodeRef(cur, pageIndex, off);
-                nextHdr = makeRef(pageIndex + 1, 0);
+                const Ref nextHdr = makeRef(pageIndex + 1, 0);
 
                 hdrRef                   = nextHdr;
                 const uint32_t remaining = total - done;
-                const uint32_t cnt       = SpanView::chunk_count_from_layout(store, hdrRef, remaining);
+                const uint32_t cnt       = SpanView::chunk_count_from_layout(hdrRef, remaining);
                 const T*       p         = SpanView::data_ptr(store, hdrRef);
                 current                  = {p, cnt};
                 return *this;
@@ -408,7 +406,7 @@ public:
                 return it;
             }
 
-            const uint32_t cnt = chunk_count_from_layout(store_, head_, it.total);
+            const uint32_t cnt = chunk_count_from_layout(head_, it.total);
             const T*       p   = data_ptr(store_, head_);
             it.current         = {p, cnt};
             return it;
@@ -465,7 +463,7 @@ public:
                 curHdr = makeRef(pageIndex + 1, 0);
 
                 const uint32_t remaining = total - done;
-                leftInChunk              = SpanView::chunk_count_from_layout(store, curHdr, remaining);
+                leftInChunk              = SpanView::chunk_count_from_layout(curHdr, remaining);
                 curPtr                   = SpanView::data_ptr(store, curHdr);
                 return *this;
             }
@@ -494,7 +492,7 @@ public:
             if (tot == 0)
                 return {store_, INVALID_REF, nullptr, 0, 0, 0};
 
-            const uint32_t cnt = chunk_count_from_layout(store_, head_, tot);
+            const uint32_t cnt = chunk_count_from_layout(head_, tot);
             const T*       p   = data_ptr(store_, head_);
             return {store_, head_, p, cnt, 0, tot};
         }

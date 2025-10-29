@@ -35,7 +35,7 @@ struct DiagnosticIdInfo
     std::string_view   msg;
 };
 
-DiagnosticIdInfo DIAGNOSTIC_INFOS[];
+extern DiagnosticIdInfo g_Diagnostic_Infos[];
 
 class Diagnostic
 {
@@ -85,7 +85,7 @@ class Diagnostic
 
     void expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements) const;
 
-    static void writeSubLabel(Utf8& out, const Context& ctx, DiagnosticSeverity sev, std::string_view msg, uint32_t gutterW);
+    static void writeSubLabel(Utf8& out, const Context& ctx, DiagnosticSeverity sev, std::string_view msg);
     static void writeFileLocation(Utf8& out, const Context& ctx, const std::string& path, uint32_t line, uint32_t col, uint32_t len, uint32_t gutterW);
     static void writeGutter(Utf8& out, const Context& ctx, uint32_t gutterW);
     static void writeHighlightedMessage(Utf8& out, const Context& ctx, DiagnosticSeverity sev, std::string_view msg, const Utf8& reset);
@@ -152,9 +152,9 @@ public:
         return diag;
     }
 
-    static std::string_view   diagIdMessage(DiagnosticId id) { return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].msg; }
-    static std::string_view   diagIdName(DiagnosticId id) { return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].name; }
-    static DiagnosticSeverity diagIdSeverity(DiagnosticId id) { return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].severity; }
+    static std::string_view   diagIdMessage(DiagnosticId id) { return g_Diagnostic_Infos[static_cast<size_t>(id)].msg; }
+    static std::string_view   diagIdName(DiagnosticId id) { return g_Diagnostic_Infos[static_cast<size_t>(id)].name; }
+    static DiagnosticSeverity diagIdSeverity(DiagnosticId id) { return g_Diagnostic_Infos[static_cast<size_t>(id)].severity; }
 };
 
 SWC_END_NAMESPACE()

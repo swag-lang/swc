@@ -69,11 +69,11 @@ struct Token
     static std::string_view toAFamily(TokenId tknId);
     static TokenId          toRelated(TokenId tkn);
 
-    bool isSymbol() const { return has_any(Token::toFlags(id), TokenIdFlags::Symbol); }
-    bool isKeyword() const { return has_any(Token::toFlags(id), TokenIdFlags::Keyword); }
-    bool isCompiler() const { return has_any(Token::toFlags(id), TokenIdFlags::Compiler); }
-    bool isIntrinsic() const { return has_any(Token::toFlags(id), TokenIdFlags::Intrinsic); }
-    bool isType() const { return has_any(Token::toFlags(id), TokenIdFlags::Type); }
+    bool isSymbol() const { return has_any(toFlags(id), TokenIdFlags::Symbol); }
+    bool isKeyword() const { return has_any(toFlags(id), TokenIdFlags::Keyword); }
+    bool isCompiler() const { return has_any(toFlags(id), TokenIdFlags::Compiler); }
+    bool isIntrinsic() const { return has_any(toFlags(id), TokenIdFlags::Intrinsic); }
+    bool isType() const { return has_any(toFlags(id), TokenIdFlags::Type); }
     bool isReserved() const { return isKeyword() || isCompiler() || isIntrinsic() || isType(); }
 };
 

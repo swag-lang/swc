@@ -13,7 +13,7 @@ SWC_BEGIN_NAMESPACE()
 
 Result CompilerInstance::cmdSyntax()
 {
-    Context ctx(context_);
+    const Context ctx(context_);
 
     // Syntax source files must be defined
     if (context_.cmdLine_->directories.empty() && context_.cmdLine_->files.empty())

@@ -47,7 +47,7 @@ class Parser
         consume();
     }
 
-    TokenRef expect(TokenId expected, DiagnosticId diagId = DiagnosticId::None);
+    TokenRef expect(TokenId expected, DiagnosticId diagId = DiagnosticId::None) const;
     TokenRef expectAndConsume(TokenId expected, DiagnosticId diagId = DiagnosticId::None);
 
     const Token& tok() const { return *curToken_; }

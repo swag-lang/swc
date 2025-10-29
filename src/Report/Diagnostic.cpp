@@ -13,7 +13,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-DiagnosticIdInfo DIAGNOSTIC_INFOS[] = {
+DiagnosticIdInfo g_Diagnostic_Infos[] = {
     {.id = DiagnosticId::None, .severity = DiagnosticSeverity::Error, .name = "", .msg = ""},
 #define SWC_DIAG_DEF(id, sev, msg) {DiagnosticId::id, DiagnosticSeverity::sev, #id, msg},
 #include "DiagnosticIds_Errors_.msg"
@@ -353,7 +353,7 @@ void Diagnostic::writeCodeLine(Utf8& out, const Context& ctx, uint32_t gutterW, 
     out += "\n";
 }
 
-void Diagnostic::writeSubLabel(Utf8& out, const Context& ctx, DiagnosticSeverity sev, std::string_view msg, uint32_t gutterW)
+void Diagnostic::writeSubLabel(Utf8& out, const Context& ctx, DiagnosticSeverity sev, std::string_view msg)
 {
     out += partStyle(ctx, DiagPart::SubLabelPrefix, sev);
     out += severityStr(sev);
@@ -380,7 +380,7 @@ void Diagnostic::writeFullUnderline(Utf8& out, const Context& ctx, DiagnosticSev
     out += " ";
 
     // Message
-    writeSubLabel(out, ctx, sev, msg, gutterW);
+    writeSubLabel(out, ctx, sev, msg);
 }
 
 // Renders a single element's location/code/underline block
@@ -488,7 +488,7 @@ Utf8 Diagnostic::build(const Context& ctx) const
         else
         {
             out.append(gutterW, ' ');
-            writeSubLabel(out, ctx, sev, msg, gutterW);
+            writeSubLabel(out, ctx, sev, msg);
         }
     }
 
@@ -639,12 +639,12 @@ void Diagnostic::addArgument(std::string_view name, std::string_view arg, bool q
     }
 
     // Replace if the same argument already exists
-    for (auto& arg : arguments_)
+    for (auto& a : arguments_)
     {
-        if (arg.name == name)
+        if (a.name == name)
         {
-            arg.val    = std::move(sanitized);
-            arg.quoted = quoted;
+            a.val    = std::move(sanitized);
+            a.quoted = quoted;
             return;
         }
     }

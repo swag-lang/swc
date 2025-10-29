@@ -74,7 +74,7 @@ bool Parser::skipUntil(std::initializer_list<TokenId> targets, SkipUntilFlags fl
     return false;
 }
 
-TokenRef Parser::expect(TokenId expected, DiagnosticId diagId)
+TokenRef Parser::expect(TokenId expected, DiagnosticId diagId) const
 {
     if (is(expected))
         return ref();

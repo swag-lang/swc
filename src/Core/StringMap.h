@@ -144,9 +144,9 @@ private:
     void rehash_(size_t new_cap_pow2)
     {
         new_cap_pow2 = next_pow2_(new_cap_pow2);
-        std::vector<uint8_t> new_ctrl(new_cap_pow2, EMPTY);
-        std::vector<Slot>    new_slots(new_cap_pow2);
-        const size_t         new_mask = new_cap_pow2 - 1;
+        std::vector       new_ctrl(new_cap_pow2, EMPTY);
+        std::vector<Slot> new_slots(new_cap_pow2);
+        const size_t      new_mask = new_cap_pow2 - 1;
 
         // Move entries
         for (size_t i = 0; i < slots_.size(); ++i)
@@ -195,7 +195,7 @@ private:
             rehash_(capacity() ? capacity() * 2 : INIT_CAP);
 
         const uint8_t fp         = fingerprint_(hash);
-        size_t        idx        = static_cast<size_t>(hash) & mask_;
+        size_t        idx        = hash & mask_;
         uint8_t       dist       = 0;
         size_t        first_tomb = INVALID_POS;
 
@@ -326,7 +326,7 @@ private:
         if (slots_.empty())
             return false;
         const uint8_t fp   = fingerprint_(hash);
-        size_t        idx  = static_cast<size_t>(hash) & mask_;
+        size_t        idx  = hash & mask_;
         uint8_t       dist = 0;
 
         while (true)

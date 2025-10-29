@@ -22,7 +22,7 @@ class UnitTest
     std::vector<UnitTestDirective> directives_;
 
     static void tokenizeOption(const Context& ctx, std::string_view comment);
-    void        tokenizeExpected(const Context& ctx, const TriviaSpan& trivia, std::string_view comment);
+    void        tokenizeExpected(const Context& ctx, const LexTrivia& trivia, std::string_view comment);
 
 protected:
     friend class SourceFile;

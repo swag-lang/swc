@@ -4,10 +4,6 @@ SWC_BEGIN_NAMESPACE();
 
 class SourceFile;
 
-//------------------------------------
-// Token ids information's
-//------------------------------------
-
 enum class TokenIdFlags : uint32_t
 {
     Zero   = 0,
@@ -38,10 +34,6 @@ constexpr std::array TOKEN_ID_INFOS = {
 #undef SWC_TOKEN_DEF
 };
 
-//------------------------------------
-// Tokens
-//------------------------------------
-
 enum class TokenFlags : uint16_t
 {
     Zero        = 0,
@@ -52,7 +44,6 @@ enum class TokenFlags : uint16_t
 };
 SWC_ENABLE_BITMASK(TokenFlags);
 
-#pragma pack(push, 1)
 struct Token
 {
     uint32_t byteStart  = 0; // Byte offset in the source file buffer
@@ -66,6 +57,5 @@ struct Token
     static std::string_view toName(TokenId tknId);
     static TokenId          toRelated(TokenId tkn);
 };
-#pragma pack(pop)
 
 SWC_END_NAMESPACE();

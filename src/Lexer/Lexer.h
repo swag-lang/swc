@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/StringMap.h"
 #include "Core/Types.h"
 #include "Lexer/Token.h"
 
@@ -11,7 +12,6 @@ class Global;
 class SourceFile;
 class LangSpec;
 
-// Flags controlling lexer behavior
 enum class LexerFlags : uint32_t
 {
     Default,
@@ -19,92 +19,81 @@ enum class LexerFlags : uint32_t
 };
 SWC_ENABLE_BITMASK(LexerFlags);
 
-// Represents a piece of trivia (whitespace/comments) with position info
-struct TriviaSpan
+struct LexTrivia
 {
-    TokenRef tokenRef; // Reference to the main token this trivia is associated with
-    Token    token;    // The actual trivia token
+    TokenRef tokenRef;
+    Token    token;
 };
 
-// Container for lexer output - tokens, trivia, and line positions
+struct LexIdentifier
+{
+    uint64_t hash      = 0;
+    uint32_t byteStart = 0; // Byte offset in the source file buffer
+};
+
 class LexerOutput
 {
 protected:
     friend class Lexer;
     friend class Parser;
-    std::vector<Token>      tokens_; // Main token stream
-    std::vector<TriviaSpan> trivia_; // Whitespace and comments
-    std::vector<uint32_t>   lines_;  // Byte offsets of each line start
+    std::vector<Token>         tokens_;
+    std::vector<LexTrivia>     trivia_;
+    std::vector<uint32_t>      lines_;
+    std::vector<LexIdentifier> identifiers_;
 
 public:
-    const std::vector<TriviaSpan>& trivia() const { return trivia_; }
-    const std::vector<Token>&      tokens() const { return tokens_; }
-    const std::vector<uint32_t>&   lines() const { return lines_; }
+    const std::vector<LexTrivia>&     trivia() const { return trivia_; }
+    const std::vector<Token>&         tokens() const { return tokens_; }
+    const std::vector<uint32_t>&      lines() const { return lines_; }
+    const std::vector<LexIdentifier>& identifiers() const { return identifiers_; }
 };
 
 // Main lexer class - converts source text into tokens
 class Lexer
 {
-    Token token_     = {}; // Current token being built
-    Token prevToken_ = {}; // Previous token for context-sensitive parsing
+    Token               token_     = {};
+    Token               prevToken_ = {};
+    StringMap<uint32_t> identifierMap_;
 
-    SourceFile*     file_          = nullptr; // Source file being lexed
+    SourceFile*     file_          = nullptr;
     LexerFlags      lexerFlags_    = LexerFlags::Default;
-    const uint8_t*  buffer_        = nullptr; // Current position in source
-    const uint8_t*  startBuffer_   = nullptr; // Start of source buffer
-    const uint8_t*  endBuffer_     = nullptr; // End of source buffer
-    const uint8_t*  startToken_    = nullptr; // Start position of the current token
-    Context*        ctx_           = nullptr; // Compilation context
-    const LangSpec* langSpec_      = nullptr; // Language specification (character classes, keywords)
-    bool            hasTokenError_ = false;   // Current token has an error
-    bool            hasUtf8Error_  = false;   // UTF-8 decoding error occurred
-    bool            rawMode_       = false;   // Raw mode (for extracting comments/trivia only)
+    const uint8_t*  buffer_        = nullptr;
+    const uint8_t*  startBuffer_   = nullptr;
+    const uint8_t*  endBuffer_     = nullptr;
+    const uint8_t*  startToken_    = nullptr;
+    Context*        ctx_           = nullptr;
+    const LangSpec* langSpec_      = nullptr;
+    bool            hasTokenError_ = false;
+    bool            hasUtf8Error_  = false;
+    bool            rawMode_       = false;
 
-    // Check if character is a terminator after escape char in string/char literal
     static bool isTerminatorAfterEscapeChar(uint8_t c, TokenId container);
 
-    // Consume one logical end-of-line (handles CRLF, CR, LF)
     void eatOneEol();
-
-    // Consume one UTF-8 character
     void eatUtf8Char();
-
-    // Add current token to output stream
     void pushToken();
-
-    // Report UTF-8 decoding error
     void reportUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len = 1);
-
-    // Report lexical error in current token
     void reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len = 1);
-
-    // Check for BOM (Byte Order Mark) and validate file encoding
     void checkFormat(const Context& ctx, uint32_t& startOffset);
-
-    // Parse escape sequence (\n, \t, \xHH, \uHHHH, \UHHHHHHHH)
     void lexEscape(TokenId containerToken, bool eatEol);
 
-    // Individual token lexing methods
-    void lexEol();                     // End of line
-    void lexBlank();                   // Whitespace
-    void lexSingleLineStringLiteral(); // "string"
-    void lexMultiLineStringLiteral();  // """string"""
-    void lexRawStringLiteral();        // #"string"#
-    void lexCharacterLiteral();        // 'c'
-    void lexHexNumber();               // 0xABCD
-    void lexBinNumber();               // 0b1010
-    void lexDecimalNumber();           // 123, 123.456, 1.23e10
-    void lexNumber();                  // Dispatch to a specific number lexer
-    void lexOperator();                // Operators and punctuation
-    void lexIdentifier();              // Identifiers and keywords
-    void lexSingleLineComment();       // // comment
-    void lexMultiLineComment();        // /* comment */
+    void lexEol();
+    void lexBlank();
+    void lexSingleLineStringLiteral();
+    void lexMultiLineStringLiteral();
+    void lexRawStringLiteral();
+    void lexCharacterLiteral();
+    void lexHexNumber();
+    void lexBinNumber();
+    void lexDecimalNumber();
+    void lexNumber();
+    void lexOperator();
+    void lexIdentifier();
+    void lexSingleLineComment();
+    void lexMultiLineComment();
 
 public:
-    // Main tokenization entry point
     Result tokenize(Context& ctx, LexerFlags flags = LexerFlags::Default);
-
-    // Tokenize including all trivia (for comment extraction)
     Result tokenizeRaw(Context& ctx);
 };
 

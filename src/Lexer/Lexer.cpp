@@ -1,5 +1,6 @@
 #include "pch.h"
 
+#include "Core/Hash.h"
 #include "Core/Timer.h"
 #include "Core/Utf8Helper.h"
 #include "Lexer/LangSpec.h"
@@ -675,14 +676,33 @@ void Lexer::lexNumber()
 
 void Lexer::lexIdentifier()
 {
-    token_.id = TokenId::Identifier;
-
+    // Get identifier name
     buffer_++;
     while (langSpec_->isIdentifierPart(buffer_[0]))
         buffer_++;
 
     const auto name = std::string_view(reinterpret_cast<std::string_view::const_pointer>(startToken_), buffer_ - startToken_);
-    token_.id       = LangSpec::keyword(name);
+
+    // Is this a keyword?
+    const uint64_t hash64 = hash(name);
+    token_.id             = ctx_->global().langSpec().keyword(name, hash64);
+
+    if (token_.id == TokenId::Identifier)
+    {
+        auto idx             = static_cast<uint32_t>(file_->lexOut_.identifiers_.size());
+        auto [ptr, inserted] = identifierMap_.try_emplace(name, hash64, idx);
+        if (!inserted)
+        {
+            idx = *ptr;
+        }
+        else
+        {
+            SWC_ASSERT(*ptr == idx);
+            file_->lexOut_.identifiers_.push_back({.hash = hash64, .byteStart = token_.byteStart});
+        }
+        token_.byteStart = *ptr;
+    }
+
     pushToken();
 }
 

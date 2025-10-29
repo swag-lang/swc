@@ -8,7 +8,17 @@ SWC_BEGIN_NAMESPACE();
 
 std::string_view Token::toString(const SourceFile* file) const
 {
-    return {reinterpret_cast<const char*>(file->content().data()) + byteStart, reinterpret_cast<const char*>(file->content().data()) + byteStart + byteLength};
+    auto start = reinterpret_cast<const char*>(file->content().data());
+
+    // In the case of an identifier, 'byteStart' is the index in the file identifier table.
+    // And the real 'byteStart' is stored in that table
+    if (id == TokenId::Identifier)
+    {
+        const auto offset = file->lexOut().identifiers()[byteStart].byteStart;
+        return {start + offset, static_cast<size_t>(byteLength)};
+    }
+
+    return {start + byteStart, static_cast<size_t>(byteLength)};
 }
 
 std::string_view Token::toName(TokenId tknId)

@@ -1,10 +1,28 @@
 #include "pch.h"
 #include "Lexer/LangSpec.h"
+#include "Core/Hash.h"
+
 #include "Lexer/Keyword.h"
 
 SWC_BEGIN_NAMESPACE();
 
 void LangSpec::setup()
+{
+    setupKeywords();
+    setupCharFlags();
+}
+
+void LangSpec::setupKeywords()
+{
+#define SWC_KEYWORD_DEF(__name, __id, __flags) \
+    keywordMap_.insert_or_assign(__name, hash(__name), {__name, TokenId::__id, KeywordIdFlags::__flags});
+
+#include "KeywordIds.inc"
+
+#undef SWC_KEYWORD_DEF
+}
+
+void LangSpec::setupCharFlags()
 {
     // Initialize all flags to 0
     for (auto& charFlag : charFlags_)
@@ -104,9 +122,12 @@ bool LangSpec::isBlank(const uint8_t* buffer, const uint8_t* end, uint32_t& offs
     return false;
 }
 
-TokenId LangSpec::keyword(std::string_view name)
+TokenId LangSpec::keyword(std::string_view name, uint64_t hash)
 {
-    return KEYWORD_TABLE.find(name);
+    const auto ptr = keywordMap_.find(name, hash);
+    if (!ptr)
+        return TokenId::Identifier;
+    return ptr->id;
 }
 
 std::string_view LangSpec::keywordName(TokenId tknId)

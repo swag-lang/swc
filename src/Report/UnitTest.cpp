@@ -64,7 +64,7 @@ void UnitTest::tokenizeOption(const Context& ctx, std::string_view comment)
     }
 }
 
-void UnitTest::tokenizeExpected(const Context& ctx, const TriviaSpan& trivia, std::string_view comment)
+void UnitTest::tokenizeExpected(const Context& ctx, const LexTrivia& trivia, std::string_view comment)
 {
     const auto  file     = ctx.sourceFile();
     const auto& langSpec = ctx.global().langSpec();

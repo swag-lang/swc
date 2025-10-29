@@ -1,5 +1,7 @@
 #pragma once
 #include "Core/Flags.h"
+#include "Core/StringMap.h"
+#include "Lexer/KeywordTable.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -41,14 +43,18 @@ public:
     bool isEscape(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Escape); }
     bool isOption(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Option); }
 
-    static TokenId          keyword(std::string_view name);
+    TokenId                 keyword(std::string_view name, uint64_t hash);
     static std::string_view keywordName(TokenId tknId);
 
     static constexpr std::string_view VERIFY_COMMENT_OPTION   = "swc-option";
     static constexpr std::string_view VERIFY_COMMENT_EXPECTED = "swc-expected-";
 
 private:
-    CharFlags charFlags_[256];
+    CharFlags                charFlags_[256];
+    StringMap<KeywordIdInfo> keywordMap_;
+
+    void setupKeywords();
+    void setupCharFlags();
 };
 
 SWC_END_NAMESPACE();

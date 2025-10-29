@@ -64,7 +64,7 @@ public:
     // Wake all jobs currently waiting on this job (even before finishing).
     void wakeDependents() const;
 
-    std::function<JobResult(Context&)> func_;
+    std::function<JobResult(Context&)> func;
 
 protected:
     Context ctx_;

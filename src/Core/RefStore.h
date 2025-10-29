@@ -384,7 +384,7 @@ public:
 
                 hdrRef                   = nextHdr;
                 const uint32_t remaining = total - done;
-                const uint32_t cnt       = SpanView::chunk_count_from_layout(hdrRef, remaining);
+                const uint32_t cnt       = chunk_count_from_layout(hdrRef, remaining);
                 const T*       p         = SpanView::data_ptr(store, hdrRef);
                 current                  = {p, cnt};
                 return *this;
@@ -463,7 +463,7 @@ public:
                 curHdr = makeRef(pageIndex + 1, 0);
 
                 const uint32_t remaining = total - done;
-                leftInChunk              = SpanView::chunk_count_from_layout(curHdr, remaining);
+                leftInChunk              = chunk_count_from_layout(curHdr, remaining);
                 curPtr                   = SpanView::data_ptr(store, curHdr);
                 return *this;
             }

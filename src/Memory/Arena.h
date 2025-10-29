@@ -10,13 +10,13 @@ class Arena
         size_t used;
 
         explicit Block(size_t n) :
-            ptr(static_cast<char*>(::operator new(n))),
+            ptr(static_cast<char*>(operator new(n))),
             size(n),
             used(0)
         {
         }
 
-        ~Block() { ::operator delete(ptr); }
+        ~Block() { operator delete(ptr); }
     };
 
     std::vector<std::unique_ptr<Block>> blocks_;

@@ -409,7 +409,7 @@ void JobManager::workerLoop()
         JobResult res;
         try
         {
-            res = rec->job->func_(rec->job->ctx_);
+            res = rec->job->func(rec->job->ctx_);
         }
         catch (...)
         {

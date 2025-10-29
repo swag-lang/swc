@@ -36,8 +36,8 @@ Result CompilerInstance::cmdSyntax()
 
     for (const auto& f : global.fileMgr().files())
     {
-        auto job   = std::make_shared<Job>(context_);
-        job->func_ = [f](Context& fnCtx) {
+        auto job  = std::make_shared<Job>(context_);
+        job->func = [f](Context& fnCtx) {
             Parser parser;
             fnCtx.setSourceFile(f);
             parser.parse(fnCtx);

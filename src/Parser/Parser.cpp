@@ -15,9 +15,8 @@ bool Parser::skipUntil(std::initializer_list<TokenId> targets, SkipUntilFlags fl
 
     while (!atEnd())
     {
-        const auto& tok = *curToken_;
-
-        const bool atTopLevel = (parenDepth | squareDepth | braceDepth) == 0;
+        const auto& tok        = *curToken_;
+        const bool  atTopLevel = (parenDepth | squareDepth | braceDepth) == 0;
 
         if (atTopLevel)
         {

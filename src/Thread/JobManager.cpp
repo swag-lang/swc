@@ -299,10 +299,10 @@ void JobManager::notifyDependents(JobRecord* finished)
 JobRecord* JobManager::popReadyLocked()
 {
     static constexpr int ORDER[] =
-    {
-        static_cast<int>(JobPriority::High),
-        static_cast<int>(JobPriority::Normal),
-        static_cast<int>(JobPriority::Low)};
+        {
+            static_cast<int>(JobPriority::High),
+            static_cast<int>(JobPriority::Normal),
+            static_cast<int>(JobPriority::Low)};
 
     for (const int idx : ORDER)
     {
@@ -421,8 +421,8 @@ void JobManager::workerLoop()
             std::unique_lock lk(mtx_);
 
             const bool lostWakePrevented =
-            (res == JobResult::Sleep) &&
-            (rec->wakeGen.load(std::memory_order_acquire) != wakeAtStart);
+                (res == JobResult::Sleep) &&
+                (rec->wakeGen.load(std::memory_order_acquire) != wakeAtStart);
 
             switch (res)
             {

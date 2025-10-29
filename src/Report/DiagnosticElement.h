@@ -28,7 +28,7 @@ public:
         id_(id),
         severity_(severity)
     {
-    }    
+    }
 
     void setLocation(const SourceFile* file)
     {

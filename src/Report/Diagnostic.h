@@ -102,22 +102,22 @@ class Diagnostic
     Utf8 argumentToString(const Argument& arg) const;
 
 public:
-    constexpr static std::string_view ARG_TOK      = "{tok}";
-    constexpr static std::string_view ARG_END      = "{end}";
-    constexpr static std::string_view ARG_TOK_FAM  = "{tok-fam}";
-    constexpr static std::string_view ARG_A_TOK_FAM = "{a-tok-fam}";
-    constexpr static std::string_view ARG_EXPECT  = "{expect}";
-    constexpr static std::string_view ARG_EXPECT_FAM = "{expect-fam}";
+    constexpr static std::string_view ARG_TOK          = "{tok}";
+    constexpr static std::string_view ARG_END          = "{end}";
+    constexpr static std::string_view ARG_TOK_FAM      = "{tok-fam}";
+    constexpr static std::string_view ARG_A_TOK_FAM    = "{a-tok-fam}";
+    constexpr static std::string_view ARG_EXPECT       = "{expect}";
+    constexpr static std::string_view ARG_EXPECT_FAM   = "{expect-fam}";
     constexpr static std::string_view ARG_A_EXPECT_FAM = "{a-expect-fam}";
-    constexpr static std::string_view ARG_AFTER   = "{after}";
-    constexpr static std::string_view ARG_REASON  = "{reason}";
-    constexpr static std::string_view ARG_PATH    = "{path}";
-    constexpr static std::string_view ARG_ARG     = "{arg}";
-    constexpr static std::string_view ARG_COMMAND = "{command}";
-    constexpr static std::string_view ARG_VALUE   = "{value}";
-    constexpr static std::string_view ARG_VALUES  = "{values}";
-    constexpr static std::string_view ARG_LONG    = "{long}";
-    constexpr static std::string_view ARG_SHORT   = "{short}";
+    constexpr static std::string_view ARG_AFTER        = "{after}";
+    constexpr static std::string_view ARG_REASON       = "{reason}";
+    constexpr static std::string_view ARG_PATH         = "{path}";
+    constexpr static std::string_view ARG_ARG          = "{arg}";
+    constexpr static std::string_view ARG_COMMAND      = "{command}";
+    constexpr static std::string_view ARG_VALUE        = "{value}";
+    constexpr static std::string_view ARG_VALUES       = "{values}";
+    constexpr static std::string_view ARG_LONG         = "{long}";
+    constexpr static std::string_view ARG_SHORT        = "{short}";
 
     explicit Diagnostic(const Context& context, const std::optional<SourceFile*>& fileOwner = std::nullopt) :
         fileOwner_(fileOwner),

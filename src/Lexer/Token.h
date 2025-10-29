@@ -7,15 +7,15 @@ class SourceFile;
 
 enum class TokenIdFlags : uint32_t
 {
-    Zero   = 0,
-    Symbol = 1 << 0,
-    Keyword = 1 << 1,
-    Trivia = 1 << 2,
-    Compiler = 1 << 3,
-    Intrinsic = 1 << 4,
-    Type = 1 << 5,
-    Literal = 1 << 6,
-    Modifier = 1 << 7,
+    Zero         = 0,
+    Symbol       = 1 << 0,
+    Keyword      = 1 << 1,
+    Trivia       = 1 << 2,
+    Compiler     = 1 << 3,
+    Intrinsic    = 1 << 4,
+    Type         = 1 << 5,
+    Literal      = 1 << 6,
+    Modifier     = 1 << 7,
     ReservedWord = Keyword | Compiler | Intrinsic | Type | Modifier,
 };
 SWC_ENABLE_BITMASK(TokenIdFlags);

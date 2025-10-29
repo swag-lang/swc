@@ -409,25 +409,25 @@ void Diagnostic::writeCodeBlock(Utf8& out, const Context& ctx, const DiagnosticE
     writeGutterSep(out, ctx, gutterW);
 }
 
-    Utf8 Diagnostic::message(const DiagnosticElement& el) const
+Utf8 Diagnostic::message(const DiagnosticElement& el) const
+{
+    auto result = el.message();
+
+    // Replace placeholders in reverse order to avoid issues with %10 versus %1
+    for (int i = static_cast<int>(arguments_.size()) - 1; i >= 0; --i)
     {
-        auto result = el.message();
+        Utf8 replacement = argumentToString(arguments_[i]);
 
-        // Replace placeholders in reverse order to avoid issues with %10 versus %1
-        for (int i = static_cast<int>(arguments_.size()) - 1; i >= 0; --i)
+        size_t pos = 0;
+        while ((pos = result.find(arguments_[i].name, pos)) != Utf8::npos)
         {
-            Utf8 replacement = argumentToString(arguments_[i]);
-
-            size_t pos = 0;
-            while ((pos = result.find(arguments_[i].name, pos)) != Utf8::npos)
-            {
-                result.replace(pos, arguments_[i].name.length(), replacement);
-                pos += replacement.length();
-            }
+            result.replace(pos, arguments_[i].name.length(), replacement);
+            pos += replacement.length();
         }
-
-        return result;
     }
+
+    return result;
+}
 
 Utf8 Diagnostic::build(const Context& ctx) const
 {
@@ -586,7 +586,7 @@ void Diagnostic::report(const Context& ctx) const
 // Helper function to convert variant argument to string
 Utf8 Diagnostic::argumentToString(const Argument& arg) const
 {
-    return std::visit([&]<typename T0>(const T0 & value) -> Utf8 {
+    return std::visit([&]<typename T0>(const T0& value) -> Utf8 {
         using T = std::decay_t<T0>;
         Utf8 result;
         if constexpr (std::is_same_v<T, Utf8>)
@@ -600,7 +600,7 @@ Utf8 Diagnostic::argumentToString(const Argument& arg) const
 
         return result;
     },
-        arg.val);
+                      arg.val);
 }
 
 void Diagnostic::addArgument(std::string_view name, std::string_view arg, bool quoted)
@@ -622,7 +622,7 @@ void Diagnostic::addArgument(std::string_view name, std::string_view arg, bool q
         if (wc < 128 && !std::isprint(static_cast<int>(wc)))
         {
             char hex[10];
-            (void)std::snprintf(hex, sizeof(hex), "<0x%02X>", wc);
+            (void) std::snprintf(hex, sizeof(hex), "<0x%02X>", wc);
             sanitized += hex;
             ptr = buf;
         }
@@ -643,13 +643,13 @@ void Diagnostic::addArgument(std::string_view name, std::string_view arg, bool q
     {
         if (arg.name == name)
         {
-            arg.val = std::move(sanitized);
+            arg.val    = std::move(sanitized);
             arg.quoted = quoted;
             return;
         }
     }
 
-    arguments_.emplace_back(Argument{ .name = name, .val = std::move(sanitized), .quoted = quoted });
+    arguments_.emplace_back(Argument{.name = name, .val = std::move(sanitized), .quoted = quoted});
 }
 
 SWC_END_NAMESPACE();

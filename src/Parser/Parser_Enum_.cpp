@@ -10,12 +10,12 @@ AstNodeRef Parser::parseEnum()
 
     nodePtr->name = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFamAfter);
     if (nodePtr->name == INVALID_REF)
-        skipUntil({ TokenId::SymLeftCurly, TokenId::SymColon, TokenId::SymSemiColon });
+        skipUntil({TokenId::SymLeftCurly, TokenId::SymColon, TokenId::SymSemiColon});
 
-    auto leftCurly = expect(TokenId::SymLeftCurly, DiagnosticId::ParserExpectedTokenAfter);
+    const auto leftCurly = expect(TokenId::SymLeftCurly, DiagnosticId::ParserExpectedTokenAfter);
     if (leftCurly == INVALID_REF)
     {
-        skipUntil({ TokenId::SymLeftCurly, TokenId::SymRightCurly, TokenId::SymSemiColon });
+        skipUntil({TokenId::SymLeftCurly, TokenId::SymRightCurly, TokenId::SymSemiColon});
         if (isNot(TokenId::SymLeftCurly))
         {
             nodePtr->body = INVALID_REF;

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Lexer/LangSpec.h"
-#include "Lexer/Token.h"
 #include "Core/Hash.h"
+#include "Lexer/Token.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -13,12 +13,12 @@ void LangSpec::setup()
 
 void LangSpec::setupKeywords()
 {
-#define SWC_TOKEN_DEF(__id, __name, __flags) \
-    if(has_any(TokenIdFlags::__flags, TokenIdFlags::ReservedWord)) \
-    { \
+#define SWC_TOKEN_DEF(__id, __name, __flags)                               \
+    if (has_any(TokenIdFlags::__flags, TokenIdFlags::ReservedWord))        \
+    {                                                                      \
         keywordMap_.insert_or_assign(__name, hash(__name), TokenId::__id); \
-        keywordIdMap_[TokenId::__id] = __name; \
-    }   
+        keywordIdMap_[TokenId::__id] = __name;                             \
+    }
 
 #include "TokenIds.inc"
 

@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Lexer/SourceFile.h"
 #include "Lexer/SourceCodeLocation.h"
+#include "Lexer/SourceFile.h"
 #include "Parser/Parser.h"
 #include "Report/Diagnostic.h"
 

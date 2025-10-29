@@ -24,14 +24,14 @@ std::string_view Token::toString(const SourceFile& file) const
 SourceCodeLocation Token::toLocation(const Context& ctx, const SourceFile& file) const
 {
     SourceCodeLocation loc;
-    uint32_t offset;
+    uint32_t           offset;
     if (id == TokenId::Identifier)
         offset = file.lexOut().identifiers()[byteStart].byteStart;
     else
         offset = byteStart;
     loc.fromOffset(ctx, file, offset, byteLength);
     return loc;
-}    
+}
 
 std::string_view Token::toName(TokenId tknId)
 {
@@ -43,7 +43,7 @@ std::string_view Token::toFamily(TokenId tknId)
     const auto& infos = TOKEN_ID_INFOS[static_cast<size_t>(tknId)];
     if (has_any(infos.flags, TokenIdFlags::Symbol))
         return "symbol";
-    if(tknId == TokenId::Identifier)
+    if (tknId == TokenId::Identifier)
         return "identifier";
     if (has_any(infos.flags, TokenIdFlags::Keyword))
         return "keyword";

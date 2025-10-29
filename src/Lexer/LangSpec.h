@@ -49,8 +49,8 @@ public:
     static constexpr std::string_view VERIFY_COMMENT_EXPECTED = "swc-expected-";
 
 private:
-    CharFlags          charFlags_[256];
-    StringMap<TokenId> keywordMap_;
+    CharFlags                                     charFlags_[256];
+    StringMap<TokenId>                            keywordMap_;
     std::unordered_map<TokenId, std::string_view> keywordIdMap_;
 
     void setupKeywords();

@@ -102,7 +102,7 @@ public:
     }
 
     SmallVector& operator=(SmallVector&& other) noexcept(
-    std::allocator_traits<Alloc>::is_always_equal::value && std::is_nothrow_move_constructible_v<T>)
+        std::allocator_traits<Alloc>::is_always_equal::value && std::is_nothrow_move_constructible_v<T>)
     {
         if (this == &other)
             return *this;

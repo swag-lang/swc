@@ -1,7 +1,7 @@
 // ReSharper disable CppInconsistentNaming
 #pragma once
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 template<class E>
 struct enable_bitmask_operators : std::false_type
@@ -89,4 +89,4 @@ constexpr bool has_any(E value, E mask) noexcept
     return static_cast<bool>(to_underlying(value & mask));
 }
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

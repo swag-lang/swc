@@ -1,6 +1,6 @@
 #pragma once
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 namespace Utf8Helper
 {
@@ -16,4 +16,4 @@ namespace Utf8Helper
     bool             startsWith(std::string_view s, std::string_view pfx, bool matchCase = false);
 }
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

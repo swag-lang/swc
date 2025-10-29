@@ -8,7 +8,7 @@
 #include "Report/Stats.h"
 #include <any>
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 bool Parser::skipUntil(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
 {
@@ -121,4 +121,4 @@ Result Parser::parse(Context& ctx)
     return file_->hasErrors() ? Result::Error : Result::Success;
 }
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

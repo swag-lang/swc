@@ -1,7 +1,7 @@
 #pragma once
 #include "Core/Types.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 class SourceFile;
 
@@ -39,4 +39,4 @@ struct AstNode
     }
 };
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

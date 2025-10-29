@@ -3,7 +3,7 @@
 #include "Core/Types.h"
 #include "Parser/AstNode.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 class Ast
 {
@@ -43,4 +43,4 @@ public:
     }
 };
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

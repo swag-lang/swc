@@ -2,7 +2,7 @@
 #include "Main/Context.h"
 #include <functional>
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 class Job;
 using JobRef = std::shared_ptr<Job>;
@@ -121,4 +121,4 @@ private:
     }
 };
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

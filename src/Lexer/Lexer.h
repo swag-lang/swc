@@ -3,7 +3,7 @@
 #include "Core/Types.h"
 #include "Lexer/Token.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 enum class DiagnosticId;
 class Diagnostic;
@@ -97,4 +97,4 @@ public:
     Result tokenizeRaw(Context& ctx);
 };
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

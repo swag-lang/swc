@@ -4,7 +4,7 @@
 #include "Parser/Parser.h"
 #include "Report/Diagnostic.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseBlock(AstNodeId nodeId, TokenId endStmt)
 {
@@ -85,4 +85,4 @@ AstNodeRef Parser::parseTopLevelDecl()
     return ast_->makeNode(AstNodeId::Invalid, curTokenRef);
 }
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Utf8Helper.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 // Returns {next_ptr, code_point, bytes_consumed}.
 // On error: {nullptr, 0, 0}.
@@ -204,4 +204,4 @@ bool Utf8Helper::startsWith(std::string_view s, std::string_view pfx, bool match
     return true;
 }
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

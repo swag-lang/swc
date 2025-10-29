@@ -3,7 +3,7 @@
 #include "Core/StringMap.h"
 #include "Lexer/KeywordTable.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 enum class TokenId : uint16_t;
 
@@ -57,4 +57,4 @@ private:
     void setupCharFlags();
 };
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

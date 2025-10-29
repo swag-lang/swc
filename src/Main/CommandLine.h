@@ -1,5 +1,5 @@
 #pragma once
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 inline constexpr auto ALLOWED_COMMANDS = "syntax|format";
 enum class Command
@@ -29,4 +29,4 @@ struct CommandLine
     bool               verify = true;
 };
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

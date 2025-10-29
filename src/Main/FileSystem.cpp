@@ -2,7 +2,7 @@
 #include "Main/FileSystem.h"
 #include "Report/Diagnostic.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 Result FileSystem::resolveFolder(const Context& ctx, fs::path& folder)
 {
@@ -131,4 +131,4 @@ void FileSystem::collectSwagFilesRec(const fs::path& folder, std::vector<fs::pat
     }
 }
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

@@ -9,7 +9,7 @@
 #include "Thread/Job.h"
 #include "Thread/JobManager.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 Result CompilerInstance::cmdSyntax()
 {
@@ -59,4 +59,4 @@ Result CompilerInstance::cmdSyntax()
     return result;
 }
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

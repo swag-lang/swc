@@ -1,6 +1,6 @@
 #pragma once
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 class Context;
 
@@ -27,4 +27,4 @@ struct LogSymbolHelper
     static Utf8 toString(const Context& ctx, LogSymbol symbol);
 };
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

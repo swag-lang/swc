@@ -9,7 +9,7 @@
 #include "Main/Global.h"
 #include "Report/UnitTest.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 void UnitTest::tokenizeOption(const Context& ctx, std::string_view comment)
 {
@@ -201,4 +201,4 @@ Result UnitTest::verifyUntouchedExpected(const Context& ctx) const
     return file_->hasErrors() ? Result::Error : Result::Success;
 }
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

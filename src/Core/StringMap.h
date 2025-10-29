@@ -8,7 +8,7 @@ SWC_BEGIN_NAMESPACE()
 // - You must pass a precomputed 64-bit hash for every operation.
 // - Robin Hood hashing + control-byte fingerprint for speed and predictability.
 // - Auto-resizing at 87.5% load (power-of-two capacities).
-// - Requires: T is trivially copyable & trivially destructible (POD-friendly).
+// - Requires: T is trivially copyable and trivially destructible (POD-friendly).
 template<class T>
 class StringMap
 {
@@ -75,16 +75,6 @@ public:
         return find(key, hash) != nullptr;
     }
 
-    // Erase with precomputed hash (returns true if removed).
-    bool erase(std::string_view key, uint64_t hash)
-    {
-        size_t idx;
-        if (!find_index_(key, hash, idx))
-            return false;
-        erase_at_(idx);
-        return true;
-    }
-
     void reserve(size_t n_elems)
     {
         const size_t need_cap = static_cast<size_t>(static_cast<double>(n_elems) / MAX_LOAD) + 1;
@@ -95,7 +85,7 @@ public:
     void clear()
     {
         // For POD T, no destructor work needed. Just mark everything EMPTY.
-        std::fill(ctrl_.begin(), ctrl_.end(), EMPTY);
+        std::ranges::fill(ctrl_, EMPTY);
         size_ = 0;
     }
 
@@ -221,7 +211,7 @@ private:
                 s.hash        = hash;
                 s.key         = key;
                 s.dist        = dist;
-                on_insert(s.value); // direct write
+                on_insert(s.value); // directly write
                 ++size_;
                 return {&s.value, true};
             }
@@ -281,7 +271,7 @@ private:
                         }
                     }
 
-                    // Swap with resident at idx and keep inserting the displaced one.
+                    // Swap with a resident at idx and keep inserting the displaced one.
                     uint8_t new_fp = fp;
                     std::swap(ctrl_[idx], new_fp);
 
@@ -367,27 +357,6 @@ private:
         if (!find_index_(key, hash, idx))
             return nullptr;
         return &slots_[idx].value;
-    }
-
-    // Backward-shift deletion to preserve probe chains (no destruction for POD).
-    void erase_at_(size_t idx)
-    {
-        ctrl_[idx] = TOMB;
-
-        size_t next = (idx + 1) & mask_;
-        while (is_occupied_(ctrl_[next]))
-        {
-            if (slots_[next].dist == 0)
-                break;
-            ctrl_[idx]  = ctrl_[next];
-            slots_[idx] = std::move(slots_[next]); // POD move == copy
-            --slots_[idx].dist;
-
-            ctrl_[next] = TOMB;
-            idx         = next;
-            next        = (next + 1) & mask_;
-        }
-        --size_;
     }
 
     static constexpr size_t INVALID_POS = static_cast<size_t>(-1);

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Main/FileManager.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 FileRef FileManager::addFile(fs::path path)
 {
@@ -31,4 +31,4 @@ std::vector<SourceFile*> FileManager::files() const
     return result;
 }
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

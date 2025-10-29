@@ -1,7 +1,7 @@
 // ReSharper disable CppNonExplicitConvertingConstructor
 #pragma once
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 class Utf8 : public std::string
 {
@@ -63,4 +63,4 @@ public:
     void makeUpper();
 };
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

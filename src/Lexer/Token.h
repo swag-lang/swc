@@ -1,6 +1,6 @@
 #pragma once
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 class SourceFile;
 
@@ -58,4 +58,4 @@ struct Token
     static TokenId          toRelated(TokenId tkn);
 };
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

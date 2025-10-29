@@ -11,7 +11,7 @@
 #include "Report/LogColor.h"
 #include "Report/Logger.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 namespace
 {
@@ -553,4 +553,4 @@ void Diagnostic::report(const Context& ctx) const
     }
 }
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

@@ -4,7 +4,7 @@
 #include "Parser/Parser.h"
 #include "Report/Diagnostic.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 Diagnostic Parser::reportError(DiagnosticId id, const Token& myToken) const
 {
@@ -36,4 +36,4 @@ Diagnostic Parser::reportExpected(TokenId expected, DiagnosticId diagId) const
     return diag;
 }
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

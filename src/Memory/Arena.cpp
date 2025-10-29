@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Memory/Arena.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 void* Arena::allocate(size_t n, size_t align)
 {
@@ -33,4 +33,4 @@ void Arena::shrinkToFit()
     blocks_.shrink_to_fit();
 }
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

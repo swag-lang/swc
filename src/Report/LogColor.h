@@ -1,6 +1,6 @@
 #pragma once
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 class Context;
 
@@ -33,4 +33,4 @@ namespace LogColorHelper
     Utf8 toAnsi(const Context& ctx, LogColor c);
 }
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

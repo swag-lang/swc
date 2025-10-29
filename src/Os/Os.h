@@ -1,5 +1,5 @@
 #pragma once
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 namespace Os
 {
@@ -9,4 +9,4 @@ namespace Os
     Utf8 systemError();
 }
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

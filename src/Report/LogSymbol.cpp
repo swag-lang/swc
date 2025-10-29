@@ -4,7 +4,7 @@
 #include "Main/Context.h"
 #include "Report/LogSymbol.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 Utf8 LogSymbolHelper::toString(const Context& ctx, LogSymbol symbol)
 {
@@ -44,4 +44,4 @@ Utf8 LogSymbolHelper::toString(const Context& ctx, LogSymbol symbol)
     return "?";
 }
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

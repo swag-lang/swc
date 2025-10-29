@@ -71,4 +71,4 @@ public:
     Result parse(Context& ctx);
 };
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

@@ -1,7 +1,7 @@
 #pragma once
 #include "Parser/AstNode.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 struct AstNodeBlock : AstNode
 {
@@ -21,4 +21,4 @@ struct AstNodeEnumDecl : AstNode
     AstNodeRef members;
 };
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

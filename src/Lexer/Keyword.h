@@ -1,7 +1,7 @@
 #pragma once
 #include "Lexer/KeywordTable.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 enum class KeywordIdFlags : uint32_t
 {
@@ -18,4 +18,4 @@ constexpr std::array<KeywordIdInfo, 249> KEYWORD_ID_INFOS = {{
 
 constexpr KeywordTable<1024> KEYWORD_TABLE{KEYWORD_ID_INFOS};
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

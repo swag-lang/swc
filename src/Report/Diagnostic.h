@@ -146,4 +146,4 @@ public:
     static DiagnosticSeverity diagIdSeverity(DiagnosticId id) { return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].severity; }
 };
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

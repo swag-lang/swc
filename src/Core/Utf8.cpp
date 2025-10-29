@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Utf8.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 void Utf8::trimStart()
 {
@@ -34,4 +34,4 @@ void Utf8::makeUpper()
     std::ranges::transform(*this, begin(), [](unsigned char ch) { return static_cast<char>(std::toupper(ch)); });
 }
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

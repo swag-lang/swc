@@ -2,7 +2,7 @@
 #include "Core/Types.h"
 #include "Lexer/SourceFile.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 class FileManager
 {
@@ -22,4 +22,4 @@ public:
     }
 };
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

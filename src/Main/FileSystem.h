@@ -1,5 +1,5 @@
 #pragma once
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 class Context;
 
@@ -12,4 +12,4 @@ namespace FileSystem
     void   collectSwagFilesRec(const fs::path& folder, std::vector<fs::path>& files);
 }
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

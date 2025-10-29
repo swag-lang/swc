@@ -4,7 +4,7 @@
 #include "Main/Context.h"
 #include "Report/LogColor.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 Utf8 LogColorHelper::colorToVts(int r, int g, int b)
 {
@@ -59,4 +59,4 @@ Utf8 LogColorHelper::toAnsi(const Context& ctx, LogColor c)
     }
 }
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

@@ -2,7 +2,7 @@
 // ReSharper disable IdentifierTypo
 #pragma once
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 // wyhash — tiny, simplified
 // Assumptions: 64-bit little-endian; compiler supports __int128.
@@ -117,4 +117,4 @@ inline uint64_t hash(std::string_view v, uint64_t seed = 0xa0761d6478bd642full)
     return wyhash(v.data(), v.size(), seed);
 }
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

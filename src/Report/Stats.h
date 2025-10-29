@@ -1,5 +1,5 @@
 #pragma once
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 class Context;
 
@@ -35,4 +35,4 @@ struct Stats
     void print(const Context& ctx) const;
 };
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

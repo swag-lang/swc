@@ -71,4 +71,4 @@ public:
     Result parse(int argc, char* argv[]);
 };
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

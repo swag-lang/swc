@@ -7,7 +7,7 @@
 #include "Report/Stats.h"
 #include "Thread/JobManager.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 CompilerInstance::CompilerInstance(const CommandLine& cmdLine, const Global& global) :
     context_(cmdLine, global)
@@ -40,4 +40,4 @@ int CompilerInstance::run()
     return 0;
 }
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

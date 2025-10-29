@@ -4,7 +4,7 @@
 #include "Lexer/SourceFile.h"
 #include "Lexer/Token.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 std::string_view Token::toString(const SourceFile* file) const
 {
@@ -45,4 +45,4 @@ TokenId Token::toRelated(TokenId tkn)
     }
 }
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

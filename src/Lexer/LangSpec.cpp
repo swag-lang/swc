@@ -4,7 +4,7 @@
 
 #include "Lexer/Keyword.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 void LangSpec::setup()
 {
@@ -141,4 +141,4 @@ std::string_view LangSpec::keywordName(TokenId tknId)
     return "";
 }
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

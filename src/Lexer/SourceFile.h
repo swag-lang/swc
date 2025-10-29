@@ -4,7 +4,7 @@
 #include "Parser/Parser.h"
 #include "Report/UnitTest.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 class Context;
 class Global;
@@ -62,4 +62,4 @@ public:
     std::string_view codeView(uint32_t offset, uint32_t len) const;
 };
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

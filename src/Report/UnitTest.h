@@ -1,7 +1,7 @@
 #pragma once
 #include "Lexer/SourceCodeLocation.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 class Context;
 class Global;
@@ -37,4 +37,4 @@ public:
     Result verifyUntouchedExpected(const Context& ctx) const;
 };
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

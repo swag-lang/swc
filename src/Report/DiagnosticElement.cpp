@@ -4,7 +4,7 @@
 #include "Diagnostic.h"
 #include "DiagnosticElement.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
 
 DiagnosticElement::DiagnosticElement(DiagnosticId id) :
     id_(id),
@@ -102,4 +102,4 @@ void DiagnosticElement::addArgument(std::string_view name, std::string_view arg)
     arguments_.emplace_back(Argument{.name = name, .val = std::move(sanitized)});
 }
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

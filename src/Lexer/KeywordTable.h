@@ -78,4 +78,4 @@ struct KeywordTable
     }
 };
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE()

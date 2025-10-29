@@ -157,7 +157,7 @@ private:
             Slot moving;
             moving.hash  = slots_[i].hash;
             moving.key   = slots_[i].key;
-            moving.value = std::move(slots_[i].value); // POD move == copy
+            moving.value = std::move(slots_[i].value);
             moving.dist  = 0;
 
             uint8_t fp   = fingerprint_(moving.hash);
@@ -201,7 +201,7 @@ private:
 
         while (true)
         {
-            uint8_t c = ctrl_[idx];
+            const uint8_t c = ctrl_[idx];
 
             if (c == EMPTY)
             {
@@ -250,7 +250,7 @@ private:
 
                         while (true)
                         {
-                            uint8_t cc = ctrl_[ins];
+                            const uint8_t cc = ctrl_[ins];
                             if (cc == EMPTY || cc == TOMB)
                             {
                                 ctrl_[ins]  = carry_fp;
@@ -286,7 +286,7 @@ private:
 
                     while (true)
                     {
-                        uint8_t cc = ctrl_[ins];
+                        const uint8_t cc = ctrl_[ins];
                         if (cc == EMPTY || cc == TOMB)
                         {
                             ctrl_[ins]  = new_fp;

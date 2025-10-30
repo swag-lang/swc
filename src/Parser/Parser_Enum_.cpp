@@ -12,6 +12,18 @@ AstNodeRef Parser::parseEnum()
     if (nodePtr->name == INVALID_REF)
         skipUntil({TokenId::SymLeftCurly, TokenId::SymColon, TokenId::SymSemiColon});
 
+    if (is(TokenId::SymColon))
+    {
+        consumeTrivia();
+
+        const auto before = curToken_;
+        nodePtr->type = parseType();
+        if (nodePtr->type == INVALID_REF)
+            skipUntil({TokenId::SymLeftCurly, TokenId::SymRightCurly, TokenId::SymSemiColon});
+        if (before == curToken_)
+            consume();
+    }
+
     const auto leftCurly = expect(TokenId::SymLeftCurly, DiagnosticId::ParserExpectedTokenAfter);
     if (leftCurly == INVALID_REF)
     {

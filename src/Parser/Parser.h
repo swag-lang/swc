@@ -58,6 +58,7 @@ class Parser
     bool         isNot(TokenId nid) const { return curToken_->id != nid; }
     bool         atEnd() const { return curToken_ >= lastToken_; }
 
+    AstNodeRef parseType();
     AstNodeRef parseEnum();
     AstNodeRef parseTopLevelDecl();
     AstNodeRef parseBlock(AstNodeId nodeId, TokenId endStmt);

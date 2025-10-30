@@ -124,6 +124,7 @@
         <ClCompile Include="src\Parser\Parser_Block_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Enum_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Errors_.cpp"/>
+        <ClCompile Include="src\Parser\Parser_Type_.cpp"/>
         <ClCompile Include="src\pch.cpp">
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>

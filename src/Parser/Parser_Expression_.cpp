@@ -5,7 +5,7 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseExpression()
 {
-    skipTrivia();
+    skipTriviaAndEol();
     return INVALID_REF;
 }
 

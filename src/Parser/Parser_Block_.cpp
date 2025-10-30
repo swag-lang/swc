@@ -12,7 +12,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockId, TokenId blockTokenEnd)
     auto [nodeRef, nodePtr] = ast_->makeNodePtr<AstNodeBlock>(blockId, ref());
     if (blockTokenEnd != TokenId::Invalid)
         consume();
-    skipTrivia();
+    skipTriviaAndEol();
 
     SmallVector<AstNodeRef> stmts;
     while (!atEnd() && isNot(blockTokenEnd))
@@ -44,7 +44,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockId, TokenId blockTokenEnd)
     if (blockTokenEnd != TokenId::Invalid)
     {
         if (is(blockTokenEnd))
-            consumeAsTrivia();
+            consumeTrivia();
         else
         {
             auto diag = reportError(DiagnosticId::ParserUnterminatedBlock, openToken);
@@ -73,14 +73,14 @@ AstNodeRef Parser::parseTopLevelInstruction()
         return INVALID_REF;
 
     case TokenId::SymSemiColon:
-        consumeAsTrivia();
+        consumeTrivia();
         return INVALID_REF;
 
     case TokenId::EndOfLine:
     case TokenId::Blank:
     case TokenId::CommentLine:
     case TokenId::CommentMultiLine:
-        skipTrivia();
+        skipTriviaAndEol();
         return INVALID_REF;
 
     case TokenId::KwdEnum:

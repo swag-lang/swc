@@ -11,21 +11,22 @@ AstNodeRef Parser::parseEnumValue()
     auto [nodeRef, nodePtr] = ast_->makeNodePtr<AstNodeEnumValue>(AstNodeId::EnumValue, ref());
 
     // Name
-    nodePtr->name = expectAndConsume(TokenId::Identifier);
+    nodePtr->name = expectAndConsumeOne(TokenId::Identifier);
     if (isInvalid(nodePtr->name))
         skipTo({TokenId::SymRightCurly, TokenId::SymComma, TokenId::EndOfLine, TokenId::SymSemiColon});
+    skipTrivia();
 
     // Value
     if (is(TokenId::SymEqual))
     {
-        consumeAsTrivia();
+        consumeTrivia();
         nodePtr->value = parseExpression();
         if (isInvalid(nodePtr->value))
             skipTo({TokenId::SymRightCurly, TokenId::SymComma, TokenId::EndOfLine, TokenId::SymSemiColon});
     }
 
     if (is(TokenId::SymComma) || is(TokenId::EndOfLine) || is(TokenId::SymSemiColon))
-        consumeAsTrivia();
+        consumeTrivia();
     else if (isNot(TokenId::SymRightCurly))
     {
         (void) expect(TokenId::SymComma);
@@ -49,7 +50,7 @@ AstNodeRef Parser::parseEnum()
     // Type
     if (is(TokenId::SymColon))
     {
-        consumeAsTrivia();
+        consumeTrivia();
         nodePtr->type = parseType();
         if (isInvalid(nodePtr->type))
             skipTo({TokenId::SymLeftCurly, TokenId::SymRightCurly});

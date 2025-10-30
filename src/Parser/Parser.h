@@ -48,41 +48,19 @@ class Parser
         ~EnsureConsume()
         {
             if (start_ == p_->tokPtr())
-                p_->consume();
+                p_->consumeOne();
         }
     };
 
-    TokenRef consumeOne()
-    {
-        if (atEnd())
-            return INVALID_REF;
-        const auto result = ref();
-        curToken_++;
-        return result;
-    }
-
-    TokenRef consume()
-    {
-        if (atEnd())
-            return INVALID_REF;
-        const auto result = consumeOne();
-        skipTrivia();
-        return result;
-    }
-
-    void skipTrivia()
-    {
-        while (is(TokenId::EndOfLine) || is(TokenId::Blank) || is(TokenId::CommentLine) || is(TokenId::CommentMultiLine))
-            consumeAsTrivia();
-    }
-
-    void consumeAsTrivia()
-    {
-        consume();
-    }
+    TokenRef consumeOne();
+    TokenRef consume();
+    void     skipTrivia();
+    void     skipTriviaAndEol();
+    void     consumeTrivia();
 
     TokenRef expect(TokenId expected, DiagnosticId diagId = DiagnosticId::None) const;
     TokenRef expectAndConsume(TokenId expected, DiagnosticId diagId = DiagnosticId::None);
+    TokenRef expectAndConsumeOne(TokenId expected, DiagnosticId diagId = DiagnosticId::None);
 
     const Token* tokPtr() const { return curToken_; }
     const Token& tok() const { return *curToken_; }

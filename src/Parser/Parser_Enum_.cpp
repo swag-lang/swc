@@ -10,10 +10,12 @@ AstNodeRef Parser::parseEnum()
 
     auto [nodeRef, nodePtr] = ast_->makeNodePtr<AstNodeEnumDecl>(AstNodeId::EnumDecl, consume());
 
+    // Name
     nodePtr->name = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFamAfter);
     if (nodePtr->name == INVALID_REF)
         skipTo({TokenId::SymLeftCurly, TokenId::SymColon, TokenId::SymSemiColon});
 
+    // Type
     if (is(TokenId::SymColon))
     {
         consumeTrivia();
@@ -22,6 +24,7 @@ AstNodeRef Parser::parseEnum()
             skipTo({TokenId::SymLeftCurly, TokenId::SymRightCurly, TokenId::SymSemiColon});
     }
 
+    // Content
     const auto leftCurly = expect(TokenId::SymLeftCurly, DiagnosticId::ParserExpectedTokenAfter);
     if (leftCurly == INVALID_REF)
     {

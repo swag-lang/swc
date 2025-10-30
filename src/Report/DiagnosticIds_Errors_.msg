@@ -40,7 +40,7 @@ SWC_DIAG_DEF(ParserUnterminatedBlock, Error, "unterminated block; expected {end}
 SWC_DIAG_DEF(ParserUnexpectedToken, Error, "unexpected {tok-fam} {tok}")
 SWC_DIAG_DEF(ParserExpectedToken, Error, "expected {expect}; found {tok-fam} {tok}")
 SWC_DIAG_DEF(ParserExpectedTokenAfter, Error, "expected {expect} after {after}, found {tok-fam} {tok}")
-SWC_DIAG_DEF(ParserExpectedTokenFamAfter, Error, "expected {a-expect-fam} after {after}, found {tok-fam} {tok}")
+SWC_DIAG_DEF(ParserExpectedTokenFamAfter, Error, "expected {expect-fam} after {after}, found {tok-fam} {tok}")
 
 
 

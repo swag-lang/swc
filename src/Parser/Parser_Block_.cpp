@@ -26,12 +26,16 @@ AstNodeRef Parser::parseBlock(AstNodeId blockId, TokenId blockTokenEnd)
             stmt = parseTopLevelInstruction();
             break;
 
+        case AstNodeId::EnumBlock:
+            stmt = parseEnumValue();
+            break;
+
         default:
             std::unreachable();
         }
 
         // Be sure instruction has not failed
-        if (stmt != INVALID_REF)
+        if (!isInvalid(stmt))
             stmts.push_back(stmt);
     }
 
@@ -73,6 +77,10 @@ AstNodeRef Parser::parseTopLevelInstruction()
 
     case TokenId::KwdEnum:
         return parseEnum();
+
+    case TokenId::KwdImpl:
+        skipTo({TokenId::SymLeftCurly});
+        return INVALID_REF;
 
     default:
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::StopAfterEol);

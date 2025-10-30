@@ -20,4 +20,10 @@ struct AstNodeEnumDecl : AstNode
     AstNodeRef body;
 };
 
+struct AstNodeEnumValue : AstNode
+{
+    TokenRef   name;
+    AstNodeRef value;
+};
+
 SWC_END_NAMESPACE()

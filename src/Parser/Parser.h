@@ -76,9 +76,11 @@ class Parser
     bool         is(TokenId id0, TokenId id1) const { return curToken_->id == id0 || curToken_->id == id1; }
     bool         isNot(TokenId nid) const { return curToken_->id != nid; }
     bool         atEnd() const { return curToken_ >= lastToken_; }
+    static bool  isInvalid(TokenRef ref) { return ref == INVALID_REF; }
 
     AstNodeRef parseType();
     AstNodeRef parseEnum();
+    AstNodeRef parseEnumValue();
     AstNodeRef parseTopLevelInstruction();
     AstNodeRef parseBlock(AstNodeId blockId, TokenId blockTokenEnd);
     AstNodeRef parseFile();

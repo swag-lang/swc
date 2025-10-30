@@ -52,25 +52,74 @@ class Parser
         }
     };
 
+    const Token*   lastNonTrivia() const;
     TokenRef consumeOne();
     TokenRef consume();
+    bool     consumeIf(TokenId id);
     void     skipTrivia();
     void     skipTriviaAndEol();
     void     consumeTrivia();
 
-    TokenRef expect(TokenId expected, DiagnosticId diagId = DiagnosticId::None) const;
-    TokenRef expectAndConsume(TokenId expected, DiagnosticId diagId = DiagnosticId::None);
-    TokenRef expectAndConsumeOne(TokenId expected, DiagnosticId diagId = DiagnosticId::None);
+    template <typename... TokenIds>
+    bool consumeIfAny(TokenIds... ids)
+    {
+        if (atEnd())
+            return false;
+        return ((consumeIf(ids)) || ...);
+    }
+
+    struct Expect
+    {
+        TokenId tok                = TokenId::Invalid;
+        SmallVector<TokenId> oneOf = {};
+        DiagnosticId diag          = DiagnosticId::ParserExpectedToken;
+        DiagnosticId becauseCtx    = DiagnosticId::None;
+
+        bool valid(TokenId id) const
+        {
+            const bool ok = oneOf.size() ? std::find(oneOf.begin(), oneOf.end(), id) != oneOf.end() : (id == tok);
+            return ok;
+        }
+
+        static Expect One(TokenId tok, DiagnosticId d = DiagnosticId::ParserExpectedToken) 
+        {
+            Expect s; s.tok = tok; s.diag = d; return s;
+        }
+
+        static Expect OneOf(std::initializer_list<TokenId> set, DiagnosticId d = DiagnosticId::ParserExpectedToken) 
+        { 
+            Expect s; s.oneOf = set; s.diag = d; return s; 
+        }
+
+        Expect& because(DiagnosticId b)
+        {
+            becauseCtx = b;
+            return *this;
+        }
+    };
+
+    TokenRef expect(const Expect& expect) const;
+    TokenRef expectAndConsume(const Expect& expect);
+    TokenRef expectAndConsumeOne(const Expect& expect);
+
+    TokenRef expect(TokenId id, DiagnosticId d) { return expect(Expect::One(id, d)); }
+    TokenRef expectAndConsume(TokenId id, DiagnosticId d) { return expectAndConsume(Expect::One(id, d)); }
+    TokenRef expectAndConsumeOne(TokenId id, DiagnosticId d) { return expectAndConsumeOne(Expect::One(id, d)); }
+    TokenRef expectAndConsumeOneOf(std::initializer_list<TokenId> set, DiagnosticId d) { return expectAndConsume(Expect::OneOf(set, d)); }
 
     const Token* tokPtr() const { return curToken_; }
     const Token& tok() const { return *curToken_; }
     TokenRef     ref() const { return static_cast<TokenRef>(curToken_ - firstToken_) + 1; }
     TokenId      id() const { return curToken_->id; }
     bool         is(TokenId id0) const { return curToken_->id == id0; }
-    bool         is(TokenId id0, TokenId id1) const { return curToken_->id == id0 || curToken_->id == id1; }
     bool         isNot(TokenId nid) const { return curToken_->id != nid; }
     bool         atEnd() const { return curToken_ >= lastToken_; }
     static bool  isInvalid(TokenRef ref) { return ref == INVALID_REF; }
+
+    template <typename... TokenIds>
+    bool isAny(TokenIds... ids) const {
+        return ((curToken_->id == ids) || ...);
+    }
 
     AstNodeRef parseExpression();
     AstNodeRef parseType();
@@ -86,7 +135,7 @@ class Parser
 
     void       reportArguments(Diagnostic& diag, const Token& myToken) const;
     Diagnostic reportError(DiagnosticId id, const Token& myToken) const;
-    Diagnostic reportExpected(TokenId expected, DiagnosticId diagId) const;
+    Diagnostic reportExpected(const Expect& expect) const;
 
 public:
     Result parse(Context& ctx);

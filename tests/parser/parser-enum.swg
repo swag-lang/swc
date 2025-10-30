@@ -3,11 +3,12 @@ enum enum { } // swc-expected-error ParserExpectedTokenFamAfter
 enum #ast { } // swc-expected-error ParserExpectedTokenFamAfter
 enum A } // swc-expected-error ParserExpectedTokenAfter
 enum A toto } // swc-expected-error ParserExpectedTokenAfter
-enum A A { C } // swc-expected-error ParserExpectedTokenAfter
-enum A { B B } // swc-expected-error ParserExpectedToken
+enum A B { C } // swc-expected-error ParserExpectedTokenAfter
+enum A { B C } // swc-expected-error ParserExpectedToken
 
 enum A { B, C }
 enum A { B, C, }
+enum A { B,, C }
 
 enum A
 {

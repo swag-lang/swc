@@ -61,6 +61,7 @@ public:
     void clean();
     void makeLower();
     void makeUpper();
+    void replaceOutsideQuotes(std::string_view from, std::string_view to, bool loopReplace = false);
 };
 
 SWC_END_NAMESPACE()

@@ -15,6 +15,8 @@ struct AstNodeBlock : AstNode
 
 struct AstNodeEnumDecl : AstNode
 {
+    AstNodeEnumDecl() : AstNode(AstNodeId::EnumDecl) {}
+
     TokenRef   name;
     AstNodeRef type;
     AstNodeRef body;
@@ -22,6 +24,8 @@ struct AstNodeEnumDecl : AstNode
 
 struct AstNodeEnumValue : AstNode
 {
+    AstNodeEnumValue() : AstNode(AstNodeId::EnumValue) {}
+
     TokenRef   name;
     AstNodeRef value;
 };

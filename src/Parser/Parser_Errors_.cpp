@@ -7,24 +7,14 @@ SWC_BEGIN_NAMESPACE()
 
 void Parser::reportArguments(Diagnostic& diag, const Token& myToken) const
 {
-    if (atEnd())
-    {
-        diag.addArgument(Diagnostic::ARG_TOK, "<eof>");
-        diag.addArgument(Diagnostic::ARG_TOK_FAM, "end of file", false);
-        diag.addArgument(Diagnostic::ARG_A_TOK_FAM, "end of file", false);
-    }
-    else
-    {
-        diag.addArgument(Diagnostic::ARG_TOK, myToken.toString(*file_));
-        diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(myToken.id), false);
-        diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Token::toAFamily(myToken.id), false);
-    }
+    diag.addArgument(Diagnostic::ARG_TOK, myToken.toString(*file_));
+    diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(myToken.id), false);
+    diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Token::toAFamily(myToken.id), false);
 
-    if (curToken_ != firstToken_)
-    {
-        const auto& prevToken = curToken_[-1];
-        diag.addArgument(Diagnostic::ARG_AFTER, prevToken.toString(*file_));
-    }
+    // Get the last non trivia token
+    auto last = lastNonTrivia();
+    if(last)
+        diag.addArgument(Diagnostic::ARG_AFTER, last->toString(*file_));
 }
 
 Diagnostic Parser::reportError(DiagnosticId id, const Token& myToken) const
@@ -35,24 +25,50 @@ Diagnostic Parser::reportError(DiagnosticId id, const Token& myToken) const
     return diag;
 }
 
-Diagnostic Parser::reportExpected(TokenId expected, DiagnosticId diagId) const
+Diagnostic Parser::reportExpected(const Expect& expect) const
 {
-    if (diagId == DiagnosticId::None)
-        diagId = DiagnosticId::ParserExpectedToken;
-    if (expected == TokenId::Identifier && diagId == DiagnosticId::ParserExpectedToken)
-        diagId = DiagnosticId::ParserExpectedTokenFam;
+    // Expected one single token
+    if (expect.tok != TokenId::Invalid)
+    {
+        const auto expected = expect.tok;
 
-    auto diag = reportError(diagId, tok());
-    reportArguments(diag, tok());
+        auto diagId = expect.diag;
+        if (expected == TokenId::Identifier && diagId == DiagnosticId::ParserExpectedToken)
+            diagId = DiagnosticId::ParserExpectedTokenFam;
 
-    diag.addArgument(Diagnostic::ARG_EXPECT, Token::toName(expected));
-    diag.addArgument(Diagnostic::ARG_EXPECT_FAM, Token::toFamily(expected), false);
-    diag.addArgument(Diagnostic::ARG_A_EXPECT_FAM, Token::toAFamily(expected), false);
+        auto diag = reportError(diagId, tok());
+        reportArguments(diag, tok());
 
-    if (expected == TokenId::Identifier && tok().isReserved())
-        diag.addElement(DiagnosticId::ParserReservedAsIdentifier);
+        diag.addArgument(Diagnostic::ARG_EXPECT, Token::toName(expected));
+        diag.addArgument(Diagnostic::ARG_EXPECT_FAM, Token::toFamily(expected), false);
+        diag.addArgument(Diagnostic::ARG_A_EXPECT_FAM, Token::toAFamily(expected), false);
+        diag.addArgument(Diagnostic::ARG_BECAUSE, Diagnostic::diagIdMessage(expect.becauseCtx), false);
 
-    return diag;
+        if (expected == TokenId::Identifier && tok().isReservedWord())
+            diag.addElement(DiagnosticId::ParserReservedAsIdentifier);
+        return diag;
+    }
+
+    // Expected one of multiple tokens
+    else
+    {
+        auto diag = reportError(expect.diag, tok());
+        reportArguments(diag, tok());
+
+        Utf8 msg = "one of ";
+        bool first = true;
+        for (const auto& t : expect.oneOf)
+        {
+            if (!first)
+                msg += ", ";
+            msg += std::format("'{}'", Token::toName(t));
+            first = false;
+        }
+
+        diag.addArgument(Diagnostic::ARG_EXPECT, msg);
+        diag.addArgument(Diagnostic::ARG_BECAUSE, Diagnostic::diagIdMessage(expect.becauseCtx), false);
+        return diag;
+    }
 }
 
 SWC_END_NAMESPACE()

@@ -77,6 +77,19 @@ bool Parser::skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
     return false;
 }
 
+const Token *Parser::lastNonTrivia() const
+{
+    auto scan = curToken_;
+    while (scan != firstToken_)
+    {
+        scan--;
+        if (!scan->isEol() && !scan->isTrivia())
+            return scan;
+    }
+
+    return nullptr;
+}
+
 TokenRef Parser::consumeOne()
 {
     if (atEnd())
@@ -93,6 +106,14 @@ TokenRef Parser::consume()
     const auto result = consumeOne();
     skipTriviaAndEol();
     return result;
+}
+
+bool Parser::consumeIf(TokenId id)
+{
+    if (atEnd() || isNot(id))
+        return false;
+    consumeTrivia();
+    return true;
 }
 
 void Parser::skipTrivia()
@@ -112,27 +133,27 @@ void Parser::consumeTrivia()
     consume();
 }
 
-TokenRef Parser::expect(TokenId expected, DiagnosticId diagId) const
+TokenRef Parser::expect(const Expect& expect) const
 {
-    if (is(expected))
+    if (expect.valid(tok().id))
         return ref();
-    (void) reportExpected(expected, diagId);
+    (void) reportExpected(expect);
     return INVALID_REF;
 }
 
-TokenRef Parser::expectAndConsume(TokenId expected, DiagnosticId diagId)
+TokenRef Parser::expectAndConsume(const Expect& expect)
 {
-    if (is(expected))
+    if (expect.valid(tok().id))
         return consume();
-    (void) reportExpected(expected, diagId);
+    (void) reportExpected(expect);
     return INVALID_REF;
 }
 
-TokenRef Parser::expectAndConsumeOne(TokenId expected, DiagnosticId diagId)
+TokenRef Parser::expectAndConsumeOne(const Expect& expect)
 {
-    if (is(expected))
+    if (expect.valid(tok().id))
         return consumeOne();
-    (void) reportExpected(expected, diagId);
+    (void) reportExpected(expect);
     return INVALID_REF;
 }
 

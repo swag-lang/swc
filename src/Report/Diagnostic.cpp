@@ -14,7 +14,7 @@
 SWC_BEGIN_NAMESPACE()
 
 DiagnosticIdInfo g_Diagnostic_Infos[] = {
-    {.id = DiagnosticId::None, .severity = DiagnosticSeverity::Error, .name = "", .msg = ""},
+    {.id = DiagnosticId::None, .severity = DiagnosticSeverity::Note, .name = "", .msg = ""},
 #define SWC_DIAG_DEF(id, sev, msg) {DiagnosticId::id, DiagnosticSeverity::sev, #id, msg},
 #include "DiagnosticIds_Errors_.msg"
 
@@ -413,18 +413,21 @@ Utf8 Diagnostic::message(const DiagnosticElement& el) const
 {
     auto result = el.message();
 
-    // Replace placeholders in reverse order to avoid issues with %10 versus %1
-    for (int i = static_cast<int>(arguments_.size()) - 1; i >= 0; --i)
+    // Replace placeholders
+    for(const auto& arg: arguments_)
     {
-        Utf8 replacement = argumentToString(arguments_[i]);
-
+        Utf8 replacement = argumentToString(arg);
         size_t pos = 0;
-        while ((pos = result.find(arguments_[i].name, pos)) != Utf8::npos)
+        while ((pos = result.find(arg.name, pos)) != Utf8::npos)
         {
-            result.replace(pos, arguments_[i].name.length(), replacement);
+            result.replace(pos, arg.name.length(), replacement);
             pos += replacement.length();
         }
     }
+
+    // Clean some stuff
+    result.replaceOutsideQuotes(" , ", ", ");
+    result.replaceOutsideQuotes("  ", " ", true);
 
     return result;
 }

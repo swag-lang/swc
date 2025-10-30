@@ -118,6 +118,9 @@ public:
     constexpr static std::string_view ARG_VALUES       = "{values}";
     constexpr static std::string_view ARG_LONG         = "{long}";
     constexpr static std::string_view ARG_SHORT        = "{short}";
+    constexpr static std::string_view ARG_BECAUSE      = "{because}";
+
+    Diagnostic() = default;
 
     explicit Diagnostic(const Context& context, const std::optional<SourceFile*>& fileOwner = std::nullopt) :
         fileOwner_(fileOwner),

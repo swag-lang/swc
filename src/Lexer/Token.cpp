@@ -8,6 +8,11 @@ SWC_BEGIN_NAMESPACE()
 
 std::string_view Token::toString(const SourceFile& file) const
 {
+    if (id == TokenId::EndOfFile)
+        return "end of file";
+    if (id == TokenId::EndOfLine)
+        return "end of line";
+
     auto start = reinterpret_cast<const char*>(file.content().data());
 
     // In the case of an identifier, 'byteStart' is the index in the file identifier table.
@@ -45,6 +50,8 @@ std::string_view Token::toFamily(TokenId tknId)
         return "symbol";
     if (tknId == TokenId::Identifier)
         return "identifier";
+    if (tknId == TokenId::EndOfFile)
+        return "end of file";
     if (has_any(infos.flags, TokenIdFlags::Keyword))
         return "keyword";
     if (has_any(infos.flags, TokenIdFlags::Type))
@@ -66,6 +73,8 @@ std::string_view Token::toAFamily(TokenId tknId)
         return "a symbol";
     if (tknId == TokenId::Identifier)
         return "an identifier";
+    if (tknId == TokenId::EndOfFile)
+        return "a end of file";
     if (has_any(infos.flags, TokenIdFlags::Keyword))
         return "a keyword";
     if (has_any(infos.flags, TokenIdFlags::Type))

@@ -38,7 +38,7 @@ SWC_DIAG_DEF(LexInvalidCharacter, Error, "invalid character {tok}; not allowed i
 
 SWC_DIAG_DEF(ParserUnterminatedBlock, Error, "unterminated block; expected {end} before end of file")
 SWC_DIAG_DEF(ParserUnexpectedToken, Error, "unexpected {tok-fam} {tok}")
-SWC_DIAG_DEF(ParserExpectedToken, Error, "expected {expect}; found {tok-fam} {tok}")
+SWC_DIAG_DEF(ParserExpectedToken, Error, "expected {expect}, found {tok-fam} {tok}")
 SWC_DIAG_DEF(ParserExpectedTokenAfter, Error, "expected {expect} after {after}, found {tok-fam} {tok}")
 SWC_DIAG_DEF(ParserExpectedTokenFamAfter, Error, "expected {expect-fam} after {after}, found {tok-fam} {tok}")
 

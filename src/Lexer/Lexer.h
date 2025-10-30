@@ -50,9 +50,8 @@ public:
 // Main lexer class - converts source text into tokens
 class Lexer
 {
-    Token               token_     = {};
-    Token               prevToken_ = {};
-    StringMap<uint32_t> identifierMap_;
+    Token token_     = {};
+    Token prevToken_ = {};
 
     SourceFile*     file_          = nullptr;
     LexerOutput*    lexOut_        = nullptr;

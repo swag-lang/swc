@@ -692,18 +692,9 @@ void Lexer::lexIdentifier()
 
     if (token_.id == TokenId::Identifier)
     {
-        auto idx             = static_cast<uint32_t>(lexOut_->identifiers_.size());
-        auto [ptr, inserted] = identifierMap_.try_emplace(name, hash64, idx);
-        if (!inserted)
-        {
-            idx = *ptr;
-        }
-        else
-        {
-            SWC_ASSERT(*ptr == idx);
-            lexOut_->identifiers_.push_back({.hash = hash64, .byteStart = token_.byteStart});
-        }
-        token_.byteStart = *ptr;
+        const auto idx = static_cast<uint32_t>(lexOut_->identifiers_.size());
+        lexOut_->identifiers_.push_back({.hash = hash64, .byteStart = token_.byteStart});
+        token_.byteStart = idx;
     }
 
     pushToken();

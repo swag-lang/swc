@@ -35,7 +35,6 @@ class LexerOutput
 {
 protected:
     friend class Lexer;
-    friend class Parser;
     std::vector<Token>         tokens_;
     std::vector<LexTrivia>     trivia_;
     std::vector<uint32_t>      lines_;
@@ -56,6 +55,7 @@ class Lexer
     StringMap<uint32_t> identifierMap_;
 
     SourceFile*     file_          = nullptr;
+    LexerOutput*    lexOut_        = nullptr;
     LexerFlags      lexerFlags_    = LexerFlags::Default;
     const uint8_t*  buffer_        = nullptr;
     const uint8_t*  startBuffer_   = nullptr;

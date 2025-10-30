@@ -117,13 +117,13 @@ Result Parser::parse(Context& ctx)
     SWC_CHECK(file_->unittest_.tokenize(ctx));
     SWC_CHECK(lexer.tokenize(ctx));
 
-    SWC_ASSERT(!file_->lexOut_.tokens_.empty());
+    SWC_ASSERT(!file_->lexOut_.tokens().empty());
     if (file_->hasFlag(FileFlags::LexOnly))
         return Result::Success;
 
     // Parser
-    firstToken_ = &file_->lexOut_.tokens_.front();
-    lastToken_  = &file_->lexOut_.tokens_.back();
+    firstToken_ = &file_->lexOut_.tokens().front();
+    lastToken_  = &file_->lexOut_.tokens().back();
     curToken_   = firstToken_;
 
     ast_->root_ = parseFile();

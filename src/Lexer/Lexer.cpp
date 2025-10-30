@@ -92,7 +92,7 @@ void Lexer::eatOneEol()
         buffer_++;
     }
 
-    file_->lexOut_.lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
+    lexOut_->lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
 }
 
 void Lexer::pushToken()
@@ -103,9 +103,9 @@ void Lexer::pushToken()
 
     // Update previous token's flags before filtering
     // This must happen even for tokens that will be filtered out
-    if (!file_->lexOut_.tokens_.empty())
+    if (!lexOut_->tokens_.empty())
     {
-        auto& back = file_->lexOut_.tokens_.back();
+        auto& back = lexOut_->tokens_.back();
         if (tokenId == TokenId::Blank)
             back.flags |= TokenFlags::BlankAfter;
         else if (tokenId == TokenId::EndOfLine)
@@ -129,18 +129,18 @@ void Lexer::pushToken()
     case TokenId::EndOfLine:
         if (rawMode_ || !has_any(lexerFlags_, LexerFlags::ExtractTrivia))
             return;
-        file_->lexOut_.trivia_.push_back({.tokenRef = static_cast<uint32_t>(file_->lexOut_.tokens_.size()), .token = token_});
+        lexOut_->trivia_.push_back({.tokenRef = static_cast<uint32_t>(lexOut_->tokens_.size()), .token = token_});
         break;
     case TokenId::CommentLine:
     case TokenId::CommentMultiLine:
         if (!rawMode_ && !has_any(lexerFlags_, LexerFlags::ExtractTrivia))
             return;
-        file_->lexOut_.trivia_.push_back({.tokenRef = static_cast<uint32_t>(file_->lexOut_.tokens_.size()), .token = token_});
+        lexOut_->trivia_.push_back({.tokenRef = static_cast<uint32_t>(lexOut_->tokens_.size()), .token = token_});
         break;
     default:
         if (rawMode_)
             return;
-        file_->lexOut_.tokens_.push_back(token_);
+        lexOut_->tokens_.push_back(token_);
         break;
     }
 }
@@ -689,7 +689,7 @@ void Lexer::lexIdentifier()
 
     if (token_.id == TokenId::Identifier)
     {
-        auto idx             = static_cast<uint32_t>(file_->lexOut_.identifiers_.size());
+        auto idx             = static_cast<uint32_t>(lexOut_->identifiers_.size());
         auto [ptr, inserted] = identifierMap_.try_emplace(name, hash64, idx);
         if (!inserted)
         {
@@ -698,7 +698,7 @@ void Lexer::lexIdentifier()
         else
         {
             SWC_ASSERT(*ptr == idx);
-            file_->lexOut_.identifiers_.push_back({.hash = hash64, .byteStart = token_.byteStart});
+            lexOut_->identifiers_.push_back({.hash = hash64, .byteStart = token_.byteStart});
         }
         token_.byteStart = *ptr;
     }
@@ -1185,10 +1185,11 @@ Result Lexer::tokenize(Context& ctx, LexerFlags flags)
     Timer time(&Stats::get().timeLexer);
 #endif
 
-    file_ = ctx.sourceFile();
+    file_   = ctx.sourceFile();
+    lexOut_ = &file_->lexOut_;
 
-    file_->lexOut_.tokens_.clear();
-    file_->lexOut_.lines_.clear();
+    lexOut_->tokens_.clear();
+    lexOut_->lines_.clear();
     prevToken_ = {};
 
     langSpec_   = &ctx.global().langSpec();
@@ -1204,10 +1205,10 @@ Result Lexer::tokenize(Context& ctx, LexerFlags flags)
     endBuffer_      = startBuffer_ + file_->size();
 
     // Reserve space based on file size
-    file_->lexOut_.tokens_.reserve(file_->content().size() / 10);
+    lexOut_->tokens_.reserve(file_->content().size() / 10);
     if (!rawMode_)
-        file_->lexOut_.lines_.reserve(file_->content().size() / 60);
-    file_->lexOut_.lines_.push_back(0);
+        lexOut_->lines_.reserve(file_->content().size() / 60);
+    lexOut_->lines_.push_back(0);
 
     while (buffer_ < endBuffer_)
     {
@@ -1314,11 +1315,11 @@ Result Lexer::tokenize(Context& ctx, LexerFlags flags)
     // End marker
     token_.id         = TokenId::EndOfFile;
     token_.byteLength = 0;
-    file_->lexOut_.tokens_.push_back(token_);
+    lexOut_->tokens_.push_back(token_);
 
 #if SWC_HAS_STATS
     if (!rawMode_)
-        Stats::get().numTokens.fetch_add(file_->lexOut_.tokens_.size());
+        Stats::get().numTokens.fetch_add(lexOut_->tokens_.size());
 #endif
 
     return Result::Success;

@@ -148,7 +148,7 @@ TokenRef Parser::expectAndConsume(const Expect& expect)
     return INVALID_REF;
 }
 
-TokenRef Parser::expectAndConsumeOne(const Expect& expect)
+TokenRef Parser::expectAndConsumeSingle(const Expect& expect)
 {
     if (expect.valid(tok().id))
         return consumeOne();

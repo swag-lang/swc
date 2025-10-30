@@ -28,9 +28,9 @@ Diagnostic Parser::reportError(DiagnosticId id, const Token& myToken) const
 Diagnostic Parser::reportExpected(const Expect& expect) const
 {
     // Expected one single token
-    if (expect.tok != TokenId::Invalid)
+    if (expect.oneTok != TokenId::Invalid)
     {
-        const auto expected = expect.tok;
+        const auto expected = expect.oneTok;
 
         auto diagId = expect.diag;
         if (expected == TokenId::Identifier && diagId == DiagnosticId::ParserExpectedToken)
@@ -57,7 +57,7 @@ Diagnostic Parser::reportExpected(const Expect& expect) const
 
         Utf8 msg   = "one of ";
         bool first = true;
-        for (const auto& t : expect.oneOf)
+        for (const auto& t : expect.manyTok)
         {
             if (!first)
                 msg += ", ";

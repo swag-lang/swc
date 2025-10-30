@@ -6,16 +6,16 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseEnumValue()
 {
-    static constexpr std::initializer_list<TokenId> EnumValueSync = {TokenId::SymRightCurly, TokenId::SymComma, TokenId::EndOfLine, TokenId::Identifier};
+    static constexpr std::initializer_list ENUM_VALUE_SYNC = {TokenId::SymRightCurly, TokenId::SymComma, TokenId::EndOfLine, TokenId::Identifier};
 
     EnsureConsume ec(*this);
 
-    auto [nodeRef, nodePtr] = ast_->makeNodePtr<AstNodeEnumValue>(ref());
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeEnumValue>(ref());
 
     // Name
-    nodePtr->name = expectAndConsumeOne(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFam);
+    nodePtr->name = expectAndConsumeSingle(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFam);
     if (isInvalid(nodePtr->name))
-        skipTo(EnumValueSync);
+        skipTo(ENUM_VALUE_SYNC);
     skipTrivia();
 
     // Value
@@ -23,14 +23,14 @@ AstNodeRef Parser::parseEnumValue()
     {
         nodePtr->value = parseExpression();
         if (isInvalid(nodePtr->value))
-            skipTo(EnumValueSync);
+            skipTo(ENUM_VALUE_SYNC);
     }
 
     // End of value
     if (isNot(TokenId::SymRightCurly) && !consumeIfAny(TokenId::SymComma, TokenId::EndOfLine))
     {
-        (void) expect(Expect::One(TokenId::SymComma, DiagnosticId::ParserExpectedTokenAfter).because(DiagnosticId::BecauseEnumValues));
-        skipTo(EnumValueSync);
+        (void) expect(Expect::one(TokenId::SymComma, DiagnosticId::ParserExpectedTokenAfter).because(DiagnosticId::BecauseEnumValues));
+        skipTo(ENUM_VALUE_SYNC);
     }
 
     return nodeRef;
@@ -38,9 +38,9 @@ AstNodeRef Parser::parseEnumValue()
 
 AstNodeRef Parser::parseEnum()
 {
-    static constexpr std::initializer_list<TokenId> StartEndBlock = {TokenId::SymLeftCurly, TokenId::SymRightCurly};
+    static constexpr std::initializer_list START_END_BLOCK = {TokenId::SymLeftCurly, TokenId::SymRightCurly};
 
-    auto [nodeRef, nodePtr] = ast_->makeNodePtr<AstNodeEnumDecl>(consume());
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeEnumDecl>(consume());
 
     // Name
     nodePtr->name = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFamAfter);
@@ -52,14 +52,14 @@ AstNodeRef Parser::parseEnum()
     {
         nodePtr->type = parseType();
         if (isInvalid(nodePtr->type))
-            skipTo(StartEndBlock);
+            skipTo(START_END_BLOCK);
     }
 
     // Content
-    const auto leftCurly = expect(Expect::One(TokenId::SymLeftCurly, DiagnosticId::ParserExpectedTokenAfter).because(DiagnosticId::BecauseStartEnumBody));
+    const auto leftCurly = expect(Expect::one(TokenId::SymLeftCurly, DiagnosticId::ParserExpectedTokenAfter).because(DiagnosticId::BecauseStartEnumBody));
     if (isInvalid(leftCurly))
     {
-        skipTo(StartEndBlock);
+        skipTo(START_END_BLOCK);
         if (isNot(TokenId::SymLeftCurly))
         {
             nodePtr->body = INVALID_REF;

@@ -70,30 +70,30 @@ class Parser
 
     struct Expect
     {
-        TokenId              tok        = TokenId::Invalid;
-        SmallVector<TokenId> oneOf      = {};
+        TokenId              oneTok     = TokenId::Invalid;
+        SmallVector<TokenId> manyTok    = {};
         DiagnosticId         diag       = DiagnosticId::ParserExpectedToken;
         DiagnosticId         becauseCtx = DiagnosticId::None;
 
         bool valid(TokenId id) const
         {
-            const bool ok = oneOf.size() ? std::find(oneOf.begin(), oneOf.end(), id) != oneOf.end() : (id == tok);
+            const bool ok = manyTok.empty() ? (id == oneTok) : std::ranges::find(manyTok, id) != manyTok.end();
             return ok;
         }
 
-        static Expect One(TokenId tok, DiagnosticId d = DiagnosticId::ParserExpectedToken)
+        static Expect one(TokenId tok, DiagnosticId d = DiagnosticId::ParserExpectedToken)
         {
             Expect s;
-            s.tok  = tok;
-            s.diag = d;
+            s.oneTok = tok;
+            s.diag   = d;
             return s;
         }
 
-        static Expect OneOf(std::initializer_list<TokenId> set, DiagnosticId d = DiagnosticId::ParserExpectedToken)
+        static Expect oneOf(std::initializer_list<TokenId> set, DiagnosticId d = DiagnosticId::ParserExpectedToken)
         {
             Expect s;
-            s.oneOf = set;
-            s.diag  = d;
+            s.manyTok = set;
+            s.diag    = d;
             return s;
         }
 
@@ -106,12 +106,12 @@ class Parser
 
     TokenRef expect(const Expect& expect) const;
     TokenRef expectAndConsume(const Expect& expect);
-    TokenRef expectAndConsumeOne(const Expect& expect);
+    TokenRef expectAndConsumeSingle(const Expect& expect);
 
-    TokenRef expect(TokenId id, DiagnosticId d) { return expect(Expect::One(id, d)); }
-    TokenRef expectAndConsume(TokenId id, DiagnosticId d) { return expectAndConsume(Expect::One(id, d)); }
-    TokenRef expectAndConsumeOne(TokenId id, DiagnosticId d) { return expectAndConsumeOne(Expect::One(id, d)); }
-    TokenRef expectAndConsumeOneOf(std::initializer_list<TokenId> set, DiagnosticId d) { return expectAndConsume(Expect::OneOf(set, d)); }
+    TokenRef expect(TokenId id, DiagnosticId d) const { return expect(Expect::one(id, d)); }
+    TokenRef expectAndConsume(TokenId id, DiagnosticId d) { return expectAndConsume(Expect::one(id, d)); }
+    TokenRef expectAndConsumeSingle(TokenId id, DiagnosticId d) { return expectAndConsumeSingle(Expect::one(id, d)); }
+    TokenRef expectAndConsumeOneOf(std::initializer_list<TokenId> set, DiagnosticId d) { return expectAndConsume(Expect::oneOf(set, d)); }
 
     const Token* tokPtr() const { return curToken_; }
     const Token& tok() const { return *curToken_; }

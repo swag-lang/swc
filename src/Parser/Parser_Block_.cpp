@@ -9,7 +9,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockId, TokenId blockTokenEnd)
 {
     const Token& openToken = tok();
 
-    auto [nodeRef, nodePtr] = ast_->makeNodePtr<AstNodeBlock>(blockId, ref());
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeBlock>(blockId, ref());
     if (blockTokenEnd != TokenId::Invalid)
         consume();
     skipTriviaAndEol();
@@ -85,10 +85,6 @@ AstNodeRef Parser::parseTopLevelInstruction()
 
     case TokenId::KwdEnum:
         return parseEnum();
-
-        /* case TokenId::KwdImpl:
-             skipTo({TokenId::SymLeftCurly});
-             return INVALID_REF;*/
 
     default:
         skipTo({TokenId::EndOfLine, TokenId::SymSemiColon, TokenId::SymRightCurly});

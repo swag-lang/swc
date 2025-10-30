@@ -25,8 +25,11 @@ AstNodeRef Parser::parseEnumValue()
             skipTo({TokenId::SymRightCurly, TokenId::SymComma, TokenId::EndOfLine, TokenId::SymSemiColon});
     }
 
+    // End of value
     if (is(TokenId::SymComma) || is(TokenId::EndOfLine) || is(TokenId::SymSemiColon))
+    {
         consumeTrivia();
+    }
     else if (isNot(TokenId::SymRightCurly))
     {
         (void) expect(TokenId::SymComma);

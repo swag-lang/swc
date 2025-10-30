@@ -28,3 +28,5 @@ enum A
 }
 
 enum A : B { B = 0, C = 1, }
+
+

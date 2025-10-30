@@ -12,6 +12,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockId, TokenId blockTokenEnd)
     auto [nodeRef, nodePtr] = ast_->makeNodePtr<AstNodeBlock>(blockId, ref());
     if (blockTokenEnd != TokenId::Invalid)
         consume();
+    skipTrivia();
 
     SmallVector<AstNodeRef> stmts;
     while (!atEnd() && isNot(blockTokenEnd))
@@ -43,7 +44,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockId, TokenId blockTokenEnd)
     if (blockTokenEnd != TokenId::Invalid)
     {
         if (is(blockTokenEnd))
-            consumeTrivia();
+            consumeAsTrivia();
         else
         {
             auto diag = reportError(DiagnosticId::ParserUnterminatedBlock, openToken);
@@ -72,18 +73,25 @@ AstNodeRef Parser::parseTopLevelInstruction()
         return INVALID_REF;
 
     case TokenId::SymSemiColon:
-        consumeTrivia();
+        consumeAsTrivia();
+        return INVALID_REF;
+
+    case TokenId::EndOfLine:
+    case TokenId::Blank:
+    case TokenId::CommentLine:
+    case TokenId::CommentMultiLine:
+        skipTrivia();
         return INVALID_REF;
 
     case TokenId::KwdEnum:
         return parseEnum();
 
-    case TokenId::KwdImpl:
-        skipTo({TokenId::SymLeftCurly});
-        return INVALID_REF;
+        /* case TokenId::KwdImpl:
+             skipTo({TokenId::SymLeftCurly});
+             return INVALID_REF;*/
 
     default:
-        skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::StopAfterEol);
+        skipTo({TokenId::EndOfLine, TokenId::SymSemiColon, TokenId::SymRightCurly});
         return INVALID_REF;
     }
 }

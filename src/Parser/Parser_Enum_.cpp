@@ -6,7 +6,7 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseEnumValue()
 {
-    EnsureConsume ec(*this);
+    /*EnsureConsume ec(*this);
 
     auto [nodeRef, nodePtr] = ast_->makeNodePtr<AstNodeEnumDecl>(AstNodeId::EnumValue, ref());
 
@@ -17,7 +17,8 @@ AstNodeRef Parser::parseEnumValue()
 
     // Value
 
-    return nodeRef;
+    return nodeRef;*/
+    return INVALID_REF;
 }
 
 AstNodeRef Parser::parseEnum()
@@ -25,30 +26,33 @@ AstNodeRef Parser::parseEnum()
     EnsureConsume ec(*this);
 
     auto [nodeRef, nodePtr] = ast_->makeNodePtr<AstNodeEnumDecl>(AstNodeId::EnumDecl, consume());
+    skipTrivia();
 
     // Name
     nodePtr->name = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFamAfter);
     if (isInvalid(nodePtr->name))
         skipTo({TokenId::SymLeftCurly, TokenId::SymColon, TokenId::SymSemiColon});
+    skipTrivia();
 
     // Type
     if (is(TokenId::SymColon))
     {
-        consumeTrivia();
+        consumeAsTrivia();
         nodePtr->type = parseType();
         if (isInvalid(nodePtr->type))
-            skipTo({TokenId::SymLeftCurly, TokenId::SymRightCurly, TokenId::SymSemiColon});
+            skipTo({TokenId::SymLeftCurly, TokenId::SymRightCurly});
     }
 
     // Content
+    skipTrivia();
     const auto leftCurly = expect(TokenId::SymLeftCurly, DiagnosticId::ParserExpectedTokenAfter);
     if (isInvalid(leftCurly))
     {
-        skipTo({TokenId::SymLeftCurly, TokenId::SymRightCurly, TokenId::SymSemiColon});
+        skipTo({TokenId::SymLeftCurly, TokenId::SymRightCurly});
         if (isNot(TokenId::SymLeftCurly))
         {
             nodePtr->body = INVALID_REF;
-            if (is(TokenId::SymRightCurly) || is(TokenId::SymSemiColon))
+            if (is(TokenId::SymRightCurly))
                 consume();
             return nodeRef;
         }

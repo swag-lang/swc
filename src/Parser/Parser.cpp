@@ -30,12 +30,6 @@ bool Parser::skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
 
         if (atTopLevel)
         {
-            // Stop at the synthetic EOL boundary (top level only), if requested.
-            if (has_any(flags, SkipUntilFlags::StopAfterEol) && has_any(tok.flags, TokenFlags::EolBefore))
-                return true;
-            if (has_any(flags, SkipUntilFlags::StopBeforeEol) && has_any(tok.flags, TokenFlags::EolAfter))
-                return true;
-
             // Stop at any target token (top level only).
             if (std::ranges::find(targets, id()) != targets.end())
             {

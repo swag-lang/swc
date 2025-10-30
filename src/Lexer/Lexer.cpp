@@ -126,7 +126,6 @@ void Lexer::pushToken()
     switch (tokenId)
     {
     case TokenId::Blank:
-    case TokenId::EndOfLine:
         if (rawMode_ || !has_any(lexerFlags_, LexerFlags::ExtractTrivia))
             return;
         lexOut_->trivia_.push_back({.tokenRef = static_cast<uint32_t>(lexOut_->tokens_.size()), .token = token_});

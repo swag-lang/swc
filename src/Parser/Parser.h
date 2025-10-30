@@ -10,10 +10,8 @@ class Context;
 
 enum class SkipUntilFlags : uint32_t
 {
-    Zero          = 0,
-    StopAfterEol  = 1 << 0,
-    StopBeforeEol = 1 << 1,
-    Consume       = 1 << 2,
+    Zero    = 0,
+    Consume = 1 << 0,
 };
 SWC_ENABLE_BITMASK(SkipUntilFlags);
 
@@ -63,7 +61,16 @@ class Parser
         return result;
     }
 
-    void consumeTrivia() { consume(); }
+    void skipTrivia()
+    {
+        while (is(TokenId::EndOfLine) || is(TokenId::Blank) || is(TokenId::CommentLine) || is(TokenId::CommentMultiLine))
+            consumeAsTrivia();
+    }
+
+    void consumeAsTrivia()
+    {
+        consume();
+    }
 
     TokenRef expect(TokenId expected, DiagnosticId diagId = DiagnosticId::None) const;
     TokenRef expectAndConsume(TokenId expected, DiagnosticId diagId = DiagnosticId::None);

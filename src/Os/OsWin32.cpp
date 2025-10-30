@@ -3,6 +3,7 @@
 
 #include "Main/FileSystem.h"
 #include "Os/Os.h"
+#include "Report/ExitCodes.h"
 #include <windows.h>
 
 SWC_BEGIN_NAMESPACE()
@@ -49,6 +50,19 @@ namespace Os
         default:
             break;
         }
+    }
+
+    void panicBox(const char* title, const char* expr)
+    {
+        if (MessageBoxA(nullptr, expr, title, MB_OKCANCEL | MB_ICONERROR) == IDCANCEL)
+            std::exit(static_cast<int>(ExitCode::PanicBox));
+        if (IsDebuggerPresent())
+            DebugBreak();
+    }
+
+    bool isDebuggerAttached()
+    {
+        return IsDebuggerPresent() ? true : false;
     }
 
     Utf8 systemError()

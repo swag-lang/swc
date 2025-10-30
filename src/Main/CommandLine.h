@@ -13,21 +13,23 @@ struct CommandLine
 {
     Command command = Command::Format;
 
-    bool     logColor      = true;
-    bool     logAscii      = false;
-    bool     errorAbsolute = false;
-    bool     silent        = false;
-    bool     stats         = false;
-    uint32_t numCores      = 0;
+    bool logColor      = true;
+    bool logAscii      = false;
+    bool errorAbsolute = false;
+    bool silent        = false;
+    bool stats         = false;
+    bool dbgDevMode    = false;
+    bool verboseErrors = false;
+    bool verify        = true;
 
-    uint32_t tabSize = 4;
+    uint32_t numCores = 0;
+    uint32_t tabSize  = 4;
 
-    bool               verboseErrors = false;
-    Utf8               verboseErrorsFilter;
+    Utf8 verboseErrorsFilter;
+    Utf8 fileFilter;
+
     std::set<fs::path> directories;
     std::set<fs::path> files;
-    bool               verify = true;
-    Utf8               fileFilter;
 };
 
 SWC_END_NAMESPACE()

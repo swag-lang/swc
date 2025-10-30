@@ -58,7 +58,8 @@ private:
     static bool linkOrSkip(JobRecord* waiter, JobRecord* dep); // returns false if dep already Done
 
     // Workers
-    void workerLoop();
+    static JobResult executeJob(const JobRef& job);
+    void             workerLoop();
 
     // Shutdown (private; called only by destructor)
     void shutdown() noexcept;

@@ -15,7 +15,7 @@ CompilerInstance::CompilerInstance(const CommandLine& cmdLine, const Global& glo
     context_.jobClientId_ = global.jobMgr().newClientId();
 }
 
-int CompilerInstance::run()
+ExitCode CompilerInstance::run()
 {
     {
         Timer time(&Stats::get().timeTotal);
@@ -37,7 +37,7 @@ int CompilerInstance::run()
         Stats::get().print(ctx);
     }
 
-    return 0;
+    return ExitCode::Success;
 }
 
 SWC_END_NAMESPACE()

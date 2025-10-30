@@ -395,11 +395,13 @@ CommandLineParser::CommandLineParser(CommandLine& cmdLine, Global& global) :
     addArg("all", "--verbose-errors-filter", "-vef", CommandLineType::String, &cmdLine_->verboseErrorsFilter, nullptr,
            "Filter verbose error logs by matching a specific string.");
     addArg("all", "--directory", "-d", CommandLineType::PathSet, &cmdLine_->directories, nullptr,
-           "");
+           "Specify one or more directories to process recursively for input files.");
     addArg("all", "--file", "-f", CommandLineType::PathSet, &cmdLine_->files, nullptr,
-           "");
+           "Specify one or more individual files to process directly.");
     addArg("all", "--file-filter", "-ff", CommandLineType::String, &cmdLine_->fileFilter, nullptr,
-           "");
+           "Apply a substring filter to select specific files by name.");
+    addArg("all", "--devmode", nullptr, CommandLineType::Bool, &cmdLine_->dbgDevMode, nullptr,
+           "Open a message box in case of hardware exceptions");
 }
 
 SWC_END_NAMESPACE()

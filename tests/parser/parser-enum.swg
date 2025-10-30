@@ -8,19 +8,31 @@ enum A { B B } // swc-expected-error ParserExpectedToken
 
 enum A { B, C }
 enum A { B, C, }
+
 enum A
 {
     B,
     C,
 }
+
 enum A
 {
     B
     C
 }
+
 enum A
 {
     B = 0,
     C = 1,
 }
+
 enum A : B { B = 0, C = 1, }
+
+enum E
+{
+    #if A do
+        RED
+    #else do
+        GREEN
+}

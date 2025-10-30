@@ -178,6 +178,7 @@
         <ClInclude Include="src\Parser\Parser.h"/>
         <ClInclude Include="src\pch.h"/>
         <ClInclude Include="src\Report\Check.h"/>
+        <ClInclude Include="src\Report\ExitCodes.h"/>
         <ClInclude Include="src\Report\LogColor.h"/>
         <ClInclude Include="src\Report\Diagnostic.h"/>
         <ClInclude Include="src\Report\DiagnosticElement.h"/>

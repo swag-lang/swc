@@ -3,6 +3,7 @@
 #include "Main/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
+#include "Report/ExitCodes.h"
 
 int main(int argc, char* argv[])
 {
@@ -10,10 +11,10 @@ int main(int argc, char* argv[])
     swc::CommandLine       cmdLine;
     swc::CommandLineParser parser(cmdLine, global);
     if (parser.parse(argc, argv) != swc::Result::Success)
-        return -1;
+        return static_cast<int>(swc::ExitCode::ErrorCmdLine);
 
     global.initialize(cmdLine);
 
     swc::CompilerInstance compiler(cmdLine, global);
-    return compiler.run();
+    return static_cast<int>(compiler.run());
 }

@@ -1,13 +1,14 @@
 #include "pch.h"
-#include "Thread/JobManager.h"
 
-#include <algorithm>
+#include "Main/Global.h"
+#include "Os/Os.h"
+#include "Report/LogColor.h"
+#include "Report/Logger.h"
+#include "Thread/JobManager.h"
+#include <windows.h>
 
 SWC_BEGIN_NAMESPACE()
 
-//==============================
-// Record pool
-//==============================
 struct JobManager::RecordPool
 {
     // Thread-local free list (LIFO for cache locality).
@@ -70,8 +71,6 @@ void JobManager::freeRecord(JobRecord* r)
     std::lock_guard lk(RecordPool::gMutex);
     RecordPool::gFree.push_back(r);
 }
-
-//==============================
 
 JobManager::~JobManager()
 {
@@ -319,6 +318,56 @@ JobRecord* JobManager::popReadyLocked()
     return nullptr;
 }
 
+namespace
+{
+    void exceptionMessage(const JobRef& job, SWC_LPEXCEPTION_POINTERS args)
+    {
+        const auto& ctx    = job->ctx();
+        auto&       logger = ctx.global().logger();
+
+        logger.lock();
+
+        Utf8 msg;
+        msg += LogColorHelper::toAnsi(ctx, LogColor::Red);
+        msg += "fatal error: hardware exception during job execution!\n";
+        msg += std::format("exception code: 0x{}\n", args->ExceptionRecord->ExceptionCode);
+        msg += LogColorHelper::toAnsi(ctx, LogColor::Reset);
+        Logger::print(ctx, msg);
+
+        logger.unlock();
+    }
+
+    int exceptionHandler(const JobRef& job, SWC_LPEXCEPTION_POINTERS args)
+    {
+        const auto& ctx = job->ctx();
+
+        if (Os::isDebuggerAttached() || ctx.cmdLine().dbgDevMode)
+        {
+            Os::panicBox("[Developer Mode]", "Hardware exception raised!");
+            return EXCEPTION_CONTINUE_EXECUTION;
+        }
+
+        exceptionMessage(job, args);
+        return SWC_EXCEPTION_EXECUTE_HANDLER;
+    }
+}
+
+JobResult JobManager::executeJob(const JobRef& job)
+{
+    JobResult res;
+
+    SWC_TRY
+    {
+        res = job->func(job->ctx_);
+    }
+    SWC_EXCEPT(exceptionHandler(job, SWC_GET_EXCEPTION_INFOS()))
+    {
+        res = JobResult::Done;
+    }
+
+    return res;
+}
+
 void JobManager::workerLoop()
 {
     auto popReadyAndMarkRunningLocked = [this]() -> JobRecord* {
@@ -406,15 +455,7 @@ void JobManager::workerLoop()
         const auto wakeAtStart = rec->wakeGen.load(std::memory_order_acquire);
 
         // Execute job
-        JobResult res;
-        try
-        {
-            res = rec->job->func(rec->job->ctx_);
-        }
-        catch (...)
-        {
-            res = JobResult::Done;
-        }
+        JobResult res = executeJob(rec->job);
 
         // Completion / state transition handling
         {

@@ -1,5 +1,6 @@
 #pragma once
 #include "Main/CompilerContext.h"
+#include "Report/ExitCodes.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -14,7 +15,7 @@ class CompilerInstance
 
 public:
     CompilerInstance(const CommandLine& cmdLine, const Global& global);
-    int run();
+    ExitCode run();
 };
 
 SWC_END_NAMESPACE()

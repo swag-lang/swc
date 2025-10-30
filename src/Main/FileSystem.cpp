@@ -1,4 +1,6 @@
 #include "pch.h"
+
+#include "Context.h"
 #include "Main/FileSystem.h"
 #include "Report/Diagnostic.h"
 
@@ -118,7 +120,7 @@ Utf8 FileSystem::normalizeSystemMessage(std::error_code ec)
     return normalizeSystemMessage(ec.message());
 }
 
-void FileSystem::collectSwagFilesRec(const fs::path& folder, std::vector<fs::path>& files)
+void FileSystem::collectSwagFilesRec(const Context& ctx, const fs::path& folder, std::vector<fs::path>& files)
 {
     for (const auto& entry : fs::recursive_directory_iterator(folder))
     {
@@ -126,6 +128,8 @@ void FileSystem::collectSwagFilesRec(const fs::path& folder, std::vector<fs::pat
             continue;
         auto ext = entry.path().extension().string();
         if (ext != ".swg" && ext != ".swgs")
+            continue;
+        if (!ctx.cmdLine().fileFilter.empty() && !entry.path().string().contains(ctx.cmdLine().fileFilter))
             continue;
         files.push_back(entry.path());
     }

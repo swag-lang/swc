@@ -94,6 +94,7 @@ class Parser
     bool         atEnd() const { return curToken_ >= lastToken_; }
     static bool  isInvalid(TokenRef ref) { return ref == INVALID_REF; }
 
+    AstNodeRef parseExpression();
     AstNodeRef parseType();
     AstNodeRef parseEnum();
     AstNodeRef parseEnumValue();

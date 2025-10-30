@@ -398,6 +398,8 @@ CommandLineParser::CommandLineParser(CommandLine& cmdLine, Global& global) :
            "");
     addArg("all", "--file", "-f", CommandLineType::PathSet, &cmdLine_->files, nullptr,
            "");
+    addArg("all", "--file-filter", "-ff", CommandLineType::String, &cmdLine_->fileFilter, nullptr,
+           "");
 }
 
 SWC_END_NAMESPACE()

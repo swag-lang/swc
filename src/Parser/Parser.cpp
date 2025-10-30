@@ -122,10 +122,6 @@ Result Parser::parse(Context& ctx)
 
     ast_->root_ = parseFile();
 
-#if SWC_HAS_STATS
-    Stats::get().numAstNodes.fetch_add(ast_->store_.size());
-#endif
-
     return file_->hasErrors() ? Result::Error : Result::Success;
 }
 

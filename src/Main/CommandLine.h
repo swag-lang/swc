@@ -27,6 +27,7 @@ struct CommandLine
     std::set<fs::path> directories;
     std::set<fs::path> files;
     bool               verify = true;
+    Utf8               fileFilter;
 };
 
 SWC_END_NAMESPACE()

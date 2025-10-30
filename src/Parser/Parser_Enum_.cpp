@@ -6,19 +6,28 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseEnumValue()
 {
-    /*EnsureConsume ec(*this);
+    EnsureConsume ec(*this);
 
-    auto [nodeRef, nodePtr] = ast_->makeNodePtr<AstNodeEnumDecl>(AstNodeId::EnumValue, ref());
+    auto [nodeRef, nodePtr] = ast_->makeNodePtr<AstNodeEnumValue>(AstNodeId::EnumValue, ref());
 
     // Name
     nodePtr->name = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedToken);
     if (isInvalid(nodePtr->name))
-        skipTo({TokenId::SymRightCurly, TokenId::SymComma, TokenId::SymSemiColon}, SkipUntilFlags::StopAfterEol);
+        skipTo({TokenId::SymRightCurly, TokenId::SymComma, TokenId::EndOfLine, TokenId::SymSemiColon});
 
     // Value
+    if (is(TokenId::SymEqual))
+    {
+        consumeAsTrivia();
+        nodePtr->value = parseExpression();
+        if (isInvalid(nodePtr->value))
+            skipTo({TokenId::SymRightCurly, TokenId::SymComma, TokenId::EndOfLine, TokenId::SymSemiColon});
+    }
 
-    return nodeRef;*/
-    return INVALID_REF;
+    if (is(TokenId::SymComma))
+        consumeAsTrivia();
+
+    return nodeRef;
 }
 
 AstNodeRef Parser::parseEnum()

@@ -2,6 +2,7 @@
 #include "Core/RefStore.h"
 #include "Core/Types.h"
 #include "Parser/AstNode.h"
+#include "Report/Stats.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -34,6 +35,9 @@ public:
         auto result          = store_.emplace_uninit<T>();
         result.second->id    = id;
         result.second->token = token;
+#if SWC_HAS_STATS
+        Stats::get().numAstNodes.fetch_add(1);
+#endif
         return result;
     }
 

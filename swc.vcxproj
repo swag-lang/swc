@@ -124,6 +124,7 @@
         <ClCompile Include="src\Parser\Parser_Block_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Enum_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Errors_.cpp"/>
+        <ClCompile Include="src\Parser\Parser_Expression_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Type_.cpp"/>
         <ClCompile Include="src\pch.cpp">
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -188,10 +189,10 @@
         <ClInclude Include="src\Thread\JobManager.h"/>
     </ItemGroup>
     <ItemGroup>
-      <Content Include="src\Report\DiagnosticIds_Errors_.def" />
-      <Content Include="src\Report\DiagnosticIds_Errors_.msg" />
-      <Content Include="src\Report\DiagnosticIds_Notes_.def" />
-      <Content Include="src\Report\DiagnosticIds_Notes_.msg" />
+        <Content Include="src\Report\DiagnosticIds_Errors_.def"/>
+        <Content Include="src\Report\DiagnosticIds_Errors_.msg"/>
+        <Content Include="src\Report\DiagnosticIds_Notes_.def"/>
+        <Content Include="src\Report\DiagnosticIds_Notes_.msg"/>
     </ItemGroup>
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets"/>
     <ImportGroup Label="ExtensionTargets">

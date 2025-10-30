@@ -27,7 +27,7 @@ Result CompilerInstance::cmdSyntax()
     // Collect files
     std::vector<fs::path> paths;
     for (const auto& folder : context_.cmdLine_->directories)
-        FileSystem::collectSwagFilesRec(folder, paths);
+        FileSystem::collectSwagFilesRec(ctx, folder, paths);
     for (const auto& file : context_.cmdLine_->files)
         paths.push_back(file);
 

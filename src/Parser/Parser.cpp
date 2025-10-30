@@ -106,7 +106,7 @@ Result Parser::parse(Context& ctx)
 #endif
 
     file_ = ctx.sourceFile();
-    ast_  = &file_->parserOut_.ast_;
+    ast_  = &file_->parserOut_.ast();
     ctx_  = &ctx;
 
     // Load

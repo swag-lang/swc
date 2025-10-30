@@ -19,9 +19,11 @@ SWC_ENABLE_BITMASK(SkipUntilFlags);
 
 class ParserOutput
 {
-protected:
-    friend class Parser;
     Ast ast_;
+
+public:
+    Ast&       ast() noexcept { return ast_; }
+    const Ast& ast() const noexcept { return ast_; }
 };
 
 class Parser

@@ -14,6 +14,8 @@ DiagnosticElement::DiagnosticElement(DiagnosticId id) :
 SourceCodeLocation DiagnosticElement::location(const Context& ctx) const
 {
     SourceCodeLocation loc;
+    if (!file_)
+        return loc;
     loc.fromOffset(ctx, *file_, offset_, len_);
     return loc;
 }

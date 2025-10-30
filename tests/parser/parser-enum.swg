@@ -28,11 +28,3 @@ enum A
 }
 
 enum A : B { B = 0, C = 1, }
-
-enum E
-{
-    #if A do
-        RED
-    #else do
-        GREEN
-}

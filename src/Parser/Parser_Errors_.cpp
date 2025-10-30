@@ -39,6 +39,8 @@ Diagnostic Parser::reportExpected(TokenId expected, DiagnosticId diagId) const
 {
     if (diagId == DiagnosticId::None)
         diagId = DiagnosticId::ParserExpectedToken;
+    if (expected == TokenId::Identifier && diagId == DiagnosticId::ParserExpectedToken)
+        diagId = DiagnosticId::ParserExpectedTokenFam;
 
     auto diag = reportError(diagId, tok());
     reportArguments(diag, tok());

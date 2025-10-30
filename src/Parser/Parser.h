@@ -33,6 +33,25 @@ class Parser
     const Token* curToken_   = nullptr;
     const Token* lastToken_  = nullptr;
 
+    // Be sure that we consume something
+    class EnsureConsume
+    {
+        Parser*      p_;
+        const Token* start_;
+
+    public:
+        explicit EnsureConsume(Parser& p) :
+            p_(&p),
+            start_(p.tokPtr())
+        {
+        }
+        ~EnsureConsume()
+        {
+            if (start_ == p_->tokPtr())
+                p_->consume();
+        }
+    };
+
     TokenRef consume()
     {
         if (atEnd())
@@ -42,14 +61,12 @@ class Parser
         return result;
     }
 
-    void consumeTrivia()
-    {
-        consume();
-    }
+    void consumeTrivia() { consume(); }
 
     TokenRef expect(TokenId expected, DiagnosticId diagId = DiagnosticId::None) const;
     TokenRef expectAndConsume(TokenId expected, DiagnosticId diagId = DiagnosticId::None);
 
+    const Token* tokPtr() const { return curToken_; }
     const Token& tok() const { return *curToken_; }
     TokenRef     ref() const { return static_cast<TokenRef>(curToken_ - firstToken_) + 1; }
     TokenId      id() const { return curToken_->id; }

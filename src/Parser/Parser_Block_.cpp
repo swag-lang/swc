@@ -16,7 +16,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockId, TokenId blockTokenEnd)
     SmallVector<AstNodeRef> stmts;
     while (!atEnd() && isNot(blockTokenEnd))
     {
-        const auto before = curToken_;
+        EnsureConsume ec(*this);
 
         AstNodeRef stmt;
         switch (blockId)
@@ -33,10 +33,6 @@ AstNodeRef Parser::parseBlock(AstNodeId blockId, TokenId blockTokenEnd)
         // Be sure instruction has not failed
         if (stmt != INVALID_REF)
             stmts.push_back(stmt);
-
-        // Be sure to advance one token
-        if (curToken_ == before)
-            consume();
     }
 
     // Consume end token if necessary

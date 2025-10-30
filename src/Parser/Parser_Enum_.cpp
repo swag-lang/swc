@@ -6,6 +6,8 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseEnum()
 {
+    EnsureConsume ec(*this);
+
     auto [nodeRef, nodePtr] = ast_->makeNodePtr<AstNodeEnumDecl>(AstNodeId::EnumDecl, consume());
 
     nodePtr->name = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFamAfter);
@@ -15,13 +17,9 @@ AstNodeRef Parser::parseEnum()
     if (is(TokenId::SymColon))
     {
         consumeTrivia();
-
-        const auto before = curToken_;
         nodePtr->type = parseType();
         if (nodePtr->type == INVALID_REF)
             skipTo({TokenId::SymLeftCurly, TokenId::SymRightCurly, TokenId::SymSemiColon});
-        if (before == curToken_)
-            consume();
     }
 
     const auto leftCurly = expect(TokenId::SymLeftCurly, DiagnosticId::ParserExpectedTokenAfter);

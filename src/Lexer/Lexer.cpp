@@ -131,8 +131,12 @@ void Lexer::pushToken()
         lexOut_->trivia_.push_back({.tokenRef = static_cast<uint32_t>(lexOut_->tokens_.size()), .token = token_});
         break;
     case TokenId::CommentLine:
-    case TokenId::CommentMultiLine:
         if (!rawMode_ && !has_any(lexerFlags_, LexerFlags::ExtractTrivia))
+            return;
+        lexOut_->trivia_.push_back({.tokenRef = static_cast<uint32_t>(lexOut_->tokens_.size()), .token = token_});
+        break;
+    case TokenId::CommentMultiLine:
+        if (!has_any(lexerFlags_, LexerFlags::ExtractTrivia))
             return;
         lexOut_->trivia_.push_back({.tokenRef = static_cast<uint32_t>(lexOut_->tokens_.size()), .token = token_});
         break;

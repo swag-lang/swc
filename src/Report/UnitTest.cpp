@@ -142,7 +142,7 @@ Result UnitTest::tokenize(const Context& ctx)
     Lexer lexer;
     SWC_CHECK(lexer.tokenizeRaw(lexerCtx));
 
-    // Parse all comments to find a verify directive
+    // Parse all one-line comments to find a verify directive
     for (const auto& trivia : file_->lexOut().trivia())
     {
         const std::string_view comment = trivia.token.toString(*file_);

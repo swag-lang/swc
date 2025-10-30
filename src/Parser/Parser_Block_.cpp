@@ -5,31 +5,32 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstNodeRef Parser::parseBlock(AstNodeId nodeId, TokenId endStmt)
+AstNodeRef Parser::parseBlock(AstNodeId blockId, TokenId blockTokenEnd)
 {
     const Token& openToken = tok();
 
-    auto [nodeRef, nodePtr] = ast_->makeNodePtr<AstNodeBlock>(nodeId, ref());
-    if (endStmt != TokenId::Invalid)
+    auto [nodeRef, nodePtr] = ast_->makeNodePtr<AstNodeBlock>(blockId, ref());
+    if (blockTokenEnd != TokenId::Invalid)
         consume();
 
     SmallVector<AstNodeRef> stmts;
-    while (!atEnd() && isNot(endStmt))
+    while (!atEnd() && isNot(blockTokenEnd))
     {
         const auto before = curToken_;
 
         AstNodeRef stmt;
-        switch (nodeId)
+        switch (blockId)
         {
         case AstNodeId::File:
         case AstNodeId::TopLevelBlock:
-            stmt = parseTopLevelDecl();
+            stmt = parseTopLevelInstruction();
             break;
 
         default:
             std::unreachable();
         }
 
+        // Be sure instruction has not failed
         if (stmt != INVALID_REF)
             stmts.push_back(stmt);
 
@@ -39,9 +40,9 @@ AstNodeRef Parser::parseBlock(AstNodeId nodeId, TokenId endStmt)
     }
 
     // Consume end token if necessary
-    if (endStmt != TokenId::Invalid)
+    if (blockTokenEnd != TokenId::Invalid)
     {
-        if (is(endStmt))
+        if (is(blockTokenEnd))
             consumeTrivia();
         else
         {
@@ -59,7 +60,7 @@ AstNodeRef Parser::parseFile()
     return parseBlock(AstNodeId::File, TokenId::Invalid);
 }
 
-AstNodeRef Parser::parseTopLevelDecl()
+AstNodeRef Parser::parseTopLevelInstruction()
 {
     switch (id())
     {
@@ -78,12 +79,9 @@ AstNodeRef Parser::parseTopLevelDecl()
         return parseEnum();
 
     default:
-        break;
+        skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::StopAfterEol);
+        return INVALID_REF;
     }
-
-    const TokenRef curTokenRef = ref();
-    skipUntil({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::StopAfterEol);
-    return INVALID_REF;
 }
 
 SWC_END_NAMESPACE()

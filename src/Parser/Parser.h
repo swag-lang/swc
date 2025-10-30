@@ -60,11 +60,13 @@ class Parser
 
     AstNodeRef parseType();
     AstNodeRef parseEnum();
-    AstNodeRef parseTopLevelDecl();
-    AstNodeRef parseBlock(AstNodeId nodeId, TokenId endStmt);
+    AstNodeRef parseTopLevelInstruction();
+    AstNodeRef parseBlock(AstNodeId blockId, TokenId blockTokenEnd);
     AstNodeRef parseFile();
 
-    bool skipUntil(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlags::Zero);
+    bool skipTo(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlags::Zero);
+    bool skipAfter(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlags::Zero);
+    bool skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags);
 
     void       reportArguments(Diagnostic& diag, const Token& myToken) const;
     Diagnostic reportError(DiagnosticId id, const Token& myToken) const;

@@ -10,7 +10,7 @@ AstNodeRef Parser::parseEnum()
 
     nodePtr->name = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFamAfter);
     if (nodePtr->name == INVALID_REF)
-        skipUntil({TokenId::SymLeftCurly, TokenId::SymColon, TokenId::SymSemiColon});
+        skipTo({TokenId::SymLeftCurly, TokenId::SymColon, TokenId::SymSemiColon});
 
     if (is(TokenId::SymColon))
     {
@@ -19,7 +19,7 @@ AstNodeRef Parser::parseEnum()
         const auto before = curToken_;
         nodePtr->type = parseType();
         if (nodePtr->type == INVALID_REF)
-            skipUntil({TokenId::SymLeftCurly, TokenId::SymRightCurly, TokenId::SymSemiColon});
+            skipTo({TokenId::SymLeftCurly, TokenId::SymRightCurly, TokenId::SymSemiColon});
         if (before == curToken_)
             consume();
     }
@@ -27,7 +27,7 @@ AstNodeRef Parser::parseEnum()
     const auto leftCurly = expect(TokenId::SymLeftCurly, DiagnosticId::ParserExpectedTokenAfter);
     if (leftCurly == INVALID_REF)
     {
-        skipUntil({TokenId::SymLeftCurly, TokenId::SymRightCurly, TokenId::SymSemiColon});
+        skipTo({TokenId::SymLeftCurly, TokenId::SymRightCurly, TokenId::SymSemiColon});
         if (isNot(TokenId::SymLeftCurly))
         {
             nodePtr->body = INVALID_REF;

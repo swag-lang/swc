@@ -7,7 +7,17 @@
 
 SWC_BEGIN_NAMESPACE()
 
-bool Parser::skipUntil(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
+bool Parser::skipTo(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
+{
+    return skip(targets, flags);
+}
+
+bool Parser::skipAfter(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
+{
+    return skip(targets, flags | SkipUntilFlags::Consume);
+}
+
+bool Parser::skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
 {
     int parenDepth  = 0;
     int squareDepth = 0;

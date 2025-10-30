@@ -35,7 +35,7 @@ AstNodeRef Parser::parseBlock(AstNodeId nodeId, TokenId endStmt)
 
         // Be sure to advance one token
         if (curToken_ == before)
-            stmts.push_back(ast_->makeNode(AstNodeId::Invalid, consume()));
+            consume();
     }
 
     // Consume end token if necessary
@@ -68,7 +68,7 @@ AstNodeRef Parser::parseTopLevelDecl()
 
     case TokenId::SymRightCurly:
         (void) reportError(DiagnosticId::ParserUnexpectedToken, tok());
-        return ast_->makeNode(AstNodeId::Invalid, consume());
+        return INVALID_REF;
 
     case TokenId::SymSemiColon:
         consumeTrivia();
@@ -83,7 +83,7 @@ AstNodeRef Parser::parseTopLevelDecl()
 
     const TokenRef curTokenRef = ref();
     skipUntil({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::StopAfterEol);
-    return ast_->makeNode(AstNodeId::Invalid, curTokenRef);
+    return INVALID_REF;
 }
 
 SWC_END_NAMESPACE()

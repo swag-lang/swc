@@ -8,8 +8,6 @@ AstNodeRef Parser::parseEnumValue()
 {
     static constexpr std::initializer_list ENUM_VALUE_SYNC = {TokenId::SymRightCurly, TokenId::SymComma, TokenId::EndOfLine, TokenId::Identifier};
 
-    EnsureConsume ec(*this);
-
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeEnumValue>(ref());
 
     // Name

@@ -1,4 +1,8 @@
 #pragma once
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 SWC_BEGIN_NAMESPACE()
 
 namespace Os
@@ -17,7 +21,7 @@ namespace Os
 #define SWC_EXCEPT                       __except
 #define SWC_EXCEPTION_EXECUTE_HANDLER    EXCEPTION_EXECUTE_HANDLER
 #define SWC_EXCEPTION_CONTINUE_EXECUTION EXCEPTION_CONTINUE_EXECUTION
-#define SWC_LPEXCEPTION_POINTERS         LPEXCEPTION_POINTERS
+#define SWC_LP_EXCEPTION_POINTERS        LPEXCEPTION_POINTERS
 #define SWC_GET_EXCEPTION_INFOS()        GetExceptionInformation()
 #endif
 

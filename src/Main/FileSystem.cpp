@@ -1,7 +1,7 @@
 #include "pch.h"
-
-#include "Context.h"
 #include "Main/FileSystem.h"
+#include "Main/CommandLine.h"
+#include "Main/Context.h"
 #include "Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE()

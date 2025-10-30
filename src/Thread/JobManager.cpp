@@ -1,11 +1,10 @@
 #include "pch.h"
-
+#include "Thread/JobManager.h"
+#include "Main/CommandLine.h"
 #include "Main/Global.h"
 #include "Os/Os.h"
 #include "Report/LogColor.h"
 #include "Report/Logger.h"
-#include "Thread/JobManager.h"
-#include <windows.h>
 
 SWC_BEGIN_NAMESPACE()
 
@@ -320,7 +319,7 @@ JobRecord* JobManager::popReadyLocked()
 
 namespace
 {
-    void exceptionMessage(const JobRef& job, SWC_LPEXCEPTION_POINTERS args)
+    void exceptionMessage(const JobRef& job, SWC_LP_EXCEPTION_POINTERS args)
     {
         const auto& ctx    = job->ctx();
         auto&       logger = ctx.global().logger();
@@ -337,14 +336,14 @@ namespace
         logger.unlock();
     }
 
-    int exceptionHandler(const JobRef& job, SWC_LPEXCEPTION_POINTERS args)
+    int exceptionHandler(const JobRef& job, SWC_LP_EXCEPTION_POINTERS args)
     {
         const auto& ctx = job->ctx();
 
         if (Os::isDebuggerAttached() || ctx.cmdLine().dbgDevMode)
         {
             Os::panicBox("[Developer Mode]", "Hardware exception raised!");
-            return EXCEPTION_CONTINUE_EXECUTION;
+            return SWC_EXCEPTION_CONTINUE_EXECUTION;
         }
 
         exceptionMessage(job, args);

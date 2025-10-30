@@ -1,10 +1,8 @@
 #pragma once
-#include "Main/CommandLine.h"
 #include "Main/CompilerContext.h"
 
 SWC_BEGIN_NAMESPACE()
 
-class CompilerContext;
 class Global;
 struct CommandLine;
 class SourceFile;

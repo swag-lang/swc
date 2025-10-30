@@ -1,10 +1,8 @@
 #include "pch.h"
 #ifdef _WIN32
-
 #include "Main/FileSystem.h"
 #include "Os/Os.h"
 #include "Report/ExitCodes.h"
-#include <windows.h>
 
 SWC_BEGIN_NAMESPACE()
 

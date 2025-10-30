@@ -1,6 +1,5 @@
 #pragma once
 #include "Main/Context.h"
-#include <functional>
 
 SWC_BEGIN_NAMESPACE()
 

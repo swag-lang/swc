@@ -70,7 +70,7 @@ bool Parser::skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
         squareDepth = std::max(squareDepth, 0);
         braceDepth  = std::max(braceDepth, 0);
 
-        consume();
+        consumeOne();
     }
 
     // Hit EOF without finding a sync point.

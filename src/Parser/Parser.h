@@ -52,12 +52,21 @@ class Parser
         }
     };
 
-    TokenRef consume()
+    TokenRef consumeOne()
     {
         if (atEnd())
             return INVALID_REF;
         const auto result = ref();
         curToken_++;
+        return result;
+    }
+
+    TokenRef consume()
+    {
+        if (atEnd())
+            return INVALID_REF;
+        const auto result = consumeOne();
+        skipTrivia();
         return result;
     }
 

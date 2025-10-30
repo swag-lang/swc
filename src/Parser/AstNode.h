@@ -32,7 +32,8 @@ struct AstNode
     uint16_t  flags = 0;
     TokenRef  token = INVALID_REF;
 
-    AstNode(AstNodeId nodeId) : id(nodeId)
+    explicit AstNode(AstNodeId nodeId) :
+        id(nodeId)
     {
     }
 

@@ -43,7 +43,7 @@ public:
     template<class T>
     std::pair<Ref, T*> makeNodePtr(TokenRef token)
     {
-        auto result = store_.emplace_uninit<T>();
+        auto result          = store_.emplace_uninit<T>();
         result.second->token = token;
 #if SWC_HAS_STATS
         Stats::get().numAstNodes.fetch_add(1);

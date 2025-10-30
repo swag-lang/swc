@@ -52,15 +52,15 @@ class Parser
         }
     };
 
-    const Token*   lastNonTrivia() const;
-    TokenRef consumeOne();
-    TokenRef consume();
-    bool     consumeIf(TokenId id);
-    void     skipTrivia();
-    void     skipTriviaAndEol();
-    void     consumeTrivia();
+    const Token* lastNonTrivia() const;
+    TokenRef     consumeOne();
+    TokenRef     consume();
+    bool         consumeIf(TokenId id);
+    void         skipTrivia();
+    void         skipTriviaAndEol();
+    void         consumeTrivia();
 
-    template <typename... TokenIds>
+    template<typename... TokenIds>
     bool consumeIfAny(TokenIds... ids)
     {
         if (atEnd())
@@ -70,10 +70,10 @@ class Parser
 
     struct Expect
     {
-        TokenId tok                = TokenId::Invalid;
-        SmallVector<TokenId> oneOf = {};
-        DiagnosticId diag          = DiagnosticId::ParserExpectedToken;
-        DiagnosticId becauseCtx    = DiagnosticId::None;
+        TokenId              tok        = TokenId::Invalid;
+        SmallVector<TokenId> oneOf      = {};
+        DiagnosticId         diag       = DiagnosticId::ParserExpectedToken;
+        DiagnosticId         becauseCtx = DiagnosticId::None;
 
         bool valid(TokenId id) const
         {
@@ -81,14 +81,20 @@ class Parser
             return ok;
         }
 
-        static Expect One(TokenId tok, DiagnosticId d = DiagnosticId::ParserExpectedToken) 
+        static Expect One(TokenId tok, DiagnosticId d = DiagnosticId::ParserExpectedToken)
         {
-            Expect s; s.tok = tok; s.diag = d; return s;
+            Expect s;
+            s.tok  = tok;
+            s.diag = d;
+            return s;
         }
 
-        static Expect OneOf(std::initializer_list<TokenId> set, DiagnosticId d = DiagnosticId::ParserExpectedToken) 
-        { 
-            Expect s; s.oneOf = set; s.diag = d; return s; 
+        static Expect OneOf(std::initializer_list<TokenId> set, DiagnosticId d = DiagnosticId::ParserExpectedToken)
+        {
+            Expect s;
+            s.oneOf = set;
+            s.diag  = d;
+            return s;
         }
 
         Expect& because(DiagnosticId b)
@@ -116,8 +122,9 @@ class Parser
     bool         atEnd() const { return curToken_ >= lastToken_; }
     static bool  isInvalid(TokenRef ref) { return ref == INVALID_REF; }
 
-    template <typename... TokenIds>
-    bool isAny(TokenIds... ids) const {
+    template<typename... TokenIds>
+    bool isAny(TokenIds... ids) const
+    {
         return ((curToken_->id == ids) || ...);
     }
 

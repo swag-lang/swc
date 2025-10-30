@@ -5,17 +5,20 @@ SWC_BEGIN_NAMESPACE()
 
 struct AstNodeBlock : AstNode
 {
-    Ref children = INVALID_REF;
-
     AstNodeBlock(AstNodeId nodeId, TokenRef tok) :
         AstNode(nodeId, tok)
     {
     }
+
+    Ref children;
 };
 
 struct AstNodeEnumDecl : AstNode
 {
-    AstNodeEnumDecl() : AstNode(AstNodeId::EnumDecl) {}
+    AstNodeEnumDecl() :
+        AstNode(AstNodeId::EnumDecl)
+    {
+    }
 
     TokenRef   name;
     AstNodeRef type;
@@ -24,7 +27,10 @@ struct AstNodeEnumDecl : AstNode
 
 struct AstNodeEnumValue : AstNode
 {
-    AstNodeEnumValue() : AstNode(AstNodeId::EnumValue) {}
+    AstNodeEnumValue() :
+        AstNode(AstNodeId::EnumValue)
+    {
+    }
 
     TokenRef   name;
     AstNodeRef value;

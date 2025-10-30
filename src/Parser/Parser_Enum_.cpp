@@ -6,7 +6,7 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseEnumValue()
 {
-    static constexpr std::initializer_list<TokenId> EnumValueSync = { TokenId::SymRightCurly, TokenId::SymComma, TokenId::EndOfLine, TokenId::Identifier };
+    static constexpr std::initializer_list<TokenId> EnumValueSync = {TokenId::SymRightCurly, TokenId::SymComma, TokenId::EndOfLine, TokenId::Identifier};
 
     EnsureConsume ec(*this);
 
@@ -38,7 +38,7 @@ AstNodeRef Parser::parseEnumValue()
 
 AstNodeRef Parser::parseEnum()
 {
-    static constexpr std::initializer_list<TokenId> StartEndBlock = { TokenId::SymLeftCurly, TokenId::SymRightCurly };
+    static constexpr std::initializer_list<TokenId> StartEndBlock = {TokenId::SymLeftCurly, TokenId::SymRightCurly};
 
     auto [nodeRef, nodePtr] = ast_->makeNodePtr<AstNodeEnumDecl>(consume());
 

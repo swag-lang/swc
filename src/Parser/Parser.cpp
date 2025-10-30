@@ -25,8 +25,7 @@ bool Parser::skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
 
     while (!atEnd())
     {
-        const auto& tok        = *curToken_;
-        const bool  atTopLevel = (parenDepth | squareDepth | braceDepth) == 0;
+        const bool atTopLevel = (parenDepth | squareDepth | braceDepth) == 0;
 
         if (atTopLevel)
         {
@@ -77,7 +76,7 @@ bool Parser::skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
     return false;
 }
 
-const Token *Parser::lastNonTrivia() const
+const Token* Parser::lastNonTrivia() const
 {
     auto scan = curToken_;
     while (scan != firstToken_)

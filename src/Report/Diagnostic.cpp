@@ -414,10 +414,10 @@ Utf8 Diagnostic::message(const DiagnosticElement& el) const
     auto result = el.message();
 
     // Replace placeholders
-    for(const auto& arg: arguments_)
+    for (const auto& arg : arguments_)
     {
-        Utf8 replacement = argumentToString(arg);
-        size_t pos = 0;
+        Utf8   replacement = argumentToString(arg);
+        size_t pos         = 0;
         while ((pos = result.find(arg.name, pos)) != Utf8::npos)
         {
             result.replace(pos, arg.name.length(), replacement);

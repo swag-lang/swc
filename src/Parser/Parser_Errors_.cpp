@@ -13,7 +13,7 @@ void Parser::reportArguments(Diagnostic& diag, const Token& myToken) const
 
     // Get the last non trivia token
     auto last = lastNonTrivia();
-    if(last)
+    if (last)
         diag.addArgument(Diagnostic::ARG_AFTER, last->toString(*file_));
 }
 
@@ -55,7 +55,7 @@ Diagnostic Parser::reportExpected(const Expect& expect) const
         auto diag = reportError(expect.diag, tok());
         reportArguments(diag, tok());
 
-        Utf8 msg = "one of ";
+        Utf8 msg   = "one of ";
         bool first = true;
         for (const auto& t : expect.oneOf)
         {

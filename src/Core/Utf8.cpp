@@ -80,10 +80,10 @@ void Utf8::replaceOutsideQuotes(std::string_view from, std::string_view to, bool
         }
 
         return result;
-        };
+    };
 
     Utf8 current = *this;
-    Utf8 next = doReplace(current);
+    Utf8 next    = doReplace(current);
 
     // Loop until no more changes if requested
     if (loopReplace)

@@ -55,6 +55,7 @@ class DiagnosticBuilder
     void writeLabelMsg(DiagnosticSeverity sev, std::string_view msg);
     void writeCodeUnderline(DiagnosticSeverity sev, const Utf8& msg, uint32_t columnOneBased, uint32_t underlineLen);
     void writeCodeBlock(const DiagnosticElement& el, bool writeMsg);
+
     Utf8 message(const DiagnosticElement& el) const;
     Utf8 argumentToString(const Diagnostic::Argument& arg) const;
     void expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements) const;

@@ -101,9 +101,7 @@ AstNodeRef Parser::parseType()
         // [*]
         if (consumeIf(TokenId::SymAsterisk))
         {
-            expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosingBefore)
-                                 .loc(leftBracket)
-                                 .because(DiagnosticId::BecausePtrBlockType));
+            expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosingBefore));
 
             const auto child = parseType();
             if (isInvalid(child))
@@ -117,9 +115,7 @@ AstNodeRef Parser::parseType()
         // [..]
         if (consumeIf(TokenId::SymDotDot))
         {
-            expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosingBefore)
-                                 .loc(leftBracket)
-                                 .because(DiagnosticId::BecauseSliceType));
+            expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosingBefore));
 
             const auto child = parseType();
             if (isInvalid(child))
@@ -133,9 +129,7 @@ AstNodeRef Parser::parseType()
         // [?]
         if (consumeIf(TokenId::SymQuestion))
         {
-            expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosingBefore)
-                                 .loc(leftBracket)
-                                 .because(DiagnosticId::BecauseIncompleteArrayType));
+            expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosingBefore));
 
             const auto child = parseType();
             if (isInvalid(child))
@@ -151,8 +145,7 @@ AstNodeRef Parser::parseType()
         if (isInvalid(dim))
             return INVALID_REF;
 
-        expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosingBefore)
-                             .loc(leftBracket));
+        expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosingBefore));
 
         const auto child = parseType();
         if (isInvalid(child))

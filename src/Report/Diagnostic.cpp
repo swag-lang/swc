@@ -10,6 +10,7 @@
 #include "Report/DiagnosticElement.h"
 #include "Report/LogColor.h"
 #include "Report/Logger.h"
+#include <regex>
 
 SWC_BEGIN_NAMESPACE()
 
@@ -375,7 +376,7 @@ void Diagnostic::writeCodeUnderline(Utf8& out, const Context& ctx, DiagnosticSev
     const uint32_t col = std::max<uint32_t>(1, columnOneBased);
     for (uint32_t i = 1; i < col; ++i)
         out += ' ';
-    
+
     const uint32_t len = underlineLen == 0 ? 1u : underlineLen;
     for (uint32_t i = 0; i < len; ++i)
         out.append(LogSymbolHelper::toString(ctx, LogSymbol::Underline));
@@ -433,9 +434,10 @@ Utf8 Diagnostic::message(const DiagnosticElement& el) const
     }
 
     // Clean some stuff
+    result = std::regex_replace(result, std::regex{R"(\{[^{}]+\})"}, "");
     result.replaceOutsideQuotes(" , ", ", ");
     result.replaceOutsideQuotes("  ", " ", true);
-
+    
     return result;
 }
 

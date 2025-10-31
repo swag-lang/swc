@@ -102,7 +102,7 @@ AstNodeRef Parser::parseType()
         if (consumeIf(TokenId::SymAsterisk))
         {
             expectAndConsume(ParserExpect::one(TokenId::SymRightBracket, DiagnosticId::ParserExpectedClosingBefore)
-                .note(DiagnosticId::ParserCorresponding, leftBracket));
+                                 .note(DiagnosticId::ParserCorresponding, leftBracket));
 
             const auto child = parseType();
             if (isInvalid(child))
@@ -117,7 +117,7 @@ AstNodeRef Parser::parseType()
         if (consumeIf(TokenId::SymDotDot))
         {
             expectAndConsume(ParserExpect::one(TokenId::SymRightBracket, DiagnosticId::ParserExpectedClosingBefore)
-                .note(DiagnosticId::ParserCorresponding, leftBracket));
+                                 .note(DiagnosticId::ParserCorresponding, leftBracket));
 
             const auto child = parseType();
             if (isInvalid(child))
@@ -132,7 +132,7 @@ AstNodeRef Parser::parseType()
         if (consumeIf(TokenId::SymQuestion))
         {
             expectAndConsume(ParserExpect::one(TokenId::SymRightBracket, DiagnosticId::ParserExpectedClosingBefore)
-                .note(DiagnosticId::ParserCorresponding, leftBracket));
+                                 .note(DiagnosticId::ParserCorresponding, leftBracket));
 
             const auto child = parseType();
             if (isInvalid(child))

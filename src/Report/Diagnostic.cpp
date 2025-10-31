@@ -76,8 +76,9 @@ void Diagnostic::report(const Context& ctx) const
             fileOwner_.value()->setHasWarning();
     }
 
-    const auto msg     = DiagnosticEngine::build(ctx, *this);
-    bool       dismiss = false;
+    DiagnosticEngine eng(ctx, *this);
+    const auto       msg     = eng.build();
+    bool             dismiss = false;
 
     // Check that diagnostic was not awaited
     if (fileOwner_)

@@ -21,6 +21,4 @@ enum A : &A {}
 enum A : &&A {}
 enum A : *const *A {}
 
-
-
 enum A : [/* toto */ * ] s32 {}

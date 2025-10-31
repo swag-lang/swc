@@ -17,3 +17,7 @@ SWC_NODE_ID_DEF(PointerType)
 SWC_NODE_ID_DEF(BlockPointerType)
 SWC_NODE_ID_DEF(NamedType)
 SWC_NODE_ID_DEF(BuiltinType)
+SWC_NODE_ID_DEF(SliceType)
+SWC_NODE_ID_DEF(IncompleteArrayType)
+SWC_NODE_ID_DEF(ArrayType)
+

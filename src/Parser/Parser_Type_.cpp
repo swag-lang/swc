@@ -67,7 +67,6 @@ AstNodeRef Parser::parseType()
             return INVALID_REF;
 
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeRefType>(AstNodeId::LRefType);
-        consume();
         nodePtr->nodeType = child;
         return nodeRef;
     }
@@ -81,7 +80,6 @@ AstNodeRef Parser::parseType()
             return INVALID_REF;
 
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeRefType>(AstNodeId::RRefType);
-        consume();
         nodePtr->nodeType = child;
         return nodeRef;
     }
@@ -94,8 +92,8 @@ AstNodeRef Parser::parseType()
         if (isInvalid(child))
             return INVALID_REF;
 
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodePointerType>();
-        nodePtr->pointeeType    = child;
+        auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodePointerType>();
+        nodePtr->nodePointeeType = child;
         return nodeRef;
     }
 
@@ -116,10 +114,58 @@ AstNodeRef Parser::parseType()
             if (isInvalid(child))
                 return INVALID_REF;
 
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeBlockPointerType>();
-            nodePtr->pointeeType    = child;
+            auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeBlockPointerType>();
+            nodePtr->nodePointeeType = child;
             return nodeRef;
         }
+
+        // [..]
+        if (is(TokenId::SymDotDot))
+        {
+            consume();
+            auto child = expectAndConsume(TokenId::SymRightBracket, DiagnosticId::ParserExpectedTokenAfter);
+            if (isInvalid(child))
+                return INVALID_REF;
+
+            child = parseType();
+            if (isInvalid(child))
+                return INVALID_REF;
+
+            auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeSliceType>();
+            nodePtr->nodePointeeType = child;
+            return nodeRef;
+        }
+
+        // [?]
+        if (is(TokenId::SymQuestion))
+        {
+            consume();
+            auto child = expectAndConsume(TokenId::SymRightBracket, DiagnosticId::ParserExpectedTokenAfter);
+            if (isInvalid(child))
+                return INVALID_REF;
+
+            child = parseType();
+            if (isInvalid(child))
+                return INVALID_REF;
+
+            auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeIncompleteArrayType>();
+            nodePtr->nodePointeeType = child;
+            return nodeRef;
+        }
+
+        // Array with a dimension
+        const auto dim = parseExpression();
+        if (isInvalid(dim))
+            return INVALID_REF;
+
+        const auto child = expectAndConsume(TokenId::SymRightBracket, DiagnosticId::ParserExpectedTokenAfter);
+        if (isInvalid(child))
+            return INVALID_REF;
+
+        auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeArrayType>();
+        nodePtr->nodeDim         = dim;
+        nodePtr->nodePointeeType = child;
+        return nodeRef;
     }
 
     return parseSingleType();

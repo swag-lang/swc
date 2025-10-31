@@ -64,7 +64,7 @@ struct AstNodePointerType : AstNode
     {
     }
 
-    AstNodeRef pointeeType;
+    AstNodeRef nodePointeeType;
 };
 
 struct AstNodeBlockPointerType : AstNode
@@ -74,7 +74,38 @@ struct AstNodeBlockPointerType : AstNode
     {
     }
 
-    AstNodeRef pointeeType;
+    AstNodeRef nodePointeeType;
+};
+
+struct AstNodeSliceType : AstNode
+{
+    AstNodeSliceType() :
+        AstNode(AstNodeId::SliceType)
+    {
+    }
+
+    AstNodeRef nodePointeeType;
+};
+
+struct AstNodeIncompleteArrayType : AstNode
+{
+    AstNodeIncompleteArrayType() :
+        AstNode(AstNodeId::IncompleteArrayType)
+    {
+    }
+
+    AstNodeRef nodePointeeType;
+};
+
+struct AstNodeArrayType : AstNode
+{
+    AstNodeArrayType() :
+        AstNode(AstNodeId::ArrayType)
+    {
+    }
+
+    AstNodeRef nodeDim;
+    AstNodeRef nodePointeeType;
 };
 
 struct AstNodeNamedType : AstNode

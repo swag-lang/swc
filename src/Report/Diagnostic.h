@@ -25,17 +25,8 @@ enum class DiagnosticId
 #include "Report/DiagnosticIds_Notes_.def"
 
 #undef SWC_DIAG_DEF
+    Count,
 };
-
-struct DiagnosticIdInfo
-{
-    DiagnosticId       id;
-    DiagnosticSeverity severity;
-    std::string_view   name;
-    std::string_view   msg;
-};
-
-extern DiagnosticIdInfo g_Diagnostic_Infos[];
 
 class Diagnostic
 {
@@ -156,9 +147,9 @@ public:
         return diag;
     }
 
-    static std::string_view   diagIdMessage(DiagnosticId id) { return g_Diagnostic_Infos[static_cast<size_t>(id)].msg; }
-    static std::string_view   diagIdName(DiagnosticId id) { return g_Diagnostic_Infos[static_cast<size_t>(id)].name; }
-    static DiagnosticSeverity diagIdSeverity(DiagnosticId id) { return g_Diagnostic_Infos[static_cast<size_t>(id)].severity; }
+    static std::string_view   diagIdMessage(DiagnosticId id);
+    static std::string_view   diagIdName(DiagnosticId id);
+    static DiagnosticSeverity diagIdSeverity(DiagnosticId id);
 };
 
 SWC_END_NAMESPACE()

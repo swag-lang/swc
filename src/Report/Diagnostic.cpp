@@ -1,31 +1,48 @@
 #include "pch.h"
-
+#include "Report/Diagnostic.h"
 #include "Core/Utf8Helper.h"
 #include "Lexer/SourceFile.h"
 #include "LogSymbol.h"
 #include "Main/CommandLine.h"
 #include "Main/Context.h"
 #include "Main/Global.h"
-#include "Report/Diagnostic.h"
 #include "Report/DiagnosticElement.h"
 #include "Report/LogColor.h"
 #include "Report/Logger.h"
-#include <regex>
 
 SWC_BEGIN_NAMESPACE()
 
-DiagnosticIdInfo g_Diagnostic_Infos[] = {
-    {.id = DiagnosticId::None, .severity = DiagnosticSeverity::Note, .name = "", .msg = ""},
-#define SWC_DIAG_DEF(id, sev, msg) {DiagnosticId::id, DiagnosticSeverity::sev, #id, msg},
+namespace
+{
+    struct DiagnosticIdInfo
+    {
+        DiagnosticId       id;
+        DiagnosticSeverity severity;
+        std::string_view   name;
+        std::string_view   msg;
+    };
+
+    struct Part
+    {
+        std::optional<DiagnosticSeverity> tag;
+        std::string                       text;
+    };    
+
+    constexpr auto makeDiagnosticInfos()
+    {
+        std::array<DiagnosticIdInfo, static_cast<size_t>(DiagnosticId::Count)> arr{};
+#define SWC_DIAG_DEF(id, sev, msg) \
+    arr[(size_t) DiagnosticId::id] = {DiagnosticId::id, DiagnosticSeverity::sev, #id, msg};
 #include "DiagnosticIds_Errors_.msg"
 
 #include "DiagnosticIds_Notes_.msg"
 
 #undef SWC_DIAG_DEF
-};
+        return arr;
+    }
 
-namespace
-{
+    constexpr auto DIAGNOSTIC_INFOS = makeDiagnosticInfos();
+
     // tag → severity mapping
     std::optional<DiagnosticSeverity> tagToSeverity(std::string_view s)
     {
@@ -96,12 +113,6 @@ namespace
         return parts;
     }
 
-    struct Part
-    {
-        std::optional<DiagnosticSeverity> tag;
-        std::string                       text;
-    };
-
     SmallVector<Part> parseParts(std::string_view msg)
     {
         SmallVector<Part> out;
@@ -116,6 +127,21 @@ namespace
 
         return out;
     }
+}
+
+std::string_view Diagnostic::diagIdMessage(DiagnosticId id)
+{
+    return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].msg;
+}
+
+std::string_view Diagnostic::diagIdName(DiagnosticId id)
+{
+    return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].name;
+}
+
+DiagnosticSeverity Diagnostic::diagIdSeverity(DiagnosticId id)
+{
+    return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].severity;
 }
 
 // Centralized palette for all diagnostic colors
@@ -404,7 +430,7 @@ void Diagnostic::writeCodeBlock(Utf8& out, const Context& ctx, const DiagnosticE
         fileName = el.location(ctx).file->path().filename().string();
     writeFileLocation(out, ctx, fileName, loc.line, loc.column, loc.len, gutterW);
 
-    //writeGutterSep(out, ctx, gutterW);
+    // writeGutterSep(out, ctx, gutterW);
 
     const auto codeLine = el.location(ctx).file->codeLine(ctx, loc.line);
     writeCodeLine(out, ctx, gutterW, loc.line, codeLine);
@@ -414,8 +440,8 @@ void Diagnostic::writeCodeBlock(Utf8& out, const Context& ctx, const DiagnosticE
     const uint32_t         tokenLenChars = Utf8Helper::countChars(tokenView);
     writeCodeUnderline(out, ctx, el.severity(), writeMsg ? message(el) : "", gutterW, loc.column, tokenLenChars);
 
-    //writeGutterSep(out, ctx, gutterW);
-    
+    // writeGutterSep(out, ctx, gutterW);
+
     out += partStyle(ctx, DiagPart::Reset);
 }
 

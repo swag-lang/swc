@@ -277,9 +277,9 @@ void DiagnosticBuilder::writeHighlightedMessage(DiagnosticSeverity sev, std::str
     }
 }
 
-void DiagnosticBuilder::writeFileLocation(const std::string& path, uint32_t line, uint32_t col, uint32_t len, uint32_t gutterW)
+void DiagnosticBuilder::writeFileLocation(const std::string& path, uint32_t line, uint32_t col, uint32_t len)
 {
-    out_.append(gutterW, ' ');
+    out_.append(gutterW_, ' ');
     out_ += partStyle(DiagPart::FileLocationArrow);
     out_ += "--> ";
     out_ += partStyle(DiagPart::FileLocationPath);
@@ -304,9 +304,9 @@ void DiagnosticBuilder::writeFileLocation(const std::string& path, uint32_t line
     out_ += "\n";
 }
 
-void DiagnosticBuilder::writeGutter(uint32_t gutterW)
+void DiagnosticBuilder::writeGutter(uint32_t gutter)
 {
-    out_.append(gutterW, ' ');
+    out_.append(gutter, ' ');
     out_ += partStyle(DiagPart::GutterBar);
     out_ += " ";
     out_ += LogSymbolHelper::toString(*ctx_, LogSymbol::VerticalLine);
@@ -314,9 +314,9 @@ void DiagnosticBuilder::writeGutter(uint32_t gutterW)
     out_ += " ";
 }
 
-void DiagnosticBuilder::writeCodeLine(uint32_t gutterW, uint32_t lineNo, std::string_view code)
+void DiagnosticBuilder::writeCodeLine(uint32_t lineNo, std::string_view code)
 {
-    out_.append(gutterW - digits(lineNo), ' ');
+    out_.append(gutterW_ - digits(lineNo), ' ');
     out_ += partStyle(DiagPart::LineNumber);
     out_ += std::to_string(lineNo);
     out_ += partStyle(DiagPart::Reset);
@@ -342,9 +342,9 @@ void DiagnosticBuilder::writeLabelMsg(DiagnosticSeverity sev, std::string_view m
     out_ += "\n";
 }
 
-void DiagnosticBuilder::writeCodeUnderline(DiagnosticSeverity sev, const Utf8& msg, uint32_t gutterW, uint32_t columnOneBased, uint32_t underlineLen)
+void DiagnosticBuilder::writeCodeUnderline(DiagnosticSeverity sev, const Utf8& msg, uint32_t columnOneBased, uint32_t underlineLen)
 {
-    writeGutter(gutterW);
+    writeGutter(gutterW_);
 
     // Underline
     out_ += partStyle(DiagPart::Severity, sev);
@@ -393,7 +393,7 @@ Utf8 DiagnosticBuilder::argumentToString(const Diagnostic::Argument& arg) const
 
 // Renders a single element's location/code/underline block
 // NOTE: gutterW is computed once per diagnostic (max line number across all elements)
-void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el, uint32_t gutterW, bool writeMsg)
+void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el, bool writeMsg)
 {
     const auto loc = el.location(*ctx_);
 
@@ -402,17 +402,17 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el, uint32_t gut
         fileName = el.location(*ctx_).file->path().string();
     else
         fileName = el.location(*ctx_).file->path().filename().string();
-    writeFileLocation(fileName, loc.line, loc.column, loc.len, gutterW);
+    writeFileLocation(fileName, loc.line, loc.column, loc.len);
 
     // writeGutterSep(out, ctx, gutterW);
 
     const auto codeLine = el.location(*ctx_).file->codeLine(*ctx_, loc.line);
-    writeCodeLine(gutterW, loc.line, codeLine);
+    writeCodeLine(loc.line, codeLine);
 
     // underline the entire span with carets
     const std::string_view tokenView     = el.location(*ctx_).file->codeView(el.location(*ctx_).offset, el.location(*ctx_).len);
     const uint32_t         tokenLenChars = Utf8Helper::countChars(tokenView);
-    writeCodeUnderline(el.severity(), writeMsg ? message(el) : "", gutterW, loc.column, tokenLenChars);
+    writeCodeUnderline(el.severity(), writeMsg ? message(el) : "", loc.column, tokenLenChars);
 
     // writeGutterSep(out, ctx, gutterW);
 
@@ -492,7 +492,7 @@ Utf8 DiagnosticBuilder::build()
             maxLine = std::max(e->location(*ctx_).line, maxLine);
     }
 
-    const uint32_t gutterW = maxLine ? digits(maxLine) : 0;
+    gutterW_ = maxLine ? digits(maxLine) : 0;
 
     // Primary element: the first one
     const auto& primary = elements.front();
@@ -501,17 +501,17 @@ Utf8 DiagnosticBuilder::build()
     // Render primary element body (location/code) if any
     writeLabelMsg(primary->severity(), pMsg);
     if (primary->hasCodeLocation())
-        writeCodeBlock(*primary, gutterW, false);
+        writeCodeBlock(*primary, false);
 
     // Now render all secondary elements as part of the same diagnostic
     for (size_t i = 1; i < elements.size(); ++i)
     {
         const auto& el = elements[i];
         if (el->hasCodeLocation())
-            writeCodeBlock(*el, gutterW, true);
+            writeCodeBlock(*el, true);
         else
         {
-            out_.append(gutterW, ' ');
+            out_.append(gutterW_, ' ');
             writeLabelMsg(el->severity(), message(*el));
         }
     }

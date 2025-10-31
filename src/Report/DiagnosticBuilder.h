@@ -38,6 +38,7 @@ class DiagnosticBuilder
     const Context*    ctx_;
     const Diagnostic* diag_;
     Utf8              out_;
+    uint32_t          gutterW_ = 0;
 
     static SmallVector<std::string_view> splitMessage(std::string_view msg);
     static SmallVector<Part>             parseParts(std::string_view msg);
@@ -48,12 +49,12 @@ class DiagnosticBuilder
     Utf8 partStyle(DiagPart p, DiagnosticSeverity sev) const;
 
     void writeHighlightedMessage(DiagnosticSeverity sev, std::string_view msg, const Utf8& reset);
-    void writeFileLocation(const std::string& path, uint32_t line, uint32_t col, uint32_t len, uint32_t gutterW);
-    void writeGutter(uint32_t gutterW);
-    void writeCodeLine(uint32_t gutterW, uint32_t lineNo, std::string_view code);
+    void writeFileLocation(const std::string& path, uint32_t line, uint32_t col, uint32_t len);
+    void writeGutter(uint32_t gutter);
+    void writeCodeLine(uint32_t lineNo, std::string_view code);
     void writeLabelMsg(DiagnosticSeverity sev, std::string_view msg);
-    void writeCodeUnderline(DiagnosticSeverity sev, const Utf8& msg, uint32_t gutterW, uint32_t columnOneBased, uint32_t underlineLen);
-    void writeCodeBlock(const DiagnosticElement& el, uint32_t gutterW, bool writeMsg);
+    void writeCodeUnderline(DiagnosticSeverity sev, const Utf8& msg, uint32_t columnOneBased, uint32_t underlineLen);
+    void writeCodeBlock(const DiagnosticElement& el, bool writeMsg);
     Utf8 message(const DiagnosticElement& el) const;
     Utf8 argumentToString(const Diagnostic::Argument& arg) const;
     void expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements) const;

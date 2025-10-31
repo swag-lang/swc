@@ -33,9 +33,9 @@ namespace
         std::array<DiagnosticIdInfo, static_cast<size_t>(DiagnosticId::Count)> arr{};
 #define SWC_DIAG_DEF(id, sev, msg) \
     arr[(size_t) DiagnosticId::id] = {DiagnosticId::id, DiagnosticSeverity::sev, #id, msg};
-#include "DiagnosticIds_Errors_.msg"
+#include "Diagnostic_Errors_.msg"
 
-#include "DiagnosticIds_Notes_.msg"
+#include "Diagnostic_Notes_.msg"
 
 #undef SWC_DIAG_DEF
         return arr;

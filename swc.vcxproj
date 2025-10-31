@@ -191,10 +191,10 @@
         <ClInclude Include="src\Thread\JobManager.h"/>
     </ItemGroup>
     <ItemGroup>
-        <Content Include="src\Report\DiagnosticIds_Errors_.def"/>
-        <Content Include="src\Report\DiagnosticIds_Errors_.msg"/>
-        <Content Include="src\Report\DiagnosticIds_Notes_.def"/>
-        <Content Include="src\Report\DiagnosticIds_Notes_.msg"/>
+        <Content Include="src\Report\Diagnostic_Errors_.def" />
+        <Content Include="src\Report\Diagnostic_Errors_.msg" />
+        <Content Include="src\Report\Diagnostic_Notes_.def" />
+        <Content Include="src\Report\Diagnostic_Notes_.msg" />
     </ItemGroup>
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets"/>
     <ImportGroup Label="ExtensionTargets">

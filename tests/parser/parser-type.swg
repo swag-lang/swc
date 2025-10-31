@@ -5,10 +5,10 @@ enum A : **T {}
 enum A : *enum {} // swc-expected-error ParserInvalidType
 enum A : [*] {} // swc-expected-error ParserInvalidType
 
-enum A : [? /* toto */ s32 {} // swc-expected-error ParserMissingClosing
-enum A : [* /* toto */ s32 {} // swc-expected-error ParserMissingClosing
-enum A : [.. /* toto */ s32 {} // swc-expected-error ParserMissingClosing
-enum A : [0 /* toto */ s32 {} // swc-expected-error ParserMissingClosing
+enum A : [? /* toto */ s32 {} // swc-expected-error ParserExpectedClosing
+enum A : [* /* toto */ s32 {} // swc-expected-error ParserExpectedClosing
+enum A : [.. /* toto */ s32 {} // swc-expected-error ParserExpectedClosing
+enum A : [0 /* toto */ s32 {} // swc-expected-error ParserExpectedClosing
 
 enum A : [*] s32 {}
 enum A : [..] s32 {}

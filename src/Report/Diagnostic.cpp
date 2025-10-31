@@ -415,6 +415,8 @@ void Diagnostic::writeCodeBlock(Utf8& out, const Context& ctx, const DiagnosticE
     writeCodeUnderline(out, ctx, el.severity(), writeMsg ? message(el) : "", gutterW, loc.column, tokenLenChars);
 
     //writeGutterSep(out, ctx, gutterW);
+    
+    out += partStyle(ctx, DiagPart::Reset);
 }
 
 Utf8 Diagnostic::message(const DiagnosticElement& el) const

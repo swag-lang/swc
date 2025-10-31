@@ -98,12 +98,12 @@ AstNodeRef Parser::parseType()
     TokenRef leftBracket;
     if (consumeIf(TokenId::SymLeftBracket, &leftBracket))
     {
-        const auto inSym = ref();
-
         // [*]
         if (consumeIf(TokenId::SymAsterisk))
         {
-            (void) expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosing).loc(inSym).because(DiagnosticId::BecausePtrBlockType));
+            expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosing)
+                                 .loc(leftBracket)
+                                 .because(DiagnosticId::BecausePtrBlockType));
 
             const auto child = parseType();
             if (isInvalid(child))
@@ -117,7 +117,9 @@ AstNodeRef Parser::parseType()
         // [..]
         if (consumeIf(TokenId::SymDotDot))
         {
-            (void) expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosing).loc(inSym).because(DiagnosticId::BecauseSliceType));
+            expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosing)
+                                 .loc(leftBracket)
+                                 .because(DiagnosticId::BecauseSliceType));
 
             const auto child = parseType();
             if (isInvalid(child))
@@ -131,7 +133,9 @@ AstNodeRef Parser::parseType()
         // [?]
         if (consumeIf(TokenId::SymQuestion))
         {
-            (void) expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosing).loc(inSym).because(DiagnosticId::BecauseIncompleteArrayType));
+            expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosing)
+                                 .loc(leftBracket)
+                                 .because(DiagnosticId::BecauseIncompleteArrayType));
 
             const auto child = parseType();
             if (isInvalid(child))
@@ -147,7 +151,8 @@ AstNodeRef Parser::parseType()
         if (isInvalid(dim))
             return INVALID_REF;
 
-        (void) expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosing).loc(leftBracket));
+        expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosing)
+                             .loc(leftBracket));
 
         const auto child = parseType();
         if (isInvalid(child))

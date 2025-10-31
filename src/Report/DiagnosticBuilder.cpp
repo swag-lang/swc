@@ -500,34 +500,19 @@ Utf8 DiagnosticBuilder::build()
 
     // Render primary element body (location/code) if any
     writeLabelMsg(primary->severity(), pMsg);
-    const bool pHasLoc = primary->hasCodeLocation();
-    if (pHasLoc)
+    if (primary->hasCodeLocation())
         writeCodeBlock(*primary, gutterW, false);
-    else
-    {
-        out_ += partStyle(DiagPart::Severity, primary->severity());
-        out_ += severityStr(primary->severity());
-        out_ += ": ";
-        writeHighlightedMessage(primary->severity(), pMsg, partStyle(DiagPart::Severity, primary->severity()));
-        out_ += partStyle(DiagPart::Reset);
-        out_ += "\n";
-    }
 
     // Now render all secondary elements as part of the same diagnostic
     for (size_t i = 1; i < elements.size(); ++i)
     {
-        const auto& e       = elements[i];
-        const auto  sev     = e->severity();
-        const auto  msg     = message(*e);
-        const bool  eHasLoc = e->hasCodeLocation();
-
-        // Optional location/code block
-        if (eHasLoc)
-            writeCodeBlock(*e, gutterW, true);
+        const auto& el = elements[i];
+        if (el->hasCodeLocation())
+            writeCodeBlock(*el, gutterW, true);
         else
         {
             out_.append(gutterW, ' ');
-            writeLabelMsg(sev, msg);
+            writeLabelMsg(el->severity(), message(*el));
         }
     }
 

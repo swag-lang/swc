@@ -101,7 +101,7 @@ AstNodeRef Parser::parseType()
         // [*]
         if (consumeIf(TokenId::SymAsterisk))
         {
-            expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosing)
+            expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosingBefore)
                                  .loc(leftBracket)
                                  .because(DiagnosticId::BecausePtrBlockType));
 
@@ -117,7 +117,7 @@ AstNodeRef Parser::parseType()
         // [..]
         if (consumeIf(TokenId::SymDotDot))
         {
-            expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosing)
+            expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosingBefore)
                                  .loc(leftBracket)
                                  .because(DiagnosticId::BecauseSliceType));
 
@@ -133,7 +133,7 @@ AstNodeRef Parser::parseType()
         // [?]
         if (consumeIf(TokenId::SymQuestion))
         {
-            expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosing)
+            expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosingBefore)
                                  .loc(leftBracket)
                                  .because(DiagnosticId::BecauseIncompleteArrayType));
 
@@ -151,7 +151,7 @@ AstNodeRef Parser::parseType()
         if (isInvalid(dim))
             return INVALID_REF;
 
-        expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosing)
+        expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosingBefore)
                              .loc(leftBracket));
 
         const auto child = parseType();

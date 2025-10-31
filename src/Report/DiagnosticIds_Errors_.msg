@@ -5,13 +5,13 @@ SWC_DIAG_DEF(CmdLineMissingArgValue, Error, "missing value for argument {arg}")
 SWC_DIAG_DEF(CmdLineInvalidBoolArg, Error, "invalid negation for argument {arg}; {long} is not a boolean")
 SWC_DIAG_DEF(CmdLineMissingCommand, Error, "missing command before arguments")
 SWC_DIAG_DEF(CmdLineInvalidCommand, Error, "invalid command {arg}; command must be one of {values}")
-SWC_DIAG_DEF(CmdLineInvalidFolder, Error, "invalid folder {path}; {reason}")
-SWC_DIAG_DEF(CmdLineInvalidFile, Error, "invalid file {path}; {reason}")
+SWC_DIAG_DEF(CmdLineInvalidFolder, Error, "invalid folder {path}; {because}")
+SWC_DIAG_DEF(CmdLineInvalidFile, Error, "invalid file {path}; {because}")
 
 SWC_DIAG_DEF(CmdSyntaxNoInput, Error, "invalid syntax command; you need to specify at least one --directory or --file")
 
-SWC_DIAG_DEF(CannotOpenFile, Error, "cannot open file {path}; {reason}")
-SWC_DIAG_DEF(CannotReadFile, Error, "cannot read file {path}; {reason}")
+SWC_DIAG_DEF(CannotOpenFile, Error, "cannot open file {path}; {because}")
+SWC_DIAG_DEF(CannotReadFile, Error, "cannot read file {path}; {because}")
 
 SWC_DIAG_DEF(UnRaisedDirective, Error, "directive was declared but never raised")
 
@@ -38,12 +38,13 @@ SWC_DIAG_DEF(LexInvalidCharacter, Error, "invalid character {tok}; not allowed i
 
 SWC_DIAG_DEF(ParserUnterminatedBlock, Error, "unterminated block; expected {end} before end of file")
 SWC_DIAG_DEF(ParserUnexpectedToken, Error, "unexpected {tok-fam} {tok}")
-SWC_DIAG_DEF(ParserExpectedToken, Error, "expected {expect} {because}, found {tok-fam} {tok}")
-SWC_DIAG_DEF(ParserExpectedTokenFam, Error, "expected {a-expect-fam} {because}, found {tok-fam} {tok}")
-SWC_DIAG_DEF(ParserExpectedTokenAfter, Error, "expected {expect} after {after} {because}, found {tok-fam} {tok}")
-SWC_DIAG_DEF(ParserExpectedTokenFamAfter, Error, "expected {a-expect-fam} after {after} {because}, found {tok-fam} {tok}")
+SWC_DIAG_DEF(ParserExpectedToken, Error, "expected {expect-tok} {because}, found {tok-fam} {tok}")
+SWC_DIAG_DEF(ParserExpectedTokenFam, Error, "expected {expect-a-tok-fam} {because}, found {tok-fam} {tok}")
+SWC_DIAG_DEF(ParserExpectedTokenAfter, Error, "expected {expect-tok} after {after} {because}, found {tok-fam} {tok}")
+SWC_DIAG_DEF(ParserExpectedTokenFamAfter, Error, "expected {expect-a-tok-fam} after {after} {because}, found {tok-fam} {tok}")
 SWC_DIAG_DEF(ParserInvalidType, Error, "invalid type declaration {tok}")
-SWC_DIAG_DEF(ParserMissingClosing, Error, "missing closing {expect} {because}")
+SWC_DIAG_DEF(ParserMissingClosing, Error, "missing closing {expect-tok} {because}")
+SWC_DIAG_DEF(ParserMissingClosingBefore, Error, "missing closing {expect-tok} {because} before {tok}")
 
 
 

@@ -108,16 +108,16 @@ public:
     constexpr static std::string_view ARG_LONG    = "{long}";
     constexpr static std::string_view ARG_SHORT   = "{short}";
 
-    constexpr static std::string_view ARG_END          = "{end}";
     constexpr static std::string_view ARG_TOK          = "{tok}";
     constexpr static std::string_view ARG_TOK_FAM      = "{tok-fam}";
     constexpr static std::string_view ARG_A_TOK_FAM    = "{a-tok-fam}";
-    constexpr static std::string_view ARG_EXPECT       = "{expect}";
-    constexpr static std::string_view ARG_EXPECT_FAM   = "{expect-fam}";
-    constexpr static std::string_view ARG_A_EXPECT_FAM = "{a-expect-fam}";
-    constexpr static std::string_view ARG_AFTER        = "{after}";
-    constexpr static std::string_view ARG_REASON       = "{reason}";
-    constexpr static std::string_view ARG_BECAUSE      = "{because}";
+    constexpr static std::string_view ARG_EXPECT       = "{expect-tok}";
+    constexpr static std::string_view ARG_EXPECT_FAM   = "{expect-tok-fam}";
+    constexpr static std::string_view ARG_A_EXPECT_FAM = "{expect-a-tok-fam}";
+
+    constexpr static std::string_view ARG_AFTER   = "{after}";
+    constexpr static std::string_view ARG_BEFORE  = "{before}";
+    constexpr static std::string_view ARG_BECAUSE = "{because}";
 
     Diagnostic() = default;
 

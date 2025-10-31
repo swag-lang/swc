@@ -47,8 +47,8 @@ AstNodeRef Parser::parseBlock(AstNodeId blockId, TokenId blockTokenEnd)
             consumeTrivia();
         else
         {
-            auto diag = reportError(DiagnosticId::ParserUnterminatedBlock, openToken);
-            diag.addArgument(Diagnostic::ARG_END, Token::toName(Token::toRelated(openToken.id)));
+            auto diag = reportError(DiagnosticId::ParserMissingClosing, openToken);
+            diag.addArgument(Diagnostic::ARG_EXPECT, Token::toName(Token::toRelated(openToken.id)));
         }
     }
 

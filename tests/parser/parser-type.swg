@@ -8,7 +8,7 @@ enum A : [*] {} // swc-expected-error ParserInvalidType
 enum A : [? /* toto */ s32 {} // swc-expected-error ParserMissingClosing
 enum A : [* /* toto */ s32 {} // swc-expected-error ParserMissingClosing
 enum A : [.. /* toto */ s32 {} // swc-expected-error ParserMissingClosing
-enum A : [0 /* toto */ s32 {}
+enum A : [0 /* toto */ s32 {} // swc-expected-error ParserMissingClosing
 
 enum A : [*] s32 {}
 enum A : [..] s32 {}

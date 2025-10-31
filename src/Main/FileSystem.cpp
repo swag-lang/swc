@@ -16,7 +16,7 @@ Result FileSystem::resolveFolder(const Context& ctx, fs::path& folder)
     {
         auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineInvalidFolder);
         diag.addArgument(Diagnostic::ARG_PATH, folder.string());
-        diag.addArgument(Diagnostic::ARG_REASON, normalizeSystemMessage(ec));
+        diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
         return Result::Error;
     }
 
@@ -32,9 +32,9 @@ Result FileSystem::resolveFolder(const Context& ctx, fs::path& folder)
         auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineInvalidFolder);
         diag.addArgument(Diagnostic::ARG_PATH, folder.string());
         if (ec)
-            diag.addArgument(Diagnostic::ARG_REASON, normalizeSystemMessage(ec));
+            diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
         else
-            diag.addArgument(Diagnostic::ARG_REASON, "path does not exist");
+            diag.addArgument(Diagnostic::ARG_BECAUSE, "path does not exist");
         return Result::Error;
     }
     ec.clear();
@@ -45,9 +45,9 @@ Result FileSystem::resolveFolder(const Context& ctx, fs::path& folder)
         auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineInvalidFolder);
         diag.addArgument(Diagnostic::ARG_PATH, folder.string());
         if (ec)
-            diag.addArgument(Diagnostic::ARG_REASON, normalizeSystemMessage(ec));
+            diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
         else
-            diag.addArgument(Diagnostic::ARG_REASON, "not a directory");
+            diag.addArgument(Diagnostic::ARG_BECAUSE, "not a directory");
         return Result::Error;
     }
 
@@ -65,7 +65,7 @@ Result FileSystem::resolveFile(const Context& ctx, fs::path& file)
     {
         auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineInvalidFile);
         diag.addArgument(Diagnostic::ARG_PATH, file.string());
-        diag.addArgument(Diagnostic::ARG_REASON, normalizeSystemMessage(ec));
+        diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
         return Result::Error;
     }
 
@@ -81,9 +81,9 @@ Result FileSystem::resolveFile(const Context& ctx, fs::path& file)
         auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineInvalidFile);
         diag.addArgument(Diagnostic::ARG_PATH, file.string());
         if (ec)
-            diag.addArgument(Diagnostic::ARG_REASON, normalizeSystemMessage(ec));
+            diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
         else
-            diag.addArgument(Diagnostic::ARG_REASON, "path does not exist");
+            diag.addArgument(Diagnostic::ARG_BECAUSE, "path does not exist");
         return Result::Error;
     }
     ec.clear();
@@ -94,9 +94,9 @@ Result FileSystem::resolveFile(const Context& ctx, fs::path& file)
         auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineInvalidFile);
         diag.addArgument(Diagnostic::ARG_PATH, file.string());
         if (ec)
-            diag.addArgument(Diagnostic::ARG_REASON, normalizeSystemMessage(ec));
+            diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
         else
-            diag.addArgument(Diagnostic::ARG_REASON, "not a regular file");
+            diag.addArgument(Diagnostic::ARG_BECAUSE, "not a regular file");
         return Result::Error;
     }
 

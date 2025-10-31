@@ -1,3 +1,3 @@
 } // swc-expected-error ParserUnexpectedToken
-{ // swc-expected-error ParserUnterminatedBlock
+{ // swc-expected-error MissingClosing
 ;

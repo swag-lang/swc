@@ -13,4 +13,5 @@ enum A : [5][10] A {}
 enum A : [5][10] ****A {}
 enum A : [5][..] ****A {}
 enum A : &A {}
+enum A : &&A {}
 enum A : *const *A {}

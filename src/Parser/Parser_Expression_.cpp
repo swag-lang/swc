@@ -5,6 +5,13 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseExpression()
 {
+    if (is(TokenId::NumberInteger))
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNode>();
+        consume();
+        return nodeRef;
+    }
+
     return INVALID_REF;
 }
 

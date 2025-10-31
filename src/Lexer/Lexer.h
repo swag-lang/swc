@@ -45,6 +45,7 @@ public:
     const std::vector<Token>&         tokens() const { return tokens_; }
     const std::vector<uint32_t>&      lines() const { return lines_; }
     const std::vector<LexIdentifier>& identifiers() const { return identifiers_; }
+    const Token&                      token(TokenRef tok) const { return tokens_[tok]; }
 };
 
 // Main lexer class - converts source text into tokens

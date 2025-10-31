@@ -74,6 +74,7 @@ class Parser
         SmallVector<TokenId> manyTok    = {};
         DiagnosticId         diag       = DiagnosticId::ParserExpectedToken;
         DiagnosticId         becauseCtx = DiagnosticId::None;
+        TokenRef             locToken   = INVALID_REF;
 
         bool valid(TokenId id) const
         {
@@ -102,6 +103,12 @@ class Parser
             becauseCtx = b;
             return *this;
         }
+
+        Expect& loc(TokenRef tok)
+        {
+            locToken = tok;
+            return *this;
+        }
     };
 
     TokenRef expect(const Expect& expect) const;
@@ -115,7 +122,7 @@ class Parser
 
     const Token* tokPtr() const { return curToken_; }
     const Token& tok() const { return *curToken_; }
-    TokenRef     ref() const { return static_cast<TokenRef>(curToken_ - firstToken_) + 1; }
+    TokenRef     ref() const { return static_cast<TokenRef>(curToken_ - firstToken_); }
     TokenId      id() const { return curToken_->id; }
     bool         is(TokenId id0) const { return curToken_->id == id0; }
     bool         isNot(TokenId nid) const { return curToken_->id != nid; }
@@ -142,8 +149,8 @@ class Parser
     bool skipAfter(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlags::Zero);
     bool skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags);
 
-    void       reportArguments(Diagnostic& diag, const Token& myToken) const;
-    Diagnostic reportError(DiagnosticId id, const Token& myToken) const;
+    void       setReportArguments(Diagnostic& diag, const Token& token) const;
+    Diagnostic reportError(DiagnosticId id, const Token& token) const;
     Diagnostic reportExpected(const Expect& expect) const;
 
 public:

@@ -43,6 +43,7 @@ SWC_DIAG_DEF(ParserExpectedTokenFam, Error, "expected {a-expect-fam} {because}, 
 SWC_DIAG_DEF(ParserExpectedTokenAfter, Error, "expected {expect} after {after} {because}, found {tok-fam} {tok}")
 SWC_DIAG_DEF(ParserExpectedTokenFamAfter, Error, "expected {a-expect-fam} after {after} {because}, found {tok-fam} {tok}")
 SWC_DIAG_DEF(ParserInvalidType, Error, "invalid type declaration {tok}")
+SWC_DIAG_DEF(ParserMissingClosing, Error, "missing closing {expect} {because} before {tok}")
 
 
 

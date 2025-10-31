@@ -95,12 +95,15 @@ AstNodeRef Parser::parseType()
     }
 
     // Array or slice
-    if (consumeIf(TokenId::SymLeftBracket))
+    TokenRef leftBracket;
+    if (consumeIf(TokenId::SymLeftBracket, &leftBracket))
     {
+        const auto inSym = ref();
+
         // [*]
         if (consumeIf(TokenId::SymAsterisk))
         {
-            (void) expectAndConsume(TokenId::SymRightBracket, DiagnosticId::ParserExpectedTokenAfter);
+            (void) expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosing).loc(inSym).because(DiagnosticId::BecausePtrBlockType));
 
             const auto child = parseType();
             if (isInvalid(child))
@@ -114,7 +117,7 @@ AstNodeRef Parser::parseType()
         // [..]
         if (consumeIf(TokenId::SymDotDot))
         {
-            (void) expectAndConsume(TokenId::SymRightBracket, DiagnosticId::ParserExpectedTokenAfter);
+            (void) expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosing).loc(inSym).because(DiagnosticId::BecauseSliceType));
 
             const auto child = parseType();
             if (isInvalid(child))
@@ -128,7 +131,7 @@ AstNodeRef Parser::parseType()
         // [?]
         if (consumeIf(TokenId::SymQuestion))
         {
-            (void) expectAndConsume(TokenId::SymRightBracket, DiagnosticId::ParserExpectedTokenAfter);
+            (void) expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosing).loc(inSym).because(DiagnosticId::BecauseIncompleteArrayType));
 
             const auto child = parseType();
             if (isInvalid(child))
@@ -144,7 +147,7 @@ AstNodeRef Parser::parseType()
         if (isInvalid(dim))
             return INVALID_REF;
 
-        (void) expectAndConsume(TokenId::SymRightBracket, DiagnosticId::ParserExpectedTokenAfter);
+        (void) expectAndConsume(Expect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosing).loc(leftBracket));
 
         const auto child = parseType();
         if (isInvalid(child))

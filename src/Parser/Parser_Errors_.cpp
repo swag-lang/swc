@@ -1,27 +1,28 @@
 #include "pch.h"
 #include "Lexer/SourceCodeLocation.h"
+#include "Lexer/SourceFile.h"
 #include "Parser/Parser.h"
 #include "Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE()
 
-void Parser::reportArguments(Diagnostic& diag, const Token& myToken) const
+void Parser::setReportArguments(Diagnostic& diag, const Token& token) const
 {
-    diag.addArgument(Diagnostic::ARG_TOK, myToken.toString(*file_));
-    diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(myToken.id), false);
-    diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Token::toAFamily(myToken.id), false);
+    diag.addArgument(Diagnostic::ARG_TOK, token.toString(*file_));
+    diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id), false);
+    diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Token::toAFamily(token.id), false);
 
-    // Get the last non trivia token
-    auto last = lastNonTrivia();
+    // Get the last non-trivia token
+    const auto last = lastNonTrivia();
     if (last)
         diag.addArgument(Diagnostic::ARG_AFTER, last->toString(*file_));
 }
 
-Diagnostic Parser::reportError(DiagnosticId id, const Token& myToken) const
+Diagnostic Parser::reportError(DiagnosticId id, const Token& token) const
 {
     auto diag = Diagnostic::raise(*ctx_, id, file_);
-    reportArguments(diag, myToken);
-    diag.last().setLocation(myToken.toLocation(*ctx_, *file_));
+    setReportArguments(diag, token);
+    diag.last().setLocation(token.toLocation(*ctx_, *file_));
     return diag;
 }
 
@@ -37,7 +38,13 @@ Diagnostic Parser::reportExpected(const Expect& expect) const
             diagId = DiagnosticId::ParserExpectedTokenFam;
 
         auto diag = reportError(diagId, tok());
-        reportArguments(diag, tok());
+        setReportArguments(diag, tok());
+
+        if (!isInvalid(expect.locToken))
+        {
+            const auto tknLoc = file_->lexOut().token(expect.locToken);
+            diag.last().setLocation(tknLoc.toLocation(*ctx_, *file_));
+        }
 
         diag.addArgument(Diagnostic::ARG_EXPECT, Token::toName(expected));
         diag.addArgument(Diagnostic::ARG_EXPECT_FAM, Token::toFamily(expected), false);
@@ -50,25 +57,22 @@ Diagnostic Parser::reportExpected(const Expect& expect) const
     }
 
     // Expected one of multiple tokens
-    else
+    auto diag = reportError(expect.diag, tok());
+    setReportArguments(diag, tok());
+
+    Utf8 msg   = "one of ";
+    bool first = true;
+    for (const auto& t : expect.manyTok)
     {
-        auto diag = reportError(expect.diag, tok());
-        reportArguments(diag, tok());
-
-        Utf8 msg   = "one of ";
-        bool first = true;
-        for (const auto& t : expect.manyTok)
-        {
-            if (!first)
-                msg += ", ";
-            msg += std::format("'{}'", Token::toName(t));
-            first = false;
-        }
-
-        diag.addArgument(Diagnostic::ARG_EXPECT, msg);
-        diag.addArgument(Diagnostic::ARG_BECAUSE, Diagnostic::diagIdMessage(expect.becauseCtx), false);
-        return diag;
+        if (!first)
+            msg += ", ";
+        msg += std::format("'{}'", Token::toName(t));
+        first = false;
     }
+
+    diag.addArgument(Diagnostic::ARG_EXPECT, msg);
+    diag.addArgument(Diagnostic::ARG_BECAUSE, Diagnostic::diagIdMessage(expect.becauseCtx), false);
+    return diag;
 }
 
 SWC_END_NAMESPACE()

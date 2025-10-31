@@ -2,3 +2,6 @@ SWC_DIAG_DEF(ParserReservedAsIdentifier)
 
 SWC_DIAG_DEF(BecauseEnumValues)
 SWC_DIAG_DEF(BecauseStartEnumBody)
+SWC_DIAG_DEF(BecauseIncompleteArrayType)
+SWC_DIAG_DEF(BecausePtrBlockType)
+SWC_DIAG_DEF(BecauseSliceType)

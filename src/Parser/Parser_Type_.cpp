@@ -59,9 +59,8 @@ AstNodeRef Parser::parseType()
     }
 
     // Left reference
-    if (is(TokenId::SymAmpersand))
+    if (consumeIf(TokenId::SymAmpersand))
     {
-        consume();
         const auto child = parseType();
         if (isInvalid(child))
             return INVALID_REF;
@@ -72,9 +71,8 @@ AstNodeRef Parser::parseType()
     }
 
     // Right reference
-    if (is(TokenId::SymAmpersandAmpersand))
+    if (consumeIf(TokenId::SymAmpersandAmpersand))
     {
-        consume();
         const auto child = parseType();
         if (isInvalid(child))
             return INVALID_REF;
@@ -85,9 +83,8 @@ AstNodeRef Parser::parseType()
     }
 
     // Pointer
-    if (is(TokenId::SymAsterisk))
+    if (consumeIf(TokenId::SymAsterisk))
     {
-        consume();
         const auto child = parseType();
         if (isInvalid(child))
             return INVALID_REF;
@@ -98,14 +95,11 @@ AstNodeRef Parser::parseType()
     }
 
     // Array or slice
-    if (is(TokenId::SymLeftBracket))
+    if (consumeIf(TokenId::SymLeftBracket))
     {
-        consume();
-
         // [*]
-        if (is(TokenId::SymAsterisk))
+        if (consumeIf(TokenId::SymAsterisk))
         {
-            consume();
             (void) expectAndConsume(TokenId::SymRightBracket, DiagnosticId::ParserExpectedTokenAfter);
 
             const auto child = parseType();
@@ -118,9 +112,8 @@ AstNodeRef Parser::parseType()
         }
 
         // [..]
-        if (is(TokenId::SymDotDot))
+        if (consumeIf(TokenId::SymDotDot))
         {
-            consume();
             (void) expectAndConsume(TokenId::SymRightBracket, DiagnosticId::ParserExpectedTokenAfter);
 
             const auto child = parseType();
@@ -133,9 +126,8 @@ AstNodeRef Parser::parseType()
         }
 
         // [?]
-        if (is(TokenId::SymQuestion))
+        if (consumeIf(TokenId::SymQuestion))
         {
-            consume();
             (void) expectAndConsume(TokenId::SymRightBracket, DiagnosticId::ParserExpectedTokenAfter);
 
             const auto child = parseType();

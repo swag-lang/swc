@@ -55,7 +55,7 @@ class Parser
     const Token* lastNonTrivia() const;
     TokenRef     consumeOne();
     TokenRef     consume();
-    bool         consumeIf(TokenId id);
+    bool         consumeIf(TokenId id, TokenRef* result = nullptr);
     void         skipTrivia();
     void         skipTriviaAndEol();
     void         consumeTrivia();
@@ -128,8 +128,10 @@ class Parser
         return ((curToken_->id == ids) || ...);
     }
 
-    AstNodeRef parseExpression();
+    AstNodeRef parseSingleType();
     AstNodeRef parseType();
+
+    AstNodeRef parseExpression();
     AstNodeRef parseEnum();
     AstNodeRef parseEnumValue();
     AstNodeRef parseTopLevelInstruction();

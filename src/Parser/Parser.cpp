@@ -107,10 +107,17 @@ TokenRef Parser::consume()
     return result;
 }
 
-bool Parser::consumeIf(TokenId id)
+bool Parser::consumeIf(TokenId id, TokenRef* result)
 {
     if (atEnd() || isNot(id))
+    {
+        if (result)
+            *result = INVALID_REF;
         return false;
+    }
+
+    if (result)
+        *result = ref();
     consumeTrivia();
     return true;
 }

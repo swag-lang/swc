@@ -30,11 +30,10 @@ public:
     static constexpr std::string_view     nodeIdName(AstNodeId id) { return nodeIdInfos(id).name; }
 
     template<class T>
-    std::pair<Ref, T*> makeNode(AstNodeId id, TokenRef token)
+    std::pair<Ref, T*> makeNode(AstNodeId id)
     {
-        auto result          = store_.emplace_uninit<T>();
-        result.second->id    = id;
-        result.second->token = token;
+        auto result       = store_.emplace_uninit<T>();
+        result.second->id = id;
 #if SWC_HAS_STATS
         Stats::get().numAstNodes.fetch_add(1);
 #endif
@@ -42,10 +41,9 @@ public:
     }
 
     template<class T>
-    std::pair<Ref, T*> makeNode(TokenRef token)
+    std::pair<Ref, T*> makeNode()
     {
-        auto result          = store_.emplace_uninit<T>();
-        result.second->token = token;
+        auto result = store_.emplace_uninit<T>();
 #if SWC_HAS_STATS
         Stats::get().numAstNodes.fetch_add(1);
 #endif

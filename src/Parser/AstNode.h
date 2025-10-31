@@ -30,16 +30,9 @@ struct AstNode
 {
     AstNodeId id    = AstNodeId::Invalid;
     uint16_t  flags = 0;
-    TokenRef  token = INVALID_REF;
 
     explicit AstNode(AstNodeId nodeId) :
         id(nodeId)
-    {
-    }
-
-    AstNode(AstNodeId nodeId, TokenRef tok) :
-        id(nodeId),
-        token(tok)
     {
     }
 };

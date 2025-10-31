@@ -9,7 +9,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockId, TokenId blockTokenEnd)
 {
     const Token& openToken = tok();
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeBlock>(blockId, ref());
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeBlock>(blockId);
     if (blockTokenEnd != TokenId::Invalid)
         consume();
     skipTriviaAndEol();
@@ -52,7 +52,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockId, TokenId blockTokenEnd)
         }
     }
 
-    nodePtr->children = ast_->store_.push_span(std::span(stmts.data(), stmts.size()));
+    nodePtr->nodeChildren = ast_->store_.push_span(std::span(stmts.data(), stmts.size()));
     return nodeRef;
 }
 

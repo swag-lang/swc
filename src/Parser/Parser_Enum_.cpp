@@ -8,19 +8,19 @@ AstNodeRef Parser::parseEnumValue()
 {
     static constexpr std::initializer_list ENUM_VALUE_SYNC = {TokenId::SymRightCurly, TokenId::SymComma, TokenId::EndOfLine, TokenId::Identifier};
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeEnumValue>(ref());
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeEnumValue>();
 
     // Name
-    nodePtr->name = expectAndConsumeSingle(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFam);
-    if (isInvalid(nodePtr->name))
+    nodePtr->tknName = expectAndConsumeSingle(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFam);
+    if (isInvalid(nodePtr->tknName))
         skipTo(ENUM_VALUE_SYNC);
     skipTrivia();
 
     // Value
     if (consumeIf(TokenId::SymEqual))
     {
-        nodePtr->value = parseExpression();
-        if (isInvalid(nodePtr->value))
+        nodePtr->nodeValue = parseExpression();
+        if (isInvalid(nodePtr->nodeValue))
             skipTo(ENUM_VALUE_SYNC);
     }
 
@@ -38,18 +38,19 @@ AstNodeRef Parser::parseEnum()
 {
     static constexpr std::initializer_list START_END_BLOCK = {TokenId::SymLeftCurly, TokenId::SymRightCurly};
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeEnumDecl>(consume());
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeEnumDecl>();
+    consume();
 
     // Name
-    nodePtr->name = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFamAfter);
-    if (isInvalid(nodePtr->name))
+    nodePtr->tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFamAfter);
+    if (isInvalid(nodePtr->tknName))
         skipTo({TokenId::SymLeftCurly, TokenId::SymColon});
 
     // Type
     if (consumeIf(TokenId::SymColon))
     {
-        nodePtr->type = parseType();
-        if (isInvalid(nodePtr->type))
+        nodePtr->nodeType = parseType();
+        if (isInvalid(nodePtr->nodeType))
             skipTo(START_END_BLOCK);
     }
 
@@ -60,14 +61,14 @@ AstNodeRef Parser::parseEnum()
         skipTo(START_END_BLOCK);
         if (isNot(TokenId::SymLeftCurly))
         {
-            nodePtr->body = INVALID_REF;
+            nodePtr->nodeBody = INVALID_REF;
             if (is(TokenId::SymRightCurly))
                 consume();
             return nodeRef;
         }
     }
 
-    nodePtr->body = parseBlock(AstNodeId::EnumBlock, TokenId::SymRightCurly);
+    nodePtr->nodeBody = parseBlock(AstNodeId::EnumBlock, TokenId::SymRightCurly);
     return nodeRef;
 }
 

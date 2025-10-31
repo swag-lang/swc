@@ -19,7 +19,8 @@ enum class LogSymbol
     DownRight,
     DownLeft,
     UpRight,
-    RightDown
+    RightDown,
+    Underline
 };
 
 struct LogSymbolHelper

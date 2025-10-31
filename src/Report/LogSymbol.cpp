@@ -39,6 +39,8 @@ Utf8 LogSymbolHelper::toString(const Context& ctx, LogSymbol symbol)
         return ascii ? "|" : "┌";
     case LogSymbol::RightDown:
         return ascii ? "|" : "┐";
+    case LogSymbol::Underline:
+        return ascii ? "^" : "─";
     }
 
     return "?";

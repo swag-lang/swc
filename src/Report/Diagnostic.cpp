@@ -134,7 +134,7 @@ Diagnostic::AnsiSeq Diagnostic::diagPalette(DiagPart p, std::optional<Diagnostic
     case DiagPart::CodeText:
         return {White};
 
-    case DiagPart::SubLabelText:
+    case DiagPart::LabelMsgText:
         if (!sev)
             return {White};
         switch (*sev)
@@ -149,7 +149,7 @@ Diagnostic::AnsiSeq Diagnostic::diagPalette(DiagPart p, std::optional<Diagnostic
         }
         break;
 
-    case DiagPart::SubLabelPrefix:
+    case DiagPart::LabelMsgPrefix:
     case DiagPart::Severity:
         if (!sev)
             return {White};
@@ -353,20 +353,20 @@ void Diagnostic::writeCodeLine(Utf8& out, const Context& ctx, uint32_t gutterW, 
     out += "\n";
 }
 
-void Diagnostic::writeSubLabel(Utf8& out, const Context& ctx, DiagnosticSeverity sev, std::string_view msg)
+void Diagnostic::writeLabelMsg(Utf8& out, const Context& ctx, DiagnosticSeverity sev, std::string_view msg)
 {
-    out += partStyle(ctx, DiagPart::SubLabelPrefix, sev);
+    out += partStyle(ctx, DiagPart::LabelMsgPrefix, sev);
     out += severityStr(sev);
     out += ": ";
     out += partStyle(ctx, DiagPart::Reset);
 
-    out += partStyle(ctx, DiagPart::SubLabelText, sev);
-    writeHighlightedMessage(out, ctx, sev, msg, partStyle(ctx, DiagPart::SubLabelText, sev));
+    out += partStyle(ctx, DiagPart::LabelMsgText, sev);
+    writeHighlightedMessage(out, ctx, sev, msg, partStyle(ctx, DiagPart::LabelMsgText, sev));
     out += partStyle(ctx, DiagPart::Reset);
     out += "\n";
 }
 
-void Diagnostic::writeFullUnderline(Utf8& out, const Context& ctx, DiagnosticSeverity sev, const Utf8& msg, uint32_t gutterW, uint32_t columnOneBased, uint32_t underlineLen)
+void Diagnostic::writeCodeUnderline(Utf8& out, const Context& ctx, DiagnosticSeverity sev, const Utf8& msg, uint32_t gutterW, uint32_t columnOneBased, uint32_t underlineLen)
 {
     writeGutter(out, ctx, gutterW);
 
@@ -375,17 +375,24 @@ void Diagnostic::writeFullUnderline(Utf8& out, const Context& ctx, DiagnosticSev
     const uint32_t col = std::max<uint32_t>(1, columnOneBased);
     for (uint32_t i = 1; i < col; ++i)
         out += ' ';
+    
     const uint32_t len = underlineLen == 0 ? 1u : underlineLen;
-    out.append(len, '^');
-    out += " ";
+    for (uint32_t i = 0; i < len; ++i)
+        out.append(LogSymbolHelper::toString(ctx, LogSymbol::Underline));
 
     // Message
-    writeSubLabel(out, ctx, sev, msg);
+    if (!msg.empty())
+    {
+        out += " ";
+        writeLabelMsg(out, ctx, sev, msg);
+    }
+    else
+        out += "\n";
 }
 
 // Renders a single element's location/code/underline block
 // NOTE: gutterW is computed once per diagnostic (max line number across all elements)
-void Diagnostic::writeCodeBlock(Utf8& out, const Context& ctx, const DiagnosticElement& el, uint32_t gutterW) const
+void Diagnostic::writeCodeBlock(Utf8& out, const Context& ctx, const DiagnosticElement& el, uint32_t gutterW)
 {
     const auto loc = el.location(ctx);
 
@@ -404,7 +411,7 @@ void Diagnostic::writeCodeBlock(Utf8& out, const Context& ctx, const DiagnosticE
     // underline the entire span with carets
     const std::string_view tokenView     = el.location(ctx).file->codeView(el.location(ctx).offset, el.location(ctx).len);
     const uint32_t         tokenLenChars = Utf8Helper::countChars(tokenView);
-    writeFullUnderline(out, ctx, el.severity(), message(el), gutterW, loc.column, tokenLenChars);
+    writeCodeUnderline(out, ctx, el.severity(), "", gutterW, loc.column, tokenLenChars);
 
     writeGutterSep(out, ctx, gutterW);
 }
@@ -434,10 +441,10 @@ Utf8 Diagnostic::message(const DiagnosticElement& el) const
 
 Utf8 Diagnostic::build(const Context& ctx) const
 {
-    Utf8 out;
-
     if (elements_.empty())
-        return out;
+        return {};
+
+    Utf8 out;
 
     // Make a copy of elements to modify them if necessary
     SmallVector<std::unique_ptr<DiagnosticElement>> elements;
@@ -451,10 +458,7 @@ Utf8 Diagnostic::build(const Context& ctx) const
     for (const auto& e : elements)
     {
         if (e->hasCodeLocation())
-        {
-            const auto locLine = e->location(ctx).line;
-            maxLine            = std::max(locLine, maxLine);
-        }
+            maxLine = std::max(e->location(ctx).line, maxLine);
     }
 
     const uint32_t gutterW = maxLine ? digits(maxLine) : 0;
@@ -464,6 +468,7 @@ Utf8 Diagnostic::build(const Context& ctx) const
     const auto  pMsg    = message(*primary);
 
     // Render primary element body (location/code) if any
+    writeLabelMsg(out, ctx, primary->severity(), pMsg);
     const bool pHasLoc = primary->hasCodeLocation();
     if (pHasLoc)
         writeCodeBlock(out, ctx, *primary, gutterW);
@@ -491,7 +496,7 @@ Utf8 Diagnostic::build(const Context& ctx) const
         else
         {
             out.append(gutterW, ' ');
-            writeSubLabel(out, ctx, sev, msg);
+            writeLabelMsg(out, ctx, sev, msg);
         }
     }
 

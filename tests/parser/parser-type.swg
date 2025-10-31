@@ -4,6 +4,7 @@ enum A : **T {}
 
 enum A : *enum {} // swc-expected-error ParserInvalidType
 enum A : [*] {} // swc-expected-error ParserInvalidType
+enum A : [? s32 {} // swc-expected-error ParserExpectedToken
 
 enum A : [*] s32 {}
 enum A : [..] s32 {}

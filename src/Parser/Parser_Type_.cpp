@@ -67,7 +67,7 @@ AstNodeRef Parser::parseType()
             return INVALID_REF;
 
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeRefType>(AstNodeId::LRefType);
-        nodePtr->nodeType = child;
+        nodePtr->nodeType       = child;
         return nodeRef;
     }
 
@@ -80,7 +80,7 @@ AstNodeRef Parser::parseType()
             return INVALID_REF;
 
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeRefType>(AstNodeId::RRefType);
-        nodePtr->nodeType = child;
+        nodePtr->nodeType       = child;
         return nodeRef;
     }
 
@@ -106,11 +106,9 @@ AstNodeRef Parser::parseType()
         if (is(TokenId::SymAsterisk))
         {
             consume();
-            auto child = expectAndConsume(TokenId::SymRightBracket, DiagnosticId::ParserExpectedTokenAfter);
-            if (isInvalid(child))
-                return INVALID_REF;
+            (void) expectAndConsume(TokenId::SymRightBracket, DiagnosticId::ParserExpectedTokenAfter);
 
-            child = parseType();
+            const auto child = parseType();
             if (isInvalid(child))
                 return INVALID_REF;
 
@@ -123,11 +121,9 @@ AstNodeRef Parser::parseType()
         if (is(TokenId::SymDotDot))
         {
             consume();
-            auto child = expectAndConsume(TokenId::SymRightBracket, DiagnosticId::ParserExpectedTokenAfter);
-            if (isInvalid(child))
-                return INVALID_REF;
+            (void) expectAndConsume(TokenId::SymRightBracket, DiagnosticId::ParserExpectedTokenAfter);
 
-            child = parseType();
+            const auto child = parseType();
             if (isInvalid(child))
                 return INVALID_REF;
 
@@ -140,11 +136,9 @@ AstNodeRef Parser::parseType()
         if (is(TokenId::SymQuestion))
         {
             consume();
-            auto child = expectAndConsume(TokenId::SymRightBracket, DiagnosticId::ParserExpectedTokenAfter);
-            if (isInvalid(child))
-                return INVALID_REF;
+            (void) expectAndConsume(TokenId::SymRightBracket, DiagnosticId::ParserExpectedTokenAfter);
 
-            child = parseType();
+            const auto child = parseType();
             if (isInvalid(child))
                 return INVALID_REF;
 
@@ -158,7 +152,9 @@ AstNodeRef Parser::parseType()
         if (isInvalid(dim))
             return INVALID_REF;
 
-        const auto child = expectAndConsume(TokenId::SymRightBracket, DiagnosticId::ParserExpectedTokenAfter);
+        (void) expectAndConsume(TokenId::SymRightBracket, DiagnosticId::ParserExpectedTokenAfter);
+
+        const auto child = parseType();
         if (isInvalid(child))
             return INVALID_REF;
 

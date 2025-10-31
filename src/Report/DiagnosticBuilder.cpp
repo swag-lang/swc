@@ -1,10 +1,10 @@
 #include "pch.h"
-#include "Report/DiagnosticEngine.h"
 #include "Core/Utf8Helper.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
 #include "Main/Context.h"
 #include "Report/Diagnostic.h"
+#include "Report/DiagnosticBuilder.h"
 #include "Report/DiagnosticElement.h"
 #include "Report/LogColor.h"
 #include "Report/LogSymbol.h"
@@ -62,7 +62,7 @@ namespace
 }
 
 // split message on ';' ignoring ';' inside quotes and escaped quotes
-SmallVector<std::string_view> DiagnosticEngine::splitMessage(std::string_view msg)
+SmallVector<std::string_view> DiagnosticBuilder::splitMessage(std::string_view msg)
 {
     SmallVector<std::string_view> parts;
     size_t                        start   = 0;
@@ -107,7 +107,7 @@ SmallVector<std::string_view> DiagnosticEngine::splitMessage(std::string_view ms
     return parts;
 }
 
-SmallVector<DiagnosticEngine::Part> DiagnosticEngine::parseParts(std::string_view msg)
+SmallVector<DiagnosticBuilder::Part> DiagnosticBuilder::parseParts(std::string_view msg)
 {
     SmallVector<Part> out;
     for (auto raw : splitMessage(msg))
@@ -123,7 +123,7 @@ SmallVector<DiagnosticEngine::Part> DiagnosticEngine::parseParts(std::string_vie
 }
 
 // Centralized palette for all diagnostic colors
-DiagnosticEngine::AnsiSeq DiagnosticEngine::diagPalette(DiagPart p, std::optional<DiagnosticSeverity> sev)
+DiagnosticBuilder::AnsiSeq DiagnosticBuilder::diagPalette(DiagPart p, std::optional<DiagnosticSeverity> sev)
 {
     using enum LogColor;
     switch (p)
@@ -194,7 +194,7 @@ DiagnosticEngine::AnsiSeq DiagnosticEngine::diagPalette(DiagPart p, std::optiona
     return {White};
 }
 
-Utf8 DiagnosticEngine::toAnsiSeq(const AnsiSeq& s) const
+Utf8 DiagnosticBuilder::toAnsiSeq(const AnsiSeq& s) const
 {
     Utf8 result;
     for (const auto c : s.seq)
@@ -202,17 +202,17 @@ Utf8 DiagnosticEngine::toAnsiSeq(const AnsiSeq& s) const
     return result;
 }
 
-Utf8 DiagnosticEngine::partStyle(DiagPart p) const
+Utf8 DiagnosticBuilder::partStyle(DiagPart p) const
 {
     return toAnsiSeq(diagPalette(p, std::nullopt));
 }
 
-Utf8 DiagnosticEngine::partStyle(DiagPart p, DiagnosticSeverity sev) const
+Utf8 DiagnosticBuilder::partStyle(DiagPart p, DiagnosticSeverity sev) const
 {
     return toAnsiSeq(diagPalette(p, sev));
 }
 
-void DiagnosticEngine::writeHighlightedMessage(DiagnosticSeverity sev, std::string_view msg, const Utf8& reset)
+void DiagnosticBuilder::writeHighlightedMessage(DiagnosticSeverity sev, std::string_view msg, const Utf8& reset)
 {
     const Utf8  qColor  = partStyle(DiagPart::QuoteText, sev);
     bool        inQuote = false;
@@ -277,7 +277,7 @@ void DiagnosticEngine::writeHighlightedMessage(DiagnosticSeverity sev, std::stri
     }
 }
 
-void DiagnosticEngine::writeFileLocation(const std::string& path, uint32_t line, uint32_t col, uint32_t len, uint32_t gutterW)
+void DiagnosticBuilder::writeFileLocation(const std::string& path, uint32_t line, uint32_t col, uint32_t len, uint32_t gutterW)
 {
     out_.append(gutterW, ' ');
     out_ += partStyle(DiagPart::FileLocationArrow);
@@ -304,7 +304,7 @@ void DiagnosticEngine::writeFileLocation(const std::string& path, uint32_t line,
     out_ += "\n";
 }
 
-void DiagnosticEngine::writeGutter(uint32_t gutterW)
+void DiagnosticBuilder::writeGutter(uint32_t gutterW)
 {
     out_.append(gutterW, ' ');
     out_ += partStyle(DiagPart::GutterBar);
@@ -314,7 +314,7 @@ void DiagnosticEngine::writeGutter(uint32_t gutterW)
     out_ += " ";
 }
 
-void DiagnosticEngine::writeCodeLine(uint32_t gutterW, uint32_t lineNo, std::string_view code)
+void DiagnosticBuilder::writeCodeLine(uint32_t gutterW, uint32_t lineNo, std::string_view code)
 {
     out_.append(gutterW - digits(lineNo), ' ');
     out_ += partStyle(DiagPart::LineNumber);
@@ -329,7 +329,7 @@ void DiagnosticEngine::writeCodeLine(uint32_t gutterW, uint32_t lineNo, std::str
     out_ += "\n";
 }
 
-void DiagnosticEngine::writeLabelMsg(DiagnosticSeverity sev, std::string_view msg)
+void DiagnosticBuilder::writeLabelMsg(DiagnosticSeverity sev, std::string_view msg)
 {
     out_ += partStyle(DiagPart::LabelMsgPrefix, sev);
     out_ += severityStr(sev);
@@ -342,7 +342,7 @@ void DiagnosticEngine::writeLabelMsg(DiagnosticSeverity sev, std::string_view ms
     out_ += "\n";
 }
 
-void DiagnosticEngine::writeCodeUnderline(DiagnosticSeverity sev, const Utf8& msg, uint32_t gutterW, uint32_t columnOneBased, uint32_t underlineLen)
+void DiagnosticBuilder::writeCodeUnderline(DiagnosticSeverity sev, const Utf8& msg, uint32_t gutterW, uint32_t columnOneBased, uint32_t underlineLen)
 {
     writeGutter(gutterW);
 
@@ -367,7 +367,7 @@ void DiagnosticEngine::writeCodeUnderline(DiagnosticSeverity sev, const Utf8& ms
 }
 
 // Helper function to convert variant argument to string
-Utf8 DiagnosticEngine::argumentToString(const Diagnostic::Argument& arg) const
+Utf8 DiagnosticBuilder::argumentToString(const Diagnostic::Argument& arg) const
 {
     auto toUtf8 = []<typename T0>(const T0& v) -> Utf8 {
         using T = std::decay_t<T0>;
@@ -393,7 +393,7 @@ Utf8 DiagnosticEngine::argumentToString(const Diagnostic::Argument& arg) const
 
 // Renders a single element's location/code/underline block
 // NOTE: gutterW is computed once per diagnostic (max line number across all elements)
-void DiagnosticEngine::writeCodeBlock(const DiagnosticElement& el, uint32_t gutterW, bool writeMsg)
+void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el, uint32_t gutterW, bool writeMsg)
 {
     const auto loc = el.location(*ctx_);
 
@@ -419,7 +419,7 @@ void DiagnosticEngine::writeCodeBlock(const DiagnosticElement& el, uint32_t gutt
     out_ += partStyle(DiagPart::Reset);
 }
 
-Utf8 DiagnosticEngine::message(const DiagnosticElement& el) const
+Utf8 DiagnosticBuilder::message(const DiagnosticElement& el) const
 {
     auto result = el.message();
 
@@ -443,7 +443,7 @@ Utf8 DiagnosticEngine::message(const DiagnosticElement& el) const
     return result;
 }
 
-void DiagnosticEngine::expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements) const
+void DiagnosticBuilder::expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements) const
 {
     if (elements.empty())
         return;
@@ -472,7 +472,7 @@ void DiagnosticEngine::expandMessageParts(SmallVector<std::unique_ptr<Diagnostic
     }
 }
 
-Utf8 DiagnosticEngine::build()
+Utf8 DiagnosticBuilder::build()
 {
     if (diag_->elements().empty())
         return {};

@@ -3,7 +3,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-class DiagnosticEngine
+class DiagnosticBuilder
 {
     enum class DiagPart : uint8_t
     {
@@ -59,7 +59,7 @@ class DiagnosticEngine
     void expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements) const;
 
 public:
-    DiagnosticEngine(const Context& ctx, const Diagnostic& diag) :
+    DiagnosticBuilder(const Context& ctx, const Diagnostic& diag) :
         ctx_(&ctx),
         diag_(&diag)
     {

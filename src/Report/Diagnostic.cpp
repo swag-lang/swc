@@ -5,8 +5,8 @@
 #include "Main/CommandLine.h"
 #include "Main/Context.h"
 #include "Main/Global.h"
+#include "Report/DiagnosticBuilder.h"
 #include "Report/DiagnosticElement.h"
-#include "Report/DiagnosticEngine.h"
 #include "Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -37,18 +37,6 @@ namespace
     constexpr auto DIAGNOSTIC_INFOS = makeDiagnosticInfos();
 }
 
-Diagnostic::Diagnostic(const Context& context, const std::optional<SourceFile*>& fileOwner) :
-    fileOwner_(fileOwner),
-    context_(&context)
-{
-}
-
-Diagnostic::~Diagnostic()
-{
-    SWC_ASSERT(context_);
-    report(*context_);
-}
-
 std::string_view Diagnostic::diagIdMessage(DiagnosticId id)
 {
     return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].msg;
@@ -64,6 +52,17 @@ DiagnosticSeverity Diagnostic::diagIdSeverity(DiagnosticId id)
     return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].severity;
 }
 
+Diagnostic::Diagnostic(const Context& context, const std::optional<SourceFile*>& fileOwner) :
+    fileOwner_(fileOwner),
+    context_(&context)
+{
+}
+
+Diagnostic::~Diagnostic()
+{
+    report(*context_);
+}
+
 void Diagnostic::report(const Context& ctx) const
 {
     SWC_ASSERT(!elements_.empty());
@@ -76,9 +75,9 @@ void Diagnostic::report(const Context& ctx) const
             fileOwner_.value()->setHasWarning();
     }
 
-    DiagnosticEngine eng(ctx, *this);
-    const auto       msg     = eng.build();
-    bool             dismiss = false;
+    DiagnosticBuilder eng(ctx, *this);
+    const auto        msg     = eng.build();
+    bool              dismiss = false;
 
     // Check that diagnostic was not awaited
     if (fileOwner_)

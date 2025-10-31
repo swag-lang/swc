@@ -101,7 +101,8 @@ AstNodeRef Parser::parseType()
         // [*]
         if (consumeIf(TokenId::SymAsterisk))
         {
-            expectAndConsume(ParserExpect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosingBefore));
+            expectAndConsume(ParserExpect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosingBefore)
+                .note(DiagnosticId::ParserCorresponding, leftBracket));
 
             const auto child = parseType();
             if (isInvalid(child))
@@ -115,7 +116,8 @@ AstNodeRef Parser::parseType()
         // [..]
         if (consumeIf(TokenId::SymDotDot))
         {
-            expectAndConsume(ParserExpect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosingBefore));
+            expectAndConsume(ParserExpect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosingBefore)
+                .note(DiagnosticId::ParserCorresponding, leftBracket));
 
             const auto child = parseType();
             if (isInvalid(child))
@@ -129,7 +131,8 @@ AstNodeRef Parser::parseType()
         // [?]
         if (consumeIf(TokenId::SymQuestion))
         {
-            expectAndConsume(ParserExpect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosingBefore));
+            expectAndConsume(ParserExpect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosingBefore)
+                .note(DiagnosticId::ParserCorresponding, leftBracket));
 
             const auto child = parseType();
             if (isInvalid(child))
@@ -145,7 +148,8 @@ AstNodeRef Parser::parseType()
         if (isInvalid(dim))
             return INVALID_REF;
 
-        expectAndConsume(ParserExpect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosingBefore));
+        expectAndConsume(ParserExpect::one(TokenId::SymRightBracket, DiagnosticId::ParserMissingClosingBefore)
+                             .note(DiagnosticId::ParserCorresponding, leftBracket));
 
         const auto child = parseType();
         if (isInvalid(child))

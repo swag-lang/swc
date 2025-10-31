@@ -37,4 +37,11 @@ ParserExpect& ParserExpect::loc(TokenRef tok)
     return *this;
 }
 
+ParserExpect& ParserExpect::note(DiagnosticId id, TokenRef tok)
+{
+    noteId    = id;
+    noteToken = tok;
+    return *this;
+}
+
 SWC_END_NAMESPACE()

@@ -53,6 +53,13 @@ Diagnostic Parser::reportExpected(const ParserExpect& expect) const
 
         if (expected == TokenId::Identifier && tok().isReservedWord())
             diag.addElement(DiagnosticId::ParserReservedAsIdentifier);
+
+        if (expect.noteId != DiagnosticId::None)
+        {
+            const auto tknLoc = file_->lexOut().token(expect.noteToken);
+            diag.addElement(expect.noteId).setLocation(tknLoc.toLocation(*ctx_, *file_));
+        }
+
         return diag;
     }
 

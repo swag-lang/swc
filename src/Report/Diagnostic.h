@@ -90,8 +90,8 @@ class Diagnostic
     static void writeGutterSep(Utf8& out, const Context& ctx, uint32_t gutterW);
     static void writeCodeLine(Utf8& out, const Context& ctx, uint32_t gutterW, uint32_t lineNo, std::string_view code);
     static void writeCodeUnderline(Utf8& out, const Context& ctx, DiagnosticSeverity sev, const Utf8& msg, uint32_t gutterW, uint32_t columnOneBased, uint32_t underlineLen);
-    static void writeCodeBlock(Utf8& out, const Context& ctx, const DiagnosticElement& el, uint32_t gutterW);
 
+    void writeCodeBlock(Utf8& out, const Context& ctx, const DiagnosticElement& el, uint32_t gutterW, bool writeMsg) const;
     void expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements) const;
     Utf8 message(const DiagnosticElement& el) const;
     Utf8 build(const Context& ctx) const;

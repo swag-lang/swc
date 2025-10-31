@@ -393,7 +393,7 @@ void Diagnostic::writeCodeUnderline(Utf8& out, const Context& ctx, DiagnosticSev
 
 // Renders a single element's location/code/underline block
 // NOTE: gutterW is computed once per diagnostic (max line number across all elements)
-void Diagnostic::writeCodeBlock(Utf8& out, const Context& ctx, const DiagnosticElement& el, uint32_t gutterW)
+void Diagnostic::writeCodeBlock(Utf8& out, const Context& ctx, const DiagnosticElement& el, uint32_t gutterW, bool writeMsg) const
 {
     const auto loc = el.location(ctx);
 
@@ -404,7 +404,7 @@ void Diagnostic::writeCodeBlock(Utf8& out, const Context& ctx, const DiagnosticE
         fileName = el.location(ctx).file->path().filename().string();
     writeFileLocation(out, ctx, fileName, loc.line, loc.column, loc.len, gutterW);
 
-    writeGutterSep(out, ctx, gutterW);
+    //writeGutterSep(out, ctx, gutterW);
 
     const auto codeLine = el.location(ctx).file->codeLine(ctx, loc.line);
     writeCodeLine(out, ctx, gutterW, loc.line, codeLine);
@@ -412,9 +412,9 @@ void Diagnostic::writeCodeBlock(Utf8& out, const Context& ctx, const DiagnosticE
     // underline the entire span with carets
     const std::string_view tokenView     = el.location(ctx).file->codeView(el.location(ctx).offset, el.location(ctx).len);
     const uint32_t         tokenLenChars = Utf8Helper::countChars(tokenView);
-    writeCodeUnderline(out, ctx, el.severity(), "", gutterW, loc.column, tokenLenChars);
+    writeCodeUnderline(out, ctx, el.severity(), writeMsg ? message(el) : "", gutterW, loc.column, tokenLenChars);
 
-    writeGutterSep(out, ctx, gutterW);
+    //writeGutterSep(out, ctx, gutterW);
 }
 
 Utf8 Diagnostic::message(const DiagnosticElement& el) const
@@ -437,7 +437,7 @@ Utf8 Diagnostic::message(const DiagnosticElement& el) const
     result = std::regex_replace(result, std::regex{R"(\{[^{}]+\})"}, "");
     result.replaceOutsideQuotes(" , ", ", ");
     result.replaceOutsideQuotes("  ", " ", true);
-    
+
     return result;
 }
 
@@ -473,7 +473,7 @@ Utf8 Diagnostic::build(const Context& ctx) const
     writeLabelMsg(out, ctx, primary->severity(), pMsg);
     const bool pHasLoc = primary->hasCodeLocation();
     if (pHasLoc)
-        writeCodeBlock(out, ctx, *primary, gutterW);
+        writeCodeBlock(out, ctx, *primary, gutterW, false);
     else
     {
         out += partStyle(ctx, DiagPart::Severity, primary->severity());
@@ -494,7 +494,7 @@ Utf8 Diagnostic::build(const Context& ctx) const
 
         // Optional location/code block
         if (eHasLoc)
-            writeCodeBlock(out, ctx, *e, gutterW);
+            writeCodeBlock(out, ctx, *e, gutterW, true);
         else
         {
             out.append(gutterW, ' ');
@@ -648,7 +648,7 @@ void Diagnostic::addArgument(std::string_view name, std::string_view arg, bool q
         }
     }
 
-    // Replace if the same argument already exists
+    // Replace it if the same argument already exists
     for (auto& a : arguments_)
     {
         if (a.name == name)

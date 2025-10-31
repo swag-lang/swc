@@ -69,5 +69,4 @@ enum A : & & A {}
 enum A : *const [5]A {}
 enum A : [5]*const *A {}
 
-// swc-expected-error@+ ParserInvalidType
 enum A : [ /* open only */ 0 {} // swc-expected-error ParserExpectedClosing

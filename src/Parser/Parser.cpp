@@ -163,6 +163,13 @@ TokenRef Parser::expectAndConsumeSingle(const ParserExpect& expect)
     return INVALID_REF;
 }
 
+TokenRef Parser::expectAndConsumeClosing(TokenRef openRef)
+{
+    const auto& open      = file_->lexOut().token(openRef);
+    const auto  closingId = Token::toRelated(open.id);
+    return expectAndConsume(ParserExpect::one(closingId, DiagnosticId::ParserExpectedClosingBefore).note(DiagnosticId::ParserCorresponding, openRef));
+}
+
 Result Parser::parse(Context& ctx)
 {
 #if SWC_HAS_STATS

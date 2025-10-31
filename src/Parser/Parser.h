@@ -72,6 +72,7 @@ class Parser
     TokenRef expect(const ParserExpect& expect) const;
     TokenRef expectAndConsume(const ParserExpect& expect);
     TokenRef expectAndConsumeSingle(const ParserExpect& expect);
+    TokenRef expectAndConsumeClosing(TokenRef openRef);
 
     TokenRef expect(TokenId id, DiagnosticId d) const { return expect(ParserExpect::one(id, d)); }
     TokenRef expectAndConsume(TokenId id, DiagnosticId d) { return expectAndConsume(ParserExpect::one(id, d)); }

@@ -101,9 +101,9 @@ AstNodeRef Parser::parseType()
         // [*]
         if (consumeIf(TokenId::SymAsterisk))
         {
-            expectAndConsume(ParserExpect::one(TokenId::SymRightBracket, DiagnosticId::ParserExpectedClosingBefore)
-                                 .note(DiagnosticId::ParserCorresponding, leftBracket));
-
+            if (isInvalid(expectAndConsumeClosing(leftBracket)))
+                return INVALID_REF;
+            
             const auto child = parseType();
             if (isInvalid(child))
                 return INVALID_REF;
@@ -116,9 +116,9 @@ AstNodeRef Parser::parseType()
         // [..]
         if (consumeIf(TokenId::SymDotDot))
         {
-            expectAndConsume(ParserExpect::one(TokenId::SymRightBracket, DiagnosticId::ParserExpectedClosingBefore)
-                                 .note(DiagnosticId::ParserCorresponding, leftBracket));
-
+            if (isInvalid(expectAndConsumeClosing(leftBracket)))
+                return INVALID_REF;
+            
             const auto child = parseType();
             if (isInvalid(child))
                 return INVALID_REF;
@@ -131,9 +131,9 @@ AstNodeRef Parser::parseType()
         // [?]
         if (consumeIf(TokenId::SymQuestion))
         {
-            expectAndConsume(ParserExpect::one(TokenId::SymRightBracket, DiagnosticId::ParserExpectedClosingBefore)
-                                 .note(DiagnosticId::ParserCorresponding, leftBracket));
-
+            if (isInvalid(expectAndConsumeClosing(leftBracket)))
+                return INVALID_REF;
+            
             const auto child = parseType();
             if (isInvalid(child))
                 return INVALID_REF;
@@ -148,9 +148,9 @@ AstNodeRef Parser::parseType()
         if (isInvalid(dim))
             return INVALID_REF;
 
-        expectAndConsume(ParserExpect::one(TokenId::SymRightBracket, DiagnosticId::ParserExpectedClosingBefore)
-                             .note(DiagnosticId::ParserCorresponding, leftBracket));
-
+        if (isInvalid(expectAndConsumeClosing(leftBracket)))
+            return INVALID_REF;
+        
         const auto child = parseType();
         if (isInvalid(child))
             return INVALID_REF;

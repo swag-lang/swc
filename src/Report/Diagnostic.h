@@ -30,6 +30,7 @@ enum class DiagnosticId
 
 class Diagnostic
 {
+public:
     struct Argument
     {
         std::string_view                      name;
@@ -37,58 +38,13 @@ class Diagnostic
         bool                                  quoted;
     };
 
+private:
     std::vector<std::shared_ptr<DiagnosticElement>> elements_;
     std::vector<Argument>                           arguments_;
     std::optional<SourceFile*>                      fileOwner_ = std::nullopt;
     const Context*                                  context_   = nullptr;
 
-    // Enum for colorable diagnostic parts
-    enum class DiagPart : uint8_t
-    {
-        FileLocationArrow, // "-->"
-        FileLocationPath,  // file path or filename
-        FileLocationSep,   // ":" between file/line/col
-        GutterBar,         // " |"
-        LineNumber,        // left-hand line numbers
-        CodeText,          // source code line
-        LabelMsgPrefix,    // secondary label ("note", "help", etc.)
-        LabelMsgText,      // secondary label message
-        Severity,          // color for severity labels/underlines
-        QuoteText,         // color for quoted text based on severity
-        Reset,             // reset sequence
-    };
-
-    struct AnsiSeq
-    {
-        std::vector<LogColor> seq;
-        AnsiSeq(std::initializer_list<LogColor> s) :
-            seq(s)
-        {
-        }
-    };
-
-    static AnsiSeq          diagPalette(DiagPart p, std::optional<DiagnosticSeverity> sev = std::nullopt);
-    static Utf8             toAnsiSeq(const Context& ctx, const AnsiSeq& s);
-    static Utf8             partStyle(const Context& ctx, DiagPart p);
-    static Utf8             partStyle(const Context& ctx, DiagPart p, DiagnosticSeverity sev);
-    static std::string_view severityStr(DiagnosticSeverity s);
-    static uint32_t         digits(uint32_t n);
-
-    static void writeLabelMsg(Utf8& out, const Context& ctx, DiagnosticSeverity sev, std::string_view msg);
-    static void writeFileLocation(Utf8& out, const Context& ctx, const std::string& path, uint32_t line, uint32_t col, uint32_t len, uint32_t gutterW);
-    static void writeGutter(Utf8& out, const Context& ctx, uint32_t gutterW);
-    static void writeHighlightedMessage(Utf8& out, const Context& ctx, DiagnosticSeverity sev, std::string_view msg, const Utf8& reset);
-    static void writeGutterSep(Utf8& out, const Context& ctx, uint32_t gutterW);
-    static void writeCodeLine(Utf8& out, const Context& ctx, uint32_t gutterW, uint32_t lineNo, std::string_view code);
-    static void writeCodeUnderline(Utf8& out, const Context& ctx, DiagnosticSeverity sev, const Utf8& msg, uint32_t gutterW, uint32_t columnOneBased, uint32_t underlineLen);
-
-    void writeCodeBlock(Utf8& out, const Context& ctx, const DiagnosticElement& el, uint32_t gutterW, bool writeMsg) const;
-    void expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements) const;
-    Utf8 message(const DiagnosticElement& el) const;
-    Utf8 build(const Context& ctx) const;
     void report(const Context& ctx) const;
-
-    Utf8 argumentToString(const Argument& arg) const;
 
 public:
     constexpr static std::string_view ARG_PATH    = "{path}";
@@ -111,45 +67,28 @@ public:
     constexpr static std::string_view ARG_BECAUSE = "{because}";
 
     Diagnostic() = default;
-
-    explicit Diagnostic(const Context& context, const std::optional<SourceFile*>& fileOwner = std::nullopt) :
-        fileOwner_(fileOwner),
-        context_(&context)
-    {
-    }
-
+    explicit Diagnostic(const Context& context, const std::optional<SourceFile*>& fileOwner = std::nullopt);
     Diagnostic(const Diagnostic&) {}
-
-    ~Diagnostic()
-    {
-        SWC_ASSERT(context_);
-        report(*context_);
-    }
+    ~Diagnostic();
 
     const std::vector<std::shared_ptr<DiagnosticElement>>& elements() const { return elements_; }
     const std::optional<SourceFile*>&                      fileOwner() const { return fileOwner_; }
+    const std::vector<Argument>&                           arguments() const { return arguments_; }
 
     DiagnosticElement& addElement(DiagnosticId id);
     DiagnosticElement& last() const { return *elements_.back(); }
+    void               addArgument(std::string_view name, std::string_view arg, bool quoted = true);
+
+    static Diagnostic         raise(const Context& ctx, DiagnosticId id, std::optional<SourceFile*> fileOwner = std::nullopt);
+    static std::string_view   diagIdMessage(DiagnosticId id);
+    static std::string_view   diagIdName(DiagnosticId id);
+    static DiagnosticSeverity diagIdSeverity(DiagnosticId id);
 
     template<typename T>
     void addArgument(std::string_view name, T&& arg, bool quoted = true)
     {
         arguments_.emplace_back(Argument{name, std::forward<T>(arg), quoted});
     }
-
-    void addArgument(std::string_view name, std::string_view arg, bool quoted = true);
-
-    static Diagnostic raise(const Context& ctx, DiagnosticId id, std::optional<SourceFile*> fileOwner = std::nullopt)
-    {
-        Diagnostic diag(ctx, fileOwner);
-        diag.addElement(id);
-        return diag;
-    }
-
-    static std::string_view   diagIdMessage(DiagnosticId id);
-    static std::string_view   diagIdName(DiagnosticId id);
-    static DiagnosticSeverity diagIdSeverity(DiagnosticId id);
 };
 
 SWC_END_NAMESPACE()

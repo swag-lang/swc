@@ -11,6 +11,39 @@ DiagnosticElement::DiagnosticElement(DiagnosticId id) :
 {
 }
 
+DiagnosticElement::DiagnosticElement(DiagnosticSeverity severity, DiagnosticId id) :
+    id_(id),
+    severity_(severity)
+{
+}
+
+void DiagnosticElement::setLocation(const SourceFile* file)
+{
+    file_ = file;
+    len_  = 0;
+}
+
+void DiagnosticElement::setLocation(const SourceFile* file, uint32_t offset, uint32_t len)
+{
+    file_   = file;
+    offset_ = offset;
+    len_    = len;
+}
+
+void DiagnosticElement::setLocation(const SourceCodeLocation& loc)
+{
+    file_   = loc.file;
+    offset_ = loc.offset;
+    len_    = loc.len;
+}
+
+void DiagnosticElement::inheritLocationFrom(const DiagnosticElement& other)
+{
+    file_   = other.file_;
+    offset_ = other.offset_;
+    len_    = other.len_;
+}
+
 SourceCodeLocation DiagnosticElement::location(const Context& ctx) const
 {
     SourceCodeLocation loc;

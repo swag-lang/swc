@@ -132,6 +132,7 @@
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
         </ClCompile>
         <ClCompile Include="src\Report\Check.cpp"/>
+        <ClCompile Include="src\Report\DiagnosticEngine.cpp"/>
         <ClCompile Include="src\Report\LogColor.cpp"/>
         <ClCompile Include="src\Report\Diagnostic.cpp"/>
         <ClCompile Include="src\Report\DiagnosticElement.cpp"/>
@@ -179,6 +180,7 @@
         <ClInclude Include="src\Parser\ParserExpect.h"/>
         <ClInclude Include="src\pch.h"/>
         <ClInclude Include="src\Report\Check.h"/>
+        <ClInclude Include="src\Report\DiagnosticEngine.h"/>
         <ClInclude Include="src\Report\ExitCodes.h"/>
         <ClInclude Include="src\Report\LogColor.h"/>
         <ClInclude Include="src\Report\Diagnostic.h"/>
@@ -191,10 +193,10 @@
         <ClInclude Include="src\Thread\JobManager.h"/>
     </ItemGroup>
     <ItemGroup>
-        <Content Include="src\Report\Diagnostic_Errors_.def" />
-        <Content Include="src\Report\Diagnostic_Errors_.msg" />
-        <Content Include="src\Report\Diagnostic_Notes_.def" />
-        <Content Include="src\Report\Diagnostic_Notes_.msg" />
+        <Content Include="src\Report\Diagnostic_Errors_.def"/>
+        <Content Include="src\Report\Diagnostic_Errors_.msg"/>
+        <Content Include="src\Report\Diagnostic_Notes_.def"/>
+        <Content Include="src\Report\Diagnostic_Notes_.msg"/>
     </ItemGroup>
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets"/>
     <ImportGroup Label="ExtensionTargets">

@@ -23,39 +23,12 @@ class DiagnosticElement
 
 public:
     explicit DiagnosticElement(DiagnosticId id);
+    explicit DiagnosticElement(DiagnosticSeverity severity, DiagnosticId id);
 
-    explicit DiagnosticElement(DiagnosticSeverity severity, DiagnosticId id) :
-        id_(id),
-        severity_(severity)
-    {
-    }
-
-    void setLocation(const SourceFile* file)
-    {
-        file_ = file;
-        len_  = 0;
-    }
-
-    void setLocation(const SourceFile* file, uint32_t offset, uint32_t len = 1)
-    {
-        file_   = file;
-        offset_ = offset;
-        len_    = len;
-    }
-
-    void setLocation(const SourceCodeLocation& loc)
-    {
-        file_   = loc.file;
-        offset_ = loc.offset;
-        len_    = loc.len;
-    }
-
-    void inheritLocationFrom(const DiagnosticElement& other)
-    {
-        file_   = other.file_;
-        offset_ = other.offset_;
-        len_    = other.len_;
-    }
+    void setLocation(const SourceFile* file);
+    void setLocation(const SourceFile* file, uint32_t offset, uint32_t len = 1);
+    void setLocation(const SourceCodeLocation& loc);
+    void inheritLocationFrom(const DiagnosticElement& other);
 
     Utf8 message() const;
     void setMessage(Utf8 m) { message_ = std::move(m); }

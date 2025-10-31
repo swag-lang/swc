@@ -121,6 +121,7 @@
         <ClCompile Include="src\Os\OsWin32.cpp"/>
         <ClCompile Include="src\Parser\Ast.cpp"/>
         <ClCompile Include="src\Parser\Parser.cpp"/>
+        <ClCompile Include="src\Parser\ParserExpect.cpp"/>
         <ClCompile Include="src\Parser\Parser_Block_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Enum_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Errors_.cpp"/>
@@ -175,6 +176,7 @@
         <ClInclude Include="src\Parser\AstNodeIds.inc"/>
         <ClInclude Include="src\Parser\AstNodes.h"/>
         <ClInclude Include="src\Parser\Parser.h"/>
+        <ClInclude Include="src\Parser\ParserExpect.h"/>
         <ClInclude Include="src\pch.h"/>
         <ClInclude Include="src\Report\Check.h"/>
         <ClInclude Include="src\Report\ExitCodes.h"/>

@@ -27,7 +27,7 @@ AstNodeRef Parser::parseEnumValue()
     // End of value
     if (isNot(TokenId::SymRightCurly) && !consumeIfAny(TokenId::SymComma, TokenId::EndOfLine))
     {
-        (void) expect(Expect::one(TokenId::SymComma, DiagnosticId::ParserExpectedTokenAfter).because(DiagnosticId::BecauseEnumValues));
+        (void) expect(ParserExpect::one(TokenId::SymComma, DiagnosticId::ParserExpectedTokenAfter).because(DiagnosticId::BecauseEnumValues));
         skipTo(ENUM_VALUE_SYNC);
     }
 
@@ -55,7 +55,7 @@ AstNodeRef Parser::parseEnum()
     }
 
     // Content
-    const auto leftCurly = expect(Expect::one(TokenId::SymLeftCurly, DiagnosticId::ParserExpectedTokenAfter).because(DiagnosticId::BecauseStartEnumBody));
+    const auto leftCurly = expect(ParserExpect::one(TokenId::SymLeftCurly, DiagnosticId::ParserExpectedTokenAfter).because(DiagnosticId::BecauseStartEnumBody));
     if (isInvalid(leftCurly))
     {
         skipTo(START_END_BLOCK);

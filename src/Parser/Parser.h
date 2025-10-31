@@ -1,6 +1,7 @@
 #pragma once
 #include "Lexer/Token.h"
 #include "Parser/Ast.h"
+#include "ParserExpect.h"
 #include "Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -68,57 +69,14 @@ class Parser
         return ((consumeIf(ids)) || ...);
     }
 
-    struct Expect
-    {
-        TokenId              oneTok     = TokenId::Invalid;
-        SmallVector<TokenId> manyTok    = {};
-        DiagnosticId         diag       = DiagnosticId::ParserExpectedToken;
-        DiagnosticId         becauseCtx = DiagnosticId::None;
-        TokenRef             locToken   = INVALID_REF;
+    TokenRef expect(const ParserExpect& expect) const;
+    TokenRef expectAndConsume(const ParserExpect& expect);
+    TokenRef expectAndConsumeSingle(const ParserExpect& expect);
 
-        bool valid(TokenId id) const
-        {
-            const bool ok = manyTok.empty() ? (id == oneTok) : std::ranges::find(manyTok, id) != manyTok.end();
-            return ok;
-        }
-
-        static Expect one(TokenId tok, DiagnosticId d = DiagnosticId::ParserExpectedToken)
-        {
-            Expect s;
-            s.oneTok = tok;
-            s.diag   = d;
-            return s;
-        }
-
-        static Expect oneOf(std::initializer_list<TokenId> set, DiagnosticId d = DiagnosticId::ParserExpectedToken)
-        {
-            Expect s;
-            s.manyTok = set;
-            s.diag    = d;
-            return s;
-        }
-
-        Expect& because(DiagnosticId b)
-        {
-            becauseCtx = b;
-            return *this;
-        }
-
-        Expect& loc(TokenRef tok)
-        {
-            locToken = tok;
-            return *this;
-        }
-    };
-
-    TokenRef expect(const Expect& expect) const;
-    TokenRef expectAndConsume(const Expect& expect);
-    TokenRef expectAndConsumeSingle(const Expect& expect);
-
-    TokenRef expect(TokenId id, DiagnosticId d) const { return expect(Expect::one(id, d)); }
-    TokenRef expectAndConsume(TokenId id, DiagnosticId d) { return expectAndConsume(Expect::one(id, d)); }
-    TokenRef expectAndConsumeSingle(TokenId id, DiagnosticId d) { return expectAndConsumeSingle(Expect::one(id, d)); }
-    TokenRef expectAndConsumeOneOf(std::initializer_list<TokenId> set, DiagnosticId d) { return expectAndConsume(Expect::oneOf(set, d)); }
+    TokenRef expect(TokenId id, DiagnosticId d) const { return expect(ParserExpect::one(id, d)); }
+    TokenRef expectAndConsume(TokenId id, DiagnosticId d) { return expectAndConsume(ParserExpect::one(id, d)); }
+    TokenRef expectAndConsumeSingle(TokenId id, DiagnosticId d) { return expectAndConsumeSingle(ParserExpect::one(id, d)); }
+    TokenRef expectAndConsumeOneOf(std::initializer_list<TokenId> set, DiagnosticId d) { return expectAndConsume(ParserExpect::oneOf(set, d)); }
 
     const Token* tokPtr() const { return curToken_; }
     const Token& tok() const { return *curToken_; }
@@ -151,7 +109,7 @@ class Parser
 
     void       setReportArguments(Diagnostic& diag, const Token& token) const;
     Diagnostic reportError(DiagnosticId id, const Token& token) const;
-    Diagnostic reportExpected(const Expect& expect) const;
+    Diagnostic reportExpected(const ParserExpect& expect) const;
 
 public:
     Result parse(Context& ctx);

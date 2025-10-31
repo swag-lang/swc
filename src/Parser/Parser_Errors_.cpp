@@ -26,7 +26,7 @@ Diagnostic Parser::reportError(DiagnosticId id, const Token& token) const
     return diag;
 }
 
-Diagnostic Parser::reportExpected(const Expect& expect) const
+Diagnostic Parser::reportExpected(const ParserExpect& expect) const
 {
     // Expected one single token
     if (expect.oneTok != TokenId::Invalid)

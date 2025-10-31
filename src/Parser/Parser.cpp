@@ -139,7 +139,7 @@ void Parser::consumeTrivia()
     consume();
 }
 
-TokenRef Parser::expect(const Expect& expect) const
+TokenRef Parser::expect(const ParserExpect& expect) const
 {
     if (expect.valid(tok().id))
         return ref();
@@ -147,7 +147,7 @@ TokenRef Parser::expect(const Expect& expect) const
     return INVALID_REF;
 }
 
-TokenRef Parser::expectAndConsume(const Expect& expect)
+TokenRef Parser::expectAndConsume(const ParserExpect& expect)
 {
     if (expect.valid(tok().id))
         return consume();
@@ -155,7 +155,7 @@ TokenRef Parser::expectAndConsume(const Expect& expect)
     return INVALID_REF;
 }
 
-TokenRef Parser::expectAndConsumeSingle(const Expect& expect)
+TokenRef Parser::expectAndConsumeSingle(const ParserExpect& expect)
 {
     if (expect.valid(tok().id))
         return consumeOne();

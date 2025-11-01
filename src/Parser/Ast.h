@@ -2,6 +2,7 @@
 #include "Core/RefStore.h"
 #include "Core/Types.h"
 #include "Parser/AstNode.h"
+#include "Parser/AstNodes.h"
 #include "Report/Stats.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -30,20 +31,19 @@ public:
     static constexpr std::string_view     nodeIdName(AstNodeId id) { return nodeIdInfos(id).name; }
 
     template<class T>
-    std::pair<Ref, T*> makeNode(AstNodeId id)
+    std::pair<Ref, T*> makeNode()
     {
-        auto result       = store_.emplace_uninit<T>();
-        result.second->id = id;
+        auto result = store_.emplace_uninit<T>();
 #if SWC_HAS_STATS
         Stats::get().numAstNodes.fetch_add(1);
 #endif
         return result;
     }
 
-    template<class T>
-    std::pair<Ref, T*> makeNode()
+    template<AstNodeId T>
+    std::pair<Ref, AstTypeOf<T>*> makeNode()
     {
-        auto result = store_.emplace_uninit<T>();
+        auto result = store_.emplace_uninit<AstTypeOf<T>>();
 #if SWC_HAS_STATS
         Stats::get().numAstNodes.fetch_add(1);
 #endif

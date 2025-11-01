@@ -123,6 +123,7 @@
         <ClCompile Include="src\Parser\Parser.cpp"/>
         <ClCompile Include="src\Parser\ParserExpect.cpp"/>
         <ClCompile Include="src\Parser\Parser_Block_.cpp"/>
+        <ClCompile Include="src\Parser\Parser_Compiler_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Enum_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Errors_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Expression_.cpp"/>
@@ -132,7 +133,7 @@
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
         </ClCompile>
         <ClCompile Include="src\Report\Check.cpp"/>
-        <ClCompile Include="src\Report\DiagnosticBuilder.cpp" />
+        <ClCompile Include="src\Report\DiagnosticBuilder.cpp"/>
         <ClCompile Include="src\Report\LogColor.cpp"/>
         <ClCompile Include="src\Report\Diagnostic.cpp"/>
         <ClCompile Include="src\Report\DiagnosticElement.cpp"/>
@@ -180,7 +181,7 @@
         <ClInclude Include="src\Parser\ParserExpect.h"/>
         <ClInclude Include="src\pch.h"/>
         <ClInclude Include="src\Report\Check.h"/>
-        <ClInclude Include="src\Report\DiagnosticBuilder.h" />
+        <ClInclude Include="src\Report\DiagnosticBuilder.h"/>
         <ClInclude Include="src\Report\ExitCodes.h"/>
         <ClInclude Include="src\Report\LogColor.h"/>
         <ClInclude Include="src\Report\Diagnostic.h"/>

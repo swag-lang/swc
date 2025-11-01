@@ -65,7 +65,7 @@ AstNodeRef Parser::parseType()
         if (isInvalid(child))
             return INVALID_REF;
 
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeRefType>(AstNodeId::LRefType);
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeLRefType>();
         nodePtr->nodeType       = child;
         return nodeRef;
     }
@@ -77,7 +77,7 @@ AstNodeRef Parser::parseType()
         if (isInvalid(child))
             return INVALID_REF;
 
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeRefType>(AstNodeId::RRefType);
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeRRefType>();
         nodePtr->nodeType       = child;
         return nodeRef;
     }

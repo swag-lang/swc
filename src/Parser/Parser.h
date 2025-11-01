@@ -97,6 +97,7 @@ class Parser
     AstNodeRef parseSingleType();
     AstNodeRef parseType();
 
+    AstNodeRef parseCompilerAssert();
     AstNodeRef parseIdentifier();
     AstNodeRef parseExpression();
     AstNodeRef parseEnum();

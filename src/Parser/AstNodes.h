@@ -1,3 +1,4 @@
+// ReSharper disable CppPossiblyUninitializedMember
 #pragma once
 #include "Parser/AstNode.h"
 
@@ -78,10 +79,20 @@ struct AstNodeQualifiedType : AstNode
     AstNodeRef nodeType;
 };
 
-struct AstNodeRefType : AstNode
+struct AstNodeLRefType : AstNode
 {
-    AstNodeRefType(AstNodeId nodeId) :
-        AstNode(nodeId)
+    explicit AstNodeLRefType() :
+        AstNode(AstNodeId::LRefType)
+    {
+    }
+
+    AstNodeRef nodeType;
+};
+
+struct AstNodeRRefType : AstNode
+{
+    explicit AstNodeRRefType() :
+        AstNode(AstNodeId::RRefType)
     {
     }
 
@@ -157,6 +168,16 @@ struct AstNodeBuiltinType : AstNode
     }
 
     TokenRef tknType;
+};
+
+struct AstNodeCompilerAssert : AstNode
+{
+    AstNodeCompilerAssert() :
+        AstNode(AstNodeId::CompilerAssert)
+    {
+    }
+
+    AstNodeRef nodeExpr;
 };
 
 SWC_END_NAMESPACE()

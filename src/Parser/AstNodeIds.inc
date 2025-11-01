@@ -9,6 +9,7 @@ SWC_NODE_ID_DEF(EnumDecl)
 SWC_NODE_ID_DEF(EnumBlock)
 SWC_NODE_ID_DEF(EnumValueAuto)
 SWC_NODE_ID_DEF(EnumValue)
+SWC_NODE_ID_DEF(EnumUsingValue)
 
 SWC_NODE_ID_DEF(QualifiedType)
 SWC_NODE_ID_DEF(LRefType)

@@ -36,6 +36,16 @@ struct AstNodeEnumValue : AstNode
     AstNodeRef nodeValue;
 };
 
+struct AstNodeEnumUsingValue : AstNode
+{
+    AstNodeEnumUsingValue() :
+        AstNode(AstNodeId::EnumUsingValue)
+    {
+    }
+
+    TokenRef tknName;
+};
+
 struct AstNodeQualifiedType : AstNode
 {
     AstNodeQualifiedType() :

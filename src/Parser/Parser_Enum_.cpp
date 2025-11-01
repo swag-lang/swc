@@ -8,41 +8,61 @@ AstNodeRef Parser::parseEnumValue()
 {
     static constexpr std::initializer_list ENUM_VALUE_SYNC = {TokenId::SymRightCurly, TokenId::SymComma, TokenId::Identifier};
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeEnumValue>();
-
-    // Name
-    nodePtr->tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFam);
-    if (isInvalid(nodePtr->tknName))
+    TokenRef result = INVALID_REF;
+    switch (id())
     {
-        skipTo(ENUM_VALUE_SYNC, SkipUntilFlags::EolBefore);
-        return nodeRef;
+    case TokenId::KwdUsing:
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeEnumUsingValue>();
+        consume();
+        nodePtr->tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFam);
+        if (isInvalid(nodePtr->tknName))
+            skipTo(ENUM_VALUE_SYNC, SkipUntilFlags::EolBefore);
+        result = nodeRef;
+        break;
     }
 
-    // Value
-    if (consumeIf(TokenId::SymEqual))
+    case TokenId::Identifier:
     {
-        nodePtr->nodeValue = parseExpression();
-        if (isInvalid(nodePtr->nodeValue))
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeEnumValue>();
+
+        // Name
+        nodePtr->tknName = consume();
+
+        // Value
+        if (consumeIf(TokenId::SymEqual))
         {
-            skipTo(ENUM_VALUE_SYNC, SkipUntilFlags::EolBefore);
-            return nodeRef;
+            nodePtr->nodeValue = parseExpression();
+            if (isInvalid(nodePtr->nodeValue))
+            {
+                skipTo(ENUM_VALUE_SYNC, SkipUntilFlags::EolBefore);
+                return nodeRef;
+            }
         }
+
+        break;
+    }
+
+    default:
+        auto diag = reportError(DiagnosticId::ParserExpectedTokenFam, tok());
+        diag.addArgument(Diagnostic::ARG_EXPECT, TokenId::Identifier);
+        break;
     }
 
     // End of value
     if (is(TokenId::SymRightCurly))
-        return nodeRef;
+        return result;
     if (consumeIf(TokenId::SymComma))
-        return nodeRef;
+        return result;
     if (tok().startsLine())
-        return nodeRef;
+        return result;
 
     auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, tok());
     diag.addArgument(Diagnostic::ARG_EXPECT, TokenId::SymComma);
     diag.addArgument(Diagnostic::ARG_BECAUSE, DiagnosticId::BecauseEnumValues, false);
 
     skipTo(ENUM_VALUE_SYNC, SkipUntilFlags::EolBefore);
-    return nodeRef;
+    return result;
 }
 
 AstNodeRef Parser::parseEnum()

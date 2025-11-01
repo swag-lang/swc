@@ -1217,6 +1217,15 @@ Result Lexer::tokenize(Context& ctx, LexerFlags flags)
             continue;
         }
 
+        // Attribute start
+        if (buffer_[0] == '#' && buffer_[1] == '[')
+        {
+            token_.id         = TokenId::SymAttrStart;
+            token_.byteLength = 1;
+            buffer_ += 2;
+            continue;
+        }
+
         // String literal (raw) - safe to read buffer_[1] due to padding after endBuffer_
         if (buffer_[0] == '#' && buffer_[1] == '"')
         {

@@ -77,6 +77,7 @@ SWC_TOKEN_DEF(SymGreater, ">", Symbol)
 SWC_TOKEN_DEF(SymGreaterEqual, ">=", Symbol)
 SWC_TOKEN_DEF(SymGreaterGreater, ">>", Symbol)
 SWC_TOKEN_DEF(SymGreaterGreaterEqual, ">>=", Symbol)
+SWC_TOKEN_DEF(SymAttrStart, "#[", Symbol)
 
 // Control flow
 SWC_TOKEN_DEF(KwdIf, "if",  Keyword)

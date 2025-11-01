@@ -4,6 +4,16 @@
 
 SWC_BEGIN_NAMESPACE()
 
+struct AstNodeBlock : AstNode
+{
+    explicit AstNodeBlock(AstNodeId nodeId) :
+        AstNode(nodeId)
+    {
+    }
+
+    Ref nodeChildren;
+};
+
 struct AstNodeIdentifier : AstNode
 {
     static constexpr auto ID = AstNodeId::Identifier;
@@ -15,14 +25,22 @@ struct AstNodeIdentifier : AstNode
     TokenRef tknName;
 };
 
-struct AstNodeBlock : AstNode
+struct AstNodeFile : AstNodeBlock
 {
-    AstNodeBlock(AstNodeId nodeId) :
-        AstNode(nodeId)
+    static constexpr auto ID = AstNodeId::File;
+    AstNodeFile() :
+        AstNodeBlock(ID)
     {
     }
+};
 
-    Ref nodeChildren;
+struct AstNodeTopLevelBlock : AstNodeBlock
+{
+    static constexpr auto ID = AstNodeId::TopLevelBlock;
+    AstNodeTopLevelBlock() :
+        AstNodeBlock(ID)
+    {
+    }
 };
 
 struct AstNodeEnumDecl : AstNode
@@ -36,6 +54,15 @@ struct AstNodeEnumDecl : AstNode
     TokenRef   tknName;
     AstNodeRef nodeType;
     AstNodeRef nodeBody;
+};
+
+struct AstNodeEnumBlock : AstNodeBlock
+{
+    static constexpr auto ID = AstNodeId::EnumBlock;
+    AstNodeEnumBlock() :
+        AstNodeBlock(ID)
+    {
+    }
 };
 
 struct AstNodeEnumValue : AstNode
@@ -202,14 +229,6 @@ T* astCast(AstNode* node)
     SWC_ASSERT(node);
     SWC_ASSERT(node->id == T::ID);
     return reinterpret_cast<T*>(node);
-}
-
-template<>
-inline AstNodeBlock* astCast<AstNodeBlock>(AstNode* node)
-{
-    SWC_ASSERT(node);
-    SWC_ASSERT(node->id == AstNodeId::TopLevelBlock || node->id == AstNodeId::File || node->id == AstNodeId::EnumBlock);
-    return reinterpret_cast<AstNodeBlock*>(node);
 }
 
 SWC_END_NAMESPACE()

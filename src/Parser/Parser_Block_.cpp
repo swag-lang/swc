@@ -17,7 +17,34 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
             return INVALID_REF;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeBlock>(blockNodeId);
+    AstNodeRef    nodeRef;
+    AstNodeBlock* nodePtr;
+    switch (blockNodeId)
+    {
+    case AstNodeId::File:
+    {
+        const auto pair = ast_->makeNode<AstNodeFile>();
+        nodeRef         = pair.first;
+        nodePtr         = static_cast<AstNodeBlock*>(pair.second);
+        break;
+    }
+    case AstNodeId::TopLevelBlock:
+    {
+        const auto pair = ast_->makeNode<AstNodeTopLevelBlock>();
+        nodeRef         = pair.first;
+        nodePtr         = static_cast<AstNodeBlock*>(pair.second);
+        break;
+    }
+    case AstNodeId::EnumBlock:
+    {
+        const auto pair = ast_->makeNode<AstNodeEnumBlock>();
+        nodeRef         = pair.first;
+        nodePtr         = static_cast<AstNodeBlock*>(pair.second);
+        break;
+    }
+    default:
+        std::unreachable();
+    }
 
     SmallVector<AstNodeRef> childrenRefs;
     while (!atEnd() && isNot(tokenEndId))

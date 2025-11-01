@@ -25,6 +25,9 @@ bool Parser::skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
 
     while (!atEnd())
     {
+        if (has_any(flags, SkipUntilFlags::EolBefore) && tok().startsLine())
+            break;
+
         const bool atTopLevel = (parenDepth | squareDepth | braceDepth) == 0;
 
         if (atTopLevel)
@@ -76,19 +79,6 @@ bool Parser::skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
     return false;
 }
 
-const Token* Parser::lastNonTrivia() const
-{
-    auto scan = curToken_;
-    while (scan != firstToken_)
-    {
-        scan--;
-        if (!scan->isEol() && !scan->isTrivia())
-            return scan;
-    }
-
-    return nullptr;
-}
-
 TokenRef Parser::consume()
 {
     if (atEnd())
@@ -111,18 +101,6 @@ bool Parser::consumeIf(TokenId id, TokenRef* result)
         *result = ref();
     consumeTrivia();
     return true;
-}
-
-void Parser::skipTrivia()
-{
-    while (is(TokenId::Blank) || is(TokenId::CommentLine) || is(TokenId::CommentMultiLine))
-        consumeTrivia();
-}
-
-void Parser::skipTriviaAndEol()
-{
-    while (is(TokenId::EndOfLine) || is(TokenId::Blank) || is(TokenId::CommentLine) || is(TokenId::CommentMultiLine))
-        consumeTrivia();
 }
 
 void Parser::consumeTrivia()

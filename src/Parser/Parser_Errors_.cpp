@@ -13,9 +13,8 @@ void Parser::setReportArguments(Diagnostic& diag, const Token& token) const
     diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Token::toAFamily(token.id), false);
 
     // Get the last non-trivia token
-    const auto last = lastNonTrivia();
-    if (last)
-        diag.addArgument(Diagnostic::ARG_AFTER, last->toString(*file_));
+    if (curToken_ != firstToken_)
+        diag.addArgument(Diagnostic::ARG_AFTER, curToken_[-1].toString(*file_));
 }
 
 Diagnostic Parser::reportError(DiagnosticId id, const Token& token) const

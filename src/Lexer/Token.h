@@ -75,9 +75,7 @@ struct Token
     bool isIntrinsic() const { return has_any(toFlags(id), TokenIdFlags::Intrinsic); }
     bool isType() const { return has_any(toFlags(id), TokenIdFlags::Type); }
     bool isReservedWord() const { return has_any(toFlags(id), TokenIdFlags::ReservedWord); }
-    bool isEof() const { return id == TokenId::EndOfFile; }
-    bool isEol() const { return id == TokenId::EndOfLine; }
-    bool isTrivia() const { return id == TokenId::Blank || id == TokenId::CommentLine || id == TokenId::CommentMultiLine; }
+    bool startsLine() const { return has_any(flags, TokenFlags::EolBefore); }
 };
 
 SWC_END_NAMESPACE()

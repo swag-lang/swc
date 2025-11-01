@@ -15,7 +15,6 @@ class LangSpec;
 enum class LexerFlags : uint32_t
 {
     Default,
-    ExtractTrivia, // Extract whitespace and comments as separate tokens
 };
 SWC_ENABLE_BITMASK(LexerFlags);
 

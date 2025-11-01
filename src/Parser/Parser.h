@@ -11,8 +11,9 @@ class Context;
 
 enum class SkipUntilFlags : uint32_t
 {
-    Zero    = 0,
-    Consume = 1 << 0,
+    Zero      = 0,
+    Consume   = 1 << 0,
+    EolBefore = 1 << 1,
 };
 SWC_ENABLE_BITMASK(SkipUntilFlags);
 
@@ -53,12 +54,9 @@ class Parser
         }
     };
 
-    const Token* lastNonTrivia() const;
-    TokenRef     consume();
-    bool         consumeIf(TokenId id, TokenRef* result = nullptr);
-    void         skipTrivia();
-    void         skipTriviaAndEol();
-    void         consumeTrivia();
+    TokenRef consume();
+    bool     consumeIf(TokenId id, TokenRef* result = nullptr);
+    void     consumeTrivia();
 
     template<typename... TokenIds>
     bool consumeIfAny(TokenIds... ids)

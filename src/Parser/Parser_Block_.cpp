@@ -12,7 +12,6 @@ AstNodeRef Parser::parseBlock(AstNodeId blockId, TokenId blockTokenEnd)
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeBlock>(blockId);
     if (blockTokenEnd != TokenId::Invalid)
         consume();
-    skipTriviaAndEol();
 
     SmallVector<AstNodeRef> stmts;
     while (!atEnd() && isNot(blockTokenEnd))
@@ -73,13 +72,6 @@ AstNodeRef Parser::parseTopLevelInstruction()
 
     case TokenId::SymSemiColon:
         consumeTrivia();
-        return INVALID_REF;
-
-    case TokenId::EndOfLine:
-    case TokenId::Blank:
-    case TokenId::CommentLine:
-    case TokenId::CommentMultiLine:
-        skipTriviaAndEol();
         return INVALID_REF;
 
     case TokenId::KwdEnum:

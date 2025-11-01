@@ -124,19 +124,17 @@ void Lexer::pushToken()
     switch (tokenId)
     {
     case TokenId::Blank:
-        if (rawMode_ || !has_any(lexerFlags_, LexerFlags::ExtractTrivia))
-            return;
-        lexOut_->trivia_.push_back({.tokenRef = static_cast<uint32_t>(lexOut_->tokens_.size()), .token = token_});
+    case TokenId::EndOfLine:
         break;
     case TokenId::CommentLine:
     case TokenId::CommentMultiLine:
-        if (!rawMode_ && !has_any(lexerFlags_, LexerFlags::ExtractTrivia))
-            return;
+        if (!rawMode_)
+            break;
         lexOut_->trivia_.push_back({.tokenRef = static_cast<uint32_t>(lexOut_->tokens_.size()), .token = token_});
         break;
     default:
         if (rawMode_)
-            return;
+            break;
         lexOut_->tokens_.push_back(token_);
         break;
     }

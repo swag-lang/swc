@@ -6,35 +6,40 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseEnumValue()
 {
-    static constexpr std::initializer_list ENUM_VALUE_SYNC = {TokenId::SymRightCurly, TokenId::SymComma, TokenId::EndOfLine, TokenId::Identifier};
+    static constexpr std::initializer_list ENUM_VALUE_SYNC = {TokenId::SymRightCurly, TokenId::SymComma, TokenId::Identifier};
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeEnumValue>();
-    skipTriviaAndEol();
 
     // Name
     nodePtr->tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFam);
     if (isInvalid(nodePtr->tknName))
-        skipTo(ENUM_VALUE_SYNC);
-    skipTrivia();
+    {
+        skipTo(ENUM_VALUE_SYNC, SkipUntilFlags::EolBefore);
+        return nodeRef;
+    }
 
     // Value
     if (consumeIf(TokenId::SymEqual))
     {
-        skipTrivia();
         nodePtr->nodeValue = parseExpression();
         if (isInvalid(nodePtr->nodeValue))
-            skipTo(ENUM_VALUE_SYNC);
+        {
+            skipTo(ENUM_VALUE_SYNC, SkipUntilFlags::EolBefore);
+            return nodeRef;
+        }
     }
 
     // End of value
-    skipTrivia();
-    if (isNot(TokenId::SymRightCurly) && !consumeIfAny(TokenId::SymComma, TokenId::EndOfLine))
-    {
-        (void) expect(ParserExpect::one(TokenId::SymComma, DiagnosticId::ParserExpectedTokenAfter).because(DiagnosticId::BecauseEnumValues));
-        skipTo(ENUM_VALUE_SYNC);
-    }
+    if (is(TokenId::SymRightCurly))
+        return nodeRef;
+    if (consumeIf(TokenId::SymComma))
+        return nodeRef;
+    if (tok().startsLine())
+        return nodeRef;
 
-    skipTriviaAndEol();
+    //(void) expect(ParserExpect::one(TokenId::SymComma, DiagnosticId::ParserExpectedTokenAfter).because(DiagnosticId::BecauseEnumValues));
+    reportError(DiagnosticId::ParserExpectedTokenAfter, tok());
+    skipTo(ENUM_VALUE_SYNC, SkipUntilFlags::EolBefore);
     return nodeRef;
 }
 
@@ -44,18 +49,15 @@ AstNodeRef Parser::parseEnum()
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeEnumDecl>();
     consume();
-    skipTriviaAndEol();
 
     // Name
     nodePtr->tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFamAfter);
     if (isInvalid(nodePtr->tknName))
         skipTo({TokenId::SymLeftCurly, TokenId::SymColon});
-    skipTriviaAndEol();
 
     // Type
     if (consumeIf(TokenId::SymColon))
     {
-        skipTriviaAndEol();
         nodePtr->nodeType = parseType();
         if (isInvalid(nodePtr->nodeType))
             skipTo(START_END_BLOCK);
@@ -70,11 +72,7 @@ AstNodeRef Parser::parseEnum()
         {
             nodePtr->nodeBody = INVALID_REF;
             if (is(TokenId::SymRightCurly))
-            {
                 consume();
-                skipTriviaAndEol();
-            }
-
             return nodeRef;
         }
     }

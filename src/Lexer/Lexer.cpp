@@ -1012,8 +1012,6 @@ void Lexer::lexSymbol()
 void Lexer::lexSingleLineComment()
 {
     token_.id = TokenId::CommentLine;
-
-    // Skip //
     buffer_ += 2;
 
     // Stop before EOL (LF or CR), do not consume it here.

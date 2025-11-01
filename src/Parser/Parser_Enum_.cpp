@@ -13,7 +13,7 @@ AstNodeRef Parser::parseEnumValue()
     {
     case TokenId::KwdUsing:
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeEnumUsingValue>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumUsingValue>();
         consume();
         nodePtr->tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFam);
         if (isInvalid(nodePtr->tknName))

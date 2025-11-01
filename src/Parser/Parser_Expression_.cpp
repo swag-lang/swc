@@ -5,10 +5,17 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseExpression()
 {
-    if (is(TokenId::NumberInteger))
+    if (isAny(TokenId::NumberInteger, TokenId::NumberFloat, TokenId::NumberBinary, TokenId::NumberHexadecimal, TokenId::Identifier))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNode>();
         consume();
+        return nodeRef;
+    }
+
+    if (is(TokenId::SymLeftBracket))
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNode>();
+        skipTo({TokenId::SymRightBracket}, SkipUntilFlags::Consume);
         return nodeRef;
     }
 

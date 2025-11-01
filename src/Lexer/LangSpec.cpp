@@ -40,6 +40,8 @@ void LangSpec::setupCharFlags()
     charFlags_['\t'] |= CharFlags::Blank; // Horizontal tab (0x09)
     charFlags_['\f'] |= CharFlags::Blank; // Form feed (0x0C)
     charFlags_['\v'] |= CharFlags::Blank; // Vertical tab (0x0B)
+    charFlags_['\r'] |= CharFlags::Eol;
+    charFlags_['\n'] |= CharFlags::Eol;
 
     // Digits (0-9)
     for (unsigned char c = '0'; c <= '9'; c++)
@@ -106,23 +108,6 @@ void LangSpec::setupCharFlags()
     charFlags_['x'] |= CharFlags::Escape;
     charFlags_['u'] |= CharFlags::Escape;
     charFlags_['U'] |= CharFlags::Escape;
-}
-
-bool LangSpec::isBlank(const uint8_t* buffer, const uint8_t* end, uint32_t& offset) const
-{
-    if (isBlank(buffer[0]))
-    {
-        offset = 1;
-        return true;
-    }
-
-    if (buffer < end + 1 && buffer[0] == 0xC2 && buffer[1] == 0xA0)
-    {
-        offset = 2;
-        return true;
-    }
-
-    return false;
 }
 
 TokenId LangSpec::keyword(std::string_view name, uint64_t hash)

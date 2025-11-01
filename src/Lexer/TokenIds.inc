@@ -1,6 +1,6 @@
 SWC_TOKEN_DEF(Invalid, "",  Zero)
 
-SWC_TOKEN_DEF(Blank, "",  Trivia)
+SWC_TOKEN_DEF(Whitespace, "",  Trivia)
 SWC_TOKEN_DEF(EndOfFile, "",  Trivia)
 
 // Comments

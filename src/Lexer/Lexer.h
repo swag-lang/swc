@@ -77,7 +77,7 @@ class Lexer
     void checkFormat(const Context& ctx, uint32_t& startOffset);
     void lexEscape(TokenId containerToken, bool eatEol);
 
-    void lexBlank();
+    void lexWhitespace();
     void lexSingleLineStringLiteral();
     void lexMultiLineStringLiteral();
     void lexRawStringLiteral();

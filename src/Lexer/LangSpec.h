@@ -21,6 +21,7 @@ enum class CharFlags : uint32_t
     IdentifierPart  = 1 << 8,
     Escape          = 1 << 9,
     Option          = 1 << 10,
+    Eol             = 1 << 11,
 };
 SWC_ENABLE_BITMASK(CharFlags);
 
@@ -31,7 +32,8 @@ class LangSpec
 
 public:
     bool isBlank(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Blank); }
-    bool isBlank(const uint8_t* buffer, const uint8_t* end, uint32_t& offset) const;
+    bool isWhiteSpace(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Blank | CharFlags::Eol); }
+    bool isEol(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Eol); }    
     bool isDigit(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Digit); }
     bool isLetter(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Letter); }
     bool isAscii(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Ascii); }

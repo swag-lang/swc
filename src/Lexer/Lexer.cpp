@@ -96,7 +96,7 @@ void Lexer::eatOneEol()
 
 void Lexer::eatOne()
 {
-    if (buffer_[0] == '\r' || buffer_[0] == '\n')
+    if (langSpec_->isEol(buffer_[0]))
         eatOneEol();
     else
         buffer_++;
@@ -113,14 +113,14 @@ void Lexer::pushToken()
     if (!lexOut_->tokens_.empty())
     {
         auto& back = lexOut_->tokens_.back();
-        if (tokenId == TokenId::Blank)
+        if (tokenId == TokenId::Whitespace)
             back.flags |= TokenFlags::BlankAfter;
         if (has_any(token_.flags, TokenFlags::EolInside))
             back.flags |= TokenFlags::EolAfter;
     }
 
     // Update the current token's flags based on the previous token
-    if (prevToken_.id == TokenId::Blank)
+    if (prevToken_.id == TokenId::Whitespace)
         token_.flags |= TokenFlags::BlankBefore;
     if (has_any(prevToken_.flags, TokenFlags::EolInside))
         token_.flags |= TokenFlags::EolBefore;
@@ -131,7 +131,7 @@ void Lexer::pushToken()
     // Use switch for better branch prediction and consolidate similar checks
     switch (tokenId)
     {
-    case TokenId::Blank:
+    case TokenId::Whitespace:
         break;
     case TokenId::CommentLine:
     case TokenId::CommentMultiLine:
@@ -219,12 +219,12 @@ void Lexer::lexEscape(TokenId containerToken, bool eatEol)
     buffer_ += 2 + expectedDigits;
 }
 
-void Lexer::lexBlank()
+void Lexer::lexWhitespace()
 {
-    token_.id = TokenId::Blank;
+    token_.id = TokenId::Whitespace;
 
     eatOne();
-    while (langSpec_->isBlank(buffer_[0]) || buffer_[0] == '\r' || buffer_[0] == '\n')
+    while (langSpec_->isWhiteSpace(buffer_[0]))
         eatOne();
 
     pushToken();
@@ -1204,9 +1204,9 @@ Result Lexer::tokenize(Context& ctx, LexerFlags flags)
         }
 
         // Blanks
-        if (langSpec_->isBlank(buffer_[0]) || buffer_[0] == '\n' || buffer_[0] == '\r')
+        if (langSpec_->isWhiteSpace(buffer_[0]))
         {
-            lexBlank();
+            lexWhitespace();
             continue;
         }
 

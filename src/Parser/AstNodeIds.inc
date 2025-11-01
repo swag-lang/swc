@@ -1,11 +1,10 @@
 SWC_NODE_ID_DEF(Invalid)
-SWC_NODE_ID_DEF(MissingToken)
 
-SWC_NODE_ID_DEF(File)
 SWC_NODE_ID_DEF(Identifier)
 
-SWC_NODE_ID_DEF(Block)
+SWC_NODE_ID_DEF(File)
 SWC_NODE_ID_DEF(TopLevelBlock)
+
 SWC_NODE_ID_DEF(EnumDecl)
 SWC_NODE_ID_DEF(EnumBlock)
 SWC_NODE_ID_DEF(EnumValueAuto)

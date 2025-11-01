@@ -50,6 +50,7 @@ enum class TokenFlags : uint16_t
     BlankAfter  = 1 << 1,
     EolBefore   = 1 << 2,
     EolAfter    = 1 << 3,
+    EolInside   = 1 << 4,
 };
 SWC_ENABLE_BITMASK(TokenFlags);
 

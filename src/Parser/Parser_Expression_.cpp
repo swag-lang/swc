@@ -12,6 +12,9 @@ AstNodeRef Parser::parseExpression()
               TokenId::StringLine,
               TokenId::StringRaw,
               TokenId::Character,
+              TokenId::KwdTrue,
+              TokenId::KwdFalse,
+              TokenId::KwdNull,
               TokenId::Identifier))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNode>();

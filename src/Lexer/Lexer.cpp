@@ -90,6 +90,7 @@ void Lexer::eatOneEol()
         buffer_++;
     }
 
+    token_.flags |= TokenFlags::EolInside;
     lexOut_->lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
 }
 
@@ -106,15 +107,14 @@ void Lexer::pushToken()
         auto& back = lexOut_->tokens_.back();
         if (tokenId == TokenId::Blank)
             back.flags |= TokenFlags::BlankAfter;
-        else if (tokenId == TokenId::EndOfLine)
+        if (has_any(token_.flags, TokenFlags::EolInside))
             back.flags |= TokenFlags::EolAfter;
     }
 
     // Update the current token's flags based on the previous token
-    const TokenId prevId = prevToken_.id;
-    if (prevId == TokenId::Blank)
+    if (prevToken_.id == TokenId::Blank)
         token_.flags |= TokenFlags::BlankBefore;
-    else if (prevId == TokenId::EndOfLine)
+    if (has_any(prevToken_.flags, TokenFlags::EolInside))
         token_.flags |= TokenFlags::EolBefore;
 
     // Always update prevToken, even for filtered tokens
@@ -124,7 +124,6 @@ void Lexer::pushToken()
     switch (tokenId)
     {
     case TokenId::Blank:
-    case TokenId::EndOfLine:
         break;
     case TokenId::CommentLine:
     case TokenId::CommentMultiLine:
@@ -215,27 +214,18 @@ void Lexer::lexEscape(TokenId containerToken, bool eatEol)
     buffer_ += 2 + expectedDigits;
 }
 
-void Lexer::lexEol()
-{
-    token_.id = TokenId::EndOfLine;
-
-    // Consume the first logical EOL.
-    eatOneEol();
-
-    // Collapse subsequent EOLs (any mix of CR/LF/CRLF).
-    while (buffer_[0] == '\r' || buffer_[0] == '\n')
-        eatOneEol();
-
-    pushToken();
-}
-
 void Lexer::lexBlank()
 {
     token_.id = TokenId::Blank;
 
     buffer_++;
-    while (langSpec_->isBlank(buffer_[0]))
-        buffer_++;
+    while (langSpec_->isBlank(buffer_[0]) || buffer_[0] == '\r' || buffer_[0] == '\n')
+    {
+        if (buffer_[0] == '\r' || buffer_[0] == '\n')
+            eatOneEol();
+        else
+            buffer_++;
+    }
 
     pushToken();
 }
@@ -1213,15 +1203,8 @@ Result Lexer::tokenize(Context& ctx, LexerFlags flags)
             continue;
         }
 
-        // End of line (LF, CRLF, or CR)
-        if (buffer_[0] == '\n' || buffer_[0] == '\r')
-        {
-            lexEol();
-            continue;
-        }
-
         // Blanks
-        if (langSpec_->isBlank(buffer_[0]))
+        if (langSpec_->isBlank(buffer_[0]) || buffer_[0] == '\n' || buffer_[0] == '\r')
         {
             lexBlank();
             continue;

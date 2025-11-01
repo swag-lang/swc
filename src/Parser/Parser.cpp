@@ -69,7 +69,7 @@ bool Parser::skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
         squareDepth = std::max(squareDepth, 0);
         braceDepth  = std::max(braceDepth, 0);
 
-        consumeOne();
+        consume();
     }
 
     // Hit EOF without finding a sync point.
@@ -89,21 +89,12 @@ const Token* Parser::lastNonTrivia() const
     return nullptr;
 }
 
-TokenRef Parser::consumeOne()
+TokenRef Parser::consume()
 {
     if (atEnd())
         return INVALID_REF;
     const auto result = ref();
     curToken_++;
-    return result;
-}
-
-TokenRef Parser::consume()
-{
-    if (atEnd())
-        return INVALID_REF;
-    const auto result = consumeOne();
-    skipTriviaAndEol();
     return result;
 }
 
@@ -151,14 +142,6 @@ TokenRef Parser::expectAndConsume(const ParserExpect& expect)
 {
     if (expect.valid(tok().id))
         return consume();
-    (void) reportExpected(expect);
-    return INVALID_REF;
-}
-
-TokenRef Parser::expectAndConsumeSingle(const ParserExpect& expect)
-{
-    if (expect.valid(tok().id))
-        return consumeOne();
     (void) reportExpected(expect);
     return INVALID_REF;
 }

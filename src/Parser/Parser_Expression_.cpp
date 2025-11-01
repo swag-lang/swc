@@ -12,6 +12,7 @@ AstNodeRef Parser::parseExpression()
         return nodeRef;
     }
 
+    (void) reportError(DiagnosticId::ParserUnexpectedToken, tok());
     return INVALID_REF;
 }
 

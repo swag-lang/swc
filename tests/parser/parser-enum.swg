@@ -1,3 +1,9 @@
+enum A
+{
+    B = 0
+    C = 1
+}
+
 enum  { } // swc-expected-error ParserExpectedTokenFamAfter
 enum enum { } // swc-expected-error ParserExpectedTokenFamAfter
 enum #ast { } // swc-expected-error ParserExpectedTokenFamAfter
@@ -17,6 +23,13 @@ enum A
 }
 
 enum A
+{
+    B
+    C
+}
+
+enum
+A
 {
     B
     C

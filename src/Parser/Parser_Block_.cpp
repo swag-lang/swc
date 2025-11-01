@@ -67,7 +67,6 @@ AstNodeRef Parser::parseTopLevelInstruction()
     {
     case TokenId::SymLeftCurly:
         return parseBlock(AstNodeId::TopLevelBlock, TokenId::SymRightCurly);
-
     case TokenId::SymRightCurly:
         (void) reportError(DiagnosticId::ParserUnexpectedToken, tok());
         return INVALID_REF;

@@ -49,12 +49,11 @@ class Parser
         ~EnsureConsume()
         {
             if (start_ == p_->tokPtr())
-                p_->consumeOne();
+                p_->consume();
         }
     };
 
     const Token* lastNonTrivia() const;
-    TokenRef     consumeOne();
     TokenRef     consume();
     bool         consumeIf(TokenId id, TokenRef* result = nullptr);
     void         skipTrivia();
@@ -71,12 +70,10 @@ class Parser
 
     TokenRef expect(const ParserExpect& expect) const;
     TokenRef expectAndConsume(const ParserExpect& expect);
-    TokenRef expectAndConsumeSingle(const ParserExpect& expect);
     TokenRef expectAndConsumeClosing(TokenRef openRef);
 
     TokenRef expect(TokenId id, DiagnosticId d) const { return expect(ParserExpect::one(id, d)); }
     TokenRef expectAndConsume(TokenId id, DiagnosticId d) { return expectAndConsume(ParserExpect::one(id, d)); }
-    TokenRef expectAndConsumeSingle(TokenId id, DiagnosticId d) { return expectAndConsumeSingle(ParserExpect::one(id, d)); }
     TokenRef expectAndConsumeOneOf(std::initializer_list<TokenId> set, DiagnosticId d) { return expectAndConsume(ParserExpect::oneOf(set, d)); }
 
     const Token* tokPtr() const { return curToken_; }

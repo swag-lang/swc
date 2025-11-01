@@ -682,7 +682,7 @@ void Lexer::lexIdentifier()
     pushToken();
 }
 
-void Lexer::lexOperator()
+void Lexer::lexSymbol()
 {
     // Safe to read buffer_[1] and buffer_[2] due to padding after endBuffer_
     const uint8_t c = buffer_[0];
@@ -1279,7 +1279,7 @@ Result Lexer::tokenize(Context& ctx, LexerFlags flags)
         }
 
         // Operators and punctuation
-        lexOperator();
+        lexSymbol();
     }
 
     // End marker

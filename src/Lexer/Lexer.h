@@ -86,7 +86,7 @@ class Lexer
     void lexBinNumber();
     void lexDecimalNumber();
     void lexNumber();
-    void lexOperator();
+    void lexSymbol();
     void lexIdentifier();
     void lexSingleLineComment();
     void lexMultiLineComment();

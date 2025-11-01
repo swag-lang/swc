@@ -60,6 +60,13 @@ AstNodeRef Parser::parseFile()
     return parseBlock(AstNodeId::File, TokenId::Invalid);
 }
 
+AstNodeRef Parser::parseImpl()
+{
+    if (nextIs(TokenId::KwdEnum))
+        return parseEnumImpl();
+    return INVALID_REF;
+}
+
 AstNodeRef Parser::parseTopLevelInstruction()
 {
     switch (id())
@@ -76,6 +83,9 @@ AstNodeRef Parser::parseTopLevelInstruction()
 
     case TokenId::KwdEnum:
         return parseEnum();
+
+    case TokenId::KwdImpl:
+        return parseImpl();
 
     default:
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::EolBefore);

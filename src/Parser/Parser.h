@@ -79,6 +79,7 @@ class Parser
     TokenRef     ref() const { return static_cast<TokenRef>(curToken_ - firstToken_); }
     TokenId      id() const { return curToken_->id; }
     bool         is(TokenId id0) const { return curToken_->id == id0; }
+    bool         nextIs(TokenId id0) const { return atEnd() ? false : curToken_[1].id == id0; }
     bool         isNot(TokenId nid) const { return curToken_->id != nid; }
     bool         atEnd() const { return curToken_ >= lastToken_; }
     static bool  isInvalid(TokenRef ref) { return ref == INVALID_REF; }
@@ -94,9 +95,11 @@ class Parser
 
     AstNodeRef parseExpression();
     AstNodeRef parseEnum();
+    AstNodeRef parseEnumImpl();
     AstNodeRef parseEnumValue();
     AstNodeRef parseTopLevelInstruction();
     AstNodeRef parseBlock(AstNodeId blockId, TokenId blockTokenEnd);
+    AstNodeRef parseImpl();
     AstNodeRef parseFile();
 
     bool skipTo(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlags::Zero);

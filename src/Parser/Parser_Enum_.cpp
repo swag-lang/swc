@@ -4,6 +4,19 @@
 
 SWC_BEGIN_NAMESPACE()
 
+AstNodeRef Parser::parseEnumImpl()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeEnumImpl>();
+    consume(); // impl
+    consume(); // enum
+    nodePtr->tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFam);
+    if (isInvalid(nodePtr->tknName))
+        skipTo({TokenId::SymLeftCurly});
+
+    nodePtr->nodeBody = parseBlock(AstNodeId::TopLevelBlock, TokenId::SymRightCurly);
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseEnumValue()
 {
     static constexpr std::initializer_list ENUM_VALUE_SYNC = {TokenId::SymRightCurly, TokenId::SymComma, TokenId::Identifier};
@@ -64,7 +77,7 @@ AstNodeRef Parser::parseEnumValue()
 
 AstNodeRef Parser::parseEnum()
 {
-    static constexpr std::initializer_list START_END_BLOCK = {TokenId::SymLeftCurly, TokenId::SymRightCurly};
+    static constexpr std::initializer_list END_OR_START_BLOCK = {TokenId::SymLeftCurly, TokenId::SymRightCurly};
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeEnumDecl>();
     consume();
@@ -79,14 +92,14 @@ AstNodeRef Parser::parseEnum()
     {
         nodePtr->nodeType = parseType();
         if (isInvalid(nodePtr->nodeType))
-            skipTo(START_END_BLOCK);
+            skipTo(END_OR_START_BLOCK);
     }
 
     // Content
     const auto leftCurly = expect(ParserExpect::one(TokenId::SymLeftCurly, DiagnosticId::ParserExpectedTokenAfter).because(DiagnosticId::BecauseStartEnumBody));
     if (isInvalid(leftCurly))
     {
-        skipTo(START_END_BLOCK);
+        skipTo(END_OR_START_BLOCK);
         if (isNot(TokenId::SymLeftCurly))
         {
             nodePtr->nodeBody = INVALID_REF;

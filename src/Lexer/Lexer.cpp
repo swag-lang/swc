@@ -94,6 +94,14 @@ void Lexer::eatOneEol()
     lexOut_->lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
 }
 
+void Lexer::eatOne()
+{
+    if (buffer_[0] == '\r' || buffer_[0] == '\n')
+        eatOneEol();
+    else
+        buffer_++;
+}
+
 void Lexer::pushToken()
 {
     token_.byteLength = static_cast<uint32_t>(buffer_ - startToken_);
@@ -160,10 +168,7 @@ void Lexer::lexEscape(TokenId containerToken, bool eatEol)
     if (buffer_[1] != 'x' && buffer_[1] != 'u' && buffer_[1] != 'U')
     {
         buffer_++;
-        if (buffer_[0] == '\r' || buffer_[0] == '\n')
-            eatOneEol();
-        else
-            buffer_++;
+        eatOne();
         return;
     }
 
@@ -218,14 +223,9 @@ void Lexer::lexBlank()
 {
     token_.id = TokenId::Blank;
 
-    buffer_++;
+    eatOne();
     while (langSpec_->isBlank(buffer_[0]) || buffer_[0] == '\r' || buffer_[0] == '\n')
-    {
-        if (buffer_[0] == '\r' || buffer_[0] == '\n')
-            eatOneEol();
-        else
-            buffer_++;
-    }
+        eatOne();
 
     pushToken();
 }

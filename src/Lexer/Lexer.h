@@ -68,6 +68,7 @@ class Lexer
 
     static bool isTerminatorAfterEscapeChar(uint8_t c, TokenId container);
 
+    void eatOne();
     void eatOneEol();
     void eatUtf8Char();
     void pushToken();

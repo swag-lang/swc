@@ -7,6 +7,7 @@ enum class LogColor;
 
 class Context;
 enum class DiagnosticId;
+enum class TokenId : uint16_t;
 
 enum class DiagnosticSeverity
 {
@@ -33,9 +34,9 @@ class Diagnostic
 public:
     struct Argument
     {
-        std::string_view                      name;
-        std::variant<Utf8, uint64_t, int64_t> val;
-        bool                                  quoted;
+        std::string_view                               name;
+        std::variant<Utf8, uint64_t, int64_t, TokenId> val;
+        bool                                           quoted;
     };
 
 private:

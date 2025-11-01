@@ -37,8 +37,10 @@ AstNodeRef Parser::parseEnumValue()
     if (tok().startsLine())
         return nodeRef;
 
-    //(void) expect(ParserExpect::one(TokenId::SymComma, DiagnosticId::ParserExpectedTokenAfter).because(DiagnosticId::BecauseEnumValues));
-    reportError(DiagnosticId::ParserExpectedTokenAfter, tok());
+    auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, tok());
+    diag.addArgument(Diagnostic::ARG_EXPECT, TokenId::SymComma);
+    diag.addArgument(Diagnostic::ARG_BECAUSE, Diagnostic::diagIdMessage(DiagnosticId::BecauseEnumValues), false);
+
     skipTo(ENUM_VALUE_SYNC, SkipUntilFlags::EolBefore);
     return nodeRef;
 }

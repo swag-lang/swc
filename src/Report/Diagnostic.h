@@ -34,9 +34,10 @@ class Diagnostic
 public:
     struct Argument
     {
-        std::string_view                               name;
-        std::variant<Utf8, uint64_t, int64_t, TokenId> val;
-        bool                                           quoted;
+        std::string_view name;
+        bool             quoted;
+
+        std::variant<Utf8, TokenId, DiagnosticId> val;
     };
 
 private:
@@ -88,7 +89,7 @@ public:
     template<typename T>
     void addArgument(std::string_view name, T&& arg, bool quoted = true)
     {
-        arguments_.emplace_back(Argument{name, std::forward<T>(arg), quoted});
+        arguments_.emplace_back(Argument{name, quoted, std::forward<T>(arg)});
     }
 };
 

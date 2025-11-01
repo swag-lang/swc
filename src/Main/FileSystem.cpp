@@ -46,8 +46,6 @@ Result FileSystem::resolveFolder(const Context& ctx, fs::path& folder)
         diag.addArgument(Diagnostic::ARG_PATH, folder.string());
         if (ec)
             diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
-        else
-            diag.addArgument(Diagnostic::ARG_BECAUSE, "not a directory");
         return Result::Error;
     }
 
@@ -82,8 +80,6 @@ Result FileSystem::resolveFile(const Context& ctx, fs::path& file)
         diag.addArgument(Diagnostic::ARG_PATH, file.string());
         if (ec)
             diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
-        else
-            diag.addArgument(Diagnostic::ARG_BECAUSE, "path does not exist");
         return Result::Error;
     }
     ec.clear();
@@ -95,8 +91,6 @@ Result FileSystem::resolveFile(const Context& ctx, fs::path& file)
         diag.addArgument(Diagnostic::ARG_PATH, file.string());
         if (ec)
             diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
-        else
-            diag.addArgument(Diagnostic::ARG_BECAUSE, "not a regular file");
         return Result::Error;
     }
 

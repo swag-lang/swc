@@ -375,6 +375,8 @@ Utf8 DiagnosticBuilder::argumentToString(const Diagnostic::Argument& arg) const
             return v;
         else if constexpr (std::same_as<T, TokenId>)
             return Token::toName(v);
+        else if constexpr (std::same_as<T, DiagnosticId>)
+            return Diagnostic::diagIdMessage(v);
         else if constexpr (std::integral<T>)
             return Utf8{std::to_string(v)};
         else

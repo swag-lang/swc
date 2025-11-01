@@ -167,7 +167,7 @@ void Diagnostic::addArgument(std::string_view name, std::string_view arg, bool q
         }
     }
 
-    arguments_.emplace_back(Argument{.name = name, .val = std::move(sanitized), .quoted = quoted});
+    arguments_.emplace_back(Argument{.name = name, .quoted = quoted, .val = std::move(sanitized)});
 }
 
 Diagnostic Diagnostic::raise(const Context& ctx, DiagnosticId id, std::optional<SourceFile*> fileOwner)

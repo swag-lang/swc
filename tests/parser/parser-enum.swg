@@ -1,4 +1,4 @@
-enum A { B C }
+enum A { B C } // swc-expected-error ParserExpectedToken
 enum  { } // swc-expected-error ParserExpectedTokenFamAfter
 enum enum { } // swc-expected-error ParserExpectedTokenFamAfter
 enum #ast { } // swc-expected-error ParserExpectedTokenFamAfter

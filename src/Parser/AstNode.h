@@ -12,6 +12,7 @@ struct AstNodeIdInfo
 
 enum class AstNodeId : uint16_t
 {
+    Invalid = 0,
 #define SWC_NODE_ID_DEF(enum) enum,
 #include "AstNodeIds.inc"
 

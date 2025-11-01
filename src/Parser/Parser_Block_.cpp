@@ -23,21 +23,21 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
     {
     case AstNodeId::File:
     {
-        const auto pair = ast_->makeNode<AstNodeFile>();
+        const auto pair = ast_->makeNode<AstTypeOf<AstNodeId::File>::type>();
         nodeRef         = pair.first;
         nodePtr         = static_cast<AstNodeBlock*>(pair.second);
         break;
     }
     case AstNodeId::TopLevelBlock:
     {
-        const auto pair = ast_->makeNode<AstNodeTopLevelBlock>();
+        const auto pair = ast_->makeNode<AstTypeOf<AstNodeId::TopLevelBlock>::type>();
         nodeRef         = pair.first;
         nodePtr         = static_cast<AstNodeBlock*>(pair.second);
         break;
     }
     case AstNodeId::EnumBlock:
     {
-        const auto pair = ast_->makeNode<AstNodeEnumBlock>();
+        const auto pair = ast_->makeNode<AstTypeOf<AstNodeId::EnumBlock>::type>();
         nodeRef         = pair.first;
         nodePtr         = static_cast<AstNodeBlock*>(pair.second);
         break;

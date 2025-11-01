@@ -231,4 +231,16 @@ T* astCast(AstNode* node)
     return reinterpret_cast<T*>(node);
 }
 
+template<AstNodeId Id>
+struct AstTypeOf;
+
+#define SWC_NODE_ID_DEF(enum)         \
+    template<>                        \
+    struct AstTypeOf<AstNodeId::enum> \
+    {                                 \
+        using type = AstNode##enum;   \
+    };
+#include "AstNodeIds.inc"
+#undef SWC_NODE_ID_DEF
+
 SWC_END_NAMESPACE()

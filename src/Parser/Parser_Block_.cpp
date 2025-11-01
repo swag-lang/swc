@@ -5,16 +5,20 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstNodeRef Parser::parseBlock(AstNodeId blockId, TokenId blockTokenEnd)
+AstNodeRef Parser::parseBlock(AstNodeId blockId, TokenId tokenStart)
 {
     const Token& openToken = tok();
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeBlock>(blockId);
-    if (blockTokenEnd != TokenId::Invalid)
+    if (tokenStart != TokenId::Invalid)
+    {
         consume();
+    }
+
+    const auto tokenEnd = Token::toRelated(openToken.id);
 
     SmallVector<AstNodeRef> stmts;
-    while (!atEnd() && isNot(blockTokenEnd))
+    while (!atEnd() && isNot(tokenEnd))
     {
         EnsureConsume ec(*this);
 
@@ -40,9 +44,9 @@ AstNodeRef Parser::parseBlock(AstNodeId blockId, TokenId blockTokenEnd)
     }
 
     // Consume end token if necessary
-    if (blockTokenEnd != TokenId::Invalid)
+    if (tokenEnd != TokenId::Invalid)
     {
-        if (is(blockTokenEnd))
+        if (is(tokenEnd))
             skip();
         else
         {
@@ -72,7 +76,7 @@ AstNodeRef Parser::parseTopLevelInstruction()
     switch (id())
     {
     case TokenId::SymLeftCurly:
-        return parseBlock(AstNodeId::TopLevelBlock, TokenId::SymRightCurly);
+        return parseBlock(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     case TokenId::SymRightCurly:
         (void) reportError(DiagnosticId::ParserUnexpectedToken, tok());
         return INVALID_REF;

@@ -96,7 +96,7 @@ AstNodeRef Parser::parseEnum()
         }
     }
 
-    nodePtr->nodeBody = parseBlock(AstNodeId::EnumBlock, TokenId::SymRightCurly);
+    nodePtr->nodeBody = parseBlock(AstNodeId::EnumBlock, TokenId::SymLeftCurly);
     return nodeRef;
 }
 
@@ -109,7 +109,7 @@ AstNodeRef Parser::parseEnumImpl()
     if (isInvalid(nodePtr->nodeName))
         skipTo({TokenId::SymLeftCurly});
 
-    nodePtr->nodeBody = parseBlock(AstNodeId::TopLevelBlock, TokenId::SymRightCurly);
+    nodePtr->nodeBody = parseBlock(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     return nodeRef;
 }
 

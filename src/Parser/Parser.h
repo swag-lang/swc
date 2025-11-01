@@ -101,7 +101,7 @@ class Parser
     AstNodeRef parseEnumImpl();
     AstNodeRef parseEnumValue();
     AstNodeRef parseTopLevelInstruction();
-    AstNodeRef parseBlock(AstNodeId blockId, TokenId blockTokenEnd);
+    AstNodeRef parseBlock(AstNodeId blockId, TokenId tokenStart);
     AstNodeRef parseImpl();
     AstNodeRef parseFile();
 

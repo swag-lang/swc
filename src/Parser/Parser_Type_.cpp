@@ -103,7 +103,7 @@ AstNodeRef Parser::parseType()
         {
             if (isInvalid(expectAndConsumeClosing(leftBracket)))
                 return INVALID_REF;
-            
+
             const auto child = parseType();
             if (isInvalid(child))
                 return INVALID_REF;
@@ -118,7 +118,7 @@ AstNodeRef Parser::parseType()
         {
             if (isInvalid(expectAndConsumeClosing(leftBracket)))
                 return INVALID_REF;
-            
+
             const auto child = parseType();
             if (isInvalid(child))
                 return INVALID_REF;
@@ -133,7 +133,7 @@ AstNodeRef Parser::parseType()
         {
             if (isInvalid(expectAndConsumeClosing(leftBracket)))
                 return INVALID_REF;
-            
+
             const auto child = parseType();
             if (isInvalid(child))
                 return INVALID_REF;
@@ -143,6 +143,15 @@ AstNodeRef Parser::parseType()
             return nodeRef;
         }
 
+        // []
+        if (is(TokenId::SymRightBracket))
+        {
+            auto diag = reportError(DiagnosticId::ParserExpectedArrayDim, tok());
+            diag.addElement(DiagnosticId::ParserHelpEmptyArrayDim);
+            consume();
+            return INVALID_REF;
+        }
+
         // Array with a dimension
         const auto dim = parseExpression();
         if (isInvalid(dim))
@@ -150,7 +159,7 @@ AstNodeRef Parser::parseType()
 
         if (isInvalid(expectAndConsumeClosing(leftBracket)))
             return INVALID_REF;
-        
+
         const auto child = parseType();
         if (isInvalid(child))
             return INVALID_REF;

@@ -1,5 +1,7 @@
 SWC_DIAG_DEF(ParserReservedAsIdentifier)
 SWC_DIAG_DEF(ParserCorresponding)
 
+SWC_DIAG_DEF(ParserHelpEmptyArrayDim)
+
 SWC_DIAG_DEF(BecauseEnumValues)
 SWC_DIAG_DEF(BecauseStartEnumBody)

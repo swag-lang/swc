@@ -44,3 +44,5 @@ SWC_DIAG_DEF(ParserExpectedTokenFamAfter, Error, "expected {expect-a-tok-fam} af
 SWC_DIAG_DEF(ParserExpectedClosing, Error, "expected closing {expect-tok} {because}")
 SWC_DIAG_DEF(ParserExpectedClosingBefore, Error, "expected closing {expect-tok} {because} before {tok-fam} {tok}")
 SWC_DIAG_DEF(ParserInvalidType, Error, "invalid type declaration {tok}")
+SWC_DIAG_DEF(ParserExpectedArrayDim, Error, "expected array dimension or specifier")
+

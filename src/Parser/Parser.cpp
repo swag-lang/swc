@@ -79,6 +79,12 @@ bool Parser::skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
     return false;
 }
 
+TokenRef Parser::consume(TokenId id)
+{
+    SWC_ASSERT(is(id));
+    return consume();
+}
+
 TokenRef Parser::consume()
 {
     if (atEnd())
@@ -101,6 +107,12 @@ bool Parser::consumeIf(TokenId id, TokenRef* result)
         *result = ref();
     skip();
     return true;
+}
+
+void Parser::skip(TokenId id)
+{
+    SWC_ASSERT(is(id));
+    skip();
 }
 
 void Parser::skip()

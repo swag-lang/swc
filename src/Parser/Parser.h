@@ -54,8 +54,10 @@ class Parser
         }
     };
 
+    TokenRef consume(TokenId id);
     TokenRef consume();
     bool     consumeIf(TokenId id, TokenRef* result = nullptr);
+    void     skip(TokenId id);
     void     skip();
 
     template<typename... TokenIds>

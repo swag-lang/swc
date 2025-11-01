@@ -67,7 +67,7 @@ AstNodeRef Parser::parseEnum()
     static constexpr std::initializer_list END_OR_START_BLOCK = {TokenId::SymLeftCurly, TokenId::SymRightCurly};
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeEnumDecl>();
-    consume();
+    consume(TokenId::KwdEnum);
 
     // Name
     nodePtr->tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFamAfter);
@@ -103,8 +103,8 @@ AstNodeRef Parser::parseEnum()
 AstNodeRef Parser::parseEnumImpl()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeEnumImpl>();
-    skip(); // impl
-    skip(); // enum
+    skip(TokenId::KwdImpl);
+    skip(TokenId::KwdEnum);
     nodePtr->nodeName = parseIdentifier();
     if (isInvalid(nodePtr->nodeName))
         skipTo({TokenId::SymLeftCurly});

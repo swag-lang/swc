@@ -78,7 +78,7 @@ AstNodeRef Parser::parseTopLevelInstruction()
         return parseEnum();
 
     default:
-        skipTo({TokenId::EndOfLine, TokenId::SymSemiColon, TokenId::SymRightCurly});
+        skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::EolBefore);
         return INVALID_REF;
     }
 }

@@ -1202,6 +1202,7 @@ Result Lexer::tokenize(Context& ctx, LexerFlags flags)
         startToken_       = buffer_;
         token_.byteStart  = static_cast<uint32_t>(startToken_ - startBuffer_);
         token_.byteLength = 1;
+        token_.flags      = TokenFlags::Zero;
 
         // Check for null byte (invalid UTF-8)
         if (buffer_[0] == '\0')

@@ -34,10 +34,7 @@ AstNodeRef Parser::parseEnumValue()
         {
             nodePtr->nodeValue = parseExpression();
             if (isInvalid(nodePtr->nodeValue))
-            {
                 skipTo(ENUM_VALUE_SYNC, SkipUntilFlags::EolBefore);
-                return nodeRef;
-            }
         }
 
         break;

@@ -10,8 +10,6 @@ std::string_view Token::toString(const SourceFile& file) const
 {
     if (id == TokenId::EndOfFile)
         return "end of file";
-    if (id == TokenId::EndOfLine)
-        return "end of line";
 
     auto start = reinterpret_cast<const char*>(file.content().data());
 

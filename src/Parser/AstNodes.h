@@ -3,6 +3,16 @@
 
 SWC_BEGIN_NAMESPACE()
 
+struct AstNodeIdentifier : AstNode
+{
+    AstNodeIdentifier() :
+        AstNode(AstNodeId::Identifier)
+    {
+    }
+
+    TokenRef tknName;
+};
+
 struct AstNodeBlock : AstNode
 {
     AstNodeBlock(AstNodeId nodeId) :
@@ -53,7 +63,7 @@ struct AstNodeEnumImpl : AstNode
     {
     }
 
-    TokenRef   tknName;
+    AstNodeRef nodeName;
     AstNodeRef nodeBody;
 };
 

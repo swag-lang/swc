@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Parser/AstNodes.h"
 #include "Parser/Parser.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -31,6 +32,13 @@ AstNodeRef Parser::parseExpression()
 
     (void) reportError(DiagnosticId::ParserUnexpectedToken, tok());
     return INVALID_REF;
+}
+
+AstNodeRef Parser::parseIdentifier()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeIdentifier>();
+    nodePtr->tknName        = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFam);
+    return nodeRef;
 }
 
 SWC_END_NAMESPACE()

@@ -43,7 +43,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockId, TokenId blockTokenEnd)
     if (blockTokenEnd != TokenId::Invalid)
     {
         if (is(blockTokenEnd))
-            consumeTrivia();
+            skip();
         else
         {
             auto diag = reportError(DiagnosticId::ParserExpectedClosing, openToken);
@@ -78,7 +78,7 @@ AstNodeRef Parser::parseTopLevelInstruction()
         return INVALID_REF;
 
     case TokenId::SymSemiColon:
-        consumeTrivia();
+        skip();
         return INVALID_REF;
 
     case TokenId::KwdEnum:

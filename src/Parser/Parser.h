@@ -56,7 +56,7 @@ class Parser
 
     TokenRef consume();
     bool     consumeIf(TokenId id, TokenRef* result = nullptr);
-    void     consumeTrivia();
+    void     skip();
 
     template<typename... TokenIds>
     bool consumeIfAny(TokenIds... ids)
@@ -93,6 +93,7 @@ class Parser
     AstNodeRef parseSingleType();
     AstNodeRef parseType();
 
+    AstNodeRef parseIdentifier();
     AstNodeRef parseExpression();
     AstNodeRef parseEnum();
     AstNodeRef parseEnumImpl();

@@ -99,11 +99,11 @@ bool Parser::consumeIf(TokenId id, TokenRef* result)
 
     if (result)
         *result = ref();
-    consumeTrivia();
+    skip();
     return true;
 }
 
-void Parser::consumeTrivia()
+void Parser::skip()
 {
     consume();
 }

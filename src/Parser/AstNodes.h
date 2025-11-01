@@ -6,8 +6,9 @@ SWC_BEGIN_NAMESPACE()
 
 struct AstNodeIdentifier : AstNode
 {
+    static constexpr auto ID = AstNodeId::Identifier;
     AstNodeIdentifier() :
-        AstNode(AstNodeId::Identifier)
+        AstNode(ID)
     {
     }
 
@@ -26,8 +27,9 @@ struct AstNodeBlock : AstNode
 
 struct AstNodeEnumDecl : AstNode
 {
+    static constexpr auto ID = AstNodeId::EnumDecl;
     AstNodeEnumDecl() :
-        AstNode(AstNodeId::EnumDecl)
+        AstNode(ID)
     {
     }
 
@@ -38,8 +40,9 @@ struct AstNodeEnumDecl : AstNode
 
 struct AstNodeEnumValue : AstNode
 {
+    static constexpr auto ID = AstNodeId::EnumValue;
     AstNodeEnumValue() :
-        AstNode(AstNodeId::EnumValue)
+        AstNode(ID)
     {
     }
 
@@ -49,8 +52,9 @@ struct AstNodeEnumValue : AstNode
 
 struct AstNodeEnumUsingValue : AstNode
 {
+    static constexpr auto ID = AstNodeId::EnumUsingValue;
     AstNodeEnumUsingValue() :
-        AstNode(AstNodeId::EnumUsingValue)
+        AstNode(ID)
     {
     }
 
@@ -59,8 +63,9 @@ struct AstNodeEnumUsingValue : AstNode
 
 struct AstNodeEnumImpl : AstNode
 {
+    static constexpr auto ID = AstNodeId::EnumImpl;
     AstNodeEnumImpl() :
-        AstNode(AstNodeId::EnumImpl)
+        AstNode(ID)
     {
     }
 
@@ -70,8 +75,9 @@ struct AstNodeEnumImpl : AstNode
 
 struct AstNodeQualifiedType : AstNode
 {
+    static constexpr auto ID = AstNodeId::QualifiedType;
     AstNodeQualifiedType() :
-        AstNode(AstNodeId::QualifiedType)
+        AstNode(ID)
     {
     }
 
@@ -81,8 +87,9 @@ struct AstNodeQualifiedType : AstNode
 
 struct AstNodeLRefType : AstNode
 {
+    static constexpr auto ID = AstNodeId::LRefType;
     explicit AstNodeLRefType() :
-        AstNode(AstNodeId::LRefType)
+        AstNode(ID)
     {
     }
 
@@ -91,8 +98,9 @@ struct AstNodeLRefType : AstNode
 
 struct AstNodeRRefType : AstNode
 {
+    static constexpr auto ID = AstNodeId::RRefType;
     explicit AstNodeRRefType() :
-        AstNode(AstNodeId::RRefType)
+        AstNode(ID)
     {
     }
 
@@ -101,8 +109,9 @@ struct AstNodeRRefType : AstNode
 
 struct AstNodePointerType : AstNode
 {
+    static constexpr auto ID = AstNodeId::PointerType;
     AstNodePointerType() :
-        AstNode(AstNodeId::PointerType)
+        AstNode(ID)
     {
     }
 
@@ -111,8 +120,9 @@ struct AstNodePointerType : AstNode
 
 struct AstNodeBlockPointerType : AstNode
 {
+    static constexpr auto ID = AstNodeId::BlockPointerType;
     AstNodeBlockPointerType() :
-        AstNode(AstNodeId::BlockPointerType)
+        AstNode(ID)
     {
     }
 
@@ -121,8 +131,9 @@ struct AstNodeBlockPointerType : AstNode
 
 struct AstNodeSliceType : AstNode
 {
+    static constexpr auto ID = AstNodeId::SliceType;
     AstNodeSliceType() :
-        AstNode(AstNodeId::SliceType)
+        AstNode(ID)
     {
     }
 
@@ -131,8 +142,9 @@ struct AstNodeSliceType : AstNode
 
 struct AstNodeIncompleteArrayType : AstNode
 {
+    static constexpr auto ID = AstNodeId::IncompleteArrayType;
     AstNodeIncompleteArrayType() :
-        AstNode(AstNodeId::IncompleteArrayType)
+        AstNode(ID)
     {
     }
 
@@ -141,8 +153,9 @@ struct AstNodeIncompleteArrayType : AstNode
 
 struct AstNodeArrayType : AstNode
 {
+    static constexpr auto ID = AstNodeId::ArrayType;
     AstNodeArrayType() :
-        AstNode(AstNodeId::ArrayType)
+        AstNode(ID)
     {
     }
 
@@ -152,8 +165,9 @@ struct AstNodeArrayType : AstNode
 
 struct AstNodeNamedType : AstNode
 {
+    static constexpr auto ID = AstNodeId::NamedType;
     AstNodeNamedType() :
-        AstNode(AstNodeId::NamedType)
+        AstNode(ID)
     {
     }
 
@@ -162,8 +176,9 @@ struct AstNodeNamedType : AstNode
 
 struct AstNodeBuiltinType : AstNode
 {
+    static constexpr auto ID = AstNodeId::BuiltinType;
     AstNodeBuiltinType() :
-        AstNode(AstNodeId::BuiltinType)
+        AstNode(ID)
     {
     }
 
@@ -172,12 +187,29 @@ struct AstNodeBuiltinType : AstNode
 
 struct AstNodeCompilerAssert : AstNode
 {
+    static constexpr auto ID = AstNodeId::CompilerAssert;
     AstNodeCompilerAssert() :
-        AstNode(AstNodeId::CompilerAssert)
+        AstNode(ID)
     {
     }
 
     AstNodeRef nodeExpr;
 };
+
+template<typename T>
+T* astCast(AstNode* node)
+{
+    SWC_ASSERT(node);
+    SWC_ASSERT(node->id == T::ID);
+    return reinterpret_cast<T*>(node);
+}
+
+template<>
+inline AstNodeBlock* astCast<AstNodeBlock>(AstNode* node)
+{
+    SWC_ASSERT(node);
+    SWC_ASSERT(node->id == AstNodeId::TopLevelBlock || node->id == AstNodeId::File || node->id == AstNodeId::EnumBlock);
+    return reinterpret_cast<AstNodeBlock*>(node);
+}
 
 SWC_END_NAMESPACE()

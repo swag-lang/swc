@@ -5,14 +5,14 @@ SWC_BEGIN_NAMESPACE()
 
 bool ParserExpect::valid(TokenId id) const
 {
-    const bool ok = manyTok.empty() ? (id == oneTok) : std::ranges::find(manyTok, id) != manyTok.end();
+    const bool ok = manyTok.empty() ? (id == oneTokId) : std::ranges::find(manyTok, id) != manyTok.end();
     return ok;
 }
 
 ParserExpect ParserExpect::one(TokenId tok, DiagnosticId d)
 {
     ParserExpect s;
-    s.oneTok = tok;
+    s.oneTokId = tok;
     s.diag   = d;
     return s;
 }

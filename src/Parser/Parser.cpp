@@ -109,15 +109,15 @@ bool Parser::consumeIf(TokenId id, TokenRef* result)
     return true;
 }
 
-void Parser::skip(TokenId id)
+TokenRef Parser::skip(TokenId id)
 {
     SWC_ASSERT(is(id));
-    skip();
+    return skip();
 }
 
-void Parser::skip()
+TokenRef Parser::skip()
 {
-    consume();
+    return consume();
 }
 
 TokenRef Parser::expect(const ParserExpect& expect) const
@@ -132,6 +132,14 @@ TokenRef Parser::expectAndConsume(const ParserExpect& expect)
 {
     if (expect.valid(tok().id))
         return consume();
+    (void) reportExpected(expect);
+    return INVALID_REF;
+}
+
+TokenRef Parser::expectAndSkip(const ParserExpect& expect)
+{
+    if (expect.valid(tok().id))
+        return skip();
     (void) reportExpected(expect);
     return INVALID_REF;
 }

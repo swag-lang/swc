@@ -57,8 +57,8 @@ class Parser
     TokenRef consume(TokenId id);
     TokenRef consume();
     bool     consumeIf(TokenId id, TokenRef* result = nullptr);
-    void     skip(TokenId id);
-    void     skip();
+    TokenRef skip(TokenId id);
+    TokenRef skip();
 
     template<typename... TokenIds>
     bool consumeIfAny(TokenIds... ids)
@@ -70,9 +70,11 @@ class Parser
 
     TokenRef expect(const ParserExpect& expect) const;
     TokenRef expectAndConsume(const ParserExpect& expect);
+    TokenRef expectAndSkip(const ParserExpect& expect);
     TokenRef expectAndConsumeClosing(TokenRef openRef);
 
     TokenRef expect(TokenId id, DiagnosticId d) const { return expect(ParserExpect::one(id, d)); }
+    TokenRef expectAndSkip(TokenId id, DiagnosticId d) { return expectAndSkip(ParserExpect::one(id, d)); }
     TokenRef expectAndConsume(TokenId id, DiagnosticId d) { return expectAndConsume(ParserExpect::one(id, d)); }
     TokenRef expectAndConsumeOneOf(std::initializer_list<TokenId> set, DiagnosticId d) { return expectAndConsume(ParserExpect::oneOf(set, d)); }
 
@@ -101,7 +103,7 @@ class Parser
     AstNodeRef parseEnumImpl();
     AstNodeRef parseEnumValue();
     AstNodeRef parseTopLevelInstruction();
-    AstNodeRef parseBlock(AstNodeId blockId, TokenId tokenStart);
+    AstNodeRef parseBlock(AstNodeId blockNodeId, TokenId tokenStartId);
     AstNodeRef parseImpl();
     AstNodeRef parseFile();
 

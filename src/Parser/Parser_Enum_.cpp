@@ -83,20 +83,10 @@ AstNodeRef Parser::parseEnum()
     }
 
     // Content
-    const auto leftCurly = expect(ParserExpect::one(TokenId::SymLeftCurly, DiagnosticId::ParserExpectedTokenAfter).because(DiagnosticId::BecauseStartEnumBody));
-    if (isInvalid(leftCurly))
-    {
-        skipTo(END_OR_START_BLOCK);
-        if (isNot(TokenId::SymLeftCurly))
-        {
-            nodePtr->nodeBody = INVALID_REF;
-            if (is(TokenId::SymRightCurly))
-                consume();
-            return nodeRef;
-        }
-    }
-
     nodePtr->nodeBody = parseBlock(AstNodeId::EnumBlock, TokenId::SymLeftCurly);
+    if (isInvalid(nodePtr->nodeBody))
+        skipTo(END_OR_START_BLOCK);
+
     return nodeRef;
 }
 

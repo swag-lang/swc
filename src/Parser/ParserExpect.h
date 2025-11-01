@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE()
 
 struct ParserExpect
 {
-    TokenId              oneTok     = TokenId::Invalid;
+    TokenId              oneTokId     = TokenId::Invalid;
     SmallVector<TokenId> manyTok    = {};
     DiagnosticId         diag       = DiagnosticId::ParserExpectedToken;
     DiagnosticId         becauseCtx = DiagnosticId::None;

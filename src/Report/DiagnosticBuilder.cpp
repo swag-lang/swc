@@ -440,7 +440,7 @@ Utf8 DiagnosticBuilder::message(const DiagnosticElement& el) const
     }
 
     // Clean some stuff
-    result = std::regex_replace(result, std::regex{R"(\{[^{}]+\})"}, "");
+    result = std::regex_replace(result, std::regex{R"(\{\w+\})"}, "");
     result.replaceOutsideQuotes(" , ", ", ");
     result.replaceOutsideQuotes("  ", " ", true);
 

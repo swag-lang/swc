@@ -28,12 +28,12 @@ Diagnostic Parser::reportError(DiagnosticId id, const Token& token) const
 Diagnostic Parser::reportExpected(const ParserExpect& expect) const
 {
     // Expected one single token
-    if (expect.oneTok != TokenId::Invalid)
+    if (expect.oneTokId != TokenId::Invalid)
     {
-        const auto expected = expect.oneTok;
+        const auto expectedTknId = expect.oneTokId;
 
         auto diagId = expect.diag;
-        if (expected == TokenId::Identifier && diagId == DiagnosticId::ParserExpectedToken)
+        if (expectedTknId == TokenId::Identifier && diagId == DiagnosticId::ParserExpectedToken)
             diagId = DiagnosticId::ParserExpectedTokenFam;
 
         auto diag = reportError(diagId, tok());
@@ -45,12 +45,12 @@ Diagnostic Parser::reportExpected(const ParserExpect& expect) const
             diag.last().setLocation(tknLoc.toLocation(*ctx_, *file_));
         }
 
-        diag.addArgument(Diagnostic::ARG_EXPECT, Token::toName(expected));
-        diag.addArgument(Diagnostic::ARG_EXPECT_FAM, Token::toFamily(expected), false);
-        diag.addArgument(Diagnostic::ARG_A_EXPECT_FAM, Token::toAFamily(expected), false);
+        diag.addArgument(Diagnostic::ARG_EXPECT, Token::toName(expectedTknId));
+        diag.addArgument(Diagnostic::ARG_EXPECT_FAM, Token::toFamily(expectedTknId), false);
+        diag.addArgument(Diagnostic::ARG_A_EXPECT_FAM, Token::toAFamily(expectedTknId), false);
         diag.addArgument(Diagnostic::ARG_BECAUSE, Diagnostic::diagIdMessage(expect.becauseCtx), false);
 
-        if (expected == TokenId::Identifier && tok().isReservedWord())
+        if (expectedTknId == TokenId::Identifier && tok().isReservedWord())
             diag.addElement(DiagnosticId::ParserReservedAsIdentifier);
 
         if (expect.noteId != DiagnosticId::None)

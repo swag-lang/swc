@@ -5,33 +5,35 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstNodeRef Parser::parseBlock(AstNodeId blockId, TokenId tokenStart)
+AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
 {
-    const Token& openToken = tok();
+    const Token& openTok    = tok();
+    const auto   tokenEndId = Token::toRelated(tokenStartId);
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeBlock>(blockId);
-    if (tokenStart != TokenId::Invalid)
+    if (tokenStartId != TokenId::Invalid)
     {
-        consume();
+        const auto tokenOpenRef = expectAndSkip(tokenStartId, DiagnosticId::ParserExpectedTokenAfter);
+        if (isInvalid(tokenOpenRef))
+            return INVALID_REF;
     }
 
-    const auto tokenEnd = Token::toRelated(openToken.id);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeBlock>(blockNodeId);
 
-    SmallVector<AstNodeRef> stmts;
-    while (!atEnd() && isNot(tokenEnd))
+    SmallVector<AstNodeRef> childrenRefs;
+    while (!atEnd() && isNot(tokenEndId))
     {
         EnsureConsume ec(*this);
 
-        AstNodeRef stmt;
-        switch (blockId)
+        AstNodeRef childrenRef;
+        switch (blockNodeId)
         {
         case AstNodeId::File:
         case AstNodeId::TopLevelBlock:
-            stmt = parseTopLevelInstruction();
+            childrenRef = parseTopLevelInstruction();
             break;
 
         case AstNodeId::EnumBlock:
-            stmt = parseEnumValue();
+            childrenRef = parseEnumValue();
             break;
 
         default:
@@ -39,23 +41,20 @@ AstNodeRef Parser::parseBlock(AstNodeId blockId, TokenId tokenStart)
         }
 
         // Be sure instruction has not failed
-        if (!isInvalid(stmt))
-            stmts.push_back(stmt);
+        if (!isInvalid(childrenRef))
+            childrenRefs.push_back(childrenRef);
     }
 
     // Consume end token if necessary
-    if (tokenEnd != TokenId::Invalid)
+    if (is(tokenEndId))
+        skip();
+    else if (tokenEndId != TokenId::Invalid)
     {
-        if (is(tokenEnd))
-            skip();
-        else
-        {
-            auto diag = reportError(DiagnosticId::ParserExpectedClosing, openToken);
-            diag.addArgument(Diagnostic::ARG_EXPECT, Token::toName(Token::toRelated(openToken.id)));
-        }
+        auto diag = reportError(DiagnosticId::ParserExpectedClosing, openTok);
+        diag.addArgument(Diagnostic::ARG_EXPECT, Token::toName(Token::toRelated(openTok.id)));
     }
 
-    nodePtr->nodeChildren = ast_->store_.push_span(std::span(stmts.data(), stmts.size()));
+    nodePtr->nodeChildren = ast_->store_.push_span(std::span(childrenRefs.data(), childrenRefs.size()));
     return nodeRef;
 }
 

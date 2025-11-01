@@ -35,38 +35,38 @@
 "escaped\\backslash\\test"
 
 // --- Invalid escape sequences ---
-"\c"        // swc-expected-error InvalidEscapeSequence
-"\d"        // swc-expected-error InvalidEscapeSequence
-"\e"        // swc-expected-error InvalidEscapeSequence
-"\g"        // swc-expected-error InvalidEscapeSequence
-"\h"        // swc-expected-error InvalidEscapeSequence
-"\i"        // swc-expected-error InvalidEscapeSequence
-"\j"        // swc-expected-error InvalidEscapeSequence
-"\k"        // swc-expected-error InvalidEscapeSequence
-"\l"        // swc-expected-error InvalidEscapeSequence
-"\m"        // swc-expected-error InvalidEscapeSequence
-"\o"        // swc-expected-error InvalidEscapeSequence
-"\p"        // swc-expected-error InvalidEscapeSequence
-"\q"        // swc-expected-error InvalidEscapeSequence
-"\s"        // swc-expected-error InvalidEscapeSequence
-"\w"        // swc-expected-error InvalidEscapeSequence
-"\y"        // swc-expected-error InvalidEscapeSequence
-"\z"        // swc-expected-error InvalidEscapeSequence
-"\1"        // swc-expected-error InvalidEscapeSequence
-"\2"        // swc-expected-error InvalidEscapeSequence
+"\c"        // swc-expected-error {{InvalidEscapeSequence}}
+"\d"        // swc-expected-error {{InvalidEscapeSequence}}
+"\e"        // swc-expected-error {{InvalidEscapeSequence}}
+"\g"        // swc-expected-error {{InvalidEscapeSequence}}
+"\h"        // swc-expected-error {{InvalidEscapeSequence}}
+"\i"        // swc-expected-error {{InvalidEscapeSequence}}
+"\j"        // swc-expected-error {{InvalidEscapeSequence}}
+"\k"        // swc-expected-error {{InvalidEscapeSequence}}
+"\l"        // swc-expected-error {{InvalidEscapeSequence}}
+"\m"        // swc-expected-error {{InvalidEscapeSequence}}
+"\o"        // swc-expected-error {{InvalidEscapeSequence}}
+"\p"        // swc-expected-error {{InvalidEscapeSequence}}
+"\q"        // swc-expected-error {{InvalidEscapeSequence}}
+"\s"        // swc-expected-error {{InvalidEscapeSequence}}
+"\w"        // swc-expected-error {{InvalidEscapeSequence}}
+"\y"        // swc-expected-error {{InvalidEscapeSequence}}
+"\z"        // swc-expected-error {{InvalidEscapeSequence}}
+"\1"        // swc-expected-error {{InvalidEscapeSequence}}
+"\2"        // swc-expected-error {{InvalidEscapeSequence}}
 
 // --- Unclosed string literals (missing closing quote) ---
-// swc-expected-error@+ NewlineInStringLiteral
+// swc-expected-error@+ {{NewlineInStringLiteral}}
 "unclosed
-// swc-expected-error@+ NewlineInStringLiteral
+// swc-expected-error@+ {{NewlineInStringLiteral}}
 "hello world
-// swc-expected-error@+ NewlineInStringLiteral
-"test       
-// swc-expected-error@+ NewlineInStringLiteral
+// swc-expected-error@+ {{NewlineInStringLiteral}}
+"test
+// swc-expected-error@+ {{NewlineInStringLiteral}}
 "with\"escape
 
 // --- Unclosed with trailing backslash at EOF ---
-// swc-expected-error@+ InvalidEscapeSequence
+// swc-expected-error@+ {{InvalidEscapeSequence}}
 "test\
 
 // --- Empty and whitespace ---
@@ -105,9 +105,9 @@ third line"""
 """\n\r\t\b\f\v"""
 
 // --- Invalid escape sequences in multi-line ---
-"""\c"""            // swc-expected-error InvalidEscapeSequence
-"""\z"""            // swc-expected-error InvalidEscapeSequence
-"""test\qfail"""    // swc-expected-error InvalidEscapeSequence
+"""\c"""            // swc-expected-error {{InvalidEscapeSequence}}
+"""\z"""            // swc-expected-error {{InvalidEscapeSequence}}
+"""test\qfail"""    // swc-expected-error {{InvalidEscapeSequence}}
 
 // --- Multi-line with trailing backslash at EOL ---
 """test\
@@ -168,12 +168,12 @@ line
 #"<html>\n\t<body></body>\n</html>"#
 
 // --- Unclosed raw strings ---
-#"unclosed          // swc-expected-error UnclosedStringLiteral
-#"hello world       // swc-expected-error UnclosedStringLiteral
-#"test              // swc-expected-error UnclosedStringLiteral
+#"unclosed          // swc-expected-error {{UnclosedStringLiteral}}
+#"hello world       // swc-expected-error {{UnclosedStringLiteral}}
+#"test              // swc-expected-error {{UnclosedStringLiteral}}
 
 #"line1
-line2              // swc-expected-error UnclosedStringLiteral
+line2              // swc-expected-error {{UnclosedStringLiteral}}
 
 // --- Raw strings with embedded quotes ---
 #"This is "quoted" text"#

@@ -1,5 +1,6 @@
 #include "pch.h"
-
+#include "Report/UnitTest.h"
+#include "Core/Utf8Helper.h"
 #include "Diagnostic.h"
 #include "Lexer/LangSpec.h"
 #include "Lexer/Lexer.h"
@@ -7,7 +8,6 @@
 #include "Main/CommandLine.h"
 #include "Main/Context.h"
 #include "Main/Global.h"
-#include "Report/UnitTest.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -73,12 +73,12 @@ void UnitTest::tokenizeExpected(const Context& ctx, const LexTrivia& trivia, std
     while (true)
     {
         pos = comment.find(LangSpec::VERIFY_COMMENT_EXPECTED, pos);
-        if (pos == Utf8::npos)
+        if (pos == std::string_view::npos)
             break;
 
         UnitTestDirective directive;
 
-        // Get directive word
+        // Parse directive kind ("error", "warning", etc.)
         const size_t start = pos + LangSpec::VERIFY_COMMENT_EXPECTED.size();
         size_t       i     = start;
         while (i < comment.size() && langSpec.isLetter(comment[i]))
@@ -94,13 +94,13 @@ void UnitTest::tokenizeExpected(const Context& ctx, const LexTrivia& trivia, std
             continue;
         }
 
-        // Location
+        // Base location info
         directive.myLoc.fromOffset(ctx, *file,
                                    trivia.token.byteStart + static_cast<uint32_t>(pos),
                                    static_cast<uint32_t>(LangSpec::VERIFY_COMMENT_EXPECTED.size()) + static_cast<uint32_t>(word.size()));
         directive.loc = directive.myLoc;
 
-        // Parse location
+        // Handle @*, @+ suffix
         if (i < comment.size() && comment[i] == '@')
         {
             i++;
@@ -119,12 +119,24 @@ void UnitTest::tokenizeExpected(const Context& ctx, const LexTrivia& trivia, std
             }
         }
 
-        // Get directive string
-        directive.match = comment.substr(i, comment.size());
-        directive.match.trim();
+        // Find and parse all `{{ ... }}` blocks following this directive
+        while (true)
+        {
+            const size_t open = comment.find("{{", i);
+            if (open == std::string_view::npos)
+                break;
 
-        // One more
-        directives_.emplace_back(directive);
+            const size_t close = comment.find("}}", open + 2);
+            if (close == std::string_view::npos)
+                break;
+
+            UnitTestDirective dir = directive;
+            dir.match             = comment.substr(open + 2, close - (open + 2));
+            dir.match             = Utf8Helper::trim(dir.match);
+            directives_.emplace_back(std::move(dir));
+
+            i = close + 2;
+        }
 
         pos = i;
     }

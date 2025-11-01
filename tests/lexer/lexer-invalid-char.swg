@@ -1,3 +1,3 @@
 // swc-option lex-only
 
-¤ // swc-expected-error InvalidCharacter
+¤ // swc-expected-error {{InvalidCharacter}}

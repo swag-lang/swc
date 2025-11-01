@@ -1,12 +1,12 @@
 // swc-option lex-only
 
 // --- Missing digits / incomplete literals ---
-0b          // swc-expected-error MissingBinDigit
-0b_         // swc-expected-error MissingBinDigit
-0b__        // swc-expected-error ConsecutiveNumberSeparators
-0b___       // swc-expected-error ConsecutiveNumberSeparators
-0b0_        // swc-expected-error TrailingNumberSeparator
-0b1_        // swc-expected-error TrailingNumberSeparator
+0b          // swc-expected-error {{MissingBinDigit}}
+0b_         // swc-expected-error {{MissingBinDigit}}
+0b__        // swc-expected-error {{ConsecutiveNumberSeparators}}
+0b___       // swc-expected-error {{ConsecutiveNumberSeparators}}
+0b0_        // swc-expected-error {{TrailingNumberSeparator}}
+0b1_        // swc-expected-error {{TrailingNumberSeparator}}
 
 // --- Valid simple cases ---
 0b0
@@ -37,21 +37,21 @@
 0b_1_0_1_0
 
 // --- Invalid separators ---
-0b__1       // swc-expected-error ConsecutiveNumberSeparators
-0b1__0      // swc-expected-error ConsecutiveNumberSeparators
-0b1_        // swc-expected-error TrailingNumberSeparator
-0b0_        // swc-expected-error TrailingNumberSeparator
-0b10__01    // swc-expected-error ConsecutiveNumberSeparators
-0b101_      // swc-expected-error TrailingNumberSeparator
+0b__1       // swc-expected-error {{ConsecutiveNumberSeparators}}
+0b1__0      // swc-expected-error {{ConsecutiveNumberSeparators}}
+0b1_        // swc-expected-error {{TrailingNumberSeparator}}
+0b0_        // swc-expected-error {{TrailingNumberSeparator}}
+0b10__01    // swc-expected-error {{ConsecutiveNumberSeparators}}
+0b101_      // swc-expected-error {{TrailingNumberSeparator}}
 
 // --- Boundary and format checks ---
 0b00000000
 0b11111111
 0b0000000000000000
 0b1111111111111111
-0b_         // swc-expected-error MissingBinDigit
-0b0_______  // swc-expected-error ConsecutiveNumberSeparators
-0b1_______  // swc-expected-error ConsecutiveNumberSeparators
+0b_         // swc-expected-error {{MissingBinDigit}}
+0b0_______  // swc-expected-error {{ConsecutiveNumberSeparators}}
+0b1_______  // swc-expected-error {{ConsecutiveNumberSeparators}}
 
 // --- Valid with long sequences ---
 0b1010_1010_1010_1010
@@ -75,17 +75,17 @@
 0b1010_1010_0101_0101
 
 // --- Invalid with misplaced underscores ---
-0b10_10_        // swc-expected-error TrailingNumberSeparator
-0b101__010      // swc-expected-error ConsecutiveNumberSeparators
-0b1010__        // swc-expected-error ConsecutiveNumberSeparators
-0b__1010        // swc-expected-error ConsecutiveNumberSeparators
-0b1_0_1_0_      // swc-expected-error TrailingNumberSeparator
+0b10_10_        // swc-expected-error {{TrailingNumberSeparator}}
+0b101__010      // swc-expected-error {{ConsecutiveNumberSeparators}}
+0b1010__        // swc-expected-error {{ConsecutiveNumberSeparators}}
+0b__1010        // swc-expected-error {{ConsecutiveNumberSeparators}}
+0b1_0_1_0_      // swc-expected-error {{TrailingNumberSeparator}}
 
 // --- Edge cases ---
 0b0_0_0_0
 0b1_1_1_1
-0b__           // swc-expected-error ConsecutiveNumberSeparators
-0b___          // swc-expected-error ConsecutiveNumberSeparators
+0b__           // swc-expected-error {{ConsecutiveNumberSeparators}}
+0b___          // swc-expected-error {{ConsecutiveNumberSeparators}}
 
 // --- Invalid suffix ---
-0b01G			// swc-expected-error InvalidBinDigit
+0b01G			// swc-expected-error {{InvalidBinDigit}}

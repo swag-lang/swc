@@ -6,6 +6,8 @@ SWC_BEGIN_NAMESPACE()
 class Context;
 class Global;
 enum class DiagnosticSeverity;
+struct LexTrivia;
+class Diagnostic;
 
 struct UnitTestDirective
 {

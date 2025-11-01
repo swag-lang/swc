@@ -26,6 +26,7 @@ AstNodeRef Parser::parseExpression()
     if (is(TokenId::SymLeftBracket))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNode>();
+        consume();
         skipTo({TokenId::SymRightBracket}, SkipUntilFlags::Consume);
         return nodeRef;
     }

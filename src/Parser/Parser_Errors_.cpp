@@ -44,54 +44,28 @@ Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef) const
 Diagnostic Parser::reportExpected(const ParserExpect& expect) const
 {
     // Expected one single token
-    if (expect.oneTokId != TokenId::Invalid)
-    {
-        const auto expectedTknId = expect.oneTokId;
+    SWC_ASSERT(expect.tokId != TokenId::Invalid);
 
-        auto diagId = expect.diag;
-        if (expectedTknId == TokenId::Identifier && diagId == DiagnosticId::ParserExpectedToken)
-            diagId = DiagnosticId::ParserExpectedTokenFam;
+    const auto expectedTknId = expect.tokId;
 
-        auto diag = reportError(diagId, tok());
-        setReportArguments(diag, tok());
+    auto diagId = expect.diag;
+    if (expectedTknId == TokenId::Identifier && diagId == DiagnosticId::ParserExpectedToken)
+        diagId = DiagnosticId::ParserExpectedTokenFam;
 
-        if (isValid(expect.locToken))
-        {
-            const auto tknLoc = file_->lexOut().token(expect.locToken);
-            diag.last().setLocation(tknLoc.toLocation(*ctx_, *file_));
-        }
-
-        setReportExpected(diag, expectedTknId);
-        diag.addArgument(Diagnostic::ARG_BECAUSE, Diagnostic::diagIdMessage(expect.becauseCtx), false);
-
-        if (expectedTknId == TokenId::Identifier && tok().isReservedWord())
-            diag.addElement(DiagnosticId::ParserReservedAsIdentifier);
-
-        if (expect.noteId != DiagnosticId::None)
-        {
-            const auto tknLoc = file_->lexOut().token(expect.noteToken);
-            diag.addElement(expect.noteId).setLocation(tknLoc.toLocation(*ctx_, *file_));
-        }
-
-        return diag;
-    }
-
-    // Expected one of multiple tokens
-    auto diag = reportError(expect.diag, tok());
+    auto diag = reportError(diagId, tok());
     setReportArguments(diag, tok());
+    setReportExpected(diag, expectedTknId);
+    diag.addArgument(Diagnostic::ARG_BECAUSE, Diagnostic::diagIdMessage(expect.becauseCtx), false);
 
-    Utf8 msg   = "one of ";
-    bool first = true;
-    for (const auto& t : expect.manyTok)
+    if (expectedTknId == TokenId::Identifier && tok().isReservedWord())
+        diag.addElement(DiagnosticId::ParserReservedAsIdentifier);
+
+    if (expect.noteId != DiagnosticId::None)
     {
-        if (!first)
-            msg += ", ";
-        msg += std::format("'{}'", Token::toName(t));
-        first = false;
+        const auto tknLoc = file_->lexOut().token(expect.noteToken);
+        diag.addElement(expect.noteId).setLocation(tknLoc.toLocation(*ctx_, *file_));
     }
 
-    diag.addArgument(Diagnostic::ARG_EXPECT, msg);
-    diag.addArgument(Diagnostic::ARG_BECAUSE, Diagnostic::diagIdMessage(expect.becauseCtx), false);
     return diag;
 }
 

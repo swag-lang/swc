@@ -5,35 +5,20 @@ SWC_BEGIN_NAMESPACE()
 
 bool ParserExpect::valid(TokenId id) const
 {
-    const bool ok = manyTok.empty() ? (id == oneTokId) : std::ranges::find(manyTok, id) != manyTok.end();
-    return ok;
+    return id == tokId;
 }
 
 ParserExpect ParserExpect::one(TokenId tok, DiagnosticId d)
 {
     ParserExpect s;
-    s.oneTokId = tok;
-    s.diag   = d;
-    return s;
-}
-
-ParserExpect ParserExpect::oneOf(std::initializer_list<TokenId> set, DiagnosticId d)
-{
-    ParserExpect s;
-    s.manyTok = set;
-    s.diag    = d;
+    s.tokId = tok;
+    s.diag  = d;
     return s;
 }
 
 ParserExpect& ParserExpect::because(DiagnosticId b)
 {
     becauseCtx = b;
-    return *this;
-}
-
-ParserExpect& ParserExpect::loc(TokenRef tok)
-{
-    locToken = tok;
     return *this;
 }
 

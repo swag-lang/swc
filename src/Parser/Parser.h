@@ -76,7 +76,6 @@ class Parser
 
     TokenRef expect(TokenId id, DiagnosticId d) const { return expect(ParserExpect::one(id, d)); }
     TokenRef expectAndConsume(TokenId id, DiagnosticId d) { return expectAndConsume(ParserExpect::one(id, d)); }
-    TokenRef expectAndConsumeOneOf(std::initializer_list<TokenId> set, DiagnosticId d) { return expectAndConsume(ParserExpect::oneOf(set, d)); }
 
     const Token* tokPtr() const { return curToken_; }
     const Token& tok() const { return *curToken_; }

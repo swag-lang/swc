@@ -67,11 +67,12 @@ void Diagnostic::report(const Context& ctx) const
 {
     SWC_ASSERT(!elements_.empty());
 
+    // Mark file
     if (fileOwner_)
     {
         if (elements_.front()->severity() == DiagnosticSeverity::Error)
             fileOwner_.value()->setHasError();
-        if (elements_.front()->severity() == DiagnosticSeverity::Warning)
+        else if (elements_.front()->severity() == DiagnosticSeverity::Warning)
             fileOwner_.value()->setHasWarning();
     }
 
@@ -83,6 +84,15 @@ void Diagnostic::report(const Context& ctx) const
     if (fileOwner_)
     {
         dismiss = fileOwner_.value()->unittest().verifyExpected(ctx, *this);
+    }
+
+    // Count only errors and warnings not dismissed during tests
+    if (!dismiss)
+    {
+        if (elements_.front()->severity() == DiagnosticSeverity::Error)
+            Stats::get().numErrors.fetch_add(1);
+        else if (elements_.front()->severity() == DiagnosticSeverity::Warning)
+            Stats::get().numWarnings.fetch_add(1);
     }
 
     // In tests, suppress diagnostics unless verbose errors are explicitly requested and match the filter.

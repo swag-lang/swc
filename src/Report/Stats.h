@@ -5,7 +5,9 @@ class Context;
 
 struct Stats
 {
-    std::atomic<uint64_t> timeTotal = 0;
+    std::atomic<uint64_t> timeTotal   = 0;
+    std::atomic<size_t>   numErrors   = 0;
+    std::atomic<size_t>   numWarnings = 0;
 
 #if SWC_HAS_STATS
     std::atomic<uint64_t> timeLexer       = 0;

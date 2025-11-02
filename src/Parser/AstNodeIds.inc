@@ -1,5 +1,10 @@
 SWC_NODE_ID_DEF(Invalid)
+
 SWC_NODE_ID_DEF(Identifier)
+SWC_NODE_ID_DEF(FuncCall)
+SWC_NODE_ID_DEF(StructInit)
+SWC_NODE_ID_DEF(ArrayDeref)
+SWC_NODE_ID_DEF(NamedArguments)
 
 SWC_NODE_ID_DEF(ParenExpression)
 SWC_NODE_ID_DEF(BoolExpression)

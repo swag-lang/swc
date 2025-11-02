@@ -81,6 +81,7 @@ class Parser
     const Token& tok() const { return *curToken_; }
     TokenRef     ref() const { return static_cast<TokenRef>(curToken_ - firstToken_); }
     TokenId      id() const { return curToken_->id; }
+    TokenId      nextId() const { return atEnd() ? TokenId::EndOfFile : curToken_[1].id; }
     bool         is(TokenId id0) const { return curToken_->id == id0; }
     bool         nextIs(TokenId id0) const { return atEnd() ? false : curToken_[1].id == id0; }
     bool         isNot(TokenId nid) const { return curToken_->id != nid; }
@@ -101,6 +102,7 @@ class Parser
     AstNodeRef parseBlock(AstNodeId blockNodeId, TokenId tokenStartId);
 
     AstNodeRef parseIdentifier();
+    AstNodeRef parseIdentifierExpression();
     AstNodeRef parseLiteral();
     AstNodeRef parseLiteralExpression();
     AstNodeRef parseLiteralArray();

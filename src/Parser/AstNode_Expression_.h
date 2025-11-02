@@ -12,6 +12,51 @@ struct AstNodeIdentifier : AstNode
     TokenRef tknName;
 };
 
+struct AstNodeFuncCall : AstNode
+{
+    static constexpr auto ID = AstNodeId::FuncCall;
+    AstNodeFuncCall() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeIdentifier;
+    AstNodeRef nodeArgs;
+};
+
+struct AstNodeStructInit : AstNode
+{
+    static constexpr auto ID = AstNodeId::StructInit;
+    AstNodeStructInit() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeIdentifier;
+    AstNodeRef nodeArgs;
+};
+
+struct AstNodeArrayDeref : AstNode
+{
+    static constexpr auto ID = AstNodeId::ArrayDeref;
+    AstNodeArrayDeref() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeIdentifier;
+    AstNodeRef nodeArgs;
+};
+
+struct AstNodeNamedArguments : AstNodeBlock
+{
+    static constexpr auto ID = AstNodeId::NamedArguments;
+    AstNodeNamedArguments() :
+        AstNodeBlock(ID)
+    {
+    }
+};
+
 struct AstNodeParenExpression : AstNode
 {
     static constexpr auto ID = AstNodeId::ParenExpression;

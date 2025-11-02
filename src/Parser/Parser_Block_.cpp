@@ -64,11 +64,21 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
 
         case AstNodeId::ArrayLiteral:
             childrenRef = parseExpression();
-            if (!consumeIfAny(TokenId::SymComma) && !is(TokenId::SymRightBracket))
+            if (!consumeIfAny(TokenId::SymComma) && !is(tokenEndId))
             {
                 auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, tok());
                 setReportExpected(diag, TokenId::SymComma);
-                skipTo({TokenId::SymComma, TokenId::SymRightBracket});
+                skipTo({TokenId::SymComma, tokenEndId});
+            }
+            break;
+
+        case AstNodeId::NamedArguments:
+            childrenRef = parseExpression();
+            if (!consumeIfAny(TokenId::SymComma) && !is(tokenEndId))
+            {
+                auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, tok());
+                setReportExpected(diag, TokenId::SymComma);
+                skipTo({TokenId::SymComma, tokenEndId});
             }
             break;
 

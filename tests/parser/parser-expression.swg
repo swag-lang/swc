@@ -23,5 +23,5 @@
 
 #assert(A == [5])
 #assert(A == [5, 4+A])
-#assert(A == [5, 4+A)
+
 

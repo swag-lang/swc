@@ -118,7 +118,7 @@ AstNodeRef Parser::parsePrimaryExpression()
     switch (id())
     {
     case TokenId::Identifier:
-        return parseIdentifier();
+        return parseIdentifierExpression();
 
     case TokenId::NumberInteger:
     case TokenId::NumberBinary:
@@ -258,6 +258,41 @@ AstNodeRef Parser::parseIdentifier()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>();
     nodePtr->tknName        = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFam);
     return nodeRef;
+}
+
+AstNodeRef Parser::parseIdentifierExpression()
+{
+    if (!has_any(tok().flags, TokenFlags::BlankAfter))
+    {
+        switch (nextId())
+        {
+        case TokenId::SymLeftParen:
+        {
+            const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FuncCall>();
+            nodePtr->nodeIdentifier       = parseIdentifier();
+            nodePtr->nodeArgs             = parseBlock(AstNodeId::NamedArguments, TokenId::SymLeftParen);
+            return nodeRef;
+        }
+        case TokenId::SymLeftBracket:
+        {
+            const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ArrayDeref>();
+            nodePtr->nodeIdentifier       = parseIdentifier();
+            nodePtr->nodeArgs             = parseBlock(AstNodeId::NamedArguments, TokenId::SymLeftBracket);
+            return nodeRef;
+        }
+        case TokenId::SymLeftCurly:
+        {
+            const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructInit>();
+            nodePtr->nodeIdentifier       = parseIdentifier();
+            nodePtr->nodeArgs             = parseBlock(AstNodeId::NamedArguments, TokenId::SymLeftCurly);
+            return nodeRef;
+        }
+        default:
+            break;
+        }
+    }
+
+    return parseIdentifier();
 }
 
 AstNodeRef Parser::parseLiteralArray()

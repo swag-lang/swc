@@ -8,3 +8,12 @@
 
 #assert(A + 5)
 #assert(A + 5 > 5 and true)
+#assert((A or B) and C)
+#assert(A == B)
+#assert(A != B and C)
+#assert(A < B or B < C)
+#assert(A <= B and B <= C)
+#assert(A + B * C)
+#assert((A + B) * C)
+#assert(A / (B - C))
+#assert((A + 5) * (B - 3) > 0)

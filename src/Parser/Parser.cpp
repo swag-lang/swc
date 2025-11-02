@@ -155,7 +155,8 @@ void Parser::expectEndOfLine()
 {
     if (tok().startsLine() || is(TokenId::SymSemiColon) || is(TokenId::EndOfFile))
         return;
-    (void) reportError(DiagnosticId::ParserExpectedEndOfLine, tok());
+    const auto diag = reportError(DiagnosticId::ParserExpectedEndOfLine, curToken_[-1]);
+    diag.last().setLocation(file_, curToken_[-1].byteStart + curToken_[-1].byteLength, 1);
 }
 
 Result Parser::parse(Context& ctx)

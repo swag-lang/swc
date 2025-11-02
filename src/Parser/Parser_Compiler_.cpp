@@ -13,6 +13,7 @@ AstNodeRef Parser::parseCompilerAssert()
     nodePtr->nodeExpr = parseExpression();
     expectAndConsumeClosing(openRef);
     expectEndOfLine();
+    
     return nodeRef;
 }
 

@@ -22,4 +22,5 @@ SWC_NODE_ID_DEF(IncompleteArrayType)
 SWC_NODE_ID_DEF(ArrayType)
 
 SWC_NODE_ID_DEF(CompilerAssert)
+SWC_NODE_ID_DEF(CompilerError)
 

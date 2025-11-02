@@ -12,3 +12,15 @@ struct AstNodeCompilerAssert : AstNode
     TokenRef   tokRef;
     AstNodeRef nodeExpr;
 };
+
+struct AstNodeCompilerError : AstNode
+{
+    static constexpr auto ID = AstNodeId::CompilerError;
+    AstNodeCompilerError() :
+        AstNode(ID)
+    {
+    }
+
+    TokenRef   tokRef;
+    AstNodeRef nodeExpr;
+};

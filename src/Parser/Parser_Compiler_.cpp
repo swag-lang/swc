@@ -19,4 +19,20 @@ AstNodeRef Parser::parseCompilerAssert()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseCompilerError()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerError>();
+    nodePtr->tokRef         = consume(TokenId::CompilerError);
+
+    const auto openRef = ref();
+    expectAndSkip(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenAfter);
+    nodePtr->nodeExpr = parseExpression();
+    if (isInvalid(nodePtr->nodeExpr))
+        skipTo({TokenId::SymRightParen}, SkipUntilFlags::EolBefore);
+    expectAndSkipClosing(TokenId::SymLeftParen, openRef);
+    expectEndStatement();
+
+    return nodeRef;
+}
+
 SWC_END_NAMESPACE()

@@ -9,11 +9,11 @@ AstNodeRef Parser::parseCompilerAssert()
     consume(TokenId::CompilerAssert);
 
     const auto openRef = ref();
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenFam);
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::ParserExpectedToken);
     nodePtr->nodeExpr = parseExpression();
-    expectAndConsumeClosing(openRef);
+    expectAndConsumeClosing(TokenId::SymLeftParen, openRef);
     expectEndOfLine();
-    
+
     return nodeRef;
 }
 

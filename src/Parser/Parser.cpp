@@ -144,13 +144,13 @@ TokenRef Parser::expectAndSkip(const ParserExpect& expect)
     return INVALID_REF;
 }
 
-TokenRef Parser::expectAndConsumeClosing(TokenRef openRef)
+TokenRef Parser::expectAndConsumeClosing(TokenId openId, TokenRef openRef)
 {
     const auto& open      = file_->lexOut().token(openRef);
-    const auto  closingId = Token::toRelated(open.id);
-
-    auto expect = ParserExpect::one(closingId, DiagnosticId::ParserExpectedClosingBefore);
-    expect.note(DiagnosticId::ParserCorresponding, openRef);
+    const auto  closingId = Token::toRelated(openId);
+    auto        expect    = ParserExpect::one(closingId, DiagnosticId::ParserExpectedClosingBefore);
+    if (open.id == openId)
+        expect.note(DiagnosticId::ParserCorresponding, openRef);
     return expectAndConsume(expect);
 }
 

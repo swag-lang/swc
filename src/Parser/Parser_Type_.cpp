@@ -101,7 +101,7 @@ AstNodeRef Parser::parseType()
         // [*]
         if (consumeIf(TokenId::SymAsterisk))
         {
-            if (isInvalid(expectAndConsumeClosing(leftBracket)))
+            if (isInvalid(expectAndConsumeClosing(TokenId::SymLeftBracket, leftBracket)))
                 return INVALID_REF;
 
             const auto child = parseType();
@@ -116,7 +116,7 @@ AstNodeRef Parser::parseType()
         // [..]
         if (consumeIf(TokenId::SymDotDot))
         {
-            if (isInvalid(expectAndConsumeClosing(leftBracket)))
+            if (isInvalid(expectAndConsumeClosing(TokenId::SymLeftBracket, leftBracket)))
                 return INVALID_REF;
 
             const auto child = parseType();
@@ -131,7 +131,7 @@ AstNodeRef Parser::parseType()
         // [?]
         if (consumeIf(TokenId::SymQuestion))
         {
-            if (isInvalid(expectAndConsumeClosing(leftBracket)))
+            if (isInvalid(expectAndConsumeClosing(TokenId::SymLeftBracket, leftBracket)))
                 return INVALID_REF;
 
             const auto child = parseType();
@@ -157,7 +157,7 @@ AstNodeRef Parser::parseType()
         if (isInvalid(dim))
             return INVALID_REF;
 
-        if (isInvalid(expectAndConsumeClosing(leftBracket)))
+        if (isInvalid(expectAndConsumeClosing(TokenId::SymLeftBracket, leftBracket)))
             return INVALID_REF;
 
         const auto child = parseType();

@@ -270,21 +270,21 @@ AstNodeRef Parser::parseIdentifierExpression()
         {
             const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FuncCall>();
             nodePtr->nodeIdentifier       = parseIdentifier();
-            nodePtr->nodeArgs             = parseBlock(AstNodeId::NamedArguments, TokenId::SymLeftParen);
-            return nodeRef;
-        }
-        case TokenId::SymLeftBracket:
-        {
-            const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ArrayDeref>();
-            nodePtr->nodeIdentifier       = parseIdentifier();
-            nodePtr->nodeArgs             = parseBlock(AstNodeId::NamedArguments, TokenId::SymLeftBracket);
+            nodePtr->nodeArgs             = parseBlock(AstNodeId::NamedArgumentBlock, TokenId::SymLeftParen);
             return nodeRef;
         }
         case TokenId::SymLeftCurly:
         {
             const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructInit>();
             nodePtr->nodeIdentifier       = parseIdentifier();
-            nodePtr->nodeArgs             = parseBlock(AstNodeId::NamedArguments, TokenId::SymLeftCurly);
+            nodePtr->nodeArgs             = parseBlock(AstNodeId::NamedArgumentBlock, TokenId::SymLeftCurly);
+            return nodeRef;
+        }
+        case TokenId::SymLeftBracket:
+        {
+            const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ArrayDeref>();
+            nodePtr->nodeIdentifier       = parseIdentifier();
+            nodePtr->nodeArgs             = parseBlock(AstNodeId::UnnamedArgumentBlock, TokenId::SymLeftBracket);
             return nodeRef;
         }
         default:
@@ -298,6 +298,22 @@ AstNodeRef Parser::parseIdentifierExpression()
 AstNodeRef Parser::parseLiteralArray()
 {
     return parseBlock(AstNodeId::ArrayLiteral, TokenId::SymLeftBracket);
+}
+
+AstNodeRef Parser::parseNamedArgument()
+{
+    // The name
+    if (is(TokenId::Identifier) && nextIs(TokenId::SymColon) && !has_any(tok().flags, TokenFlags::BlankAfter))
+    {
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamedArgument>();
+        nodePtr->tknName              = consume();
+        consume(TokenId::SymColon);
+        nodePtr->nodeArg = parseExpression();
+        return nodeRef;
+    }
+
+    // The argument
+    return parseExpression();
 }
 
 SWC_END_NAMESPACE()

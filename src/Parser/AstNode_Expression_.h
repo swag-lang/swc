@@ -48,13 +48,33 @@ struct AstNodeArrayDeref : AstNode
     AstNodeRef nodeArgs;
 };
 
-struct AstNodeNamedArguments : AstNodeBlock
+struct AstNodeArgument : AstNode
 {
-    static constexpr auto ID = AstNodeId::NamedArguments;
-    AstNodeNamedArguments() :
-        AstNodeBlock(ID)
+    explicit AstNodeArgument(AstNodeId id) :
+        AstNode(id)
     {
     }
+};
+
+struct AstNodeUnnamedArgument : AstNodeArgument
+{
+    static constexpr auto ID = AstNodeId::UnnamedArgument;
+    AstNodeUnnamedArgument() :
+        AstNodeArgument(ID)
+    {
+    }
+};
+
+struct AstNodeNamedArgument : AstNodeArgument
+{
+    static constexpr auto ID = AstNodeId::NamedArgument;
+    AstNodeNamedArgument() :
+        AstNodeArgument(ID)
+    {
+    }
+
+    TokenRef   tknName;
+    AstNodeRef nodeArg;
 };
 
 struct AstNodeParenExpression : AstNode
@@ -66,6 +86,24 @@ struct AstNodeParenExpression : AstNode
     }
 
     AstNodeRef nodeExpr;
+};
+
+struct AstNodeNamedArgumentBlock : AstNodeBlock
+{
+    static constexpr auto ID = AstNodeId::NamedArgumentBlock;
+    AstNodeNamedArgumentBlock() :
+        AstNodeBlock(ID)
+    {
+    }
+};
+
+struct AstNodeUnnamedArgumentBlock : AstNodeBlock
+{
+    static constexpr auto ID = AstNodeId::UnnamedArgumentBlock;
+    AstNodeUnnamedArgumentBlock() :
+        AstNodeBlock(ID)
+    {
+    }
 };
 
 struct AstNodeBinary : AstNode

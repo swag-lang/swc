@@ -64,26 +64,36 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
 
         case AstNodeId::ArrayLiteral:
             childrenRef = parseExpression();
-            if (!consumeIfAny(TokenId::SymComma) && !is(tokenEndId))
-            {
-                auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, tok());
-                setReportExpected(diag, TokenId::SymComma);
-                skipTo({TokenId::SymComma, tokenEndId});
-            }
             break;
 
-        case AstNodeId::NamedArguments:
+        case AstNodeId::UnnamedArgumentBlock:
             childrenRef = parseExpression();
-            if (!consumeIfAny(TokenId::SymComma) && !is(tokenEndId))
-            {
-                auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, tok());
-                setReportExpected(diag, TokenId::SymComma);
-                skipTo({TokenId::SymComma, tokenEndId});
-            }
+            break;
+
+        case AstNodeId::NamedArgumentBlock:
+            childrenRef = parseNamedArgument();
             break;
 
         default:
             std::unreachable();
+        }
+
+        // Separator
+        switch (blockNodeId)
+        {
+        case AstNodeId::ArrayLiteral:
+        case AstNodeId::UnnamedArgumentBlock:
+        case AstNodeId::NamedArgumentBlock:
+            if (!consumeIfAny(TokenId::SymComma) && !is(tokenEndId))
+            {
+                auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, tok());
+                setReportExpected(diag, TokenId::SymComma);
+                skipTo({TokenId::SymComma, tokenEndId});
+            }
+            break;
+            
+        default:
+            break;
         }
 
         // Be sure instruction has not failed

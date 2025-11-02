@@ -57,19 +57,15 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
         case AstNodeId::TopLevelBlock:
             childrenRef = parseTopLevelStmt();
             break;
-
         case AstNodeId::EnumBlock:
             childrenRef = parseEnumValue();
             break;
-
         case AstNodeId::ArrayLiteral:
             childrenRef = parseExpression();
             break;
-
         case AstNodeId::UnnamedArgumentBlock:
             childrenRef = parseExpression();
             break;
-
         case AstNodeId::NamedArgumentBlock:
             childrenRef = parseNamedArgument();
             break;
@@ -81,6 +77,15 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
         // Separator
         switch (blockNodeId)
         {
+        case AstNodeId::EnumBlock:
+            if (!consumeIfAny(TokenId::SymComma) && !is(tokenEndId) && !tok().startsLine())
+            {
+                auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, tok());
+                setReportExpected(diag, TokenId::SymComma);
+                skipTo({TokenId::SymComma, tokenEndId});
+            }
+            break;
+
         case AstNodeId::ArrayLiteral:
         case AstNodeId::UnnamedArgumentBlock:
         case AstNodeId::NamedArgumentBlock:
@@ -91,7 +96,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
                 skipTo({TokenId::SymComma, tokenEndId});
             }
             break;
-            
+
         default:
             break;
         }

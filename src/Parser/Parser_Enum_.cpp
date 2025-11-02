@@ -8,7 +8,6 @@ AstNodeRef Parser::parseEnumValue()
 {
     static constexpr std::initializer_list ENUM_VALUE_SYNC = {TokenId::SymRightCurly, TokenId::SymComma, TokenId::Identifier};
 
-    TokenRef result = INVALID_REF;
     switch (id())
     {
     case TokenId::KwdUsing:
@@ -18,8 +17,7 @@ AstNodeRef Parser::parseEnumValue()
         nodePtr->tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFam);
         if (isInvalid(nodePtr->tknName))
             skipTo(ENUM_VALUE_SYNC, SkipUntilFlags::EolBefore);
-        result = nodeRef;
-        break;
+        return nodeRef;
     }
 
     case TokenId::Identifier:
@@ -37,27 +35,13 @@ AstNodeRef Parser::parseEnumValue()
                 skipTo(ENUM_VALUE_SYNC, SkipUntilFlags::EolBefore);
         }
 
-        break;
+        return nodeRef;
     }
 
     default:
         (void) reportError(DiagnosticId::ParserUnexpectedToken, tok());
-        break;
+        return INVALID_REF;
     }
-
-    // End of value
-    if (is(TokenId::SymRightCurly))
-        return result;
-    if (consumeIf(TokenId::SymComma))
-        return result;
-    if (tok().startsLine())
-        return result;
-
-    auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, tok());
-    setReportExpected(diag, TokenId::SymComma);
-
-    skipTo(ENUM_VALUE_SYNC, SkipUntilFlags::EolBefore);
-    return result;
 }
 
 AstNodeRef Parser::parseEnum()

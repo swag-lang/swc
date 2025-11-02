@@ -26,8 +26,8 @@ struct CommandLine
     uint32_t numCores = 0;
     uint32_t tabSize  = 4;
 
-    Utf8 verboseErrorsFilter;
-    Utf8 fileFilter;
+    Utf8           verboseErrorsFilter;
+    std::set<Utf8> fileFilter;
 
     std::set<fs::path> directories;
     std::set<fs::path> files;

@@ -123,8 +123,19 @@ void FileSystem::collectSwagFilesRec(const Context& ctx, const fs::path& folder,
         auto ext = entry.path().extension().string();
         if (ext != ".swg" && ext != ".swgs")
             continue;
-        if (!ctx.cmdLine().fileFilter.empty() && !entry.path().string().contains(ctx.cmdLine().fileFilter))
+
+        bool ignore = false;
+        for (const auto& filter : ctx.cmdLine().fileFilter)
+        {
+            if (!entry.path().string().contains(filter))
+            {
+                ignore = true;
+                break;
+            }
+        }
+        if (ignore)
             continue;
+
         files.push_back(entry.path());
     }
 }

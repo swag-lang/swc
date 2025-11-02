@@ -176,7 +176,10 @@
         <ClInclude Include="src\Parser\Ast.h"/>
         <ClInclude Include="src\Parser\AstNode.h"/>
         <ClInclude Include="src\Parser\AstNodeIds.inc"/>
-        <ClInclude Include="src\Parser\AstNodes.h"/>
+        <ClInclude Include="src\Parser\AstNode_Block_.h"/>
+        <ClInclude Include="src\Parser\AstNode_Compiler_.h"/>
+        <ClInclude Include="src\Parser\AstNode_Expression_.h"/>
+        <ClInclude Include="src\Parser\AstNode_Type_.h"/>
         <ClInclude Include="src\Parser\Parser.h"/>
         <ClInclude Include="src\Parser\ParserExpect.h"/>
         <ClInclude Include="src\pch.h"/>

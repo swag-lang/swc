@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Parser/AstNodes.h"
+#include "Parser/AstNode.h"
 #include "Parser/Parser.h"
 #include "Report/Diagnostic.h"
 

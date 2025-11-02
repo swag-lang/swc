@@ -1,7 +1,7 @@
 #pragma once
 #include "Lexer/Token.h"
 #include "Parser/Ast.h"
-#include "ParserExpect.h"
+#include "Parser/ParserExpect.h"
 #include "Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -72,7 +72,8 @@ class Parser
     TokenRef expectAndConsume(const ParserExpect& expect);
     TokenRef expectAndSkip(const ParserExpect& expect);
     TokenRef expectAndConsumeClosing(TokenId openId, TokenRef openRef);
-    void     expectEndOfLine() const;
+    TokenRef expectAndSkipClosing(TokenId openId, TokenRef openRef);
+    void     expectEndStatement();
 
     TokenRef expect(TokenId id, DiagnosticId d) const { return expect(ParserExpect::one(id, d)); }
     TokenRef expectAndSkip(TokenId id, DiagnosticId d) { return expectAndSkip(ParserExpect::one(id, d)); }

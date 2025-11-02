@@ -6,15 +6,15 @@ SWC_BEGIN_NAMESPACE()
 AstNodeRef Parser::parseCompilerAssert()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerAssert>();
-    consume(TokenId::CompilerAssert);
+    nodePtr->tokRef         = consume(TokenId::CompilerAssert);
 
     const auto openRef = ref();
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenAfter);
+    expectAndSkip(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenAfter);
     nodePtr->nodeExpr = parseExpression();
     if (isInvalid(nodePtr->nodeExpr))
         skipTo({TokenId::SymRightParen}, SkipUntilFlags::EolBefore);
-    expectAndConsumeClosing(TokenId::SymLeftParen, openRef);
-    expectEndOfLine();
+    expectAndSkipClosing(TokenId::SymLeftParen, openRef);
+    expectEndStatement();
 
     return nodeRef;
 }

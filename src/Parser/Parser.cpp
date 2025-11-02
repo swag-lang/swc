@@ -154,10 +154,27 @@ TokenRef Parser::expectAndConsumeClosing(TokenId openId, TokenRef openRef)
     return expectAndConsume(expect);
 }
 
-void Parser::expectEndOfLine() const
+TokenRef Parser::expectAndSkipClosing(TokenId openId, TokenRef openRef)
 {
-    if (tok().startsLine() || is(TokenId::SymSemiColon) || is(TokenId::EndOfFile))
+    const auto& open      = file_->lexOut().token(openRef);
+    const auto  closingId = Token::toRelated(openId);
+    auto        expect    = ParserExpect::one(closingId, DiagnosticId::ParserExpectedClosingBefore);
+    if (open.id == openId)
+        expect.note(DiagnosticId::ParserCorresponding, openRef);
+    return expectAndSkip(expect);
+}
+
+void Parser::expectEndStatement()
+{
+    if (tok().startsLine() || is(TokenId::EndOfFile))
         return;
+
+    if (is(TokenId::SymSemiColon))
+    {
+        skip();
+        return;
+    }
+
     const auto diag = reportError(DiagnosticId::ParserExpectedEndOfLine, curToken_[-1]);
     auto       loc  = curToken_[-1].toLocation(*ctx_, *file_);
     loc.column += loc.len;

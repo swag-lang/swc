@@ -376,32 +376,20 @@ CommandLineParser::CommandLineParser(CommandLine& cmdLine, Global& global) :
     cmdLine_(&cmdLine),
     global_(&global)
 {
-    addArg("all", "--silent", nullptr, CommandLineType::Bool, &cmdLine_->silent, nullptr,
-           "Suppress all log output.");
-    addArg("all", "--stats", nullptr, CommandLineType::Bool, &cmdLine_->stats, nullptr,
-           "Display runtime statistics after execution.");
-    addArg("all", "--num-cores", nullptr, CommandLineType::Int, &cmdLine_->numCores, nullptr,
-           "Set the maximum number of CPU cores to use (0 = auto-detect).");
-    addArg("all", "--log-color", nullptr, CommandLineType::Bool, &cmdLine_->logColor, nullptr,
-           "Enable colored log output for better readability.");
-    addArg("all", "--log-ascii", nullptr, CommandLineType::Bool, &cmdLine_->logAscii, nullptr,
-           "Restrict console output to ASCII characters (disable Unicode).");
-    addArg("all", "--error-absolute", "-ea", CommandLineType::Bool, &cmdLine_->errorAbsolute, nullptr,
-           "Show absolute file paths in error messages.");
-    addArg("all", "--verify", "-v", CommandLineType::Bool, &cmdLine_->verify, nullptr,
-           "Verify special test annotations or comments.");
-    addArg("all", "--verbose-errors", "-ve", CommandLineType::Bool, &cmdLine_->verboseErrors, nullptr,
-           "Log raised errors during tests.");
-    addArg("all", "--verbose-errors-filter", "-vef", CommandLineType::String, &cmdLine_->verboseErrorsFilter, nullptr,
-           "Filter verbose error logs by matching a specific string.");
-    addArg("all", "--directory", "-d", CommandLineType::PathSet, &cmdLine_->directories, nullptr,
-           "Specify one or more directories to process recursively for input files.");
-    addArg("all", "--file", "-f", CommandLineType::PathSet, &cmdLine_->files, nullptr,
-           "Specify one or more individual files to process directly.");
-    addArg("all", "--file-filter", "-ff", CommandLineType::String, &cmdLine_->fileFilter, nullptr,
-           "Apply a substring filter to select specific files by name.");
-    addArg("all", "--devmode", nullptr, CommandLineType::Bool, &cmdLine_->dbgDevMode, nullptr,
-           "Open a message box in case of hardware exceptions");
+    addArg("all", "--silent", nullptr, CommandLineType::Bool, &cmdLine_->silent, nullptr, "Suppress all log output.");
+    addArg("all", "--stats", nullptr, CommandLineType::Bool, &cmdLine_->stats, nullptr, "Display runtime statistics after execution.");
+    addArg("all", "--num-cores", nullptr, CommandLineType::Int, &cmdLine_->numCores, nullptr, "Set the maximum number of CPU cores to use (0 = auto-detect).");
+    addArg("all", "--log-color", nullptr, CommandLineType::Bool, &cmdLine_->logColor, nullptr, "Enable colored log output for better readability.");
+    addArg("all", "--log-ascii", nullptr, CommandLineType::Bool, &cmdLine_->logAscii, nullptr, "Restrict console output to ASCII characters (disable Unicode).");
+    addArg("all", "--error-absolute", "-ea", CommandLineType::Bool, &cmdLine_->errorAbsolute, nullptr, "Show absolute file paths in error messages.");
+    addArg("all", "--error-id", "-eid", CommandLineType::Bool, &cmdLine_->errorId, nullptr, "Show error identifiers.");
+    addArg("all", "--verify", "-v", CommandLineType::Bool, &cmdLine_->verify, nullptr, "Verify special test annotations or comments.");
+    addArg("all", "--verbose-errors", "-ve", CommandLineType::Bool, &cmdLine_->verboseErrors, nullptr, "Log raised errors during tests.");
+    addArg("all", "--verbose-errors-filter", "-vef", CommandLineType::String, &cmdLine_->verboseErrorsFilter, nullptr, "Filter verbose error logs by matching a specific string.");
+    addArg("all", "--directory", "-d", CommandLineType::PathSet, &cmdLine_->directories, nullptr, "Specify one or more directories to process recursively for input files.");
+    addArg("all", "--file", "-f", CommandLineType::PathSet, &cmdLine_->files, nullptr, "Specify one or more individual files to process directly.");
+    addArg("all", "--file-filter", "-ff", CommandLineType::String, &cmdLine_->fileFilter, nullptr, "Apply a substring filter to select specific files by name.");
+    addArg("all", "--devmode", nullptr, CommandLineType::Bool, &cmdLine_->dbgDevMode, nullptr, "Open a message box in case of hardware exceptions");
 }
 
 SWC_END_NAMESPACE()

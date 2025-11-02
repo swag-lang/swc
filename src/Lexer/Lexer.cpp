@@ -1291,7 +1291,8 @@ Result Lexer::tokenize(Context& ctx, LexerFlags flags)
 
     // End marker
     token_.id         = TokenId::EndOfFile;
-    token_.byteLength = 0;
+    token_.byteStart  = static_cast<uint32_t>(file_->size());
+    token_.byteLength = 1;
     lexOut_->tokens_.push_back(token_);
 
 #if SWC_HAS_STATS

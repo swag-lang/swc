@@ -52,8 +52,8 @@ class DiagnosticBuilder
     void writeFileLocation(const std::string& path, uint32_t line, uint32_t col, uint32_t len);
     void writeGutter(uint32_t gutter);
     void writeCodeLine(uint32_t lineNo, std::string_view code);
-    void writeLabelMsg(DiagnosticSeverity sev, std::string_view msg);
-    void writeCodeUnderline(DiagnosticSeverity sev, const Utf8& msg, uint32_t columnOneBased, uint32_t underlineLen);
+    void writeLabelMsg(DiagnosticSeverity sev, DiagnosticId id, std::string_view msg);
+    void writeCodeUnderline(DiagnosticSeverity sev, DiagnosticId id, const Utf8& msg, uint32_t columnOneBased, uint32_t underlineLen);
     void writeCodeBlock(const DiagnosticElement& el, bool writeMsg);
 
     Utf8 message(const DiagnosticElement& el) const;

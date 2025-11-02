@@ -329,10 +329,12 @@ void DiagnosticBuilder::writeCodeLine(uint32_t lineNo, std::string_view code)
     out_ += "\n";
 }
 
-void DiagnosticBuilder::writeLabelMsg(DiagnosticSeverity sev, std::string_view msg)
+void DiagnosticBuilder::writeLabelMsg(DiagnosticSeverity sev, DiagnosticId id, std::string_view msg)
 {
     out_ += partStyle(DiagPart::LabelMsgPrefix, sev);
     out_ += severityStr(sev);
+    if (ctx_->cmdLine().errorId)
+        out_ += std::format("[{}]", Diagnostic::diagIdName(id));
     out_ += ": ";
     out_ += partStyle(DiagPart::Reset);
 
@@ -342,7 +344,7 @@ void DiagnosticBuilder::writeLabelMsg(DiagnosticSeverity sev, std::string_view m
     out_ += "\n";
 }
 
-void DiagnosticBuilder::writeCodeUnderline(DiagnosticSeverity sev, const Utf8& msg, uint32_t columnOneBased, uint32_t underlineLen)
+void DiagnosticBuilder::writeCodeUnderline(DiagnosticSeverity sev, DiagnosticId id, const Utf8& msg, uint32_t columnOneBased, uint32_t underlineLen)
 {
     writeGutter(gutterW_);
 
@@ -360,7 +362,7 @@ void DiagnosticBuilder::writeCodeUnderline(DiagnosticSeverity sev, const Utf8& m
     if (!msg.empty())
     {
         out_ += " ";
-        writeLabelMsg(sev, msg);
+        writeLabelMsg(sev, id, msg);
     }
     else
         out_ += "\n";
@@ -416,7 +418,7 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el, bool writeMs
     // underline the entire span with carets
     const std::string_view tokenView     = el.location(*ctx_).file->codeView(el.location(*ctx_).offset, el.location(*ctx_).len);
     const uint32_t         tokenLenChars = Utf8Helper::countChars(tokenView);
-    writeCodeUnderline(el.severity(), writeMsg ? message(el) : "", loc.column, tokenLenChars);
+    writeCodeUnderline(el.severity(), el.id(), writeMsg ? message(el) : "", loc.column, tokenLenChars);
 
     // writeGutterSep(out, ctx, gutterW);
 
@@ -503,7 +505,7 @@ Utf8 DiagnosticBuilder::build()
     const auto  pMsg    = message(*primary);
 
     // Render primary element body (location/code) if any
-    writeLabelMsg(primary->severity(), pMsg);
+    writeLabelMsg(primary->severity(), primary->id(), pMsg);
     if (primary->hasCodeLocation())
         writeCodeBlock(*primary, false);
 
@@ -516,7 +518,7 @@ Utf8 DiagnosticBuilder::build()
         else
         {
             out_.append(gutterW_, ' ');
-            writeLabelMsg(el->severity(), message(*el));
+            writeLabelMsg(el->severity(), el->id(), message(*el));
         }
     }
 

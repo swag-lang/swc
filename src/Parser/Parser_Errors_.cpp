@@ -43,21 +43,15 @@ Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef) const
 
 Diagnostic Parser::reportExpected(const ParserExpect& expect) const
 {
-    // Expected one single token
     SWC_ASSERT(expect.tokId != TokenId::Invalid);
 
-    const auto expectedTknId = expect.tokId;
-
-    auto diagId = expect.diag;
-    if (expectedTknId == TokenId::Identifier && diagId == DiagnosticId::ParserExpectedToken)
-        diagId = DiagnosticId::ParserExpectedTokenFam;
-
-    auto diag = reportError(diagId, tok());
+    auto diag = reportError(expect.diag, tok());
     setReportArguments(diag, tok());
-    setReportExpected(diag, expectedTknId);
+    setReportExpected(diag, expect.tokId);
     diag.addArgument(Diagnostic::ARG_BECAUSE, Diagnostic::diagIdMessage(expect.becauseCtx), false);
 
-    if (expectedTknId == TokenId::Identifier && tok().isReservedWord())
+    // Additional notes
+    if (expect.tokId == TokenId::Identifier && tok().isReservedWord())
         diag.addElement(DiagnosticId::ParserReservedAsIdentifier);
 
     if (expect.noteId != DiagnosticId::None)

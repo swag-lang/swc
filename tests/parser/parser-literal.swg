@@ -9,6 +9,7 @@ enum A { B = 1'u64, }
 enum A { B = 1'f32, }
 enum A { B = 1'f64, }
 enum A { B = 1'T, }
+enum A { B = 1'TTT_TTT, }
 enum A { B = 1'bool, }
 
 enum A { B = 1' }

@@ -27,7 +27,7 @@ AstNodeRef Parser::parseExpression()
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Invalid>();
         consume();
-        skipTo({TokenId::SymRightBracket}, SkipUntilFlags::Consume);
+        skipAfter({TokenId::SymRightBracket});
         return nodeRef;
     }
 

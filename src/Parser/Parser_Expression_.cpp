@@ -14,23 +14,29 @@ AstNodeRef Parser::parseLiteral()
     case TokenId::NumberHexadecimal:
         literal = ast_->makeNode<AstNodeLiteral>(AstNodeId::IntegerLiteral);
         break;
+
     case TokenId::NumberFloat:
         literal = ast_->makeNode<AstNodeLiteral>(AstNodeId::FloatLiteral);
         break;
+
     case TokenId::StringLine:
     case TokenId::StringRaw:
         literal = ast_->makeNode<AstNodeLiteral>(AstNodeId::StringLiteral);
         break;
+
     case TokenId::Character:
         literal = ast_->makeNode<AstNodeLiteral>(AstNodeId::CharacterLiteral);
         break;
+
     case TokenId::KwdTrue:
     case TokenId::KwdFalse:
         literal = ast_->makeNode<AstNodeLiteral>(AstNodeId::BoolLiteral);
         break;
+
     case TokenId::KwdNull:
         literal = ast_->makeNode<AstNodeLiteral>(AstNodeId::NullLiteral);
         break;
+
     case TokenId::CompilerFile:
     case TokenId::CompilerModule:
     case TokenId::CompilerLine:
@@ -47,6 +53,7 @@ AstNodeRef Parser::parseLiteral()
     case TokenId::CompilerBackend:
         literal = ast_->makeNode<AstNodeLiteral>(AstNodeId::CompilerLiteral);
         break;
+
     default:
         (void) reportError(DiagnosticId::ParserExpectedTokenFam, tok());
         return INVALID_REF;
@@ -146,6 +153,9 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::SymLeftParen:
         return parseParenExpression();
 
+    case TokenId::SymLeftBracket:
+        return parseLiteralArray();
+
     default:
         (void) reportError(DiagnosticId::ParserUnexpectedToken, tok());
         return INVALID_REF;
@@ -234,14 +244,12 @@ AstNodeRef Parser::parseExpression()
 AstNodeRef Parser::parseParenExpression()
 {
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ParenExpression>();
-
-    const auto openRef = ref();
+    const auto openRef            = ref();
     consume(TokenId::SymLeftParen);
     nodePtr->nodeExpr = parseExpression();
     if (isInvalid(nodePtr->nodeExpr))
         skipTo({TokenId::SymRightParen}, SkipUntilFlags::EolBefore);
     expectAndConsumeClosing(TokenId::SymLeftParen, openRef);
-
     return nodeRef;
 }
 
@@ -250,6 +258,11 @@ AstNodeRef Parser::parseIdentifier()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>();
     nodePtr->tknName        = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFam);
     return nodeRef;
+}
+
+AstNodeRef Parser::parseLiteralArray()
+{
+    return parseBlock(AstNodeId::ArrayLiteral, TokenId::SymLeftBracket);
 }
 
 SWC_END_NAMESPACE()

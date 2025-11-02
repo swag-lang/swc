@@ -23,36 +23,53 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
         EnsureConsume ec(*this);
         AstNodeRef    childrenRef = INVALID_REF;
 
-        switch (id())
+        // Compiler instructions
+        if (blockNodeId == AstNodeId::File ||
+            blockNodeId == AstNodeId::TopLevelBlock ||
+            blockNodeId == AstNodeId::EnumBlock)
         {
-        case TokenId::CompilerAssert:
-            childrenRef = parseCallerSingleArg(AstNodeId::CompilerAssert);
-            break;
-        case TokenId::CompilerError:
-            childrenRef = parseCallerSingleArg(AstNodeId::CompilerError);
-            break;
-        case TokenId::CompilerWarning:
-            childrenRef = parseCallerSingleArg(AstNodeId::CompilerWarning);
-            break;
-        case TokenId::CompilerPrint:
-            childrenRef = parseCallerSingleArg(AstNodeId::CompilerPrint);
-            break;
-        default:
-            break;
+            switch (id())
+            {
+            case TokenId::CompilerAssert:
+                childrenRef = parseCallerSingleArg(AstNodeId::CompilerAssert);
+                break;
+            case TokenId::CompilerError:
+                childrenRef = parseCallerSingleArg(AstNodeId::CompilerError);
+                break;
+            case TokenId::CompilerWarning:
+                childrenRef = parseCallerSingleArg(AstNodeId::CompilerWarning);
+                break;
+            case TokenId::CompilerPrint:
+                childrenRef = parseCallerSingleArg(AstNodeId::CompilerPrint);
+                break;
+            default:
+                break;
+            }
         }
 
         if (isValid(childrenRef))
             childrenRefs.push_back(childrenRef);
 
+        // One block element
         switch (blockNodeId)
         {
         case AstNodeId::File:
         case AstNodeId::TopLevelBlock:
-            childrenRef = parseTopLevelInstruction();
+            childrenRef = parseTopLevelStmt();
             break;
 
         case AstNodeId::EnumBlock:
             childrenRef = parseEnumValue();
+            break;
+
+        case AstNodeId::ArrayLiteral:
+            childrenRef = parseExpression();
+            if (!consumeIfAny(TokenId::SymComma) && !is(TokenId::SymRightBracket))
+            {
+                auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, tok());
+                setReportExpected(diag, TokenId::SymComma);
+                skipTo({TokenId::SymComma, TokenId::SymRightBracket});
+            }
             break;
 
         default:
@@ -68,11 +85,11 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
     if (!consumeIf(tokenEndId) && tokenEndId != TokenId::Invalid)
     {
         auto diag = reportError(DiagnosticId::ParserExpectedClosing, openTok);
-        diag.addArgument(Diagnostic::ARG_EXPECT, Token::toName(Token::toRelated(openTok.id)));
+        setReportExpected(diag, Token::toRelated(openTok.id));
     }
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeBlock>(blockNodeId);
-    nodePtr->nodeChildren   = ast_->store_.push_span(std::span(childrenRefs.data(), childrenRefs.size()));
+    nodePtr->spanChildren   = ast_->store_.push_span(std::span(childrenRefs.data(), childrenRefs.size()));
     return nodeRef;
 }
 
@@ -88,7 +105,7 @@ AstNodeRef Parser::parseImpl()
     return INVALID_REF;
 }
 
-AstNodeRef Parser::parseTopLevelInstruction()
+AstNodeRef Parser::parseTopLevelStmt()
 {
     switch (id())
     {

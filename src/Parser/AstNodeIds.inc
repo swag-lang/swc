@@ -39,5 +39,6 @@ SWC_NODE_ID_DEF(StringLiteral)
 SWC_NODE_ID_DEF(BoolLiteral)
 SWC_NODE_ID_DEF(NullLiteral)
 SWC_NODE_ID_DEF(CompilerLiteral)
+SWC_NODE_ID_DEF(ArrayLiteral)
 
 

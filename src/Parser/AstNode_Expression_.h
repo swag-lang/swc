@@ -146,3 +146,12 @@ struct AstNodeQuotedLiteral : AstNode
     AstNodeRef nodeLiteral;
     AstNodeRef nodeQuote;
 };
+
+struct AstNodeArrayLiteral : AstNodeBlock
+{
+    static constexpr auto ID = AstNodeId::ArrayLiteral;
+    AstNodeArrayLiteral() :
+        AstNodeBlock(ID)
+    {
+    }
+};

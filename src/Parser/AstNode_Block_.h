@@ -8,7 +8,7 @@ struct AstNodeBlock : AstNode
     {
     }
 
-    Ref nodeChildren;
+    Ref spanChildren;
 };
 
 struct AstNodeFile : AstNodeBlock

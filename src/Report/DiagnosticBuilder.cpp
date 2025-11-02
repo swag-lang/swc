@@ -235,9 +235,11 @@ void DiagnosticBuilder::writeHighlightedMessage(DiagnosticSeverity sev, std::str
                 out_ += ch;
             }
         }
+
+        // Inside quotes
         else
         {
-            // Inside quotes: watch for escaped '\'' and closing '\''
+            // Watch for escaped '\'' and closing '\''
             if (ch == '\\')
             {
                 // Lookahead for escaped quote
@@ -251,6 +253,10 @@ void DiagnosticBuilder::writeHighlightedMessage(DiagnosticSeverity sev, std::str
                     // Preserve other escapes/backslashes verbatim inside the content
                     quotedBuf += '\\';
                 }
+            }
+            else if (ch == '\'' && quotedBuf.back() == '\'' && quotedBuf.size() == 1)
+            {
+                quotedBuf += ch;
             }
             else if (ch == '\'')
             {

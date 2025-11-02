@@ -72,7 +72,8 @@ AstNodeRef Parser::parseLiteralExpression()
     {
     case TokenId::Identifier:
         nodePtr->nodeQuote = parseIdentifier();
-        break;
+        return nodeRef;
+        
     case TokenId::TypeF32:
     case TokenId::TypeF64:
     case TokenId::TypeS8:
@@ -84,14 +85,12 @@ AstNodeRef Parser::parseLiteralExpression()
     case TokenId::TypeU32:
     case TokenId::TypeU64:
     case TokenId::TypeRune:
+    case TokenId::TypeBool:
         nodePtr->nodeQuote = parseType();
-        break;
-
-    default:
-        (void) reportError(DiagnosticId::ParserInvalidLiteralSuffix, tok());
-        break;
+        return nodeRef;
     }
 
+    (void) reportError(DiagnosticId::ParserInvalidLiteralSuffix, tok());
     return nodeRef;
 }
 

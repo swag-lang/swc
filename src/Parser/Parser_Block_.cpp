@@ -12,7 +12,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
 
     if (tokenStartId != TokenId::Invalid)
     {
-        const auto tokenOpenRef = expectAndSkip(tokenStartId, DiagnosticId::ParserExpectedTokenAfter);
+        const auto tokenOpenRef = expectAndConsume(tokenStartId, DiagnosticId::ParserExpectedTokenAfter);
         if (isInvalid(tokenOpenRef))
             return INVALID_REF;
     }
@@ -65,9 +65,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
     }
 
     // Consume end token if necessary
-    if (is(tokenEndId))
-        skip();
-    else if (tokenEndId != TokenId::Invalid)
+    if (!consumeIf(tokenEndId) && tokenEndId != TokenId::Invalid)
     {
         auto diag = reportError(DiagnosticId::ParserExpectedClosing, openTok);
         diag.addArgument(Diagnostic::ARG_EXPECT, Token::toName(Token::toRelated(openTok.id)));
@@ -101,7 +99,7 @@ AstNodeRef Parser::parseTopLevelInstruction()
         return INVALID_REF;
 
     case TokenId::SymSemiColon:
-        skip();
+        consume();
         return INVALID_REF;
 
     case TokenId::KwdEnum:

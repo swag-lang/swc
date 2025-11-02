@@ -11,11 +11,11 @@ AstNodeRef Parser::parseCallerSingleArg(AstNodeId callerNodeId)
     nodePtr->tokRef         = consume();
 
     const auto openRef = ref();
-    expectAndSkip(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenAfter);
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenAfter);
     nodePtr->nodeExpr = parseExpression();
     if (isInvalid(nodePtr->nodeExpr))
         skipTo({TokenId::SymRightParen}, SkipUntilFlags::EolBefore);
-    expectAndSkipClosing(TokenId::SymLeftParen, openRef);
+    expectAndConsumeClosing(TokenId::SymLeftParen, openRef);
     expectEndStatement();
 
     return INVALID_REF;

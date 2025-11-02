@@ -90,6 +90,28 @@ TokenRef Parser::consume()
     if (atEnd())
         return INVALID_REF;
     const auto result = ref();
+    switch (id())
+    {
+    case TokenId::SymLeftParen:
+        depthParen_++;
+        break;
+    case TokenId::SymRightParen:
+        depthParen_--;
+        break;
+    case TokenId::SymLeftBracket:
+        depthBracket_++;
+        break;
+    case TokenId::SymRightBracket:
+        depthBracket_--;
+        break;
+    case TokenId::SymLeftCurly:
+        depthCurly_++;
+        break;
+    case TokenId::SymRightCurly:
+        depthCurly_--;
+        break;
+    }
+
     curToken_++;
     return result;
 }
@@ -105,19 +127,8 @@ bool Parser::consumeIf(TokenId id, TokenRef* result)
 
     if (result)
         *result = ref();
-    skip();
+    consume();
     return true;
-}
-
-TokenRef Parser::skip(TokenId id)
-{
-    SWC_ASSERT(is(id));
-    return skip();
-}
-
-TokenRef Parser::skip()
-{
-    return consume();
 }
 
 TokenRef Parser::expect(const ParserExpect& expect) const
@@ -136,14 +147,6 @@ TokenRef Parser::expectAndConsume(const ParserExpect& expect)
     return INVALID_REF;
 }
 
-TokenRef Parser::expectAndSkip(const ParserExpect& expect)
-{
-    if (expect.valid(tok().id))
-        return skip();
-    (void) reportExpected(expect);
-    return INVALID_REF;
-}
-
 TokenRef Parser::expectAndConsumeClosing(TokenId openId, TokenRef openRef)
 {
     const auto& open      = file_->lexOut().token(openRef);
@@ -154,26 +157,12 @@ TokenRef Parser::expectAndConsumeClosing(TokenId openId, TokenRef openRef)
     return expectAndConsume(expect);
 }
 
-TokenRef Parser::expectAndSkipClosing(TokenId openId, TokenRef openRef)
-{
-    const auto& open      = file_->lexOut().token(openRef);
-    const auto  closingId = Token::toRelated(openId);
-    auto        expect    = ParserExpect::one(closingId, DiagnosticId::ParserExpectedClosingBefore);
-    if (open.id == openId)
-        expect.note(DiagnosticId::ParserCorresponding, openRef);
-    return expectAndSkip(expect);
-}
-
 void Parser::expectEndStatement()
 {
     if (tok().startsLine() || is(TokenId::EndOfFile))
         return;
-
-    if (is(TokenId::SymSemiColon))
-    {
-        skip();
+    if (consumeIf(TokenId::SymSemiColon))
         return;
-    }
 
     const auto diag = reportError(DiagnosticId::ParserExpectedEndOfLine, curToken_[-1]);
     auto       loc  = curToken_[-1].toLocation(*ctx_, *file_);

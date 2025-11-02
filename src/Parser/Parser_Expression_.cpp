@@ -62,6 +62,7 @@ AstNodeRef Parser::parseLiteralExpression()
     if (isInvalid(literal))
         return INVALID_REF;
 
+    const auto quoteTknRef = ref();
     if (!consumeIf(TokenId::SymQuote))
         return literal;
 
@@ -73,7 +74,7 @@ AstNodeRef Parser::parseLiteralExpression()
     case TokenId::Identifier:
         nodePtr->nodeQuote = parseIdentifier();
         return nodeRef;
-        
+
     case TokenId::TypeF32:
     case TokenId::TypeF64:
     case TokenId::TypeS8:
@@ -88,9 +89,19 @@ AstNodeRef Parser::parseLiteralExpression()
     case TokenId::TypeBool:
         nodePtr->nodeQuote = parseType();
         return nodeRef;
+
+    case TokenId::TypeAny:
+    case TokenId::TypeCString:
+    case TokenId::TypeCVarArgs:
+    case TokenId::TypeString:
+    case TokenId::TypeTypeInfo:
+    case TokenId::TypeVoid:
+        (void) reportError(DiagnosticId::ParserInvalidLiteralSuffix, tok());
+        consume();
+        return nodeRef;
     }
 
-    (void) reportError(DiagnosticId::ParserInvalidLiteralSuffix, tok());
+    (void) reportError(DiagnosticId::ParserEmptyLiteralSuffix, quoteTknRef);
     return nodeRef;
 }
 

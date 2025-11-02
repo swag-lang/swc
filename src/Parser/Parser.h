@@ -28,12 +28,15 @@ public:
 
 class Parser
 {
-    Context*     ctx_        = nullptr;
-    SourceFile*  file_       = nullptr;
-    Ast*         ast_        = nullptr;
-    const Token* firstToken_ = nullptr;
-    const Token* curToken_   = nullptr;
-    const Token* lastToken_  = nullptr;
+    Context*     ctx_          = nullptr;
+    SourceFile*  file_         = nullptr;
+    Ast*         ast_          = nullptr;
+    const Token* firstToken_   = nullptr;
+    const Token* curToken_     = nullptr;
+    const Token* lastToken_    = nullptr;
+    uint32_t     depthParen_   = 0;
+    uint32_t     depthBracket_ = 0;
+    uint32_t     depthCurly_   = 0;
 
     // Be sure that we consume something
     class EnsureConsume
@@ -57,8 +60,6 @@ class Parser
     TokenRef consume(TokenId id);
     TokenRef consume();
     bool     consumeIf(TokenId id, TokenRef* result = nullptr);
-    TokenRef skip(TokenId id);
-    TokenRef skip();
 
     template<typename... TokenIds>
     bool consumeIfAny(TokenIds... ids)
@@ -70,13 +71,10 @@ class Parser
 
     TokenRef expect(const ParserExpect& expect) const;
     TokenRef expectAndConsume(const ParserExpect& expect);
-    TokenRef expectAndSkip(const ParserExpect& expect);
     TokenRef expectAndConsumeClosing(TokenId openId, TokenRef openRef);
-    TokenRef expectAndSkipClosing(TokenId openId, TokenRef openRef);
     void     expectEndStatement();
 
     TokenRef expect(TokenId id, DiagnosticId d) const { return expect(ParserExpect::one(id, d)); }
-    TokenRef expectAndSkip(TokenId id, DiagnosticId d) { return expectAndSkip(ParserExpect::one(id, d)); }
     TokenRef expectAndConsume(TokenId id, DiagnosticId d) { return expectAndConsume(ParserExpect::one(id, d)); }
     TokenRef expectAndConsumeOneOf(std::initializer_list<TokenId> set, DiagnosticId d) { return expectAndConsume(ParserExpect::oneOf(set, d)); }
 
@@ -119,10 +117,11 @@ class Parser
     bool skipAfter(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlags::Zero);
     bool skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags);
 
-    void       setReportArguments(Diagnostic& diag, const Token& token) const;
-    void       setReportExpected(Diagnostic& diag, TokenId expectedTknId) const;
-    Diagnostic reportError(DiagnosticId id, const Token& token) const;
-    Diagnostic reportExpected(const ParserExpect& expect) const;
+    void        setReportArguments(Diagnostic& diag, const Token& token) const;
+    static void setReportExpected(Diagnostic& diag, TokenId expectedTknId);
+    Diagnostic  reportError(DiagnosticId id, const Token& tkn) const;
+    Diagnostic  reportError(DiagnosticId id, TokenRef tknRef) const;
+    Diagnostic  reportExpected(const ParserExpect& expect) const;
 
 public:
     Result parse(Context& ctx);

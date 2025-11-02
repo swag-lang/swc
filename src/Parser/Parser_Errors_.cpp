@@ -17,16 +17,25 @@ void Parser::setReportArguments(Diagnostic& diag, const Token& token) const
         diag.addArgument(Diagnostic::ARG_AFTER, curToken_[-1].toString(*file_));
 }
 
-void Parser::setReportExpected(Diagnostic& diag, TokenId expectedTknId) const
+void Parser::setReportExpected(Diagnostic& diag, TokenId expectedTknId)
 {
     diag.addArgument(Diagnostic::ARG_EXPECT, Token::toName(expectedTknId));
     diag.addArgument(Diagnostic::ARG_EXPECT_FAM, Token::toFamily(expectedTknId), false);
     diag.addArgument(Diagnostic::ARG_A_EXPECT_FAM, Token::toAFamily(expectedTknId), false);
 }
 
-Diagnostic Parser::reportError(DiagnosticId id, const Token& token) const
+Diagnostic Parser::reportError(DiagnosticId id, const Token& tkn) const
 {
     auto diag = Diagnostic::raise(*ctx_, id, file_);
+    setReportArguments(diag, tkn);
+    diag.last().setLocation(tkn.toLocation(*ctx_, *file_));
+    return diag;
+}
+
+Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef) const
+{
+    auto       diag  = Diagnostic::raise(*ctx_, id, file_);
+    const auto token = file_->lexOut().token(tknRef);
     setReportArguments(diag, token);
     diag.last().setLocation(token.toLocation(*ctx_, *file_));
     return diag;

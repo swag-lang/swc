@@ -11,6 +11,8 @@ AstNodeRef Parser::parseCompilerAssert()
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenAfter);
     nodePtr->nodeExpr = parseExpression();
+    if (isInvalid(nodePtr->nodeExpr))
+        skipTo({TokenId::SymRightParen}, SkipUntilFlags::EolBefore);
     expectAndConsumeClosing(TokenId::SymLeftParen, openRef);
     expectEndOfLine();
 

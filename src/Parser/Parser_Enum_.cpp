@@ -55,7 +55,6 @@ AstNodeRef Parser::parseEnumValue()
 
     auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, tok());
     setReportExpected(diag, TokenId::SymComma);
-    diag.addArgument(Diagnostic::ARG_BECAUSE, DiagnosticId::BecauseEnumValues, false);
 
     skipTo(ENUM_VALUE_SYNC, SkipUntilFlags::EolBefore);
     return result;

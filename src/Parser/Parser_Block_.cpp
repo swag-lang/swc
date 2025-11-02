@@ -35,7 +35,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
             childrenRef = parseCallerSingleArg(AstNodeId::CompilerWarning);
             break;
         case TokenId::CompilerPrint:
-            childrenRef = parseCallerSingleArg(AstNodeId::CompilerWarning);
+            childrenRef = parseCallerSingleArg(AstNodeId::CompilerPrint);
             break;
         default:
             break;

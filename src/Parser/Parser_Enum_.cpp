@@ -41,8 +41,7 @@ AstNodeRef Parser::parseEnumValue()
     }
 
     default:
-        auto diag = reportError(DiagnosticId::ParserExpectedTokenFam, tok());
-        diag.addArgument(Diagnostic::ARG_EXPECT, TokenId::Identifier);
+        (void) reportError(DiagnosticId::ParserUnexpectedToken, tok());
         break;
     }
 
@@ -55,7 +54,7 @@ AstNodeRef Parser::parseEnumValue()
         return result;
 
     auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, tok());
-    diag.addArgument(Diagnostic::ARG_EXPECT, TokenId::SymComma);
+    setReportExpected(diag, TokenId::SymComma);
     diag.addArgument(Diagnostic::ARG_BECAUSE, DiagnosticId::BecauseEnumValues, false);
 
     skipTo(ENUM_VALUE_SYNC, SkipUntilFlags::EolBefore);

@@ -5,7 +5,15 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseCompilerAssert()
 {
-    return INVALID_REF;
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerAssert>();
+    consume(TokenId::CompilerAssert);
+
+    const auto openRef = ref();
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenFam);
+    nodePtr->nodeExpr = parseExpression();
+    expectAndConsumeClosing(openRef);
+
+    return nodeRef;
 }
 
 SWC_END_NAMESPACE()

@@ -58,6 +58,11 @@ std::string_view DiagnosticElement::idName() const
     return Diagnostic::diagIdName(id_);
 }
 
+bool DiagnosticElement::isNoteOrHelp() const
+{
+    return severity_ == DiagnosticSeverity::Note || severity_ == DiagnosticSeverity::Help;
+}
+
 // Format a string by replacing registered arguments
 Utf8 DiagnosticElement::message() const
 {

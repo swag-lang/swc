@@ -38,6 +38,7 @@ public:
     DiagnosticId       id() const { return id_; }
     DiagnosticSeverity severity() const { return severity_; }
     bool               hasCodeLocation() const { return file_ != nullptr && len_ > 0; }
+    bool               isNoteOrHelp() const;
 };
 
 SWC_END_NAMESPACE()

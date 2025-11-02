@@ -333,11 +333,15 @@ void DiagnosticBuilder::writeLabelMsg(const DiagnosticElement& el)
 {
     out_ += partStyle(DiagPart::LabelMsgPrefix, el.severity());
     out_ += severityStr(el.severity());
-    if (ctx_->cmdLine().errorId)
+
+    // Error/Warning id
+    if (ctx_->cmdLine().errorId && !el.isNoteOrHelp())
         out_ += std::format("[{}]", Diagnostic::diagIdName(el.id()));
+
     out_ += ": ";
     out_ += partStyle(DiagPart::Reset);
 
+    // Message
     out_ += partStyle(DiagPart::LabelMsgText, el.severity());
     writeHighlightedMessage(el.severity(), message(el), partStyle(DiagPart::LabelMsgText, el.severity()));
     out_ += partStyle(DiagPart::Reset);
@@ -347,31 +351,26 @@ void DiagnosticBuilder::writeLabelMsg(const DiagnosticElement& el)
 void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, uint32_t columnOneBased, uint32_t underlineLen)
 {
     writeGutter(gutterW_);
-
-    // Underline
     out_ += partStyle(DiagPart::Severity, el.severity());
+
+    // Add leading spaces
     const uint32_t col = std::max<uint32_t>(1, columnOneBased);
     for (uint32_t i = 1; i < col; ++i)
         out_ += ' ';
 
-    const uint32_t len = underlineLen == 0 ? 1u : underlineLen;
+    // Add underline characters
+    const uint32_t len = underlineLen == 0 ? 1 : underlineLen;
     for (uint32_t i = 0; i < len; ++i)
         out_.append(LogSymbolHelper::toString(*ctx_, LogSymbol::Underline));
 
     // Message
-    if (el.severity() == DiagnosticSeverity::Note || el.severity() == DiagnosticSeverity::Help)
+    if (el.isNoteOrHelp() && !el.message().empty())
     {
-        const auto msg = message(el);
-        if (!msg.empty())
-        {
-            out_ += " ";
-            writeLabelMsg(el);
-        }
-        else
-            out_ += "\n";
+        out_ += " ";
+        writeLabelMsg(el);
     }
     else
-        out_ += "\n";    
+        out_ += "\n";
 }
 
 // Helper function to convert variant argument to string

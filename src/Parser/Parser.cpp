@@ -151,6 +151,13 @@ TokenRef Parser::expectAndConsumeClosing(TokenRef openRef)
     return expectAndConsume(ParserExpect::one(closingId, DiagnosticId::ParserExpectedClosingBefore).note(DiagnosticId::ParserCorresponding, openRef));
 }
 
+void Parser::expectEndOfLine()
+{
+    if (tok().startsLine() || is(TokenId::SymSemiColon) || is(TokenId::EndOfFile))
+        return;
+    (void) reportError(DiagnosticId::ParserExpectedEndOfLine, tok());
+}
+
 Result Parser::parse(Context& ctx)
 {
 #if SWC_HAS_STATS

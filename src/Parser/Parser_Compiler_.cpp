@@ -12,7 +12,7 @@ AstNodeRef Parser::parseCompilerAssert()
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenFam);
     nodePtr->nodeExpr = parseExpression();
     expectAndConsumeClosing(openRef);
-
+    expectEndOfLine();
     return nodeRef;
 }
 

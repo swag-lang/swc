@@ -45,4 +45,5 @@ SWC_DIAG_DEF(ParserExpectedClosing, Error, "expected closing {expect-tok} {becau
 SWC_DIAG_DEF(ParserExpectedClosingBefore, Error, "expected closing {expect-tok} {because} before {tok-fam} {tok}")
 SWC_DIAG_DEF(ParserInvalidType, Error, "invalid type declaration {tok}")
 SWC_DIAG_DEF(ParserExpectedArrayDim, Error, "expected array dimension or specifier")
+SWC_DIAG_DEF(ParserExpectedEndOfLine, Error, "expected a line break of ';' to end the statement")
 

@@ -46,7 +46,7 @@ Diagnostic Parser::reportExpected(const ParserExpect& expect) const
         auto diag = reportError(diagId, tok());
         setReportArguments(diag, tok());
 
-        if (!isInvalid(expect.locToken))
+        if (isValid(expect.locToken))
         {
             const auto tknLoc = file_->lexOut().token(expect.locToken);
             diag.last().setLocation(tknLoc.toLocation(*ctx_, *file_));

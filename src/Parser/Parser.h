@@ -72,6 +72,7 @@ class Parser
     TokenRef expectAndConsume(const ParserExpect& expect);
     TokenRef expectAndSkip(const ParserExpect& expect);
     TokenRef expectAndConsumeClosing(TokenRef openRef);
+    void     expectEndOfLine();
 
     TokenRef expect(TokenId id, DiagnosticId d) const { return expect(ParserExpect::one(id, d)); }
     TokenRef expectAndSkip(TokenId id, DiagnosticId d) { return expectAndSkip(ParserExpect::one(id, d)); }
@@ -86,6 +87,7 @@ class Parser
     bool         nextIs(TokenId id0) const { return atEnd() ? false : curToken_[1].id == id0; }
     bool         isNot(TokenId nid) const { return curToken_->id != nid; }
     bool         atEnd() const { return curToken_ >= lastToken_; }
+    static bool  isValid(TokenRef ref) { return ref != INVALID_REF; }
     static bool  isInvalid(TokenRef ref) { return ref == INVALID_REF; }
 
     template<typename... TokenIds>

@@ -21,8 +21,19 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
     while (!atEnd() && isNot(tokenEndId))
     {
         EnsureConsume ec(*this);
+        AstNodeRef    childrenRef;
 
-        AstNodeRef childrenRef;
+        switch (id())
+        {
+        case TokenId::CompilerAssert:
+            childrenRef = parseCompilerAssert();
+            if (isValid(childrenRef))
+                childrenRefs.push_back(childrenRef);
+            break;
+        default:
+            break;
+        }
+
         switch (blockNodeId)
         {
         case AstNodeId::File:
@@ -39,10 +50,10 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
         }
 
         // Be sure instruction has not failed
-        if (!isInvalid(childrenRef))
+        if (isValid(childrenRef))
             childrenRefs.push_back(childrenRef);
     }
-   
+
     // Consume end token if necessary
     if (is(tokenEndId))
         skip();
@@ -53,7 +64,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
     }
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeBlock>(blockNodeId);
-    nodePtr->nodeChildren = ast_->store_.push_span(std::span(childrenRefs.data(), childrenRefs.size()));
+    nodePtr->nodeChildren   = ast_->store_.push_span(std::span(childrenRefs.data(), childrenRefs.size()));
     return nodeRef;
 }
 

@@ -9,3 +9,7 @@ enum A
 // swc-expected-error@+ {{ParserExpectedClosing}}
 #assert(A)
 #assert(A) #assert(A) // swc-expected-error {{ParserExpectedEndOfLine}}
+
+#error(B)
+#warning(B)
+#print(C)

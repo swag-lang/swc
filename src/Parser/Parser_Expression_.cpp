@@ -106,7 +106,7 @@ AstNodeRef Parser::parseLiteralExpression()
     }
 }
 
-AstNodeRef Parser::parseSinglePrimaryExpression()
+AstNodeRef Parser::parsePrimaryExpression()
 {
     switch (id())
     {
@@ -151,7 +151,7 @@ AstNodeRef Parser::parseSinglePrimaryExpression()
 
 AstNodeRef Parser::parseExpression()
 {
-    return parseSinglePrimaryExpression();
+    return parsePrimaryExpression();
 }
 
 AstNodeRef Parser::parseIdentifier()

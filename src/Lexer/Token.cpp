@@ -8,9 +8,6 @@ SWC_BEGIN_NAMESPACE()
 
 std::string_view Token::toString(const SourceFile& file) const
 {
-    if (id == TokenId::EndOfFile)
-        return "end of file";
-
     auto start = reinterpret_cast<const char*>(file.content().data());
 
     // In the case of an identifier, 'byteStart' is the index in the file identifier table.

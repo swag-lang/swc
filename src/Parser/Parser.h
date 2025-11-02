@@ -105,7 +105,11 @@ class Parser
     AstNodeRef parseLiteral();
     AstNodeRef parseLiteralExpression();
     AstNodeRef parsePrimaryExpression();
+    AstNodeRef parseFactorExpression();
+    AstNodeRef parseCompareExpression();
+    AstNodeRef parseBoolExpression();
     AstNodeRef parseExpression();
+    AstNodeRef parseParenExpression();
     AstNodeRef parseEnum();
     AstNodeRef parseEnumImpl();
     AstNodeRef parseEnumValue();

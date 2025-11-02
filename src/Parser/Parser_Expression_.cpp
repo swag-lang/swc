@@ -143,15 +143,106 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::CompilerBackend:
         return parseLiteral();
 
+    case TokenId::SymLeftParen:
+        return parseParenExpression();
+
     default:
         (void) reportError(DiagnosticId::ParserUnexpectedToken, tok());
         return INVALID_REF;
     }
 }
 
+AstNodeRef Parser::parseFactorExpression()
+{
+    const auto nodeRef = parsePrimaryExpression();
+    if (isInvalid(nodeRef))
+        return INVALID_REF;
+
+    if (isAny(TokenId::SymPlus,
+              TokenId::SymMinus,
+              TokenId::SymAsterisk,
+              TokenId::SymSlash,
+              TokenId::SymPercent,
+              TokenId::SymAmpersand,
+              TokenId::SymVertical,
+              TokenId::SymGreaterGreater,
+              TokenId::SymLowerLower,
+              TokenId::SymPlusPlus,
+              TokenId::SymCircumflex))
+    {
+        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::FactorExpression>();
+        nodePtr->tknOp                  = consume();
+        nodePtr->nodeLeft               = nodeRef;
+        nodePtr->nodeRight              = parseFactorExpression();
+        return nodeParen;
+    }
+
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseCompareExpression()
+{
+    const auto nodeRef = parseFactorExpression();
+    if (isInvalid(nodeRef))
+        return INVALID_REF;
+
+    if (isAny(TokenId::SymEqualEqual,
+              TokenId::SymExclamationEqual,
+              TokenId::SymLowerEqual,
+              TokenId::SymGreaterEqual,
+              TokenId::SymLower,
+              TokenId::SymGreater,
+              TokenId::SymEqual,
+              TokenId::SymLowerEqualGreater))
+    {
+        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::CompareExpression>();
+        nodePtr->tknOp                  = consume();
+        nodePtr->nodeLeft               = nodeRef;
+        nodePtr->nodeRight              = parseCompareExpression();
+        return nodeParen;
+    }
+
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseBoolExpression()
+{
+    const auto nodeRef = parseCompareExpression();
+    if (isInvalid(nodeRef))
+        return INVALID_REF;
+
+    if (isAny(TokenId::KwdAnd, TokenId::KwdOr, TokenId::SymAmpersandAmpersand, TokenId::SymVerticalVertical))
+    {
+        if (isAny(TokenId::SymAmpersandAmpersand, TokenId::SymVerticalVertical))
+            (void) reportError(DiagnosticId::ParserUnexpectedAndOr, tok());
+
+        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::BoolExpression>();
+        nodePtr->tknOp                  = consume();
+        nodePtr->nodeLeft               = nodeRef;
+        nodePtr->nodeRight              = parseBoolExpression();
+        return nodeParen;
+    }
+
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseExpression()
 {
-    return parsePrimaryExpression();
+    return parseBoolExpression();
+}
+
+AstNodeRef Parser::parseParenExpression()
+{
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ParenExpression>();
+
+    const auto openRef = ref();
+    consume(TokenId::SymLeftParen);
+    nodePtr->nodeExpr = parseExpression();
+    if (isInvalid(nodePtr->nodeExpr))
+        skipTo({TokenId::SymRightParen}, SkipUntilFlags::EolBefore);
+    expectAndConsumeClosing(TokenId::SymLeftParen, openRef);
+
+    return nodeRef;
 }
 
 AstNodeRef Parser::parseIdentifier()

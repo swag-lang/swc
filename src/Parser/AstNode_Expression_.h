@@ -12,6 +12,56 @@ struct AstNodeIdentifier : AstNode
     TokenRef tknName;
 };
 
+struct AstNodeParenExpression : AstNode
+{
+    static constexpr auto ID = AstNodeId::ParenExpression;
+    AstNodeParenExpression() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeExpr;
+};
+
+struct AstNodeBinary : AstNode
+{
+    explicit AstNodeBinary(AstNodeId nodeId) :
+        AstNode(id)
+    {
+    }
+
+    TokenRef   tknOp;
+    AstNodeRef nodeLeft;
+    AstNodeRef nodeRight;
+};
+
+struct AstNodeBoolExpression : AstNodeBinary
+{
+    static constexpr auto ID = AstNodeId::BoolExpression;
+    AstNodeBoolExpression() :
+        AstNodeBinary(ID)
+    {
+    }
+};
+
+struct AstNodeCompareExpression : AstNodeBinary
+{
+    static constexpr auto ID = AstNodeId::CompareExpression;
+    AstNodeCompareExpression() :
+        AstNodeBinary(ID)
+    {
+    }
+};
+
+struct AstNodeFactorExpression : AstNodeBinary
+{
+    static constexpr auto ID = AstNodeId::FactorExpression;
+    AstNodeFactorExpression() :
+        AstNodeBinary(ID)
+    {
+    }
+};
+
 struct AstNodeLiteral : AstNode
 {
     explicit AstNodeLiteral(AstNodeId nodeId) :

@@ -48,5 +48,7 @@ SWC_DIAG_DEF(ParserExpectedArrayDim, Error, "expected array dimension or specifi
 SWC_DIAG_DEF(ParserExpectedEndOfLine, Error, "consecutive statements on a line must be separated by ';'")
 SWC_DIAG_DEF(ParserEmptyLiteralSuffix, Error, "empty literal suffix")
 SWC_DIAG_DEF(ParserInvalidLiteralSuffix, Error, "invalid literal suffix {tok}")
+SWC_DIAG_DEF(ParserUnexpectedAndOr, Error, "unexpected c-style boolean comparison {tok}; expected 'and' or 'or'")
+
 
 

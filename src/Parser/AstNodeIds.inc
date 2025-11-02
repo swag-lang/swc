@@ -1,6 +1,11 @@
 SWC_NODE_ID_DEF(Invalid)
 SWC_NODE_ID_DEF(Identifier)
 
+SWC_NODE_ID_DEF(ParenExpression)
+SWC_NODE_ID_DEF(BoolExpression)
+SWC_NODE_ID_DEF(CompareExpression)
+SWC_NODE_ID_DEF(FactorExpression)
+
 SWC_NODE_ID_DEF(File)
 SWC_NODE_ID_DEF(TopLevelBlock)
 

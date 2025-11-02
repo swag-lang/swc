@@ -1,11 +1,10 @@
 // ReSharper disable CppPossiblyUninitializedMember
 #pragma once
 
-struct AstNodeCompilerAssert : AstNode
+struct AstNodeCallerSingleArg : AstNode
 {
-    static constexpr auto ID = AstNodeId::CompilerAssert;
-    AstNodeCompilerAssert() :
-        AstNode(ID)
+    explicit AstNodeCallerSingleArg(AstNodeId id) :
+        AstNode(id)
     {
     }
 
@@ -13,14 +12,38 @@ struct AstNodeCompilerAssert : AstNode
     AstNodeRef nodeExpr;
 };
 
-struct AstNodeCompilerError : AstNode
+struct AstNodeCompilerAssert : AstNodeCallerSingleArg
+{
+    static constexpr auto ID = AstNodeId::CompilerAssert;
+    AstNodeCompilerAssert() :
+        AstNodeCallerSingleArg(ID)
+    {
+    }
+};
+
+struct AstNodeCompilerError : AstNodeCallerSingleArg
 {
     static constexpr auto ID = AstNodeId::CompilerError;
     AstNodeCompilerError() :
-        AstNode(ID)
+        AstNodeCallerSingleArg(ID)
     {
     }
+};
 
-    TokenRef   tokRef;
-    AstNodeRef nodeExpr;
+struct AstNodeCompilerWarning : AstNodeCallerSingleArg
+{
+    static constexpr auto ID = AstNodeId::CompilerWarning;
+    AstNodeCompilerWarning() :
+        AstNodeCallerSingleArg(ID)
+    {
+    }
+};
+
+struct AstNodeCompilerPrint : AstNodeCallerSingleArg
+{
+    static constexpr auto ID = AstNodeId::CompilerPrint;
+    AstNodeCompilerPrint() :
+        AstNodeCallerSingleArg(ID)
+    {
+    }
 };

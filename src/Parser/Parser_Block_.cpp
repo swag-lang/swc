@@ -21,18 +21,28 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
     while (!atEnd() && isNot(tokenEndId))
     {
         EnsureConsume ec(*this);
-        AstNodeRef    childrenRef;
+        AstNodeRef    childrenRef = INVALID_REF;
 
         switch (id())
         {
         case TokenId::CompilerAssert:
-            childrenRef = parseCompilerAssert();
-            if (isValid(childrenRef))
-                childrenRefs.push_back(childrenRef);
+            childrenRef = parseCallerSingleArg(AstNodeId::CompilerAssert);
+            break;
+        case TokenId::CompilerError:
+            childrenRef = parseCallerSingleArg(AstNodeId::CompilerError);
+            break;
+        case TokenId::CompilerWarning:
+            childrenRef = parseCallerSingleArg(AstNodeId::CompilerWarning);
+            break;
+        case TokenId::CompilerPrint:
+            childrenRef = parseCallerSingleArg(AstNodeId::CompilerWarning);
             break;
         default:
             break;
         }
+
+        if (isValid(childrenRef))
+            childrenRefs.push_back(childrenRef);
 
         switch (blockNodeId)
         {

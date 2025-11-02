@@ -23,4 +23,6 @@ SWC_NODE_ID_DEF(ArrayType)
 
 SWC_NODE_ID_DEF(CompilerAssert)
 SWC_NODE_ID_DEF(CompilerError)
+SWC_NODE_ID_DEF(CompilerWarning)
+SWC_NODE_ID_DEF(CompilerPrint)
 

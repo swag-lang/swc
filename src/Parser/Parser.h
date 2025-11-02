@@ -100,15 +100,15 @@ class Parser
     AstNodeRef parseSingleType();
     AstNodeRef parseType();
 
-    AstNodeRef parseCompilerAssert();
-    AstNodeRef parseCompilerError();
+    AstNodeRef parseCallerSingleArg(AstNodeId callerNodeId);
+    AstNodeRef parseBlock(AstNodeId blockNodeId, TokenId tokenStartId);
+
     AstNodeRef parseIdentifier();
     AstNodeRef parseExpression();
     AstNodeRef parseEnum();
     AstNodeRef parseEnumImpl();
     AstNodeRef parseEnumValue();
     AstNodeRef parseTopLevelInstruction();
-    AstNodeRef parseBlock(AstNodeId blockNodeId, TokenId tokenStartId);
     AstNodeRef parseImpl();
     AstNodeRef parseFile();
 

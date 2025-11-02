@@ -243,13 +243,29 @@ T* castAst(AstNode* node)
 template<AstNodeId Id>
 struct AstTypeOf;
 
-#define SWC_NODE_ID_DEF(enum)         \
-    template<>                        \
-    struct AstTypeOf<AstNodeId::enum> \
-    {                                 \
-        using type = AstNode##enum;   \
+#define SWC_NODE_ID_DEF(E)         \
+    template<>                     \
+    struct AstTypeOf<AstNodeId::E> \
+    {                              \
+        using type = AstNode##E;   \
     };
 #include "AstNodeIds.inc"
 #undef SWC_NODE_ID_DEF
+
+template<class F>
+decltype(auto) visitAstNodeId(AstNodeId id, F&& f)
+{
+    switch (id)
+    {
+#define SWC_NODE_ID_DEF(E) \
+    case AstNodeId::E:     \
+        return std::forward<F>(f).operator()<AstNodeId::E>();
+#include "AstNodeIds.inc"
+
+#undef SWC_NODE_ID_DEF
+    default:
+        std::unreachable();
+    }
+}
 
 SWC_END_NAMESPACE()

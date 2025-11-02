@@ -17,35 +17,6 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
             return INVALID_REF;
     }
 
-    AstNodeRef    nodeRef;
-    AstNodeBlock* nodePtr;
-    switch (blockNodeId)
-    {
-    case AstNodeId::File:
-    {
-        const auto pair = ast_->makeNode<AstNodeId::File>();
-        nodeRef         = pair.first;
-        nodePtr         = reinterpret_cast<AstNodeBlock*>(pair.second);
-        break;
-    }
-    case AstNodeId::TopLevelBlock:
-    {
-        const auto pair = ast_->makeNode<AstNodeId::TopLevelBlock>();
-        nodeRef         = pair.first;
-        nodePtr         = reinterpret_cast<AstNodeBlock*>(pair.second);
-        break;
-    }
-    case AstNodeId::EnumBlock:
-    {
-        const auto pair = ast_->makeNode<AstNodeId::EnumBlock>();
-        nodeRef         = pair.first;
-        nodePtr         = reinterpret_cast<AstNodeBlock*>(pair.second);
-        break;
-    }
-    default:
-        std::unreachable();
-    }
-
     SmallVector<AstNodeRef> childrenRefs;
     while (!atEnd() && isNot(tokenEndId))
     {
@@ -71,7 +42,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
         if (!isInvalid(childrenRef))
             childrenRefs.push_back(childrenRef);
     }
-
+   
     // Consume end token if necessary
     if (is(tokenEndId))
         skip();
@@ -81,6 +52,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
         diag.addArgument(Diagnostic::ARG_EXPECT, Token::toName(Token::toRelated(openTok.id)));
     }
 
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeBlock>(blockNodeId);
     nodePtr->nodeChildren = ast_->store_.push_span(std::span(childrenRefs.data(), childrenRefs.size()));
     return nodeRef;
 }

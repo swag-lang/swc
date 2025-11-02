@@ -19,6 +19,13 @@ public:
     static constexpr std::string_view     nodeIdName(AstNodeId id) { return nodeIdInfos(id).name; }
 
     template<AstNodeId T>
+    auto node()
+    {
+        using NodeType = AstTypeOf<T>::type;
+        return castAst<const NodeType*>(store_.ptr<AstNode*>(root_));
+    }
+
+    template<AstNodeId T>
     auto makeNode()
     {
         using NodeType = AstTypeOf<T>::type;
@@ -29,11 +36,14 @@ public:
         return result;
     }
 
-    template<AstNodeId T>
-    auto node()
+    template<typename T = AstNode>
+    std::pair<AstNodeRef, T*>
+    makeNode(AstNodeId id)
     {
-        using NodeType = AstTypeOf<T>::type;
-        return castAst<const NodeType*>(store_.ptr<AstNode*>(root_));
+        return visitAstNodeId(id, [&]<auto N>() {
+            auto [ref, raw] = makeNode<N>();
+            return std::pair{ref, reinterpret_cast<T*>(raw)};
+        });
     }
 };
 

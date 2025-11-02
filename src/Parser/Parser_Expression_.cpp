@@ -99,10 +99,11 @@ AstNodeRef Parser::parseLiteralExpression()
         (void) reportError(DiagnosticId::ParserInvalidLiteralSuffix, tok());
         consume();
         return nodeRef;
-    }
 
-    (void) reportError(DiagnosticId::ParserEmptyLiteralSuffix, quoteTknRef);
-    return nodeRef;
+    default:
+        (void) reportError(DiagnosticId::ParserEmptyLiteralSuffix, quoteTknRef);
+        return nodeRef;
+    }
 }
 
 AstNodeRef Parser::parseSinglePrimaryExpression()

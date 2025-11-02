@@ -1,3 +1,4 @@
+SWC_NODE_ID_DEF(Invalid)
 SWC_NODE_ID_DEF(Identifier)
 
 SWC_NODE_ID_DEF(File)

@@ -14,6 +14,15 @@ struct AstNodeBlock : AstNode
     Ref nodeChildren;
 };
 
+struct AstNodeInvalid : AstNode
+{
+    static constexpr auto ID = AstNodeId::Invalid;
+    AstNodeInvalid() :
+        AstNode(ID)
+    {
+    }
+};
+
 struct AstNodeIdentifier : AstNode
 {
     static constexpr auto ID = AstNodeId::Identifier;
@@ -224,7 +233,7 @@ struct AstNodeCompilerAssert : AstNode
 };
 
 template<typename T>
-T* astCast(AstNode* node)
+T* castAst(AstNode* node)
 {
     SWC_ASSERT(node);
     SWC_ASSERT(node->id == T::ID);

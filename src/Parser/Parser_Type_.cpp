@@ -9,7 +9,7 @@ AstNodeRef Parser::parseSingleType()
     // Builtin
     if (tok().isType())
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeBuiltinType>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::BuiltinType>();
         nodePtr->tknType        = consume();
         return nodeRef;
     }
@@ -18,7 +18,7 @@ AstNodeRef Parser::parseSingleType()
     {
     case TokenId::Identifier:
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeNamedType>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamedType>();
         nodePtr->tknName        = consume();
         return nodeRef;
     }
@@ -52,7 +52,7 @@ AstNodeRef Parser::parseType()
     // Const
     if (is(TokenId::KwdConst))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeQualifiedType>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::QualifiedType>();
         nodePtr->tknQual        = consume();
         nodePtr->nodeType       = parseType();
         return nodeRef;
@@ -65,7 +65,7 @@ AstNodeRef Parser::parseType()
         if (isInvalid(child))
             return INVALID_REF;
 
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeLRefType>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LRefType>();
         nodePtr->nodeType       = child;
         return nodeRef;
     }
@@ -77,7 +77,7 @@ AstNodeRef Parser::parseType()
         if (isInvalid(child))
             return INVALID_REF;
 
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeRRefType>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::RRefType>();
         nodePtr->nodeType       = child;
         return nodeRef;
     }
@@ -89,7 +89,7 @@ AstNodeRef Parser::parseType()
         if (isInvalid(child))
             return INVALID_REF;
 
-        auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodePointerType>();
+        auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::PointerType>();
         nodePtr->nodePointeeType = child;
         return nodeRef;
     }
@@ -108,7 +108,7 @@ AstNodeRef Parser::parseType()
             if (isInvalid(child))
                 return INVALID_REF;
 
-            auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeBlockPointerType>();
+            auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::BlockPointerType>();
             nodePtr->nodePointeeType = child;
             return nodeRef;
         }
@@ -123,7 +123,7 @@ AstNodeRef Parser::parseType()
             if (isInvalid(child))
                 return INVALID_REF;
 
-            auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeSliceType>();
+            auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::SliceType>();
             nodePtr->nodePointeeType = child;
             return nodeRef;
         }
@@ -138,7 +138,7 @@ AstNodeRef Parser::parseType()
             if (isInvalid(child))
                 return INVALID_REF;
 
-            auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeIncompleteArrayType>();
+            auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::IncompleteArrayType>();
             nodePtr->nodePointeeType = child;
             return nodeRef;
         }
@@ -164,7 +164,7 @@ AstNodeRef Parser::parseType()
         if (isInvalid(child))
             return INVALID_REF;
 
-        auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeArrayType>();
+        auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::ArrayType>();
         nodePtr->nodeDim         = dim;
         nodePtr->nodePointeeType = child;
         return nodeRef;

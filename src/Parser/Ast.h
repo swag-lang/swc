@@ -18,10 +18,11 @@ public:
     static constexpr const AstNodeIdInfo& nodeIdInfos(AstNodeId id) { return AST_NODE_ID_INFOS[static_cast<size_t>(id)]; }
     static constexpr std::string_view     nodeIdName(AstNodeId id) { return nodeIdInfos(id).name; }
 
-    template<class T>
+    template<AstNodeId T>
     auto makeNode()
     {
-        auto result = store_.emplace_uninit<T>();
+        using NodeType = AstTypeOf<T>::type;
+        auto result    = store_.emplace_uninit<NodeType>();
 #if SWC_HAS_STATS
         Stats::get().numAstNodes.fetch_add(1);
 #endif
@@ -29,14 +30,10 @@ public:
     }
 
     template<AstNodeId T>
-    auto makeNode()
+    auto node()
     {
         using NodeType = AstTypeOf<T>::type;
-        auto result = store_.emplace_uninit<NodeType>();
-#if SWC_HAS_STATS
-        Stats::get().numAstNodes.fetch_add(1);
-#endif
-        return result;
+        return castAst<const NodeType*>(store_.ptr<AstNode*>(root_));
     }
 };
 

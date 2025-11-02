@@ -24,7 +24,7 @@ AstNodeRef Parser::parseEnumValue()
 
     case TokenId::Identifier:
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeEnumValue>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumValue>();
 
         // Name
         nodePtr->tknName = consume();
@@ -66,7 +66,7 @@ AstNodeRef Parser::parseEnum()
 {
     static constexpr std::initializer_list END_OR_START_BLOCK = {TokenId::SymLeftCurly, TokenId::SymRightCurly};
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeEnumDecl>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumDecl>();
     consume(TokenId::KwdEnum);
 
     // Name
@@ -92,7 +92,7 @@ AstNodeRef Parser::parseEnum()
 
 AstNodeRef Parser::parseEnumImpl()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeEnumImpl>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumImpl>();
     skip(TokenId::KwdImpl);
     skip(TokenId::KwdEnum);
     nodePtr->nodeName = parseIdentifier();

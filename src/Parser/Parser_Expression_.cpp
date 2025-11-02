@@ -18,14 +18,14 @@ AstNodeRef Parser::parseExpression()
               TokenId::KwdNull,
               TokenId::Identifier))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNode>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Invalid>();
         consume();
         return nodeRef;
     }
 
     if (is(TokenId::SymLeftBracket))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNode>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Invalid>();
         consume();
         skipTo({TokenId::SymRightBracket}, SkipUntilFlags::Consume);
         return nodeRef;
@@ -37,7 +37,7 @@ AstNodeRef Parser::parseExpression()
 
 AstNodeRef Parser::parseIdentifier()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeIdentifier>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>();
     nodePtr->tknName        = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFam);
     return nodeRef;
 }

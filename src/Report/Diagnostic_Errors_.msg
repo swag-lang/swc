@@ -46,4 +46,6 @@ SWC_DIAG_DEF(ParserExpectedClosingBefore, Error, "expected closing {expect-tok} 
 SWC_DIAG_DEF(ParserInvalidType, Error, "invalid type declaration {tok}")
 SWC_DIAG_DEF(ParserExpectedArrayDim, Error, "expected array dimension or specifier")
 SWC_DIAG_DEF(ParserExpectedEndOfLine, Error, "consecutive statements on a line must be separated by ';'")
+SWC_DIAG_DEF(ParserInvalidLiteralSuffix, Error, "invalid literal suffix {tok}")
+
 

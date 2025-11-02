@@ -1,8 +1,8 @@
 enum TOTO: const [..] s32
 {
-    R = [1, 2]
-    G = [3, 4, 5]
-    B = [0]
+    R = 1
+    G = 3
+    B = 0
 }
 
 enum A } // swc-expected-error {{ParserExpectedTokenAfter}} {{UnexpectedToken}}

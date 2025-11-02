@@ -52,4 +52,4 @@ SWC_DIAG_DEF(ParserExpectedClosingBefore)
 SWC_DIAG_DEF(ParserInvalidType)
 SWC_DIAG_DEF(ParserExpectedArrayDim)
 SWC_DIAG_DEF(ParserExpectedEndOfLine)
-
+SWC_DIAG_DEF(ParserInvalidLiteralSuffix)

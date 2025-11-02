@@ -104,6 +104,9 @@ class Parser
     AstNodeRef parseBlock(AstNodeId blockNodeId, TokenId tokenStartId);
 
     AstNodeRef parseIdentifier();
+    AstNodeRef parseLiteral();
+    AstNodeRef parseLiteralExpression();
+    AstNodeRef parseSinglePrimaryExpression();
     AstNodeRef parseExpression();
     AstNodeRef parseEnum();
     AstNodeRef parseEnumImpl();

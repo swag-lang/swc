@@ -26,3 +26,13 @@ SWC_NODE_ID_DEF(CompilerError)
 SWC_NODE_ID_DEF(CompilerWarning)
 SWC_NODE_ID_DEF(CompilerPrint)
 
+SWC_NODE_ID_DEF(QuotedLiteral)
+SWC_NODE_ID_DEF(IntegerLiteral)
+SWC_NODE_ID_DEF(FloatLiteral)
+SWC_NODE_ID_DEF(CharacterLiteral)
+SWC_NODE_ID_DEF(StringLiteral)
+SWC_NODE_ID_DEF(BoolLiteral)
+SWC_NODE_ID_DEF(NullLiteral)
+SWC_NODE_ID_DEF(CompilerLiteral)
+
+

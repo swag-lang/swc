@@ -67,14 +67,15 @@ class Lexer
 
     static bool isTerminatorAfterEscapeChar(uint8_t c, TokenId container);
 
-    void eatOne();
-    void eatOneEol();
-    void eatUtf8Char();
-    void pushToken();
-    void reportUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len = 1);
-    void reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len = 1);
-    void checkFormat(const Context& ctx, uint32_t& startOffset);
-    void lexEscape(TokenId containerToken, bool eatEol);
+    void       eatOne();
+    void       eatOneEol();
+    void       eatUtf8Char();
+    void       pushToken();
+    void       raiseUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len = 1);
+    Diagnostic reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len = 1);
+    void       raiseTokenError(DiagnosticId id, uint32_t offset, uint32_t len = 1);
+    void       checkFormat(const Context& ctx, uint32_t& startOffset);
+    void       lexEscape(TokenId containerToken, bool eatEol);
 
     void lexWhitespace();
     void lexSingleLineStringLiteral();

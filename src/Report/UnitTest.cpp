@@ -205,8 +205,9 @@ Result UnitTest::verifyUntouchedExpected(const Context& ctx) const
     {
         if (!directive.touched)
         {
-            const auto diag = Diagnostic::raise(lexerCtx, DiagnosticId::UnRaisedDirective, file_);
+            const auto diag = Diagnostic::get(lexerCtx, DiagnosticId::UnRaisedDirective, file_);
             diag.last().setLocation(directive.myLoc);
+            diag.report(ctx);
         }
     }
 

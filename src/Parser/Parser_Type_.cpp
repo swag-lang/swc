@@ -43,7 +43,8 @@ AstNodeRef Parser::parseSingleType()
         break;
     }
 
-    auto diag = reportError(DiagnosticId::ParserInvalidType, tok());
+    const auto diag = reportError(DiagnosticId::ParserInvalidType, tok());
+    diag.report(*ctx_);
     return INVALID_REF;
 }
 
@@ -148,6 +149,7 @@ AstNodeRef Parser::parseType()
         {
             auto diag = reportError(DiagnosticId::ParserExpectedArrayDim, tok());
             diag.addElement(DiagnosticId::ParserHelpEmptyArrayDim);
+            diag.report(*ctx_);
             consume();
             return INVALID_REF;
         }

@@ -55,7 +55,7 @@ AstNodeRef Parser::parseLiteral()
         break;
 
     default:
-        (void) reportError(DiagnosticId::ParserExpectedTokenFam, tok());
+        raiseError(DiagnosticId::ParserExpectedTokenFam, tok());
         return INVALID_REF;
     }
 
@@ -103,12 +103,12 @@ AstNodeRef Parser::parseLiteralExpression()
     case TokenId::TypeString:
     case TokenId::TypeTypeInfo:
     case TokenId::TypeVoid:
-        (void) reportError(DiagnosticId::ParserInvalidLiteralSuffix, tok());
+        raiseError(DiagnosticId::ParserInvalidLiteralSuffix, tok());
         consume();
         return nodeRef;
 
     default:
-        (void) reportError(DiagnosticId::ParserEmptyLiteralSuffix, quoteTknRef);
+        raiseError(DiagnosticId::ParserEmptyLiteralSuffix, quoteTknRef);
         return nodeRef;
     }
 }

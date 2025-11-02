@@ -48,7 +48,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         return parseLiteralArray();
 
     default:
-        (void) reportError(DiagnosticId::ParserUnexpectedToken, tok());
+        raiseError(DiagnosticId::ParserUnexpectedToken, tok());
         return INVALID_REF;
     }
 }
@@ -115,7 +115,7 @@ AstNodeRef Parser::parseBoolExpression()
     if (isAny(TokenId::KwdAnd, TokenId::KwdOr, TokenId::SymAmpersandAmpersand, TokenId::SymVerticalVertical))
     {
         if (isAny(TokenId::SymAmpersandAmpersand, TokenId::SymVerticalVertical))
-            (void) reportError(DiagnosticId::ParserUnexpectedAndOr, tok());
+            raiseError(DiagnosticId::ParserUnexpectedAndOr, tok());
 
         const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::BoolExpression>();
         nodePtr->tknOp                  = consume();

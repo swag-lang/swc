@@ -58,14 +58,10 @@ Diagnostic::Diagnostic(const Context& context, const std::optional<SourceFile*>&
 {
 }
 
-Diagnostic::~Diagnostic()
-{
-    report(*context_);
-}
-
 void Diagnostic::report(const Context& ctx) const
 {
-    SWC_ASSERT(!elements_.empty());
+    if (elements_.empty())
+        return;
 
     // Mark file
     if (fileOwner_)
@@ -180,7 +176,7 @@ void Diagnostic::addArgument(std::string_view name, std::string_view arg, bool q
     arguments_.emplace_back(Argument{.name = name, .quoted = quoted, .val = std::move(sanitized)});
 }
 
-Diagnostic Diagnostic::raise(const Context& ctx, DiagnosticId id, std::optional<SourceFile*> fileOwner)
+Diagnostic Diagnostic::get(const Context& ctx, DiagnosticId id, std::optional<SourceFile*> fileOwner)
 {
     Diagnostic diag(ctx, fileOwner);
     diag.addElement(id);

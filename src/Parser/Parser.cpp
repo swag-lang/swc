@@ -135,7 +135,7 @@ TokenRef Parser::expect(const ParserExpect& expect) const
 {
     if (expect.valid(tok().id))
         return ref();
-    (void) reportExpected(expect);
+    raiseExpected(expect);
     return INVALID_REF;
 }
 
@@ -143,7 +143,7 @@ TokenRef Parser::expectAndConsume(const ParserExpect& expect)
 {
     if (expect.valid(tok().id))
         return consume();
-    (void) reportExpected(expect);
+    raiseExpected(expect);
     return INVALID_REF;
 }
 
@@ -170,6 +170,7 @@ void Parser::expectEndStatement()
     loc.offset += loc.len;
     loc.len = 1;
     diag.last().setLocation(loc);
+    diag.report(*ctx_);
 }
 
 Result Parser::parse(Context& ctx)

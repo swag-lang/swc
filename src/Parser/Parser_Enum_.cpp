@@ -39,7 +39,7 @@ AstNodeRef Parser::parseEnumValue()
     }
 
     default:
-        (void) reportError(DiagnosticId::ParserUnexpectedToken, tok());
+        raiseError(DiagnosticId::ParserUnexpectedToken, tok());
         return INVALID_REF;
     }
 }

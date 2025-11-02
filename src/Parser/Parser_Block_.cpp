@@ -82,6 +82,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
             {
                 auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, tok());
                 setReportExpected(diag, TokenId::SymComma);
+                diag.report(*ctx_);
                 skipTo({TokenId::SymComma, tokenEndId});
             }
             break;
@@ -93,6 +94,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
             {
                 auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, tok());
                 setReportExpected(diag, TokenId::SymComma);
+                diag.report(*ctx_);
                 skipTo({TokenId::SymComma, tokenEndId});
             }
             break;
@@ -111,6 +113,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
     {
         auto diag = reportError(DiagnosticId::ParserExpectedClosing, openTok);
         setReportExpected(diag, Token::toRelated(openTok.id));
+        diag.report(*ctx_);
     }
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeBlock>(blockNodeId);
@@ -137,7 +140,7 @@ AstNodeRef Parser::parseTopLevelStmt()
     case TokenId::SymLeftCurly:
         return parseBlock(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     case TokenId::SymRightCurly:
-        (void) reportError(DiagnosticId::ParserUnexpectedToken, tok());
+        raiseError(DiagnosticId::ParserUnexpectedToken, tok());
         return INVALID_REF;
 
     case TokenId::SymSemiColon:

@@ -39,16 +39,16 @@ Command CommandLineParser::isAllowedCommand(const Utf8& cmd)
     return Command::Invalid;
 }
 
-void CommandLineParser::errorArguments(Diagnostic& diag, const Utf8& arg)
+void CommandLineParser::setReportArguments(Diagnostic& diag, const Utf8& arg)
 {
     diag.addArgument(Diagnostic::ARG_ARG, arg);
     diag.addArgument(Diagnostic::ARG_COMMAND, command_);
     errorRaised_ = true;
 }
 
-void CommandLineParser::errorArguments(Diagnostic& diag, const ArgInfo& info, const Utf8& arg)
+void CommandLineParser::setReportArguments(Diagnostic& diag, const ArgInfo& info, const Utf8& arg)
 {
-    errorArguments(diag, arg);
+    setReportArguments(diag, arg);
     diag.addArgument(Diagnostic::ARG_ARG, arg);
     diag.addArgument(Diagnostic::ARG_COMMAND, command_);
     diag.addArgument(Diagnostic::ARG_LONG, info.longForm);
@@ -61,8 +61,9 @@ bool CommandLineParser::getNextValue(const Context& ctx, const Utf8& arg, int& i
 {
     if (index + 1 >= argc)
     {
-        auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineMissingArgValue);
-        errorArguments(diag, arg);
+        auto diag = Diagnostic::get(ctx, DiagnosticId::CmdLineMissingArgValue);
+        setReportArguments(diag, arg);
+        diag.report(ctx);
         return false;
     }
 
@@ -134,9 +135,10 @@ bool CommandLineParser::parseEnumInt(const Context& ctx, const ArgInfo& info, co
 
 bool CommandLineParser::reportEnumError(const Context& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value)
 {
-    auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineInvalidEnumValue);
-    errorArguments(diag, info, arg);
+    auto diag = Diagnostic::get(ctx, DiagnosticId::CmdLineInvalidEnumValue);
+    setReportArguments(diag, info, arg);
     diag.addArgument(Diagnostic::ARG_VALUE, value);
+    diag.report(ctx);
     return false;
 }
 
@@ -205,8 +207,9 @@ std::optional<ArgInfo> CommandLineParser::findNegatedArgument(const Context& ctx
     const ArgInfo& info = it->second;
     if (info.type != CommandLineType::Bool)
     {
-        auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineInvalidBoolArg);
-        errorArguments(diag, info, arg);
+        auto diag = Diagnostic::get(ctx, DiagnosticId::CmdLineInvalidBoolArg);
+        setReportArguments(diag, info, arg);
+        diag.report(ctx);
         return std::nullopt;
     }
 
@@ -216,8 +219,9 @@ std::optional<ArgInfo> CommandLineParser::findNegatedArgument(const Context& ctx
 
 void CommandLineParser::reportInvalidArgument(const Context& ctx, const Utf8& arg)
 {
-    auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineInvalidArg);
-    errorArguments(diag, arg);
+    auto diag = Diagnostic::get(ctx, DiagnosticId::CmdLineInvalidArg);
+    setReportArguments(diag, arg);
+    diag.report(ctx);
 }
 
 bool CommandLineParser::processArgument(const Context& ctx, const ArgInfo& info, const Utf8& arg, bool invertBoolean, int& index, int argc, char* argv[])
@@ -298,7 +302,8 @@ Result CommandLineParser::parse(int argc, char* argv[])
     if (argc <= 1 || argv[1][0] == '-')
     {
         // Missing command name
-        const auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineMissingCommand);
+        const auto diag = Diagnostic::get(ctx, DiagnosticId::CmdLineMissingCommand);
+        diag.report(ctx);
         return Result::Error;
     }
 
@@ -308,9 +313,10 @@ Result CommandLineParser::parse(int argc, char* argv[])
         cmdLine_->command    = isAllowedCommand(candidate);
         if (cmdLine_->command == Command::Invalid)
         {
-            auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineInvalidCommand);
-            errorArguments(diag, argv[1]);
+            auto diag = Diagnostic::get(ctx, DiagnosticId::CmdLineInvalidCommand);
+            setReportArguments(diag, argv[1]);
             diag.addArgument(Diagnostic::ARG_VALUES, ALLOWED_COMMANDS);
+            diag.report(ctx);
             return Result::Error;
         }
 
@@ -332,8 +338,9 @@ Result CommandLineParser::parse(int argc, char* argv[])
 
         if (!commandMatches(info.value().commands))
         {
-            auto diag = Diagnostic::raise(ctx, DiagnosticId::CmdLineInvalidArgForCmd);
-            errorArguments(diag, info.value(), arg);
+            auto diag = Diagnostic::get(ctx, DiagnosticId::CmdLineInvalidArgForCmd);
+            setReportArguments(diag, info.value(), arg);
+            diag.report(ctx);
             return Result::Error;
         }
 

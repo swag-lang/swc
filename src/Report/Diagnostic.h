@@ -37,7 +37,7 @@ public:
         std::string_view name;
         bool             quoted;
 
-        std::variant<Utf8, TokenId, DiagnosticId> val;
+        std::variant<Utf8, TokenId, DiagnosticId, uint32_t> val;
     };
 
 private:
@@ -45,8 +45,6 @@ private:
     std::vector<Argument>                           arguments_;
     std::optional<SourceFile*>                      fileOwner_ = std::nullopt;
     const Context*                                  context_   = nullptr;
-
-    void report(const Context& ctx) const;
 
 public:
     constexpr static std::string_view ARG_PATH    = "{path}";
@@ -70,8 +68,7 @@ public:
 
     Diagnostic() = default;
     explicit Diagnostic(const Context& context, const std::optional<SourceFile*>& fileOwner = std::nullopt);
-    Diagnostic(const Diagnostic&) {}
-    ~Diagnostic();
+    Diagnostic(const Diagnostic&) = default;
 
     const std::vector<std::shared_ptr<DiagnosticElement>>& elements() const { return elements_; }
     const std::optional<SourceFile*>&                      fileOwner() const { return fileOwner_; }
@@ -81,7 +78,7 @@ public:
     DiagnosticElement& last() const { return *elements_.back(); }
     void               addArgument(std::string_view name, std::string_view arg, bool quoted = true);
 
-    static Diagnostic         raise(const Context& ctx, DiagnosticId id, std::optional<SourceFile*> fileOwner = std::nullopt);
+    static Diagnostic         get(const Context& ctx, DiagnosticId id, std::optional<SourceFile*> fileOwner = std::nullopt);
     static std::string_view   diagIdMessage(DiagnosticId id);
     static std::string_view   diagIdName(DiagnosticId id);
     static DiagnosticSeverity diagIdSeverity(DiagnosticId id);
@@ -91,6 +88,8 @@ public:
     {
         arguments_.emplace_back(Argument{name, quoted, std::forward<T>(arg)});
     }
+
+    void report(const Context& ctx) const;
 };
 
 SWC_END_NAMESPACE()

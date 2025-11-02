@@ -127,8 +127,11 @@ class Parser
     void        setReportArguments(Diagnostic& diag, const Token& token) const;
     static void setReportExpected(Diagnostic& diag, TokenId expectedTknId);
     Diagnostic  reportError(DiagnosticId id, const Token& tkn) const;
+    void        raiseError(DiagnosticId id, const Token& tkn) const;
     Diagnostic  reportError(DiagnosticId id, TokenRef tknRef) const;
+    void        raiseError(DiagnosticId id, TokenRef tknRef) const;
     Diagnostic  reportExpected(const ParserExpect& expect) const;
+    void        raiseExpected(const ParserExpect& expect) const;
 
 public:
     Result parse(Context& ctx);

@@ -26,19 +26,31 @@ void Parser::setReportExpected(Diagnostic& diag, TokenId expectedTknId)
 
 Diagnostic Parser::reportError(DiagnosticId id, const Token& tkn) const
 {
-    auto diag = Diagnostic::raise(*ctx_, id, file_);
+    auto diag = Diagnostic::get(*ctx_, id, file_);
     setReportArguments(diag, tkn);
     diag.last().setLocation(tkn.toLocation(*ctx_, *file_));
     return diag;
 }
 
+void Parser::raiseError(DiagnosticId id, const Token& tkn) const
+{
+    const auto diag = reportError(id, tkn);
+    diag.report(*ctx_);
+}
+
 Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef) const
 {
-    auto       diag  = Diagnostic::raise(*ctx_, id, file_);
+    auto       diag  = Diagnostic::get(*ctx_, id, file_);
     const auto token = file_->lexOut().token(tknRef);
     setReportArguments(diag, token);
     diag.last().setLocation(token.toLocation(*ctx_, *file_));
     return diag;
+}
+
+void Parser::raiseError(DiagnosticId id, TokenRef tknRef) const
+{
+    const auto diag = reportError(id, tknRef);
+    diag.report(*ctx_);
 }
 
 Diagnostic Parser::reportExpected(const ParserExpect& expect) const
@@ -60,7 +72,14 @@ Diagnostic Parser::reportExpected(const ParserExpect& expect) const
         diag.addElement(expect.noteId).setLocation(tknLoc.toLocation(*ctx_, *file_));
     }
 
+    diag.report(*ctx_);
     return diag;
+}
+
+void Parser::raiseExpected(const ParserExpect& expect) const
+{
+    const auto diag = reportExpected(expect);
+    diag.report(*ctx_);
 }
 
 SWC_END_NAMESPACE()

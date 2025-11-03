@@ -51,6 +51,8 @@ AstNodeRef Parser::parseLiteral()
     case TokenId::CompilerCpu:
     case TokenId::CompilerSwagOs:
     case TokenId::CompilerBackend:
+    case TokenId::CompilerScopeName:
+    case TokenId::CompilerCurLocation:
         literal = ast_->makeNode<AstNodeLiteral>(AstNodeId::CompilerLiteral);
         break;
 

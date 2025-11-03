@@ -107,6 +107,8 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::CompilerCpu:
     case TokenId::CompilerSwagOs:
     case TokenId::CompilerBackend:
+    case TokenId::CompilerScopeName:
+    case TokenId::CompilerCurLocation:
         return parseLiteral();
 
     case TokenId::SymLeftParen:

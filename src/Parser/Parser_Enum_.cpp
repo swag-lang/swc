@@ -38,6 +38,9 @@ AstNodeRef Parser::parseEnumValue()
         return nodeRef;
     }
 
+    case TokenId::CompilerAst:
+        return parseCompilerFunc();
+
     default:
         raiseError(DiagnosticId::ParserUnexpectedToken, ref());
         return INVALID_REF;

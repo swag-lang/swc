@@ -353,15 +353,13 @@ AstNodeRef Parser::parseUnaryExpression()
     {
         const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpression>();
         nodePtr->tknOp                  = consume();
-        nodePtr->nodeExpr               = parsePrimaryExpression();
+        nodePtr->nodeExpr               = parsePostFixExpression();
         return nodeParen;
     }
 
     default:
-        break;
+        return parsePostFixExpression();
     }
-
-    return parsePostFixExpression();
 }
 
 AstNodeRef Parser::parseBinaryExpression()

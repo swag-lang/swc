@@ -162,3 +162,8 @@
     }
   }
 )
+
+#assert(main())
+#assert(!main1())
+#assert(main() and true)
+#assert(main1() or true)

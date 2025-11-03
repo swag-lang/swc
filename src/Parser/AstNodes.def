@@ -64,6 +64,7 @@ SWC_NODE_DEF(NamedType)
 SWC_NODE_DEF(PointerType)
 SWC_NODE_DEF(QualifiedType)
 SWC_NODE_DEF(SliceType)
+SWC_NODE_DEF(CompilerType)
 
 // Declarations & Implementations
 SWC_NODE_DEF(ImplDecl)

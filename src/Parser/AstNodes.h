@@ -713,6 +713,17 @@ struct AstNodeBuiltinType : AstNode
     TokenRef tknType;
 };
 
+struct AstNodeCompilerType : AstNode
+{
+    static constexpr auto ID = AstNodeId::CompilerType;
+    AstNodeCompilerType() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeType;
+};
+
 struct AstNodeImplBlock : AstNodeBlock
 {
     static constexpr auto ID = AstNodeId::ImplBlock;

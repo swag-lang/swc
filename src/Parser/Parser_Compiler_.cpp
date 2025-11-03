@@ -20,4 +20,12 @@ AstNodeRef Parser::parseCompilerFunc()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseCompilerType()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerType>();
+    consume();
+    nodePtr->nodeType = parseType();
+    return nodeRef;
+}
+
 SWC_END_NAMESPACE()

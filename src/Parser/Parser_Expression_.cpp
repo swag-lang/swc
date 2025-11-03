@@ -143,6 +143,9 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::CompilerCode:
         return parseType();
 
+    case TokenId::CompilerType:
+        return parseCompilerType();
+
     default:
         raiseError(DiagnosticId::ParserUnexpectedToken, ref());
         return INVALID_REF;

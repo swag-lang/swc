@@ -54,7 +54,10 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
         }
 
         if (isValid(childrenRef))
+        {
             childrenRefs.push_back(childrenRef);
+            continue;
+        }
 
         // One block element
         switch (blockNodeId)
@@ -198,7 +201,7 @@ AstNodeRef Parser::parseNamespace()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Namespace>();
     consume();
-    nodePtr->nodeName       = parseScopedIdentifier();
+    nodePtr->nodeName = parseScopedIdentifier();
     if (isInvalid(nodePtr->nodeName))
         skipTo({TokenId::SymLeftCurly});
     nodePtr->nodeBody = parseBlock(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);

@@ -88,13 +88,14 @@ bool Parser::skipAfter(std::initializer_list<TokenId> targets, SkipUntilFlags fl
 
 bool Parser::skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
 {
-    int parenDepth  = 0;
-    int squareDepth = 0;
-    int braceDepth  = 0;
+    int        parenDepth  = 0;
+    int        squareDepth = 0;
+    int        braceDepth  = 0;
+    const auto refStart    = ref();
 
     while (!atEnd())
     {
-        if (has_any(flags, SkipUntilFlags::EolBefore) && tok().startsLine())
+        if (has_any(flags, SkipUntilFlags::EolBefore) && tok().startsLine() && refStart != ref())
             break;
 
         const bool atTopLevel = (parenDepth | squareDepth | braceDepth) == 0;

@@ -29,3 +29,40 @@ struct AstNodeTopLevelBlock : AstNodeBlock
     {
     }
 };
+
+struct AstNodeEmbeddedBlock : AstNodeBlock
+{
+    static constexpr auto ID = AstNodeId::EmbeddedBlock;
+    AstNodeEmbeddedBlock() :
+        AstNodeBlock(ID)
+    {
+    }
+};
+
+struct AstNodeImplDecl : AstNode
+{
+    static constexpr auto ID = AstNodeId::ImplDecl;
+    AstNodeImplDecl() :
+        AstNode(ID)
+    {
+    }
+
+    TokenRef   tknOp;
+    AstNodeRef nodeIdentifier;
+    AstNodeRef nodeContent;
+};
+
+struct AstNodeImplDeclFor : AstNode
+{
+    static constexpr auto ID = AstNodeId::ImplDeclFor;
+    AstNodeImplDeclFor() :
+        AstNode(ID)
+    {
+    }
+
+    TokenRef   tknOp;
+    AstNodeRef nodeIdentifier;
+
+    AstNodeRef nodeFor;
+    AstNodeRef nodeContent;
+};

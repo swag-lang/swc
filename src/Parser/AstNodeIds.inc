@@ -58,7 +58,13 @@ SWC_NODE_ID_DEF(CharacterLiteral)
 SWC_NODE_ID_DEF(StringLiteral)
 SWC_NODE_ID_DEF(BoolLiteral)
 SWC_NODE_ID_DEF(NullLiteral)
-SWC_NODE_ID_DEF(CompilerLiteral)
 SWC_NODE_ID_DEF(ArrayLiteral)
+SWC_NODE_ID_DEF(CompilerLiteral)
+
+SWC_NODE_ID_DEF(FuncBody)
+SWC_NODE_ID_DEF(CompilerTestFunc)
+SWC_NODE_ID_DEF(EmbeddedBlock)
+SWC_NODE_ID_DEF(ImplDecl)
+SWC_NODE_ID_DEF(ImplDeclFor)
 
 

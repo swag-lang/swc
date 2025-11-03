@@ -62,6 +62,10 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
         case AstNodeId::TopLevelBlock:
             childrenRef = parseTopLevelStmt();
             break;
+        case AstNodeId::FuncBody:
+        case AstNodeId::EmbeddedBlock:
+            childrenRef = parseEmbeddedStmt();
+            break;
         case AstNodeId::EnumBlock:
             childrenRef = parseEnumValue();
             break;
@@ -135,7 +139,38 @@ AstNodeRef Parser::parseImpl()
 {
     if (nextIs(TokenId::KwdEnum))
         return parseEnumImpl();
-    return INVALID_REF;
+
+    const auto tknOp = consume();
+
+    // Name
+    const AstNodeRef nodeIdentifier = parseIdentifier();
+    if (isInvalid(nodeIdentifier))
+        skipTo({TokenId::SymLeftCurly, TokenId::KwdFor});
+
+    // For
+    AstNodeRef nodeFor = INVALID_REF;
+    if (consumeIf(TokenId::KwdFor))
+    {
+        nodeFor = parseIdentifier();
+        if (isInvalid(nodeIdentifier))
+            skipTo({TokenId::SymLeftCurly});
+    }
+
+    if (isInvalid(nodeFor))
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ImplDecl>();
+        nodePtr->tknOp          = tknOp;
+        nodePtr->nodeIdentifier = nodeIdentifier;
+        nodePtr->nodeContent    = parseBlock(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
+        return nodeRef;
+    }
+
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ImplDeclFor>();
+    nodePtr->tknOp          = tknOp;
+    nodePtr->nodeIdentifier = nodeIdentifier;
+    nodePtr->nodeFor        = nodeFor;
+    nodePtr->nodeContent    = parseBlock(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
+    return nodeRef;
 }
 
 AstNodeRef Parser::parseTopLevelStmt()
@@ -157,6 +192,27 @@ AstNodeRef Parser::parseTopLevelStmt()
 
     case TokenId::KwdImpl:
         return parseImpl();
+
+    case TokenId::CompilerFuncTest:
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerTestFunc>();
+        nodePtr->tknName        = consume();
+        nodePtr->nodeBody       = parseBlock(AstNodeId::FuncBody, TokenId::SymLeftCurly);
+        return nodeRef;
+    }
+
+    default:
+        skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::EolBefore);
+        return INVALID_REF;
+    }
+}
+
+AstNodeRef Parser::parseEmbeddedStmt()
+{
+    switch (id())
+    {
+    case TokenId::SymLeftCurly:
+        return parseBlock(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
 
     default:
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::EolBefore);

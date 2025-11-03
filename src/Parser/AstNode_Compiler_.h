@@ -36,3 +36,23 @@ struct AstNodeCompilerPrint : AstNodeCallerArg1
     {
     }
 };
+
+struct AstNodeCompilerFunc : AstNode
+{
+    explicit AstNodeCompilerFunc(AstNodeId nodeId) :
+        AstNode(nodeId)
+    {
+    }
+
+    TokenRef   tknName;
+    AstNodeRef nodeBody;
+};
+
+struct AstNodeCompilerTestFunc : AstNodeCompilerFunc
+{
+    static constexpr auto ID = AstNodeId::CompilerTestFunc;
+    AstNodeCompilerTestFunc() :
+        AstNodeCompilerFunc(ID)
+    {
+    }
+};

@@ -72,3 +72,12 @@ struct AstNodeIntrinsic3 : AstNodeCallerArg3
     {
     }
 };
+
+struct AstNodeFuncBody : AstNodeBlock
+{
+    static constexpr auto ID = AstNodeId::FuncBody;
+    AstNodeFuncBody() :
+        AstNodeBlock(ID)
+    {
+    }
+};

@@ -23,7 +23,7 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::CompilerIsConstExpr:
     case TokenId::CompilerDefined:
     case TokenId::CompilerInclude:
-        return parseCallArg1(AstNodeId::CompilerIntrinsic1);
+        return parseCallArg1(AstNodeId::CompilerCall1);
 
     case TokenId::IntrinsicKindOf:
     case TokenId::IntrinsicCountOf:
@@ -55,7 +55,7 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::IntrinsicBitCountNz:
     case TokenId::IntrinsicBitCountTz:
     case TokenId::IntrinsicBitCountLz:
-        return parseCallArg1(AstNodeId::Intrinsic1);
+        return parseCallArg1(AstNodeId::IntrinsicCall1);
 
     case TokenId::IntrinsicMakeAny:
     case TokenId::IntrinsicMakeSlice:
@@ -74,10 +74,10 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::IntrinsicAtomicOr:
     case TokenId::IntrinsicAtomicAnd:
     case TokenId::IntrinsicAtomicAdd:
-        return parseCallArg2(AstNodeId::Intrinsic2);
+        return parseCallArg2(AstNodeId::IntrinsicCall2);
 
     case TokenId::IntrinsicMakeInterface:
-        return parseCallArg3(AstNodeId::Intrinsic3);
+        return parseCallArg3(AstNodeId::IntrinsicCall3);
 
     case TokenId::NumberInteger:
     case TokenId::NumberBinary:

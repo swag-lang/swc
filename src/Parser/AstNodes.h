@@ -79,9 +79,9 @@ struct AstNodeNamespace : AstNode
     AstNodeRef nodeBody;
 };
 
-struct AstNodeCallerArg1 : AstNode
+struct AstNodeCall1 : AstNode
 {
-    explicit AstNodeCallerArg1(AstNodeId nodeId) :
+    explicit AstNodeCall1(AstNodeId nodeId) :
         AstNode(nodeId)
     {
     }
@@ -90,9 +90,9 @@ struct AstNodeCallerArg1 : AstNode
     AstNodeRef nodeParam1;
 };
 
-struct AstNodeCallerArg2 : AstNode
+struct AstNodeCall2 : AstNode
 {
-    explicit AstNodeCallerArg2(AstNodeId nodeId) :
+    explicit AstNodeCall2(AstNodeId nodeId) :
         AstNode(nodeId)
     {
     }
@@ -102,9 +102,9 @@ struct AstNodeCallerArg2 : AstNode
     AstNodeRef nodeParam2;
 };
 
-struct AstNodeCallerArg3 : AstNode
+struct AstNodeCall3 : AstNode
 {
-    explicit AstNodeCallerArg3(AstNodeId nodeId) :
+    explicit AstNodeCall3(AstNodeId nodeId) :
         AstNode(nodeId)
     {
     }
@@ -115,38 +115,38 @@ struct AstNodeCallerArg3 : AstNode
     AstNodeRef nodeParam3;
 };
 
-struct AstNodeCompilerIntrinsic1 : AstNodeCallerArg1
+struct AstNodeCompilerCall1 : AstNodeCall1
 {
-    static constexpr auto ID = AstNodeId::CompilerIntrinsic1;
-    AstNodeCompilerIntrinsic1() :
-        AstNodeCallerArg1(ID)
+    static constexpr auto ID = AstNodeId::CompilerCall1;
+    AstNodeCompilerCall1() :
+        AstNodeCall1(ID)
     {
     }
 };
 
-struct AstNodeIntrinsic1 : AstNodeCallerArg1
+struct AstNodeIntrinsicCall1 : AstNodeCall1
 {
-    static constexpr auto ID = AstNodeId::Intrinsic1;
-    AstNodeIntrinsic1() :
-        AstNodeCallerArg1(ID)
+    static constexpr auto ID = AstNodeId::IntrinsicCall1;
+    AstNodeIntrinsicCall1() :
+        AstNodeCall1(ID)
     {
     }
 };
 
-struct AstNodeIntrinsic2 : AstNodeCallerArg2
+struct AstNodeIntrinsicCall2 : AstNodeCall2
 {
-    static constexpr auto ID = AstNodeId::Intrinsic2;
-    AstNodeIntrinsic2() :
-        AstNodeCallerArg2(ID)
+    static constexpr auto ID = AstNodeId::IntrinsicCall2;
+    AstNodeIntrinsicCall2() :
+        AstNodeCall2(ID)
     {
     }
 };
 
-struct AstNodeIntrinsic3 : AstNodeCallerArg3
+struct AstNodeIntrinsicCall3 : AstNodeCall3
 {
-    static constexpr auto ID = AstNodeId::Intrinsic3;
-    AstNodeIntrinsic3() :
-        AstNodeCallerArg3(ID)
+    static constexpr auto ID = AstNodeId::IntrinsicCall3;
+    AstNodeIntrinsicCall3() :
+        AstNodeCall3(ID)
     {
     }
 };
@@ -160,38 +160,38 @@ struct AstNodeFuncBody : AstNodeBlock
     }
 };
 
-struct AstNodeCompilerAssert : AstNodeCallerArg1
+struct AstNodeCompilerAssert : AstNodeCall1
 {
     static constexpr auto ID = AstNodeId::CompilerAssert;
     AstNodeCompilerAssert() :
-        AstNodeCallerArg1(ID)
+        AstNodeCall1(ID)
     {
     }
 };
 
-struct AstNodeCompilerError : AstNodeCallerArg1
+struct AstNodeCompilerError : AstNodeCall1
 {
     static constexpr auto ID = AstNodeId::CompilerError;
     AstNodeCompilerError() :
-        AstNodeCallerArg1(ID)
+        AstNodeCall1(ID)
     {
     }
 };
 
-struct AstNodeCompilerWarning : AstNodeCallerArg1
+struct AstNodeCompilerWarning : AstNodeCall1
 {
     static constexpr auto ID = AstNodeId::CompilerWarning;
     AstNodeCompilerWarning() :
-        AstNodeCallerArg1(ID)
+        AstNodeCall1(ID)
     {
     }
 };
 
-struct AstNodeCompilerPrint : AstNodeCallerArg1
+struct AstNodeCompilerPrint : AstNodeCall1
 {
     static constexpr auto ID = AstNodeId::CompilerPrint;
     AstNodeCompilerPrint() :
-        AstNodeCallerArg1(ID)
+        AstNodeCall1(ID)
     {
     }
 };
@@ -448,10 +448,10 @@ struct AstNodeCompilerLiteral : AstNodeLiteral
     }
 };
 
-struct AstNodeQuotedLiteral : AstNode
+struct AstNodeSuffixedLiteral : AstNode
 {
-    static constexpr auto ID = AstNodeId::QuotedLiteral;
-    AstNodeQuotedLiteral() :
+    static constexpr auto ID = AstNodeId::SuffixedLiteral;
+    AstNodeSuffixedLiteral() :
         AstNode(ID)
     {
     }

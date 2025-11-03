@@ -73,7 +73,7 @@ AstNodeRef Parser::parseLiteralExpression()
     if (!consumeIf(TokenId::SymQuote))
         return literal;
 
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::QuotedLiteral>();
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SuffixedLiteral>();
     nodePtr->nodeLiteral          = literal;
 
     switch (id())

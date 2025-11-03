@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseCallArg1(AstNodeId callerNodeId)
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeCallerArg1>(callerNodeId);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeCall1>(callerNodeId);
     nodePtr->tokRef         = consume();
 
     const auto openRef = ref();
@@ -22,7 +22,7 @@ AstNodeRef Parser::parseCallArg1(AstNodeId callerNodeId)
 
 AstNodeRef Parser::parseCallArg2(AstNodeId callerNodeId)
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeCallerArg2>(callerNodeId);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeCall2>(callerNodeId);
     nodePtr->tokRef         = consume();
 
     const auto openRef = ref();
@@ -43,7 +43,7 @@ AstNodeRef Parser::parseCallArg2(AstNodeId callerNodeId)
 
 AstNodeRef Parser::parseCallArg3(AstNodeId callerNodeId)
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeCallerArg3>(callerNodeId);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeCall3>(callerNodeId);
     nodePtr->tokRef         = consume();
 
     const auto openRef = ref();

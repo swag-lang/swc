@@ -75,6 +75,7 @@ struct Token
     bool isCompiler() const { return has_any(toFlags(id), TokenIdFlags::Compiler); }
     bool isIntrinsic() const { return has_any(toFlags(id), TokenIdFlags::Intrinsic); }
     bool isType() const { return has_any(toFlags(id), TokenIdFlags::Type); }
+    bool isModifier() const { return has_any(toFlags(id), TokenIdFlags::Modifier); }
     bool isReservedWord() const { return has_any(toFlags(id), TokenIdFlags::ReservedWord); }
     bool startsLine() const { return has_any(flags, TokenFlags::EolBefore); }
 };

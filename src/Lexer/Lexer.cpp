@@ -1235,6 +1235,7 @@ Result Lexer::tokenize(Context& ctx, LexerFlags flags)
             token_.id         = TokenId::SymAttrStart;
             token_.byteLength = 1;
             buffer_ += 2;
+            pushToken();
             continue;
         }
 

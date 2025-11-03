@@ -49,3 +49,5 @@ SWC_DIAG_DEF(ParserExpectedEndOfLine, Error, "expected statement separator ';' b
 SWC_DIAG_DEF(ParserEmptyLiteralSuffix, Error, "empty literal suffix")
 SWC_DIAG_DEF(ParserInvalidLiteralSuffix, Error, "invalid literal suffix: {tok}")
 SWC_DIAG_DEF(ParserUnexpectedAndOr, Error, "unexpected C-style boolean operator {tok}; use 'and' or 'or' instead")
+SWC_DIAG_DEF(ParserDuplicatedModifier, Error, "modifier {tok} already defined")
+

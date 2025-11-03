@@ -156,7 +156,6 @@
         <ClInclude Include="src\Core\Types.h"/>
         <ClInclude Include="src\Core\Utf8.h"/>
         <ClInclude Include="src\Core\Utf8Helper.h"/>
-        <ClInclude Include="src\Lexer\KeywordTable.h"/>
         <ClInclude Include="src\Lexer\Keyword.h"/>
         <ClInclude Include="src\Lexer\LangSpec.h"/>
         <ClInclude Include="src\Lexer\Lexer.h"/>

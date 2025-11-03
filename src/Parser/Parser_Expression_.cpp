@@ -1,4 +1,6 @@
 #include "pch.h"
+
+#include "Lexer/SourceFile.h"
 #include "Parser/AstNode.h"
 #include "Parser/Parser.h"
 
@@ -134,6 +136,126 @@ AstNodeRef Parser::parsePostFixExpression()
         break;
     }
 
+    // 'as'
+    if (is(TokenId::KwdAs))
+    {
+        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::As>();
+        consume();
+        nodePtr->nodeExpr = nodeRef;
+        nodePtr->nodeType = parseType();
+        nodeRef           = nodeParent;
+        return nodeRef;
+    }
+
+    // 'is'
+    if (is(TokenId::KwdIs))
+    {
+        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::Is>();
+        consume();
+        nodePtr->nodeExpr = nodeRef;
+        nodePtr->nodeType = parseType();
+        nodeRef           = nodeParent;
+        return nodeRef;
+    }
+
+    return nodeRef;
+}
+
+AstModifierFlags Parser::parseModifiers()
+{
+    auto                                 result = AstModifierFlags::Zero;
+    std::map<AstModifierFlags, TokenRef> done;
+
+    while (true)
+    {
+        auto toSet = AstModifierFlags::Zero;
+        switch (id())
+        {
+        case TokenId::ModifierBit:
+            toSet = AstModifierFlags::Bit;
+            break;
+        case TokenId::ModifierUnConst:
+            toSet = AstModifierFlags::UnConst;
+            break;
+        case TokenId::ModifierErr:
+            toSet = AstModifierFlags::Err;
+            break;
+        case TokenId::ModifierNoErr:
+            toSet = AstModifierFlags::NoErr;
+            break;
+        case TokenId::ModifierPromote:
+            toSet = AstModifierFlags::Promote;
+            break;
+        case TokenId::ModifierWrap:
+            toSet = AstModifierFlags::Wrap;
+            break;
+        case TokenId::ModifierNoDrop:
+            toSet = AstModifierFlags::NoDrop;
+            break;
+        case TokenId::ModifierRef:
+            toSet = AstModifierFlags::Ref;
+            break;
+        case TokenId::ModifierConstRef:
+            toSet = AstModifierFlags::ConstRef;
+            break;
+        case TokenId::ModifierReverse:
+            toSet = AstModifierFlags::Reverse;
+            break;
+        case TokenId::ModifierMove:
+            toSet = AstModifierFlags::Move;
+            break;
+        case TokenId::ModifierMoveRaw:
+            toSet = AstModifierFlags::MoveRaw;
+            break;
+        case TokenId::ModifierNullable:
+            toSet = AstModifierFlags::Nullable;
+            break;
+        }
+
+        if (toSet == AstModifierFlags::Zero)
+            break;
+
+        if (has_any(result, toSet))
+        {
+            auto diag = reportError(DiagnosticId::ParserDuplicatedModifier, tok());
+            diag.addElement(DiagnosticId::ParserOtherDefinition);
+            diag.last().setLocation(file_->lexOut().token(done[toSet]).toLocation(*ctx_, *file_));
+            diag.report(*ctx_);
+        }
+
+        done[toSet] = ref();
+        result |= toSet;
+        consume();
+    }
+
+    return result;
+}
+
+AstNodeRef Parser::parseCast()
+{
+    const auto tknOp         = consume();
+    const auto openRef       = ref();
+    const auto modifierFlags = parseModifiers();
+
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenAfter);
+    if (consumeIf(TokenId::SymRightParen))
+    {
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CastAuto>();
+        nodePtr->tknOp                = tknOp;
+        nodePtr->modifierFlags        = modifierFlags;
+        nodePtr->nodeExpr             = parseExpression();
+        return nodeRef;
+    }
+
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Cast>();
+    nodePtr->tknOp                = tknOp;
+    nodePtr->modifierFlags        = modifierFlags;
+    nodePtr->nodeType             = parseType();
+    if (isInvalid(nodePtr->nodeType))
+        skipTo({TokenId::SymRightParen});
+    expectAndConsumeClosing(TokenId::SymLeftParen, openRef);
+    nodePtr->nodeExpr = parseExpression();
+
     return nodeRef;
 }
 
@@ -141,6 +263,9 @@ AstNodeRef Parser::parseUnaryExpression()
 {
     switch (id())
     {
+    case TokenId::KwdCast:
+        return parseCast();
+
     case TokenId::SymPlus:
     case TokenId::SymMinus:
     case TokenId::SymExclamation:

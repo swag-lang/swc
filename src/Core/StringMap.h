@@ -337,13 +337,17 @@ private:
             if (is_occupied_(c))
             {
                 Slot& s = slots_[idx];
-                if (s.dist < dist)
-                    return false;
+
+                // Check for match first, before distance comparison
                 if (c == fp && s.hash == hash && s.key == key)
                 {
                     out_idx = idx;
                     return true;
                 }
+
+                // Robin Hood invariant: if slot has smaller distance, key doesn't exist
+                if (s.dist < dist)
+                    return false;
             }
 
             ++dist;

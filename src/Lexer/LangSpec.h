@@ -1,7 +1,6 @@
 #pragma once
 #include "Core/Flags.h"
 #include "Core/StringMap.h"
-#include "Lexer/KeywordTable.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -33,7 +32,7 @@ class LangSpec
 public:
     bool isBlank(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Blank); }
     bool isWhiteSpace(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Blank | CharFlags::Eol); }
-    bool isEol(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Eol); }    
+    bool isEol(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Eol); }
     bool isDigit(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Digit); }
     bool isLetter(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Letter); }
     bool isAscii(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Ascii); }

@@ -25,6 +25,25 @@ constexpr std::array AST_NODE_ID_INFOS = {
 #undef SWC_NODE_ID_DEF
 };
 
+enum class AstModifierFlags : uint32_t
+{
+    Zero     = 0,
+    Bit      = 1 << 0,
+    UnConst  = 1 << 1,
+    Err      = 1 << 2,
+    NoErr    = 1 << 3,
+    Promote  = 1 << 4,
+    Wrap     = 1 << 5,
+    NoDrop   = 1 << 6,
+    Ref      = 1 << 7,
+    ConstRef = 1 << 8,
+    Reverse  = 1 << 9,
+    Move     = 1 << 10,
+    MoveRaw  = 1 << 11,
+    Nullable = 1 << 12,
+};
+SWC_ENABLE_BITMASK(AstModifierFlags);
+
 struct AstNode
 {
     AstNodeId id    = AstNodeId::Invalid;

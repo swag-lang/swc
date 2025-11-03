@@ -262,3 +262,54 @@ struct AstNodeMemberAccess : AstNode
     AstNodeRef nodeLeft;
     AstNodeRef nodeRight;
 };
+
+struct AstNodeAs : AstNode
+{
+    static constexpr auto ID = AstNodeId::As;
+    AstNodeAs() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeExpr;
+    AstNodeRef nodeType;
+};
+
+struct AstNodeIs : AstNode
+{
+    static constexpr auto ID = AstNodeId::Is;
+    AstNodeIs() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeExpr;
+    AstNodeRef nodeType;
+};
+
+struct AstNodeCastAuto : AstNode
+{
+    static constexpr auto ID = AstNodeId::CastAuto;
+    AstNodeCastAuto() :
+        AstNode(ID)
+    {
+    }
+
+    TokenRef         tknOp;
+    AstModifierFlags modifierFlags;
+    AstNodeRef       nodeExpr;
+};
+
+struct AstNodeCast : AstNode
+{
+    static constexpr auto ID = AstNodeId::Cast;
+    AstNodeCast() :
+        AstNode(ID)
+    {
+    }
+
+    TokenRef         tknOp;
+    AstModifierFlags modifierFlags;
+    AstNodeRef       nodeType;
+    AstNodeRef       nodeExpr;
+};

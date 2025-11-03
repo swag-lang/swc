@@ -362,7 +362,7 @@ AstNodeRef Parser::parseUnaryExpression()
     return parsePostFixExpression();
 }
 
-AstNodeRef Parser::parseFactorExpression()
+AstNodeRef Parser::parseBinaryExpression()
 {
     const auto nodeRef = parseUnaryExpression();
     if (isInvalid(nodeRef))
@@ -380,20 +380,20 @@ AstNodeRef Parser::parseFactorExpression()
               TokenId::SymPlusPlus,
               TokenId::SymCircumflex))
     {
-        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::FactorExpression>();
+        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::BinaryExpression>();
         nodePtr->tknOp                  = consume();
         nodePtr->nodeLeft               = nodeRef;
         nodePtr->modifiersFlags         = parseModifiers();
-        nodePtr->nodeRight              = parseFactorExpression();
+        nodePtr->nodeRight              = parseBinaryExpression();
         return nodeParen;
     }
 
     return nodeRef;
 }
 
-AstNodeRef Parser::parseCompareExpression()
+AstNodeRef Parser::parseRelationalExpression()
 {
-    const auto nodeRef = parseFactorExpression();
+    const auto nodeRef = parseBinaryExpression();
     if (isInvalid(nodeRef))
         return INVALID_REF;
 
@@ -406,19 +406,19 @@ AstNodeRef Parser::parseCompareExpression()
               TokenId::SymEqual,
               TokenId::SymLowerEqualGreater))
     {
-        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::CompareExpression>();
+        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::RelationalExpression>();
         nodePtr->tknOp                  = consume();
         nodePtr->nodeLeft               = nodeRef;
-        nodePtr->nodeRight              = parseCompareExpression();
+        nodePtr->nodeRight              = parseRelationalExpression();
         return nodeParen;
     }
 
     return nodeRef;
 }
 
-AstNodeRef Parser::parseBoolExpression()
+AstNodeRef Parser::parseLogicalExpression()
 {
-    const auto nodeRef = parseCompareExpression();
+    const auto nodeRef = parseRelationalExpression();
     if (isInvalid(nodeRef))
         return INVALID_REF;
 
@@ -427,10 +427,10 @@ AstNodeRef Parser::parseBoolExpression()
         if (isAny(TokenId::SymAmpersandAmpersand, TokenId::SymVerticalVertical))
             raiseError(DiagnosticId::ParserUnexpectedAndOr, ref());
 
-        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::BoolExpression>();
+        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::LogicalExpression>();
         nodePtr->tknOp                  = consume();
         nodePtr->nodeLeft               = nodeRef;
-        nodePtr->nodeRight              = parseBoolExpression();
+        nodePtr->nodeRight              = parseLogicalExpression();
         return nodeParen;
     }
 
@@ -439,7 +439,7 @@ AstNodeRef Parser::parseBoolExpression()
 
 AstNodeRef Parser::parseExpression()
 {
-    return parseBoolExpression();
+    return parseLogicalExpression();
 }
 
 AstNodeRef Parser::parseParenExpression()

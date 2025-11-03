@@ -334,28 +334,28 @@ struct AstNodeBinary : AstNode
     AstNodeRef nodeRight;
 };
 
-struct AstNodeBoolExpression : AstNodeBinary
+struct AstNodeLogicalExpression : AstNodeBinary
 {
-    static constexpr auto ID = AstNodeId::BoolExpression;
-    AstNodeBoolExpression() :
+    static constexpr auto ID = AstNodeId::LogicalExpression;
+    AstNodeLogicalExpression() :
         AstNodeBinary(ID)
     {
     }
 };
 
-struct AstNodeCompareExpression : AstNodeBinary
+struct AstNodeRelationalExpression : AstNodeBinary
 {
-    static constexpr auto ID = AstNodeId::CompareExpression;
-    AstNodeCompareExpression() :
+    static constexpr auto ID = AstNodeId::RelationalExpression;
+    AstNodeRelationalExpression() :
         AstNodeBinary(ID)
     {
     }
 };
 
-struct AstNodeFactorExpression : AstNodeBinary
+struct AstNodeBinaryExpression : AstNodeBinary
 {
-    static constexpr auto ID = AstNodeId::FactorExpression;
-    AstNodeFactorExpression() :
+    static constexpr auto ID = AstNodeId::BinaryExpression;
+    AstNodeBinaryExpression() :
         AstNodeBinary(ID)
     {
     }

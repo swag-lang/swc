@@ -115,9 +115,9 @@ class Parser
     AstModifierFlags parseModifiers();
     AstNodeRef       parseCast();
     AstNodeRef       parseUnaryExpression();
-    AstNodeRef       parseFactorExpression();
-    AstNodeRef       parseCompareExpression();
-    AstNodeRef       parseBoolExpression();
+    AstNodeRef       parseBinaryExpression();
+    AstNodeRef       parseRelationalExpression();
+    AstNodeRef       parseLogicalExpression();
     AstNodeRef       parseExpression();
     AstNodeRef       parseParenExpression();
     AstNodeRef       parseEnum();

@@ -77,7 +77,7 @@ AstNodeRef Parser::parseEnumImpl()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumImpl>();
     consume(TokenId::KwdImpl);
     consume(TokenId::KwdEnum);
-    nodePtr->nodeName = parseIdentifier();
+    nodePtr->nodeName = parseScopedIdentifier();
     if (isInvalid(nodePtr->nodeName))
         skipTo({TokenId::SymLeftCurly});
 

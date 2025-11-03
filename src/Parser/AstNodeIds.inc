@@ -1,6 +1,8 @@
 SWC_NODE_ID_DEF(Invalid)
 
 SWC_NODE_ID_DEF(Identifier)
+SWC_NODE_ID_DEF(ScopedIdentifier)
+
 SWC_NODE_ID_DEF(FuncCall)
 SWC_NODE_ID_DEF(StructInit)
 SWC_NODE_ID_DEF(ArrayDeref)

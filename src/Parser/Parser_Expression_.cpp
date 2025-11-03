@@ -462,6 +462,28 @@ AstNodeRef Parser::parseIdentifier()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseScopedIdentifier()
+{
+    SmallVector<AstNodeRef> childrenRefs;
+    while (true)
+    {
+        const auto childRef = parseIdentifier();
+        if (isInvalid(childRef))
+            break;
+
+        childrenRefs.push_back(childRef);
+        if (consumeIf(TokenId::SymDot))
+            continue;
+
+
+        break;
+    }
+
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ScopedIdentifier>();
+    nodePtr->spanChildren   = ast_->store_.push_span(std::span(childrenRefs.data(), childrenRefs.size()));
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseNamedArgument()
 {
     // The name

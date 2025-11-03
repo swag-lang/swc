@@ -143,7 +143,7 @@ AstNodeRef Parser::parseImpl()
     const auto tknOp = consume();
 
     // Name
-    const AstNodeRef nodeIdentifier = parseIdentifier();
+    const AstNodeRef nodeIdentifier = parseScopedIdentifier();
     if (isInvalid(nodeIdentifier))
         skipTo({TokenId::SymLeftCurly, TokenId::KwdFor});
 
@@ -151,7 +151,7 @@ AstNodeRef Parser::parseImpl()
     AstNodeRef nodeFor = INVALID_REF;
     if (consumeIf(TokenId::KwdFor))
     {
-        nodeFor = parseIdentifier();
+        nodeFor = parseScopedIdentifier();
         if (isInvalid(nodeIdentifier))
             skipTo({TokenId::SymLeftCurly});
     }

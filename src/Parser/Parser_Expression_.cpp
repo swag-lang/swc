@@ -23,6 +23,7 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::CompilerRunes:
     case TokenId::CompilerIsConstExpr:
     case TokenId::CompilerDefined:
+    case TokenId::CompilerInclude:
         return parseCallerArg1(AstNodeId::CompilerIntrinsic1);
 
     case TokenId::IntrinsicKindOf:
@@ -31,12 +32,49 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::IntrinsicCVaStart:
     case TokenId::IntrinsicCVaEnd:
     case TokenId::IntrinsicMakeCallback:
-        return parseCallerArg1(AstNodeId::CompilerIntrinsic1);
+    case TokenId::IntrinsicAbs:
+    case TokenId::IntrinsicSqrt:
+    case TokenId::IntrinsicSin:
+    case TokenId::IntrinsicCos:
+    case TokenId::IntrinsicTan:
+    case TokenId::IntrinsicSinh:
+    case TokenId::IntrinsicCosh:
+    case TokenId::IntrinsicTanh:
+    case TokenId::IntrinsicASin:
+    case TokenId::IntrinsicACos:
+    case TokenId::IntrinsicATan:
+    case TokenId::IntrinsicLog:
+    case TokenId::IntrinsicLog2:
+    case TokenId::IntrinsicLog10:
+    case TokenId::IntrinsicFloor:
+    case TokenId::IntrinsicCeil:
+    case TokenId::IntrinsicTrunc:
+    case TokenId::IntrinsicRound:
+    case TokenId::IntrinsicExp:
+    case TokenId::IntrinsicExp2:
+    case TokenId::IntrinsicByteSwap:
+    case TokenId::IntrinsicBitCountNz:
+    case TokenId::IntrinsicBitCountTz:
+    case TokenId::IntrinsicBitCountLz:
+        return parseCallerArg1(AstNodeId::Intrinsic1);
 
     case TokenId::IntrinsicMakeAny:
     case TokenId::IntrinsicMakeSlice:
     case TokenId::IntrinsicMakeString:
     case TokenId::IntrinsicCVaArg:
+    case TokenId::IntrinsicMin:
+    case TokenId::IntrinsicMax:
+    case TokenId::IntrinsicMulAdd:
+    case TokenId::IntrinsicRol:
+    case TokenId::IntrinsicRor:
+    case TokenId::IntrinsicPow:
+    case TokenId::IntrinsicATan2:
+    case TokenId::IntrinsicAtomicCmpXchg:
+    case TokenId::IntrinsicAtomicXchg:
+    case TokenId::IntrinsicAtomicXor:
+    case TokenId::IntrinsicAtomicOr:
+    case TokenId::IntrinsicAtomicAnd:
+    case TokenId::IntrinsicAtomicAdd:
         return parseCallerArg2(AstNodeId::Intrinsic2);
 
     case TokenId::IntrinsicMakeInterface:
@@ -77,6 +115,32 @@ AstNodeRef Parser::parsePrimaryExpression()
 
     case TokenId::SymLeftBracket:
         return parseLiteralArray();
+
+    case TokenId::TypeAny:
+    case TokenId::TypeCString:
+    case TokenId::TypeCVarArgs:
+    case TokenId::TypeString:
+    case TokenId::TypeTypeInfo:
+    case TokenId::TypeVoid:
+    case TokenId::TypeBool:
+    case TokenId::TypeS8:
+    case TokenId::TypeS16:
+    case TokenId::TypeS32:
+    case TokenId::TypeS64:
+    case TokenId::TypeU8:
+    case TokenId::TypeU16:
+    case TokenId::TypeU32:
+    case TokenId::TypeU64:
+    case TokenId::TypeRune:
+    case TokenId::TypeF32:
+    case TokenId::TypeF64:
+    case TokenId::KwdConst:
+    case TokenId::KwdStruct:
+    case TokenId::KwdUnion:
+    case TokenId::SymAsterisk:
+    case TokenId::SymAmpersand:
+    case TokenId::CompilerCode:
+        return parseType();
 
     default:
         raiseError(DiagnosticId::ParserUnexpectedToken, ref());

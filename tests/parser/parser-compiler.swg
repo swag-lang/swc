@@ -20,3 +20,4 @@ enum A
 #assert(#sizeof(MyStruct1.A.B.C is s32) == 9)
 
 #assert(cast(s32) #sizeof(MyStruct1) == 9)
+#assert(#typeof(0's8 + 1's8) == s8)

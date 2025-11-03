@@ -197,6 +197,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
 AstNodeRef Parser::parseNamespace()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Namespace>();
+    consume();
     nodePtr->nodeName       = parseScopedIdentifier();
     if (isInvalid(nodePtr->nodeName))
         skipTo({TokenId::SymLeftCurly});

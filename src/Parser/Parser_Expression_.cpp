@@ -11,6 +11,34 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::Identifier:
         return parseIdentifierExpression();
 
+    case TokenId::CompilerSizeOf:
+    case TokenId::CompilerAlignOf:
+    case TokenId::CompilerOffsetOf:
+    case TokenId::CompilerTypeOf:
+    case TokenId::CompilerDeclType:
+    case TokenId::CompilerStringOf:
+    case TokenId::CompilerNameOf:
+    case TokenId::CompilerRunes:
+    case TokenId::CompilerIsConstExpr:
+        return parseCallerArg1(AstNodeId::CompilerIntrinsic1);
+
+    case TokenId::IntrinsicKindOf:
+    case TokenId::IntrinsicCountOf:
+    case TokenId::IntrinsicDataOf:
+    case TokenId::IntrinsicCVaStart:
+    case TokenId::IntrinsicCVaEnd:
+    case TokenId::IntrinsicMakeCallback:
+        return parseCallerArg1(AstNodeId::CompilerIntrinsic1);
+
+    case TokenId::IntrinsicMakeAny:
+    case TokenId::IntrinsicMakeSlice:
+    case TokenId::IntrinsicMakeString:
+    case TokenId::IntrinsicCVaArg:
+        return parseCallerArg2(AstNodeId::Intrinsic2);
+
+    case TokenId::IntrinsicMakeInterface:
+        return parseCallerArg3(AstNodeId::Intrinsic3);
+
     case TokenId::NumberInteger:
     case TokenId::NumberBinary:
     case TokenId::NumberHexadecimal:
@@ -53,9 +81,31 @@ AstNodeRef Parser::parsePrimaryExpression()
     }
 }
 
+AstNodeRef Parser::parseUnaryExpression()
+{
+    switch (id())
+    {
+    case TokenId::SymPlus:
+    case TokenId::SymMinus:
+    case TokenId::SymExclamation:
+    case TokenId::SymTilde:
+    {
+        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpression>();
+        nodePtr->tknOp                  = consume();
+        nodePtr->nodeExpr               = parsePrimaryExpression();
+        return nodeParen;
+    }
+
+    default:
+        break;
+    }
+
+    return parsePrimaryExpression();
+}
+
 AstNodeRef Parser::parseFactorExpression()
 {
-    const auto nodeRef = parsePrimaryExpression();
+    const auto nodeRef = parseUnaryExpression();
     if (isInvalid(nodeRef))
         return INVALID_REF;
 

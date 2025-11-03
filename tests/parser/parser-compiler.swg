@@ -13,3 +13,5 @@ enum A
 #error(B)
 #warning(B)
 #print(C)
+
+#assert(#sizeof(MyStruct1) == 9)

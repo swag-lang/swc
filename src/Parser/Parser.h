@@ -98,7 +98,9 @@ class Parser
     AstNodeRef parseSingleType();
     AstNodeRef parseType();
 
-    AstNodeRef parseCallerSingleArg(AstNodeId callerNodeId);
+    AstNodeRef parseCallerArg1(AstNodeId callerNodeId);
+    AstNodeRef parseCallerArg2(AstNodeId callerNodeId);
+    AstNodeRef parseCallerArg3(AstNodeId callerNodeId);
     AstNodeRef parseBlock(AstNodeId blockNodeId, TokenId tokenStartId);
 
     AstNodeRef parseIdentifier();
@@ -108,6 +110,7 @@ class Parser
     AstNodeRef parseLiteralArray();
     AstNodeRef parseNamedArgument();
     AstNodeRef parsePrimaryExpression();
+    AstNodeRef parseUnaryExpression();
     AstNodeRef parseFactorExpression();
     AstNodeRef parseCompareExpression();
     AstNodeRef parseBoolExpression();

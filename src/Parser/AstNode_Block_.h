@@ -1,5 +1,6 @@
 // ReSharper disable CppPossiblyUninitializedMember
 #pragma once
+#include "Core/Types.h"
 
 struct AstNodeBlock : AstNode
 {

@@ -1,5 +1,4 @@
 #pragma once
-#include "Core/Types.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -47,6 +46,7 @@ struct AstNodeInvalid : AstNode
 };
 
 #include "Parser/AstNode_Block_.h"
+#include "Parser/AstNode_Call_.h"
 #include "Parser/AstNode_Compiler_.h"
 #include "Parser/AstNode_Expression_.h"
 #include "Parser/AstNode_Type_.h"

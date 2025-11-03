@@ -31,16 +31,20 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
             switch (id())
             {
             case TokenId::CompilerAssert:
-                childrenRef = parseCallerSingleArg(AstNodeId::CompilerAssert);
+                childrenRef = parseCallerArg1(AstNodeId::CompilerAssert);
+                expectEndStatement();
                 break;
             case TokenId::CompilerError:
-                childrenRef = parseCallerSingleArg(AstNodeId::CompilerError);
+                childrenRef = parseCallerArg1(AstNodeId::CompilerError);
+                expectEndStatement();
                 break;
             case TokenId::CompilerWarning:
-                childrenRef = parseCallerSingleArg(AstNodeId::CompilerWarning);
+                childrenRef = parseCallerArg1(AstNodeId::CompilerWarning);
+                expectEndStatement();
                 break;
             case TokenId::CompilerPrint:
-                childrenRef = parseCallerSingleArg(AstNodeId::CompilerPrint);
+                childrenRef = parseCallerArg1(AstNodeId::CompilerPrint);
+                expectEndStatement();
                 break;
             default:
                 break;

@@ -145,6 +145,18 @@ struct AstNodeFactorExpression : AstNodeBinary
     }
 };
 
+struct AstNodeUnaryExpression : AstNode
+{
+    static constexpr auto ID = AstNodeId::UnaryExpression;
+    AstNodeUnaryExpression() :
+        AstNode(ID)
+    {
+    }
+
+    TokenRef   tknOp;
+    AstNodeRef nodeExpr;
+};
+
 struct AstNodeLiteral : AstNode
 {
     explicit AstNodeLiteral(AstNodeId nodeId) :

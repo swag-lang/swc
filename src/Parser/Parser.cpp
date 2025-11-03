@@ -110,6 +110,8 @@ TokenRef Parser::consume()
     case TokenId::SymRightCurly:
         depthCurly_--;
         break;
+    default:
+        break;
     }
 
     curToken_++;

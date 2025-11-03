@@ -16,6 +16,7 @@ AstNodeRef Parser::parseCallerArg1(AstNodeId callerNodeId)
     if (isInvalid(nodePtr->nodeParam1))
         skipTo({TokenId::SymRightParen});
     expectAndConsumeClosing(TokenId::SymLeftParen, openRef);
+    
     return INVALID_REF;
 }
 

@@ -24,20 +24,6 @@ void Parser::setReportExpected(Diagnostic& diag, TokenId expectedTknId)
     diag.addArgument(Diagnostic::ARG_A_EXPECT_FAM, Token::toAFamily(expectedTknId), false);
 }
 
-Diagnostic Parser::reportError(DiagnosticId id, const Token& tkn) const
-{
-    auto diag = Diagnostic::get(*ctx_, id, file_);
-    setReportArguments(diag, tkn);
-    diag.last().setLocation(tkn.toLocation(*ctx_, *file_));
-    return diag;
-}
-
-void Parser::raiseError(DiagnosticId id, const Token& tkn) const
-{
-    const auto diag = reportError(id, tkn);
-    diag.report(*ctx_);
-}
-
 Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef) const
 {
     auto       diag  = Diagnostic::get(*ctx_, id, file_);
@@ -47,8 +33,12 @@ Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef) const
     return diag;
 }
 
-void Parser::raiseError(DiagnosticId id, TokenRef tknRef) const
+void Parser::raiseError(DiagnosticId id, TokenRef tknRef)
 {
+    if (tknRef == lastErrorToken_)
+        return;
+    lastErrorToken_ = tknRef;
+
     const auto diag = reportError(id, tknRef);
     diag.report(*ctx_);
 }
@@ -57,7 +47,7 @@ Diagnostic Parser::reportExpected(const ParserExpect& expect) const
 {
     SWC_ASSERT(expect.tokId != TokenId::Invalid);
 
-    auto diag = reportError(expect.diag, tok());
+    auto diag = reportError(expect.diag, ref());
     setReportArguments(diag, tok());
     setReportExpected(diag, expect.tokId);
     diag.addArgument(Diagnostic::ARG_BECAUSE, Diagnostic::diagIdMessage(expect.becauseCtx), false);
@@ -75,8 +65,12 @@ Diagnostic Parser::reportExpected(const ParserExpect& expect) const
     return diag;
 }
 
-void Parser::raiseExpected(const ParserExpect& expect) const
+void Parser::raiseExpected(const ParserExpect& expect)
 {
+    if (ref() == lastErrorToken_)
+        return;
+    lastErrorToken_ = ref();
+
     const auto diag = reportExpected(expect);
     diag.report(*ctx_);
 }

@@ -5,7 +5,7 @@ enum TOTO: const [..] s32
     B = 0
 }
 
-enum A } // swc-expected-error {{ParserExpectedTokenAfter}} {{UnexpectedToken}}
+enum A } // swc-expected-error {{ParserExpectedTokenAfter}}
 enum A toto } // swc-expected-error {{ParserExpectedTokenAfter}} {{UnexpectedToken}}
 
 enum A { B C } // swc-expected-error {{ParserExpectedToken}}

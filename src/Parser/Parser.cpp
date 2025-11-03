@@ -133,7 +133,7 @@ bool Parser::consumeIf(TokenId id, TokenRef* result)
     return true;
 }
 
-TokenRef Parser::expect(const ParserExpect& expect) const
+TokenRef Parser::expect(const ParserExpect& expect)
 {
     if (expect.valid(tok().id))
         return ref();
@@ -156,7 +156,14 @@ TokenRef Parser::expectAndConsumeClosingFor(TokenId openId, TokenRef openRef)
     auto        expect    = ParserExpect::one(closingId, DiagnosticId::ParserExpectedClosingBefore);
     if (open.id == openId)
         expect.note(DiagnosticId::ParserCorresponding, openRef);
-    return expectAndConsume(expect);
+    const auto result = expectAndConsume(expect);
+    if (isInvalid(result))
+    {
+        skipTo({closingId, TokenId::SymSemiColon, TokenId::SymLeftCurly}, SkipUntilFlags::EolBefore);
+        consumeIf(closingId);
+    }
+    
+    return result;
 }
 
 void Parser::expectEndStatement()
@@ -166,7 +173,7 @@ void Parser::expectEndStatement()
     if (consumeIf(TokenId::SymSemiColon))
         return;
 
-    const auto diag = reportError(DiagnosticId::ParserExpectedEndOfLine, curToken_[-1]);
+    const auto diag = reportError(DiagnosticId::ParserExpectedEndOfLine, ref() - 1);
     auto       loc  = curToken_[-1].toLocation(*ctx_, *file_);
     loc.column += loc.len;
     loc.offset += loc.len;

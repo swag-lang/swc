@@ -28,15 +28,16 @@ public:
 
 class Parser
 {
-    Context*     ctx_          = nullptr;
-    SourceFile*  file_         = nullptr;
-    Ast*         ast_          = nullptr;
-    const Token* firstToken_   = nullptr;
-    const Token* curToken_     = nullptr;
-    const Token* lastToken_    = nullptr;
-    uint32_t     depthParen_   = 0;
-    uint32_t     depthBracket_ = 0;
-    uint32_t     depthCurly_   = 0;
+    Context*     ctx_            = nullptr;
+    SourceFile*  file_           = nullptr;
+    Ast*         ast_            = nullptr;
+    const Token* firstToken_     = nullptr;
+    const Token* curToken_       = nullptr;
+    const Token* lastToken_      = nullptr;
+    uint32_t     depthParen_     = 0;
+    uint32_t     depthBracket_   = 0;
+    uint32_t     depthCurly_     = 0;
+    TokenRef     lastErrorToken_ = INVALID_REF;
 
     // Be sure that we consume something
     class EnsureConsume
@@ -69,12 +70,12 @@ class Parser
         return ((consumeIf(ids)) || ...);
     }
 
-    TokenRef expect(const ParserExpect& expect) const;
+    TokenRef expect(const ParserExpect& expect);
     TokenRef expectAndConsume(const ParserExpect& expect);
     TokenRef expectAndConsumeClosingFor(TokenId openId, TokenRef openRef);
     void     expectEndStatement();
 
-    TokenRef expect(TokenId id, DiagnosticId d) const { return expect(ParserExpect::one(id, d)); }
+    TokenRef expect(TokenId id, DiagnosticId d) { return expect(ParserExpect::one(id, d)); }
     TokenRef expectAndConsume(TokenId id, DiagnosticId d) { return expectAndConsume(ParserExpect::one(id, d)); }
 
     const Token* tokPtr() const { return curToken_; }
@@ -131,12 +132,10 @@ class Parser
 
     void        setReportArguments(Diagnostic& diag, const Token& token) const;
     static void setReportExpected(Diagnostic& diag, TokenId expectedTknId);
-    Diagnostic  reportError(DiagnosticId id, const Token& tkn) const;
-    void        raiseError(DiagnosticId id, const Token& tkn) const;
     Diagnostic  reportError(DiagnosticId id, TokenRef tknRef) const;
-    void        raiseError(DiagnosticId id, TokenRef tknRef) const;
+    void        raiseError(DiagnosticId id, TokenRef tknRef);
     Diagnostic  reportExpected(const ParserExpect& expect) const;
-    void        raiseExpected(const ParserExpect& expect) const;
+    void        raiseExpected(const ParserExpect& expect);
 
 public:
     Result parse(Context& ctx);

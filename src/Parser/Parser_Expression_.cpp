@@ -79,7 +79,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         return parseLiteralArray();
 
     default:
-        raiseError(DiagnosticId::ParserUnexpectedToken, tok());
+        raiseError(DiagnosticId::ParserUnexpectedToken, ref());
         return INVALID_REF;
     }
 }
@@ -215,7 +215,7 @@ AstModifierFlags Parser::parseModifiers()
             const auto name = tok().toString(*file_);
             if (name[0] == '#')
             {
-                raiseError(DiagnosticId::ParserInvalidModifier, tok());
+                raiseError(DiagnosticId::ParserInvalidModifier, ref());
                 consume();
                 continue;
             }
@@ -230,7 +230,7 @@ AstModifierFlags Parser::parseModifiers()
 
         if (has_any(result, toSet))
         {
-            auto diag = reportError(DiagnosticId::ParserDuplicatedModifier, tok());
+            auto diag = reportError(DiagnosticId::ParserDuplicatedModifier, ref());
             diag.addElement(DiagnosticId::ParserOtherDefinition);
             diag.last().setLocation(file_->lexOut().token(done[toSet]).toLocation(*ctx_, *file_));
             diag.report(*ctx_);
@@ -362,7 +362,7 @@ AstNodeRef Parser::parseBoolExpression()
     if (isAny(TokenId::KwdAnd, TokenId::KwdOr, TokenId::SymAmpersandAmpersand, TokenId::SymVerticalVertical))
     {
         if (isAny(TokenId::SymAmpersandAmpersand, TokenId::SymVerticalVertical))
-            raiseError(DiagnosticId::ParserUnexpectedAndOr, tok());
+            raiseError(DiagnosticId::ParserUnexpectedAndOr, ref());
 
         const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::BoolExpression>();
         nodePtr->tknOp                  = consume();

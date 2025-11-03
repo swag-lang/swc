@@ -7,8 +7,9 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
 {
-    const Token& openTok    = tok();
-    const auto   tokenEndId = Token::toRelated(tokenStartId);
+    const Token&   openTok    = tok();
+    const TokenRef openTokRef = ref();
+    const auto     tokenEndId = Token::toRelated(tokenStartId);
 
     if (tokenStartId != TokenId::Invalid)
     {
@@ -84,7 +85,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
         case AstNodeId::EnumBlock:
             if (!consumeIfAny(TokenId::SymComma) && !is(tokenEndId) && !tok().startsLine())
             {
-                auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, tok());
+                auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, ref());
                 setReportExpected(diag, TokenId::SymComma);
                 diag.report(*ctx_);
                 skipTo({TokenId::SymComma, tokenEndId});
@@ -96,7 +97,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
         case AstNodeId::NamedArgumentBlock:
             if (!consumeIfAny(TokenId::SymComma) && !is(tokenEndId))
             {
-                auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, tok());
+                auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, ref());
                 setReportExpected(diag, TokenId::SymComma);
                 diag.report(*ctx_);
                 skipTo({TokenId::SymComma, tokenEndId});
@@ -115,7 +116,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
     // Consume end token if necessary
     if (!consumeIf(tokenEndId) && tokenEndId != TokenId::Invalid)
     {
-        auto diag = reportError(DiagnosticId::ParserExpectedClosing, openTok);
+        auto diag = reportError(DiagnosticId::ParserExpectedClosing, openTokRef);
         setReportExpected(diag, Token::toRelated(openTok.id));
         diag.report(*ctx_);
     }
@@ -144,7 +145,7 @@ AstNodeRef Parser::parseTopLevelStmt()
     case TokenId::SymLeftCurly:
         return parseBlock(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     case TokenId::SymRightCurly:
-        raiseError(DiagnosticId::ParserUnexpectedToken, tok());
+        raiseError(DiagnosticId::ParserUnexpectedToken, ref());
         return INVALID_REF;
 
     case TokenId::SymSemiColon:

@@ -17,7 +17,7 @@ AstNodeRef Parser::parseCallerArg1(AstNodeId callerNodeId)
         skipTo({TokenId::SymRightParen});
     expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
 
-    return INVALID_REF;
+    return nodeRef;
 }
 
 AstNodeRef Parser::parseCallerArg2(AstNodeId callerNodeId)
@@ -38,7 +38,7 @@ AstNodeRef Parser::parseCallerArg2(AstNodeId callerNodeId)
         skipTo({TokenId::SymComma, TokenId::SymRightParen});
 
     expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
-    return INVALID_REF;
+    return nodeRef;
 }
 
 AstNodeRef Parser::parseCallerArg3(AstNodeId callerNodeId)
@@ -64,7 +64,7 @@ AstNodeRef Parser::parseCallerArg3(AstNodeId callerNodeId)
         skipTo({TokenId::SymComma, TokenId::SymRightParen});
 
     expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
-    return INVALID_REF;
+    return nodeRef;
 }
 
 SWC_END_NAMESPACE()

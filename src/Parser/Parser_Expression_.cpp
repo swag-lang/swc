@@ -10,7 +10,7 @@ AstNodeRef Parser::parsePrimaryExpression()
     switch (id())
     {
     case TokenId::Identifier:
-        return parseIdentifier();
+        return parseSuffixedIdentifier();
 
     case TokenId::CompilerSizeOf:
     case TokenId::CompilerAlignOf:
@@ -461,6 +461,31 @@ AstNodeRef Parser::parseIdentifier()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>();
     nodePtr->tknName        = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFam);
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseSuffixedIdentifier()
+{
+    const auto nodeIdentifier = parseIdentifier();
+    if (isInvalid(nodeIdentifier))
+        return INVALID_REF;
+    
+    if (!is(TokenId::SymQuote) || has_any(tok().flags, TokenFlags::BlankBefore))
+        return nodeIdentifier;
+
+    consume();
+
+    if (is(TokenId::SymLeftParen))
+    {
+        auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::MultiSuffixedIdentifier>();
+        nodePtr->nodeIdentifier  = nodeIdentifier;
+        nodePtr->nodeSuffixBlock = parseBlock(AstNodeId::UnnamedArgumentBlock, TokenId::SymLeftParen);
+        return nodeRef;
+    }
+
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SuffixedIdentifier>();
+    nodePtr->nodeIdentifier = nodeIdentifier;
+    nodePtr->nodeSuffix     = parseType();
     return nodeRef;
 }
 

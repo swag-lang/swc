@@ -105,6 +105,7 @@ class Parser
     AstNodeRef parseBlock(AstNodeId blockNodeId, TokenId tokenStartId);
 
     AstNodeRef       parseIdentifier();
+    AstNodeRef       parseSuffixedIdentifier();
     AstNodeRef       parseScopedIdentifier();
     AstNodeRef       parseLiteral();
     AstNodeRef       parseLiteralExpression();

@@ -231,6 +231,30 @@ struct AstNodeIdentifier : AstNode
     TokenRef tknName;
 };
 
+struct AstNodeSuffixedIdentifier : AstNode
+{
+    static constexpr auto ID = AstNodeId::SuffixedIdentifier;
+    AstNodeSuffixedIdentifier() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeIdentifier;
+    AstNodeRef nodeSuffix;
+};
+
+struct AstNodeMultiSuffixedIdentifier : AstNode
+{
+    static constexpr auto ID = AstNodeId::MultiSuffixedIdentifier;
+    AstNodeMultiSuffixedIdentifier() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeIdentifier;
+    AstNodeRef nodeSuffixBlock;
+};
+
 struct AstNodeFuncCall : AstNode
 {
     static constexpr auto ID = AstNodeId::FuncCall;

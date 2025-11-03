@@ -8,6 +8,8 @@ SWC_NODE_DEF(Namespace)
 
 // Identifiers & References
 SWC_NODE_DEF(Identifier)
+SWC_NODE_DEF(SuffixedIdentifier)
+SWC_NODE_DEF(MultiSuffixedIdentifier)
 SWC_NODE_DEF(ScopeAccess)
 
 // Postfix

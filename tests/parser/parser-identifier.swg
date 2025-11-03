@@ -167,3 +167,7 @@
 #assert(!main1())
 #assert(main() and true)
 #assert(main1() or true)
+
+#assert(main'A())
+#assert(main'(A)())
+#assert(main'(A, B)())

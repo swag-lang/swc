@@ -126,7 +126,6 @@
         <ClCompile Include="src\Parser\Parser_Call_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Compiler_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Enum_.cpp"/>
-        <ClCompile Include="src\Parser\Parser_Errors_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Expression_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Literal_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Struct_.cpp"/>

@@ -474,7 +474,6 @@ AstNodeRef Parser::parseScopedIdentifier()
         if (consumeIf(TokenId::SymDot))
             continue;
 
-
         break;
     }
 

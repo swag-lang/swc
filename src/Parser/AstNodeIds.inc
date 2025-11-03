@@ -62,9 +62,15 @@ SWC_NODE_ID_DEF(ArrayLiteral)
 SWC_NODE_ID_DEF(CompilerLiteral)
 
 SWC_NODE_ID_DEF(FuncBody)
-SWC_NODE_ID_DEF(CompilerTestFunc)
 SWC_NODE_ID_DEF(EmbeddedBlock)
 SWC_NODE_ID_DEF(ImplDecl)
 SWC_NODE_ID_DEF(ImplDeclFor)
 
+SWC_NODE_ID_DEF(CompilerRunFunc)
+SWC_NODE_ID_DEF(CompilerAstFunc)
+SWC_NODE_ID_DEF(CompilerTestFunc)
+SWC_NODE_ID_DEF(CompilerInitFunc)
+SWC_NODE_ID_DEF(CompilerDropFunc)
+SWC_NODE_ID_DEF(CompilerMainFunc)
+SWC_NODE_ID_DEF(CompilerPreMainFunc)
 

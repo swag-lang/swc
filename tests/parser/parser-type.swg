@@ -70,3 +70,6 @@ enum A : *const [5]A {}
 enum A : [5]*const *A {}
 
 enum A : [ /* open only */ 0 {} // swc-expected-error {{ParserExpectedClosing}}
+
+enum AA: const [2, 2] s32 {}
+enum AA: const [2, 2, 3, 5][1, 2] s32 {}

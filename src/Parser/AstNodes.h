@@ -687,7 +687,7 @@ struct AstNodeArrayType : AstNode
     {
     }
 
-    AstNodeRef nodeDim;
+    Ref        spanDimensions;
     AstNodeRef nodePointeeType;
 };
 

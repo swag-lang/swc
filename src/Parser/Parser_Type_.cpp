@@ -146,19 +146,31 @@ AstNodeRef Parser::parseType()
         }
 
         // Array with a dimension
-        const auto dim = parseExpression();
-        if (isInvalid(dim))
+        SmallVector<AstNodeRef> dimensions;
+        const auto              firstDim = parseExpression();
+        if (isInvalid(firstDim))
             return INVALID_REF;
+        dimensions.push_back(firstDim);
+
+        // Parse additional dimensions separated by commas
+        while (consumeIf(TokenId::SymComma))
+        {
+            const auto dim = parseExpression();
+            if (isInvalid(dim))
+                return INVALID_REF;
+            dimensions.push_back(dim);
+        }
 
         if (isInvalid(expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket)))
             return INVALID_REF;
 
+        // Recursively parse the rest of the type (handles chaining like [X][Y])
         const auto child = parseType();
         if (isInvalid(child))
             return INVALID_REF;
 
         auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::ArrayType>();
-        nodePtr->nodeDim         = dim;
+        nodePtr->spanDimensions  = ast_->store_.push_span(std::span(dimensions.data(), dimensions.size()));
         nodePtr->nodePointeeType = child;
         return nodeRef;
     }

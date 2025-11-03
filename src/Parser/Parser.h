@@ -122,7 +122,7 @@ class Parser
     AstNodeRef       parseEnum();
     AstNodeRef       parseEnumImpl();
     AstNodeRef       parseEnumValue();
-    AstNodeRef       parseTopLevelCompilerFunc();
+    AstNodeRef       parseCompilerFunc();
     AstNodeRef       parseTopLevelStmt();
     AstNodeRef       parseEmbeddedStmt();
     AstNodeRef       parseImpl();

@@ -173,7 +173,7 @@ AstNodeRef Parser::parseImpl()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseTopLevelCompilerFunc()
+AstNodeRef Parser::parseCompilerFunc()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerFunc>();
     nodePtr->tknName        = consume();
@@ -207,7 +207,7 @@ AstNodeRef Parser::parseTopLevelStmt()
     case TokenId::CompilerFuncInit:
     case TokenId::CompilerFuncDrop:
     case TokenId::CompilerAst:
-        return parseTopLevelCompilerFunc();
+        return parseCompilerFunc();
 
     default:
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::EolBefore);

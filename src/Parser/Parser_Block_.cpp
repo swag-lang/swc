@@ -213,6 +213,13 @@ AstNodeRef Parser::parseEmbeddedStmt()
     {
     case TokenId::SymLeftCurly:
         return parseBlock(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
+    case TokenId::SymRightCurly:
+        raiseError(DiagnosticId::ParserUnexpectedToken, ref());
+        return INVALID_REF;
+
+    case TokenId::SymSemiColon:
+        consume();
+        return INVALID_REF;        
 
     default:
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::EolBefore);

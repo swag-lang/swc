@@ -44,6 +44,7 @@ SWC_NODE_DEF(CompilerAssert)
 SWC_NODE_DEF(CompilerError)
 SWC_NODE_DEF(CompilerWarning)
 SWC_NODE_DEF(CompilerFunc)
+SWC_NODE_DEF(CompilerShortFunc)
 SWC_NODE_DEF(CompilerPrint)
 SWC_NODE_DEF(CompilerCall1)
 

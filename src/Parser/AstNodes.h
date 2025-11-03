@@ -208,6 +208,18 @@ struct AstNodeCompilerFunc : AstNode
     AstNodeRef nodeBody;
 };
 
+struct AstNodeCompilerShortFunc : AstNode
+{
+    static constexpr auto ID = AstNodeId::CompilerShortFunc;
+    explicit AstNodeCompilerShortFunc() :
+        AstNode(ID)
+    {
+    }
+
+    TokenRef   tknName;
+    AstNodeRef nodeExpression;
+};
+
 struct AstNodeIdentifier : AstNode
 {
     static constexpr auto ID = AstNodeId::Identifier;

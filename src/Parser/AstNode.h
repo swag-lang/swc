@@ -11,18 +11,18 @@ struct AstNodeIdInfo
 
 enum class AstNodeId : uint16_t
 {
-#define SWC_NODE_ID_DEF(enum) enum,
+#define SWC_NODE_DEF(enum) enum,
 #include "AstNodes.def"
 
-#undef SWC_NODE_ID_DEF
+#undef SWC_NODE_DEF
     Count
 };
 
 constexpr std::array AST_NODE_ID_INFOS = {
-#define SWC_NODE_ID_DEF(enum) AstNodeIdInfo{#enum},
+#define SWC_NODE_DEF(enum) AstNodeIdInfo{#enum},
 #include "AstNodes.def"
 
-#undef SWC_NODE_ID_DEF
+#undef SWC_NODE_DEF
 };
 
 enum class AstModifierFlags : uint32_t
@@ -77,26 +77,26 @@ T* castAst(AstNode* node)
 template<AstNodeId Id>
 struct AstTypeOf;
 
-#define SWC_NODE_ID_DEF(E)         \
+#define SWC_NODE_DEF(E)         \
     template<>                     \
     struct AstTypeOf<AstNodeId::E> \
     {                              \
         using type = AstNode##E;   \
     };
 #include "AstNodes.def"
-#undef SWC_NODE_ID_DEF
+#undef SWC_NODE_DEF
 
 template<class F>
 decltype(auto) visitAstNodeId(AstNodeId id, F&& f)
 {
     switch (id)
     {
-#define SWC_NODE_ID_DEF(E) \
+#define SWC_NODE_DEF(E) \
     case AstNodeId::E:     \
         return std::forward<F>(f).operator()<AstNodeId::E>();
 #include "AstNodes.def"
 
-#undef SWC_NODE_ID_DEF
+#undef SWC_NODE_DEF
     default:
         std::unreachable();
     }

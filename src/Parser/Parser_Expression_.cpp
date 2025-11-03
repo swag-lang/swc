@@ -217,7 +217,9 @@ AstModifierFlags Parser::parseModifiers()
             {
                 raiseError(DiagnosticId::ParserInvalidModifier, tok());
                 consume();
+                continue;
             }
+            break;
         }
         default:
             break;
@@ -264,7 +266,7 @@ AstNodeRef Parser::parseCast()
     nodePtr->nodeType             = parseType();
     if (isInvalid(nodePtr->nodeType))
         skipTo({TokenId::SymRightParen});
-    expectAndConsumeClosing(TokenId::SymLeftParen, openRef);
+    expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
     nodePtr->nodeExpr = parseExpression();
 
     return nodeRef;
@@ -385,7 +387,7 @@ AstNodeRef Parser::parseParenExpression()
     nodePtr->nodeExpr = parseExpression();
     if (isInvalid(nodePtr->nodeExpr))
         skipTo({TokenId::SymRightParen}, SkipUntilFlags::EolBefore);
-    expectAndConsumeClosing(TokenId::SymLeftParen, openRef);
+    expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
     return nodeRef;
 }
 

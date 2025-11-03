@@ -19,6 +19,8 @@
 #assert(cast #ref1 (s32) 9) // swc-expected-error {{ParserInvalidModifier}}
 #assert(a + #wrap b)
 
+#assert(a + / b)
+
 
 
 

@@ -15,8 +15,8 @@ AstNodeRef Parser::parseCallerArg1(AstNodeId callerNodeId)
     nodePtr->nodeParam1 = parseExpression();
     if (isInvalid(nodePtr->nodeParam1))
         skipTo({TokenId::SymRightParen});
-    expectAndConsumeClosing(TokenId::SymLeftParen, openRef);
-    
+    expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
+
     return INVALID_REF;
 }
 
@@ -37,7 +37,7 @@ AstNodeRef Parser::parseCallerArg2(AstNodeId callerNodeId)
     if (isInvalid(nodePtr->nodeParam2))
         skipTo({TokenId::SymComma, TokenId::SymRightParen});
 
-    expectAndConsumeClosing(TokenId::SymLeftParen, openRef);
+    expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
     return INVALID_REF;
 }
 
@@ -48,7 +48,7 @@ AstNodeRef Parser::parseCallerArg3(AstNodeId callerNodeId)
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenAfter);
-    
+
     nodePtr->nodeParam1 = parseExpression();
     if (isInvalid(nodePtr->nodeParam1))
         skipTo({TokenId::SymRightParen});
@@ -62,8 +62,8 @@ AstNodeRef Parser::parseCallerArg3(AstNodeId callerNodeId)
     nodePtr->nodeParam3 = parseExpression();
     if (isInvalid(nodePtr->nodeParam2))
         skipTo({TokenId::SymComma, TokenId::SymRightParen});
-    
-    expectAndConsumeClosing(TokenId::SymLeftParen, openRef);
+
+    expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
     return INVALID_REF;
 }
 

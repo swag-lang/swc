@@ -149,7 +149,7 @@ TokenRef Parser::expectAndConsume(const ParserExpect& expect)
     return INVALID_REF;
 }
 
-TokenRef Parser::expectAndConsumeClosing(TokenId openId, TokenRef openRef)
+TokenRef Parser::expectAndConsumeClosingFor(TokenId openId, TokenRef openRef)
 {
     const auto& open      = file_->lexOut().token(openRef);
     const auto  closingId = Token::toRelated(openId);

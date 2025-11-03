@@ -104,12 +104,12 @@ class Parser
     AstNodeRef parseBlock(AstNodeId blockNodeId, TokenId tokenStartId);
 
     AstNodeRef parseIdentifier();
-    AstNodeRef parseIdentifierExpression();
     AstNodeRef parseLiteral();
     AstNodeRef parseLiteralExpression();
     AstNodeRef parseLiteralArray();
     AstNodeRef parseNamedArgument();
     AstNodeRef parsePrimaryExpression();
+    AstNodeRef parsePostFixExpression();
     AstNodeRef parseUnaryExpression();
     AstNodeRef parseFactorExpression();
     AstNodeRef parseCompareExpression();

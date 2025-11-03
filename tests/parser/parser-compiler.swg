@@ -15,3 +15,5 @@ enum A
 #print(C)
 
 #assert(#sizeof(MyStruct1) == 9)
+#assert(#sizeof(MyStruct1.A.B.C) == 9)
+#assert(#sizeof(MyStruct1.A.B.C as s32) == 9)

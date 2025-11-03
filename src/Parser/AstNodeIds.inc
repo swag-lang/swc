@@ -9,6 +9,7 @@ SWC_NODE_ID_DEF(NamedArgumentBlock)
 SWC_NODE_ID_DEF(UnnamedArgumentBlock)
 SWC_NODE_ID_DEF(NamedArgument)
 SWC_NODE_ID_DEF(UnnamedArgument)
+SWC_NODE_ID_DEF(MemberAccess)
 
 SWC_NODE_ID_DEF(ParenExpression)
 SWC_NODE_ID_DEF(BoolExpression)

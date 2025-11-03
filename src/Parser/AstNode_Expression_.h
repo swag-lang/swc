@@ -20,7 +20,7 @@ struct AstNodeFuncCall : AstNode
     {
     }
 
-    AstNodeRef nodeIdentifier;
+    AstNodeRef nodeExpr;
     AstNodeRef nodeArgs;
 };
 
@@ -32,7 +32,7 @@ struct AstNodeStructInit : AstNode
     {
     }
 
-    AstNodeRef nodeIdentifier;
+    AstNodeRef nodeExpr;
     AstNodeRef nodeArgs;
 };
 
@@ -44,7 +44,7 @@ struct AstNodeArrayDeref : AstNode
     {
     }
 
-    AstNodeRef nodeIdentifier;
+    AstNodeRef nodeExpr;
     AstNodeRef nodeArgs;
 };
 
@@ -249,4 +249,16 @@ struct AstNodeArrayLiteral : AstNodeBlock
         AstNodeBlock(ID)
     {
     }
+};
+
+struct AstNodeMemberAccess : AstNode
+{
+    static constexpr auto ID = AstNodeId::MemberAccess;
+    AstNodeMemberAccess() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeLeft;
+    AstNodeRef nodeRight;
 };

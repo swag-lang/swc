@@ -9,7 +9,7 @@ AstNodeRef Parser::parsePrimaryExpression()
     switch (id())
     {
     case TokenId::Identifier:
-        return parseIdentifierExpression();
+        return parseIdentifier();
 
     case TokenId::CompilerSizeOf:
     case TokenId::CompilerAlignOf:
@@ -82,6 +82,61 @@ AstNodeRef Parser::parsePrimaryExpression()
     }
 }
 
+AstNodeRef Parser::parsePostFixExpression()
+{
+    auto nodeRef = parsePrimaryExpression();
+    if (isInvalid(nodeRef))
+        return INVALID_REF;
+
+    // Handle chained postfix operations: A.B.C()[5](args)
+    while (true)
+    {
+        // Member access: A.B
+        if (is(TokenId::SymDot))
+        {
+            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::MemberAccess>();
+            consume();
+            nodePtr->nodeLeft  = nodeRef;
+            nodePtr->nodeRight = parsePostFixExpression();
+            nodeRef            = nodeParent;
+            continue;
+        }
+
+        // Array indexing: A[index]
+        if (is(TokenId::SymLeftBracket) && !has_any(tok().flags, TokenFlags::BlankBefore))
+        {
+            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::ArrayDeref>();
+            nodePtr->nodeExpr                = nodeRef;
+            nodePtr->nodeArgs                = parseBlock(AstNodeId::UnnamedArgumentBlock, TokenId::SymLeftBracket);
+            nodeRef                          = nodeParent;
+            continue;
+        }
+
+        // Function call: A(args)
+        if (is(TokenId::SymLeftParen) && !has_any(tok().flags, TokenFlags::BlankBefore))
+        {
+            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::FuncCall>();
+            nodePtr->nodeExpr                = nodeRef;
+            nodePtr->nodeArgs                = parseBlock(AstNodeId::NamedArgumentBlock, TokenId::SymLeftParen);
+            nodeRef                          = nodeParent;
+            continue;
+        }
+
+        // Struct init: A{args}
+        if (is(TokenId::SymLeftCurly) && !has_any(tok().flags, TokenFlags::BlankBefore))
+        {
+            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::StructInit>();
+            nodePtr->nodeExpr                = nodeRef;
+            nodePtr->nodeArgs                = parseBlock(AstNodeId::NamedArgumentBlock, TokenId::SymLeftCurly);
+            nodeRef                          = nodeParent;
+            continue;
+        }
+        break;
+    }
+
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseUnaryExpression()
 {
     switch (id())
@@ -90,6 +145,8 @@ AstNodeRef Parser::parseUnaryExpression()
     case TokenId::SymMinus:
     case TokenId::SymExclamation:
     case TokenId::SymTilde:
+    case TokenId::SymAmpersand:
+    case TokenId::KwdDRef:
     {
         const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpression>();
         nodePtr->tknOp                  = consume();
@@ -101,7 +158,7 @@ AstNodeRef Parser::parseUnaryExpression()
         break;
     }
 
-    return parsePrimaryExpression();
+    return parsePostFixExpression();
 }
 
 AstNodeRef Parser::parseFactorExpression()
@@ -200,41 +257,6 @@ AstNodeRef Parser::parseIdentifier()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>();
     nodePtr->tknName        = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFam);
     return nodeRef;
-}
-
-AstNodeRef Parser::parseIdentifierExpression()
-{
-    if (!has_any(tok().flags, TokenFlags::BlankAfter))
-    {
-        switch (nextId())
-        {
-        case TokenId::SymLeftParen:
-        {
-            const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FuncCall>();
-            nodePtr->nodeIdentifier       = parseIdentifier();
-            nodePtr->nodeArgs             = parseBlock(AstNodeId::NamedArgumentBlock, TokenId::SymLeftParen);
-            return nodeRef;
-        }
-        case TokenId::SymLeftCurly:
-        {
-            const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructInit>();
-            nodePtr->nodeIdentifier       = parseIdentifier();
-            nodePtr->nodeArgs             = parseBlock(AstNodeId::NamedArgumentBlock, TokenId::SymLeftCurly);
-            return nodeRef;
-        }
-        case TokenId::SymLeftBracket:
-        {
-            const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ArrayDeref>();
-            nodePtr->nodeIdentifier       = parseIdentifier();
-            nodePtr->nodeArgs             = parseBlock(AstNodeId::UnnamedArgumentBlock, TokenId::SymLeftBracket);
-            return nodeRef;
-        }
-        default:
-            break;
-        }
-    }
-
-    return parseIdentifier();
 }
 
 AstNodeRef Parser::parseNamedArgument()

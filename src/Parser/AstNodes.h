@@ -231,15 +231,6 @@ struct AstNodeIdentifier : AstNode
     TokenRef tknName;
 };
 
-struct AstNodeScopedIdentifier : AstNodeBlock
-{
-    static constexpr auto ID = AstNodeId::ScopedIdentifier;
-    AstNodeScopedIdentifier() :
-        AstNodeBlock(ID)
-    {
-    }
-};
-
 struct AstNodeFuncCall : AstNode
 {
     static constexpr auto ID = AstNodeId::FuncCall;

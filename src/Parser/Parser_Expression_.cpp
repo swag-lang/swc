@@ -466,23 +466,29 @@ AstNodeRef Parser::parseIdentifier()
 
 AstNodeRef Parser::parseScopedIdentifier()
 {
-    SmallVector<AstNodeRef> childrenRefs;
-    while (true)
+    // Parse the first identifier
+    auto leftNode = parseIdentifier();
+    if (isInvalid(leftNode))
+        return INVALID_REF;
+
+    // Check if there's a scope access operator
+    while (consumeIf(TokenId::SymDot))
     {
-        const auto childRef = parseIdentifier();
-        if (isInvalid(childRef))
-            break;
+        // Parse the right side (another identifier)
+        const auto rightNode = parseIdentifier();
+        if (isInvalid(rightNode))
+            return INVALID_REF;
 
-        childrenRefs.push_back(childRef);
-        if (consumeIf(TokenId::SymDot))
-            continue;
+        // Create a ScopeAccess node with left and right
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ScopeAccess>();
+        nodePtr->nodeLeft       = leftNode;
+        nodePtr->nodeRight      = rightNode;
 
-        break;
+        // The new ScopeAccess becomes the left node for the next iteration
+        leftNode = nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ScopedIdentifier>();
-    nodePtr->spanChildren   = ast_->store_.push_span(std::span(childrenRefs.data(), childrenRefs.size()));
-    return nodeRef;
+    return leftNode;
 }
 
 AstNodeRef Parser::parseNamedArgument()

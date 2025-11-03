@@ -20,6 +20,7 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::CompilerNameOf:
     case TokenId::CompilerRunes:
     case TokenId::CompilerIsConstExpr:
+    case TokenId::CompilerDefined:
         return parseCallerArg1(AstNodeId::CompilerIntrinsic1);
 
     case TokenId::IntrinsicKindOf:

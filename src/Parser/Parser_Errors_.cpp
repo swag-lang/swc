@@ -72,7 +72,6 @@ Diagnostic Parser::reportExpected(const ParserExpect& expect) const
         diag.addElement(expect.noteId).setLocation(tknLoc.toLocation(*ctx_, *file_));
     }
 
-    diag.report(*ctx_);
     return diag;
 }
 

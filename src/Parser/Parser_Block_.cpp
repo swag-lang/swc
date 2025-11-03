@@ -173,6 +173,14 @@ AstNodeRef Parser::parseImpl()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseTopLevelCompilerFunc()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerFunc>();
+    nodePtr->tknName        = consume();
+    nodePtr->nodeBody       = parseBlock(AstNodeId::FuncBody, TokenId::SymLeftCurly);
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseTopLevelStmt()
 {
     switch (id())
@@ -194,47 +202,12 @@ AstNodeRef Parser::parseTopLevelStmt()
         return parseImpl();
 
     case TokenId::CompilerFuncTest:
-    {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerTestFunc>();
-        nodePtr->tknName        = consume();
-        nodePtr->nodeBody       = parseBlock(AstNodeId::FuncBody, TokenId::SymLeftCurly);
-        return nodeRef;
-    }
     case TokenId::CompilerFuncMain:
-    {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerMainFunc>();
-        nodePtr->tknName        = consume();
-        nodePtr->nodeBody       = parseBlock(AstNodeId::FuncBody, TokenId::SymLeftCurly);
-        return nodeRef;
-    }
     case TokenId::CompilerFuncPreMain:
-    {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerPreMainFunc>();
-        nodePtr->tknName        = consume();
-        nodePtr->nodeBody       = parseBlock(AstNodeId::FuncBody, TokenId::SymLeftCurly);
-        return nodeRef;
-    }
     case TokenId::CompilerFuncInit:
-    {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerInitFunc>();
-        nodePtr->tknName        = consume();
-        nodePtr->nodeBody       = parseBlock(AstNodeId::FuncBody, TokenId::SymLeftCurly);
-        return nodeRef;
-    }
     case TokenId::CompilerFuncDrop:
-    {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerDropFunc>();
-        nodePtr->tknName        = consume();
-        nodePtr->nodeBody       = parseBlock(AstNodeId::FuncBody, TokenId::SymLeftCurly);
-        return nodeRef;
-    }
     case TokenId::CompilerAst:
-    {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerAstFunc>();
-        nodePtr->tknName        = consume();
-        nodePtr->nodeBody       = parseBlock(AstNodeId::FuncBody, TokenId::SymLeftCurly);
-        return nodeRef;
-    }
+        return parseTopLevelCompilerFunc();
 
     default:
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::EolBefore);

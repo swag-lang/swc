@@ -12,7 +12,7 @@ struct AstNodeIdInfo
 enum class AstNodeId : uint16_t
 {
 #define SWC_NODE_ID_DEF(enum) enum,
-#include "AstNodeIds.inc"
+#include "AstNodes.def"
 
 #undef SWC_NODE_ID_DEF
     Count
@@ -20,7 +20,7 @@ enum class AstNodeId : uint16_t
 
 constexpr std::array AST_NODE_ID_INFOS = {
 #define SWC_NODE_ID_DEF(enum) AstNodeIdInfo{#enum},
-#include "AstNodeIds.inc"
+#include "AstNodes.def"
 
 #undef SWC_NODE_ID_DEF
 };
@@ -64,11 +64,7 @@ struct AstNodeInvalid : AstNode
     }
 };
 
-#include "Parser/AstNode_Block_.h"
-#include "Parser/AstNode_Call_.h"
-#include "Parser/AstNode_Compiler_.h"
-#include "Parser/AstNode_Expression_.h"
-#include "Parser/AstNode_Type_.h"
+#include "Parser/AstNodes.h"
 
 template<typename T>
 T* castAst(AstNode* node)
@@ -87,7 +83,7 @@ struct AstTypeOf;
     {                              \
         using type = AstNode##E;   \
     };
-#include "AstNodeIds.inc"
+#include "AstNodes.def"
 #undef SWC_NODE_ID_DEF
 
 template<class F>
@@ -98,7 +94,7 @@ decltype(auto) visitAstNodeId(AstNodeId id, F&& f)
 #define SWC_NODE_ID_DEF(E) \
     case AstNodeId::E:     \
         return std::forward<F>(f).operator()<AstNodeId::E>();
-#include "AstNodeIds.inc"
+#include "AstNodes.def"
 
 #undef SWC_NODE_ID_DEF
     default:

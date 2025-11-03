@@ -32,19 +32,19 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
             switch (id())
             {
             case TokenId::CompilerAssert:
-                childrenRef = parseCallerArg1(AstNodeId::CompilerAssert);
+                childrenRef = parseCallArg1(AstNodeId::CompilerAssert);
                 expectEndStatement();
                 break;
             case TokenId::CompilerError:
-                childrenRef = parseCallerArg1(AstNodeId::CompilerError);
+                childrenRef = parseCallArg1(AstNodeId::CompilerError);
                 expectEndStatement();
                 break;
             case TokenId::CompilerWarning:
-                childrenRef = parseCallerArg1(AstNodeId::CompilerWarning);
+                childrenRef = parseCallArg1(AstNodeId::CompilerWarning);
                 expectEndStatement();
                 break;
             case TokenId::CompilerPrint:
-                childrenRef = parseCallerArg1(AstNodeId::CompilerPrint);
+                childrenRef = parseCallArg1(AstNodeId::CompilerPrint);
                 expectEndStatement();
                 break;
             default:
@@ -133,52 +133,6 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
 AstNodeRef Parser::parseFile()
 {
     return parseBlock(AstNodeId::File, TokenId::Invalid);
-}
-
-AstNodeRef Parser::parseImpl()
-{
-    if (nextIs(TokenId::KwdEnum))
-        return parseEnumImpl();
-
-    const auto tknOp = consume();
-
-    // Name
-    const AstNodeRef nodeIdentifier = parseScopedIdentifier();
-    if (isInvalid(nodeIdentifier))
-        skipTo({TokenId::SymLeftCurly, TokenId::KwdFor});
-
-    // For
-    AstNodeRef nodeFor = INVALID_REF;
-    if (consumeIf(TokenId::KwdFor))
-    {
-        nodeFor = parseScopedIdentifier();
-        if (isInvalid(nodeIdentifier))
-            skipTo({TokenId::SymLeftCurly});
-    }
-
-    if (isInvalid(nodeFor))
-    {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ImplDecl>();
-        nodePtr->tknOp          = tknOp;
-        nodePtr->nodeIdentifier = nodeIdentifier;
-        nodePtr->nodeContent    = parseBlock(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
-        return nodeRef;
-    }
-
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ImplDeclFor>();
-    nodePtr->tknOp          = tknOp;
-    nodePtr->nodeIdentifier = nodeIdentifier;
-    nodePtr->nodeFor        = nodeFor;
-    nodePtr->nodeContent    = parseBlock(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
-    return nodeRef;
-}
-
-AstNodeRef Parser::parseCompilerFunc()
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerFunc>();
-    nodePtr->tknName        = consume();
-    nodePtr->nodeBody       = parseBlock(AstNodeId::FuncBody, TokenId::SymLeftCurly);
-    return nodeRef;
 }
 
 AstNodeRef Parser::parseTopLevelStmt()

@@ -1,5 +1,4 @@
 #include "pch.h"
-
 #include "Lexer/SourceFile.h"
 #include "Parser/AstNode.h"
 #include "Parser/Parser.h"
@@ -24,7 +23,7 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::CompilerIsConstExpr:
     case TokenId::CompilerDefined:
     case TokenId::CompilerInclude:
-        return parseCallerArg1(AstNodeId::CompilerIntrinsic1);
+        return parseCallArg1(AstNodeId::CompilerIntrinsic1);
 
     case TokenId::IntrinsicKindOf:
     case TokenId::IntrinsicCountOf:
@@ -56,7 +55,7 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::IntrinsicBitCountNz:
     case TokenId::IntrinsicBitCountTz:
     case TokenId::IntrinsicBitCountLz:
-        return parseCallerArg1(AstNodeId::Intrinsic1);
+        return parseCallArg1(AstNodeId::Intrinsic1);
 
     case TokenId::IntrinsicMakeAny:
     case TokenId::IntrinsicMakeSlice:
@@ -75,10 +74,10 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::IntrinsicAtomicOr:
     case TokenId::IntrinsicAtomicAnd:
     case TokenId::IntrinsicAtomicAdd:
-        return parseCallerArg2(AstNodeId::Intrinsic2);
+        return parseCallArg2(AstNodeId::Intrinsic2);
 
     case TokenId::IntrinsicMakeInterface:
-        return parseCallerArg3(AstNodeId::Intrinsic3);
+        return parseCallArg3(AstNodeId::Intrinsic3);
 
     case TokenId::NumberInteger:
     case TokenId::NumberBinary:

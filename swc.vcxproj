@@ -129,6 +129,7 @@
         <ClCompile Include="src\Parser\Parser_Errors_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Expression_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Literal_.cpp"/>
+        <ClCompile Include="src\Parser\Parser_Struct_.cpp" />
         <ClCompile Include="src\Parser\Parser_Type_.cpp"/>
         <ClCompile Include="src\pch.cpp">
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

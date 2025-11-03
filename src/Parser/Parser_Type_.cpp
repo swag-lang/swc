@@ -65,7 +65,6 @@ AstNodeRef Parser::parseType()
         const auto child = parseType();
         if (isInvalid(child))
             return INVALID_REF;
-
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LRefType>();
         nodePtr->nodeType       = child;
         return nodeRef;
@@ -77,7 +76,6 @@ AstNodeRef Parser::parseType()
         const auto child = parseType();
         if (isInvalid(child))
             return INVALID_REF;
-
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::RRefType>();
         nodePtr->nodeType       = child;
         return nodeRef;
@@ -89,7 +87,6 @@ AstNodeRef Parser::parseType()
         const auto child = parseType();
         if (isInvalid(child))
             return INVALID_REF;
-
         auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::PointerType>();
         nodePtr->nodePointeeType = child;
         return nodeRef;
@@ -104,11 +101,9 @@ AstNodeRef Parser::parseType()
         {
             if (isInvalid(expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket)))
                 return INVALID_REF;
-
             const auto child = parseType();
             if (isInvalid(child))
                 return INVALID_REF;
-
             auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::BlockPointerType>();
             nodePtr->nodePointeeType = child;
             return nodeRef;
@@ -119,11 +114,9 @@ AstNodeRef Parser::parseType()
         {
             if (isInvalid(expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket)))
                 return INVALID_REF;
-
             const auto child = parseType();
             if (isInvalid(child))
                 return INVALID_REF;
-
             auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::SliceType>();
             nodePtr->nodePointeeType = child;
             return nodeRef;
@@ -134,11 +127,9 @@ AstNodeRef Parser::parseType()
         {
             if (isInvalid(expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket)))
                 return INVALID_REF;
-
             const auto child = parseType();
             if (isInvalid(child))
                 return INVALID_REF;
-
             auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::IncompleteArrayType>();
             nodePtr->nodePointeeType = child;
             return nodeRef;

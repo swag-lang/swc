@@ -81,7 +81,7 @@ AstNodeRef Parser::parseEnumImpl()
     if (isInvalid(nodePtr->nodeName))
         skipTo({TokenId::SymLeftCurly});
 
-    nodePtr->nodeBody = parseBlock(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
+    nodePtr->nodeBody = parseBlock(AstNodeId::ImplBlock, TokenId::SymLeftCurly);
     return nodeRef;
 }
 

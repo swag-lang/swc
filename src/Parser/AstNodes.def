@@ -57,26 +57,26 @@ SWC_NODE_DEF(BlockPointerType)
 SWC_NODE_DEF(BuiltinType)
 SWC_NODE_DEF(IncompleteArrayType)
 SWC_NODE_DEF(LRefType)
+SWC_NODE_DEF(RRefType)
 SWC_NODE_DEF(NamedType)
 SWC_NODE_DEF(PointerType)
 SWC_NODE_DEF(QualifiedType)
-SWC_NODE_DEF(RRefType)
 SWC_NODE_DEF(SliceType)
 
 // Declarations & Implementations
 SWC_NODE_DEF(ImplDecl)
 SWC_NODE_DEF(ImplDeclFor)
+SWC_NODE_DEF(ImplBlock)
 
 // Enums
-SWC_NODE_DEF(EnumBlock)
 SWC_NODE_DEF(EnumDecl)
+SWC_NODE_DEF(EnumBlock)
 SWC_NODE_DEF(EnumImpl)
 SWC_NODE_DEF(EnumUsingValue)
 SWC_NODE_DEF(EnumValue)
 
 // Arguments / Call Arguments
-SWC_NODE_DEF(Argument)
-SWC_NODE_DEF(NamedArgument)
 SWC_NODE_DEF(NamedArgumentBlock)
-SWC_NODE_DEF(UnnamedArgument)
+SWC_NODE_DEF(NamedArgument)
 SWC_NODE_DEF(UnnamedArgumentBlock)
+SWC_NODE_DEF(UnnamedArgument)

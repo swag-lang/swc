@@ -27,6 +27,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
         // Compiler instructions
         if (blockNodeId == AstNodeId::File ||
             blockNodeId == AstNodeId::TopLevelBlock ||
+            blockNodeId == AstNodeId::ImplBlock ||
             blockNodeId == AstNodeId::EnumBlock)
         {
             switch (id())
@@ -60,6 +61,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
         {
         case AstNodeId::File:
         case AstNodeId::TopLevelBlock:
+        case AstNodeId::ImplBlock:
             childrenRef = parseTopLevelStmt();
             break;
         case AstNodeId::FuncBody:

@@ -38,7 +38,7 @@ AstNodeRef Parser::parseImpl()
     nodePtr->tknOp          = tknOp;
     nodePtr->nodeIdentifier = nodeIdentifier;
     nodePtr->nodeFor        = nodeFor;
-    nodePtr->nodeContent    = parseBlock(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
+    nodePtr->nodeContent    = parseBlock(AstNodeId::ImplBlock, TokenId::SymLeftCurly);
     return nodeRef;
 }
 

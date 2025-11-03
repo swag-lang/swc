@@ -210,6 +210,17 @@ AstModifierFlags Parser::parseModifiers()
         case TokenId::ModifierNullable:
             toSet = AstModifierFlags::Nullable;
             break;
+        case TokenId::Identifier:
+        {
+            const auto name = tok().toString(*file_);
+            if (name[0] == '#')
+            {
+                raiseError(DiagnosticId::ParserInvalidModifier, tok());
+                consume();
+            }
+        }
+        default:
+            break;
         }
 
         if (toSet == AstModifierFlags::Zero)
@@ -307,6 +318,7 @@ AstNodeRef Parser::parseFactorExpression()
         const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::FactorExpression>();
         nodePtr->tknOp                  = consume();
         nodePtr->nodeLeft               = nodeRef;
+        nodePtr->modifiersFlags         = parseModifiers();
         nodePtr->nodeRight              = parseFactorExpression();
         return nodeParen;
     }

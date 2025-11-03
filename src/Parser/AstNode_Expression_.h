@@ -50,8 +50,8 @@ struct AstNodeArrayDeref : AstNode
 
 struct AstNodeArgument : AstNode
 {
-    explicit AstNodeArgument(AstNodeId id) :
-        AstNode(id)
+    explicit AstNodeArgument(AstNodeId nodeId) :
+        AstNode(nodeId)
     {
     }
 };
@@ -109,7 +109,7 @@ struct AstNodeUnnamedArgumentBlock : AstNodeBlock
 struct AstNodeBinary : AstNode
 {
     explicit AstNodeBinary(AstNodeId nodeId) :
-        AstNode(id)
+        AstNode(nodeId)
     {
     }
 
@@ -143,6 +143,8 @@ struct AstNodeFactorExpression : AstNodeBinary
         AstNodeBinary(ID)
     {
     }
+
+    AstModifierFlags modifiersFlags;
 };
 
 struct AstNodeUnaryExpression : AstNode

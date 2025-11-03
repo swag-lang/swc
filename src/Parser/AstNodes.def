@@ -1,32 +1,31 @@
+SWC_NODE_DEF(Invalid)
+
 // Basic / Structural
+SWC_NODE_DEF(TopLevelBlock)
 SWC_NODE_DEF(EmbeddedBlock)
 SWC_NODE_DEF(File)
-SWC_NODE_DEF(FuncBody)
-SWC_NODE_DEF(Invalid)
 SWC_NODE_DEF(Namespace)
-SWC_NODE_DEF(TopLevelBlock)
 
 // Identifiers & References
 SWC_NODE_DEF(Identifier)
 SWC_NODE_DEF(ScopeAccess)
 SWC_NODE_DEF(ScopedIdentifier)
 
-// Expressions — Primary & Postfix
+// Postfix
 SWC_NODE_DEF(ArrayDeref)
-SWC_NODE_DEF(FuncCall)
-SWC_NODE_DEF(ParenExpression)
 SWC_NODE_DEF(StructInit)
 
 // Expressions — Unary & Binary
+SWC_NODE_DEF(ParenExpression)
 SWC_NODE_DEF(LogicalExpression)
 SWC_NODE_DEF(RelationalExpression)
 SWC_NODE_DEF(BinaryExpression)
 SWC_NODE_DEF(UnaryExpression)
 
 // Type Casting & Checks
-SWC_NODE_DEF(As)
 SWC_NODE_DEF(Cast)
 SWC_NODE_DEF(CastAuto)
+SWC_NODE_DEF(As)
 SWC_NODE_DEF(Is)
 
 // Literals
@@ -40,13 +39,15 @@ SWC_NODE_DEF(NullLiteral)
 SWC_NODE_DEF(SuffixedLiteral)
 SWC_NODE_DEF(StringLiteral)
 
-// Intrinsics / Compiler Builtins
+// Compiler Builtins
 SWC_NODE_DEF(CompilerAssert)
 SWC_NODE_DEF(CompilerError)
-SWC_NODE_DEF(CompilerFunc)
-SWC_NODE_DEF(CompilerCall1)
-SWC_NODE_DEF(CompilerPrint)
 SWC_NODE_DEF(CompilerWarning)
+SWC_NODE_DEF(CompilerFunc)
+SWC_NODE_DEF(CompilerPrint)
+SWC_NODE_DEF(CompilerCall1)
+
+// Intrinsics
 SWC_NODE_DEF(IntrinsicCall1)
 SWC_NODE_DEF(IntrinsicCall2)
 SWC_NODE_DEF(IntrinsicCall3)
@@ -74,6 +75,10 @@ SWC_NODE_DEF(EnumBlock)
 SWC_NODE_DEF(EnumImpl)
 SWC_NODE_DEF(EnumUsingValue)
 SWC_NODE_DEF(EnumValue)
+
+// Functions
+SWC_NODE_DEF(FuncCall)
+SWC_NODE_DEF(FuncBody)
 
 // Arguments / Call Arguments
 SWC_NODE_DEF(NamedArgumentBlock)

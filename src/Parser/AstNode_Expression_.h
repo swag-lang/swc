@@ -253,10 +253,10 @@ struct AstNodeArrayLiteral : AstNodeBlock
     }
 };
 
-struct AstNodeMemberAccess : AstNode
+struct AstNodeScopeAccess : AstNode
 {
-    static constexpr auto ID = AstNodeId::MemberAccess;
-    AstNodeMemberAccess() :
+    static constexpr auto ID = AstNodeId::ScopeAccess;
+    AstNodeScopeAccess() :
         AstNode(ID)
     {
     }

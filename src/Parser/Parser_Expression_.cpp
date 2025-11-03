@@ -160,7 +160,7 @@ AstNodeRef Parser::parsePostFixExpression()
         // Member access: A.B
         if (is(TokenId::SymDot))
         {
-            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::MemberAccess>();
+            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::ScopeAccess>();
             consume();
             nodePtr->nodeLeft  = nodeRef;
             nodePtr->nodeRight = parsePostFixExpression();

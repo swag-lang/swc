@@ -163,6 +163,9 @@ AstNodeRef Parser::parseTopLevelStmt()
     case TokenId::CompilerAst:
         return parseCompilerFunc();
 
+    case TokenId::KwdNamespace:
+        return parseNamespace();
+
     default:
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::EolBefore);
         return INVALID_REF;
@@ -187,6 +190,16 @@ AstNodeRef Parser::parseEmbeddedStmt()
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::EolBefore);
         return INVALID_REF;
     }
+}
+
+AstNodeRef Parser::parseNamespace()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Namespace>();
+    nodePtr->nodeName       = parseScopedIdentifier();
+    if (isInvalid(nodePtr->nodeName))
+        skipTo({TokenId::SymLeftCurly});
+    nodePtr->nodeBody = parseBlock(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
+    return nodeRef;
 }
 
 SWC_END_NAMESPACE()

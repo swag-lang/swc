@@ -16,6 +16,7 @@ SWC_NODE_ID_DEF(As)
 SWC_NODE_ID_DEF(Is)
 SWC_NODE_ID_DEF(Cast)
 SWC_NODE_ID_DEF(CastAuto)
+SWC_NODE_ID_DEF(Namespace)
 
 SWC_NODE_ID_DEF(ParenExpression)
 SWC_NODE_ID_DEF(BoolExpression)

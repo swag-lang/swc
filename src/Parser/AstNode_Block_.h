@@ -66,3 +66,15 @@ struct AstNodeImplDeclFor : AstNode
     AstNodeRef nodeFor;
     AstNodeRef nodeContent;
 };
+
+struct AstNodeNamespace : AstNode
+{
+    static constexpr auto ID = AstNodeId::Namespace;
+    AstNodeNamespace() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeName;
+    AstNodeRef nodeBody;
+};

@@ -126,6 +126,7 @@ class Parser
     AstNodeRef       parseCompilerFunc();
     AstNodeRef       parseTopLevelStmt();
     AstNodeRef       parseEmbeddedStmt();
+    AstNodeRef       parseNamespace();
     AstNodeRef       parseImpl();
     AstNodeRef       parseFile();
 

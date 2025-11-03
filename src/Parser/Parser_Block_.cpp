@@ -172,8 +172,11 @@ AstNodeRef Parser::parseTopLevelStmt()
         return parseNamespace();
 
     default:
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Invalid>();
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::EolBefore);
-        return INVALID_REF;
+        return nodeRef;
+    }
     }
 }
 
@@ -192,8 +195,11 @@ AstNodeRef Parser::parseEmbeddedStmt()
         return INVALID_REF;
 
     default:
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Invalid>();
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::EolBefore);
-        return INVALID_REF;
+        return nodeRef;
+    }
     }
 }
 

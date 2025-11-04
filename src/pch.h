@@ -38,6 +38,5 @@ namespace fs = std::filesystem;
 #define SWC_HAS_STATS  1
 
 #include "Core/Flags.h"
-#include "Core/SmallVector.h"
 #include "Core/Utf8.h"
 #include "Report/Check.h"

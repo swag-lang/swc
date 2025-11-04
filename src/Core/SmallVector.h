@@ -146,6 +146,11 @@ public:
     bool      empty() const noexcept { return _size == 0; }
     bool      is_inline() const noexcept { return _ptr == inline_data(); }
 
+    operator std::initializer_list<T>() const noexcept
+    {
+        return std::initializer_list<T>(_ptr, _ptr + _size);
+    }
+
     void reserve(size_type new_cap)
     {
         if (new_cap <= _cap)

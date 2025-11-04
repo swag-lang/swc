@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Core/SmallVector.h"
 #include "Parser/AstNode.h"
 #include "Parser/Parser.h"
 #include "Report/Diagnostic.h"
@@ -46,8 +47,8 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
     SmallVector<AstNodeRef> childrenRefs;
     while (!atEnd() && isNot(tokenEndId))
     {
-        EnsureConsume ec(*this);
-        AstNodeRef    childrenRef = INVALID_REF;
+        const auto loopStartToken = curToken_;
+        AstNodeRef childrenRef    = INVALID_REF;
 
         // Compiler instructions
         if (blockNodeId == AstNodeId::File ||
@@ -91,6 +92,15 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
         childrenRef = parseBlockStmt(blockNodeId);
 
         // Separator between statements
+        SmallVector skipTokens = {TokenId::SymComma, tokenEndId};
+        if (depthParen_)
+            skipTokens.push_back(TokenId::SymRightParen);
+        if (depthBracket_)
+            skipTokens.push_back(TokenId::SymRightBracket);
+        if (depthCurly_)
+            skipTokens.push_back(TokenId::SymRightCurly);
+
+        bool errSep = false;
         switch (blockNodeId)
         {
         case AstNodeId::EnumBlock:
@@ -99,7 +109,8 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
                 auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, ref());
                 setReportExpected(diag, TokenId::SymComma);
                 diag.report(*ctx_);
-                skipTo({TokenId::SymComma, tokenEndId});
+                skipTo(skipTokens);
+                errSep = true;
             }
             break;
 
@@ -111,7 +122,8 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
                 auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, ref());
                 setReportExpected(diag, TokenId::SymComma);
                 diag.report(*ctx_);
-                skipTo({TokenId::SymComma, tokenEndId});
+                skipTo(skipTokens);
+                errSep = true;
             }
             break;
 
@@ -119,9 +131,22 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
             break;
         }
 
+        if (errSep)
+        {
+            if (depthParen_ && is(TokenId::SymRightParen))
+                break;
+            if (depthBracket_ && is(TokenId::SymRightBracket))
+                break;
+            if (depthCurly_ && is(TokenId::SymRightCurly))
+                break;
+        }
+
         // Be sure instruction has not failed
         if (isValid(childrenRef))
             childrenRefs.push_back(childrenRef);
+
+        if (loopStartToken == curToken_)
+            consume();
     }
 
     // Consume end token if necessary

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Core/SmallVector.h"
 #include "Parser/AstNode.h"
 #include "Parser/Parser.h"
 #include "Report/Diagnostic.h"

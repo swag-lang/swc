@@ -12,6 +12,9 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::Identifier:
         return parseSuffixedIdentifier();
 
+    case TokenId::SymDot:
+        return parseAutoScopedIdentifier();
+
     case TokenId::CompilerSizeOf:
     case TokenId::CompilerAlignOf:
     case TokenId::CompilerOffsetOf:
@@ -469,7 +472,7 @@ AstNodeRef Parser::parseSuffixedIdentifier()
     const auto nodeIdentifier = parseIdentifier();
     if (isInvalid(nodeIdentifier))
         return INVALID_REF;
-    
+
     if (!is(TokenId::SymQuote) || has_any(tok().flags, TokenFlags::BlankBefore))
         return nodeIdentifier;
 
@@ -486,6 +489,14 @@ AstNodeRef Parser::parseSuffixedIdentifier()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SuffixedIdentifier>();
     nodePtr->nodeIdentifier = nodeIdentifier;
     nodePtr->nodeSuffix     = parseType();
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseAutoScopedIdentifier()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ScopedIdentifier>();
+    consume(TokenId::SymDot);
+    nodePtr->nodeIdentifier = parseScopedIdentifier();
     return nodeRef;
 }
 

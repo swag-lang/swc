@@ -41,3 +41,13 @@ enum A
     #else // swc-expected-error {{ParserExpectedDoOrBlock}}
         A = 1
 }
+
+enum A
+{
+    #if A == 0 do
+        A = 0
+    #else {
+        A = 1
+    }
+}
+

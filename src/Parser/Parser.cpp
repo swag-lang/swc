@@ -99,17 +99,17 @@ bool Parser::skipAfter(std::initializer_list<TokenId> targets, SkipUntilFlags fl
 
 bool Parser::skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
 {
-    int        parenDepth  = 0;
-    int        squareDepth = 0;
-    int        braceDepth  = 0;
-    const auto refStart    = ref();
+    int        parenDepth   = 0;
+    int        bracketDepth = 0;
+    int        curlyDepth   = 0;
+    const auto refStart     = ref();
 
     while (!atEnd())
     {
         if (has_any(flags, SkipUntilFlags::EolBefore) && tok().startsLine() && refStart != ref())
             break;
 
-        const bool atTopLevel = (parenDepth | squareDepth | braceDepth) == 0;
+        const bool atTopLevel = (parenDepth | bracketDepth | curlyDepth) == 0;
 
         if (atTopLevel)
         {
@@ -133,25 +133,26 @@ bool Parser::skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
             --parenDepth;
             break;
         case TokenId::SymLeftBracket:
-            ++squareDepth;
+        case TokenId::SymAttrStart:
+            ++bracketDepth;
             break;
         case TokenId::SymRightBracket:
-            --squareDepth;
+            --bracketDepth;
             break;
         case TokenId::SymLeftCurly:
-            ++braceDepth;
+            ++curlyDepth;
             break;
         case TokenId::SymRightCurly:
-            --braceDepth;
+            --curlyDepth;
             break;
         default:
             break;
         }
 
         // Never let depths go negative (keeps recovery robust even on stray closers).
-        parenDepth  = std::max(parenDepth, 0);
-        squareDepth = std::max(squareDepth, 0);
-        braceDepth  = std::max(braceDepth, 0);
+        parenDepth   = std::max(parenDepth, 0);
+        bracketDepth = std::max(bracketDepth, 0);
+        curlyDepth   = std::max(curlyDepth, 0);
 
         consume();
     }
@@ -180,6 +181,7 @@ TokenRef Parser::consume()
         depthParen_--;
         break;
     case TokenId::SymLeftBracket:
+    case TokenId::SymAttrStart:
         depthBracket_++;
         break;
     case TokenId::SymRightBracket:

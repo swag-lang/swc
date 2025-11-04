@@ -67,7 +67,7 @@ public:
     constexpr static std::string_view ARG_BECAUSE = "{because}";
 
     Diagnostic() = default;
-    explicit Diagnostic(const std::optional<SourceFile*>& fileOwner = std::nullopt);
+    explicit Diagnostic(const std::optional<SourceFile*>& fileOwner);
     Diagnostic(const Diagnostic&) = default;
 
     const std::vector<std::shared_ptr<DiagnosticElement>>& elements() const { return elements_; }

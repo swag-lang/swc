@@ -5,5 +5,5 @@
 #[] // swc-expected-error {{ParserEmptyAttribute}}
 enum B {}
 
-#[A()]
+#[A(]
 enum B {}

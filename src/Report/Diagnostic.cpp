@@ -124,6 +124,8 @@ void Diagnostic::report(const Context& ctx) const
 {
     if (elements_.empty())
         return;
+    if (isSilent())
+        return;
 
     // Mark file
     if (fileOwner_)

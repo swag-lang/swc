@@ -29,7 +29,7 @@ Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
 {
     if (tknRef == lastErrorToken_)
     {
-        auto diag = Diagnostic{nullptr};
+        auto diag = Diagnostic{std::nullopt};
         diag.setSilent(true);
         return diag;
     }

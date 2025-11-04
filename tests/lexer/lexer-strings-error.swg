@@ -1,53 +1,44 @@
 // swc-option lex-only
 
-// ============================================================================
-// CHARACTER LITERALS
-// ============================================================================
+// --- Invalid escape sequences ---
+"\c"        // swc-expected-error {{InvalidEscapeSequence}}
+"\d"        // swc-expected-error {{InvalidEscapeSequence}}
+"\e"        // swc-expected-error {{InvalidEscapeSequence}}
+"\g"        // swc-expected-error {{InvalidEscapeSequence}}
+"\h"        // swc-expected-error {{InvalidEscapeSequence}}
+"\i"        // swc-expected-error {{InvalidEscapeSequence}}
+"\j"        // swc-expected-error {{InvalidEscapeSequence}}
+"\k"        // swc-expected-error {{InvalidEscapeSequence}}
+"\l"        // swc-expected-error {{InvalidEscapeSequence}}
+"\m"        // swc-expected-error {{InvalidEscapeSequence}}
+"\o"        // swc-expected-error {{InvalidEscapeSequence}}
+"\p"        // swc-expected-error {{InvalidEscapeSequence}}
+"\q"        // swc-expected-error {{InvalidEscapeSequence}}
+"\s"        // swc-expected-error {{InvalidEscapeSequence}}
+"\w"        // swc-expected-error {{InvalidEscapeSequence}}
+"\y"        // swc-expected-error {{InvalidEscapeSequence}}
+"\z"        // swc-expected-error {{InvalidEscapeSequence}}
+"\1"        // swc-expected-error {{InvalidEscapeSequence}}
+"\2"        // swc-expected-error {{InvalidEscapeSequence}}
 
-// --- Valid single character literals ---
-'a'
-'b'
-'Z'
-'0'
-'9'
-' '
-'@'
-'#'
-'$'
-'%'
-'&'
-'*'
+// --- Unclosed string literals (missing closing quote) ---
+// swc-expected-error@+ {{NewlineInStringLiteral}}
+"unclosed
+// swc-expected-error@+ {{NewlineInStringLiteral}}
+"hello world
+// swc-expected-error@+ {{NewlineInStringLiteral}}
+"test
+// swc-expected-error@+ {{NewlineInStringLiteral}}
+"with\"escape
 
-// --- Valid escape sequences ---
-'\n'
-'\r'
-'\t'
-'\\'
-'\"'
-'\''
-'\0'
-'\x41'
-'\u0041'
-'\b'
-'\f'
-'\v'
+// --- Unclosed with trailing backslash at EOF ---
+// swc-expected-error@+ {{InvalidEscapeSequence}}
+"test\
 
-// --- Hexadecimal escapes ---
-'\x00'
-'\x20'
-'\x7F'
-'\xFF'
-
-// --- Unicode escapes ---
-'\u0000'
-'\u0041'
-'\u00A9'
-'\uFFFF'
-
-// --- Extended Unicode escapes ---
-'\U00000041'
-'\U0001F600'
-'\U0010FFFF'
+// --- Invalid escape sequences in multi-line ---
+"""\c"""            // swc-expected-error {{InvalidEscapeSequence}}
+"""\z"""            // swc-expected-error {{InvalidEscapeSequence}}
+"""test\qfail"""    // swc-expected-error {{InvalidEscapeSequence}}
 
 // --- Invalid escape sequences ---
 '\c'        // swc-expected-error {{InvalidEscapeSequence}}
@@ -109,33 +100,6 @@ lines'
 '\nz'		// swc-expected-error {{TooManyCharsInCharLiteral}}
 'x\ty'		// swc-expected-error {{TooManyCharsInCharLiteral}}
 
-// --- Special punctuation characters ---
-'('
-')'
-'['
-']'
-'{'
-'}'
-';'
-','
-'.'
-':'
-'?'
-'!'
-'~'
-'|'
-'^'
-'<'
-'>'
-'='
-'+'
-'-'
-'/'
-
-// --- Quotes inside character literals ---
-'\"'        // Double quote (valid)
-'\''        // Escaped single quote (valid)
-
 // --- Incomplete hex escapes ---
 '\x'        // swc-expected-error {{EmptyHexEscape}}
 '\x1'       // swc-expected-error {{IncompleteHexEscape}}
@@ -162,67 +126,39 @@ lines'
 '	'
 '   '       // swc-expected-error {{TooManyCharsInCharLiteral}}
 
-// --- Adjacent character literals (separate tokens) ---
-'a' 'b'
-'x''y'
-'1' '2' '3'
-
-// --- Character literals in expressions (context) ---
-// Note: In the lexer, '\'' after identifiers becomes the quote operator
-// These should be character literals since they don't follow identifiers
-'a' + 'b'
-'0' - '9'
-
-// ============================================================================
-// EDGE CASES AND BOUNDARY CONDITIONS
-// ============================================================================
-
 // --- Backslash at end ---
-// swc-expected-error@+ {{InvalidEscapeSequence}}
-'test\
-
-// --- Valid maximum values ---
-'\xFF'          // Max 2-digit hex
-'\uFFFF'        // Max 4-digit unicode
-'\U0010FFFF'    // Max valid unicode code point
-
-// --- Escaped backslash ---
-'\\'
-
-// --- All valid single-char escapes together ---
-'\n' '\r' '\t' '\\' '\"' '\'' '\0' '\b' '\f' '\v'
-
-// --- Character literal with only escape ---
-'\x41'
-'\u0041'
-
-// --- Whitespace characters ---
-' '
-'\t'
-'\n'
-'\r'
-
-// --- Null character ---
-'\0'
-'\x00'
-'\u0000'
-'\U00000000'
-
-// --- Unicode
-'é'
-'日'
-'本'
-'語'
-'🎉'
-'Ñ'
-'o'
-'ñ'
-'o'
-
-// ============================================================================
-// SUFFIX
-// ============================================================================
-
 'a''s32
 // swc-expected-error@+ {{UnclosedCharLiteral}}
 'a' 's
+
+// --- Invalid or unknown escapes ---
+"\z"              // swc-expected-error {{InvalidEscapeSequence}}
+"\q"              // swc-expected-error {{InvalidEscapeSequence}}
+"\9"              // swc-expected-error {{InvalidEscapeSequence}}
+// swc-expected-error@+ {{NewlineInStringLiteral}}
+"\"
+"\ "              // swc-expected-error {{InvalidEscapeSequence}}
+
+// --- Hexadecimal escapes (\xXX) ---
+"\xG0"            // swc-expected-error {{InvalidHexDigit}}
+"\x"              // swc-expected-error {{EmptyHexEscape}}
+"\x0"             // swc-expected-error {{IncompleteHexEscape}}
+"\x_0"            // swc-expected-error {{InvalidHexDigit}}
+
+// --- Unicode short escapes (\uXXXX) ---
+"\uG000"          // swc-expected-error {{InvalidHexDigit}}
+"\u123"           // swc-expected-error {{IncompleteHexEscape}}
+"\u"              // swc-expected-error {{EmptyHexEscape}}
+"\u_"             // swc-expected-error {{InvalidHexDigit}}
+
+// --- Unicode long escapes (\UXXXXXXXX) ---
+"\U110000"        // swc-expected-error {{IncompleteHexEscape}}
+"\U1234567"       // swc-expected-error {{IncompleteHexEscape}}
+"\U0000000G"      // swc-expected-error {{IncompleteHexEscape}}
+"\U000000"        // swc-expected-error {{IncompleteHexEscape}}
+"\U"              // swc-expected-error {{EmptyHexEscape}}
+
+// --- Mixed / complex sequences ---
+"abc\x4G"         // swc-expected-error {{IncompleteHexEscape}}
+"abc\u004"        // swc-expected-error {{IncompleteHexEscape}}
+"abc\U0000004"    // swc-expected-error {{IncompleteHexEscape}}

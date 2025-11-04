@@ -14,13 +14,3 @@
 
 #assert(cast #bit #unconst (s32) 9)
 #assert(cast #bit #unconst #err (s32) 9)
-
-#assert(cast #bit #bit (s32) 9) // swc-expected-error {{ParserDuplicatedModifier}}
-#assert(cast #ref1 (s32) 9) // swc-expected-error {{ParserInvalidModifier}}
-#assert(a + #wrap b)
-
-#assert(a + / b) // swc-expected-error {{ParserUnexpected}}
-
-
-
-

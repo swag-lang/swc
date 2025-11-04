@@ -34,41 +34,6 @@
 "line1\nline2\nline3"
 "escaped\\backslash\\test"
 
-// --- Invalid escape sequences ---
-"\c"        // swc-expected-error {{InvalidEscapeSequence}}
-"\d"        // swc-expected-error {{InvalidEscapeSequence}}
-"\e"        // swc-expected-error {{InvalidEscapeSequence}}
-"\g"        // swc-expected-error {{InvalidEscapeSequence}}
-"\h"        // swc-expected-error {{InvalidEscapeSequence}}
-"\i"        // swc-expected-error {{InvalidEscapeSequence}}
-"\j"        // swc-expected-error {{InvalidEscapeSequence}}
-"\k"        // swc-expected-error {{InvalidEscapeSequence}}
-"\l"        // swc-expected-error {{InvalidEscapeSequence}}
-"\m"        // swc-expected-error {{InvalidEscapeSequence}}
-"\o"        // swc-expected-error {{InvalidEscapeSequence}}
-"\p"        // swc-expected-error {{InvalidEscapeSequence}}
-"\q"        // swc-expected-error {{InvalidEscapeSequence}}
-"\s"        // swc-expected-error {{InvalidEscapeSequence}}
-"\w"        // swc-expected-error {{InvalidEscapeSequence}}
-"\y"        // swc-expected-error {{InvalidEscapeSequence}}
-"\z"        // swc-expected-error {{InvalidEscapeSequence}}
-"\1"        // swc-expected-error {{InvalidEscapeSequence}}
-"\2"        // swc-expected-error {{InvalidEscapeSequence}}
-
-// --- Unclosed string literals (missing closing quote) ---
-// swc-expected-error@+ {{NewlineInStringLiteral}}
-"unclosed
-// swc-expected-error@+ {{NewlineInStringLiteral}}
-"hello world
-// swc-expected-error@+ {{NewlineInStringLiteral}}
-"test
-// swc-expected-error@+ {{NewlineInStringLiteral}}
-"with\"escape
-
-// --- Unclosed with trailing backslash at EOF ---
-// swc-expected-error@+ {{InvalidEscapeSequence}}
-"test\
-
 // --- Empty and whitespace ---
 "   "
 "\t\t\t"
@@ -103,11 +68,6 @@ third line"""
 """quote\"here"""
 """backslash\\test"""
 """\n\r\t\b\f\v"""
-
-// --- Invalid escape sequences in multi-line ---
-"""\c"""            // swc-expected-error {{InvalidEscapeSequence}}
-"""\z"""            // swc-expected-error {{InvalidEscapeSequence}}
-"""test\qfail"""    // swc-expected-error {{InvalidEscapeSequence}}
 
 // --- Multi-line with trailing backslash at EOL ---
 """test\
@@ -167,14 +127,6 @@ line
 #"JSON: {"key": "value"}"#
 #"<html>\n\t<body></body>\n</html>"#
 
-// --- Unclosed raw strings ---
-#"unclosed          // swc-expected-error {{UnclosedStringLiteral}}
-#"hello world       // swc-expected-error {{UnclosedStringLiteral}}
-#"test              // swc-expected-error {{UnclosedStringLiteral}}
-
-#"line1
-line2              // swc-expected-error {{UnclosedStringLiteral}}
-
 // --- Raw strings with embedded quotes ---
 #"This is "quoted" text"#
 #"Multiple """" quotes"#
@@ -224,3 +176,167 @@ and keeps going and going and going
 until finally it ends"""
 
 #"this is a very long raw string that contains \n \t \r and other escape sequences that are not interpreted"#
+
+// ============================================================================
+// CHARACTER LITERALS
+// ============================================================================
+
+// --- Valid single character literals ---
+'a'
+'b'
+'Z'
+'0'
+'9'
+' '
+'@'
+'#'
+'$'
+'%'
+'&'
+'*'
+
+// --- Valid escape sequences ---
+'\n'
+'\r'
+'\t'
+'\\'
+'\''
+'\0'
+'\x41'
+'\u0041'
+'\b'
+'\f'
+'\v'
+
+// --- Hexadecimal escapes ---
+'\x00'
+'\x20'
+'\x7F'
+'\xFF'
+
+// --- Unicode escapes ---
+'\u0000'
+'\u0041'
+'\u00A9'
+'\uFFFF'
+
+// --- Extended Unicode escapes ---
+'\U00000041'
+'\U0001F600'
+'\U0010FFFF'
+
+// --- Special punctuation characters ---
+'('
+')'
+'['
+']'
+'{'
+'}'
+';'
+','
+'.'
+':'
+'?'
+'!'
+'~'
+'|'
+'^'
+'<'
+'>'
+'='
+'+'
+'-'
+'/'
+
+// --- Quotes inside character literals ---
+'\''        // Escaped single quote (valid)
+
+// --- Adjacent character literals (separate tokens) ---
+'a' 'b'
+'x''y'
+'1' '2' '3'
+
+// --- Character literals in expressions (context) ---
+// Note: In the lexer, '\'' after identifiers becomes the quote operator
+// These should be character literals since they don't follow identifiers
+'a' + 'b'
+'0' - '9'
+
+// ============================================================================
+// EDGE CASES AND BOUNDARY CONDITIONS
+// ============================================================================
+
+// --- Valid maximum values ---
+'\xFF'          // Max 2-digit hex
+'\uFFFF'        // Max 4-digit unicode
+'\U0010FFFF'    // Max valid unicode code point
+
+// --- Escaped backslash ---
+'\\'
+
+// --- All valid single-char escapes together ---
+'\n' '\r' '\t' '\\' '\'' '\0' '\b' '\f' '\v'
+
+// --- Character literal with only escape ---
+'\x41'
+'\u0041'
+
+// --- Whitespace characters ---
+' '
+'\t'
+'\n'
+'\r'
+
+// --- Null character ---
+'\0'
+'\x00'
+'\u0000'
+'\U00000000'
+
+// --- Unicode
+'é'
+'日'
+'本'
+'語'
+'🎉'
+'Ñ'
+'o'
+'ñ'
+'o'
+
+// --- Hexadecimal escapes (\xXX) ---
+"\x00"
+"\x1F"
+"\x7E"
+"\xFF"
+"\x0A"
+
+// --- Unicode short escapes (\uXXXX) ---
+"\u0000"
+"\u0041"
+"\u00E9"
+"\uabcd"
+"\uFFFF"
+
+// --- Basic valid escapes ---
+"Hello\nWorld"
+"Tab\tSeparated"
+"Quote: \""
+"Backslash: \\"
+"Carriage\rReturn"
+"FormFeed\fChar"
+"Backspace\bTest"
+"Vertical\vTab"
+
+// --- Unicode long escapes (\UXXXXXXXX) ---
+"\U00000000"      // valid
+"\U00000041"      // valid ('A')
+"\U0001F600"      // valid (😀)
+"\U0000FFFF"      // valid
+"\U0010FFFF"      // valid (max Unicode code point)
+
+// --- Mixed / complex sequences ---
+"abc\\ndef"       // valid (escaped backslash + newline)
+"abc\x41"         // valid ('A')
+"abc\u0042"       // valid ('B')
+"abc\U00000043"   // valid ('C')

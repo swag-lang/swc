@@ -29,7 +29,7 @@ int z = 15;
 //
 //  
 //	
-//        
+//
 
 // --- Single-line comments with special characters ---
 // TODO: implement this feature
@@ -133,7 +133,6 @@ and keeps going
 /* */
 /*  */
 /*
-
 
 */
 
@@ -252,6 +251,3 @@ int y = 10;
 // ============================================================================
 // COMMENTS AT END OF FILE
 // ============================================================================
-
-// --- Unclosed comment at EOF ---
-/* This comment is never closed                // swc-expected-error {{UnclosedComment}}

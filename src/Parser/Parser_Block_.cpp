@@ -173,6 +173,9 @@ AstNodeRef Parser::parseTopLevelStmt()
     case TokenId::KwdNamespace:
         return parseNamespace();
 
+    case TokenId::SymAttrStart:
+        return parseCompilerAttribute(AstNodeId::TopLevelBlock);
+
     default:
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Invalid>();
@@ -195,6 +198,9 @@ AstNodeRef Parser::parseEmbeddedStmt()
     case TokenId::SymSemiColon:
         consume();
         return INVALID_REF;
+
+    case TokenId::SymAttrStart:
+        return parseCompilerAttribute(AstNodeId::EmbeddedBlock);
 
     default:
     {

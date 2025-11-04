@@ -5,6 +5,31 @@
 
 SWC_BEGIN_NAMESPACE()
 
+AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
+{
+    switch (blockNodeId)
+    {
+    case AstNodeId::File:
+    case AstNodeId::TopLevelBlock:
+    case AstNodeId::ImplBlock:
+        return parseTopLevelStmt();
+    case AstNodeId::FuncBody:
+    case AstNodeId::EmbeddedBlock:
+        return parseEmbeddedStmt();
+    case AstNodeId::EnumBlock:
+        return parseEnumValue();
+    case AstNodeId::ArrayLiteral:
+        return parseExpression();
+    case AstNodeId::UnnamedArgumentBlock:
+        return parseExpression();
+    case AstNodeId::NamedArgumentBlock:
+        return parseNamedArgument();
+
+    default:
+        std::unreachable();
+    }
+}
+
 AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
 {
     const Token&   openTok    = tok();
@@ -48,6 +73,9 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
                 childrenRef = parseCallArg1(AstNodeId::CompilerPrint);
                 expectEndStatement();
                 break;
+            case TokenId::CompilerIf:
+                childrenRef = parseCompilerIf(blockNodeId);
+                break;
             default:
                 break;
             }
@@ -60,35 +88,9 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
         }
 
         // One block element
-        switch (blockNodeId)
-        {
-        case AstNodeId::File:
-        case AstNodeId::TopLevelBlock:
-        case AstNodeId::ImplBlock:
-            childrenRef = parseTopLevelStmt();
-            break;
-        case AstNodeId::FuncBody:
-        case AstNodeId::EmbeddedBlock:
-            childrenRef = parseEmbeddedStmt();
-            break;
-        case AstNodeId::EnumBlock:
-            childrenRef = parseEnumValue();
-            break;
-        case AstNodeId::ArrayLiteral:
-            childrenRef = parseExpression();
-            break;
-        case AstNodeId::UnnamedArgumentBlock:
-            childrenRef = parseExpression();
-            break;
-        case AstNodeId::NamedArgumentBlock:
-            childrenRef = parseNamedArgument();
-            break;
+        childrenRef = parseBlockStmt(blockNodeId);
 
-        default:
-            std::unreachable();
-        }
-
-        // Separator
+        // Separator between statements
         switch (blockNodeId)
         {
         case AstNodeId::EnumBlock:

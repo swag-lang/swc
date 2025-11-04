@@ -88,3 +88,9 @@ SWC_NODE_DEF(NamedArgumentBlock)
 SWC_NODE_DEF(NamedArgument)
 SWC_NODE_DEF(UnnamedArgumentBlock)
 SWC_NODE_DEF(UnnamedArgument)
+
+// If/Else
+SWC_NODE_DEF(CompilerIf)
+SWC_NODE_DEF(CompilerElse)
+SWC_NODE_DEF(CompilerElseIf)
+

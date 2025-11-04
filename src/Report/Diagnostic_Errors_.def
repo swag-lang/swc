@@ -57,3 +57,6 @@ SWC_DIAG_DEF(ParserInvalidLiteralSuffix)
 SWC_DIAG_DEF(ParserUnexpectedAndOr)
 SWC_DIAG_DEF(ParserDuplicatedModifier)
 SWC_DIAG_DEF(ParserInvalidModifier)
+SWC_DIAG_DEF(ParserUnexpectedDoWithBraces)
+SWC_DIAG_DEF(ParserExpectedDoOrBlock)
+

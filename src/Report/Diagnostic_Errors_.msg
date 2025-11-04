@@ -51,4 +51,7 @@ SWC_DIAG_DEF(ParserInvalidLiteralSuffix, Error, "invalid literal suffix: {tok}")
 SWC_DIAG_DEF(ParserUnexpectedAndOr, Error, "unexpected C-style boolean operator {tok}; use 'and' or 'or' instead")
 SWC_DIAG_DEF(ParserDuplicatedModifier, Error, "modifier {tok} already defined")
 SWC_DIAG_DEF(ParserInvalidModifier, Error, "invalid modifier: {tok}")
+SWC_DIAG_DEF(ParserUnexpectedDoWithBraces, Error, "unexpected '{' after 'do' keyword")
+SWC_DIAG_DEF(ParserExpectedDoOrBlock, Error, "expected a statement starting with 'do' or '{' after {tok}")
+
 

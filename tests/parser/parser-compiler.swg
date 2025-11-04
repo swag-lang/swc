@@ -21,3 +21,23 @@ enum A
 
 #assert(cast(s32) #sizeof(MyStruct1) == 9)
 #assert(#typeof(0's8 + 1's8) == s8)
+
+#if A { } #else { }
+
+enum A
+{
+    #if A do
+        A = 0
+    #else {
+        A = 1
+    }
+}
+
+
+enum A
+{
+    #if A do
+        A = 0
+    #else // swc-expected-error {{ParserExpectedDoOrBlock}}
+        A = 1
+}

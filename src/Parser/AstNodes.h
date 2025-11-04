@@ -747,3 +747,35 @@ struct AstNodeImplBlock : AstNodeBlock
     {
     }
 };
+
+struct AstNodeCompilerIf : AstNodeBlock
+{
+    static constexpr auto ID = AstNodeId::CompilerIf;
+    AstNodeCompilerIf() :
+        AstNodeBlock(ID)
+    {
+    }
+
+    TokenRef   tknIf;
+    AstNodeRef nodeCondition;
+    AstNodeRef nodeIfBlock;
+    AstNodeRef nodeElseBlock;
+};
+
+struct AstNodeCompilerElse : AstNodeBlock
+{
+    static constexpr auto ID = AstNodeId::CompilerElse;
+    AstNodeCompilerElse() :
+        AstNodeBlock(ID)
+    {
+    }
+};
+
+struct AstNodeCompilerElseIf : AstNodeBlock
+{
+    static constexpr auto ID = AstNodeId::CompilerElseIf;
+    AstNodeCompilerElseIf() :
+        AstNodeBlock(ID)
+    {
+    }
+};

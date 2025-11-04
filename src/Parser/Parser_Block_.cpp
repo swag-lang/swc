@@ -94,7 +94,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
         switch (blockNodeId)
         {
         case AstNodeId::EnumBlock:
-            if (!consumeIfAny(TokenId::SymComma) && !is(tokenEndId) && !tok().startsLine())
+            if (!consumeIf(TokenId::SymComma) && !is(tokenEndId) && !tok().startsLine())
             {
                 auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, ref());
                 setReportExpected(diag, TokenId::SymComma);
@@ -106,7 +106,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
         case AstNodeId::ArrayLiteral:
         case AstNodeId::UnnamedArgumentBlock:
         case AstNodeId::NamedArgumentBlock:
-            if (!consumeIfAny(TokenId::SymComma) && !is(tokenEndId))
+            if (!consumeIf(TokenId::SymComma) && !is(tokenEndId))
             {
                 auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, ref());
                 setReportExpected(diag, TokenId::SymComma);

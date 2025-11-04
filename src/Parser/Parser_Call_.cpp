@@ -67,4 +67,67 @@ AstNodeRef Parser::parseCallArg3(AstNodeId callerNodeId)
     return nodeRef;
 }
 
+AstNodeRef Parser::parseAttribute()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Attribute>();
+    nodePtr->nodeIdentifier = parseScopedIdentifier();
+    if (is(TokenId::SymLeftParen))
+        nodePtr->nodeArgs = parseBlock(AstNodeId::NamedArgumentBlock, TokenId::SymLeftParen);
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseCompilerAttribute(AstNodeId blockNodeId)
+{
+    const auto openTokRef = ref();
+    const auto openTok    = tok();
+
+    // Create a ScopeAccess node with left and right
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AttributeBlock>();
+    consume(TokenId::SymAttrStart);
+
+    if (consumeIf(TokenId::SymRightBracket))
+    {
+        nodePtr->spanChildren = INVALID_REF;
+        const auto diag       = reportError(DiagnosticId::ParserEmptyAttribute, ref());
+        diag.report(*ctx_);
+    }
+    else
+    {
+        // Parse the first identifier
+        SmallVector<AstNodeRef> childrenRefs;
+        while (!atEnd() && !is(TokenId::SymRightBracket))
+        {
+            const auto childrenRef = parseAttribute();
+            if (isValid(childrenRef))
+                childrenRefs.push_back(childrenRef);
+
+            if (consumeIf(TokenId::SymComma))
+                continue;
+            if (is(TokenId::SymRightBracket))
+                break;
+
+            auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, ref());
+            setReportExpected(diag, TokenId::SymComma);
+            diag.report(*ctx_);
+            skipTo({TokenId::SymComma, TokenId::SymRightBracket});
+        }
+
+        // Consume end token
+        if (!consumeIf(TokenId::SymRightBracket))
+        {
+            auto diag = reportError(DiagnosticId::ParserExpectedClosing, openTokRef);
+            setReportExpected(diag, Token::toRelated(openTok.id));
+            diag.report(*ctx_);
+        }
+
+        nodePtr->spanChildren = ast_->store_.push_span(std::span(childrenRefs.data(), childrenRefs.size()));
+    }
+
+    if (is(TokenId::SymLeftCurly))
+        nodePtr->nodeBody = parseBlock(blockNodeId, TokenId::SymLeftCurly);
+    else
+        nodePtr->nodeBody = parseBlockStmt(blockNodeId);
+    return nodeRef;
+}
+
 SWC_END_NAMESPACE()

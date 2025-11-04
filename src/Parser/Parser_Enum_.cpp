@@ -23,23 +23,21 @@ AstNodeRef Parser::parseEnumValue()
     case TokenId::Identifier:
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumValue>();
-
-        // Name
-        nodePtr->tknName = consume();
-
-        // Value
+        nodePtr->tknName        = consume();
         if (consumeIf(TokenId::SymEqual))
         {
             nodePtr->nodeValue = parseExpression();
             if (isInvalid(nodePtr->nodeValue))
                 skipTo(ENUM_VALUE_SYNC, SkipUntilFlags::EolBefore);
         }
-
         return nodeRef;
     }
 
     case TokenId::CompilerAst:
         return parseCompilerFunc();
+
+    case TokenId::SymAttrStart:
+        return parseCompilerAttribute(AstNodeId::EnumBlock);
 
     default:
         raiseError(DiagnosticId::ParserUnexpectedToken, ref());

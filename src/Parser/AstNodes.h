@@ -813,3 +813,26 @@ struct AstNodeCompilerElseIf : AstNodeBlock
     {
     }
 };
+
+struct AstNodeAttribute : AstNode
+{
+    static constexpr auto ID = AstNodeId::Attribute;
+    AstNodeAttribute() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeIdentifier;
+    AstNodeRef nodeArgs;
+};
+
+struct AstNodeAttributeBlock : AstNodeBlock
+{
+    static constexpr auto ID = AstNodeId::AttributeBlock;
+    AstNodeAttributeBlock() :
+        AstNodeBlock(ID)
+    {
+    }
+
+    AstNodeRef nodeBody;
+};

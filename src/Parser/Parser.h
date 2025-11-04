@@ -106,6 +106,7 @@ class Parser
     AstNodeRef parseBlock(AstNodeId blockNodeId, TokenId tokenStartId);
     AstNodeRef parseCompilerIf(AstNodeId blockNodeId);
     AstNodeRef parseCompilerIfStmt(AstNodeId blockNodeId);
+    AstNodeRef parseCompilerAttribute(AstNodeId blockNodeId);
 
     AstNodeRef       parseIdentifier();
     AstNodeRef       parseSuffixedIdentifier();
@@ -137,6 +138,7 @@ class Parser
     AstNodeRef       parseNamespace();
     AstNodeRef       parseImpl();
     AstNodeRef       parseFile();
+    AstNodeRef       parseAttribute();
 
     bool skipTo(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlags::Zero);
     bool skipAfter(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlags::Zero);

@@ -97,3 +97,6 @@ SWC_NODE_DEF(CompilerIf)
 SWC_NODE_DEF(CompilerElse)
 SWC_NODE_DEF(CompilerElseIf)
 
+// Attributes
+SWC_NODE_DEF(Attribute)
+SWC_NODE_DEF(AttributeBlock)

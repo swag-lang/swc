@@ -25,9 +25,18 @@ void Parser::setReportExpected(Diagnostic& diag, TokenId expectedTknId)
     diag.addArgument(Diagnostic::ARG_A_EXPECT_FAM, Token::toAFamily(expectedTknId), false);
 }
 
-Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef) const
+Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
 {
-    auto       diag  = Diagnostic::get(*ctx_, id, file_);
+    if (tknRef == lastErrorToken_)
+    {
+        auto diag = Diagnostic{nullptr};
+        diag.setSilent(true);
+        return diag;
+    }
+
+    lastErrorToken_ = tknRef;
+
+    auto       diag  = Diagnostic::get(id, file_);
     const auto token = file_->lexOut().token(tknRef);
     setReportArguments(diag, token);
     diag.last().setLocation(token.toLocation(*ctx_, *file_));
@@ -36,7 +45,7 @@ Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef) const
 
 Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknStartRef, TokenRef tknEndRef) const
 {
-    auto       diag     = Diagnostic::get(*ctx_, id, file_);
+    auto       diag     = Diagnostic::get(id, file_);
     const auto tokStart = file_->lexOut().token(tknStartRef);
     const auto tokEnd   = file_->lexOut().token(tknEndRef);
     setReportArguments(diag, tokStart);
@@ -46,15 +55,11 @@ Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknStartRef, TokenRef t
 
 void Parser::raiseError(DiagnosticId id, TokenRef tknRef)
 {
-    if (tknRef == lastErrorToken_)
-        return;
-    lastErrorToken_ = tknRef;
-
     const auto diag = reportError(id, tknRef);
     diag.report(*ctx_);
 }
 
-Diagnostic Parser::reportExpected(const ParserExpect& expect) const
+Diagnostic Parser::reportExpected(const ParserExpect& expect)
 {
     SWC_ASSERT(expect.tokId != TokenId::Invalid);
 
@@ -78,10 +83,6 @@ Diagnostic Parser::reportExpected(const ParserExpect& expect) const
 
 void Parser::raiseExpected(const ParserExpect& expect)
 {
-    if (ref() == lastErrorToken_)
-        return;
-    lastErrorToken_ = ref();
-
     const auto diag = reportExpected(expect);
     diag.report(*ctx_);
 }

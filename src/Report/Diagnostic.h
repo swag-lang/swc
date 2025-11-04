@@ -44,7 +44,7 @@ private:
     std::vector<std::shared_ptr<DiagnosticElement>> elements_;
     std::vector<Argument>                           arguments_;
     std::optional<SourceFile*>                      fileOwner_ = std::nullopt;
-    const Context*                                  context_   = nullptr;
+    bool                                            silent_    = false;
 
 public:
     constexpr static std::string_view ARG_PATH    = "{path}";
@@ -67,18 +67,20 @@ public:
     constexpr static std::string_view ARG_BECAUSE = "{because}";
 
     Diagnostic() = default;
-    explicit Diagnostic(const Context& context, const std::optional<SourceFile*>& fileOwner = std::nullopt);
+    explicit Diagnostic(const std::optional<SourceFile*>& fileOwner = std::nullopt);
     Diagnostic(const Diagnostic&) = default;
 
     const std::vector<std::shared_ptr<DiagnosticElement>>& elements() const { return elements_; }
     const std::optional<SourceFile*>&                      fileOwner() const { return fileOwner_; }
     const std::vector<Argument>&                           arguments() const { return arguments_; }
+    void                                                   setSilent(bool silent) { silent_ = silent; }
+    bool                                                   isSilent() const { return silent_; }
 
     DiagnosticElement& addElement(DiagnosticId id);
     DiagnosticElement& last() const { return *elements_.back(); }
     void               addArgument(std::string_view name, std::string_view arg, bool quoted = true);
 
-    static Diagnostic         get(const Context& ctx, DiagnosticId id, std::optional<SourceFile*> fileOwner = std::nullopt);
+    static Diagnostic         get(DiagnosticId id, std::optional<SourceFile*> fileOwner = std::nullopt);
     static std::string_view   diagIdMessage(DiagnosticId id);
     static std::string_view   diagIdName(DiagnosticId id);
     static DiagnosticSeverity diagIdSeverity(DiagnosticId id);

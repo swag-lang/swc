@@ -4,3 +4,6 @@
 
 #[] // swc-expected-error {{ParserEmptyAttribute}}
 enum B {}
+
+#[A()]
+enum B {}

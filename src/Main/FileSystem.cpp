@@ -14,7 +14,7 @@ Result FileSystem::resolveFolder(const Context& ctx, fs::path& folder)
     fs::path resolved = fs::absolute(folder, ec);
     if (ec)
     {
-        auto diag = Diagnostic::get(ctx, DiagnosticId::CmdLineInvalidFolder);
+        auto diag = Diagnostic::get(DiagnosticId::CmdLineInvalidFolder);
         diag.addArgument(Diagnostic::ARG_PATH, folder.string());
         diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
         diag.report(ctx);
@@ -30,7 +30,7 @@ Result FileSystem::resolveFolder(const Context& ctx, fs::path& folder)
     // Check existence and type; don't conflate errors with "not found"
     if (!fs::exists(resolved, ec))
     {
-        auto diag = Diagnostic::get(ctx, DiagnosticId::CmdLineInvalidFolder);
+        auto diag = Diagnostic::get(DiagnosticId::CmdLineInvalidFolder);
         diag.addArgument(Diagnostic::ARG_PATH, folder.string());
         if (ec)
             diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
@@ -44,7 +44,7 @@ Result FileSystem::resolveFolder(const Context& ctx, fs::path& folder)
     // Be sure it's a folder
     if (!fs::is_directory(resolved, ec))
     {
-        auto diag = Diagnostic::get(ctx, DiagnosticId::CmdLineInvalidFolder);
+        auto diag = Diagnostic::get(DiagnosticId::CmdLineInvalidFolder);
         diag.addArgument(Diagnostic::ARG_PATH, folder.string());
         if (ec)
             diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
@@ -64,7 +64,7 @@ Result FileSystem::resolveFile(const Context& ctx, fs::path& file)
     fs::path resolved = fs::absolute(file, ec);
     if (ec)
     {
-        auto diag = Diagnostic::get(ctx, DiagnosticId::CmdLineInvalidFile);
+        auto diag = Diagnostic::get(DiagnosticId::CmdLineInvalidFile);
         diag.addArgument(Diagnostic::ARG_PATH, file.string());
         diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
         diag.report(ctx);
@@ -80,7 +80,7 @@ Result FileSystem::resolveFile(const Context& ctx, fs::path& file)
     // Check existence and type; don't conflate errors with "not found"
     if (!fs::exists(resolved, ec))
     {
-        auto diag = Diagnostic::get(ctx, DiagnosticId::CmdLineInvalidFile);
+        auto diag = Diagnostic::get(DiagnosticId::CmdLineInvalidFile);
         diag.addArgument(Diagnostic::ARG_PATH, file.string());
         if (ec)
             diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
@@ -92,7 +92,7 @@ Result FileSystem::resolveFile(const Context& ctx, fs::path& file)
     // Be sure it's a regular file
     if (!fs::is_regular_file(resolved, ec))
     {
-        auto diag = Diagnostic::get(ctx, DiagnosticId::CmdLineInvalidFile);
+        auto diag = Diagnostic::get(DiagnosticId::CmdLineInvalidFile);
         diag.addArgument(Diagnostic::ARG_PATH, file.string());
         if (ec)
             diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));

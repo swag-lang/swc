@@ -51,9 +51,8 @@ DiagnosticSeverity Diagnostic::diagIdSeverity(DiagnosticId id)
     return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].severity;
 }
 
-Diagnostic::Diagnostic(const Context& context, const std::optional<SourceFile*>& fileOwner) :
-    fileOwner_(fileOwner),
-    context_(&context)
+Diagnostic::Diagnostic(const std::optional<SourceFile*>& fileOwner) :
+    fileOwner_(fileOwner)
 {
 }
 
@@ -114,9 +113,9 @@ void Diagnostic::addArgument(std::string_view name, std::string_view arg, bool q
     arguments_.emplace_back(Argument{.name = name, .quoted = quoted, .val = std::move(sanitized)});
 }
 
-Diagnostic Diagnostic::get(const Context& ctx, DiagnosticId id, std::optional<SourceFile*> fileOwner)
+Diagnostic Diagnostic::get(DiagnosticId id, std::optional<SourceFile*> fileOwner)
 {
-    Diagnostic diag(ctx, fileOwner);
+    Diagnostic diag(fileOwner);
     diag.addElement(id);
     return diag;
 }

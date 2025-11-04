@@ -15,6 +15,9 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::SymDot:
         return parseAutoScopedIdentifier();
 
+    case TokenId::CompilerUp:
+        return parseUpIdentifier();
+
     case TokenId::CompilerSizeOf:
     case TokenId::CompilerAlignOf:
     case TokenId::CompilerOffsetOf:
@@ -26,6 +29,7 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::CompilerIsConstExpr:
     case TokenId::CompilerDefined:
     case TokenId::CompilerInclude:
+    case TokenId::CompilerSafety:
         return parseCallArg1(AstNodeId::CompilerCall1);
 
     case TokenId::IntrinsicKindOf:
@@ -496,6 +500,14 @@ AstNodeRef Parser::parseAutoScopedIdentifier()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ScopedIdentifier>();
     consume(TokenId::SymDot);
+    nodePtr->nodeIdentifier = parseScopedIdentifier();
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseUpIdentifier()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UpIdentifier>();
+    consume(TokenId::CompilerUp);
     nodePtr->nodeIdentifier = parseScopedIdentifier();
     return nodeRef;
 }

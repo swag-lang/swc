@@ -110,6 +110,7 @@ class Parser
     AstNodeRef       parseIdentifier();
     AstNodeRef       parseSuffixedIdentifier();
     AstNodeRef       parseAutoScopedIdentifier();
+    AstNodeRef       parseUpIdentifier();
     AstNodeRef       parseScopedIdentifier();
     AstNodeRef       parseLiteral();
     AstNodeRef       parseLiteralExpression();

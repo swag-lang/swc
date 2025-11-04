@@ -242,6 +242,17 @@ struct AstNodeScopedIdentifier : AstNode
     AstNodeRef nodeIdentifier;
 };
 
+struct AstNodeUpIdentifier : AstNode
+{
+    static constexpr auto ID = AstNodeId::UpIdentifier;
+    AstNodeUpIdentifier() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeIdentifier;
+};
+
 struct AstNodeSuffixedIdentifier : AstNode
 {
     static constexpr auto ID = AstNodeId::SuffixedIdentifier;

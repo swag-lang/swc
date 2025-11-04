@@ -22,6 +22,14 @@ AstNodeRef Parser::parseCompilerFunc()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseCompilerFuncExpr()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerFuncExpr>();
+    nodePtr->tknName        = consume();
+    nodePtr->nodeExpression = parseExpression();
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseCompilerType()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerType>();

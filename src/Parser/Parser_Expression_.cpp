@@ -32,6 +32,9 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::CompilerSafety:
         return parseCallArg1(AstNodeId::CompilerCall1);
 
+    case TokenId::CompilerRun:
+        return parseCompilerFuncExpr();
+
     case TokenId::IntrinsicKindOf:
     case TokenId::IntrinsicCountOf:
     case TokenId::IntrinsicDataOf:

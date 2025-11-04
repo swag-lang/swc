@@ -7,15 +7,30 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void Parser::setReportArguments(Diagnostic& diag, const Token& token) const
+void Parser::setReportArguments(Diagnostic& diag, TokenRef tokenRef) const
 {
+    const auto& token = file_->lexOut().token(tokenRef);
+
     diag.addArgument(Diagnostic::ARG_TOK, token.toString(*file_));
     diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id), false);
     diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Token::toAFamily(token.id), false);
 
     // Get the last non-trivia token
-    if (curToken_ != firstToken_)
-        diag.addArgument(Diagnostic::ARG_AFTER, curToken_[-1].toString(*file_));
+    if (tokenRef != 0)
+    {
+        const auto& tokenPrev = file_->lexOut().token(tokenRef - 1);
+        diag.addArgument(Diagnostic::ARG_PREV_TOK, tokenPrev.toString(*file_));
+        diag.addArgument(Diagnostic::ARG_PREV_TOK_FAM, Token::toFamily(tokenPrev.id), false);
+        diag.addArgument(Diagnostic::ARG_PREV_A_TOK_FAM, Token::toAFamily(tokenPrev.id), false);
+    }
+
+    if (tokenRef < file_->lexOut().tokens().size() - 1)
+    {
+        const auto& tokenNext = file_->lexOut().token(tokenRef + 1);
+        diag.addArgument(Diagnostic::ARG_NEXT_TOK, tokenNext.toString(*file_));
+        diag.addArgument(Diagnostic::ARG_NEXT_TOK_FAM, Token::toFamily(tokenNext.id), false);
+        diag.addArgument(Diagnostic::ARG_NEXT_A_TOK_FAM, Token::toAFamily(tokenNext.id), false);
+    }
 }
 
 void Parser::setReportExpected(Diagnostic& diag, TokenId expectedTknId)
@@ -38,7 +53,7 @@ Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
 
     auto       diag  = Diagnostic::get(id, file_);
     const auto token = file_->lexOut().token(tknRef);
-    setReportArguments(diag, token);
+    setReportArguments(diag, tknRef);
     diag.last().setLocation(token.toLocation(*ctx_, *file_));
     return diag;
 }
@@ -48,7 +63,7 @@ Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknStartRef, TokenRef t
     auto       diag     = Diagnostic::get(id, file_);
     const auto tokStart = file_->lexOut().token(tknStartRef);
     const auto tokEnd   = file_->lexOut().token(tknEndRef);
-    setReportArguments(diag, tokStart);
+    setReportArguments(diag, tknStartRef);
     diag.last().setLocation(tokStart.toLocation(*ctx_, *file_), tokEnd.toLocation(*ctx_, *file_));
     return diag;
 }
@@ -64,7 +79,7 @@ Diagnostic Parser::reportExpected(const ParserExpect& expect)
     SWC_ASSERT(expect.tokId != TokenId::Invalid);
 
     auto diag = reportError(expect.diag, ref());
-    setReportArguments(diag, tok());
+    setReportArguments(diag, ref());
     setReportExpected(diag, expect.tokId);
     diag.addArgument(Diagnostic::ARG_BECAUSE, Diagnostic::diagIdMessage(expect.becauseCtx), false);
 

@@ -144,7 +144,7 @@ class Parser
     bool skipAfter(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlags::Zero);
     bool skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags);
 
-    void        setReportArguments(Diagnostic& diag, const Token& token) const;
+    void        setReportArguments(Diagnostic& diag, TokenRef tokenRef) const;
     static void setReportExpected(Diagnostic& diag, TokenId expectedTknId);
     Diagnostic  reportError(DiagnosticId id, TokenRef tknRef);
     Diagnostic  reportError(DiagnosticId id, TokenRef tknStartRef, TokenRef tknEndRef) const;

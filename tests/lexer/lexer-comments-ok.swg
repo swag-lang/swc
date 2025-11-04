@@ -1,62 +1,11 @@
-// swc-option lex-only
-
-// Comment validation tests
-
 // ============================================================================
-// SINGLE-LINE COMMENTS
+// COMMENTS AT END OF FILE
 // ============================================================================
 
-// --- Valid single-line comments ---
-// This is a comment
-// Another comment
-//
-//comment without space
-//     comment with leading spaces
-// comment with trailing spaces     
-//123456789
-// !@#$%^&*()
-// with "quotes" and 'apostrophes'
-// with /* multi-line markers */
-// with // double slashes
-
-// --- Single-line comments with code ---
-int x = 5; // comment after code
-int y = 10;//no space before comment
-// comment before code
-int z = 15;
-
-// --- Empty and whitespace single-line comments ---
-//
-//  
-//	
-//
-
-// --- Single-line comments with special characters ---
-// TODO: implement this feature
-// FIXME: bug here
-// NOTE: important information
-// HACK: temporary solution
-// XXX: warning
-// BUG: known issue
-
-// --- Single-line comments with escape sequences (not interpreted) ---
-// This is \n not a newline
-// This is \t not a tab
-// This is \" not an escaped quote
-// This is \\ not an escaped backslash
-
-// --- Single-line comments with URLs ---
-// https://example.com
-// http://www.test.org/path/to/resource
-// file:///C:/path/to/file
-
-// --- Single-line comments at end of file (no newline after) ---
-// This comment has no newline after it
 
 // ============================================================================
 // MULTI-LINE COMMENTS
 // ============================================================================
-
 // --- Valid multi-line comments ---
 /* comment */
 /* single line */
@@ -103,7 +52,7 @@ int c /* mid-statement comment */ = 15;
 /* comment with operators: + - * / % */
 /* comment with symbols: !@#$%^&*() */
 
-/* 
+/*
  * Documentation comment
  * @param x the input value
  * @return the result
@@ -144,7 +93,7 @@ and keeps going
 /*********************/
 
 // --- Multi-line comments with mixed content ---
-/* 
+/*
 code: int x = 5;
 string: "hello world"
 number: 123.456
@@ -156,7 +105,6 @@ nested: /* this */ is inside
 // ============================================================================
 // NESTED COMMENTS - ADVANCED CASES
 // ============================================================================
-
 // --- Deep nesting ---
 /* 1 /* 2 /* 3 /* 4 /* 5 */ 4 */ 3 */ 2 */ 1 */
 
@@ -173,42 +121,90 @@ end 1 */
 /* x /* y /* z */ y */ x */
 
 // ============================================================================
+// SINGLE-LINE COMMENTS
+// ============================================================================
+// --- Valid single-line comments ---
+// This is a comment
+// Another comment
+//
+// Comment without space
+// Comment with leading spaces
+// Comment with trailing spaces
+// 123456789
+// !@#$%^&*()
+// With "quotes" and 'apostrophes'
+// With /* multi-line markers */
+// With // double slashes
+
+// --- Single-line comments with code ---
+int x = 5; // comment after code
+int y = 10;//no space before comment
+// Comment before code
+int z = 15;
+
+// --- Empty and whitespace single-line comments ---
+//
+//
+//
+//
+
+// --- Single-line comments with special characters ---
+// TODO: implement this feature
+// FIXME: bug here
+// NOTE: important information
+// HACK: temporary solution
+// XXX: warning
+// BUG: known issue
+
+// --- Single-line comments with escape sequences (not interpreted) ---
+// This is \n not a newline
+// This is \t not a tab
+// This is \" not an escaped quote
+// This is \\ not an escaped backslash
+
+// --- Single-line comments with URLs ---
+// Https://example.com
+// Http://www.test.org/path/to/resource
+// File:///C:/path/to/file
+
+// --- Single-line comments at end of file (no newline after) ---
+// This comment has no newline after it
+
+// ============================================================================
 // MIXED COMMENT STYLES
 // ============================================================================
-
 // --- Single-line followed by multi-line ---
-// single line comment
+// Single line comment
 /* multi line comment */
 
 // --- Multi-line followed by single-line ---
 /* multi line comment */
-// single line comment
+// Single line comment
 
 // --- Comments with code between ---
-// comment 1
+// Comment 1
 int x = 5;
 /* comment 2 */
 int y = 10;
-// comment 3
+// Comment 3
 
 // --- Multiple comments in sequence ---
-// comment 1
-// comment 2
-// comment 3
+// Comment 1
+// Comment 2
+// Comment 3
 
 /**/
 /**/
 /**/
 
-// a
+// A
 /* b */
-// c
+// C
 /* d */
 
 // ============================================================================
 // EDGE CASES
 // ============================================================================
-
 // --- Comments with comment-like strings inside ---
 /* This // is not a single-line comment */
 // This /* is not a multi-line comment start
@@ -227,7 +223,7 @@ int y = 10;
 * / not a comment end (no opening)
 
 // --- Comments with unusual spacing ---
-//no space after slashes
+// No space after slashes
 /*no space after open*/
 /*no space before close*/
 /*nospaces*/
@@ -243,11 +239,7 @@ int y = 10;
  */
 
 // --- Comments with tabs ---
-//	tab after slashes
+// Tab after slashes
 /*	tab in comment	*/
 	// tab before comment
 /* 	multiple	tabs	here	 */
-
-// ============================================================================
-// COMMENTS AT END OF FILE
-// ============================================================================

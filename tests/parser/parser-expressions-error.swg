@@ -1,3 +1,7 @@
+// ============================================================================
+// Parser Expressions Error
+// ============================================================================
+
 #assert A // swc-expected-error {{ParserExpectedToken}}
 // swc-expected-error@+ {{ParserExpectedClosing}}
 #assert(A)

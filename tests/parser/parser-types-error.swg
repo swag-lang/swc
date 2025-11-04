@@ -1,3 +1,7 @@
+// ============================================================================
+// Parser Types Error
+// ============================================================================
+
 enum A : *enum {} // swc-expected-error {{ParserInvalidType}}
 enum A : [*] {} // swc-expected-error {{ParserInvalidType}}
 

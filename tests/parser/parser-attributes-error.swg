@@ -5,5 +5,8 @@
 #[] // swc-expected-error {{ParserEmptyAttribute}}
 enum B {}
 
-#[A(]
+#[A(] // swc-expected-error {{ParserUnexpectedToken}} {{ParserExpectedClosing}}
 enum B {}
+
+#[A // swc-expected-error {{ParserExpectedClosing}}
+enum B {} // swc-expected-error {{ParserExpectedTokenAfter}}

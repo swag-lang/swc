@@ -28,6 +28,7 @@ public:
     void setLocation(const SourceFile* file);
     void setLocation(const SourceFile* file, uint32_t offset, uint32_t len = 1);
     void setLocation(const SourceCodeLocation& loc);
+    void setLocation(const SourceCodeLocation& locStart, const SourceCodeLocation& locEnd);
     void inheritLocationFrom(const DiagnosticElement& other);
 
     Utf8 message() const;

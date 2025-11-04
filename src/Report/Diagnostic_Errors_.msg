@@ -53,6 +53,6 @@ SWC_DIAG_DEF(ParserDuplicatedModifier, Error, "modifier {tok} already defined")
 SWC_DIAG_DEF(ParserInvalidModifier, Error, "invalid modifier: {tok}")
 SWC_DIAG_DEF(ParserUnexpectedDoWithBraces, Error, "unexpected '{' after 'do' keyword")
 SWC_DIAG_DEF(ParserExpectedDoOrBlock, Error, "expected a statement starting with 'do' or '{' after {tok}")
-SWC_DIAG_DEF(ParserEmptyAttribute, Error, "unexpected empty attribute '#[]'")
+SWC_DIAG_DEF(ParserEmptyAttribute, Error, "invalid empty attribute '#[]'")
 
 

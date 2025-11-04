@@ -88,7 +88,7 @@ AstNodeRef Parser::parseCompilerAttribute(AstNodeId blockNodeId)
     if (consumeIf(TokenId::SymRightBracket))
     {
         nodePtr->spanChildren = INVALID_REF;
-        const auto diag       = reportError(DiagnosticId::ParserEmptyAttribute, openTokRef);
+        const auto diag       = reportError(DiagnosticId::ParserEmptyAttribute, openTokRef, ref() - 1);
         diag.report(*ctx_);
     }
     else

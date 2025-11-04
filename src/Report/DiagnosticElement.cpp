@@ -37,6 +37,14 @@ void DiagnosticElement::setLocation(const SourceCodeLocation& loc)
     len_    = loc.len;
 }
 
+void DiagnosticElement::setLocation(const SourceCodeLocation& locStart, const SourceCodeLocation& locEnd)
+{
+    SWC_ASSERT(locStart.file == locEnd.file);
+    file_   = locStart.file;
+    offset_ = locStart.offset;
+    len_    = locEnd.offset + locEnd.len - locStart.offset;
+}
+
 void DiagnosticElement::inheritLocationFrom(const DiagnosticElement& other)
 {
     file_   = other.file_;

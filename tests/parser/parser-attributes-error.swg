@@ -2,5 +2,5 @@
 // Parser Attributes Error
 // ============================================================================
 
-#[]
+#[] // swc-expected-error {{ParserEmptyAttribute}}
 enum B {}

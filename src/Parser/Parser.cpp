@@ -34,6 +34,16 @@ Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef) const
     return diag;
 }
 
+Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknStartRef, TokenRef tknEndRef) const
+{
+    auto       diag     = Diagnostic::get(*ctx_, id, file_);
+    const auto tokStart = file_->lexOut().token(tknStartRef);
+    const auto tokEnd   = file_->lexOut().token(tknEndRef);
+    setReportArguments(diag, tokStart);
+    diag.last().setLocation(tokStart.toLocation(*ctx_, *file_), tokEnd.toLocation(*ctx_, *file_));
+    return diag;
+}
+
 void Parser::raiseError(DiagnosticId id, TokenRef tknRef)
 {
     if (tknRef == lastErrorToken_)

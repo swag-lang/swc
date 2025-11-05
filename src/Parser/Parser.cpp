@@ -45,7 +45,7 @@ Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
     auto       diag  = Diagnostic::get(id, file_);
     const auto token = file_->lexOut().token(tknRef);
     setReportArguments(diag, tknRef);
-    diag.last().addSpan(token.toLocation(*ctx_, *file_));
+    diag.last().addSpan(token.toLocation(*ctx_, *file_), "");
 
     if (tknRef == lastErrorToken_)
         diag.setSilent(true);
@@ -213,7 +213,7 @@ TokenRef Parser::expectAndConsumeClosingFor(TokenId openId, TokenRef openRef)
     setReportArguments(diag, ref());
     setReportExpected(diag, closingId);
 
-    diag.last().addSpan(file_->lexOut().token(openRef).toLocation(*ctx_, *file_), DiagnosticSeverity::Note);
+    diag.last().addSpan(file_->lexOut().token(openRef).toLocation(*ctx_, *file_), "", DiagnosticSeverity::Note);
     diag.report(*ctx_);
 
     skipTo({closingId, TokenId::SymSemiColon, TokenId::SymLeftCurly}, SkipUntilFlags::EolBefore);
@@ -233,7 +233,7 @@ void Parser::expectEndStatement()
     loc.column += loc.len;
     loc.offset += loc.len;
     loc.len = 1;
-    diag.last().addSpan(loc);
+    diag.last().addSpan(loc, "");
     diag.report(*ctx_);
 }
 

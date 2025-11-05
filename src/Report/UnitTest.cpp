@@ -206,7 +206,7 @@ Result UnitTest::verifyUntouchedExpected(const Context& ctx) const
         if (!directive.touched)
         {
             const auto diag = Diagnostic::get(DiagnosticId::unittest_err_not_raised, file_);
-            diag.last().addSpan(directive.myLoc);
+            diag.last().addSpan(directive.myLoc, "");
             diag.report(lexerCtx);
         }
     }

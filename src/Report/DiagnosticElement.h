@@ -24,6 +24,7 @@ public:
         uint32_t           offset = 0;
         uint32_t           len    = 0;
         DiagnosticSeverity severity;
+        DiagnosticId       messageId;
         Utf8               message;
     };
 
@@ -44,7 +45,8 @@ public:
     const SourceFile* file() const { return file_; }
 
     void        addSpan(const SourceFile* file, uint32_t offset, uint32_t len, DiagnosticSeverity severity = DiagnosticSeverity::Zero, const Utf8& message = Utf8());
-    void        addSpan(const SourceCodeLocation& loc, DiagnosticSeverity severity = DiagnosticSeverity::Zero, const Utf8& message = Utf8());
+    void        addSpan(const SourceCodeLocation& loc, const Utf8& message, DiagnosticSeverity severity = DiagnosticSeverity::Zero);
+    void        addSpan(const SourceCodeLocation& loc, DiagnosticId diagId, DiagnosticSeverity severity = DiagnosticSeverity::Zero);
     const auto& spans() const { return spans_; }
     auto&       span(uint32_t index) { return spans_[index]; }
     const auto& span(uint32_t index) const { return spans_[index]; }

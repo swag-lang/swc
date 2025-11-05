@@ -2,6 +2,7 @@
 
 #include "Diagnostic.h"
 #include "DiagnosticElement.h"
+#include "Os/Os.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -30,7 +31,7 @@ void DiagnosticElement::addSpan(const SourceFile* file, uint32_t offset, uint32_
     spans_.push_back(span);
 }
 
-void DiagnosticElement::addSpan(const SourceCodeLocation& loc, DiagnosticSeverity severity, const Utf8& message)
+void DiagnosticElement::addSpan(const SourceCodeLocation& loc, const Utf8& message, DiagnosticSeverity severity)
 {
     SWC_ASSERT(!file_ || loc.file == file_);
     file_ = loc.file;
@@ -40,6 +41,19 @@ void DiagnosticElement::addSpan(const SourceCodeLocation& loc, DiagnosticSeverit
     span.len      = loc.len;
     span.severity = severity;
     span.message  = message;
+    spans_.push_back(span);
+}
+
+void DiagnosticElement::addSpan(const SourceCodeLocation& loc, DiagnosticId diagId, DiagnosticSeverity severity)
+{
+    SWC_ASSERT(!file_ || loc.file == file_);
+    file_ = loc.file;
+
+    Span span;
+    span.offset    = loc.offset;
+    span.len       = loc.len;
+    span.severity  = severity;
+    span.messageId = diagId;
     spans_.push_back(span);
 }
 

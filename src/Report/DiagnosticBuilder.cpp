@@ -393,7 +393,12 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const st
         if (!span.message.empty())
         {
             out_ += " ";
-            writeHighlightedMessage(DiagnosticSeverity::Note, span.message, partStyle(DiagPart::LabelMsgText, DiagnosticSeverity::Note));
+
+            auto msg = span.message;
+            if (msg.empty() && span.messageId != DiagnosticId::None)
+                msg = Diagnostic::diagIdMessage(span.messageId);
+
+            writeHighlightedMessage(DiagnosticSeverity::Note, msg, partStyle(DiagPart::LabelMsgText, DiagnosticSeverity::Note));
         }
 
         currentPos = column + underlineLen;

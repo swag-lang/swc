@@ -49,9 +49,9 @@ namespace
             return "note";
         case DiagnosticSeverity::Help:
             return "help";
+        default:
+            std::unreachable();
         }
-
-        return "unknown";
     }
 
     // Generic digit counter (no hard cap)
@@ -151,8 +151,9 @@ DiagnosticBuilder::AnsiSeq DiagnosticBuilder::diagPalette(DiagPart p, std::optio
         case DiagnosticSeverity::Note:
         case DiagnosticSeverity::Help:
             return {White};
+        default:
+            std::unreachable();
         }
-        break;
 
     case DiagPart::LabelMsgPrefix:
     case DiagPart::Severity:
@@ -168,8 +169,9 @@ DiagnosticBuilder::AnsiSeq DiagnosticBuilder::diagPalette(DiagPart p, std::optio
             return {BrightCyan};
         case DiagnosticSeverity::Help:
             return {BrightGreen};
+        default:
+            std::unreachable();
         }
-        break;
 
     case DiagPart::QuoteText:
         if (!sev)
@@ -184,8 +186,9 @@ DiagnosticBuilder::AnsiSeq DiagnosticBuilder::diagPalette(DiagPart p, std::optio
             return {BrightBlack};
         case DiagnosticSeverity::Help:
             return {BrightBlack};
+        default:
+            std::unreachable();
         }
-        break;
 
     case DiagPart::Reset:
         return {Reset};
@@ -355,35 +358,6 @@ void DiagnosticBuilder::writeLabelMsg(const DiagnosticElement& el)
     out_ += "\n";
 }
 
-// Helper function to convert variant argument to string
-Utf8 DiagnosticBuilder::argumentToString(const Diagnostic::Argument& arg) const
-{
-    auto toUtf8 = []<typename T0>(const T0& v) -> Utf8 {
-        using T = std::decay_t<T0>;
-        if constexpr (std::same_as<T, Utf8>)
-            return v;
-        else if constexpr (std::same_as<T, TokenId>)
-            return Token::toName(v);
-        else if constexpr (std::same_as<T, DiagnosticId>)
-            return Diagnostic::diagIdMessage(v);
-        else if constexpr (std::integral<T>)
-            return Utf8{std::to_string(v)};
-        else
-            std::unreachable();
-    };
-
-    Utf8 s = std::visit(toUtf8, arg.val);
-    if (!arg.quoted)
-        return s;
-
-    Utf8 result;
-    result.reserve(s.size() + 2);
-    result.push_back('\'');
-    result += s;
-    result.push_back('\'');
-    return result;
-}
-
 // In DiagnosticBuilder.cpp, update the writeCodeUnderline implementation:
 void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const std::vector<std::tuple<uint32_t, uint32_t, DiagnosticElement::Span>>& underlines)
 {
@@ -447,7 +421,7 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
     {
         loc = el.location(i, *ctx_);
 
-        // If we're on a new line, render the previous line's underlines and start new line
+        // If we're on a new line, render the previous line's underlines and start a new line
         if (loc.line != currentLine)
         {
             // Render all underlines for the previous line on a single output line
@@ -476,6 +450,35 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
     }
 
     out_ += partStyle(DiagPart::Reset);
+}
+
+// Helper function to convert variant argument to string
+Utf8 DiagnosticBuilder::argumentToString(const Diagnostic::Argument& arg) const
+{
+    auto toUtf8 = []<typename T0>(const T0& v) -> Utf8 {
+        using T = std::decay_t<T0>;
+        if constexpr (std::same_as<T, Utf8>)
+            return v;
+        else if constexpr (std::same_as<T, TokenId>)
+            return Token::toName(v);
+        else if constexpr (std::same_as<T, DiagnosticId>)
+            return Diagnostic::diagIdMessage(v);
+        else if constexpr (std::integral<T>)
+            return Utf8{std::to_string(v)};
+        else
+            std::unreachable();
+    };
+
+    Utf8 s = std::visit(toUtf8, arg.val);
+    if (!arg.quoted)
+        return s;
+
+    Utf8 result;
+    result.reserve(s.size() + 2);
+    result.push_back('\'');
+    result += s;
+    result.push_back('\'');
+    return result;
 }
 
 Utf8 DiagnosticBuilder::message(const DiagnosticElement& el) const

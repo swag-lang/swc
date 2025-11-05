@@ -245,6 +245,7 @@ AstNodeRef Parser::parseTopLevelStmt()
     case TokenId::CompilerFuncInit:
     case TokenId::CompilerFuncDrop:
     case TokenId::CompilerAst:
+    case TokenId::CompilerRun:
         return parseCompilerFunc();
 
     case TokenId::KwdNamespace:

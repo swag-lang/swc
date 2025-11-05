@@ -13,8 +13,6 @@ AstNodeRef Parser::parseCallArg1(AstNodeId callerNodeId)
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
     nodePtr->nodeParam1 = parseExpression();
-    if (invalid(nodePtr->nodeParam1))
-        skipTo({TokenId::SymRightParen});
     expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
 
     return nodeRef;
@@ -29,13 +27,10 @@ AstNodeRef Parser::parseCallArg2(AstNodeId callerNodeId)
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
     nodePtr->nodeParam1 = parseExpression();
-    if (invalid(nodePtr->nodeParam1))
+    if (invalid(expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token)))
         skipTo({TokenId::SymComma, TokenId::SymRightParen});
-    expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token);
 
     nodePtr->nodeParam2 = parseExpression();
-    if (invalid(nodePtr->nodeParam2))
-        skipTo({TokenId::SymComma, TokenId::SymRightParen});
 
     expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
     return nodeRef;
@@ -50,18 +45,14 @@ AstNodeRef Parser::parseCallArg3(AstNodeId callerNodeId)
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
     nodePtr->nodeParam1 = parseExpression();
-    if (invalid(nodePtr->nodeParam1))
-        skipTo({TokenId::SymRightParen});
-    expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token);
+    if (invalid(expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token)))
+        skipTo({TokenId::SymComma, TokenId::SymRightParen});
 
     nodePtr->nodeParam2 = parseExpression();
-    if (invalid(nodePtr->nodeParam2))
+    if (invalid(expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token)))
         skipTo({TokenId::SymComma, TokenId::SymRightParen});
-    expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token);
 
     nodePtr->nodeParam3 = parseExpression();
-    if (invalid(nodePtr->nodeParam2))
-        skipTo({TokenId::SymComma, TokenId::SymRightParen});
 
     expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
     return nodeRef;

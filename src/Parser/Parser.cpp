@@ -217,10 +217,13 @@ TokenRef Parser::expectAndConsumeClosingFor(TokenId openId, TokenRef openRef)
     if (is(closingId))
         return consume();
 
-    auto diag = reportError(DiagnosticId::parser_err_expected_closing_before, ref());
+    const auto tok  = file_->lexOut().token(openRef);
+    auto       diag = reportError(DiagnosticId::parser_err_expected_closing_before, ref());
     setReportExpected(diag, closingId);
 
-    diag.last().addSpan(file_->lexOut().token(openRef).toLocation(*ctx_, *file_), DiagnosticId::parser_note_opening, DiagnosticSeverity::Note);
+    if (tok.id == openId)
+        diag.last().addSpan(tok.toLocation(*ctx_, *file_), DiagnosticId::parser_note_opening, DiagnosticSeverity::Note);
+
     diag.report(*ctx_);
 
     skipTo({closingId, TokenId::SymSemiColon, TokenId::SymLeftCurly}, SkipUntilFlags::EolBefore);

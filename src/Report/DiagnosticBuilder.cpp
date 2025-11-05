@@ -407,7 +407,8 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const st
             bool fits = true;
             for (const auto& [nextCol, nextLen, nextSpan] : sortedUnderlines)
             {
-                if (nextCol > col && msgStartPos + msgLength > nextCol)
+                // +2 to avoid being too close to the following one
+                if (nextCol > col && msgStartPos + msgLength + 2 > nextCol)
                 {
                     fits = false;
                     break;

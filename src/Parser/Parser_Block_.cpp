@@ -43,7 +43,7 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
 
     if (tokenStartId != TokenId::Invalid)
     {
-        if (invalid(expectAndConsume(tokenStartId, DiagnosticId::ParserExpectedTokenBefore)))
+        if (invalid(expectAndConsume(tokenStartId, DiagnosticId::parser_err_expected_token_before)))
             return INVALID_REF;
     }
 
@@ -109,7 +109,7 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
         case AstNodeId::EnumBlock:
             if (!consumeIf(TokenId::SymComma) && !is(tokenEndId) && !tok().startsLine())
             {
-                auto diag = reportError(DiagnosticId::ParserExpectedTokenBefore, ref());
+                auto diag = reportError(DiagnosticId::parser_err_expected_token_before, ref());
                 setReportExpected(diag, TokenId::SymComma);
                 diag.report(*ctx_);
                 skipTo(skipTokens);
@@ -123,7 +123,7 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
         case AstNodeId::NamedArgumentBlock:
             if (!consumeIf(TokenId::SymComma) && !is(tokenEndId))
             {
-                auto diag = reportError(DiagnosticId::ParserExpectedTokenBefore, ref());
+                auto diag = reportError(DiagnosticId::parser_err_expected_token_before, ref());
                 setReportExpected(diag, TokenId::SymComma);
                 diag.report(*ctx_);
                 skipTo(skipTokens);
@@ -157,7 +157,7 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
     auto closeTokenRef = ref();
     if (!consumeIf(tokenEndId) && tokenEndId != TokenId::Invalid)
     {
-        auto diag = reportError(DiagnosticId::ParserExpectedClosing, openTokRef);
+        auto diag = reportError(DiagnosticId::parser_err_expected_closing, openTokRef);
         setReportExpected(diag, Token::toRelated(openTok.id));
         diag.report(*ctx_);
     }
@@ -171,7 +171,7 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
         {
         case AstNodeId::AttributeBlock:
         {
-            const auto diag     = reportError(DiagnosticId::ParserEmptyAttribute, openTokRef);
+            const auto diag     = reportError(DiagnosticId::parser_err_empty_attribute, openTokRef);
             const auto tokenEnd = file_->lexOut().token(closeTokenRef);
             diag.last().addSpan(tokenEnd.toLocation(*ctx_, *file_));
             diag.report(*ctx_);
@@ -197,7 +197,7 @@ AstNodeRef Parser::parseTopLevelStmt()
     case TokenId::SymLeftCurly:
         return parseBlock(TokenId::SymLeftCurly, AstNodeId::TopLevelBlock);
     case TokenId::SymRightCurly:
-        raiseError(DiagnosticId::ParserUnexpectedToken, ref());
+        raiseError(DiagnosticId::parser_err_unexpected_token, ref());
         return INVALID_REF;
 
     case TokenId::SymSemiColon:
@@ -240,7 +240,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
     case TokenId::SymLeftCurly:
         return parseBlock(TokenId::SymLeftCurly, AstNodeId::EmbeddedBlock);
     case TokenId::SymRightCurly:
-        raiseError(DiagnosticId::ParserUnexpectedToken, ref());
+        raiseError(DiagnosticId::parser_err_unexpected_token, ref());
         return INVALID_REF;
 
     case TokenId::SymSemiColon:

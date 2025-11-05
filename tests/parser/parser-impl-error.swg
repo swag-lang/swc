@@ -2,4 +2,4 @@
 // Parser Impl Error
 // ============================================================================
 
-impl enum A.B. { } // swc-expected-error {{ParserExpectedTokenFam}}
+impl enum A.B. { } // swc-expected-error {{parser_err_expected_token_fam}}

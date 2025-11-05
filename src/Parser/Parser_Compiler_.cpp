@@ -44,7 +44,7 @@ AstNodeRef Parser::parseCompilerIfStmt(AstNodeId blockNodeId)
     {
         if (is(TokenId::SymLeftCurly))
         {
-            raiseError(DiagnosticId::ParserUnexpectedDoWithBraces, ref() - 1);
+            raiseError(DiagnosticId::parser_err_unexpected_do_block, ref() - 1);
             return parseBlock(TokenId::SymLeftCurly, blockNodeId);
         }
 
@@ -56,7 +56,7 @@ AstNodeRef Parser::parseCompilerIfStmt(AstNodeId blockNodeId)
         return parseBlock(TokenId::SymLeftCurly, blockNodeId);
     }
 
-    const auto diag = reportError(DiagnosticId::ParserExpectedDoOrBlock, ref() - 1);
+    const auto diag = reportError(DiagnosticId::parser_err_expected_do_block, ref() - 1);
     diag.report(*ctx_);
     return INVALID_REF;
 }

@@ -18,7 +18,7 @@ Result CompilerInstance::cmdSyntax()
     // Syntax source files must be defined
     if (context_.cmdLine_->directories.empty() && context_.cmdLine_->files.empty())
     {
-        const auto diag = Diagnostic::get(DiagnosticId::CmdSyntaxNoInput);
+        const auto diag = Diagnostic::get(DiagnosticId::cmd_syntax_err_no_input);
         diag.report(ctx);
         return Result::Error;
     }

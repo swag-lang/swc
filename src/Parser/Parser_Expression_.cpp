@@ -157,7 +157,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         return parseCompilerType();
 
     default:
-        raiseError(DiagnosticId::ParserUnexpectedToken, ref());
+        raiseError(DiagnosticId::parser_err_unexpected_token, ref());
         return INVALID_REF;
     }
 }
@@ -293,7 +293,7 @@ AstModifierFlags Parser::parseModifiers()
             const auto name = tok().toString(*file_);
             if (name[0] == '#')
             {
-                raiseError(DiagnosticId::ParserInvalidModifier, ref());
+                raiseError(DiagnosticId::parser_err_invalid_modifier, ref());
                 consume();
                 continue;
             }
@@ -308,8 +308,8 @@ AstModifierFlags Parser::parseModifiers()
 
         if (has_any(result, toSet))
         {
-            auto diag = reportError(DiagnosticId::ParserDuplicatedModifier, ref());
-            diag.addElement(DiagnosticId::ParserOtherDefinition);
+            auto diag = reportError(DiagnosticId::parser_err_duplicated_modifier, ref());
+            diag.addElement(DiagnosticId::parser_note_other_def);
             diag.last().addSpan(file_->lexOut().token(done[toSet]).toLocation(*ctx_, *file_));
             diag.report(*ctx_);
         }
@@ -328,7 +328,7 @@ AstNodeRef Parser::parseCast()
     const auto openRef       = ref();
     const auto modifierFlags = parseModifiers();
 
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenBefore);
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
     if (consumeIf(TokenId::SymRightParen))
     {
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CastAuto>();
@@ -438,7 +438,7 @@ AstNodeRef Parser::parseLogicalExpression()
     if (isAny(TokenId::KwdAnd, TokenId::KwdOr, TokenId::SymAmpersandAmpersand, TokenId::SymVerticalVertical))
     {
         if (isAny(TokenId::SymAmpersandAmpersand, TokenId::SymVerticalVertical))
-            raiseError(DiagnosticId::ParserUnexpectedAndOr, ref());
+            raiseError(DiagnosticId::parser_err_unexpected_and_or, ref());
 
         const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::LogicalExpression>();
         nodePtr->tknOp                  = consume();
@@ -470,7 +470,7 @@ AstNodeRef Parser::parseParenExpression()
 AstNodeRef Parser::parseIdentifier()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>();
-    nodePtr->tknName        = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFam);
+    nodePtr->tknName        = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
     return nodeRef;
 }
 

@@ -27,7 +27,7 @@ Result SourceFile::loadContent(const Context& ctx)
 
     if (!file)
     {
-        auto diag = Diagnostic::get(DiagnosticId::CannotOpenFile, this);
+        auto diag = Diagnostic::get(DiagnosticId::io_err_open_file, this);
         diag.addArgument(Diagnostic::ARG_PATH, path_.string());
         diag.addArgument(Diagnostic::ARG_BECAUSE, Os::systemError());
         diag.last().setFile(this);
@@ -42,7 +42,7 @@ Result SourceFile::loadContent(const Context& ctx)
 
     if (!file.read(reinterpret_cast<char*>(content_.data()), fileSize))
     {
-        auto diag = Diagnostic::get(DiagnosticId::CannotReadFile, this);
+        auto diag = Diagnostic::get(DiagnosticId::io_err_read_file, this);
         diag.addArgument(Diagnostic::ARG_PATH, path_.string());
         diag.addArgument(Diagnostic::ARG_BECAUSE, Os::systemError());
         diag.last().setFile(this);

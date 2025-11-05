@@ -209,7 +209,7 @@ TokenRef Parser::expectAndConsumeClosingFor(TokenId openId, TokenRef openRef)
     if (is(closingId))
         return consume();
 
-    auto diag = reportError(DiagnosticId::ParserExpectedClosingBefore, ref());
+    auto diag = reportError(DiagnosticId::parser_err_expected_closing_before, ref());
     setReportArguments(diag, ref());
     setReportExpected(diag, closingId);
 
@@ -228,7 +228,7 @@ void Parser::expectEndStatement()
     if (consumeIf(TokenId::SymSemiColon))
         return;
 
-    const auto diag = reportError(DiagnosticId::ParserExpectedEndOfLine, ref() - 1);
+    const auto diag = reportError(DiagnosticId::parser_err_expected_eol, ref() - 1);
     auto       loc  = curToken_[-1].toLocation(*ctx_, *file_);
     loc.column += loc.len;
     loc.offset += loc.len;

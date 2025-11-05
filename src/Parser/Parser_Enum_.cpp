@@ -14,7 +14,7 @@ AstNodeRef Parser::parseEnumValue()
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumUsingValue>();
         consume();
-        nodePtr->tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenFam);
+        nodePtr->tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
         if (invalid(nodePtr->tknName))
             skipTo(ENUM_VALUE_SYNC, SkipUntilFlags::EolBefore);
         return nodeRef;
@@ -40,7 +40,7 @@ AstNodeRef Parser::parseEnumValue()
         return parseCompilerAttribute(AstNodeId::EnumBlock);
 
     default:
-        raiseError(DiagnosticId::ParserUnexpectedToken, ref());
+        raiseError(DiagnosticId::parser_err_unexpected_token, ref());
         return INVALID_REF;
     }
 }
@@ -53,7 +53,7 @@ AstNodeRef Parser::parseEnum()
     consume(TokenId::KwdEnum);
 
     // Name
-    nodePtr->tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenBeforeFam);
+    nodePtr->tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
     if (invalid(nodePtr->tknName))
         skipTo({TokenId::SymLeftCurly, TokenId::SymColon});
 

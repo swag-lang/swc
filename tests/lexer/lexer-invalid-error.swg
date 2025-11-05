@@ -4,4 +4,4 @@
 
 // swc-option lex-only
 
-¤ // swc-expected-error {{InvalidCharacter}}
+¤ // swc-expected-error {{lex_err_invalid_char}}

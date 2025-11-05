@@ -72,7 +72,7 @@ void Lexer::eatUtf8Char()
     auto [buf, wc, eat] = Utf8Helper::decodeOneChar(buffer_, endBuffer_);
     if (!buf)
     {
-        raiseTokenError(DiagnosticId::LexFileNotUtf8, static_cast<uint32_t>(buffer_ - startBuffer_));
+        raiseTokenError(DiagnosticId::lex_err_not_utf8, static_cast<uint32_t>(buffer_ - startBuffer_));
         hasUtf8Error_  = true;
         hasTokenError_ = true;
         buffer_++;
@@ -171,7 +171,7 @@ void Lexer::lexEscape(TokenId containerToken, bool eatEol)
     }
 
     if (!langSpec_->isEscape(buffer_[1]))
-        raiseTokenError(DiagnosticId::LexInvalidEscapeSequence, static_cast<uint32_t>(buffer_ - startBuffer_), 2);
+        raiseTokenError(DiagnosticId::lex_err_invalid_escape, static_cast<uint32_t>(buffer_ - startBuffer_), 2);
 
     // pos points to the backslash
     if (buffer_[1] != 'x' && buffer_[1] != 'u' && buffer_[1] != 'U')
@@ -212,13 +212,13 @@ void Lexer::lexEscape(TokenId containerToken, bool eatEol)
             {
                 const uint8_t first = buffer_[2]; // first expected a hex digit
                 if (isTerminatorAfterEscapeChar(first, containerToken))
-                    raiseTokenError(DiagnosticId::LexEmptyHexEscape, offset, 2);
+                    raiseTokenError(DiagnosticId::lex_err_empty_hex_escape, offset, 2);
                 else
-                    raiseTokenError(DiagnosticId::LexInvalidHexDigit, offset + 2);
+                    raiseTokenError(DiagnosticId::lex_err_invalid_hex_digit, offset + 2);
             }
             else
             {
-                auto diag = reportTokenError(DiagnosticId::LexIncompleteHexEscape, offset, 2 + actualDigits);
+                auto diag = reportTokenError(DiagnosticId::lex_err_incomplete_hex_escape, offset, 2 + actualDigits);
                 diag.addArgument(Diagnostic::ARG_VALUE, expectedDigits);
                 diag.report(*ctx_);
             }
@@ -255,7 +255,7 @@ void Lexer::lexSingleLineStringLiteral()
         // Check for null byte (invalid UTF-8)
         if (buffer_[0] == '\0')
         {
-            raiseTokenError(DiagnosticId::LexFileNotUtf8, static_cast<uint32_t>(buffer_ - startBuffer_));
+            raiseTokenError(DiagnosticId::lex_err_not_utf8, static_cast<uint32_t>(buffer_ - startBuffer_));
             buffer_++;
             continue;
         }
@@ -272,11 +272,11 @@ void Lexer::lexSingleLineStringLiteral()
 
     // Handle newline in string literal
     if (buffer_[0] == '\n' || buffer_[0] == '\r')
-        raiseTokenError(DiagnosticId::LexNewlineInStringLiteral, static_cast<uint32_t>(buffer_ - startBuffer_));
+        raiseTokenError(DiagnosticId::lex_err_string_eol, static_cast<uint32_t>(buffer_ - startBuffer_));
 
     // Handle EOF
     if (buffer_ >= endBuffer_)
-        raiseTokenError(DiagnosticId::LexUnclosedStringLiteral, static_cast<uint32_t>(startToken_ - startBuffer_));
+        raiseTokenError(DiagnosticId::lex_err_unclosed_string, static_cast<uint32_t>(startToken_ - startBuffer_));
 
     // Consume closing quote if present
     if (buffer_[0] == '"')
@@ -295,7 +295,7 @@ void Lexer::lexMultiLineStringLiteral()
         // Check for null byte (invalid UTF-8)
         if (buffer_[0] == '\0')
         {
-            raiseUtf8Error(DiagnosticId::LexFileNotUtf8, static_cast<uint32_t>(buffer_ - startBuffer_));
+            raiseUtf8Error(DiagnosticId::lex_err_not_utf8, static_cast<uint32_t>(buffer_ - startBuffer_));
             buffer_++;
             continue;
         }
@@ -327,7 +327,7 @@ void Lexer::lexMultiLineStringLiteral()
     }
 
     // EOF before closing delimiter
-    raiseTokenError(DiagnosticId::LexUnclosedStringLiteral, static_cast<uint32_t>(startToken_ - startBuffer_), 3);
+    raiseTokenError(DiagnosticId::lex_err_unclosed_string, static_cast<uint32_t>(startToken_ - startBuffer_), 3);
 
     pushToken();
 }
@@ -345,7 +345,7 @@ void Lexer::lexRawStringLiteral()
         // Check for null byte (invalid UTF-8)
         if (buffer_[0] == '\0')
         {
-            raiseUtf8Error(DiagnosticId::LexFileNotUtf8, static_cast<uint32_t>(buffer_ - startBuffer_));
+            raiseUtf8Error(DiagnosticId::lex_err_not_utf8, static_cast<uint32_t>(buffer_ - startBuffer_));
             buffer_++;
             continue;
         }
@@ -367,7 +367,7 @@ void Lexer::lexRawStringLiteral()
     }
 
     if (!foundClosing)
-        raiseTokenError(DiagnosticId::LexUnclosedStringLiteral, static_cast<uint32_t>(startToken_ - startBuffer_), 2);
+        raiseTokenError(DiagnosticId::lex_err_unclosed_string, static_cast<uint32_t>(startToken_ - startBuffer_), 2);
 
     pushToken();
 }
@@ -380,7 +380,7 @@ void Lexer::lexCharacterLiteral()
     // Check for empty character literal
     if (buffer_[0] == '\'')
     {
-        raiseTokenError(DiagnosticId::LexEmptyCharLiteral, static_cast<uint32_t>(startToken_ - startBuffer_), 2);
+        raiseTokenError(DiagnosticId::lex_err_empty_char, static_cast<uint32_t>(startToken_ - startBuffer_), 2);
         buffer_++;
         pushToken();
         return;
@@ -392,7 +392,7 @@ void Lexer::lexCharacterLiteral()
         // Check for null byte (invalid UTF-8)
         if (buffer_[0] == '\0')
         {
-            raiseUtf8Error(DiagnosticId::LexFileNotUtf8, static_cast<uint32_t>(buffer_ - startBuffer_));
+            raiseUtf8Error(DiagnosticId::lex_err_not_utf8, static_cast<uint32_t>(buffer_ - startBuffer_));
             buffer_++;
             continue;
         }
@@ -400,7 +400,7 @@ void Lexer::lexCharacterLiteral()
         // Check for EOL
         if (buffer_[0] == '\n' || buffer_[0] == '\r')
         {
-            raiseTokenError(DiagnosticId::LexUnclosedCharLiteral, static_cast<uint32_t>(startToken_ - startBuffer_), static_cast<uint32_t>(buffer_ - startToken_));
+            raiseTokenError(DiagnosticId::lex_err_unclosed_char, static_cast<uint32_t>(startToken_ - startBuffer_), static_cast<uint32_t>(buffer_ - startToken_));
             pushToken();
             eatOneEol();
             return;
@@ -417,7 +417,7 @@ void Lexer::lexCharacterLiteral()
 
     // Check for EOF
     if (buffer_ >= endBuffer_)
-        raiseTokenError(DiagnosticId::LexUnclosedCharLiteral, static_cast<uint32_t>(startToken_ - startBuffer_), static_cast<uint32_t>(buffer_ - startToken_));
+        raiseTokenError(DiagnosticId::lex_err_unclosed_char, static_cast<uint32_t>(startToken_ - startBuffer_), static_cast<uint32_t>(buffer_ - startToken_));
 
     // Consume closing quote if present
     if (buffer_[0] == '\'')
@@ -425,7 +425,7 @@ void Lexer::lexCharacterLiteral()
 
     // Check for too many characters
     if (charCount > 1)
-        raiseTokenError(DiagnosticId::LexTooManyCharsInCharLiteral, static_cast<uint32_t>(startToken_ - startBuffer_), static_cast<uint32_t>(buffer_ - startToken_));
+        raiseTokenError(DiagnosticId::lex_err_too_many_char_char, static_cast<uint32_t>(startToken_ - startBuffer_), static_cast<uint32_t>(buffer_ - startToken_));
 
     pushToken();
 }
@@ -448,7 +448,7 @@ void Lexer::lexHexNumber()
             {
                 while (langSpec_->isNumberSep(buffer_[0]))
                     buffer_++;
-                raiseTokenError(DiagnosticId::LexConsecutiveNumberSeparators, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
+                raiseTokenError(DiagnosticId::lex_err_consecutive_num_sep, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
                 continue;
             }
 
@@ -465,15 +465,15 @@ void Lexer::lexHexNumber()
 
     // Require at least one digit
     if (digits == 0)
-        raiseTokenError(DiagnosticId::LexMissingHexDigits, static_cast<uint32_t>(startToken_ - startBuffer_), 2 + (lastWasSep ? 1 : 0));
+        raiseTokenError(DiagnosticId::lex_err_missing_hex_digit, static_cast<uint32_t>(startToken_ - startBuffer_), 2 + (lastWasSep ? 1 : 0));
 
     // No trailing separator
     if (lastWasSep)
-        raiseTokenError(DiagnosticId::LexTrailingNumberSeparator, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
+        raiseTokenError(DiagnosticId::lex_err_trailing_num_sep, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
 
     // Letters immediately following the literal
     if (langSpec_->isLetter(buffer_[0]))
-        raiseTokenError(DiagnosticId::LexInvalidHexDigit, static_cast<uint32_t>(buffer_ - startBuffer_), 1);
+        raiseTokenError(DiagnosticId::lex_err_invalid_hex_digit, static_cast<uint32_t>(buffer_ - startBuffer_), 1);
 
     pushToken();
 }
@@ -496,7 +496,7 @@ void Lexer::lexBinNumber()
             {
                 while (langSpec_->isNumberSep(buffer_[0]))
                     buffer_++;
-                raiseTokenError(DiagnosticId::LexConsecutiveNumberSeparators, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
+                raiseTokenError(DiagnosticId::lex_err_consecutive_num_sep, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
                 continue;
             }
 
@@ -513,15 +513,15 @@ void Lexer::lexBinNumber()
 
     // Require at least one digit
     if (digits == 0)
-        raiseTokenError(DiagnosticId::LexMissingBinDigits, static_cast<uint32_t>(startToken_ - startBuffer_), 2 + (lastWasSep ? 1 : 0));
+        raiseTokenError(DiagnosticId::lex_err_missing_bin_digit, static_cast<uint32_t>(startToken_ - startBuffer_), 2 + (lastWasSep ? 1 : 0));
 
     // No trailing separator
     if (lastWasSep)
-        raiseTokenError(DiagnosticId::LexTrailingNumberSeparator, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
+        raiseTokenError(DiagnosticId::lex_err_trailing_num_sep, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
 
     // Letters immediately following the literal
     if (langSpec_->isLetter(buffer_[0]))
-        raiseTokenError(DiagnosticId::LexInvalidBinDigit, static_cast<uint32_t>(buffer_ - startBuffer_), 1);
+        raiseTokenError(DiagnosticId::lex_err_invalid_bin_digit, static_cast<uint32_t>(buffer_ - startBuffer_), 1);
 
     pushToken();
 }
@@ -544,7 +544,7 @@ void Lexer::lexDecimalNumber()
             {
                 while (langSpec_->isNumberSep(buffer_[0]))
                     buffer_++;
-                raiseTokenError(DiagnosticId::LexConsecutiveNumberSeparators, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
+                raiseTokenError(DiagnosticId::lex_err_consecutive_num_sep, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
                 continue;
             }
 
@@ -560,7 +560,7 @@ void Lexer::lexDecimalNumber()
 
     // Check for trailing separator before the decimal point
     if (lastWasSep)
-        raiseTokenError(DiagnosticId::LexTrailingNumberSeparator, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
+        raiseTokenError(DiagnosticId::lex_err_trailing_num_sep, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
 
     // Parse decimal part
     if (buffer_[0] == '.')
@@ -570,7 +570,7 @@ void Lexer::lexDecimalNumber()
         lastWasSep = false;
 
         if (langSpec_->isNumberSep(buffer_[0]))
-            raiseTokenError(DiagnosticId::LexLeadingNumberSeparator, static_cast<uint32_t>(buffer_ - startBuffer_));
+            raiseTokenError(DiagnosticId::lex_err_leading_num_sep, static_cast<uint32_t>(buffer_ - startBuffer_));
 
         while (buffer_ < endBuffer_ && (langSpec_->isDigit(buffer_[0]) || langSpec_->isNumberSep(buffer_[0])))
         {
@@ -580,7 +580,7 @@ void Lexer::lexDecimalNumber()
                 {
                     while (langSpec_->isNumberSep(buffer_[0]))
                         buffer_++;
-                    raiseTokenError(DiagnosticId::LexConsecutiveNumberSeparators, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
+                    raiseTokenError(DiagnosticId::lex_err_consecutive_num_sep, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
                     continue;
                 }
 
@@ -600,7 +600,7 @@ void Lexer::lexDecimalNumber()
 
     // Final trailing separator check
     if (lastWasSep)
-        raiseTokenError(DiagnosticId::LexTrailingNumberSeparator, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
+        raiseTokenError(DiagnosticId::lex_err_trailing_num_sep, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
 
     // Parse exponent part
     if (buffer_[0] == 'e' || buffer_[0] == 'E')
@@ -613,7 +613,7 @@ void Lexer::lexDecimalNumber()
             buffer_++;
 
         if (langSpec_->isNumberSep(buffer_[0]))
-            raiseTokenError(DiagnosticId::LexLeadingNumberSeparator, static_cast<uint32_t>(buffer_ - startBuffer_));
+            raiseTokenError(DiagnosticId::lex_err_leading_num_sep, static_cast<uint32_t>(buffer_ - startBuffer_));
 
         uint32_t expDigits = 0;
         lastWasSep         = false;
@@ -625,7 +625,7 @@ void Lexer::lexDecimalNumber()
                 {
                     while (langSpec_->isNumberSep(buffer_[0]))
                         buffer_++;
-                    raiseTokenError(DiagnosticId::LexConsecutiveNumberSeparators, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
+                    raiseTokenError(DiagnosticId::lex_err_consecutive_num_sep, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
                     continue;
                 }
 
@@ -641,7 +641,7 @@ void Lexer::lexDecimalNumber()
         }
 
         if (expDigits == 0)
-            raiseTokenError(DiagnosticId::LexMissingExponentDigits, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
+            raiseTokenError(DiagnosticId::lex_err_missing_exponent, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
 
         if (hasExp)
             token_.id = TokenId::NumberFloat;
@@ -649,7 +649,7 @@ void Lexer::lexDecimalNumber()
 
     // Final trailing separator check
     if (lastWasSep)
-        raiseTokenError(DiagnosticId::LexTrailingNumberSeparator, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
+        raiseTokenError(DiagnosticId::lex_err_trailing_num_sep, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
 
     pushToken();
 }
@@ -670,7 +670,7 @@ void Lexer::lexNumber()
 
     // Letters immediately following the literal
     if (langSpec_->isLetter(buffer_[0]))
-        raiseTokenError(DiagnosticId::LexInvalidNumberSuffix, static_cast<uint32_t>(buffer_ - startBuffer_));
+        raiseTokenError(DiagnosticId::lex_err_invalid_number_suffix, static_cast<uint32_t>(buffer_ - startBuffer_));
 }
 
 void Lexer::lexIdentifier()
@@ -1016,7 +1016,7 @@ void Lexer::lexSymbol()
 
     default:
         eatUtf8Char();
-        raiseTokenError(DiagnosticId::LexInvalidCharacter, static_cast<uint32_t>(startToken_ - startBuffer_), static_cast<uint32_t>(buffer_ - startToken_));
+        raiseTokenError(DiagnosticId::lex_err_invalid_char, static_cast<uint32_t>(startToken_ - startBuffer_), static_cast<uint32_t>(buffer_ - startToken_));
         break;
     }
 
@@ -1047,7 +1047,7 @@ void Lexer::lexMultiLineComment()
         // Check for null byte (invalid UTF-8)
         if (buffer_[0] == '\0')
         {
-            raiseUtf8Error(DiagnosticId::LexFileNotUtf8, static_cast<uint32_t>(buffer_ - startBuffer_));
+            raiseUtf8Error(DiagnosticId::lex_err_not_utf8, static_cast<uint32_t>(buffer_ - startBuffer_));
             buffer_++;
             continue;
         }
@@ -1077,7 +1077,7 @@ void Lexer::lexMultiLineComment()
     }
 
     if (depth > 0)
-        raiseTokenError(DiagnosticId::LexUnclosedComment, static_cast<uint32_t>(startToken_ - startBuffer_), 2);
+        raiseTokenError(DiagnosticId::lex_err_unclosed_comment, static_cast<uint32_t>(startToken_ - startBuffer_), 2);
 
     pushToken();
 }
@@ -1152,7 +1152,7 @@ void Lexer::checkFormat(const Context& ctx, uint32_t& startOffset)
 
     if (badFormat)
     {
-        raiseUtf8Error(DiagnosticId::LexFileNotUtf8, 0, 0);
+        raiseUtf8Error(DiagnosticId::lex_err_not_utf8, 0, 0);
         return;
     }
 
@@ -1209,7 +1209,7 @@ Result Lexer::tokenize(Context& ctx, LexerFlags flags)
         // Check for null byte (invalid UTF-8)
         if (buffer_[0] == '\0')
         {
-            raiseUtf8Error(DiagnosticId::LexFileNotUtf8, static_cast<uint32_t>(buffer_ - startBuffer_));
+            raiseUtf8Error(DiagnosticId::lex_err_not_utf8, static_cast<uint32_t>(buffer_ - startBuffer_));
             hasTokenError_ = true;
             buffer_++;
             continue;

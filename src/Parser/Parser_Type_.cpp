@@ -44,7 +44,7 @@ AstNodeRef Parser::parseSingleType()
         break;
     }
 
-    const auto diag = reportError(DiagnosticId::ParserInvalidType, ref());
+    const auto diag = reportError(DiagnosticId::parser_err_invalid_type, ref());
     diag.report(*ctx_);
     return INVALID_REF;
 }
@@ -139,8 +139,8 @@ AstNodeRef Parser::parseType()
         // []
         if (is(TokenId::SymRightBracket))
         {
-            auto diag = reportError(DiagnosticId::ParserExpectedArrayDim, ref());
-            diag.addElement(DiagnosticId::ParserHelpEmptyArrayDim);
+            auto diag = reportError(DiagnosticId::parser_err_expected_array_dim, ref());
+            diag.addElement(DiagnosticId::parser_note_empty_array_dim);
             diag.report(*ctx_);
             consume();
             return INVALID_REF;

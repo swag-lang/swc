@@ -1,4 +1,4 @@
-SWC_DIAG_DEF(ParserReservedAsIdentifier)
-SWC_DIAG_DEF(ParserOtherDefinition)
+SWC_DIAG_DEF(parser_note_reserved_identifier)
+SWC_DIAG_DEF(parser_note_other_def)
 
-SWC_DIAG_DEF(ParserHelpEmptyArrayDim)
+SWC_DIAG_DEF(parser_note_empty_array_dim)

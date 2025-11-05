@@ -2,16 +2,16 @@
 // Parser Attributes Error
 // ============================================================================
 
-#[] // swc-expected-error {{ParserEmptyAttribute}}
+#[] // swc-expected-error {{parser_err_empty_attribute}}
 enum B {}
 
-#[ // swc-expected-error {{ParserEmptyAttribute}}
+#[ // swc-expected-error {{parser_err_empty_attribute}}
 /* toto */
 ]
 enum B {}
 
-#[A(] // swc-expected-error {{ParserUnexpectedToken}} {{ParserExpectedClosing}}
+#[A(] // swc-expected-error {{parser_err_unexpected_token}} {{parser_err_expected_closing}}
 enum B {}
 
-#[A // swc-expected-error {{ParserExpectedClosing}}
-enum B {} // swc-expected-error {{ParserExpectedTokenBefore}}
+#[A // swc-expected-error {{parser_err_expected_closing}}
+enum B {} // swc-expected-error {{parser_err_expected_token_before}}

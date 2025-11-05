@@ -12,7 +12,7 @@ AstNodeRef Parser::parseCallArg1(AstNodeId callerNodeId)
     nodePtr->tokRef         = consume();
 
     const auto openRef = ref();
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenBefore);
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
     nodePtr->nodeParam1 = parseExpression();
     if (invalid(nodePtr->nodeParam1))
         skipTo({TokenId::SymRightParen});
@@ -27,12 +27,12 @@ AstNodeRef Parser::parseCallArg2(AstNodeId callerNodeId)
     nodePtr->tokRef         = consume();
 
     const auto openRef = ref();
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenBefore);
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
     nodePtr->nodeParam1 = parseExpression();
     if (invalid(nodePtr->nodeParam1))
         skipTo({TokenId::SymComma, TokenId::SymRightParen});
-    expectAndConsume(TokenId::SymComma, DiagnosticId::ParserExpectedToken);
+    expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token);
 
     nodePtr->nodeParam2 = parseExpression();
     if (invalid(nodePtr->nodeParam2))
@@ -48,17 +48,17 @@ AstNodeRef Parser::parseCallArg3(AstNodeId callerNodeId)
     nodePtr->tokRef         = consume();
 
     const auto openRef = ref();
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenBefore);
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
     nodePtr->nodeParam1 = parseExpression();
     if (invalid(nodePtr->nodeParam1))
         skipTo({TokenId::SymRightParen});
-    expectAndConsume(TokenId::SymComma, DiagnosticId::ParserExpectedToken);
+    expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token);
 
     nodePtr->nodeParam2 = parseExpression();
     if (invalid(nodePtr->nodeParam2))
         skipTo({TokenId::SymComma, TokenId::SymRightParen});
-    expectAndConsume(TokenId::SymComma, DiagnosticId::ParserExpectedToken);
+    expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token);
 
     nodePtr->nodeParam3 = parseExpression();
     if (invalid(nodePtr->nodeParam2))

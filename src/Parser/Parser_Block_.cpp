@@ -118,6 +118,34 @@ bool Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
     return false;
 }
 
+void Parser::finalizeBlock(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef closeTokenRef, const TokenId tokenEndId, const SmallVector<AstNodeRef>& childrenRefs)
+{
+    if (childrenRefs.empty())
+    {
+        switch (blockNodeId)
+        {
+        case AstNodeId::AttributeBlock:
+        {
+            const auto diag     = reportError(DiagnosticId::parser_err_empty_attribute, openTokRef);
+            const auto tokenEnd = file_->lexOut().token(closeTokenRef);
+            diag.last().addSpan(tokenEnd.toLocation(*ctx_, *file_), "");
+            diag.report(*ctx_);
+            break;
+        }
+        case AstNodeId::EnumBlock:
+        {
+            const auto diag     = reportError(DiagnosticId::parser_err_empty_enum, openTokRef);
+            const auto tokenEnd = file_->lexOut().token(closeTokenRef);
+            diag.last().addSpan(tokenEnd.toLocation(*ctx_, *file_), "");
+            diag.report(*ctx_);
+            break;
+        }
+        default:
+            break;
+        }
+    }
+}
+
 AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
 {
     const Token&   openTok    = tok();
@@ -164,43 +192,20 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
             consume();
     }
 
-    // Consume end token if necessary
-    auto closeTokenRef = ref();
+
+    const auto closeTokenRef = ref();
     if (!consumeIf(tokenEndId) && tokenEndId != TokenId::Invalid)
     {
         auto diag = reportError(DiagnosticId::parser_err_expected_closing, openTokRef);
         setReportExpected(diag, Token::toRelated(openTok.id));
         diag.report(*ctx_);
     }
+    
+    // Consume end token if necessary
+    finalizeBlock(blockNodeId, openTokRef, closeTokenRef, tokenEndId, childrenRefs);
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeBlock>(blockNodeId);
     nodePtr->spanChildren   = ast_->store_.push_span(std::span(childrenRefs.data(), childrenRefs.size()));
-
-    if (childrenRefs.empty())
-    {
-        switch (blockNodeId)
-        {
-        case AstNodeId::AttributeBlock:
-        {
-            const auto diag     = reportError(DiagnosticId::parser_err_empty_attribute, openTokRef);
-            const auto tokenEnd = file_->lexOut().token(closeTokenRef);
-            diag.last().addSpan(tokenEnd.toLocation(*ctx_, *file_), "");
-            diag.report(*ctx_);
-            break;
-        }
-        case AstNodeId::EnumBlock:
-        {
-            const auto diag     = reportError(DiagnosticId::parser_err_empty_enum, openTokRef);
-            const auto tokenEnd = file_->lexOut().token(closeTokenRef);
-            diag.last().addSpan(tokenEnd.toLocation(*ctx_, *file_), "");
-            diag.report(*ctx_);
-            break;
-        }
-        default:
-            break;
-        }
-    }
-
     return nodeRef;
 }
 

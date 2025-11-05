@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/SmallVector.h"
 #include "Lexer/Token.h"
 #include "Parser/Ast.h"
 #include "Report/Diagnostic.h"
@@ -82,6 +83,7 @@ class Parser
     AstNodeRef parseBlockStmt(AstNodeId blockNodeId);
     AstNodeRef handleCompilerDirective(AstNodeId blockNodeId);
     bool       parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId);
+    void       finalizeBlock(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef closeTokenRef, TokenId tokenEndId, const SmallVector<AstNodeRef>& childrenRefs);
     AstNodeRef parseBlock(TokenId tokenStartId, AstNodeId blockNodeId);
     AstNodeRef parseCompilerIf(AstNodeId blockNodeId);
     AstNodeRef parseCompilerIfStmt(AstNodeId blockNodeId);

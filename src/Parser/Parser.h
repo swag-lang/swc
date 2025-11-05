@@ -86,11 +86,11 @@ class Parser
     bool         nextIs(TokenId id0) const { return atEnd() ? false : curToken_[1].id == id0; }
     bool         isNot(TokenId nid) const { return curToken_->id != nid; }
     bool         atEnd() const { return curToken_ >= lastToken_; }
-    static bool  isValid(TokenRef ref) { return ref != INVALID_REF; }
-    static bool  isInvalid(TokenRef ref) { return ref == INVALID_REF; }
+    static bool  valid(TokenRef ref) { return ref != INVALID_REF; }
+    static bool  invalid(TokenRef ref) { return ref == INVALID_REF; }
 
-    template<typename... TokenIds>
-    bool isAny(TokenIds... ids) const
+    template<typename... IDS>
+    bool isAny(IDS... ids) const
     {
         return ((curToken_->id == ids) || ...);
     }

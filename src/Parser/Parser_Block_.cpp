@@ -43,7 +43,7 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
 
     if (tokenStartId != TokenId::Invalid)
     {
-        if (isInvalid(expectAndConsume(tokenStartId, DiagnosticId::ParserExpectedTokenBefore, ref())))
+        if (invalid(expectAndConsume(tokenStartId, DiagnosticId::ParserExpectedTokenBefore, ref())))
             return INVALID_REF;
     }
 
@@ -85,7 +85,7 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
             }
         }
 
-        if (isValid(childrenRef))
+        if (valid(childrenRef))
         {
             childrenRefs.push_back(childrenRef);
             continue;
@@ -146,7 +146,7 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
         }
 
         // Be sure instruction has not failed
-        if (isValid(childrenRef))
+        if (valid(childrenRef))
             childrenRefs.push_back(childrenRef);
 
         if (loopStartToken == curToken_)
@@ -264,7 +264,7 @@ AstNodeRef Parser::parseNamespace()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Namespace>();
     consume();
     nodePtr->nodeName = parseScopedIdentifier();
-    if (isInvalid(nodePtr->nodeName))
+    if (invalid(nodePtr->nodeName))
         skipTo({TokenId::SymLeftCurly});
     nodePtr->nodeBody = parseBlock(TokenId::SymLeftCurly, AstNodeId::TopLevelBlock);
     return nodeRef;

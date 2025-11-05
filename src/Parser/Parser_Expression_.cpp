@@ -165,7 +165,7 @@ AstNodeRef Parser::parsePrimaryExpression()
 AstNodeRef Parser::parsePostFixExpression()
 {
     auto nodeRef = parsePrimaryExpression();
-    if (isInvalid(nodeRef))
+    if (invalid(nodeRef))
         return INVALID_REF;
 
     // Handle chained postfix operations: A.B.C()[5](args)
@@ -342,7 +342,7 @@ AstNodeRef Parser::parseCast()
     nodePtr->tknOp                = tknOp;
     nodePtr->modifierFlags        = modifierFlags;
     nodePtr->nodeType             = parseType();
-    if (isInvalid(nodePtr->nodeType))
+    if (invalid(nodePtr->nodeType))
         skipTo({TokenId::SymRightParen});
     expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
     nodePtr->nodeExpr = parseExpression();
@@ -378,7 +378,7 @@ AstNodeRef Parser::parseUnaryExpression()
 AstNodeRef Parser::parseBinaryExpression()
 {
     const auto nodeRef = parseUnaryExpression();
-    if (isInvalid(nodeRef))
+    if (invalid(nodeRef))
         return INVALID_REF;
 
     if (isAny(TokenId::SymPlus,
@@ -407,7 +407,7 @@ AstNodeRef Parser::parseBinaryExpression()
 AstNodeRef Parser::parseRelationalExpression()
 {
     const auto nodeRef = parseBinaryExpression();
-    if (isInvalid(nodeRef))
+    if (invalid(nodeRef))
         return INVALID_REF;
 
     if (isAny(TokenId::SymEqualEqual,
@@ -432,7 +432,7 @@ AstNodeRef Parser::parseRelationalExpression()
 AstNodeRef Parser::parseLogicalExpression()
 {
     const auto nodeRef = parseRelationalExpression();
-    if (isInvalid(nodeRef))
+    if (invalid(nodeRef))
         return INVALID_REF;
 
     if (isAny(TokenId::KwdAnd, TokenId::KwdOr, TokenId::SymAmpersandAmpersand, TokenId::SymVerticalVertical))
@@ -461,7 +461,7 @@ AstNodeRef Parser::parseParenExpression()
     const auto openRef            = ref();
     consume(TokenId::SymLeftParen);
     nodePtr->nodeExpr = parseExpression();
-    if (isInvalid(nodePtr->nodeExpr))
+    if (invalid(nodePtr->nodeExpr))
         skipTo({TokenId::SymRightParen}, SkipUntilFlags::EolBefore);
     expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
     return nodeRef;
@@ -477,7 +477,7 @@ AstNodeRef Parser::parseIdentifier()
 AstNodeRef Parser::parseSuffixedIdentifier()
 {
     const auto nodeIdentifier = parseIdentifier();
-    if (isInvalid(nodeIdentifier))
+    if (invalid(nodeIdentifier))
         return INVALID_REF;
 
     if (!is(TokenId::SymQuote) || has_any(tok().flags, TokenFlags::BlankBefore))
@@ -519,7 +519,7 @@ AstNodeRef Parser::parseScopedIdentifier()
 {
     // Parse the first identifier
     auto leftNode = parseIdentifier();
-    if (isInvalid(leftNode))
+    if (invalid(leftNode))
         return INVALID_REF;
 
     // Check if there's a scope access operator
@@ -527,7 +527,7 @@ AstNodeRef Parser::parseScopedIdentifier()
     {
         // Parse the right side (another identifier)
         const auto rightNode = parseIdentifier();
-        if (isInvalid(rightNode))
+        if (invalid(rightNode))
             return INVALID_REF;
 
         // Create a ScopeAccess node with left and right

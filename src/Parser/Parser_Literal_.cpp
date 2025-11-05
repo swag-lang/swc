@@ -68,7 +68,7 @@ AstNodeRef Parser::parseLiteral()
 AstNodeRef Parser::parseLiteralExpression()
 {
     const auto literal = parseLiteral();
-    if (isInvalid(literal))
+    if (invalid(literal))
         return INVALID_REF;
 
     const auto quoteTknRef = ref();

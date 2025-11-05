@@ -64,7 +64,7 @@ AstNodeRef Parser::parseType()
     if (consumeIf(TokenId::SymAmpersand))
     {
         const auto child = parseType();
-        if (isInvalid(child))
+        if (invalid(child))
             return INVALID_REF;
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LRefType>();
         nodePtr->nodeType       = child;
@@ -75,7 +75,7 @@ AstNodeRef Parser::parseType()
     if (consumeIf(TokenId::SymAmpersandAmpersand))
     {
         const auto child = parseType();
-        if (isInvalid(child))
+        if (invalid(child))
             return INVALID_REF;
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::RRefType>();
         nodePtr->nodeType       = child;
@@ -86,7 +86,7 @@ AstNodeRef Parser::parseType()
     if (consumeIf(TokenId::SymAsterisk))
     {
         const auto child = parseType();
-        if (isInvalid(child))
+        if (invalid(child))
             return INVALID_REF;
         auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::PointerType>();
         nodePtr->nodePointeeType = child;
@@ -100,10 +100,10 @@ AstNodeRef Parser::parseType()
         // [*]
         if (consumeIf(TokenId::SymAsterisk))
         {
-            if (isInvalid(expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket)))
+            if (invalid(expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket)))
                 return INVALID_REF;
             const auto child = parseType();
-            if (isInvalid(child))
+            if (invalid(child))
                 return INVALID_REF;
             auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::BlockPointerType>();
             nodePtr->nodePointeeType = child;
@@ -113,10 +113,10 @@ AstNodeRef Parser::parseType()
         // [..]
         if (consumeIf(TokenId::SymDotDot))
         {
-            if (isInvalid(expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket)))
+            if (invalid(expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket)))
                 return INVALID_REF;
             const auto child = parseType();
-            if (isInvalid(child))
+            if (invalid(child))
                 return INVALID_REF;
             auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::SliceType>();
             nodePtr->nodePointeeType = child;
@@ -126,10 +126,10 @@ AstNodeRef Parser::parseType()
         // [?]
         if (consumeIf(TokenId::SymQuestion))
         {
-            if (isInvalid(expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket)))
+            if (invalid(expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket)))
                 return INVALID_REF;
             const auto child = parseType();
-            if (isInvalid(child))
+            if (invalid(child))
                 return INVALID_REF;
             auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::IncompleteArrayType>();
             nodePtr->nodePointeeType = child;
@@ -149,7 +149,7 @@ AstNodeRef Parser::parseType()
         // Array with a dimension
         SmallVector<AstNodeRef> dimensions;
         const auto              firstDim = parseExpression();
-        if (isInvalid(firstDim))
+        if (invalid(firstDim))
             return INVALID_REF;
         dimensions.push_back(firstDim);
 
@@ -157,17 +157,17 @@ AstNodeRef Parser::parseType()
         while (consumeIf(TokenId::SymComma))
         {
             const auto dim = parseExpression();
-            if (isInvalid(dim))
+            if (invalid(dim))
                 return INVALID_REF;
             dimensions.push_back(dim);
         }
 
-        if (isInvalid(expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket)))
+        if (invalid(expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket)))
             return INVALID_REF;
 
         // Recursively parse the rest of the type (handles chaining like [X][Y])
         const auto child = parseType();
-        if (isInvalid(child))
+        if (invalid(child))
             return INVALID_REF;
 
         auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::ArrayType>();

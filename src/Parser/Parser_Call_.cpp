@@ -14,7 +14,7 @@ AstNodeRef Parser::parseCallArg1(AstNodeId callerNodeId)
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenBefore, ref());
     nodePtr->nodeParam1 = parseExpression();
-    if (isInvalid(nodePtr->nodeParam1))
+    if (invalid(nodePtr->nodeParam1))
         skipTo({TokenId::SymRightParen});
     expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
 
@@ -30,12 +30,12 @@ AstNodeRef Parser::parseCallArg2(AstNodeId callerNodeId)
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenBefore, ref());
 
     nodePtr->nodeParam1 = parseExpression();
-    if (isInvalid(nodePtr->nodeParam1))
+    if (invalid(nodePtr->nodeParam1))
         skipTo({TokenId::SymComma, TokenId::SymRightParen});
     expectAndConsume(TokenId::SymComma, DiagnosticId::ParserExpectedToken);
 
     nodePtr->nodeParam2 = parseExpression();
-    if (isInvalid(nodePtr->nodeParam2))
+    if (invalid(nodePtr->nodeParam2))
         skipTo({TokenId::SymComma, TokenId::SymRightParen});
 
     expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
@@ -51,17 +51,17 @@ AstNodeRef Parser::parseCallArg3(AstNodeId callerNodeId)
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenBefore, ref());
 
     nodePtr->nodeParam1 = parseExpression();
-    if (isInvalid(nodePtr->nodeParam1))
+    if (invalid(nodePtr->nodeParam1))
         skipTo({TokenId::SymRightParen});
     expectAndConsume(TokenId::SymComma, DiagnosticId::ParserExpectedToken);
 
     nodePtr->nodeParam2 = parseExpression();
-    if (isInvalid(nodePtr->nodeParam2))
+    if (invalid(nodePtr->nodeParam2))
         skipTo({TokenId::SymComma, TokenId::SymRightParen});
     expectAndConsume(TokenId::SymComma, DiagnosticId::ParserExpectedToken);
 
     nodePtr->nodeParam3 = parseExpression();
-    if (isInvalid(nodePtr->nodeParam2))
+    if (invalid(nodePtr->nodeParam2))
         skipTo({TokenId::SymComma, TokenId::SymRightParen});
 
     expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
@@ -80,7 +80,7 @@ AstNodeRef Parser::parseAttribute()
 AstNodeRef Parser::parseCompilerAttribute(AstNodeId blockNodeId)
 {
     const auto nodeRef = parseBlock(TokenId::SymAttrStart, AstNodeId::AttributeBlock);
-    if (isInvalid(nodeRef))
+    if (invalid(nodeRef))
         return INVALID_REF;
 
     const auto nodePtr = ast_->node<AstNodeId::AttributeBlock>(nodeRef);

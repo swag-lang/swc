@@ -13,7 +13,7 @@ AstNodeRef Parser::parseImpl()
 
     // Name
     const AstNodeRef nodeIdentifier = parseScopedIdentifier();
-    if (isInvalid(nodeIdentifier))
+    if (invalid(nodeIdentifier))
         skipTo({TokenId::SymLeftCurly, TokenId::KwdFor});
 
     // For
@@ -21,11 +21,11 @@ AstNodeRef Parser::parseImpl()
     if (consumeIf(TokenId::KwdFor))
     {
         nodeFor = parseScopedIdentifier();
-        if (isInvalid(nodeIdentifier))
+        if (invalid(nodeIdentifier))
             skipTo({TokenId::SymLeftCurly});
     }
 
-    if (isInvalid(nodeFor))
+    if (invalid(nodeFor))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ImplDecl>();
         nodePtr->tknOp          = tknOp;

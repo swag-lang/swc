@@ -69,7 +69,7 @@ AstNodeRef Parser::parseCompilerIf(AstNodeId blockNodeId)
 
     // Parse the condition expression
     nodePtr->nodeCondition = parseExpression();
-    if (isInvalid(nodePtr->nodeCondition))
+    if (invalid(nodePtr->nodeCondition))
         skipTo({TokenId::KwdDo, TokenId::SymLeftCurly});
 
     nodePtr->nodeIfBlock = parseCompilerIfStmt(blockNodeId);

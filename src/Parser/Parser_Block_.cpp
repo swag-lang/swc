@@ -35,6 +35,45 @@ AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
     }
 }
 
+AstNodeRef Parser::handleCompilerDirective(AstNodeId blockNodeId)
+{
+    auto childrenRef = INVALID_REF;
+
+    // Compiler instructions
+    if (blockNodeId == AstNodeId::File ||
+        blockNodeId == AstNodeId::TopLevelBlock ||
+        blockNodeId == AstNodeId::ImplBlock ||
+        blockNodeId == AstNodeId::EnumBlock)
+    {
+        switch (id())
+        {
+        case TokenId::CompilerAssert:
+            childrenRef = parseCallArg1(AstNodeId::CompilerAssert);
+            expectEndStatement();
+            break;
+        case TokenId::CompilerError:
+            childrenRef = parseCallArg1(AstNodeId::CompilerError);
+            expectEndStatement();
+            break;
+        case TokenId::CompilerWarning:
+            childrenRef = parseCallArg1(AstNodeId::CompilerWarning);
+            expectEndStatement();
+            break;
+        case TokenId::CompilerPrint:
+            childrenRef = parseCallArg1(AstNodeId::CompilerPrint);
+            expectEndStatement();
+            break;
+        case TokenId::CompilerIf:
+            childrenRef = parseCompilerIf(blockNodeId);
+            break;
+        default:
+            break;
+        }
+    }
+
+    return childrenRef;
+}
+
 AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
 {
     const Token&   openTok    = tok();
@@ -51,48 +90,18 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
     while (!atEnd() && isNot(tokenEndId))
     {
         const auto loopStartToken = curToken_;
-        AstNodeRef childrenRef    = INVALID_REF;
+        AstNodeRef childRef       = INVALID_REF;
 
-        // Compiler instructions
-        if (blockNodeId == AstNodeId::File ||
-            blockNodeId == AstNodeId::TopLevelBlock ||
-            blockNodeId == AstNodeId::ImplBlock ||
-            blockNodeId == AstNodeId::EnumBlock)
+        // Compiler directives (only in certain blocks)
+        childRef = handleCompilerDirective(blockNodeId);
+        if (valid(childRef))
         {
-            switch (id())
-            {
-            case TokenId::CompilerAssert:
-                childrenRef = parseCallArg1(AstNodeId::CompilerAssert);
-                expectEndStatement();
-                break;
-            case TokenId::CompilerError:
-                childrenRef = parseCallArg1(AstNodeId::CompilerError);
-                expectEndStatement();
-                break;
-            case TokenId::CompilerWarning:
-                childrenRef = parseCallArg1(AstNodeId::CompilerWarning);
-                expectEndStatement();
-                break;
-            case TokenId::CompilerPrint:
-                childrenRef = parseCallArg1(AstNodeId::CompilerPrint);
-                expectEndStatement();
-                break;
-            case TokenId::CompilerIf:
-                childrenRef = parseCompilerIf(blockNodeId);
-                break;
-            default:
-                break;
-            }
-        }
-
-        if (valid(childrenRef))
-        {
-            childrenRefs.push_back(childrenRef);
+            childrenRefs.push_back(childRef);
             continue;
         }
 
         // One block element
-        childrenRef = parseBlockStmt(blockNodeId);
+        childRef = parseBlockStmt(blockNodeId);
 
         // Separator between statements
         SmallVector skipTokens = {TokenId::SymComma, tokenEndId};
@@ -136,8 +145,8 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
         }
 
         // Be sure instruction has not failed
-        if (valid(childrenRef))
-            childrenRefs.push_back(childrenRef);
+        if (valid(childRef))
+            childrenRefs.push_back(childRef);
 
         if (errSep)
         {

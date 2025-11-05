@@ -102,6 +102,8 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
 
         // One block element
         childRef = parseBlockStmt(blockNodeId);
+        if (valid(childRef))
+            childrenRefs.push_back(childRef);
 
         // Separator between statements
         SmallVector skipTokens = {TokenId::SymComma, tokenEndId};
@@ -143,10 +145,6 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
         default:
             break;
         }
-
-        // Be sure instruction has not failed
-        if (valid(childRef))
-            childrenRefs.push_back(childRef);
 
         if (errSep)
         {

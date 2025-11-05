@@ -10,13 +10,9 @@ enum A
         A = 1
 }
 
-enum A } // swc-expected-error {{parser_err_expected_token_before}}
-enum A toto } // swc-expected-error {{parser_err_expected_token_before}} {{parser_err_unexpected_token}}
-
-enum A { B C } // swc-expected-error {{parser_err_expected_token}}
 enum  { } // swc-expected-error {{parser_err_expected_token_fam_before}}
-enum enum { } // swc-expected-error {{parser_err_expected_token_fam_before}}
-enum #ast { } // swc-expected-error {{parser_err_expected_token_fam_before}}
+enum enum {  Z } // swc-expected-error {{parser_err_expected_token_fam_before}}
+enum #ast { Z  } // swc-expected-error {{parser_err_expected_token_fam_before}}
 enum A B { C } // swc-expected-error {{parser_err_expected_token_before}}
 enum A { B,, C } // swc-expected-error {{parser_err_unexpected_token}}
 
@@ -29,3 +25,10 @@ enum A { B = 1'cstring } // swc-expected-error {{parser_err_invalid_literal_suff
 enum A { B = 1'cvarargs } // swc-expected-error {{parser_err_invalid_literal_suffix}}
 enum A { B = 1'typeinfo } // swc-expected-error {{parser_err_invalid_literal_suffix}}
 enum A { B = 1'void } // swc-expected-error {{parser_err_invalid_literal_suffix}}
+
+enum A {} // swc-expected-error {{parser_err_empty_enum}}
+
+enum A } // swc-expected-error {{parser_err_expected_token_before}}
+enum A toto } // swc-expected-error {{parser_err_expected_token_before}} {{parser_err_unexpected_token}}
+
+enum A { B C } // swc-expected-error {{parser_err_expected_token}}

@@ -48,6 +48,7 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
     }
 
     SmallVector<AstNodeRef> childrenRefs;
+    bool                    errContent = false;
     while (!atEnd() && isNot(tokenEndId))
     {
         const auto loopStartToken = curToken_;
@@ -103,7 +104,6 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
         if (depthCurly_)
             skipTokens.push_back(TokenId::SymRightCurly);
 
-        bool errSep = false;
         switch (blockNodeId)
         {
         case AstNodeId::EnumBlock:
@@ -113,7 +113,7 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
                 setReportExpected(diag, TokenId::SymComma);
                 diag.report(*ctx_);
                 skipTo(skipTokens);
-                errSep = true;
+                errContent = true;
             }
             break;
 
@@ -127,7 +127,7 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
                 setReportExpected(diag, TokenId::SymComma);
                 diag.report(*ctx_);
                 skipTo(skipTokens);
-                errSep = true;
+                errContent = true;
             }
             break;
 
@@ -135,7 +135,7 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
             break;
         }
 
-        if (errSep)
+        if (errContent)
         {
             if (depthParen_ && is(TokenId::SymRightParen))
                 break;
@@ -165,13 +165,21 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeBlock>(blockNodeId);
     nodePtr->spanChildren   = ast_->store_.push_span(std::span(childrenRefs.data(), childrenRefs.size()));
 
-    if (childrenRefs.empty())
+    if (childrenRefs.empty() && !errContent)
     {
         switch (blockNodeId)
         {
         case AstNodeId::AttributeBlock:
         {
             const auto diag     = reportError(DiagnosticId::parser_err_empty_attribute, openTokRef);
+            const auto tokenEnd = file_->lexOut().token(closeTokenRef);
+            diag.last().addSpan(tokenEnd.toLocation(*ctx_, *file_), "");
+            diag.report(*ctx_);
+            break;
+        }
+        case AstNodeId::EnumBlock:
+        {
+            const auto diag     = reportError(DiagnosticId::parser_err_empty_enum, openTokRef);
             const auto tokenEnd = file_->lexOut().token(closeTokenRef);
             diag.last().addSpan(tokenEnd.toLocation(*ctx_, *file_), "");
             diag.report(*ctx_);

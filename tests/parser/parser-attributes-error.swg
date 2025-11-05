@@ -3,15 +3,15 @@
 // ============================================================================
 
 #[] // swc-expected-error {{parser_err_empty_attribute}}
-enum B {}
+enum B { Z }
 
 #[ // swc-expected-error {{parser_err_empty_attribute}}
 /* toto */
 ]
-enum B {}
+enum B { Z }
 
 #[A(] // swc-expected-error {{parser_err_unexpected_token}} {{parser_err_expected_closing}}
-enum B {}
+enum B { Z }
 
 #[A // swc-expected-error {{parser_err_expected_closing}}
-enum B {} // swc-expected-error {{parser_err_expected_token_before}}
+enum B { Z } // swc-expected-error {{parser_err_expected_token_before}}

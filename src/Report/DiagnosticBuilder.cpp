@@ -432,10 +432,10 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
     {
         loc = el.location(i, *ctx_);
 
-        // If we're on a new line, render previous line's underlines and start new line
+        // If we're on a new line, render the previous line's underlines and start new line
         if (loc.line != currentLine)
         {
-            // Render all underlines for previous line on a single output line
+            // Render all underlines for the previous line on a single output line
             if (!underlinesOnCurrentLine.empty())
             {
                 writeCodeUnderline(el, underlinesOnCurrentLine);
@@ -563,13 +563,10 @@ Utf8 DiagnosticBuilder::build()
     for (size_t i = 1; i < elements.size(); ++i)
     {
         const auto& el = *elements[i];
+        out_.append(gutterW_, ' ');
+        writeLabelMsg(el);
         if (el.hasCodeLocation())
             writeCodeBlock(el);
-        else
-        {
-            out_.append(gutterW_, ' ');
-            writeLabelMsg(el);
-        }
     }
 
     // single blank line after the whole diagnostic

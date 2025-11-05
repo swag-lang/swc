@@ -253,7 +253,10 @@ TokenRef Parser::expectAndConsumeClosingFor(TokenId openId, TokenRef openRef)
     const auto  closingId = Token::toRelated(openId);
     auto        expect    = ParserExpect::one(closingId, DiagnosticId::ParserExpectedClosingBefore);
     if (open.id == openId)
+    {
         expect.note(DiagnosticId::ParserCorresponding, openRef);
+    }
+
     const auto result = expectAndConsume(expect);
     if (isInvalid(result))
     {

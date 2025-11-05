@@ -179,7 +179,7 @@ bool UnitTest::verifyExpected(const Context& ctx, const Diagnostic& diag) const
 
         for (auto& directive : directives_)
         {
-            if (directive.kind != elem->severity_)
+            if (directive.kind != elem->severity())
                 continue;
             if (directive.loc.line && directive.loc.line != loc.line)
                 continue;

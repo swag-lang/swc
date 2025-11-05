@@ -18,15 +18,7 @@ enum class DiagnosticId;
 
 class DiagnosticElement
 {
-    friend class Diagnostic;
-    friend class UnitTest;
-
-    Utf8               message_;
-    DiagnosticId       id_;
-    DiagnosticSeverity severity_;
-
-    const SourceFile* file_ = nullptr;
-
+public:
     struct Span
     {
         uint32_t           offset = 0;
@@ -34,6 +26,13 @@ class DiagnosticElement
         DiagnosticSeverity severity;
         Utf8               message;
     };
+
+private:
+    Utf8               message_;
+    DiagnosticId       id_;
+    DiagnosticSeverity severity_;
+
+    const SourceFile* file_ = nullptr;
 
     std::vector<Span> spans_;
 
@@ -47,6 +46,7 @@ public:
     void        addSpan(const SourceFile* file, uint32_t offset, uint32_t len, DiagnosticSeverity severity = DiagnosticSeverity::Zero, const Utf8& message = Utf8());
     void        addSpan(const SourceCodeLocation& loc, DiagnosticSeverity severity = DiagnosticSeverity::Zero, const Utf8& message = Utf8());
     const auto& spans() const { return spans_; }
+    auto&       span(uint32_t index) { return spans_[index]; }
     const auto& span(uint32_t index) const { return spans_[index]; }
 
     Utf8 message() const;

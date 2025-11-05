@@ -219,6 +219,7 @@ void DiagnosticBuilder::writeHighlightedMessage(DiagnosticSeverity sev, std::str
     std::string quotedBuf;
     quotedBuf.reserve(32);
 
+    out_ += reset;
     for (size_t i = 0; i < msg.size(); ++i)
     {
         const char ch = msg[i];
@@ -383,12 +384,8 @@ Utf8 DiagnosticBuilder::argumentToString(const Diagnostic::Argument& arg) const
     return result;
 }
 
-// In the header file (DiagnosticBuilder.h), update the method signature:
-void writeCodeUnderline(const DiagnosticElement&                                               el,
-                        const std::vector<std::tuple<uint32_t, uint32_t, DiagnosticSeverity>>& underlines);
-
 // In DiagnosticBuilder.cpp, update the writeCodeUnderline implementation:
-void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const std::vector<std::tuple<uint32_t, uint32_t, DiagnosticSeverity>>& underlines)
+void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const std::vector<std::tuple<uint32_t, uint32_t, DiagnosticElement::Span>>& underlines)
 {
     writeGutter(gutterW_);
 
@@ -399,7 +396,7 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const st
     });
 
     uint32_t currentPos = 1; // Current position in the output line
-    for (const auto& [col, len, severity] : sortedUnderlines)
+    for (const auto& [col, len, span] : sortedUnderlines)
     {
         const uint32_t column       = std::max<uint32_t>(1, col);
         const uint32_t underlineLen = len == 0 ? 1 : len;
@@ -410,7 +407,7 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const st
 
         // Determine the color for this underline
         // If severity is Error (assuming that's the "Zero" case), use main element severity
-        const DiagnosticSeverity effectiveSeverity = (severity == DiagnosticSeverity::Zero) ? el.severity() : severity;
+        const DiagnosticSeverity effectiveSeverity = (span.severity == DiagnosticSeverity::Zero) ? el.severity() : span.severity;
 
         // Apply color for this specific underline
         out_ += partStyle(DiagPart::Severity, effectiveSeverity);
@@ -418,6 +415,12 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const st
         // Add underline characters
         for (uint32_t i = 0; i < underlineLen; ++i)
             out_.append(LogSymbolHelper::toString(*ctx_, LogSymbol::Underline));
+
+        if (!span.message.empty())
+        {
+            out_ += " ";
+            writeHighlightedMessage(DiagnosticSeverity::Note, span.message, partStyle(DiagPart::LabelMsgText, DiagnosticSeverity::Note));
+        }
 
         currentPos = column + underlineLen;
     }
@@ -437,10 +440,9 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
     auto loc = el.location(0, *ctx_);
     writeFileLocation(fileName, loc.line, loc.column, loc.len);
 
-    // Group spans by line number with severity
-    uint32_t                                                        currentLine = 0;
-    std::vector<std::tuple<uint32_t, uint32_t, DiagnosticSeverity>> underlinesOnCurrentLine; // (column, length, severity)
+    std::vector<std::tuple<uint32_t, uint32_t, DiagnosticElement::Span>> underlinesOnCurrentLine;
 
+    uint32_t currentLine = 0;
     for (uint32_t i = 0; i < el.spans().size(); ++i)
     {
         loc = el.location(i, *ctx_);
@@ -461,13 +463,10 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
             currentLine = loc.line;
         }
 
-        // Get the severity for this span
-        DiagnosticSeverity spanSeverity = el.span(i).severity;
-
         // Add this span's underline to the current line's collection
         const std::string_view tokenView     = el.file()->codeView(loc.offset, loc.len);
         const uint32_t         tokenLenChars = Utf8Helper::countChars(tokenView);
-        underlinesOnCurrentLine.emplace_back(loc.column, tokenLenChars, spanSeverity);
+        underlinesOnCurrentLine.emplace_back(loc.column, tokenLenChars, el.span(i));
     }
 
     // Render all remaining underlines for the last line on a single output line
@@ -518,13 +517,17 @@ void DiagnosticBuilder::expandMessageParts(SmallVector<std::unique_ptr<Diagnosti
 
         // Base element keeps the first part
         element->setMessage(Utf8(parts[0].text));
-
         if (parts.size() <= 1)
+            continue;
+
+        // Span message for the second element
+        element->span(0).message = Utf8(parts[1].text);
+        if (parts.size() <= 2)
             continue;
 
         // Insert additional parts right after the current element
         // We insert in reverse order, so they end up in the correct order
-        auto insertPos = idx + 1;
+        auto insertPos = idx + 2;
 
         for (size_t i = 1; i < parts.size(); ++i)
         {

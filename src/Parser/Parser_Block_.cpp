@@ -48,7 +48,6 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
     }
 
     SmallVector<AstNodeRef> childrenRefs;
-    bool                    errContent = false;
     while (!atEnd() && isNot(tokenEndId))
     {
         const auto loopStartToken = curToken_;
@@ -104,6 +103,7 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
         if (depthCurly_)
             skipTokens.push_back(TokenId::SymRightCurly);
 
+        bool errSep = false;
         switch (blockNodeId)
         {
         case AstNodeId::EnumBlock:
@@ -113,7 +113,7 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
                 setReportExpected(diag, TokenId::SymComma);
                 diag.report(*ctx_);
                 skipTo(skipTokens);
-                errContent = true;
+                errSep = true;
             }
             break;
 
@@ -127,7 +127,7 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
                 setReportExpected(diag, TokenId::SymComma);
                 diag.report(*ctx_);
                 skipTo(skipTokens);
-                errContent = true;
+                errSep = true;
             }
             break;
 
@@ -135,7 +135,11 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
             break;
         }
 
-        if (errContent)
+        // Be sure instruction has not failed
+        if (valid(childrenRef))
+            childrenRefs.push_back(childrenRef);
+
+        if (errSep)
         {
             if (depthParen_ && is(TokenId::SymRightParen))
                 break;
@@ -144,10 +148,6 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
             if (depthCurly_ && is(TokenId::SymRightCurly))
                 break;
         }
-
-        // Be sure instruction has not failed
-        if (valid(childrenRef))
-            childrenRefs.push_back(childrenRef);
 
         if (loopStartToken == curToken_)
             consume();
@@ -165,7 +165,7 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeBlock>(blockNodeId);
     nodePtr->spanChildren   = ast_->store_.push_span(std::span(childrenRefs.data(), childrenRefs.size()));
 
-    if (childrenRefs.empty() && !errContent)
+    if (childrenRefs.empty())
     {
         switch (blockNodeId)
         {

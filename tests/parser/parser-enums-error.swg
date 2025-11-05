@@ -10,7 +10,7 @@ enum A
         A = 1
 }
 
-enum A } // swc-expected-error {{ParserExpectedTokenAfter}}
+enum A } // swc-expected-error {{ParserUnexpectedToken}} {{ParserExpectedTokenAfter}}
 enum A toto } // swc-expected-error {{ParserExpectedTokenAfter}} {{UnexpectedToken}}
 
 enum A { B C } // swc-expected-error {{ParserExpectedToken}}

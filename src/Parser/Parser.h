@@ -75,8 +75,7 @@ class Parser
     TokenRef expectAndConsumeClosingFor(TokenId openId, TokenRef openRef);
     void     expectEndStatement();
 
-    TokenRef expect(TokenId id, DiagnosticId d) { return expect(ParserExpect::one(id, d)); }
-    TokenRef expectAndConsume(TokenId id, DiagnosticId d) { return expectAndConsume(ParserExpect::one(id, d)); }
+    TokenRef expectAndConsume(TokenId id, DiagnosticId d, TokenRef locToken = INVALID_REF);
 
     const Token* tokPtr() const { return curToken_; }
     const Token& tok() const { return *curToken_; }

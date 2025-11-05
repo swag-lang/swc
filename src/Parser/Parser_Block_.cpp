@@ -39,7 +39,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
 
     if (tokenStartId != TokenId::Invalid)
     {
-        const auto tokenOpenRef = expectAndConsume(tokenStartId, DiagnosticId::ParserExpectedTokenAfter);
+        const auto tokenOpenRef = expectAndConsume(tokenStartId, DiagnosticId::ParserExpectedTokenAfter, ref() - 1);
         if (isInvalid(tokenOpenRef))
             return INVALID_REF;
     }
@@ -106,7 +106,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
         case AstNodeId::EnumBlock:
             if (!consumeIf(TokenId::SymComma) && !is(tokenEndId) && !tok().startsLine())
             {
-                auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, ref());
+                auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, ref() - 1);
                 setReportExpected(diag, TokenId::SymComma);
                 diag.report(*ctx_);
                 skipTo(skipTokens);
@@ -119,7 +119,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
         case AstNodeId::NamedArgumentBlock:
             if (!consumeIf(TokenId::SymComma) && !is(tokenEndId))
             {
-                auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, ref());
+                auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, ref() - 1);
                 setReportExpected(diag, TokenId::SymComma);
                 diag.report(*ctx_);
                 skipTo(skipTokens);

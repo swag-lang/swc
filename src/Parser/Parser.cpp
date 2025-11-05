@@ -78,14 +78,17 @@ Diagnostic Parser::reportExpected(const ParserExpect& expect)
 {
     SWC_ASSERT(expect.tokId != TokenId::Invalid);
 
-    auto diag = reportError(expect.diag, ref());
-    setReportArguments(diag, ref());
+    const auto locRef = expect.locToken == INVALID_REF ? ref() : expect.locToken;
+    auto       diag   = reportError(expect.diag, locRef);
+    setReportArguments(diag, locRef);
     setReportExpected(diag, expect.tokId);
     diag.addArgument(Diagnostic::ARG_BECAUSE, Diagnostic::diagIdMessage(expect.becauseCtx), false);
 
     // Additional notes
     if (expect.tokId == TokenId::Identifier && tok().isReservedWord())
+    {
         diag.addElement(DiagnosticId::ParserReservedAsIdentifier);
+    }
 
     if (expect.noteId != DiagnosticId::None)
     {
@@ -233,7 +236,7 @@ bool Parser::consumeIf(TokenId id, TokenRef* result)
 
 TokenRef Parser::expect(const ParserExpect& expect)
 {
-    if (expect.valid(tok().id))
+    if (expect.valid(id()))
         return ref();
     raiseExpected(expect);
     return INVALID_REF;
@@ -241,10 +244,17 @@ TokenRef Parser::expect(const ParserExpect& expect)
 
 TokenRef Parser::expectAndConsume(const ParserExpect& expect)
 {
-    if (expect.valid(tok().id))
+    if (expect.valid(id()))
         return consume();
     raiseExpected(expect);
     return INVALID_REF;
+}
+
+TokenRef Parser::expectAndConsume(TokenId id, DiagnosticId d, TokenRef locToken)
+{
+    auto expect     = ParserExpect::one(id, d);
+    expect.locToken = locToken;
+    return expectAndConsume(expect);
 }
 
 TokenRef Parser::expectAndConsumeClosingFor(TokenId openId, TokenRef openRef)

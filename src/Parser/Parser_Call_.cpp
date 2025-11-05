@@ -12,7 +12,7 @@ AstNodeRef Parser::parseCallArg1(AstNodeId callerNodeId)
     nodePtr->tokRef         = consume();
 
     const auto openRef = ref();
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenAfter);
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenAfter, ref() - 1);
     nodePtr->nodeParam1 = parseExpression();
     if (isInvalid(nodePtr->nodeParam1))
         skipTo({TokenId::SymRightParen});
@@ -27,7 +27,7 @@ AstNodeRef Parser::parseCallArg2(AstNodeId callerNodeId)
     nodePtr->tokRef         = consume();
 
     const auto openRef = ref();
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenAfter);
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenAfter, ref() - 1);
 
     nodePtr->nodeParam1 = parseExpression();
     if (isInvalid(nodePtr->nodeParam1))
@@ -48,7 +48,7 @@ AstNodeRef Parser::parseCallArg3(AstNodeId callerNodeId)
     nodePtr->tokRef         = consume();
 
     const auto openRef = ref();
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenAfter);
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenAfter, ref() - 1);
 
     nodePtr->nodeParam1 = parseExpression();
     if (isInvalid(nodePtr->nodeParam1))
@@ -107,7 +107,7 @@ AstNodeRef Parser::parseCompilerAttribute(AstNodeId blockNodeId)
             if (is(TokenId::SymRightBracket))
                 break;
 
-            auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, ref());
+            auto diag = reportError(DiagnosticId::ParserExpectedTokenAfter, ref() - 1);
             setReportExpected(diag, TokenId::SymComma);
             diag.report(*ctx_);
             skipTo({TokenId::SymComma, TokenId::SymRightBracket});

@@ -369,6 +369,9 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const st
         return std::get<0>(a) < std::get<0>(b);
     });
 
+    // Track that underlines needs continuation lines
+    std::vector<std::tuple<uint32_t, std::string, DiagnosticSeverity>> continuations;
+
     uint32_t currentPos = 1; // Current position in the output line
     for (const auto& [col, len, span] : sortedUnderlines)
     {
@@ -380,7 +383,6 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const st
             out_ += ' ';
 
         // Determine the color for this underline
-        // If severity is Error (assuming that's the "Zero" case), use main element severity
         const DiagnosticSeverity effectiveSeverity = (span.severity == DiagnosticSeverity::Zero) ? el.severity() : span.severity;
 
         // Apply color for this specific underline
@@ -390,22 +392,70 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const st
         for (uint32_t i = 0; i < underlineLen; ++i)
             out_.append(LogSymbolHelper::toString(*ctx_, LogSymbol::Underline));
 
-        // Message
+        // Get message
         auto msg = span.message;
         if (msg.empty() && span.messageId != DiagnosticId::None)
             msg = Diagnostic::diagIdMessage(span.messageId);
 
         if (!msg.empty())
         {
-            out_ += " ";
-            writeHighlightedMessage(DiagnosticSeverity::Note, msg, partStyle(DiagPart::LabelMsgText, DiagnosticSeverity::Note));
-        }
+            const uint32_t msgStartPos = column + underlineLen + 1; // +1 for space before a message
+            const uint32_t msgLength   = static_cast<uint32_t>(msg.length());
 
-        currentPos = column + underlineLen;
+            // Check if a message fits on this line (consider next underline position if exists)
+            bool fits = true;
+            for (const auto& [nextCol, nextLen, nextSpan] : sortedUnderlines)
+            {
+                if (nextCol > col && msgStartPos + msgLength > nextCol)
+                {
+                    fits = false;
+                    break;
+                }
+            }
+
+            if (fits)
+            {
+                // Message fits on the same line
+                out_ += " ";
+                writeHighlightedMessage(DiagnosticSeverity::Note, msg, partStyle(DiagPart::LabelMsgText, DiagnosticSeverity::Note));
+                currentPos = msgStartPos + msgLength;
+            }
+            else
+            {
+                // Message doesn't fit, schedule for continuation line
+                continuations.emplace_back(column, msg, effectiveSeverity);
+                currentPos = column + underlineLen;
+            }
+        }
+        else
+        {
+            currentPos = column + underlineLen;
+        }
     }
 
     out_ += partStyle(DiagPart::Reset);
     out_ += "\n";
+
+    // Write continuation lines for messages that didn't fit
+    for (const auto& [col, msg, severity] : continuations)
+    {
+        writeGutter(gutterW_);
+
+        // Add spaces up to the column position
+        for (uint32_t i = 1; i < col; ++i)
+            out_ += ' ';
+
+        // Add vertical bar in the underline color
+        out_ += partStyle(DiagPart::Severity, severity);
+        out_.append(LogSymbolHelper::toString(*ctx_, LogSymbol::VerticalLine));
+        out_ += " ";
+
+        // Write the message
+        writeHighlightedMessage(DiagnosticSeverity::Note, msg, partStyle(DiagPart::LabelMsgText, DiagnosticSeverity::Note));
+
+        out_ += partStyle(DiagPart::Reset);
+        out_ += "\n";
+    }
 }
 
 // In writeCodeBlock, update to pass severity information:

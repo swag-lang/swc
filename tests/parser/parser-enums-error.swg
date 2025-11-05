@@ -10,14 +10,14 @@ enum A
         A = 1
 }
 
-enum A } // swc-expected-error {{ParserUnexpectedToken}} {{ParserExpectedTokenAfter}}
-enum A toto } // swc-expected-error {{ParserExpectedTokenAfter}} {{UnexpectedToken}}
+enum A } // swc-expected-error {{ParserExpectedTokenBefore}}
+enum A toto } // swc-expected-error {{ParserExpectedTokenBefore}} {{UnexpectedToken}}
 
 enum A { B C } // swc-expected-error {{ParserExpectedToken}}
-enum  { } // swc-expected-error {{ParserExpectedTokenAfterFam}}
-enum enum { } // swc-expected-error {{ParserExpectedTokenAfterFam}}
-enum #ast { } // swc-expected-error {{ParserExpectedTokenAfterFam}}
-enum A B { C } // swc-expected-error {{ParserExpectedTokenAfter}}
+enum  { } // swc-expected-error {{ParserExpectedTokenBeforeFam}}
+enum enum { } // swc-expected-error {{ParserExpectedTokenBeforeFam}}
+enum #ast { } // swc-expected-error {{ParserExpectedTokenBeforeFam}}
+enum A B { C } // swc-expected-error {{ParserExpectedTokenBefore}}
 enum A { B,, C } // swc-expected-error {{ParserUnexpectedToken}}
 
 enum A { B = 1' } // swc-expected-error {{ParserEmptyLiteralSuffix}}

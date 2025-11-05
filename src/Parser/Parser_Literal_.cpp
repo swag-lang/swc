@@ -117,7 +117,7 @@ AstNodeRef Parser::parseLiteralExpression()
 
 AstNodeRef Parser::parseLiteralArray()
 {
-    return parseBlock(AstNodeId::ArrayLiteral, TokenId::SymLeftBracket);
+    return parseBlock(TokenId::SymLeftBracket, AstNodeId::ArrayLiteral);
 }
 
 SWC_END_NAMESPACE()

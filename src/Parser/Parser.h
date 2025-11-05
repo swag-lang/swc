@@ -102,7 +102,7 @@ class Parser
     AstNodeRef parseCallArg2(AstNodeId callerNodeId);
     AstNodeRef parseCallArg3(AstNodeId callerNodeId);
     AstNodeRef parseBlockStmt(AstNodeId blockNodeId);
-    AstNodeRef parseBlock(AstNodeId blockNodeId, TokenId tokenStartId);
+    AstNodeRef parseBlock(TokenId tokenStartId, AstNodeId blockNodeId);
     AstNodeRef parseCompilerIf(AstNodeId blockNodeId);
     AstNodeRef parseCompilerIfStmt(AstNodeId blockNodeId);
     AstNodeRef parseCompilerAttribute(AstNodeId blockNodeId);

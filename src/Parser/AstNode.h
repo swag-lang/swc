@@ -74,10 +74,18 @@ T* castAst(AstNode* node)
     return reinterpret_cast<T*>(node);
 }
 
+template<typename T>
+const T* castAst(const AstNode* node)
+{
+    SWC_ASSERT(node);
+    SWC_ASSERT(node->id == T::ID);
+    return reinterpret_cast<const T*>(node);
+}
+
 template<AstNodeId Id>
 struct AstTypeOf;
 
-#define SWC_NODE_DEF(E)         \
+#define SWC_NODE_DEF(E)            \
     template<>                     \
     struct AstTypeOf<AstNodeId::E> \
     {                              \
@@ -92,7 +100,7 @@ decltype(auto) visitAstNodeId(AstNodeId id, F&& f)
     switch (id)
     {
 #define SWC_NODE_DEF(E) \
-    case AstNodeId::E:     \
+    case AstNodeId::E:  \
         return std::forward<F>(f).operator()<AstNodeId::E>();
 #include "AstNodes.def"
 

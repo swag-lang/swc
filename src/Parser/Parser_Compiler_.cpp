@@ -12,7 +12,7 @@ AstNodeRef Parser::parseCompilerFunc()
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerFunc>();
         nodePtr->tknName        = consume();
-        nodePtr->nodeBody       = parseBlock(AstNodeId::FuncBody, TokenId::SymLeftCurly);
+        nodePtr->nodeBody       = parseBlock(TokenId::SymLeftCurly, AstNodeId::FuncBody);
         return nodeRef;
     }
 
@@ -45,7 +45,7 @@ AstNodeRef Parser::parseCompilerIfStmt(AstNodeId blockNodeId)
         if (is(TokenId::SymLeftCurly))
         {
             raiseError(DiagnosticId::ParserUnexpectedDoWithBraces, ref() - 1);
-            return parseBlock(blockNodeId, TokenId::SymLeftCurly);
+            return parseBlock(TokenId::SymLeftCurly, blockNodeId);
         }
 
         return parseBlockStmt(blockNodeId);
@@ -53,7 +53,7 @@ AstNodeRef Parser::parseCompilerIfStmt(AstNodeId blockNodeId)
 
     if (is(TokenId::SymLeftCurly))
     {
-        return parseBlock(blockNodeId, TokenId::SymLeftCurly);
+        return parseBlock(TokenId::SymLeftCurly, blockNodeId);
     }
 
     const auto diag = reportError(DiagnosticId::ParserExpectedDoOrBlock, ref() - 1);

@@ -5,6 +5,11 @@
 #[] // swc-expected-error {{ParserEmptyAttribute}}
 enum B {}
 
+#[
+/* toto */
+]
+enum B {}
+
 #[A(] // swc-expected-error {{ParserUnexpectedToken}} {{ParserExpectedClosing}}
 enum B {}
 

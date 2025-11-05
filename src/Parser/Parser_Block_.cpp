@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Core/SmallVector.h"
+#include "Core/Types.h"
 #include "Parser/AstNode.h"
 #include "Parser/Parser.h"
 #include "Report/Diagnostic.h"
@@ -19,6 +20,8 @@ AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
         return parseEmbeddedStmt();
     case AstNodeId::EnumBlock:
         return parseEnumValue();
+    case AstNodeId::AttributeBlock:
+        return parseAttribute();
     case AstNodeId::ArrayLiteral:
         return parseExpression();
     case AstNodeId::UnnamedArgumentBlock:
@@ -31,7 +34,7 @@ AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
     }
 }
 
-AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
+AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
 {
     const Token&   openTok    = tok();
     const TokenRef openTokRef = ref();
@@ -39,8 +42,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
 
     if (tokenStartId != TokenId::Invalid)
     {
-        const auto tokenOpenRef = expectAndConsume(tokenStartId, DiagnosticId::ParserExpectedTokenBefore, ref());
-        if (isInvalid(tokenOpenRef))
+        if (isInvalid(expectAndConsume(tokenStartId, DiagnosticId::ParserExpectedTokenBefore, ref())))
             return INVALID_REF;
     }
 
@@ -115,6 +117,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
             break;
 
         case AstNodeId::ArrayLiteral:
+        case AstNodeId::AttributeBlock:
         case AstNodeId::UnnamedArgumentBlock:
         case AstNodeId::NamedArgumentBlock:
             if (!consumeIf(TokenId::SymComma) && !is(tokenEndId))
@@ -150,6 +153,7 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
     }
 
     // Consume end token if necessary
+    auto closeTokenRef = ref();
     if (!consumeIf(tokenEndId) && tokenEndId != TokenId::Invalid)
     {
         auto diag = reportError(DiagnosticId::ParserExpectedClosing, openTokRef);
@@ -159,12 +163,28 @@ AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId)
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeBlock>(blockNodeId);
     nodePtr->spanChildren   = ast_->store_.push_span(std::span(childrenRefs.data(), childrenRefs.size()));
+
+    if (childrenRefs.empty())
+    {
+        switch (blockNodeId)
+        {
+        case AstNodeId::AttributeBlock:
+        {
+            const auto diag = reportError(DiagnosticId::ParserEmptyAttribute, openTokRef, closeTokenRef);
+            diag.report(*ctx_);
+            break;
+        }
+        default:
+            break;
+        }
+    }
+
     return nodeRef;
 }
 
 AstNodeRef Parser::parseFile()
 {
-    return parseBlock(AstNodeId::File, TokenId::Invalid);
+    return parseBlock(TokenId::Invalid, AstNodeId::File);
 }
 
 AstNodeRef Parser::parseTopLevelStmt()
@@ -172,7 +192,7 @@ AstNodeRef Parser::parseTopLevelStmt()
     switch (id())
     {
     case TokenId::SymLeftCurly:
-        return parseBlock(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
+        return parseBlock(TokenId::SymLeftCurly, AstNodeId::TopLevelBlock);
     case TokenId::SymRightCurly:
         raiseError(DiagnosticId::ParserUnexpectedToken, ref());
         return INVALID_REF;
@@ -215,7 +235,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
     switch (id())
     {
     case TokenId::SymLeftCurly:
-        return parseBlock(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
+        return parseBlock(TokenId::SymLeftCurly, AstNodeId::EmbeddedBlock);
     case TokenId::SymRightCurly:
         raiseError(DiagnosticId::ParserUnexpectedToken, ref());
         return INVALID_REF;
@@ -243,7 +263,7 @@ AstNodeRef Parser::parseNamespace()
     nodePtr->nodeName = parseScopedIdentifier();
     if (isInvalid(nodePtr->nodeName))
         skipTo({TokenId::SymLeftCurly});
-    nodePtr->nodeBody = parseBlock(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
+    nodePtr->nodeBody = parseBlock(TokenId::SymLeftCurly, AstNodeId::TopLevelBlock);
     return nodeRef;
 }
 

@@ -187,7 +187,7 @@ AstNodeRef Parser::parsePostFixExpression()
         {
             const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::ArrayDeref>();
             nodePtr->nodeExpr                = nodeRef;
-            nodePtr->nodeArgs                = parseBlock(AstNodeId::UnnamedArgumentBlock, TokenId::SymLeftBracket);
+            nodePtr->nodeArgs                = parseBlock(TokenId::SymLeftBracket, AstNodeId::UnnamedArgumentBlock);
             nodeRef                          = nodeParent;
             continue;
         }
@@ -197,7 +197,7 @@ AstNodeRef Parser::parsePostFixExpression()
         {
             const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::FuncCall>();
             nodePtr->nodeExpr                = nodeRef;
-            nodePtr->nodeArgs                = parseBlock(AstNodeId::NamedArgumentBlock, TokenId::SymLeftParen);
+            nodePtr->nodeArgs                = parseBlock(TokenId::SymLeftParen, AstNodeId::NamedArgumentBlock);
             nodeRef                          = nodeParent;
             continue;
         }
@@ -207,7 +207,7 @@ AstNodeRef Parser::parsePostFixExpression()
         {
             const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::StructInit>();
             nodePtr->nodeExpr                = nodeRef;
-            nodePtr->nodeArgs                = parseBlock(AstNodeId::NamedArgumentBlock, TokenId::SymLeftCurly);
+            nodePtr->nodeArgs                = parseBlock(TokenId::SymLeftCurly, AstNodeId::NamedArgumentBlock);
             nodeRef                          = nodeParent;
             continue;
         }
@@ -489,7 +489,7 @@ AstNodeRef Parser::parseSuffixedIdentifier()
     {
         auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::MultiSuffixedIdentifier>();
         nodePtr->nodeIdentifier  = nodeIdentifier;
-        nodePtr->nodeSuffixBlock = parseBlock(AstNodeId::UnnamedArgumentBlock, TokenId::SymLeftParen);
+        nodePtr->nodeSuffixBlock = parseBlock(TokenId::SymLeftParen, AstNodeId::UnnamedArgumentBlock);
         return nodeRef;
     }
 

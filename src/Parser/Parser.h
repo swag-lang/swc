@@ -82,7 +82,7 @@ class Parser
     AstNodeRef parseCallArg3(AstNodeId callerNodeId);
     AstNodeRef parseBlockStmt(AstNodeId blockNodeId);
     AstNodeRef parseBlockCompilerDirective(AstNodeId blockNodeId);
-    bool       parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId);
+    Result     parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId);
     void       finalizeBlock(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef closeTokenRef, TokenId tokenEndId, const SmallVector<AstNodeRef>& childrenRefs);
     AstNodeRef parseBlock(TokenId tokenStartId, AstNodeId blockNodeId);
     AstNodeRef parseCompilerIf(AstNodeId blockNodeId);

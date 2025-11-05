@@ -74,7 +74,7 @@ AstNodeRef Parser::parseBlockCompilerDirective(AstNodeId blockNodeId)
     return childrenRef;
 }
 
-bool Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
+Result Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
 {
     SmallVector skipTokens = {TokenId::SymComma, tokenEndId};
     if (depthParen_)
@@ -94,7 +94,7 @@ bool Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
             else
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
             skipTo(skipTokens);
-            return true;
+            return Result::Error;
         }
         break;
 
@@ -106,7 +106,7 @@ bool Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
             else
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
             skipTo(skipTokens);
-            return true;
+            return Result::Error;
         }
         break;
 
@@ -117,7 +117,7 @@ bool Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
         {
             raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
             skipTo(skipTokens);
-            return true;
+            return Result::Error;
         }
         break;
 
@@ -125,7 +125,7 @@ bool Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
         break;
     }
 
-    return false;
+    return Result::Success;
 }
 
 void Parser::finalizeBlock(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef closeTokenRef, const TokenId tokenEndId, const SmallVector<AstNodeRef>& childrenRefs)
@@ -188,7 +188,7 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
             childrenRefs.push_back(childRef);
 
         // Separator between statements
-        if (parseBlockSeparator(blockNodeId, tokenEndId))
+        if (parseBlockSeparator(blockNodeId, tokenEndId) == Result::Error)
         {
             if (depthParen_ && is(TokenId::SymRightParen))
                 break;

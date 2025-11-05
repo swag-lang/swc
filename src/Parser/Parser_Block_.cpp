@@ -35,7 +35,7 @@ AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
     }
 }
 
-AstNodeRef Parser::handleCompilerDirective(AstNodeId blockNodeId)
+AstNodeRef Parser::parseBlockCompilerDirective(AstNodeId blockNodeId)
 {
     auto childrenRef = INVALID_REF;
 
@@ -165,7 +165,7 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
         AstNodeRef childRef       = INVALID_REF;
 
         // Compiler directives (only in certain blocks)
-        childRef = handleCompilerDirective(blockNodeId);
+        childRef = parseBlockCompilerDirective(blockNodeId);
         if (valid(childRef))
         {
             childrenRefs.push_back(childRef);

@@ -181,6 +181,7 @@
         <ClInclude Include="src\pch.h"/>
         <ClInclude Include="src\Report\Check.h"/>
         <ClInclude Include="src\Report\DiagnosticBuilder.h"/>
+        <ClInclude Include="src\Report\DiagnosticDef.h"/>
         <ClInclude Include="src\Report\ExitCodes.h"/>
         <ClInclude Include="src\Report\LogColor.h"/>
         <ClInclude Include="src\Report\Diagnostic.h"/>

@@ -359,7 +359,7 @@ void DiagnosticBuilder::writeLabelMsg(const DiagnosticElement& el)
 }
 
 // In DiagnosticBuilder.cpp, update the writeCodeUnderline implementation:
-void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const std::vector<std::tuple<uint32_t, uint32_t, DiagnosticElement::Span>>& underlines)
+void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const std::vector<std::tuple<uint32_t, uint32_t, DiagnosticSpan>>& underlines)
 {
     writeGutter(gutterW_);
 
@@ -390,14 +390,14 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const st
         for (uint32_t i = 0; i < underlineLen; ++i)
             out_.append(LogSymbolHelper::toString(*ctx_, LogSymbol::Underline));
 
-        if (!span.message.empty())
+        // Message
+        auto msg = span.message;
+        if (msg.empty() && span.messageId != DiagnosticId::None)
+            msg = Diagnostic::diagIdMessage(span.messageId);
+
+        if (!msg.empty())
         {
             out_ += " ";
-
-            auto msg = span.message;
-            if (msg.empty() && span.messageId != DiagnosticId::None)
-                msg = Diagnostic::diagIdMessage(span.messageId);
-
             writeHighlightedMessage(DiagnosticSeverity::Note, msg, partStyle(DiagPart::LabelMsgText, DiagnosticSeverity::Note));
         }
 
@@ -419,7 +419,7 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
     auto loc = el.location(0, *ctx_);
     writeFileLocation(fileName, loc.line, loc.column, loc.len);
 
-    std::vector<std::tuple<uint32_t, uint32_t, DiagnosticElement::Span>> underlinesOnCurrentLine;
+    std::vector<std::tuple<uint32_t, uint32_t, DiagnosticSpan>> underlinesOnCurrentLine;
 
     uint32_t currentLine = 0;
     for (uint32_t i = 0; i < el.spans().size(); ++i)

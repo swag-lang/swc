@@ -23,7 +23,7 @@ void DiagnosticElement::addSpan(const SourceFile* file, uint32_t offset, uint32_
     SWC_ASSERT(!file_ || file_ == file);
     file_ = file;
 
-    Span span;
+    DiagnosticSpan span;
     span.offset   = offset;
     span.len      = len;
     span.severity = severity;
@@ -36,7 +36,7 @@ void DiagnosticElement::addSpan(const SourceCodeLocation& loc, const Utf8& messa
     SWC_ASSERT(!file_ || loc.file == file_);
     file_ = loc.file;
 
-    Span span;
+    DiagnosticSpan span;
     span.offset   = loc.offset;
     span.len      = loc.len;
     span.severity = severity;
@@ -49,7 +49,7 @@ void DiagnosticElement::addSpan(const SourceCodeLocation& loc, DiagnosticId diag
     SWC_ASSERT(!file_ || loc.file == file_);
     file_ = loc.file;
 
-    Span span;
+    DiagnosticSpan span;
     span.offset    = loc.offset;
     span.len       = loc.len;
     span.severity  = severity;

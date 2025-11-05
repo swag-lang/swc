@@ -1,16 +1,8 @@
 #pragma once
 #include "Lexer/SourceCodeLocation.h"
+#include "Report/DiagnosticDef.h"
 
 SWC_BEGIN_NAMESPACE()
-
-enum class DiagnosticSeverity
-{
-    Zero,
-    Error,
-    Warning,
-    Note,
-    Help,
-};
 
 class SourceFile;
 class Context;
@@ -18,24 +10,13 @@ enum class DiagnosticId;
 
 class DiagnosticElement
 {
-public:
-    struct Span
-    {
-        uint32_t           offset = 0;
-        uint32_t           len    = 0;
-        DiagnosticSeverity severity;
-        DiagnosticId       messageId;
-        Utf8               message;
-    };
-
-private:
     Utf8               message_;
     DiagnosticId       id_;
     DiagnosticSeverity severity_;
 
     const SourceFile* file_ = nullptr;
 
-    std::vector<Span> spans_;
+    std::vector<DiagnosticSpan> spans_;
 
 public:
     explicit DiagnosticElement(DiagnosticId id);
@@ -50,6 +31,7 @@ public:
     const auto& spans() const { return spans_; }
     auto&       span(uint32_t index) { return spans_[index]; }
     const auto& span(uint32_t index) const { return spans_[index]; }
+    bool        hasCodeLocation() const { return file_ != nullptr && !spans_.empty(); }
 
     Utf8 message() const;
     void setMessage(Utf8 m);
@@ -58,7 +40,6 @@ public:
     std::string_view   idName() const;
     DiagnosticId       id() const { return id_; }
     DiagnosticSeverity severity() const { return severity_; }
-    bool               hasCodeLocation() const { return file_ != nullptr && !spans_.empty(); }
     bool               isNoteOrHelp() const;
 };
 

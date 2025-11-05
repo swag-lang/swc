@@ -308,10 +308,9 @@ AstModifierFlags Parser::parseModifiers()
 
         if (has_any(result, toSet))
         {
-            auto diag = reportError(DiagnosticId::parser_err_duplicated_modifier, ref());
-            diag.addElement(DiagnosticId::parser_note_other_def);
-            const auto loc = file_->lexOut().token(done[toSet]).toLocation(*ctx_, *file_);
-            diag.last().addSpan(loc, "");
+            auto       diag = reportError(DiagnosticId::parser_err_duplicated_modifier, ref());
+            const auto loc  = file_->lexOut().token(done[toSet]).toLocation(*ctx_, *file_);
+            diag.last().addSpan(loc, DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
             diag.report(*ctx_);
         }
 

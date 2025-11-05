@@ -389,6 +389,7 @@ CommandLineParser::CommandLineParser(CommandLine& cmdLine, Global& global) :
     addArg("all", "--log-color", nullptr, CommandLineType::Bool, &cmdLine_->logColor, nullptr, "Enable colored log output for better readability.");
     addArg("all", "--log-ascii", nullptr, CommandLineType::Bool, &cmdLine_->logAscii, nullptr, "Restrict console output to ASCII characters (disable Unicode).");
     addArg("all", "--error-absolute", "-ea", CommandLineType::Bool, &cmdLine_->errorAbsolute, nullptr, "Show absolute file paths in error messages.");
+    addArg("all", "--error-one-line", "-el", CommandLineType::Bool, &cmdLine_->errorOneLine, nullptr, "Display errors in a single line");
     addArg("all", "--error-id", "-eid", CommandLineType::Bool, &cmdLine_->errorId, nullptr, "Show error identifiers.");
     addArg("all", "--verify", "-v", CommandLineType::Bool, &cmdLine_->verify, nullptr, "Verify special test annotations or comments.");
     addArg("all", "--verbose-errors", "-ve", CommandLineType::Bool, &cmdLine_->verboseErrors, nullptr, "Log raised errors during tests.");

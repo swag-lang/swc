@@ -287,31 +287,33 @@ void DiagnosticBuilder::writeHighlightedMessage(DiagnosticSeverity sev, std::str
     }
 }
 
-void DiagnosticBuilder::writeFileLocation(const std::string& path, uint32_t line, uint32_t col, uint32_t len)
+void DiagnosticBuilder::writeFileLocation(const DiagnosticElement& el)
 {
-    out_.append(gutterW_, ' ');
-    out_ += partStyle(DiagPart::FileLocationArrow);
-    out_ += "--> ";
+    Utf8 fileName;
+    if (ctx_->cmdLine().errorAbsolute)
+        fileName = el.file()->path().string();
+    else
+        fileName = el.file()->path().filename().string();
+    const auto loc = el.location(0, *ctx_);
+
     out_ += partStyle(DiagPart::FileLocationPath);
-    out_ += path;
+    out_ += fileName;
     out_ += partStyle(DiagPart::Reset);
 
     out_ += partStyle(DiagPart::FileLocationSep);
     out_ += ":";
     out_ += partStyle(DiagPart::Reset);
-    out_ += std::to_string(line);
+    out_ += std::to_string(loc.line);
 
     out_ += partStyle(DiagPart::FileLocationSep);
     out_ += ":";
     out_ += partStyle(DiagPart::Reset);
-    out_ += std::to_string(col);
+    out_ += std::to_string(loc.column);
 
     out_ += partStyle(DiagPart::FileLocationSep);
     out_ += "-";
     out_ += partStyle(DiagPart::Reset);
-    out_ += std::to_string(col + len);
-
-    out_ += "\n";
+    out_ += std::to_string(loc.column + loc.len);
 }
 
 void DiagnosticBuilder::writeGutter(uint32_t gutter)
@@ -463,20 +465,19 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const st
 // In writeCodeBlock, update to pass severity information:
 void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
 {
-    Utf8 fileName;
-    if (ctx_->cmdLine().errorAbsolute)
-        fileName = el.file()->path().string();
-    else
-        fileName = el.file()->path().filename().string();
-    auto loc = el.location(0, *ctx_);
-    writeFileLocation(fileName, loc.line, loc.column, loc.len);
+    // Loc
+    out_.append(gutterW_, ' ');
+    out_ += partStyle(DiagPart::FileLocationArrow);
+    out_ += "--> ";
+    writeFileLocation(el);
+    out_ += "\n";
 
     std::vector<std::tuple<uint32_t, uint32_t, DiagnosticSpan>> underlinesOnCurrentLine;
 
     uint32_t currentLine = 0;
     for (uint32_t i = 0; i < el.spans().size(); ++i)
     {
-        loc = el.location(i, *ctx_);
+        auto loc = el.location(i, *ctx_);
 
         // If we're on a new line, render the previous line's underlines and start a new line
         if (loc.line != currentLine)
@@ -632,6 +633,14 @@ Utf8 DiagnosticBuilder::build()
 
     // Primary element: the first one
     const auto& primary = *elements.front();
+
+    if (ctx_->cmdLine().errorOneLine)
+    {
+        writeFileLocation(primary);
+        out_ += ": ";
+        writeLabelMsg(primary);
+        return out_;
+    }
 
     // Render primary element body (location/code) if any
     writeLabelMsg(primary);

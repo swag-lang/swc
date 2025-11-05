@@ -9,14 +9,6 @@ class Context;
 enum class DiagnosticId;
 enum class TokenId : uint16_t;
 
-enum class DiagnosticSeverity
-{
-    Error,
-    Warning,
-    Note,
-    Help,
-};
-
 enum class DiagnosticId
 {
     None = 0,

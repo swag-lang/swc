@@ -3,9 +3,17 @@
 
 SWC_BEGIN_NAMESPACE()
 
+enum class DiagnosticSeverity
+{
+    Zero,
+    Error,
+    Warning,
+    Note,
+    Help,
+};
+
 class SourceFile;
 class Context;
-enum class DiagnosticSeverity;
 enum class DiagnosticId;
 
 class DiagnosticElement
@@ -21,9 +29,10 @@ class DiagnosticElement
 
     struct Span
     {
-        uint32_t offset = 0;
-        uint32_t len    = 0;
-        Utf8     message;
+        uint32_t           offset = 0;
+        uint32_t           len    = 0;
+        DiagnosticSeverity severity;
+        Utf8               message;
     };
 
     std::vector<Span> spans_;
@@ -35,9 +44,10 @@ public:
     void              setFile(const SourceFile* file) { file_ = file; }
     const SourceFile* file() const { return file_; }
 
-    void        addSpan(const SourceFile* file, uint32_t offset, uint32_t len, const Utf8& message = Utf8());
-    void        addSpan(const SourceCodeLocation& loc, const Utf8& message = Utf8());
+    void        addSpan(const SourceFile* file, uint32_t offset, uint32_t len, DiagnosticSeverity severity = DiagnosticSeverity::Zero, const Utf8& message = Utf8());
+    void        addSpan(const SourceCodeLocation& loc, DiagnosticSeverity severity = DiagnosticSeverity::Zero, const Utf8& message = Utf8());
     const auto& spans() const { return spans_; }
+    const auto& span(uint32_t index) const { return spans_[index]; }
 
     Utf8 message() const;
     void setMessage(Utf8 m);

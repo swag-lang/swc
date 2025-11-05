@@ -121,7 +121,6 @@
         <ClCompile Include="src\Os\OsWin32.cpp"/>
         <ClCompile Include="src\Parser\Ast.cpp"/>
         <ClCompile Include="src\Parser\Parser.cpp"/>
-        <ClCompile Include="src\Parser\ParserExpect.cpp"/>
         <ClCompile Include="src\Parser\Parser_Block_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Call_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Compiler_.cpp"/>
@@ -176,10 +175,9 @@
         <ClInclude Include="src\Os\Os.h"/>
         <ClInclude Include="src\Parser\Ast.h"/>
         <ClInclude Include="src\Parser\AstNode.h"/>
-        <ClInclude Include="src\Parser\AstNodes.def" />
-        <ClInclude Include="src\Parser\AstNodes.h" />
+        <ClInclude Include="src\Parser\AstNodes.def"/>
+        <ClInclude Include="src\Parser\AstNodes.h"/>
         <ClInclude Include="src\Parser\Parser.h"/>
-        <ClInclude Include="src\Parser\ParserExpect.h"/>
         <ClInclude Include="src\pch.h"/>
         <ClInclude Include="src\Report\Check.h"/>
         <ClInclude Include="src\Report\DiagnosticBuilder.h"/>

@@ -64,37 +64,6 @@ void Parser::raiseError(DiagnosticId id, TokenRef tknRef)
     diag.report(*ctx_);
 }
 
-Diagnostic Parser::reportExpected(const ParserExpect& expect)
-{
-    SWC_ASSERT(expect.tokId != TokenId::Invalid);
-
-    const auto locRef = ref();
-    auto       diag   = reportError(expect.diag, locRef);
-    setReportArguments(diag, locRef);
-    setReportExpected(diag, expect.tokId);
-    diag.addArgument(Diagnostic::ARG_BECAUSE, Diagnostic::diagIdMessage(expect.becauseCtx), false);
-
-    // Additional notes
-    if (expect.tokId == TokenId::Identifier && tok().isReservedWord())
-    {
-        diag.addElement(DiagnosticId::ParserReservedAsIdentifier);
-    }
-
-    if (expect.noteId != DiagnosticId::None)
-    {
-        const auto tknLoc = file_->lexOut().token(expect.noteToken);
-        diag.addElement(expect.noteId).addSpan(tknLoc.toLocation(*ctx_, *file_));
-    }
-
-    return diag;
-}
-
-void Parser::raiseExpected(const ParserExpect& expect)
-{
-    const auto diag = reportExpected(expect);
-    diag.report(*ctx_);
-}
-
 bool Parser::skipTo(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
 {
     return skip(targets, flags);
@@ -224,12 +193,17 @@ bool Parser::consumeIf(TokenId id, TokenRef* result)
     return true;
 }
 
-TokenRef Parser::expectAndConsume(TokenId id, DiagnosticId d)
+TokenRef Parser::expectAndConsume(TokenId id, DiagnosticId diagId)
 {
     if (is(id))
         return consume();
 
-    raiseExpected(ParserExpect::one(id, d));
+    auto diag = reportError(diagId, ref());
+    setReportArguments(diag, ref());
+    setReportExpected(diag, id);
+    // diag.addArgument(Diagnostic::ARG_BECAUSE, Diagnostic::diagIdMessage(expect.becauseCtx), false);
+
+    diag.report(*ctx_);
     return INVALID_REF;
 }
 
@@ -239,9 +213,12 @@ TokenRef Parser::expectAndConsumeClosingFor(TokenId openId, TokenRef openRef)
     if (is(closingId))
         return consume();
 
-    auto expect = ParserExpect::one(closingId, DiagnosticId::ParserExpectedClosingBefore);
-    expect.note(DiagnosticId::ParserCorresponding, openRef);
-    raiseExpected(expect);
+    auto diag = reportError(DiagnosticId::ParserExpectedClosingBefore, ref());
+    setReportArguments(diag, ref());
+    setReportExpected(diag, closingId);
+
+    diag.last().addSpan(file_->lexOut().token(openRef).toLocation(*ctx_, *file_), DiagnosticSeverity::Note);
+    diag.report(*ctx_);
 
     skipTo({closingId, TokenId::SymSemiColon, TokenId::SymLeftCurly}, SkipUntilFlags::EolBefore);
     consumeIf(closingId);

@@ -17,27 +17,29 @@ DiagnosticElement::DiagnosticElement(DiagnosticSeverity severity, DiagnosticId i
 {
 }
 
-void DiagnosticElement::addSpan(const SourceFile* file, uint32_t offset, uint32_t len, const Utf8& message)
+void DiagnosticElement::addSpan(const SourceFile* file, uint32_t offset, uint32_t len, DiagnosticSeverity severity, const Utf8& message)
 {
     SWC_ASSERT(!file_ || file_ == file);
     file_ = file;
 
     Span span;
-    span.offset  = offset;
-    span.len     = len;
-    span.message = message;
+    span.offset   = offset;
+    span.len      = len;
+    span.severity = severity;
+    span.message  = message;
     spans_.push_back(span);
 }
 
-void DiagnosticElement::addSpan(const SourceCodeLocation& loc, const Utf8& message)
+void DiagnosticElement::addSpan(const SourceCodeLocation& loc, DiagnosticSeverity severity, const Utf8& message)
 {
     SWC_ASSERT(!file_ || loc.file == file_);
     file_ = loc.file;
 
     Span span;
-    span.offset  = loc.offset;
-    span.len     = loc.len;
-    span.message = message;
+    span.offset   = loc.offset;
+    span.len      = loc.len;
+    span.severity = severity;
+    span.message  = message;
     spans_.push_back(span);
 }
 

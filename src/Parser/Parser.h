@@ -1,7 +1,6 @@
 #pragma once
 #include "Lexer/Token.h"
 #include "Parser/Ast.h"
-#include "Parser/ParserExpect.h"
 #include "Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -39,25 +38,6 @@ class Parser
     uint32_t     depthCurly_     = 0;
     TokenRef     lastErrorToken_ = INVALID_REF;
 
-    // Be sure that we consume something
-    class EnsureConsume
-    {
-        Parser*      p_;
-        const Token* start_;
-
-    public:
-        explicit EnsureConsume(Parser& p) :
-            p_(&p),
-            start_(p.tokPtr())
-        {
-        }
-        ~EnsureConsume()
-        {
-            if (start_ == p_->tokPtr())
-                p_->consume();
-        }
-    };
-
     TokenRef consume(TokenId id);
     TokenRef consume();
     bool     consumeIf(TokenId id, TokenRef* result = nullptr);
@@ -73,7 +53,7 @@ class Parser
     TokenRef expectAndConsumeClosingFor(TokenId openId, TokenRef openRef);
     void     expectEndStatement();
 
-    TokenRef expectAndConsume(TokenId id, DiagnosticId d);
+    TokenRef expectAndConsume(TokenId id, DiagnosticId diagId);
 
     const Token* tokPtr() const { return curToken_; }
     const Token& tok() const { return *curToken_; }
@@ -145,8 +125,6 @@ class Parser
     static void setReportExpected(Diagnostic& diag, TokenId expectedTknId);
     Diagnostic  reportError(DiagnosticId id, TokenRef tknRef);
     void        raiseError(DiagnosticId id, TokenRef tknRef);
-    Diagnostic  reportExpected(const ParserExpect& expect);
-    void        raiseExpected(const ParserExpect& expect);
 
 public:
     Result parse(Context& ctx);

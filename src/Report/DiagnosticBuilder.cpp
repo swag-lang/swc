@@ -383,18 +383,23 @@ Utf8 DiagnosticBuilder::argumentToString(const Diagnostic::Argument& arg) const
     return result;
 }
 
-// Modified to handle multiple underlines on the same output line
-void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const std::vector<std::pair<uint32_t, uint32_t>>& underlines)
+// In the header file (DiagnosticBuilder.h), update the method signature:
+void writeCodeUnderline(const DiagnosticElement&                                               el,
+                        const std::vector<std::tuple<uint32_t, uint32_t, DiagnosticSeverity>>& underlines);
+
+// In DiagnosticBuilder.cpp, update the writeCodeUnderline implementation:
+void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const std::vector<std::tuple<uint32_t, uint32_t, DiagnosticSeverity>>& underlines)
 {
     writeGutter(gutterW_);
-    out_ += partStyle(DiagPart::Severity, el.severity());
 
     // Sort underlines by column to process them in order
     auto sortedUnderlines = underlines;
-    std::ranges::sort(sortedUnderlines);
+    std::ranges::sort(sortedUnderlines, [](const auto& a, const auto& b) {
+        return std::get<0>(a) < std::get<0>(b);
+    });
 
     uint32_t currentPos = 1; // Current position in the output line
-    for (const auto& [col, len] : sortedUnderlines)
+    for (const auto& [col, len, severity] : sortedUnderlines)
     {
         const uint32_t column       = std::max<uint32_t>(1, col);
         const uint32_t underlineLen = len == 0 ? 1 : len;
@@ -403,6 +408,13 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const st
         for (uint32_t i = currentPos; i < column; ++i)
             out_ += ' ';
 
+        // Determine the color for this underline
+        // If severity is Error (assuming that's the "Zero" case), use main element severity
+        const DiagnosticSeverity effectiveSeverity = (severity == DiagnosticSeverity::Zero) ? el.severity() : severity;
+
+        // Apply color for this specific underline
+        out_ += partStyle(DiagPart::Severity, effectiveSeverity);
+
         // Add underline characters
         for (uint32_t i = 0; i < underlineLen; ++i)
             out_.append(LogSymbolHelper::toString(*ctx_, LogSymbol::Underline));
@@ -410,10 +422,11 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const st
         currentPos = column + underlineLen;
     }
 
+    out_ += partStyle(DiagPart::Reset);
     out_ += "\n";
 }
 
-// Renders a single element's location/code/underline block
+// In writeCodeBlock, update to pass severity information:
 void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
 {
     Utf8 fileName;
@@ -424,9 +437,9 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
     auto loc = el.location(0, *ctx_);
     writeFileLocation(fileName, loc.line, loc.column, loc.len);
 
-    // Group spans by line number
-    uint32_t                                   currentLine = 0;
-    std::vector<std::pair<uint32_t, uint32_t>> underlinesOnCurrentLine; // (column, length) pairs
+    // Group spans by line number with severity
+    uint32_t                                                        currentLine = 0;
+    std::vector<std::tuple<uint32_t, uint32_t, DiagnosticSeverity>> underlinesOnCurrentLine; // (column, length, severity)
 
     for (uint32_t i = 0; i < el.spans().size(); ++i)
     {
@@ -448,10 +461,13 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
             currentLine = loc.line;
         }
 
+        // Get the severity for this span
+        DiagnosticSeverity spanSeverity = el.span(i).severity;
+
         // Add this span's underline to the current line's collection
         const std::string_view tokenView     = el.file()->codeView(loc.offset, loc.len);
         const uint32_t         tokenLenChars = Utf8Helper::countChars(tokenView);
-        underlinesOnCurrentLine.emplace_back(loc.column, tokenLenChars);
+        underlinesOnCurrentLine.emplace_back(loc.column, tokenLenChars, spanSeverity);
     }
 
     // Render all remaining underlines for the last line on a single output line

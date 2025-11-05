@@ -81,6 +81,7 @@ class Parser
     AstNodeRef parseCallArg3(AstNodeId callerNodeId);
     AstNodeRef parseBlockStmt(AstNodeId blockNodeId);
     AstNodeRef handleCompilerDirective(AstNodeId blockNodeId);
+    bool       parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId);
     AstNodeRef parseBlock(TokenId tokenStartId, AstNodeId blockNodeId);
     AstNodeRef parseCompilerIf(AstNodeId blockNodeId);
     AstNodeRef parseCompilerIfStmt(AstNodeId blockNodeId);

@@ -74,6 +74,50 @@ AstNodeRef Parser::handleCompilerDirective(AstNodeId blockNodeId)
     return childrenRef;
 }
 
+bool Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
+{
+    SmallVector skipTokens = {TokenId::SymComma, tokenEndId};
+    if (depthParen_)
+        skipTokens.push_back(TokenId::SymRightParen);
+    if (depthBracket_)
+        skipTokens.push_back(TokenId::SymRightBracket);
+    if (depthCurly_)
+        skipTokens.push_back(TokenId::SymRightCurly);
+
+    switch (blockNodeId)
+    {
+    case AstNodeId::EnumBlock:
+        if (!consumeIf(TokenId::SymComma) && !is(tokenEndId) && !tok().startsLine())
+        {
+            auto diag = reportError(DiagnosticId::parser_err_expected_token_before, ref());
+            setReportExpected(diag, TokenId::SymComma);
+            diag.report(*ctx_);
+            skipTo(skipTokens);
+            return true;
+        }
+        break;
+
+    case AstNodeId::ArrayLiteral:
+    case AstNodeId::AttributeBlock:
+    case AstNodeId::UnnamedArgumentBlock:
+    case AstNodeId::NamedArgumentBlock:
+        if (!consumeIf(TokenId::SymComma) && !is(tokenEndId))
+        {
+            auto diag = reportError(DiagnosticId::parser_err_expected_token_before, ref());
+            setReportExpected(diag, TokenId::SymComma);
+            diag.report(*ctx_);
+            skipTo(skipTokens);
+            return true;
+        }
+        break;
+
+    default:
+        break;
+    }
+
+    return false;
+}
+
 AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
 {
     const Token&   openTok    = tok();
@@ -106,47 +150,7 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
             childrenRefs.push_back(childRef);
 
         // Separator between statements
-        SmallVector skipTokens = {TokenId::SymComma, tokenEndId};
-        if (depthParen_)
-            skipTokens.push_back(TokenId::SymRightParen);
-        if (depthBracket_)
-            skipTokens.push_back(TokenId::SymRightBracket);
-        if (depthCurly_)
-            skipTokens.push_back(TokenId::SymRightCurly);
-
-        bool errSep = false;
-        switch (blockNodeId)
-        {
-        case AstNodeId::EnumBlock:
-            if (!consumeIf(TokenId::SymComma) && !is(tokenEndId) && !tok().startsLine())
-            {
-                auto diag = reportError(DiagnosticId::parser_err_expected_token_before, ref());
-                setReportExpected(diag, TokenId::SymComma);
-                diag.report(*ctx_);
-                skipTo(skipTokens);
-                errSep = true;
-            }
-            break;
-
-        case AstNodeId::ArrayLiteral:
-        case AstNodeId::AttributeBlock:
-        case AstNodeId::UnnamedArgumentBlock:
-        case AstNodeId::NamedArgumentBlock:
-            if (!consumeIf(TokenId::SymComma) && !is(tokenEndId))
-            {
-                auto diag = reportError(DiagnosticId::parser_err_expected_token_before, ref());
-                setReportExpected(diag, TokenId::SymComma);
-                diag.report(*ctx_);
-                skipTo(skipTokens);
-                errSep = true;
-            }
-            break;
-
-        default:
-            break;
-        }
-
-        if (errSep)
+        if (parseBlockSeparator(blockNodeId, tokenEndId))
         {
             if (depthParen_ && is(TokenId::SymRightParen))
                 break;

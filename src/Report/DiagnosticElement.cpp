@@ -17,47 +17,37 @@ DiagnosticElement::DiagnosticElement(DiagnosticSeverity severity, DiagnosticId i
 {
 }
 
-void DiagnosticElement::setLocation(const SourceFile* file)
+void DiagnosticElement::addSpan(const SourceFile* file, uint32_t offset, uint32_t len, const Utf8& message)
 {
+    SWC_ASSERT(!file_ || file_ == file);
     file_ = file;
-    len_  = 0;
+
+    Span span;
+    span.offset  = offset;
+    span.len     = len;
+    span.message = message;
+    spans_.push_back(span);
 }
 
-void DiagnosticElement::setLocation(const SourceFile* file, uint32_t offset, uint32_t len)
+void DiagnosticElement::addSpan(const SourceCodeLocation& loc, const Utf8& message)
 {
-    file_   = file;
-    offset_ = offset;
-    len_    = len;
+    SWC_ASSERT(!file_ || loc.file == file_);
+    file_ = loc.file;
+
+    Span span;
+    span.offset  = loc.offset;
+    span.len     = loc.len;
+    span.message = message;
+    spans_.push_back(span);
 }
 
-void DiagnosticElement::setLocation(const SourceCodeLocation& loc)
-{
-    file_   = loc.file;
-    offset_ = loc.offset;
-    len_    = loc.len;
-}
-
-void DiagnosticElement::setLocation(const SourceCodeLocation& locStart, const SourceCodeLocation& locEnd)
-{
-    SWC_ASSERT(locStart.file == locEnd.file);
-    file_   = locStart.file;
-    offset_ = locStart.offset;
-    len_    = locEnd.offset + locEnd.len - locStart.offset;
-}
-
-void DiagnosticElement::inheritLocationFrom(const DiagnosticElement& other)
-{
-    file_   = other.file_;
-    offset_ = other.offset_;
-    len_    = other.len_;
-}
-
-SourceCodeLocation DiagnosticElement::location(const Context& ctx) const
+SourceCodeLocation DiagnosticElement::location(uint32_t spanIndex, const Context& ctx) const
 {
     SourceCodeLocation loc;
-    if (!file_)
+    if (!file_ || spans_.empty())
         return loc;
-    loc.fromOffset(ctx, *file_, offset_, len_);
+    SWC_ASSERT(spanIndex < spans_.size());
+    loc.fromOffset(ctx, *file_, spans_[spanIndex].offset, spans_[spanIndex].len);
     return loc;
 }
 
@@ -79,6 +69,11 @@ Utf8 DiagnosticElement::message() const
 
     Utf8 result{Diagnostic::diagIdMessage(id_)};
     return result;
+}
+
+void DiagnosticElement::setMessage(Utf8 m)
+{
+    message_ = std::move(m);
 }
 
 SWC_END_NAMESPACE()

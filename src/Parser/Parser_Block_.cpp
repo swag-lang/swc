@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Core/SmallVector.h"
 #include "Core/Types.h"
+#include "Lexer/SourceFile.h"
 #include "Parser/AstNode.h"
 #include "Parser/Parser.h"
 #include "Report/Diagnostic.h"
@@ -170,7 +171,9 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
         {
         case AstNodeId::AttributeBlock:
         {
-            const auto diag = reportError(DiagnosticId::ParserEmptyAttribute, openTokRef, closeTokenRef);
+            const auto diag     = reportError(DiagnosticId::ParserEmptyAttribute, openTokRef);
+            const auto tokenEnd = file_->lexOut().token(closeTokenRef);
+            diag.last().addSpan(tokenEnd.toLocation(*ctx_, *file_));
             diag.report(*ctx_);
             break;
         }

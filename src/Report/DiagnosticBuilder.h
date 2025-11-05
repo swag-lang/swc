@@ -54,7 +54,7 @@ class DiagnosticBuilder
     void writeGutter(uint32_t gutter);
     void writeCodeLine(uint32_t lineNo, std::string_view code);
     void writeLabelMsg(const DiagnosticElement& el);
-    void writeCodeUnderline(const DiagnosticElement& el, uint32_t columnOneBased, uint32_t underlineLen);
+    void writeCodeUnderline(const DiagnosticElement& el, const std::vector<std::pair<uint32_t, uint32_t>>& underlines);
     void writeCodeBlock(const DiagnosticElement& el);
 
     Utf8 message(const DiagnosticElement& el) const;

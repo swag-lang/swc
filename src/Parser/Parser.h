@@ -146,7 +146,6 @@ class Parser
     void        setReportArguments(Diagnostic& diag, TokenRef tokenRef) const;
     static void setReportExpected(Diagnostic& diag, TokenId expectedTknId);
     Diagnostic  reportError(DiagnosticId id, TokenRef tknRef);
-    Diagnostic  reportError(DiagnosticId id, TokenRef tknStartRef, TokenRef tknEndRef) const;
     void        raiseError(DiagnosticId id, TokenRef tknRef);
     Diagnostic  reportExpected(const ParserExpect& expect);
     void        raiseExpected(const ParserExpect& expect);

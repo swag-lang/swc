@@ -54,17 +54,7 @@ Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
     auto       diag  = Diagnostic::get(id, file_);
     const auto token = file_->lexOut().token(tknRef);
     setReportArguments(diag, tknRef);
-    diag.last().setLocation(token.toLocation(*ctx_, *file_));
-    return diag;
-}
-
-Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknStartRef, TokenRef tknEndRef) const
-{
-    auto       diag     = Diagnostic::get(id, file_);
-    const auto tokStart = file_->lexOut().token(tknStartRef);
-    const auto tokEnd   = file_->lexOut().token(tknEndRef);
-    setReportArguments(diag, tknStartRef);
-    diag.last().setLocation(tokStart.toLocation(*ctx_, *file_), tokEnd.toLocation(*ctx_, *file_));
+    diag.last().addSpan(token.toLocation(*ctx_, *file_));
     return diag;
 }
 
@@ -93,7 +83,7 @@ Diagnostic Parser::reportExpected(const ParserExpect& expect)
     if (expect.noteId != DiagnosticId::None)
     {
         const auto tknLoc = file_->lexOut().token(expect.noteToken);
-        diag.addElement(expect.noteId).setLocation(tknLoc.toLocation(*ctx_, *file_));
+        diag.addElement(expect.noteId).addSpan(tknLoc.toLocation(*ctx_, *file_));
     }
 
     return diag;
@@ -286,7 +276,7 @@ void Parser::expectEndStatement()
     loc.column += loc.len;
     loc.offset += loc.len;
     loc.len = 1;
-    diag.last().setLocation(loc);
+    diag.last().addSpan(loc);
     diag.report(*ctx_);
 }
 

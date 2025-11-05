@@ -17,28 +17,36 @@ class DiagnosticElement
     DiagnosticId       id_;
     DiagnosticSeverity severity_;
 
-    const SourceFile* file_   = nullptr;
-    uint32_t          offset_ = 0;
-    uint32_t          len_    = 0;
+    const SourceFile* file_ = nullptr;
+
+    struct Span
+    {
+        uint32_t offset = 0;
+        uint32_t len    = 0;
+        Utf8     message;
+    };
+
+    std::vector<Span> spans_;
 
 public:
     explicit DiagnosticElement(DiagnosticId id);
     explicit DiagnosticElement(DiagnosticSeverity severity, DiagnosticId id);
 
-    void setLocation(const SourceFile* file);
-    void setLocation(const SourceFile* file, uint32_t offset, uint32_t len = 1);
-    void setLocation(const SourceCodeLocation& loc);
-    void setLocation(const SourceCodeLocation& locStart, const SourceCodeLocation& locEnd);
-    void inheritLocationFrom(const DiagnosticElement& other);
+    void              setFile(const SourceFile* file) { file_ = file; }
+    const SourceFile* file() const { return file_; }
+
+    void        addSpan(const SourceFile* file, uint32_t offset, uint32_t len, const Utf8& message = Utf8());
+    void        addSpan(const SourceCodeLocation& loc, const Utf8& message = Utf8());
+    const auto& spans() const { return spans_; }
 
     Utf8 message() const;
-    void setMessage(Utf8 m) { message_ = std::move(m); }
+    void setMessage(Utf8 m);
 
-    SourceCodeLocation location(const Context& ctx) const;
+    SourceCodeLocation location(uint32_t spanIndex, const Context& ctx) const;
     std::string_view   idName() const;
     DiagnosticId       id() const { return id_; }
     DiagnosticSeverity severity() const { return severity_; }
-    bool               hasCodeLocation() const { return file_ != nullptr && len_ > 0; }
+    bool               hasCodeLocation() const { return file_ != nullptr && !spans_.empty(); }
     bool               isNoteOrHelp() const;
 };
 

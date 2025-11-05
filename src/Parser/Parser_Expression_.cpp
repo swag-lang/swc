@@ -310,7 +310,7 @@ AstModifierFlags Parser::parseModifiers()
         {
             auto diag = reportError(DiagnosticId::ParserDuplicatedModifier, ref());
             diag.addElement(DiagnosticId::ParserOtherDefinition);
-            diag.last().setLocation(file_->lexOut().token(done[toSet]).toLocation(*ctx_, *file_));
+            diag.last().addSpan(file_->lexOut().token(done[toSet]).toLocation(*ctx_, *file_));
             diag.report(*ctx_);
         }
 

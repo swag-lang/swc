@@ -175,7 +175,7 @@ bool UnitTest::verifyExpected(const Context& ctx, const Diagnostic& diag) const
 
     for (auto& elem : diag.elements())
     {
-        const SourceCodeLocation loc = elem->location(lexerCtx);
+        const SourceCodeLocation loc = elem->location(0, lexerCtx);
 
         for (auto& directive : directives_)
         {
@@ -206,7 +206,7 @@ Result UnitTest::verifyUntouchedExpected(const Context& ctx) const
         if (!directive.touched)
         {
             const auto diag = Diagnostic::get(DiagnosticId::UnRaisedDirective, file_);
-            diag.last().setLocation(directive.myLoc);
+            diag.last().addSpan(directive.myLoc);
             diag.report(lexerCtx);
         }
     }

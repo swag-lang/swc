@@ -354,31 +354,6 @@ void DiagnosticBuilder::writeLabelMsg(const DiagnosticElement& el)
     out_ += "\n";
 }
 
-void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, uint32_t columnOneBased, uint32_t underlineLen)
-{
-    writeGutter(gutterW_);
-    out_ += partStyle(DiagPart::Severity, el.severity());
-
-    // Add leading spaces
-    const uint32_t col = std::max<uint32_t>(1, columnOneBased);
-    for (uint32_t i = 1; i < col; ++i)
-        out_ += ' ';
-
-    // Add underline characters
-    const uint32_t len = underlineLen == 0 ? 1 : underlineLen;
-    for (uint32_t i = 0; i < len; ++i)
-        out_.append(LogSymbolHelper::toString(*ctx_, LogSymbol::Underline));
-
-    // Message
-    if (el.isNoteOrHelp() && !el.message().empty())
-    {
-        out_ += " ";
-        writeLabelMsg(el);
-    }
-    else
-        out_ += "\n";
-}
-
 // Helper function to convert variant argument to string
 Utf8 DiagnosticBuilder::argumentToString(const Diagnostic::Argument& arg) const
 {
@@ -408,29 +383,82 @@ Utf8 DiagnosticBuilder::argumentToString(const Diagnostic::Argument& arg) const
     return result;
 }
 
+// Modified to handle multiple underlines on the same output line
+void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const std::vector<std::pair<uint32_t, uint32_t>>& underlines)
+{
+    writeGutter(gutterW_);
+    out_ += partStyle(DiagPart::Severity, el.severity());
+
+    // Sort underlines by column to process them in order
+    auto sortedUnderlines = underlines;
+    std::ranges::sort(sortedUnderlines);
+
+    uint32_t currentPos = 1; // Current position in the output line
+    for (const auto& [col, len] : sortedUnderlines)
+    {
+        const uint32_t column       = std::max<uint32_t>(1, col);
+        const uint32_t underlineLen = len == 0 ? 1 : len;
+
+        // Add spaces from current position to start of underline
+        for (uint32_t i = currentPos; i < column; ++i)
+            out_ += ' ';
+
+        // Add underline characters
+        for (uint32_t i = 0; i < underlineLen; ++i)
+            out_.append(LogSymbolHelper::toString(*ctx_, LogSymbol::Underline));
+
+        currentPos = column + underlineLen;
+    }
+
+    out_ += "\n";
+}
+
 // Renders a single element's location/code/underline block
 void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
 {
-    const auto loc = el.location(*ctx_);
-
     Utf8 fileName;
     if (ctx_->cmdLine().errorAbsolute)
-        fileName = el.location(*ctx_).file->path().string();
+        fileName = el.file()->path().string();
     else
-        fileName = el.location(*ctx_).file->path().filename().string();
+        fileName = el.file()->path().filename().string();
+    auto loc = el.location(0, *ctx_);
     writeFileLocation(fileName, loc.line, loc.column, loc.len);
 
-    // writeGutterSep(out, ctx, gutterW);
+    // Group spans by line number
+    uint32_t                                   currentLine = 0;
+    std::vector<std::pair<uint32_t, uint32_t>> underlinesOnCurrentLine; // (column, length) pairs
 
-    const auto codeLine = el.location(*ctx_).file->codeLine(*ctx_, loc.line);
-    writeCodeLine(loc.line, codeLine);
+    for (uint32_t i = 0; i < el.spans().size(); ++i)
+    {
+        loc = el.location(i, *ctx_);
 
-    // underline the entire span with carets
-    const std::string_view tokenView     = el.location(*ctx_).file->codeView(el.location(*ctx_).offset, el.location(*ctx_).len);
-    const uint32_t         tokenLenChars = Utf8Helper::countChars(tokenView);
-    writeCodeUnderline(el, loc.column, tokenLenChars);
+        // If we're on a new line, render previous line's underlines and start new line
+        if (loc.line != currentLine)
+        {
+            // Render all underlines for previous line on a single output line
+            if (!underlinesOnCurrentLine.empty())
+            {
+                writeCodeUnderline(el, underlinesOnCurrentLine);
+                underlinesOnCurrentLine.clear();
+            }
 
-    // writeGutterSep(out, ctx, gutterW);
+            // Print the new code line
+            const auto codeLine = el.file()->codeLine(*ctx_, loc.line);
+            writeCodeLine(loc.line, codeLine);
+            currentLine = loc.line;
+        }
+
+        // Add this span's underline to the current line's collection
+        const std::string_view tokenView     = el.file()->codeView(loc.offset, loc.len);
+        const uint32_t         tokenLenChars = Utf8Helper::countChars(tokenView);
+        underlinesOnCurrentLine.emplace_back(loc.column, tokenLenChars);
+    }
+
+    // Render all remaining underlines for the last line on a single output line
+    if (!underlinesOnCurrentLine.empty())
+    {
+        writeCodeUnderline(el, underlinesOnCurrentLine);
+    }
 
     out_ += partStyle(DiagPart::Reset);
 }
@@ -515,7 +543,10 @@ Utf8 DiagnosticBuilder::build()
     for (const auto& e : elements)
     {
         if (e->hasCodeLocation())
-            maxLine = std::max(e->location(*ctx_).line, maxLine);
+        {
+            for (uint32_t i = 0; i < e->spans().size(); ++i)
+                maxLine = std::max(e->location(i, *ctx_).line, maxLine);
+        }
     }
 
     gutterW_ = maxLine ? digits(maxLine) : 0;

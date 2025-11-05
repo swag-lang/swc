@@ -464,27 +464,35 @@ void DiagnosticBuilder::expandMessageParts(SmallVector<std::unique_ptr<Diagnosti
     if (elements.empty())
         return;
 
-    const auto front = elements.front().get();
-    const Utf8 msg   = message(*front);
-    const auto parts = parseParts(std::string_view(msg));
-
-    // base element keeps first
-    front->setMessage(Utf8(parts[0].text));
-
-    if (parts.size() <= 1)
-        return;
-
-    // Reserve capacity upfront to avoid reallocations during emplace_back
-    elements.reserve(elements.size() + parts.size() - 1);
-
-    for (size_t i = 1; i < parts.size(); ++i)
+    // Process elements from back to front to avoid invalidating iterators
+    // and to maintain proper ordering when inserting new elements
+    for (size_t idx = elements.size(); idx-- > 0;)
     {
-        const auto&        p   = parts[i];
-        DiagnosticSeverity sev = p.tag.value_or(DiagnosticSeverity::Note);
+        const auto element = elements[idx].get();
+        const Utf8 msg     = message(*element);
+        const auto parts   = parseParts(std::string_view(msg));
 
-        auto extra = std::make_unique<DiagnosticElement>(sev, front->id());
-        extra->setMessage(Utf8(p.text));
-        elements.emplace_back(std::move(extra));
+        // Base element keeps the first part
+        element->setMessage(Utf8(parts[0].text));
+
+        if (parts.size() <= 1)
+            continue;
+
+        // Insert additional parts right after the current element
+        // We insert in reverse order, so they end up in the correct order
+        auto insertPos = idx + 1;
+
+        for (size_t i = 1; i < parts.size(); ++i)
+        {
+            const auto&        p   = parts[i];
+            DiagnosticSeverity sev = p.tag.value_or(DiagnosticSeverity::Note);
+
+            auto extra = std::make_unique<DiagnosticElement>(sev, element->id());
+            extra->setMessage(Utf8(p.text));
+
+            elements.insert(elements.begin() + insertPos, std::move(extra));
+            ++insertPos;
+        }
     }
 }
 
@@ -498,6 +506,8 @@ Utf8 DiagnosticBuilder::build()
     elements.reserve(diag_->elements().size());
     for (auto& e : diag_->elements())
         elements.push_back(std::make_unique<DiagnosticElement>(*e));
+
+    // Add elements by splitting messages parts
     expandMessageParts(elements);
 
     // Compute a unified gutter width based on the maximum line number among all located elements

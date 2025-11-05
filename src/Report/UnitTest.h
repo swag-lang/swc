@@ -26,14 +26,12 @@ class UnitTest
     static void tokenizeOption(const Context& ctx, std::string_view comment);
     void        tokenizeExpected(const Context& ctx, const LexTrivia& trivia, std::string_view comment);
 
-protected:
-    friend class SourceFile;
+public:
     explicit UnitTest(SourceFile* file) :
         file_(file)
     {
     }
-
-public:
+    
     Result tokenize(const Context& ctx);
     bool   verifyExpected(const Context& ctx, const Diagnostic& diag) const;
     Result verifyUntouchedExpected(const Context& ctx) const;

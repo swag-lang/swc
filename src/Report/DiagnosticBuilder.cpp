@@ -353,7 +353,7 @@ void DiagnosticBuilder::writeLabelMsg(const DiagnosticElement& el)
 
     // Message
     out_ += partStyle(DiagPart::LabelMsgText, el.severity());
-    writeHighlightedMessage(el.severity(), message(el), partStyle(DiagPart::LabelMsgText, el.severity()));
+    writeHighlightedMessage(el.severity(), buildMessage(el.message()), partStyle(DiagPart::LabelMsgText, el.severity()));
     out_ += partStyle(DiagPart::Reset);
     out_ += "\n";
 }
@@ -399,6 +399,7 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const st
 
         if (!msg.empty())
         {
+            msg                        = buildMessage(msg);
             const uint32_t msgStartPos = column + underlineLen + 1; // +1 for space before a message
             const uint32_t msgLength   = static_cast<uint32_t>(msg.length());
 
@@ -536,9 +537,9 @@ Utf8 DiagnosticBuilder::argumentToString(const Diagnostic::Argument& arg) const
     return result;
 }
 
-Utf8 DiagnosticBuilder::message(const DiagnosticElement& el) const
+Utf8 DiagnosticBuilder::buildMessage(const Utf8& msg) const
 {
-    auto result = el.message();
+    auto result = msg;
 
     // Replace placeholders
     for (const auto& arg : diag_->arguments())
@@ -570,7 +571,7 @@ void DiagnosticBuilder::expandMessageParts(SmallVector<std::unique_ptr<Diagnosti
     for (size_t idx = elements.size(); idx-- > 0;)
     {
         const auto element = elements[idx].get();
-        const Utf8 msg     = message(*element);
+        const Utf8 msg     = buildMessage(element->message());
         const auto parts   = parseParts(std::string_view(msg));
 
         // Base element keeps the first part

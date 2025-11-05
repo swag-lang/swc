@@ -57,7 +57,7 @@ class DiagnosticBuilder
     void writeCodeUnderline(const DiagnosticElement& el, const std::vector<std::tuple<uint32_t, uint32_t, DiagnosticSpan>>& underlines);
     void writeCodeBlock(const DiagnosticElement& el);
 
-    Utf8 message(const DiagnosticElement& el) const;
+    Utf8 buildMessage(const Utf8& msg) const;
     Utf8 argumentToString(const Diagnostic::Argument& arg) const;
     void expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements) const;
 

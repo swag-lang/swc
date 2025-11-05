@@ -198,6 +198,9 @@ TokenRef Parser::expectAndConsume(TokenId id, DiagnosticId diagId)
     setReportArguments(diag, ref());
     setReportExpected(diag, id);
 
+    if (id == TokenId::Identifier && tok().isKeyword())
+        diag.last().span(0).messageId = DiagnosticId::parser_note_reserved_identifier;
+
     diag.report(*ctx_);
     return INVALID_REF;
 }

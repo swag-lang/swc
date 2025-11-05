@@ -60,6 +60,13 @@ void Parser::raiseError(DiagnosticId id, TokenRef tknRef)
     diag.report(*ctx_);
 }
 
+void Parser::raiseExpected(DiagnosticId id, TokenRef tknRef, TokenId tknExpected)
+{
+    auto diag = reportError(id, tknRef);
+    setReportExpected(diag, tknExpected);
+    diag.report(*ctx_);
+}
+
 bool Parser::skipTo(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
 {
     return skip(targets, flags);
@@ -195,7 +202,6 @@ TokenRef Parser::expectAndConsume(TokenId id, DiagnosticId diagId)
         return consume();
 
     auto diag = reportError(diagId, ref());
-    setReportArguments(diag, ref());
     setReportExpected(diag, id);
 
     if (id == TokenId::Identifier && tok().isKeyword())
@@ -212,7 +218,6 @@ TokenRef Parser::expectAndConsumeClosingFor(TokenId openId, TokenRef openRef)
         return consume();
 
     auto diag = reportError(DiagnosticId::parser_err_expected_closing_before, ref());
-    setReportArguments(diag, ref());
     setReportExpected(diag, closingId);
 
     diag.last().addSpan(file_->lexOut().token(openRef).toLocation(*ctx_, *file_), DiagnosticId::parser_note_opening, DiagnosticSeverity::Note);

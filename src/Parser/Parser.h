@@ -129,6 +129,7 @@ class Parser
     static void setReportExpected(Diagnostic& diag, TokenId expectedTknId);
     Diagnostic  reportError(DiagnosticId id, TokenRef tknRef);
     void        raiseError(DiagnosticId id, TokenRef tknRef);
+    void        raiseExpected(DiagnosticId id, TokenRef tknRef, TokenId tknExpected);
 
 public:
     Result parse(Context& ctx);

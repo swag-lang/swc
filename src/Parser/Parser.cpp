@@ -68,7 +68,7 @@ Diagnostic Parser::reportExpected(const ParserExpect& expect)
 {
     SWC_ASSERT(expect.tokId != TokenId::Invalid);
 
-    const auto locRef = expect.locToken == INVALID_REF ? ref() : expect.locToken;
+    const auto locRef = ref();
     auto       diag   = reportError(expect.diag, locRef);
     setReportArguments(diag, locRef);
     setReportExpected(diag, expect.tokId);
@@ -224,47 +224,28 @@ bool Parser::consumeIf(TokenId id, TokenRef* result)
     return true;
 }
 
-TokenRef Parser::expect(const ParserExpect& expect)
-{
-    if (expect.valid(id()))
-        return ref();
-    raiseExpected(expect);
-    return INVALID_REF;
-}
-
-TokenRef Parser::expectAndConsume(const ParserExpect& expect)
-{
-    if (expect.valid(id()))
-        return consume();
-    raiseExpected(expect);
-    return INVALID_REF;
-}
-
-TokenRef Parser::expectAndConsume(TokenId id, DiagnosticId d, TokenRef locToken)
+TokenRef Parser::expectAndConsume(TokenId id, DiagnosticId d)
 {
     if (is(id))
         return consume();
-    auto expect     = ParserExpect::one(id, d);
-    expect.locToken = locToken;
-    raiseExpected(expect);
+
+    raiseExpected(ParserExpect::one(id, d));
     return INVALID_REF;
 }
 
 TokenRef Parser::expectAndConsumeClosingFor(TokenId openId, TokenRef openRef)
 {
-    const auto& open      = file_->lexOut().token(openRef);
-    const auto  closingId = Token::toRelated(openId);
-    auto        expect    = ParserExpect::one(closingId, DiagnosticId::ParserExpectedClosingBefore);
-    if (open.id == openId)
-        expect.note(DiagnosticId::ParserCorresponding, openRef);
-    const auto result = expectAndConsume(expect);
-    if (invalid(result))
-    {
-        skipTo({closingId, TokenId::SymSemiColon, TokenId::SymLeftCurly}, SkipUntilFlags::EolBefore);
-        consumeIf(closingId);
-    }
+    const auto closingId = Token::toRelated(openId);
+    if (is(closingId))
+        return consume();
 
-    return result;
+    auto expect = ParserExpect::one(closingId, DiagnosticId::ParserExpectedClosingBefore);
+    expect.note(DiagnosticId::ParserCorresponding, openRef);
+    raiseExpected(expect);
+
+    skipTo({closingId, TokenId::SymSemiColon, TokenId::SymLeftCurly}, SkipUntilFlags::EolBefore);
+    consumeIf(closingId);
+    return INVALID_REF;
 }
 
 void Parser::expectEndStatement()

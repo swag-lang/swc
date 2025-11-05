@@ -328,7 +328,7 @@ AstNodeRef Parser::parseCast()
     const auto openRef       = ref();
     const auto modifierFlags = parseModifiers();
 
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenBefore, ref());
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::ParserExpectedTokenBefore);
     if (consumeIf(TokenId::SymRightParen))
     {
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CastAuto>();

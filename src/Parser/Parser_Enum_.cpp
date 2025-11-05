@@ -53,7 +53,7 @@ AstNodeRef Parser::parseEnum()
     consume(TokenId::KwdEnum);
 
     // Name
-    nodePtr->tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenBeforeFam, ref());
+    nodePtr->tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::ParserExpectedTokenBeforeFam);
     if (invalid(nodePtr->tknName))
         skipTo({TokenId::SymLeftCurly, TokenId::SymColon});
 

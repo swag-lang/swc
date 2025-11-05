@@ -43,7 +43,7 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
 
     if (tokenStartId != TokenId::Invalid)
     {
-        if (invalid(expectAndConsume(tokenStartId, DiagnosticId::ParserExpectedTokenBefore, ref())))
+        if (invalid(expectAndConsume(tokenStartId, DiagnosticId::ParserExpectedTokenBefore)))
             return INVALID_REF;
     }
 

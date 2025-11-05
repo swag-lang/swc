@@ -70,12 +70,10 @@ class Parser
         return ((consumeIf(ids)) || ...);
     }
 
-    TokenRef expect(const ParserExpect& expect);
-    TokenRef expectAndConsume(const ParserExpect& expect);
     TokenRef expectAndConsumeClosingFor(TokenId openId, TokenRef openRef);
     void     expectEndStatement();
 
-    TokenRef expectAndConsume(TokenId id, DiagnosticId d, TokenRef locToken = INVALID_REF);
+    TokenRef expectAndConsume(TokenId id, DiagnosticId d);
 
     const Token* tokPtr() const { return curToken_; }
     const Token& tok() const { return *curToken_; }

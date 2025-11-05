@@ -10,7 +10,6 @@ struct ParserExpect
     TokenId      tokId      = TokenId::Invalid;
     DiagnosticId diag       = DiagnosticId::ParserExpectedToken;
     DiagnosticId becauseCtx = DiagnosticId::None;
-    TokenRef     locToken   = INVALID_REF;
     TokenRef     noteToken  = INVALID_REF;
     DiagnosticId noteId     = DiagnosticId::None;
 

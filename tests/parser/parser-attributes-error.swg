@@ -2,10 +2,10 @@
 // Parser Attributes Error
 // ============================================================================
 
-#[] // swc1-expected-error {{ParserEmptyAttribute}}
+#[] // swc-expected-error {{ParserEmptyAttribute}}
 enum B {}
 
-#[
+#[ // swc-expected-error {{ParserEmptyAttribute}}
 /* toto */
 ]
 enum B {}

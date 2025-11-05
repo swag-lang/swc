@@ -242,9 +242,12 @@ TokenRef Parser::expectAndConsume(const ParserExpect& expect)
 
 TokenRef Parser::expectAndConsume(TokenId id, DiagnosticId d, TokenRef locToken)
 {
+    if (is(id))
+        return consume();
     auto expect     = ParserExpect::one(id, d);
     expect.locToken = locToken;
-    return expectAndConsume(expect);
+    raiseExpected(expect);
+    return INVALID_REF;
 }
 
 TokenRef Parser::expectAndConsumeClosingFor(TokenId openId, TokenRef openRef)

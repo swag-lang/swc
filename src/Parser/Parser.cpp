@@ -42,19 +42,15 @@ void Parser::setReportExpected(Diagnostic& diag, TokenId expectedTknId)
 
 Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
 {
-    if (tknRef == lastErrorToken_)
-    {
-        auto diag = Diagnostic{std::nullopt};
-        diag.setSilent(true);
-        return diag;
-    }
-
-    lastErrorToken_ = tknRef;
-
     auto       diag  = Diagnostic::get(id, file_);
     const auto token = file_->lexOut().token(tknRef);
     setReportArguments(diag, tknRef);
     diag.last().addSpan(token.toLocation(*ctx_, *file_));
+
+    if (tknRef == lastErrorToken_)
+        diag.setSilent(true);
+    lastErrorToken_ = tknRef;
+    
     return diag;
 }
 

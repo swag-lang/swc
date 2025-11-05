@@ -50,7 +50,7 @@ Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
     if (tknRef == lastErrorToken_)
         diag.setSilent(true);
     lastErrorToken_ = tknRef;
-    
+
     return diag;
 }
 
@@ -197,7 +197,6 @@ TokenRef Parser::expectAndConsume(TokenId id, DiagnosticId diagId)
     auto diag = reportError(diagId, ref());
     setReportArguments(diag, ref());
     setReportExpected(diag, id);
-    // diag.addArgument(Diagnostic::ARG_BECAUSE, Diagnostic::diagIdMessage(expect.becauseCtx), false);
 
     diag.report(*ctx_);
     return INVALID_REF;
@@ -213,7 +212,7 @@ TokenRef Parser::expectAndConsumeClosingFor(TokenId openId, TokenRef openRef)
     setReportArguments(diag, ref());
     setReportExpected(diag, closingId);
 
-    diag.last().addSpan(file_->lexOut().token(openRef).toLocation(*ctx_, *file_), "", DiagnosticSeverity::Note);
+    diag.last().addSpan(file_->lexOut().token(openRef).toLocation(*ctx_, *file_), DiagnosticId::parser_note_opening, DiagnosticSeverity::Note);
     diag.report(*ctx_);
 
     skipTo({closingId, TokenId::SymSemiColon, TokenId::SymLeftCurly}, SkipUntilFlags::EolBefore);

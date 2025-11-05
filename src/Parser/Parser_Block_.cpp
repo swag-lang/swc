@@ -89,9 +89,16 @@ bool Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
     case AstNodeId::EnumBlock:
         if (!consumeIf(TokenId::SymComma) && !is(tokenEndId) && !tok().startsLine())
         {
-            auto diag = reportError(DiagnosticId::parser_err_expected_token_before, ref());
-            setReportExpected(diag, TokenId::SymComma);
-            diag.report(*ctx_);
+            if (is(TokenId::Identifier))
+            {
+                raiseError(DiagnosticId::parser_err_missing_enum_sep, ref());
+            }
+            else
+            {
+                auto diag = reportError(DiagnosticId::parser_err_expected_token_before, ref());
+                setReportExpected(diag, TokenId::SymComma);
+                diag.report(*ctx_);
+            }
             skipTo(skipTokens);
             return true;
         }
@@ -192,7 +199,6 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
             consume();
     }
 
-
     const auto closeTokenRef = ref();
     if (!consumeIf(tokenEndId) && tokenEndId != TokenId::Invalid)
     {
@@ -200,7 +206,7 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
         setReportExpected(diag, Token::toRelated(openTok.id));
         diag.report(*ctx_);
     }
-    
+
     // Consume end token if necessary
     finalizeBlock(blockNodeId, openTokRef, closeTokenRef, tokenEndId, childrenRefs);
 

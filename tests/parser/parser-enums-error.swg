@@ -31,4 +31,4 @@ enum A {} // swc-expected-error {{parser_err_empty_enum}}
 enum A } // swc-expected-error {{parser_err_expected_token_before}}
 enum A toto } // swc-expected-error {{parser_err_expected_token_before}} {{parser_err_unexpected_token}}
 
-enum A { B C } // swc-expected-error {{parser_err_expected_token}}
+enum A { B C } // swc-expected-error {{parser_err_missing_enum_sep}}

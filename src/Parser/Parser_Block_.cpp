@@ -98,8 +98,19 @@ bool Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
         }
         break;
 
-    case AstNodeId::ArrayLiteral:
     case AstNodeId::AttributeBlock:
+        if (!consumeIf(TokenId::SymComma) && !is(tokenEndId))
+        {
+            if (is(TokenId::Identifier))
+                raiseError(DiagnosticId::parser_err_missing_attribute_sep, ref());
+            else
+                raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
+            skipTo(skipTokens);
+            return true;
+        }
+        break;
+
+    case AstNodeId::ArrayLiteral:
     case AstNodeId::UnnamedArgumentBlock:
     case AstNodeId::NamedArgumentBlock:
         if (!consumeIf(TokenId::SymComma) && !is(tokenEndId))

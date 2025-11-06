@@ -84,6 +84,11 @@ public:
         }
     }
 
+    std::span<T> span() const noexcept
+    {
+        return std::span<T>(_ptr, _size);
+    }
+
     SmallVector& operator=(const SmallVector& other)
     {
         if (this == &other)

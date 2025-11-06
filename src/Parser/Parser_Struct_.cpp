@@ -91,7 +91,7 @@ AstNodeRef Parser::parseStructDecl()
             consume();
     }
 
-    nodePtr->spanWhere = whereRefs.empty() ? INVALID_REF : ast_->store_.push_span(std::span(whereRefs.data(), whereRefs.size()));
+    nodePtr->spanWhere = whereRefs.empty() ? INVALID_REF : ast_->store_.push_span(whereRefs.span());
 
     // Content
     nodePtr->spanChildren = parseBlockContent(AstNodeId::StructDecl, TokenId::SymLeftCurly);

@@ -256,7 +256,7 @@ Ref Parser::parseBlockContent(AstNodeId blockNodeId, TokenId tokenStartId, bool 
     finalizeBlock(blockNodeId, openTokRef, closeTokenRef, tokenEndId, childrenRefs);
 
     // Store
-    return ast_->store_.push_span(std::span(childrenRefs.data(), childrenRefs.size()));
+    return ast_->store_.push_span(childrenRefs.span());
 }
 
 AstNodeRef Parser::parseFile()

@@ -171,7 +171,7 @@ AstNodeRef Parser::parseType()
             return INVALID_REF;
 
         auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::ArrayType>();
-        nodePtr->spanDimensions  = ast_->store_.push_span(std::span(dimensions.data(), dimensions.size()));
+        nodePtr->spanDimensions  = ast_->store_.push_span(dimensions.span());
         nodePtr->nodePointeeType = child;
         return nodeRef;
     }

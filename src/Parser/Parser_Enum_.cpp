@@ -4,7 +4,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstNodeRef Parser::parseEnumImpl()
+AstNodeRef Parser::parseEnumImplDecl()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumImpl>();
     consume(TokenId::KwdImpl);
@@ -56,7 +56,7 @@ AstNodeRef Parser::parseEnumValue()
     }
 }
 
-AstNodeRef Parser::parseEnum()
+AstNodeRef Parser::parseEnumDecl()
 {
     static constexpr std::initializer_list END_OR_START_BLOCK = {TokenId::SymLeftCurly, TokenId::SymRightCurly};
 

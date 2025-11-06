@@ -4,10 +4,10 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstNodeRef Parser::parseImpl()
+AstNodeRef Parser::parseImplDecl()
 {
     if (nextIs(TokenId::KwdEnum))
-        return parseEnumImpl();
+        return parseEnumImplDecl();
 
     const auto tknOp = consume();
 
@@ -42,15 +42,27 @@ AstNodeRef Parser::parseImpl()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseStruct()
+AstNodeRef Parser::parseStructValue()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructDecl>();
+    static constexpr std::initializer_list ENUM_VALUE_SYNC = {TokenId::SymRightCurly, TokenId::SymComma, TokenId::Identifier};
+
+    switch (id())
+    {
+    default:
+        skipTo({TokenId::SymRightCurly, TokenId::SymComma}, SkipUntilFlags::EolBefore);
+        return INVALID_REF;
+    }
+}
+
+AstNodeRef Parser::parseStructDecl()
+{
     consume(TokenId::KwdStruct);
 
-    // Name
-    nodePtr->tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
-    if (invalid(nodePtr->tknName))
-        skipTo({TokenId::SymLeftCurly});
+    const auto tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+    const auto nodeRef = parseBlock(TokenId::SymLeftCurly, AstNodeId::StructDecl);
+
+    const auto nodePtr = ast_->node<AstNodeId::StructDecl>(nodeRef);
+    nodePtr->tknName   = tknName;
 
     return nodeRef;
 }

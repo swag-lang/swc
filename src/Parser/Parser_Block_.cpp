@@ -23,6 +23,8 @@ AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
 
     case AstNodeId::EnumBlock:
         return parseEnumValue();
+    case AstNodeId::StructDecl:
+        return parseStructValue();
 
     case AstNodeId::AttributeBlock:
         return parseAttribute();
@@ -50,6 +52,7 @@ AstNodeRef Parser::parseBlockCompilerDirective(AstNodeId blockNodeId)
     if (blockNodeId == AstNodeId::File ||
         blockNodeId == AstNodeId::TopLevelBlock ||
         blockNodeId == AstNodeId::ImplBlock ||
+        blockNodeId == AstNodeId::StructDecl ||
         blockNodeId == AstNodeId::EnumBlock)
     {
         switch (id())
@@ -117,6 +120,15 @@ Result Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
         }
         break;
 
+    case AstNodeId::StructDecl:
+        if (!consumeIf(TokenId::SymComma) && !is(tokenEndId) && !tok().startsLine())
+        {
+            raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
+            skipTo(skipTokens);
+            return Result::Error;
+        }
+        break;
+
     case AstNodeId::Using:
         if (!consumeIf(TokenId::SymComma))
         {
@@ -173,6 +185,13 @@ void Parser::finalizeBlock(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef 
 }
 
 AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId, bool endStmt)
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeBlock>(blockNodeId);
+    nodePtr->spanChildren   = parseBlockContent(tokenStartId, blockNodeId, endStmt);
+    return nodeRef;
+}
+
+Ref Parser::parseBlockContent(TokenId tokenStartId, AstNodeId blockNodeId, bool endStmt)
 {
     const Token&   openTok    = tok();
     const TokenRef openTokRef = ref();
@@ -232,9 +251,8 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId, bool 
     // Consume end token if necessary
     finalizeBlock(blockNodeId, openTokRef, closeTokenRef, tokenEndId, childrenRefs);
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeBlock>(blockNodeId);
-    nodePtr->spanChildren   = ast_->store_.push_span(std::span(childrenRefs.data(), childrenRefs.size()));
-    return nodeRef;
+    // Store
+    return ast_->store_.push_span(std::span(childrenRefs.data(), childrenRefs.size()));
 }
 
 AstNodeRef Parser::parseFile()

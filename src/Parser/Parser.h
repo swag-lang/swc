@@ -85,6 +85,7 @@ class Parser
     Result     parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId);
     void       finalizeBlock(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef closeTokenRef, TokenId tokenEndId, const SmallVector<AstNodeRef>& childrenRefs);
     AstNodeRef parseBlock(TokenId tokenStartId, AstNodeId blockNodeId, bool endStmt = false);
+    Ref        parseBlockContent(TokenId tokenStartId, AstNodeId blockNodeId, bool endStmt = false);
     AstNodeRef parseCompilerIf(AstNodeId blockNodeId);
     AstNodeRef parseCompilerIfStmt(AstNodeId blockNodeId);
     AstNodeRef parseCompilerAttribute(AstNodeId blockNodeId);
@@ -108,8 +109,8 @@ class Parser
     AstNodeRef       parseLogicalExpression();
     AstNodeRef       parseExpression();
     AstNodeRef       parseParenExpression();
-    AstNodeRef       parseEnum();
-    AstNodeRef       parseEnumImpl();
+    AstNodeRef       parseEnumDecl();
+    AstNodeRef       parseEnumImplDecl();
     AstNodeRef       parseEnumValue();
     AstNodeRef       parseCompilerFunc();
     AstNodeRef       parseCompilerFuncExpr();
@@ -117,12 +118,13 @@ class Parser
     AstNodeRef       parseTopLevelStmt();
     AstNodeRef       parseEmbeddedStmt();
     AstNodeRef       parseNamespace();
-    AstNodeRef       parseStruct();
-    AstNodeRef       parseImpl();
+    AstNodeRef       parseStructValue();
+    AstNodeRef       parseStructDecl();
+    AstNodeRef       parseImplDecl();
     AstNodeRef       parseFile();
     AstNodeRef       parseAttribute();
     AstNodeRef       parseCompilerDependencies();
-    AstNodeRef       parseUsing();
+    AstNodeRef       parseUsingDecl();
 
     bool skipTo(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlags::Zero);
     bool skipAfter(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlags::Zero);

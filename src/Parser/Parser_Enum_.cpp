@@ -58,8 +58,6 @@ AstNodeRef Parser::parseEnumValue()
 
 AstNodeRef Parser::parseEnumDecl()
 {
-    static constexpr std::initializer_list END_OR_START_BLOCK = {TokenId::SymLeftCurly, TokenId::SymRightCurly};
-
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumDecl>();
     consume(TokenId::KwdEnum);
 
@@ -73,7 +71,7 @@ AstNodeRef Parser::parseEnumDecl()
     {
         nodePtr->nodeType = parseType();
         if (invalid(nodePtr->nodeType))
-            skipTo(END_OR_START_BLOCK);
+            skipTo({TokenId::SymLeftCurly, TokenId::SymRightCurly});
     }
 
     // Content

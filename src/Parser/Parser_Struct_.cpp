@@ -48,6 +48,14 @@ AstNodeRef Parser::parseStructValue()
 
     switch (id())
     {
+    case TokenId::SymAttrStart:
+        return parseCompilerAttribute(AstNodeId::StructDecl);
+
+    case TokenId::SymLeftCurly:
+        consume();
+        skipTo({TokenId::SymRightCurly}, SkipUntilFlags::Consume);
+        return INVALID_REF;
+
     default:
         skipTo({TokenId::SymRightCurly, TokenId::SymComma}, SkipUntilFlags::EolBefore);
         return INVALID_REF;
@@ -56,13 +64,30 @@ AstNodeRef Parser::parseStructValue()
 
 AstNodeRef Parser::parseStructDecl()
 {
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructDecl>();
     consume(TokenId::KwdStruct);
 
-    const auto tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
-    const auto nodeRef = parseBlock(TokenId::SymLeftCurly, AstNodeId::StructDecl);
+    // Generic types
+    if (is(TokenId::SymLeftParen))
+    {
+        consume();
+        skipTo({TokenId::SymRightParen}, SkipUntilFlags::Consume);
+    }
 
-    const auto nodePtr = ast_->node<AstNodeId::StructDecl>(nodeRef);
-    nodePtr->tknName   = tknName;
+    // Name
+    nodePtr->tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+    if (invalid(nodePtr->tknName))
+        skipTo({TokenId::SymLeftCurly});
+
+    // Where
+    if (is(TokenId::KwdWhere))
+    {
+        consume();
+        parseExpression();
+    }
+
+    // Content
+    nodePtr->spanChildren = parseBlockContent(TokenId::SymLeftCurly, AstNodeId::StructDecl);
 
     return nodeRef;
 }

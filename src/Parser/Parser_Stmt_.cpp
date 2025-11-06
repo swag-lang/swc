@@ -22,8 +22,8 @@ AstNodeRef Parser::parseTopLevelStmt()
 
     case TokenId::KwdEnum:
         return parseEnumDecl();
-        // case TokenId::KwdStruct:
-        //     return parseStructDecl();
+    case TokenId::KwdStruct:
+        return parseStructDecl();
 
     case TokenId::KwdImpl:
         return parseImplDecl();
@@ -73,8 +73,8 @@ AstNodeRef Parser::parseEmbeddedStmt()
 
     case TokenId::KwdEnum:
         return parseEnumDecl();
-        // case TokenId::KwdStruct:
-        // return parseStructDecl();
+    case TokenId::KwdStruct:
+        return parseStructDecl();
 
     case TokenId::SymAttrStart:
         return parseCompilerAttribute(AstNodeId::EmbeddedBlock);

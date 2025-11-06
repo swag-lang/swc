@@ -29,6 +29,8 @@ AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
         return parseExpression();
     case AstNodeId::NamedArgumentBlock:
         return parseNamedArgument();
+    case AstNodeId::UsingBlock:
+        return parseScopedIdentifier();
 
     default:
         std::unreachable();
@@ -110,6 +112,15 @@ Result Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
         }
         break;
 
+    case AstNodeId::UsingBlock:
+        if (!is(tokenEndId) && !tok().startsLine())
+        {
+            raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
+            skipTo(skipTokens);
+            return Result::Error;
+        }
+        break;
+        
     case AstNodeId::ArrayLiteral:
     case AstNodeId::UnnamedArgumentBlock:
     case AstNodeId::NamedArgumentBlock:
@@ -306,7 +317,8 @@ AstNodeRef Parser::parseUsing()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Using>();
     consume();
-    nodePtr->nodeName = parseScopedIdentifier();
+    nodePtr->nodeBody = parseBlock(TokenId::Invalid, AstNodeId::UsingBlock);
+    expectEndStatement();
     return nodeRef;
 }
 

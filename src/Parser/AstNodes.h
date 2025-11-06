@@ -627,10 +627,10 @@ struct AstNodeEnumValue : AstNode
     AstNodeRef nodeValue;
 };
 
-struct AstNodeUsing : AstNode
+struct AstNodeEnumUsingValue : AstNode
 {
-    static constexpr auto ID = AstNodeId::Using;
-    AstNodeUsing() :
+    static constexpr auto ID = AstNodeId::EnumUsingValue;
+    AstNodeEnumUsingValue() :
         AstNode(ID)
     {
     }
@@ -846,4 +846,24 @@ struct AstNodeDependencies : AstNode
     }
 
     AstNodeRef nodeBody;
+};
+
+struct AstNodeUsing : AstNode
+{
+    static constexpr auto ID = AstNodeId::Using;
+    AstNodeUsing() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeBody;
+};
+
+struct AstNodeUsingBlock : AstNodeBlock
+{
+    static constexpr auto ID = AstNodeId::UsingBlock;
+    AstNodeUsingBlock() :
+        AstNodeBlock(ID)
+    {
+    }
 };

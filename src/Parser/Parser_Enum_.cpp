@@ -11,7 +11,12 @@ AstNodeRef Parser::parseEnumValue()
     switch (id())
     {
     case TokenId::KwdUsing:
-        return parseUsing();
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumUsingValue>();
+        consume();
+        nodePtr->nodeName = parseScopedIdentifier();
+        return nodeRef;
+    }
 
     case TokenId::Identifier:
     {

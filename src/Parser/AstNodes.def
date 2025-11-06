@@ -6,7 +6,8 @@ SWC_NODE_DEF(EmbeddedBlock)
 SWC_NODE_DEF(File)
 SWC_NODE_DEF(Namespace)
 SWC_NODE_DEF(Dependencies)
-SWC_NODE_DEF(Using)
+SWC_NODE_DEF(UsingDecl)
+SWC_NODE_DEF(AccessModifier)
 
 // Identifiers & References
 SWC_NODE_DEF(Identifier)

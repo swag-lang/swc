@@ -38,7 +38,7 @@ AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
     case AstNodeId::NamedArgumentBlock:
         return parseNamedArgument();
 
-    case AstNodeId::Using:
+    case AstNodeId::UsingDecl:
         return parseScopedIdentifier();
 
     default:
@@ -133,7 +133,7 @@ Result Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
         }
         break;
 
-    case AstNodeId::Using:
+    case AstNodeId::UsingDecl:
         if (!consumeIf(TokenId::SymComma))
         {
             raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);

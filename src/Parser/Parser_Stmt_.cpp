@@ -45,6 +45,11 @@ AstNodeRef Parser::parseTopLevelStmt()
     case TokenId::SymAttrStart:
         return parseCompilerAttribute(AstNodeId::TopLevelBlock);
 
+    case TokenId::KwdPublic:
+    case TokenId::KwdInternal:
+    case TokenId::KwdPrivate:
+        return parseGlobalAccessModifier();
+
         // case TokenId::KwdUsing:
         //     return parseUsingDecl();
 
@@ -88,10 +93,19 @@ AstNodeRef Parser::parseEmbeddedStmt()
     }
 }
 
+AstNodeRef Parser::parseGlobalAccessModifier()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AccessModifier>();
+    nodePtr->tknAccess      = consume();
+    nodePtr->nodeWhat       = parseTopLevelStmt();
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseUsingDecl()
 {
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingDecl>();
     consume();
-    const auto nodeRef = parseBlock(AstNodeId::Using, TokenId::Invalid, true);
+    nodePtr->spanChildren = parseBlockContent(AstNodeId::UsingDecl, TokenId::Invalid, true);
     expectEndStatement();
     return nodeRef;
 }

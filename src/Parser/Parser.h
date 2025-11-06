@@ -124,6 +124,7 @@ class Parser
     AstNodeRef       parseFile();
     AstNodeRef       parseAttribute();
     AstNodeRef       parseCompilerDependencies();
+    AstNodeRef       parseGlobalAccessModifier();
     AstNodeRef       parseUsingDecl();
 
     bool skipTo(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlags::Zero);

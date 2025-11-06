@@ -523,7 +523,7 @@ AstNodeRef Parser::parseScopedIdentifier()
         return INVALID_REF;
 
     // Check if there's a scope access operator
-    while (consumeIf(TokenId::SymDot))
+    while (!tok().startsLine() && consumeIf(TokenId::SymDot))
     {
         // Parse the right side (another identifier)
         const auto rightNode = parseIdentifier();

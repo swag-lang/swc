@@ -9,7 +9,7 @@ AstNodeRef Parser::parseImplDecl()
     if (nextIs(TokenId::KwdEnum))
         return parseEnumImplDecl();
 
-    const auto tknOp = consume();
+    consume();
 
     // Name
     const AstNodeRef nodeIdentifier = parseScopedIdentifier();
@@ -28,24 +28,20 @@ AstNodeRef Parser::parseImplDecl()
     if (invalid(nodeFor))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ImplDecl>();
-        nodePtr->tknOp          = tknOp;
         nodePtr->nodeIdentifier = nodeIdentifier;
-        nodePtr->nodeContent    = parseBlock(TokenId::SymLeftCurly, AstNodeId::TopLevelBlock);
+        nodePtr->spanChildren   = parseBlockContent(AstNodeId::ImplDecl, TokenId::SymLeftCurly);
         return nodeRef;
     }
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ImplDeclFor>();
-    nodePtr->tknOp          = tknOp;
     nodePtr->nodeIdentifier = nodeIdentifier;
     nodePtr->nodeFor        = nodeFor;
-    nodePtr->nodeContent    = parseBlock(TokenId::SymLeftCurly, AstNodeId::ImplBlock);
+    nodePtr->spanChildren   = parseBlockContent(AstNodeId::ImplDeclFor, TokenId::SymLeftCurly);
     return nodeRef;
 }
 
 AstNodeRef Parser::parseStructValue()
 {
-    static constexpr std::initializer_list ENUM_VALUE_SYNC = {TokenId::SymRightCurly, TokenId::SymComma, TokenId::Identifier};
-
     switch (id())
     {
     case TokenId::SymAttrStart:
@@ -91,7 +87,7 @@ AstNodeRef Parser::parseStructDecl()
     }
 
     // Content
-    nodePtr->spanChildren = parseBlockContent(TokenId::SymLeftCurly, AstNodeId::StructDecl);
+    nodePtr->spanChildren = parseBlockContent(AstNodeId::StructDecl, TokenId::SymLeftCurly);
 
     return nodeRef;
 }

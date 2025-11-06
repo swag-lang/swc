@@ -6,14 +6,15 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseEnumImplDecl()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumImpl>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumImplDecl>();
     consume(TokenId::KwdImpl);
     consume(TokenId::KwdEnum);
+
     nodePtr->nodeName = parseScopedIdentifier();
     if (invalid(nodePtr->nodeName))
         skipTo({TokenId::SymLeftCurly});
 
-    nodePtr->nodeBody = parseBlock(TokenId::SymLeftCurly, AstNodeId::ImplBlock);
+    nodePtr->spanChildren = parseBlockContent(AstNodeId::EnumImplDecl, TokenId::SymLeftCurly);
     return nodeRef;
 }
 
@@ -75,7 +76,7 @@ AstNodeRef Parser::parseEnumDecl()
     }
 
     // Content
-    nodePtr->spanChildren = parseBlockContent(TokenId::SymLeftCurly, AstNodeId::EnumDecl);
+    nodePtr->spanChildren = parseBlockContent(AstNodeId::EnumDecl, TokenId::SymLeftCurly);
 
     return nodeRef;
 }

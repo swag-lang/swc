@@ -14,7 +14,9 @@ AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
     {
     case AstNodeId::File:
     case AstNodeId::TopLevelBlock:
-    case AstNodeId::ImplBlock:
+    case AstNodeId::EnumImplDecl:
+    case AstNodeId::ImplDecl:
+    case AstNodeId::ImplDeclFor:
         return parseTopLevelStmt();
 
     case AstNodeId::FuncBody:
@@ -51,7 +53,9 @@ AstNodeRef Parser::parseBlockCompilerDirective(AstNodeId blockNodeId)
     // Compiler instructions
     if (blockNodeId == AstNodeId::File ||
         blockNodeId == AstNodeId::TopLevelBlock ||
-        blockNodeId == AstNodeId::ImplBlock ||
+        blockNodeId == AstNodeId::EnumImplDecl ||
+        blockNodeId == AstNodeId::ImplDecl ||
+        blockNodeId == AstNodeId::ImplDeclFor ||
         blockNodeId == AstNodeId::StructDecl ||
         blockNodeId == AstNodeId::EnumDecl)
     {
@@ -184,14 +188,14 @@ void Parser::finalizeBlock(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef 
     }
 }
 
-AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId, bool endStmt)
+AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt)
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeBlock>(blockNodeId);
-    nodePtr->spanChildren   = parseBlockContent(tokenStartId, blockNodeId, endStmt);
+    nodePtr->spanChildren   = parseBlockContent(blockNodeId, tokenStartId, endStmt);
     return nodeRef;
 }
 
-Ref Parser::parseBlockContent(TokenId tokenStartId, AstNodeId blockNodeId, bool endStmt)
+Ref Parser::parseBlockContent(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt)
 {
     const Token&   openTok    = tok();
     const TokenRef openTokRef = ref();
@@ -257,7 +261,7 @@ Ref Parser::parseBlockContent(TokenId tokenStartId, AstNodeId blockNodeId, bool 
 
 AstNodeRef Parser::parseFile()
 {
-    return parseBlock(TokenId::Invalid, AstNodeId::File);
+    return parseBlock(AstNodeId::File, TokenId::Invalid);
 }
 
 AstNodeRef Parser::parseNamespace()
@@ -267,7 +271,7 @@ AstNodeRef Parser::parseNamespace()
     nodePtr->nodeName = parseScopedIdentifier();
     if (invalid(nodePtr->nodeName))
         skipTo({TokenId::SymLeftCurly});
-    nodePtr->nodeBody = parseBlock(TokenId::SymLeftCurly, AstNodeId::TopLevelBlock);
+    nodePtr->nodeBody = parseBlock(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     return nodeRef;
 }
 

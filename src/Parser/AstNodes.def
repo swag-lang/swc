@@ -78,11 +78,10 @@ SWC_NODE_DEF(StructDecl)
 // Declarations & Implementations
 SWC_NODE_DEF(ImplDecl)
 SWC_NODE_DEF(ImplDeclFor)
-SWC_NODE_DEF(ImplBlock)
 
 // Enums
 SWC_NODE_DEF(EnumDecl)
-SWC_NODE_DEF(EnumImpl)
+SWC_NODE_DEF(EnumImplDecl)
 SWC_NODE_DEF(EnumValue)
 SWC_NODE_DEF(EnumUsingValue)
 

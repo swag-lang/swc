@@ -11,7 +11,7 @@ AstNodeRef Parser::parseTopLevelStmt()
     switch (id())
     {
     case TokenId::SymLeftCurly:
-        return parseBlock(TokenId::SymLeftCurly, AstNodeId::TopLevelBlock);
+        return parseBlock(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     case TokenId::SymRightCurly:
         raiseError(DiagnosticId::parser_err_unexpected_token, ref());
         return INVALID_REF;
@@ -62,7 +62,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
     switch (id())
     {
     case TokenId::SymLeftCurly:
-        return parseBlock(TokenId::SymLeftCurly, AstNodeId::EmbeddedBlock);
+        return parseBlock(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
     case TokenId::SymRightCurly:
         raiseError(DiagnosticId::parser_err_unexpected_token, ref());
         return INVALID_REF;
@@ -91,7 +91,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
 AstNodeRef Parser::parseUsingDecl()
 {
     consume();
-    const auto nodeRef = parseBlock(TokenId::Invalid, AstNodeId::Using, true);
+    const auto nodeRef = parseBlock(AstNodeId::Using, TokenId::Invalid, true);
     expectEndStatement();
     return nodeRef;
 }

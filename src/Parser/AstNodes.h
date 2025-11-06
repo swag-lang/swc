@@ -39,32 +39,27 @@ struct AstNodeEmbeddedBlock : AstNodeBlock
     }
 };
 
-struct AstNodeImplDecl : AstNode
+struct AstNodeImplDecl : AstNodeBlock
 {
     static constexpr auto ID = AstNodeId::ImplDecl;
     AstNodeImplDecl() :
-        AstNode(ID)
+        AstNodeBlock(ID)
     {
     }
 
-    TokenRef   tknOp;
     AstNodeRef nodeIdentifier;
-    AstNodeRef nodeContent;
 };
 
-struct AstNodeImplDeclFor : AstNode
+struct AstNodeImplDeclFor : AstNodeBlock
 {
     static constexpr auto ID = AstNodeId::ImplDeclFor;
     AstNodeImplDeclFor() :
-        AstNode(ID)
+        AstNodeBlock(ID)
     {
     }
 
-    TokenRef   tknOp;
     AstNodeRef nodeIdentifier;
-
     AstNodeRef nodeFor;
-    AstNodeRef nodeContent;
 };
 
 struct AstNodeNamespace : AstNode
@@ -628,16 +623,15 @@ struct AstNodeEnumUsingValue : AstNode
     AstNodeRef nodeName;
 };
 
-struct AstNodeEnumImpl : AstNode
+struct AstNodeEnumImplDecl : AstNodeBlock
 {
-    static constexpr auto ID = AstNodeId::EnumImpl;
-    AstNodeEnumImpl() :
-        AstNode(ID)
+    static constexpr auto ID = AstNodeId::EnumImplDecl;
+    AstNodeEnumImplDecl() :
+        AstNodeBlock(ID)
     {
     }
 
     AstNodeRef nodeName;
-    AstNodeRef nodeBody;
 };
 
 struct AstNodeQualifiedType : AstNode
@@ -761,15 +755,6 @@ struct AstNodeCompilerType : AstNode
     }
 
     AstNodeRef nodeType;
-};
-
-struct AstNodeImplBlock : AstNodeBlock
-{
-    static constexpr auto ID = AstNodeId::ImplBlock;
-    AstNodeImplBlock() :
-        AstNodeBlock(ID)
-    {
-    }
 };
 
 struct AstNodeCompilerIf : AstNodeBlock

@@ -118,4 +118,20 @@ AstNodeRef Parser::parseUsingDecl()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseConstraint()
+{
+    if (nextIs(TokenId::SymLeftCurly))
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ConstraintBlock>();
+        nodePtr->tknConstraint  = consume();
+        nodePtr->spanChildren   = parseBlockContent(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
+        return nodeRef;
+    }
+
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ConstraintExpression>();
+    nodePtr->tknConstraint  = consume();
+    nodePtr->nodeExpr       = parseExpression();
+    return nodeRef;
+}
+
 SWC_END_NAMESPACE()

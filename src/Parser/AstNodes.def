@@ -9,6 +9,8 @@ SWC_NODE_DEF(UsingNamespace)
 SWC_NODE_DEF(Dependencies)
 SWC_NODE_DEF(UsingDecl)
 SWC_NODE_DEF(AccessModifier)
+SWC_NODE_DEF(ConstraintBlock)
+SWC_NODE_DEF(ConstraintExpression)
 
 // Identifiers & References
 SWC_NODE_DEF(Identifier)

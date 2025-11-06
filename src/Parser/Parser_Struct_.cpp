@@ -79,12 +79,19 @@ AstNodeRef Parser::parseStructDecl()
         skipTo({TokenId::SymLeftCurly});
 
     // Where
-    if (is(TokenId::KwdWhere))
+    SmallVector<AstNodeRef> whereRefs;
+    while (is(TokenId::KwdWhere))
     {
-        // @skip
-        consume();
-        parseExpression();
+        const auto loopStartToken = curToken_;
+        auto       whereRef       = parseConstraint();
+        if (valid(whereRef))
+            whereRefs.push_back(whereRef);
+
+        if (loopStartToken == curToken_)
+            consume();
     }
+
+    nodePtr->spanWhere = whereRefs.empty() ? INVALID_REF : ast_->store_.push_span(std::span(whereRefs.data(), whereRefs.size()));
 
     // Content
     nodePtr->spanChildren = parseBlockContent(AstNodeId::StructDecl, TokenId::SymLeftCurly);

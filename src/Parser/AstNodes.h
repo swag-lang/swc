@@ -852,6 +852,7 @@ struct AstNodeStructDecl : AstNodeBlock
     }
 
     TokenRef tknName;
+    Ref      spanWhere;
 };
 
 struct AstNodeAccessModifier : AstNode
@@ -864,4 +865,27 @@ struct AstNodeAccessModifier : AstNode
 
     TokenRef   tknAccess;
     AstNodeRef nodeWhat;
+};
+
+struct AstNodeConstraintBlock : AstNodeBlock
+{
+    static constexpr auto ID = AstNodeId::ConstraintBlock;
+    AstNodeConstraintBlock() :
+        AstNodeBlock(ID)
+    {
+    }
+
+    TokenRef tknConstraint;
+};
+
+struct AstNodeConstraintExpression : AstNode
+{
+    static constexpr auto ID = AstNodeId::ConstraintExpression;
+    AstNodeConstraintExpression() :
+        AstNode(ID)
+    {
+    }
+
+    TokenRef   tknConstraint;
+    AstNodeRef nodeExpr;
 };

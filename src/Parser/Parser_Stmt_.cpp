@@ -50,9 +50,9 @@ AstNodeRef Parser::parseTopLevelStmt()
 
     default:
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Invalid>();
+        // @skip
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::EolBefore);
-        return nodeRef;
+        return INVALID_REF;
     }
     }
 }
@@ -81,9 +81,9 @@ AstNodeRef Parser::parseEmbeddedStmt()
 
     default:
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Invalid>();
+        // @skip
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::EolBefore);
-        return nodeRef;
+        return INVALID_REF;
     }
     }
 }

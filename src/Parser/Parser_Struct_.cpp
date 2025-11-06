@@ -52,11 +52,13 @@ AstNodeRef Parser::parseStructValue()
         return parseCompilerAttribute(AstNodeId::StructDecl);
 
     case TokenId::SymLeftCurly:
+        // @skip
         consume();
         skipTo({TokenId::SymRightCurly}, SkipUntilFlags::Consume);
         return INVALID_REF;
 
     default:
+        // @skip
         skipTo({TokenId::SymRightCurly, TokenId::SymComma}, SkipUntilFlags::EolBefore);
         return INVALID_REF;
     }
@@ -70,6 +72,7 @@ AstNodeRef Parser::parseStructDecl()
     // Generic types
     if (is(TokenId::SymLeftParen))
     {
+        // @skip
         consume();
         skipTo({TokenId::SymRightParen}, SkipUntilFlags::Consume);
     }
@@ -82,6 +85,7 @@ AstNodeRef Parser::parseStructDecl()
     // Where
     if (is(TokenId::KwdWhere))
     {
+        // @skip
         consume();
         parseExpression();
     }

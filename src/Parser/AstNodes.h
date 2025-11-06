@@ -74,6 +74,17 @@ struct AstNodeNamespace : AstNode
     AstNodeRef nodeBody;
 };
 
+struct AstNodeUsingNamespace : AstNode
+{
+    static constexpr auto ID = AstNodeId::UsingNamespace;
+    AstNodeUsingNamespace() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeNamespace;
+};
+
 struct AstNodeCall1 : AstNode
 {
     explicit AstNodeCall1(AstNodeId nodeId) :

@@ -50,8 +50,8 @@ AstNodeRef Parser::parseTopLevelStmt()
     case TokenId::KwdPrivate:
         return parseGlobalAccessModifier();
 
-        // case TokenId::KwdUsing:
-        //     return parseUsingDecl();
+    case TokenId::KwdUsing:
+        return parseUsingDecl();
 
     default:
     {
@@ -103,6 +103,14 @@ AstNodeRef Parser::parseGlobalAccessModifier()
 
 AstNodeRef Parser::parseUsingDecl()
 {
+    if (nextIs(TokenId::KwdNamespace))
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingNamespace>();
+        consume();
+        nodePtr->nodeNamespace = parseNamespace();
+        return nodeRef;
+    }
+
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingDecl>();
     consume();
     nodePtr->spanChildren = parseBlockContent(AstNodeId::UsingDecl, TokenId::Invalid, true);

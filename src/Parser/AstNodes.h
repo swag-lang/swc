@@ -627,15 +627,15 @@ struct AstNodeEnumValue : AstNode
     AstNodeRef nodeValue;
 };
 
-struct AstNodeEnumUsingValue : AstNode
+struct AstNodeUsing : AstNode
 {
-    static constexpr auto ID = AstNodeId::EnumUsingValue;
-    AstNodeEnumUsingValue() :
+    static constexpr auto ID = AstNodeId::Using;
+    AstNodeUsing() :
         AstNode(ID)
     {
     }
 
-    TokenRef tknName;
+    AstNodeRef nodeName;
 };
 
 struct AstNodeEnumImpl : AstNode
@@ -831,6 +831,17 @@ struct AstNodeAttributeBlock : AstNodeBlock
     static constexpr auto ID = AstNodeId::AttributeBlock;
     AstNodeAttributeBlock() :
         AstNodeBlock(ID)
+    {
+    }
+
+    AstNodeRef nodeBody;
+};
+
+struct AstNodeDependencies : AstNode
+{
+    static constexpr auto ID = AstNodeId::Dependencies;
+    AstNodeDependencies() :
+        AstNode(ID)
     {
     }
 

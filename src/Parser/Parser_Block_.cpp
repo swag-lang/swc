@@ -250,6 +250,8 @@ AstNodeRef Parser::parseTopLevelStmt()
 
     case TokenId::KwdNamespace:
         return parseNamespace();
+    case TokenId::CompilerDependencies:
+        return parseCompilerDependencies();
 
     case TokenId::SymAttrStart:
         return parseCompilerAttribute(AstNodeId::TopLevelBlock);
@@ -297,6 +299,14 @@ AstNodeRef Parser::parseNamespace()
     if (invalid(nodePtr->nodeName))
         skipTo({TokenId::SymLeftCurly});
     nodePtr->nodeBody = parseBlock(TokenId::SymLeftCurly, AstNodeId::TopLevelBlock);
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseUsing()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Using>();
+    consume();
+    nodePtr->nodeName = parseScopedIdentifier();
     return nodeRef;
 }
 

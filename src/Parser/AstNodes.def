@@ -1,10 +1,12 @@
 SWC_NODE_DEF(Invalid)
 
-// Basic / Structural
+// Structural
 SWC_NODE_DEF(TopLevelBlock)
 SWC_NODE_DEF(EmbeddedBlock)
 SWC_NODE_DEF(File)
 SWC_NODE_DEF(Namespace)
+SWC_NODE_DEF(Dependencies)
+SWC_NODE_DEF(Using)
 
 // Identifiers & References
 SWC_NODE_DEF(Identifier)
@@ -79,7 +81,6 @@ SWC_NODE_DEF(ImplBlock)
 SWC_NODE_DEF(EnumDecl)
 SWC_NODE_DEF(EnumBlock)
 SWC_NODE_DEF(EnumImpl)
-SWC_NODE_DEF(EnumUsingValue)
 SWC_NODE_DEF(EnumValue)
 
 // Functions

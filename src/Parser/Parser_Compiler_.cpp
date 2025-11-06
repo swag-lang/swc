@@ -83,4 +83,11 @@ AstNodeRef Parser::parseCompilerIf(AstNodeId blockNodeId)
     return nodeRef;
 }
 
+AstNodeRef Parser::parseCompilerDependencies()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Dependencies>();
+    consume();
+    nodePtr->nodeBody = parseBlock(TokenId::SymLeftCurly, AstNodeId::TopLevelBlock);
+    return nodeRef;
+}
 SWC_END_NAMESPACE()

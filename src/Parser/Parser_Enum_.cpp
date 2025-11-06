@@ -11,14 +11,7 @@ AstNodeRef Parser::parseEnumValue()
     switch (id())
     {
     case TokenId::KwdUsing:
-    {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumUsingValue>();
-        consume();
-        nodePtr->tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
-        if (invalid(nodePtr->tknName))
-            skipTo(ENUM_VALUE_SYNC, SkipUntilFlags::EolBefore);
-        return nodeRef;
-    }
+        return parseUsing();
 
     case TokenId::Identifier:
     {

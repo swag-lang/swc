@@ -7,7 +7,6 @@ SWC_NODE_DEF(File)
 SWC_NODE_DEF(Namespace)
 SWC_NODE_DEF(Dependencies)
 SWC_NODE_DEF(Using)
-SWC_NODE_DEF(UsingBlock)
 
 // Identifiers & References
 SWC_NODE_DEF(Identifier)
@@ -72,6 +71,9 @@ SWC_NODE_DEF(PointerType)
 SWC_NODE_DEF(QualifiedType)
 SWC_NODE_DEF(SliceType)
 SWC_NODE_DEF(CompilerType)
+
+// Structs
+SWC_NODE_DEF(StructDecl)
 
 // Declarations & Implementations
 SWC_NODE_DEF(ImplDecl)

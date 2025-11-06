@@ -848,22 +848,22 @@ struct AstNodeDependencies : AstNode
     AstNodeRef nodeBody;
 };
 
-struct AstNodeUsing : AstNode
+struct AstNodeUsing : AstNodeBlock
 {
     static constexpr auto ID = AstNodeId::Using;
     AstNodeUsing() :
-        AstNode(ID)
-    {
-    }
-
-    AstNodeRef nodeBody;
-};
-
-struct AstNodeUsingBlock : AstNodeBlock
-{
-    static constexpr auto ID = AstNodeId::UsingBlock;
-    AstNodeUsingBlock() :
         AstNodeBlock(ID)
     {
     }
+};
+
+struct AstNodeStructDecl : AstNodeBlock
+{
+    static constexpr auto ID = AstNodeId::StructDecl;
+    AstNodeStructDecl() :
+        AstNodeBlock(ID)
+    {
+    }
+
+    TokenRef tknName;
 };

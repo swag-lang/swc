@@ -4,6 +4,19 @@
 
 SWC_BEGIN_NAMESPACE()
 
+AstNodeRef Parser::parseEnumImpl()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumImpl>();
+    consume(TokenId::KwdImpl);
+    consume(TokenId::KwdEnum);
+    nodePtr->nodeName = parseScopedIdentifier();
+    if (invalid(nodePtr->nodeName))
+        skipTo({TokenId::SymLeftCurly});
+
+    nodePtr->nodeBody = parseBlock(TokenId::SymLeftCurly, AstNodeId::ImplBlock);
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseEnumValue()
 {
     static constexpr std::initializer_list ENUM_VALUE_SYNC = {TokenId::SymRightCurly, TokenId::SymComma, TokenId::Identifier};
@@ -68,19 +81,6 @@ AstNodeRef Parser::parseEnum()
     if (invalid(nodePtr->nodeBody))
         skipTo(END_OR_START_BLOCK);
 
-    return nodeRef;
-}
-
-AstNodeRef Parser::parseEnumImpl()
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumImpl>();
-    consume(TokenId::KwdImpl);
-    consume(TokenId::KwdEnum);
-    nodePtr->nodeName = parseScopedIdentifier();
-    if (invalid(nodePtr->nodeName))
-        skipTo({TokenId::SymLeftCurly});
-
-    nodePtr->nodeBody = parseBlock(TokenId::SymLeftCurly, AstNodeId::ImplBlock);
     return nodeRef;
 }
 

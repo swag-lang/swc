@@ -14,3 +14,6 @@
 #if A { } #else { }
 
 #assert(A == 5)
+
+using A
+#assert(A == 5)

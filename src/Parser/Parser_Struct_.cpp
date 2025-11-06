@@ -42,4 +42,17 @@ AstNodeRef Parser::parseImpl()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseStruct()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructDecl>();
+    consume(TokenId::KwdStruct);
+
+    // Name
+    nodePtr->tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+    if (invalid(nodePtr->tknName))
+        skipTo({TokenId::SymLeftCurly});
+
+    return nodeRef;
+}
+
 SWC_END_NAMESPACE()

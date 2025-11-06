@@ -22,6 +22,8 @@ AstNodeRef Parser::parseTopLevelStmt()
 
     case TokenId::KwdEnum:
         return parseEnum();
+    case TokenId::KwdStruct:
+        return parseStruct();
 
     case TokenId::KwdImpl:
         return parseImpl();
@@ -42,6 +44,9 @@ AstNodeRef Parser::parseTopLevelStmt()
 
     case TokenId::SymAttrStart:
         return parseCompilerAttribute(AstNodeId::TopLevelBlock);
+
+    case TokenId::KwdUsing:
+        return parseUsing();
 
     default:
     {
@@ -66,6 +71,11 @@ AstNodeRef Parser::parseEmbeddedStmt()
         consume();
         return INVALID_REF;
 
+    case TokenId::KwdEnum:
+        return parseEnum();
+    case TokenId::KwdStruct:
+        return parseStruct();
+
     case TokenId::SymAttrStart:
         return parseCompilerAttribute(AstNodeId::EmbeddedBlock);
 
@@ -80,9 +90,8 @@ AstNodeRef Parser::parseEmbeddedStmt()
 
 AstNodeRef Parser::parseUsing()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Using>();
     consume();
-    nodePtr->nodeBody = parseBlock(TokenId::Invalid, AstNodeId::UsingBlock);
+    const auto nodeRef = parseBlock(TokenId::Invalid, AstNodeId::Using, true);
     expectEndStatement();
     return nodeRef;
 }

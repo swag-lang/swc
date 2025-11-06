@@ -16,20 +16,25 @@ AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
     case AstNodeId::TopLevelBlock:
     case AstNodeId::ImplBlock:
         return parseTopLevelStmt();
+
     case AstNodeId::FuncBody:
     case AstNodeId::EmbeddedBlock:
         return parseEmbeddedStmt();
+
     case AstNodeId::EnumBlock:
         return parseEnumValue();
+
     case AstNodeId::AttributeBlock:
         return parseAttribute();
+
     case AstNodeId::ArrayLiteral:
-        return parseExpression();
     case AstNodeId::UnnamedArgumentBlock:
         return parseExpression();
+
     case AstNodeId::NamedArgumentBlock:
         return parseNamedArgument();
-    case AstNodeId::UsingBlock:
+
+    case AstNodeId::Using:
         return parseScopedIdentifier();
 
     default:
@@ -112,15 +117,15 @@ Result Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
         }
         break;
 
-    case AstNodeId::UsingBlock:
-        if (!is(tokenEndId) && !tok().startsLine())
+    case AstNodeId::Using:
+        if (!consumeIf(TokenId::SymComma))
         {
             raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
             skipTo(skipTokens);
             return Result::Error;
         }
         break;
-        
+
     case AstNodeId::ArrayLiteral:
     case AstNodeId::UnnamedArgumentBlock:
     case AstNodeId::NamedArgumentBlock:
@@ -167,7 +172,7 @@ void Parser::finalizeBlock(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef 
     }
 }
 
-AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
+AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId, bool endStmt)
 {
     const Token&   openTok    = tok();
     const TokenRef openTokRef = ref();
@@ -197,6 +202,13 @@ AstNodeRef Parser::parseBlock(TokenId tokenStartId, AstNodeId blockNodeId)
         childRef = parseBlockStmt(blockNodeId);
         if (valid(childRef))
             childrenRefs.push_back(childRef);
+
+        // End of block
+        if (endStmt)
+        {
+            if (is(TokenId::SymSemiColon) || tok().startsLine())
+                break;
+        }
 
         // Separator between statements
         if (parseBlockSeparator(blockNodeId, tokenEndId) == Result::Error)

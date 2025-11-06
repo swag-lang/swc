@@ -593,26 +593,16 @@ struct AstNodeCast : AstNode
     AstNodeRef       nodeExpr;
 };
 
-struct AstNodeEnumDecl : AstNode
+struct AstNodeEnumDecl : AstNodeBlock
 {
     static constexpr auto ID = AstNodeId::EnumDecl;
     AstNodeEnumDecl() :
-        AstNode(ID)
+        AstNodeBlock(ID)
     {
     }
 
     TokenRef   tknName;
     AstNodeRef nodeType;
-    AstNodeRef nodeBody;
-};
-
-struct AstNodeEnumBlock : AstNodeBlock
-{
-    static constexpr auto ID = AstNodeId::EnumBlock;
-    AstNodeEnumBlock() :
-        AstNodeBlock(ID)
-    {
-    }
 };
 
 struct AstNodeEnumValue : AstNode

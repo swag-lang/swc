@@ -82,7 +82,6 @@ SWC_NODE_DEF(ImplBlock)
 
 // Enums
 SWC_NODE_DEF(EnumDecl)
-SWC_NODE_DEF(EnumBlock)
 SWC_NODE_DEF(EnumImpl)
 SWC_NODE_DEF(EnumValue)
 SWC_NODE_DEF(EnumUsingValue)

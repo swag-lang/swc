@@ -21,7 +21,7 @@ AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
     case AstNodeId::EmbeddedBlock:
         return parseEmbeddedStmt();
 
-    case AstNodeId::EnumBlock:
+    case AstNodeId::EnumDecl:
         return parseEnumValue();
     case AstNodeId::StructDecl:
         return parseStructValue();
@@ -53,7 +53,7 @@ AstNodeRef Parser::parseBlockCompilerDirective(AstNodeId blockNodeId)
         blockNodeId == AstNodeId::TopLevelBlock ||
         blockNodeId == AstNodeId::ImplBlock ||
         blockNodeId == AstNodeId::StructDecl ||
-        blockNodeId == AstNodeId::EnumBlock)
+        blockNodeId == AstNodeId::EnumDecl)
     {
         switch (id())
         {
@@ -96,7 +96,7 @@ Result Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
 
     switch (blockNodeId)
     {
-    case AstNodeId::EnumBlock:
+    case AstNodeId::EnumDecl:
         if (!consumeIf(TokenId::SymComma) && !is(tokenEndId) && !tok().startsLine())
         {
             if (is(TokenId::Identifier))
@@ -170,7 +170,7 @@ void Parser::finalizeBlock(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef 
             diag.report(*ctx_);
             break;
         }
-        case AstNodeId::EnumBlock:
+        case AstNodeId::EnumDecl:
         {
             const auto diag     = reportError(DiagnosticId::parser_err_empty_enum, openTokRef);
             const auto tokenEnd = file_->lexOut().token(closeTokenRef);

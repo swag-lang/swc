@@ -48,7 +48,7 @@ AstNodeRef Parser::parseEnumValue()
         return parseCompilerFunc();
 
     case TokenId::SymAttrStart:
-        return parseCompilerAttribute(AstNodeId::EnumBlock);
+        return parseCompilerAttribute(AstNodeId::EnumDecl);
 
     default:
         raiseError(DiagnosticId::parser_err_unexpected_token, ref());
@@ -77,9 +77,7 @@ AstNodeRef Parser::parseEnumDecl()
     }
 
     // Content
-    nodePtr->nodeBody = parseBlock(TokenId::SymLeftCurly, AstNodeId::EnumBlock);
-    if (invalid(nodePtr->nodeBody))
-        skipTo(END_OR_START_BLOCK);
+    nodePtr->spanChildren = parseBlockContent(TokenId::SymLeftCurly, AstNodeId::EnumDecl);
 
     return nodeRef;
 }

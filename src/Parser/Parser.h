@@ -131,6 +131,7 @@ class Parser
     AstNodeRef       parseUsingDecl();
     AstNodeRef       parseConstraint();
     AstNodeRef       parseAggregateValue();
+    AstNodeRef       parseAggregateBody();
 
     bool skipTo(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlags::Zero);
     bool skipAfter(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlags::Zero);

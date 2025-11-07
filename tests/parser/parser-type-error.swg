@@ -3,7 +3,6 @@
 // ============================================================================
 
 enum A : *enum { Z } // swc-expected-error {{parser_err_invalid_type}}
-enum A : [*] { Z } // swc-expected-error {{parser_err_invalid_type}}
 
 enum A : [? /* toto */ s32 { Z } // swc-expected-error {{parser_err_expected_closing}}
 enum A : [* /* toto */ s32 { Z } // swc-expected-error {{parser_err_expected_closing}}
@@ -14,10 +13,6 @@ enum A : [0 /* toto */ s32 { Z } // swc-expected-error {{parser_err_expected_clo
 enum A : enum { Z } // swc-expected-error {{parser_err_invalid_type}}
 enum A : [] s32 { Z } // swc-expected-error {{parser_err_expected_array_dim}}
 enum A : [5][] A { Z } // swc-expected-error {{parser_err_expected_array_dim}}
-enum A : * { Z } // swc-expected-error {{parser_err_invalid_type}}
-enum A : ** { Z } // swc-expected-error {{parser_err_invalid_type}}
-enum A : & { Z } // swc-expected-error {{parser_err_invalid_type}}
-enum A : && { Z } // swc-expected-error {{parser_err_invalid_type}}
 enum A : [ /* toto */ ] s32 { Z } // swc-expected-error {{parser_err_expected_array_dim}}
 
 // Invalid: bad bracket/closing handling

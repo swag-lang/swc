@@ -68,6 +68,7 @@ AstNodeRef Parser::parseAggregateValue()
 
     case TokenId::KwdPrivate:
     case TokenId::KwdConst:
+    case TokenId::KwdAlias:
         // @skip
         skipTo({TokenId::SymRightCurly, TokenId::SymComma}, SkipUntilFlags::EolBefore);
         return INVALID_REF;
@@ -121,9 +122,14 @@ AstNodeRef Parser::parseAggregateDecl(AstNodeId nodeId)
     nodePtr->spanWhere = whereRefs.empty() ? INVALID_REF : ast_->store_.push_span(whereRefs.span());
 
     // Content
-    nodePtr->nodeBody = parseBlock(AstNodeId::AggregateBody, TokenId::SymLeftCurly);
+    nodePtr->nodeBody = parseAggregateBody();
 
     return nodeRef;
+}
+
+AstNodeRef Parser::parseAggregateBody()
+{
+    return parseBlock(AstNodeId::AggregateBody, TokenId::SymLeftCurly);
 }
 
 SWC_END_NAMESPACE()

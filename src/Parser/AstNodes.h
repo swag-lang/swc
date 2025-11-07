@@ -874,6 +874,34 @@ struct AstUnionDecl : AstAggregateDecl
     }
 };
 
+struct AstAnonymousAggregateDecl : AstNode
+{
+    explicit AstAnonymousAggregateDecl(AstNodeId nodeId) :
+        AstNode(nodeId)
+    {
+    }
+
+    AstNodeRef nodeBody;
+};
+
+struct AstAnonymousStructDecl : AstAnonymousAggregateDecl
+{
+    static constexpr auto ID = AstNodeId::AnonymousStructDecl;
+    AstAnonymousStructDecl() :
+        AstAnonymousAggregateDecl(ID)
+    {
+    }
+};
+
+struct AstAnonymousUnionDecl : AstAnonymousAggregateDecl
+{
+    static constexpr auto ID = AstNodeId::AnonymousUnionDecl;
+    AstAnonymousUnionDecl() :
+        AstAnonymousAggregateDecl(ID)
+    {
+    }
+};
+
 struct AstAggregateBody : AstCompound
 {
     static constexpr auto ID = AstNodeId::AggregateBody;

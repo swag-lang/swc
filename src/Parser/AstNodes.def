@@ -80,6 +80,8 @@ SWC_NODE_DEF(CompilerType)
 SWC_NODE_DEF(AggregateBody)
 SWC_NODE_DEF(StructDecl)
 SWC_NODE_DEF(UnionDecl)
+SWC_NODE_DEF(AnonymousStructDecl)
+SWC_NODE_DEF(AnonymousUnionDecl)
 
 // Declarations & Implementations
 SWC_NODE_DEF(Impl)

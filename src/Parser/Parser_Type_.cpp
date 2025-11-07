@@ -20,24 +20,33 @@ AstNodeRef Parser::parseSingleType()
     case TokenId::Identifier:
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamedType>();
-        nodePtr->nodeIdent = parseQualifiedIdentifier();
+        nodePtr->nodeIdent      = parseQualifiedIdentifier();
         return nodeRef;
     }
 
     case TokenId::KwdStruct:
-        break;
-
+    {
+        consume();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousStructDecl>();
+        nodePtr->nodeBody       = parseAggregateBody();
+        return nodeRef;
+    }
     case TokenId::KwdUnion:
-        break;
-
+    {
+        consume();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousUnionDecl>();
+        nodePtr->nodeBody       = parseAggregateBody();
+        return nodeRef;
+    }
     case TokenId::SymLeftCurly:
-        break;
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousStructDecl>();
+        nodePtr->nodeBody       = parseAggregateBody();
+        return nodeRef;
+    }
 
     case TokenId::KwdFunc:
     case TokenId::KwdMtd:
-        break;
-
-    case TokenId::CompilerDeclType:
         break;
 
     default:

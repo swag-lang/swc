@@ -66,6 +66,12 @@ AstNodeRef Parser::parseAggregateValue()
         consume();
         return parseSingleVarDecl();
 
+    case TokenId::KwdPrivate:
+    case TokenId::KwdConst:
+        // @skip
+        skipTo({TokenId::SymRightCurly, TokenId::SymComma}, SkipUntilFlags::EolBefore);
+        return INVALID_REF;
+
     default:
         return parseSingleVarDecl();
     }

@@ -10,10 +10,10 @@ AstNodeRef Parser::parsePrimaryExpression()
     switch (id())
     {
     case TokenId::Identifier:
-        return parsePostfixIdentifier();
+        return parseIdentifier();
 
     case TokenId::SymDot:
-        return parseAutoQualifiedIdentifier();
+        return parsePreQualifiedIdentifier();
 
     case TokenId::CompilerUp:
         return parseAncestorIdentifier();
@@ -396,7 +396,7 @@ AstNodeRef Parser::parseBinaryExpr()
         const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::BinaryExpr>();
         nodePtr->tokOp                  = consume();
         nodePtr->nodeLeft               = nodeRef;
-        nodePtr->modifierFlags         = parseModifiers();
+        nodePtr->modifierFlags          = parseModifiers();
         nodePtr->nodeRight              = parseBinaryExpr();
         return nodeParen;
     }
@@ -469,48 +469,36 @@ AstNodeRef Parser::parseParenExpr()
 
 AstNodeRef Parser::parseIdentifier()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>();
-    nodePtr->tokName        = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
-    return nodeRef;
-}
-
-AstNodeRef Parser::parsePostfixIdentifier()
-{
-    const auto nodeIdent = parseIdentifier();
-    if (invalid(nodeIdent))
+    const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+    if (invalid(tokName))
         return INVALID_REF;
 
-    if (!is(TokenId::SymQuote) || has_any(tok().flags, TokenFlags::BlankBefore))
-        return nodeIdent;
-
-    consume();
-
-    if (is(TokenId::SymLeftParen))
+    if (is(TokenId::SymQuote) && !has_any(tok().flags, TokenFlags::BlankBefore))
     {
-        auto [nodeRef, nodePtr]   = ast_->makeNode<AstNodeId::MultiPostfixIdentifier>();
-        nodePtr->nodeIdent   = nodeIdent;
-        nodePtr->nodePostfixBlock = parseBlock(AstNodeId::UnnamedArgList, TokenId::SymLeftParen);
+        consume();
+        if (is(TokenId::SymLeftParen))
+        {
+            auto [nodeRef, nodePtr]   = ast_->makeNode<AstNodeId::MultiPostfixIdentifier>();
+            nodePtr->tokName          = tokName;
+            nodePtr->nodePostfixBlock = parseBlock(AstNodeId::UnnamedArgList, TokenId::SymLeftParen);
+            return nodeRef;
+        }
+
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::PostfixIdentifier>();
+        nodePtr->tokName        = tokName;
+        nodePtr->nodePostfix    = parseType();
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::PostfixIdentifier>();
-    nodePtr->nodeIdent = nodeIdent;
-    nodePtr->nodePostfix    = parseType();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>();
+    nodePtr->tokName        = tokName;
     return nodeRef;
 }
 
-AstNodeRef Parser::parseAutoQualifiedIdentifier()
+AstNodeRef Parser::parsePreQualifiedIdentifier()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::QualifiedIdentifier>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::PreQualifiedIdentifier>();
     consume(TokenId::SymDot);
-    nodePtr->nodeIdent = parseQualifiedIdentifier();
-    return nodeRef;
-}
-
-AstNodeRef Parser::parseAncestorIdentifier()
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AncestorIdentifier>();
-    consume(TokenId::CompilerUp);
     nodePtr->nodeIdent = parseQualifiedIdentifier();
     return nodeRef;
 }
@@ -542,6 +530,14 @@ AstNodeRef Parser::parseQualifiedIdentifier()
     return leftNode;
 }
 
+AstNodeRef Parser::parseAncestorIdentifier()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AncestorIdentifier>();
+    consume(TokenId::CompilerUp);
+    nodePtr->nodeIdent = parseQualifiedIdentifier();
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseNamedArgument()
 {
     // The name
@@ -555,6 +551,17 @@ AstNodeRef Parser::parseNamedArgument()
     }
 
     // The argument
+    return parseExpression();
+}
+
+AstNodeRef Parser::parseInitializationExpression()
+{
+    if (consumeIf(TokenId::KwdUndefined))
+    {
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Undefined>();
+        return nodeRef;
+    }
+
     return parseExpression();
 }
 

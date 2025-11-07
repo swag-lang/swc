@@ -14,7 +14,7 @@ SWC_NODE_DEF(ConstraintExpr)
 
 // Identifiers & References
 SWC_NODE_DEF(Identifier)
-SWC_NODE_DEF(QualifiedIdentifier)
+SWC_NODE_DEF(PreQualifiedIdentifier)
 SWC_NODE_DEF(AncestorIdentifier)
 SWC_NODE_DEF(PostfixIdentifier)
 SWC_NODE_DEF(MultiPostfixIdentifier)
@@ -112,3 +112,7 @@ SWC_NODE_DEF(CompilerElseIf)
 // Attributes
 SWC_NODE_DEF(Attribute)
 SWC_NODE_DEF(AttributeList)
+
+// Variables / Constants
+SWC_NODE_DEF(VarDecl)
+SWC_NODE_DEF(Undefined)

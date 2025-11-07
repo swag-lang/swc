@@ -249,10 +249,10 @@ struct AstIdentifier : AstNode
     TokenRef tokName;
 };
 
-struct AstQualifiedIdentifier : AstNode
+struct AstPreQualifiedIdentifier : AstNode
 {
-    static constexpr auto ID = AstNodeId::QualifiedIdentifier;
-    AstQualifiedIdentifier() :
+    static constexpr auto ID = AstNodeId::PreQualifiedIdentifier;
+    AstPreQualifiedIdentifier() :
         AstNode(ID)
     {
     }
@@ -279,7 +279,7 @@ struct AstPostfixIdentifier : AstNode
     {
     }
 
-    AstNodeRef nodeIdent;
+    AstNodeRef tokName;
     AstNodeRef nodePostfix;
 };
 
@@ -291,7 +291,7 @@ struct AstMultiPostfixIdentifier : AstNode
     {
     }
 
-    AstNodeRef nodeIdent;
+    AstNodeRef tokName;
     AstNodeRef nodePostfixBlock;
 };
 
@@ -954,6 +954,28 @@ struct AstGenericTypeParam : AstGenericParamBase
     static constexpr auto ID = AstNodeId::GenericTypeParam;
     AstGenericTypeParam() :
         AstGenericParamBase(ID)
+    {
+    }
+};
+
+struct AstVarDecl : AstNode
+{
+    static constexpr auto ID = AstNodeId::VarDecl;
+    AstVarDecl() :
+        AstNode(ID)
+    {
+    }
+
+    TokenRef   tokName;
+    AstNodeRef nodeType;
+    AstNodeRef nodeInit;
+};
+
+struct AstUndefined : AstNode
+{
+    static constexpr auto ID = AstNodeId::Undefined;
+    AstUndefined() :
+        AstNode(ID)
     {
     }
 };

@@ -92,8 +92,7 @@ class Parser
     AstNodeRef parseAggregateDecl(AstNodeId nodeId);
 
     AstNodeRef       parseIdentifier();
-    AstNodeRef       parsePostfixIdentifier();
-    AstNodeRef       parseAutoQualifiedIdentifier();
+    AstNodeRef       parsePreQualifiedIdentifier();
     AstNodeRef       parseAncestorIdentifier();
     AstNodeRef       parseQualifiedIdentifier();
     AstNodeRef       parseLiteral();
@@ -109,6 +108,7 @@ class Parser
     AstNodeRef       parseRelationalExpr();
     AstNodeRef       parseLogicalExpr();
     AstNodeRef       parseExpression();
+    AstNodeRef       parseInitializationExpression();
     AstNodeRef       parseParenExpr();
     AstNodeRef       parseEnumDecl();
     AstNodeRef       parseImplEnum();

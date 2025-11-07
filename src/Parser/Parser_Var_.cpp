@@ -60,8 +60,28 @@ AstNodeRef Parser::parseGenericParam()
 AstNodeRef Parser::parseSingleVarDecl()
 {
     // @skip
-    skipTo({TokenId::SymRightCurly, TokenId::SymComma}, SkipUntilFlags::EolBefore);
-    return INVALID_REF;
+    if (nextIs(TokenId::SymComma) || is(TokenId::KwdUsing))
+    {
+        skipTo({TokenId::SymRightCurly, TokenId::SymComma}, SkipUntilFlags::EolBefore);
+        return INVALID_REF;
+    }
+
+    AstNodeRef nodeType = INVALID_REF;
+    AstNodeRef nodeInit = INVALID_REF;
+    TokenRef   tokName  = INVALID_REF;
+
+    tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+
+    if (consumeIf(TokenId::SymColon))
+        nodeType = parseType();
+    if (consumeIf(TokenId::SymEqual))
+        nodeInit = parseInitializationExpression();
+
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDecl>();
+    nodePtr->tokName        = tokName;
+    nodePtr->nodeType       = nodeType;
+    nodePtr->nodeInit       = nodeInit;
+    return nodeRef;
 }
 
 SWC_END_NAMESPACE()

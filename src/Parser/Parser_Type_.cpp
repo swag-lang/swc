@@ -49,6 +49,9 @@ AstNodeRef Parser::parseSingleType()
     case TokenId::KwdMtd:
         break;
 
+    case TokenId::CompilerDeclType:
+        return parseSysCallUnary(AstNodeId::CompilerCallUnary);
+
     default:
         break;
     }

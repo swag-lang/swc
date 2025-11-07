@@ -5,7 +5,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstNodeRef Parser::parseCallArg1(AstNodeId callerNodeId)
+AstNodeRef Parser::parseSysCallUnary(AstNodeId callerNodeId)
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstSysCallUnaryBase>(callerNodeId);
     nodePtr->tokName         = consume();
@@ -18,7 +18,7 @@ AstNodeRef Parser::parseCallArg1(AstNodeId callerNodeId)
     return nodeRef;
 }
 
-AstNodeRef Parser::parseCallArg2(AstNodeId callerNodeId)
+AstNodeRef Parser::parseSysCallBinary(AstNodeId callerNodeId)
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstSysCallBinaryBase>(callerNodeId);
     nodePtr->tokName         = consume();
@@ -36,7 +36,7 @@ AstNodeRef Parser::parseCallArg2(AstNodeId callerNodeId)
     return nodeRef;
 }
 
-AstNodeRef Parser::parseCallArg3(AstNodeId callerNodeId)
+AstNodeRef Parser::parseSysCallTernary(AstNodeId callerNodeId)
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstSysCallTernaryBase>(callerNodeId);
     nodePtr->tokName         = consume();

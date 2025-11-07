@@ -66,19 +66,19 @@ AstNodeRef Parser::parseBlockCompilerDirective(AstNodeId blockNodeId)
         switch (id())
         {
         case TokenId::CompilerAssert:
-            childrenRef = parseCallArg1(AstNodeId::CompilerAssert);
+            childrenRef = parseSysCallUnary(AstNodeId::CompilerAssert);
             expectEndStatement();
             break;
         case TokenId::CompilerError:
-            childrenRef = parseCallArg1(AstNodeId::CompilerError);
+            childrenRef = parseSysCallUnary(AstNodeId::CompilerError);
             expectEndStatement();
             break;
         case TokenId::CompilerWarning:
-            childrenRef = parseCallArg1(AstNodeId::CompilerWarning);
+            childrenRef = parseSysCallUnary(AstNodeId::CompilerWarning);
             expectEndStatement();
             break;
         case TokenId::CompilerPrint:
-            childrenRef = parseCallArg1(AstNodeId::CompilerPrint);
+            childrenRef = parseSysCallUnary(AstNodeId::CompilerPrint);
             expectEndStatement();
             break;
         case TokenId::CompilerIf:

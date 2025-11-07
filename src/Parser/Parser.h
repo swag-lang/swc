@@ -77,9 +77,9 @@ class Parser
     AstNodeRef parseSingleType();
     AstNodeRef parseType();
 
-    AstNodeRef parseCallArg1(AstNodeId callerNodeId);
-    AstNodeRef parseCallArg2(AstNodeId callerNodeId);
-    AstNodeRef parseCallArg3(AstNodeId callerNodeId);
+    AstNodeRef parseSysCallUnary(AstNodeId callerNodeId);
+    AstNodeRef parseSysCallBinary(AstNodeId callerNodeId);
+    AstNodeRef parseSysCallTernary(AstNodeId callerNodeId);
     AstNodeRef parseBlockStmt(AstNodeId blockNodeId);
     AstNodeRef parseBlockCompilerDirective(AstNodeId blockNodeId);
     Result     parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId);

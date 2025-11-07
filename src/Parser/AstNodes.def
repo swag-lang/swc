@@ -32,10 +32,10 @@ SWC_NODE_DEF(BinaryExpr)
 SWC_NODE_DEF(UnaryExpr)
 
 // Type Casting & Checks
-SWC_NODE_DEF(CastExpr)
-SWC_NODE_DEF(CastAutoExpr)
-SWC_NODE_DEF(AsExpr)
-SWC_NODE_DEF(IsExpr)
+SWC_NODE_DEF(ExplicitCastExpr)
+SWC_NODE_DEF(AutoExplicitCastExpr)
+SWC_NODE_DEF(AsExplicitCastExpr)
+SWC_NODE_DEF(IsTypeExpr)
 
 // Literals
 SWC_NODE_DEF(ArrayLiteral)
@@ -45,7 +45,7 @@ SWC_NODE_DEF(CompilerLiteral)
 SWC_NODE_DEF(FloatLiteral)
 SWC_NODE_DEF(IntegerLiteral)
 SWC_NODE_DEF(NullLiteral)
-SWC_NODE_DEF(SuffixedLiteral)
+SWC_NODE_DEF(PostfixedLiteral)
 SWC_NODE_DEF(StringLiteral)
 
 // Compiler Builtins
@@ -91,7 +91,7 @@ SWC_NODE_DEF(EnumValue)
 SWC_NODE_DEF(EnumUsingValue)
 
 // Functions
-SWC_NODE_DEF(FuncCall)
+SWC_NODE_DEF(Call)
 SWC_NODE_DEF(FuncBody)
 
 // Parameters / Arguments
@@ -99,9 +99,9 @@ SWC_NODE_DEF(NamedArgumentList)
 SWC_NODE_DEF(NamedArgument)
 SWC_NODE_DEF(UnnamedArgumentList)
 SWC_NODE_DEF(UnnamedArgument)
-SWC_NODE_DEF(GenericParamsList)
-SWC_NODE_DEF(GenericParamValue)
-SWC_NODE_DEF(GenericParamType)
+SWC_NODE_DEF(GenericParamList)
+SWC_NODE_DEF(GenericValueParam)
+SWC_NODE_DEF(GenericTypeParam)
 
 // If/Else
 SWC_NODE_DEF(CompilerIf)

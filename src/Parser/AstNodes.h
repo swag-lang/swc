@@ -295,10 +295,10 @@ struct AstMultiPostfixIdentifier : AstNode
     AstNodeRef nodePostfixBlock;
 };
 
-struct AstFuncCall : AstNode
+struct AstCall : AstNode
 {
-    static constexpr auto ID = AstNodeId::FuncCall;
-    AstFuncCall() :
+    static constexpr auto ID = AstNodeId::Call;
+    AstCall() :
         AstNode(ID)
     {
     }
@@ -515,10 +515,10 @@ struct AstCompilerLiteral : AstLiteralBase
     }
 };
 
-struct AstSuffixedLiteral : AstNode
+struct AstPostfixedLiteral : AstNode
 {
-    static constexpr auto ID = AstNodeId::SuffixedLiteral;
-    AstSuffixedLiteral() :
+    static constexpr auto ID = AstNodeId::PostfixedLiteral;
+    AstPostfixedLiteral() :
         AstNode(ID)
     {
     }
@@ -548,10 +548,10 @@ struct AstScopeAccess : AstNode
     AstNodeRef nodeRight;
 };
 
-struct AstAsExpr : AstNode
+struct AstAsExplicitCastExpr : AstNode
 {
-    static constexpr auto ID = AstNodeId::AsExpr;
-    AstAsExpr() :
+    static constexpr auto ID = AstNodeId::AsExplicitCastExpr;
+    AstAsExplicitCastExpr() :
         AstNode(ID)
     {
     }
@@ -560,10 +560,10 @@ struct AstAsExpr : AstNode
     AstNodeRef nodeType;
 };
 
-struct AstIsExpr : AstNode
+struct AstIsTypeExpr : AstNode
 {
-    static constexpr auto ID = AstNodeId::IsExpr;
-    AstIsExpr() :
+    static constexpr auto ID = AstNodeId::IsTypeExpr;
+    AstIsTypeExpr() :
         AstNode(ID)
     {
     }
@@ -572,10 +572,10 @@ struct AstIsExpr : AstNode
     AstNodeRef nodeType;
 };
 
-struct AstCastAutoExpr : AstNode
+struct AstAutoExplicitCastExpr : AstNode
 {
-    static constexpr auto ID = AstNodeId::CastAutoExpr;
-    AstCastAutoExpr() :
+    static constexpr auto ID = AstNodeId::AutoExplicitCastExpr;
+    AstAutoExplicitCastExpr() :
         AstNode(ID)
     {
     }
@@ -585,10 +585,10 @@ struct AstCastAutoExpr : AstNode
     AstNodeRef       nodeExpr;
 };
 
-struct AstCastExpr : AstNode
+struct AstExplicitCastExpr : AstNode
 {
-    static constexpr auto ID = AstNodeId::CastExpr;
-    AstCastExpr() :
+    static constexpr auto ID = AstNodeId::ExplicitCastExpr;
+    AstExplicitCastExpr() :
         AstNode(ID)
     {
     }
@@ -843,9 +843,9 @@ struct AstUsingDecl : AstCompound
     }
 };
 
-struct AstStructDeclBase : AstCompound
+struct AstAggregateDeclBase : AstCompound
 {
-    explicit AstStructDeclBase(AstNodeId nodeId) :
+    explicit AstAggregateDeclBase(AstNodeId nodeId) :
         AstCompound(nodeId)
     {
     }
@@ -855,20 +855,20 @@ struct AstStructDeclBase : AstCompound
     SpanRef  spanWhere;
 };
 
-struct AstStructDecl : AstStructDeclBase
+struct AstStructDecl : AstAggregateDeclBase
 {
     static constexpr auto ID = AstNodeId::StructDecl;
     AstStructDecl() :
-        AstStructDeclBase(ID)
+        AstAggregateDeclBase(ID)
     {
     }
 };
 
-struct AstUnionDecl : AstStructDeclBase
+struct AstUnionDecl : AstAggregateDeclBase
 {
     static constexpr auto ID = AstNodeId::UnionDecl;
     AstUnionDecl() :
-        AstStructDeclBase(ID)
+        AstAggregateDeclBase(ID)
     {
     }
 };
@@ -908,10 +908,10 @@ struct AstConstraintExpr : AstNode
     AstNodeRef nodeExpr;
 };
 
-struct AstGenericParamsList : AstCompound
+struct AstGenericParamList : AstCompound
 {
-    static constexpr auto ID = AstNodeId::GenericParamsList;
-    AstGenericParamsList() :
+    static constexpr auto ID = AstNodeId::GenericParamList;
+    AstGenericParamList() :
         AstCompound(ID)
     {
     }
@@ -928,10 +928,10 @@ struct AstGenericParamBase : AstNode
     AstNodeRef nodeAssign;
 };
 
-struct AstGenericParamValue : AstGenericParamBase
+struct AstGenericValueParam : AstGenericParamBase
 {
-    static constexpr auto ID = AstNodeId::GenericParamValue;
-    AstGenericParamValue() :
+    static constexpr auto ID = AstNodeId::GenericValueParam;
+    AstGenericValueParam() :
         AstGenericParamBase(ID)
     {
     }
@@ -939,10 +939,10 @@ struct AstGenericParamValue : AstGenericParamBase
     AstNodeRef nodeType;
 };
 
-struct AstGenericParamType : AstGenericParamBase
+struct AstGenericTypeParam : AstGenericParamBase
 {
-    static constexpr auto ID = AstNodeId::GenericParamType;
-    AstGenericParamType() :
+    static constexpr auto ID = AstNodeId::GenericTypeParam;
+    AstGenericTypeParam() :
         AstGenericParamBase(ID)
     {
     }

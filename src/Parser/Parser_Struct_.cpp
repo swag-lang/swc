@@ -72,13 +72,13 @@ AstNodeRef Parser::parseStructDecl()
 
 AstNodeRef Parser::parseStructUnionDecl(AstNodeId nodeId)
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstStructDeclBase>(nodeId);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstAggregateDeclBase>(nodeId);
     consume();
 
     // Generic types
     if (is(TokenId::SymLeftParen))
     {
-        nodePtr->spanGenericParams = parseBlockContent(AstNodeId::GenericParamsList, TokenId::SymLeftParen);
+        nodePtr->spanGenericParams = parseBlockContent(AstNodeId::GenericParamList, TokenId::SymLeftParen);
         if (invalid(nodePtr->spanGenericParams))
             skipTo({TokenId::SymLeftCurly});
     }

@@ -38,7 +38,7 @@ AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
     case AstNodeId::NamedArgumentList:
         return parseNamedArgument();
 
-    case AstNodeId::GenericParamsList:
+    case AstNodeId::GenericParamList:
         return parseGenericParam();
 
     case AstNodeId::UsingDecl:
@@ -121,7 +121,7 @@ Result Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
     case AstNodeId::ArrayLiteral:
     case AstNodeId::UnnamedArgumentList:
     case AstNodeId::NamedArgumentList:
-    case AstNodeId::GenericParamsList:
+    case AstNodeId::GenericParamList:
         if (!consumeIf(TokenId::SymComma) && !is(tokenEndId))
         {
             if (is(TokenId::Identifier) && blockNodeId == AstNodeId::AttributeList)

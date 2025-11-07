@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Core/Types.h"
-#include "Parser/AstNodeBase.h"
+#include "Parser/AstNode.h"
 #include "Parser/Parser.h"
 #include "Report/Diagnostic.h"
 

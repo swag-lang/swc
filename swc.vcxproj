@@ -175,7 +175,7 @@
         <ClInclude Include="src\Memory\Arena.h"/>
         <ClInclude Include="src\Os\Os.h"/>
         <ClInclude Include="src\Parser\Ast.h"/>
-        <ClInclude Include="src\Parser\AstNodeBase.h"/>
+        <ClInclude Include="src\Parser\AstNode.h" />
         <ClInclude Include="src\Parser\AstNodes.def"/>
         <ClInclude Include="src\Parser\AstNodes.h"/>
         <ClInclude Include="src\Parser\Parser.h"/>

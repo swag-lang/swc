@@ -22,9 +22,9 @@ AstNodeRef Parser::parseCompilerFunc()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseCompilerFuncExpr()
+AstNodeRef Parser::parseCompilerExpr()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerFuncExpr>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerExpr>();
     nodePtr->tokName        = consume();
     nodePtr->nodeExpr       = parseExpression();
     return nodeRef;
@@ -83,9 +83,9 @@ AstNodeRef Parser::parseCompilerIf(AstNodeId blockNodeId)
     return nodeRef;
 }
 
-AstNodeRef Parser::parseCompilerDependenciesDecl()
+AstNodeRef Parser::parseCompilerDependencies()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::DependenciesDecl>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Dependencies>();
     consume();
     nodePtr->nodeBody = parseBlock(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     return nodeRef;

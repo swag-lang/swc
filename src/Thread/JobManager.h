@@ -54,7 +54,7 @@ private:
     JobRecord* popReadyLocked();                            // High → Normal → Low
     bool       removeFromReadyQueuesLocked(JobRecord* rec); // returns true if removed & decremented
 
-    // DependenciesDecl
+    // Dependencies
     static bool linkOrSkip(JobRecord* waiter, JobRecord* dep); // returns false if dep already Done
 
     // Workers

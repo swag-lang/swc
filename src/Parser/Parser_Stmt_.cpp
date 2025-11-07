@@ -41,8 +41,8 @@ AstNodeRef Parser::parseTopLevelStmt()
 
     case TokenId::KwdNamespace:
         return parseNamespace();
-    case TokenId::CompilerDependenciesDecl:
-        return parseCompilerDependenciesDecl();
+    case TokenId::CompilerDependencies:
+        return parseCompilerDependencies();
 
     case TokenId::SymAttrStart:
         return parseCompilerAttribute(AstNodeId::TopLevelBlock);

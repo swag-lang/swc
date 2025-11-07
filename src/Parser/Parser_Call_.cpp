@@ -7,12 +7,12 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseCallArg1(AstNodeId callerNodeId)
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstCall1Base>(callerNodeId);
-    nodePtr->tokRef         = consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstSysCallUnaryBase>(callerNodeId);
+    nodePtr->tokName         = consume();
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    nodePtr->nodeParam1 = parseExpression();
+    nodePtr->nodeArg1 = parseExpression();
     expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
 
     return nodeRef;
@@ -20,17 +20,17 @@ AstNodeRef Parser::parseCallArg1(AstNodeId callerNodeId)
 
 AstNodeRef Parser::parseCallArg2(AstNodeId callerNodeId)
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstCall2Base>(callerNodeId);
-    nodePtr->tokRef         = consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstSysCallBinaryBase>(callerNodeId);
+    nodePtr->tokName         = consume();
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
-    nodePtr->nodeParam1 = parseExpression();
+    nodePtr->nodeArg1 = parseExpression();
     if (invalid(expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token)))
         skipTo({TokenId::SymComma, TokenId::SymRightParen});
 
-    nodePtr->nodeParam2 = parseExpression();
+    nodePtr->nodeArg2 = parseExpression();
 
     expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
     return nodeRef;
@@ -38,21 +38,21 @@ AstNodeRef Parser::parseCallArg2(AstNodeId callerNodeId)
 
 AstNodeRef Parser::parseCallArg3(AstNodeId callerNodeId)
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstCall3Base>(callerNodeId);
-    nodePtr->tokRef         = consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstSysCallTernaryBase>(callerNodeId);
+    nodePtr->tokName         = consume();
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
-    nodePtr->nodeParam1 = parseExpression();
+    nodePtr->nodeArg1 = parseExpression();
     if (invalid(expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token)))
         skipTo({TokenId::SymComma, TokenId::SymRightParen});
 
-    nodePtr->nodeParam2 = parseExpression();
+    nodePtr->nodeArg2 = parseExpression();
     if (invalid(expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token)))
         skipTo({TokenId::SymComma, TokenId::SymRightParen});
 
-    nodePtr->nodeParam3 = parseExpression();
+    nodePtr->nodeArg3 = parseExpression();
 
     expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
     return nodeRef;
@@ -61,9 +61,9 @@ AstNodeRef Parser::parseCallArg3(AstNodeId callerNodeId)
 AstNodeRef Parser::parseAttribute()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Attribute>();
-    nodePtr->nodeIdent = parseScopedIdentifier();
+    nodePtr->nodeIdent = parseQualifiedIdentifier();
     if (is(TokenId::SymLeftParen))
-        nodePtr->nodeArgs = parseBlock(AstNodeId::NamedArgumentList, TokenId::SymLeftParen);
+        nodePtr->nodeArgs = parseBlock(AstNodeId::NamedArgList, TokenId::SymLeftParen);
     return nodeRef;
 }
 

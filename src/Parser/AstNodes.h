@@ -85,74 +85,74 @@ struct AstUsingNamespace : AstNode
     AstNodeRef nodeNamespace;
 };
 
-struct AstCall1Base : AstNode
+struct AstSysCallUnaryBase : AstNode
 {
-    explicit AstCall1Base(AstNodeId nodeId) :
+    explicit AstSysCallUnaryBase(AstNodeId nodeId) :
         AstNode(nodeId)
     {
     }
 
-    TokenRef   tokRef;
-    AstNodeRef nodeParam1;
+    TokenRef   tokName;
+    AstNodeRef nodeArg1;
 };
 
-struct AstCall2Base : AstNode
+struct AstSysCallBinaryBase : AstNode
 {
-    explicit AstCall2Base(AstNodeId nodeId) :
+    explicit AstSysCallBinaryBase(AstNodeId nodeId) :
         AstNode(nodeId)
     {
     }
 
-    TokenRef   tokRef;
-    AstNodeRef nodeParam1;
-    AstNodeRef nodeParam2;
+    TokenRef   tokName;
+    AstNodeRef nodeArg1;
+    AstNodeRef nodeArg2;
 };
 
-struct AstCall3Base : AstNode
+struct AstSysCallTernaryBase : AstNode
 {
-    explicit AstCall3Base(AstNodeId nodeId) :
+    explicit AstSysCallTernaryBase(AstNodeId nodeId) :
         AstNode(nodeId)
     {
     }
 
-    TokenRef   tokRef;
-    AstNodeRef nodeParam1;
-    AstNodeRef nodeParam2;
-    AstNodeRef nodeParam3;
+    TokenRef   tokName;
+    AstNodeRef nodeArg1;
+    AstNodeRef nodeArg2;
+    AstNodeRef nodeArg3;
 };
 
-struct AstCompilerCall1 : AstCall1Base
+struct AstCompilerCallUnary : AstSysCallUnaryBase
 {
-    static constexpr auto ID = AstNodeId::CompilerCall1;
-    AstCompilerCall1() :
-        AstCall1Base(ID)
+    static constexpr auto ID = AstNodeId::CompilerCallUnary;
+    AstCompilerCallUnary() :
+        AstSysCallUnaryBase(ID)
     {
     }
 };
 
-struct AstIntrinsicCall1 : AstCall1Base
+struct AstIntrinsicCallUnary : AstSysCallUnaryBase
 {
-    static constexpr auto ID = AstNodeId::IntrinsicCall1;
-    AstIntrinsicCall1() :
-        AstCall1Base(ID)
+    static constexpr auto ID = AstNodeId::IntrinsicCallUnary;
+    AstIntrinsicCallUnary() :
+        AstSysCallUnaryBase(ID)
     {
     }
 };
 
-struct AstIntrinsicCall2 : AstCall2Base
+struct AstIntrinsicCallBinary : AstSysCallBinaryBase
 {
-    static constexpr auto ID = AstNodeId::IntrinsicCall2;
-    AstIntrinsicCall2() :
-        AstCall2Base(ID)
+    static constexpr auto ID = AstNodeId::IntrinsicCallBinary;
+    AstIntrinsicCallBinary() :
+        AstSysCallBinaryBase(ID)
     {
     }
 };
 
-struct AstIntrinsicCall3 : AstCall3Base
+struct AstIntrinsicCallTernary : AstSysCallTernaryBase
 {
-    static constexpr auto ID = AstNodeId::IntrinsicCall3;
-    AstIntrinsicCall3() :
-        AstCall3Base(ID)
+    static constexpr auto ID = AstNodeId::IntrinsicCallTernary;
+    AstIntrinsicCallTernary() :
+        AstSysCallTernaryBase(ID)
     {
     }
 };
@@ -166,38 +166,38 @@ struct AstFuncBody : AstCompound
     }
 };
 
-struct AstCompilerAssert : AstCall1Base
+struct AstCompilerAssert : AstSysCallUnaryBase
 {
     static constexpr auto ID = AstNodeId::CompilerAssert;
     AstCompilerAssert() :
-        AstCall1Base(ID)
+        AstSysCallUnaryBase(ID)
     {
     }
 };
 
-struct AstCompilerError : AstCall1Base
+struct AstCompilerError : AstSysCallUnaryBase
 {
     static constexpr auto ID = AstNodeId::CompilerError;
     AstCompilerError() :
-        AstCall1Base(ID)
+        AstSysCallUnaryBase(ID)
     {
     }
 };
 
-struct AstCompilerWarning : AstCall1Base
+struct AstCompilerWarning : AstSysCallUnaryBase
 {
     static constexpr auto ID = AstNodeId::CompilerWarning;
     AstCompilerWarning() :
-        AstCall1Base(ID)
+        AstSysCallUnaryBase(ID)
     {
     }
 };
 
-struct AstCompilerPrint : AstCall1Base
+struct AstCompilerPrint : AstSysCallUnaryBase
 {
     static constexpr auto ID = AstNodeId::CompilerPrint;
     AstCompilerPrint() :
-        AstCall1Base(ID)
+        AstSysCallUnaryBase(ID)
     {
     }
 };
@@ -226,10 +226,10 @@ struct AstCompilerShortFunc : AstNode
     AstNodeRef nodeExpr;
 };
 
-struct AstCompilerFuncExpr : AstNode
+struct AstCompilerExpr : AstNode
 {
-    static constexpr auto ID = AstNodeId::CompilerFuncExpr;
-    AstCompilerFuncExpr() :
+    static constexpr auto ID = AstNodeId::CompilerExpr;
+    AstCompilerExpr() :
         AstNode(ID)
     {
     }
@@ -249,10 +249,10 @@ struct AstIdentifier : AstNode
     TokenRef tokName;
 };
 
-struct AstScopedIdentifier : AstNode
+struct AstQualifiedIdentifier : AstNode
 {
-    static constexpr auto ID = AstNodeId::ScopedIdentifier;
-    AstScopedIdentifier() :
+    static constexpr auto ID = AstNodeId::QualifiedIdentifier;
+    AstQualifiedIdentifier() :
         AstNode(ID)
     {
     }
@@ -260,10 +260,10 @@ struct AstScopedIdentifier : AstNode
     AstNodeRef nodeIdent;
 };
 
-struct AstUpIdentifier : AstNode
+struct AstAncestorIdentifier : AstNode
 {
-    static constexpr auto ID = AstNodeId::UpIdentifier;
-    AstUpIdentifier() :
+    static constexpr auto ID = AstNodeId::AncestorIdentifier;
+    AstAncestorIdentifier() :
         AstNode(ID)
     {
     }
@@ -371,19 +371,19 @@ struct AstParenExpr : AstNode
     AstNodeRef nodeExpr;
 };
 
-struct AstNamedArgumentList : AstCompound
+struct AstNamedArgList : AstCompound
 {
-    static constexpr auto ID = AstNodeId::NamedArgumentList;
-    AstNamedArgumentList() :
+    static constexpr auto ID = AstNodeId::NamedArgList;
+    AstNamedArgList() :
         AstCompound(ID)
     {
     }
 };
 
-struct AstUnnamedArgumentList : AstCompound
+struct AstUnnamedArgList : AstCompound
 {
-    static constexpr auto ID = AstNodeId::UnnamedArgumentList;
-    AstUnnamedArgumentList() :
+    static constexpr auto ID = AstNodeId::UnnamedArgList;
+    AstUnnamedArgList() :
         AstCompound(ID)
     {
     }
@@ -536,10 +536,10 @@ struct AstArrayLiteral : AstCompound
     }
 };
 
-struct AstScopeAccess : AstNode
+struct AstScopeResolution : AstNode
 {
-    static constexpr auto ID = AstNodeId::ScopeAccess;
-    AstScopeAccess() :
+    static constexpr auto ID = AstNodeId::ScopeResolution;
+    AstScopeResolution() :
         AstNode(ID)
     {
     }
@@ -548,10 +548,10 @@ struct AstScopeAccess : AstNode
     AstNodeRef nodeRight;
 };
 
-struct AstAsExplicitCastExpr : AstNode
+struct AstAsCastExpr : AstNode
 {
-    static constexpr auto ID = AstNodeId::AsExplicitCastExpr;
-    AstAsExplicitCastExpr() :
+    static constexpr auto ID = AstNodeId::AsCastExpr;
+    AstAsCastExpr() :
         AstNode(ID)
     {
     }
@@ -572,10 +572,10 @@ struct AstIsTypeExpr : AstNode
     AstNodeRef nodeType;
 };
 
-struct AstAutoExplicitCastExpr : AstNode
+struct AstAutoCastExpr : AstNode
 {
-    static constexpr auto ID = AstNodeId::AutoExplicitCastExpr;
-    AstAutoExplicitCastExpr() :
+    static constexpr auto ID = AstNodeId::AutoCastExpr;
+    AstAutoCastExpr() :
         AstNode(ID)
     {
     }
@@ -623,10 +623,10 @@ struct AstEnumValue : AstNode
     AstNodeRef nodeValue;
 };
 
-struct AstEnumUsingValue : AstNode
+struct AstEnumUse : AstNode
 {
-    static constexpr auto ID = AstNodeId::EnumUsingValue;
-    AstEnumUsingValue() :
+    static constexpr auto ID = AstNodeId::EnumUse;
+    AstEnumUse() :
         AstNode(ID)
     {
     }
@@ -634,10 +634,10 @@ struct AstEnumUsingValue : AstNode
     AstNodeRef nodeName;
 };
 
-struct AstEnumImpl : AstCompound
+struct AstImplEnum : AstCompound
 {
-    static constexpr auto ID = AstNodeId::EnumImpl;
-    AstEnumImpl() :
+    static constexpr auto ID = AstNodeId::ImplEnum;
+    AstImplEnum() :
         AstCompound(ID)
     {
     }
@@ -823,10 +823,10 @@ struct AstAttributeList : AstCompound
     AstNodeRef nodeBody;
 };
 
-struct AstDependenciesDecl : AstNode
+struct AstDependencies : AstNode
 {
-    static constexpr auto ID = AstNodeId::DependenciesDecl;
-    AstDependenciesDecl() :
+    static constexpr auto ID = AstNodeId::Dependencies;
+    AstDependencies() :
         AstNode(ID)
     {
     }
@@ -843,9 +843,9 @@ struct AstUsingDecl : AstCompound
     }
 };
 
-struct AstAggregateDeclBase : AstCompound
+struct AstAggregateDecl : AstCompound
 {
-    explicit AstAggregateDeclBase(AstNodeId nodeId) :
+    explicit AstAggregateDecl(AstNodeId nodeId) :
         AstCompound(nodeId)
     {
     }
@@ -855,20 +855,20 @@ struct AstAggregateDeclBase : AstCompound
     SpanRef  spanWhere;
 };
 
-struct AstStructDecl : AstAggregateDeclBase
+struct AstStructDecl : AstAggregateDecl
 {
     static constexpr auto ID = AstNodeId::StructDecl;
     AstStructDecl() :
-        AstAggregateDeclBase(ID)
+        AstAggregateDecl(ID)
     {
     }
 };
 
-struct AstUnionDecl : AstAggregateDeclBase
+struct AstUnionDecl : AstAggregateDecl
 {
     static constexpr auto ID = AstNodeId::UnionDecl;
     AstUnionDecl() :
-        AstAggregateDeclBase(ID)
+        AstAggregateDecl(ID)
     {
     }
 };

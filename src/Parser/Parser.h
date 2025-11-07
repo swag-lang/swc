@@ -93,9 +93,9 @@ class Parser
 
     AstNodeRef       parseIdentifier();
     AstNodeRef       parsePostfixIdentifier();
-    AstNodeRef       parseAutoScopedIdentifier();
-    AstNodeRef       parseUpIdentifier();
-    AstNodeRef       parseScopedIdentifier();
+    AstNodeRef       parseAutoQualifiedIdentifier();
+    AstNodeRef       parseAncestorIdentifier();
+    AstNodeRef       parseQualifiedIdentifier();
     AstNodeRef       parseLiteral();
     AstNodeRef       parseLiteralExpression();
     AstNodeRef       parseLiteralArray();
@@ -111,10 +111,10 @@ class Parser
     AstNodeRef       parseExpression();
     AstNodeRef       parseParenExpr();
     AstNodeRef       parseEnumDecl();
-    AstNodeRef       parseEnumImpl();
+    AstNodeRef       parseImplEnum();
     AstNodeRef       parseEnumValue();
     AstNodeRef       parseCompilerFunc();
-    AstNodeRef       parseCompilerFuncExpr();
+    AstNodeRef       parseCompilerExpr();
     AstNodeRef       parseCompilerType();
     AstNodeRef       parseTopLevelStmt();
     AstNodeRef       parseEmbeddedStmt();
@@ -126,7 +126,7 @@ class Parser
     AstNodeRef       parseImpl();
     AstNodeRef       parseFile();
     AstNodeRef       parseAttribute();
-    AstNodeRef       parseCompilerDependenciesDecl();
+    AstNodeRef       parseCompilerDependencies();
     AstNodeRef       parseGlobalAccessModifier();
     AstNodeRef       parseUsingDecl();
     AstNodeRef       parseConstraint();

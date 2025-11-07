@@ -7,12 +7,12 @@ SWC_BEGIN_NAMESPACE()
 AstNodeRef Parser::parseImpl()
 {
     if (nextIs(TokenId::KwdEnum))
-        return parseEnumImpl();
+        return parseImplEnum();
 
     consume();
 
     // Name
-    const AstNodeRef nodeIdent = parseScopedIdentifier();
+    const AstNodeRef nodeIdent = parseQualifiedIdentifier();
     if (invalid(nodeIdent))
         skipTo({TokenId::SymLeftCurly, TokenId::KwdFor});
 
@@ -20,7 +20,7 @@ AstNodeRef Parser::parseImpl()
     AstNodeRef nodeFor = INVALID_REF;
     if (consumeIf(TokenId::KwdFor))
     {
-        nodeFor = parseScopedIdentifier();
+        nodeFor = parseQualifiedIdentifier();
         if (invalid(nodeIdent))
             skipTo({TokenId::SymLeftCurly});
     }
@@ -72,7 +72,7 @@ AstNodeRef Parser::parseStructDecl()
 
 AstNodeRef Parser::parseStructUnionDecl(AstNodeId nodeId)
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstAggregateDeclBase>(nodeId);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstAggregateDecl>(nodeId);
     consume();
 
     // Generic types

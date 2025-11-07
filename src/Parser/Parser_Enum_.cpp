@@ -4,17 +4,17 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstNodeRef Parser::parseEnumImpl()
+AstNodeRef Parser::parseImplEnum()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumImpl>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ImplEnum>();
     consume(TokenId::KwdImpl);
     consume(TokenId::KwdEnum);
 
-    nodePtr->nodeName = parseScopedIdentifier();
+    nodePtr->nodeName = parseQualifiedIdentifier();
     if (invalid(nodePtr->nodeName))
         skipTo({TokenId::SymLeftCurly});
 
-    nodePtr->spanChildren = parseBlockContent(AstNodeId::EnumImpl, TokenId::SymLeftCurly);
+    nodePtr->spanChildren = parseBlockContent(AstNodeId::ImplEnum, TokenId::SymLeftCurly);
     return nodeRef;
 }
 
@@ -26,9 +26,9 @@ AstNodeRef Parser::parseEnumValue()
     {
     case TokenId::KwdUsing:
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumUsingValue>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumUse>();
         consume();
-        nodePtr->nodeName = parseScopedIdentifier();
+        nodePtr->nodeName = parseQualifiedIdentifier();
         return nodeRef;
     }
 

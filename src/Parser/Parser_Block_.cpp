@@ -14,7 +14,7 @@ AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
     {
     case AstNodeId::File:
     case AstNodeId::TopLevelBlock:
-    case AstNodeId::EnumImpl:
+    case AstNodeId::ImplEnum:
     case AstNodeId::Impl:
     case AstNodeId::ImplFor:
         return parseTopLevelStmt();
@@ -32,17 +32,17 @@ AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
         return parseAttribute();
 
     case AstNodeId::ArrayLiteral:
-    case AstNodeId::UnnamedArgumentList:
+    case AstNodeId::UnnamedArgList:
         return parseExpression();
 
-    case AstNodeId::NamedArgumentList:
+    case AstNodeId::NamedArgList:
         return parseNamedArgument();
 
     case AstNodeId::GenericParamList:
         return parseGenericParam();
 
     case AstNodeId::UsingDecl:
-        return parseScopedIdentifier();
+        return parseQualifiedIdentifier();
 
     default:
         std::unreachable();
@@ -56,7 +56,7 @@ AstNodeRef Parser::parseBlockCompilerDirective(AstNodeId blockNodeId)
     // Compiler instructions
     if (blockNodeId == AstNodeId::File ||
         blockNodeId == AstNodeId::TopLevelBlock ||
-        blockNodeId == AstNodeId::EnumImpl ||
+        blockNodeId == AstNodeId::ImplEnum ||
         blockNodeId == AstNodeId::Impl ||
         blockNodeId == AstNodeId::ImplFor ||
         blockNodeId == AstNodeId::StructDecl ||
@@ -119,8 +119,8 @@ Result Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
     case AstNodeId::UsingDecl:
     case AstNodeId::AttributeList:
     case AstNodeId::ArrayLiteral:
-    case AstNodeId::UnnamedArgumentList:
-    case AstNodeId::NamedArgumentList:
+    case AstNodeId::UnnamedArgList:
+    case AstNodeId::NamedArgList:
     case AstNodeId::GenericParamList:
         if (!consumeIf(TokenId::SymComma) && !is(tokenEndId))
         {
@@ -248,7 +248,7 @@ AstNodeRef Parser::parseNamespace()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Namespace>();
     consume();
-    nodePtr->nodeName = parseScopedIdentifier();
+    nodePtr->nodeName = parseQualifiedIdentifier();
     if (invalid(nodePtr->nodeName))
         skipTo({TokenId::SymLeftCurly});
     nodePtr->nodeBody = parseBlock(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);

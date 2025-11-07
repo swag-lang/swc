@@ -20,7 +20,7 @@ AstNodeRef Parser::parseSingleType()
     case TokenId::Identifier:
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamedType>();
-        nodePtr->nodeIdentifier = parseScopedIdentifier();
+        nodePtr->nodeIdent = parseScopedIdentifier();
         return nodeRef;
     }
 

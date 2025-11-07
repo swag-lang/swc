@@ -396,7 +396,7 @@ AstNodeRef Parser::parseBinaryExpr()
         const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::BinaryExpr>();
         nodePtr->tokOp                  = consume();
         nodePtr->nodeLeft               = nodeRef;
-        nodePtr->modifiersFlags         = parseModifiers();
+        nodePtr->modifierFlags         = parseModifiers();
         nodePtr->nodeRight              = parseBinaryExpr();
         return nodeParen;
     }
@@ -476,25 +476,25 @@ AstNodeRef Parser::parseIdentifier()
 
 AstNodeRef Parser::parsePostfixIdentifier()
 {
-    const auto nodeIdentifier = parseIdentifier();
-    if (invalid(nodeIdentifier))
+    const auto nodeIdent = parseIdentifier();
+    if (invalid(nodeIdent))
         return INVALID_REF;
 
     if (!is(TokenId::SymQuote) || has_any(tok().flags, TokenFlags::BlankBefore))
-        return nodeIdentifier;
+        return nodeIdent;
 
     consume();
 
     if (is(TokenId::SymLeftParen))
     {
         auto [nodeRef, nodePtr]   = ast_->makeNode<AstNodeId::MultiPostfixIdentifier>();
-        nodePtr->nodeIdentifier   = nodeIdentifier;
+        nodePtr->nodeIdent   = nodeIdent;
         nodePtr->nodePostfixBlock = parseBlock(AstNodeId::UnnamedArgumentList, TokenId::SymLeftParen);
         return nodeRef;
     }
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::PostfixIdentifier>();
-    nodePtr->nodeIdentifier = nodeIdentifier;
+    nodePtr->nodeIdent = nodeIdent;
     nodePtr->nodePostfix    = parseType();
     return nodeRef;
 }
@@ -503,7 +503,7 @@ AstNodeRef Parser::parseAutoScopedIdentifier()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ScopedIdentifier>();
     consume(TokenId::SymDot);
-    nodePtr->nodeIdentifier = parseScopedIdentifier();
+    nodePtr->nodeIdent = parseScopedIdentifier();
     return nodeRef;
 }
 
@@ -511,7 +511,7 @@ AstNodeRef Parser::parseUpIdentifier()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UpIdentifier>();
     consume(TokenId::CompilerUp);
-    nodePtr->nodeIdentifier = parseScopedIdentifier();
+    nodePtr->nodeIdent = parseScopedIdentifier();
     return nodeRef;
 }
 

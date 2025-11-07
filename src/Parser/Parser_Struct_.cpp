@@ -12,8 +12,8 @@ AstNodeRef Parser::parseImplDecl()
     consume();
 
     // Name
-    const AstNodeRef nodeIdentifier = parseScopedIdentifier();
-    if (invalid(nodeIdentifier))
+    const AstNodeRef nodeIdent = parseScopedIdentifier();
+    if (invalid(nodeIdent))
         skipTo({TokenId::SymLeftCurly, TokenId::KwdFor});
 
     // For
@@ -21,20 +21,20 @@ AstNodeRef Parser::parseImplDecl()
     if (consumeIf(TokenId::KwdFor))
     {
         nodeFor = parseScopedIdentifier();
-        if (invalid(nodeIdentifier))
+        if (invalid(nodeIdent))
             skipTo({TokenId::SymLeftCurly});
     }
 
     if (invalid(nodeFor))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ImplDecl>();
-        nodePtr->nodeIdentifier = nodeIdentifier;
+        nodePtr->nodeIdent = nodeIdent;
         nodePtr->spanChildren   = parseBlockContent(AstNodeId::ImplDecl, TokenId::SymLeftCurly);
         return nodeRef;
     }
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ImplDeclFor>();
-    nodePtr->nodeIdentifier = nodeIdentifier;
+    nodePtr->nodeIdent = nodeIdent;
     nodePtr->nodeFor        = nodeFor;
     nodePtr->spanChildren   = parseBlockContent(AstNodeId::ImplDeclFor, TokenId::SymLeftCurly);
     return nodeRef;

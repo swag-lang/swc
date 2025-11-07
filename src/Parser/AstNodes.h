@@ -47,7 +47,7 @@ struct AstNodeImplDecl : AstNodeCompoundBase
     {
     }
 
-    AstNodeRef nodeIdentifier;
+    AstNodeRef nodeIdent;
 };
 
 struct AstNodeImplDeclFor : AstNodeCompoundBase
@@ -58,7 +58,7 @@ struct AstNodeImplDeclFor : AstNodeCompoundBase
     {
     }
 
-    AstNodeRef nodeIdentifier;
+    AstNodeRef nodeIdent;
     AstNodeRef nodeFor;
 };
 
@@ -205,7 +205,7 @@ struct AstNodeCompilerPrint : AstNodeCall1Base
 struct AstNodeCompilerFunc : AstNodeBase
 {
     static constexpr auto ID = AstNodeId::CompilerFunc;
-    explicit AstNodeCompilerFunc() :
+    AstNodeCompilerFunc() :
         AstNodeBase(ID)
     {
     }
@@ -217,7 +217,7 @@ struct AstNodeCompilerFunc : AstNodeBase
 struct AstNodeCompilerShortFunc : AstNodeBase
 {
     static constexpr auto ID = AstNodeId::CompilerShortFunc;
-    explicit AstNodeCompilerShortFunc() :
+    AstNodeCompilerShortFunc() :
         AstNodeBase(ID)
     {
     }
@@ -229,7 +229,7 @@ struct AstNodeCompilerShortFunc : AstNodeBase
 struct AstNodeCompilerFuncExpr : AstNodeBase
 {
     static constexpr auto ID = AstNodeId::CompilerFuncExpr;
-    explicit AstNodeCompilerFuncExpr() :
+    AstNodeCompilerFuncExpr() :
         AstNodeBase(ID)
     {
     }
@@ -257,7 +257,7 @@ struct AstNodeScopedIdentifier : AstNodeBase
     {
     }
 
-    AstNodeRef nodeIdentifier;
+    AstNodeRef nodeIdent;
 };
 
 struct AstNodeUpIdentifier : AstNodeBase
@@ -268,7 +268,7 @@ struct AstNodeUpIdentifier : AstNodeBase
     {
     }
 
-    AstNodeRef nodeIdentifier;
+    AstNodeRef nodeIdent;
 };
 
 struct AstNodePostfixIdentifier : AstNodeBase
@@ -279,7 +279,7 @@ struct AstNodePostfixIdentifier : AstNodeBase
     {
     }
 
-    AstNodeRef nodeIdentifier;
+    AstNodeRef nodeIdent;
     AstNodeRef nodePostfix;
 };
 
@@ -291,7 +291,7 @@ struct AstNodeMultiPostfixIdentifier : AstNodeBase
     {
     }
 
-    AstNodeRef nodeIdentifier;
+    AstNodeRef nodeIdent;
     AstNodeRef nodePostfixBlock;
 };
 
@@ -427,7 +427,7 @@ struct AstNodeBinaryExpr : AstNodeBinaryBase
     {
     }
 
-    AstModifierFlags modifiersFlags;
+    AstModifierFlags modifierFlags;
 };
 
 struct AstNodeUnaryExpr : AstNodeBase
@@ -660,7 +660,7 @@ struct AstNodeQualifiedType : AstNodeBase
 struct AstNodeLRefType : AstNodeBase
 {
     static constexpr auto ID = AstNodeId::LRefType;
-    explicit AstNodeLRefType() :
+    AstNodeLRefType() :
         AstNodeBase(ID)
     {
     }
@@ -671,7 +671,7 @@ struct AstNodeLRefType : AstNodeBase
 struct AstNodeRRefType : AstNodeBase
 {
     static constexpr auto ID = AstNodeId::RRefType;
-    explicit AstNodeRRefType() :
+    AstNodeRRefType() :
         AstNodeBase(ID)
     {
     }
@@ -743,7 +743,7 @@ struct AstNodeNamedType : AstNodeBase
     {
     }
 
-    AstNodeRef nodeIdentifier;
+    AstNodeRef nodeIdent;
 };
 
 struct AstNodeBuiltinType : AstNodeBase
@@ -808,7 +808,7 @@ struct AstNodeAttribute : AstNodeBase
     {
     }
 
-    AstNodeRef nodeIdentifier;
+    AstNodeRef nodeIdent;
     AstNodeRef nodeArgs;
 };
 

@@ -61,7 +61,7 @@ AstNodeRef Parser::parseCallArg3(AstNodeId callerNodeId)
 AstNodeRef Parser::parseAttribute()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Attribute>();
-    nodePtr->nodeIdentifier = parseScopedIdentifier();
+    nodePtr->nodeIdent = parseScopedIdentifier();
     if (is(TokenId::SymLeftParen))
         nodePtr->nodeArgs = parseBlock(AstNodeId::NamedArgumentList, TokenId::SymLeftParen);
     return nodeRef;

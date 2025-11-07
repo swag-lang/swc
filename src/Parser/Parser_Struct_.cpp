@@ -62,32 +62,54 @@ AstNodeRef Parser::parseStructValue()
 
 AstNodeRef Parser::parseGenericParam()
 {
-    bool isConstant = false;
-    bool isType     = false;
+    bool        isConstant  = false;
+    bool        isType      = false;
+    const auto& tknConstVar = tok();
     if (consumeIf(TokenId::KwdConst))
         isConstant = true;
     else if (consumeIf(TokenId::KwdVar))
         isType = true;
 
-    expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+    const auto tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
 
+    AstNodeRef nodeType = INVALID_REF;
     if (consumeIf(TokenId::SymColon))
     {
+        if (isType)
+        {
+            auto diag = reportError(DiagnosticId::parser_err_gen_param_type, ref() - 1);
+            diag.last().addSpan(tknConstVar.toLocation(*ctx_, *file_), DiagnosticId::parser_note_gen_param_type, DiagnosticSeverity::Note);
+            diag.addElement(DiagnosticId::parser_help_gen_param_type);
+            diag.report(*ctx_);
+        }
+
         isConstant = true;
-        parseType();
+        nodeType   = parseType();
     }
 
+    AstNodeRef nodeAssign = INVALID_REF;
     if (consumeIf(TokenId::SymEqual))
     {
         if (isConstant)
-            parseExpression();
+            nodeAssign = parseExpression();
         else if (isType)
-            parseType();
+            nodeAssign = parseType();
         else
-            parseExpression();
+            nodeAssign = parseExpression();
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructDecl>();
+    if (isConstant)
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::GenericParamConstant>();
+        nodePtr->tknName        = tknName;
+        nodePtr->nodeAssign     = nodeAssign;
+        nodePtr->nodeType       = nodeType;
+        return nodeRef;
+    }
+
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::GenericParamType>();
+    nodePtr->tknName        = tknName;
+    nodePtr->nodeAssign     = nodeAssign;
     return nodeRef;
 }
 
@@ -99,7 +121,7 @@ AstNodeRef Parser::parseStructDecl()
     // Generic types
     if (is(TokenId::SymLeftParen))
     {
-        nodePtr->spanGenericParams = parseBlockContent(AstNodeId::GenericParams, TokenId::SymLeftParen);
+        nodePtr->spanGenericParams = parseBlockContent(AstNodeId::GenericParamsBlock, TokenId::SymLeftParen);
         if (invalid(nodePtr->spanGenericParams))
             skipTo({TokenId::SymLeftCurly});
     }

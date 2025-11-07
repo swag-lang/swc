@@ -57,6 +57,4 @@ SWC_DIAG_DEF(parser_err_empty_attribute, Error, "invalid empty attribute '#[]'")
 SWC_DIAG_DEF(parser_err_empty_enum, Error, "invalid empty enumeration")
 SWC_DIAG_DEF(parser_err_missing_enum_sep, Error, "missing enumeration separator ',' before {tok}")
 SWC_DIAG_DEF(parser_err_missing_attribute_sep, Error, "missing attribute separator ',' before {tok}")
-
-
-
+SWC_DIAG_DEF(parser_err_gen_param_type, Error, "unexpected start of type declaration")

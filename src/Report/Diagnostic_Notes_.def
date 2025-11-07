@@ -1,4 +1,8 @@
 SWC_DIAG_DEF(parser_note_reserved_identifier)
 SWC_DIAG_DEF(parser_note_other_def)
 SWC_DIAG_DEF(parser_note_opening)
-SWC_DIAG_DEF(parser_note_empty_array_dim)
+SWC_DIAG_DEF(parser_note_gen_param_type)
+
+SWC_DIAG_DEF(parser_help_empty_array_dim)
+SWC_DIAG_DEF(parser_help_gen_param_type)
+

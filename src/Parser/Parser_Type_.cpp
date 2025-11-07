@@ -140,7 +140,7 @@ AstNodeRef Parser::parseType()
         if (is(TokenId::SymRightBracket))
         {
             auto diag = reportError(DiagnosticId::parser_err_expected_array_dim, ref());
-            diag.addElement(DiagnosticId::parser_note_empty_array_dim);
+            diag.addElement(DiagnosticId::parser_help_empty_array_dim);
             diag.report(*ctx_);
             consume();
             return INVALID_REF;

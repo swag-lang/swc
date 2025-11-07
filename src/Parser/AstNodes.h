@@ -891,11 +891,42 @@ struct AstNodeConstraintExpression : AstNode
     AstNodeRef nodeExpr;
 };
 
-struct AstNodeGenericParams : AstNodeBlock
+struct AstNodeGenericParamsBlock : AstNodeBlock
 {
-    static constexpr auto ID = AstNodeId::GenericParams;
-    AstNodeGenericParams() :
+    static constexpr auto ID = AstNodeId::GenericParamsBlock;
+    AstNodeGenericParamsBlock() :
         AstNodeBlock(ID)
+    {
+    }
+};
+
+struct AstNodeGenericParam : AstNode
+{
+    explicit AstNodeGenericParam(AstNodeId nodeId) :
+        AstNode(nodeId)
+    {
+    }
+
+    TokenRef   tknName;
+    AstNodeRef nodeAssign;
+};
+
+struct AstNodeGenericParamConstant : AstNodeGenericParam
+{
+    static constexpr auto ID = AstNodeId::GenericParamConstant;
+    AstNodeGenericParamConstant() :
+        AstNodeGenericParam(ID)
+    {
+    }
+
+    AstNodeRef nodeType;
+};
+
+struct AstNodeGenericParamType : AstNodeGenericParam
+{
+    static constexpr auto ID = AstNodeId::GenericParamType;
+    AstNodeGenericParamType() :
+        AstNodeGenericParam(ID)
     {
     }
 };

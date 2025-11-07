@@ -98,7 +98,9 @@ SWC_NODE_DEF(NamedArgumentBlock)
 SWC_NODE_DEF(NamedArgument)
 SWC_NODE_DEF(UnnamedArgumentBlock)
 SWC_NODE_DEF(UnnamedArgument)
-SWC_NODE_DEF(GenericParams)
+SWC_NODE_DEF(GenericParamsBlock)
+SWC_NODE_DEF(GenericParamConstant)
+SWC_NODE_DEF(GenericParamType)
 
 // If/Else
 SWC_NODE_DEF(CompilerIf)

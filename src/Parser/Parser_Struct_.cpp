@@ -60,6 +60,12 @@ AstNodeRef Parser::parseStructValue()
     }
 }
 
+AstNodeRef Parser::parseGenericParam()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructDecl>();
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseStructDecl()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructDecl>();
@@ -71,6 +77,9 @@ AstNodeRef Parser::parseStructDecl()
         // @skip
         consume();
         skipTo({TokenId::SymRightParen}, SkipUntilFlags::Consume);
+        /*nodePtr->spanGenericParams = parseBlockContent(AstNodeId::GenericParams, TokenId::SymLeftParen);
+        if (invalid(nodePtr->spanGenericParams))
+            skipTo({TokenId::SymLeftCurly});*/
     }
 
     // Name

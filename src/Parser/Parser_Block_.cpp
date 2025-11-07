@@ -38,6 +38,9 @@ AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
     case AstNodeId::NamedArgumentBlock:
         return parseNamedArgument();
 
+    case AstNodeId::GenericParams:
+        return parseGenericParam();
+
     case AstNodeId::UsingDecl:
         return parseScopedIdentifier();
 
@@ -101,9 +104,10 @@ Result Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
     switch (blockNodeId)
     {
     case AstNodeId::EnumDecl:
+    case AstNodeId::StructDecl:
         if (!consumeIf(TokenId::SymComma) && !is(tokenEndId) && !tok().startsLine())
         {
-            if (is(TokenId::Identifier))
+            if (is(TokenId::Identifier) && blockNodeId == AstNodeId::EnumDecl)
                 raiseError(DiagnosticId::parser_err_missing_enum_sep, ref());
             else
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
@@ -112,42 +116,17 @@ Result Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
         }
         break;
 
-    case AstNodeId::AttributeBlock:
-        if (!consumeIf(TokenId::SymComma) && !is(tokenEndId))
-        {
-            if (is(TokenId::Identifier))
-                raiseError(DiagnosticId::parser_err_missing_attribute_sep, ref());
-            else
-                raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
-            skipTo(skipTokens);
-            return Result::Error;
-        }
-        break;
-
-    case AstNodeId::StructDecl:
-        if (!consumeIf(TokenId::SymComma) && !is(tokenEndId) && !tok().startsLine())
-        {
-            raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
-            skipTo(skipTokens);
-            return Result::Error;
-        }
-        break;
-
     case AstNodeId::UsingDecl:
-        if (!consumeIf(TokenId::SymComma))
-        {
-            raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
-            skipTo(skipTokens);
-            return Result::Error;
-        }
-        break;
-
+    case AstNodeId::AttributeBlock:
     case AstNodeId::ArrayLiteral:
     case AstNodeId::UnnamedArgumentBlock:
     case AstNodeId::NamedArgumentBlock:
         if (!consumeIf(TokenId::SymComma) && !is(tokenEndId))
         {
-            raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
+            if (is(TokenId::Identifier) && blockNodeId == AstNodeId::AttributeBlock)
+                raiseError(DiagnosticId::parser_err_missing_attribute_sep, ref());
+            else
+                raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
             skipTo(skipTokens);
             return Result::Error;
         }

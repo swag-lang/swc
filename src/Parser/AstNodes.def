@@ -93,11 +93,12 @@ SWC_NODE_DEF(EnumUsingValue)
 SWC_NODE_DEF(FuncCall)
 SWC_NODE_DEF(FuncBody)
 
-// Arguments / Call Arguments
+// Parameters / Arguments
 SWC_NODE_DEF(NamedArgumentBlock)
 SWC_NODE_DEF(NamedArgument)
 SWC_NODE_DEF(UnnamedArgumentBlock)
 SWC_NODE_DEF(UnnamedArgument)
+SWC_NODE_DEF(GenericParams)
 
 // If/Else
 SWC_NODE_DEF(CompilerIf)

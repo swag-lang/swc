@@ -119,6 +119,7 @@ class Parser
     AstNodeRef       parseEmbeddedStmt();
     AstNodeRef       parseNamespace();
     AstNodeRef       parseStructValue();
+    AstNodeRef       parseGenericParam();
     AstNodeRef       parseStructDecl();
     AstNodeRef       parseImplDecl();
     AstNodeRef       parseFile();

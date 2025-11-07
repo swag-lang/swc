@@ -72,7 +72,7 @@ AstNodeRef Parser::parseStructDecl()
 
 AstNodeRef Parser::parseStructUnionDecl(AstNodeId nodeId)
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeStructDeclBase>(nodeId);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstStructDeclBase>(nodeId);
     consume();
 
     // Generic types

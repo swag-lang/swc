@@ -170,7 +170,7 @@ void Parser::finalizeBlock(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef 
 
 AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt)
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeCompoundBase>(blockNodeId);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstCompoundBase>(blockNodeId);
     nodePtr->spanChildren   = parseBlockContent(blockNodeId, tokenStartId, endStmt);
     return nodeRef;
 }

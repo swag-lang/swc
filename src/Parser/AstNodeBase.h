@@ -55,10 +55,10 @@ struct AstNodeBase
     }
 };
 
-struct AstNodeInvalid : AstNodeBase
+struct AstInvalid : AstNodeBase
 {
     static constexpr auto ID = AstNodeId::Invalid;
-    AstNodeInvalid() :
+    AstInvalid() :
         AstNodeBase(ID)
     {
     }
@@ -82,14 +82,14 @@ const T* castAst(const AstNodeBase* node)
     return reinterpret_cast<const T*>(node);
 }
 
-template<AstNodeId Id>
+template<AstNodeId ID>
 struct AstTypeOf;
 
 #define SWC_NODE_DEF(E)            \
     template<>                     \
     struct AstTypeOf<AstNodeId::E> \
     {                              \
-        using type = AstNode##E;   \
+        using type = Ast##E;   \
     };
 #include "AstNodes.def"
 #undef SWC_NODE_DEF

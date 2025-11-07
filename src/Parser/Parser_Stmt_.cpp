@@ -132,7 +132,7 @@ AstNodeRef Parser::parseConstraint()
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ConstraintExpression>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ConstraintExpr>();
     nodePtr->tknConstraint  = consume();
     nodePtr->nodeExpr       = parseExpression();
     return nodeRef;

@@ -78,7 +78,7 @@ AstNodeRef Parser::parseStructUnionDecl(AstNodeId nodeId)
     // Generic types
     if (is(TokenId::SymLeftParen))
     {
-        nodePtr->spanGenericParams = parseBlockContent(AstNodeId::GenericParamsBlock, TokenId::SymLeftParen);
+        nodePtr->spanGenericParams = parseBlockContent(AstNodeId::GenericParamsList, TokenId::SymLeftParen);
         if (invalid(nodePtr->spanGenericParams))
             skipTo({TokenId::SymLeftCurly});
     }

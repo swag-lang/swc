@@ -38,7 +38,7 @@ AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
     case AstNodeId::NamedArgumentList:
         return parseNamedArgument();
 
-    case AstNodeId::GenericParamsBlock:
+    case AstNodeId::GenericParamsList:
         return parseGenericParam();
 
     case AstNodeId::UsingDecl:
@@ -121,7 +121,7 @@ Result Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
     case AstNodeId::ArrayLiteral:
     case AstNodeId::UnnamedArgumentList:
     case AstNodeId::NamedArgumentList:
-    case AstNodeId::GenericParamsBlock:
+    case AstNodeId::GenericParamsList:
         if (!consumeIf(TokenId::SymComma) && !is(tokenEndId))
         {
             if (is(TokenId::Identifier) && blockNodeId == AstNodeId::AttributeBlock)
@@ -170,7 +170,7 @@ void Parser::finalizeBlock(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef 
 
 AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt)
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeBlockBase>(blockNodeId);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeCompoundBase>(blockNodeId);
     nodePtr->spanChildren   = parseBlockContent(blockNodeId, tokenStartId, endStmt);
     return nodeRef;
 }

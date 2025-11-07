@@ -10,7 +10,7 @@ SWC_NODE_DEF(Dependencies)
 SWC_NODE_DEF(UsingDecl)
 SWC_NODE_DEF(AccessModifier)
 SWC_NODE_DEF(ConstraintBlock)
-SWC_NODE_DEF(ConstraintExpression)
+SWC_NODE_DEF(ConstraintExpr)
 
 // Identifiers & References
 SWC_NODE_DEF(Identifier)
@@ -99,7 +99,7 @@ SWC_NODE_DEF(NamedArgumentList)
 SWC_NODE_DEF(NamedArgument)
 SWC_NODE_DEF(UnnamedArgumentList)
 SWC_NODE_DEF(UnnamedArgument)
-SWC_NODE_DEF(GenericParamsBlock)
+SWC_NODE_DEF(GenericParamsList)
 SWC_NODE_DEF(GenericParamValue)
 SWC_NODE_DEF(GenericParamType)
 

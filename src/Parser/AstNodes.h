@@ -12,10 +12,10 @@ struct AstNodeCompoundBase : AstNodeBase
     SpanRef spanChildren;
 };
 
-struct AstNodeFile : AstNodeCompoundBase
+struct AstNodeFileBlock : AstNodeCompoundBase
 {
-    static constexpr auto ID = AstNodeId::File;
-    AstNodeFile() :
+    static constexpr auto ID = AstNodeId::FileBlock;
+    AstNodeFileBlock() :
         AstNodeCompoundBase(ID)
     {
     }
@@ -62,10 +62,10 @@ struct AstNodeImplDeclFor : AstNodeCompoundBase
     AstNodeRef nodeFor;
 };
 
-struct AstNodeNamespace : AstNodeBase
+struct AstNodeNamespaceBlock : AstNodeBase
 {
-    static constexpr auto ID = AstNodeId::Namespace;
-    AstNodeNamespace() :
+    static constexpr auto ID = AstNodeId::NamespaceBlock;
+    AstNodeNamespaceBlock() :
         AstNodeBase(ID)
     {
     }

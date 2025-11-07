@@ -12,7 +12,7 @@ AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
 {
     switch (blockNodeId)
     {
-    case AstNodeId::File:
+    case AstNodeId::FileBlock:
     case AstNodeId::TopLevelBlock:
     case AstNodeId::EnumImplDecl:
     case AstNodeId::ImplDecl:
@@ -54,7 +54,7 @@ AstNodeRef Parser::parseBlockCompilerDirective(AstNodeId blockNodeId)
     auto childrenRef = INVALID_REF;
 
     // Compiler instructions
-    if (blockNodeId == AstNodeId::File ||
+    if (blockNodeId == AstNodeId::FileBlock ||
         blockNodeId == AstNodeId::TopLevelBlock ||
         blockNodeId == AstNodeId::EnumImplDecl ||
         blockNodeId == AstNodeId::ImplDecl ||
@@ -241,12 +241,12 @@ Ref Parser::parseBlockContent(AstNodeId blockNodeId, TokenId tokenStartId, bool 
 
 AstNodeRef Parser::parseFile()
 {
-    return parseBlock(AstNodeId::File, TokenId::Invalid);
+    return parseBlock(AstNodeId::FileBlock, TokenId::Invalid);
 }
 
 AstNodeRef Parser::parseNamespace()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Namespace>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamespaceBlock>();
     consume();
     nodePtr->nodeName = parseScopedIdentifier();
     if (invalid(nodePtr->nodeName))

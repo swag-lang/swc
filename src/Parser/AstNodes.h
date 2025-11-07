@@ -223,7 +223,7 @@ struct AstCompilerShortFunc : AstNode
     }
 
     TokenRef   tokName;
-    AstNodeRef nodeExpr;
+    AstNodeRef nodeBody;
 };
 
 struct AstCompilerExpr : AstNode

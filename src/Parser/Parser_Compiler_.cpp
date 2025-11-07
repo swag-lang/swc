@@ -8,6 +8,8 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseCompilerFunc()
 {
+    const auto what = id();
+
     if (nextIs(TokenId::SymLeftCurly))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerFunc>();
@@ -18,7 +20,10 @@ AstNodeRef Parser::parseCompilerFunc()
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerShortFunc>();
     nodePtr->tokName        = consume();
-    nodePtr->nodeExpr       = parseExpression();
+    if (what == TokenId::CompilerAst)
+        nodePtr->nodeBody = parseExpression();
+    else
+        nodePtr->nodeBody = parseEmbeddedStmt();
     return nodeRef;
 }
 

@@ -58,13 +58,14 @@ AstNodeRef Parser::parseAggregateValue()
         return parseBlock(AstNodeId::AggregateBody, TokenId::SymLeftCurly);
 
     case TokenId::CompilerAst:
+    case TokenId::CompilerRun:
         return parseCompilerFunc();
 
     case TokenId::KwdVar:
         raiseError(DiagnosticId::parser_err_var_struct, ref());
         consume();
         return parseVarDecl();
-        
+
     default:
         return parseVarDecl();
     }

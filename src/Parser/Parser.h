@@ -90,7 +90,6 @@ class Parser
     AstNodeRef parseCompilerIfStmt(AstNodeId blockNodeId);
     AstNodeRef parseCompilerAttribute(AstNodeId blockNodeId);
     AstNodeRef parseAggregateDecl(AstNodeId nodeId);
-    AstNodeRef parseAggregateValue(AstNodeId blockNodeId);
 
     AstNodeRef       parseIdentifier();
     AstNodeRef       parsePostfixIdentifier();
@@ -130,6 +129,7 @@ class Parser
     AstNodeRef       parseGlobalAccessModifier();
     AstNodeRef       parseUsingDecl();
     AstNodeRef       parseConstraint();
+    AstNodeRef       parseAggregateValue();
 
     bool skipTo(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlags::Zero);
     bool skipAfter(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlags::Zero);

@@ -26,7 +26,7 @@ AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
     case AstNodeId::EnumDecl:
         return parseEnumValue();
     case AstNodeId::AggregateBody:
-        return parseAggregateValue(blockNodeId);
+        return parseAggregateValue();
 
     case AstNodeId::AttributeList:
         return parseAttribute();

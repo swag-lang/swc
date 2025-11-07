@@ -40,12 +40,12 @@ AstNodeRef Parser::parseImpl()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseAggregateValue(AstNodeId blockNodeId)
+AstNodeRef Parser::parseAggregateValue()
 {
     switch (id())
     {
     case TokenId::SymAttrStart:
-        return parseCompilerAttribute(blockNodeId);
+        return parseCompilerAttribute(AstNodeId::AggregateBody);
 
     case TokenId::KwdStruct:
         return parseStructDecl();
@@ -55,10 +55,7 @@ AstNodeRef Parser::parseAggregateValue(AstNodeId blockNodeId)
         return parseEnumDecl();
 
     case TokenId::SymLeftCurly:
-        // @skip
-        consume();
-        skipTo({TokenId::SymRightCurly}, SkipUntilFlags::Consume);
-        return INVALID_REF;
+        return parseBlock(AstNodeId::AggregateBody, TokenId::SymLeftCurly);
 
     default:
         // @skip

@@ -62,6 +62,31 @@ AstNodeRef Parser::parseStructValue()
 
 AstNodeRef Parser::parseGenericParam()
 {
+    bool isConstant = false;
+    bool isType     = false;
+    if (consumeIf(TokenId::KwdConst))
+        isConstant = true;
+    else if (consumeIf(TokenId::KwdVar))
+        isType = true;
+
+    expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+
+    if (consumeIf(TokenId::SymColon))
+    {
+        isConstant = true;
+        parseType();
+    }
+
+    if (consumeIf(TokenId::SymEqual))
+    {
+        if (isConstant)
+            parseExpression();
+        else if (isType)
+            parseType();
+        else
+            parseExpression();
+    }
+
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructDecl>();
     return nodeRef;
 }
@@ -74,12 +99,9 @@ AstNodeRef Parser::parseStructDecl()
     // Generic types
     if (is(TokenId::SymLeftParen))
     {
-        // @skip
-        consume();
-        skipTo({TokenId::SymRightParen}, SkipUntilFlags::Consume);
-        /*nodePtr->spanGenericParams = parseBlockContent(AstNodeId::GenericParams, TokenId::SymLeftParen);
+        nodePtr->spanGenericParams = parseBlockContent(AstNodeId::GenericParams, TokenId::SymLeftParen);
         if (invalid(nodePtr->spanGenericParams))
-            skipTo({TokenId::SymLeftCurly});*/
+            skipTo({TokenId::SymLeftCurly});
     }
 
     // Name

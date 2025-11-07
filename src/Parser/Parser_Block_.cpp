@@ -121,6 +121,7 @@ Result Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
     case AstNodeId::ArrayLiteral:
     case AstNodeId::UnnamedArgumentBlock:
     case AstNodeId::NamedArgumentBlock:
+    case AstNodeId::GenericParams:
         if (!consumeIf(TokenId::SymComma) && !is(tokenEndId))
         {
             if (is(TokenId::Identifier) && blockNodeId == AstNodeId::AttributeBlock)

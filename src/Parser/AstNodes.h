@@ -743,7 +743,7 @@ struct AstNodeNamedType : AstNode
     {
     }
 
-    TokenRef tknName;
+    AstNodeRef nodeIdentifier;
 };
 
 struct AstNodeBuiltinType : AstNode

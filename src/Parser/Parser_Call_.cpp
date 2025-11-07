@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Parser/AstNode.h"
+#include "Parser/AstNodeBase.h"
 #include "Parser/Parser.h"
 #include "Report/Diagnostic.h"
 
@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseCallArg1(AstNodeId callerNodeId)
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeCall1>(callerNodeId);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeCall1Base>(callerNodeId);
     nodePtr->tokRef         = consume();
 
     const auto openRef = ref();
@@ -20,7 +20,7 @@ AstNodeRef Parser::parseCallArg1(AstNodeId callerNodeId)
 
 AstNodeRef Parser::parseCallArg2(AstNodeId callerNodeId)
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeCall2>(callerNodeId);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeCall2Base>(callerNodeId);
     nodePtr->tokRef         = consume();
 
     const auto openRef = ref();
@@ -38,7 +38,7 @@ AstNodeRef Parser::parseCallArg2(AstNodeId callerNodeId)
 
 AstNodeRef Parser::parseCallArg3(AstNodeId callerNodeId)
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeCall3>(callerNodeId);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeCall3Base>(callerNodeId);
     nodePtr->tokRef         = consume();
 
     const auto openRef = ref();
@@ -63,7 +63,7 @@ AstNodeRef Parser::parseAttribute()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Attribute>();
     nodePtr->nodeIdentifier = parseScopedIdentifier();
     if (is(TokenId::SymLeftParen))
-        nodePtr->nodeArgs = parseBlock(AstNodeId::NamedArgumentBlock, TokenId::SymLeftParen);
+        nodePtr->nodeArgs = parseBlock(AstNodeId::NamedArgumentList, TokenId::SymLeftParen);
     return nodeRef;
 }
 

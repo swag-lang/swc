@@ -44,22 +44,22 @@ enum class AstModifierFlags : uint32_t
 };
 SWC_ENABLE_BITMASK(AstModifierFlags);
 
-struct AstNode
+struct AstNodeBase
 {
     AstNodeId id    = AstNodeId::Invalid;
     uint16_t  flags = 0;
 
-    explicit AstNode(AstNodeId nodeId) :
+    explicit AstNodeBase(AstNodeId nodeId) :
         id(nodeId)
     {
     }
 };
 
-struct AstNodeInvalid : AstNode
+struct AstNodeInvalid : AstNodeBase
 {
     static constexpr auto ID = AstNodeId::Invalid;
     AstNodeInvalid() :
-        AstNode(ID)
+        AstNodeBase(ID)
     {
     }
 };
@@ -67,7 +67,7 @@ struct AstNodeInvalid : AstNode
 #include "Parser/AstNodes.h"
 
 template<typename T>
-T* castAst(AstNode* node)
+T* castAst(AstNodeBase* node)
 {
     SWC_ASSERT(node);
     SWC_ASSERT(node->id == T::ID);
@@ -75,7 +75,7 @@ T* castAst(AstNode* node)
 }
 
 template<typename T>
-const T* castAst(const AstNode* node)
+const T* castAst(const AstNodeBase* node)
 {
     SWC_ASSERT(node);
     SWC_ASSERT(node->id == T::ID);

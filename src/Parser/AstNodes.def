@@ -16,26 +16,26 @@ SWC_NODE_DEF(ConstraintExpression)
 SWC_NODE_DEF(Identifier)
 SWC_NODE_DEF(ScopedIdentifier)
 SWC_NODE_DEF(UpIdentifier)
-SWC_NODE_DEF(SuffixedIdentifier)
-SWC_NODE_DEF(MultiSuffixedIdentifier)
+SWC_NODE_DEF(PostfixIdentifier)
+SWC_NODE_DEF(MultiPostfixIdentifier)
 SWC_NODE_DEF(ScopeAccess)
 
 // Postfix
-SWC_NODE_DEF(ArrayDeref)
+SWC_NODE_DEF(IndexExpr)
 SWC_NODE_DEF(StructInit)
 
 // Expressions — Unary & Binary
-SWC_NODE_DEF(ParenExpression)
-SWC_NODE_DEF(LogicalExpression)
-SWC_NODE_DEF(RelationalExpression)
-SWC_NODE_DEF(BinaryExpression)
-SWC_NODE_DEF(UnaryExpression)
+SWC_NODE_DEF(ParenExpr)
+SWC_NODE_DEF(LogicalExpr)
+SWC_NODE_DEF(RelationalExpr)
+SWC_NODE_DEF(BinaryExpr)
+SWC_NODE_DEF(UnaryExpr)
 
 // Type Casting & Checks
-SWC_NODE_DEF(Cast)
-SWC_NODE_DEF(CastAuto)
-SWC_NODE_DEF(As)
-SWC_NODE_DEF(Is)
+SWC_NODE_DEF(CastExpr)
+SWC_NODE_DEF(CastAutoExpr)
+SWC_NODE_DEF(AsExpr)
+SWC_NODE_DEF(IsExpr)
 
 // Literals
 SWC_NODE_DEF(ArrayLiteral)
@@ -78,6 +78,7 @@ SWC_NODE_DEF(CompilerType)
 
 // Structs
 SWC_NODE_DEF(StructDecl)
+SWC_NODE_DEF(UnionDecl)
 
 // Declarations & Implementations
 SWC_NODE_DEF(ImplDecl)
@@ -94,9 +95,9 @@ SWC_NODE_DEF(FuncCall)
 SWC_NODE_DEF(FuncBody)
 
 // Parameters / Arguments
-SWC_NODE_DEF(NamedArgumentBlock)
+SWC_NODE_DEF(NamedArgumentList)
 SWC_NODE_DEF(NamedArgument)
-SWC_NODE_DEF(UnnamedArgumentBlock)
+SWC_NODE_DEF(UnnamedArgumentList)
 SWC_NODE_DEF(UnnamedArgument)
 SWC_NODE_DEF(GenericParamsBlock)
 SWC_NODE_DEF(GenericParamValue)

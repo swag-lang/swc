@@ -1,40 +1,40 @@
 #include "pch.h"
-#include "Parser/AstNode.h"
+#include "Parser/AstNodeBase.h"
 #include "Parser/Parser.h"
 
 SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseLiteral()
 {
-    std::pair<AstNodeRef, AstNodeLiteral*> literal;
+    std::pair<AstNodeRef, AstNodeLiteralBase*> literal;
     switch (id())
     {
     case TokenId::NumberInteger:
     case TokenId::NumberBinary:
     case TokenId::NumberHexadecimal:
-        literal = ast_->makeNode<AstNodeLiteral>(AstNodeId::IntegerLiteral);
+        literal = ast_->makeNode<AstNodeLiteralBase>(AstNodeId::IntegerLiteral);
         break;
 
     case TokenId::NumberFloat:
-        literal = ast_->makeNode<AstNodeLiteral>(AstNodeId::FloatLiteral);
+        literal = ast_->makeNode<AstNodeLiteralBase>(AstNodeId::FloatLiteral);
         break;
 
     case TokenId::StringLine:
     case TokenId::StringRaw:
-        literal = ast_->makeNode<AstNodeLiteral>(AstNodeId::StringLiteral);
+        literal = ast_->makeNode<AstNodeLiteralBase>(AstNodeId::StringLiteral);
         break;
 
     case TokenId::Character:
-        literal = ast_->makeNode<AstNodeLiteral>(AstNodeId::CharacterLiteral);
+        literal = ast_->makeNode<AstNodeLiteralBase>(AstNodeId::CharacterLiteral);
         break;
 
     case TokenId::KwdTrue:
     case TokenId::KwdFalse:
-        literal = ast_->makeNode<AstNodeLiteral>(AstNodeId::BoolLiteral);
+        literal = ast_->makeNode<AstNodeLiteralBase>(AstNodeId::BoolLiteral);
         break;
 
     case TokenId::KwdNull:
-        literal = ast_->makeNode<AstNodeLiteral>(AstNodeId::NullLiteral);
+        literal = ast_->makeNode<AstNodeLiteralBase>(AstNodeId::NullLiteral);
         break;
 
     case TokenId::CompilerFile:
@@ -53,7 +53,7 @@ AstNodeRef Parser::parseLiteral()
     case TokenId::CompilerBackend:
     case TokenId::CompilerScopeName:
     case TokenId::CompilerCurLocation:
-        literal = ast_->makeNode<AstNodeLiteral>(AstNodeId::CompilerLiteral);
+        literal = ast_->makeNode<AstNodeLiteralBase>(AstNodeId::CompilerLiteral);
         break;
 
     default:

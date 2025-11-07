@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Core/Types.h"
-#include "Parser/AstNode.h"
+#include "Parser/AstNodeBase.h"
 #include "Parser/Parser.h"
 #include "Report/Diagnostic.h"
 
@@ -22,6 +22,8 @@ AstNodeRef Parser::parseTopLevelStmt()
 
     case TokenId::KwdEnum:
         return parseEnumDecl();
+    case TokenId::KwdUnion:
+        return parseUnionDecl();
     case TokenId::KwdStruct:
         return parseStructDecl();
 
@@ -78,6 +80,8 @@ AstNodeRef Parser::parseEmbeddedStmt()
 
     case TokenId::KwdEnum:
         return parseEnumDecl();
+    case TokenId::KwdUnion:
+        return parseUnionDecl();
     case TokenId::KwdStruct:
         return parseStructDecl();
 

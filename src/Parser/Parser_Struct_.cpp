@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Parser/AstNode.h"
+#include "Parser/AstNodeBase.h"
 #include "Parser/Parser.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -60,10 +60,20 @@ AstNodeRef Parser::parseStructValue()
     }
 }
 
+AstNodeRef Parser::parseUnionDecl()
+{
+    return parseStructUnionDecl(AstNodeId::UnionDecl);
+}
+
 AstNodeRef Parser::parseStructDecl()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructDecl>();
-    consume(TokenId::KwdStruct);
+    return parseStructUnionDecl(AstNodeId::StructDecl);
+}
+
+AstNodeRef Parser::parseStructUnionDecl(AstNodeId nodeId)
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeStructDeclBase>(nodeId);
+    consume();
 
     // Generic types
     if (is(TokenId::SymLeftParen))

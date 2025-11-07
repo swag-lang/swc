@@ -2,7 +2,7 @@
 #include "Core/SmallVector.h"
 #include "Core/Types.h"
 #include "Lexer/SourceFile.h"
-#include "Parser/AstNode.h"
+#include "Parser/AstNodeBase.h"
 #include "Parser/Parser.h"
 #include "Report/Diagnostic.h"
 
@@ -32,10 +32,10 @@ AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
         return parseAttribute();
 
     case AstNodeId::ArrayLiteral:
-    case AstNodeId::UnnamedArgumentBlock:
+    case AstNodeId::UnnamedArgumentList:
         return parseExpression();
 
-    case AstNodeId::NamedArgumentBlock:
+    case AstNodeId::NamedArgumentList:
         return parseNamedArgument();
 
     case AstNodeId::GenericParamsBlock:
@@ -119,8 +119,8 @@ Result Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
     case AstNodeId::UsingDecl:
     case AstNodeId::AttributeBlock:
     case AstNodeId::ArrayLiteral:
-    case AstNodeId::UnnamedArgumentBlock:
-    case AstNodeId::NamedArgumentBlock:
+    case AstNodeId::UnnamedArgumentList:
+    case AstNodeId::NamedArgumentList:
     case AstNodeId::GenericParamsBlock:
         if (!consumeIf(TokenId::SymComma) && !is(tokenEndId))
         {
@@ -170,7 +170,7 @@ void Parser::finalizeBlock(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef 
 
 AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt)
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeBlock>(blockNodeId);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeBlockBase>(blockNodeId);
     nodePtr->spanChildren   = parseBlockContent(blockNodeId, tokenStartId, endStmt);
     return nodeRef;
 }

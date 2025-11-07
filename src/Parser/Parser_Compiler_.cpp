@@ -1,7 +1,7 @@
 #include "pch.h"
 
 #include "Lexer/SourceFile.h"
-#include "Parser/AstNode.h"
+#include "Parser/AstNodeBase.h"
 #include "Parser/Parser.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -18,7 +18,7 @@ AstNodeRef Parser::parseCompilerFunc()
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerShortFunc>();
     nodePtr->tknName        = consume();
-    nodePtr->nodeExpression = parseExpression();
+    nodePtr->nodeExpr       = parseExpression();
     return nodeRef;
 }
 
@@ -26,7 +26,7 @@ AstNodeRef Parser::parseCompilerFuncExpr()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerFuncExpr>();
     nodePtr->tknName        = consume();
-    nodePtr->nodeExpression = parseExpression();
+    nodePtr->nodeExpr       = parseExpression();
     return nodeRef;
 }
 

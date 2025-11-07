@@ -1,7 +1,7 @@
 #pragma once
 #include "Core/RefStore.h"
 #include "Core/Types.h"
-#include "Parser/AstNode.h"
+#include "Parser/AstNodeBase.h"
 #include "Report/Stats.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -22,7 +22,7 @@ public:
     {
         SWC_ASSERT(nodeRef != INVALID_REF);
         using NodeType = AstTypeOf<ID>::type;
-        return castAst<NodeType>(store_.ptr<AstNode>(nodeRef));
+        return castAst<NodeType>(store_.ptr<AstNodeBase>(nodeRef));
     }
 
     template<AstNodeId ID>
@@ -38,7 +38,7 @@ public:
         return result;
     }
 
-    template<typename T = AstNode>
+    template<typename T = AstNodeBase>
     std::pair<AstNodeRef, T*>
     makeNode(AstNodeId id)
     {

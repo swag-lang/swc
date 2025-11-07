@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Lexer/SourceFile.h"
-#include "Parser/AstNode.h"
+#include "Parser/AstNodeBase.h"
 #include "Parser/Parser.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -10,7 +10,7 @@ AstNodeRef Parser::parsePrimaryExpression()
     switch (id())
     {
     case TokenId::Identifier:
-        return parseSuffixedIdentifier();
+        return parsePostfixIdentifier();
 
     case TokenId::SymDot:
         return parseAutoScopedIdentifier();
@@ -122,7 +122,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         return parseLiteral();
 
     case TokenId::SymLeftParen:
-        return parseParenExpression();
+        return parseParenExpr();
 
     case TokenId::SymLeftBracket:
         return parseLiteralArray();
@@ -185,9 +185,9 @@ AstNodeRef Parser::parsePostFixExpression()
         // Array indexing: A[index]
         if (is(TokenId::SymLeftBracket) && !has_any(tok().flags, TokenFlags::BlankBefore))
         {
-            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::ArrayDeref>();
+            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IndexExpr>();
             nodePtr->nodeExpr                = nodeRef;
-            nodePtr->nodeArgs                = parseBlock(AstNodeId::UnnamedArgumentBlock, TokenId::SymLeftBracket);
+            nodePtr->nodeArgs                = parseBlock(AstNodeId::UnnamedArgumentList, TokenId::SymLeftBracket);
             nodeRef                          = nodeParent;
             continue;
         }
@@ -197,7 +197,7 @@ AstNodeRef Parser::parsePostFixExpression()
         {
             const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::FuncCall>();
             nodePtr->nodeExpr                = nodeRef;
-            nodePtr->nodeArgs                = parseBlock(AstNodeId::NamedArgumentBlock, TokenId::SymLeftParen);
+            nodePtr->nodeArgs                = parseBlock(AstNodeId::NamedArgumentList, TokenId::SymLeftParen);
             nodeRef                          = nodeParent;
             continue;
         }
@@ -207,7 +207,7 @@ AstNodeRef Parser::parsePostFixExpression()
         {
             const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::StructInit>();
             nodePtr->nodeExpr                = nodeRef;
-            nodePtr->nodeArgs                = parseBlock(AstNodeId::NamedArgumentBlock, TokenId::SymLeftCurly);
+            nodePtr->nodeArgs                = parseBlock(AstNodeId::NamedArgumentList, TokenId::SymLeftCurly);
             nodeRef                          = nodeParent;
             continue;
         }
@@ -217,7 +217,7 @@ AstNodeRef Parser::parsePostFixExpression()
     // 'as'
     if (is(TokenId::KwdAs))
     {
-        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::As>();
+        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::AsExpr>();
         consume();
         nodePtr->nodeExpr = nodeRef;
         nodePtr->nodeType = parseType();
@@ -228,7 +228,7 @@ AstNodeRef Parser::parsePostFixExpression()
     // 'is'
     if (is(TokenId::KwdIs))
     {
-        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::Is>();
+        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IsExpr>();
         consume();
         nodePtr->nodeExpr = nodeRef;
         nodePtr->nodeType = parseType();
@@ -331,14 +331,14 @@ AstNodeRef Parser::parseCast()
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
     if (consumeIf(TokenId::SymRightParen))
     {
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CastAuto>();
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CastAutoExpr>();
         nodePtr->tknOp                = tknOp;
         nodePtr->modifierFlags        = modifierFlags;
         nodePtr->nodeExpr             = parseExpression();
         return nodeRef;
     }
 
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Cast>();
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CastExpr>();
     nodePtr->tknOp                = tknOp;
     nodePtr->modifierFlags        = modifierFlags;
     nodePtr->nodeType             = parseType();
@@ -350,7 +350,7 @@ AstNodeRef Parser::parseCast()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseUnaryExpression()
+AstNodeRef Parser::parseUnaryExpr()
 {
     switch (id())
     {
@@ -364,7 +364,7 @@ AstNodeRef Parser::parseUnaryExpression()
     case TokenId::SymAmpersand:
     case TokenId::KwdDRef:
     {
-        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpression>();
+        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpr>();
         nodePtr->tknOp                  = consume();
         nodePtr->nodeExpr               = parsePostFixExpression();
         return nodeParen;
@@ -375,9 +375,9 @@ AstNodeRef Parser::parseUnaryExpression()
     }
 }
 
-AstNodeRef Parser::parseBinaryExpression()
+AstNodeRef Parser::parseBinaryExpr()
 {
-    const auto nodeRef = parseUnaryExpression();
+    const auto nodeRef = parseUnaryExpr();
     if (invalid(nodeRef))
         return INVALID_REF;
 
@@ -393,20 +393,20 @@ AstNodeRef Parser::parseBinaryExpression()
               TokenId::SymPlusPlus,
               TokenId::SymCircumflex))
     {
-        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::BinaryExpression>();
+        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::BinaryExpr>();
         nodePtr->tknOp                  = consume();
         nodePtr->nodeLeft               = nodeRef;
         nodePtr->modifiersFlags         = parseModifiers();
-        nodePtr->nodeRight              = parseBinaryExpression();
+        nodePtr->nodeRight              = parseBinaryExpr();
         return nodeParen;
     }
 
     return nodeRef;
 }
 
-AstNodeRef Parser::parseRelationalExpression()
+AstNodeRef Parser::parseRelationalExpr()
 {
-    const auto nodeRef = parseBinaryExpression();
+    const auto nodeRef = parseBinaryExpr();
     if (invalid(nodeRef))
         return INVALID_REF;
 
@@ -419,19 +419,19 @@ AstNodeRef Parser::parseRelationalExpression()
               TokenId::SymEqual,
               TokenId::SymLowerEqualGreater))
     {
-        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::RelationalExpression>();
+        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::RelationalExpr>();
         nodePtr->tknOp                  = consume();
         nodePtr->nodeLeft               = nodeRef;
-        nodePtr->nodeRight              = parseRelationalExpression();
+        nodePtr->nodeRight              = parseRelationalExpr();
         return nodeParen;
     }
 
     return nodeRef;
 }
 
-AstNodeRef Parser::parseLogicalExpression()
+AstNodeRef Parser::parseLogicalExpr()
 {
-    const auto nodeRef = parseRelationalExpression();
+    const auto nodeRef = parseRelationalExpr();
     if (invalid(nodeRef))
         return INVALID_REF;
 
@@ -440,10 +440,10 @@ AstNodeRef Parser::parseLogicalExpression()
         if (isAny(TokenId::SymAmpersandAmpersand, TokenId::SymVerticalVertical))
             raiseError(DiagnosticId::parser_err_unexpected_and_or, ref());
 
-        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::LogicalExpression>();
+        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::LogicalExpr>();
         nodePtr->tknOp                  = consume();
         nodePtr->nodeLeft               = nodeRef;
-        nodePtr->nodeRight              = parseLogicalExpression();
+        nodePtr->nodeRight              = parseLogicalExpr();
         return nodeParen;
     }
 
@@ -452,12 +452,12 @@ AstNodeRef Parser::parseLogicalExpression()
 
 AstNodeRef Parser::parseExpression()
 {
-    return parseLogicalExpression();
+    return parseLogicalExpr();
 }
 
-AstNodeRef Parser::parseParenExpression()
+AstNodeRef Parser::parseParenExpr()
 {
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ParenExpression>();
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ParenExpr>();
     const auto openRef            = ref();
     consume(TokenId::SymLeftParen);
     nodePtr->nodeExpr = parseExpression();
@@ -474,7 +474,7 @@ AstNodeRef Parser::parseIdentifier()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseSuffixedIdentifier()
+AstNodeRef Parser::parsePostfixIdentifier()
 {
     const auto nodeIdentifier = parseIdentifier();
     if (invalid(nodeIdentifier))
@@ -487,15 +487,15 @@ AstNodeRef Parser::parseSuffixedIdentifier()
 
     if (is(TokenId::SymLeftParen))
     {
-        auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::MultiSuffixedIdentifier>();
-        nodePtr->nodeIdentifier  = nodeIdentifier;
-        nodePtr->nodeSuffixBlock = parseBlock(AstNodeId::UnnamedArgumentBlock, TokenId::SymLeftParen);
+        auto [nodeRef, nodePtr]   = ast_->makeNode<AstNodeId::MultiPostfixIdentifier>();
+        nodePtr->nodeIdentifier   = nodeIdentifier;
+        nodePtr->nodePostfixBlock = parseBlock(AstNodeId::UnnamedArgumentList, TokenId::SymLeftParen);
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SuffixedIdentifier>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::PostfixIdentifier>();
     nodePtr->nodeIdentifier = nodeIdentifier;
-    nodePtr->nodeSuffix     = parseType();
+    nodePtr->nodePostfix    = parseType();
     return nodeRef;
 }
 

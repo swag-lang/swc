@@ -89,9 +89,10 @@ class Parser
     AstNodeRef parseCompilerIf(AstNodeId blockNodeId);
     AstNodeRef parseCompilerIfStmt(AstNodeId blockNodeId);
     AstNodeRef parseCompilerAttribute(AstNodeId blockNodeId);
+    AstNodeRef parseStructUnionDecl(AstNodeId nodeId);
 
     AstNodeRef       parseIdentifier();
-    AstNodeRef       parseSuffixedIdentifier();
+    AstNodeRef       parsePostfixIdentifier();
     AstNodeRef       parseAutoScopedIdentifier();
     AstNodeRef       parseUpIdentifier();
     AstNodeRef       parseScopedIdentifier();
@@ -103,12 +104,12 @@ class Parser
     AstNodeRef       parsePostFixExpression();
     AstModifierFlags parseModifiers();
     AstNodeRef       parseCast();
-    AstNodeRef       parseUnaryExpression();
-    AstNodeRef       parseBinaryExpression();
-    AstNodeRef       parseRelationalExpression();
-    AstNodeRef       parseLogicalExpression();
+    AstNodeRef       parseUnaryExpr();
+    AstNodeRef       parseBinaryExpr();
+    AstNodeRef       parseRelationalExpr();
+    AstNodeRef       parseLogicalExpr();
     AstNodeRef       parseExpression();
-    AstNodeRef       parseParenExpression();
+    AstNodeRef       parseParenExpr();
     AstNodeRef       parseEnumDecl();
     AstNodeRef       parseEnumImplDecl();
     AstNodeRef       parseEnumValue();
@@ -121,6 +122,7 @@ class Parser
     AstNodeRef       parseStructValue();
     AstNodeRef       parseGenericParam();
     AstNodeRef       parseStructDecl();
+    AstNodeRef       parseUnionDecl();
     AstNodeRef       parseImplDecl();
     AstNodeRef       parseFile();
     AstNodeRef       parseAttribute();

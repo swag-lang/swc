@@ -127,7 +127,7 @@
         <ClCompile Include="src\Parser\Parser_Enum_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Expression_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Literal_.cpp"/>
-        <ClCompile Include="src\Parser\Parser_Stmt_.cpp" />
+        <ClCompile Include="src\Parser\Parser_Stmt_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Struct_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Type_.cpp"/>
         <ClCompile Include="src\pch.cpp">
@@ -175,7 +175,7 @@
         <ClInclude Include="src\Memory\Arena.h"/>
         <ClInclude Include="src\Os\Os.h"/>
         <ClInclude Include="src\Parser\Ast.h"/>
-        <ClInclude Include="src\Parser\AstNode.h"/>
+        <ClInclude Include="src\Parser\AstNodeBase.h"/>
         <ClInclude Include="src\Parser\AstNodes.def"/>
         <ClInclude Include="src\Parser\AstNodes.h"/>
         <ClInclude Include="src\Parser\Parser.h"/>

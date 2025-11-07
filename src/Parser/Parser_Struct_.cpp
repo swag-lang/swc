@@ -64,10 +64,10 @@ AstNodeRef Parser::parseAggregateValue()
     case TokenId::KwdVar:
         raiseError(DiagnosticId::parser_err_var_struct, ref());
         consume();
-        return parseVarDecl();
+        return parseSingleVarDecl();
 
     default:
-        return parseVarDecl();
+        return parseSingleVarDecl();
     }
 }
 

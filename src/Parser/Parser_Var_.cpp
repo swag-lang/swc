@@ -57,7 +57,7 @@ AstNodeRef Parser::parseGenericParam()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseVarDecl()
+AstNodeRef Parser::parseSingleVarDecl()
 {
     // @skip
     skipTo({TokenId::SymRightCurly, TokenId::SymComma}, SkipUntilFlags::EolBefore);

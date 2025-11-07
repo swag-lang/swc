@@ -10,7 +10,7 @@ AstNodeRef Parser::parseGenericParam()
     bool        isConstant  = false;
     bool        isType      = false;
     const auto& tknConstVar = tok();
-    
+
     if (consumeIf(TokenId::KwdConst))
         isConstant = true;
     else if (consumeIf(TokenId::KwdVar))
@@ -55,6 +55,13 @@ AstNodeRef Parser::parseGenericParam()
     nodePtr->tokName        = tknName;
     nodePtr->nodeAssign     = nodeAssign;
     return nodeRef;
+}
+
+AstNodeRef Parser::parseVarDecl()
+{
+    // @skip
+    skipTo({TokenId::SymRightCurly, TokenId::SymComma}, SkipUntilFlags::EolBefore);
+    return INVALID_REF;
 }
 
 SWC_END_NAMESPACE()

@@ -57,10 +57,16 @@ AstNodeRef Parser::parseAggregateValue()
     case TokenId::SymLeftCurly:
         return parseBlock(AstNodeId::AggregateBody, TokenId::SymLeftCurly);
 
+    case TokenId::CompilerAst:
+        return parseCompilerFunc();
+
+    case TokenId::KwdVar:
+        raiseError(DiagnosticId::parser_err_var_struct, ref());
+        consume();
+        return parseVarDecl();
+        
     default:
-        // @skip
-        skipTo({TokenId::SymRightCurly, TokenId::SymComma}, SkipUntilFlags::EolBefore);
-        return INVALID_REF;
+        return parseVarDecl();
     }
 }
 

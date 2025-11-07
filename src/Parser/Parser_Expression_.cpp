@@ -332,14 +332,14 @@ AstNodeRef Parser::parseCast()
     if (consumeIf(TokenId::SymRightParen))
     {
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CastAutoExpr>();
-        nodePtr->tknOp                = tknOp;
+        nodePtr->tokOp                = tknOp;
         nodePtr->modifierFlags        = modifierFlags;
         nodePtr->nodeExpr             = parseExpression();
         return nodeRef;
     }
 
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CastExpr>();
-    nodePtr->tknOp                = tknOp;
+    nodePtr->tokOp                = tknOp;
     nodePtr->modifierFlags        = modifierFlags;
     nodePtr->nodeType             = parseType();
     if (invalid(nodePtr->nodeType))
@@ -365,7 +365,7 @@ AstNodeRef Parser::parseUnaryExpr()
     case TokenId::KwdDRef:
     {
         const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpr>();
-        nodePtr->tknOp                  = consume();
+        nodePtr->tokOp                  = consume();
         nodePtr->nodeExpr               = parsePostFixExpression();
         return nodeParen;
     }
@@ -394,7 +394,7 @@ AstNodeRef Parser::parseBinaryExpr()
               TokenId::SymCircumflex))
     {
         const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::BinaryExpr>();
-        nodePtr->tknOp                  = consume();
+        nodePtr->tokOp                  = consume();
         nodePtr->nodeLeft               = nodeRef;
         nodePtr->modifiersFlags         = parseModifiers();
         nodePtr->nodeRight              = parseBinaryExpr();
@@ -420,7 +420,7 @@ AstNodeRef Parser::parseRelationalExpr()
               TokenId::SymLowerEqualGreater))
     {
         const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::RelationalExpr>();
-        nodePtr->tknOp                  = consume();
+        nodePtr->tokOp                  = consume();
         nodePtr->nodeLeft               = nodeRef;
         nodePtr->nodeRight              = parseRelationalExpr();
         return nodeParen;
@@ -441,7 +441,7 @@ AstNodeRef Parser::parseLogicalExpr()
             raiseError(DiagnosticId::parser_err_unexpected_and_or, ref());
 
         const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::LogicalExpr>();
-        nodePtr->tknOp                  = consume();
+        nodePtr->tokOp                  = consume();
         nodePtr->nodeLeft               = nodeRef;
         nodePtr->nodeRight              = parseLogicalExpr();
         return nodeParen;
@@ -470,7 +470,7 @@ AstNodeRef Parser::parseParenExpr()
 AstNodeRef Parser::parseIdentifier()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>();
-    nodePtr->tknName        = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+    nodePtr->tokName        = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
     return nodeRef;
 }
 
@@ -548,7 +548,7 @@ AstNodeRef Parser::parseNamedArgument()
     if (is(TokenId::Identifier) && nextIs(TokenId::SymColon) && !has_any(tok().flags, TokenFlags::BlankAfter))
     {
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamedArgument>();
-        nodePtr->tknName              = consume();
+        nodePtr->tokName              = consume();
         consume(TokenId::SymColon);
         nodePtr->nodeArg = parseExpression();
         return nodeRef;
@@ -597,14 +597,14 @@ AstNodeRef Parser::parseGenericParam()
     if (isConstant)
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::GenericParamValue>();
-        nodePtr->tknName        = tknName;
+        nodePtr->tokName        = tknName;
         nodePtr->nodeAssign     = nodeAssign;
         nodePtr->nodeType       = nodeType;
         return nodeRef;
     }
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::GenericParamType>();
-    nodePtr->tknName        = tknName;
+    nodePtr->tokName        = tknName;
     nodePtr->nodeAssign     = nodeAssign;
     return nodeRef;
 }

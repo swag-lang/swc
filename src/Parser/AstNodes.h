@@ -9,7 +9,7 @@ struct AstNodeCompoundBase : AstNodeBase
     {
     }
 
-    Ref spanChildren;
+    SpanRef spanChildren;
 };
 
 struct AstNodeFile : AstNodeCompoundBase
@@ -210,7 +210,7 @@ struct AstNodeCompilerFunc : AstNodeBase
     {
     }
 
-    TokenRef   tknName;
+    TokenRef   tokName;
     AstNodeRef nodeBody;
 };
 
@@ -222,7 +222,7 @@ struct AstNodeCompilerShortFunc : AstNodeBase
     {
     }
 
-    TokenRef   tknName;
+    TokenRef   tokName;
     AstNodeRef nodeExpr;
 };
 
@@ -234,7 +234,7 @@ struct AstNodeCompilerFuncExpr : AstNodeBase
     {
     }
 
-    TokenRef   tknName;
+    TokenRef   tokName;
     AstNodeRef nodeExpr;
 };
 
@@ -246,7 +246,7 @@ struct AstNodeIdentifier : AstNodeBase
     {
     }
 
-    TokenRef tknName;
+    TokenRef tokName;
 };
 
 struct AstNodeScopedIdentifier : AstNodeBase
@@ -356,7 +356,7 @@ struct AstNodeNamedArgument : AstNodeArgument
     {
     }
 
-    TokenRef   tknName;
+    TokenRef   tokName;
     AstNodeRef nodeArg;
 };
 
@@ -396,7 +396,7 @@ struct AstNodeBinaryBase : AstNodeBase
     {
     }
 
-    TokenRef   tknOp;
+    TokenRef   tokOp;
     AstNodeRef nodeLeft;
     AstNodeRef nodeRight;
 };
@@ -438,7 +438,7 @@ struct AstNodeUnaryExpr : AstNodeBase
     {
     }
 
-    TokenRef   tknOp;
+    TokenRef   tokOp;
     AstNodeRef nodeExpr;
 };
 
@@ -449,7 +449,7 @@ struct AstNodeLiteralBase : AstNodeBase
     {
     }
 
-    TokenRef tknValue;
+    TokenRef tokValue;
 };
 
 struct AstNodeIntegerLiteral : AstNodeLiteralBase
@@ -580,7 +580,7 @@ struct AstNodeCastAutoExpr : AstNodeBase
     {
     }
 
-    TokenRef         tknOp;
+    TokenRef         tokOp;
     AstModifierFlags modifierFlags;
     AstNodeRef       nodeExpr;
 };
@@ -593,7 +593,7 @@ struct AstNodeCastExpr : AstNodeBase
     {
     }
 
-    TokenRef         tknOp;
+    TokenRef         tokOp;
     AstModifierFlags modifierFlags;
     AstNodeRef       nodeType;
     AstNodeRef       nodeExpr;
@@ -607,7 +607,7 @@ struct AstNodeEnumDecl : AstNodeCompoundBase
     {
     }
 
-    TokenRef   tknName;
+    TokenRef   tokName;
     AstNodeRef nodeType;
 };
 
@@ -619,7 +619,7 @@ struct AstNodeEnumValue : AstNodeBase
     {
     }
 
-    TokenRef   tknName;
+    TokenRef   tokName;
     AstNodeRef nodeValue;
 };
 
@@ -653,7 +653,7 @@ struct AstNodeQualifiedType : AstNodeBase
     {
     }
 
-    TokenRef   tknQual;
+    TokenRef   tokQual;
     AstNodeRef nodeType;
 };
 
@@ -731,7 +731,7 @@ struct AstNodeArrayType : AstNodeBase
     {
     }
 
-    Ref        spanDimensions;
+    SpanRef    spanDimensions;
     AstNodeRef nodePointeeType;
 };
 
@@ -754,7 +754,7 @@ struct AstNodeBuiltinType : AstNodeBase
     {
     }
 
-    TokenRef tknType;
+    TokenRef tokType;
 };
 
 struct AstNodeCompilerType : AstNodeBase
@@ -776,7 +776,7 @@ struct AstNodeCompilerIf : AstNodeCompoundBase
     {
     }
 
-    TokenRef   tknIf;
+    TokenRef   tokIf;
     AstNodeRef nodeCondition;
     AstNodeRef nodeIfBlock;
     AstNodeRef nodeElseBlock;
@@ -812,10 +812,10 @@ struct AstNodeAttribute : AstNodeBase
     AstNodeRef nodeArgs;
 };
 
-struct AstNodeAttributeBlock : AstNodeCompoundBase
+struct AstNodeAttributeList : AstNodeCompoundBase
 {
-    static constexpr auto ID = AstNodeId::AttributeBlock;
-    AstNodeAttributeBlock() :
+    static constexpr auto ID = AstNodeId::AttributeList;
+    AstNodeAttributeList() :
         AstNodeCompoundBase(ID)
     {
     }
@@ -823,10 +823,10 @@ struct AstNodeAttributeBlock : AstNodeCompoundBase
     AstNodeRef nodeBody;
 };
 
-struct AstNodeDependencies : AstNodeBase
+struct AstNodeDependenciesDecl : AstNodeBase
 {
-    static constexpr auto ID = AstNodeId::Dependencies;
-    AstNodeDependencies() :
+    static constexpr auto ID = AstNodeId::DependenciesDecl;
+    AstNodeDependenciesDecl() :
         AstNodeBase(ID)
     {
     }
@@ -850,9 +850,9 @@ struct AstNodeStructDeclBase : AstNodeCompoundBase
     {
     }
 
-    TokenRef tknName;
-    Ref      spanGenericParams;
-    Ref      spanWhere;
+    TokenRef tokName;
+    SpanRef  spanGenericParams;
+    SpanRef  spanWhere;
 };
 
 struct AstNodeStructDecl : AstNodeStructDeclBase
@@ -881,7 +881,7 @@ struct AstNodeAccessModifier : AstNodeBase
     {
     }
 
-    TokenRef   tknAccess;
+    TokenRef   tokAccess;
     AstNodeRef nodeWhat;
 };
 
@@ -893,7 +893,7 @@ struct AstNodeConstraintBlock : AstNodeCompoundBase
     {
     }
 
-    TokenRef tknConstraint;
+    TokenRef tokConstraint;
 };
 
 struct AstNodeConstraintExpr : AstNodeBase
@@ -904,7 +904,7 @@ struct AstNodeConstraintExpr : AstNodeBase
     {
     }
 
-    TokenRef   tknConstraint;
+    TokenRef   tokConstraint;
     AstNodeRef nodeExpr;
 };
 
@@ -924,7 +924,7 @@ struct AstNodeGenericParamBase : AstNodeBase
     {
     }
 
-    TokenRef   tknName;
+    TokenRef   tokName;
     AstNodeRef nodeAssign;
 };
 

@@ -7,4 +7,5 @@ using AstNodeRef    = Ref;
 using AstPayloadRef = Ref;
 using FileRef       = Ref;
 using TokenRef      = Ref;
+using SpanRef       = Ref;
 using JobClientId   = Ref;

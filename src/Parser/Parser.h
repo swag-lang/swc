@@ -126,7 +126,7 @@ class Parser
     AstNodeRef       parseImplDecl();
     AstNodeRef       parseFile();
     AstNodeRef       parseAttribute();
-    AstNodeRef       parseCompilerDependencies();
+    AstNodeRef       parseCompilerDependenciesDecl();
     AstNodeRef       parseGlobalAccessModifier();
     AstNodeRef       parseUsingDecl();
     AstNodeRef       parseConstraint();

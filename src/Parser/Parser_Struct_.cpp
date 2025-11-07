@@ -84,8 +84,8 @@ AstNodeRef Parser::parseStructUnionDecl(AstNodeId nodeId)
     }
 
     // Name
-    nodePtr->tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
-    if (invalid(nodePtr->tknName))
+    nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+    if (invalid(nodePtr->tokName))
         skipTo({TokenId::SymLeftCurly});
 
     // Where

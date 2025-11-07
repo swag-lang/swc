@@ -69,11 +69,11 @@ AstNodeRef Parser::parseAttribute()
 
 AstNodeRef Parser::parseCompilerAttribute(AstNodeId blockNodeId)
 {
-    const auto nodeRef = parseBlock(AstNodeId::AttributeBlock, TokenId::SymAttrStart);
+    const auto nodeRef = parseBlock(AstNodeId::AttributeList, TokenId::SymAttrStart);
     if (invalid(nodeRef))
         return INVALID_REF;
 
-    const auto nodePtr = ast_->node<AstNodeId::AttributeBlock>(nodeRef);
+    const auto nodePtr = ast_->node<AstNodeId::AttributeList>(nodeRef);
     if (is(TokenId::SymLeftCurly))
         nodePtr->nodeBody = parseBlock(blockNodeId, TokenId::SymLeftCurly);
     else

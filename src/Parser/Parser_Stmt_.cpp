@@ -41,8 +41,8 @@ AstNodeRef Parser::parseTopLevelStmt()
 
     case TokenId::KwdNamespace:
         return parseNamespace();
-    case TokenId::CompilerDependencies:
-        return parseCompilerDependencies();
+    case TokenId::CompilerDependenciesDecl:
+        return parseCompilerDependenciesDecl();
 
     case TokenId::SymAttrStart:
         return parseCompilerAttribute(AstNodeId::TopLevelBlock);
@@ -100,7 +100,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
 AstNodeRef Parser::parseGlobalAccessModifier()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AccessModifier>();
-    nodePtr->tknAccess      = consume();
+    nodePtr->tokAccess      = consume();
     nodePtr->nodeWhat       = parseTopLevelStmt();
     return nodeRef;
 }
@@ -127,13 +127,13 @@ AstNodeRef Parser::parseConstraint()
     if (nextIs(TokenId::SymLeftCurly))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ConstraintBlock>();
-        nodePtr->tknConstraint  = consume();
+        nodePtr->tokConstraint  = consume();
         nodePtr->spanChildren   = parseBlockContent(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
         return nodeRef;
     }
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ConstraintExpr>();
-    nodePtr->tknConstraint  = consume();
+    nodePtr->tokConstraint  = consume();
     nodePtr->nodeExpr       = parseExpression();
     return nodeRef;
 }

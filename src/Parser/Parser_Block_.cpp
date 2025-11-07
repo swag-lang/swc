@@ -28,7 +28,7 @@ AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
     case AstNodeId::StructDecl:
         return parseStructValue();
 
-    case AstNodeId::AttributeBlock:
+    case AstNodeId::AttributeList:
         return parseAttribute();
 
     case AstNodeId::ArrayLiteral:
@@ -117,14 +117,14 @@ Result Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
         break;
 
     case AstNodeId::UsingDecl:
-    case AstNodeId::AttributeBlock:
+    case AstNodeId::AttributeList:
     case AstNodeId::ArrayLiteral:
     case AstNodeId::UnnamedArgumentList:
     case AstNodeId::NamedArgumentList:
     case AstNodeId::GenericParamsList:
         if (!consumeIf(TokenId::SymComma) && !is(tokenEndId))
         {
-            if (is(TokenId::Identifier) && blockNodeId == AstNodeId::AttributeBlock)
+            if (is(TokenId::Identifier) && blockNodeId == AstNodeId::AttributeList)
                 raiseError(DiagnosticId::parser_err_missing_attribute_sep, ref());
             else
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
@@ -146,7 +146,7 @@ void Parser::finalizeBlock(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef 
     {
         switch (blockNodeId)
         {
-        case AstNodeId::AttributeBlock:
+        case AstNodeId::AttributeList:
         {
             const auto diag     = reportError(DiagnosticId::parser_err_empty_attribute, openTokRef);
             const auto tokenEnd = file_->lexOut().token(closeTokenRef);

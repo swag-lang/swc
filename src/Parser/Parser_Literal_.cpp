@@ -61,7 +61,7 @@ AstNodeRef Parser::parseLiteral()
         return INVALID_REF;
     }
 
-    literal.second->tknValue = consume();
+    literal.second->tokValue = consume();
     return literal.first;
 }
 

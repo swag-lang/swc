@@ -11,7 +11,7 @@ AstNodeRef Parser::parseSingleType()
     if (tok().isType())
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::BuiltinType>();
-        nodePtr->tknType        = consume();
+        nodePtr->tokType        = consume();
         return nodeRef;
     }
 
@@ -55,7 +55,7 @@ AstNodeRef Parser::parseType()
     if (is(TokenId::KwdConst))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::QualifiedType>();
-        nodePtr->tknQual        = consume();
+        nodePtr->tokQual        = consume();
         nodePtr->nodeType       = parseType();
         return nodeRef;
     }

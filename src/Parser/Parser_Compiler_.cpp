@@ -11,13 +11,13 @@ AstNodeRef Parser::parseCompilerFunc()
     if (nextIs(TokenId::SymLeftCurly))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerFunc>();
-        nodePtr->tknName        = consume();
+        nodePtr->tokName        = consume();
         nodePtr->nodeBody       = parseBlock(AstNodeId::FuncBody, TokenId::SymLeftCurly);
         return nodeRef;
     }
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerShortFunc>();
-    nodePtr->tknName        = consume();
+    nodePtr->tokName        = consume();
     nodePtr->nodeExpr       = parseExpression();
     return nodeRef;
 }
@@ -25,7 +25,7 @@ AstNodeRef Parser::parseCompilerFunc()
 AstNodeRef Parser::parseCompilerFuncExpr()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerFuncExpr>();
-    nodePtr->tknName        = consume();
+    nodePtr->tokName        = consume();
     nodePtr->nodeExpr       = parseExpression();
     return nodeRef;
 }
@@ -65,7 +65,7 @@ AstNodeRef Parser::parseCompilerIf(AstNodeId blockNodeId)
 {
     SWC_ASSERT(isAny(TokenId::CompilerIf, TokenId::CompilerElseIf));
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerIf>();
-    nodePtr->tknIf                = consume();
+    nodePtr->tokIf                = consume();
 
     // Parse the condition expression
     nodePtr->nodeCondition = parseExpression();
@@ -83,9 +83,9 @@ AstNodeRef Parser::parseCompilerIf(AstNodeId blockNodeId)
     return nodeRef;
 }
 
-AstNodeRef Parser::parseCompilerDependencies()
+AstNodeRef Parser::parseCompilerDependenciesDecl()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Dependencies>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::DependenciesDecl>();
     consume();
     nodePtr->nodeBody = parseBlock(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     return nodeRef;

@@ -35,7 +35,7 @@ AstNodeRef Parser::parseEnumValue()
     case TokenId::Identifier:
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumValue>();
-        nodePtr->tknName        = consume();
+        nodePtr->tokName        = consume();
         if (consumeIf(TokenId::SymEqual))
         {
             nodePtr->nodeValue = parseExpression();
@@ -63,8 +63,8 @@ AstNodeRef Parser::parseEnumDecl()
     consume(TokenId::KwdEnum);
 
     // Name
-    nodePtr->tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
-    if (invalid(nodePtr->tknName))
+    nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+    if (invalid(nodePtr->tokName))
         skipTo({TokenId::SymLeftCurly, TokenId::SymColon});
 
     // Type

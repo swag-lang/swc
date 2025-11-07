@@ -124,6 +124,8 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::SymLeftParen:
         return parseParenExpr();
 
+    case TokenId::SymLeftCurly:
+        return parseLiteralStruct();
     case TokenId::SymLeftBracket:
         return parseLiteralArray();
 

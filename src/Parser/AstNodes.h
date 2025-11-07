@@ -536,6 +536,15 @@ struct AstArrayLiteral : AstCompound
     }
 };
 
+struct AstStructLiteral : AstCompound
+{
+    static constexpr auto ID = AstNodeId::StructLiteral;
+    AstStructLiteral() :
+        AstCompound(ID)
+    {
+    }
+};
+
 struct AstScopeResolution : AstNode
 {
     static constexpr auto ID = AstNodeId::ScopeResolution;

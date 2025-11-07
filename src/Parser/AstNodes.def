@@ -39,6 +39,7 @@ SWC_NODE_DEF(IsTypeExpr)
 
 // Literals
 SWC_NODE_DEF(ArrayLiteral)
+SWC_NODE_DEF(StructLiteral)
 SWC_NODE_DEF(BoolLiteral)
 SWC_NODE_DEF(CharacterLiteral)
 SWC_NODE_DEF(CompilerLiteral)

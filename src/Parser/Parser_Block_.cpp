@@ -32,6 +32,7 @@ AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
         return parseAttribute();
 
     case AstNodeId::ArrayLiteral:
+    case AstNodeId::StructLiteral:
     case AstNodeId::UnnamedArgList:
         return parseExpression();
 
@@ -119,6 +120,7 @@ Result Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
     case AstNodeId::UsingDecl:
     case AstNodeId::AttributeList:
     case AstNodeId::ArrayLiteral:
+    case AstNodeId::StructLiteral:
     case AstNodeId::UnnamedArgList:
     case AstNodeId::NamedArgList:
     case AstNodeId::GenericParamList:

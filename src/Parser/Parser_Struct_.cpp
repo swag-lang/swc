@@ -28,24 +28,24 @@ AstNodeRef Parser::parseImpl()
     if (invalid(nodeFor))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Impl>();
-        nodePtr->nodeIdent = nodeIdent;
+        nodePtr->nodeIdent      = nodeIdent;
         nodePtr->spanChildren   = parseBlockContent(AstNodeId::Impl, TokenId::SymLeftCurly);
         return nodeRef;
     }
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ImplFor>();
-    nodePtr->nodeIdent = nodeIdent;
+    nodePtr->nodeIdent      = nodeIdent;
     nodePtr->nodeFor        = nodeFor;
     nodePtr->spanChildren   = parseBlockContent(AstNodeId::ImplFor, TokenId::SymLeftCurly);
     return nodeRef;
 }
 
-AstNodeRef Parser::parseStructValue()
+AstNodeRef Parser::parseAggregateValue(AstNodeId blockNodeId)
 {
     switch (id())
     {
     case TokenId::SymAttrStart:
-        return parseCompilerAttribute(AstNodeId::StructDecl);
+        return parseCompilerAttribute(blockNodeId);
 
     case TokenId::SymLeftCurly:
         // @skip
@@ -62,15 +62,15 @@ AstNodeRef Parser::parseStructValue()
 
 AstNodeRef Parser::parseUnionDecl()
 {
-    return parseStructUnionDecl(AstNodeId::UnionDecl);
+    return parseAggregateDecl(AstNodeId::UnionDecl);
 }
 
 AstNodeRef Parser::parseStructDecl()
 {
-    return parseStructUnionDecl(AstNodeId::StructDecl);
+    return parseAggregateDecl(AstNodeId::StructDecl);
 }
 
-AstNodeRef Parser::parseStructUnionDecl(AstNodeId nodeId)
+AstNodeRef Parser::parseAggregateDecl(AstNodeId nodeId)
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstAggregateDecl>(nodeId);
     consume();
@@ -104,7 +104,7 @@ AstNodeRef Parser::parseStructUnionDecl(AstNodeId nodeId)
     nodePtr->spanWhere = whereRefs.empty() ? INVALID_REF : ast_->store_.push_span(whereRefs.span());
 
     // Content
-    nodePtr->spanChildren = parseBlockContent(AstNodeId::StructDecl, TokenId::SymLeftCurly);
+    nodePtr->spanChildren = parseBlockContent(nodeId, TokenId::SymLeftCurly);
 
     return nodeRef;
 }

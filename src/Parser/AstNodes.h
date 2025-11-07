@@ -911,10 +911,10 @@ struct AstNodeGenericParam : AstNode
     AstNodeRef nodeAssign;
 };
 
-struct AstNodeGenericParamConstant : AstNodeGenericParam
+struct AstNodeGenericParamValue : AstNodeGenericParam
 {
-    static constexpr auto ID = AstNodeId::GenericParamConstant;
-    AstNodeGenericParamConstant() :
+    static constexpr auto ID = AstNodeId::GenericParamValue;
+    AstNodeGenericParamValue() :
         AstNodeGenericParam(ID)
     {
     }

@@ -47,6 +47,13 @@ AstNodeRef Parser::parseAggregateValue(AstNodeId blockNodeId)
     case TokenId::SymAttrStart:
         return parseCompilerAttribute(blockNodeId);
 
+    case TokenId::KwdStruct:
+        return parseStructDecl();
+    case TokenId::KwdUnion:
+        return parseUnionDecl();          
+    case TokenId::KwdEnum:
+        return parseEnumDecl();
+
     case TokenId::SymLeftCurly:
         // @skip
         consume();

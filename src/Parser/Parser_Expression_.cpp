@@ -30,7 +30,7 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::CompilerDefined:
     case TokenId::CompilerInclude:
     case TokenId::CompilerSafety:
-        return parseSysCallUnary(AstNodeId::CompilerCallUnary);
+        return parseInternalCallUnary(AstNodeId::CompilerCallUnary);
 
     case TokenId::CompilerRun:
         return parseCompilerExpr();
@@ -65,7 +65,7 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::IntrinsicBitCountNz:
     case TokenId::IntrinsicBitCountTz:
     case TokenId::IntrinsicBitCountLz:
-        return parseSysCallUnary(AstNodeId::IntrinsicCallUnary);
+        return parseInternalCallUnary(AstNodeId::IntrinsicCallUnary);
 
     case TokenId::IntrinsicMakeAny:
     case TokenId::IntrinsicMakeSlice:
@@ -84,10 +84,10 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::IntrinsicAtomicOr:
     case TokenId::IntrinsicAtomicAnd:
     case TokenId::IntrinsicAtomicAdd:
-        return parseSysCallBinary(AstNodeId::IntrinsicCallBinary);
+        return parseInternalCallBinary(AstNodeId::IntrinsicCallBinary);
 
     case TokenId::IntrinsicMakeInterface:
-        return parseSysCallTernary(AstNodeId::IntrinsicCallTernary);
+        return parseInternalCallTernary(AstNodeId::IntrinsicCallTernary);
 
     case TokenId::NumberInteger:
     case TokenId::NumberBinary:

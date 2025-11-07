@@ -85,9 +85,9 @@ struct AstUsingNamespace : AstNode
     AstNodeRef nodeNamespace;
 };
 
-struct AstSysCallUnaryBase : AstNode
+struct AstInternalCallUnaryBase : AstNode
 {
-    explicit AstSysCallUnaryBase(AstNodeId nodeId) :
+    explicit AstInternalCallUnaryBase(AstNodeId nodeId) :
         AstNode(nodeId)
     {
     }
@@ -96,9 +96,9 @@ struct AstSysCallUnaryBase : AstNode
     AstNodeRef nodeArg1;
 };
 
-struct AstSysCallBinaryBase : AstNode
+struct AstInternalCallBinaryBase : AstNode
 {
-    explicit AstSysCallBinaryBase(AstNodeId nodeId) :
+    explicit AstInternalCallBinaryBase(AstNodeId nodeId) :
         AstNode(nodeId)
     {
     }
@@ -108,9 +108,9 @@ struct AstSysCallBinaryBase : AstNode
     AstNodeRef nodeArg2;
 };
 
-struct AstSysCallTernaryBase : AstNode
+struct AstInternalCallTernaryBase : AstNode
 {
-    explicit AstSysCallTernaryBase(AstNodeId nodeId) :
+    explicit AstInternalCallTernaryBase(AstNodeId nodeId) :
         AstNode(nodeId)
     {
     }
@@ -121,38 +121,38 @@ struct AstSysCallTernaryBase : AstNode
     AstNodeRef nodeArg3;
 };
 
-struct AstCompilerCallUnary : AstSysCallUnaryBase
+struct AstCompilerCallUnary : AstInternalCallUnaryBase
 {
     static constexpr auto ID = AstNodeId::CompilerCallUnary;
     AstCompilerCallUnary() :
-        AstSysCallUnaryBase(ID)
+        AstInternalCallUnaryBase(ID)
     {
     }
 };
 
-struct AstIntrinsicCallUnary : AstSysCallUnaryBase
+struct AstIntrinsicCallUnary : AstInternalCallUnaryBase
 {
     static constexpr auto ID = AstNodeId::IntrinsicCallUnary;
     AstIntrinsicCallUnary() :
-        AstSysCallUnaryBase(ID)
+        AstInternalCallUnaryBase(ID)
     {
     }
 };
 
-struct AstIntrinsicCallBinary : AstSysCallBinaryBase
+struct AstIntrinsicCallBinary : AstInternalCallBinaryBase
 {
     static constexpr auto ID = AstNodeId::IntrinsicCallBinary;
     AstIntrinsicCallBinary() :
-        AstSysCallBinaryBase(ID)
+        AstInternalCallBinaryBase(ID)
     {
     }
 };
 
-struct AstIntrinsicCallTernary : AstSysCallTernaryBase
+struct AstIntrinsicCallTernary : AstInternalCallTernaryBase
 {
     static constexpr auto ID = AstNodeId::IntrinsicCallTernary;
     AstIntrinsicCallTernary() :
-        AstSysCallTernaryBase(ID)
+        AstInternalCallTernaryBase(ID)
     {
     }
 };
@@ -166,38 +166,38 @@ struct AstFuncBody : AstCompound
     }
 };
 
-struct AstCompilerAssert : AstSysCallUnaryBase
+struct AstCompilerAssert : AstInternalCallUnaryBase
 {
     static constexpr auto ID = AstNodeId::CompilerAssert;
     AstCompilerAssert() :
-        AstSysCallUnaryBase(ID)
+        AstInternalCallUnaryBase(ID)
     {
     }
 };
 
-struct AstCompilerError : AstSysCallUnaryBase
+struct AstCompilerError : AstInternalCallUnaryBase
 {
     static constexpr auto ID = AstNodeId::CompilerError;
     AstCompilerError() :
-        AstSysCallUnaryBase(ID)
+        AstInternalCallUnaryBase(ID)
     {
     }
 };
 
-struct AstCompilerWarning : AstSysCallUnaryBase
+struct AstCompilerWarning : AstInternalCallUnaryBase
 {
     static constexpr auto ID = AstNodeId::CompilerWarning;
     AstCompilerWarning() :
-        AstSysCallUnaryBase(ID)
+        AstInternalCallUnaryBase(ID)
     {
     }
 };
 
-struct AstCompilerPrint : AstSysCallUnaryBase
+struct AstCompilerPrint : AstInternalCallUnaryBase
 {
     static constexpr auto ID = AstNodeId::CompilerPrint;
     AstCompilerPrint() :
-        AstSysCallUnaryBase(ID)
+        AstInternalCallUnaryBase(ID)
     {
     }
 };

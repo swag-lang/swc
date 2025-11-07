@@ -5,9 +5,9 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstNodeRef Parser::parseSysCallUnary(AstNodeId callerNodeId)
+AstNodeRef Parser::parseInternalCallUnary(AstNodeId callerNodeId)
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstSysCallUnaryBase>(callerNodeId);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstInternalCallUnaryBase>(callerNodeId);
     nodePtr->tokName         = consume();
 
     const auto openRef = ref();
@@ -18,9 +18,9 @@ AstNodeRef Parser::parseSysCallUnary(AstNodeId callerNodeId)
     return nodeRef;
 }
 
-AstNodeRef Parser::parseSysCallBinary(AstNodeId callerNodeId)
+AstNodeRef Parser::parseInternalCallBinary(AstNodeId callerNodeId)
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstSysCallBinaryBase>(callerNodeId);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstInternalCallBinaryBase>(callerNodeId);
     nodePtr->tokName         = consume();
 
     const auto openRef = ref();
@@ -36,9 +36,9 @@ AstNodeRef Parser::parseSysCallBinary(AstNodeId callerNodeId)
     return nodeRef;
 }
 
-AstNodeRef Parser::parseSysCallTernary(AstNodeId callerNodeId)
+AstNodeRef Parser::parseInternalCallTernary(AstNodeId callerNodeId)
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstSysCallTernaryBase>(callerNodeId);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstInternalCallTernaryBase>(callerNodeId);
     nodePtr->tokName         = consume();
 
     const auto openRef = ref();

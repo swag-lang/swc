@@ -843,16 +843,17 @@ struct AstUsingDecl : AstCompound
     }
 };
 
-struct AstAggregateDecl : AstCompound
+struct AstAggregateDecl : AstNode
 {
     explicit AstAggregateDecl(AstNodeId nodeId) :
-        AstCompound(nodeId)
+        AstNode(nodeId)
     {
     }
 
-    TokenRef tokName;
-    SpanRef  spanGenericParams;
-    SpanRef  spanWhere;
+    TokenRef   tokName;
+    SpanRef    spanGenericParams;
+    SpanRef    spanWhere;
+    AstNodeRef nodeBody;
 };
 
 struct AstStructDecl : AstAggregateDecl
@@ -869,6 +870,15 @@ struct AstUnionDecl : AstAggregateDecl
     static constexpr auto ID = AstNodeId::UnionDecl;
     AstUnionDecl() :
         AstAggregateDecl(ID)
+    {
+    }
+};
+
+struct AstAggregateBody : AstCompound
+{
+    static constexpr auto ID = AstNodeId::AggregateBody;
+    AstAggregateBody() :
+        AstCompound(ID)
     {
     }
 };

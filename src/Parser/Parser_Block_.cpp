@@ -25,8 +25,7 @@ AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
 
     case AstNodeId::EnumDecl:
         return parseEnumValue();
-    case AstNodeId::StructDecl:
-    case AstNodeId::UnionDecl:
+    case AstNodeId::AggregateBody:
         return parseAggregateValue(blockNodeId);
 
     case AstNodeId::AttributeList:
@@ -60,8 +59,7 @@ AstNodeRef Parser::parseBlockCompilerDirective(AstNodeId blockNodeId)
         blockNodeId == AstNodeId::ImplEnum ||
         blockNodeId == AstNodeId::Impl ||
         blockNodeId == AstNodeId::ImplFor ||
-        blockNodeId == AstNodeId::StructDecl ||
-        blockNodeId == AstNodeId::UnionDecl ||
+        blockNodeId == AstNodeId::AggregateBody ||
         blockNodeId == AstNodeId::EnumDecl)
     {
         switch (id())
@@ -106,8 +104,7 @@ Result Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
     switch (blockNodeId)
     {
     case AstNodeId::EnumDecl:
-    case AstNodeId::StructDecl:
-    case AstNodeId::UnionDecl:
+    case AstNodeId::AggregateBody:
         if (!consumeIf(TokenId::SymComma) && !is(tokenEndId) && !tok().startsLine())
         {
             if (is(TokenId::Identifier) && blockNodeId == AstNodeId::EnumDecl)

@@ -50,7 +50,7 @@ AstNodeRef Parser::parseAggregateValue(AstNodeId blockNodeId)
     case TokenId::KwdStruct:
         return parseStructDecl();
     case TokenId::KwdUnion:
-        return parseUnionDecl();          
+        return parseUnionDecl();
     case TokenId::KwdEnum:
         return parseEnumDecl();
 
@@ -111,7 +111,7 @@ AstNodeRef Parser::parseAggregateDecl(AstNodeId nodeId)
     nodePtr->spanWhere = whereRefs.empty() ? INVALID_REF : ast_->store_.push_span(whereRefs.span());
 
     // Content
-    nodePtr->spanChildren = parseBlockContent(nodeId, TokenId::SymLeftCurly);
+    nodePtr->nodeBody = parseBlock(AstNodeId::AggregateBody, TokenId::SymLeftCurly);
 
     return nodeRef;
 }

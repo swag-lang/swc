@@ -31,7 +31,7 @@ public:
         file_(file)
     {
     }
-    
+
     Result tokenize(const Context& ctx);
     bool   verifyExpected(const Context& ctx, const Diagnostic& diag) const;
     Result verifyUntouchedExpected(const Context& ctx) const;

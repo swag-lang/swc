@@ -4,10 +4,10 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstNodeRef Parser::parseImplDecl()
+AstNodeRef Parser::parseImpl()
 {
     if (nextIs(TokenId::KwdEnum))
-        return parseEnumImplDecl();
+        return parseEnumImpl();
 
     consume();
 
@@ -27,16 +27,16 @@ AstNodeRef Parser::parseImplDecl()
 
     if (invalid(nodeFor))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ImplDecl>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Impl>();
         nodePtr->nodeIdent = nodeIdent;
-        nodePtr->spanChildren   = parseBlockContent(AstNodeId::ImplDecl, TokenId::SymLeftCurly);
+        nodePtr->spanChildren   = parseBlockContent(AstNodeId::Impl, TokenId::SymLeftCurly);
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ImplDeclFor>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ImplFor>();
     nodePtr->nodeIdent = nodeIdent;
     nodePtr->nodeFor        = nodeFor;
-    nodePtr->spanChildren   = parseBlockContent(AstNodeId::ImplDeclFor, TokenId::SymLeftCurly);
+    nodePtr->spanChildren   = parseBlockContent(AstNodeId::ImplFor, TokenId::SymLeftCurly);
     return nodeRef;
 }
 

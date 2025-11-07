@@ -28,7 +28,7 @@ AstNodeRef Parser::parseTopLevelStmt()
         return parseStructDecl();
 
     case TokenId::KwdImpl:
-        return parseImplDecl();
+        return parseImpl();
 
     case TokenId::CompilerFuncTest:
     case TokenId::CompilerFuncMain:

@@ -111,7 +111,7 @@ class Parser
     AstNodeRef       parseExpression();
     AstNodeRef       parseParenExpr();
     AstNodeRef       parseEnumDecl();
-    AstNodeRef       parseEnumImplDecl();
+    AstNodeRef       parseEnumImpl();
     AstNodeRef       parseEnumValue();
     AstNodeRef       parseCompilerFunc();
     AstNodeRef       parseCompilerFuncExpr();
@@ -123,7 +123,7 @@ class Parser
     AstNodeRef       parseGenericParam();
     AstNodeRef       parseStructDecl();
     AstNodeRef       parseUnionDecl();
-    AstNodeRef       parseImplDecl();
+    AstNodeRef       parseImpl();
     AstNodeRef       parseFile();
     AstNodeRef       parseAttribute();
     AstNodeRef       parseCompilerDependenciesDecl();

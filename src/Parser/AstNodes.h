@@ -2,9 +2,9 @@
 #pragma once
 #include "Core/Types.h"
 
-struct AstCompoundBase : AstNode
+struct AstCompound : AstNode
 {
-    explicit AstCompoundBase(AstNodeId nodeId) :
+    explicit AstCompound(AstNodeId nodeId) :
         AstNode(nodeId)
     {
     }
@@ -12,49 +12,49 @@ struct AstCompoundBase : AstNode
     SpanRef spanChildren;
 };
 
-struct AstFileBlock : AstCompoundBase
+struct AstFile : AstCompound
 {
-    static constexpr auto ID = AstNodeId::FileBlock;
-    AstFileBlock() :
-        AstCompoundBase(ID)
+    static constexpr auto ID = AstNodeId::File;
+    AstFile() :
+        AstCompound(ID)
     {
     }
 };
 
-struct AstTopLevelBlock : AstCompoundBase
+struct AstTopLevelBlock : AstCompound
 {
     static constexpr auto ID = AstNodeId::TopLevelBlock;
     AstTopLevelBlock() :
-        AstCompoundBase(ID)
+        AstCompound(ID)
     {
     }
 };
 
-struct AstEmbeddedBlock : AstCompoundBase
+struct AstEmbeddedBlock : AstCompound
 {
     static constexpr auto ID = AstNodeId::EmbeddedBlock;
     AstEmbeddedBlock() :
-        AstCompoundBase(ID)
+        AstCompound(ID)
     {
     }
 };
 
-struct AstImplDecl : AstCompoundBase
+struct AstImpl : AstCompound
 {
-    static constexpr auto ID = AstNodeId::ImplDecl;
-    AstImplDecl() :
-        AstCompoundBase(ID)
+    static constexpr auto ID = AstNodeId::Impl;
+    AstImpl() :
+        AstCompound(ID)
     {
     }
 
     AstNodeRef nodeIdent;
 };
 
-struct AstImplDeclFor : AstCompoundBase
+struct AstImplFor : AstCompound
 {
-    static constexpr auto ID = AstNodeId::ImplDeclFor;
-    AstImplDeclFor() :
-        AstCompoundBase(ID)
+    static constexpr auto ID = AstNodeId::ImplFor;
+    AstImplFor() :
+        AstCompound(ID)
     {
     }
 
@@ -62,10 +62,10 @@ struct AstImplDeclFor : AstCompoundBase
     AstNodeRef nodeFor;
 };
 
-struct AstNamespaceBlock : AstNode
+struct AstNamespace : AstNode
 {
-    static constexpr auto ID = AstNodeId::NamespaceBlock;
-    AstNamespaceBlock() :
+    static constexpr auto ID = AstNodeId::Namespace;
+    AstNamespace() :
         AstNode(ID)
     {
     }
@@ -157,11 +157,11 @@ struct AstIntrinsicCall3 : AstCall3Base
     }
 };
 
-struct AstFuncBody : AstCompoundBase
+struct AstFuncBody : AstCompound
 {
     static constexpr auto ID = AstNodeId::FuncBody;
     AstFuncBody() :
-        AstCompoundBase(ID)
+        AstCompound(ID)
     {
     }
 };
@@ -371,20 +371,20 @@ struct AstParenExpr : AstNode
     AstNodeRef nodeExpr;
 };
 
-struct AstNamedArgumentList : AstCompoundBase
+struct AstNamedArgumentList : AstCompound
 {
     static constexpr auto ID = AstNodeId::NamedArgumentList;
     AstNamedArgumentList() :
-        AstCompoundBase(ID)
+        AstCompound(ID)
     {
     }
 };
 
-struct AstUnnamedArgumentList : AstCompoundBase
+struct AstUnnamedArgumentList : AstCompound
 {
     static constexpr auto ID = AstNodeId::UnnamedArgumentList;
     AstUnnamedArgumentList() :
-        AstCompoundBase(ID)
+        AstCompound(ID)
     {
     }
 };
@@ -527,11 +527,11 @@ struct AstSuffixedLiteral : AstNode
     AstNodeRef nodeQuote;
 };
 
-struct AstArrayLiteral : AstCompoundBase
+struct AstArrayLiteral : AstCompound
 {
     static constexpr auto ID = AstNodeId::ArrayLiteral;
     AstArrayLiteral() :
-        AstCompoundBase(ID)
+        AstCompound(ID)
     {
     }
 };
@@ -599,11 +599,11 @@ struct AstCastExpr : AstNode
     AstNodeRef       nodeExpr;
 };
 
-struct AstEnumDecl : AstCompoundBase
+struct AstEnumDecl : AstCompound
 {
     static constexpr auto ID = AstNodeId::EnumDecl;
     AstEnumDecl() :
-        AstCompoundBase(ID)
+        AstCompound(ID)
     {
     }
 
@@ -634,11 +634,11 @@ struct AstEnumUsingValue : AstNode
     AstNodeRef nodeName;
 };
 
-struct AstEnumImplDecl : AstCompoundBase
+struct AstEnumImpl : AstCompound
 {
-    static constexpr auto ID = AstNodeId::EnumImplDecl;
-    AstEnumImplDecl() :
-        AstCompoundBase(ID)
+    static constexpr auto ID = AstNodeId::EnumImpl;
+    AstEnumImpl() :
+        AstCompound(ID)
     {
     }
 
@@ -768,11 +768,11 @@ struct AstCompilerType : AstNode
     AstNodeRef nodeType;
 };
 
-struct AstCompilerIf : AstCompoundBase
+struct AstCompilerIf : AstCompound
 {
     static constexpr auto ID = AstNodeId::CompilerIf;
     AstCompilerIf() :
-        AstCompoundBase(ID)
+        AstCompound(ID)
     {
     }
 
@@ -782,20 +782,20 @@ struct AstCompilerIf : AstCompoundBase
     AstNodeRef nodeElseBlock;
 };
 
-struct AstCompilerElse : AstCompoundBase
+struct AstCompilerElse : AstCompound
 {
     static constexpr auto ID = AstNodeId::CompilerElse;
     AstCompilerElse() :
-        AstCompoundBase(ID)
+        AstCompound(ID)
     {
     }
 };
 
-struct AstCompilerElseIf : AstCompoundBase
+struct AstCompilerElseIf : AstCompound
 {
     static constexpr auto ID = AstNodeId::CompilerElseIf;
     AstCompilerElseIf() :
-        AstCompoundBase(ID)
+        AstCompound(ID)
     {
     }
 };
@@ -812,11 +812,11 @@ struct AstAttribute : AstNode
     AstNodeRef nodeArgs;
 };
 
-struct AstAttributeList : AstCompoundBase
+struct AstAttributeList : AstCompound
 {
     static constexpr auto ID = AstNodeId::AttributeList;
     AstAttributeList() :
-        AstCompoundBase(ID)
+        AstCompound(ID)
     {
     }
 
@@ -834,19 +834,19 @@ struct AstDependenciesDecl : AstNode
     AstNodeRef nodeBody;
 };
 
-struct AstUsingDecl : AstCompoundBase
+struct AstUsingDecl : AstCompound
 {
     static constexpr auto ID = AstNodeId::UsingDecl;
     AstUsingDecl() :
-        AstCompoundBase(ID)
+        AstCompound(ID)
     {
     }
 };
 
-struct AstStructDeclBase : AstCompoundBase
+struct AstStructDeclBase : AstCompound
 {
     explicit AstStructDeclBase(AstNodeId nodeId) :
-        AstCompoundBase(nodeId)
+        AstCompound(nodeId)
     {
     }
 
@@ -885,11 +885,11 @@ struct AstAccessModifier : AstNode
     AstNodeRef nodeWhat;
 };
 
-struct AstConstraintBlock : AstCompoundBase
+struct AstConstraintBlock : AstCompound
 {
     static constexpr auto ID = AstNodeId::ConstraintBlock;
     AstConstraintBlock() :
-        AstCompoundBase(ID)
+        AstCompound(ID)
     {
     }
 
@@ -908,11 +908,11 @@ struct AstConstraintExpr : AstNode
     AstNodeRef nodeExpr;
 };
 
-struct AstGenericParamsList : AstCompoundBase
+struct AstGenericParamsList : AstCompound
 {
     static constexpr auto ID = AstNodeId::GenericParamsList;
     AstGenericParamsList() :
-        AstCompoundBase(ID)
+        AstCompound(ID)
     {
     }
 };

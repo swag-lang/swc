@@ -12,11 +12,11 @@ AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
 {
     switch (blockNodeId)
     {
-    case AstNodeId::FileBlock:
+    case AstNodeId::File:
     case AstNodeId::TopLevelBlock:
-    case AstNodeId::EnumImplDecl:
-    case AstNodeId::ImplDecl:
-    case AstNodeId::ImplDeclFor:
+    case AstNodeId::EnumImpl:
+    case AstNodeId::Impl:
+    case AstNodeId::ImplFor:
         return parseTopLevelStmt();
 
     case AstNodeId::FuncBody:
@@ -54,11 +54,11 @@ AstNodeRef Parser::parseBlockCompilerDirective(AstNodeId blockNodeId)
     auto childrenRef = INVALID_REF;
 
     // Compiler instructions
-    if (blockNodeId == AstNodeId::FileBlock ||
+    if (blockNodeId == AstNodeId::File ||
         blockNodeId == AstNodeId::TopLevelBlock ||
-        blockNodeId == AstNodeId::EnumImplDecl ||
-        blockNodeId == AstNodeId::ImplDecl ||
-        blockNodeId == AstNodeId::ImplDeclFor ||
+        blockNodeId == AstNodeId::EnumImpl ||
+        blockNodeId == AstNodeId::Impl ||
+        blockNodeId == AstNodeId::ImplFor ||
         blockNodeId == AstNodeId::StructDecl ||
         blockNodeId == AstNodeId::EnumDecl)
     {
@@ -170,7 +170,7 @@ void Parser::finalizeBlock(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef 
 
 AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt)
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstCompoundBase>(blockNodeId);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstCompound>(blockNodeId);
     nodePtr->spanChildren   = parseBlockContent(blockNodeId, tokenStartId, endStmt);
     return nodeRef;
 }
@@ -241,12 +241,12 @@ Ref Parser::parseBlockContent(AstNodeId blockNodeId, TokenId tokenStartId, bool 
 
 AstNodeRef Parser::parseFile()
 {
-    return parseBlock(AstNodeId::FileBlock, TokenId::Invalid);
+    return parseBlock(AstNodeId::File, TokenId::Invalid);
 }
 
 AstNodeRef Parser::parseNamespace()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamespaceBlock>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Namespace>();
     consume();
     nodePtr->nodeName = parseScopedIdentifier();
     if (invalid(nodePtr->nodeName))

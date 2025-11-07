@@ -3,8 +3,8 @@ SWC_NODE_DEF(Invalid)
 // Structural
 SWC_NODE_DEF(TopLevelBlock)
 SWC_NODE_DEF(EmbeddedBlock)
-SWC_NODE_DEF(FileBlock)
-SWC_NODE_DEF(NamespaceBlock)
+SWC_NODE_DEF(File)
+SWC_NODE_DEF(Namespace)
 SWC_NODE_DEF(UsingNamespace)
 SWC_NODE_DEF(DependenciesDecl)
 SWC_NODE_DEF(UsingDecl)
@@ -81,12 +81,12 @@ SWC_NODE_DEF(StructDecl)
 SWC_NODE_DEF(UnionDecl)
 
 // Declarations & Implementations
-SWC_NODE_DEF(ImplDecl)
-SWC_NODE_DEF(ImplDeclFor)
+SWC_NODE_DEF(Impl)
+SWC_NODE_DEF(ImplFor)
 
 // Enums
 SWC_NODE_DEF(EnumDecl)
-SWC_NODE_DEF(EnumImplDecl)
+SWC_NODE_DEF(EnumImpl)
 SWC_NODE_DEF(EnumValue)
 SWC_NODE_DEF(EnumUsingValue)
 

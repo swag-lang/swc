@@ -67,12 +67,12 @@ class Parser
     AstNodeRef parseInternalCallUnary(AstNodeId callerNodeId);
     AstNodeRef parseInternalCallBinary(AstNodeId callerNodeId);
     AstNodeRef parseInternalCallTernary(AstNodeId callerNodeId);
-    AstNodeRef parseBlockStmt(AstNodeId blockNodeId);
+    AstNodeRef parseCompoundValue(AstNodeId blockNodeId);
     AstNodeRef parseBlockCompilerDirective(AstNodeId blockNodeId);
-    Result     parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId);
-    void       finalizeBlock(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef closeTokenRef, TokenId tokenEndId, const SmallVector<AstNodeRef>& childrenRefs);
-    AstNodeRef parseBlock(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt = false);
-    Ref        parseBlockContent(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt = false);
+    Result     parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId);
+    void       finalizeCompound(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef closeTokenRef, TokenId tokenEndId, const SmallVector<AstNodeRef>& childrenRefs);
+    AstNodeRef parseCompound(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt = false);
+    Ref        parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt = false);
     AstNodeRef parseCompilerIf(AstNodeId blockNodeId);
     AstNodeRef parseCompilerIfStmt(AstNodeId blockNodeId);
     AstNodeRef parseCompilerAttribute(AstNodeId blockNodeId);

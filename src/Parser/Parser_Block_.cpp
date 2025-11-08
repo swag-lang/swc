@@ -8,7 +8,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
+AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
 {
     switch (blockNodeId)
     {
@@ -97,7 +97,7 @@ AstNodeRef Parser::parseBlockCompilerDirective(AstNodeId blockNodeId)
     return childrenRef;
 }
 
-Result Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
+Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
 {
     SmallVector skipTokens = {TokenId::SymComma, tokenEndId};
     if (depthParen_)
@@ -149,7 +149,7 @@ Result Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
     return Result::Success;
 }
 
-void Parser::finalizeBlock(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef closeTokenRef, const TokenId tokenEndId, const SmallVector<AstNodeRef>& childrenRefs)
+void Parser::finalizeCompound(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef closeTokenRef, const TokenId tokenEndId, const SmallVector<AstNodeRef>& childrenRefs)
 {
     if (childrenRefs.empty())
     {
@@ -177,14 +177,14 @@ void Parser::finalizeBlock(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef 
     }
 }
 
-AstNodeRef Parser::parseBlock(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt)
+AstNodeRef Parser::parseCompound(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt)
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstCompound>(blockNodeId);
-    nodePtr->spanChildren   = parseBlockContent(blockNodeId, tokenStartId, endStmt);
+    nodePtr->spanChildren   = parseCompoundContent(blockNodeId, tokenStartId, endStmt);
     return nodeRef;
 }
 
-Ref Parser::parseBlockContent(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt)
+Ref Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt)
 {
     const Token&   openTok    = tok();
     const TokenRef openTokRef = ref();
@@ -211,7 +211,7 @@ Ref Parser::parseBlockContent(AstNodeId blockNodeId, TokenId tokenStartId, bool 
         }
 
         // One block element
-        childRef = parseBlockStmt(blockNodeId);
+        childRef = parseCompoundValue(blockNodeId);
         if (valid(childRef))
             childrenRefs.push_back(childRef);
 
@@ -223,7 +223,7 @@ Ref Parser::parseBlockContent(AstNodeId blockNodeId, TokenId tokenStartId, bool 
         }
 
         // Separator between statements
-        if (parseBlockSeparator(blockNodeId, tokenEndId) == Result::Error)
+        if (parseCompoundSeparator(blockNodeId, tokenEndId) == Result::Error)
         {
             if (depthParen_ && is(TokenId::SymRightParen))
                 break;
@@ -242,7 +242,7 @@ Ref Parser::parseBlockContent(AstNodeId blockNodeId, TokenId tokenStartId, bool 
         raiseExpected(DiagnosticId::parser_err_expected_closing, openTokRef, Token::toRelated(openTok.id));
 
     // Consume end token if necessary
-    finalizeBlock(blockNodeId, openTokRef, closeTokenRef, tokenEndId, childrenRefs);
+    finalizeCompound(blockNodeId, openTokRef, closeTokenRef, tokenEndId, childrenRefs);
 
     // Store
     return ast_->store_.push_span(childrenRefs.span());
@@ -250,7 +250,7 @@ Ref Parser::parseBlockContent(AstNodeId blockNodeId, TokenId tokenStartId, bool 
 
 AstNodeRef Parser::parseFile()
 {
-    return parseBlock(AstNodeId::File, TokenId::Invalid);
+    return parseCompound(AstNodeId::File, TokenId::Invalid);
 }
 
 AstNodeRef Parser::parseNamespace()
@@ -260,7 +260,7 @@ AstNodeRef Parser::parseNamespace()
     nodePtr->nodeName = parseQualifiedIdentifier();
     if (invalid(nodePtr->nodeName))
         skipTo({TokenId::SymLeftCurly});
-    nodePtr->nodeBody = parseBlock(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
+    nodePtr->nodeBody = parseCompound(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     return nodeRef;
 }
 

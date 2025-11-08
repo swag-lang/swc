@@ -11,7 +11,7 @@ AstNodeRef Parser::parseTopLevelStmt()
     switch (id())
     {
     case TokenId::SymLeftCurly:
-        return parseBlock(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
+        return parseCompound(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     case TokenId::SymRightCurly:
         raiseError(DiagnosticId::parser_err_unexpected_token, ref());
         return INVALID_REF;
@@ -69,7 +69,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
     switch (id())
     {
     case TokenId::SymLeftCurly:
-        return parseBlock(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
+        return parseCompound(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
     case TokenId::SymRightCurly:
         raiseError(DiagnosticId::parser_err_unexpected_token, ref());
         return INVALID_REF;
@@ -117,7 +117,7 @@ AstNodeRef Parser::parseUsingDecl()
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingDecl>();
     consume();
-    nodePtr->spanChildren = parseBlockContent(AstNodeId::UsingDecl, TokenId::Invalid, true);
+    nodePtr->spanChildren = parseCompoundContent(AstNodeId::UsingDecl, TokenId::Invalid, true);
     expectEndStatement();
     return nodeRef;
 }
@@ -128,7 +128,7 @@ AstNodeRef Parser::parseConstraint()
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ConstraintBlock>();
         nodePtr->tokConstraint  = consume();
-        nodePtr->spanChildren   = parseBlockContent(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
+        nodePtr->spanChildren   = parseCompoundContent(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
         return nodeRef;
     }
 

@@ -189,7 +189,7 @@ AstNodeRef Parser::parsePostFixExpression()
         {
             const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IndexExpr>();
             nodePtr->nodeExpr                = nodeRef;
-            nodePtr->nodeArgs                = parseBlock(AstNodeId::UnnamedArgList, TokenId::SymLeftBracket);
+            nodePtr->nodeArgs                = parseCompound(AstNodeId::UnnamedArgList, TokenId::SymLeftBracket);
             nodeRef                          = nodeParent;
             continue;
         }
@@ -199,7 +199,7 @@ AstNodeRef Parser::parsePostFixExpression()
         {
             const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::Call>();
             nodePtr->nodeExpr                = nodeRef;
-            nodePtr->nodeArgs                = parseBlock(AstNodeId::NamedArgList, TokenId::SymLeftParen);
+            nodePtr->nodeArgs                = parseCompound(AstNodeId::NamedArgList, TokenId::SymLeftParen);
             nodeRef                          = nodeParent;
             continue;
         }
@@ -209,7 +209,7 @@ AstNodeRef Parser::parsePostFixExpression()
         {
             const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::StructInit>();
             nodePtr->nodeExpr                = nodeRef;
-            nodePtr->nodeArgs                = parseBlock(AstNodeId::NamedArgList, TokenId::SymLeftCurly);
+            nodePtr->nodeArgs                = parseCompound(AstNodeId::NamedArgList, TokenId::SymLeftCurly);
             nodeRef                          = nodeParent;
             continue;
         }
@@ -482,7 +482,7 @@ AstNodeRef Parser::parseIdentifier()
         {
             auto [nodeRef, nodePtr]   = ast_->makeNode<AstNodeId::MultiPostfixIdentifier>();
             nodePtr->tokName          = tokName;
-            nodePtr->nodePostfixBlock = parseBlock(AstNodeId::UnnamedArgList, TokenId::SymLeftParen);
+            nodePtr->nodePostfixBlock = parseCompound(AstNodeId::UnnamedArgList, TokenId::SymLeftParen);
             return nodeRef;
         }
 

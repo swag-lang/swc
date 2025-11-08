@@ -14,7 +14,7 @@ AstNodeRef Parser::parseImplEnum()
     if (invalid(nodePtr->nodeName))
         skipTo({TokenId::SymLeftCurly});
 
-    nodePtr->spanChildren = parseBlockContent(AstNodeId::ImplEnum, TokenId::SymLeftCurly);
+    nodePtr->spanChildren = parseCompoundContent(AstNodeId::ImplEnum, TokenId::SymLeftCurly);
     return nodeRef;
 }
 
@@ -76,7 +76,7 @@ AstNodeRef Parser::parseEnumDecl()
     }
 
     // Content
-    nodePtr->spanChildren = parseBlockContent(AstNodeId::EnumDecl, TokenId::SymLeftCurly);
+    nodePtr->spanChildren = parseCompoundContent(AstNodeId::EnumDecl, TokenId::SymLeftCurly);
 
     return nodeRef;
 }

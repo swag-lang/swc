@@ -29,14 +29,14 @@ AstNodeRef Parser::parseImpl()
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Impl>();
         nodePtr->nodeIdent      = nodeIdent;
-        nodePtr->spanChildren   = parseBlockContent(AstNodeId::Impl, TokenId::SymLeftCurly);
+        nodePtr->spanChildren   = parseCompoundContent(AstNodeId::Impl, TokenId::SymLeftCurly);
         return nodeRef;
     }
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ImplFor>();
     nodePtr->nodeIdent      = nodeIdent;
     nodePtr->nodeFor        = nodeFor;
-    nodePtr->spanChildren   = parseBlockContent(AstNodeId::ImplFor, TokenId::SymLeftCurly);
+    nodePtr->spanChildren   = parseCompoundContent(AstNodeId::ImplFor, TokenId::SymLeftCurly);
     return nodeRef;
 }
 
@@ -55,7 +55,7 @@ AstNodeRef Parser::parseAggregateValue()
         return parseEnumDecl();
 
     case TokenId::SymLeftCurly:
-        return parseBlock(AstNodeId::AggregateBody, TokenId::SymLeftCurly);
+        return parseCompound(AstNodeId::AggregateBody, TokenId::SymLeftCurly);
 
     case TokenId::CompilerAst:
     case TokenId::CompilerRun:
@@ -96,7 +96,7 @@ AstNodeRef Parser::parseAggregateDecl(AstNodeId nodeId)
     // Generic types
     if (is(TokenId::SymLeftParen))
     {
-        nodePtr->spanGenericParams = parseBlockContent(AstNodeId::GenericParamList, TokenId::SymLeftParen);
+        nodePtr->spanGenericParams = parseCompoundContent(AstNodeId::GenericParamList, TokenId::SymLeftParen);
         if (invalid(nodePtr->spanGenericParams))
             skipTo({TokenId::SymLeftCurly});
     }
@@ -129,7 +129,7 @@ AstNodeRef Parser::parseAggregateDecl(AstNodeId nodeId)
 
 AstNodeRef Parser::parseAggregateBody()
 {
-    return parseBlock(AstNodeId::AggregateBody, TokenId::SymLeftCurly);
+    return parseCompound(AstNodeId::AggregateBody, TokenId::SymLeftCurly);
 }
 
 SWC_END_NAMESPACE()

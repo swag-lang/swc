@@ -14,7 +14,7 @@ AstNodeRef Parser::parseCompilerFunc()
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerFunc>();
         nodePtr->tokName        = consume();
-        nodePtr->nodeBody       = parseBlock(AstNodeId::FuncBody, TokenId::SymLeftCurly);
+        nodePtr->nodeBody       = parseCompound(AstNodeId::FuncBody, TokenId::SymLeftCurly);
         return nodeRef;
     }
 
@@ -50,15 +50,15 @@ AstNodeRef Parser::parseCompilerIfStmt(AstNodeId blockNodeId)
         if (is(TokenId::SymLeftCurly))
         {
             raiseError(DiagnosticId::parser_err_unexpected_do_block, ref() - 1);
-            return parseBlock(blockNodeId, TokenId::SymLeftCurly);
+            return parseCompound(blockNodeId, TokenId::SymLeftCurly);
         }
 
-        return parseBlockStmt(blockNodeId);
+        return parseCompoundValue(blockNodeId);
     }
 
     if (is(TokenId::SymLeftCurly))
     {
-        return parseBlock(blockNodeId, TokenId::SymLeftCurly);
+        return parseCompound(blockNodeId, TokenId::SymLeftCurly);
     }
 
     const auto diag = reportError(DiagnosticId::parser_err_expected_do_block, ref() - 1);
@@ -92,7 +92,7 @@ AstNodeRef Parser::parseCompilerDependencies()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Dependencies>();
     consume();
-    nodePtr->nodeBody = parseBlock(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
+    nodePtr->nodeBody = parseCompound(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     return nodeRef;
 }
 SWC_END_NAMESPACE()

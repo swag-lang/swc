@@ -39,11 +39,11 @@ AstNodeRef Parser::parseLambdaType()
     bool       emptyCapture  = false;
     AstNodeRef captureParams = INVALID_REF;
     if (is(TokenId::SymVertical))
-        captureParams = parseBlock(AstNodeId::ClosureCaptureList, TokenId::SymVertical);
+        captureParams = parseCompound(AstNodeId::ClosureCaptureList, TokenId::SymVertical);
     else if (consumeIf(TokenId::SymVerticalVertical))
         emptyCapture = true;
 
-    const SpanRef params = parseBlock(AstNodeId::LambdaParameterList, TokenId::SymLeftParen);
+    const SpanRef params = parseCompound(AstNodeId::LambdaParameterList, TokenId::SymLeftParen);
 
     // Return type
     AstNodeRef returnType = INVALID_REF;

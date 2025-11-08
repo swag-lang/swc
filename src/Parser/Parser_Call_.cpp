@@ -63,21 +63,21 @@ AstNodeRef Parser::parseAttribute()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Attribute>();
     nodePtr->nodeIdent = parseQualifiedIdentifier();
     if (is(TokenId::SymLeftParen))
-        nodePtr->nodeArgs = parseBlock(AstNodeId::NamedArgList, TokenId::SymLeftParen);
+        nodePtr->nodeArgs = parseCompound(AstNodeId::NamedArgList, TokenId::SymLeftParen);
     return nodeRef;
 }
 
 AstNodeRef Parser::parseCompilerAttribute(AstNodeId blockNodeId)
 {
-    const auto nodeRef = parseBlock(AstNodeId::AttributeList, TokenId::SymAttrStart);
+    const auto nodeRef = parseCompound(AstNodeId::AttributeList, TokenId::SymAttrStart);
     if (invalid(nodeRef))
         return INVALID_REF;
 
     const auto nodePtr = ast_->node<AstNodeId::AttributeList>(nodeRef);
     if (is(TokenId::SymLeftCurly))
-        nodePtr->nodeBody = parseBlock(blockNodeId, TokenId::SymLeftCurly);
+        nodePtr->nodeBody = parseCompound(blockNodeId, TokenId::SymLeftCurly);
     else
-        nodePtr->nodeBody = parseBlockStmt(blockNodeId);
+        nodePtr->nodeBody = parseCompoundValue(blockNodeId);
     return nodeRef;
 }
 

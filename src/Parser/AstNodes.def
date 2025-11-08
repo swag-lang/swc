@@ -12,6 +12,7 @@ SWC_NODE_DEF(UsingVarDecl)
 SWC_NODE_DEF(AccessModifier)
 SWC_NODE_DEF(ConstraintBlock)
 SWC_NODE_DEF(ConstraintExpr)
+SWC_NODE_DEF(Alias)
 
 // Identifiers & References
 SWC_NODE_DEF(Identifier)

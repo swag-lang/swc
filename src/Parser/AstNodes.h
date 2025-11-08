@@ -310,7 +310,7 @@ struct AstPostfixIdentifier : AstNode
     {
     }
 
-    AstNodeRef tokName;
+    TokenRef   tokName;
     AstNodeRef nodePostfix;
 };
 
@@ -322,7 +322,7 @@ struct AstMultiPostfixIdentifier : AstNode
     {
     }
 
-    AstNodeRef tokName;
+    TokenRef   tokName;
     AstNodeRef nodePostfixBlock;
 };
 
@@ -1118,4 +1118,16 @@ struct AstUsingVarDecl : AstNode
     }
 
     AstNodeRef nodeVar;
+};
+
+struct AstAlias : AstNode
+{
+    static constexpr auto ID = AstNodeId::Alias;
+    AstAlias() :
+        AstNode(ID)
+    {
+    }
+
+    TokenRef   tokName;
+    AstNodeRef nodeExpr;
 };

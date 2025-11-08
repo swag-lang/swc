@@ -79,15 +79,13 @@ AstNodeRef Parser::parseAggregateValue()
     case TokenId::KwdPrivate:
         return parseAggregateAccessModifier();
 
-    case TokenId::KwdAlias:
-        // @skip
-        skipTo({TokenId::SymRightCurly, TokenId::SymComma}, SkipUntilFlagsE::EolBefore);
-        return INVALID_REF;
-
     case TokenId::Identifier:
         if (nextIs(TokenId::SymLeftParen) || nextIs(TokenId::SymDot))
             return parseTopLevelStmt();
         return parseVarDecl();
+
+    case TokenId::KwdAlias:
+        return parseAlias();
 
     case TokenId::KwdUsing:
     {

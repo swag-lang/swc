@@ -138,4 +138,19 @@ AstNodeRef Parser::parseConstraint()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseAlias()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Alias>();
+    consume();
+    nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+    expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_fam);
+
+    if (isAny(TokenId::CompilerDeclType, TokenId::SymLeftBracket, TokenId::SymLeftCurly, TokenId::KwdFunc, TokenId::KwdMtd))
+        nodePtr->nodeExpr = parseType();
+    else
+        nodePtr->nodeExpr = parsePrimaryExpression();
+
+    return nodeRef;
+}
+
 SWC_END_NAMESPACE()

@@ -388,20 +388,20 @@ CommandLineParser::CommandLineParser(CommandLine& cmdLine, Global& global) :
     addArg("all", "--num-cores", nullptr, CommandLineType::Int, &cmdLine_->numCores, nullptr, "Set the maximum number of CPU cores to use (0 = auto-detect).");
     addArg("all", "--log-color", nullptr, CommandLineType::Bool, &cmdLine_->logColor, nullptr, "Enable colored log output for better readability.");
     addArg("all", "--log-ascii", nullptr, CommandLineType::Bool, &cmdLine_->logAscii, nullptr, "Restrict console output to ASCII characters (disable Unicode).");
-    addArg("all", "--error-absolute", "-ea", CommandLineType::Bool, &cmdLine_->errorAbsolute, nullptr, "Show absolute file paths in error messages.");
-    addArg("all", "--error-one-line", "-el", CommandLineType::Bool, &cmdLine_->errorOneLine, nullptr, "Display errors in a single line");
-    addArg("all", "--error-id", "-eid", CommandLineType::Bool, &cmdLine_->errorId, nullptr, "Show error identifiers.");
+    addArg("all", "--diag-absolute", "-ea", CommandLineType::Bool, &cmdLine_->diagAbsolute, nullptr, "Show absolute file paths in diagnostic messages.");
+    addArg("all", "--diag-one-line", "-el", CommandLineType::Bool, &cmdLine_->diagOneLine, nullptr, "Display diagnostics as a single line.");
+    addArg("all", "--diag-id", "-eid", CommandLineType::Bool, &cmdLine_->errorId, nullptr, "Show diagnostic identifiers.");
     addArg("all", "--verify", "-v", CommandLineType::Bool, &cmdLine_->verify, nullptr, "Verify special test annotations or comments.");
     addArg("all", "--verbose-errors", "-ve", CommandLineType::Bool, &cmdLine_->verboseErrors, nullptr, "Log raised errors during tests.");
     addArg("all", "--verbose-errors-filter", "-vef", CommandLineType::String, &cmdLine_->verboseErrorsFilter, nullptr, "Filter verbose error logs by matching a specific string.");
     addArg("all", "--directory", "-d", CommandLineType::PathSet, &cmdLine_->directories, nullptr, "Specify one or more directories to process recursively for input files.");
     addArg("all", "--file", "-f", CommandLineType::PathSet, &cmdLine_->files, nullptr, "Specify one or more individual files to process directly.");
     addArg("all", "--file-filter", "-ff", CommandLineType::StringSet, &cmdLine_->fileFilter, nullptr, "Apply a substring filter to select specific files by name.");
-    addArg("all", "--devmode", nullptr, CommandLineType::Bool, &cmdLine_->dbgDevMode, nullptr, "Open a message box in case of hardware exceptions");
+    addArg("all", "--devmode", nullptr, CommandLineType::Bool, &cmdLine_->dbgDevMode, nullptr, "Open a message box in case of hardware exceptions.");
 
 #if SWC_DEV_MODE
-    addArg("all", "--randomize", nullptr, CommandLineType::Bool, &cmdLine_->randomize, nullptr, "Randomize behavior");
-    addArg("all", "--seed", nullptr, CommandLineType::Int, &cmdLine_->randSeed, nullptr, "Set seed for randomize behavior");
+    addArg("all", "--randomize", nullptr, CommandLineType::Bool, &cmdLine_->randomize, nullptr, "Randomize behavior.");
+    addArg("all", "--seed", nullptr, CommandLineType::Int, &cmdLine_->randSeed, nullptr, "Set seed for randomize behavior.");
 #endif
 }
 

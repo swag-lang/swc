@@ -16,8 +16,8 @@ struct CommandLine
 
     bool logColor      = true;
     bool logAscii      = false;
-    bool errorAbsolute = false;
-    bool errorOneLine  = false;
+    bool diagAbsolute  = false;
+    bool diagOneLine   = false;
     bool errorId       = false;
     bool silent        = false;
     bool stats         = false;

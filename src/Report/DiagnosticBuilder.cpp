@@ -294,7 +294,7 @@ void DiagnosticBuilder::writeHighlightedMessage(DiagnosticSeverity sev, std::str
 void DiagnosticBuilder::writeFileLocation(const DiagnosticElement& el)
 {
     Utf8 fileName;
-    if (ctx_->cmdLine().errorAbsolute)
+    if (ctx_->cmdLine().diagAbsolute)
         fileName = el.file()->path().string();
     else
         fileName = el.file()->path().filename().string();
@@ -738,7 +738,7 @@ Utf8 DiagnosticBuilder::build()
     // Primary element: the first one
     const auto& primary = *elements.front();
 
-    if (ctx_->cmdLine().errorOneLine)
+    if (ctx_->cmdLine().diagOneLine)
     {
         writeFileLocation(primary);
         out_ += ": ";

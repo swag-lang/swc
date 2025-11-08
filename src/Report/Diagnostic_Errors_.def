@@ -10,7 +10,7 @@ SWC_DIAG_DEF(cmdline_err_invalid_folder)
 SWC_DIAG_DEF(cmdline_err_invalid_file)
 
 // Compiler command specific errors 
-SWC_DIAG_DEF(cmd_syntax_err_no_input)
+SWC_DIAG_DEF(cmd_err_no_input)
 
 // File errors
 SWC_DIAG_DEF(io_err_open_file)

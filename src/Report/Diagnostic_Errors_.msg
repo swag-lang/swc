@@ -8,7 +8,7 @@ SWC_DIAG_DEF(cmdline_err_invalid_command, Error, "invalid command {arg}; command
 SWC_DIAG_DEF(cmdline_err_invalid_folder, Error, "invalid folder path: {path}; {because}")
 SWC_DIAG_DEF(cmdline_err_invalid_file, Error, "invalid file path: {path}; {because}")
 
-SWC_DIAG_DEF(cmd_syntax_err_no_input, Error, "invalid syntax command; at least one --directory or --file must be specified")
+SWC_DIAG_DEF(cmd_err_no_input, Error, "no file to process")
 
 SWC_DIAG_DEF(io_err_open_file, Error, "cannot open file: {path}; {because}")
 SWC_DIAG_DEF(io_err_read_file, Error, "cannot read file: {path}; {because}")

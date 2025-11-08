@@ -4,6 +4,8 @@
 
 SWC_BEGIN_NAMESPACE()
 
+class Context;
+
 class FileManager
 {
     std::vector<std::unique_ptr<SourceFile>> files_;
@@ -13,6 +15,7 @@ class FileManager
 public:
     FileRef                  addFile(fs::path path);
     std::vector<SourceFile*> files() const;
+    Result                   collectFiles(const Context& ctx);
 
     SourceFile* file(FileRef ref) const
     {

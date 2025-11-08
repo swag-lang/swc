@@ -1,11 +1,7 @@
 #include "pch.h"
-
-#include "Main/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileManager.h"
-#include "Main/FileSystem.h"
 #include "Main/Global.h"
-#include "Report/Diagnostic.h"
 #include "Thread/Job.h"
 #include "Thread/JobManager.h"
 
@@ -15,25 +11,11 @@ Result CompilerInstance::cmdSyntax()
 {
     const Context ctx(context_);
 
-    // Syntax source files must be defined
-    if (context_.cmdLine_->directories.empty() && context_.cmdLine_->files.empty())
-    {
-        const auto diag = Diagnostic::get(DiagnosticId::cmd_syntax_err_no_input);
-        diag.report(ctx);
+    const auto& global  = ctx.global();
+    auto&       fileMgr = global.fileMgr();
+
+    if (fileMgr.collectFiles(ctx) == Result::Error)
         return Result::Error;
-    }
-
-    const auto global = context_.global();
-
-    // Collect files
-    std::vector<fs::path> paths;
-    for (const auto& folder : context_.cmdLine_->directories)
-        FileSystem::collectSwagFilesRec(ctx, folder, paths);
-    for (const auto& file : context_.cmdLine_->files)
-        paths.push_back(file);
-
-    for (const auto& f : paths)
-        global.fileMgr().addFile(f);
 
     for (const auto& f : global.fileMgr().files())
     {
@@ -51,7 +33,7 @@ Result CompilerInstance::cmdSyntax()
     global.jobMgr().waitAll(context_.jobClientId());
 
     auto result = Result::Success;
-    for (const auto& f : global.fileMgr().files())
+    for (const auto& f : fileMgr.files())
     {
         if (f->unittest().verifyUntouchedExpected(ctx) == Result::Error)
             result = Result::Error;

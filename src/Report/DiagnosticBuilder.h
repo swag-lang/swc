@@ -60,7 +60,7 @@ class DiagnosticBuilder
     void writeHighlightedMessage(DiagnosticSeverity sev, std::string_view msg, const Utf8& reset);
     void writeFileLocation(const DiagnosticElement& el);
     void writeGutter(uint32_t gutter);
-    void writeCodeLine(uint32_t lineNo, std::string_view code);
+    void writeCodeLine(uint32_t lineNo, std::string_view startEllipsis, std::string_view code, std::string_view endEllipsis);
     void writeLabelMsg(const DiagnosticElement& el);
     void writeCodeUnderline(const DiagnosticElement& el, const SmallVector<ColSpan>& underlines);
     void writeCodeTrunc(const DiagnosticElement& elToUse, const SourceCodeLocation& loc, const DiagnosticSpan& span, uint32_t tokenLenChars, const Utf8& currentFullCodeLine, uint32_t currentFullCharCount);

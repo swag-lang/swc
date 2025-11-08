@@ -328,18 +328,34 @@ void DiagnosticBuilder::writeGutter(uint32_t gutter)
     out_ += " ";
 }
 
-void DiagnosticBuilder::writeCodeLine(uint32_t lineNo, std::string_view code)
+void DiagnosticBuilder::writeCodeLine(uint32_t lineNo, std::string_view startEllipsis, std::string_view code, std::string_view endEllipsis)
 {
     out_.append(gutterW_ - digits(lineNo), ' ');
     out_ += partStyle(DiagPart::LineNumber);
     out_ += std::to_string(lineNo);
     out_ += partStyle(DiagPart::Reset);
-
     writeGutter(0);
+
+    if (!startEllipsis.empty())
+    {
+        out_ += partStyle(DiagPart::Ellipsis);
+        out_ += startEllipsis;
+        out_ += partStyle(DiagPart::Reset);
+        out_ += " ";
+    }
 
     out_ += partStyle(DiagPart::CodeText);
     out_ += code;
     out_ += partStyle(DiagPart::Reset);
+
+    if (!endEllipsis.empty())
+    {
+        out_ += " ";
+        out_ += partStyle(DiagPart::Ellipsis);
+        out_ += endEllipsis;
+        out_ += partStyle(DiagPart::Reset);
+    }
+
     out_ += "\n";
 }
 
@@ -484,20 +500,8 @@ void DiagnosticBuilder::writeCodeTrunc(const DiagnosticElement&  elToUse,
             windowEnd -= lenEllipsis;
     }
 
-    Utf8 codeSlice = currentFullCodeLine.substr(windowStart, windowEnd - windowStart);
-
-    if (addPrefix)
-    {
-        codeSlice.insert(0, " ");
-        codeSlice.insert(0, std::format("{}{}{}", partStyle(DiagPart::Ellipsis).c_str(), ellipsis, partStyle(DiagPart::Reset).c_str()));
-    }
-    if (addSuffix)
-    {
-        codeSlice.append(" ");
-        codeSlice.append(std::format("{}{}{}", partStyle(DiagPart::Ellipsis).c_str(), ellipsis, partStyle(DiagPart::Reset).c_str()));
-    }
-
-    writeCodeLine(loc.line, codeSlice);
+    const Utf8 codeSlice = currentFullCodeLine.substr(windowStart, windowEnd - windowStart);
+    writeCodeLine(loc.line, addPrefix ? ellipsis : "", codeSlice, addSuffix ? ellipsis : "");
 
     const uint32_t prefixCols            = addPrefix ? lenEllipsis : 0;
     const uint32_t sliceVisible          = (windowEnd - windowStart);
@@ -560,7 +564,7 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
             currentLineIsTruncated = (currentFullCharCount > diagMax);
 
             if (!currentLineIsTruncated)
-                writeCodeLine(loc.line, currentFullCodeLine);
+                writeCodeLine(loc.line, "", currentFullCodeLine, "");
 
             currentLine = loc.line;
         }

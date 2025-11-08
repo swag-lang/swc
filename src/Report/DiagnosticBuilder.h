@@ -63,6 +63,7 @@ class DiagnosticBuilder
     void writeCodeLine(uint32_t lineNo, std::string_view code);
     void writeLabelMsg(const DiagnosticElement& el);
     void writeCodeUnderline(const DiagnosticElement& el, const SmallVector<ColSpan>& underlines);
+    void writeCodeTrunc(const DiagnosticElement& elToUse, const SourceCodeLocation& loc, const DiagnosticSpan& span, uint32_t tokenLenChars, const Utf8& currentFullCodeLine, uint32_t currentFullCharCount);
     void writeCodeBlock(const DiagnosticElement& el);
 
     Utf8 buildMessage(const Utf8& msg) const;

@@ -457,6 +457,61 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const Sm
     }
 }
 
+void DiagnosticBuilder::writeCodeTrunc(const DiagnosticElement&  elToUse,
+                                       const SourceCodeLocation& loc,
+                                       const DiagnosticSpan&     span,
+                                       uint32_t                  tokenLenChars,
+                                       const Utf8&               currentFullCodeLine,
+                                       uint32_t                  currentFullCharCount)
+{
+    constexpr std::string_view ellipsis    = "...";
+    constexpr size_t           lenEllipsis = ellipsis.length() + 1;
+    constexpr uint32_t         leftContext = 8;
+    const uint32_t             windowStart = (loc.column > leftContext) ? (loc.column - leftContext) : 0;
+
+    const uint32_t diagMax      = ctx_->cmdLine().diagMaxColumn;
+    uint32_t       visibleWidth = diagMax;
+    const bool     addPrefix    = (windowStart > 0);
+    if (addPrefix && visibleWidth >= lenEllipsis)
+        visibleWidth -= lenEllipsis;
+
+    uint32_t windowEnd = std::min(windowStart + visibleWidth, currentFullCharCount);
+
+    const bool addSuffix = (windowEnd < currentFullCharCount);
+    if (addSuffix && visibleWidth >= lenEllipsis)
+    {
+        if (windowEnd > windowStart + lenEllipsis)
+            windowEnd -= lenEllipsis;
+    }
+
+    Utf8 codeSlice = currentFullCodeLine.substr(windowStart, windowEnd - windowStart);
+
+    if (addPrefix)
+    {
+        codeSlice.insert(0, " ");
+        codeSlice.insert(0, std::format("{}{}{}", partStyle(DiagPart::Ellipsis).c_str(), ellipsis, partStyle(DiagPart::Reset).c_str()));
+    }
+    if (addSuffix)
+    {
+        codeSlice.append(" ");
+        codeSlice.append(std::format("{}{}{}", partStyle(DiagPart::Ellipsis).c_str(), ellipsis, partStyle(DiagPart::Reset).c_str()));
+    }
+
+    writeCodeLine(loc.line, codeSlice);
+
+    const uint32_t prefixCols            = addPrefix ? lenEllipsis : 0;
+    const uint32_t sliceVisible          = (windowEnd - windowStart);
+    const uint32_t underlineStartInSlice = (loc.column > windowStart) ? (loc.column - windowStart) : 0u;
+    const uint32_t rightAvail            = (underlineStartInSlice < sliceVisible) ? (sliceVisible - underlineStartInSlice) : 0u;
+
+    uint32_t adjustedLen = std::min(tokenLenChars, rightAvail);
+    uint32_t adjustedCol = prefixCols + underlineStartInSlice;
+
+    SmallVector<ColSpan> one;
+    one.emplace_back(adjustedCol, adjustedLen, span);
+    writeCodeUnderline(elToUse, one);
+}
+
 void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
 {
     // Loc
@@ -481,76 +536,15 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
     uint32_t currentLine = std::numeric_limits<uint32_t>::max();
     Utf8     currentFullCodeLine;
     uint32_t currentFullCharCount   = 0;
-    bool     currentLineIsTruncated = false; // "line is longer than diagMax"
-
-    // Render a single underline window for long lines.
-    auto renderSingleTruncated = [&](const DiagnosticElement& elToUse, const SourceCodeLocation& loc, const DiagnosticSpan& span, uint32_t tokenLenChars) {
-        constexpr std::string_view ellipsis    = "...";
-        constexpr size_t           lenEllipsis = ellipsis.length() + 1;
-        constexpr uint32_t         leftContext = 8;
-        const uint32_t             windowStart = (loc.column > leftContext) ? (loc.column - leftContext) : 0;
-
-        // We'll reserve space for leading and/or trailing ellipses.
-        uint32_t   visibleWidth = diagMax;
-        const bool addPrefix    = (windowStart > 0);
-        if (addPrefix && visibleWidth >= lenEllipsis)
-            visibleWidth -= lenEllipsis;
-
-        // Cap the right edge to the line length
-        uint32_t windowEnd = std::min(windowStart + visibleWidth, currentFullCharCount);
-
-        // If we’re not showing the end of the line, reserve room for a trailing ellipsis
-        const bool addSuffix = (windowEnd < currentFullCharCount);
-        if (addSuffix && visibleWidth >= lenEllipsis)
-        {
-            // Ensure there is space for the suffix; pull the end back if needed.
-            if (windowEnd > windowStart + lenEllipsis)
-                windowEnd -= lenEllipsis;
-        }
-
-        // Slice the code line by character range [windowStart, windowEnd)
-        Utf8 codeSlice = currentFullCodeLine.substr(windowStart, windowEnd - windowStart);
-
-        if (addPrefix)
-        {
-            codeSlice.insert(0, " ");
-            codeSlice.insert(0, std::format("{}{}{}", partStyle(DiagPart::Ellipsis).c_str(), ellipsis, partStyle(DiagPart::Reset).c_str()));
-        }
-        if (addSuffix)
-        {
-            codeSlice.append(" ");
-            codeSlice.append(std::format("{}{}{}", partStyle(DiagPart::Ellipsis).c_str(), ellipsis, partStyle(DiagPart::Reset).c_str()));
-        }
-
-        // Print the code slice with ellipses as needed
-        writeCodeLine(loc.line, codeSlice);
-
-        // Compute underline position/length within the window (clamped)
-        const uint32_t prefixCols            = addPrefix ? lenEllipsis : 0; // Ellipsis takes 4 columns
-        const uint32_t sliceVisible          = (windowEnd - windowStart);   // excluding ellipses
-        const uint32_t underlineStartInSlice = (loc.column > windowStart) ? (loc.column - windowStart) : 0u;
-
-        // Available columns to the right inside the visible slice
-        const uint32_t rightAvail = (underlineStartInSlice < sliceVisible) ? (sliceVisible - underlineStartInSlice) : 0u;
-
-        uint32_t adjustedLen = std::min(tokenLenChars, rightAvail);
-        uint32_t adjustedCol = prefixCols + underlineStartInSlice;
-
-        // Render just this underline on its own line
-        SmallVector<ColSpan> one;
-        one.emplace_back(adjustedCol, adjustedLen, span);
-        writeCodeUnderline(elToUse, one);
-    };
+    bool     currentLineIsTruncated = false;
 
     for (const auto& span : sortedSpans)
     {
         const auto loc = el.location(span, *ctx_);
 
-        // If we're on a new source line, first flush the previous one (if non-truncated),
-        // then prepare the new one.
         if (loc.line != currentLine)
         {
-            // Flush the previous non-truncated line's underline row
+            // Flush the previous underline row if needed
             if (!currentLineIsTruncated)
             {
                 if (!underlinesOnCurrentLine.empty())
@@ -560,29 +554,26 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
                 }
             }
 
-            // Prepare the new line
+            // Prepare a new line
             currentFullCodeLine    = el.file()->codeLine(*ctx_, loc.line);
             currentFullCharCount   = Utf8Helper::countChars(currentFullCodeLine);
             currentLineIsTruncated = (currentFullCharCount > diagMax);
 
-            // For non-truncated lines, we print the full code line once up-front.
             if (!currentLineIsTruncated)
                 writeCodeLine(loc.line, currentFullCodeLine);
 
             currentLine = loc.line;
         }
 
-        // Read this token length in characters
         const std::string_view tokenView     = el.file()->codeView(loc.offset, loc.len);
         const uint32_t         tokenLenChars = Utf8Helper::countChars(tokenView);
 
         if (currentLineIsTruncated)
-            renderSingleTruncated(el, loc, span, tokenLenChars);
+            writeCodeTrunc(el, loc, span, tokenLenChars, currentFullCodeLine, currentFullCharCount);
         else
             underlinesOnCurrentLine.emplace_back(loc.column, tokenLenChars, span);
     }
 
-    // Flush the last line
     if (!underlinesOnCurrentLine.empty())
         writeCodeUnderline(el, underlinesOnCurrentLine);
 

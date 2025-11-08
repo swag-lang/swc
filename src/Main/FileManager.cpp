@@ -38,12 +38,13 @@ std::vector<SourceFile*> FileManager::files() const
 
 Result FileManager::collectFiles(const Context& ctx)
 {
+    const auto&           cmdLine = ctx.cmdLine();
     std::vector<fs::path> paths;
 
     // Collect direct files from the command line
-    for (const auto& folder : ctx.cmdLine().directories)
+    for (const auto& folder : cmdLine.directories)
         FileSystem::collectSwagFilesRec(ctx, folder, paths);
-    for (const auto& file : ctx.cmdLine().files)
+    for (const auto& file : cmdLine.files)
         paths.push_back(file);
 
     if (paths.empty())
@@ -54,7 +55,7 @@ Result FileManager::collectFiles(const Context& ctx)
     }
 
     // In single threaded mode, make paths order deterministic
-    if (ctx.cmdLine().numCores == 1)
+    if (cmdLine.numCores == 1)
         std::ranges::sort(paths);
 
     // Register all files

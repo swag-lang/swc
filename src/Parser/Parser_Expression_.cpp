@@ -153,6 +153,7 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::SymAsterisk:
     case TokenId::SymAmpersand:
     case TokenId::CompilerCode:
+    case TokenId::ModifierNullable:
         return parseType();
 
     case TokenId::CompilerType:

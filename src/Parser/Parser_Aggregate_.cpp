@@ -78,6 +78,14 @@ AstNodeRef Parser::parseAggregateValue()
             return parseTopLevelStmt();
         return parseSingleVarDecl();
 
+    case TokenId::KwdUsing:
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingVarDecl>();
+        consume();
+        nodePtr->nodeVar = parseSingleVarDecl();
+        return nodeRef;
+    }
+
     default:
         return parseSingleVarDecl();
     }

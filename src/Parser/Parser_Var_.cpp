@@ -60,7 +60,7 @@ AstNodeRef Parser::parseGenericParam()
 AstNodeRef Parser::parseSingleVarDecl()
 {
     // @skip
-    if (nextIs(TokenId::SymComma) || is(TokenId::KwdUsing))
+    if (nextIs(TokenId::SymComma))
     {
         skipTo({TokenId::SymRightCurly, TokenId::SymComma}, SkipUntilFlags::EolBefore);
         return INVALID_REF;

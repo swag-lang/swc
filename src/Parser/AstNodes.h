@@ -1078,3 +1078,14 @@ struct AstUndefined : AstNode
     {
     }
 };
+
+struct AstUsingVarDecl : AstNode
+{
+    static constexpr auto ID = AstNodeId::UsingVarDecl;
+    AstUsingVarDecl() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeVar;
+};

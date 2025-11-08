@@ -85,6 +85,9 @@ AstNodeRef Parser::parseEmbeddedStmt()
     case TokenId::KwdStruct:
         return parseStructDecl();
 
+    case TokenId::IntrinsicPrint:
+        return parseInternalCallUnary(AstNodeId::IntrinsicCallUnary);
+
     case TokenId::SymAttrStart:
         return parseCompilerAttribute(AstNodeId::EmbeddedBlock);
 

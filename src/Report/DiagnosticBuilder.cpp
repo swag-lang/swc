@@ -476,13 +476,13 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const Sm
 void DiagnosticBuilder::writeCodeTrunc(const DiagnosticElement& elToUse, const SourceCodeLocation& loc, const DiagnosticSpan& span, uint32_t tokenLenChars, const Utf8& currentFullCodeLine, uint32_t currentFullCharCount)
 {
     constexpr std::string_view ellipsis    = "...";
-    constexpr size_t           lenEllipsis = ellipsis.length() + 1;
+    constexpr uint32_t         lenEllipsis = ellipsis.length() + 1; // +1 because of an additional blank
     constexpr uint32_t         leftContext = 8;
     const uint32_t             windowStart = (loc.column > leftContext) ? (loc.column - leftContext) : 0;
+    const uint32_t             diagMax     = ctx_->cmdLine().diagMaxColumn;
 
-    const uint32_t diagMax      = ctx_->cmdLine().diagMaxColumn;
-    uint32_t       visibleWidth = diagMax;
-    const bool     addPrefix    = (windowStart > 0);
+    uint32_t   visibleWidth = diagMax;
+    const bool addPrefix    = (windowStart > 0);
     if (addPrefix && visibleWidth >= lenEllipsis)
         visibleWidth -= lenEllipsis;
 
@@ -502,9 +502,8 @@ void DiagnosticBuilder::writeCodeTrunc(const DiagnosticElement& elToUse, const S
     const uint32_t sliceVisible          = (windowEnd - windowStart);
     const uint32_t underlineStartInSlice = (loc.column > windowStart) ? (loc.column - windowStart) : 0u;
     const uint32_t rightAvail            = (underlineStartInSlice < sliceVisible) ? (sliceVisible - underlineStartInSlice) : 0u;
-
-    uint32_t adjustedLen = std::min(tokenLenChars, rightAvail);
-    uint32_t adjustedCol = prefixCols + underlineStartInSlice;
+    const uint32_t adjustedLen           = std::min(tokenLenChars, rightAvail);
+    const uint32_t adjustedCol           = prefixCols + underlineStartInSlice;
 
     SmallVector<ColSpan> one;
     one.emplace_back(adjustedCol, adjustedLen, span);

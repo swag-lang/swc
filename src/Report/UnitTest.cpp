@@ -50,7 +50,7 @@ void UnitTest::tokenizeOption(const Context& ctx, std::string_view comment)
 
             // Handle known options
             if (kindWord == "lex-only")
-                file->addFlag(FileFlags::LexOnly);
+                file->addFlag(FileFlagsE::LexOnly);
 
             // If options might be comma-separated, skip trailing commas/spacers
             while (i < comment.size() && (langSpec.isBlank(static_cast<unsigned char>(comment[i])) || comment[i] == ','))

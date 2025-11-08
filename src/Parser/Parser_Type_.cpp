@@ -9,7 +9,7 @@ AstNodeRef Parser::parseIdentifierType()
 {
     const auto identifier = parseQualifiedIdentifier();
 
-    if (is(TokenId::SymLeftCurly) && !has_any(tok().flags, TokenFlags::BlankBefore))
+    if (is(TokenId::SymLeftCurly) && !tok().flags.has(TokenFlagsE::BlankBefore))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructInit>();
         nodePtr->nodeExpr       = identifier;

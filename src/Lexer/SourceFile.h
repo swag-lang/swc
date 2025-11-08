@@ -9,14 +9,14 @@ SWC_BEGIN_NAMESPACE()
 class Context;
 class Global;
 
-enum class FileFlags : uint32_t
+enum class FileFlagsE : uint32_t
 {
     Zero        = 0,
     HasErrors   = 1 << 0,
     HasWarnings = 1 << 1,
     LexOnly     = 1 << 2,
 };
-SWC_ENABLE_BITMASK(FileFlags);
+using FileFlags = EnumFlags<FileFlagsE>;
 
 class SourceFile
 {
@@ -27,7 +27,7 @@ class SourceFile
     fs::path             path_;
     std::vector<uint8_t> content_;
     UnitTest             unittest_{this};
-    FileFlags            flags_ = FileFlags::Zero;
+    FileFlags            flags_ = FileFlagsE::Zero;
 
 protected:
     friend class Lexer;
@@ -50,12 +50,12 @@ public:
 
     FileFlags&       flags() { return flags_; }
     const FileFlags& flags() const { return flags_; }
-    void             setHasError() { flags_ |= FileFlags::HasErrors; }
-    void             setHasWarning() { flags_ |= FileFlags::HasWarnings; }
-    bool             hasErrors() const { return has_any(flags_, FileFlags::HasErrors); }
-    bool             hasWarnings() const { return has_any(flags_, FileFlags::HasWarnings); }
-    bool             hasFlag(FileFlags flag) const { return has_any(flags_, flag); }
-    void             addFlag(FileFlags flag) { flags_ |= flag; }
+    void             setHasError() { flags_.add(FileFlagsE::HasErrors); }
+    void             setHasWarning() { flags_.add(FileFlagsE::HasWarnings); }
+    bool             hasErrors() const { return flags_.has(FileFlagsE::HasErrors); }
+    bool             hasWarnings() const { return flags_.has(FileFlagsE::HasWarnings); }
+    bool             hasFlag(FileFlags flag) const { return flags_.has(flag); }
+    void             addFlag(FileFlags flag) { flags_.add(flag); }
 
     Result           loadContent(const Context& ctx);
     Utf8             codeLine(const Context& ctx, uint32_t line) const;

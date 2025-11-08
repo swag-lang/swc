@@ -6,7 +6,7 @@ SWC_BEGIN_NAMESPACE()
 
 enum class TokenId : uint16_t;
 
-enum class CharFlags : uint32_t
+enum class CharFlagsE : uint32_t
 {
     Zero            = 0,
     Blank           = 1 << 0,
@@ -22,7 +22,7 @@ enum class CharFlags : uint32_t
     Option          = 1 << 10,
     Eol             = 1 << 11,
 };
-SWC_ENABLE_BITMASK(CharFlags);
+using CharFlags = EnumFlags<CharFlagsE>;
 
 class LangSpec
 {
@@ -30,19 +30,19 @@ class LangSpec
     void setup();
 
 public:
-    bool isBlank(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Blank); }
-    bool isWhiteSpace(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Blank | CharFlags::Eol); }
-    bool isEol(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Eol); }
-    bool isDigit(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Digit); }
-    bool isLetter(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Letter); }
-    bool isAscii(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Ascii); }
-    bool isHexNumber(uint8_t c) const { return has_any(charFlags_[c], CharFlags::HexNumber); }
-    bool isBinNumber(uint8_t c) const { return has_any(charFlags_[c], CharFlags::BinNumber); }
-    bool isNumberSep(uint8_t c) const { return has_any(charFlags_[c], CharFlags::NumberSep); }
-    bool isIdentifierStart(uint8_t c) const { return has_any(charFlags_[c], CharFlags::IdentifierStart); }
-    bool isIdentifierPart(uint8_t c) const { return has_any(charFlags_[c], CharFlags::IdentifierPart); }
-    bool isEscape(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Escape); }
-    bool isOption(uint8_t c) const { return has_any(charFlags_[c], CharFlags::Option); }
+    bool isBlank(uint8_t c) const { return charFlags_[c].has(CharFlagsE::Blank); }
+    bool isWhiteSpace(uint8_t c) const { return charFlags_[c].hasAny({CharFlagsE::Blank, CharFlagsE::Eol}); }
+    bool isEol(uint8_t c) const { return charFlags_[c].has(CharFlagsE::Eol); }
+    bool isDigit(uint8_t c) const { return charFlags_[c].has(CharFlagsE::Digit); }
+    bool isLetter(uint8_t c) const { return charFlags_[c].has(CharFlagsE::Letter); }
+    bool isAscii(uint8_t c) const { return charFlags_[c].has(CharFlagsE::Ascii); }
+    bool isHexNumber(uint8_t c) const { return charFlags_[c].has(CharFlagsE::HexNumber); }
+    bool isBinNumber(uint8_t c) const { return charFlags_[c].has(CharFlagsE::BinNumber); }
+    bool isNumberSep(uint8_t c) const { return charFlags_[c].has(CharFlagsE::NumberSep); }
+    bool isIdentifierStart(uint8_t c) const { return charFlags_[c].has(CharFlagsE::IdentifierStart); }
+    bool isIdentifierPart(uint8_t c) const { return charFlags_[c].has(CharFlagsE::IdentifierPart); }
+    bool isEscape(uint8_t c) const { return charFlags_[c].has(CharFlagsE::Escape); }
+    bool isOption(uint8_t c) const { return charFlags_[c].has(CharFlagsE::Option); }
 
     TokenId keyword(std::string_view name, uint64_t hash);
 

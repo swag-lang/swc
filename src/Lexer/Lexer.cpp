@@ -99,7 +99,7 @@ void Lexer::eatOneEol()
         buffer_++;
     }
 
-    token_.flags |= TokenFlags::EolInside;
+    token_.flags.add(TokenFlagsE::EolInside);
     lexOut_->lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
 }
 
@@ -123,16 +123,16 @@ void Lexer::pushToken()
     {
         auto& back = lexOut_->tokens_.back();
         if (tokenId == TokenId::Whitespace)
-            back.flags |= TokenFlags::BlankAfter;
-        if (has_any(token_.flags, TokenFlags::EolInside))
-            back.flags |= TokenFlags::EolAfter;
+            back.flags.add(TokenFlagsE::BlankAfter);
+        if (token_.flags.has(TokenFlagsE::EolInside))
+            back.flags.add(TokenFlagsE::EolAfter);
     }
 
     // Update the current token's flags based on the previous token
     if (prevToken_.id == TokenId::Whitespace)
-        token_.flags |= TokenFlags::BlankBefore;
-    if (has_any(prevToken_.flags, TokenFlags::EolInside))
-        token_.flags |= TokenFlags::EolBefore;
+        token_.flags.add(TokenFlagsE::BlankBefore);
+    if (prevToken_.flags.has(TokenFlagsE::EolInside))
+        token_.flags.add(TokenFlagsE::EolBefore);
 
     // Always update prevToken, even for filtered tokens
     prevToken_ = token_;
@@ -1204,7 +1204,7 @@ Result Lexer::tokenize(Context& ctx, LexerFlags flags)
         startToken_       = buffer_;
         token_.byteStart  = static_cast<uint32_t>(startToken_ - startBuffer_);
         token_.byteLength = 1;
-        token_.flags      = TokenFlags::Zero;
+        token_.flags      = TokenFlagsE::Zero;
 
         // Check for null byte (invalid UTF-8)
         if (buffer_[0] == '\0')

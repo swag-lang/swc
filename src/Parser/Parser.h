@@ -9,13 +9,13 @@ SWC_BEGIN_NAMESPACE()
 class SourceFile;
 class Context;
 
-enum class SkipUntilFlags : uint32_t
+enum class SkipUntilFlagsE : uint32_t
 {
     Zero      = 0,
     Consume   = 1 << 0,
     EolBefore = 1 << 1,
 };
-SWC_ENABLE_BITMASK(SkipUntilFlags);
+using SkipUntilFlags = EnumFlags<SkipUntilFlagsE>;
 
 class ParserOutput
 {
@@ -128,8 +128,8 @@ class Parser
     AstNodeRef       parseClosureCaptureValue();
     AstNodeRef       parseLambdaParam();
 
-    bool skipTo(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlags::Zero);
-    bool skipAfter(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlags::Zero);
+    bool skipTo(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlagsE::Zero);
+    bool skipAfter(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlagsE::Zero);
     bool skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags);
 
     void        setReportArguments(Diagnostic& diag, TokenRef tokenRef) const;

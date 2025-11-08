@@ -58,7 +58,7 @@ AstNodeRef Parser::parseTopLevelStmt()
     default:
     {
         // @skip
-        skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::EolBefore);
+        skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
         return INVALID_REF;
     }
     }
@@ -91,7 +91,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
     default:
     {
         // @skip
-        skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlags::EolBefore);
+        skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
         return INVALID_REF;
     }
     }

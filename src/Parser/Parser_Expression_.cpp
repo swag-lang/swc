@@ -186,7 +186,7 @@ AstNodeRef Parser::parsePostFixExpression()
         }
 
         // Array indexing: A[index]
-        if (is(TokenId::SymLeftBracket) && !has_any(tok().flags, TokenFlags::BlankBefore))
+        if (is(TokenId::SymLeftBracket) && !tok().flags.has(TokenFlagsE::BlankBefore))
         {
             const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IndexExpr>();
             nodePtr->nodeExpr                = nodeRef;
@@ -196,7 +196,7 @@ AstNodeRef Parser::parsePostFixExpression()
         }
 
         // Function call: A(args)
-        if (is(TokenId::SymLeftParen) && !has_any(tok().flags, TokenFlags::BlankBefore))
+        if (is(TokenId::SymLeftParen) && !tok().flags.has(TokenFlagsE::BlankBefore))
         {
             const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::Call>();
             nodePtr->nodeExpr                = nodeRef;
@@ -206,7 +206,7 @@ AstNodeRef Parser::parsePostFixExpression()
         }
 
         // Struct init: A{args}
-        if (is(TokenId::SymLeftCurly) && !has_any(tok().flags, TokenFlags::BlankBefore))
+        if (is(TokenId::SymLeftCurly) && !tok().flags.has(TokenFlagsE::BlankBefore))
         {
             const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::StructInit>();
             nodePtr->nodeExpr                = nodeRef;
@@ -244,52 +244,52 @@ AstNodeRef Parser::parsePostFixExpression()
 
 AstModifierFlags Parser::parseModifiers()
 {
-    auto                                 result = AstModifierFlags::Zero;
+    AstModifierFlags                     result = AstModifierFlagsE::Zero;
     std::map<AstModifierFlags, TokenRef> done;
 
     while (true)
     {
-        auto toSet = AstModifierFlags::Zero;
+        auto toSet = AstModifierFlagsE::Zero;
         switch (id())
         {
         case TokenId::ModifierBit:
-            toSet = AstModifierFlags::Bit;
+            toSet = AstModifierFlagsE::Bit;
             break;
         case TokenId::ModifierUnConst:
-            toSet = AstModifierFlags::UnConst;
+            toSet = AstModifierFlagsE::UnConst;
             break;
         case TokenId::ModifierErr:
-            toSet = AstModifierFlags::Err;
+            toSet = AstModifierFlagsE::Err;
             break;
         case TokenId::ModifierNoErr:
-            toSet = AstModifierFlags::NoErr;
+            toSet = AstModifierFlagsE::NoErr;
             break;
         case TokenId::ModifierPromote:
-            toSet = AstModifierFlags::Promote;
+            toSet = AstModifierFlagsE::Promote;
             break;
         case TokenId::ModifierWrap:
-            toSet = AstModifierFlags::Wrap;
+            toSet = AstModifierFlagsE::Wrap;
             break;
         case TokenId::ModifierNoDrop:
-            toSet = AstModifierFlags::NoDrop;
+            toSet = AstModifierFlagsE::NoDrop;
             break;
         case TokenId::ModifierRef:
-            toSet = AstModifierFlags::Ref;
+            toSet = AstModifierFlagsE::Ref;
             break;
         case TokenId::ModifierConstRef:
-            toSet = AstModifierFlags::ConstRef;
+            toSet = AstModifierFlagsE::ConstRef;
             break;
         case TokenId::ModifierReverse:
-            toSet = AstModifierFlags::Reverse;
+            toSet = AstModifierFlagsE::Reverse;
             break;
         case TokenId::ModifierMove:
-            toSet = AstModifierFlags::Move;
+            toSet = AstModifierFlagsE::Move;
             break;
         case TokenId::ModifierMoveRaw:
-            toSet = AstModifierFlags::MoveRaw;
+            toSet = AstModifierFlagsE::MoveRaw;
             break;
         case TokenId::ModifierNullable:
-            toSet = AstModifierFlags::Nullable;
+            toSet = AstModifierFlagsE::Nullable;
             break;
         case TokenId::Identifier:
         {
@@ -306,10 +306,10 @@ AstModifierFlags Parser::parseModifiers()
             break;
         }
 
-        if (toSet == AstModifierFlags::Zero)
+        if (toSet == AstModifierFlagsE::Zero)
             break;
 
-        if (has_any(result, toSet))
+        if (result.has(toSet))
         {
             auto       diag = reportError(DiagnosticId::parser_err_duplicated_modifier, ref());
             const auto loc  = file_->lexOut().token(done[toSet]).toLocation(*ctx_, *file_);
@@ -318,7 +318,7 @@ AstModifierFlags Parser::parseModifiers()
         }
 
         done[toSet] = ref();
-        result |= toSet;
+        result.add(toSet);
         consume();
     }
 
@@ -465,7 +465,7 @@ AstNodeRef Parser::parseParenExpr()
     consume(TokenId::SymLeftParen);
     nodePtr->nodeExpr = parseExpression();
     if (invalid(nodePtr->nodeExpr))
-        skipTo({TokenId::SymRightParen}, SkipUntilFlags::EolBefore);
+        skipTo({TokenId::SymRightParen}, SkipUntilFlagsE::EolBefore);
     expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
     return nodeRef;
 }
@@ -476,7 +476,7 @@ AstNodeRef Parser::parseIdentifier()
     if (invalid(tokName))
         return INVALID_REF;
 
-    if (is(TokenId::SymQuote) && !has_any(tok().flags, TokenFlags::BlankBefore))
+    if (is(TokenId::SymQuote) && !tok().flags.has(TokenFlagsE::BlankBefore))
     {
         consume();
         if (is(TokenId::SymLeftParen))
@@ -544,7 +544,7 @@ AstNodeRef Parser::parseAncestorIdentifier()
 AstNodeRef Parser::parseNamedArgument()
 {
     // The name
-    if (is(TokenId::Identifier) && nextIs(TokenId::SymColon) && !has_any(tok().flags, TokenFlags::BlankAfter))
+    if (is(TokenId::Identifier) && nextIs(TokenId::SymColon) && !tok().flags.has(TokenFlagsE::BlankAfter))
     {
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamedArgument>();
         nodePtr->tokName              = consume();

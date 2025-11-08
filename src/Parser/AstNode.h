@@ -25,7 +25,7 @@ constexpr std::array AST_NODE_ID_INFOS = {
 #undef SWC_NODE_DEF
 };
 
-enum class AstModifierFlags : uint32_t
+enum class AstModifierFlagsE : uint32_t
 {
     Zero     = 0,
     Bit      = 1 << 0,
@@ -42,7 +42,7 @@ enum class AstModifierFlags : uint32_t
     MoveRaw  = 1 << 11,
     Nullable = 1 << 12,
 };
-SWC_ENABLE_BITMASK(AstModifierFlags);
+using AstModifierFlags = EnumFlags<AstModifierFlagsE>;
 
 struct AstNode
 {
@@ -89,7 +89,7 @@ struct AstTypeOf;
     template<>                     \
     struct AstTypeOf<AstNodeId::E> \
     {                              \
-        using type = Ast##E;   \
+        using type = Ast##E;       \
     };
 #include "AstNodes.def"
 #undef SWC_NODE_DEF

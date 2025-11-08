@@ -74,7 +74,7 @@ bool Parser::skipTo(std::initializer_list<TokenId> targets, SkipUntilFlags flags
 
 bool Parser::skipAfter(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
 {
-    return skip(targets, flags | SkipUntilFlags::Consume);
+    return skip(targets, flags | SkipUntilFlagsE::Consume);
 }
 
 bool Parser::skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
@@ -86,7 +86,7 @@ bool Parser::skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
 
     while (!atEnd())
     {
-        if (has_any(flags, SkipUntilFlags::EolBefore) && tok().startsLine() && refStart != ref())
+        if (flags.has(SkipUntilFlagsE::EolBefore) && tok().startsLine() && refStart != ref())
             break;
 
         const bool atTopLevel = (parenDepth | bracketDepth | curlyDepth) == 0;
@@ -96,7 +96,7 @@ bool Parser::skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
             // Stop at any target token (top level only).
             if (std::ranges::find(targets, id()) != targets.end())
             {
-                if (has_any(flags, SkipUntilFlags::Consume))
+                if (flags.has(SkipUntilFlagsE::Consume))
                     consume();
                 return true;
             }
@@ -226,7 +226,7 @@ TokenRef Parser::expectAndConsumeClosingFor(TokenId openId, TokenRef openRef)
 
     diag.report(*ctx_);
 
-    skipTo({closingId, TokenId::SymSemiColon, TokenId::SymLeftCurly}, SkipUntilFlags::EolBefore);
+    skipTo({closingId, TokenId::SymSemiColon, TokenId::SymLeftCurly}, SkipUntilFlagsE::EolBefore);
     consumeIf(closingId);
     return INVALID_REF;
 }
@@ -266,7 +266,7 @@ Result Parser::parse(Context& ctx)
     SWC_CHECK(lexer.tokenize(ctx));
 
     SWC_ASSERT(!file_->lexOut_.tokens().empty());
-    if (file_->hasFlag(FileFlags::LexOnly))
+    if (file_->hasFlag(FileFlagsE::LexOnly))
         return Result::Success;
 
     // Parser

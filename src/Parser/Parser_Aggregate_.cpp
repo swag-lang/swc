@@ -80,7 +80,7 @@ AstNodeRef Parser::parseAggregateValue()
     case TokenId::KwdConst:
     case TokenId::KwdAlias:
         // @skip
-        skipTo({TokenId::SymRightCurly, TokenId::SymComma}, SkipUntilFlags::EolBefore);
+        skipTo({TokenId::SymRightCurly, TokenId::SymComma}, SkipUntilFlagsE::EolBefore);
         return INVALID_REF;
 
     case TokenId::Identifier:

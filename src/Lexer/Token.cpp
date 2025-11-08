@@ -41,21 +41,21 @@ std::string_view Token::toName(TokenId tknId)
 std::string_view Token::toFamily(TokenId tknId)
 {
     const auto& infos = TOKEN_ID_INFOS[static_cast<size_t>(tknId)];
-    if (has_any(infos.flags, TokenIdFlags::Symbol))
+    if (infos.flags.has(TokenIdFlagsE::Symbol))
         return "symbol";
     if (tknId == TokenId::Identifier)
         return "identifier";
     if (tknId == TokenId::EndOfFile)
         return "end of file";
-    if (has_any(infos.flags, TokenIdFlags::Keyword))
+    if (infos.flags.has(TokenIdFlagsE::Keyword))
         return "keyword";
-    if (has_any(infos.flags, TokenIdFlags::Type))
+    if (infos.flags.has(TokenIdFlagsE::Type))
         return "type";
-    if (has_any(infos.flags, TokenIdFlags::Compiler))
+    if (infos.flags.has(TokenIdFlagsE::Compiler))
         return "compiler instruction";
-    if (has_any(infos.flags, TokenIdFlags::Intrinsic))
+    if (infos.flags.has(TokenIdFlagsE::Intrinsic))
         return "intrinsic";
-    if (has_any(infos.flags, TokenIdFlags::Modifier))
+    if (infos.flags.has(TokenIdFlagsE::Modifier))
         return "modifier";
 
     return "token";
@@ -64,21 +64,21 @@ std::string_view Token::toFamily(TokenId tknId)
 std::string_view Token::toAFamily(TokenId tknId)
 {
     const auto& infos = TOKEN_ID_INFOS[static_cast<size_t>(tknId)];
-    if (has_any(infos.flags, TokenIdFlags::Symbol))
+    if (infos.flags.has(TokenIdFlagsE::Symbol))
         return "a symbol";
     if (tknId == TokenId::Identifier)
         return "an identifier";
     if (tknId == TokenId::EndOfFile)
         return "a end of file";
-    if (has_any(infos.flags, TokenIdFlags::Keyword))
+    if (infos.flags.has(TokenIdFlagsE::Keyword))
         return "a keyword";
-    if (has_any(infos.flags, TokenIdFlags::Type))
+    if (infos.flags.has(TokenIdFlagsE::Type))
         return "a type";
-    if (has_any(infos.flags, TokenIdFlags::Compiler))
+    if (infos.flags.has(TokenIdFlagsE::Compiler))
         return "a compiler instruction";
-    if (has_any(infos.flags, TokenIdFlags::Intrinsic))
+    if (infos.flags.has(TokenIdFlagsE::Intrinsic))
         return "an intrinsic";
-    if (has_any(infos.flags, TokenIdFlags::Modifier))
+    if (infos.flags.has(TokenIdFlagsE::Modifier))
         return "a modifier";
 
     return "a token";

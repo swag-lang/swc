@@ -4,18 +4,18 @@
 
 enum A
 {
-    #assert(A)
-    B,
-    C,
-}
-
-enum A
-{
     #if A do
         A = 0
     #else {
         A = 1
     }
+}
+
+enum A
+{
+    #assert(A)
+    B,
+    C,
 }
 
 enum A

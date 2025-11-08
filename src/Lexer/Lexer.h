@@ -11,11 +11,11 @@ class Global;
 class SourceFile;
 class LangSpec;
 
-enum class LexerFlags : uint32_t
+enum class LexerFlagsE : uint32_t
 {
     Default,
 };
-SWC_ENABLE_BITMASK(LexerFlags);
+using LexerFlags = EnumFlags<LexerFlagsE>;
 
 struct LexTrivia
 {
@@ -54,7 +54,7 @@ class Lexer
 
     SourceFile*     file_          = nullptr;
     LexerOutput*    lexOut_        = nullptr;
-    LexerFlags      lexerFlags_    = LexerFlags::Default;
+    LexerFlags      lexerFlags_    = LexerFlagsE::Default;
     const uint8_t*  buffer_        = nullptr;
     const uint8_t*  startBuffer_   = nullptr;
     const uint8_t*  endBuffer_     = nullptr;
@@ -92,7 +92,7 @@ class Lexer
     void lexMultiLineComment();
 
 public:
-    Result tokenize(Context& ctx, LexerFlags flags = LexerFlags::Default);
+    Result tokenize(Context& ctx, LexerFlags flags = LexerFlagsE::Default);
     Result tokenizeRaw(Context& ctx);
 };
 

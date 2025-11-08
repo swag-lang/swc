@@ -13,14 +13,14 @@ void LangSpec::setup()
 
 void LangSpec::setupKeywords()
 {
-#define SWC_TOKEN_DEF(__id, __name, __flags)                               \
-    if (has_any(TokenIdFlags::__flags, TokenIdFlags::ReservedWord))        \
-    {                                                                      \
-        keywordMap_.insert_or_assign(__name, hash(__name), TokenId::__id); \
-        keywordIdMap_[TokenId::__id] = __name;                             \
+#define SWC_TOKEN_DEF(__id, __name, __flags)                                   \
+    if (TokenIdFlags(TokenIdFlagsE::__flags).has(TokenIdFlagsE::ReservedWord)) \
+    {                                                                          \
+        keywordMap_.insert_or_assign(__name, hash(__name), TokenId::__id);     \
+        keywordIdMap_[TokenId::__id] = __name;                                 \
     }
 
-#include "TokenIds.inc"
+#include "TokenIds.def"
 
 #undef SWC_TOKEN_DEF
 }
@@ -29,85 +29,87 @@ void LangSpec::setupCharFlags()
 {
     // Initialize all flags to 0
     for (auto& charFlag : charFlags_)
-        charFlag = CharFlags::Zero;
+        charFlag = CharFlagsE::Zero;
 
     // ASCII characters (0-127)
     for (uint8_t i = 0; i < 128; i++)
-        charFlags_[i] |= CharFlags::Ascii;
+        charFlags_[i].add(CharFlagsE::Ascii);
 
     // Blank characters
-    charFlags_[' '] |= CharFlags::Blank;  // Space (0x20)
-    charFlags_['\t'] |= CharFlags::Blank; // Horizontal tab (0x09)
-    charFlags_['\f'] |= CharFlags::Blank; // Form feed (0x0C)
-    charFlags_['\v'] |= CharFlags::Blank; // Vertical tab (0x0B)
-    charFlags_['\r'] |= CharFlags::Eol;
-    charFlags_['\n'] |= CharFlags::Eol;
+    charFlags_[' '].add(CharFlagsE::Blank);  // Space (0x20)
+    charFlags_['\t'].add(CharFlagsE::Blank); // Horizontal tab (0x09)
+    charFlags_['\f'].add(CharFlagsE::Blank); // Form feed (0x0C)
+    charFlags_['\v'].add(CharFlagsE::Blank); // Vertical tab (0x0B)
+    charFlags_['\r'].add(CharFlagsE::Eol);
+    charFlags_['\n'].add(CharFlagsE::Eol);
 
     // Digits (0-9)
     for (unsigned char c = '0'; c <= '9'; c++)
-        charFlags_[c] |= CharFlags::Digit;
+        charFlags_[c].add(CharFlagsE::Digit);
 
     // Uppercase letters (A-Z)
     for (unsigned char c = 'A'; c <= 'Z'; c++)
-        charFlags_[c] |= CharFlags::Letter;
+        charFlags_[c].add(CharFlagsE::Letter);
 
     // Lowercase letters (a-z)
     for (unsigned char c = 'a'; c <= 'z'; c++)
-        charFlags_[c] |= CharFlags::Letter;
+        charFlags_[c].add(CharFlagsE::Letter);
 
     // Underscore is considered a letter in identifiers
-    charFlags_['_'] |= CharFlags::Letter | CharFlags::NumberSep;
+    charFlags_['_'].add(CharFlagsE::Letter);
+    charFlags_['_'].add(CharFlagsE::NumberSep);
 
     // Hexadecimal number
     for (unsigned char c = '0'; c <= '9'; c++)
-        charFlags_[c] |= CharFlags::HexNumber;
+        charFlags_[c].add(CharFlagsE::HexNumber);
     for (unsigned char c = 'a'; c <= 'f'; c++)
-        charFlags_[c] |= CharFlags::HexNumber;
+        charFlags_[c].add(CharFlagsE::HexNumber);
     for (unsigned char c = 'A'; c <= 'F'; c++)
-        charFlags_[c] |= CharFlags::HexNumber;
+        charFlags_[c].add(CharFlagsE::HexNumber);
 
     // Binary number
     for (unsigned char c = '0'; c <= '1'; c++)
-        charFlags_[c] |= CharFlags::BinNumber;
+        charFlags_[c].add(CharFlagsE::BinNumber);
 
     // Identifier
-    charFlags_['_'] |= CharFlags::IdentifierStart | CharFlags::IdentifierPart;
-    charFlags_['#'] |= CharFlags::IdentifierStart;
-    charFlags_['@'] |= CharFlags::IdentifierStart;
-    charFlags_['-'] |= CharFlags::Option;
+    charFlags_['_'].add(CharFlagsE::IdentifierStart);
+    charFlags_['_'].add(CharFlagsE::IdentifierPart);
+    charFlags_['#'].add(CharFlagsE::IdentifierStart);
+    charFlags_['@'].add(CharFlagsE::IdentifierStart);
+    charFlags_['-'].add(CharFlagsE::Option);
 
     for (unsigned char c = 'a'; c <= 'z'; c++)
     {
-        charFlags_[c] |= CharFlags::IdentifierStart;
-        charFlags_[c] |= CharFlags::IdentifierPart;
-        charFlags_[c] |= CharFlags::Option;
+        charFlags_[c].add(CharFlagsE::IdentifierStart);
+        charFlags_[c].add(CharFlagsE::IdentifierPart);
+        charFlags_[c].add(CharFlagsE::Option);
     }
 
     for (unsigned char c = 'A'; c <= 'Z'; c++)
     {
-        charFlags_[c] |= CharFlags::IdentifierStart;
-        charFlags_[c] |= CharFlags::IdentifierPart;
-        charFlags_[c] |= CharFlags::Option;
+        charFlags_[c].add(CharFlagsE::IdentifierStart);
+        charFlags_[c].add(CharFlagsE::IdentifierPart);
+        charFlags_[c].add(CharFlagsE::Option);
     }
 
     for (unsigned char c = '0'; c <= '9'; c++)
-        charFlags_[c] |= CharFlags::IdentifierPart;
+        charFlags_[c].add(CharFlagsE::IdentifierPart);
 
     // Escape character
-    charFlags_['0'] |= CharFlags::Escape;
-    charFlags_['a'] |= CharFlags::Escape;
-    charFlags_['b'] |= CharFlags::Escape;
-    charFlags_['\\'] |= CharFlags::Escape;
-    charFlags_['t'] |= CharFlags::Escape;
-    charFlags_['n'] |= CharFlags::Escape;
-    charFlags_['f'] |= CharFlags::Escape;
-    charFlags_['r'] |= CharFlags::Escape;
-    charFlags_['v'] |= CharFlags::Escape;
-    charFlags_['\''] |= CharFlags::Escape;
-    charFlags_['\"'] |= CharFlags::Escape;
-    charFlags_['x'] |= CharFlags::Escape;
-    charFlags_['u'] |= CharFlags::Escape;
-    charFlags_['U'] |= CharFlags::Escape;
+    charFlags_['0'].add(CharFlagsE::Escape);
+    charFlags_['a'].add(CharFlagsE::Escape);
+    charFlags_['b'].add(CharFlagsE::Escape);
+    charFlags_['\\'].add(CharFlagsE::Escape);
+    charFlags_['t'].add(CharFlagsE::Escape);
+    charFlags_['n'].add(CharFlagsE::Escape);
+    charFlags_['f'].add(CharFlagsE::Escape);
+    charFlags_['r'].add(CharFlagsE::Escape);
+    charFlags_['v'].add(CharFlagsE::Escape);
+    charFlags_['\''].add(CharFlagsE::Escape);
+    charFlags_['\"'].add(CharFlagsE::Escape);
+    charFlags_['x'].add(CharFlagsE::Escape);
+    charFlags_['u'].add(CharFlagsE::Escape);
+    charFlags_['U'].add(CharFlagsE::Escape);
 }
 
 TokenId LangSpec::keyword(std::string_view name, uint64_t hash)

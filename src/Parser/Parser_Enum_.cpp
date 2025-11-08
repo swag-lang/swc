@@ -40,7 +40,7 @@ AstNodeRef Parser::parseEnumValue()
         {
             nodePtr->nodeValue = parseExpression();
             if (invalid(nodePtr->nodeValue))
-                skipTo(ENUM_VALUE_SYNC, SkipUntilFlags::EolBefore);
+                skipTo(ENUM_VALUE_SYNC, SkipUntilFlagsE::EolBefore);
         }
         return nodeRef;
     }

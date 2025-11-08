@@ -5,7 +5,7 @@ SWC_BEGIN_NAMESPACE()
 
 class SourceFile;
 
-enum class TokenIdFlags : uint32_t
+enum class TokenIdFlagsE : uint32_t
 {
     Zero         = 0,
     Symbol       = 1 << 0,
@@ -18,7 +18,7 @@ enum class TokenIdFlags : uint32_t
     Modifier     = 1 << 7,
     ReservedWord = Keyword | Compiler | Intrinsic | Type | Modifier,
 };
-SWC_ENABLE_BITMASK(TokenIdFlags);
+using TokenIdFlags = EnumFlags<TokenIdFlagsE>;
 
 struct TokenIdInfo
 {
@@ -30,20 +30,20 @@ struct TokenIdInfo
 enum class TokenId : uint16_t
 {
 #define SWC_TOKEN_DEF(enum, name, flags) enum,
-#include "TokenIds.inc"
+#include "TokenIds.def"
 
 #undef SWC_TOKEN_DEF
     Count
 };
 
 constexpr std::array TOKEN_ID_INFOS = {
-#define SWC_TOKEN_DEF(enum, name, flags) TokenIdInfo{#enum, name, TokenIdFlags::flags},
-#include "TokenIds.inc"
+#define SWC_TOKEN_DEF(enum, name, flags) TokenIdInfo{#enum, name, TokenIdFlagsE::flags},
+#include "TokenIds.def"
 
 #undef SWC_TOKEN_DEF
 };
 
-enum class TokenFlags : uint16_t
+enum class TokenFlagsE : uint16_t
 {
     Zero        = 0,
     BlankBefore = 1 << 0,
@@ -52,7 +52,7 @@ enum class TokenFlags : uint16_t
     EolAfter    = 1 << 3,
     EolInside   = 1 << 4,
 };
-SWC_ENABLE_BITMASK(TokenFlags);
+using TokenFlags = EnumFlags<TokenFlagsE>;
 
 struct Token
 {
@@ -60,7 +60,7 @@ struct Token
     uint32_t byteLength = 0; // Length in bytes
 
     TokenId    id    = TokenId::Invalid;
-    TokenFlags flags = TokenFlags::Zero;
+    TokenFlags flags = TokenFlagsE::Zero;
 
     std::string_view        toString(const SourceFile& file) const;
     SourceCodeLocation      toLocation(const Context& ctx, const SourceFile& file) const;
@@ -70,14 +70,14 @@ struct Token
     static std::string_view toAFamily(TokenId tknId);
     static TokenId          toRelated(TokenId tkn);
 
-    bool isSymbol() const { return has_any(toFlags(id), TokenIdFlags::Symbol); }
-    bool isKeyword() const { return has_any(toFlags(id), TokenIdFlags::Keyword); }
-    bool isCompiler() const { return has_any(toFlags(id), TokenIdFlags::Compiler); }
-    bool isIntrinsic() const { return has_any(toFlags(id), TokenIdFlags::Intrinsic); }
-    bool isType() const { return has_any(toFlags(id), TokenIdFlags::Type); }
-    bool isModifier() const { return has_any(toFlags(id), TokenIdFlags::Modifier); }
-    bool isReservedWord() const { return has_any(toFlags(id), TokenIdFlags::ReservedWord); }
-    bool startsLine() const { return has_any(flags, TokenFlags::EolBefore); }
+    bool isSymbol() const { return toFlags(id).has(TokenIdFlagsE::Symbol); }
+    bool isKeyword() const { return toFlags(id).has(TokenIdFlagsE::Keyword); }
+    bool isCompiler() const { return toFlags(id).has(TokenIdFlagsE::Compiler); }
+    bool isIntrinsic() const { return toFlags(id).has(TokenIdFlagsE::Intrinsic); }
+    bool isType() const { return toFlags(id).has(TokenIdFlagsE::Type); }
+    bool isModifier() const { return toFlags(id).has(TokenIdFlagsE::Modifier); }
+    bool isReservedWord() const { return toFlags(id).has(TokenIdFlagsE::ReservedWord); }
+    bool startsLine() const { return flags.has(TokenFlagsE::EolBefore); }
 };
 
 SWC_END_NAMESPACE()

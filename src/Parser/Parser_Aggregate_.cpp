@@ -73,6 +73,11 @@ AstNodeRef Parser::parseAggregateValue()
         skipTo({TokenId::SymRightCurly, TokenId::SymComma}, SkipUntilFlags::EolBefore);
         return INVALID_REF;
 
+    case TokenId::Identifier:
+        if (nextIs(TokenId::SymLeftParen) || nextIs(TokenId::SymDot))
+            return parseTopLevelStmt();
+        return parseSingleVarDecl();
+
     default:
         return parseSingleVarDecl();
     }

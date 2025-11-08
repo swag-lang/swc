@@ -289,7 +289,7 @@ void CommandLineParser::printHelp(const Context& ctx)
 
 Result CommandLineParser::parse(int argc, char* argv[])
 {
-    const CompilerContext context(*cmdLine_, *global_);
+    const CompilerContext context(*global_, *cmdLine_);
     const Context         ctx(context);
 
     if (argc == 1)
@@ -398,6 +398,11 @@ CommandLineParser::CommandLineParser(CommandLine& cmdLine, Global& global) :
     addArg("all", "--file", "-f", CommandLineType::PathSet, &cmdLine_->files, nullptr, "Specify one or more individual files to process directly.");
     addArg("all", "--file-filter", "-ff", CommandLineType::StringSet, &cmdLine_->fileFilter, nullptr, "Apply a substring filter to select specific files by name.");
     addArg("all", "--devmode", nullptr, CommandLineType::Bool, &cmdLine_->dbgDevMode, nullptr, "Open a message box in case of hardware exceptions");
+
+#if SWC_DEV_MODE
+    addArg("all", "--randomize", nullptr, CommandLineType::Bool, &cmdLine_->randomize, nullptr, "Randomize behavior [devmode]");
+    addArg("all", "--seed", nullptr, CommandLineType::Int, &cmdLine_->randSeed, nullptr, "Set seed for randomize behavior [devmode]");
+#endif
 }
 
 SWC_END_NAMESPACE()

@@ -42,6 +42,7 @@ public:
     JobClientId newClientId();
 
     uint32_t numWorkers() const noexcept { return static_cast<uint32_t>(workers_.size()); }
+    uint32_t randSeed() const noexcept { return randSeed_; }
 
 protected:
     friend class Job;
@@ -64,7 +65,8 @@ private:
     void shutdown() noexcept;
 
     // Setup
-    const CommandLine* cmdLine_ = nullptr;
+    const CommandLine* cmdLine_  = nullptr;
+    uint32_t           randSeed_ = 0;
 
     // Ready queues per priority (store Record* for direct access).
     std::deque<JobRecord*> readyQ_[3];

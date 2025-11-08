@@ -1,4 +1,5 @@
 #pragma once
+
 SWC_BEGIN_NAMESPACE()
 
 inline constexpr auto ALLOWED_COMMANDS = "syntax|format";
@@ -23,6 +24,11 @@ struct CommandLine
     bool dbgDevMode    = false;
     bool verboseErrors = false;
     bool verify        = true;
+
+#ifdef SWC_DEV_MODE
+    bool     randomize = false;
+    uint32_t randSeed  = 0;
+#endif
 
     uint32_t numCores      = 0;
     uint32_t tabSize       = 4;

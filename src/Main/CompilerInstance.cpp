@@ -13,7 +13,7 @@
 SWC_BEGIN_NAMESPACE()
 
 CompilerInstance::CompilerInstance(const CommandLine& cmdLine, const Global& global) :
-    context_(cmdLine, global)
+    context_(global, cmdLine)
 {
     context_.jobClientId_ = global.jobMgr().newClientId();
 }
@@ -23,13 +23,17 @@ void CompilerInstance::logBefore() const
     const Context ctx(context_);
 
     ctx.global().logger().lock();
+
 #if SWC_DEBUG
-    Logger::printHeaderCentered(ctx, LogColor::Magenta, "Compiler", LogColor::Magenta, "[Debug]");
+    Logger::printHeaderCentered(ctx, LogColor::Magenta, "[Debug]", LogColor::Magenta, "ON");
 #elif SWC_DEV_MODE
-    Logger::printHeaderCentered(ctx, LogColor::Blue, "Compiler", LogColor::Blue, "[DevMode]");
+    Logger::printHeaderCentered(ctx, LogColor::Blue, "[DevMode]", LogColor::Blue, "ON");
+    if (ctx.cmdLine().randomize)
+        Logger::printHeaderCentered(ctx, LogColor::Blue, "[DevMode]", LogColor::Blue, std::format("randomize seed is {}", ctx.global().jobMgr().randSeed()));
 #elif SWC_STATS
-    Logger::printHeaderCentered(ctx, LogColor::Yellow, "Compiler", LogColor::Yellow, "[Stats]");
+    Logger::printHeaderCentered(ctx, LogColor::Yellow, "[Stats]", LogColor::Yellow, "ON");
 #endif
+
     ctx.global().logger().unlock();
 }
 

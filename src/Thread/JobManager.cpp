@@ -81,9 +81,21 @@ void JobManager::setup(const CommandLine& cmdLine)
     auto count = cmdLine.numCores;
     cmdLine_   = &cmdLine;
 
-    // One-shot only.
-    SWC_ASSERT(workers_.empty());
-    SWC_ASSERT(!accepting_);
+    // [devmode] randomize/seed
+#if SWC_DEV_MODE
+    if (cmdLine_->randomize)
+    {
+        randSeed_ = cmdLine_->randSeed;
+        if (!randSeed_)
+        {
+            using namespace std::chrono;
+            const milliseconds ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+            randSeed_             = static_cast<uint32_t>(ms.count());
+        }
+
+        srand(randSeed_);
+    }
+#endif
 
     if (count == 0)
         count = std::thread::hardware_concurrency();
@@ -304,9 +316,16 @@ JobRecord* JobManager::popReadyLocked()
         auto& q = readyQ_[idx];
         if (!q.empty())
         {
+#if SWC_DEV_MODE
+            uint32_t pickIndex = 0;
+            if (cmdLine_->randomize)
+                pickIndex = static_cast<uint32_t>(rand()) % q.size();
+            JobRecord* rec = q[pickIndex];
+            q.erase(q.begin() + pickIndex);
+#else
             JobRecord* rec = q.front();
             q.pop_front();
-
+#endif
             readyCount_.fetch_sub(1, std::memory_order_acq_rel);
             return rec;
         }

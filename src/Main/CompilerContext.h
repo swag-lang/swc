@@ -14,7 +14,7 @@ class CompilerContext
     JobClientId        jobClientId_ = 0;
 
 public:
-    explicit CompilerContext(const CommandLine& cmdLine, const Global& global) :
+    explicit CompilerContext(const Global& global, const CommandLine& cmdLine) :
         cmdLine_(&cmdLine),
         global_(&global)
     {

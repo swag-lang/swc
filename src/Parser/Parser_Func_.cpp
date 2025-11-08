@@ -66,6 +66,10 @@ AstNodeRef Parser::parseLambdaType()
     if (consumeIf(TokenId::SymMinusGreater))
         returnType = parseType();
 
+    // Can raise errors
+    if (consumeIf(TokenId::KwdThrow))
+        flags.add(AstLambdaType::FlagsE::Throw);
+
     if (isCapture)
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ClosureType>();

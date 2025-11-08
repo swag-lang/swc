@@ -817,8 +817,9 @@ struct AstLambdaType : AstNode
 
     enum class FlagsE : Flags
     {
-        Zero = 0,
-        Mtd  = 1 << 0,
+        Zero  = 0,
+        Mtd   = 1 << 0,
+        Throw = 1 << 1,
     };
     using Flags = EnumFlags<FlagsE>;
 

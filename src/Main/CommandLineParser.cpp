@@ -400,8 +400,8 @@ CommandLineParser::CommandLineParser(CommandLine& cmdLine, Global& global) :
     addArg("all", "--devmode", nullptr, CommandLineType::Bool, &cmdLine_->dbgDevMode, nullptr, "Open a message box in case of hardware exceptions");
 
 #if SWC_DEV_MODE
-    addArg("all", "--randomize", nullptr, CommandLineType::Bool, &cmdLine_->randomize, nullptr, "Randomize behavior [devmode]");
-    addArg("all", "--seed", nullptr, CommandLineType::Int, &cmdLine_->randSeed, nullptr, "Set seed for randomize behavior [devmode]");
+    addArg("all", "--randomize", nullptr, CommandLineType::Bool, &cmdLine_->randomize, nullptr, "Randomize behavior");
+    addArg("all", "--seed", nullptr, CommandLineType::Int, &cmdLine_->randSeed, nullptr, "Set seed for randomize behavior");
 #endif
 }
 

@@ -40,6 +40,14 @@ AstNodeRef Parser::parseImpl()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseAggregateAccessModifier()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AccessModifier>();
+    nodePtr->tokAccess      = consume();
+    nodePtr->nodeWhat       = parseAggregateValue();
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseAggregateValue()
 {
     switch (id())
@@ -67,6 +75,8 @@ AstNodeRef Parser::parseAggregateValue()
         return parseSingleVarDecl();
 
     case TokenId::KwdPrivate:
+        return parseAggregateAccessModifier();
+
     case TokenId::KwdConst:
     case TokenId::KwdAlias:
         // @skip

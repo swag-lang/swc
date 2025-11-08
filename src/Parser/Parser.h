@@ -122,6 +122,7 @@ class Parser
     AstNodeRef       parseGlobalAccessModifier();
     AstNodeRef       parseUsingDecl();
     AstNodeRef       parseConstraint();
+    AstNodeRef       parseAggregateAccessModifier();
     AstNodeRef       parseAggregateValue();
     AstNodeRef       parseAggregateBody();
     AstNodeRef       parseClosureCaptureValue();

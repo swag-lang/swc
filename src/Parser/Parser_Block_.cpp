@@ -32,10 +32,10 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
         return parseAttribute();
 
     case AstNodeId::ArrayLiteral:
-    case AstNodeId::StructLiteral:
     case AstNodeId::UnnamedArgList:
         return parseExpression();
 
+    case AstNodeId::StructLiteral:
     case AstNodeId::NamedArgList:
         return parseNamedArgument();
 
@@ -110,7 +110,6 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
     switch (blockNodeId)
     {
     case AstNodeId::EnumDecl:
-    case AstNodeId::AggregateBody:
         if (!consumeIf(TokenId::SymComma) && !is(tokenEndId) && !tok().startsLine())
         {
             if (is(TokenId::Identifier) && blockNodeId == AstNodeId::EnumDecl)
@@ -122,6 +121,15 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
         }
         break;
 
+    case AstNodeId::AggregateBody:
+        if (!consumeIf(TokenId::SymComma) && !consumeIf(TokenId::SymSemiColon) && !is(tokenEndId) && !tok().startsLine())
+        {
+            raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
+            skipTo(skipTokens);
+            return Result::Error;
+        }
+        break;
+        
     case AstNodeId::UsingDecl:
     case AstNodeId::AttributeList:
     case AstNodeId::ArrayLiteral:

@@ -112,7 +112,7 @@ class Parser
     AstNodeRef       parseEmbeddedStmt();
     AstNodeRef       parseNamespace();
     AstNodeRef       parseGenericParam();
-    AstNodeRef       parseVarDecl(AstVarDecl::Flags flags);
+    AstNodeRef       parseVarDecl();
     AstNodeRef       parseStructDecl();
     AstNodeRef       parseUnionDecl();
     AstNodeRef       parseImpl();

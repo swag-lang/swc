@@ -57,9 +57,17 @@ AstNodeRef Parser::parseGenericParam()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseVarDecl(AstVarDecl::Flags flags)
+AstNodeRef Parser::parseVarDecl()
 {
     SmallVector<TokenRef> tokNames;
+    AstVarDecl::Flags     flags = AstVarDecl::FlagsE::Zero;
+
+    if (consumeIf(TokenId::KwdConst))
+        flags.add(AstVarDecl::FlagsE::Const);
+    else if (consumeIf(TokenId::KwdVar))
+        flags.add(AstVarDecl::FlagsE::Var);
+    else if (consumeIf(TokenId::KwdLet))
+        flags.add(AstVarDecl::FlagsE::Let);
 
     // All names
     TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);

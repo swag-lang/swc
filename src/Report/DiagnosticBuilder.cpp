@@ -1,9 +1,11 @@
 #include "pch.h"
 #include "Report/DiagnosticBuilder.h"
 #include "Core/Utf8Helper.h"
+#include "Lexer/LangSpec.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
 #include "Main/Context.h"
+#include "Main/Global.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticElement.h"
 #include "Report/LogColor.h"
@@ -473,13 +475,22 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const Sm
     }
 }
 
-void DiagnosticBuilder::writeCodeTrunc(const DiagnosticElement& elToUse, const SourceCodeLocation& loc, const DiagnosticSpan& span, uint32_t tokenLenChars, const Utf8& currentFullCodeLine, uint32_t currentFullCharCount)
+void DiagnosticBuilder::writeCodeTrunc(const DiagnosticElement&  elToUse,
+                                       const SourceCodeLocation& loc,
+                                       const DiagnosticSpan&     span,
+                                       uint32_t                  tokenLenChars,
+                                       const Utf8&               currentFullCodeLine,
+                                       uint32_t                  currentFullCharCount)
 {
     constexpr std::string_view ellipsis    = "...";
-    constexpr uint32_t         lenEllipsis = ellipsis.length() + 1; // +1 because of an additional blank
+    constexpr uint32_t         lenEllipsis = static_cast<uint32_t>(ellipsis.length()) + 1; // keep your "+1"
     constexpr uint32_t         leftContext = 8;
-    const uint32_t             windowStart = (loc.column > leftContext) ? (loc.column - leftContext) : 0;
-    const uint32_t             diagMax     = ctx_->cmdLine().diagMaxColumn;
+
+    const uint32_t diagMax = ctx_->cmdLine().diagMaxColumn;
+
+    // Initial window anchored with a small left context.
+    const uint32_t rawStart    = (loc.column > leftContext) ? (loc.column - leftContext) : 0u;
+    uint32_t       windowStart = rawStart;
 
     uint32_t   visibleWidth = diagMax;
     const bool addPrefix    = (windowStart > 0);
@@ -488,12 +499,37 @@ void DiagnosticBuilder::writeCodeTrunc(const DiagnosticElement& elToUse, const S
 
     uint32_t windowEnd = std::min(windowStart + visibleWidth, currentFullCharCount);
 
-    const bool addSuffix = (windowEnd < currentFullCharCount);
+    bool addSuffix = (windowEnd < currentFullCharCount);
     if (addSuffix && visibleWidth >= lenEllipsis)
     {
         if (windowEnd > windowStart + lenEllipsis)
             windowEnd -= lenEllipsis;
     }
+
+    // We compute on the provisional slice first
+    const Utf8 provisional = currentFullCodeLine.substr(windowStart, windowEnd - windowStart);
+
+    // Underline start relative to provisional slice
+    const uint32_t underlineStart0 = (loc.column > windowStart) ? (loc.column - windowStart) : 0u;
+
+    uint32_t ltrim = 0;
+    if (addPrefix && underlineStart0 > 0)
+    {
+        // Only trim blanks strictly before the underline, so we never shift the token itself.
+        ltrim = Utf8Helper::countLeadingBlanks(*ctx_, provisional, underlineStart0);
+        if (ltrim > 0)
+        {
+            windowStart += ltrim;
+
+            // Try to keep the visible width constant by extending rightwards if possible.
+            const uint32_t canExtend = std::min<uint32_t>(ltrim, currentFullCharCount - windowEnd);
+            windowEnd += canExtend;
+
+            // Re-evaluate suffix after extension
+            addSuffix = (windowEnd < currentFullCharCount);
+        }
+    }
+    // ---- END NEW ----
 
     const Utf8 codeSlice = currentFullCodeLine.substr(windowStart, windowEnd - windowStart);
     writeCodeLine(loc.line, addPrefix ? ellipsis : "", codeSlice, addSuffix ? ellipsis : "");

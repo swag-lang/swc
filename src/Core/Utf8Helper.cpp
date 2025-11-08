@@ -1,5 +1,8 @@
 #include "pch.h"
 #include "Utf8Helper.h"
+#include "Lexer/LangSpec.h"
+#include "Main/Context.h"
+#include "Main/Global.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -259,5 +262,19 @@ Utf8 Utf8Helper::substrChars(std::string_view s, uint32_t charStart, uint32_t ch
         endByte = s.size();
     return Utf8{s.substr(startByte, endByte - startByte)};
 }
+
+uint32_t Utf8Helper::countLeadingBlanks(const Context& ctx, std::string_view s, uint32_t upto)
+{
+    // Count spaces and tabs only; extend if you want more Unicode categories.
+    uint32_t       i = 0;
+    const uint32_t n = std::min<uint32_t>(static_cast<uint32_t>(s.length()), upto);
+    while (i < n)
+    {
+        if (!ctx.global().langSpec().isBlank(s[i]))
+            break;
+        ++i;
+    }
+    return i;
+};
 
 SWC_END_NAMESPACE()

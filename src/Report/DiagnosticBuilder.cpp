@@ -360,15 +360,14 @@ void DiagnosticBuilder::writeLabelMsg(const DiagnosticElement& el)
     out_ += "\n";
 }
 
-// In DiagnosticBuilder.cpp, update the writeCodeUnderline implementation:
-void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const std::vector<std::tuple<uint32_t, uint32_t, DiagnosticSpan>>& underlines)
+void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const std::vector<ColSpan>& underlines)
 {
     writeGutter(gutterW_);
 
     // Sort underlines by column to process them in order
     auto sortedUnderlines = underlines;
     std::ranges::sort(sortedUnderlines, [](const auto& a, const auto& b) {
-        return std::get<0>(a) < std::get<0>(b);
+        return a.column < b.column;
     });
 
     // Track that underlines needs continuation lines
@@ -472,7 +471,7 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
     writeFileLocation(el);
     out_ += "\n";
 
-    std::vector<std::tuple<uint32_t, uint32_t, DiagnosticSpan>> underlinesOnCurrentLine;
+    std::vector<ColSpan> underlinesOnCurrentLine;
 
     uint32_t currentLine = 0;
     for (uint32_t i = 0; i < el.spans().size(); ++i)
@@ -503,9 +502,7 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
 
     // Render all remaining underlines for the last line on a single output line
     if (!underlinesOnCurrentLine.empty())
-    {
         writeCodeUnderline(el, underlinesOnCurrentLine);
-    }
 
     out_ += partStyle(DiagPart::Reset);
 }

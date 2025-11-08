@@ -36,6 +36,13 @@ class DiagnosticBuilder
         std::string                       text;
     };
 
+    struct ColSpan
+    {
+        uint32_t       column;
+        uint32_t       length;
+        DiagnosticSpan span;
+    };
+
     const Context*    ctx_;
     const Diagnostic* diag_;
     Utf8              out_;
@@ -54,7 +61,7 @@ class DiagnosticBuilder
     void writeGutter(uint32_t gutter);
     void writeCodeLine(uint32_t lineNo, std::string_view code);
     void writeLabelMsg(const DiagnosticElement& el);
-    void writeCodeUnderline(const DiagnosticElement& el, const std::vector<std::tuple<uint32_t, uint32_t, DiagnosticSpan>>& underlines);
+    void writeCodeUnderline(const DiagnosticElement& el, const std::vector<ColSpan>& underlines);
     void writeCodeBlock(const DiagnosticElement& el);
 
     Utf8 buildMessage(const Utf8& msg) const;

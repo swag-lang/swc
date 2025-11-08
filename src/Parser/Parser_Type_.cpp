@@ -5,6 +5,23 @@
 
 SWC_BEGIN_NAMESPACE()
 
+AstNodeRef Parser::parseIdentifierType()
+{
+    const auto identifier = parseQualifiedIdentifier();
+
+    if (is(TokenId::SymLeftCurly) && !has_any(tok().flags, TokenFlags::BlankBefore))
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructInit>();
+        nodePtr->nodeExpr       = identifier;
+        nodePtr->nodeArgs       = parseCompound(AstNodeId::NamedArgList, TokenId::SymLeftCurly);
+        return nodeRef;
+    }
+
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamedType>();
+    nodePtr->nodeIdent      = identifier;
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseSingleType()
 {
     // Builtin
@@ -18,11 +35,7 @@ AstNodeRef Parser::parseSingleType()
     switch (id())
     {
     case TokenId::Identifier:
-    {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamedType>();
-        nodePtr->nodeIdent      = parseQualifiedIdentifier();
-        return nodeRef;
-    }
+        return parseIdentifierType();
 
     case TokenId::KwdStruct:
     {

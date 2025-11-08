@@ -78,6 +78,7 @@ class Parser
     AstNodeRef parseCompilerAttribute(AstNodeId blockNodeId);
     AstNodeRef parseAggregateDecl(AstNodeId nodeId);
 
+    AstNodeRef       parseIdentifierType();
     AstNodeRef       parseSingleType();
     AstNodeRef       parseLambdaType();
     AstNodeRef       parseType();

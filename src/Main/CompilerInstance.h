@@ -13,6 +13,11 @@ class CompilerInstance
 
     Result cmdSyntax();
 
+    void logBefore() const;
+    void logAfter() const;
+    void logStats() const;
+    void processCommand();
+
 public:
     CompilerInstance(const CommandLine& cmdLine, const Global& global);
     ExitCode run();

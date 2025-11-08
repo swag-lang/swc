@@ -34,8 +34,10 @@ namespace fs = std::filesystem;
 #define SWC_END_NAMESPACE() }
 // clang-format on
 
+#ifdef SWC_DEV_MODE
 #define SWC_HAS_ASSERT 1
 #define SWC_HAS_STATS  1
+#endif
 
 #include "Core/Flags.h"
 #include "Core/Utf8.h"

@@ -28,21 +28,28 @@
     <ClCompile Include="src\Main\FileSystem.cpp" />
     <ClCompile Include="src\Memory\Arena.cpp" />
     <ClCompile Include="src\Parser\Ast.cpp" />
-    <ClCompile Include="src\Parser\Ast_Make_.cpp" />
     <ClCompile Include="src\Parser\Parser.cpp" />
     <ClCompile Include="src\Parser\Parser_Block_.cpp" />
     <ClCompile Include="src\Report\LogColor.cpp" />
     <ClCompile Include="src\Report\LogSymbol.cpp" />
     <ClCompile Include="src\Main\CompilerInstance.cpp" />
     <ClCompile Include="src\Parser\Parser_Enum_.cpp" />
-    <ClCompile Include="src\Parser\Parser_Errors_.cpp" />
+    <ClCompile Include="src\Parser\Parser_Call_.cpp" />
+    <ClCompile Include="src\Parser\Parser_Compiler_.cpp" />
+    <ClCompile Include="src\Parser\Parser_Expression_.cpp" />
+    <ClCompile Include="src\Parser\Parser_Literal_.cpp" />
+    <ClCompile Include="src\Parser\Parser_Stmt_.cpp" />
+    <ClCompile Include="src\Parser\Parser_Aggregate_.cpp" />
+    <ClCompile Include="src\Parser\Parser_Type_.cpp" />
+    <ClCompile Include="src\Parser\Parser_Var_.cpp" />
+    <ClCompile Include="src\Parser\Parser_Func_.cpp" />
+    <ClCompile Include="src\Report\DiagnosticBuilder.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Lexer\SourceFile.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\Core\Flags.h" />
     <ClInclude Include="src\Core\Utf8.h" />
-    <ClInclude Include="src\Lexer\KeywordTable.h" />
     <ClInclude Include="src\Lexer\Keyword.h" />
     <ClInclude Include="src\Lexer\LangSpec.h" />
     <ClInclude Include="src\Lexer\Lexer.h" />
@@ -54,9 +61,7 @@
     <ClInclude Include="src\Os\Os.h" />
     <ClInclude Include="src\Report\Check.h" />
     <ClInclude Include="src\Report\Diagnostic.h" />
-    <ClInclude Include="src\Report\DiagnosticIds.h" />
     <ClInclude Include="src\Report\DiagnosticElement.h" />
-    <ClInclude Include="src\Report\DiagnosticIds.inc" />
     <ClInclude Include="src\Report\Logger.h" />
     <ClInclude Include="src\Report\UnitTest.h" />
     <ClInclude Include="src\Thread\Job.h" />
@@ -69,18 +74,23 @@
     <ClInclude Include="src\Parser\AstNode.h" />
     <ClInclude Include="src\Core\Types.h" />
     <ClInclude Include="src\Core\Utf8Helper.h" />
-    <ClInclude Include="src\Lexer\TokenIds.inc" />
     <ClInclude Include="src\Main\Context.h" />
     <ClInclude Include="src\Main\FileSystem.h" />
     <ClInclude Include="src\Main\Version.h" />
     <ClInclude Include="src\Memory\Arena.h" />
     <ClInclude Include="src\Parser\Ast.h" />
-    <ClInclude Include="src\Parser\AstNodeIds.inc" />
     <ClInclude Include="src\Parser\Parser.h" />
     <ClInclude Include="src\Report\LogSymbol.h" />
     <ClInclude Include="src\Core\RefStore.h" />
     <ClInclude Include="src\Core\SmallVector.h" />
     <ClInclude Include="src\Main\CompilerInstance.h" />
     <ClInclude Include="src\Parser\AstNodes.h" />
+    <ClInclude Include="src\Core\Hash.h" />
+    <ClInclude Include="src\Core\StringMap.h" />
+    <ClInclude Include="src\Lexer\TokenIds.def" />
+    <ClInclude Include="src\Parser\AstNodes.def" />
+    <ClInclude Include="src\Report\DiagnosticBuilder.h" />
+    <ClInclude Include="src\Report\DiagnosticDef.h" />
+    <ClInclude Include="src\Report\ExitCodes.h" />
   </ItemGroup>
 </Project>

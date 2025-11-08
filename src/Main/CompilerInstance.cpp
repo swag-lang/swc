@@ -18,25 +18,25 @@ CompilerInstance::CompilerInstance(const CommandLine& cmdLine, const Global& glo
     context_.jobClientId_ = global.jobMgr().newClientId();
 }
 
-ExitCode CompilerInstance::run()
+void CompilerInstance::logBefore() const
 {
-    {
-        Timer time(&Stats::get().timeTotal);
-        switch (context_.cmdLine().command)
-        {
-        case Command::Syntax:
-            cmdSyntax();
-            break;
-        case Command::Format:
-            break;
-        case Command::Invalid:
-            break;
-        }
-    }
-
     const Context ctx(context_);
 
-    // End message
+    ctx.global().logger().lock();
+#if SWC_DEBUG
+    Logger::printHeaderCentered(ctx, LogColor::Magenta, "Compiler", LogColor::Magenta, "[Debug]");
+#elif SWC_DEV_MODE
+    Logger::printHeaderCentered(ctx, LogColor::Blue, "Compiler", LogColor::Blue, "[DevMode]");
+#elif SWC_STATS
+    Logger::printHeaderCentered(ctx, LogColor::Yellow, "Compiler", LogColor::Yellow, "[Stats]");
+#endif
+    ctx.global().logger().unlock();
+}
+
+void CompilerInstance::logAfter() const
+{
+    const Context ctx(context_);
+
     const auto timeSrc = Utf8Helper::toNiceTime(Timer::toSeconds(Stats::get().timeTotal));
     ctx.global().logger().lock();
     if (Stats::get().numErrors.load() == 1)
@@ -50,11 +50,38 @@ ExitCode CompilerInstance::run()
     else
         Logger::printHeaderCentered(ctx, LogColor::Green, "Done", LogColor::White, timeSrc);
     ctx.global().logger().unlock();
+}
 
-    // Stats
+void CompilerInstance::logStats() const
+{
     if (context_.cmdLine().stats)
+    {
+        const Context ctx(context_);
         Stats::get().print(ctx);
+    }    
+}
 
+void CompilerInstance::processCommand()
+{
+    Timer time(&Stats::get().timeTotal);
+    switch (context_.cmdLine().command)
+    {
+    case Command::Syntax:
+        cmdSyntax();
+        break;
+    case Command::Format:
+        break;
+    case Command::Invalid:
+        break;
+    }
+}
+
+ExitCode CompilerInstance::run()
+{
+    logBefore();
+    processCommand();
+    logAfter();
+    logStats();
     return ExitCode::Success;
 }
 

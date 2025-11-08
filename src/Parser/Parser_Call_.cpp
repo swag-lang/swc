@@ -8,7 +8,7 @@ SWC_BEGIN_NAMESPACE()
 AstNodeRef Parser::parseInternalCallUnary(AstNodeId callerNodeId)
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstInternalCallUnaryBase>(callerNodeId);
-    nodePtr->tokName         = consume();
+    nodePtr->tokName        = consume();
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
@@ -21,7 +21,7 @@ AstNodeRef Parser::parseInternalCallUnary(AstNodeId callerNodeId)
 AstNodeRef Parser::parseInternalCallBinary(AstNodeId callerNodeId)
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstInternalCallBinaryBase>(callerNodeId);
-    nodePtr->tokName         = consume();
+    nodePtr->tokName        = consume();
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
@@ -39,7 +39,7 @@ AstNodeRef Parser::parseInternalCallBinary(AstNodeId callerNodeId)
 AstNodeRef Parser::parseInternalCallTernary(AstNodeId callerNodeId)
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstInternalCallTernaryBase>(callerNodeId);
-    nodePtr->tokName         = consume();
+    nodePtr->tokName        = consume();
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
@@ -61,7 +61,7 @@ AstNodeRef Parser::parseInternalCallTernary(AstNodeId callerNodeId)
 AstNodeRef Parser::parseAttribute()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Attribute>();
-    nodePtr->nodeIdent = parseQualifiedIdentifier();
+    nodePtr->nodeIdent      = parseQualifiedIdentifier();
     if (is(TokenId::SymLeftParen))
         nodePtr->nodeArgs = parseCompound(AstNodeId::NamedArgList, TokenId::SymLeftParen);
     return nodeRef;

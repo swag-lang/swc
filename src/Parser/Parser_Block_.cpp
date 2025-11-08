@@ -129,7 +129,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
             return Result::Error;
         }
         break;
-        
+
     case AstNodeId::UsingDecl:
     case AstNodeId::AttributeList:
     case AstNodeId::ArrayLiteral:

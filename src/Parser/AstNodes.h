@@ -815,6 +815,13 @@ struct AstLambdaType : AstNode
     {
     }
 
+    enum class FlagsE : Flags
+    {
+        Zero = 0,
+        Mtd  = 1 << 0,
+    };
+    using Flags = EnumFlags<FlagsE>;
+
     SpanRef    nodeParams;
     AstNodeRef nodeReturnType;
 };

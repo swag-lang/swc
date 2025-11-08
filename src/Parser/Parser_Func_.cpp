@@ -34,14 +34,30 @@ AstNodeRef Parser::parseLambdaParam()
 
 AstNodeRef Parser::parseLambdaType()
 {
-    const auto tokKwd = consume();
+    AstLambdaType::Flags flags    = AstLambdaType::FlagsE::Zero;
+    const auto           tokStart = ref();
 
-    bool       emptyCapture  = false;
+    if (consumeIf(TokenId::KwdMtd))
+        flags.add(AstLambdaType::FlagsE::Mtd);
+    else
+        consume(TokenId::KwdFunc);
+
+    bool       isCapture     = false;
     AstNodeRef captureParams = INVALID_REF;
     if (is(TokenId::SymVertical))
+    {
+        isCapture     = true;
         captureParams = parseCompound(AstNodeId::ClosureCaptureList, TokenId::SymVertical);
+    }
     else if (consumeIf(TokenId::SymVerticalVertical))
-        emptyCapture = true;
+    {
+        isCapture = true;
+    }
+    else if (flags.has(AstLambdaType::FlagsE::Mtd))
+    {
+        raiseError(DiagnosticId::parser_err_mtd_missing_capture, tokStart);
+        isCapture = true;
+    }
 
     const SpanRef params = parseCompound(AstNodeId::LambdaParameterList, TokenId::SymLeftParen);
 
@@ -50,9 +66,10 @@ AstNodeRef Parser::parseLambdaType()
     if (consumeIf(TokenId::SymMinusGreater))
         returnType = parseType();
 
-    if (valid(captureParams) || emptyCapture)
+    if (isCapture)
     {
-        auto [nodeRef, nodePtr]    = ast_->makeNode<AstNodeId::ClosureType>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ClosureType>();
+        nodePtr->addFlag(flags);
         nodePtr->nodeCaptureParams = captureParams;
         nodePtr->nodeParams        = params;
         nodePtr->nodeReturnType    = returnType;
@@ -60,6 +77,7 @@ AstNodeRef Parser::parseLambdaType()
     }
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionType>();
+    nodePtr->addFlag(flags);
     nodePtr->nodeParams     = params;
     nodePtr->nodeReturnType = returnType;
     return nodeRef;

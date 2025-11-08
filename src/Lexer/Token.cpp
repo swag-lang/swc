@@ -96,6 +96,8 @@ TokenId Token::toRelated(TokenId tkn)
         return TokenId::SymRightCurly;
     case TokenId::SymAttrStart:
         return TokenId::SymRightBracket;
+    case TokenId::SymVertical:
+        return TokenId::SymVertical;
     default:
         return TokenId::Invalid;
     }

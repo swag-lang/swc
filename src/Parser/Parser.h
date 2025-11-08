@@ -39,23 +39,6 @@ class Parser
     uint32_t     depthCurly_     = 0;
     TokenRef     lastErrorToken_ = INVALID_REF;
 
-    TokenRef consume(TokenId id);
-    TokenRef consume();
-    bool     consumeIf(TokenId id, TokenRef* result = nullptr);
-
-    template<typename... TokenIds>
-    bool consumeIfAny(TokenIds... ids)
-    {
-        if (atEnd())
-            return false;
-        return ((consumeIf(ids)) || ...);
-    }
-
-    TokenRef expectAndConsumeClosingFor(TokenId openId, TokenRef openRef);
-    void     expectEndStatement();
-
-    TokenRef expectAndConsume(TokenId id, DiagnosticId diagId);
-
     const Token* tokPtr() const { return curToken_; }
     const Token& tok() const { return *curToken_; }
     TokenRef     ref() const { return static_cast<TokenRef>(curToken_ - firstToken_); }
@@ -74,8 +57,12 @@ class Parser
         return ((curToken_->id == ids) || ...);
     }
 
-    AstNodeRef parseSingleType();
-    AstNodeRef parseType();
+    TokenRef consume(TokenId id);
+    TokenRef consume();
+    bool     consumeIf(TokenId id, TokenRef* result = nullptr);
+    TokenRef expectAndConsumeClosingFor(TokenId openId, TokenRef openRef);
+    TokenRef expectAndConsume(TokenId id, DiagnosticId diagId);
+    void     expectEndStatement();
 
     AstNodeRef parseInternalCallUnary(AstNodeId callerNodeId);
     AstNodeRef parseInternalCallBinary(AstNodeId callerNodeId);
@@ -91,6 +78,9 @@ class Parser
     AstNodeRef parseCompilerAttribute(AstNodeId blockNodeId);
     AstNodeRef parseAggregateDecl(AstNodeId nodeId);
 
+    AstNodeRef       parseSingleType();
+    AstNodeRef       parseLambdaType();
+    AstNodeRef       parseType();
     AstNodeRef       parseIdentifier();
     AstNodeRef       parsePreQualifiedIdentifier();
     AstNodeRef       parseAncestorIdentifier();
@@ -133,6 +123,8 @@ class Parser
     AstNodeRef       parseConstraint();
     AstNodeRef       parseAggregateValue();
     AstNodeRef       parseAggregateBody();
+    AstNodeRef       parseClosureCaptureValue();
+    AstNodeRef       parseLambdaParam();
 
     bool skipTo(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlags::Zero);
     bool skipAfter(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlags::Zero);

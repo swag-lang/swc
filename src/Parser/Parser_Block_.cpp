@@ -45,6 +45,11 @@ AstNodeRef Parser::parseBlockStmt(AstNodeId blockNodeId)
     case AstNodeId::UsingDecl:
         return parseQualifiedIdentifier();
 
+    case AstNodeId::ClosureCaptureList:
+        return parseClosureCaptureValue();
+    case AstNodeId::LambdaParameterList:
+        return parseLambdaParam();
+
     default:
         std::unreachable();
     }
@@ -124,6 +129,8 @@ Result Parser::parseBlockSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
     case AstNodeId::UnnamedArgList:
     case AstNodeId::NamedArgList:
     case AstNodeId::GenericParamList:
+    case AstNodeId::LambdaParameterList:
+    case AstNodeId::ClosureCaptureList:
         if (!consumeIf(TokenId::SymComma) && !is(tokenEndId))
         {
             if (is(TokenId::Identifier) && blockNodeId == AstNodeId::AttributeList)

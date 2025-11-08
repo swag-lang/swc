@@ -166,6 +166,36 @@ struct AstFuncBody : AstCompound
     }
 };
 
+struct AstFuncParam : AstNode
+{
+    static constexpr auto ID = AstNodeId::FuncParam;
+    AstFuncParam() :
+        AstNode(ID)
+    {
+    }
+
+    TokenRef   tokName;
+    AstNodeRef nodeType;
+};
+
+struct AstLambdaParameterList : AstCompound
+{
+    static constexpr auto ID = AstNodeId::LambdaParameterList;
+    AstLambdaParameterList() :
+        AstCompound(ID)
+    {
+    }
+};
+
+struct AstClosureCaptureList : AstCompound
+{
+    static constexpr auto ID = AstNodeId::ClosureCaptureList;
+    AstClosureCaptureList() :
+        AstCompound(ID)
+    {
+    }
+};
+
 struct AstCompilerAssert : AstInternalCallUnaryBase
 {
     static constexpr auto ID = AstNodeId::CompilerAssert;
@@ -775,6 +805,37 @@ struct AstCompilerType : AstNode
     }
 
     AstNodeRef nodeType;
+};
+
+struct AstLambdaType : AstNode
+{
+    explicit AstLambdaType(AstNodeId nodeId) :
+        AstNode(nodeId)
+    {
+    }
+
+    SpanRef    nodeParams;
+    AstNodeRef nodeReturnType;
+};
+
+struct AstFunctionType : AstLambdaType
+{
+    static constexpr auto ID = AstNodeId::FunctionType;
+    AstFunctionType() :
+        AstLambdaType(ID)
+    {
+    }
+};
+
+struct AstClosureType : AstLambdaType
+{
+    static constexpr auto ID = AstNodeId::ClosureType;
+    AstClosureType() :
+        AstLambdaType(ID)
+    {
+    }
+
+    SpanRef nodeCaptureParams;
 };
 
 struct AstCompilerIf : AstCompound

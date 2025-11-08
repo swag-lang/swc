@@ -47,7 +47,7 @@ AstNodeRef Parser::parseSingleType()
 
     case TokenId::KwdFunc:
     case TokenId::KwdMtd:
-        break;
+        return parseLambdaType();
 
     case TokenId::CompilerDeclType:
         return parseInternalCallUnary(AstNodeId::CompilerCallUnary);
@@ -64,7 +64,7 @@ AstNodeRef Parser::parseSingleType()
 AstNodeRef Parser::parseType()
 {
     // Const
-    if (is(TokenId::KwdConst))
+    if (isAny(TokenId::KwdConst, TokenId::ModifierNullable))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::QualifiedType>();
         nodePtr->tokQual        = consume();

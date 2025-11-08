@@ -131,13 +131,15 @@ DiagnosticBuilder::AnsiSeq DiagnosticBuilder::diagPalette(DiagPart p, std::optio
     case DiagPart::FileLocationArrow:
     case DiagPart::FileLocationPath:
     case DiagPart::FileLocationSep:
-        return {BrightBlack};
+        return {Gray};
     case DiagPart::GutterBar:
         return {BrightCyan};
     case DiagPart::LineNumber:
-        return {BrightBlack};
+        return {Gray};
     case DiagPart::CodeText:
         return {White};
+    case DiagPart::Ellipsis:
+        return {Gray};
 
     case DiagPart::LabelMsgText:
         if (!sev)
@@ -183,9 +185,9 @@ DiagnosticBuilder::AnsiSeq DiagnosticBuilder::diagPalette(DiagPart p, std::optio
         case DiagnosticSeverity::Warning:
             return {BrightBlue};
         case DiagnosticSeverity::Note:
-            return {BrightBlack};
+            return {Gray};
         case DiagnosticSeverity::Help:
-            return {BrightBlack};
+            return {Gray};
         default:
             std::unreachable();
         }
@@ -508,9 +510,9 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
         Utf8 codeSlice = currentFullCodeLine.substr(windowStart, windowEnd - windowStart);
 
         if (addPrefix)
-            codeSlice.insert(0, "... ");
+            codeSlice.insert(0, std::format("{}... {}", partStyle(DiagPart::Ellipsis).c_str(), partStyle(DiagPart::Reset).c_str()));
         if (addSuffix)
-            codeSlice.append(" ...");
+            codeSlice.append(std::format("{} ...{}", partStyle(DiagPart::Ellipsis).c_str(), partStyle(DiagPart::Reset).c_str()));
 
         // Print the code slice with ellipses as needed
         writeCodeLine(loc.line, codeSlice);

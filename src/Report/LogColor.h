@@ -24,7 +24,7 @@ enum class LogColor
     BrightBlue,
     BrightMagenta,
     BrightCyan,
-    BrightBlack,
+    Gray,
 };
 
 namespace LogColorHelper

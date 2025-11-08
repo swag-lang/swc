@@ -42,7 +42,7 @@ Utf8 LogColorHelper::toAnsi(const Context& ctx, LogColor c)
     case White:
         return "\x1b[37m";
 
-    case BrightBlack:
+    case Gray:
         return "\x1b[90m";
     case BrightRed:
         return "\x1b[91m";

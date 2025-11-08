@@ -481,15 +481,7 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
     uint32_t currentFullCharCount   = 0;
     bool     currentLineIsTruncated = false; // "line is longer than diagMax"
 
-    auto flushNonTruncated = [&](const DiagnosticElement& elToUse) {
-        if (!underlinesOnCurrentLine.empty())
-        {
-            writeCodeUnderline(elToUse, underlinesOnCurrentLine);
-            underlinesOnCurrentLine.clear();
-        }
-    };
-
-    // Helper: render a single underline window for long lines.
+    // Render a single underline window for long lines.
     auto renderSingleTruncated = [&](const DiagnosticElement& elToUse, const SourceCodeLocation& loc, const DiagnosticSpan& span, uint32_t tokenLenChars) {
         constexpr uint32_t leftContext = 8;
         const uint32_t     windowStart = (loc.column > leftContext) ? (loc.column - leftContext) : 0;
@@ -552,7 +544,13 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
         {
             // Flush the previous non-truncated line's underline row
             if (!currentLineIsTruncated)
-                flushNonTruncated(el);
+            {
+                if (!underlinesOnCurrentLine.empty())
+                {
+                    writeCodeUnderline(el, underlinesOnCurrentLine);
+                    underlinesOnCurrentLine.clear();
+                }
+            }
 
             // Prepare the new line
             currentFullCodeLine    = el.file()->codeLine(*ctx_, loc.line);
@@ -561,10 +559,7 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
 
             // For non-truncated lines, we print the full code line once up-front.
             if (!currentLineIsTruncated)
-            {
-                currentOffset = 0;
                 writeCodeLine(loc.line, currentFullCodeLine);
-            }
 
             currentLine = loc.line;
         }
@@ -576,7 +571,7 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
         if (currentLineIsTruncated)
             renderSingleTruncated(el, loc, span, tokenLenChars);
         else
-            underlinesOnCurrentLine.emplace_back(loc.column - currentOffset, tokenLenChars, span);
+            underlinesOnCurrentLine.emplace_back(loc.column, tokenLenChars, span);
     }
 
     // Flush the last line

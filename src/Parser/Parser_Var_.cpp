@@ -57,7 +57,7 @@ AstNodeRef Parser::parseGenericParam()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseVarDecl()
+AstNodeRef Parser::parseVarDecl(AstVarDecl::Flags flags)
 {
     SmallVector<TokenRef> tokNames;
 
@@ -86,16 +86,18 @@ AstNodeRef Parser::parseVarDecl()
     if (tokNames.size() == 1)
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDecl>();
-        nodePtr->tokName        = tokNames[0];
-        nodePtr->nodeType       = nodeType;
-        nodePtr->nodeInit       = nodeInit;
+        nodePtr->addFlag(flags);
+        nodePtr->tokName  = tokNames[0];
+        nodePtr->nodeType = nodeType;
+        nodePtr->nodeInit = nodeInit;
         return nodeRef;
     }
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::MultiVarDecl>();
-    nodePtr->tokNames       = ast_->store_.push_span(tokNames.span());
-    nodePtr->nodeType       = nodeType;
-    nodePtr->nodeInit       = nodeInit;
+    nodePtr->addFlag(flags);
+    nodePtr->tokNames = ast_->store_.push_span(tokNames.span());
+    nodePtr->nodeType = nodeType;
+    nodePtr->nodeInit = nodeInit;
     return nodeRef;
 }
 

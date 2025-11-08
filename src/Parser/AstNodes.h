@@ -1065,6 +1065,15 @@ struct AstVarDecl : AstNode
     {
     }
 
+    enum class FlagsE : uint16_t
+    {
+        Zero  = 0,
+        Var   = 1 << 0,
+        Const = 1 << 1,
+        Let   = 1 << 2,
+    };
+    using Flags = EnumFlags<FlagsE>;
+
     TokenRef   tokName;
     AstNodeRef nodeType;
     AstNodeRef nodeInit;

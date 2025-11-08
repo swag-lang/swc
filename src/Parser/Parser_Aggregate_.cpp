@@ -72,12 +72,15 @@ AstNodeRef Parser::parseAggregateValue()
     case TokenId::KwdVar:
         raiseError(DiagnosticId::parser_err_var_struct, ref());
         consume();
-        return parseVarDecl();
+        return parseVarDecl(AstVarDecl::FlagsE::Var);
+
+    case TokenId::KwdConst:
+        consume();
+        return parseVarDecl(AstVarDecl::FlagsE::Const);
 
     case TokenId::KwdPrivate:
         return parseAggregateAccessModifier();
 
-    case TokenId::KwdConst:
     case TokenId::KwdAlias:
         // @skip
         skipTo({TokenId::SymRightCurly, TokenId::SymComma}, SkipUntilFlagsE::EolBefore);
@@ -86,18 +89,18 @@ AstNodeRef Parser::parseAggregateValue()
     case TokenId::Identifier:
         if (nextIs(TokenId::SymLeftParen) || nextIs(TokenId::SymDot))
             return parseTopLevelStmt();
-        return parseVarDecl();
+        return parseVarDecl(AstVarDecl::FlagsE::Zero);
 
     case TokenId::KwdUsing:
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingVarDecl>();
         consume();
-        nodePtr->nodeVar = parseVarDecl();
+        nodePtr->nodeVar = parseVarDecl(AstVarDecl::FlagsE::Zero);
         return nodeRef;
     }
 
     default:
-        return parseVarDecl();
+        return parseVarDecl(AstVarDecl::FlagsE::Zero);
     }
 }
 

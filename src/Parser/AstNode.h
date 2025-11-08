@@ -46,13 +46,32 @@ using AstModifierFlags = EnumFlags<AstModifierFlagsE>;
 
 struct AstNode
 {
-    AstNodeId id    = AstNodeId::Invalid;
-    uint16_t  flags = 0;
+    AstNodeId id = AstNodeId::Invalid;
 
     explicit AstNode(AstNodeId nodeId) :
         id(nodeId)
     {
     }
+
+    template<typename T>
+    T flags() const
+    {
+        return static_cast<T>(flags_);
+    }
+
+    void clearFlags()
+    {
+        flags_ = 0;
+    }
+
+    template<typename T>
+    void addFlag(T val)
+    {
+        flags_ |= val.flags;
+    }
+
+private:
+    uint16_t flags_;
 };
 
 struct AstInvalid : AstNode

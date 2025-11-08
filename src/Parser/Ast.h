@@ -28,10 +28,10 @@ public:
     template<AstNodeId ID>
     auto makeNode()
     {
-        using NodeType       = AstTypeOf<ID>::type;
-        auto result          = store_.emplace_uninit<NodeType>();
-        result.second->id    = ID;
-        result.second->flags = 0;
+        using NodeType    = AstTypeOf<ID>::type;
+        auto result       = store_.emplace_uninit<NodeType>();
+        result.second->id = ID;
+        result.second->clearFlags();
 #if SWC_HAS_STATS
         Stats::get().numAstNodes.fetch_add(1);
 #endif

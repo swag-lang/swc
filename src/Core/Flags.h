@@ -12,6 +12,7 @@ struct EnumFlags
     constexpr EnumFlags() = default;
 
     // implicit on purpose
+    // ReSharper disable once CppNonExplicitConvertingConstructor
     constexpr EnumFlags(T other) :
         flags{static_cast<U>(other)}
     {
@@ -20,30 +21,19 @@ struct EnumFlags
     // comparisons
     constexpr bool operator==(const Self& other) const { return flags == other.flags; }
     constexpr bool operator!=(const Self& other) const { return !(*this == other); }
+    friend bool    operator<(const EnumFlags& lhs, const EnumFlags& rhs) { return lhs.flags < rhs.flags; }
+    friend bool    operator<=(const EnumFlags& lhs, const EnumFlags& rhs) { return !(rhs < lhs); }
+    friend bool    operator>(const EnumFlags& lhs, const EnumFlags& rhs) { return rhs < lhs; }
+    friend bool    operator>=(const EnumFlags& lhs, const EnumFlags& rhs) { return !(lhs < rhs); }
 
     // bitwise OR
-    friend constexpr Self operator|(Self a, Self b)
-    {
-        return Self{static_cast<T>(a.flags | b.flags)};
-    }
-
-    friend constexpr Self operator|(Self a, T b)
-    {
-        return Self{static_cast<T>(a.flags | static_cast<U>(b))};
-    }
-
-    friend constexpr Self operator|(T a, Self b)
-    {
-        return Self{static_cast<T>(static_cast<U>(a) | b.flags)};
-    }
+    friend constexpr Self operator|(Self a, Self b) { return Self{static_cast<T>(a.flags | b.flags)}; }
+    friend constexpr Self operator|(Self a, T b) { return Self{static_cast<T>(a.flags | static_cast<U>(b))}; }
+    friend constexpr Self operator|(T a, Self b) { return Self{static_cast<T>(static_cast<U>(a) | b.flags)}; }
 
     // queries: hasAll / has (alias) / hasAny
     constexpr bool hasAll(Self fl) const { return (flags & fl.flags) == fl.flags; }
-    constexpr bool hasAll(T fl) const
-    {
-        U m = static_cast<U>(fl);
-        return (flags & m) == m;
-    }
+    constexpr bool hasAll(T fl) const { return (flags & static_cast<U>(fl)) == static_cast<U>(fl); }
 
     constexpr bool has(Self fl) const { return hasAny(fl); }
     constexpr bool has(T fl) const { return hasAny(fl); }
@@ -59,6 +49,7 @@ struct EnumFlags
             mask |= static_cast<U>(x);
         return (flags & mask) != 0;
     }
+
     constexpr bool hasAny(std::initializer_list<Self> list) const
     {
         U mask = 0;
@@ -66,11 +57,6 @@ struct EnumFlags
             mask |= x.flags;
         return (flags & mask) != 0;
     }
-
-    friend bool operator<(const EnumFlags& lhs, const EnumFlags& rhs) { return lhs.flags < rhs.flags; }
-    friend bool operator<=(const EnumFlags& lhs, const EnumFlags& rhs) { return !(rhs < lhs); }
-    friend bool operator>(const EnumFlags& lhs, const EnumFlags& rhs) { return rhs < lhs; }
-    friend bool operator>=(const EnumFlags& lhs, const EnumFlags& rhs) { return !(lhs < rhs); }
 
     // functional helpers
     constexpr Self with(Self fl) const { return Self{static_cast<T>(flags | fl.flags)}; }

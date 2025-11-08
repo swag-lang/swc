@@ -1070,6 +1070,19 @@ struct AstVarDecl : AstNode
     AstNodeRef nodeInit;
 };
 
+struct AstMultiVarDecl : AstNode
+{
+    static constexpr auto ID = AstNodeId::MultiVarDecl;
+    AstMultiVarDecl() :
+        AstNode(ID)
+    {
+    }
+
+    SpanRef    tokNames;
+    AstNodeRef nodeType;
+    AstNodeRef nodeInit;
+};
+
 struct AstUndefined : AstNode
 {
     static constexpr auto ID = AstNodeId::Undefined;

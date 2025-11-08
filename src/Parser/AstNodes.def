@@ -124,4 +124,5 @@ SWC_NODE_DEF(AttributeList)
 
 // Variables / Constants
 SWC_NODE_DEF(VarDecl)
+SWC_NODE_DEF(MultiVarDecl)
 SWC_NODE_DEF(Undefined)

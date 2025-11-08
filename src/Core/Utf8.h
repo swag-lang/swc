@@ -13,6 +13,11 @@ public:
     {
     }
 
+    Utf8(uint32_t count, char c) :
+        std::string(count, c)
+    {
+    }
+
     Utf8(const Utf8& other) :
         std::string(other)
     {
@@ -46,6 +51,12 @@ public:
         if (this == &other)
             return *this;
         std::string::operator=(other);
+        return *this;
+    }
+
+    Utf8& operator=(char c) noexcept
+    {
+        std::string::operator=(c);
         return *this;
     }
 

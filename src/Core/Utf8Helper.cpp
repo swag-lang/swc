@@ -21,7 +21,7 @@ std::tuple<const uint8_t*, uint32_t, uint32_t> Utf8Helper::decodeOneChar(const u
         return {u + 1, static_cast<uint32_t>(b0), 1};
     }
 
-    // 2-byte: 110xxxxx 10xxxxxx (U+0080..U+07FF), no overlongs (b0 >= 0xC2)
+    // 2-byte: 110xxxxx 10xxxxxx (U+0080..U+07FF), no overlong (b0 >= 0xC2)
     if ((b0 & 0xE0) == 0xC0)
     {
         if (e - u < 2)
@@ -155,7 +155,7 @@ Utf8 Utf8Helper::toNiceTime(double seconds)
         return std::format("{} s {} ms", wholeSeconds, ms);
     }
 
-    // Minutes and seconds (>= 1min)
+    // Minutes and seconds (>= 1 min)
     auto minutes          = static_cast<size_t>(seconds / MINUTE);
     auto remainingSeconds = static_cast<size_t>(seconds - (static_cast<double>(minutes) * MINUTE));
     return std::format("{} min {} s", minutes, remainingSeconds);
@@ -202,6 +202,62 @@ bool Utf8Helper::startsWith(std::string_view s, std::string_view pfx, bool match
             return false;
     }
     return true;
+}
+
+// Return a substring of 's' spanning [charStart, charEnd] in *character* (code point) indices, 1-based inclusive.
+// Falls back to byte slicing when ASCII; otherwise walks UTF-8 safely.
+Utf8 Utf8Helper::substrChars(std::string_view s, uint32_t charStart, uint32_t charEnd)
+{
+    if (charStart > charEnd || s.empty())
+        return {};
+
+    // Fast path for likely-ASCII: if sizes match, assume 1 byte per char.
+    const bool asciiLikely = Utf8Helper::countChars(s) == s.size();
+    if (asciiLikely)
+    {
+        const uint32_t start0 = (charStart ? charStart : 1) - 1;
+        const uint32_t len    = charEnd - (charStart ? charStart : 1) + 1;
+        const uint32_t ssz    = static_cast<uint32_t>(s.size());
+        if (start0 >= ssz)
+            return {};
+        const uint32_t safeLen = std::min<uint32_t>(len, ssz - start0);
+        return Utf8{s.substr(start0, safeLen)};
+    }
+
+    // UTF-8 safe path
+    uint32_t cpIndex   = 1;
+    size_t   startByte = Utf8::npos;
+    size_t   endByte   = Utf8::npos;
+
+    for (size_t i = 0; i < s.size();)
+    {
+        const unsigned char c   = static_cast<unsigned char>(s[i]);
+        size_t              adv = 1;
+        if ((c & 0x80) == 0x00)
+            adv = 1;
+        else if ((c & 0xE0) == 0xC0)
+            adv = 2;
+        else if ((c & 0xF0) == 0xE0)
+            adv = 3;
+        else if ((c & 0xF8) == 0xF0)
+            adv = 4;
+
+        if (cpIndex == charStart)
+            startByte = i;
+        if (cpIndex == charEnd + 1)
+        {
+            endByte = i;
+            break;
+        }
+
+        i += adv;
+        ++cpIndex;
+    }
+    if (startByte == Utf8::npos)
+        return {};
+    if (endByte == Utf8::npos)
+        endByte = s.size();
+    return Utf8{s.substr(startByte, endByte - startByte)};
 }
 
 SWC_END_NAMESPACE()

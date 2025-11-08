@@ -13,6 +13,8 @@ namespace Os
     void panicBox(const char* title, const char* expr);
     Utf8 systemError();
 
+    fs::path getTemporaryFolder();
+
     bool isDebuggerAttached();
 }
 

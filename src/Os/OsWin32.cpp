@@ -39,7 +39,7 @@ namespace Os
         switch (result)
         {
         case IDCANCEL:
-            exit(-1); // NOLINT(concurrency-mt-unsafe)
+            std::exit(static_cast<int>(ExitCode::PanicBox)); // NOLINT(concurrency-mt-unsafe)
         case IDTRYAGAIN:
             DebugBreak();
             break;
@@ -53,14 +53,9 @@ namespace Os
     void panicBox(const char* title, const char* expr)
     {
         if (MessageBoxA(nullptr, expr, title, MB_OKCANCEL | MB_ICONERROR) == IDCANCEL)
-            std::exit(static_cast<int>(ExitCode::PanicBox));
+            std::exit(static_cast<int>(ExitCode::PanicBox)); // NOLINT(concurrency-mt-unsafe)
         if (IsDebuggerPresent())
             DebugBreak();
-    }
-
-    bool isDebuggerAttached()
-    {
-        return IsDebuggerPresent() ? true : false;
     }
 
     Utf8 systemError()
@@ -99,6 +94,19 @@ namespace Os
         LocalFree(buf);
 
         return FileSystem::normalizeSystemMessage(msg);
+    }
+
+    fs::path getTemporaryFolder()
+    {
+        char buffer[_MAX_PATH];
+        if (GetTempPathA(_MAX_PATH, buffer))
+            return buffer;
+        return "";
+    }
+
+    bool isDebuggerAttached()
+    {
+        return IsDebuggerPresent() ? true : false;
     }
 }
 

@@ -4,6 +4,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Report/ExitCodes.h"
+#include "Thread/RaceCondition.h"
 
 int main(int argc, char* argv[])
 {

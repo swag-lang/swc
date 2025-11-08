@@ -35,8 +35,9 @@ namespace fs = std::filesystem;
 // clang-format on
 
 #ifdef SWC_DEV_MODE
-#define SWC_HAS_ASSERT 1
-#define SWC_HAS_STATS  1
+#define SWC_HAS_ASSERT         1
+#define SWC_HAS_STATS          1
+#define SWC_HAS_RACE_CONDITION 1
 #endif
 
 #include "Core/Flags.h"

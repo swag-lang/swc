@@ -58,7 +58,7 @@ void CompilerInstance::logStats() const
     {
         const Context ctx(context_);
         Stats::get().print(ctx);
-    }    
+    }
 }
 
 void CompilerInstance::processCommand()

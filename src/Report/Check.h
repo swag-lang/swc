@@ -18,6 +18,15 @@ enum class Result : bool
         } while (0);                   \
     }
 
+#define SWC_FORCE_ASSERT(__expr)                     \
+    do                                               \
+    {                                                \
+        if (!(__expr))                               \
+        {                                            \
+            swagAssert(#__expr, __FILE__, __LINE__); \
+        }                                            \
+    } while (0)
+
 #if SWC_HAS_ASSERT
 #define SWC_ASSERT(__expr)                           \
     do                                               \

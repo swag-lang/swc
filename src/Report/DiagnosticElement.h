@@ -37,6 +37,7 @@ public:
     void setMessage(Utf8 m);
 
     SourceCodeLocation location(uint32_t spanIndex, const Context& ctx) const;
+    SourceCodeLocation location(const DiagnosticSpan& span, const Context& ctx) const;
     std::string_view   idName() const;
     DiagnosticId       id() const { return id_; }
     DiagnosticSeverity severity() const { return severity_; }

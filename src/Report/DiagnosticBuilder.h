@@ -18,6 +18,7 @@ class DiagnosticBuilder
         LabelMsgText,
         Severity,
         QuoteText,
+        Ellipsis,
         Reset,
     };
 

@@ -59,11 +59,17 @@ void DiagnosticElement::addSpan(const SourceCodeLocation& loc, DiagnosticId diag
 
 SourceCodeLocation DiagnosticElement::location(uint32_t spanIndex, const Context& ctx) const
 {
-    SourceCodeLocation loc;
     if (!file_ || spans_.empty())
-        return loc;
-    SWC_ASSERT(spanIndex < spans_.size());
-    loc.fromOffset(ctx, *file_, spans_[spanIndex].offset, spans_[spanIndex].len);
+        return {};
+    return location(spans_[spanIndex], ctx);
+}
+
+SourceCodeLocation DiagnosticElement::location(const DiagnosticSpan& span, const Context& ctx) const
+{
+    if (!file_)
+        return {};
+    SourceCodeLocation loc;
+    loc.fromOffset(ctx, *file_, span.offset, span.len);
     return loc;
 }
 

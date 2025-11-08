@@ -24,8 +24,9 @@ struct CommandLine
     bool verboseErrors = false;
     bool verify        = true;
 
-    uint32_t numCores = 0;
-    uint32_t tabSize  = 4;
+    uint32_t numCores      = 0;
+    uint32_t tabSize       = 4;
+    uint32_t diagMaxColumn = 120;
 
     Utf8           verboseErrorsFilter;
     std::set<Utf8> fileFilter;

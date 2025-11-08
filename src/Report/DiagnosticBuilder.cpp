@@ -364,17 +364,11 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const st
 {
     writeGutter(gutterW_);
 
-    // Sort underlines by column to process them in order
-    auto sortedUnderlines = underlines;
-    std::ranges::sort(sortedUnderlines, [](const auto& a, const auto& b) {
-        return a.column < b.column;
-    });
-
     // Track that underlines needs continuation lines
     std::vector<std::tuple<uint32_t, std::string, DiagnosticSeverity>> continuations;
 
     uint32_t currentPos = 1; // Current position in the output line
-    for (const auto& [col, len, span] : sortedUnderlines)
+    for (const auto& [col, len, span] : underlines)
     {
         const uint32_t column       = std::max<uint32_t>(1, col);
         const uint32_t underlineLen = len == 0 ? 1 : len;
@@ -406,7 +400,7 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const st
 
             // Check if a message fits on this line (consider next underline position if exists)
             bool fits = true;
-            for (const auto& [nextCol, nextLen, nextSpan] : sortedUnderlines)
+            for (const auto& [nextCol, nextLen, nextSpan] : underlines)
             {
                 // +2 to avoid being too close to the following one
                 if (nextCol > col && msgStartPos + msgLength + 2 > nextCol)
@@ -461,7 +455,6 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const st
     }
 }
 
-// In writeCodeBlock, update to pass severity information:
 void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
 {
     // Loc
@@ -471,36 +464,122 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
     writeFileLocation(el);
     out_ += "\n";
 
+    // Sort underlines by column to process them in order
+    auto sortedSpans = el.spans();
+    std::ranges::sort(sortedSpans, [&](const auto& a, const auto& b) {
+        const auto loc1 = el.location(a, *ctx_);
+        const auto loc2 = el.location(b, *ctx_);
+        return loc1.column < loc2.column;
+    });
+
+    const uint32_t diagMax = ctx_->cmdLine().diagMaxColumn;
+
     std::vector<ColSpan> underlinesOnCurrentLine;
 
-    uint32_t currentLine = 0;
-    for (uint32_t i = 0; i < el.spans().size(); ++i)
-    {
-        auto loc = el.location(i, *ctx_);
+    uint32_t currentLine = std::numeric_limits<uint32_t>::max();
+    Utf8     currentFullCodeLine;
+    uint32_t currentFullCharCount   = 0;
+    bool     currentLineIsTruncated = false; // "line is longer than diagMax"
 
-        // If we're on a new line, render the previous line's underlines and start a new line
+    auto flushNonTruncated = [&](const DiagnosticElement& elToUse) {
+        if (!underlinesOnCurrentLine.empty())
+        {
+            writeCodeUnderline(elToUse, underlinesOnCurrentLine);
+            underlinesOnCurrentLine.clear();
+        }
+    };
+
+    // Helper: render a single underline window for long lines.
+    auto renderSingleTruncated = [&](const DiagnosticElement& elToUse, const SourceCodeLocation& loc, const DiagnosticSpan& span, uint32_t tokenLenChars) {
+        constexpr uint32_t leftContext = 8;
+        const uint32_t     windowStart = (loc.column > leftContext) ? (loc.column - leftContext) : 0;
+
+        // We'll reserve space for leading and/or trailing ellipses ("... ") which are 4 columns each.
+        uint32_t   visibleWidth = diagMax;
+        const bool addPrefix    = (windowStart > 0);
+        if (addPrefix && visibleWidth >= 4)
+            visibleWidth -= 4;
+
+        // Cap the right edge to the line length
+        uint32_t windowEnd = std::min(windowStart + visibleWidth, currentFullCharCount);
+
+        // If we’re not showing the end of the line, reserve room for a trailing ellipsis
+        const bool addSuffix = (windowEnd < currentFullCharCount);
+        if (addSuffix && visibleWidth >= 4)
+        {
+            // Ensure there is space for the suffix; pull the end back if needed.
+            if (windowEnd > windowStart + 4)
+                windowEnd -= 4;
+        }
+
+        // Slice the code line by character range [windowStart, windowEnd)
+        Utf8 codeSlice = currentFullCodeLine.substr(windowStart, windowEnd - windowStart);
+
+        if (addPrefix)
+            codeSlice.insert(0, "... ");
+        if (addSuffix)
+            codeSlice.append(" ...");
+
+        // Print the code slice with ellipses as needed
+        writeCodeLine(loc.line, codeSlice);
+
+        // Compute underline position/length within the window (clamped)
+        const uint32_t prefixCols            = addPrefix ? 4u : 0u;       // "... " takes 4 columns
+        const uint32_t sliceVisible          = (windowEnd - windowStart); // excluding ellipses
+        const uint32_t underlineStartInSlice = (loc.column > windowStart) ? (loc.column - windowStart) : 0u;
+
+        // Available columns to the right inside the visible slice
+        const uint32_t rightAvail = (underlineStartInSlice < sliceVisible) ? (sliceVisible - underlineStartInSlice) : 0u;
+
+        uint32_t adjustedLen = std::min(tokenLenChars, rightAvail);
+        uint32_t adjustedCol = prefixCols + underlineStartInSlice;
+
+        // Render just this underline on its own line
+        std::vector<ColSpan> one;
+        one.emplace_back(adjustedCol, adjustedLen, span);
+        writeCodeUnderline(elToUse, one);
+    };
+
+    uint32_t currentOffset = 0; // only used for non-truncated lines
+
+    for (const auto& span : sortedSpans)
+    {
+        const auto loc = el.location(span, *ctx_);
+
+        // If we're on a new source line, first flush the previous one (if non-truncated),
+        // then prepare the new one.
         if (loc.line != currentLine)
         {
-            // Render all underlines for the previous line on a single output line
-            if (!underlinesOnCurrentLine.empty())
+            // Flush the previous non-truncated line's underline row
+            if (!currentLineIsTruncated)
+                flushNonTruncated(el);
+
+            // Prepare the new line
+            currentFullCodeLine    = el.file()->codeLine(*ctx_, loc.line);
+            currentFullCharCount   = Utf8Helper::countChars(currentFullCodeLine);
+            currentLineIsTruncated = (currentFullCharCount > diagMax);
+
+            // For non-truncated lines, we print the full code line once up-front.
+            if (!currentLineIsTruncated)
             {
-                writeCodeUnderline(el, underlinesOnCurrentLine);
-                underlinesOnCurrentLine.clear();
+                currentOffset = 0;
+                writeCodeLine(loc.line, currentFullCodeLine);
             }
 
-            // Print the new code line
-            const auto codeLine = el.file()->codeLine(*ctx_, loc.line);
-            writeCodeLine(loc.line, codeLine);
             currentLine = loc.line;
         }
 
-        // Add this span's underline to the current line's collection
+        // Read this token length in characters
         const std::string_view tokenView     = el.file()->codeView(loc.offset, loc.len);
         const uint32_t         tokenLenChars = Utf8Helper::countChars(tokenView);
-        underlinesOnCurrentLine.emplace_back(loc.column, tokenLenChars, el.span(i));
+
+        if (currentLineIsTruncated)
+            renderSingleTruncated(el, loc, span, tokenLenChars);
+        else
+            underlinesOnCurrentLine.emplace_back(loc.column - currentOffset, tokenLenChars, span);
     }
 
-    // Render all remaining underlines for the last line on a single output line
+    // Flush the last line
     if (!underlinesOnCurrentLine.empty())
         writeCodeUnderline(el, underlinesOnCurrentLine);
 

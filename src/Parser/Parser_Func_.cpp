@@ -23,6 +23,12 @@ AstNodeRef Parser::parseLambdaParam()
         nodePtr->tokName = INVALID_REF;
 
     nodePtr->nodeType = parseType();
+
+    if (consumeIf(TokenId::SymEqual))
+        nodePtr->nodeDefaultValue = parseInitializationExpression();
+    else
+        nodePtr->nodeDefaultValue = INVALID_REF;
+
     return nodeRef;
 }
 

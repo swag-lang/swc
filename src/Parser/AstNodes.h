@@ -176,6 +176,7 @@ struct AstFuncParam : AstNode
 
     TokenRef   tokName;
     AstNodeRef nodeType;
+    AstNodeRef nodeDefaultValue;
 };
 
 struct AstLambdaParameterList : AstCompound

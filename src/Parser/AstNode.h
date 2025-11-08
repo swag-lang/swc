@@ -48,15 +48,18 @@ struct AstNode
 {
     AstNodeId id = AstNodeId::Invalid;
 
+    // ReSharper disable once CppPossiblyUninitializedMember
     explicit AstNode(AstNodeId nodeId) :
         id(nodeId)
     {
     }
 
+    using Flags = uint16_t;
+
     template<typename T>
-    T flags() const
+    EnumFlags<T> flags() const
     {
-        return static_cast<T>(flags_);
+        return static_cast<EnumFlags<T>>(flags_);
     }
 
     void clearFlags()
@@ -71,7 +74,7 @@ struct AstNode
     }
 
 private:
-    uint16_t flags_;
+    Flags flags_;
 };
 
 struct AstInvalid : AstNode
@@ -83,6 +86,7 @@ struct AstInvalid : AstNode
     }
 };
 
+// ReSharper disable once CppUnusedIncludeDirective
 #include "Parser/AstNodes.h"
 
 template<typename T>
@@ -110,11 +114,12 @@ struct AstTypeOf;
     {                              \
         using type = Ast##E;       \
     };
+// ReSharper disable once CppUnusedIncludeDirective
 #include "AstNodes.def"
 #undef SWC_NODE_DEF
 
 template<class F>
-decltype(auto) visitAstNodeId(AstNodeId id, F&& f)
+decltype(auto) visitAstNodeId(AstNodeId id, F f)
 {
     switch (id)
     {

@@ -1065,7 +1065,7 @@ struct AstVarDecl : AstNode
     {
     }
 
-    enum class FlagsE : uint16_t
+    enum class FlagsE : AstNode::Flags
     {
         Zero  = 0,
         Var   = 1 << 0,

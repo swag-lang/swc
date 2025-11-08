@@ -26,7 +26,7 @@ void Global::initialize(const CommandLine& cmdLine) const
 {
     Os::initialize();
     langSpec_->setup();
-    jobManager_->setNumThreads(cmdLine.numCores);
+    jobManager_->setup(cmdLine);
 }
 
 SWC_END_NAMESPACE()

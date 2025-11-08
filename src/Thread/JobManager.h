@@ -6,14 +6,13 @@ SWC_BEGIN_NAMESPACE()
 class JobManager
 {
 public:
-    ~JobManager();
-
     JobManager()                             = default;
     JobManager(const JobManager&)            = delete;
     JobManager& operator=(const JobManager&) = delete;
+    ~JobManager();
 
     // Configure worker threads.
-    void setNumThreads(std::size_t count);
+    void setup(const CommandLine& cmdLine);
 
     // Enqueue a job at a given priority for a given client. Returns false if:
     //  - not accepting, or
@@ -63,6 +62,9 @@ private:
 
     // Shutdown (private; called only by destructor)
     void shutdown() noexcept;
+
+    // Setup
+    const CommandLine* cmdLine_ = nullptr;
 
     // Ready queues per priority (store Record* for direct access).
     std::deque<JobRecord*> readyQ_[3];

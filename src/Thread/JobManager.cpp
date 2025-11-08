@@ -76,8 +76,11 @@ JobManager::~JobManager()
     shutdown();
 }
 
-void JobManager::setNumThreads(std::size_t count)
+void JobManager::setup(const CommandLine& cmdLine)
 {
+    auto count = cmdLine.numCores;
+    cmdLine_   = &cmdLine;
+
     // One-shot only.
     SWC_ASSERT(workers_.empty());
     SWC_ASSERT(!accepting_);
@@ -296,19 +299,14 @@ void JobManager::notifyDependents(JobRecord* finished)
 // Favor High: Normal: Low. Caller must hold 'mtx_'.
 JobRecord* JobManager::popReadyLocked()
 {
-    static constexpr int ORDER[] =
-        {
-            static_cast<int>(JobPriority::High),
-            static_cast<int>(JobPriority::Normal),
-            static_cast<int>(JobPriority::Low)};
-
-    for (const int idx : ORDER)
+    for (int idx = static_cast<int>(JobPriority::High); idx <= static_cast<int>(JobPriority::Low); idx++)
     {
         auto& q = readyQ_[idx];
         if (!q.empty())
         {
             JobRecord* rec = q.front();
             q.pop_front();
+
             readyCount_.fetch_sub(1, std::memory_order_acq_rel);
             return rec;
         }
@@ -388,7 +386,7 @@ void JobManager::workerLoop()
         return !accepting_ && readyCount_.load(std::memory_order_acquire) == 0;
     };
 
-    for (;;)
+    while (true)
     {
         JobRecord* rec = nullptr;
 
@@ -454,7 +452,7 @@ void JobManager::workerLoop()
         const auto wakeAtStart = rec->wakeGen.load(std::memory_order_acquire);
 
         // Execute job
-        JobResult res = executeJob(rec->job);
+        const JobResult res = executeJob(rec->job);
 
         // Completion / state transition handling
         {
@@ -602,10 +600,6 @@ void JobManager::workerLoop()
         }
     }
 }
-
-//==============================
-// Client / Cancel helpers
-//==============================
 
 void JobManager::bumpClientCountLocked(JobClientId client, int delta)
 {

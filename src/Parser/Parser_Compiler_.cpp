@@ -29,6 +29,14 @@ AstNodeRef Parser::parseCompilerFunc()
 
 AstNodeRef Parser::parseCompilerExpr()
 {
+    if (nextIs(TokenId::SymLeftCurly))
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerEmbeddedFunc>();
+        nodePtr->tokName        = consume();
+        nodePtr->nodeBody       = parseCompound(AstNodeId::FuncBody, TokenId::SymLeftCurly);
+        return nodeRef;
+    }
+
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerExpr>();
     nodePtr->tokName        = consume();
     nodePtr->nodeExpr       = parseExpression();

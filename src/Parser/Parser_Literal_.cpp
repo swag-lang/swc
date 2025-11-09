@@ -20,6 +20,7 @@ AstNodeRef Parser::parseLiteral()
         break;
 
     case TokenId::StringLine:
+    case TokenId::StringMultiLine:
     case TokenId::StringRaw:
         literal = ast_->makeNode<AstLiteralBase>(AstNodeId::StringLiteral);
         break;
@@ -57,7 +58,7 @@ AstNodeRef Parser::parseLiteral()
         break;
 
     default:
-        raiseError(DiagnosticId::parser_err_expected_token_fam, ref());
+        raiseError(DiagnosticId::parser_err_unexpected_token, ref());
         return INVALID_REF;
     }
 

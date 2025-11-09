@@ -269,12 +269,12 @@ SWC_TOKEN_DEF(IntrinsicDbgAlloc, "@dbgalloc",  Intrinsic)
 SWC_TOKEN_DEF(IntrinsicSysAlloc, "@sysalloc",  Intrinsic)
 
 // Intrinsics - runtime
-SWC_TOKEN_DEF(IntrinsicGetErr, "@err",  Intrinsic)
-SWC_TOKEN_DEF(IntrinsicArguments, "@args",  Intrinsic)
-SWC_TOKEN_DEF(IntrinsicIsByteCode, "@bytecode",  Intrinsic)
+SWC_TOKEN_DEF(IntrinsicErr, "@err",  Intrinsic)
+SWC_TOKEN_DEF(IntrinsicArgs, "@args",  Intrinsic)
+SWC_TOKEN_DEF(IntrinsicByteCode, "@bytecode",  Intrinsic)
 SWC_TOKEN_DEF(IntrinsicIndex, "@index",  Intrinsic)
 SWC_TOKEN_DEF(IntrinsicRtFlags, "@rtflags",  Intrinsic)
-SWC_TOKEN_DEF(IntrinsicGetProcessInfos, "@pinfos",  Intrinsic)
+SWC_TOKEN_DEF(IntrinsicProcessInfos, "@pinfos",  Intrinsic)
 SWC_TOKEN_DEF(IntrinsicModules, "@modules",  Intrinsic)
 SWC_TOKEN_DEF(IntrinsicGvtd, "@gvtd",  Intrinsic)
 

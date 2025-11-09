@@ -9,9 +9,9 @@ SWC_BEGIN_NAMESPACE()
 
 Utf8 Parser::tokenErrorString(TokenRef tokenRef) const
 {
-    constexpr size_t MAX_TOKEN_STR_LEN = 40;
-    const auto&      token             = file_->lexOut().token(tokenRef);
-    Utf8             str               = token.string(*file_);
+    constexpr static size_t MAX_TOKEN_STR_LEN = 40;
+    const auto&             token             = file_->lexOut().token(tokenRef);
+    Utf8                    str               = token.string(*file_);
 
     if (token.hasFlag(TokenFlagsE::EolInside))
     {

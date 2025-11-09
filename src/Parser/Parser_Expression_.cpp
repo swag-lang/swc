@@ -5,245 +5,6 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstNodeRef Parser::parsePrimaryExpression()
-{
-    switch (id())
-    {
-    case TokenId::Identifier:
-        return parseIdentifier();
-
-    case TokenId::SymDot:
-        return parsePreQualifiedIdentifier();
-
-    case TokenId::CompilerUp:
-        return parseAncestorIdentifier();
-
-    case TokenId::CompilerSizeOf:
-    case TokenId::CompilerAlignOf:
-    case TokenId::CompilerOffsetOf:
-    case TokenId::CompilerTypeOf:
-    case TokenId::CompilerDeclType:
-    case TokenId::CompilerStringOf:
-    case TokenId::CompilerNameOf:
-    case TokenId::CompilerRunes:
-    case TokenId::CompilerIsConstExpr:
-    case TokenId::CompilerDefined:
-    case TokenId::CompilerInclude:
-    case TokenId::CompilerSafety:
-    case TokenId::CompilerHasTag:
-        return parseInternalCallUnary(AstNodeId::CompilerCallUnary);
-
-    case TokenId::CompilerRun:
-        return parseCompilerExpr();
-
-    case TokenId::IntrinsicKindOf:
-    case TokenId::IntrinsicCountOf:
-    case TokenId::IntrinsicDataOf:
-    case TokenId::IntrinsicCVaStart:
-    case TokenId::IntrinsicCVaEnd:
-    case TokenId::IntrinsicMakeCallback:
-    case TokenId::IntrinsicAbs:
-    case TokenId::IntrinsicSqrt:
-    case TokenId::IntrinsicSin:
-    case TokenId::IntrinsicCos:
-    case TokenId::IntrinsicTan:
-    case TokenId::IntrinsicSinh:
-    case TokenId::IntrinsicCosh:
-    case TokenId::IntrinsicTanh:
-    case TokenId::IntrinsicASin:
-    case TokenId::IntrinsicACos:
-    case TokenId::IntrinsicATan:
-    case TokenId::IntrinsicLog:
-    case TokenId::IntrinsicLog2:
-    case TokenId::IntrinsicLog10:
-    case TokenId::IntrinsicFloor:
-    case TokenId::IntrinsicCeil:
-    case TokenId::IntrinsicTrunc:
-    case TokenId::IntrinsicRound:
-    case TokenId::IntrinsicExp:
-    case TokenId::IntrinsicExp2:
-    case TokenId::IntrinsicByteSwap:
-    case TokenId::IntrinsicBitCountNz:
-    case TokenId::IntrinsicBitCountTz:
-    case TokenId::IntrinsicBitCountLz:
-        return parseInternalCallUnary(AstNodeId::IntrinsicCallUnary);
-
-    case TokenId::IntrinsicMakeAny:
-    case TokenId::IntrinsicMakeSlice:
-    case TokenId::IntrinsicMakeString:
-    case TokenId::IntrinsicCVaArg:
-    case TokenId::IntrinsicMin:
-    case TokenId::IntrinsicMax:
-    case TokenId::IntrinsicMulAdd:
-    case TokenId::IntrinsicRol:
-    case TokenId::IntrinsicRor:
-    case TokenId::IntrinsicPow:
-    case TokenId::IntrinsicATan2:
-    case TokenId::IntrinsicAtomicCmpXchg:
-    case TokenId::IntrinsicAtomicXchg:
-    case TokenId::IntrinsicAtomicXor:
-    case TokenId::IntrinsicAtomicOr:
-    case TokenId::IntrinsicAtomicAnd:
-    case TokenId::IntrinsicAtomicAdd:
-        return parseInternalCallBinary(AstNodeId::IntrinsicCallBinary);
-
-    case TokenId::IntrinsicMakeInterface:
-    case TokenId::CompilerGetTag:
-        return parseInternalCallTernary(AstNodeId::IntrinsicCallTernary);
-
-    case TokenId::NumberInteger:
-    case TokenId::NumberBinary:
-    case TokenId::NumberHexadecimal:
-    case TokenId::NumberFloat:
-    case TokenId::Character:
-        return parseLiteralExpression();
-
-    case TokenId::StringLine:
-    case TokenId::StringRaw:
-    case TokenId::KwdTrue:
-    case TokenId::KwdFalse:
-    case TokenId::KwdNull:
-        return parseLiteral();
-
-    case TokenId::CompilerFile:
-    case TokenId::CompilerModule:
-    case TokenId::CompilerLine:
-    case TokenId::CompilerBuildVersion:
-    case TokenId::CompilerBuildRevision:
-    case TokenId::CompilerBuildNum:
-    case TokenId::CompilerBuildCfg:
-    case TokenId::CompilerCallerFunction:
-    case TokenId::CompilerCallerLocation:
-    case TokenId::CompilerOs:
-    case TokenId::CompilerArch:
-    case TokenId::CompilerCpu:
-    case TokenId::CompilerSwagOs:
-    case TokenId::CompilerBackend:
-    case TokenId::CompilerScopeName:
-    case TokenId::CompilerCurLocation:
-        return parseLiteral();
-
-    case TokenId::SymLeftParen:
-        return parseParenExpr();
-
-    case TokenId::SymLeftCurly:
-        return parseLiteralStruct();
-    case TokenId::SymLeftBracket:
-        return parseLiteralArray();
-
-    case TokenId::TypeAny:
-    case TokenId::TypeCString:
-    case TokenId::TypeCVarArgs:
-    case TokenId::TypeString:
-    case TokenId::TypeTypeInfo:
-    case TokenId::TypeVoid:
-    case TokenId::TypeBool:
-    case TokenId::TypeS8:
-    case TokenId::TypeS16:
-    case TokenId::TypeS32:
-    case TokenId::TypeS64:
-    case TokenId::TypeU8:
-    case TokenId::TypeU16:
-    case TokenId::TypeU32:
-    case TokenId::TypeU64:
-    case TokenId::TypeRune:
-    case TokenId::TypeF32:
-    case TokenId::TypeF64:
-    case TokenId::KwdConst:
-    case TokenId::KwdStruct:
-    case TokenId::KwdUnion:
-    case TokenId::SymAsterisk:
-    case TokenId::SymAmpersand:
-    case TokenId::CompilerCode:
-    case TokenId::ModifierNullable:
-        return parseType();
-
-    case TokenId::CompilerType:
-        return parseCompilerType();
-
-    default:
-        raiseError(DiagnosticId::parser_err_unexpected_token, ref());
-        return INVALID_REF;
-    }
-}
-
-AstNodeRef Parser::parsePostFixExpression()
-{
-    auto nodeRef = parsePrimaryExpression();
-    if (invalid(nodeRef))
-        return INVALID_REF;
-
-    // Handle chained postfix operations: A.B.C()[5](args)
-    while (true)
-    {
-        // Member access: A.B
-        if (is(TokenId::SymDot))
-        {
-            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::ScopeResolution>();
-            consume();
-            nodePtr->nodeLeft  = nodeRef;
-            nodePtr->nodeRight = parsePostFixExpression();
-            nodeRef            = nodeParent;
-            continue;
-        }
-
-        // Array indexing: A[index]
-        if (is(TokenId::SymLeftBracket) && !tok().flags.has(TokenFlagsE::BlankBefore))
-        {
-            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IndexExpr>();
-            nodePtr->nodeExpr                = nodeRef;
-            nodePtr->nodeArgs                = parseCompound(AstNodeId::UnnamedArgList, TokenId::SymLeftBracket);
-            nodeRef                          = nodeParent;
-            continue;
-        }
-
-        // Function call: A(args)
-        if (is(TokenId::SymLeftParen) && !tok().flags.has(TokenFlagsE::BlankBefore))
-        {
-            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::Call>();
-            nodePtr->nodeExpr                = nodeRef;
-            nodePtr->nodeArgs                = parseCompound(AstNodeId::NamedArgList, TokenId::SymLeftParen);
-            nodeRef                          = nodeParent;
-            continue;
-        }
-
-        // Struct init: A{args}
-        if (is(TokenId::SymLeftCurly) && !tok().flags.has(TokenFlagsE::BlankBefore))
-        {
-            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::StructInit>();
-            nodePtr->nodeExpr                = nodeRef;
-            nodePtr->nodeArgs                = parseCompound(AstNodeId::NamedArgList, TokenId::SymLeftCurly);
-            nodeRef                          = nodeParent;
-            continue;
-        }
-        break;
-    }
-
-    // 'as'
-    if (is(TokenId::KwdAs))
-    {
-        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::AsCastExpr>();
-        consume();
-        nodePtr->nodeExpr = nodeRef;
-        nodePtr->nodeType = parseType();
-        nodeRef           = nodeParent;
-        return nodeRef;
-    }
-
-    // 'is'
-    if (is(TokenId::KwdIs))
-    {
-        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IsTypeExpr>();
-        consume();
-        nodePtr->nodeExpr = nodeRef;
-        nodePtr->nodeType = parseType();
-        nodeRef           = nodeParent;
-        return nodeRef;
-    }
-
-    return nodeRef;
-}
-
 AstModifierFlags Parser::parseModifiers()
 {
     AstModifierFlags                     result = AstModifierFlagsE::Zero;
@@ -327,57 +88,12 @@ AstModifierFlags Parser::parseModifiers()
     return result;
 }
 
-AstNodeRef Parser::parseCast()
+AstNodeRef Parser::parseAncestorIdentifier()
 {
-    const auto tknOp         = consume();
-    const auto openRef       = ref();
-    const auto modifierFlags = parseModifiers();
-
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    if (consumeIf(TokenId::SymRightParen))
-    {
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AutoCastExpr>();
-        nodePtr->tokOp                = tknOp;
-        nodePtr->modifierFlags        = modifierFlags;
-        nodePtr->nodeExpr             = parseExpression();
-        return nodeRef;
-    }
-
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ExplicitCastExpr>();
-    nodePtr->tokOp                = tknOp;
-    nodePtr->modifierFlags        = modifierFlags;
-    nodePtr->nodeType             = parseType();
-    if (invalid(nodePtr->nodeType))
-        skipTo({TokenId::SymRightParen});
-    expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
-    nodePtr->nodeExpr = parseExpression();
-
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AncestorIdentifier>();
+    consume(TokenId::CompilerUp);
+    nodePtr->nodeIdent = parseQualifiedIdentifier();
     return nodeRef;
-}
-
-AstNodeRef Parser::parseUnaryExpr()
-{
-    switch (id())
-    {
-    case TokenId::KwdCast:
-        return parseCast();
-
-    case TokenId::SymPlus:
-    case TokenId::SymMinus:
-    case TokenId::SymExclamation:
-    case TokenId::SymTilde:
-    case TokenId::SymAmpersand:
-    case TokenId::KwdDRef:
-    {
-        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpr>();
-        nodePtr->tokOp                  = consume();
-        nodePtr->nodeExpr               = parsePostFixExpression();
-        return nodeParen;
-    }
-
-    default:
-        return parsePostFixExpression();
-    }
 }
 
 AstNodeRef Parser::parseBinaryExpr()
@@ -409,28 +125,91 @@ AstNodeRef Parser::parseBinaryExpr()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseRelationalExpr()
+AstNodeRef Parser::parseCast()
 {
-    const auto nodeRef = parseBinaryExpr();
-    if (invalid(nodeRef))
-        return INVALID_REF;
+    const auto tknOp         = consume();
+    const auto openRef       = ref();
+    const auto modifierFlags = parseModifiers();
 
-    if (isAny(TokenId::SymEqualEqual,
-              TokenId::SymExclamationEqual,
-              TokenId::SymLowerEqual,
-              TokenId::SymGreaterEqual,
-              TokenId::SymLower,
-              TokenId::SymGreater,
-              TokenId::SymEqual,
-              TokenId::SymLowerEqualGreater))
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
+    if (consumeIf(TokenId::SymRightParen))
     {
-        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::RelationalExpr>();
-        nodePtr->tokOp                  = consume();
-        nodePtr->nodeLeft               = nodeRef;
-        nodePtr->nodeRight              = parseRelationalExpr();
-        return nodeParen;
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AutoCastExpr>();
+        nodePtr->tokOp                = tknOp;
+        nodePtr->modifierFlags        = modifierFlags;
+        nodePtr->nodeExpr             = parseExpression();
+        return nodeRef;
     }
 
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ExplicitCastExpr>();
+    nodePtr->tokOp                = tknOp;
+    nodePtr->modifierFlags        = modifierFlags;
+    nodePtr->nodeType             = parseType();
+    if (invalid(nodePtr->nodeType))
+        skipTo({TokenId::SymRightParen});
+    expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
+    nodePtr->nodeExpr = parseExpression();
+
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseExpression()
+{
+    return parseLogicalExpr();
+}
+
+AstNodeRef Parser::parseIdentifier()
+{
+    const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+    if (invalid(tokName))
+        return INVALID_REF;
+
+    if (is(TokenId::SymQuote) && tok().hasNotFlag(TokenFlagsE::BlankBefore))
+    {
+        consume();
+        if (is(TokenId::SymLeftParen))
+        {
+            auto [nodeRef, nodePtr]   = ast_->makeNode<AstNodeId::MultiPostfixIdentifier>();
+            nodePtr->tokName          = tokName;
+            nodePtr->nodePostfixBlock = parseCompound(AstNodeId::UnnamedArgList, TokenId::SymLeftParen);
+            return nodeRef;
+        }
+
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::PostfixIdentifier>();
+        nodePtr->tokName        = tokName;
+        if (is(TokenId::SymLeftCurly))
+            nodePtr->nodePostfix = parseType();
+        else
+            nodePtr->nodePostfix = parseExpression();
+        return nodeRef;
+    }
+
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>();
+    nodePtr->tokName        = tokName;
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseInitializationExpression()
+{
+    if (consumeIf(TokenId::KwdUndefined))
+    {
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Undefined>();
+        return nodeRef;
+    }
+
+    const auto modifierFlags = parseModifiers();
+    if (modifierFlags == AstModifierFlagsE::Zero)
+        return parseExpression();
+
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InitExpr>();
+    nodePtr->nodeExpr             = parseExpression();
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseIntrinsicValue()
+{
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicValue>();
+    nodePtr->tokName              = consume();
     return nodeRef;
 }
 
@@ -455,9 +234,20 @@ AstNodeRef Parser::parseLogicalExpr()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseExpression()
+AstNodeRef Parser::parseNamedArgument()
 {
-    return parseLogicalExpr();
+    // The name
+    if (is(TokenId::Identifier) && nextIs(TokenId::SymColon) && !tok().flags.has(TokenFlagsE::BlankAfter))
+    {
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamedArgument>();
+        nodePtr->tokName              = consume();
+        consume(TokenId::SymColon);
+        nodePtr->nodeArg = parseExpression();
+        return nodeRef;
+    }
+
+    // The argument
+    return parseExpression();
 }
 
 AstNodeRef Parser::parseParenExpr()
@@ -472,31 +262,80 @@ AstNodeRef Parser::parseParenExpr()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseIdentifier()
+AstNodeRef Parser::parsePostFixExpression()
 {
-    const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
-    if (invalid(tokName))
+    auto nodeRef = parsePrimaryExpression();
+    if (invalid(nodeRef))
         return INVALID_REF;
 
-    if (is(TokenId::SymQuote) && !tok().flags.has(TokenFlagsE::BlankBefore))
+    // Handle chained postfix operations: A.B.C()[5](args)
+    while (true)
     {
-        consume();
-        if (is(TokenId::SymLeftParen))
+        // Member access: A.B
+        if (is(TokenId::SymDot))
         {
-            auto [nodeRef, nodePtr]   = ast_->makeNode<AstNodeId::MultiPostfixIdentifier>();
-            nodePtr->tokName          = tokName;
-            nodePtr->nodePostfixBlock = parseCompound(AstNodeId::UnnamedArgList, TokenId::SymLeftParen);
-            return nodeRef;
+            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::ScopeResolution>();
+            consume();
+            nodePtr->nodeLeft  = nodeRef;
+            nodePtr->nodeRight = parsePostFixExpression();
+            nodeRef            = nodeParent;
+            continue;
         }
 
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::PostfixIdentifier>();
-        nodePtr->tokName        = tokName;
-        nodePtr->nodePostfix    = parseType();
+        // Array indexing: A[index]
+        if (is(TokenId::SymLeftBracket) && !tok().flags.has(TokenFlagsE::BlankBefore))
+        {
+            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IndexExpr>();
+            nodePtr->nodeExpr                = nodeRef;
+            nodePtr->nodeArgs                = parseCompound(AstNodeId::UnnamedArgList, TokenId::SymLeftBracket);
+            nodeRef                          = nodeParent;
+            continue;
+        }
+
+        // Function call: A(args)
+        if (is(TokenId::SymLeftParen) && !tok().flags.has(TokenFlagsE::BlankBefore))
+        {
+            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::Call>();
+            nodePtr->nodeExpr                = nodeRef;
+            nodePtr->nodeArgs                = parseCompound(AstNodeId::NamedArgList, TokenId::SymLeftParen);
+            nodeRef                          = nodeParent;
+            continue;
+        }
+
+        // Struct init: A{args}
+        if (is(TokenId::SymLeftCurly) && !tok().flags.has(TokenFlagsE::BlankBefore))
+        {
+            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::StructInit>();
+            nodePtr->nodeExpr                = nodeRef;
+            nodePtr->nodeArgs                = parseCompound(AstNodeId::NamedArgList, TokenId::SymLeftCurly);
+            nodeRef                          = nodeParent;
+            continue;
+        }
+        break;
+    }
+
+    // 'as'
+    if (is(TokenId::KwdAs))
+    {
+        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::AsCastExpr>();
+        consume();
+        nodePtr->nodeExpr = nodeRef;
+        nodePtr->nodeType = parseType();
+        nodeRef           = nodeParent;
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>();
-    nodePtr->tokName        = tokName;
+    // 'is'
+    if (is(TokenId::KwdIs))
+    {
+        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IsTypeExpr>();
+        consume();
+        nodePtr->nodeExpr = nodeRef;
+        nodePtr->nodeType = parseType();
+        nodeRef           = nodeParent;
+        return nodeRef;
+    }
+
     return nodeRef;
 }
 
@@ -506,6 +345,182 @@ AstNodeRef Parser::parsePreQualifiedIdentifier()
     consume(TokenId::SymDot);
     nodePtr->nodeIdent = parseQualifiedIdentifier();
     return nodeRef;
+}
+
+AstNodeRef Parser::parsePrimaryExpression()
+{
+    switch (id())
+    {
+    case TokenId::Identifier:
+        return parseIdentifier();
+
+    case TokenId::SymDot:
+        return parsePreQualifiedIdentifier();
+
+    case TokenId::CompilerUp:
+        return parseAncestorIdentifier();
+
+    case TokenId::CompilerSizeOf:
+    case TokenId::CompilerAlignOf:
+    case TokenId::CompilerOffsetOf:
+    case TokenId::CompilerTypeOf:
+    case TokenId::CompilerDeclType:
+    case TokenId::CompilerStringOf:
+    case TokenId::CompilerNameOf:
+    case TokenId::CompilerRunes:
+    case TokenId::CompilerIsConstExpr:
+    case TokenId::CompilerDefined:
+    case TokenId::CompilerInclude:
+    case TokenId::CompilerSafety:
+    case TokenId::CompilerHasTag:
+        return parseInternalCallUnary(AstNodeId::CompilerCallUnary);
+
+    case TokenId::CompilerRun:
+        return parseCompilerExpr();
+
+    case TokenId::IntrinsicErr:
+    case TokenId::IntrinsicArgs:
+    case TokenId::IntrinsicByteCode:
+    case TokenId::IntrinsicIndex:
+    case TokenId::IntrinsicRtFlags:
+    case TokenId::IntrinsicProcessInfos:
+    case TokenId::IntrinsicModules:
+    case TokenId::IntrinsicGvtd:
+    case TokenId::IntrinsicCompiler:
+        return parseIntrinsicValue();
+
+    case TokenId::IntrinsicKindOf:
+    case TokenId::IntrinsicCountOf:
+    case TokenId::IntrinsicDataOf:
+    case TokenId::IntrinsicCVaStart:
+    case TokenId::IntrinsicCVaEnd:
+    case TokenId::IntrinsicMakeCallback:
+    case TokenId::IntrinsicAbs:
+    case TokenId::IntrinsicSqrt:
+    case TokenId::IntrinsicSin:
+    case TokenId::IntrinsicCos:
+    case TokenId::IntrinsicTan:
+    case TokenId::IntrinsicSinh:
+    case TokenId::IntrinsicCosh:
+    case TokenId::IntrinsicTanh:
+    case TokenId::IntrinsicASin:
+    case TokenId::IntrinsicACos:
+    case TokenId::IntrinsicATan:
+    case TokenId::IntrinsicLog:
+    case TokenId::IntrinsicLog2:
+    case TokenId::IntrinsicLog10:
+    case TokenId::IntrinsicFloor:
+    case TokenId::IntrinsicCeil:
+    case TokenId::IntrinsicTrunc:
+    case TokenId::IntrinsicRound:
+    case TokenId::IntrinsicExp:
+    case TokenId::IntrinsicExp2:
+    case TokenId::IntrinsicByteSwap:
+    case TokenId::IntrinsicBitCountNz:
+    case TokenId::IntrinsicBitCountTz:
+    case TokenId::IntrinsicBitCountLz:
+        return parseInternalCallUnary(AstNodeId::IntrinsicCallUnary);
+
+    case TokenId::IntrinsicMakeAny:
+    case TokenId::IntrinsicMakeSlice:
+    case TokenId::IntrinsicMakeString:
+    case TokenId::IntrinsicCVaArg:
+    case TokenId::IntrinsicMin:
+    case TokenId::IntrinsicMax:
+    case TokenId::IntrinsicMulAdd:
+    case TokenId::IntrinsicRol:
+    case TokenId::IntrinsicRor:
+    case TokenId::IntrinsicPow:
+    case TokenId::IntrinsicATan2:
+    case TokenId::IntrinsicAtomicCmpXchg:
+    case TokenId::IntrinsicAtomicXchg:
+    case TokenId::IntrinsicAtomicXor:
+    case TokenId::IntrinsicAtomicOr:
+    case TokenId::IntrinsicAtomicAnd:
+    case TokenId::IntrinsicAtomicAdd:
+        return parseInternalCallBinary(AstNodeId::IntrinsicCallBinary);
+
+    case TokenId::IntrinsicMakeInterface:
+    case TokenId::CompilerGetTag:
+        return parseInternalCallTernary(AstNodeId::IntrinsicCallTernary);
+
+    case TokenId::NumberInteger:
+    case TokenId::NumberBinary:
+    case TokenId::NumberHexadecimal:
+    case TokenId::NumberFloat:
+    case TokenId::Character:
+        return parseLiteralExpression();
+
+    case TokenId::StringLine:
+    case TokenId::StringMultiLine:
+    case TokenId::StringRaw:
+    case TokenId::KwdTrue:
+    case TokenId::KwdFalse:
+    case TokenId::KwdNull:
+        return parseLiteral();
+
+    case TokenId::CompilerFile:
+    case TokenId::CompilerModule:
+    case TokenId::CompilerLine:
+    case TokenId::CompilerBuildVersion:
+    case TokenId::CompilerBuildRevision:
+    case TokenId::CompilerBuildNum:
+    case TokenId::CompilerBuildCfg:
+    case TokenId::CompilerCallerFunction:
+    case TokenId::CompilerCallerLocation:
+    case TokenId::CompilerOs:
+    case TokenId::CompilerArch:
+    case TokenId::CompilerCpu:
+    case TokenId::CompilerSwagOs:
+    case TokenId::CompilerBackend:
+    case TokenId::CompilerScopeName:
+    case TokenId::CompilerCurLocation:
+        return parseLiteral();
+
+    case TokenId::SymLeftParen:
+        return parseParenExpr();
+
+    case TokenId::SymLeftCurly:
+        return parseLiteralStruct();
+    case TokenId::SymLeftBracket:
+        return parseLiteralArray();
+
+    case TokenId::TypeAny:
+    case TokenId::TypeCString:
+    case TokenId::TypeCVarArgs:
+    case TokenId::TypeString:
+    case TokenId::TypeTypeInfo:
+    case TokenId::TypeVoid:
+    case TokenId::TypeBool:
+    case TokenId::TypeS8:
+    case TokenId::TypeS16:
+    case TokenId::TypeS32:
+    case TokenId::TypeS64:
+    case TokenId::TypeU8:
+    case TokenId::TypeU16:
+    case TokenId::TypeU32:
+    case TokenId::TypeU64:
+    case TokenId::TypeRune:
+    case TokenId::TypeF32:
+    case TokenId::TypeF64:
+    case TokenId::KwdConst:
+    case TokenId::KwdStruct:
+    case TokenId::KwdUnion:
+    case TokenId::SymAsterisk:
+    case TokenId::SymAmpersand:
+    case TokenId::CompilerCode:
+    case TokenId::ModifierNullable:
+    case TokenId::KwdFunc:
+    case TokenId::KwdMtd:
+        return parseType();
+
+    case TokenId::CompilerType:
+        return parseCompilerType();
+
+    default:
+        raiseError(DiagnosticId::parser_err_unexpected_token, ref());
+        return INVALID_REF;
+    }
 }
 
 AstNodeRef Parser::parseQualifiedIdentifier()
@@ -535,45 +550,54 @@ AstNodeRef Parser::parseQualifiedIdentifier()
     return leftNode;
 }
 
-AstNodeRef Parser::parseAncestorIdentifier()
+AstNodeRef Parser::parseRelationalExpr()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AncestorIdentifier>();
-    consume(TokenId::CompilerUp);
-    nodePtr->nodeIdent = parseQualifiedIdentifier();
+    const auto nodeRef = parseBinaryExpr();
+    if (invalid(nodeRef))
+        return INVALID_REF;
+
+    if (isAny(TokenId::SymEqualEqual,
+              TokenId::SymExclamationEqual,
+              TokenId::SymLowerEqual,
+              TokenId::SymGreaterEqual,
+              TokenId::SymLower,
+              TokenId::SymGreater,
+              TokenId::SymEqual,
+              TokenId::SymLowerEqualGreater))
+    {
+        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::RelationalExpr>();
+        nodePtr->tokOp                  = consume();
+        nodePtr->nodeLeft               = nodeRef;
+        nodePtr->nodeRight              = parseRelationalExpr();
+        return nodeParen;
+    }
+
     return nodeRef;
 }
 
-AstNodeRef Parser::parseNamedArgument()
+AstNodeRef Parser::parseUnaryExpr()
 {
-    // The name
-    if (is(TokenId::Identifier) && nextIs(TokenId::SymColon) && !tok().flags.has(TokenFlagsE::BlankAfter))
+    switch (id())
     {
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamedArgument>();
-        nodePtr->tokName              = consume();
-        consume(TokenId::SymColon);
-        nodePtr->nodeArg = parseExpression();
-        return nodeRef;
+    case TokenId::KwdCast:
+        return parseCast();
+
+    case TokenId::SymPlus:
+    case TokenId::SymMinus:
+    case TokenId::SymExclamation:
+    case TokenId::SymTilde:
+    case TokenId::SymAmpersand:
+    case TokenId::KwdDRef:
+    {
+        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpr>();
+        nodePtr->tokOp                  = consume();
+        nodePtr->nodeExpr               = parsePostFixExpression();
+        return nodeParen;
     }
 
-    // The argument
-    return parseExpression();
-}
-
-AstNodeRef Parser::parseInitializationExpression()
-{
-    if (consumeIf(TokenId::KwdUndefined))
-    {
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Undefined>();
-        return nodeRef;
+    default:
+        return parsePostFixExpression();
     }
-
-    const auto modifierFlags = parseModifiers();
-    if (modifierFlags == AstModifierFlagsE::Zero)
-        return parseExpression();
-
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InitExpr>();
-    nodePtr->nodeExpr             = parseExpression();
-    return nodeRef;
 }
 
 SWC_END_NAMESPACE()

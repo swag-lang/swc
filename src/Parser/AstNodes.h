@@ -157,6 +157,17 @@ struct AstIntrinsicCallTernary : AstInternalCallTernaryBase
     }
 };
 
+struct AstIntrinsicValue : AstNode
+{
+    static constexpr auto ID = AstNodeId::IntrinsicValue;
+    AstIntrinsicValue() :
+        AstNode(ID)
+    {
+    }
+
+    TokenRef tokName;
+};
+
 struct AstFuncBody : AstCompound
 {
     static constexpr auto ID = AstNodeId::FuncBody;
@@ -237,6 +248,18 @@ struct AstCompilerFunc : AstNode
 {
     static constexpr auto ID = AstNodeId::CompilerFunc;
     AstCompilerFunc() :
+        AstNode(ID)
+    {
+    }
+
+    TokenRef   tokName;
+    AstNodeRef nodeBody;
+};
+
+struct AstCompilerEmbeddedFunc : AstNode
+{
+    static constexpr auto ID = AstNodeId::CompilerEmbeddedFunc;
+    AstCompilerEmbeddedFunc() :
         AstNode(ID)
     {
     }

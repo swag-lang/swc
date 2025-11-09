@@ -50,6 +50,9 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
     case AstNodeId::LambdaParameterList:
         return parseLambdaParam();
 
+    case AstNodeId::MultiPostfixIdentifier:
+        return parsePostfixIdentifierValue();
+
     default:
         std::unreachable();
     }
@@ -139,6 +142,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
     case AstNodeId::GenericParamList:
     case AstNodeId::LambdaParameterList:
     case AstNodeId::ClosureCaptureList:
+    case AstNodeId::MultiPostfixIdentifier:
         if (!consumeIf(TokenId::SymComma) && !is(tokenEndId))
         {
             if (is(TokenId::Identifier) && blockNodeId == AstNodeId::AttributeList)

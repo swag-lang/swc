@@ -190,6 +190,13 @@ AstNodeRef Parser::parseExpression()
     return nodeExpr1;
 }
 
+AstNodeRef Parser::parsePostfixIdentifierValue()
+{
+    if (isAny(TokenId::SymLeftCurly, TokenId::KwdFunc, TokenId::KwdMtd))
+        return parseType();
+    return parseExpression();
+}
+
 AstNodeRef Parser::parseIdentifier()
 {
     const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
@@ -201,20 +208,15 @@ AstNodeRef Parser::parseIdentifier()
         consume();
         if (is(TokenId::SymLeftParen))
         {
-            auto [nodeRef, nodePtr]   = ast_->makeNode<AstNodeId::MultiPostfixIdentifier>();
-            nodePtr->tokName          = tokName;
-            nodePtr->nodePostfixBlock = parseCompound(AstNodeId::UnnamedArgList, TokenId::SymLeftParen);
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::MultiPostfixIdentifier>();
+            nodePtr->tokName        = tokName;
+            nodePtr->spanChildren   = parseCompoundContent(AstNodeId::MultiPostfixIdentifier, TokenId::SymLeftParen);
             return nodeRef;
         }
 
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::PostfixIdentifier>();
         nodePtr->tokName        = tokName;
-        if (isAny(TokenId::SymLeftCurly,
-                  TokenId::KwdFunc,
-                  TokenId::KwdMtd))
-            nodePtr->nodePostfix = parseType();
-        else
-            nodePtr->nodePostfix = parseExpression();
+        nodePtr->nodePostfix    = parsePostfixIdentifierValue();
         return nodeRef;
     }
 
@@ -560,9 +562,11 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::SymAmpersand:
     case TokenId::CompilerCode:
     case TokenId::ModifierNullable:
-        // case TokenId::KwdFunc:
-        // case TokenId::KwdMtd:
         return parseType();
+
+    case TokenId::KwdFunc:
+    case TokenId::KwdMtd:
+        return parseLambdaExpression();
 
     case TokenId::CompilerType:
         return parseCompilerType();

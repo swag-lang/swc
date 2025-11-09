@@ -42,12 +42,48 @@ AstNodeRef Parser::parseLambdaType()
     else
         consume(TokenId::KwdFunc);
 
-    bool       isCapture     = false;
-    AstNodeRef captureParams = INVALID_REF;
+    if (consumeIf(TokenId::SymVerticalVertical))
+        flags.add(AstLambdaType::FlagsE::Closure);
+    else if (flags.has(AstLambdaType::FlagsE::Mtd))
+    {
+        raiseError(DiagnosticId::parser_err_mtd_missing_capture, tokStart);
+        flags.add(AstLambdaType::FlagsE::Closure);
+    }
+
+    const SpanRef params = parseCompound(AstNodeId::LambdaParameterList, TokenId::SymLeftParen);
+
+    // Return type
+    AstNodeRef returnType = INVALID_REF;
+    if (consumeIf(TokenId::SymMinusGreater))
+        returnType = parseType();
+
+    // Can raise errors
+    if (consumeIf(TokenId::KwdThrow))
+        flags.add(AstLambdaType::FlagsE::Throw);
+
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaType>();
+    nodePtr->addFlag(flags);
+    nodePtr->nodeParams     = params;
+    nodePtr->nodeReturnType = returnType;
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseLambdaExpression()
+{
+    AstLambdaType::Flags flags    = AstLambdaType::FlagsE::Zero;
+    const auto           tokStart = ref();
+
+    if (consumeIf(TokenId::KwdMtd))
+        flags.add(AstLambdaType::FlagsE::Mtd);
+    else
+        consume(TokenId::KwdFunc);
+
+    bool       isCapture   = false;
+    AstNodeRef captureArgs = INVALID_REF;
     if (is(TokenId::SymVertical))
     {
-        isCapture     = true;
-        captureParams = parseCompound(AstNodeId::ClosureCaptureList, TokenId::SymVertical);
+        isCapture   = true;
+        captureArgs = parseCompound(AstNodeId::ClosureCaptureList, TokenId::SymVertical);
     }
     else if (consumeIf(TokenId::SymVerticalVertical))
     {
@@ -70,20 +106,33 @@ AstNodeRef Parser::parseLambdaType()
     if (consumeIf(TokenId::KwdThrow))
         flags.add(AstLambdaType::FlagsE::Throw);
 
+    // Body
+    AstNodeRef body = INVALID_REF;
+    if (is(TokenId::SymLeftCurly))
+    {
+        body = parseCompound(AstNodeId::FuncBody, TokenId::SymLeftCurly);
+    }
+    else
+    {
+        expectAndConsume(TokenId::SymEqualGreater, DiagnosticId::parser_err_expected_token_before);
+    }
+
     if (isCapture)
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ClosureType>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ClosureExpr>();
         nodePtr->addFlag(flags);
-        nodePtr->nodeCaptureParams = captureParams;
-        nodePtr->nodeParams        = params;
-        nodePtr->nodeReturnType    = returnType;
+        nodePtr->nodeCaptureArgs = captureArgs;
+        nodePtr->nodeParams      = params;
+        nodePtr->nodeReturnType  = returnType;
+        nodePtr->nodeBody        = body;
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionType>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionExpr>();
     nodePtr->addFlag(flags);
     nodePtr->nodeParams     = params;
     nodePtr->nodeReturnType = returnType;
+    nodePtr->nodeBody       = body;
     return nodeRef;
 }
 

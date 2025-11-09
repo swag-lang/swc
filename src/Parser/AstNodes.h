@@ -177,6 +177,38 @@ struct AstIntrinsicValue : AstNode
     TokenRef tokName;
 };
 
+struct AstLambdaExpr : AstNode
+{
+    explicit AstLambdaExpr(AstNodeId nodeId) :
+        AstNode(nodeId)
+    {
+    }
+
+    AstNodeRef nodeParams;
+    AstNodeRef nodeReturnType;
+    AstNodeRef nodeBody;
+};
+
+struct AstFunctionExpr : AstLambdaExpr
+{
+    static constexpr auto ID = AstNodeId::FunctionExpr;
+    AstFunctionExpr() :
+        AstLambdaExpr(ID)
+    {
+    }
+};
+
+struct AstClosureExpr : AstLambdaExpr
+{
+    static constexpr auto ID = AstNodeId::ClosureExpr;
+    AstClosureExpr() :
+        AstLambdaExpr(ID)
+    {
+    }
+
+    SpanRef nodeCaptureArgs;
+};
+
 struct AstFuncBody : AstCompound
 {
     static constexpr auto ID = AstNodeId::FuncBody;
@@ -346,16 +378,15 @@ struct AstPostfixIdentifier : AstNode
     AstNodeRef nodePostfix;
 };
 
-struct AstMultiPostfixIdentifier : AstNode
+struct AstMultiPostfixIdentifier : AstCompound
 {
     static constexpr auto ID = AstNodeId::MultiPostfixIdentifier;
     AstMultiPostfixIdentifier() :
-        AstNode(ID)
+        AstCompound(ID)
     {
     }
 
-    TokenRef   tokName;
-    AstNodeRef nodePostfixBlock;
+    TokenRef tokName;
 };
 
 struct AstCall : AstNode
@@ -914,41 +945,23 @@ struct AstCompilerType : AstNode
 
 struct AstLambdaType : AstNode
 {
-    explicit AstLambdaType(AstNodeId nodeId) :
-        AstNode(nodeId)
+    static constexpr auto ID = AstNodeId::LambdaType;
+    explicit AstLambdaType() :
+        AstNode(ID)
     {
     }
 
     enum class FlagsE : Flags
     {
-        Zero  = 0,
-        Mtd   = 1 << 0,
-        Throw = 1 << 1,
+        Zero    = 0,
+        Mtd     = 1 << 0,
+        Throw   = 1 << 1,
+        Closure = 1 << 2,
     };
     using Flags = EnumFlags<FlagsE>;
 
     SpanRef    nodeParams;
     AstNodeRef nodeReturnType;
-};
-
-struct AstFunctionType : AstLambdaType
-{
-    static constexpr auto ID = AstNodeId::FunctionType;
-    AstFunctionType() :
-        AstLambdaType(ID)
-    {
-    }
-};
-
-struct AstClosureType : AstLambdaType
-{
-    static constexpr auto ID = AstNodeId::ClosureType;
-    AstClosureType() :
-        AstLambdaType(ID)
-    {
-    }
-
-    SpanRef nodeCaptureParams;
 };
 
 struct AstRetValType : AstNode

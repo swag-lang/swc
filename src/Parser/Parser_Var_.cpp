@@ -81,8 +81,8 @@ AstNodeRef Parser::parseDecompositionDecl(AstVarDecl::Flags flags)
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::DecompositionDecl>();
     nodePtr->addFlag(flags);
-    nodePtr->nodeInit = parseInitializerExpression();
-    nodePtr->tokNames = ast_->store_.push_span(tokNames.span());
+    nodePtr->nodeInit  = parseInitializerExpression();
+    nodePtr->spanNames = ast_->store_.push_span(tokNames.span());
     return nodeRef;
 }
 

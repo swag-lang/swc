@@ -391,7 +391,31 @@ struct AstIndexExpr : AstNode
     }
 
     AstNodeRef nodeExpr;
-    AstNodeRef nodeArgs;
+    AstNodeRef nodeArg;
+};
+
+struct AstMultiIndexExpr : AstCompound
+{
+    static constexpr auto ID = AstNodeId::MultiIndexExpr;
+    AstMultiIndexExpr() :
+        AstCompound(ID)
+    {
+    }
+
+    AstNodeRef nodeExpr;
+};
+
+struct AstSlicingExpr : AstCompound
+{
+    static constexpr auto ID = AstNodeId::SlicingExpr;
+    AstSlicingExpr() :
+        AstCompound(ID)
+    {
+    }
+
+    TokenRef   tokWhat;
+    AstNodeRef nodeLeft;
+    AstNodeRef nodeRight;
 };
 
 struct AstArgument : AstNode
@@ -1197,7 +1221,7 @@ struct AstDecompositionDecl : AstNode
     {
     }
 
-    SpanRef    tokNames;
+    SpanRef    spanNames;
     AstNodeRef nodeInit;
 };
 

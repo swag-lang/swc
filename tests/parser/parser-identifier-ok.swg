@@ -5,7 +5,7 @@
 #assert(A())
 #assert(A(1, 2, 3))
 
-#assert(A[])
+#assert(A[1])
 #assert(A[1, 2, 3])
 
 #assert(A{})
@@ -21,7 +21,7 @@
   )
 )
 
-#assert( A[ ] )
+#assert( A[ 1 ] )
 #assert(
   A[
     1,
@@ -41,7 +41,6 @@
 
 // --- Trailing comma tolerance (enable only if grammar allows) ---
 #assert(A(1,2,))       // function call trailing comma
-#assert(A[1,2,])       // array deref trailing comma
 #assert(A{1,2,})       // struct init trailing comma
 
 // --- Single-arg forms ---
@@ -61,7 +60,7 @@
 
 // --- Empty-in-empty combos ---
 #assert(A( B(), C(), D() ))
-#assert(A[ B[], C[], D[] ])
+#assert(A[ B[1], C[1], D[1] ])
 #assert(A{ B{}, C{}, D{} })
 
 // --- Spacing corner cases ---
@@ -75,7 +74,7 @@
 
 // --- Mixed empty & non-empty combos ---
 #assert(A( B(), C[1], D{} ))
-#assert(A[ B(1), C[], D{2} ])
+#assert(A[ B(1), C[1], D{2} ])
 #assert(A{ B{}, C(3), D[4] })
 
 // --- Long arity / stress args ---
@@ -87,7 +86,7 @@
 #assert(A(
 ))
 #assert(A[
-])
+1])
 #assert(A{
 })
 
@@ -133,7 +132,7 @@
 
 // --- Combinations starting empty then populated ---
 #assert(A( B(), C(1) ))
-#assert(A[ B[], C[1] ])
+#assert(A[ B[1], C[1] ])
 #assert(A{ B{}, C{1} })
 
 // --- Big mixed case (parser backtracking / precedence) ---

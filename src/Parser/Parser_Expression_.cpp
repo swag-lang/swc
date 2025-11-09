@@ -303,7 +303,7 @@ AstNodeRef Parser::parsePostFixExpression()
     // Handle chained postfix operations: A.B.C()[5](args)
     while (true)
     {
-        // Member access: A.B
+        // Scope resolution
         if (is(TokenId::SymDot))
         {
             const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::ScopeResolution>();
@@ -314,17 +314,14 @@ AstNodeRef Parser::parsePostFixExpression()
             continue;
         }
 
-        // Array indexing: A[index]
+        // Array indexing or slicing
         if (is(TokenId::SymLeftBracket) && !tok().flags.has(TokenFlagsE::BlankBefore))
         {
-            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IndexExpr>();
-            nodePtr->nodeExpr                = nodeRef;
-            nodePtr->nodeArgs                = parseCompound(AstNodeId::UnnamedArgList, TokenId::SymLeftBracket);
-            nodeRef                          = nodeParent;
+            nodeRef = parseArraySlicingIndex(nodeRef);
             continue;
         }
 
-        // Function call: A(args)
+        // Function call
         if (is(TokenId::SymLeftParen) && !tok().flags.has(TokenFlagsE::BlankBefore))
         {
             const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::Call>();
@@ -674,6 +671,60 @@ AstNodeRef Parser::parseTryCatchAssume()
     nodePtr->tokName        = consume();
     nodePtr->nodeExpr       = parseExpression();
     return nodeRef;
+}
+
+AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
+{
+    const auto openRef = consume(TokenId::SymLeftBracket);
+    if (is(TokenId::SymRightBracket))
+    {
+        raiseError(DiagnosticId::parser_err_empty_indexing, ref());
+        return INVALID_REF;
+    }
+
+    AstNodeRef nodeExpr = INVALID_REF;
+    if (!isAny(TokenId::KwdTo, TokenId::KwdUntil))
+        nodeExpr = parseExpression();
+
+    if (!isAny(TokenId::KwdTo, TokenId::KwdUntil))
+    {
+        SmallVector<AstNodeRef> nodeArgs;
+        nodeArgs.push_back(nodeExpr);
+        while (consumeIf(TokenId::SymComma))
+        {
+            nodeExpr = parseExpression();
+            if (invalid(nodeExpr))
+                return INVALID_REF;
+            nodeArgs.push_back(nodeExpr);
+        }
+
+        expectAndConsumeClosingFor(TokenId::SymLeftBracket, openRef);
+
+        if (nodeArgs.size() == 1)
+        {
+            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IndexExpr>();
+            nodePtr->nodeExpr                = nodeRef;
+            nodePtr->nodeArg                 = nodeExpr;
+            return nodeParent;
+        }
+
+        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::MultiIndexExpr>();
+        nodePtr->nodeExpr                = nodeRef;
+        nodePtr->spanChildren            = ast_->store_.push_span(nodeArgs.span());
+        return nodeParent;
+    }
+
+    // Slicing
+    const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::SlicingExpr>();
+    nodePtr->tokWhat                 = consume();
+    nodePtr->nodeLeft                = nodeExpr;
+    if (!is(TokenId::SymRightBracket))
+        nodePtr->nodeRight = parseExpression();
+    else
+        nodePtr->nodeRight = INVALID_REF;
+
+    expectAndConsumeClosingFor(TokenId::SymLeftBracket, openRef);
+    return nodeParent;
 }
 
 SWC_END_NAMESPACE()

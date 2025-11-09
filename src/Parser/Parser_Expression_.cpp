@@ -209,7 +209,9 @@ AstNodeRef Parser::parseIdentifier()
 
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::PostfixIdentifier>();
         nodePtr->tokName        = tokName;
-        if (is(TokenId::SymLeftCurly))
+        if (isAny(TokenId::SymLeftCurly,
+                  TokenId::KwdFunc,
+                  TokenId::KwdMtd))
             nodePtr->nodePostfix = parseType();
         else
             nodePtr->nodePostfix = parseExpression();
@@ -558,8 +560,8 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::SymAmpersand:
     case TokenId::CompilerCode:
     case TokenId::ModifierNullable:
-    case TokenId::KwdFunc:
-    case TokenId::KwdMtd:
+        // case TokenId::KwdFunc:
+        // case TokenId::KwdMtd:
         return parseType();
 
     case TokenId::CompilerType:

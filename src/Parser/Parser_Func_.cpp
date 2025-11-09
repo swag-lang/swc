@@ -13,16 +13,21 @@ AstNodeRef Parser::parseLambdaTypeParam()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaTypeParam>();
 
-    // Optional name
-    if (is(TokenId::Identifier) && nextIs(TokenId::SymColon))
-    {
-        nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
-        consume(TokenId::SymColon);
-    }
+    if (is(TokenId::CompilerType))
+        nodePtr->nodeType = parseCompilerTypeExpr();
     else
-        nodePtr->tokName = INVALID_REF;
+    {
+        // Optional name
+        if (is(TokenId::Identifier) && nextIs(TokenId::SymColon))
+        {
+            nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
+            consume(TokenId::SymColon);
+        }
+        else
+            nodePtr->tokName = INVALID_REF;
 
-    nodePtr->nodeType = parseType();
+        nodePtr->nodeType = parseType();
+    }
 
     if (consumeIf(TokenId::SymEqual))
         nodePtr->nodeDefaultValue = parseInitializerExpression();

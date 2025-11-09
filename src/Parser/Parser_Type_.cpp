@@ -10,15 +10,21 @@ AstNodeRef Parser::parseIdentifierType()
     const auto identifier = parseQualifiedIdentifier();
 
     if (is(TokenId::SymLeftCurly) && tok().hasNotFlag(TokenFlagsE::BlankBefore))
-    {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructInit>();
-        nodePtr->nodeExpr       = identifier;
-        nodePtr->nodeArgs       = parseCompound(AstNodeId::NamedArgList, TokenId::SymLeftCurly);
-        return nodeRef;
-    }
+        return parseInitializerList(identifier);
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamedType>();
     nodePtr->nodeIdent      = identifier;
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseRetValType()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::RetValType>();
+    consume();
+
+    if (is(TokenId::SymLeftCurly) && tok().hasNotFlag(TokenFlagsE::BlankBefore))
+        return parseInitializerList(nodeRef);
+
     return nodeRef;
 }
 
@@ -36,6 +42,8 @@ AstNodeRef Parser::parseSingleType()
     {
     case TokenId::Identifier:
         return parseIdentifierType();
+    case TokenId::KwdRetVal:
+        return parseRetValType();
 
     case TokenId::KwdStruct:
     {

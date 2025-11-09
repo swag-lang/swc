@@ -24,7 +24,7 @@ SWC_NODE_DEF(ScopeResolution)
 
 // Postfix
 SWC_NODE_DEF(IndexExpr)
-SWC_NODE_DEF(StructInit)
+SWC_NODE_DEF(StructInitializerList)
 
 // Expressions — Unary & Binary
 SWC_NODE_DEF(ParenExpr)
@@ -32,7 +32,7 @@ SWC_NODE_DEF(LogicalExpr)
 SWC_NODE_DEF(RelationalExpr)
 SWC_NODE_DEF(BinaryExpr)
 SWC_NODE_DEF(UnaryExpr)
-SWC_NODE_DEF(InitExpr)
+SWC_NODE_DEF(InitializerExpr)
 
 // Type Casting & Checks
 SWC_NODE_DEF(ExplicitCastExpr)
@@ -83,6 +83,7 @@ SWC_NODE_DEF(SliceType)
 SWC_NODE_DEF(CompilerType)
 SWC_NODE_DEF(FunctionType)
 SWC_NODE_DEF(ClosureType)
+SWC_NODE_DEF(RetValType)
 
 // Structs
 SWC_NODE_DEF(AggregateBody)

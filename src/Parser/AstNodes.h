@@ -361,16 +361,16 @@ struct AstCall : AstNode
     AstNodeRef nodeArgs;
 };
 
-struct AstStructInit : AstNode
+struct AstStructInitializerList : AstNode
 {
-    static constexpr auto ID = AstNodeId::StructInit;
-    AstStructInit() :
+    static constexpr auto ID = AstNodeId::StructInitializerList;
+    AstStructInitializerList() :
         AstNode(ID)
     {
     }
 
-    AstNodeRef nodeExpr;
-    AstNodeRef nodeArgs;
+    AstNodeRef nodeWhat;
+    SpanRef    spanArgs;
 };
 
 struct AstIndexExpr : AstNode
@@ -496,10 +496,10 @@ struct AstUnaryExpr : AstNode
     AstNodeRef nodeExpr;
 };
 
-struct AstInitExpr : AstNode
+struct AstInitializerExpr : AstNode
 {
-    static constexpr auto ID = AstNodeId::InitExpr;
-    AstInitExpr() :
+    static constexpr auto ID = AstNodeId::InitializerExpr;
+    AstInitializerExpr() :
         AstNode(ID)
     {
     }
@@ -880,6 +880,15 @@ struct AstClosureType : AstLambdaType
     }
 
     SpanRef nodeCaptureParams;
+};
+
+struct AstRetValType : AstNode
+{
+    static constexpr auto ID = AstNodeId::RetValType;
+    AstRetValType() :
+        AstNode(ID)
+    {
+    }
 };
 
 struct AstCompilerIf : AstCompound

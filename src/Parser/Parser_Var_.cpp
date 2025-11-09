@@ -89,7 +89,7 @@ AstNodeRef Parser::parseVarDecl()
     if (consumeIf(TokenId::SymColon))
         nodeType = parseType();
     if (consumeIf(TokenId::SymEqual))
-        nodeInit = parseInitializationExpression();
+        nodeInit = parseInitializerExpression();
 
     if (tokNames.size() == 1)
     {

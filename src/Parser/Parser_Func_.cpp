@@ -25,7 +25,7 @@ AstNodeRef Parser::parseLambdaParam()
     nodePtr->nodeType = parseType();
 
     if (consumeIf(TokenId::SymEqual))
-        nodePtr->nodeDefaultValue = parseInitializationExpression();
+        nodePtr->nodeDefaultValue = parseInitializerExpression();
     else
         nodePtr->nodeDefaultValue = INVALID_REF;
 

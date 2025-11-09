@@ -56,6 +56,7 @@ AstNodeRef Parser::parseTopLevelStmt()
         return parseUsingDecl();
 
     case TokenId::KwdConst:
+        // case TokenId::KwdVar:
         return parseVarDecl();
 
     default:

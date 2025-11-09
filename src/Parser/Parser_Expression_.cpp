@@ -189,7 +189,7 @@ AstNodeRef Parser::parseIdentifier()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseInitializationExpression()
+AstNodeRef Parser::parseInitializerExpression()
 {
     if (consumeIf(TokenId::KwdUndefined))
     {
@@ -201,7 +201,7 @@ AstNodeRef Parser::parseInitializationExpression()
     if (modifierFlags == AstModifierFlagsE::Zero)
         return parseExpression();
 
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InitExpr>();
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InitializerExpr>();
     nodePtr->nodeExpr             = parseExpression();
     return nodeRef;
 }
@@ -305,10 +305,7 @@ AstNodeRef Parser::parsePostFixExpression()
         // Struct init: A{args}
         if (is(TokenId::SymLeftCurly) && !tok().flags.has(TokenFlagsE::BlankBefore))
         {
-            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::StructInit>();
-            nodePtr->nodeExpr                = nodeRef;
-            nodePtr->nodeArgs                = parseCompound(AstNodeId::NamedArgList, TokenId::SymLeftCurly);
-            nodeRef                          = nodeParent;
+            nodeRef = parseInitializerList(nodeRef);
             continue;
         }
         break;
@@ -598,6 +595,14 @@ AstNodeRef Parser::parseUnaryExpr()
     default:
         return parsePostFixExpression();
     }
+}
+
+AstNodeRef Parser::parseInitializerList(AstNodeRef nodeWhat)
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructInitializerList>();
+    nodePtr->nodeWhat       = nodeWhat;
+    nodePtr->spanArgs       = parseCompound(AstNodeId::NamedArgList, TokenId::SymLeftCurly);
+    return nodeRef;
 }
 
 SWC_END_NAMESPACE()

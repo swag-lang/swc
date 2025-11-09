@@ -77,6 +77,7 @@ class Parser
     AstNodeRef parseCompilerIfStmt(AstNodeId blockNodeId);
     AstNodeRef parseCompilerAttribute(AstNodeId blockNodeId);
     AstNodeRef parseAggregateDecl(AstNodeId nodeId);
+    AstNodeRef parseInitializerList(AstNodeRef nodeWhat);
 
     AstModifierFlags parseModifiers();
     AstNodeRef       parseAggregateAccessModifier();
@@ -102,9 +103,10 @@ class Parser
     AstNodeRef       parseGlobalAccessModifier();
     AstNodeRef       parseIdentifier();
     AstNodeRef       parseIdentifierType();
+    AstNodeRef       parseRetValType();
     AstNodeRef       parseImpl();
     AstNodeRef       parseImplEnum();
-    AstNodeRef       parseInitializationExpression();
+    AstNodeRef       parseInitializerExpression();
     AstNodeRef       parseIntrinsicValue();
     AstNodeRef       parseLambdaParam();
     AstNodeRef       parseLambdaType();

@@ -1165,16 +1165,28 @@ struct AstVarDecl : AstNode
     AstNodeRef nodeInit;
 };
 
-struct AstMultiVarDecl : AstNode
+struct AstVarMultiDecl : AstNode
 {
-    static constexpr auto ID = AstNodeId::MultiVarDecl;
-    AstMultiVarDecl() :
+    static constexpr auto ID = AstNodeId::VarMultiDecl;
+    AstVarMultiDecl() :
         AstNode(ID)
     {
     }
 
     SpanRef    tokNames;
     AstNodeRef nodeType;
+    AstNodeRef nodeInit;
+};
+
+struct AstDecompositionDecl : AstNode
+{
+    static constexpr auto ID = AstNodeId::DecompositionDecl;
+    AstDecompositionDecl() :
+        AstNode(ID)
+    {
+    }
+
+    SpanRef    tokNames;
     AstNodeRef nodeInit;
 };
 

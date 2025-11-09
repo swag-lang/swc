@@ -57,11 +57,38 @@ AstNodeRef Parser::parseGenericParam()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseDecompositionDecl(AstVarDecl::Flags flags)
+{
+    const auto openRef = consume(TokenId::SymLeftParen);
+
+    TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+    if (invalid(tokName))
+        return INVALID_REF;
+
+    // All names
+    SmallVector<TokenRef> tokNames;
+    tokNames.push_back(tokName);
+    while (consumeIf(TokenId::SymComma))
+    {
+        tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+        if (invalid(tokName))
+            return INVALID_REF;
+        tokNames.push_back(tokName);
+    }
+
+    expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
+    expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_fam);
+
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::DecompositionDecl>();
+    nodePtr->addFlag(flags);
+    nodePtr->nodeInit = parseInitializerExpression();
+    nodePtr->tokNames = ast_->store_.push_span(tokNames.span());
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseVarDecl()
 {
-    SmallVector<TokenRef> tokNames;
-    AstVarDecl::Flags     flags = AstVarDecl::FlagsE::Zero;
-
+    AstVarDecl::Flags flags = AstVarDecl::FlagsE::Zero;
     if (consumeIf(TokenId::KwdConst))
         flags.add(AstVarDecl::FlagsE::Const);
     else if (consumeIf(TokenId::KwdVar))
@@ -69,10 +96,15 @@ AstNodeRef Parser::parseVarDecl()
     else if (consumeIf(TokenId::KwdLet))
         flags.add(AstVarDecl::FlagsE::Let);
 
+    if (is(TokenId::SymLeftParen))
+        return parseDecompositionDecl(flags);
+
     // All names
     TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
     if (invalid(tokName))
         return INVALID_REF;
+
+    SmallVector<TokenRef> tokNames;
     tokNames.push_back(tokName);
 
     while (consumeIf(TokenId::SymComma))
@@ -101,7 +133,7 @@ AstNodeRef Parser::parseVarDecl()
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::MultiVarDecl>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarMultiDecl>();
     nodePtr->addFlag(flags);
     nodePtr->tokNames = ast_->store_.push_span(tokNames.span());
     nodePtr->nodeType = nodeType;

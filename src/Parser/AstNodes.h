@@ -505,6 +505,17 @@ struct AstUnaryExpr : AstNode
     AstNodeRef nodeExpr;
 };
 
+struct AstDeRefOp : AstNode
+{
+    static constexpr auto ID = AstNodeId::DeRefOp;
+    AstDeRefOp() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeExpr;
+};
+
 struct AstBinaryConditionalOp : AstNode
 {
     static constexpr auto ID = AstNodeId::BinaryConditionalOp;

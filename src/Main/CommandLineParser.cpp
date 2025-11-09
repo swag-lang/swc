@@ -376,6 +376,10 @@ Result CommandLineParser::checkCommandLine(const Context& ctx) const
     }
     cmdLine_->files = std::move(resolvedFiles);
 
+#if SWC_DEV_MODE
+    cmdLine_->dbgDevMode = true;
+#endif
+
     return Result::Success;
 }
 

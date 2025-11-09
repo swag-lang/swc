@@ -98,7 +98,7 @@ AstNodeRef Parser::parseAncestorIdentifier()
 
 AstNodeRef Parser::parseBinaryExpr()
 {
-    const auto nodeRef = parseUnaryExpr();
+    const auto nodeRef = parsePrefixExpr();
     if (invalid(nodeRef))
         return INVALID_REF;
 
@@ -150,6 +150,14 @@ AstNodeRef Parser::parseCast()
     expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
     nodePtr->nodeExpr = parseExpression();
 
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseDeRef()
+{
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::DeRefOp>();
+    consume(TokenId::KwdDRef);
+    nodePtr->nodeExpr = parseExpression();
     return nodeRef;
 }
 
@@ -622,15 +630,11 @@ AstNodeRef Parser::parseUnaryExpr()
 {
     switch (id())
     {
-    case TokenId::KwdCast:
-        return parseCast();
-
     case TokenId::SymPlus:
     case TokenId::SymMinus:
     case TokenId::SymExclamation:
     case TokenId::SymTilde:
     case TokenId::SymAmpersand:
-    case TokenId::KwdDRef:
     {
         const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpr>();
         nodePtr->tokOp                  = consume();
@@ -640,6 +644,19 @@ AstNodeRef Parser::parseUnaryExpr()
 
     default:
         return parsePostFixExpression();
+    }
+}
+
+AstNodeRef Parser::parsePrefixExpr()
+{
+    switch (id())
+    {
+    case TokenId::KwdCast:
+        return parseCast();
+    case TokenId::KwdDRef:
+        return parseDeRef();
+    default:
+        return parseUnaryExpr();
     }
 }
 

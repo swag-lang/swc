@@ -26,7 +26,6 @@ AstNodeRef Parser::parseTopLevelStmt()
         return parseUnionDecl();
     case TokenId::KwdStruct:
         return parseStructDecl();
-
     case TokenId::KwdImpl:
         return parseImpl();
 
@@ -53,18 +52,31 @@ AstNodeRef Parser::parseTopLevelStmt()
         return parseGlobalAccessModifier();
 
     case TokenId::KwdUsing:
-        return parseUsingDecl();
+        return parseUsing();
 
     case TokenId::KwdConst:
     case TokenId::KwdVar:
         return parseVarDecl();
 
-    default:
-    {
+    case TokenId::CompilerLoad:
+    case TokenId::CompilerForeignLib:
+        return parseInternalCallUnary(AstNodeId::CompilerCallUnary);
+
+    case TokenId::CompilerImport:
+    case TokenId::KwdFunc:
+    case TokenId::KwdMtd:
+    case TokenId::CompilerGlobal:
         // @skip
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
         return INVALID_REF;
-    }
+
+    case TokenId::KwdAlias:
+        return parseAlias();
+
+    default:
+        // @skip
+        skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
+        return INVALID_REF;
     }
 }
 
@@ -112,7 +124,7 @@ AstNodeRef Parser::parseGlobalAccessModifier()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseUsingDecl()
+AstNodeRef Parser::parseUsing()
 {
     if (nextIs(TokenId::KwdNamespace))
     {

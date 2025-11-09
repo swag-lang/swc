@@ -137,7 +137,7 @@ class Parser
     AstNodeRef parseUnaryExpr();
     AstNodeRef parsePrefixExpr();
     AstNodeRef parseUnionDecl();
-    AstNodeRef parseUsingDecl();
+    AstNodeRef parseUsing();
     AstNodeRef parseVarDecl();
 
     bool skipTo(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlagsE::Zero);

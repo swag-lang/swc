@@ -34,6 +34,7 @@ SWC_NODE_DEF(RelationalExpr)
 SWC_NODE_DEF(BinaryExpr)
 SWC_NODE_DEF(UnaryExpr)
 SWC_NODE_DEF(InitializerExpr)
+SWC_NODE_DEF(OrElseExpr)
 
 // Type Casting & Checks
 SWC_NODE_DEF(ExplicitCastExpr)
@@ -65,6 +66,7 @@ SWC_NODE_DEF(CompilerPrint)
 SWC_NODE_DEF(CompilerCallUnary)
 
 // Intrinsics
+SWC_NODE_DEF(IntrinsicCallZero)
 SWC_NODE_DEF(IntrinsicCallUnary)
 SWC_NODE_DEF(IntrinsicCallBinary)
 SWC_NODE_DEF(IntrinsicCallTernary)

@@ -130,6 +130,15 @@ struct AstCompilerCallUnary : AstInternalCallUnaryBase
     }
 };
 
+struct AstIntrinsicCallZero : AstNode
+{
+    static constexpr auto ID = AstNodeId::IntrinsicCallZero;
+    AstIntrinsicCallZero() :
+        AstNode(ID)
+    {
+    }
+};
+
 struct AstIntrinsicCallUnary : AstInternalCallUnaryBase
 {
     static constexpr auto ID = AstNodeId::IntrinsicCallUnary;
@@ -494,6 +503,18 @@ struct AstUnaryExpr : AstNode
 
     TokenRef   tokOp;
     AstNodeRef nodeExpr;
+};
+
+struct AstOrElseExpr : AstBinaryBase
+{
+    static constexpr auto ID = AstNodeId::OrElseExpr;
+    AstOrElseExpr() :
+        AstBinaryBase(ID)
+    {
+    }
+
+    AstNodeRef nodeLeft;
+    AstNodeRef nodeRight;
 };
 
 struct AstInitializerExpr : AstNode

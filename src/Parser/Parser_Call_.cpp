@@ -5,6 +5,18 @@
 
 SWC_BEGIN_NAMESPACE()
 
+AstNodeRef Parser::parseInternalCallZero(AstNodeId callerNodeId)
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstInternalCallUnaryBase>(callerNodeId);
+    nodePtr->tokName        = consume();
+
+    const auto openRef = ref();
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
+    expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
+
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseInternalCallUnary(AstNodeId callerNodeId)
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstInternalCallUnaryBase>(callerNodeId);

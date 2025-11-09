@@ -64,6 +64,7 @@ class Parser
     TokenRef expectAndConsume(TokenId id, DiagnosticId diagId);
     void     expectEndStatement();
 
+    AstNodeRef       parseInternalCallZero(AstNodeId callerNodeId);
     AstNodeRef       parseInternalCallUnary(AstNodeId callerNodeId);
     AstNodeRef       parseInternalCallBinary(AstNodeId callerNodeId);
     AstNodeRef       parseInternalCallTernary(AstNodeId callerNodeId);

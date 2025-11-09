@@ -218,10 +218,10 @@ struct AstFuncBody : AstCompound
     }
 };
 
-struct AstFuncParam : AstNode
+struct AstLambdaTypeParam : AstNode
 {
-    static constexpr auto ID = AstNodeId::FuncParam;
-    AstFuncParam() :
+    static constexpr auto ID = AstNodeId::LambdaTypeParam;
+    AstLambdaTypeParam() :
         AstNode(ID)
     {
     }
@@ -231,10 +231,10 @@ struct AstFuncParam : AstNode
     AstNodeRef nodeDefaultValue;
 };
 
-struct AstLambdaParameterList : AstCompound
+struct AstLambdaTypeParameterList : AstCompound
 {
-    static constexpr auto ID = AstNodeId::LambdaParameterList;
-    AstLambdaParameterList() :
+    static constexpr auto ID = AstNodeId::LambdaTypeParameterList;
+    AstLambdaTypeParameterList() :
         AstCompound(ID)
     {
     }

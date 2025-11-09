@@ -238,6 +238,7 @@ AstNodeRef Parser::parseInitializerExpression()
         return parseExpression();
 
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InitializerExpr>();
+    nodePtr->modifierFlags        = modifierFlags;
     nodePtr->nodeExpr             = parseExpression();
     return nodeRef;
 }

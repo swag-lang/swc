@@ -112,6 +112,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
         return parseCompilerAttribute(AstNodeId::EmbeddedBlock);
 
     case TokenId::KwdConst:
+    case TokenId::KwdVar:
         return parseVarDecl();
 
     default:

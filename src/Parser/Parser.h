@@ -115,7 +115,7 @@ class Parser
     AstNodeRef parseImplEnum();
     AstNodeRef parseInitializerExpression();
     AstNodeRef parseIntrinsicValue();
-    AstNodeRef parseLambdaParam();
+    AstNodeRef parseLambdaTypeParam();
     AstNodeRef parseLambdaType();
     AstNodeRef parseLambdaExpression();
     AstNodeRef parseLiteral();

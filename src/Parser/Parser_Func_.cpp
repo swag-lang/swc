@@ -9,9 +9,9 @@ AstNodeRef Parser::parseClosureCaptureValue()
     return parseExpression();
 }
 
-AstNodeRef Parser::parseLambdaParam()
+AstNodeRef Parser::parseLambdaTypeParam()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FuncParam>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaTypeParam>();
 
     // Optional name
     if (is(TokenId::Identifier) && nextIs(TokenId::SymColon))
@@ -50,7 +50,7 @@ AstNodeRef Parser::parseLambdaType()
         flags.add(AstLambdaType::FlagsE::Closure);
     }
 
-    const SpanRef params = parseCompound(AstNodeId::LambdaParameterList, TokenId::SymLeftParen);
+    const SpanRef params = parseCompound(AstNodeId::LambdaTypeParameterList, TokenId::SymLeftParen);
 
     // Return type
     AstNodeRef returnType = INVALID_REF;
@@ -78,24 +78,23 @@ AstNodeRef Parser::parseLambdaExpression()
     else
         consume(TokenId::KwdFunc);
 
-    bool       isCapture   = false;
     AstNodeRef captureArgs = INVALID_REF;
     if (is(TokenId::SymVertical))
     {
-        isCapture   = true;
+        flags.add(AstLambdaType::FlagsE::Closure);
         captureArgs = parseCompound(AstNodeId::ClosureCaptureList, TokenId::SymVertical);
     }
     else if (consumeIf(TokenId::SymVerticalVertical))
     {
-        isCapture = true;
+        flags.add(AstLambdaType::FlagsE::Closure);
     }
     else if (flags.has(AstLambdaType::FlagsE::Mtd))
     {
         raiseError(DiagnosticId::parser_err_mtd_missing_capture, tokStart);
-        isCapture = true;
+        flags.add(AstLambdaType::FlagsE::Closure);
     }
 
-    const SpanRef params = parseCompound(AstNodeId::LambdaParameterList, TokenId::SymLeftParen);
+    const SpanRef params = parseCompound(AstNodeId::LambdaTypeParameterList, TokenId::SymLeftParen);
 
     // Return type
     AstNodeRef returnType = INVALID_REF;
@@ -116,7 +115,7 @@ AstNodeRef Parser::parseLambdaExpression()
         body = parseExpression();
     }
 
-    if (isCapture)
+    if (flags.has(AstLambdaType::FlagsE::Closure))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ClosureExpr>();
         nodePtr->addFlag(flags);

@@ -32,6 +32,7 @@ SWC_NODE_DEF(LogicalExpr)
 SWC_NODE_DEF(RelationalExpr)
 SWC_NODE_DEF(BinaryExpr)
 SWC_NODE_DEF(UnaryExpr)
+SWC_NODE_DEF(InitExpr)
 
 // Type Casting & Checks
 SWC_NODE_DEF(ExplicitCastExpr)

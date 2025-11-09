@@ -473,6 +473,18 @@ struct AstUnaryExpr : AstNode
     AstNodeRef nodeExpr;
 };
 
+struct AstInitExpr : AstNode
+{
+    static constexpr auto ID = AstNodeId::InitExpr;
+    AstInitExpr() :
+        AstNode(ID)
+    {
+    }
+
+    AstModifierFlags modifierFlags;
+    AstNodeRef       nodeExpr;
+};
+
 struct AstLiteralBase : AstNode
 {
     explicit AstLiteralBase(AstNodeId nodeId) :

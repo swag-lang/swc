@@ -30,6 +30,7 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::CompilerDefined:
     case TokenId::CompilerInclude:
     case TokenId::CompilerSafety:
+    case TokenId::CompilerHasTag:
         return parseInternalCallUnary(AstNodeId::CompilerCallUnary);
 
     case TokenId::CompilerRun:
@@ -87,6 +88,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         return parseInternalCallBinary(AstNodeId::IntrinsicCallBinary);
 
     case TokenId::IntrinsicMakeInterface:
+    case TokenId::CompilerGetTag:        
         return parseInternalCallTernary(AstNodeId::IntrinsicCallTernary);
 
     case TokenId::NumberInteger:
@@ -565,7 +567,13 @@ AstNodeRef Parser::parseInitializationExpression()
         return nodeRef;
     }
 
-    return parseExpression();
+    const auto modifierFlags = parseModifiers();
+    if (modifierFlags == AstModifierFlagsE::Zero)
+        return parseExpression();
+
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InitExpr>();
+    nodePtr->nodeExpr             = parseExpression();
+    return nodeRef;
 }
 
 SWC_END_NAMESPACE()

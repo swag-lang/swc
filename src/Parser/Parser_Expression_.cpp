@@ -473,7 +473,6 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::IntrinsicRealloc:
     case TokenId::IntrinsicStrCmp:
     case TokenId::IntrinsicStringCmp:
-    case TokenId::IntrinsicTypeCmp:
     case TokenId::IntrinsicIs:
     case TokenId::IntrinsicTableOf:
     case TokenId::IntrinsicMin:
@@ -495,6 +494,7 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::IntrinsicAs:
     case TokenId::CompilerGetTag:
     case TokenId::IntrinsicAtomicCmpXchg:
+    case TokenId::IntrinsicTypeCmp:
         return parseInternalCallTernary(AstNodeId::IntrinsicCallTernary);
 
     case TokenId::NumberInteger:

@@ -34,7 +34,8 @@ SWC_NODE_DEF(RelationalExpr)
 SWC_NODE_DEF(BinaryExpr)
 SWC_NODE_DEF(UnaryExpr)
 SWC_NODE_DEF(InitializerExpr)
-SWC_NODE_DEF(OrElseExpr)
+SWC_NODE_DEF(BinaryConditionalOp)
+SWC_NODE_DEF(ConditionalOp)
 
 // Type Casting & Checks
 SWC_NODE_DEF(ExplicitCastExpr)

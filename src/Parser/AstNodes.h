@@ -505,16 +505,29 @@ struct AstUnaryExpr : AstNode
     AstNodeRef nodeExpr;
 };
 
-struct AstOrElseExpr : AstBinaryBase
+struct AstBinaryConditionalOp : AstNode
 {
-    static constexpr auto ID = AstNodeId::OrElseExpr;
-    AstOrElseExpr() :
-        AstBinaryBase(ID)
+    static constexpr auto ID = AstNodeId::BinaryConditionalOp;
+    AstBinaryConditionalOp() :
+        AstNode(ID)
     {
     }
 
     AstNodeRef nodeLeft;
     AstNodeRef nodeRight;
+};
+
+struct AstConditionalOp : AstNode
+{
+    static constexpr auto ID = AstNodeId::ConditionalOp;
+    AstConditionalOp() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeCond;
+    AstNodeRef nodeTrue;
+    AstNodeRef nodeFalse;
 };
 
 struct AstInitializerExpr : AstNode

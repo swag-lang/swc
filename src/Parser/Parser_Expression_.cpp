@@ -155,18 +155,31 @@ AstNodeRef Parser::parseCast()
 
 AstNodeRef Parser::parseExpression()
 {
-    const auto nodeExpr = parseLogicalExpr();
+    const auto nodeExpr1 = parseLogicalExpr();
 
     if (consumeIf(TokenId::KwdOrElse))
     {
         const auto nodeExpr2          = parseExpression();
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::OrElseExpr>();
-        nodePtr->nodeLeft             = nodeExpr;
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::BinaryConditionalOp>();
+        nodePtr->nodeLeft             = nodeExpr1;
         nodePtr->nodeRight            = nodeExpr2;
         return nodeRef;
     }
 
-    return nodeExpr;
+    if (consumeIf(TokenId::SymQuestion))
+    {
+        const auto nodeExpr2 = parseExpression();
+        expectAndConsume(TokenId::SymColon, DiagnosticId::parser_err_expected_token_before);
+        const auto nodeExpr3 = parseExpression();
+
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ConditionalOp>();
+        nodePtr->nodeCond             = nodeExpr1;
+        nodePtr->nodeTrue             = nodeExpr2;
+        nodePtr->nodeFalse            = nodeExpr3;
+        return nodeRef;
+    }
+
+    return nodeExpr1;
 }
 
 AstNodeRef Parser::parseIdentifier()

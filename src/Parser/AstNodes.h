@@ -1175,3 +1175,15 @@ struct AstAlias : AstNode
     TokenRef   tokName;
     AstNodeRef nodeExpr;
 };
+
+struct AstTryCatchAssumeExpr : AstNode
+{
+    static constexpr auto ID = AstNodeId::TryCatchAssumeExpr;
+    AstTryCatchAssumeExpr() :
+        AstNode(ID)
+    {
+    }
+
+    TokenRef   tokName;
+    AstNodeRef nodeExpr;
+};

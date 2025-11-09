@@ -418,6 +418,12 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::IntrinsicBitCountLz:
         return parseInternalCallUnary(AstNodeId::IntrinsicCallUnary);
 
+    case TokenId::KwdTry:
+    case TokenId::KwdCatch:
+    case TokenId::KwdTryCatch:
+    case TokenId::KwdAssume:
+        return parseTryCatchAssume();
+
     case TokenId::IntrinsicMakeAny:
     case TokenId::IntrinsicMakeSlice:
     case TokenId::IntrinsicMakeString:
@@ -602,6 +608,14 @@ AstNodeRef Parser::parseInitializerList(AstNodeRef nodeWhat)
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructInitializerList>();
     nodePtr->nodeWhat       = nodeWhat;
     nodePtr->spanArgs       = parseCompound(AstNodeId::NamedArgList, TokenId::SymLeftCurly);
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseTryCatchAssume()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TryCatchAssumeExpr>();
+    nodePtr->tokName        = consume();
+    nodePtr->nodeExpr       = parseExpression();
     return nodeRef;
 }
 

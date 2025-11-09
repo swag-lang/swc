@@ -109,12 +109,11 @@ AstNodeRef Parser::parseLambdaExpression()
     // Body
     AstNodeRef body = INVALID_REF;
     if (is(TokenId::SymLeftCurly))
-    {
         body = parseCompound(AstNodeId::FuncBody, TokenId::SymLeftCurly);
-    }
     else
     {
         expectAndConsume(TokenId::SymEqualGreater, DiagnosticId::parser_err_expected_token_before);
+        body = parseExpression();
     }
 
     if (isCapture)

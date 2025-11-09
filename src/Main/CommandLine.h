@@ -14,17 +14,17 @@ struct CommandLine
 {
     Command command = Command::Format;
 
-    bool logColor      = true;
-    bool logAscii      = false;
-    bool syntaxColor   = true;
-    bool diagAbsolute  = false;
-    bool diagOneLine   = false;
-    bool errorId       = false;
-    bool silent        = false;
-    bool stats         = false;
-    bool dbgDevMode    = false;
-    bool verboseErrors = false;
-    bool verify        = true;
+    bool logColor     = true;
+    bool logAscii     = false;
+    bool syntaxColor  = true;
+    bool diagAbsolute = false;
+    bool diagOneLine  = false;
+    bool errorId      = false;
+    bool silent       = false;
+    bool stats        = false;
+    bool dbgDevMode   = false;
+    bool verboseDiag  = false;
+    bool verify       = true;
 
 #ifdef SWC_DEV_MODE
     bool     randomize = false;
@@ -36,7 +36,7 @@ struct CommandLine
     uint32_t tabSize        = 4;
     uint32_t diagMaxColumn  = 120;
 
-    Utf8           verboseErrorsFilter;
+    Utf8           verboseDiagFilter;
     std::set<Utf8> fileFilter;
 
     std::set<fs::path> directories;

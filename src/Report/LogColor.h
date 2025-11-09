@@ -4,6 +4,11 @@ SWC_BEGIN_NAMESPACE()
 
 class Context;
 
+struct RgbColor
+{
+    unsigned char r, g, b;
+};
+
 enum class LogColor
 {
     Reset,
@@ -29,8 +34,11 @@ enum class LogColor
 
 namespace LogColorHelper
 {
-    Utf8 colorToVts(int r, int g, int b);
-    Utf8 toAnsi(const Context& ctx, LogColor c);
+    Utf8     colorToAnsi(uint32_t r, uint32_t g, uint32_t b);
+    Utf8     toAnsi(const Context& ctx, LogColor c);
+    void     rgbToHsl(const RgbColor& color, float* h, float* s, float* l);
+    float    hueToRgb(float p, float q, float t);
+    RgbColor hslToRgb(float h, float s, float l);
 }
 
 SWC_END_NAMESPACE()

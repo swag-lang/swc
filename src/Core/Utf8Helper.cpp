@@ -8,9 +8,9 @@ SWC_BEGIN_NAMESPACE()
 
 // Returns {next_ptr, code_point, bytes_consumed}.
 // On error: {nullptr, 0, 0}.
-std::tuple<const uint8_t*, uint32_t, uint32_t> Utf8Helper::decodeOneChar(const uint8_t* p, const uint8_t* end)
+std::tuple<const uint8_t*, uint32_t, uint32_t> Utf8Helper::decodeOneChar(const uint8_t* cur, const uint8_t* end)
 {
-    const auto u = p;
+    const auto u = cur;
     const auto e = end;
 
     if (u >= e)
@@ -73,6 +73,14 @@ std::tuple<const uint8_t*, uint32_t, uint32_t> Utf8Helper::decodeOneChar(const u
 
     // Invalid lead byte
     return {nullptr, 0, 0};
+}
+
+const uint8_t* Utf8Helper::decodeOneChar(const uint8_t* cur, const uint8_t* end, uint32_t& c, uint32_t& offset)
+{
+    const auto result = decodeOneChar(cur, end);
+    c                 = std::get<1>(result);
+    offset            = std::get<2>(result);
+    return std::get<0>(result);
 }
 
 uint32_t Utf8Helper::countChars(std::string_view str)

@@ -392,9 +392,11 @@ CommandLineParser::CommandLineParser(CommandLine& cmdLine, Global& global) :
     addArg("all", "--num-cores", nullptr, CommandLineType::Int, &cmdLine_->numCores, nullptr, "Set the maximum number of CPU cores to use (0 = auto-detect).");
     addArg("all", "--log-color", nullptr, CommandLineType::Bool, &cmdLine_->logColor, nullptr, "Enable colored log output for better readability.");
     addArg("all", "--log-ascii", nullptr, CommandLineType::Bool, &cmdLine_->logAscii, nullptr, "Restrict console output to ASCII characters (disable Unicode).");
-    addArg("all", "--diag-absolute", "-ea", CommandLineType::Bool, &cmdLine_->diagAbsolute, nullptr, "Show absolute file paths in diagnostic messages.");
-    addArg("all", "--diag-one-line", "-el", CommandLineType::Bool, &cmdLine_->diagOneLine, nullptr, "Display diagnostics as a single line.");
-    addArg("all", "--diag-id", "-eid", CommandLineType::Bool, &cmdLine_->errorId, nullptr, "Show diagnostic identifiers.");
+    addArg("all", "--syntax-color", "-sc", CommandLineType::Bool, &cmdLine_->syntaxColor, nullptr, "Syntax color output code.");
+    addArg("all", "--syntax-color-lum", nullptr, CommandLineType::Int, &cmdLine_->syntaxColorLum, nullptr, "Syntax color luminosity factor [0-100].");
+    addArg("all", "--diag-absolute", "-da", CommandLineType::Bool, &cmdLine_->diagAbsolute, nullptr, "Show absolute file paths in diagnostic messages.");
+    addArg("all", "--diag-one-line", "-dl", CommandLineType::Bool, &cmdLine_->diagOneLine, nullptr, "Display diagnostics as a single line.");
+    addArg("all", "--diag-id", "-did", CommandLineType::Bool, &cmdLine_->errorId, nullptr, "Show diagnostic identifiers.");
     addArg("all", "--verify", "-v", CommandLineType::Bool, &cmdLine_->verify, nullptr, "Verify special test annotations or comments.");
     addArg("all", "--verbose-errors", "-ve", CommandLineType::Bool, &cmdLine_->verboseErrors, nullptr, "Log raised errors during tests.");
     addArg("all", "--verbose-errors-filter", "-vef", CommandLineType::String, &cmdLine_->verboseErrorsFilter, nullptr, "Filter verbose error logs by matching a specific string.");

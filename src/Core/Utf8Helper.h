@@ -6,7 +6,8 @@ class Context;
 
 namespace Utf8Helper
 {
-    std::tuple<const uint8_t*, uint32_t, uint32_t> decodeOneChar(const uint8_t* p, const uint8_t* end);
+    std::tuple<const uint8_t*, uint32_t, uint32_t> decodeOneChar(const uint8_t* cur, const uint8_t* end);
+    const uint8_t*                                 decodeOneChar(const uint8_t* cur, const uint8_t* end, uint32_t& c, uint32_t& offset);
     uint32_t                                       countChars(std::string_view str);
     Utf8                                           substrChars(std::string_view s, uint32_t charStart, uint32_t charEnd);
 

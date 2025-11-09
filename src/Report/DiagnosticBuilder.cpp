@@ -6,6 +6,7 @@
 #include "Main/CommandLine.h"
 #include "Main/Context.h"
 #include "Main/Global.h"
+#include "Parser/SyntaxColor.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticElement.h"
 #include "Report/LogColor.h"
@@ -221,9 +222,9 @@ Utf8 DiagnosticBuilder::partStyle(DiagPart p, DiagnosticSeverity sev) const
 
 void DiagnosticBuilder::writeHighlightedMessage(DiagnosticSeverity sev, std::string_view msg, const Utf8& reset)
 {
-    const Utf8  qColor  = partStyle(DiagPart::QuoteText, sev);
-    bool        inQuote = false;
-    std::string quotedBuf;
+    const Utf8 qColor  = partStyle(DiagPart::QuoteText, sev);
+    bool       inQuote = false;
+    Utf8       quotedBuf;
     quotedBuf.reserve(32);
 
     out_ += reset;
@@ -347,7 +348,7 @@ void DiagnosticBuilder::writeCodeLine(uint32_t lineNo, std::string_view startEll
     }
 
     out_ += partStyle(DiagPart::CodeText);
-    out_ += code;
+    out_ += SyntaxColorHelper::colorize(*ctx_, SyntaxColorMode::ForLog, code);
     out_ += partStyle(DiagPart::Reset);
 
     if (!endEllipsis.empty())
@@ -529,7 +530,6 @@ void DiagnosticBuilder::writeCodeTrunc(const DiagnosticElement&  elToUse,
             addSuffix = (windowEnd < currentFullCharCount);
         }
     }
-    // ---- END NEW ----
 
     const Utf8 codeSlice = currentFullCodeLine.substr(windowStart, windowEnd - windowStart);
     writeCodeLine(loc.line, addPrefix ? ellipsis : "", codeSlice, addSuffix ? ellipsis : "");

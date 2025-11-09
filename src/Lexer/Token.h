@@ -16,6 +16,7 @@ enum class TokenIdFlagsE : uint32_t
     Type         = 1 << 5,
     Literal      = 1 << 6,
     Modifier     = 1 << 7,
+    Reserved     = 1 << 8,
     ReservedWord = Keyword | Compiler | Intrinsic | Type | Modifier,
 };
 using TokenIdFlags = EnumFlags<TokenIdFlagsE>;
@@ -73,6 +74,8 @@ struct Token
     static std::string_view toAFamily(TokenId tknId);
     static TokenId          toRelated(TokenId tkn);
 
+    bool startsLine() const { return flags.has(TokenFlagsE::EolBefore); }
+
     bool isSymbol() const { return toFlags(id).has(TokenIdFlagsE::Symbol); }
     bool isKeyword() const { return toFlags(id).has(TokenIdFlagsE::Keyword); }
     bool isCompiler() const { return toFlags(id).has(TokenIdFlagsE::Compiler); }
@@ -80,7 +83,16 @@ struct Token
     bool isType() const { return toFlags(id).has(TokenIdFlagsE::Type); }
     bool isModifier() const { return toFlags(id).has(TokenIdFlagsE::Modifier); }
     bool isReservedWord() const { return toFlags(id).has(TokenIdFlagsE::ReservedWord); }
-    bool startsLine() const { return flags.has(TokenFlagsE::EolBefore); }
+    bool isReserved() const { return toFlags(id).has(TokenIdFlagsE::Reserved); }
+
+    static bool isSymbol(TokenId id) { return toFlags(id).has(TokenIdFlagsE::Symbol); }
+    static bool isKeyword(TokenId id) { return toFlags(id).has(TokenIdFlagsE::Keyword); }
+    static bool isCompiler(TokenId id) { return toFlags(id).has(TokenIdFlagsE::Compiler); }
+    static bool isIntrinsic(TokenId id) { return toFlags(id).has(TokenIdFlagsE::Intrinsic); }
+    static bool isType(TokenId id) { return toFlags(id).has(TokenIdFlagsE::Type); }
+    static bool isModifier(TokenId id) { return toFlags(id).has(TokenIdFlagsE::Modifier); }
+    static bool isReservedWord(TokenId id) { return toFlags(id).has(TokenIdFlagsE::ReservedWord); }
+    static bool isReserved(TokenId id) { return toFlags(id).has(TokenIdFlagsE::Reserved); }
 };
 
 SWC_END_NAMESPACE()

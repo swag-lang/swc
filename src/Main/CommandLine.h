@@ -16,6 +16,7 @@ struct CommandLine
 
     bool logColor      = true;
     bool logAscii      = false;
+    bool syntaxColor   = true;
     bool diagAbsolute  = false;
     bool diagOneLine   = false;
     bool errorId       = false;
@@ -30,9 +31,10 @@ struct CommandLine
     uint32_t randSeed  = 0;
 #endif
 
-    uint32_t numCores      = 0;
-    uint32_t tabSize       = 4;
-    uint32_t diagMaxColumn = 120;
+    uint32_t syntaxColorLum = 0;
+    uint32_t numCores       = 0;
+    uint32_t tabSize        = 4;
+    uint32_t diagMaxColumn  = 120;
 
     Utf8           verboseErrorsFilter;
     std::set<Utf8> fileFilter;

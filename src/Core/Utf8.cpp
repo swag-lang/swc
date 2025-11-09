@@ -98,4 +98,41 @@ void Utf8::replaceOutsideQuotes(std::string_view from, std::string_view to, bool
     *this = next;
 }
 
+void Utf8::appendUni(uint32_t cp)
+{
+    // Replace invalid values (surrogates or > U+10FFFF) with U+FFFD
+    if ((cp >= 0xD800 && cp <= 0xDFFF) || cp > 0x10FFFF)
+    {
+        // U+FFFD in UTF-8
+        this->append("\xEF\xBF\xBD");
+        return;
+    }
+
+    // Reserve up to 4 extra bytes (max UTF-8 length)
+    this->reserve(this->size() + 4);
+
+    if (cp <= 0x7F)
+    {
+        this->push_back(static_cast<char>(cp));
+    }
+    else if (cp <= 0x7FF)
+    {
+        this->push_back(static_cast<char>(0xC0 | (cp >> 6)));
+        this->push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+    }
+    else if (cp <= 0xFFFF)
+    {
+        this->push_back(static_cast<char>(0xE0 | (cp >> 12)));
+        this->push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+        this->push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+    }
+    else
+    {
+        this->push_back(static_cast<char>(0xF0 | (cp >> 18)));
+        this->push_back(static_cast<char>(0x80 | ((cp >> 12) & 0x3F)));
+        this->push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+        this->push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+    }
+}
+
 SWC_END_NAMESPACE()

@@ -152,7 +152,7 @@ SWC_TOKEN_DEF(KwdConst, "const",  Keyword)
 SWC_TOKEN_DEF(KwdMoveRef, "moveref",  Keyword)
 
 // Reserved
-SWC_TOKEN_DEF(KwdNot, "not",  Keyword)
+SWC_TOKEN_DEF(KwdNot, "not",  Reserved)
 
 // Compiler directives
 SWC_TOKEN_DEF(CompilerGlobal, "#global",  Compiler)

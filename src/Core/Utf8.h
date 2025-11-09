@@ -66,6 +66,13 @@ public:
         return {data(), size()};
     }
 
+    void operator+=(const Utf8& txt) { this->append(txt); }
+    void operator+=(const char* txt) { this->append(txt); }
+    void operator+=(uint32_t c) { appendUni(c); }
+    void operator+=(uint8_t c) { appendUni(c); }
+    void operator+=(char c) { this->push_back(c); }
+    void appendUni(uint32_t cp);
+
     void trimStart();
     void trimEnd();
     void trim();

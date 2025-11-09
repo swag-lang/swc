@@ -88,7 +88,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         return parseInternalCallBinary(AstNodeId::IntrinsicCallBinary);
 
     case TokenId::IntrinsicMakeInterface:
-    case TokenId::CompilerGetTag:        
+    case TokenId::CompilerGetTag:
         return parseInternalCallTernary(AstNodeId::IntrinsicCallTernary);
 
     case TokenId::NumberInteger:
@@ -295,7 +295,7 @@ AstModifierFlags Parser::parseModifiers()
             break;
         case TokenId::Identifier:
         {
-            const auto name = tok().toString(*file_);
+            const auto name = tok().string(*file_);
             if (name[0] == '#')
             {
                 raiseError(DiagnosticId::parser_err_invalid_modifier, ref());
@@ -314,7 +314,7 @@ AstModifierFlags Parser::parseModifiers()
         if (result.has(toSet))
         {
             auto       diag = reportError(DiagnosticId::parser_err_duplicated_modifier, ref());
-            const auto loc  = file_->lexOut().token(done[toSet]).toLocation(*ctx_, *file_);
+            const auto loc  = file_->lexOut().token(done[toSet]).location(*ctx_, *file_);
             diag.last().addSpan(loc, DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
             diag.report(*ctx_);
         }

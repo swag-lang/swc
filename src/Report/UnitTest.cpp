@@ -157,7 +157,7 @@ Result UnitTest::tokenize(const Context& ctx)
     // Parse all comments to find a verify directive
     for (const auto& trivia : file_->lexOut().trivia())
     {
-        const std::string_view comment = trivia.token.toString(*file_);
+        const std::string_view comment = trivia.token.string(*file_);
         tokenizeExpected(ctx, trivia, comment);
         tokenizeOption(ctx, comment);
     }

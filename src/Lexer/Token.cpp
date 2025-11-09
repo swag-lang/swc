@@ -6,7 +6,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-std::string_view Token::toString(const SourceFile& file) const
+std::string_view Token::string(const SourceFile& file) const
 {
     auto start = reinterpret_cast<const char*>(file.content().data());
 
@@ -21,7 +21,7 @@ std::string_view Token::toString(const SourceFile& file) const
     return {start + byteStart, static_cast<size_t>(byteLength)};
 }
 
-SourceCodeLocation Token::toLocation(const Context& ctx, const SourceFile& file) const
+SourceCodeLocation Token::location(const Context& ctx, const SourceFile& file) const
 {
     SourceCodeLocation loc;
     uint32_t           offset;
@@ -57,6 +57,8 @@ std::string_view Token::toFamily(TokenId tknId)
         return "intrinsic";
     if (infos.flags.has(TokenIdFlagsE::Modifier))
         return "modifier";
+    if (infos.flags.has(TokenIdFlagsE::Literal))
+        return "literal";
 
     return "token";
 }
@@ -80,6 +82,8 @@ std::string_view Token::toAFamily(TokenId tknId)
         return "an intrinsic";
     if (infos.flags.has(TokenIdFlagsE::Modifier))
         return "a modifier";
+    if (infos.flags.has(TokenIdFlagsE::Literal))
+        return "a literal";
 
     return "a token";
 }

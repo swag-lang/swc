@@ -167,7 +167,7 @@ void Parser::finalizeCompound(AstNodeId blockNodeId, TokenRef openTokRef, TokenR
         {
             const auto diag     = reportError(DiagnosticId::parser_err_empty_attribute, openTokRef);
             const auto tokenEnd = file_->lexOut().token(closeTokenRef);
-            diag.last().addSpan(tokenEnd.toLocation(*ctx_, *file_), "");
+            diag.last().addSpan(tokenEnd.location(*ctx_, *file_), "");
             diag.report(*ctx_);
             break;
         }
@@ -175,7 +175,7 @@ void Parser::finalizeCompound(AstNodeId blockNodeId, TokenRef openTokRef, TokenR
         {
             const auto diag     = reportError(DiagnosticId::parser_err_empty_enum, openTokRef);
             const auto tokenEnd = file_->lexOut().token(closeTokenRef);
-            diag.last().addSpan(tokenEnd.toLocation(*ctx_, *file_), "");
+            diag.last().addSpan(tokenEnd.location(*ctx_, *file_), "");
             diag.report(*ctx_);
             break;
         }

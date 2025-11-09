@@ -7,11 +7,53 @@
 
 SWC_BEGIN_NAMESPACE()
 
+Utf8 Parser::tokenErrorString(TokenRef tokenRef) const
+{
+    constexpr size_t MAX_TOKEN_STR_LEN = 40;
+    const auto&      token             = file_->lexOut().token(tokenRef);
+    Utf8             str               = token.string(*file_);
+
+    if (token.hasFlag(TokenFlagsE::EolInside))
+    {
+        const auto pos = str.find_first_of("\n\r");
+        if (pos != Utf8::npos)
+        {
+            str = str.substr(0, std::min(pos, static_cast<size_t>(MAX_TOKEN_STR_LEN)));
+            str += " ...";
+            return str;
+        }
+    }
+
+    if (str.length() > MAX_TOKEN_STR_LEN)
+    {
+        str = str.substr(0, MAX_TOKEN_STR_LEN);
+        str += " ...";
+    }
+
+    return str;
+}
+
+SourceCodeLocation Parser::tokenErrorLocation(TokenRef tokenRef) const
+{
+    const auto& token = file_->lexOut().token(tokenRef);
+    auto        loc   = token.location(*ctx_, *file_);
+
+    if (token.hasFlag(TokenFlagsE::EolInside))
+    {
+        const auto str = token.string(*file_);
+        const auto pos = str.find_first_of("\n\r");
+        if (pos != Utf8::npos)
+            loc.len = static_cast<uint32_t>(pos);
+    }
+
+    return loc;
+}
+
 void Parser::setReportArguments(Diagnostic& diag, TokenRef tokenRef) const
 {
     const auto& token = file_->lexOut().token(tokenRef);
 
-    diag.addArgument(Diagnostic::ARG_TOK, token.toString(*file_));
+    diag.addArgument(Diagnostic::ARG_TOK, tokenErrorString(tokenRef));
     diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id), false);
     diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Token::toAFamily(token.id), false);
 
@@ -19,7 +61,7 @@ void Parser::setReportArguments(Diagnostic& diag, TokenRef tokenRef) const
     if (tokenRef != 0)
     {
         const auto& tokenPrev = file_->lexOut().token(tokenRef - 1);
-        diag.addArgument(Diagnostic::ARG_PREV_TOK, tokenPrev.toString(*file_));
+        diag.addArgument(Diagnostic::ARG_PREV_TOK, tokenErrorString(tokenRef - 1));
         diag.addArgument(Diagnostic::ARG_PREV_TOK_FAM, Token::toFamily(tokenPrev.id), false);
         diag.addArgument(Diagnostic::ARG_PREV_A_TOK_FAM, Token::toAFamily(tokenPrev.id), false);
     }
@@ -27,7 +69,7 @@ void Parser::setReportArguments(Diagnostic& diag, TokenRef tokenRef) const
     if (tokenRef < file_->lexOut().tokens().size() - 1)
     {
         const auto& tokenNext = file_->lexOut().token(tokenRef + 1);
-        diag.addArgument(Diagnostic::ARG_NEXT_TOK, tokenNext.toString(*file_));
+        diag.addArgument(Diagnostic::ARG_NEXT_TOK, tokenErrorString(tokenRef + 1));
         diag.addArgument(Diagnostic::ARG_NEXT_TOK_FAM, Token::toFamily(tokenNext.id), false);
         diag.addArgument(Diagnostic::ARG_NEXT_A_TOK_FAM, Token::toAFamily(tokenNext.id), false);
     }
@@ -42,10 +84,9 @@ void Parser::setReportExpected(Diagnostic& diag, TokenId expectedTknId)
 
 Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
 {
-    auto       diag  = Diagnostic::get(id, file_);
-    const auto token = file_->lexOut().token(tknRef);
+    auto diag = Diagnostic::get(id, file_);
     setReportArguments(diag, tknRef);
-    diag.last().addSpan(token.toLocation(*ctx_, *file_), "");
+    diag.last().addSpan(tokenErrorLocation(tknRef), "");
 
     if (tknRef == lastErrorToken_)
         diag.setSilent(true);
@@ -222,7 +263,7 @@ TokenRef Parser::expectAndConsumeClosingFor(TokenId openId, TokenRef openRef)
     setReportExpected(diag, closingId);
 
     if (tok.id == openId)
-        diag.last().addSpan(tok.toLocation(*ctx_, *file_), DiagnosticId::parser_note_opening, DiagnosticSeverity::Note);
+        diag.last().addSpan(tokenErrorLocation(openRef), DiagnosticId::parser_note_opening, DiagnosticSeverity::Note);
 
     diag.report(*ctx_);
 
@@ -239,7 +280,7 @@ void Parser::expectEndStatement()
         return;
 
     const auto diag = reportError(DiagnosticId::parser_err_expected_eol, ref() - 1);
-    auto       loc  = curToken_[-1].toLocation(*ctx_, *file_);
+    auto       loc  = curToken_[-1].location(*ctx_, *file_);
     loc.column += loc.len;
     loc.offset += loc.len;
     loc.len = 1;

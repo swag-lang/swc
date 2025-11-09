@@ -133,11 +133,13 @@ class Parser
     bool skipAfter(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlagsE::Zero);
     bool skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags);
 
-    void        setReportArguments(Diagnostic& diag, TokenRef tokenRef) const;
-    static void setReportExpected(Diagnostic& diag, TokenId expectedTknId);
-    Diagnostic  reportError(DiagnosticId id, TokenRef tknRef);
-    void        raiseError(DiagnosticId id, TokenRef tknRef);
-    void        raiseExpected(DiagnosticId id, TokenRef tknRef, TokenId tknExpected);
+    Utf8               tokenErrorString(TokenRef tokenRef) const;
+    SourceCodeLocation tokenErrorLocation(TokenRef tokenRef) const;
+    void               setReportArguments(Diagnostic& diag, TokenRef tokenRef) const;
+    static void        setReportExpected(Diagnostic& diag, TokenId expectedTknId);
+    Diagnostic         reportError(DiagnosticId id, TokenRef tknRef);
+    void               raiseError(DiagnosticId id, TokenRef tknRef);
+    void               raiseExpected(DiagnosticId id, TokenRef tknRef, TokenId tknExpected);
 
 public:
     Result parse(Context& ctx);

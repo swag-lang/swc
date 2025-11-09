@@ -124,7 +124,7 @@ void Lexer::pushToken()
         auto& back = lexOut_->tokens_.back();
         if (tokenId == TokenId::Whitespace)
             back.flags.add(TokenFlagsE::BlankAfter);
-        if (token_.flags.has(TokenFlagsE::EolInside))
+        if (token_.hasFlag(TokenFlagsE::EolInside))
             back.flags.add(TokenFlagsE::EolAfter);
     }
 

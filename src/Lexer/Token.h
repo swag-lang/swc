@@ -62,8 +62,11 @@ struct Token
     TokenId    id    = TokenId::Invalid;
     TokenFlags flags = TokenFlagsE::Zero;
 
-    std::string_view        toString(const SourceFile& file) const;
-    SourceCodeLocation      toLocation(const Context& ctx, const SourceFile& file) const;
+    std::string_view   string(const SourceFile& file) const;
+    SourceCodeLocation location(const Context& ctx, const SourceFile& file) const;
+    bool               hasFlag(TokenFlags flag) const { return flags.has(flag); }
+    bool               hasNotFlag(TokenFlags flag) const { return !flags.has(flag); }
+
     static TokenIdFlags     toFlags(TokenId tkn) { return TOKEN_ID_INFOS[static_cast<size_t>(tkn)].flags; }
     static std::string_view toName(TokenId tknId);
     static std::string_view toFamily(TokenId tknId);

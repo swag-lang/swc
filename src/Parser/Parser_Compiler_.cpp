@@ -104,4 +104,22 @@ AstNodeRef Parser::parseCompilerDependencies()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseCompilerTypeOf()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstInternalCallUnaryBase>(AstNodeId::CompilerCallUnary);
+    nodePtr->tokName        = consume();
+
+    const auto openRef = ref();
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
+
+    if (isAny(TokenId::KwdFunc, TokenId::KwdMtd))
+        nodePtr->nodeArg1 = parseType();
+    else
+        nodePtr->nodeArg1 = parseExpression();
+
+    expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
+
+    return nodeRef;
+}
+
 SWC_END_NAMESPACE()

@@ -390,10 +390,12 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::CompilerUp:
         return parseAncestorIdentifier();
 
+    case TokenId::CompilerTypeOf:
+        return parseCompilerTypeOf();
+
     case TokenId::CompilerSizeOf:
     case TokenId::CompilerAlignOf:
     case TokenId::CompilerOffsetOf:
-    case TokenId::CompilerTypeOf:
     case TokenId::CompilerDeclType:
     case TokenId::CompilerStringOf:
     case TokenId::CompilerNameOf:

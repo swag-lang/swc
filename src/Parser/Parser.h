@@ -95,6 +95,7 @@ class Parser
     AstNodeRef parseDeRef();
     AstNodeRef parseClosureCaptureValue();
     AstNodeRef parseCompilerDependencies();
+    AstNodeRef parseCompilerTypeOf();
     AstNodeRef parseCompilerExpr();
     AstNodeRef parseCompilerFunc();
     AstNodeRef parseCompilerTypeExpr();

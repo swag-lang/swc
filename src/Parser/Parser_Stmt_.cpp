@@ -111,6 +111,9 @@ AstNodeRef Parser::parseEmbeddedStmt()
     case TokenId::SymAttrStart:
         return parseCompilerAttribute(AstNodeId::EmbeddedBlock);
 
+    case TokenId::KwdConst:
+        return parseVarDecl();
+
     default:
     {
         // @skip

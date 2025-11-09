@@ -403,6 +403,7 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::CompilerInclude:
     case TokenId::CompilerSafety:
     case TokenId::CompilerHasTag:
+    case TokenId::CompilerInject:
         return parseInternalCallUnary(AstNodeId::CompilerCallUnary);
 
     case TokenId::CompilerRun:
@@ -534,7 +535,10 @@ AstNodeRef Parser::parsePrimaryExpression()
 
     case TokenId::SymLeftCurly:
         return parseLiteralStruct();
+
     case TokenId::SymLeftBracket:
+        if (nextIs(TokenId::SymDotDot) || nextIs(TokenId::SymQuestion) || nextIs(TokenId::SymAsterisk))
+            return parseType();
         return parseLiteralArray();
 
     case TokenId::TypeAny:
@@ -569,7 +573,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         return parseLambdaExpression();
 
     case TokenId::CompilerType:
-        return parseCompilerType();
+        return parseCompilerTypeExpr();
 
     default:
         raiseError(DiagnosticId::parser_err_unexpected_token, ref());

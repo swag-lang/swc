@@ -68,6 +68,7 @@ SWC_NODE_DEF(CompilerEmbeddedFunc)
 SWC_NODE_DEF(CompilerExpr)
 SWC_NODE_DEF(CompilerPrint)
 SWC_NODE_DEF(CompilerCallUnary)
+SWC_NODE_DEF(CompilerTypeExpr)
 
 // Intrinsics
 SWC_NODE_DEF(IntrinsicCallZero)
@@ -87,7 +88,6 @@ SWC_NODE_DEF(NamedType)
 SWC_NODE_DEF(PointerType)
 SWC_NODE_DEF(QualifiedType)
 SWC_NODE_DEF(SliceType)
-SWC_NODE_DEF(CompilerType)
 SWC_NODE_DEF(LambdaType)
 SWC_NODE_DEF(RetValType)
 

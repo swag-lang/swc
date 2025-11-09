@@ -101,7 +101,11 @@ AstNodeRef Parser::parseEmbeddedStmt()
     case TokenId::KwdStruct:
         return parseStructDecl();
 
+    case TokenId::IntrinsicBcBreakpoint:
+        return parseInternalCallZero(AstNodeId::IntrinsicCallZero);
+
     case TokenId::IntrinsicPrint:
+    case TokenId::IntrinsicAssert:
         return parseInternalCallUnary(AstNodeId::IntrinsicCallUnary);
 
     case TokenId::SymAttrStart:

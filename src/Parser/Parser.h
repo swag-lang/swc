@@ -97,7 +97,7 @@ class Parser
     AstNodeRef parseCompilerDependencies();
     AstNodeRef parseCompilerExpr();
     AstNodeRef parseCompilerFunc();
-    AstNodeRef parseCompilerType();
+    AstNodeRef parseCompilerTypeExpr();
     AstNodeRef parseConstraint();
     AstNodeRef parseEmbeddedStmt();
     AstNodeRef parseEnumDecl();

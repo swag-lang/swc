@@ -43,9 +43,9 @@ AstNodeRef Parser::parseCompilerExpr()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseCompilerType()
+AstNodeRef Parser::parseCompilerTypeExpr()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerType>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerTypeExpr>();
     consume();
     nodePtr->nodeType = parseType();
     return nodeRef;
@@ -103,4 +103,5 @@ AstNodeRef Parser::parseCompilerDependencies()
     nodePtr->nodeBody = parseCompound(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     return nodeRef;
 }
+
 SWC_END_NAMESPACE()

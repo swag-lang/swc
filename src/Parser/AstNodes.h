@@ -932,10 +932,10 @@ struct AstBuiltinType : AstNode
     TokenRef tokType;
 };
 
-struct AstCompilerType : AstNode
+struct AstCompilerTypeExpr : AstNode
 {
-    static constexpr auto ID = AstNodeId::CompilerType;
-    AstCompilerType() :
+    static constexpr auto ID = AstNodeId::CompilerTypeExpr;
+    AstCompilerTypeExpr() :
         AstNode(ID)
     {
     }

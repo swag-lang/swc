@@ -278,6 +278,22 @@ struct AstAttrDecl : AstNode
     AstNodeRef nodeParams;
 };
 
+struct AstFuncParamMe : AstNode
+{
+    static constexpr auto ID = AstNodeId::FuncParamMe;
+    AstFuncParamMe() :
+        AstNode(ID)
+    {
+    }
+
+    enum class FlagsE : Flags
+    {
+        Zero  = 0,
+        Const = 1 << 0,
+    };
+    using Flags = EnumFlags<FlagsE>;
+};
+
 struct AstFunctionBody : AstCompound
 {
     static constexpr auto ID = AstNodeId::FunctionBody;
@@ -327,6 +343,15 @@ struct AstLambdaTypeParamList : AstCompound
 {
     static constexpr auto ID = AstNodeId::LambdaTypeParamList;
     AstLambdaTypeParamList() :
+        AstCompound(ID)
+    {
+    }
+};
+
+struct AstFunctionParamList : AstCompound
+{
+    static constexpr auto ID = AstNodeId::FunctionParamList;
+    AstFunctionParamList() :
         AstCompound(ID)
     {
     }
@@ -1085,6 +1110,37 @@ struct AstRetValType : AstNode
     }
 };
 
+struct AstCodeType : AstNode
+{
+    static constexpr auto ID = AstNodeId::CodeType;
+    AstCodeType() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeType;
+};
+
+struct AstVariadicType : AstNode
+{
+    static constexpr auto ID = AstNodeId::VariadicType;
+    AstVariadicType() :
+        AstNode(ID)
+    {
+    }
+};
+
+struct AstTypedVariadicType : AstNode
+{
+    static constexpr auto ID = AstNodeId::TypedVariadicType;
+    AstTypedVariadicType() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeType;
+};
+
 struct AstCompilerIf : AstCompound
 {
     static constexpr auto ID = AstNodeId::CompilerIf;
@@ -1311,7 +1367,7 @@ struct AstVarDecl : AstNode
     {
     }
 
-    enum class FlagsE : AstNode::Flags
+    enum class FlagsE : Flags
     {
         Zero  = 0,
         Var   = 1 << 0,

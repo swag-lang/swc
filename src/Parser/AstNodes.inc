@@ -92,6 +92,9 @@ SWC_NODE_DEF(QualifiedType)
 SWC_NODE_DEF(SliceType)
 SWC_NODE_DEF(LambdaType)
 SWC_NODE_DEF(RetValType)
+SWC_NODE_DEF(CodeType)
+SWC_NODE_DEF(VariadicType)
+SWC_NODE_DEF(TypedVariadicType)
 
 // Structs
 SWC_NODE_DEF(AggregateBody)
@@ -119,10 +122,12 @@ SWC_NODE_DEF(VariadicParam)
 SWC_NODE_DEF(TypedVariadicParam)
 SWC_NODE_DEF(LambdaTypeParam)
 SWC_NODE_DEF(LambdaTypeParamList)
+SWC_NODE_DEF(FunctionParamList)
 SWC_NODE_DEF(ClosureCapture)
 SWC_NODE_DEF(ClosureCaptureList)
 SWC_NODE_DEF(FunctionExpr)
 SWC_NODE_DEF(ClosureExpr)
+SWC_NODE_DEF(FuncParamMe)
 
 // Parameters / Arguments
 SWC_NODE_DEF(NamedArgList)

@@ -70,7 +70,10 @@ struct AstNode
     template<typename T>
     void addFlag(T val)
     {
-        flags_ |= val.flags;
+        if constexpr (std::is_enum_v<T>)
+            flags_ |= static_cast<std::underlying_type_t<T>>(val);
+        else
+            flags_ |= val.flags;
     }
 
 private:

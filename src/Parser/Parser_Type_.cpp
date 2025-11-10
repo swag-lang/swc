@@ -80,13 +80,9 @@ AstNodeRef Parser::parseSingleType()
     return INVALID_REF;
 }
 
-AstNodeRef Parser::parseType()
+AstNodeRef Parser::parseSubType()
 {
-    // retval
-    if (is(TokenId::KwdRetVal))
-        return parseRetValType();
-
-    // Const
+    // Modifiers
     if (isAny(TokenId::KwdConst, TokenId::ModifierNullable))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::QualifiedType>();
@@ -212,6 +208,40 @@ AstNodeRef Parser::parseType()
     }
 
     return parseSingleType();
+}
+
+AstNodeRef Parser::parseType()
+{
+    // 'retval'
+    if (is(TokenId::KwdRetVal))
+        return parseRetValType();
+
+    // '#code'
+    if (consumeIf(TokenId::CompilerCode) != INVALID_REF)
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CodeType>();
+        nodePtr->nodeType       = parseSubType();
+        return nodeRef;
+    }
+
+    // '...'
+    if (consumeIf(TokenId::SymDotDotDot) != INVALID_REF)
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VariadicType>();
+        return nodeRef;
+    }
+
+    const auto nodeSubType = parseSubType();
+
+    // 'type...'
+    if (consumeIf(TokenId::SymDotDotDot) != INVALID_REF)
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TypedVariadicType>();
+        nodePtr->nodeType       = nodeSubType;
+        return nodeRef;
+    }
+
+    return nodeSubType;
 }
 
 SWC_END_NAMESPACE()

@@ -198,9 +198,8 @@ AstNodeRef Parser::parseFuncDecl()
     else
         nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
 
-    // @skip
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_fam_before);
-    skipTo({TokenId::SymRightParen}, SkipUntilFlagsE::Consume);
+    // Parameters
+    nodePtr->nodeParams = parseFunctionParamList();
 
     // Return type
     if (consumeIf(TokenId::SymMinusGreater) != INVALID_REF)
@@ -241,14 +240,34 @@ AstNodeRef Parser::parseAttrDecl()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AttrDecl>();
     consume();
-    nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
-
-    // @skip
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_fam_before);
-    skipTo({TokenId::SymRightParen}, SkipUntilFlagsE::Consume);
-
+    nodePtr->tokName    = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+    nodePtr->nodeParams = parseFunctionParamList();
     expectEndStatement();
     return nodeRef;
+}
+
+AstNodeRef Parser::parseFunctionParam()
+{
+    if (consumeIf(TokenId::KwdConst) != INVALID_REF)
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FuncParamMe>();
+        nodePtr->addFlag(AstFuncParamMe::FlagsE::Const);
+        expectAndConsume(TokenId::KwdMe, DiagnosticId::parser_err_expected_token_before);
+        return nodeRef;
+    }
+
+    if (consumeIf(TokenId::KwdMe) != INVALID_REF)
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FuncParamMe>();
+        return nodeRef;
+    }
+
+    return parseVarDecl();
+}
+
+AstNodeRef Parser::parseFunctionParamList()
+{
+    return parseCompound(AstNodeId::FunctionParamList, TokenId::SymLeftParen);
 }
 
 SWC_END_NAMESPACE()

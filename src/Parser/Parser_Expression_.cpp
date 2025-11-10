@@ -54,17 +54,6 @@ AstModifierFlags Parser::parseModifiers()
         case TokenId::ModifierNullable:
             toSet = AstModifierFlagsE::Nullable;
             break;
-        case TokenId::Identifier:
-        {
-            const auto name = tok().string(*file_);
-            if (name[0] == '#')
-            {
-                raiseError(DiagnosticId::parser_err_invalid_modifier, ref());
-                consume();
-                continue;
-            }
-            break;
-        }
         default:
             break;
         }
@@ -636,10 +625,14 @@ AstNodeRef Parser::parseRelationalExpr()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseUnaryExpr()
+AstNodeRef Parser::parsePrefixExpr()
 {
     switch (id())
     {
+    case TokenId::KwdCast:
+        return parseCast();
+    case TokenId::KwdDRef:
+        return parseDeRef();        
     case TokenId::SymPlus:
     case TokenId::SymMinus:
     case TokenId::SymExclamation:
@@ -648,25 +641,12 @@ AstNodeRef Parser::parseUnaryExpr()
     {
         const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpr>();
         nodePtr->tokOp                  = consume();
-        nodePtr->nodeExpr               = parsePostFixExpression();
+        nodePtr->nodeExpr               = parseExpression();
         return nodeParen;
     }
 
     default:
         return parsePostFixExpression();
-    }
-}
-
-AstNodeRef Parser::parsePrefixExpr()
-{
-    switch (id())
-    {
-    case TokenId::KwdCast:
-        return parseCast();
-    case TokenId::KwdDRef:
-        return parseDeRef();
-    default:
-        return parseUnaryExpr();
     }
 }
 

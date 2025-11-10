@@ -66,7 +66,6 @@ AstNodeRef Parser::parseTopLevelStmt()
     case TokenId::CompilerForeignLib:
         return parseInternalCallUnary(AstNodeId::CompilerCallUnary);
 
-    case TokenId::CompilerImport:
     case TokenId::KwdFunc:
     case TokenId::KwdMtd:
         // @skip
@@ -75,6 +74,9 @@ AstNodeRef Parser::parseTopLevelStmt()
 
     case TokenId::KwdAlias:
         return parseAlias();
+
+    case TokenId::CompilerImport:
+        return parseCompilerImport();
 
     case TokenId::CompilerGlobal:
         return parseCompilerGlobal();

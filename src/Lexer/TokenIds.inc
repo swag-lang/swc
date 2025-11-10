@@ -31,6 +31,8 @@ SWC_TOKEN_DEF(KwdSkip, "skip",  Zero)
 SWC_TOKEN_DEF(KwdSkipFmt, "skipfmt",  Zero)
 SWC_TOKEN_DEF(KwdExport, "export",  Zero)
 SWC_TOKEN_DEF(KwdGenerated, "generated",  Zero)
+SWC_TOKEN_DEF(KwdLocation, "location",  Zero)
+SWC_TOKEN_DEF(KwdVersion, "version",  Zero)
 
 // SYMBOLS
 

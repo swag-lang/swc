@@ -158,6 +158,19 @@ struct AstCompilerGlobal : AstNode
     AstNodeRef nodeMode;
 };
 
+struct AstCompilerImport : AstNode
+{
+    static constexpr auto ID = AstNodeId::CompilerImport;
+    AstCompilerImport() :
+        AstNode(ID)
+    {
+    }
+
+    TokenRef tokModuleName;
+    TokenRef tokLocation;
+    TokenRef tokVersion;
+};
+
 struct AstIntrinsicCallZero : AstNode
 {
     static constexpr auto ID = AstNodeId::IntrinsicCallZero;

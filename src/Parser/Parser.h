@@ -97,6 +97,7 @@ class Parser
     AstNodeRef parseCompilerDependencies();
     AstNodeRef parseCompilerTypeOf();
     AstNodeRef parseCompilerGlobal();
+    AstNodeRef parseCompilerImport();
     AstNodeRef parseCompilerExpr();
     AstNodeRef parseCompilerFunc();
     AstNodeRef parseCompilerTypeExpr();

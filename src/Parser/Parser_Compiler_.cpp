@@ -207,4 +207,42 @@ AstNodeRef Parser::parseCompilerGlobal()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseCompilerImport()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerImport>();
+    consume();
+
+    const auto openRef = ref();
+
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
+    nodePtr->tokModuleName = expectAndConsume(TokenId::StringLine, DiagnosticId::parser_err_expected_token_before);
+    nodePtr->tokLocation   = INVALID_REF;
+    nodePtr->tokVersion    = INVALID_REF;
+
+    if (consumeIf(TokenId::SymComma) != INVALID_REF)
+    {
+        auto tokStr = tok().string(*file_);
+        if (tokStr == Token::toName(TokenId::KwdLocation))
+        {
+            consume();
+            expectAndConsume(TokenId::SymColon, DiagnosticId::parser_err_expected_token_before);
+            nodePtr->tokLocation = expectAndConsume(TokenId::StringLine, DiagnosticId::parser_err_expected_token_before);
+            if (consumeIf(TokenId::SymComma) != INVALID_REF)
+            {
+                tokStr = tok().string(*file_);
+                if (tokStr == Token::toName(TokenId::KwdVersion))
+                {
+                    consume();
+                    expectAndConsume(TokenId::SymColon, DiagnosticId::parser_err_expected_token_before);
+                    nodePtr->tokVersion = expectAndConsume(TokenId::StringLine, DiagnosticId::parser_err_expected_token_before);
+                }
+            }
+        }
+    }
+
+    expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
+    expectEndStatement();
+    return nodeRef;
+}
+
 SWC_END_NAMESPACE()

@@ -123,7 +123,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
     case TokenId::KwdLet:
     {
         const AstNodeRef nodeRef = parseVarDecl();
-        // @skip
         expectEndStatement();
         return nodeRef;
     }

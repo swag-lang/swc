@@ -237,4 +237,18 @@ AstNodeRef Parser::parseFuncDecl()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseAttrDecl()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AttrDecl>();
+    consume();
+    nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+
+    // @skip
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_fam_before);
+    skipTo({TokenId::SymRightParen}, SkipUntilFlagsE::Consume);
+
+    expectEndStatement();
+    return nodeRef;
+}
+
 SWC_END_NAMESPACE()

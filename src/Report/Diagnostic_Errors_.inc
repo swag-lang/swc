@@ -68,6 +68,7 @@ SWC_DIAG_DEF(parser_err_var_struct)
 SWC_DIAG_DEF(parser_err_mtd_missing_capture)
 SWC_DIAG_DEF(parser_err_invalid_compiler)
 SWC_DIAG_DEF(parser_err_invalid_intrinsic)
+SWC_DIAG_DEF(parser_err_misplaced_global)
 
 
 

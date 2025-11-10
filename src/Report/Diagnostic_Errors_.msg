@@ -62,5 +62,6 @@ SWC_DIAG_DEF(parser_err_var_struct, Error, "unnecessary 'var' to declare a struc
 SWC_DIAG_DEF(parser_err_mtd_missing_capture, Error, "'mtd' must be followed by capture parameters (e.g. '||')")
 SWC_DIAG_DEF(parser_err_invalid_compiler, Error, "unknown compiler instruction: {tok}")
 SWC_DIAG_DEF(parser_err_invalid_intrinsic, Error, "unknown intrinsic: {tok}")
+SWC_DIAG_DEF(parser_err_misplaced_global, Error, "misplaced '#global' directive; a '#global' directive must be placed at the top of the file")
 
 

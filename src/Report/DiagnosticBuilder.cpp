@@ -686,15 +686,6 @@ void DiagnosticBuilder::expandMessageParts(SmallVector<std::unique_ptr<Diagnosti
         if (parts.empty())
             continue;
 
-        // Span message for the second element
-        if (!element->spans().empty())
-        {
-            element->span(0).message = Utf8(parts[1].text);
-            parts.erase(parts.begin());
-            if (parts.empty())
-                continue;
-        }
-
         // Insert additional parts right after the current element
         auto insertPos = idx + 1;
         for (const auto& p : parts)

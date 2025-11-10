@@ -121,6 +121,7 @@ class Parser
     AstNodeRef parseLambdaType();
     AstNodeRef parseLambdaExpression();
     AstNodeRef parseFuncDecl();
+    AstNodeRef parseAttrDecl();
     AstNodeRef parseLiteral();
     AstNodeRef parseLiteralArray();
     AstNodeRef parseLiteralExpression();

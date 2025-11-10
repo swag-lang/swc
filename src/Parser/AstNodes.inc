@@ -112,6 +112,7 @@ SWC_NODE_DEF(EnumUse)
 
 // Functions
 SWC_NODE_DEF(Call)
+SWC_NODE_DEF(AttrDecl)
 SWC_NODE_DEF(FunctionDecl)
 SWC_NODE_DEF(FunctionBody)
 SWC_NODE_DEF(VariadicParam)

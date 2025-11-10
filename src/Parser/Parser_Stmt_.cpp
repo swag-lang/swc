@@ -70,6 +70,9 @@ AstNodeRef Parser::parseTopLevelStmt()
     case TokenId::KwdMtd:
         return parseFuncDecl();
 
+    case TokenId::KwdAttr:
+        return parseAttrDecl();
+
     case TokenId::KwdAlias:
         return parseAlias();
 
@@ -77,6 +80,7 @@ AstNodeRef Parser::parseTopLevelStmt()
         return parseCompilerImport();
 
     case TokenId::CompilerGlobal:
+        raiseError(DiagnosticId::parser_err_misplaced_global, ref());
         return parseCompilerGlobal();
 
     default:

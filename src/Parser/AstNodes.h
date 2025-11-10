@@ -260,9 +260,22 @@ struct AstFunctionDecl : AstNode
 
     SpanRef    spanGenericParams;
     TokenRef   tokName;
+    AstNodeRef nodeParams;
     AstNodeRef nodeReturnType;
     SpanRef    spanConstraints;
     AstNodeRef nodeBody;
+};
+
+struct AstAttrDecl : AstNode
+{
+    static constexpr auto ID = AstNodeId::AttrDecl;
+    explicit AstAttrDecl() :
+        AstNode(ID)
+    {
+    }
+
+    TokenRef   tokName;
+    AstNodeRef nodeParams;
 };
 
 struct AstFunctionBody : AstCompound

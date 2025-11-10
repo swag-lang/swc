@@ -6,21 +6,21 @@ class Context;
 
 enum class SyntaxColor
 {
-    SyntaxCode,
-    SyntaxComment,
-    SyntaxCompiler,
-    SyntaxFunction,
-    SyntaxConstant,
-    SyntaxIntrinsic,
-    SyntaxType,
-    SyntaxKeyword,
-    SyntaxLogic,
-    SyntaxNumber,
-    SyntaxString,
-    SyntaxAttribute,
-    SyntaxDefault,
-    SyntaxRegister,
-    SyntaxInvalid,
+    Code,
+    Comment,
+    Compiler,
+    Function,
+    Constant,
+    Intrinsic,
+    Type,
+    Keyword,
+    Logic,
+    Number,
+    String,
+    Attribute,
+    Default,
+    Register,
+    Invalid,
 };
 
 static constexpr auto SYN_CODE      = "SCde";

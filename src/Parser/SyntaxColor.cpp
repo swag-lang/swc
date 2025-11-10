@@ -18,47 +18,47 @@ namespace
         RgbColor rgb;
         switch (color)
         {
-        case SyntaxColor::SyntaxCode:
+        case SyntaxColor::Code:
             rgb = {.r = 0xCC, .g = 0xCC, .b = 0xCC};
             break;
-        case SyntaxColor::SyntaxComment:
+        case SyntaxColor::Comment:
             rgb = {.r = 0x6A, .g = 0x99, .b = 0x55};
             break;
-        case SyntaxColor::SyntaxCompiler:
+        case SyntaxColor::Compiler:
             rgb = {.r = 0xAA, .g = 0xAA, .b = 0xAA};
             break;
-        case SyntaxColor::SyntaxFunction:
+        case SyntaxColor::Function:
             rgb = {.r = 0xFF, .g = 0x74, .b = 0x11};
             break;
-        case SyntaxColor::SyntaxConstant:
+        case SyntaxColor::Constant:
             rgb = {.r = 0x4E, .g = 0xC9, .b = 0xB0};
             break;
-        case SyntaxColor::SyntaxIntrinsic:
+        case SyntaxColor::Intrinsic:
             rgb = {.r = 0xdc, .g = 0xdc, .b = 0xaa};
             break;
-        case SyntaxColor::SyntaxType:
+        case SyntaxColor::Type:
             rgb = {.r = 0xf6, .g = 0xcc, .b = 0x86};
             break;
-        case SyntaxColor::SyntaxKeyword:
+        case SyntaxColor::Keyword:
             rgb = {.r = 0x56, .g = 0x9c, .b = 0xd6};
             break;
-        case SyntaxColor::SyntaxLogic:
+        case SyntaxColor::Logic:
             rgb = {.r = 0xd8, .g = 0xa0, .b = 0xdf};
             break;
-        case SyntaxColor::SyntaxNumber:
+        case SyntaxColor::Number:
             rgb = {.r = 0xb5, .g = 0xce, .b = 0xa8};
             break;
-        case SyntaxColor::SyntaxString:
+        case SyntaxColor::String:
             rgb = {.r = 0xce, .g = 0x91, .b = 0x78};
             break;
-        case SyntaxColor::SyntaxAttribute:
+        case SyntaxColor::Attribute:
             rgb = {.r = 0xaa, .g = 0xaa, .b = 0xaa};
             break;
-        case SyntaxColor::SyntaxRegister:
+        case SyntaxColor::Register:
             rgb = {.r = 0xBC, .g = 0xB6, .b = 0x58};
             break;
 
-        case SyntaxColor::SyntaxInvalid:
+        case SyntaxColor::Invalid:
             rgb = {.r = 0xFF, .g = 0x47, .b = 0x47};
             break;
         default:
@@ -81,7 +81,7 @@ namespace
         {
         case SyntaxColorMode::ForLog:
         {
-            if (color == SyntaxColor::SyntaxDefault)
+            if (color == SyntaxColor::Default)
                 return LogColorHelper::toAnsi(ctx, LogColor::Reset);
             const auto rgb = getSyntaxColorRgb(color, ctx.cmdLine().syntaxColorLum);
             return LogColorHelper::colorToAnsi((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF);
@@ -92,48 +92,48 @@ namespace
             const char* colorName = nullptr;
             switch (color)
             {
-            case SyntaxColor::SyntaxDefault:
+            case SyntaxColor::Default:
                 return "</span>";
-            case SyntaxColor::SyntaxCode:
+            case SyntaxColor::Code:
                 colorName = SYN_CODE;
                 break;
-            case SyntaxColor::SyntaxComment:
+            case SyntaxColor::Comment:
                 colorName = SYN_COMMENT;
                 break;
-            case SyntaxColor::SyntaxCompiler:
+            case SyntaxColor::Compiler:
                 colorName = SYN_COMPILER;
                 break;
-            case SyntaxColor::SyntaxFunction:
+            case SyntaxColor::Function:
                 colorName = SYN_FUNCTION;
                 break;
-            case SyntaxColor::SyntaxConstant:
+            case SyntaxColor::Constant:
                 colorName = SYN_CONSTANT;
                 break;
-            case SyntaxColor::SyntaxIntrinsic:
+            case SyntaxColor::Intrinsic:
                 colorName = SYN_INTRINSIC;
                 break;
-            case SyntaxColor::SyntaxType:
+            case SyntaxColor::Type:
                 colorName = SYN_TYPE;
                 break;
-            case SyntaxColor::SyntaxKeyword:
+            case SyntaxColor::Keyword:
                 colorName = SYN_KEYWORD;
                 break;
-            case SyntaxColor::SyntaxLogic:
+            case SyntaxColor::Logic:
                 colorName = SYN_LOGIC;
                 break;
-            case SyntaxColor::SyntaxNumber:
+            case SyntaxColor::Number:
                 colorName = SYN_NUMBER;
                 break;
-            case SyntaxColor::SyntaxRegister:
+            case SyntaxColor::Register:
                 colorName = SYN_REGISTER;
                 break;
-            case SyntaxColor::SyntaxString:
+            case SyntaxColor::String:
                 colorName = SYN_STRING;
                 break;
-            case SyntaxColor::SyntaxAttribute:
+            case SyntaxColor::Attribute:
                 colorName = SYN_ATTRIBUTE;
                 break;
-            case SyntaxColor::SyntaxInvalid:
+            case SyntaxColor::Invalid:
                 colorName = SYN_INVALID;
                 break;
             }
@@ -174,7 +174,7 @@ Utf8 SyntaxColorHelper::colorize(const Context& ctx, SyntaxColorMode mode, const
         // Multi-line comment
         if (multiLineCommentLevel || (c == '/' && (cur < end && cur[0] == '*')))
         {
-            result += syntaxColorToAnsi(ctx, SyntaxColor::SyntaxComment, mode);
+            result += syntaxColorToAnsi(ctx, SyntaxColor::Comment, mode);
 
             result += c;
             if (!multiLineCommentLevel)
@@ -210,26 +210,26 @@ Utf8 SyntaxColorHelper::colorize(const Context& ctx, SyntaxColorMode mode, const
             }
 
             cur = Utf8Helper::decodeOneChar(cur, end, c, offset);
-            result += syntaxColorToAnsi(ctx, SyntaxColor::SyntaxDefault, mode);
+            result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
             continue;
         }
 
         // Line comment
         if (c == '/' && (cur < end && cur[0] == '/'))
         {
-            result += syntaxColorToAnsi(ctx, SyntaxColor::SyntaxComment, mode);
+            result += syntaxColorToAnsi(ctx, SyntaxColor::Comment, mode);
             result += c;
             while (cur < end && !langSpec.isEol(*cur))
                 result += *cur++;
             cur = Utf8Helper::decodeOneChar(cur, end, c, offset);
-            result += syntaxColorToAnsi(ctx, SyntaxColor::SyntaxDefault, mode);
+            result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
             continue;
         }
 
         // Attribute
         if (c == '#' && (cur < end && *cur == '['))
         {
-            result += syntaxColorToAnsi(ctx, SyntaxColor::SyntaxAttribute, mode);
+            result += syntaxColorToAnsi(ctx, SyntaxColor::Attribute, mode);
             result += c;
             result += *cur++;
 
@@ -263,14 +263,14 @@ Utf8 SyntaxColorHelper::colorize(const Context& ctx, SyntaxColorMode mode, const
             }
 
             cur = Utf8Helper::decodeOneChar(cur, end, c, offset);
-            result += syntaxColorToAnsi(ctx, SyntaxColor::SyntaxDefault, mode);
+            result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
             continue;
         }
 
         // Raw string  #"... "#
         if (c == '#' && (cur < end && *cur == '"'))
         {
-            result += syntaxColorToAnsi(ctx, SyntaxColor::SyntaxString, mode);
+            result += syntaxColorToAnsi(ctx, SyntaxColor::String, mode);
             result += c;
             while (cur < end && !(cur[0] == '"' && (cur + 1) < end && cur[1] == '#'))
                 result += *cur++;
@@ -282,14 +282,14 @@ Utf8 SyntaxColorHelper::colorize(const Context& ctx, SyntaxColorMode mode, const
             }
 
             cur = Utf8Helper::decodeOneChar(cur, end, c, offset);
-            result += syntaxColorToAnsi(ctx, SyntaxColor::SyntaxDefault, mode);
+            result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
             continue;
         }
 
         // String
         if (c == '"')
         {
-            result += syntaxColorToAnsi(ctx, SyntaxColor::SyntaxString, mode);
+            result += syntaxColorToAnsi(ctx, SyntaxColor::String, mode);
             result += c;
             while (cur < end && *cur != '"')
             {
@@ -302,7 +302,7 @@ Utf8 SyntaxColorHelper::colorize(const Context& ctx, SyntaxColorMode mode, const
             if (cur < end && *cur == '"')
                 result += *cur++;
             cur = Utf8Helper::decodeOneChar(cur, end, c, offset);
-            result += syntaxColorToAnsi(ctx, SyntaxColor::SyntaxDefault, mode);
+            result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
             continue;
         }
 
@@ -316,7 +316,7 @@ Utf8 SyntaxColorHelper::colorize(const Context& ctx, SyntaxColorMode mode, const
                 word += *pz1++;
             if (pz1 < end && *pz1 == '\'')
             {
-                result += syntaxColorToAnsi(ctx, SyntaxColor::SyntaxString, mode);
+                result += syntaxColorToAnsi(ctx, SyntaxColor::String, mode);
                 result += c;
                 while (cur < end && *cur != '\'')
                 {
@@ -329,7 +329,7 @@ Utf8 SyntaxColorHelper::colorize(const Context& ctx, SyntaxColorMode mode, const
                 if (cur < end && *cur == '\'')
                     result += *cur++;
                 cur = Utf8Helper::decodeOneChar(cur, end, c, offset);
-                result += syntaxColorToAnsi(ctx, SyntaxColor::SyntaxDefault, mode);
+                result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
                 continue;
             }
         }
@@ -337,33 +337,33 @@ Utf8 SyntaxColorHelper::colorize(const Context& ctx, SyntaxColorMode mode, const
         // Binary literal
         if (c == '0' && (cur < end && (*cur == 'b' || *cur == 'B')))
         {
-            result += syntaxColorToAnsi(ctx, SyntaxColor::SyntaxNumber, mode);
+            result += syntaxColorToAnsi(ctx, SyntaxColor::Number, mode);
             result += c;
             result += *cur++;
             while (cur < end && (*cur == '0' || *cur == '1' || *cur == '_'))
                 result += *cur++;
             cur = Utf8Helper::decodeOneChar(cur, end, c, offset);
-            result += syntaxColorToAnsi(ctx, SyntaxColor::SyntaxDefault, mode);
+            result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
             continue;
         }
 
         // Hexadecimal literal
         if (c == '0' && (cur < end && (*cur == 'x' || *cur == 'X')))
         {
-            result += syntaxColorToAnsi(ctx, SyntaxColor::SyntaxNumber, mode);
+            result += syntaxColorToAnsi(ctx, SyntaxColor::Number, mode);
             result += c;
             result += *cur++;
             while (cur < end && (langSpec.isHexNumber(*cur) || *cur == '_'))
                 result += *cur++;
             cur = Utf8Helper::decodeOneChar(cur, end, c, offset);
-            result += syntaxColorToAnsi(ctx, SyntaxColor::SyntaxDefault, mode);
+            result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
             continue;
         }
 
         // Number
         if (langSpec.isDigit(c))
         {
-            result += syntaxColorToAnsi(ctx, SyntaxColor::SyntaxNumber, mode);
+            result += syntaxColorToAnsi(ctx, SyntaxColor::Number, mode);
             result += c;
 
             while (cur < end && (langSpec.isDigit(*cur) || *cur == '_'))
@@ -386,7 +386,7 @@ Utf8 SyntaxColorHelper::colorize(const Context& ctx, SyntaxColorMode mode, const
             }
 
             cur = Utf8Helper::decodeOneChar(cur, end, c, offset);
-            result += syntaxColorToAnsi(ctx, SyntaxColor::SyntaxDefault, mode);
+            result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
             continue;
         }
 
@@ -406,37 +406,33 @@ Utf8 SyntaxColorHelper::colorize(const Context& ctx, SyntaxColorMode mode, const
             auto tokenId = langSpec.keyword(identifier);
             if (tokenId != TokenId::Identifier)
             {
-                auto tokColor = SyntaxColor::SyntaxCode;
+                auto tokColor = SyntaxColor::Code;
                 if (Token::isModifier(tokenId))
-                    tokColor = SyntaxColor::SyntaxIntrinsic;
+                    tokColor = SyntaxColor::Intrinsic;
                 else if (Token::isCompilerIntrinsic(tokenId))
-                    tokColor = SyntaxColor::SyntaxIntrinsic;
+                    tokColor = SyntaxColor::Intrinsic;
                 else if (Token::isCompilerAlias(tokenId))
-                    tokColor = SyntaxColor::SyntaxIntrinsic;
+                    tokColor = SyntaxColor::Intrinsic;
                 else if (Token::isCompilerUniq(tokenId))
-                    tokColor = SyntaxColor::SyntaxIntrinsic;
+                    tokColor = SyntaxColor::Intrinsic;
                 else if (Token::isReserved(tokenId))
-                    tokColor = SyntaxColor::SyntaxInvalid;
+                    tokColor = SyntaxColor::Invalid;
                 else if (Token::isKeywordLogic(tokenId))
-                    tokColor = SyntaxColor::SyntaxLogic;
+                    tokColor = SyntaxColor::Logic;
                 else if (Token::isType(tokenId))
-                    tokColor = SyntaxColor::SyntaxType;
-                else if (Token::isKeyword(tokenId))
-                    tokColor = SyntaxColor::SyntaxKeyword;
-                else if (Token::isCompilerFunc(tokenId))
-                    tokColor = SyntaxColor::SyntaxCompiler;
+                    tokColor = SyntaxColor::Type;
                 else if (tokenId == TokenId::KwdMe)
-                    tokColor = SyntaxColor::SyntaxType;
-                else if (identifier[0] == '@')
-                    tokColor = SyntaxColor::SyntaxIntrinsic;
-                else if (identifier[0] == '#')
-                    tokColor = SyntaxColor::SyntaxCompiler;
+                    tokColor = SyntaxColor::Type;
+                else if (Token::isKeyword(tokenId))
+                    tokColor = SyntaxColor::Keyword;
+                else if (Token::isCompilerFunc(tokenId))
+                    tokColor = SyntaxColor::Compiler;
 
-                if (tokColor != SyntaxColor::SyntaxCode)
+                if (tokColor != SyntaxColor::Code)
                 {
                     result += syntaxColorToAnsi(ctx, tokColor, mode);
                     result += identifier;
-                    result += syntaxColorToAnsi(ctx, SyntaxColor::SyntaxDefault, mode);
+                    result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
                 }
                 else
                 {
@@ -446,19 +442,27 @@ Utf8 SyntaxColorHelper::colorize(const Context& ctx, SyntaxColorMode mode, const
                 continue;
             }
 
+            if (identifier[0] == '@' || identifier[0] == '#')
+            {
+                result += syntaxColorToAnsi(ctx, SyntaxColor::Invalid, mode);
+                result += identifier;
+                result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
+                continue;
+            }
+
             if (langSpec.isLetter(identifier[0]) && (c == '(' || c == '\''))
             {
-                result += syntaxColorToAnsi(ctx, SyntaxColor::SyntaxFunction, mode);
+                result += syntaxColorToAnsi(ctx, SyntaxColor::Function, mode);
                 result += identifier;
-                result += syntaxColorToAnsi(ctx, SyntaxColor::SyntaxDefault, mode);
+                result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
                 continue;
             }
 
             if (identifier[0] >= 'A' and identifier[0] <= 'Z')
             {
-                result += syntaxColorToAnsi(ctx, SyntaxColor::SyntaxConstant, mode);
+                result += syntaxColorToAnsi(ctx, SyntaxColor::Constant, mode);
                 result += identifier;
-                result += syntaxColorToAnsi(ctx, SyntaxColor::SyntaxDefault, mode);
+                result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
                 continue;
             }
 
@@ -474,8 +478,8 @@ Utf8 SyntaxColorHelper::colorize(const Context& ctx, SyntaxColorMode mode, const
 
     if (hasCode)
     {
-        result.insert(0, syntaxColorToAnsi(ctx, SyntaxColor::SyntaxCode, mode));
-        result += syntaxColorToAnsi(ctx, SyntaxColor::SyntaxDefault, mode);
+        result.insert(0, syntaxColorToAnsi(ctx, SyntaxColor::Code, mode));
+        result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
     }
 
     return result;

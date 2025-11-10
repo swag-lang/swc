@@ -56,7 +56,12 @@ AstNodeRef Parser::parseTopLevelStmt()
 
     case TokenId::KwdConst:
     case TokenId::KwdVar:
-        return parseVarDecl();
+    {
+        const AstNodeRef nodeRef = parseVarDecl();
+        // @skip
+        //expectEndStatement();
+        return nodeRef;
+    }
 
     case TokenId::CompilerLoad:
     case TokenId::CompilerForeignLib:
@@ -114,7 +119,12 @@ AstNodeRef Parser::parseEmbeddedStmt()
     case TokenId::KwdConst:
     case TokenId::KwdVar:
     case TokenId::KwdLet:
-        return parseVarDecl();
+    {
+        const AstNodeRef nodeRef = parseVarDecl();
+        // @skip
+        //expectEndStatement();
+        return nodeRef;
+    }
 
     default:
     {

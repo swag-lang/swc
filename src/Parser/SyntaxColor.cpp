@@ -425,6 +425,8 @@ Utf8 SyntaxColorHelper::colorize(const Context& ctx, SyntaxColorMode mode, const
                     tokColor = SyntaxColor::SyntaxKeyword;
                 else if (Token::isCompilerFunc(tokenId))
                     tokColor = SyntaxColor::SyntaxCompiler;
+                else if (tokenId == TokenId::KwdMe)
+                    tokColor = SyntaxColor::SyntaxType;
                 else if (identifier[0] == '@')
                     tokColor = SyntaxColor::SyntaxIntrinsic;
                 else if (identifier[0] == '#')

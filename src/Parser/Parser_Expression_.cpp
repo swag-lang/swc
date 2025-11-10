@@ -193,7 +193,14 @@ AstNodeRef Parser::parseIdentifier()
         raiseError(DiagnosticId::parser_err_invalid_compiler, ref());
     else if (str[0] == '@')
         raiseError(DiagnosticId::parser_err_invalid_intrinsic, ref());
-    
+
+    if (is(TokenId::KwdMe))
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>();
+        nodePtr->tokName        = consume();
+        return nodeRef;
+    }
+
     const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
     if (invalid(tokName))
         return INVALID_REF;
@@ -378,6 +385,7 @@ AstNodeRef Parser::parsePrimaryExpression()
     switch (id())
     {
     case TokenId::Identifier:
+    case TokenId::KwdMe:
         return parseIdentifier();
 
     case TokenId::SymDot:

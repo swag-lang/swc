@@ -231,6 +231,29 @@ struct AstLambdaTypeParam : AstNode
     AstNodeRef nodeDefaultValue;
 };
 
+struct AstVariadicParam : AstNode
+{
+    static constexpr auto ID = AstNodeId::VariadicParam;
+    AstVariadicParam() :
+        AstNode(ID)
+    {
+    }
+
+    TokenRef tokName;
+};
+
+struct AstTypedVariadicParam : AstNode
+{
+    static constexpr auto ID = AstNodeId::TypedVariadicParam;
+    AstTypedVariadicParam() :
+        AstNode(ID)
+    {
+    }
+
+    TokenRef   tokName;
+    AstNodeRef nodeType;
+};
+
 struct AstLambdaTypeParamList : AstCompound
 {
     static constexpr auto ID = AstNodeId::LambdaTypeParamList;

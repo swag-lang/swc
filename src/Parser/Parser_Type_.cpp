@@ -42,8 +42,6 @@ AstNodeRef Parser::parseSingleType()
     {
     case TokenId::Identifier:
         return parseIdentifierType();
-    case TokenId::KwdRetVal:
-        return parseRetValType();
 
     case TokenId::KwdStruct:
     {
@@ -84,6 +82,10 @@ AstNodeRef Parser::parseSingleType()
 
 AstNodeRef Parser::parseType()
 {
+    // retval
+    if (is(TokenId::KwdRetVal))
+        return parseRetValType();
+
     // Const
     if (isAny(TokenId::KwdConst, TokenId::ModifierNullable))
     {

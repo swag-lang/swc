@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Lexer/SourceFile.h"
+#include "Os/Os.h"
 #include "Parser/Parser.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -20,23 +21,44 @@ AstNodeRef Parser::parseClosureCaptureValue()
 
 AstNodeRef Parser::parseLambdaTypeParam()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaTypeParam>();
+    AstNodeRef nodeType;
+    TokenRef   tokName = INVALID_REF;
 
     if (is(TokenId::CompilerType))
-        nodePtr->nodeType = parseCompilerTypeExpr();
+        nodeType = parseCompilerTypeExpr();
     else
     {
         // Optional name
         if (is(TokenId::Identifier) && nextIs(TokenId::SymColon))
         {
-            nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
+            tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
             consume(TokenId::SymColon);
         }
-        else
-            nodePtr->tokName = INVALID_REF;
 
-        nodePtr->nodeType = parseType();
+        // Untyped variadic parameter
+        if (consumeIf(TokenId::SymDotDotDot) != INVALID_REF)
+        {
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VariadicParam>();
+            nodePtr->tokName        = tokName;
+            return nodeRef;
+        }
+
+        nodeType = parseType();
     }
+
+    // Typed variadic parameter
+    if (consumeIf(TokenId::SymDotDotDot) != INVALID_REF)
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TypedVariadicParam>();
+        nodePtr->tokName        = tokName;
+        nodePtr->nodeType       = nodeType;
+        return nodeRef;
+    }
+
+    // Normal parameter
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaTypeParam>();
+    nodePtr->tokName        = tokName;
+    nodePtr->nodeType       = nodeType;
 
     if (consumeIf(TokenId::SymEqual) != INVALID_REF)
         nodePtr->nodeDefaultValue = parseInitializerExpression();

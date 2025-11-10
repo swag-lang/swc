@@ -111,6 +111,8 @@ SWC_NODE_DEF(EnumUse)
 // Functions
 SWC_NODE_DEF(Call)
 SWC_NODE_DEF(FuncBody)
+SWC_NODE_DEF(VariadicParam)
+SWC_NODE_DEF(TypedVariadicParam)
 SWC_NODE_DEF(LambdaTypeParam)
 SWC_NODE_DEF(LambdaTypeParamList)
 SWC_NODE_DEF(ClosureCapture)

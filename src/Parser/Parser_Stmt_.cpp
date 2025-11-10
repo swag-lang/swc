@@ -113,6 +113,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
 
     case TokenId::KwdConst:
     case TokenId::KwdVar:
+    case TokenId::KwdLet:
         return parseVarDecl();
 
     default:

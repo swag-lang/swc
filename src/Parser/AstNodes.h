@@ -260,6 +260,8 @@ struct AstFunctionDecl : AstNode
 
     SpanRef    spanGenericParams;
     TokenRef   tokName;
+    AstNodeRef nodeReturnType;
+    SpanRef    spanConstraints;
     AstNodeRef nodeBody;
 };
 

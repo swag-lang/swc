@@ -200,7 +200,32 @@ AstNodeRef Parser::parseFuncDecl()
         nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
 
     // @skip
-    skipTo({TokenId::SymSemiColon, TokenId::SymLeftCurly, TokenId::SymEqualGreater});
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_fam_before);
+    skipTo({TokenId::SymRightParen}, SkipUntilFlagsE::Consume);
+
+    // Return type
+    if (consumeIf(TokenId::SymMinusGreater) != INVALID_REF)
+        nodePtr->nodeReturnType = parseType();
+    else
+        nodePtr->nodeReturnType = INVALID_REF;
+
+    // Throw
+    if (consumeIf(TokenId::KwdThrow) != INVALID_REF)
+        flags.add(AstLambdaType::FlagsE::Throw);
+
+    // Constraints
+    SmallVector<AstNodeRef> whereRefs;
+    while (is(TokenId::KwdWhere) || is(TokenId::KwdVerify))
+    {
+        const auto loopStartToken = curToken_;
+        auto       whereRef       = parseConstraint();
+        if (valid(whereRef))
+            whereRefs.push_back(whereRef);
+        if (loopStartToken == curToken_)
+            consume();
+    }
+
+    nodePtr->spanConstraints = ast_->store_.push_span(whereRefs.span());
 
     // Body
     if (consumeIf(TokenId::SymSemiColon) != INVALID_REF)

@@ -111,7 +111,18 @@ AstNodeRef Parser::parseEmbeddedStmt()
         return parseInternalCallZero(AstNodeId::IntrinsicCallZero);
 
     case TokenId::IntrinsicAssert:
+    case TokenId::IntrinsicFree:
         return parseInternalCallUnary(AstNodeId::IntrinsicCallUnary);
+
+    case TokenId::IntrinsicCompilerError:
+    case TokenId::IntrinsicCompilerWarning:
+    case TokenId::IntrinsicPanic:
+        return parseInternalCallBinary(AstNodeId::IntrinsicCallBinary);
+
+    case TokenId::IntrinsicMemCpy:
+    case TokenId::IntrinsicMemMove:
+    case TokenId::IntrinsicMemSet:
+        return parseInternalCallTernary(AstNodeId::IntrinsicCallTernary);
 
     case TokenId::SymAttrStart:
         return parseCompilerAttribute(AstNodeId::EmbeddedBlock);

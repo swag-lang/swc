@@ -410,6 +410,7 @@ AstNodeRef Parser::parsePrimaryExpression()
     case TokenId::CompilerSafety:
     case TokenId::CompilerHasTag:
     case TokenId::CompilerInject:
+    case TokenId::CompilerLocation:
         return parseInternalCallUnary(AstNodeId::CompilerCallUnary);
 
     case TokenId::CompilerRun:

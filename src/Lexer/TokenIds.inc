@@ -281,8 +281,9 @@ SWC_TOKEN_DEF(IntrinsicTypeCmp, "@typecmp",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicIs, "@is",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicAs, "@as",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicGetContext, "@getcontext",  IntrinsicReturn)
-SWC_TOKEN_DEF(IntrinsicSetContext, "@setcontext",  Intrinsic)
 SWC_TOKEN_DEF(IntrinsicCompiler, "@compiler",  IntrinsicReturn)
+
+SWC_TOKEN_DEF(IntrinsicSetContext, "@setcontext",  Intrinsic)
 SWC_TOKEN_DEF(IntrinsicPrint, "@print",  Intrinsic)
 SWC_TOKEN_DEF(IntrinsicCompilerError, "@compilererror",  Intrinsic)
 SWC_TOKEN_DEF(IntrinsicCompilerWarning, "@compilerwarning",  Intrinsic)
@@ -364,12 +365,13 @@ SWC_TOKEN_DEF(IntrinsicMulAdd, "@muladd",  IntrinsicReturn)
 
 // INTRINSICS - MEMORY
 
-SWC_TOKEN_DEF(IntrinsicAlloc, "@alloc",  IntrinsicReturn)
-SWC_TOKEN_DEF(IntrinsicRealloc, "@realloc",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicFree, "@free",  Intrinsic)
 SWC_TOKEN_DEF(IntrinsicMemCpy, "@memcpy",  Intrinsic) 
 SWC_TOKEN_DEF(IntrinsicMemMove, "@memmove",  Intrinsic)
 SWC_TOKEN_DEF(IntrinsicMemSet, "@memset",  Intrinsic)
+
+SWC_TOKEN_DEF(IntrinsicAlloc, "@alloc",  IntrinsicReturn)
+SWC_TOKEN_DEF(IntrinsicRealloc, "@realloc",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicMemCmp, "@memcmp",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicStrLen, "@strlen",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicStrCmp, "@strcmp",  IntrinsicReturn)

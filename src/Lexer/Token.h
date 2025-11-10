@@ -93,8 +93,8 @@ struct Token
     static bool isCompilerAlias(TokenId id) { return toKind(id) == TokenIdKind::CompilerAlias; }
     static bool isCompilerUniq(TokenId id) { return toKind(id) == TokenIdKind::CompilerUniq; }
     static bool isCompiler(TokenId id) { return toKind(id) == TokenIdKind::Compiler || isCompilerIntrinsic(id) || isCompilerFunc(id) || isCompilerAlias(id) || isCompilerUniq(id); }
-    static bool isIntrinsic(TokenId id) { return toKind(id) == TokenIdKind::Intrinsic || isCompilerIntrinsic(id) || isIntrinsicReturn(id); }
-    static bool isIntrinsicReturn(TokenId id) { return toKind(id) == TokenIdKind::IntrinsicReturn || isCompilerIntrinsicReturn(id); }
+    static bool isIntrinsic(TokenId id) { return toKind(id) == TokenIdKind::Intrinsic || isIntrinsicReturn(id); }
+    static bool isIntrinsicReturn(TokenId id) { return toKind(id) == TokenIdKind::IntrinsicReturn; }
     static bool isType(TokenId id) { return toKind(id) == TokenIdKind::Type; }
     static bool isModifier(TokenId id) { return toKind(id) == TokenIdKind::Modifier; }
     static bool isSpecialWord(TokenId id) { return isKeyword(id) || isCompiler(id) || isIntrinsic(id) || isType(id) || isModifier(id); }

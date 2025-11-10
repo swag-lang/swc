@@ -194,7 +194,10 @@ AstNodeRef Parser::parseFuncDecl()
         flags.add(AstLambdaType::FlagsE::Impl);
 
     // Name
-    nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+    if (Token::isIntrinsic(id()))
+        nodePtr->tokName = consume();
+    else
+        nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
 
     // @skip
     skipTo({TokenId::SymSemiColon, TokenId::SymLeftCurly, TokenId::SymEqualGreater});

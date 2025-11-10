@@ -281,7 +281,7 @@ bool CommandLineParser::processArgument(const Context& ctx, const ArgInfo& info,
 void CommandLineParser::printHelp(const Context& ctx)
 {
     ctx.global().logger().lock();
-    Logger::printDim(ctx, std::format("swag version {}.{}.{}\n", SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM));
+    Logger::printDim(ctx, std::format("swag compiler version {}.{}.{}\n", SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM));
     Logger::printDim(ctx, "Usage:\n");
     Logger::printDim(ctx, "    swag <command> [options]\n");
     ctx.global().logger().unlock();

@@ -1,40 +1,32 @@
-// ========================================================
 // TRIVIA
-// ========================================================
+
 SWC_TOKEN_DEF(Invalid, "",  Zero)
 
 SWC_TOKEN_DEF(Whitespace, "",  Trivia)
 SWC_TOKEN_DEF(EndOfFile, "",  Trivia)
 
-// Comments
 SWC_TOKEN_DEF(CommentLine, "",  Trivia)
 SWC_TOKEN_DEF(CommentMultiLine, "",  Trivia)
 
-// ========================================================
 // LITERALS
-// ========================================================
-// String literal
+
 SWC_TOKEN_DEF(StringLine, "",  Literal)
 SWC_TOKEN_DEF(StringRaw, "",  Literal)
 SWC_TOKEN_DEF(StringMultiLine, "",  Literal)
 
-// Character literal
 SWC_TOKEN_DEF(Character, "",  Literal)
 
-// Number literal
 SWC_TOKEN_DEF(NumberHexadecimal, "",  Literal)
 SWC_TOKEN_DEF(NumberBinary, "",  Literal)
 SWC_TOKEN_DEF(NumberInteger, "",  Literal)
 SWC_TOKEN_DEF(NumberFloat, "",  Literal)
 
-// ========================================================
 // IDENTIFIERS
-// ========================================================
+
 SWC_TOKEN_DEF(Identifier, "",  Zero)
 
-// ========================================================
 // SYMBOLS
-// ========================================================
+
 SWC_TOKEN_DEF(SymQuote, "\"", Symbol)
 SWC_TOKEN_DEF(SymBackSlash, "\\", Symbol)
 SWC_TOKEN_DEF(SymLeftParen, "(", Symbol)
@@ -89,9 +81,8 @@ SWC_TOKEN_DEF(SymGreaterGreater, ">>", Symbol)
 SWC_TOKEN_DEF(SymGreaterGreaterEqual, ">>=", Symbol)
 SWC_TOKEN_DEF(SymAttrStart, "#[", Symbol)
 
-// ========================================================
 // CONTROL FLOW KEYWORDS
-// ========================================================
+
 SWC_TOKEN_DEF(KwdIf, "if",  KeywordLogic)
 SWC_TOKEN_DEF(KwdElse, "else",  KeywordLogic)
 SWC_TOKEN_DEF(KwdElif, "elif",  KeywordLogic)
@@ -110,13 +101,10 @@ SWC_TOKEN_DEF(KwdCase, "case",  KeywordLogic)
 SWC_TOKEN_DEF(KwdContinue, "continue",  KeywordLogic)
 SWC_TOKEN_DEF(KwdDefault, "default",  KeywordLogic)
 
-
-// Logical keyword ops
 SWC_TOKEN_DEF(KwdAnd, "and",  KeywordLogic)
 SWC_TOKEN_DEF(KwdOr, "or",  KeywordLogic)
 SWC_TOKEN_DEF(KwdOrElse, "orelse",  KeywordLogic)
 
-// Range/iteration
 SWC_TOKEN_DEF(KwdTo, "to",  KeywordLogic)
 SWC_TOKEN_DEF(KwdUntil, "until",  KeywordLogic)
 SWC_TOKEN_DEF(KwdIn, "in",  KeywordLogic)
@@ -124,9 +112,8 @@ SWC_TOKEN_DEF(KwdAs, "as",  KeywordLogic)
 SWC_TOKEN_DEF(KwdIs, "is",  KeywordLogic)
 SWC_TOKEN_DEF(KwdDo, "do",  KeywordLogic)
 
-// ========================================================
 // MODULE / ERROR HANDLING
-// ========================================================
+
 SWC_TOKEN_DEF(KwdUsing, "using",  Keyword)
 SWC_TOKEN_DEF(KwdWith, "with",  Keyword)
 SWC_TOKEN_DEF(KwdCast, "cast",  Keyword) 
@@ -139,24 +126,21 @@ SWC_TOKEN_DEF(KwdAssume, "assume",  Keyword)
 SWC_TOKEN_DEF(KwdThrow, "throw",  Keyword)
 SWC_TOKEN_DEF(KwdDiscard, "discard",  Keyword)
 
-// ========================================================
 // LITERAL KEYWORDS
-// ========================================================
+
 SWC_TOKEN_DEF(KwdTrue, "true",  Keyword)
 SWC_TOKEN_DEF(KwdFalse, "false",  Keyword)
 SWC_TOKEN_DEF(KwdNull, "null",  Keyword)
 SWC_TOKEN_DEF(KwdUndefined, "undefined",  Keyword)
 
-// ========================================================
 // ACCESS MODIFIERS
-// ========================================================
+
 SWC_TOKEN_DEF(KwdPublic, "public",  Keyword)
 SWC_TOKEN_DEF(KwdInternal, "internal",  Keyword)
 SWC_TOKEN_DEF(KwdPrivate, "private",  Keyword)
 
-// ========================================================
 // TYPE DEFINITIONS
-// ========================================================
+
 SWC_TOKEN_DEF(KwdEnum, "enum",  Keyword)
 SWC_TOKEN_DEF(KwdStruct, "struct",  Keyword)
 SWC_TOKEN_DEF(KwdUnion, "union",  Keyword)
@@ -172,14 +156,12 @@ SWC_TOKEN_DEF(KwdLet, "let",  Keyword)
 SWC_TOKEN_DEF(KwdConst, "const",  Keyword)
 SWC_TOKEN_DEF(KwdMoveRef, "moveref",  Keyword)
 
-// ========================================================
 // RESERVED
-// ========================================================
+
 SWC_TOKEN_DEF(KwdNot, "not",  Reserved)
 
-// ========================================================
 // COMPILER FUNC
-// ========================================================
+
 SWC_TOKEN_DEF(CompilerGlobal, "#global",  Compiler)
 SWC_TOKEN_DEF(CompilerRun, "#run",  CompilerFunc)
 SWC_TOKEN_DEF(CompilerAst, "#ast",  CompilerFunc)
@@ -208,10 +190,8 @@ SWC_TOKEN_DEF(CompilerScope, "#scope",  Compiler)
 SWC_TOKEN_DEF(CompilerUp, "#up",  CompilerIntrinsic)
 SWC_TOKEN_DEF(CompilerType, "#type",  CompilerIntrinsic)
 
-
-// ========================================================
 // MODIFIERS
-// ========================================================
+
 SWC_TOKEN_DEF(ModifierPromote, "#prom",  Modifier)
 SWC_TOKEN_DEF(ModifierWrap, "#wrap",  Modifier)
 SWC_TOKEN_DEF(ModifierNoDrop, "#nodrop",  Modifier)
@@ -226,9 +206,8 @@ SWC_TOKEN_DEF(ModifierNoErr, "#noerr",  Modifier)
 SWC_TOKEN_DEF(ModifierBit, "#bit",  Modifier)
 SWC_TOKEN_DEF(ModifierUnConst, "#unconst",  Modifier)
 
-// ========================================================
 // COMPILER IDENTIFIERS
-// ========================================================
+
 SWC_TOKEN_DEF(CompilerAlias0, "#alias0",  CompilerAlias)
 SWC_TOKEN_DEF(CompilerAlias1, "#alias1",  CompilerAlias)
 SWC_TOKEN_DEF(CompilerAlias2, "#alias2",  CompilerAlias)
@@ -250,9 +229,8 @@ SWC_TOKEN_DEF(CompilerUniq7, "#uniq7",  CompilerUniq)
 SWC_TOKEN_DEF(CompilerUniq8, "#uniq8",  CompilerUniq)
 SWC_TOKEN_DEF(CompilerUniq9, "#uniq9",  CompilerUniq)
 
-// ========================================================
 // COMPILER INFO
-// ========================================================
+
 SWC_TOKEN_DEF(CompilerBuildCfg, "#cfg",  Compiler)
 SWC_TOKEN_DEF(CompilerOs, "#os",  Compiler)
 SWC_TOKEN_DEF(CompilerArch, "#arch",  Compiler)
@@ -270,9 +248,8 @@ SWC_TOKEN_DEF(CompilerBuildRevision, "#swagrevision",  Compiler)
 SWC_TOKEN_DEF(CompilerBuildNum, "#swagbuildnum",  Compiler)
 SWC_TOKEN_DEF(CompilerSwagOs, "#swagos",  Compiler)
 
-// ========================================================
 // COMPILER INTROSPECTION
-// ========================================================
+
 SWC_TOKEN_DEF(CompilerDefined, "#defined",  CompilerIntrinsicReturn)
 SWC_TOKEN_DEF(CompilerOffsetOf, "#offsetof",  CompilerIntrinsicReturn)
 SWC_TOKEN_DEF(CompilerAlignOf, "#alignof",  CompilerIntrinsicReturn)
@@ -288,9 +265,8 @@ SWC_TOKEN_DEF(CompilerGetTag, "#gettag",  CompilerIntrinsicReturn)
 SWC_TOKEN_DEF(CompilerRunes, "#runes",  CompilerIntrinsicReturn)
 SWC_TOKEN_DEF(CompilerSafety, "#safety",  CompilerIntrinsicReturn)
 
-// ========================================================
 // INTRINSICS - STRING/TYPE
-// ========================================================
+
 SWC_TOKEN_DEF(IntrinsicStringCmp, "@stringcmp",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicTypeCmp, "@typecmp",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicIs, "@is",  IntrinsicReturn)
@@ -305,24 +281,21 @@ SWC_TOKEN_DEF(IntrinsicBcBreakpoint, "@breakpoint",  Intrinsic)
 SWC_TOKEN_DEF(IntrinsicAssert, "@assert",  Intrinsic)
 SWC_TOKEN_DEF(IntrinsicPanic, "@panic",  Intrinsic)
 
-// ========================================================
 // INTRINSICS - LIFECYCLE
-// ========================================================
+
 SWC_TOKEN_DEF(IntrinsicInit, "@init",  Intrinsic)
 SWC_TOKEN_DEF(IntrinsicDrop, "@drop",  Intrinsic)
 SWC_TOKEN_DEF(IntrinsicPostMove, "@postmove",  Intrinsic)
 SWC_TOKEN_DEF(IntrinsicPostCopy, "@postcopy",  Intrinsic)
 
-// ========================================================
 // INTRINSICS - TYPE INFO
-// ========================================================
+
 SWC_TOKEN_DEF(IntrinsicKindOf, "@kindof",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicCountOf, "@countof",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicDataOf, "@dataof",  IntrinsicReturn)
 
-// ========================================================
 // INTRINSICS - CONSTRUCTORS
-// ========================================================
+
 SWC_TOKEN_DEF(IntrinsicMakeSlice, "@mkslice",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicMakeString, "@mkstring",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicMakeAny, "@mkany",  IntrinsicReturn)
@@ -332,9 +305,8 @@ SWC_TOKEN_DEF(IntrinsicTableOf, "@tableof",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicDbgAlloc, "@dbgalloc",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicSysAlloc, "@sysalloc",  IntrinsicReturn)
 
-// ========================================================
 // INTRINSICS - RUNTIME
-// ========================================================
+
 SWC_TOKEN_DEF(IntrinsicErr, "@err",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicArgs, "@args",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicByteCode, "@bytecode",  IntrinsicReturn)
@@ -344,9 +316,8 @@ SWC_TOKEN_DEF(IntrinsicProcessInfos, "@pinfos",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicModules, "@modules",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicGvtd, "@gvtd",  IntrinsicReturn)
 
-// ========================================================
 // INTRINSICS - BIT OPERATIONS
-// ========================================================
+
 SWC_TOKEN_DEF(IntrinsicByteSwap, "@byteswap",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicBitCountNz, "@bitcountnz",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicBitCountTz, "@bitcounttz",  IntrinsicReturn)
@@ -354,9 +325,8 @@ SWC_TOKEN_DEF(IntrinsicBitCountLz, "@bitcountlz",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicRol, "@rol",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicRor, "@ror",  IntrinsicReturn)
 
-// ========================================================
 // INTRINSICS - MATH
-// ========================================================
+
 SWC_TOKEN_DEF(IntrinsicMin, "@min",  IntrinsicReturn) 
 SWC_TOKEN_DEF(IntrinsicMax, "@max",  IntrinsicReturn) 
 SWC_TOKEN_DEF(IntrinsicSqrt, "@sqrt",  IntrinsicReturn)
@@ -383,9 +353,8 @@ SWC_TOKEN_DEF(IntrinsicExp2, "@exp2",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicPow, "@pow",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicMulAdd, "@muladd",  IntrinsicReturn)
 
-// ========================================================
 // INTRINSICS - MEMORY
-// ========================================================
+
 SWC_TOKEN_DEF(IntrinsicAlloc, "@alloc",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicRealloc, "@realloc",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicFree, "@free",  Intrinsic)
@@ -396,9 +365,8 @@ SWC_TOKEN_DEF(IntrinsicMemCmp, "@memcmp",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicStrLen, "@strlen",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicStrCmp, "@strcmp",  IntrinsicReturn)
 
-// ========================================================
 // INTRINSICS - ATOMIC
-// ========================================================
+
 SWC_TOKEN_DEF(IntrinsicAtomicAdd, "@atomadd",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicAtomicAnd, "@atomand",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicAtomicOr, "@atomor",  IntrinsicReturn)
@@ -406,16 +374,14 @@ SWC_TOKEN_DEF(IntrinsicAtomicXor, "@atomxor",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicAtomicXchg, "@atomxchg",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicAtomicCmpXchg, "@atomcmpxchg",  IntrinsicReturn)
 
-// ========================================================
 // INTRINSICS - VARARGS
-// ========================================================
+
 SWC_TOKEN_DEF(IntrinsicCVaStart, "@cvastart",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicCVaEnd, "@cvaend",  IntrinsicReturn)
 SWC_TOKEN_DEF(IntrinsicCVaArg, "@cvaarg",  IntrinsicReturn)
 
-// ========================================================
 // NATIVE TYPES
-// ========================================================
+
 SWC_TOKEN_DEF(TypeAny, "any",  Type)
 SWC_TOKEN_DEF(TypeVoid, "void",  Type)
 SWC_TOKEN_DEF(TypeRune, "rune",  Type)

@@ -188,6 +188,12 @@ AstNodeRef Parser::parsePostfixIdentifierValue()
 
 AstNodeRef Parser::parseIdentifier()
 {
+    const auto str = tok().string(*file_);
+    if (str[0] == '#')
+        raiseError(DiagnosticId::parser_err_invalid_compiler, ref());
+    else if (str[0] == '@')
+        raiseError(DiagnosticId::parser_err_invalid_intrinsic, ref());
+    
     const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
     if (invalid(tokName))
         return INVALID_REF;

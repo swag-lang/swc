@@ -143,11 +143,19 @@ struct AstCompilerGlobal : AstNode
     enum class Mode
     {
         Skip,
+        SkipFmt,
         Generated,
         Export,
+        AttributeList,
+        AccessPublic,
+        AccessInternal,
+        Namespace,
+        CompilerIf,
+        Using,
     };
 
-    Mode mode;
+    Mode       mode;
+    AstNodeRef nodeMode;
 };
 
 struct AstIntrinsicCallZero : AstNode

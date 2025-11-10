@@ -24,7 +24,13 @@ SWC_TOKEN_DEF(NumberFloat, "",  Literal)
 // IDENTIFIERS
 
 SWC_TOKEN_DEF(Identifier, "",  Zero)
+
 SWC_TOKEN_DEF(KwdMe, "me",  Keyword)
+
+SWC_TOKEN_DEF(KwdSkip, "skip",  Zero)
+SWC_TOKEN_DEF(KwdSkipFmt, "skipfmt",  Zero)
+SWC_TOKEN_DEF(KwdExport, "export",  Zero)
+SWC_TOKEN_DEF(KwdGenerated, "generated",  Zero)
 
 // SYMBOLS
 

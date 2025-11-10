@@ -129,25 +129,77 @@ AstNodeRef Parser::parseCompilerGlobal()
 
     const auto tokStr = tok().string(*file_);
 
-    if (tokStr == "skip")
+    // @temp
+    if (tokStr == "testerror" || tokStr == "testerrors" || tokStr == "testwarning" || tokStr == "testwarnings" || tokStr == "testpass")
     {
-        nodePtr->mode = AstCompilerGlobal::Mode::Skip;
+        skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
+        file_->addFlag(FileFlagsE::LexOnly);
+        expectEndStatement();
+        return nodeRef;
+    }
+
+    if (tokStr == Token::toName(TokenId::KwdSkip))
+    {
+        nodePtr->mode     = AstCompilerGlobal::Mode::Skip;
+        nodePtr->nodeMode = INVALID_REF;
         file_->addFlag(FileFlagsE::LexOnly);
         consume();
     }
-    else if (tokStr == "generated")
+    else if (tokStr == Token::toName(TokenId::KwdSkipFmt))
     {
-        nodePtr->mode = AstCompilerGlobal::Mode::Generated;
+        nodePtr->mode     = AstCompilerGlobal::Mode::SkipFmt;
+        nodePtr->nodeMode = INVALID_REF;
         consume();
     }
-    else if (tokStr == "export")
+    else if (tokStr == Token::toName(TokenId::KwdGenerated))
     {
-        nodePtr->mode = AstCompilerGlobal::Mode::Export;
+        nodePtr->mode     = AstCompilerGlobal::Mode::Generated;
+        nodePtr->nodeMode = INVALID_REF;
         consume();
+    }
+    else if (tokStr == Token::toName(TokenId::KwdExport))
+    {
+        nodePtr->mode     = AstCompilerGlobal::Mode::Export;
+        nodePtr->nodeMode = INVALID_REF;
+        consume();
+    }
+    else if (is(TokenId::SymAttrStart))
+    {
+        nodePtr->mode     = AstCompilerGlobal::Mode::AttributeList;
+        nodePtr->nodeMode = parseCompound(AstNodeId::AttributeList, TokenId::SymAttrStart);
+    }
+    else if (is(TokenId::KwdPublic))
+    {
+        nodePtr->mode     = AstCompilerGlobal::Mode::AccessPublic;
+        nodePtr->nodeMode = INVALID_REF;
+        consume();
+    }
+    else if (is(TokenId::KwdInternal))
+    {
+        nodePtr->mode     = AstCompilerGlobal::Mode::AccessInternal;
+        nodePtr->nodeMode = INVALID_REF;
+        consume();
+    }
+    else if (is(TokenId::KwdNamespace))
+    {
+        nodePtr->mode = AstCompilerGlobal::Mode::Namespace;
+        consume();
+        nodePtr->nodeMode = parseQualifiedIdentifier();
+    }
+    else if (is(TokenId::CompilerIf))
+    {
+        nodePtr->mode = AstCompilerGlobal::Mode::CompilerIf;
+        consume();
+        nodePtr->nodeMode = parseExpression();
+    }
+    else if (is(TokenId::KwdUsing))
+    {
+        nodePtr->mode     = AstCompilerGlobal::Mode::Using;
+        nodePtr->nodeMode = parseUsing();
     }
     else
     {
-        // @skip
+        raiseError(DiagnosticId::parser_err_unexpected_token, ref());
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
     }
 

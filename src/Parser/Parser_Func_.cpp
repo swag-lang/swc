@@ -187,11 +187,8 @@ AstNodeRef Parser::parseFuncDecl()
     // Body
     if (consumeIf(TokenId::SymSemiColon) != INVALID_REF)
         nodePtr->nodeBody = INVALID_REF;
-
     else if (consumeIf(TokenId::SymEqualGreater) != INVALID_REF)
-    {
         nodePtr->nodeBody = parseExpression();
-    }
     else
         nodePtr->nodeBody = parseCompound(AstNodeId::FunctionBody, TokenId::SymLeftCurly);
 

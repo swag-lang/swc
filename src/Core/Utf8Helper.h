@@ -2,7 +2,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-class Context;
+class TaskContext;
 
 namespace Utf8Helper
 {
@@ -19,7 +19,7 @@ namespace Utf8Helper
     std::string_view trimRight(std::string_view s);
     std::string_view trim(std::string_view s);
     bool             startsWith(std::string_view s, std::string_view pfx, bool matchCase = false);
-    uint32_t         countLeadingBlanks(const Context& ctx, std::string_view s, uint32_t upto);
+    uint32_t         countLeadingBlanks(const TaskContext& ctx, std::string_view s, uint32_t upto);
 }
 
 SWC_END_NAMESPACE()

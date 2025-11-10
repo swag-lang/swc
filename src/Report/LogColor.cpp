@@ -1,7 +1,7 @@
 #include "pch.h"
 
 #include "Main/CommandLine.h"
-#include "Main/Context.h"
+#include "Main/TaskContext.h"
 #include "Report/LogColor.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -11,7 +11,7 @@ Utf8 LogColorHelper::colorToAnsi(uint32_t r, uint32_t g, uint32_t b)
     return std::format("\x1b[38;2;{};{};{}m", r, g, b);
 }
 
-Utf8 LogColorHelper::toAnsi(const Context& ctx, LogColor c)
+Utf8 LogColorHelper::toAnsi(const TaskContext& ctx, LogColor c)
 {
     if (!ctx.cmdLine().logColor)
         return "";

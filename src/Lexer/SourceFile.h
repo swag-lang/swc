@@ -6,7 +6,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-class Context;
+class TaskContext;
 class Global;
 
 enum class FileFlagsE : uint32_t
@@ -57,8 +57,8 @@ public:
     bool             hasFlag(FileFlags flag) const { return flags_.has(flag); }
     void             addFlag(FileFlags flag) { flags_.add(flag); }
 
-    Result           loadContent(const Context& ctx);
-    Utf8             codeLine(const Context& ctx, uint32_t line) const;
+    Result           loadContent(const TaskContext& ctx);
+    Utf8             codeLine(const TaskContext& ctx, uint32_t line) const;
     std::string_view codeView(uint32_t offset, uint32_t len) const;
 };
 

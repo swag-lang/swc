@@ -3,7 +3,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-class Context;
+class TaskContext;
 class Global;
 enum class DiagnosticSeverity;
 struct LexTrivia;
@@ -23,8 +23,8 @@ class UnitTest
     SourceFile*                    file_;
     std::vector<UnitTestDirective> directives_;
 
-    static void tokenizeOption(const Context& ctx, std::string_view comment);
-    void        tokenizeExpected(const Context& ctx, const LexTrivia& trivia, std::string_view comment);
+    static void tokenizeOption(TaskContext& ctx, std::string_view comment);
+    void        tokenizeExpected(const TaskContext& ctx, const LexTrivia& trivia, std::string_view comment);
 
 public:
     explicit UnitTest(SourceFile* file) :
@@ -32,9 +32,9 @@ public:
     {
     }
 
-    Result tokenize(const Context& ctx);
-    bool   verifyExpected(const Context& ctx, const Diagnostic& diag) const;
-    Result verifyUntouchedExpected(const Context& ctx) const;
+    Result tokenize(TaskContext& ctx);
+    bool   verifyExpected(const TaskContext& ctx, const Diagnostic& diag) const;
+    Result verifyUntouchedExpected(const TaskContext& ctx) const;
 };
 
 SWC_END_NAMESPACE()

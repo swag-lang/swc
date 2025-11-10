@@ -44,10 +44,10 @@ class DiagnosticBuilder
         DiagnosticSpan span;
     };
 
-    const Context*    ctx_;
-    const Diagnostic* diag_;
-    Utf8              out_;
-    uint32_t          gutterW_ = 0;
+    const TaskContext* ctx_;
+    const Diagnostic*  diag_;
+    Utf8               out_;
+    uint32_t           gutterW_ = 0;
 
     static SmallVector<std::string_view> splitMessage(std::string_view msg);
     static SmallVector<Part>             parseParts(std::string_view msg);
@@ -71,7 +71,7 @@ class DiagnosticBuilder
     void expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements) const;
 
 public:
-    DiagnosticBuilder(const Context& ctx, const Diagnostic& diag) :
+    DiagnosticBuilder(const TaskContext& ctx, const Diagnostic& diag) :
         ctx_(&ctx),
         diag_(&diag)
     {

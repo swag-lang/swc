@@ -10,7 +10,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void Stats::print(const Context& ctx) const
+void Stats::print(const TaskContext& ctx) const
 {
     auto& log = ctx.global().logger();
     log.lock();

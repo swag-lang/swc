@@ -21,7 +21,7 @@ std::string_view Token::string(const SourceFile& file) const
     return {start + byteStart, static_cast<size_t>(byteLength)};
 }
 
-SourceCodeLocation Token::location(const Context& ctx, const SourceFile& file) const
+SourceCodeLocation Token::location(const TaskContext& ctx, const SourceFile& file) const
 {
     SourceCodeLocation loc;
     uint32_t           offset;

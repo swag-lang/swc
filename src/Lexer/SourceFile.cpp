@@ -2,7 +2,7 @@
 
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
-#include "Main/Context.h"
+#include "Main/TaskContext.h"
 #include "Os/Os.h"
 #include "Report/Diagnostic.h"
 #include "Report/Stats.h"
@@ -14,7 +14,7 @@ SourceFile::SourceFile(fs::path path) :
 {
 }
 
-Result SourceFile::loadContent(const Context& ctx)
+Result SourceFile::loadContent(const TaskContext& ctx)
 {
     if (!content_.empty())
         return Result::Success;
@@ -57,7 +57,7 @@ Result SourceFile::loadContent(const Context& ctx)
     return Result::Success;
 }
 
-Utf8 SourceFile::codeLine(const Context& ctx, uint32_t line) const
+Utf8 SourceFile::codeLine(const TaskContext& ctx, uint32_t line) const
 {
     line--;
     SWC_ASSERT(line < lexOut_.lines().size());

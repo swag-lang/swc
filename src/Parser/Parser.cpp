@@ -2,7 +2,7 @@
 #include "Parser/Parser.h"
 #include "Core/Timer.h"
 #include "Lexer/SourceFile.h"
-#include "Main/Context.h"
+#include "Main/TaskContext.h"
 #include "Report/Stats.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -280,7 +280,7 @@ void Parser::expectEndStatement()
     diag.report(*ctx_);
 }
 
-Result Parser::parse(Context& ctx)
+Result Parser::parse(TaskContext& ctx)
 {
 #if SWC_HAS_STATS
     Timer time(&Stats::get().timeParser);

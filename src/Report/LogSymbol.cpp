@@ -1,12 +1,12 @@
 #include "pch.h"
 
 #include "Main/CommandLine.h"
-#include "Main/Context.h"
+#include "Main/TaskContext.h"
 #include "Report/LogSymbol.h"
 
 SWC_BEGIN_NAMESPACE()
 
-Utf8 LogSymbolHelper::toString(const Context& ctx, LogSymbol symbol)
+Utf8 LogSymbolHelper::toString(const TaskContext& ctx, LogSymbol symbol)
 {
     const bool ascii = ctx.cmdLine().logAscii;
     switch (symbol)

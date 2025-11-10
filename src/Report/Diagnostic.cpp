@@ -3,8 +3,8 @@
 #include "Core/Utf8Helper.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
-#include "Main/Context.h"
 #include "Main/Global.h"
+#include "Main/TaskContext.h"
 #include "Report/DiagnosticBuilder.h"
 #include "Report/DiagnosticElement.h"
 #include "Report/Logger.h"
@@ -120,11 +120,13 @@ Diagnostic Diagnostic::get(DiagnosticId id, std::optional<SourceFile*> fileOwner
     return diag;
 }
 
-void Diagnostic::report(const Context& ctx) const
+void Diagnostic::report(const TaskContext& ctx) const
 {
     if (elements_.empty())
         return;
     if (isSilent())
+        return;
+    if (ctx.silentError())
         return;
 
     // Mark file

@@ -5,8 +5,8 @@
 #include "Lexer/LangSpec.h"
 #include "Lexer/Token.h"
 #include "Main/CommandLine.h"
-#include "Main/Context.h"
 #include "Main/Global.h"
+#include "Main/TaskContext.h"
 #include "Report/LogColor.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -75,7 +75,7 @@ namespace
         return rgb.r << 16 | rgb.g << 8 | rgb.b;
     }
 
-    Utf8 syntaxColorToAnsi(const Context& ctx, SyntaxColor color, SyntaxColorMode mode)
+    Utf8 syntaxColorToAnsi(const TaskContext& ctx, SyntaxColor color, SyntaxColorMode mode)
     {
         switch (mode)
         {
@@ -148,7 +148,7 @@ namespace
     }
 }
 
-Utf8 SyntaxColorHelper::colorize(const Context& ctx, SyntaxColorMode mode, const std::string_view& line, bool force)
+Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, const std::string_view& line, bool force)
 {
     const auto& cmdLine = ctx.cmdLine();
 

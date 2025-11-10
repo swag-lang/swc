@@ -9,7 +9,7 @@ SWC_BEGIN_NAMESPACE()
 
 Result CompilerInstance::cmdSyntax()
 {
-    const Context ctx(context_);
+    const TaskContext ctx(context_);
 
     const auto& global  = ctx.global();
     auto&       fileMgr = global.fileMgr();
@@ -20,7 +20,7 @@ Result CompilerInstance::cmdSyntax()
     for (const auto& f : global.fileMgr().files())
     {
         auto job  = std::make_shared<Job>(context_);
-        job->func = [f](Context& fnCtx) {
+        job->func = [f](TaskContext& fnCtx) {
             Parser parser;
             fnCtx.setSourceFile(f);
             parser.parse(fnCtx);

@@ -3,8 +3,8 @@
 #include "Core/Timer.h"
 #include "Core/Utf8Helper.h"
 #include "Main/CommandLine.h"
-#include "Main/Context.h"
 #include "Main/Global.h"
+#include "Main/TaskContext.h"
 #include "Report/LogColor.h"
 #include "Report/Logger.h"
 #include "Report/Stats.h"
@@ -20,7 +20,7 @@ CompilerInstance::CompilerInstance(const CommandLine& cmdLine, const Global& glo
 
 void CompilerInstance::logBefore() const
 {
-    const Context ctx(context_);
+    const TaskContext ctx(context_);
 
     ctx.global().logger().lock();
 
@@ -39,7 +39,7 @@ void CompilerInstance::logBefore() const
 
 void CompilerInstance::logAfter() const
 {
-    const Context ctx(context_);
+    const TaskContext ctx(context_);
 
     const auto timeSrc = Utf8Helper::toNiceTime(Timer::toSeconds(Stats::get().timeTotal));
     ctx.global().logger().lock();
@@ -60,7 +60,7 @@ void CompilerInstance::logStats() const
 {
     if (context_.cmdLine().stats)
     {
-        const Context ctx(context_);
+        const TaskContext ctx(context_);
         Stats::get().print(ctx);
     }
 }

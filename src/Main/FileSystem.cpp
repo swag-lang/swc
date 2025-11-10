@@ -1,12 +1,12 @@
 #include "pch.h"
 #include "Main/FileSystem.h"
 #include "Main/CommandLine.h"
-#include "Main/Context.h"
+#include "Main/TaskContext.h"
 #include "Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE()
 
-Result FileSystem::resolveFolder(const Context& ctx, fs::path& folder)
+Result FileSystem::resolveFolder(const TaskContext& ctx, fs::path& folder)
 {
     std::error_code ec;
 
@@ -56,7 +56,7 @@ Result FileSystem::resolveFolder(const Context& ctx, fs::path& folder)
     return Result::Success;
 }
 
-Result FileSystem::resolveFile(const Context& ctx, fs::path& file)
+Result FileSystem::resolveFile(const TaskContext& ctx, fs::path& file)
 {
     std::error_code ec;
 
@@ -120,7 +120,7 @@ Utf8 FileSystem::normalizeSystemMessage(std::error_code ec)
     return normalizeSystemMessage(ec.message());
 }
 
-void FileSystem::collectSwagFilesRec(const Context& ctx, const fs::path& folder, std::vector<fs::path>& files)
+void FileSystem::collectSwagFilesRec(const TaskContext& ctx, const fs::path& folder, std::vector<fs::path>& files)
 {
     for (const auto& entry : fs::recursive_directory_iterator(folder))
     {

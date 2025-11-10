@@ -2,7 +2,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-class Context;
+class TaskContext;
 
 enum class LogSymbol
 {
@@ -25,7 +25,7 @@ enum class LogSymbol
 
 struct LogSymbolHelper
 {
-    static Utf8 toString(const Context& ctx, LogSymbol symbol);
+    static Utf8 toString(const TaskContext& ctx, LogSymbol symbol);
 };
 
 SWC_END_NAMESPACE()

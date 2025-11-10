@@ -7,7 +7,7 @@
 SWC_BEGIN_NAMESPACE()
 
 class SourceFile;
-class Context;
+class TaskContext;
 
 enum class SkipUntilFlagsE : uint32_t
 {
@@ -28,7 +28,7 @@ public:
 
 class Parser
 {
-    Context*     ctx_            = nullptr;
+    TaskContext* ctx_            = nullptr;
     SourceFile*  file_           = nullptr;
     Ast*         ast_            = nullptr;
     const Token* firstToken_     = nullptr;
@@ -156,7 +156,7 @@ class Parser
     void               raiseExpected(DiagnosticId id, TokenRef tknRef, TokenId tknExpected);
 
 public:
-    Result parse(Context& ctx);
+    Result parse(TaskContext& ctx);
 };
 
 SWC_END_NAMESPACE()

@@ -2,7 +2,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-class Context;
+class TaskContext;
 
 enum class SyntaxColor
 {
@@ -47,7 +47,7 @@ enum class SyntaxColorMode
 
 namespace SyntaxColorHelper
 {
-    Utf8 colorize(const Context& ctx, SyntaxColorMode mode, const std::string_view& line, bool force = false);
+    Utf8 colorize(const TaskContext& ctx, SyntaxColorMode mode, const std::string_view& line, bool force = false);
 }
 
 SWC_END_NAMESPACE()

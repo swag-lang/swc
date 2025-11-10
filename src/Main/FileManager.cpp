@@ -1,10 +1,10 @@
 #include "pch.h"
 
-#include "Context.h"
 #include "FileSystem.h"
 #include "Global.h"
 #include "Main/CommandLine.h"
 #include "Main/FileManager.h"
+#include "TaskContext.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -36,7 +36,7 @@ std::vector<SourceFile*> FileManager::files() const
     return result;
 }
 
-Result FileManager::collectFiles(const Context& ctx)
+Result FileManager::collectFiles(const TaskContext& ctx)
 {
     const auto&           cmdLine = ctx.cmdLine();
     std::vector<fs::path> paths;

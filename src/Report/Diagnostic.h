@@ -5,7 +5,7 @@ SWC_BEGIN_NAMESPACE()
 
 enum class LogColor;
 
-class Context;
+class TaskContext;
 enum class DiagnosticId;
 enum class TokenId : uint16_t;
 
@@ -76,7 +76,7 @@ public:
         arguments_.emplace_back(Argument{name, quoted, std::forward<T>(arg)});
     }
 
-    void report(const Context& ctx) const;
+    void report(const TaskContext& ctx) const;
 };
 
 SWC_END_NAMESPACE()

@@ -1,7 +1,7 @@
 #pragma once
 SWC_BEGIN_NAMESPACE()
 
-class Context;
+class TaskContext;
 
 struct Stats
 {
@@ -34,7 +34,7 @@ struct Stats
         }
     }
 
-    void print(const Context& ctx) const;
+    void print(const TaskContext& ctx) const;
 };
 
 SWC_END_NAMESPACE()

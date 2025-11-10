@@ -110,7 +110,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
     case TokenId::IntrinsicBcBreakpoint:
         return parseInternalCallZero(AstNodeId::IntrinsicCallZero);
 
-    case TokenId::IntrinsicPrint:
     case TokenId::IntrinsicAssert:
         return parseInternalCallUnary(AstNodeId::IntrinsicCallUnary);
 

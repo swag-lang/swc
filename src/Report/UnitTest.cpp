@@ -6,12 +6,12 @@
 #include "Lexer/Lexer.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
-#include "Main/Context.h"
 #include "Main/Global.h"
+#include "Main/TaskContext.h"
 
 SWC_BEGIN_NAMESPACE()
 
-void UnitTest::tokenizeOption(const Context& ctx, std::string_view comment)
+void UnitTest::tokenizeOption(TaskContext& ctx, std::string_view comment)
 {
     const auto  file     = ctx.sourceFile();
     const auto& langSpec = ctx.global().langSpec();
@@ -64,7 +64,7 @@ void UnitTest::tokenizeOption(const Context& ctx, std::string_view comment)
     }
 }
 
-void UnitTest::tokenizeExpected(const Context& ctx, const LexTrivia& trivia, std::string_view comment)
+void UnitTest::tokenizeExpected(const TaskContext& ctx, const LexTrivia& trivia, std::string_view comment)
 {
     const auto  file     = ctx.sourceFile();
     const auto& langSpec = ctx.global().langSpec();
@@ -142,12 +142,12 @@ void UnitTest::tokenizeExpected(const Context& ctx, const LexTrivia& trivia, std
     }
 }
 
-Result UnitTest::tokenize(const Context& ctx)
+Result UnitTest::tokenize(TaskContext& ctx)
 {
     if (!ctx.cmdLine().verify)
         return Result::Success;
 
-    Context lexerCtx(ctx);
+    TaskContext lexerCtx(ctx);
     lexerCtx.setSourceFile(file_);
 
     // Get all comments from the file
@@ -165,12 +165,12 @@ Result UnitTest::tokenize(const Context& ctx)
     return Result::Success;
 }
 
-bool UnitTest::verifyExpected(const Context& ctx, const Diagnostic& diag) const
+bool UnitTest::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) const
 {
     if (directives_.empty())
         return false;
 
-    Context lexerCtx(ctx);
+    TaskContext lexerCtx(ctx);
     lexerCtx.setSourceFile(file_);
 
     for (auto& elem : diag.elements())
@@ -196,9 +196,9 @@ bool UnitTest::verifyExpected(const Context& ctx, const Diagnostic& diag) const
     return false;
 }
 
-Result UnitTest::verifyUntouchedExpected(const Context& ctx) const
+Result UnitTest::verifyUntouchedExpected(const TaskContext& ctx) const
 {
-    Context lexerCtx(ctx);
+    TaskContext lexerCtx(ctx);
     lexerCtx.setSourceFile(file_);
 
     for (const auto& directive : directives_)

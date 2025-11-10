@@ -4,7 +4,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-class Context;
+class TaskContext;
 
 class FileManager
 {
@@ -15,7 +15,7 @@ class FileManager
 public:
     FileRef                  addFile(fs::path path);
     std::vector<SourceFile*> files() const;
-    Result                   collectFiles(const Context& ctx);
+    Result                   collectFiles(const TaskContext& ctx);
 
     SourceFile* file(FileRef ref) const
     {

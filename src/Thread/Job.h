@@ -1,5 +1,5 @@
 #pragma once
-#include "Main/Context.h"
+#include "Main/TaskContext.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -63,13 +63,13 @@ public:
     // Wake all jobs currently waiting on this job (even before finishing).
     void wakeDependents() const;
 
-    Context&       ctx() { return ctx_; }
-    const Context& ctx() const { return ctx_; }
+    TaskContext&       ctx() { return ctx_; }
+    const TaskContext& ctx() const { return ctx_; }
 
-    std::function<JobResult(Context&)> func;
+    std::function<JobResult(TaskContext&)> func;
 
 protected:
-    Context ctx_;
+    TaskContext ctx_;
 
     // For Result::SleepOn
     void setDependency(const JobRef& dep)

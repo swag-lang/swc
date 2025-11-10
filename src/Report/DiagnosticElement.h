@@ -5,7 +5,7 @@
 SWC_BEGIN_NAMESPACE()
 
 class SourceFile;
-class Context;
+class TaskContext;
 enum class DiagnosticId;
 
 class DiagnosticElement
@@ -36,8 +36,8 @@ public:
     Utf8 message() const;
     void setMessage(Utf8 m);
 
-    SourceCodeLocation location(uint32_t spanIndex, const Context& ctx) const;
-    SourceCodeLocation location(const DiagnosticSpan& span, const Context& ctx) const;
+    SourceCodeLocation location(uint32_t spanIndex, const TaskContext& ctx) const;
+    SourceCodeLocation location(const DiagnosticSpan& span, const TaskContext& ctx) const;
     std::string_view   idName() const;
     DiagnosticId       id() const { return id_; }
     DiagnosticSeverity severity() const { return severity_; }

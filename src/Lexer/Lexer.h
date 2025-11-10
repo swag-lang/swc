@@ -6,7 +6,7 @@ SWC_BEGIN_NAMESPACE()
 
 enum class DiagnosticId;
 class Diagnostic;
-class Context;
+class TaskContext;
 class Global;
 class SourceFile;
 class LangSpec;
@@ -59,7 +59,7 @@ class Lexer
     const uint8_t*  startBuffer_   = nullptr;
     const uint8_t*  endBuffer_     = nullptr;
     const uint8_t*  startToken_    = nullptr;
-    Context*        ctx_           = nullptr;
+    TaskContext*    ctx_           = nullptr;
     const LangSpec* langSpec_      = nullptr;
     bool            hasTokenError_ = false;
     bool            hasUtf8Error_  = false;
@@ -74,7 +74,7 @@ class Lexer
     void       raiseUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len = 1);
     Diagnostic reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len = 1);
     void       raiseTokenError(DiagnosticId id, uint32_t offset, uint32_t len = 1);
-    void       checkFormat(const Context& ctx, uint32_t& startOffset);
+    void       checkFormat(const TaskContext& ctx, uint32_t& startOffset);
     void       lexEscape(TokenId containerToken, bool eatEol);
 
     void lexWhitespace();
@@ -92,8 +92,8 @@ class Lexer
     void lexMultiLineComment();
 
 public:
-    Result tokenize(Context& ctx, LexerFlags flags = LexerFlagsE::Default);
-    Result tokenizeRaw(Context& ctx);
+    Result tokenize(TaskContext& ctx, LexerFlags flags = LexerFlagsE::Default);
+    Result tokenizeRaw(TaskContext& ctx);
 };
 
 SWC_END_NAMESPACE()

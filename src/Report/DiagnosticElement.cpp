@@ -57,14 +57,14 @@ void DiagnosticElement::addSpan(const SourceCodeLocation& loc, DiagnosticId diag
     spans_.push_back(span);
 }
 
-SourceCodeLocation DiagnosticElement::location(uint32_t spanIndex, const Context& ctx) const
+SourceCodeLocation DiagnosticElement::location(uint32_t spanIndex, const TaskContext& ctx) const
 {
     if (!file_ || spans_.empty())
         return {};
     return location(spans_[spanIndex], ctx);
 }
 
-SourceCodeLocation DiagnosticElement::location(const DiagnosticSpan& span, const Context& ctx) const
+SourceCodeLocation DiagnosticElement::location(const DiagnosticSpan& span, const TaskContext& ctx) const
 {
     if (!file_)
         return {};

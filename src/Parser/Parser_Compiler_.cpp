@@ -14,7 +14,7 @@ AstNodeRef Parser::parseCompilerFunc()
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerFunc>();
         nodePtr->tokName        = consume();
-        nodePtr->nodeBody       = parseCompound(AstNodeId::FuncBody, TokenId::SymLeftCurly);
+        nodePtr->nodeBody       = parseCompound(AstNodeId::FunctionBody, TokenId::SymLeftCurly);
         return nodeRef;
     }
 
@@ -33,7 +33,7 @@ AstNodeRef Parser::parseCompilerExpr()
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerEmbeddedFunc>();
         nodePtr->tokName        = consume();
-        nodePtr->nodeBody       = parseCompound(AstNodeId::FuncBody, TokenId::SymLeftCurly);
+        nodePtr->nodeBody       = parseCompound(AstNodeId::FunctionBody, TokenId::SymLeftCurly);
         return nodeRef;
     }
 

@@ -250,10 +250,21 @@ struct AstClosureExpr : AstLambdaExpr
     SpanRef nodeCaptureArgs;
 };
 
-struct AstFuncBody : AstCompound
+struct AstFunctionDecl : AstNode
 {
-    static constexpr auto ID = AstNodeId::FuncBody;
-    AstFuncBody() :
+    static constexpr auto ID = AstNodeId::FunctionDecl;
+    explicit AstFunctionDecl() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeBody;
+};
+
+struct AstFunctionBody : AstCompound
+{
+    static constexpr auto ID = AstNodeId::FunctionBody;
+    AstFunctionBody() :
         AstCompound(ID)
     {
     }

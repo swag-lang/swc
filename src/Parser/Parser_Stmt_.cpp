@@ -68,9 +68,7 @@ AstNodeRef Parser::parseTopLevelStmt()
 
     case TokenId::KwdFunc:
     case TokenId::KwdMtd:
-        // @skip
-        skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
-        return INVALID_REF;
+        return parseFuncDecl();
 
     case TokenId::KwdAlias:
         return parseAlias();

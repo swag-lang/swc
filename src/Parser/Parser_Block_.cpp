@@ -19,7 +19,7 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
     case AstNodeId::ImplFor:
         return parseTopLevelStmt();
 
-    case AstNodeId::FuncBody:
+    case AstNodeId::FunctionBody:
     case AstNodeId::EmbeddedBlock:
         return parseEmbeddedStmt();
 
@@ -264,7 +264,7 @@ AstNodeRef Parser::parseFile()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::File>();
 
-    // #global must be first 
+    // #global must be first
     SmallVector<TokenRef> globals;
     while (is(TokenId::CompilerGlobal))
     {
@@ -275,7 +275,7 @@ AstNodeRef Parser::parseFile()
             globals.push_back(global);
     }
 
-    nodePtr->spanGlobals  = ast_->store_.push_span(globals.span());
+    nodePtr->spanGlobals = ast_->store_.push_span(globals.span());
 
     // All the rest
     nodePtr->spanChildren = parseCompoundContent(AstNodeId::File, TokenId::Invalid);

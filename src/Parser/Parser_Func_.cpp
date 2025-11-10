@@ -144,7 +144,7 @@ AstNodeRef Parser::parseLambdaExpression()
     // Body
     AstNodeRef body = INVALID_REF;
     if (is(TokenId::SymLeftCurly))
-        body = parseCompound(AstNodeId::FuncBody, TokenId::SymLeftCurly);
+        body = parseCompound(AstNodeId::FunctionBody, TokenId::SymLeftCurly);
     else
     {
         expectAndConsume(TokenId::SymEqualGreater, DiagnosticId::parser_err_expected_token_before);
@@ -167,6 +167,30 @@ AstNodeRef Parser::parseLambdaExpression()
     nodePtr->nodeParams     = params;
     nodePtr->nodeReturnType = returnType;
     nodePtr->nodeBody       = body;
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseFuncDecl()
+{
+    AstLambdaType::Flags flags = AstLambdaType::FlagsE::Zero;
+    if (consumeIf(TokenId::KwdMtd) != INVALID_REF)
+        flags.add(AstLambdaType::FlagsE::Mtd);
+    else
+        consume(TokenId::KwdFunc);
+
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionDecl>();
+    nodePtr->addFlag(flags);
+
+    // @skip
+    skipTo({TokenId::SymSemiColon, TokenId::SymLeftCurly, TokenId::SymEqualGreater});
+
+    // Body
+    if (consumeIf(TokenId::SymEqualGreater) != INVALID_REF)
+        nodePtr->nodeBody = parseExpression();
+    else if (consumeIf(TokenId::SymSemiColon) != INVALID_REF)
+        nodePtr->nodeBody = INVALID_REF;
+    else
+        nodePtr->nodeBody = parseCompound(AstNodeId::FunctionBody, TokenId::SymLeftCurly);
     return nodeRef;
 }
 

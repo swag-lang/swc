@@ -3,7 +3,7 @@
 SWC_BEGIN_NAMESPACE()
 
 // Base template for strong type wrappers
-template<typename TAG>
+template<typename>
 class StrongRef
 {
     uint32_t value_;
@@ -42,7 +42,6 @@ public:
 // Tag types for different reference kinds
 // clang-format off
 struct AstNodeTag{};
-struct AstPayloadTag{};
 struct FileTag{};
 struct TokenTag{};
 struct SpanTag{};
@@ -50,7 +49,6 @@ struct SpanTag{};
 
 // Type definitions
 using AstNodeRef    = StrongRef<AstNodeTag>;
-using AstPayloadRef = StrongRef<AstPayloadTag>;
 using FileRef       = StrongRef<FileTag>;
 using TokenRef      = StrongRef<TokenTag>;
 using SpanRef       = StrongRef<SpanTag>;

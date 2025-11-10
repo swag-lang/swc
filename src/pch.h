@@ -41,6 +41,6 @@ namespace fs = std::filesystem;
 #endif
 
 #include "Core/Flags.h"
+#include "Core/StrongRef.h"
 #include "Core/Utf8.h"
-#include "Core/Types.h"
 #include "Report/Check.h"

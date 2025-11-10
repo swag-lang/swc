@@ -245,7 +245,7 @@
         <ClInclude Include="src\Core\SmallVector.h"/>
         <ClInclude Include="src\Core\StringMap.h"/>
         <ClInclude Include="src\Core\Timer.h"/>
-        <ClInclude Include="src\Core\Types.h"/>
+        <ClInclude Include="src\Core\StrongRef.h" />
         <ClInclude Include="src\Core\Utf8.h"/>
         <ClInclude Include="src\Core\Utf8Helper.h"/>
         <ClInclude Include="src\Lexer\LangSpec.h"/>

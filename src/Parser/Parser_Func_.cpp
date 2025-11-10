@@ -181,6 +181,21 @@ AstNodeRef Parser::parseFuncDecl()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionDecl>();
     nodePtr->addFlag(flags);
 
+    // Generic parameters
+    if (is(TokenId::SymLeftParen))
+        nodePtr->spanGenericParams = parseCompoundContent(AstNodeId::GenericParamList, TokenId::SymLeftParen);
+    else
+        nodePtr->spanGenericParams = INVALID_REF;
+
+    // Modifiers
+    if (consumeIf(TokenId::KwdConst) != INVALID_REF)
+        flags.add(AstLambdaType::FlagsE::Const);
+    if (consumeIf(TokenId::KwdImpl) != INVALID_REF)
+        flags.add(AstLambdaType::FlagsE::Impl);
+
+    // Name
+    nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+
     // @skip
     skipTo({TokenId::SymSemiColon, TokenId::SymLeftCurly, TokenId::SymEqualGreater});
 

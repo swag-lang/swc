@@ -258,6 +258,8 @@ struct AstFunctionDecl : AstNode
     {
     }
 
+    SpanRef    spanGenericParams;
+    TokenRef   tokName;
     AstNodeRef nodeBody;
 };
 
@@ -1050,6 +1052,8 @@ struct AstLambdaType : AstNode
         Mtd     = 1 << 0,
         Throw   = 1 << 1,
         Closure = 1 << 2,
+        Const   = 1 << 3,
+        Impl    = 1 << 4,
     };
     using Flags = EnumFlags<FlagsE>;
 

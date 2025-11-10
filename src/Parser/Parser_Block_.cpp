@@ -113,7 +113,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
     switch (blockNodeId)
     {
     case AstNodeId::EnumDecl:
-        if (!consumeIf(TokenId::SymComma) && !is(tokenEndId) && !tok().startsLine())
+        if (consumeIf(TokenId::SymComma) == INVALID_REF && !is(tokenEndId) && !tok().startsLine())
         {
             if (is(TokenId::Identifier) && blockNodeId == AstNodeId::EnumDecl)
                 raiseError(DiagnosticId::parser_err_missing_enum_sep, ref());
@@ -125,7 +125,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
         break;
 
     case AstNodeId::AggregateBody:
-        if (!consumeIf(TokenId::SymComma) && !consumeIf(TokenId::SymSemiColon) && !is(tokenEndId) && !tok().startsLine())
+        if (consumeIf(TokenId::SymComma) == INVALID_REF && consumeIf(TokenId::SymSemiColon) == INVALID_REF && !is(tokenEndId) && !tok().startsLine())
         {
             raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
             skipTo(skipTokens);
@@ -143,7 +143,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
     case AstNodeId::LambdaTypeParameterList:
     case AstNodeId::ClosureCaptureList:
     case AstNodeId::MultiPostfixIdentifier:
-        if (!consumeIf(TokenId::SymComma) && !is(tokenEndId))
+        if (consumeIf(TokenId::SymComma) == INVALID_REF && !is(tokenEndId))
         {
             if (is(TokenId::Identifier) && blockNodeId == AstNodeId::AttributeList)
                 raiseError(DiagnosticId::parser_err_missing_attribute_sep, ref());
@@ -250,7 +250,7 @@ Ref Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId, bo
     }
 
     const auto closeTokenRef = ref();
-    if (!consumeIf(tokenEndId) && tokenEndId != TokenId::Invalid)
+    if (consumeIf(tokenEndId) == INVALID_REF && tokenEndId != TokenId::Invalid)
         raiseExpected(DiagnosticId::parser_err_expected_closing, openTokRef, Token::toRelated(openTok.id));
 
     // Consume end token if necessary

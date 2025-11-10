@@ -73,7 +73,7 @@ AstNodeRef Parser::parseLiteralExpression()
         return INVALID_REF;
 
     const auto quoteTknRef = ref();
-    if (!consumeIf(TokenId::SymQuote))
+    if (consumeIf(TokenId::SymQuote) == INVALID_REF)
         return literal;
 
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::PostfixedLiteral>();

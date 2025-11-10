@@ -132,7 +132,7 @@ AstNodeRef Parser::parseCast()
     const auto modifierFlags = parseModifiers();
 
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    if (consumeIf(TokenId::SymRightParen))
+    if (consumeIf(TokenId::SymRightParen) != INVALID_REF)
     {
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AutoCastExpr>();
         nodePtr->tokOp                = tknOp;
@@ -165,7 +165,7 @@ AstNodeRef Parser::parseExpression()
 {
     const auto nodeExpr1 = parseLogicalExpr();
 
-    if (consumeIf(TokenId::KwdOrElse))
+    if (consumeIf(TokenId::KwdOrElse) != INVALID_REF)
     {
         const auto nodeExpr2          = parseExpression();
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::BinaryConditionalOp>();
@@ -174,7 +174,7 @@ AstNodeRef Parser::parseExpression()
         return nodeRef;
     }
 
-    if (consumeIf(TokenId::SymQuestion))
+    if (consumeIf(TokenId::SymQuestion) != INVALID_REF)
     {
         const auto nodeExpr2 = parseExpression();
         expectAndConsume(TokenId::SymColon, DiagnosticId::parser_err_expected_token_before);
@@ -227,7 +227,7 @@ AstNodeRef Parser::parseIdentifier()
 
 AstNodeRef Parser::parseInitializerExpression()
 {
-    if (consumeIf(TokenId::KwdUndefined))
+    if (consumeIf(TokenId::KwdUndefined) != INVALID_REF)
     {
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Undefined>();
         return nodeRef;
@@ -592,7 +592,7 @@ AstNodeRef Parser::parseQualifiedIdentifier()
         return INVALID_REF;
 
     // Check if there's a scope access operator
-    while (!tok().startsLine() && consumeIf(TokenId::SymDot))
+    while (!tok().startsLine() && consumeIf(TokenId::SymDot) != INVALID_REF)
     {
         // Parse the right side (another identifier)
         const auto rightNode = parseIdentifier();
@@ -703,7 +703,7 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
     {
         SmallVector<AstNodeRef> nodeArgs;
         nodeArgs.push_back(nodeExpr);
-        while (consumeIf(TokenId::SymComma))
+        while (consumeIf(TokenId::SymComma) != INVALID_REF)
         {
             nodeExpr = parseExpression();
             if (invalid(nodeExpr))

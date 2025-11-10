@@ -94,7 +94,7 @@ AstNodeRef Parser::parseType()
     }
 
     // Left reference
-    if (consumeIf(TokenId::SymAmpersand))
+    if (consumeIf(TokenId::SymAmpersand) != INVALID_REF)
     {
         const auto child = parseType();
         if (invalid(child))
@@ -105,7 +105,7 @@ AstNodeRef Parser::parseType()
     }
 
     // Right reference
-    if (consumeIf(TokenId::SymAmpersandAmpersand))
+    if (consumeIf(TokenId::SymAmpersandAmpersand) != INVALID_REF)
     {
         const auto child = parseType();
         if (invalid(child))
@@ -116,7 +116,7 @@ AstNodeRef Parser::parseType()
     }
 
     // Pointer
-    if (consumeIf(TokenId::SymAsterisk))
+    if (consumeIf(TokenId::SymAsterisk) != INVALID_REF)
     {
         const auto child = parseType();
         if (invalid(child))
@@ -127,11 +127,11 @@ AstNodeRef Parser::parseType()
     }
 
     // Array or slice
-    TokenRef leftBracket;
-    if (consumeIf(TokenId::SymLeftBracket, &leftBracket))
+    const TokenRef leftBracket = consumeIf(TokenId::SymLeftBracket);
+    if (leftBracket != INVALID_REF)
     {
         // [*]
-        if (consumeIf(TokenId::SymAsterisk))
+        if (consumeIf(TokenId::SymAsterisk) != INVALID_REF)
         {
             if (invalid(expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket)))
                 return INVALID_REF;
@@ -144,7 +144,7 @@ AstNodeRef Parser::parseType()
         }
 
         // [..]
-        if (consumeIf(TokenId::SymDotDot))
+        if (consumeIf(TokenId::SymDotDot) != INVALID_REF)
         {
             if (invalid(expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket)))
                 return INVALID_REF;
@@ -157,7 +157,7 @@ AstNodeRef Parser::parseType()
         }
 
         // [?]
-        if (consumeIf(TokenId::SymQuestion))
+        if (consumeIf(TokenId::SymQuestion) != INVALID_REF)
         {
             if (invalid(expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket)))
                 return INVALID_REF;
@@ -187,7 +187,7 @@ AstNodeRef Parser::parseType()
         dimensions.push_back(firstDim);
 
         // Parse additional dimensions separated by commas
-        while (consumeIf(TokenId::SymComma))
+        while (consumeIf(TokenId::SymComma) != INVALID_REF)
         {
             const auto dim = parseExpression();
             if (invalid(dim))

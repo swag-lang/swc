@@ -53,7 +53,7 @@ AstNodeRef Parser::parseCompilerTypeExpr()
 
 AstNodeRef Parser::parseCompilerIfStmt(AstNodeId blockNodeId)
 {
-    if (consumeIf(TokenId::KwdDo))
+    if (consumeIf(TokenId::KwdDo) != INVALID_REF)
     {
         if (is(TokenId::SymLeftCurly))
         {
@@ -90,7 +90,7 @@ AstNodeRef Parser::parseCompilerIf(AstNodeId blockNodeId)
     // Parse optional 'else' or 'elif' block
     if (is(TokenId::CompilerElseIf))
         nodePtr->nodeElseBlock = parseCompilerIf(blockNodeId);
-    else if (consumeIf(TokenId::CompilerElse))
+    else if (consumeIf(TokenId::CompilerElse) != INVALID_REF)
         nodePtr->nodeElseBlock = parseCompilerIfStmt(blockNodeId);
 
     return nodeRef;

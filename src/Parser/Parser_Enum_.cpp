@@ -36,7 +36,7 @@ AstNodeRef Parser::parseEnumValue()
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumValue>();
         nodePtr->tokName        = consume();
-        if (consumeIf(TokenId::SymEqual))
+        if (consumeIf(TokenId::SymEqual) != INVALID_REF)
         {
             nodePtr->nodeValue = parseExpression();
             if (invalid(nodePtr->nodeValue))
@@ -68,7 +68,7 @@ AstNodeRef Parser::parseEnumDecl()
         skipTo({TokenId::SymLeftCurly, TokenId::SymColon});
 
     // Type
-    if (consumeIf(TokenId::SymColon))
+    if (consumeIf(TokenId::SymColon) != INVALID_REF)
     {
         nodePtr->nodeType = parseType();
         if (invalid(nodePtr->nodeType))

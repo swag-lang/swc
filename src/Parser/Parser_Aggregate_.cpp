@@ -18,7 +18,7 @@ AstNodeRef Parser::parseImpl()
 
     // For
     AstNodeRef nodeFor = INVALID_REF;
-    if (consumeIf(TokenId::KwdFor))
+    if (consumeIf(TokenId::KwdFor) != INVALID_REF)
     {
         nodeFor = parseQualifiedIdentifier();
         if (invalid(nodeIdent))

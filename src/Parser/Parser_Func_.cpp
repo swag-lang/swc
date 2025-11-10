@@ -29,7 +29,7 @@ AstNodeRef Parser::parseLambdaTypeParam()
         nodePtr->nodeType = parseType();
     }
 
-    if (consumeIf(TokenId::SymEqual))
+    if (consumeIf(TokenId::SymEqual) != INVALID_REF)
         nodePtr->nodeDefaultValue = parseInitializerExpression();
     else
         nodePtr->nodeDefaultValue = INVALID_REF;
@@ -42,12 +42,12 @@ AstNodeRef Parser::parseLambdaType()
     AstLambdaType::Flags flags    = AstLambdaType::FlagsE::Zero;
     const auto           tokStart = ref();
 
-    if (consumeIf(TokenId::KwdMtd))
+    if (consumeIf(TokenId::KwdMtd) != INVALID_REF)
         flags.add(AstLambdaType::FlagsE::Mtd);
     else
         consume(TokenId::KwdFunc);
 
-    if (consumeIf(TokenId::SymVerticalVertical))
+    if (consumeIf(TokenId::SymVerticalVertical) != INVALID_REF)
         flags.add(AstLambdaType::FlagsE::Closure);
     else if (flags.has(AstLambdaType::FlagsE::Mtd))
     {
@@ -59,11 +59,11 @@ AstNodeRef Parser::parseLambdaType()
 
     // Return type
     AstNodeRef returnType = INVALID_REF;
-    if (consumeIf(TokenId::SymMinusGreater))
+    if (consumeIf(TokenId::SymMinusGreater) != INVALID_REF)
         returnType = parseType();
 
     // Can raise errors
-    if (consumeIf(TokenId::KwdThrow))
+    if (consumeIf(TokenId::KwdThrow) != INVALID_REF)
         flags.add(AstLambdaType::FlagsE::Throw);
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaType>();
@@ -78,7 +78,7 @@ AstNodeRef Parser::parseLambdaExpression()
     AstLambdaType::Flags flags    = AstLambdaType::FlagsE::Zero;
     const auto           tokStart = ref();
 
-    if (consumeIf(TokenId::KwdMtd))
+    if (consumeIf(TokenId::KwdMtd) != INVALID_REF)
         flags.add(AstLambdaType::FlagsE::Mtd);
     else
         consume(TokenId::KwdFunc);
@@ -89,7 +89,7 @@ AstNodeRef Parser::parseLambdaExpression()
         flags.add(AstLambdaType::FlagsE::Closure);
         captureArgs = parseCompound(AstNodeId::ClosureCaptureList, TokenId::SymVertical);
     }
-    else if (consumeIf(TokenId::SymVerticalVertical))
+    else if (consumeIf(TokenId::SymVerticalVertical) != INVALID_REF)
     {
         flags.add(AstLambdaType::FlagsE::Closure);
     }
@@ -103,11 +103,11 @@ AstNodeRef Parser::parseLambdaExpression()
 
     // Return type
     AstNodeRef returnType = INVALID_REF;
-    if (consumeIf(TokenId::SymMinusGreater))
+    if (consumeIf(TokenId::SymMinusGreater) != INVALID_REF)
         returnType = parseType();
 
     // Can raise errors
-    if (consumeIf(TokenId::KwdThrow))
+    if (consumeIf(TokenId::KwdThrow) != INVALID_REF)
         flags.add(AstLambdaType::FlagsE::Throw);
 
     // Body

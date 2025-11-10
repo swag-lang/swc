@@ -222,19 +222,11 @@ TokenRef Parser::consume()
     return result;
 }
 
-bool Parser::consumeIf(TokenId id, TokenRef* result)
+TokenRef Parser::consumeIf(TokenId id)
 {
     if (atEnd() || isNot(id))
-    {
-        if (result)
-            *result = INVALID_REF;
-        return false;
-    }
-
-    if (result)
-        *result = ref();
-    consume();
-    return true;
+        return INVALID_REF;
+    return consume();
 }
 
 TokenRef Parser::expectAndConsume(TokenId id, DiagnosticId diagId)
@@ -276,7 +268,7 @@ void Parser::expectEndStatement()
 {
     if (tok().startsLine() || is(TokenId::EndOfFile))
         return;
-    if (consumeIf(TokenId::SymSemiColon))
+    if (consumeIf(TokenId::SymSemiColon) != INVALID_REF)
         return;
 
     const auto diag = reportError(DiagnosticId::parser_err_expected_eol, ref() - 1);

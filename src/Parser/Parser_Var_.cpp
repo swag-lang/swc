@@ -11,15 +11,15 @@ AstNodeRef Parser::parseGenericParam()
     bool        isType      = false;
     const auto& tknConstVar = tok();
 
-    if (consumeIf(TokenId::KwdConst))
+    if (consumeIf(TokenId::KwdConst) != INVALID_REF)
         isConstant = true;
-    else if (consumeIf(TokenId::KwdVar))
+    else if (consumeIf(TokenId::KwdVar) != INVALID_REF)
         isType = true;
 
     const auto tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
 
     AstNodeRef nodeType = INVALID_REF;
-    if (consumeIf(TokenId::SymColon))
+    if (consumeIf(TokenId::SymColon) != INVALID_REF)
     {
         if (isType)
         {
@@ -34,7 +34,7 @@ AstNodeRef Parser::parseGenericParam()
     }
 
     AstNodeRef nodeAssign = INVALID_REF;
-    if (consumeIf(TokenId::SymEqual))
+    if (consumeIf(TokenId::SymEqual) != INVALID_REF)
     {
         if (isConstant)
             nodeAssign = parseExpression();
@@ -65,8 +65,8 @@ AstNodeRef Parser::parseDecompositionDecl(AstVarDecl::Flags flags)
     SmallVector<TokenRef> tokNames;
     while (!is(TokenId::SymRightParen))
     {
-        TokenRef tokName;
-        if (!consumeIf(TokenId::SymQuestion, &tokName))
+        TokenRef tokName = consumeIf(TokenId::SymQuestion);
+        if (tokName == INVALID_REF)
         {
             tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
             if (invalid(tokName))
@@ -74,7 +74,7 @@ AstNodeRef Parser::parseDecompositionDecl(AstVarDecl::Flags flags)
         }
 
         tokNames.push_back(tokName);
-        if (!consumeIf(TokenId::SymComma))
+        if (consumeIf(TokenId::SymComma) == INVALID_REF)
             break;
     }
 
@@ -91,38 +91,35 @@ AstNodeRef Parser::parseDecompositionDecl(AstVarDecl::Flags flags)
 AstNodeRef Parser::parseVarDecl()
 {
     AstVarDecl::Flags flags = AstVarDecl::FlagsE::Zero;
-    if (consumeIf(TokenId::KwdConst))
+    if (consumeIf(TokenId::KwdConst) != INVALID_REF)
         flags.add(AstVarDecl::FlagsE::Const);
-    else if (consumeIf(TokenId::KwdVar))
+    else if (consumeIf(TokenId::KwdVar) != INVALID_REF)
         flags.add(AstVarDecl::FlagsE::Var);
-    else if (consumeIf(TokenId::KwdLet))
+    else if (consumeIf(TokenId::KwdLet) != INVALID_REF)
         flags.add(AstVarDecl::FlagsE::Let);
 
     if (is(TokenId::SymLeftParen))
         return parseDecompositionDecl(flags);
 
     // All names
-    TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
-    if (invalid(tokName))
-        return INVALID_REF;
-
     SmallVector<TokenRef> tokNames;
-    tokNames.push_back(tokName);
-
-    while (consumeIf(TokenId::SymComma))
+    while (true)
     {
-        tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+        TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
         if (invalid(tokName))
             return INVALID_REF;
         tokNames.push_back(tokName);
+
+        if (consumeIf(TokenId::SymComma) == INVALID_REF)
+            break;
     }
 
     AstNodeRef nodeType = INVALID_REF;
     AstNodeRef nodeInit = INVALID_REF;
 
-    if (consumeIf(TokenId::SymColon))
+    if (consumeIf(TokenId::SymColon) != INVALID_REF)
         nodeType = parseType();
-    if (consumeIf(TokenId::SymEqual))
+    if (consumeIf(TokenId::SymEqual) != INVALID_REF)
         nodeInit = parseInitializerExpression();
 
     if (tokNames.size() == 1)

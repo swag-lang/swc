@@ -116,6 +116,10 @@ AstNodeRef Parser::parseEmbeddedStmt()
     case TokenId::SymAttrStart:
         return parseCompilerAttribute(AstNodeId::EmbeddedBlock);
 
+    case TokenId::KwdFunc:
+    case TokenId::KwdMtd:
+        return parseFuncDecl();
+
     case TokenId::KwdConst:
     case TokenId::KwdVar:
     case TokenId::KwdLet:

@@ -58,8 +58,7 @@ AstNodeRef Parser::parseTopLevelStmt()
     case TokenId::KwdVar:
     {
         const AstNodeRef nodeRef = parseVarDecl();
-        // @skip
-        // expectEndStatement();
+        expectEndStatement();
         return nodeRef;
     }
 

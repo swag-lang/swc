@@ -61,19 +61,21 @@ AstNodeRef Parser::parseDecompositionDecl(AstVarDecl::Flags flags)
 {
     const auto openRef = consume(TokenId::SymLeftParen);
 
-    TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
-    if (invalid(tokName))
-        return INVALID_REF;
-
     // All names
     SmallVector<TokenRef> tokNames;
-    tokNames.push_back(tokName);
-    while (consumeIf(TokenId::SymComma))
+    while (!is(TokenId::SymRightParen))
     {
-        tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
-        if (invalid(tokName))
-            return INVALID_REF;
+        TokenRef tokName;
+        if (!consumeIf(TokenId::SymQuestion, &tokName))
+        {
+            tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+            if (invalid(tokName))
+                return INVALID_REF;
+        }
+
         tokNames.push_back(tokName);
+        if (!consumeIf(TokenId::SymComma))
+            break;
     }
 
     expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);

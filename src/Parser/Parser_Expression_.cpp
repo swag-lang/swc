@@ -311,7 +311,7 @@ AstNodeRef Parser::parsePostFixExpression()
     while (true)
     {
         // Scope resolution
-        if (is(TokenId::SymDot))
+        if (is(TokenId::SymDot) && !tok().flags.has(TokenFlagsE::EolBefore))
         {
             const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::ScopeResolution>();
             consume();

@@ -102,46 +102,63 @@ AstNodeRef Parser::parseVarDecl()
     if (is(TokenId::SymLeftParen))
         return parseDecompositionDecl(flags);
 
-    // All names
-    SmallVector<TokenRef> tokNames;
+    SmallVector<AstNodeRef> vars;
     while (true)
     {
-        TokenRef tokName = INVALID_REF;
-        if (Token::isCompilerAlias(id()) || Token::isCompilerUniq(id()))
-            tokName = consume();
+        // All names
+        SmallVector<TokenRef> tokNames;
+        while (true)
+        {
+            TokenRef tokName = INVALID_REF;
+            if (Token::isCompilerAlias(id()) || Token::isCompilerUniq(id()))
+                tokName = consume();
+            else
+                tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+            if (invalid(tokName))
+                return INVALID_REF;
+            tokNames.push_back(tokName);
+
+            if (consumeIf(TokenId::SymComma) == INVALID_REF)
+                break;
+        }
+
+        AstNodeRef nodeType = INVALID_REF;
+        AstNodeRef nodeInit = INVALID_REF;
+
+        if (consumeIf(TokenId::SymColon) != INVALID_REF)
+            nodeType = parseType();
+        if (consumeIf(TokenId::SymEqual) != INVALID_REF)
+            nodeInit = parseInitializerExpression();
+
+        if (tokNames.size() == 1)
+        {
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDecl>();
+            nodePtr->addFlag(flags);
+            nodePtr->tokName  = tokNames[0];
+            nodePtr->nodeType = nodeType;
+            nodePtr->nodeInit = nodeInit;
+            vars.push_back(nodeRef);
+        }
         else
-            tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
-        if (invalid(tokName))
-            return INVALID_REF;
-        tokNames.push_back(tokName);
+        {
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarMultiNameDecl>();
+            nodePtr->addFlag(flags);
+            nodePtr->tokNames = ast_->store_.push_span(tokNames.span());
+            nodePtr->nodeType = nodeType;
+            nodePtr->nodeInit = nodeInit;
+            vars.push_back(nodeRef);
+        }
 
-        if (consumeIf(TokenId::SymComma) == INVALID_REF)
+        if (!is(TokenId::SymComma))
             break;
+        consume();
     }
 
-    AstNodeRef nodeType = INVALID_REF;
-    AstNodeRef nodeInit = INVALID_REF;
-
-    if (consumeIf(TokenId::SymColon) != INVALID_REF)
-        nodeType = parseType();
-    if (consumeIf(TokenId::SymEqual) != INVALID_REF)
-        nodeInit = parseInitializerExpression();
-
-    if (tokNames.size() == 1)
-    {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDecl>();
-        nodePtr->addFlag(flags);
-        nodePtr->tokName  = tokNames[0];
-        nodePtr->nodeType = nodeType;
-        nodePtr->nodeInit = nodeInit;
-        return nodeRef;
-    }
+    if (vars.size() == 1)
+        return vars[0];
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarMultiDecl>();
-    nodePtr->addFlag(flags);
-    nodePtr->tokNames = ast_->store_.push_span(tokNames.span());
-    nodePtr->nodeType = nodeType;
-    nodePtr->nodeInit = nodeInit;
+    nodePtr->spanChildren   = ast_->store_.push_span(vars.span());
     return nodeRef;
 }
 

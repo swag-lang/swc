@@ -141,6 +141,7 @@ SWC_NODE_DEF(AttributeList)
 
 // Variables / Constants
 SWC_NODE_DEF(VarDecl)
+SWC_NODE_DEF(VarMultiNameDecl)
 SWC_NODE_DEF(VarMultiDecl)
 SWC_NODE_DEF(DecompositionDecl)
 SWC_NODE_DEF(Undefined)

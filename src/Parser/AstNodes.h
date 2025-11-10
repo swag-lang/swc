@@ -1274,10 +1274,10 @@ struct AstVarDecl : AstNode
     AstNodeRef nodeInit;
 };
 
-struct AstVarMultiDecl : AstNode
+struct AstVarMultiNameDecl : AstNode
 {
-    static constexpr auto ID = AstNodeId::VarMultiDecl;
-    AstVarMultiDecl() :
+    static constexpr auto ID = AstNodeId::VarMultiNameDecl;
+    AstVarMultiNameDecl() :
         AstNode(ID)
     {
     }
@@ -1285,6 +1285,15 @@ struct AstVarMultiDecl : AstNode
     SpanRef    tokNames;
     AstNodeRef nodeType;
     AstNodeRef nodeInit;
+};
+
+struct AstVarMultiDecl : AstCompound
+{
+    static constexpr auto ID = AstNodeId::VarMultiDecl;
+    AstVarMultiDecl() :
+        AstCompound(ID)
+    {
+    }
 };
 
 struct AstDecompositionDecl : AstNode

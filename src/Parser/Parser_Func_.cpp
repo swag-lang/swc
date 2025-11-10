@@ -34,24 +34,7 @@ AstNodeRef Parser::parseLambdaTypeParam()
             consume(TokenId::SymColon);
         }
 
-        // Untyped variadic parameter
-        if (consumeIf(TokenId::SymDotDotDot) != INVALID_REF)
-        {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VariadicParam>();
-            nodePtr->tokName        = tokName;
-            return nodeRef;
-        }
-
         nodeType = parseType();
-    }
-
-    // Typed variadic parameter
-    if (consumeIf(TokenId::SymDotDotDot) != INVALID_REF)
-    {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TypedVariadicParam>();
-        nodePtr->tokName        = tokName;
-        nodePtr->nodeType       = nodeType;
-        return nodeRef;
     }
 
     // Normal parameter
@@ -248,6 +231,14 @@ AstNodeRef Parser::parseAttrDecl()
 
 AstNodeRef Parser::parseFunctionParam()
 {
+    if (is(TokenId::SymAttrStart))
+    {
+        const auto nodeRef = parseCompound(AstNodeId::AttributeList, TokenId::SymAttrStart);
+        const auto nodePtr = ast_->node<AstNodeId::AttributeList>(nodeRef);
+        nodePtr->nodeBody  = parseFunctionParam();
+        return nodeRef;
+    }
+
     if (consumeIf(TokenId::KwdConst) != INVALID_REF)
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FuncParamMe>();

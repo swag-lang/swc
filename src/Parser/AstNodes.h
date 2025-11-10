@@ -231,10 +231,10 @@ struct AstLambdaTypeParam : AstNode
     AstNodeRef nodeDefaultValue;
 };
 
-struct AstLambdaTypeParameterList : AstCompound
+struct AstLambdaTypeParamList : AstCompound
 {
-    static constexpr auto ID = AstNodeId::LambdaTypeParameterList;
-    AstLambdaTypeParameterList() :
+    static constexpr auto ID = AstNodeId::LambdaTypeParamList;
+    AstLambdaTypeParamList() :
         AstCompound(ID)
     {
     }
@@ -247,6 +247,24 @@ struct AstClosureCaptureList : AstCompound
         AstCompound(ID)
     {
     }
+};
+
+struct AstClosureCapture : AstCompound
+{
+    static constexpr auto ID = AstNodeId::ClosureCapture;
+    AstClosureCapture() :
+        AstCompound(ID)
+    {
+    }
+
+    enum class FlagsE : Flags
+    {
+        Zero    = 0,
+        Address = 1 << 0,
+    };
+    using Flags = EnumFlags<FlagsE>;
+
+    TokenRef tokName;
 };
 
 struct AstCompilerAssert : AstInternalCallUnaryBase

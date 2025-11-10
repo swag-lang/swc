@@ -678,25 +678,27 @@ void DiagnosticBuilder::expandMessageParts(SmallVector<std::unique_ptr<Diagnosti
     {
         const auto element = elements[idx].get();
         const Utf8 msg     = buildMessage(element->message());
-        const auto parts   = parseParts(std::string_view(msg));
+        auto       parts   = parseParts(std::string_view(msg));
 
         // Base element keeps the first part
         element->setMessage(Utf8(parts[0].text));
-        if (parts.size() <= 1)
+        parts.erase(parts.begin());
+        if (parts.empty())
             continue;
 
         // Span message for the second element
-        element->span(0).message = Utf8(parts[1].text);
-        if (parts.size() <= 2)
-            continue;
+        if (!element->spans().empty())
+        {
+            element->span(0).message = Utf8(parts[1].text);
+            parts.erase(parts.begin());
+            if (parts.empty())
+                continue;
+        }
 
         // Insert additional parts right after the current element
-        // We insert in reverse order, so they end up in the correct order
-        auto insertPos = idx + 2;
-
-        for (size_t i = 1; i < parts.size(); ++i)
+        auto insertPos = idx + 1;
+        for (const auto& p : parts)
         {
-            const auto&        p   = parts[i];
             DiagnosticSeverity sev = p.tag.value_or(DiagnosticSeverity::Note);
 
             auto extra = std::make_unique<DiagnosticElement>(sev, element->id());

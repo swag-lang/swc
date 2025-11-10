@@ -6,7 +6,16 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseClosureCaptureValue()
 {
-    return parseExpression();
+    AstClosureCapture::Flags flags = AstClosureCapture::FlagsE::Zero;
+
+    if (consumeIf(TokenId::SymAmpersand) != INVALID_REF)
+        flags.add(AstClosureCapture::FlagsE::Address);
+
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ClosureCapture>();
+    nodePtr->addFlag(flags);
+    nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
+
+    return nodeRef;
 }
 
 AstNodeRef Parser::parseLambdaTypeParam()
@@ -55,7 +64,7 @@ AstNodeRef Parser::parseLambdaType()
         flags.add(AstLambdaType::FlagsE::Closure);
     }
 
-    const SpanRef params = parseCompound(AstNodeId::LambdaTypeParameterList, TokenId::SymLeftParen);
+    const SpanRef params = parseCompound(AstNodeId::LambdaTypeParamList, TokenId::SymLeftParen);
 
     // Return type
     AstNodeRef returnType = INVALID_REF;
@@ -99,7 +108,7 @@ AstNodeRef Parser::parseLambdaExpression()
         flags.add(AstLambdaType::FlagsE::Closure);
     }
 
-    const SpanRef params = parseCompound(AstNodeId::LambdaTypeParameterList, TokenId::SymLeftParen);
+    const SpanRef params = parseCompound(AstNodeId::LambdaTypeParamList, TokenId::SymLeftParen);
 
     // Return type
     AstNodeRef returnType = INVALID_REF;

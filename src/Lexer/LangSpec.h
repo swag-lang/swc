@@ -45,6 +45,7 @@ public:
     bool isOption(uint32_t c) const { return charFlags_[c].has(CharFlagsE::Option); }
 
     TokenId keyword(std::string_view name, uint64_t hash) const;
+    TokenId keyword(std::string_view name) const;
 
     static constexpr std::string_view VERIFY_COMMENT_OPTION   = "swc-option";
     static constexpr std::string_view VERIFY_COMMENT_EXPECTED = "swc-expected-";

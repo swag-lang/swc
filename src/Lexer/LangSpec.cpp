@@ -13,11 +13,14 @@ void LangSpec::setup()
 
 void LangSpec::setupKeywords()
 {
-#define SWC_TOKEN_DEF(__id, __name, __flags)                                   \
-    if (TokenIdFlags(TokenIdFlagsE::__flags).has(TokenIdFlagsE::ReservedWord)) \
-    {                                                                          \
-        keywordMap_.insert_or_assign(__name, hash(__name), TokenId::__id);     \
-        keywordIdMap_[TokenId::__id] = __name;                                 \
+#define SWC_TOKEN_DEF(__id, __name, __kind)                             \
+    if (Token::isSpecialWord(TokenId::__id))                            \
+    {                                                                   \
+        auto hash64 = hash(__name);                                     \
+        keywordMap_.insert_or_assign(__name, hash64, TokenId::__id);    \
+        keywordIdMap_[TokenId::__id] = __name;                          \
+        SWC_ASSERT(keywordMap_.contains(__name, hash64));               \
+        SWC_ASSERT(*keywordMap_.find(__name, hash64) == TokenId::__id); \
     }
 
 #include "TokenIds.def"
@@ -118,6 +121,11 @@ TokenId LangSpec::keyword(std::string_view name, uint64_t hash) const
     if (!ptr)
         return TokenId::Identifier;
     return *ptr;
+}
+
+TokenId LangSpec::keyword(std::string_view name) const
+{
+    return keyword(name, hash(name));
 }
 
 SWC_END_NAMESPACE()

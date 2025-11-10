@@ -31,7 +31,7 @@ AstNodeRef Parser::parseRetValType()
 AstNodeRef Parser::parseSingleType()
 {
     // Builtin
-    if (tok().isType())
+    if (Token::isType(tok().id))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::BuiltinType>();
         nodePtr->tokType        = consume();

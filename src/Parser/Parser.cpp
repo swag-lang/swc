@@ -245,7 +245,7 @@ TokenRef Parser::expectAndConsume(TokenId id, DiagnosticId diagId)
     auto diag = reportError(diagId, ref());
     setReportExpected(diag, id);
 
-    if (id == TokenId::Identifier && tok().isKeyword())
+    if (id == TokenId::Identifier && Token::isKeyword(tok().id))
         diag.last().span(0).messageId = DiagnosticId::parser_note_reserved_identifier;
 
     diag.report(*ctx_);

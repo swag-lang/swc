@@ -33,64 +33,66 @@ SourceCodeLocation Token::location(const Context& ctx, const SourceFile& file) c
     return loc;
 }
 
-std::string_view Token::toName(TokenId tknId)
+std::string_view Token::toName(TokenId id)
 {
-    return TOKEN_ID_INFOS[static_cast<size_t>(tknId)].displayName;
+    return TOKEN_ID_INFOS[static_cast<size_t>(id)].displayName;
 }
 
-std::string_view Token::toFamily(TokenId tknId)
+std::string_view Token::toFamily(TokenId id)
 {
-    const auto& infos = TOKEN_ID_INFOS[static_cast<size_t>(tknId)];
-    if (infos.flags.has(TokenIdFlagsE::Symbol))
-        return "symbol";
-    if (tknId == TokenId::Identifier)
+    const auto& infos = TOKEN_ID_INFOS[static_cast<size_t>(id)];
+    if (id == TokenId::Identifier)
         return "identifier";
-    if (tknId == TokenId::EndOfFile)
+    if (id == TokenId::EndOfFile)
         return "end of file";
-    if (infos.flags.has(TokenIdFlagsE::Keyword))
+
+    if (isSymbol(id))
+        return "symbol";
+    if (isKeyword(id))
         return "keyword";
-    if (infos.flags.has(TokenIdFlagsE::Type))
+    if (isType(id))
         return "type";
-    if (infos.flags.has(TokenIdFlagsE::Compiler))
+    if (isCompiler(id))
         return "compiler instruction";
-    if (infos.flags.has(TokenIdFlagsE::Intrinsic))
+    if (isIntrinsic(id))
         return "intrinsic";
-    if (infos.flags.has(TokenIdFlagsE::Modifier))
+    if (isModifier(id))
         return "modifier";
-    if (infos.flags.has(TokenIdFlagsE::Literal))
+    if (isLiteral(id))
         return "literal";
 
     return "token";
 }
 
-std::string_view Token::toAFamily(TokenId tknId)
+std::string_view Token::toAFamily(TokenId id)
 {
-    const auto& infos = TOKEN_ID_INFOS[static_cast<size_t>(tknId)];
-    if (infos.flags.has(TokenIdFlagsE::Symbol))
-        return "a symbol";
-    if (tknId == TokenId::Identifier)
+    const auto& infos = TOKEN_ID_INFOS[static_cast<size_t>(id)];
+    if (id == TokenId::Identifier)
         return "an identifier";
-    if (tknId == TokenId::EndOfFile)
+    if (id == TokenId::EndOfFile)
         return "a end of file";
-    if (infos.flags.has(TokenIdFlagsE::Keyword))
+
+    if (isSymbol(id))
+        return "a symbol";
+    if (isKeyword(id))
         return "a keyword";
-    if (infos.flags.has(TokenIdFlagsE::Type))
+    if (isType(id))
         return "a type";
-    if (infos.flags.has(TokenIdFlagsE::Compiler))
+    if (isCompiler(id))
         return "a compiler instruction";
-    if (infos.flags.has(TokenIdFlagsE::Intrinsic))
-        return "an intrinsic";
-    if (infos.flags.has(TokenIdFlagsE::Modifier))
+    if (isIntrinsic(id))
+        return "a intrinsic";
+    if (isModifier(id))
         return "a modifier";
-    if (infos.flags.has(TokenIdFlagsE::Literal))
+    if (isLiteral(id))
         return "a literal";
 
     return "a token";
 }
 
-TokenId Token::toRelated(TokenId tkn)
+TokenId Token::toRelated(TokenId id)
 {
-    switch (tkn)
+    switch (id)
     {
     case TokenId::SymLeftParen:
         return TokenId::SymRightParen;

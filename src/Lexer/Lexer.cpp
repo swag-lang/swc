@@ -685,7 +685,6 @@ void Lexer::lexIdentifier()
     // Is this a keyword?
     const uint64_t hash64 = hash(name);
     token_.id             = ctx_->global().langSpec().keyword(name, hash64);
-
     if (token_.id == TokenId::Identifier)
     {
         const auto idx = static_cast<uint32_t>(lexOut_->identifiers_.size());

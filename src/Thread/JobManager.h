@@ -3,6 +3,8 @@
 
 SWC_BEGIN_NAMESPACE()
 
+using JobClientId = uint32_t;
+
 class JobManager
 {
 public:

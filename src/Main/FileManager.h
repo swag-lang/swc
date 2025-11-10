@@ -19,8 +19,8 @@ public:
     SourceFile* file(FileRef ref) const
     {
         std::shared_lock lock(mutex_);
-        SWC_ASSERT(ref != INVALID_REF);
-        return files_[ref - 1].get();
+        SWC_ASSERT(ref.isValid());
+        return files_[ref.get() - 1].get();
     }
 };
 

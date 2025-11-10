@@ -17,7 +17,7 @@ FileRef FileManager::addFile(fs::path path)
     if (it != paths_.end())
         return it->second;
 
-    const auto fileRef = static_cast<FileRef>(files_.size() + 1);
+    const auto fileRef = static_cast<FileRef>(static_cast<uint32_t>(files_.size() + 1));
     paths_[path]       = fileRef;
 
     files_.emplace_back(std::make_unique<SourceFile>(std::move(path)));

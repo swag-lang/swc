@@ -1,8 +1,8 @@
 #pragma once
 #include "Core/SmallVector.h"
-#include "Parser/AstNode.h"
 #include "Lexer/Token.h"
 #include "Parser/Ast.h"
+#include "Parser/AstNode.h"
 #include "Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -38,19 +38,17 @@ class Parser
     uint32_t     depthParen_     = 0;
     uint32_t     depthBracket_   = 0;
     uint32_t     depthCurly_     = 0;
-    TokenRef     lastErrorToken_ = INVALID_REF;
+    TokenRef     lastErrorToken_ = TokenRef::invalid();
 
     const Token* tokPtr() const { return curToken_; }
     const Token& tok() const { return *curToken_; }
-    TokenRef     ref() const { return static_cast<TokenRef>(curToken_ - firstToken_); }
+    TokenRef     ref() const { return static_cast<TokenRef>(static_cast<uint32_t>(curToken_ - firstToken_)); }
     TokenId      id() const { return curToken_->id; }
     TokenId      nextId() const { return atEnd() ? TokenId::EndOfFile : curToken_[1].id; }
     bool         is(TokenId id0) const { return curToken_->id == id0; }
     bool         nextIs(TokenId id0) const { return atEnd() ? false : curToken_[1].id == id0; }
     bool         isNot(TokenId nid) const { return curToken_->id != nid; }
     bool         atEnd() const { return curToken_ >= lastToken_; }
-    static bool  valid(TokenRef ref) { return ref != INVALID_REF; }
-    static bool  invalid(TokenRef ref) { return ref == INVALID_REF; }
 
     template<typename... IDS>
     bool isAny(IDS... ids) const
@@ -74,7 +72,7 @@ class Parser
     Result           parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId);
     void             finalizeCompound(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef closeTokenRef, TokenId tokenEndId, const SmallVector<AstNodeRef>& childrenRefs);
     AstNodeRef       parseCompound(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt = false);
-    Ref              parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt = false);
+    SpanRef          parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt = false);
     AstNodeRef       parseCompilerIf(AstNodeId blockNodeId);
     AstNodeRef       parseCompilerIfStmt(AstNodeId blockNodeId);
     AstNodeRef       parseCompilerAttribute(AstNodeId blockNodeId);

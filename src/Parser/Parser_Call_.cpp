@@ -39,7 +39,7 @@ AstNodeRef Parser::parseInternalCallBinary(AstNodeId callerNodeId)
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
     nodePtr->nodeArg1 = parseExpression();
-    if (invalid(expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token)))
+    if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
         skipTo({TokenId::SymComma, TokenId::SymRightParen});
 
     nodePtr->nodeArg2 = parseExpression();
@@ -57,11 +57,11 @@ AstNodeRef Parser::parseInternalCallTernary(AstNodeId callerNodeId)
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
     nodePtr->nodeArg1 = parseExpression();
-    if (invalid(expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token)))
+    if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
         skipTo({TokenId::SymComma, TokenId::SymRightParen});
 
     nodePtr->nodeArg2 = parseExpression();
-    if (invalid(expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token)))
+    if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
         skipTo({TokenId::SymComma, TokenId::SymRightParen});
 
     nodePtr->nodeArg3 = parseExpression();
@@ -82,8 +82,8 @@ AstNodeRef Parser::parseAttribute()
 AstNodeRef Parser::parseCompilerAttribute(AstNodeId blockNodeId)
 {
     const auto nodeRef = parseCompound(AstNodeId::AttributeList, TokenId::SymAttrStart);
-    if (invalid(nodeRef))
-        return INVALID_REF;
+    if (nodeRef.isInvalid())
+        return AstNodeRef::invalid();
 
     const auto nodePtr = ast_->node<AstNodeId::AttributeList>(nodeRef);
     if (is(TokenId::SymLeftCurly))

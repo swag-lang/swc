@@ -2,6 +2,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
+using JobClientId = uint32_t;
 struct CommandLine;
 class Global;
 

@@ -77,7 +77,7 @@ AstNodeRef Parser::parseSingleType()
 
     const auto diag = reportError(DiagnosticId::parser_err_invalid_type, ref());
     diag.report(*ctx_);
-    return INVALID_REF;
+    return AstNodeRef::invalid();
 }
 
 AstNodeRef Parser::parseSubType()
@@ -92,33 +92,33 @@ AstNodeRef Parser::parseSubType()
     }
 
     // Left reference
-    if (consumeIf(TokenId::SymAmpersand) != INVALID_REF)
+    if (consumeIf(TokenId::SymAmpersand).isValid())
     {
         const auto child = parseType();
-        if (invalid(child))
-            return INVALID_REF;
+        if (child.isInvalid())
+            return AstNodeRef::invalid();
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LRefType>();
         nodePtr->nodeType       = child;
         return nodeRef;
     }
 
     // Right reference
-    if (consumeIf(TokenId::SymAmpersandAmpersand) != INVALID_REF)
+    if (consumeIf(TokenId::SymAmpersandAmpersand).isValid())
     {
         const auto child = parseType();
-        if (invalid(child))
-            return INVALID_REF;
+        if (child.isInvalid())
+            return AstNodeRef::invalid();
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::RRefType>();
         nodePtr->nodeType       = child;
         return nodeRef;
     }
 
     // Pointer
-    if (consumeIf(TokenId::SymAsterisk) != INVALID_REF)
+    if (consumeIf(TokenId::SymAsterisk).isValid())
     {
         const auto child = parseType();
-        if (invalid(child))
-            return INVALID_REF;
+        if (child.isInvalid())
+            return AstNodeRef::invalid();
         auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::PointerType>();
         nodePtr->nodePointeeType = child;
         return nodeRef;
@@ -126,42 +126,42 @@ AstNodeRef Parser::parseSubType()
 
     // Array or slice
     const TokenRef leftBracket = consumeIf(TokenId::SymLeftBracket);
-    if (leftBracket != INVALID_REF)
+    if (leftBracket.isValid())
     {
         // [*]
-        if (consumeIf(TokenId::SymAsterisk) != INVALID_REF)
+        if (consumeIf(TokenId::SymAsterisk).isValid())
         {
-            if (invalid(expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket)))
-                return INVALID_REF;
+            if (expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket).isInvalid())
+                return AstNodeRef::invalid();
             const auto child = parseType();
-            if (invalid(child))
-                return INVALID_REF;
+            if (child.isInvalid())
+                return AstNodeRef::invalid();
             auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::BlockPointerType>();
             nodePtr->nodePointeeType = child;
             return nodeRef;
         }
 
         // [..]
-        if (consumeIf(TokenId::SymDotDot) != INVALID_REF)
+        if (consumeIf(TokenId::SymDotDot).isValid())
         {
-            if (invalid(expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket)))
-                return INVALID_REF;
+            if (expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket).isInvalid())
+                return AstNodeRef::invalid();
             const auto child = parseType();
-            if (invalid(child))
-                return INVALID_REF;
+            if (child.isInvalid())
+                return AstNodeRef::invalid();
             auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::SliceType>();
             nodePtr->nodePointeeType = child;
             return nodeRef;
         }
 
         // [?]
-        if (consumeIf(TokenId::SymQuestion) != INVALID_REF)
+        if (consumeIf(TokenId::SymQuestion).isValid())
         {
-            if (invalid(expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket)))
-                return INVALID_REF;
+            if (expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket).isInvalid())
+                return AstNodeRef::invalid();
             const auto child = parseType();
-            if (invalid(child))
-                return INVALID_REF;
+            if (child.isInvalid())
+                return AstNodeRef::invalid();
             auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::IncompleteArrayType>();
             nodePtr->nodePointeeType = child;
             return nodeRef;
@@ -174,32 +174,32 @@ AstNodeRef Parser::parseSubType()
             diag.addElement(DiagnosticId::parser_help_empty_array_dim);
             diag.report(*ctx_);
             consume();
-            return INVALID_REF;
+            return AstNodeRef::invalid();
         }
 
         // Array with a dimension
         SmallVector<AstNodeRef> dimensions;
         const auto              firstDim = parseExpression();
-        if (invalid(firstDim))
-            return INVALID_REF;
+        if (firstDim.isInvalid())
+            return AstNodeRef::invalid();
         dimensions.push_back(firstDim);
 
         // Parse additional dimensions separated by commas
-        while (consumeIf(TokenId::SymComma) != INVALID_REF)
+        while (consumeIf(TokenId::SymComma).isValid())
         {
             const auto dim = parseExpression();
-            if (invalid(dim))
-                return INVALID_REF;
+            if (dim.isInvalid())
+                return AstNodeRef::invalid();
             dimensions.push_back(dim);
         }
 
-        if (invalid(expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket)))
-            return INVALID_REF;
+        if (expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket).isInvalid())
+            return AstNodeRef::invalid();
 
         // Recursively parse the rest of the type (handles chaining like [X][Y])
         const auto child = parseType();
-        if (invalid(child))
-            return INVALID_REF;
+        if (child.isInvalid())
+            return AstNodeRef::invalid();
 
         auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::ArrayType>();
         nodePtr->spanDimensions  = ast_->store_.push_span(dimensions.span());
@@ -217,7 +217,7 @@ AstNodeRef Parser::parseType()
         return parseRetValType();
 
     // '#code'
-    if (consumeIf(TokenId::CompilerCode) != INVALID_REF)
+    if (consumeIf(TokenId::CompilerCode).isValid())
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CodeType>();
         nodePtr->nodeType       = parseSubType();
@@ -225,7 +225,7 @@ AstNodeRef Parser::parseType()
     }
 
     // '...'
-    if (consumeIf(TokenId::SymDotDotDot) != INVALID_REF)
+    if (consumeIf(TokenId::SymDotDotDot).isValid())
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VariadicType>();
         return nodeRef;
@@ -234,7 +234,7 @@ AstNodeRef Parser::parseType()
     const auto nodeSubType = parseSubType();
 
     // 'type...'
-    if (consumeIf(TokenId::SymDotDotDot) != INVALID_REF)
+    if (consumeIf(TokenId::SymDotDotDot).isValid())
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TypedVariadicType>();
         nodePtr->nodeType       = nodeSubType;

@@ -59,7 +59,7 @@ AstNodeRef Parser::parseLiteral()
 
     default:
         raiseError(DiagnosticId::parser_err_unexpected_token, ref());
-        return INVALID_REF;
+        return AstNodeRef::invalid();
     }
 
     literal.second->tokValue = consume();
@@ -69,11 +69,11 @@ AstNodeRef Parser::parseLiteral()
 AstNodeRef Parser::parseLiteralExpression()
 {
     const auto literal = parseLiteral();
-    if (invalid(literal))
-        return INVALID_REF;
+    if (literal.isInvalid())
+        return AstNodeRef::invalid();
 
     const auto quoteTknRef = ref();
-    if (consumeIf(TokenId::SymQuote) == INVALID_REF)
+    if (consumeIf(TokenId::SymQuote).isInvalid())
         return literal;
 
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::PostfixedLiteral>();

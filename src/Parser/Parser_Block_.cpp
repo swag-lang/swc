@@ -61,7 +61,7 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
 
 AstNodeRef Parser::parseBlockCompilerDirective(AstNodeId blockNodeId)
 {
-    auto childrenRef = INVALID_REF;
+    auto childrenRef = AstNodeRef::invalid();
 
     // Compiler instructions
     if (blockNodeId == AstNodeId::File ||
@@ -114,7 +114,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
     switch (blockNodeId)
     {
     case AstNodeId::EnumDecl:
-        if (consumeIf(TokenId::SymComma) == INVALID_REF && !is(tokenEndId) && !tok().startsLine())
+        if (consumeIf(TokenId::SymComma).isInvalid() && !is(tokenEndId) && !tok().startsLine())
         {
             if (is(TokenId::Identifier) && blockNodeId == AstNodeId::EnumDecl)
                 raiseError(DiagnosticId::parser_err_missing_enum_sep, ref());
@@ -126,7 +126,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
         break;
 
     case AstNodeId::AggregateBody:
-        if (consumeIf(TokenId::SymComma) == INVALID_REF && consumeIf(TokenId::SymSemiColon) == INVALID_REF && !is(tokenEndId) && !tok().startsLine())
+        if (consumeIf(TokenId::SymComma).isInvalid() && consumeIf(TokenId::SymSemiColon).isInvalid() && !is(tokenEndId) && !tok().startsLine())
         {
             raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
             skipTo(skipTokens);
@@ -145,7 +145,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
     case AstNodeId::FunctionParamList:
     case AstNodeId::ClosureCaptureList:
     case AstNodeId::MultiPostfixIdentifier:
-        if (consumeIf(TokenId::SymComma) == INVALID_REF && !is(tokenEndId))
+        if (consumeIf(TokenId::SymComma).isInvalid() && !is(tokenEndId))
         {
             if (is(TokenId::Identifier) && blockNodeId == AstNodeId::AttributeList)
                 raiseError(DiagnosticId::parser_err_missing_attribute_sep, ref());
@@ -198,7 +198,7 @@ AstNodeRef Parser::parseCompound(AstNodeId blockNodeId, TokenId tokenStartId, bo
     return nodeRef;
 }
 
-Ref Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt)
+SpanRef Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt)
 {
     const Token&   openTok    = tok();
     const TokenRef openTokRef = ref();
@@ -206,19 +206,19 @@ Ref Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId, bo
 
     if (tokenStartId != TokenId::Invalid)
     {
-        if (invalid(expectAndConsume(tokenStartId, DiagnosticId::parser_err_expected_token_before)))
-            return INVALID_REF;
+        if (expectAndConsume(tokenStartId, DiagnosticId::parser_err_expected_token_before).isInvalid())
+            return SpanRef::invalid();
     }
 
     SmallVector<AstNodeRef> childrenRefs;
     while (!atEnd() && isNot(tokenEndId))
     {
         const auto loopStartToken = curToken_;
-        AstNodeRef childRef       = INVALID_REF;
+        AstNodeRef childRef       = AstNodeRef::invalid();
 
         // Compiler directives (only in certain blocks)
         childRef = parseBlockCompilerDirective(blockNodeId);
-        if (valid(childRef))
+        if (childRef.isValid())
         {
             childrenRefs.push_back(childRef);
             continue;
@@ -226,7 +226,7 @@ Ref Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId, bo
 
         // One block element
         childRef = parseCompoundValue(blockNodeId);
-        if (valid(childRef))
+        if (childRef.isValid())
             childrenRefs.push_back(childRef);
 
         // End of block
@@ -252,7 +252,7 @@ Ref Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId, bo
     }
 
     const auto closeTokenRef = ref();
-    if (consumeIf(tokenEndId) == INVALID_REF && tokenEndId != TokenId::Invalid)
+    if (consumeIf(tokenEndId).isInvalid() && tokenEndId != TokenId::Invalid)
         raiseExpected(DiagnosticId::parser_err_expected_closing, openTokRef, Token::toRelated(openTok.id));
 
     // Consume end token if necessary
@@ -267,13 +267,13 @@ AstNodeRef Parser::parseFile()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::File>();
 
     // #global must be first
-    SmallVector<TokenRef> globals;
+    SmallVector<AstNodeRef> globals;
     while (is(TokenId::CompilerGlobal))
     {
         auto global = parseCompilerGlobal();
         if (file_->hasFlag(FileFlagsE::LexOnly))
             return nodeRef;
-        if (global != INVALID_REF)
+        if (global.isValid())
             globals.push_back(global);
     }
 
@@ -289,7 +289,7 @@ AstNodeRef Parser::parseNamespace()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Namespace>();
     consume();
     nodePtr->nodeName = parseQualifiedIdentifier();
-    if (invalid(nodePtr->nodeName))
+    if (nodePtr->nodeName.isInvalid())
         skipTo({TokenId::SymLeftCurly});
     nodePtr->nodeBody = parseCompound(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     return nodeRef;

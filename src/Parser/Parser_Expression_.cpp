@@ -87,8 +87,8 @@ AstNodeRef Parser::parseAncestorIdentifier()
 AstNodeRef Parser::parseBinaryExpr()
 {
     const auto nodeRef = parsePrefixExpr();
-    if (invalid(nodeRef))
-        return INVALID_REF;
+    if (nodeRef.isInvalid())
+        return AstNodeRef::invalid();
 
     if (isAny(TokenId::SymPlus,
               TokenId::SymMinus,
@@ -120,7 +120,7 @@ AstNodeRef Parser::parseCast()
     const auto modifierFlags = parseModifiers();
 
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    if (consumeIf(TokenId::SymRightParen) != INVALID_REF)
+    if (consumeIf(TokenId::SymRightParen).isValid())
     {
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AutoCastExpr>();
         nodePtr->tokOp                = tknOp;
@@ -133,7 +133,7 @@ AstNodeRef Parser::parseCast()
     nodePtr->tokOp                = tknOp;
     nodePtr->modifierFlags        = modifierFlags;
     nodePtr->nodeType             = parseType();
-    if (invalid(nodePtr->nodeType))
+    if (nodePtr->nodeType.isInvalid())
         skipTo({TokenId::SymRightParen});
     expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
     nodePtr->nodeExpr = parseExpression();
@@ -153,7 +153,7 @@ AstNodeRef Parser::parseExpression()
 {
     const auto nodeExpr1 = parseLogicalExpr();
 
-    if (consumeIf(TokenId::KwdOrElse) != INVALID_REF)
+    if (consumeIf(TokenId::KwdOrElse).isValid())
     {
         const auto nodeExpr2          = parseExpression();
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::BinaryConditionalOp>();
@@ -162,7 +162,7 @@ AstNodeRef Parser::parseExpression()
         return nodeRef;
     }
 
-    if (consumeIf(TokenId::SymQuestion) != INVALID_REF)
+    if (consumeIf(TokenId::SymQuestion).isValid())
     {
         const auto nodeExpr2 = parseExpression();
         expectAndConsume(TokenId::SymColon, DiagnosticId::parser_err_expected_token_before);
@@ -201,8 +201,8 @@ AstNodeRef Parser::parseIdentifier()
     }
 
     const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
-    if (invalid(tokName))
-        return INVALID_REF;
+    if (tokName.isInvalid())
+        return AstNodeRef::invalid();
 
     if (is(TokenId::SymQuote) && tok().hasNotFlag(TokenFlagsE::BlankBefore))
     {
@@ -228,7 +228,7 @@ AstNodeRef Parser::parseIdentifier()
 
 AstNodeRef Parser::parseInitializerExpression()
 {
-    if (consumeIf(TokenId::KwdUndefined) != INVALID_REF)
+    if (consumeIf(TokenId::KwdUndefined).isValid())
     {
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Undefined>();
         return nodeRef;
@@ -254,8 +254,8 @@ AstNodeRef Parser::parseIntrinsicValue()
 AstNodeRef Parser::parseLogicalExpr()
 {
     const auto nodeRef = parseRelationalExpr();
-    if (invalid(nodeRef))
-        return INVALID_REF;
+    if (nodeRef.isInvalid())
+        return AstNodeRef::invalid();
 
     if (isAny(TokenId::KwdAnd, TokenId::KwdOr, TokenId::SymAmpersandAmpersand, TokenId::SymVerticalVertical))
     {
@@ -294,7 +294,7 @@ AstNodeRef Parser::parseParenExpr()
     const auto openRef            = ref();
     consume(TokenId::SymLeftParen);
     nodePtr->nodeExpr = parseExpression();
-    if (invalid(nodePtr->nodeExpr))
+    if (nodePtr->nodeExpr.isInvalid())
         skipTo({TokenId::SymRightParen}, SkipUntilFlagsE::EolBefore);
     expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
     return nodeRef;
@@ -303,8 +303,8 @@ AstNodeRef Parser::parseParenExpr()
 AstNodeRef Parser::parsePostFixExpression()
 {
     auto nodeRef = parsePrimaryExpression();
-    if (invalid(nodeRef))
-        return INVALID_REF;
+    if (nodeRef.isInvalid())
+        return AstNodeRef::invalid();
 
     // Handle chained postfix operations: A.B.C()[5](args)
     while (true)
@@ -615,7 +615,7 @@ AstNodeRef Parser::parsePrimaryExpression()
 
     default:
         raiseError(DiagnosticId::parser_err_unexpected_token, ref());
-        return INVALID_REF;
+        return AstNodeRef::invalid();
     }
 }
 
@@ -623,16 +623,16 @@ AstNodeRef Parser::parseQualifiedIdentifier()
 {
     // Parse the first identifier
     auto leftNode = parseIdentifier();
-    if (invalid(leftNode))
-        return INVALID_REF;
+    if (leftNode.isInvalid())
+        return AstNodeRef::invalid();
 
     // Check if there's a scope access operator
-    while (!tok().startsLine() && consumeIf(TokenId::SymDot) != INVALID_REF)
+    while (!tok().startsLine() && consumeIf(TokenId::SymDot).isValid())
     {
         // Parse the right side (another identifier)
         const auto rightNode = parseIdentifier();
-        if (invalid(rightNode))
-            return INVALID_REF;
+        if (rightNode.isInvalid())
+            return AstNodeRef::invalid();
 
         // Create a ScopeResolution node with left and right
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ScopeResolution>();
@@ -649,8 +649,8 @@ AstNodeRef Parser::parseQualifiedIdentifier()
 AstNodeRef Parser::parseRelationalExpr()
 {
     const auto nodeRef = parseBinaryExpr();
-    if (invalid(nodeRef))
-        return INVALID_REF;
+    if (nodeRef.isInvalid())
+        return AstNodeRef::invalid();
 
     if (isAny(TokenId::SymEqualEqual,
               TokenId::SymExclamationEqual,
@@ -700,7 +700,7 @@ AstNodeRef Parser::parseInitializerList(AstNodeRef nodeWhat)
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructInitializerList>();
     nodePtr->nodeWhat       = nodeWhat;
-    nodePtr->spanArgs       = parseCompound(AstNodeId::NamedArgList, TokenId::SymLeftCurly);
+    nodePtr->spanArgs       = parseCompoundContent(AstNodeId::NamedArgList, TokenId::SymLeftCurly);
     return nodeRef;
 }
 
@@ -718,10 +718,10 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
     if (is(TokenId::SymRightBracket))
     {
         raiseError(DiagnosticId::parser_err_empty_indexing, ref());
-        return INVALID_REF;
+        return AstNodeRef::invalid();
     }
 
-    AstNodeRef nodeExpr = INVALID_REF;
+    AstNodeRef nodeExpr = AstNodeRef::invalid();
     if (!isAny(TokenId::KwdTo, TokenId::KwdUntil))
         nodeExpr = parseExpression();
 
@@ -729,11 +729,11 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
     {
         SmallVector<AstNodeRef> nodeArgs;
         nodeArgs.push_back(nodeExpr);
-        while (consumeIf(TokenId::SymComma) != INVALID_REF)
+        while (consumeIf(TokenId::SymComma).isValid())
         {
             nodeExpr = parseExpression();
-            if (invalid(nodeExpr))
-                return INVALID_REF;
+            if (nodeExpr.isInvalid())
+                return AstNodeRef::invalid();
             nodeArgs.push_back(nodeExpr);
         }
 
@@ -760,7 +760,7 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
     if (!is(TokenId::SymRightBracket))
         nodePtr->nodeRight = parseExpression();
     else
-        nodePtr->nodeRight = INVALID_REF;
+        nodePtr->nodeRight = AstNodeRef::invalid();
 
     expectAndConsumeClosingFor(TokenId::SymLeftBracket, openRef);
     return nodeParent;

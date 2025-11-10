@@ -13,11 +13,11 @@ AstNodeRef Parser::parseTopLevelStmt()
         return parseCompound(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     case TokenId::SymRightCurly:
         raiseError(DiagnosticId::parser_err_unexpected_token, ref());
-        return INVALID_REF;
+        return AstNodeRef::invalid();
 
     case TokenId::SymSemiColon:
         consume();
-        return INVALID_REF;
+        return AstNodeRef::invalid();
 
     case TokenId::KwdEnum:
         return parseEnumDecl();
@@ -85,7 +85,7 @@ AstNodeRef Parser::parseTopLevelStmt()
     default:
         // @skip
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
-        return INVALID_REF;
+        return AstNodeRef::invalid();
     }
 }
 
@@ -97,11 +97,11 @@ AstNodeRef Parser::parseEmbeddedStmt()
         return parseCompound(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
     case TokenId::SymRightCurly:
         raiseError(DiagnosticId::parser_err_unexpected_token, ref());
-        return INVALID_REF;
+        return AstNodeRef::invalid();
 
     case TokenId::SymSemiColon:
         consume();
-        return INVALID_REF;
+        return AstNodeRef::invalid();
 
     case TokenId::KwdEnum:
         return parseEnumDecl();
@@ -147,7 +147,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
     {
         // @skip
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
-        return INVALID_REF;
+        return AstNodeRef::invalid();
     }
     }
 }

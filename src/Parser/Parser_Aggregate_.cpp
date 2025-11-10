@@ -13,19 +13,19 @@ AstNodeRef Parser::parseImpl()
 
     // Name
     const AstNodeRef nodeIdent = parseQualifiedIdentifier();
-    if (invalid(nodeIdent))
+    if (nodeIdent.isInvalid())
         skipTo({TokenId::SymLeftCurly, TokenId::KwdFor});
 
     // For
-    AstNodeRef nodeFor = INVALID_REF;
-    if (consumeIf(TokenId::KwdFor) != INVALID_REF)
+    AstNodeRef nodeFor = AstNodeRef::invalid();
+    if (consumeIf(TokenId::KwdFor).isValid())
     {
         nodeFor = parseQualifiedIdentifier();
-        if (invalid(nodeIdent))
+        if (nodeIdent.isInvalid())
             skipTo({TokenId::SymLeftCurly});
     }
 
-    if (invalid(nodeFor))
+    if (nodeFor.isInvalid())
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Impl>();
         nodePtr->nodeIdent      = nodeIdent;
@@ -119,13 +119,13 @@ AstNodeRef Parser::parseAggregateDecl(AstNodeId nodeId)
     if (is(TokenId::SymLeftParen))
     {
         nodePtr->spanGenericParams = parseCompoundContent(AstNodeId::GenericParamList, TokenId::SymLeftParen);
-        if (invalid(nodePtr->spanGenericParams))
+        if (nodePtr->spanGenericParams.isInvalid())
             skipTo({TokenId::SymLeftCurly});
     }
 
     // Name
     nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
-    if (invalid(nodePtr->tokName))
+    if (nodePtr->tokName.isInvalid())
         skipTo({TokenId::SymLeftCurly});
 
     // Where
@@ -134,14 +134,14 @@ AstNodeRef Parser::parseAggregateDecl(AstNodeId nodeId)
     {
         const auto loopStartToken = curToken_;
         auto       whereRef       = parseConstraint();
-        if (valid(whereRef))
+        if (whereRef.isValid())
             whereRefs.push_back(whereRef);
 
         if (loopStartToken == curToken_)
             consume();
     }
 
-    nodePtr->spanWhere = whereRefs.empty() ? INVALID_REF : ast_->store_.push_span(whereRefs.span());
+    nodePtr->spanWhere = whereRefs.empty() ? SpanRef::invalid() : ast_->store_.push_span(whereRefs.span());
 
     // Content
     nodePtr->nodeBody = parseAggregateBody();

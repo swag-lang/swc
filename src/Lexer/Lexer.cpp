@@ -146,7 +146,7 @@ void Lexer::pushToken()
     case TokenId::CommentMultiLine:
         if (!rawMode_)
             break;
-        lexOut_->trivia_.push_back({.tokenRef = static_cast<uint32_t>(lexOut_->tokens_.size()), .token = token_});
+        lexOut_->trivia_.push_back({.tokenRef = TokenRef{static_cast<uint32_t>(lexOut_->tokens_.size())}, .token = token_});
         break;
     default:
         if (rawMode_)

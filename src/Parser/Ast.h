@@ -11,7 +11,7 @@ class Ast
 protected:
     friend class Parser;
     RefStore<> store_;
-    AstNodeRef root_ = INVALID_REF;
+    AstNodeRef root_ = AstNodeRef::invalid();
 
 public:
     static constexpr const AstNodeIdInfo& nodeIdInfos(AstNodeId id) { return AST_NODE_ID_INFOS[static_cast<size_t>(id)]; }
@@ -20,9 +20,9 @@ public:
     template<AstNodeId ID>
     auto node(AstNodeRef nodeRef)
     {
-        SWC_ASSERT(nodeRef != INVALID_REF);
+        SWC_ASSERT(nodeRef.isValid());
         using NodeType = AstTypeOf<ID>::type;
-        return castAst<NodeType>(store_.ptr<AstNode>(nodeRef));
+        return castAst<NodeType>(store_.ptr<AstNode>(nodeRef.get()));
     }
 
     template<AstNodeId ID>
@@ -35,7 +35,7 @@ public:
 #if SWC_HAS_STATS
         Stats::get().numAstNodes.fetch_add(1);
 #endif
-        return result;
+        return std::pair<AstNodeRef, NodeType*>(result);
     }
 
     template<typename T = AstNode>

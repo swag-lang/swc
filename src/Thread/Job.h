@@ -30,7 +30,7 @@ struct JobRecord
     JobRef job;
 
     JobPriority priority{JobPriority::Normal};
-    JobClientId clientId = 0;
+    JobClientId clientId{0};
 
     enum class State : std::uint8_t
     {

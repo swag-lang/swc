@@ -249,7 +249,7 @@ struct AstClosureExpr : AstLambdaExpr
     {
     }
 
-    SpanRef nodeCaptureArgs;
+    AstNodeRef nodeCaptureArgs;
 };
 
 struct AstFunctionDecl : AstNode
@@ -1076,7 +1076,7 @@ struct AstLambdaType : AstNode
     };
     using Flags = EnumFlags<FlagsE>;
 
-    SpanRef    nodeParams;
+    AstNodeRef nodeParams;
     AstNodeRef nodeReturnType;
 };
 

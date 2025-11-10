@@ -52,11 +52,11 @@ AstNodeRef Parser::parseCompilerTypeExpr()
 
 AstNodeRef Parser::parseCompilerIfStmt(AstNodeId blockNodeId)
 {
-    if (consumeIf(TokenId::KwdDo) != INVALID_REF)
+    if (consumeIf(TokenId::KwdDo).isValid())
     {
         if (is(TokenId::SymLeftCurly))
         {
-            raiseError(DiagnosticId::parser_err_unexpected_do_block, ref() - 1);
+            raiseError(DiagnosticId::parser_err_unexpected_do_block, ref().offset(-1));
             return parseCompound(blockNodeId, TokenId::SymLeftCurly);
         }
 
@@ -68,9 +68,9 @@ AstNodeRef Parser::parseCompilerIfStmt(AstNodeId blockNodeId)
         return parseCompound(blockNodeId, TokenId::SymLeftCurly);
     }
 
-    const auto diag = reportError(DiagnosticId::parser_err_expected_do_block, ref() - 1);
+    const auto diag = reportError(DiagnosticId::parser_err_expected_do_block, ref().offset(-1));
     diag.report(*ctx_);
-    return INVALID_REF;
+    return AstNodeRef::invalid();
 }
 
 AstNodeRef Parser::parseCompilerIf(AstNodeId blockNodeId)
@@ -81,7 +81,7 @@ AstNodeRef Parser::parseCompilerIf(AstNodeId blockNodeId)
 
     // Parse the condition expression
     nodePtr->nodeCondition = parseExpression();
-    if (invalid(nodePtr->nodeCondition))
+    if (nodePtr->nodeCondition.isInvalid())
         skipTo({TokenId::KwdDo, TokenId::SymLeftCurly});
 
     nodePtr->nodeIfBlock = parseCompilerIfStmt(blockNodeId);
@@ -89,7 +89,7 @@ AstNodeRef Parser::parseCompilerIf(AstNodeId blockNodeId)
     // Parse optional 'else' or 'elif' block
     if (is(TokenId::CompilerElseIf))
         nodePtr->nodeElseBlock = parseCompilerIf(blockNodeId);
-    else if (consumeIf(TokenId::CompilerElse) != INVALID_REF)
+    else if (consumeIf(TokenId::CompilerElse).isValid())
         nodePtr->nodeElseBlock = parseCompilerIfStmt(blockNodeId);
 
     return nodeRef;
@@ -140,26 +140,26 @@ AstNodeRef Parser::parseCompilerGlobal()
     if (tokStr == Token::toName(TokenId::KwdSkip))
     {
         nodePtr->mode     = AstCompilerGlobal::Mode::Skip;
-        nodePtr->nodeMode = INVALID_REF;
+        nodePtr->nodeMode = AstNodeRef::invalid();
         file_->addFlag(FileFlagsE::LexOnly);
         consume();
     }
     else if (tokStr == Token::toName(TokenId::KwdSkipFmt))
     {
         nodePtr->mode     = AstCompilerGlobal::Mode::SkipFmt;
-        nodePtr->nodeMode = INVALID_REF;
+        nodePtr->nodeMode = AstNodeRef::invalid();
         consume();
     }
     else if (tokStr == Token::toName(TokenId::KwdGenerated))
     {
         nodePtr->mode     = AstCompilerGlobal::Mode::Generated;
-        nodePtr->nodeMode = INVALID_REF;
+        nodePtr->nodeMode = AstNodeRef::invalid();
         consume();
     }
     else if (tokStr == Token::toName(TokenId::KwdExport))
     {
         nodePtr->mode     = AstCompilerGlobal::Mode::Export;
-        nodePtr->nodeMode = INVALID_REF;
+        nodePtr->nodeMode = AstNodeRef::invalid();
         consume();
     }
     else if (is(TokenId::SymAttrStart))
@@ -170,13 +170,13 @@ AstNodeRef Parser::parseCompilerGlobal()
     else if (is(TokenId::KwdPublic))
     {
         nodePtr->mode     = AstCompilerGlobal::Mode::AccessPublic;
-        nodePtr->nodeMode = INVALID_REF;
+        nodePtr->nodeMode = AstNodeRef::invalid();
         consume();
     }
     else if (is(TokenId::KwdInternal))
     {
         nodePtr->mode     = AstCompilerGlobal::Mode::AccessInternal;
-        nodePtr->nodeMode = INVALID_REF;
+        nodePtr->nodeMode = AstNodeRef::invalid();
         consume();
     }
     else if (is(TokenId::KwdNamespace))
@@ -215,10 +215,10 @@ AstNodeRef Parser::parseCompilerImport()
 
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
     nodePtr->tokModuleName = expectAndConsume(TokenId::StringLine, DiagnosticId::parser_err_expected_token_before);
-    nodePtr->tokLocation   = INVALID_REF;
-    nodePtr->tokVersion    = INVALID_REF;
+    nodePtr->tokLocation   = TokenRef::invalid();
+    nodePtr->tokVersion    = TokenRef::invalid();
 
-    if (consumeIf(TokenId::SymComma) != INVALID_REF)
+    if (consumeIf(TokenId::SymComma).isValid())
     {
         auto tokStr = tok().string(*file_);
         if (tokStr == Token::toName(TokenId::KwdLocation))
@@ -226,7 +226,7 @@ AstNodeRef Parser::parseCompilerImport()
             consume();
             expectAndConsume(TokenId::SymColon, DiagnosticId::parser_err_expected_token_before);
             nodePtr->tokLocation = expectAndConsume(TokenId::StringLine, DiagnosticId::parser_err_expected_token_before);
-            if (consumeIf(TokenId::SymComma) != INVALID_REF)
+            if (consumeIf(TokenId::SymComma).isValid())
             {
                 tokStr = tok().string(*file_);
                 if (tokStr == Token::toName(TokenId::KwdVersion))

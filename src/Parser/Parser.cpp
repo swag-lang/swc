@@ -58,18 +58,18 @@ void Parser::setReportArguments(Diagnostic& diag, TokenRef tokenRef) const
     diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Token::toAFamily(token.id), false);
 
     // Get the last non-trivia token
-    if (tokenRef != 0)
+    if (tokenRef.get() != 0)
     {
-        const auto& tokenPrev = file_->lexOut().token(tokenRef - 1);
-        diag.addArgument(Diagnostic::ARG_PREV_TOK, tokenErrorString(tokenRef - 1));
+        const auto& tokenPrev = file_->lexOut().token(tokenRef.offset(-1));
+        diag.addArgument(Diagnostic::ARG_PREV_TOK, tokenErrorString(tokenRef.offset(-1)));
         diag.addArgument(Diagnostic::ARG_PREV_TOK_FAM, Token::toFamily(tokenPrev.id), false);
         diag.addArgument(Diagnostic::ARG_PREV_A_TOK_FAM, Token::toAFamily(tokenPrev.id), false);
     }
 
-    if (tokenRef < file_->lexOut().tokens().size() - 1)
+    if (tokenRef.get() < file_->lexOut().tokens().size() - 1)
     {
-        const auto& tokenNext = file_->lexOut().token(tokenRef + 1);
-        diag.addArgument(Diagnostic::ARG_NEXT_TOK, tokenErrorString(tokenRef + 1));
+        const auto& tokenNext = file_->lexOut().token(tokenRef.offset(1));
+        diag.addArgument(Diagnostic::ARG_NEXT_TOK, tokenErrorString(tokenRef.offset(1)));
         diag.addArgument(Diagnostic::ARG_NEXT_TOK_FAM, Token::toFamily(tokenNext.id), false);
         diag.addArgument(Diagnostic::ARG_NEXT_A_TOK_FAM, Token::toAFamily(tokenNext.id), false);
     }
@@ -191,7 +191,7 @@ TokenRef Parser::consume(TokenId id)
 TokenRef Parser::consume()
 {
     if (atEnd())
-        return INVALID_REF;
+        return TokenRef::invalid();
     const auto result = ref();
     switch (id())
     {
@@ -225,7 +225,7 @@ TokenRef Parser::consume()
 TokenRef Parser::consumeIf(TokenId id)
 {
     if (atEnd() || isNot(id))
-        return INVALID_REF;
+        return TokenRef::invalid();
     return consume();
 }
 
@@ -241,7 +241,7 @@ TokenRef Parser::expectAndConsume(TokenId id, DiagnosticId diagId)
         diag.last().span(0).messageId = DiagnosticId::parser_note_reserved_identifier;
 
     diag.report(*ctx_);
-    return INVALID_REF;
+    return TokenRef::invalid();
 }
 
 TokenRef Parser::expectAndConsumeClosingFor(TokenId openId, TokenRef openRef)
@@ -261,17 +261,17 @@ TokenRef Parser::expectAndConsumeClosingFor(TokenId openId, TokenRef openRef)
 
     skipTo({closingId, TokenId::SymSemiColon, TokenId::SymLeftCurly}, SkipUntilFlagsE::EolBefore);
     consumeIf(closingId);
-    return INVALID_REF;
+    return TokenRef::invalid();
 }
 
 void Parser::expectEndStatement()
 {
     if (tok().startsLine() || is(TokenId::EndOfFile))
         return;
-    if (consumeIf(TokenId::SymSemiColon) != INVALID_REF)
+    if (consumeIf(TokenId::SymSemiColon).isValid())
         return;
 
-    const auto diag = reportError(DiagnosticId::parser_err_expected_eol, ref() - 1);
+    const auto diag = reportError(DiagnosticId::parser_err_expected_eol, ref().offset(-1));
     auto       loc  = curToken_[-1].location(*ctx_, *file_);
     loc.column += loc.len;
     loc.offset += loc.len;

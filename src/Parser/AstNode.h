@@ -12,7 +12,7 @@ struct AstNodeIdInfo
 enum class AstNodeId : uint16_t
 {
 #define SWC_NODE_DEF(enum) enum,
-#include "AstNodes.def"
+#include "AstNodes.inc"
 
 #undef SWC_NODE_DEF
     Count
@@ -20,7 +20,7 @@ enum class AstNodeId : uint16_t
 
 constexpr std::array AST_NODE_ID_INFOS = {
 #define SWC_NODE_DEF(enum) AstNodeIdInfo{#enum},
-#include "AstNodes.def"
+#include "AstNodes.inc"
 
 #undef SWC_NODE_DEF
 };
@@ -115,7 +115,7 @@ struct AstTypeOf;
         using type = Ast##E;       \
     };
 // ReSharper disable once CppUnusedIncludeDirective
-#include "AstNodes.def"
+#include "AstNodes.inc"
 #undef SWC_NODE_DEF
 
 template<class F>
@@ -126,7 +126,7 @@ decltype(auto) visitAstNodeId(AstNodeId id, F f)
 #define SWC_NODE_DEF(E) \
     case AstNodeId::E:  \
         return std::forward<F>(f).operator()<AstNodeId::E>();
-#include "AstNodes.def"
+#include "AstNodes.inc"
 
 #undef SWC_NODE_DEF
     default:

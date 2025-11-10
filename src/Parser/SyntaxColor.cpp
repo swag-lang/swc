@@ -411,6 +411,10 @@ Utf8 SyntaxColorHelper::colorize(const Context& ctx, SyntaxColorMode mode, const
                     tokColor = SyntaxColor::SyntaxIntrinsic;
                 else if (Token::isCompilerIntrinsic(tokenId))
                     tokColor = SyntaxColor::SyntaxIntrinsic;
+                else if (Token::isCompilerAlias(tokenId))
+                    tokColor = SyntaxColor::SyntaxIntrinsic;
+                else if (Token::isCompilerUniq(tokenId))
+                    tokColor = SyntaxColor::SyntaxIntrinsic;
                 else if (Token::isReserved(tokenId))
                     tokColor = SyntaxColor::SyntaxInvalid;
                 else if (Token::isKeywordLogic(tokenId))

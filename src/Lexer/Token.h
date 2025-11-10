@@ -23,6 +23,8 @@ enum class TokenIdKind
     Literal,
     Modifier,
     Reserved,
+    CompilerAlias,
+    CompilerUniq,
 };
 
 struct TokenIdInfo
@@ -35,7 +37,7 @@ struct TokenIdInfo
 enum class TokenId : uint16_t
 {
 #define SWC_TOKEN_DEF(__enum, __name, __kind) __enum,
-#include "TokenIds.def"
+#include "TokenIds.inc"
 
 #undef SWC_TOKEN_DEF
     Count
@@ -43,7 +45,7 @@ enum class TokenId : uint16_t
 
 constexpr std::array TOKEN_ID_INFOS = {
 #define SWC_TOKEN_DEF(__enum, __name, __kind) TokenIdInfo{#__enum, __name, TokenIdKind::__kind},
-#include "TokenIds.def"
+#include "TokenIds.inc"
 
 #undef SWC_TOKEN_DEF
 };
@@ -88,8 +90,10 @@ struct Token
     static bool isCompilerIntrinsicReturn(TokenId id) { return toKind(id) == TokenIdKind::CompilerIntrinsicReturn; }
     static bool isCompilerIntrinsic(TokenId id) { return toKind(id) == TokenIdKind::CompilerIntrinsic || isCompilerIntrinsicReturn(id); }
     static bool isCompilerFunc(TokenId id) { return toKind(id) == TokenIdKind::CompilerFunc; }
-    static bool isCompiler(TokenId id) { return toKind(id) == TokenIdKind::Compiler || isCompilerIntrinsic(id) || isCompilerFunc(id); }
-    static bool isIntrinsic(TokenId id) { return toKind(id) == TokenIdKind::Intrinsic || isCompilerIntrinsic(id); }
+    static bool isCompilerAlias(TokenId id) { return toKind(id) == TokenIdKind::CompilerAlias; }
+    static bool isCompilerUniq(TokenId id) { return toKind(id) == TokenIdKind::CompilerUniq; }
+    static bool isCompiler(TokenId id) { return toKind(id) == TokenIdKind::Compiler || isCompilerIntrinsic(id) || isCompilerFunc(id) || isCompilerAlias(id) || isCompilerUniq(id); }
+    static bool isIntrinsic(TokenId id) { return toKind(id) == TokenIdKind::Intrinsic || isCompilerIntrinsic(id) || isIntrinsicReturn(id); }
     static bool isIntrinsicReturn(TokenId id) { return toKind(id) == TokenIdKind::IntrinsicReturn || isCompilerIntrinsicReturn(id); }
     static bool isType(TokenId id) { return toKind(id) == TokenIdKind::Type; }
     static bool isModifier(TokenId id) { return toKind(id) == TokenIdKind::Modifier; }

@@ -227,6 +227,30 @@ SWC_TOKEN_DEF(ModifierBit, "#bit",  Modifier)
 SWC_TOKEN_DEF(ModifierUnConst, "#unconst",  Modifier)
 
 // ========================================================
+// COMPILER IDENTIFIERS
+// ========================================================
+SWC_TOKEN_DEF(CompilerAlias0, "#alias0",  CompilerAlias)
+SWC_TOKEN_DEF(CompilerAlias1, "#alias1",  CompilerAlias)
+SWC_TOKEN_DEF(CompilerAlias2, "#alias2",  CompilerAlias)
+SWC_TOKEN_DEF(CompilerAlias3, "#alias3",  CompilerAlias)
+SWC_TOKEN_DEF(CompilerAlias4, "#alias4",  CompilerAlias)
+SWC_TOKEN_DEF(CompilerAlias5, "#alias5",  CompilerAlias)
+SWC_TOKEN_DEF(CompilerAlias6, "#alias6",  CompilerAlias)
+SWC_TOKEN_DEF(CompilerAlias7, "#alias7",  CompilerAlias)
+SWC_TOKEN_DEF(CompilerAlias8, "#alias8",  CompilerAlias)
+SWC_TOKEN_DEF(CompilerAlias9, "#alias9",  CompilerAlias)
+SWC_TOKEN_DEF(CompilerUniq0, "#uniq0",  CompilerUniq)
+SWC_TOKEN_DEF(CompilerUniq1, "#uniq1",  CompilerUniq)
+SWC_TOKEN_DEF(CompilerUniq2, "#uniq2",  CompilerUniq)
+SWC_TOKEN_DEF(CompilerUniq3, "#uniq3",  CompilerUniq)
+SWC_TOKEN_DEF(CompilerUniq4, "#uniq4",  CompilerUniq)
+SWC_TOKEN_DEF(CompilerUniq5, "#uniq5",  CompilerUniq)
+SWC_TOKEN_DEF(CompilerUniq6, "#uniq6",  CompilerUniq)
+SWC_TOKEN_DEF(CompilerUniq7, "#uniq7",  CompilerUniq)
+SWC_TOKEN_DEF(CompilerUniq8, "#uniq8",  CompilerUniq)
+SWC_TOKEN_DEF(CompilerUniq9, "#uniq9",  CompilerUniq)
+
+// ========================================================
 // COMPILER INFO
 // ========================================================
 SWC_TOKEN_DEF(CompilerBuildCfg, "#cfg",  Compiler)

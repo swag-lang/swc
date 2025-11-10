@@ -66,6 +66,9 @@ SWC_DIAG_DEF(parser_err_missing_attribute_sep)
 SWC_DIAG_DEF(parser_err_gen_param_type)
 SWC_DIAG_DEF(parser_err_var_struct)
 SWC_DIAG_DEF(parser_err_mtd_missing_capture)
+SWC_DIAG_DEF(parser_err_invalid_compiler)
+SWC_DIAG_DEF(parser_err_invalid_intrinsic)
+
 
 
 

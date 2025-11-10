@@ -106,7 +106,11 @@ AstNodeRef Parser::parseVarDecl()
     SmallVector<TokenRef> tokNames;
     while (true)
     {
-        TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+        TokenRef tokName = INVALID_REF;
+        if (Token::isCompilerAlias(id()) || Token::isCompilerUniq(id()))
+            tokName = consume();
+        else
+            tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
         if (invalid(tokName))
             return INVALID_REF;
         tokNames.push_back(tokName);

@@ -253,7 +253,7 @@
         <ClInclude Include="src\Lexer\SourceCodeLocation.h"/>
         <ClInclude Include="src\Lexer\SourceFile.h"/>
         <ClInclude Include="src\Lexer\Token.h"/>
-        <ClInclude Include="src\Lexer\TokenIds.def"/>
+        <ClInclude Include="src\Lexer\TokenIds.inc"/>
         <ClInclude Include="src\Main\CommandLine.h"/>
         <ClInclude Include="src\Main\CommandLineParser.h"/>
         <ClInclude Include="src\Main\CompilerContext.h"/>
@@ -267,7 +267,7 @@
         <ClInclude Include="src\Os\Os.h"/>
         <ClInclude Include="src\Parser\Ast.h"/>
         <ClInclude Include="src\Parser\AstNode.h"/>
-        <ClInclude Include="src\Parser\AstNodes.def"/>
+        <ClInclude Include="src\Parser\AstNodes.inc"/>
         <ClInclude Include="src\Parser\AstNodes.h"/>
         <ClInclude Include="src\Parser\Parser.h"/>
         <ClInclude Include="src\Parser\SyntaxColor.h"/>
@@ -288,9 +288,9 @@
         <ClInclude Include="src\Thread\RaceCondition.h"/>
     </ItemGroup>
     <ItemGroup>
-        <Content Include="src\Report\Diagnostic_Errors_.def"/>
+        <Content Include="src\Report\Diagnostic_Errors_.inc"/>
         <Content Include="src\Report\Diagnostic_Errors_.msg"/>
-        <Content Include="src\Report\Diagnostic_Notes_.def"/>
+        <Content Include="src\Report\Diagnostic_Notes_.inc"/>
         <Content Include="src\Report\Diagnostic_Notes_.msg"/>
     </ItemGroup>
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets"/>

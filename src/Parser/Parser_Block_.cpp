@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Core/SmallVector.h"
-#include "Core/Types.h"
 #include "Lexer/SourceFile.h"
 #include "Parser/AstNode.h"
 #include "Parser/Parser.h"

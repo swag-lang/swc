@@ -1,6 +1,5 @@
 // ReSharper disable CppInconsistentNaming
 #pragma once
-#include "Core/Types.h"
 
 SWC_BEGIN_NAMESPACE()
 

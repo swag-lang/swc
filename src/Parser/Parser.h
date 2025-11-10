@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/SmallVector.h"
+#include "Parser/AstNode.h"
 #include "Lexer/Token.h"
 #include "Parser/Ast.h"
 #include "Report/Diagnostic.h"

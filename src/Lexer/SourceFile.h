@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "Core/Types.h"
 #include "Lexer/Lexer.h"
 #include "Parser/Parser.h"
 #include "Report/UnitTest.h"

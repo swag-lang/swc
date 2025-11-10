@@ -1,6 +1,5 @@
 #pragma once
 #include "Core/RefStore.h"
-#include "Core/Types.h"
 #include "Parser/AstNode.h"
 #include "Report/Stats.h"
 

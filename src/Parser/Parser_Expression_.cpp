@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Lexer/SourceFile.h"
-#include "Parser/AstNode.h"
 #include "Parser/Parser.h"
 
 SWC_BEGIN_NAMESPACE()

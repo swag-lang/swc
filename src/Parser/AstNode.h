@@ -89,9 +89,6 @@ struct AstInvalid : AstNode
     }
 };
 
-// ReSharper disable once CppUnusedIncludeDirective
-#include "Parser/AstNodes.h"
-
 template<typename T>
 T* castAst(AstNode* node)
 {
@@ -107,6 +104,8 @@ const T* castAst(const AstNode* node)
     SWC_ASSERT(node->id == T::ID);
     return reinterpret_cast<const T*>(node);
 }
+
+#include "Parser/AstNodes.h"
 
 template<AstNodeId ID>
 struct AstTypeOf;

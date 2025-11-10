@@ -1,4 +1,5 @@
 #pragma once
+
 SWC_BEGIN_NAMESPACE()
 
 class CompilerInstance;

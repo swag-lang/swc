@@ -1,13 +1,13 @@
 #include "pch.h"
 #include "Report/UnitTest.h"
 #include "Core/Utf8Helper.h"
-#include "Diagnostic.h"
 #include "Lexer/LangSpec.h"
 #include "Lexer/Lexer.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
+#include "Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE()
 

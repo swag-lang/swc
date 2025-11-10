@@ -19,6 +19,8 @@ struct AstFile : AstCompound
         AstCompound(ID)
     {
     }
+
+    SpanRef spanGlobals;
 };
 
 struct AstTopLevelBlock : AstCompound
@@ -128,6 +130,24 @@ struct AstCompilerCallUnary : AstInternalCallUnaryBase
         AstInternalCallUnaryBase(ID)
     {
     }
+};
+
+struct AstCompilerGlobal : AstNode
+{
+    static constexpr auto ID = AstNodeId::CompilerGlobal;
+    AstCompilerGlobal() :
+        AstNode(ID)
+    {
+    }
+
+    enum class Mode
+    {
+        Skip,
+        Generated,
+        Export,
+    };
+
+    Mode mode;
 };
 
 struct AstIntrinsicCallZero : AstNode

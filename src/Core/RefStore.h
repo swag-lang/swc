@@ -266,6 +266,9 @@ public:
     template<class T>
     Ref push_span(const std::span<T>& s)
     {
+        if (s.empty())
+            return INVALID_REF;
+
         static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
 
         const T* src       = s.data();

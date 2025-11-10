@@ -122,4 +122,37 @@ AstNodeRef Parser::parseCompilerTypeOf()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseCompilerGlobal()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerGlobal>();
+    consume();
+
+    const auto tokStr = tok().string(*file_);
+
+    if (tokStr == "skip")
+    {
+        nodePtr->mode = AstCompilerGlobal::Mode::Skip;
+        file_->addFlag(FileFlagsE::LexOnly);
+        consume();
+    }
+    else if (tokStr == "generated")
+    {
+        nodePtr->mode = AstCompilerGlobal::Mode::Generated;
+        consume();
+    }
+    else if (tokStr == "export")
+    {
+        nodePtr->mode = AstCompilerGlobal::Mode::Export;
+        consume();
+    }
+    else
+    {
+        // @skip
+        skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
+    }
+
+    expectEndStatement();
+    return nodeRef;
+}
+
 SWC_END_NAMESPACE()

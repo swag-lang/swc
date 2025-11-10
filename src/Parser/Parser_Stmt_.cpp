@@ -59,7 +59,7 @@ AstNodeRef Parser::parseTopLevelStmt()
     {
         const AstNodeRef nodeRef = parseVarDecl();
         // @skip
-        //expectEndStatement();
+        // expectEndStatement();
         return nodeRef;
     }
 
@@ -70,13 +70,15 @@ AstNodeRef Parser::parseTopLevelStmt()
     case TokenId::CompilerImport:
     case TokenId::KwdFunc:
     case TokenId::KwdMtd:
-    case TokenId::CompilerGlobal:
         // @skip
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
         return INVALID_REF;
 
     case TokenId::KwdAlias:
         return parseAlias();
+
+    case TokenId::CompilerGlobal:
+        return parseCompilerGlobal();
 
     default:
         // @skip
@@ -122,7 +124,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
     {
         const AstNodeRef nodeRef = parseVarDecl();
         // @skip
-        //expectEndStatement();
+        expectEndStatement();
         return nodeRef;
     }
 

@@ -262,7 +262,24 @@ Ref Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId, bo
 
 AstNodeRef Parser::parseFile()
 {
-    return parseCompound(AstNodeId::File, TokenId::Invalid);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::File>();
+
+    // #global must be first 
+    SmallVector<TokenRef> globals;
+    while (is(TokenId::CompilerGlobal))
+    {
+        auto global = parseCompilerGlobal();
+        if (file_->hasFlag(FileFlagsE::LexOnly))
+            return nodeRef;
+        if (global != INVALID_REF)
+            globals.push_back(global);
+    }
+
+    nodePtr->spanGlobals  = ast_->store_.push_span(globals.span());
+
+    // All the rest
+    nodePtr->spanChildren = parseCompoundContent(AstNodeId::File, TokenId::Invalid);
+    return nodeRef;
 }
 
 AstNodeRef Parser::parseNamespace()

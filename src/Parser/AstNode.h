@@ -105,35 +105,4 @@ const T* castAst(const AstNode* node)
     return reinterpret_cast<const T*>(node);
 }
 
-#include "Parser/AstNodes.h"
-
-template<AstNodeId ID>
-struct AstTypeOf;
-
-#define SWC_NODE_DEF(E)            \
-    template<>                     \
-    struct AstTypeOf<AstNodeId::E> \
-    {                              \
-        using type = Ast##E;       \
-    };
-// ReSharper disable once CppUnusedIncludeDirective
-#include "AstNodes.inc"
-#undef SWC_NODE_DEF
-
-template<class F>
-decltype(auto) visitAstNodeId(AstNodeId id, F f)
-{
-    switch (id)
-    {
-#define SWC_NODE_DEF(E) \
-    case AstNodeId::E:  \
-        return std::forward<F>(f).operator()<AstNodeId::E>();
-#include "AstNodes.inc"
-
-#undef SWC_NODE_DEF
-    default:
-        std::unreachable();
-    }
-}
-
 SWC_END_NAMESPACE()

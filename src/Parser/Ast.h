@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/RefStore.h"
 #include "Parser/AstNode.h"
+#include "Parser/AstNodes.h"
 #include "Report/Stats.h"
 
 SWC_BEGIN_NAMESPACE()

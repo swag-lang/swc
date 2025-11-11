@@ -43,7 +43,6 @@ namespace
     }
 }
 
-#pragma optimize("", off)
 void SourceCodeLocation::fromOffset(const TaskContext& ctx, const SourceFile& inFile, uint32_t inOffset, uint32_t inLen)
 {
     if (inLen == 0)

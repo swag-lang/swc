@@ -1,9 +1,10 @@
 #pragma once
 #include "Core/SmallVector.h"
+#include <cstdint>
+#include <functional>
+#include <utility>
 
 SWC_BEGIN_NAMESPACE()
-
-#pragma once
 
 class SourceFile;
 struct AstNode;
@@ -12,11 +13,13 @@ struct AstVisitContext
 {
     struct Frame
     {
-        const AstNode* node = nullptr;
+        // Snapshot of the SourceFile* when this frame was created
+        const SourceFile* sourceAtPush = nullptr;
 
-        // We collect children once (as strong pointers) using the current SourceFile*
-        SmallVector<const AstNode*, 8> children;
-        size_t                         nextChildIx = 0;
+        // Store a stable reference
+        AstNodeRef              nodeRef = AstNodeRef::invalid();
+        SmallVector<AstNodeRef> children;
+        size_t                  nextChildIx = 0;
 
         enum class Stage : uint8_t
         {
@@ -25,19 +28,15 @@ struct AstVisitContext
             Post
         };
         Stage stage = Stage::Pre;
-
-        // Snapshot of the SourceFile* when this frame was created (useful if you want
-        // to restore on exit or debug file-scope changes while descending)
-        SourceFile* sourceAtPush = nullptr;
     };
 
     // Active file scope used to resolve AstNodeRef / SpanRef
-    SourceFile* currentSource = nullptr;
+    const SourceFile* currentSource = nullptr;
 
     // The explicit traversal stack (top is back())
     SmallVector<Frame, 64> stack;
 
-    void reset(SourceFile* initialFile = nullptr)
+    void reset(const SourceFile* initialFile = nullptr)
     {
         currentSource = initialFile;
         stack.clear();
@@ -66,15 +65,15 @@ public:
     {
     }
 
-    static void start(AstVisitContext& ctx, const AstNode* root, SourceFile* rootFile);
+    static void start(AstVisitContext& ctx, const SourceFile* rootFile, AstNodeRef rootRef);
     bool        step(AstVisitContext& ctx) const;
     void        run(AstVisitContext& ctx) const;
 
 private:
     Callbacks cb_{};
 
-    static void collectResolvedChildren(const AstVisitContext& ctx, AstVisitContext::Frame& fr);
-    static void collectChildRefs(const AstNode* node, SmallVector<AstNodeRef>& out);
+    static void           collectChildRefs(const AstNode* node, SmallVector<AstNodeRef>& out);
+    static const AstNode* resolveNode(const AstVisitContext::Frame& fr);
 };
 
 SWC_END_NAMESPACE()

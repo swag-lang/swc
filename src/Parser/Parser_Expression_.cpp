@@ -737,7 +737,7 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
             nodeArgs.push_back(nodeExpr);
         }
 
-        expectAndConsumeClosing(TokenId::SymLeftBracket, openRef);
+        expectAndConsumeClosing(TokenId::SymRightBracket, openRef);
 
         if (nodeArgs.size() == 1)
         {
@@ -762,7 +762,7 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
     else
         nodePtr->nodeRight = AstNodeRef::invalid();
 
-    expectAndConsumeClosing(TokenId::SymLeftBracket, openRef);
+    expectAndConsumeClosing(TokenId::SymRightBracket, openRef);
     return nodeParent;
 }
 

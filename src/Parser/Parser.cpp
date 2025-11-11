@@ -271,7 +271,7 @@ void Parser::expectEndStatement()
     if (consumeIf(TokenId::SymSemiColon).isValid())
         return;
 
-    const auto diag = reportError(DiagnosticId::parser_err_expected_eol, ref().offset(-1));
+    const auto diag = reportError(DiagnosticId::parser_err_expected_sep_stmt, ref().offset(-1));
     auto       loc  = curToken_[-1].location(*ctx_, *file_);
     loc.column += loc.len;
     loc.offset += loc.len;

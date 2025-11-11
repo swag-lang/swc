@@ -65,7 +65,7 @@ AstNodeRef Parser::parseDecompositionDecl()
         flags.add(AstVarDecl::FlagsE::Var);
     else if (consumeIf(TokenId::KwdLet).isValid())
         flags.add(AstVarDecl::FlagsE::Let);
-    
+
     const auto openRef = consume(TokenId::SymLeftParen);
 
     // All names
@@ -77,16 +77,24 @@ AstNodeRef Parser::parseDecompositionDecl()
         {
             tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
             if (tokName.isInvalid())
-                return AstNodeRef::invalid();
+                skipTo({TokenId::SymRightParen, TokenId::SymComma});
         }
 
         tokNames.push_back(tokName);
+
         if (consumeIf(TokenId::SymComma).isInvalid())
             break;
+
+        if (is(TokenId::SymRightParen))
+        {
+            auto diag = reportError(DiagnosticId::parser_err_expected_token_fam_before, ref());
+            setReportExpected(diag, TokenId::Identifier);
+            diag.report(*ctx_);
+        }
     }
 
     expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
-    expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_fam);
+    expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token);
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::DecompositionDecl>();
     nodePtr->addFlag(flags);

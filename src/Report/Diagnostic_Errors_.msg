@@ -45,7 +45,7 @@ SWC_DIAG_DEF(parser_err_expected_closing, Error, "expected closing {expect-tok} 
 SWC_DIAG_DEF(parser_err_expected_closing_before, Error, "expected closing {expect-tok} {because} before {tok-fam} {tok}")
 SWC_DIAG_DEF(parser_err_invalid_type, Error, "invalid type declaration: {tok}")
 SWC_DIAG_DEF(parser_err_expected_array_dim, Error, "expected array dimension or specifier")
-SWC_DIAG_DEF(parser_err_expected_eol, Error, "expected separator ';' between consecutive statements")
+SWC_DIAG_DEF(parser_err_expected_sep_stmt, Error, "expected ';' to separate statements")
 SWC_DIAG_DEF(parser_err_empty_literal_suffix, Error, "empty literal suffix")
 SWC_DIAG_DEF(parser_err_invalid_literal_suffix, Error, "invalid literal suffix: {tok}")
 SWC_DIAG_DEF(parser_err_unexpected_and_or, Error, "unexpected C-style boolean operator {tok}; use 'and' or 'or' instead")

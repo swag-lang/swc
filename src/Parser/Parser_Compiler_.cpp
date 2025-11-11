@@ -78,9 +78,7 @@ AstNodeRef Parser::parseCompilerIfStmt(AstNodeId blockNodeId)
     }
 
     if (is(TokenId::SymLeftCurly))
-    {
         return parseCompound(blockNodeId, TokenId::SymLeftCurly);
-    }
 
     const auto diag = reportError(DiagnosticId::parser_err_expected_do_block, ref().offset(-1));
     diag.report(*ctx_);

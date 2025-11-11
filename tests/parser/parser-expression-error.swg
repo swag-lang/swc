@@ -1,7 +1,3 @@
-// ============================================================================
-// Parser Expressions Error
-// ============================================================================
-
 #assert A // swc-expected-error {{parser_err_expected_token}}
 // swc-expected-error@+ {{parser_err_expected_closing}}
 #assert(A)

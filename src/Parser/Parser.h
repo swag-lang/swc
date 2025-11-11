@@ -68,7 +68,6 @@ class Parser
     AstNodeRef       parseInternalCallBinary(AstNodeId callerNodeId);
     AstNodeRef       parseInternalCallTernary(AstNodeId callerNodeId);
     AstNodeRef       parseCompoundValue(AstNodeId blockNodeId);
-    AstNodeRef       parseBlockCompilerDirective(AstNodeId blockNodeId);
     Result           parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId);
     void             finalizeCompound(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef closeTokenRef, TokenId tokenEndId, const SmallVector<AstNodeRef>& childrenRefs);
     AstNodeRef       parseCompound(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt = false);

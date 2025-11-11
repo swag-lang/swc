@@ -1,7 +1,3 @@
-// ============================================================================
-// Parser Types Error
-// ============================================================================
-
 enum A : *enum { Z } // swc-expected-error {{parser_err_invalid_type}}
 
 enum A : [? /* toto */ s32 { Z } // swc-expected-error {{parser_err_expected_closing}}

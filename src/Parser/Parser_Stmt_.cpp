@@ -91,9 +91,11 @@ AstNodeRef Parser::parseTopLevelStmt()
     case TokenId::Identifier:
         return parseTopLevelCall();
 
+    case TokenId::EndOfFile:
+        return AstNodeRef::invalid();
+
     default:
-        // @skip
-        skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
+        raiseError(DiagnosticId::parser_err_unexpected_token, ref());
         return AstNodeRef::invalid();
     }
 }
@@ -163,7 +165,7 @@ AstNodeRef Parser::parseTopLevelCall()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TopLevelCall>();
     nodePtr->nodeIdentifier = parseQualifiedIdentifier();
-    nodePtr->nodeArgs = parseCompound(AstNodeId::NamedArgList, TokenId::SymLeftParen);
+    nodePtr->nodeArgs       = parseCompound(AstNodeId::NamedArgList, TokenId::SymLeftParen);
     expectEndStatement();
     return nodeRef;
 }
@@ -218,6 +220,10 @@ AstNodeRef Parser::parseAlias()
 
     if (isAny(TokenId::CompilerDeclType, TokenId::SymLeftBracket, TokenId::SymLeftCurly, TokenId::KwdFunc, TokenId::KwdMtd))
         nodePtr->nodeExpr = parseType();
+    else if (Token::isType(id()))
+        nodePtr->nodeExpr = parseType();
+    else if (is(TokenId::Identifier))
+        nodePtr->nodeExpr = parseQualifiedIdentifier();
     else
         nodePtr->nodeExpr = parsePrimaryExpression();
 

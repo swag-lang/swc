@@ -1,10 +1,8 @@
 #include "pch.h"
 #include "Report/DiagnosticBuilder.h"
 #include "Core/Utf8Helper.h"
-#include "Lexer/LangSpec.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
-#include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Parser/SyntaxColor.h"
 #include "Report/Diagnostic.h"
@@ -489,7 +487,7 @@ void DiagnosticBuilder::writeCodeTrunc(const DiagnosticElement&  elToUse,
 
     const uint32_t diagMax = ctx_->cmdLine().diagMaxColumn;
 
-    // Initial window anchored with a small left context.
+    // The initial window anchored with a small left context.
     const uint32_t rawStart    = (loc.column > leftContext) ? (loc.column - leftContext) : 0u;
     uint32_t       windowStart = rawStart;
 

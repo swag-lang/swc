@@ -9,6 +9,46 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
 {
+    // Compiler instructions
+    if (blockNodeId == AstNodeId::File ||
+        blockNodeId == AstNodeId::TopLevelBlock ||
+        blockNodeId == AstNodeId::ImplEnum ||
+        blockNodeId == AstNodeId::Impl ||
+        blockNodeId == AstNodeId::ImplFor ||
+        blockNodeId == AstNodeId::AggregateBody ||
+        blockNodeId == AstNodeId::InterfaceBody ||
+        blockNodeId == AstNodeId::EnumDecl)
+    {
+        AstNodeRef childrenRef = AstNodeRef::invalid();
+        switch (id())
+        {
+        case TokenId::CompilerAssert:
+            childrenRef = parseInternalCallUnary(AstNodeId::CompilerAssert);
+            expectEndStatement();
+            break;
+        case TokenId::CompilerError:
+            childrenRef = parseInternalCallUnary(AstNodeId::CompilerError);
+            expectEndStatement();
+            break;
+        case TokenId::CompilerWarning:
+            childrenRef = parseInternalCallUnary(AstNodeId::CompilerWarning);
+            expectEndStatement();
+            break;
+        case TokenId::CompilerPrint:
+            childrenRef = parseInternalCallUnary(AstNodeId::CompilerPrint);
+            expectEndStatement();
+            break;
+        case TokenId::CompilerIf:
+            childrenRef = parseCompilerIf(blockNodeId);
+            break;
+        default:
+            break;
+        }
+
+        if (childrenRef.isValid())
+            return childrenRef;
+    }
+
     switch (blockNodeId)
     {
     case AstNodeId::File:
@@ -60,49 +100,6 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
     default:
         SWC_UNREACHABLE();
     }
-}
-
-AstNodeRef Parser::parseBlockCompilerDirective(AstNodeId blockNodeId)
-{
-    auto childrenRef = AstNodeRef::invalid();
-
-    // Compiler instructions
-    if (blockNodeId == AstNodeId::File ||
-        blockNodeId == AstNodeId::TopLevelBlock ||
-        blockNodeId == AstNodeId::ImplEnum ||
-        blockNodeId == AstNodeId::Impl ||
-        blockNodeId == AstNodeId::ImplFor ||
-        blockNodeId == AstNodeId::AggregateBody ||
-        blockNodeId == AstNodeId::InterfaceBody ||
-        blockNodeId == AstNodeId::EnumDecl)
-    {
-        switch (id())
-        {
-        case TokenId::CompilerAssert:
-            childrenRef = parseInternalCallUnary(AstNodeId::CompilerAssert);
-            expectEndStatement();
-            break;
-        case TokenId::CompilerError:
-            childrenRef = parseInternalCallUnary(AstNodeId::CompilerError);
-            expectEndStatement();
-            break;
-        case TokenId::CompilerWarning:
-            childrenRef = parseInternalCallUnary(AstNodeId::CompilerWarning);
-            expectEndStatement();
-            break;
-        case TokenId::CompilerPrint:
-            childrenRef = parseInternalCallUnary(AstNodeId::CompilerPrint);
-            expectEndStatement();
-            break;
-        case TokenId::CompilerIf:
-            childrenRef = parseCompilerIf(blockNodeId);
-            break;
-        default:
-            break;
-        }
-    }
-
-    return childrenRef;
 }
 
 Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
@@ -231,18 +228,9 @@ SpanRef Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId
     while (!atEnd() && isNot(tokenEndId))
     {
         const auto loopStartToken = curToken_;
-        AstNodeRef childRef       = AstNodeRef::invalid();
-
-        // Compiler directives (only in certain blocks)
-        childRef = parseBlockCompilerDirective(blockNodeId);
-        if (childRef.isValid())
-        {
-            childrenRefs.push_back(childRef);
-            continue;
-        }
 
         // One block element
-        childRef = parseCompoundValue(blockNodeId);
+        AstNodeRef childRef = parseCompoundValue(blockNodeId);
         if (childRef.isValid())
             childrenRefs.push_back(childRef);
 

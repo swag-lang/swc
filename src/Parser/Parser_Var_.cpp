@@ -56,8 +56,16 @@ AstNodeRef Parser::parseGenericParam()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseDecompositionDecl(AstVarDecl::Flags flags)
+AstNodeRef Parser::parseDecompositionDecl()
 {
+    AstVarDecl::Flags flags = AstVarDecl::FlagsE::Zero;
+    if (consumeIf(TokenId::KwdConst).isValid())
+        flags.add(AstVarDecl::FlagsE::Const);
+    else if (consumeIf(TokenId::KwdVar).isValid())
+        flags.add(AstVarDecl::FlagsE::Var);
+    else if (consumeIf(TokenId::KwdLet).isValid())
+        flags.add(AstVarDecl::FlagsE::Let);
+    
     const auto openRef = consume(TokenId::SymLeftParen);
 
     // All names
@@ -97,9 +105,6 @@ AstNodeRef Parser::parseVarDecl()
         flags.add(AstVarDecl::FlagsE::Var);
     else if (consumeIf(TokenId::KwdLet).isValid())
         flags.add(AstVarDecl::FlagsE::Let);
-
-    if (is(TokenId::SymLeftParen))
-        return parseDecompositionDecl(flags);
 
     SmallVector<AstNodeRef> vars;
     while (true)

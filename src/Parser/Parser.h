@@ -78,9 +78,9 @@ class Parser
     AstNodeRef       parseAggregateDecl(AstNodeId nodeId);
     AstNodeRef       parseInitializerList(AstNodeRef nodeWhat);
     AstModifierFlags parseModifiers();
-    AstNodeRef       parseDecompositionDecl(AstVarDecl::Flags flags);
     AstNodeRef       parseArraySlicingIndex(AstNodeRef nodeRef);
 
+    AstNodeRef parseDecompositionDecl();
     AstNodeRef parseTryCatchAssume();
     AstNodeRef parseAggregateAccessModifier();
     AstNodeRef parseAggregateBody();

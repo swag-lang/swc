@@ -149,7 +149,11 @@ AstNodeRef Parser::parseEmbeddedStmt()
     case TokenId::KwdVar:
     case TokenId::KwdLet:
     {
-        const AstNodeRef nodeRef = parseVarDecl();
+        AstNodeRef nodeRef;
+        if (nextIs(TokenId::SymLeftParen))
+            nodeRef = parseDecompositionDecl();
+        else
+            nodeRef = parseVarDecl();
         expectEndStatement();
         return nodeRef;
     }

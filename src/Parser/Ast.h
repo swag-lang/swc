@@ -17,6 +17,7 @@ public:
     static constexpr const AstNodeIdInfo& nodeIdInfos(AstNodeId id) { return AST_NODE_ID_INFOS[static_cast<size_t>(id)]; }
     static constexpr std::string_view     nodeIdName(AstNodeId id) { return nodeIdInfos(id).name; }
 
+    // Get a node depending on its ref
     template<AstNodeId ID>
     auto node(AstNodeRef nodeRef)
     {
@@ -28,6 +29,9 @@ public:
     AstNode*       node(AstNodeRef nodeRef) { return store_.ptr<AstNode>(nodeRef.get()); }
     const AstNode* node(AstNodeRef nodeRef) const { return store_.ptr<AstNode>(nodeRef.get()); }
 
+    void nodes(SmallVector<const AstNode*>& out, SpanRef nodes);
+
+    // Construct new nodes
     template<AstNodeId ID>
     auto makeNode()
     {

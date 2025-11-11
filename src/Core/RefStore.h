@@ -261,7 +261,7 @@ private:
     }
 
 public:
-    // Store a span of T split across pages. Returns Ref to the FIRST CHUNK HEADER.
+    // Store a span of T split across pages. Returns Ref to the first chunk header
     template<class T>
     SpanRef push_span(const std::span<T>& s)
     {
@@ -289,8 +289,7 @@ public:
         }
 
         const uint32_t totalElems = remaining;
-
-        SpanRef firstRef = SpanRef::invalid();
+        SpanRef        firstRef   = SpanRef::invalid();
 
         while (remaining)
         {
@@ -349,7 +348,6 @@ public:
         bool     empty() const { return size() == 0; }
         Ref      ref() const { return head_; }
 
-        // Chunk-wise iteration
         struct chunk
         {
             const T* ptr;
@@ -359,7 +357,7 @@ public:
         struct chunk_iterator
         {
             const RefStore* store  = nullptr;
-            SpanRef         hdrRef = SpanRef::invalid(); // current chunk header
+            Ref             hdrRef = UINT32_MAX;
             uint32_t        total  = 0;
             uint32_t        done   = 0;
             chunk           current{nullptr, 0};
@@ -373,16 +371,16 @@ public:
                 done += current.count;
                 if (done >= total)
                 {
-                    hdrRef.setInvalid();
+                    hdrRef  = UINT32_MAX;
                     current = {nullptr, 0};
                     return *this;
                 }
 
                 // The next chunk starts at the beginning of the next page
-                uint32_t      pageIndex, off;
-                const SpanRef cur = hdrRef;
+                uint32_t  pageIndex, off;
+                const Ref cur = hdrRef;
                 decodeRef(cur, pageIndex, off);
-                const SpanRef nextHdr = makeRef(pageIndex + 1, 0);
+                const Ref nextHdr = makeRef(pageIndex + 1, 0);
 
                 hdrRef                   = nextHdr;
                 const uint32_t remaining = total - done;
@@ -403,7 +401,7 @@ public:
 
             if (it.total == 0)
             {
-                it.hdrRef.setInvalid();
+                it.hdrRef  = UINT32_MAX;
                 it.current = {nullptr, 0};
                 return it;
             }
@@ -416,93 +414,7 @@ public:
 
         chunk_iterator chunks_end() const
         {
-            return {store_, SpanRef::invalid(), 0, 0, {nullptr, 0}};
-        }
-
-        // Element-wise const iterator spanning chunks
-        struct const_iterator
-        {
-            const RefStore* store       = nullptr;
-            SpanRef         curHdr      = SpanRef::invalid(); // header of current chunk
-            const T*        curPtr      = nullptr;            // pointer to current element
-            uint32_t        leftInChunk = 0;                  // elements left in current chunk (including curPtr)
-            uint32_t        done        = 0;                  // total elements produced so far
-            uint32_t        total       = 0;                  // total elements in the span
-
-            using value_type        = T;
-            using difference_type   = std::ptrdiff_t;
-            using reference         = const T&;
-            using pointer           = const T*;
-            using iterator_category = std::forward_iterator_tag;
-
-            reference operator*() const { return *curPtr; }
-            pointer   operator->() const { return curPtr; }
-
-            const_iterator& operator++()
-            {
-                if (leftInChunk > 1)
-                {
-                    --leftInChunk;
-                    ++curPtr;
-                    ++done;
-                    return *this;
-                }
-
-                // consumed the last element in this chunk
-                ++done;
-                if (done >= total)
-                {
-                    // end()
-                    curHdr.setInvalid();
-                    curPtr      = nullptr;
-                    leftInChunk = 0;
-                    return *this;
-                }
-
-                // Move to the next page's chunk
-                uint32_t pageIndex, off;
-                decodeRef(curHdr, pageIndex, off);
-                curHdr = makeRef(pageIndex + 1, 0);
-
-                const uint32_t remaining = total - done;
-                leftInChunk              = chunk_count_from_layout(curHdr, remaining);
-                curPtr                   = SpanView::data_ptr(store, curHdr);
-                return *this;
-            }
-
-            const_iterator operator++(int)
-            {
-                auto t = *this;
-                ++(*this);
-                return t;
-            }
-
-            friend bool operator==(const const_iterator& a, const const_iterator& b)
-            {
-                return a.store == b.store && a.curHdr == b.curHdr && a.curPtr == b.curPtr && a.leftInChunk == b.leftInChunk && a.done == b.done && a.total == b.total;
-            }
-
-            friend bool operator!=(const const_iterator& a, const const_iterator& b)
-            {
-                return !(a == b);
-            }
-        };
-
-        const_iterator begin() const
-        {
-            const uint32_t tot = total_elems(store_, head_);
-            if (tot == 0)
-                return {store_, SpanRef::invalid(), nullptr, 0, 0, 0};
-
-            const uint32_t cnt = chunk_count_from_layout(head_, tot);
-            const T*       p   = data_ptr(store_, head_);
-            return {store_, head_, p, cnt, 0, tot};
-        }
-
-        const_iterator end() const
-        {
-            const uint32_t tot = total_elems(store_, head_);
-            return {store_, SpanRef::invalid(), nullptr, 0, tot, tot};
+            return {store_, UINT32_MAX, 0, 0, {nullptr, 0}};
         }
     };
 

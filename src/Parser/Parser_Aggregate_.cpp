@@ -63,7 +63,7 @@ AstNodeRef Parser::parseAggregateValue()
         return parseEnumDecl();
 
     case TokenId::SymLeftCurly:
-        return parseCompound(AstNodeId::AggregateBody, TokenId::SymLeftCurly);
+        return parseCompound<AstNodeId::AggregateBody>(TokenId::SymLeftCurly);
 
     case TokenId::CompilerAst:
     case TokenId::CompilerRun:
@@ -151,7 +151,7 @@ AstNodeRef Parser::parseAggregateDecl(AstNodeId nodeId)
 
 AstNodeRef Parser::parseAggregateBody()
 {
-    return parseCompound(AstNodeId::AggregateBody, TokenId::SymLeftCurly);
+    return parseCompound<AstNodeId::AggregateBody>(TokenId::SymLeftCurly);
 }
 
 AstNodeRef Parser::parseInterfaceValue()
@@ -182,7 +182,7 @@ AstNodeRef Parser::parseInterfaceDecl()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InterfaceDecl>();
     consume();
     nodePtr->tokName  = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
-    nodePtr->nodeBody = parseCompound(AstNodeId::InterfaceBody, TokenId::SymLeftCurly);
+    nodePtr->nodeBody = parseCompound<AstNodeId::InterfaceBody>(TokenId::SymLeftCurly);
     return nodeRef;
 }
 

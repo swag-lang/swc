@@ -297,7 +297,7 @@ AstNodeRef Parser::parseNamespace()
     nodePtr->nodeName = parseQualifiedIdentifier();
     if (nodePtr->nodeName.isInvalid())
         skipTo({TokenId::SymLeftCurly});
-    nodePtr->nodeBody = parseCompound(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
+    nodePtr->nodeBody = parseCompound<AstNodeId::TopLevelBlock>(TokenId::SymLeftCurly);
     return nodeRef;
 }
 

@@ -68,7 +68,7 @@ AstNodeRef Parser::parseLambdaType()
         flags.add(AstLambdaType::FlagsE::Closure);
     }
 
-    const AstNodeRef params = parseCompound(AstNodeId::LambdaTypeParamList, TokenId::SymLeftParen);
+    const AstNodeRef params = parseCompound<AstNodeId::LambdaTypeParamList>(TokenId::SymLeftParen);
 
     // Return type
     AstNodeRef returnType = AstNodeRef::invalid();
@@ -100,7 +100,7 @@ AstNodeRef Parser::parseLambdaExpression()
     if (is(TokenId::SymVertical))
     {
         flags.add(AstLambdaType::FlagsE::Closure);
-        captureArgs = parseCompound(AstNodeId::ClosureCaptureList, TokenId::SymVertical);
+        captureArgs = parseCompound<AstNodeId::ClosureCaptureList>(TokenId::SymVertical);
     }
     else if (consumeIf(TokenId::SymVerticalVertical).isValid())
     {
@@ -112,7 +112,7 @@ AstNodeRef Parser::parseLambdaExpression()
         flags.add(AstLambdaType::FlagsE::Closure);
     }
 
-    const AstNodeRef params = parseCompound(AstNodeId::LambdaTypeParamList, TokenId::SymLeftParen);
+    const AstNodeRef params = parseCompound<AstNodeId::LambdaTypeParamList>(TokenId::SymLeftParen);
 
     // Return type
     AstNodeRef returnType = AstNodeRef::invalid();
@@ -126,7 +126,7 @@ AstNodeRef Parser::parseLambdaExpression()
     // Body
     AstNodeRef body = AstNodeRef::invalid();
     if (is(TokenId::SymLeftCurly))
-        body = parseCompound(AstNodeId::FunctionBody, TokenId::SymLeftCurly);
+        body = parseCompound<AstNodeId::FunctionBody>(TokenId::SymLeftCurly);
     else
     {
         expectAndConsume(TokenId::SymEqualGreater, DiagnosticId::parser_err_expected_token_before);
@@ -214,7 +214,7 @@ AstNodeRef Parser::parseFuncDecl()
     else if (consumeIf(TokenId::SymEqualGreater).isValid())
         nodePtr->nodeBody = parseExpression();
     else
-        nodePtr->nodeBody = parseCompound(AstNodeId::FunctionBody, TokenId::SymLeftCurly);
+        nodePtr->nodeBody = parseCompound<AstNodeId::FunctionBody>(TokenId::SymLeftCurly);
 
     return nodeRef;
 }
@@ -233,7 +233,7 @@ AstNodeRef Parser::parseFunctionParam()
 {
     if (is(TokenId::SymAttrStart))
     {
-        const auto nodeRef = parseCompound(AstNodeId::AttributeList, TokenId::SymAttrStart);
+        const auto nodeRef = parseCompound<AstNodeId::AttributeList>(TokenId::SymAttrStart);
         const auto nodePtr = ast_->node<AstNodeId::AttributeList>(nodeRef);
         nodePtr->nodeBody  = parseFunctionParam();
         return nodeRef;
@@ -258,6 +258,6 @@ AstNodeRef Parser::parseFunctionParam()
 
 AstNodeRef Parser::parseFunctionParamList()
 {
-    return parseCompound(AstNodeId::FunctionParamList, TokenId::SymLeftParen);
+    return parseCompound<AstNodeId::FunctionParamList>(TokenId::SymLeftParen);
 }
 SWC_END_NAMESPACE()

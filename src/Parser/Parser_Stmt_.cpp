@@ -9,7 +9,7 @@ AstNodeRef Parser::parseTopLevelCall()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TopLevelCall>();
     nodePtr->nodeIdentifier = parseQualifiedIdentifier();
-    nodePtr->nodeArgs       = parseCompound(AstNodeId::NamedArgList, TokenId::SymLeftParen);
+    nodePtr->nodeArgs       = parseCompound<AstNodeId::NamedArgList>(TokenId::SymLeftParen);
     expectEndStatement();
     return nodeRef;
 }

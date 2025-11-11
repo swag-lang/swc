@@ -340,7 +340,7 @@ AstNodeRef Parser::parsePostFixExpression()
         {
             const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::Call>();
             nodePtr->nodeExpr                = nodeRef;
-            nodePtr->nodeArgs                = parseCompound(AstNodeId::NamedArgList, TokenId::SymLeftParen);
+            nodePtr->nodeArgs                = parseCompound<AstNodeId::NamedArgList>(TokenId::SymLeftParen);
             nodeRef                          = nodeParent;
             continue;
         }

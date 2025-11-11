@@ -13,7 +13,7 @@ AstNodeRef Parser::parseCompilerFunc()
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerFunc>();
         nodePtr->tokName        = consume();
-        nodePtr->nodeBody       = parseCompound(AstNodeId::FunctionBody, TokenId::SymLeftCurly);
+        nodePtr->nodeBody       = parseCompound<AstNodeId::FunctionBody>(TokenId::SymLeftCurly);
         return nodeRef;
     }
 
@@ -36,7 +36,7 @@ AstNodeRef Parser::parseCompilerMessageFunc()
     nodePtr->nodeParam = parseExpression();
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
-    nodePtr->nodeBody = parseCompound(AstNodeId::FunctionBody, TokenId::SymLeftCurly);
+    nodePtr->nodeBody = parseCompound<AstNodeId::FunctionBody>(TokenId::SymLeftCurly);
     return nodeRef;
 }
 
@@ -46,7 +46,7 @@ AstNodeRef Parser::parseCompilerExpr()
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerEmbeddedFunc>();
         nodePtr->tokName        = consume();
-        nodePtr->nodeBody       = parseCompound(AstNodeId::FunctionBody, TokenId::SymLeftCurly);
+        nodePtr->nodeBody       = parseCompound<AstNodeId::FunctionBody>(TokenId::SymLeftCurly);
         return nodeRef;
     }
 
@@ -111,7 +111,7 @@ AstNodeRef Parser::parseCompilerDependencies()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Dependencies>();
     consume();
-    nodePtr->nodeBody = parseCompound(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
+    nodePtr->nodeBody = parseCompound<AstNodeId::TopLevelBlock>(TokenId::SymLeftCurly);
     return nodeRef;
 }
 
@@ -177,7 +177,7 @@ AstNodeRef Parser::parseCompilerGlobal()
     else if (is(TokenId::SymAttrStart))
     {
         nodePtr->mode     = AstCompilerGlobal::Mode::AttributeList;
-        nodePtr->nodeMode = parseCompound(AstNodeId::AttributeList, TokenId::SymAttrStart);
+        nodePtr->nodeMode = parseCompound<AstNodeId::AttributeList>(TokenId::SymAttrStart);
     }
     else if (is(TokenId::KwdPublic))
     {

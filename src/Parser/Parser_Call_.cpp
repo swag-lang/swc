@@ -88,13 +88,13 @@ AstNodeRef Parser::parseAttributeValue()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Attribute>();
     nodePtr->nodeIdent      = parseQualifiedIdentifier();
     if (is(TokenId::SymLeftParen))
-        nodePtr->nodeArgs = parseCompound(AstNodeId::NamedArgList, TokenId::SymLeftParen);
+        nodePtr->nodeArgs = parseCompound<AstNodeId::NamedArgList>(TokenId::SymLeftParen);
     return nodeRef;
 }
 
 AstNodeRef Parser::parseAttributeList(AstNodeId blockNodeId)
 {
-    const auto nodeRef = parseCompound(AstNodeId::AttributeList, TokenId::SymAttrStart);
+    const auto nodeRef = parseCompound<AstNodeId::AttributeList>(TokenId::SymAttrStart);
     if (nodeRef.isInvalid())
         return AstNodeRef::invalid();
 

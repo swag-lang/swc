@@ -89,51 +89,6 @@ struct AstUsingNamespace : AstNode
     AstNodeRef nodeNamespace;
 };
 
-struct AstInternalCallUnaryBase : AstNode
-{
-    explicit AstInternalCallUnaryBase(AstNodeId nodeId) :
-        AstNode(nodeId)
-    {
-    }
-
-    TokenRef   tokName;
-    AstNodeRef nodeArg1;
-};
-
-struct AstInternalCallBinaryBase : AstNode
-{
-    explicit AstInternalCallBinaryBase(AstNodeId nodeId) :
-        AstNode(nodeId)
-    {
-    }
-
-    TokenRef   tokName;
-    AstNodeRef nodeArg1;
-    AstNodeRef nodeArg2;
-};
-
-struct AstInternalCallTernaryBase : AstNode
-{
-    explicit AstInternalCallTernaryBase(AstNodeId nodeId) :
-        AstNode(nodeId)
-    {
-    }
-
-    TokenRef   tokName;
-    AstNodeRef nodeArg1;
-    AstNodeRef nodeArg2;
-    AstNodeRef nodeArg3;
-};
-
-struct AstCompilerCallUnary : AstInternalCallUnaryBase
-{
-    static constexpr auto ID = AstNodeId::CompilerCallUnary;
-    AstCompilerCallUnary() :
-        AstInternalCallUnaryBase(ID)
-    {
-    }
-};
-
 struct AstCompilerGlobal : AstNode
 {
     static constexpr auto ID = AstNodeId::CompilerGlobal;
@@ -173,6 +128,52 @@ struct AstCompilerImport : AstNode
     TokenRef tokVersion;
 };
 
+struct AstInternalCallZeroBase : AstNode
+{
+    explicit AstInternalCallZeroBase(AstNodeId nodeId) :
+        AstNode(nodeId)
+    {
+    }
+
+    TokenRef tokName;
+};
+
+struct AstInternalCallUnaryBase : AstNode
+{
+    explicit AstInternalCallUnaryBase(AstNodeId nodeId) :
+        AstNode(nodeId)
+    {
+    }
+
+    TokenRef   tokName;
+    AstNodeRef nodeArg1;
+};
+
+struct AstInternalCallBinaryBase : AstNode
+{
+    explicit AstInternalCallBinaryBase(AstNodeId nodeId) :
+        AstNode(nodeId)
+    {
+    }
+
+    TokenRef   tokName;
+    AstNodeRef nodeArg1;
+    AstNodeRef nodeArg2;
+};
+
+struct AstInternalCallTernaryBase : AstNode
+{
+    explicit AstInternalCallTernaryBase(AstNodeId nodeId) :
+        AstNode(nodeId)
+    {
+    }
+
+    TokenRef   tokName;
+    AstNodeRef nodeArg1;
+    AstNodeRef nodeArg2;
+    AstNodeRef nodeArg3;
+};
+
 struct AstIntrinsicCallZero : AstNode
 {
     static constexpr auto ID = AstNodeId::IntrinsicCallZero;
@@ -205,6 +206,15 @@ struct AstIntrinsicCallTernary : AstInternalCallTernaryBase
     static constexpr auto ID = AstNodeId::IntrinsicCallTernary;
     AstIntrinsicCallTernary() :
         AstInternalCallTernaryBase(ID)
+    {
+    }
+};
+
+struct AstCompilerCallUnary : AstInternalCallUnaryBase
+{
+    static constexpr auto ID = AstNodeId::CompilerCallUnary;
+    AstCompilerCallUnary() :
+        AstInternalCallUnaryBase(ID)
     {
     }
 };

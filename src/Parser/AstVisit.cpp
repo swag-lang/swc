@@ -42,16 +42,15 @@ bool AstVisit::step(AstVisitContext& ctx) const
                 if (a == Action::SkipChildren)
                 {
                     fr.stage = AstVisitContext::Frame::Stage::Post;
-                    return true; // made progress
+                    return true;
                 }
             }
 
-            // Collect children once, resolved with the *current* source
+            // Collect children once and resolved them with the current file
             collectResolvedChildren(ctx, fr);
 
-            // Move to children stage
             fr.stage = AstVisitContext::Frame::Stage::Children;
-            return true; // progress
+            return true;
         }
 
         case AstVisitContext::Frame::Stage::Children:
@@ -66,12 +65,11 @@ bool AstVisit::step(AstVisitContext& ctx) const
                     childFr.node         = child;
                     childFr.stage        = AstVisitContext::Frame::Stage::Pre;
                     childFr.nextChildIx  = 0;
-                    childFr.sourceAtPush = ctx.currentSource; // inherit scope now
+                    childFr.sourceAtPush = ctx.currentSource;
                     ctx.stack.push_back(std::move(childFr));
                     return true;
                 }
 
-                // If child is nullptr just continue to the next one
                 return true;
             }
 
@@ -82,7 +80,7 @@ bool AstVisit::step(AstVisitContext& ctx) const
 
         case AstVisitContext::Frame::Stage::Post:
         {
-            // Post-order callback (can modify ctx.currentSource)
+            // Post-order callback
             if (cb_.post)
             {
                 const Action a = cb_.post(ctx, fr.node);
@@ -95,7 +93,7 @@ bool AstVisit::step(AstVisitContext& ctx) const
 
             // Pop this frame
             ctx.stack.pop_back();
-            return !ctx.stack.empty(); // progress (and tell caller if more remains)
+            return !ctx.stack.empty(); // progress (and tell the caller if more remains)
         }
     }
 

@@ -174,9 +174,11 @@ AstNodeRef Parser::parseVarDecl()
         consume();
     }
 
+    // One single variable
     if (vars.size() == 1)
-        return vars[0];
+        return vars.front();
 
+    // Multiple variables
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarMultiDecl>();
     nodePtr->spanChildren   = ast_->store_.push_span(vars.span());
     return nodeRef;

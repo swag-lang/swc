@@ -1,8 +1,17 @@
 // ReSharper disable CppPossiblyUninitializedMember
 #pragma once
-#include "Parser/AstNode.h"
+#include "Parser/AstNodeId.h"
 
 SWC_BEGIN_NAMESPACE()
+
+struct AstInvalid : AstNode
+{
+    static constexpr auto ID = AstNodeId::Invalid;
+    AstInvalid() :
+        AstNode(ID)
+    {
+    }
+};
 
 struct AstCompound : AstNode
 {
@@ -1533,6 +1542,21 @@ struct AstContinue : AstNode
     }
 };
 
+//========================================================================================
+//========================================================================================
+
+struct AstNodeIdInfo
+{
+    std::string_view name;
+};
+
+constexpr std::array AST_NODE_ID_INFOS = {
+#define SWC_NODE_DEF(enum) AstNodeIdInfo{#enum},
+#include "AstNodes.inc"
+
+#undef SWC_NODE_DEF
+};
+
 template<AstNodeId ID>
 struct AstTypeOf;
 
@@ -1542,7 +1566,6 @@ struct AstTypeOf;
     {                              \
         using type = Ast##E;       \
     };
-// ReSharper disable once CppUnusedIncludeDirective
 #include "AstNodes.inc"
 #undef SWC_NODE_DEF
 

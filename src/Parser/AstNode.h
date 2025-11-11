@@ -1,29 +1,9 @@
 #pragma once
+#include "Parser/AstNodeId.h"
 
 SWC_BEGIN_NAMESPACE()
 
 class SourceFile;
-
-struct AstNodeIdInfo
-{
-    std::string_view name;
-};
-
-enum class AstNodeId : uint16_t
-{
-#define SWC_NODE_DEF(enum) enum,
-#include "AstNodes.inc"
-
-#undef SWC_NODE_DEF
-    Count
-};
-
-constexpr std::array AST_NODE_ID_INFOS = {
-#define SWC_NODE_DEF(enum) AstNodeIdInfo{#enum},
-#include "AstNodes.inc"
-
-#undef SWC_NODE_DEF
-};
 
 enum class AstModifierFlagsE : uint32_t
 {
@@ -78,15 +58,6 @@ struct AstNode
 
 private:
     Flags flags_;
-};
-
-struct AstInvalid : AstNode
-{
-    static constexpr auto ID = AstNodeId::Invalid;
-    AstInvalid() :
-        AstNode(ID)
-    {
-    }
 };
 
 template<typename T>

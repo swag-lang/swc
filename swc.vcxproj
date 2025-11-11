@@ -245,7 +245,7 @@
         <ClInclude Include="src\Core\SmallVector.h"/>
         <ClInclude Include="src\Core\StringMap.h"/>
         <ClInclude Include="src\Core\Timer.h"/>
-        <ClInclude Include="src\Core\StrongRef.h" />
+        <ClInclude Include="src\Core\StrongRef.h"/>
         <ClInclude Include="src\Core\Utf8.h"/>
         <ClInclude Include="src\Core\Utf8Helper.h"/>
         <ClInclude Include="src\Lexer\LangSpec.h"/>
@@ -267,6 +267,7 @@
         <ClInclude Include="src\Os\Os.h"/>
         <ClInclude Include="src\Parser\Ast.h"/>
         <ClInclude Include="src\Parser\AstNode.h"/>
+        <ClInclude Include="src\Parser\AstNodeId.h"/>
         <ClInclude Include="src\Parser\AstNodes.inc"/>
         <ClInclude Include="src\Parser\AstNodes.h"/>
         <ClInclude Include="src\Parser\Parser.h"/>

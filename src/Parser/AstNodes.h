@@ -1,5 +1,6 @@
 // ReSharper disable CppPossiblyUninitializedMember
 #pragma once
+#include "Core/SmallVector.h"
 #include "Parser/AstNodeId.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -1576,10 +1577,21 @@ decltype(auto) visitAstNodeId(AstNodeId id, F f)
 struct AstNodeIdInfo
 {
     std::string_view name;
+    
+    using CollectFunc = void (*)(const AstNode*, SmallVector<AstNodeRef>&);
+    CollectFunc collect;
 };
 
+// Helper template to call collect on any node type
+template<AstNodeId ID>
+void collectChildren(const AstNode* node, SmallVector<AstNodeRef>& out)
+{
+    using NodeType = AstTypeOf<ID>::type;
+    castAst<NodeType>(node)->collectChildren(out);
+}
+
 constexpr std::array AST_NODE_ID_INFOS = {
-#define SWC_NODE_DEF(enum) AstNodeIdInfo{#enum},
+#define SWC_NODE_DEF(enum) AstNodeIdInfo{#enum, &collectChildren<AstNodeId::enum>},
 #include "AstNodes.inc"
 
 #undef SWC_NODE_DEF

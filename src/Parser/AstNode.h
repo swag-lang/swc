@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/SmallVector.h"
 #include "Parser/AstNodeId.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -55,6 +56,8 @@ struct AstNode
         else
             flags_ |= val.flags;
     }
+    
+    static void collectChildren(SmallVector<AstNodeRef>& out) {}
 
 private:
     Flags flags_;

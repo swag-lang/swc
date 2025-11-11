@@ -58,7 +58,7 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
         return parseInterfaceValue();
 
     default:
-        std::unreachable();
+        SWC_UNREACHABLE();
     }
 }
 

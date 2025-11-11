@@ -62,7 +62,7 @@ namespace
             rgb = {.r = 0xFF, .g = 0x47, .b = 0x47};
             break;
         default:
-            std::unreachable();
+            SWC_UNREACHABLE();
         }
 
         if (lum != 0)
@@ -144,7 +144,7 @@ namespace
         }
         }
 
-        std::unreachable();
+        SWC_UNREACHABLE();
     }
 }
 
@@ -424,7 +424,7 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
                 else if (tokenId == TokenId::KwdMe)
                     tokColor = SyntaxColor::Type;
                 else if (Token::isIntrinsic(tokenId))
-                    tokColor = SyntaxColor::Intrinsic;                
+                    tokColor = SyntaxColor::Intrinsic;
                 else if (Token::isKeyword(tokenId))
                     tokColor = SyntaxColor::Keyword;
                 else if (Token::isCompilerFunc(tokenId))

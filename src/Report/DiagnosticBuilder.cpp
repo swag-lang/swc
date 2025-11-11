@@ -53,7 +53,7 @@ namespace
         case DiagnosticSeverity::Help:
             return "help";
         default:
-            std::unreachable();
+            SWC_UNREACHABLE();
         }
     }
 
@@ -157,7 +157,7 @@ DiagnosticBuilder::AnsiSeq DiagnosticBuilder::diagPalette(DiagPart p, std::optio
         case DiagnosticSeverity::Help:
             return {White};
         default:
-            std::unreachable();
+            SWC_UNREACHABLE();
         }
 
     case DiagPart::LabelMsgPrefix:
@@ -175,7 +175,7 @@ DiagnosticBuilder::AnsiSeq DiagnosticBuilder::diagPalette(DiagPart p, std::optio
         case DiagnosticSeverity::Help:
             return {BrightGreen};
         default:
-            std::unreachable();
+            SWC_UNREACHABLE();
         }
 
     case DiagPart::QuoteText:
@@ -192,7 +192,7 @@ DiagnosticBuilder::AnsiSeq DiagnosticBuilder::diagPalette(DiagPart p, std::optio
         case DiagnosticSeverity::Help:
             return {Gray};
         default:
-            std::unreachable();
+            SWC_UNREACHABLE();
         }
 
     case DiagPart::Reset:
@@ -628,7 +628,7 @@ Utf8 DiagnosticBuilder::argumentToString(const Diagnostic::Argument& arg) const
         else if constexpr (std::integral<T>)
             return Utf8{std::to_string(v)};
         else
-            std::unreachable();
+            SWC_UNREACHABLE();
     };
 
     Utf8 s = std::visit(toUtf8, arg.val);

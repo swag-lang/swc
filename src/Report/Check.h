@@ -27,6 +27,7 @@ enum class Result : bool
         }                                            \
     } while (0)
 
+// Only enable assertions in debug builds
 #if SWC_HAS_ASSERT
 #define SWC_ASSERT(__expr)                           \
     do                                               \
@@ -36,11 +37,21 @@ enum class Result : bool
             swagAssert(#__expr, __FILE__, __LINE__); \
         }                                            \
     } while (0)
+
+#define SWC_UNREACHABLE() \
+    SWC_ASSERT(false);    \
+    std::unreachable();
+
 #else
+
 #define SWC_ASSERT(__expr) \
     do                     \
     {                      \
     } while (0)
-#endif
+
+#define SWC_UNREACHABLE() \
+    std::unreachable();
+
+#endif // SWC_HAS_ASSERT
 
 SWC_END_NAMESPACE()

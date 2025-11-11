@@ -23,27 +23,27 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
         AstNodeRef childrenRef = AstNodeRef::invalid();
         switch (id())
         {
-        case TokenId::CompilerAssert:
-            childrenRef = parseCompilerCallUnary();
-            expectEndStatement();
-            break;
-        case TokenId::CompilerError:
-            childrenRef = parseCompilerCallUnary();
-            expectEndStatement();
-            break;
-        case TokenId::CompilerWarning:
-            childrenRef = parseCompilerCallUnary();
-            expectEndStatement();
-            break;
-        case TokenId::CompilerPrint:
-            childrenRef = parseCompilerCallUnary();
-            expectEndStatement();
-            break;
-        case TokenId::CompilerIf:
-            childrenRef = parseCompilerIf(blockNodeId);
-            break;
-        default:
-            break;
+            case TokenId::CompilerAssert:
+                childrenRef = parseCompilerCallUnary();
+                expectEndStatement();
+                break;
+            case TokenId::CompilerError:
+                childrenRef = parseCompilerCallUnary();
+                expectEndStatement();
+                break;
+            case TokenId::CompilerWarning:
+                childrenRef = parseCompilerCallUnary();
+                expectEndStatement();
+                break;
+            case TokenId::CompilerPrint:
+                childrenRef = parseCompilerCallUnary();
+                expectEndStatement();
+                break;
+            case TokenId::CompilerIf:
+                childrenRef = parseCompilerIf(blockNodeId);
+                break;
+            default:
+                break;
         }
 
         if (childrenRef.isValid())
@@ -52,54 +52,54 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
 
     switch (blockNodeId)
     {
-    case AstNodeId::File:
-    case AstNodeId::TopLevelBlock:
-    case AstNodeId::ImplEnum:
-    case AstNodeId::Impl:
-    case AstNodeId::ImplFor:
-        return parseTopLevelStmt();
+        case AstNodeId::File:
+        case AstNodeId::TopLevelBlock:
+        case AstNodeId::ImplEnum:
+        case AstNodeId::Impl:
+        case AstNodeId::ImplFor:
+            return parseTopLevelStmt();
 
-    case AstNodeId::FunctionBody:
-    case AstNodeId::EmbeddedBlock:
-        return parseEmbeddedStmt();
+        case AstNodeId::FunctionBody:
+        case AstNodeId::EmbeddedBlock:
+            return parseEmbeddedStmt();
 
-    case AstNodeId::EnumDecl:
-        return parseEnumValue();
-    case AstNodeId::AggregateBody:
-        return parseAggregateValue();
+        case AstNodeId::EnumDecl:
+            return parseEnumValue();
+        case AstNodeId::AggregateBody:
+            return parseAggregateValue();
 
-    case AstNodeId::AttributeList:
-        return parseAttributeValue();
+        case AstNodeId::AttributeList:
+            return parseAttributeValue();
 
-    case AstNodeId::ArrayLiteral:
-    case AstNodeId::UnnamedArgList:
-        return parseExpression();
+        case AstNodeId::ArrayLiteral:
+        case AstNodeId::UnnamedArgList:
+            return parseExpression();
 
-    case AstNodeId::StructLiteral:
-    case AstNodeId::NamedArgList:
-        return parseNamedArgument();
+        case AstNodeId::StructLiteral:
+        case AstNodeId::NamedArgList:
+            return parseNamedArgument();
 
-    case AstNodeId::GenericParamList:
-        return parseGenericParam();
+        case AstNodeId::GenericParamList:
+            return parseGenericParam();
 
-    case AstNodeId::UsingDecl:
-        return parseQualifiedIdentifier();
+        case AstNodeId::UsingDecl:
+            return parseQualifiedIdentifier();
 
-    case AstNodeId::ClosureCaptureList:
-        return parseClosureCaptureValue();
-    case AstNodeId::LambdaTypeParamList:
-        return parseLambdaTypeParam();
-    case AstNodeId::FunctionParamList:
-        return parseFunctionParam();
+        case AstNodeId::ClosureCaptureList:
+            return parseClosureCaptureValue();
+        case AstNodeId::LambdaTypeParamList:
+            return parseLambdaTypeParam();
+        case AstNodeId::FunctionParamList:
+            return parseFunctionParam();
 
-    case AstNodeId::MultiPostfixIdentifier:
-        return parsePostfixIdentifierValue();
+        case AstNodeId::MultiPostfixIdentifier:
+            return parsePostfixIdentifierValue();
 
-    case AstNodeId::InterfaceBody:
-        return parseInterfaceValue();
+        case AstNodeId::InterfaceBody:
+            return parseInterfaceValue();
 
-    default:
-        SWC_UNREACHABLE();
+        default:
+            SWC_UNREACHABLE();
     }
 }
 
@@ -115,60 +115,60 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
 
     switch (blockNodeId)
     {
-    case AstNodeId::EnumDecl:
-        if (consumeIf(TokenId::SymComma).isInvalid() && !is(tokenEndId) && !tok().startsLine())
-        {
-            if (is(TokenId::Identifier) && blockNodeId == AstNodeId::EnumDecl)
-                raiseError(DiagnosticId::parser_err_missing_enum_sep, ref());
-            else
+        case AstNodeId::EnumDecl:
+            if (consumeIf(TokenId::SymComma).isInvalid() && !is(tokenEndId) && !tok().startsLine())
+            {
+                if (is(TokenId::Identifier) && blockNodeId == AstNodeId::EnumDecl)
+                    raiseError(DiagnosticId::parser_err_missing_enum_sep, ref());
+                else
+                    raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
+                skipTo(skipTokens);
+                return Result::Error;
+            }
+            break;
+
+        case AstNodeId::AggregateBody:
+            if (consumeIf(TokenId::SymComma).isInvalid() && consumeIf(TokenId::SymSemiColon).isInvalid() && !is(tokenEndId) && !tok().startsLine())
+            {
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
-            skipTo(skipTokens);
-            return Result::Error;
-        }
-        break;
+                skipTo(skipTokens);
+                return Result::Error;
+            }
+            break;
 
-    case AstNodeId::AggregateBody:
-        if (consumeIf(TokenId::SymComma).isInvalid() && consumeIf(TokenId::SymSemiColon).isInvalid() && !is(tokenEndId) && !tok().startsLine())
-        {
-            raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
-            skipTo(skipTokens);
-            return Result::Error;
-        }
-        break;
+        case AstNodeId::InterfaceBody:
+            if (consumeIf(TokenId::SymSemiColon).isInvalid() && !is(tokenEndId) && !tok().startsLine())
+            {
+                raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymSemiColon);
+                skipTo(skipTokens);
+                return Result::Error;
+            }
+            break;
 
-    case AstNodeId::InterfaceBody:
-        if (consumeIf(TokenId::SymSemiColon).isInvalid() && !is(tokenEndId) && !tok().startsLine())
-        {
-            raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymSemiColon);
-            skipTo(skipTokens);
-            return Result::Error;
-        }
-        break;
+        case AstNodeId::UsingDecl:
+        case AstNodeId::AttributeList:
+        case AstNodeId::ArrayLiteral:
+        case AstNodeId::StructLiteral:
+        case AstNodeId::UnnamedArgList:
+        case AstNodeId::NamedArgList:
+        case AstNodeId::GenericParamList:
+        case AstNodeId::LambdaTypeParamList:
+        case AstNodeId::FunctionParamList:
+        case AstNodeId::ClosureCaptureList:
+        case AstNodeId::MultiPostfixIdentifier:
+            if (consumeIf(TokenId::SymComma).isInvalid() && !is(tokenEndId))
+            {
+                if (is(TokenId::Identifier) && blockNodeId == AstNodeId::AttributeList)
+                    raiseError(DiagnosticId::parser_err_missing_attribute_sep, ref());
+                else
+                    raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
+                skipTo(skipTokens);
+                return Result::Error;
+            }
+            break;
 
-    case AstNodeId::UsingDecl:
-    case AstNodeId::AttributeList:
-    case AstNodeId::ArrayLiteral:
-    case AstNodeId::StructLiteral:
-    case AstNodeId::UnnamedArgList:
-    case AstNodeId::NamedArgList:
-    case AstNodeId::GenericParamList:
-    case AstNodeId::LambdaTypeParamList:
-    case AstNodeId::FunctionParamList:
-    case AstNodeId::ClosureCaptureList:
-    case AstNodeId::MultiPostfixIdentifier:
-        if (consumeIf(TokenId::SymComma).isInvalid() && !is(tokenEndId))
-        {
-            if (is(TokenId::Identifier) && blockNodeId == AstNodeId::AttributeList)
-                raiseError(DiagnosticId::parser_err_missing_attribute_sep, ref());
-            else
-                raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
-            skipTo(skipTokens);
-            return Result::Error;
-        }
-        break;
-
-    default:
-        break;
+        default:
+            break;
     }
 
     return Result::Success;
@@ -180,24 +180,24 @@ void Parser::finalizeCompound(AstNodeId blockNodeId, TokenRef openTokRef, TokenR
     {
         switch (blockNodeId)
         {
-        case AstNodeId::AttributeList:
-        {
-            const auto diag     = reportError(DiagnosticId::parser_err_empty_attribute, openTokRef);
-            const auto tokenEnd = file_->lexOut().token(closeTokenRef);
-            diag.last().addSpan(tokenEnd.location(*ctx_, *file_), "");
-            diag.report(*ctx_);
-            break;
-        }
-        case AstNodeId::EnumDecl:
-        {
-            const auto diag     = reportError(DiagnosticId::parser_err_empty_enum, openTokRef);
-            const auto tokenEnd = file_->lexOut().token(closeTokenRef);
-            diag.last().addSpan(tokenEnd.location(*ctx_, *file_), "");
-            diag.report(*ctx_);
-            break;
-        }
-        default:
-            break;
+            case AstNodeId::AttributeList:
+            {
+                const auto diag     = reportError(DiagnosticId::parser_err_empty_attribute, openTokRef);
+                const auto tokenEnd = file_->lexOut().token(closeTokenRef);
+                diag.last().addSpan(tokenEnd.location(*ctx_, *file_), "");
+                diag.report(*ctx_);
+                break;
+            }
+            case AstNodeId::EnumDecl:
+            {
+                const auto diag     = reportError(DiagnosticId::parser_err_empty_enum, openTokRef);
+                const auto tokenEnd = file_->lexOut().token(closeTokenRef);
+                diag.last().addSpan(tokenEnd.location(*ctx_, *file_), "");
+                diag.report(*ctx_);
+                break;
+            }
+            default:
+                break;
         }
     }
 }

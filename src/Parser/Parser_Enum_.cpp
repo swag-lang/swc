@@ -24,36 +24,36 @@ AstNodeRef Parser::parseEnumValue()
 
     switch (id())
     {
-    case TokenId::KwdUsing:
-    {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumUse>();
-        consume();
-        nodePtr->nodeName = parseQualifiedIdentifier();
-        return nodeRef;
-    }
-
-    case TokenId::Identifier:
-    {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumValue>();
-        nodePtr->tokName        = consume();
-        if (consumeIf(TokenId::SymEqual).isValid())
+        case TokenId::KwdUsing:
         {
-            nodePtr->nodeValue = parseExpression();
-            if (nodePtr->nodeValue.isInvalid())
-                skipTo(ENUM_VALUE_SYNC, SkipUntilFlagsE::EolBefore);
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumUse>();
+            consume();
+            nodePtr->nodeName = parseQualifiedIdentifier();
+            return nodeRef;
         }
-        return nodeRef;
-    }
 
-    case TokenId::CompilerAst:
-        return parseCompilerFunc();
+        case TokenId::Identifier:
+        {
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumValue>();
+            nodePtr->tokName        = consume();
+            if (consumeIf(TokenId::SymEqual).isValid())
+            {
+                nodePtr->nodeValue = parseExpression();
+                if (nodePtr->nodeValue.isInvalid())
+                    skipTo(ENUM_VALUE_SYNC, SkipUntilFlagsE::EolBefore);
+            }
+            return nodeRef;
+        }
 
-    case TokenId::SymAttrStart:
-        return parseAttributeList(AstNodeId::EnumDecl);
+        case TokenId::CompilerAst:
+            return parseCompilerFunc();
 
-    default:
-        raiseError(DiagnosticId::parser_err_unexpected_token, ref());
-        return AstNodeRef::invalid();
+        case TokenId::SymAttrStart:
+            return parseAttributeList(AstNodeId::EnumDecl);
+
+        default:
+            raiseError(DiagnosticId::parser_err_unexpected_token, ref());
+            return AstNodeRef::invalid();
     }
 }
 

@@ -14,47 +14,47 @@ AstModifierFlags Parser::parseModifiers()
         auto toSet = AstModifierFlagsE::Zero;
         switch (id())
         {
-        case TokenId::ModifierBit:
-            toSet = AstModifierFlagsE::Bit;
-            break;
-        case TokenId::ModifierUnConst:
-            toSet = AstModifierFlagsE::UnConst;
-            break;
-        case TokenId::ModifierErr:
-            toSet = AstModifierFlagsE::Err;
-            break;
-        case TokenId::ModifierNoErr:
-            toSet = AstModifierFlagsE::NoErr;
-            break;
-        case TokenId::ModifierPromote:
-            toSet = AstModifierFlagsE::Promote;
-            break;
-        case TokenId::ModifierWrap:
-            toSet = AstModifierFlagsE::Wrap;
-            break;
-        case TokenId::ModifierNoDrop:
-            toSet = AstModifierFlagsE::NoDrop;
-            break;
-        case TokenId::ModifierRef:
-            toSet = AstModifierFlagsE::Ref;
-            break;
-        case TokenId::ModifierConstRef:
-            toSet = AstModifierFlagsE::ConstRef;
-            break;
-        case TokenId::ModifierReverse:
-            toSet = AstModifierFlagsE::Reverse;
-            break;
-        case TokenId::ModifierMove:
-            toSet = AstModifierFlagsE::Move;
-            break;
-        case TokenId::ModifierMoveRaw:
-            toSet = AstModifierFlagsE::MoveRaw;
-            break;
-        case TokenId::ModifierNullable:
-            toSet = AstModifierFlagsE::Nullable;
-            break;
-        default:
-            break;
+            case TokenId::ModifierBit:
+                toSet = AstModifierFlagsE::Bit;
+                break;
+            case TokenId::ModifierUnConst:
+                toSet = AstModifierFlagsE::UnConst;
+                break;
+            case TokenId::ModifierErr:
+                toSet = AstModifierFlagsE::Err;
+                break;
+            case TokenId::ModifierNoErr:
+                toSet = AstModifierFlagsE::NoErr;
+                break;
+            case TokenId::ModifierPromote:
+                toSet = AstModifierFlagsE::Promote;
+                break;
+            case TokenId::ModifierWrap:
+                toSet = AstModifierFlagsE::Wrap;
+                break;
+            case TokenId::ModifierNoDrop:
+                toSet = AstModifierFlagsE::NoDrop;
+                break;
+            case TokenId::ModifierRef:
+                toSet = AstModifierFlagsE::Ref;
+                break;
+            case TokenId::ModifierConstRef:
+                toSet = AstModifierFlagsE::ConstRef;
+                break;
+            case TokenId::ModifierReverse:
+                toSet = AstModifierFlagsE::Reverse;
+                break;
+            case TokenId::ModifierMove:
+                toSet = AstModifierFlagsE::Move;
+                break;
+            case TokenId::ModifierMoveRaw:
+                toSet = AstModifierFlagsE::MoveRaw;
+                break;
+            case TokenId::ModifierNullable:
+                toSet = AstModifierFlagsE::Nullable;
+                break;
+            default:
+                break;
         }
 
         if (toSet == AstModifierFlagsE::Zero)
@@ -391,239 +391,239 @@ AstNodeRef Parser::parsePrimaryExpression()
 {
     switch (id())
     {
-    case TokenId::Identifier:
-    case TokenId::KwdMe:
-        return parseIdentifier();
+        case TokenId::Identifier:
+        case TokenId::KwdMe:
+            return parseIdentifier();
 
-    case TokenId::SymDot:
-        return parsePreQualifiedIdentifier();
+        case TokenId::SymDot:
+            return parsePreQualifiedIdentifier();
 
-    case TokenId::CompilerUp:
-        return parseAncestorIdentifier();
+        case TokenId::CompilerUp:
+            return parseAncestorIdentifier();
 
-    case TokenId::CompilerTypeOf:
-        return parseCompilerTypeOf();
+        case TokenId::CompilerTypeOf:
+            return parseCompilerTypeOf();
 
-    case TokenId::CompilerSizeOf:
-    case TokenId::CompilerAlignOf:
-    case TokenId::CompilerOffsetOf:
-    case TokenId::CompilerDeclType:
-    case TokenId::CompilerStringOf:
-    case TokenId::CompilerNameOf:
-    case TokenId::CompilerRunes:
-    case TokenId::CompilerIsConstExpr:
-    case TokenId::CompilerDefined:
-    case TokenId::CompilerInclude:
-    case TokenId::CompilerSafety:
-    case TokenId::CompilerHasTag:
-    case TokenId::CompilerInject:
-    case TokenId::CompilerLocation:
-        return parseCompilerCallUnary();
+        case TokenId::CompilerSizeOf:
+        case TokenId::CompilerAlignOf:
+        case TokenId::CompilerOffsetOf:
+        case TokenId::CompilerDeclType:
+        case TokenId::CompilerStringOf:
+        case TokenId::CompilerNameOf:
+        case TokenId::CompilerRunes:
+        case TokenId::CompilerIsConstExpr:
+        case TokenId::CompilerDefined:
+        case TokenId::CompilerInclude:
+        case TokenId::CompilerSafety:
+        case TokenId::CompilerHasTag:
+        case TokenId::CompilerInject:
+        case TokenId::CompilerLocation:
+            return parseCompilerCallUnary();
 
-    case TokenId::CompilerRun:
-        return parseCompilerExpr();
+        case TokenId::CompilerRun:
+            return parseCompilerExpr();
 
-    case TokenId::IntrinsicErr:
-    case TokenId::IntrinsicArgs:
-    case TokenId::IntrinsicByteCode:
-    case TokenId::IntrinsicIndex:
-    case TokenId::IntrinsicRtFlags:
-    case TokenId::IntrinsicProcessInfos:
-    case TokenId::IntrinsicModules:
-    case TokenId::IntrinsicGvtd:
-    case TokenId::IntrinsicCompiler:
-        return parseIntrinsicValue();
+        case TokenId::IntrinsicErr:
+        case TokenId::IntrinsicArgs:
+        case TokenId::IntrinsicByteCode:
+        case TokenId::IntrinsicIndex:
+        case TokenId::IntrinsicRtFlags:
+        case TokenId::IntrinsicProcessInfos:
+        case TokenId::IntrinsicModules:
+        case TokenId::IntrinsicGvtd:
+        case TokenId::IntrinsicCompiler:
+            return parseIntrinsicValue();
 
-    case TokenId::KwdTry:
-    case TokenId::KwdCatch:
-    case TokenId::KwdTryCatch:
-    case TokenId::KwdAssume:
-        return parseTryCatchAssume();
+        case TokenId::KwdTry:
+        case TokenId::KwdCatch:
+        case TokenId::KwdTryCatch:
+        case TokenId::KwdAssume:
+            return parseTryCatchAssume();
 
-    case TokenId::IntrinsicGetContext:
-    case TokenId::IntrinsicDbgAlloc:
-    case TokenId::IntrinsicSysAlloc:
-        return parseIntrinsicCallZero();
+        case TokenId::IntrinsicGetContext:
+        case TokenId::IntrinsicDbgAlloc:
+        case TokenId::IntrinsicSysAlloc:
+            return parseIntrinsicCallZero();
 
-    case TokenId::IntrinsicKindOf:
-    case TokenId::IntrinsicCountOf:
-    case TokenId::IntrinsicDataOf:
-    case TokenId::IntrinsicCVaStart:
-    case TokenId::IntrinsicCVaEnd:
-    case TokenId::IntrinsicMakeCallback:
-    case TokenId::IntrinsicAlloc:
-    case TokenId::IntrinsicFree:
-    case TokenId::IntrinsicStrLen:
-    case TokenId::IntrinsicAbs:
-    case TokenId::IntrinsicSqrt:
-    case TokenId::IntrinsicSin:
-    case TokenId::IntrinsicCos:
-    case TokenId::IntrinsicTan:
-    case TokenId::IntrinsicSinh:
-    case TokenId::IntrinsicCosh:
-    case TokenId::IntrinsicTanh:
-    case TokenId::IntrinsicASin:
-    case TokenId::IntrinsicACos:
-    case TokenId::IntrinsicATan:
-    case TokenId::IntrinsicLog:
-    case TokenId::IntrinsicLog2:
-    case TokenId::IntrinsicLog10:
-    case TokenId::IntrinsicFloor:
-    case TokenId::IntrinsicCeil:
-    case TokenId::IntrinsicTrunc:
-    case TokenId::IntrinsicRound:
-    case TokenId::IntrinsicExp:
-    case TokenId::IntrinsicExp2:
-    case TokenId::IntrinsicByteSwap:
-    case TokenId::IntrinsicBitCountNz:
-    case TokenId::IntrinsicBitCountTz:
-    case TokenId::IntrinsicBitCountLz:
-        return parseIntrinsicCallUnary();
+        case TokenId::IntrinsicKindOf:
+        case TokenId::IntrinsicCountOf:
+        case TokenId::IntrinsicDataOf:
+        case TokenId::IntrinsicCVaStart:
+        case TokenId::IntrinsicCVaEnd:
+        case TokenId::IntrinsicMakeCallback:
+        case TokenId::IntrinsicAlloc:
+        case TokenId::IntrinsicFree:
+        case TokenId::IntrinsicStrLen:
+        case TokenId::IntrinsicAbs:
+        case TokenId::IntrinsicSqrt:
+        case TokenId::IntrinsicSin:
+        case TokenId::IntrinsicCos:
+        case TokenId::IntrinsicTan:
+        case TokenId::IntrinsicSinh:
+        case TokenId::IntrinsicCosh:
+        case TokenId::IntrinsicTanh:
+        case TokenId::IntrinsicASin:
+        case TokenId::IntrinsicACos:
+        case TokenId::IntrinsicATan:
+        case TokenId::IntrinsicLog:
+        case TokenId::IntrinsicLog2:
+        case TokenId::IntrinsicLog10:
+        case TokenId::IntrinsicFloor:
+        case TokenId::IntrinsicCeil:
+        case TokenId::IntrinsicTrunc:
+        case TokenId::IntrinsicRound:
+        case TokenId::IntrinsicExp:
+        case TokenId::IntrinsicExp2:
+        case TokenId::IntrinsicByteSwap:
+        case TokenId::IntrinsicBitCountNz:
+        case TokenId::IntrinsicBitCountTz:
+        case TokenId::IntrinsicBitCountLz:
+            return parseIntrinsicCallUnary();
 
-    case TokenId::IntrinsicMakeAny:
-    case TokenId::IntrinsicMakeSlice:
-    case TokenId::IntrinsicMakeString:
-    case TokenId::IntrinsicCVaArg:
-    case TokenId::IntrinsicRealloc:
-    case TokenId::IntrinsicStrCmp:
-    case TokenId::IntrinsicStringCmp:
-    case TokenId::IntrinsicIs:
-    case TokenId::IntrinsicTableOf:
-    case TokenId::IntrinsicMin:
-    case TokenId::IntrinsicMax:
-    case TokenId::IntrinsicRol:
-    case TokenId::IntrinsicRor:
-    case TokenId::IntrinsicPow:
-    case TokenId::IntrinsicATan2:
-    case TokenId::IntrinsicAtomicXchg:
-    case TokenId::IntrinsicAtomicXor:
-    case TokenId::IntrinsicAtomicOr:
-    case TokenId::IntrinsicAtomicAnd:
-    case TokenId::IntrinsicAtomicAdd:
-        return parseIntrinsicCallBinary();
+        case TokenId::IntrinsicMakeAny:
+        case TokenId::IntrinsicMakeSlice:
+        case TokenId::IntrinsicMakeString:
+        case TokenId::IntrinsicCVaArg:
+        case TokenId::IntrinsicRealloc:
+        case TokenId::IntrinsicStrCmp:
+        case TokenId::IntrinsicStringCmp:
+        case TokenId::IntrinsicIs:
+        case TokenId::IntrinsicTableOf:
+        case TokenId::IntrinsicMin:
+        case TokenId::IntrinsicMax:
+        case TokenId::IntrinsicRol:
+        case TokenId::IntrinsicRor:
+        case TokenId::IntrinsicPow:
+        case TokenId::IntrinsicATan2:
+        case TokenId::IntrinsicAtomicXchg:
+        case TokenId::IntrinsicAtomicXor:
+        case TokenId::IntrinsicAtomicOr:
+        case TokenId::IntrinsicAtomicAnd:
+        case TokenId::IntrinsicAtomicAdd:
+            return parseIntrinsicCallBinary();
 
-    case TokenId::IntrinsicMakeInterface:
-    case TokenId::IntrinsicMemCmp:
-    case TokenId::IntrinsicAs:
-    case TokenId::CompilerGetTag:
-    case TokenId::IntrinsicAtomicCmpXchg:
-    case TokenId::IntrinsicTypeCmp:
-    case TokenId::IntrinsicMulAdd:
-        return parseIntrinsicCallTernary();
+        case TokenId::IntrinsicMakeInterface:
+        case TokenId::IntrinsicMemCmp:
+        case TokenId::IntrinsicAs:
+        case TokenId::CompilerGetTag:
+        case TokenId::IntrinsicAtomicCmpXchg:
+        case TokenId::IntrinsicTypeCmp:
+        case TokenId::IntrinsicMulAdd:
+            return parseIntrinsicCallTernary();
 
-    case TokenId::NumberInteger:
-    case TokenId::NumberBinary:
-    case TokenId::NumberHexadecimal:
-    case TokenId::NumberFloat:
-    case TokenId::Character:
-        return parseLiteralExpression();
+        case TokenId::NumberInteger:
+        case TokenId::NumberBinary:
+        case TokenId::NumberHexadecimal:
+        case TokenId::NumberFloat:
+        case TokenId::Character:
+            return parseLiteralExpression();
 
-    case TokenId::StringLine:
-    case TokenId::StringMultiLine:
-    case TokenId::StringRaw:
-    case TokenId::KwdTrue:
-    case TokenId::KwdFalse:
-    case TokenId::KwdNull:
-        return parseLiteral();
+        case TokenId::StringLine:
+        case TokenId::StringMultiLine:
+        case TokenId::StringRaw:
+        case TokenId::KwdTrue:
+        case TokenId::KwdFalse:
+        case TokenId::KwdNull:
+            return parseLiteral();
 
-    case TokenId::CompilerFile:
-    case TokenId::CompilerModule:
-    case TokenId::CompilerLine:
-    case TokenId::CompilerBuildVersion:
-    case TokenId::CompilerBuildRevision:
-    case TokenId::CompilerBuildNum:
-    case TokenId::CompilerBuildCfg:
-    case TokenId::CompilerCallerFunction:
-    case TokenId::CompilerCallerLocation:
-    case TokenId::CompilerOs:
-    case TokenId::CompilerArch:
-    case TokenId::CompilerCpu:
-    case TokenId::CompilerSwagOs:
-    case TokenId::CompilerBackend:
-    case TokenId::CompilerScopeName:
-    case TokenId::CompilerCurLocation:
-        return parseLiteral();
+        case TokenId::CompilerFile:
+        case TokenId::CompilerModule:
+        case TokenId::CompilerLine:
+        case TokenId::CompilerBuildVersion:
+        case TokenId::CompilerBuildRevision:
+        case TokenId::CompilerBuildNum:
+        case TokenId::CompilerBuildCfg:
+        case TokenId::CompilerCallerFunction:
+        case TokenId::CompilerCallerLocation:
+        case TokenId::CompilerOs:
+        case TokenId::CompilerArch:
+        case TokenId::CompilerCpu:
+        case TokenId::CompilerSwagOs:
+        case TokenId::CompilerBackend:
+        case TokenId::CompilerScopeName:
+        case TokenId::CompilerCurLocation:
+            return parseLiteral();
 
-    case TokenId::SymLeftParen:
-        return parseParenExpr();
+        case TokenId::SymLeftParen:
+            return parseParenExpr();
 
-    case TokenId::SymLeftCurly:
-        return parseLiteralStruct();
+        case TokenId::SymLeftCurly:
+            return parseLiteralStruct();
 
-    case TokenId::SymLeftBracket:
-        if (nextIs(TokenId::SymDotDot) || nextIs(TokenId::SymQuestion) || nextIs(TokenId::SymAsterisk))
+        case TokenId::SymLeftBracket:
+            if (nextIs(TokenId::SymDotDot) || nextIs(TokenId::SymQuestion) || nextIs(TokenId::SymAsterisk))
+                return parseType();
+            return parseLiteralArray();
+
+        case TokenId::TypeAny:
+        case TokenId::TypeCString:
+        case TokenId::TypeCVarArgs:
+        case TokenId::TypeString:
+        case TokenId::TypeTypeInfo:
+        case TokenId::TypeVoid:
+        case TokenId::TypeBool:
+        case TokenId::TypeS8:
+        case TokenId::TypeS16:
+        case TokenId::TypeS32:
+        case TokenId::TypeS64:
+        case TokenId::TypeU8:
+        case TokenId::TypeU16:
+        case TokenId::TypeU32:
+        case TokenId::TypeU64:
+        case TokenId::TypeRune:
+        case TokenId::TypeF32:
+        case TokenId::TypeF64:
+        case TokenId::KwdConst:
+        case TokenId::KwdStruct:
+        case TokenId::KwdUnion:
+        case TokenId::SymAsterisk:
+        case TokenId::SymAmpersand:
+        case TokenId::CompilerCode:
+        case TokenId::ModifierNullable:
             return parseType();
-        return parseLiteralArray();
 
-    case TokenId::TypeAny:
-    case TokenId::TypeCString:
-    case TokenId::TypeCVarArgs:
-    case TokenId::TypeString:
-    case TokenId::TypeTypeInfo:
-    case TokenId::TypeVoid:
-    case TokenId::TypeBool:
-    case TokenId::TypeS8:
-    case TokenId::TypeS16:
-    case TokenId::TypeS32:
-    case TokenId::TypeS64:
-    case TokenId::TypeU8:
-    case TokenId::TypeU16:
-    case TokenId::TypeU32:
-    case TokenId::TypeU64:
-    case TokenId::TypeRune:
-    case TokenId::TypeF32:
-    case TokenId::TypeF64:
-    case TokenId::KwdConst:
-    case TokenId::KwdStruct:
-    case TokenId::KwdUnion:
-    case TokenId::SymAsterisk:
-    case TokenId::SymAmpersand:
-    case TokenId::CompilerCode:
-    case TokenId::ModifierNullable:
-        return parseType();
+        case TokenId::CompilerAlias0:
+        case TokenId::CompilerAlias1:
+        case TokenId::CompilerAlias2:
+        case TokenId::CompilerAlias3:
+        case TokenId::CompilerAlias4:
+        case TokenId::CompilerAlias5:
+        case TokenId::CompilerAlias6:
+        case TokenId::CompilerAlias7:
+        case TokenId::CompilerAlias8:
+        case TokenId::CompilerAlias9:
+        {
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>();
+            nodePtr->tokName        = consume();
+            return nodeRef;
+        }
 
-    case TokenId::CompilerAlias0:
-    case TokenId::CompilerAlias1:
-    case TokenId::CompilerAlias2:
-    case TokenId::CompilerAlias3:
-    case TokenId::CompilerAlias4:
-    case TokenId::CompilerAlias5:
-    case TokenId::CompilerAlias6:
-    case TokenId::CompilerAlias7:
-    case TokenId::CompilerAlias8:
-    case TokenId::CompilerAlias9:
-    {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>();
-        nodePtr->tokName        = consume();
-        return nodeRef;
-    }
+        case TokenId::CompilerUniq0:
+        case TokenId::CompilerUniq1:
+        case TokenId::CompilerUniq2:
+        case TokenId::CompilerUniq3:
+        case TokenId::CompilerUniq4:
+        case TokenId::CompilerUniq5:
+        case TokenId::CompilerUniq6:
+        case TokenId::CompilerUniq7:
+        case TokenId::CompilerUniq8:
+        case TokenId::CompilerUniq9:
+        {
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>();
+            nodePtr->tokName        = consume();
+            return nodeRef;
+        }
 
-    case TokenId::CompilerUniq0:
-    case TokenId::CompilerUniq1:
-    case TokenId::CompilerUniq2:
-    case TokenId::CompilerUniq3:
-    case TokenId::CompilerUniq4:
-    case TokenId::CompilerUniq5:
-    case TokenId::CompilerUniq6:
-    case TokenId::CompilerUniq7:
-    case TokenId::CompilerUniq8:
-    case TokenId::CompilerUniq9:
-    {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>();
-        nodePtr->tokName        = consume();
-        return nodeRef;
-    }
+        case TokenId::KwdFunc:
+        case TokenId::KwdMtd:
+            return parseLambdaExpression();
 
-    case TokenId::KwdFunc:
-    case TokenId::KwdMtd:
-        return parseLambdaExpression();
+        case TokenId::CompilerType:
+            return parseCompilerTypeExpr();
 
-    case TokenId::CompilerType:
-        return parseCompilerTypeExpr();
-
-    default:
-        raiseError(DiagnosticId::parser_err_unexpected_token, ref());
-        return AstNodeRef::invalid();
+        default:
+            raiseError(DiagnosticId::parser_err_unexpected_token, ref());
+            return AstNodeRef::invalid();
     }
 }
 
@@ -683,26 +683,26 @@ AstNodeRef Parser::parsePrefixExpr()
 {
     switch (id())
     {
-    case TokenId::KwdCast:
-        return parseCast();
-    case TokenId::KwdDRef:
-        return parseDeRef();
-    case TokenId::KwdMoveRef:
-        return parseMoveRef();
-    case TokenId::SymPlus:
-    case TokenId::SymMinus:
-    case TokenId::SymExclamation:
-    case TokenId::SymTilde:
-    case TokenId::SymAmpersand:
-    {
-        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpr>();
-        nodePtr->tokOp                  = consume();
-        nodePtr->nodeExpr               = parseExpression();
-        return nodeParen;
-    }
+        case TokenId::KwdCast:
+            return parseCast();
+        case TokenId::KwdDRef:
+            return parseDeRef();
+        case TokenId::KwdMoveRef:
+            return parseMoveRef();
+        case TokenId::SymPlus:
+        case TokenId::SymMinus:
+        case TokenId::SymExclamation:
+        case TokenId::SymTilde:
+        case TokenId::SymAmpersand:
+        {
+            const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpr>();
+            nodePtr->tokOp                  = consume();
+            nodePtr->nodeExpr               = parseExpression();
+            return nodeParen;
+        }
 
-    default:
-        return parsePostFixExpression();
+        default:
+            return parsePostFixExpression();
     }
 }
 

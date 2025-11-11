@@ -52,51 +52,51 @@ AstNodeRef Parser::parseAggregateValue()
 {
     switch (id())
     {
-    case TokenId::SymAttrStart:
-        return parseAttributeList(AstNodeId::AggregateBody);
+        case TokenId::SymAttrStart:
+            return parseAttributeList(AstNodeId::AggregateBody);
 
-    case TokenId::KwdStruct:
-        return parseStructDecl();
-    case TokenId::KwdUnion:
-        return parseUnionDecl();
-    case TokenId::KwdEnum:
-        return parseEnumDecl();
+        case TokenId::KwdStruct:
+            return parseStructDecl();
+        case TokenId::KwdUnion:
+            return parseUnionDecl();
+        case TokenId::KwdEnum:
+            return parseEnumDecl();
 
-    case TokenId::SymLeftCurly:
-        return parseCompound<AstNodeId::AggregateBody>(TokenId::SymLeftCurly);
+        case TokenId::SymLeftCurly:
+            return parseCompound<AstNodeId::AggregateBody>(TokenId::SymLeftCurly);
 
-    case TokenId::CompilerAst:
-    case TokenId::CompilerRun:
-        return parseCompilerFunc();
+        case TokenId::CompilerAst:
+        case TokenId::CompilerRun:
+            return parseCompilerFunc();
 
-    case TokenId::KwdVar:
-        raiseError(DiagnosticId::parser_err_var_struct, ref());
-        return parseVarDecl();
+        case TokenId::KwdVar:
+            raiseError(DiagnosticId::parser_err_var_struct, ref());
+            return parseVarDecl();
 
-    case TokenId::KwdConst:
-        return parseVarDecl();
+        case TokenId::KwdConst:
+            return parseVarDecl();
 
-    case TokenId::KwdPrivate:
-        return parseAggregateAccessModifier();
+        case TokenId::KwdPrivate:
+            return parseAggregateAccessModifier();
 
-    case TokenId::Identifier:
-        if (nextIs(TokenId::SymLeftParen) || nextIs(TokenId::SymDot))
-            return parseTopLevelStmt();
-        return parseVarDecl();
+        case TokenId::Identifier:
+            if (nextIs(TokenId::SymLeftParen) || nextIs(TokenId::SymDot))
+                return parseTopLevelStmt();
+            return parseVarDecl();
 
-    case TokenId::KwdAlias:
-        return parseAlias();
+        case TokenId::KwdAlias:
+            return parseAlias();
 
-    case TokenId::KwdUsing:
-    {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingVarDecl>();
-        consume();
-        nodePtr->nodeVar = parseVarDecl();
-        return nodeRef;
-    }
+        case TokenId::KwdUsing:
+        {
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingVarDecl>();
+            consume();
+            nodePtr->nodeVar = parseVarDecl();
+            return nodeRef;
+        }
 
-    default:
-        return parseVarDecl();
+        default:
+            return parseVarDecl();
     }
 }
 
@@ -158,22 +158,22 @@ AstNodeRef Parser::parseInterfaceValue()
 {
     switch (id())
     {
-    case TokenId::KwdAlias:
-        return parseAlias();
+        case TokenId::KwdAlias:
+            return parseAlias();
 
-    case TokenId::KwdFunc:
-    case TokenId::KwdMtd:
-        return parseFuncDecl();
+        case TokenId::KwdFunc:
+        case TokenId::KwdMtd:
+            return parseFuncDecl();
 
-    case TokenId::KwdConst:
-        return parseVarDecl();
+        case TokenId::KwdConst:
+            return parseVarDecl();
 
-    case TokenId::SymAttrStart:
-        return parseAttributeList(AstNodeId::InterfaceBody);
+        case TokenId::SymAttrStart:
+            return parseAttributeList(AstNodeId::InterfaceBody);
 
-    default:
-        raiseError(DiagnosticId::parser_err_unexpected_token, ref());
-        return AstNodeRef::invalid();
+        default:
+            raiseError(DiagnosticId::parser_err_unexpected_token, ref());
+            return AstNodeRef::invalid();
     }
 }
 

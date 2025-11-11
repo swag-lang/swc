@@ -1569,15 +1569,15 @@ decltype(auto) visitAstNodeId(AstNodeId id, F f)
 #include "AstNodes.inc"
 
 #undef SWC_NODE_DEF
-    default:
-        SWC_UNREACHABLE();
+        default:
+            SWC_UNREACHABLE();
     }
 };
 
 struct AstNodeIdInfo
 {
     std::string_view name;
-    
+
     using CollectFunc = void (*)(const AstNode*, SmallVector<AstNodeRef>&);
     CollectFunc collect;
 };

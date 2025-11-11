@@ -106,94 +106,94 @@ AstNodeRef Parser::parseTopLevelStmt()
 {
     switch (id())
     {
-    case TokenId::SymLeftCurly:
-        return parseCompound<AstNodeId::TopLevelBlock>(TokenId::SymLeftCurly);
-    case TokenId::SymRightCurly:
-        raiseError(DiagnosticId::parser_err_unexpected_token, ref());
-        return AstNodeRef::invalid();
+        case TokenId::SymLeftCurly:
+            return parseCompound<AstNodeId::TopLevelBlock>(TokenId::SymLeftCurly);
+        case TokenId::SymRightCurly:
+            raiseError(DiagnosticId::parser_err_unexpected_token, ref());
+            return AstNodeRef::invalid();
 
-    case TokenId::SymSemiColon:
-        consume();
-        return AstNodeRef::invalid();
+        case TokenId::SymSemiColon:
+            consume();
+            return AstNodeRef::invalid();
 
-    case TokenId::KwdEnum:
-        return parseEnumDecl();
-    case TokenId::KwdUnion:
-        return parseUnionDecl();
-    case TokenId::KwdStruct:
-        return parseStructDecl();
-    case TokenId::KwdImpl:
-        return parseImpl();
+        case TokenId::KwdEnum:
+            return parseEnumDecl();
+        case TokenId::KwdUnion:
+            return parseUnionDecl();
+        case TokenId::KwdStruct:
+            return parseStructDecl();
+        case TokenId::KwdImpl:
+            return parseImpl();
 
-    case TokenId::CompilerFuncTest:
-    case TokenId::CompilerFuncMain:
-    case TokenId::CompilerFuncPreMain:
-    case TokenId::CompilerFuncInit:
-    case TokenId::CompilerFuncDrop:
-    case TokenId::CompilerAst:
-    case TokenId::CompilerRun:
-        return parseCompilerFunc();
+        case TokenId::CompilerFuncTest:
+        case TokenId::CompilerFuncMain:
+        case TokenId::CompilerFuncPreMain:
+        case TokenId::CompilerFuncInit:
+        case TokenId::CompilerFuncDrop:
+        case TokenId::CompilerAst:
+        case TokenId::CompilerRun:
+            return parseCompilerFunc();
 
-    case TokenId::CompilerFuncMessage:
-        return parseCompilerMessageFunc();
+        case TokenId::CompilerFuncMessage:
+            return parseCompilerMessageFunc();
 
-    case TokenId::KwdNamespace:
-        return parseNamespace();
-    case TokenId::CompilerDependencies:
-        return parseCompilerDependencies();
+        case TokenId::KwdNamespace:
+            return parseNamespace();
+        case TokenId::CompilerDependencies:
+            return parseCompilerDependencies();
 
-    case TokenId::SymAttrStart:
-        return parseAttributeList(AstNodeId::TopLevelBlock);
+        case TokenId::SymAttrStart:
+            return parseAttributeList(AstNodeId::TopLevelBlock);
 
-    case TokenId::KwdPublic:
-    case TokenId::KwdInternal:
-    case TokenId::KwdPrivate:
-        return parseGlobalAccessModifier();
+        case TokenId::KwdPublic:
+        case TokenId::KwdInternal:
+        case TokenId::KwdPrivate:
+            return parseGlobalAccessModifier();
 
-    case TokenId::KwdUsing:
-        return parseUsing();
+        case TokenId::KwdUsing:
+            return parseUsing();
 
-    case TokenId::KwdConst:
-    case TokenId::KwdVar:
-    {
-        const AstNodeRef nodeRef = parseVarDecl();
-        expectEndStatement();
-        return nodeRef;
-    }
+        case TokenId::KwdConst:
+        case TokenId::KwdVar:
+        {
+            const AstNodeRef nodeRef = parseVarDecl();
+            expectEndStatement();
+            return nodeRef;
+        }
 
-    case TokenId::CompilerLoad:
-    case TokenId::CompilerForeignLib:
-        return parseCompilerCallUnary();
+        case TokenId::CompilerLoad:
+        case TokenId::CompilerForeignLib:
+            return parseCompilerCallUnary();
 
-    case TokenId::KwdFunc:
-    case TokenId::KwdMtd:
-        return parseFuncDecl();
+        case TokenId::KwdFunc:
+        case TokenId::KwdMtd:
+            return parseFuncDecl();
 
-    case TokenId::KwdAttr:
-        return parseAttrDecl();
+        case TokenId::KwdAttr:
+            return parseAttrDecl();
 
-    case TokenId::KwdAlias:
-        return parseAlias();
+        case TokenId::KwdAlias:
+            return parseAlias();
 
-    case TokenId::CompilerImport:
-        return parseCompilerImport();
+        case TokenId::CompilerImport:
+            return parseCompilerImport();
 
-    case TokenId::CompilerGlobal:
-        raiseError(DiagnosticId::parser_err_misplaced_global, ref());
-        return parseCompilerGlobal();
+        case TokenId::CompilerGlobal:
+            raiseError(DiagnosticId::parser_err_misplaced_global, ref());
+            return parseCompilerGlobal();
 
-    case TokenId::KwdInterface:
-        return parseInterfaceDecl();
+        case TokenId::KwdInterface:
+            return parseInterfaceDecl();
 
-    case TokenId::Identifier:
-        return parseTopLevelCall();
+        case TokenId::Identifier:
+            return parseTopLevelCall();
 
-    case TokenId::EndOfFile:
-        return AstNodeRef::invalid();
+        case TokenId::EndOfFile:
+            return AstNodeRef::invalid();
 
-    default:
-        raiseError(DiagnosticId::parser_err_unexpected_token, ref());
-        return AstNodeRef::invalid();
+        default:
+            raiseError(DiagnosticId::parser_err_unexpected_token, ref());
+            return AstNodeRef::invalid();
     }
 }
 
@@ -201,75 +201,75 @@ AstNodeRef Parser::parseEmbeddedStmt()
 {
     switch (id())
     {
-    case TokenId::SymLeftCurly:
-        return parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
-    case TokenId::SymRightCurly:
-        raiseError(DiagnosticId::parser_err_unexpected_token, ref());
-        return AstNodeRef::invalid();
+        case TokenId::SymLeftCurly:
+            return parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
+        case TokenId::SymRightCurly:
+            raiseError(DiagnosticId::parser_err_unexpected_token, ref());
+            return AstNodeRef::invalid();
 
-    case TokenId::SymSemiColon:
-        consume();
-        return AstNodeRef::invalid();
+        case TokenId::SymSemiColon:
+            consume();
+            return AstNodeRef::invalid();
 
-    case TokenId::KwdEnum:
-        return parseEnumDecl();
-    case TokenId::KwdUnion:
-        return parseUnionDecl();
-    case TokenId::KwdStruct:
-        return parseStructDecl();
+        case TokenId::KwdEnum:
+            return parseEnumDecl();
+        case TokenId::KwdUnion:
+            return parseUnionDecl();
+        case TokenId::KwdStruct:
+            return parseStructDecl();
 
-    case TokenId::IntrinsicBcBreakpoint:
-        return parseIntrinsicCallZero();
+        case TokenId::IntrinsicBcBreakpoint:
+            return parseIntrinsicCallZero();
 
-    case TokenId::IntrinsicAssert:
-    case TokenId::IntrinsicFree:
-        return parseIntrinsicCallUnary();
+        case TokenId::IntrinsicAssert:
+        case TokenId::IntrinsicFree:
+            return parseIntrinsicCallUnary();
 
-    case TokenId::IntrinsicCompilerError:
-    case TokenId::IntrinsicCompilerWarning:
-    case TokenId::IntrinsicPanic:
-        return parseIntrinsicCallBinary();
+        case TokenId::IntrinsicCompilerError:
+        case TokenId::IntrinsicCompilerWarning:
+        case TokenId::IntrinsicPanic:
+            return parseIntrinsicCallBinary();
 
-    case TokenId::IntrinsicMemCpy:
-    case TokenId::IntrinsicMemMove:
-    case TokenId::IntrinsicMemSet:
-        return parseIntrinsicCallTernary();
+        case TokenId::IntrinsicMemCpy:
+        case TokenId::IntrinsicMemMove:
+        case TokenId::IntrinsicMemSet:
+            return parseIntrinsicCallTernary();
 
-    case TokenId::SymAttrStart:
-        return parseAttributeList(AstNodeId::EmbeddedBlock);
+        case TokenId::SymAttrStart:
+            return parseAttributeList(AstNodeId::EmbeddedBlock);
 
-    case TokenId::KwdFunc:
-    case TokenId::KwdMtd:
-        return parseFuncDecl();
+        case TokenId::KwdFunc:
+        case TokenId::KwdMtd:
+            return parseFuncDecl();
 
-    case TokenId::KwdConst:
-    case TokenId::KwdVar:
-    case TokenId::KwdLet:
-    {
-        AstNodeRef nodeRef;
-        if (nextIs(TokenId::SymLeftParen))
-            nodeRef = parseDecompositionDecl();
-        else
-            nodeRef = parseVarDecl();
-        expectEndStatement();
-        return nodeRef;
-    }
+        case TokenId::KwdConst:
+        case TokenId::KwdVar:
+        case TokenId::KwdLet:
+        {
+            AstNodeRef nodeRef;
+            if (nextIs(TokenId::SymLeftParen))
+                nodeRef = parseDecompositionDecl();
+            else
+                nodeRef = parseVarDecl();
+            expectEndStatement();
+            return nodeRef;
+        }
 
-    case TokenId::CompilerAst:
-    case TokenId::CompilerRun:
-        return parseCompilerFunc();
+        case TokenId::CompilerAst:
+        case TokenId::CompilerRun:
+            return parseCompilerFunc();
 
-    case TokenId::KwdReturn:
-        return parseReturn();
-    case TokenId::KwdUnreachable:
-        return parseUnreachable();
-    case TokenId::KwdContinue:
-        return parseContinue();
+        case TokenId::KwdReturn:
+            return parseReturn();
+        case TokenId::KwdUnreachable:
+            return parseUnreachable();
+        case TokenId::KwdContinue:
+            return parseContinue();
 
-    default:
-        // @skip
-        skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
-        return AstNodeRef::invalid();
+        default:
+            // @skip
+            skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
+            return AstNodeRef::invalid();
     }
 }
 

@@ -483,138 +483,138 @@ void JobManager::workerLoop()
 
             switch (res)
             {
-            case JobResult::Done:
-            {
-                rec->state = JobRecord::State::Done;
-
-                notifyDependents(rec);
-
-                // RUNNING leaves the counted set.
-                bumpClientCountLocked(rec->clientId, -1);
-
-                // Detach and recycle
-                rec->job->rec_   = nullptr;
-                rec->job->owner_ = nullptr;
-                liveRecs_.erase(rec);
-                freeRecord(rec);
-                break;
-            }
-
-            case JobResult::Sleep:
-            {
-                if (lostWakePrevented)
+                case JobResult::Done:
                 {
-                    // Someone called wake() while we were running: keep runnable.
-                    rec->state = JobRecord::State::Ready;
-                    // Still in counted set (READY/RUNNING), no bump.
-                    pushReady(rec, rec->priority);
-                    cv_.notify_one();
-                }
-                else
-                {
-                    // Park: RUNNING -> WAITING leaves the counted set.
-                    rec->state = JobRecord::State::Waiting;
+                    rec->state = JobRecord::State::Done;
+
+                    notifyDependents(rec);
+
+                    // RUNNING leaves the counted set.
                     bumpClientCountLocked(rec->clientId, -1);
-                }
-                rec->job->clearIntents(); // consume any stale intent
-                break;
-            }
 
-            case JobResult::SleepOn:
-            {
-                JobRecord* depRec = nullptr;
-                if (rec->job->dep_ && rec->job->dep_->owner_ == this)
-                    depRec = rec->job->dep_->rec_;
-
-                if (depRec && linkOrSkip(rec, depRec))
-                {
-                    // Parked on dependency: RUNNING -> WAITING leaves counted set.
-                    rec->state = JobRecord::State::Waiting;
-                    bumpClientCountLocked(rec->clientId, -1);
-                }
-                else
-                {
-                    // Dependency already done/unknown: keep runnable (still counted)
-                    rec->state = JobRecord::State::Ready;
-                    pushReady(rec, rec->priority);
-                    cv_.notify_one();
+                    // Detach and recycle
+                    rec->job->rec_   = nullptr;
+                    rec->job->owner_ = nullptr;
+                    liveRecs_.erase(rec);
+                    freeRecord(rec);
+                    break;
                 }
 
-                rec->job->clearIntents();
-                break;
-            }
-
-            case JobResult::SpawnAndSleep:
-            {
-                // Create or reuse child's record and enqueue.
-                JobRecord* childRec = nullptr;
-                if (rec->job->child_)
+                case JobResult::Sleep:
                 {
-                    if (rec->job->child_->owner_ != this || rec->job->child_->rec_ == nullptr)
+                    if (lostWakePrevented)
                     {
-                        JobRecord* r = allocRecord();
-                        r->job       = rec->job->child_;
-                        r->priority  = rec->job->childPriority_;
-                        r->clientId  = rec->clientId; // inherit parent's client
-                        r->state     = JobRecord::State::Ready;
-                        r->dependents.clear();
-                        r->wakeGen.store(0, std::memory_order_relaxed);
-
-                        rec->job->child_->owner_ = this;
-                        rec->job->child_->rec_   = r;
-
-                        childRec = r;
-
-                        // If the client is being canceled, drop the child immediately.
-                        if (cancellingClients_.contains(r->clientId))
-                        {
-                            // No counting bump (never enters READY set); cancel directly.
-                            // Cancel dependents of child (same client cascade handled in cancel).
-                            // Here we mimic a Done without ever exposing the record.
-                            r->state = JobRecord::State::Done;
-                            notifyDependents(r);
-                            r->job->rec_   = nullptr;
-                            r->job->owner_ = nullptr;
-                            freeRecord(r);
-                            childRec = nullptr;
-                        }
-                        else
-                        {
-                            liveRecs_.insert(r);
-                            bumpClientCountLocked(r->clientId, +1);
-                        }
+                        // Someone called wake() while we were running: keep runnable.
+                        rec->state = JobRecord::State::Ready;
+                        // Still in counted set (READY/RUNNING), no bump.
+                        pushReady(rec, rec->priority);
+                        cv_.notify_one();
                     }
                     else
                     {
-                        // Already enqueued on this manager; treat as dependency only.
-                        childRec = rec->job->child_->rec_;
+                        // Park: RUNNING -> WAITING leaves the counted set.
+                        rec->state = JobRecord::State::Waiting;
+                        bumpClientCountLocked(rec->clientId, -1);
                     }
+                    rec->job->clearIntents(); // consume any stale intent
+                    break;
                 }
 
-                const bool parked = childRec && linkOrSkip(rec, childRec);
-                if (childRec)
+                case JobResult::SleepOn:
                 {
-                    pushReady(childRec, childRec->priority);
-                    cv_.notify_one();
+                    JobRecord* depRec = nullptr;
+                    if (rec->job->dep_ && rec->job->dep_->owner_ == this)
+                        depRec = rec->job->dep_->rec_;
+
+                    if (depRec && linkOrSkip(rec, depRec))
+                    {
+                        // Parked on dependency: RUNNING -> WAITING leaves counted set.
+                        rec->state = JobRecord::State::Waiting;
+                        bumpClientCountLocked(rec->clientId, -1);
+                    }
+                    else
+                    {
+                        // Dependency already done/unknown: keep runnable (still counted)
+                        rec->state = JobRecord::State::Ready;
+                        pushReady(rec, rec->priority);
+                        cv_.notify_one();
+                    }
+
+                    rec->job->clearIntents();
+                    break;
                 }
 
-                if (!parked)
+                case JobResult::SpawnAndSleep:
                 {
-                    // Parent stays runnable (still counted).
-                    rec->state = JobRecord::State::Ready;
-                    pushReady(rec, rec->priority);
-                    cv_.notify_one();
-                }
-                else
-                {
-                    // Parent parked: RUNNING -> WAITING leaves counted set.
-                    rec->state = JobRecord::State::Waiting;
-                    bumpClientCountLocked(rec->clientId, -1);
-                }
+                    // Create or reuse child's record and enqueue.
+                    JobRecord* childRec = nullptr;
+                    if (rec->job->child_)
+                    {
+                        if (rec->job->child_->owner_ != this || rec->job->child_->rec_ == nullptr)
+                        {
+                            JobRecord* r = allocRecord();
+                            r->job       = rec->job->child_;
+                            r->priority  = rec->job->childPriority_;
+                            r->clientId  = rec->clientId; // inherit parent's client
+                            r->state     = JobRecord::State::Ready;
+                            r->dependents.clear();
+                            r->wakeGen.store(0, std::memory_order_relaxed);
 
-                rec->job->clearIntents();
-                break;
-            }
+                            rec->job->child_->owner_ = this;
+                            rec->job->child_->rec_   = r;
+
+                            childRec = r;
+
+                            // If the client is being canceled, drop the child immediately.
+                            if (cancellingClients_.contains(r->clientId))
+                            {
+                                // No counting bump (never enters READY set); cancel directly.
+                                // Cancel dependents of child (same client cascade handled in cancel).
+                                // Here we mimic a Done without ever exposing the record.
+                                r->state = JobRecord::State::Done;
+                                notifyDependents(r);
+                                r->job->rec_   = nullptr;
+                                r->job->owner_ = nullptr;
+                                freeRecord(r);
+                                childRec = nullptr;
+                            }
+                            else
+                            {
+                                liveRecs_.insert(r);
+                                bumpClientCountLocked(r->clientId, +1);
+                            }
+                        }
+                        else
+                        {
+                            // Already enqueued on this manager; treat as dependency only.
+                            childRec = rec->job->child_->rec_;
+                        }
+                    }
+
+                    const bool parked = childRec && linkOrSkip(rec, childRec);
+                    if (childRec)
+                    {
+                        pushReady(childRec, childRec->priority);
+                        cv_.notify_one();
+                    }
+
+                    if (!parked)
+                    {
+                        // Parent stays runnable (still counted).
+                        rec->state = JobRecord::State::Ready;
+                        pushReady(rec, rec->priority);
+                        cv_.notify_one();
+                    }
+                    else
+                    {
+                        // Parent parked: RUNNING -> WAITING leaves counted set.
+                        rec->state = JobRecord::State::Waiting;
+                        bumpClientCountLocked(rec->clientId, -1);
+                    }
+
+                    rec->job->clearIntents();
+                    break;
+                }
             }
         }
     }

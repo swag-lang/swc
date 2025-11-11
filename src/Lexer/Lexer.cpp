@@ -140,19 +140,19 @@ void Lexer::pushToken()
     // Use switch for better branch prediction and consolidate similar checks
     switch (tokenId)
     {
-    case TokenId::Whitespace:
-        break;
-    case TokenId::CommentLine:
-    case TokenId::CommentMultiLine:
-        if (!rawMode_)
+        case TokenId::Whitespace:
             break;
-        lexOut_->trivia_.push_back({.tokenRef = TokenRef{static_cast<uint32_t>(lexOut_->tokens_.size())}, .token = token_});
-        break;
-    default:
-        if (rawMode_)
+        case TokenId::CommentLine:
+        case TokenId::CommentMultiLine:
+            if (!rawMode_)
+                break;
+            lexOut_->trivia_.push_back({.tokenRef = TokenRef{static_cast<uint32_t>(lexOut_->tokens_.size())}, .token = token_});
             break;
-        lexOut_->tokens_.push_back(token_);
-        break;
+        default:
+            if (rawMode_)
+                break;
+            lexOut_->tokens_.push_back(token_);
+            break;
     }
 }
 
@@ -186,17 +186,17 @@ void Lexer::lexEscape(TokenId containerToken, bool eatEol)
 
     switch (escapeType)
     {
-    case 'x':
-        expectedDigits = 2; // \xXX
-        break;
-    case 'u':
-        expectedDigits = 4; // \uXXXX
-        break;
-    case 'U':
-        expectedDigits = 8; // \UXXXXXXXX
-        break;
-    default:
-        SWC_ASSERT(false);
+        case 'x':
+            expectedDigits = 2; // \xXX
+            break;
+        case 'u':
+            expectedDigits = 4; // \uXXXX
+            break;
+        case 'U':
+            expectedDigits = 8; // \UXXXXXXXX
+            break;
+        default:
+            SWC_ASSERT(false);
     }
 
     // Check if we have the required number of hex digits
@@ -702,321 +702,321 @@ void Lexer::lexSymbol()
 
     switch (c)
     {
-    case '\'':
-        token_.id = TokenId::SymQuote;
-        buffer_++;
-        break;
-
-    case '\\':
-        token_.id = TokenId::SymBackSlash;
-        buffer_++;
-        break;
-
-    case '(':
-        token_.id = TokenId::SymLeftParen;
-        buffer_++;
-        break;
-
-    case ')':
-        token_.id = TokenId::SymRightParen;
-        buffer_++;
-        break;
-
-    case '[':
-        token_.id = TokenId::SymLeftBracket;
-        buffer_++;
-        break;
-
-    case ']':
-        token_.id = TokenId::SymRightBracket;
-        buffer_++;
-        break;
-
-    case '{':
-        token_.id = TokenId::SymLeftCurly;
-        buffer_++;
-        break;
-
-    case '}':
-        token_.id = TokenId::SymRightCurly;
-        buffer_++;
-        break;
-
-    case ';':
-        token_.id = TokenId::SymSemiColon;
-        buffer_++;
-        break;
-
-    case ',':
-        token_.id = TokenId::SymComma;
-        buffer_++;
-        break;
-
-    case '@':
-        token_.id = TokenId::SymAt;
-        buffer_++;
-        break;
-
-    case '?':
-        token_.id = TokenId::SymQuestion;
-        buffer_++;
-        break;
-
-    case '~':
-        token_.id = TokenId::SymTilde;
-        buffer_++;
-        break;
-
-    case '=':
-        if (buffer_[1] == '=')
-        {
-            token_.id = TokenId::SymEqualEqual;
-            buffer_ += 2;
-        }
-        else if (buffer_[1] == '>')
-        {
-            token_.id = TokenId::SymEqualGreater;
-            buffer_ += 2;
-        }
-        else
-        {
-            token_.id = TokenId::SymEqual;
+        case '\'':
+            token_.id = TokenId::SymQuote;
             buffer_++;
-        }
-        break;
+            break;
 
-    case ':':
-        token_.id = TokenId::SymColon;
-        buffer_++;
-        break;
-
-    case '!':
-        if (buffer_[1] == '=')
-        {
-            token_.id = TokenId::SymExclamationEqual;
-            buffer_ += 2;
-        }
-        else
-        {
-            token_.id = TokenId::SymExclamation;
+        case '\\':
+            token_.id = TokenId::SymBackSlash;
             buffer_++;
-        }
-        break;
+            break;
 
-    case '-':
-        if (buffer_[1] == '=')
-        {
-            token_.id = TokenId::SymMinusEqual;
-            buffer_ += 2;
-        }
-        else if (buffer_[1] == '>')
-        {
-            token_.id = TokenId::SymMinusGreater;
-            buffer_ += 2;
-        }
-        else if (buffer_[1] == '-')
-        {
-            token_.id = TokenId::SymMinusMinus;
-            buffer_ += 2;
-        }
-        else
-        {
-            token_.id = TokenId::SymMinus;
+        case '(':
+            token_.id = TokenId::SymLeftParen;
             buffer_++;
-        }
-        break;
+            break;
 
-    case '+':
-        if (buffer_[1] == '=')
-        {
-            token_.id = TokenId::SymPlusEqual;
-            buffer_ += 2;
-        }
-        else if (buffer_[1] == '+')
-        {
-            token_.id = TokenId::SymPlusPlus;
-            buffer_ += 2;
-        }
-        else
-        {
-            token_.id = TokenId::SymPlus;
+        case ')':
+            token_.id = TokenId::SymRightParen;
             buffer_++;
-        }
-        break;
+            break;
 
-    case '*':
-        if (buffer_[1] == '=')
-        {
-            token_.id = TokenId::SymAsteriskEqual;
-            buffer_ += 2;
-        }
-        else
-        {
-            token_.id = TokenId::SymAsterisk;
+        case '[':
+            token_.id = TokenId::SymLeftBracket;
             buffer_++;
-        }
-        break;
+            break;
 
-    case '/':
-        if (buffer_[1] == '=')
-        {
-            token_.id = TokenId::SymSlashEqual;
-            buffer_ += 2;
-        }
-        else
-        {
-            token_.id = TokenId::SymSlash;
+        case ']':
+            token_.id = TokenId::SymRightBracket;
             buffer_++;
-        }
-        break;
+            break;
 
-    case '&':
-        if (buffer_[1] == '=')
-        {
-            token_.id = TokenId::SymAmpersandEqual;
-            buffer_ += 2;
-        }
-        else if (buffer_[1] == '&')
-        {
-            token_.id = TokenId::SymAmpersandAmpersand;
-            buffer_ += 2;
-        }
-        else
-        {
-            token_.id = TokenId::SymAmpersand;
+        case '{':
+            token_.id = TokenId::SymLeftCurly;
             buffer_++;
-        }
-        break;
+            break;
 
-    case '|':
-        if (buffer_[1] == '=')
-        {
-            token_.id = TokenId::SymVerticalEqual;
-            buffer_ += 2;
-        }
-        else if (buffer_[1] == '|')
-        {
-            token_.id = TokenId::SymVerticalVertical;
-            buffer_ += 2;
-        }
-        else
-        {
-            token_.id = TokenId::SymVertical;
+        case '}':
+            token_.id = TokenId::SymRightCurly;
             buffer_++;
-        }
-        break;
+            break;
 
-    case '^':
-        if (buffer_[1] == '=')
-        {
-            token_.id = TokenId::SymCircumflexEqual;
-            buffer_ += 2;
-        }
-        else
-        {
-            token_.id = TokenId::SymCircumflex;
+        case ';':
+            token_.id = TokenId::SymSemiColon;
             buffer_++;
-        }
-        break;
+            break;
 
-    case '%':
-        if (buffer_[1] == '=')
-        {
-            token_.id = TokenId::SymPercentEqual;
-            buffer_ += 2;
-        }
-        else
-        {
-            token_.id = TokenId::SymPercent;
+        case ',':
+            token_.id = TokenId::SymComma;
             buffer_++;
-        }
-        break;
+            break;
 
-    case '.':
-        if (buffer_[1] == '.')
-        {
-            if (buffer_[2] == '.')
+        case '@':
+            token_.id = TokenId::SymAt;
+            buffer_++;
+            break;
+
+        case '?':
+            token_.id = TokenId::SymQuestion;
+            buffer_++;
+            break;
+
+        case '~':
+            token_.id = TokenId::SymTilde;
+            buffer_++;
+            break;
+
+        case '=':
+            if (buffer_[1] == '=')
             {
-                token_.id = TokenId::SymDotDotDot;
-                buffer_ += 3;
+                token_.id = TokenId::SymEqualEqual;
+                buffer_ += 2;
+            }
+            else if (buffer_[1] == '>')
+            {
+                token_.id = TokenId::SymEqualGreater;
+                buffer_ += 2;
             }
             else
             {
-                token_.id = TokenId::SymDotDot;
-                buffer_ += 2;
+                token_.id = TokenId::SymEqual;
+                buffer_++;
             }
-        }
-        else
-        {
-            token_.id = TokenId::SymDot;
-            buffer_++;
-        }
-        break;
+            break;
 
-    case '<':
-        if (buffer_[1] == '=')
-        {
-            if (buffer_[2] == '>')
+        case ':':
+            token_.id = TokenId::SymColon;
+            buffer_++;
+            break;
+
+        case '!':
+            if (buffer_[1] == '=')
             {
-                token_.id = TokenId::SymLowerEqualGreater;
-                buffer_ += 3;
+                token_.id = TokenId::SymExclamationEqual;
+                buffer_ += 2;
             }
             else
             {
-                token_.id = TokenId::SymLowerEqual;
+                token_.id = TokenId::SymExclamation;
+                buffer_++;
+            }
+            break;
+
+        case '-':
+            if (buffer_[1] == '=')
+            {
+                token_.id = TokenId::SymMinusEqual;
                 buffer_ += 2;
             }
-        }
-        else if (buffer_[1] == '<')
-        {
-            if (buffer_[2] == '=')
+            else if (buffer_[1] == '>')
             {
-                token_.id = TokenId::SymLowerLowerEqual;
-                buffer_ += 3;
+                token_.id = TokenId::SymMinusGreater;
+                buffer_ += 2;
+            }
+            else if (buffer_[1] == '-')
+            {
+                token_.id = TokenId::SymMinusMinus;
+                buffer_ += 2;
             }
             else
             {
-                token_.id = TokenId::SymLowerLower;
+                token_.id = TokenId::SymMinus;
+                buffer_++;
+            }
+            break;
+
+        case '+':
+            if (buffer_[1] == '=')
+            {
+                token_.id = TokenId::SymPlusEqual;
                 buffer_ += 2;
             }
-        }
-        else
-        {
-            token_.id = TokenId::SymLower;
-            buffer_++;
-        }
-        break;
-
-    case '>':
-        if (buffer_[1] == '=')
-        {
-            token_.id = TokenId::SymGreaterEqual;
-            buffer_ += 2;
-        }
-        else if (buffer_[1] == '>')
-        {
-            if (buffer_[2] == '=')
+            else if (buffer_[1] == '+')
             {
-                token_.id = TokenId::SymGreaterGreaterEqual;
-                buffer_ += 3;
+                token_.id = TokenId::SymPlusPlus;
+                buffer_ += 2;
             }
             else
             {
-                token_.id = TokenId::SymGreaterGreater;
+                token_.id = TokenId::SymPlus;
+                buffer_++;
+            }
+            break;
+
+        case '*':
+            if (buffer_[1] == '=')
+            {
+                token_.id = TokenId::SymAsteriskEqual;
                 buffer_ += 2;
             }
-        }
-        else
-        {
-            token_.id = TokenId::SymGreater;
-            buffer_++;
-        }
-        break;
+            else
+            {
+                token_.id = TokenId::SymAsterisk;
+                buffer_++;
+            }
+            break;
 
-    default:
-        eatUtf8Char();
-        raiseTokenError(DiagnosticId::lex_err_invalid_char, static_cast<uint32_t>(startToken_ - startBuffer_), static_cast<uint32_t>(buffer_ - startToken_));
-        break;
+        case '/':
+            if (buffer_[1] == '=')
+            {
+                token_.id = TokenId::SymSlashEqual;
+                buffer_ += 2;
+            }
+            else
+            {
+                token_.id = TokenId::SymSlash;
+                buffer_++;
+            }
+            break;
+
+        case '&':
+            if (buffer_[1] == '=')
+            {
+                token_.id = TokenId::SymAmpersandEqual;
+                buffer_ += 2;
+            }
+            else if (buffer_[1] == '&')
+            {
+                token_.id = TokenId::SymAmpersandAmpersand;
+                buffer_ += 2;
+            }
+            else
+            {
+                token_.id = TokenId::SymAmpersand;
+                buffer_++;
+            }
+            break;
+
+        case '|':
+            if (buffer_[1] == '=')
+            {
+                token_.id = TokenId::SymVerticalEqual;
+                buffer_ += 2;
+            }
+            else if (buffer_[1] == '|')
+            {
+                token_.id = TokenId::SymVerticalVertical;
+                buffer_ += 2;
+            }
+            else
+            {
+                token_.id = TokenId::SymVertical;
+                buffer_++;
+            }
+            break;
+
+        case '^':
+            if (buffer_[1] == '=')
+            {
+                token_.id = TokenId::SymCircumflexEqual;
+                buffer_ += 2;
+            }
+            else
+            {
+                token_.id = TokenId::SymCircumflex;
+                buffer_++;
+            }
+            break;
+
+        case '%':
+            if (buffer_[1] == '=')
+            {
+                token_.id = TokenId::SymPercentEqual;
+                buffer_ += 2;
+            }
+            else
+            {
+                token_.id = TokenId::SymPercent;
+                buffer_++;
+            }
+            break;
+
+        case '.':
+            if (buffer_[1] == '.')
+            {
+                if (buffer_[2] == '.')
+                {
+                    token_.id = TokenId::SymDotDotDot;
+                    buffer_ += 3;
+                }
+                else
+                {
+                    token_.id = TokenId::SymDotDot;
+                    buffer_ += 2;
+                }
+            }
+            else
+            {
+                token_.id = TokenId::SymDot;
+                buffer_++;
+            }
+            break;
+
+        case '<':
+            if (buffer_[1] == '=')
+            {
+                if (buffer_[2] == '>')
+                {
+                    token_.id = TokenId::SymLowerEqualGreater;
+                    buffer_ += 3;
+                }
+                else
+                {
+                    token_.id = TokenId::SymLowerEqual;
+                    buffer_ += 2;
+                }
+            }
+            else if (buffer_[1] == '<')
+            {
+                if (buffer_[2] == '=')
+                {
+                    token_.id = TokenId::SymLowerLowerEqual;
+                    buffer_ += 3;
+                }
+                else
+                {
+                    token_.id = TokenId::SymLowerLower;
+                    buffer_ += 2;
+                }
+            }
+            else
+            {
+                token_.id = TokenId::SymLower;
+                buffer_++;
+            }
+            break;
+
+        case '>':
+            if (buffer_[1] == '=')
+            {
+                token_.id = TokenId::SymGreaterEqual;
+                buffer_ += 2;
+            }
+            else if (buffer_[1] == '>')
+            {
+                if (buffer_[2] == '=')
+                {
+                    token_.id = TokenId::SymGreaterGreaterEqual;
+                    buffer_ += 3;
+                }
+                else
+                {
+                    token_.id = TokenId::SymGreaterGreater;
+                    buffer_ += 2;
+                }
+            }
+            else
+            {
+                token_.id = TokenId::SymGreater;
+                buffer_++;
+            }
+            break;
+
+        default:
+            eatUtf8Char();
+            raiseTokenError(DiagnosticId::lex_err_invalid_char, static_cast<uint32_t>(startToken_ - startBuffer_), static_cast<uint32_t>(buffer_ - startToken_));
+            break;
     }
 
     pushToken();

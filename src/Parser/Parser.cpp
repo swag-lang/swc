@@ -147,27 +147,27 @@ bool Parser::skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
         // on a target that appears inside a nested construct).
         switch (id())
         {
-        case TokenId::SymLeftParen:
-            ++parenDepth;
-            break;
-        case TokenId::SymRightParen:
-            --parenDepth;
-            break;
-        case TokenId::SymLeftBracket:
-        case TokenId::SymAttrStart:
-            ++bracketDepth;
-            break;
-        case TokenId::SymRightBracket:
-            --bracketDepth;
-            break;
-        case TokenId::SymLeftCurly:
-            ++curlyDepth;
-            break;
-        case TokenId::SymRightCurly:
-            --curlyDepth;
-            break;
-        default:
-            break;
+            case TokenId::SymLeftParen:
+                ++parenDepth;
+                break;
+            case TokenId::SymRightParen:
+                --parenDepth;
+                break;
+            case TokenId::SymLeftBracket:
+            case TokenId::SymAttrStart:
+                ++bracketDepth;
+                break;
+            case TokenId::SymRightBracket:
+                --bracketDepth;
+                break;
+            case TokenId::SymLeftCurly:
+                ++curlyDepth;
+                break;
+            case TokenId::SymRightCurly:
+                --curlyDepth;
+                break;
+            default:
+                break;
         }
 
         // Never let depths go negative (keeps recovery robust even on stray closers).
@@ -195,27 +195,27 @@ TokenRef Parser::consume()
     const auto result = ref();
     switch (id())
     {
-    case TokenId::SymLeftParen:
-        depthParen_++;
-        break;
-    case TokenId::SymRightParen:
-        depthParen_--;
-        break;
-    case TokenId::SymLeftBracket:
-    case TokenId::SymAttrStart:
-        depthBracket_++;
-        break;
-    case TokenId::SymRightBracket:
-        depthBracket_--;
-        break;
-    case TokenId::SymLeftCurly:
-        depthCurly_++;
-        break;
-    case TokenId::SymRightCurly:
-        depthCurly_--;
-        break;
-    default:
-        break;
+        case TokenId::SymLeftParen:
+            depthParen_++;
+            break;
+        case TokenId::SymRightParen:
+            depthParen_--;
+            break;
+        case TokenId::SymLeftBracket:
+        case TokenId::SymAttrStart:
+            depthBracket_++;
+            break;
+        case TokenId::SymRightBracket:
+            depthBracket_--;
+            break;
+        case TokenId::SymLeftCurly:
+            depthCurly_++;
+            break;
+        case TokenId::SymRightCurly:
+            depthCurly_--;
+            break;
+        default:
+            break;
     }
 
     curToken_++;

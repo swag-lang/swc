@@ -56,7 +56,7 @@ struct AstNode
         else
             flags_ |= val.flags;
     }
-    
+
     static void collectChildren(SmallVector<AstNodeRef>& out) {}
 
 private:

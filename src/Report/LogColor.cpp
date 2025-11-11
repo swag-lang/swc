@@ -19,43 +19,43 @@ Utf8 LogColorHelper::toAnsi(const TaskContext& ctx, LogColor c)
     using enum LogColor;
     switch (c)
     {
-    case Reset:
-    default:
-        return "\x1b[0m";
-    case Bold:
-        return "\x1b[1m";
-    case Dim:
-        return "\x1b[2m";
+        case Reset:
+        default:
+            return "\x1b[0m";
+        case Bold:
+            return "\x1b[1m";
+        case Dim:
+            return "\x1b[2m";
 
-    case Red:
-        return "\x1b[31m";
-    case Green:
-        return "\x1b[32m";
-    case Yellow:
-        return "\x1b[33m";
-    case Blue:
-        return "\x1b[34m";
-    case Magenta:
-        return "\x1b[35m";
-    case Cyan:
-        return "\x1b[36m";
-    case White:
-        return "\x1b[37m";
+        case Red:
+            return "\x1b[31m";
+        case Green:
+            return "\x1b[32m";
+        case Yellow:
+            return "\x1b[33m";
+        case Blue:
+            return "\x1b[34m";
+        case Magenta:
+            return "\x1b[35m";
+        case Cyan:
+            return "\x1b[36m";
+        case White:
+            return "\x1b[37m";
 
-    case Gray:
-        return "\x1b[90m";
-    case BrightRed:
-        return "\x1b[91m";
-    case BrightGreen:
-        return "\x1b[92m";
-    case BrightYellow:
-        return "\x1b[93m";
-    case BrightBlue:
-        return "\x1b[94m";
-    case BrightMagenta:
-        return "\x1b[95m";
-    case BrightCyan:
-        return "\x1b[96m";
+        case Gray:
+            return "\x1b[90m";
+        case BrightRed:
+            return "\x1b[91m";
+        case BrightGreen:
+            return "\x1b[92m";
+        case BrightYellow:
+            return "\x1b[93m";
+        case BrightBlue:
+            return "\x1b[94m";
+        case BrightMagenta:
+            return "\x1b[95m";
+        case BrightCyan:
+            return "\x1b[96m";
     }
 }
 

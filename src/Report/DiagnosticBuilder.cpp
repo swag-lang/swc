@@ -42,16 +42,16 @@ namespace
     {
         switch (s)
         {
-        case DiagnosticSeverity::Error:
-            return "error";
-        case DiagnosticSeverity::Warning:
-            return "warning";
-        case DiagnosticSeverity::Note:
-            return "note";
-        case DiagnosticSeverity::Help:
-            return "help";
-        default:
-            SWC_UNREACHABLE();
+            case DiagnosticSeverity::Error:
+                return "error";
+            case DiagnosticSeverity::Warning:
+                return "warning";
+            case DiagnosticSeverity::Note:
+                return "note";
+            case DiagnosticSeverity::Help:
+                return "help";
+            default:
+                SWC_UNREACHABLE();
         }
     }
 
@@ -129,72 +129,72 @@ DiagnosticBuilder::AnsiSeq DiagnosticBuilder::diagPalette(DiagPart p, std::optio
     using enum LogColor;
     switch (p)
     {
-    case DiagPart::FileLocationArrow:
-    case DiagPart::FileLocationPath:
-    case DiagPart::FileLocationSep:
-        return {Gray};
-    case DiagPart::GutterBar:
-        return {BrightCyan};
-    case DiagPart::LineNumber:
-        return {Gray};
-    case DiagPart::CodeText:
-        return {White};
-    case DiagPart::Ellipsis:
-        return {Gray};
-
-    case DiagPart::LabelMsgText:
-        if (!sev)
-            return {White};
-        switch (*sev)
-        {
-        case DiagnosticSeverity::Error:
-            return {BrightRed};
-        case DiagnosticSeverity::Warning:
-            return {BrightYellow};
-        case DiagnosticSeverity::Note:
-        case DiagnosticSeverity::Help:
-            return {White};
-        default:
-            SWC_UNREACHABLE();
-        }
-
-    case DiagPart::LabelMsgPrefix:
-    case DiagPart::Severity:
-        if (!sev)
-            return {White};
-        switch (*sev)
-        {
-        case DiagnosticSeverity::Error:
-            return {BrightRed};
-        case DiagnosticSeverity::Warning:
-            return {BrightYellow};
-        case DiagnosticSeverity::Note:
+        case DiagPart::FileLocationArrow:
+        case DiagPart::FileLocationPath:
+        case DiagPart::FileLocationSep:
+            return {Gray};
+        case DiagPart::GutterBar:
             return {BrightCyan};
-        case DiagnosticSeverity::Help:
-            return {BrightGreen};
-        default:
-            SWC_UNREACHABLE();
-        }
-
-    case DiagPart::QuoteText:
-        if (!sev)
+        case DiagPart::LineNumber:
+            return {Gray};
+        case DiagPart::CodeText:
             return {White};
-        switch (*sev)
-        {
-        case DiagnosticSeverity::Error:
-            return {BrightMagenta};
-        case DiagnosticSeverity::Warning:
-            return {BrightBlue};
-        case DiagnosticSeverity::Note:
+        case DiagPart::Ellipsis:
             return {Gray};
-        case DiagnosticSeverity::Help:
-            return {Gray};
-        default:
-            SWC_UNREACHABLE();
-        }
 
-    case DiagPart::Reset:
-        return {Reset};
+        case DiagPart::LabelMsgText:
+            if (!sev)
+                return {White};
+            switch (*sev)
+            {
+                case DiagnosticSeverity::Error:
+                    return {BrightRed};
+                case DiagnosticSeverity::Warning:
+                    return {BrightYellow};
+                case DiagnosticSeverity::Note:
+                case DiagnosticSeverity::Help:
+                    return {White};
+                default:
+                    SWC_UNREACHABLE();
+            }
+
+        case DiagPart::LabelMsgPrefix:
+        case DiagPart::Severity:
+            if (!sev)
+                return {White};
+            switch (*sev)
+            {
+                case DiagnosticSeverity::Error:
+                    return {BrightRed};
+                case DiagnosticSeverity::Warning:
+                    return {BrightYellow};
+                case DiagnosticSeverity::Note:
+                    return {BrightCyan};
+                case DiagnosticSeverity::Help:
+                    return {BrightGreen};
+                default:
+                    SWC_UNREACHABLE();
+            }
+
+        case DiagPart::QuoteText:
+            if (!sev)
+                return {White};
+            switch (*sev)
+            {
+                case DiagnosticSeverity::Error:
+                    return {BrightMagenta};
+                case DiagnosticSeverity::Warning:
+                    return {BrightBlue};
+                case DiagnosticSeverity::Note:
+                    return {Gray};
+                case DiagnosticSeverity::Help:
+                    return {Gray};
+                default:
+                    SWC_UNREACHABLE();
+            }
+
+        case DiagPart::Reset:
+            return {Reset};
     }
 
     return {White};

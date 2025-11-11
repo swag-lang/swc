@@ -40,39 +40,39 @@ AstNodeRef Parser::parseSingleType()
 
     switch (id())
     {
-    case TokenId::Identifier:
-        return parseIdentifierType();
+        case TokenId::Identifier:
+            return parseIdentifierType();
 
-    case TokenId::KwdStruct:
-    {
-        consume();
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousStructDecl>();
-        nodePtr->nodeBody       = parseAggregateBody();
-        return nodeRef;
-    }
-    case TokenId::KwdUnion:
-    {
-        consume();
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousUnionDecl>();
-        nodePtr->nodeBody       = parseAggregateBody();
-        return nodeRef;
-    }
-    case TokenId::SymLeftCurly:
-    {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousStructDecl>();
-        nodePtr->nodeBody       = parseAggregateBody();
-        return nodeRef;
-    }
+        case TokenId::KwdStruct:
+        {
+            consume();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousStructDecl>();
+            nodePtr->nodeBody       = parseAggregateBody();
+            return nodeRef;
+        }
+        case TokenId::KwdUnion:
+        {
+            consume();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousUnionDecl>();
+            nodePtr->nodeBody       = parseAggregateBody();
+            return nodeRef;
+        }
+        case TokenId::SymLeftCurly:
+        {
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousStructDecl>();
+            nodePtr->nodeBody       = parseAggregateBody();
+            return nodeRef;
+        }
 
-    case TokenId::KwdFunc:
-    case TokenId::KwdMtd:
-        return parseLambdaType();
+        case TokenId::KwdFunc:
+        case TokenId::KwdMtd:
+            return parseLambdaType();
 
-    case TokenId::CompilerDeclType:
-        return parseCompilerCallUnary();
+        case TokenId::CompilerDeclType:
+            return parseCompilerCallUnary();
 
-    default:
-        break;
+        default:
+            break;
     }
 
     const auto diag = reportError(DiagnosticId::parser_err_invalid_type, ref());

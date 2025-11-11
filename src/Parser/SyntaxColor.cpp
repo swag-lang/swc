@@ -18,51 +18,51 @@ namespace
         RgbColor rgb;
         switch (color)
         {
-        case SyntaxColor::Code:
-            rgb = {.r = 0xCC, .g = 0xCC, .b = 0xCC};
-            break;
-        case SyntaxColor::Comment:
-            rgb = {.r = 0x6A, .g = 0x99, .b = 0x55};
-            break;
-        case SyntaxColor::Compiler:
-            rgb = {.r = 0xAA, .g = 0xAA, .b = 0xAA};
-            break;
-        case SyntaxColor::Function:
-            rgb = {.r = 0xFF, .g = 0x74, .b = 0x11};
-            break;
-        case SyntaxColor::Constant:
-            rgb = {.r = 0x4E, .g = 0xC9, .b = 0xB0};
-            break;
-        case SyntaxColor::Intrinsic:
-            rgb = {.r = 0xdc, .g = 0xdc, .b = 0xaa};
-            break;
-        case SyntaxColor::Type:
-            rgb = {.r = 0xf6, .g = 0xcc, .b = 0x86};
-            break;
-        case SyntaxColor::Keyword:
-            rgb = {.r = 0x56, .g = 0x9c, .b = 0xd6};
-            break;
-        case SyntaxColor::Logic:
-            rgb = {.r = 0xd8, .g = 0xa0, .b = 0xdf};
-            break;
-        case SyntaxColor::Number:
-            rgb = {.r = 0xb5, .g = 0xce, .b = 0xa8};
-            break;
-        case SyntaxColor::String:
-            rgb = {.r = 0xce, .g = 0x91, .b = 0x78};
-            break;
-        case SyntaxColor::Attribute:
-            rgb = {.r = 0xaa, .g = 0xaa, .b = 0xaa};
-            break;
-        case SyntaxColor::Register:
-            rgb = {.r = 0xBC, .g = 0xB6, .b = 0x58};
-            break;
+            case SyntaxColor::Code:
+                rgb = {.r = 0xCC, .g = 0xCC, .b = 0xCC};
+                break;
+            case SyntaxColor::Comment:
+                rgb = {.r = 0x6A, .g = 0x99, .b = 0x55};
+                break;
+            case SyntaxColor::Compiler:
+                rgb = {.r = 0xAA, .g = 0xAA, .b = 0xAA};
+                break;
+            case SyntaxColor::Function:
+                rgb = {.r = 0xFF, .g = 0x74, .b = 0x11};
+                break;
+            case SyntaxColor::Constant:
+                rgb = {.r = 0x4E, .g = 0xC9, .b = 0xB0};
+                break;
+            case SyntaxColor::Intrinsic:
+                rgb = {.r = 0xdc, .g = 0xdc, .b = 0xaa};
+                break;
+            case SyntaxColor::Type:
+                rgb = {.r = 0xf6, .g = 0xcc, .b = 0x86};
+                break;
+            case SyntaxColor::Keyword:
+                rgb = {.r = 0x56, .g = 0x9c, .b = 0xd6};
+                break;
+            case SyntaxColor::Logic:
+                rgb = {.r = 0xd8, .g = 0xa0, .b = 0xdf};
+                break;
+            case SyntaxColor::Number:
+                rgb = {.r = 0xb5, .g = 0xce, .b = 0xa8};
+                break;
+            case SyntaxColor::String:
+                rgb = {.r = 0xce, .g = 0x91, .b = 0x78};
+                break;
+            case SyntaxColor::Attribute:
+                rgb = {.r = 0xaa, .g = 0xaa, .b = 0xaa};
+                break;
+            case SyntaxColor::Register:
+                rgb = {.r = 0xBC, .g = 0xB6, .b = 0x58};
+                break;
 
-        case SyntaxColor::Invalid:
-            rgb = {.r = 0xFF, .g = 0x47, .b = 0x47};
-            break;
-        default:
-            SWC_UNREACHABLE();
+            case SyntaxColor::Invalid:
+                rgb = {.r = 0xFF, .g = 0x47, .b = 0x47};
+                break;
+            default:
+                SWC_UNREACHABLE();
         }
 
         if (lum != 0)
@@ -79,69 +79,69 @@ namespace
     {
         switch (mode)
         {
-        case SyntaxColorMode::ForLog:
-        {
-            if (color == SyntaxColor::Default)
-                return LogColorHelper::toAnsi(ctx, LogColor::Reset);
-            const auto rgb = getSyntaxColorRgb(color, ctx.cmdLine().syntaxColorLum);
-            return LogColorHelper::colorToAnsi((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF);
-        }
-
-        case SyntaxColorMode::ForDoc:
-        {
-            const char* colorName = nullptr;
-            switch (color)
+            case SyntaxColorMode::ForLog:
             {
-            case SyntaxColor::Default:
-                return "</span>";
-            case SyntaxColor::Code:
-                colorName = SYN_CODE;
-                break;
-            case SyntaxColor::Comment:
-                colorName = SYN_COMMENT;
-                break;
-            case SyntaxColor::Compiler:
-                colorName = SYN_COMPILER;
-                break;
-            case SyntaxColor::Function:
-                colorName = SYN_FUNCTION;
-                break;
-            case SyntaxColor::Constant:
-                colorName = SYN_CONSTANT;
-                break;
-            case SyntaxColor::Intrinsic:
-                colorName = SYN_INTRINSIC;
-                break;
-            case SyntaxColor::Type:
-                colorName = SYN_TYPE;
-                break;
-            case SyntaxColor::Keyword:
-                colorName = SYN_KEYWORD;
-                break;
-            case SyntaxColor::Logic:
-                colorName = SYN_LOGIC;
-                break;
-            case SyntaxColor::Number:
-                colorName = SYN_NUMBER;
-                break;
-            case SyntaxColor::Register:
-                colorName = SYN_REGISTER;
-                break;
-            case SyntaxColor::String:
-                colorName = SYN_STRING;
-                break;
-            case SyntaxColor::Attribute:
-                colorName = SYN_ATTRIBUTE;
-                break;
-            case SyntaxColor::Invalid:
-                colorName = SYN_INVALID;
-                break;
+                if (color == SyntaxColor::Default)
+                    return LogColorHelper::toAnsi(ctx, LogColor::Reset);
+                const auto rgb = getSyntaxColorRgb(color, ctx.cmdLine().syntaxColorLum);
+                return LogColorHelper::colorToAnsi((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF);
             }
 
-            if (colorName)
-                return std::format("<span class=\"{}\">", colorName);
-            break;
-        }
+            case SyntaxColorMode::ForDoc:
+            {
+                const char* colorName = nullptr;
+                switch (color)
+                {
+                    case SyntaxColor::Default:
+                        return "</span>";
+                    case SyntaxColor::Code:
+                        colorName = SYN_CODE;
+                        break;
+                    case SyntaxColor::Comment:
+                        colorName = SYN_COMMENT;
+                        break;
+                    case SyntaxColor::Compiler:
+                        colorName = SYN_COMPILER;
+                        break;
+                    case SyntaxColor::Function:
+                        colorName = SYN_FUNCTION;
+                        break;
+                    case SyntaxColor::Constant:
+                        colorName = SYN_CONSTANT;
+                        break;
+                    case SyntaxColor::Intrinsic:
+                        colorName = SYN_INTRINSIC;
+                        break;
+                    case SyntaxColor::Type:
+                        colorName = SYN_TYPE;
+                        break;
+                    case SyntaxColor::Keyword:
+                        colorName = SYN_KEYWORD;
+                        break;
+                    case SyntaxColor::Logic:
+                        colorName = SYN_LOGIC;
+                        break;
+                    case SyntaxColor::Number:
+                        colorName = SYN_NUMBER;
+                        break;
+                    case SyntaxColor::Register:
+                        colorName = SYN_REGISTER;
+                        break;
+                    case SyntaxColor::String:
+                        colorName = SYN_STRING;
+                        break;
+                    case SyntaxColor::Attribute:
+                        colorName = SYN_ATTRIBUTE;
+                        break;
+                    case SyntaxColor::Invalid:
+                        colorName = SYN_INVALID;
+                        break;
+                }
+
+                if (colorName)
+                    return std::format("<span class=\"{}\">", colorName);
+                break;
+            }
         }
 
         SWC_UNREACHABLE();

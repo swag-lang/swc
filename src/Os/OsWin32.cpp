@@ -38,15 +38,15 @@ namespace Os
         const auto result = MessageBoxA(nullptr, msg, "Swag meditation !", MB_CANCELTRYCONTINUE | MB_ICONERROR);
         switch (result)
         {
-        case IDCANCEL:
-            std::exit(static_cast<int>(ExitCode::PanicBox)); // NOLINT(concurrency-mt-unsafe)
-        case IDTRYAGAIN:
-            DebugBreak();
-            break;
-        case IDCONTINUE:
-            break;
-        default:
-            break;
+            case IDCANCEL:
+                std::exit(static_cast<int>(ExitCode::PanicBox)); // NOLINT(concurrency-mt-unsafe)
+            case IDTRYAGAIN:
+                DebugBreak();
+                break;
+            case IDCONTINUE:
+                break;
+            default:
+                break;
         }
     }
 

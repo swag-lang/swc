@@ -70,13 +70,13 @@ void CompilerInstance::processCommand()
     Timer time(&Stats::get().timeTotal);
     switch (context_.cmdLine().command)
     {
-    case Command::Syntax:
-        cmdSyntax();
-        break;
-    case Command::Format:
-        break;
-    case Command::Invalid:
-        break;
+        case Command::Syntax:
+            cmdSyntax();
+            break;
+        case Command::Format:
+            break;
+        case Command::Invalid:
+            break;
     }
 }
 

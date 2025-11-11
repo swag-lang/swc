@@ -94,29 +94,29 @@ TokenId Token::toRelated(TokenId id)
 {
     switch (id)
     {
-    case TokenId::SymLeftParen:
-        return TokenId::SymRightParen;
-    case TokenId::SymRightParen:
-        return TokenId::SymLeftParen;
-        
-    case TokenId::SymLeftBracket:
-        return TokenId::SymRightBracket;
-    case TokenId::SymRightBracket:
-        return TokenId::SymLeftBracket;        
-        
-    case TokenId::SymLeftCurly:
-        return TokenId::SymRightCurly;
-    case TokenId::SymRightCurly:
-        return TokenId::SymLeftCurly;        
-      
-    case TokenId::SymAttrStart:
-        return TokenId::SymRightBracket;
-        
-    case TokenId::SymVertical:
-        return TokenId::SymVertical;
-        
-    default:
-        return TokenId::Invalid;
+        case TokenId::SymLeftParen:
+            return TokenId::SymRightParen;
+        case TokenId::SymRightParen:
+            return TokenId::SymLeftParen;
+
+        case TokenId::SymLeftBracket:
+            return TokenId::SymRightBracket;
+        case TokenId::SymRightBracket:
+            return TokenId::SymLeftBracket;
+
+        case TokenId::SymLeftCurly:
+            return TokenId::SymRightCurly;
+        case TokenId::SymRightCurly:
+            return TokenId::SymLeftCurly;
+
+        case TokenId::SymAttrStart:
+            return TokenId::SymRightBracket;
+
+        case TokenId::SymVertical:
+            return TokenId::SymVertical;
+
+        default:
+            return TokenId::Invalid;
     }
 }
 

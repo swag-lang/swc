@@ -12,30 +12,30 @@ AstNodeRef Parser::parseLiteral()
     case TokenId::NumberInteger:
     case TokenId::NumberBinary:
     case TokenId::NumberHexadecimal:
-        literal = ast_->makeNode<AstLiteralBase>(AstNodeId::IntegerLiteral);
+        literal = ast_->makeNode<AstNodeId::IntegerLiteral>();
         break;
 
     case TokenId::NumberFloat:
-        literal = ast_->makeNode<AstLiteralBase>(AstNodeId::FloatLiteral);
+        literal = ast_->makeNode<AstNodeId::FloatLiteral>();
         break;
 
     case TokenId::StringLine:
     case TokenId::StringMultiLine:
     case TokenId::StringRaw:
-        literal = ast_->makeNode<AstLiteralBase>(AstNodeId::StringLiteral);
+        literal = ast_->makeNode<AstNodeId::StringLiteral>();
         break;
 
     case TokenId::Character:
-        literal = ast_->makeNode<AstLiteralBase>(AstNodeId::CharacterLiteral);
+        literal = ast_->makeNode<AstNodeId::CharacterLiteral>();
         break;
 
     case TokenId::KwdTrue:
     case TokenId::KwdFalse:
-        literal = ast_->makeNode<AstLiteralBase>(AstNodeId::BoolLiteral);
+        literal = ast_->makeNode<AstNodeId::BoolLiteral>();
         break;
 
     case TokenId::KwdNull:
-        literal = ast_->makeNode<AstLiteralBase>(AstNodeId::NullLiteral);
+        literal = ast_->makeNode<AstNodeId::NullLiteral>();
         break;
 
     case TokenId::CompilerFile:
@@ -54,7 +54,7 @@ AstNodeRef Parser::parseLiteral()
     case TokenId::CompilerBackend:
     case TokenId::CompilerScopeName:
     case TokenId::CompilerCurLocation:
-        literal = ast_->makeNode<AstLiteralBase>(AstNodeId::CompilerLiteral);
+        literal = ast_->makeNode<AstNodeId::CompilerLiteral>();
         break;
 
     default:

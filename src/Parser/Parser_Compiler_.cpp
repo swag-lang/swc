@@ -117,7 +117,7 @@ AstNodeRef Parser::parseCompilerDependencies()
 
 AstNodeRef Parser::parseCompilerTypeOf()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstInternalCallUnaryBase>(AstNodeId::CompilerCallUnary);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCallUnary>();
     nodePtr->tokName        = consume();
 
     const auto openRef = ref();

@@ -198,9 +198,11 @@ bool UnitTest::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) co
 
 Result UnitTest::verifyUntouchedExpected(const TaskContext& ctx) const
 {
+    if (file_->hasFlag(FileFlagsE::Skip))
+        return Result::Success;
+    
     TaskContext lexerCtx(ctx);
     lexerCtx.setSourceFile(file_);
-
     for (const auto& directive : directives_)
     {
         if (!directive.touched)

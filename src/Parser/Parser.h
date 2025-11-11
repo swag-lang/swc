@@ -56,7 +56,7 @@ class Parser
         return ((curToken_->id == ids) || ...);
     }
 
-    TokenRef consume(TokenId id);
+    TokenRef consumeAssert(TokenId id);
     TokenRef consume();
     TokenRef consumeIf(TokenId id);
     TokenRef expectAndConsumeClosing(TokenId closeId, TokenRef openRef, std::initializer_list<TokenId> skipIds = {}, bool skipToEol = true);

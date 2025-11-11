@@ -31,7 +31,7 @@ AstNodeRef Parser::parseLambdaTypeParam()
         if (is(TokenId::Identifier) && nextIs(TokenId::SymColon))
         {
             tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
-            consume(TokenId::SymColon);
+            consumeAssert(TokenId::SymColon);
         }
 
         nodeType = parseType();
@@ -58,7 +58,7 @@ AstNodeRef Parser::parseLambdaType()
     if (consumeIf(TokenId::KwdMtd).isValid())
         flags.add(AstLambdaType::FlagsE::Mtd);
     else
-        consume(TokenId::KwdFunc);
+        consumeAssert(TokenId::KwdFunc);
 
     if (consumeIf(TokenId::SymVerticalVertical).isValid())
         flags.add(AstLambdaType::FlagsE::Closure);
@@ -94,7 +94,7 @@ AstNodeRef Parser::parseLambdaExpression()
     if (consumeIf(TokenId::KwdMtd).isValid())
         flags.add(AstLambdaType::FlagsE::Mtd);
     else
-        consume(TokenId::KwdFunc);
+        consumeAssert(TokenId::KwdFunc);
 
     AstNodeRef captureArgs = AstNodeRef::invalid();
     if (is(TokenId::SymVertical))
@@ -158,7 +158,7 @@ AstNodeRef Parser::parseFuncDecl()
     if (consumeIf(TokenId::KwdMtd).isValid())
         flags.add(AstLambdaType::FlagsE::Mtd);
     else
-        consume(TokenId::KwdFunc);
+        consumeAssert(TokenId::KwdFunc);
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionDecl>();
     nodePtr->addFlag(flags);

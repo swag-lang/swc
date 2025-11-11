@@ -7,8 +7,8 @@ SWC_BEGIN_NAMESPACE()
 AstNodeRef Parser::parseImplEnum()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ImplEnum>();
-    consume(TokenId::KwdImpl);
-    consume(TokenId::KwdEnum);
+    consumeAssert(TokenId::KwdImpl);
+    consumeAssert(TokenId::KwdEnum);
 
     nodePtr->nodeName = parseQualifiedIdentifier();
     if (nodePtr->nodeName.isInvalid())
@@ -60,7 +60,7 @@ AstNodeRef Parser::parseEnumValue()
 AstNodeRef Parser::parseEnumDecl()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumDecl>();
-    consume(TokenId::KwdEnum);
+    consumeAssert(TokenId::KwdEnum);
 
     // Name
     nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);

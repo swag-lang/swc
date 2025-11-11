@@ -182,7 +182,7 @@ bool Parser::skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
     return false;
 }
 
-TokenRef Parser::consume(TokenId id)
+TokenRef Parser::consumeAssert(TokenId id)
 {
     SWC_ASSERT(is(id));
     return consume();

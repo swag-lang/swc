@@ -63,24 +63,27 @@ AstNodeRef Parser::parseDecompositionDecl()
         flags.add(AstVarDecl::FlagsE::Const);
     else if (consumeIf(TokenId::KwdVar).isValid())
         flags.add(AstVarDecl::FlagsE::Var);
-    else if (consumeIf(TokenId::KwdLet).isValid())
+    else
+    {
+        consumeAssert(TokenId::KwdLet);
         flags.add(AstVarDecl::FlagsE::Let);
+    }
 
-    const auto openRef = consume(TokenId::SymLeftParen);
+    const auto openRef = consumeAssert(TokenId::SymLeftParen);
 
     // All names
     SmallVector<TokenRef> tokNames;
-    while (!is(TokenId::SymRightParen))
+    while (!is(TokenId::SymRightParen) && !atEnd())
     {
-        TokenRef tokName = consumeIf(TokenId::SymQuestion);
-        if (tokName.isInvalid())
+        if (consumeIf(TokenId::SymQuestion).isValid())
+            tokNames.push_back(TokenRef::invalid());
+        else
         {
-            tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+            const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
             if (tokName.isInvalid())
                 skipTo({TokenId::SymRightParen, TokenId::SymComma});
+            tokNames.push_back(tokName);
         }
-
-        tokNames.push_back(tokName);
 
         if (consumeIf(TokenId::SymComma).isInvalid())
             break;

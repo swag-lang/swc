@@ -79,7 +79,7 @@ AstModifierFlags Parser::parseModifiers()
 AstNodeRef Parser::parseAncestorIdentifier()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AncestorIdentifier>();
-    consume(TokenId::CompilerUp);
+    consumeAssert(TokenId::CompilerUp);
     nodePtr->nodeIdent = parseQualifiedIdentifier();
     return nodeRef;
 }
@@ -144,7 +144,7 @@ AstNodeRef Parser::parseCast()
 AstNodeRef Parser::parseDeRef()
 {
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::DeRefOp>();
-    consume(TokenId::KwdDRef);
+    consumeAssert(TokenId::KwdDRef);
     nodePtr->nodeExpr = parseExpression();
     return nodeRef;
 }
@@ -279,7 +279,7 @@ AstNodeRef Parser::parseNamedArgument()
     {
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamedArgument>();
         nodePtr->tokName              = consume();
-        consume(TokenId::SymColon);
+        consumeAssert(TokenId::SymColon);
         nodePtr->nodeArg = parseExpression();
         return nodeRef;
     }
@@ -292,7 +292,7 @@ AstNodeRef Parser::parseParenExpr()
 {
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ParenExpr>();
     const auto openRef            = ref();
-    consume(TokenId::SymLeftParen);
+    consumeAssert(TokenId::SymLeftParen);
     nodePtr->nodeExpr = parseExpression();
     if (nodePtr->nodeExpr.isInvalid())
         skipTo({TokenId::SymRightParen}, SkipUntilFlagsE::EolBefore);
@@ -374,7 +374,7 @@ AstNodeRef Parser::parsePostFixExpression()
 AstNodeRef Parser::parsePreQualifiedIdentifier()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::PreQualifiedIdentifier>();
-    consume(TokenId::SymDot);
+    consumeAssert(TokenId::SymDot);
     nodePtr->nodeIdent = parseQualifiedIdentifier();
     return nodeRef;
 }
@@ -714,7 +714,7 @@ AstNodeRef Parser::parseTryCatchAssume()
 
 AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
 {
-    const auto openRef = consume(TokenId::SymLeftBracket);
+    const auto openRef = consumeAssert(TokenId::SymLeftBracket);
     if (is(TokenId::SymRightBracket))
     {
         raiseError(DiagnosticId::parser_err_empty_indexing, ref());
@@ -737,7 +737,7 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
             nodeArgs.push_back(nodeExpr);
         }
 
-        expectAndConsumeClosing(TokenId::SymRightBracket, openRef);
+        expectAndConsumeClosing(TokenId::SymLeftBracket, openRef);
 
         if (nodeArgs.size() == 1)
         {
@@ -762,7 +762,7 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
     else
         nodePtr->nodeRight = AstNodeRef::invalid();
 
-    expectAndConsumeClosing(TokenId::SymRightBracket, openRef);
+    expectAndConsumeClosing(TokenId::SymLeftBracket, openRef);
     return nodeParent;
 }
 

@@ -154,6 +154,14 @@ class Parser
     AstNodeRef parseUnreachable();
     AstNodeRef parseContinue();
 
+    template<AstNodeId ID>
+    AstNodeRef parseCompound(TokenId tokenStartId, bool endStmt = false)
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<ID>();
+        nodePtr->spanChildren   = parseCompoundContent(ID, tokenStartId, endStmt);
+        return nodeRef;
+    }
+
     bool skipTo(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlagsE::Zero);
     bool skipAfter(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlagsE::Zero);
     bool skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags);

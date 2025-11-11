@@ -107,7 +107,7 @@ AstNodeRef Parser::parseTopLevelStmt()
     switch (id())
     {
     case TokenId::SymLeftCurly:
-        return parseCompound(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
+        return parseCompound<AstNodeId::TopLevelBlock>(TokenId::SymLeftCurly);
     case TokenId::SymRightCurly:
         raiseError(DiagnosticId::parser_err_unexpected_token, ref());
         return AstNodeRef::invalid();
@@ -202,7 +202,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
     switch (id())
     {
     case TokenId::SymLeftCurly:
-        return parseCompound(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
+        return parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
     case TokenId::SymRightCurly:
         raiseError(DiagnosticId::parser_err_unexpected_token, ref());
         return AstNodeRef::invalid();

@@ -1505,6 +1505,24 @@ struct AstTryCatchAssumeExpr : AstNode
     AstNodeRef nodeExpr;
 };
 
+struct AstUnreachable : AstNode
+{
+    static constexpr auto ID = AstNodeId::Unreachable;
+    AstUnreachable() :
+        AstNode(ID)
+    {
+    }
+};
+
+struct AstContinue : AstNode
+{
+    static constexpr auto ID = AstNodeId::Continue;
+    AstContinue() :
+        AstNode(ID)
+    {
+    }
+};
+
 template<AstNodeId ID>
 struct AstTypeOf;
 

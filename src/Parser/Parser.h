@@ -107,7 +107,6 @@ class Parser
     AstNodeRef parseEnumValue();
     AstNodeRef parseExpression();
     AstNodeRef parseFile();
-    AstNodeRef parseReturn();
     AstNodeRef parseGenericParam();
     AstNodeRef parseGlobalAccessModifier();
     AstNodeRef parseTopLevelCall();
@@ -150,6 +149,9 @@ class Parser
     AstNodeRef parseUnionDecl();
     AstNodeRef parseUsing();
     AstNodeRef parseVarDecl();
+    AstNodeRef parseReturn();
+    AstNodeRef parseUnreachable();
+    AstNodeRef parseContinue();
 
     bool skipTo(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlagsE::Zero);
     bool skipAfter(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlagsE::Zero);

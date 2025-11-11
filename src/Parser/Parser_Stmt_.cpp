@@ -74,6 +74,34 @@ AstNodeRef Parser::parseAlias()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseReturn()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Return>();
+    consume();
+    if (is(TokenId::SymSemiColon) || tok().startsLine())
+        nodePtr->nodeExpr.setInvalid();
+    else
+        nodePtr->nodeExpr = parseExpression();
+    expectEndStatement();
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseUnreachable()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Unreachable>();
+    consume();
+    expectEndStatement();
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseContinue()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Continue>();
+    consume();
+    expectEndStatement();
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseTopLevelStmt()
 {
     switch (id())
@@ -169,18 +197,6 @@ AstNodeRef Parser::parseTopLevelStmt()
     }
 }
 
-AstNodeRef Parser::parseReturn()
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Return>();
-    consume();
-    if (is(TokenId::SymSemiColon) || tok().startsLine())
-        nodePtr->nodeExpr.setInvalid();
-    else
-        nodePtr->nodeExpr = parseExpression();
-    expectEndStatement();
-    return nodeRef;
-}
-
 AstNodeRef Parser::parseEmbeddedStmt()
 {
     switch (id())
@@ -240,10 +256,15 @@ AstNodeRef Parser::parseEmbeddedStmt()
     }
 
     case TokenId::CompilerAst:
+    case TokenId::CompilerRun:
         return parseCompilerFunc();
-        
+
     case TokenId::KwdReturn:
         return parseReturn();
+    case TokenId::KwdUnreachable:
+        return parseUnreachable();
+    case TokenId::KwdContinue:
+        return parseContinue();        
 
     default:
         // @skip

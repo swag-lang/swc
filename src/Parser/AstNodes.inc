@@ -157,3 +157,7 @@ SWC_NODE_DEF(VarMultiNameDecl)
 SWC_NODE_DEF(VarMultiDecl)
 SWC_NODE_DEF(DecompositionDecl)
 SWC_NODE_DEF(Undefined)
+
+// Code
+SWC_NODE_DEF(Unreachable)
+SWC_NODE_DEF(Continue)

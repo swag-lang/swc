@@ -49,7 +49,7 @@ AstNodeRef Parser::parseEnumValue()
         return parseCompilerFunc();
 
     case TokenId::SymAttrStart:
-        return parseCompilerAttribute(AstNodeId::EnumDecl);
+        return parseAttributeList(AstNodeId::EnumDecl);
 
     default:
         raiseError(DiagnosticId::parser_err_unexpected_token, ref());

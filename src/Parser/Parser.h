@@ -75,7 +75,7 @@ class Parser
     SpanRef          parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt = false);
     AstNodeRef       parseCompilerIf(AstNodeId blockNodeId);
     AstNodeRef       parseCompilerIfStmt(AstNodeId blockNodeId);
-    AstNodeRef       parseCompilerAttribute(AstNodeId blockNodeId);
+    AstNodeRef       parseAttributeList(AstNodeId blockNodeId);
     AstNodeRef       parseAggregateDecl(AstNodeId nodeId);
     AstNodeRef       parseInitializerList(AstNodeRef nodeWhat);
     AstModifierFlags parseModifiers();
@@ -88,7 +88,7 @@ class Parser
     AstNodeRef parseAggregateValue();
     AstNodeRef parseAlias();
     AstNodeRef parseAncestorIdentifier();
-    AstNodeRef parseCompilerAttributeValue();
+    AstNodeRef parseAttributeValue();
     AstNodeRef parseBinaryExpr();
     AstNodeRef parseCast();
     AstNodeRef parseDeRef();
@@ -99,6 +99,7 @@ class Parser
     AstNodeRef parseCompilerImport();
     AstNodeRef parseCompilerExpr();
     AstNodeRef parseCompilerFunc();
+    AstNodeRef parseCompilerMessageFunc();
     AstNodeRef parseCompilerTypeExpr();
     AstNodeRef parseConstraint();
     AstNodeRef parseEmbeddedStmt();

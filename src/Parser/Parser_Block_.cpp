@@ -28,7 +28,7 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
         return parseAggregateValue();
 
     case AstNodeId::AttributeList:
-        return parseCompilerAttributeValue();
+        return parseAttributeValue();
 
     case AstNodeId::ArrayLiteral:
     case AstNodeId::UnnamedArgList:

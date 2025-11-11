@@ -53,7 +53,7 @@ AstNodeRef Parser::parseAggregateValue()
     switch (id())
     {
     case TokenId::SymAttrStart:
-        return parseCompilerAttribute(AstNodeId::AggregateBody);
+        return parseAttributeList(AstNodeId::AggregateBody);
 
     case TokenId::KwdStruct:
         return parseStructDecl();
@@ -169,7 +169,7 @@ AstNodeRef Parser::parseInterfaceValue()
         return parseVarDecl();
 
     case TokenId::SymAttrStart:
-        return parseCompilerAttribute(AstNodeId::InterfaceBody);
+        return parseAttributeList(AstNodeId::InterfaceBody);
 
     default:
         raiseError(DiagnosticId::parser_err_unexpected_token, ref());

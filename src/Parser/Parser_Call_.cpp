@@ -70,7 +70,7 @@ AstNodeRef Parser::parseInternalCallTernary(AstNodeId callerNodeId)
     return nodeRef;
 }
 
-AstNodeRef Parser::parseCompilerAttributeValue()
+AstNodeRef Parser::parseAttributeValue()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Attribute>();
     nodePtr->nodeIdent      = parseQualifiedIdentifier();
@@ -79,7 +79,7 @@ AstNodeRef Parser::parseCompilerAttributeValue()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseCompilerAttribute(AstNodeId blockNodeId)
+AstNodeRef Parser::parseAttributeList(AstNodeId blockNodeId)
 {
     const auto nodeRef = parseCompound(AstNodeId::AttributeList, TokenId::SymAttrStart);
     if (nodeRef.isInvalid())

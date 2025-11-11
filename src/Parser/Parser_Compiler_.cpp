@@ -26,6 +26,20 @@ AstNodeRef Parser::parseCompilerFunc()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseCompilerMessageFunc()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerMessageFunc>();
+    consume();
+
+    const auto openRef = ref();
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
+    nodePtr->nodeParam = parseExpression();
+    expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
+
+    nodePtr->nodeBody = parseCompound(AstNodeId::FunctionBody, TokenId::SymLeftCurly);
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseCompilerExpr()
 {
     if (nextIs(TokenId::SymLeftCurly))

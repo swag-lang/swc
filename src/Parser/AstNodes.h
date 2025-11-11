@@ -432,6 +432,18 @@ struct AstCompilerFunc : AstNode
     AstNodeRef nodeBody;
 };
 
+struct AstCompilerMessageFunc : AstNode
+{
+    static constexpr auto ID = AstNodeId::CompilerMessageFunc;
+    AstCompilerMessageFunc() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeParam;
+    AstNodeRef nodeBody;
+};
+
 struct AstCompilerEmbeddedFunc : AstNode
 {
     static constexpr auto ID = AstNodeId::CompilerEmbeddedFunc;

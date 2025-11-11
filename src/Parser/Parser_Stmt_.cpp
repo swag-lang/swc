@@ -37,13 +37,16 @@ AstNodeRef Parser::parseTopLevelStmt()
     case TokenId::CompilerRun:
         return parseCompilerFunc();
 
+    case TokenId::CompilerFuncMessage:
+        return parseCompilerMessageFunc();
+
     case TokenId::KwdNamespace:
         return parseNamespace();
     case TokenId::CompilerDependencies:
         return parseCompilerDependencies();
 
     case TokenId::SymAttrStart:
-        return parseCompilerAttribute(AstNodeId::TopLevelBlock);
+        return parseAttributeList(AstNodeId::TopLevelBlock);
 
     case TokenId::KwdPublic:
     case TokenId::KwdInternal:
@@ -131,7 +134,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
         return parseInternalCallTernary(AstNodeId::IntrinsicCallTernary);
 
     case TokenId::SymAttrStart:
-        return parseCompilerAttribute(AstNodeId::EmbeddedBlock);
+        return parseAttributeList(AstNodeId::EmbeddedBlock);
 
     case TokenId::KwdFunc:
     case TokenId::KwdMtd:

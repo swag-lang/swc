@@ -63,5 +63,4 @@ SWC_DIAG_DEF(parser_err_mtd_missing_capture, Error, "'mtd' must be followed by c
 SWC_DIAG_DEF(parser_err_invalid_compiler, Error, "unknown compiler instruction: {tok}")
 SWC_DIAG_DEF(parser_err_invalid_intrinsic, Error, "unknown intrinsic: {tok}")
 SWC_DIAG_DEF(parser_err_misplaced_global, Error, "misplaced '#global' directive; a '#global' directive must be placed at the top of the file")
-
-
+SWC_DIAG_DEF(parser_err_empty_var_decl, Error, "expected type annotation or initializer after declaration name")

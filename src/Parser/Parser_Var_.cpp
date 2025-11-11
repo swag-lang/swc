@@ -128,7 +128,7 @@ AstNodeRef Parser::parseVarDecl()
             if (Token::isCompilerAlias(id()) || Token::isCompilerUniq(id()))
                 tokName = consume();
             else
-                tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+                tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
             if (tokName.isInvalid())
                 skipTo({TokenId::SymComma, TokenId::SymColon, TokenId::SymEqual});
             tokNames.push_back(tokName);
@@ -137,11 +137,16 @@ AstNodeRef Parser::parseVarDecl()
                 break;
         }
 
-        AstNodeRef nodeType = AstNodeRef::invalid();
-        AstNodeRef nodeInit = AstNodeRef::invalid();
+        if (isNot(TokenId::SymColon) && isNot(TokenId::SymEqual))
+            raiseError(DiagnosticId::parser_err_empty_var_decl, ref().offset(-1));
 
+        // Type
+        AstNodeRef nodeType = AstNodeRef::invalid();
         if (consumeIf(TokenId::SymColon).isValid())
             nodeType = parseType();
+
+        // Initialization
+        AstNodeRef nodeInit = AstNodeRef::invalid();
         if (consumeIf(TokenId::SymEqual).isValid())
             nodeInit = parseInitializerExpression();
 

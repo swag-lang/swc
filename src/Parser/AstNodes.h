@@ -1558,7 +1558,7 @@ decltype(auto) visitAstNodeId(AstNodeId id, F f)
 
 #undef SWC_NODE_DEF
     default:
-        std::unreachable();
+        SWC_UNREACHABLE();
     }
 };
 

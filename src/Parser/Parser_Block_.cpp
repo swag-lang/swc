@@ -28,7 +28,7 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
         return parseAggregateValue();
 
     case AstNodeId::AttributeList:
-        return parseAttribute();
+        return parseCompilerAttributeValue();
 
     case AstNodeId::ArrayLiteral:
     case AstNodeId::UnnamedArgList:
@@ -54,6 +54,9 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
     case AstNodeId::MultiPostfixIdentifier:
         return parsePostfixIdentifierValue();
 
+    case AstNodeId::InterfaceBody:
+        return parseInterfaceValue();
+
     default:
         std::unreachable();
     }
@@ -70,6 +73,7 @@ AstNodeRef Parser::parseBlockCompilerDirective(AstNodeId blockNodeId)
         blockNodeId == AstNodeId::Impl ||
         blockNodeId == AstNodeId::ImplFor ||
         blockNodeId == AstNodeId::AggregateBody ||
+        blockNodeId == AstNodeId::InterfaceBody ||
         blockNodeId == AstNodeId::EnumDecl)
     {
         switch (id())
@@ -129,6 +133,15 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
         if (consumeIf(TokenId::SymComma).isInvalid() && consumeIf(TokenId::SymSemiColon).isInvalid() && !is(tokenEndId) && !tok().startsLine())
         {
             raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
+            skipTo(skipTokens);
+            return Result::Error;
+        }
+        break;
+
+    case AstNodeId::InterfaceBody:
+        if (consumeIf(TokenId::SymSemiColon).isInvalid() && !is(tokenEndId) && !tok().startsLine())
+        {
+            raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymSemiColon);
             skipTo(skipTokens);
             return Result::Error;
         }

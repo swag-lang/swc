@@ -54,8 +54,6 @@ namespace Os
     {
         if (MessageBoxA(nullptr, expr, title, MB_OKCANCEL | MB_ICONERROR) == IDCANCEL)
             std::exit(static_cast<int>(ExitCode::PanicBox)); // NOLINT(concurrency-mt-unsafe)
-        if (IsDebuggerPresent())
-            DebugBreak();
     }
 
     Utf8 systemError()

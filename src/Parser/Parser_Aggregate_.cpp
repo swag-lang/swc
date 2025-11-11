@@ -154,4 +154,36 @@ AstNodeRef Parser::parseAggregateBody()
     return parseCompound(AstNodeId::AggregateBody, TokenId::SymLeftCurly);
 }
 
+AstNodeRef Parser::parseInterfaceValue()
+{
+    switch (id())
+    {
+    case TokenId::KwdAlias:
+        return parseAlias();
+
+    case TokenId::KwdFunc:
+    case TokenId::KwdMtd:
+        return parseFuncDecl();
+
+    case TokenId::KwdConst:
+        return parseVarDecl();
+
+    case TokenId::SymAttrStart:
+        return parseCompilerAttribute(AstNodeId::InterfaceBody);
+
+    default:
+        raiseError(DiagnosticId::parser_err_unexpected_token, ref());
+        return AstNodeRef::invalid();
+    }
+}
+
+AstNodeRef Parser::parseInterfaceDecl()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InterfaceDecl>();
+    consume();
+    nodePtr->tokName  = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+    nodePtr->nodeBody = parseCompound(AstNodeId::InterfaceBody, TokenId::SymLeftCurly);
+    return nodeRef;
+}
+
 SWC_END_NAMESPACE()

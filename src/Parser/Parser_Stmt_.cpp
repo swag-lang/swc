@@ -82,6 +82,9 @@ AstNodeRef Parser::parseTopLevelStmt()
         raiseError(DiagnosticId::parser_err_misplaced_global, ref());
         return parseCompilerGlobal();
 
+    case TokenId::KwdInterface:
+        return parseInterfaceDecl();
+
     default:
         // @skip
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
@@ -144,11 +147,9 @@ AstNodeRef Parser::parseEmbeddedStmt()
     }
 
     default:
-    {
         // @skip
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
         return AstNodeRef::invalid();
-    }
     }
 }
 

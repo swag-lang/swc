@@ -268,6 +268,27 @@ struct AstFunctionDecl : AstNode
     AstNodeRef nodeBody;
 };
 
+struct AstInterfaceDecl : AstNode
+{
+    static constexpr auto ID = AstNodeId::InterfaceDecl;
+    explicit AstInterfaceDecl() :
+        AstNode(ID)
+    {
+    }
+
+    TokenRef   tokName;
+    AstNodeRef nodeBody;
+};
+
+struct AstInterfaceBody : AstCompound
+{
+    static constexpr auto ID = AstNodeId::InterfaceBody;
+    explicit AstInterfaceBody() :
+        AstCompound(ID)
+    {
+    }
+};
+
 struct AstAttrDecl : AstNode
 {
     static constexpr auto ID = AstNodeId::AttrDecl;

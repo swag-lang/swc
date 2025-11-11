@@ -70,7 +70,7 @@ AstNodeRef Parser::parseInternalCallTernary(AstNodeId callerNodeId)
     return nodeRef;
 }
 
-AstNodeRef Parser::parseAttribute()
+AstNodeRef Parser::parseCompilerAttributeValue()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Attribute>();
     nodePtr->nodeIdent      = parseQualifiedIdentifier();

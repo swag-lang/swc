@@ -260,5 +260,4 @@ AstNodeRef Parser::parseFunctionParamList()
 {
     return parseCompound(AstNodeId::FunctionParamList, TokenId::SymLeftParen);
 }
-
 SWC_END_NAMESPACE()

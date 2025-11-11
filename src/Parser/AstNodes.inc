@@ -14,6 +14,8 @@ SWC_NODE_DEF(ConstraintBlock)
 SWC_NODE_DEF(ConstraintExpr)
 SWC_NODE_DEF(Alias)
 SWC_NODE_DEF(TryCatchAssumeExpr)
+SWC_NODE_DEF(InterfaceDecl)
+SWC_NODE_DEF(InterfaceBody)
 
 // Identifiers & References
 SWC_NODE_DEF(Identifier)

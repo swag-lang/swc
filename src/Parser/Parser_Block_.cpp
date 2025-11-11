@@ -17,6 +17,7 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
         blockNodeId == AstNodeId::ImplFor ||
         blockNodeId == AstNodeId::AggregateBody ||
         blockNodeId == AstNodeId::InterfaceBody ||
+        blockNodeId == AstNodeId::FunctionBody ||
         blockNodeId == AstNodeId::EnumDecl)
     {
         AstNodeRef childrenRef = AstNodeRef::invalid();

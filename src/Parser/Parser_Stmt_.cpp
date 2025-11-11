@@ -239,6 +239,9 @@ AstNodeRef Parser::parseEmbeddedStmt()
         return nodeRef;
     }
 
+    case TokenId::CompilerAst:
+        return parseCompilerFunc();
+        
     case TokenId::KwdReturn:
         return parseReturn();
 

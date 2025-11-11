@@ -99,8 +99,7 @@ bool AstVisit::step(AstVisitContext& ctx) const
         }
     }
 
-    // Shouldn't get here
-    return false;
+    SWC_UNREACHABLE();
 }
 
 void AstVisit::run(AstVisitContext& ctx) const
@@ -114,11 +113,11 @@ void AstVisit::collectResolvedChildren(const AstVisitContext& ctx, AstVisitConte
 {
     fr.children.clear();
 
-    // Gather raw AstNodeRef children with your generator-provided function
-    SmallVector<AstNodeRef, 16> childRefs;
+    // Gather raw AstNodeRef children
+    SmallVector<AstNodeRef> childRefs;
     collectChildRefs(fr.node, childRefs);
 
-    // Resolve them with the current SourceFile *
+    // Resolve them with the current file
     for (auto r : childRefs)
     {
         if (r.isInvalid())
@@ -128,17 +127,9 @@ void AstVisit::collectResolvedChildren(const AstVisitContext& ctx, AstVisitConte
     }
 }
 
-void AstVisit::collectChildRefs(const AstNode* node, SmallVector<AstNodeRef, 16>& out)
+void AstVisit::collectChildRefs(const AstNode* node, SmallVector<AstNodeRef>& out)
 {
-    // We assume AstNode exposes its id as 'nodeId' (adapt if your name differs)
-    const auto id = node->id;
-
-    // Index into the constexpr table; if your enum isn't 0-based/contiguous,
-    // adapt with a mapping function.
-    const size_t idx  = static_cast<size_t>(id);
-    const auto&  info = AST_NODE_ID_INFOS[idx];
-
-    // Call the type-erased collector: it will invoke node->collectChildren(out)
+    const auto& info = Ast::nodeIdInfos(node->id);
     info.collect(node, out);
 }
 

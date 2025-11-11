@@ -37,7 +37,6 @@ struct AstVisitContext
     // The explicit traversal stack (top is back())
     SmallVector<Frame, 64> stack;
 
-    // Utility
     void reset(SourceFile* initialFile = nullptr)
     {
         currentSource = initialFile;
@@ -48,7 +47,6 @@ struct AstVisitContext
 class AstVisit
 {
 public:
-    // What your callbacks can request
     enum class Action : uint8_t
     {
         Continue,     // normal flow
@@ -57,13 +55,9 @@ public:
     };
 
     // Both callbacks are optional; if unset, they're no-ops.
-    // You can change ctx.currentSource inside too to switch file scope.
     struct Callbacks
     {
-        // Called the first time a node is seen (before children)
-        std::function<Action(AstVisitContext& ctx, const AstNode* node)> pre = {};
-
-        // Called after all children have been visited (post-order)
+        std::function<Action(AstVisitContext& ctx, const AstNode* node)> pre  = {};
         std::function<Action(AstVisitContext& ctx, const AstNode* node)> post = {};
     };
 
@@ -80,7 +74,7 @@ private:
     Callbacks cb_{};
 
     static void collectResolvedChildren(const AstVisitContext& ctx, AstVisitContext::Frame& fr);
-    static void collectChildRefs(const AstNode* node, SmallVector<AstNodeRef, 16>& out);
+    static void collectChildRefs(const AstNode* node, SmallVector<AstNodeRef>& out);
 };
 
 SWC_END_NAMESPACE()

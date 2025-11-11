@@ -310,6 +310,8 @@ Result Parser::parse(TaskContext& ctx)
     SWC_ASSERT(!file_->lexOut_.tokens().empty());
     if (file_->hasFlag(FileFlagsE::LexOnly))
         return Result::Success;
+    if (file_->hasFlag(FileFlagsE::GlobalSkip))
+        return Result::Success;
 
     // Parser
     firstToken_ = &file_->lexOut_.tokens().front();

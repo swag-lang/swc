@@ -14,6 +14,7 @@ enum class FileFlagsE : uint32_t
     HasErrors   = 1 << 0,
     HasWarnings = 1 << 1,
     LexOnly     = 1 << 2,
+    GlobalSkip        = 1 << 3,
 };
 using FileFlags = EnumFlags<FileFlagsE>;
 

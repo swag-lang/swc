@@ -144,7 +144,7 @@ AstNodeRef Parser::parseCompilerGlobal()
     if (tokStr == "testerror" || tokStr == "testerrors" || tokStr == "testwarning" || tokStr == "testwarnings" || tokStr == "testpass")
     {
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
-        file_->addFlag(FileFlagsE::LexOnly);
+        file_->addFlag(FileFlagsE::GlobalSkip);
         expectEndStatement();
         return nodeRef;
     }
@@ -153,7 +153,7 @@ AstNodeRef Parser::parseCompilerGlobal()
     {
         nodePtr->mode     = AstCompilerGlobal::Mode::Skip;
         nodePtr->nodeMode = AstNodeRef::invalid();
-        file_->addFlag(FileFlagsE::LexOnly);
+        file_->addFlag(FileFlagsE::GlobalSkip);
         consume();
     }
     else if (tokStr == Token::toName(TokenId::KwdSkipFmt))

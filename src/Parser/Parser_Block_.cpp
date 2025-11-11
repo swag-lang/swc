@@ -220,7 +220,11 @@ SpanRef Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId
     if (tokenStartId != TokenId::Invalid)
     {
         if (expectAndConsume(tokenStartId, DiagnosticId::parser_err_expected_token_before).isInvalid())
-            return SpanRef::invalid();
+        {
+            if (!skipTo({tokenStartId}))
+                return SpanRef::invalid();
+            consume();
+        }
     }
 
     SmallVector<AstNodeRef> childrenRefs;

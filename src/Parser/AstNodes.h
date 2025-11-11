@@ -1545,18 +1545,6 @@ struct AstContinue : AstNode
 //========================================================================================
 //========================================================================================
 
-struct AstNodeIdInfo
-{
-    std::string_view name;
-};
-
-constexpr std::array AST_NODE_ID_INFOS = {
-#define SWC_NODE_DEF(enum) AstNodeIdInfo{#enum},
-#include "AstNodes.inc"
-
-#undef SWC_NODE_DEF
-};
-
 template<AstNodeId ID>
 struct AstTypeOf;
 
@@ -1583,6 +1571,18 @@ decltype(auto) visitAstNodeId(AstNodeId id, F f)
     default:
         SWC_UNREACHABLE();
     }
+};
+
+struct AstNodeIdInfo
+{
+    std::string_view name;
+};
+
+constexpr std::array AST_NODE_ID_INFOS = {
+#define SWC_NODE_DEF(enum) AstNodeIdInfo{#enum},
+#include "AstNodes.inc"
+
+#undef SWC_NODE_DEF
 };
 
 SWC_END_NAMESPACE()

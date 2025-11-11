@@ -244,23 +244,23 @@ TokenRef Parser::expectAndConsume(TokenId id, DiagnosticId diagId)
     return TokenRef::invalid();
 }
 
-TokenRef Parser::expectAndConsumeClosingFor(TokenId openId, TokenRef openRef)
+TokenRef Parser::expectAndConsumeClosing(TokenId closeId, TokenRef openRef)
 {
-    const auto closingId = Token::toRelated(openId);
-    if (is(closingId))
+    if (is(closeId))
         return consume();
 
-    const auto tok  = file_->lexOut().token(openRef);
-    auto       diag = reportError(DiagnosticId::parser_err_expected_closing_before, ref());
-    setReportExpected(diag, closingId);
+    const auto openId = Token::toRelated(closeId);
+    const auto tok    = file_->lexOut().token(openRef);
+    auto       diag   = reportError(DiagnosticId::parser_err_expected_closing_before, ref());
+    setReportExpected(diag, closeId);
 
     if (tok.id == openId)
         diag.last().addSpan(tokenErrorLocation(openRef), DiagnosticId::parser_note_opening, DiagnosticSeverity::Note);
 
     diag.report(*ctx_);
 
-    skipTo({closingId, TokenId::SymSemiColon, TokenId::SymLeftCurly}, SkipUntilFlagsE::EolBefore);
-    consumeIf(closingId);
+    skipTo({closeId, TokenId::SymSemiColon, TokenId::SymLeftCurly}, SkipUntilFlagsE::EolBefore);
+    consumeIf(closeId);
     return TokenRef::invalid();
 }
 

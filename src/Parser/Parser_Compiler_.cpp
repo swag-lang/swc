@@ -34,7 +34,7 @@ AstNodeRef Parser::parseCompilerMessageFunc()
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
     nodePtr->nodeParam = parseExpression();
-    expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
     nodePtr->nodeBody = parseCompound(AstNodeId::FunctionBody, TokenId::SymLeftCurly);
     return nodeRef;
@@ -128,7 +128,7 @@ AstNodeRef Parser::parseCompilerTypeOf()
     else
         nodePtr->nodeArg1 = parseExpression();
 
-    expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
     return nodeRef;
 }
@@ -251,7 +251,7 @@ AstNodeRef Parser::parseCompilerImport()
         }
     }
 
-    expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
     expectEndStatement();
     return nodeRef;
 }

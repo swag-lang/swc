@@ -131,7 +131,7 @@ AstNodeRef Parser::parseSubType()
         // [*]
         if (consumeIf(TokenId::SymAsterisk).isValid())
         {
-            if (expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket).isInvalid())
+            if (expectAndConsumeClosing(TokenId::SymRightBracket, leftBracket).isInvalid())
                 return AstNodeRef::invalid();
             const auto child = parseType();
             if (child.isInvalid())
@@ -144,7 +144,7 @@ AstNodeRef Parser::parseSubType()
         // [..]
         if (consumeIf(TokenId::SymDotDot).isValid())
         {
-            if (expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket).isInvalid())
+            if (expectAndConsumeClosing(TokenId::SymRightBracket, leftBracket).isInvalid())
                 return AstNodeRef::invalid();
             const auto child = parseType();
             if (child.isInvalid())
@@ -157,7 +157,7 @@ AstNodeRef Parser::parseSubType()
         // [?]
         if (consumeIf(TokenId::SymQuestion).isValid())
         {
-            if (expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket).isInvalid())
+            if (expectAndConsumeClosing(TokenId::SymRightBracket, leftBracket).isInvalid())
                 return AstNodeRef::invalid();
             const auto child = parseType();
             if (child.isInvalid())
@@ -193,7 +193,7 @@ AstNodeRef Parser::parseSubType()
             dimensions.push_back(dim);
         }
 
-        if (expectAndConsumeClosingFor(TokenId::SymLeftBracket, leftBracket).isInvalid())
+        if (expectAndConsumeClosing(TokenId::SymRightBracket, leftBracket).isInvalid())
             return AstNodeRef::invalid();
 
         // Recursively parse the rest of the type (handles chaining like [X][Y])

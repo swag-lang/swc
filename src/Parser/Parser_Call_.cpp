@@ -12,7 +12,7 @@ AstNodeRef Parser::parseInternalCallZero(AstNodeId callerNodeId)
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
     return nodeRef;
 }
@@ -25,7 +25,7 @@ AstNodeRef Parser::parseInternalCallUnary(AstNodeId callerNodeId)
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
     nodePtr->nodeArg1 = parseExpression();
-    expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
     return nodeRef;
 }
@@ -44,7 +44,7 @@ AstNodeRef Parser::parseInternalCallBinary(AstNodeId callerNodeId)
 
     nodePtr->nodeArg2 = parseExpression();
 
-    expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
     return nodeRef;
 }
 
@@ -66,7 +66,7 @@ AstNodeRef Parser::parseInternalCallTernary(AstNodeId callerNodeId)
 
     nodePtr->nodeArg3 = parseExpression();
 
-    expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
     return nodeRef;
 }
 

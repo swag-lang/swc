@@ -135,7 +135,7 @@ AstNodeRef Parser::parseCast()
     nodePtr->nodeType             = parseType();
     if (nodePtr->nodeType.isInvalid())
         skipTo({TokenId::SymRightParen});
-    expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
     nodePtr->nodeExpr = parseExpression();
 
     return nodeRef;
@@ -296,7 +296,7 @@ AstNodeRef Parser::parseParenExpr()
     nodePtr->nodeExpr = parseExpression();
     if (nodePtr->nodeExpr.isInvalid())
         skipTo({TokenId::SymRightParen}, SkipUntilFlagsE::EolBefore);
-    expectAndConsumeClosingFor(TokenId::SymLeftParen, openRef);
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
     return nodeRef;
 }
 
@@ -737,7 +737,7 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
             nodeArgs.push_back(nodeExpr);
         }
 
-        expectAndConsumeClosingFor(TokenId::SymLeftBracket, openRef);
+        expectAndConsumeClosing(TokenId::SymRightBracket, openRef);
 
         if (nodeArgs.size() == 1)
         {
@@ -762,7 +762,7 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
     else
         nodePtr->nodeRight = AstNodeRef::invalid();
 
-    expectAndConsumeClosingFor(TokenId::SymLeftBracket, openRef);
+    expectAndConsumeClosing(TokenId::SymRightBracket, openRef);
     return nodeParent;
 }
 

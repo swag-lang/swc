@@ -59,7 +59,7 @@ class Parser
     TokenRef consume(TokenId id);
     TokenRef consume();
     TokenRef consumeIf(TokenId id);
-    TokenRef expectAndConsumeClosingFor(TokenId openId, TokenRef openRef);
+    TokenRef expectAndConsumeClosing(TokenId closeId, TokenRef openRef);
     TokenRef expectAndConsume(TokenId id, DiagnosticId diagId);
     void     expectEndStatement();
 

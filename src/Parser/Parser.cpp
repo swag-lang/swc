@@ -244,7 +244,7 @@ TokenRef Parser::expectAndConsume(TokenId id, DiagnosticId diagId)
     return TokenRef::invalid();
 }
 
-TokenRef Parser::expectAndConsumeClosing(TokenId closeId, TokenRef openRef)
+TokenRef Parser::expectAndConsumeClosing(TokenId closeId, TokenRef openRef, std::initializer_list<TokenId> skipIds, bool skipToEol)
 {
     if (is(closeId))
         return consume();
@@ -259,7 +259,16 @@ TokenRef Parser::expectAndConsumeClosing(TokenId closeId, TokenRef openRef)
 
     diag.report(*ctx_);
 
-    skipTo({closeId, TokenId::SymSemiColon, TokenId::SymLeftCurly}, SkipUntilFlagsE::EolBefore);
+    SmallVector<TokenId> skip{skipIds};
+    if (skip.empty())
+    {
+        skip.push_back(TokenId::SymSemiColon);
+        skip.push_back(TokenId::SymLeftCurly);
+    }
+
+    skip.push_back(closeId);
+    skipTo(skip, skipToEol ? SkipUntilFlagsE::EolBefore : SkipUntilFlagsE::Zero);
+
     consumeIf(closeId);
     return TokenRef::invalid();
 }

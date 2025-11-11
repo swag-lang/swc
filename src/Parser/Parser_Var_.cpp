@@ -93,8 +93,8 @@ AstNodeRef Parser::parseDecompositionDecl()
         }
     }
 
-    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
-    expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token);
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef, {TokenId::SymEqual});
+    expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_before);
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::DecompositionDecl>();
     nodePtr->addFlag(flags);

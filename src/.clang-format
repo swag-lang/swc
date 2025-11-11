@@ -34,7 +34,7 @@ BreakConstructorInitializers: AfterColon
 ColumnLimit: 0
 ContinuationIndentWidth: 4
 FixNamespaceComments: false
-IndentCaseLabels: false
+IndentCaseLabels: true
 IndentWidth: 4
 InsertNewlineAtEOF: true
 KeepEmptyLinesAtTheStartOfBlocks: false

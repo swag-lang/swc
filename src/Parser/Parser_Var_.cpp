@@ -130,7 +130,7 @@ AstNodeRef Parser::parseVarDecl()
             else
                 tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
             if (tokName.isInvalid())
-                return AstNodeRef::invalid();
+                skipTo({TokenId::SymComma, TokenId::SymColon, TokenId::SymEqual});
             tokNames.push_back(tokName);
 
             if (consumeIf(TokenId::SymComma).isInvalid())

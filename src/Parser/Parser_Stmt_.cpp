@@ -88,6 +88,9 @@ AstNodeRef Parser::parseTopLevelStmt()
     case TokenId::KwdInterface:
         return parseInterfaceDecl();
 
+    case TokenId::Identifier:
+        return parseTopLevelCall();
+
     default:
         // @skip
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
@@ -154,6 +157,15 @@ AstNodeRef Parser::parseEmbeddedStmt()
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
         return AstNodeRef::invalid();
     }
+}
+
+AstNodeRef Parser::parseTopLevelCall()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TopLevelCall>();
+    nodePtr->nodeIdentifier = parseQualifiedIdentifier();
+    nodePtr->nodeArgs = parseCompound(AstNodeId::NamedArgList, TokenId::SymLeftParen);
+    expectEndStatement();
+    return nodeRef;
 }
 
 AstNodeRef Parser::parseGlobalAccessModifier()

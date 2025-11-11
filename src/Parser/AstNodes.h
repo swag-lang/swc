@@ -1308,6 +1308,18 @@ struct AstAccessModifier : AstNode
     AstNodeRef nodeWhat;
 };
 
+struct AstTopLevelCall : AstNode
+{
+    static constexpr auto ID = AstNodeId::TopLevelCall;
+    AstTopLevelCall() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeIdentifier;
+    AstNodeRef nodeArgs;
+};
+
 struct AstConstraintBlock : AstCompound
 {
     static constexpr auto ID = AstNodeId::ConstraintBlock;

@@ -109,6 +109,7 @@ class Parser
     AstNodeRef parseFile();
     AstNodeRef parseGenericParam();
     AstNodeRef parseGlobalAccessModifier();
+    AstNodeRef parseTopLevelCall();
     AstNodeRef parsePostfixIdentifierValue();
     AstNodeRef parseIdentifier();
     AstNodeRef parseIdentifierType();

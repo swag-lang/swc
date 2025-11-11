@@ -63,10 +63,6 @@ class Parser
     TokenRef expectAndConsume(TokenId id, DiagnosticId diagId);
     void     expectEndStatement();
 
-    AstNodeRef       parseInternalCallZero(AstNodeId callerNodeId);
-    AstNodeRef       parseInternalCallUnary(AstNodeId callerNodeId);
-    AstNodeRef       parseInternalCallBinary(AstNodeId callerNodeId);
-    AstNodeRef       parseInternalCallTernary(AstNodeId callerNodeId);
     AstNodeRef       parseCompoundValue(AstNodeId blockNodeId);
     Result           parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId);
     void             finalizeCompound(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef closeTokenRef, TokenId tokenEndId, const SmallVector<AstNodeRef>& childrenRefs);
@@ -80,6 +76,11 @@ class Parser
     AstModifierFlags parseModifiers();
     AstNodeRef       parseArraySlicingIndex(AstNodeRef nodeRef);
 
+    AstNodeRef parseIntrinsicCallZero();
+    AstNodeRef parseIntrinsicCallUnary();
+    AstNodeRef parseIntrinsicCallBinary();
+    AstNodeRef parseIntrinsicCallTernary();
+    AstNodeRef parseCompilerCallUnary();
     AstNodeRef parseDecompositionDecl();
     AstNodeRef parseTryCatchAssume();
     AstNodeRef parseAggregateAccessModifier();

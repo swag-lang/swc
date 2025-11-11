@@ -69,7 +69,7 @@ AstNodeRef Parser::parseSingleType()
         return parseLambdaType();
 
     case TokenId::CompilerDeclType:
-        return parseInternalCallUnary(AstNodeId::CompilerCallUnary);
+        return parseCompilerCallUnary();
 
     default:
         break;

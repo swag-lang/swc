@@ -24,19 +24,19 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
         switch (id())
         {
         case TokenId::CompilerAssert:
-            childrenRef = parseInternalCallUnary(AstNodeId::CompilerAssert);
+            childrenRef = parseCompilerCallUnary();
             expectEndStatement();
             break;
         case TokenId::CompilerError:
-            childrenRef = parseInternalCallUnary(AstNodeId::CompilerError);
+            childrenRef = parseCompilerCallUnary();
             expectEndStatement();
             break;
         case TokenId::CompilerWarning:
-            childrenRef = parseInternalCallUnary(AstNodeId::CompilerWarning);
+            childrenRef = parseCompilerCallUnary();
             expectEndStatement();
             break;
         case TokenId::CompilerPrint:
-            childrenRef = parseInternalCallUnary(AstNodeId::CompilerPrint);
+            childrenRef = parseCompilerCallUnary();
             expectEndStatement();
             break;
         case TokenId::CompilerIf:

@@ -163,7 +163,7 @@ AstNodeRef Parser::parseTopLevelStmt()
 
     case TokenId::CompilerLoad:
     case TokenId::CompilerForeignLib:
-        return parseInternalCallUnary(AstNodeId::CompilerCallUnary);
+        return parseCompilerCallUnary();
 
     case TokenId::KwdFunc:
     case TokenId::KwdMtd:
@@ -219,21 +219,21 @@ AstNodeRef Parser::parseEmbeddedStmt()
         return parseStructDecl();
 
     case TokenId::IntrinsicBcBreakpoint:
-        return parseInternalCallZero(AstNodeId::IntrinsicCallZero);
+        return parseIntrinsicCallZero();
 
     case TokenId::IntrinsicAssert:
     case TokenId::IntrinsicFree:
-        return parseInternalCallUnary(AstNodeId::IntrinsicCallUnary);
+        return parseIntrinsicCallUnary();
 
     case TokenId::IntrinsicCompilerError:
     case TokenId::IntrinsicCompilerWarning:
     case TokenId::IntrinsicPanic:
-        return parseInternalCallBinary(AstNodeId::IntrinsicCallBinary);
+        return parseIntrinsicCallBinary();
 
     case TokenId::IntrinsicMemCpy:
     case TokenId::IntrinsicMemMove:
     case TokenId::IntrinsicMemSet:
-        return parseInternalCallTernary(AstNodeId::IntrinsicCallTernary);
+        return parseIntrinsicCallTernary();
 
     case TokenId::SymAttrStart:
         return parseAttributeList(AstNodeId::EmbeddedBlock);
@@ -264,7 +264,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
     case TokenId::KwdUnreachable:
         return parseUnreachable();
     case TokenId::KwdContinue:
-        return parseContinue();        
+        return parseContinue();
 
     default:
         // @skip

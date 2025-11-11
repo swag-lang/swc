@@ -174,11 +174,11 @@ struct AstInternalCallTernaryBase : AstNode
     AstNodeRef nodeArg3;
 };
 
-struct AstIntrinsicCallZero : AstNode
+struct AstIntrinsicCallZero : AstInternalCallZeroBase
 {
     static constexpr auto ID = AstNodeId::IntrinsicCallZero;
     AstIntrinsicCallZero() :
-        AstNode(ID)
+        AstInternalCallZeroBase(ID)
     {
     }
 };

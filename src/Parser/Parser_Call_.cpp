@@ -5,21 +5,9 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstNodeRef Parser::parseInternalCallZero(AstNodeId callerNodeId)
+AstNodeRef Parser::parseCompilerCallUnary()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstInternalCallUnaryBase>(callerNodeId);
-    nodePtr->tokName        = consume();
-
-    const auto openRef = ref();
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
-
-    return nodeRef;
-}
-
-AstNodeRef Parser::parseInternalCallUnary(AstNodeId callerNodeId)
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstInternalCallUnaryBase>(callerNodeId);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCallUnary>();
     nodePtr->tokName        = consume();
 
     const auto openRef = ref();
@@ -30,9 +18,34 @@ AstNodeRef Parser::parseInternalCallUnary(AstNodeId callerNodeId)
     return nodeRef;
 }
 
-AstNodeRef Parser::parseInternalCallBinary(AstNodeId callerNodeId)
+AstNodeRef Parser::parseIntrinsicCallZero()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstInternalCallBinaryBase>(callerNodeId);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCallZero>();
+    nodePtr->tokName        = consume();
+
+    const auto openRef = ref();
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseIntrinsicCallUnary()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCallUnary>();
+    nodePtr->tokName        = consume();
+
+    const auto openRef = ref();
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
+    nodePtr->nodeArg1 = parseExpression();
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseIntrinsicCallBinary()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCallBinary>();
     nodePtr->tokName        = consume();
 
     const auto openRef = ref();
@@ -48,9 +61,9 @@ AstNodeRef Parser::parseInternalCallBinary(AstNodeId callerNodeId)
     return nodeRef;
 }
 
-AstNodeRef Parser::parseInternalCallTernary(AstNodeId callerNodeId)
+AstNodeRef Parser::parseIntrinsicCallTernary()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstInternalCallTernaryBase>(callerNodeId);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCallTernary>();
     nodePtr->tokName        = consume();
 
     const auto openRef = ref();

@@ -42,6 +42,7 @@ SWC_NODE_DEF(InitializerExpr)
 SWC_NODE_DEF(BinaryConditionalOp)
 SWC_NODE_DEF(ConditionalOp)
 SWC_NODE_DEF(DeRefOp)
+SWC_NODE_DEF(MoveRefOp)
 
 // Type Casting & Checks
 SWC_NODE_DEF(ExplicitCastExpr)
@@ -130,6 +131,7 @@ SWC_NODE_DEF(ClosureCaptureList)
 SWC_NODE_DEF(FunctionExpr)
 SWC_NODE_DEF(ClosureExpr)
 SWC_NODE_DEF(FuncParamMe)
+SWC_NODE_DEF(Return)
 
 // Parameters / Arguments
 SWC_NODE_DEF(NamedArgList)

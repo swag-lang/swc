@@ -317,6 +317,17 @@ struct AstFuncParamMe : AstNode
     using Flags = EnumFlags<FlagsE>;
 };
 
+struct AstReturn : AstNode
+{
+    static constexpr auto ID = AstNodeId::Return;
+    AstReturn() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeExpr;
+};
+
 struct AstFunctionBody : AstCompound
 {
     static constexpr auto ID = AstNodeId::FunctionBody;
@@ -711,6 +722,17 @@ struct AstDeRefOp : AstNode
 {
     static constexpr auto ID = AstNodeId::DeRefOp;
     AstDeRefOp() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeExpr;
+};
+
+struct AstMoveRefOp : AstNode
+{
+    static constexpr auto ID = AstNodeId::MoveRefOp;
+    AstMoveRefOp() :
         AstNode(ID)
     {
     }

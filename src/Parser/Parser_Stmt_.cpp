@@ -5,6 +5,75 @@
 
 SWC_BEGIN_NAMESPACE()
 
+AstNodeRef Parser::parseTopLevelCall()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TopLevelCall>();
+    nodePtr->nodeIdentifier = parseQualifiedIdentifier();
+    nodePtr->nodeArgs       = parseCompound(AstNodeId::NamedArgList, TokenId::SymLeftParen);
+    expectEndStatement();
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseGlobalAccessModifier()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AccessModifier>();
+    nodePtr->tokAccess      = consume();
+    nodePtr->nodeWhat       = parseTopLevelStmt();
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseUsing()
+{
+    if (nextIs(TokenId::KwdNamespace))
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingNamespace>();
+        consume();
+        nodePtr->nodeNamespace = parseNamespace();
+        return nodeRef;
+    }
+
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingDecl>();
+    consume();
+    nodePtr->spanChildren = parseCompoundContent(AstNodeId::UsingDecl, TokenId::Invalid, true);
+    expectEndStatement();
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseConstraint()
+{
+    if (nextIs(TokenId::SymLeftCurly))
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ConstraintBlock>();
+        nodePtr->tokConstraint  = consume();
+        nodePtr->spanChildren   = parseCompoundContent(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
+        return nodeRef;
+    }
+
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ConstraintExpr>();
+    nodePtr->tokConstraint  = consume();
+    nodePtr->nodeExpr       = parseExpression();
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseAlias()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Alias>();
+    consume();
+    nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+    expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_fam);
+
+    if (isAny(TokenId::CompilerDeclType, TokenId::SymLeftBracket, TokenId::SymLeftCurly, TokenId::KwdFunc, TokenId::KwdMtd))
+        nodePtr->nodeExpr = parseType();
+    else if (Token::isType(id()))
+        nodePtr->nodeExpr = parseType();
+    else if (is(TokenId::Identifier))
+        nodePtr->nodeExpr = parseQualifiedIdentifier();
+    else
+        nodePtr->nodeExpr = parsePrimaryExpression();
+
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseTopLevelStmt()
 {
     switch (id())
@@ -100,6 +169,18 @@ AstNodeRef Parser::parseTopLevelStmt()
     }
 }
 
+AstNodeRef Parser::parseReturn()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Return>();
+    consume();
+    if (is(TokenId::SymSemiColon) || tok().startsLine())
+        nodePtr->nodeExpr.setInvalid();
+    else
+        nodePtr->nodeExpr = parseExpression();
+    expectEndStatement();
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseEmbeddedStmt()
 {
     switch (id())
@@ -158,80 +239,14 @@ AstNodeRef Parser::parseEmbeddedStmt()
         return nodeRef;
     }
 
+    case TokenId::KwdReturn:
+        return parseReturn();
+
     default:
         // @skip
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
         return AstNodeRef::invalid();
     }
-}
-
-AstNodeRef Parser::parseTopLevelCall()
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TopLevelCall>();
-    nodePtr->nodeIdentifier = parseQualifiedIdentifier();
-    nodePtr->nodeArgs       = parseCompound(AstNodeId::NamedArgList, TokenId::SymLeftParen);
-    expectEndStatement();
-    return nodeRef;
-}
-
-AstNodeRef Parser::parseGlobalAccessModifier()
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AccessModifier>();
-    nodePtr->tokAccess      = consume();
-    nodePtr->nodeWhat       = parseTopLevelStmt();
-    return nodeRef;
-}
-
-AstNodeRef Parser::parseUsing()
-{
-    if (nextIs(TokenId::KwdNamespace))
-    {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingNamespace>();
-        consume();
-        nodePtr->nodeNamespace = parseNamespace();
-        return nodeRef;
-    }
-
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingDecl>();
-    consume();
-    nodePtr->spanChildren = parseCompoundContent(AstNodeId::UsingDecl, TokenId::Invalid, true);
-    expectEndStatement();
-    return nodeRef;
-}
-
-AstNodeRef Parser::parseConstraint()
-{
-    if (nextIs(TokenId::SymLeftCurly))
-    {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ConstraintBlock>();
-        nodePtr->tokConstraint  = consume();
-        nodePtr->spanChildren   = parseCompoundContent(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
-        return nodeRef;
-    }
-
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ConstraintExpr>();
-    nodePtr->tokConstraint  = consume();
-    nodePtr->nodeExpr       = parseExpression();
-    return nodeRef;
-}
-
-AstNodeRef Parser::parseAlias()
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Alias>();
-    consume();
-    nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
-    expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_fam);
-
-    if (isAny(TokenId::CompilerDeclType, TokenId::SymLeftBracket, TokenId::SymLeftCurly, TokenId::KwdFunc, TokenId::KwdMtd))
-        nodePtr->nodeExpr = parseType();
-    else if (Token::isType(id()))
-        nodePtr->nodeExpr = parseType();
-    else if (is(TokenId::Identifier))
-        nodePtr->nodeExpr = parseQualifiedIdentifier();
-    else
-        nodePtr->nodeExpr = parsePrimaryExpression();
-
-    return nodeRef;
 }
 
 SWC_END_NAMESPACE()

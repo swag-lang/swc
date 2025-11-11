@@ -276,7 +276,7 @@ AstNodeRef Parser::parseFile()
     while (is(TokenId::CompilerGlobal))
     {
         auto global = parseCompilerGlobal();
-        if (file_->hasFlag(FileFlagsE::LexOnly))
+        if (file_->hasFlag(FileFlagsE::Skip))
             return nodeRef;
         if (global.isValid())
             globals.push_back(global);

@@ -112,7 +112,29 @@ AstNodeRef Parser::parseStructDecl()
 
 AstNodeRef Parser::parseAggregateDecl(AstNodeId nodeId)
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstAggregateDecl>(nodeId);
+    AstNodeRef        nodeRef;
+    AstAggregateDecl* nodePtr;
+
+    switch (nodeId)
+    {
+    case AstNodeId::StructDecl:
+    {
+        const auto nodePair = ast_->makeNode<AstNodeId::StructDecl>();
+        nodeRef             = nodePair.first;
+        nodePtr             = nodePair.second;
+        break;
+    }
+    case AstNodeId::UnionDecl:
+    {
+        const auto nodePair = ast_->makeNode<AstNodeId::UnionDecl>();
+        nodeRef             = nodePair.first;
+        nodePtr             = nodePair.second;
+        break;
+    }
+    default:
+        SWC_UNREACHABLE();
+    }
+
     consume();
 
     // Generic types

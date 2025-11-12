@@ -175,6 +175,7 @@ SWC_NODE_DEF(CompilerTypeExpr)
 SWC_NODE_DEF(CompilerGlobal)
 SWC_NODE_DEF(CompilerImport)
 SWC_NODE_DEF(CompilerScope)
+SWC_NODE_DEF(CompilerMacro)
 
 // -----------------------------------------------------------------------------
 //  Intrinsics

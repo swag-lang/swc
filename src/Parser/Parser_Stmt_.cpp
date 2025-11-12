@@ -351,6 +351,14 @@ AstNodeRef Parser::parseDiscard()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseCompilerMacro()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerMacro>();
+    consumeAssert(TokenId::CompilerMacro);
+    nodePtr->nodeBody = parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseAffectStmt()
 {
     // @skip
@@ -558,6 +566,9 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::IntrinsicPostMove:
             return parseIntrinsicPostMove();
 
+        case TokenId::CompilerMacro:
+            return parseCompilerMacro();
+
         case TokenId::KwdWhile:
             return parseWhile();
         case TokenId::KwdForeach:
@@ -609,7 +620,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
 
         case TokenId::KwdFor:
         case TokenId::CompilerInject:
-        case TokenId::CompilerMacro:
         case TokenId::KwdSwitch:
         case TokenId::KwdCase:
         case TokenId::KwdDefault:

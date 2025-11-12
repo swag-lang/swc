@@ -1789,6 +1789,17 @@ struct AstDiscard : AstNode
     AstNodeRef nodeExpr;
 };
 
+struct AstCompilerMacro : AstNode
+{
+    static constexpr auto ID = AstNodeId::CompilerMacro;
+    explicit AstCompilerMacro() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeBody;
+};
+
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 

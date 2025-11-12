@@ -48,7 +48,7 @@ void Utf8::replaceOutsideQuotes(std::string_view from, std::string_view to, bool
 
         for (size_t i = 0; i < input.size();)
         {
-            char ch = input[i];
+            const char ch = input[i];
 
             // Toggle quote states
             if (ch == '\'' && !inDoubleQuote)
@@ -58,7 +58,8 @@ void Utf8::replaceOutsideQuotes(std::string_view from, std::string_view to, bool
                 ++i;
                 continue;
             }
-            else if (ch == '"' && !inSingleQuote)
+            
+            if (ch == '"' && !inSingleQuote)
             {
                 inDoubleQuote = !inDoubleQuote;
                 result += ch;

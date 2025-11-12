@@ -8,7 +8,7 @@ struct EnumFlags
     static_assert(std::is_enum_v<T>, "EnumFlags<T> requires T to be an enum type");
     using U    = std::underlying_type_t<T>;
     using Type = T;
-    using Self = EnumFlags<T>;
+    using Self = EnumFlags;
 
     constexpr EnumFlags() = default;
 

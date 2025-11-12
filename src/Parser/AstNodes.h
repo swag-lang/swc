@@ -1882,7 +1882,7 @@ decltype(auto) visitAstNodeId(AstNodeId id, F f)
         default:
             SWC_UNREACHABLE();
     }
-};
+}
 
 struct AstNodeIdInfo
 {

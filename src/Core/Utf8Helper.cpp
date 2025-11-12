@@ -223,7 +223,7 @@ Utf8 Utf8Helper::substrChars(std::string_view s, uint32_t charStart, uint32_t ch
         return {};
 
     // Fast path for likely-ASCII: if sizes match, assume 1 byte per char.
-    const bool asciiLikely = Utf8Helper::countChars(s) == s.size();
+    const bool asciiLikely = countChars(s) == s.size();
     if (asciiLikely)
     {
         const uint32_t start0 = (charStart ? charStart : 1) - 1;
@@ -283,6 +283,6 @@ uint32_t Utf8Helper::countLeadingBlanks(const TaskContext& ctx, std::string_view
         ++i;
     }
     return i;
-};
+}
 
 SWC_END_NAMESPACE()

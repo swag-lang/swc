@@ -151,6 +151,7 @@ SWC_NODE_DEF(If)
 SWC_NODE_DEF(VarIf)
 SWC_NODE_DEF(Else)
 SWC_NODE_DEF(ElseIf)
+SWC_NODE_DEF(While)
 
 // Attributes
 SWC_NODE_DEF(Attribute)

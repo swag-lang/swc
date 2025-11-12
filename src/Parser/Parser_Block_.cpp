@@ -302,4 +302,25 @@ AstNodeRef Parser::parseNamespace()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseDoCurlyBlock()
+{
+    if (consumeIf(TokenId::KwdDo).isValid())
+    {
+        if (is(TokenId::SymLeftCurly))
+        {
+            raiseError(DiagnosticId::parser_err_unexpected_do_block, ref().offset(-1));
+            return parseCompound(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
+        }
+
+        return parseEmbeddedStmt();
+    }
+
+    if (is(TokenId::SymLeftCurly))
+        return parseCompound(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
+
+    const auto diag = reportError(DiagnosticId::parser_err_expected_do_block, ref().offset(-1));
+    diag.report(*ctx_);
+    return AstNodeRef::invalid();
+}
+
 SWC_END_NAMESPACE()

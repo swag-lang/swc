@@ -1720,6 +1720,18 @@ struct AstIntrinsicPostMove : AstIntrinsicInitDropCopyMove
     }
 };
 
+struct AstWhile : AstNode
+{
+    static constexpr auto ID = AstNodeId::While;
+    explicit AstWhile() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeExpr;
+    AstNodeRef nodeBody;
+};
+
 //========================================================================================
 //========================================================================================
 

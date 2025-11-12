@@ -34,7 +34,7 @@ AstNodeRef Parser::parseUsing()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingDecl>();
     consume();
     nodePtr->spanChildren = parseCompoundContent(AstNodeId::UsingDecl, TokenId::Invalid, true);
-    
+
     expectEndStatement();
     return nodeRef;
 }
@@ -137,27 +137,6 @@ AstNodeRef Parser::parseDefer()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseIfStmt()
-{
-    if (consumeIf(TokenId::KwdDo).isValid())
-    {
-        if (is(TokenId::SymLeftCurly))
-        {
-            raiseError(DiagnosticId::parser_err_unexpected_do_block, ref().offset(-1));
-            return parseCompound(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
-        }
-
-        return parseEmbeddedStmt();
-    }
-
-    if (is(TokenId::SymLeftCurly))
-        return parseCompound(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
-
-    const auto diag = reportError(DiagnosticId::parser_err_expected_do_block, ref().offset(-1));
-    diag.report(*ctx_);
-    return AstNodeRef::invalid();
-}
-
 AstNodeRef Parser::parseIf()
 {
     if (nextIsAny(TokenId::KwdVar, TokenId::KwdLet, TokenId::KwdConst))
@@ -170,11 +149,11 @@ AstNodeRef Parser::parseIf()
         if (consumeIf(TokenId::KwdWhere).isValid())
             nodePtr->nodeWhere = parseExpression();
 
-        nodePtr->nodeIfBlock = parseIfStmt();
+        nodePtr->nodeIfBlock = parseDoCurlyBlock();
         if (is(TokenId::KwdElseIf))
             nodePtr->nodeElseBlock = parseIf();
         else if (consumeIf(TokenId::KwdElse).isValid())
-            nodePtr->nodeElseBlock = parseIfStmt();
+            nodePtr->nodeElseBlock = parseDoCurlyBlock();
 
         return nodeRef;
     }
@@ -187,11 +166,11 @@ AstNodeRef Parser::parseIf()
     if (nodePtr->nodeCondition.isInvalid())
         skipTo({TokenId::KwdDo, TokenId::SymLeftCurly});
 
-    nodePtr->nodeIfBlock = parseIfStmt();
+    nodePtr->nodeIfBlock = parseDoCurlyBlock();
     if (is(TokenId::KwdElseIf))
         nodePtr->nodeElseBlock = parseIf();
     else if (consumeIf(TokenId::KwdElse).isValid())
-        nodePtr->nodeElseBlock = parseIfStmt();
+        nodePtr->nodeElseBlock = parseDoCurlyBlock();
 
     return nodeRef;
 }
@@ -289,6 +268,15 @@ AstNodeRef Parser::parseIntrinsicPostMove()
 
     expectEndStatement();
     return nodeRef;
+}
+
+AstNodeRef Parser::parseWhile()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::While>();
+    consume();
+    nodePtr->nodeExpr = parseExpression();
+    nodePtr->nodeBody = parseDoCurlyBlock();
+    return AstNodeRef::invalid();
 }
 
 AstNodeRef Parser::parseTopLevelStmt()
@@ -480,7 +468,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::KwdUsing:
             return parseUsing();
         case TokenId::KwdAlias:
-            return parseAlias();            
+            return parseAlias();
 
         case TokenId::IntrinsicInit:
             return parseIntrinsicInit();
@@ -491,13 +479,15 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::IntrinsicPostMove:
             return parseIntrinsicPostMove();
 
+        case TokenId::KwdWhile:
+            return parseWhile();
+
         case TokenId::SymDot:
         case TokenId::Identifier:
         case TokenId::KwdFor:
         case TokenId::KwdForeach:
         case TokenId::CompilerInject:
         case TokenId::CompilerMacro:
-        case TokenId::KwdWhile:
         case TokenId::KwdSwitch:
         case TokenId::KwdCase:
         case TokenId::KwdDefault:

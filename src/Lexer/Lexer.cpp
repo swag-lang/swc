@@ -276,7 +276,7 @@ void Lexer::lexSingleLineStringLiteral()
 
     // Handle EOF
     if (buffer_ >= endBuffer_)
-        raiseTokenError(DiagnosticId::lex_err_unclosed_string, static_cast<uint32_t>(startToken_ - startBuffer_));
+        raiseTokenError(DiagnosticId::lex_err_unclosed_string, startOffset_);
 
     // Consume closing quote if present
     if (buffer_[0] == '"')
@@ -327,7 +327,7 @@ void Lexer::lexMultiLineStringLiteral()
     }
 
     // EOF before closing delimiter
-    raiseTokenError(DiagnosticId::lex_err_unclosed_string, static_cast<uint32_t>(startToken_ - startBuffer_), 3);
+    raiseTokenError(DiagnosticId::lex_err_unclosed_string, startOffset_, 3);
 
     pushToken();
 }
@@ -367,7 +367,7 @@ void Lexer::lexRawStringLiteral()
     }
 
     if (!foundClosing)
-        raiseTokenError(DiagnosticId::lex_err_unclosed_string, static_cast<uint32_t>(startToken_ - startBuffer_), 2);
+        raiseTokenError(DiagnosticId::lex_err_unclosed_string, startOffset_, 2);
 
     pushToken();
 }
@@ -380,7 +380,7 @@ void Lexer::lexCharacterLiteral()
     // Check for empty character literal
     if (buffer_[0] == '\'')
     {
-        raiseTokenError(DiagnosticId::lex_err_empty_char, static_cast<uint32_t>(startToken_ - startBuffer_), 2);
+        raiseTokenError(DiagnosticId::lex_err_empty_char, startOffset_, 2);
         buffer_++;
         pushToken();
         return;
@@ -400,7 +400,7 @@ void Lexer::lexCharacterLiteral()
         // Check for EOL
         if (buffer_[0] == '\n' || buffer_[0] == '\r')
         {
-            raiseTokenError(DiagnosticId::lex_err_unclosed_char, static_cast<uint32_t>(startToken_ - startBuffer_), static_cast<uint32_t>(buffer_ - startToken_));
+            raiseTokenError(DiagnosticId::lex_err_unclosed_char, startOffset_, static_cast<uint32_t>(buffer_ - startToken_));
             pushToken();
             eatOneEol();
             return;
@@ -417,7 +417,7 @@ void Lexer::lexCharacterLiteral()
 
     // Check for EOF
     if (buffer_ >= endBuffer_)
-        raiseTokenError(DiagnosticId::lex_err_unclosed_char, static_cast<uint32_t>(startToken_ - startBuffer_), static_cast<uint32_t>(buffer_ - startToken_));
+        raiseTokenError(DiagnosticId::lex_err_unclosed_char, startOffset_, static_cast<uint32_t>(buffer_ - startToken_));
 
     // Consume closing quote if present
     if (buffer_[0] == '\'')
@@ -425,7 +425,7 @@ void Lexer::lexCharacterLiteral()
 
     // Check for too many characters
     if (charCount > 1)
-        raiseTokenError(DiagnosticId::lex_err_too_many_char_char, static_cast<uint32_t>(startToken_ - startBuffer_), static_cast<uint32_t>(buffer_ - startToken_));
+        raiseTokenError(DiagnosticId::lex_err_too_many_char_char, startOffset_, static_cast<uint32_t>(buffer_ - startToken_));
 
     pushToken();
 }
@@ -465,7 +465,7 @@ void Lexer::lexHexNumber()
 
     // Require at least one digit
     if (digits == 0)
-        raiseTokenError(DiagnosticId::lex_err_missing_hex_digit, static_cast<uint32_t>(startToken_ - startBuffer_), 2 + (lastWasSep ? 1 : 0));
+        raiseTokenError(DiagnosticId::lex_err_missing_hex_digit, startOffset_, 2 + (lastWasSep ? 1 : 0));
 
     // No trailing separator
     if (lastWasSep)
@@ -513,7 +513,7 @@ void Lexer::lexBinNumber()
 
     // Require at least one digit
     if (digits == 0)
-        raiseTokenError(DiagnosticId::lex_err_missing_bin_digit, static_cast<uint32_t>(startToken_ - startBuffer_), 2 + (lastWasSep ? 1 : 0));
+        raiseTokenError(DiagnosticId::lex_err_missing_bin_digit, startOffset_, 2 + (lastWasSep ? 1 : 0));
 
     // No trailing separator
     if (lastWasSep)
@@ -692,10 +692,10 @@ void Lexer::lexIdentifier()
         else
         {
             if (name[0] == '#')
-                raiseTokenError(DiagnosticId::parser_err_invalid_compiler, static_cast<uint32_t>(startToken_ - startBuffer_), static_cast<uint32_t>(name.size()));
+                raiseTokenError(DiagnosticId::parser_err_invalid_compiler, startOffset_, static_cast<uint32_t>(name.size()));
             else if (name[0] == '@')
-                raiseTokenError(DiagnosticId::parser_err_invalid_intrinsic, static_cast<uint32_t>(startToken_ - startBuffer_), static_cast<uint32_t>(name.size()));
-            
+                raiseTokenError(DiagnosticId::parser_err_invalid_intrinsic, startOffset_, static_cast<uint32_t>(name.size()));
+
             const auto idx = static_cast<uint32_t>(lexOut_->identifiers_.size());
             lexOut_->identifiers_.push_back({.hash = hash64, .byteStart = token_.byteStart});
             token_.byteStart = idx;
@@ -1025,7 +1025,7 @@ void Lexer::lexSymbol()
 
         default:
             eatUtf8Char();
-            raiseTokenError(DiagnosticId::lex_err_invalid_char, static_cast<uint32_t>(startToken_ - startBuffer_), static_cast<uint32_t>(buffer_ - startToken_));
+            raiseTokenError(DiagnosticId::lex_err_invalid_char, startOffset_, static_cast<uint32_t>(buffer_ - startToken_));
             break;
     }
 
@@ -1086,7 +1086,7 @@ void Lexer::lexMultiLineComment()
     }
 
     if (depth > 0)
-        raiseTokenError(DiagnosticId::lex_err_unclosed_comment, static_cast<uint32_t>(startToken_ - startBuffer_), 2);
+        raiseTokenError(DiagnosticId::lex_err_unclosed_comment, startOffset_, 2);
 
     pushToken();
 }
@@ -1211,7 +1211,8 @@ Result Lexer::tokenize(TaskContext& ctx, LexerFlags flags)
     {
         hasTokenError_    = false;
         startToken_       = buffer_;
-        token_.byteStart  = static_cast<uint32_t>(startToken_ - startBuffer_);
+        startOffset_      = static_cast<uint32_t>(startToken_ - startBuffer_);
+        token_.byteStart  = startOffset_;
         token_.byteLength = 1;
         token_.flags      = TokenFlagsE::Zero;
 

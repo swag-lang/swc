@@ -58,6 +58,7 @@ class Lexer
     const uint8_t*  startBuffer_   = nullptr;
     const uint8_t*  endBuffer_     = nullptr;
     const uint8_t*  startToken_    = nullptr;
+    uint32_t        startOffset_   = 0;
     TaskContext*    ctx_           = nullptr;
     const LangSpec* langSpec_      = nullptr;
     bool            hasTokenError_ = false;

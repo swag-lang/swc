@@ -687,9 +687,19 @@ void Lexer::lexIdentifier()
     token_.id             = ctx_->global().langSpec().keyword(name, hash64);
     if (token_.id == TokenId::Identifier)
     {
-        const auto idx = static_cast<uint32_t>(lexOut_->identifiers_.size());
-        lexOut_->identifiers_.push_back({.hash = hash64, .byteStart = token_.byteStart});
-        token_.byteStart = idx;
+        if (name[0] == '#' && name.length() > 1 && name[1] >= 'A' && name[1] <= 'Z')
+            token_.id = TokenId::SharpIdentifier;
+        else
+        {
+            if (name[0] == '#')
+                raiseTokenError(DiagnosticId::parser_err_invalid_compiler, static_cast<uint32_t>(startToken_ - startBuffer_), static_cast<uint32_t>(name.size()));
+            else if (name[0] == '@')
+                raiseTokenError(DiagnosticId::parser_err_invalid_intrinsic, static_cast<uint32_t>(startToken_ - startBuffer_), static_cast<uint32_t>(name.size()));
+            
+            const auto idx = static_cast<uint32_t>(lexOut_->identifiers_.size());
+            lexOut_->identifiers_.push_back({.hash = hash64, .byteStart = token_.byteStart});
+            token_.byteStart = idx;
+        }
     }
 
     pushToken();

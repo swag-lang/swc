@@ -1,13 +1,9 @@
-// ============================================================================
-// Lexer Operators Ok
-// ============================================================================
-
 // swc-option lex-only
 
 // Operator & punctuation lexing coverage
 
 // --- Single-character operators & delimiters ---
-( ) [ ] { } ; , @ ? ~ = < > + - * / & | ^ % . : '\\' '\''
+( ) [ ] { } ; , ? ~ = < > + - * / & | ^ % . : '\\' '\''
 
 // --- Paired/multi-character operators ---
 == != >= <= && || :: ->

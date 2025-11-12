@@ -195,12 +195,6 @@ AstNodeRef Parser::parsePostfixIdentifierValue()
 
 AstNodeRef Parser::parseIdentifier()
 {
-    const auto str = tok().string(*file_);
-    if (str[0] == '#')
-        raiseError(DiagnosticId::parser_err_invalid_compiler, ref());
-    else if (str[0] == '@')
-        raiseError(DiagnosticId::parser_err_invalid_intrinsic, ref());
-
     if (is(TokenId::KwdMe))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>();

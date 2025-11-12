@@ -24,6 +24,7 @@ SWC_TOKEN_DEF(NumberFloat, "",  Literal)
 // IDENTIFIERS
 
 SWC_TOKEN_DEF(Identifier, "",  Zero)
+SWC_TOKEN_DEF(SharpIdentifier, "",  Compiler)
 
 SWC_TOKEN_DEF(KwdMe, "me",  Keyword)
 

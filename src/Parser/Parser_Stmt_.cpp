@@ -285,9 +285,7 @@ AstNodeRef Parser::parseForeach()
     consumeAssert(TokenId::KwdForeach);
 
     // Specialization
-    const auto str = tok().string(*file_);
-    if (str[0] == '#' && str.length() > 2 && str[1] >= 'A' && str[1] <= 'Z')
-        nodePtr->tokSpecialization = consume();
+    nodePtr->tokSpecialization = consumeIf(TokenId::SharpIdentifier);
 
     // Additional flags
     nodePtr->modifierFlags = parseModifiers();

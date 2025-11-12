@@ -40,7 +40,7 @@ Utf8 LogSymbolHelper::toString(const TaskContext& ctx, LogSymbol symbol)
         case LogSymbol::RightDown:
             return ascii ? "|" : "┐";
         case LogSymbol::Underline:
-            return ascii ? "^" : "^";
+            return "^";
     }
 
     return "?";

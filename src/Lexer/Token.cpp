@@ -1,8 +1,6 @@
 #include "pch.h"
-
-#include "LangSpec.h"
-#include "Lexer/SourceFile.h"
 #include "Lexer/Token.h"
+#include "Lexer/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -40,7 +38,6 @@ std::string_view Token::toName(TokenId id)
 
 std::string_view Token::toFamily(TokenId id)
 {
-    const auto& infos = TOKEN_ID_INFOS[static_cast<size_t>(id)];
     if (id == TokenId::Identifier)
         return "identifier";
     if (id == TokenId::EndOfFile)
@@ -66,7 +63,6 @@ std::string_view Token::toFamily(TokenId id)
 
 std::string_view Token::toAFamily(TokenId id)
 {
-    const auto& infos = TOKEN_ID_INFOS[static_cast<size_t>(id)];
     if (id == TokenId::Identifier)
         return "an identifier";
     if (id == TokenId::EndOfFile)

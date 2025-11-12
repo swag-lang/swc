@@ -15,16 +15,17 @@ namespace
 {
     struct DiagnosticIdInfo
     {
-        DiagnosticSeverity severity;
         std::string_view   name;
         std::string_view   msg;
+        DiagnosticSeverity severity;
+        uint32_t           padding;
     };
 
     constexpr auto makeDiagnosticInfos()
     {
         std::array<DiagnosticIdInfo, static_cast<size_t>(DiagnosticId::Count)> arr{};
 #define SWC_DIAG_DEF(id, sev, msg) \
-    arr[(size_t) DiagnosticId::id] = {DiagnosticSeverity::sev, #id, msg};
+    arr[(size_t) DiagnosticId::id] = {#id, msg, DiagnosticSeverity::sev, 0};
 #include "Diagnostic_Errors_.msg"
 
 #include "Diagnostic_Notes_.msg"

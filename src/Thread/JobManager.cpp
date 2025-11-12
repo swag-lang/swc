@@ -35,7 +35,7 @@ JobRecord* JobManager::allocRecord()
     }
 
     // Slow path: global pool
-    std::lock_guard lk(RecordPool::gMutex);
+    std::scoped_lock lk(RecordPool::gMutex);
     if (!RecordPool::gFree.empty())
     {
         JobRecord* r = RecordPool::gFree.back();
@@ -67,7 +67,7 @@ void JobManager::freeRecord(JobRecord* r)
         v.push_back(r);
         return;
     }
-    std::lock_guard lk(RecordPool::gMutex);
+    std::scoped_lock lk(RecordPool::gMutex);
     RecordPool::gFree.push_back(r);
 }
 
@@ -319,7 +319,7 @@ JobRecord* JobManager::popReadyLocked()
 #if SWC_DEV_MODE
             uint32_t pickIndex = 0;
             if (cmdLine_->randomize)
-                pickIndex = static_cast<uint32_t>(rand()) % q.size();
+                pickIndex = static_cast<uint32_t>(rand()) % q.size(); // NOLINT(concurrency-mt-unsafe)
             JobRecord* rec = q[pickIndex];
             q.erase(q.begin() + pickIndex);
 #else
@@ -470,7 +470,7 @@ void JobManager::workerLoop()
         // Snapshot wake ticket at the start for lost-wake prevention on Sleep.
         const auto wakeAtStart = rec->wakeGen.load(std::memory_order_acquire);
 
-        // Execute job
+        // Execute a job
         const JobResult res = executeJob(rec->job);
 
         // Completion / state transition handling
@@ -657,7 +657,7 @@ bool JobManager::cancelCascadeLocked(JobRecord* rec, JobClientId client)
             cancelCascadeLocked(w, client);
         else
         {
-            // Different client: keep dependent for notify in a moment
+            // Different client: keep dependent for notification in a moment
             rec->dependents.push_back(j);
         }
     }

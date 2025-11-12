@@ -57,7 +57,7 @@ struct AstNode
             flags_ |= val.flags;
     }
 
-    static void collectChildren(SmallVector<AstNodeRef>& out) {}
+    static void collectChildren([[maybe_unused]] SmallVector<AstNodeRef>& out) {}
 
 private:
     Flags flags_;

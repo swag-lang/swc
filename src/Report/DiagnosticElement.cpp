@@ -1,8 +1,6 @@
 #include "pch.h"
-
-#include "Diagnostic.h"
 #include "DiagnosticElement.h"
-#include "Os/Os.h"
+#include "Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE()
 

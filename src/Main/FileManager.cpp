@@ -1,7 +1,6 @@
 #include "pch.h"
 
 #include "FileSystem.h"
-#include "Global.h"
 #include "Main/CommandLine.h"
 #include "Main/FileManager.h"
 #include "TaskContext.h"

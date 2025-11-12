@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Core/SmallVector.h"
 #include "Lexer/SourceFile.h"
-#include "Parser/AstNode.h"
 #include "Parser/Parser.h"
 #include "Report/Diagnostic.h"
 
@@ -175,7 +174,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
     return Result::Success;
 }
 
-void Parser::finalizeCompound(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef closeTokenRef, const TokenId tokenEndId, const SmallVector<AstNodeRef>& childrenRefs)
+void Parser::finalizeCompound(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef closeTokenRef, const SmallVector<AstNodeRef>& childrenRefs)
 {
     if (childrenRefs.empty())
     {
@@ -263,7 +262,7 @@ SpanRef Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId
         raiseExpected(DiagnosticId::parser_err_expected_closing, openTokRef, Token::toRelated(openTok.id));
 
     // Consume end token if necessary
-    finalizeCompound(blockNodeId, openTokRef, closeTokenRef, tokenEndId, childrenRefs);
+    finalizeCompound(blockNodeId, openTokRef, closeTokenRef, childrenRefs);
 
     // Store
     return ast_->store_.push_span(childrenRefs.span());

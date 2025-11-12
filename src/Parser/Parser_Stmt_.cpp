@@ -298,18 +298,18 @@ AstNodeRef Parser::parseForeach()
     if (consumeIf(TokenId::SymAmpersand).isValid())
     {
         nodePtr->addFlag(AstForeach::FlagsE::ByAddress);
-        const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+        const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
         tokNames.push_back(tokName);
     }
     else if (nextIsAny(TokenId::KwdIn, TokenId::SymComma))
     {
-        const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+        const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
         tokNames.push_back(tokName);
     }
 
     while (consumeIf(TokenId::SymComma).isValid())
     {
-        auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+        auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
         tokNames.push_back(tokName);
     }
 
@@ -318,8 +318,10 @@ AstNodeRef Parser::parseForeach()
         expectAndConsume(TokenId::KwdIn, DiagnosticId::parser_err_expected_token_before);
 
     nodePtr->nodeExpr = parseExpression();
+
     if (consumeIf(TokenId::KwdWhere).isValid())
         nodePtr->nodeWhere = parseExpression();
+
     nodePtr->nodeBody = parseDoCurlyBlock();
     return nodeRef;
 }

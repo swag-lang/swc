@@ -580,17 +580,17 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::IntrinsicCVaEnd:
         case TokenId::IntrinsicSetContext:
             return parseIntrinsicCallUnary();
-
         case TokenId::IntrinsicCompilerError:
         case TokenId::IntrinsicCompilerWarning:
         case TokenId::IntrinsicPanic:
         case TokenId::IntrinsicAtomicAdd:
             return parseIntrinsicCallBinary();
-
         case TokenId::IntrinsicMemCpy:
         case TokenId::IntrinsicMemMove:
         case TokenId::IntrinsicMemSet:
             return parseIntrinsicCallTernary();
+        case TokenId::IntrinsicPrint:
+            return parseIntrinsicCallVariadic();
 
         case TokenId::SymAttrStart:
             return parseAttributeList(AstNodeId::EmbeddedBlock);
@@ -612,9 +612,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
             return nodeRef;
         }
 
-        case TokenId::KwdWith:
-            return parseWith();
-
         case TokenId::CompilerAst:
         case TokenId::CompilerRun:
             return parseCompilerFunc();
@@ -634,11 +631,18 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::CompilerScope:
             return parseCompilerScope();
 
+        case TokenId::KwdWith:
+            return parseWith();
         case TokenId::KwdDefer:
             return parseDefer();
-
         case TokenId::KwdIf:
             return parseIf();
+        case TokenId::KwdWhile:
+            return parseWhile();
+        case TokenId::KwdForeach:
+            return parseForeach();
+        case TokenId::KwdSwitch:
+            return parseSwitch();
 
         case TokenId::KwdUsing:
             return parseUsing();
@@ -657,11 +661,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::CompilerMacro:
             return parseCompilerMacro();
 
-        case TokenId::KwdWhile:
-            return parseWhile();
-        case TokenId::KwdForeach:
-            return parseForeach();
-
         case TokenId::KwdAssume:
         case TokenId::KwdCatch:
         case TokenId::KwdTry:
@@ -672,12 +671,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
 
         case TokenId::KwdDiscard:
             return parseDiscard();
-
-        case TokenId::KwdSwitch:
-            return parseSwitch();
-
-        case TokenId::IntrinsicPrint:
-            return parseIntrinsicCallVariadic();
 
         case TokenId::CompilerUp:
         case TokenId::Identifier:

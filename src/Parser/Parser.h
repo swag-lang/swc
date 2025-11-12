@@ -153,6 +153,8 @@ class Parser
     AstNodeRef parseReturn();
     AstNodeRef parseUnreachable();
     AstNodeRef parseContinue();
+    AstNodeRef parseBreak();
+    AstNodeRef parseFallThrough();
 
     template<AstNodeId ID>
     AstNodeRef parseCompound(TokenId tokenStartId, bool endStmt = false)

@@ -1543,6 +1543,35 @@ struct AstContinue : AstNode
     }
 };
 
+struct AstBreak : AstNode
+{
+    static constexpr auto ID = AstNodeId::Break;
+    AstBreak() :
+        AstNode(ID)
+    {
+    }
+};
+
+struct AstScopedBreak : AstNode
+{
+    static constexpr auto ID = AstNodeId::ScopedBreak;
+    AstScopedBreak() :
+        AstNode(ID)
+    {
+    }
+
+    TokenRef tokName;
+};
+
+struct AstFallThrough : AstNode
+{
+    static constexpr auto ID = AstNodeId::FallThrough;
+    AstFallThrough() :
+        AstNode(ID)
+    {
+    }
+};
+
 //========================================================================================
 //========================================================================================
 

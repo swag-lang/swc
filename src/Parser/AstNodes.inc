@@ -161,3 +161,6 @@ SWC_NODE_DEF(Undefined)
 // Code
 SWC_NODE_DEF(Unreachable)
 SWC_NODE_DEF(Continue)
+SWC_NODE_DEF(Break)
+SWC_NODE_DEF(ScopedBreak)
+SWC_NODE_DEF(FallThrough)

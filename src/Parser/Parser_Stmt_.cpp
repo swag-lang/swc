@@ -102,6 +102,32 @@ AstNodeRef Parser::parseContinue()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseBreak()
+{
+    if (nextIs(TokenId::KwdTo))
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ScopedBreak>();
+        consumeAssert(TokenId::KwdBreak);
+        consumeAssert(TokenId::KwdTo);
+        nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+        expectEndStatement();
+        return nodeRef;
+    }
+
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Break>();
+    consume();
+    expectEndStatement();
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseFallThrough()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FallThrough>();
+    consume();
+    expectEndStatement();
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseTopLevelStmt()
 {
     switch (id())
@@ -263,8 +289,12 @@ AstNodeRef Parser::parseEmbeddedStmt()
             return parseReturn();
         case TokenId::KwdUnreachable:
             return parseUnreachable();
+        case TokenId::KwdBreak:
+            return parseBreak();
         case TokenId::KwdContinue:
             return parseContinue();
+        case TokenId::KwdFallThrough:
+            return parseFallThrough();            
 
         default:
             // @skip

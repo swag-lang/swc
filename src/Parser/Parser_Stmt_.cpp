@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Parser/AstNode.h"
 #include "Parser/Parser.h"
 #include "Report/Diagnostic.h"
 
@@ -35,6 +34,7 @@ AstNodeRef Parser::parseUsing()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingDecl>();
     consume();
     nodePtr->spanChildren = parseCompoundContent(AstNodeId::UsingDecl, TokenId::Invalid, true);
+    
     expectEndStatement();
     return nodeRef;
 }
@@ -66,11 +66,10 @@ AstNodeRef Parser::parseAlias()
         nodePtr->nodeExpr = parseType();
     else if (Token::isType(id()))
         nodePtr->nodeExpr = parseType();
-    else if (is(TokenId::Identifier))
-        nodePtr->nodeExpr = parseQualifiedIdentifier();
     else
-        nodePtr->nodeExpr = parsePrimaryExpression();
+        nodePtr->nodeExpr = parseExpression();
 
+    expectEndStatement();
     return nodeRef;
 }
 
@@ -233,7 +232,7 @@ AstNodeRef Parser::parseIntrinsicInit()
         nodePtr->spanArgs = parseCompoundContent(AstNodeId::UnnamedArgList, TokenId::SymLeftParen);
     else
         nodePtr->spanArgs.setInvalid();
-    
+
     expectEndStatement();
     return nodeRef;
 }
@@ -478,6 +477,11 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::KwdIf:
             return parseIf();
 
+        case TokenId::KwdUsing:
+            return parseUsing();
+        case TokenId::KwdAlias:
+            return parseAlias();            
+
         case TokenId::IntrinsicInit:
             return parseIntrinsicInit();
         case TokenId::IntrinsicDrop:
@@ -498,7 +502,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::KwdCase:
         case TokenId::KwdDefault:
         case TokenId::KwdMe:
-        case TokenId::KwdUsing:
         case TokenId::KwdDRef:
         case TokenId::KwdDiscard:
         case TokenId::KwdThrow:
@@ -507,7 +510,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::KwdTry:
         case TokenId::KwdTryCatch:
         case TokenId::IntrinsicPrint:
-        case TokenId::KwdAlias:
         case TokenId::CompilerUp:
         case TokenId::SymLeftParen:
         case TokenId::CompilerUniq0:

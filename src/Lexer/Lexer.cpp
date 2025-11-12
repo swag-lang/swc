@@ -681,15 +681,14 @@ void Lexer::lexIdentifier()
         buffer_++;
 
     const auto name = std::string_view(reinterpret_cast<std::string_view::const_pointer>(startToken_), buffer_ - startToken_);
-
-    // Is this a keyword?
-    const uint64_t hash64 = hash(name);
-    token_.id             = ctx_->global().langSpec().keyword(name, hash64);
-    if (token_.id == TokenId::Identifier)
+    if (name[0] == '#' && name.length() > 1 && name[1] >= 'A' && name[1] <= 'Z')
+        token_.id = TokenId::SharpIdentifier;
+    else
     {
-        if (name[0] == '#' && name.length() > 1 && name[1] >= 'A' && name[1] <= 'Z')
-            token_.id = TokenId::SharpIdentifier;
-        else
+        // Is this a keyword?
+        const uint64_t hash64 = hash(name);
+        token_.id             = ctx_->global().langSpec().keyword(name, hash64);
+        if (token_.id == TokenId::Identifier)
         {
             if (name[0] == '#')
                 raiseTokenError(DiagnosticId::parser_err_invalid_compiler, startOffset_, static_cast<uint32_t>(name.size()));

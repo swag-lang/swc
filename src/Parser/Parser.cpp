@@ -289,7 +289,7 @@ void Parser::expectEndStatement()
     diag.report(*ctx_);
 }
 
-Result Parser::parse(TaskContext& ctx)
+Result Parser::parse(TaskContext& ctx, LexerFlags lexerFlags)
 {
 #if SWC_HAS_STATS
     Timer time(&Stats::get().timeParser);
@@ -305,7 +305,7 @@ Result Parser::parse(TaskContext& ctx)
     // Lexer
     Lexer lexer;
     SWC_CHECK(file_->unittest_.tokenize(ctx));
-    SWC_CHECK(lexer.tokenize(ctx));
+    SWC_CHECK(lexer.tokenize(ctx, lexerFlags));
 
     SWC_ASSERT(!file_->lexOut_.tokens().empty());
     if (file_->hasFlag(FileFlagsE::LexOnly))

@@ -20,10 +20,10 @@ Result CompilerInstance::cmdSyntax()
     for (const auto& f : global.fileMgr().files())
     {
         auto job  = std::make_shared<Job>(context_);
-        job->func = [f](TaskContext& fnCtx) {
+        job->func = [f](TaskContext& taskCtx) {
             Parser parser;
-            fnCtx.setSourceFile(f);
-            parser.parse(fnCtx);
+            taskCtx.setSourceFile(f);
+            parser.parse(taskCtx);
             return JobResult::Done;
         };
 

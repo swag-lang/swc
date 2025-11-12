@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/SmallVector.h"
+#include "Lexer/Lexer.h"
 #include "Lexer/Token.h"
 #include "Parser/Ast.h"
 #include "Parser/AstNode.h"
@@ -203,7 +204,7 @@ class Parser
     void               raiseExpected(DiagnosticId id, TokenRef tknRef, TokenId tknExpected);
 
 public:
-    Result parse(TaskContext& ctx);
+    Result parse(TaskContext& ctx, LexerFlags lexerFlags = LexerFlagsE::Default);
 };
 
 SWC_END_NAMESPACE()

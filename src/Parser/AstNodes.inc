@@ -1,162 +1,54 @@
+// -----------------------------------------------------------------------------
+//  SWC Node Definitions — Logically Grouped
+// -----------------------------------------------------------------------------
+
+// Sentinel
 SWC_NODE_DEF(Invalid)
 
-// Structural
+// -----------------------------------------------------------------------------
+//  Program & Module Structure
+// -----------------------------------------------------------------------------
 SWC_NODE_DEF(File)
 SWC_NODE_DEF(TopLevelBlock)
 SWC_NODE_DEF(EmbeddedBlock)
+SWC_NODE_DEF(TopLevelCall)
 SWC_NODE_DEF(Namespace)
 SWC_NODE_DEF(UsingNamespace)
-SWC_NODE_DEF(Dependencies)
 SWC_NODE_DEF(UsingDecl)
 SWC_NODE_DEF(UsingVarDecl)
+SWC_NODE_DEF(Dependencies)
+SWC_NODE_DEF(Alias)
 SWC_NODE_DEF(AccessModifier)
 SWC_NODE_DEF(ConstraintBlock)
 SWC_NODE_DEF(ConstraintExpr)
-SWC_NODE_DEF(Alias)
-SWC_NODE_DEF(TryCatchAssumeExpr)
 SWC_NODE_DEF(InterfaceDecl)
 SWC_NODE_DEF(InterfaceBody)
-SWC_NODE_DEF(TopLevelCall)
 
-// Identifiers & References
-SWC_NODE_DEF(Identifier)
-SWC_NODE_DEF(PreQualifiedIdentifier)
-SWC_NODE_DEF(AncestorIdentifier)
-SWC_NODE_DEF(PostfixIdentifier)
-SWC_NODE_DEF(MultiPostfixIdentifier)
-SWC_NODE_DEF(ScopeResolution)
+// -----------------------------------------------------------------------------
+//  Declarations
+// -----------------------------------------------------------------------------
 
-// Postfix
-SWC_NODE_DEF(IndexExpr)
-SWC_NODE_DEF(MultiIndexExpr)
-SWC_NODE_DEF(SlicingExpr)
-SWC_NODE_DEF(StructInitializerList)
-
-// Expressions — Unary & Binary
-SWC_NODE_DEF(ParenExpr)
-SWC_NODE_DEF(LogicalExpr)
-SWC_NODE_DEF(RelationalExpr)
-SWC_NODE_DEF(BinaryExpr)
-SWC_NODE_DEF(UnaryExpr)
-SWC_NODE_DEF(InitializerExpr)
-SWC_NODE_DEF(BinaryConditionalOp)
-SWC_NODE_DEF(ConditionalOp)
-SWC_NODE_DEF(DeRefOp)
-SWC_NODE_DEF(MoveRefOp)
-
-// Type Casting & Checks
-SWC_NODE_DEF(ExplicitCastExpr)
-SWC_NODE_DEF(AutoCastExpr)
-SWC_NODE_DEF(AsCastExpr)
-SWC_NODE_DEF(IsTypeExpr)
-
-// Literals
-SWC_NODE_DEF(ArrayLiteral)
-SWC_NODE_DEF(StructLiteral)
-SWC_NODE_DEF(BoolLiteral)
-SWC_NODE_DEF(CharacterLiteral)
-SWC_NODE_DEF(CompilerLiteral)
-SWC_NODE_DEF(FloatLiteral)
-SWC_NODE_DEF(IntegerLiteral)
-SWC_NODE_DEF(NullLiteral)
-SWC_NODE_DEF(PostfixedLiteral)
-SWC_NODE_DEF(StringLiteral)
-
-// Compiler Builtins
-SWC_NODE_DEF(CompilerAssert)
-SWC_NODE_DEF(CompilerError)
-SWC_NODE_DEF(CompilerWarning)
-SWC_NODE_DEF(CompilerFunc)
-SWC_NODE_DEF(CompilerShortFunc)
-SWC_NODE_DEF(CompilerEmbeddedFunc)
-SWC_NODE_DEF(CompilerMessageFunc)
-SWC_NODE_DEF(CompilerExpr)
-SWC_NODE_DEF(CompilerPrint)
-SWC_NODE_DEF(CompilerCallUnary)
-SWC_NODE_DEF(CompilerTypeExpr)
-SWC_NODE_DEF(CompilerGlobal)
-SWC_NODE_DEF(CompilerImport)
-SWC_NODE_DEF(CompilerScope)
-
-// Intrinsics
-SWC_NODE_DEF(IntrinsicCallZero)
-SWC_NODE_DEF(IntrinsicCallUnary)
-SWC_NODE_DEF(IntrinsicCallBinary)
-SWC_NODE_DEF(IntrinsicCallTernary)
-SWC_NODE_DEF(IntrinsicValue)
-
-// Types
-SWC_NODE_DEF(ArrayType)
-SWC_NODE_DEF(BlockPointerType)
-SWC_NODE_DEF(BuiltinType)
-SWC_NODE_DEF(IncompleteArrayType)
-SWC_NODE_DEF(LRefType)
-SWC_NODE_DEF(RRefType)
-SWC_NODE_DEF(NamedType)
-SWC_NODE_DEF(PointerType)
-SWC_NODE_DEF(QualifiedType)
-SWC_NODE_DEF(SliceType)
-SWC_NODE_DEF(LambdaType)
-SWC_NODE_DEF(RetValType)
-SWC_NODE_DEF(CodeType)
-SWC_NODE_DEF(VariadicType)
-SWC_NODE_DEF(TypedVariadicType)
-
-// Structs
+// Structs & Unions
 SWC_NODE_DEF(AggregateBody)
 SWC_NODE_DEF(StructDecl)
 SWC_NODE_DEF(UnionDecl)
 SWC_NODE_DEF(AnonymousStructDecl)
 SWC_NODE_DEF(AnonymousUnionDecl)
 
-// Declarations & Implementations
+// Enums
+SWC_NODE_DEF(EnumDecl)
+SWC_NODE_DEF(EnumValue)
+SWC_NODE_DEF(EnumUse)
+SWC_NODE_DEF(ImplEnum)
+
+// Implementations
 SWC_NODE_DEF(Impl)
 SWC_NODE_DEF(ImplFor)
 
-// Enums
-SWC_NODE_DEF(EnumDecl)
-SWC_NODE_DEF(ImplEnum)
-SWC_NODE_DEF(EnumValue)
-SWC_NODE_DEF(EnumUse)
-
 // Functions
-SWC_NODE_DEF(Call)
 SWC_NODE_DEF(AttrDecl)
 SWC_NODE_DEF(FunctionDecl)
 SWC_NODE_DEF(FunctionBody)
-SWC_NODE_DEF(LambdaTypeParam)
-SWC_NODE_DEF(LambdaTypeParamList)
-SWC_NODE_DEF(FunctionParamList)
-SWC_NODE_DEF(ClosureCapture)
-SWC_NODE_DEF(ClosureCaptureList)
-SWC_NODE_DEF(FunctionExpr)
-SWC_NODE_DEF(ClosureExpr)
-SWC_NODE_DEF(FuncParamMe)
-SWC_NODE_DEF(Return)
-
-// Parameters / Arguments
-SWC_NODE_DEF(NamedArgList)
-SWC_NODE_DEF(NamedArgument)
-SWC_NODE_DEF(UnnamedArgList)
-SWC_NODE_DEF(UnnamedArgument)
-SWC_NODE_DEF(GenericParamList)
-SWC_NODE_DEF(GenericValueParam)
-SWC_NODE_DEF(GenericTypeParam)
-
-// Control Flow
-SWC_NODE_DEF(CompilerIf)
-SWC_NODE_DEF(CompilerElse)
-SWC_NODE_DEF(CompilerElseIf)
-SWC_NODE_DEF(If)
-SWC_NODE_DEF(VarIf)
-SWC_NODE_DEF(Else)
-SWC_NODE_DEF(ElseIf)
-SWC_NODE_DEF(While)
-SWC_NODE_DEF(Foreach)
-
-// Attributes
-SWC_NODE_DEF(Attribute)
-SWC_NODE_DEF(AttributeList)
 
 // Variables / Constants
 SWC_NODE_DEF(VarDecl)
@@ -165,20 +57,179 @@ SWC_NODE_DEF(VarMultiDecl)
 SWC_NODE_DEF(DecompositionDecl)
 SWC_NODE_DEF(Undefined)
 
-// Code
-SWC_NODE_DEF(Unreachable)
-SWC_NODE_DEF(Continue)
-SWC_NODE_DEF(Break)
-SWC_NODE_DEF(ScopedBreak)
-SWC_NODE_DEF(FallThrough)
-SWC_NODE_DEF(DeferDecl)
-SWC_NODE_DEF(With)
-SWC_NODE_DEF(VarWith)
+// -----------------------------------------------------------------------------
+//  Types
+// -----------------------------------------------------------------------------
+SWC_NODE_DEF(NamedType)
+SWC_NODE_DEF(QualifiedType)
+SWC_NODE_DEF(BuiltinType)
+SWC_NODE_DEF(PointerType)
+SWC_NODE_DEF(BlockPointerType)
+SWC_NODE_DEF(LRefType)
+SWC_NODE_DEF(RRefType)
+SWC_NODE_DEF(SliceType)
+SWC_NODE_DEF(ArrayType)
+SWC_NODE_DEF(IncompleteArrayType)
+SWC_NODE_DEF(LambdaType)
+SWC_NODE_DEF(RetValType)
+SWC_NODE_DEF(CodeType)
+SWC_NODE_DEF(VariadicType)
+SWC_NODE_DEF(TypedVariadicType)
+
+// -----------------------------------------------------------------------------
+//  Identifiers & Name Resolution
+// -----------------------------------------------------------------------------
+SWC_NODE_DEF(Identifier)
+SWC_NODE_DEF(PreQualifiedIdentifier)
+SWC_NODE_DEF(AncestorIdentifier)
+SWC_NODE_DEF(PostfixIdentifier)
+SWC_NODE_DEF(MultiPostfixIdentifier)
+SWC_NODE_DEF(ScopeResolution)
+
+// -----------------------------------------------------------------------------
+//  Parameters, Arguments & Generics
+// -----------------------------------------------------------------------------
+SWC_NODE_DEF(FunctionParamList)
+SWC_NODE_DEF(FuncParamMe)
+SWC_NODE_DEF(LambdaTypeParam)
+SWC_NODE_DEF(LambdaTypeParamList)
+SWC_NODE_DEF(NamedArgList)
+SWC_NODE_DEF(NamedArgument)
+SWC_NODE_DEF(UnnamedArgList)
+SWC_NODE_DEF(UnnamedArgument)
+SWC_NODE_DEF(GenericParamList)
+SWC_NODE_DEF(GenericTypeParam)
+SWC_NODE_DEF(GenericValueParam)
+
+// -----------------------------------------------------------------------------
+//  Expressions
+// -----------------------------------------------------------------------------
+
+// Primary & Grouping
+SWC_NODE_DEF(ParenExpr)
+SWC_NODE_DEF(InitializerExpr)
+
+// Unary, Binary, Logical, Relational
+SWC_NODE_DEF(UnaryExpr)
+SWC_NODE_DEF(BinaryExpr)
+SWC_NODE_DEF(LogicalExpr)
+SWC_NODE_DEF(RelationalExpr)
+SWC_NODE_DEF(BinaryConditionalOp)
+SWC_NODE_DEF(ConditionalOp)
+SWC_NODE_DEF(DeRefOp)
+SWC_NODE_DEF(MoveRefOp)
+
+// Postfix
+SWC_NODE_DEF(IndexExpr)
+SWC_NODE_DEF(MultiIndexExpr)
+SWC_NODE_DEF(SlicingExpr)
+SWC_NODE_DEF(StructInitializerList)
+
+// Function Calls & Lambdas
+SWC_NODE_DEF(Call)
+SWC_NODE_DEF(FunctionExpr)
+SWC_NODE_DEF(ClosureExpr)
+
+// Exceptional
+SWC_NODE_DEF(TryCatchAssumeExpr)
+
+// -----------------------------------------------------------------------------
+//  Type Casting & Checks
+// -----------------------------------------------------------------------------
+SWC_NODE_DEF(ExplicitCastExpr)
+SWC_NODE_DEF(AutoCastExpr)
+SWC_NODE_DEF(AsCastExpr)
+SWC_NODE_DEF(IsTypeExpr)
+
+// -----------------------------------------------------------------------------
+//  Literals
+// -----------------------------------------------------------------------------
+SWC_NODE_DEF(BoolLiteral)
+SWC_NODE_DEF(CharacterLiteral)
+SWC_NODE_DEF(FloatLiteral)
+SWC_NODE_DEF(IntegerLiteral)
+SWC_NODE_DEF(NullLiteral)
+SWC_NODE_DEF(StringLiteral)
+SWC_NODE_DEF(ArrayLiteral)
+SWC_NODE_DEF(StructLiteral)
+SWC_NODE_DEF(CompilerLiteral)
+SWC_NODE_DEF(PostfixedLiteral)
+
+// -----------------------------------------------------------------------------
+//  Attributes
+// -----------------------------------------------------------------------------
+SWC_NODE_DEF(Attribute)
+SWC_NODE_DEF(AttributeList)
+
+// -----------------------------------------------------------------------------
+//  Compiler Directives & Meta
+// -----------------------------------------------------------------------------
+SWC_NODE_DEF(CompilerAssert)
+SWC_NODE_DEF(CompilerError)
+SWC_NODE_DEF(CompilerWarning)
+SWC_NODE_DEF(CompilerPrint)
+SWC_NODE_DEF(CompilerExpr)
+SWC_NODE_DEF(CompilerFunc)
+SWC_NODE_DEF(CompilerShortFunc)
+SWC_NODE_DEF(CompilerEmbeddedFunc)
+SWC_NODE_DEF(CompilerMessageFunc)
+SWC_NODE_DEF(CompilerCallUnary)
+SWC_NODE_DEF(CompilerTypeExpr)
+SWC_NODE_DEF(CompilerGlobal)
+SWC_NODE_DEF(CompilerImport)
+SWC_NODE_DEF(CompilerScope)
+
+// -----------------------------------------------------------------------------
+//  Intrinsics
+// -----------------------------------------------------------------------------
+SWC_NODE_DEF(IntrinsicCallZero)
+SWC_NODE_DEF(IntrinsicCallUnary)
+SWC_NODE_DEF(IntrinsicCallBinary)
+SWC_NODE_DEF(IntrinsicCallTernary)
+SWC_NODE_DEF(IntrinsicValue)
 SWC_NODE_DEF(IntrinsicInit)
 SWC_NODE_DEF(IntrinsicDrop)
 SWC_NODE_DEF(IntrinsicPostCopy)
 SWC_NODE_DEF(IntrinsicPostMove)
+
+// -----------------------------------------------------------------------------
+//  Control Flow & Statements
+// -----------------------------------------------------------------------------
+
+// Conditionals (runtime)
+SWC_NODE_DEF(If)
+SWC_NODE_DEF(ElseIf)
+SWC_NODE_DEF(Else)
+SWC_NODE_DEF(VarIf)
+
+// Loops
+SWC_NODE_DEF(While)
+SWC_NODE_DEF(Foreach)
+
+// Compiler Conditionals
+SWC_NODE_DEF(CompilerIf)
+SWC_NODE_DEF(CompilerElseIf)
+SWC_NODE_DEF(CompilerElse)
+
+// Exception Handling
 SWC_NODE_DEF(TryCatch)
 SWC_NODE_DEF(Throw)
 
+// Returns
+SWC_NODE_DEF(Return)
 
+// Jumps & Flow
+SWC_NODE_DEF(Break)
+SWC_NODE_DEF(ScopedBreak)
+SWC_NODE_DEF(Continue)
+SWC_NODE_DEF(FallThrough)
+SWC_NODE_DEF(Unreachable)
+
+// Defer / With
+SWC_NODE_DEF(DeferDecl)
+SWC_NODE_DEF(With)
+SWC_NODE_DEF(VarWith)
+
+// Closures
+SWC_NODE_DEF(ClosureCapture)
+SWC_NODE_DEF(ClosureCaptureList)

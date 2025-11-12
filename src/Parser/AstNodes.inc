@@ -125,6 +125,7 @@ SWC_NODE_DEF(StructInitializerList)
 SWC_NODE_DEF(Call)
 SWC_NODE_DEF(FunctionExpr)
 SWC_NODE_DEF(ClosureExpr)
+SWC_NODE_DEF(Discard)
 
 // Exceptional
 SWC_NODE_DEF(TryCatchAssumeExpr)

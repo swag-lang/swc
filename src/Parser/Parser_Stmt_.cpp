@@ -343,6 +343,14 @@ AstNodeRef Parser::parseThrow()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseDiscard()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Discard>();
+    consumeAssert(TokenId::KwdDiscard);
+    nodePtr->nodeExpr = parseExpression();
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseAffectStmt()
 {
     // @skip
@@ -554,14 +562,17 @@ AstNodeRef Parser::parseEmbeddedStmt()
             return parseWhile();
         case TokenId::KwdForeach:
             return parseForeach();
-            
+
         case TokenId::KwdAssume:
         case TokenId::KwdCatch:
         case TokenId::KwdTry:
         case TokenId::KwdTryCatch:
             return parseTryCatch();
         case TokenId::KwdThrow:
-            return parseThrow();            
+            return parseThrow();
+
+        case TokenId::KwdDiscard:
+            return parseDiscard();
 
         case TokenId::CompilerUp:
         case TokenId::Identifier:
@@ -595,14 +606,13 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::CompilerAlias8:
         case TokenId::CompilerAlias9:
             return parseAffectStmt();
-        
+
         case TokenId::KwdFor:
         case TokenId::CompilerInject:
         case TokenId::CompilerMacro:
         case TokenId::KwdSwitch:
         case TokenId::KwdCase:
         case TokenId::KwdDefault:
-        case TokenId::KwdDiscard:
         case TokenId::IntrinsicPrint:
             // @skip
             skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);

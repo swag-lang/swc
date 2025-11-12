@@ -175,6 +175,7 @@ class Parser
     AstNodeRef parseForeach();
     AstNodeRef parseTryCatch();
     AstNodeRef parseThrow();
+    AstNodeRef parseDiscard();
 
     template<AstNodeId ID>
     AstNodeRef parseCompound(TokenId tokenStartId, bool endStmt = false)

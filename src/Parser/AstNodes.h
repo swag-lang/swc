@@ -1778,6 +1778,17 @@ struct AstThrow : AstNode
     AstNodeRef nodeExpr;
 };
 
+struct AstDiscard : AstNode
+{
+    static constexpr auto ID = AstNodeId::Discard;
+    explicit AstDiscard() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeExpr;
+};
+
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 

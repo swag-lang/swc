@@ -711,8 +711,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
 
         case TokenId::KwdFor:
         case TokenId::CompilerInject:
-        case TokenId::KwdCase:
-        case TokenId::KwdDefault:
         case TokenId::IntrinsicPrint:
             // @skip
             skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);

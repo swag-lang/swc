@@ -292,26 +292,30 @@ AstNodeRef Parser::parseForeach()
     // Additional flags
     nodePtr->modifierFlags = parseModifiers();
 
+    SmallVector<TokenRef> tokNames;
+
     // By address
     if (consumeIf(TokenId::SymAmpersand).isValid())
     {
         nodePtr->addFlag(AstForeach::FlagsE::ByAddress);
+        const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+        tokNames.push_back(tokName);
     }
-
-    if (nextIsAny(TokenId::KwdIn, TokenId::SymComma))
+    else if (nextIsAny(TokenId::KwdIn, TokenId::SymComma))
     {
-        SmallVector<TokenRef> tokNames;
-        while (true)
-        {
-            auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
-            tokNames.push_back(tokName);
-            if (!consumeIf(TokenId::SymComma).isValid())
-                break;
-        }
-
-        nodePtr->spanNames = ast_->store_.push_span(tokNames.span());
-        expectAndConsume(TokenId::KwdIn, DiagnosticId::parser_err_expected_token);
+        const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+        tokNames.push_back(tokName);
     }
+
+    while (consumeIf(TokenId::SymComma).isValid())
+    {
+        auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+        tokNames.push_back(tokName);
+    }
+
+    nodePtr->spanNames = ast_->store_.push_span(tokNames.span());
+    if (!tokNames.empty())
+        expectAndConsume(TokenId::KwdIn, DiagnosticId::parser_err_expected_token_before);
 
     nodePtr->nodeExpr = parseExpression();
     if (consumeIf(TokenId::KwdWhere).isValid())

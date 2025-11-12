@@ -683,6 +683,8 @@ void Lexer::lexIdentifier()
     const auto name = std::string_view(reinterpret_cast<std::string_view::const_pointer>(startToken_), buffer_ - startToken_);
     if (name[0] == '#' && name.length() > 1 && name[1] >= 'A' && name[1] <= 'Z')
         token_.id = TokenId::SharpIdentifier;
+    else if (rawMode_)
+        token_.id = TokenId::Identifier;
     else
     {
         // Is this a keyword?

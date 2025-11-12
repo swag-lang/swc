@@ -10,7 +10,7 @@ namespace Os
     void initialize();
 
     void assertBox(const char* expr, const char* file, int line);
-    void panicBox(const char* title, const char* expr);
+    void panicBox(const char* expr);
     Utf8 systemError();
 
     fs::path getTemporaryFolder();

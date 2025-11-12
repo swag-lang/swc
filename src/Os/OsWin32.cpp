@@ -27,15 +27,29 @@ namespace Os
     void assertBox(const char* expr, const char* file, int line)
     {
         char msg[2048];
+        SWC_ASSERT(std::strlen(expr) < 1024);
 
         (void) snprintf(msg, sizeof(msg),
-                        "Assertion failed\n\n"
+                        "Assertion failed!\n\n"
                         "File: %s\n"
                         "Line: %d\n"
                         "Expression: %s\n",
                         file, line, expr);
+        panicBox(msg);
+    }
 
-        const auto result = MessageBoxA(nullptr, msg, "Swag meditation !", MB_CANCELTRYCONTINUE | MB_ICONERROR);
+    void panicBox(const char* expr)
+    {
+        char msg[2048];
+        SWC_ASSERT(std::strlen(expr) < 1024);
+
+        (void) snprintf(msg, sizeof(msg),
+                        "%s\n\n"
+                        "Press 'Cancel' to exit\n"
+                        "Press 'Retry' to break\n",
+                        expr);
+
+        const auto result = MessageBoxA(nullptr, msg, "Swc meditation!", MB_CANCELTRYCONTINUE | MB_ICONERROR);
         switch (result)
         {
             case IDCANCEL:
@@ -48,12 +62,6 @@ namespace Os
             default:
                 break;
         }
-    }
-
-    void panicBox(const char* title, const char* expr)
-    {
-        if (MessageBoxA(nullptr, expr, title, MB_OKCANCEL | MB_ICONERROR) == IDCANCEL)
-            std::exit(static_cast<int>(ExitCode::PanicBox)); // NOLINT(concurrency-mt-unsafe)
     }
 
     Utf8 systemError()

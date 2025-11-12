@@ -359,7 +359,7 @@ namespace
 
         if (Os::isDebuggerAttached() || ctx.cmdLine().dbgDevMode)
         {
-            Os::panicBox("[Developer Mode]", "Hardware exception raised!");
+            Os::panicBox("Hardware exception raised!");
             return SWC_EXCEPTION_CONTINUE_EXECUTION;
         }
 

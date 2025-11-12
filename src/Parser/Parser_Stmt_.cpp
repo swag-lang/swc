@@ -279,6 +279,13 @@ AstNodeRef Parser::parseWhile()
     return AstNodeRef::invalid();
 }
 
+AstNodeRef Parser::parseAffectStmt()
+{
+    // @skip
+    skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
+    return AstNodeRef::invalid();
+}
+
 AstNodeRef Parser::parseTopLevelStmt()
 {
     switch (id())
@@ -482,8 +489,39 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::KwdWhile:
             return parseWhile();
 
-        case TokenId::SymDot:
+        case TokenId::CompilerUp:
         case TokenId::Identifier:
+        case TokenId::SymDot:
+        case TokenId::SymLeftParen:
+        case TokenId::KwdDRef:
+        case TokenId::KwdMoveRef:
+        case TokenId::IntrinsicGetContext:
+        case TokenId::IntrinsicProcessInfos:
+        case TokenId::IntrinsicDbgAlloc:
+        case TokenId::IntrinsicSysAlloc:
+        case TokenId::KwdMe:
+        case TokenId::CompilerUniq0:
+        case TokenId::CompilerUniq1:
+        case TokenId::CompilerUniq2:
+        case TokenId::CompilerUniq3:
+        case TokenId::CompilerUniq4:
+        case TokenId::CompilerUniq5:
+        case TokenId::CompilerUniq6:
+        case TokenId::CompilerUniq7:
+        case TokenId::CompilerUniq8:
+        case TokenId::CompilerUniq9:
+        case TokenId::CompilerAlias0:
+        case TokenId::CompilerAlias1:
+        case TokenId::CompilerAlias2:
+        case TokenId::CompilerAlias3:
+        case TokenId::CompilerAlias4:
+        case TokenId::CompilerAlias5:
+        case TokenId::CompilerAlias6:
+        case TokenId::CompilerAlias7:
+        case TokenId::CompilerAlias8:
+        case TokenId::CompilerAlias9:
+            return parseAffectStmt();
+
         case TokenId::KwdFor:
         case TokenId::KwdForeach:
         case TokenId::CompilerInject:
@@ -491,8 +529,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::KwdSwitch:
         case TokenId::KwdCase:
         case TokenId::KwdDefault:
-        case TokenId::KwdMe:
-        case TokenId::KwdDRef:
         case TokenId::KwdDiscard:
         case TokenId::KwdThrow:
         case TokenId::KwdAssume:
@@ -500,17 +536,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::KwdTry:
         case TokenId::KwdTryCatch:
         case TokenId::IntrinsicPrint:
-        case TokenId::CompilerUp:
-        case TokenId::SymLeftParen:
-        case TokenId::CompilerUniq0:
-        case TokenId::CompilerUniq1:
-        case TokenId::CompilerUniq2:
-        case TokenId::CompilerAlias0:
-        case TokenId::CompilerAlias1:
-        case TokenId::CompilerAlias2:
-        case TokenId::IntrinsicGetContext:
-        case TokenId::IntrinsicDbgAlloc:
-        case TokenId::IntrinsicProcessInfos:
             // @skip
             skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
             return AstNodeRef::invalid();

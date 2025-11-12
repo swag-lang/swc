@@ -151,6 +151,7 @@ class Parser
     AstNodeRef parseSingleType();
     AstNodeRef parseStructDecl();
     AstNodeRef parseTopLevelStmt();
+    AstNodeRef parseAffectStmt();
     AstNodeRef parseSubType();
     AstNodeRef parseType();
     AstNodeRef parsePrefixExpr();

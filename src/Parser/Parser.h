@@ -56,6 +56,12 @@ class Parser
         return ((curToken_->id == ids) || ...);
     }
 
+    template<typename... IDS>
+    bool nextIsAny(IDS... ids) const
+    {
+        return ((curToken_[1].id == ids) || ...);
+    }
+
     TokenRef consumeAssert(TokenId id);
     TokenRef consume();
     TokenRef consumeIf(TokenId id);
@@ -156,6 +162,8 @@ class Parser
     AstNodeRef parseBreak();
     AstNodeRef parseFallThrough();
     AstNodeRef parseDefer();
+    AstNodeRef parseIfStmt();
+    AstNodeRef parseIf();
 
     template<AstNodeId ID>
     AstNodeRef parseCompound(TokenId tokenStartId, bool endStmt = false)

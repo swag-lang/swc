@@ -94,7 +94,7 @@ SWC_TOKEN_DEF(SymAttrStart, "#[", Symbol)
 
 SWC_TOKEN_DEF(KwdIf, "if",  KeywordLogic)
 SWC_TOKEN_DEF(KwdElse, "else",  KeywordLogic)
-SWC_TOKEN_DEF(KwdElif, "elif",  KeywordLogic)
+SWC_TOKEN_DEF(KwdElseIf, "elif",  KeywordLogic)
 SWC_TOKEN_DEF(KwdFor, "for",  KeywordLogic)
 SWC_TOKEN_DEF(KwdWhile, "while",  KeywordLogic)
 SWC_TOKEN_DEF(KwdSwitch, "switch",  KeywordLogic)

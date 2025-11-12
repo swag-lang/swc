@@ -146,6 +146,10 @@ SWC_NODE_DEF(GenericTypeParam)
 SWC_NODE_DEF(CompilerIf)
 SWC_NODE_DEF(CompilerElse)
 SWC_NODE_DEF(CompilerElseIf)
+SWC_NODE_DEF(If)
+SWC_NODE_DEF(VarIf)
+SWC_NODE_DEF(Else)
+SWC_NODE_DEF(ElseIf)
 
 // Attributes
 SWC_NODE_DEF(Attribute)
@@ -165,3 +169,4 @@ SWC_NODE_DEF(Break)
 SWC_NODE_DEF(ScopedBreak)
 SWC_NODE_DEF(FallThrough)
 SWC_NODE_DEF(DeferDecl)
+

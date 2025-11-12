@@ -1584,6 +1584,58 @@ struct AstDeferDecl : AstNode
     AstNodeRef       nodeBody;
 };
 
+struct AstIfBase : AstCompound
+{
+    explicit AstIfBase(AstNodeId nodeId) :
+        AstCompound(nodeId)
+    {
+    }
+
+    AstNodeRef nodeIfBlock;
+    AstNodeRef nodeElseBlock;
+};
+
+struct AstIf : AstIfBase
+{
+    static constexpr auto ID = AstNodeId::If;
+    AstIf() :
+        AstIfBase(ID)
+    {
+    }
+
+    AstNodeRef nodeCondition;
+};
+
+struct AstVarIf : AstIfBase
+{
+    static constexpr auto ID = AstNodeId::VarIf;
+    AstVarIf() :
+        AstIfBase(ID)
+    {
+    }
+
+    AstNodeRef nodeVar;
+    AstNodeRef nodeWhere;
+};
+
+struct AstElse : AstCompound
+{
+    static constexpr auto ID = AstNodeId::Else;
+    AstElse() :
+        AstCompound(ID)
+    {
+    }
+};
+
+struct AstElseIf : AstCompound
+{
+    static constexpr auto ID = AstNodeId::ElseIf;
+    AstElseIf() :
+        AstCompound(ID)
+    {
+    }
+};
+
 //========================================================================================
 //========================================================================================
 

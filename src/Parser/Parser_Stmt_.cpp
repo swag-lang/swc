@@ -174,7 +174,7 @@ AstNodeRef Parser::parseIf()
         nodePtr->nodeIfBlock = parseIfStmt();
         if (is(TokenId::KwdElseIf))
             nodePtr->nodeElseBlock = parseIf();
-        else if (consumeIf(TokenId::CompilerElse).isValid())
+        else if (consumeIf(TokenId::KwdElse).isValid())
             nodePtr->nodeElseBlock = parseIfStmt();
 
         return nodeRef;
@@ -191,7 +191,7 @@ AstNodeRef Parser::parseIf()
     nodePtr->nodeIfBlock = parseIfStmt();
     if (is(TokenId::KwdElseIf))
         nodePtr->nodeElseBlock = parseIf();
-    else if (consumeIf(TokenId::CompilerElse).isValid())
+    else if (consumeIf(TokenId::KwdElse).isValid())
         nodePtr->nodeElseBlock = parseIfStmt();
 
     return nodeRef;
@@ -306,6 +306,7 @@ AstNodeRef Parser::parseTopLevelStmt()
 
         default:
             raiseError(DiagnosticId::parser_err_unexpected_token, ref());
+            skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
             return AstNodeRef::invalid();
     }
 }
@@ -336,11 +337,15 @@ AstNodeRef Parser::parseEmbeddedStmt()
 
         case TokenId::IntrinsicAssert:
         case TokenId::IntrinsicFree:
+        case TokenId::IntrinsicCVaStart:
+        case TokenId::IntrinsicCVaEnd:
+        case TokenId::IntrinsicSetContext:
             return parseIntrinsicCallUnary();
 
         case TokenId::IntrinsicCompilerError:
         case TokenId::IntrinsicCompilerWarning:
         case TokenId::IntrinsicPanic:
+        case TokenId::IntrinsicAtomicAdd:
             return parseIntrinsicCallBinary();
 
         case TokenId::IntrinsicMemCpy:
@@ -396,8 +401,48 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::KwdIf:
             return parseIf();
 
-        default:
+        case TokenId::SymDot:
+        case TokenId::Identifier:
+        case TokenId::KwdFor:
+        case TokenId::KwdForeach:
+        case TokenId::CompilerInject:
+        case TokenId::CompilerMacro:
+        case TokenId::KwdWhile:
+        case TokenId::KwdSwitch:
+        case TokenId::KwdCase:
+        case TokenId::KwdDefault:
+        case TokenId::KwdMe:
+        case TokenId::KwdUsing:
+        case TokenId::KwdDRef:
+        case TokenId::KwdDiscard:
+        case TokenId::KwdThrow:
+        case TokenId::KwdAssume:
+        case TokenId::KwdCatch:
+        case TokenId::KwdTry:
+        case TokenId::KwdTryCatch:
+        case TokenId::IntrinsicPrint:
+        case TokenId::IntrinsicInit:
+        case TokenId::IntrinsicDrop:
+        case TokenId::IntrinsicPostCopy:
+        case TokenId::IntrinsicPostMove:
+        case TokenId::KwdAlias:
+        case TokenId::CompilerUp:
+        case TokenId::SymLeftParen:
+        case TokenId::CompilerUniq0:
+        case TokenId::CompilerUniq1:
+        case TokenId::CompilerUniq2:
+        case TokenId::CompilerAlias0:
+        case TokenId::CompilerAlias1:
+        case TokenId::CompilerAlias2:
+        case TokenId::IntrinsicGetContext:
+        case TokenId::IntrinsicDbgAlloc:
+        case TokenId::IntrinsicProcessInfos:
             // @skip
+            skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
+            return AstNodeRef::invalid();
+
+        default:
+            //raiseError(DiagnosticId::parser_err_unexpected_token, ref());
             skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
             return AstNodeRef::invalid();
     }

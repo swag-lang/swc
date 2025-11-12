@@ -30,19 +30,19 @@ class LangSpec
     void setup();
 
 public:
-    bool isBlank(uint32_t c) const { return charFlags_[c].has(CharFlagsE::Blank); }
-    bool isWhiteSpace(uint32_t c) const { return charFlags_[c].hasAny({CharFlagsE::Blank, CharFlagsE::Eol}); }
-    bool isEol(uint32_t c) const { return charFlags_[c].has(CharFlagsE::Eol); }
-    bool isDigit(uint32_t c) const { return charFlags_[c].has(CharFlagsE::Digit); }
-    bool isLetter(uint32_t c) const { return charFlags_[c].has(CharFlagsE::Letter); }
-    bool isAscii(uint32_t c) const { return charFlags_[c].has(CharFlagsE::Ascii); }
-    bool isHexNumber(uint32_t c) const { return charFlags_[c].has(CharFlagsE::HexNumber); }
-    bool isBinNumber(uint32_t c) const { return charFlags_[c].has(CharFlagsE::BinNumber); }
-    bool isNumberSep(uint32_t c) const { return charFlags_[c].has(CharFlagsE::NumberSep); }
-    bool isIdentifierStart(uint32_t c) const { return charFlags_[c].has(CharFlagsE::IdentifierStart); }
-    bool isIdentifierPart(uint32_t c) const { return charFlags_[c].has(CharFlagsE::IdentifierPart); }
-    bool isEscape(uint32_t c) const { return charFlags_[c].has(CharFlagsE::Escape); }
-    bool isOption(uint32_t c) const { return charFlags_[c].has(CharFlagsE::Option); }
+    bool isBlank(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::Blank); }
+    bool isWhiteSpace(uint32_t c) const { return c < 256 && charFlags_[c].hasAny({CharFlagsE::Blank, CharFlagsE::Eol}); }
+    bool isEol(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::Eol); }
+    bool isDigit(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::Digit); }
+    bool isLetter(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::Letter); }
+    bool isAscii(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::Ascii); }
+    bool isHexNumber(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::HexNumber); }
+    bool isBinNumber(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::BinNumber); }
+    bool isNumberSep(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::NumberSep); }
+    bool isIdentifierStart(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::IdentifierStart); }
+    bool isIdentifierPart(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::IdentifierPart); }
+    bool isEscape(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::Escape); }
+    bool isOption(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::Option); }
 
     TokenId keyword(std::string_view name, uint64_t hash) const;
     TokenId keyword(std::string_view name) const;

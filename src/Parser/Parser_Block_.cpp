@@ -12,6 +12,7 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
     // Compiler instructions
     if (blockNodeId == AstNodeId::File ||
         blockNodeId == AstNodeId::TopLevelBlock ||
+        blockNodeId == AstNodeId::EmbeddedBlock ||
         blockNodeId == AstNodeId::ImplEnum ||
         blockNodeId == AstNodeId::Impl ||
         blockNodeId == AstNodeId::ImplFor ||

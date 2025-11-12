@@ -1,7 +1,3 @@
-// -----------------------------------------------------------------------------
-//  SWC Node Definitions — Logically Grouped
-// -----------------------------------------------------------------------------
-
 // Sentinel
 SWC_NODE_DEF(Invalid)
 
@@ -228,7 +224,7 @@ SWC_NODE_DEF(Unreachable)
 // Defer / With
 SWC_NODE_DEF(DeferDecl)
 SWC_NODE_DEF(With)
-SWC_NODE_DEF(VarWith)
+SWC_NODE_DEF(WithVar)
 
 // Closures
 SWC_NODE_DEF(ClosureCapture)

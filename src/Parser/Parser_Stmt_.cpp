@@ -179,7 +179,7 @@ AstNodeRef Parser::parseWith()
 {
     if (nextIsAny(TokenId::KwdVar, TokenId::KwdLet))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarWith>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::WithVar>();
         consume();
         nodePtr->nodeVar  = parseVarDecl();
         nodePtr->nodeBody = parseEmbeddedStmt();

@@ -1659,10 +1659,10 @@ struct AstWith : AstNode
     AstNodeRef nodeBody;
 };
 
-struct AstVarWith : AstNode
+struct AstWithVar : AstNode
 {
-    static constexpr auto ID = AstNodeId::VarWith;
-    AstVarWith() :
+    static constexpr auto ID = AstNodeId::WithVar;
+    AstWithVar() :
         AstNode(ID)
     {
     }

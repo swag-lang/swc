@@ -166,7 +166,7 @@ class Parser
     AstNodeRef parseStructDecl();
     AstNodeRef parseSubType();
     AstNodeRef parseSwitch();
-    AstNodeRef parseSwitchCase();
+    AstNodeRef parseSwitchCaseDefault();
     AstNodeRef parseSwitchCaseExpression();
     AstNodeRef parseThrow();
     AstNodeRef parseTopLevelCall();

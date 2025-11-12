@@ -351,32 +351,6 @@ AstNodeRef Parser::parseDiscard()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseSwitchCase()
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SwitchCase>();
-    if (consumeIf(TokenId::KwdCase).isValid())
-    {
-        SmallVector<AstNodeRef> nodeExpressions;
-        auto                    nodeExpr = parseSwitchCaseExpression();
-        nodeExpressions.push_back(nodeExpr);
-        while (consumeIf(TokenId::SymComma).isValid())
-        {
-            nodeExpr = parseSwitchCaseExpression();
-            nodeExpressions.push_back(nodeExpr);
-        }
-    }
-    else
-        consume();
-
-    if (consumeIf(TokenId::KwdWhere).isValid())
-        nodePtr->nodeWhere = parseExpression();
-    else
-        nodePtr->nodeWhere.setInvalid();
-
-    expectAndConsume(TokenId::SymColon, DiagnosticId::parser_err_expected_token_before);
-    return nodeRef;
-}
-
 AstNodeRef Parser::parseSwitchCaseExpression()
 {
     const auto nodeExpr = parseExpression();
@@ -392,6 +366,34 @@ AstNodeRef Parser::parseSwitchCaseExpression()
     }
 
     return nodeExpr;
+}
+
+AstNodeRef Parser::parseSwitchCaseDefault()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SwitchCase>();
+    if (consumeIf(TokenId::KwdCase).isValid())
+    {
+        SmallVector<AstNodeRef> nodeExpressions;
+        auto                    nodeExpr = parseSwitchCaseExpression();
+        nodeExpressions.push_back(nodeExpr);
+        while (consumeIf(TokenId::SymComma).isValid())
+        {
+            nodeExpr = parseSwitchCaseExpression();
+            nodeExpressions.push_back(nodeExpr);
+        }
+
+        nodePtr->spanExpr = ast_->store_.push_span(nodeExpressions.span());
+    }
+    else
+        consume();
+
+    if (consumeIf(TokenId::KwdWhere).isValid())
+        nodePtr->nodeWhere = parseExpression();
+    else
+        nodePtr->nodeWhere.setInvalid();
+
+    expectAndConsume(TokenId::SymColon, DiagnosticId::parser_err_expected_token_before);
+    return nodeRef;
 }
 
 AstNodeRef Parser::parseSwitch()
@@ -422,7 +424,7 @@ AstNodeRef Parser::parseSwitch()
                     currentCase->spanChildren = ast_->store_.push_span(nodeStmts.span());
                 nodeStmts.clear();
 
-                auto caseRef = parseSwitchCase();
+                auto caseRef = parseSwitchCaseDefault();
                 nodeChildren.push_back(caseRef);
                 currentCase = ast_->node<AstNodeId::SwitchCase>(caseRef);
                 break;

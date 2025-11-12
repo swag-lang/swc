@@ -104,6 +104,7 @@ SWC_NODE_DEF(GenericValueParam)
 // Primary & Grouping
 SWC_NODE_DEF(ParenExpr)
 SWC_NODE_DEF(InitializerExpr)
+SWC_NODE_DEF(RangeExpr)
 
 // Unary, Binary, Logical, Relational
 SWC_NODE_DEF(UnaryExpr)
@@ -203,6 +204,10 @@ SWC_NODE_DEF(VarIf)
 // Loops
 SWC_NODE_DEF(While)
 SWC_NODE_DEF(Foreach)
+
+// Switch
+SWC_NODE_DEF(Switch)
+SWC_NODE_DEF(SwitchCase)
 
 // Compiler Conditionals
 SWC_NODE_DEF(CompilerIf)

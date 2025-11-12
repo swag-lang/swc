@@ -1789,6 +1789,29 @@ struct AstDiscard : AstNode
     AstNodeRef nodeExpr;
 };
 
+struct AstSwitch : AstCompound
+{
+    static constexpr auto ID = AstNodeId::Switch;
+    explicit AstSwitch() :
+        AstCompound(ID)
+    {
+    }
+
+    AstNodeRef nodeExpr;
+};
+
+struct AstSwitchCase : AstCompound
+{
+    static constexpr auto ID = AstNodeId::SwitchCase;
+    explicit AstSwitchCase() :
+        AstCompound(ID)
+    {
+    }
+
+    SpanRef    spanExpr;
+    AstNodeRef nodeWhere;
+};
+
 struct AstCompilerMacro : AstNode
 {
     static constexpr auto ID = AstNodeId::CompilerMacro;
@@ -1798,6 +1821,25 @@ struct AstCompilerMacro : AstNode
     }
 
     AstNodeRef nodeBody;
+};
+
+struct AstRangeExpr : AstNode
+{
+    static constexpr auto ID = AstNodeId::RangeExpr;
+    explicit AstRangeExpr() :
+        AstNode(ID)
+    {
+    }
+
+    enum class FlagsE : Flags
+    {
+        Zero      = 0,
+        Inclusive = 1 << 0,
+    };
+    using Flags = EnumFlags<FlagsE>;
+
+    AstNodeRef nodeExprDown;
+    AstNodeRef nodeExprUp;
 };
 
 // -----------------------------------------------------------------------------

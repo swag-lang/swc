@@ -351,11 +351,97 @@ AstNodeRef Parser::parseDiscard()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseCompilerMacro()
+AstNodeRef Parser::parseSwitchCase()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerMacro>();
-    consumeAssert(TokenId::CompilerMacro);
-    nodePtr->nodeBody = parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SwitchCase>();
+    if (consumeIf(TokenId::KwdCase).isValid())
+    {
+        SmallVector<AstNodeRef> nodeExpressions;
+        auto                    nodeExpr = parseSwitchCaseExpression();
+        nodeExpressions.push_back(nodeExpr);
+        while (consumeIf(TokenId::SymComma).isValid())
+        {
+            nodeExpr = parseSwitchCaseExpression();
+            nodeExpressions.push_back(nodeExpr);
+        }
+    }
+    else
+        consume();
+
+    if (consumeIf(TokenId::KwdWhere).isValid())
+        nodePtr->nodeWhere = parseExpression();
+    else
+        nodePtr->nodeWhere.setInvalid();
+
+    expectAndConsume(TokenId::SymColon, DiagnosticId::parser_err_expected_token_before);
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseSwitchCaseExpression()
+{
+    const auto nodeExpr = parseExpression();
+    if (isAny(TokenId::KwdTo, TokenId::KwdUntil))
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::RangeExpr>();
+        if (is(TokenId::KwdTo))
+            nodePtr->addFlag(AstRangeExpr::FlagsE::Inclusive);
+        consume();
+        nodePtr->nodeExprDown = nodeExpr;
+        nodePtr->nodeExprUp   = parseExpression();
+        return nodeRef;
+    }
+
+    return nodeExpr;
+}
+
+AstNodeRef Parser::parseSwitch()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Switch>();
+    consumeAssert(TokenId::KwdSwitch);
+
+    if (isNot(TokenId::SymLeftCurly))
+        nodePtr->nodeExpr = parseExpression();
+    else
+        nodePtr->nodeExpr.setInvalid();
+
+    const auto openRef = ref();
+    expectAndConsume(TokenId::SymLeftCurly, DiagnosticId::parser_err_expected_token_before);
+
+    SmallVector<AstNodeRef> nodeChildren;
+    SmallVector<AstNodeRef> nodeStmts;
+    AstSwitchCase*          currentCase = nullptr;
+
+    while (isNot(TokenId::SymRightCurly) && !atEnd())
+    {
+        switch (id())
+        {
+            case TokenId::KwdDefault:
+            case TokenId::KwdCase:
+            {
+                if (currentCase)
+                    currentCase->spanChildren = ast_->store_.push_span(nodeStmts.span());
+                nodeStmts.clear();
+
+                auto caseRef = parseSwitchCase();
+                nodeChildren.push_back(caseRef);
+                currentCase = ast_->node<AstNodeId::SwitchCase>(caseRef);
+                break;
+            }
+
+            default:
+            {
+                auto stmtRef = parseEmbeddedStmt();
+                nodeStmts.push_back(stmtRef);
+                break;
+            }
+        }
+    }
+
+    if (currentCase)
+        currentCase->spanChildren = ast_->store_.push_span(nodeStmts.span());
+
+    nodePtr->spanChildren = ast_->store_.push_span(nodeChildren.span());
+    expectAndConsumeClosing(TokenId::SymRightCurly, openRef);
     return nodeRef;
 }
 
@@ -585,6 +671,9 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::KwdDiscard:
             return parseDiscard();
 
+        case TokenId::KwdSwitch:
+            return parseSwitch();
+
         case TokenId::CompilerUp:
         case TokenId::Identifier:
         case TokenId::SymDot:
@@ -620,7 +709,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
 
         case TokenId::KwdFor:
         case TokenId::CompilerInject:
-        case TokenId::KwdSwitch:
         case TokenId::KwdCase:
         case TokenId::KwdDefault:
         case TokenId::IntrinsicPrint:

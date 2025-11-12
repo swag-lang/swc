@@ -271,4 +271,12 @@ AstNodeRef Parser::parseCompilerScope()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseCompilerMacro()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerMacro>();
+    consumeAssert(TokenId::CompilerMacro);
+    nodePtr->nodeBody = parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
+    return nodeRef;
+}
+
 SWC_END_NAMESPACE()

@@ -324,6 +324,25 @@ AstNodeRef Parser::parseForeach()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseTryCatch()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TryCatch>();
+    nodePtr->tokOp          = consume();
+    if (is(TokenId::SymLeftCurly))
+        nodePtr->nodeBody = parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
+    else
+        nodePtr->nodeBody = parseExpression();
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseThrow()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Throw>();
+    consumeAssert(TokenId::KwdThrow);
+    nodePtr->nodeExpr = parseExpression();
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseAffectStmt()
 {
     // @skip
@@ -533,6 +552,16 @@ AstNodeRef Parser::parseEmbeddedStmt()
 
         case TokenId::KwdWhile:
             return parseWhile();
+        case TokenId::KwdForeach:
+            return parseForeach();
+            
+        case TokenId::KwdAssume:
+        case TokenId::KwdCatch:
+        case TokenId::KwdTry:
+        case TokenId::KwdTryCatch:
+            return parseTryCatch();
+        case TokenId::KwdThrow:
+            return parseThrow();            
 
         case TokenId::CompilerUp:
         case TokenId::Identifier:
@@ -566,10 +595,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::CompilerAlias8:
         case TokenId::CompilerAlias9:
             return parseAffectStmt();
-
-        case TokenId::KwdForeach:
-            return parseForeach();
-
+        
         case TokenId::KwdFor:
         case TokenId::CompilerInject:
         case TokenId::CompilerMacro:
@@ -577,11 +603,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::KwdCase:
         case TokenId::KwdDefault:
         case TokenId::KwdDiscard:
-        case TokenId::KwdThrow:
-        case TokenId::KwdAssume:
-        case TokenId::KwdCatch:
-        case TokenId::KwdTry:
-        case TokenId::KwdTryCatch:
         case TokenId::IntrinsicPrint:
             // @skip
             skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);

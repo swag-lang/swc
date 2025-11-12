@@ -1755,6 +1755,29 @@ struct AstForeach : AstNode
     AstNodeRef       nodeBody;
 };
 
+struct AstTryCatch : AstNode
+{
+    static constexpr auto ID = AstNodeId::TryCatch;
+    explicit AstTryCatch() :
+        AstNode(ID)
+    {
+    }
+
+    TokenRef   tokOp;
+    AstNodeRef nodeBody;
+};
+
+struct AstThrow : AstNode
+{
+    static constexpr auto ID = AstNodeId::Throw;
+    explicit AstThrow() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeExpr;
+};
+
 //========================================================================================
 //========================================================================================
 

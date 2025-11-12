@@ -178,5 +178,7 @@ SWC_NODE_DEF(IntrinsicInit)
 SWC_NODE_DEF(IntrinsicDrop)
 SWC_NODE_DEF(IntrinsicPostCopy)
 SWC_NODE_DEF(IntrinsicPostMove)
+SWC_NODE_DEF(TryCatch)
+SWC_NODE_DEF(Throw)
 
 

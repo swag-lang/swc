@@ -1732,6 +1732,29 @@ struct AstWhile : AstNode
     AstNodeRef nodeBody;
 };
 
+struct AstForeach : AstNode
+{
+    static constexpr auto ID = AstNodeId::Foreach;
+    explicit AstForeach() :
+        AstNode(ID)
+    {
+    }
+
+    enum class FlagsE : Flags
+    {
+        Zero      = 0,
+        ByAddress = 1 << 0,
+    };
+    using Flags = EnumFlags<FlagsE>;
+
+    TokenRef         tokSpecialization;
+    AstModifierFlags modifierFlags;
+    SpanRef          spanNames;
+    AstNodeRef       nodeExpr;
+    AstNodeRef       nodeWhere;
+    AstNodeRef       nodeBody;
+};
+
 //========================================================================================
 //========================================================================================
 

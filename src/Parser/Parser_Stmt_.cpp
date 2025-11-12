@@ -276,7 +276,48 @@ AstNodeRef Parser::parseWhile()
     consume();
     nodePtr->nodeExpr = parseExpression();
     nodePtr->nodeBody = parseDoCurlyBlock();
-    return AstNodeRef::invalid();
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseForeach()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Foreach>();
+    consumeAssert(TokenId::KwdForeach);
+
+    // Specialization
+    const auto str = tok().string(*file_);
+    if (str[0] == '#' && str.length() > 2 && str[1] >= 'A' && str[1] <= 'Z')
+        nodePtr->tokSpecialization = consume();
+
+    // Additional flags
+    nodePtr->modifierFlags = parseModifiers();
+
+    // By address
+    if (consumeIf(TokenId::SymAmpersand).isValid())
+    {
+        nodePtr->addFlag(AstForeach::FlagsE::ByAddress);
+    }
+
+    if (nextIsAny(TokenId::KwdIn, TokenId::SymComma))
+    {
+        SmallVector<TokenRef> tokNames;
+        while (true)
+        {
+            auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+            tokNames.push_back(tokName);
+            if (!consumeIf(TokenId::SymComma).isValid())
+                break;
+        }
+
+        nodePtr->spanNames = ast_->store_.push_span(tokNames.span());
+        expectAndConsume(TokenId::KwdIn, DiagnosticId::parser_err_expected_token);
+    }
+
+    nodePtr->nodeExpr = parseExpression();
+    if (consumeIf(TokenId::KwdWhere).isValid())
+        nodePtr->nodeWhere = parseExpression();
+    nodePtr->nodeBody = parseDoCurlyBlock();
+    return nodeRef;
 }
 
 AstNodeRef Parser::parseAffectStmt()
@@ -522,8 +563,10 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::CompilerAlias9:
             return parseAffectStmt();
 
-        case TokenId::KwdFor:
         case TokenId::KwdForeach:
+            return parseForeach();
+
+        case TokenId::KwdFor:
         case TokenId::CompilerInject:
         case TokenId::CompilerMacro:
         case TokenId::KwdSwitch:

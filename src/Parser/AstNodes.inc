@@ -143,7 +143,7 @@ SWC_NODE_DEF(GenericParamList)
 SWC_NODE_DEF(GenericValueParam)
 SWC_NODE_DEF(GenericTypeParam)
 
-// If/Else
+// Control Flow
 SWC_NODE_DEF(CompilerIf)
 SWC_NODE_DEF(CompilerElse)
 SWC_NODE_DEF(CompilerElseIf)
@@ -152,6 +152,7 @@ SWC_NODE_DEF(VarIf)
 SWC_NODE_DEF(Else)
 SWC_NODE_DEF(ElseIf)
 SWC_NODE_DEF(While)
+SWC_NODE_DEF(Foreach)
 
 // Attributes
 SWC_NODE_DEF(Attribute)
@@ -177,4 +178,5 @@ SWC_NODE_DEF(IntrinsicInit)
 SWC_NODE_DEF(IntrinsicDrop)
 SWC_NODE_DEF(IntrinsicPostCopy)
 SWC_NODE_DEF(IntrinsicPostMove)
+
 

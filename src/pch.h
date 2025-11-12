@@ -1,3 +1,4 @@
+// ReSharper disable CppClangTidyModernizeMacroToEnum
 #pragma once
 
 #include <algorithm>
@@ -38,6 +39,10 @@ namespace fs = std::filesystem;
 #define SWC_HAS_ASSERT         1
 #define SWC_HAS_STATS          1
 #define SWC_HAS_RACE_CONDITION 1
+#else
+#define SWC_HAS_ASSERT         0
+#define SWC_HAS_STATS          0
+#define SWC_HAS_RACE_CONDITION 0
 #endif
 
 #include "Core/Flags.h"

@@ -165,6 +165,7 @@ class Parser
     AstNodeRef parseDefer();
     AstNodeRef parseIfStmt();
     AstNodeRef parseIf();
+    AstNodeRef parseWith();
 
     template<AstNodeId ID>
     AstNodeRef parseCompound(TokenId tokenStartId, bool endStmt = false)

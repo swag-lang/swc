@@ -1215,7 +1215,6 @@ struct AstCompilerIf : AstCompound
     {
     }
 
-    TokenRef   tokIf;
     AstNodeRef nodeCondition;
     AstNodeRef nodeIfBlock;
     AstNodeRef nodeElseBlock;
@@ -1646,6 +1645,30 @@ struct AstElseIf : AstCompound
         AstCompound(ID)
     {
     }
+};
+
+struct AstWith : AstNode
+{
+    static constexpr auto ID = AstNodeId::With;
+    AstWith() :
+        AstNode(ID)
+    {
+    }
+    
+    AstNodeRef nodeExpr;
+    AstNodeRef nodeBody;    
+};
+
+struct AstVarWith : AstNode
+{
+    static constexpr auto ID = AstNodeId::VarWith;
+    AstVarWith() :
+        AstNode(ID)
+    {
+    }
+    
+    AstNodeRef nodeVar;
+    AstNodeRef nodeBody;
 };
 
 //========================================================================================

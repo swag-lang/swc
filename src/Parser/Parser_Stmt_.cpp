@@ -197,6 +197,24 @@ AstNodeRef Parser::parseIf()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseWith()
+{
+    if (nextIsAny(TokenId::KwdVar, TokenId::KwdLet))
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarWith>();
+        consume();
+        nodePtr->nodeVar  = parseVarDecl();
+        nodePtr->nodeBody = parseEmbeddedStmt();
+        return nodeRef;
+    }
+
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::With>();
+    consume();
+    nodePtr->nodeExpr = parseExpression();
+    nodePtr->nodeBody = parseEmbeddedStmt();
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseTopLevelStmt()
 {
     switch (id())
@@ -350,12 +368,16 @@ AstNodeRef Parser::parseEmbeddedStmt()
             return nodeRef;
         }
 
+        case TokenId::KwdWith:
+            return parseWith();
+
         case TokenId::CompilerAst:
         case TokenId::CompilerRun:
             return parseCompilerFunc();
 
         case TokenId::KwdReturn:
             return parseReturn();
+
         case TokenId::KwdUnreachable:
             return parseUnreachable();
         case TokenId::KwdBreak:

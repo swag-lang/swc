@@ -1,9 +1,9 @@
 SWC_NODE_DEF(Invalid)
 
 // Structural
+SWC_NODE_DEF(File)
 SWC_NODE_DEF(TopLevelBlock)
 SWC_NODE_DEF(EmbeddedBlock)
-SWC_NODE_DEF(File)
 SWC_NODE_DEF(Namespace)
 SWC_NODE_DEF(UsingNamespace)
 SWC_NODE_DEF(Dependencies)
@@ -170,4 +170,6 @@ SWC_NODE_DEF(Break)
 SWC_NODE_DEF(ScopedBreak)
 SWC_NODE_DEF(FallThrough)
 SWC_NODE_DEF(DeferDecl)
+SWC_NODE_DEF(With)
+SWC_NODE_DEF(VarWith)
 

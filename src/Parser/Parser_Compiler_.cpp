@@ -88,7 +88,7 @@ AstNodeRef Parser::parseCompilerIf(AstNodeId blockNodeId)
 {
     SWC_ASSERT(isAny(TokenId::CompilerIf, TokenId::CompilerElseIf));
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerIf>();
-    nodePtr->tokIf                = consume();
+    consume();
 
     // Parse the condition expression
     nodePtr->nodeCondition = parseExpression();

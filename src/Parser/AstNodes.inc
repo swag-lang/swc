@@ -76,6 +76,7 @@ SWC_NODE_DEF(CompilerCallUnary)
 SWC_NODE_DEF(CompilerTypeExpr)
 SWC_NODE_DEF(CompilerGlobal)
 SWC_NODE_DEF(CompilerImport)
+SWC_NODE_DEF(CompilerScope)
 
 // Intrinsics
 SWC_NODE_DEF(IntrinsicCallZero)

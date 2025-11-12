@@ -138,6 +138,18 @@ struct AstCompilerImport : AstNode
     TokenRef tokVersion;
 };
 
+struct AstCompilerScope : AstNode
+{
+    static constexpr auto ID = AstNodeId::CompilerScope;
+    AstCompilerScope() :
+        AstNode(ID)
+    {
+    }
+
+    TokenRef   tokName;
+    AstNodeRef nodeBody;
+};
+
 struct AstInternalCallZeroBase : AstNode
 {
     explicit AstInternalCallZeroBase(AstNodeId nodeId) :

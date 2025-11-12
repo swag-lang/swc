@@ -255,4 +255,20 @@ AstNodeRef Parser::parseCompilerImport()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseCompilerScope()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerScope>();
+    consume();
+
+    const auto openRef = ref();
+    if (consumeIf(TokenId::SymLeftParen).isValid())
+    {
+        nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
+        expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+    }
+
+    nodePtr->nodeBody = parseEmbeddedStmt();
+    return nodeRef;
+}
+
 SWC_END_NAMESPACE()

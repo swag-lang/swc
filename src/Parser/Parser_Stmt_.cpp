@@ -133,13 +133,8 @@ AstNodeRef Parser::parseDefer()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::DeferDecl>();
     consume();
     nodePtr->modifierFlags = parseModifiers();
-    if (is(TokenId::SymLeftCurly))
-        nodePtr->nodeBody = parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
-    else
-    {
-        nodePtr->nodeBody = parseEmbeddedStmt();
-        expectEndStatement();
-    }
+    nodePtr->nodeBody      = parseEmbeddedStmt();
+    expectEndStatement();
     return nodeRef;
 }
 
@@ -369,6 +364,9 @@ AstNodeRef Parser::parseEmbeddedStmt()
             return parseContinue();
         case TokenId::KwdFallThrough:
             return parseFallThrough();
+
+        case TokenId::CompilerScope:
+            return parseCompilerScope();
 
         case TokenId::KwdDefer:
             return parseDefer();

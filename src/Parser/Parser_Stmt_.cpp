@@ -128,6 +128,21 @@ AstNodeRef Parser::parseFallThrough()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseDefer()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::DeferDecl>();
+    consume();
+    nodePtr->modifierFlags = parseModifiers();
+    if (is(TokenId::SymLeftCurly))
+        nodePtr->nodeBody = parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
+    else
+    {
+        nodePtr->nodeBody = parseEmbeddedStmt();
+        expectEndStatement();
+    }
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseTopLevelStmt()
 {
     switch (id())
@@ -294,7 +309,10 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::KwdContinue:
             return parseContinue();
         case TokenId::KwdFallThrough:
-            return parseFallThrough();            
+            return parseFallThrough();
+
+        case TokenId::KwdDefer:
+            return parseDefer();
 
         default:
             // @skip

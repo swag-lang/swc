@@ -1572,6 +1572,18 @@ struct AstFallThrough : AstNode
     }
 };
 
+struct AstDeferDecl : AstNode
+{
+    static constexpr auto ID = AstNodeId::DeferDecl;
+    AstDeferDecl() :
+        AstNode(ID)
+    {
+    }
+
+    AstModifierFlags modifierFlags;
+    AstNodeRef       nodeBody;
+};
+
 //========================================================================================
 //========================================================================================
 

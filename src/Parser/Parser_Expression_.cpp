@@ -361,8 +361,7 @@ AstNodeRef Parser::parsePostFixExpression()
         consume();
         nodePtr->nodeExpr = nodeRef;
         nodePtr->nodeType = parseType();
-        nodeRef           = nodeParent;
-        return nodeRef;
+        return nodeParent;
     }
 
     // 'is'
@@ -372,8 +371,7 @@ AstNodeRef Parser::parsePostFixExpression()
         consume();
         nodePtr->nodeExpr = nodeRef;
         nodePtr->nodeType = parseType();
-        nodeRef           = nodeParent;
-        return nodeRef;
+        return nodeParent;
     }
 
     return nodeRef;

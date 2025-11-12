@@ -1842,6 +1842,17 @@ struct AstRangeExpr : AstNode
     AstNodeRef nodeExprUp;
 };
 
+struct AstIntrinsicCallVariadic : AstCompound
+{
+    static constexpr auto ID = AstNodeId::IntrinsicCallVariadic;
+    explicit AstIntrinsicCallVariadic() :
+        AstCompound(ID)
+    {
+    }
+
+    TokenRef tokName;
+};
+
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 

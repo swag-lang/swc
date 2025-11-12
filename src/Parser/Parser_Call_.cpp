@@ -83,6 +83,29 @@ AstNodeRef Parser::parseIntrinsicCallTernary()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseIntrinsicCallVariadic()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCallVariadic>();
+    nodePtr->tokName        = consume();
+
+    const auto openRef = ref();
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
+
+    SmallVector<AstNodeRef> nodeArgs;
+    auto                    nodeArg = parseExpression();
+    nodeArgs.push_back(nodeArg);
+
+    while (consumeIf(TokenId::SymComma).isValid())
+    {
+        nodeArg = parseExpression();
+        nodeArgs.push_back(nodeArg);
+    }
+
+    nodePtr->spanChildren = ast_->store_.push_span(nodeArgs.span());
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseAttributeValue()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Attribute>();

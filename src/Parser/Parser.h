@@ -134,6 +134,7 @@ class Parser
     AstNodeRef parseInterfaceValue();
     AstNodeRef parseIntrinsicCallBinary();
     AstNodeRef parseIntrinsicCallTernary();
+    AstNodeRef parseIntrinsicCallVariadic();
     AstNodeRef parseIntrinsicCallUnary();
     AstNodeRef parseIntrinsicCallZero();
     AstNodeRef parseIntrinsicDrop();

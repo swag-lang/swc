@@ -166,6 +166,10 @@ class Parser
     AstNodeRef parseIfStmt();
     AstNodeRef parseIf();
     AstNodeRef parseWith();
+    AstNodeRef parseIntrinsicInit();
+    AstNodeRef parseIntrinsicDrop();
+    AstNodeRef parseIntrinsicPostCopy();
+    AstNodeRef parseIntrinsicPostMove();
 
     template<AstNodeId ID>
     AstNodeRef parseCompound(TokenId tokenStartId, bool endStmt = false)

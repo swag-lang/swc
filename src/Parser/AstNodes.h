@@ -1654,9 +1654,9 @@ struct AstWith : AstNode
         AstNode(ID)
     {
     }
-    
+
     AstNodeRef nodeExpr;
-    AstNodeRef nodeBody;    
+    AstNodeRef nodeBody;
 };
 
 struct AstVarWith : AstNode
@@ -1666,9 +1666,58 @@ struct AstVarWith : AstNode
         AstNode(ID)
     {
     }
-    
+
     AstNodeRef nodeVar;
     AstNodeRef nodeBody;
+};
+
+struct AstIntrinsicInitDropCopyMove : AstNode
+{
+    explicit AstIntrinsicInitDropCopyMove(AstNodeId nodeId) :
+        AstNode(nodeId)
+    {
+    }
+
+    AstNodeRef nodeWhat;
+    AstNodeRef nodeCount;
+};
+
+struct AstIntrinsicInit : AstIntrinsicInitDropCopyMove
+{
+    static constexpr auto ID = AstNodeId::IntrinsicInit;
+    explicit AstIntrinsicInit() :
+        AstIntrinsicInitDropCopyMove(ID)
+    {
+    }
+
+    SpanRef spanArgs;
+};
+
+struct AstIntrinsicDrop : AstIntrinsicInitDropCopyMove
+{
+    static constexpr auto ID = AstNodeId::IntrinsicDrop;
+    explicit AstIntrinsicDrop() :
+        AstIntrinsicInitDropCopyMove(ID)
+    {
+    }
+};
+
+struct AstIntrinsicPostCopy : AstIntrinsicInitDropCopyMove
+{
+    static constexpr auto ID = AstNodeId::IntrinsicPostCopy;
+    explicit AstIntrinsicPostCopy() :
+        AstIntrinsicInitDropCopyMove(ID)
+    {
+    }
+};
+
+struct AstIntrinsicPostMove : AstIntrinsicInitDropCopyMove
+{
+    static constexpr auto ID = AstNodeId::IntrinsicPostMove;
+    explicit AstIntrinsicPostMove() :
+        AstIntrinsicInitDropCopyMove(ID)
+    {
+    }
 };
 
 //========================================================================================

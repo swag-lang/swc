@@ -172,4 +172,8 @@ SWC_NODE_DEF(FallThrough)
 SWC_NODE_DEF(DeferDecl)
 SWC_NODE_DEF(With)
 SWC_NODE_DEF(VarWith)
+SWC_NODE_DEF(IntrinsicInit)
+SWC_NODE_DEF(IntrinsicDrop)
+SWC_NODE_DEF(IntrinsicPostCopy)
+SWC_NODE_DEF(IntrinsicPostMove)
 

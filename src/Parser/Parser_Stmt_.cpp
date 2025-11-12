@@ -215,6 +215,83 @@ AstNodeRef Parser::parseWith()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseIntrinsicInit()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicInit>();
+    consume();
+
+    const auto openRef = ref();
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
+    nodePtr->nodeWhat = parseExpression();
+    if (consumeIf(TokenId::SymComma).isValid())
+        nodePtr->nodeCount = parseExpression();
+    else
+        nodePtr->nodeCount.setInvalid();
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+
+    if (is(TokenId::SymLeftParen))
+        nodePtr->spanArgs = parseCompoundContent(AstNodeId::UnnamedArgList, TokenId::SymLeftParen);
+    else
+        nodePtr->spanArgs.setInvalid();
+    
+    expectEndStatement();
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseIntrinsicDrop()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicDrop>();
+    consume();
+
+    const auto openRef = ref();
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
+    nodePtr->nodeWhat = parseExpression();
+    if (consumeIf(TokenId::SymComma).isValid())
+        nodePtr->nodeCount = parseExpression();
+    else
+        nodePtr->nodeCount.setInvalid();
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+
+    expectEndStatement();
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseIntrinsicPostCopy()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicPostCopy>();
+    consume();
+
+    const auto openRef = ref();
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
+    nodePtr->nodeWhat = parseExpression();
+    if (consumeIf(TokenId::SymComma).isValid())
+        nodePtr->nodeCount = parseExpression();
+    else
+        nodePtr->nodeCount.setInvalid();
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+
+    expectEndStatement();
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseIntrinsicPostMove()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicPostMove>();
+    consume();
+
+    const auto openRef = ref();
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
+    nodePtr->nodeWhat = parseExpression();
+    if (consumeIf(TokenId::SymComma).isValid())
+        nodePtr->nodeCount = parseExpression();
+    else
+        nodePtr->nodeCount.setInvalid();
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+
+    expectEndStatement();
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseTopLevelStmt()
 {
     switch (id())
@@ -401,6 +478,15 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::KwdIf:
             return parseIf();
 
+        case TokenId::IntrinsicInit:
+            return parseIntrinsicInit();
+        case TokenId::IntrinsicDrop:
+            return parseIntrinsicDrop();
+        case TokenId::IntrinsicPostCopy:
+            return parseIntrinsicPostCopy();
+        case TokenId::IntrinsicPostMove:
+            return parseIntrinsicPostMove();
+
         case TokenId::SymDot:
         case TokenId::Identifier:
         case TokenId::KwdFor:
@@ -421,10 +507,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::KwdTry:
         case TokenId::KwdTryCatch:
         case TokenId::IntrinsicPrint:
-        case TokenId::IntrinsicInit:
-        case TokenId::IntrinsicDrop:
-        case TokenId::IntrinsicPostCopy:
-        case TokenId::IntrinsicPostMove:
         case TokenId::KwdAlias:
         case TokenId::CompilerUp:
         case TokenId::SymLeftParen:
@@ -442,7 +524,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
             return AstNodeRef::invalid();
 
         default:
-            //raiseError(DiagnosticId::parser_err_unexpected_token, ref());
+            // raiseError(DiagnosticId::parser_err_unexpected_token, ref());
             skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
             return AstNodeRef::invalid();
     }

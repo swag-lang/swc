@@ -94,7 +94,7 @@ class Parser
     AstNodeRef parseBinaryExpr();
     AstNodeRef parseBreak();
     AstNodeRef parseCast();
-    AstNodeRef parseClosureCaptureValue();
+    AstNodeRef parseClosureCapture();
     AstNodeRef parseCompilerCallUnary();
     AstNodeRef parseCompilerDependencies();
     AstNodeRef parseCompilerExpr();
@@ -159,7 +159,7 @@ class Parser
     AstNodeRef parseLiteralStruct();
     AstNodeRef parseLogicalExpr();
     AstNodeRef parseMoveRef();
-    AstNodeRef parseNamedArgument();
+    AstNodeRef parseNamedArg();
     AstNodeRef parseNamespace();
     AstNodeRef parseParenExpr();
     AstNodeRef parsePostFixExpression();

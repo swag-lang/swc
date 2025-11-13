@@ -33,10 +33,8 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
 
         case AstNodeId::UnnamedArgList:
             return parseExpression();
-
         case AstNodeId::NamedArgList:
-            return parseNamedArgument();
-
+            return parseNamedArg();
         case AstNodeId::GenericParamList:
             return parseGenericParam();
 
@@ -44,7 +42,7 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
             return parseQualifiedIdentifier();
 
         case AstNodeId::ClosureCaptureList:
-            return parseClosureCaptureValue();
+            return parseClosureCapture();
         case AstNodeId::LambdaTypeParamList:
             return parseLambdaTypeParam();
         case AstNodeId::FunctionParamList:

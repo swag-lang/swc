@@ -294,7 +294,7 @@ AstNodeRef Parser::parseLogicalExpr()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseNamedArgument()
+AstNodeRef Parser::parseNamedArg()
 {
     // The name
     if (is(TokenId::Identifier) && nextIs(TokenId::SymColon) && !tok().flags.has(TokenFlagsE::BlankAfter))

@@ -4,7 +4,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstNodeRef Parser::parseClosureCaptureValue()
+AstNodeRef Parser::parseClosureCapture()
 {
     AstClosureCapture::Flags flags = AstClosureCapture::FlagsE::Zero;
 

@@ -119,7 +119,6 @@ SWC_NODE_DEF(MoveRefOp)
 // Postfix
 SWC_NODE_DEF(IndexExpr)
 SWC_NODE_DEF(MultiIndexExpr)
-SWC_NODE_DEF(SlicingExpr)
 SWC_NODE_DEF(StructInitializerList)
 
 // Function Calls & Lambdas

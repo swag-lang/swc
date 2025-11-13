@@ -626,19 +626,6 @@ struct AstMultiIndexExpr : AstCompound
     AstNodeRef nodeExpr;
 };
 
-struct AstSlicingExpr : AstCompound
-{
-    static constexpr auto ID = AstNodeId::SlicingExpr;
-    AstSlicingExpr() :
-        AstCompound(ID)
-    {
-    }
-
-    TokenRef   tokWhat;
-    AstNodeRef nodeLeft;
-    AstNodeRef nodeRight;
-};
-
 struct AstArgument : AstNode
 {
     explicit AstArgument(AstNodeId nodeId) :

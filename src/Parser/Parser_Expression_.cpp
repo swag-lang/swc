@@ -776,13 +776,15 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
     }
 
     // Slicing
-    const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::SlicingExpr>();
-    nodePtr->tokWhat                 = consume();
-    nodePtr->nodeLeft                = nodeExpr;
+    const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::RangeExpr>();
+    if (is(TokenId::KwdTo))
+        nodePtr->addFlag(AstRangeExpr::FlagsE::Inclusive);
+    consume();
+    nodePtr->nodeExprDown = nodeExpr;
     if (!is(TokenId::SymRightBracket))
-        nodePtr->nodeRight = parseExpression();
+        nodePtr->nodeExprUp = parseExpression();
     else
-        nodePtr->nodeRight = AstNodeRef::invalid();
+        nodePtr->nodeExprUp.setInvalid();
 
     expectAndConsumeClosing(TokenId::SymRightBracket, openRef);
     return nodeParent;

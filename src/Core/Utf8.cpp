@@ -58,7 +58,7 @@ void Utf8::replaceOutsideQuotes(std::string_view from, std::string_view to, bool
                 ++i;
                 continue;
             }
-            
+
             if (ch == '"' && !inSingleQuote)
             {
                 inDoubleQuote = !inDoubleQuote;

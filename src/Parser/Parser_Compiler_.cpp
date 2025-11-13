@@ -144,7 +144,7 @@ AstNodeRef Parser::parseCompilerGlobal()
     {
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
         file_->addFlag(FileFlagsE::GlobalSkip);
-        expectEndStatement();
+
         return nodeRef;
     }
 
@@ -213,7 +213,6 @@ AstNodeRef Parser::parseCompilerGlobal()
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
     }
 
-    expectEndStatement();
     return nodeRef;
 }
 
@@ -251,7 +250,7 @@ AstNodeRef Parser::parseCompilerImport()
     }
 
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
-    expectEndStatement();
+
     return nodeRef;
 }
 
@@ -329,7 +328,6 @@ AstNodeRef Parser::parseCompilerInject()
     }
 
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
-    expectEndStatement();
 
     return nodeRef;
 }

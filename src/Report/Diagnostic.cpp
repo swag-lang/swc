@@ -13,7 +13,7 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    struct DiagnosticIdInfo  // NOLINT(clang-diagnostic-padded)
+    struct DiagnosticIdInfo // NOLINT(clang-diagnostic-padded)
     {
         std::string_view   name;
         std::string_view   msg;

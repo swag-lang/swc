@@ -9,7 +9,7 @@ AstNodeRef Parser::parseTopLevelCall()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TopLevelCall>();
     nodePtr->nodeIdentifier = parseQualifiedIdentifier();
     nodePtr->nodeArgs       = parseCompound<AstNodeId::NamedArgList>(TokenId::SymLeftParen);
-    expectEndStatement();
+
     return nodeRef;
 }
 
@@ -35,7 +35,6 @@ AstNodeRef Parser::parseUsing()
     consume();
     nodePtr->spanChildren = parseCompoundContent(AstNodeId::UsingDecl, TokenId::Invalid, true);
 
-    expectEndStatement();
     return nodeRef;
 }
 
@@ -69,7 +68,6 @@ AstNodeRef Parser::parseAlias()
     else
         nodePtr->nodeExpr = parseExpression();
 
-    expectEndStatement();
     return nodeRef;
 }
 
@@ -81,7 +79,7 @@ AstNodeRef Parser::parseReturn()
         nodePtr->nodeExpr.setInvalid();
     else
         nodePtr->nodeExpr = parseExpression();
-    expectEndStatement();
+
     return nodeRef;
 }
 
@@ -89,7 +87,7 @@ AstNodeRef Parser::parseUnreachable()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Unreachable>();
     consume();
-    expectEndStatement();
+
     return nodeRef;
 }
 
@@ -97,7 +95,7 @@ AstNodeRef Parser::parseContinue()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Continue>();
     consume();
-    expectEndStatement();
+
     return nodeRef;
 }
 
@@ -109,13 +107,13 @@ AstNodeRef Parser::parseBreak()
         consumeAssert(TokenId::KwdBreak);
         consumeAssert(TokenId::KwdTo);
         nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
-        expectEndStatement();
+
         return nodeRef;
     }
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Break>();
     consume();
-    expectEndStatement();
+
     return nodeRef;
 }
 
@@ -123,7 +121,7 @@ AstNodeRef Parser::parseFallThrough()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FallThrough>();
     consume();
-    expectEndStatement();
+
     return nodeRef;
 }
 
@@ -133,7 +131,7 @@ AstNodeRef Parser::parseDefer()
     consume();
     nodePtr->modifierFlags = parseModifiers();
     nodePtr->nodeBody      = parseEmbeddedStmt();
-    expectEndStatement();
+
     return nodeRef;
 }
 
@@ -212,7 +210,6 @@ AstNodeRef Parser::parseIntrinsicInit()
     else
         nodePtr->spanArgs.setInvalid();
 
-    expectEndStatement();
     return nodeRef;
 }
 
@@ -230,7 +227,6 @@ AstNodeRef Parser::parseIntrinsicDrop()
         nodePtr->nodeCount.setInvalid();
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
-    expectEndStatement();
     return nodeRef;
 }
 
@@ -248,7 +244,6 @@ AstNodeRef Parser::parseIntrinsicPostCopy()
         nodePtr->nodeCount.setInvalid();
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
-    expectEndStatement();
     return nodeRef;
 }
 
@@ -266,7 +261,6 @@ AstNodeRef Parser::parseIntrinsicPostMove()
         nodePtr->nodeCount.setInvalid();
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
-    expectEndStatement();
     return nodeRef;
 }
 
@@ -554,7 +548,7 @@ AstNodeRef Parser::parseTopLevelStmt()
         case TokenId::KwdVar:
         {
             const AstNodeRef nodeRef = parseVarDecl();
-            expectEndStatement();
+
             return nodeRef;
         }
 
@@ -653,7 +647,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
                 nodeRef = parseDecompositionDecl();
             else
                 nodeRef = parseVarDecl();
-            expectEndStatement();
+
             return nodeRef;
         }
 

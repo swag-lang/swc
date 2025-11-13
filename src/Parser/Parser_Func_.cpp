@@ -225,7 +225,7 @@ AstNodeRef Parser::parseAttrDecl()
     consume();
     nodePtr->tokName    = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
     nodePtr->nodeParams = parseFunctionParamList();
-    expectEndStatement();
+
     return nodeRef;
 }
 

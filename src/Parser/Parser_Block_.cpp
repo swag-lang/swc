@@ -25,19 +25,19 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
         {
             case TokenId::CompilerAssert:
                 childrenRef = parseCompilerCallUnary();
-                expectEndStatement();
+
                 break;
             case TokenId::CompilerError:
                 childrenRef = parseCompilerCallUnary();
-                expectEndStatement();
+
                 break;
             case TokenId::CompilerWarning:
                 childrenRef = parseCompilerCallUnary();
-                expectEndStatement();
+
                 break;
             case TokenId::CompilerPrint:
                 childrenRef = parseCompilerCallUnary();
-                expectEndStatement();
+
                 break;
             case TokenId::CompilerIf:
                 childrenRef = parseCompilerIf(blockNodeId);

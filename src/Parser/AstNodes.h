@@ -76,16 +76,15 @@ struct AstImplFor : AstCompound
     AstNodeRef nodeFor;
 };
 
-struct AstNamespace : AstNode
+struct AstNamespace : AstCompound
 {
     static constexpr auto ID = AstNodeId::Namespace;
     AstNamespace() :
-        AstNode(ID)
+        AstCompound(ID)
     {
     }
 
     AstNodeRef nodeName;
-    AstNodeRef nodeBody;
 };
 
 struct AstUsingNamespace : AstNode

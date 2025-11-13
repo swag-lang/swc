@@ -11,13 +11,15 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
     // Compiler instructions
     if (blockNodeId == AstNodeId::File ||
         blockNodeId == AstNodeId::TopLevelBlock ||
-        blockNodeId == AstNodeId::EmbeddedBlock ||
         blockNodeId == AstNodeId::ImplEnum ||
         blockNodeId == AstNodeId::Impl ||
         blockNodeId == AstNodeId::ImplFor ||
+        
+        blockNodeId == AstNodeId::FunctionBody ||
+        blockNodeId == AstNodeId::EmbeddedBlock ||
+        
         blockNodeId == AstNodeId::AggregateBody ||
         blockNodeId == AstNodeId::InterfaceBody ||
-        blockNodeId == AstNodeId::FunctionBody ||
         blockNodeId == AstNodeId::EnumDecl)
     {
         AstNodeRef childrenRef = AstNodeRef::invalid();
@@ -68,6 +70,8 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
             return parseEnumValue();
         case AstNodeId::AggregateBody:
             return parseAggregateValue();
+        case AstNodeId::InterfaceBody:
+            return parseInterfaceValue();
 
         case AstNodeId::AttributeList:
             return parseAttributeValue();
@@ -96,8 +100,6 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
         case AstNodeId::MultiPostfixIdentifier:
             return parsePostfixIdentifierValue();
 
-        case AstNodeId::InterfaceBody:
-            return parseInterfaceValue();
 
         default:
             SWC_UNREACHABLE();

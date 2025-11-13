@@ -87,7 +87,7 @@ AstNodeRef Parser::parseEnumDecl()
 
     // Content
     nodePtr->spanChildren = parseCompoundContent(AstNodeId::EnumDecl, TokenId::SymLeftCurly);
-
+    
     return nodeRef;
 }
 

@@ -72,7 +72,6 @@ class Parser
 
     AstNodeRef parseCompoundValue(AstNodeId blockNodeId);
     Result     parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId);
-    void       finalizeCompound(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef closeTokenRef, const SmallVector<AstNodeRef>& childrenRefs);
     AstNodeRef parseCompound(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt = false);
     SpanRef    parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt = false);
 

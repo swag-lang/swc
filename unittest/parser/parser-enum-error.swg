@@ -26,7 +26,7 @@ enum A { B = 1'cvarargs } // swc-expected-error {{parser_err_invalid_literal_suf
 enum A { B = 1'typeinfo } // swc-expected-error {{parser_err_invalid_literal_suffix}}
 enum A { B = 1'void } // swc-expected-error {{parser_err_invalid_literal_suffix}}
 
-enum A {} // swc-expected-error {{parser_err_empty_enum}}
+enum A {}
 
 enum A } // swc-expected-error {{parser_err_expected_token_before}}
 

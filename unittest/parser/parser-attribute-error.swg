@@ -1,7 +1,7 @@
-#[] // swc-expected-error {{parser_err_empty_attribute}}
+#[]
 enum B { Z }
 
-#[ // swc-expected-error {{parser_err_empty_attribute}}
+#[
 /* toto */
 ]
 enum B { Z }

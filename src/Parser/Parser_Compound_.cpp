@@ -131,34 +131,6 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
     return Result::Success;
 }
 
-void Parser::finalizeCompound(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef closeTokenRef, const SmallVector<AstNodeRef>& childrenRefs)
-{
-    if (childrenRefs.empty())
-    {
-        switch (blockNodeId)
-        {
-            case AstNodeId::AttributeList:
-            {
-                const auto diag     = reportError(DiagnosticId::parser_err_empty_attribute, openTokRef);
-                const auto tokenEnd = file_->lexOut().token(closeTokenRef);
-                diag.last().addSpan(tokenEnd.location(*ctx_, *file_), "");
-                diag.report(*ctx_);
-                break;
-            }
-            case AstNodeId::EnumDecl:
-            {
-                const auto diag     = reportError(DiagnosticId::parser_err_empty_enum, openTokRef);
-                const auto tokenEnd = file_->lexOut().token(closeTokenRef);
-                diag.last().addSpan(tokenEnd.location(*ctx_, *file_), "");
-                diag.report(*ctx_);
-                break;
-            }
-            default:
-                break;
-        }
-    }
-}
-
 AstNodeRef Parser::parseCompound(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt)
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstCompound>(blockNodeId);
@@ -214,12 +186,8 @@ SpanRef Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId
             consume();
     }
 
-    const auto closeTokenRef = ref();
     if (consumeIf(tokenEndId).isInvalid() && tokenEndId != TokenId::Invalid)
         raiseExpected(DiagnosticId::parser_err_expected_closing, openTokRef, Token::toRelated(openTok.id));
-
-    // Consume end token if necessary
-    finalizeCompound(blockNodeId, openTokRef, closeTokenRef, childrenRefs);
 
     // Store
     return ast_->store_.push_span(childrenRefs.span());

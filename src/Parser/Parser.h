@@ -116,6 +116,7 @@ class Parser
     AstNodeRef parseDiscard();
     AstNodeRef parseDoCurlyBlock();
     AstNodeRef parseEmbeddedStmt();
+    AstNodeRef parseEmbeddedInstruction();
     AstNodeRef parseEnumDecl();
     AstNodeRef parseEnumValue();
     AstNodeRef parseExpression();
@@ -178,6 +179,7 @@ class Parser
     AstNodeRef parseSwitchCaseDefault();
     AstNodeRef parseThrow();
     AstNodeRef parseTopLevelCall();
+    AstNodeRef parseTopLevelInstruction();
     AstNodeRef parseTopLevelStmt();
     AstNodeRef parseTryCatch();
     AstNodeRef parseTryCatchAssume();

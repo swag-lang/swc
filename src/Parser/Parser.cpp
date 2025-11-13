@@ -277,6 +277,8 @@ void Parser::expectEndStatement()
 {
     if (tok().startsLine() || is(TokenId::EndOfFile))
         return;
+    if (isAny(TokenId::SymRightCurly, TokenId::SymRightParen, TokenId::SymRightBracket))
+        return;
     if (consumeIf(TokenId::SymSemiColon).isValid())
         return;
 

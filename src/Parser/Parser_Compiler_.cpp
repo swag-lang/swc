@@ -303,7 +303,7 @@ AstNodeRef Parser::parseCompilerInject()
             }
 
             expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_before);
-            nodePtr->nodeReplaceBreak = parseEmbeddedStmt();
+            nodePtr->nodeReplaceBreak = parseEmbeddedInstruction();
             continue;
         }
 
@@ -318,7 +318,7 @@ AstNodeRef Parser::parseCompilerInject()
             }
 
             expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_before);
-            nodePtr->nodeReplaceContinue = parseEmbeddedStmt();
+            nodePtr->nodeReplaceContinue = parseEmbeddedInstruction();
             continue;
         }
 

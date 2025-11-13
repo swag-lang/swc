@@ -13,7 +13,7 @@ AstNodeRef Parser::parseImplEnum()
     if (nodePtr->nodeName.isInvalid())
         skipTo({TokenId::SymLeftCurly});
 
-    nodePtr->spanChildren = parseCompoundContent(AstNodeId::ImplEnum, TokenId::SymLeftCurly);
+    nodePtr->spanChildren = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     return nodeRef;
 }
 

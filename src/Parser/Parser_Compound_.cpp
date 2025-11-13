@@ -8,35 +8,6 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
 {
-    // Compiler instructions
-    if (blockNodeId == AstNodeId::File ||
-        blockNodeId == AstNodeId::TopLevelBlock ||
-        blockNodeId == AstNodeId::ImplEnum ||
-        blockNodeId == AstNodeId::Impl ||
-        blockNodeId == AstNodeId::ImplFor ||
-        
-        blockNodeId == AstNodeId::FunctionBody ||
-        blockNodeId == AstNodeId::EmbeddedBlock ||
-        
-        blockNodeId == AstNodeId::AggregateBody ||
-        blockNodeId == AstNodeId::InterfaceBody ||
-        blockNodeId == AstNodeId::EnumDecl)
-    {
-        AstNodeRef childrenRef = AstNodeRef::invalid();
-        switch (id())
-        {
-            case TokenId::CompilerIf:
-                childrenRef = parseCompilerIf(blockNodeId);
-                expectEndStatement();
-                break;
-            default:
-                break;
-        }
-
-        if (childrenRef.isValid())
-            return childrenRef;
-    }
-
     switch (blockNodeId)
     {
         case AstNodeId::File:
@@ -83,7 +54,6 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
 
         case AstNodeId::MultiPostfixIdentifier:
             return parsePostfixIdentifierValue();
-
 
         default:
             SWC_UNREACHABLE();
@@ -253,60 +223,6 @@ SpanRef Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId
 
     // Store
     return ast_->store_.push_span(childrenRefs.span());
-}
-
-AstNodeRef Parser::parseFile()
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::File>();
-
-    // #global must be first
-    SmallVector<AstNodeRef> globals;
-    while (is(TokenId::CompilerGlobal))
-    {
-        auto global = parseCompilerGlobal();
-        if (file_->hasFlag(FileFlagsE::GlobalSkip))
-            return nodeRef;
-        if (global.isValid())
-            globals.push_back(global);
-    }
-
-    nodePtr->spanGlobals = ast_->store_.push_span(globals.span());
-
-    // All the rest
-    nodePtr->spanChildren = parseCompoundContent(AstNodeId::File, TokenId::Invalid);
-    return nodeRef;
-}
-
-AstNodeRef Parser::parseNamespace()
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Namespace>();
-    consume();
-    nodePtr->nodeName = parseQualifiedIdentifier();
-    if (nodePtr->nodeName.isInvalid())
-        skipTo({TokenId::SymLeftCurly});
-    nodePtr->nodeBody = parseCompound<AstNodeId::TopLevelBlock>(TokenId::SymLeftCurly);
-    return nodeRef;
-}
-
-AstNodeRef Parser::parseDoCurlyBlock()
-{
-    if (consumeIf(TokenId::KwdDo).isValid())
-    {
-        if (is(TokenId::SymLeftCurly))
-        {
-            raiseError(DiagnosticId::parser_err_unexpected_do_block, ref().offset(-1));
-            return parseCompound(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
-        }
-
-        return parseEmbeddedStmt();
-    }
-
-    if (is(TokenId::SymLeftCurly))
-        return parseCompound(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
-
-    const auto diag = reportError(DiagnosticId::parser_err_expected_do_block, ref().offset(-1));
-    diag.report(*ctx_);
-    return AstNodeRef::invalid();
 }
 
 SWC_END_NAMESPACE()

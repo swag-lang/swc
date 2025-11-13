@@ -31,7 +31,9 @@ AstNodeRef Parser::parseEnumValue()
             return parseCompilerCallUnary();
         case TokenId::CompilerPrint:
             return parseCompilerCallUnary();
-            
+        case TokenId::CompilerIf:
+            return parseCompilerIf(AstNodeId::EnumDecl);
+
         case TokenId::KwdUsing:
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumUse>();

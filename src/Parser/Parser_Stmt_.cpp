@@ -1,4 +1,6 @@
 #include "pch.h"
+
+#include "Lexer/SourceFile.h"
 #include "Parser/Parser.h"
 #include "Report/Diagnostic.h"
 
@@ -512,6 +514,8 @@ AstNodeRef Parser::parseTopLevelInstruction()
             return parseCompilerCallUnary();
         case TokenId::CompilerPrint:
             return parseCompilerCallUnary();
+        case TokenId::CompilerIf:
+            return parseCompilerIf(AstNodeId::TopLevelBlock);
 
         case TokenId::SymLeftCurly:
             return parseCompound<AstNodeId::TopLevelBlock>(TokenId::SymLeftCurly);
@@ -624,6 +628,8 @@ AstNodeRef Parser::parseEmbeddedInstruction()
             return parseCompilerCallUnary();
         case TokenId::CompilerPrint:
             return parseCompilerCallUnary();
+        case TokenId::CompilerIf:
+            return parseCompilerIf(AstNodeId::EmbeddedBlock);
 
         case TokenId::SymLeftCurly:
             return parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
@@ -784,6 +790,60 @@ AstNodeRef Parser::parseEmbeddedInstruction()
             skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
             return AstNodeRef::invalid();
     }
+}
+
+AstNodeRef Parser::parseFile()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::File>();
+
+    // #global must be first
+    SmallVector<AstNodeRef> globals;
+    while (is(TokenId::CompilerGlobal))
+    {
+        auto global = parseCompilerGlobal();
+        if (file_->hasFlag(FileFlagsE::GlobalSkip))
+            return nodeRef;
+        if (global.isValid())
+            globals.push_back(global);
+    }
+
+    nodePtr->spanGlobals = ast_->store_.push_span(globals.span());
+
+    // All the rest
+    nodePtr->spanChildren = parseCompoundContent(AstNodeId::File, TokenId::Invalid);
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseNamespace()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Namespace>();
+    consume();
+    nodePtr->nodeName = parseQualifiedIdentifier();
+    if (nodePtr->nodeName.isInvalid())
+        skipTo({TokenId::SymLeftCurly});
+    nodePtr->nodeBody = parseCompound<AstNodeId::TopLevelBlock>(TokenId::SymLeftCurly);
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseDoCurlyBlock()
+{
+    if (consumeIf(TokenId::KwdDo).isValid())
+    {
+        if (is(TokenId::SymLeftCurly))
+        {
+            raiseError(DiagnosticId::parser_err_unexpected_do_block, ref().offset(-1));
+            return parseCompound(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
+        }
+
+        return parseEmbeddedStmt();
+    }
+
+    if (is(TokenId::SymLeftCurly))
+        return parseCompound(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
+
+    const auto diag = reportError(DiagnosticId::parser_err_expected_do_block, ref().offset(-1));
+    diag.report(*ctx_);
+    return AstNodeRef::invalid();
 }
 
 SWC_END_NAMESPACE()

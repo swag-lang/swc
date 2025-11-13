@@ -156,7 +156,7 @@ void Lexer::pushToken()
     }
 }
 
-// Validate hex/Unicode escape sequences (\xXX, \uXXXX, \UXXXXXXXX)
+// Validate hex/Unicode escape sequences
 void Lexer::lexEscape(TokenId containerToken, bool eatEol)
 {
     // Eat the EOL right after the escape character
@@ -187,13 +187,13 @@ void Lexer::lexEscape(TokenId containerToken, bool eatEol)
     switch (escapeType)
     {
         case 'x':
-            expectedDigits = 2; // \xXX
+            expectedDigits = 2;
             break;
         case 'u':
-            expectedDigits = 4; // \uXXXX
+            expectedDigits = 4;
             break;
         case 'U':
-            expectedDigits = 8; // \UXXXXXXXX
+            expectedDigits = 8;
             break;
         default:
             SWC_ASSERT(false);

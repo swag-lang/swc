@@ -541,9 +541,23 @@ AstNodeRef Parser::parseDoCurlyBlock()
 
 AstNodeRef Parser::parseAffectStmt()
 {
+    if (is(TokenId::SymLeftParen))
+    {
+        // @skip
+        skipTo({TokenId::SymSemiColon}, SkipUntilFlagsE::EolBefore);
+        return AstNodeRef::invalid();
+    }
+
     const auto nodeLeft = parseExpression();
     if (nodeLeft.isInvalid())
         return AstNodeRef::invalid();
+    
+    if (is(TokenId::SymComma))
+    {
+        // @skip
+        skipTo({TokenId::SymSemiColon}, SkipUntilFlagsE::EolBefore);
+        return AstNodeRef::invalid();
+    }    
 
     if (isAny(TokenId::SymEqual,
               TokenId::SymPlusEqual,

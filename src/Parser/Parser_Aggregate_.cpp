@@ -28,14 +28,14 @@ AstNodeRef Parser::parseImpl()
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Impl>();
         nodePtr->nodeIdent      = nodeIdent;
-        nodePtr->spanChildren   = parseCompoundContent(AstNodeId::Impl, TokenId::SymLeftCurly);
+        nodePtr->spanChildren   = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
         return nodeRef;
     }
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ImplFor>();
     nodePtr->nodeIdent      = nodeIdent;
     nodePtr->nodeFor        = nodeFor;
-    nodePtr->spanChildren   = parseCompoundContent(AstNodeId::ImplFor, TokenId::SymLeftCurly);
+    nodePtr->spanChildren   = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     return nodeRef;
 }
 

@@ -10,8 +10,6 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
     switch (blockNodeId)
     {
         case AstNodeId::TopLevelBlock:
-        case AstNodeId::Impl:
-        case AstNodeId::ImplFor:
             return parseTopLevelStmt();
 
         case AstNodeId::FunctionBody:
@@ -66,8 +64,6 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
     switch (blockNodeId)
     {
         case AstNodeId::TopLevelBlock:
-        case AstNodeId::Impl:
-        case AstNodeId::ImplFor:
         case AstNodeId::FunctionBody:
         case AstNodeId::EmbeddedBlock:
             expectEndStatement();

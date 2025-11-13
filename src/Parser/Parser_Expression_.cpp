@@ -678,7 +678,6 @@ AstNodeRef Parser::parseRelationalExpr()
               TokenId::SymGreaterEqual,
               TokenId::SymLower,
               TokenId::SymGreater,
-              TokenId::SymEqual,
               TokenId::SymLowerEqualGreater))
     {
         const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::RelationalExpr>();

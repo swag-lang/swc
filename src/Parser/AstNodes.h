@@ -1892,6 +1892,20 @@ struct AstIntrinsicCallVariadic : AstCompound
     TokenRef tokName;
 };
 
+struct AstAffectStmt : AstNode
+{
+    static constexpr auto ID = AstNodeId::AffectStmt;
+    explicit AstAffectStmt() :
+        AstNode(ID)
+    {
+    }
+
+    TokenRef         tokOp;
+    AstModifierFlags modifierFlags;
+    AstNodeRef       nodeLeft;
+    AstNodeRef       nodeRight;
+};
+
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 

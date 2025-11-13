@@ -196,6 +196,9 @@ SWC_NODE_DEF(IntrinsicPostMove)
 //  Control Flow & Statements
 // -----------------------------------------------------------------------------
 
+// Affect
+SWC_NODE_DEF(AffectStmt)
+
 // Conditionals (runtime)
 SWC_NODE_DEF(If)
 SWC_NODE_DEF(ElseIf)

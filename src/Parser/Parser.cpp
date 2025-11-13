@@ -289,6 +289,7 @@ void Parser::expectEndStatement()
     loc.len = 1;
     diag.last().addSpan(loc, "");
     diag.report(*ctx_);
+    skipTo({TokenId::SymRightCurly, TokenId::SymRightParen, TokenId::SymRightBracket, TokenId::SymSemiColon}, SkipUntilFlagsE::EolBefore);
 }
 
 Result Parser::parse(TaskContext& ctx, LexerFlags lexerFlags)

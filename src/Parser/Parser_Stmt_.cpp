@@ -279,6 +279,68 @@ AstNodeRef Parser::parseWhile()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseForCpp()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForCpp>();
+    consumeAssert(TokenId::KwdFor);
+
+    nodePtr->nodeVarDecl = parseVarDecl();
+    expectAndConsume(TokenId::SymSemiColon, DiagnosticId::parser_err_expected_token_before);
+
+    nodePtr->nodeExpr = parseExpression();
+    expectAndConsume(TokenId::SymSemiColon, DiagnosticId::parser_err_expected_token_before);
+
+    // @skip
+    skipTo({TokenId::KwdDo, TokenId::SymLeftCurly});
+    // nodePtr->nodePostStmt = parseEmbeddedStmt();
+
+    nodePtr->nodeBody = parseDoCurlyBlock();
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseForInfinite()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForInfinite>();
+    consumeAssert(TokenId::KwdFor);
+    nodePtr->nodeBody = parseDoCurlyBlock();
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseForLoop()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForLoop>();
+    consumeAssert(TokenId::KwdFor);
+
+    nodePtr->modifierFlags = parseModifiers();
+    nodePtr->tokName.setInvalid();
+
+    if (isNot(TokenId::SymLeftParen))
+    {
+        if (nextIs(TokenId::KwdIn))
+        {
+            nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+            consumeAssert(TokenId::KwdIn);
+        }
+    }
+
+    nodePtr->nodeExpr = parseRangeExpression();
+
+    if (consumeIf(TokenId::KwdWhere).isValid())
+        nodePtr->nodeWhere = parseExpression();
+
+    nodePtr->nodeBody = parseDoCurlyBlock();
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseFor()
+{
+    if (nextIs(TokenId::KwdVar))
+        return parseForCpp();
+    if (nextIsAny(TokenId::SymLeftCurly, TokenId::KwdDo))
+        return parseForInfinite();
+    return parseForLoop();
+}
+
 AstNodeRef Parser::parseForeach()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Foreach>();
@@ -351,34 +413,17 @@ AstNodeRef Parser::parseDiscard()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseSwitchCaseExpression()
-{
-    const auto nodeExpr = parseExpression();
-    if (isAny(TokenId::KwdTo, TokenId::KwdUntil))
-    {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::RangeExpr>();
-        if (is(TokenId::KwdTo))
-            nodePtr->addFlag(AstRangeExpr::FlagsE::Inclusive);
-        consume();
-        nodePtr->nodeExprDown = nodeExpr;
-        nodePtr->nodeExprUp   = parseExpression();
-        return nodeRef;
-    }
-
-    return nodeExpr;
-}
-
 AstNodeRef Parser::parseSwitchCaseDefault()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SwitchCase>();
     if (consumeIf(TokenId::KwdCase).isValid())
     {
         SmallVector<AstNodeRef> nodeExpressions;
-        auto                    nodeExpr = parseSwitchCaseExpression();
+        auto                    nodeExpr = parseRangeExpression();
         nodeExpressions.push_back(nodeExpr);
         while (consumeIf(TokenId::SymComma).isValid())
         {
-            nodeExpr = parseSwitchCaseExpression();
+            nodeExpr = parseRangeExpression();
             nodeExpressions.push_back(nodeExpr);
         }
 
@@ -643,6 +688,8 @@ AstNodeRef Parser::parseEmbeddedStmt()
             return parseForeach();
         case TokenId::KwdSwitch:
             return parseSwitch();
+        case TokenId::KwdFor:
+            return parseFor();
 
         case TokenId::KwdUsing:
             return parseUsing();
@@ -705,7 +752,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::CompilerAlias9:
             return parseAffectStmt();
 
-        case TokenId::KwdFor:
         case TokenId::CompilerInject:
             // @skip
             skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);

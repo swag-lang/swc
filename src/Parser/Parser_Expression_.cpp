@@ -186,6 +186,26 @@ AstNodeRef Parser::parseExpression()
     return nodeExpr1;
 }
 
+AstNodeRef Parser::parseRangeExpression()
+{
+    AstNodeRef nodeExpr1 = AstNodeRef::invalid();
+    if (!isAny(TokenId::KwdTo, TokenId::KwdUntil))
+        nodeExpr1 = parseExpression();
+
+    if (isAny(TokenId::KwdTo, TokenId::KwdUntil))
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::RangeExpr>();
+        if (is(TokenId::KwdTo))
+            nodePtr->addFlag(AstRangeExpr::FlagsE::Inclusive);
+        consume();
+        nodePtr->nodeExprDown = nodeExpr1;
+        nodePtr->nodeExprUp   = parseExpression();
+        return nodeRef;
+    }
+
+    return nodeExpr1;
+}
+
 AstNodeRef Parser::parsePostfixIdentifierValue()
 {
     if (isAny(TokenId::SymLeftCurly, TokenId::KwdFunc, TokenId::KwdMtd))

@@ -1755,6 +1755,46 @@ struct AstForeach : AstNode
     AstNodeRef       nodeBody;
 };
 
+struct AstForCpp : AstNode
+{
+    static constexpr auto ID = AstNodeId::ForCpp;
+    explicit AstForCpp() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeVarDecl;
+    AstNodeRef nodeExpr;
+    AstNodeRef nodePostStmt;
+    AstNodeRef nodeBody;
+};
+
+struct AstForLoop : AstNode
+{
+    static constexpr auto ID = AstNodeId::ForLoop;
+    explicit AstForLoop() :
+        AstNode(ID)
+    {
+    }
+
+    AstModifierFlags modifierFlags;
+    TokenRef         tokName;
+    AstNodeRef       nodeExpr;
+    AstNodeRef       nodeWhere;
+    AstNodeRef       nodeBody;
+};
+
+struct AstForInfinite : AstNode
+{
+    static constexpr auto ID = AstNodeId::ForInfinite;
+    explicit AstForInfinite() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeBody;
+};
+
 struct AstTryCatch : AstNode
 {
     static constexpr auto ID = AstNodeId::TryCatch;

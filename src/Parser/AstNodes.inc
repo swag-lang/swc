@@ -205,6 +205,9 @@ SWC_NODE_DEF(VarIf)
 // Loops
 SWC_NODE_DEF(While)
 SWC_NODE_DEF(Foreach)
+SWC_NODE_DEF(ForCpp)
+SWC_NODE_DEF(ForLoop)
+SWC_NODE_DEF(ForInfinite)
 
 // Switch
 SWC_NODE_DEF(Switch)

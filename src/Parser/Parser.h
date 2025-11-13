@@ -117,8 +117,13 @@ class Parser
     AstNodeRef parseEnumDecl();
     AstNodeRef parseEnumValue();
     AstNodeRef parseExpression();
+    AstNodeRef parseRangeExpression();
     AstNodeRef parseFallThrough();
     AstNodeRef parseFile();
+    AstNodeRef parseFor();
+    AstNodeRef parseForLoop();
+    AstNodeRef parseForCpp();
+    AstNodeRef parseForInfinite();
     AstNodeRef parseForeach();
     AstNodeRef parseFuncDecl();
     AstNodeRef parseFunctionParam();
@@ -169,7 +174,6 @@ class Parser
     AstNodeRef parseSubType();
     AstNodeRef parseSwitch();
     AstNodeRef parseSwitchCaseDefault();
-    AstNodeRef parseSwitchCaseExpression();
     AstNodeRef parseThrow();
     AstNodeRef parseTopLevelCall();
     AstNodeRef parseTopLevelStmt();

@@ -23,6 +23,15 @@ AstNodeRef Parser::parseEnumValue()
 
     switch (id())
     {
+        case TokenId::CompilerAssert:
+            return parseCompilerCallUnary();
+        case TokenId::CompilerError:
+            return parseCompilerCallUnary();
+        case TokenId::CompilerWarning:
+            return parseCompilerCallUnary();
+        case TokenId::CompilerPrint:
+            return parseCompilerCallUnary();
+            
         case TokenId::KwdUsing:
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumUse>();

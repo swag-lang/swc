@@ -51,6 +51,15 @@ AstNodeRef Parser::parseAggregateValue()
 {
     switch (id())
     {
+        case TokenId::CompilerAssert:
+            return parseCompilerCallUnary();
+        case TokenId::CompilerError:
+            return parseCompilerCallUnary();
+        case TokenId::CompilerWarning:
+            return parseCompilerCallUnary();
+        case TokenId::CompilerPrint:
+            return parseCompilerCallUnary();
+            
         case TokenId::SymAttrStart:
             return parseAttributeList(AstNodeId::AggregateBody);
 
@@ -157,6 +166,15 @@ AstNodeRef Parser::parseInterfaceValue()
 {
     switch (id())
     {
+        case TokenId::CompilerAssert:
+            return parseCompilerCallUnary();
+        case TokenId::CompilerError:
+            return parseCompilerCallUnary();
+        case TokenId::CompilerWarning:
+            return parseCompilerCallUnary();
+        case TokenId::CompilerPrint:
+            return parseCompilerCallUnary();
+            
         case TokenId::KwdAlias:
             return parseAlias();
 

@@ -504,6 +504,15 @@ AstNodeRef Parser::parseTopLevelInstruction()
 {
     switch (id())
     {
+        case TokenId::CompilerAssert:
+            return parseCompilerCallUnary();
+        case TokenId::CompilerError:
+            return parseCompilerCallUnary();
+        case TokenId::CompilerWarning:
+            return parseCompilerCallUnary();
+        case TokenId::CompilerPrint:
+            return parseCompilerCallUnary();
+
         case TokenId::SymLeftCurly:
             return parseCompound<AstNodeId::TopLevelBlock>(TokenId::SymLeftCurly);
         case TokenId::SymRightCurly:
@@ -607,6 +616,15 @@ AstNodeRef Parser::parseEmbeddedInstruction()
 {
     switch (id())
     {
+        case TokenId::CompilerAssert:
+            return parseCompilerCallUnary();
+        case TokenId::CompilerError:
+            return parseCompilerCallUnary();
+        case TokenId::CompilerWarning:
+            return parseCompilerCallUnary();
+        case TokenId::CompilerPrint:
+            return parseCompilerCallUnary();
+
         case TokenId::SymLeftCurly:
             return parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
         case TokenId::SymRightCurly:

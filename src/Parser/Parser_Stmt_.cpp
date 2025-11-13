@@ -497,13 +497,6 @@ AstNodeRef Parser::parseAffectStmt()
 
 AstNodeRef Parser::parseTopLevelStmt()
 {
-    const auto result = parseTopLevelInstruction();
-    expectEndStatement();
-    return result;
-}
-
-AstNodeRef Parser::parseTopLevelInstruction()
-{
     switch (id())
     {
         case TokenId::CompilerAssert:
@@ -610,13 +603,6 @@ AstNodeRef Parser::parseTopLevelInstruction()
 }
 
 AstNodeRef Parser::parseEmbeddedStmt()
-{
-    const auto result = parseEmbeddedInstruction();
-    expectEndStatement();
-    return result;
-}
-
-AstNodeRef Parser::parseEmbeddedInstruction()
 {
     switch (id())
     {

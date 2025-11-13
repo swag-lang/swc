@@ -68,6 +68,16 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
 
     switch (blockNodeId)
     {
+        case AstNodeId::File:
+        case AstNodeId::TopLevelBlock:
+        case AstNodeId::ImplEnum:
+        case AstNodeId::Impl:
+        case AstNodeId::ImplFor:
+        case AstNodeId::FunctionBody:
+        case AstNodeId::EmbeddedBlock:
+            expectEndStatement();
+            break;
+
         case AstNodeId::EnumDecl:
             if (consumeIf(TokenId::SymComma).isInvalid() && !is(tokenEndId) && !tok().startsLine())
             {
@@ -113,7 +123,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
             break;
 
         default:
-            break;
+            SWC_UNREACHABLE();
     }
 
     return Result::Success;

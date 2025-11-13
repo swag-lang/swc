@@ -122,7 +122,9 @@ AstNodeRef Parser::parseLiteralArray()
 
 AstNodeRef Parser::parseLiteralStruct()
 {
-    return parseCompound<AstNodeId::StructLiteral>(TokenId::SymLeftCurly);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructLiteral>();
+    nodePtr->spanChildren   = parseCompoundContent(AstNodeId::NamedArgList, TokenId::SymLeftCurly);
+    return nodeRef;
 }
 
 SWC_END_NAMESPACE()

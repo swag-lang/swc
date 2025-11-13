@@ -126,7 +126,8 @@ class Parser
     AstNodeRef parseForCpp();
     AstNodeRef parseForInfinite();
     AstNodeRef parseForeach();
-    AstNodeRef parseFuncDecl();
+    AstNodeRef parseFunctionDecl();
+    AstNodeRef parseFunctionBody();
     AstNodeRef parseFunctionParam();
     AstNodeRef parseFunctionParamList();
     AstNodeRef parseGenericParam();

@@ -571,7 +571,7 @@ AstNodeRef Parser::parseTopLevelStmt()
 
         case TokenId::KwdFunc:
         case TokenId::KwdMtd:
-            return parseFuncDecl();
+            return parseFunctionDecl();
 
         case TokenId::KwdAttr:
             return parseAttrDecl();
@@ -660,7 +660,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
 
         case TokenId::KwdFunc:
         case TokenId::KwdMtd:
-            return parseFuncDecl();
+            return parseFunctionDecl();
 
         case TokenId::KwdConst:
         case TokenId::KwdVar:

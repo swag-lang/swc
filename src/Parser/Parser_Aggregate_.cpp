@@ -184,7 +184,7 @@ AstNodeRef Parser::parseInterfaceValue()
 
         case TokenId::KwdFunc:
         case TokenId::KwdMtd:
-            return parseFuncDecl();
+            return parseFunctionDecl();
 
         case TokenId::KwdConst:
             return parseVarDecl();

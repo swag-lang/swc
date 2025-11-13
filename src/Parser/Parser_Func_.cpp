@@ -126,7 +126,7 @@ AstNodeRef Parser::parseLambdaExpression()
     // Body
     AstNodeRef body = AstNodeRef::invalid();
     if (is(TokenId::SymLeftCurly))
-        body = parseCompound<AstNodeId::FunctionBody>(TokenId::SymLeftCurly);
+        body = parseFunctionBody();
     else
     {
         expectAndConsume(TokenId::SymEqualGreater, DiagnosticId::parser_err_expected_token_before);
@@ -152,7 +152,7 @@ AstNodeRef Parser::parseLambdaExpression()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseFuncDecl()
+AstNodeRef Parser::parseFunctionDecl()
 {
     AstLambdaType::Flags flags = AstLambdaType::FlagsE::Zero;
     if (consumeIf(TokenId::KwdMtd).isValid())
@@ -214,7 +214,7 @@ AstNodeRef Parser::parseFuncDecl()
     else if (consumeIf(TokenId::SymEqualGreater).isValid())
         nodePtr->nodeBody = parseExpression();
     else
-        nodePtr->nodeBody = parseCompound<AstNodeId::FunctionBody>(TokenId::SymLeftCurly);
+        nodePtr->nodeBody = parseFunctionBody();
 
     return nodeRef;
 }
@@ -260,4 +260,11 @@ AstNodeRef Parser::parseFunctionParamList()
 {
     return parseCompound<AstNodeId::FunctionParamList>(TokenId::SymLeftParen);
 }
+
+AstNodeRef Parser::parseFunctionBody()
+{
+    return parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
+}
+
+
 SWC_END_NAMESPACE()

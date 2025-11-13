@@ -6,7 +6,7 @@ enum B { Z }
 ]
 enum B { Z }
 
-#[A B] // swc-expected-error {{parser_err_missing_attribute_sep}}
+#[A B] // swc-expected-error {{parser_err_expected_token_before}}
 enum B { Z }
 
 #[A(] // swc-expected-error {{parser_err_unexpected_token}} {{parser_err_expected_closing}}

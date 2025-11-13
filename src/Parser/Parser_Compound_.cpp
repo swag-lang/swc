@@ -75,10 +75,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
         case AstNodeId::EnumDecl:
             if (consumeIf(TokenId::SymComma).isInvalid() && !is(tokenEndId) && !tok().startsLine())
             {
-                if (is(TokenId::Identifier) && blockNodeId == AstNodeId::EnumDecl)
-                    raiseError(DiagnosticId::parser_err_missing_enum_sep, ref());
-                else
-                    raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
+                raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
                 skipTo(skipTokens);
                 return Result::Error;
             }
@@ -115,10 +112,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
         case AstNodeId::MultiPostfixIdentifier:
             if (consumeIf(TokenId::SymComma).isInvalid() && !is(tokenEndId))
             {
-                if (is(TokenId::Identifier) && blockNodeId == AstNodeId::AttributeList)
-                    raiseError(DiagnosticId::parser_err_missing_attribute_sep, ref());
-                else
-                    raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
+                raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
                 skipTo(skipTokens);
                 return Result::Error;
             }

@@ -53,8 +53,6 @@ SWC_DIAG_DEF(parser_err_duplicated_modifier, Error, "modifier {tok} already defi
 SWC_DIAG_DEF(parser_err_unexpected_do_block, Error, "unexpected '{' after 'do' keyword")
 SWC_DIAG_DEF(parser_err_expected_do_block, Error, "expected a statement starting with 'do' or '{' after {tok}")
 SWC_DIAG_DEF(parser_err_empty_indexing, Error, "invalid empty indexing '[]'")
-SWC_DIAG_DEF(parser_err_missing_enum_sep, Error, "missing enumeration separator ',' before {tok}")
-SWC_DIAG_DEF(parser_err_missing_attribute_sep, Error, "missing attribute separator ',' before {tok}")
 SWC_DIAG_DEF(parser_err_gen_param_type, Error, "unexpected start of type declaration")
 SWC_DIAG_DEF(parser_err_var_struct, Error, "unnecessary 'var' to declare a struct/union value")
 SWC_DIAG_DEF(parser_err_mtd_missing_capture, Error, "'mtd' must be followed by capture parameters (e.g. '||')")

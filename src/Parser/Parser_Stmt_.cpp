@@ -544,7 +544,7 @@ AstNodeRef Parser::parseAffectStmt()
     if (is(TokenId::SymLeftParen))
     {
         // @skip
-        skipTo({TokenId::SymSemiColon}, SkipUntilFlagsE::EolBefore);
+        skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
         return AstNodeRef::invalid();
     }
 
@@ -555,7 +555,7 @@ AstNodeRef Parser::parseAffectStmt()
     if (is(TokenId::SymComma))
     {
         // @skip
-        skipTo({TokenId::SymSemiColon}, SkipUntilFlagsE::EolBefore);
+        skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
         return AstNodeRef::invalid();
     }    
 

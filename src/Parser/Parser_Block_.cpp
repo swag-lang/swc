@@ -41,6 +41,7 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
                 break;
             case TokenId::CompilerIf:
                 childrenRef = parseCompilerIf(blockNodeId);
+                expectEndStatement();
                 break;
             default:
                 break;

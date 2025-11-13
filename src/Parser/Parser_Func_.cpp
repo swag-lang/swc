@@ -13,7 +13,7 @@ AstNodeRef Parser::parseClosureCapture()
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ClosureCapture>();
     nodePtr->addFlag(flags);
-    nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
+    nodePtr->nodeIdentifier = parseQualifiedIdentifier();
 
     return nodeRef;
 }

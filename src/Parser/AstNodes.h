@@ -423,7 +423,7 @@ struct AstClosureCapture : AstCompound
     };
     using Flags = EnumFlags<FlagsE>;
 
-    TokenRef tokName;
+    AstNodeRef nodeIdentifier;
 };
 
 struct AstCompilerAssert : AstInternalCallUnaryBase

@@ -31,7 +31,6 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
         case AstNodeId::AttributeList:
             return parseAttributeValue();
 
-        case AstNodeId::ArrayLiteral:
         case AstNodeId::UnnamedArgList:
             return parseExpression();
 
@@ -100,7 +99,6 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
 
         case AstNodeId::UsingDecl:
         case AstNodeId::AttributeList:
-        case AstNodeId::ArrayLiteral:
         case AstNodeId::UnnamedArgList:
         case AstNodeId::NamedArgList:
         case AstNodeId::GenericParamList:

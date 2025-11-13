@@ -117,7 +117,9 @@ AstNodeRef Parser::parseLiteralExpression()
 
 AstNodeRef Parser::parseLiteralArray()
 {
-    return parseCompound<AstNodeId::ArrayLiteral>(TokenId::SymLeftBracket);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ArrayLiteral>();
+    nodePtr->spanChildren   = parseCompoundContent(AstNodeId::UnnamedArgList, TokenId::SymLeftBracket);
+    return nodeRef;
 }
 
 AstNodeRef Parser::parseLiteralStruct()

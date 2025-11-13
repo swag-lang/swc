@@ -796,7 +796,7 @@ AstNodeRef Parser::parseFile()
     nodePtr->spanGlobals = ast_->store_.push_span(globals.span());
 
     // All the rest
-    nodePtr->spanChildren = parseCompoundContent(AstNodeId::File, TokenId::Invalid);
+    nodePtr->spanChildren = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::Invalid);
     return nodeRef;
 }
 

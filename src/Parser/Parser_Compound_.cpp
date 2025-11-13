@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Core/SmallVector.h"
-#include "Lexer/SourceFile.h"
 #include "Parser/Parser.h"
 #include "Report/Diagnostic.h"
 
@@ -10,7 +9,6 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
 {
     switch (blockNodeId)
     {
-        case AstNodeId::File:
         case AstNodeId::TopLevelBlock:
         case AstNodeId::ImplEnum:
         case AstNodeId::Impl:
@@ -68,7 +66,6 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
 
     switch (blockNodeId)
     {
-        case AstNodeId::File:
         case AstNodeId::TopLevelBlock:
         case AstNodeId::ImplEnum:
         case AstNodeId::Impl:

@@ -88,7 +88,7 @@ class Parser
     AstNodeRef parseAggregateBody();
     AstNodeRef parseAggregateValue();
     AstNodeRef parseAlias();
-    AstNodeRef parseAncestorIdentifier();
+    AstNodeRef parseCompilerUp();
     AstNodeRef parseAttrDecl();
     AstNodeRef parseAttributeValue();
     AstNodeRef parseBinaryExpr();

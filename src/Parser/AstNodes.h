@@ -552,6 +552,7 @@ struct AstAncestorIdentifier : AstNode
     {
     }
 
+    AstNodeRef nodeValue;
     AstNodeRef nodeIdent;
 };
 

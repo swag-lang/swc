@@ -332,4 +332,22 @@ AstNodeRef Parser::parseCompilerInject()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseCompilerUp()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AncestorIdentifier>();
+    consumeAssert(TokenId::CompilerUp);
+
+    const auto openRef = ref();
+    if (consumeIf(TokenId::SymLeftParen).isValid())
+    {
+        nodePtr->nodeValue = parseExpression();
+        expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+    }
+    else
+        nodePtr->nodeValue.setInvalid();
+
+    nodePtr->nodeIdent = parseQualifiedIdentifier();
+    return nodeRef;
+}
+
 SWC_END_NAMESPACE()

@@ -76,14 +76,6 @@ AstModifierFlags Parser::parseModifiers()
     return result;
 }
 
-AstNodeRef Parser::parseAncestorIdentifier()
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AncestorIdentifier>();
-    consumeAssert(TokenId::CompilerUp);
-    nodePtr->nodeIdent = parseQualifiedIdentifier();
-    return nodeRef;
-}
-
 AstNodeRef Parser::parseBinaryExpr()
 {
     const auto nodeRef = parsePrefixExpr();
@@ -411,7 +403,7 @@ AstNodeRef Parser::parsePrimaryExpression()
             return parsePreQualifiedIdentifier();
 
         case TokenId::CompilerUp:
-            return parseAncestorIdentifier();
+            return parseCompilerUp();
 
         case TokenId::CompilerTypeOf:
             return parseCompilerTypeOf();

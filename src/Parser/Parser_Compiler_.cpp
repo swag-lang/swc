@@ -279,4 +279,59 @@ AstNodeRef Parser::parseCompilerMacro()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseCompilerInject()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerInject>();
+    consumeAssert(TokenId::CompilerInject);
+
+    const auto openRef = ref();
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
+
+    nodePtr->nodeExpr = parseExpression();
+    nodePtr->nodeReplaceBreak.setInvalid();
+    nodePtr->nodeReplaceContinue.setInvalid();
+
+    while (consumeIf(TokenId::SymComma).isValid())
+    {
+        // Replacement for 'break'
+        if (consumeIf(TokenId::KwdBreak).isValid())
+        {
+            if (nodePtr->nodeReplaceBreak.isValid())
+            {
+                raiseError(DiagnosticId::parser_err_inject_instruction_done, ref());
+                skipTo({TokenId::SymRightParen, TokenId::SymLeftParen});
+                continue;
+            }
+
+            expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_before);
+            nodePtr->nodeReplaceBreak = parseEmbeddedStmt();
+            continue;
+        }
+
+        // Replacement for 'continue'
+        if (consumeIf(TokenId::KwdContinue).isValid())
+        {
+            if (nodePtr->nodeReplaceContinue.isValid())
+            {
+                raiseError(DiagnosticId::parser_err_inject_instruction_done, ref());
+                skipTo({TokenId::SymRightParen, TokenId::SymLeftParen});
+                continue;
+            }
+
+            expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_before);
+            nodePtr->nodeReplaceContinue = parseEmbeddedStmt();
+            continue;
+        }
+
+        raiseError(DiagnosticId::parser_err_inject_invalid_instruction, ref());
+        skipTo({TokenId::SymRightParen});
+        break;
+    }
+
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+    expectEndStatement();
+
+    return nodeRef;
+}
+
 SWC_END_NAMESPACE()

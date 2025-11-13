@@ -1850,6 +1850,19 @@ struct AstCompilerMacro : AstNode
     AstNodeRef nodeBody;
 };
 
+struct AstCompilerInject : AstNode
+{
+    static constexpr auto ID = AstNodeId::CompilerInject;
+    explicit AstCompilerInject() :
+        AstNode(ID)
+    {
+    }
+
+    AstNodeRef nodeExpr;
+    AstNodeRef nodeReplaceBreak;
+    AstNodeRef nodeReplaceContinue;
+};
+
 struct AstRangeExpr : AstNode
 {
     static constexpr auto ID = AstNodeId::RangeExpr;

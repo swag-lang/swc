@@ -70,18 +70,19 @@ class Parser
     TokenRef expectAndConsume(TokenId id, DiagnosticId diagId);
     void     expectEndStatement();
 
-    AstNodeRef       parseCompoundValue(AstNodeId blockNodeId);
-    Result           parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId);
-    void             finalizeCompound(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef closeTokenRef, const SmallVector<AstNodeRef>& childrenRefs);
-    AstNodeRef       parseCompound(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt = false);
-    SpanRef          parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt = false);
+    AstNodeRef parseCompoundValue(AstNodeId blockNodeId);
+    Result     parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId);
+    void       finalizeCompound(AstNodeId blockNodeId, TokenRef openTokRef, TokenRef closeTokenRef, const SmallVector<AstNodeRef>& childrenRefs);
+    AstNodeRef parseCompound(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt = false);
+    SpanRef    parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt = false);
+
     AstNodeRef       parseCompilerIf(AstNodeId blockNodeId);
     AstNodeRef       parseCompilerIfStmt(AstNodeId blockNodeId);
     AstNodeRef       parseAttributeList(AstNodeId blockNodeId);
     AstNodeRef       parseAggregateDecl(AstNodeId nodeId);
     AstNodeRef       parseInitializerList(AstNodeRef nodeWhat);
-    AstModifierFlags parseModifiers();
     AstNodeRef       parseArraySlicingIndex(AstNodeRef nodeRef);
+    AstModifierFlags parseModifiers();
 
     AstNodeRef parseAffectStmt();
     AstNodeRef parseAggregateAccessModifier();
@@ -101,6 +102,7 @@ class Parser
     AstNodeRef parseCompilerFunc();
     AstNodeRef parseCompilerGlobal();
     AstNodeRef parseCompilerImport();
+    AstNodeRef parseCompilerInject();
     AstNodeRef parseCompilerMacro();
     AstNodeRef parseCompilerMessageFunc();
     AstNodeRef parseCompilerScope();

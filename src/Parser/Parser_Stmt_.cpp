@@ -675,6 +675,10 @@ AstNodeRef Parser::parseEmbeddedStmt()
 
         case TokenId::CompilerScope:
             return parseCompilerScope();
+        case TokenId::CompilerMacro:
+            return parseCompilerMacro();
+        case TokenId::CompilerInject:
+            return parseCompilerInject();
 
         case TokenId::KwdWith:
             return parseWith();
@@ -704,9 +708,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
             return parseIntrinsicPostCopy();
         case TokenId::IntrinsicPostMove:
             return parseIntrinsicPostMove();
-
-        case TokenId::CompilerMacro:
-            return parseCompilerMacro();
 
         case TokenId::KwdAssume:
         case TokenId::KwdCatch:
@@ -751,11 +752,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::CompilerAlias8:
         case TokenId::CompilerAlias9:
             return parseAffectStmt();
-
-        case TokenId::CompilerInject:
-            // @skip
-            skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
-            return AstNodeRef::invalid();
 
         default:
             // raiseError(DiagnosticId::parser_err_unexpected_token, ref());

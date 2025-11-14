@@ -11,9 +11,8 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void UnitTest::tokenizeOption(TaskContext& ctx, std::string_view comment)
+void UnitTest::tokenizeOption(const TaskContext& ctx, std::string_view comment)
 {
-    const auto  file     = ctx.sourceFile();
     const auto& langSpec = ctx.global().langSpec();
 
     size_t pos = 0;
@@ -50,7 +49,7 @@ void UnitTest::tokenizeOption(TaskContext& ctx, std::string_view comment)
 
             // Handle known options
             if (kindWord == "lex-only")
-                file->addFlag(FileFlagsE::LexOnly);
+                flags_.add(UnitTestFlagsE::LexOnly);
 
             // If options might be comma-separated, skip trailing commas/spacers
             while (i < comment.size() && (langSpec.isBlank(static_cast<unsigned char>(comment[i])) || comment[i] == ','))
@@ -66,7 +65,6 @@ void UnitTest::tokenizeOption(TaskContext& ctx, std::string_view comment)
 
 void UnitTest::tokenizeExpected(const TaskContext& ctx, const LexTrivia& trivia, std::string_view comment)
 {
-    const auto  file     = ctx.sourceFile();
     const auto& langSpec = ctx.global().langSpec();
 
     size_t pos = 0;
@@ -95,11 +93,11 @@ void UnitTest::tokenizeExpected(const TaskContext& ctx, const LexTrivia& trivia,
         }
 
         // Base location info
-        directive.myLoc.fromOffset(ctx, *file,
+        directive.myLoc.fromOffset(ctx, lexOut_,
                                    trivia.token.byteStart + static_cast<uint32_t>(pos),
                                    static_cast<uint32_t>(LangSpec::VERIFY_COMMENT_EXPECTED.size()) + static_cast<uint32_t>(word.size()));
         directive.loc = directive.myLoc;
-
+        
         // Handle @*, @+ suffix
         if (i < comment.size() && comment[i] == '@')
         {
@@ -142,27 +140,24 @@ void UnitTest::tokenizeExpected(const TaskContext& ctx, const LexTrivia& trivia,
     }
 }
 
-Result UnitTest::tokenize(TaskContext& ctx)
+void UnitTest::tokenize(TaskContext& ctx)
 {
     if (!ctx.cmdLine().verify)
-        return Result::Success;
-
-    TaskContext lexerCtx(ctx);
-    lexerCtx.setSourceFile(file_);
+        return;
 
     // Get all comments from the file
     Lexer lexer;
-    SWC_CHECK(lexer.tokenizeRaw(lexerCtx));
+    lexOut_.setFile(ctx.file());
+    lexOut_.setSource(ctx.file()->stringView());
+    lexer.tokenizeRaw(ctx, lexOut_);
 
     // Parse all comments to find a verify directive
-    for (const auto& trivia : file_->lexOut().trivia())
+    for (const auto& trivia : lexOut_.trivia())
     {
-        const std::string_view comment = trivia.token.string(*file_);
+        const std::string_view comment = trivia.token.string(lexOut_);
         tokenizeExpected(ctx, trivia, comment);
         tokenizeOption(ctx, comment);
     }
-
-    return Result::Success;
 }
 
 bool UnitTest::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) const
@@ -170,12 +165,9 @@ bool UnitTest::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) co
     if (directives_.empty())
         return false;
 
-    TaskContext lexerCtx(ctx);
-    lexerCtx.setSourceFile(file_);
-
     for (auto& elem : diag.elements())
     {
-        const SourceCodeLocation loc = elem->location(0, lexerCtx);
+        const SourceCodeLocation loc = elem->location(0, ctx);
 
         for (auto& directive : directives_)
         {
@@ -196,25 +188,18 @@ bool UnitTest::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) co
     return false;
 }
 
-Result UnitTest::verifyUntouchedExpected(const TaskContext& ctx) const
+void UnitTest::verifyUntouchedExpected(const TaskContext& ctx) const
 {
-    if (file_->hasFlag(FileFlagsE::GlobalSkip))
-        return Result::Success;
-
-    TaskContext lexerCtx(ctx);
-    lexerCtx.setSourceFile(file_);
-
+    SWC_ASSERT(ctx.file() != nullptr);
     for (const auto& directive : directives_)
     {
         if (!directive.touched)
         {
-            const auto diag = Diagnostic::get(DiagnosticId::unittest_err_not_raised, file_);
+            const auto diag = Diagnostic::get(DiagnosticId::unittest_err_not_raised, ctx.file());
             diag.last().addSpan(directive.myLoc, "");
-            diag.report(lexerCtx);
+            diag.report(ctx);
         }
     }
-
-    return file_->hasErrors() ? Result::Error : Result::Success;
 }
 
 SWC_END_NAMESPACE()

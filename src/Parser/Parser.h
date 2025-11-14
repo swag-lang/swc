@@ -19,27 +19,40 @@ enum class SkipUntilFlagsE : uint32_t
 };
 using SkipUntilFlags = EnumFlags<SkipUntilFlagsE>;
 
+enum class ParserOutFlagsE : uint32_t
+{
+    Zero        = 0,
+    HasErrors   = 1 << 0,
+    HasWarnings = 1 << 1,
+    GlobalSkip  = 1 << 2,
+};
+using ParserOutFlags = EnumFlags<ParserOutFlagsE>;
+
 class ParserOutput
 {
-    Ast ast_;
+    Ast            ast_;
+    ParserOutFlags flags_;
 
 public:
     Ast&       ast() noexcept { return ast_; }
     const Ast& ast() const noexcept { return ast_; }
+    bool       hasFlag(ParserOutFlags flag) const { return flags_.has(flag); }
+    void       addFlag(ParserOutFlags flag) { flags_.add(flag); }
 };
 
 class Parser
 {
-    TaskContext* ctx_            = nullptr;
-    SourceFile*  file_           = nullptr;
-    Ast*         ast_            = nullptr;
-    const Token* firstToken_     = nullptr;
-    const Token* curToken_       = nullptr;
-    const Token* lastToken_      = nullptr;
-    uint32_t     depthParen_     = 0;
-    uint32_t     depthBracket_   = 0;
-    uint32_t     depthCurly_     = 0;
-    TokenRef     lastErrorToken_ = TokenRef::invalid();
+    TaskContext*       ctx_            = nullptr;
+    ParserOutput*      out_            = nullptr;
+    Ast*               ast_            = nullptr;
+    const LexerOutput* lexOut_         = nullptr;
+    const Token*       firstToken_     = nullptr;
+    const Token*       curToken_       = nullptr;
+    const Token*       lastToken_      = nullptr;
+    uint32_t           depthParen_     = 0;
+    uint32_t           depthBracket_   = 0;
+    uint32_t           depthCurly_     = 0;
+    TokenRef           lastErrorToken_ = TokenRef::invalid();
 
     const Token* tokPtr() const { return curToken_; }
     const Token& tok() const { return *curToken_; }
@@ -213,8 +226,7 @@ class Parser
     void               raiseExpected(DiagnosticId id, TokenRef tknRef, TokenId tknExpected);
 
 public:
-    Result parse(TaskContext& ctx);
-    Result parse(TaskContext& ctx, Ast& out, const LexerOutput& lexOut);
+    void parse(TaskContext& ctx, ParserOutput& out, const LexerOutput& lexOut);
 };
 
 SWC_END_NAMESPACE()

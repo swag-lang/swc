@@ -8,7 +8,7 @@ SWC_BEGIN_NAMESPACE()
 
 // Returns {next_ptr, code_point, bytes_consumed}.
 // On error: {nullptr, 0, 0}.
-std::tuple<const uint8_t*, uint32_t, uint32_t> Utf8Helper::decodeOneChar(const uint8_t* cur, const uint8_t* end)
+std::tuple<const unsigned char*, uint32_t, uint32_t> Utf8Helper::decodeOneChar(const unsigned char* cur, const unsigned char* end)
 {
     const auto u = cur;
     const auto e = end;
@@ -16,7 +16,7 @@ std::tuple<const uint8_t*, uint32_t, uint32_t> Utf8Helper::decodeOneChar(const u
     if (u >= e)
         return {nullptr, 0, 0};
 
-    const uint8_t b0 = *u;
+    const uint8_t b0 = static_cast<uint8_t>(*u);
 
     // Fast ASCII path
     if (b0 < 0x80)
@@ -75,7 +75,7 @@ std::tuple<const uint8_t*, uint32_t, uint32_t> Utf8Helper::decodeOneChar(const u
     return {nullptr, 0, 0};
 }
 
-const uint8_t* Utf8Helper::decodeOneChar(const uint8_t* cur, const uint8_t* end, uint32_t& c, uint32_t& offset)
+const unsigned char* Utf8Helper::decodeOneChar(const unsigned char* cur, const unsigned char* end, uint32_t& c, uint32_t& offset)
 {
     const auto result = decodeOneChar(cur, end);
     c                 = std::get<1>(result);
@@ -88,7 +88,8 @@ uint32_t Utf8Helper::countChars(std::string_view str)
     int result = 0;
     for (size_t i = 0; i < str.size(); i++)
     {
-        const auto [ptr, wc, bytes] = decodeOneChar(reinterpret_cast<const uint8_t*>(str.data() + i), reinterpret_cast<const uint8_t*>(str.data() + str.size()));
+        const auto addr             = reinterpret_cast<const unsigned char*>(str.data());
+        const auto [ptr, wc, bytes] = decodeOneChar(addr + i, addr + str.size());
         if (ptr)
             i += bytes - 1;
         result++;

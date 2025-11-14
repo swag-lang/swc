@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "CompilerInstance.h"
+#include "Core/Timer.h"
 #include "Main/CompilerCommand.h"
 #include "Main/FileManager.h"
 #include "Main/Global.h"
@@ -10,30 +11,47 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    void parseFile(JobContext& taskCtx, SourceFile* f)
+    void parseFile(JobContext& ctx)
     {
+#if SWC_HAS_STATS
+        Timer time(&Stats::get().timeParser);
+#endif
+
+        const auto file = ctx.file();
+        if (file->loadContent(ctx) != Result::Success)
+            return;
+
+        file->unittest().tokenize(ctx);
+
+        Lexer lexer;
+        if (lexer.tokenize(ctx, file->lexOut(), LexerFlagsE::Default) != Result::Success)
+            return;
+
+        if (file->unittest().hasFlag(UnitTestFlagsE::LexOnly))
+            return;
+
         Parser parser;
-        taskCtx.setSourceFile(f);
-        parser.parse(taskCtx);
+        parser.parse(ctx, file->parserOut(), file->lexOut());
     }
 }
 
 namespace CompilerCommand
 {
-    Result syntax(const CompilerInstance& compiler)
+    void syntax(const CompilerInstance& compiler)
     {
-        const TaskContext ctx(compiler.context());
-        const auto&       global  = ctx.global();
-        auto&             fileMgr = global.fileMgr();
+        TaskContext ctx(compiler.context());
+        const auto& global  = ctx.global();
+        auto&       fileMgr = global.fileMgr();
 
         if (fileMgr.collectFiles(ctx) == Result::Error)
-            return Result::Error;
+            return;
 
         for (const auto& f : global.fileMgr().files())
         {
             auto job  = std::make_shared<Job>(ctx);
             job->func = [f](JobContext& taskCtx) {
-                parseFile(taskCtx, f);
+                taskCtx.setFile(f);
+                parseFile(taskCtx);
                 return JobResult::Done;
             };
 
@@ -42,14 +60,11 @@ namespace CompilerCommand
 
         global.jobMgr().waitAll(compiler.context().jobClientId());
 
-        auto result = Result::Success;
         for (const auto& f : fileMgr.files())
         {
-            if (f->unittest().verifyUntouchedExpected(ctx) == Result::Error)
-                result = Result::Error;
+            ctx.setFile(f);
+            f->unittest().verifyUntouchedExpected(ctx);
         }
-
-        return result;
     }
 }
 

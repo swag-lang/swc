@@ -5,6 +5,7 @@
 #include "Core/Utf8Helper.h"
 #include "Lexer/LangSpec.h"
 #include "Lexer/SourceFile.h"
+#include "Main/CommandLine.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Report/Diagnostic.h"
@@ -34,8 +35,8 @@ void Lexer::raiseUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len)
     if (rawMode_)
         return;
 
-    const auto diag = Diagnostic::get(id, ctx_->sourceFile());
-    diag.last().addSpan(ctx_->sourceFile(), offset, len);
+    const auto diag = Diagnostic::get(id, ctx_->file());
+    diag.last().addSpan(lexOut_, offset, len);
     diag.report(*ctx_);
 }
 
@@ -48,13 +49,13 @@ Diagnostic Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t le
     if (rawMode_)
         return {};
 
-    auto diag = Diagnostic::get(id, ctx_->sourceFile());
-    diag.last().addSpan(ctx_->sourceFile(), offset, len);
+    auto diag = Diagnostic::get(id, ctx_->file());
+    diag.last().addSpan(lexOut_, offset, len);
 
     // Add an argument with the token string
     if (len)
     {
-        const std::string_view tkn = ctx_->sourceFile()->codeView(offset, len);
+        const std::string_view tkn = lexOut_->codeView(offset, len);
         diag.addArgument(Diagnostic::ARG_TOK, tkn);
     }
 
@@ -276,7 +277,7 @@ void Lexer::lexSingleLineStringLiteral()
 
     // Handle EOF
     if (buffer_ >= endBuffer_)
-        raiseTokenError(DiagnosticId::lex_err_unclosed_string, startOffset_);
+        raiseTokenError(DiagnosticId::lex_err_unclosed_string, startTokenOffset_);
 
     // Consume closing quote if present
     if (buffer_[0] == '"')
@@ -327,7 +328,7 @@ void Lexer::lexMultiLineStringLiteral()
     }
 
     // EOF before closing delimiter
-    raiseTokenError(DiagnosticId::lex_err_unclosed_string, startOffset_, 3);
+    raiseTokenError(DiagnosticId::lex_err_unclosed_string, startTokenOffset_, 3);
 
     pushToken();
 }
@@ -367,7 +368,7 @@ void Lexer::lexRawStringLiteral()
     }
 
     if (!foundClosing)
-        raiseTokenError(DiagnosticId::lex_err_unclosed_string, startOffset_, 2);
+        raiseTokenError(DiagnosticId::lex_err_unclosed_string, startTokenOffset_, 2);
 
     pushToken();
 }
@@ -380,7 +381,7 @@ void Lexer::lexCharacterLiteral()
     // Check for empty character literal
     if (buffer_[0] == '\'')
     {
-        raiseTokenError(DiagnosticId::lex_err_empty_char, startOffset_, 2);
+        raiseTokenError(DiagnosticId::lex_err_empty_char, startTokenOffset_, 2);
         buffer_++;
         pushToken();
         return;
@@ -400,7 +401,7 @@ void Lexer::lexCharacterLiteral()
         // Check for EOL
         if (buffer_[0] == '\n' || buffer_[0] == '\r')
         {
-            raiseTokenError(DiagnosticId::lex_err_unclosed_char, startOffset_, static_cast<uint32_t>(buffer_ - startToken_));
+            raiseTokenError(DiagnosticId::lex_err_unclosed_char, startTokenOffset_, static_cast<uint32_t>(buffer_ - startToken_));
             pushToken();
             eatOneEol();
             return;
@@ -417,7 +418,7 @@ void Lexer::lexCharacterLiteral()
 
     // Check for EOF
     if (buffer_ >= endBuffer_)
-        raiseTokenError(DiagnosticId::lex_err_unclosed_char, startOffset_, static_cast<uint32_t>(buffer_ - startToken_));
+        raiseTokenError(DiagnosticId::lex_err_unclosed_char, startTokenOffset_, static_cast<uint32_t>(buffer_ - startToken_));
 
     // Consume closing quote if present
     if (buffer_[0] == '\'')
@@ -425,7 +426,7 @@ void Lexer::lexCharacterLiteral()
 
     // Check for too many characters
     if (charCount > 1)
-        raiseTokenError(DiagnosticId::lex_err_too_many_char_char, startOffset_, static_cast<uint32_t>(buffer_ - startToken_));
+        raiseTokenError(DiagnosticId::lex_err_too_many_char_char, startTokenOffset_, static_cast<uint32_t>(buffer_ - startToken_));
 
     pushToken();
 }
@@ -435,9 +436,9 @@ void Lexer::lexHexNumber()
     token_.id = TokenId::NumberHexadecimal;
     buffer_ += 2;
 
-    bool           lastWasSep = false;
-    const uint8_t* sepStart   = nullptr;
-    uint32_t       digits     = 0;
+    bool                 lastWasSep = false;
+    const unsigned char* sepStart   = nullptr;
+    uint32_t             digits     = 0;
 
     // Safe lookahead: zeros after endBuffer_ will fail isHexNumber check
     while (langSpec_->isHexNumber(buffer_[0]) || langSpec_->isNumberSep(buffer_[0]))
@@ -465,7 +466,7 @@ void Lexer::lexHexNumber()
 
     // Require at least one digit
     if (digits == 0)
-        raiseTokenError(DiagnosticId::lex_err_missing_hex_digit, startOffset_, 2 + (lastWasSep ? 1 : 0));
+        raiseTokenError(DiagnosticId::lex_err_missing_hex_digit, startTokenOffset_, 2 + (lastWasSep ? 1 : 0));
 
     // No trailing separator
     if (lastWasSep)
@@ -483,9 +484,9 @@ void Lexer::lexBinNumber()
     token_.id = TokenId::NumberBinary;
     buffer_ += 2;
 
-    bool           lastWasSep = false;
-    const uint8_t* sepStart   = nullptr;
-    uint32_t       digits     = 0;
+    bool                 lastWasSep = false;
+    const unsigned char* sepStart   = nullptr;
+    uint32_t             digits     = 0;
 
     // Safe lookahead: zeros after endBuffer_ will fail the check
     while (langSpec_->isBinNumber(buffer_[0]) || langSpec_->isNumberSep(buffer_[0]))
@@ -513,7 +514,7 @@ void Lexer::lexBinNumber()
 
     // Require at least one digit
     if (digits == 0)
-        raiseTokenError(DiagnosticId::lex_err_missing_bin_digit, startOffset_, 2 + (lastWasSep ? 1 : 0));
+        raiseTokenError(DiagnosticId::lex_err_missing_bin_digit, startTokenOffset_, 2 + (lastWasSep ? 1 : 0));
 
     // No trailing separator
     if (lastWasSep)
@@ -530,10 +531,10 @@ void Lexer::lexDecimalNumber()
 {
     token_.id = TokenId::NumberInteger;
 
-    bool           lastWasSep = false;
-    const uint8_t* sepStart   = nullptr;
-    bool           hasDot     = false;
-    bool           hasExp     = false;
+    bool                 lastWasSep = false;
+    const unsigned char* sepStart   = nullptr;
+    bool                 hasDot     = false;
+    bool                 hasExp     = false;
 
     // Parse integer part - safe lookahead: zeros after endBuffer_ will fail the check
     while (langSpec_->isDigit(buffer_[0]) || langSpec_->isNumberSep(buffer_[0]))
@@ -693,9 +694,9 @@ void Lexer::lexIdentifier()
         if (token_.id == TokenId::Identifier)
         {
             if (name[0] == '#')
-                raiseTokenError(DiagnosticId::parser_err_invalid_compiler, startOffset_, static_cast<uint32_t>(name.size()));
+                raiseTokenError(DiagnosticId::parser_err_invalid_compiler, startTokenOffset_, static_cast<uint32_t>(name.size()));
             else if (name[0] == '@')
-                raiseTokenError(DiagnosticId::parser_err_invalid_intrinsic, startOffset_, static_cast<uint32_t>(name.size()));
+                raiseTokenError(DiagnosticId::parser_err_invalid_intrinsic, startTokenOffset_, static_cast<uint32_t>(name.size()));
 
             const auto idx = static_cast<uint32_t>(lexOut_->identifiers_.size());
             lexOut_->identifiers_.push_back({.hash = hash64, .byteStart = token_.byteStart});
@@ -1026,7 +1027,7 @@ void Lexer::lexSymbol()
 
         default:
             eatUtf8Char();
-            raiseTokenError(DiagnosticId::lex_err_invalid_char, startOffset_, static_cast<uint32_t>(buffer_ - startToken_));
+            raiseTokenError(DiagnosticId::lex_err_invalid_char, startTokenOffset_, static_cast<uint32_t>(buffer_ - startToken_));
             break;
     }
 
@@ -1087,7 +1088,7 @@ void Lexer::lexMultiLineComment()
     }
 
     if (depth > 0)
-        raiseTokenError(DiagnosticId::lex_err_unclosed_comment, startOffset_, 2);
+        raiseTokenError(DiagnosticId::lex_err_unclosed_comment, startTokenOffset_, 2);
 
     pushToken();
 }
@@ -1095,13 +1096,13 @@ void Lexer::lexMultiLineComment()
 void Lexer::checkFormat(const TaskContext& ctx, uint32_t& startOffset)
 {
     // BOM (Byte Order Mark) constants
-    static constexpr uint8_t UTF8[]     = {0xEF, 0xBB, 0xBF};
-    static constexpr uint8_t UTF16_BE[] = {0xFE, 0xFF};
-    static constexpr uint8_t UTF16_LE[] = {0xFF, 0xFE};
-    static constexpr uint8_t UTF32_BE[] = {0x00, 0x00, 0xFE, 0xFF};
-    static constexpr uint8_t UTF32_LE[] = {0xFF, 0xFE, 0x00, 0x00};
+    static constexpr unsigned char UTF8[]     = {0xEF, 0xBB, 0xBF};
+    static constexpr unsigned char UTF16_BE[] = {0xFE, 0xFF};
+    static constexpr unsigned char UTF16_LE[] = {0xFF, 0xFE};
+    static constexpr unsigned char UTF32_BE[] = {0x00, 0x00, 0xFE, 0xFF};
+    static constexpr unsigned char UTF32_LE[] = {0xFF, 0xFE, 0x00, 0x00};
 
-    const auto  file    = ctx.sourceFile();
+    const auto  file    = ctx.file();
     const auto& content = file->content();
 
     // Ensure we have enough bytes to check
@@ -1111,7 +1112,7 @@ void Lexer::checkFormat(const TaskContext& ctx, uint32_t& startOffset)
         return;
     }
 
-    const uint8_t* data = content.data();
+    const unsigned char* data = content.data();
 
     // UTF-8 BOM
     if (content.size() >= 3 &&
@@ -1169,23 +1170,21 @@ void Lexer::checkFormat(const TaskContext& ctx, uint32_t& startOffset)
     startOffset = 0;
 }
 
-Result Lexer::tokenizeRaw(TaskContext& ctx)
+Result Lexer::tokenizeRaw(TaskContext& ctx, LexerOutput& lexOut)
 {
     rawMode_          = true;
-    const auto result = tokenize(ctx);
+    const auto result = tokenize(ctx, lexOut, LexerFlagsE::Default);
     rawMode_          = false;
     return result;
 }
 
-Result Lexer::tokenize(TaskContext& ctx, LexerFlags flags)
+Result Lexer::tokenize(TaskContext& ctx, LexerOutput& lexOut, LexerFlags flags)
 {
 #if SWC_HAS_STATS
     Timer time(&Stats::get().timeLexer);
 #endif
 
-    file_   = ctx.sourceFile();
-    lexOut_ = &file_->lexOut_;
-
+    lexOut_ = &lexOut;
     lexOut_->tokens_.clear();
     lexOut_->lines_.clear();
     prevToken_ = {};
@@ -1197,23 +1196,23 @@ Result Lexer::tokenize(TaskContext& ctx, LexerFlags flags)
     uint32_t startOffset = 0;
     checkFormat(ctx, startOffset);
 
-    const auto base = file_->content().data();
+    const auto base = reinterpret_cast<const unsigned char*>(lexOut.source().data());
     buffer_         = base + startOffset;
     startBuffer_    = base;
-    endBuffer_      = startBuffer_ + file_->size();
+    endBuffer_      = startBuffer_ + lexOut.source().size();
 
     // Reserve space based on file size
-    lexOut_->tokens_.reserve(file_->content().size() / 10);
+    lexOut_->tokens_.reserve(lexOut.source().size() / 10);
     if (!rawMode_)
-        lexOut_->lines_.reserve(file_->content().size() / 60);
+        lexOut_->lines_.reserve(lexOut.source().size() / 60);
     lexOut_->lines_.push_back(0);
 
     while (buffer_ < endBuffer_)
     {
         hasTokenError_    = false;
         startToken_       = buffer_;
-        startOffset_      = static_cast<uint32_t>(startToken_ - startBuffer_);
-        token_.byteStart  = startOffset_;
+        startTokenOffset_ = static_cast<uint32_t>(startToken_ - startBuffer_);
+        token_.byteStart  = startTokenOffset_;
         token_.byteLength = 1;
         token_.flags      = TokenFlagsE::Zero;
 
@@ -1325,6 +1324,63 @@ Result Lexer::tokenize(TaskContext& ctx, LexerFlags flags)
 #endif
 
     return Result::Success;
+}
+
+Utf8 LexerOutput::codeLine(const TaskContext& ctx, uint32_t line) const
+{
+    line--;
+    SWC_ASSERT(line < lines_.size());
+
+    const auto  offset      = lines_[line];
+    const auto  startBuffer = source_.data() + offset;
+    const char* end;
+
+    if (line == lines_.size() - 1)
+        end = source_.data() + source_.size();
+    else
+        end = source_.data() + lines_[line + 1];
+
+    auto buffer = startBuffer;
+    bool hasTab = false;
+    while (buffer + 1 < end && buffer[0] != '\n' && buffer[0] != '\r')
+    {
+        if (buffer[0] == '\t')
+            hasTab = true;
+        buffer++;
+    }
+
+    const auto result = std::string_view{startBuffer, buffer};
+    if (!hasTab)
+        return result;
+
+    // Transform tabulations to blanks in order for columns to match
+    const uint32_t tabSize = ctx.cmdLine().tabSize;
+    Utf8           expanded;
+    expanded.reserve(result.size());
+
+    size_t column = 0;
+    for (const char c : result)
+    {
+        if (c == '\t')
+        {
+            const size_t spaces = tabSize - (column % tabSize);
+            expanded.append(spaces, ' ');
+            column += spaces;
+        }
+        else
+        {
+            expanded.push_back(c);
+            column++;
+        }
+    }
+
+    return expanded;
+}
+
+std::string_view LexerOutput::codeView(uint32_t offset, uint32_t len) const
+{
+    SWC_ASSERT(offset + len <= source_.size());
+    return std::string_view{source_.data() + offset, len};
 }
 
 SWC_END_NAMESPACE()

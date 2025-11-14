@@ -1,4 +1,5 @@
 #pragma once
+#include "Lexer/Lexer.h"
 #include "Lexer/SourceCodeLocation.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -18,23 +19,27 @@ struct UnitTestDirective
     mutable bool       touched = false;
 };
 
+enum class UnitTestFlagsE : uint32_t
+{
+    Zero    = 0,
+    LexOnly = 1 << 0,
+};
+using UnitTestFlags = EnumFlags<UnitTestFlagsE>;
+
 class UnitTest
 {
-    SourceFile*                    file_;
+    LexerOutput                    lexOut_;
+    UnitTestFlags                  flags_ = UnitTestFlagsE::Zero;
     std::vector<UnitTestDirective> directives_;
 
-    static void tokenizeOption(TaskContext& ctx, std::string_view comment);
-    void        tokenizeExpected(const TaskContext& ctx, const LexTrivia& trivia, std::string_view comment);
+    void tokenizeOption(const TaskContext& ctx, std::string_view comment);
+    void tokenizeExpected(const TaskContext& ctx, const LexTrivia& trivia, std::string_view comment);
 
 public:
-    explicit UnitTest(SourceFile* file) :
-        file_(file)
-    {
-    }
-
-    Result tokenize(TaskContext& ctx);
-    bool   verifyExpected(const TaskContext& ctx, const Diagnostic& diag) const;
-    Result verifyUntouchedExpected(const TaskContext& ctx) const;
+    void tokenize(TaskContext& ctx);
+    bool hasFlag(UnitTestFlagsE flag) const { return flags_.has(flag); }
+    bool verifyExpected(const TaskContext& ctx, const Diagnostic& diag) const;
+    void verifyUntouchedExpected(const TaskContext& ctx) const;
 };
 
 SWC_END_NAMESPACE()

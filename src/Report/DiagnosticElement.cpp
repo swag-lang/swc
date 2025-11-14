@@ -16,10 +16,10 @@ DiagnosticElement::DiagnosticElement(DiagnosticSeverity severity, DiagnosticId i
 {
 }
 
-void DiagnosticElement::addSpan(const SourceFile* file, uint32_t offset, uint32_t len, DiagnosticSeverity severity, const Utf8& message)
+void DiagnosticElement::addSpan(const LexerOutput* lexOut, uint32_t offset, uint32_t len, DiagnosticSeverity severity, const Utf8& message)
 {
-    SWC_ASSERT(!file_ || file_ == file);
-    file_ = file;
+    SWC_ASSERT(!lexOut_ || lexOut_ == lexOut);
+    lexOut_ = lexOut;
 
     if (!len)
         return;
@@ -33,8 +33,8 @@ void DiagnosticElement::addSpan(const SourceFile* file, uint32_t offset, uint32_
 
 void DiagnosticElement::addSpan(const SourceCodeLocation& loc, const Utf8& message, DiagnosticSeverity severity)
 {
-    SWC_ASSERT(!file_ || loc.file == file_);
-    file_ = loc.file;
+    SWC_ASSERT(!lexOut_ || loc.lexOut == lexOut_);
+    lexOut_ = loc.lexOut;
 
     if (!loc.len)
         return;
@@ -48,8 +48,8 @@ void DiagnosticElement::addSpan(const SourceCodeLocation& loc, const Utf8& messa
 
 void DiagnosticElement::addSpan(const SourceCodeLocation& loc, DiagnosticId diagId, DiagnosticSeverity severity)
 {
-    SWC_ASSERT(!file_ || loc.file == file_);
-    file_ = loc.file;
+    SWC_ASSERT(!lexOut_ || loc.lexOut == lexOut_);
+    lexOut_ = loc.lexOut;
 
     DiagnosticSpan span;
     span.offset    = loc.offset;
@@ -61,17 +61,17 @@ void DiagnosticElement::addSpan(const SourceCodeLocation& loc, DiagnosticId diag
 
 SourceCodeLocation DiagnosticElement::location(uint32_t spanIndex, const TaskContext& ctx) const
 {
-    if (!file_ || spans_.empty())
+    if (!lexOut_ || spans_.empty())
         return {};
     return location(spans_[spanIndex], ctx);
 }
 
 SourceCodeLocation DiagnosticElement::location(const DiagnosticSpan& span, const TaskContext& ctx) const
 {
-    if (!file_)
+    if (!lexOut_)
         return {};
     SourceCodeLocation loc;
-    loc.fromOffset(ctx, *file_, span.offset, span.len);
+    loc.fromOffset(ctx, *lexOut_, span.offset, span.len);
     return loc;
 }
 

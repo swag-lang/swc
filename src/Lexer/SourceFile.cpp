@@ -1,8 +1,5 @@
 ﻿#include "pch.h"
-
 #include "Lexer/SourceFile.h"
-#include "Main/CommandLine.h"
-#include "Main/TaskContext.h"
 #include "Os/Os.h"
 #include "Report/Diagnostic.h"
 #include "Report/Stats.h"
@@ -12,6 +9,7 @@ SWC_BEGIN_NAMESPACE()
 SourceFile::SourceFile(fs::path path) :
     path_(std::move(path))
 {
+    lexOut_.setFile(this);
 }
 
 Result SourceFile::loadContent(const TaskContext& ctx)
@@ -30,7 +28,7 @@ Result SourceFile::loadContent(const TaskContext& ctx)
         auto diag = Diagnostic::get(DiagnosticId::io_err_open_file, this);
         diag.addArgument(Diagnostic::ARG_PATH, path_.string());
         diag.addArgument(Diagnostic::ARG_BECAUSE, Os::systemError());
-        diag.last().setFile(this);
+        diag.last().setLexerOutput(&lexOut_);
         diag.report(ctx);
         return Result::Error;
     }
@@ -45,7 +43,7 @@ Result SourceFile::loadContent(const TaskContext& ctx)
         auto diag = Diagnostic::get(DiagnosticId::io_err_read_file, this);
         diag.addArgument(Diagnostic::ARG_PATH, path_.string());
         diag.addArgument(Diagnostic::ARG_BECAUSE, Os::systemError());
-        diag.last().setFile(this);
+        diag.last().setLexerOutput(&lexOut_);
         diag.report(ctx);
         return Result::Error;
     }
@@ -54,64 +52,8 @@ Result SourceFile::loadContent(const TaskContext& ctx)
     for (int i = 0; i < TRAILING_0; i++)
         content_.push_back(0);
 
+    lexOut_.setSource(stringView());
     return Result::Success;
-}
-
-Utf8 SourceFile::codeLine(const TaskContext& ctx, uint32_t line) const
-{
-    line--;
-    SWC_ASSERT(line < lexOut_.lines().size());
-
-    const auto  offset      = lexOut_.lines()[line];
-    const auto  startBuffer = reinterpret_cast<const char*>(content_.data() + offset);
-    const char* end;
-
-    if (line == lexOut_.lines().size() - 1)
-        end = reinterpret_cast<const char*>(content_.data() + content_.size());
-    else
-        end = reinterpret_cast<const char*>(content_.data() + lexOut_.lines()[line + 1]);
-
-    auto buffer = startBuffer;
-    bool hasTab = false;
-    while (buffer + 1 < end && buffer[0] != '\n' && buffer[0] != '\r')
-    {
-        if (buffer[0] == '\t')
-            hasTab = true;
-        buffer++;
-    }
-
-    const auto result = std::string_view{startBuffer, buffer};
-    if (!hasTab)
-        return result;
-
-    // Transform tabulations to blanks in order for columns to match
-    const uint32_t tabSize = ctx.cmdLine().tabSize;
-    Utf8           expanded;
-    expanded.reserve(result.size());
-
-    size_t column = 0;
-    for (const char c : result)
-    {
-        if (c == '\t')
-        {
-            const size_t spaces = tabSize - (column % tabSize);
-            expanded.append(spaces, ' ');
-            column += spaces;
-        }
-        else
-        {
-            expanded.push_back(c);
-            column++;
-        }
-    }
-
-    return expanded;
-}
-
-std::string_view SourceFile::codeView(uint32_t offset, uint32_t len) const
-{
-    SWC_ASSERT(offset + len <= content_.size());
-    return std::string_view{reinterpret_cast<const char*>(content_.data() + offset), len};
 }
 
 SWC_END_NAMESPACE()

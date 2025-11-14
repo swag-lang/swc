@@ -11,15 +11,12 @@ namespace
 {
     void parseFile(JobContext& taskCtx, SourceFile* f)
     {
-        Parser parser;
-        taskCtx.setSourceFile(f);
-        parser.parse(taskCtx);
     }
 }
 
 namespace CompilerCommand
 {
-    Result format(const CompilerInstance& compiler)
+    void format(const CompilerInstance& compiler)
     {
         const TaskContext ctx(compiler.context());
         const auto&       global   = ctx.global();
@@ -27,7 +24,7 @@ namespace CompilerCommand
         const auto        clientId = compiler.context().jobClientId();
 
         if (fileMgr.collectFiles(ctx) == Result::Error)
-            return Result::Error;
+            return;
 
         for (const auto& f : global.fileMgr().files())
         {
@@ -45,8 +42,6 @@ namespace CompilerCommand
         for (const auto& f : fileMgr.files())
         {
         }
-
-        return Result::Success;
     }
 }
 

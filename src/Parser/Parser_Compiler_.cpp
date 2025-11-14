@@ -137,13 +137,13 @@ AstNodeRef Parser::parseCompilerGlobal()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerGlobal>();
     consume();
 
-    const auto tokStr = tok().string(*file_);
+    const auto tokStr = tok().string(*lexOut_);
 
     // @temp
     if (tokStr == "testerror" || tokStr == "testerrors" || tokStr == "testwarning" || tokStr == "testwarnings" || tokStr == "testpass")
     {
         skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
-        file_->addFlag(FileFlagsE::GlobalSkip);
+        out_->addFlag(ParserOutFlagsE::GlobalSkip);
 
         return nodeRef;
     }
@@ -152,7 +152,7 @@ AstNodeRef Parser::parseCompilerGlobal()
     {
         nodePtr->mode     = AstCompilerGlobal::Mode::Skip;
         nodePtr->nodeMode = AstNodeRef::invalid();
-        file_->addFlag(FileFlagsE::GlobalSkip);
+        out_->addFlag(ParserOutFlagsE::GlobalSkip);
         consume();
     }
     else if (tokStr == Token::toName(TokenId::KwdSkipFmt))
@@ -230,7 +230,7 @@ AstNodeRef Parser::parseCompilerImport()
 
     if (consumeIf(TokenId::SymComma).isValid())
     {
-        auto tokStr = tok().string(*file_);
+        auto tokStr = tok().string(*lexOut_);
         if (tokStr == Token::toName(TokenId::KwdLocation))
         {
             consume();
@@ -238,7 +238,7 @@ AstNodeRef Parser::parseCompilerImport()
             nodePtr->tokLocation = expectAndConsume(TokenId::StringLine, DiagnosticId::parser_err_expected_token_before);
             if (consumeIf(TokenId::SymComma).isValid())
             {
-                tokStr = tok().string(*file_);
+                tokStr = tok().string(*lexOut_);
                 if (tokStr == Token::toName(TokenId::KwdVersion))
                 {
                     consume();

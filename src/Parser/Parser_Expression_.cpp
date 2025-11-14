@@ -63,7 +63,7 @@ AstModifierFlags Parser::parseModifiers()
         if (result.has(toSet))
         {
             auto       diag = reportError(DiagnosticId::parser_err_duplicated_modifier, ref());
-            const auto loc  = file_->lexOut().token(done[toSet]).location(*ctx_, *file_);
+            const auto loc  = lexOut_->token(done[toSet]).location(*ctx_, *lexOut_);
             diag.last().addSpan(loc, DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
             diag.report(*ctx_);
         }
@@ -626,7 +626,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::CompilerUniq6:
         case TokenId::CompilerUniq7:
         case TokenId::CompilerUniq8:
-        case TokenId::CompilerUniq9:            
+        case TokenId::CompilerUniq9:
             return parseIdentifier();
 
         case TokenId::KwdFunc:

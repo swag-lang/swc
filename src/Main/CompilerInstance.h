@@ -13,7 +13,7 @@ class CompilerInstance
     void            logBefore() const;
     void            logAfter() const;
     void            logStats() const;
-    Result          processCommand() const;
+    void            processCommand() const;
 
 public:
     CompilerInstance(const CommandLine& cmdLine, const Global& global);

@@ -51,7 +51,7 @@ DiagnosticSeverity Diagnostic::diagIdSeverity(DiagnosticId id)
     return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].severity;
 }
 
-Diagnostic::Diagnostic(const std::optional<SourceFile*>& fileOwner) :
+Diagnostic::Diagnostic(const SourceFile* fileOwner) :
     fileOwner_(fileOwner)
 {
 }
@@ -69,8 +69,8 @@ void Diagnostic::addArgument(std::string_view name, std::string_view arg, bool q
     Utf8 sanitized;
     sanitized.reserve(arg.size());
 
-    auto           ptr = reinterpret_cast<const uint8_t*>(arg.data());
-    const uint8_t* end = ptr + arg.size();
+    auto       ptr = reinterpret_cast<const unsigned char*>(arg.data());
+    const auto end = ptr + arg.size();
     while (ptr < end)
     {
         auto [buf, wc, eat] = Utf8Helper::decodeOneChar(ptr, end);
@@ -113,9 +113,9 @@ void Diagnostic::addArgument(std::string_view name, std::string_view arg, bool q
     arguments_.emplace_back(Argument{.name = name, .quoted = quoted, .val = std::move(sanitized)});
 }
 
-Diagnostic Diagnostic::get(DiagnosticId id, std::optional<SourceFile*> fileOwner)
+Diagnostic Diagnostic::get(DiagnosticId id, const SourceFile* file)
 {
-    Diagnostic diag(fileOwner);
+    Diagnostic diag(file);
     diag.addElement(id);
     return diag;
 }
@@ -129,15 +129,6 @@ void Diagnostic::report(const TaskContext& ctx) const
     if (ctx.silentError())
         return;
 
-    // Mark file
-    if (fileOwner_)
-    {
-        if (elements_.front()->severity() == DiagnosticSeverity::Error)
-            fileOwner_.value()->setHasError();
-        else if (elements_.front()->severity() == DiagnosticSeverity::Warning)
-            fileOwner_.value()->setHasWarning();
-    }
-
     DiagnosticBuilder eng(ctx, *this);
     const auto        msg     = eng.build();
     bool              dismiss = false;
@@ -145,7 +136,7 @@ void Diagnostic::report(const TaskContext& ctx) const
     // Check that diagnostic was not awaited
     if (fileOwner_)
     {
-        dismiss = fileOwner_.value()->unittest().verifyExpected(ctx, *this);
+        dismiss = fileOwner_->unittest().verifyExpected(ctx, *this);
     }
 
     // Count only errors and warnings not dismissed during tests

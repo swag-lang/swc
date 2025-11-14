@@ -292,16 +292,20 @@ void DiagnosticBuilder::writeHighlightedMessage(DiagnosticSeverity sev, std::str
 
 void DiagnosticBuilder::writeFileLocation(const DiagnosticElement& el)
 {
-    Utf8 fileName;
-    if (ctx_->cmdLine().diagAbsolute)
-        fileName = el.file()->path().string();
-    else
-        fileName = el.file()->path().filename().string();
     const auto loc = el.location(0, *ctx_);
 
-    out_ += partStyle(DiagPart::FileLocationPath);
-    out_ += fileName;
-    out_ += partStyle(DiagPart::Reset);
+    SWC_ASSERT(el.lexerOutput());
+    if (el.lexerOutput()->file() != nullptr)
+    {
+        Utf8 fileName;
+        if (ctx_->cmdLine().diagAbsolute)
+            fileName = el.lexerOutput()->file()->path().string();
+        else
+            fileName = el.lexerOutput()->file()->path().filename().string();
+        out_ += partStyle(DiagPart::FileLocationPath);
+        out_ += fileName;
+        out_ += partStyle(DiagPart::Reset);
+    }
 
     out_ += partStyle(DiagPart::FileLocationSep);
     out_ += ":";
@@ -587,7 +591,7 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
             }
 
             // Prepare a new line
-            currentFullCodeLine    = el.file()->codeLine(*ctx_, loc.line);
+            currentFullCodeLine    = el.lexerOutput()->codeLine(*ctx_, loc.line);
             currentFullCharCount   = Utf8Helper::countChars(currentFullCodeLine);
             currentLineIsTruncated = (currentFullCharCount > diagMax);
 
@@ -597,7 +601,7 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
             currentLine = loc.line;
         }
 
-        const std::string_view tokenView     = el.file()->codeView(loc.offset, loc.len);
+        const std::string_view tokenView     = el.lexerOutput()->codeView(loc.offset, loc.len);
         const uint32_t         tokenLenChars = Utf8Helper::countChars(tokenView);
 
         if (currentLineIsTruncated)

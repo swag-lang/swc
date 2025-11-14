@@ -4,30 +4,30 @@
 
 SWC_BEGIN_NAMESPACE()
 
-std::string_view Token::string(const SourceFile& file) const
+std::string_view Token::string(const LexerOutput& lex) const
 {
-    auto start = reinterpret_cast<const char*>(file.content().data());
+    auto start = lex.source().data();
 
     // In the case of an identifier, 'byteStart' is the index in the file identifier table.
     // And the real 'byteStart' is stored in that table
     if (id == TokenId::Identifier)
     {
-        const auto offset = file.lexOut().identifiers()[byteStart].byteStart;
+        const auto offset = lex.identifiers()[byteStart].byteStart;
         return {start + offset, static_cast<size_t>(byteLength)};
     }
 
     return {start + byteStart, static_cast<size_t>(byteLength)};
 }
 
-SourceCodeLocation Token::location(const TaskContext& ctx, const SourceFile& file) const
+SourceCodeLocation Token::location(const TaskContext& ctx, const LexerOutput& lex) const
 {
     SourceCodeLocation loc;
     uint32_t           offset;
     if (id == TokenId::Identifier)
-        offset = file.lexOut().identifiers()[byteStart].byteStart;
+        offset = lex.identifiers()[byteStart].byteStart;
     else
         offset = byteStart;
-    loc.fromOffset(ctx, file, offset, byteLength);
+    loc.fromOffset(ctx, lex, offset, byteLength);
     return loc;
 }
 

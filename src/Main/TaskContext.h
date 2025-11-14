@@ -10,7 +10,7 @@ class SourceFile;
 class TaskContext
 {
     const CompilerContext* compilerContext_ = nullptr;
-    SourceFile*            sourceFile_      = nullptr;
+    SourceFile*            file_            = nullptr;
     bool                   silentError_     = false;
 
 public:
@@ -21,9 +21,9 @@ public:
 
     const Global&      global() const { return compilerContext_->global(); }
     const CommandLine& cmdLine() const { return compilerContext_->cmdLine(); }
-    SourceFile*        sourceFile() { return sourceFile_; }
-    const SourceFile*  sourceFile() const { return sourceFile_; }
-    void               setSourceFile(SourceFile* sourceFile) { sourceFile_ = sourceFile; }
+    SourceFile*        file() { return file_; }
+    const SourceFile*  file() const { return file_; }
+    void               setFile(SourceFile* sourceFile) { file_ = sourceFile; }
     bool               silentError() const { return silentError_; }
     void               setSilentError(bool silent) { silentError_ = silent; }
 };

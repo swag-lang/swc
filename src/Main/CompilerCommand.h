@@ -6,8 +6,8 @@ class CompilerInstance;
 
 namespace CompilerCommand
 {
-    Result syntax(const CompilerInstance& compiler);
-    Result format(const CompilerInstance& compiler);
+    void syntax(const CompilerInstance& compiler);
+    void format(const CompilerInstance& compiler);
 }
 
 SWC_END_NAMESPACE()

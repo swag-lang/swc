@@ -66,15 +66,17 @@ void CompilerInstance::logStats() const
     }
 }
 
-Result CompilerInstance::processCommand() const
+void CompilerInstance::processCommand() const
 {
     Timer time(&Stats::get().timeTotal);
     switch (context_.cmdLine().command)
     {
         case Command::Syntax:
-            return CompilerCommand::syntax(*this);
+            CompilerCommand::syntax(*this);
+            break;
         case Command::Format:
-            return CompilerCommand::format(*this);
+            CompilerCommand::format(*this);
+            break;
         default:
             SWC_UNREACHABLE();
     }
@@ -83,13 +85,10 @@ Result CompilerInstance::processCommand() const
 ExitCode CompilerInstance::run() const
 {
     logBefore();
-
-    const auto result = processCommand();
-
+    processCommand();
     logAfter();
     logStats();
-
-    return result == Result::Success ? ExitCode::Success : ExitCode::ErrorCommand;
+    return ExitCode::Success;
 }
 
 SWC_END_NAMESPACE()

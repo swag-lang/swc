@@ -11,7 +11,9 @@ class Ast
 protected:
     friend class Parser;
     RefStore<> store_;
-    AstNodeRef root_ = AstNodeRef::invalid();
+    AstNodeRef root_        = AstNodeRef::invalid();
+    bool       hasErrors_   = false;
+    bool       hasWarnings_ = false;
 
 public:
     static constexpr const AstNodeIdInfo& nodeIdInfos(AstNodeId id) { return AST_NODE_ID_INFOS[static_cast<size_t>(id)]; }

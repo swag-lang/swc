@@ -214,6 +214,7 @@ class Parser
 
 public:
     Result parse(TaskContext& ctx);
+    Result parse(TaskContext& ctx, Ast& out, const LexerOutput& lexOut);
 };
 
 SWC_END_NAMESPACE()

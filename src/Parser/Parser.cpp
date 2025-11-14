@@ -316,14 +316,21 @@ Result Parser::parse(TaskContext& ctx)
     if (file_->hasFlag(FileFlagsE::GlobalSkip))
         return Result::Success;
 
-    // Parser
-    firstToken_ = &file_->lexOut_.tokens().front();
-    lastToken_  = &file_->lexOut_.tokens().back();
+    return parse(ctx, *ast_, file_->lexOut_);
+}
+
+Result Parser::parse(TaskContext& ctx, Ast& out, const LexerOutput& lexOut)
+{
+    ast_ = &out;
+    ctx_ = &ctx;
+
+    firstToken_ = &lexOut.tokens().front();
+    lastToken_  = &lexOut.tokens().back();
     curToken_   = firstToken_;
 
     ast_->root_ = parseFile();
 
-    return file_->hasErrors() ? Result::Error : Result::Success;
+    return out.hasErrors_ ? Result::Error : Result::Success;
 }
 
 SWC_END_NAMESPACE()

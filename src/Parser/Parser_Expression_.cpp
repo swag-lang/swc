@@ -207,11 +207,37 @@ AstNodeRef Parser::parsePostfixIdentifierValue()
 
 AstNodeRef Parser::parseIdentifier()
 {
-    if (is(TokenId::KwdMe))
+    switch (id())
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>();
-        nodePtr->tokName        = consume();
-        return nodeRef;
+        case TokenId::KwdMe:
+        case TokenId::CompilerAlias0:
+        case TokenId::CompilerAlias1:
+        case TokenId::CompilerAlias2:
+        case TokenId::CompilerAlias3:
+        case TokenId::CompilerAlias4:
+        case TokenId::CompilerAlias5:
+        case TokenId::CompilerAlias6:
+        case TokenId::CompilerAlias7:
+        case TokenId::CompilerAlias8:
+        case TokenId::CompilerAlias9:
+        case TokenId::CompilerUniq0:
+        case TokenId::CompilerUniq1:
+        case TokenId::CompilerUniq2:
+        case TokenId::CompilerUniq3:
+        case TokenId::CompilerUniq4:
+        case TokenId::CompilerUniq5:
+        case TokenId::CompilerUniq6:
+        case TokenId::CompilerUniq7:
+        case TokenId::CompilerUniq8:
+        case TokenId::CompilerUniq9:
+        {
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>();
+            nodePtr->tokName        = consume();
+            return nodeRef;
+        }
+
+        default:
+            break;
     }
 
     const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
@@ -392,10 +418,6 @@ AstNodeRef Parser::parsePrimaryExpression()
 {
     switch (id())
     {
-        case TokenId::Identifier:
-        case TokenId::KwdMe:
-            return parseIdentifier();
-
         case TokenId::SymDot:
             return parsePreQualifiedIdentifier();
 
@@ -583,6 +605,8 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::ModifierNullable:
             return parseType();
 
+        case TokenId::Identifier:
+        case TokenId::KwdMe:
         case TokenId::CompilerAlias0:
         case TokenId::CompilerAlias1:
         case TokenId::CompilerAlias2:
@@ -593,12 +617,6 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::CompilerAlias7:
         case TokenId::CompilerAlias8:
         case TokenId::CompilerAlias9:
-        {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>();
-            nodePtr->tokName        = consume();
-            return nodeRef;
-        }
-
         case TokenId::CompilerUniq0:
         case TokenId::CompilerUniq1:
         case TokenId::CompilerUniq2:
@@ -608,12 +626,8 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::CompilerUniq6:
         case TokenId::CompilerUniq7:
         case TokenId::CompilerUniq8:
-        case TokenId::CompilerUniq9:
-        {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>();
-            nodePtr->tokName        = consume();
-            return nodeRef;
-        }
+        case TokenId::CompilerUniq9:            
+            return parseIdentifier();
 
         case TokenId::KwdFunc:
         case TokenId::KwdMtd:

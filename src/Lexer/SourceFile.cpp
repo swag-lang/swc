@@ -7,9 +7,9 @@
 SWC_BEGIN_NAMESPACE()
 
 SourceFile::SourceFile(fs::path path) :
-    path_(std::move(path))
+    path_(std::move(path)),
+    unittest_(this)
 {
-    lexOut_.setFile(this);
 }
 
 Result SourceFile::loadContent(const TaskContext& ctx)

@@ -145,7 +145,7 @@ void UnitTest::tokenize(TaskContext& ctx)
     if (!ctx.cmdLine().verify)
         return;
 
-    lexOut_.setFile(ctx.file());
+    lexOut_.setFile(file_);
 
     // Get all comments from the file
     Lexer lexer;
@@ -188,14 +188,13 @@ bool UnitTest::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) co
     return false;
 }
 
-void UnitTest::verifyUntouchedExpected(const TaskContext& ctx) const
+void UnitTest::verifyUntouchedExpected(const TaskContext& ctx, const LexerOutput& lexOut) const
 {
-    SWC_ASSERT(ctx.file() != nullptr);
     for (const auto& directive : directives_)
     {
         if (!directive.touched)
         {
-            const auto diag = Diagnostic::get(DiagnosticId::unittest_err_not_raised, ctx.file());
+            const auto diag = Diagnostic::get(DiagnosticId::unittest_err_not_raised, lexOut.file());
             diag.last().addSpan(directive.myLoc, "");
             diag.report(ctx);
         }

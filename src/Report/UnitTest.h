@@ -28,6 +28,7 @@ using UnitTestFlags = EnumFlags<UnitTestFlagsE>;
 
 class UnitTest
 {
+    SourceFile*                    file_ = nullptr;
     LexerOutput                    lexOut_;
     std::vector<UnitTestDirective> directives_;
     UnitTestFlags                  flags_ = UnitTestFlagsE::Zero;
@@ -36,10 +37,15 @@ class UnitTest
     void tokenizeExpected(const TaskContext& ctx, const LexTrivia& trivia, std::string_view comment);
 
 public:
+    explicit UnitTest(SourceFile* sourceFile) :
+        file_(sourceFile)
+    {
+    }
+
     void tokenize(TaskContext& ctx);
     bool hasFlag(UnitTestFlagsE flag) const { return flags_.has(flag); }
     bool verifyExpected(const TaskContext& ctx, const Diagnostic& diag) const;
-    void verifyUntouchedExpected(const TaskContext& ctx) const;
+    void verifyUntouchedExpected(const TaskContext& ctx, const LexerOutput& lexOut) const;
 };
 
 SWC_END_NAMESPACE()

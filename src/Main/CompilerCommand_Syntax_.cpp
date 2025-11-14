@@ -11,13 +11,12 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    void parseFile(JobContext& ctx)
+    void parseFile(JobContext& ctx, SourceFile* file)
     {
 #if SWC_HAS_STATS
         Timer time(&Stats::get().timeParser);
 #endif
 
-        const auto file = ctx.file();
         if (file->loadContent(ctx) != Result::Success)
             return;
 
@@ -50,8 +49,7 @@ namespace CompilerCommand
         {
             auto job  = std::make_shared<Job>(ctx);
             job->func = [f](JobContext& taskCtx) {
-                taskCtx.setFile(f);
-                parseFile(taskCtx);
+                parseFile(taskCtx, f);
                 return JobResult::Done;
             };
 
@@ -61,10 +59,7 @@ namespace CompilerCommand
         global.jobMgr().waitAll(compiler.context().jobClientId());
 
         for (const auto& f : fileMgr.files())
-        {
-            ctx.setFile(f);
-            f->unittest().verifyUntouchedExpected(ctx);
-        }
+            f->unittest().verifyUntouchedExpected(ctx, f->lexOut());
     }
 }
 

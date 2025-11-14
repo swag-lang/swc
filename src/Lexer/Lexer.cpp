@@ -35,7 +35,7 @@ void Lexer::raiseUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len)
     if (rawMode_)
         return;
 
-    const auto diag = Diagnostic::get(id, ctx_->file());
+    const auto diag = Diagnostic::get(id, lexOut_->file());
     diag.last().addSpan(lexOut_, offset, len);
     diag.report(*ctx_);
 }
@@ -49,7 +49,7 @@ Diagnostic Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t le
     if (rawMode_)
         return {};
 
-    auto diag = Diagnostic::get(id, ctx_->file());
+    auto diag = Diagnostic::get(id, lexOut_->file());
     diag.last().addSpan(lexOut_, offset, len);
 
     // Add an argument with the token string
@@ -1102,8 +1102,7 @@ void Lexer::checkFormat(const TaskContext& ctx, uint32_t& startOffset)
     static constexpr char8_t UTF32_BE[] = {0x00, 0x00, 0xFE, 0xFF};
     static constexpr char8_t UTF32_LE[] = {0xFF, 0xFE, 0x00, 0x00};
 
-    const auto  file    = ctx.file();
-    const auto& content = file->content();
+    const auto content = lexOut_->sourceView();
 
     // Ensure we have enough bytes to check
     if (content.size() < 3)
@@ -1112,7 +1111,7 @@ void Lexer::checkFormat(const TaskContext& ctx, uint32_t& startOffset)
         return;
     }
 
-    const char8_t* data = content.data();
+    const auto data = reinterpret_cast<const char8_t*>(content.data());
 
     // UTF-8 BOM
     if (content.size() >= 3 &&

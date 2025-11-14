@@ -84,7 +84,7 @@ void Parser::setReportExpected(Diagnostic& diag, TokenId expectedTknId)
 
 Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
 {
-    auto diag = Diagnostic::get(id, ctx_->file());
+    auto diag = Diagnostic::get(id, lexOut_->file());
     setReportArguments(diag, tknRef);
     diag.last().addSpan(tokenErrorLocation(tknRef), "");
 

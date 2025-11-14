@@ -258,7 +258,7 @@ struct AstLambdaExpr : AstNode
     {
     }
 
-    AstNodeRef nodeParams;
+    AstNodeRef nodeArgs;
     AstNodeRef nodeReturnType;
     AstNodeRef nodeBody;
 };

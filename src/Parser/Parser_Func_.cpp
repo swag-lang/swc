@@ -96,6 +96,7 @@ AstNodeRef Parser::parseLambdaExpression()
     else
         consumeAssert(TokenId::KwdFunc);
 
+    // Capture
     AstNodeRef captureArgs = AstNodeRef::invalid();
     if (is(TokenId::SymVertical))
     {
@@ -112,7 +113,8 @@ AstNodeRef Parser::parseLambdaExpression()
         flags.add(AstLambdaType::FlagsE::Closure);
     }
 
-    const AstNodeRef params = parseCompound<AstNodeId::LambdaTypeParamList>(TokenId::SymLeftParen);
+    // Arguments
+    const AstNodeRef args = parseCompound<AstNodeId::LambdaTypeParamList>(TokenId::SymLeftParen);
 
     // Return type
     AstNodeRef returnType = AstNodeRef::invalid();
@@ -138,7 +140,7 @@ AstNodeRef Parser::parseLambdaExpression()
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ClosureExpr>();
         nodePtr->addFlag(flags);
         nodePtr->nodeCaptureArgs = captureArgs;
-        nodePtr->nodeParams      = params;
+        nodePtr->nodeArgs        = args;
         nodePtr->nodeReturnType  = returnType;
         nodePtr->nodeBody        = body;
         return nodeRef;
@@ -146,7 +148,7 @@ AstNodeRef Parser::parseLambdaExpression()
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionExpr>();
     nodePtr->addFlag(flags);
-    nodePtr->nodeParams     = params;
+    nodePtr->nodeArgs       = args;
     nodePtr->nodeReturnType = returnType;
     nodePtr->nodeBody       = body;
     return nodeRef;

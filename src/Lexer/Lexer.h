@@ -81,7 +81,7 @@ class Lexer
     void       raiseUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len = 1);
     Diagnostic reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len = 1);
     void       raiseTokenError(DiagnosticId id, uint32_t offset, uint32_t len = 1);
-    void       checkFormat(const TaskContext& ctx, uint32_t& startOffset);
+    void       checkFormat(uint32_t& startOffset);
     void       lexEscape(TokenId containerToken, bool eatEol);
 
     void lexWhitespace();

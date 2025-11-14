@@ -1093,7 +1093,7 @@ void Lexer::lexMultiLineComment()
     pushToken();
 }
 
-void Lexer::checkFormat(const TaskContext& ctx, uint32_t& startOffset)
+void Lexer::checkFormat(uint32_t& startOffset)
 {
     // BOM (Byte Order Mark) constants
     static constexpr char8_t UTF8[]     = {0xEF, 0xBB, 0xBF};
@@ -1193,7 +1193,7 @@ Result Lexer::tokenize(TaskContext& ctx, LexerOutput& lexOut, LexerFlags flags)
     lexerFlags_ = flags;
 
     uint32_t startOffset = 0;
-    checkFormat(ctx, startOffset);
+    checkFormat(startOffset);
 
     const auto base = reinterpret_cast<const char8_t*>(lexOut.sourceView().data());
     buffer_         = base + startOffset;

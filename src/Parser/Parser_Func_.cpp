@@ -275,7 +275,7 @@ AstNodeRef Parser::parseFunctionArguments()
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AliasCall>();
         nodePtr->nodeExpr             = nodeRef;
         nodePtr->spanAliases          = parseCompoundContent(AstNodeId::AliasCall, TokenId::SymVertical);
-        nodePtr->spanChildren         = parseCompoundContentInside(AstNodeId::NamedArgList, openRef, TokenId::SymLeftParen, TokenId::SymRightParen);
+        nodePtr->spanChildren         = parseCompoundContentInside(AstNodeId::NamedArgList, openRef, TokenId::SymLeftParen);
         return nodeRef;
     }
 

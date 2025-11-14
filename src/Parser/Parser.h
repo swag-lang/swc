@@ -74,7 +74,7 @@ class Parser
     Result     parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId);
     AstNodeRef parseCompound(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt = false);
     SpanRef    parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt = false);
-    SpanRef    parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openTokRef, TokenId openTokId, TokenId tokenEndId, bool endStmt = false);
+    SpanRef    parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openTokRef, TokenId tokenStartId, bool endStmt = false);
 
     AstNodeRef       parseCompilerIf(AstNodeId blockNodeId);
     AstNodeRef       parseCompilerIfStmt(AstNodeId blockNodeId);

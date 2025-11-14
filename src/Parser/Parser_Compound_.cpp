@@ -131,9 +131,7 @@ AstNodeRef Parser::parseCompound(AstNodeId blockNodeId, TokenId tokenStartId, bo
 
 SpanRef Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt)
 {
-    const Token&   openTok    = tok();
     const TokenRef openTokRef = ref();
-    const auto     tokenEndId = Token::toRelated(tokenStartId);
 
     if (tokenStartId != TokenId::Invalid)
     {
@@ -145,11 +143,13 @@ SpanRef Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId
         }
     }
 
-    return parseCompoundContentInside(blockNodeId, openTokRef, openTok.id, tokenEndId, endStmt);
+    return parseCompoundContentInside(blockNodeId, openTokRef, tokenStartId, endStmt);
 }
 
-SpanRef Parser::parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openTokRef, TokenId openTokId, TokenId tokenEndId, bool endStmt)
+SpanRef Parser::parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openTokRef, TokenId tokenStartId, bool endStmt)
 {
+    const auto tokenEndId = Token::toRelated(tokenStartId);
+
     SmallVector<AstNodeRef> childrenRefs;
     while (!atEnd() && isNot(tokenEndId))
     {
@@ -183,7 +183,7 @@ SpanRef Parser::parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openT
     }
 
     if (consumeIf(tokenEndId).isInvalid() && tokenEndId != TokenId::Invalid)
-        raiseExpected(DiagnosticId::parser_err_expected_closing, openTokRef, Token::toRelated(openTokId));
+        raiseExpected(DiagnosticId::parser_err_expected_closing, openTokRef, Token::toRelated(tokenStartId));
 
     // Store
     return ast_->store_.push_span(childrenRefs.span());

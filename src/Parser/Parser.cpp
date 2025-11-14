@@ -294,6 +294,10 @@ void Parser::expectEndStatement()
 
 void Parser::parse(TaskContext& ctx, ParserOutput& out, const LexerOutput& lexOut)
 {
+#if SWC_HAS_STATS
+    Timer time(&Stats::get().timeParser);
+#endif
+
     out_    = &out;
     ast_    = &out.ast();
     ctx_    = &ctx;

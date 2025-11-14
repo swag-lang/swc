@@ -13,10 +13,6 @@ namespace
 {
     void parseFile(JobContext& ctx, SourceFile* file)
     {
-#if SWC_HAS_STATS
-        Timer time(&Stats::get().timeParser);
-#endif
-
         if (file->loadContent(ctx) != Result::Success)
             return;
 

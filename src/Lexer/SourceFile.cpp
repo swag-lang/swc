@@ -1,4 +1,6 @@
 ﻿#include "pch.h"
+
+#include "Core/Timer.h"
 #include "Lexer/SourceFile.h"
 #include "Os/Os.h"
 #include "Report/Diagnostic.h"
@@ -16,6 +18,10 @@ Result SourceFile::loadContent(const TaskContext& ctx)
 {
     if (!content_.empty())
         return Result::Success;
+
+#if SWC_HAS_STATS
+    Timer time(&Stats::get().timeLoadFile);
+#endif
 
 #if SWC_HAS_STATS
     Stats::get().numFiles.fetch_add(1);

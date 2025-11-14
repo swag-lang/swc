@@ -123,6 +123,7 @@ SWC_NODE_DEF(StructInitializerList)
 
 // Function Calls & Lambdas
 SWC_NODE_DEF(Call)
+SWC_NODE_DEF(AliasCall)
 SWC_NODE_DEF(FunctionExpr)
 SWC_NODE_DEF(ClosureExpr)
 SWC_NODE_DEF(Discard)

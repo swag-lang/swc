@@ -266,5 +266,23 @@ AstNodeRef Parser::parseFunctionBody()
     return parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
 }
 
+AstNodeRef Parser::parseFunctionArguments()
+{
+    if (nextIs(TokenId::SymVertical))
+    {
+        const auto openRef = consume();
+
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AliasCall>();
+        nodePtr->nodeExpr             = nodeRef;
+        nodePtr->spanAliases          = parseCompoundContent(AstNodeId::AliasCall, TokenId::SymVertical);
+        nodePtr->spanChildren         = parseCompoundContentInside(AstNodeId::NamedArgList, openRef, TokenId::SymLeftParen, TokenId::SymRightParen);
+        return nodeRef;
+    }
+
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Call>();
+    nodePtr->nodeExpr             = nodeRef;
+    nodePtr->spanChildren         = parseCompoundContent(AstNodeId::NamedArgList, TokenId::SymLeftParen);
+    return nodeRef;
+}
 
 SWC_END_NAMESPACE()

@@ -74,6 +74,7 @@ class Parser
     Result     parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId);
     AstNodeRef parseCompound(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt = false);
     SpanRef    parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt = false);
+    SpanRef    parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openTokRef, TokenId openTokId, TokenId tokenEndId, bool endStmt = false);
 
     AstNodeRef       parseCompilerIf(AstNodeId blockNodeId);
     AstNodeRef       parseCompilerIfStmt(AstNodeId blockNodeId);
@@ -128,6 +129,7 @@ class Parser
     AstNodeRef parseForeach();
     AstNodeRef parseFunctionDecl();
     AstNodeRef parseFunctionBody();
+    AstNodeRef parseFunctionArguments();
     AstNodeRef parseFunctionParam();
     AstNodeRef parseFunctionParamList();
     AstNodeRef parseGenericParam();

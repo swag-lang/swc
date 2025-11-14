@@ -45,6 +45,9 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
         case AstNodeId::MultiPostfixIdentifier:
             return parsePostfixIdentifierValue();
 
+        case AstNodeId::AliasCall:
+            return parseIdentifier();
+
         default:
             SWC_UNREACHABLE();
     }
@@ -103,6 +106,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
         case AstNodeId::FunctionParamList:
         case AstNodeId::ClosureCaptureList:
         case AstNodeId::MultiPostfixIdentifier:
+        case AstNodeId::AliasCall:
             if (consumeIf(TokenId::SymComma).isInvalid() && !is(tokenEndId))
             {
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
@@ -141,6 +145,11 @@ SpanRef Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId
         }
     }
 
+    return parseCompoundContentInside(blockNodeId, openTokRef, openTok.id, tokenEndId, endStmt);
+}
+
+SpanRef Parser::parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openTokRef, TokenId openTokId, TokenId tokenEndId, bool endStmt)
+{
     SmallVector<AstNodeRef> childrenRefs;
     while (!atEnd() && isNot(tokenEndId))
     {
@@ -174,7 +183,7 @@ SpanRef Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId
     }
 
     if (consumeIf(tokenEndId).isInvalid() && tokenEndId != TokenId::Invalid)
-        raiseExpected(DiagnosticId::parser_err_expected_closing, openTokRef, Token::toRelated(openTok.id));
+        raiseExpected(DiagnosticId::parser_err_expected_closing, openTokRef, Token::toRelated(openTokId));
 
     // Store
     return ast_->store_.push_span(childrenRefs.span());

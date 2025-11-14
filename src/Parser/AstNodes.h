@@ -579,16 +579,27 @@ struct AstMultiPostfixIdentifier : AstCompound
     TokenRef tokName;
 };
 
-struct AstCall : AstNode
+struct AstCall : AstCompound
 {
     static constexpr auto ID = AstNodeId::Call;
     AstCall() :
-        AstNode(ID)
+        AstCompound(ID)
     {
     }
 
     AstNodeRef nodeExpr;
-    AstNodeRef nodeArgs;
+};
+
+struct AstAliasCall : AstCompound
+{
+    static constexpr auto ID = AstNodeId::AliasCall;
+    AstAliasCall() :
+        AstCompound(ID)
+    {
+    }
+
+    AstNodeRef nodeExpr;
+    SpanRef    spanAliases;
 };
 
 struct AstStructInitializerList : AstNode

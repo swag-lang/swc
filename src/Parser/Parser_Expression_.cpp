@@ -344,10 +344,7 @@ AstNodeRef Parser::parsePostFixExpression()
         // Function call
         if (is(TokenId::SymLeftParen) && !tok().flags.has(TokenFlagsE::BlankBefore))
         {
-            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::Call>();
-            nodePtr->nodeExpr                = nodeRef;
-            nodePtr->nodeArgs                = parseCompound<AstNodeId::NamedArgList>(TokenId::SymLeftParen);
-            nodeRef                          = nodeParent;
+            nodeRef = parseFunctionArguments();
             continue;
         }
 
@@ -425,7 +422,7 @@ AstNodeRef Parser::parsePrimaryExpression()
             return parseCompilerCallUnary();
 
         case TokenId::CompilerRun:
-        case TokenId::CompilerCode:            
+        case TokenId::CompilerCode:
             return parseCompilerExpr();
 
         case TokenId::IntrinsicErr:

@@ -3,6 +3,7 @@
 #include "Core/Timer.h"
 #include "Core/Utf8Helper.h"
 #include "Main/CommandLine.h"
+#include "Main/CompilerCommand.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Report/LogColor.h"
@@ -65,28 +66,30 @@ void CompilerInstance::logStats() const
     }
 }
 
-void CompilerInstance::processCommand()
+Result CompilerInstance::processCommand() const
 {
     Timer time(&Stats::get().timeTotal);
     switch (context_.cmdLine().command)
     {
         case Command::Syntax:
-            cmdSyntax();
-            break;
+            return CompilerCommand::syntax(*this);
         case Command::Format:
-            break;
-        case Command::Invalid:
-            break;
+            return CompilerCommand::format(*this);
+        default:
+            SWC_UNREACHABLE();
     }
 }
 
-ExitCode CompilerInstance::run()
+ExitCode CompilerInstance::run() const
 {
     logBefore();
-    processCommand();
+
+    const auto result = processCommand();
+
     logAfter();
     logStats();
-    return ExitCode::Success;
+
+    return result == Result::Success ? ExitCode::Success : ExitCode::ErrorCommand;
 }
 
 SWC_END_NAMESPACE()

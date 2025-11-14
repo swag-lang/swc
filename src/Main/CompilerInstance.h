@@ -10,17 +10,16 @@ struct CommandLine;
 class CompilerInstance
 {
     CompilerContext context_;
-
-    Result cmdSyntax();
-
-    void logBefore() const;
-    void logAfter() const;
-    void logStats() const;
-    void processCommand();
+    void            logBefore() const;
+    void            logAfter() const;
+    void            logStats() const;
+    Result          processCommand() const;
 
 public:
     CompilerInstance(const CommandLine& cmdLine, const Global& global);
-    ExitCode run();
+    ExitCode run() const;
+
+    const CompilerContext& context() const { return context_; }
 };
 
 SWC_END_NAMESPACE()

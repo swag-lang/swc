@@ -188,7 +188,7 @@ AstNodeRef Parser::parseWith()
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::With>();
     consume();
-    nodePtr->nodeExpr = parseExpression();
+    nodePtr->nodeExpr = parseAffectStmt();
     nodePtr->nodeBody = parseEmbeddedStmt();
     return nodeRef;
 }

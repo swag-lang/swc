@@ -1,7 +1,6 @@
 #include "pch.h"
-#include "CompilerInstance.h"
-#include "Core/Timer.h"
-#include "Main/CompilerCommand.h"
+#include "Main/Command.h"
+#include "Main/CompilerInstance.h"
 #include "Main/FileManager.h"
 #include "Main/Global.h"
 #include "Thread/Job.h"
@@ -16,27 +15,24 @@ namespace
         if (file->loadContent(ctx) != Result::Success)
             return;
 
-        file->unittest().tokenize(ctx);
+        ctx.setSilentError(true);
 
         Lexer lexer;
-        if (lexer.tokenize(ctx, file->lexOut(), LexerFlagsE::Default) != Result::Success)
-            return;
-
-        if (file->unittest().hasFlag(UnitTestFlagsE::LexOnly))
-            return;
+        lexer.tokenize(ctx, file->lexOut(), LexerFlagsE::Default);
 
         Parser parser;
         parser.parse(ctx, file->parserOut(), file->lexOut());
     }
 }
 
-namespace CompilerCommand
+namespace Command
 {
-    void syntax(const CompilerInstance& compiler)
+    void format(const CompilerInstance& compiler)
     {
-        TaskContext ctx(compiler.context());
-        const auto& global  = ctx.global();
-        auto&       fileMgr = global.fileMgr();
+        const TaskContext ctx(compiler.context());
+        const auto&       global   = ctx.global();
+        auto&             fileMgr  = global.fileMgr();
+        const auto        clientId = compiler.context().jobClientId();
 
         if (fileMgr.collectFiles(ctx) == Result::Error)
             return;
@@ -49,13 +45,14 @@ namespace CompilerCommand
                 return JobResult::Done;
             };
 
-            global.jobMgr().enqueue(job, JobPriority::Normal, compiler.context().jobClientId());
+            global.jobMgr().enqueue(job, JobPriority::Normal, clientId);
         }
 
-        global.jobMgr().waitAll(compiler.context().jobClientId());
+        global.jobMgr().waitAll(clientId);
 
         for (const auto& f : fileMgr.files())
-            f->unittest().verifyUntouchedExpected(ctx, f->lexOut());
+        {
+        }
     }
 }
 

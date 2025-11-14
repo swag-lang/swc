@@ -191,8 +191,8 @@
         <ClCompile Include="src\Lexer\Token.cpp"/>
         <ClCompile Include="src\main.cpp"/>
         <ClCompile Include="src\Main\CommandLineParser.cpp"/>
-        <ClCompile Include="src\Main\CompilerCommand_Format_.cpp"/>
-        <ClCompile Include="src\Main\CompilerCommand_Syntax_.cpp"/>
+        <ClCompile Include="src\Main\Command_Format_.cpp" />
+        <ClCompile Include="src\Main\Command_Syntax_.cpp" />
         <ClCompile Include="src\Main\FileManager.cpp"/>
         <ClCompile Include="src\Main\FileSystem.cpp"/>
         <ClCompile Include="src\Main\Global.cpp"/>
@@ -258,7 +258,7 @@
         <ClInclude Include="src\Lexer\TokenIds.inc"/>
         <ClInclude Include="src\Main\CommandLine.h"/>
         <ClInclude Include="src\Main\CommandLineParser.h"/>
-        <ClInclude Include="src\Main\CompilerCommand.h"/>
+        <ClInclude Include="src\Main\Command.h" />
         <ClInclude Include="src\Main\CompilerContext.h"/>
         <ClInclude Include="src\Main\TaskContext.h"/>
         <ClInclude Include="src\Main\FileManager.h"/>

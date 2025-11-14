@@ -2,8 +2,8 @@
 #include "Main/CompilerInstance.h"
 #include "Core/Timer.h"
 #include "Core/Utf8Helper.h"
+#include "Main/Command.h"
 #include "Main/CommandLine.h"
-#include "Main/CompilerCommand.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Report/LogColor.h"
@@ -71,11 +71,11 @@ void CompilerInstance::processCommand() const
     Timer time(&Stats::get().timeTotal);
     switch (context_.cmdLine().command)
     {
-        case Command::Syntax:
-            CompilerCommand::syntax(*this);
+        case CommandKind::Syntax:
+            Command::syntax(*this);
             break;
-        case Command::Format:
-            CompilerCommand::format(*this);
+        case CommandKind::Format:
+            Command::format(*this);
             break;
         default:
             SWC_UNREACHABLE();

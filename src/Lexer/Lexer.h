@@ -99,8 +99,8 @@ class Lexer
     void lexMultiLineComment();
 
 public:
-    Result tokenizeRaw(TaskContext& ctx, LexerOutput& lexOut);
-    Result tokenize(TaskContext& ctx, LexerOutput& lexOut, LexerFlags flags);
+    void tokenizeRaw(TaskContext& ctx, LexerOutput& lexOut);
+    void tokenize(TaskContext& ctx, LexerOutput& lexOut, LexerFlags flags);
 };
 
 SWC_END_NAMESPACE()

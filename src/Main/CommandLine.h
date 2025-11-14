@@ -3,7 +3,7 @@
 SWC_BEGIN_NAMESPACE()
 
 inline constexpr auto ALLOWED_COMMANDS = "syntax|format";
-enum class Command
+enum class CommandKind
 {
     Syntax  = 0,
     Format  = 1,
@@ -12,7 +12,7 @@ enum class Command
 
 struct CommandLine
 {
-    Command command = Command::Format;
+    CommandKind command = CommandKind::Format;
 
     bool logColor     = true;
     bool logAscii     = false;

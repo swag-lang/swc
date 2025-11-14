@@ -22,7 +22,7 @@ constexpr size_t SHORT_NO_PREFIX_LEN = 4;
 
 // Pipe-delimited list of allowed command names.
 // Adjust to match your tool's commands.
-Command CommandLineParser::isAllowedCommand(const Utf8& cmd)
+CommandKind CommandLineParser::isAllowedCommand(const Utf8& cmd)
 {
     const Utf8         ac = ALLOWED_COMMANDS;
     std::istringstream iss(ac);
@@ -32,11 +32,11 @@ Command CommandLineParser::isAllowedCommand(const Utf8& cmd)
     while (std::getline(iss, allowed, '|'))
     {
         if (allowed == cmd)
-            return static_cast<Command>(index);
+            return static_cast<CommandKind>(index);
         index++;
     }
 
-    return Command::Invalid;
+    return CommandKind::Invalid;
 }
 
 void CommandLineParser::setReportArguments(Diagnostic& diag, const Utf8& arg)
@@ -311,7 +311,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
     {
         const Utf8 candidate = argv[1];
         cmdLine_->command    = isAllowedCommand(candidate);
-        if (cmdLine_->command == Command::Invalid)
+        if (cmdLine_->command == CommandKind::Invalid)
         {
             auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_command);
             setReportArguments(diag, argv[1]);

@@ -1169,15 +1169,14 @@ void Lexer::checkFormat(uint32_t& startOffset)
     startOffset = 0;
 }
 
-Result Lexer::tokenizeRaw(TaskContext& ctx, LexerOutput& lexOut)
+void Lexer::tokenizeRaw(TaskContext& ctx, LexerOutput& lexOut)
 {
-    rawMode_          = true;
-    const auto result = tokenize(ctx, lexOut, LexerFlagsE::Default);
-    rawMode_          = false;
-    return result;
+    rawMode_ = true;
+    tokenize(ctx, lexOut, LexerFlagsE::Default);
+    rawMode_ = false;
 }
 
-Result Lexer::tokenize(TaskContext& ctx, LexerOutput& lexOut, LexerFlags flags)
+void Lexer::tokenize(TaskContext& ctx, LexerOutput& lexOut, LexerFlags flags)
 {
 #if SWC_HAS_STATS
     Timer time(&Stats::get().timeLexer);
@@ -1321,8 +1320,6 @@ Result Lexer::tokenize(TaskContext& ctx, LexerOutput& lexOut, LexerFlags flags)
     if (!rawMode_)
         Stats::get().numTokens.fetch_add(lexOut_->tokens_.size());
 #endif
-
-    return Result::Success;
 }
 
 Utf8 LexerOutput::codeLine(const TaskContext& ctx, uint32_t line) const

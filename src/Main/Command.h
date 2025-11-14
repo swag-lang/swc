@@ -4,7 +4,7 @@ SWC_BEGIN_NAMESPACE()
 
 class CompilerInstance;
 
-namespace CompilerCommand
+namespace Command
 {
     void syntax(const CompilerInstance& compiler);
     void format(const CompilerInstance& compiler);

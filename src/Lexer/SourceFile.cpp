@@ -52,7 +52,7 @@ Result SourceFile::loadContent(const TaskContext& ctx)
     for (int i = 0; i < TRAILING_0; i++)
         content_.push_back(0);
 
-    lexOut_.setSource(stringView());
+    lexOut_.setFile(this);
     return Result::Success;
 }
 

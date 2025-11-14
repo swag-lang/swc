@@ -48,7 +48,7 @@ void SourceCodeLocation::fromOffset(const TaskContext& ctx, const LexerOutput& l
 {
     if (inLen == 0)
         return;
-    if (inOffset >= lex.source().size())
+    if (inOffset >= lex.sourceView().size())
         return;
 
     lexOut = &lex;
@@ -67,7 +67,7 @@ void SourceCodeLocation::fromOffset(const TaskContext& ctx, const LexerOutput& l
     {
         // Offset is before the first line start
         line   = 1;
-        column = calculateColumn(ctx, reinterpret_cast<const char8_t*>(lex.source().data()), 0, inOffset);
+        column = calculateColumn(ctx, reinterpret_cast<const char8_t*>(lex.sourceView().data()), 0, inOffset);
     }
     else
     {
@@ -80,7 +80,7 @@ void SourceCodeLocation::fromOffset(const TaskContext& ctx, const LexerOutput& l
         line = static_cast<uint32_t>(lineIndex + 1);
 
         // Column is the offset from the start of the line (1-based)
-        column = calculateColumn(ctx, reinterpret_cast<const char8_t*>(lex.source().data()), lineStartOffset, inOffset);
+        column = calculateColumn(ctx, reinterpret_cast<const char8_t*>(lex.sourceView().data()), lineStartOffset, inOffset);
     }
 }
 

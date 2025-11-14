@@ -436,9 +436,9 @@ void Lexer::lexHexNumber()
     token_.id = TokenId::NumberHexadecimal;
     buffer_ += 2;
 
-    bool                 lastWasSep = false;
+    bool           lastWasSep = false;
     const char8_t* sepStart   = nullptr;
-    uint32_t             digits     = 0;
+    uint32_t       digits     = 0;
 
     // Safe lookahead: zeros after endBuffer_ will fail isHexNumber check
     while (langSpec_->isHexNumber(buffer_[0]) || langSpec_->isNumberSep(buffer_[0]))
@@ -484,9 +484,9 @@ void Lexer::lexBinNumber()
     token_.id = TokenId::NumberBinary;
     buffer_ += 2;
 
-    bool                 lastWasSep = false;
+    bool           lastWasSep = false;
     const char8_t* sepStart   = nullptr;
-    uint32_t             digits     = 0;
+    uint32_t       digits     = 0;
 
     // Safe lookahead: zeros after endBuffer_ will fail the check
     while (langSpec_->isBinNumber(buffer_[0]) || langSpec_->isNumberSep(buffer_[0]))
@@ -531,10 +531,10 @@ void Lexer::lexDecimalNumber()
 {
     token_.id = TokenId::NumberInteger;
 
-    bool                 lastWasSep = false;
+    bool           lastWasSep = false;
     const char8_t* sepStart   = nullptr;
-    bool                 hasDot     = false;
-    bool                 hasExp     = false;
+    bool           hasDot     = false;
+    bool           hasExp     = false;
 
     // Parse integer part - safe lookahead: zeros after endBuffer_ will fail the check
     while (langSpec_->isDigit(buffer_[0]) || langSpec_->isNumberSep(buffer_[0]))
@@ -1196,15 +1196,15 @@ Result Lexer::tokenize(TaskContext& ctx, LexerOutput& lexOut, LexerFlags flags)
     uint32_t startOffset = 0;
     checkFormat(ctx, startOffset);
 
-    const auto base = reinterpret_cast<const char8_t*>(lexOut.source().data());
+    const auto base = reinterpret_cast<const char8_t*>(lexOut.sourceView().data());
     buffer_         = base + startOffset;
     startBuffer_    = base;
-    endBuffer_      = startBuffer_ + lexOut.source().size();
+    endBuffer_      = startBuffer_ + lexOut.sourceView().size();
 
-    // Reserve space based on file size
-    lexOut_->tokens_.reserve(lexOut.source().size() / 10);
+    // Reserve space based on source size
+    lexOut_->tokens_.reserve(lexOut.sourceView().size() / 10);
     if (!rawMode_)
-        lexOut_->lines_.reserve(lexOut.source().size() / 60);
+        lexOut_->lines_.reserve(lexOut.sourceView().size() / 60);
     lexOut_->lines_.push_back(0);
 
     while (buffer_ < endBuffer_)
@@ -1332,13 +1332,13 @@ Utf8 LexerOutput::codeLine(const TaskContext& ctx, uint32_t line) const
     SWC_ASSERT(line < lines_.size());
 
     const auto  offset      = lines_[line];
-    const auto  startBuffer = source_.data() + offset;
+    const auto  startBuffer = sourceView_.data() + offset;
     const char* end;
 
     if (line == lines_.size() - 1)
-        end = source_.data() + source_.size();
+        end = sourceView_.data() + sourceView_.size();
     else
-        end = source_.data() + lines_[line + 1];
+        end = sourceView_.data() + lines_[line + 1];
 
     auto buffer = startBuffer;
     bool hasTab = false;
@@ -1379,8 +1379,14 @@ Utf8 LexerOutput::codeLine(const TaskContext& ctx, uint32_t line) const
 
 std::string_view LexerOutput::codeView(uint32_t offset, uint32_t len) const
 {
-    SWC_ASSERT(offset + len <= source_.size());
-    return std::string_view{source_.data() + offset, len};
+    SWC_ASSERT(offset + len <= sourceView_.size());
+    return std::string_view{sourceView_.data() + offset, len};
+}
+
+void LexerOutput::setFile(const SourceFile* file)
+{
+    file_       = file;
+    sourceView_ = file->sourceView();
 }
 
 SWC_END_NAMESPACE()

@@ -97,7 +97,7 @@ void UnitTest::tokenizeExpected(const TaskContext& ctx, const LexTrivia& trivia,
                                    trivia.token.byteStart + static_cast<uint32_t>(pos),
                                    static_cast<uint32_t>(LangSpec::VERIFY_COMMENT_EXPECTED.size()) + static_cast<uint32_t>(word.size()));
         directive.loc = directive.myLoc;
-        
+
         // Handle @*, @+ suffix
         if (i < comment.size() && comment[i] == '@')
         {
@@ -145,10 +145,10 @@ void UnitTest::tokenize(TaskContext& ctx)
     if (!ctx.cmdLine().verify)
         return;
 
+    lexOut_.setFile(ctx.file());
+
     // Get all comments from the file
     Lexer lexer;
-    lexOut_.setFile(ctx.file());
-    lexOut_.setSource(ctx.file()->stringView());
     lexer.tokenizeRaw(ctx, lexOut_);
 
     // Parse all comments to find a verify directive

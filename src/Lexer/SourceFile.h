@@ -36,7 +36,7 @@ public:
 
     fs::path                    path() const { return path_; }
     const std::vector<char8_t>& content() const { return content_; }
-    std::string_view            stringView() const { return std::string_view(reinterpret_cast<std::string_view::const_pointer>(content_.data()), size()); }
+    std::string_view            sourceView() const { return std::string_view(reinterpret_cast<std::string_view::const_pointer>(content_.data()), size()); }
 
     size_t              size() const { return content_.size() - TRAILING_0; }
     FileRef             ref() const { return ref_; }

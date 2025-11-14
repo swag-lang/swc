@@ -33,7 +33,7 @@ class LexerOutput
 protected:
     friend class Lexer;
     const SourceFile*          file_ = nullptr;
-    std::string_view           source_;
+    std::string_view           sourceView_;
     std::vector<Token>         tokens_;
     std::vector<LexTrivia>     trivia_;
     std::vector<uint32_t>      lines_;
@@ -41,9 +41,8 @@ protected:
 
 public:
     const SourceFile*                 file() const { return file_; }
-    void                              setFile(const SourceFile* file) { file_ = file; }
-    std::string_view                  source() const { return source_; }
-    void                              setSource(std::string_view source) { source_ = source; }
+    void                              setFile(const SourceFile* file);
+    std::string_view                  sourceView() const { return sourceView_; }
     const std::vector<LexTrivia>&     trivia() const { return trivia_; }
     const std::vector<Token>&         tokens() const { return tokens_; }
     const std::vector<uint32_t>&      lines() const { return lines_; }
@@ -60,18 +59,18 @@ class Lexer
     Token token_     = {};
     Token prevToken_ = {};
 
-    LexerOutput*         lexOut_           = nullptr;
-    LexerFlags           lexerFlags_       = LexerFlagsE::Default;
-    const char8_t* buffer_           = nullptr;
-    const char8_t* startBuffer_      = nullptr;
-    const char8_t* endBuffer_        = nullptr;
-    const char8_t* startToken_       = nullptr;
-    uint32_t             startTokenOffset_ = 0;
-    TaskContext*         ctx_              = nullptr;
-    const LangSpec*      langSpec_         = nullptr;
-    bool                 hasTokenError_    = false;
-    bool                 hasUtf8Error_     = false;
-    bool                 rawMode_          = false;
+    LexerOutput*    lexOut_           = nullptr;
+    const char8_t*  buffer_           = nullptr;
+    const char8_t*  startBuffer_      = nullptr;
+    const char8_t*  endBuffer_        = nullptr;
+    const char8_t*  startToken_       = nullptr;
+    TaskContext*    ctx_              = nullptr;
+    const LangSpec* langSpec_         = nullptr;
+    LexerFlags      lexerFlags_       = LexerFlagsE::Default;
+    uint32_t        startTokenOffset_ = 0;
+    bool            hasTokenError_    = false;
+    bool            hasUtf8Error_     = false;
+    bool            rawMode_          = false;
 
     static bool isTerminatorAfterEscapeChar(uint8_t c, TokenId container);
 

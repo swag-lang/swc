@@ -4,7 +4,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstNodeRef Parser::parseClosureCapture()
+AstNodeRef Parser::parseClosureCaptureArg()
 {
     AstClosureCapture::Flags flags = AstClosureCapture::FlagsE::Zero;
 
@@ -50,6 +50,43 @@ AstNodeRef Parser::parseLambdaTypeParam()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseLambdaExprArg()
+{
+    AstNodeRef nodeType;
+    TokenRef   tokName = TokenRef::invalid();
+
+    if (is(TokenId::CompilerType))
+        nodeType = parseCompilerTypeExpr();
+    else if (is(TokenId::Identifier) && nextIs(TokenId::SymColon))
+    {
+        tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
+        consumeAssert(TokenId::SymColon);
+        nodeType = parseType();
+    }
+    else
+    {
+        nodeType = AstNodeRef::invalid();
+        if (is(TokenId::Identifier))
+            tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
+        else if (is(TokenId::SymQuestion))
+            tokName = consume();
+        else
+            raiseError(DiagnosticId::parser_err_unexpected_token, ref());
+    }
+
+    // Normal parameter
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaTypeParam>();
+    nodePtr->tokName        = tokName;
+    nodePtr->nodeType       = nodeType;
+
+    if (consumeIf(TokenId::SymEqual).isValid())
+        nodePtr->nodeDefaultValue = parseInitializerExpression();
+    else
+        nodePtr->nodeDefaultValue = AstNodeRef::invalid();
+
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseLambdaType()
 {
     AstLambdaType::Flags flags    = AstLambdaType::FlagsE::Zero;
@@ -68,7 +105,7 @@ AstNodeRef Parser::parseLambdaType()
         flags.add(AstLambdaType::FlagsE::Closure);
     }
 
-    const AstNodeRef params = parseCompound<AstNodeId::LambdaTypeParamList>(TokenId::SymLeftParen);
+    const SpanRef params = parseCompoundContent(AstNodeId::LambdaType, TokenId::SymLeftParen);
 
     // Return type
     AstNodeRef returnType = AstNodeRef::invalid();
@@ -81,7 +118,7 @@ AstNodeRef Parser::parseLambdaType()
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaType>();
     nodePtr->addFlag(flags);
-    nodePtr->nodeParams     = params;
+    nodePtr->spanParams     = params;
     nodePtr->nodeReturnType = returnType;
     return nodeRef;
 }
@@ -97,11 +134,11 @@ AstNodeRef Parser::parseLambdaExpression()
         consumeAssert(TokenId::KwdFunc);
 
     // Capture
-    AstNodeRef captureArgs = AstNodeRef::invalid();
+    SpanRef captureArgs = SpanRef::invalid();
     if (is(TokenId::SymVertical))
     {
         flags.add(AstLambdaType::FlagsE::Closure);
-        captureArgs = parseCompound<AstNodeId::ClosureCaptureList>(TokenId::SymVertical);
+        captureArgs = parseCompoundContent(AstNodeId::ClosureExpr, TokenId::SymVertical);
     }
     else if (consumeIf(TokenId::SymVerticalVertical).isValid())
     {
@@ -114,7 +151,7 @@ AstNodeRef Parser::parseLambdaExpression()
     }
 
     // Arguments
-    const AstNodeRef args = parseCompound<AstNodeId::LambdaTypeParamList>(TokenId::SymLeftParen);
+    const SpanRef args = parseCompoundContent(AstNodeId::FunctionExpr, TokenId::SymLeftParen);
 
     // Return type
     AstNodeRef returnType = AstNodeRef::invalid();
@@ -140,7 +177,7 @@ AstNodeRef Parser::parseLambdaExpression()
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ClosureExpr>();
         nodePtr->addFlag(flags);
         nodePtr->nodeCaptureArgs = captureArgs;
-        nodePtr->nodeArgs        = args;
+        nodePtr->spanArgs        = args;
         nodePtr->nodeReturnType  = returnType;
         nodePtr->nodeBody        = body;
         return nodeRef;
@@ -148,7 +185,7 @@ AstNodeRef Parser::parseLambdaExpression()
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionExpr>();
     nodePtr->addFlag(flags);
-    nodePtr->nodeArgs       = args;
+    nodePtr->spanArgs       = args;
     nodePtr->nodeReturnType = returnType;
     nodePtr->nodeBody       = body;
     return nodeRef;

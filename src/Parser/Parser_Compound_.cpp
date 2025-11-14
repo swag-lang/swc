@@ -35,10 +35,12 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
         case AstNodeId::UsingDecl:
             return parseQualifiedIdentifier();
 
-        case AstNodeId::ClosureCaptureList:
-            return parseClosureCapture();
-        case AstNodeId::LambdaTypeParamList:
-            return parseLambdaTypeParam();
+        case AstNodeId::ClosureExpr:
+            return parseClosureCaptureArg();
+        case AstNodeId::FunctionExpr:
+            return parseLambdaExprArg();
+        case AstNodeId::LambdaType:
+            return parseLambdaTypeParam();            
         case AstNodeId::FunctionParamList:
             return parseFunctionParam();
 
@@ -102,9 +104,10 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
         case AstNodeId::UnnamedArgList:
         case AstNodeId::NamedArgList:
         case AstNodeId::GenericParamList:
-        case AstNodeId::LambdaTypeParamList:
         case AstNodeId::FunctionParamList:
-        case AstNodeId::ClosureCaptureList:
+        case AstNodeId::ClosureExpr:
+        case AstNodeId::FunctionExpr:
+        case AstNodeId::LambdaType:
         case AstNodeId::MultiPostfixIdentifier:
         case AstNodeId::AliasCall:
             if (consumeIf(TokenId::SymComma).isInvalid() && !is(tokenEndId))

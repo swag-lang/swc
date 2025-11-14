@@ -258,7 +258,7 @@ struct AstLambdaExpr : AstNode
     {
     }
 
-    AstNodeRef nodeArgs;
+    SpanRef    spanArgs;
     AstNodeRef nodeReturnType;
     AstNodeRef nodeBody;
 };
@@ -280,7 +280,7 @@ struct AstClosureExpr : AstLambdaExpr
     {
     }
 
-    AstNodeRef nodeCaptureArgs;
+    SpanRef nodeCaptureArgs;
 };
 
 struct AstFunctionDecl : AstNode
@@ -381,28 +381,10 @@ struct AstLambdaTypeParam : AstNode
     AstNodeRef nodeDefaultValue;
 };
 
-struct AstLambdaTypeParamList : AstCompound
-{
-    static constexpr auto ID = AstNodeId::LambdaTypeParamList;
-    AstLambdaTypeParamList() :
-        AstCompound(ID)
-    {
-    }
-};
-
 struct AstFunctionParamList : AstCompound
 {
     static constexpr auto ID = AstNodeId::FunctionParamList;
     AstFunctionParamList() :
-        AstCompound(ID)
-    {
-    }
-};
-
-struct AstClosureCaptureList : AstCompound
-{
-    static constexpr auto ID = AstNodeId::ClosureCaptureList;
-    AstClosureCaptureList() :
         AstCompound(ID)
     {
     }
@@ -1161,7 +1143,7 @@ struct AstLambdaType : AstNode
     };
     using Flags = EnumFlags<FlagsE>;
 
-    AstNodeRef nodeParams;
+    SpanRef    spanParams;
     AstNodeRef nodeReturnType;
 };
 

@@ -88,7 +88,6 @@ SWC_NODE_DEF(ScopeResolution)
 SWC_NODE_DEF(FunctionParamList)
 SWC_NODE_DEF(FuncParamMe)
 SWC_NODE_DEF(LambdaTypeParam)
-SWC_NODE_DEF(LambdaTypeParamList)
 SWC_NODE_DEF(NamedArgList)
 SWC_NODE_DEF(NamedArgument)
 SWC_NODE_DEF(UnnamedArgList)
@@ -243,4 +242,3 @@ SWC_NODE_DEF(WithVar)
 
 // Closures
 SWC_NODE_DEF(ClosureCapture)
-SWC_NODE_DEF(ClosureCaptureList)

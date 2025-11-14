@@ -23,7 +23,7 @@ public:
     explicit DiagnosticElement(DiagnosticSeverity severity, DiagnosticId id);
 
     void               setLexerOutput(const LexerOutput* lexOut) { lexOut_ = lexOut; }
-    const LexerOutput* lexerOutput() const { return lexOut_; }
+    const LexerOutput* lexOut() const { return lexOut_; }
 
     void        addSpan(const LexerOutput* lexOut, uint32_t offset, uint32_t len, DiagnosticSeverity severity = DiagnosticSeverity::Zero, const Utf8& message = Utf8());
     void        addSpan(const SourceCodeLocation& loc, const Utf8& message, DiagnosticSeverity severity = DiagnosticSeverity::Zero);

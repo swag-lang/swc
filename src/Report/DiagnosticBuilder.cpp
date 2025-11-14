@@ -290,18 +290,18 @@ void DiagnosticBuilder::writeHighlightedMessage(DiagnosticSeverity sev, std::str
     }
 }
 
-void DiagnosticBuilder::writeFileLocation(const DiagnosticElement& el)
+void DiagnosticBuilder::writeLocation(const DiagnosticElement& el)
 {
     const auto loc = el.location(0, *ctx_);
 
-    SWC_ASSERT(el.lexerOutput());
-    if (el.lexerOutput()->file() != nullptr)
+    SWC_ASSERT(el.lexOut());
+    if (el.lexOut()->file() != nullptr)
     {
         Utf8 fileName;
         if (ctx_->cmdLine().diagAbsolute)
-            fileName = el.lexerOutput()->file()->path().string();
+            fileName = el.lexOut()->file()->path().string();
         else
-            fileName = el.lexerOutput()->file()->path().filename().string();
+            fileName = el.lexOut()->file()->path().filename().string();
         out_ += partStyle(DiagPart::FileLocationPath);
         out_ += fileName;
         out_ += partStyle(DiagPart::Reset);
@@ -554,7 +554,7 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
     out_.append(gutterW_, ' ');
     out_ += partStyle(DiagPart::FileLocationArrow);
     out_ += "--> ";
-    writeFileLocation(el);
+    writeLocation(el);
     out_ += "\n";
 
     // Sort underlines by column to process them in order
@@ -591,7 +591,7 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
             }
 
             // Prepare a new line
-            currentFullCodeLine    = el.lexerOutput()->codeLine(*ctx_, loc.line);
+            currentFullCodeLine    = el.lexOut()->codeLine(*ctx_, loc.line);
             currentFullCharCount   = Utf8Helper::countChars(currentFullCodeLine);
             currentLineIsTruncated = (currentFullCharCount > diagMax);
 
@@ -601,7 +601,7 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
             currentLine = loc.line;
         }
 
-        const std::string_view tokenView     = el.lexerOutput()->codeView(loc.offset, loc.len);
+        const std::string_view tokenView     = el.lexOut()->codeView(loc.offset, loc.len);
         const uint32_t         tokenLenChars = Utf8Helper::countChars(tokenView);
 
         if (currentLineIsTruncated)
@@ -735,7 +735,7 @@ Utf8 DiagnosticBuilder::build()
 
     if (ctx_->cmdLine().diagOneLine)
     {
-        writeFileLocation(primary);
+        writeLocation(primary);
         out_ += ": ";
         writeLabelMsg(primary);
         return out_;

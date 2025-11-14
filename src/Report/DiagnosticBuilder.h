@@ -58,7 +58,7 @@ class DiagnosticBuilder
     Utf8 partStyle(DiagPart p, DiagnosticSeverity sev) const;
 
     void writeHighlightedMessage(DiagnosticSeverity sev, std::string_view msg, const Utf8& reset);
-    void writeFileLocation(const DiagnosticElement& el);
+    void writeLocation(const DiagnosticElement& el);
     void writeGutter(uint32_t gutter);
     void writeCodeLine(uint32_t lineNo, std::string_view startEllipsis, std::string_view code, std::string_view endEllipsis);
     void writeLabelMsg(const DiagnosticElement& el);

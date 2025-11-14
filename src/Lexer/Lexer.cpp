@@ -437,7 +437,7 @@ void Lexer::lexHexNumber()
     buffer_ += 2;
 
     bool                 lastWasSep = false;
-    const unsigned char* sepStart   = nullptr;
+    const char8_t* sepStart   = nullptr;
     uint32_t             digits     = 0;
 
     // Safe lookahead: zeros after endBuffer_ will fail isHexNumber check
@@ -485,7 +485,7 @@ void Lexer::lexBinNumber()
     buffer_ += 2;
 
     bool                 lastWasSep = false;
-    const unsigned char* sepStart   = nullptr;
+    const char8_t* sepStart   = nullptr;
     uint32_t             digits     = 0;
 
     // Safe lookahead: zeros after endBuffer_ will fail the check
@@ -532,7 +532,7 @@ void Lexer::lexDecimalNumber()
     token_.id = TokenId::NumberInteger;
 
     bool                 lastWasSep = false;
-    const unsigned char* sepStart   = nullptr;
+    const char8_t* sepStart   = nullptr;
     bool                 hasDot     = false;
     bool                 hasExp     = false;
 
@@ -1096,11 +1096,11 @@ void Lexer::lexMultiLineComment()
 void Lexer::checkFormat(const TaskContext& ctx, uint32_t& startOffset)
 {
     // BOM (Byte Order Mark) constants
-    static constexpr unsigned char UTF8[]     = {0xEF, 0xBB, 0xBF};
-    static constexpr unsigned char UTF16_BE[] = {0xFE, 0xFF};
-    static constexpr unsigned char UTF16_LE[] = {0xFF, 0xFE};
-    static constexpr unsigned char UTF32_BE[] = {0x00, 0x00, 0xFE, 0xFF};
-    static constexpr unsigned char UTF32_LE[] = {0xFF, 0xFE, 0x00, 0x00};
+    static constexpr char8_t UTF8[]     = {0xEF, 0xBB, 0xBF};
+    static constexpr char8_t UTF16_BE[] = {0xFE, 0xFF};
+    static constexpr char8_t UTF16_LE[] = {0xFF, 0xFE};
+    static constexpr char8_t UTF32_BE[] = {0x00, 0x00, 0xFE, 0xFF};
+    static constexpr char8_t UTF32_LE[] = {0xFF, 0xFE, 0x00, 0x00};
 
     const auto  file    = ctx.file();
     const auto& content = file->content();
@@ -1112,7 +1112,7 @@ void Lexer::checkFormat(const TaskContext& ctx, uint32_t& startOffset)
         return;
     }
 
-    const unsigned char* data = content.data();
+    const char8_t* data = content.data();
 
     // UTF-8 BOM
     if (content.size() >= 3 &&
@@ -1196,7 +1196,7 @@ Result Lexer::tokenize(TaskContext& ctx, LexerOutput& lexOut, LexerFlags flags)
     uint32_t startOffset = 0;
     checkFormat(ctx, startOffset);
 
-    const auto base = reinterpret_cast<const unsigned char*>(lexOut.source().data());
+    const auto base = reinterpret_cast<const char8_t*>(lexOut.source().data());
     buffer_         = base + startOffset;
     startBuffer_    = base;
     endBuffer_      = startBuffer_ + lexOut.source().size();

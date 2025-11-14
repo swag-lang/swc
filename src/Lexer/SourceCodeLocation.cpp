@@ -13,7 +13,7 @@ SWC_BEGIN_NAMESPACE()
 class CompilerInstance;
 namespace
 {
-    uint32_t calculateColumn(const TaskContext& ctx, const unsigned char* content, uint32_t lineStart, uint32_t offset)
+    uint32_t calculateColumn(const TaskContext& ctx, const char8_t* content, uint32_t lineStart, uint32_t offset)
     {
         const uint32_t tabSize = ctx.cmdLine().tabSize;
         uint32_t       column  = 1; // Columns are 1-based
@@ -67,7 +67,7 @@ void SourceCodeLocation::fromOffset(const TaskContext& ctx, const LexerOutput& l
     {
         // Offset is before the first line start
         line   = 1;
-        column = calculateColumn(ctx, reinterpret_cast<const unsigned char*>(lex.source().data()), 0, inOffset);
+        column = calculateColumn(ctx, reinterpret_cast<const char8_t*>(lex.source().data()), 0, inOffset);
     }
     else
     {
@@ -80,7 +80,7 @@ void SourceCodeLocation::fromOffset(const TaskContext& ctx, const LexerOutput& l
         line = static_cast<uint32_t>(lineIndex + 1);
 
         // Column is the offset from the start of the line (1-based)
-        column = calculateColumn(ctx, reinterpret_cast<const unsigned char*>(lex.source().data()), lineStartOffset, inOffset);
+        column = calculateColumn(ctx, reinterpret_cast<const char8_t*>(lex.source().data()), lineStartOffset, inOffset);
     }
 }
 

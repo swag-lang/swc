@@ -160,8 +160,8 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
     }
 
     const auto& langSpec = ctx.global().langSpec();
-    auto        cur      = reinterpret_cast<const unsigned char*>(line.data());
-    auto        end      = reinterpret_cast<const unsigned char*>(line.data() + line.size());
+    auto        cur      = reinterpret_cast<const char8_t*>(line.data());
+    auto        end      = reinterpret_cast<const char8_t*>(line.data() + line.size());
     Utf8        result;
     uint32_t    c, offset;
     uint32_t    multiLineCommentLevel = 0;

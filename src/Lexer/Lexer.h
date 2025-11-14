@@ -62,10 +62,10 @@ class Lexer
 
     LexerOutput*         lexOut_           = nullptr;
     LexerFlags           lexerFlags_       = LexerFlagsE::Default;
-    const unsigned char* buffer_           = nullptr;
-    const unsigned char* startBuffer_      = nullptr;
-    const unsigned char* endBuffer_        = nullptr;
-    const unsigned char* startToken_       = nullptr;
+    const char8_t* buffer_           = nullptr;
+    const char8_t* startBuffer_      = nullptr;
+    const char8_t* endBuffer_        = nullptr;
+    const char8_t* startToken_       = nullptr;
     uint32_t             startTokenOffset_ = 0;
     TaskContext*         ctx_              = nullptr;
     const LangSpec*      langSpec_         = nullptr;

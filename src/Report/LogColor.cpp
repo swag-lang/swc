@@ -129,9 +129,9 @@ RgbColor LogColorHelper::hslToRgb(float h, float s, float l)
     }
 
     RgbColor result;
-    result.r = static_cast<unsigned char>(r * 255.0f);
-    result.g = static_cast<unsigned char>(g * 255.0f);
-    result.b = static_cast<unsigned char>(b * 255.0f);
+    result.r = static_cast<char8_t>(r * 255.0f);
+    result.g = static_cast<char8_t>(g * 255.0f);
+    result.b = static_cast<char8_t>(b * 255.0f);
     return result;
 }
 

@@ -6,7 +6,7 @@ class TaskContext;
 
 struct RgbColor
 {
-    unsigned char r, g, b;
+    char8_t r, g, b;
 };
 
 enum class LogColor

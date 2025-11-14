@@ -421,7 +421,7 @@ private:
     size_type _size = 0;
     size_type _cap  = InlineCapacity;
 
-    alignas(T) unsigned char _inline_data[sizeof(T) * InlineCapacity]{};
+    alignas(T) char8_t _inline_data[sizeof(T) * InlineCapacity]{};
 };
 
 SWC_END_NAMESPACE()

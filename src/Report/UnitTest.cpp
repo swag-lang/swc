@@ -25,7 +25,7 @@ void UnitTest::tokenizeOption(const TaskContext& ctx, std::string_view comment)
         size_t i = found + LangSpec::VERIFY_COMMENT_OPTION.size();
 
         // Skip blanks and any non-ASCII noise safely
-        while (i < comment.size() && langSpec.isBlank(static_cast<unsigned char>(comment[i])))
+        while (i < comment.size() && langSpec.isBlank(static_cast<char8_t>(comment[i])))
             ++i;
 
         // There can be multiple options after "swc-option"
@@ -33,12 +33,12 @@ void UnitTest::tokenizeOption(const TaskContext& ctx, std::string_view comment)
         while (i < comment.size())
         {
             // Skip any extra blanks / non-ASCII between options
-            while (i < comment.size() && langSpec.isBlank(static_cast<unsigned char>(comment[i])))
+            while (i < comment.size() && langSpec.isBlank(static_cast<char8_t>(comment[i])))
                 ++i;
 
             // Collect the option token
             const size_t start = i;
-            while (i < comment.size() && langSpec.isOption(static_cast<unsigned char>(comment[i])))
+            while (i < comment.size() && langSpec.isOption(static_cast<char8_t>(comment[i])))
                 ++i;
 
             // No token? we're done with this swc-option block
@@ -52,7 +52,7 @@ void UnitTest::tokenizeOption(const TaskContext& ctx, std::string_view comment)
                 flags_.add(UnitTestFlagsE::LexOnly);
 
             // If options might be comma-separated, skip trailing commas/spacers
-            while (i < comment.size() && (langSpec.isBlank(static_cast<unsigned char>(comment[i])) || comment[i] == ','))
+            while (i < comment.size() && (langSpec.isBlank(static_cast<char8_t>(comment[i])) || comment[i] == ','))
                 ++i;
         }
 

@@ -8,7 +8,7 @@ SWC_BEGIN_NAMESPACE()
 
 // Returns {next_ptr, code_point, bytes_consumed}.
 // On error: {nullptr, 0, 0}.
-std::tuple<const unsigned char*, uint32_t, uint32_t> Utf8Helper::decodeOneChar(const unsigned char* cur, const unsigned char* end)
+std::tuple<const char8_t*, uint32_t, uint32_t> Utf8Helper::decodeOneChar(const char8_t* cur, const char8_t* end)
 {
     const auto u = cur;
     const auto e = end;
@@ -75,7 +75,7 @@ std::tuple<const unsigned char*, uint32_t, uint32_t> Utf8Helper::decodeOneChar(c
     return {nullptr, 0, 0};
 }
 
-const unsigned char* Utf8Helper::decodeOneChar(const unsigned char* cur, const unsigned char* end, uint32_t& c, uint32_t& offset)
+const char8_t* Utf8Helper::decodeOneChar(const char8_t* cur, const char8_t* end, uint32_t& c, uint32_t& offset)
 {
     const auto result = decodeOneChar(cur, end);
     c                 = std::get<1>(result);
@@ -88,7 +88,7 @@ uint32_t Utf8Helper::countChars(std::string_view str)
     int result = 0;
     for (size_t i = 0; i < str.size(); i++)
     {
-        const auto addr             = reinterpret_cast<const unsigned char*>(str.data());
+        const auto addr             = reinterpret_cast<const char8_t*>(str.data());
         const auto [ptr, wc, bytes] = decodeOneChar(addr + i, addr + str.size());
         if (ptr)
             i += bytes - 1;
@@ -243,7 +243,7 @@ Utf8 Utf8Helper::substrChars(std::string_view s, uint32_t charStart, uint32_t ch
 
     for (size_t i = 0; i < s.size();)
     {
-        const unsigned char c   = static_cast<unsigned char>(s[i]);
+        const char8_t c   = static_cast<char8_t>(s[i]);
         size_t              adv = 1;
         if ((c & 0x80) == 0x00)
             adv = 1;

@@ -69,7 +69,7 @@ void Diagnostic::addArgument(std::string_view name, std::string_view arg, bool q
     Utf8 sanitized;
     sanitized.reserve(arg.size());
 
-    auto       ptr = reinterpret_cast<const unsigned char*>(arg.data());
+    auto       ptr = reinterpret_cast<const char8_t*>(arg.data());
     const auto end = ptr + arg.size();
     while (ptr < end)
     {

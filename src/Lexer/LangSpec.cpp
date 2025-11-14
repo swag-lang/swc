@@ -47,15 +47,15 @@ void LangSpec::setupCharFlags()
     charFlags_['\n'].add(CharFlagsE::Eol);
 
     // Digits (0-9)
-    for (unsigned char c = '0'; c <= '9'; c++)
+    for (char8_t c = '0'; c <= '9'; c++)
         charFlags_[c].add(CharFlagsE::Digit);
 
     // Uppercase letters (A-Z)
-    for (unsigned char c = 'A'; c <= 'Z'; c++)
+    for (char8_t c = 'A'; c <= 'Z'; c++)
         charFlags_[c].add(CharFlagsE::Letter);
 
     // Lowercase letters (a-z)
-    for (unsigned char c = 'a'; c <= 'z'; c++)
+    for (char8_t c = 'a'; c <= 'z'; c++)
         charFlags_[c].add(CharFlagsE::Letter);
 
     // Underscore is considered a letter in identifiers
@@ -63,15 +63,15 @@ void LangSpec::setupCharFlags()
     charFlags_['_'].add(CharFlagsE::NumberSep);
 
     // Hexadecimal number
-    for (unsigned char c = '0'; c <= '9'; c++)
+    for (char8_t c = '0'; c <= '9'; c++)
         charFlags_[c].add(CharFlagsE::HexNumber);
-    for (unsigned char c = 'a'; c <= 'f'; c++)
+    for (char8_t c = 'a'; c <= 'f'; c++)
         charFlags_[c].add(CharFlagsE::HexNumber);
-    for (unsigned char c = 'A'; c <= 'F'; c++)
+    for (char8_t c = 'A'; c <= 'F'; c++)
         charFlags_[c].add(CharFlagsE::HexNumber);
 
     // Binary number
-    for (unsigned char c = '0'; c <= '1'; c++)
+    for (char8_t c = '0'; c <= '1'; c++)
         charFlags_[c].add(CharFlagsE::BinNumber);
 
     // Identifier
@@ -81,21 +81,21 @@ void LangSpec::setupCharFlags()
     charFlags_['@'].add(CharFlagsE::IdentifierStart);
     charFlags_['-'].add(CharFlagsE::Option);
 
-    for (unsigned char c = 'a'; c <= 'z'; c++)
+    for (char8_t c = 'a'; c <= 'z'; c++)
     {
         charFlags_[c].add(CharFlagsE::IdentifierStart);
         charFlags_[c].add(CharFlagsE::IdentifierPart);
         charFlags_[c].add(CharFlagsE::Option);
     }
 
-    for (unsigned char c = 'A'; c <= 'Z'; c++)
+    for (char8_t c = 'A'; c <= 'Z'; c++)
     {
         charFlags_[c].add(CharFlagsE::IdentifierStart);
         charFlags_[c].add(CharFlagsE::IdentifierPart);
         charFlags_[c].add(CharFlagsE::Option);
     }
 
-    for (unsigned char c = '0'; c <= '9'; c++)
+    for (char8_t c = '0'; c <= '9'; c++)
         charFlags_[c].add(CharFlagsE::IdentifierPart);
 
     // Escape character

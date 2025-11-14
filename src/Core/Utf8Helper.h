@@ -6,8 +6,8 @@ class TaskContext;
 
 namespace Utf8Helper
 {
-    std::tuple<const unsigned char*, uint32_t, uint32_t> decodeOneChar(const unsigned char* cur, const unsigned char* end);
-    const unsigned char*                                 decodeOneChar(const unsigned char* cur, const unsigned char* end, uint32_t& c, uint32_t& offset);
+    std::tuple<const char8_t*, uint32_t, uint32_t> decodeOneChar(const char8_t* cur, const char8_t* end);
+    const char8_t*                                 decodeOneChar(const char8_t* cur, const char8_t* end, uint32_t& c, uint32_t& offset);
     uint32_t                                             countChars(std::string_view str);
     Utf8                                                 substrChars(std::string_view s, uint32_t charStart, uint32_t charEnd);
 

@@ -19,11 +19,11 @@ class SourceFile
     // Number of '\0' forced at the end of the file
     static constexpr int TRAILING_0 = 4;
 
-    FileRef                    ref_ = FileRef::invalid();
-    fs::path                   path_;
-    std::vector<unsigned char> content_;
-    UnitTest                   unittest_;
-    FileFlags                  flags_ = FileFlagsE::Zero;
+    FileRef              ref_ = FileRef::invalid();
+    fs::path             path_;
+    std::vector<char8_t> content_;
+    UnitTest             unittest_;
+    FileFlags            flags_ = FileFlagsE::Zero;
 
 protected:
     friend class Lexer;
@@ -34,9 +34,9 @@ protected:
 public:
     explicit SourceFile(fs::path path);
 
-    fs::path                          path() const { return path_; }
-    const std::vector<unsigned char>& content() const { return content_; }
-    std::string_view                  stringView() const { return std::string_view(reinterpret_cast<std::string_view::const_pointer>(content_.data()), size()); }
+    fs::path                    path() const { return path_; }
+    const std::vector<char8_t>& content() const { return content_; }
+    std::string_view            stringView() const { return std::string_view(reinterpret_cast<std::string_view::const_pointer>(content_.data()), size()); }
 
     size_t              size() const { return content_.size() - TRAILING_0; }
     FileRef             ref() const { return ref_; }

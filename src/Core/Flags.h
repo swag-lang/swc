@@ -38,6 +38,8 @@ struct EnumFlags
 
     constexpr bool has(Self fl) const { return hasAny(fl); }
     constexpr bool has(T fl) const { return hasAny(fl); }
+    constexpr bool hasNot(Self fl) const { return !hasAny(fl); }
+    constexpr bool hasNot(T fl) const { return !hasAny(fl); }
 
     constexpr bool hasAny(Self fl) const { return (flags & fl.flags) != 0; }
     constexpr bool hasAny(T fl) const { return (flags & static_cast<U>(fl)) != 0; }

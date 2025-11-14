@@ -18,7 +18,7 @@ namespace
         ctx.setSilentError(true);
 
         Lexer lexer;
-        lexer.tokenize(ctx, file->lexOut(), LexerFlagsE::Default);
+        lexer.tokenize(ctx, file->lexOut(), LexerFlagsE::EmitTrivia);
 
         Parser parser;
         parser.parse(ctx, file->parserOut(), file->lexOut());
@@ -49,10 +49,6 @@ namespace Command
         }
 
         global.jobMgr().waitAll(clientId);
-
-        for (const auto& f : fileMgr.files())
-        {
-        }
     }
 }
 

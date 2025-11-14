@@ -32,7 +32,7 @@ void Lexer::raiseUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len)
         return;
     hasUtf8Error_ = true;
 
-    if (rawMode_)
+    if (isRawMode())
         return;
 
     const auto diag = Diagnostic::get(id, lexOut_->file());
@@ -46,7 +46,7 @@ Diagnostic Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t le
         return {};
     hasTokenError_ = true;
 
-    if (rawMode_)
+    if (isRawMode())
         return {};
 
     auto diag = Diagnostic::get(id, lexOut_->file());
@@ -142,15 +142,17 @@ void Lexer::pushToken()
     switch (tokenId)
     {
         case TokenId::Whitespace:
+            if (lexerFlags_.has(LexerFlagsE::EmitTrivia))
+                lexOut_->trivia_.push_back({.tokenRef = TokenRef{static_cast<uint32_t>(lexOut_->tokens_.size())}, .token = token_});
             break;
         case TokenId::CommentLine:
         case TokenId::CommentMultiLine:
-            if (!rawMode_)
+            if (!isRawMode() && lexerFlags_.hasNot(LexerFlagsE::EmitTrivia))
                 break;
             lexOut_->trivia_.push_back({.tokenRef = TokenRef{static_cast<uint32_t>(lexOut_->tokens_.size())}, .token = token_});
             break;
         default:
-            if (rawMode_)
+            if (isRawMode())
                 break;
             lexOut_->tokens_.push_back(token_);
             break;
@@ -684,7 +686,7 @@ void Lexer::lexIdentifier()
     const auto name = std::string_view(reinterpret_cast<std::string_view::const_pointer>(startToken_), buffer_ - startToken_);
     if (name[0] == '#' && name.length() > 1 && name[1] >= 'A' && name[1] <= 'Z')
         token_.id = TokenId::SharpIdentifier;
-    else if (rawMode_)
+    else if (isRawMode())
         token_.id = TokenId::Identifier;
     else
     {
@@ -1171,9 +1173,7 @@ void Lexer::checkFormat(uint32_t& startOffset)
 
 void Lexer::tokenizeRaw(TaskContext& ctx, LexerOutput& lexOut)
 {
-    rawMode_ = true;
-    tokenize(ctx, lexOut, LexerFlagsE::Default);
-    rawMode_ = false;
+    tokenize(ctx, lexOut, LexerFlagsE::RawMode);
 }
 
 void Lexer::tokenize(TaskContext& ctx, LexerOutput& lexOut, LexerFlags flags)
@@ -1201,7 +1201,7 @@ void Lexer::tokenize(TaskContext& ctx, LexerOutput& lexOut, LexerFlags flags)
 
     // Reserve space based on source size
     lexOut_->tokens_.reserve(lexOut.sourceView().size() / 10);
-    if (!rawMode_)
+    if (!isRawMode())
         lexOut_->lines_.reserve(lexOut.sourceView().size() / 60);
     lexOut_->lines_.push_back(0);
 
@@ -1317,7 +1317,7 @@ void Lexer::tokenize(TaskContext& ctx, LexerOutput& lexOut, LexerFlags flags)
     pushToken();
 
 #if SWC_HAS_STATS
-    if (!rawMode_)
+    if (!isRawMode())
         Stats::get().numTokens.fetch_add(lexOut_->tokens_.size());
 #endif
 }

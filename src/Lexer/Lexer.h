@@ -13,6 +13,8 @@ class LangSpec;
 enum class LexerFlagsE : uint32_t
 {
     Default,
+    RawMode,
+    EmitTrivia,
 };
 using LexerFlags = EnumFlags<LexerFlagsE>;
 
@@ -70,7 +72,6 @@ class Lexer
     uint32_t        startTokenOffset_ = 0;
     bool            hasTokenError_    = false;
     bool            hasUtf8Error_     = false;
-    bool            rawMode_          = false;
 
     static bool isTerminatorAfterEscapeChar(uint8_t c, TokenId container);
 
@@ -83,6 +84,8 @@ class Lexer
     void       raiseTokenError(DiagnosticId id, uint32_t offset, uint32_t len = 1);
     void       checkFormat(uint32_t& startOffset);
     void       lexEscape(TokenId containerToken, bool eatEol);
+
+    bool isRawMode() const { return lexerFlags_.has(LexerFlagsE::RawMode); }
 
     void lexWhitespace();
     void lexSingleLineStringLiteral();

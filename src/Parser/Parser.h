@@ -213,7 +213,7 @@ class Parser
     void               raiseExpected(DiagnosticId id, TokenRef tknRef, TokenId tknExpected);
 
 public:
-    Result parse(TaskContext& ctx, LexerFlags lexerFlags = LexerFlagsE::Default);
+    Result parse(TaskContext& ctx);
 };
 
 SWC_END_NAMESPACE()

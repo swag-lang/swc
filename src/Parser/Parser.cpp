@@ -292,7 +292,7 @@ void Parser::expectEndStatement()
     skipTo({TokenId::SymRightCurly, TokenId::SymRightParen, TokenId::SymRightBracket, TokenId::SymSemiColon}, SkipUntilFlagsE::EolBefore);
 }
 
-Result Parser::parse(TaskContext& ctx, LexerFlags lexerFlags)
+Result Parser::parse(TaskContext& ctx)
 {
 #if SWC_HAS_STATS
     Timer time(&Stats::get().timeParser);
@@ -308,7 +308,7 @@ Result Parser::parse(TaskContext& ctx, LexerFlags lexerFlags)
     // Lexer
     Lexer lexer;
     SWC_CHECK(file_->unittest_.tokenize(ctx));
-    SWC_CHECK(lexer.tokenize(ctx, lexerFlags));
+    SWC_CHECK(lexer.tokenize(ctx));
 
     SWC_ASSERT(!file_->lexOut_.tokens().empty());
     if (file_->hasFlag(FileFlagsE::LexOnly))

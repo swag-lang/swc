@@ -541,24 +541,59 @@ AstNodeRef Parser::parseDoCurlyBlock()
 
 AstNodeRef Parser::parseAffectStmt()
 {
+    AstNodeRef nodeLeft;
+
+    // Decomposition
     if (is(TokenId::SymLeftParen))
     {
-        // @skip
-        skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
-        return AstNodeRef::invalid();
+        const auto openRef            = consume();
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::MultiAffect>();
+        nodePtr->addFlag(AstMultiAffect::FlagsE::Decomposition);
+        if (consumeIf(TokenId::SymQuestion).isValid())
+            nodeLeft = AstNodeRef::invalid();
+        else
+            nodeLeft = parseExpression();
+
+        SmallVector<AstNodeRef> nodeAffects;
+        nodeAffects.push_back(nodeLeft);
+        while (consumeIf(TokenId::SymComma).isValid())
+        {
+            if (consumeIf(TokenId::SymQuestion).isValid())
+                nodeAffects.push_back(AstNodeRef::invalid());
+            else
+                nodeAffects.push_back(parseExpression());
+        }
+
+        expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+
+        nodePtr->spanChildren = ast_->store_.push_span(nodeAffects.span());
+        nodeLeft              = nodeRef;
+    }
+    else
+    {
+        // Simple affectation
+        nodeLeft = parseExpression();
+        if (nodeLeft.isInvalid())
+            return AstNodeRef::invalid();
+
+        // Multi affectations
+        if (is(TokenId::SymComma))
+        {
+            const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::MultiAffect>();
+            SmallVector<AstNodeRef> nodeAffects;
+            nodeAffects.push_back(nodeLeft);
+            while (consumeIf(TokenId::SymComma).isValid())
+            {
+                const auto nodeExpr = parseExpression();
+                nodeAffects.push_back(nodeExpr);
+            }
+
+            nodePtr->spanChildren = ast_->store_.push_span(nodeAffects.span());
+            nodeLeft              = nodeRef;
+        }
     }
 
-    const auto nodeLeft = parseExpression();
-    if (nodeLeft.isInvalid())
-        return AstNodeRef::invalid();
-    
-    if (is(TokenId::SymComma))
-    {
-        // @skip
-        skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
-        return AstNodeRef::invalid();
-    }    
-
+    // Operation
     if (isAny(TokenId::SymEqual,
               TokenId::SymPlusEqual,
               TokenId::SymMinusEqual,

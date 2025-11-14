@@ -1900,6 +1900,21 @@ struct AstAffectStmt : AstNode
     AstNodeRef       nodeRight;
 };
 
+struct AstMultiAffect : AstCompound
+{
+    static constexpr auto ID = AstNodeId::MultiAffect;
+    explicit AstMultiAffect() :
+        AstCompound(ID)
+    {
+    }
+
+    enum FlagsE : Flags
+    {
+        Zero          = 0,
+        Decomposition = 1 << 0,
+    };
+};
+
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 

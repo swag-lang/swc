@@ -198,6 +198,7 @@ SWC_NODE_DEF(IntrinsicPostMove)
 
 // Affect
 SWC_NODE_DEF(AffectStmt)
+SWC_NODE_DEF(MultiAffect)
 
 // Conditionals (runtime)
 SWC_NODE_DEF(If)

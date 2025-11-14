@@ -425,6 +425,7 @@ AstNodeRef Parser::parsePrimaryExpression()
             return parseCompilerCallUnary();
 
         case TokenId::CompilerRun:
+        case TokenId::CompilerCode:            
             return parseCompilerExpr();
 
         case TokenId::IntrinsicErr:
@@ -582,7 +583,6 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::KwdUnion:
         case TokenId::SymAsterisk:
         case TokenId::SymAmpersand:
-        case TokenId::CompilerCode:
         case TokenId::ModifierNullable:
             return parseType();
 

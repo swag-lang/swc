@@ -8,6 +8,16 @@
 
 SWC_BEGIN_NAMESPACE()
 
+namespace
+{
+    void parseFile(JobContext& taskCtx, SourceFile* f)
+    {
+        Parser parser;
+        taskCtx.setSourceFile(f);
+        parser.parse(taskCtx);
+    }
+}
+
 namespace CompilerCommand
 {
     Result syntax(const CompilerInstance& compiler)
@@ -21,11 +31,9 @@ namespace CompilerCommand
 
         for (const auto& f : global.fileMgr().files())
         {
-            auto job  = std::make_shared<Job>(compiler.context());
-            job->func = [f](TaskContext& taskCtx) {
-                Parser parser;
-                taskCtx.setSourceFile(f);
-                parser.parse(taskCtx);
+            auto job  = std::make_shared<Job>(ctx);
+            job->func = [f](JobContext& taskCtx) {
+                parseFile(taskCtx, f);
                 return JobResult::Done;
             };
 

@@ -14,6 +14,10 @@ enum class JobPriority : std::uint8_t
     Low    = 2
 };
 
+struct JobContext : TaskContext
+{
+};
+
 // What the manager should do after process().
 enum class JobResult : std::uint8_t
 {
@@ -55,21 +59,21 @@ class Job : public std::enable_shared_from_this<Job>
     friend class JobManager;
 
 public:
-    explicit Job(const CompilerContext& cmpContext) :
-        ctx_(cmpContext)
+    explicit Job(const TaskContext& ctx) :
+        ctx_(ctx)
     {
     }
 
     // Wake all jobs currently waiting on this job (even before finishing).
     void wakeDependents() const;
 
-    TaskContext&       ctx() { return ctx_; }
-    const TaskContext& ctx() const { return ctx_; }
+    JobContext&       ctx() { return ctx_; }
+    const JobContext& ctx() const { return ctx_; }
 
-    std::function<JobResult(TaskContext&)> func;
+    std::function<JobResult(JobContext&)> func;
 
 protected:
-    TaskContext ctx_;
+    JobContext ctx_;
 
     // For Result::SleepOn
     void setDependency(const JobRef& dep)

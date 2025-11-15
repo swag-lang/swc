@@ -67,6 +67,8 @@ struct AstImpl : AstCompound
     }
 
     AstNodeRef nodeIdent;
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const;
 };
 
 struct AstImplFor : AstCompound
@@ -79,6 +81,8 @@ struct AstImplFor : AstCompound
 
     AstNodeRef nodeIdent;
     AstNodeRef nodeFor;
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const;
 };
 
 struct AstNamespace : AstCompound
@@ -90,6 +94,8 @@ struct AstNamespace : AstCompound
     }
 
     AstNodeRef nodeName;
+    
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const;
 };
 
 struct AstUsingNamespace : AstNode
@@ -100,7 +106,9 @@ struct AstUsingNamespace : AstNode
     {
     }
 
-    AstNodeRef nodeNamespace;
+    AstNodeRef nodeName;
+    
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const;
 };
 
 struct AstCompilerGlobal : AstNode
@@ -127,6 +135,8 @@ struct AstCompilerGlobal : AstNode
 
     Mode       mode;
     AstNodeRef nodeMode;
+    
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const;
 };
 
 struct AstCompilerImport : AstNode
@@ -152,6 +162,8 @@ struct AstCompilerScope : AstNode
 
     TokenRef   tokName;
     AstNodeRef nodeBody;
+    
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const;
 };
 
 struct AstInternalCallZeroBase : AstNode

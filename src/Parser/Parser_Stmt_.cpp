@@ -29,7 +29,7 @@ AstNodeRef Parser::parseUsing()
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingNamespace>();
         consume();
-        nodePtr->nodeNamespace = parseNamespace();
+        nodePtr->nodeName = parseNamespace();
         return nodeRef;
     }
 

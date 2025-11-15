@@ -77,6 +77,7 @@ AstNodeRef Parser::parseLiteralExpression()
 
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::PostfixedLiteral>();
     nodePtr->nodeLiteral          = literal;
+    nodePtr->nodeQuote.setInvalid();
 
     switch (id())
     {

@@ -311,7 +311,7 @@ AstNodeRef Parser::parseForLoop()
     consumeAssert(TokenId::KwdFor);
 
     nodePtr->modifierFlags = parseModifiers();
-    
+
     nodePtr->tokName.setInvalid();
     if (isNot(TokenId::SymLeftParen))
     {

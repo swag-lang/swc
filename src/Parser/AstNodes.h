@@ -1856,7 +1856,7 @@ struct AstVarMultiNameDecl : AstNode
     {
     }
 
-    SpanRef    tokNames;
+    SpanRef    spanNames;
     AstNodeRef nodeType;
     AstNodeRef nodeInit;
 
@@ -2221,7 +2221,6 @@ struct AstForeach : AstNode
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
-        AstNode::collectChildren(out, ast, spanNames);
         out.push_back(nodeExpr);
         out.push_back(nodeWhere);
         out.push_back(nodeBody);

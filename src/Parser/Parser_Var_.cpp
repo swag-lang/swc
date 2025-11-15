@@ -163,7 +163,7 @@ AstNodeRef Parser::parseVarDecl()
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarMultiNameDecl>();
             nodePtr->addFlag(flags);
-            nodePtr->tokNames = ast_->store().push_span(tokNames.span());
+            nodePtr->spanNames = ast_->store().push_span(tokNames.span());
             nodePtr->nodeType = nodeType;
             nodePtr->nodeInit = nodeInit;
             vars.push_back(nodeRef);

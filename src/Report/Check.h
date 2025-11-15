@@ -9,15 +9,6 @@ enum class Result : bool
     Success = true,
 };
 
-#define SWC_CHECK(__result)            \
-    if ((__result) != Result::Success) \
-    {                                  \
-        do                             \
-        {                              \
-            return Result::Error;      \
-        } while (0);                   \
-    }
-
 #define SWC_FORCE_ASSERT(__expr)                     \
     do                                               \
     {                                                \

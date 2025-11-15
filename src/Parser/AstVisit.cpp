@@ -33,6 +33,9 @@ bool AstVisit::step(AstVisitContext& ctx) const
         {
             const AstNode* node = resolveNode(fr);
             SWC_ASSERT(node->id != AstNodeId::Invalid);
+#if SWC_HAS_STATS
+            Stats::get().numVisitedAstNodes.fetch_add(1);
+#endif
 
             if (!node)
             {

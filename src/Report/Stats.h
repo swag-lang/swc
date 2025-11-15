@@ -10,14 +10,15 @@ struct Stats
     std::atomic<size_t>   numWarnings = 0;
 
 #if SWC_HAS_STATS
-    std::atomic<uint64_t> timeLoadFile    = 0;
-    std::atomic<uint64_t> timeLexer       = 0;
-    std::atomic<uint64_t> timeParser      = 0;
-    std::atomic<size_t>   memAllocated    = 0;
-    std::atomic<size_t>   memMaxAllocated = 0;
-    std::atomic<size_t>   numFiles        = 0;
-    std::atomic<size_t>   numTokens       = 0;
-    std::atomic<size_t>   numAstNodes     = 0;
+    std::atomic<uint64_t> timeLoadFile       = 0;
+    std::atomic<uint64_t> timeLexer          = 0;
+    std::atomic<uint64_t> timeParser         = 0;
+    std::atomic<size_t>   memAllocated       = 0;
+    std::atomic<size_t>   memMaxAllocated    = 0;
+    std::atomic<size_t>   numFiles           = 0;
+    std::atomic<size_t>   numTokens          = 0;
+    std::atomic<size_t>   numAstNodes        = 0;
+    std::atomic<size_t>   numVisitedAstNodes = 0;
 #endif // SWC_HAS_STATS
 
     static Stats& get()

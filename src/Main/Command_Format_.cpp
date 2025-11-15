@@ -3,6 +3,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/FileManager.h"
 #include "Main/Global.h"
+#include "Parser/AstVisit.h"
 #include "Thread/Job.h"
 #include "Thread/JobManager.h"
 
@@ -22,6 +23,10 @@ namespace
 
         Parser parser;
         parser.parse(ctx, file->parserOut(), file->lexOut());
+
+        AstVisit        astVisit;
+        AstVisitContext visitCtx;
+        astVisit.start(visitCtx, file->parserOut().ast());
     }
 }
 

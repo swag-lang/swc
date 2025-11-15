@@ -1,12 +1,10 @@
 #pragma once
 #include "Core/SmallVector.h"
-#include <cstdint>
-#include <functional>
-#include <utility>
 
 SWC_BEGIN_NAMESPACE()
+class Ast;
 
-class SourceFile;
+class LexerOutput;
 struct AstNode;
 
 struct AstVisitContext
@@ -14,7 +12,7 @@ struct AstVisitContext
     struct Frame
     {
         // Snapshot of the SourceFile* when this frame was created
-        const SourceFile* sourceAtPush = nullptr;
+        const LexerOutput* sourceAtPush = nullptr;
 
         // Store a stable reference
         AstNodeRef              nodeRef = AstNodeRef::invalid();
@@ -31,14 +29,14 @@ struct AstVisitContext
     };
 
     // Active file scope used to resolve AstNodeRef / SpanRef
-    const SourceFile* currentSource = nullptr;
+    const LexerOutput* currentLex = nullptr;
 
     // The explicit traversal stack (top is back())
     SmallVector<Frame, 64> stack;
 
-    void reset(const SourceFile* initialFile = nullptr)
+    void reset(const LexerOutput* initialLex = nullptr)
     {
-        currentSource = initialFile;
+        currentLex = initialLex;
         stack.clear();
     }
 };
@@ -65,15 +63,16 @@ public:
     {
     }
 
-    static void start(AstVisitContext& ctx, const SourceFile* rootFile, AstNodeRef rootRef);
-    bool        step(AstVisitContext& ctx) const;
-    void        run(AstVisitContext& ctx) const;
+    void start(AstVisitContext& ctx, const Ast& ast);
+    bool step(AstVisitContext& ctx) const;
+    void run(AstVisitContext& ctx) const;
 
 private:
-    Callbacks cb_{};
+    Callbacks  cb_{};
+    const Ast* ast_ = nullptr;
 
-    static void           collectChildRefs(const AstNode* node, SmallVector<AstNodeRef>& out);
-    static const AstNode* resolveNode(const AstVisitContext::Frame& fr);
+    static void    collectChildRefs(const AstNode* node, SmallVector<AstNodeRef>& out);
+    const AstNode* resolveNode(const AstVisitContext::Frame& fr) const;
 };
 
 SWC_END_NAMESPACE()

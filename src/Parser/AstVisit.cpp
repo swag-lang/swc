@@ -5,18 +5,19 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void AstVisit::start(AstVisitContext& ctx, const SourceFile* rootFile, AstNodeRef rootRef)
+void AstVisit::start(AstVisitContext& ctx, const Ast& ast)
 {
-    if (rootRef.isInvalid())
+    ast_ = &ast;
+    if (ast_->root().isInvalid())
         return;
-    if (!ctx.currentSource)
-        ctx.currentSource = rootFile;
+    if (!ctx.currentLex)
+        ctx.currentLex = &ast_->lexOut();
 
     AstVisitContext::Frame fr;
-    fr.nodeRef      = rootRef;
+    fr.nodeRef      = ast_->root();
     fr.stage        = AstVisitContext::Frame::Stage::Pre;
     fr.nextChildIx  = 0;
-    fr.sourceAtPush = ctx.currentSource;
+    fr.sourceAtPush = ctx.currentLex;
     ctx.stack.push_back(std::move(fr));
 }
 
@@ -72,7 +73,7 @@ bool AstVisit::step(AstVisitContext& ctx) const
                 childFr.nodeRef      = childRef;
                 childFr.stage        = AstVisitContext::Frame::Stage::Pre;
                 childFr.nextChildIx  = 0;
-                childFr.sourceAtPush = ctx.currentSource;
+                childFr.sourceAtPush = ctx.currentLex;
                 ctx.stack.push_back(std::move(childFr));
                 return true;
             }
@@ -118,15 +119,11 @@ void AstVisit::collectChildRefs(const AstNode* node, SmallVector<AstNodeRef>& ou
     info.collect(node, out);
 }
 
-const AstNode* AstVisit::resolveNode(const AstVisitContext::Frame& fr)
+const AstNode* AstVisit::resolveNode(const AstVisitContext::Frame& fr) const
 {
     if (fr.nodeRef.isInvalid() || !fr.sourceAtPush)
         return nullptr;
-
-    // IMPORTANT: resolve with the file snapshot captured when this frame was pushed.
-    // This preserves the original semantics where children were resolved using the
-    // current file at discovery time, regardless of later file-scope changes.
-    return fr.sourceAtPush->parserOut().ast().node(fr.nodeRef);
+    return ast_->node(fr.nodeRef);
 }
 
 SWC_END_NAMESPACE()

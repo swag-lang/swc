@@ -245,7 +245,7 @@ AstNodeRef Parser::parseFunctionDecl()
             consume();
     }
 
-    nodePtr->spanConstraints = ast_->store_.push_span(whereRefs.span());
+    nodePtr->spanConstraints = ast_->store().push_span(whereRefs.span());
 
     // Body
     if (consumeIf(TokenId::SymSemiColon).isValid())

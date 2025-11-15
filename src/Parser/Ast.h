@@ -5,19 +5,22 @@
 #include "Report/Stats.h"
 
 SWC_BEGIN_NAMESPACE()
+class LexerOutput;
 
 class Ast
 {
-protected:
-    friend class Parser;
-    RefStore<> store_;
-    AstNodeRef root_        = AstNodeRef::invalid();
-    bool       hasErrors_   = false;
-    bool       hasWarnings_ = false;
+    RefStore<>         store_;
+    AstNodeRef         root_   = AstNodeRef::invalid();
+    const LexerOutput* lexOut_ = nullptr;
 
 public:
     static constexpr const AstNodeIdInfo& nodeIdInfos(AstNodeId id) { return AST_NODE_ID_INFOS[static_cast<size_t>(id)]; }
     static constexpr std::string_view     nodeIdName(AstNodeId id) { return nodeIdInfos(id).name; }
+    auto&                                 store() { return store_; }
+    AstNodeRef                            root() const { return root_; }
+    void                                  setRoot(AstNodeRef root) { root_ = root; }
+    const LexerOutput&                    lexOut() const { return *lexOut_; }
+    void                                  setLexOut(const LexerOutput& lexOut) { lexOut_ = &lexOut; }
 
     // Get a node depending on its ref
     template<AstNodeId ID>

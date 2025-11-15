@@ -189,7 +189,7 @@ SpanRef Parser::parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openT
         raiseExpected(DiagnosticId::parser_err_expected_closing, openTokRef, Token::toRelated(tokenStartId));
 
     // Store
-    return ast_->store_.push_span(childrenRefs.span());
+    return ast_->store().push_span(childrenRefs.span());
 }
 
 SWC_END_NAMESPACE()

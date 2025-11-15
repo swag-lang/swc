@@ -23,7 +23,7 @@ AstNodeRef Parser::parseGenericParam()
         if (isType)
         {
             auto diag = reportError(DiagnosticId::parser_err_gen_param_type, ref().offset(-1));
-            diag.last().addSpan(tknConstVar.location(*ctx_, *lexOut_), DiagnosticId::parser_note_gen_param_type, DiagnosticSeverity::Note);
+            diag.last().addSpan(tknConstVar.location(*ctx_, ast_->lexOut()), DiagnosticId::parser_note_gen_param_type, DiagnosticSeverity::Note);
             diag.addElement(DiagnosticId::parser_help_gen_param_type);
             diag.report(*ctx_);
         }
@@ -102,7 +102,7 @@ AstNodeRef Parser::parseDecompositionDecl()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::DecompositionDecl>();
     nodePtr->addFlag(flags);
     nodePtr->nodeInit  = parseInitializerExpression();
-    nodePtr->spanNames = ast_->store_.push_span(tokNames.span());
+    nodePtr->spanNames = ast_->store().push_span(tokNames.span());
 
     return nodeRef;
 }
@@ -163,7 +163,7 @@ AstNodeRef Parser::parseVarDecl()
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarMultiNameDecl>();
             nodePtr->addFlag(flags);
-            nodePtr->tokNames = ast_->store_.push_span(tokNames.span());
+            nodePtr->tokNames = ast_->store().push_span(tokNames.span());
             nodePtr->nodeType = nodeType;
             nodePtr->nodeInit = nodeInit;
             vars.push_back(nodeRef);
@@ -180,7 +180,7 @@ AstNodeRef Parser::parseVarDecl()
 
     // Multiple variables
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarMultiDecl>();
-    nodePtr->spanChildren   = ast_->store_.push_span(vars.span());
+    nodePtr->spanChildren   = ast_->store().push_span(vars.span());
     return nodeRef;
 }
 

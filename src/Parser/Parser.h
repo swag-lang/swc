@@ -42,17 +42,16 @@ public:
 
 class Parser
 {
-    TaskContext*       ctx_            = nullptr;
-    ParserOutput*      out_            = nullptr;
-    Ast*               ast_            = nullptr;
-    const LexerOutput* lexOut_         = nullptr;
-    const Token*       firstToken_     = nullptr;
-    const Token*       curToken_       = nullptr;
-    const Token*       lastToken_      = nullptr;
-    uint32_t           depthParen_     = 0;
-    uint32_t           depthBracket_   = 0;
-    uint32_t           depthCurly_     = 0;
-    TokenRef           lastErrorToken_ = TokenRef::invalid();
+    TaskContext*  ctx_            = nullptr;
+    ParserOutput* out_            = nullptr;
+    Ast*          ast_            = nullptr;
+    const Token*  firstToken_     = nullptr;
+    const Token*  curToken_       = nullptr;
+    const Token*  lastToken_      = nullptr;
+    uint32_t      depthParen_     = 0;
+    uint32_t      depthBracket_   = 0;
+    uint32_t      depthCurly_     = 0;
+    TokenRef      lastErrorToken_ = TokenRef::invalid();
 
     const Token* tokPtr() const { return curToken_; }
     const Token& tok() const { return *curToken_; }

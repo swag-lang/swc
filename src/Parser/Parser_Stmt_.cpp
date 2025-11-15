@@ -366,7 +366,7 @@ AstNodeRef Parser::parseForeach()
         tokNames.push_back(tokName);
     }
 
-    nodePtr->spanNames = ast_->store_.push_span(tokNames.span());
+    nodePtr->spanNames = ast_->store().push_span(tokNames.span());
     if (!tokNames.empty())
         expectAndConsume(TokenId::KwdIn, DiagnosticId::parser_err_expected_token_before);
 
@@ -420,7 +420,7 @@ AstNodeRef Parser::parseSwitchCaseDefault()
             nodeExpressions.push_back(nodeExpr);
         }
 
-        nodePtr->spanExpr = ast_->store_.push_span(nodeExpressions.span());
+        nodePtr->spanExpr = ast_->store().push_span(nodeExpressions.span());
     }
     else
         consume();
@@ -459,7 +459,7 @@ AstNodeRef Parser::parseSwitch()
             case TokenId::KwdCase:
             {
                 if (currentCase)
-                    currentCase->spanChildren = ast_->store_.push_span(nodeStmts.span());
+                    currentCase->spanChildren = ast_->store().push_span(nodeStmts.span());
                 nodeStmts.clear();
 
                 auto caseRef = parseSwitchCaseDefault();
@@ -478,9 +478,9 @@ AstNodeRef Parser::parseSwitch()
     }
 
     if (currentCase)
-        currentCase->spanChildren = ast_->store_.push_span(nodeStmts.span());
+        currentCase->spanChildren = ast_->store().push_span(nodeStmts.span());
 
-    nodePtr->spanChildren = ast_->store_.push_span(nodeChildren.span());
+    nodePtr->spanChildren = ast_->store().push_span(nodeChildren.span());
     expectAndConsumeClosing(TokenId::SymRightCurly, openRef);
     return nodeRef;
 }
@@ -500,7 +500,7 @@ AstNodeRef Parser::parseFile()
             globals.push_back(global);
     }
 
-    nodePtr->spanGlobals = ast_->store_.push_span(globals.span());
+    nodePtr->spanGlobals = ast_->store().push_span(globals.span());
 
     // All the rest
     nodePtr->spanChildren = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::Invalid);
@@ -566,7 +566,7 @@ AstNodeRef Parser::parseAffectStmt()
 
         expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
-        nodePtr->spanChildren = ast_->store_.push_span(nodeAffects.span());
+        nodePtr->spanChildren = ast_->store().push_span(nodeAffects.span());
         nodeLeft              = nodeRef;
     }
     else
@@ -588,7 +588,7 @@ AstNodeRef Parser::parseAffectStmt()
                 nodeAffects.push_back(nodeExpr);
             }
 
-            nodePtr->spanChildren = ast_->store_.push_span(nodeAffects.span());
+            nodePtr->spanChildren = ast_->store().push_span(nodeAffects.span());
             nodeLeft              = nodeRef;
         }
     }

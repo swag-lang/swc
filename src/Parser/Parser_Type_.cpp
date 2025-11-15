@@ -201,7 +201,7 @@ AstNodeRef Parser::parseSubType()
             return AstNodeRef::invalid();
 
         auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::ArrayType>();
-        nodePtr->spanDimensions  = ast_->store_.push_span(dimensions.span());
+        nodePtr->spanDimensions  = ast_->store().push_span(dimensions.span());
         nodePtr->nodePointeeType = child;
         return nodeRef;
     }

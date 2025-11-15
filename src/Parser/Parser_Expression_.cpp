@@ -63,7 +63,7 @@ AstModifierFlags Parser::parseModifiers()
         if (result.has(toSet))
         {
             auto       diag = reportError(DiagnosticId::parser_err_duplicated_modifier, ref());
-            const auto loc  = lexOut_->token(done[toSet]).location(*ctx_, *lexOut_);
+            const auto loc  = ast_->lexOut().token(done[toSet]).location(*ctx_, ast_->lexOut());
             diag.last().addSpan(loc, DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
             diag.report(*ctx_);
         }
@@ -773,7 +773,7 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
 
         const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::MultiIndexExpr>();
         nodePtr->nodeExpr                = nodeRef;
-        nodePtr->spanChildren            = ast_->store_.push_span(nodeArgs.span());
+        nodePtr->spanChildren            = ast_->store().push_span(nodeArgs.span());
         return nodeParent;
     }
 

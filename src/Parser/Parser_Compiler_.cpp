@@ -137,7 +137,7 @@ AstNodeRef Parser::parseCompilerGlobal()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerGlobal>();
     consume();
 
-    const auto tokStr = tok().string(*lexOut_);
+    const auto tokStr = tok().string(ast_->lexOut());
 
     // @temp
     if (tokStr == "testerror" || tokStr == "testerrors" || tokStr == "testwarning" || tokStr == "testwarnings" || tokStr == "testpass")
@@ -230,7 +230,7 @@ AstNodeRef Parser::parseCompilerImport()
 
     if (consumeIf(TokenId::SymComma).isValid())
     {
-        auto tokStr = tok().string(*lexOut_);
+        auto tokStr = tok().string(ast_->lexOut());
         if (tokStr == Token::toName(TokenId::KwdLocation))
         {
             consume();
@@ -238,7 +238,7 @@ AstNodeRef Parser::parseCompilerImport()
             nodePtr->tokLocation = expectAndConsume(TokenId::StringLine, DiagnosticId::parser_err_expected_token_before);
             if (consumeIf(TokenId::SymComma).isValid())
             {
-                tokStr = tok().string(*lexOut_);
+                tokStr = tok().string(ast_->lexOut());
                 if (tokStr == Token::toName(TokenId::KwdVersion))
                 {
                     consume();

@@ -32,6 +32,8 @@ bool AstVisit::step(AstVisitContext& ctx) const
         case AstVisitContext::Frame::Stage::Pre:
         {
             const AstNode* node = resolveNode(fr);
+            SWC_ASSERT(node->id != AstNodeId::Invalid);
+
             if (!node)
             {
                 ctx.stack.pop_back();
@@ -65,10 +67,13 @@ bool AstVisit::step(AstVisitContext& ctx) const
         case AstVisitContext::Frame::Stage::Children:
         {
             // Still have a child to descend into?
-            if (fr.nextChildIx < fr.children.size())
+            while (fr.nextChildIx < fr.children.size())
             {
                 const AstNodeRef childRef = fr.children[fr.nextChildIx++];
-
+                if (childRef.isInvalid())
+                    continue;
+                SWC_ASSERT(childRef.get() != 0);
+                
                 AstVisitContext::Frame childFr;
                 childFr.nodeRef      = childRef;
                 childFr.stage        = AstVisitContext::Frame::Stage::Pre;
@@ -86,6 +91,7 @@ bool AstVisit::step(AstVisitContext& ctx) const
         case AstVisitContext::Frame::Stage::Post:
         {
             const AstNode* node = resolveNode(fr);
+            SWC_ASSERT(node->id != AstNodeId::Invalid);
 
             // Post-order callback
             if (cb_.post)

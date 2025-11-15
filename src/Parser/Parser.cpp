@@ -306,6 +306,9 @@ void Parser::parse(TaskContext& ctx, ParserOutput& out, const LexerOutput& lexOu
     lastToken_  = &lexOut.tokens().back();
     curToken_   = firstToken_;
 
+    // Force the first node to be invalid, so that AstNodeRef 0 is invalid
+    (void) ast_->makeNode<AstNodeId::Invalid>();
+
     ast_->setRoot(parseFile());
 }
 

@@ -102,6 +102,8 @@ AstNodeRef Parser::parseCompilerIf(AstNodeId blockNodeId)
         nodePtr->nodeElseBlock = parseCompilerIf(blockNodeId);
     else if (consumeIf(TokenId::CompilerElse).isValid())
         nodePtr->nodeElseBlock = parseCompilerIfStmt(blockNodeId);
+    else
+        nodePtr->nodeElseBlock.setInvalid();
 
     return nodeRef;
 }
@@ -175,8 +177,10 @@ AstNodeRef Parser::parseCompilerGlobal()
     }
     else if (is(TokenId::SymAttrStart))
     {
-        nodePtr->mode     = AstCompilerGlobal::Mode::AttributeList;
-        nodePtr->nodeMode = parseCompound<AstNodeId::AttributeList>(TokenId::SymAttrStart);
+        nodePtr->mode      = AstCompilerGlobal::Mode::AttributeList;
+        nodePtr->nodeMode  = parseCompound<AstNodeId::AttributeList>(TokenId::SymAttrStart);
+        const auto attrPtr = ast_->node<AstNodeId::AttributeList>(nodePtr->nodeMode);
+        attrPtr->nodeBody.setInvalid();
     }
     else if (is(TokenId::KwdPublic))
     {

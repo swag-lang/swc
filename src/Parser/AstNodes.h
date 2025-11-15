@@ -1230,6 +1230,7 @@ struct AstEnumDecl : AstCompound
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
         out.push_back(nodeType);
+        AstCompound::collectChildren(out, ast);
     }
 };
 
@@ -1530,11 +1531,11 @@ struct AstTypedVariadicType : AstNode
     }
 };
 
-struct AstCompilerIf : AstCompound
+struct AstCompilerIf : AstNode
 {
     static constexpr auto ID = AstNodeId::CompilerIf;
     AstCompilerIf() :
-        AstCompound(ID)
+        AstNode(ID)
     {
     }
 
@@ -1598,6 +1599,7 @@ struct AstAttributeList : AstCompound
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
+        AstCompound::collectChildren(out, ast);
         out.push_back(nodeBody);
     }
 };

@@ -52,6 +52,8 @@ AstNodeRef Parser::parseEnumValue()
                 if (nodePtr->nodeValue.isInvalid())
                     skipTo(ENUM_VALUE_SYNC, SkipUntilFlagsE::EolBefore);
             }
+            else
+                nodePtr->nodeValue.setInvalid();
             return nodeRef;
         }
 
@@ -84,10 +86,12 @@ AstNodeRef Parser::parseEnumDecl()
         if (nodePtr->nodeType.isInvalid())
             skipTo({TokenId::SymLeftCurly, TokenId::SymRightCurly});
     }
+    else
+        nodePtr->nodeType.setInvalid();
 
     // Content
     nodePtr->spanChildren = parseCompoundContent(AstNodeId::EnumDecl, TokenId::SymLeftCurly);
-    
+
     return nodeRef;
 }
 

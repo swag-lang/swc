@@ -495,7 +495,12 @@ AstNodeRef Parser::parseFile()
     {
         auto global = parseCompilerGlobal();
         if (out_->hasFlag(ParserOutFlagsE::GlobalSkip))
+        {
+            nodePtr->spanGlobals.setInvalid();
+            nodePtr->spanChildren.setInvalid();
             return nodeRef;
+        }
+
         if (global.isValid())
             globals.push_back(global);
     }

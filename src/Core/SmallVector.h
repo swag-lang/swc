@@ -366,32 +366,14 @@ private:
 
     static void uninitialized_move_n(T* src, size_type n, T* dst)
     {
-        size_type i = 0;
-        try
-        {
-            for (; i < n; ++i)
-                std::construct_at(dst + i, std::move_if_noexcept(src[i]));
-        }
-        catch (...)
-        {
-            destroy_n(dst, i);
-            throw;
-        }
+        for (size_type i = 0; i < n; ++i)
+            std::construct_at(dst + i, std::move_if_noexcept(src[i]));
     }
 
     static void uninitialized_copy_n(const T* src, size_type n, T* dst)
     {
-        size_type i = 0;
-        try
-        {
-            for (; i < n; ++i)
-                std::construct_at(dst + i, src[i]);
-        }
-        catch (...)
-        {
-            destroy_n(dst, i);
-            throw;
-        }
+        for (size_type i = 0; i < n; ++i)
+            std::construct_at(dst + i, src[i]);
     }
 
     size_type grow_to(size_type min_cap) const

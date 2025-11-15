@@ -24,7 +24,7 @@ struct AstCompound : AstNode
 
     SpanRef spanChildren;
 
-    void collectChildren(const Ast* ast, SmallVector<AstNodeRef>& out) const;
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const;
 };
 
 struct AstFile : AstCompound
@@ -36,6 +36,8 @@ struct AstFile : AstCompound
     }
 
     SpanRef spanGlobals;
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const;
 };
 
 struct AstTopLevelBlock : AstCompound
@@ -1953,16 +1955,16 @@ struct AstNodeIdInfo
 {
     std::string_view name;
 
-    using CollectFunc = void (*)(const Ast*, const AstNode*, SmallVector<AstNodeRef>&);
-    CollectFunc collect;
+    using CollectFunc = void (*)(SmallVector<AstNodeRef>&, const Ast*, const AstNode*);
+    CollectFunc collectChildren;
 };
 
 // Helper template to call collect on any node type
 template<AstNodeId ID>
-void collectChildren(const Ast* ast, const AstNode* node, SmallVector<AstNodeRef>& out)
+void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast, const AstNode* node)
 {
     using NodeType = AstTypeOf<ID>::type;
-    castAst<NodeType>(node)->collectChildren(ast, out);
+    castAst<NodeType>(node)->collectChildren(out, ast);
 }
 
 constexpr std::array AST_NODE_ID_INFOS = {

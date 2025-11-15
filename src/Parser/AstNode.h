@@ -58,7 +58,7 @@ struct AstNode
             flags_ |= val.flags;
     }
 
-    static void collectChildren([[maybe_unused]] const Ast* ast, [[maybe_unused]] SmallVector<AstNodeRef>& out) {}
+    static void collectChildren(SmallVector<AstNodeRef>&, const Ast*) {}
 
 private:
     Flags flags_;

@@ -71,7 +71,7 @@ private:
     Callbacks  cb_{};
     const Ast* ast_ = nullptr;
 
-    void           collectChildRefs(const AstNode* node, SmallVector<AstNodeRef>& out) const;
+    void           collectChildren(SmallVector<AstNodeRef>& out, const AstNode* node) const;
     const AstNode* resolveNode(const AstVisitContext::Frame& fr) const;
 };
 

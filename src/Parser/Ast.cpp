@@ -5,7 +5,6 @@ SWC_BEGIN_NAMESPACE()
 
 void Ast::nodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const
 {
-    out.clear();
     if (spanRef.isInvalid())
         return;
 

@@ -17,10 +17,15 @@ class RefStore
     struct Page
     {
         alignas(alignof(std::max_align_t)) std::byte storage[N];
-        uint32_t used = 0;
+        uint32_t used;
 
         uint8_t*       bytes() noexcept { return reinterpret_cast<uint8_t*>(&storage); }
         const uint8_t* bytes() const noexcept { return reinterpret_cast<const uint8_t*>(&storage); }
+
+        Page() noexcept :
+            used(0)
+        {
+        }
     };
 
     std::vector<std::unique_ptr<Page>> pages_;
@@ -34,9 +39,6 @@ class RefStore
     {
         pages_.emplace_back(std::make_unique<Page>());
         cur_      = pages_.back().get();
-#if SWC_DEV_MODE
-        std::fill_n(cur_->bytes(), N, 0xCC);
-#endif
         curIndex_ = static_cast<uint32_t>(pages_.size() - 1);
         return cur_;
     }

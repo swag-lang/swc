@@ -33,6 +33,7 @@ bool AstVisit::step(AstVisitContext& ctx) const
         {
             const AstNode* node = resolveNode(fr);
             SWC_ASSERT(node->id != AstNodeId::Invalid);
+            SWC_ASSERT(node->id < AstNodeId::Count);
 #if SWC_HAS_STATS
             Stats::get().numVisitedAstNodes.fetch_add(1);
 #endif
@@ -95,6 +96,7 @@ bool AstVisit::step(AstVisitContext& ctx) const
         {
             const AstNode* node = resolveNode(fr);
             SWC_ASSERT(node->id != AstNodeId::Invalid);
+            SWC_ASSERT(node->id < AstNodeId::Count);
 
             // Post-order callback
             if (cb_.post)

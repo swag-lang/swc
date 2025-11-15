@@ -93,6 +93,7 @@ class Parser
     AstNodeRef       parseAttributeList(AstNodeId blockNodeId);
     AstNodeRef       parseAggregateDecl(AstNodeId nodeId);
     AstNodeRef       parseInitializerList(AstNodeRef nodeWhat);
+    AstNodeRef       parseFunctionArguments(AstNodeRef nodeExpr);
     AstNodeRef       parseArraySlicingIndex(AstNodeRef nodeRef);
     AstModifierFlags parseModifiers();
 
@@ -141,7 +142,6 @@ class Parser
     AstNodeRef parseForeach();
     AstNodeRef parseFunctionDecl();
     AstNodeRef parseFunctionBody();
-    AstNodeRef parseFunctionArguments();
     AstNodeRef parseFunctionParam();
     AstNodeRef parseFunctionParamList();
     AstNodeRef parseGenericParam();

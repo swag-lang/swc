@@ -148,12 +148,16 @@ AstNodeRef Parser::parseIf()
         nodePtr->nodeVar = parseVarDecl();
         if (consumeIf(TokenId::KwdWhere).isValid())
             nodePtr->nodeWhere = parseExpression();
+        else
+            nodePtr->nodeWhere.setInvalid();
 
         nodePtr->nodeIfBlock = parseDoCurlyBlock();
         if (is(TokenId::KwdElseIf))
             nodePtr->nodeElseBlock = parseIf();
         else if (consumeIf(TokenId::KwdElse).isValid())
             nodePtr->nodeElseBlock = parseDoCurlyBlock();
+        else
+            nodePtr->nodeElseBlock.setInvalid();
 
         return nodeRef;
     }
@@ -171,6 +175,8 @@ AstNodeRef Parser::parseIf()
         nodePtr->nodeElseBlock = parseIf();
     else if (consumeIf(TokenId::KwdElse).isValid())
         nodePtr->nodeElseBlock = parseDoCurlyBlock();
+    else
+        nodePtr->nodeElseBlock.setInvalid();
 
     return nodeRef;
 }
@@ -305,8 +311,8 @@ AstNodeRef Parser::parseForLoop()
     consumeAssert(TokenId::KwdFor);
 
     nodePtr->modifierFlags = parseModifiers();
+    
     nodePtr->tokName.setInvalid();
-
     if (isNot(TokenId::SymLeftParen))
     {
         if (nextIs(TokenId::KwdIn))
@@ -320,6 +326,8 @@ AstNodeRef Parser::parseForLoop()
 
     if (consumeIf(TokenId::KwdWhere).isValid())
         nodePtr->nodeWhere = parseExpression();
+    else
+        nodePtr->nodeWhere.setInvalid();
 
     nodePtr->nodeBody = parseDoCurlyBlock();
     return nodeRef;
@@ -374,6 +382,8 @@ AstNodeRef Parser::parseForeach()
 
     if (consumeIf(TokenId::KwdWhere).isValid())
         nodePtr->nodeWhere = parseExpression();
+    else
+        nodePtr->nodeWhere.setInvalid();
 
     nodePtr->nodeBody = parseDoCurlyBlock();
     return nodeRef;

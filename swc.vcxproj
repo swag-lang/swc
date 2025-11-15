@@ -207,7 +207,7 @@
         </ClCompile>
         <ClCompile Include="src\Os\OsWin32.cpp"/>
         <ClCompile Include="src\Parser\Ast.cpp"/>
-        <ClCompile Include="src\Parser\AstNodes.cpp"/>
+        <ClCompile Include="src\Parser\AstNode.cpp"/>
         <ClCompile Include="src\Parser\AstVisit.cpp"/>
         <ClCompile Include="src\Parser\Parser.cpp"/>
         <ClCompile Include="src\Parser\Parser_Compound_.cpp"/>

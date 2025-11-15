@@ -59,6 +59,7 @@ struct AstNode
     }
 
     static void collectChildren(SmallVector<AstNodeRef>&, const Ast*) {}
+    static void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast, SpanRef spanRef);
 
 private:
     Flags flags_;

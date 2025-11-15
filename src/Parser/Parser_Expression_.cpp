@@ -370,7 +370,7 @@ AstNodeRef Parser::parsePostFixExpression()
         // Function call
         if (is(TokenId::SymLeftParen) && !tok().flags.has(TokenFlagsE::BlankBefore))
         {
-            nodeRef = parseFunctionArguments();
+            nodeRef = parseFunctionArguments(nodeRef);
             continue;
         }
 

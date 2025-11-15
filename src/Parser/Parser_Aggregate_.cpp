@@ -132,6 +132,8 @@ AstNodeRef Parser::parseAggregateDecl(AstNodeId nodeId)
         if (nodePtr->spanGenericParams.isInvalid())
             skipTo({TokenId::SymLeftCurly});
     }
+    else
+        nodePtr->spanGenericParams.setInvalid();
 
     // Name
     nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);

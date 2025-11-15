@@ -16,7 +16,7 @@ class RefStore
 
     struct Page
     {
-        alignas(alignof(std::max_align_t)) std::byte storage[N]{};
+        alignas(alignof(std::max_align_t)) std::byte storage[N];
         uint32_t used = 0;
 
         uint8_t*       bytes() noexcept { return reinterpret_cast<uint8_t*>(&storage); }
@@ -34,6 +34,9 @@ class RefStore
     {
         pages_.emplace_back(std::make_unique<Page>());
         cur_      = pages_.back().get();
+#if SWC_DEV_MODE
+        std::fill_n(cur_->bytes(), N, 0xCC);
+#endif
         curIndex_ = static_cast<uint32_t>(pages_.size() - 1);
         return cur_;
     }

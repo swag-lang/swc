@@ -2368,7 +2368,7 @@ struct AstSwitch : AstCompound
 struct AstSwitchCase : AstCompound
 {
     static constexpr auto ID = AstNodeId::SwitchCase;
-    explicit AstSwitchCase() :
+    AstSwitchCase() :
         AstCompound(ID)
     {
     }
@@ -2387,7 +2387,7 @@ struct AstSwitchCase : AstCompound
 struct AstCompilerMacro : AstNode
 {
     static constexpr auto ID = AstNodeId::CompilerMacro;
-    explicit AstCompilerMacro() :
+    AstCompilerMacro() :
         AstNode(ID)
     {
     }
@@ -2403,7 +2403,7 @@ struct AstCompilerMacro : AstNode
 struct AstCompilerInject : AstNode
 {
     static constexpr auto ID = AstNodeId::CompilerInject;
-    explicit AstCompilerInject() :
+    AstCompilerInject() :
         AstNode(ID)
     {
     }
@@ -2423,7 +2423,7 @@ struct AstCompilerInject : AstNode
 struct AstRangeExpr : AstNode
 {
     static constexpr auto ID = AstNodeId::RangeExpr;
-    explicit AstRangeExpr() :
+    AstRangeExpr() :
         AstNode(ID)
     {
     }
@@ -2448,7 +2448,7 @@ struct AstRangeExpr : AstNode
 struct AstIntrinsicCallVariadic : AstCompound
 {
     static constexpr auto ID = AstNodeId::IntrinsicCallVariadic;
-    explicit AstIntrinsicCallVariadic() :
+    AstIntrinsicCallVariadic() :
         AstCompound(ID)
     {
     }

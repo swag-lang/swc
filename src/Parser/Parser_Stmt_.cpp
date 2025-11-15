@@ -433,7 +433,10 @@ AstNodeRef Parser::parseSwitchCaseDefault()
         nodePtr->spanExpr = ast_->store().push_span(nodeExpressions.span());
     }
     else
+    {
         consume();
+        nodePtr->spanExpr.setInvalid();
+    }
 
     if (consumeIf(TokenId::KwdWhere).isValid())
         nodePtr->nodeWhere = parseExpression();

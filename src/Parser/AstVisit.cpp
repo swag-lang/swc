@@ -113,10 +113,10 @@ void AstVisit::run(AstVisitContext& ctx) const
     }
 }
 
-void AstVisit::collectChildRefs(const AstNode* node, SmallVector<AstNodeRef>& out)
+void AstVisit::collectChildRefs(const AstNode* node, SmallVector<AstNodeRef>& out) const
 {
     const auto& info = Ast::nodeIdInfos(node->id);
-    info.collect(node, out);
+    info.collect(ast_, node, out);
 }
 
 const AstNode* AstVisit::resolveNode(const AstVisitContext::Frame& fr) const

@@ -1,6 +1,7 @@
 // ReSharper disable CppPossiblyUninitializedMember
 #pragma once
 #include "Core/SmallVector.h"
+#include "Parser/AstNode.h"
 #include "Parser/AstNodeId.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -22,6 +23,8 @@ struct AstCompound : AstNode
     }
 
     SpanRef spanChildren;
+
+    void collectChildren(const Ast* ast, SmallVector<AstNodeRef>& out) const;
 };
 
 struct AstFile : AstCompound
@@ -1950,16 +1953,16 @@ struct AstNodeIdInfo
 {
     std::string_view name;
 
-    using CollectFunc = void (*)(const AstNode*, SmallVector<AstNodeRef>&);
+    using CollectFunc = void (*)(const Ast*, const AstNode*, SmallVector<AstNodeRef>&);
     CollectFunc collect;
 };
 
 // Helper template to call collect on any node type
 template<AstNodeId ID>
-void collectChildren(const AstNode* node, SmallVector<AstNodeRef>& out)
+void collectChildren(const Ast* ast, const AstNode* node, SmallVector<AstNodeRef>& out)
 {
     using NodeType = AstTypeOf<ID>::type;
-    castAst<NodeType>(node)->collectChildren(out);
+    castAst<NodeType>(node)->collectChildren(ast, out);
 }
 
 constexpr std::array AST_NODE_ID_INFOS = {

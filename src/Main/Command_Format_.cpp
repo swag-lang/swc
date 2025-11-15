@@ -27,6 +27,7 @@ namespace
         AstVisit        astVisit;
         AstVisitContext visitCtx;
         astVisit.start(visitCtx, file->parserOut().ast());
+        astVisit.run(visitCtx);
     }
 }
 

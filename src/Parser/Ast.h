@@ -34,7 +34,7 @@ public:
     AstNode*       node(AstNodeRef nodeRef) { return store_.ptr<AstNode>(nodeRef.get()); }
     const AstNode* node(AstNodeRef nodeRef) const { return store_.ptr<AstNode>(nodeRef.get()); }
 
-    void nodes(SmallVector<const AstNode*>& out, SpanRef nodes);
+    void nodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const;
 
     // Construct new nodes
     template<AstNodeId ID>

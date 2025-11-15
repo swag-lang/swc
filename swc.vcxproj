@@ -191,8 +191,8 @@
         <ClCompile Include="src\Lexer\Token.cpp"/>
         <ClCompile Include="src\main.cpp"/>
         <ClCompile Include="src\Main\CommandLineParser.cpp"/>
-        <ClCompile Include="src\Main\Command_Format_.cpp" />
-        <ClCompile Include="src\Main\Command_Syntax_.cpp" />
+        <ClCompile Include="src\Main\Command_Format_.cpp"/>
+        <ClCompile Include="src\Main\Command_Syntax_.cpp"/>
         <ClCompile Include="src\Main\FileManager.cpp"/>
         <ClCompile Include="src\Main\FileSystem.cpp"/>
         <ClCompile Include="src\Main\Global.cpp"/>
@@ -207,6 +207,7 @@
         </ClCompile>
         <ClCompile Include="src\Os\OsWin32.cpp"/>
         <ClCompile Include="src\Parser\Ast.cpp"/>
+        <ClCompile Include="src\Parser\AstNodes.cpp"/>
         <ClCompile Include="src\Parser\AstVisit.cpp"/>
         <ClCompile Include="src\Parser\Parser.cpp"/>
         <ClCompile Include="src\Parser\Parser_Compound_.cpp"/>
@@ -258,7 +259,7 @@
         <ClInclude Include="src\Lexer\TokenIds.inc"/>
         <ClInclude Include="src\Main\CommandLine.h"/>
         <ClInclude Include="src\Main\CommandLineParser.h"/>
-        <ClInclude Include="src\Main\Command.h" />
+        <ClInclude Include="src\Main\Command.h"/>
         <ClInclude Include="src\Main\CompilerContext.h"/>
         <ClInclude Include="src\Main\TaskContext.h"/>
         <ClInclude Include="src\Main\FileManager.h"/>

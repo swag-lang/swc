@@ -3,6 +3,7 @@
 #include "Parser/AstNodeId.h"
 
 SWC_BEGIN_NAMESPACE()
+class Ast;
 
 class SourceFile;
 
@@ -57,7 +58,7 @@ struct AstNode
             flags_ |= val.flags;
     }
 
-    static void collectChildren([[maybe_unused]] SmallVector<AstNodeRef>& out) {}
+    static void collectChildren([[maybe_unused]] const Ast* ast, [[maybe_unused]] SmallVector<AstNodeRef>& out) {}
 
 private:
     Flags flags_;

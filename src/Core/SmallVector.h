@@ -59,15 +59,12 @@ public:
         _size = other._size;
     }
 
-    SmallVector(SmallVector&& other) noexcept(std::allocator_traits<Alloc>::is_always_equal::value &&
-                                              std::is_nothrow_move_constructible_v<T>) :
-        _alloc(std::move(other._alloc))
+    SmallVector(SmallVector&& other) :
+        _alloc(std::move(other._alloc)),
+        _ptr(inline_data())
     {
         if (other.is_inline())
         {
-            _ptr  = inline_data();
-            _cap  = InlineCapacity;
-            _size = 0;
             reserve(other._size);
             uninitialized_move_n(other._ptr, other._size, _ptr);
             _size = other._size;
@@ -84,15 +81,16 @@ public:
         }
     }
 
-    std::span<T> span() const noexcept
+    ~SmallVector()
     {
-        return std::span<T>(_ptr, _size);
+        clear_heap_if_needed();
     }
 
     SmallVector& operator=(const SmallVector& other)
     {
         if (this == &other)
             return *this;
+
         if constexpr (!std::allocator_traits<Alloc>::is_always_equal::value)
         {
             if (std::allocator_traits<Alloc>::propagate_on_container_copy_assignment::value &&
@@ -106,8 +104,7 @@ public:
         return *this;
     }
 
-    SmallVector& operator=(SmallVector&& other) noexcept(
-        std::allocator_traits<Alloc>::is_always_equal::value && std::is_nothrow_move_constructible_v<T>)
+    SmallVector& operator=(SmallVector&& other)
     {
         if (this == &other)
             return *this;
@@ -137,11 +134,10 @@ public:
         return *this;
     }
 
-    ~SmallVector() { clear_heap_if_needed(); }
-
     iterator       begin() noexcept { return _ptr; }
     const_iterator begin() const noexcept { return _ptr; }
     const_iterator cbegin() const noexcept { return _ptr; }
+
     iterator       end() noexcept { return _ptr + _size; }
     const_iterator end() const noexcept { return _ptr + _size; }
     const_iterator cend() const noexcept { return _ptr + _size; }
@@ -151,9 +147,15 @@ public:
     bool      empty() const noexcept { return _size == 0; }
     bool      is_inline() const noexcept { return _ptr == inline_data(); }
 
-    operator std::initializer_list<T>() const noexcept
+    // span accessors
+    std::span<T> span() noexcept
     {
-        return std::initializer_list<T>(_ptr, _ptr + _size);
+        return std::span<T>(_ptr, _size);
+    }
+
+    std::span<const T> span() const noexcept
+    {
+        return std::span<const T>(_ptr, _size);
     }
 
     void reserve(size_type new_cap)
@@ -167,6 +169,7 @@ public:
     {
         if (is_inline() || _size == _cap)
             return;
+
         if (_size <= InlineCapacity)
         {
             // move back to inline
@@ -189,18 +192,20 @@ public:
     T& at(size_type i)
     {
         if (i >= _size)
-            throw std::out_of_range("small_vector::at");
+            throw std::out_of_range("SmallVector::at");
         return _ptr[i];
     }
+
     const T& at(size_type i) const
     {
         if (i >= _size)
-            throw std::out_of_range("small_vector::at");
+            throw std::out_of_range("SmallVector::at");
         return _ptr[i];
     }
 
     T&       front() { return _ptr[0]; }
     const T& front() const { return _ptr[0]; }
+
     T&       back() { return _ptr[_size - 1]; }
     const T& back() const { return _ptr[_size - 1]; }
 
@@ -263,14 +268,25 @@ public:
         --_size;
     }
 
+    // NEW: append count elements from raw memory [data, data + count)
+    // data must not overlap the storage of this SmallVector.
+    void append(const T* data, size_type count)
+    {
+        if (count == 0)
+            return;
+
+        reserve(_size + count);
+        uninitialized_copy_n(data, count, _ptr + _size);
+        _size += count;
+    }
+
     template<class It>
     void assign(It first, It last)
     {
         clear();
-        const size_type n = static_cast<size_type>(std::distance(first, last));
-        reserve(n);
-        for (; first != last; ++first)
-            emplace_back(*first);
+
+        using category = std::iterator_traits<It>::iterator_category;
+        assign_impl(first, last, category{});
     }
 
     iterator insert(const_iterator pos, const T& value)
@@ -300,7 +316,7 @@ public:
             std::construct_at(_ptr + _size, std::move(_ptr[_size - 1]));
             for (size_type i = _size - 1; i > idx; --i)
                 _ptr[i] = std::move(_ptr[i - 1]);
-            _ptr[idx].~T();
+            std::destroy_at(_ptr + idx);
             std::construct_at(_ptr + idx, std::forward<Args>(args)...);
             ++_size;
         }
@@ -310,9 +326,9 @@ public:
     iterator erase(const_iterator cpos)
     {
         size_type idx = static_cast<size_type>(cpos - cbegin());
-        std::destroy_at(_ptr + idx);
         for (size_type i = idx; i + 1 < _size; ++i)
             _ptr[i] = std::move(_ptr[i + 1]);
+        std::destroy_at(_ptr + _size - 1);
         --_size;
         return begin() + idx;
     }
@@ -399,8 +415,6 @@ private:
         }
 
         _ptr = new_mem;
-        // re-construct moved elements in place, since we destroyed them (above):
-        // Actually, we already constructed at new_mem & destroyed old; _size unchanged.
         _cap = new_cap;
     }
 
@@ -416,12 +430,28 @@ private:
         _cap  = InlineCapacity;
     }
 
+    template<class It>
+    void assign_impl(It first, It last, std::input_iterator_tag)
+    {
+        for (; first != last; ++first)
+            emplace_back(*first);
+    }
+
+    template<class It>
+    void assign_impl(It first, It last, std::forward_iterator_tag)
+    {
+        const size_type n = static_cast<size_type>(std::distance(first, last));
+        reserve(n);
+        for (; first != last; ++first)
+            emplace_back(*first);
+    }
+
     Alloc     _alloc{};
-    T*        _ptr  = inline_data();
+    T*        _ptr  = nullptr;
     size_type _size = 0;
     size_type _cap  = InlineCapacity;
 
-    alignas(T) char8_t _inline_data[sizeof(T) * InlineCapacity]{};
+    alignas(T) std::byte _inline_data[sizeof(T) * InlineCapacity]{};
 };
 
 SWC_END_NAMESPACE()

@@ -107,17 +107,17 @@ void Parser::raiseExpected(DiagnosticId id, TokenRef tknRef, TokenId tknExpected
     diag.report(*ctx_);
 }
 
-bool Parser::skipTo(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
+bool Parser::skipTo(const SmallVector<TokenId>& targets, SkipUntilFlags flags)
 {
     return skip(targets, flags);
 }
 
-bool Parser::skipAfter(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
+bool Parser::skipAfter(const SmallVector<TokenId>& targets, SkipUntilFlags flags)
 {
     return skip(targets, flags | SkipUntilFlagsE::Consume);
 }
 
-bool Parser::skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags)
+bool Parser::skip(const SmallVector<TokenId>& targets, SkipUntilFlags flags)
 {
     int        parenDepth   = 0;
     int        bracketDepth = 0;
@@ -243,7 +243,7 @@ TokenRef Parser::expectAndConsume(TokenId id, DiagnosticId diagId)
     return TokenRef::invalid();
 }
 
-TokenRef Parser::expectAndConsumeClosing(TokenId closeId, TokenRef openRef, std::initializer_list<TokenId> skipIds, bool skipToEol)
+TokenRef Parser::expectAndConsumeClosing(TokenId closeId, TokenRef openRef, const SmallVector<TokenId>& skipIds, bool skipToEol)
 {
     if (is(closeId))
         return consume();

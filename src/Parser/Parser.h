@@ -78,7 +78,7 @@ class Parser
     TokenRef consumeAssert(TokenId id);
     TokenRef consume();
     TokenRef consumeIf(TokenId id);
-    TokenRef expectAndConsumeClosing(TokenId closeId, TokenRef openRef, std::initializer_list<TokenId> skipIds = {}, bool skipToEol = true);
+    TokenRef expectAndConsumeClosing(TokenId closeId, TokenRef openRef, const SmallVector<TokenId>& skipIds = {}, bool skipToEol = true);
     TokenRef expectAndConsume(TokenId id, DiagnosticId diagId);
     void     expectEndStatement();
 
@@ -212,9 +212,9 @@ class Parser
         return nodeRef;
     }
 
-    bool skipTo(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlagsE::Zero);
-    bool skipAfter(std::initializer_list<TokenId> targets, SkipUntilFlags flags = SkipUntilFlagsE::Zero);
-    bool skip(std::initializer_list<TokenId> targets, SkipUntilFlags flags);
+    bool skipTo(const SmallVector<TokenId>& targets, SkipUntilFlags flags = SkipUntilFlagsE::Zero);
+    bool skipAfter(const SmallVector<TokenId>& targets, SkipUntilFlags flags = SkipUntilFlagsE::Zero);
+    bool skip(const SmallVector<TokenId>& targets, SkipUntilFlags flags);
 
     Utf8               tokenErrorString(TokenRef tokenRef) const;
     SourceCodeLocation tokenErrorLocation(TokenRef tokenRef) const;

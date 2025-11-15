@@ -33,6 +33,7 @@ SWC_NODE_DEF(AnonymousUnionDecl)
 
 // Enums
 SWC_NODE_DEF(EnumDecl)
+SWC_NODE_DEF(EnumBody)
 SWC_NODE_DEF(EnumValue)
 SWC_NODE_DEF(EnumUse)
 SWC_NODE_DEF(ImplEnum)

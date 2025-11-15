@@ -15,7 +15,7 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
         case AstNodeId::EmbeddedBlock:
             return parseEmbeddedStmt();
 
-        case AstNodeId::EnumDecl:
+        case AstNodeId::EnumBody:
             return parseEnumValue();
         case AstNodeId::AggregateBody:
             return parseAggregateValue();
@@ -72,7 +72,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
             expectEndStatement();
             break;
 
-        case AstNodeId::EnumDecl:
+        case AstNodeId::EnumBody:
             if (consumeIf(TokenId::SymComma).isInvalid() && !is(tokenEndId) && !tok().startsLine())
             {
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);

@@ -1216,6 +1216,15 @@ struct AstExplicitCastExpr : AstNode
     }
 };
 
+struct AstEnumBody : AstCompound
+{
+    static constexpr auto ID = AstNodeId::EnumBody;
+    AstEnumBody() :
+        AstCompound(ID)
+    {
+    }
+};
+
 struct AstEnumDecl : AstCompound
 {
     static constexpr auto ID = AstNodeId::EnumDecl;
@@ -1226,11 +1235,12 @@ struct AstEnumDecl : AstCompound
 
     TokenRef   tokName;
     AstNodeRef nodeType;
+    AstNodeRef nodeBody;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
         out.push_back(nodeType);
-        AstCompound::collectChildren(out, ast);
+        out.push_back(nodeBody);
     }
 };
 

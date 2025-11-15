@@ -32,7 +32,7 @@ AstNodeRef Parser::parseEnumValue()
         case TokenId::CompilerPrint:
             return parseCompilerCallUnary();
         case TokenId::CompilerIf:
-            return parseCompilerIf(AstNodeId::EnumDecl);
+            return parseCompilerIf(AstNodeId::EnumBody);
 
         case TokenId::KwdUsing:
         {
@@ -61,7 +61,7 @@ AstNodeRef Parser::parseEnumValue()
             return parseCompilerFunc();
 
         case TokenId::SymAttrStart:
-            return parseAttributeList(AstNodeId::EnumDecl);
+            return parseAttributeList(AstNodeId::EnumBody);
 
         default:
             raiseError(DiagnosticId::parser_err_unexpected_token, ref());
@@ -90,7 +90,7 @@ AstNodeRef Parser::parseEnumDecl()
         nodePtr->nodeType.setInvalid();
 
     // Content
-    nodePtr->spanChildren = parseCompoundContent(AstNodeId::EnumDecl, TokenId::SymLeftCurly);
+    nodePtr->nodeBody = parseCompound<AstNodeId::EnumBody>(TokenId::SymLeftCurly);
 
     return nodeRef;
 }

@@ -8,10 +8,9 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseTopLevelCall()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TopLevelCall>();
-    nodePtr->nodeIdentifier = parseQualifiedIdentifier();
-    nodePtr->nodeArgs       = parseCompound<AstNodeId::NamedArgList>(TokenId::SymLeftParen);
-
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Call>();
+    nodePtr->nodeExpr       = parseQualifiedIdentifier();
+    nodePtr->spanChildren   = parseCompoundContent(AstNodeId::NamedArgList, TokenId::SymLeftParen);
     return nodeRef;
 }
 

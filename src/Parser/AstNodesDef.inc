@@ -932,17 +932,6 @@ struct AstAccessModifier : AstNodeT<AstNodeId::AccessModifier>
     }
 };
 
-struct AstTopLevelCall : AstNodeT<AstNodeId::TopLevelCall>
-{
-    AstNodeRef nodeIdentifier;
-    AstNodeRef nodeArgs;
-
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
-    {
-        AstNode::collectChildren(out, {nodeIdentifier, nodeArgs});
-    }
-};
-
 struct AstConstraintBlock : AstCompoundT<AstNodeId::ConstraintBlock>
 {
     TokenRef tokConstraint;

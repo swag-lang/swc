@@ -2,6 +2,7 @@
 #include "Main/TaskContext.h"
 
 SWC_BEGIN_NAMESPACE()
+class JobManager;
 
 class Job;
 using JobRef = std::shared_ptr<Job>;
@@ -56,23 +57,6 @@ struct JobRecord
 
 class Job : public std::enable_shared_from_this<Job>
 {
-    friend class JobManager;
-
-public:
-    explicit Job(const TaskContext& ctx) :
-        ctx_(ctx)
-    {
-    }
-
-    // Wake all jobs currently waiting on this job (even before finishing).
-    void wakeDependents() const;
-
-    JobContext&       ctx() { return ctx_; }
-    const JobContext& ctx() const { return ctx_; }
-
-    std::function<JobResult(JobContext&)> func;
-
-protected:
     JobContext ctx_;
 
     // For Result::SleepOn
@@ -108,15 +92,34 @@ protected:
         return JobResult::SpawnAndSleep;
     }
 
-private:
     // Back-pointers / scheduler hooks (manager-owned but stored on the job)
-    JobManager* owner_{nullptr}; // which manager, if any, owns this job right now
-    JobRecord*  rec_{nullptr};   // scheduler state for THIS manager run (from the pool)
+    JobManager* owner_ = nullptr; // which manager, if any, owns this job right now
+    JobRecord*  rec_   = nullptr; // scheduler state for THIS manager run (from the pool)
 
     // User intent (read by manager under lock after process()):
     JobRef      dep_;   // dependency for SleepOn
     JobRef      child_; // child for SpawnAndSleep
-    JobPriority childPriority_{JobPriority::Normal};
+    JobPriority childPriority_ = JobPriority::Normal;
+
+public:
+    explicit Job(const TaskContext& ctx) :
+        ctx_(ctx)
+    {
+    }
+
+    void wakeDependents() const;
+
+    JobContext&       ctx() { return ctx_; }
+    const JobContext& ctx() const { return ctx_; }
+    JobManager*       owner() const { return owner_; }
+    void              setOwner(JobManager* owner) { owner_ = owner; }
+    JobRecord*        rec() const { return rec_; }
+    void              setRec(JobRecord* rec) { rec_ = rec; }
+    JobPriority       priority() const { return rec_->priority; }
+    JobPriority       childPriority() const { return childPriority_; }
+    JobClientId       clientId() const { return rec_->clientId; }
+    JobRef            child() const { return child_; }
+    JobRef            dep() const { return dep_; }
 
     // Cleared by manager after consuming intent.
     void clearIntents()
@@ -125,6 +128,8 @@ private:
         child_.reset();
         childPriority_ = JobPriority::Normal;
     }
+
+    std::function<JobResult(JobContext&)> func;
 };
 
 SWC_END_NAMESPACE()

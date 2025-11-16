@@ -120,7 +120,7 @@ bool JobManager::enqueue(const JobRef& job, JobPriority priority, JobClientId cl
         return false;
 
     // If already scheduled on this manager, refuse (simplifies invariants).
-    if (job->owner_ == this && job->rec_ != nullptr)
+    if (job->owner() == this && job->rec() != nullptr)
         return false;
 
     // Acquire a Record from the pool and wire it up.
@@ -132,8 +132,8 @@ bool JobManager::enqueue(const JobRef& job, JobPriority priority, JobClientId cl
     rec->dependents.clear();
     rec->wakeGen.store(0, std::memory_order_relaxed);
 
-    job->owner_ = this;
-    job->rec_   = rec;
+    job->setOwner(this);
+    job->setRec(rec);
 
     liveRecs_.insert(rec);
     bumpClientCountLocked(client, +1); // READY enters a counted set
@@ -149,10 +149,10 @@ bool JobManager::wake(const JobRef& job)
 
     std::unique_lock lk(mtx_);
     // If not scheduled on this manager (or already completed), ignore.
-    if (job->owner_ != this || job->rec_ == nullptr)
+    if (job->owner() != this || job->rec() == nullptr)
         return false;
 
-    JobRecord* rec = job->rec_;
+    JobRecord* rec = job->rec();
 
     // Arm against a lost-wake during a run.
     rec->wakeGen.fetch_add(1, std::memory_order_acq_rel);
@@ -291,9 +291,9 @@ void JobManager::notifyDependents(JobRecord* finished)
     for (const Job* job : deps)
     {
         // If the waiter is still scheduled here, it must have non-null 'rec_'.
-        if (job && job->owner_ == this && job->rec_)
+        if (job && job->owner() == this && job->rec())
         {
-            JobRecord* rec = job->rec_;
+            JobRecord* rec = job->rec();
             rec->wakeGen.fetch_add(1, std::memory_order_acq_rel); // prevent lost-wake
             if (rec->state == JobRecord::State::Waiting)
             {
@@ -374,7 +374,7 @@ JobResult JobManager::executeJob(const JobRef& job)
 
     SWC_TRY
     {
-        res = job->func(job->ctx_);
+        res = job->func(job->ctx());
     }
     SWC_EXCEPT(exceptionHandler(job, SWC_GET_EXCEPTION_INFOS()))
     {
@@ -493,8 +493,8 @@ void JobManager::workerLoop()
                     bumpClientCountLocked(rec->clientId, -1);
 
                     // Detach and recycle
-                    rec->job->rec_   = nullptr;
-                    rec->job->owner_ = nullptr;
+                    rec->job->setRec(nullptr);
+                    rec->job->setOwner(nullptr);
                     liveRecs_.erase(rec);
                     freeRecord(rec);
                     break;
@@ -516,6 +516,7 @@ void JobManager::workerLoop()
                         rec->state = JobRecord::State::Waiting;
                         bumpClientCountLocked(rec->clientId, -1);
                     }
+
                     rec->job->clearIntents(); // consume any stale intent
                     break;
                 }
@@ -523,8 +524,8 @@ void JobManager::workerLoop()
                 case JobResult::SleepOn:
                 {
                     JobRecord* depRec = nullptr;
-                    if (rec->job->dep_ && rec->job->dep_->owner_ == this)
-                        depRec = rec->job->dep_->rec_;
+                    if (rec->job->dep() && rec->job->dep()->owner() == this)
+                        depRec = rec->job->dep()->rec();
 
                     if (depRec && linkOrSkip(rec, depRec))
                     {
@@ -548,20 +549,20 @@ void JobManager::workerLoop()
                 {
                     // Create or reuse child's record and enqueue.
                     JobRecord* childRec = nullptr;
-                    if (rec->job->child_)
+                    if (rec->job->child())
                     {
-                        if (rec->job->child_->owner_ != this || rec->job->child_->rec_ == nullptr)
+                        if (rec->job->child()->owner() != this || rec->job->child()->rec() == nullptr)
                         {
                             JobRecord* r = allocRecord();
-                            r->job       = rec->job->child_;
-                            r->priority  = rec->job->childPriority_;
+                            r->job       = rec->job->child();
+                            r->priority  = rec->job->childPriority();
                             r->clientId  = rec->clientId; // inherit parent's client
                             r->state     = JobRecord::State::Ready;
                             r->dependents.clear();
                             r->wakeGen.store(0, std::memory_order_relaxed);
 
-                            rec->job->child_->owner_ = this;
-                            rec->job->child_->rec_   = r;
+                            rec->job->child()->setOwner(this);
+                            rec->job->child()->setRec(r);
 
                             childRec = r;
 
@@ -573,8 +574,8 @@ void JobManager::workerLoop()
                                 // Here we mimic a Done without ever exposing the record.
                                 r->state = JobRecord::State::Done;
                                 notifyDependents(r);
-                                r->job->rec_   = nullptr;
-                                r->job->owner_ = nullptr;
+                                r->job->setRec(nullptr);
+                                r->job->setOwner(nullptr);
                                 freeRecord(r);
                                 childRec = nullptr;
                             }
@@ -587,7 +588,7 @@ void JobManager::workerLoop()
                         else
                         {
                             // Already enqueued on this manager; treat as dependency only.
-                            childRec = rec->job->child_->rec_;
+                            childRec = rec->job->child()->rec();
                         }
                     }
 
@@ -650,9 +651,9 @@ bool JobManager::cancelCascadeLocked(JobRecord* rec, JobClientId client)
     {
         if (!j)
             continue;
-        if (j->owner_ != this || !j->rec_)
+        if (j->owner() != this || !j->rec())
             continue;
-        JobRecord* w = j->rec_;
+        JobRecord* w = j->rec();
         if (w->clientId == client)
             cancelCascadeLocked(w, client);
         else
@@ -680,8 +681,8 @@ bool JobManager::cancelCascadeLocked(JobRecord* rec, JobClientId client)
 
     if (rec->job)
     {
-        rec->job->rec_   = nullptr;
-        rec->job->owner_ = nullptr;
+        rec->job->setRec(nullptr);
+        rec->job->setOwner(nullptr);
     }
     liveRecs_.erase(rec);
     freeRecord(rec);

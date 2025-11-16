@@ -89,13 +89,9 @@ struct AstInternalCallTernaryT : AstNodeT<I>
     }
 };
 
-struct AstLambdaExpr : AstNode
+template<AstNodeId I>
+struct AstLambdaExprT : AstNodeT<I>
 {
-    explicit AstLambdaExpr(AstNodeId nodeId) :
-        AstNode(nodeId)
-    {
-    }
-
     SpanRef    spanArgs;
     AstNodeRef nodeReturnType;
     AstNodeRef nodeBody;
@@ -104,16 +100,6 @@ struct AstLambdaExpr : AstNode
     {
         AstNode::collectChildren(out, ast, spanArgs);
         AstNode::collectChildren(out, {nodeReturnType, nodeBody});
-    }
-};
-
-template<AstNodeId I>
-struct AstLambdaExprT : AstLambdaExpr
-{
-    static constexpr auto ID = I;
-    AstLambdaExprT() :
-        AstLambdaExpr(I)
-    {
     }
 };
 
@@ -378,7 +364,7 @@ struct AstClosureExpr : AstLambdaExprT<AstNodeId::ClosureExpr>
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
         AstNode::collectChildren(out, ast, nodeCaptureArgs);
-        AstLambdaExpr::collectChildren(out, ast);
+        AstLambdaExprT::collectChildren(out, ast);
     }
 };
 

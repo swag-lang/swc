@@ -242,6 +242,7 @@
         <ClCompile Include="src\Thread\RaceCondition.cpp"/>
     </ItemGroup>
     <ItemGroup>
+        <ClInclude Include="src\Core\ConstInt.h"/>
         <ClInclude Include="src\Core\Flags.h"/>
         <ClInclude Include="src\Core\Hash.h"/>
         <ClInclude Include="src\Core\Store.h"/>

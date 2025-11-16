@@ -244,7 +244,7 @@
     <ItemGroup>
         <ClInclude Include="src\Core\Flags.h"/>
         <ClInclude Include="src\Core\Hash.h"/>
-        <ClInclude Include="src\Core\RefStore.h"/>
+        <ClInclude Include="src\Core\Store.h"/>
         <ClInclude Include="src\Core\SmallVector.h"/>
         <ClInclude Include="src\Core\StringMap.h"/>
         <ClInclude Include="src\Core\Timer.h"/>

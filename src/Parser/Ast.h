@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/RefStore.h"
+#include "Core/Store.h"
 #include "Lexer/Lexer.h"
 #include "Main/Stats.h"
 #include "Parser/AstNode.h"
@@ -20,7 +20,7 @@ using AstFlags = EnumFlags<AstFlagsE>;
 
 class Ast
 {
-    RefStore<>  store_;
+    Store<>     store_;
     LexerOutput lexOut_;
     AstNodeRef  root_  = AstNodeRef::invalid();
     AstFlags    flags_ = AstFlagsE::Zero;

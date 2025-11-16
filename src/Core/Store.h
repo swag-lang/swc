@@ -10,7 +10,7 @@ using Ref = uint32_t;
 // Items are packed sequentially; alignment is preserved relative to a max-aligned base.
 // Ref is a 32-bit index in BYTES from the start of the store.
 template<uint32_t N = 16 * 1024>
-class RefStore
+class Store
 {
     static_assert(N > 0 && (N & (N - 1)) == 0, "N must be a power of two");
 
@@ -84,14 +84,11 @@ class RefStore
     }
 
 public:
-    RefStore() = default;
+    Store()                        = default;
+    Store(const Store&)            = delete;
+    Store& operator=(const Store&) = delete;
 
-    // Non-copyable (owning raw buffers)
-    RefStore(const RefStore&)            = delete;
-    RefStore& operator=(const RefStore&) = delete;
-
-    // Movable
-    RefStore(RefStore&& other) noexcept :
+    Store(Store&& other) noexcept :
         pages_(std::move(other.pages_)),
         totalBytes_(other.totalBytes_),
         cur_(other.cur_),
@@ -102,7 +99,7 @@ public:
         other.curIndex_   = 0;
     }
 
-    RefStore& operator=(RefStore&& other) noexcept
+    Store& operator=(Store&& other) noexcept
     {
         if (this != &other)
         {
@@ -314,11 +311,11 @@ public:
     template<class T>
     class SpanView
     {
-        const RefStore* store_;
-        Ref             head_;
+        const Store* store_;
+        Ref          head_;
 
         // Compute a data pointer for given header; caller decides how many elements fit.
-        static const T* data_ptr(const RefStore* st, Ref hdrRef)
+        static const T* data_ptr(const Store* st, Ref hdrRef)
         {
             uint32_t pageIndex, off;
             decodeRef(hdrRef, pageIndex, off);
@@ -327,7 +324,7 @@ public:
         }
 
         // Number of elements in the full span (read from the first header)
-        static uint32_t total_elems(const RefStore* st, Ref hdrRef)
+        static uint32_t total_elems(const Store* st, Ref hdrRef)
         {
             return st->ptr<SpanHdrRaw>(hdrRef)->total;
         }
@@ -344,7 +341,7 @@ public:
         }
 
     public:
-        explicit SpanView(const RefStore* s, Ref r) :
+        explicit SpanView(const Store* s, Ref r) :
             store_(s),
             head_(r)
         {
@@ -362,11 +359,11 @@ public:
 
         struct chunk_iterator
         {
-            const RefStore* store  = nullptr;
-            Ref             hdrRef = UINT32_MAX;
-            uint32_t        total  = 0;
-            uint32_t        done   = 0;
-            chunk           current{nullptr, 0};
+            const Store* store  = nullptr;
+            Ref          hdrRef = UINT32_MAX;
+            uint32_t     total  = 0;
+            uint32_t     done   = 0;
+            chunk        current{nullptr, 0};
 
             bool         operator!=(const chunk_iterator& o) const { return hdrRef != o.hdrRef; }
             const chunk& operator*() const { return current; }

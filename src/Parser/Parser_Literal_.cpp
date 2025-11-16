@@ -5,37 +5,54 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseLiteral()
 {
-    std::pair<AstNodeRef, AstLiteralBase*> literal;
     switch (id())
     {
         case TokenId::NumberInteger:
         case TokenId::NumberBinary:
         case TokenId::NumberHexadecimal:
-            literal = ast_->makeNode<AstNodeId::IntegerLiteral>();
-            break;
+        {
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntegerLiteral>();
+            nodePtr->tokValue       = consume();
+            return nodeRef;
+        }
 
         case TokenId::NumberFloat:
-            literal = ast_->makeNode<AstNodeId::FloatLiteral>();
-            break;
+        {
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FloatLiteral>();
+            nodePtr->tokValue       = consume();
+            return nodeRef;
+        }
 
         case TokenId::StringLine:
         case TokenId::StringMultiLine:
         case TokenId::StringRaw:
-            literal = ast_->makeNode<AstNodeId::StringLiteral>();
-            break;
+        {
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StringLiteral>();
+            nodePtr->tokValue       = consume();
+            return nodeRef;
+        }
 
         case TokenId::Character:
-            literal = ast_->makeNode<AstNodeId::CharacterLiteral>();
-            break;
+        {
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CharacterLiteral>();
+            nodePtr->tokValue       = consume();
+            return nodeRef;
+        }
 
         case TokenId::KwdTrue:
         case TokenId::KwdFalse:
-            literal = ast_->makeNode<AstNodeId::BoolLiteral>();
-            break;
+        {
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::BoolLiteral>();
+            nodePtr->tokValue       = consume();
+            return nodeRef;
+        }
 
         case TokenId::KwdNull:
-            literal = ast_->makeNode<AstNodeId::NullLiteral>();
-            break;
+        {
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NullLiteral>();
+            nodePtr->tokValue       = consume();
+            return nodeRef;
+        }
 
         case TokenId::CompilerFile:
         case TokenId::CompilerModule:
@@ -53,16 +70,16 @@ AstNodeRef Parser::parseLiteral()
         case TokenId::CompilerBackend:
         case TokenId::CompilerScopeName:
         case TokenId::CompilerCurLocation:
-            literal = ast_->makeNode<AstNodeId::CompilerLiteral>();
-            break;
+        {
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerLiteral>();
+            nodePtr->tokValue       = consume();
+            return nodeRef;
+        }
 
         default:
             raiseError(DiagnosticId::parser_err_unexpected_token, ref());
             return AstNodeRef::invalid();
     }
-
-    literal.second->tokValue = consume();
-    return literal.first;
 }
 
 AstNodeRef Parser::parseLiteralExpression()

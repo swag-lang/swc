@@ -41,10 +41,12 @@ struct AstCompoundT : AstCompound
     }
 };
 
-struct AstInternalCallZeroBase : AstNode
+template<AstNodeId I>
+struct AstInternalCallZeroT : AstNode
 {
-    explicit AstInternalCallZeroBase(AstNodeId nodeId) :
-        AstNode(nodeId)
+    static constexpr auto ID = I;
+    AstInternalCallZeroT() :
+        AstNode(I)
     {
     }
 
@@ -52,19 +54,11 @@ struct AstInternalCallZeroBase : AstNode
 };
 
 template<AstNodeId I>
-struct AstInternalCallZeroT : AstInternalCallZeroBase
+struct AstInternalCallUnaryT : AstNode
 {
     static constexpr auto ID = I;
-    AstInternalCallZeroT() :
-        AstInternalCallZeroBase(I)
-    {
-    }
-};
-
-struct AstInternalCallUnaryBase : AstNode
-{
-    explicit AstInternalCallUnaryBase(AstNodeId nodeId) :
-        AstNode(nodeId)
+    AstInternalCallUnaryT() :
+        AstNode(I)
     {
     }
 
@@ -78,19 +72,11 @@ struct AstInternalCallUnaryBase : AstNode
 };
 
 template<AstNodeId I>
-struct AstInternalCallUnaryT : AstInternalCallUnaryBase
+struct AstInternalCallBinaryT : AstNode
 {
     static constexpr auto ID = I;
-    AstInternalCallUnaryT() :
-        AstInternalCallUnaryBase(I)
-    {
-    }
-};
-
-struct AstInternalCallBinaryBase : AstNode
-{
-    explicit AstInternalCallBinaryBase(AstNodeId nodeId) :
-        AstNode(nodeId)
+    AstInternalCallBinaryT() :
+        AstNode(I)
     {
     }
 
@@ -105,19 +91,11 @@ struct AstInternalCallBinaryBase : AstNode
 };
 
 template<AstNodeId I>
-struct AstInternalCallBinaryT : AstInternalCallBinaryBase
+struct AstInternalCallTernaryT : AstNode
 {
     static constexpr auto ID = I;
-    AstInternalCallBinaryT() :
-        AstInternalCallBinaryBase(I)
-    {
-    }
-};
-
-struct AstInternalCallTernaryBase : AstNode
-{
-    explicit AstInternalCallTernaryBase(AstNodeId nodeId) :
-        AstNode(nodeId)
+    AstInternalCallTernaryT() :
+        AstNode(I)
     {
     }
 
@@ -129,16 +107,6 @@ struct AstInternalCallTernaryBase : AstNode
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
         AstNode::collectChildren(out, {nodeArg1, nodeArg2, nodeArg3});
-    }
-};
-
-template<AstNodeId I>
-struct AstInternalCallTernaryT : AstInternalCallTernaryBase
-{
-    static constexpr auto ID = I;
-    AstInternalCallTernaryT() :
-        AstInternalCallTernaryBase(I)
-    {
     }
 };
 
@@ -170,10 +138,12 @@ struct AstLambdaExprT : AstLambdaExpr
     }
 };
 
-struct AstBinaryBase : AstNode
+template<AstNodeId I>
+struct AstBinaryT : AstNode
 {
-    explicit AstBinaryBase(AstNodeId nodeId) :
-        AstNode(nodeId)
+    static constexpr auto ID = I;
+    AstBinaryT() :
+        AstNode(I)
     {
     }
 
@@ -188,33 +158,15 @@ struct AstBinaryBase : AstNode
 };
 
 template<AstNodeId I>
-struct AstBinaryT : AstBinaryBase
+struct AstLiteralT : AstNode
 {
     static constexpr auto ID = I;
-    AstBinaryT() :
-        AstBinaryBase(I)
-    {
-    }
-};
-
-struct AstLiteralBase : AstNode
-{
-    explicit AstLiteralBase(AstNodeId nodeId) :
-        AstNode(nodeId)
+    AstLiteralT() :
+        AstNode(I)
     {
     }
 
     TokenRef tokValue;
-};
-
-template<AstNodeId I>
-struct AstLiteralT : AstLiteralBase
-{
-    static constexpr auto ID = I;
-    AstLiteralT() :
-        AstLiteralBase(I)
-    {
-    }
 };
 
 struct AstAggregateDecl : AstNode
@@ -298,10 +250,12 @@ struct AstIfBaseT : AstIfBase
     }
 };
 
-struct AstIntrinsicInitDropCopyMove : AstNode
+template<AstNodeId I>
+struct AstIntrinsicInitDropCopyMoveT : AstNode
 {
-    explicit AstIntrinsicInitDropCopyMove(AstNodeId nodeId) :
-        AstNode(nodeId)
+    static constexpr auto ID = I;
+    AstIntrinsicInitDropCopyMoveT() :
+        AstNode(I)
     {
     }
 
@@ -311,16 +265,6 @@ struct AstIntrinsicInitDropCopyMove : AstNode
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
         AstNode::collectChildren(out, {nodeWhat, nodeCount});
-    }
-};
-
-template<AstNodeId I>
-struct AstIntrinsicInitDropCopyMoveT : AstIntrinsicInitDropCopyMove
-{
-    static constexpr auto ID = I;
-    AstIntrinsicInitDropCopyMoveT() :
-        AstIntrinsicInitDropCopyMove(I)
-    {
     }
 };
 
@@ -1289,10 +1233,12 @@ struct AstGenericParamList : AstCompoundT<AstNodeId::GenericParamList>
 {
 };
 
-struct AstGenericParamBase : AstNode
+template<AstNodeId I>
+struct AstGenericParamT : AstNode
 {
-    explicit AstGenericParamBase(AstNodeId nodeId) :
-        AstNode(nodeId)
+    static constexpr auto ID = I;
+    AstGenericParamT() :
+        AstNode(I)
     {
     }
 
@@ -1305,22 +1251,13 @@ struct AstGenericParamBase : AstNode
     }
 };
 
-template<AstNodeId Id>
-struct AstGenericParamT : AstGenericParamBase
-{
-    static constexpr auto ID = Id;
-    AstGenericParamT() :
-        AstGenericParamBase(Id)
-    {
-    }
-};
-
 struct AstGenericValueParam : AstGenericParamT<AstNodeId::GenericValueParam>
 {
     AstNodeRef nodeType;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
+        // Note: same behavior as before (does NOT collect nodeAssign)
         AstNode::collectChildren(out, {nodeType});
     }
 };
@@ -1499,7 +1436,7 @@ struct AstIntrinsicInit : AstIntrinsicInitDropCopyMoveT<AstNodeId::IntrinsicInit
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
-        AstIntrinsicInitDropCopyMove::collectChildren(out, ast);
+        AstIntrinsicInitDropCopyMoveT::collectChildren(out, ast);
         AstNode::collectChildren(out, ast, spanArgs);
     }
 };

@@ -518,7 +518,7 @@ AstNodeRef Parser::parseFile()
 
 AstNodeRef Parser::parseNamespace()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Namespace>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamespaceDecl>();
     consume();
     nodePtr->nodeName = parseQualifiedIdentifier();
     if (nodePtr->nodeName.isInvalid())

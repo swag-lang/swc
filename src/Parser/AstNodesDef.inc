@@ -46,7 +46,7 @@ struct AstImplFor : AstCompoundT<AstNodeId::ImplFor>
     }
 };
 
-struct AstNamespace : AstCompoundT<AstNodeId::Namespace>
+struct AstNamespaceDecl : AstCompoundT<AstNodeId::NamespaceDecl>
 {
     AstNodeRef nodeName;
 

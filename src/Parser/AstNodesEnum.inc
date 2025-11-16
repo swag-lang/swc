@@ -2,7 +2,7 @@
 SWC_NODE_DEF(Invalid)
 
 // -----------------------------------------------------------------------------
-//  Program & Module Structure
+//  Root, Files & Module / Namespace Structure
 // -----------------------------------------------------------------------------
 SWC_NODE_DEF(File)
 SWC_NODE_DEF(TopLevelBlock)
@@ -11,47 +11,18 @@ SWC_NODE_DEF(DependenciesBlock)
 SWC_NODE_DEF(NamespaceDecl)
 SWC_NODE_DEF(UsingNamespaceStmt)
 SWC_NODE_DEF(UsingDecl)
-SWC_NODE_DEF(UsingVarDecl)
 SWC_NODE_DEF(AliasStmt)
 SWC_NODE_DEF(AccessModifier)
-SWC_NODE_DEF(ConstraintBlock)
-SWC_NODE_DEF(ConstraintExpr)
-SWC_NODE_DEF(InterfaceDecl)
-SWC_NODE_DEF(InterfaceBody)
+SWC_NODE_DEF(ScopeResolution)
 
 // -----------------------------------------------------------------------------
-//  Declarations
+//  Identifiers & Name Resolution
 // -----------------------------------------------------------------------------
-
-// Structs & Unions
-SWC_NODE_DEF(AggregateBody)
-SWC_NODE_DEF(StructDecl)
-SWC_NODE_DEF(UnionDecl)
-SWC_NODE_DEF(AnonymousStructDecl)
-SWC_NODE_DEF(AnonymousUnionDecl)
-
-// Enums
-SWC_NODE_DEF(EnumDecl)
-SWC_NODE_DEF(EnumBody)
-SWC_NODE_DEF(EnumValue)
-SWC_NODE_DEF(EnumUse)
-SWC_NODE_DEF(ImplEnum)
-
-// Implementations
-SWC_NODE_DEF(Impl)
-SWC_NODE_DEF(ImplFor)
-
-// Functions
-SWC_NODE_DEF(AttrDecl)
-SWC_NODE_DEF(FunctionDecl)
-SWC_NODE_DEF(FunctionBody)
-
-// Variables / Constants
-SWC_NODE_DEF(VarDecl)
-SWC_NODE_DEF(VarMultiNameDecl)
-SWC_NODE_DEF(VarMultiDecl)
-SWC_NODE_DEF(VarDecompositionDecl)
-SWC_NODE_DEF(Undefined)
+SWC_NODE_DEF(Identifier)
+SWC_NODE_DEF(PreQualifiedIdentifier)
+SWC_NODE_DEF(AncestorIdentifier)
+SWC_NODE_DEF(SuffixIdentifier)
+SWC_NODE_DEF(MultiSuffixIdentifier)
 
 // -----------------------------------------------------------------------------
 //  Types
@@ -72,18 +43,20 @@ SWC_NODE_DEF(VariadicType)
 SWC_NODE_DEF(TypedVariadicType)
 
 // -----------------------------------------------------------------------------
-//  Identifiers & Name Resolution
+//  Attributes & Constraints
 // -----------------------------------------------------------------------------
-SWC_NODE_DEF(Identifier)
-SWC_NODE_DEF(PreQualifiedIdentifier)
-SWC_NODE_DEF(AncestorIdentifier)
-SWC_NODE_DEF(SuffixIdentifier)
-SWC_NODE_DEF(MultiSuffixIdentifier)
-SWC_NODE_DEF(ScopeResolution)
+SWC_NODE_DEF(AttrDecl)
+SWC_NODE_DEF(Attribute)
+SWC_NODE_DEF(AttributeList)
+SWC_NODE_DEF(ConstraintBlock)
+SWC_NODE_DEF(ConstraintExpr)
 
 // -----------------------------------------------------------------------------
-//  Parameters, Arguments & Generics
+//  Generics, Parameters & Arguments
 // -----------------------------------------------------------------------------
+SWC_NODE_DEF(GenericParamList)
+SWC_NODE_DEF(GenericTypeParam)
+SWC_NODE_DEF(GenericValueParam)
 SWC_NODE_DEF(FunctionParamList)
 SWC_NODE_DEF(FuncParamMe)
 SWC_NODE_DEF(LambdaTypeParam)
@@ -91,9 +64,53 @@ SWC_NODE_DEF(NamedArgList)
 SWC_NODE_DEF(NamedArgument)
 SWC_NODE_DEF(UnnamedArgList)
 SWC_NODE_DEF(UnnamedArgument)
-SWC_NODE_DEF(GenericParamList)
-SWC_NODE_DEF(GenericTypeParam)
-SWC_NODE_DEF(GenericValueParam)
+
+// -----------------------------------------------------------------------------
+//  Type & Trait Declarations
+// -----------------------------------------------------------------------------
+
+// Interfaces
+SWC_NODE_DEF(InterfaceDecl)
+SWC_NODE_DEF(InterfaceBody)
+
+// Structs & Unions
+SWC_NODE_DEF(AggregateBody)
+SWC_NODE_DEF(StructDecl)
+SWC_NODE_DEF(UnionDecl)
+SWC_NODE_DEF(AnonymousStructDecl)
+SWC_NODE_DEF(AnonymousUnionDecl)
+SWC_NODE_DEF(UsingMemberDecl)
+
+// Enums
+SWC_NODE_DEF(EnumDecl)
+SWC_NODE_DEF(EnumBody)
+SWC_NODE_DEF(EnumValue)
+SWC_NODE_DEF(ImplEnum)
+SWC_NODE_DEF(UsingEnumDecl)
+
+// Implementations
+SWC_NODE_DEF(Impl)
+SWC_NODE_DEF(ImplFor)
+
+// -----------------------------------------------------------------------------
+//  Functions & Callables
+// -----------------------------------------------------------------------------
+SWC_NODE_DEF(FunctionDecl)
+SWC_NODE_DEF(FunctionBody)
+SWC_NODE_DEF(FunctionExpr)
+SWC_NODE_DEF(ClosureExpr)
+SWC_NODE_DEF(ClosureCapture)
+
+// -----------------------------------------------------------------------------
+//  Variables / Bindings
+// -----------------------------------------------------------------------------
+SWC_NODE_DEF(VarDecl)
+SWC_NODE_DEF(VarMultiNameDecl)
+SWC_NODE_DEF(VarMultiDecl)
+SWC_NODE_DEF(VarDecompositionDecl)
+SWC_NODE_DEF(IfVarDecl)
+SWC_NODE_DEF(WithVarDecl)
+SWC_NODE_DEF(Undefined)
 
 // -----------------------------------------------------------------------------
 //  Expressions
@@ -104,7 +121,7 @@ SWC_NODE_DEF(ParenExpr)
 SWC_NODE_DEF(InitializerExpr)
 SWC_NODE_DEF(RangeExpr)
 
-// Unary, Binary, Logical, Relational
+// Unary, Binary, Logical, Relational & Conditional
 SWC_NODE_DEF(UnaryExpr)
 SWC_NODE_DEF(BinaryExpr)
 SWC_NODE_DEF(LogicalExpr)
@@ -112,25 +129,25 @@ SWC_NODE_DEF(RelationalExpr)
 SWC_NODE_DEF(BinaryConditionalExpr)
 SWC_NODE_DEF(ConditionalExpr)
 
-// Postfix
+// Postfix, Indexing & Aggregate Init
 SWC_NODE_DEF(IndexExpr)
 SWC_NODE_DEF(MultiIndexExpr)
 SWC_NODE_DEF(StructInitializerList)
 
-// Function Calls & Lambdas
+// Function Calls & Alias Calls
 SWC_NODE_DEF(Call)
 SWC_NODE_DEF(AliasCall)
-SWC_NODE_DEF(FunctionExpr)
-SWC_NODE_DEF(ClosureExpr)
 SWC_NODE_DEF(Discard)
 
-// -----------------------------------------------------------------------------
-//  Type Casting & Checks
-// -----------------------------------------------------------------------------
+// Type Casting & Type Checks
 SWC_NODE_DEF(ExplicitCastExpr)
 SWC_NODE_DEF(AutoCastExpr)
 SWC_NODE_DEF(AsCastExpr)
 SWC_NODE_DEF(IsTypeExpr)
+
+// Exception Expressions
+SWC_NODE_DEF(TryCatchExpr)
+SWC_NODE_DEF(ThrowExpr)
 
 // -----------------------------------------------------------------------------
 //  Literals
@@ -147,12 +164,6 @@ SWC_NODE_DEF(CompilerLiteral)
 SWC_NODE_DEF(SuffixLiteral)
 
 // -----------------------------------------------------------------------------
-//  Attributes
-// -----------------------------------------------------------------------------
-SWC_NODE_DEF(Attribute)
-SWC_NODE_DEF(AttributeList)
-
-// -----------------------------------------------------------------------------
 //  Compiler Directives & Meta
 // -----------------------------------------------------------------------------
 SWC_NODE_DEF(CompilerExpr)
@@ -167,9 +178,23 @@ SWC_NODE_DEF(CompilerScope)
 SWC_NODE_DEF(CompilerMacro)
 SWC_NODE_DEF(CompilerInject)
 
+// Compiler Conditionals
+SWC_NODE_DEF(CompilerIf)
+SWC_NODE_DEF(CompilerElseIf)
+SWC_NODE_DEF(CompilerElse)
+
 // -----------------------------------------------------------------------------
-//  Intrinsics/Compiler calls
+//  Intrinsics / Internal Calls
 // -----------------------------------------------------------------------------
+
+// Low-level intrinsic values & hooks
+SWC_NODE_DEF(IntrinsicValue)
+SWC_NODE_DEF(IntrinsicInit)
+SWC_NODE_DEF(IntrinsicDrop)
+SWC_NODE_DEF(IntrinsicPostCopy)
+SWC_NODE_DEF(IntrinsicPostMove)
+
+// Internal compiler calls
 SWC_NODE_DEF(InternalCallZero)
 SWC_NODE_DEF(InternalCallUnary)
 SWC_NODE_DEF(InternalCallBinary)
@@ -177,19 +202,10 @@ SWC_NODE_DEF(InternalCallTernary)
 SWC_NODE_DEF(InternalCallVariadic)
 
 // -----------------------------------------------------------------------------
-//  Intrinsics
-// -----------------------------------------------------------------------------
-SWC_NODE_DEF(IntrinsicValue)
-SWC_NODE_DEF(IntrinsicInit)
-SWC_NODE_DEF(IntrinsicDrop)
-SWC_NODE_DEF(IntrinsicPostCopy)
-SWC_NODE_DEF(IntrinsicPostMove)
-
-// -----------------------------------------------------------------------------
-//  Control Flow & Statements
+//  Statements & Control Flow
 // -----------------------------------------------------------------------------
 
-// Affect
+// Assignment / Affect
 SWC_NODE_DEF(AffectStmt)
 SWC_NODE_DEF(MultiAffect)
 
@@ -197,7 +213,6 @@ SWC_NODE_DEF(MultiAffect)
 SWC_NODE_DEF(IfStmt)
 SWC_NODE_DEF(ElseIfStmt)
 SWC_NODE_DEF(ElseStmt)
-SWC_NODE_DEF(IfVarDecl)
 
 // Loops
 SWC_NODE_DEF(WhileStmt)
@@ -210,20 +225,13 @@ SWC_NODE_DEF(ForInfiniteStmt)
 SWC_NODE_DEF(SwitchStmt)
 SWC_NODE_DEF(SwitchCaseStmt)
 
-// Compiler Conditionals
-SWC_NODE_DEF(CompilerIf)
-SWC_NODE_DEF(CompilerElseIf)
-SWC_NODE_DEF(CompilerElse)
-
-// Exception Handling
-SWC_NODE_DEF(TryCatchExpr)
+// Exceptions (statement forms)
 SWC_NODE_DEF(TryCatchStmt)
-SWC_NODE_DEF(ThrowExpr)
 
 // Returns
 SWC_NODE_DEF(ReturnStmt)
 
-// Jumps & Flow
+// Jumps & Flow Control
 SWC_NODE_DEF(BreakStmt)
 SWC_NODE_DEF(ScopedBreakStmt)
 SWC_NODE_DEF(ContinueStmt)
@@ -233,7 +241,3 @@ SWC_NODE_DEF(UnreachableStmt)
 // Defer / With
 SWC_NODE_DEF(DeferStmt)
 SWC_NODE_DEF(WithStmt)
-SWC_NODE_DEF(WithVarDecl)
-
-// Closures
-SWC_NODE_DEF(ClosureCapture)

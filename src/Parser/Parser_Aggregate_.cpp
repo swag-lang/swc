@@ -99,7 +99,7 @@ AstNodeRef Parser::parseAggregateValue()
 
         case TokenId::KwdUsing:
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingVarDecl>();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingMemberDecl>();
             consume();
             nodePtr->nodeVar = parseVarDecl();
             return nodeRef;

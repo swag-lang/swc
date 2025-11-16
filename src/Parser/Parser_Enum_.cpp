@@ -36,7 +36,7 @@ AstNodeRef Parser::parseEnumValue()
 
         case TokenId::KwdUsing:
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumUse>();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingEnumDecl>();
             consume();
             nodePtr->nodeName = parseQualifiedIdentifier();
             return nodeRef;

@@ -655,7 +655,7 @@ struct AstEnumValue : AstNodeT<AstNodeId::EnumValue>
     }
 };
 
-struct AstEnumUse : AstNodeT<AstNodeId::EnumUse>
+struct AstUsingEnumDecl : AstNodeT<AstNodeId::UsingEnumDecl>
 {
     AstNodeRef nodeName;
 
@@ -1005,7 +1005,7 @@ struct AstUndefined : AstNodeT<AstNodeId::Undefined>
 {
 };
 
-struct AstUsingVarDecl : AstNodeT<AstNodeId::UsingVarDecl>
+struct AstUsingMemberDecl : AstNodeT<AstNodeId::UsingMemberDecl>
 {
     AstNodeRef nodeVar;
 

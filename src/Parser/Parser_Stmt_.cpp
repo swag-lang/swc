@@ -508,7 +508,7 @@ AstNodeRef Parser::parseFile()
     while (is(TokenId::CompilerGlobal))
     {
         auto global = parseCompilerGlobal();
-        if (ast_->hasFlag(ParserOutFlagsE::GlobalSkip))
+        if (ast_->hasFlag(AstFlagsE::GlobalSkip))
         {
             nodePtr->spanGlobals.setInvalid();
             nodePtr->spanChildren.setInvalid();

@@ -9,21 +9,21 @@ SWC_BEGIN_NAMESPACE()
 
 class LexerOutput;
 
-enum class ParserOutFlagsE : uint32_t
+enum class AstFlagsE : uint32_t
 {
     Zero        = 0,
     HasErrors   = 1 << 0,
     HasWarnings = 1 << 1,
     GlobalSkip  = 1 << 2,
 };
-using ParserOutFlags = EnumFlags<ParserOutFlagsE>;
+using AstFlags = EnumFlags<AstFlagsE>;
 
 class Ast
 {
-    RefStore<>     store_;
-    AstNodeRef     root_ = AstNodeRef::invalid();
-    LexerOutput    lexOut_;
-    ParserOutFlags flags_;
+    RefStore<>  store_;
+    AstNodeRef  root_ = AstNodeRef::invalid();
+    LexerOutput lexOut_;
+    AstFlags    flags_;
 
 public:
     static constexpr const AstNodeIdInfo& nodeIdInfos(AstNodeId id) { return AST_NODE_ID_INFOS[static_cast<size_t>(id)]; }
@@ -33,8 +33,8 @@ public:
     void                                  setRoot(AstNodeRef root) { root_ = root; }
     LexerOutput&                          lexOut() { return lexOut_; }
     const LexerOutput&                    lexOut() const { return lexOut_; }
-    bool                                  hasFlag(ParserOutFlags flag) const { return flags_.has(flag); }
-    void                                  addFlag(ParserOutFlags flag) { flags_.add(flag); }
+    bool                                  hasFlag(AstFlags flag) const { return flags_.has(flag); }
+    void                                  addFlag(AstFlags flag) { flags_.add(flag); }
 
     // Get a node depending on its ref
     template<AstNodeId ID>

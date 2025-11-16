@@ -26,7 +26,7 @@ AstNodeRef Parser::parseUsing()
 {
     if (nextIs(TokenId::KwdNamespace))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingNamespace>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingNamespaceStmt>();
         consume();
         nodePtr->nodeName = parseNamespace();
         return nodeRef;

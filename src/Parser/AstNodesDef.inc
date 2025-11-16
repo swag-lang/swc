@@ -57,7 +57,7 @@ struct AstNamespaceDecl : AstCompoundT<AstNodeId::NamespaceDecl>
     }
 };
 
-struct AstUsingNamespace : AstNodeT<AstNodeId::UsingNamespace>
+struct AstUsingNamespaceStmt : AstNodeT<AstNodeId::UsingNamespaceStmt>
 {
     AstNodeRef nodeName;
 

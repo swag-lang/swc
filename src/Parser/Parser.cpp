@@ -291,15 +291,14 @@ void Parser::expectEndStatement()
     skipTo({TokenId::SymRightCurly, TokenId::SymRightParen, TokenId::SymRightBracket, TokenId::SymSemiColon}, SkipUntilFlagsE::EolBefore);
 }
 
-void Parser::parse(TaskContext& ctx, ParserOutput& out)
+void Parser::parse(TaskContext& ctx, Ast& ast)
 {
 #if SWC_HAS_STATS
     Timer time(&Stats::get().timeParser);
 #endif
 
-    out_ = &out;
-    ast_ = &out.ast();
     ctx_ = &ctx;
+    ast_ = &ast;
 
     firstToken_ = &ast_->lexOut().tokens().front();
     lastToken_  = &ast_->lexOut().tokens().back();

@@ -24,7 +24,7 @@ namespace
             return;
 
         Parser parser;
-        parser.parse(ctx, file->parserOut());
+        parser.parse(ctx, file->ast());
     }
 }
 

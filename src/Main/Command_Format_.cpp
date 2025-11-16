@@ -22,10 +22,10 @@ namespace
         lexer.tokenize(ctx, file->lexOut(), LexerFlagsE::EmitTrivia);
 
         Parser parser;
-        parser.parse(ctx, file->parserOut());
+        parser.parse(ctx, file->ast());
 
         AstVisit astVisit;
-        astVisit.start(file->parserOut().ast());
+        astVisit.start(file->ast());
         astVisit.run();
     }
 }

@@ -337,7 +337,7 @@ struct AstIdentifier : AstNodeT<AstNodeId::Identifier>
     TokenRef tokName;
 };
 
-struct AstPreQualifiedIdentifier : AstNodeT<AstNodeId::PreQualifiedIdentifier>
+struct AstScopedIdentifier : AstNodeT<AstNodeId::ScopedIdentifier>
 {
     AstNodeRef nodeIdent;
 
@@ -358,7 +358,7 @@ struct AstAncestorIdentifier : AstNodeT<AstNodeId::AncestorIdentifier>
     }
 };
 
-struct AstSuffixIdentifier : AstNodeT<AstNodeId::SuffixIdentifier>
+struct AstIdentifierSuffix : AstNodeT<AstNodeId::IdentifierSuffix>
 {
     TokenRef   tokName;
     AstNodeRef nodeSuffix;
@@ -369,7 +369,7 @@ struct AstSuffixIdentifier : AstNodeT<AstNodeId::SuffixIdentifier>
     }
 };
 
-struct AstSuffixListIdentifier : AstCompoundT<AstNodeId::SuffixListIdentifier>
+struct AstIdentifierSuffixList : AstCompoundT<AstNodeId::IdentifierSuffixList>
 {
     TokenRef tokName;
 };

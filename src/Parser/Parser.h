@@ -188,8 +188,8 @@ class Parser
     AstNodeRef parseNamespace();
     AstNodeRef parseParenExpr();
     AstNodeRef parsePostFixExpression();
-    AstNodeRef parseSuffixIdentifierValue();
-    AstNodeRef parsePreQualifiedIdentifier();
+    AstNodeRef parseIdentifierSuffixValue();
+    AstNodeRef parseScopedIdentifier();
     AstNodeRef parsePrefixExpr();
     AstNodeRef parsePrimaryExpression();
     AstNodeRef parseQualifiedIdentifier();

@@ -19,10 +19,10 @@ SWC_NODE_DEF(ScopeResolution)
 //  Identifiers & Name Resolution
 // -----------------------------------------------------------------------------
 SWC_NODE_DEF(Identifier)
-SWC_NODE_DEF(PreQualifiedIdentifier)
+SWC_NODE_DEF(ScopedIdentifier)
 SWC_NODE_DEF(AncestorIdentifier)
-SWC_NODE_DEF(SuffixIdentifier)
-SWC_NODE_DEF(SuffixListIdentifier)
+SWC_NODE_DEF(IdentifierSuffix)
+SWC_NODE_DEF(IdentifierSuffixList)
 
 // -----------------------------------------------------------------------------
 //  Types

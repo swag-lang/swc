@@ -182,7 +182,7 @@ AstNodeRef Parser::parseRangeExpression()
     return nodeExpr1;
 }
 
-AstNodeRef Parser::parseSuffixIdentifierValue()
+AstNodeRef Parser::parseIdentifierSuffixValue()
 {
     if (isAny(TokenId::SymLeftCurly, TokenId::KwdFunc, TokenId::KwdMtd))
         return parseType();
@@ -233,15 +233,15 @@ AstNodeRef Parser::parseIdentifier()
         consume();
         if (is(TokenId::SymLeftParen))
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SuffixListIdentifier>();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IdentifierSuffixList>();
             nodePtr->tokName        = tokName;
-            nodePtr->spanChildren   = parseCompoundContent(AstNodeId::SuffixListIdentifier, TokenId::SymLeftParen);
+            nodePtr->spanChildren   = parseCompoundContent(AstNodeId::IdentifierSuffixList, TokenId::SymLeftParen);
             return nodeRef;
         }
 
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SuffixIdentifier>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IdentifierSuffix>();
         nodePtr->tokName        = tokName;
-        nodePtr->nodeSuffix     = parseSuffixIdentifierValue();
+        nodePtr->nodeSuffix     = parseIdentifierSuffixValue();
         return nodeRef;
     }
 
@@ -390,9 +390,9 @@ AstNodeRef Parser::parsePostFixExpression()
     return nodeRef;
 }
 
-AstNodeRef Parser::parsePreQualifiedIdentifier()
+AstNodeRef Parser::parseScopedIdentifier()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::PreQualifiedIdentifier>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ScopedIdentifier>();
     consumeAssert(TokenId::SymDot);
     nodePtr->nodeIdent = parseQualifiedIdentifier();
     return nodeRef;
@@ -403,7 +403,7 @@ AstNodeRef Parser::parsePrimaryExpression()
     switch (id())
     {
         case TokenId::SymDot:
-            return parsePreQualifiedIdentifier();
+            return parseScopedIdentifier();
 
         case TokenId::CompilerUp:
             return parseCompilerUp();

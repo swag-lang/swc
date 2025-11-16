@@ -20,8 +20,8 @@ public:
     // Both callbacks are optional; if unset, they're no-ops.
     struct Callbacks
     {
-        std::function<Action(const AstNode* node)> pre  = {};
-        std::function<Action(const AstNode* node)> post = {};
+        std::function<Action(const AstVisit* visit, const AstNode* node)> pre  = {};
+        std::function<Action(const AstVisit* visit, const AstNode* node)> post = {};
     };
 
     explicit AstVisit(const Callbacks& cb = {}) :
@@ -32,12 +32,7 @@ public:
     void start(const Ast& ast);
     bool step();
     void run();
-
-    void reset(const LexerOutput* initialLex = nullptr)
-    {
-        currentLex_ = initialLex;
-        stack_.clear();
-    }
+    void reset(const LexerOutput* initialLex = nullptr);
 
 private:
     Callbacks  cb_{};
@@ -45,27 +40,21 @@ private:
 
     struct Frame
     {
-        // Snapshot of the SourceFile* when this frame was created
-        const LexerOutput* sourceAtPush = nullptr;
-
-        // Store a stable reference
-        AstNodeRef              nodeRef = AstNodeRef::invalid();
-        SmallVector<AstNodeRef> children;
-        size_t                  nextChildIx = 0;
-
         enum class Stage : uint8_t
         {
             Pre,
             Children,
             Post
         };
-        Stage stage = Stage::Pre;
+
+        const LexerOutput*      sourceAtPush = nullptr;
+        AstNodeRef              nodeRef      = AstNodeRef::invalid();
+        SmallVector<AstNodeRef> children;
+        size_t                  nextChildIx = 0;
+        Stage                   stage       = Stage::Pre;
     };
 
-    // Active file scope used to resolve AstNodeRef / SpanRef
-    const LexerOutput* currentLex_ = nullptr;
-
-    // The explicit traversal stack (top is back())
+    const LexerOutput*     currentLex_ = nullptr;
     SmallVector<Frame, 64> stack_;
 
     void           collectChildren(SmallVector<AstNodeRef>& out, const AstNode* node) const;

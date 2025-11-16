@@ -47,7 +47,7 @@ bool AstVisit::step()
             // Pre-order callback
             if (cb_.pre)
             {
-                const Action a = cb_.pre(node);
+                const Action a = cb_.pre(this, node);
                 if (a == Action::Stop)
                 {
                     stack_.clear();
@@ -101,7 +101,7 @@ bool AstVisit::step()
             // Post-order callback
             if (cb_.post)
             {
-                const Action a = cb_.post(node);
+                const Action a = cb_.post(this, node);
                 if (a == Action::Stop)
                 {
                     stack_.clear();
@@ -122,6 +122,12 @@ void AstVisit::run()
     while (step())
     {
     }
+}
+
+void AstVisit::reset(const LexerOutput* initialLex)
+{
+    currentLex_ = initialLex;
+    stack_.clear();    
 }
 
 void AstVisit::collectChildren(SmallVector<AstNodeRef>& out, const AstNode* node) const

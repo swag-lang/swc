@@ -137,7 +137,7 @@ SWC_NODE_DEF(StructInitializerList)
 // Function Calls & Alias Calls
 SWC_NODE_DEF(Call)
 SWC_NODE_DEF(AliasCall)
-SWC_NODE_DEF(Discard)
+SWC_NODE_DEF(DiscardExpr)
 
 // Type Casting & Type Checks
 SWC_NODE_DEF(ExplicitCastExpr)

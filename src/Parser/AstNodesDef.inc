@@ -1236,7 +1236,7 @@ struct AstThrowExpr : AstNodeT<AstNodeId::ThrowExpr>
     }
 };
 
-struct AstDiscard : AstNodeT<AstNodeId::Discard>
+struct AstDiscardExpr : AstNodeT<AstNodeId::DiscardExpr>
 {
     AstNodeRef nodeExpr;
 

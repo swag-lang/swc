@@ -401,7 +401,7 @@ AstNodeRef Parser::parseTryCatch()
 
 AstNodeRef Parser::parseDiscard()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Discard>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::DiscardExpr>();
     consumeAssert(TokenId::KwdDiscard);
     nodePtr->nodeExpr = parseExpression();
     return nodeRef;

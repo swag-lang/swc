@@ -9,16 +9,6 @@ SWC_BEGIN_NAMESPACE()
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 
-template<AstNodeId I>
-struct AstNodeT : AstNode
-{
-    static constexpr auto ID = I;
-    AstNodeT() :
-        AstNode(I)
-    {
-    }
-};
-
 struct AstCompound : AstNode
 {
     explicit AstCompound(AstNodeId nodeId) :

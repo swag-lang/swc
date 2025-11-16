@@ -66,6 +66,16 @@ private:
     Flags flags_;
 };
 
+template<AstNodeId I>
+struct AstNodeT : AstNode
+{
+    static constexpr auto ID = I;
+    AstNodeT() :
+        AstNode(I)
+    {
+    }
+};
+
 template<typename T>
 T* castAst(AstNode* node)
 {

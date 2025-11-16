@@ -161,16 +161,11 @@ SWC_NODE_DEF(AttributeList)
 // -----------------------------------------------------------------------------
 //  Compiler Directives & Meta
 // -----------------------------------------------------------------------------
-SWC_NODE_DEF(CompilerAssert)
-SWC_NODE_DEF(CompilerError)
-SWC_NODE_DEF(CompilerWarning)
-SWC_NODE_DEF(CompilerPrint)
 SWC_NODE_DEF(CompilerExpr)
 SWC_NODE_DEF(CompilerFunc)
 SWC_NODE_DEF(CompilerShortFunc)
 SWC_NODE_DEF(CompilerEmbeddedFunc)
 SWC_NODE_DEF(CompilerMessageFunc)
-SWC_NODE_DEF(CompilerCallUnary)
 SWC_NODE_DEF(CompilerTypeExpr)
 SWC_NODE_DEF(CompilerGlobal)
 SWC_NODE_DEF(CompilerImport)
@@ -179,13 +174,17 @@ SWC_NODE_DEF(CompilerMacro)
 SWC_NODE_DEF(CompilerInject)
 
 // -----------------------------------------------------------------------------
+//  Intrinsics/Compiler calls
+// -----------------------------------------------------------------------------
+SWC_NODE_DEF(InternalCallZero)
+SWC_NODE_DEF(InternalCallUnary)
+SWC_NODE_DEF(InternalCallBinary)
+SWC_NODE_DEF(InternalCallTernary)
+SWC_NODE_DEF(InternalCallVariadic)
+
+// -----------------------------------------------------------------------------
 //  Intrinsics
 // -----------------------------------------------------------------------------
-SWC_NODE_DEF(IntrinsicCallZero)
-SWC_NODE_DEF(IntrinsicCallUnary)
-SWC_NODE_DEF(IntrinsicCallBinary)
-SWC_NODE_DEF(IntrinsicCallTernary)
-SWC_NODE_DEF(IntrinsicCallVariadic)
 SWC_NODE_DEF(IntrinsicValue)
 SWC_NODE_DEF(IntrinsicInit)
 SWC_NODE_DEF(IntrinsicDrop)

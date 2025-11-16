@@ -21,51 +21,6 @@ struct AstCompoundT : AstNodeT<I>
 };
 
 template<AstNodeId I>
-struct AstInternalCallZeroT : AstNodeT<I>
-{
-    TokenRef tokName;
-};
-
-template<AstNodeId I>
-struct AstInternalCallUnaryT : AstNodeT<I>
-{
-    TokenRef   tokName;
-    AstNodeRef nodeArg1;
-
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
-    {
-        AstNode::collectChildren(out, {nodeArg1});
-    }
-};
-
-template<AstNodeId I>
-struct AstInternalCallBinaryT : AstNodeT<I>
-{
-    TokenRef   tokName;
-    AstNodeRef nodeArg1;
-    AstNodeRef nodeArg2;
-
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
-    {
-        AstNode::collectChildren(out, {nodeArg1, nodeArg2});
-    }
-};
-
-template<AstNodeId I>
-struct AstInternalCallTernaryT : AstNodeT<I>
-{
-    TokenRef   tokName;
-    AstNodeRef nodeArg1;
-    AstNodeRef nodeArg2;
-    AstNodeRef nodeArg3;
-
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
-    {
-        AstNode::collectChildren(out, {nodeArg1, nodeArg2, nodeArg3});
-    }
-};
-
-template<AstNodeId I>
 struct AstLambdaExprT : AstNodeT<I>
 {
     SpanRef    spanArgs;

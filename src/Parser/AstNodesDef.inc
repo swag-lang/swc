@@ -110,24 +110,50 @@ struct AstCompilerScope : AstNodeT<AstNodeId::CompilerScope>
     }
 };
 
-struct AstIntrinsicCallZero : AstInternalCallZeroT<AstNodeId::IntrinsicCallZero>
+struct AstInternalCallZero : AstNodeT<AstNodeId::InternalCallZero>
 {
+    TokenRef tokName;
 };
 
-struct AstIntrinsicCallUnary : AstInternalCallUnaryT<AstNodeId::IntrinsicCallUnary>
+struct AstInternalCallUnary : AstNodeT<AstNodeId::InternalCallUnary>
 {
+    TokenRef   tokName;
+    AstNodeRef nodeArg1;
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    {
+        AstNode::collectChildren(out, {nodeArg1});
+    }
 };
 
-struct AstIntrinsicCallBinary : AstInternalCallBinaryT<AstNodeId::IntrinsicCallBinary>
+struct AstInternalCallBinary : AstNodeT<AstNodeId::InternalCallBinary>
 {
+    TokenRef   tokName;
+    AstNodeRef nodeArg1;
+    AstNodeRef nodeArg2;
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    {
+        AstNode::collectChildren(out, {nodeArg1, nodeArg2});
+    }
 };
 
-struct AstIntrinsicCallTernary : AstInternalCallTernaryT<AstNodeId::IntrinsicCallTernary>
+struct AstInternalCallTernary : AstNodeT<AstNodeId::InternalCallTernary>
 {
+    TokenRef   tokName;
+    AstNodeRef nodeArg1;
+    AstNodeRef nodeArg2;
+    AstNodeRef nodeArg3;
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    {
+        AstNode::collectChildren(out, {nodeArg1, nodeArg2, nodeArg3});
+    }
 };
 
-struct AstCompilerCallUnary : AstInternalCallUnaryT<AstNodeId::CompilerCallUnary>
+struct AstInternalCallVariadic : AstCompoundT<AstNodeId::InternalCallVariadic>
 {
+    TokenRef tokName;
 };
 
 struct AstIntrinsicValue : AstNodeT<AstNodeId::IntrinsicValue>
@@ -249,22 +275,6 @@ struct AstClosureCapture : AstNodeT<AstNodeId::ClosureCapture>
     {
         AstNode::collectChildren(out, {nodeIdentifier});
     }
-};
-
-struct AstCompilerAssert : AstInternalCallUnaryT<AstNodeId::CompilerAssert>
-{
-};
-
-struct AstCompilerError : AstInternalCallUnaryT<AstNodeId::CompilerError>
-{
-};
-
-struct AstCompilerWarning : AstInternalCallUnaryT<AstNodeId::CompilerWarning>
-{
-};
-
-struct AstCompilerPrint : AstInternalCallUnaryT<AstNodeId::CompilerPrint>
-{
 };
 
 struct AstCompilerFunc : AstNodeT<AstNodeId::CompilerFunc>
@@ -1335,11 +1345,6 @@ struct AstRangeExpr : AstNodeT<AstNodeId::RangeExpr>
     {
         AstNode::collectChildren(out, {nodeExprDown, nodeExprUp});
     }
-};
-
-struct AstIntrinsicCallVariadic : AstCompoundT<AstNodeId::IntrinsicCallVariadic>
-{
-    TokenRef tokName;
 };
 
 struct AstAffectStmt : AstNodeT<AstNodeId::AffectStmt>

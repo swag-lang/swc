@@ -6,7 +6,7 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseCompilerCallUnary()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCallUnary>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InternalCallUnary>();
     nodePtr->tokName        = consume();
 
     const auto openRef = ref();
@@ -19,7 +19,7 @@ AstNodeRef Parser::parseCompilerCallUnary()
 
 AstNodeRef Parser::parseIntrinsicCallZero()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCallZero>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InternalCallZero>();
     nodePtr->tokName        = consume();
 
     const auto openRef = ref();
@@ -31,7 +31,7 @@ AstNodeRef Parser::parseIntrinsicCallZero()
 
 AstNodeRef Parser::parseIntrinsicCallUnary()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCallUnary>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InternalCallUnary>();
     nodePtr->tokName        = consume();
 
     const auto openRef = ref();
@@ -44,7 +44,7 @@ AstNodeRef Parser::parseIntrinsicCallUnary()
 
 AstNodeRef Parser::parseIntrinsicCallBinary()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCallBinary>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InternalCallBinary>();
     nodePtr->tokName        = consume();
 
     const auto openRef = ref();
@@ -62,7 +62,7 @@ AstNodeRef Parser::parseIntrinsicCallBinary()
 
 AstNodeRef Parser::parseIntrinsicCallTernary()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCallTernary>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InternalCallTernary>();
     nodePtr->tokName        = consume();
 
     const auto openRef = ref();
@@ -84,7 +84,7 @@ AstNodeRef Parser::parseIntrinsicCallTernary()
 
 AstNodeRef Parser::parseIntrinsicCallVariadic()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCallVariadic>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InternalCallVariadic>();
     nodePtr->tokName        = consume();
 
     const auto openRef = ref();

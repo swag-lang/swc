@@ -230,7 +230,7 @@ struct AstFuncParamMe : AstNodeT<AstNodeId::FuncParamMe>
     using Flags = EnumFlags<FlagsE>;
 };
 
-struct AstReturn : AstNodeT<AstNodeId::Return>
+struct AstReturnStmt : AstNodeT<AstNodeId::ReturnStmt>
 {
     AstNodeRef nodeExpr;
 
@@ -1021,7 +1021,7 @@ struct AstUsingVarDecl : AstNodeT<AstNodeId::UsingVarDecl>
     }
 };
 
-struct AstAlias : AstNodeT<AstNodeId::Alias>
+struct AstAliasStmt : AstNodeT<AstNodeId::AliasStmt>
 {
     TokenRef   tokName;
     AstNodeRef nodeExpr;

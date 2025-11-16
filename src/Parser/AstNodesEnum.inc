@@ -12,7 +12,7 @@ SWC_NODE_DEF(UsingNamespace)
 SWC_NODE_DEF(UsingDecl)
 SWC_NODE_DEF(UsingVarDecl)
 SWC_NODE_DEF(Dependencies)
-SWC_NODE_DEF(Alias)
+SWC_NODE_DEF(AliasStmt)
 SWC_NODE_DEF(AccessModifier)
 SWC_NODE_DEF(ConstraintBlock)
 SWC_NODE_DEF(ConstraintExpr)
@@ -221,7 +221,7 @@ SWC_NODE_DEF(TryCatchStmt)
 SWC_NODE_DEF(ThrowExpr)
 
 // Returns
-SWC_NODE_DEF(Return)
+SWC_NODE_DEF(ReturnStmt)
 
 // Jumps & Flow
 SWC_NODE_DEF(BreakStmt)

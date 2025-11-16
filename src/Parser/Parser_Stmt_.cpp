@@ -57,7 +57,7 @@ AstNodeRef Parser::parseConstraint()
 
 AstNodeRef Parser::parseAlias()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Alias>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AliasStmt>();
     consume();
     nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
     expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_fam);
@@ -74,7 +74,7 @@ AstNodeRef Parser::parseAlias()
 
 AstNodeRef Parser::parseReturn()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Return>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ReturnStmt>();
     consume();
     if (is(TokenId::SymSemiColon) || tok().startsLine())
         nodePtr->nodeExpr.setInvalid();

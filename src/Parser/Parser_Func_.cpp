@@ -280,15 +280,15 @@ AstNodeRef Parser::parseFunctionParam()
 
     if (consumeIf(TokenId::KwdConst).isValid())
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FuncParamMe>();
-        nodePtr->addFlag(AstFuncParamMe::FlagsE::Const);
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionParamMe>();
+        nodePtr->addFlag(AstFunctionParamMe::FlagsE::Const);
         expectAndConsume(TokenId::KwdMe, DiagnosticId::parser_err_expected_token_before);
         return nodeRef;
     }
 
     if (consumeIf(TokenId::KwdMe).isValid())
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FuncParamMe>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionParamMe>();
         return nodeRef;
     }
 

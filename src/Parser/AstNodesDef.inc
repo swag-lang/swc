@@ -220,7 +220,7 @@ struct AstAttrDecl : AstNodeT<AstNodeId::AttrDecl>
     }
 };
 
-struct AstFuncParamMe : AstNodeT<AstNodeId::FuncParamMe>
+struct AstFunctionParamMe : AstNodeT<AstNodeId::FunctionParamMe>
 {
     enum class FlagsE : Flags
     {

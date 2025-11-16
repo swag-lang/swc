@@ -116,7 +116,14 @@ AstNodeRef Parser::parseAttributeValue()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseAttributeList(AstNodeId blockNodeId)
+template AstNodeRef Parser::parseAttributeList<AstNodeId::AggregateBody>();
+template AstNodeRef Parser::parseAttributeList<AstNodeId::InterfaceBody>();
+template AstNodeRef Parser::parseAttributeList<AstNodeId::EnumBody>();
+template AstNodeRef Parser::parseAttributeList<AstNodeId::TopLevelBlock>();
+template AstNodeRef Parser::parseAttributeList<AstNodeId::EmbeddedBlock>();
+
+template<AstNodeId ID>
+AstNodeRef Parser::parseAttributeList()
 {
     const auto nodeRef = parseCompound<AstNodeId::AttributeList>(TokenId::SymAttrStart);
     if (nodeRef.isInvalid())
@@ -124,9 +131,9 @@ AstNodeRef Parser::parseAttributeList(AstNodeId blockNodeId)
 
     const auto nodePtr = ast_->node<AstNodeId::AttributeList>(nodeRef);
     if (is(TokenId::SymLeftCurly))
-        nodePtr->nodeBody = parseCompound(blockNodeId, TokenId::SymLeftCurly);
+        nodePtr->nodeBody = parseCompound<ID>(TokenId::SymLeftCurly);
     else
-        nodePtr->nodeBody = parseCompoundValue(blockNodeId);
+        nodePtr->nodeBody = parseCompoundValue(ID);
     return nodeRef;
 }
 

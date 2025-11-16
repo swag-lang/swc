@@ -40,7 +40,7 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
         case AstNodeId::FunctionExpr:
             return parseLambdaExprArg();
         case AstNodeId::LambdaType:
-            return parseLambdaTypeParam();            
+            return parseLambdaTypeParam();
         case AstNodeId::FunctionParamList:
             return parseFunctionParam();
 
@@ -123,13 +123,6 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
     }
 
     return Result::Success;
-}
-
-AstNodeRef Parser::parseCompound(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt)
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstCompound>(blockNodeId);
-    nodePtr->spanChildren   = parseCompoundContent(blockNodeId, tokenStartId, endStmt);
-    return nodeRef;
 }
 
 SpanRef Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt)

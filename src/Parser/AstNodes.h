@@ -9,28 +9,14 @@ SWC_BEGIN_NAMESPACE()
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 
-struct AstCompound : AstNode
+template<AstNodeId I>
+struct AstCompoundT : AstNodeT<I>
 {
-    explicit AstCompound(AstNodeId nodeId) :
-        AstNode(nodeId)
-    {
-    }
-
     SpanRef spanChildren;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
         AstNode::collectChildren(out, ast, spanChildren);
-    }
-};
-
-template<AstNodeId I>
-struct AstCompoundT : AstCompound
-{
-    static constexpr auto ID = I;
-    AstCompoundT() :
-        AstCompound(I)
-    {
     }
 };
 
@@ -177,7 +163,7 @@ struct AstFile : AstCompoundT<AstNodeId::File>
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
         AstNode::collectChildren(out, ast, spanGlobals);
-        AstCompound::collectChildren(out, ast);
+        AstCompoundT::collectChildren(out, ast);
     }
 };
 
@@ -196,7 +182,7 @@ struct AstImpl : AstCompoundT<AstNodeId::Impl>
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
         AstNode::collectChildren(out, {nodeIdent});
-        AstCompound::collectChildren(out, ast);
+        AstCompoundT::collectChildren(out, ast);
     }
 };
 
@@ -208,7 +194,7 @@ struct AstImplFor : AstCompoundT<AstNodeId::ImplFor>
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
         AstNode::collectChildren(out, {nodeIdent, nodeFor});
-        AstCompound::collectChildren(out, ast);
+        AstCompoundT::collectChildren(out, ast);
     }
 };
 
@@ -219,7 +205,7 @@ struct AstNamespace : AstCompoundT<AstNodeId::Namespace>
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
         AstNode::collectChildren(out, {nodeName});
-        AstCompound::collectChildren(out, ast);
+        AstCompoundT::collectChildren(out, ast);
     }
 };
 
@@ -537,7 +523,7 @@ struct AstCall : AstCompoundT<AstNodeId::Call>
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
         AstNode::collectChildren(out, {nodeExpr});
-        AstCompound::collectChildren(out, ast);
+        AstCompoundT::collectChildren(out, ast);
     }
 };
 
@@ -550,7 +536,7 @@ struct AstAliasCall : AstCompoundT<AstNodeId::AliasCall>
     {
         AstNode::collectChildren(out, {nodeExpr});
         AstNode::collectChildren(out, ast, spanAliases);
-        AstCompound::collectChildren(out, ast);
+        AstCompoundT::collectChildren(out, ast);
     }
 };
 
@@ -584,7 +570,7 @@ struct AstMultiIndexExpr : AstCompoundT<AstNodeId::MultiIndexExpr>
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
         AstNode::collectChildren(out, {nodeExpr});
-        AstCompound::collectChildren(out, ast);
+        AstCompoundT::collectChildren(out, ast);
     }
 };
 
@@ -1047,7 +1033,7 @@ struct AstAttributeList : AstCompoundT<AstNodeId::AttributeList>
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
-        AstCompound::collectChildren(out, ast);
+        AstCompoundT::collectChildren(out, ast);
         AstNode::collectChildren(out, {nodeBody});
     }
 };
@@ -1456,7 +1442,7 @@ struct AstSwitch : AstCompoundT<AstNodeId::Switch>
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
         AstNode::collectChildren(out, {nodeExpr});
-        AstCompound::collectChildren(out, ast);
+        AstCompoundT::collectChildren(out, ast);
     }
 };
 
@@ -1469,7 +1455,7 @@ struct AstSwitchCase : AstCompoundT<AstNodeId::SwitchCase>
     {
         AstNode::collectChildren(out, ast, spanExpr);
         AstNode::collectChildren(out, {nodeWhere});
-        AstCompound::collectChildren(out, ast);
+        AstCompoundT::collectChildren(out, ast);
     }
 };
 

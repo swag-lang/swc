@@ -60,10 +60,10 @@ AstNodeRef Parser::parseAggregateValue()
         case TokenId::CompilerPrint:
             return parseCompilerCallUnary();
         case TokenId::CompilerIf:
-            return parseCompilerIf(AstNodeId::AggregateBody);
+            return parseCompilerIf<AstNodeId::AggregateBody>();
 
         case TokenId::SymAttrStart:
-            return parseAttributeList(AstNodeId::AggregateBody);
+            return parseAttributeList<AstNodeId::AggregateBody>();
 
         case TokenId::KwdStruct:
             return parseStructDecl();
@@ -120,10 +120,10 @@ AstNodeRef Parser::parseStructDecl()
     return parseAggregateDecl<AstNodeId::StructDecl>();
 }
 
-template<AstNodeId I>
+template<AstNodeId ID>
 AstNodeRef Parser::parseAggregateDecl()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<I>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<ID>();
     consume();
 
     // Generic types
@@ -180,7 +180,7 @@ AstNodeRef Parser::parseInterfaceValue()
         case TokenId::CompilerPrint:
             return parseCompilerCallUnary();
         case TokenId::CompilerIf:
-            return parseCompilerIf(AstNodeId::InterfaceBody);
+            return parseCompilerIf<AstNodeId::InterfaceBody>();
 
         case TokenId::KwdAlias:
             return parseAlias();
@@ -193,7 +193,7 @@ AstNodeRef Parser::parseInterfaceValue()
             return parseVarDecl();
 
         case TokenId::SymAttrStart:
-            return parseAttributeList(AstNodeId::InterfaceBody);
+            return parseAttributeList<AstNodeId::InterfaceBody>();
 
         default:
             raiseError(DiagnosticId::parser_err_unexpected_token, ref());

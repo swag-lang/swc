@@ -648,7 +648,7 @@ AstNodeRef Parser::parseTopLevelStmt()
         case TokenId::CompilerPrint:
             return parseCompilerCallUnary();
         case TokenId::CompilerIf:
-            return parseCompilerIf(AstNodeId::TopLevelBlock);
+            return parseCompilerIf<AstNodeId::TopLevelBlock>();
 
         case TokenId::SymLeftCurly:
             return parseCompound<AstNodeId::TopLevelBlock>(TokenId::SymLeftCurly);
@@ -687,7 +687,7 @@ AstNodeRef Parser::parseTopLevelStmt()
             return parseCompilerDependencies();
 
         case TokenId::SymAttrStart:
-            return parseAttributeList(AstNodeId::TopLevelBlock);
+            return parseAttributeList<AstNodeId::TopLevelBlock>();
 
         case TokenId::KwdPublic:
         case TokenId::KwdInternal:
@@ -755,7 +755,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::CompilerPrint:
             return parseCompilerCallUnary();
         case TokenId::CompilerIf:
-            return parseCompilerIf(AstNodeId::EmbeddedBlock);
+            return parseCompilerIf<AstNodeId::EmbeddedBlock>();
 
         case TokenId::SymLeftCurly:
             return parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
@@ -796,7 +796,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
             return parseIntrinsicCallVariadic();
 
         case TokenId::SymAttrStart:
-            return parseAttributeList(AstNodeId::EmbeddedBlock);
+            return parseAttributeList<AstNodeId::EmbeddedBlock>();
 
         case TokenId::KwdFunc:
         case TokenId::KwdMtd:

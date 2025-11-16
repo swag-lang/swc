@@ -32,7 +32,7 @@ AstNodeRef Parser::parseEnumValue()
         case TokenId::CompilerPrint:
             return parseCompilerCallUnary();
         case TokenId::CompilerIf:
-            return parseCompilerIf(AstNodeId::EnumBody);
+            return parseCompilerIf<AstNodeId::EnumBody>();
 
         case TokenId::KwdUsing:
         {
@@ -61,7 +61,7 @@ AstNodeRef Parser::parseEnumValue()
             return parseCompilerFunc();
 
         case TokenId::SymAttrStart:
-            return parseAttributeList(AstNodeId::EnumBody);
+            return parseAttributeList<AstNodeId::EnumBody>();
 
         default:
             raiseError(DiagnosticId::parser_err_unexpected_token, ref());

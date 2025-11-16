@@ -84,17 +84,30 @@ class Parser
 
     AstNodeRef parseCompoundValue(AstNodeId blockNodeId);
     Result     parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId);
-    AstNodeRef parseCompound(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt = false);
     SpanRef    parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt = false);
     SpanRef    parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openTokRef, TokenId tokenStartId, bool endStmt = false);
 
-    AstNodeRef       parseCompilerIf(AstNodeId blockNodeId);
-    AstNodeRef       parseCompilerIfStmt(AstNodeId blockNodeId);
-    AstNodeRef       parseAttributeList(AstNodeId blockNodeId);
     AstNodeRef       parseInitializerList(AstNodeRef nodeWhat);
     AstNodeRef       parseFunctionArguments(AstNodeRef nodeExpr);
     AstNodeRef       parseArraySlicingIndex(AstNodeRef nodeRef);
     AstModifierFlags parseModifiers();
+
+    template<AstNodeId ID>
+    AstNodeRef parseAttributeList();
+    template<AstNodeId ID>
+    AstNodeRef parseAggregateDecl();
+    template<AstNodeId ID>
+    AstNodeRef parseCompilerIfStmt();
+    template<AstNodeId ID>
+    AstNodeRef parseCompilerIf();
+
+    template<AstNodeId ID>
+    AstNodeRef parseCompound(TokenId tokenStartId, bool endStmt = false)
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<ID>();
+        nodePtr->spanChildren   = parseCompoundContent(ID, tokenStartId, endStmt);
+        return nodeRef;
+    }
 
     AstNodeRef parseAffectStmt();
     AstNodeRef parseAggregateAccessModifier();
@@ -202,17 +215,6 @@ class Parser
     AstNodeRef parseVarDecl();
     AstNodeRef parseWhile();
     AstNodeRef parseWith();
-
-    template<AstNodeId I>
-    AstNodeRef parseAggregateDecl();
-
-    template<AstNodeId ID>
-    AstNodeRef parseCompound(TokenId tokenStartId, bool endStmt = false)
-    {
-        auto [nodeRef, nodePtr] = ast_->makeNode<ID>();
-        nodePtr->spanChildren   = parseCompoundContent(ID, tokenStartId, endStmt);
-        return nodeRef;
-    }
 
     bool skipTo(const SmallVector<TokenId>& targets, SkipUntilFlags flags = SkipUntilFlagsE::Zero);
     bool skipAfter(const SmallVector<TokenId>& targets, SkipUntilFlags flags = SkipUntilFlagsE::Zero);

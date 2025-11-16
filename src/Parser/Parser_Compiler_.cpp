@@ -63,28 +63,36 @@ AstNodeRef Parser::parseCompilerTypeExpr()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseCompilerIfStmt(AstNodeId blockNodeId)
+template<AstNodeId ID>
+AstNodeRef Parser::parseCompilerIfStmt()
 {
     if (consumeIf(TokenId::KwdDo).isValid())
     {
         if (is(TokenId::SymLeftCurly))
         {
             raiseError(DiagnosticId::parser_err_unexpected_do_block, ref().offset(-1));
-            return parseCompound(blockNodeId, TokenId::SymLeftCurly);
+            return parseCompound<ID>(TokenId::SymLeftCurly);
         }
 
-        return parseCompoundValue(blockNodeId);
+        return parseCompoundValue(ID);
     }
 
     if (is(TokenId::SymLeftCurly))
-        return parseCompound(blockNodeId, TokenId::SymLeftCurly);
+        return parseCompound<ID>(TokenId::SymLeftCurly);
 
     const auto diag = reportError(DiagnosticId::parser_err_expected_do_block, ref().offset(-1));
     diag.report(*ctx_);
     return AstNodeRef::invalid();
 }
 
-AstNodeRef Parser::parseCompilerIf(AstNodeId blockNodeId)
+template AstNodeRef Parser::parseCompilerIf<AstNodeId::AggregateBody>();
+template AstNodeRef Parser::parseCompilerIf<AstNodeId::InterfaceBody>();
+template AstNodeRef Parser::parseCompilerIf<AstNodeId::EnumBody>();
+template AstNodeRef Parser::parseCompilerIf<AstNodeId::TopLevelBlock>();
+template AstNodeRef Parser::parseCompilerIf<AstNodeId::EmbeddedBlock>();
+
+template<AstNodeId ID>
+AstNodeRef Parser::parseCompilerIf()
 {
     SWC_ASSERT(isAny(TokenId::CompilerIf, TokenId::CompilerElseIf));
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerIf>();
@@ -95,13 +103,13 @@ AstNodeRef Parser::parseCompilerIf(AstNodeId blockNodeId)
     if (nodePtr->nodeCondition.isInvalid())
         skipTo({TokenId::KwdDo, TokenId::SymLeftCurly});
 
-    nodePtr->nodeIfBlock = parseCompilerIfStmt(blockNodeId);
+    nodePtr->nodeIfBlock = parseCompilerIfStmt<ID>();
 
     // Parse optional 'else' or 'elif' block
     if (is(TokenId::CompilerElseIf))
-        nodePtr->nodeElseBlock = parseCompilerIf(blockNodeId);
+        nodePtr->nodeElseBlock = parseCompilerIf<ID>();
     else if (consumeIf(TokenId::CompilerElse).isValid())
-        nodePtr->nodeElseBlock = parseCompilerIfStmt(blockNodeId);
+        nodePtr->nodeElseBlock = parseCompilerIfStmt<ID>();
     else
         nodePtr->nodeElseBlock.setInvalid();
 

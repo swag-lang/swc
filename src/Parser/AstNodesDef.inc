@@ -260,7 +260,7 @@ struct AstFunctionParamList : AstCompoundT<AstNodeId::FunctionParamList>
 {
 };
 
-struct AstClosureCapture : AstNodeT<AstNodeId::ClosureCapture>
+struct AstClosureArgument : AstNodeT<AstNodeId::ClosureArgument>
 {
     enum class FlagsE : Flags
     {

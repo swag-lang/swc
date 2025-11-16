@@ -4,14 +4,14 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstNodeRef Parser::parseClosureCaptureArg()
+AstNodeRef Parser::parseClosureArg()
 {
-    AstClosureCapture::Flags flags = AstClosureCapture::FlagsE::Zero;
+    AstClosureArgument::Flags flags = AstClosureArgument::FlagsE::Zero;
 
     if (consumeIf(TokenId::SymAmpersand).isValid())
-        flags.add(AstClosureCapture::FlagsE::Address);
+        flags.add(AstClosureArgument::FlagsE::Address);
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ClosureCapture>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ClosureArgument>();
     nodePtr->addFlag(flags);
     nodePtr->nodeIdentifier = parseQualifiedIdentifier();
 

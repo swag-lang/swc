@@ -120,7 +120,7 @@ class Parser
     AstNodeRef parseBinaryExpr();
     AstNodeRef parseBreak();
     AstNodeRef parseCast();
-    AstNodeRef parseClosureCaptureArg();
+    AstNodeRef parseClosureArg();
     AstNodeRef parseCompilerCallUnary();
     AstNodeRef parseCompilerDependencies();
     AstNodeRef parseCompilerExpr();

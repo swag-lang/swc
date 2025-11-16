@@ -99,7 +99,7 @@ SWC_NODE_DEF(FunctionDecl)
 SWC_NODE_DEF(FunctionBody)
 SWC_NODE_DEF(FunctionExpr)
 SWC_NODE_DEF(ClosureExpr)
-SWC_NODE_DEF(ClosureCapture)
+SWC_NODE_DEF(ClosureArgument)
 
 // -----------------------------------------------------------------------------
 //  Variables / Bindings

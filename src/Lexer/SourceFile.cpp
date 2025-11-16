@@ -2,9 +2,9 @@
 
 #include "Core/Timer.h"
 #include "Lexer/SourceFile.h"
+#include "Main/Stats.h"
 #include "Os/Os.h"
 #include "Report/Diagnostic.h"
-#include "Report/Stats.h"
 
 SWC_BEGIN_NAMESPACE()
 

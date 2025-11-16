@@ -197,6 +197,7 @@
         <ClCompile Include="src\Main\FileSystem.cpp"/>
         <ClCompile Include="src\Main\Global.cpp"/>
         <ClCompile Include="src\Main\CompilerInstance.cpp"/>
+        <ClCompile Include="src\Main\Stats.cpp"/>
         <ClCompile Include="src\Memory\Allocator.cpp"/>
         <ClCompile Include="src\Memory\Arena.cpp"/>
         <ClCompile Include="src\Memory\Mimalloc.cpp">
@@ -235,7 +236,6 @@
         <ClCompile Include="src\Report\DiagnosticElement.cpp"/>
         <ClCompile Include="src\Report\Logger.cpp"/>
         <ClCompile Include="src\Report\LogSymbol.cpp"/>
-        <ClCompile Include="src\Report\Stats.cpp"/>
         <ClCompile Include="src\Report\UnitTest.cpp"/>
         <ClCompile Include="src\Thread\Job.cpp"/>
         <ClCompile Include="src\Thread\JobManager.cpp"/>
@@ -261,6 +261,7 @@
         <ClInclude Include="src\Main\CommandLineParser.h"/>
         <ClInclude Include="src\Main\Command.h"/>
         <ClInclude Include="src\Main\CompilerContext.h"/>
+        <ClInclude Include="src\Main\Stats.h"/>
         <ClInclude Include="src\Main\TaskContext.h"/>
         <ClInclude Include="src\Main\FileManager.h"/>
         <ClInclude Include="src\Main\FileSystem.h"/>
@@ -271,7 +272,7 @@
         <ClInclude Include="src\Os\Os.h"/>
         <ClInclude Include="src\Parser\Ast.h"/>
         <ClInclude Include="src\Parser\AstNode.h"/>
-        <ClInclude Include="src\Parser\AstNodeId.h" />
+        <ClInclude Include="src\Parser\AstNodeId.h"/>
         <ClInclude Include="src\Parser\AstNodesDef.inc"/>
         <ClInclude Include="src\Parser\AstNodesEnum.inc"/>
         <ClInclude Include="src\Parser\AstNodes.h"/>
@@ -288,7 +289,6 @@
         <ClInclude Include="src\Report\DiagnosticElement.h"/>
         <ClInclude Include="src\Report\Logger.h"/>
         <ClInclude Include="src\Report\LogSymbol.h"/>
-        <ClInclude Include="src\Report\Stats.h"/>
         <ClInclude Include="src\Report\UnitTest.h"/>
         <ClInclude Include="src\Thread\Job.h"/>
         <ClInclude Include="src\Thread\JobManager.h"/>

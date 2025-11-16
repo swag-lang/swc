@@ -2,7 +2,7 @@
 #include "Parser/Parser.h"
 #include "Core/Timer.h"
 #include "Lexer/SourceFile.h"
-#include "Report/Stats.h"
+#include "Main/Stats.h"
 
 SWC_BEGIN_NAMESPACE()
 

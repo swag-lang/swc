@@ -7,9 +7,9 @@
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
 #include "Main/Global.h"
+#include "Main/Stats.h"
 #include "Main/TaskContext.h"
 #include "Report/Diagnostic.h"
-#include "Report/Stats.h"
 
 SWC_BEGIN_NAMESPACE()
 

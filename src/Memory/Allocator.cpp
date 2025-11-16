@@ -1,8 +1,8 @@
 // ReSharper disable CppParameterNamesMismatch
 #include "pch.h"
 
+#include "Main/Stats.h"
 #include "Memory/mimalloc/include/mimalloc.h"
-#include "Report/Stats.h"
 
 void* operator new(size_t size)
 {

@@ -1,11 +1,10 @@
 #include "pch.h"
-
 #include "Core/Timer.h"
 #include "Core/Utf8Helper.h"
 #include "Main/Global.h"
+#include "Main/Stats.h"
 #include "Report/LogColor.h"
 #include "Report/Logger.h"
-#include "Report/Stats.h"
 #include "Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE()

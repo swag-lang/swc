@@ -5,10 +5,10 @@
 #include "Main/Command.h"
 #include "Main/CommandLine.h"
 #include "Main/Global.h"
+#include "Main/Stats.h"
 #include "Main/TaskContext.h"
 #include "Report/LogColor.h"
 #include "Report/Logger.h"
-#include "Report/Stats.h"
 #include "Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE()

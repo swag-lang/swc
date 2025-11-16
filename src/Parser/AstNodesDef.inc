@@ -992,11 +992,7 @@ struct AstVarMultiNameDecl : AstNodeT<AstNodeId::VarMultiNameDecl>
     }
 };
 
-struct AstVarMultiDecl : AstCompoundT<AstNodeId::VarMultiDecl>
-{
-};
-
-struct AstDecompositionDecl : AstNodeT<AstNodeId::DecompositionDecl>
+struct AstVarDecompositionDecl : AstNodeT<AstNodeId::VarDecompositionDecl>
 {
     SpanRef    spanNames;
     AstNodeRef nodeInit;
@@ -1005,6 +1001,10 @@ struct AstDecompositionDecl : AstNodeT<AstNodeId::DecompositionDecl>
     {
         AstNode::collectChildren(out, {nodeInit});
     }
+};
+
+struct AstVarMultiDecl : AstCompoundT<AstNodeId::VarMultiDecl>
+{
 };
 
 struct AstUndefined : AstNodeT<AstNodeId::Undefined>

@@ -18,8 +18,8 @@ void AstVisit::start(Ast& ast, const Callbacks& cb)
         return;
 
     Frame fr;
-    fr.nodeRef      = ast_->root();
-    fr.stage        = Frame::Stage::Pre;
+    fr.nodeRef   = ast_->root();
+    fr.stage     = Frame::Stage::Pre;
     fr.lexAtPush = currentLex_;
     stack_.push_back(fr);
 }
@@ -82,8 +82,8 @@ bool AstVisit::step()
                     continue;
 
                 Frame childFr;
-                childFr.nodeRef      = childRef;
-                childFr.stage        = Frame::Stage::Pre;
+                childFr.nodeRef   = childRef;
+                childFr.stage     = Frame::Stage::Pre;
                 childFr.lexAtPush = currentLex_;
 
                 stack_.push_back(childFr);

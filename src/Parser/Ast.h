@@ -21,8 +21,8 @@ using AstFlags = EnumFlags<AstFlagsE>;
 class Ast
 {
     RefStore<>  store_;
-    AstNodeRef  root_ = AstNodeRef::invalid();
     LexerOutput lexOut_;
+    AstNodeRef  root_ = AstNodeRef::invalid();
     AstFlags    flags_;
 
 public:

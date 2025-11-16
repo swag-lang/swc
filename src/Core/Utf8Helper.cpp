@@ -244,7 +244,7 @@ Utf8 Utf8Helper::substrChars(std::string_view s, uint32_t charStart, uint32_t ch
     for (size_t i = 0; i < s.size();)
     {
         const char8_t c   = static_cast<char8_t>(s[i]);
-        size_t              adv = 1;
+        size_t        adv = 1;
         if ((c & 0x80) == 0x00)
             adv = 1;
         else if ((c & 0xE0) == 0xC0)

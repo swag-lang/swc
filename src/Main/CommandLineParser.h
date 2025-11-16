@@ -48,7 +48,7 @@ class CommandLineParser
     Utf8                    command_;
 
     static void            printHelp(const TaskContext& ctx);
-    static CommandKind         isAllowedCommand(const Utf8& cmd);
+    static CommandKind     isAllowedCommand(const Utf8& cmd);
     void                   setReportArguments(Diagnostic& diag, const Utf8& arg);
     void                   setReportArguments(Diagnostic& diag, const ArgInfo& info, const Utf8& arg);
     bool                   getNextValue(const TaskContext& ctx, const Utf8& arg, int& index, int argc, char* argv[], Utf8& value);

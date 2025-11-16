@@ -120,10 +120,10 @@ void AstVisit::run()
     }
 }
 
-AstNode* AstVisit::parentNode(size_t up) const
+AstNode* AstVisit::parentNodeInternal(size_t up) const
 {
     // stack_.back() is the current node's frame.
-    // Direct parent: up = 0  → stack_[size-2]
+    // Direct parent: up = 0 -> stack_[size-2]
     if (stack_.size() <= 1) // root has no parent
         return nullptr;
 

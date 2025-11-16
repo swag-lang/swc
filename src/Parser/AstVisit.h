@@ -51,11 +51,14 @@ private:
     SmallVector<Frame, 64>  stack_;
     SmallVector<AstNodeRef> children_; // shared pool of children
 
+    AstNode* parentNodeInternal(size_t up) const;
+
 public:
-    void     start(Ast& ast, const Callbacks& cb = {});
-    bool     step();
-    void     run();
-    AstNode* parentNode(size_t up = 0) const;
+    void           start(Ast& ast, const Callbacks& cb = {});
+    bool           step();
+    void           run();
+    AstNode*       parentNode(size_t up = 0) { return parentNodeInternal(up); }
+    const AstNode* parentNode(size_t up = 0) const { return parentNodeInternal(up); }
 
     const Ast* ast() const { return ast_; }
     Ast*       ast() { return ast_; }

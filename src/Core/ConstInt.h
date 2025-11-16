@@ -1,6 +1,8 @@
 // ReSharper disable CppInconsistentNaming
 #pragma once
 
+SWC_BEGIN_NAMESPACE()
+
 template<std::size_t BITS>
 class ConstInt
 {
@@ -325,7 +327,7 @@ public:
             }
             r.limbs_[i] = val;
         }
-        
+
         r.normalize();
         return r;
     }
@@ -539,3 +541,5 @@ private:
         }
     }
 };
+
+SWC_END_NAMESPACE()

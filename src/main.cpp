@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Core/CoreTests.h"
 #include "Main/CommandLine.h"
 #include "Main/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
@@ -14,6 +15,10 @@ int main(int argc, char* argv[])
         return static_cast<int>(swc::ExitCode::ErrorCmdLine);
 
     global.initialize(cmdLine);
+
+#if SWC_HAS_ASSERT
+    swc::runCoreTests();
+#endif
 
     const swc::CompilerInstance compiler(cmdLine, global);
     return static_cast<int>(compiler.run());

@@ -5,31 +5,31 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void AstVisit::start(AstVisitContext& ctx, const Ast& ast)
+void AstVisit::start(const Ast& ast)
 {
     ast_ = &ast;
     if (ast_->root().isInvalid())
         return;
-    if (!ctx.currentLex)
-        ctx.currentLex = &ast_->lexOut();
+    if (!currentLex_)
+        currentLex_ = &ast_->lexOut();
 
-    AstVisitContext::Frame fr;
+    Frame fr;
     fr.nodeRef      = ast_->root();
-    fr.stage        = AstVisitContext::Frame::Stage::Pre;
+    fr.stage        = Frame::Stage::Pre;
     fr.nextChildIx  = 0;
-    fr.sourceAtPush = ctx.currentLex;
-    ctx.stack.push_back(std::move(fr));
+    fr.sourceAtPush = currentLex_;
+    stack_.push_back(std::move(fr));
 }
 
-bool AstVisit::step(AstVisitContext& ctx) const
+bool AstVisit::step()
 {
-    if (ctx.stack.empty())
+    if (stack_.empty())
         return false;
 
-    auto& fr = ctx.stack.back();
+    auto& fr = stack_.back();
     switch (fr.stage)
     {
-        case AstVisitContext::Frame::Stage::Pre:
+        case Frame::Stage::Pre:
         {
             const AstNode* node = resolveNode(fr);
             SWC_ASSERT(node->id != AstNodeId::Invalid);
@@ -40,22 +40,22 @@ bool AstVisit::step(AstVisitContext& ctx) const
 
             if (!node)
             {
-                ctx.stack.pop_back();
-                return !ctx.stack.empty();
+                stack_.pop_back();
+                return !stack_.empty();
             }
 
             // Pre-order callback
             if (cb_.pre)
             {
-                const Action a = cb_.pre(ctx, node);
+                const Action a = cb_.pre(node);
                 if (a == Action::Stop)
                 {
-                    ctx.stack.clear();
+                    stack_.clear();
                     return false;
                 }
                 if (a == Action::SkipChildren)
                 {
-                    fr.stage = AstVisitContext::Frame::Stage::Post;
+                    fr.stage = Frame::Stage::Post;
                     return true;
                 }
             }
@@ -64,11 +64,11 @@ bool AstVisit::step(AstVisitContext& ctx) const
             fr.children.clear();
             collectChildren(fr.children, node);
 
-            fr.stage = AstVisitContext::Frame::Stage::Children;
+            fr.stage = Frame::Stage::Children;
             return true;
         }
 
-        case AstVisitContext::Frame::Stage::Children:
+        case Frame::Stage::Children:
         {
             // Still have a child to descend into?
             while (fr.nextChildIx < fr.children.size())
@@ -77,22 +77,22 @@ bool AstVisit::step(AstVisitContext& ctx) const
                 if (childRef.isInvalid())
                     continue;
                 SWC_ASSERT(childRef.get() != 0);
-                
-                AstVisitContext::Frame childFr;
+
+                Frame childFr;
                 childFr.nodeRef      = childRef;
-                childFr.stage        = AstVisitContext::Frame::Stage::Pre;
+                childFr.stage        = Frame::Stage::Pre;
                 childFr.nextChildIx  = 0;
-                childFr.sourceAtPush = ctx.currentLex;
-                ctx.stack.push_back(std::move(childFr));
+                childFr.sourceAtPush = currentLex_;
+                stack_.push_back(std::move(childFr));
                 return true;
             }
 
             // No more children -> go to post
-            fr.stage = AstVisitContext::Frame::Stage::Post;
+            fr.stage = Frame::Stage::Post;
             return true;
         }
 
-        case AstVisitContext::Frame::Stage::Post:
+        case Frame::Stage::Post:
         {
             const AstNode* node = resolveNode(fr);
             SWC_ASSERT(node->id != AstNodeId::Invalid);
@@ -101,25 +101,25 @@ bool AstVisit::step(AstVisitContext& ctx) const
             // Post-order callback
             if (cb_.post)
             {
-                const Action a = cb_.post(ctx, node);
+                const Action a = cb_.post(node);
                 if (a == Action::Stop)
                 {
-                    ctx.stack.clear();
+                    stack_.clear();
                     return false;
                 }
             }
 
-            ctx.stack.pop_back();
-            return !ctx.stack.empty();
+            stack_.pop_back();
+            return !stack_.empty();
         }
     }
 
     SWC_UNREACHABLE();
 }
 
-void AstVisit::run(AstVisitContext& ctx) const
+void AstVisit::run()
 {
-    while (step(ctx))
+    while (step())
     {
     }
 }
@@ -130,7 +130,7 @@ void AstVisit::collectChildren(SmallVector<AstNodeRef>& out, const AstNode* node
     info.collectChildren(out, ast_, node);
 }
 
-const AstNode* AstVisit::resolveNode(const AstVisitContext::Frame& fr) const
+const AstNode* AstVisit::resolveNode(const Frame& fr) const
 {
     if (fr.nodeRef.isInvalid() || !fr.sourceAtPush)
         return nullptr;

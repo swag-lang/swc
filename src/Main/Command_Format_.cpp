@@ -24,10 +24,9 @@ namespace
         Parser parser;
         parser.parse(ctx, file->parserOut(), file->lexOut());
 
-        AstVisit        astVisit;
-        AstVisitContext visitCtx;
-        astVisit.start(visitCtx, file->parserOut().ast());
-        astVisit.run(visitCtx);
+        AstVisit astVisit;
+        astVisit.start(file->parserOut().ast());
+        astVisit.run();
     }
 }
 

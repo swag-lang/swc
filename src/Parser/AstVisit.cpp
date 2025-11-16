@@ -62,8 +62,9 @@ bool AstVisit::step()
             }
 
             // Collect child refs at once
+            const auto& info = Ast::nodeIdInfos(node->id);
             fr.children.clear();
-            collectChildren(fr.children, node);
+            info.collectChildren(fr.children, ast_, node);
 
             fr.stage = Frame::Stage::Children;
             return true;
@@ -129,12 +130,6 @@ void AstVisit::reset()
 {
     currentLex_ = nullptr;
     stack_.clear();
-}
-
-void AstVisit::collectChildren(SmallVector<AstNodeRef>& out, const AstNode* node) const
-{
-    const auto& info = Ast::nodeIdInfos(node->id);
-    info.collectChildren(out, ast_, node);
 }
 
 const AstNode* AstVisit::resolveNode(const Frame& fr) const

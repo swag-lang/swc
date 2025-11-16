@@ -52,7 +52,6 @@ private:
     const LexerOutput*     currentLex_ = nullptr;
     SmallVector<Frame, 64> stack_;
 
-    void           collectChildren(SmallVector<AstNodeRef>& out, const AstNode* node) const;
     const AstNode* resolveNode(const Frame& fr) const;
 };
 

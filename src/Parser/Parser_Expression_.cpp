@@ -198,7 +198,7 @@ AstNodeRef Parser::parseRangeExpression()
     return nodeExpr1;
 }
 
-AstNodeRef Parser::parsePostfixIdentifierValue()
+AstNodeRef Parser::parseSuffixIdentifierValue()
 {
     if (isAny(TokenId::SymLeftCurly, TokenId::KwdFunc, TokenId::KwdMtd))
         return parseType();
@@ -249,15 +249,15 @@ AstNodeRef Parser::parseIdentifier()
         consume();
         if (is(TokenId::SymLeftParen))
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::MultiPostfixIdentifier>();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::MultiSuffixIdentifier>();
             nodePtr->tokName        = tokName;
-            nodePtr->spanChildren   = parseCompoundContent(AstNodeId::MultiPostfixIdentifier, TokenId::SymLeftParen);
+            nodePtr->spanChildren   = parseCompoundContent(AstNodeId::MultiSuffixIdentifier, TokenId::SymLeftParen);
             return nodeRef;
         }
 
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::PostfixIdentifier>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SuffixIdentifier>();
         nodePtr->tokName        = tokName;
-        nodePtr->nodePostfix    = parsePostfixIdentifierValue();
+        nodePtr->nodeSuffix     = parseSuffixIdentifierValue();
         return nodeRef;
     }
 

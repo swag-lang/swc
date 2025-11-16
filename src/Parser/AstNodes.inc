@@ -79,8 +79,8 @@ SWC_NODE_DEF(TypedVariadicType)
 SWC_NODE_DEF(Identifier)
 SWC_NODE_DEF(PreQualifiedIdentifier)
 SWC_NODE_DEF(AncestorIdentifier)
-SWC_NODE_DEF(PostfixIdentifier)
-SWC_NODE_DEF(MultiPostfixIdentifier)
+SWC_NODE_DEF(SuffixIdentifier)
+SWC_NODE_DEF(MultiSuffixIdentifier)
 SWC_NODE_DEF(ScopeResolution)
 
 // -----------------------------------------------------------------------------
@@ -151,7 +151,7 @@ SWC_NODE_DEF(StringLiteral)
 SWC_NODE_DEF(ArrayLiteral)
 SWC_NODE_DEF(StructLiteral)
 SWC_NODE_DEF(CompilerLiteral)
-SWC_NODE_DEF(PostfixedLiteral)
+SWC_NODE_DEF(SuffixLiteral)
 
 // -----------------------------------------------------------------------------
 //  Attributes

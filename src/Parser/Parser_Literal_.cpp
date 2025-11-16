@@ -92,14 +92,14 @@ AstNodeRef Parser::parseLiteralExpression()
     if (consumeIf(TokenId::SymQuote).isInvalid())
         return literal;
 
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::PostfixedLiteral>();
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SuffixLiteral>();
     nodePtr->nodeLiteral          = literal;
-    nodePtr->nodeQuote.setInvalid();
+    nodePtr->nodeSuffix.setInvalid();
 
     switch (id())
     {
         case TokenId::Identifier:
-            nodePtr->nodeQuote = parseIdentifier();
+            nodePtr->nodeSuffix = parseIdentifier();
             return nodeRef;
 
         case TokenId::TypeF32:
@@ -114,7 +114,7 @@ AstNodeRef Parser::parseLiteralExpression()
         case TokenId::TypeU64:
         case TokenId::TypeRune:
         case TokenId::TypeBool:
-            nodePtr->nodeQuote = parseType();
+            nodePtr->nodeSuffix = parseType();
             return nodeRef;
 
         case TokenId::TypeAny:

@@ -500,18 +500,18 @@ struct AstAncestorIdentifier : AstNodeT<AstNodeId::AncestorIdentifier>
     }
 };
 
-struct AstPostfixIdentifier : AstNodeT<AstNodeId::PostfixIdentifier>
+struct AstSuffixIdentifier : AstNodeT<AstNodeId::SuffixIdentifier>
 {
     TokenRef   tokName;
-    AstNodeRef nodePostfix;
+    AstNodeRef nodeSuffix;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
-        AstNode::collectChildren(out, {nodePostfix});
+        AstNode::collectChildren(out, {nodeSuffix});
     }
 };
 
-struct AstMultiPostfixIdentifier : AstCompoundT<AstNodeId::MultiPostfixIdentifier>
+struct AstMultiSuffixIdentifier : AstCompoundT<AstNodeId::MultiSuffixIdentifier>
 {
     TokenRef tokName;
 };
@@ -713,14 +713,14 @@ struct AstCompilerLiteral : AstLiteralT<AstNodeId::CompilerLiteral>
 {
 };
 
-struct AstPostfixedLiteral : AstNodeT<AstNodeId::PostfixedLiteral>
+struct AstSuffixLiteral : AstNodeT<AstNodeId::SuffixLiteral>
 {
     AstNodeRef nodeLiteral;
-    AstNodeRef nodeQuote;
+    AstNodeRef nodeSuffix;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
-        AstNode::collectChildren(out, {nodeLiteral, nodeQuote});
+        AstNode::collectChildren(out, {nodeLiteral, nodeSuffix});
     }
 };
 

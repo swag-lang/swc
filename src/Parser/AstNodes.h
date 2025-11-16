@@ -386,7 +386,7 @@ struct AstFunctionParamList : AstCompoundT<AstNodeId::FunctionParamList>
 {
 };
 
-struct AstClosureCapture : AstCompoundT<AstNodeId::ClosureCapture>
+struct AstClosureCapture : AstNodeT<AstNodeId::ClosureCapture>
 {
     enum class FlagsE : Flags
     {
@@ -794,7 +794,7 @@ struct AstEnumBody : AstCompoundT<AstNodeId::EnumBody>
 {
 };
 
-struct AstEnumDecl : AstCompoundT<AstNodeId::EnumDecl>
+struct AstEnumDecl : AstNodeT<AstNodeId::EnumDecl>
 {
     TokenRef   tokName;
     AstNodeRef nodeType;
@@ -834,6 +834,7 @@ struct AstImplEnum : AstCompoundT<AstNodeId::ImplEnum>
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
         AstNode::collectChildren(out, {nodeName});
+        AstCompoundT::collectChildren(out, ast);
     }
 };
 
@@ -1115,14 +1116,8 @@ struct AstGenericParamList : AstCompoundT<AstNodeId::GenericParamList>
 };
 
 template<AstNodeId I>
-struct AstGenericParamT : AstNode
+struct AstGenericParamT : AstNodeT<I>
 {
-    static constexpr auto ID = I;
-    AstGenericParamT() :
-        AstNode(I)
-    {
-    }
-
     TokenRef   tokName;
     AstNodeRef nodeAssign;
 
@@ -1138,8 +1133,8 @@ struct AstGenericValueParam : AstGenericParamT<AstNodeId::GenericValueParam>
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
-        // Note: same behavior as before (does NOT collect nodeAssign)
         AstNode::collectChildren(out, {nodeType});
+        AstGenericParamT::collectChildren(out, ast);
     }
 };
 
@@ -1202,6 +1197,11 @@ struct AstUndefined : AstNodeT<AstNodeId::Undefined>
 struct AstUsingVarDecl : AstNodeT<AstNodeId::UsingVarDecl>
 {
     AstNodeRef nodeVar;
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    {
+        AstNode::collectChildren(out, {nodeVar});
+    }
 };
 
 struct AstAlias : AstNodeT<AstNodeId::Alias>

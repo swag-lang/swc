@@ -18,7 +18,7 @@ public:
     };
 
     // Both callbacks are optional; if unset, they're no-ops.
-    using Callback = Action (*)(AstVisit&, AstNode*);
+    using Callback = Action (*)(AstVisit&, AstNode&);
     struct Callbacks
     {
         Callback pre  = nullptr;
@@ -38,7 +38,7 @@ private:
             Post
         };
 
-        const LexerOutput* sourceAtPush = nullptr;
+        const LexerOutput* lexAtPush    = nullptr;
         AstNode*           node         = nullptr;
         uint32_t           nextChildIx  = 0; // index within this frame's child range
         uint32_t           firstChildIx = 0; // offset into AstVisit::children_

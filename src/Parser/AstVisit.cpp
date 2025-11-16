@@ -20,7 +20,7 @@ void AstVisit::start(Ast& ast, const Callbacks& cb)
     Frame fr;
     fr.nodeRef      = ast_->root();
     fr.stage        = Frame::Stage::Pre;
-    fr.sourceAtPush = currentLex_;
+    fr.lexAtPush = currentLex_;
     stack_.push_back(fr);
 }
 
@@ -49,7 +49,7 @@ bool AstVisit::step()
             // Pre-order callback
             if (cb_.pre)
             {
-                const Action result = cb_.pre(*this, fr.node);
+                const Action result = cb_.pre(*this, *fr.node);
                 if (result == Action::Stop)
                     return false;
 
@@ -84,7 +84,7 @@ bool AstVisit::step()
                 Frame childFr;
                 childFr.nodeRef      = childRef;
                 childFr.stage        = Frame::Stage::Pre;
-                childFr.sourceAtPush = currentLex_;
+                childFr.lexAtPush = currentLex_;
 
                 stack_.push_back(childFr);
                 return true;
@@ -99,12 +99,12 @@ bool AstVisit::step()
             // Post-order callback
             if (cb_.post)
             {
-                const Action result = cb_.post(*this, fr.node);
+                const Action result = cb_.post(*this, *fr.node);
                 if (result == Action::Stop)
                     return false;
             }
 
-            currentLex_ = fr.sourceAtPush;
+            currentLex_ = fr.lexAtPush;
             stack_.pop_back();
             return !stack_.empty();
         }

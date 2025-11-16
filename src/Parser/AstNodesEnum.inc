@@ -197,10 +197,10 @@ SWC_NODE_DEF(AffectStmt)
 SWC_NODE_DEF(MultiAffect)
 
 // Conditionals (runtime)
-SWC_NODE_DEF(If)
-SWC_NODE_DEF(ElseIf)
-SWC_NODE_DEF(Else)
-SWC_NODE_DEF(VarIf)
+SWC_NODE_DEF(IfStmt)
+SWC_NODE_DEF(ElseIfStmt)
+SWC_NODE_DEF(ElseStmt)
+SWC_NODE_DEF(IfVarDecl)
 
 // Loops
 SWC_NODE_DEF(While)
@@ -226,16 +226,16 @@ SWC_NODE_DEF(Throw)
 SWC_NODE_DEF(Return)
 
 // Jumps & Flow
-SWC_NODE_DEF(Break)
-SWC_NODE_DEF(ScopedBreak)
-SWC_NODE_DEF(Continue)
-SWC_NODE_DEF(FallThrough)
-SWC_NODE_DEF(Unreachable)
+SWC_NODE_DEF(BreakStmt)
+SWC_NODE_DEF(ScopedBreakStmt)
+SWC_NODE_DEF(ContinueStmt)
+SWC_NODE_DEF(FallThroughStmt)
+SWC_NODE_DEF(UnreachableStmt)
 
 // Defer / With
-SWC_NODE_DEF(DeferDecl)
-SWC_NODE_DEF(With)
-SWC_NODE_DEF(WithVar)
+SWC_NODE_DEF(DeferStmt)
+SWC_NODE_DEF(WithStmt)
+SWC_NODE_DEF(WithVarDecl)
 
 // Closures
 SWC_NODE_DEF(ClosureCapture)

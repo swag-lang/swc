@@ -1043,28 +1043,28 @@ struct AstTryCatchAssumeExpr : AstNodeT<AstNodeId::TryCatchAssumeExpr>
     }
 };
 
-struct AstUnreachable : AstNodeT<AstNodeId::Unreachable>
+struct AstUnreachableStmt : AstNodeT<AstNodeId::UnreachableStmt>
 {
 };
 
-struct AstContinue : AstNodeT<AstNodeId::Continue>
+struct AstContinueStmt : AstNodeT<AstNodeId::ContinueStmt>
 {
 };
 
-struct AstBreak : AstNodeT<AstNodeId::Break>
+struct AstBreakStmt : AstNodeT<AstNodeId::BreakStmt>
 {
 };
 
-struct AstScopedBreak : AstNodeT<AstNodeId::ScopedBreak>
+struct AstScopedBreakStmt : AstNodeT<AstNodeId::ScopedBreakStmt>
 {
     TokenRef tokName;
 };
 
-struct AstFallThrough : AstNodeT<AstNodeId::FallThrough>
+struct AstFallThroughStmt : AstNodeT<AstNodeId::FallThroughStmt>
 {
 };
 
-struct AstDeferDecl : AstNodeT<AstNodeId::DeferDecl>
+struct AstDeferStmt : AstNodeT<AstNodeId::DeferStmt>
 {
     AstModifierFlags modifierFlags;
     AstNodeRef       nodeBody;
@@ -1075,7 +1075,7 @@ struct AstDeferDecl : AstNodeT<AstNodeId::DeferDecl>
     }
 };
 
-struct AstIf : AstIfBaseT<AstNodeId::If>
+struct AstIfStmt : AstIfBaseT<AstNodeId::IfStmt>
 {
     AstNodeRef nodeCondition;
 
@@ -1086,7 +1086,7 @@ struct AstIf : AstIfBaseT<AstNodeId::If>
     }
 };
 
-struct AstVarIf : AstIfBaseT<AstNodeId::VarIf>
+struct AstIfVarDecl : AstIfBaseT<AstNodeId::IfVarDecl>
 {
     AstNodeRef nodeVar;
     AstNodeRef nodeWhere;
@@ -1098,15 +1098,15 @@ struct AstVarIf : AstIfBaseT<AstNodeId::VarIf>
     }
 };
 
-struct AstElse : AstCompoundT<AstNodeId::Else>
+struct AstElseStmt : AstCompoundT<AstNodeId::ElseStmt>
 {
 };
 
-struct AstElseIf : AstCompoundT<AstNodeId::ElseIf>
+struct AstElseIfStmt : AstCompoundT<AstNodeId::ElseIfStmt>
 {
 };
 
-struct AstWith : AstNodeT<AstNodeId::With>
+struct AstWithStmt : AstNodeT<AstNodeId::WithStmt>
 {
     AstNodeRef nodeExpr;
     AstNodeRef nodeBody;
@@ -1117,7 +1117,7 @@ struct AstWith : AstNodeT<AstNodeId::With>
     }
 };
 
-struct AstWithVar : AstNodeT<AstNodeId::WithVar>
+struct AstWithVarDecl : AstNodeT<AstNodeId::WithVarDecl>
 {
     AstNodeRef nodeVar;
     AstNodeRef nodeBody;

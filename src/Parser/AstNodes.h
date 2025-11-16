@@ -152,13 +152,9 @@ struct AstAggregateDeclT : AstAggregateDecl
     }
 };
 
-struct AstAnonymousAggregateDecl : AstNode
+template<AstNodeId I>
+struct AstAnonymousAggregateDeclT : AstNodeT<I>
 {
-    explicit AstAnonymousAggregateDecl(AstNodeId nodeId) :
-        AstNode(nodeId)
-    {
-    }
-
     AstNodeRef nodeBody;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
@@ -168,38 +164,14 @@ struct AstAnonymousAggregateDecl : AstNode
 };
 
 template<AstNodeId I>
-struct AstAnonymousAggregateDeclT : AstAnonymousAggregateDecl
+struct AstIfBaseT : AstNodeT<I>
 {
-    static constexpr auto ID = I;
-    AstAnonymousAggregateDeclT() :
-        AstAnonymousAggregateDecl(I)
-    {
-    }
-};
-
-struct AstIfBase : AstNode
-{
-    explicit AstIfBase(AstNodeId nodeId) :
-        AstNode(nodeId)
-    {
-    }
-
     AstNodeRef nodeIfBlock;
     AstNodeRef nodeElseBlock;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
         AstNode::collectChildren(out, {nodeIfBlock, nodeElseBlock});
-    }
-};
-
-template<AstNodeId I>
-struct AstIfBaseT : AstIfBase
-{
-    static constexpr auto ID = I;
-    AstIfBaseT() :
-        AstIfBase(I)
-    {
     }
 };
 
@@ -1331,7 +1303,7 @@ struct AstIf : AstIfBaseT<AstNodeId::If>
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
         AstNode::collectChildren(out, {nodeCondition});
-        AstIfBase::collectChildren(out, ast);
+        AstIfBaseT::collectChildren(out, ast);
     }
 };
 
@@ -1343,7 +1315,7 @@ struct AstVarIf : AstIfBaseT<AstNodeId::VarIf>
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
     {
         AstNode::collectChildren(out, {nodeVar, nodeWhere});
-        AstIfBase::collectChildren(out, ast);
+        AstIfBaseT::collectChildren(out, ast);
     }
 };
 

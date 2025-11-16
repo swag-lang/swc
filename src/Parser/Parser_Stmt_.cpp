@@ -282,7 +282,7 @@ AstNodeRef Parser::parseWhile()
 
 AstNodeRef Parser::parseForCpp()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForCppStmt>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForCStyleStmt>();
     consumeAssert(TokenId::KwdFor);
 
     nodePtr->nodeVarDecl = parseVarDecl();
@@ -298,7 +298,7 @@ AstNodeRef Parser::parseForCpp()
 
 AstNodeRef Parser::parseForInfinite()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForInfiniteStmt>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InfiniteLoopStmt>();
     consumeAssert(TokenId::KwdFor);
     nodePtr->nodeBody = parseDoCurlyBlock();
     return nodeRef;
@@ -306,7 +306,7 @@ AstNodeRef Parser::parseForInfinite()
 
 AstNodeRef Parser::parseForLoop()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForLoopStmt>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForStmt>();
     consumeAssert(TokenId::KwdFor);
 
     nodePtr->modifierFlags = parseModifiers();

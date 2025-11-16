@@ -217,9 +217,9 @@ SWC_NODE_DEF(ElseStmt)
 // Loops
 SWC_NODE_DEF(WhileStmt)
 SWC_NODE_DEF(ForeachStmt)
-SWC_NODE_DEF(ForCppStmt)
-SWC_NODE_DEF(ForLoopStmt)
-SWC_NODE_DEF(ForInfiniteStmt)
+SWC_NODE_DEF(ForCStyleStmt)
+SWC_NODE_DEF(ForStmt)
+SWC_NODE_DEF(InfiniteLoopStmt)
 
 // Switch
 SWC_NODE_DEF(SwitchStmt)

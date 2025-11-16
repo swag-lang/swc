@@ -1178,7 +1178,7 @@ struct AstForeachStmt : AstNodeT<AstNodeId::ForeachStmt>
     }
 };
 
-struct AstForCppStmt : AstNodeT<AstNodeId::ForCppStmt>
+struct AstForCStyleStmt : AstNodeT<AstNodeId::ForCStyleStmt>
 {
     AstNodeRef nodeVarDecl;
     AstNodeRef nodeExpr;
@@ -1191,7 +1191,7 @@ struct AstForCppStmt : AstNodeT<AstNodeId::ForCppStmt>
     }
 };
 
-struct AstForLoopStmt : AstNodeT<AstNodeId::ForLoopStmt>
+struct AstForStmt : AstNodeT<AstNodeId::ForStmt>
 {
     AstModifierFlags modifierFlags;
     TokenRef         tokName;
@@ -1205,7 +1205,7 @@ struct AstForLoopStmt : AstNodeT<AstNodeId::ForLoopStmt>
     }
 };
 
-struct AstForInfiniteStmt : AstNodeT<AstNodeId::ForInfiniteStmt>
+struct AstInfiniteLoopStmt : AstNodeT<AstNodeId::InfiniteLoopStmt>
 {
     AstNodeRef nodeBody;
 

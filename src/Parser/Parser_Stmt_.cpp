@@ -33,7 +33,18 @@ AstNodeRef Parser::parseUsing()
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingDecl>();
     consume();
-    nodePtr->spanChildren = parseCompoundContent(AstNodeId::UsingDecl, TokenId::Invalid, true);
+
+    SmallVector<AstNodeRef> nodeChildren;
+    auto                    nodeIdentifier = parseQualifiedIdentifier();
+    nodeChildren.push_back(nodeIdentifier);
+    while (consumeIf(TokenId::SymComma).isValid())
+    {
+        nodeIdentifier = parseQualifiedIdentifier();
+        nodeChildren.push_back(nodeIdentifier);
+    }
+
+    nodePtr->spanChildren = ast_->store().push_span(nodeChildren.span());
+    expectEndStatement();
 
     return nodeRef;
 }

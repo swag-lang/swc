@@ -84,8 +84,8 @@ class Parser
 
     AstNodeRef parseCompoundValue(AstNodeId blockNodeId);
     Result     parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId);
-    SpanRef    parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt = false);
-    SpanRef    parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openTokRef, TokenId tokenStartId, bool endStmt = false);
+    SpanRef    parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId);
+    SpanRef    parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openTokRef, TokenId tokenStartId);
 
     AstNodeRef       parseInitializerList(AstNodeRef nodeWhat);
     AstNodeRef       parseFunctionArguments(AstNodeRef nodeExpr);
@@ -102,10 +102,10 @@ class Parser
     AstNodeRef parseCompilerIf();
 
     template<AstNodeId ID>
-    AstNodeRef parseCompound(TokenId tokenStartId, bool endStmt = false)
+    AstNodeRef parseCompound(TokenId tokenStartId)
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<ID>();
-        nodePtr->spanChildren   = parseCompoundContent(ID, tokenStartId, endStmt);
+        nodePtr->spanChildren   = parseCompoundContent(ID, tokenStartId);
         return nodeRef;
     }
 

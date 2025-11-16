@@ -32,9 +32,6 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
         case AstNodeId::GenericParamList:
             return parseGenericParam();
 
-        case AstNodeId::UsingDecl:
-            return parseQualifiedIdentifier();
-
         case AstNodeId::ClosureExpr:
             return parseClosureCaptureArg();
         case AstNodeId::FunctionExpr:
@@ -99,7 +96,6 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
             }
             break;
 
-        case AstNodeId::UsingDecl:
         case AstNodeId::AttributeList:
         case AstNodeId::UnnamedArgumentList:
         case AstNodeId::NamedArgumentList:
@@ -125,7 +121,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
     return Result::Success;
 }
 
-SpanRef Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId, bool endStmt)
+SpanRef Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId)
 {
     const TokenRef openTokRef = ref();
 
@@ -139,10 +135,10 @@ SpanRef Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId
         }
     }
 
-    return parseCompoundContentInside(blockNodeId, openTokRef, tokenStartId, endStmt);
+    return parseCompoundContentInside(blockNodeId, openTokRef, tokenStartId);
 }
 
-SpanRef Parser::parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openTokRef, TokenId tokenStartId, bool endStmt)
+SpanRef Parser::parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openTokRef, TokenId tokenStartId)
 {
     const auto tokenEndId = Token::toRelated(tokenStartId);
 
@@ -155,13 +151,6 @@ SpanRef Parser::parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openT
         AstNodeRef childRef = parseCompoundValue(blockNodeId);
         if (childRef.isValid())
             childrenRefs.push_back(childRef);
-
-        // End of block
-        if (endStmt)
-        {
-            if (is(TokenId::SymSemiColon) || tok().startsLine())
-                break;
-        }
 
         // Separator between statements
         if (parseCompoundSeparator(blockNodeId, tokenEndId) == Result::Error)

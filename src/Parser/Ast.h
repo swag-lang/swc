@@ -22,8 +22,8 @@ class Ast
 {
     RefStore<>  store_;
     LexerOutput lexOut_;
-    AstNodeRef  root_ = AstNodeRef::invalid();
-    AstFlags    flags_;
+    AstNodeRef  root_  = AstNodeRef::invalid();
+    AstFlags    flags_ = AstFlagsE::Zero;
 
 public:
     static constexpr const AstNodeIdInfo& nodeIdInfos(AstNodeId id) { return AST_NODE_ID_INFOS[static_cast<size_t>(id)]; }
@@ -50,7 +50,6 @@ public:
 
     void nodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const;
 
-    // Construct new nodes
     template<AstNodeId ID>
     auto makeNode()
     {

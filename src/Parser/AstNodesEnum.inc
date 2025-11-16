@@ -203,15 +203,15 @@ SWC_NODE_DEF(ElseStmt)
 SWC_NODE_DEF(IfVarDecl)
 
 // Loops
-SWC_NODE_DEF(While)
-SWC_NODE_DEF(Foreach)
-SWC_NODE_DEF(ForCpp)
-SWC_NODE_DEF(ForLoop)
-SWC_NODE_DEF(ForInfinite)
+SWC_NODE_DEF(WhileStmt)
+SWC_NODE_DEF(ForeachStmt)
+SWC_NODE_DEF(ForCppStmt)
+SWC_NODE_DEF(ForLoopStmt)
+SWC_NODE_DEF(ForInfiniteStmt)
 
 // Switch
-SWC_NODE_DEF(Switch)
-SWC_NODE_DEF(SwitchCase)
+SWC_NODE_DEF(SwitchStmt)
+SWC_NODE_DEF(SwitchCaseStmt)
 
 // Compiler Conditionals
 SWC_NODE_DEF(CompilerIf)

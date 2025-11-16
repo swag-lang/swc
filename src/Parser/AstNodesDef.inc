@@ -1151,7 +1151,7 @@ struct AstIntrinsicPostMove : AstIntrinsicInitDropCopyMoveT<AstNodeId::Intrinsic
 {
 };
 
-struct AstWhile : AstNodeT<AstNodeId::While>
+struct AstWhileStmt : AstNodeT<AstNodeId::WhileStmt>
 {
     AstNodeRef nodeExpr;
     AstNodeRef nodeBody;
@@ -1162,7 +1162,7 @@ struct AstWhile : AstNodeT<AstNodeId::While>
     }
 };
 
-struct AstForeach : AstNodeT<AstNodeId::Foreach>
+struct AstForeachStmt : AstNodeT<AstNodeId::ForeachStmt>
 {
     enum class FlagsE : Flags
     {
@@ -1184,7 +1184,7 @@ struct AstForeach : AstNodeT<AstNodeId::Foreach>
     }
 };
 
-struct AstForCpp : AstNodeT<AstNodeId::ForCpp>
+struct AstForCppStmt : AstNodeT<AstNodeId::ForCppStmt>
 {
     AstNodeRef nodeVarDecl;
     AstNodeRef nodeExpr;
@@ -1197,7 +1197,7 @@ struct AstForCpp : AstNodeT<AstNodeId::ForCpp>
     }
 };
 
-struct AstForLoop : AstNodeT<AstNodeId::ForLoop>
+struct AstForLoopStmt : AstNodeT<AstNodeId::ForLoopStmt>
 {
     AstModifierFlags modifierFlags;
     TokenRef         tokName;
@@ -1211,7 +1211,7 @@ struct AstForLoop : AstNodeT<AstNodeId::ForLoop>
     }
 };
 
-struct AstForInfinite : AstNodeT<AstNodeId::ForInfinite>
+struct AstForInfiniteStmt : AstNodeT<AstNodeId::ForInfiniteStmt>
 {
     AstNodeRef nodeBody;
 
@@ -1252,7 +1252,7 @@ struct AstDiscard : AstNodeT<AstNodeId::Discard>
     }
 };
 
-struct AstSwitch : AstCompoundT<AstNodeId::Switch>
+struct AstSwitchStmt : AstCompoundT<AstNodeId::SwitchStmt>
 {
     AstNodeRef nodeExpr;
 
@@ -1263,7 +1263,7 @@ struct AstSwitch : AstCompoundT<AstNodeId::Switch>
     }
 };
 
-struct AstSwitchCase : AstCompoundT<AstNodeId::SwitchCase>
+struct AstSwitchCaseStmt : AstCompoundT<AstNodeId::SwitchCaseStmt>
 {
     SpanRef    spanExpr;
     AstNodeRef nodeWhere;

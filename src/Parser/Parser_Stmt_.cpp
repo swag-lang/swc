@@ -273,7 +273,7 @@ AstNodeRef Parser::parseIntrinsicPostMove()
 
 AstNodeRef Parser::parseWhile()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::While>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::WhileStmt>();
     consume();
     nodePtr->nodeExpr = parseExpression();
     nodePtr->nodeBody = parseDoCurlyBlock();
@@ -282,7 +282,7 @@ AstNodeRef Parser::parseWhile()
 
 AstNodeRef Parser::parseForCpp()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForCpp>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForCppStmt>();
     consumeAssert(TokenId::KwdFor);
 
     nodePtr->nodeVarDecl = parseVarDecl();
@@ -298,7 +298,7 @@ AstNodeRef Parser::parseForCpp()
 
 AstNodeRef Parser::parseForInfinite()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForInfinite>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForInfiniteStmt>();
     consumeAssert(TokenId::KwdFor);
     nodePtr->nodeBody = parseDoCurlyBlock();
     return nodeRef;
@@ -306,7 +306,7 @@ AstNodeRef Parser::parseForInfinite()
 
 AstNodeRef Parser::parseForLoop()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForLoop>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForLoopStmt>();
     consumeAssert(TokenId::KwdFor);
 
     nodePtr->modifierFlags = parseModifiers();
@@ -343,7 +343,7 @@ AstNodeRef Parser::parseFor()
 
 AstNodeRef Parser::parseForeach()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Foreach>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForeachStmt>();
     consumeAssert(TokenId::KwdForeach);
 
     // Specialization
@@ -357,7 +357,7 @@ AstNodeRef Parser::parseForeach()
     // By address
     if (consumeIf(TokenId::SymAmpersand).isValid())
     {
-        nodePtr->addFlag(AstForeach::FlagsE::ByAddress);
+        nodePtr->addFlag(AstForeachStmt::FlagsE::ByAddress);
         const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
         tokNames.push_back(tokName);
     }
@@ -417,7 +417,7 @@ AstNodeRef Parser::parseDiscard()
 
 AstNodeRef Parser::parseSwitchCaseDefault()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SwitchCase>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SwitchCaseStmt>();
     if (consumeIf(TokenId::KwdCase).isValid())
     {
         SmallVector<AstNodeRef> nodeExpressions;
@@ -448,7 +448,7 @@ AstNodeRef Parser::parseSwitchCaseDefault()
 
 AstNodeRef Parser::parseSwitch()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Switch>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SwitchStmt>();
     consumeAssert(TokenId::KwdSwitch);
 
     if (isNot(TokenId::SymLeftCurly))
@@ -461,7 +461,7 @@ AstNodeRef Parser::parseSwitch()
 
     SmallVector<AstNodeRef> nodeChildren;
     SmallVector<AstNodeRef> nodeStmts;
-    AstSwitchCase*          currentCase = nullptr;
+    AstSwitchCaseStmt*      currentCase = nullptr;
 
     while (isNot(TokenId::SymRightCurly) && !atEnd())
     {
@@ -476,7 +476,7 @@ AstNodeRef Parser::parseSwitch()
 
                 auto caseRef = parseSwitchCaseDefault();
                 nodeChildren.push_back(caseRef);
-                currentCase = ast_->node<AstNodeId::SwitchCase>(caseRef);
+                currentCase = ast_->node<AstNodeId::SwitchCaseStmt>(caseRef);
                 break;
             }
 

@@ -12,8 +12,7 @@ void AstVisit::start(Ast& ast, const Callbacks& cb)
     if (ast_->root().isInvalid())
         return;
 
-    currentLex_  = &ast_->lexOut();
-    currentNode_ = nullptr;
+    currentLex_ = &ast_->lexOut();
 
     Frame fr;
     fr.nodeRef      = ast_->root();
@@ -33,9 +32,12 @@ bool AstVisit::step()
     {
         case Frame::Stage::Pre:
         {
-            currentNode_ = resolveNode(fr);
-            SWC_ASSERT(currentNode_->id != AstNodeId::Invalid);
-            SWC_ASSERT(currentNode_->id < AstNodeId::Count);
+            SWC_ASSERT(fr.nodeRef.isValid());
+            SWC_ASSERT(fr.sourceAtPush);
+            fr.node = ast_->node(fr.nodeRef);
+            SWC_ASSERT(fr.node->id != AstNodeId::Invalid);
+            SWC_ASSERT(fr.node->id < AstNodeId::Count);
+
 #if SWC_HAS_STATS
             Stats::get().numVisitedAstNodes.fetch_add(1);
 #endif
@@ -43,7 +45,7 @@ bool AstVisit::step()
             // Pre-order callback
             if (cb_.pre)
             {
-                const Action a = cb_.pre(this, currentNode_);
+                const Action a = cb_.pre(this, fr.node);
                 if (a == Action::Stop)
                 {
                     stack_.clear();
@@ -57,8 +59,8 @@ bool AstVisit::step()
             }
 
             // Collect children
-            const auto& info = Ast::nodeIdInfos(currentNode_->id);
-            info.collectChildren(fr.children, ast_, currentNode_);
+            const auto& info = Ast::nodeIdInfos(fr.node->id);
+            info.collectChildren(fr.children, ast_, fr.node);
 
             fr.stage = Frame::Stage::Children;
             return true;
@@ -91,7 +93,7 @@ bool AstVisit::step()
             // Post-order callback
             if (cb_.post)
             {
-                const Action a = cb_.post(this, currentNode_);
+                const Action a = cb_.post(this, fr.node);
                 if (a == Action::Stop)
                 {
                     stack_.clear();
@@ -117,13 +119,6 @@ void AstVisit::run()
 void AstVisit::clear()
 {
     stack_.clear();
-}
-
-AstNode* AstVisit::resolveNode(const Frame& fr) const
-{
-    SWC_ASSERT(fr.nodeRef.isValid());
-    SWC_ASSERT(fr.sourceAtPush);
-    return ast_->node(fr.nodeRef);
 }
 
 SWC_END_NAMESPACE()

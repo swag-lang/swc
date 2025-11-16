@@ -2,8 +2,8 @@
 #include "Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE()
-class Ast;
 
+class Ast;
 class LexerOutput;
 struct AstNode;
 
@@ -38,17 +38,15 @@ private:
         };
 
         const LexerOutput*      sourceAtPush = nullptr;
+        AstNode*                node         = nullptr;
         SmallVector<AstNodeRef> children;
         AstNodeRef              nodeRef     = AstNodeRef::invalid();
         size_t                  nextChildIx = 0;
         Stage                   stage       = Stage::Pre;
     };
 
-    const LexerOutput*     currentLex_  = nullptr;
-    AstNode*               currentNode_ = nullptr;
+    const LexerOutput*     currentLex_ = nullptr;
     SmallVector<Frame, 64> stack_;
-
-    AstNode* resolveNode(const Frame& fr) const;
 
 public:
     void start(Ast& ast, const Callbacks& cb = {});

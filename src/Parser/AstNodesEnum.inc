@@ -110,7 +110,7 @@ SWC_NODE_DEF(VarMultiDecl)
 SWC_NODE_DEF(VarDecompositionDecl)
 SWC_NODE_DEF(IfVarDecl)
 SWC_NODE_DEF(WithVarDecl)
-SWC_NODE_DEF(Undefined)
+SWC_NODE_DEF(UndefinedExpr)
 
 // -----------------------------------------------------------------------------
 //  Expressions

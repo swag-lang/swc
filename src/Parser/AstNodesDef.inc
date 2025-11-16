@@ -1001,7 +1001,7 @@ struct AstVarMultiDecl : AstCompoundT<AstNodeId::VarMultiDecl>
 {
 };
 
-struct AstUndefined : AstNodeT<AstNodeId::Undefined>
+struct AstUndefinedExpr : AstNodeT<AstNodeId::UndefinedExpr>
 {
 };
 

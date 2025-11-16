@@ -254,7 +254,7 @@ AstNodeRef Parser::parseInitializerExpression()
 {
     if (consumeIf(TokenId::KwdUndefined).isValid())
     {
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Undefined>();
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UndefinedExpr>();
         return nodeRef;
     }
 

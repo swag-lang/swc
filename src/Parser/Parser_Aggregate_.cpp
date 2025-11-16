@@ -112,17 +112,18 @@ AstNodeRef Parser::parseAggregateValue()
 
 AstNodeRef Parser::parseUnionDecl()
 {
-    return parseAggregateDecl(AstNodeId::UnionDecl);
+    return parseAggregateDecl<AstNodeId::UnionDecl>();
 }
 
 AstNodeRef Parser::parseStructDecl()
 {
-    return parseAggregateDecl(AstNodeId::StructDecl);
+    return parseAggregateDecl<AstNodeId::StructDecl>();
 }
 
-AstNodeRef Parser::parseAggregateDecl(AstNodeId nodeId)
+template<AstNodeId I>
+AstNodeRef Parser::parseAggregateDecl()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstAggregateDecl>(nodeId);
+    auto [nodeRef, nodePtr] = ast_->makeNode<I>();
     consume();
 
     // Generic types

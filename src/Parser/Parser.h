@@ -91,7 +91,6 @@ class Parser
     AstNodeRef       parseCompilerIf(AstNodeId blockNodeId);
     AstNodeRef       parseCompilerIfStmt(AstNodeId blockNodeId);
     AstNodeRef       parseAttributeList(AstNodeId blockNodeId);
-    AstNodeRef       parseAggregateDecl(AstNodeId nodeId);
     AstNodeRef       parseInitializerList(AstNodeRef nodeWhat);
     AstNodeRef       parseFunctionArguments(AstNodeRef nodeExpr);
     AstNodeRef       parseArraySlicingIndex(AstNodeRef nodeRef);
@@ -203,6 +202,9 @@ class Parser
     AstNodeRef parseVarDecl();
     AstNodeRef parseWhile();
     AstNodeRef parseWith();
+
+    template<AstNodeId I>
+    AstNodeRef parseAggregateDecl();
 
     template<AstNodeId ID>
     AstNodeRef parseCompound(TokenId tokenStartId, bool endStmt = false)

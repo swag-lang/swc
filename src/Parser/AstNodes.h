@@ -112,13 +112,9 @@ struct AstLiteralT : AstNodeT<I>
     TokenRef tokValue;
 };
 
-struct AstAggregateDecl : AstNode
+template<AstNodeId I>
+struct AstAggregateDeclT : AstNodeT<I>
 {
-    explicit AstAggregateDecl(AstNodeId nodeId) :
-        AstNode(nodeId)
-    {
-    }
-
     TokenRef   tokName;
     SpanRef    spanGenericParams;
     SpanRef    spanWhere;
@@ -129,16 +125,6 @@ struct AstAggregateDecl : AstNode
         AstNode::collectChildren(out, ast, spanGenericParams);
         AstNode::collectChildren(out, ast, spanWhere);
         AstNode::collectChildren(out, {nodeBody});
-    }
-};
-
-template<AstNodeId I>
-struct AstAggregateDeclT : AstAggregateDecl
-{
-    static constexpr auto ID = I;
-    AstAggregateDeclT() :
-        AstAggregateDecl(I)
-    {
     }
 };
 

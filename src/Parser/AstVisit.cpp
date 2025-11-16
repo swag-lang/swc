@@ -49,7 +49,7 @@ bool AstVisit::step()
             // Pre-order callback
             if (cb_.pre)
             {
-                const Action result = cb_.pre(this, fr.node);
+                const Action result = cb_.pre(*this, fr.node);
                 if (result == Action::Stop)
                     return false;
 
@@ -99,7 +99,7 @@ bool AstVisit::step()
             // Post-order callback
             if (cb_.post)
             {
-                const Action result = cb_.post(this, fr.node);
+                const Action result = cb_.post(*this, fr.node);
                 if (result == Action::Stop)
                     return false;
             }

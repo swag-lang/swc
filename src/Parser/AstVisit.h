@@ -18,10 +18,11 @@ public:
     };
 
     // Both callbacks are optional; if unset, they're no-ops.
+    using Callback = Action (*)(AstVisit&, AstNode*);
     struct Callbacks
     {
-        std::function<Action(const AstVisit* visit, const AstNode* node)> pre  = {};
-        std::function<Action(const AstVisit* visit, const AstNode* node)> post = {};
+        Callback pre  = nullptr;
+        Callback post = nullptr;
     };
 
 private:

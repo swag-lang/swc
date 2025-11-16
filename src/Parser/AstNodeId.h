@@ -5,7 +5,7 @@ SWC_BEGIN_NAMESPACE()
 enum class AstNodeId : uint16_t
 {
 #define SWC_NODE_DEF(enum) enum,
-#include "Parser/AstNodes.inc"
+#include "Parser/AstNodesEnum.inc"
 
 #undef SWC_NODE_DEF
     Count

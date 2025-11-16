@@ -311,14 +311,14 @@ AstNodeRef Parser::parseFunctionArguments(AstNodeRef nodeExpr)
     {
         const auto openRef = consume();
 
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AliasCall>();
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AliasCallExpr>();
         nodePtr->nodeExpr             = nodeExpr;
-        nodePtr->spanAliases          = parseCompoundContent(AstNodeId::AliasCall, TokenId::SymVertical);
+        nodePtr->spanAliases          = parseCompoundContent(AstNodeId::AliasCallExpr, TokenId::SymVertical);
         nodePtr->spanChildren         = parseCompoundContentInside(AstNodeId::NamedArgumentList, openRef, TokenId::SymLeftParen);
         return nodeRef;
     }
 
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Call>();
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CallExpr>();
     nodePtr->nodeExpr             = nodeExpr;
     nodePtr->spanChildren         = parseCompoundContent(AstNodeId::NamedArgumentList, TokenId::SymLeftParen);
     return nodeRef;

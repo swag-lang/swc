@@ -1,5 +1,4 @@
 #include "pch.h"
-
 #include "Lexer/SourceFile.h"
 #include "Parser/Parser.h"
 #include "Report/Diagnostic.h"
@@ -8,7 +7,7 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseTopLevelCall()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Call>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CallExpr>();
     nodePtr->nodeExpr       = parseQualifiedIdentifier();
     nodePtr->spanChildren   = parseCompoundContent(AstNodeId::NamedArgumentList, TokenId::SymLeftParen);
     return nodeRef;

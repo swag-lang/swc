@@ -135,8 +135,8 @@ SWC_NODE_DEF(IndexListExpr)
 SWC_NODE_DEF(StructInitializerList)
 
 // Function Calls & Alias Calls
-SWC_NODE_DEF(Call)
-SWC_NODE_DEF(AliasCall)
+SWC_NODE_DEF(CallExpr)
+SWC_NODE_DEF(AliasCallExpr)
 SWC_NODE_DEF(DiscardExpr)
 
 // Type Casting & Type Checks

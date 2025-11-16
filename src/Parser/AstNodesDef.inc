@@ -374,7 +374,7 @@ struct AstSuffixListIdentifier : AstCompoundT<AstNodeId::SuffixListIdentifier>
     TokenRef tokName;
 };
 
-struct AstCall : AstCompoundT<AstNodeId::Call>
+struct AstCallExpr : AstCompoundT<AstNodeId::CallExpr>
 {
     AstNodeRef nodeExpr;
 
@@ -385,7 +385,7 @@ struct AstCall : AstCompoundT<AstNodeId::Call>
     }
 };
 
-struct AstAliasCall : AstCompoundT<AstNodeId::AliasCall>
+struct AstAliasCallExpr : AstCompoundT<AstNodeId::AliasCallExpr>
 {
     AstNodeRef nodeExpr;
     SpanRef    spanAliases;

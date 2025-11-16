@@ -47,7 +47,7 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
         case AstNodeId::SuffixListIdentifier:
             return parseSuffixIdentifierValue();
 
-        case AstNodeId::AliasCall:
+        case AstNodeId::AliasCallExpr:
             return parseIdentifier();
 
         default:
@@ -109,7 +109,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
         case AstNodeId::FunctionExpr:
         case AstNodeId::LambdaType:
         case AstNodeId::SuffixListIdentifier:
-        case AstNodeId::AliasCall:
+        case AstNodeId::AliasCallExpr:
             if (consumeIf(TokenId::SymComma).isInvalid() && !is(tokenEndId))
             {
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);

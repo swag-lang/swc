@@ -7,14 +7,15 @@ SWC_BEGIN_NAMESPACE()
 
 void AstVisit::start(Ast& ast, const Callbacks& cb)
 {
-    ast_ = &ast;
-    cb_  = cb;
-    if (ast_->root().isInvalid())
-        return;
-
+    ast_        = &ast;
+    cb_         = cb;
     currentLex_ = &ast_->lexOut();
+
     stack_.clear();
     children_.clear();
+
+    if (ast_->root().isInvalid())
+        return;
 
     Frame fr;
     fr.nodeRef      = ast_->root();
@@ -103,6 +104,7 @@ bool AstVisit::step()
                     return false;
             }
 
+            currentLex_ = fr.sourceAtPush;
             stack_.pop_back();
             return !stack_.empty();
         }

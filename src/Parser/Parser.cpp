@@ -291,7 +291,7 @@ void Parser::expectEndStatement()
     skipTo({TokenId::SymRightCurly, TokenId::SymRightParen, TokenId::SymRightBracket, TokenId::SymSemiColon}, SkipUntilFlagsE::EolBefore);
 }
 
-void Parser::parse(TaskContext& ctx, ParserOutput& out, const LexerOutput& lexOut)
+void Parser::parse(TaskContext& ctx, ParserOutput& out)
 {
 #if SWC_HAS_STATS
     Timer time(&Stats::get().timeParser);
@@ -299,11 +299,10 @@ void Parser::parse(TaskContext& ctx, ParserOutput& out, const LexerOutput& lexOu
 
     out_ = &out;
     ast_ = &out.ast();
-    ast_->setLexOut(lexOut);
     ctx_ = &ctx;
 
-    firstToken_ = &lexOut.tokens().front();
-    lastToken_  = &lexOut.tokens().back();
+    firstToken_ = &ast_->lexOut().tokens().front();
+    lastToken_  = &ast_->lexOut().tokens().back();
     curToken_   = firstToken_;
 
     // Force the first node to be invalid, so that AstNodeRef 0 is invalid

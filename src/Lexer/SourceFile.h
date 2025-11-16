@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "Lexer/Lexer.h"
 #include "Parser/Parser.h"
 #include "Report/UnitTest.h"
 
@@ -24,7 +23,6 @@ class SourceFile
     std::vector<char8_t> content_;
     UnitTest             unittest_;
     FileFlags            flags_ = FileFlagsE::Zero;
-    LexerOutput          lexOut_;
     ParserOutput         parserOut_;
 
 public:
@@ -36,8 +34,8 @@ public:
 
     size_t              size() const { return content_.size() - TRAILING_0; }
     FileRef             ref() const { return ref_; }
-    LexerOutput&        lexOut() { return lexOut_; }
-    const LexerOutput&  lexOut() const { return lexOut_; }
+    LexerOutput&        lexOut() { return parserOut_.ast().lexOut(); }
+    const LexerOutput&  lexOut() const { return parserOut_.ast().lexOut(); }
     const ParserOutput& parserOut() const { return parserOut_; }
     ParserOutput&       parserOut() { return parserOut_; }
     UnitTest&           unittest() { return unittest_; }

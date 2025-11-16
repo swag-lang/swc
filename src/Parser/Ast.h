@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/RefStore.h"
+#include "Lexer/Lexer.h"
 #include "Main/Stats.h"
 #include "Parser/AstNode.h"
 #include "Parser/AstNodes.h"
@@ -9,9 +10,9 @@ class LexerOutput;
 
 class Ast
 {
-    RefStore<>         store_;
-    AstNodeRef         root_   = AstNodeRef::invalid();
-    const LexerOutput* lexOut_ = nullptr;
+    RefStore<>  store_;
+    AstNodeRef  root_ = AstNodeRef::invalid();
+    LexerOutput lexOut_;
 
 public:
     static constexpr const AstNodeIdInfo& nodeIdInfos(AstNodeId id) { return AST_NODE_ID_INFOS[static_cast<size_t>(id)]; }
@@ -19,8 +20,8 @@ public:
     auto&                                 store() { return store_; }
     AstNodeRef                            root() const { return root_; }
     void                                  setRoot(AstNodeRef root) { root_ = root; }
-    const LexerOutput&                    lexOut() const { return *lexOut_; }
-    void                                  setLexOut(const LexerOutput& lexOut) { lexOut_ = &lexOut; }
+    LexerOutput&                          lexOut() { return lexOut_; }
+    const LexerOutput&                    lexOut() const { return lexOut_; }
 
     // Get a node depending on its ref
     template<AstNodeId ID>

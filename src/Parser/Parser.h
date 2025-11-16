@@ -227,7 +227,7 @@ class Parser
     void               raiseExpected(DiagnosticId id, TokenRef tknRef, TokenId tknExpected);
 
 public:
-    void parse(TaskContext& ctx, ParserOutput& out, const LexerOutput& lexOut);
+    void parse(TaskContext& ctx, ParserOutput& out);
 };
 
 SWC_END_NAMESPACE()

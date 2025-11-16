@@ -24,11 +24,6 @@ public:
         std::function<Action(const AstVisit* visit, const AstNode* node)> post = {};
     };
 
-    void start(Ast& ast, const Callbacks& cb = {});
-    bool step();
-    void run();
-    void clear();
-
 private:
     Callbacks cb_{};
     Ast*      ast_ = nullptr;
@@ -43,8 +38,8 @@ private:
         };
 
         const LexerOutput*      sourceAtPush = nullptr;
-        AstNodeRef              nodeRef      = AstNodeRef::invalid();
         SmallVector<AstNodeRef> children;
+        AstNodeRef              nodeRef     = AstNodeRef::invalid();
         size_t                  nextChildIx = 0;
         Stage                   stage       = Stage::Pre;
     };
@@ -54,6 +49,15 @@ private:
     SmallVector<Frame, 64> stack_;
 
     AstNode* resolveNode(const Frame& fr) const;
+
+public:
+    void start(Ast& ast, const Callbacks& cb = {});
+    bool step();
+    void run();
+    void clear();
+
+    const Ast* ast() const { return ast_; }
+    Ast*       ast() { return ast_; }
 };
 
 SWC_END_NAMESPACE()

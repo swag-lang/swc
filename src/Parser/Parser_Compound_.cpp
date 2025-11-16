@@ -25,9 +25,9 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
         case AstNodeId::AttributeList:
             return parseAttributeValue();
 
-        case AstNodeId::UnnamedArgList:
+        case AstNodeId::UnnamedArgumentList:
             return parseExpression();
-        case AstNodeId::NamedArgList:
+        case AstNodeId::NamedArgumentList:
             return parseNamedArg();
         case AstNodeId::GenericParamList:
             return parseGenericParam();
@@ -44,7 +44,7 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
         case AstNodeId::FunctionParamList:
             return parseFunctionParam();
 
-        case AstNodeId::MultiSuffixIdentifier:
+        case AstNodeId::SuffixListIdentifier:
             return parseSuffixIdentifierValue();
 
         case AstNodeId::AliasCall:
@@ -101,14 +101,14 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
 
         case AstNodeId::UsingDecl:
         case AstNodeId::AttributeList:
-        case AstNodeId::UnnamedArgList:
-        case AstNodeId::NamedArgList:
+        case AstNodeId::UnnamedArgumentList:
+        case AstNodeId::NamedArgumentList:
         case AstNodeId::GenericParamList:
         case AstNodeId::FunctionParamList:
         case AstNodeId::ClosureExpr:
         case AstNodeId::FunctionExpr:
         case AstNodeId::LambdaType:
-        case AstNodeId::MultiSuffixIdentifier:
+        case AstNodeId::SuffixListIdentifier:
         case AstNodeId::AliasCall:
             if (consumeIf(TokenId::SymComma).isInvalid() && !is(tokenEndId))
             {

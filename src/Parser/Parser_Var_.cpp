@@ -43,14 +43,14 @@ AstNodeRef Parser::parseGenericParam()
 
     if (isConstant)
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::GenericValueParam>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::GenericParamValue>();
         nodePtr->tokName        = tknName;
         nodePtr->nodeAssign     = nodeAssign;
         nodePtr->nodeType       = nodeType;
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::GenericTypeParam>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::GenericParamType>();
     nodePtr->tokName        = tknName;
     nodePtr->nodeAssign     = nodeAssign;
     return nodeRef;
@@ -161,7 +161,7 @@ AstNodeRef Parser::parseVarDecl()
         }
         else
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarMultiNameDecl>();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarNameListDecl>();
             nodePtr->addFlag(flags);
             nodePtr->spanNames = ast_->store().push_span(tokNames.span());
             nodePtr->nodeType  = nodeType;
@@ -179,7 +179,7 @@ AstNodeRef Parser::parseVarDecl()
         return vars.front();
 
     // Multiple variables
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarMultiDecl>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDeclList>();
     nodePtr->spanChildren   = ast_->store().push_span(vars.span());
     return nodeRef;
 }

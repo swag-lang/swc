@@ -136,14 +136,14 @@ AstNodeRef Parser::parseLiteralExpression()
 AstNodeRef Parser::parseLiteralArray()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ArrayLiteral>();
-    nodePtr->spanChildren   = parseCompoundContent(AstNodeId::UnnamedArgList, TokenId::SymLeftBracket);
+    nodePtr->spanChildren   = parseCompoundContent(AstNodeId::UnnamedArgumentList, TokenId::SymLeftBracket);
     return nodeRef;
 }
 
 AstNodeRef Parser::parseLiteralStruct()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructLiteral>();
-    nodePtr->spanChildren   = parseCompoundContent(AstNodeId::NamedArgList, TokenId::SymLeftCurly);
+    nodePtr->spanChildren   = parseCompoundContent(AstNodeId::NamedArgumentList, TokenId::SymLeftCurly);
     return nodeRef;
 }
 

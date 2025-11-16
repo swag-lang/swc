@@ -109,7 +109,7 @@ class Parser
         return nodeRef;
     }
 
-    AstNodeRef parseAffectStmt();
+    AstNodeRef parseAssignStmt();
     AstNodeRef parseAggregateAccessModifier();
     AstNodeRef parseAggregateBody();
     AstNodeRef parseAggregateValue();

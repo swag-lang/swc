@@ -233,9 +233,9 @@ AstNodeRef Parser::parseIdentifier()
         consume();
         if (is(TokenId::SymLeftParen))
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::MultiSuffixIdentifier>();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SuffixListIdentifier>();
             nodePtr->tokName        = tokName;
-            nodePtr->spanChildren   = parseCompoundContent(AstNodeId::MultiSuffixIdentifier, TokenId::SymLeftParen);
+            nodePtr->spanChildren   = parseCompoundContent(AstNodeId::SuffixListIdentifier, TokenId::SymLeftParen);
             return nodeRef;
         }
 
@@ -706,7 +706,7 @@ AstNodeRef Parser::parseInitializerList(AstNodeRef nodeWhat)
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructInitializerList>();
     nodePtr->nodeWhat       = nodeWhat;
-    nodePtr->spanArgs       = parseCompoundContent(AstNodeId::NamedArgList, TokenId::SymLeftCurly);
+    nodePtr->spanArgs       = parseCompoundContent(AstNodeId::NamedArgumentList, TokenId::SymLeftCurly);
     return nodeRef;
 }
 
@@ -753,7 +753,7 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
             return nodeParent;
         }
 
-        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::MultiIndexExpr>();
+        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IndexListExpr>();
         nodePtr->nodeExpr                = nodeRef;
         nodePtr->spanChildren            = ast_->store().push_span(nodeArgs.span());
         return nodeParent;

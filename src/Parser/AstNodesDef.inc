@@ -369,7 +369,7 @@ struct AstSuffixIdentifier : AstNodeT<AstNodeId::SuffixIdentifier>
     }
 };
 
-struct AstMultiSuffixIdentifier : AstCompoundT<AstNodeId::MultiSuffixIdentifier>
+struct AstSuffixListIdentifier : AstCompoundT<AstNodeId::SuffixListIdentifier>
 {
     TokenRef tokName;
 };
@@ -421,7 +421,7 @@ struct AstIndexExpr : AstNodeT<AstNodeId::IndexExpr>
     }
 };
 
-struct AstMultiIndexExpr : AstCompoundT<AstNodeId::MultiIndexExpr>
+struct AstIndexListExpr : AstCompoundT<AstNodeId::IndexListExpr>
 {
     AstNodeRef nodeExpr;
 
@@ -457,11 +457,11 @@ struct AstParenExpr : AstNodeT<AstNodeId::ParenExpr>
     }
 };
 
-struct AstNamedArgList : AstCompoundT<AstNodeId::NamedArgList>
+struct AstNamedArgumentList : AstCompoundT<AstNodeId::NamedArgumentList>
 {
 };
 
-struct AstUnnamedArgList : AstCompoundT<AstNodeId::UnnamedArgList>
+struct AstUnnamedArgumentList : AstCompoundT<AstNodeId::UnnamedArgumentList>
 {
 };
 
@@ -938,7 +938,7 @@ struct AstGenericParamT : AstNodeT<I>
     }
 };
 
-struct AstGenericValueParam : AstGenericParamT<AstNodeId::GenericValueParam>
+struct AstGenericParamValue : AstGenericParamT<AstNodeId::GenericParamValue>
 {
     AstNodeRef nodeType;
 
@@ -949,7 +949,7 @@ struct AstGenericValueParam : AstGenericParamT<AstNodeId::GenericValueParam>
     }
 };
 
-struct AstGenericTypeParam : AstGenericParamT<AstNodeId::GenericTypeParam>
+struct AstGenericParamType : AstGenericParamT<AstNodeId::GenericParamType>
 {
 };
 
@@ -974,7 +974,7 @@ struct AstVarDecl : AstNodeT<AstNodeId::VarDecl>
     }
 };
 
-struct AstVarMultiNameDecl : AstNodeT<AstNodeId::VarMultiNameDecl>
+struct AstVarNameListDecl : AstNodeT<AstNodeId::VarNameListDecl>
 {
     SpanRef    spanNames;
     AstNodeRef nodeType;
@@ -997,7 +997,7 @@ struct AstVarDecompositionDecl : AstNodeT<AstNodeId::VarDecompositionDecl>
     }
 };
 
-struct AstVarMultiDecl : AstCompoundT<AstNodeId::VarMultiDecl>
+struct AstVarDeclList : AstCompoundT<AstNodeId::VarDeclList>
 {
 };
 
@@ -1310,7 +1310,7 @@ struct AstRangeExpr : AstNodeT<AstNodeId::RangeExpr>
     }
 };
 
-struct AstAffectStmt : AstNodeT<AstNodeId::AffectStmt>
+struct AstAssignStmt : AstNodeT<AstNodeId::AssignStmt>
 {
     TokenRef         tokOp;
     AstModifierFlags modifierFlags;
@@ -1323,7 +1323,7 @@ struct AstAffectStmt : AstNodeT<AstNodeId::AffectStmt>
     }
 };
 
-struct AstMultiAffect : AstCompoundT<AstNodeId::MultiAffect>
+struct AstAssignListStmt : AstCompoundT<AstNodeId::AssignListStmt>
 {
     enum FlagsE : Flags
     {

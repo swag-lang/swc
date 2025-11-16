@@ -22,7 +22,7 @@ SWC_NODE_DEF(Identifier)
 SWC_NODE_DEF(PreQualifiedIdentifier)
 SWC_NODE_DEF(AncestorIdentifier)
 SWC_NODE_DEF(SuffixIdentifier)
-SWC_NODE_DEF(MultiSuffixIdentifier)
+SWC_NODE_DEF(SuffixListIdentifier)
 
 // -----------------------------------------------------------------------------
 //  Types
@@ -37,6 +37,7 @@ SWC_NODE_DEF(RRefType)
 SWC_NODE_DEF(SliceType)
 SWC_NODE_DEF(ArrayType)
 SWC_NODE_DEF(LambdaType)
+SWC_NODE_DEF(LambdaTypeParam)
 SWC_NODE_DEF(RetValType)
 SWC_NODE_DEF(CodeType)
 SWC_NODE_DEF(VariadicType)
@@ -55,14 +56,13 @@ SWC_NODE_DEF(ConstraintExpr)
 //  Generics, Parameters & Arguments
 // -----------------------------------------------------------------------------
 SWC_NODE_DEF(GenericParamList)
-SWC_NODE_DEF(GenericTypeParam)
-SWC_NODE_DEF(GenericValueParam)
+SWC_NODE_DEF(GenericParamType)
+SWC_NODE_DEF(GenericParamValue)
 SWC_NODE_DEF(FunctionParamList)
 SWC_NODE_DEF(FunctionParamMe)
-SWC_NODE_DEF(LambdaTypeParam)
-SWC_NODE_DEF(NamedArgList)
+SWC_NODE_DEF(NamedArgumentList)
 SWC_NODE_DEF(NamedArgument)
-SWC_NODE_DEF(UnnamedArgList)
+SWC_NODE_DEF(UnnamedArgumentList)
 SWC_NODE_DEF(UnnamedArgument)
 
 // -----------------------------------------------------------------------------
@@ -105,8 +105,8 @@ SWC_NODE_DEF(ClosureCapture)
 //  Variables / Bindings
 // -----------------------------------------------------------------------------
 SWC_NODE_DEF(VarDecl)
-SWC_NODE_DEF(VarMultiNameDecl)
-SWC_NODE_DEF(VarMultiDecl)
+SWC_NODE_DEF(VarNameListDecl)
+SWC_NODE_DEF(VarDeclList)
 SWC_NODE_DEF(VarDecompositionDecl)
 SWC_NODE_DEF(IfVarDecl)
 SWC_NODE_DEF(WithVarDecl)
@@ -131,7 +131,7 @@ SWC_NODE_DEF(ConditionalExpr)
 
 // Postfix, Indexing & Aggregate Init
 SWC_NODE_DEF(IndexExpr)
-SWC_NODE_DEF(MultiIndexExpr)
+SWC_NODE_DEF(IndexListExpr)
 SWC_NODE_DEF(StructInitializerList)
 
 // Function Calls & Alias Calls
@@ -206,8 +206,8 @@ SWC_NODE_DEF(InternalCallVariadic)
 // -----------------------------------------------------------------------------
 
 // Assignment / Affect
-SWC_NODE_DEF(AffectStmt)
-SWC_NODE_DEF(MultiAffect)
+SWC_NODE_DEF(AssignStmt)
+SWC_NODE_DEF(AssignListStmt)
 
 // Conditionals (runtime)
 SWC_NODE_DEF(IfStmt)

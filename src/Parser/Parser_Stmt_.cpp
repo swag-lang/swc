@@ -10,7 +10,7 @@ AstNodeRef Parser::parseTopLevelCall()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Call>();
     nodePtr->nodeExpr       = parseQualifiedIdentifier();
-    nodePtr->spanChildren   = parseCompoundContent(AstNodeId::NamedArgList, TokenId::SymLeftParen);
+    nodePtr->spanChildren   = parseCompoundContent(AstNodeId::NamedArgumentList, TokenId::SymLeftParen);
     return nodeRef;
 }
 
@@ -193,7 +193,7 @@ AstNodeRef Parser::parseWith()
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::WithStmt>();
     consume();
-    nodePtr->nodeExpr = parseAffectStmt();
+    nodePtr->nodeExpr = parseAssignStmt();
     nodePtr->nodeBody = parseEmbeddedStmt();
     return nodeRef;
 }
@@ -213,7 +213,7 @@ AstNodeRef Parser::parseIntrinsicInit()
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
     if (is(TokenId::SymLeftParen))
-        nodePtr->spanArgs = parseCompoundContent(AstNodeId::UnnamedArgList, TokenId::SymLeftParen);
+        nodePtr->spanArgs = parseCompoundContent(AstNodeId::UnnamedArgumentList, TokenId::SymLeftParen);
     else
         nodePtr->spanArgs.setInvalid();
 
@@ -548,7 +548,7 @@ AstNodeRef Parser::parseDoCurlyBlock()
     return AstNodeRef::invalid();
 }
 
-AstNodeRef Parser::parseAffectStmt()
+AstNodeRef Parser::parseAssignStmt()
 {
     AstNodeRef nodeLeft;
 
@@ -556,8 +556,8 @@ AstNodeRef Parser::parseAffectStmt()
     if (is(TokenId::SymLeftParen))
     {
         const auto openRef            = consume();
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::MultiAffect>();
-        nodePtr->addFlag(AstMultiAffect::FlagsE::Decomposition);
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AssignListStmt>();
+        nodePtr->addFlag(AstAssignListStmt::FlagsE::Decomposition);
         if (consumeIf(TokenId::SymQuestion).isValid())
             nodeLeft = AstNodeRef::invalid();
         else
@@ -588,7 +588,7 @@ AstNodeRef Parser::parseAffectStmt()
         // Multi affectations
         if (is(TokenId::SymComma))
         {
-            const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::MultiAffect>();
+            const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AssignListStmt>();
             SmallVector<AstNodeRef> nodeAffects;
             nodeAffects.push_back(nodeLeft);
             while (consumeIf(TokenId::SymComma).isValid())
@@ -615,7 +615,7 @@ AstNodeRef Parser::parseAffectStmt()
               TokenId::SymLowerLowerEqual,
               TokenId::SymGreaterGreaterEqual))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AffectStmt>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AssignStmt>();
         nodePtr->tokOp          = consume();
         nodePtr->nodeLeft       = nodeLeft;
         nodePtr->modifierFlags  = parseModifiers();
@@ -900,7 +900,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::CompilerAlias7:
         case TokenId::CompilerAlias8:
         case TokenId::CompilerAlias9:
-            return parseAffectStmt();
+            return parseAssignStmt();
 
         default:
             raiseError(DiagnosticId::parser_err_unexpected_token, ref());

@@ -110,7 +110,7 @@ AstNodeRef Parser::parseAttributeValue()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Attribute>();
     nodePtr->nodeIdent      = parseQualifiedIdentifier();
     if (is(TokenId::SymLeftParen))
-        nodePtr->nodeArgs = parseCompound<AstNodeId::NamedArgList>(TokenId::SymLeftParen);
+        nodePtr->nodeArgs = parseCompound<AstNodeId::NamedArgumentList>(TokenId::SymLeftParen);
     else
         nodePtr->nodeArgs.setInvalid();
     return nodeRef;

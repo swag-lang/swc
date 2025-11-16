@@ -13,13 +13,17 @@ void AstVisit::start(Ast& ast, const Callbacks& cb)
         return;
 
     currentLex_ = &ast_->lexOut();
+    stack_.clear();
+    children_.clear();
 
     Frame fr;
     fr.nodeRef      = ast_->root();
     fr.stage        = Frame::Stage::Pre;
     fr.nextChildIx  = 0;
+    fr.firstChildIx = 0;
+    fr.numChildren  = 0;
     fr.sourceAtPush = currentLex_;
-    stack_.push_back(std::move(fr));
+    stack_.push_back(fr);
 }
 
 bool AstVisit::step()
@@ -27,14 +31,16 @@ bool AstVisit::step()
     if (stack_.empty())
         return false;
 
-    auto& fr = stack_.back();
+    Frame& fr = stack_.back();
+
     switch (fr.stage)
     {
         case Frame::Stage::Pre:
         {
             SWC_ASSERT(fr.nodeRef.isValid());
-            SWC_ASSERT(fr.sourceAtPush);
+
             fr.node = ast_->node(fr.nodeRef);
+
             SWC_ASSERT(fr.node->id != AstNodeId::Invalid);
             SWC_ASSERT(fr.node->id < AstNodeId::Count);
 
@@ -58,9 +64,13 @@ bool AstVisit::step()
                 }
             }
 
-            // Collect children
+            // Collect children into shared storage
             const auto& info = Ast::nodeIdInfos(fr.node->id);
-            info.collectChildren(fr.children, ast_, fr.node);
+
+            fr.firstChildIx = static_cast<uint32_t>(children_.size());
+            info.collectChildren(children_, ast_, fr.node);
+            fr.numChildren = static_cast<uint32_t>(children_.size()) - fr.firstChildIx;
+            fr.nextChildIx = 0;
 
             fr.stage = Frame::Stage::Children;
             return true;
@@ -69,9 +79,9 @@ bool AstVisit::step()
         case Frame::Stage::Children:
         {
             // Still have a child to descend into?
-            while (fr.nextChildIx < fr.children.size())
+            while (fr.nextChildIx < fr.numChildren)
             {
-                const AstNodeRef childRef = fr.children[fr.nextChildIx++];
+                const AstNodeRef childRef = children_[fr.firstChildIx + fr.nextChildIx++];
                 if (childRef.isInvalid())
                     continue;
 
@@ -79,8 +89,11 @@ bool AstVisit::step()
                 childFr.nodeRef      = childRef;
                 childFr.stage        = Frame::Stage::Pre;
                 childFr.nextChildIx  = 0;
+                childFr.firstChildIx = 0;
+                childFr.numChildren  = 0;
                 childFr.sourceAtPush = currentLex_;
-                stack_.push_back(std::move(childFr));
+
+                stack_.push_back(childFr);
                 return true;
             }
 
@@ -119,6 +132,21 @@ void AstVisit::run()
 void AstVisit::clear()
 {
     stack_.clear();
+}
+
+AstNode* AstVisit::parentNode(size_t up) const
+{
+    // stack_.back() is the current node's frame.
+    // Direct parent: up = 0  → stack_[size-2]
+    if (stack_.size() <= 1) // root has no parent
+        return nullptr;
+
+    const size_t selfIdx = stack_.size() - 1; // current frame index
+    if (up >= selfIdx)                        // going above root
+        return nullptr;
+
+    const Frame& fr = stack_[selfIdx - 1 - up];
+    return fr.node;
 }
 
 SWC_END_NAMESPACE()

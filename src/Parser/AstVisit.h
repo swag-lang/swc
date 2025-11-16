@@ -37,22 +37,25 @@ private:
             Post
         };
 
-        const LexerOutput*      sourceAtPush = nullptr;
-        AstNode*                node         = nullptr;
-        SmallVector<AstNodeRef> children;
-        AstNodeRef              nodeRef     = AstNodeRef::invalid();
-        size_t                  nextChildIx = 0;
-        Stage                   stage       = Stage::Pre;
+        const LexerOutput* sourceAtPush = nullptr;
+        AstNode*           node         = nullptr;
+        uint32_t           nextChildIx  = 0; // index within this frame's child range
+        uint32_t           firstChildIx = 0; // offset into AstVisit::children_
+        uint32_t           numChildren  = 0; // number of children in that range
+        AstNodeRef         nodeRef      = AstNodeRef::invalid();
+        Stage              stage        = Stage::Pre;
     };
 
-    const LexerOutput*     currentLex_ = nullptr;
-    SmallVector<Frame, 64> stack_;
+    const LexerOutput*      currentLex_ = nullptr;
+    SmallVector<Frame, 64>  stack_;
+    SmallVector<AstNodeRef> children_; // shared pool of children
 
 public:
-    void start(Ast& ast, const Callbacks& cb = {});
-    bool step();
-    void run();
-    void clear();
+    void     start(Ast& ast, const Callbacks& cb = {});
+    bool     step();
+    void     run();
+    void     clear();
+    AstNode* parentNode(size_t up = 0) const;
 
     const Ast* ast() const { return ast_; }
     Ast*       ast() { return ast_; }

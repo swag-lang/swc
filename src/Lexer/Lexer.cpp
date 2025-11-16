@@ -1316,10 +1316,32 @@ void Lexer::tokenize(TaskContext& ctx, LexerOutput& lexOut, LexerFlags flags)
     token_.id = TokenId::EndOfFile;
     pushToken();
 
+    // Compute the start trivia of each token
+    if (lexerFlags_.has(LexerFlagsE::EmitTrivia))
+        buildTriviaIndex();
+
 #if SWC_HAS_STATS
     if (!isRawMode())
         Stats::get().numTokens.fetch_add(lexOut_->tokens().size());
 #endif
+}
+
+void Lexer::buildTriviaIndex() const
+{
+    const uint32_t numTok      = lexOut_->numTokens();
+    auto&          triviaStart = lexOut_->triviaStart();
+    triviaStart.resize(numTok + 1);
+
+    // trivia_ is in lex order; tokenRef is monotonic non-decreasing
+    uint32_t tIdx = 0;
+    for (uint32_t tokIdx = 0; tokIdx < numTok; ++tokIdx)
+    {
+        triviaStart[tokIdx] = tIdx;
+        while (tIdx < triviaStart.size() && triviaStart[tIdx] == tokIdx)
+            ++tIdx;
+    }
+
+    triviaStart[numTok] = tIdx;
 }
 
 Utf8 LexerOutput::codeLine(const TaskContext& ctx, uint32_t line) const
@@ -1383,6 +1405,13 @@ void LexerOutput::setFile(const SourceFile* file)
 {
     file_       = file;
     sourceView_ = file->sourceView();
+}
+
+std::pair<uint32_t, uint32_t> LexerOutput::triviaRangeForToken(TokenRef tok) const
+{
+    const uint32_t i = tok.get();
+    SWC_ASSERT(i + 1 < triviaStart_.size());
+    return {triviaStart_[i], triviaStart_[i + 1]};
 }
 
 SWC_END_NAMESPACE()

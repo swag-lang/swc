@@ -35,8 +35,9 @@ class LexerOutput
     const SourceFile*          file_ = nullptr;
     std::string_view           sourceView_;
     std::vector<Token>         tokens_;
-    std::vector<LexTrivia>     trivia_;
     std::vector<uint32_t>      lines_;
+    std::vector<LexTrivia>     trivia_;
+    std::vector<uint32_t>      triviaStart_;
     std::vector<LexIdentifier> identifiers_;
 
 public:
@@ -53,9 +54,12 @@ public:
     std::vector<LexIdentifier>&       identifiers() { return identifiers_; }
     const Token&                      token(TokenRef tok) const { return tokens_[tok.get()]; }
     uint32_t                          numTokens() const { return static_cast<uint32_t>(tokens_.size()); }
+    const std::vector<uint32_t>&      triviaStart() const { return triviaStart_; }
+    std::vector<uint32_t>&            triviaStart() { return triviaStart_; }
 
-    Utf8             codeLine(const TaskContext& ctx, uint32_t line) const;
-    std::string_view codeView(uint32_t offset, uint32_t len) const;
+    Utf8                          codeLine(const TaskContext& ctx, uint32_t line) const;
+    std::string_view              codeView(uint32_t offset, uint32_t len) const;
+    std::pair<uint32_t, uint32_t> triviaRangeForToken(TokenRef tok) const;
 };
 
 // Main lexer class - converts source text into tokens
@@ -87,6 +91,7 @@ class Lexer
     void       raiseTokenError(DiagnosticId id, uint32_t offset, uint32_t len = 1);
     void       checkFormat(uint32_t& startOffset);
     void       lexEscape(TokenId containerToken, bool eatEol);
+    void       buildTriviaIndex() const;
 
     bool isRawMode() const { return lexerFlags_.has(LexerFlagsE::RawMode); }
 

@@ -899,16 +899,6 @@ struct AstSliceType : AstNodeT<AstNodeId::SliceType>
     }
 };
 
-struct AstIncompleteArrayType : AstNodeT<AstNodeId::IncompleteArrayType>
-{
-    AstNodeRef nodePointeeType;
-
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
-    {
-        AstNode::collectChildren(out, {nodePointeeType});
-    }
-};
-
 struct AstArrayType : AstNodeT<AstNodeId::ArrayType>
 {
     SpanRef    spanDimensions;

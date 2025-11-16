@@ -161,7 +161,8 @@ AstNodeRef Parser::parseSubType()
             const auto child = parseType();
             if (child.isInvalid())
                 return AstNodeRef::invalid();
-            auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::IncompleteArrayType>();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ArrayType>();
+            nodePtr->spanDimensions.setInvalid();
             nodePtr->nodePointeeType = child;
             return nodeRef;
         }

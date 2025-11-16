@@ -143,13 +143,13 @@ void Lexer::pushToken()
     {
         case TokenId::Whitespace:
             if (lexerFlags_.has(LexerFlagsE::EmitTrivia))
-                lexOut_->trivia().push_back({.tokenRef = TokenRef{static_cast<uint32_t>(lexOut_->tokens().size())}, .token = token_});
+                lexOut_->trivia().push_back({.tokenRef = TokenRef{lexOut_->numTokens()}, .token = token_});
             break;
         case TokenId::CommentLine:
         case TokenId::CommentMultiLine:
             if (!isRawMode() && lexerFlags_.hasNot(LexerFlagsE::EmitTrivia))
                 break;
-            lexOut_->trivia().push_back({.tokenRef = TokenRef{static_cast<uint32_t>(lexOut_->tokens().size())}, .token = token_});
+            lexOut_->trivia().push_back({.tokenRef = TokenRef{lexOut_->numTokens()}, .token = token_});
             break;
         default:
             if (isRawMode())

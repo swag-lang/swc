@@ -20,8 +20,8 @@ using LexerFlags = EnumFlags<LexerFlagsE>;
 
 struct LexTrivia
 {
-    TokenRef tokenRef;
-    Token    token;
+    TokenRef tokenRef; // The last pushed token when the trivia was found
+    Token    token;    // Trivia definition
 };
 
 struct LexIdentifier
@@ -52,6 +52,7 @@ public:
     const std::vector<LexIdentifier>& identifiers() const { return identifiers_; }
     std::vector<LexIdentifier>&       identifiers() { return identifiers_; }
     const Token&                      token(TokenRef tok) const { return tokens_[tok.get()]; }
+    uint32_t                          numTokens() const { return static_cast<uint32_t>(tokens_.size()); }
 
     Utf8             codeLine(const TaskContext& ctx, uint32_t line) const;
     std::string_view codeView(uint32_t offset, uint32_t len) const;

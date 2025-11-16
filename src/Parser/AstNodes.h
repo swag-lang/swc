@@ -45,26 +45,14 @@ struct AstCompoundT : AstCompound
 };
 
 template<AstNodeId I>
-struct AstInternalCallZeroT : AstNode
+struct AstInternalCallZeroT : AstNodeT<I>
 {
-    static constexpr auto ID = I;
-    AstInternalCallZeroT() :
-        AstNode(I)
-    {
-    }
-
     TokenRef tokName;
 };
 
 template<AstNodeId I>
-struct AstInternalCallUnaryT : AstNode
+struct AstInternalCallUnaryT : AstNodeT<I>
 {
-    static constexpr auto ID = I;
-    AstInternalCallUnaryT() :
-        AstNode(I)
-    {
-    }
-
     TokenRef   tokName;
     AstNodeRef nodeArg1;
 
@@ -75,14 +63,8 @@ struct AstInternalCallUnaryT : AstNode
 };
 
 template<AstNodeId I>
-struct AstInternalCallBinaryT : AstNode
+struct AstInternalCallBinaryT : AstNodeT<I>
 {
-    static constexpr auto ID = I;
-    AstInternalCallBinaryT() :
-        AstNode(I)
-    {
-    }
-
     TokenRef   tokName;
     AstNodeRef nodeArg1;
     AstNodeRef nodeArg2;
@@ -94,14 +76,8 @@ struct AstInternalCallBinaryT : AstNode
 };
 
 template<AstNodeId I>
-struct AstInternalCallTernaryT : AstNode
+struct AstInternalCallTernaryT : AstNodeT<I>
 {
-    static constexpr auto ID = I;
-    AstInternalCallTernaryT() :
-        AstNode(I)
-    {
-    }
-
     TokenRef   tokName;
     AstNodeRef nodeArg1;
     AstNodeRef nodeArg2;
@@ -142,14 +118,8 @@ struct AstLambdaExprT : AstLambdaExpr
 };
 
 template<AstNodeId I>
-struct AstBinaryT : AstNode
+struct AstBinaryT : AstNodeT<I>
 {
-    static constexpr auto ID = I;
-    AstBinaryT() :
-        AstNode(I)
-    {
-    }
-
     TokenRef   tokOp;
     AstNodeRef nodeLeft;
     AstNodeRef nodeRight;
@@ -161,14 +131,8 @@ struct AstBinaryT : AstNode
 };
 
 template<AstNodeId I>
-struct AstLiteralT : AstNode
+struct AstLiteralT : AstNodeT<I>
 {
-    static constexpr auto ID = I;
-    AstLiteralT() :
-        AstNode(I)
-    {
-    }
-
     TokenRef tokValue;
 };
 
@@ -254,14 +218,8 @@ struct AstIfBaseT : AstIfBase
 };
 
 template<AstNodeId I>
-struct AstIntrinsicInitDropCopyMoveT : AstNode
+struct AstIntrinsicInitDropCopyMoveT : AstNodeT<I>
 {
-    static constexpr auto ID = I;
-    AstIntrinsicInitDropCopyMoveT() :
-        AstNode(I)
-    {
-    }
-
     AstNodeRef nodeWhat;
     AstNodeRef nodeCount;
 

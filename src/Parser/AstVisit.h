@@ -24,15 +24,10 @@ public:
         std::function<Action(const AstVisit* visit, const AstNode* node)> post = {};
     };
 
-    explicit AstVisit(const Callbacks& cb = {}) :
-        cb_(std::move(cb))
-    {
-    }
-
-    void start(const Ast& ast);
+    void start(const Ast& ast, const Callbacks& cb = {});
     bool step();
     void run();
-    void reset(const LexerOutput* initialLex = nullptr);
+    void reset();
 
 private:
     Callbacks  cb_{};

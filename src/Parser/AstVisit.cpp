@@ -5,9 +5,10 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void AstVisit::start(const Ast& ast)
+void AstVisit::start(const Ast& ast, const Callbacks& cb)
 {
     ast_ = &ast;
+    cb_  = cb;
     if (ast_->root().isInvalid())
         return;
     if (!currentLex_)
@@ -124,10 +125,10 @@ void AstVisit::run()
     }
 }
 
-void AstVisit::reset(const LexerOutput* initialLex)
+void AstVisit::reset()
 {
-    currentLex_ = initialLex;
-    stack_.clear();    
+    currentLex_ = nullptr;
+    stack_.clear();
 }
 
 void AstVisit::collectChildren(SmallVector<AstNodeRef>& out, const AstNode* node) const

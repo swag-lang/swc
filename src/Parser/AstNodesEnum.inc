@@ -109,8 +109,8 @@ SWC_NODE_DEF(UnaryExpr)
 SWC_NODE_DEF(BinaryExpr)
 SWC_NODE_DEF(LogicalExpr)
 SWC_NODE_DEF(RelationalExpr)
-SWC_NODE_DEF(BinaryConditionalOp)
-SWC_NODE_DEF(ConditionalOp)
+SWC_NODE_DEF(BinaryConditionalExpr)
+SWC_NODE_DEF(ConditionalExpr)
 
 // Postfix
 SWC_NODE_DEF(IndexExpr)

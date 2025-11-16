@@ -140,7 +140,7 @@ AstNodeRef Parser::parseExpression()
     if (consumeIf(TokenId::KwdOrElse).isValid())
     {
         const auto nodeExpr2          = parseExpression();
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::BinaryConditionalOp>();
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::BinaryConditionalExpr>();
         nodePtr->nodeLeft             = nodeExpr1;
         nodePtr->nodeRight            = nodeExpr2;
         return nodeRef;
@@ -152,7 +152,7 @@ AstNodeRef Parser::parseExpression()
         expectAndConsume(TokenId::SymColon, DiagnosticId::parser_err_expected_token_before);
         const auto nodeExpr3 = parseExpression();
 
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ConditionalOp>();
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ConditionalExpr>();
         nodePtr->nodeCond             = nodeExpr1;
         nodePtr->nodeTrue             = nodeExpr2;
         nodePtr->nodeFalse            = nodeExpr3;

@@ -489,7 +489,7 @@ struct AstUnaryExpr : AstNodeT<AstNodeId::UnaryExpr>
     }
 };
 
-struct AstBinaryConditionalOp : AstNodeT<AstNodeId::BinaryConditionalOp>
+struct AstBinaryConditionalExpr : AstNodeT<AstNodeId::BinaryConditionalExpr>
 {
     AstNodeRef nodeLeft;
     AstNodeRef nodeRight;
@@ -500,7 +500,7 @@ struct AstBinaryConditionalOp : AstNodeT<AstNodeId::BinaryConditionalOp>
     }
 };
 
-struct AstConditionalOp : AstNodeT<AstNodeId::ConditionalOp>
+struct AstConditionalExpr : AstNodeT<AstNodeId::ConditionalExpr>
 {
     AstNodeRef nodeCond;
     AstNodeRef nodeTrue;

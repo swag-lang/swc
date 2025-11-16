@@ -19,9 +19,6 @@ void AstVisit::start(Ast& ast, const Callbacks& cb)
     Frame fr;
     fr.nodeRef      = ast_->root();
     fr.stage        = Frame::Stage::Pre;
-    fr.nextChildIx  = 0;
-    fr.firstChildIx = 0;
-    fr.numChildren  = 0;
     fr.sourceAtPush = currentLex_;
     stack_.push_back(fr);
 }
@@ -51,13 +48,11 @@ bool AstVisit::step()
             // Pre-order callback
             if (cb_.pre)
             {
-                const Action a = cb_.pre(this, fr.node);
-                if (a == Action::Stop)
-                {
-                    stack_.clear();
+                const Action result = cb_.pre(this, fr.node);
+                if (result == Action::Stop)
                     return false;
-                }
-                if (a == Action::SkipChildren)
+
+                if (result == Action::SkipChildren)
                 {
                     fr.stage = Frame::Stage::Post;
                     return true;
@@ -88,9 +83,6 @@ bool AstVisit::step()
                 Frame childFr;
                 childFr.nodeRef      = childRef;
                 childFr.stage        = Frame::Stage::Pre;
-                childFr.nextChildIx  = 0;
-                childFr.firstChildIx = 0;
-                childFr.numChildren  = 0;
                 childFr.sourceAtPush = currentLex_;
 
                 stack_.push_back(childFr);
@@ -106,12 +98,9 @@ bool AstVisit::step()
             // Post-order callback
             if (cb_.post)
             {
-                const Action a = cb_.post(this, fr.node);
-                if (a == Action::Stop)
-                {
-                    stack_.clear();
+                const Action result = cb_.post(this, fr.node);
+                if (result == Action::Stop)
                     return false;
-                }
             }
 
             stack_.pop_back();
@@ -127,11 +116,6 @@ void AstVisit::run()
     while (step())
     {
     }
-}
-
-void AstVisit::clear()
-{
-    stack_.clear();
 }
 
 AstNode* AstVisit::parentNode(size_t up) const

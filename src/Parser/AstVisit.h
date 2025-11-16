@@ -54,7 +54,6 @@ public:
     void     start(Ast& ast, const Callbacks& cb = {});
     bool     step();
     void     run();
-    void     clear();
     AstNode* parentNode(size_t up = 0) const;
 
     const Ast* ast() const { return ast_; }

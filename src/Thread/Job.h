@@ -19,7 +19,6 @@ struct JobContext : TaskContext
 {
 };
 
-// What the manager should do after process().
 enum class JobResult : std::uint8_t
 {
     Done,         // finished; remove and wake dependents
@@ -28,7 +27,6 @@ enum class JobResult : std::uint8_t
     SpawnAndSleep // enqueue child_ (at childPriority_) and sleep until it completes
 };
 
-// Internal scheduler state for a job (kept small, cache-friendly).
 struct JobRecord
 {
     // Keep the job alive while scheduled (the user may drop their last ref).
@@ -107,8 +105,6 @@ public:
     {
     }
 
-    void wakeDependents() const;
-
     JobContext&       ctx() { return ctx_; }
     const JobContext& ctx() const { return ctx_; }
     JobManager*       owner() const { return owner_; }
@@ -121,13 +117,8 @@ public:
     JobRef            child() const { return child_; }
     JobRef            dep() const { return dep_; }
 
-    // Cleared by manager after consuming intent.
-    void clearIntents()
-    {
-        dep_.reset();
-        child_.reset();
-        childPriority_ = JobPriority::Normal;
-    }
+    void wakeDependents() const;
+    void clearIntents();
 
     std::function<JobResult(JobContext&)> func;
 };

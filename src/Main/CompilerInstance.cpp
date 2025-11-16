@@ -16,7 +16,7 @@ SWC_BEGIN_NAMESPACE()
 CompilerInstance::CompilerInstance(const CommandLine& cmdLine, const Global& global) :
     context_(global, cmdLine)
 {
-    context_.jobClientId_ = global.jobMgr().newClientId();
+    context_.setJobClientId(global.jobMgr().newClientId());
 }
 
 void CompilerInstance::logBefore() const

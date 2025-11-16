@@ -24,12 +24,8 @@ class SourceFile
     std::vector<char8_t> content_;
     UnitTest             unittest_;
     FileFlags            flags_ = FileFlagsE::Zero;
-
-protected:
-    friend class Lexer;
-    friend class Parser;
-    LexerOutput  lexOut_;
-    ParserOutput parserOut_;
+    LexerOutput          lexOut_;
+    ParserOutput         parserOut_;
 
 public:
     explicit SourceFile(fs::path path);

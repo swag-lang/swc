@@ -8,7 +8,6 @@ class Global;
 
 class CompilerContext
 {
-    friend class CompilerInstance;
     const CommandLine* cmdLine_     = nullptr;
     const Global*      global_      = nullptr;
     JobClientId        jobClientId_ = 0;
@@ -23,6 +22,7 @@ public:
     const Global&      global() const { return *global_; }
     const CommandLine& cmdLine() const { return *cmdLine_; }
     JobClientId        jobClientId() const { return jobClientId_; }
+    void               setJobClientId(JobClientId clientId) { jobClientId_ = clientId; }
 };
 
 SWC_END_NAMESPACE()

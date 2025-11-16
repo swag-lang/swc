@@ -24,14 +24,14 @@ public:
         std::function<Action(const AstVisit* visit, const AstNode* node)> post = {};
     };
 
-    void start(const Ast& ast, const Callbacks& cb = {});
+    void start(Ast& ast, const Callbacks& cb = {});
     bool step();
     void run();
-    void reset();
+    void clear();
 
 private:
-    Callbacks  cb_{};
-    const Ast* ast_ = nullptr;
+    Callbacks cb_{};
+    Ast*      ast_ = nullptr;
 
     struct Frame
     {
@@ -49,10 +49,11 @@ private:
         Stage                   stage       = Stage::Pre;
     };
 
-    const LexerOutput*     currentLex_ = nullptr;
+    const LexerOutput*     currentLex_  = nullptr;
+    AstNode*               currentNode_ = nullptr;
     SmallVector<Frame, 64> stack_;
 
-    const AstNode* resolveNode(const Frame& fr) const;
+    AstNode* resolveNode(const Frame& fr) const;
 };
 
 SWC_END_NAMESPACE()

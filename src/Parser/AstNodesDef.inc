@@ -120,7 +120,7 @@ struct AstInternalCallUnary : AstNodeT<AstNodeId::InternalCallUnary>
     TokenRef   tokName;
     AstNodeRef nodeArg1;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
     {
         AstNode::collectChildren(out, {nodeArg1});
     }
@@ -132,7 +132,7 @@ struct AstInternalCallBinary : AstNodeT<AstNodeId::InternalCallBinary>
     AstNodeRef nodeArg1;
     AstNodeRef nodeArg2;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
     {
         AstNode::collectChildren(out, {nodeArg1, nodeArg2});
     }
@@ -145,7 +145,7 @@ struct AstInternalCallTernary : AstNodeT<AstNodeId::InternalCallTernary>
     AstNodeRef nodeArg2;
     AstNodeRef nodeArg3;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
     {
         AstNode::collectChildren(out, {nodeArg1, nodeArg2, nodeArg3});
     }

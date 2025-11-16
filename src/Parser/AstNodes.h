@@ -41,7 +41,7 @@ struct AstBinaryT : AstNodeT<I>
     AstNodeRef nodeLeft;
     AstNodeRef nodeRight;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
     {
         AstNode::collectChildren(out, {nodeLeft, nodeRight});
     }
@@ -74,7 +74,7 @@ struct AstAnonymousAggregateDeclT : AstNodeT<I>
 {
     AstNodeRef nodeBody;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
     {
         AstNode::collectChildren(out, {nodeBody});
     }
@@ -86,7 +86,7 @@ struct AstIfBaseT : AstNodeT<I>
     AstNodeRef nodeIfBlock;
     AstNodeRef nodeElseBlock;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
     {
         AstNode::collectChildren(out, {nodeIfBlock, nodeElseBlock});
     }
@@ -98,12 +98,13 @@ struct AstIntrinsicInitDropCopyMoveT : AstNodeT<I>
     AstNodeRef nodeWhat;
     AstNodeRef nodeCount;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
     {
         AstNode::collectChildren(out, {nodeWhat, nodeCount});
     }
 };
 
+// ReSharper disable once CppUnusedIncludeDirective
 #include "Parser/AstNodesDef.inc"
 
 template<AstNodeId ID>

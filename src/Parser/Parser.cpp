@@ -258,7 +258,7 @@ TokenRef Parser::expectAndConsumeClosing(TokenId closeId, TokenRef openRef, cons
 
     diag.report(*ctx_);
 
-    SmallVector<TokenId> skip{skipIds};
+    SmallVector skip{skipIds};
     if (skip.empty())
     {
         skip.push_back(TokenId::SymSemiColon);

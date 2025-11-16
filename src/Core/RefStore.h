@@ -22,6 +22,7 @@ class RefStore
         uint8_t*       bytes() noexcept { return reinterpret_cast<uint8_t*>(&storage); }
         const uint8_t* bytes() const noexcept { return reinterpret_cast<const uint8_t*>(&storage); }
 
+        // ReSharper disable once CppPossiblyUninitializedMember
         Page() noexcept :
             used(0)
         {

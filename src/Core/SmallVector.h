@@ -59,7 +59,7 @@ public:
         _size = other._size;
     }
 
-    SmallVector(SmallVector&& other) :
+    SmallVector(SmallVector&& other) noexcept :
         _alloc(std::move(other._alloc)),
         _ptr(inline_data())
     {
@@ -104,7 +104,7 @@ public:
         return *this;
     }
 
-    SmallVector& operator=(SmallVector&& other)
+    SmallVector& operator=(SmallVector&& other) noexcept
     {
         if (this == &other)
             return *this;

@@ -3,4 +3,5 @@
 #define MI_DEBUG  3
 #endif
 
-#include "Memory/mimalloc/src/static.c"
+// ReSharper disable once CppUnusedIncludeDirective
+#include "Memory/mimalloc/src/static.c"  // NOLINT(bugprone-suspicious-include)

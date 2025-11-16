@@ -1032,7 +1032,7 @@ struct AstAlias : AstNodeT<AstNodeId::Alias>
     }
 };
 
-struct AstTryCatchAssumeExpr : AstNodeT<AstNodeId::TryCatchAssumeExpr>
+struct AstTryCatchExpr : AstNodeT<AstNodeId::TryCatchExpr>
 {
     TokenRef   tokName;
     AstNodeRef nodeExpr;
@@ -1221,7 +1221,7 @@ struct AstForInfiniteStmt : AstNodeT<AstNodeId::ForInfiniteStmt>
     }
 };
 
-struct AstTryCatch : AstNodeT<AstNodeId::TryCatch>
+struct AstTryCatchStmt : AstNodeT<AstNodeId::TryCatchStmt>
 {
     TokenRef   tokOp;
     AstNodeRef nodeBody;
@@ -1232,7 +1232,7 @@ struct AstTryCatch : AstNodeT<AstNodeId::TryCatch>
     }
 };
 
-struct AstThrow : AstNodeT<AstNodeId::Throw>
+struct AstThrowExpr : AstNodeT<AstNodeId::ThrowExpr>
 {
     AstNodeRef nodeExpr;
 

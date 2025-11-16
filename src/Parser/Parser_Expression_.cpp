@@ -712,7 +712,7 @@ AstNodeRef Parser::parseInitializerList(AstNodeRef nodeWhat)
 
 AstNodeRef Parser::parseTryCatchAssume()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TryCatchAssumeExpr>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TryCatchExpr>();
     nodePtr->tokName        = consume();
     nodePtr->nodeExpr       = parseExpression();
     return nodeRef;
@@ -772,6 +772,14 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
 
     expectAndConsumeClosing(TokenId::SymRightBracket, openRef);
     return nodeParent;
+}
+
+AstNodeRef Parser::parseThrow()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ThrowExpr>();
+    consumeAssert(TokenId::KwdThrow);
+    nodePtr->nodeExpr = parseExpression();
+    return nodeRef;
 }
 
 SWC_END_NAMESPACE()

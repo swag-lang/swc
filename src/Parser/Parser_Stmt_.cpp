@@ -390,20 +390,12 @@ AstNodeRef Parser::parseForeach()
 
 AstNodeRef Parser::parseTryCatch()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TryCatch>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TryCatchStmt>();
     nodePtr->tokOp          = consume();
     if (is(TokenId::SymLeftCurly))
         nodePtr->nodeBody = parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
     else
         nodePtr->nodeBody = parseExpression();
-    return nodeRef;
-}
-
-AstNodeRef Parser::parseThrow()
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Throw>();
-    consumeAssert(TokenId::KwdThrow);
-    nodePtr->nodeExpr = parseExpression();
     return nodeRef;
 }
 

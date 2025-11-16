@@ -124,9 +124,6 @@ SWC_NODE_DEF(FunctionExpr)
 SWC_NODE_DEF(ClosureExpr)
 SWC_NODE_DEF(Discard)
 
-// Exceptional
-SWC_NODE_DEF(TryCatchAssumeExpr)
-
 // -----------------------------------------------------------------------------
 //  Type Casting & Checks
 // -----------------------------------------------------------------------------
@@ -219,8 +216,9 @@ SWC_NODE_DEF(CompilerElseIf)
 SWC_NODE_DEF(CompilerElse)
 
 // Exception Handling
-SWC_NODE_DEF(TryCatch)
-SWC_NODE_DEF(Throw)
+SWC_NODE_DEF(TryCatchExpr)
+SWC_NODE_DEF(TryCatchStmt)
+SWC_NODE_DEF(ThrowExpr)
 
 // Returns
 SWC_NODE_DEF(Return)

@@ -32,8 +32,6 @@ struct LexIdentifier
 
 class LexerOutput
 {
-protected:
-    friend class Lexer;
     const SourceFile*          file_ = nullptr;
     std::string_view           sourceView_;
     std::vector<Token>         tokens_;
@@ -46,9 +44,13 @@ public:
     void                              setFile(const SourceFile* file);
     std::string_view                  sourceView() const { return sourceView_; }
     const std::vector<LexTrivia>&     trivia() const { return trivia_; }
+    std::vector<LexTrivia>&           trivia() { return trivia_; }
     const std::vector<Token>&         tokens() const { return tokens_; }
+    std::vector<Token>&               tokens() { return tokens_; }
     const std::vector<uint32_t>&      lines() const { return lines_; }
+    std::vector<uint32_t>&            lines() { return lines_; }
     const std::vector<LexIdentifier>& identifiers() const { return identifiers_; }
+    std::vector<LexIdentifier>&       identifiers() { return identifiers_; }
     const Token&                      token(TokenRef tok) const { return tokens_[tok.get()]; }
 
     Utf8             codeLine(const TaskContext& ctx, uint32_t line) const;

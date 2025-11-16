@@ -101,7 +101,7 @@ void Lexer::eatOneEol()
     }
 
     token_.flags.add(TokenFlagsE::EolInside);
-    lexOut_->lines_.push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
+    lexOut_->lines().push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
 }
 
 void Lexer::eatOne()
@@ -120,9 +120,9 @@ void Lexer::pushToken()
 
     // Update previous token's flags before filtering
     // This must happen even for tokens that will be filtered out
-    if (!lexOut_->tokens_.empty())
+    if (!lexOut_->tokens().empty())
     {
-        auto& back = lexOut_->tokens_.back();
+        auto& back = lexOut_->tokens().back();
         if (tokenId == TokenId::Whitespace)
             back.flags.add(TokenFlagsE::BlankAfter);
         if (token_.hasFlag(TokenFlagsE::EolInside))
@@ -143,18 +143,18 @@ void Lexer::pushToken()
     {
         case TokenId::Whitespace:
             if (lexerFlags_.has(LexerFlagsE::EmitTrivia))
-                lexOut_->trivia_.push_back({.tokenRef = TokenRef{static_cast<uint32_t>(lexOut_->tokens_.size())}, .token = token_});
+                lexOut_->trivia().push_back({.tokenRef = TokenRef{static_cast<uint32_t>(lexOut_->tokens().size())}, .token = token_});
             break;
         case TokenId::CommentLine:
         case TokenId::CommentMultiLine:
             if (!isRawMode() && lexerFlags_.hasNot(LexerFlagsE::EmitTrivia))
                 break;
-            lexOut_->trivia_.push_back({.tokenRef = TokenRef{static_cast<uint32_t>(lexOut_->tokens_.size())}, .token = token_});
+            lexOut_->trivia().push_back({.tokenRef = TokenRef{static_cast<uint32_t>(lexOut_->tokens().size())}, .token = token_});
             break;
         default:
             if (isRawMode())
                 break;
-            lexOut_->tokens_.push_back(token_);
+            lexOut_->tokens().push_back(token_);
             break;
     }
 }
@@ -700,8 +700,8 @@ void Lexer::lexIdentifier()
             else if (name[0] == '@')
                 raiseTokenError(DiagnosticId::parser_err_invalid_intrinsic, startTokenOffset_, static_cast<uint32_t>(name.size()));
 
-            const auto idx = static_cast<uint32_t>(lexOut_->identifiers_.size());
-            lexOut_->identifiers_.push_back({.hash = hash64, .byteStart = token_.byteStart});
+            const auto idx = static_cast<uint32_t>(lexOut_->identifiers().size());
+            lexOut_->identifiers().push_back({.hash = hash64, .byteStart = token_.byteStart});
             token_.byteStart = idx;
         }
     }
@@ -1183,8 +1183,8 @@ void Lexer::tokenize(TaskContext& ctx, LexerOutput& lexOut, LexerFlags flags)
 #endif
 
     lexOut_ = &lexOut;
-    lexOut_->tokens_.clear();
-    lexOut_->lines_.clear();
+    lexOut_->tokens().clear();
+    lexOut_->lines().clear();
     prevToken_ = {};
 
     langSpec_   = &ctx.global().langSpec();
@@ -1200,10 +1200,10 @@ void Lexer::tokenize(TaskContext& ctx, LexerOutput& lexOut, LexerFlags flags)
     endBuffer_      = startBuffer_ + lexOut.sourceView().size();
 
     // Reserve space based on source size
-    lexOut_->tokens_.reserve(lexOut.sourceView().size() / 10);
+    lexOut_->tokens().reserve(lexOut.sourceView().size() / 10);
     if (!isRawMode())
-        lexOut_->lines_.reserve(lexOut.sourceView().size() / 60);
-    lexOut_->lines_.push_back(0);
+        lexOut_->lines().reserve(lexOut.sourceView().size() / 60);
+    lexOut_->lines().push_back(0);
 
     while (buffer_ < endBuffer_)
     {
@@ -1318,7 +1318,7 @@ void Lexer::tokenize(TaskContext& ctx, LexerOutput& lexOut, LexerFlags flags)
 
 #if SWC_HAS_STATS
     if (!isRawMode())
-        Stats::get().numTokens.fetch_add(lexOut_->tokens_.size());
+        Stats::get().numTokens.fetch_add(lexOut_->tokens().size());
 #endif
 }
 

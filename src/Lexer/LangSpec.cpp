@@ -23,7 +23,7 @@ void LangSpec::setupKeywords()
         SWC_ASSERT(*keywordMap_.find(__name, hash64) == TokenId::__id); \
     }
 
-#include "TokenIds.inc"
+#include "Lexer/TokenIds.inc"
 
 #undef SWC_TOKEN_DEF
 }

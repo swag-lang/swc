@@ -1528,7 +1528,7 @@ struct AstTypeOf;
     {                              \
         using type = Ast##E;       \
     };
-#include "AstNodes.inc"
+#include "Parser/AstNodes.inc"
 #undef SWC_NODE_DEF
 
 template<class F>
@@ -1539,7 +1539,7 @@ decltype(auto) visitAstNodeId(AstNodeId id, F f)
 #define SWC_NODE_DEF(E) \
     case AstNodeId::E:  \
         return std::forward<F>(f).operator()<AstNodeId::E>();
-#include "AstNodes.inc"
+#include "Parser/AstNodes.inc"
 
 #undef SWC_NODE_DEF
         default:
@@ -1565,7 +1565,7 @@ void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast, const AstNode
 
 constexpr std::array AST_NODE_ID_INFOS = {
 #define SWC_NODE_DEF(enum) AstNodeIdInfo{#enum, &collectChildren<AstNodeId::enum>},
-#include "AstNodes.inc"
+#include "Parser/AstNodes.inc"
 
 #undef SWC_NODE_DEF
 };

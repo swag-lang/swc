@@ -489,26 +489,6 @@ struct AstUnaryExpr : AstNodeT<AstNodeId::UnaryExpr>
     }
 };
 
-struct AstDeRefOp : AstNodeT<AstNodeId::DeRefOp>
-{
-    AstNodeRef nodeExpr;
-
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
-    {
-        AstNode::collectChildren(out, {nodeExpr});
-    }
-};
-
-struct AstMoveRefOp : AstNodeT<AstNodeId::MoveRefOp>
-{
-    AstNodeRef nodeExpr;
-
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
-    {
-        AstNode::collectChildren(out, {nodeExpr});
-    }
-};
-
 struct AstBinaryConditionalOp : AstNodeT<AstNodeId::BinaryConditionalOp>
 {
     AstNodeRef nodeLeft;

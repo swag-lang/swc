@@ -111,8 +111,6 @@ SWC_NODE_DEF(LogicalExpr)
 SWC_NODE_DEF(RelationalExpr)
 SWC_NODE_DEF(BinaryConditionalOp)
 SWC_NODE_DEF(ConditionalOp)
-SWC_NODE_DEF(DeRefOp)
-SWC_NODE_DEF(MoveRefOp)
 
 // Postfix
 SWC_NODE_DEF(IndexExpr)

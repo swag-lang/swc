@@ -133,22 +133,6 @@ AstNodeRef Parser::parseCast()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseDeRef()
-{
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::DeRefOp>();
-    consumeAssert(TokenId::KwdDRef);
-    nodePtr->nodeExpr = parseExpression();
-    return nodeRef;
-}
-
-AstNodeRef Parser::parseMoveRef()
-{
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::MoveRefOp>();
-    consumeAssert(TokenId::KwdMoveRef);
-    nodePtr->nodeExpr = parseExpression();
-    return nodeRef;
-}
-
 AstNodeRef Parser::parseExpression()
 {
     const auto nodeExpr1 = parseLogicalExpr();
@@ -700,9 +684,7 @@ AstNodeRef Parser::parsePrefixExpr()
         case TokenId::KwdCast:
             return parseCast();
         case TokenId::KwdDRef:
-            return parseDeRef();
         case TokenId::KwdMoveRef:
-            return parseMoveRef();
         case TokenId::SymPlus:
         case TokenId::SymMinus:
         case TokenId::SymExclamation:

@@ -135,7 +135,6 @@ class Parser
     AstNodeRef parseCompilerTypeOf();
     AstNodeRef parseConstraint();
     AstNodeRef parseContinue();
-    AstNodeRef parseDeRef();
     AstNodeRef parseDecompositionDecl();
     AstNodeRef parseDefer();
     AstNodeRef parseDiscard();
@@ -185,7 +184,6 @@ class Parser
     AstNodeRef parseLiteralExpression();
     AstNodeRef parseLiteralStruct();
     AstNodeRef parseLogicalExpr();
-    AstNodeRef parseMoveRef();
     AstNodeRef parseNamedArg();
     AstNodeRef parseNamespace();
     AstNodeRef parseParenExpr();

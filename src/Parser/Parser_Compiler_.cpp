@@ -118,9 +118,9 @@ AstNodeRef Parser::parseCompilerIf()
 
 AstNodeRef Parser::parseCompilerDependencies()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Dependencies>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::DependenciesBlock>();
     consume();
-    nodePtr->nodeBody = parseCompound<AstNodeId::TopLevelBlock>(TokenId::SymLeftCurly);
+    nodePtr->spanChildren = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     return nodeRef;
 }
 

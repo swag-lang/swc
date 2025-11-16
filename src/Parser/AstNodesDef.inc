@@ -867,14 +867,8 @@ struct AstAttributeList : AstCompoundT<AstNodeId::AttributeList>
     }
 };
 
-struct AstDependencies : AstNodeT<AstNodeId::Dependencies>
+struct AstDependenciesBlock : AstCompoundT<AstNodeId::DependenciesBlock>
 {
-    AstNodeRef nodeBody;
-
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
-    {
-        AstNode::collectChildren(out, {nodeBody});
-    }
 };
 
 struct AstUsingDecl : AstCompoundT<AstNodeId::UsingDecl>

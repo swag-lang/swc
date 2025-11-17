@@ -21,10 +21,11 @@ class SourceFile
     fs::path             path_;
     std::vector<char8_t> content_;
     FileFlags            flags_ = FileFlagsE::Zero;
-    Ast*                 ast_   = nullptr;
+    std::unique_ptr<Ast> ast_;
 
 public:
     explicit SourceFile(fs::path path);
+    ~SourceFile();
 
     fs::path                    path() const { return path_; }
     const std::vector<char8_t>& content() const { return content_; }

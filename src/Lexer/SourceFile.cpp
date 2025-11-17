@@ -9,10 +9,12 @@
 
 SWC_BEGIN_NAMESPACE()
 
+SourceFile::~SourceFile() = default;
+
 SourceFile::SourceFile(fs::path path) :
     path_(std::move(path))
 {
-    ast_ = new Ast();
+    ast_ = std::make_unique<Ast>();
     ast_->unitTest().setFile(this);
 }
 

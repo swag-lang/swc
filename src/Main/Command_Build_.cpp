@@ -20,7 +20,7 @@ namespace
             return;
 
         Lexer lexer;
-        lexer.tokenize(ctx, file->ast().lexOut(), LexerFlagsE::EmitTrivia);
+        lexer.tokenize(ctx, file->ast().lexOut(), LexerFlagsE::Default);
 
         Parser parser;
         parser.parse(ctx, file->ast());

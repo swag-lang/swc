@@ -77,6 +77,9 @@ void CompilerInstance::processCommand() const
         case CommandKind::Format:
             Command::format(*this);
             break;
+        case CommandKind::Build:
+            Command::build(*this);
+            break;            
         default:
             SWC_UNREACHABLE();
     }

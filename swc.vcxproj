@@ -191,6 +191,7 @@
         <ClCompile Include="src\Lexer\Token.cpp"/>
         <ClCompile Include="src\main.cpp"/>
         <ClCompile Include="src\Main\CommandLineParser.cpp"/>
+        <ClCompile Include="src\Main\Command_Build_.cpp"/>
         <ClCompile Include="src\Main\Command_Format_.cpp"/>
         <ClCompile Include="src\Main\Command_Syntax_.cpp"/>
         <ClCompile Include="src\Main\FileManager.cpp"/>

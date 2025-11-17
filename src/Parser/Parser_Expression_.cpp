@@ -172,7 +172,7 @@ AstNodeRef Parser::parseRangeExpression()
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::RangeExpr>();
         if (is(TokenId::KwdTo))
-            nodePtr->addFlag(AstRangeExpr::FlagsE::Inclusive);
+            nodePtr->addParserFlag(AstRangeExpr::FlagsE::Inclusive);
         consume();
         nodePtr->nodeExprDown = nodeExpr1;
         nodePtr->nodeExprUp   = parseExpression();
@@ -762,7 +762,7 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
     // Slicing
     const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::RangeExpr>();
     if (is(TokenId::KwdTo))
-        nodePtr->addFlag(AstRangeExpr::FlagsE::Inclusive);
+        nodePtr->addParserFlag(AstRangeExpr::FlagsE::Inclusive);
     consume();
     nodePtr->nodeExprDown = nodeExpr;
     if (!is(TokenId::SymRightBracket))

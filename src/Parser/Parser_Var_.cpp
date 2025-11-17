@@ -100,7 +100,7 @@ AstNodeRef Parser::parseVarDecompositionDecl()
     expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_before);
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDecompositionDecl>();
-    nodePtr->addFlag(flags);
+    nodePtr->addParserFlag(flags);
     nodePtr->nodeInit  = parseInitializerExpression();
     nodePtr->spanNames = ast_->store().push_span(tokNames.span());
 
@@ -153,7 +153,7 @@ AstNodeRef Parser::parseVarDecl()
         if (tokNames.size() == 1)
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDecl>();
-            nodePtr->addFlag(flags);
+            nodePtr->addParserFlag(flags);
             nodePtr->tokName  = tokNames[0];
             nodePtr->nodeType = nodeType;
             nodePtr->nodeInit = nodeInit;
@@ -162,7 +162,7 @@ AstNodeRef Parser::parseVarDecl()
         else
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarNameListDecl>();
-            nodePtr->addFlag(flags);
+            nodePtr->addParserFlag(flags);
             nodePtr->spanNames = ast_->store().push_span(tokNames.span());
             nodePtr->nodeType  = nodeType;
             nodePtr->nodeInit  = nodeInit;

@@ -12,7 +12,7 @@ AstNodeRef Parser::parseClosureArg()
         flags.add(AstClosureArgument::FlagsE::Address);
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ClosureArgument>();
-    nodePtr->addFlag(flags);
+    nodePtr->addParserFlag(flags);
     nodePtr->nodeIdentifier = parseQualifiedIdentifier();
 
     return nodeRef;
@@ -117,7 +117,7 @@ AstNodeRef Parser::parseLambdaType()
         flags.add(AstLambdaType::FlagsE::Throw);
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaType>();
-    nodePtr->addFlag(flags);
+    nodePtr->addParserFlag(flags);
     nodePtr->spanParams     = params;
     nodePtr->nodeReturnType = returnType;
     return nodeRef;
@@ -175,7 +175,7 @@ AstNodeRef Parser::parseLambdaExpression()
     if (flags.has(AstLambdaType::FlagsE::Closure))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ClosureExpr>();
-        nodePtr->addFlag(flags);
+        nodePtr->addParserFlag(flags);
         nodePtr->nodeCaptureArgs = captureArgs;
         nodePtr->spanArgs        = args;
         nodePtr->nodeReturnType  = returnType;
@@ -184,7 +184,7 @@ AstNodeRef Parser::parseLambdaExpression()
     }
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionExpr>();
-    nodePtr->addFlag(flags);
+    nodePtr->addParserFlag(flags);
     nodePtr->spanArgs       = args;
     nodePtr->nodeReturnType = returnType;
     nodePtr->nodeBody       = body;
@@ -200,7 +200,7 @@ AstNodeRef Parser::parseFunctionDecl()
         consumeAssert(TokenId::KwdFunc);
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionDecl>();
-    nodePtr->addFlag(flags);
+    nodePtr->addParserFlag(flags);
 
     // Generic parameters
     if (is(TokenId::SymLeftParen))
@@ -281,7 +281,7 @@ AstNodeRef Parser::parseFunctionParam()
     if (consumeIf(TokenId::KwdConst).isValid())
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionParamMe>();
-        nodePtr->addFlag(AstFunctionParamMe::FlagsE::Const);
+        nodePtr->addParserFlag(AstFunctionParamMe::FlagsE::Const);
         expectAndConsume(TokenId::KwdMe, DiagnosticId::parser_err_expected_token_before);
         return nodeRef;
     }

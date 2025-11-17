@@ -36,26 +36,43 @@ struct AstNode
     {
     }
 
-    using Flags = uint16_t;
+    using ParserFlags = uint8_t;
+    using SemaFlags   = uint8_t;
 
     template<typename T>
-    EnumFlags<T> flags() const
+    EnumFlags<T> parserFlags() const
     {
-        return static_cast<EnumFlags<T>>(flags_);
+        return static_cast<EnumFlags<T>>(parserFlags_);
+    }
+
+    template<typename T>
+    EnumFlags<T> semaFlags() const
+    {
+        return static_cast<EnumFlags<T>>(semaFlags_);
     }
 
     void clearFlags()
     {
-        flags_ = 0;
+        parserFlags_ = 0;
+        semaFlags_   = 0;
     }
 
     template<typename T>
-    void addFlag(T val)
+    void addParserFlag(T val)
     {
         if constexpr (std::is_enum_v<T>)
-            flags_ |= static_cast<std::underlying_type_t<T>>(val);
+            parserFlags_ |= static_cast<std::underlying_type_t<T>>(val);
         else
-            flags_ |= val.flags;
+            parserFlags_ |= val.flags;
+    }
+
+    template<typename T>
+    void addSemaFlag(T val)
+    {
+        if constexpr (std::is_enum_v<T>)
+            semaFlags_ |= static_cast<std::underlying_type_t<T>>(val);
+        else
+            semaFlags_ |= val.flags;
     }
 
     static void collectChildren(SmallVector<AstNodeRef>&, const Ast*) {}
@@ -63,7 +80,8 @@ struct AstNode
     static void collectChildren(SmallVector<AstNodeRef>& out, std::initializer_list<AstNodeRef> nodes);
 
 private:
-    Flags flags_;
+    ParserFlags parserFlags_;
+    SemaFlags   semaFlags_;
 };
 
 template<AstNodeId I>

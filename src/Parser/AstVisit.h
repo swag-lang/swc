@@ -56,7 +56,7 @@ private:
 public:
     void           start(Ast& ast, const Callbacks& cb = {});
     bool           step();
-    void           run();
+    void           run(Ast& ast, const Callbacks& cb);
     AstNode*       parentNode(size_t up = 0) { return parentNodeInternal(up); }
     const AstNode* parentNode(size_t up = 0) const { return parentNodeInternal(up); }
 

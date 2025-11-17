@@ -29,10 +29,6 @@ namespace
 
         Parser parser;
         parser.parse(ctx, file->ast());
-
-        AstVisit astVisit;
-        astVisit.start(file->ast());
-        astVisit.run();
     }
 }
 

@@ -115,11 +115,11 @@ bool AstVisit::step()
     SWC_UNREACHABLE();
 }
 
-void AstVisit::run()
+void AstVisit::run(Ast& ast, const Callbacks& cb)
 {
+    start(ast, cb);
     while (step())
-    {
-    }
+        ;
 }
 
 AstNode* AstVisit::parentNodeInternal(size_t up) const

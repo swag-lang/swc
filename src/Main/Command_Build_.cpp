@@ -14,22 +14,30 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
+    AstVisit::Action preStmt(AstVisit& visit, AstNode& node)
+    {
+        return AstVisit::Action::Continue;
+    }
+
     void parseFile(JobContext& ctx, SourceFile* file)
     {
         if (file->loadContent(ctx) != Result::Success)
             return;
 
+        auto& ast = file->ast();
+
         Lexer lexer;
-        lexer.tokenize(ctx, file->ast().lexOut(), LexerFlagsE::Default);
-        if (file->ast().lexOut().mustSkip())
+        lexer.tokenize(ctx, ast.lexOut(), LexerFlagsE::Default);
+        if (ast.lexOut().mustSkip())
             return;
 
         Parser parser;
-        parser.parse(ctx, file->ast());
+        parser.parse(ctx, ast);
+        if (ast.hasFlag(AstFlagsE::HasErrors))
+            return;
 
         AstVisit astVisit;
-        astVisit.start(file->ast());
-        astVisit.run();
+        astVisit.run(ast, {.pre = &preStmt});
     }
 }
 

@@ -1,7 +1,7 @@
 #pragma once
-#include "DiagnosticDef.h"
 #include "Lexer/Lexer.h"
 #include "Lexer/SourceCodeLocation.h"
+#include "Report/DiagnosticDef.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -37,11 +37,7 @@ class UnitTest
     void tokenizeExpected(const TaskContext& ctx, const LexTrivia& trivia, std::string_view comment);
 
 public:
-    explicit UnitTest(SourceFile* sourceFile) :
-        file_(sourceFile)
-    {
-    }
-
+    void setFile(SourceFile* file) { file_ = file; }
     void tokenize(TaskContext& ctx);
     bool hasFlag(UnitTestFlagsE flag) const { return flags_.has(flag); }
     bool verifyExpected(const TaskContext& ctx, const Diagnostic& diag) const;

@@ -1,9 +1,12 @@
 #include "pch.h"
+#include "Lexer/Lexer.h"
 #include "Main/Command.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileManager.h"
 #include "Main/Global.h"
+#include "Parser/Ast.h"
 #include "Parser/AstVisit.h"
+#include "Parser/Parser.h"
 #include "Thread/Job.h"
 #include "Thread/JobManager.h"
 
@@ -16,10 +19,8 @@ namespace
         if (file->loadContent(ctx) != Result::Success)
             return;
 
-        ctx.setSilentError(true);
-
         Lexer lexer;
-        lexer.tokenize(ctx, file->lexOut(), LexerFlagsE::EmitTrivia);
+        lexer.tokenize(ctx, file->ast().lexOut(), LexerFlagsE::EmitTrivia);
 
         Parser parser;
         parser.parse(ctx, file->ast());
@@ -32,17 +33,17 @@ namespace
 
 namespace Command
 {
-    void build(const CompilerInstance& compiler)
+    void build(CompilerInstance& compiler)
     {
         const TaskContext ctx(compiler.context());
         const auto&       global   = ctx.global();
-        auto&             fileMgr  = global.fileMgr();
+        auto&             fileMgr  = compiler.context().fileMgr();
         const auto        clientId = compiler.context().jobClientId();
 
         if (fileMgr.collectFiles(ctx) == Result::Error)
             return;
 
-        for (const auto& f : global.fileMgr().files())
+        for (const auto& f : fileMgr.files())
         {
             auto job  = std::make_shared<Job>(ctx);
             job->func = [f](JobContext& taskCtx) {

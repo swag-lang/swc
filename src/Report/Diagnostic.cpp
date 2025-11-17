@@ -4,7 +4,9 @@
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
 #include "Main/Global.h"
+#include "Main/Stats.h"
 #include "Main/TaskContext.h"
+#include "Parser/Ast.h"
 #include "Report/DiagnosticBuilder.h"
 #include "Report/DiagnosticElement.h"
 #include "Report/Logger.h"
@@ -136,7 +138,7 @@ void Diagnostic::report(const TaskContext& ctx) const
     // Check that diagnostic was not awaited
     if (fileOwner_)
     {
-        dismiss = fileOwner_->unittest().verifyExpected(ctx, *this);
+        dismiss = fileOwner_->ast().unitTest().verifyExpected(ctx, *this);
     }
 
     // Count only errors and warnings not dismissed during tests

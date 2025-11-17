@@ -45,7 +45,7 @@ class Store
     }
 
     // Convert (page, offset) -> global byte index Ref
-    static constexpr Ref makeRef(uint32_t pageIndex, uint32_t offset) noexcept
+    static Ref makeRef(uint32_t pageIndex, uint32_t offset) noexcept
     {
         const uint64_t r = static_cast<uint64_t>(pageIndex) * static_cast<uint64_t>(N) + offset;
         SWC_ASSERT(r < std::numeric_limits<Ref>::max());
@@ -53,7 +53,7 @@ class Store
     }
 
     // Convert Ref -> (page, offset)
-    static constexpr void decodeRef(Ref ref, uint32_t& pageIndex, uint32_t& offset) noexcept
+    static void decodeRef(Ref ref, uint32_t& pageIndex, uint32_t& offset) noexcept
     {
         pageIndex = ref / N;
         offset    = ref % N;

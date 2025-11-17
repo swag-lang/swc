@@ -4,4 +4,4 @@
 #endif
 
 // ReSharper disable once CppUnusedIncludeDirective
-#include "Memory/mimalloc/src/static.c"  // NOLINT(bugprone-suspicious-include)
+#include "Memory/mimalloc/src/static.c" // NOLINT(bugprone-suspicious-include)

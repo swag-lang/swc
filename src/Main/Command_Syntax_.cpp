@@ -3,6 +3,8 @@
 #include "Main/Command.h"
 #include "Main/FileManager.h"
 #include "Main/Global.h"
+#include "Parser/Ast.h"
+#include "Parser/Parser.h"
 #include "Thread/Job.h"
 #include "Thread/JobManager.h"
 
@@ -15,12 +17,12 @@ namespace
         if (file->loadContent(ctx) != Result::Success)
             return;
 
-        file->unittest().tokenize(ctx);
+        file->ast().unitTest().tokenize(ctx);
 
         Lexer lexer;
-        lexer.tokenize(ctx, file->lexOut(), LexerFlagsE::Default);
+        lexer.tokenize(ctx, file->ast().lexOut(), LexerFlagsE::Default);
 
-        if (file->unittest().hasFlag(UnitTestFlagsE::LexOnly))
+        if (file->ast().unitTest().hasFlag(UnitTestFlagsE::LexOnly))
             return;
 
         Parser parser;
@@ -30,16 +32,16 @@ namespace
 
 namespace Command
 {
-    void syntax(const CompilerInstance& compiler)
+    void syntax(CompilerInstance& compiler)
     {
         TaskContext ctx(compiler.context());
         const auto& global  = ctx.global();
-        auto&       fileMgr = global.fileMgr();
+        auto&       fileMgr = compiler.context().fileMgr();
 
         if (fileMgr.collectFiles(ctx) == Result::Error)
             return;
 
-        for (const auto& f : global.fileMgr().files())
+        for (const auto& f : fileMgr.files())
         {
             auto job  = std::make_shared<Job>(ctx);
             job->func = [f](JobContext& taskCtx) {
@@ -53,7 +55,7 @@ namespace Command
         global.jobMgr().waitAll(compiler.context().jobClientId());
 
         for (const auto& f : fileMgr.files())
-            f->unittest().verifyUntouchedExpected(ctx, f->lexOut());
+            f->ast().unitTest().verifyUntouchedExpected(ctx, f->ast().lexOut());
     }
 }
 

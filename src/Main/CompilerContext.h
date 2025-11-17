@@ -1,4 +1,5 @@
 #pragma once
+#include "Main/FileManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -8,8 +9,9 @@ class Global;
 
 class CompilerContext
 {
-    const CommandLine* cmdLine_     = nullptr;
-    const Global*      global_      = nullptr;
+    const CommandLine* cmdLine_ = nullptr;
+    const Global*      global_  = nullptr;
+    FileManager        fileManager_;
     JobClientId        jobClientId_ = 0;
 
 public:
@@ -23,6 +25,8 @@ public:
     const CommandLine& cmdLine() const { return *cmdLine_; }
     JobClientId        jobClientId() const { return jobClientId_; }
     void               setJobClientId(JobClientId clientId) { jobClientId_ = clientId; }
+    FileManager&       fileMgr() { return fileManager_; }
+    const FileManager& fileMgr() const { return fileManager_; }
 };
 
 SWC_END_NAMESPACE()

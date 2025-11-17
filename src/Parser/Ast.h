@@ -4,10 +4,12 @@
 #include "Main/Stats.h"
 #include "Parser/AstNode.h"
 #include "Parser/AstNodes.h"
+#include "Report/UnitTest.h"
 
 SWC_BEGIN_NAMESPACE()
 
 class LexerOutput;
+class UnitTest;
 
 enum class AstFlagsE : uint32_t
 {
@@ -24,6 +26,7 @@ class Ast
     LexerOutput lexOut_;
     AstNodeRef  root_  = AstNodeRef::invalid();
     AstFlags    flags_ = AstFlagsE::Zero;
+    UnitTest    unitTest_;
 
 public:
     static constexpr const AstNodeIdInfo& nodeIdInfos(AstNodeId id) { return AST_NODE_ID_INFOS[static_cast<size_t>(id)]; }
@@ -35,6 +38,8 @@ public:
     const LexerOutput&                    lexOut() const { return lexOut_; }
     bool                                  hasFlag(AstFlags flag) const { return flags_.has(flag); }
     void                                  addFlag(AstFlags flag) { flags_.add(flag); }
+    UnitTest&                             unitTest() { return unitTest_; }
+    const UnitTest&                       unitTest() const { return unitTest_; }
 
     // Get a node depending on its ref
     template<AstNodeId ID>

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Report/DiagnosticBuilder.h"
 #include "Core/Utf8Helper.h"
+#include "Lexer/Lexer.h"
 #include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
 #include "Main/TaskContext.h"

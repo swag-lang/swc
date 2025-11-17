@@ -27,11 +27,11 @@ struct Stats
         return stats;
     }
 
-    static void setMax(const std::atomic<size_t>& cur, std::atomic<size_t>& max)
+    static void setMax(const std::atomic<size_t>& valCur, std::atomic<size_t>& valMax)
     {
-        const size_t current = cur.load(std::memory_order_relaxed);
-        size_t       prevMax = max.load(std::memory_order_relaxed);
-        while (current > prevMax && !max.compare_exchange_weak(prevMax, current, std::memory_order_relaxed))
+        const size_t current = valCur.load(std::memory_order_relaxed);
+        size_t       prevMax = valMax.load(std::memory_order_relaxed);
+        while (current > prevMax && !valMax.compare_exchange_weak(prevMax, current, std::memory_order_relaxed))
         {
         }
     }

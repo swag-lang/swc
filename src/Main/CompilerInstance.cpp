@@ -66,7 +66,7 @@ void CompilerInstance::logStats() const
     }
 }
 
-void CompilerInstance::processCommand() const
+void CompilerInstance::processCommand()
 {
     Timer time(&Stats::get().timeTotal);
     switch (context_.cmdLine().command)
@@ -79,13 +79,13 @@ void CompilerInstance::processCommand() const
             break;
         case CommandKind::Build:
             Command::build(*this);
-            break;            
+            break;
         default:
             SWC_UNREACHABLE();
     }
 }
 
-ExitCode CompilerInstance::run() const
+ExitCode CompilerInstance::run()
 {
     logBefore();
     processCommand();

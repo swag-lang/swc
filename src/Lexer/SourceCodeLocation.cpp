@@ -1,7 +1,7 @@
 #include "pch.h"
+#include "Lexer/SourceCodeLocation.h"
 #include "Core/Utf8Helper.h"
 #include "Lexer/Lexer.h"
-#include "Lexer/SourceCodeLocation.h"
 #include "Main/CommandLine.h"
 #include "Main/TaskContext.h"
 #include "Os/Os.h"

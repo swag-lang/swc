@@ -13,12 +13,13 @@ class CompilerInstance
     void            logBefore() const;
     void            logAfter() const;
     void            logStats() const;
-    void            processCommand() const;
+    void            processCommand();
 
 public:
     CompilerInstance(const CommandLine& cmdLine, const Global& global);
-    ExitCode run() const;
+    ExitCode run();
 
+    CompilerContext&       context() { return context_; }
     const CompilerContext& context() const { return context_; }
 };
 

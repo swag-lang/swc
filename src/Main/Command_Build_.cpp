@@ -12,13 +12,35 @@
 
 SWC_BEGIN_NAMESPACE()
 
-namespace
+class SemaJob : public Job
 {
-    AstVisit::Action preStmt(AstVisit& visit, AstNode& node)
+    Ast*     ast_ = nullptr;
+    AstVisit visit_;
+
+    static AstVisit::Action preStmt(AstVisit& visit, AstNode& node)
     {
         return AstVisit::Action::Continue;
     }
 
+public:
+    SemaJob(const TaskContext& ctx, Ast* ast) :
+        Job(ctx),
+        ast_(ast)
+    {
+        func = [this](JobContext& jobCtx) {
+            return exec(jobCtx);
+        };
+    }
+
+    JobResult exec(JobContext& ctx)
+    {
+        visit_.run(*ast_, {.pre = &preStmt});
+        return JobResult::Done;
+    }
+};
+
+namespace
+{
     void parseFile(JobContext& ctx, SourceFile* file)
     {
         if (file->loadContent(ctx) != Result::Success)
@@ -33,11 +55,6 @@ namespace
 
         Parser parser;
         parser.parse(ctx, ast);
-        if (ast.hasFlag(AstFlagsE::HasErrors))
-            return;
-
-        AstVisit astVisit;
-        astVisit.run(ast, {.pre = &preStmt});
     }
 }
 
@@ -62,6 +79,14 @@ namespace Command
                 return JobResult::Done;
             };
 
+            jobMgr.enqueue(job, JobPriority::Normal, clientId);
+        }
+
+        jobMgr.waitAll(clientId);
+
+        for (const auto& f : fileMgr.files())
+        {
+            auto job = std::make_shared<SemaJob>(ctx, &f->ast());
             jobMgr.enqueue(job, JobPriority::Normal, clientId);
         }
 

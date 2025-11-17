@@ -182,7 +182,6 @@
         </Link>
     </ItemDefinitionGroup>
     <ItemGroup>
-        <ClCompile Include="src\Core\CoreTests.cpp"/>
         <ClCompile Include="src\Core\Utf8.cpp"/>
         <ClCompile Include="src\Core\Utf8Helper.cpp"/>
         <ClCompile Include="src\Lexer\LangSpec.cpp"/>
@@ -243,7 +242,6 @@
         <ClCompile Include="src\Thread\RaceCondition.cpp"/>
     </ItemGroup>
     <ItemGroup>
-        <ClInclude Include="src\Core\ConstInt.h"/>
         <ClInclude Include="src\Core\Flags.h"/>
         <ClInclude Include="src\Core\Hash.h"/>
         <ClInclude Include="src\Core\Store.h"/>
@@ -251,7 +249,6 @@
         <ClInclude Include="src\Core\StringMap.h"/>
         <ClInclude Include="src\Core\Timer.h"/>
         <ClInclude Include="src\Core\StrongRef.h"/>
-        <ClInclude Include="src\Core\CoreTests.h"/>
         <ClInclude Include="src\Core\Utf8.h"/>
         <ClInclude Include="src\Core\Utf8Helper.h"/>
         <ClInclude Include="src\Lexer\LangSpec.h"/>

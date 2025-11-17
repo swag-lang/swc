@@ -37,7 +37,11 @@ class UnitTest
     void tokenizeExpected(const TaskContext& ctx, const LexTrivia& trivia, std::string_view comment);
 
 public:
-    void setFile(SourceFile* file) { file_ = file; }
+    explicit UnitTest(SourceFile* file) :
+        file_(file)
+    {
+    }
+
     void tokenize(TaskContext& ctx);
     bool hasFlag(UnitTestFlagsE flag) const { return flags_.has(flag); }
     bool verifyExpected(const TaskContext& ctx, const Diagnostic& diag) const;

@@ -24,6 +24,8 @@ namespace
 
         Lexer lexer;
         lexer.tokenize(ctx, file->ast().lexOut(), LexerFlagsE::EmitTrivia);
+        if (file->ast().lexOut().mustSkip())
+            return;
 
         Parser parser;
         parser.parse(ctx, file->ast());

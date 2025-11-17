@@ -704,6 +704,26 @@ void Lexer::lexIdentifier()
             lexOut_->identifiers().push_back({.hash = hash64, .byteStart = token_.byteStart});
             token_.byteStart = idx;
         }
+
+        // #global skip
+        if (token_.id == TokenId::CompilerGlobal)
+        {
+            auto tmp = buffer_;
+            while (langSpec_->isBlank(tmp[0]))
+                tmp++;
+
+            const auto startTok = tmp;
+            while (langSpec_->isIdentifierPart(tmp[0]))
+                tmp++;
+
+            const auto tokStr = std::string_view(reinterpret_cast<std::string_view::const_pointer>(startTok), tmp - startTok);
+
+            // @temp
+            if (tokStr == "testerror" || tokStr == "testerrors" || tokStr == "testwarning" || tokStr == "testwarnings" || tokStr == "testpass")
+                lexOut_->setMustSkip(true);
+            if (tokStr == "skip")
+                lexOut_->setMustSkip(true);
+        }
     }
 
     pushToken();
@@ -1286,6 +1306,8 @@ void Lexer::tokenize(TaskContext& ctx, LexerOutput& lexOut, LexerFlags flags)
         if (langSpec_->isIdentifierStart(buffer_[0]))
         {
             lexIdentifier();
+            if (lexOut_->mustSkip())
+                return;
             continue;
         }
 

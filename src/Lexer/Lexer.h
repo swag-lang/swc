@@ -39,6 +39,7 @@ class LexerOutput
     std::vector<LexTrivia>     trivia_;
     std::vector<uint32_t>      triviaStart_;
     std::vector<LexIdentifier> identifiers_;
+    bool                       mustSkip_ = false;
 
 public:
     const SourceFile*                 file() const { return file_; }
@@ -56,6 +57,8 @@ public:
     uint32_t                          numTokens() const { return static_cast<uint32_t>(tokens_.size()); }
     const std::vector<uint32_t>&      triviaStart() const { return triviaStart_; }
     std::vector<uint32_t>&            triviaStart() { return triviaStart_; }
+    bool                              mustSkip() const { return mustSkip_; }
+    void                              setMustSkip(bool mustSkip) { mustSkip_ = mustSkip; }
 
     Utf8                          codeLine(const TaskContext& ctx, uint32_t line) const;
     std::string_view              codeView(uint32_t offset, uint32_t len) const;

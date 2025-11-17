@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Lexer/SourceFile.h"
 #include "Parser/Parser.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -149,23 +148,13 @@ AstNodeRef Parser::parseCompilerGlobal()
 
     const auto tokStr = tok().string(ast_->lexOut());
 
-    // @temp
-    if (tokStr == "testerror" || tokStr == "testerrors" || tokStr == "testwarning" || tokStr == "testwarnings" || tokStr == "testpass")
-    {
-        skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
-        ast_->addFlag(AstFlagsE::GlobalSkip);
-
-        return nodeRef;
-    }
-
     if (tokStr == Token::toName(TokenId::KwdSkip))
     {
-        nodePtr->mode     = AstCompilerGlobal::Mode::Skip;
-        nodePtr->nodeMode = AstNodeRef::invalid();
-        ast_->addFlag(AstFlagsE::GlobalSkip);
-        consume();
+        // Should have been treated in lexer
+        SWC_UNREACHABLE();
     }
-    else if (tokStr == Token::toName(TokenId::KwdSkipFmt))
+    
+    if (tokStr == Token::toName(TokenId::KwdSkipFmt))
     {
         nodePtr->mode     = AstCompilerGlobal::Mode::SkipFmt;
         nodePtr->nodeMode = AstNodeRef::invalid();

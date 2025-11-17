@@ -21,6 +21,8 @@ namespace
 
         Lexer lexer;
         lexer.tokenize(ctx, file->ast().lexOut(), LexerFlagsE::Default);
+        if (file->ast().lexOut().mustSkip())
+            return;
 
         Parser parser;
         parser.parse(ctx, file->ast());

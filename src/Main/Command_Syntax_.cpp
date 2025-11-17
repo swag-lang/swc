@@ -21,6 +21,8 @@ namespace
 
         Lexer lexer;
         lexer.tokenize(ctx, file->ast().lexOut(), LexerFlagsE::Default);
+        if (file->ast().lexOut().mustSkip())
+            return;
 
         if (file->ast().unitTest().hasFlag(UnitTestFlagsE::LexOnly))
             return;
@@ -55,7 +57,11 @@ namespace Command
         global.jobMgr().waitAll(compiler.context().jobClientId());
 
         for (const auto& f : fileMgr.files())
+        {
+            if (f->ast().lexOut().mustSkip())
+                continue;
             f->ast().unitTest().verifyUntouchedExpected(ctx, f->ast().lexOut());
+        }
     }
 }
 

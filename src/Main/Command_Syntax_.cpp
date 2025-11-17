@@ -5,9 +5,9 @@
 #include "Main/Global.h"
 #include "Parser/Ast.h"
 #include "Parser/Parser.h"
-#include "Report/UnitTest.h"
 #include "Thread/Job.h"
 #include "Thread/JobManager.h"
+#include "Wmf/UnitTest.h"
 
 SWC_BEGIN_NAMESPACE()
 

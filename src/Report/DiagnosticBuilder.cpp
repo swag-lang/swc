@@ -2,7 +2,6 @@
 #include "Report/DiagnosticBuilder.h"
 #include "Core/Utf8Helper.h"
 #include "Lexer/Lexer.h"
-#include "Lexer/SourceFile.h"
 #include "Main/CommandLine.h"
 #include "Main/TaskContext.h"
 #include "Parser/SyntaxColor.h"
@@ -10,6 +9,7 @@
 #include "Report/DiagnosticElement.h"
 #include "Report/LogColor.h"
 #include "Report/LogSymbol.h"
+#include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE()
 

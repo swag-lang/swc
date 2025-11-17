@@ -1,5 +1,5 @@
 #pragma once
-#include "Lexer/SourceFile.h"
+#include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE()
 

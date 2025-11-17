@@ -1,11 +1,11 @@
 ﻿#include "pch.h"
-#include "Lexer/SourceFile.h"
+#include "Wmf/SourceFile.h"
 #include "Core/Timer.h"
 #include "Main/Stats.h"
 #include "Os/Os.h"
 #include "Parser/Ast.h"
 #include "Report/Diagnostic.h"
-#include "Report/UnitTest.h"
+#include "Wmf/UnitTest.h"
 
 SWC_BEGIN_NAMESPACE()
 

@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Parser/Parser.h"
 #include "Core/Timer.h"
-#include "Lexer/SourceFile.h"
 #include "Main/Stats.h"
+#include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE()
 

@@ -187,7 +187,6 @@
         <ClCompile Include="src\Lexer\LangSpec.cpp"/>
         <ClCompile Include="src\Lexer\Lexer.cpp"/>
         <ClCompile Include="src\Lexer\SourceCodeLocation.cpp"/>
-        <ClCompile Include="src\Lexer\SourceFile.cpp"/>
         <ClCompile Include="src\Lexer\Token.cpp"/>
         <ClCompile Include="src\main.cpp"/>
         <ClCompile Include="src\Main\CommandLineParser.cpp"/>
@@ -237,10 +236,11 @@
         <ClCompile Include="src\Report\DiagnosticElement.cpp"/>
         <ClCompile Include="src\Report\Logger.cpp"/>
         <ClCompile Include="src\Report\LogSymbol.cpp"/>
-        <ClCompile Include="src\Report\UnitTest.cpp"/>
         <ClCompile Include="src\Thread\Job.cpp"/>
         <ClCompile Include="src\Thread\JobManager.cpp"/>
         <ClCompile Include="src\Thread\RaceCondition.cpp"/>
+        <ClCompile Include="src\Wmf\SourceFile.cpp"/>
+        <ClCompile Include="src\Wmf\UnitTest.cpp"/>
     </ItemGroup>
     <ItemGroup>
         <ClInclude Include="src\Core\Flags.h"/>
@@ -255,7 +255,6 @@
         <ClInclude Include="src\Lexer\LangSpec.h"/>
         <ClInclude Include="src\Lexer\Lexer.h"/>
         <ClInclude Include="src\Lexer\SourceCodeLocation.h"/>
-        <ClInclude Include="src\Lexer\SourceFile.h"/>
         <ClInclude Include="src\Lexer\Token.h"/>
         <ClInclude Include="src\Lexer\TokenIds.inc"/>
         <ClInclude Include="src\Main\CommandLine.h"/>
@@ -290,10 +289,11 @@
         <ClInclude Include="src\Report\DiagnosticElement.h"/>
         <ClInclude Include="src\Report\Logger.h"/>
         <ClInclude Include="src\Report\LogSymbol.h"/>
-        <ClInclude Include="src\Report\UnitTest.h"/>
         <ClInclude Include="src\Thread\Job.h"/>
         <ClInclude Include="src\Thread\JobManager.h"/>
         <ClInclude Include="src\Thread\RaceCondition.h"/>
+        <ClInclude Include="src\Wmf\SourceFile.h"/>
+        <ClInclude Include="src\Wmf\UnitTest.h"/>
     </ItemGroup>
     <ItemGroup>
         <Content Include="src\Report\Diagnostic_Errors_.inc"/>

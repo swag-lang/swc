@@ -1,10 +1,10 @@
 #include "pch.h"
 #include "Main/FileManager.h"
-#include "FileSystem.h"
 #include "Main/CommandLine.h"
+#include "Main/FileSystem.h"
+#include "Main/TaskContext.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticDef.h"
-#include "TaskContext.h"
 
 SWC_BEGIN_NAMESPACE()
 

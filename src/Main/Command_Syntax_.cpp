@@ -5,6 +5,7 @@
 #include "Main/Global.h"
 #include "Parser/Ast.h"
 #include "Parser/Parser.h"
+#include "Report/UnitTest.h"
 #include "Thread/Job.h"
 #include "Thread/JobManager.h"
 
@@ -17,14 +18,14 @@ namespace
         if (file->loadContent(ctx) != Result::Success)
             return;
 
-        file->ast().unitTest().tokenize(ctx);
+        file->unitTest().tokenize(ctx);
 
         Lexer lexer;
         lexer.tokenize(ctx, file->ast().lexOut(), LexerFlagsE::Default);
         if (file->ast().lexOut().mustSkip())
             return;
 
-        if (file->ast().unitTest().hasFlag(UnitTestFlagsE::LexOnly))
+        if (file->unitTest().hasFlag(UnitTestFlagsE::LexOnly))
             return;
 
         Parser parser;
@@ -60,7 +61,7 @@ namespace Command
         {
             if (f->ast().lexOut().mustSkip())
                 continue;
-            f->ast().unitTest().verifyUntouchedExpected(ctx, f->ast().lexOut());
+            f->unitTest().verifyUntouchedExpected(ctx, f->ast().lexOut());
         }
     }
 }

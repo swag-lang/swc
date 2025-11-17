@@ -14,8 +14,9 @@ SourceFile::~SourceFile() = default;
 SourceFile::SourceFile(fs::path path) :
     path_(std::move(path))
 {
-    ast_ = std::make_unique<Ast>();
-    ast_->unitTest().setFile(this);
+    ast_      = std::make_unique<Ast>();
+    unitTest_ = std::make_unique<UnitTest>();
+    unitTest_->setFile(this);
 }
 
 Result SourceFile::loadContent(const TaskContext& ctx)

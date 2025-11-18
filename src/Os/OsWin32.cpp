@@ -102,12 +102,19 @@ namespace Os
         return FileSystem::normalizeSystemMessage(msg);
     }
 
-    fs::path getTemporaryFolder()
+    fs::path getTemporaryPath()
     {
         char buffer[_MAX_PATH];
         if (GetTempPathA(_MAX_PATH, buffer))
             return buffer;
         return "";
+    }
+
+    fs::path getExeFullName()
+    {
+        char az[_MAX_PATH];
+        GetModuleFileNameA(nullptr, az, _MAX_PATH);
+        return az;
     }
 
     bool isDebuggerAttached()

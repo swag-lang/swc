@@ -15,7 +15,8 @@ namespace Os
     void panicBox(const char* expr);
     Utf8 systemError();
 
-    fs::path getTemporaryFolder();
+    fs::path getTemporaryPath();
+    fs::path getExeFullName();
 
     bool isDebuggerAttached();
 }

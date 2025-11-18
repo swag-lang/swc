@@ -18,6 +18,7 @@ class CompilerInstance
     JobClientId                              jobClientId_ = 0;
     fs::path                                 modulePathSrc_;
     fs::path                                 modulePathFile_;
+    fs::path                                 exeFullName_;
 
     void logBefore();
     void logAfter();

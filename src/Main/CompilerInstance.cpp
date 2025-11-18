@@ -8,6 +8,7 @@
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
+#include "Os/Os.h"
 #include "Report/Diagnostic.h"
 #include "Report/LogColor.h"
 #include "Report/Logger.h"
@@ -21,7 +22,8 @@ CompilerInstance::~CompilerInstance() = default;
 CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdLine) :
     cmdLine_(&cmdLine),
     global_(&global),
-    jobClientId_(global.jobMgr().newClientId())
+    jobClientId_(global.jobMgr().newClientId()),
+    exeFullName_{Os::getExeFullName()}
 {
 }
 
@@ -160,6 +162,19 @@ Result CompilerInstance::collectFiles(const TaskContext& ctx)
             std::ranges::sort(paths);
         for (const auto& f : paths)
             addFile(f, FileFlagsE::ModuleSrc);
+    }
+
+    // Collect runtime files
+    if (cmdLine.command == CommandKind::Build)
+    {
+        fs::path runtimePath = exeFullName_.parent_path() / "Runtime";
+        if (FileSystem::resolveFolder(ctx, runtimePath) != Result::Success)
+            return Result::Error;
+        FileSystem::collectSwagFilesRec(ctx, modulePathSrc_, paths);
+        if (cmdLine.numCores == 1)
+            std::ranges::sort(paths);
+        for (const auto& f : paths)
+            addFile(f, FileFlagsE::Runtime);
     }
 
     if (files_.empty())

@@ -12,7 +12,8 @@ enum class FileFlagsE : uint32_t
     Zero = 0,
     CustomSrc,
     ModuleSrc,
-    Module
+    Module,
+    Runtime
 };
 using FileFlags = EnumFlags<FileFlagsE>;
 

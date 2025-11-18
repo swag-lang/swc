@@ -42,6 +42,8 @@ struct CommandLine
 
     std::set<fs::path> directories;
     std::set<fs::path> files;
+
+    fs::path modulePath;
 };
 
 SWC_END_NAMESPACE()

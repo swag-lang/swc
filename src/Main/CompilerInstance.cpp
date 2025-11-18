@@ -122,26 +122,46 @@ Result CompilerInstance::collectFiles(const TaskContext& ctx)
     const auto&           cmdLine = ctx.cmdLine();
     std::vector<fs::path> paths;
 
-    // Collect direct files from the command line
+    // Collect direct files from the command line folders
+    paths.clear();
     for (const auto& folder : cmdLine.directories)
+    {
         FileSystem::collectSwagFilesRec(ctx, folder, paths);
+        if (cmdLine.numCores == 1)
+            std::ranges::sort(paths);
+        for (const auto& f : paths)
+            addFile(f);
+    }
+
+    // Collect direct files from the command line files
+    paths.clear();
     for (const auto& file : cmdLine.files)
         paths.push_back(file);
+    if (cmdLine.numCores == 1)
+        std::ranges::sort(paths);
+    for (const auto& f : paths)
+        addFile(f);
 
-    if (paths.empty())
+    // Collect files from the module path
+    if (!cmdLine.modulePath.empty())
+    {
+        auto folder = cmdLine.modulePath;
+        folder.append("src");
+        if (FileSystem::resolveFolder(ctx, folder) != Result::Success)
+            return Result::Error;
+        FileSystem::collectSwagFilesRec(ctx, folder, paths);
+        if (cmdLine.numCores == 1)
+            std::ranges::sort(paths);
+        for (const auto& f : paths)
+            addFile(f);
+    }
+
+    if (files_.empty())
     {
         const auto diag = Diagnostic::get(DiagnosticId::cmd_err_no_input);
         diag.report(ctx);
         return Result::Error;
     }
-
-    // In single threaded mode, make paths order deterministic
-    if (cmdLine.numCores == 1)
-        std::ranges::sort(paths);
-
-    // Register all files
-    for (const auto& f : paths)
-        addFile(f);
 
     return Result::Success;
 }

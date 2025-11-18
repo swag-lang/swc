@@ -378,6 +378,22 @@ Result CommandLineParser::checkCommandLine(const TaskContext& ctx) const
     }
     cmdLine_->files = std::move(resolvedFiles);
 
+    // Module path
+    if (!cmdLine_->modulePath.empty())
+    {
+        fs::path modulePath = cmdLine_->modulePath;
+        if (FileSystem::resolveFolder(ctx, modulePath) != Result::Success)
+            return Result::Error;
+        modulePath.append("module.swg");
+        if (!fs::exists(modulePath))
+        {
+            auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
+            diag.addArgument(Diagnostic::ARG_PATH, modulePath.string());
+            diag.report(ctx);
+            return Result::Error;
+        }
+    }
+
 #if SWC_DEV_MODE
     cmdLine_->dbgDevMode = true;
 #endif
@@ -406,6 +422,7 @@ CommandLineParser::CommandLineParser(CommandLine& cmdLine, Global& global) :
     addArg("all", "--file", "-f", CommandLineType::PathSet, &cmdLine_->files, nullptr, "Specify one or more individual files to process directly.");
     addArg("all", "--file-filter", "-ff", CommandLineType::StringSet, &cmdLine_->fileFilter, nullptr, "Apply a substring filter to select specific files by name.");
     addArg("all", "--devmode", nullptr, CommandLineType::Bool, &cmdLine_->dbgDevMode, nullptr, "Open a message box in case of hardware exceptions.");
+    addArg("all", "--module", "-m", CommandLineType::Path, &cmdLine_->modulePath, nullptr, "Specify a module path to compile.");
 
 #if SWC_DEV_MODE
     addArg("all", "--randomize", nullptr, CommandLineType::Bool, &cmdLine_->randomize, nullptr, "Randomize behavior.");

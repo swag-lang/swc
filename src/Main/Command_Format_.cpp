@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Main/Command.h"
 #include "Main/CompilerInstance.h"
-#include "Main/FileManager.h"
 #include "Main/Global.h"
 #include "Parser/ParserJob.h"
 #include "Thread/Job.h"
@@ -13,16 +12,15 @@ namespace Command
 {
     void format(CompilerInstance& compiler)
     {
-        const TaskContext ctx(compiler.context());
+        const TaskContext ctx(compiler);
         const auto&       global   = ctx.global();
-        auto&             fileMgr  = compiler.context().fileMgr();
         auto&             jobMgr   = global.jobMgr();
-        const auto        clientId = compiler.context().jobClientId();
+        const auto        clientId = compiler.jobClientId();
 
-        if (fileMgr.collectFiles(ctx) == Result::Error)
+        if (compiler.collectFiles(ctx) == Result::Error)
             return;
 
-        for (const auto& f : fileMgr.files())
+        for (const auto& f : compiler.files())
         {
             auto job = std::make_shared<ParserJob>(ctx, f);
             jobMgr.enqueue(job, JobPriority::Normal, clientId);

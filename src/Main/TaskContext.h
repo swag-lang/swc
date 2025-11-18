@@ -1,5 +1,5 @@
 #pragma once
-#include "Main/CompilerContext.h"
+#include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -9,17 +9,17 @@ class SourceFile;
 
 class TaskContext
 {
-    const CompilerContext* compilerContext_ = nullptr;
-    bool                   silentError_     = false;
+    CompilerInstance* compilerInstance_ = nullptr;
+    bool              silentError_      = false;
 
 public:
-    explicit TaskContext(const CompilerContext& compContext) :
-        compilerContext_(&compContext)
+    explicit TaskContext(CompilerInstance& compInst) :
+        compilerInstance_(&compInst)
     {
     }
 
-    const Global&      global() const { return compilerContext_->global(); }
-    const CommandLine& cmdLine() const { return compilerContext_->cmdLine(); }
+    const Global&      global() const { return compilerInstance_->global(); }
+    const CommandLine& cmdLine() const { return compilerInstance_->cmdLine(); }
     bool               silentError() const { return silentError_; }
     void               setSilentError(bool silent) { silentError_ = silent; }
 };

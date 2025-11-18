@@ -1,13 +1,13 @@
 #include "pch.h"
 #include "Main/Command.h"
 #include "Main/CompilerInstance.h"
-#include "Main/FileManager.h"
 #include "Main/Global.h"
 #include "Parser/Ast.h"
 #include "Parser/ParserJob.h"
 #include "Sema/SemaJob.h"
 #include "Thread/Job.h"
 #include "Thread/JobManager.h"
+#include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -15,16 +15,15 @@ namespace Command
 {
     void build(CompilerInstance& compiler)
     {
-        const TaskContext ctx(compiler.context());
+        const TaskContext ctx(compiler);
         const auto&       global   = ctx.global();
         auto&             jobMgr   = global.jobMgr();
-        auto&             fileMgr  = compiler.context().fileMgr();
-        const auto        clientId = compiler.context().jobClientId();
+        const auto        clientId = compiler.jobClientId();
 
-        if (fileMgr.collectFiles(ctx) == Result::Error)
+        if (compiler.collectFiles(ctx) == Result::Error)
             return;
 
-        for (const auto& f : fileMgr.files())
+        for (const auto& f : compiler.files())
         {
             auto job = std::make_shared<ParserJob>(ctx, f);
             jobMgr.enqueue(job, JobPriority::Normal, clientId);
@@ -32,7 +31,7 @@ namespace Command
 
         jobMgr.waitAll(clientId);
 
-        for (const auto& f : fileMgr.files())
+        for (const auto& f : compiler.files())
         {
             if (f->ast().root().isInvalid())
                 continue;

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Parser/ParserJob.h"
 #include "Parser/Parser.h"
+#include "Wmf/SourceFile.h"
 #include "Wmf/Verify.h"
 
 SWC_BEGIN_NAMESPACE()

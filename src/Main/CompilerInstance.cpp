@@ -1,27 +1,34 @@
 #include "pch.h"
-#include "Main/CompilerInstance.h"
+
 #include "Core/Timer.h"
 #include "Core/Utf8Helper.h"
+#include "FileSystem.h"
 #include "Main/Command.h"
 #include "Main/CommandLine.h"
+#include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
+#include "Report/Diagnostic.h"
 #include "Report/LogColor.h"
 #include "Report/Logger.h"
 #include "Thread/JobManager.h"
+#include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE()
 
-CompilerInstance::CompilerInstance(const CommandLine& cmdLine, const Global& global) :
-    context_(global, cmdLine)
+CompilerInstance::~CompilerInstance() = default;
+
+CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdLine) :
+    cmdLine_(&cmdLine),
+    global_(&global)
 {
-    context_.setJobClientId(global.jobMgr().newClientId());
+    jobClientId_ = global.jobMgr().newClientId();
 }
 
-void CompilerInstance::logBefore() const
+void CompilerInstance::logBefore()
 {
-    const TaskContext ctx(context_);
+    const TaskContext ctx(*this);
 
     ctx.global().logger().lock();
 
@@ -38,9 +45,9 @@ void CompilerInstance::logBefore() const
     ctx.global().logger().unlock();
 }
 
-void CompilerInstance::logAfter() const
+void CompilerInstance::logAfter()
 {
-    const TaskContext ctx(context_);
+    const TaskContext ctx(*this);
 
     const auto timeSrc = Utf8Helper::toNiceTime(Timer::toSeconds(Stats::get().timeTotal));
     ctx.global().logger().lock();
@@ -57,11 +64,11 @@ void CompilerInstance::logAfter() const
     ctx.global().logger().unlock();
 }
 
-void CompilerInstance::logStats() const
+void CompilerInstance::logStats()
 {
-    if (context_.cmdLine().stats)
+    if (cmdLine().stats)
     {
-        const TaskContext ctx(context_);
+        const TaskContext ctx(*this);
         Stats::get().print(ctx);
     }
 }
@@ -69,7 +76,7 @@ void CompilerInstance::logStats() const
 void CompilerInstance::processCommand()
 {
     Timer time(&Stats::get().timeTotal);
-    switch (context_.cmdLine().command)
+    switch (cmdLine().command)
     {
         case CommandKind::Syntax:
             Command::syntax(*this);
@@ -92,6 +99,54 @@ ExitCode CompilerInstance::run()
     logAfter();
     logStats();
     return ExitCode::Success;
+}
+
+FileRef CompilerInstance::addFile(fs::path path)
+{
+    path               = fs::absolute(path);
+    const auto fileRef = static_cast<FileRef>(static_cast<uint32_t>(files_.size() + 1));
+
+    files_.emplace_back(std::make_unique<SourceFile>(std::move(path)));
+    return fileRef;
+}
+
+std::vector<SourceFile*> CompilerInstance::files() const
+{
+    std::vector<SourceFile*> result;
+    result.reserve(files_.size());
+    for (const auto& f : files_)
+        result.push_back(f.get());
+
+    return result;
+}
+
+Result CompilerInstance::collectFiles(const TaskContext& ctx)
+{
+    const auto&           cmdLine = ctx.cmdLine();
+    std::vector<fs::path> paths;
+
+    // Collect direct files from the command line
+    for (const auto& folder : cmdLine.directories)
+        FileSystem::collectSwagFilesRec(ctx, folder, paths);
+    for (const auto& file : cmdLine.files)
+        paths.push_back(file);
+
+    if (paths.empty())
+    {
+        const auto diag = Diagnostic::get(DiagnosticId::cmd_err_no_input);
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    // In single threaded mode, make paths order deterministic
+    if (cmdLine.numCores == 1)
+        std::ranges::sort(paths);
+
+    // Register all files
+    for (const auto& f : paths)
+        addFile(f);
+
+    return Result::Success;
 }
 
 SWC_END_NAMESPACE()

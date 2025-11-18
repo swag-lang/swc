@@ -15,6 +15,6 @@ int main(int argc, char* argv[])
 
     global.initialize(cmdLine);
 
-    swc::CompilerInstance compiler(cmdLine, global);
+    swc::CompilerInstance compiler(global, cmdLine);
     return static_cast<int>(compiler.run());
 }

@@ -193,7 +193,6 @@
         <ClCompile Include="src\Main\Command_Build_.cpp"/>
         <ClCompile Include="src\Main\Command_Format_.cpp"/>
         <ClCompile Include="src\Main\Command_Syntax_.cpp"/>
-        <ClCompile Include="src\Main\FileManager.cpp"/>
         <ClCompile Include="src\Main\FileSystem.cpp"/>
         <ClCompile Include="src\Main\Global.cpp"/>
         <ClCompile Include="src\Main\CompilerInstance.cpp"/>
@@ -262,10 +261,8 @@
         <ClInclude Include="src\Main\CommandLine.h"/>
         <ClInclude Include="src\Main\CommandLineParser.h"/>
         <ClInclude Include="src\Main\Command.h"/>
-        <ClInclude Include="src\Main\CompilerContext.h"/>
         <ClInclude Include="src\Main\Stats.h"/>
         <ClInclude Include="src\Main\TaskContext.h"/>
-        <ClInclude Include="src\Main\FileManager.h"/>
         <ClInclude Include="src\Main\FileSystem.h"/>
         <ClInclude Include="src\Main\Global.h"/>
         <ClInclude Include="src\Main\CompilerInstance.h"/>

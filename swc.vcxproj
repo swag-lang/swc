@@ -211,6 +211,7 @@
         <ClCompile Include="src\Parser\AstNode.cpp"/>
         <ClCompile Include="src\Parser\AstVisit.cpp"/>
         <ClCompile Include="src\Parser\Parser.cpp"/>
+        <ClCompile Include="src\Parser\ParserJob.cpp"/>
         <ClCompile Include="src\Parser\Parser_Compound_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Call_.cpp"/>
         <ClCompile Include="src\Parser\Parser_Compiler_.cpp"/>
@@ -279,6 +280,7 @@
         <ClInclude Include="src\Parser\AstNodes.h"/>
         <ClInclude Include="src\Parser\AstVisit.h"/>
         <ClInclude Include="src\Parser\Parser.h"/>
+        <ClInclude Include="src\Parser\ParserJob.h"/>
         <ClInclude Include="src\Parser\SyntaxColor.h"/>
         <ClInclude Include="src\pch.h"/>
         <ClInclude Include="src\Report\Check.h"/>

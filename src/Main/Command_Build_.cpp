@@ -1,35 +1,15 @@
 #include "pch.h"
-#include "Lexer/Lexer.h"
 #include "Main/Command.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileManager.h"
 #include "Main/Global.h"
 #include "Parser/Ast.h"
-#include "Parser/Parser.h"
+#include "Parser/ParserJob.h"
 #include "Sema/SemaJob.h"
 #include "Thread/Job.h"
 #include "Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE()
-
-namespace
-{
-    void parseFile(JobContext& ctx, SourceFile* file)
-    {
-        if (file->loadContent(ctx) != Result::Success)
-            return;
-
-        auto& ast = file->ast();
-
-        Lexer lexer;
-        lexer.tokenize(ctx, ast.lexOut(), LexerFlagsE::Default);
-        if (ast.lexOut().mustSkip())
-            return;
-
-        Parser parser;
-        parser.parse(ctx, ast);
-    }
-}
 
 namespace Command
 {
@@ -46,12 +26,7 @@ namespace Command
 
         for (const auto& f : fileMgr.files())
         {
-            auto job  = std::make_shared<Job>(ctx);
-            job->func = [f](JobContext& taskCtx) {
-                parseFile(taskCtx, f);
-                return JobResult::Done;
-            };
-
+            auto job = std::make_shared<ParserJob>(ctx, f);
             jobMgr.enqueue(job, JobPriority::Normal, clientId);
         }
 

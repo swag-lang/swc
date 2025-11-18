@@ -1,4 +1,5 @@
-.out/
+bin/*.exe
+bin/*.pdb
 .tmp/
 .vs/
 .idea/

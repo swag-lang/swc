@@ -5,7 +5,7 @@
 #include "Os/Os.h"
 #include "Parser/Ast.h"
 #include "Report/Diagnostic.h"
-#include "Wmf/UnitTest.h"
+#include "Wmf/Verify.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -15,7 +15,7 @@ SourceFile::SourceFile(fs::path path) :
     path_(std::move(path))
 {
     ast_      = std::make_unique<Ast>();
-    unitTest_ = std::make_unique<UnitTest>(this);
+    unitTest_ = std::make_unique<Verify>(this);
 }
 
 Result SourceFile::loadContent(const TaskContext& ctx)

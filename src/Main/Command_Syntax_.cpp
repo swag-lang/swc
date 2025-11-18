@@ -8,7 +8,7 @@
 #include "Parser/ParserJob.h"
 #include "Thread/Job.h"
 #include "Thread/JobManager.h"
-#include "Wmf/UnitTest.h"
+#include "Wmf/Verify.h"
 
 SWC_BEGIN_NAMESPACE()
 

@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Wmf/UnitTest.h"
+#include "Wmf/Verify.h"
 #include "Core/Utf8Helper.h"
 #include "Lexer/LangSpec.h"
 #include "Lexer/Lexer.h"
@@ -10,7 +10,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void UnitTest::tokenizeOption(const TaskContext& ctx, std::string_view comment)
+void Verify::tokenizeOption(const TaskContext& ctx, std::string_view comment)
 {
     const auto& langSpec = ctx.global().langSpec();
 
@@ -48,7 +48,7 @@ void UnitTest::tokenizeOption(const TaskContext& ctx, std::string_view comment)
 
             // Handle known options
             if (kindWord == "lex-only")
-                flags_.add(UnitTestFlagsE::LexOnly);
+                flags_.add(VerifyFlagsE::LexOnly);
 
             // If options might be comma-separated, skip trailing commas/spacers
             while (i < comment.size() && (langSpec.isBlank(static_cast<char8_t>(comment[i])) || comment[i] == ','))
@@ -62,7 +62,7 @@ void UnitTest::tokenizeOption(const TaskContext& ctx, std::string_view comment)
     }
 }
 
-void UnitTest::tokenizeExpected(const TaskContext& ctx, const LexTrivia& trivia, std::string_view comment)
+void Verify::tokenizeExpected(const TaskContext& ctx, const LexTrivia& trivia, std::string_view comment)
 {
     const auto& langSpec = ctx.global().langSpec();
 
@@ -73,7 +73,7 @@ void UnitTest::tokenizeExpected(const TaskContext& ctx, const LexTrivia& trivia,
         if (pos == std::string_view::npos)
             break;
 
-        UnitTestDirective directive;
+        VerifyDirective directive;
 
         // Parse directive kind ("error", "warning", etc.)
         const size_t start = pos + LangSpec::VERIFY_COMMENT_EXPECTED.size();
@@ -127,9 +127,9 @@ void UnitTest::tokenizeExpected(const TaskContext& ctx, const LexTrivia& trivia,
             if (close == std::string_view::npos)
                 break;
 
-            UnitTestDirective dir = directive;
-            dir.match             = comment.substr(open + 2, close - (open + 2));
-            dir.match             = Utf8Helper::trim(dir.match);
+            VerifyDirective dir = directive;
+            dir.match           = comment.substr(open + 2, close - (open + 2));
+            dir.match           = Utf8Helper::trim(dir.match);
             directives_.emplace_back(std::move(dir));
 
             i = close + 2;
@@ -139,7 +139,7 @@ void UnitTest::tokenizeExpected(const TaskContext& ctx, const LexTrivia& trivia,
     }
 }
 
-void UnitTest::tokenize(TaskContext& ctx)
+void Verify::tokenize(TaskContext& ctx)
 {
     if (!ctx.cmdLine().verify)
         return;
@@ -159,7 +159,7 @@ void UnitTest::tokenize(TaskContext& ctx)
     }
 }
 
-bool UnitTest::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) const
+bool Verify::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) const
 {
     if (directives_.empty())
         return false;
@@ -187,7 +187,7 @@ bool UnitTest::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) co
     return false;
 }
 
-void UnitTest::verifyUntouchedExpected(const TaskContext& ctx, const LexerOutput& lexOut) const
+void Verify::verifyUntouchedExpected(const TaskContext& ctx, const LexerOutput& lexOut) const
 {
     for (const auto& directive : directives_)
     {

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Parser/ParserJob.h"
 #include "Parser/Parser.h"
-#include "Wmf/UnitTest.h"
+#include "Wmf/Verify.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -28,7 +28,7 @@ JobResult ParserJob::exec(JobContext& ctx) const
     if (ast.lexOut().mustSkip())
         return JobResult::Done;
 
-    if (file_->unitTest().hasFlag(UnitTestFlagsE::LexOnly))
+    if (file_->unitTest().hasFlag(VerifyFlagsE::LexOnly))
         return JobResult::Done;
 
     Parser parser;

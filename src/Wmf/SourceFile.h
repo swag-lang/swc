@@ -5,7 +5,7 @@ SWC_BEGIN_NAMESPACE()
 class TaskContext;
 class Global;
 class Ast;
-class UnitTest;
+class Verify;
 
 enum class FileFlagsE : uint32_t
 {
@@ -18,12 +18,12 @@ class SourceFile
     // Number of '\0' forced at the end of the file
     static constexpr int TRAILING_0 = 4;
 
-    FileRef                   ref_ = FileRef::invalid();
-    fs::path                  path_;
-    std::vector<char8_t>      content_;
-    FileFlags                 flags_ = FileFlagsE::Zero;
-    std::unique_ptr<Ast>      ast_;
-    std::unique_ptr<UnitTest> unitTest_;
+    FileRef                 ref_ = FileRef::invalid();
+    fs::path                path_;
+    std::vector<char8_t>    content_;
+    FileFlags               flags_ = FileFlagsE::Zero;
+    std::unique_ptr<Ast>    ast_;
+    std::unique_ptr<Verify> unitTest_;
 
 public:
     explicit SourceFile(fs::path path);
@@ -41,8 +41,8 @@ public:
     const FileFlags& flags() const { return flags_; }
     bool             hasFlag(FileFlags flag) const { return flags_.has(flag); }
     void             addFlag(FileFlags flag) { flags_.add(flag); }
-    UnitTest&        unitTest() { return *unitTest_; }
-    const UnitTest&  unitTest() const { return *unitTest_; }
+    Verify&          unitTest() { return *unitTest_; }
+    const Verify&    unitTest() const { return *unitTest_; }
 
     Result loadContent(const TaskContext& ctx);
 };

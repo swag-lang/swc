@@ -8,7 +8,7 @@
 SWC_BEGIN_NAMESPACE()
 
 class LexerOutput;
-class UnitTest;
+class Verify;
 
 enum class AstFlagsE : uint32_t
 {

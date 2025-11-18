@@ -10,7 +10,7 @@ class Global;
 class Diagnostic;
 struct LexTrivia;
 
-struct UnitTestDirective
+struct VerifyDirective
 {
     DiagnosticSeverity kind = DiagnosticSeverity::Zero;
     Utf8               match;
@@ -19,31 +19,31 @@ struct UnitTestDirective
     mutable bool       touched = false;
 };
 
-enum class UnitTestFlagsE : uint32_t
+enum class VerifyFlagsE : uint32_t
 {
     Zero    = 0,
     LexOnly = 1 << 0,
 };
-using UnitTestFlags = EnumFlags<UnitTestFlagsE>;
+using VerifyFlags = EnumFlags<VerifyFlagsE>;
 
-class UnitTest
+class Verify
 {
-    SourceFile*                    file_ = nullptr;
-    LexerOutput                    lexOut_;
-    std::vector<UnitTestDirective> directives_;
-    UnitTestFlags                  flags_ = UnitTestFlagsE::Zero;
+    SourceFile*                  file_ = nullptr;
+    LexerOutput                  lexOut_;
+    std::vector<VerifyDirective> directives_;
+    VerifyFlags                  flags_ = VerifyFlagsE::Zero;
 
     void tokenizeOption(const TaskContext& ctx, std::string_view comment);
     void tokenizeExpected(const TaskContext& ctx, const LexTrivia& trivia, std::string_view comment);
 
 public:
-    explicit UnitTest(SourceFile* file) :
+    explicit Verify(SourceFile* file) :
         file_(file)
     {
     }
 
     void tokenize(TaskContext& ctx);
-    bool hasFlag(UnitTestFlagsE flag) const { return flags_.has(flag); }
+    bool hasFlag(VerifyFlagsE flag) const { return flags_.has(flag); }
     bool verifyExpected(const TaskContext& ctx, const Diagnostic& diag) const;
     void verifyUntouchedExpected(const TaskContext& ctx, const LexerOutput& lexOut) const;
 };

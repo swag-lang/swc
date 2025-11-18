@@ -242,7 +242,7 @@
         <ClCompile Include="src\Thread\JobManager.cpp"/>
         <ClCompile Include="src\Thread\RaceCondition.cpp"/>
         <ClCompile Include="src\Wmf\SourceFile.cpp"/>
-        <ClCompile Include="src\Wmf\UnitTest.cpp"/>
+        <ClCompile Include="src\Wmf\Verify.cpp"/>
     </ItemGroup>
     <ItemGroup>
         <ClInclude Include="src\Core\Flags.h"/>
@@ -297,7 +297,7 @@
         <ClInclude Include="src\Thread\JobManager.h"/>
         <ClInclude Include="src\Thread\RaceCondition.h"/>
         <ClInclude Include="src\Wmf\SourceFile.h"/>
-        <ClInclude Include="src\Wmf\UnitTest.h"/>
+        <ClInclude Include="src\Wmf\Verify.h"/>
     </ItemGroup>
     <ItemGroup>
         <Content Include="src\Report\Diagnostic_Errors_.inc"/>

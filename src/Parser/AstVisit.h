@@ -7,27 +7,26 @@ class Ast;
 class LexerOutput;
 struct AstNode;
 
+enum class AstVisitResult
+{
+    Continue, // normal flow
+    Pause,    // abort traversal immediately, but we are not finished
+    Stop      // abort traversal immediately
+};
+
+enum class AstVisitStepResult
+{
+    Continue,     // normal flow
+    SkipChildren, // don't descend, go straight to post()
+    Pause,        // abort traversal immediately, but we are not finished
+    Stop          // abort traversal immediately
+};
+
 class AstVisit
 {
-public:
-    enum class Action : uint8_t
-    {
-        Continue,     // normal flow
-        SkipChildren, // don't descend, go straight to post()
-        Stop          // abort traversal immediately
-    };
-
-    // Both callbacks are optional; if unset, they're no-ops.
-    using Callback = Action (*)(AstVisit&, AstNode&);
-    struct Callbacks
-    {
-        Callback pre  = nullptr;
-        Callback post = nullptr;
-    };
-
-private:
-    Callbacks cb_{};
-    Ast*      ast_ = nullptr;
+    Ast*                                        ast_ = nullptr;
+    std::function<AstVisitStepResult(AstNode&)> pre;
+    std::function<AstVisitStepResult(AstNode&)> post;
 
     struct Frame
     {
@@ -54,9 +53,10 @@ private:
     AstNode* parentNodeInternal(size_t up) const;
 
 public:
-    void           start(Ast& ast, const Callbacks& cb = {});
-    bool           step();
-    void           run(Ast& ast, const Callbacks& cb);
+    void           start(Ast& ast);
+    void           setPreVisitor(std::function<AstVisitStepResult(AstNode&)> visitor) { pre = visitor; }
+    void           setPostVisitor(std::function<AstVisitStepResult(AstNode&)> visitor) { post = visitor; }
+    AstVisitResult step();
     AstNode*       parentNode(size_t up = 0) { return parentNodeInternal(up); }
     const AstNode* parentNode(size_t up = 0) const { return parentNodeInternal(up); }
 

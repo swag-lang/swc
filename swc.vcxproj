@@ -236,6 +236,7 @@
         <ClCompile Include="src\Report\DiagnosticElement.cpp"/>
         <ClCompile Include="src\Report\Logger.cpp"/>
         <ClCompile Include="src\Report\LogSymbol.cpp"/>
+        <ClCompile Include="src\Sema\SemaJob.cpp"/>
         <ClCompile Include="src\Thread\Job.cpp"/>
         <ClCompile Include="src\Thread\JobManager.cpp"/>
         <ClCompile Include="src\Thread\RaceCondition.cpp"/>
@@ -289,6 +290,7 @@
         <ClInclude Include="src\Report\DiagnosticElement.h"/>
         <ClInclude Include="src\Report\Logger.h"/>
         <ClInclude Include="src\Report\LogSymbol.h"/>
+        <ClInclude Include="src\Sema\SemaJob.h"/>
         <ClInclude Include="src\Thread\Job.h"/>
         <ClInclude Include="src\Thread\JobManager.h"/>
         <ClInclude Include="src\Thread\RaceCondition.h"/>

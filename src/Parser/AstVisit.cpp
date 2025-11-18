@@ -1,16 +1,14 @@
 #include "pch.h"
-
-#include "Ast.h"
-#include "Main/Stats.h"
-#include "Parser/AstNodes.h"
 #include "Parser/AstVisit.h"
+#include "Main/Stats.h"
+#include "Parser/Ast.h"
+#include "Parser/AstNodes.h"
 
 SWC_BEGIN_NAMESPACE()
 
-void AstVisit::start(Ast& ast, const Callbacks& cb)
+void AstVisit::start(Ast& ast)
 {
     ast_        = &ast;
-    cb_         = cb;
     currentLex_ = &ast_->lexOut();
 
     stack_.clear();
@@ -26,10 +24,10 @@ void AstVisit::start(Ast& ast, const Callbacks& cb)
     stack_.push_back(fr);
 }
 
-bool AstVisit::step()
+AstVisitResult AstVisit::step()
 {
     if (stack_.empty())
-        return false;
+        return AstVisitResult::Stop;
 
     Frame& fr = stack_.back();
 
@@ -49,16 +47,18 @@ bool AstVisit::step()
 #endif
 
             // Pre-order callback
-            if (cb_.pre)
+            if (pre)
             {
-                const Action result = cb_.pre(*this, *fr.node);
-                if (result == Action::Stop)
-                    return false;
+                const AstVisitStepResult result = pre(*fr.node);
+                if (result == AstVisitStepResult::Stop)
+                    return AstVisitResult::Stop;
+                if (result == AstVisitStepResult::Pause)
+                    return AstVisitResult::Pause;
 
-                if (result == Action::SkipChildren)
+                if (result == AstVisitStepResult::SkipChildren)
                 {
                     fr.stage = Frame::Stage::Post;
-                    return true;
+                    return AstVisitResult::Continue;
                 }
             }
 
@@ -71,7 +71,7 @@ bool AstVisit::step()
             fr.nextChildIx = 0;
 
             fr.stage = Frame::Stage::Children;
-            return true;
+            return AstVisitResult::Continue;
         }
 
         case Frame::Stage::Children:
@@ -89,37 +89,34 @@ bool AstVisit::step()
                 childFr.lexAtPush = currentLex_;
 
                 stack_.push_back(childFr);
-                return true;
+                return AstVisitResult::Continue;
             }
 
             fr.stage = Frame::Stage::Post;
-            return true;
+            return AstVisitResult::Continue;
         }
 
         case Frame::Stage::Post:
         {
             // Post-order callback
-            if (cb_.post)
+            if (post)
             {
-                const Action result = cb_.post(*this, *fr.node);
-                if (result == Action::Stop)
-                    return false;
+                const AstVisitStepResult result = post(*fr.node);
+                if (result == AstVisitStepResult::Stop)
+                    return AstVisitResult::Stop;
+                if (result == AstVisitStepResult::Pause)
+                    return AstVisitResult::Pause;
             }
 
             currentLex_ = fr.lexAtPush;
             stack_.pop_back();
-            return !stack_.empty();
+            if (stack_.empty())
+                return AstVisitResult::Stop;
+            return AstVisitResult::Continue;
         }
     }
 
     SWC_UNREACHABLE();
-}
-
-void AstVisit::run(Ast& ast, const Callbacks& cb)
-{
-    start(ast, cb);
-    while (step())
-        ;
 }
 
 AstNode* AstVisit::parentNodeInternal(size_t up) const

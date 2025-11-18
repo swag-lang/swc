@@ -5,39 +5,12 @@
 #include "Main/FileManager.h"
 #include "Main/Global.h"
 #include "Parser/Ast.h"
-#include "Parser/AstVisit.h"
 #include "Parser/Parser.h"
+#include "Sema/SemaJob.h"
 #include "Thread/Job.h"
 #include "Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE()
-
-class SemaJob : public Job
-{
-    Ast*     ast_ = nullptr;
-    AstVisit visit_;
-
-    static AstVisit::Action preStmt(AstVisit& visit, AstNode& node)
-    {
-        return AstVisit::Action::Continue;
-    }
-
-public:
-    SemaJob(const TaskContext& ctx, Ast* ast) :
-        Job(ctx),
-        ast_(ast)
-    {
-        func = [this](JobContext& jobCtx) {
-            return exec(jobCtx);
-        };
-    }
-
-    JobResult exec(JobContext& ctx)
-    {
-        visit_.run(*ast_, {.pre = &preStmt});
-        return JobResult::Done;
-    }
-};
 
 namespace
 {

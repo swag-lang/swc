@@ -17,8 +17,8 @@ namespace Command
     {
         const TaskContext ctx(compiler.context());
         const auto&       global   = ctx.global();
-        auto&             fileMgr  = compiler.context().fileMgr();
         auto&             jobMgr   = global.jobMgr();
+        auto&             fileMgr  = compiler.context().fileMgr();
         const auto        clientId = compiler.context().jobClientId();
 
         if (fileMgr.collectFiles(ctx) == Result::Error)

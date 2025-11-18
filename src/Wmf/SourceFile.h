@@ -10,6 +10,9 @@ class Verify;
 enum class FileFlagsE : uint32_t
 {
     Zero = 0,
+    CustomSrc,
+    ModuleSrc,
+    Module
 };
 using FileFlags = EnumFlags<FileFlagsE>;
 
@@ -23,7 +26,7 @@ class SourceFile
     std::unique_ptr<Verify> unitTest_;
 
 public:
-    explicit SourceFile(fs::path path);
+    explicit SourceFile(fs::path path, FileFlags flags);
     ~SourceFile();
 
     fs::path                    path() const { return path_; }

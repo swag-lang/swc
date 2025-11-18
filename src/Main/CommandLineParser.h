@@ -66,7 +66,7 @@ class CommandLineParser
     Result                 checkCommandLine(const TaskContext& ctx) const;
 
 public:
-    explicit CommandLineParser(CommandLine& cmdLine, Global& global);
+    explicit CommandLineParser(Global& global, CommandLine& cmdLine);
     Result parse(int argc, char* argv[]);
 };
 

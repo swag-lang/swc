@@ -1,5 +1,6 @@
 #pragma once
 #include "Report/ExitCodes.h"
+#include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE()
 class TaskContext;
@@ -15,6 +16,8 @@ class CompilerInstance
     const Global*                            global_  = nullptr;
     std::vector<std::unique_ptr<SourceFile>> files_;
     JobClientId                              jobClientId_ = 0;
+    fs::path                                 modulePathSrc_;
+    fs::path                                 modulePathFile_;
 
     void logBefore();
     void logAfter();
@@ -31,7 +34,7 @@ public:
     const CommandLine& cmdLine() const { return *cmdLine_; }
     JobClientId        jobClientId() const { return jobClientId_; }
 
-    FileRef                  addFile(fs::path path);
+    FileRef                  addFile(fs::path path, FileFlags flags);
     Result                   collectFiles(const TaskContext& ctx);
     std::vector<SourceFile*> files() const;
     SourceFile*              file(FileRef ref) const { return files_[ref.get()].get(); }

@@ -11,8 +11,9 @@ SWC_BEGIN_NAMESPACE()
 
 SourceFile::~SourceFile() = default;
 
-SourceFile::SourceFile(fs::path path) :
-    path_(std::move(path))
+SourceFile::SourceFile(fs::path path, FileFlags flags) :
+    path_(std::move(path)),
+    flags_(flags)
 {
     ast_      = std::make_unique<Ast>();
     unitTest_ = std::make_unique<Verify>(this);

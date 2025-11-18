@@ -100,11 +100,11 @@ ExitCode CompilerInstance::run()
     return ExitCode::Success;
 }
 
-FileRef CompilerInstance::addFile(fs::path path)
+FileRef CompilerInstance::addFile(fs::path path, FileFlags flags)
 {
     path               = fs::absolute(path);
     const auto fileRef = static_cast<FileRef>(static_cast<uint32_t>(files_.size()));
-    files_.emplace_back(std::make_unique<SourceFile>(std::move(path)));
+    files_.emplace_back(std::make_unique<SourceFile>(std::move(path), flags));
     return fileRef;
 }
 
@@ -122,7 +122,7 @@ Result CompilerInstance::collectFiles(const TaskContext& ctx)
     const auto&           cmdLine = ctx.cmdLine();
     std::vector<fs::path> paths;
 
-    // Collect direct files from the command line folders
+    // Collect direct folders from the command line
     paths.clear();
     for (const auto& folder : cmdLine.directories)
     {
@@ -130,30 +130,36 @@ Result CompilerInstance::collectFiles(const TaskContext& ctx)
         if (cmdLine.numCores == 1)
             std::ranges::sort(paths);
         for (const auto& f : paths)
-            addFile(f);
+            addFile(f, FileFlagsE::CustomSrc);
     }
 
-    // Collect direct files from the command line files
+    // Collect direct files from the command line
     paths.clear();
     for (const auto& file : cmdLine.files)
         paths.push_back(file);
     if (cmdLine.numCores == 1)
         std::ranges::sort(paths);
     for (const auto& f : paths)
-        addFile(f);
+        addFile(f, FileFlagsE::CustomSrc);
 
-    // Collect files from the module path
+    // Collect files for the module
     if (!cmdLine.modulePath.empty())
     {
-        auto folder = cmdLine.modulePath;
-        folder.append("src");
-        if (FileSystem::resolveFolder(ctx, folder) != Result::Success)
+        modulePathFile_ = cmdLine.modulePath;
+        modulePathFile_.append("module.swg");
+        if (FileSystem::resolveFile(ctx, modulePathFile_) != Result::Success)
             return Result::Error;
-        FileSystem::collectSwagFilesRec(ctx, folder, paths);
+        addFile(modulePathFile_, FileFlagsE::Module);
+
+        modulePathSrc_ = cmdLine.modulePath;
+        modulePathSrc_.append("src");
+        if (FileSystem::resolveFolder(ctx, modulePathSrc_) != Result::Success)
+            return Result::Error;
+        FileSystem::collectSwagFilesRec(ctx, modulePathSrc_, paths);
         if (cmdLine.numCores == 1)
             std::ranges::sort(paths);
         for (const auto& f : paths)
-            addFile(f);
+            addFile(f, FileFlagsE::ModuleSrc);
     }
 
     if (files_.empty())

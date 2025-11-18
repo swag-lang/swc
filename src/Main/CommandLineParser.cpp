@@ -378,20 +378,13 @@ Result CommandLineParser::checkCommandLine(const TaskContext& ctx) const
     }
     cmdLine_->files = std::move(resolvedFiles);
 
-    // Module path
+    // Module path should exist
     if (!cmdLine_->modulePath.empty())
     {
-        fs::path modulePath = cmdLine_->modulePath;
-        if (FileSystem::resolveFolder(ctx, modulePath) != Result::Success)
+        fs::path temp = cmdLine_->modulePath;
+        if (FileSystem::resolveFolder(ctx, temp) != Result::Success)
             return Result::Error;
-        modulePath.append("module.swg");
-        if (!fs::exists(modulePath))
-        {
-            auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
-            diag.addArgument(Diagnostic::ARG_PATH, modulePath.string());
-            diag.report(ctx);
-            return Result::Error;
-        }
+        cmdLine_->modulePath = std::move(temp);
     }
 
 #if SWC_DEV_MODE
@@ -401,7 +394,7 @@ Result CommandLineParser::checkCommandLine(const TaskContext& ctx) const
     return Result::Success;
 }
 
-CommandLineParser::CommandLineParser(CommandLine& cmdLine, Global& global) :
+CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     cmdLine_(&cmdLine),
     global_(&global)
 {

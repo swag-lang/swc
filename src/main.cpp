@@ -9,7 +9,7 @@ int main(int argc, char* argv[])
 {
     swc::Global            global;
     swc::CommandLine       cmdLine;
-    swc::CommandLineParser parser(cmdLine, global);
+    swc::CommandLineParser parser(global, cmdLine);
     if (parser.parse(argc, argv) != swc::Result::Success)
         return static_cast<int>(swc::ExitCode::ErrorCmdLine);
 

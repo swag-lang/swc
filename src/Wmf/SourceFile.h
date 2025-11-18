@@ -15,10 +15,7 @@ using FileFlags = EnumFlags<FileFlagsE>;
 
 class SourceFile
 {
-    // Number of '\0' forced at the end of the file
-    static constexpr int TRAILING_0 = 4;
-
-    FileRef                 ref_ = FileRef::invalid();
+    static constexpr int    TRAILING_0 = 4; // Number of '\0' forced at the end of the file
     fs::path                path_;
     std::vector<char8_t>    content_;
     FileFlags               flags_ = FileFlagsE::Zero;
@@ -34,7 +31,6 @@ public:
     std::string_view            sourceView() const { return std::string_view(reinterpret_cast<std::string_view::const_pointer>(content_.data()), size()); }
 
     size_t           size() const { return content_.size() - TRAILING_0; }
-    FileRef          ref() const { return ref_; }
     const Ast&       ast() const { return *ast_; }
     Ast&             ast() { return *ast_; }
     FileFlags&       flags() { return flags_; }

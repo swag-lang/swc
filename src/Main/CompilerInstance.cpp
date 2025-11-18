@@ -1,11 +1,10 @@
 #include "pch.h"
-
+#include "Main/CompilerInstance.h"
 #include "Core/Timer.h"
 #include "Core/Utf8Helper.h"
 #include "FileSystem.h"
 #include "Main/Command.h"
 #include "Main/CommandLine.h"
-#include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
@@ -21,9 +20,9 @@ CompilerInstance::~CompilerInstance() = default;
 
 CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdLine) :
     cmdLine_(&cmdLine),
-    global_(&global)
+    global_(&global),
+    jobClientId_(global.jobMgr().newClientId())
 {
-    jobClientId_ = global.jobMgr().newClientId();
 }
 
 void CompilerInstance::logBefore()
@@ -104,8 +103,7 @@ ExitCode CompilerInstance::run()
 FileRef CompilerInstance::addFile(fs::path path)
 {
     path               = fs::absolute(path);
-    const auto fileRef = static_cast<FileRef>(static_cast<uint32_t>(files_.size() + 1));
-
+    const auto fileRef = static_cast<FileRef>(static_cast<uint32_t>(files_.size()));
     files_.emplace_back(std::make_unique<SourceFile>(std::move(path)));
     return fileRef;
 }
@@ -116,7 +114,6 @@ std::vector<SourceFile*> CompilerInstance::files() const
     result.reserve(files_.size());
     for (const auto& f : files_)
         result.push_back(f.get());
-
     return result;
 }
 

@@ -34,7 +34,7 @@ public:
     FileRef                  addFile(fs::path path);
     Result                   collectFiles(const TaskContext& ctx);
     std::vector<SourceFile*> files() const;
-    SourceFile*              file(FileRef ref) const { return files_[ref.get() - 1].get(); }
+    SourceFile*              file(FileRef ref) const { return files_[ref.get()].get(); }
 };
 
 SWC_END_NAMESPACE()

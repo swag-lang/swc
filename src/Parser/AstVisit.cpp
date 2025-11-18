@@ -6,19 +6,19 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void AstVisit::start(Ast& ast)
+void AstVisit::start(Ast& ast, AstNodeRef root)
 {
+    SWC_ASSERT(root.isValid());
+
     ast_        = &ast;
+    root_       = root;
     currentLex_ = &ast_->lexOut();
 
     stack_.clear();
     children_.clear();
 
-    if (ast_->root().isInvalid())
-        return;
-
     Frame fr;
-    fr.nodeRef   = ast_->root();
+    fr.nodeRef   = root;
     fr.stage     = Frame::Stage::Pre;
     fr.lexAtPush = currentLex_;
     stack_.push_back(fr);
@@ -47,9 +47,9 @@ AstVisitResult AstVisit::step()
 #endif
 
             // Pre-order callback
-            if (pre)
+            if (pre_)
             {
-                const AstVisitStepResult result = pre(*fr.node);
+                const AstVisitStepResult result = pre_(*fr.node);
                 if (result == AstVisitStepResult::Stop)
                     return AstVisitResult::Stop;
                 if (result == AstVisitStepResult::Pause)
@@ -99,9 +99,9 @@ AstVisitResult AstVisit::step()
         case Frame::Stage::Post:
         {
             // Post-order callback
-            if (post)
+            if (post_)
             {
-                const AstVisitStepResult result = post(*fr.node);
+                const AstVisitStepResult result = post_(*fr.node);
                 if (result == AstVisitStepResult::Stop)
                     return AstVisitResult::Stop;
                 if (result == AstVisitStepResult::Pause)

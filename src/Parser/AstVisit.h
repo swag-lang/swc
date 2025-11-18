@@ -24,9 +24,10 @@ enum class AstVisitStepResult
 
 class AstVisit
 {
-    Ast*                                        ast_ = nullptr;
-    std::function<AstVisitStepResult(AstNode&)> pre;
-    std::function<AstVisitStepResult(AstNode&)> post;
+    Ast*                                        ast_  = nullptr;
+    AstNodeRef                                  root_ = AstNodeRef::invalid();
+    std::function<AstVisitStepResult(AstNode&)> pre_;
+    std::function<AstVisitStepResult(AstNode&)> post_;
 
     struct Frame
     {
@@ -53,9 +54,9 @@ class AstVisit
     AstNode* parentNodeInternal(size_t up) const;
 
 public:
-    void           start(Ast& ast);
-    void           setPreVisitor(std::function<AstVisitStepResult(AstNode&)> visitor) { pre = visitor; }
-    void           setPostVisitor(std::function<AstVisitStepResult(AstNode&)> visitor) { post = visitor; }
+    void           start(Ast& ast, AstNodeRef root);
+    void           setPreVisitor(const std::function<AstVisitStepResult(AstNode&)>& visitor) { pre_ = visitor; }
+    void           setPostVisitor(const std::function<AstVisitStepResult(AstNode&)>& visitor) { post_ = visitor; }
     AstVisitResult step();
     AstNode*       parentNode(size_t up = 0) { return parentNodeInternal(up); }
     const AstNode* parentNode(size_t up = 0) const { return parentNodeInternal(up); }

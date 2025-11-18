@@ -15,7 +15,7 @@ class SemaJob : public Job
     JobResult          exec(JobContext& ctx);
 
 public:
-    SemaJob(const TaskContext& ctx, Ast* ast);
+    SemaJob(const TaskContext& ctx, Ast* ast, AstNodeRef root);
 };
 
 SWC_END_NAMESPACE()

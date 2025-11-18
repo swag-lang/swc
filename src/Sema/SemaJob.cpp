@@ -4,7 +4,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-SemaJob::SemaJob(const TaskContext& ctx, Ast* ast) :
+SemaJob::SemaJob(const TaskContext& ctx, Ast* ast, AstNodeRef root) :
     Job(ctx),
     ast_(ast)
 {
@@ -12,7 +12,7 @@ SemaJob::SemaJob(const TaskContext& ctx, Ast* ast) :
         return exec(jobCtx);
     };
 
-    visit_.start(*ast);
+    visit_.start(*ast, root);
     visit_.setPreVisitor([this](AstNode& node) { return preNode(node); });
     visit_.setPostVisitor([this](AstNode& node) { return postNode(node); });
 }

@@ -5,7 +5,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>format -d C:/Perso/swag-lang/swag --num-cores 1</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>format -d c:/perso/swag-lang/swag/bin/testsuite/tests/compiler --num-cores 1</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

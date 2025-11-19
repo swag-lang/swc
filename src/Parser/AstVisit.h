@@ -63,8 +63,9 @@ public:
     AstNode*       parentNode(size_t up = 0) { return parentNodeInternal(up); }
     const AstNode* parentNode(size_t up = 0) const { return parentNodeInternal(up); }
 
-    const Ast& ast() const { return *ast_; }
-    Ast&       ast() { return *ast_; }
+    const Ast&         ast() const { return *ast_; }
+    Ast&               ast() { return *ast_; }
+    const LexerOutput& currentLex() const { return *currentLex_; }
 };
 
 SWC_END_NAMESPACE()

@@ -18,6 +18,8 @@ class SemaJob : public Job
 
 public:
     SemaJob(const TaskContext& ctx, Ast* ast, AstNodeRef root);
+    const Ast&      ast() const { return *ast_; }
+    const AstVisit& visit() const { return visit_; }
 };
 
 SWC_END_NAMESPACE()

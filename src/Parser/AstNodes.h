@@ -141,7 +141,7 @@ struct AstNodeIdInfo
 
     using CollectFunc = void (*)(SmallVector<AstNodeRef>&, const Ast&, const AstNode&);
     CollectFunc collectChildren;
-    using SemaPreChildFunc = AstNodeRef (*)(const AstNode&, AstNodeRef);
+    using SemaPreChildFunc = AstNodeRef (*)(SemaJob&, const AstNode&, AstNodeRef);
     SemaPreChildFunc semaPreChild;
 };
 
@@ -153,10 +153,10 @@ void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, const AstNode
 }
 
 template<AstNodeId ID>
-AstNodeRef semaPreChild(const AstNode& node, AstNodeRef childRef)
+AstNodeRef semaPreChild(SemaJob& job, const AstNode& node, AstNodeRef childRef)
 {
     using NodeType = AstTypeOf<ID>::type;
-    return castAst<NodeType>(&node)->semaPreChild(childRef);
+    return castAst<NodeType>(&node)->semaPreChild(job, childRef);
 }
 
 constexpr std::array AST_NODE_ID_INFOS = {

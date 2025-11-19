@@ -836,7 +836,7 @@ struct AstCompilerIf : AstNodeT<AstNodeId::CompilerIf>
         AstNode::collectChildren(out, {nodeCondition, nodeIfBlock, nodeElseBlock});
     }
 
-    AstNodeRef semaPreChild(AstNodeRef childRef) const
+    AstNodeRef semaPreChild(SemaJob& job, AstNodeRef childRef) const
     {
         return childRef;
     }

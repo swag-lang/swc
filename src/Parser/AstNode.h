@@ -3,6 +3,7 @@
 #include "Parser/AstNodeId.h"
 
 SWC_BEGIN_NAMESPACE()
+class SemaJob;
 class Ast;
 
 class SourceFile;
@@ -78,7 +79,7 @@ struct AstNode
     static void       collectChildren(SmallVector<AstNodeRef>&, const Ast&) {}
     static void       collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, SpanRef spanRef);
     static void       collectChildren(SmallVector<AstNodeRef>& out, std::initializer_list<AstNodeRef> nodes);
-    static AstNodeRef semaPreChild(AstNodeRef childRef) { return childRef; }
+    static AstNodeRef semaPreChild(SemaJob&, AstNodeRef childRef) { return childRef; }
 
 private:
     ParserFlags parserFlags_;

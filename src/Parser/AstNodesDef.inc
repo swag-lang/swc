@@ -541,6 +541,7 @@ struct AstCharacterLiteral : AstLiteralT<AstNodeId::CharacterLiteral>
 
 struct AstBoolLiteral : AstLiteralT<AstNodeId::BoolLiteral>
 {
+    AstVisitStepResult semaPreNode(SemaJob& job);
 };
 
 struct AstNullLiteral : AstLiteralT<AstNodeId::NullLiteral>
@@ -836,10 +837,7 @@ struct AstCompilerIf : AstNodeT<AstNodeId::CompilerIf>
         AstNode::collectChildren(out, {nodeCondition, nodeIfBlock, nodeElseBlock});
     }
 
-    AstNodeRef semaPreChild(SemaJob& job, AstNodeRef childRef)
-    {
-        return childRef;
-    }
+    AstNodeRef semaPreChild(SemaJob& job, AstNodeRef childRef);
 };
 
 struct AstCompilerElse : AstCompoundT<AstNodeId::CompilerElse>

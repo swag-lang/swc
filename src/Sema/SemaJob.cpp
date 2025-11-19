@@ -1,5 +1,4 @@
 #include "pch.h"
-
 #include "Parser/Ast.h"
 #include "Parser/AstVisit.h"
 #include "Sema/SemaJob.h"

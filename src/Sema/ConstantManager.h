@@ -7,7 +7,8 @@ class CompilerInstance;
 
 class ConstantManager
 {
-    Store<>     store_;
+    Store<> store_;
+
     ConstantRef boolTrue_  = ConstantRef::invalid();
     ConstantRef boolFalse_ = ConstantRef::invalid();
 

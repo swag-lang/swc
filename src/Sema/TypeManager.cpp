@@ -1,3 +1,4 @@
+// ReSharper disable CppClangTidyClangDiagnosticMissingDesignatedFieldInitializers
 #include "pch.h"
 #include "Sema/TypeManager.h"
 
@@ -10,7 +11,15 @@ void TypeManager::setup(CompilerInstance&)
 
 TypeInfoRef TypeManager::registerType(const TypeInfo& typeInfo)
 {
-    const auto it = map_.find(typeInfo);
+    {
+        std::shared_lock lk(mutex_);
+        const auto       it = map_.find(typeInfo);
+        if (it != map_.end())
+            return it->second;
+    }
+
+    std::unique_lock lk(mutex_);
+    const auto       it = map_.find(typeInfo);
     if (it != map_.end())
         return it->second;
 

@@ -10,6 +10,7 @@ class TypeManager
 {
     Store<>                                                 store_;
     std::unordered_map<TypeInfo, TypeInfoRef, TypeInfoHash> map_;
+    std::shared_mutex                                       mutex_;
 
     // Predefined types
     TypeInfoRef typeBool_ = TypeInfoRef::invalid();

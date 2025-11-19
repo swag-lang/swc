@@ -14,7 +14,7 @@ struct AstCompoundT : AstNodeT<I>
 {
     SpanRef spanChildren;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, ast, spanChildren);
     }
@@ -27,7 +27,7 @@ struct AstLambdaExprT : AstNodeT<I>
     AstNodeRef nodeReturnType;
     AstNodeRef nodeBody;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, ast, spanArgs);
         AstNode::collectChildren(out, {nodeReturnType, nodeBody});
@@ -41,7 +41,7 @@ struct AstBinaryT : AstNodeT<I>
     AstNodeRef nodeLeft;
     AstNodeRef nodeRight;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeLeft, nodeRight});
     }
@@ -61,7 +61,7 @@ struct AstAggregateDeclT : AstNodeT<I>
     SpanRef    spanWhere;
     AstNodeRef nodeBody;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, ast, spanGenericParams);
         AstNode::collectChildren(out, ast, spanWhere);
@@ -74,7 +74,7 @@ struct AstAnonymousAggregateDeclT : AstNodeT<I>
 {
     AstNodeRef nodeBody;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeBody});
     }
@@ -86,7 +86,7 @@ struct AstIfBaseT : AstNodeT<I>
     AstNodeRef nodeIfBlock;
     AstNodeRef nodeElseBlock;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeIfBlock, nodeElseBlock});
     }
@@ -98,7 +98,7 @@ struct AstIntrinsicInitDropCopyMoveT : AstNodeT<I>
     AstNodeRef nodeWhat;
     AstNodeRef nodeCount;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeWhat, nodeCount});
     }
@@ -139,24 +139,24 @@ struct AstNodeIdInfo
 {
     std::string_view name;
 
-    using CollectFunc = void (*)(SmallVector<AstNodeRef>&, const Ast*, const AstNode*);
+    using CollectFunc = void (*)(SmallVector<AstNodeRef>&, const Ast&, const AstNode&);
     CollectFunc collectChildren;
-    using CollectFunc1 = AstNodeRef (*)(const AstNode*, AstNodeRef);
-    CollectFunc1 semaPreChild;
+    using SemaPreChildFunc = AstNodeRef (*)(const AstNode&, AstNodeRef);
+    SemaPreChildFunc semaPreChild;
 };
 
 template<AstNodeId ID>
-void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast, const AstNode* node)
+void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, const AstNode& node)
 {
     using NodeType = AstTypeOf<ID>::type;
-    castAst<NodeType>(node)->collectChildren(out, ast);
+    castAst<NodeType>(&node)->collectChildren(out, ast);
 }
 
 template<AstNodeId ID>
-AstNodeRef semaPreChild(const AstNode* node, AstNodeRef childRef)
+AstNodeRef semaPreChild(const AstNode& node, AstNodeRef childRef)
 {
     using NodeType = AstTypeOf<ID>::type;
-    return castAst<NodeType>(node)->semaPreChild(childRef);
+    return castAst<NodeType>(&node)->semaPreChild(childRef);
 }
 
 constexpr std::array AST_NODE_ID_INFOS = {

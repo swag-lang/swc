@@ -75,8 +75,8 @@ struct AstNode
             semaFlags_ |= val.flags;
     }
 
-    static void       collectChildren(SmallVector<AstNodeRef>&, const Ast*) {}
-    static void       collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast, SpanRef spanRef);
+    static void       collectChildren(SmallVector<AstNodeRef>&, const Ast&) {}
+    static void       collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, SpanRef spanRef);
     static void       collectChildren(SmallVector<AstNodeRef>& out, std::initializer_list<AstNodeRef> nodes);
     static AstNodeRef semaPreChild(AstNodeRef childRef) { return childRef; }
 

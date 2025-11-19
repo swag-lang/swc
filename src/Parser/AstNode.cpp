@@ -4,9 +4,9 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void AstNode::collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast, SpanRef spanRef)
+void AstNode::collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, SpanRef spanRef)
 {
-    ast->nodes(out, spanRef);
+    ast.nodes(out, spanRef);
 }
 
 void AstNode::collectChildren(SmallVector<AstNodeRef>& out, std::initializer_list<AstNodeRef> nodes)

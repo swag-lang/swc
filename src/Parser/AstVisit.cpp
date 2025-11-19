@@ -64,7 +64,7 @@ AstVisitResult AstVisit::step()
 
             const auto& info = Ast::nodeIdInfos(fr.node->id);
             fr.firstChildIx  = children_.size32();
-            info.collectChildren(children_, ast_, fr.node);
+            info.collectChildren(children_, *ast_, *fr.node);
             fr.numChildren = children_.size32() - fr.firstChildIx;
             fr.nextChildIx = 0;
 

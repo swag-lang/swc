@@ -8,7 +8,7 @@ struct AstFile : AstCompoundT<AstNodeId::File>
 {
     SpanRef spanGlobals;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, ast, spanGlobals);
         AstCompoundT::collectChildren(out, ast);
@@ -27,7 +27,7 @@ struct AstImpl : AstCompoundT<AstNodeId::Impl>
 {
     AstNodeRef nodeIdent;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, {nodeIdent});
         AstCompoundT::collectChildren(out, ast);
@@ -39,7 +39,7 @@ struct AstImplFor : AstCompoundT<AstNodeId::ImplFor>
     AstNodeRef nodeIdent;
     AstNodeRef nodeFor;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, {nodeIdent, nodeFor});
         AstCompoundT::collectChildren(out, ast);
@@ -50,7 +50,7 @@ struct AstNamespaceDecl : AstCompoundT<AstNodeId::NamespaceDecl>
 {
     AstNodeRef nodeName;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, {nodeName});
         AstCompoundT::collectChildren(out, ast);
@@ -61,7 +61,7 @@ struct AstUsingNamespaceStmt : AstNodeT<AstNodeId::UsingNamespaceStmt>
 {
     AstNodeRef nodeName;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeName});
     }
@@ -86,7 +86,7 @@ struct AstCompilerGlobal : AstNodeT<AstNodeId::CompilerGlobal>
     Mode       mode;
     AstNodeRef nodeMode;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeMode});
     }
@@ -104,7 +104,7 @@ struct AstCompilerScope : AstNodeT<AstNodeId::CompilerScope>
     TokenRef   tokName;
     AstNodeRef nodeBody;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeBody});
     }
@@ -120,7 +120,7 @@ struct AstInternalCallUnary : AstNodeT<AstNodeId::InternalCallUnary>
     TokenRef   tokName;
     AstNodeRef nodeArg1;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeArg1});
     }
@@ -132,7 +132,7 @@ struct AstInternalCallBinary : AstNodeT<AstNodeId::InternalCallBinary>
     AstNodeRef nodeArg1;
     AstNodeRef nodeArg2;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeArg1, nodeArg2});
     }
@@ -145,7 +145,7 @@ struct AstInternalCallTernary : AstNodeT<AstNodeId::InternalCallTernary>
     AstNodeRef nodeArg2;
     AstNodeRef nodeArg3;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeArg1, nodeArg2, nodeArg3});
     }
@@ -169,7 +169,7 @@ struct AstClosureExpr : AstLambdaExprT<AstNodeId::ClosureExpr>
 {
     SpanRef nodeCaptureArgs;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, ast, nodeCaptureArgs);
         AstLambdaExprT::collectChildren(out, ast);
@@ -185,7 +185,7 @@ struct AstFunctionDecl : AstNodeT<AstNodeId::FunctionDecl>
     SpanRef    spanConstraints;
     AstNodeRef nodeBody;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, ast, spanGenericParams);
         AstNode::collectChildren(out, {nodeParams, nodeReturnType});
@@ -199,7 +199,7 @@ struct AstInterfaceDecl : AstNodeT<AstNodeId::InterfaceDecl>
     TokenRef   tokName;
     AstNodeRef nodeBody;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeBody});
     }
@@ -214,7 +214,7 @@ struct AstAttrDecl : AstNodeT<AstNodeId::AttrDecl>
     TokenRef   tokName;
     AstNodeRef nodeParams;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeParams});
     }
@@ -234,7 +234,7 @@ struct AstReturnStmt : AstNodeT<AstNodeId::ReturnStmt>
 {
     AstNodeRef nodeExpr;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeExpr});
     }
@@ -250,7 +250,7 @@ struct AstLambdaTypeParam : AstNodeT<AstNodeId::LambdaTypeParam>
     AstNodeRef nodeType;
     AstNodeRef nodeDefaultValue;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeType, nodeDefaultValue});
     }
@@ -271,7 +271,7 @@ struct AstClosureArgument : AstNodeT<AstNodeId::ClosureArgument>
 
     AstNodeRef nodeIdentifier;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeIdentifier});
     }
@@ -282,7 +282,7 @@ struct AstCompilerFunc : AstNodeT<AstNodeId::CompilerFunc>
     TokenRef   tokName;
     AstNodeRef nodeBody;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeBody});
     }
@@ -293,7 +293,7 @@ struct AstCompilerMessageFunc : AstNodeT<AstNodeId::CompilerMessageFunc>
     AstNodeRef nodeParam;
     AstNodeRef nodeBody;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeParam, nodeBody});
     }
@@ -304,7 +304,7 @@ struct AstCompilerEmbeddedFunc : AstNodeT<AstNodeId::CompilerEmbeddedFunc>
     TokenRef   tokName;
     AstNodeRef nodeBody;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeBody});
     }
@@ -315,7 +315,7 @@ struct AstCompilerShortFunc : AstNodeT<AstNodeId::CompilerShortFunc>
     TokenRef   tokName;
     AstNodeRef nodeBody;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeBody});
     }
@@ -326,7 +326,7 @@ struct AstCompilerExpr : AstNodeT<AstNodeId::CompilerExpr>
     TokenRef   tokName;
     AstNodeRef nodeExpr;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeExpr});
     }
@@ -341,7 +341,7 @@ struct AstScopedIdentifier : AstNodeT<AstNodeId::ScopedIdentifier>
 {
     AstNodeRef nodeIdent;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeIdent});
     }
@@ -352,7 +352,7 @@ struct AstAncestorIdentifier : AstNodeT<AstNodeId::AncestorIdentifier>
     AstNodeRef nodeValue;
     AstNodeRef nodeIdent;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeValue, nodeIdent});
     }
@@ -363,7 +363,7 @@ struct AstIdentifierSuffix : AstNodeT<AstNodeId::IdentifierSuffix>
     TokenRef   tokName;
     AstNodeRef nodeSuffix;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeSuffix});
     }
@@ -378,7 +378,7 @@ struct AstCallExpr : AstCompoundT<AstNodeId::CallExpr>
 {
     AstNodeRef nodeExpr;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, {nodeExpr});
         AstCompoundT::collectChildren(out, ast);
@@ -390,7 +390,7 @@ struct AstAliasCallExpr : AstCompoundT<AstNodeId::AliasCallExpr>
     AstNodeRef nodeExpr;
     SpanRef    spanAliases;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, {nodeExpr});
         AstNode::collectChildren(out, ast, spanAliases);
@@ -403,7 +403,7 @@ struct AstStructInitializerList : AstNodeT<AstNodeId::StructInitializerList>
     AstNodeRef nodeWhat;
     SpanRef    spanArgs;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, {nodeWhat});
         AstNode::collectChildren(out, ast, spanArgs);
@@ -415,7 +415,7 @@ struct AstIndexExpr : AstNodeT<AstNodeId::IndexExpr>
     AstNodeRef nodeExpr;
     AstNodeRef nodeArg;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeExpr, nodeArg});
     }
@@ -425,7 +425,7 @@ struct AstIndexListExpr : AstCompoundT<AstNodeId::IndexListExpr>
 {
     AstNodeRef nodeExpr;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, {nodeExpr});
         AstCompoundT::collectChildren(out, ast);
@@ -441,7 +441,7 @@ struct AstNamedArgument : AstNodeT<AstNodeId::NamedArgument>
     TokenRef   tokName;
     AstNodeRef nodeArg;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeArg});
     }
@@ -451,7 +451,7 @@ struct AstParenExpr : AstNodeT<AstNodeId::ParenExpr>
 {
     AstNodeRef nodeExpr;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeExpr});
     }
@@ -483,7 +483,7 @@ struct AstUnaryExpr : AstNodeT<AstNodeId::UnaryExpr>
     TokenRef   tokOp;
     AstNodeRef nodeExpr;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeExpr});
     }
@@ -494,7 +494,7 @@ struct AstBinaryConditionalExpr : AstNodeT<AstNodeId::BinaryConditionalExpr>
     AstNodeRef nodeLeft;
     AstNodeRef nodeRight;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeLeft, nodeRight});
     }
@@ -506,7 +506,7 @@ struct AstConditionalExpr : AstNodeT<AstNodeId::ConditionalExpr>
     AstNodeRef nodeTrue;
     AstNodeRef nodeFalse;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeCond, nodeTrue, nodeFalse});
     }
@@ -517,7 +517,7 @@ struct AstInitializerExpr : AstNodeT<AstNodeId::InitializerExpr>
     AstModifierFlags modifierFlags;
     AstNodeRef       nodeExpr;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeExpr});
     }
@@ -556,7 +556,7 @@ struct AstSuffixLiteral : AstNodeT<AstNodeId::SuffixLiteral>
     AstNodeRef nodeLiteral;
     AstNodeRef nodeSuffix;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeLiteral, nodeSuffix});
     }
@@ -575,7 +575,7 @@ struct AstScopeResolution : AstNodeT<AstNodeId::ScopeResolution>
     AstNodeRef nodeLeft;
     AstNodeRef nodeRight;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeLeft, nodeRight});
     }
@@ -586,7 +586,7 @@ struct AstAsCastExpr : AstNodeT<AstNodeId::AsCastExpr>
     AstNodeRef nodeExpr;
     AstNodeRef nodeType;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeExpr, nodeType});
     }
@@ -597,7 +597,7 @@ struct AstIsTypeExpr : AstNodeT<AstNodeId::IsTypeExpr>
     AstNodeRef nodeExpr;
     AstNodeRef nodeType;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeExpr, nodeType});
     }
@@ -609,7 +609,7 @@ struct AstAutoCastExpr : AstNodeT<AstNodeId::AutoCastExpr>
     AstModifierFlags modifierFlags;
     AstNodeRef       nodeExpr;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeExpr});
     }
@@ -622,7 +622,7 @@ struct AstExplicitCastExpr : AstNodeT<AstNodeId::ExplicitCastExpr>
     AstNodeRef       nodeType;
     AstNodeRef       nodeExpr;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeType, nodeExpr});
     }
@@ -638,7 +638,7 @@ struct AstEnumDecl : AstNodeT<AstNodeId::EnumDecl>
     AstNodeRef nodeType;
     AstNodeRef nodeBody;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeType, nodeBody});
     }
@@ -649,7 +649,7 @@ struct AstEnumValue : AstNodeT<AstNodeId::EnumValue>
     TokenRef   tokName;
     AstNodeRef nodeValue;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeValue});
     }
@@ -659,7 +659,7 @@ struct AstUsingEnumDecl : AstNodeT<AstNodeId::UsingEnumDecl>
 {
     AstNodeRef nodeName;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeName});
     }
@@ -669,7 +669,7 @@ struct AstImplEnum : AstCompoundT<AstNodeId::ImplEnum>
 {
     AstNodeRef nodeName;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, {nodeName});
         AstCompoundT::collectChildren(out, ast);
@@ -681,7 +681,7 @@ struct AstQualifiedType : AstNodeT<AstNodeId::QualifiedType>
     TokenRef   tokQual;
     AstNodeRef nodeType;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeType});
     }
@@ -691,7 +691,7 @@ struct AstLRefType : AstNodeT<AstNodeId::LRefType>
 {
     AstNodeRef nodeType;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeType});
     }
@@ -701,7 +701,7 @@ struct AstRRefType : AstNodeT<AstNodeId::RRefType>
 {
     AstNodeRef nodeType;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeType});
     }
@@ -711,7 +711,7 @@ struct AstPointerType : AstNodeT<AstNodeId::PointerType>
 {
     AstNodeRef nodePointeeType;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodePointeeType});
     }
@@ -721,7 +721,7 @@ struct AstBlockPointerType : AstNodeT<AstNodeId::BlockPointerType>
 {
     AstNodeRef nodePointeeType;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodePointeeType});
     }
@@ -731,7 +731,7 @@ struct AstSliceType : AstNodeT<AstNodeId::SliceType>
 {
     AstNodeRef nodePointeeType;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodePointeeType});
     }
@@ -742,7 +742,7 @@ struct AstArrayType : AstNodeT<AstNodeId::ArrayType>
     SpanRef    spanDimensions;
     AstNodeRef nodePointeeType;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, ast, spanDimensions);
         AstNode::collectChildren(out, {nodePointeeType});
@@ -753,7 +753,7 @@ struct AstNamedType : AstNodeT<AstNodeId::NamedType>
 {
     AstNodeRef nodeIdent;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeIdent});
     }
@@ -768,7 +768,7 @@ struct AstCompilerTypeExpr : AstNodeT<AstNodeId::CompilerTypeExpr>
 {
     AstNodeRef nodeType;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeType});
     }
@@ -790,7 +790,7 @@ struct AstLambdaType : AstNodeT<AstNodeId::LambdaType>
     SpanRef    spanParams;
     AstNodeRef nodeReturnType;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, ast, spanParams);
         AstNode::collectChildren(out, {nodeReturnType});
@@ -805,7 +805,7 @@ struct AstCodeType : AstNodeT<AstNodeId::CodeType>
 {
     AstNodeRef nodeType;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeType});
     }
@@ -819,7 +819,7 @@ struct AstTypedVariadicType : AstNodeT<AstNodeId::TypedVariadicType>
 {
     AstNodeRef nodeType;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeType});
     }
@@ -831,7 +831,7 @@ struct AstCompilerIf : AstNodeT<AstNodeId::CompilerIf>
     AstNodeRef nodeIfBlock;
     AstNodeRef nodeElseBlock;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeCondition, nodeIfBlock, nodeElseBlock});
     }
@@ -851,7 +851,7 @@ struct AstAttribute : AstNodeT<AstNodeId::Attribute>
     AstNodeRef nodeIdent;
     AstNodeRef nodeArgs;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeIdent, nodeArgs});
     }
@@ -861,7 +861,7 @@ struct AstAttributeList : AstCompoundT<AstNodeId::AttributeList>
 {
     AstNodeRef nodeBody;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstCompoundT::collectChildren(out, ast);
         AstNode::collectChildren(out, {nodeBody});
@@ -901,7 +901,7 @@ struct AstAccessModifier : AstNodeT<AstNodeId::AccessModifier>
     TokenRef   tokAccess;
     AstNodeRef nodeWhat;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeWhat});
     }
@@ -917,7 +917,7 @@ struct AstConstraintExpr : AstNodeT<AstNodeId::ConstraintExpr>
     TokenRef   tokConstraint;
     AstNodeRef nodeExpr;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeExpr});
     }
@@ -933,7 +933,7 @@ struct AstGenericParamT : AstNodeT<I>
     TokenRef   tokName;
     AstNodeRef nodeAssign;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeAssign});
     }
@@ -943,7 +943,7 @@ struct AstGenericParamValue : AstGenericParamT<AstNodeId::GenericParamValue>
 {
     AstNodeRef nodeType;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, {nodeType});
         AstGenericParamT::collectChildren(out, ast);
@@ -969,7 +969,7 @@ struct AstVarDecl : AstNodeT<AstNodeId::VarDecl>
     AstNodeRef nodeType;
     AstNodeRef nodeInit;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeType, nodeInit});
     }
@@ -981,7 +981,7 @@ struct AstVarNameListDecl : AstNodeT<AstNodeId::VarNameListDecl>
     AstNodeRef nodeType;
     AstNodeRef nodeInit;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeType, nodeInit});
     }
@@ -992,7 +992,7 @@ struct AstVarDecompositionDecl : AstNodeT<AstNodeId::VarDecompositionDecl>
     SpanRef    spanNames;
     AstNodeRef nodeInit;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeInit});
     }
@@ -1010,7 +1010,7 @@ struct AstUsingMemberDecl : AstNodeT<AstNodeId::UsingMemberDecl>
 {
     AstNodeRef nodeVar;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeVar});
     }
@@ -1021,7 +1021,7 @@ struct AstAliasStmt : AstNodeT<AstNodeId::AliasStmt>
     TokenRef   tokName;
     AstNodeRef nodeExpr;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeExpr});
     }
@@ -1032,7 +1032,7 @@ struct AstTryCatchExpr : AstNodeT<AstNodeId::TryCatchExpr>
     TokenRef   tokName;
     AstNodeRef nodeExpr;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeExpr});
     }
@@ -1064,7 +1064,7 @@ struct AstDeferStmt : AstNodeT<AstNodeId::DeferStmt>
     AstModifierFlags modifierFlags;
     AstNodeRef       nodeBody;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeBody});
     }
@@ -1074,7 +1074,7 @@ struct AstIfStmt : AstIfBaseT<AstNodeId::IfStmt>
 {
     AstNodeRef nodeCondition;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, {nodeCondition});
         AstIfBaseT::collectChildren(out, ast);
@@ -1086,7 +1086,7 @@ struct AstIfVarDecl : AstIfBaseT<AstNodeId::IfVarDecl>
     AstNodeRef nodeVar;
     AstNodeRef nodeWhere;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, {nodeVar, nodeWhere});
         AstIfBaseT::collectChildren(out, ast);
@@ -1106,7 +1106,7 @@ struct AstWithStmt : AstNodeT<AstNodeId::WithStmt>
     AstNodeRef nodeExpr;
     AstNodeRef nodeBody;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeExpr, nodeBody});
     }
@@ -1117,7 +1117,7 @@ struct AstWithVarDecl : AstNodeT<AstNodeId::WithVarDecl>
     AstNodeRef nodeVar;
     AstNodeRef nodeBody;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeVar, nodeBody});
     }
@@ -1127,7 +1127,7 @@ struct AstIntrinsicInit : AstIntrinsicInitDropCopyMoveT<AstNodeId::IntrinsicInit
 {
     SpanRef spanArgs;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstIntrinsicInitDropCopyMoveT::collectChildren(out, ast);
         AstNode::collectChildren(out, ast, spanArgs);
@@ -1151,7 +1151,7 @@ struct AstWhileStmt : AstNodeT<AstNodeId::WhileStmt>
     AstNodeRef nodeExpr;
     AstNodeRef nodeBody;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeExpr, nodeBody});
     }
@@ -1173,7 +1173,7 @@ struct AstForeachStmt : AstNodeT<AstNodeId::ForeachStmt>
     AstNodeRef       nodeWhere;
     AstNodeRef       nodeBody;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeExpr, nodeWhere, nodeBody});
     }
@@ -1186,7 +1186,7 @@ struct AstForCStyleStmt : AstNodeT<AstNodeId::ForCStyleStmt>
     AstNodeRef nodePostStmt;
     AstNodeRef nodeBody;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeVarDecl, nodeExpr, nodePostStmt, nodeBody});
     }
@@ -1200,7 +1200,7 @@ struct AstForStmt : AstNodeT<AstNodeId::ForStmt>
     AstNodeRef       nodeWhere;
     AstNodeRef       nodeBody;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeExpr, nodeWhere, nodeBody});
     }
@@ -1210,7 +1210,7 @@ struct AstInfiniteLoopStmt : AstNodeT<AstNodeId::InfiniteLoopStmt>
 {
     AstNodeRef nodeBody;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeBody});
     }
@@ -1221,7 +1221,7 @@ struct AstTryCatchStmt : AstNodeT<AstNodeId::TryCatchStmt>
     TokenRef   tokOp;
     AstNodeRef nodeBody;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeBody});
     }
@@ -1231,7 +1231,7 @@ struct AstThrowExpr : AstNodeT<AstNodeId::ThrowExpr>
 {
     AstNodeRef nodeExpr;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeExpr});
     }
@@ -1241,7 +1241,7 @@ struct AstDiscardExpr : AstNodeT<AstNodeId::DiscardExpr>
 {
     AstNodeRef nodeExpr;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeExpr});
     }
@@ -1251,7 +1251,7 @@ struct AstSwitchStmt : AstCompoundT<AstNodeId::SwitchStmt>
 {
     AstNodeRef nodeExpr;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, {nodeExpr});
         AstCompoundT::collectChildren(out, ast);
@@ -1263,7 +1263,7 @@ struct AstSwitchCaseStmt : AstCompoundT<AstNodeId::SwitchCaseStmt>
     SpanRef    spanExpr;
     AstNodeRef nodeWhere;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, ast, spanExpr);
         AstNode::collectChildren(out, {nodeWhere});
@@ -1275,7 +1275,7 @@ struct AstCompilerMacro : AstNodeT<AstNodeId::CompilerMacro>
 {
     AstNodeRef nodeBody;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeBody});
     }
@@ -1287,7 +1287,7 @@ struct AstCompilerInject : AstNodeT<AstNodeId::CompilerInject>
     AstNodeRef nodeReplaceBreak;
     AstNodeRef nodeReplaceContinue;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeExpr, nodeReplaceBreak, nodeReplaceContinue});
     }
@@ -1305,7 +1305,7 @@ struct AstRangeExpr : AstNodeT<AstNodeId::RangeExpr>
     AstNodeRef nodeExprDown;
     AstNodeRef nodeExprUp;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeExprDown, nodeExprUp});
     }
@@ -1318,7 +1318,7 @@ struct AstAssignStmt : AstNodeT<AstNodeId::AssignStmt>
     AstNodeRef       nodeLeft;
     AstNodeRef       nodeRight;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast*) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeLeft, nodeRight});
     }

@@ -33,7 +33,7 @@ AstVisitStepResult SemaJob::postNode(AstNode& node)
 AstNodeRef SemaJob::preChild(AstNode& node, AstNodeRef childRef)
 {
     const auto& info = Ast::nodeIdInfos(node.id);
-    return info.semaPreChild(&node, childRef);
+    return info.semaPreChild(node, childRef);
 }
 
 JobResult SemaJob::exec(JobContext& ctx)

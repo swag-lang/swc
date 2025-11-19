@@ -1,0 +1,3 @@
+func toto() {}
+
+#run toto()

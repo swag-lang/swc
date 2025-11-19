@@ -1,0 +1,5 @@
+struct(T) A {}
+
+#test
+{
+}

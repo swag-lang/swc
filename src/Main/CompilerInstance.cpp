@@ -154,14 +154,12 @@ Result CompilerInstance::collectFiles(const TaskContext& ctx)
     // Collect files for the module
     if (!cmdLine.modulePath.empty())
     {
-        modulePathFile_ = cmdLine.modulePath;
-        modulePathFile_.append("module.swg");
+        modulePathFile_ = cmdLine.modulePath / "module.swg";
         if (FileSystem::resolveFile(ctx, modulePathFile_) != Result::Success)
             return Result::Error;
         addFile(modulePathFile_, FileFlagsE::Module);
 
-        modulePathSrc_ = cmdLine.modulePath;
-        modulePathSrc_.append("src");
+        modulePathSrc_ = cmdLine.modulePath / "src";
         if (FileSystem::resolveFolder(ctx, modulePathSrc_) != Result::Success)
             return Result::Error;
         FileSystem::collectSwagFilesRec(ctx, modulePathSrc_, paths);
@@ -177,7 +175,7 @@ Result CompilerInstance::collectFiles(const TaskContext& ctx)
         fs::path runtimePath = exeFullName_.parent_path() / "Runtime";
         if (FileSystem::resolveFolder(ctx, runtimePath) != Result::Success)
             return Result::Error;
-        FileSystem::collectSwagFilesRec(ctx, modulePathSrc_, paths);
+        FileSystem::collectSwagFilesRec(ctx, runtimePath, paths);
         if (cmdLine.numCores == 1)
             std::ranges::sort(paths);
         for (const auto& f : paths)

@@ -12,6 +12,7 @@
 #include "Report/Diagnostic.h"
 #include "Report/LogColor.h"
 #include "Report/Logger.h"
+#include "Sema/ConstantManager.h"
 #include "Sema/TypeManager.h"
 #include "Thread/JobManager.h"
 #include "Wmf/SourceFile.h"
@@ -27,6 +28,10 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     jobClientId_ = global.jobMgr().newClientId();
     exeFullName_ = Os::getExeFullName();
     typeMgr_     = std::make_unique<TypeManager>();
+    constMgr_    = std::make_unique<ConstantManager>();
+
+    typeMgr_->setup(*this);
+    constMgr_->setup(*this);
 }
 
 void CompilerInstance::logBefore()

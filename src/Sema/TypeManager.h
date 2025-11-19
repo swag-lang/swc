@@ -4,17 +4,18 @@
 #include "Sema/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
+class CompilerInstance;
 
 class TypeManager
 {
-    Store<>                                             store_;
+    Store<>                                                 store_;
     std::unordered_map<TypeInfo, TypeInfoRef, TypeInfoHash> map_;
 
     // Predefined types
     TypeInfoRef typeBool_ = TypeInfoRef::invalid();
 
 public:
-    void    setup();
+    void        setup(CompilerInstance& compiler);
     TypeInfoRef registerType(const TypeInfo& typeInfo);
 
     TypeInfoRef typeBool() const { return typeBool_; }

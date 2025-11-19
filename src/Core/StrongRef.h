@@ -46,6 +46,7 @@ struct FileTag{};
 struct TokenTag{};
 struct SpanTag{};
 struct TypeTag{};
+struct ConstantTag{};
 // clang-format on
 
 // Type definitions
@@ -54,5 +55,6 @@ using FileRef     = StrongRef<FileTag>;
 using TokenRef    = StrongRef<TokenTag>;
 using SpanRef     = StrongRef<SpanTag>;
 using TypeInfoRef = StrongRef<TypeTag>;
+using ConstantRef = StrongRef<ConstantTag>;
 
 SWC_END_NAMESPACE()

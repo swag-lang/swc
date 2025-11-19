@@ -3,7 +3,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void TypeManager::setup()
+void TypeManager::setup(CompilerInstance&)
 {
     typeBool_ = registerType(TypeInfo{.kind = TypeInfoKind::Bool});
 }

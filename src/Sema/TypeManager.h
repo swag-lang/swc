@@ -8,16 +8,16 @@ SWC_BEGIN_NAMESPACE()
 class TypeManager
 {
     Store<>                                             store_;
-    std::unordered_map<TypeInfo, TypeRef, TypeInfoHash> map_;
+    std::unordered_map<TypeInfo, TypeInfoRef, TypeInfoHash> map_;
 
     // Predefined types
-    TypeRef typeBool_ = TypeRef::invalid();
+    TypeInfoRef typeBool_ = TypeInfoRef::invalid();
 
 public:
     void    setup();
-    TypeRef registerType(const TypeInfo& typeInfo);
+    TypeInfoRef registerType(const TypeInfo& typeInfo);
 
-    TypeRef typeBool() const { return typeBool_; }
+    TypeInfoRef typeBool() const { return typeBool_; }
 };
 
 SWC_END_NAMESPACE()

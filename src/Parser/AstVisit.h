@@ -24,11 +24,6 @@ enum class AstVisitStepResult
 
 class AstVisit
 {
-    Ast*                                        ast_  = nullptr;
-    AstNodeRef                                  root_ = AstNodeRef::invalid();
-    std::function<AstVisitStepResult(AstNode&)> pre_;
-    std::function<AstVisitStepResult(AstNode&)> post_;
-
     struct Frame
     {
         enum class Stage : uint8_t
@@ -47,22 +42,27 @@ class AstVisit
         Stage              stage        = Stage::Pre;
     };
 
+    Ast*                                        ast_  = nullptr;
+    AstNodeRef                                  root_ = AstNodeRef::invalid();
+    std::function<AstVisitStepResult(AstNode&)> preNodeVisitor_;
+    std::function<AstVisitStepResult(AstNode&)> postNodeVisitor_;
+
     const LexerOutput*      currentLex_ = nullptr;
     SmallVector<Frame, 64>  stack_;
-    SmallVector<AstNodeRef> children_; // shared pool of children
+    SmallVector<AstNodeRef> children_;
 
     AstNode* parentNodeInternal(size_t up) const;
 
 public:
     void           start(Ast& ast, AstNodeRef root);
-    void           setPreVisitor(const std::function<AstVisitStepResult(AstNode&)>& visitor) { pre_ = visitor; }
-    void           setPostVisitor(const std::function<AstVisitStepResult(AstNode&)>& visitor) { post_ = visitor; }
+    void           setPreNodeVisitor(const std::function<AstVisitStepResult(AstNode&)>& visitor) { preNodeVisitor_ = visitor; }
+    void           setPostNodeVisitor(const std::function<AstVisitStepResult(AstNode&)>& visitor) { postNodeVisitor_ = visitor; }
     AstVisitResult step();
     AstNode*       parentNode(size_t up = 0) { return parentNodeInternal(up); }
     const AstNode* parentNode(size_t up = 0) const { return parentNodeInternal(up); }
 
-    const Ast* ast() const { return ast_; }
-    Ast*       ast() { return ast_; }
+    const Ast& ast() const { return *ast_; }
+    Ast&       ast() { return *ast_; }
 };
 
 SWC_END_NAMESPACE()

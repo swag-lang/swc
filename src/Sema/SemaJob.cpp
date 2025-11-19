@@ -13,8 +13,8 @@ SemaJob::SemaJob(const TaskContext& ctx, Ast* ast, AstNodeRef root) :
     };
 
     visit_.start(*ast, root);
-    visit_.setPreVisitor([this](AstNode& node) { return preNode(node); });
-    visit_.setPostVisitor([this](AstNode& node) { return postNode(node); });
+    visit_.setPreNodeVisitor([this](AstNode& node) { return preNode(node); });
+    visit_.setPostNodeVisitor([this](AstNode& node) { return postNode(node); });
 }
 
 AstVisitStepResult SemaJob::preNode(AstNode& node)

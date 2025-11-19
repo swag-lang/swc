@@ -47,9 +47,9 @@ AstVisitResult AstVisit::step()
 #endif
 
             // Pre-order callback
-            if (pre_)
+            if (preNodeVisitor_)
             {
-                const AstVisitStepResult result = pre_(*fr.node);
+                const AstVisitStepResult result = preNodeVisitor_(*fr.node);
                 if (result == AstVisitStepResult::Stop)
                     return AstVisitResult::Stop;
                 if (result == AstVisitStepResult::Pause)
@@ -99,9 +99,9 @@ AstVisitResult AstVisit::step()
         case Frame::Stage::Post:
         {
             // Post-order callback
-            if (post_)
+            if (postNodeVisitor_)
             {
-                const AstVisitStepResult result = post_(*fr.node);
+                const AstVisitStepResult result = postNodeVisitor_(*fr.node);
                 if (result == AstVisitStepResult::Stop)
                     return AstVisitResult::Stop;
                 if (result == AstVisitStepResult::Pause)

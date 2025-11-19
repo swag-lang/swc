@@ -1,6 +1,8 @@
 #include "pch.h"
-#include "Sema/SemaJob.h"
+
+#include "Parser/Ast.h"
 #include "Parser/AstVisit.h"
+#include "Sema/SemaJob.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -15,6 +17,7 @@ SemaJob::SemaJob(const TaskContext& ctx, Ast* ast, AstNodeRef root) :
     visit_.start(*ast, root);
     visit_.setPreNodeVisitor([this](AstNode& node) { return preNode(node); });
     visit_.setPostNodeVisitor([this](AstNode& node) { return postNode(node); });
+    visit_.setPreChildVisitor([this](AstNode& node, AstNodeRef childRef) { return preChild(node, childRef); });
 }
 
 AstVisitStepResult SemaJob::preNode(AstNode& node)
@@ -25,6 +28,12 @@ AstVisitStepResult SemaJob::preNode(AstNode& node)
 AstVisitStepResult SemaJob::postNode(AstNode& node)
 {
     return AstVisitStepResult::Continue;
+}
+
+AstNodeRef SemaJob::preChild(AstNode& node, AstNodeRef childRef)
+{
+    const auto& info = Ast::nodeIdInfos(node.id);
+    return info.semaPreChild(&node, childRef);
 }
 
 JobResult SemaJob::exec(JobContext& ctx)

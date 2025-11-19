@@ -835,6 +835,11 @@ struct AstCompilerIf : AstNodeT<AstNodeId::CompilerIf>
     {
         AstNode::collectChildren(out, {nodeCondition, nodeIfBlock, nodeElseBlock});
     }
+
+    AstNodeRef semaPreChild(AstNodeRef childRef) const
+    {
+        return childRef;
+    }
 };
 
 struct AstCompilerElse : AstCompoundT<AstNodeId::CompilerElse>

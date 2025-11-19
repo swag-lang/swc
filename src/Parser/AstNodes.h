@@ -141,9 +141,10 @@ struct AstNodeIdInfo
 
     using CollectFunc = void (*)(SmallVector<AstNodeRef>&, const Ast*, const AstNode*);
     CollectFunc collectChildren;
+    using CollectFunc1 = AstNodeRef (*)(const AstNode*, AstNodeRef);
+    CollectFunc1 semaPreChild;
 };
 
-// Helper template to call collect on any node type
 template<AstNodeId ID>
 void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast, const AstNode* node)
 {
@@ -151,8 +152,15 @@ void collectChildren(SmallVector<AstNodeRef>& out, const Ast* ast, const AstNode
     castAst<NodeType>(node)->collectChildren(out, ast);
 }
 
+template<AstNodeId ID>
+AstNodeRef semaPreChild(const AstNode* node, AstNodeRef childRef)
+{
+    using NodeType = AstTypeOf<ID>::type;
+    return castAst<NodeType>(node)->semaPreChild(childRef);
+}
+
 constexpr std::array AST_NODE_ID_INFOS = {
-#define SWC_NODE_DEF(enum) AstNodeIdInfo{#enum, &collectChildren<AstNodeId::enum>},
+#define SWC_NODE_DEF(enum) AstNodeIdInfo{#enum, &collectChildren<AstNodeId::enum>, &semaPreChild<AstNodeId::enum>},
 #include "Parser/AstNodesEnum.inc"
 
 #undef SWC_NODE_DEF

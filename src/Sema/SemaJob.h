@@ -12,7 +12,9 @@ class SemaJob : public Job
 
     AstVisitStepResult preNode(AstNode& node);
     AstVisitStepResult postNode(AstNode& node);
-    JobResult          exec(JobContext& ctx);
+    AstNodeRef         preChild(AstNode& node, AstNodeRef childRef);
+
+    JobResult exec(JobContext& ctx);
 
 public:
     SemaJob(const TaskContext& ctx, Ast* ast, AstNodeRef root);

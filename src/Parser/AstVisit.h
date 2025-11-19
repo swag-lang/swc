@@ -58,6 +58,7 @@ public:
     void           start(Ast& ast, AstNodeRef root);
     void           setPreNodeVisitor(const std::function<AstVisitStepResult(AstNode&)>& visitor) { preNodeVisitor_ = visitor; }
     void           setPostNodeVisitor(const std::function<AstVisitStepResult(AstNode&)>& visitor) { postNodeVisitor_ = visitor; }
+    void           setPreChildVisitor(const std::function<AstNodeRef(AstNode&, AstNodeRef)>& visitor) { preChildVisitor_ = visitor; }
     AstVisitResult step();
     AstNode*       parentNode(size_t up = 0) { return parentNodeInternal(up); }
     const AstNode* parentNode(size_t up = 0) const { return parentNodeInternal(up); }

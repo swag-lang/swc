@@ -2,9 +2,9 @@
 #include "Main/CompilerInstance.h"
 #include "Core/Timer.h"
 #include "Core/Utf8Helper.h"
-#include "FileSystem.h"
 #include "Main/Command.h"
 #include "Main/CommandLine.h"
+#include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
@@ -12,6 +12,7 @@
 #include "Report/Diagnostic.h"
 #include "Report/LogColor.h"
 #include "Report/Logger.h"
+#include "Sema/TypeManager.h"
 #include "Thread/JobManager.h"
 #include "Wmf/SourceFile.h"
 
@@ -21,10 +22,11 @@ CompilerInstance::~CompilerInstance() = default;
 
 CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdLine) :
     cmdLine_(&cmdLine),
-    global_(&global),
-    jobClientId_(global.jobMgr().newClientId()),
-    exeFullName_{Os::getExeFullName()}
+    global_(&global)
 {
+    jobClientId_ = global.jobMgr().newClientId();
+    exeFullName_ = Os::getExeFullName();
+    typeMgr_     = std::make_unique<TypeManager>();
 }
 
 void CompilerInstance::logBefore()

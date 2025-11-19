@@ -239,6 +239,8 @@
         <ClCompile Include="src\Sema\SemaJob.cpp"/>
         <ClCompile Include="src\Sema\Sema_Compiler_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Literal_.cpp"/>
+        <ClCompile Include="src\Sema\TypeInfo.cpp"/>
+        <ClCompile Include="src\Sema\TypeManager.cpp"/>
         <ClCompile Include="src\Thread\Job.cpp"/>
         <ClCompile Include="src\Thread\JobManager.cpp"/>
         <ClCompile Include="src\Thread\RaceCondition.cpp"/>
@@ -292,6 +294,8 @@
         <ClInclude Include="src\Report\Logger.h"/>
         <ClInclude Include="src\Report\LogSymbol.h"/>
         <ClInclude Include="src\Sema\SemaJob.h"/>
+        <ClInclude Include="src\Sema\TypeInfo.h"/>
+        <ClInclude Include="src\Sema\TypeManager.h"/>
         <ClInclude Include="src\Thread\Job.h"/>
         <ClInclude Include="src\Thread\JobManager.h"/>
         <ClInclude Include="src\Thread\RaceCondition.h"/>

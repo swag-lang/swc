@@ -45,6 +45,7 @@ struct AstNodeTag{};
 struct FileTag{};
 struct TokenTag{};
 struct SpanTag{};
+struct TypeTag{};
 // clang-format on
 
 // Type definitions
@@ -52,5 +53,6 @@ using AstNodeRef = StrongRef<AstNodeTag>;
 using FileRef    = StrongRef<FileTag>;
 using TokenRef   = StrongRef<TokenTag>;
 using SpanRef    = StrongRef<SpanTag>;
+using TypeRef    = StrongRef<TypeTag>;
 
 SWC_END_NAMESPACE()

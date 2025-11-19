@@ -4,6 +4,7 @@
 
 SWC_BEGIN_NAMESPACE()
 class TaskContext;
+class TypeManager;
 
 using JobClientId = uint32_t;
 class Global;
@@ -15,6 +16,7 @@ class CompilerInstance
     const CommandLine*                       cmdLine_ = nullptr;
     const Global*                            global_  = nullptr;
     std::vector<std::unique_ptr<SourceFile>> files_;
+    std::unique_ptr<TypeManager>             typeMgr_;
     JobClientId                              jobClientId_ = 0;
     fs::path                                 modulePathSrc_;
     fs::path                                 modulePathFile_;
@@ -34,6 +36,8 @@ public:
     const Global&      global() const { return *global_; }
     const CommandLine& cmdLine() const { return *cmdLine_; }
     JobClientId        jobClientId() const { return jobClientId_; }
+    TypeManager&       typeMgr() { return *typeMgr_; }
+    const TypeManager& typeMgr() const { return *typeMgr_; }
 
     FileRef                  addFile(fs::path path, FileFlags flags);
     Result                   collectFiles(const TaskContext& ctx);

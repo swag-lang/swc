@@ -13,7 +13,8 @@ void ConstantManager::setup(CompilerInstance& compiler)
 
 ConstantRef ConstantManager::addConstant(const ConstantValue& value)
 {
-    return ConstantRef{store_.push_back(value)};
+    const ConstantRef ref{store_.push_back(value)};
+    return ref;
 }
 
 SWC_END_NAMESPACE()

@@ -117,4 +117,9 @@ inline uint64_t hash(std::string_view v, uint64_t seed = 0xa0761d6478bd642full)
     return wyhash(v.data(), v.size(), seed);
 }
 
+inline size_t hash_combine(size_t h, size_t v)
+{
+    return h ^ (v + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2));
+}
+
 SWC_END_NAMESPACE()

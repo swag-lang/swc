@@ -62,12 +62,10 @@ AstVisitResult AstVisit::step()
                 }
             }
 
-            // Collect children into shared storage
             const auto& info = Ast::nodeIdInfos(fr.node->id);
-
-            fr.firstChildIx = static_cast<uint32_t>(children_.size());
+            fr.firstChildIx  = children_.size32();
             info.collectChildren(children_, ast_, fr.node);
-            fr.numChildren = static_cast<uint32_t>(children_.size()) - fr.firstChildIx;
+            fr.numChildren = children_.size32() - fr.firstChildIx;
             fr.nextChildIx = 0;
 
             fr.stage = Frame::Stage::Children;
@@ -79,7 +77,19 @@ AstVisitResult AstVisit::step()
             // Still have a child to descend into?
             while (fr.nextChildIx < fr.numChildren)
             {
-                const AstNodeRef childRef = children_[fr.firstChildIx + fr.nextChildIx++];
+                const uint32_t localIdx = fr.nextChildIx;
+                const uint32_t globalIx = fr.firstChildIx + localIdx;
+
+                AstNodeRef childRef = children_[globalIx];
+
+                if (preChildVisitor_)
+                {
+                    childRef            = preChildVisitor_(*fr.node, childRef);
+                    children_[globalIx] = childRef;
+                }
+
+                fr.nextChildIx++;
+
                 if (childRef.isInvalid())
                     continue;
 

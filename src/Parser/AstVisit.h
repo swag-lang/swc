@@ -42,10 +42,11 @@ class AstVisit
         Stage              stage        = Stage::Pre;
     };
 
-    Ast*                                        ast_  = nullptr;
-    AstNodeRef                                  root_ = AstNodeRef::invalid();
-    std::function<AstVisitStepResult(AstNode&)> preNodeVisitor_;
-    std::function<AstVisitStepResult(AstNode&)> postNodeVisitor_;
+    Ast*                                            ast_  = nullptr;
+    AstNodeRef                                      root_ = AstNodeRef::invalid();
+    std::function<AstVisitStepResult(AstNode&)>     preNodeVisitor_;
+    std::function<AstVisitStepResult(AstNode&)>     postNodeVisitor_;
+    std::function<AstNodeRef(AstNode&, AstNodeRef)> preChildVisitor_;
 
     const LexerOutput*      currentLex_ = nullptr;
     SmallVector<Frame, 64>  stack_;

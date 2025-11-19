@@ -143,6 +143,7 @@ public:
     const_iterator cend() const noexcept { return _ptr + _size; }
 
     size_type size() const noexcept { return _size; }
+    uint32_t  size32() const noexcept { return static_cast<uint32_t>(_size); }
     size_type capacity() const noexcept { return _cap; }
     bool      empty() const noexcept { return _size == 0; }
     bool      is_inline() const noexcept { return _ptr == inline_data(); }
@@ -258,8 +259,15 @@ public:
         return *p;
     }
 
-    void push_back(const T& v) { emplace_back(v); }
-    void push_back(T&& v) { emplace_back(std::move(v)); }
+    void push_back(const T& v)
+    {
+        emplace_back(v);
+    }
+
+    void push_back(T&& v)
+    {
+        emplace_back(std::move(v));
+    }
 
     void pop_back()
     {

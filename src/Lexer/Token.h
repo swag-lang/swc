@@ -70,6 +70,8 @@ struct Token
     TokenId    id    = TokenId::Invalid;
     TokenFlags flags = TokenFlagsE::Zero;
 
+    bool               is(TokenId id) const { return this->id == id; }
+    bool               isNot(TokenId id) const { return this->id != id; }
     std::string_view   string(const LexerOutput& lex) const;
     SourceCodeLocation location(const TaskContext& ctx, const LexerOutput& lex) const;
     bool               hasFlag(TokenFlags flag) const { return flags.has(flag); }

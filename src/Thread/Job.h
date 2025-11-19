@@ -120,7 +120,7 @@ public:
     void wakeDependents() const;
     void clearIntents();
 
-    std::function<JobResult(JobContext&)> func;
+    std::function<JobResult()> func;
 };
 
 SWC_END_NAMESPACE()

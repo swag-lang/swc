@@ -5,10 +5,9 @@ SWC_BEGIN_NAMESPACE()
 
 class ParserJob : public Job
 {
-    JobContext* ctx_  = nullptr;
     SourceFile* file_ = nullptr;
 
-    JobResult exec(JobContext& ctx) const;
+    JobResult exec();
 
 public:
     ParserJob(const TaskContext& ctx, SourceFile* file);

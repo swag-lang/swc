@@ -6,18 +6,18 @@ SWC_BEGIN_NAMESPACE()
 
 class SemaJob : public Job
 {
-    JobContext* ctx_ = nullptr;
-    Ast*        ast_ = nullptr;
-    AstVisit    visit_;
+    Ast*     ast_ = nullptr;
+    AstVisit visit_;
 
     AstVisitStepResult preNode(AstNode& node);
     AstVisitStepResult postNode(AstNode& node);
     AstNodeRef         preChild(AstNode& node, AstNodeRef childRef);
 
-    JobResult exec(JobContext& ctx);
+    JobResult exec();
 
 public:
     SemaJob(const TaskContext& ctx, Ast* ast, AstNodeRef root);
+
     const Ast&      ast() const { return *ast_; }
     const AstVisit& visit() const { return visit_; }
 };

@@ -10,22 +10,23 @@ ParserJob::ParserJob(const TaskContext& ctx, SourceFile* file) :
     Job(ctx),
     file_(file)
 {
-    func = [this](JobContext& jobCtx) {
-        return exec(jobCtx);
+    func = [this]() {
+        return exec();
     };
 }
 
-JobResult ParserJob::exec(JobContext& ctx) const
+JobResult ParserJob::exec()
 {
-    if (file_->loadContent(ctx) != Result::Success)
+    auto& jobCtx = ctx();
+    if (file_->loadContent(jobCtx) != Result::Success)
         return JobResult::Done;
 
     auto& ast = file_->ast();
 
-    file_->unitTest().tokenize(ctx);
+    file_->unitTest().tokenize(jobCtx);
 
     Lexer lexer;
-    lexer.tokenize(ctx, ast.lexOut(), LexerFlagsE::Default);
+    lexer.tokenize(jobCtx, ast.lexOut(), LexerFlagsE::Default);
     if (ast.lexOut().mustSkip())
         return JobResult::Done;
 
@@ -33,7 +34,7 @@ JobResult ParserJob::exec(JobContext& ctx) const
         return JobResult::Done;
 
     Parser parser;
-    parser.parse(ctx, ast);
+    parser.parse(jobCtx, ast);
 
     return JobResult::Done;
 }

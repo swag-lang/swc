@@ -374,7 +374,7 @@ JobResult JobManager::executeJob(const JobRef& job)
 
     SWC_TRY
     {
-        res = job->func(job->ctx());
+        res = job->func();
     }
     SWC_EXCEPT(exceptionHandler(job, SWC_GET_EXCEPTION_INFOS()))
     {

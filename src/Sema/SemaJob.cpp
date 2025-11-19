@@ -22,17 +22,25 @@ SemaJob::SemaJob(const TaskContext& ctx, Ast* ast, AstNodeRef root) :
 
 AstVisitStepResult SemaJob::preNode(AstNode& node)
 {
-    return AstVisitStepResult::Continue;
+    const auto& info = Ast::nodeIdInfos(node.id);
+    if (!info.semaPreNode)
+        return AstVisitStepResult::Continue;
+    return info.semaPreNode(*this, node);
 }
 
 AstVisitStepResult SemaJob::postNode(AstNode& node)
 {
-    return AstVisitStepResult::Continue;
+    const auto& info = Ast::nodeIdInfos(node.id);
+    if (!info.semaPostNode)
+        return AstVisitStepResult::Continue;
+    return info.semaPostNode(*this, node);
 }
 
 AstNodeRef SemaJob::preChild(AstNode& node, AstNodeRef childRef)
 {
     const auto& info = Ast::nodeIdInfos(node.id);
+    if (!info.semaPreChild)
+        return childRef;
     return info.semaPreChild(*this, node, childRef);
 }
 

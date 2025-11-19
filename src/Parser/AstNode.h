@@ -1,11 +1,11 @@
 #pragma once
 #include "Core/SmallVector.h"
 #include "Parser/AstNodeId.h"
+#include "Parser/AstVisit.h"
 
 SWC_BEGIN_NAMESPACE()
 class SemaJob;
 class Ast;
-
 class SourceFile;
 
 enum class AstModifierFlagsE : uint32_t
@@ -76,10 +76,12 @@ struct AstNode
             semaFlags_ |= val.flags;
     }
 
-    static void       collectChildren(SmallVector<AstNodeRef>&, const Ast&) {}
-    static void       collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, SpanRef spanRef);
-    static void       collectChildren(SmallVector<AstNodeRef>& out, std::initializer_list<AstNodeRef> nodes);
-    static AstNodeRef semaPreChild(SemaJob&, AstNodeRef childRef) { return childRef; }
+    static void               collectChildren(SmallVector<AstNodeRef>&, const Ast&) {}
+    static void               collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, SpanRef spanRef);
+    static void               collectChildren(SmallVector<AstNodeRef>& out, std::initializer_list<AstNodeRef> nodes);
+    static AstVisitStepResult semaPreNode(SemaJob&) { return AstVisitStepResult::Continue; }
+    static AstVisitStepResult semaPostNode(SemaJob&) { return AstVisitStepResult::Continue; }
+    static AstNodeRef         semaPreChild(SemaJob&, AstNodeRef childRef) { return childRef; }
 
 private:
     ParserFlags parserFlags_;

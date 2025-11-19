@@ -5,6 +5,7 @@
 #include "Parser/AstNodeId.h"
 
 SWC_BEGIN_NAMESPACE()
+enum class AstVisitStepResult;
 
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
@@ -139,10 +140,15 @@ struct AstNodeIdInfo
 {
     std::string_view name;
 
-    using CollectFunc = void (*)(SmallVector<AstNodeRef>&, const Ast&, const AstNode&);
-    CollectFunc collectChildren;
-    using SemaPreChildFunc = AstNodeRef (*)(SemaJob&, const AstNode&, AstNodeRef);
-    SemaPreChildFunc semaPreChild;
+    using CollectFunc  = void (*)(SmallVector<AstNodeRef>&, const Ast&, const AstNode&);
+    using SemaPreNode  = AstVisitStepResult (*)(SemaJob&, AstNode&);
+    using SemaPostNode = AstVisitStepResult (*)(SemaJob&, AstNode&);
+    using SemaPreChild = AstNodeRef (*)(SemaJob&, AstNode&, AstNodeRef);
+
+    CollectFunc  collectChildren;
+    SemaPreNode  semaPreNode;
+    SemaPreNode  semaPostNode;
+    SemaPreChild semaPreChild;
 };
 
 template<AstNodeId ID>
@@ -153,14 +159,33 @@ void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, const AstNode
 }
 
 template<AstNodeId ID>
-AstNodeRef semaPreChild(SemaJob& job, const AstNode& node, AstNodeRef childRef)
+AstVisitStepResult semaPreNode(SemaJob& job, AstNode& node)
+{
+    using NodeType = AstTypeOf<ID>::type;
+    return castAst<NodeType>(&node)->semaPreNode(job);
+}
+
+template<AstNodeId ID>
+AstVisitStepResult semaPostNode(SemaJob& job, AstNode& node)
+{
+    using NodeType = AstTypeOf<ID>::type;
+    return castAst<NodeType>(&node)->semaPostNode(job);
+}
+
+template<AstNodeId ID>
+AstNodeRef semaPreChild(SemaJob& job, AstNode& node, AstNodeRef childRef)
 {
     using NodeType = AstTypeOf<ID>::type;
     return castAst<NodeType>(&node)->semaPreChild(job, childRef);
 }
 
 constexpr std::array AST_NODE_ID_INFOS = {
-#define SWC_NODE_DEF(enum) AstNodeIdInfo{#enum, &collectChildren<AstNodeId::enum>, &semaPreChild<AstNodeId::enum>},
+#define SWC_NODE_DEF(enum) AstNodeIdInfo{                         \
+                               #enum,                             \
+                               &collectChildren<AstNodeId::enum>, \
+                               &semaPreNode<AstNodeId::enum>,     \
+                               &semaPostNode<AstNodeId::enum>,    \
+                               &semaPreChild<AstNodeId::enum>},
 #include "Parser/AstNodesEnum.inc"
 
 #undef SWC_NODE_DEF

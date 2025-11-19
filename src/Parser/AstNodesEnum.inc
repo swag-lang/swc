@@ -180,7 +180,6 @@ SWC_NODE_DEF(CompilerInject)
 
 // Compiler Conditionals
 SWC_NODE_DEF(CompilerIf)
-SWC_NODE_DEF(CompilerElseIf)
 SWC_NODE_DEF(CompilerElse)
 
 // -----------------------------------------------------------------------------

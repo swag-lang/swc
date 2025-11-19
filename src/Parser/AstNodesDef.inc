@@ -841,10 +841,6 @@ struct AstCompilerElse : AstCompoundT<AstNodeId::CompilerElse>
 {
 };
 
-struct AstCompilerElseIf : AstCompoundT<AstNodeId::CompilerElseIf>
-{
-};
-
 struct AstAttribute : AstNodeT<AstNodeId::Attribute>
 {
     AstNodeRef nodeIdent;

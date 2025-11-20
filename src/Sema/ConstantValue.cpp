@@ -28,7 +28,7 @@ bool ConstantValue::operator==(const ConstantValue& other) const noexcept
     switch (kind_)
     {
         case ConstantKind::Bool:
-            return std::get<bool>(value_) == std::get<bool>(other.value_);
+            return getBool() == other.getBool();
 
         default:
             SWC_UNREACHABLE();

@@ -22,6 +22,10 @@ struct ConstantValue
     bool isValid() const { return kind != ConstantKind::Invalid; }
     bool isBool() const { return kind == ConstantKind::Bool; }
 
+    // clang-format off
+    bool getBool() const{ SWC_ASSERT(isBool()); return std::get<bool>(value); }
+    // clang-format on
+
     const TypeInfo& type(const TaskContext& ctx) const;
 
     static ConstantValue makeBool(const TaskContext& ctx, bool value);

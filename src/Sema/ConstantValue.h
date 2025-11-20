@@ -10,20 +10,22 @@ enum class ConstantKind
     Bool,
 };
 
-struct ConstantValue
+class ConstantValue
 {
-    ConstantKind kind    = ConstantKind::Invalid;
-    TypeInfoRef  typeRef = TypeInfoRef::invalid();
+    ConstantKind kind_    = ConstantKind::Invalid;
+    TypeInfoRef  typeRef_ = TypeInfoRef::invalid();
 
-    std::variant<bool> value;
+    std::variant<bool> value_;
 
+public:
     bool operator==(const ConstantValue& other) const noexcept;
 
-    bool isValid() const { return kind != ConstantKind::Invalid; }
-    bool isBool() const { return kind == ConstantKind::Bool; }
+    ConstantKind kind() const { return kind_; }
+    bool         isValid() const { return kind_ != ConstantKind::Invalid; }
+    bool         isBool() const { return kind_ == ConstantKind::Bool; }
 
     // clang-format off
-    bool getBool() const{ SWC_ASSERT(isBool()); return std::get<bool>(value); }
+    bool getBool() const{ SWC_ASSERT(isBool()); return std::get<bool>(value_); }
     // clang-format on
 
     const TypeInfo& type(const TaskContext& ctx) const;

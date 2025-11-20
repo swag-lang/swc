@@ -79,25 +79,14 @@ struct AstNode
     bool      hasSemaFlag(SemaFlagE val) const { return semaFlags_.has(val); }
     SemaFlags semaFlags() const { return semaFlags_; }
 
-    void setConstant(ConstantRef ref)
-    {
-        semaFlags_.clearMask(SemaFlagE::RefMask);
-        addSemaFlag(SemaFlagE::IsConst);
-        constantValue = ref;
-    }
-
     bool                 isConstant() const { return hasSemaFlag(SemaFlagE::IsConst); }
-    ConstantRef          getConstantRef() const { return constantValue; }
+    void                 setConstant(ConstantRef ref);
     const ConstantValue& getConstant(const TaskContext& ctx) const;
 
 private:
-    ParserFlags parserFlags_;
-    SemaFlags   semaFlags_;
-
-    union
-    {
-        ConstantRef constantValue;
-    };
+    ParserFlags               parserFlags_;
+    SemaFlags                 semaFlags_;
+    std::variant<ConstantRef> sema_;
 };
 
 template<AstNodeId I>

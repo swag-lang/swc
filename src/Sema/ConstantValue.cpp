@@ -1,33 +1,34 @@
 #include "pch.h"
 #include "Sema/ConstantValue.h"
+#include "Core/hash.h"
 #include "Main/TaskContext.h"
-#include "TypeManager.h"
+#include "Sema/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
 const TypeInfo& ConstantValue::type(const TaskContext& ctx) const
 {
-    return ctx.compiler().typeMgr().get(typeRef);
+    return ctx.compiler().typeMgr().get(typeRef_);
 }
 
 ConstantValue ConstantValue::makeBool(const TaskContext& ctx, bool value)
 {
     ConstantValue cv;
-    cv.typeRef = ctx.compiler().typeMgr().getBool();
-    cv.kind    = ConstantKind::Bool;
-    cv.value   = value;
+    cv.typeRef_ = ctx.compiler().typeMgr().getBool();
+    cv.kind_    = ConstantKind::Bool;
+    cv.value_   = value;
     return cv;
 }
 
 bool ConstantValue::operator==(const ConstantValue& other) const noexcept
 {
-    if (kind != other.kind)
+    if (kind_ != other.kind_)
         return false;
 
-    switch (kind)
+    switch (kind_)
     {
         case ConstantKind::Bool:
-            return std::get<bool>(value) == std::get<bool>(other.value);
+            return std::get<bool>(value_) == std::get<bool>(other.value_);
 
         default:
             SWC_UNREACHABLE();
@@ -36,16 +37,19 @@ bool ConstantValue::operator==(const ConstantValue& other) const noexcept
 
 size_t ConstantValueHash::operator()(const ConstantValue& v) const noexcept
 {
-    auto h = std::hash<int>()(static_cast<int>(v.kind));
+    auto h = std::hash<int>()(static_cast<int>(v.kind()));
 
-    switch (v.kind)
+    switch (v.kind())
     {
         case ConstantKind::Bool:
-            return std::get<bool>(v.value);
+            h = hash_combine(h, v.getBool());
+            break;
 
         default:
             SWC_UNREACHABLE();
     }
+
+    return h;
 }
 
 SWC_END_NAMESPACE()

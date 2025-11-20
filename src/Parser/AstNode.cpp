@@ -18,10 +18,17 @@ void AstNode::collectChildren(SmallVector<AstNodeRef>& out, std::initializer_lis
         out.push_back(n);
 }
 
+void AstNode::setConstant(ConstantRef ref)
+{
+    semaFlags_.clearMask(SemaFlagE::RefMask);
+    addSemaFlag(SemaFlagE::IsConst);
+    sema_ = ref;
+}
+
 const ConstantValue& AstNode::getConstant(const TaskContext& ctx) const
 {
     SWC_ASSERT(isConstant());
-    return ctx.compiler().constMgr().get(getConstantRef());
+    return ctx.compiler().constMgr().get(std::get<ConstantRef>(sema_));
 }
 
 SWC_END_NAMESPACE()

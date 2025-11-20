@@ -1,8 +1,7 @@
 #include "pch.h"
-#include "ConstantManager.h"
 #include "Parser/AstNodes.h"
-#include "SemaJob.h"
-#include "TypeManager.h"
+#include "Sema/ConstantManager.h"
+#include "Sema/SemaJob.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -16,8 +15,7 @@ AstVisitStepResult AstCompilerIf::semaPreChild(SemaJob& job, AstNodeRef& childRe
         return AstVisitStepResult::Stop;
 
     const auto& constant = job.constMgr().get(nodeCond->getConstantRef());
-    const auto& type     = constant.type(job.ctx());
-    if (!type.isBool())
+    if (!constant.isBool())
         return AstVisitStepResult::Stop;
 
     if (childRef == nodeIfBlock && !std::get<bool>(constant.value))

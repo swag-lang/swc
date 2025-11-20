@@ -15,14 +15,14 @@ AstVisitStepResult AstCompilerIf::semaPreChild(SemaJob& job, AstNodeRef& childRe
     if (!nodeCond->isConstant())
         return AstVisitStepResult::Stop;
 
-    const auto& constant = job.constMgr().get(nodeCond->getConstant());
-    const auto& type     = job.typeMgr().get(constant.typeRef);
+    const auto& constant = job.constMgr().get(nodeCond->getConstantRef());
+    const auto& type     = constant.type(job.ctx());
     if (!type.isBool())
         return AstVisitStepResult::Stop;
 
-    if (childRef == nodeIfBlock && !constant.b)
+    if (childRef == nodeIfBlock && !std::get<bool>(constant.value))
         return AstVisitStepResult::SkipChildren;
-    if (childRef == nodeElseBlock && constant.b)
+    if (childRef == nodeElseBlock && std::get<bool>(constant.value))
         return AstVisitStepResult::SkipChildren;
 
     return AstVisitStepResult::Continue;

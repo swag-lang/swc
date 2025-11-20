@@ -30,8 +30,9 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     typeMgr_     = std::make_unique<TypeManager>();
     constMgr_    = std::make_unique<ConstantManager>();
 
-    typeMgr_->setup(*this);
-    constMgr_->setup(*this);
+    TaskContext ctx(*this);
+    typeMgr_->setup(ctx);
+    constMgr_->setup(ctx);
 }
 
 void CompilerInstance::logBefore()

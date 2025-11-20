@@ -1,14 +1,13 @@
 #include "pch.h"
 #include "Sema/ConstantManager.h"
-#include "Main/CompilerInstance.h"
 #include "Sema/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
-void ConstantManager::setup(CompilerInstance& compiler)
+void ConstantManager::setup(TaskContext& ctx)
 {
-    boolTrue_  = addConstant({.typeRef = compiler.typeMgr().getBool(), .b = true});
-    boolFalse_ = addConstant({.typeRef = compiler.typeMgr().getBool(), .b = false});
+    boolTrue_  = addConstant(ConstantValue::makeBool(ctx, true));
+    boolFalse_ = addConstant(ConstantValue::makeBool(ctx, false));
 }
 
 ConstantRef ConstantManager::addConstant(const ConstantValue& value)

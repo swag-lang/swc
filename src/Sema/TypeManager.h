@@ -4,6 +4,7 @@
 #include "Sema/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
+class TaskContext;
 class CompilerInstance;
 
 class TypeManager
@@ -16,7 +17,7 @@ class TypeManager
     TypeInfoRef typeBool_ = TypeInfoRef::invalid();
 
 public:
-    void        setup(CompilerInstance& compiler);
+    void        setup(TaskContext& ctx);
     TypeInfoRef registerType(const TypeInfo& typeInfo);
 
     TypeInfoRef     getBool() const { return typeBool_; }

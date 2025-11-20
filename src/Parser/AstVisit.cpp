@@ -81,7 +81,6 @@ AstVisitResult AstVisit::step()
                 const uint32_t globalIx = fr.firstChildIx + localIdx;
 
                 AstNodeRef childRef = children_[globalIx];
-
                 if (preChildVisitor_)
                 {
                     const AstVisitStepResult result = preChildVisitor_(*fr.node, childRef);
@@ -94,6 +93,12 @@ AstVisitResult AstVisit::step()
                         fr.nextChildIx++;
                         continue;
                     }
+                }
+
+                if (childRef.isInvalid())
+                {
+                    fr.nextChildIx++;
+                    continue;
                 }
 
                 Frame childFr;

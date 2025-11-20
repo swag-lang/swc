@@ -13,7 +13,7 @@ class ConstantManager
     ConstantRef boolFalse_ = ConstantRef::invalid();
 
 public:
-    void                 setup(CompilerInstance& compiler);
+    void                 setup(TaskContext& ctx);
     ConstantRef          addConstant(const ConstantValue& value);
     ConstantRef          boolTrue() const { return boolTrue_; }
     ConstantRef          boolFalse() const { return boolFalse_; }

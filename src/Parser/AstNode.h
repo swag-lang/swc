@@ -86,7 +86,7 @@ struct AstNode
     }
 
     bool        isConstant() const { return hasSemaFlag(SemaFlagE::IsConst); }
-    ConstantRef getConstant() const { return constantValue; }
+    ConstantRef getConstantRef() const { return constantValue; }
 
 private:
     ParserFlags parserFlags_;

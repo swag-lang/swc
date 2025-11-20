@@ -29,9 +29,12 @@ enum class Result : bool
         }                                            \
     } while (0)
 
-#define SWC_UNREACHABLE() \
-    SWC_ASSERT(false);    \
-    std::unreachable();
+#define SWC_UNREACHABLE()   \
+    do                      \
+    {                       \
+        SWC_ASSERT(false);  \
+        std::unreachable(); \
+    } while (0)
 
 #else
 

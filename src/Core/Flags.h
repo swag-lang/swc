@@ -71,6 +71,8 @@ struct EnumFlags
     constexpr Self maskInvert(Self fl) const { return Self{static_cast<T>(flags & ~fl.flags)}; }
     constexpr Self maskInvert(T fl) const { return Self{static_cast<T>(flags & ~static_cast<U>(fl))}; }
 
+    constexpr void clearMask(T fl) { flags &= ~static_cast<U>(fl); }
+
     // mutating helpers
     constexpr void add(Self fl) { flags |= fl.flags; }
     constexpr void add(T fl) { flags |= static_cast<U>(fl); }

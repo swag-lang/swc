@@ -18,10 +18,12 @@ public:
     {
     }
 
-    const Global&      global() const { return compilerInstance_->global(); }
-    const CommandLine& cmdLine() const { return compilerInstance_->cmdLine(); }
-    bool               silentError() const { return silentError_; }
-    void               setSilentError(bool silent) { silentError_ = silent; }
+    const Global&           global() const { return compilerInstance_->global(); }
+    const CommandLine&      cmdLine() const { return compilerInstance_->cmdLine(); }
+    CompilerInstance&       compiler() { return *compilerInstance_; }
+    const CompilerInstance& compiler() const { return *compilerInstance_; }
+    bool                    silentError() const { return silentError_; }
+    void                    setSilentError(bool silent) { silentError_ = silent; }
 };
 
 SWC_END_NAMESPACE()

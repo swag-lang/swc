@@ -38,7 +38,6 @@ struct AstNode
     }
 
     using ParserFlags = uint8_t;
-    using SemaFlags   = uint8_t;
 
     template<typename T>
     EnumFlags<T> parserFlags() const
@@ -46,16 +45,10 @@ struct AstNode
         return static_cast<EnumFlags<T>>(parserFlags_);
     }
 
-    template<typename T>
-    EnumFlags<T> semaFlags() const
-    {
-        return static_cast<EnumFlags<T>>(semaFlags_);
-    }
-
     void clearFlags()
     {
         parserFlags_ = 0;
-        semaFlags_   = 0;
+        semaFlags_.clear();
     }
 
     template<typename T>
@@ -67,15 +60,6 @@ struct AstNode
             parserFlags_ |= val.flags;
     }
 
-    template<typename T>
-    void addSemaFlag(T val)
-    {
-        if constexpr (std::is_enum_v<T>)
-            semaFlags_ |= static_cast<std::underlying_type_t<T>>(val);
-        else
-            semaFlags_ |= val.flags;
-    }
-
     static void               collectChildren(SmallVector<AstNodeRef>&, const Ast&) {}
     static void               collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, SpanRef spanRef);
     static void               collectChildren(SmallVector<AstNodeRef>& out, std::initializer_list<AstNodeRef> nodes);
@@ -83,9 +67,34 @@ struct AstNode
     static AstVisitStepResult semaPostNode(SemaJob&) { return AstVisitStepResult::Continue; }
     static AstNodeRef         semaPreChild(SemaJob&, AstNodeRef childRef) { return childRef; }
 
+    enum class SemaFlagE : uint8_t
+    {
+        IsConst = 1 << 0,
+        RefMask = IsConst,
+    };
+    using SemaFlags = EnumFlags<SemaFlagE>;
+
+    void      addSemaFlag(SemaFlagE val) { semaFlags_.add(val); }
+    bool      hasSemaFlag(SemaFlagE val) const { return semaFlags_.has(val); }
+    SemaFlags semaFlags() const { return semaFlags_; }
+
+    void setConstant(ConstantRef ref)
+    {
+        semaFlags_.clearMask(SemaFlagE::RefMask);
+        addSemaFlag(SemaFlagE::IsConst);
+        constantValue = ref;
+    }
+
+    bool isConstant() const { return hasSemaFlag(SemaFlagE::IsConst); }
+
 private:
     ParserFlags parserFlags_;
     SemaFlags   semaFlags_;
+
+    union
+    {
+        ConstantRef constantValue;
+    };
 };
 
 template<AstNodeId I>

@@ -13,10 +13,11 @@ class ConstantManager
     ConstantRef boolFalse_ = ConstantRef::invalid();
 
 public:
-    void        setup(CompilerInstance& compiler);
-    ConstantRef addConstant(const ConstantValue& value);
-    ConstantRef boolTrue() const { return boolTrue_; }
-    ConstantRef boolFalse() const { return boolFalse_; }
+    void                 setup(CompilerInstance& compiler);
+    ConstantRef          addConstant(const ConstantValue& value);
+    ConstantRef          boolTrue() const { return boolTrue_; }
+    ConstantRef          boolFalse() const { return boolFalse_; }
+    const ConstantValue& get(ConstantRef constantRef) const;
 };
 
 SWC_END_NAMESPACE()

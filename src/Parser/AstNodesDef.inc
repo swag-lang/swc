@@ -837,7 +837,7 @@ struct AstCompilerIf : AstNodeT<AstNodeId::CompilerIf>
         AstNode::collectChildren(out, {nodeCondition, nodeIfBlock, nodeElseBlock});
     }
 
-    AstNodeRef semaPreChild(SemaJob& job, AstNodeRef childRef);
+    AstVisitStepResult semaPreChild(SemaJob& job, AstNodeRef& childRef);
 };
 
 struct AstCompilerElse : AstCompoundT<AstNodeId::CompilerElse>

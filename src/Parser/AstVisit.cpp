@@ -84,14 +84,17 @@ AstVisitResult AstVisit::step()
 
                 if (preChildVisitor_)
                 {
-                    childRef            = preChildVisitor_(*fr.node, childRef);
-                    children_[globalIx] = childRef;
+                    const AstVisitStepResult result = preChildVisitor_(*fr.node, childRef);
+                    if (result == AstVisitStepResult::Stop)
+                        return AstVisitResult::Stop;
+                    if (result == AstVisitStepResult::Pause)
+                        return AstVisitResult::Pause;
+                    if (result == AstVisitStepResult::SkipChildren)
+                    {
+                        fr.nextChildIx++;
+                        continue;
+                    }
                 }
-
-                fr.nextChildIx++;
-
-                if (childRef.isInvalid())
-                    continue;
 
                 Frame childFr;
                 childFr.nodeRef   = childRef;
@@ -99,6 +102,7 @@ AstVisitResult AstVisit::step()
                 childFr.lexAtPush = currentLex_;
 
                 stack_.push_back(childFr);
+                fr.nextChildIx++;
                 return AstVisitResult::Continue;
             }
 

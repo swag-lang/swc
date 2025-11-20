@@ -28,4 +28,11 @@ TypeInfoRef TypeManager::registerType(const TypeInfo& typeInfo)
     return ref;
 }
 
+const TypeInfo& TypeManager::get(TypeInfoRef typeInfoRef) const
+{
+    std::shared_lock lk(mutex_);
+    SWC_ASSERT(typeInfoRef.isValid());
+    return *store_.ptr<TypeInfo>(typeInfoRef.get());
+}
+
 SWC_END_NAMESPACE()

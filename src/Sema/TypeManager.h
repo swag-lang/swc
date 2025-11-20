@@ -10,7 +10,7 @@ class TypeManager
 {
     Store<>                                                 store_;
     std::unordered_map<TypeInfo, TypeInfoRef, TypeInfoHash> map_;
-    std::shared_mutex                                       mutex_;
+    mutable std::shared_mutex                               mutex_;
 
     // Predefined types
     TypeInfoRef typeBool_ = TypeInfoRef::invalid();
@@ -19,7 +19,8 @@ public:
     void        setup(CompilerInstance& compiler);
     TypeInfoRef registerType(const TypeInfo& typeInfo);
 
-    TypeInfoRef typeBool() const { return typeBool_; }
+    TypeInfoRef     getBool() const { return typeBool_; }
+    const TypeInfo& get(TypeInfoRef typeInfoRef) const;
 };
 
 SWC_END_NAMESPACE()

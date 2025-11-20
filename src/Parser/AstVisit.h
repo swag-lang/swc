@@ -42,11 +42,11 @@ class AstVisit
         Stage              stage        = Stage::Pre;
     };
 
-    Ast*                                            ast_  = nullptr;
-    AstNodeRef                                      root_ = AstNodeRef::invalid();
-    std::function<AstVisitStepResult(AstNode&)>     preNodeVisitor_;
-    std::function<AstVisitStepResult(AstNode&)>     postNodeVisitor_;
-    std::function<AstNodeRef(AstNode&, AstNodeRef)> preChildVisitor_;
+    Ast*                                                     ast_  = nullptr;
+    AstNodeRef                                               root_ = AstNodeRef::invalid();
+    std::function<AstVisitStepResult(AstNode&)>              preNodeVisitor_;
+    std::function<AstVisitStepResult(AstNode&)>              postNodeVisitor_;
+    std::function<AstVisitStepResult(AstNode&, AstNodeRef&)> preChildVisitor_;
 
     const LexerOutput*      currentLex_ = nullptr;
     SmallVector<Frame, 64>  stack_;
@@ -58,7 +58,7 @@ public:
     void           start(Ast& ast, AstNodeRef root);
     void           setPreNodeVisitor(const std::function<AstVisitStepResult(AstNode&)>& visitor) { preNodeVisitor_ = visitor; }
     void           setPostNodeVisitor(const std::function<AstVisitStepResult(AstNode&)>& visitor) { postNodeVisitor_ = visitor; }
-    void           setPreChildVisitor(const std::function<AstNodeRef(AstNode&, AstNodeRef)>& visitor) { preChildVisitor_ = visitor; }
+    void           setPreChildVisitor(const std::function<AstVisitStepResult(AstNode&, AstNodeRef&)>& visitor) { preChildVisitor_ = visitor; }
     AstVisitResult step();
     AstNode*       parentNode(size_t up = 0) { return parentNodeInternal(up); }
     const AstNode* parentNode(size_t up = 0) const { return parentNodeInternal(up); }

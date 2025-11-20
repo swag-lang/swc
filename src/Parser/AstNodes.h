@@ -143,7 +143,7 @@ struct AstNodeIdInfo
     using CollectFunc  = void (*)(SmallVector<AstNodeRef>&, const Ast&, const AstNode&);
     using SemaPreNode  = AstVisitStepResult (*)(SemaJob&, AstNode&);
     using SemaPostNode = AstVisitStepResult (*)(SemaJob&, AstNode&);
-    using SemaPreChild = AstNodeRef (*)(SemaJob&, AstNode&, AstNodeRef);
+    using SemaPreChild = AstVisitStepResult (*)(SemaJob&, AstNode&, AstNodeRef&);
 
     CollectFunc  collectChildren;
     SemaPreNode  semaPreNode;
@@ -173,7 +173,7 @@ AstVisitStepResult semaPostNode(SemaJob& job, AstNode& node)
 }
 
 template<AstNodeId ID>
-AstNodeRef semaPreChild(SemaJob& job, AstNode& node, AstNodeRef childRef)
+AstVisitStepResult semaPreChild(SemaJob& job, AstNode& node, AstNodeRef& childRef)
 {
     using NodeType = AstTypeOf<ID>::type;
     return castAst<NodeType>(&node)->semaPreChild(job, childRef);

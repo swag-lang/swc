@@ -65,7 +65,7 @@ struct AstNode
     static void               collectChildren(SmallVector<AstNodeRef>& out, std::initializer_list<AstNodeRef> nodes);
     static AstVisitStepResult semaPreNode(SemaJob&) { return AstVisitStepResult::Continue; }
     static AstVisitStepResult semaPostNode(SemaJob&) { return AstVisitStepResult::Continue; }
-    static AstNodeRef         semaPreChild(SemaJob&, AstNodeRef childRef) { return childRef; }
+    static AstVisitStepResult semaPreChild(SemaJob&, AstNodeRef&) { return AstVisitStepResult::Continue; }
 
     enum class SemaFlagE : uint8_t
     {
@@ -85,7 +85,8 @@ struct AstNode
         constantValue = ref;
     }
 
-    bool isConstant() const { return hasSemaFlag(SemaFlagE::IsConst); }
+    bool        isConstant() const { return hasSemaFlag(SemaFlagE::IsConst); }
+    ConstantRef getConstant() const { return constantValue; }
 
 private:
     ParserFlags parserFlags_;

@@ -222,7 +222,7 @@ struct AstAttrDecl : AstNodeT<AstNodeId::AttrDecl>
 
 struct AstFunctionParamMe : AstNodeT<AstNodeId::FunctionParamMe>
 {
-    enum class FlagsE : ParserFlags
+    enum FlagsE : ParserFlags
     {
         Zero  = 0,
         Const = 1 << 0,
@@ -262,7 +262,7 @@ struct AstFunctionParamList : AstCompoundT<AstNodeId::FunctionParamList>
 
 struct AstClosureArgument : AstNodeT<AstNodeId::ClosureArgument>
 {
-    enum class FlagsE : ParserFlags
+    enum FlagsE : ParserFlags
     {
         Zero    = 0,
         Address = 1 << 0,
@@ -777,7 +777,7 @@ struct AstCompilerTypeExpr : AstNodeT<AstNodeId::CompilerTypeExpr>
 
 struct AstLambdaType : AstNodeT<AstNodeId::LambdaType>
 {
-    enum class FlagsE : ParserFlags
+    enum FlagsE : ParserFlags
     {
         Zero    = 0,
         Mtd     = 1 << 0,
@@ -954,7 +954,7 @@ struct AstGenericParamType : AstGenericParamT<AstNodeId::GenericParamType>
 
 struct AstVarDecl : AstNodeT<AstNodeId::VarDecl>
 {
-    enum class FlagsE : ParserFlags
+    enum FlagsE : ParserFlags
     {
         Zero  = 0,
         Var   = 1 << 0,
@@ -1157,7 +1157,7 @@ struct AstWhileStmt : AstNodeT<AstNodeId::WhileStmt>
 
 struct AstForeachStmt : AstNodeT<AstNodeId::ForeachStmt>
 {
-    enum class FlagsE : ParserFlags
+    enum FlagsE : ParserFlags
     {
         Zero      = 0,
         ByAddress = 1 << 0,
@@ -1293,7 +1293,7 @@ struct AstCompilerInject : AstNodeT<AstNodeId::CompilerInject>
 
 struct AstRangeExpr : AstNodeT<AstNodeId::RangeExpr>
 {
-    enum class FlagsE : ParserFlags
+    enum FlagsE : ParserFlags
     {
         Zero      = 0,
         Inclusive = 1 << 0,

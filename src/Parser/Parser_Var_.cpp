@@ -58,15 +58,15 @@ AstNodeRef Parser::parseGenericParam()
 
 AstNodeRef Parser::parseVarDecompositionDecl()
 {
-    AstVarDecl::Flags flags = AstVarDecl::FlagsE::Zero;
+    AstVarDecl::Flags flags = AstVarDecl::Zero;
     if (consumeIf(TokenId::KwdConst).isValid())
-        flags.add(AstVarDecl::FlagsE::Const);
+        flags.add(AstVarDecl::Const);
     else if (consumeIf(TokenId::KwdVar).isValid())
-        flags.add(AstVarDecl::FlagsE::Var);
+        flags.add(AstVarDecl::Var);
     else
     {
         consumeAssert(TokenId::KwdLet);
-        flags.add(AstVarDecl::FlagsE::Let);
+        flags.add(AstVarDecl::Let);
     }
 
     const auto openRef = consumeAssert(TokenId::SymLeftParen);
@@ -109,13 +109,13 @@ AstNodeRef Parser::parseVarDecompositionDecl()
 
 AstNodeRef Parser::parseVarDecl()
 {
-    AstVarDecl::Flags flags = AstVarDecl::FlagsE::Zero;
+    AstVarDecl::Flags flags = AstVarDecl::Zero;
     if (consumeIf(TokenId::KwdConst).isValid())
-        flags.add(AstVarDecl::FlagsE::Const);
+        flags.add(AstVarDecl::Const);
     else if (consumeIf(TokenId::KwdVar).isValid())
-        flags.add(AstVarDecl::FlagsE::Var);
+        flags.add(AstVarDecl::Var);
     else if (consumeIf(TokenId::KwdLet).isValid())
-        flags.add(AstVarDecl::FlagsE::Let);
+        flags.add(AstVarDecl::Let);
 
     SmallVector<AstNodeRef> vars;
     while (true)

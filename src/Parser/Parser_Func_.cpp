@@ -6,10 +6,10 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseClosureArg()
 {
-    AstClosureArgument::Flags flags = AstClosureArgument::FlagsE::Zero;
+    AstClosureArgument::Flags flags = AstClosureArgument::Zero;
 
     if (consumeIf(TokenId::SymAmpersand).isValid())
-        flags.add(AstClosureArgument::FlagsE::Address);
+        flags.add(AstClosureArgument::Address);
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ClosureArgument>();
     nodePtr->addParserFlag(flags);
@@ -89,20 +89,20 @@ AstNodeRef Parser::parseLambdaExprArg()
 
 AstNodeRef Parser::parseLambdaType()
 {
-    AstLambdaType::Flags flags    = AstLambdaType::FlagsE::Zero;
+    AstLambdaType::Flags flags    = AstLambdaType::Zero;
     const auto           tokStart = ref();
 
     if (consumeIf(TokenId::KwdMtd).isValid())
-        flags.add(AstLambdaType::FlagsE::Mtd);
+        flags.add(AstLambdaType::Mtd);
     else
         consumeAssert(TokenId::KwdFunc);
 
     if (consumeIf(TokenId::SymVerticalVertical).isValid())
-        flags.add(AstLambdaType::FlagsE::Closure);
-    else if (flags.has(AstLambdaType::FlagsE::Mtd))
+        flags.add(AstLambdaType::Closure);
+    else if (flags.has(AstLambdaType::Mtd))
     {
         raiseError(DiagnosticId::parser_err_mtd_missing_capture, tokStart);
-        flags.add(AstLambdaType::FlagsE::Closure);
+        flags.add(AstLambdaType::Closure);
     }
 
     const SpanRef params = parseCompoundContent(AstNodeId::LambdaType, TokenId::SymLeftParen);
@@ -114,7 +114,7 @@ AstNodeRef Parser::parseLambdaType()
 
     // Can raise errors
     if (consumeIf(TokenId::KwdThrow).isValid())
-        flags.add(AstLambdaType::FlagsE::Throw);
+        flags.add(AstLambdaType::Throw);
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaType>();
     nodePtr->addParserFlag(flags);
@@ -125,11 +125,11 @@ AstNodeRef Parser::parseLambdaType()
 
 AstNodeRef Parser::parseLambdaExpression()
 {
-    AstLambdaType::Flags flags    = AstLambdaType::FlagsE::Zero;
+    AstLambdaType::Flags flags    = AstLambdaType::Zero;
     const auto           tokStart = ref();
 
     if (consumeIf(TokenId::KwdMtd).isValid())
-        flags.add(AstLambdaType::FlagsE::Mtd);
+        flags.add(AstLambdaType::Mtd);
     else
         consumeAssert(TokenId::KwdFunc);
 
@@ -137,17 +137,17 @@ AstNodeRef Parser::parseLambdaExpression()
     SpanRef captureArgs = SpanRef::invalid();
     if (is(TokenId::SymVertical))
     {
-        flags.add(AstLambdaType::FlagsE::Closure);
+        flags.add(AstLambdaType::Closure);
         captureArgs = parseCompoundContent(AstNodeId::ClosureExpr, TokenId::SymVertical);
     }
     else if (consumeIf(TokenId::SymVerticalVertical).isValid())
     {
-        flags.add(AstLambdaType::FlagsE::Closure);
+        flags.add(AstLambdaType::Closure);
     }
-    else if (flags.has(AstLambdaType::FlagsE::Mtd))
+    else if (flags.has(AstLambdaType::Mtd))
     {
         raiseError(DiagnosticId::parser_err_mtd_missing_capture, tokStart);
-        flags.add(AstLambdaType::FlagsE::Closure);
+        flags.add(AstLambdaType::Closure);
     }
 
     // Arguments
@@ -160,7 +160,7 @@ AstNodeRef Parser::parseLambdaExpression()
 
     // Can raise errors
     if (consumeIf(TokenId::KwdThrow).isValid())
-        flags.add(AstLambdaType::FlagsE::Throw);
+        flags.add(AstLambdaType::Throw);
 
     // Body
     AstNodeRef body = AstNodeRef::invalid();
@@ -172,7 +172,7 @@ AstNodeRef Parser::parseLambdaExpression()
         body = parseExpression();
     }
 
-    if (flags.has(AstLambdaType::FlagsE::Closure))
+    if (flags.has(AstLambdaType::Closure))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ClosureExpr>();
         nodePtr->addParserFlag(flags);
@@ -193,9 +193,9 @@ AstNodeRef Parser::parseLambdaExpression()
 
 AstNodeRef Parser::parseFunctionDecl()
 {
-    AstLambdaType::Flags flags = AstLambdaType::FlagsE::Zero;
+    AstLambdaType::Flags flags = AstLambdaType::Zero;
     if (consumeIf(TokenId::KwdMtd).isValid())
-        flags.add(AstLambdaType::FlagsE::Mtd);
+        flags.add(AstLambdaType::Mtd);
     else
         consumeAssert(TokenId::KwdFunc);
 
@@ -210,9 +210,9 @@ AstNodeRef Parser::parseFunctionDecl()
 
     // Modifiers
     if (consumeIf(TokenId::KwdConst).isValid())
-        flags.add(AstLambdaType::FlagsE::Const);
+        flags.add(AstLambdaType::Const);
     if (consumeIf(TokenId::KwdImpl).isValid())
-        flags.add(AstLambdaType::FlagsE::Impl);
+        flags.add(AstLambdaType::Impl);
 
     // Name
     if (Token::isIntrinsic(id()))
@@ -231,7 +231,7 @@ AstNodeRef Parser::parseFunctionDecl()
 
     // Throw
     if (consumeIf(TokenId::KwdThrow).isValid())
-        flags.add(AstLambdaType::FlagsE::Throw);
+        flags.add(AstLambdaType::Throw);
 
     // Constraints
     SmallVector<AstNodeRef> whereRefs;
@@ -281,7 +281,7 @@ AstNodeRef Parser::parseFunctionParam()
     if (consumeIf(TokenId::KwdConst).isValid())
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionParamMe>();
-        nodePtr->addParserFlag(AstFunctionParamMe::FlagsE::Const);
+        nodePtr->addParserFlag(AstFunctionParamMe::Const);
         expectAndConsume(TokenId::KwdMe, DiagnosticId::parser_err_expected_token_before);
         return nodeRef;
     }

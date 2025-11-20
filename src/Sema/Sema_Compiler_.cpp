@@ -5,7 +5,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstVisitStepResult AstCompilerIf::semaPreChild(SemaJob& job, AstNodeRef& childRef) const
+AstVisitStepResult AstCompilerIf::semaPreChild(SemaJob& job, const AstNodeRef& childRef) const
 {
     if (childRef == nodeCondition)
         return AstVisitStepResult::Continue;

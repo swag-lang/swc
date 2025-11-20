@@ -1,4 +1,3 @@
-// ReSharper disable CppClangTidyClangDiagnosticMissingDesignatedFieldInitializers
 #include "pch.h"
 #include "Sema/TypeManager.h"
 

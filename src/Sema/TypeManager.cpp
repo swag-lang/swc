@@ -23,7 +23,7 @@ TypeInfoRef TypeManager::registerType(const TypeInfo& typeInfo)
     if (it != map_.end())
         return it->second;
 
-    TypeInfoRef ref{store_.push_back<TypeInfo>(typeInfo)};
+    TypeInfoRef ref{store_.push_back(typeInfo)};
     map_.emplace(typeInfo, ref);
     return ref;
 }

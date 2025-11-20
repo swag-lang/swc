@@ -7,7 +7,9 @@ class CompilerInstance;
 
 class ConstantManager
 {
-    Store<> store_;
+    Store<>                                                           store_;
+    std::unordered_map<ConstantValue, ConstantRef, ConstantValueHash> map_;
+    mutable std::shared_mutex                                         mutex_;
 
     ConstantRef boolTrue_  = ConstantRef::invalid();
     ConstantRef boolFalse_ = ConstantRef::invalid();

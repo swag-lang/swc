@@ -12,12 +12,26 @@ void ConstantManager::setup(TaskContext& ctx)
 
 ConstantRef ConstantManager::addConstant(const ConstantValue& value)
 {
-    const ConstantRef ref{store_.push_back(value)};
+    {
+        std::shared_lock lk(mutex_);
+        const auto       it = map_.find(value);
+        if (it != map_.end())
+            return it->second;
+    }
+
+    std::unique_lock lk(mutex_);
+    const auto       it = map_.find(value);
+    if (it != map_.end())
+        return it->second;
+
+    ConstantRef ref{store_.push_back(value)};
+    map_.emplace(value, ref);
     return ref;
 }
 
 const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
 {
+    std::shared_lock lk(mutex_);
     SWC_ASSERT(constantRef.isValid());
     return *store_.ptr<ConstantValue>(constantRef.get());
 }

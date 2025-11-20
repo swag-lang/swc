@@ -19,12 +19,12 @@ TypeInfoRef TypeManager::registerType(const TypeInfo& typeInfo)
     }
 
     std::unique_lock lk(mutex_);
-    const auto       it = map_.find(typeInfo);
-    if (it != map_.end())
+    const auto [it, inserted] = map_.try_emplace(typeInfo, TypeInfoRef{});
+    if (!inserted)
         return it->second;
 
-    TypeInfoRef ref{store_.push_back(typeInfo)};
-    map_.emplace(typeInfo, ref);
+    const TypeInfoRef ref{store_.push_back(typeInfo)};
+    it->second = ref;
     return ref;
 }
 

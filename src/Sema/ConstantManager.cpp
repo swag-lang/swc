@@ -20,12 +20,12 @@ ConstantRef ConstantManager::addConstant(const ConstantValue& value)
     }
 
     std::unique_lock lk(mutex_);
-    const auto       it = map_.find(value);
-    if (it != map_.end())
+    const auto [it, inserted] = map_.try_emplace(value, ConstantRef{});
+    if (!inserted)
         return it->second;
 
-    ConstantRef ref{store_.push_back(value)};
-    map_.emplace(value, ref);
+    const ConstantRef ref{store_.push_back(value)};
+    it->second = ref;
     return ref;
 }
 

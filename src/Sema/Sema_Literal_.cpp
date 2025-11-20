@@ -9,16 +9,15 @@ SWC_BEGIN_NAMESPACE()
 
 AstVisitStepResult AstBoolLiteral::semaPreNode(SemaJob& job)
 {
-    const auto& tok = job.visit().currentLex().token(tokValue);
-    
+    const auto& tok = job.token(tokValue);
     if (tok.is(TokenId::KwdTrue))
         setConstant(job.constMgr().boolTrue());
     else if (tok.is(TokenId::KwdFalse))
         setConstant(job.constMgr().boolFalse());
     else
         SWC_UNREACHABLE();
-    
-    return AstVisitStepResult::Continue;
+
+    return AstVisitStepResult::SkipChildren;
 }
 
 SWC_END_NAMESPACE()

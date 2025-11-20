@@ -23,6 +23,8 @@ struct TypeInfo
     bool operator==(const TypeInfo& other) const noexcept;
 
     bool isBool() const noexcept { return kind == TypeInfoKind::Bool; }
+
+    static TypeInfo makeBool();
 };
 
 struct TypeInfoHash

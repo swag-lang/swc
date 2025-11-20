@@ -40,4 +40,11 @@ size_t TypeInfoHash::operator()(const TypeInfo& t) const noexcept
     }
 }
 
+TypeInfo TypeInfo::makeBool()
+{
+    TypeInfo ti{};
+    ti.kind = TypeInfoKind::Bool;
+    return ti;
+}
+
 SWC_END_NAMESPACE()

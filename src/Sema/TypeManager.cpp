@@ -4,9 +4,9 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void TypeManager::setup(TaskContext& ctx)
+void TypeManager::setup(TaskContext&)
 {
-    typeBool_ = registerType(TypeInfo{.kind = TypeInfoKind::Bool});
+    typeBool_ = registerType(TypeInfo::makeBool());
 }
 
 TypeInfoRef TypeManager::registerType(const TypeInfo& typeInfo)

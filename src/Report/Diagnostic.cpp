@@ -95,8 +95,8 @@ DiagnosticSeverity Diagnostic::diagIdSeverity(DiagnosticId id)
     return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].severity;
 }
 
-Diagnostic::Diagnostic(const SourceFile* fileOwner) :
-    fileOwner_(fileOwner)
+Diagnostic::Diagnostic(FileRef file) :
+    fileOwner_(file)
 {
 }
 
@@ -157,7 +157,7 @@ void Diagnostic::addArgument(std::string_view name, std::string_view arg, bool q
     arguments_.emplace_back(Argument{.name = name, .quoted = quoted, .val = std::move(sanitized)});
 }
 
-Diagnostic Diagnostic::get(DiagnosticId id, const SourceFile* file)
+Diagnostic Diagnostic::get(DiagnosticId id, FileRef file)
 {
     Diagnostic diag(file);
     diag.addElement(id);
@@ -178,9 +178,10 @@ void Diagnostic::report(const TaskContext& ctx) const
     bool              dismiss = false;
 
     // Check that diagnostic was not awaited
-    if (fileOwner_)
+    if (fileOwner_.isValid())
     {
-        dismiss = fileOwner_->unitTest().verifyExpected(ctx, *this);
+        const auto file = ctx.compiler().file(fileOwner_);
+        dismiss         = file->unitTest().verifyExpected(ctx, *this);
     }
 
     // Count only errors and warnings not dismissed during tests

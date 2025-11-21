@@ -114,7 +114,7 @@ FileRef CompilerInstance::addFile(fs::path path, FileFlags flags)
 {
     path               = fs::absolute(path);
     const auto fileRef = static_cast<FileRef>(static_cast<uint32_t>(files_.size()));
-    files_.emplace_back(std::make_unique<SourceFile>(std::move(path), flags));
+    files_.emplace_back(std::make_unique<SourceFile>(fileRef, std::move(path), flags));
     return fileRef;
 }
 

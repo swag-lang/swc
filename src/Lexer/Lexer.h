@@ -32,7 +32,7 @@ struct LexIdentifier
 
 class LexerOutput
 {
-    const SourceFile*          file_ = nullptr;
+    FileRef                    file_ = FileRef::invalid();
     std::string_view           sourceView_;
     std::vector<Token>         tokens_;
     std::vector<uint32_t>      lines_;
@@ -42,7 +42,7 @@ class LexerOutput
     bool                       mustSkip_ = false;
 
 public:
-    const SourceFile*                 file() const { return file_; }
+    FileRef                           file() const { return file_; }
     void                              setFile(const SourceFile* file);
     std::string_view                  sourceView() const { return sourceView_; }
     const std::vector<LexTrivia>&     trivia() const { return trivia_; }

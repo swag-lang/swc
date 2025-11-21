@@ -11,7 +11,8 @@ SWC_BEGIN_NAMESPACE()
 
 SourceFile::~SourceFile() = default;
 
-SourceFile::SourceFile(fs::path path, FileFlags flags) :
+SourceFile::SourceFile(FileRef fileRef, fs::path path, FileFlags flags) :
+    fileRef_(fileRef),
     path_(std::move(path)),
     flags_(flags)
 {
@@ -36,7 +37,7 @@ Result SourceFile::loadContent(const TaskContext& ctx)
 
     if (!file)
     {
-        auto diag = Diagnostic::get(DiagnosticId::io_err_open_file, this);
+        auto diag = Diagnostic::get(DiagnosticId::io_err_open_file, fileRef());
         diag.addArgument(Diagnostic::ARG_PATH, path_.string());
         diag.addArgument(Diagnostic::ARG_BECAUSE, Os::systemError());
         diag.last().setLexerOutput(&ast_->lexOut());
@@ -51,7 +52,7 @@ Result SourceFile::loadContent(const TaskContext& ctx)
 
     if (!file.read(reinterpret_cast<char*>(content_.data()), fileSize))
     {
-        auto diag = Diagnostic::get(DiagnosticId::io_err_read_file, this);
+        auto diag = Diagnostic::get(DiagnosticId::io_err_read_file, fileRef());
         diag.addArgument(Diagnostic::ARG_PATH, path_.string());
         diag.addArgument(Diagnostic::ARG_BECAUSE, Os::systemError());
         diag.last().setLexerOutput(&ast_->lexOut());

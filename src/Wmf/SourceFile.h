@@ -20,6 +20,7 @@ using FileFlags = EnumFlags<FileFlagsE>;
 class SourceFile
 {
     static constexpr int    TRAILING_0 = 4; // Number of '\0' forced at the end of the file
+    FileRef                 fileRef_   = FileRef::invalid();
     fs::path                path_;
     std::vector<char8_t>    content_;
     FileFlags               flags_ = FileFlagsE::Zero;
@@ -27,9 +28,10 @@ class SourceFile
     std::unique_ptr<Verify> unitTest_;
 
 public:
-    explicit SourceFile(fs::path path, FileFlags flags);
+    explicit SourceFile(FileRef fileRef, fs::path path, FileFlags flags);
     ~SourceFile();
 
+    FileRef                     fileRef() const { return fileRef_; }
     fs::path                    path() const { return path_; }
     const std::vector<char8_t>& content() const { return content_; }
     std::string_view            sourceView() const { return std::string_view(reinterpret_cast<std::string_view::const_pointer>(content_.data()), size()); }

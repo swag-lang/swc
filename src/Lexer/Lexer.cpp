@@ -1421,7 +1421,7 @@ std::string_view LexerOutput::codeView(uint32_t offset, uint32_t len) const
 
 void LexerOutput::setFile(const SourceFile* file)
 {
-    file_       = file;
+    file_       = file->fileRef();
     sourceView_ = file->sourceView();
 }
 

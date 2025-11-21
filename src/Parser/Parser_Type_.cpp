@@ -11,14 +11,14 @@ AstNodeRef Parser::parseIdentifierType()
     if (is(TokenId::SymLeftCurly) && tok().hasNotFlag(TokenFlagsE::BlankBefore))
         return parseInitializerList(identifier);
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamedType>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamedType>(ref());
     nodePtr->nodeIdent      = identifier;
     return nodeRef;
 }
 
 AstNodeRef Parser::parseRetValType()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::RetValType>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::RetValType>(ref());
     consume();
 
     if (is(TokenId::SymLeftCurly) && tok().hasNotFlag(TokenFlagsE::BlankBefore))
@@ -32,7 +32,7 @@ AstNodeRef Parser::parseSingleType()
     // Builtin
     if (Token::isType(tok().id))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::BuiltinType>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::BuiltinType>(ref());
         nodePtr->tokType        = consume();
         return nodeRef;
     }
@@ -45,20 +45,20 @@ AstNodeRef Parser::parseSingleType()
         case TokenId::KwdStruct:
         {
             consume();
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousStructDecl>();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousStructDecl>(ref());
             nodePtr->nodeBody       = parseAggregateBody();
             return nodeRef;
         }
         case TokenId::KwdUnion:
         {
             consume();
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousUnionDecl>();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousUnionDecl>(ref());
             nodePtr->nodeBody       = parseAggregateBody();
             return nodeRef;
         }
         case TokenId::SymLeftCurly:
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousStructDecl>();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousStructDecl>(ref());
             nodePtr->nodeBody       = parseAggregateBody();
             return nodeRef;
         }
@@ -84,8 +84,8 @@ AstNodeRef Parser::parseSubType()
     // Modifiers
     if (isAny(TokenId::KwdConst, TokenId::ModifierNullable))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::QualifiedType>();
-        nodePtr->tokQual        = consume();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::QualifiedType>(ref());
+        consume();
         nodePtr->nodeType       = parseType();
         return nodeRef;
     }
@@ -96,7 +96,7 @@ AstNodeRef Parser::parseSubType()
         const auto child = parseType();
         if (child.isInvalid())
             return AstNodeRef::invalid();
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LRefType>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LRefType>(ref());
         nodePtr->nodeType       = child;
         return nodeRef;
     }
@@ -107,7 +107,7 @@ AstNodeRef Parser::parseSubType()
         const auto child = parseType();
         if (child.isInvalid())
             return AstNodeRef::invalid();
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::RRefType>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::RRefType>(ref());
         nodePtr->nodeType       = child;
         return nodeRef;
     }
@@ -118,7 +118,7 @@ AstNodeRef Parser::parseSubType()
         const auto child = parseType();
         if (child.isInvalid())
             return AstNodeRef::invalid();
-        auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::PointerType>();
+        auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::PointerType>(ref());
         nodePtr->nodePointeeType = child;
         return nodeRef;
     }
@@ -135,7 +135,7 @@ AstNodeRef Parser::parseSubType()
             const auto child = parseType();
             if (child.isInvalid())
                 return AstNodeRef::invalid();
-            auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::BlockPointerType>();
+            auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::BlockPointerType>(ref());
             nodePtr->nodePointeeType = child;
             return nodeRef;
         }
@@ -148,7 +148,7 @@ AstNodeRef Parser::parseSubType()
             const auto child = parseType();
             if (child.isInvalid())
                 return AstNodeRef::invalid();
-            auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::SliceType>();
+            auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::SliceType>(ref());
             nodePtr->nodePointeeType = child;
             return nodeRef;
         }
@@ -161,7 +161,7 @@ AstNodeRef Parser::parseSubType()
             const auto child = parseType();
             if (child.isInvalid())
                 return AstNodeRef::invalid();
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ArrayType>();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ArrayType>(ref());
             nodePtr->spanDimensions.setInvalid();
             nodePtr->nodePointeeType = child;
             return nodeRef;
@@ -201,7 +201,7 @@ AstNodeRef Parser::parseSubType()
         if (child.isInvalid())
             return AstNodeRef::invalid();
 
-        auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::ArrayType>();
+        auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::ArrayType>(ref());
         nodePtr->spanDimensions  = ast_->store().push_span(dimensions.span());
         nodePtr->nodePointeeType = child;
         return nodeRef;
@@ -219,7 +219,7 @@ AstNodeRef Parser::parseType()
     // '#code'
     if (consumeIf(TokenId::CompilerCode).isValid())
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CodeType>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CodeType>(ref());
         nodePtr->nodeType       = parseSubType();
         return nodeRef;
     }
@@ -227,7 +227,7 @@ AstNodeRef Parser::parseType()
     // '...'
     if (consumeIf(TokenId::SymDotDotDot).isValid())
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VariadicType>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VariadicType>(ref());
         return nodeRef;
     }
 
@@ -236,7 +236,7 @@ AstNodeRef Parser::parseType()
     // 'type...'
     if (consumeIf(TokenId::SymDotDotDot).isValid())
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TypedVariadicType>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TypedVariadicType>(ref());
         nodePtr->nodeType       = nodeSubType;
         return nodeRef;
     }

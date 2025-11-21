@@ -8,6 +8,7 @@ AstNodeRef Parser::parseImpl()
     if (nextIs(TokenId::KwdEnum))
         return parseImplEnum();
 
+    const auto tokImpl = ref();
     consume();
 
     // Name
@@ -26,13 +27,13 @@ AstNodeRef Parser::parseImpl()
 
     if (nodeFor.isInvalid())
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Impl>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Impl>(tokImpl);
         nodePtr->nodeIdent      = nodeIdent;
         nodePtr->spanChildren   = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ImplFor>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ImplFor>(tokImpl);
     nodePtr->nodeIdent      = nodeIdent;
     nodePtr->nodeFor        = nodeFor;
     nodePtr->spanChildren   = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
@@ -41,7 +42,7 @@ AstNodeRef Parser::parseImpl()
 
 AstNodeRef Parser::parseAggregateAccessModifier()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AccessModifier>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AccessModifier>(ref());
     nodePtr->tokAccess      = consume();
     nodePtr->nodeWhat       = parseAggregateValue();
     return nodeRef;
@@ -99,7 +100,7 @@ AstNodeRef Parser::parseAggregateValue()
 
         case TokenId::KwdUsing:
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingMemberDecl>();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingMemberDecl>(ref());
             consume();
             nodePtr->nodeVar = parseVarDecl();
             return nodeRef;
@@ -123,7 +124,7 @@ AstNodeRef Parser::parseStructDecl()
 template<AstNodeId ID>
 AstNodeRef Parser::parseAggregateDecl()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<ID>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<ID>(ref());
     consume();
 
     // Generic types
@@ -203,7 +204,7 @@ AstNodeRef Parser::parseInterfaceValue()
 
 AstNodeRef Parser::parseInterfaceDecl()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InterfaceDecl>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InterfaceDecl>(ref());
     consume();
     nodePtr->tokName  = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
     nodePtr->nodeBody = parseCompound<AstNodeId::InterfaceBody>(TokenId::SymLeftCurly);

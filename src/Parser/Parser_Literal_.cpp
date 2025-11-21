@@ -11,15 +11,15 @@ AstNodeRef Parser::parseLiteral()
         case TokenId::NumberBinary:
         case TokenId::NumberHexadecimal:
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntegerLiteral>();
-            nodePtr->tokValue       = consume();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntegerLiteral>(ref());
+            consume();
             return nodeRef;
         }
 
         case TokenId::NumberFloat:
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FloatLiteral>();
-            nodePtr->tokValue       = consume();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FloatLiteral>(ref());
+            consume();
             return nodeRef;
         }
 
@@ -27,30 +27,30 @@ AstNodeRef Parser::parseLiteral()
         case TokenId::StringMultiLine:
         case TokenId::StringRaw:
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StringLiteral>();
-            nodePtr->tokValue       = consume();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StringLiteral>(ref());
+            consume();
             return nodeRef;
         }
 
         case TokenId::Character:
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CharacterLiteral>();
-            nodePtr->tokValue       = consume();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CharacterLiteral>(ref());
+            consume();
             return nodeRef;
         }
 
         case TokenId::KwdTrue:
         case TokenId::KwdFalse:
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::BoolLiteral>();
-            nodePtr->tokValue       = consume();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::BoolLiteral>(ref());
+            consume();
             return nodeRef;
         }
 
         case TokenId::KwdNull:
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NullLiteral>();
-            nodePtr->tokValue       = consume();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NullLiteral>(ref());
+            consume();
             return nodeRef;
         }
 
@@ -71,8 +71,8 @@ AstNodeRef Parser::parseLiteral()
         case TokenId::CompilerScopeName:
         case TokenId::CompilerCurLocation:
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerLiteral>();
-            nodePtr->tokValue       = consume();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerLiteral>(ref());
+            consume();
             return nodeRef;
         }
 
@@ -92,7 +92,7 @@ AstNodeRef Parser::parseLiteralExpression()
     if (consumeIf(TokenId::SymQuote).isInvalid())
         return literal;
 
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SuffixLiteral>();
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SuffixLiteral>(ref());
     nodePtr->nodeLiteral          = literal;
     nodePtr->nodeSuffix.setInvalid();
 
@@ -135,14 +135,14 @@ AstNodeRef Parser::parseLiteralExpression()
 
 AstNodeRef Parser::parseLiteralArray()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ArrayLiteral>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ArrayLiteral>(ref());
     nodePtr->spanChildren   = parseCompoundContent(AstNodeId::UnnamedArgumentList, TokenId::SymLeftBracket);
     return nodeRef;
 }
 
 AstNodeRef Parser::parseLiteralStruct()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructLiteral>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructLiteral>(ref());
     nodePtr->spanChildren   = parseCompoundContent(AstNodeId::NamedArgumentList, TokenId::SymLeftCurly);
     return nodeRef;
 }

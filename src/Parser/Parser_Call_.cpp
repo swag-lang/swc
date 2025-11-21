@@ -6,8 +6,8 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseCompilerCallUnary()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InternalCallUnary>();
-    nodePtr->tokName        = consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InternalCallUnary>(ref());
+    consume();
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
@@ -19,8 +19,8 @@ AstNodeRef Parser::parseCompilerCallUnary()
 
 AstNodeRef Parser::parseIntrinsicCallZero()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InternalCallZero>();
-    nodePtr->tokName        = consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InternalCallZero>(ref());
+    consume();
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
@@ -31,8 +31,8 @@ AstNodeRef Parser::parseIntrinsicCallZero()
 
 AstNodeRef Parser::parseIntrinsicCallUnary()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InternalCallUnary>();
-    nodePtr->tokName        = consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InternalCallUnary>(ref());
+    consume();
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
@@ -44,8 +44,8 @@ AstNodeRef Parser::parseIntrinsicCallUnary()
 
 AstNodeRef Parser::parseIntrinsicCallBinary()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InternalCallBinary>();
-    nodePtr->tokName        = consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InternalCallBinary>(ref());
+    consume();
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
@@ -62,8 +62,8 @@ AstNodeRef Parser::parseIntrinsicCallBinary()
 
 AstNodeRef Parser::parseIntrinsicCallTernary()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InternalCallTernary>();
-    nodePtr->tokName        = consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InternalCallTernary>(ref());
+    consume();
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
@@ -84,8 +84,8 @@ AstNodeRef Parser::parseIntrinsicCallTernary()
 
 AstNodeRef Parser::parseIntrinsicCallVariadic()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InternalCallVariadic>();
-    nodePtr->tokName        = consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InternalCallVariadic>(ref());
+    consume();
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
@@ -107,7 +107,7 @@ AstNodeRef Parser::parseIntrinsicCallVariadic()
 
 AstNodeRef Parser::parseAttributeValue()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Attribute>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Attribute>(ref());
     nodePtr->nodeIdent      = parseQualifiedIdentifier();
     if (is(TokenId::SymLeftParen))
         nodePtr->nodeArgs = parseCompound<AstNodeId::NamedArgumentList>(TokenId::SymLeftParen);

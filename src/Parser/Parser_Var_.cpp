@@ -43,15 +43,13 @@ AstNodeRef Parser::parseGenericParam()
 
     if (isConstant)
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::GenericParamValue>();
-        nodePtr->tokName        = tknName;
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::GenericParamValue>(tknName);
         nodePtr->nodeAssign     = nodeAssign;
         nodePtr->nodeType       = nodeType;
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::GenericParamType>();
-    nodePtr->tokName        = tknName;
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::GenericParamType>(tknName);
     nodePtr->nodeAssign     = nodeAssign;
     return nodeRef;
 }
@@ -99,7 +97,7 @@ AstNodeRef Parser::parseVarDecompositionDecl()
     expectAndConsumeClosing(TokenId::SymRightParen, openRef, {TokenId::SymEqual});
     expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_before);
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDecompositionDecl>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDecompositionDecl>(ref());
     nodePtr->addParserFlag(flags);
     nodePtr->nodeInit  = parseInitializerExpression();
     nodePtr->spanNames = ast_->store().push_span(tokNames.span());
@@ -152,7 +150,7 @@ AstNodeRef Parser::parseVarDecl()
 
         if (tokNames.size() == 1)
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDecl>();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDecl>(ref());
             nodePtr->addParserFlag(flags);
             nodePtr->tokName  = tokNames[0];
             nodePtr->nodeType = nodeType;
@@ -161,7 +159,7 @@ AstNodeRef Parser::parseVarDecl()
         }
         else
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarNameListDecl>();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarNameListDecl>(ref());
             nodePtr->addParserFlag(flags);
             nodePtr->spanNames = ast_->store().push_span(tokNames.span());
             nodePtr->nodeType  = nodeType;
@@ -179,7 +177,7 @@ AstNodeRef Parser::parseVarDecl()
         return vars.front();
 
     // Multiple variables
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDeclList>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDeclList>(ref());
     nodePtr->spanChildren   = ast_->store().push_span(vars.span());
     return nodeRef;
 }

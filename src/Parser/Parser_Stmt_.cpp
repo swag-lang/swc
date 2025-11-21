@@ -1,13 +1,12 @@
 #include "pch.h"
 #include "Parser/Parser.h"
 #include "Report/Diagnostic.h"
-#include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseTopLevelCall()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CallExpr>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CallExpr>(ref());
     nodePtr->nodeExpr       = parseQualifiedIdentifier();
     nodePtr->spanChildren   = parseCompoundContent(AstNodeId::NamedArgumentList, TokenId::SymLeftParen);
     return nodeRef;
@@ -15,7 +14,7 @@ AstNodeRef Parser::parseTopLevelCall()
 
 AstNodeRef Parser::parseGlobalAccessModifier()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AccessModifier>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AccessModifier>(ref());
     nodePtr->tokAccess      = consume();
     nodePtr->nodeWhat       = parseTopLevelStmt();
     return nodeRef;
@@ -25,13 +24,13 @@ AstNodeRef Parser::parseUsing()
 {
     if (nextIs(TokenId::KwdNamespace))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingNamespaceStmt>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingNamespaceStmt>(ref());
         consume();
         nodePtr->nodeName = parseNamespace();
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingDecl>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingDecl>(ref());
     consume();
 
     SmallVector<AstNodeRef> nodeChildren;
@@ -53,13 +52,13 @@ AstNodeRef Parser::parseConstraint()
 {
     if (nextIs(TokenId::SymLeftCurly))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ConstraintBlock>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ConstraintBlock>(ref());
         nodePtr->tokConstraint  = consume();
         nodePtr->spanChildren   = parseCompoundContent(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ConstraintExpr>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ConstraintExpr>(ref());
     nodePtr->tokConstraint  = consume();
     nodePtr->nodeExpr       = parseExpression();
     return nodeRef;
@@ -67,7 +66,7 @@ AstNodeRef Parser::parseConstraint()
 
 AstNodeRef Parser::parseAlias()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AliasStmt>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AliasStmt>(ref());
     consume();
     nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
     expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_fam);
@@ -84,7 +83,7 @@ AstNodeRef Parser::parseAlias()
 
 AstNodeRef Parser::parseReturn()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ReturnStmt>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ReturnStmt>(ref());
     consume();
     if (is(TokenId::SymSemiColon) || tok().startsLine())
         nodePtr->nodeExpr.setInvalid();
@@ -96,7 +95,7 @@ AstNodeRef Parser::parseReturn()
 
 AstNodeRef Parser::parseUnreachable()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UnreachableStmt>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UnreachableStmt>(ref());
     consume();
 
     return nodeRef;
@@ -104,7 +103,7 @@ AstNodeRef Parser::parseUnreachable()
 
 AstNodeRef Parser::parseContinue()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ContinueStmt>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ContinueStmt>(ref());
     consume();
 
     return nodeRef;
@@ -114,7 +113,7 @@ AstNodeRef Parser::parseBreak()
 {
     if (nextIs(TokenId::KwdTo))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ScopedBreakStmt>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ScopedBreakStmt>(ref());
         consumeAssert(TokenId::KwdBreak);
         consumeAssert(TokenId::KwdTo);
         nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
@@ -122,7 +121,7 @@ AstNodeRef Parser::parseBreak()
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::BreakStmt>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::BreakStmt>(ref());
     consume();
 
     return nodeRef;
@@ -130,7 +129,7 @@ AstNodeRef Parser::parseBreak()
 
 AstNodeRef Parser::parseFallThrough()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FallThroughStmt>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FallThroughStmt>(ref());
     consume();
 
     return nodeRef;
@@ -138,7 +137,7 @@ AstNodeRef Parser::parseFallThrough()
 
 AstNodeRef Parser::parseDefer()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::DeferStmt>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::DeferStmt>(ref());
     consume();
     nodePtr->modifierFlags = parseModifiers();
     nodePtr->nodeBody      = parseEmbeddedStmt();
@@ -150,7 +149,7 @@ AstNodeRef Parser::parseIf()
 {
     if (nextIsAny(TokenId::KwdVar, TokenId::KwdLet, TokenId::KwdConst))
     {
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IfVarDecl>();
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IfVarDecl>(ref());
         consume();
 
         // Parse the variable declaration and the constraint
@@ -171,7 +170,7 @@ AstNodeRef Parser::parseIf()
         return nodeRef;
     }
 
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IfStmt>();
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IfStmt>(ref());
     consume();
 
     // Parse the condition expression
@@ -194,14 +193,14 @@ AstNodeRef Parser::parseWith()
 {
     if (nextIsAny(TokenId::KwdVar, TokenId::KwdLet))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::WithVarDecl>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::WithVarDecl>(ref());
         consume();
         nodePtr->nodeVar  = parseVarDecl();
         nodePtr->nodeBody = parseEmbeddedStmt();
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::WithStmt>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::WithStmt>(ref());
     consume();
     nodePtr->nodeExpr = parseAssignStmt();
     nodePtr->nodeBody = parseEmbeddedStmt();
@@ -210,7 +209,7 @@ AstNodeRef Parser::parseWith()
 
 AstNodeRef Parser::parseIntrinsicInit()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicInit>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicInit>(ref());
     consume();
 
     const auto openRef = ref();
@@ -232,7 +231,7 @@ AstNodeRef Parser::parseIntrinsicInit()
 
 AstNodeRef Parser::parseIntrinsicDrop()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicDrop>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicDrop>(ref());
     consume();
 
     const auto openRef = ref();
@@ -249,7 +248,7 @@ AstNodeRef Parser::parseIntrinsicDrop()
 
 AstNodeRef Parser::parseIntrinsicPostCopy()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicPostCopy>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicPostCopy>(ref());
     consume();
 
     const auto openRef = ref();
@@ -266,7 +265,7 @@ AstNodeRef Parser::parseIntrinsicPostCopy()
 
 AstNodeRef Parser::parseIntrinsicPostMove()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicPostMove>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicPostMove>(ref());
     consume();
 
     const auto openRef = ref();
@@ -283,7 +282,7 @@ AstNodeRef Parser::parseIntrinsicPostMove()
 
 AstNodeRef Parser::parseWhile()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::WhileStmt>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::WhileStmt>(ref());
     consume();
     nodePtr->nodeExpr = parseExpression();
     nodePtr->nodeBody = parseDoCurlyBlock();
@@ -292,7 +291,7 @@ AstNodeRef Parser::parseWhile()
 
 AstNodeRef Parser::parseForCpp()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForCStyleStmt>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForCStyleStmt>(ref());
     consumeAssert(TokenId::KwdFor);
 
     nodePtr->nodeVarDecl = parseVarDecl();
@@ -308,7 +307,7 @@ AstNodeRef Parser::parseForCpp()
 
 AstNodeRef Parser::parseForInfinite()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InfiniteLoopStmt>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InfiniteLoopStmt>(ref());
     consumeAssert(TokenId::KwdFor);
     nodePtr->nodeBody = parseDoCurlyBlock();
     return nodeRef;
@@ -316,7 +315,7 @@ AstNodeRef Parser::parseForInfinite()
 
 AstNodeRef Parser::parseForLoop()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForStmt>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForStmt>(ref());
     consumeAssert(TokenId::KwdFor);
 
     nodePtr->modifierFlags = parseModifiers();
@@ -353,7 +352,7 @@ AstNodeRef Parser::parseFor()
 
 AstNodeRef Parser::parseForeach()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForeachStmt>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForeachStmt>(ref());
     consumeAssert(TokenId::KwdForeach);
 
     // Specialization
@@ -400,8 +399,8 @@ AstNodeRef Parser::parseForeach()
 
 AstNodeRef Parser::parseTryCatch()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TryCatchStmt>();
-    nodePtr->tokOp          = consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TryCatchStmt>(ref());
+    consume();
     if (is(TokenId::SymLeftCurly))
         nodePtr->nodeBody = parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
     else
@@ -411,7 +410,7 @@ AstNodeRef Parser::parseTryCatch()
 
 AstNodeRef Parser::parseDiscard()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::DiscardExpr>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::DiscardExpr>(ref());
     consumeAssert(TokenId::KwdDiscard);
     nodePtr->nodeExpr = parseExpression();
     return nodeRef;
@@ -419,7 +418,7 @@ AstNodeRef Parser::parseDiscard()
 
 AstNodeRef Parser::parseSwitchCaseDefault()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SwitchCaseStmt>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SwitchCaseStmt>(ref());
     if (consumeIf(TokenId::KwdCase).isValid())
     {
         SmallVector<AstNodeRef> nodeExpressions;
@@ -450,7 +449,7 @@ AstNodeRef Parser::parseSwitchCaseDefault()
 
 AstNodeRef Parser::parseSwitch()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SwitchStmt>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SwitchStmt>(ref());
     consumeAssert(TokenId::KwdSwitch);
 
     if (isNot(TokenId::SymLeftCurly))
@@ -501,7 +500,7 @@ AstNodeRef Parser::parseSwitch()
 
 AstNodeRef Parser::parseFile()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::File>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::File>(ref());
 
     // #global must be first
     SmallVector<AstNodeRef> globals;
@@ -528,7 +527,7 @@ AstNodeRef Parser::parseFile()
 
 AstNodeRef Parser::parseNamespace()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamespaceDecl>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamespaceDecl>(ref());
     consume();
     nodePtr->nodeName = parseQualifiedIdentifier();
     if (nodePtr->nodeName.isInvalid())
@@ -566,7 +565,7 @@ AstNodeRef Parser::parseAssignStmt()
     if (is(TokenId::SymLeftParen))
     {
         const auto openRef            = consume();
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AssignListStmt>();
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AssignListStmt>(ref());
         nodePtr->addParserFlag(AstAssignListStmt::Decomposition);
         if (consumeIf(TokenId::SymQuestion).isValid())
             nodeLeft = AstNodeRef::invalid();
@@ -598,7 +597,7 @@ AstNodeRef Parser::parseAssignStmt()
         // Multi affectations
         if (is(TokenId::SymComma))
         {
-            const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AssignListStmt>();
+            const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AssignListStmt>(ref());
             SmallVector<AstNodeRef> nodeAffects;
             nodeAffects.push_back(nodeLeft);
             while (consumeIf(TokenId::SymComma).isValid())
@@ -625,7 +624,7 @@ AstNodeRef Parser::parseAssignStmt()
               TokenId::SymLowerLowerEqual,
               TokenId::SymGreaterGreaterEqual))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AssignStmt>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AssignStmt>(ref());
         nodePtr->tokOp          = consume();
         nodePtr->nodeLeft       = nodeLeft;
         nodePtr->modifierFlags  = parseModifiers();

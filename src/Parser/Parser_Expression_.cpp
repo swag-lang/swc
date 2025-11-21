@@ -94,11 +94,11 @@ AstNodeRef Parser::parseBinaryExpr()
               TokenId::SymPlusPlus,
               TokenId::SymCircumflex))
     {
-        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::BinaryExpr>();
-        nodePtr->tokOp                  = consume();
-        nodePtr->nodeLeft               = nodeRef;
-        nodePtr->modifierFlags          = parseModifiers();
-        nodePtr->nodeRight              = parseBinaryExpr();
+        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::BinaryExpr>(ref());
+        consume();
+        nodePtr->nodeLeft      = nodeRef;
+        nodePtr->modifierFlags = parseModifiers();
+        nodePtr->nodeRight     = parseBinaryExpr();
         return nodeParen;
     }
 
@@ -114,15 +114,13 @@ AstNodeRef Parser::parseCast()
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
     if (consumeIf(TokenId::SymRightParen).isValid())
     {
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AutoCastExpr>();
-        nodePtr->tokOp                = tknOp;
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AutoCastExpr>(tknOp);
         nodePtr->modifierFlags        = modifierFlags;
         nodePtr->nodeExpr             = parseExpression();
         return nodeRef;
     }
 
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ExplicitCastExpr>();
-    nodePtr->tokOp                = tknOp;
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ExplicitCastExpr>(tknOp);
     nodePtr->modifierFlags        = modifierFlags;
     nodePtr->nodeType             = parseType();
     if (nodePtr->nodeType.isInvalid())
@@ -140,7 +138,7 @@ AstNodeRef Parser::parseExpression()
     if (consumeIf(TokenId::KwdOrElse).isValid())
     {
         const auto nodeExpr2          = parseExpression();
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::BinaryConditionalExpr>();
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::BinaryConditionalExpr>(ref());
         nodePtr->nodeLeft             = nodeExpr1;
         nodePtr->nodeRight            = nodeExpr2;
         return nodeRef;
@@ -152,7 +150,7 @@ AstNodeRef Parser::parseExpression()
         expectAndConsume(TokenId::SymColon, DiagnosticId::parser_err_expected_token_before);
         const auto nodeExpr3 = parseExpression();
 
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ConditionalExpr>();
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ConditionalExpr>(ref());
         nodePtr->nodeCond             = nodeExpr1;
         nodePtr->nodeTrue             = nodeExpr2;
         nodePtr->nodeFalse            = nodeExpr3;
@@ -170,7 +168,7 @@ AstNodeRef Parser::parseRangeExpression()
 
     if (isAny(TokenId::KwdTo, TokenId::KwdUntil))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::RangeExpr>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::RangeExpr>(ref());
         if (is(TokenId::KwdTo))
             nodePtr->addParserFlag(AstRangeExpr::Inclusive);
         consume();
@@ -215,8 +213,8 @@ AstNodeRef Parser::parseIdentifier()
         case TokenId::CompilerUniq8:
         case TokenId::CompilerUniq9:
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>();
-            nodePtr->tokName        = consume();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>(ref());
+            consume();
             return nodeRef;
         }
 
@@ -233,28 +231,26 @@ AstNodeRef Parser::parseIdentifier()
         consume();
         if (is(TokenId::SymLeftParen))
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IdentifierSuffixList>();
-            nodePtr->tokName        = tokName;
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IdentifierSuffixList>(tokName);
             nodePtr->spanChildren   = parseCompoundContent(AstNodeId::IdentifierSuffixList, TokenId::SymLeftParen);
             return nodeRef;
         }
 
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IdentifierSuffix>();
-        nodePtr->tokName        = tokName;
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IdentifierSuffix>(tokName);
         nodePtr->nodeSuffix     = parseIdentifierSuffixValue();
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>();
-    nodePtr->tokName        = tokName;
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>(tokName);
     return nodeRef;
 }
 
 AstNodeRef Parser::parseInitializerExpression()
 {
-    if (consumeIf(TokenId::KwdUndefined).isValid())
+    if (is(TokenId::KwdUndefined))
     {
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UndefinedExpr>();
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UndefinedExpr>(ref());
+        consume();
         return nodeRef;
     }
 
@@ -262,7 +258,7 @@ AstNodeRef Parser::parseInitializerExpression()
     if (modifierFlags == AstModifierFlagsE::Zero)
         return parseExpression();
 
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InitializerExpr>();
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InitializerExpr>(ref());
     nodePtr->modifierFlags        = modifierFlags;
     nodePtr->nodeExpr             = parseExpression();
     return nodeRef;
@@ -270,8 +266,8 @@ AstNodeRef Parser::parseInitializerExpression()
 
 AstNodeRef Parser::parseIntrinsicValue()
 {
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicValue>();
-    nodePtr->tokName              = consume();
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicValue>(ref());
+    consume();
     return nodeRef;
 }
 
@@ -286,8 +282,8 @@ AstNodeRef Parser::parseLogicalExpr()
         if (isAny(TokenId::SymAmpersandAmpersand, TokenId::SymVerticalVertical))
             raiseError(DiagnosticId::parser_err_unexpected_and_or, ref());
 
-        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::LogicalExpr>();
-        nodePtr->tokOp                  = consume();
+        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::LogicalExpr>(ref());
+        consume();
         nodePtr->nodeLeft               = nodeRef;
         nodePtr->nodeRight              = parseLogicalExpr();
         return nodeParen;
@@ -301,8 +297,8 @@ AstNodeRef Parser::parseNamedArg()
     // The name
     if (is(TokenId::Identifier) && nextIs(TokenId::SymColon) && !tok().flags.has(TokenFlagsE::BlankAfter))
     {
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamedArgument>();
-        nodePtr->tokName              = consume();
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamedArgument>(ref());
+        consume();
         consumeAssert(TokenId::SymColon);
         nodePtr->nodeArg = parseExpression();
         return nodeRef;
@@ -314,7 +310,7 @@ AstNodeRef Parser::parseNamedArg()
 
 AstNodeRef Parser::parseParenExpr()
 {
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ParenExpr>();
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ParenExpr>(ref());
     const auto openRef            = ref();
     consumeAssert(TokenId::SymLeftParen);
     nodePtr->nodeExpr = parseExpression();
@@ -336,7 +332,7 @@ AstNodeRef Parser::parsePostFixExpression()
         // Scope resolution
         if (is(TokenId::SymDot) && !tok().flags.has(TokenFlagsE::EolBefore))
         {
-            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::ScopeResolution>();
+            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::ScopeResolution>(ref());
             consume();
             nodePtr->nodeLeft  = nodeRef;
             nodePtr->nodeRight = parsePostFixExpression();
@@ -370,7 +366,7 @@ AstNodeRef Parser::parsePostFixExpression()
     // 'as'
     if (is(TokenId::KwdAs))
     {
-        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::AsCastExpr>();
+        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::AsCastExpr>(ref());
         consume();
         nodePtr->nodeExpr = nodeRef;
         nodePtr->nodeType = parseType();
@@ -380,7 +376,7 @@ AstNodeRef Parser::parsePostFixExpression()
     // 'is'
     if (is(TokenId::KwdIs))
     {
-        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IsTypeExpr>();
+        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IsTypeExpr>(ref());
         consume();
         nodePtr->nodeExpr = nodeRef;
         nodePtr->nodeType = parseType();
@@ -392,7 +388,7 @@ AstNodeRef Parser::parsePostFixExpression()
 
 AstNodeRef Parser::parseScopedIdentifier()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ScopedIdentifier>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ScopedIdentifier>(ref());
     consumeAssert(TokenId::SymDot);
     nodePtr->nodeIdent = parseQualifiedIdentifier();
     return nodeRef;
@@ -634,15 +630,17 @@ AstNodeRef Parser::parseQualifiedIdentifier()
         return AstNodeRef::invalid();
 
     // Check if there's a scope access operator
-    while (!tok().startsLine() && consumeIf(TokenId::SymDot).isValid())
+    while (!tok().startsLine() && is(TokenId::SymDot))
     {
+        const auto tokDot = consume();
+
         // Parse the right side (another identifier)
         const auto rightNode = parseIdentifier();
         if (rightNode.isInvalid())
             return AstNodeRef::invalid();
 
         // Create a ScopeResolution node with left and right
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ScopeResolution>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ScopeResolution>(tokDot);
         nodePtr->nodeLeft       = leftNode;
         nodePtr->nodeRight      = rightNode;
 
@@ -667,10 +665,10 @@ AstNodeRef Parser::parseRelationalExpr()
               TokenId::SymGreater,
               TokenId::SymLowerEqualGreater))
     {
-        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::RelationalExpr>();
-        nodePtr->tokOp                  = consume();
-        nodePtr->nodeLeft               = nodeRef;
-        nodePtr->nodeRight              = parseRelationalExpr();
+        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::RelationalExpr>(ref());
+        consume();
+        nodePtr->nodeLeft  = nodeRef;
+        nodePtr->nodeRight = parseRelationalExpr();
         return nodeParen;
     }
 
@@ -691,8 +689,8 @@ AstNodeRef Parser::parsePrefixExpr()
         case TokenId::SymTilde:
         case TokenId::SymAmpersand:
         {
-            const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpr>();
-            nodePtr->tokOp                  = consume();
+            const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpr>(ref());
+            consume();
             nodePtr->nodeExpr               = parseExpression();
             return nodeParen;
         }
@@ -704,7 +702,7 @@ AstNodeRef Parser::parsePrefixExpr()
 
 AstNodeRef Parser::parseInitializerList(AstNodeRef nodeWhat)
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructInitializerList>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructInitializerList>(ref());
     nodePtr->nodeWhat       = nodeWhat;
     nodePtr->spanArgs       = parseCompoundContent(AstNodeId::NamedArgumentList, TokenId::SymLeftCurly);
     return nodeRef;
@@ -712,9 +710,9 @@ AstNodeRef Parser::parseInitializerList(AstNodeRef nodeWhat)
 
 AstNodeRef Parser::parseTryCatchAssume()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TryCatchExpr>();
-    nodePtr->tokName        = consume();
-    nodePtr->nodeExpr       = parseExpression();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TryCatchExpr>(ref());
+    consume();
+    nodePtr->nodeExpr = parseExpression();
     return nodeRef;
 }
 
@@ -747,20 +745,20 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
 
         if (nodeArgs.size() == 1)
         {
-            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IndexExpr>();
+            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IndexExpr>(ref());
             nodePtr->nodeExpr                = nodeRef;
             nodePtr->nodeArg                 = nodeExpr;
             return nodeParent;
         }
 
-        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IndexListExpr>();
+        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IndexListExpr>(ref());
         nodePtr->nodeExpr                = nodeRef;
         nodePtr->spanChildren            = ast_->store().push_span(nodeArgs.span());
         return nodeParent;
     }
 
     // Slicing
-    const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::RangeExpr>();
+    const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::RangeExpr>(ref());
     if (is(TokenId::KwdTo))
         nodePtr->addParserFlag(AstRangeExpr::Inclusive);
     consume();
@@ -776,7 +774,7 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
 
 AstNodeRef Parser::parseThrow()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ThrowExpr>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ThrowExpr>(ref());
     consumeAssert(TokenId::KwdThrow);
     nodePtr->nodeExpr = parseExpression();
     return nodeRef;

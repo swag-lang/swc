@@ -262,7 +262,7 @@ void Parser::parse(TaskContext& ctx, Ast& ast)
     curToken_   = firstToken_;
 
     // Force the first node to be invalid, so that AstNodeRef 0 is invalid
-    (void) ast_->makeNode<AstNodeId::Invalid>();
+    (void) ast_->makeNode<AstNodeId::Invalid>(TokenRef::invalid());
 
     ast_->setRoot(parseFile());
 }

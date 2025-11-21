@@ -112,12 +112,10 @@ struct AstCompilerScope : AstNodeT<AstNodeId::CompilerScope>
 
 struct AstInternalCallZero : AstNodeT<AstNodeId::InternalCallZero>
 {
-    TokenRef tokName;
 };
 
 struct AstInternalCallUnary : AstNodeT<AstNodeId::InternalCallUnary>
 {
-    TokenRef   tokName;
     AstNodeRef nodeArg1;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
@@ -140,7 +138,6 @@ struct AstInternalCallBinary : AstNodeT<AstNodeId::InternalCallBinary>
 
 struct AstInternalCallTernary : AstNodeT<AstNodeId::InternalCallTernary>
 {
-    TokenRef   tokName;
     AstNodeRef nodeArg1;
     AstNodeRef nodeArg2;
     AstNodeRef nodeArg3;
@@ -153,12 +150,10 @@ struct AstInternalCallTernary : AstNodeT<AstNodeId::InternalCallTernary>
 
 struct AstInternalCallVariadic : AstCompoundT<AstNodeId::InternalCallVariadic>
 {
-    TokenRef tokName;
 };
 
 struct AstIntrinsicValue : AstNodeT<AstNodeId::IntrinsicValue>
 {
-    TokenRef tokName;
 };
 
 struct AstFunctionExpr : AstLambdaExprT<AstNodeId::FunctionExpr>
@@ -246,7 +241,6 @@ struct AstFunctionBody : AstCompoundT<AstNodeId::FunctionBody>
 
 struct AstLambdaTypeParam : AstNodeT<AstNodeId::LambdaTypeParam>
 {
-    TokenRef   tokName;
     AstNodeRef nodeType;
     AstNodeRef nodeDefaultValue;
 
@@ -279,7 +273,6 @@ struct AstClosureArgument : AstNodeT<AstNodeId::ClosureArgument>
 
 struct AstCompilerFunc : AstNodeT<AstNodeId::CompilerFunc>
 {
-    TokenRef   tokName;
     AstNodeRef nodeBody;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
@@ -301,7 +294,6 @@ struct AstCompilerMessageFunc : AstNodeT<AstNodeId::CompilerMessageFunc>
 
 struct AstCompilerEmbeddedFunc : AstNodeT<AstNodeId::CompilerEmbeddedFunc>
 {
-    TokenRef   tokName;
     AstNodeRef nodeBody;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
@@ -312,7 +304,6 @@ struct AstCompilerEmbeddedFunc : AstNodeT<AstNodeId::CompilerEmbeddedFunc>
 
 struct AstCompilerShortFunc : AstNodeT<AstNodeId::CompilerShortFunc>
 {
-    TokenRef   tokName;
     AstNodeRef nodeBody;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
@@ -323,7 +314,6 @@ struct AstCompilerShortFunc : AstNodeT<AstNodeId::CompilerShortFunc>
 
 struct AstCompilerExpr : AstNodeT<AstNodeId::CompilerExpr>
 {
-    TokenRef   tokName;
     AstNodeRef nodeExpr;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
@@ -334,7 +324,6 @@ struct AstCompilerExpr : AstNodeT<AstNodeId::CompilerExpr>
 
 struct AstIdentifier : AstNodeT<AstNodeId::Identifier>
 {
-    TokenRef tokName;
 };
 
 struct AstScopedIdentifier : AstNodeT<AstNodeId::ScopedIdentifier>
@@ -360,7 +349,6 @@ struct AstAncestorIdentifier : AstNodeT<AstNodeId::AncestorIdentifier>
 
 struct AstIdentifierSuffix : AstNodeT<AstNodeId::IdentifierSuffix>
 {
-    TokenRef   tokName;
     AstNodeRef nodeSuffix;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
@@ -371,7 +359,6 @@ struct AstIdentifierSuffix : AstNodeT<AstNodeId::IdentifierSuffix>
 
 struct AstIdentifierSuffixList : AstCompoundT<AstNodeId::IdentifierSuffixList>
 {
-    TokenRef tokName;
 };
 
 struct AstCallExpr : AstCompoundT<AstNodeId::CallExpr>
@@ -438,7 +425,6 @@ struct AstUnnamedArgument : AstNodeT<AstNodeId::UnnamedArgument>
 
 struct AstNamedArgument : AstNodeT<AstNodeId::NamedArgument>
 {
-    TokenRef   tokName;
     AstNodeRef nodeArg;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
@@ -480,7 +466,6 @@ struct AstBinaryExpr : AstBinaryT<AstNodeId::BinaryExpr>
 
 struct AstUnaryExpr : AstNodeT<AstNodeId::UnaryExpr>
 {
-    TokenRef   tokOp;
     AstNodeRef nodeExpr;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
@@ -647,7 +632,6 @@ struct AstEnumDecl : AstNodeT<AstNodeId::EnumDecl>
 
 struct AstEnumValue : AstNodeT<AstNodeId::EnumValue>
 {
-    TokenRef   tokName;
     AstNodeRef nodeValue;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
@@ -679,7 +663,6 @@ struct AstImplEnum : AstCompoundT<AstNodeId::ImplEnum>
 
 struct AstQualifiedType : AstNodeT<AstNodeId::QualifiedType>
 {
-    TokenRef   tokQual;
     AstNodeRef nodeType;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
@@ -928,7 +911,6 @@ struct AstGenericParamList : AstCompoundT<AstNodeId::GenericParamList>
 template<AstNodeId I>
 struct AstGenericParamT : AstNodeT<I>
 {
-    TokenRef   tokName;
     AstNodeRef nodeAssign;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
@@ -1027,7 +1009,6 @@ struct AstAliasStmt : AstNodeT<AstNodeId::AliasStmt>
 
 struct AstTryCatchExpr : AstNodeT<AstNodeId::TryCatchExpr>
 {
-    TokenRef   tokName;
     AstNodeRef nodeExpr;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
@@ -1216,7 +1197,6 @@ struct AstInfiniteLoopStmt : AstNodeT<AstNodeId::InfiniteLoopStmt>
 
 struct AstTryCatchStmt : AstNodeT<AstNodeId::TryCatchStmt>
 {
-    TokenRef   tokOp;
     AstNodeRef nodeBody;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const

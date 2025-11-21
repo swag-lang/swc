@@ -9,14 +9,14 @@ AstNodeRef Parser::parseCompilerFunc()
 
     if (nextIs(TokenId::SymLeftCurly))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerFunc>();
-        nodePtr->tokName        = consume();
-        nodePtr->nodeBody       = parseFunctionBody();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerFunc>(ref());
+        consume();
+        nodePtr->nodeBody = parseFunctionBody();
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerShortFunc>();
-    nodePtr->tokName        = consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerShortFunc>(ref());
+    consume();
     if (what == TokenId::CompilerAst)
         nodePtr->nodeBody = parseExpression();
     else
@@ -26,7 +26,7 @@ AstNodeRef Parser::parseCompilerFunc()
 
 AstNodeRef Parser::parseCompilerMessageFunc()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerMessageFunc>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerMessageFunc>(ref());
     consume();
 
     const auto openRef = ref();
@@ -42,21 +42,21 @@ AstNodeRef Parser::parseCompilerExpr()
 {
     if (nextIs(TokenId::SymLeftCurly))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerEmbeddedFunc>();
-        nodePtr->tokName        = consume();
-        nodePtr->nodeBody       = parseFunctionBody();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerEmbeddedFunc>(ref());
+        consume();
+        nodePtr->nodeBody = parseFunctionBody();
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerExpr>();
-    nodePtr->tokName        = consume();
-    nodePtr->nodeExpr       = parseExpression();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerExpr>(ref());
+    consume();
+    nodePtr->nodeExpr = parseExpression();
     return nodeRef;
 }
 
 AstNodeRef Parser::parseCompilerTypeExpr()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerTypeExpr>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerTypeExpr>(ref());
     consume();
     nodePtr->nodeType = parseType();
     return nodeRef;
@@ -94,7 +94,7 @@ template<AstNodeId ID>
 AstNodeRef Parser::parseCompilerIf()
 {
     SWC_ASSERT(isAny(TokenId::CompilerIf, TokenId::CompilerElseIf));
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerIf>();
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerIf>(ref());
     consume();
 
     // Parse the condition expression
@@ -117,7 +117,7 @@ AstNodeRef Parser::parseCompilerIf()
 
 AstNodeRef Parser::parseCompilerDependencies()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::DependenciesBlock>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::DependenciesBlock>(ref());
     consume();
     nodePtr->spanChildren = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     return nodeRef;
@@ -125,8 +125,8 @@ AstNodeRef Parser::parseCompilerDependencies()
 
 AstNodeRef Parser::parseCompilerTypeOf()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InternalCallUnary>();
-    nodePtr->tokName        = consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InternalCallUnary>(ref());
+    consume();
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
@@ -143,7 +143,7 @@ AstNodeRef Parser::parseCompilerTypeOf()
 
 AstNodeRef Parser::parseCompilerGlobal()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerGlobal>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerGlobal>(ref());
     consume();
 
     const auto tokStr = tok().string(ast_->srcView());
@@ -219,7 +219,7 @@ AstNodeRef Parser::parseCompilerGlobal()
 
 AstNodeRef Parser::parseCompilerImport()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerImport>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerImport>(ref());
     consume();
 
     const auto openRef = ref();
@@ -257,7 +257,7 @@ AstNodeRef Parser::parseCompilerImport()
 
 AstNodeRef Parser::parseCompilerScope()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerScope>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerScope>(ref());
     consume();
 
     const auto openRef = ref();
@@ -273,7 +273,7 @@ AstNodeRef Parser::parseCompilerScope()
 
 AstNodeRef Parser::parseCompilerMacro()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerMacro>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerMacro>(ref());
     consumeAssert(TokenId::CompilerMacro);
     nodePtr->nodeBody = parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
     return nodeRef;
@@ -281,7 +281,7 @@ AstNodeRef Parser::parseCompilerMacro()
 
 AstNodeRef Parser::parseCompilerInject()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerInject>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerInject>(ref());
     consumeAssert(TokenId::CompilerInject);
 
     const auto openRef = ref();
@@ -335,7 +335,7 @@ AstNodeRef Parser::parseCompilerInject()
 
 AstNodeRef Parser::parseCompilerUp()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AncestorIdentifier>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AncestorIdentifier>(ref());
     consumeAssert(TokenId::CompilerUp);
 
     const auto openRef = ref();

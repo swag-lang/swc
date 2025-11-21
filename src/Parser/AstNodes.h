@@ -38,7 +38,6 @@ struct AstLambdaExprT : AstNodeT<I>
 template<AstNodeId I>
 struct AstBinaryT : AstNodeT<I>
 {
-    TokenRef   tokOp;
     AstNodeRef nodeLeft;
     AstNodeRef nodeRight;
 
@@ -51,7 +50,6 @@ struct AstBinaryT : AstNodeT<I>
 template<AstNodeId I>
 struct AstLiteralT : AstNodeT<I>
 {
-    TokenRef tokValue;
 };
 
 template<AstNodeId I>

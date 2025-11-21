@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Parser/AstNode.h"
 #include "Parser/Parser.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -8,10 +7,11 @@ AstNodeRef Parser::parseClosureArg()
 {
     AstClosureArgument::Flags flags = AstClosureArgument::Zero;
 
+    const auto tokStart = ref();
     if (consumeIf(TokenId::SymAmpersand).isValid())
         flags.add(AstClosureArgument::Address);
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ClosureArgument>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ClosureArgument>(tokStart);
     nodePtr->addParserFlag(flags);
     nodePtr->nodeIdentifier = parseQualifiedIdentifier();
 
@@ -38,8 +38,7 @@ AstNodeRef Parser::parseLambdaTypeParam()
     }
 
     // Normal parameter
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaTypeParam>();
-    nodePtr->tokName        = tokName;
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaTypeParam>(tokName);
     nodePtr->nodeType       = nodeType;
 
     if (consumeIf(TokenId::SymEqual).isValid())
@@ -75,8 +74,7 @@ AstNodeRef Parser::parseLambdaExprArg()
     }
 
     // Normal parameter
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaTypeParam>();
-    nodePtr->tokName        = tokName;
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaTypeParam>(tokName);
     nodePtr->nodeType       = nodeType;
 
     if (consumeIf(TokenId::SymEqual).isValid())
@@ -116,7 +114,7 @@ AstNodeRef Parser::parseLambdaType()
     if (consumeIf(TokenId::KwdThrow).isValid())
         flags.add(AstLambdaType::Throw);
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaType>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaType>(ref());
     nodePtr->addParserFlag(flags);
     nodePtr->spanParams     = params;
     nodePtr->nodeReturnType = returnType;
@@ -174,7 +172,7 @@ AstNodeRef Parser::parseLambdaExpression()
 
     if (flags.has(AstLambdaType::Closure))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ClosureExpr>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ClosureExpr>(ref());
         nodePtr->addParserFlag(flags);
         nodePtr->nodeCaptureArgs = captureArgs;
         nodePtr->spanArgs        = args;
@@ -183,7 +181,7 @@ AstNodeRef Parser::parseLambdaExpression()
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionExpr>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionExpr>(ref());
     nodePtr->addParserFlag(flags);
     nodePtr->spanArgs       = args;
     nodePtr->nodeReturnType = returnType;
@@ -199,7 +197,7 @@ AstNodeRef Parser::parseFunctionDecl()
     else
         consumeAssert(TokenId::KwdFunc);
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionDecl>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionDecl>(ref());
     nodePtr->addParserFlag(flags);
 
     // Generic parameters
@@ -260,7 +258,7 @@ AstNodeRef Parser::parseFunctionDecl()
 
 AstNodeRef Parser::parseAttrDecl()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AttrDecl>();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AttrDecl>(ref());
     consume();
     nodePtr->tokName    = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
     nodePtr->nodeParams = parseFunctionParamList();
@@ -280,7 +278,7 @@ AstNodeRef Parser::parseFunctionParam()
 
     if (consumeIf(TokenId::KwdConst).isValid())
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionParamMe>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionParamMe>(ref());
         nodePtr->addParserFlag(AstFunctionParamMe::Const);
         expectAndConsume(TokenId::KwdMe, DiagnosticId::parser_err_expected_token_before);
         return nodeRef;
@@ -288,7 +286,7 @@ AstNodeRef Parser::parseFunctionParam()
 
     if (consumeIf(TokenId::KwdMe).isValid())
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionParamMe>();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionParamMe>(ref());
         return nodeRef;
     }
 
@@ -311,14 +309,14 @@ AstNodeRef Parser::parseFunctionArguments(AstNodeRef nodeExpr)
     {
         const auto openRef = consume();
 
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AliasCallExpr>();
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AliasCallExpr>(ref());
         nodePtr->nodeExpr             = nodeExpr;
         nodePtr->spanAliases          = parseCompoundContent(AstNodeId::AliasCallExpr, TokenId::SymVertical);
         nodePtr->spanChildren         = parseCompoundContentInside(AstNodeId::NamedArgumentList, openRef, TokenId::SymLeftParen);
         return nodeRef;
     }
 
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CallExpr>();
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CallExpr>(ref());
     nodePtr->nodeExpr             = nodeExpr;
     nodePtr->spanChildren         = parseCompoundContent(AstNodeId::NamedArgumentList, TokenId::SymLeftParen);
     return nodeRef;

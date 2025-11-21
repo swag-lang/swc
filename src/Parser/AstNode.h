@@ -31,8 +31,9 @@ using AstModifierFlags = EnumFlags<AstModifierFlagsE>;
 struct AstNode
 {
     // ReSharper disable once CppPossiblyUninitializedMember
-    explicit AstNode(AstNodeId nodeId) :
-        id_(nodeId)
+    explicit AstNode(AstNodeId nodeId, TokenRef tokRef) :
+        id_(nodeId),
+        tokRef_(tokRef)
     {
     }
 
@@ -85,21 +86,22 @@ struct AstNode
     void      setId(AstNodeId id) { id_ = id; }
     bool      is(AstNodeId id) const { return id_ == id; }
     bool      isNot(AstNodeId id) const { return id_ != id; }
+    TokenRef  tokRef() const { return tokRef_; }
 
 private:
     AstNodeId                 id_ = AstNodeId::Invalid;
-    ParserFlags               parserFlags_;
-    SemaFlags                 semaFlags_;
+    ParserFlags               parserFlags_{};
+    SemaFlags                 semaFlags_{};
     TokenRef                  tokRef_ = TokenRef::invalid();
-    std::variant<ConstantRef> sema_;
+    std::variant<ConstantRef> sema_{};
 };
 
 template<AstNodeId I>
 struct AstNodeT : AstNode
 {
     static constexpr auto ID = I;
-    AstNodeT() :
-        AstNode(I)
+    AstNodeT(TokenRef tokRef) :
+        AstNode(I, tokRef)
     {
     }
 };

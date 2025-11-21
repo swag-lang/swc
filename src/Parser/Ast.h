@@ -52,12 +52,11 @@ public:
     void nodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const;
 
     template<AstNodeId ID>
-    auto makeNode()
+    auto makeNode(TokenRef tokRef)
     {
         using NodeType = AstTypeOf<ID>::type;
         auto result    = store_.emplace_uninit<NodeType>();
-        result.second->setId(ID);
-        result.second->clearFlags();
+        ::new (result.second) AstNode(ID, tokRef);
 #if SWC_HAS_STATS
         Stats::get().numAstNodes.fetch_add(1);
 #endif

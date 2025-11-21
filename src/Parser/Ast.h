@@ -54,24 +54,14 @@ public:
     template<AstNodeId ID>
     auto makeNode()
     {
-        using NodeType    = AstTypeOf<ID>::type;
-        auto result       = store_.emplace_uninit<NodeType>();
+        using NodeType = AstTypeOf<ID>::type;
+        auto result    = store_.emplace_uninit<NodeType>();
         result.second->setId(ID);
         result.second->clearFlags();
 #if SWC_HAS_STATS
         Stats::get().numAstNodes.fetch_add(1);
 #endif
         return std::pair<AstNodeRef, NodeType*>(result);
-    }
-
-    template<typename T = AstNode>
-    std::pair<AstNodeRef, T*>
-    makeNode(AstNodeId id)
-    {
-        return visitAstNodeId(id, [&]<auto N>() {
-            auto [ref, raw] = makeNode<N>();
-            return std::pair{ref, reinterpret_cast<T*>(raw)};
-        });
     }
 };
 

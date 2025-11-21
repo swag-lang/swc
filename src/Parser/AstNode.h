@@ -90,6 +90,7 @@ private:
     AstNodeId                 id_ = AstNodeId::Invalid;
     ParserFlags               parserFlags_;
     SemaFlags                 semaFlags_;
+    TokenRef                  tokRef_ = TokenRef::invalid();
     std::variant<ConstantRef> sema_;
 };
 

@@ -7,7 +7,6 @@ SWC_BEGIN_NAMESPACE()
 Diagnostic SemaJob::reportError(DiagnosticId id, TokenRef tknRef)
 {
     auto diag = Diagnostic::get(id, visit().curSrcView().file());
-    // setReportArguments(diag, tknRef);
     diag.last().addSpan(Diagnostic::tokenErrorLocation(ctx(), visit().curSrcView(), tknRef), "");
     return diag;
 }
@@ -20,11 +19,9 @@ void SemaJob::raiseError(DiagnosticId id, TokenRef tknRef)
 
 void SemaJob::raiseError(DiagnosticId id, AstNodeRef nodeRef)
 {
-    const auto  nodePtr = node(nodeRef);
-    const auto& info    = Ast::nodeIdInfos(nodePtr->id());
-
-    SmallVector<AstNodeRef> children;
-    info.collectChildren(children, *ast_, *nodePtr);
+    const auto nodePtr     = node(nodeRef);
+    const auto tokRefStart = nodePtr->tokRef();
+    const auto tokRefEnd   = nodePtr->tokRefEnd(*ast_);
 }
 
 SWC_END_NAMESPACE()

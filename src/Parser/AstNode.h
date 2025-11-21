@@ -87,6 +87,7 @@ struct AstNode
     bool      is(AstNodeId id) const { return id_ == id; }
     bool      isNot(AstNodeId id) const { return id_ != id; }
     TokenRef  tokRef() const { return tokRef_; }
+    TokenRef  tokRefEnd(const Ast& ast) const;
 
 private:
     AstNodeId                 id_ = AstNodeId::Invalid;

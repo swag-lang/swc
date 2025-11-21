@@ -23,7 +23,7 @@ AstNodeRef Parser::parseGenericParam()
         if (isType)
         {
             auto diag = reportError(DiagnosticId::parser_err_gen_param_type, ref().offset(-1));
-            diag.last().addSpan(tknConstVar.location(*ctx_, ast_->lexOut()), DiagnosticId::parser_note_gen_param_type, DiagnosticSeverity::Note);
+            diag.last().addSpan(tknConstVar.location(*ctx_, ast_->srcView()), DiagnosticId::parser_note_gen_param_type, DiagnosticSeverity::Note);
             diag.addElement(DiagnosticId::parser_help_gen_param_type);
             diag.report(*ctx_);
         }

@@ -263,6 +263,7 @@
         <ClInclude Include="src\Lexer\LangSpec.h"/>
         <ClInclude Include="src\Lexer\Lexer.h"/>
         <ClInclude Include="src\Lexer\SourceCodeLocation.h"/>
+        <ClInclude Include="src\Lexer\SourceView.h"/>
         <ClInclude Include="src\Lexer\Token.h"/>
         <ClInclude Include="src\Lexer\TokenIds.inc"/>
         <ClInclude Include="src\Main\CommandLine.h"/>

@@ -26,8 +26,8 @@ JobResult ParserJob::exec()
     file_->unitTest().tokenize(jobCtx);
 
     Lexer lexer;
-    lexer.tokenize(jobCtx, ast.lexOut(), LexerFlagsE::Default);
-    if (ast.lexOut().mustSkip())
+    lexer.tokenize(jobCtx, ast.srcView(), LexerFlagsE::Default);
+    if (ast.srcView().mustSkip())
         return JobResult::Done;
 
     if (file_->unitTest().hasFlag(VerifyFlagsE::LexOnly))

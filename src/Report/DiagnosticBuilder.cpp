@@ -295,10 +295,10 @@ void DiagnosticBuilder::writeLocation(const DiagnosticElement& el)
 {
     const auto loc = el.location(0, *ctx_);
 
-    SWC_ASSERT(el.lexOut());
-    if (el.lexOut()->file().isValid())
+    SWC_ASSERT(el.srcView());
+    if (el.srcView()->file().isValid())
     {
-        const auto filePtr = ctx_->compiler().file(el.lexOut()->file());
+        const auto filePtr = ctx_->compiler().file(el.srcView()->file());
         Utf8       fileName;
         if (ctx_->cmdLine().diagAbsolute)
             fileName = filePtr->path().string();
@@ -593,7 +593,7 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
             }
 
             // Prepare a new line
-            currentFullCodeLine    = el.lexOut()->codeLine(*ctx_, loc.line);
+            currentFullCodeLine    = el.srcView()->codeLine(*ctx_, loc.line);
             currentFullCharCount   = Utf8Helper::countChars(currentFullCodeLine);
             currentLineIsTruncated = (currentFullCharCount > diagMax);
 
@@ -603,7 +603,7 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
             currentLine = loc.line;
         }
 
-        const std::string_view tokenView     = el.lexOut()->codeView(loc.offset, loc.len);
+        const std::string_view tokenView     = el.srcView()->codeView(loc.offset, loc.len);
         const uint32_t         tokenLenChars = Utf8Helper::countChars(tokenView);
 
         if (currentLineIsTruncated)

@@ -4,7 +4,7 @@
 SWC_BEGIN_NAMESPACE()
 
 class Ast;
-class LexerOutput;
+class SourceView;
 struct AstNode;
 
 enum class AstVisitResult
@@ -33,13 +33,13 @@ class AstVisit
             Post
         };
 
-        const LexerOutput* lexAtPush    = nullptr;
-        AstNode*           node         = nullptr;
-        uint32_t           nextChildIx  = 0; // index within this frame's child range
-        uint32_t           firstChildIx = 0; // offset into AstVisit::children_
-        uint32_t           numChildren  = 0; // number of children in that range
-        AstNodeRef         nodeRef      = AstNodeRef::invalid();
-        Stage              stage        = Stage::Pre;
+        const SourceView* srcViewAtPush = nullptr;
+        AstNode*          node          = nullptr;
+        uint32_t          nextChildIx   = 0; // index within this frame's child range
+        uint32_t          firstChildIx  = 0; // offset into AstVisit::children_
+        uint32_t          numChildren   = 0; // number of children in that range
+        AstNodeRef        nodeRef       = AstNodeRef::invalid();
+        Stage             stage         = Stage::Pre;
     };
 
     Ast*                                                     ast_  = nullptr;
@@ -48,7 +48,7 @@ class AstVisit
     std::function<AstVisitStepResult(AstNode&)>              postNodeVisitor_;
     std::function<AstVisitStepResult(AstNode&, AstNodeRef&)> preChildVisitor_;
 
-    const LexerOutput*      currentLex_ = nullptr;
+    const SourceView*       curSrcView_ = nullptr;
     SmallVector<Frame, 64>  stack_;
     SmallVector<AstNodeRef> children_;
 
@@ -63,9 +63,9 @@ public:
     AstNode*       parentNode(size_t up = 0) { return parentNodeInternal(up); }
     const AstNode* parentNode(size_t up = 0) const { return parentNodeInternal(up); }
 
-    const Ast&         ast() const { return *ast_; }
-    Ast&               ast() { return *ast_; }
-    const LexerOutput& currentLex() const { return *currentLex_; }
+    const Ast&        ast() const { return *ast_; }
+    Ast&              ast() { return *ast_; }
+    const SourceView& curSrcView() const { return *curSrcView_; }
 };
 
 SWC_END_NAMESPACE()

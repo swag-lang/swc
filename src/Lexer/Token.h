@@ -2,7 +2,7 @@
 #include "Lexer/SourceCodeLocation.h"
 
 SWC_BEGIN_NAMESPACE()
-class LexerOutput;
+class SourceView;
 
 class SourceFile;
 
@@ -72,8 +72,8 @@ struct Token
 
     bool               is(TokenId id) const { return this->id == id; }
     bool               isNot(TokenId id) const { return this->id != id; }
-    std::string_view   string(const LexerOutput& lex) const;
-    SourceCodeLocation location(const TaskContext& ctx, const LexerOutput& lex) const;
+    std::string_view   string(const SourceView& lex) const;
+    SourceCodeLocation location(const TaskContext& ctx, const SourceView& lex) const;
     bool               hasFlag(TokenFlags flag) const { return flags.has(flag); }
     bool               hasNotFlag(TokenFlags flag) const { return !flags.has(flag); }
 

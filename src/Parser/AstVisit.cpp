@@ -12,15 +12,15 @@ void AstVisit::start(Ast& ast, AstNodeRef root)
 
     ast_        = &ast;
     root_       = root;
-    currentLex_ = &ast_->lexOut();
+    curSrcView_ = &ast_->srcView();
 
     stack_.clear();
     children_.clear();
 
     Frame fr;
-    fr.nodeRef   = root;
-    fr.stage     = Frame::Stage::Pre;
-    fr.lexAtPush = currentLex_;
+    fr.nodeRef       = root;
+    fr.stage         = Frame::Stage::Pre;
+    fr.srcViewAtPush = curSrcView_;
     stack_.push_back(fr);
 }
 
@@ -102,9 +102,9 @@ AstVisitResult AstVisit::step()
                 }
 
                 Frame childFr;
-                childFr.nodeRef   = childRef;
-                childFr.stage     = Frame::Stage::Pre;
-                childFr.lexAtPush = currentLex_;
+                childFr.nodeRef       = childRef;
+                childFr.stage         = Frame::Stage::Pre;
+                childFr.srcViewAtPush = curSrcView_;
 
                 stack_.push_back(childFr);
                 fr.nextChildIx++;
@@ -127,7 +127,7 @@ AstVisitResult AstVisit::step()
                     return AstVisitResult::Pause;
             }
 
-            currentLex_ = fr.lexAtPush;
+            curSrcView_ = fr.srcViewAtPush;
             stack_.pop_back();
             if (stack_.empty())
                 return AstVisitResult::Stop;

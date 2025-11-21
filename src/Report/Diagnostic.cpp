@@ -38,11 +38,11 @@ namespace
     constexpr auto DIAGNOSTIC_INFOS = makeDiagnosticInfos();
 }
 
-Utf8 Diagnostic::tokenErrorString(const TaskContext&, const LexerOutput& lexOut, TokenRef tokenRef)
+Utf8 Diagnostic::tokenErrorString(const TaskContext&, const SourceView& srcView, TokenRef tokenRef)
 {
     constexpr static size_t MAX_TOKEN_STR_LEN = 40;
-    const auto&             token             = lexOut.token(tokenRef);
-    Utf8                    str               = token.string(lexOut);
+    const auto&             token             = srcView.token(tokenRef);
+    Utf8                    str               = token.string(srcView);
 
     if (token.hasFlag(TokenFlagsE::EolInside))
     {
@@ -64,14 +64,14 @@ Utf8 Diagnostic::tokenErrorString(const TaskContext&, const LexerOutput& lexOut,
     return str;
 }
 
-SourceCodeLocation Diagnostic::tokenErrorLocation(const TaskContext& ctx, const LexerOutput& lexOut, TokenRef tokenRef)
+SourceCodeLocation Diagnostic::tokenErrorLocation(const TaskContext& ctx, const SourceView& srcView, TokenRef tokenRef)
 {
-    const auto& token = lexOut.token(tokenRef);
-    auto        loc   = token.location(ctx, lexOut);
+    const auto& token = srcView.token(tokenRef);
+    auto        loc   = token.location(ctx, srcView);
 
     if (token.hasFlag(TokenFlagsE::EolInside))
     {
-        const auto str = token.string(lexOut);
+        const auto str = token.string(srcView);
         const auto pos = str.find_first_of("\n\r");
         if (pos != Utf8::npos)
             loc.len = static_cast<uint32_t>(pos);

@@ -146,14 +146,14 @@ AstNodeRef Parser::parseCompilerGlobal()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerGlobal>();
     consume();
 
-    const auto tokStr = tok().string(ast_->lexOut());
+    const auto tokStr = tok().string(ast_->srcView());
 
     if (tokStr == Token::toName(TokenId::KwdSkip))
     {
         // Should have been treated in lexer
         SWC_UNREACHABLE();
     }
-    
+
     if (tokStr == Token::toName(TokenId::KwdSkipFmt))
     {
         nodePtr->mode     = AstCompilerGlobal::Mode::SkipFmt;
@@ -231,7 +231,7 @@ AstNodeRef Parser::parseCompilerImport()
 
     if (consumeIf(TokenId::SymComma).isValid())
     {
-        auto tokStr = tok().string(ast_->lexOut());
+        auto tokStr = tok().string(ast_->srcView());
         if (tokStr == Token::toName(TokenId::KwdLocation))
         {
             consume();
@@ -239,7 +239,7 @@ AstNodeRef Parser::parseCompilerImport()
             nodePtr->tokLocation = expectAndConsume(TokenId::StringLine, DiagnosticId::parser_err_expected_token_before);
             if (consumeIf(TokenId::SymComma).isValid())
             {
-                tokStr = tok().string(ast_->lexOut());
+                tokStr = tok().string(ast_->srcView());
                 if (tokStr == Token::toName(TokenId::KwdVersion))
                 {
                     consume();

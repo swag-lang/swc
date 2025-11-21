@@ -4,7 +4,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-std::string_view Token::string(const LexerOutput& lex) const
+std::string_view Token::string(const SourceView& lex) const
 {
     auto start = lex.sourceView().data();
 
@@ -19,7 +19,7 @@ std::string_view Token::string(const LexerOutput& lex) const
     return {start + byteStart, static_cast<size_t>(byteLength)};
 }
 
-SourceCodeLocation Token::location(const TaskContext& ctx, const LexerOutput& lex) const
+SourceCodeLocation Token::location(const TaskContext& ctx, const SourceView& lex) const
 {
     SourceCodeLocation loc;
     uint32_t           offset;

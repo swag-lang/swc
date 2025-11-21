@@ -62,7 +62,7 @@ void Verify::tokenizeOption(const TaskContext& ctx, std::string_view comment)
     }
 }
 
-void Verify::tokenizeExpected(const TaskContext& ctx, const LexTrivia& trivia, std::string_view comment)
+void Verify::tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia, std::string_view comment)
 {
     const auto& langSpec = ctx.global().langSpec();
 
@@ -92,7 +92,7 @@ void Verify::tokenizeExpected(const TaskContext& ctx, const LexTrivia& trivia, s
         }
 
         // Base location info
-        directive.myLoc.fromOffset(ctx, lexOut_,
+        directive.myLoc.fromOffset(ctx, srcView_,
                                    trivia.token.byteStart + static_cast<uint32_t>(pos),
                                    static_cast<uint32_t>(LangSpec::VERIFY_COMMENT_EXPECTED.size()) + static_cast<uint32_t>(word.size()));
         directive.loc = directive.myLoc;
@@ -144,16 +144,16 @@ void Verify::tokenize(TaskContext& ctx)
     if (!ctx.cmdLine().verify)
         return;
 
-    lexOut_.setFile(file_);
+    srcView_.setFile(file_);
 
     // Get all comments from the file
     Lexer lexer;
-    lexer.tokenizeRaw(ctx, lexOut_);
+    lexer.tokenizeRaw(ctx, srcView_);
 
     // Parse all comments to find a verify directive
-    for (const auto& trivia : lexOut_.trivia())
+    for (const auto& trivia : srcView_.trivia())
     {
-        const std::string_view comment = trivia.token.string(lexOut_);
+        const std::string_view comment = trivia.token.string(srcView_);
         tokenizeExpected(ctx, trivia, comment);
         tokenizeOption(ctx, comment);
     }
@@ -187,13 +187,13 @@ bool Verify::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) cons
     return false;
 }
 
-void Verify::verifyUntouchedExpected(const TaskContext& ctx, const LexerOutput& lexOut) const
+void Verify::verifyUntouchedExpected(const TaskContext& ctx, const SourceView& srcView) const
 {
     for (const auto& directive : directives_)
     {
         if (!directive.touched)
         {
-            const auto diag = Diagnostic::get(DiagnosticId::unittest_err_not_raised, lexOut.file());
+            const auto diag = Diagnostic::get(DiagnosticId::unittest_err_not_raised, srcView.file());
             diag.last().addSpan(directive.myLoc, "");
             diag.report(ctx);
         }

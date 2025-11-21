@@ -7,7 +7,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-class LexerOutput;
+class SourceView;
 class Verify;
 
 enum class AstFlagsE : uint32_t
@@ -21,10 +21,10 @@ using AstFlags = EnumFlags<AstFlagsE>;
 
 class Ast
 {
-    Store<>     store_;
-    LexerOutput lexOut_;
-    AstNodeRef  root_  = AstNodeRef::invalid();
-    AstFlags    flags_ = AstFlagsE::Zero;
+    Store<>    store_;
+    SourceView srcView_;
+    AstNodeRef root_  = AstNodeRef::invalid();
+    AstFlags   flags_ = AstFlagsE::Zero;
 
 public:
     static constexpr const AstNodeIdInfo& nodeIdInfos(AstNodeId id) { return AST_NODE_ID_INFOS[static_cast<size_t>(id)]; }
@@ -32,8 +32,8 @@ public:
     auto&                                 store() { return store_; }
     AstNodeRef                            root() const { return root_; }
     void                                  setRoot(AstNodeRef root) { root_ = root; }
-    LexerOutput&                          lexOut() { return lexOut_; }
-    const LexerOutput&                    lexOut() const { return lexOut_; }
+    SourceView&                           srcView() { return srcView_; }
+    const SourceView&                     srcView() const { return srcView_; }
     bool                                  hasFlag(AstFlags flag) const { return flags_.has(flag); }
     void                                  addFlag(AstFlags flag) { flags_.add(flag); }
 

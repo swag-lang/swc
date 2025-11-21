@@ -8,7 +8,7 @@ SWC_BEGIN_NAMESPACE()
 class TaskContext;
 class Global;
 class Diagnostic;
-struct LexTrivia;
+struct SourceTrivia;
 
 struct VerifyDirective
 {
@@ -29,12 +29,12 @@ using VerifyFlags = EnumFlags<VerifyFlagsE>;
 class Verify
 {
     SourceFile*                  file_ = nullptr;
-    LexerOutput                  lexOut_;
+    SourceView                   srcView_;
     std::vector<VerifyDirective> directives_;
     VerifyFlags                  flags_ = VerifyFlagsE::Zero;
 
     void tokenizeOption(const TaskContext& ctx, std::string_view comment);
-    void tokenizeExpected(const TaskContext& ctx, const LexTrivia& trivia, std::string_view comment);
+    void tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia, std::string_view comment);
 
 public:
     explicit Verify(SourceFile* file) :
@@ -45,7 +45,7 @@ public:
     void tokenize(TaskContext& ctx);
     bool hasFlag(VerifyFlagsE flag) const { return flags_.has(flag); }
     bool verifyExpected(const TaskContext& ctx, const Diagnostic& diag) const;
-    void verifyUntouchedExpected(const TaskContext& ctx, const LexerOutput& lexOut) const;
+    void verifyUntouchedExpected(const TaskContext& ctx, const SourceView& srcView) const;
 };
 
 SWC_END_NAMESPACE()

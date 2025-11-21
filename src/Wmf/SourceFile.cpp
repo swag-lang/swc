@@ -40,7 +40,7 @@ Result SourceFile::loadContent(const TaskContext& ctx)
         auto diag = Diagnostic::get(DiagnosticId::io_err_open_file, fileRef());
         diag.addArgument(Diagnostic::ARG_PATH, path_.string());
         diag.addArgument(Diagnostic::ARG_BECAUSE, Os::systemError());
-        diag.last().setLexerOutput(&ast_->lexOut());
+        diag.last().setSrcView(&ast_->srcView());
         diag.report(ctx);
         return Result::Error;
     }
@@ -55,7 +55,7 @@ Result SourceFile::loadContent(const TaskContext& ctx)
         auto diag = Diagnostic::get(DiagnosticId::io_err_read_file, fileRef());
         diag.addArgument(Diagnostic::ARG_PATH, path_.string());
         diag.addArgument(Diagnostic::ARG_BECAUSE, Os::systemError());
-        diag.last().setLexerOutput(&ast_->lexOut());
+        diag.last().setSrcView(&ast_->srcView());
         diag.report(ctx);
         return Result::Error;
     }
@@ -64,7 +64,7 @@ Result SourceFile::loadContent(const TaskContext& ctx)
     for (int i = 0; i < TRAILING_0; i++)
         content_.push_back(0);
 
-    ast_->lexOut().setFile(this);
+    ast_->srcView().setFile(this);
     return Result::Success;
 }
 

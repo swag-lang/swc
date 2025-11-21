@@ -35,8 +35,8 @@ void Lexer::raiseUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len)
     if (isRawMode())
         return;
 
-    const auto diag = Diagnostic::get(id, lexOut_->file());
-    diag.last().addSpan(lexOut_, offset, len);
+    const auto diag = Diagnostic::get(id, srcView_->file());
+    diag.last().addSpan(srcView_, offset, len);
     diag.report(*ctx_);
 }
 
@@ -49,13 +49,13 @@ Diagnostic Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t le
     if (isRawMode())
         return {};
 
-    auto diag = Diagnostic::get(id, lexOut_->file());
-    diag.last().addSpan(lexOut_, offset, len);
+    auto diag = Diagnostic::get(id, srcView_->file());
+    diag.last().addSpan(srcView_, offset, len);
 
     // Add an argument with the token string
     if (len)
     {
-        const std::string_view tkn = lexOut_->codeView(offset, len);
+        const std::string_view tkn = srcView_->codeView(offset, len);
         diag.addArgument(Diagnostic::ARG_TOK, tkn);
     }
 
@@ -101,7 +101,7 @@ void Lexer::eatOneEol()
     }
 
     token_.flags.add(TokenFlagsE::EolInside);
-    lexOut_->lines().push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
+    srcView_->lines().push_back(static_cast<uint32_t>(buffer_ - startBuffer_));
 }
 
 void Lexer::eatOne()
@@ -120,9 +120,9 @@ void Lexer::pushToken()
 
     // Update previous token's flags before filtering
     // This must happen even for tokens that will be filtered out
-    if (!lexOut_->tokens().empty())
+    if (!srcView_->tokens().empty())
     {
-        auto& back = lexOut_->tokens().back();
+        auto& back = srcView_->tokens().back();
         if (tokenId == TokenId::Whitespace)
             back.flags.add(TokenFlagsE::BlankAfter);
         if (token_.hasFlag(TokenFlagsE::EolInside))
@@ -143,18 +143,18 @@ void Lexer::pushToken()
     {
         case TokenId::Whitespace:
             if (lexerFlags_.has(LexerFlagsE::EmitTrivia))
-                lexOut_->trivia().push_back({.tokenRef = TokenRef{lexOut_->numTokens()}, .token = token_});
+                srcView_->trivia().push_back({.tokenRef = TokenRef{srcView_->numTokens()}, .token = token_});
             break;
         case TokenId::CommentLine:
         case TokenId::CommentMultiLine:
             if (!isRawMode() && lexerFlags_.hasNot(LexerFlagsE::EmitTrivia))
                 break;
-            lexOut_->trivia().push_back({.tokenRef = TokenRef{lexOut_->numTokens()}, .token = token_});
+            srcView_->trivia().push_back({.tokenRef = TokenRef{srcView_->numTokens()}, .token = token_});
             break;
         default:
             if (isRawMode())
                 break;
-            lexOut_->tokens().push_back(token_);
+            srcView_->tokens().push_back(token_);
             break;
     }
 }
@@ -700,8 +700,8 @@ void Lexer::lexIdentifier()
             else if (name[0] == '@')
                 raiseTokenError(DiagnosticId::parser_err_invalid_intrinsic, startTokenOffset_, static_cast<uint32_t>(name.size()));
 
-            const auto idx = static_cast<uint32_t>(lexOut_->identifiers().size());
-            lexOut_->identifiers().push_back({.hash = hash64, .byteStart = token_.byteStart});
+            const auto idx = static_cast<uint32_t>(srcView_->identifiers().size());
+            srcView_->identifiers().push_back({.hash = hash64, .byteStart = token_.byteStart});
             token_.byteStart = idx;
         }
 
@@ -718,7 +718,7 @@ void Lexer::lexIdentifier()
 
             const auto tokStr = std::string_view(reinterpret_cast<std::string_view::const_pointer>(startTok), tmp - startTok);
             if (tokStr == Token::toName(TokenId::KwdSkip))
-                lexOut_->setMustSkip(true);
+                srcView_->setMustSkip(true);
         }
     }
 
@@ -1120,7 +1120,7 @@ void Lexer::checkFormat(uint32_t& startOffset)
     static constexpr char8_t UTF32_BE[] = {0x00, 0x00, 0xFE, 0xFF};
     static constexpr char8_t UTF32_LE[] = {0xFF, 0xFE, 0x00, 0x00};
 
-    const auto content = lexOut_->sourceView();
+    const auto content = srcView_->sourceView();
 
     // Ensure we have enough bytes to check
     if (content.size() < 3)
@@ -1187,20 +1187,20 @@ void Lexer::checkFormat(uint32_t& startOffset)
     startOffset = 0;
 }
 
-void Lexer::tokenizeRaw(TaskContext& ctx, LexerOutput& lexOut)
+void Lexer::tokenizeRaw(TaskContext& ctx, SourceView& srcView)
 {
-    tokenize(ctx, lexOut, LexerFlagsE::RawMode);
+    tokenize(ctx, srcView, LexerFlagsE::RawMode);
 }
 
-void Lexer::tokenize(TaskContext& ctx, LexerOutput& lexOut, LexerFlags flags)
+void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
 {
 #if SWC_HAS_STATS
     Timer time(&Stats::get().timeLexer);
 #endif
 
-    lexOut_ = &lexOut;
-    lexOut_->tokens().clear();
-    lexOut_->lines().clear();
+    srcView_ = &srcView;
+    srcView_->tokens().clear();
+    srcView_->lines().clear();
     prevToken_ = {};
 
     langSpec_   = &ctx.global().langSpec();
@@ -1210,16 +1210,16 @@ void Lexer::tokenize(TaskContext& ctx, LexerOutput& lexOut, LexerFlags flags)
     uint32_t startOffset = 0;
     checkFormat(startOffset);
 
-    const auto base = reinterpret_cast<const char8_t*>(lexOut.sourceView().data());
+    const auto base = reinterpret_cast<const char8_t*>(srcView.sourceView().data());
     buffer_         = base + startOffset;
     startBuffer_    = base;
-    endBuffer_      = startBuffer_ + lexOut.sourceView().size();
+    endBuffer_      = startBuffer_ + srcView.sourceView().size();
 
     // Reserve space based on source size
-    lexOut_->tokens().reserve(lexOut.sourceView().size() / 10);
+    srcView_->tokens().reserve(srcView.sourceView().size() / 10);
     if (!isRawMode())
-        lexOut_->lines().reserve(lexOut.sourceView().size() / 60);
-    lexOut_->lines().push_back(0);
+        srcView_->lines().reserve(srcView.sourceView().size() / 60);
+    srcView_->lines().push_back(0);
 
     while (buffer_ < endBuffer_)
     {
@@ -1302,7 +1302,7 @@ void Lexer::tokenize(TaskContext& ctx, LexerOutput& lexOut, LexerFlags flags)
         if (langSpec_->isIdentifierStart(buffer_[0]))
         {
             lexIdentifier();
-            if (lexOut_->mustSkip())
+            if (srcView_->mustSkip())
                 return;
             continue;
         }
@@ -1340,14 +1340,14 @@ void Lexer::tokenize(TaskContext& ctx, LexerOutput& lexOut, LexerFlags flags)
 
 #if SWC_HAS_STATS
     if (!isRawMode())
-        Stats::get().numTokens.fetch_add(lexOut_->tokens().size());
+        Stats::get().numTokens.fetch_add(srcView_->tokens().size());
 #endif
 }
 
 void Lexer::buildTriviaIndex() const
 {
-    const uint32_t numTok      = lexOut_->numTokens();
-    auto&          triviaStart = lexOut_->triviaStart();
+    const uint32_t numTok      = srcView_->numTokens();
+    auto&          triviaStart = srcView_->triviaStart();
     triviaStart.resize(numTok + 1);
 
     // trivia_ is in lex order; tokenRef is monotonic non-decreasing
@@ -1362,7 +1362,7 @@ void Lexer::buildTriviaIndex() const
     triviaStart[numTok] = tIdx;
 }
 
-Utf8 LexerOutput::codeLine(const TaskContext& ctx, uint32_t line) const
+Utf8 SourceView::codeLine(const TaskContext& ctx, uint32_t line) const
 {
     line--;
     SWC_ASSERT(line < lines_.size());
@@ -1413,19 +1413,19 @@ Utf8 LexerOutput::codeLine(const TaskContext& ctx, uint32_t line) const
     return expanded;
 }
 
-std::string_view LexerOutput::codeView(uint32_t offset, uint32_t len) const
+std::string_view SourceView::codeView(uint32_t offset, uint32_t len) const
 {
     SWC_ASSERT(offset + len <= sourceView_.size());
     return std::string_view{sourceView_.data() + offset, len};
 }
 
-void LexerOutput::setFile(const SourceFile* file)
+void SourceView::setFile(const SourceFile* file)
 {
     file_       = file->fileRef();
     sourceView_ = file->sourceView();
 }
 
-std::pair<uint32_t, uint32_t> LexerOutput::triviaRangeForToken(TokenRef tok) const
+std::pair<uint32_t, uint32_t> SourceView::triviaRangeForToken(TokenRef tok) const
 {
     const uint32_t i = tok.get();
     SWC_ASSERT(i + 1 < triviaStart_.size());

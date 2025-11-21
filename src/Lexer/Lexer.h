@@ -1,4 +1,5 @@
 #pragma once
+#include "Lexer/SourceView.h"
 #include "Lexer/Token.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -18,60 +19,13 @@ enum class LexerFlagsE : uint32_t
 };
 using LexerFlags = EnumFlags<LexerFlagsE>;
 
-struct LexTrivia
-{
-    TokenRef tokenRef; // The last pushed token when the trivia was found
-    Token    token;    // Trivia definition
-};
-
-struct LexIdentifier
-{
-    uint64_t hash      = 0;
-    uint32_t byteStart = 0; // Byte offset in the source file buffer
-};
-
-class LexerOutput
-{
-    FileRef                    file_ = FileRef::invalid();
-    std::string_view           sourceView_;
-    std::vector<Token>         tokens_;
-    std::vector<uint32_t>      lines_;
-    std::vector<LexTrivia>     trivia_;
-    std::vector<uint32_t>      triviaStart_;
-    std::vector<LexIdentifier> identifiers_;
-    bool                       mustSkip_ = false;
-
-public:
-    FileRef                           file() const { return file_; }
-    void                              setFile(const SourceFile* file);
-    std::string_view                  sourceView() const { return sourceView_; }
-    const std::vector<LexTrivia>&     trivia() const { return trivia_; }
-    std::vector<LexTrivia>&           trivia() { return trivia_; }
-    const std::vector<Token>&         tokens() const { return tokens_; }
-    std::vector<Token>&               tokens() { return tokens_; }
-    const std::vector<uint32_t>&      lines() const { return lines_; }
-    std::vector<uint32_t>&            lines() { return lines_; }
-    const std::vector<LexIdentifier>& identifiers() const { return identifiers_; }
-    std::vector<LexIdentifier>&       identifiers() { return identifiers_; }
-    const Token&                      token(TokenRef tok) const { return tokens_[tok.get()]; }
-    uint32_t                          numTokens() const { return static_cast<uint32_t>(tokens_.size()); }
-    const std::vector<uint32_t>&      triviaStart() const { return triviaStart_; }
-    std::vector<uint32_t>&            triviaStart() { return triviaStart_; }
-    bool                              mustSkip() const { return mustSkip_; }
-    void                              setMustSkip(bool mustSkip) { mustSkip_ = mustSkip; }
-
-    Utf8                          codeLine(const TaskContext& ctx, uint32_t line) const;
-    std::string_view              codeView(uint32_t offset, uint32_t len) const;
-    std::pair<uint32_t, uint32_t> triviaRangeForToken(TokenRef tok) const;
-};
-
 // Main lexer class - converts source text into tokens
 class Lexer
 {
     Token token_     = {};
     Token prevToken_ = {};
 
-    LexerOutput*    lexOut_           = nullptr;
+    SourceView*     srcView_          = nullptr;
     const char8_t*  buffer_           = nullptr;
     const char8_t*  startBuffer_      = nullptr;
     const char8_t*  endBuffer_        = nullptr;
@@ -113,8 +67,8 @@ class Lexer
     void lexMultiLineComment();
 
 public:
-    void tokenizeRaw(TaskContext& ctx, LexerOutput& lexOut);
-    void tokenize(TaskContext& ctx, LexerOutput& lexOut, LexerFlags flags);
+    void tokenizeRaw(TaskContext& ctx, SourceView& srcView);
+    void tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags);
 };
 
 SWC_END_NAMESPACE()

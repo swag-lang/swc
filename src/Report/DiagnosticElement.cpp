@@ -16,10 +16,10 @@ DiagnosticElement::DiagnosticElement(DiagnosticSeverity severity, DiagnosticId i
 {
 }
 
-void DiagnosticElement::addSpan(const LexerOutput* lexOut, uint32_t offset, uint32_t len, DiagnosticSeverity severity, const Utf8& message)
+void DiagnosticElement::addSpan(const SourceView* srcView, uint32_t offset, uint32_t len, DiagnosticSeverity severity, const Utf8& message)
 {
-    SWC_ASSERT(!lexOut_ || lexOut_ == lexOut);
-    lexOut_ = lexOut;
+    SWC_ASSERT(!srcView_ || srcView_ == srcView);
+    srcView_ = srcView;
 
     if (!len)
         return;
@@ -33,8 +33,8 @@ void DiagnosticElement::addSpan(const LexerOutput* lexOut, uint32_t offset, uint
 
 void DiagnosticElement::addSpan(const SourceCodeLocation& loc, const Utf8& message, DiagnosticSeverity severity)
 {
-    SWC_ASSERT(!lexOut_ || loc.lexOut == lexOut_);
-    lexOut_ = loc.lexOut;
+    SWC_ASSERT(!srcView_ || loc.srcView == srcView_);
+    srcView_ = loc.srcView;
 
     if (!loc.len)
         return;
@@ -48,8 +48,8 @@ void DiagnosticElement::addSpan(const SourceCodeLocation& loc, const Utf8& messa
 
 void DiagnosticElement::addSpan(const SourceCodeLocation& loc, DiagnosticId diagId, DiagnosticSeverity severity)
 {
-    SWC_ASSERT(!lexOut_ || loc.lexOut == lexOut_);
-    lexOut_ = loc.lexOut;
+    SWC_ASSERT(!srcView_ || loc.srcView == srcView_);
+    srcView_ = loc.srcView;
 
     DiagnosticSpan span;
     span.offset    = loc.offset;
@@ -61,17 +61,17 @@ void DiagnosticElement::addSpan(const SourceCodeLocation& loc, DiagnosticId diag
 
 SourceCodeLocation DiagnosticElement::location(uint32_t spanIndex, const TaskContext& ctx) const
 {
-    if (!lexOut_ || spans_.empty())
+    if (!srcView_ || spans_.empty())
         return {};
     return location(spans_[spanIndex], ctx);
 }
 
 SourceCodeLocation DiagnosticElement::location(const DiagnosticSpan& span, const TaskContext& ctx) const
 {
-    if (!lexOut_)
+    if (!srcView_)
         return {};
     SourceCodeLocation loc;
-    loc.fromOffset(ctx, *lexOut_, span.offset, span.len);
+    loc.fromOffset(ctx, *srcView_, span.offset, span.len);
     return loc;
 }
 

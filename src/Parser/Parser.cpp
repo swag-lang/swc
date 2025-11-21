@@ -7,25 +7,25 @@ SWC_BEGIN_NAMESPACE()
 
 void Parser::setReportArguments(Diagnostic& diag, TokenRef tokenRef) const
 {
-    const auto& token = ast_->lexOut().token(tokenRef);
+    const auto& token = ast_->srcView().token(tokenRef);
 
-    diag.addArgument(Diagnostic::ARG_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->lexOut(), tokenRef));
+    diag.addArgument(Diagnostic::ARG_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokenRef));
     diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id), false);
     diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Token::toAFamily(token.id), false);
 
     // Get the last non-trivia token
     if (tokenRef.get() != 0)
     {
-        const auto& tokenPrev = ast_->lexOut().token(tokenRef.offset(-1));
-        diag.addArgument(Diagnostic::ARG_PREV_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->lexOut(), tokenRef.offset(-1)));
+        const auto& tokenPrev = ast_->srcView().token(tokenRef.offset(-1));
+        diag.addArgument(Diagnostic::ARG_PREV_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokenRef.offset(-1)));
         diag.addArgument(Diagnostic::ARG_PREV_TOK_FAM, Token::toFamily(tokenPrev.id), false);
         diag.addArgument(Diagnostic::ARG_PREV_A_TOK_FAM, Token::toAFamily(tokenPrev.id), false);
     }
 
-    if (tokenRef.get() < ast_->lexOut().tokens().size() - 1)
+    if (tokenRef.get() < ast_->srcView().tokens().size() - 1)
     {
-        const auto& tokenNext = ast_->lexOut().token(tokenRef.offset(1));
-        diag.addArgument(Diagnostic::ARG_NEXT_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->lexOut(), tokenRef.offset(1)));
+        const auto& tokenNext = ast_->srcView().token(tokenRef.offset(1));
+        diag.addArgument(Diagnostic::ARG_NEXT_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokenRef.offset(1)));
         diag.addArgument(Diagnostic::ARG_NEXT_TOK_FAM, Token::toFamily(tokenNext.id), false);
         diag.addArgument(Diagnostic::ARG_NEXT_A_TOK_FAM, Token::toAFamily(tokenNext.id), false);
     }
@@ -40,9 +40,9 @@ void Parser::setReportExpected(Diagnostic& diag, TokenId expectedTknId)
 
 Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
 {
-    auto diag = Diagnostic::get(id, ast_->lexOut().file());
+    auto diag = Diagnostic::get(id, ast_->srcView().file());
     setReportArguments(diag, tknRef);
-    diag.last().addSpan(Diagnostic::tokenErrorLocation(*ctx_, ast_->lexOut(), tknRef), "");
+    diag.last().addSpan(Diagnostic::tokenErrorLocation(*ctx_, ast_->srcView(), tknRef), "");
 
     if (tknRef == lastErrorToken_)
         diag.setSilent(true);
@@ -206,12 +206,12 @@ TokenRef Parser::expectAndConsumeClosing(TokenId closeId, TokenRef openRef, cons
         return consume();
 
     const auto openId = Token::toRelated(closeId);
-    const auto tok    = ast_->lexOut().token(openRef);
+    const auto tok    = ast_->srcView().token(openRef);
     auto       diag   = reportError(DiagnosticId::parser_err_expected_closing_before, ref());
     setReportExpected(diag, closeId);
 
     if (tok.id == openId)
-        diag.last().addSpan(Diagnostic::tokenErrorLocation(*ctx_, ast_->lexOut(), openRef), DiagnosticId::parser_note_opening, DiagnosticSeverity::Note);
+        diag.last().addSpan(Diagnostic::tokenErrorLocation(*ctx_, ast_->srcView(), openRef), DiagnosticId::parser_note_opening, DiagnosticSeverity::Note);
 
     diag.report(*ctx_);
 
@@ -239,7 +239,7 @@ void Parser::expectEndStatement()
         return;
 
     const auto diag = reportError(DiagnosticId::parser_err_expected_sep_stmt, ref().offset(-1));
-    auto       loc  = curToken_[-1].location(*ctx_, ast_->lexOut());
+    auto       loc  = curToken_[-1].location(*ctx_, ast_->srcView());
     loc.column += loc.len;
     loc.offset += loc.len;
     loc.len = 1;
@@ -257,8 +257,8 @@ void Parser::parse(TaskContext& ctx, Ast& ast)
     ctx_ = &ctx;
     ast_ = &ast;
 
-    firstToken_ = &ast_->lexOut().tokens().front();
-    lastToken_  = &ast_->lexOut().tokens().back();
+    firstToken_ = &ast_->srcView().tokens().front();
+    lastToken_  = &ast_->srcView().tokens().back();
     curToken_   = firstToken_;
 
     // Force the first node to be invalid, so that AstNodeRef 0 is invalid

@@ -31,7 +31,7 @@ public:
     const TypeManager&      typeMgr() const { return compiler().typeMgr(); }
     AstNode*                node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
     const AstNode*          node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
-    const Token&            token(TokenRef tokenRef) const { return visit_.currentLex().token(tokenRef); }
+    const Token&            token(TokenRef tokenRef) const { return visit_.curSrcView().token(tokenRef); }
 
     Diagnostic reportError(DiagnosticId id, TokenRef tknRef);
     void       raiseError(DiagnosticId id, TokenRef tknRef);

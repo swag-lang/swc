@@ -21,7 +21,7 @@ void SemaJob::raiseError(DiagnosticId id, TokenRef tknRef)
 void SemaJob::raiseError(DiagnosticId id, AstNodeRef nodeRef)
 {
     const auto  nodePtr = node(nodeRef);
-    const auto& info    = Ast::nodeIdInfos(nodePtr->id);
+    const auto& info    = Ast::nodeIdInfos(nodePtr->id());
 
     SmallVector<AstNodeRef> children;
     info.collectChildren(children, *ast_, *nodePtr);

@@ -30,11 +30,9 @@ using AstModifierFlags = EnumFlags<AstModifierFlagsE>;
 
 struct AstNode
 {
-    AstNodeId id = AstNodeId::Invalid;
-
     // ReSharper disable once CppPossiblyUninitializedMember
     explicit AstNode(AstNodeId nodeId) :
-        id(nodeId)
+        id_(nodeId)
     {
     }
 
@@ -83,7 +81,13 @@ struct AstNode
     void                 setConstant(ConstantRef ref);
     const ConstantValue& getConstant(const TaskContext& ctx) const;
 
+    AstNodeId id() const { return id_; }
+    void      setId(AstNodeId id) { id_ = id; }
+    bool      is(AstNodeId id) const { return id_ == id; }
+    bool      isNot(AstNodeId id) const { return id_ != id; }
+
 private:
+    AstNodeId                 id_ = AstNodeId::Invalid;
     ParserFlags               parserFlags_;
     SemaFlags                 semaFlags_;
     std::variant<ConstantRef> sema_;
@@ -103,7 +107,7 @@ template<typename T>
 T* castAst(AstNode* node)
 {
     SWC_ASSERT(node);
-    SWC_ASSERT(node->id == T::ID);
+    SWC_ASSERT(node->is(T::ID));
     return reinterpret_cast<T*>(node);
 }
 
@@ -111,7 +115,7 @@ template<typename T>
 const T* castAst(const AstNode* node)
 {
     SWC_ASSERT(node);
-    SWC_ASSERT(node->id == T::ID);
+    SWC_ASSERT(node->is(T::ID));
     return reinterpret_cast<const T*>(node);
 }
 

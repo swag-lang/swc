@@ -39,8 +39,8 @@ AstVisitResult AstVisit::step()
 
             fr.node = ast_->node(fr.nodeRef);
 
-            SWC_ASSERT(fr.node->id != AstNodeId::Invalid);
-            SWC_ASSERT(fr.node->id < AstNodeId::Count);
+            SWC_ASSERT(fr.node->isNot(AstNodeId::Invalid));
+            SWC_ASSERT(fr.node->id() < AstNodeId::Count);
 
 #if SWC_HAS_STATS
             Stats::get().numVisitedAstNodes.fetch_add(1);
@@ -62,7 +62,7 @@ AstVisitResult AstVisit::step()
                 }
             }
 
-            const auto& info = Ast::nodeIdInfos(fr.node->id);
+            const auto& info = Ast::nodeIdInfos(fr.node->id());
             fr.firstChildIx  = children_.size32();
             info.collectChildren(children_, *ast_, *fr.node);
             fr.numChildren = children_.size32() - fr.firstChildIx;

@@ -21,7 +21,7 @@ SemaJob::SemaJob(const TaskContext& ctx, Ast* ast, AstNodeRef root) :
 
 AstVisitStepResult SemaJob::preNode(AstNode& node)
 {
-    const auto& info = Ast::nodeIdInfos(node.id);
+    const auto& info = Ast::nodeIdInfos(node.id());
     if (!info.semaPreNode)
         return AstVisitStepResult::Continue;
     return info.semaPreNode(*this, node);
@@ -29,7 +29,7 @@ AstVisitStepResult SemaJob::preNode(AstNode& node)
 
 AstVisitStepResult SemaJob::postNode(AstNode& node)
 {
-    const auto& info = Ast::nodeIdInfos(node.id);
+    const auto& info = Ast::nodeIdInfos(node.id());
     if (!info.semaPostNode)
         return AstVisitStepResult::Continue;
     return info.semaPostNode(*this, node);
@@ -37,7 +37,7 @@ AstVisitStepResult SemaJob::postNode(AstNode& node)
 
 AstVisitStepResult SemaJob::preChild(AstNode& node, AstNodeRef& childRef)
 {
-    const auto& info = Ast::nodeIdInfos(node.id);
+    const auto& info = Ast::nodeIdInfos(node.id());
     if (!info.semaPreChild)
         return AstVisitStepResult::Continue;
     return info.semaPreChild(*this, node, childRef);

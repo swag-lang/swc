@@ -38,6 +38,48 @@ namespace
     constexpr auto DIAGNOSTIC_INFOS = makeDiagnosticInfos();
 }
 
+Utf8 Diagnostic::tokenErrorString(const TaskContext&, const LexerOutput& lexOut, TokenRef tokenRef)
+{
+    constexpr static size_t MAX_TOKEN_STR_LEN = 40;
+    const auto&             token             = lexOut.token(tokenRef);
+    Utf8                    str               = token.string(lexOut);
+
+    if (token.hasFlag(TokenFlagsE::EolInside))
+    {
+        const auto pos = str.find_first_of("\n\r");
+        if (pos != Utf8::npos)
+        {
+            str = str.substr(0, std::min(pos, static_cast<size_t>(MAX_TOKEN_STR_LEN)));
+            str += " ...";
+            return str;
+        }
+    }
+
+    if (str.length() > MAX_TOKEN_STR_LEN)
+    {
+        str = str.substr(0, MAX_TOKEN_STR_LEN);
+        str += " ...";
+    }
+
+    return str;
+}
+
+SourceCodeLocation Diagnostic::tokenErrorLocation(const TaskContext& ctx, const LexerOutput& lexOut, TokenRef tokenRef)
+{
+    const auto& token = lexOut.token(tokenRef);
+    auto        loc   = token.location(ctx, lexOut);
+
+    if (token.hasFlag(TokenFlagsE::EolInside))
+    {
+        const auto str = token.string(lexOut);
+        const auto pos = str.find_first_of("\n\r");
+        if (pos != Utf8::npos)
+            loc.len = static_cast<uint32_t>(pos);
+    }
+
+    return loc;
+}
+
 std::string_view Diagnostic::diagIdMessage(DiagnosticId id)
 {
     return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].msg;

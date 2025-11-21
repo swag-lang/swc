@@ -2,57 +2,14 @@
 #include "Parser/Parser.h"
 #include "Core/Timer.h"
 #include "Main/Stats.h"
-#include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE()
-
-Utf8 Parser::tokenErrorString(TokenRef tokenRef) const
-{
-    constexpr static size_t MAX_TOKEN_STR_LEN = 40;
-    const auto&             token             = ast_->lexOut().token(tokenRef);
-    Utf8                    str               = token.string(ast_->lexOut());
-
-    if (token.hasFlag(TokenFlagsE::EolInside))
-    {
-        const auto pos = str.find_first_of("\n\r");
-        if (pos != Utf8::npos)
-        {
-            str = str.substr(0, std::min(pos, static_cast<size_t>(MAX_TOKEN_STR_LEN)));
-            str += " ...";
-            return str;
-        }
-    }
-
-    if (str.length() > MAX_TOKEN_STR_LEN)
-    {
-        str = str.substr(0, MAX_TOKEN_STR_LEN);
-        str += " ...";
-    }
-
-    return str;
-}
-
-SourceCodeLocation Parser::tokenErrorLocation(TokenRef tokenRef) const
-{
-    const auto& token = ast_->lexOut().token(tokenRef);
-    auto        loc   = token.location(*ctx_, ast_->lexOut());
-
-    if (token.hasFlag(TokenFlagsE::EolInside))
-    {
-        const auto str = token.string(ast_->lexOut());
-        const auto pos = str.find_first_of("\n\r");
-        if (pos != Utf8::npos)
-            loc.len = static_cast<uint32_t>(pos);
-    }
-
-    return loc;
-}
 
 void Parser::setReportArguments(Diagnostic& diag, TokenRef tokenRef) const
 {
     const auto& token = ast_->lexOut().token(tokenRef);
 
-    diag.addArgument(Diagnostic::ARG_TOK, tokenErrorString(tokenRef));
+    diag.addArgument(Diagnostic::ARG_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->lexOut(), tokenRef));
     diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id), false);
     diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Token::toAFamily(token.id), false);
 
@@ -60,7 +17,7 @@ void Parser::setReportArguments(Diagnostic& diag, TokenRef tokenRef) const
     if (tokenRef.get() != 0)
     {
         const auto& tokenPrev = ast_->lexOut().token(tokenRef.offset(-1));
-        diag.addArgument(Diagnostic::ARG_PREV_TOK, tokenErrorString(tokenRef.offset(-1)));
+        diag.addArgument(Diagnostic::ARG_PREV_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->lexOut(), tokenRef.offset(-1)));
         diag.addArgument(Diagnostic::ARG_PREV_TOK_FAM, Token::toFamily(tokenPrev.id), false);
         diag.addArgument(Diagnostic::ARG_PREV_A_TOK_FAM, Token::toAFamily(tokenPrev.id), false);
     }
@@ -68,7 +25,7 @@ void Parser::setReportArguments(Diagnostic& diag, TokenRef tokenRef) const
     if (tokenRef.get() < ast_->lexOut().tokens().size() - 1)
     {
         const auto& tokenNext = ast_->lexOut().token(tokenRef.offset(1));
-        diag.addArgument(Diagnostic::ARG_NEXT_TOK, tokenErrorString(tokenRef.offset(1)));
+        diag.addArgument(Diagnostic::ARG_NEXT_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->lexOut(), tokenRef.offset(1)));
         diag.addArgument(Diagnostic::ARG_NEXT_TOK_FAM, Token::toFamily(tokenNext.id), false);
         diag.addArgument(Diagnostic::ARG_NEXT_A_TOK_FAM, Token::toAFamily(tokenNext.id), false);
     }
@@ -85,7 +42,7 @@ Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
 {
     auto diag = Diagnostic::get(id, ast_->lexOut().file());
     setReportArguments(diag, tknRef);
-    diag.last().addSpan(tokenErrorLocation(tknRef), "");
+    diag.last().addSpan(Diagnostic::tokenErrorLocation(*ctx_, ast_->lexOut(), tknRef), "");
 
     if (tknRef == lastErrorToken_)
         diag.setSilent(true);
@@ -254,7 +211,7 @@ TokenRef Parser::expectAndConsumeClosing(TokenId closeId, TokenRef openRef, cons
     setReportExpected(diag, closeId);
 
     if (tok.id == openId)
-        diag.last().addSpan(tokenErrorLocation(openRef), DiagnosticId::parser_note_opening, DiagnosticSeverity::Note);
+        diag.last().addSpan(Diagnostic::tokenErrorLocation(*ctx_, ast_->lexOut(), openRef), DiagnosticId::parser_note_opening, DiagnosticSeverity::Note);
 
     diag.report(*ctx_);
 

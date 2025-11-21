@@ -68,3 +68,7 @@ SWC_DIAG_DEF(parser_err_misplaced_global)
 SWC_DIAG_DEF(parser_err_empty_var_decl)
 SWC_DIAG_DEF(parser_err_inject_instruction_done)
 SWC_DIAG_DEF(parser_err_inject_invalid_instruction)
+
+// Sema errors
+SWC_DIAG_DEF(sema_err_expr_not_const)
+

@@ -70,6 +70,9 @@ public:
     static std::string_view   diagIdName(DiagnosticId id);
     static DiagnosticSeverity diagIdSeverity(DiagnosticId id);
 
+    static Utf8               tokenErrorString(const TaskContext& ctx, const LexerOutput& lexOut, TokenRef tokenRef);
+    static SourceCodeLocation tokenErrorLocation(const TaskContext& ctx, const LexerOutput& lexOut, TokenRef tokenRef);
+
     template<typename T>
     void addArgument(std::string_view name, T&& arg, bool quoted = true)
     {

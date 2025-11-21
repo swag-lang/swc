@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Parser/AstNodes.h"
+#include "Report/DiagnosticDef.h"
 #include "Sema/ConstantManager.h"
 #include "Sema/SemaJob.h"
 
@@ -10,11 +11,14 @@ AstVisitStepResult AstCompilerIf::semaPreChild(SemaJob& job, const AstNodeRef& c
     if (childRef == nodeCondition)
         return AstVisitStepResult::Continue;
 
-    const auto nodeCond = job.node(nodeCondition);
-    if (!nodeCond->isConstant())
-        return AstVisitStepResult::Stop;
+    const auto nodeConditionPtr = job.node(nodeCondition);
+    if (!nodeConditionPtr->isConstant())
+    {
+        job.raiseError(DiagnosticId::sema_err_expr_not_const, nodeCondition);
+        return AstVisitStepResult::Continue;
+    }
 
-    const auto& constant = nodeCond->getConstant(job.ctx());
+    const auto& constant = nodeConditionPtr->getConstant(job.ctx());
     if (!constant.isBool())
         return AstVisitStepResult::Stop;
 

@@ -1,5 +1,4 @@
 #include "pch.h"
-
 #include "ConstantManager.h"
 #include "Parser/Ast.h"
 #include "Parser/AstNodes.h"

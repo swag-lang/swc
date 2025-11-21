@@ -32,6 +32,10 @@ public:
     AstNode*                node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
     const AstNode*          node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
     const Token&            token(TokenRef tokenRef) const { return visit_.currentLex().token(tokenRef); }
+
+    Diagnostic reportError(DiagnosticId id, TokenRef tknRef);
+    void       raiseError(DiagnosticId id, TokenRef tknRef);
+    void       raiseError(DiagnosticId id, AstNodeRef nodeRef);
 };
 
 SWC_END_NAMESPACE()

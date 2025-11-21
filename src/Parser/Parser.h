@@ -196,13 +196,11 @@ class Parser
     bool skipAfter(const SmallVector<TokenId>& targets, SkipUntilFlags flags = SkipUntilFlagsE::Zero);
     bool skip(const SmallVector<TokenId>& targets, SkipUntilFlags flags);
 
-    Utf8               tokenErrorString(TokenRef tokenRef) const;
-    SourceCodeLocation tokenErrorLocation(TokenRef tokenRef) const;
-    void               setReportArguments(Diagnostic& diag, TokenRef tokenRef) const;
-    static void        setReportExpected(Diagnostic& diag, TokenId expectedTknId);
-    Diagnostic         reportError(DiagnosticId id, TokenRef tknRef);
-    void               raiseError(DiagnosticId id, TokenRef tknRef);
-    void               raiseExpected(DiagnosticId id, TokenRef tknRef, TokenId tknExpected);
+    void        setReportArguments(Diagnostic& diag, TokenRef tokenRef) const;
+    static void setReportExpected(Diagnostic& diag, TokenId expectedTknId);
+    Diagnostic  reportError(DiagnosticId id, TokenRef tknRef);
+    void        raiseError(DiagnosticId id, TokenRef tknRef);
+    void        raiseExpected(DiagnosticId id, TokenRef tknRef, TokenId tknExpected);
 
 public:
     void parse(TaskContext& ctx, Ast& ast);

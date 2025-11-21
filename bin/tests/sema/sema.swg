@@ -1,4 +1,4 @@
-#if true toto
+#if true
 {
 }
 #else

@@ -15,6 +15,11 @@ struct AstCompoundT : AstNodeT<I>
 {
     SpanRef spanChildren;
 
+    explicit AstCompoundT(TokenRef tokRef) :
+        AstNodeT<I>(tokRef)
+    {
+    }
+
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, ast, spanChildren);
@@ -27,6 +32,11 @@ struct AstLambdaExprT : AstNodeT<I>
     SpanRef    spanArgs;
     AstNodeRef nodeReturnType;
     AstNodeRef nodeBody;
+
+    explicit AstLambdaExprT(TokenRef tokRef) :
+        AstNodeT<I>(tokRef)
+    {
+    }
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
@@ -41,6 +51,11 @@ struct AstBinaryT : AstNodeT<I>
     AstNodeRef nodeLeft;
     AstNodeRef nodeRight;
 
+    explicit AstBinaryT(TokenRef tokRef) :
+        AstNodeT<I>(tokRef)
+    {
+    }
+
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeLeft, nodeRight});
@@ -50,6 +65,10 @@ struct AstBinaryT : AstNodeT<I>
 template<AstNodeId I>
 struct AstLiteralT : AstNodeT<I>
 {
+    explicit AstLiteralT(TokenRef tokRef) :
+        AstNodeT<I>(tokRef)
+    {
+    }
 };
 
 template<AstNodeId I>
@@ -59,6 +78,11 @@ struct AstAggregateDeclT : AstNodeT<I>
     SpanRef    spanGenericParams;
     SpanRef    spanWhere;
     AstNodeRef nodeBody;
+
+    explicit AstAggregateDeclT(TokenRef tokRef) :
+        AstNodeT<I>(tokRef)
+    {
+    }
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
@@ -73,6 +97,11 @@ struct AstAnonymousAggregateDeclT : AstNodeT<I>
 {
     AstNodeRef nodeBody;
 
+    explicit AstAnonymousAggregateDeclT(TokenRef tokRef) :
+        AstNodeT<I>(tokRef)
+    {
+    }
+
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeBody});
@@ -85,6 +114,11 @@ struct AstIfBaseT : AstNodeT<I>
     AstNodeRef nodeIfBlock;
     AstNodeRef nodeElseBlock;
 
+    explicit AstIfBaseT(TokenRef tokRef) :
+        AstNodeT<I>(tokRef)
+    {
+    }
+
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeIfBlock, nodeElseBlock});
@@ -96,6 +130,11 @@ struct AstIntrinsicInitDropCopyMoveT : AstNodeT<I>
 {
     AstNodeRef nodeWhat;
     AstNodeRef nodeCount;
+
+    explicit AstIntrinsicInitDropCopyMoveT(TokenRef tokRef) :
+        AstNodeT<I>(tokRef)
+    {
+    }
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {

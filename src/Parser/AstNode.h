@@ -100,7 +100,7 @@ template<AstNodeId I>
 struct AstNodeT : AstNode
 {
     static constexpr auto ID = I;
-    AstNodeT(TokenRef tokRef) :
+    explicit AstNodeT(TokenRef tokRef) :
         AstNode(I, tokRef)
     {
     }

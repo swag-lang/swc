@@ -17,7 +17,7 @@
 
 #if true
 {
-    #error("to\xFFto")
+    #error("to\ato")
 }
 #else
 {

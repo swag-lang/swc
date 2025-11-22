@@ -124,10 +124,10 @@ void Diagnostic::addArgument(std::string_view name, std::string_view arg, bool q
             continue;
         }
 
-        if (wc < 128 && !std::isprint(static_cast<int>(wc)))
+        if (wc < 128 && !std::isprint(static_cast<int>(wc)) || wc >= 128)
         {
             char hex[10];
-            (void) std::snprintf(hex, sizeof(hex), "<0x%02X>", wc);
+            (void) std::snprintf(hex, sizeof(hex), "\\x%02X", wc);
             sanitized += hex;
             ptr = buf;
         }

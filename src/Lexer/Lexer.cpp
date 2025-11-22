@@ -54,7 +54,7 @@ Diagnostic Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t le
     if (len)
     {
         const std::string_view tkn = srcView_->codeView(offset, len);
-        diag.addArgument(Diagnostic::ARG_TOK, tkn);
+        diag.addArgument(Lexer::ARG_TOK, tkn);
     }
 
     return diag;

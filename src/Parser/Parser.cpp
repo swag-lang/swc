@@ -9,33 +9,33 @@ void Parser::setReportArguments(Diagnostic& diag, TokenRef tokenRef) const
 {
     const auto& token = ast_->srcView().token(tokenRef);
 
-    diag.addArgument(Diagnostic::ARG_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokenRef));
-    diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id), false);
-    diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Token::toAFamily(token.id), false);
+    diag.addArgument(Lexer::ARG_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokenRef));
+    diag.addArgument(Lexer::ARG_TOK_FAM, Token::toFamily(token.id), false);
+    diag.addArgument(Lexer::ARG_A_TOK_FAM, Token::toAFamily(token.id), false);
 
     // Get the last non-trivia token
     if (tokenRef.get() != 0)
     {
         const auto& tokenPrev = ast_->srcView().token(tokenRef.offset(-1));
-        diag.addArgument(Diagnostic::ARG_PREV_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokenRef.offset(-1)));
-        diag.addArgument(Diagnostic::ARG_PREV_TOK_FAM, Token::toFamily(tokenPrev.id), false);
-        diag.addArgument(Diagnostic::ARG_PREV_A_TOK_FAM, Token::toAFamily(tokenPrev.id), false);
+        diag.addArgument(Lexer::ARG_PREV_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokenRef.offset(-1)));
+        diag.addArgument(Lexer::ARG_PREV_TOK_FAM, Token::toFamily(tokenPrev.id), false);
+        diag.addArgument(Lexer::ARG_PREV_A_TOK_FAM, Token::toAFamily(tokenPrev.id), false);
     }
 
     if (tokenRef.get() < ast_->srcView().tokens().size() - 1)
     {
         const auto& tokenNext = ast_->srcView().token(tokenRef.offset(1));
-        diag.addArgument(Diagnostic::ARG_NEXT_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokenRef.offset(1)));
-        diag.addArgument(Diagnostic::ARG_NEXT_TOK_FAM, Token::toFamily(tokenNext.id), false);
-        diag.addArgument(Diagnostic::ARG_NEXT_A_TOK_FAM, Token::toAFamily(tokenNext.id), false);
+        diag.addArgument(Lexer::ARG_NEXT_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokenRef.offset(1)));
+        diag.addArgument(Lexer::ARG_NEXT_TOK_FAM, Token::toFamily(tokenNext.id), false);
+        diag.addArgument(Lexer::ARG_NEXT_A_TOK_FAM, Token::toAFamily(tokenNext.id), false);
     }
 }
 
 void Parser::setReportExpected(Diagnostic& diag, TokenId expectedTknId)
 {
-    diag.addArgument(Diagnostic::ARG_EXPECT, Token::toName(expectedTknId));
-    diag.addArgument(Diagnostic::ARG_EXPECT_FAM, Token::toFamily(expectedTknId), false);
-    diag.addArgument(Diagnostic::ARG_A_EXPECT_FAM, Token::toAFamily(expectedTknId), false);
+    diag.addArgument(Lexer::ARG_EXPECT_TOK, Token::toName(expectedTknId));
+    diag.addArgument(Lexer::ARG_EXPECT_TOK_FAM, Token::toFamily(expectedTknId), false);
+    diag.addArgument(Lexer::ARG_EXPECT_A_TOK_FAM, Token::toAFamily(expectedTknId), false);
 }
 
 Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)

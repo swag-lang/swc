@@ -289,8 +289,7 @@ void CommandLineParser::printHelp(const TaskContext& ctx)
 
 Result CommandLineParser::parse(int argc, char* argv[])
 {
-    CompilerInstance  compInst(*global_, *cmdLine_);
-    const TaskContext ctx(compInst);
+    const TaskContext ctx(*global_, *cmdLine_);
 
     if (argc == 1)
     {

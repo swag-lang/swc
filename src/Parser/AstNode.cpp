@@ -46,56 +46,24 @@ TokenRef AstNode::tokRefEnd(const Ast& ast) const
     return nodePtr->tokRefEnd(ast);
 }
 
-namespace
-{
-    // Return the actual starting byte offset of a token, accounting for identifiers table
-    uint32_t tokenStartOffset(const SourceView& view, const Token& tok)
-    {
-        if (tok.id == TokenId::Identifier)
-            return view.identifiers()[tok.byteStart].byteStart;
-        return tok.byteStart;
-    }
-
-    // Return length clamped to the first EOL within the token text (remain on the same line)
-    uint32_t tokenLenClampedSameLine(const SourceView& view, const Token& tok)
-    {
-        const auto sv  = tok.string(view);
-        const auto pos = sv.find_first_of("\n\r");
-        if (pos == std::string_view::npos)
-            return tok.byteLength;
-        return static_cast<uint32_t>(pos);
-    }
-
-    // Compute a 0-based line index for a given byte offset using SourceView::lines()
-    size_t lineIndexForOffset(const std::vector<uint32_t>& lines, uint32_t offset)
-    {
-        auto it = std::ranges::upper_bound(lines, offset);
-        if (it == lines.begin())
-            return 0;
-        --it;
-        return static_cast<size_t>(std::distance(lines.begin(), it));
-    }
-}
-
 SourceCodeLocation AstNode::location(const TaskContext& ctx, const Ast& ast) const
 {
     SourceCodeLocation loc{};
 
     // Always use the SourceView of the node itself
-    const auto  baseViewRef = srcViewRef_;
-    auto&       view        = ctx.compiler().srcView(baseViewRef);
-    const auto& lines       = view.lines();
-    if (tokRef_.isInvalid() || view.tokens().empty() || lines.empty())
+    const auto baseViewRef = srcViewRef_;
+    auto&      view        = ctx.compiler().srcView(baseViewRef);
+    if (tokRef_.isInvalid() || view.tokens().empty())
         return loc;
 
-    // baseline comes from this node token
-    const auto&    baseTok     = view.token(tokRef_);
-    const uint32_t baseStart   = tokenStartOffset(view, baseTok);
-    const auto     baseLineIdx = lineIndexForOffset(lines, baseStart);
+    // Baseline comes from this node token
+    const auto& baseTok  = view.token(tokRef_);
+    const auto  baseLoc  = baseTok.location(ctx, view);
+    const auto  baseLine = baseLoc.line;
 
     // Descend left-most while staying on the same line and same SourceView
-    auto     leftMost = this;
-    uint32_t startOff = baseStart;
+    auto               leftMost = this;
+    SourceCodeLocation startLoc = baseLoc;
     while (true)
     {
         SmallVector<AstNodeRef> children;
@@ -106,17 +74,17 @@ SourceCodeLocation AstNode::location(const TaskContext& ctx, const Ast& ast) con
         if (childPtr->srcViewRef() != baseViewRef)
             break;
         const auto& childTok = view.token(childPtr->tokRef());
-        const auto  cStart   = tokenStartOffset(view, childTok);
-        if (lineIndexForOffset(lines, cStart) != baseLineIdx)
+        const auto  childLoc = childTok.location(ctx, view);
+        if (childLoc.line != baseLine)
             break;
         leftMost = childPtr;
-        startOff = cStart;
+        if (childLoc.offset < startLoc.offset)
+            startLoc = childLoc;
     }
 
     // Descend right-most while staying on the same line and same SourceView
-    auto     rightMost = this;
-    uint32_t endStart  = baseStart;
-    uint32_t endLen    = tokenLenClampedSameLine(view, baseTok);
+    auto               rightMost = this;
+    SourceCodeLocation endLoc    = baseTok.location(ctx, view);
     while (true)
     {
         SmallVector<AstNodeRef> children;
@@ -127,18 +95,18 @@ SourceCodeLocation AstNode::location(const TaskContext& ctx, const Ast& ast) con
         if (childPtr->srcViewRef() != baseViewRef)
             break;
         const auto& childTok = view.token(childPtr->tokRef());
-        const auto  cStart   = tokenStartOffset(view, childTok);
-        if (lineIndexForOffset(lines, cStart) != baseLineIdx)
+        const auto  childLoc = childTok.location(ctx, view);
+        if (childLoc.line != baseLine)
             break;
-        rightMost           = childPtr;
-        const auto& lastTok = view.token(rightMost->tokRefEnd(ast));
-        endStart            = tokenStartOffset(view, lastTok);
-        endLen              = tokenLenClampedSameLine(view, lastTok);
+        rightMost = childPtr;
+        if (childLoc.offset > endLoc.offset)
+            endLoc = childLoc;
     }
 
     // Compute span and fill location
-    const uint32_t endByte = endStart + endLen;
-    const uint32_t spanLen = endByte > startOff ? (endByte - startOff) : 1u;
+    const uint32_t startOff = startLoc.offset;
+    const uint32_t endByte  = endLoc.offset + endLoc.len;
+    const uint32_t spanLen  = endByte > startOff ? (endByte - startOff) : 1u;
     loc.fromOffset(ctx, view, startOff, spanLen);
     return loc;
 }

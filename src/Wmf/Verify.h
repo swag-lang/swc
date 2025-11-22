@@ -28,8 +28,8 @@ using VerifyFlags = EnumFlags<VerifyFlagsE>;
 
 class Verify
 {
-    SourceFile*                  file_ = nullptr;
-    SourceView                   srcView_;
+    SourceFile*                  file_    = nullptr;
+    SourceView*                  srcView_ = nullptr;
     std::vector<VerifyDirective> directives_;
     VerifyFlags                  flags_ = VerifyFlagsE::Zero;
 

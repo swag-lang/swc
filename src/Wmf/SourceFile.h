@@ -46,7 +46,7 @@ public:
     Verify&          unitTest() { return *unitTest_; }
     const Verify&    unitTest() const { return *unitTest_; }
 
-    Result loadContent(const TaskContext& ctx);
+    Result loadContent(TaskContext& ctx);
 };
 
 SWC_END_NAMESPACE()

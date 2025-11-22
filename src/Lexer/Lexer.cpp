@@ -1362,6 +1362,16 @@ void Lexer::buildTriviaIndex() const
     triviaStart[numTok] = tIdx;
 }
 
+SourceView::SourceView(SourceViewRef ref, const SourceFile* file) :
+    ref_(ref)
+{
+    if (file)
+    {
+        file_       = file->fileRef();
+        sourceView_ = file->sourceView();
+    }
+}
+
 Utf8 SourceView::codeLine(const TaskContext& ctx, uint32_t line) const
 {
     line--;
@@ -1417,12 +1427,6 @@ std::string_view SourceView::codeView(uint32_t offset, uint32_t len) const
 {
     SWC_ASSERT(offset + len <= sourceView_.size());
     return std::string_view{sourceView_.data() + offset, len};
-}
-
-void SourceView::setFile(const SourceFile* file)
-{
-    file_       = file->fileRef();
-    sourceView_ = file->sourceView();
 }
 
 std::pair<uint32_t, uint32_t> SourceView::triviaRangeForToken(TokenRef tok) const

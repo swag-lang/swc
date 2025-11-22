@@ -92,7 +92,7 @@ void Verify::tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia
         }
 
         // Base location info
-        directive.myLoc.fromOffset(ctx, srcView_,
+        directive.myLoc.fromOffset(ctx, *srcView_,
                                    trivia.token.byteStart + static_cast<uint32_t>(pos),
                                    static_cast<uint32_t>(LangSpec::VERIFY_COMMENT_EXPECTED.size()) + static_cast<uint32_t>(word.size()));
         directive.loc = directive.myLoc;
@@ -144,16 +144,16 @@ void Verify::tokenize(TaskContext& ctx)
     if (!ctx.cmdLine().verify)
         return;
 
-    srcView_.setFile(file_);
+    srcView_ = ctx.compiler().addSourceView(file_->fileRef());
 
     // Get all comments from the file
     Lexer lexer;
-    lexer.tokenizeRaw(ctx, srcView_);
+    lexer.tokenizeRaw(ctx, *srcView_);
 
     // Parse all comments to find a verify directive
-    for (const auto& trivia : srcView_.trivia())
+    for (const auto& trivia : srcView_->trivia())
     {
-        const std::string_view comment = trivia.token.string(srcView_);
+        const std::string_view comment = trivia.token.string(*srcView_);
         tokenizeExpected(ctx, trivia, comment);
         tokenizeOption(ctx, comment);
     }

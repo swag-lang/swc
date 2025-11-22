@@ -47,14 +47,16 @@ struct TokenTag{};
 struct SpanTag{};
 struct TypeTag{};
 struct ConstantTag{};
+struct SourceViewTag{};
 // clang-format on
 
 // Type definitions
-using AstNodeRef  = StrongRef<AstNodeTag>;
-using FileRef     = StrongRef<FileTag>;
-using TokenRef    = StrongRef<TokenTag>;
-using SpanRef     = StrongRef<SpanTag>;
-using TypeInfoRef = StrongRef<TypeTag>;
-using ConstantRef = StrongRef<ConstantTag>;
+using AstNodeRef    = StrongRef<AstNodeTag>;
+using FileRef       = StrongRef<FileTag>;
+using TokenRef      = StrongRef<TokenTag>;
+using SpanRef       = StrongRef<SpanTag>;
+using TypeInfoRef   = StrongRef<TypeTag>;
+using ConstantRef   = StrongRef<ConstantTag>;
+using SourceViewRef = StrongRef<SourceViewTag>;
 
 SWC_END_NAMESPACE()

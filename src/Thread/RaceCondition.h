@@ -51,10 +51,10 @@ private:
 
 // clang-format off
 #if SWC_HAS_RACE_CONDITION
-#define SWC_RACE_CONDITION_WRITE(__x)    RaceCondition _swc_rcg_write(__x, RaceCondition::Mode::Write)
-#define SWC_RACE_CONDITION_WRITE1(__x)   RaceCondition _swc_rcg_write1(__x, RaceCondition::Mode::Write)
-#define SWC_RACE_CONDITION_READ(__x)     RaceCondition _swc_rcg_read(__x, RaceCondition::Mode::Read)
-#define SWC_RACE_CONDITION_READ1(__x)    RaceCondition _swc_rcg_read1(__x, RaceCondition::Mode::Read)
+#define SWC_RACE_CONDITION_WRITE(__x)    RaceCondition _swc_rcg_write(&__x, RaceCondition::Mode::Write)
+#define SWC_RACE_CONDITION_WRITE1(__x)   RaceCondition _swc_rcg_write1(&__x, RaceCondition::Mode::Write)
+#define SWC_RACE_CONDITION_READ(__x)     RaceCondition _swc_rcg_read(&__x, RaceCondition::Mode::Read)
+#define SWC_RACE_CONDITION_READ1(__x)    RaceCondition _swc_rcg_read1(&__x, RaceCondition::Mode::Read)
 #define SWC_RACE_CONDITION_INSTANCE(__x) mutable RaceCondition::Instance __x
 #else
 #define SWC_RACE_CONDITION_WRITE(__x)    do { } while (0)

@@ -2,6 +2,7 @@
 #include "Main/CompilerInstance.h"
 #include "Core/Timer.h"
 #include "Core/Utf8Helper.h"
+#include "Lexer/SourceView.h"
 #include "Main/Command.h"
 #include "Main/CommandLine.h"
 #include "Main/FileSystem.h"
@@ -110,16 +111,37 @@ ExitCode CompilerInstance::run()
     return ExitCode::Success;
 }
 
-FileRef CompilerInstance::addFile(fs::path path, FileFlags flags)
+SourceView* CompilerInstance::addSourceView()
 {
+    std::unique_lock  lock(mutex_);
+    const auto        srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
+    const SourceFile* filePtr    = nullptr;
+    srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, nullptr));
+    return srcViews_.back().get();
+}
+
+SourceView* CompilerInstance::addSourceView(FileRef fileRef)
+{
+    SWC_ASSERT(fileRef.isValid());
+    SWC_RACE_CONDITION_READ(rcFiles_);
+    std::unique_lock lock(mutex_);
+    const auto       srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
+    srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, file(fileRef)));
+    return srcViews_.back().get();
+}
+
+SourceFile* CompilerInstance::addFile(fs::path path, FileFlags flags)
+{
+    SWC_RACE_CONDITION_WRITE(rcFiles_);
     path               = fs::absolute(path);
     const auto fileRef = static_cast<FileRef>(static_cast<uint32_t>(files_.size()));
     files_.emplace_back(std::make_unique<SourceFile>(fileRef, std::move(path), flags));
-    return fileRef;
+    return files_.back().get();
 }
 
 std::vector<SourceFile*> CompilerInstance::files() const
 {
+    SWC_RACE_CONDITION_READ(rcFiles_);
     std::vector<SourceFile*> result;
     result.reserve(files_.size());
     for (const auto& f : files_)

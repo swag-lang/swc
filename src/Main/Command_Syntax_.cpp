@@ -34,9 +34,10 @@ namespace Command
 
         for (const auto& f : compiler.files())
         {
-            if (f->ast().srcView().mustSkip())
+            const auto& srcView = f->ast().srcView();
+            if (srcView.mustSkip())
                 continue;
-            f->unitTest().verifyUntouchedExpected(ctx, f->ast().srcView());
+            f->unitTest().verifyUntouchedExpected(ctx, srcView);
         }
     }
 }

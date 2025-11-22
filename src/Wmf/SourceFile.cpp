@@ -1,7 +1,9 @@
 ﻿#include "pch.h"
 #include "Wmf/SourceFile.h"
 #include "Core/Timer.h"
+#include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
+#include "Main/TaskContext.h"
 #include "Os/Os.h"
 #include "Parser/Ast.h"
 #include "Report/Diagnostic.h"
@@ -20,7 +22,7 @@ SourceFile::SourceFile(FileRef fileRef, fs::path path, FileFlags flags) :
     unitTest_ = std::make_unique<Verify>(this);
 }
 
-Result SourceFile::loadContent(const TaskContext& ctx)
+Result SourceFile::loadContent(TaskContext& ctx)
 {
     if (!content_.empty())
         return Result::Success;
@@ -39,8 +41,7 @@ Result SourceFile::loadContent(const TaskContext& ctx)
     {
         auto diag = Diagnostic::get(DiagnosticId::io_err_open_file, fileRef());
         diag.addArgument(Diagnostic::ARG_PATH, path_.string());
-        diag.addArgument(Diagnostic::ARG_BECAUSE, Os::systemError());
-        diag.last().setSrcView(&ast_->srcView());
+        diag.addArgument(Diagnostic::ARG_BECAUSE, Os::systemError(), false);
         diag.report(ctx);
         return Result::Error;
     }
@@ -54,8 +55,7 @@ Result SourceFile::loadContent(const TaskContext& ctx)
     {
         auto diag = Diagnostic::get(DiagnosticId::io_err_read_file, fileRef());
         diag.addArgument(Diagnostic::ARG_PATH, path_.string());
-        diag.addArgument(Diagnostic::ARG_BECAUSE, Os::systemError());
-        diag.last().setSrcView(&ast_->srcView());
+        diag.addArgument(Diagnostic::ARG_BECAUSE, Os::systemError(), false);
         diag.report(ctx);
         return Result::Error;
     }
@@ -64,7 +64,8 @@ Result SourceFile::loadContent(const TaskContext& ctx)
     for (int i = 0; i < TRAILING_0; i++)
         content_.push_back(0);
 
-    ast_->srcView().setFile(this);
+    const auto srcView = ctx.compiler().addSourceView(fileRef_);
+    ast_->setSourceView(srcView);
     return Result::Success;
 }
 

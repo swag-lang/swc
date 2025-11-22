@@ -67,19 +67,6 @@ class Lexer
     void lexMultiLineComment();
 
 public:
-    constexpr static std::string_view ARG_TOK              = "{tok}";
-    constexpr static std::string_view ARG_TOK_FAM          = "{tok-fam}";
-    constexpr static std::string_view ARG_A_TOK_FAM        = "{a-tok-fam}";
-    constexpr static std::string_view ARG_EXPECT_TOK       = "{expect-tok}";
-    constexpr static std::string_view ARG_EXPECT_TOK_FAM   = "{expect-tok-fam}";
-    constexpr static std::string_view ARG_EXPECT_A_TOK_FAM = "{expect-a-tok-fam}";
-    constexpr static std::string_view ARG_PREV_TOK         = "{prev-tok}";
-    constexpr static std::string_view ARG_PREV_TOK_FAM     = "{prev-tok-fam}";
-    constexpr static std::string_view ARG_PREV_A_TOK_FAM   = "{prev-a-tok-fam}";
-    constexpr static std::string_view ARG_NEXT_TOK         = "{next-tok}";
-    constexpr static std::string_view ARG_NEXT_TOK_FAM     = "{next-tok-fam}";
-    constexpr static std::string_view ARG_NEXT_A_TOK_FAM   = "{next-a-tok-fam}";
-
     void tokenizeRaw(TaskContext& ctx, SourceView& srcView);
     void tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags);
 };

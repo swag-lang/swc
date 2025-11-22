@@ -1,7 +1,6 @@
 #include "pch.h"
-
-#include "Main/Stats.h"
 #include "Sema/TypeManager.h"
+#include "Main/Stats.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -39,6 +38,13 @@ const TypeInfo& TypeManager::get(TypeInfoRef typeInfoRef) const
     std::shared_lock lk(mutex_);
     SWC_ASSERT(typeInfoRef.isValid());
     return *store_.ptr<TypeInfo>(typeInfoRef.get());
+}
+
+Utf8 TypeManager::toString(TypeInfoRef typeInfoRef) const
+{
+    SWC_ASSERT(typeInfoRef.isValid());
+    const auto typeInfo = get(typeInfoRef);
+    return "toto";
 }
 
 SWC_END_NAMESPACE()

@@ -22,6 +22,8 @@ public:
 
     TypeInfoRef     getBool() const { return typeBool_; }
     const TypeInfo& get(TypeInfoRef typeInfoRef) const;
+
+    Utf8 toString(TypeInfoRef typeInfoRef) const;
 };
 
 SWC_END_NAMESPACE()

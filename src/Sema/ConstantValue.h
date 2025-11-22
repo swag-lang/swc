@@ -21,6 +21,7 @@ public:
     bool operator==(const ConstantValue& other) const noexcept;
 
     ConstantKind kind() const { return kind_; }
+    TypeInfoRef  typeRef() const { return typeRef_; }
     bool         isValid() const { return kind_ != ConstantKind::Invalid; }
     bool         isBool() const { return kind_ == ConstantKind::Bool; }
 

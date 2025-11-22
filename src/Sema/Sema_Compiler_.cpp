@@ -1,9 +1,11 @@
 #include "pch.h"
+
 #include "Parser/AstNodes.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticDef.h"
 #include "Sema/ConstantManager.h"
 #include "Sema/SemaJob.h"
+#include "TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -22,7 +24,9 @@ AstVisitStepResult AstCompilerIf::semaPreChild(SemaJob& job, const AstNodeRef& c
     const auto& constant = nodeConditionPtr->getConstant(job.ctx());
     // if (!constant.isBool())
     {
-        const auto diag = job.reportError(DiagnosticId::sema_err_invalid_type, nodeCondition);
+        auto diag = job.reportError(DiagnosticId::sema_err_invalid_type, nodeCondition);
+        diag.addArgument(Diagnostic::ARG_TYPE, job.typeMgr().toString(job.typeMgr().getBool()));
+        diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, job.typeMgr().toString(constant.typeRef()));
         diag.report(job.ctx());
         return AstVisitStepResult::Stop;
     }

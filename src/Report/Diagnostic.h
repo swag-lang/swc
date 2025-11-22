@@ -27,15 +27,29 @@ private:
     bool                                            silent_    = false;
 
 public:
-    constexpr static std::string_view ARG_PATH    = "{path}";
-    constexpr static std::string_view ARG_ARG     = "{arg}";
-    constexpr static std::string_view ARG_COMMAND = "{command}";
-    constexpr static std::string_view ARG_VALUE   = "{value}";
-    constexpr static std::string_view ARG_VALUES  = "{values}";
-    constexpr static std::string_view ARG_LONG    = "{long}";
-    constexpr static std::string_view ARG_SHORT   = "{short}";
-    constexpr static std::string_view ARG_BEFORE  = "{before}";
-    constexpr static std::string_view ARG_BECAUSE = "{because}";
+    constexpr static std::string_view ARG_PATH             = "{path}";
+    constexpr static std::string_view ARG_ARG              = "{arg}";
+    constexpr static std::string_view ARG_COMMAND          = "{command}";
+    constexpr static std::string_view ARG_VALUE            = "{value}";
+    constexpr static std::string_view ARG_VALUES           = "{values}";
+    constexpr static std::string_view ARG_LONG             = "{long}";
+    constexpr static std::string_view ARG_SHORT            = "{short}";
+    constexpr static std::string_view ARG_BEFORE           = "{before}";
+    constexpr static std::string_view ARG_BECAUSE          = "{because}";
+    constexpr static std::string_view ARG_TOK              = "{tok}";
+    constexpr static std::string_view ARG_TOK_FAM          = "{tok-fam}";
+    constexpr static std::string_view ARG_A_TOK_FAM        = "{a-tok-fam}";
+    constexpr static std::string_view ARG_EXPECT_TOK       = "{expect-tok}";
+    constexpr static std::string_view ARG_EXPECT_TOK_FAM   = "{expect-tok-fam}";
+    constexpr static std::string_view ARG_EXPECT_A_TOK_FAM = "{expect-a-tok-fam}";
+    constexpr static std::string_view ARG_PREV_TOK         = "{prev-tok}";
+    constexpr static std::string_view ARG_PREV_TOK_FAM     = "{prev-tok-fam}";
+    constexpr static std::string_view ARG_PREV_A_TOK_FAM   = "{prev-a-tok-fam}";
+    constexpr static std::string_view ARG_NEXT_TOK         = "{next-tok}";
+    constexpr static std::string_view ARG_NEXT_TOK_FAM     = "{next-tok-fam}";
+    constexpr static std::string_view ARG_NEXT_A_TOK_FAM   = "{next-a-tok-fam}";
+    constexpr static std::string_view ARG_TYPE             = "{type}";
+    constexpr static std::string_view ARG_REQUESTED_TYPE   = "{requested-type}";
 
     Diagnostic() = default;
     explicit Diagnostic(FileRef file);

@@ -64,4 +64,4 @@ SWC_DIAG_DEF(parser_err_inject_instruction_done, Error, "replacement instruction
 SWC_DIAG_DEF(parser_err_inject_invalid_instruction, Error, "invalid replacement instruction; expected 'break' or 'continue', found {{tok}}")
 
 SWC_DIAG_DEF(sema_err_expr_not_const, Error, "expression cannot be evaluated at compile time")
-SWC_DIAG_DEF(sema_err_invalid_type, Error, "invalid type; expected {{requested}}, got {{ok}}")
+SWC_DIAG_DEF(sema_err_invalid_type, Error, "invalid type; expected {requested-type}, got {type}")

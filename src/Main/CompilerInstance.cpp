@@ -115,7 +115,6 @@ SourceView& CompilerInstance::addSourceView()
 {
     std::unique_lock  lock(mutex_);
     const auto        srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
-    const SourceFile* filePtr    = nullptr;
     srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, nullptr));
     return *srcViews_.back();
 }

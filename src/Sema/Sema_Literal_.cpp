@@ -25,7 +25,23 @@ AstVisitStepResult AstStringLiteral::semaPreNode(SemaJob& job)
 {
     const auto& tok     = job.token(srcViewRef(), tokRef());
     const auto& srcView = job.compiler().srcView(srcViewRef());
-    const auto  str     = tok.string(srcView);
+    auto        str     = tok.string(srcView);
+
+    // Remove delimiters
+    switch (tok.id)
+    {
+        case TokenId::StringLine:
+            str = str.substr(1, str.size() - 2);
+            break;
+        case TokenId::StringMultiLine:
+            str = str.substr(3, str.size() - 6);
+            break;
+        case TokenId::StringRaw:
+            str = str.substr(2, str.size() - 4);
+            break;            
+        default:
+            SWC_UNREACHABLE();
+    }
 
     // Fast path if no escape sequence inside the string
     if (!tok.hasFlag(TokenFlagsE::Escaped))

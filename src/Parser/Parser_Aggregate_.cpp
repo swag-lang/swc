@@ -53,13 +53,13 @@ AstNodeRef Parser::parseAggregateValue()
     switch (id())
     {
         case TokenId::CompilerAssert:
-            return parseCompilerCallUnary();
+            return parseCompilerFlow();
         case TokenId::CompilerError:
-            return parseCompilerCallUnary();
+            return parseCompilerFlow();
         case TokenId::CompilerWarning:
-            return parseCompilerCallUnary();
+            return parseCompilerFlow();
         case TokenId::CompilerPrint:
-            return parseCompilerCallUnary();
+            return parseCompilerFlow();
         case TokenId::CompilerIf:
             return parseCompilerIf<AstNodeId::AggregateBody>();
 
@@ -172,13 +172,13 @@ AstNodeRef Parser::parseInterfaceValue()
     switch (id())
     {
         case TokenId::CompilerAssert:
-            return parseCompilerCallUnary();
+            return parseCompilerFlow();
         case TokenId::CompilerError:
-            return parseCompilerCallUnary();
+            return parseCompilerFlow();
         case TokenId::CompilerWarning:
-            return parseCompilerCallUnary();
+            return parseCompilerFlow();
         case TokenId::CompilerPrint:
-            return parseCompilerCallUnary();
+            return parseCompilerFlow();
         case TokenId::CompilerIf:
             return parseCompilerIf<AstNodeId::InterfaceBody>();
 

@@ -110,9 +110,13 @@ struct AstCompilerScope : AstNodeT<AstNodeId::CompilerScope>
     }
 };
 
-struct AstCompilerCallUnary : AstInternalCallUnaryT<AstNodeId::CompilerCallUnary>
+struct AstCompilerFlow : AstInternalCallUnaryT<AstNodeId::CompilerFlow>
 {
     AstVisitStepResult semaPostNode(SemaJob& job) const;
+};
+
+struct AstCompilerCallUnary : AstInternalCallUnaryT<AstNodeId::CompilerCallUnary>
+{
 };
 
 struct AstIntrinsicCallZero : AstInternalCallZeroT<AstNodeId::IntrinsicCallZero>

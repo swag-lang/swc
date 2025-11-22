@@ -195,6 +195,7 @@ SWC_NODE_DEF(IntrinsicPostMove)
 
 // Internal compiler calls
 SWC_NODE_DEF(CompilerCallUnary)
+SWC_NODE_DEF(CompilerFlow)
 SWC_NODE_DEF(IntrinsicCallZero)
 SWC_NODE_DEF(IntrinsicCallUnary)
 SWC_NODE_DEF(IntrinsicCallBinary)

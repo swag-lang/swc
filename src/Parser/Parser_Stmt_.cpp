@@ -640,13 +640,13 @@ AstNodeRef Parser::parseTopLevelStmt()
     switch (id())
     {
         case TokenId::CompilerAssert:
-            return parseCompilerCallUnary();
+            return parseCompilerFlow();
         case TokenId::CompilerError:
-            return parseCompilerCallUnary();
+            return parseCompilerFlow();
         case TokenId::CompilerWarning:
-            return parseCompilerCallUnary();
+            return parseCompilerFlow();
         case TokenId::CompilerPrint:
-            return parseCompilerCallUnary();
+            return parseCompilerFlow();
         case TokenId::CompilerIf:
             return parseCompilerIf<AstNodeId::TopLevelBlock>();
 
@@ -747,13 +747,13 @@ AstNodeRef Parser::parseEmbeddedStmt()
     switch (id())
     {
         case TokenId::CompilerAssert:
-            return parseCompilerCallUnary();
+            return parseCompilerFlow();
         case TokenId::CompilerError:
-            return parseCompilerCallUnary();
+            return parseCompilerFlow();
         case TokenId::CompilerWarning:
-            return parseCompilerCallUnary();
+            return parseCompilerFlow();
         case TokenId::CompilerPrint:
-            return parseCompilerCallUnary();
+            return parseCompilerFlow();
         case TokenId::CompilerIf:
             return parseCompilerIf<AstNodeId::EmbeddedBlock>();
 

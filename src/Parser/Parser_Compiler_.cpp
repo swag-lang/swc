@@ -26,10 +26,9 @@ AstNodeRef Parser::parseCompilerFunc()
 
 AstNodeRef Parser::parseCompilerMessageFunc()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerMessageFunc>(ref());
-    consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerMessageFunc>(consume());
+    const auto openRef      = ref();
 
-    const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
     nodePtr->nodeParam = parseExpression();
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
@@ -56,9 +55,8 @@ AstNodeRef Parser::parseCompilerExpr()
 
 AstNodeRef Parser::parseCompilerTypeExpr()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerTypeExpr>(ref());
-    consume();
-    nodePtr->nodeType = parseType();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerTypeExpr>(consume());
+    nodePtr->nodeType       = parseType();
     return nodeRef;
 }
 
@@ -94,8 +92,7 @@ template<AstNodeId ID>
 AstNodeRef Parser::parseCompilerIf()
 {
     SWC_ASSERT(isAny(TokenId::CompilerIf, TokenId::CompilerElseIf));
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerIf>(ref());
-    consume();
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerIf>(consume());
 
     // Parse the condition expression
     nodePtr->nodeCondition = parseExpression();
@@ -117,16 +114,14 @@ AstNodeRef Parser::parseCompilerIf()
 
 AstNodeRef Parser::parseCompilerDependencies()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::DependenciesBlock>(ref());
-    consume();
-    nodePtr->spanChildren = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::DependenciesBlock>(consume());
+    nodePtr->spanChildren   = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     return nodeRef;
 }
 
 AstNodeRef Parser::parseCompilerTypeOf()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InternalCallUnary>(ref());
-    consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InternalCallUnary>(consume());
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
@@ -143,10 +138,8 @@ AstNodeRef Parser::parseCompilerTypeOf()
 
 AstNodeRef Parser::parseCompilerGlobal()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerGlobal>(ref());
-    consume();
-
-    const auto tokStr = tok().string(ast_->srcView());
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerGlobal>(consume());
+    const auto tokStr       = tok().string(ast_->srcView());
 
     if (tokStr == Token::toName(TokenId::KwdSkip))
     {
@@ -219,10 +212,8 @@ AstNodeRef Parser::parseCompilerGlobal()
 
 AstNodeRef Parser::parseCompilerImport()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerImport>(ref());
-    consume();
-
-    const auto openRef = ref();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerImport>(consume());
+    const auto openRef      = ref();
 
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
     nodePtr->tokModuleName = expectAndConsume(TokenId::StringLine, DiagnosticId::parser_err_expected_token_before);
@@ -257,8 +248,7 @@ AstNodeRef Parser::parseCompilerImport()
 
 AstNodeRef Parser::parseCompilerScope()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerScope>(ref());
-    consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerScope>(consume());
 
     const auto openRef = ref();
     if (consumeIf(TokenId::SymLeftParen).isValid())

@@ -104,7 +104,7 @@ SourceCodeLocation AstNode::location(const TaskContext& ctx, const Ast& ast) con
             break;
         const auto* childPtr = ast.node(children.front());
         if (childPtr->srcViewRef() != baseViewRef)
-            break; // Different file/view -> stop
+            break;
         const auto& childTok = view.token(childPtr->tokRef());
         const auto  cStart   = tokenStartOffset(view, childTok);
         if (lineIndexForOffset(lines, cStart) != baseLineIdx)
@@ -125,7 +125,7 @@ SourceCodeLocation AstNode::location(const TaskContext& ctx, const Ast& ast) con
             break;
         const auto* childPtr = ast.node(children.back());
         if (childPtr->srcViewRef() != baseViewRef)
-            break; // Different file/view -> stop
+            break;
         const auto& childTok = view.token(childPtr->tokRef());
         const auto  cStart   = tokenStartOffset(view, childTok);
         if (lineIndexForOffset(lines, cStart) != baseLineIdx)

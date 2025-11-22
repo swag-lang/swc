@@ -22,11 +22,11 @@ AstVisitStepResult AstCompilerIf::semaPreChild(SemaJob& job, const AstNodeRef& c
     }
 
     const auto& constant = nodeConditionPtr->getConstant(job.ctx());
-    // if (!constant.isBool())
+    if (!constant.isBool())
     {
         auto diag = job.reportError(DiagnosticId::sema_err_invalid_type, nodeCondition);
-        diag.addArgument(Diagnostic::ARG_TYPE, job.typeMgr().toString(job.typeMgr().getBool()));
-        diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, job.typeMgr().toString(constant.typeRef()));
+        diag.addArgument(Diagnostic::ARG_TYPE, job.typeMgr().toName(job.typeMgr().getBool()));
+        diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, job.typeMgr().toName(constant.typeRef()));
         diag.report(job.ctx());
         return AstVisitStepResult::Stop;
     }

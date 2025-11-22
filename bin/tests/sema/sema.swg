@@ -1,7 +1,7 @@
 #if true
 {
-    #error("toto")
 }
 #else
 {
+    #error("toto")
 }

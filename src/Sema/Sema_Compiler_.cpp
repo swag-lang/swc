@@ -76,7 +76,9 @@ AstVisitStepResult AstCompilerCallUnary::semaPostNode(SemaJob& job) const
     {
         case TokenId::CompilerError:
         {
-            const auto diag = job.reportError(DiagnosticId::cmd_err_no_input, srcViewRef(), tokRef());
+            auto        diag     = job.reportError(DiagnosticId::sema_err_compiler_error, srcViewRef(), tokRef());
+            const auto& constant = nodeArg->getConstant(job.ctx());
+            diag.addArgument(Diagnostic::ARG_BECAUSE, constant.getString(), false);
             diag.report(job.ctx());
             break;
         }

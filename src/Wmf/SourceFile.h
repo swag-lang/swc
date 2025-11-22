@@ -31,7 +31,7 @@ public:
     explicit SourceFile(FileRef fileRef, fs::path path, FileFlags flags);
     ~SourceFile();
 
-    FileRef                     fileRef() const { return fileRef_; }
+    FileRef                     ref() const { return fileRef_; }
     fs::path                    path() const { return path_; }
     const std::vector<char8_t>& content() const { return content_; }
     std::string_view            sourceView() const { return std::string_view(reinterpret_cast<std::string_view::const_pointer>(content_.data()), size()); }

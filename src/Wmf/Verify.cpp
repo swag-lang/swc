@@ -144,7 +144,7 @@ void Verify::tokenize(TaskContext& ctx)
     if (!ctx.cmdLine().verify)
         return;
 
-    srcView_ = ctx.compiler().addSourceView(file_->fileRef());
+    srcView_ = ctx.compiler().addSourceView(file_->ref());
 
     // Get all comments from the file
     Lexer lexer;

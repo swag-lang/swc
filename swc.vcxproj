@@ -187,6 +187,7 @@
         <ClCompile Include="src\Lexer\LangSpec.cpp"/>
         <ClCompile Include="src\Lexer\Lexer.cpp"/>
         <ClCompile Include="src\Lexer\SourceCodeLocation.cpp"/>
+        <ClCompile Include="src\Lexer\SourceView.cpp"/>
         <ClCompile Include="src\Lexer\Token.cpp"/>
         <ClCompile Include="src\main.cpp"/>
         <ClCompile Include="src\Main\CommandLineParser.cpp"/>

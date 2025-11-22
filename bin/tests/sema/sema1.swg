@@ -22,4 +22,4 @@
 {
 }
 
-#assert true
+#assert(true)

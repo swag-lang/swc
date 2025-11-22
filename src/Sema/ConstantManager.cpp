@@ -15,14 +15,12 @@ ConstantRef ConstantManager::addConstant(const ConstantValue& value)
 {
     {
         std::shared_lock lk(mutex_);
-        const auto       it = map_.find(value);
-        if (it != map_.end())
+        if (const auto it = map_.find(value); it != map_.end())
             return it->second;
     }
 
     std::unique_lock lk(mutex_);
-    const auto [it, inserted] = map_.try_emplace(value, ConstantRef{});
-    if (!inserted)
+    if (const auto it = map_.find(value); it != map_.end())
         return it->second;
 
 #if SWC_HAS_STATS
@@ -30,18 +28,19 @@ ConstantRef ConstantManager::addConstant(const ConstantValue& value)
     Stats::get().memConstants.fetch_add(sizeof(ConstantValue), std::memory_order_relaxed);
 #endif
 
+    ConstantValue stored = value;
+
     if (value.isString())
     {
-        const auto str = cacheStr_.insert(std::string(value.getString()));
-        auto       cpy = value;
-        cpy.value()    = str.first->data();
-        const ConstantRef ref{store_.push_back(cpy)};
-        it->second = ref;
-        return ref;
+        auto [itStr, _]           = cacheStr_.insert(std::string(value.getString()));
+        const std::string& pooled = *itStr;
+        stored.value()            = std::string_view(pooled.data(), pooled.size());
     }
 
-    const ConstantRef ref{store_.push_back(value)};
-    it->second = ref;
+    const ConstantRef ref{store_.push_back(stored)};
+    auto [_, inserted] = map_.emplace(stored, ref);
+    SWC_ASSERT(inserted);
+
     return ref;
 }
 

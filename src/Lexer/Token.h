@@ -59,6 +59,7 @@ enum class TokenFlagsE : uint16_t
     EolBefore   = 1 << 2,
     EolAfter    = 1 << 3,
     EolInside   = 1 << 4,
+    Escaped     = 1 << 5,
 };
 using TokenFlags = EnumFlags<TokenFlagsE>;
 

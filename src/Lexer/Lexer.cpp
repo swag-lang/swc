@@ -264,6 +264,7 @@ void Lexer::lexSingleLineStringLiteral()
         // Escaped char
         if (buffer_[0] == '\\')
         {
+            token_.flags.add(TokenFlagsE::Escaped);
             lexEscape(TokenId::StringLine, false);
             continue;
         }
@@ -311,6 +312,7 @@ void Lexer::lexMultiLineStringLiteral()
         // Escaped char
         if (buffer_[0] == '\\')
         {
+            token_.flags.add(TokenFlagsE::Escaped);
             lexEscape(TokenId::StringMultiLine, true);
             continue;
         }

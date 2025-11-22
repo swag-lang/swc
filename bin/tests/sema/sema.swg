@@ -1,7 +1,7 @@
 #if true
 {
+    #error("to\nto")
 }
 #else
 {
-    #error("toto")
 }

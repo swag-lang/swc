@@ -25,9 +25,16 @@ AstVisitStepResult AstStringLiteral::semaPreNode(SemaJob& job)
     const auto& srcView = job.compiler().srcView(srcViewRef());
     const auto  str     = tok.string(srcView);
 
-    const auto val = ConstantValue::makeString(job.ctx(), str);
-    setConstant(job.constMgr().addConstant(val));
+    if (tok.hasNotFlag(TokenFlagsE::Escaped))
+    {
+        const auto val = ConstantValue::makeString(job.ctx(), str);
+        setConstant(job.constMgr().addConstant(val));
+        return AstVisitStepResult::SkipChildren;
+    }
 
+    const std::string result{str};
+    const auto        val = ConstantValue::makeString(job.ctx(), result);
+    setConstant(job.constMgr().addConstant(val));
     return AstVisitStepResult::SkipChildren;
 }
 

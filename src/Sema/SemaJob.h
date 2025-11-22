@@ -33,8 +33,8 @@ public:
     const AstNode*          node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
     const Token&            token(SourceViewRef srcViewRef, TokenRef tokenRef) const { return compiler().srcView(srcViewRef).token(tokenRef); }
 
-    Diagnostic reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tknRef);
-    void       raiseError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tknRef);
+    void       setReportArguments(Diagnostic& diag, AstNodeRef nodeRef) const;
+    Diagnostic reportError(DiagnosticId id, AstNodeRef nodeRef);
     void       raiseError(DiagnosticId id, AstNodeRef nodeRef);
 };
 

@@ -71,4 +71,5 @@ SWC_DIAG_DEF(parser_err_inject_invalid_instruction)
 
 // Sema errors
 SWC_DIAG_DEF(sema_err_expr_not_const)
+SWC_DIAG_DEF(sema_err_invalid_type)
 

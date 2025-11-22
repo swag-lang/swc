@@ -8,7 +8,7 @@ AstNodeRef Parser::parseIdentifierType()
 {
     const auto identifier = parseQualifiedIdentifier();
 
-    if (is(TokenId::SymLeftCurly) && tok().hasNotFlag(TokenFlagsE::BlankBefore))
+    if (is(TokenId::SymLeftCurly) && !tok().hasFlag(TokenFlagsE::BlankBefore))
         return parseInitializerList(identifier);
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamedType>(ref());
@@ -21,7 +21,7 @@ AstNodeRef Parser::parseRetValType()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::RetValType>(ref());
     consume();
 
-    if (is(TokenId::SymLeftCurly) && tok().hasNotFlag(TokenFlagsE::BlankBefore))
+    if (is(TokenId::SymLeftCurly) && !tok().hasFlag(TokenFlagsE::BlankBefore))
         return parseInitializerList(nodeRef);
 
     return nodeRef;

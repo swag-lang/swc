@@ -227,7 +227,7 @@ AstNodeRef Parser::parseIdentifier()
     if (tokName.isInvalid())
         return AstNodeRef::invalid();
 
-    if (is(TokenId::SymQuote) && tok().hasNotFlag(TokenFlagsE::BlankBefore))
+    if (is(TokenId::SymQuote) && !tok().hasFlag(TokenFlagsE::BlankBefore))
     {
         consume();
         if (is(TokenId::SymLeftParen))

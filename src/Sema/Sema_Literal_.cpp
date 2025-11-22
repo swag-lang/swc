@@ -25,7 +25,7 @@ AstVisitStepResult AstStringLiteral::semaPreNode(SemaJob& job)
     const auto& srcView = job.compiler().srcView(srcViewRef());
     const auto  str     = tok.string(srcView);
 
-    if (tok.hasNotFlag(TokenFlagsE::Escaped))
+    if (!tok.hasFlag(TokenFlagsE::Escaped))
     {
         const auto val = ConstantValue::makeString(job.ctx(), str);
         setConstant(job.constMgr().addConstant(val));

@@ -76,7 +76,6 @@ struct Token
     std::string_view   string(const SourceView& srcView) const;
     SourceCodeLocation location(const TaskContext& ctx, const SourceView& srcView) const;
     bool               hasFlag(TokenFlags flag) const { return flags.has(flag); }
-    bool               hasNotFlag(TokenFlags flag) const { return !flags.has(flag); }
 
     static TokenIdKind      toKind(TokenId id) { return TOKEN_ID_INFOS[static_cast<size_t>(id)].kind; }
     static std::string_view toName(TokenId id);

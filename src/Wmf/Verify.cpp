@@ -187,7 +187,7 @@ bool Verify::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) cons
     return false;
 }
 
-void Verify::verifyUntouchedExpected(const TaskContext& ctx, const SourceView& srcView) const
+void Verify::verifyUntouchedExpected(TaskContext& ctx, const SourceView& srcView) const
 {
     for (const auto& directive : directives_)
     {

@@ -148,7 +148,7 @@ std::vector<SourceFile*> CompilerInstance::files() const
     return result;
 }
 
-Result CompilerInstance::collectFiles(const TaskContext& ctx)
+Result CompilerInstance::collectFiles(TaskContext& ctx)
 {
     const auto&           cmdLine = ctx.cmdLine();
     std::vector<fs::path> paths;

@@ -56,7 +56,7 @@ public:
     SourceView& addSourceView(FileRef fileRef);
     SourceView& srcView(SourceViewRef ref) const { return *srcViews_[ref.get()].get(); }
 
-    Result                   collectFiles(const TaskContext& ctx);
+    Result                   collectFiles(TaskContext& ctx);
     std::vector<SourceFile*> files() const;
 };
 

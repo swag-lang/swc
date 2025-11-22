@@ -12,10 +12,10 @@ namespace Command
 {
     void format(CompilerInstance& compiler)
     {
-        const TaskContext ctx(compiler);
-        const auto&       global   = ctx.global();
-        auto&             jobMgr   = global.jobMgr();
-        const auto        clientId = compiler.jobClientId();
+        TaskContext ctx(compiler);
+        const auto& global   = ctx.global();
+        auto&       jobMgr   = global.jobMgr();
+        const auto  clientId = compiler.jobClientId();
 
         if (compiler.collectFiles(ctx) == Result::Error)
             return;

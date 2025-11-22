@@ -164,7 +164,7 @@ Diagnostic Diagnostic::get(DiagnosticId id, FileRef file)
     return diag;
 }
 
-void Diagnostic::report(const TaskContext& ctx) const
+void Diagnostic::report(TaskContext& ctx) const
 {
     if (elements_.empty())
         return;

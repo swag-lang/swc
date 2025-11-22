@@ -6,7 +6,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-Result FileSystem::resolveFolder(const TaskContext& ctx, fs::path& folder)
+Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
 {
     std::error_code ec;
 
@@ -56,7 +56,7 @@ Result FileSystem::resolveFolder(const TaskContext& ctx, fs::path& folder)
     return Result::Success;
 }
 
-Result FileSystem::resolveFile(const TaskContext& ctx, fs::path& file)
+Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
 {
     std::error_code ec;
 

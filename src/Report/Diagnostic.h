@@ -79,7 +79,7 @@ public:
         arguments_.emplace_back(Argument{name, quoted, std::forward<T>(arg)});
     }
 
-    void report(const TaskContext& ctx) const;
+    void report(TaskContext& ctx) const;
 };
 
 SWC_END_NAMESPACE()

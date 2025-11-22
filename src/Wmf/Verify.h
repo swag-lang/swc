@@ -45,7 +45,7 @@ public:
     void tokenize(TaskContext& ctx);
     bool hasFlag(VerifyFlagsE flag) const { return flags_.has(flag); }
     bool verifyExpected(const TaskContext& ctx, const Diagnostic& diag) const;
-    void verifyUntouchedExpected(const TaskContext& ctx, const SourceView& srcView) const;
+    void verifyUntouchedExpected(TaskContext& ctx, const SourceView& srcView) const;
 };
 
 SWC_END_NAMESPACE()

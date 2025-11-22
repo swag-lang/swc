@@ -110,45 +110,28 @@ struct AstCompilerScope : AstNodeT<AstNodeId::CompilerScope>
     }
 };
 
-struct AstInternalCallZero : AstNodeT<AstNodeId::InternalCallZero>
+struct AstCompilerCallUnary : AstInternalCallUnaryT<AstNodeId::CompilerCallUnary>
+{
+    AstVisitStepResult semaPostNode(SemaJob& job) const;
+};
+
+struct AstIntrinsicCallZero : AstInternalCallZeroT<AstNodeId::IntrinsicCallZero>
 {
 };
 
-struct AstInternalCallUnary : AstNodeT<AstNodeId::InternalCallUnary>
+struct AstIntrinsicCallUnary : AstInternalCallUnaryT<AstNodeId::IntrinsicCallUnary>
 {
-    AstNodeRef nodeArg1;
-
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
-    {
-        AstNode::collectChildren(out, {nodeArg1});
-    }
 };
 
-struct AstInternalCallBinary : AstNodeT<AstNodeId::InternalCallBinary>
+struct AstIntrinsicCallBinary : AstInternalCallBinaryT<AstNodeId::IntrinsicCallBinary>
 {
-    TokenRef   tokName;
-    AstNodeRef nodeArg1;
-    AstNodeRef nodeArg2;
-
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
-    {
-        AstNode::collectChildren(out, {nodeArg1, nodeArg2});
-    }
 };
 
-struct AstInternalCallTernary : AstNodeT<AstNodeId::InternalCallTernary>
+struct AstIntrinsicCallTernary : AstInternalCallTernaryT<AstNodeId::IntrinsicCallTernary>
 {
-    AstNodeRef nodeArg1;
-    AstNodeRef nodeArg2;
-    AstNodeRef nodeArg3;
-
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
-    {
-        AstNode::collectChildren(out, {nodeArg1, nodeArg2, nodeArg3});
-    }
 };
 
-struct AstInternalCallVariadic : AstCompoundT<AstNodeId::InternalCallVariadic>
+struct AstIntrinsicCallVariadic : AstCompoundT<AstNodeId::IntrinsicCallVariadic>
 {
 };
 
@@ -518,6 +501,7 @@ struct AstFloatLiteral : AstLiteralT<AstNodeId::FloatLiteral>
 
 struct AstStringLiteral : AstLiteralT<AstNodeId::StringLiteral>
 {
+    AstVisitStepResult semaPreNode(SemaJob& job);
 };
 
 struct AstCharacterLiteral : AstLiteralT<AstNodeId::CharacterLiteral>

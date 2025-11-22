@@ -113,8 +113,8 @@ ExitCode CompilerInstance::run()
 
 SourceView& CompilerInstance::addSourceView()
 {
-    std::unique_lock  lock(mutex_);
-    const auto        srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
+    std::unique_lock lock(mutex_);
+    const auto       srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
     srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, nullptr));
     return *srcViews_.back();
 }
@@ -189,19 +189,19 @@ Result CompilerInstance::collectFiles(const TaskContext& ctx)
             std::ranges::sort(paths);
         for (const auto& f : paths)
             addFile(f, FileFlagsE::ModuleSrc);
-    }
 
-    // Collect runtime files
-    if (cmdLine.command == CommandKind::Build)
-    {
-        fs::path runtimePath = exeFullName_.parent_path() / "Runtime";
-        if (FileSystem::resolveFolder(ctx, runtimePath) != Result::Success)
-            return Result::Error;
-        FileSystem::collectSwagFilesRec(ctx, runtimePath, paths);
-        if (cmdLine.numCores == 1)
-            std::ranges::sort(paths);
-        for (const auto& f : paths)
-            addFile(f, FileFlagsE::Runtime);
+        // Collect runtime files
+        if (cmdLine.command == CommandKind::Build)
+        {
+            fs::path runtimePath = exeFullName_.parent_path() / "Runtime";
+            if (FileSystem::resolveFolder(ctx, runtimePath) != Result::Success)
+                return Result::Error;
+            FileSystem::collectSwagFilesRec(ctx, runtimePath, paths);
+            if (cmdLine.numCores == 1)
+                std::ranges::sort(paths);
+            for (const auto& f : paths)
+                addFile(f, FileFlagsE::Runtime);
+        }
     }
 
     if (files_.empty())

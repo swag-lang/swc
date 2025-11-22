@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Main/Stats.h"
 #include "Sema/ConstantManager.h"
+#include "Main/Stats.h"
 #include "Sema/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -29,6 +29,16 @@ ConstantRef ConstantManager::addConstant(const ConstantValue& value)
     Stats::get().numConstants.fetch_add(1);
     Stats::get().memConstants.fetch_add(sizeof(ConstantValue), std::memory_order_relaxed);
 #endif
+
+    if (value.isString())
+    {
+        const auto str = cacheStr_.insert(std::string(value.getString()));
+        auto       cpy = value;
+        cpy.value()    = str.first->data();
+        const ConstantRef ref{store_.push_back(cpy)};
+        it->second = ref;
+        return ref;
+    }
 
     const ConstantRef ref{store_.push_back(value)};
     it->second = ref;

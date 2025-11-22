@@ -3,6 +3,18 @@
 
 SWC_BEGIN_NAMESPACE()
 
+AstNodeRef Parser::parseCompilerCallUnary()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCallUnary>(consume());
+
+    const auto openRef = ref();
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
+    nodePtr->nodeArg1 = parseExpression();
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseCompilerFunc()
 {
     const auto what = id();
@@ -121,7 +133,7 @@ AstNodeRef Parser::parseCompilerDependencies()
 
 AstNodeRef Parser::parseCompilerTypeOf()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InternalCallUnary>(consume());
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCallUnary>(consume());
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);

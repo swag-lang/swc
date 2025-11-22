@@ -24,13 +24,15 @@ private:
     mutable std::shared_mutex                                mutexName_[static_cast<int>(ToNameKind::Count)];
 
     // Predefined types
-    TypeInfoRef typeBool_ = TypeInfoRef::invalid();
+    TypeInfoRef typeBool_   = TypeInfoRef::invalid();
+    TypeInfoRef typeString_ = TypeInfoRef::invalid();
 
 public:
     void        setup(TaskContext& ctx);
     TypeInfoRef registerType(const TypeInfo& typeInfo);
 
     TypeInfoRef     getBool() const { return typeBool_; }
+    TypeInfoRef     getString() const { return typeString_; }
     const TypeInfo& get(TypeInfoRef typeInfoRef) const;
 
     std::string_view toName(TypeInfoRef typeInfoRef, ToNameKind kind = ToNameKind::Diagnostic) const;

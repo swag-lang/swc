@@ -19,4 +19,16 @@ AstVisitStepResult AstBoolLiteral::semaPreNode(SemaJob& job)
     return AstVisitStepResult::SkipChildren;
 }
 
+AstVisitStepResult AstStringLiteral::semaPreNode(SemaJob& job)
+{
+    const auto& tok     = job.token(srcViewRef(), tokRef());
+    const auto& srcView = job.compiler().srcView(srcViewRef());
+    const auto  str     = tok.string(srcView);
+
+    const auto val = ConstantValue::makeString(job.ctx(), str);
+    setConstant(job.constMgr().addConstant(val));
+
+    return AstVisitStepResult::SkipChildren;
+}
+
 SWC_END_NAMESPACE()

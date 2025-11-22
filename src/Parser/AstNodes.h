@@ -142,6 +142,67 @@ struct AstIntrinsicInitDropCopyMoveT : AstNodeT<I>
     }
 };
 
+template<AstNodeId I>
+struct AstInternalCallZeroT : AstNodeT<I>
+{
+    explicit AstInternalCallZeroT(SourceViewRef srcViewRef, TokenRef tokRef) :
+        AstNodeT<I>(srcViewRef, tokRef)
+    {
+    }
+};
+
+template<AstNodeId I>
+struct AstInternalCallUnaryT : AstNodeT<I>
+{
+    AstNodeRef nodeArg1;
+
+    explicit AstInternalCallUnaryT(SourceViewRef srcViewRef, TokenRef tokRef) :
+        AstNodeT<I>(srcViewRef, tokRef)
+    {
+    }
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
+    {
+        AstNode::collectChildren(out, {nodeArg1});
+    }
+};
+
+template<AstNodeId I>
+struct AstInternalCallBinaryT : AstNodeT<I>
+{
+    TokenRef   tokName;
+    AstNodeRef nodeArg1;
+    AstNodeRef nodeArg2;
+
+    explicit AstInternalCallBinaryT(SourceViewRef srcViewRef, TokenRef tokRef) :
+        AstNodeT<I>(srcViewRef, tokRef)
+    {
+    }
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
+    {
+        AstNode::collectChildren(out, {nodeArg1, nodeArg2});
+    }
+};
+
+template<AstNodeId I>
+struct AstInternalCallTernaryT : AstNodeT<I>
+{
+    AstNodeRef nodeArg1;
+    AstNodeRef nodeArg2;
+    AstNodeRef nodeArg3;
+
+    explicit AstInternalCallTernaryT(SourceViewRef srcViewRef, TokenRef tokRef) :
+        AstNodeT<I>(srcViewRef, tokRef)
+    {
+    }
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
+    {
+        AstNode::collectChildren(out, {nodeArg1, nodeArg2, nodeArg3});
+    }
+};
+
 // ReSharper disable once CppUnusedIncludeDirective
 #include "Parser/AstNodesDef.inc"
 

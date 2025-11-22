@@ -25,8 +25,8 @@ AstVisitStepResult AstCompilerIf::semaPreChild(SemaJob& job, const AstNodeRef& c
     if (!constant.isBool())
     {
         auto diag = job.reportError(DiagnosticId::sema_err_invalid_type, nodeCondition);
-        diag.addArgument(Diagnostic::ARG_TYPE, job.typeMgr().toName(job.typeMgr().getBool()));
-        diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, job.typeMgr().toName(constant.typeRef()));
+        diag.addArgument(Diagnostic::ARG_TYPE, job.typeMgr().toName(constant.typeRef()));
+        diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, job.typeMgr().toName(job.typeMgr().getBool()));
         diag.report(job.ctx());
         return AstVisitStepResult::Stop;
     }
@@ -35,6 +35,55 @@ AstVisitStepResult AstCompilerIf::semaPreChild(SemaJob& job, const AstNodeRef& c
         return AstVisitStepResult::SkipChildren;
     if (childRef == nodeElseBlock && constant.getBool())
         return AstVisitStepResult::SkipChildren;
+
+    return AstVisitStepResult::Continue;
+}
+
+AstVisitStepResult AstCompilerCallUnary::semaPostNode(SemaJob& job) const
+{
+    const auto& tok     = job.token(srcViewRef(), tokRef());
+    const auto  nodeArg = job.node(nodeArg1);
+
+    switch (tok.id)
+    {
+        case TokenId::CompilerError:
+        case TokenId::CompilerWarning:
+        case TokenId::CompilerPrint:
+        {
+            if (!nodeArg->isConstant())
+            {
+                job.raiseError(DiagnosticId::sema_err_expr_not_const, nodeArg1);
+                return AstVisitStepResult::Continue;
+            }
+
+            const auto& constant = nodeArg->getConstant(job.ctx());
+            if (!constant.isString())
+            {
+                auto diag = job.reportError(DiagnosticId::sema_err_invalid_type, nodeArg1);
+                diag.addArgument(Diagnostic::ARG_TYPE, job.typeMgr().toName(constant.typeRef()));
+                diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, job.typeMgr().toName(job.typeMgr().getString()));
+                diag.report(job.ctx());
+                return AstVisitStepResult::Stop;
+            }
+            break;
+        }
+
+        default:
+            break;
+    }
+
+    switch (tok.id)
+    {
+        case TokenId::CompilerError:
+        {
+            const auto diag = job.reportError(DiagnosticId::cmd_err_no_input, srcViewRef(), tokRef());
+            diag.report(job.ctx());
+            break;
+        }
+
+        default:
+            break;
+    }
 
     return AstVisitStepResult::Continue;
 }

@@ -8,6 +8,7 @@ enum class ConstantKind
 {
     Invalid,
     Bool,
+    String,
 };
 
 class ConstantValue
@@ -15,7 +16,8 @@ class ConstantValue
     ConstantKind kind_    = ConstantKind::Invalid;
     TypeInfoRef  typeRef_ = TypeInfoRef::invalid();
 
-    std::variant<bool> value_;
+    using TypeDataT = std::variant<bool, std::string_view>;
+    TypeDataT value_;
 
 public:
     bool operator==(const ConstantValue& other) const noexcept;
@@ -24,14 +26,19 @@ public:
     TypeInfoRef  typeRef() const { return typeRef_; }
     bool         isValid() const { return kind_ != ConstantKind::Invalid; }
     bool         isBool() const { return kind_ == ConstantKind::Bool; }
+    bool         isString() const { return kind_ == ConstantKind::String; }
 
     // clang-format off
     bool getBool() const{ SWC_ASSERT(isBool()); return std::get<bool>(value_); }
+    std::string_view getString() const{ SWC_ASSERT(isString()); return std::get<std::string_view>(value_); }
     // clang-format on
 
-    const TypeInfo& type(const TaskContext& ctx) const;
+    const TypeInfo&         type(const TaskContext& ctx) const;
+    decltype(value_)&       value() { return value_; }
+    const decltype(value_)& value() const { return value_; }
 
     static ConstantValue makeBool(const TaskContext& ctx, bool value);
+    static ConstantValue makeString(const TaskContext& ctx, std::string_view value);
 };
 
 struct ConstantValueHash

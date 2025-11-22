@@ -11,6 +11,7 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
     switch (kind)
     {
         case TypeInfoKind::Bool:
+        case TypeInfoKind::String:
             return true;
 
         case TypeInfoKind::Int:
@@ -28,6 +29,7 @@ size_t TypeInfoHash::operator()(const TypeInfo& t) const noexcept
     switch (t.kind)
     {
         case TypeInfoKind::Bool:
+        case TypeInfoKind::String:
             return h;
 
         case TypeInfoKind::Int:
@@ -44,6 +46,13 @@ TypeInfo TypeInfo::makeBool()
 {
     TypeInfo ti{};
     ti.kind = TypeInfoKind::Bool;
+    return ti;
+}
+
+TypeInfo TypeInfo::makeString()
+{
+    TypeInfo ti{};
+    ti.kind = TypeInfoKind::String;
     return ti;
 }
 

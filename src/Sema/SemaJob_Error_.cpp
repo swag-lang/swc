@@ -4,16 +4,19 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void SemaJob::setReportArguments(Diagnostic& diag, AstNodeRef nodeRef) const
-{
-}
-
 Diagnostic SemaJob::reportError(DiagnosticId id, AstNodeRef nodeRef)
 {
     auto       diag = Diagnostic::get(id, ast().srcView().fileRef());
     const auto loc  = node(nodeRef)->location(ctx(), ast());
     diag.last().addSpan(loc, "");
-    setReportArguments(diag, nodeRef);
+    return diag;
+}
+
+Diagnostic SemaJob::reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokenRef)
+{
+    auto        diag    = Diagnostic::get(id, ast().srcView().fileRef());
+    const auto& srcView = compiler().srcView(srcViewRef);
+    diag.last().addSpan(Diagnostic::tokenErrorLocation(ctx(), srcView, tokenRef), "");
     return diag;
 }
 

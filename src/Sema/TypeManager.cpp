@@ -6,7 +6,8 @@ SWC_BEGIN_NAMESPACE()
 
 void TypeManager::setup(TaskContext&)
 {
-    typeBool_ = registerType(TypeInfo::makeBool());
+    typeBool_   = registerType(TypeInfo::makeBool());
+    typeString_ = registerType(TypeInfo::makeString());
 }
 
 TypeInfoRef TypeManager::registerType(const TypeInfo& typeInfo)
@@ -46,6 +47,8 @@ Utf8 TypeManager::toString(const TypeInfo& typeInfo, ToNameKind kind)
     {
         case TypeInfoKind::Bool:
             return "bool";
+        case TypeInfoKind::String:
+            return "string";
 
         case TypeInfoKind::Int:
         {
@@ -55,9 +58,8 @@ Utf8 TypeManager::toString(const TypeInfo& typeInfo, ToNameKind kind)
             return out;
         }
 
-            // Always handle unknown cases for debugging
         default:
-            return "<invalid-type>";
+            SWC_UNREACHABLE();
     }
 }
 

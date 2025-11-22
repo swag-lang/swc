@@ -58,7 +58,7 @@ public:
     {
         using NodeType = AstTypeOf<ID>::type;
         auto result    = store_.emplace_uninit<NodeType>();
-        ::new (result.second) AstNode(ID, tokRef);
+        ::new (result.second) AstNode(ID, srcView_->ref(), tokRef);
 #if SWC_HAS_STATS
         Stats::get().numAstNodes.fetch_add(1);
 #endif

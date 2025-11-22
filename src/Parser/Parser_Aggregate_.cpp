@@ -124,8 +124,7 @@ AstNodeRef Parser::parseStructDecl()
 template<AstNodeId ID>
 AstNodeRef Parser::parseAggregateDecl()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<ID>(ref());
-    consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<ID>(consume());
 
     // Generic types
     if (is(TokenId::SymLeftParen))

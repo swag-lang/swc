@@ -15,8 +15,8 @@ struct AstCompoundT : AstNodeT<I>
 {
     SpanRef spanChildren;
 
-    explicit AstCompoundT(TokenRef tokRef) :
-        AstNodeT<I>(tokRef)
+    explicit AstCompoundT(SourceViewRef srcViewRef, TokenRef tokRef) :
+        AstNodeT<I>(srcViewRef, tokRef)
     {
     }
 
@@ -33,8 +33,8 @@ struct AstLambdaExprT : AstNodeT<I>
     AstNodeRef nodeReturnType;
     AstNodeRef nodeBody;
 
-    explicit AstLambdaExprT(TokenRef tokRef) :
-        AstNodeT<I>(tokRef)
+    explicit AstLambdaExprT(SourceViewRef srcViewRef, TokenRef tokRef) :
+        AstNodeT<I>(srcViewRef, tokRef)
     {
     }
 
@@ -51,8 +51,8 @@ struct AstBinaryT : AstNodeT<I>
     AstNodeRef nodeLeft;
     AstNodeRef nodeRight;
 
-    explicit AstBinaryT(TokenRef tokRef) :
-        AstNodeT<I>(tokRef)
+    explicit AstBinaryT(SourceViewRef srcViewRef, TokenRef tokRef) :
+        AstNodeT<I>(srcViewRef, tokRef)
     {
     }
 
@@ -65,8 +65,8 @@ struct AstBinaryT : AstNodeT<I>
 template<AstNodeId I>
 struct AstLiteralT : AstNodeT<I>
 {
-    explicit AstLiteralT(TokenRef tokRef) :
-        AstNodeT<I>(tokRef)
+    explicit AstLiteralT(SourceViewRef srcViewRef, TokenRef tokRef) :
+        AstNodeT<I>(srcViewRef, tokRef)
     {
     }
 };
@@ -79,8 +79,8 @@ struct AstAggregateDeclT : AstNodeT<I>
     SpanRef    spanWhere;
     AstNodeRef nodeBody;
 
-    explicit AstAggregateDeclT(TokenRef tokRef) :
-        AstNodeT<I>(tokRef)
+    explicit AstAggregateDeclT(SourceViewRef srcViewRef, TokenRef tokRef) :
+        AstNodeT<I>(srcViewRef, tokRef)
     {
     }
 
@@ -97,8 +97,8 @@ struct AstAnonymousAggregateDeclT : AstNodeT<I>
 {
     AstNodeRef nodeBody;
 
-    explicit AstAnonymousAggregateDeclT(TokenRef tokRef) :
-        AstNodeT<I>(tokRef)
+    explicit AstAnonymousAggregateDeclT(SourceViewRef srcViewRef, TokenRef tokRef) :
+        AstNodeT<I>(srcViewRef, tokRef)
     {
     }
 
@@ -114,8 +114,8 @@ struct AstIfBaseT : AstNodeT<I>
     AstNodeRef nodeIfBlock;
     AstNodeRef nodeElseBlock;
 
-    explicit AstIfBaseT(TokenRef tokRef) :
-        AstNodeT<I>(tokRef)
+    explicit AstIfBaseT(SourceViewRef srcViewRef, TokenRef tokRef) :
+        AstNodeT<I>(srcViewRef, tokRef)
     {
     }
 
@@ -131,8 +131,8 @@ struct AstIntrinsicInitDropCopyMoveT : AstNodeT<I>
     AstNodeRef nodeWhat;
     AstNodeRef nodeCount;
 
-    explicit AstIntrinsicInitDropCopyMoveT(TokenRef tokRef) :
-        AstNodeT<I>(tokRef)
+    explicit AstIntrinsicInitDropCopyMoveT(SourceViewRef srcViewRef, TokenRef tokRef) :
+        AstNodeT<I>(srcViewRef, tokRef)
     {
     }
 

@@ -31,8 +31,9 @@ using AstModifierFlags = EnumFlags<AstModifierFlagsE>;
 struct AstNode
 {
     // ReSharper disable once CppPossiblyUninitializedMember
-    explicit AstNode(AstNodeId nodeId, TokenRef tokRef) :
+    explicit AstNode(AstNodeId nodeId, SourceViewRef srcViewRef, TokenRef tokRef) :
         id_(nodeId),
+        srcViewRef_(srcViewRef),
         tokRef_(tokRef)
     {
     }
@@ -93,7 +94,8 @@ private:
     AstNodeId                 id_ = AstNodeId::Invalid;
     ParserFlags               parserFlags_{};
     SemaFlags                 semaFlags_{};
-    TokenRef                  tokRef_ = TokenRef::invalid();
+    SourceViewRef             srcViewRef_ = SourceViewRef::invalid();
+    TokenRef                  tokRef_     = TokenRef::invalid();
     std::variant<ConstantRef> sema_{};
 };
 
@@ -101,8 +103,8 @@ template<AstNodeId I>
 struct AstNodeT : AstNode
 {
     static constexpr auto ID = I;
-    explicit AstNodeT(TokenRef tokRef) :
-        AstNode(I, tokRef)
+    explicit AstNodeT(SourceViewRef srcViewRef, TokenRef tokRef) :
+        AstNode(I, srcViewRef, tokRef)
     {
     }
 };

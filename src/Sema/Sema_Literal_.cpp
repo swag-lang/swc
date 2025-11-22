@@ -1,5 +1,4 @@
 #include "pch.h"
-
 #include "Lexer/LangSpec.h"
 #include "Main/Global.h"
 #include "Parser/Ast.h"
@@ -28,6 +27,7 @@ AstVisitStepResult AstStringLiteral::semaPreNode(SemaJob& job)
     const auto& srcView = job.compiler().srcView(srcViewRef());
     const auto  str     = tok.string(srcView);
 
+    // Fast path if no escape sequence inside the string
     if (!tok.hasFlag(TokenFlagsE::Escaped))
     {
         const auto val = ConstantValue::makeString(job.ctx(), str);
@@ -45,24 +45,23 @@ AstVisitStepResult AstStringLiteral::semaPreNode(SemaJob& job)
         do
         {
             SWC_ASSERT(index + 1 < str.size());
-            const char h = str[++index];
+            const unsigned char h = str[++index];
             SWC_ASSERT(langSpec.isHexNumber(h));
 
             value <<= 4;
 
-            if (langSpec.isDigit(h))
-                value += static_cast<uint32_t>(h - '0');
-            else if (h >= 'a' && h <= 'f')
-                value += 10u + static_cast<uint32_t>(h - 'a');
-            else if (h >= 'A' && h <= 'F')
-                value += 10u + static_cast<uint32_t>(h - 'A');
+            if (langSpec.isHexNumber(h))
+            {
+                const unsigned char c = (h >= 'A' && h <= 'F') ? (h + 32) : h;
+                value += (c <= '9') ? (c - '0') : (10u + (c - 'a'));
+            }
 
             ++digits;
         } while (digits < maxDigits && index + 1 < str.size() && langSpec.isHexNumber(str[index + 1]));
         valueOut = value;
     };
 
-    // decode escape sequences
+    // Decode escape sequences
     for (size_t i = 0; i < str.size(); ++i)
     {
         const char ch = str[i];

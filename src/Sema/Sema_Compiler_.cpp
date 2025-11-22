@@ -66,6 +66,18 @@ AstVisitStepResult AstCompilerFlow::semaPostNode(SemaJob& job) const
                 return AstVisitStepResult::Stop;
             }
             break;
+
+        case TokenId::CompilerAssert:
+            if (!constant.isBool())
+            {
+                auto diag = job.reportError(DiagnosticId::sema_err_invalid_type, nodeArg1);
+                diag.addArgument(Diagnostic::ARG_TYPE, job.typeMgr().toName(constant.typeRef()));
+                diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, job.typeMgr().toName(job.typeMgr().getBool()));
+                diag.report(job.ctx());
+                return AstVisitStepResult::Stop;
+            }
+            break;
+
         default:
             break;
     }
@@ -77,8 +89,16 @@ AstVisitStepResult AstCompilerFlow::semaPostNode(SemaJob& job) const
             auto diag = job.reportError(DiagnosticId::sema_err_compiler_error, srcViewRef(), tokRef());
             diag.addArgument(Diagnostic::ARG_BECAUSE, constant.getString(), false);
             diag.report(job.ctx());
-            break;
+            return AstVisitStepResult::Continue;
         }
+
+        case TokenId::CompilerAssert:
+            if (!constant.getBool())
+            {
+                job.raiseError(DiagnosticId::sema_err_compiler_assert, srcViewRef(), tokRef());
+                return AstVisitStepResult::Continue;
+            }
+            break;
 
         default:
             break;

@@ -32,7 +32,7 @@ Utf8 SourceView::codeLine(const TaskContext& ctx, uint32_t line) const
 
     auto buffer = startBuffer;
     bool hasTab = false;
-    while (buffer + 1 < end && buffer[0] != '\n' && buffer[0] != '\r')
+    while (buffer < end && buffer[0] != '\n' && buffer[0] != '\r')
     {
         if (buffer[0] == '\t')
             hasTab = true;

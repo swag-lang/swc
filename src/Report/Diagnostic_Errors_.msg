@@ -66,3 +66,4 @@ SWC_DIAG_DEF(parser_err_inject_invalid_instruction, Error, "invalid replacement 
 SWC_DIAG_DEF(sema_err_expr_not_const, Error, "expression cannot be evaluated at compile time")
 SWC_DIAG_DEF(sema_err_invalid_type, Error, "invalid type; expected {requested-type}, got {type}")
 SWC_DIAG_DEF(sema_err_compiler_error, Error, "compiler error: {because}")
+SWC_DIAG_DEF(sema_err_compiler_assert, Error, "compiler assertion failed")

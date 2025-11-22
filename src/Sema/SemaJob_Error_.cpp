@@ -20,6 +20,12 @@ Diagnostic SemaJob::reportError(DiagnosticId id, SourceViewRef srcViewRef, Token
     return diag;
 }
 
+void SemaJob::raiseError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokenRef)
+{
+    const auto diag = reportError(id, srcViewRef, tokenRef);
+    diag.report(ctx());
+}
+
 void SemaJob::raiseError(DiagnosticId id, AstNodeRef nodeRef)
 {
     const auto diag = reportError(id, nodeRef);

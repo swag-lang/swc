@@ -35,6 +35,7 @@ public:
 
     Diagnostic reportError(DiagnosticId id, AstNodeRef nodeRef);
     Diagnostic reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokenRef);
+    void       raiseError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokenRef);
     void       raiseError(DiagnosticId id, AstNodeRef nodeRef);
 };
 

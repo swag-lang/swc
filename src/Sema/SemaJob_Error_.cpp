@@ -20,9 +20,17 @@ void SemaJob::raiseError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tkn
 
 void SemaJob::raiseError(DiagnosticId id, AstNodeRef nodeRef)
 {
-    const auto nodePtr     = node(nodeRef);
-    const auto tokRefStart = nodePtr->tokRef();
-    const auto tokRefEnd   = nodePtr->tokRefEnd(*ast_);
+    const auto nodePtr = node(nodeRef);
+    /*const auto  tokRefStart = nodePtr->tokRef();
+    const auto  tokRefEnd   = nodePtr->tokRefEnd(*ast_);
+    const auto& srcView     = compiler().srcView(nodePtr->srcViewRef());
+    const auto  locStart    = Diagnostic::tokenErrorLocation(ctx(), srcView, tokRefStart);
+    const auto  locEnd      = Diagnostic::tokenErrorLocation(ctx(), srcView, tokRefEnd);*/
+
+    const auto diag = Diagnostic::get(id, ast().srcView().fileRef());
+    const auto loc  = nodePtr->location(ctx(), ast());
+    diag.last().addSpan(loc, "");
+    diag.report(ctx());
 }
 
 SWC_END_NAMESPACE()

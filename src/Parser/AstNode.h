@@ -8,6 +8,8 @@ SWC_BEGIN_NAMESPACE()
 class SemaJob;
 class Ast;
 class SourceFile;
+class TaskContext;
+struct SourceCodeLocation;
 
 enum class AstModifierFlagsE : uint32_t
 {
@@ -61,9 +63,11 @@ struct AstNode
             parserFlags_ |= val.flags;
     }
 
-    static void               collectChildren(SmallVector<AstNodeRef>&, const Ast&) {}
-    static void               collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, SpanRef spanRef);
-    static void               collectChildren(SmallVector<AstNodeRef>& out, std::initializer_list<AstNodeRef> nodes);
+    static void        collectChildren(SmallVector<AstNodeRef>&, const Ast&) {}
+    static void        collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, SpanRef spanRef);
+    static void        collectChildren(SmallVector<AstNodeRef>& out, std::initializer_list<AstNodeRef> nodes);
+    SourceCodeLocation location(const TaskContext& ctx, const Ast& ast) const;
+
     static AstVisitStepResult semaPreNode(SemaJob&) { return AstVisitStepResult::Continue; }
     static AstVisitStepResult semaPostNode(SemaJob&) { return AstVisitStepResult::Continue; }
     static AstVisitStepResult semaPreChild(SemaJob&, AstNodeRef&) { return AstVisitStepResult::Continue; }
@@ -75,10 +79,9 @@ struct AstNode
     };
     using SemaFlags = EnumFlags<SemaFlagE>;
 
-    void      addSemaFlag(SemaFlagE val) { semaFlags_.add(val); }
-    bool      hasSemaFlag(SemaFlagE val) const { return semaFlags_.has(val); }
-    SemaFlags semaFlags() const { return semaFlags_; }
-
+    void                 addSemaFlag(SemaFlagE val) { semaFlags_.add(val); }
+    bool                 hasSemaFlag(SemaFlagE val) const { return semaFlags_.has(val); }
+    SemaFlags            semaFlags() const { return semaFlags_; }
     bool                 isConstant() const { return hasSemaFlag(SemaFlagE::IsConst); }
     void                 setConstant(ConstantRef ref);
     const ConstantValue& getConstant(const TaskContext& ctx) const;

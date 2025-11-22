@@ -6,7 +6,7 @@ SWC_BEGIN_NAMESPACE()
 
 Diagnostic SemaJob::reportError(DiagnosticId id, TokenRef tknRef)
 {
-    auto diag = Diagnostic::get(id, visit().curSrcView().file());
+    auto diag = Diagnostic::get(id, visit().curSrcView().fileRef());
     diag.last().addSpan(Diagnostic::tokenErrorLocation(ctx(), visit().curSrcView(), tknRef), "");
     return diag;
 }

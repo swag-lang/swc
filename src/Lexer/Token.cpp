@@ -6,7 +6,7 @@ SWC_BEGIN_NAMESPACE()
 
 std::string_view Token::string(const SourceView& lex) const
 {
-    auto start = lex.sourceView().data();
+    auto start = lex.stringView().data();
 
     // In the case of an identifier, 'byteStart' is the index in the file identifier table.
     // And the real 'byteStart' is stored in that table

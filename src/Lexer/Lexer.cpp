@@ -33,7 +33,7 @@ void Lexer::raiseUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len)
     if (isRawMode())
         return;
 
-    const auto diag = Diagnostic::get(id, srcView_->file());
+    const auto diag = Diagnostic::get(id, srcView_->fileRef());
     diag.last().addSpan(srcView_, offset, len);
     diag.report(*ctx_);
 }
@@ -47,7 +47,7 @@ Diagnostic Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t le
     if (isRawMode())
         return {};
 
-    auto diag = Diagnostic::get(id, srcView_->file());
+    auto diag = Diagnostic::get(id, srcView_->fileRef());
     diag.last().addSpan(srcView_, offset, len);
 
     // Add an argument with the token string
@@ -1118,7 +1118,7 @@ void Lexer::checkFormat(uint32_t& startOffset)
     static constexpr char8_t UTF32_BE[] = {0x00, 0x00, 0xFE, 0xFF};
     static constexpr char8_t UTF32_LE[] = {0xFF, 0xFE, 0x00, 0x00};
 
-    const auto content = srcView_->sourceView();
+    const auto content = srcView_->stringView();
 
     // Ensure we have enough bytes to check
     if (content.size() < 3)
@@ -1208,15 +1208,15 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
     uint32_t startOffset = 0;
     checkFormat(startOffset);
 
-    const auto base = reinterpret_cast<const char8_t*>(srcView.sourceView().data());
+    const auto base = reinterpret_cast<const char8_t*>(srcView.stringView().data());
     buffer_         = base + startOffset;
     startBuffer_    = base;
-    endBuffer_      = startBuffer_ + srcView.sourceView().size();
+    endBuffer_      = startBuffer_ + srcView.stringView().size();
 
     // Reserve space based on source size
-    srcView_->tokens().reserve(srcView.sourceView().size() / 10);
+    srcView_->tokens().reserve(srcView.stringView().size() / 10);
     if (!isRawMode())
-        srcView_->lines().reserve(srcView.sourceView().size() / 60);
+        srcView_->lines().reserve(srcView.stringView().size() / 60);
     srcView_->lines().push_back(0);
 
     while (buffer_ < endBuffer_)

@@ -296,9 +296,9 @@ void DiagnosticBuilder::writeLocation(const DiagnosticElement& el)
     const auto loc = el.location(0, *ctx_);
 
     SWC_ASSERT(el.srcView());
-    if (el.srcView()->file().isValid())
+    if (el.srcView()->fileRef().isValid())
     {
-        const auto file = ctx_->compiler().file(el.srcView()->file());
+        const auto file = ctx_->compiler().file(el.srcView()->fileRef());
         Utf8       fileName;
         if (ctx_->cmdLine().diagAbsolute)
             fileName = file->path().string();

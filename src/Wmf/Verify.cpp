@@ -193,7 +193,7 @@ void Verify::verifyUntouchedExpected(const TaskContext& ctx, const SourceView& s
     {
         if (!directive.touched)
         {
-            const auto diag = Diagnostic::get(DiagnosticId::unittest_err_not_raised, srcView.file());
+            const auto diag = Diagnostic::get(DiagnosticId::unittest_err_not_raised, srcView.fileRef());
             diag.last().addSpan(directive.myLoc, "");
             diag.report(ctx);
         }

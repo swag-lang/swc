@@ -11,8 +11,8 @@ SourceView::SourceView(SourceViewRef ref, const SourceFile* file) :
 {
     if (file)
     {
-        file_       = file->ref();
-        sourceView_ = file->sourceView();
+        fileRef_       = file->ref();
+        stringView_ = file->sourceView();
     }
 }
 
@@ -22,13 +22,13 @@ Utf8 SourceView::codeLine(const TaskContext& ctx, uint32_t line) const
     SWC_ASSERT(line < lines_.size());
 
     const auto  offset      = lines_[line];
-    const auto  startBuffer = sourceView_.data() + offset;
+    const auto  startBuffer = stringView_.data() + offset;
     const char* end;
 
     if (line == lines_.size() - 1)
-        end = sourceView_.data() + sourceView_.size();
+        end = stringView_.data() + stringView_.size();
     else
-        end = sourceView_.data() + lines_[line + 1];
+        end = stringView_.data() + lines_[line + 1];
 
     auto buffer = startBuffer;
     bool hasTab = false;
@@ -69,8 +69,8 @@ Utf8 SourceView::codeLine(const TaskContext& ctx, uint32_t line) const
 
 std::string_view SourceView::codeView(uint32_t offset, uint32_t len) const
 {
-    SWC_ASSERT(offset + len <= sourceView_.size());
-    return std::string_view{sourceView_.data() + offset, len};
+    SWC_ASSERT(offset + len <= stringView_.size());
+    return std::string_view{stringView_.data() + offset, len};
 }
 
 std::pair<uint32_t, uint32_t> SourceView::triviaRangeForToken(TokenRef tok) const

@@ -168,9 +168,7 @@ void Diagnostic::report(TaskContext& ctx) const
 {
     if (elements_.empty())
         return;
-    if (isSilent())
-        return;
-    if (ctx.silentError())
+    if (silent() || ctx.silentDiagnostic())
         return;
 
     DiagnosticBuilder eng(ctx, *this);
@@ -185,12 +183,30 @@ void Diagnostic::report(TaskContext& ctx) const
     }
 
     // Count only errors and warnings not dismissed during tests
-    if (!dismiss)
+    switch (elements_.front()->severity())
     {
-        if (elements_.front()->severity() == DiagnosticSeverity::Error)
-            Stats::get().numErrors.fetch_add(1);
-        else if (elements_.front()->severity() == DiagnosticSeverity::Warning)
-            Stats::get().numWarnings.fetch_add(1);
+        case DiagnosticSeverity::Error:
+            if (!dismiss)
+                Stats::get().numErrors.fetch_add(1);
+            ctx.setHasError();
+            if (fileOwner_.isValid())
+            {
+                auto& file = ctx.compiler().file(fileOwner_);
+                file.setHasError();
+            }
+            break;
+        case DiagnosticSeverity::Warning:
+            if (!dismiss)
+                Stats::get().numWarnings.fetch_add(1);
+            ctx.setHasWarning();
+            if (fileOwner_.isValid())
+            {
+                auto& file = ctx.compiler().file(fileOwner_);
+                file.setHasWarning();
+            }
+            break;
+        default:
+            break;
     }
 
     // In tests, suppress diagnostics unless verbose errors are explicitly requested and match the filter.

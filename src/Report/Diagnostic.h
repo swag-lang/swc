@@ -59,7 +59,7 @@ public:
     FileRef                                                fileOwner() const { return fileOwner_; }
     const std::vector<Argument>&                           arguments() const { return arguments_; }
     void                                                   setSilent(bool silent) { silent_ = silent; }
-    bool                                                   isSilent() const { return silent_; }
+    bool                                                   silent() const { return silent_; }
 
     DiagnosticElement& addElement(DiagnosticId id);
     DiagnosticElement& last() const { return *elements_.back(); }

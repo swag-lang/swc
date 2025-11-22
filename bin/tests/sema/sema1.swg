@@ -17,7 +17,7 @@
 
 #if true
 {
-    #error("to\zto")
+    #error("to\zto") // swc-expected-error {{lex_err_invalid_escape}}
 }
 #else
 {

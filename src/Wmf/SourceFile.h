@@ -26,6 +26,8 @@ class SourceFile
     FileFlags               flags_ = FileFlagsE::Zero;
     std::unique_ptr<Ast>    ast_;
     std::unique_ptr<Verify> unitTest_;
+    bool                    hasError_   = false;
+    bool                    hasWarning_ = false;
 
 public:
     explicit SourceFile(FileRef fileRef, fs::path path, FileFlags flags);
@@ -45,6 +47,11 @@ public:
     void             addFlag(FileFlags flag) { flags_.add(flag); }
     Verify&          unitTest() { return *unitTest_; }
     const Verify&    unitTest() const { return *unitTest_; }
+
+    void setHasError() { hasError_ = true; }
+    void setHasWarning() { hasWarning_ = true; }
+    bool hasError() const { return hasError_; }
+    bool hasWarning() const { return hasWarning_; }
 
     Result loadContent(TaskContext& ctx);
 };

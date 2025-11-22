@@ -33,9 +33,8 @@ namespace Command
 
         for (const auto& f : compiler.files())
         {
-            if (f->ast().root().isInvalid())
+            if (f->hasError())
                 continue;
-
             auto job = std::make_shared<SemaJob>(ctx, &f->ast(), f->ast().root());
             jobMgr.enqueue(job, JobPriority::Normal, clientId);
         }

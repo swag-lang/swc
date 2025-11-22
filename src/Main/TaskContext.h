@@ -12,7 +12,9 @@ class TaskContext
     const Global*      global_           = nullptr;
     const CommandLine* cmdLine_          = nullptr;
     CompilerInstance*  compilerInstance_ = nullptr;
-    bool               silentError_      = false;
+    bool               silentDiagnostic_ = false;
+    bool               hasError_         = false;
+    bool               hasWarning_       = false;
 
 public:
     TaskContext() = delete;
@@ -37,8 +39,12 @@ public:
     const CompilerInstance& compiler() const { SWC_ASSERT(compilerInstance_); return *compilerInstance_; }
     // clang-format on
 
-    bool silentError() const { return silentError_; }
-    void setSilentError(bool silent) { silentError_ = silent; }
+    bool silentDiagnostic() const { return silentDiagnostic_; }
+    void setSilentDiagnostic(bool silent) { silentDiagnostic_ = silent; }
+    void setHasError() { hasError_ = true; }
+    void setHasWarning() { hasWarning_ = true; }
+    bool hasError() const { return hasError_; }
+    bool hasWarning() const { return hasWarning_; }
 };
 
 SWC_END_NAMESPACE()

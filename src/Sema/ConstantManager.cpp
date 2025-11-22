@@ -1,4 +1,6 @@
 #include "pch.h"
+
+#include "Main/Stats.h"
 #include "Sema/ConstantManager.h"
 #include "Sema/TypeManager.h"
 
@@ -23,6 +25,11 @@ ConstantRef ConstantManager::addConstant(const ConstantValue& value)
     const auto [it, inserted] = map_.try_emplace(value, ConstantRef{});
     if (!inserted)
         return it->second;
+
+#if SWC_HAS_STATS
+    Stats::get().numConstants.fetch_add(1);
+    Stats::get().memConstants.fetch_add(sizeof(ConstantValue), std::memory_order_relaxed);
+#endif
 
     const ConstantRef ref{store_.push_back(value)};
     it->second = ref;

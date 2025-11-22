@@ -1,4 +1,6 @@
 #include "pch.h"
+
+#include "Main/Stats.h"
 #include "Sema/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -21,6 +23,11 @@ TypeInfoRef TypeManager::registerType(const TypeInfo& typeInfo)
     const auto [it, inserted] = map_.try_emplace(typeInfo, TypeInfoRef{});
     if (!inserted)
         return it->second;
+
+#if SWC_HAS_STATS
+    Stats::get().numTypes.fetch_add(1);
+    Stats::get().memTypes.fetch_add(sizeof(TypeInfo), std::memory_order_relaxed);
+#endif
 
     const TypeInfoRef ref{store_.push_back(typeInfo)};
     it->second = ref;

@@ -4,16 +4,17 @@
 
 SWC_BEGIN_NAMESPACE()
 
-Diagnostic SemaJob::reportError(DiagnosticId id, TokenRef tknRef)
+Diagnostic SemaJob::reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tknRef)
 {
-    auto diag = Diagnostic::get(id, visit().curSrcView().fileRef());
-    diag.last().addSpan(Diagnostic::tokenErrorLocation(ctx(), visit().curSrcView(), tknRef), "");
+    auto       diag    = Diagnostic::get(id, ast().srcView().fileRef());
+    const auto srcView = compiler().srcView(srcViewRef);
+    diag.last().addSpan(Diagnostic::tokenErrorLocation(ctx(), srcView, tknRef), "");
     return diag;
 }
 
-void SemaJob::raiseError(DiagnosticId id, TokenRef tknRef)
+void SemaJob::raiseError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tknRef)
 {
-    const auto diag = reportError(id, tknRef);
+    const auto diag = reportError(id, srcViewRef, tknRef);
     diag.report(ctx());
 }
 

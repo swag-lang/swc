@@ -10,17 +10,15 @@ void AstVisit::start(Ast& ast, AstNodeRef root)
 {
     SWC_ASSERT(root.isValid());
 
-    ast_        = &ast;
-    root_       = root;
-    curSrcView_ = &ast_->srcView();
+    ast_  = &ast;
+    root_ = root;
 
     stack_.clear();
     children_.clear();
 
     Frame fr;
-    fr.nodeRef       = root;
-    fr.stage         = Frame::Stage::Pre;
-    fr.srcViewAtPush = curSrcView_;
+    fr.nodeRef = root;
+    fr.stage   = Frame::Stage::Pre;
     stack_.push_back(fr);
 }
 
@@ -102,9 +100,8 @@ AstVisitResult AstVisit::step()
                 }
 
                 Frame childFr;
-                childFr.nodeRef       = childRef;
-                childFr.stage         = Frame::Stage::Pre;
-                childFr.srcViewAtPush = curSrcView_;
+                childFr.nodeRef = childRef;
+                childFr.stage   = Frame::Stage::Pre;
 
                 stack_.push_back(childFr);
                 fr.nextChildIx++;
@@ -127,7 +124,6 @@ AstVisitResult AstVisit::step()
                     return AstVisitResult::Pause;
             }
 
-            curSrcView_ = fr.srcViewAtPush;
             stack_.pop_back();
             if (stack_.empty())
                 return AstVisitResult::Stop;

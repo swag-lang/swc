@@ -83,12 +83,13 @@ struct AstNode
     void                 setConstant(ConstantRef ref);
     const ConstantValue& getConstant(const TaskContext& ctx) const;
 
-    AstNodeId id() const { return id_; }
-    void      setId(AstNodeId id) { id_ = id; }
-    bool      is(AstNodeId id) const { return id_ == id; }
-    bool      isNot(AstNodeId id) const { return id_ != id; }
-    TokenRef  tokRef() const { return tokRef_; }
-    TokenRef  tokRefEnd(const Ast& ast) const;
+    AstNodeId     id() const { return id_; }
+    void          setId(AstNodeId id) { id_ = id; }
+    bool          is(AstNodeId id) const { return id_ == id; }
+    bool          isNot(AstNodeId id) const { return id_ != id; }
+    SourceViewRef srcViewRef() const { return srcViewRef_; }
+    TokenRef      tokRef() const { return tokRef_; }
+    TokenRef      tokRefEnd(const Ast& ast) const;
 
 private:
     AstNodeId                 id_ = AstNodeId::Invalid;

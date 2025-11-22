@@ -2,12 +2,12 @@
 
 SWC_BEGIN_NAMESPACE()
 
-inline constexpr auto ALLOWED_COMMANDS = "syntax|format|build";
+inline constexpr auto ALLOWED_COMMANDS = "syntax|format|sema";
 enum class CommandKind
 {
     Syntax  = 0,
     Format  = 1,
-    Build   = 2,
+    Sema    = 2,
     Invalid = -1,
 };
 

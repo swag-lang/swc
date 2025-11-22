@@ -94,8 +94,8 @@ void CompilerInstance::processCommand()
         case CommandKind::Format:
             Command::format(*this);
             break;
-        case CommandKind::Build:
-            Command::build(*this);
+        case CommandKind::Sema:
+            Command::sema(*this);
             break;
         default:
             SWC_UNREACHABLE();
@@ -191,7 +191,7 @@ Result CompilerInstance::collectFiles(const TaskContext& ctx)
             addFile(f, FileFlagsE::ModuleSrc);
 
         // Collect runtime files
-        if (cmdLine.command == CommandKind::Build)
+        if (cmdLine.command == CommandKind::Sema)
         {
             fs::path runtimePath = exeFullName_.parent_path() / "Runtime";
             if (FileSystem::resolveFolder(ctx, runtimePath) != Result::Success)

@@ -13,7 +13,7 @@ SWC_BEGIN_NAMESPACE()
 
 namespace Command
 {
-    void build(CompilerInstance& compiler)
+    void sema(CompilerInstance& compiler)
     {
         const TaskContext ctx(compiler);
         const auto&       global   = ctx.global();

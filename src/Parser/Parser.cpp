@@ -9,9 +9,17 @@ void Parser::setReportArguments(Diagnostic& diag, TokenRef tokenRef) const
 {
     const auto& token = ast_->srcView().token(tokenRef);
 
-    diag.addArgument(Diagnostic::ARG_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokenRef));
-    diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id), false);
-    diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Token::toAFamily(token.id), false);
+    if (token.is(TokenId::EndOfFile))
+    {
+        diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id), false);
+        diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Token::toFamily(token.id), false);
+    }
+    else
+    {
+        diag.addArgument(Diagnostic::ARG_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokenRef));
+        diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id), false);
+        diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Token::toAFamily(token.id), false);
+    }
 
     // Get the last non-trivia token
     if (tokenRef.get() != 0)
@@ -207,13 +215,14 @@ TokenRef Parser::expectAndConsumeClosing(TokenId closeId, TokenRef openRef, cons
 
     const auto openId = Token::toRelated(closeId);
     const auto tok    = ast_->srcView().token(openRef);
-    auto       diag   = reportError(DiagnosticId::parser_err_expected_closing_before, ref());
-    setReportExpected(diag, closeId);
 
     if (tok.id == openId)
+    {
+        auto diag = reportError(DiagnosticId::parser_err_expected_closing_before, ref());
+        setReportExpected(diag, closeId);
         diag.last().addSpan(Diagnostic::tokenErrorLocation(*ctx_, ast_->srcView(), openRef), DiagnosticId::parser_note_opening, DiagnosticSeverity::Note);
-
-    diag.report(*ctx_);
+        diag.report(*ctx_);
+    }
 
     SmallVector skip{skipIds};
     if (skip.empty())

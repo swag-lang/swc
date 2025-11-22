@@ -1,5 +1,4 @@
 #assert A // swc-expected-error {{parser_err_expected_token}}
-// swc-expected-error@+ {{parser_err_expected_closing}}
 #assert(A)
 #assert(A) #assert(A) // swc-expected-error {{parser_err_expected_sep_stmt}}
 

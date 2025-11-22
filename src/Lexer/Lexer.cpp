@@ -1331,7 +1331,9 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
     }
 
     // End marker
-    token_.id = TokenId::EndOfFile;
+    token_.id        = TokenId::EndOfFile;
+    startToken_      = buffer_++;
+    token_.byteStart = static_cast<uint32_t>(startToken_ - startBuffer_);
     pushToken();
 
     // Compute the start trivia of each token

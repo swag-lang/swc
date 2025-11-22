@@ -35,7 +35,7 @@ public:
     void                                  setRoot(AstNodeRef root) { root_ = root; }
     SourceView&                           srcView() { return *srcView_; }
     const SourceView&                     srcView() const { return *srcView_; }
-    void                                  setSourceView(SourceView* srcView) { srcView_ = srcView; }
+    void                                  setSourceView(SourceView& srcView) { srcView_ = &srcView; }
     bool                                  hasFlag(AstFlags flag) const { return flags_.has(flag); }
     void                                  addFlag(AstFlags flag) { flags_.add(flag); }
 

@@ -111,32 +111,32 @@ ExitCode CompilerInstance::run()
     return ExitCode::Success;
 }
 
-SourceView* CompilerInstance::addSourceView()
+SourceView& CompilerInstance::addSourceView()
 {
     std::unique_lock  lock(mutex_);
     const auto        srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
     const SourceFile* filePtr    = nullptr;
     srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, nullptr));
-    return srcViews_.back().get();
+    return *srcViews_.back();
 }
 
-SourceView* CompilerInstance::addSourceView(FileRef fileRef)
+SourceView& CompilerInstance::addSourceView(FileRef fileRef)
 {
     SWC_ASSERT(fileRef.isValid());
     SWC_RACE_CONDITION_READ(rcFiles_);
     std::unique_lock lock(mutex_);
     const auto       srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
-    srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, file(fileRef)));
-    return srcViews_.back().get();
+    srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, &file(fileRef)));
+    return *srcViews_.back();
 }
 
-SourceFile* CompilerInstance::addFile(fs::path path, FileFlags flags)
+SourceFile& CompilerInstance::addFile(fs::path path, FileFlags flags)
 {
     SWC_RACE_CONDITION_WRITE(rcFiles_);
     path               = fs::absolute(path);
     const auto fileRef = static_cast<FileRef>(static_cast<uint32_t>(files_.size()));
     files_.emplace_back(std::make_unique<SourceFile>(fileRef, std::move(path), flags));
-    return files_.back().get();
+    return *files_.back();
 }
 
 std::vector<SourceFile*> CompilerInstance::files() const

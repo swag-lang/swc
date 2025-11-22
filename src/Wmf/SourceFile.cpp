@@ -64,7 +64,7 @@ Result SourceFile::loadContent(TaskContext& ctx)
     for (int i = 0; i < TRAILING_0; i++)
         content_.push_back(0);
 
-    const auto srcView = ctx.compiler().addSourceView(fileRef_);
+    auto& srcView = ctx.compiler().addSourceView(fileRef_);
     ast_->setSourceView(srcView);
     return Result::Success;
 }

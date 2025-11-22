@@ -180,8 +180,8 @@ void Diagnostic::report(const TaskContext& ctx) const
     // Check that diagnostic was not awaited
     if (fileOwner_.isValid())
     {
-        const auto file = ctx.compiler().file(fileOwner_);
-        dismiss         = file->unitTest().verifyExpected(ctx, *this);
+        const auto& file = ctx.compiler().file(fileOwner_);
+        dismiss          = file.unitTest().verifyExpected(ctx, *this);
     }
 
     // Count only errors and warnings not dismissed during tests

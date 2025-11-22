@@ -49,15 +49,15 @@ public:
     ConstantManager&       constMgr() { return *constMgr_; }
     const ConstantManager& constMgr() const { return *constMgr_; }
 
-    SourceFile*              addFile(fs::path path, FileFlags flags);
-    std::vector<SourceFile*> files() const;
-    SourceFile*              file(FileRef ref) const { return files_[ref.get()].get(); }
+    SourceFile& addFile(fs::path path, FileFlags flags);
+    SourceFile& file(FileRef ref) const { return *files_[ref.get()].get(); }
 
-    SourceView* addSourceView();
-    SourceView* addSourceView(FileRef fileRef);
+    SourceView& addSourceView();
+    SourceView& addSourceView(FileRef fileRef);
     SourceView& srcView(SourceViewRef ref) const { return *srcViews_[ref.get()].get(); }
 
-    Result collectFiles(const TaskContext& ctx);
+    Result                   collectFiles(const TaskContext& ctx);
+    std::vector<SourceFile*> files() const;
 };
 
 SWC_END_NAMESPACE()

@@ -298,12 +298,12 @@ void DiagnosticBuilder::writeLocation(const DiagnosticElement& el)
     SWC_ASSERT(el.srcView());
     if (el.srcView()->fileRef().isValid())
     {
-        const auto file = ctx_->compiler().file(el.srcView()->fileRef());
-        Utf8       fileName;
+        const auto& file = ctx_->compiler().file(el.srcView()->fileRef());
+        Utf8        fileName;
         if (ctx_->cmdLine().diagAbsolute)
-            fileName = file->path().string();
+            fileName = file.path().string();
         else
-            fileName = file->path().filename().string();
+            fileName = file.path().filename().string();
         out_ += partStyle(DiagPart::FileLocationPath);
         out_ += fileName;
         out_ += partStyle(DiagPart::Reset);

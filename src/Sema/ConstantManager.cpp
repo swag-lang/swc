@@ -28,19 +28,18 @@ ConstantRef ConstantManager::addConstant(const ConstantValue& value)
     Stats::get().memConstants.fetch_add(sizeof(ConstantValue), std::memory_order_relaxed);
 #endif
 
-    ConstantValue stored = value;
-
     if (value.isString())
     {
-        auto [itStr, _]           = cacheStr_.insert(std::string(value.getString()));
-        const std::string& pooled = *itStr;
-        stored.value()            = std::string_view(pooled.data(), pooled.size());
+        ConstantValue stored = value;
+        auto [itStr, _]      = cacheStr_.insert(std::string(value.getString()));
+        stored.value()       = std::string_view(itStr->data(), itStr->size());
+        const ConstantRef ref{store_.push_back(stored)};
+        map_.emplace(stored, ref);
+        return ref;
     }
 
-    const ConstantRef ref{store_.push_back(stored)};
-    auto [_, inserted] = map_.emplace(stored, ref);
-    SWC_ASSERT(inserted);
-
+    const ConstantRef ref{store_.push_back(value)};
+    map_.emplace(value, ref);
     return ref;
 }
 

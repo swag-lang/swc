@@ -299,6 +299,7 @@
         <ClInclude Include="src\Report\DiagnosticElement.h"/>
         <ClInclude Include="src\Report\Logger.h"/>
         <ClInclude Include="src\Report\LogSymbol.h"/>
+        <ClInclude Include="src\Sema\ConstantInt.h"/>
         <ClInclude Include="src\Sema\ConstantManager.h"/>
         <ClInclude Include="src\Sema\ConstantValue.h"/>
         <ClInclude Include="src\Sema\SemaJob.h"/>

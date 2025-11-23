@@ -1,4 +1,5 @@
 #pragma once
+#include "Sema/ConstantInt.h"
 
 SWC_BEGIN_NAMESPACE()
 class TaskContext;
@@ -16,7 +17,7 @@ class ConstantValue
     ConstantKind kind_    = ConstantKind::Invalid;
     TypeInfoRef  typeRef_ = TypeInfoRef::invalid();
 
-    using TypeDataT = std::variant<bool, std::string_view>;
+    using TypeDataT = std::variant<bool, std::string_view, ConstantInt<64>>;
     TypeDataT value_;
 
 public:

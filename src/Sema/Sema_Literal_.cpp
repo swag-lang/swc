@@ -173,14 +173,14 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(SemaJob& job)
     str = str.substr(2);
 
     // Remove separators
-    const auto& langSpec = job.compiler().global().langSpec();
-    uint64_t    value    = 0;
+    const auto&     langSpec = job.compiler().global().langSpec();
+    ConstantInt<64> value;
     for (const char c : str)
     {
         if (langSpec.isNumberSep(c))
             continue;
         value <<= 1;
-        value += (c == '1');
+        value |= (c == '1') ? 1 : 0;
     }
 
     // Convert the binary string to an integer constant

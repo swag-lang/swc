@@ -58,7 +58,7 @@ TypeInfo TypeInfo::makeString()
     return TypeInfo{TypeInfoKind::String};
 }
 
-Utf8 TypeInfo::toString(ToStringMode mode) const
+Utf8 TypeInfo::toString(const TypeManager& typeMgr, ToStringMode mode) const
 {
     switch (kind_)
     {

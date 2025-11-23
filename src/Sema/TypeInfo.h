@@ -1,6 +1,7 @@
 #pragma once
 
 SWC_BEGIN_NAMESPACE()
+class TypeManager;
 
 enum class TypeInfoKind
 {
@@ -25,7 +26,7 @@ public:
 private:
     TypeInfo() = delete;
     explicit TypeInfo(TypeInfoKind kind);
-    Utf8 toString(ToStringMode mode = ToStringMode::Diagnostic) const;
+    Utf8 toString(const TypeManager& typeMgr, ToStringMode mode = ToStringMode::Diagnostic) const;
 
     TypeInfoKind kind_ = TypeInfoKind::Invalid;
 

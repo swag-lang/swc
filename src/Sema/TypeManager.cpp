@@ -63,7 +63,7 @@ std::string_view TypeManager::typeToString(const TypeInfo& typeInfo, TypeInfo::T
     if (!inserted)
         return it->second;
 
-    it->second = typeInfo.toString(mode);
+    it->second = typeInfo.toString(*this, mode);
     return it->second;
 }
 

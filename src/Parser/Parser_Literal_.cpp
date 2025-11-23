@@ -9,7 +9,7 @@ AstNodeRef Parser::parseLiteral()
     {
         case TokenId::NumberInteger:
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::HexaLiteral>(consume());
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntegerLiteral>(consume());
             return nodeRef;
         }
 
@@ -19,9 +19,9 @@ AstNodeRef Parser::parseLiteral()
             return nodeRef;
         }
 
-        case TokenId::NumberHexadecimal:
+        case TokenId::NumberHexa:
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntegerLiteral>(consume());
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::HexaLiteral>(consume());
             return nodeRef;
         }
 

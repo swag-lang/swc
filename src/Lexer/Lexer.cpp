@@ -435,7 +435,7 @@ void Lexer::lexCharacterLiteral()
 
 void Lexer::lexHexNumber()
 {
-    token_.id = TokenId::NumberHexadecimal;
+    token_.id = TokenId::NumberHexa;
     buffer_ += 2;
 
     bool           lastWasSep = false;
@@ -1313,7 +1313,7 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
         {
             if (prevToken_.id != TokenId::Identifier &&
                 prevToken_.id != TokenId::Character &&
-                prevToken_.id != TokenId::NumberHexadecimal &&
+                prevToken_.id != TokenId::NumberHexa &&
                 prevToken_.id != TokenId::NumberBinary &&
                 prevToken_.id != TokenId::NumberInteger &&
                 prevToken_.id != TokenId::NumberFloat &&

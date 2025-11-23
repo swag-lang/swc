@@ -16,7 +16,7 @@ SWC_TOKEN_DEF(StringMultiLine, "",  Literal)
 
 SWC_TOKEN_DEF(Character, "",  Literal)
 
-SWC_TOKEN_DEF(NumberHexadecimal, "",  Literal)
+SWC_TOKEN_DEF(NumberHexa, "",  Literal)
 SWC_TOKEN_DEF(NumberBinary, "",  Literal)
 SWC_TOKEN_DEF(NumberInteger, "",  Literal)
 SWC_TOKEN_DEF(NumberFloat, "",  Literal)

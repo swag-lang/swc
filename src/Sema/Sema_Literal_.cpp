@@ -173,7 +173,6 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(SemaJob& job)
     // Remove '0b' or '0B' prefix
     str = str.substr(2);
 
-    // Remove separators
     const auto& langSpec = job.compiler().global().langSpec();
     ApInt       value;
     bool        errorRaised = false;
@@ -201,6 +200,39 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(SemaJob& job)
 
 AstVisitStepResult AstHexaLiteral::semaPreNode(SemaJob& job)
 {
+    const auto& tok = job.token(srcViewRef(), tokRef());
+    auto        str = tok.string(job.compiler().srcView(srcViewRef()));
+
+    SWC_ASSERT(str.size() > 2);
+    SWC_ASSERT(str[0] == '0' && (str[1] == 'x' || str[1] == 'X'));
+
+    // Remove '0x' or '0X' prefix
+    str = str.substr(2);
+
+    const auto& langSpec = job.compiler().global().langSpec();
+    ApInt       value;
+    bool        errorRaised = false;
+    for (const char c : str)
+    {
+        if (langSpec.isNumberSep(c))
+            continue;
+
+        bool over = false;
+        value.logicalShiftLeft(4, over); // multiply by 16
+        if (over && !errorRaised)
+        {
+            job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+            errorRaised = true;
+        }
+
+        const unsigned char h     = (c >= 'A' && c <= 'F') ? (c + 32) : c;
+        const size_t        digit = (c <= '9') ? (c - '0') : (10u + (c - 'a'));
+        value.bitwiseOr(digit);
+    }
+
+    // Convert the hexadecimal string to an integer constant
+    const auto val = ApValue::makeInt(job.ctx(), value, 0, false);
+    setConstant(job.constMgr().addConstant(val));
     return AstVisitStepResult::SkipChildren;
 }
 

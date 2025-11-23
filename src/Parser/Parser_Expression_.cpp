@@ -509,7 +509,7 @@ AstNodeRef Parser::parsePrimaryExpression()
 
         case TokenId::NumberInteger:
         case TokenId::NumberBinary:
-        case TokenId::NumberHexadecimal:
+        case TokenId::NumberHexa:
         case TokenId::NumberFloat:
         case TokenId::Character:
             return parseLiteralExpression();

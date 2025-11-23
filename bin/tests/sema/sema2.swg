@@ -6,3 +6,4 @@
 #assert("truetrue" == "true" ++ "true")
 #assert("truetrue" == "true" ++ true)
 #assert("truetrue" == "true" ++ "false") // swc-expected-error {{sema_err_compiler_assert}}
+#assert(0b11 == 0x3)

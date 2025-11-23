@@ -15,6 +15,7 @@ enum class ConstantKind
 
 class ConstantValue
 {
+    friend struct ConstantValueHash;
     friend class ConstantManager;
 
     ConstantKind kind_    = ConstantKind::Invalid;

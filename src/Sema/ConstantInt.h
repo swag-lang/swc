@@ -8,7 +8,7 @@ class ConstantInt
     static constexpr size_t   WORD_BITS = sizeof(size_t) * 8;
     static constexpr size_t   MAX_WORDS = (MAX_BITS + WORD_BITS - 1) / WORD_BITS;
 
-    unsigned bitWidth_;
+    uint32_t bitWidth_;
     size_t   numWords_;
     size_t   words_[MAX_WORDS];
 
@@ -27,6 +27,8 @@ public:
     bool equals(const ConstantInt& other) const;
     void bitwiseOr(size_t rhs);
     void shiftLeft(size_t amount, bool& overflow);
+
+    size_t hash() const;
 };
 
 SWC_END_NAMESPACE()

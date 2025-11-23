@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Sema/ConstantInt.h"
+#include "Core/hash.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -142,6 +143,14 @@ void ConstantInt::shiftLeft(size_t amount, bool& overflow)
     }
 
     normalize();
+}
+
+size_t ConstantInt::hash() const
+{
+    auto h = std::hash<int>()(static_cast<int>(bitWidth_));
+    for (size_t i = 0; i < numWords_; ++i)
+        h = hash_combine(h, words_[i]);
+    return h;
 }
 
 SWC_END_NAMESPACE()

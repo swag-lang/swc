@@ -34,6 +34,8 @@ ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const ConstantInt& 
     ConstantValue cv;
     cv.typeRef_ = ctx.compiler().typeMgr().getTypeInt(bits, isSigned);
     cv.kind_    = ConstantKind::Int;
+    cv.int_.val = value;
+    cv.int_.sig = isSigned;
     return cv;
 }
 
@@ -64,6 +66,8 @@ Utf8 ConstantValue::toString() const
             return getBool() ? "true" : "false";
         case ConstantKind::String:
             return getString();
+        case ConstantKind::Int:
+            return "???";
 
         default:
             SWC_UNREACHABLE();
@@ -77,10 +81,13 @@ size_t ConstantValueHash::operator()(const ConstantValue& v) const noexcept
     switch (v.kind())
     {
         case ConstantKind::Bool:
-            h = hash_combine(h, v.getBool());
+            h = hash_combine(h, v.bool_.val);
             break;
         case ConstantKind::String:
-            h = hash_combine(h, hash(v.getString()));
+            h = hash_combine(h, hash(v.string_.val));
+            break;
+        case ConstantKind::Int:
+            h = hash_combine(h, v.int_.val.hash());
             break;
 
         default:

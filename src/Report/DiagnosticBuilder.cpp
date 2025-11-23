@@ -665,8 +665,8 @@ Utf8 DiagnosticBuilder::buildMessage(const Utf8& msg) const
 
     // Clean some stuff
     result = std::regex_replace(result, std::regex{R"(\{\w+\})"}, "");
-    result.replaceOutsideQuotes(" , ", ", ");
-    result.replaceOutsideQuotes("  ", " ", true);
+    result.replace_loop(" , ", ", ");
+    result.replace_loop("  ", " ", true);
 
     return result;
 }

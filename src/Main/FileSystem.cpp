@@ -109,7 +109,7 @@ Utf8 FileSystem::normalizeSystemMessage(const Utf8& msg)
     auto result = msg;
     result.clean();
     result.trim();
-    result.makeLower();
+    result.make_lower();
     if (!result.empty() && result.back() == '.')
         result.pop_back();
     return result;

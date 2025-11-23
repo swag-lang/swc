@@ -3,20 +3,20 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void Utf8::trimStart()
+void Utf8::trim_start()
 {
     erase(begin(), std::ranges::find_if(begin(), end(), [](char8_t ch) { return !std::isspace(ch); }));
 }
 
-void Utf8::trimEnd()
+void Utf8::trim_end()
 {
     erase(std::ranges::find_if(rbegin(), rend(), [](char8_t ch) { return !std::isspace(ch); }).base(), end());
 }
 
 void Utf8::trim()
 {
-    trimStart();
-    trimEnd();
+    trim_start();
+    trim_end();
 }
 
 void Utf8::clean()
@@ -24,17 +24,17 @@ void Utf8::clean()
     std::ranges::replace_if(*this, [](char8_t ch) { return ch < 0x20 || ch == 0x7F; }, ' ');
 }
 
-void Utf8::makeLower()
+void Utf8::make_lower()
 {
     std::ranges::transform(*this, begin(), [](char8_t ch) { return static_cast<char>(std::tolower(ch)); });
 }
 
-void Utf8::makeUpper()
+void Utf8::make_upper()
 {
     std::ranges::transform(*this, begin(), [](char8_t ch) { return static_cast<char>(std::toupper(ch)); });
 }
 
-void Utf8::replaceOutsideQuotes(std::string_view from, std::string_view to, bool loopReplace)
+void Utf8::replace_loop(std::string_view from, std::string_view to, bool loopReplace)
 {
     if (from.empty())
         return;
@@ -99,7 +99,7 @@ void Utf8::replaceOutsideQuotes(std::string_view from, std::string_view to, bool
     *this = next;
 }
 
-void Utf8::appendUni(uint32_t cp)
+void Utf8::push_back_uni(uint32_t cp)
 {
     // Replace invalid values (surrogates or > U+10FFFF) with U+FFFD
     if ((cp >= 0xD800 && cp <= 0xDFFF) || cp > 0x10FFFF)

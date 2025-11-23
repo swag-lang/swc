@@ -1,4 +1,5 @@
 // ReSharper disable CppNonExplicitConvertingConstructor
+// ReSharper disable CppInconsistentNaming
 #pragma once
 
 SWC_BEGIN_NAMESPACE()
@@ -6,37 +7,15 @@ SWC_BEGIN_NAMESPACE()
 class Utf8 : public std::string
 {
 public:
+    // clang-format off
     Utf8() = default;
-
-    Utf8(const char* from) :
-        std::string(from)
-    {
-    }
-
-    Utf8(uint32_t count, char c) :
-        std::string(count, c)
-    {
-    }
-
-    Utf8(const Utf8& other) :
-        std::string(other)
-    {
-    }
-
-    Utf8(Utf8&& other) noexcept :
-        std::string(other)
-    {
-    }
-
-    Utf8(std::string&& other) :
-        std::string(std::move(other))
-    {
-    }
-
-    Utf8(const std::string_view& other) :
-        std::string(other)
-    {
-    }
+    Utf8(const char* from) : std::string(from){}
+    Utf8(uint32_t count, char c) : std::string(count, c) {}
+    Utf8(const Utf8& other) : std::string(other) {}
+    Utf8(Utf8&& other) noexcept : std::string(other) {}
+    Utf8(std::string&& other) : std::string(std::move(other)) {}
+    Utf8(const std::string_view& other) : std::string(other) {}
+    // clang-format on
 
     Utf8& operator=(const Utf8& other)
     {
@@ -60,26 +39,25 @@ public:
         return *this;
     }
 
-    // ReSharper disable once CppNonExplicitConversionOperator
-    operator std::string_view() const
-    {
-        return {data(), size()};
-    }
-
     void operator+=(const Utf8& txt) { this->append(txt); }
     void operator+=(const char* txt) { this->append(txt); }
-    void operator+=(uint32_t c) { appendUni(c); }
-    void operator+=(char8_t c) { appendUni(c); }
+    void operator+=(uint32_t c) { push_back_uni(c); }
+    void operator+=(char8_t c) { push_back_uni(c); }
     void operator+=(char c) { this->push_back(c); }
-    void appendUni(uint32_t cp);
+    void push_back_uni(uint32_t cp);
 
-    void trimStart();
-    void trimEnd();
+    void trim_start();
+    void trim_end();
     void trim();
     void clean();
-    void makeLower();
-    void makeUpper();
-    void replaceOutsideQuotes(std::string_view from, std::string_view to, bool loopReplace = false);
+    void make_lower();
+    void make_upper();
+    void replace_loop(std::string_view from, std::string_view to, bool loopReplace = false);
 };
 
 SWC_END_NAMESPACE()
+
+template<>
+struct std::formatter<swc::Utf8> : std::formatter<std::string>
+{
+};

@@ -6,9 +6,9 @@ SWC_BEGIN_NAMESPACE()
 
 bool TypeInfo::operator==(const TypeInfo& other) const noexcept
 {
-    if (kind != other.kind)
+    if (kind_ != other.kind_)
         return false;
-    switch (kind)
+    switch (kind_)
     {
         case TypeInfoKind::Bool:
         case TypeInfoKind::String:
@@ -24,9 +24,9 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
 
 size_t TypeInfoHash::operator()(const TypeInfo& t) const noexcept
 {
-    auto h = std::hash<int>()(static_cast<int>(t.kind));
+    auto h = std::hash<int>()(static_cast<int>(t.kind_));
 
-    switch (t.kind)
+    switch (t.kind_)
     {
         case TypeInfoKind::Bool:
         case TypeInfoKind::String:
@@ -42,23 +42,25 @@ size_t TypeInfoHash::operator()(const TypeInfo& t) const noexcept
     }
 }
 
+// ReSharper disable once CppPossiblyUninitializedMember
+TypeInfo::TypeInfo(TypeInfoKind kind) :
+    kind_(kind)
+{
+}
+
 TypeInfo TypeInfo::makeBool()
 {
-    TypeInfo ti{};
-    ti.kind = TypeInfoKind::Bool;
-    return ti;
+    return TypeInfo{TypeInfoKind::Bool};
 }
 
 TypeInfo TypeInfo::makeString()
 {
-    TypeInfo ti{};
-    ti.kind = TypeInfoKind::String;
-    return ti;
+    return TypeInfo{TypeInfoKind::String};
 }
 
 Utf8 TypeInfo::toString(ToStringMode mode) const
 {
-    switch (kind)
+    switch (kind_)
     {
         case TypeInfoKind::Bool:
             return "bool";

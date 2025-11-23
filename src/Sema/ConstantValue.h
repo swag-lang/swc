@@ -2,7 +2,7 @@
 
 SWC_BEGIN_NAMESPACE()
 class TaskContext;
-struct TypeInfo;
+class TypeInfo;
 
 enum class ConstantKind
 {

@@ -10,15 +10,24 @@ enum class TypeInfoKind
     String,
 };
 
-struct TypeInfo
+class TypeInfo
 {
+    friend struct TypeInfoHash;
+    friend class TypeManager;
+
+public:
     enum class ToStringMode
     {
         Diagnostic,
         Count,
     };
 
-    TypeInfoKind kind;
+private:
+    TypeInfo() = delete;
+    explicit TypeInfo(TypeInfoKind kind);
+    Utf8 toString(ToStringMode mode = ToStringMode::Diagnostic) const;
+
+    TypeInfoKind kind_ = TypeInfoKind::Invalid;
 
     union
     {
@@ -28,15 +37,15 @@ struct TypeInfo
         // clang-format on
     };
 
+public:
     bool operator==(const TypeInfo& other) const noexcept;
 
-    bool isBool() const noexcept { return kind == TypeInfoKind::Bool; }
-    bool isString() const noexcept { return kind == TypeInfoKind::String; }
+    TypeInfoKind kind() const noexcept { return kind_; }
+    bool         isBool() const noexcept { return kind_ == TypeInfoKind::Bool; }
+    bool         isString() const noexcept { return kind_ == TypeInfoKind::String; }
 
     static TypeInfo makeBool();
     static TypeInfo makeString();
-
-    Utf8 toString(ToStringMode mode = ToStringMode::Diagnostic) const;
 };
 
 struct TypeInfoHash

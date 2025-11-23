@@ -12,8 +12,8 @@ class TypeManager
     Store<>                                                  store_;
     std::unordered_map<TypeInfo, TypeInfoRef, TypeInfoHash>  map_;
     mutable std::shared_mutex                                mutexAdd_;
-    mutable std::unordered_map<TypeInfo, Utf8, TypeInfoHash> mapName_[static_cast<int>(TypeInfo::ToStringMode::Count)];
-    mutable std::shared_mutex                                mutexName_[static_cast<int>(TypeInfo::ToStringMode::Count)];
+    mutable std::unordered_map<TypeInfo, Utf8, TypeInfoHash> mapString_[static_cast<int>(TypeInfo::ToStringMode::Count)];
+    mutable std::shared_mutex                                mutexString_[static_cast<int>(TypeInfo::ToStringMode::Count)];
 
     // Predefined types
     TypeInfoRef typeBool_   = TypeInfoRef::invalid();

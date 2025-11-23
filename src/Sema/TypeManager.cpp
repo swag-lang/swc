@@ -52,14 +52,14 @@ std::string_view TypeManager::typeToString(const TypeInfo& typeInfo, TypeInfo::T
     const auto idx = static_cast<int>(mode);
 
     {
-        std::shared_lock lk(mutexName_[idx]);
-        const auto       it = mapName_[idx].find(typeInfo);
-        if (it != mapName_[idx].end())
+        std::shared_lock lk(mutexString_[idx]);
+        const auto       it = mapString_[idx].find(typeInfo);
+        if (it != mapString_[idx].end())
             return it->second;
     }
 
-    std::unique_lock lk(mutexName_[idx]);
-    const auto [it, inserted] = mapName_[idx].try_emplace(typeInfo, Utf8{});
+    std::unique_lock lk(mutexString_[idx]);
+    const auto [it, inserted] = mapString_[idx].try_emplace(typeInfo, Utf8{});
     if (!inserted)
         return it->second;
 

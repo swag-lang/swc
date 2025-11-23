@@ -105,6 +105,14 @@ void ApInt::setNegative(bool isNeg)
     negative_ = isNeg;
 }
 
+size_t ApInt::hash() const
+{
+    auto h = std::hash<int>()(bitWidth_);
+    for (size_t i = 0; i < numWords_; ++i)
+        h = hash_combine(h, words_[i]);
+    return h;
+}
+
 void ApInt::bitwiseOr(size_t rhs)
 {
     if (numWords_ == 0 || rhs == 0)
@@ -170,14 +178,6 @@ void ApInt::logicalShiftLeft(size_t amount, bool& overflow)
     }
 
     normalize();
-}
-
-size_t ApInt::hash() const
-{
-    auto h = std::hash<int>()(bitWidth_);
-    for (size_t i = 0; i < numWords_; ++i)
-        h = hash_combine(h, words_[i]);
-    return h;
 }
 
 SWC_END_NAMESPACE()

@@ -8,16 +8,15 @@ void TypeManager::setup(TaskContext&)
 {
     typeBool_   = addType(TypeInfo::makeBool());
     typeString_ = addType(TypeInfo::makeString());
-    typeS0_     = addType(TypeInfo::makeInt(0, true));
-    typeS8_     = addType(TypeInfo::makeInt(8, true));
-    typeS16_    = addType(TypeInfo::makeInt(16, true));
-    typeS32_    = addType(TypeInfo::makeInt(32, true));
-    typeS64_    = addType(TypeInfo::makeInt(64, true));
-    typeU0_     = addType(TypeInfo::makeInt(0, false));
+    typeApInt_  = addType(TypeInfo::makeInt(0, false));
     typeU8_     = addType(TypeInfo::makeInt(8, false));
     typeU16_    = addType(TypeInfo::makeInt(16, false));
     typeU32_    = addType(TypeInfo::makeInt(32, false));
     typeU64_    = addType(TypeInfo::makeInt(64, false));
+    typeS8_     = addType(TypeInfo::makeInt(8, true));
+    typeS16_    = addType(TypeInfo::makeInt(16, true));
+    typeS32_    = addType(TypeInfo::makeInt(32, true));
+    typeS64_    = addType(TypeInfo::makeInt(64, true));
 }
 
 TypeInfoRef TypeManager::addType(const TypeInfo& typeInfo)
@@ -46,12 +45,13 @@ TypeInfoRef TypeManager::addType(const TypeInfo& typeInfo)
 
 TypeInfoRef TypeManager::getTypeInt(uint32_t bits, bool isSigned) const
 {
+    if (bits == 0)
+        return typeApInt_;
+
     if (isSigned)
     {
         switch (bits)
         {
-            case 0:
-                return typeS0_;
             case 8:
                 return typeS8_;
             case 16:
@@ -67,8 +67,6 @@ TypeInfoRef TypeManager::getTypeInt(uint32_t bits, bool isSigned) const
 
     switch (bits)
     {
-        case 0:
-            return typeU0_;
         case 8:
             return typeU8_;
         case 16:

@@ -13,6 +13,7 @@ class ApInt
     uint8_t  numWords_;
     bool     negative_;
 
+    void           clearWords();
     static uint8_t computeNumWords(uint32_t bitWidth);
     void           normalize();
 
@@ -27,6 +28,7 @@ public:
     size_t   getNative() const;
 
     bool equals(const ApInt& other) const;
+    bool isZero() const;
     void resetToZero();
     void setNegative(bool isNeg);
 

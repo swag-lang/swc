@@ -56,4 +56,26 @@ TypeInfo TypeInfo::makeString()
     return ti;
 }
 
+Utf8 TypeInfo::toString(ToStringMode mode) const
+{
+    switch (kind)
+    {
+        case TypeInfoKind::Bool:
+            return "bool";
+        case TypeInfoKind::String:
+            return "string";
+
+        case TypeInfoKind::Int:
+        {
+            Utf8 out;
+            out += int_.isSigned ? "s" : "u";
+            out += std::to_string(int_.bits);
+            return out;
+        }
+
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
 SWC_END_NAMESPACE()

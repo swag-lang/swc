@@ -9,19 +9,11 @@ class CompilerInstance;
 
 class TypeManager
 {
-public:
-    enum class ToNameKind
-    {
-        Diagnostic,
-        Count,
-    };
-
-private:
     Store<>                                                  store_;
     std::unordered_map<TypeInfo, TypeInfoRef, TypeInfoHash>  map_;
     mutable std::shared_mutex                                mutexAdd_;
-    mutable std::unordered_map<TypeInfo, Utf8, TypeInfoHash> mapName_[static_cast<int>(ToNameKind::Count)];
-    mutable std::shared_mutex                                mutexName_[static_cast<int>(ToNameKind::Count)];
+    mutable std::unordered_map<TypeInfo, Utf8, TypeInfoHash> mapName_[static_cast<int>(TypeInfo::ToStringMode::Count)];
+    mutable std::shared_mutex                                mutexName_[static_cast<int>(TypeInfo::ToStringMode::Count)];
 
     // Predefined types
     TypeInfoRef typeBool_   = TypeInfoRef::invalid();
@@ -35,9 +27,8 @@ public:
     TypeInfoRef     getString() const { return typeString_; }
     const TypeInfo& get(TypeInfoRef typeInfoRef) const;
 
-    std::string_view toName(TypeInfoRef typeInfoRef, ToNameKind kind = ToNameKind::Diagnostic) const;
-    std::string_view toName(const TypeInfo& typeInfo, ToNameKind kind = ToNameKind::Diagnostic) const;
-    static Utf8      toString(const TypeInfo& typeInfo, ToNameKind kind = ToNameKind::Diagnostic);
+    std::string_view typeToString(TypeInfoRef typeInfoRef, TypeInfo::ToStringMode mode = TypeInfo::ToStringMode::Diagnostic) const;
+    std::string_view typeToString(const TypeInfo& typeInfo, TypeInfo::ToStringMode mode = TypeInfo::ToStringMode::Diagnostic) const;
 };
 
 SWC_END_NAMESPACE()

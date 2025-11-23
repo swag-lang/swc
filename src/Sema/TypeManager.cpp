@@ -41,37 +41,15 @@ const TypeInfo& TypeManager::get(TypeInfoRef typeInfoRef) const
     return *store_.ptr<TypeInfo>(typeInfoRef.get());
 }
 
-Utf8 TypeManager::toString(const TypeInfo& typeInfo, ToNameKind kind)
-{
-    switch (typeInfo.kind)
-    {
-        case TypeInfoKind::Bool:
-            return "bool";
-        case TypeInfoKind::String:
-            return "string";
-
-        case TypeInfoKind::Int:
-        {
-            Utf8 out;
-            out += typeInfo.int_.isSigned ? "int" : "uint";
-            out += std::to_string(typeInfo.int_.bits);
-            return out;
-        }
-
-        default:
-            SWC_UNREACHABLE();
-    }
-}
-
-std::string_view TypeManager::toName(TypeInfoRef typeInfoRef, ToNameKind kind) const
+std::string_view TypeManager::typeToString(TypeInfoRef typeInfoRef, TypeInfo::ToStringMode mode) const
 {
     SWC_ASSERT(typeInfoRef.isValid());
-    return toName(get(typeInfoRef), kind);
+    return typeToString(get(typeInfoRef), mode);
 }
 
-std::string_view TypeManager::toName(const TypeInfo& typeInfo, ToNameKind kind) const
+std::string_view TypeManager::typeToString(const TypeInfo& typeInfo, TypeInfo::ToStringMode mode) const
 {
-    const auto idx = static_cast<int>(kind);
+    const auto idx = static_cast<int>(mode);
 
     {
         std::shared_lock lk(mutexName_[idx]);
@@ -85,7 +63,7 @@ std::string_view TypeManager::toName(const TypeInfo& typeInfo, ToNameKind kind) 
     if (!inserted)
         return it->second;
 
-    it->second = toString(typeInfo, kind);
+    it->second = typeInfo.toString(mode);
     return it->second;
 }
 

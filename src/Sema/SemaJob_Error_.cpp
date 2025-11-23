@@ -37,8 +37,8 @@ void SemaJob::raiseError(DiagnosticId id, AstNodeRef nodeRef)
 void SemaJob::raiseInvalidType(AstNodeRef nodeRef, TypeInfoRef wantedType, TypeInfoRef hasType)
 {
     auto diag = reportError(DiagnosticId::sema_err_invalid_type, nodeRef);
-    diag.addArgument(Diagnostic::ARG_TYPE, typeMgr().toName(hasType));
-    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, typeMgr().toName(wantedType));
+    diag.addArgument(Diagnostic::ARG_TYPE, typeMgr().typeToString(hasType));
+    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, typeMgr().typeToString(wantedType));
     diag.report(ctx());
 }
 

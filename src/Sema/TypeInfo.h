@@ -12,6 +12,12 @@ enum class TypeInfoKind
 
 struct TypeInfo
 {
+    enum class ToStringMode
+    {
+        Diagnostic,
+        Count,
+    };
+
     TypeInfoKind kind;
 
     union
@@ -29,6 +35,8 @@ struct TypeInfo
 
     static TypeInfo makeBool();
     static TypeInfo makeString();
+
+    Utf8 toString(ToStringMode mode = ToStringMode::Diagnostic) const;
 };
 
 struct TypeInfoHash

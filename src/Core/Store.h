@@ -140,7 +140,6 @@ public:
     template<class T>
     Ref push_back(const T& v)
     {
-        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
         auto [r, p]         = allocate(static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)));
         *static_cast<T*>(p) = v;
         return r;
@@ -150,7 +149,6 @@ public:
     template<class T>
     std::pair<Ref, T*> emplace_uninit()
     {
-        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
         auto [r, p] = allocate(static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)));
         return {r, static_cast<T*>(p)};
     }

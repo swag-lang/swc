@@ -17,7 +17,7 @@ class ConstantManager
 
 public:
     void           setup(const TaskContext& ctx);
-    ConstantRef    addConstant(const ApValue& value);
+    ConstantRef    addConstant(const TaskContext& ctx, const ApValue& value);
     ConstantRef    boolTrue() const { return boolTrue_; }
     ConstantRef    boolFalse() const { return boolFalse_; }
     const ApValue& get(ConstantRef constantRef) const;

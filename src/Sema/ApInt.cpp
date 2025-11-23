@@ -45,12 +45,7 @@ void ApInt::clearWords()
 
 bool ApInt::isZero() const
 {
-    for (size_t i = 0; i < numWords_; ++i)
-    {
-        if (words_[i] != 0)
-            return false;
-    }
-    return true;
+    return std::all_of(words_, words_ + numWords_, [](size_t w) { return w == 0; });
 }
 
 void ApInt::normalize()
@@ -108,6 +103,8 @@ void ApInt::setNegative(bool isNeg)
 size_t ApInt::hash() const
 {
     auto h = std::hash<int>()(bitWidth_);
+    h      = hash_combine(h, negative_);
+
     for (size_t i = 0; i < numWords_; ++i)
         h = hash_combine(h, words_[i]);
     return h;
@@ -190,15 +187,15 @@ namespace
         const U64 a = static_cast<U64>(x);
         const U64 b = static_cast<U64>(y);
 
-        const U64 a_hi = a >> 32;
-        const U64 a_lo = static_cast<U32>(a);
-        const U64 b_hi = b >> 32;
-        const U64 b_lo = static_cast<U32>(b);
+        const U64 aHi = a >> 32;
+        const U64 aLo = static_cast<U32>(a);
+        const U64 bHi = b >> 32;
+        const U64 bLo = static_cast<U32>(b);
 
-        const U64 p0 = a_lo * b_lo; // 64-bit
-        const U64 p1 = a_lo * b_hi; // 64-bit
-        const U64 p2 = a_hi * b_lo; // 64-bit
-        const U64 p3 = a_hi * b_hi; // 64-bit
+        const U64 p0 = aLo * bLo; // 64-bit
+        const U64 p1 = aLo * bHi; // 64-bit
+        const U64 p2 = aHi * bLo; // 64-bit
+        const U64 p3 = aHi * bHi; // 64-bit
 
         // Compose 128-bit product (high: p3 + ..., low: low64)
         const U64 mid  = (p0 >> 32) + (p1 & 0xffffffffull) + (p2 & 0xffffffffull);
@@ -236,44 +233,39 @@ void ApInt::add(size_t v, bool& overflow)
     if (v == 0 || numWords_ == 0)
         return;
 
-    // Fast path for native-sized integers
-    if (numWords_ == 1)
-    {
-        const size_t old = words_[0];
-        const size_t sum = old + v;
-
-        if (sum < old)
-            overflow = true; // word overflow
-
-        words_[0] = sum;
-
-        // Bit-width overflow (if bitWidth_ < WORD_BITS)
-        overflow = hasTopBitsOverflow();
-        normalize();
-        return;
-    }
-
     size_t carry = v;
-
-    // First word: add full v; later words: carry is 0 or 1
-    for (size_t i = 0; i < numWords_ && carry != 0; ++i)
+    for (size_t i = 0; i < numWords_; ++i)
     {
-        const size_t old = words_[i];
-        const size_t sum = old + carry;
+        const size_t oldWord = words_[i];
 
-        // Unsigned add overflow detection
-        if (sum < old)
-            carry = 1;
-        else
-            carry = 0;
+        // 1. Add carry-in from the previous word/initial value
+        const size_t sum = oldWord + carry;
+
+        // Carry-out from (old_word + carry):
+        // If a sum < old_word, an overflow occurred (carry is 1), otherwise 0.
+        // This is the standard unsigned addition overflow check.
+        const size_t newCarry = (sum < oldWord) ? 1 : 0;
 
         words_[i] = sum;
+        carry     = newCarry; // carry is now 0 or 1 for the next word
+
+        // The first word has an initial carry of 'v', so 'carry' might be > 1
+        // initially. The logic above handles this by setting words_[0] = old_word + v
+        // and correctly calculating the carry-out (0 or 1) for the next iteration.
     }
 
+    // Check for overflow beyond the allocated words
     if (carry != 0)
-        overflow = true; // ran out of words
+        overflow = true; // Ran out of words (true arbitrary overflow)
 
-    overflow = hasTopBitsOverflow();
+    // Check for overflow within the last word's bit-width
+    // This must be done *before* normalize() if the check relies on pre-normalized data.
+    // However, normalize() *masks* off the high bits, which is what 'hasTopBitsOverflow' checks for.
+    // We should check *before* calling normalizing to detect the overflow.
+    if (!overflow && hasTopBitsOverflow())
+        overflow = true;
+
+    // Mask off any excess bits above bitWidth_
     normalize();
 }
 
@@ -281,48 +273,30 @@ void ApInt::mul(size_t v, bool& overflow)
 {
     overflow = false;
 
-    if (numWords_ == 0)
-        return;
-
-    if (v == 0 || isZero())
+    if (numWords_ == 0 || v == 0 || isZero())
     {
-        resetToZero();
-        return;
-    }
-
-    // Fast path for single-word value
-    if (numWords_ == 1)
-    {
-        size_t low  = 0;
-        size_t high = 0;
-        mulWordFull(words_[0], v, 0, low, high);
-
-        words_[0] = low;
-
-        if (high != 0)
-            overflow = true;
-
-        overflow = hasTopBitsOverflow();
-        normalize();
+        if (numWords_ > 0 && !isZero())
+            resetToZero();
         return;
     }
 
     // General multi-word multiplication by scalar v
     size_t carry = 0;
-
     for (size_t i = 0; i < numWords_; ++i)
     {
         size_t low  = 0;
         size_t high = 0;
         mulWordFull(words_[i], v, carry, low, high);
         words_[i] = low;
-        carry     = high;
+        carry     = high; // The high 64 bits become the carry for the next word
     }
 
     if (carry != 0)
         overflow = true;
 
-    overflow = hasTopBitsOverflow();
+    if (!overflow && hasTopBitsOverflow())
+        overflow = true;
+
     normalize();
 }
 

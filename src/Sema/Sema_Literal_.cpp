@@ -24,6 +24,7 @@ AstVisitStepResult AstBoolLiteral::semaPreNode(SemaJob& job)
 
 AstVisitStepResult AstStringLiteral::semaPreNode(SemaJob& job)
 {
+    const auto& ctx     = job.ctx();
     const auto& tok     = job.token(srcViewRef(), tokRef());
     const auto& srcView = job.compiler().srcView(srcViewRef());
     auto        str     = tok.string(srcView);
@@ -47,8 +48,8 @@ AstVisitStepResult AstStringLiteral::semaPreNode(SemaJob& job)
     // Fast path if no escape sequence inside the string
     if (!tok.hasFlag(TokenFlagsE::Escaped))
     {
-        const auto val = ApValue::makeString(job.ctx(), str);
-        setConstant(job.constMgr().addConstant(val));
+        const auto val = ApValue::makeString(ctx, str);
+        setConstant(job.constMgr().addConstant(ctx, val));
         return AstVisitStepResult::SkipChildren;
     }
 
@@ -157,13 +158,14 @@ AstVisitStepResult AstStringLiteral::semaPreNode(SemaJob& job)
         }
     }
 
-    const auto val = ApValue::makeString(job.ctx(), result);
-    setConstant(job.constMgr().addConstant(val));
+    const auto val = ApValue::makeString(ctx, result);
+    setConstant(job.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 
 AstVisitStepResult AstBinaryLiteral::semaPreNode(SemaJob& job)
 {
+    const auto& ctx = job.ctx();
     const auto& tok = job.token(srcViewRef(), tokRef());
     auto        str = tok.string(job.compiler().srcView(srcViewRef()));
 
@@ -193,13 +195,14 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(SemaJob& job)
     }
 
     // Convert the binary string to an integer constant
-    const auto val = ApValue::makeInt(job.ctx(), value, 0, false);
-    setConstant(job.constMgr().addConstant(val));
+    const auto val = ApValue::makeInt(ctx, value, 0, false);
+    setConstant(job.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 
 AstVisitStepResult AstHexaLiteral::semaPreNode(SemaJob& job)
 {
+    const auto& ctx = job.ctx();
     const auto& tok = job.token(srcViewRef(), tokRef());
     auto        str = tok.string(job.compiler().srcView(srcViewRef()));
 
@@ -231,13 +234,14 @@ AstVisitStepResult AstHexaLiteral::semaPreNode(SemaJob& job)
     }
 
     // Convert the hexadecimal string to an integer constant
-    const auto val = ApValue::makeInt(job.ctx(), value, 0, false);
-    setConstant(job.constMgr().addConstant(val));
+    const auto val = ApValue::makeInt(ctx, value, 0, false);
+    setConstant(job.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 
 AstVisitStepResult AstIntegerLiteral::semaPreNode(SemaJob& job)
 {
+    const auto& ctx = job.ctx();
     const auto& tok = job.token(srcViewRef(), tokRef());
     const auto  str = tok.string(job.compiler().srcView(srcViewRef()));
 
@@ -280,8 +284,8 @@ AstVisitStepResult AstIntegerLiteral::semaPreNode(SemaJob& job)
         }
     }
 
-    const auto val = ApValue::makeInt(job.ctx(), value, 0, false);
-    setConstant(job.constMgr().addConstant(val));
+    const auto val = ApValue::makeInt(ctx, value, 0, false);
+    setConstant(job.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 

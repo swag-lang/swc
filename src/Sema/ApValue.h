@@ -32,7 +32,7 @@ class ApValue
 
 public:
     ApValue() {}
-    
+
     bool operator==(const ApValue& other) const noexcept;
 
     ConstantKind kind() const { return kind_; }
@@ -45,7 +45,7 @@ public:
     // clang-format off
     bool getBool() const { SWC_ASSERT(isBool()); return bool_.val; }
     std::string_view getString() const { SWC_ASSERT(isString()); return string_.val; }
-    ApInt getInt() const { SWC_ASSERT(isInt()); return int_.val; }
+    const ApInt& getInt() const { SWC_ASSERT(isInt()); return int_.val; }
     // clang-format on
 
     const TypeInfo& type(const TaskContext& ctx) const;

@@ -37,6 +37,7 @@ public:
     Diagnostic reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokenRef);
     void       raiseError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokenRef);
     void       raiseError(DiagnosticId id, AstNodeRef nodeRef);
+    void       raiseInvalidTypeError(TypeInfoRef wantedType, TypeInfoRef hasType, AstNodeRef nodeRef);
 };
 
 SWC_END_NAMESPACE()

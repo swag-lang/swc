@@ -1,6 +1,8 @@
 #include "pch.h"
+
 #include "Report/Diagnostic.h"
 #include "Sema/SemaJob.h"
+#include "TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -29,6 +31,14 @@ void SemaJob::raiseError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tok
 void SemaJob::raiseError(DiagnosticId id, AstNodeRef nodeRef)
 {
     const auto diag = reportError(id, nodeRef);
+    diag.report(ctx());
+}
+
+void SemaJob::raiseInvalidTypeError(TypeInfoRef wantedType, TypeInfoRef hasType, AstNodeRef nodeRef)
+{
+    auto diag = reportError(DiagnosticId::sema_err_invalid_type, nodeRef);
+    diag.addArgument(Diagnostic::ARG_TYPE, typeMgr().toName(hasType));
+    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, typeMgr().toName(wantedType));
     diag.report(ctx());
 }
 

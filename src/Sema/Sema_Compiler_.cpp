@@ -59,22 +59,16 @@ AstVisitStepResult AstCompilerFlow::semaPostNode(SemaJob& job) const
         case TokenId::CompilerPrint:
             if (!constant.isString())
             {
-                auto diag = job.reportError(DiagnosticId::sema_err_invalid_type, nodeArg1);
-                diag.addArgument(Diagnostic::ARG_TYPE, job.typeMgr().toName(constant.typeRef()));
-                diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, job.typeMgr().toName(job.typeMgr().getString()));
-                diag.report(job.ctx());
-                return AstVisitStepResult::Stop;
+                job.raiseInvalidTypeError(job.typeMgr().getString(), constant.typeRef(), nodeArg1);
+                return AstVisitStepResult::Continue;
             }
             break;
 
         case TokenId::CompilerAssert:
             if (!constant.isBool())
             {
-                auto diag = job.reportError(DiagnosticId::sema_err_invalid_type, nodeArg1);
-                diag.addArgument(Diagnostic::ARG_TYPE, job.typeMgr().toName(constant.typeRef()));
-                diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, job.typeMgr().toName(job.typeMgr().getBool()));
-                diag.report(job.ctx());
-                return AstVisitStepResult::Stop;
+                job.raiseInvalidTypeError(job.typeMgr().getBool(), constant.typeRef(), nodeArg1);
+                return AstVisitStepResult::Continue;
             }
             break;
 
@@ -87,6 +81,14 @@ AstVisitStepResult AstCompilerFlow::semaPostNode(SemaJob& job) const
         case TokenId::CompilerError:
         {
             auto diag = job.reportError(DiagnosticId::sema_err_compiler_error, srcViewRef(), tokRef());
+            diag.addArgument(Diagnostic::ARG_BECAUSE, constant.getString(), false);
+            diag.report(job.ctx());
+            return AstVisitStepResult::Continue;
+        }
+
+        case TokenId::CompilerWarning:
+        {
+            auto diag = job.reportError(DiagnosticId::sema_warn_compiler_warning, srcViewRef(), tokRef());
             diag.addArgument(Diagnostic::ARG_BECAUSE, constant.getString(), false);
             diag.report(job.ctx());
             return AstVisitStepResult::Continue;

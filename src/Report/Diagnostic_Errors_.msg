@@ -63,7 +63,9 @@ SWC_DIAG_DEF(parser_err_empty_var_decl, Error, "expected type annotation or init
 SWC_DIAG_DEF(parser_err_inject_instruction_done, Error, "replacement instruction {{tok}} already defined")
 SWC_DIAG_DEF(parser_err_inject_invalid_instruction, Error, "invalid replacement instruction; expected 'break' or 'continue', found {{tok}}")
 
+SWC_DIAG_DEF(sema_warn_compiler_warning, Warning, "compiler: {because}")
+
 SWC_DIAG_DEF(sema_err_expr_not_const, Error, "expression cannot be evaluated at compile time")
 SWC_DIAG_DEF(sema_err_invalid_type, Error, "invalid type; expected {requested-type}, got {type}")
-SWC_DIAG_DEF(sema_err_compiler_error, Error, "compiler error: {because}")
+SWC_DIAG_DEF(sema_err_compiler_error, Error, "compiler: {because}")
 SWC_DIAG_DEF(sema_err_compiler_assert, Error, "compiler assertion failed")

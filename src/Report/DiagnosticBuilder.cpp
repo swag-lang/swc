@@ -151,7 +151,7 @@ DiagnosticBuilder::AnsiSeq DiagnosticBuilder::diagPalette(DiagPart p, std::optio
                 case DiagnosticSeverity::Error:
                     return {BrightRed};
                 case DiagnosticSeverity::Warning:
-                    return {BrightYellow};
+                    return {BrightMagenta};
                 case DiagnosticSeverity::Note:
                 case DiagnosticSeverity::Help:
                     return {White};
@@ -168,7 +168,7 @@ DiagnosticBuilder::AnsiSeq DiagnosticBuilder::diagPalette(DiagPart p, std::optio
                 case DiagnosticSeverity::Error:
                     return {BrightRed};
                 case DiagnosticSeverity::Warning:
-                    return {BrightYellow};
+                    return {BrightMagenta};
                 case DiagnosticSeverity::Note:
                     return {BrightCyan};
                 case DiagnosticSeverity::Help:

@@ -248,9 +248,7 @@ void ApInt::add(size_t v, bool& overflow)
         words_[0] = sum;
 
         // Bit-width overflow (if bitWidth_ < WORD_BITS)
-        if (hasTopBitsOverflow())
-            overflow = true;
-
+        overflow = hasTopBitsOverflow();
         normalize();
         return;
     }
@@ -275,9 +273,7 @@ void ApInt::add(size_t v, bool& overflow)
     if (carry != 0)
         overflow = true; // ran out of words
 
-    if (hasTopBitsOverflow())
-        overflow = true;
-
+    overflow = hasTopBitsOverflow();
     normalize();
 }
 
@@ -306,9 +302,7 @@ void ApInt::mul(size_t v, bool& overflow)
         if (high != 0)
             overflow = true;
 
-        if (hasTopBitsOverflow())
-            overflow = true;
-
+        overflow = hasTopBitsOverflow();
         normalize();
         return;
     }
@@ -328,9 +322,7 @@ void ApInt::mul(size_t v, bool& overflow)
     if (carry != 0)
         overflow = true;
 
-    if (hasTopBitsOverflow())
-        overflow = true;
-
+    overflow = hasTopBitsOverflow();
     normalize();
 }
 

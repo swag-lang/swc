@@ -23,7 +23,7 @@ ConstantValue ConstantValue::makeBool(const TaskContext& ctx, bool value)
 ConstantValue ConstantValue::makeString(const TaskContext& ctx, std::string_view value)
 {
     ConstantValue cv;
-    cv.typeRef_ = ctx.compiler().typeMgr().getBool();
+    cv.typeRef_ = ctx.compiler().typeMgr().getString();
     cv.kind_    = ConstantKind::String;
     cv.value_   = value;
     return cv;

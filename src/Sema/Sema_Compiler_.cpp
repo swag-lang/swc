@@ -1,11 +1,12 @@
 #include "pch.h"
-
+#include "Main/Global.h"
 #include "Parser/AstNodes.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticDef.h"
+#include "Report/Logger.h"
 #include "Sema/ConstantManager.h"
 #include "Sema/SemaJob.h"
-#include "TypeManager.h"
+#include "Sema/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -24,11 +25,8 @@ AstVisitStepResult AstCompilerIf::semaPreChild(SemaJob& job, const AstNodeRef& c
     const auto& constant = nodeConditionPtr->getConstant(job.ctx());
     if (!constant.isBool())
     {
-        auto diag = job.reportError(DiagnosticId::sema_err_invalid_type, nodeCondition);
-        diag.addArgument(Diagnostic::ARG_TYPE, job.typeMgr().toName(constant.typeRef()));
-        diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, job.typeMgr().toName(job.typeMgr().getBool()));
-        diag.report(job.ctx());
-        return AstVisitStepResult::Stop;
+        job.raiseInvalidTypeError(nodeCondition, job.typeMgr().getBool(), constant.typeRef());
+        return AstVisitStepResult::SkipChildren;
     }
 
     if (childRef == nodeIfBlock && !constant.getBool())
@@ -59,7 +57,7 @@ AstVisitStepResult AstCompilerFlow::semaPostNode(SemaJob& job) const
         case TokenId::CompilerPrint:
             if (!constant.isString())
             {
-                job.raiseInvalidTypeError(job.typeMgr().getString(), constant.typeRef(), nodeArg1);
+                job.raiseInvalidTypeError(nodeArg1, job.typeMgr().getString(), constant.typeRef());
                 return AstVisitStepResult::Continue;
             }
             break;
@@ -67,7 +65,7 @@ AstVisitStepResult AstCompilerFlow::semaPostNode(SemaJob& job) const
         case TokenId::CompilerAssert:
             if (!constant.isBool())
             {
-                job.raiseInvalidTypeError(job.typeMgr().getBool(), constant.typeRef(), nodeArg1);
+                job.raiseInvalidTypeError(nodeArg1, job.typeMgr().getBool(), constant.typeRef());
                 return AstVisitStepResult::Continue;
             }
             break;
@@ -91,6 +89,16 @@ AstVisitStepResult AstCompilerFlow::semaPostNode(SemaJob& job) const
             auto diag = job.reportError(DiagnosticId::sema_warn_compiler_warning, srcViewRef(), tokRef());
             diag.addArgument(Diagnostic::ARG_BECAUSE, constant.getString(), false);
             diag.report(job.ctx());
+            return AstVisitStepResult::Continue;
+        }
+
+        case TokenId::CompilerPrint:
+        {
+            const auto& ctx = job.ctx();
+            ctx.global().logger().lock();
+            Logger::print(ctx, constant.getString());
+            Logger::print(ctx, "\n");
+            ctx.global().logger().unlock();
             return AstVisitStepResult::Continue;
         }
 

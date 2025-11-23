@@ -190,7 +190,7 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(SemaJob& job)
     return AstVisitStepResult::SkipChildren;
 }
 
-AstVisitStepResult AstHexadecimalLiteral::semaPreNode(SemaJob& job)
+AstVisitStepResult AstHexaLiteral::semaPreNode(SemaJob& job)
 {
     return AstVisitStepResult::SkipChildren;
 }

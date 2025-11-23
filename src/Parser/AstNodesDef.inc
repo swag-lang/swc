@@ -502,7 +502,7 @@ struct AstBinaryLiteral : AstLiteralT<AstNodeId::BinaryLiteral>
     AstVisitStepResult semaPreNode(SemaJob& job);
 };
 
-struct AstHexadecimalLiteral : AstLiteralT<AstNodeId::HexadecimalLiteral>
+struct AstHexaLiteral : AstLiteralT<AstNodeId::HexaLiteral>
 {
     AstVisitStepResult semaPreNode(SemaJob& job);
 };

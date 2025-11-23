@@ -16,6 +16,7 @@ class ApInt
     void           clearWords();
     static uint8_t computeNumWords(uint32_t bitWidth);
     void           normalize();
+    bool           hasTopBitsOverflow() const;
 
 public:
     explicit ApInt();
@@ -34,6 +35,8 @@ public:
 
     void bitwiseOr(size_t rhs);
     void logicalShiftLeft(size_t amount, bool& overflow);
+    void add(size_t v, bool& overflow);
+    void mul(size_t v, bool& overflow);
 
     size_t hash() const;
 };

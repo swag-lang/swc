@@ -214,12 +214,11 @@ namespace
 
 bool ApInt::hasTopBitsOverflow() const
 {
-    if (bitWidth_ == 0 || numWords_ == 0)
-        return false;
+    SWC_ASSERT(numWords_ && bitWidth_);
 
     const size_t usedBitsInLastWord = bitWidth_ % WORD_BITS;
     if (usedBitsInLastWord == 0)
-        return false; // the entire last word is used
+        return false;
 
     const size_t mask = (static_cast<size_t>(1) << usedBitsInLastWord) - 1;
     const size_t last = words_[numWords_ - 1];
@@ -228,59 +227,37 @@ bool ApInt::hasTopBitsOverflow() const
 
 void ApInt::add(size_t v, bool& overflow)
 {
+    SWC_ASSERT(numWords_);
     overflow = false;
 
-    if (v == 0 || numWords_ == 0)
+    if (v == 0)
         return;
 
     size_t carry = v;
     for (size_t i = 0; i < numWords_; ++i)
     {
-        const size_t oldWord = words_[i];
-
-        // 1. Add carry-in from the previous word/initial value
-        const size_t sum = oldWord + carry;
-
-        // Carry-out from (old_word + carry):
-        // If a sum < old_word, an overflow occurred (carry is 1), otherwise 0.
-        // This is the standard unsigned addition overflow check.
+        const size_t oldWord  = words_[i];
+        const size_t sum      = oldWord + carry;
         const size_t newCarry = (sum < oldWord) ? 1 : 0;
-
-        words_[i] = sum;
-        carry     = newCarry; // carry is now 0 or 1 for the next word
-
-        // The first word has an initial carry of 'v', so 'carry' might be > 1
-        // initially. The logic above handles this by setting words_[0] = old_word + v
-        // and correctly calculating the carry-out (0 or 1) for the next iteration.
+        words_[i]             = sum;
+        carry                 = newCarry;
     }
 
-    // Check for overflow beyond the allocated words
-    if (carry != 0)
-        overflow = true; // Ran out of words (true arbitrary overflow)
-
-    // Check for overflow within the last word's bit-width
-    // This must be done *before* normalize() if the check relies on pre-normalized data.
-    // However, normalize() *masks* off the high bits, which is what 'hasTopBitsOverflow' checks for.
-    // We should check *before* calling normalizing to detect the overflow.
-    if (!overflow && hasTopBitsOverflow())
-        overflow = true;
-
-    // Mask off any excess bits above bitWidth_
+    overflow = carry != 0 || hasTopBitsOverflow();
     normalize();
 }
 
 void ApInt::mul(size_t v, bool& overflow)
 {
+    SWC_ASSERT(numWords_);
     overflow = false;
 
-    if (numWords_ == 0 || v == 0 || isZero())
+    if (v == 0)
     {
-        if (numWords_ > 0 && !isZero())
-            resetToZero();
+        resetToZero();
         return;
     }
 
-    // General multi-word multiplication by scalar v
     size_t carry = 0;
     for (size_t i = 0; i < numWords_; ++i)
     {
@@ -288,15 +265,10 @@ void ApInt::mul(size_t v, bool& overflow)
         size_t high = 0;
         mulWordFull(words_[i], v, carry, low, high);
         words_[i] = low;
-        carry     = high; // The high 64 bits become the carry for the next word
+        carry     = high;
     }
 
-    if (carry != 0)
-        overflow = true;
-
-    if (!overflow && hasTopBitsOverflow())
-        overflow = true;
-
+    overflow = carry != 0 || hasTopBitsOverflow();
     normalize();
 }
 

@@ -80,6 +80,34 @@ bool ApInt::equals(const ApInt& other) const
     return true;
 }
 
+void ApInt::resetToZero()
+{
+    std::fill_n(words_, numWords_, 0);
+    negative_ = false;
+}
+
+void ApInt::setNegative(bool isNeg)
+{
+    // Zero can never be negative
+    bool allZero = true;
+    for (size_t i = 0; i < numWords_; ++i)
+    {
+        if (words_[i] != 0)
+        {
+            allZero = false;
+            break;
+        }
+    }
+
+    if (allZero)
+    {
+        negative_ = false; // canonicalize -0 → 0
+        return;
+    }
+
+    negative_ = isNeg;
+}
+
 void ApInt::bitwiseOr(size_t rhs)
 {
     if (numWords_ == 0)
@@ -157,7 +185,7 @@ void ApInt::logicalShiftLeft(size_t amount, bool& overflow)
 
 size_t ApInt::hash() const
 {
-    auto h = std::hash<int>()(static_cast<int>(bitWidth_));
+    auto h = std::hash<int>()(bitWidth_);
     for (size_t i = 0; i < numWords_; ++i)
         h = hash_combine(h, words_[i]);
     return h;

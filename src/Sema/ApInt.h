@@ -27,6 +27,9 @@ public:
     size_t   getNative() const;
 
     bool equals(const ApInt& other) const;
+    void resetToZero();
+    void setNegative(bool isNeg);
+
     void bitwiseOr(size_t rhs);
     void logicalShiftLeft(size_t amount, bool& overflow);
 

@@ -15,17 +15,22 @@ enum class ConstantKind
 
 class ConstantValue
 {
-public:
-    using TypeInt = ConstantInt<64, false>;
+    friend class ConstantManager;
 
-private:
     ConstantKind kind_    = ConstantKind::Invalid;
     TypeInfoRef  typeRef_ = TypeInfoRef::invalid();
 
-    using TypeDataT = std::variant<bool, std::string_view, TypeInt>;
-    TypeDataT value_;
+    union
+    {
+        // clang-format off
+        struct { bool val{}; } bool_;
+        struct { std::string_view val{}; } string_;
+        struct { ConstantInt val{}; bool sig{}; } int_;
+        // clang-format on
+    };
 
 public:
+    ConstantValue() {}
     bool operator==(const ConstantValue& other) const noexcept;
 
     ConstantKind kind() const { return kind_; }
@@ -36,18 +41,16 @@ public:
     bool         isInt() const { return kind_ == ConstantKind::Int; }
 
     // clang-format off
-    bool getBool() const { SWC_ASSERT(isBool()); return std::get<bool>(value_); }
-    std::string_view getString() const { SWC_ASSERT(isString()); return std::get<std::string_view>(value_); }
-    TypeInt getInt() const { return std::get<TypeInt>(value_); }
+    bool getBool() const { SWC_ASSERT(isBool()); return bool_.val; }
+    std::string_view getString() const { SWC_ASSERT(isString()); return string_.val; }
+    ConstantInt getInt() const { SWC_ASSERT(isInt()); return int_.val; }
     // clang-format on
 
-    const TypeInfo&         type(const TaskContext& ctx) const;
-    decltype(value_)&       value() { return value_; }
-    const decltype(value_)& value() const { return value_; }
+    const TypeInfo& type(const TaskContext& ctx) const;
 
     static ConstantValue makeBool(const TaskContext& ctx, bool value);
     static ConstantValue makeString(const TaskContext& ctx, std::string_view value);
-    static ConstantValue makeInt(const TaskContext& ctx, const TypeInt& value, uint8_t bits, bool isSigned);
+    static ConstantValue makeInt(const TaskContext& ctx, const ConstantInt& value, uint8_t bits, bool isSigned);
 
     Utf8 toString() const;
 };

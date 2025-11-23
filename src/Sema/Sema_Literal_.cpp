@@ -173,8 +173,8 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(SemaJob& job)
     str = str.substr(2);
 
     // Remove separators
-    const auto&            langSpec = job.compiler().global().langSpec();
-    ConstantValue::TypeInt value;
+    const auto& langSpec = job.compiler().global().langSpec();
+    ConstantInt value;
     for (const char c : str)
     {
         if (langSpec.isNumberSep(c))

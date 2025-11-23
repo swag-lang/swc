@@ -32,7 +32,7 @@ ConstantRef ConstantManager::addConstant(const ConstantValue& value)
     {
         ConstantValue stored = value;
         auto [itStr, _]      = cacheStr_.insert(std::string(value.getString()));
-        stored.value()       = std::string_view(itStr->data(), itStr->size());
+        stored.string_.val   = std::string_view(itStr->data(), itStr->size());
         const ConstantRef ref{store_.push_back(stored)};
         map_.emplace(stored, ref);
         return ref;

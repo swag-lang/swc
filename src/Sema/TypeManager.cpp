@@ -42,7 +42,7 @@ TypeInfoRef TypeManager::addType(const TypeInfo& typeInfo)
     return ref;
 }
 
-TypeInfoRef TypeManager::getTypeInt(uint8_t bits, bool isSigned) const
+TypeInfoRef TypeManager::getTypeInt(uint32_t bits, bool isSigned) const
 {
     if (isSigned)
     {

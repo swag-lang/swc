@@ -33,7 +33,7 @@ private:
     union
     {
         // clang-format off
-        struct { uint8_t bits; bool isSigned; } int_;
+        struct { uint32_t bits; bool isSigned; } int_;
         struct { std::string_view string; } string_;
         // clang-format on
     };

@@ -3,24 +3,26 @@
 
 SWC_BEGIN_NAMESPACE()
 
-ConstantInt::ConstantInt(uint8_t bitWidth) :
+ConstantInt::ConstantInt(uint32_t bitWidth) :
     bitWidth_(bitWidth),
     numWords_(computeNumWords(bitWidth))
 {
+    SWC_ASSERT(bitWidth <= MAX_BITS);
     std::ranges::fill(words_, 0);
     normalize();
 }
 
-ConstantInt::ConstantInt(uint8_t bitWidth, size_t value) :
+ConstantInt::ConstantInt(uint32_t bitWidth, size_t value) :
     bitWidth_(bitWidth),
     numWords_(computeNumWords(bitWidth))
 {
+    SWC_ASSERT(bitWidth <= MAX_BITS);
     std::ranges::fill(words_, 0);
     words_[0] = value;
     normalize();
 }
 
-size_t ConstantInt::computeNumWords(uint8_t bitWidth)
+size_t ConstantInt::computeNumWords(uint32_t bitWidth)
 {
     assert(bitWidth > 0 && bitWidth <= MAX_BITS);
     return (bitWidth + WORD_BITS - 1) / WORD_BITS;

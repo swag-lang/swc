@@ -23,9 +23,9 @@ class ConstantValue
     union
     {
         // clang-format off
-        struct { bool val{}; } bool_;
-        struct { std::string_view val{}; } string_;
-        struct { ConstantInt val{}; bool sig{}; } int_;
+        struct { bool val; } bool_;
+        struct { std::string_view val; } string_;
+        struct { ConstantInt val; bool sig; } int_;
         // clang-format on
     };
 
@@ -50,7 +50,7 @@ public:
 
     static ConstantValue makeBool(const TaskContext& ctx, bool value);
     static ConstantValue makeString(const TaskContext& ctx, std::string_view value);
-    static ConstantValue makeInt(const TaskContext& ctx, const ConstantInt& value, uint8_t bits, bool isSigned);
+    static ConstantValue makeInt(const TaskContext& ctx, const ConstantInt& value, uint32_t bits, bool isSigned);
 
     Utf8 toString() const;
 };

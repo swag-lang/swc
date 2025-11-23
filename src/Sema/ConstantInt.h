@@ -12,12 +12,12 @@ class ConstantInt
     size_t   numWords_;
     size_t   words_[MAX_WORDS];
 
-    static size_t computeNumWords(uint8_t bitWidth);
+    static size_t computeNumWords(uint32_t bitWidth);
     void          normalize();
 
 public:
-    explicit ConstantInt(uint8_t bitWidth = 64);
-    explicit ConstantInt(uint8_t bitWidth, size_t value);
+    explicit ConstantInt(uint32_t bitWidth = MAX_BITS);
+    explicit ConstantInt(uint32_t bitWidth, size_t value);
 
     unsigned getBitWidth() const { return bitWidth_; }
 

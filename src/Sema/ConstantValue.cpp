@@ -29,7 +29,7 @@ ConstantValue ConstantValue::makeString(const TaskContext& ctx, std::string_view
     return cv;
 }
 
-ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const ConstantInt& value, uint8_t bits, bool isSigned)
+ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const ConstantInt& value, uint32_t bits, bool isSigned)
 {
     ConstantValue cv;
     cv.typeRef_ = ctx.compiler().typeMgr().getTypeInt(bits, isSigned);

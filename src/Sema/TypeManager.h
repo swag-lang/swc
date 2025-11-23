@@ -33,7 +33,7 @@ public:
     TypeInfoRef     addType(const TypeInfo& typeInfo);
     TypeInfoRef     getTypeBool() const { return typeBool_; }
     TypeInfoRef     getTypeString() const { return typeString_; }
-    TypeInfoRef     getTypeInt(uint8_t bits, bool isSigned) const;
+    TypeInfoRef     getTypeInt(uint32_t bits, bool isSigned) const;
     const TypeInfo& getType(TypeInfoRef typeInfoRef) const;
 
     std::string_view typeToString(TypeInfoRef typeInfoRef, TypeInfo::ToStringMode mode = TypeInfo::ToStringMode::Diagnostic) const;

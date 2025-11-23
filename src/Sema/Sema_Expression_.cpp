@@ -22,16 +22,11 @@ namespace
         switch (op)
         {
             case TokenId::SymPlusPlus:
-                if (!leftCst.isString())
-                    job.raiseInvalidType(left, typeMgr.getString(), leftCst.typeRef());
-                if (!rightCst.isString())
-                    job.raiseInvalidType(right, typeMgr.getString(), rightCst.typeRef());
-                if (leftCst.isString() && rightCst.isString())
-                {
-                    Utf8 result = leftCst.getString();
-                    result += rightCst.getString();
-                    return constMgr.addConstant(ConstantValue::makeString(ctx, result));
-                }
+            {
+                Utf8 result = leftCst.toString();
+                result += rightCst.toString();
+                return constMgr.addConstant(ConstantValue::makeString(ctx, result));
+            }
 
             default:
                 break;

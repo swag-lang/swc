@@ -38,9 +38,22 @@ bool ConstantValue::operator==(const ConstantValue& other) const noexcept
     {
         case ConstantKind::Bool:
             return getBool() == other.getBool();
-
         case ConstantKind::String:
             return getString() == other.getString();
+
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+Utf8 ConstantValue::toString() const
+{
+    switch (kind_)
+    {
+        case ConstantKind::Bool:
+            return getBool() ? "true" : "false";
+        case ConstantKind::String:
+            return getString();
 
         default:
             SWC_UNREACHABLE();
@@ -56,7 +69,6 @@ size_t ConstantValueHash::operator()(const ConstantValue& v) const noexcept
         case ConstantKind::Bool:
             h = hash_combine(h, v.getBool());
             break;
-
         case ConstantKind::String:
             h = hash_combine(h, hash(v.getString()));
             break;

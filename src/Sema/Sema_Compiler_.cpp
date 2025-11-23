@@ -53,7 +53,6 @@ AstVisitStepResult AstCompilerFlow::semaPostNode(SemaJob& job) const
     {
         case TokenId::CompilerError:
         case TokenId::CompilerWarning:
-        case TokenId::CompilerPrint:
             if (!constant.isString())
             {
                 job.raiseInvalidType(nodeArg, job.typeMgr().getString(), constant.typeRef());
@@ -95,7 +94,7 @@ AstVisitStepResult AstCompilerFlow::semaPostNode(SemaJob& job) const
         {
             const auto& ctx = job.ctx();
             ctx.global().logger().lock();
-            Logger::print(ctx, constant.getString());
+            Logger::print(ctx, constant.toString());
             Logger::print(ctx, "\n");
             ctx.global().logger().unlock();
             return AstVisitStepResult::Continue;

@@ -39,6 +39,8 @@ public:
 
     static ConstantValue makeBool(const TaskContext& ctx, bool value);
     static ConstantValue makeString(const TaskContext& ctx, std::string_view value);
+
+    Utf8 toString() const;
 };
 
 struct ConstantValueHash

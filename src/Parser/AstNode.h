@@ -2,7 +2,7 @@
 #include "Core/SmallVector.h"
 #include "Parser/AstNodeId.h"
 #include "Parser/AstVisit.h"
-#include "Sema/ConstantValue.h"
+#include "Sema/APValue.h"
 
 SWC_BEGIN_NAMESPACE()
 class SemaJob;
@@ -84,7 +84,7 @@ struct AstNode
     SemaFlags            semaFlags() const { return semaFlags_; }
     bool                 isConstant() const { return hasSemaFlag(SemaFlagE::IsConst); }
     void                 setConstant(ConstantRef ref);
-    const ConstantValue& getConstant(const TaskContext& ctx) const;
+    const APValue& getConstant(const TaskContext& ctx) const;
 
     AstNodeId     id() const { return id_; }
     void          setId(AstNodeId id) { id_ = id; }

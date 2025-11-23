@@ -1,5 +1,5 @@
 #pragma once
-#include "Sema/ConstantInt.h"
+#include "Sema/APInt.h"
 
 SWC_BEGIN_NAMESPACE()
 class TaskContext;
@@ -13,7 +13,7 @@ enum class ConstantKind
     Int,
 };
 
-class ConstantValue
+class APValue
 {
     friend struct ConstantValueHash;
     friend class ConstantManager;
@@ -26,13 +26,13 @@ class ConstantValue
         // clang-format off
         struct { bool val; } bool_;
         struct { std::string_view val; } string_;
-        struct { ConstantInt val; bool sig; } int_;
+        struct { APInt val; bool sig; } int_;
         // clang-format on
     };
 
 public:
-    ConstantValue() {}
-    bool operator==(const ConstantValue& other) const noexcept;
+    APValue() {}
+    bool operator==(const APValue& other) const noexcept;
 
     ConstantKind kind() const { return kind_; }
     TypeInfoRef  typeRef() const { return typeRef_; }
@@ -44,21 +44,21 @@ public:
     // clang-format off
     bool getBool() const { SWC_ASSERT(isBool()); return bool_.val; }
     std::string_view getString() const { SWC_ASSERT(isString()); return string_.val; }
-    ConstantInt getInt() const { SWC_ASSERT(isInt()); return int_.val; }
+    APInt getInt() const { SWC_ASSERT(isInt()); return int_.val; }
     // clang-format on
 
     const TypeInfo& type(const TaskContext& ctx) const;
 
-    static ConstantValue makeBool(const TaskContext& ctx, bool value);
-    static ConstantValue makeString(const TaskContext& ctx, std::string_view value);
-    static ConstantValue makeInt(const TaskContext& ctx, const ConstantInt& value, uint32_t bits, bool isSigned);
+    static APValue makeBool(const TaskContext& ctx, bool value);
+    static APValue makeString(const TaskContext& ctx, std::string_view value);
+    static APValue makeInt(const TaskContext& ctx, const APInt& value, uint32_t bits, bool isSigned);
 
     Utf8 toString() const;
 };
 
 struct ConstantValueHash
 {
-    size_t operator()(const ConstantValue& v) const noexcept;
+    size_t operator()(const APValue& v) const noexcept;
 };
 
 SWC_END_NAMESPACE()

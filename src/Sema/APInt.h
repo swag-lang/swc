@@ -2,7 +2,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-class ConstantInt
+class APInt
 {
     static constexpr unsigned MAX_BITS  = 256;
     static constexpr size_t   WORD_BITS = sizeof(size_t) * 8;
@@ -16,15 +16,15 @@ class ConstantInt
     void          normalize();
 
 public:
-    explicit ConstantInt(uint32_t bitWidth = MAX_BITS);
-    explicit ConstantInt(uint32_t bitWidth, size_t value);
+    explicit APInt(uint32_t bitWidth = MAX_BITS);
+    explicit APInt(uint32_t bitWidth, size_t value);
 
     unsigned getBitWidth() const { return bitWidth_; }
 
     bool   isNative() const { return numWords_ == 1; }
     size_t getNative() const;
 
-    bool equals(const ConstantInt& other) const;
+    bool equals(const APInt& other) const;
     void bitwiseOr(size_t rhs);
     void logicalShiftLeft(size_t amount, bool& overflow);
 

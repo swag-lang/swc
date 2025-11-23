@@ -237,9 +237,9 @@
         <ClCompile Include="src\Report\DiagnosticElement.cpp"/>
         <ClCompile Include="src\Report\Logger.cpp"/>
         <ClCompile Include="src\Report\LogSymbol.cpp"/>
-        <ClCompile Include="src\Sema\ConstantInt.cpp"/>
+        <ClCompile Include="src\Sema\APInt.cpp" />
         <ClCompile Include="src\Sema\ConstantManager.cpp"/>
-        <ClCompile Include="src\Sema\ConstantValue.cpp"/>
+        <ClCompile Include="src\Sema\APValue.cpp" />
         <ClCompile Include="src\Sema\SemaJob.cpp"/>
         <ClCompile Include="src\Sema\SemaJob_Error_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Compiler_.cpp"/>
@@ -300,9 +300,9 @@
         <ClInclude Include="src\Report\DiagnosticElement.h"/>
         <ClInclude Include="src\Report\Logger.h"/>
         <ClInclude Include="src\Report\LogSymbol.h"/>
-        <ClInclude Include="src\Sema\ConstantInt.h"/>
+        <ClInclude Include="src\Sema\APInt.h" />
         <ClInclude Include="src\Sema\ConstantManager.h"/>
-        <ClInclude Include="src\Sema\ConstantValue.h"/>
+        <ClInclude Include="src\Sema\APValue.h" />
         <ClInclude Include="src\Sema\SemaJob.h"/>
         <ClInclude Include="src\Sema\TypeInfo.h"/>
         <ClInclude Include="src\Sema\TypeManager.h"/>

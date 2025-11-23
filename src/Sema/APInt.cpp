@@ -1,10 +1,10 @@
 #include "pch.h"
-#include "Sema/ConstantInt.h"
 #include "Core/hash.h"
+#include "Sema/APInt.h"
 
 SWC_BEGIN_NAMESPACE()
 
-ConstantInt::ConstantInt(uint32_t bitWidth) :
+APInt::APInt(uint32_t bitWidth) :
     bitWidth_(bitWidth),
     numWords_(computeNumWords(bitWidth))
 {
@@ -13,7 +13,7 @@ ConstantInt::ConstantInt(uint32_t bitWidth) :
     normalize();
 }
 
-ConstantInt::ConstantInt(uint32_t bitWidth, size_t value) :
+APInt::APInt(uint32_t bitWidth, size_t value) :
     bitWidth_(bitWidth),
     numWords_(computeNumWords(bitWidth))
 {
@@ -23,13 +23,13 @@ ConstantInt::ConstantInt(uint32_t bitWidth, size_t value) :
     normalize();
 }
 
-size_t ConstantInt::computeNumWords(uint32_t bitWidth)
+size_t APInt::computeNumWords(uint32_t bitWidth)
 {
     SWC_ASSERT(bitWidth > 0 && bitWidth <= MAX_BITS);
     return (bitWidth + WORD_BITS - 1) / WORD_BITS;
 }
 
-void ConstantInt::normalize()
+void APInt::normalize()
 {
     if (bitWidth_ == 0)
         return;
@@ -42,7 +42,7 @@ void ConstantInt::normalize()
     }
 }
 
-size_t ConstantInt::getNative() const
+size_t APInt::getNative() const
 {
     SWC_ASSERT(isNative());
 
@@ -54,7 +54,7 @@ size_t ConstantInt::getNative() const
     return words_[0];
 }
 
-bool ConstantInt::equals(const ConstantInt& other) const
+bool APInt::equals(const APInt& other) const
 {
     if (bitWidth_ != other.bitWidth_)
         return false;
@@ -70,7 +70,7 @@ bool ConstantInt::equals(const ConstantInt& other) const
     return true;
 }
 
-void ConstantInt::bitwiseOr(size_t rhs)
+void APInt::bitwiseOr(size_t rhs)
 {
     if (numWords_ == 0)
         return;
@@ -79,7 +79,7 @@ void ConstantInt::bitwiseOr(size_t rhs)
     normalize();
 }
 
-void ConstantInt::logicalShiftLeft(size_t amount, bool& overflow)
+void APInt::logicalShiftLeft(size_t amount, bool& overflow)
 {
     overflow = false;
 
@@ -145,7 +145,7 @@ void ConstantInt::logicalShiftLeft(size_t amount, bool& overflow)
     normalize();
 }
 
-size_t ConstantInt::hash() const
+size_t APInt::hash() const
 {
     auto h = std::hash<int>()(static_cast<int>(bitWidth_));
     for (size_t i = 0; i < numWords_; ++i)

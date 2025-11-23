@@ -46,7 +46,7 @@ AstVisitStepResult AstStringLiteral::semaPreNode(SemaJob& job)
     // Fast path if no escape sequence inside the string
     if (!tok.hasFlag(TokenFlagsE::Escaped))
     {
-        const auto val = ConstantValue::makeString(job.ctx(), str);
+        const auto val = APValue::makeString(job.ctx(), str);
         setConstant(job.constMgr().addConstant(val));
         return AstVisitStepResult::SkipChildren;
     }
@@ -156,7 +156,7 @@ AstVisitStepResult AstStringLiteral::semaPreNode(SemaJob& job)
         }
     }
 
-    const auto val = ConstantValue::makeString(job.ctx(), result);
+    const auto val = APValue::makeString(job.ctx(), result);
     setConstant(job.constMgr().addConstant(val));
     return AstVisitStepResult::SkipChildren;
 }
@@ -174,7 +174,7 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(SemaJob& job)
 
     // Remove separators
     const auto& langSpec = job.compiler().global().langSpec();
-    ConstantInt value;
+    APInt value;
     for (const char c : str)
     {
         if (langSpec.isNumberSep(c))
@@ -185,7 +185,7 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(SemaJob& job)
     }
 
     // Convert the binary string to an integer constant
-    const auto val = ConstantValue::makeInt(job.ctx(), value, 64, false);
+    const auto val = APValue::makeInt(job.ctx(), value, 64, false);
     setConstant(job.constMgr().addConstant(val));
     return AstVisitStepResult::SkipChildren;
 }

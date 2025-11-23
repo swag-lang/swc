@@ -23,7 +23,7 @@ namespace
             {
                 Utf8 result = leftCst.toString();
                 result += rightCst.toString();
-                return constMgr.addConstant(ConstantValue::makeString(ctx, result));
+                return constMgr.addConstant(APValue::makeString(ctx, result));
             }
 
             default:

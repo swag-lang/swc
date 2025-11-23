@@ -3,7 +3,6 @@
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisit.h"
 #include "Sema/SemaJob.h"
-#include "Sema/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -12,7 +11,6 @@ namespace
     ConstantRef constantFoldBinaryExpr(SemaJob& job, TokenId op, AstNodeRef left, AstNodeRef right)
     {
         const auto& ctx      = job.ctx();
-        const auto& typeMgr  = job.typeMgr();
         auto&       constMgr = job.constMgr();
         const auto  leftPtr  = job.node(left);
         const auto  rightPtr = job.node(right);

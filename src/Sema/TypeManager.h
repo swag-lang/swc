@@ -18,6 +18,14 @@ class TypeManager
     // Predefined types
     TypeInfoRef typeBool_   = TypeInfoRef::invalid();
     TypeInfoRef typeString_ = TypeInfoRef::invalid();
+    TypeInfoRef typeS8_     = TypeInfoRef::invalid();
+    TypeInfoRef typeS16_    = TypeInfoRef::invalid();
+    TypeInfoRef typeS32_    = TypeInfoRef::invalid();
+    TypeInfoRef typeS64_    = TypeInfoRef::invalid();
+    TypeInfoRef typeU8_     = TypeInfoRef::invalid();
+    TypeInfoRef typeU16_    = TypeInfoRef::invalid();
+    TypeInfoRef typeU32_    = TypeInfoRef::invalid();
+    TypeInfoRef typeU64_    = TypeInfoRef::invalid();
 
 public:
     void setup(TaskContext& ctx);
@@ -25,6 +33,7 @@ public:
     TypeInfoRef     addType(const TypeInfo& typeInfo);
     TypeInfoRef     getTypeBool() const { return typeBool_; }
     TypeInfoRef     getTypeString() const { return typeString_; }
+    TypeInfoRef     getTypeInt(uint8_t bits, bool isSigned) const;
     const TypeInfo& getType(TypeInfoRef typeInfoRef) const;
 
     std::string_view typeToString(TypeInfoRef typeInfoRef, TypeInfo::ToStringMode mode = TypeInfo::ToStringMode::Diagnostic) const;

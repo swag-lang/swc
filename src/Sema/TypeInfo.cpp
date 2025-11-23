@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Sema/TypeInfo.h"
 #include "Core/hash.h"
+#include "Lexer/Token.h"
+#include "Parser/SyntaxColor.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -56,6 +58,13 @@ TypeInfo TypeInfo::makeBool()
 TypeInfo TypeInfo::makeString()
 {
     return TypeInfo{TypeInfoKind::String};
+}
+
+TypeInfo TypeInfo::makeInt(uint8_t bits, bool isSigned)
+{
+    TypeInfo ti{TypeInfoKind::Int};
+    ti.int_ = {.bits = bits, .isSigned = isSigned};
+    return ti;
 }
 
 Utf8 TypeInfo::toString(const TypeManager& typeMgr, ToStringMode mode) const

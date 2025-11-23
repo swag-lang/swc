@@ -29,6 +29,15 @@ ConstantValue ConstantValue::makeString(const TaskContext& ctx, std::string_view
     return cv;
 }
 
+ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const TypeInt& value, uint8_t bits, bool isSigned)
+{
+    ConstantValue cv;
+    cv.typeRef_ = ctx.compiler().typeMgr().getTypeInt(bits, isSigned);
+    cv.kind_    = ConstantKind::Int;
+    cv.value_   = value;
+    return cv;
+}
+
 bool ConstantValue::operator==(const ConstantValue& other) const noexcept
 {
     if (kind_ != other.kind_)
@@ -40,6 +49,8 @@ bool ConstantValue::operator==(const ConstantValue& other) const noexcept
             return getBool() == other.getBool();
         case ConstantKind::String:
             return getString() == other.getString();
+        case ConstantKind::Int:
+            return getInt().equals(other.getInt());
 
         default:
             SWC_UNREACHABLE();

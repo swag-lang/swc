@@ -173,19 +173,20 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(SemaJob& job)
     str = str.substr(2);
 
     // Remove separators
-    const auto&     langSpec = job.compiler().global().langSpec();
-    ConstantInt<64> value;
+    const auto&            langSpec = job.compiler().global().langSpec();
+    ConstantValue::TypeInt value;
     for (const char c : str)
     {
         if (langSpec.isNumberSep(c))
             continue;
-        value <<= 1;
-        value |= (c == '1') ? 1 : 0;
+        bool over;
+        value.shiftLeft(1, over);
+        value.bitwiseOr((c == '1') ? 1 : 0);
     }
 
     // Convert the binary string to an integer constant
-    // const auto val = ConstantValue::makeInt(job.ctx(), strNoSep, 2); // Base 2 (binary)
-    // setConstant(job.constMgr().addConstant(val));
+    const auto val = ConstantValue::makeInt(job.ctx(), value, 64, false);
+    setConstant(job.constMgr().addConstant(val));
     return AstVisitStepResult::SkipChildren;
 }
 

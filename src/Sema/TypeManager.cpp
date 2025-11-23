@@ -8,6 +8,14 @@ void TypeManager::setup(TaskContext&)
 {
     typeBool_   = addType(TypeInfo::makeBool());
     typeString_ = addType(TypeInfo::makeString());
+    typeS8_     = addType(TypeInfo::makeInt(8, true));
+    typeS16_    = addType(TypeInfo::makeInt(16, true));
+    typeS32_    = addType(TypeInfo::makeInt(32, true));
+    typeS64_    = addType(TypeInfo::makeInt(64, true));
+    typeU8_     = addType(TypeInfo::makeInt(8, false));
+    typeU16_    = addType(TypeInfo::makeInt(16, false));
+    typeU32_    = addType(TypeInfo::makeInt(32, false));
+    typeU64_    = addType(TypeInfo::makeInt(64, false));
 }
 
 TypeInfoRef TypeManager::addType(const TypeInfo& typeInfo)
@@ -32,6 +40,40 @@ TypeInfoRef TypeManager::addType(const TypeInfo& typeInfo)
     const TypeInfoRef ref{store_.push_back(typeInfo)};
     it->second = ref;
     return ref;
+}
+
+TypeInfoRef TypeManager::getTypeInt(uint8_t bits, bool isSigned) const
+{
+    if (isSigned)
+    {
+        switch (bits)
+        {
+            case 8:
+                return typeS8_;
+            case 16:
+                return typeS16_;
+            case 32:
+                return typeS32_;
+            case 64:
+                return typeS64_;
+            default:
+                SWC_UNREACHABLE();
+        }
+    }
+
+    switch (bits)
+    {
+        case 8:
+            return typeU8_;
+        case 16:
+            return typeU16_;
+        case 32:
+            return typeU32_;
+        case 64:
+            return typeU64_;
+        default:
+            SWC_UNREACHABLE();
+    }
 }
 
 const TypeInfo& TypeManager::getType(TypeInfoRef typeInfoRef) const

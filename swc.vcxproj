@@ -237,6 +237,7 @@
         <ClCompile Include="src\Report\DiagnosticElement.cpp"/>
         <ClCompile Include="src\Report\Logger.cpp"/>
         <ClCompile Include="src\Report\LogSymbol.cpp"/>
+        <ClCompile Include="src\Sema\ConstantInt.cpp"/>
         <ClCompile Include="src\Sema\ConstantManager.cpp"/>
         <ClCompile Include="src\Sema\ConstantValue.cpp"/>
         <ClCompile Include="src\Sema\SemaJob.cpp"/>

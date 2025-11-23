@@ -44,9 +44,11 @@ public:
     TypeInfoKind kind() const noexcept { return kind_; }
     bool         isBool() const noexcept { return kind_ == TypeInfoKind::Bool; }
     bool         isString() const noexcept { return kind_ == TypeInfoKind::String; }
+    bool         isInt() const noexcept { return kind_ == TypeInfoKind::Int; }
 
     static TypeInfo makeBool();
     static TypeInfo makeString();
+    static TypeInfo makeInt(uint8_t bits, bool isSigned);
 };
 
 struct TypeInfoHash

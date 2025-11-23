@@ -18,8 +18,7 @@ AstNodeRef Parser::parseIdentifierType()
 
 AstNodeRef Parser::parseRetValType()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::RetValType>(ref());
-    consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::RetValType>(consume());
 
     if (is(TokenId::SymLeftCurly) && !tok().hasFlag(TokenFlagsE::BlankBefore))
         return parseInitializerList(nodeRef);
@@ -32,8 +31,7 @@ AstNodeRef Parser::parseSingleType()
     // Builtin
     if (Token::isType(tok().id))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::BuiltinType>(ref());
-        nodePtr->tokType        = consume();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::BuiltinType>(consume());
         return nodeRef;
     }
 
@@ -44,15 +42,13 @@ AstNodeRef Parser::parseSingleType()
 
         case TokenId::KwdStruct:
         {
-            consume();
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousStructDecl>(ref());
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousStructDecl>(consume());
             nodePtr->nodeBody       = parseAggregateBody();
             return nodeRef;
         }
         case TokenId::KwdUnion:
         {
-            consume();
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousUnionDecl>(ref());
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousUnionDecl>(consume());
             nodePtr->nodeBody       = parseAggregateBody();
             return nodeRef;
         }
@@ -74,8 +70,7 @@ AstNodeRef Parser::parseSingleType()
             break;
     }
 
-    const auto diag = reportError(DiagnosticId::parser_err_invalid_type, ref());
-    diag.report(*ctx_);
+    raiseError(DiagnosticId::parser_err_invalid_type, ref());
     return AstNodeRef::invalid();
 }
 
@@ -84,8 +79,7 @@ AstNodeRef Parser::parseSubType()
     // Modifiers
     if (isAny(TokenId::KwdConst, TokenId::ModifierNullable))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::QualifiedType>(ref());
-        consume();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::QualifiedType>(consume());
         nodePtr->nodeType       = parseType();
         return nodeRef;
     }
@@ -170,10 +164,9 @@ AstNodeRef Parser::parseSubType()
         // []
         if (is(TokenId::SymRightBracket))
         {
-            auto diag = reportError(DiagnosticId::parser_err_expected_array_dim, ref());
+            auto diag = reportError(DiagnosticId::parser_err_expected_array_dim, consume());
             diag.addElement(DiagnosticId::parser_help_empty_array_dim);
             diag.report(*ctx_);
-            consume();
             return AstNodeRef::invalid();
         }
 
@@ -217,26 +210,26 @@ AstNodeRef Parser::parseType()
         return parseRetValType();
 
     // '#code'
-    if (consumeIf(TokenId::CompilerCode).isValid())
+    if (is(TokenId::CompilerCode))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CodeType>(ref());
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CodeType>(consume());
         nodePtr->nodeType       = parseSubType();
         return nodeRef;
     }
 
     // '...'
-    if (consumeIf(TokenId::SymDotDotDot).isValid())
+    if (is(TokenId::SymDotDotDot))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VariadicType>(ref());
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VariadicType>(consume());
         return nodeRef;
     }
 
     const auto nodeSubType = parseSubType();
 
     // 'type...'
-    if (consumeIf(TokenId::SymDotDotDot).isValid())
+    if (is(TokenId::SymDotDotDot))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TypedVariadicType>(ref());
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TypedVariadicType>(consume());
         nodePtr->nodeType       = nodeSubType;
         return nodeRef;
     }

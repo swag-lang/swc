@@ -38,7 +38,7 @@ AstVisitStepResult AstStringLiteral::semaPreNode(SemaJob& job)
             break;
         case TokenId::StringRaw:
             str = str.substr(2, str.size() - 4);
-            break;            
+            break;
         default:
             SWC_UNREACHABLE();
     }

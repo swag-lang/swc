@@ -282,8 +282,8 @@ AstNodeRef Parser::parseLogicalExpr()
             raiseError(DiagnosticId::parser_err_unexpected_and_or, ref());
 
         const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::LogicalExpr>(consume());
-        nodePtr->nodeLeft  = nodeRef;
-        nodePtr->nodeRight = parseLogicalExpr();
+        nodePtr->nodeLeft               = nodeRef;
+        nodePtr->nodeRight              = parseLogicalExpr();
         return nodeParen;
     }
 
@@ -330,9 +330,9 @@ AstNodeRef Parser::parsePostFixExpression()
         if (is(TokenId::SymDot) && !tok().flags.has(TokenFlagsE::EolBefore))
         {
             const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::ScopeResolution>(consume());
-            nodePtr->nodeLeft  = nodeRef;
-            nodePtr->nodeRight = parsePostFixExpression();
-            nodeRef            = nodeParent;
+            nodePtr->nodeLeft                = nodeRef;
+            nodePtr->nodeRight               = parsePostFixExpression();
+            nodeRef                          = nodeParent;
             continue;
         }
 
@@ -363,8 +363,8 @@ AstNodeRef Parser::parsePostFixExpression()
     if (is(TokenId::KwdAs))
     {
         const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::AsCastExpr>(consume());
-        nodePtr->nodeExpr = nodeRef;
-        nodePtr->nodeType = parseType();
+        nodePtr->nodeExpr                = nodeRef;
+        nodePtr->nodeType                = parseType();
         return nodeParent;
     }
 
@@ -372,8 +372,8 @@ AstNodeRef Parser::parsePostFixExpression()
     if (is(TokenId::KwdIs))
     {
         const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IsTypeExpr>(consume());
-        nodePtr->nodeExpr = nodeRef;
-        nodePtr->nodeType = parseType();
+        nodePtr->nodeExpr                = nodeRef;
+        nodePtr->nodeType                = parseType();
         return nodeParent;
     }
 
@@ -383,7 +383,7 @@ AstNodeRef Parser::parsePostFixExpression()
 AstNodeRef Parser::parseScopedIdentifier()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ScopedIdentifier>(consume());
-    nodePtr->nodeIdent = parseQualifiedIdentifier();
+    nodePtr->nodeIdent      = parseQualifiedIdentifier();
     return nodeRef;
 }
 

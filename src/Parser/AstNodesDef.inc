@@ -733,7 +733,6 @@ struct AstNamedType : AstNodeT<AstNodeId::NamedType>
 
 struct AstBuiltinType : AstNodeT<AstNodeId::BuiltinType>
 {
-    TokenRef tokType;
 };
 
 struct AstCompilerTypeExpr : AstNodeT<AstNodeId::CompilerTypeExpr>

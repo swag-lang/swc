@@ -8,13 +8,13 @@ SWC_BEGIN_NAMESPACE()
 
 const TypeInfo& ConstantValue::type(const TaskContext& ctx) const
 {
-    return ctx.compiler().typeMgr().get(typeRef_);
+    return ctx.compiler().typeMgr().getType(typeRef_);
 }
 
 ConstantValue ConstantValue::makeBool(const TaskContext& ctx, bool value)
 {
     ConstantValue cv;
-    cv.typeRef_ = ctx.compiler().typeMgr().getBool();
+    cv.typeRef_ = ctx.compiler().typeMgr().getTypeBool();
     cv.kind_    = ConstantKind::Bool;
     cv.value_   = value;
     return cv;
@@ -23,7 +23,7 @@ ConstantValue ConstantValue::makeBool(const TaskContext& ctx, bool value)
 ConstantValue ConstantValue::makeString(const TaskContext& ctx, std::string_view value)
 {
     ConstantValue cv;
-    cv.typeRef_ = ctx.compiler().typeMgr().getString();
+    cv.typeRef_ = ctx.compiler().typeMgr().getTypeString();
     cv.kind_    = ConstantKind::String;
     cv.value_   = value;
     return cv;

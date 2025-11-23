@@ -24,7 +24,7 @@ AstVisitStepResult AstCompilerIf::semaPreChild(SemaJob& job, const AstNodeRef& c
     const auto& constant = nodeConditionPtr->getConstant(job.ctx());
     if (!constant.isBool())
     {
-        job.raiseInvalidType(nodeCondition, job.typeMgr().getBool(), constant.typeRef());
+        job.raiseInvalidType(nodeCondition, job.typeMgr().getTypeBool(), constant.typeRef());
         return AstVisitStepResult::SkipChildren;
     }
 
@@ -55,7 +55,7 @@ AstVisitStepResult AstCompilerFlow::semaPostNode(SemaJob& job) const
         case TokenId::CompilerWarning:
             if (!constant.isString())
             {
-                job.raiseInvalidType(nodeArg, job.typeMgr().getString(), constant.typeRef());
+                job.raiseInvalidType(nodeArg, job.typeMgr().getTypeString(), constant.typeRef());
                 return AstVisitStepResult::Continue;
             }
             break;
@@ -63,7 +63,7 @@ AstVisitStepResult AstCompilerFlow::semaPostNode(SemaJob& job) const
         case TokenId::CompilerAssert:
             if (!constant.isBool())
             {
-                job.raiseInvalidType(nodeArg, job.typeMgr().getBool(), constant.typeRef());
+                job.raiseInvalidType(nodeArg, job.typeMgr().getTypeBool(), constant.typeRef());
                 return AstVisitStepResult::Continue;
             }
             break;

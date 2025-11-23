@@ -20,12 +20,12 @@ class TypeManager
     TypeInfoRef typeString_ = TypeInfoRef::invalid();
 
 public:
-    void        setup(TaskContext& ctx);
-    TypeInfoRef registerType(const TypeInfo& typeInfo);
+    void setup(TaskContext& ctx);
 
-    TypeInfoRef     getBool() const { return typeBool_; }
-    TypeInfoRef     getString() const { return typeString_; }
-    const TypeInfo& get(TypeInfoRef typeInfoRef) const;
+    TypeInfoRef     addType(const TypeInfo& typeInfo);
+    TypeInfoRef     getTypeBool() const { return typeBool_; }
+    TypeInfoRef     getTypeString() const { return typeString_; }
+    const TypeInfo& getType(TypeInfoRef typeInfoRef) const;
 
     std::string_view typeToString(TypeInfoRef typeInfoRef, TypeInfo::ToStringMode mode = TypeInfo::ToStringMode::Diagnostic) const;
     std::string_view typeToString(const TypeInfo& typeInfo, TypeInfo::ToStringMode mode = TypeInfo::ToStringMode::Diagnostic) const;

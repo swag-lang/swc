@@ -6,11 +6,11 @@ SWC_BEGIN_NAMESPACE()
 
 void TypeManager::setup(TaskContext&)
 {
-    typeBool_   = registerType(TypeInfo::makeBool());
-    typeString_ = registerType(TypeInfo::makeString());
+    typeBool_   = addType(TypeInfo::makeBool());
+    typeString_ = addType(TypeInfo::makeString());
 }
 
-TypeInfoRef TypeManager::registerType(const TypeInfo& typeInfo)
+TypeInfoRef TypeManager::addType(const TypeInfo& typeInfo)
 {
     {
         std::shared_lock lk(mutexAdd_);
@@ -34,7 +34,7 @@ TypeInfoRef TypeManager::registerType(const TypeInfo& typeInfo)
     return ref;
 }
 
-const TypeInfo& TypeManager::get(TypeInfoRef typeInfoRef) const
+const TypeInfo& TypeManager::getType(TypeInfoRef typeInfoRef) const
 {
     std::shared_lock lk(mutexAdd_);
     SWC_ASSERT(typeInfoRef.isValid());
@@ -44,7 +44,7 @@ const TypeInfo& TypeManager::get(TypeInfoRef typeInfoRef) const
 std::string_view TypeManager::typeToString(TypeInfoRef typeInfoRef, TypeInfo::ToStringMode mode) const
 {
     SWC_ASSERT(typeInfoRef.isValid());
-    return typeToString(get(typeInfoRef), mode);
+    return typeToString(getType(typeInfoRef), mode);
 }
 
 std::string_view TypeManager::typeToString(const TypeInfo& typeInfo, TypeInfo::ToStringMode mode) const

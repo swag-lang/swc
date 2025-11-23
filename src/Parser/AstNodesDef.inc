@@ -497,8 +497,19 @@ struct AstInitializerExpr : AstNodeT<AstNodeId::InitializerExpr>
     }
 };
 
+struct AstBinaryLiteral : AstLiteralT<AstNodeId::BinaryLiteral>
+{
+    AstVisitStepResult semaPreNode(SemaJob& job);
+};
+
+struct AstHexadecimalLiteral : AstLiteralT<AstNodeId::HexadecimalLiteral>
+{
+    AstVisitStepResult semaPreNode(SemaJob& job);
+};
+
 struct AstIntegerLiteral : AstLiteralT<AstNodeId::IntegerLiteral>
 {
+    AstVisitStepResult semaPreNode(SemaJob& job);
 };
 
 struct AstFloatLiteral : AstLiteralT<AstNodeId::FloatLiteral>

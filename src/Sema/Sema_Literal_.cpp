@@ -161,4 +161,42 @@ AstVisitStepResult AstStringLiteral::semaPreNode(SemaJob& job)
     return AstVisitStepResult::SkipChildren;
 }
 
+AstVisitStepResult AstBinaryLiteral::semaPreNode(SemaJob& job)
+{
+    const auto& tok = job.token(srcViewRef(), tokRef());
+    auto        str = tok.string(job.compiler().srcView(srcViewRef()));
+
+    SWC_ASSERT(str.size() > 2);
+    SWC_ASSERT(str[0] == '0' && (str[1] == 'b' || str[1] == 'B'));
+
+    // Remove '0b' or '0B' prefix
+    str = str.substr(2);
+
+    // Remove separators
+    const auto& langSpec = job.compiler().global().langSpec();
+    uint64_t    value    = 0;
+    for (const char c : str)
+    {
+        if (langSpec.isNumberSep(c))
+            continue;
+        value <<= 1;
+        value += (c == '1');
+    }
+
+    // Convert the binary string to an integer constant
+    // const auto val = ConstantValue::makeInt(job.ctx(), strNoSep, 2); // Base 2 (binary)
+    // setConstant(job.constMgr().addConstant(val));
+    return AstVisitStepResult::SkipChildren;
+}
+
+AstVisitStepResult AstHexadecimalLiteral::semaPreNode(SemaJob& job)
+{
+    return AstVisitStepResult::SkipChildren;
+}
+
+AstVisitStepResult AstIntegerLiteral::semaPreNode(SemaJob& job)
+{
+    return AstVisitStepResult::SkipChildren;
+}
+
 SWC_END_NAMESPACE()

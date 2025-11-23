@@ -25,7 +25,7 @@ ConstantInt::ConstantInt(uint32_t bitWidth, size_t value) :
 
 size_t ConstantInt::computeNumWords(uint32_t bitWidth)
 {
-    assert(bitWidth > 0 && bitWidth <= MAX_BITS);
+    SWC_ASSERT(bitWidth > 0 && bitWidth <= MAX_BITS);
     return (bitWidth + WORD_BITS - 1) / WORD_BITS;
 }
 
@@ -44,7 +44,7 @@ void ConstantInt::normalize()
 
 size_t ConstantInt::getNative() const
 {
-    assert(isNative() && "getNative() only valid when value fits in one word");
+    SWC_ASSERT(isNative());
 
     if (bitWidth_ < WORD_BITS)
     {
@@ -59,13 +59,14 @@ bool ConstantInt::equals(const ConstantInt& other) const
     if (bitWidth_ != other.bitWidth_)
         return false;
 
-    assert(numWords_ == other.numWords_);
+    SWC_ASSERT(numWords_ == other.numWords_);
 
     for (size_t i = 0; i < numWords_; ++i)
     {
         if (words_[i] != other.words_[i])
             return false;
     }
+
     return true;
 }
 
@@ -78,7 +79,7 @@ void ConstantInt::bitwiseOr(size_t rhs)
     normalize();
 }
 
-void ConstantInt::shiftLeft(size_t amount, bool& overflow)
+void ConstantInt::logicalShiftLeft(size_t amount, bool& overflow)
 {
     overflow = false;
 
@@ -122,7 +123,6 @@ void ConstantInt::shiftLeft(size_t amount, bool& overflow)
     {
         for (size_t i = numWords_; i-- > wordShift;)
             words_[i] = words_[i - wordShift];
-
         for (size_t i = 0; i < wordShift; ++i)
             words_[i] = 0;
     }

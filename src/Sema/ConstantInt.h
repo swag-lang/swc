@@ -26,7 +26,7 @@ public:
 
     bool equals(const ConstantInt& other) const;
     void bitwiseOr(size_t rhs);
-    void shiftLeft(size_t amount, bool& overflow);
+    void logicalShiftLeft(size_t amount, bool& overflow);
 
     size_t hash() const;
 };

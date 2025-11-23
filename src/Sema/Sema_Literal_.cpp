@@ -180,7 +180,7 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(SemaJob& job)
         if (langSpec.isNumberSep(c))
             continue;
         bool over;
-        value.shiftLeft(1, over);
+        value.logicalShiftLeft(1, over);
         value.bitwiseOr((c == '1') ? 1 : 0);
     }
 

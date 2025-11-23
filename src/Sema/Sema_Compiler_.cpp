@@ -4,7 +4,6 @@
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticDef.h"
 #include "Report/Logger.h"
-#include "Sema/ConstantManager.h"
 #include "Sema/SemaJob.h"
 #include "Sema/TypeManager.h"
 
@@ -25,7 +24,7 @@ AstVisitStepResult AstCompilerIf::semaPreChild(SemaJob& job, const AstNodeRef& c
     const auto& constant = nodeConditionPtr->getConstant(job.ctx());
     if (!constant.isBool())
     {
-        job.raiseInvalidTypeError(nodeCondition, job.typeMgr().getBool(), constant.typeRef());
+        job.raiseInvalidType(nodeCondition, job.typeMgr().getBool(), constant.typeRef());
         return AstVisitStepResult::SkipChildren;
     }
 
@@ -39,16 +38,16 @@ AstVisitStepResult AstCompilerIf::semaPreChild(SemaJob& job, const AstNodeRef& c
 
 AstVisitStepResult AstCompilerFlow::semaPostNode(SemaJob& job) const
 {
-    const auto& tok     = job.token(srcViewRef(), tokRef());
-    const auto  nodeArg = job.node(nodeArg1);
+    const auto& tok        = job.token(srcViewRef(), tokRef());
+    const auto  nodeArgPtr = job.node(nodeArg);
 
-    if (!nodeArg->isConstant())
+    if (!nodeArgPtr->isConstant())
     {
-        job.raiseError(DiagnosticId::sema_err_expr_not_const, nodeArg1);
+        job.raiseError(DiagnosticId::sema_err_expr_not_const, nodeArg);
         return AstVisitStepResult::Continue;
     }
 
-    const auto& constant = nodeArg->getConstant(job.ctx());
+    const auto& constant = nodeArgPtr->getConstant(job.ctx());
 
     switch (tok.id)
     {
@@ -57,7 +56,7 @@ AstVisitStepResult AstCompilerFlow::semaPostNode(SemaJob& job) const
         case TokenId::CompilerPrint:
             if (!constant.isString())
             {
-                job.raiseInvalidTypeError(nodeArg1, job.typeMgr().getString(), constant.typeRef());
+                job.raiseInvalidType(nodeArg, job.typeMgr().getString(), constant.typeRef());
                 return AstVisitStepResult::Continue;
             }
             break;
@@ -65,7 +64,7 @@ AstVisitStepResult AstCompilerFlow::semaPostNode(SemaJob& job) const
         case TokenId::CompilerAssert:
             if (!constant.isBool())
             {
-                job.raiseInvalidTypeError(nodeArg1, job.typeMgr().getBool(), constant.typeRef());
+                job.raiseInvalidType(nodeArg, job.typeMgr().getBool(), constant.typeRef());
                 return AstVisitStepResult::Continue;
             }
             break;

@@ -21,7 +21,7 @@ AstNodeRef Parser::parseIntrinsicCallUnary()
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    nodePtr->nodeArg1 = parseExpression();
+    nodePtr->nodeArg = parseExpression();
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
     return nodeRef;

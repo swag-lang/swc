@@ -242,6 +242,7 @@
         <ClCompile Include="src\Sema\SemaJob.cpp"/>
         <ClCompile Include="src\Sema\SemaJob_Error_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Compiler_.cpp"/>
+        <ClCompile Include="src\Sema\Sema_Expression_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Literal_.cpp"/>
         <ClCompile Include="src\Sema\TypeInfo.cpp"/>
         <ClCompile Include="src\Sema\TypeManager.cpp"/>

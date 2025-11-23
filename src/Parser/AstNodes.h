@@ -154,7 +154,7 @@ struct AstInternalCallZeroT : AstNodeT<I>
 template<AstNodeId I>
 struct AstInternalCallUnaryT : AstNodeT<I>
 {
-    AstNodeRef nodeArg1;
+    AstNodeRef nodeArg;
 
     explicit AstInternalCallUnaryT(SourceViewRef srcViewRef, TokenRef tokRef) :
         AstNodeT<I>(srcViewRef, tokRef)
@@ -163,7 +163,7 @@ struct AstInternalCallUnaryT : AstNodeT<I>
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
-        AstNode::collectChildren(out, {nodeArg1});
+        AstNode::collectChildren(out, {nodeArg});
     }
 };
 

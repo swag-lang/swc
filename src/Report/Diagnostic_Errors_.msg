@@ -69,3 +69,4 @@ SWC_DIAG_DEF(sema_err_expr_not_const, Error, "expression cannot be evaluated at 
 SWC_DIAG_DEF(sema_err_invalid_type, Error, "invalid type; expected {requested-type}, got {type}")
 SWC_DIAG_DEF(sema_err_compiler_error, Error, "compiler: {because}")
 SWC_DIAG_DEF(sema_err_compiler_assert, Error, "compiler assertion failed")
+SWC_DIAG_DEF(sema_err_unsupported, Error, "unsupported")

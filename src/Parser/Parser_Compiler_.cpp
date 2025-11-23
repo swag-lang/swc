@@ -9,7 +9,7 @@ AstNodeRef Parser::parseCompilerFlow()
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    nodePtr->nodeArg1 = parseExpression();
+    nodePtr->nodeArg = parseExpression();
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
     return nodeRef;
@@ -21,7 +21,7 @@ AstNodeRef Parser::parseCompilerCallUnary()
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    nodePtr->nodeArg1 = parseExpression();
+    nodePtr->nodeArg = parseExpression();
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
     return nodeRef;
@@ -151,9 +151,9 @@ AstNodeRef Parser::parseCompilerTypeOf()
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
     if (isAny(TokenId::KwdFunc, TokenId::KwdMtd))
-        nodePtr->nodeArg1 = parseType();
+        nodePtr->nodeArg = parseType();
     else
-        nodePtr->nodeArg1 = parseExpression();
+        nodePtr->nodeArg = parseExpression();
 
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 

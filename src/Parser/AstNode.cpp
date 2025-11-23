@@ -1,5 +1,4 @@
 #include "pch.h"
-
 #include "Lexer/SourceView.h"
 #include "Main/TaskContext.h"
 #include "Parser/Ast.h"
@@ -21,6 +20,7 @@ void AstNode::collectChildren(SmallVector<AstNodeRef>& out, std::initializer_lis
 
 void AstNode::setConstant(ConstantRef ref)
 {
+    SWC_ASSERT(ref.isValid());
     semaFlags_.clearMask(SemaFlagE::RefMask);
     addSemaFlag(SemaFlagE::IsConst);
     sema_ = ref;

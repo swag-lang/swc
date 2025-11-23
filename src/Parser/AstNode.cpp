@@ -26,7 +26,7 @@ void AstNode::setConstant(ConstantRef ref)
     sema_ = ref;
 }
 
-const APValue& AstNode::getConstant(const TaskContext& ctx) const
+const ApValue& AstNode::getConstant(const TaskContext& ctx) const
 {
     SWC_ASSERT(isConstant());
     return ctx.compiler().constMgr().get(std::get<ConstantRef>(sema_));

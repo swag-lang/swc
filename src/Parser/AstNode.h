@@ -2,13 +2,13 @@
 #include "Core/SmallVector.h"
 #include "Parser/AstNodeId.h"
 #include "Parser/AstVisit.h"
-#include "Sema/APValue.h"
 
 SWC_BEGIN_NAMESPACE()
 class SemaJob;
 class Ast;
 class SourceFile;
 class TaskContext;
+class ApValue;
 struct SourceCodeLocation;
 
 enum class AstModifierFlagsE : uint32_t
@@ -79,12 +79,12 @@ struct AstNode
     };
     using SemaFlags = EnumFlags<SemaFlagE>;
 
-    void                 addSemaFlag(SemaFlagE val) { semaFlags_.add(val); }
-    bool                 hasSemaFlag(SemaFlagE val) const { return semaFlags_.has(val); }
-    SemaFlags            semaFlags() const { return semaFlags_; }
-    bool                 isConstant() const { return hasSemaFlag(SemaFlagE::IsConst); }
-    void                 setConstant(ConstantRef ref);
-    const APValue& getConstant(const TaskContext& ctx) const;
+    void           addSemaFlag(SemaFlagE val) { semaFlags_.add(val); }
+    bool           hasSemaFlag(SemaFlagE val) const { return semaFlags_.has(val); }
+    SemaFlags      semaFlags() const { return semaFlags_; }
+    bool           isConstant() const { return hasSemaFlag(SemaFlagE::IsConst); }
+    void           setConstant(ConstantRef ref);
+    const ApValue& getConstant(const TaskContext& ctx) const;
 
     AstNodeId     id() const { return id_; }
     void          setId(AstNodeId id) { id_ = id; }

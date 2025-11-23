@@ -70,3 +70,4 @@ SWC_DIAG_DEF(sema_err_invalid_type, Error, "invalid type; expected {requested-ty
 SWC_DIAG_DEF(sema_err_compiler_error, Error, "compiler: {because}")
 SWC_DIAG_DEF(sema_err_compiler_assert, Error, "compiler assertion failed")
 SWC_DIAG_DEF(sema_err_unsupported, Error, "unsupported")
+SWC_DIAG_DEF(sema_err_number_too_big, Error, "number too big to be represented in target platform")

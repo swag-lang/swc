@@ -3,6 +3,7 @@
 #include "Main/Global.h"
 #include "Parser/Ast.h"
 #include "Parser/AstNodes.h"
+#include "Report/DiagnosticDef.h"
 #include "Sema/ConstantManager.h"
 #include "Sema/SemaJob.h"
 
@@ -46,7 +47,7 @@ AstVisitStepResult AstStringLiteral::semaPreNode(SemaJob& job)
     // Fast path if no escape sequence inside the string
     if (!tok.hasFlag(TokenFlagsE::Escaped))
     {
-        const auto val = APValue::makeString(job.ctx(), str);
+        const auto val = ApValue::makeString(job.ctx(), str);
         setConstant(job.constMgr().addConstant(val));
         return AstVisitStepResult::SkipChildren;
     }
@@ -156,7 +157,7 @@ AstVisitStepResult AstStringLiteral::semaPreNode(SemaJob& job)
         }
     }
 
-    const auto val = APValue::makeString(job.ctx(), result);
+    const auto val = ApValue::makeString(job.ctx(), result);
     setConstant(job.constMgr().addConstant(val));
     return AstVisitStepResult::SkipChildren;
 }
@@ -174,18 +175,26 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(SemaJob& job)
 
     // Remove separators
     const auto& langSpec = job.compiler().global().langSpec();
-    APInt value;
+    ApInt       value;
+    bool        errorRaised = false;
     for (const char c : str)
     {
         if (langSpec.isNumberSep(c))
             continue;
-        bool over;
+
+        bool over = false;
         value.logicalShiftLeft(1, over);
+        if (over && !errorRaised)
+        {
+            job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+            errorRaised = true;
+        }
+
         value.bitwiseOr((c == '1') ? 1 : 0);
     }
 
     // Convert the binary string to an integer constant
-    const auto val = APValue::makeInt(job.ctx(), value, 64, false);
+    const auto val = ApValue::makeInt(job.ctx(), value, 0, false);
     setConstant(job.constMgr().addConstant(val));
     return AstVisitStepResult::SkipChildren;
 }

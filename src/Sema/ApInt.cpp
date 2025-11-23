@@ -1,21 +1,28 @@
 #include "pch.h"
-#include "Core/hash.h"
 #include "Sema/APInt.h"
+#include "Core/hash.h"
 
 SWC_BEGIN_NAMESPACE()
 
-APInt::APInt(uint32_t bitWidth) :
+ApInt::ApInt() :
+    ApInt(MAX_BITS, false)
+{
+}
+
+ApInt::ApInt(uint16_t bitWidth, bool negative) :
     bitWidth_(bitWidth),
-    numWords_(computeNumWords(bitWidth))
+    numWords_(computeNumWords(bitWidth)),
+    negative_(negative)
 {
     SWC_ASSERT(bitWidth <= MAX_BITS);
     std::ranges::fill(words_, 0);
     normalize();
 }
 
-APInt::APInt(uint32_t bitWidth, size_t value) :
+ApInt::ApInt(size_t value, uint16_t bitWidth, bool negative) :
     bitWidth_(bitWidth),
-    numWords_(computeNumWords(bitWidth))
+    numWords_(computeNumWords(bitWidth)),
+    negative_(negative)
 {
     SWC_ASSERT(bitWidth <= MAX_BITS);
     std::ranges::fill(words_, 0);
@@ -23,13 +30,15 @@ APInt::APInt(uint32_t bitWidth, size_t value) :
     normalize();
 }
 
-size_t APInt::computeNumWords(uint32_t bitWidth)
+uint8_t ApInt::computeNumWords(uint32_t bitWidth)
 {
     SWC_ASSERT(bitWidth > 0 && bitWidth <= MAX_BITS);
-    return (bitWidth + WORD_BITS - 1) / WORD_BITS;
+    const auto n = (bitWidth + WORD_BITS - 1) / WORD_BITS;
+    SWC_ASSERT(n > 0 && n <= 255);
+    return static_cast<uint8_t>(n);
 }
 
-void APInt::normalize()
+void ApInt::normalize()
 {
     if (bitWidth_ == 0)
         return;
@@ -42,25 +51,26 @@ void APInt::normalize()
     }
 }
 
-size_t APInt::getNative() const
+size_t ApInt::getNative() const
 {
     SWC_ASSERT(isNative());
-
     if (bitWidth_ < WORD_BITS)
     {
         const size_t mask = (1 << bitWidth_) - 1;
         return words_[0] & mask;
     }
+
     return words_[0];
 }
 
-bool APInt::equals(const APInt& other) const
+bool ApInt::equals(const ApInt& other) const
 {
     if (bitWidth_ != other.bitWidth_)
         return false;
+    if (negative_ != other.negative_)
+        return false;
 
     SWC_ASSERT(numWords_ == other.numWords_);
-
     for (size_t i = 0; i < numWords_; ++i)
     {
         if (words_[i] != other.words_[i])
@@ -70,7 +80,7 @@ bool APInt::equals(const APInt& other) const
     return true;
 }
 
-void APInt::bitwiseOr(size_t rhs)
+void ApInt::bitwiseOr(size_t rhs)
 {
     if (numWords_ == 0)
         return;
@@ -79,7 +89,7 @@ void APInt::bitwiseOr(size_t rhs)
     normalize();
 }
 
-void APInt::logicalShiftLeft(size_t amount, bool& overflow)
+void ApInt::logicalShiftLeft(size_t amount, bool& overflow)
 {
     overflow = false;
 
@@ -145,7 +155,7 @@ void APInt::logicalShiftLeft(size_t amount, bool& overflow)
     normalize();
 }
 
-size_t APInt::hash() const
+size_t ApInt::hash() const
 {
     auto h = std::hash<int>()(static_cast<int>(bitWidth_));
     for (size_t i = 0; i < numWords_; ++i)

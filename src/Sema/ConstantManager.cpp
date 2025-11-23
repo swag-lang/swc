@@ -7,11 +7,11 @@ SWC_BEGIN_NAMESPACE()
 
 void ConstantManager::setup(const TaskContext& ctx)
 {
-    boolTrue_  = addConstant(APValue::makeBool(ctx, true));
-    boolFalse_ = addConstant(APValue::makeBool(ctx, false));
+    boolTrue_  = addConstant(ApValue::makeBool(ctx, true));
+    boolFalse_ = addConstant(ApValue::makeBool(ctx, false));
 }
 
-ConstantRef ConstantManager::addConstant(const APValue& value)
+ConstantRef ConstantManager::addConstant(const ApValue& value)
 {
     {
         std::shared_lock lk(mutex_);
@@ -25,14 +25,14 @@ ConstantRef ConstantManager::addConstant(const APValue& value)
 
 #if SWC_HAS_STATS
     Stats::get().numConstants.fetch_add(1);
-    Stats::get().memConstants.fetch_add(sizeof(APValue), std::memory_order_relaxed);
+    Stats::get().memConstants.fetch_add(sizeof(ApValue), std::memory_order_relaxed);
 #endif
 
     if (value.isString())
     {
-        APValue stored = value;
-        auto [itStr, _]      = cacheStr_.insert(std::string(value.getString()));
-        stored.string_.val   = std::string_view(itStr->data(), itStr->size());
+        ApValue stored     = value;
+        auto [itStr, _]    = cacheStr_.insert(std::string(value.getString()));
+        stored.string_.val = std::string_view(itStr->data(), itStr->size());
         const ConstantRef ref{store_.push_back(stored)};
         map_.emplace(stored, ref);
         return ref;
@@ -43,11 +43,11 @@ ConstantRef ConstantManager::addConstant(const APValue& value)
     return ref;
 }
 
-const APValue& ConstantManager::get(ConstantRef constantRef) const
+const ApValue& ConstantManager::get(ConstantRef constantRef) const
 {
     std::shared_lock lk(mutex_);
     SWC_ASSERT(constantRef.isValid());
-    return *store_.ptr<APValue>(constantRef.get());
+    return *store_.ptr<ApValue>(constantRef.get());
 }
 
 SWC_END_NAMESPACE()

@@ -1,5 +1,5 @@
 #pragma once
-#include "Sema/APInt.h"
+#include "Sema/ApInt.h"
 
 SWC_BEGIN_NAMESPACE()
 class TaskContext;
@@ -13,7 +13,7 @@ enum class ConstantKind
     Int,
 };
 
-class APValue
+class ApValue
 {
     friend struct ConstantValueHash;
     friend class ConstantManager;
@@ -26,13 +26,13 @@ class APValue
         // clang-format off
         struct { bool val; } bool_;
         struct { std::string_view val; } string_;
-        struct { APInt val; bool sig; } int_;
+        struct { ApInt val; bool sig; } int_;
         // clang-format on
     };
 
 public:
-    APValue() {}
-    bool operator==(const APValue& other) const noexcept;
+    ApValue() {}
+    bool operator==(const ApValue& other) const noexcept;
 
     ConstantKind kind() const { return kind_; }
     TypeInfoRef  typeRef() const { return typeRef_; }
@@ -44,21 +44,21 @@ public:
     // clang-format off
     bool getBool() const { SWC_ASSERT(isBool()); return bool_.val; }
     std::string_view getString() const { SWC_ASSERT(isString()); return string_.val; }
-    APInt getInt() const { SWC_ASSERT(isInt()); return int_.val; }
+    ApInt getInt() const { SWC_ASSERT(isInt()); return int_.val; }
     // clang-format on
 
     const TypeInfo& type(const TaskContext& ctx) const;
 
-    static APValue makeBool(const TaskContext& ctx, bool value);
-    static APValue makeString(const TaskContext& ctx, std::string_view value);
-    static APValue makeInt(const TaskContext& ctx, const APInt& value, uint32_t bits, bool isSigned);
+    static ApValue makeBool(const TaskContext& ctx, bool value);
+    static ApValue makeString(const TaskContext& ctx, std::string_view value);
+    static ApValue makeInt(const TaskContext& ctx, const ApInt& value, uint32_t bits, bool isSigned);
 
     Utf8 toString() const;
 };
 
 struct ConstantValueHash
 {
-    size_t operator()(const APValue& v) const noexcept;
+    size_t operator()(const ApValue& v) const noexcept;
 };
 
 SWC_END_NAMESPACE()

@@ -32,6 +32,30 @@ namespace
 
         return ConstantRef::invalid();
     }
+
+    ConstantRef constantFoldRelationalExpr(SemaJob& job, TokenId op, AstNodeRef left, AstNodeRef right)
+    {
+        const auto& ctx      = job.ctx();
+        auto&       constMgr = job.constMgr();
+        const auto  leftPtr  = job.node(left);
+        const auto  rightPtr = job.node(right);
+        const auto& leftCst  = leftPtr->getConstant(ctx);
+        const auto& rightCst = rightPtr->getConstant(ctx);
+
+        switch (op)
+        {
+            case TokenId::SymEqualEqual:
+            {
+                const bool result = leftCst == rightCst;
+                return constMgr.addConstant(ApValue::makeBool(ctx, result));
+            }
+
+            default:
+                break;
+        }
+
+        return ConstantRef::invalid();
+    }
 }
 
 AstVisitStepResult AstBinaryExpr::semaPostNode(SemaJob& job)
@@ -43,6 +67,24 @@ AstVisitStepResult AstBinaryExpr::semaPostNode(SemaJob& job)
     if (nodeLeftPtr->isConstant() && nodeRightPtr->isConstant())
     {
         const auto cst = constantFoldBinaryExpr(job, tok.id, nodeLeft, nodeRight);
+        if (cst.isValid())
+            setConstant(cst);
+        return AstVisitStepResult::Continue;
+    }
+
+    job.raiseUnsupported(this);
+    return AstVisitStepResult::Continue;
+}
+
+AstVisitStepResult AstRelationalExpr::semaPostNode(SemaJob& job)
+{
+    const auto& tok          = job.token(srcViewRef(), tokRef());
+    const auto  nodeLeftPtr  = job.node(nodeLeft);
+    const auto  nodeRightPtr = job.node(nodeRight);
+
+    if (nodeLeftPtr->isConstant() && nodeRightPtr->isConstant())
+    {
+        const auto cst = constantFoldRelationalExpr(job, tok.id, nodeLeft, nodeRight);
         if (cst.isValid())
             setConstant(cst);
         return AstVisitStepResult::Continue;

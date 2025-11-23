@@ -444,6 +444,7 @@ struct AstLogicalExpr : AstBinaryT<AstNodeId::LogicalExpr>
 
 struct AstRelationalExpr : AstBinaryT<AstNodeId::RelationalExpr>
 {
+    AstVisitStepResult semaPostNode(SemaJob& job);
 };
 
 struct AstBinaryExpr : AstBinaryT<AstNodeId::BinaryExpr>

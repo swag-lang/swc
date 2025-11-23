@@ -657,10 +657,9 @@ AstNodeRef Parser::parseRelationalExpr()
               TokenId::SymGreater,
               TokenId::SymLowerEqualGreater))
     {
-        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::RelationalExpr>(ref());
-        consume();
-        nodePtr->nodeLeft  = nodeRef;
-        nodePtr->nodeRight = parseRelationalExpr();
+        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::RelationalExpr>(consume());
+        nodePtr->nodeLeft               = nodeRef;
+        nodePtr->nodeRight              = parseRelationalExpr();
         return nodeParen;
     }
 
@@ -681,9 +680,8 @@ AstNodeRef Parser::parsePrefixExpr()
         case TokenId::SymTilde:
         case TokenId::SymAmpersand:
         {
-            const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpr>(ref());
-            consume();
-            nodePtr->nodeExpr = parseExpression();
+            const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpr>(consume());
+            nodePtr->nodeExpr               = parseExpression();
             return nodeParen;
         }
 
@@ -702,9 +700,8 @@ AstNodeRef Parser::parseInitializerList(AstNodeRef nodeWhat)
 
 AstNodeRef Parser::parseTryCatchAssume()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TryCatchExpr>(ref());
-    consume();
-    nodePtr->nodeExpr = parseExpression();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TryCatchExpr>(consume());
+    nodePtr->nodeExpr       = parseExpression();
     return nodeRef;
 }
 

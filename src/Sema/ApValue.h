@@ -32,6 +32,7 @@ class ApValue
 
 public:
     ApValue() {}
+    
     bool operator==(const ApValue& other) const noexcept;
 
     ConstantKind kind() const { return kind_; }

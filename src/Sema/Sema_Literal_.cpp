@@ -48,7 +48,7 @@ AstVisitStepResult AstStringLiteral::semaPreNode(SemaJob& job)
     // Fast path if no escape sequence inside the string
     if (!tok.hasFlag(TokenFlagsE::Escaped))
     {
-        const auto val = ApValue::makeString(ctx, str);
+        const auto val = ConstantValue::makeString(ctx, str);
         setConstant(job.constMgr().addConstant(ctx, val));
         return AstVisitStepResult::SkipChildren;
     }
@@ -158,7 +158,7 @@ AstVisitStepResult AstStringLiteral::semaPreNode(SemaJob& job)
         }
     }
 
-    const auto val = ApValue::makeString(ctx, result);
+    const auto val = ConstantValue::makeString(ctx, result);
     setConstant(job.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
@@ -195,7 +195,7 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(SemaJob& job)
     }
 
     // Convert the binary string to an integer constant
-    const auto val = ApValue::makeInt(ctx, value, 0, false);
+    const auto val = ConstantValue::makeInt(ctx, value, 0, false);
     setConstant(job.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
@@ -234,7 +234,7 @@ AstVisitStepResult AstHexaLiteral::semaPreNode(SemaJob& job)
     }
 
     // Convert the hexadecimal string to an integer constant
-    const auto val = ApValue::makeInt(ctx, value, 0, false);
+    const auto val = ConstantValue::makeInt(ctx, value, 0, false);
     setConstant(job.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
@@ -284,7 +284,7 @@ AstVisitStepResult AstIntegerLiteral::semaPreNode(SemaJob& job)
         }
     }
 
-    const auto val = ApValue::makeInt(ctx, value, 0, false);
+    const auto val = ConstantValue::makeInt(ctx, value, 0, false);
     setConstant(job.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }

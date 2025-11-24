@@ -15,7 +15,7 @@ enum class ConstantKind
     Float,
 };
 
-class ApValue
+class ConstantValue
 {
     friend struct ConstantValueHash;
     friend class ConstantManager;
@@ -34,9 +34,9 @@ class ApValue
     };
 
 public:
-    ApValue() {}
+    ConstantValue() {}
 
-    bool operator==(const ApValue& other) const noexcept;
+    bool operator==(const ConstantValue& other) const noexcept;
 
     ConstantKind kind() const { return kind_; }
     TypeInfoRef  typeRef() const { return typeRef_; }
@@ -55,16 +55,16 @@ public:
 
     const TypeInfo& type(const TaskContext& ctx) const;
 
-    static ApValue makeBool(const TaskContext& ctx, bool value);
-    static ApValue makeString(const TaskContext& ctx, std::string_view value);
-    static ApValue makeInt(const TaskContext& ctx, const ApInt& value, uint32_t bits, bool isSigned);
+    static ConstantValue makeBool(const TaskContext& ctx, bool value);
+    static ConstantValue makeString(const TaskContext& ctx, std::string_view value);
+    static ConstantValue makeInt(const TaskContext& ctx, const ApInt& value, uint32_t bits, bool isSigned);
 
     Utf8 toString() const;
 };
 
 struct ConstantValueHash
 {
-    size_t operator()(const ApValue& v) const noexcept;
+    size_t operator()(const ConstantValue& v) const noexcept;
 };
 
 SWC_END_NAMESPACE()

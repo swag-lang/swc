@@ -23,7 +23,7 @@ namespace
             {
                 Utf8 result = leftCst.toString();
                 result += rightCst.toString();
-                return constMgr.addConstant(ctx, ApValue::makeString(ctx, result));
+                return constMgr.addConstant(ctx, ConstantValue::makeString(ctx, result));
             }
 
             default:
@@ -47,7 +47,7 @@ namespace
             case TokenId::SymEqualEqual:
             {
                 const bool result = leftCst == rightCst;
-                return constMgr.addConstant(ctx, ApValue::makeBool(ctx, result));
+                return constMgr.addConstant(ctx, ConstantValue::makeBool(ctx, result));
             }
 
             default:

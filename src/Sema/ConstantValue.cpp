@@ -1,19 +1,19 @@
 #include "pch.h"
-#include "Sema/ApValue.h"
 #include "Core/hash.h"
 #include "Main/TaskContext.h"
+#include "Sema/ConstantValue.h"
 #include "Sema/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
-const TypeInfo& ApValue::type(const TaskContext& ctx) const
+const TypeInfo& ConstantValue::type(const TaskContext& ctx) const
 {
     return ctx.compiler().typeMgr().getType(typeRef_);
 }
 
-ApValue ApValue::makeBool(const TaskContext& ctx, bool value)
+ConstantValue ConstantValue::makeBool(const TaskContext& ctx, bool value)
 {
-    ApValue cv;
+    ConstantValue cv;
     cv.typeRef_  = ctx.compiler().typeMgr().getTypeBool();
     cv.kind_     = ConstantKind::Bool;
     cv.bool_.val = value;
@@ -21,9 +21,9 @@ ApValue ApValue::makeBool(const TaskContext& ctx, bool value)
     return cv;
 }
 
-ApValue ApValue::makeString(const TaskContext& ctx, std::string_view value)
+ConstantValue ConstantValue::makeString(const TaskContext& ctx, std::string_view value)
 {
-    ApValue cv;
+    ConstantValue cv;
     cv.typeRef_    = ctx.compiler().typeMgr().getTypeString();
     cv.kind_       = ConstantKind::String;
     cv.string_.val = value;
@@ -31,9 +31,9 @@ ApValue ApValue::makeString(const TaskContext& ctx, std::string_view value)
     return cv;
 }
 
-ApValue ApValue::makeInt(const TaskContext& ctx, const ApInt& value, uint32_t bits, bool isSigned)
+ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const ApInt& value, uint32_t bits, bool isSigned)
 {
-    ApValue cv;
+    ConstantValue cv;
     cv.typeRef_ = ctx.compiler().typeMgr().getTypeInt(bits, isSigned);
     cv.kind_    = ConstantKind::Int;
     cv.int_.val = value;
@@ -42,7 +42,7 @@ ApValue ApValue::makeInt(const TaskContext& ctx, const ApInt& value, uint32_t bi
     return cv;
 }
 
-bool ApValue::operator==(const ApValue& other) const noexcept
+bool ConstantValue::operator==(const ConstantValue& other) const noexcept
 {
     if (kind_ != other.kind_)
         return false;
@@ -63,7 +63,7 @@ bool ApValue::operator==(const ApValue& other) const noexcept
     }
 }
 
-Utf8 ApValue::toString() const
+Utf8 ConstantValue::toString() const
 {
     switch (kind_)
     {
@@ -81,7 +81,7 @@ Utf8 ApValue::toString() const
     }
 }
 
-size_t ConstantValueHash::operator()(const ApValue& v) const noexcept
+size_t ConstantValueHash::operator()(const ConstantValue& v) const noexcept
 {
     auto h = std::hash<int>()(static_cast<int>(v.kind()));
 

@@ -8,7 +8,7 @@ class SemaJob;
 class Ast;
 class SourceFile;
 class TaskContext;
-class ApValue;
+class ConstantValue;
 struct SourceCodeLocation;
 
 enum class AstModifierFlagsE : uint32_t
@@ -84,7 +84,7 @@ struct AstNode
     SemaFlags      semaFlags() const { return semaFlags_; }
     bool           isConstant() const { return hasSemaFlag(SemaFlagE::IsConst); }
     void           setConstant(ConstantRef ref);
-    const ApValue& getConstant(const TaskContext& ctx) const;
+    const ConstantValue& getConstant(const TaskContext& ctx) const;
 
     AstNodeId     id() const { return id_; }
     void          setId(AstNodeId id) { id_ = id; }

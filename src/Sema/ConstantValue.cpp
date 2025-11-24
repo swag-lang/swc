@@ -31,24 +31,24 @@ ConstantValue ConstantValue::makeString(const TaskContext& ctx, std::string_view
     return cv;
 }
 
-ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const ApInt& value, uint32_t bits, bool isSigned)
+ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const ApInt& value, uint32_t bits, bool negative)
 {
     ConstantValue cv;
-    cv.typeRef_ = ctx.compiler().typeMgr().getTypeInt(bits, isSigned);
+    cv.typeRef_ = ctx.compiler().typeMgr().getTypeInt(bits, negative);
     cv.kind_    = ConstantKind::Int;
     cv.int_.val = value;
-    cv.int_.sig = isSigned;
+    cv.int_.negative = negative;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
 
-ConstantValue ConstantValue::makeFloat(const TaskContext& ctx, const ApFloat& value, uint32_t bits, bool isSigned)
+ConstantValue ConstantValue::makeFloat(const TaskContext& ctx, const ApFloat& value, uint32_t bits, bool negative)
 {
     ConstantValue cv;
     cv.typeRef_   = ctx.compiler().typeMgr().getTypeFloat(bits);
     cv.kind_      = ConstantKind::Float;
     cv.float_.val = value;
-    cv.float_.sig = isSigned;
+    cv.float_.negative = negative;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -85,7 +85,7 @@ Utf8 ConstantValue::toString() const
         case ConstantKind::Int:
             return "???";
         case ConstantKind::Float:
-            return "???";
+            return std::to_string(getFloat().toDouble());
 
         default:
             SWC_UNREACHABLE();

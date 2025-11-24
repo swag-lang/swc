@@ -28,8 +28,8 @@ class ConstantValue
         // clang-format off
         struct { bool val; } bool_;
         struct { std::string_view val; } string_;
-        struct { ApInt val; bool sig; } int_;
-        struct { ApFloat val; bool sig; } float_;
+        struct { ApInt val; bool negative; } int_;
+        struct { ApFloat val; bool negative; } float_;
         // clang-format on
     };
 
@@ -57,8 +57,8 @@ public:
 
     static ConstantValue makeBool(const TaskContext& ctx, bool value);
     static ConstantValue makeString(const TaskContext& ctx, std::string_view value);
-    static ConstantValue makeInt(const TaskContext& ctx, const ApInt& value, uint32_t bits, bool isSigned);
-    static ConstantValue makeFloat(const TaskContext& ctx, const ApFloat& value, uint32_t bits, bool isSigned);
+    static ConstantValue makeInt(const TaskContext& ctx, const ApInt& value, uint32_t bits, bool negative);
+    static ConstantValue makeFloat(const TaskContext& ctx, const ApFloat& value, uint32_t bits, bool negative);
 
     Utf8 toString() const;
 };

@@ -4,9 +4,10 @@ SWC_BEGIN_NAMESPACE()
 
 class ApInt
 {
-    static constexpr unsigned MAX_BITS  = 64;
-    static constexpr size_t   WORD_BITS = sizeof(size_t) * 8;
-    static constexpr size_t   MAX_WORDS = (MAX_BITS + WORD_BITS - 1) / WORD_BITS;
+    static constexpr unsigned MAX_BITS = 64;
+    static_assert(MAX_BITS <= 255, "ApInt is only supported up to 255 bits");
+    static constexpr size_t WORD_BITS = sizeof(size_t) * 8;
+    static constexpr size_t MAX_WORDS = (MAX_BITS + WORD_BITS - 1) / WORD_BITS;
 
     size_t   words_[MAX_WORDS];
     uint16_t bitWidth_;

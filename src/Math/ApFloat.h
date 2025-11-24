@@ -4,9 +4,10 @@ SWC_BEGIN_NAMESPACE()
 
 class ApFloat
 {
-    static constexpr unsigned MAX_BITS  = 64;
-    static constexpr size_t   WORD_BITS = sizeof(size_t) * 8;
-    static constexpr size_t   MAX_WORDS = (MAX_BITS + WORD_BITS - 1) / WORD_BITS;
+    static constexpr unsigned MAX_BITS = 64;
+    static_assert(MAX_BITS <= 255, "ApFloat is only supported up to 255 bits");
+    static constexpr size_t WORD_BITS = sizeof(size_t) * 8;
+    static constexpr size_t MAX_WORDS = (MAX_BITS + WORD_BITS - 1) / WORD_BITS;
 
 public:
     enum class Category : uint8_t

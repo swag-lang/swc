@@ -428,7 +428,6 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(SemaJob& job)
         if (convOverflow && !errorRaised)
         {
             job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-            errorRaised = true;
             floatValue.resetToZero(false);
         }
     }

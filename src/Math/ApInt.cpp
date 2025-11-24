@@ -33,9 +33,7 @@ ApInt::ApInt(size_t value, uint16_t bitWidth, bool negative) :
 uint8_t ApInt::computeNumWords(uint32_t bitWidth)
 {
     SWC_ASSERT(bitWidth > 0 && bitWidth <= MAX_BITS);
-    const auto n = (bitWidth + WORD_BITS - 1) / WORD_BITS;
-    SWC_ASSERT(n > 0 && n <= 255);
-    return static_cast<uint8_t>(n);
+    return static_cast<uint8_t>((bitWidth + WORD_BITS - 1u) / WORD_BITS);
 }
 
 void ApInt::clearWords()
@@ -104,7 +102,6 @@ size_t ApInt::hash() const
 {
     auto h = std::hash<int>()(bitWidth_);
     h      = hash_combine(h, negative_);
-
     for (size_t i = 0; i < numWords_; ++i)
         h = hash_combine(h, words_[i]);
     return h;

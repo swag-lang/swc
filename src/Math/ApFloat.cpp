@@ -1,113 +1,35 @@
+#include <utility>
+
 #include "pch.h"
+
+#include "Core/hash.h"
 #include "Math/ApFloat.h"
 
 SWC_BEGIN_NAMESPACE()
 
-uint8_t ApFloat::computeNumWords(uint32_t bitWidth)
-{
-    return static_cast<uint8_t>((bitWidth + WORD_BITS - 1u) / WORD_BITS);
-}
-
-void ApFloat::clearWords()
-{
-    for (size_t i = 0; i < MAX_WORDS; ++i)
-        words_[i] = 0;
-}
-
-uint64_t ApFloat::getStorage() const
-{
-    uint64_t       value    = 0;
-    const uint64_t wordMask = (WORD_BITS >= 64) ? ~uint64_t(0) : ((uint64_t(1) << WORD_BITS) - 1ull);
-
-    for (uint8_t i = 0; i < numWords_; ++i)
-    {
-        uint64_t w = static_cast<uint64_t>(words_[i]) & wordMask;
-        value |= (w << (i * WORD_BITS));
-    }
-
-    return value;
-}
-
-void ApFloat::setStorage(uint64_t value)
-{
-    const uint64_t wordMask = (WORD_BITS >= 64)
-                                  ? ~uint64_t(0)
-                                  : ((uint64_t(1) << WORD_BITS) - 1ull);
-
-    for (uint8_t i = 0; i < numWords_; ++i)
-    {
-        words_[i] = static_cast<size_t>((value >> (i * WORD_BITS)) & wordMask);
-    }
-
-    // Clear any extra words (if any)
-    for (uint8_t i = numWords_; i < MAX_WORDS; ++i)
-        words_[i] = 0;
-}
-
-uint64_t ApFloat::getMantissaMask() const
-{
-    if (mantissaWidth_ == 0)
-        return 0;
-
-    if (mantissaWidth_ >= 64)
-        return ~uint64_t(0);
-
-    return (uint64_t(1) << mantissaWidth_) - 1ull;
-}
-
-uint64_t ApFloat::getExponentMask() const
-{
-    if (expWidth_ == 0)
-        return 0;
-
-    if (expWidth_ >= 64)
-        return ~uint64_t(0);
-
-    return ((uint64_t(1) << expWidth_) - 1ull) << mantissaWidth_;
-}
-
-uint64_t ApFloat::getSignMask() const
-{
-    if (bitWidth_ == 0)
-        return 0;
-
-    return uint64_t(1) << (bitWidth_ - 1u);
-}
-
-// ========================
-// Constructors
-// ========================
-
 ApFloat::ApFloat() :
     words_{0},
     bitWidth_(64),
-    numWords_(computeNumWords(bitWidth_)),
     expWidth_(11),
-    mantissaWidth_(52)
+    mantissaWidth_(52),
+    numWords_(computeNumWords(bitWidth_))
 {
     clearWords(); // +0.0 by default
 }
 
 ApFloat::ApFloat(uint16_t expWidth, uint16_t mantissaWidth) :
     words_{0},
-    bitWidth_(uint16_t(1u + expWidth + mantissaWidth)),
-    numWords_(computeNumWords(bitWidth_)),
+    bitWidth_(1u + expWidth + mantissaWidth),
     expWidth_(expWidth),
-    mantissaWidth_(mantissaWidth)
+    mantissaWidth_(mantissaWidth),
+    numWords_(computeNumWords(bitWidth_))
 {
-    // Clamp to MAX_BITS in debug builds or ensure externally that it fits
-    if (bitWidth_ > MAX_BITS)
-    {
-        // You may want to replace this with your own assertion/logging.
-        // For now, we just truncate to MAX_BITS logically (storage is still 64-bit).
-        bitWidth_ = MAX_BITS;
-    }
-
+    SWC_ASSERT(bitWidth_ <= MAX_BITS);
     clearWords();
 }
 
 ApFloat::ApFloat(double value) :
-    ApFloat() // default format
+    ApFloat()
 {
     fromDouble(value);
 }
@@ -118,18 +40,77 @@ ApFloat::ApFloat(double value, uint16_t expWidth, uint16_t mantissaWidth) :
     fromDouble(value);
 }
 
+uint8_t ApFloat::computeNumWords(uint32_t bitWidth)
+{
+    SWC_ASSERT(bitWidth > 0 && bitWidth <= MAX_BITS);
+    return static_cast<uint8_t>((bitWidth + WORD_BITS - 1u) / WORD_BITS);
+}
+
+void ApFloat::clearWords()
+{
+    std::fill_n(words_, numWords_, size_t{0});
+}
+
+uint64_t ApFloat::getStorage() const
+{
+    uint64_t           value    = 0;
+    constexpr uint64_t wordMask = (WORD_BITS >= 64) ? ~0 : ((1 << WORD_BITS) - 1ull);
+
+    for (uint8_t i = 0; i < numWords_; ++i)
+    {
+        const uint64_t w = static_cast<uint64_t>(words_[i]) & wordMask;
+        value |= (w << (i * WORD_BITS));
+    }
+
+    return value;
+}
+
+void ApFloat::setStorage(uint64_t value)
+{
+    constexpr uint64_t wordMask = (WORD_BITS >= 64) ? ~0 : ((1 << WORD_BITS) - 1ull);
+    for (uint8_t i = 0; i < numWords_; ++i)
+        words_[i] = static_cast<size_t>((value >> (i * WORD_BITS)) & wordMask);
+    for (uint8_t i = numWords_; i < MAX_WORDS; ++i)
+        words_[i] = 0;
+}
+
+uint64_t ApFloat::getMantissaMask() const
+{
+    if (mantissaWidth_ == 0)
+        return 0;
+    if (mantissaWidth_ >= 64)
+        return ~0;
+    return (1 << mantissaWidth_) - 1ull;
+}
+
+uint64_t ApFloat::getExponentMask() const
+{
+    if (expWidth_ == 0)
+        return 0;
+    if (expWidth_ >= 64)
+        return ~0;
+    return ((1 << expWidth_) - 1ull) << mantissaWidth_;
+}
+
+uint64_t ApFloat::getSignMask() const
+{
+    if (bitWidth_ == 0)
+        return 0;
+    return 1 << (bitWidth_ - 1u);
+}
+
 bool ApFloat::isNegative() const
 {
-    uint64_t storage = getStorage();
+    const uint64_t storage = getStorage();
     return (storage & getSignMask()) != 0;
 }
 
-void ApFloat::setNegative(bool isNeg)
+void ApFloat::setNegative(bool isNegative)
 {
-    uint64_t storage  = getStorage();
-    uint64_t signMask = getSignMask();
+    uint64_t       storage  = getStorage();
+    const uint64_t signMask = getSignMask();
 
-    if (isNeg)
+    if (isNegative)
         storage |= signMask;
     else
         storage &= ~signMask;
@@ -146,9 +127,7 @@ ApFloat::Category ApFloat::getCategory() const
     const uint64_t mantissa = storage & mantissaMask;
     const uint64_t exponent = (storage & exponentMask) >> mantissaWidth_;
 
-    const uint64_t maxExponent = (expWidth_ == 0)
-                                     ? 0
-                                     : ((uint64_t(1) << expWidth_) - 1ull);
+    const uint64_t maxExponent = (expWidth_ == 0) ? 0 : ((1 << expWidth_) - 1ull);
 
     if (expWidth_ == 0)
     {
@@ -201,29 +180,21 @@ bool ApFloat::isNormal() const
 
 bool ApFloat::isFinite() const
 {
-    Category c = getCategory();
+    const Category c = getCategory();
     return c == Category::Zero ||
            c == Category::Normal ||
            c == Category::Subnormal;
 }
-
-// ========================
-// Reset
-// ========================
 
 void ApFloat::resetToZero(bool negative)
 {
     clearWords();
     if (negative)
     {
-        uint64_t storage = getSignMask(); // sign = 1, rest 0
+        const uint64_t storage = getSignMask();
         setStorage(storage);
     }
 }
-
-// ========================
-// Conversions
-// ========================
 
 void ApFloat::fromDouble(double value)
 {
@@ -231,11 +202,9 @@ void ApFloat::fromDouble(double value)
     if (std::isnan(value))
     {
         // sign = 0, exponent all ones, mantissa non-zero
-        const uint64_t signBit     = 0;
-        const uint64_t maxExponent = (expWidth_ == 0)
-                                         ? 0
-                                         : ((uint64_t(1) << expWidth_) - 1ull);
-        const uint64_t mantissa    = 1ull; // minimal quiet NaN payload
+        constexpr uint64_t signBit     = 0;
+        const uint64_t     maxExponent = (expWidth_ == 0) ? 0 : ((1 << expWidth_) - 1ull);
+        constexpr uint64_t mantissa    = 1ull; // minimal quiet NaN payload
 
         uint64_t storage = 0;
         storage |= (mantissa & getMantissaMask());
@@ -246,7 +215,7 @@ void ApFloat::fromDouble(double value)
         return;
     }
 
-    bool sign = std::signbit(value) != 0;
+    const bool sign = std::signbit(value) != 0;
 
     // Handle zero (preserve sign)
     if (value == 0.0)
@@ -259,9 +228,7 @@ void ApFloat::fromDouble(double value)
     if (std::isinf(value))
     {
         const uint64_t signBit     = sign ? 1ull : 0ull;
-        const uint64_t maxExponent = (expWidth_ == 0)
-                                         ? 0
-                                         : ((uint64_t(1) << expWidth_) - 1ull);
+        const uint64_t maxExponent = (expWidth_ == 0) ? 0 : ((1 << expWidth_) - 1ull);
 
         uint64_t storage = 0;
         storage |= (maxExponent << mantissaWidth_);
@@ -272,7 +239,7 @@ void ApFloat::fromDouble(double value)
     }
 
     // Finite, non-zero
-    double absVal = std::fabs(value);
+    const double absVal = std::fabs(value);
 
     // frexp: absVal = m * 2^e, m in [0.5, 1)
     int    e = 0;
@@ -283,16 +250,16 @@ void ApFloat::fromDouble(double value)
     e -= 1;
 
     // m = 1 + fraction, fraction in [0, 1)
-    double  fraction = m - 1.0;
-    double  scale    = std::ldexp(1.0, mantissaWidth_); // 2^mantissaWidth_
-    double  scaled   = fraction * scale;
-    int64_t rounded  = static_cast<int64_t>(std::llround(scaled));
+    const double  fraction = m - 1.0;
+    const double  scale    = std::ldexp(1.0, mantissaWidth_); // 2^mantissaWidth_
+    const double  scaled   = fraction * scale;
+    const int64_t rounded  = static_cast<int64_t>(std::llround(scaled));
 
-    uint64_t maxMant = getMantissaMask();
-    uint64_t mantissa;
+    const uint64_t maxMant = getMantissaMask();
+    uint64_t       mantissa;
 
     // Handle rounding overflow (e.g. 0.11111... rounding up to 1.000...)
-    if (rounded > static_cast<int64_t>(maxMant))
+    if (std::cmp_greater(rounded, maxMant))
     {
         mantissa = 0;
         e += 1;
@@ -314,12 +281,12 @@ void ApFloat::fromDouble(double value)
         return;
     }
 
-    const int32_t  bias        = (int32_t((uint32_t(1) << (expWidth_ - 1u))) - 1);
-    int64_t        expField    = int64_t(e) + bias;
-    const uint64_t maxExponent = (uint64_t(1) << expWidth_) - 1ull;
+    const int32_t  bias        = (static_cast<int32_t>(1 << (expWidth_ - 1u)) - 1);
+    int64_t        expField    = static_cast<int64_t>(e) + bias;
+    const uint64_t maxExponent = (static_cast<uint64_t>(1) << expWidth_) - 1ull;
     const uint64_t signBit     = sign ? 1ull : 0ull;
 
-    // Underflow into subnormals or zero
+    // Underflow into subnormal or zero
     if (expField <= 0)
     {
         // If it's way too small, flush to zero
@@ -330,9 +297,9 @@ void ApFloat::fromDouble(double value)
         }
 
         // Subnormal: exponentField = 0, incorporate implicit leading 1 into mantissa
-        int shift = 1 - static_cast<int>(expField); // how much to shift right
+        const int shift = 1 - static_cast<int>(expField); // how much to shift right
 
-        uint64_t fullMant = (uint64_t(1) << mantissaWidth_) | mantissa; // leading 1
+        const uint64_t fullMant = (1 << mantissaWidth_) | mantissa; // leading 1
         if (shift >= static_cast<int>(mantissaWidth_ + 1))
         {
             mantissa = 0;
@@ -344,7 +311,7 @@ void ApFloat::fromDouble(double value)
 
         expField = 0;
     }
-    else if (expField >= static_cast<int64_t>(maxExponent))
+    else if (std::cmp_greater_equal(expField, maxExponent))
     {
         // Overflow -> Inf
         uint64_t storage = 0;
@@ -386,8 +353,8 @@ double ApFloat::toDouble() const
         return sign ? -frac : frac;
     }
 
-    const uint64_t maxExponent = (uint64_t(1) << expWidth_) - 1ull;
-    const int32_t  bias        = (int32_t((uint32_t(1) << (expWidth_ - 1u))) - 1);
+    const uint64_t maxExponent = (1 << expWidth_) - 1ull;
+    const int32_t  bias        = (static_cast<int32_t>(1 << (expWidth_ - 1u)) - 1);
 
     if (exponent == 0)
     {
@@ -398,41 +365,31 @@ double ApFloat::toDouble() const
         }
 
         // Subnormal: exponent = 1 - bias, significand = 0.f
-        double scale = std::ldexp(1.0, mantissaWidth_);
-        double frac  = static_cast<double>(mantissa) / scale;
-        int    e     = 1 - bias;
+        const double scale = std::ldexp(1.0, mantissaWidth_);
+        const double frac  = static_cast<double>(mantissa) / scale;
+        const int    e     = 1 - bias;
 
-        double value = std::ldexp(frac, e);
+        const double value = std::ldexp(frac, e);
         return sign ? -value : value;
     }
 
     if (exponent == maxExponent)
     {
         if (mantissa == 0)
-        {
-            // Infinity
-            return sign ? -std::numeric_limits<double>::infinity()
-                        : std::numeric_limits<double>::infinity();
-        }
-
-        // NaN
+            return sign ? -std::numeric_limits<double>::infinity() : std::numeric_limits<double>::infinity();
         return std::numeric_limits<double>::quiet_NaN();
     }
 
     // Normal: exponent in (0, maxExponent)
-    double scale = std::ldexp(1.0, mantissaWidth_);
-    double frac  = static_cast<double>(mantissa) / scale; // [0, 1)
-    double sig   = 1.0 + frac;                            // [1, 2)
+    const double scale = std::ldexp(1.0, mantissaWidth_);
+    const double frac  = static_cast<double>(mantissa) / scale; // [0, 1)
+    const double sig   = 1.0 + frac;                            // [1, 2)
 
-    int    e     = static_cast<int>(exponent) - bias;
-    double value = std::ldexp(sig, e);
+    const int    e     = static_cast<int>(exponent) - bias;
+    const double value = std::ldexp(sig, e);
 
     return sign ? -value : value;
 }
-
-// ========================
-// Comparisons / hash
-// ========================
 
 bool ApFloat::equals(const ApFloat& other) const
 {
@@ -460,22 +417,11 @@ bool ApFloat::equals(const ApFloat& other) const
 
 size_t ApFloat::hash() const
 {
-    std::hash<size_t> hasher;
-    size_t            h = 0;
-
-    // Mix in format parameters
-    h ^= hasher(static_cast<size_t>(bitWidth_));
-    h ^= hasher(static_cast<size_t>(expWidth_) << 1);
-    h ^= hasher(static_cast<size_t>(mantissaWidth_) << 2);
-
-    // Mix in words
-    for (uint8_t i = 0; i < numWords_; ++i)
-    {
-        size_t k = hasher(words_[i]);
-        // Basic hash combine (similar to boost::hash_combine)
-        h ^= k + 0x9e3779b9 + (h << 6) + (h >> 2);
-    }
-
+    auto h = std::hash<int>()(bitWidth_);
+    h      = hash_combine(h, expWidth_);
+    h      = hash_combine(h, mantissaWidth_);
+    for (size_t i = 0; i < numWords_; ++i)
+        h = hash_combine(h, words_[i]);
     return h;
 }
 

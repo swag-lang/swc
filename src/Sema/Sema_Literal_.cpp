@@ -389,7 +389,7 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(SemaJob& job)
             continue;
         }
 
-        SWC_ASSERT(false && "Invalid character in float literal");
+        SWC_UNREACHABLE();
     }
 
     // exponent offset from decimal digits
@@ -397,13 +397,11 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(SemaJob& job)
 
     if (seenExp)
     {
-        if (!expDigitSeen)
-            SWC_ASSERT(false && "Exponent without digits");
-
+        SWC_ASSERT(expDigitSeen);
         totalExp10 = expNegative ? -expValue : expValue;
     }
 
-    // Apply fractional shift: e.g. 1.234e2  => 1234 * 10^(2 - 3) = 1234 * 10^-1
+    // Apply fractional shift: e.g., 1.234e2  => 1234 * 10^(2 - 3) = 1234 * 10^-1
     if (fracDigits > 0)
         totalExp10 -= static_cast<int64_t>(fracDigits);
 

@@ -523,13 +523,13 @@ void ApFloat::fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& o
     SWC_ASSERT(msbIndex >= 0);
 
     // After including exp2, the value is approximately:
-    //   V ≈ N * 2^exp2, where N has msb at msbIndex.
+    //   V almost equals N * 2^exp2, where N has msb at msbIndex.
     //
     // So the "true" binary exponent (unbiased) is:
     //   E = msbIndex + exp2.
     //
     // We want to represent:
-    //   V ≈ (1.fraction) * 2^E
+    //   V almost equals (1.fraction) * 2^E
     // and then pack the mantissa bits from that fraction.
 
     int64_t e = static_cast<int64_t>(msbIndex) + exp2;
@@ -547,16 +547,16 @@ void ApFloat::fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& o
 
     if (shiftForMsb > 0)
     {
-        // Shift right: we'll lose bits, that’s where rounding comes from
-        scaled.logicalShiftRight((size_t) shiftForMsb);
+        // Shift right: we'll lost bits, that's where rounding comes from
+        scaled.logicalShiftRight(static_cast<size_t>(shiftForMsb));
     }
     else if (shiftForMsb < 0)
     {
         bool over = false;
-        scaled.logicalShiftLeft((size_t) (-shiftForMsb), over);
+        scaled.logicalShiftLeft(static_cast<size_t>(-shiftForMsb), over);
         if (over)
         {
-            // If this happens, exponent goes up by that much.
+            // If this happens, the exponent goes up by that much.
             // For simplicity, just flag overflow.
             overflow = true;
             resetToZero(false);
@@ -628,7 +628,7 @@ void ApFloat::fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& o
         // overflow to infinity (caller decides diagnostic)
         overflow = true;
         // encode +INF
-        const uint64_t     signBit     = negative ? getSignMask() : 0u;
+        constexpr uint64_t signBit     = negative ? getSignMask() : 0u;
         const uint64_t     exponentAll = getExponentMask(); // all 1s
         constexpr uint64_t mantissa    = 0;
         const uint64_t     bits        = signBit | exponentAll | mantissa;
@@ -639,8 +639,8 @@ void ApFloat::fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& o
     if (biasedE <= 0)
     {
         // Underflow to zero or subnormal.
-        // For simplicity: flush to zero with correct sign,
-        // you can refine later to produce true subnormals.
+        // For simplicity: flush to zero with the correct sign,
+        // you can refine later to produce true subnormal.
         resetToZero(negative);
         return;
     }
@@ -651,9 +651,9 @@ void ApFloat::fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& o
     const uint64_t storedMantissa = mainBits & storedMantissaMask;
     const uint64_t storedExponent = static_cast<uint64_t>(biasedE);
 
-    const uint64_t signField     = negative ? getSignMask() : 0u;
-    const uint64_t exponentField = (storedExponent << mantissaBits) & getExponentMask();
-    const uint64_t mantissaField = storedMantissa & getMantissaMask();
+    constexpr uint64_t signField     = negative ? getSignMask() : 0u;
+    const uint64_t     exponentField = (storedExponent << mantissaBits) & getExponentMask();
+    const uint64_t     mantissaField = storedMantissa & getMantissaMask();
 
     const uint64_t finalBits = signField | exponentField | mantissaField;
     setStorage(finalBits);

@@ -1,7 +1,7 @@
 #include "pch.h"
+#include "Sema/ConstantValue.h"
 #include "Core/hash.h"
 #include "Main/TaskContext.h"
-#include "Sema/ConstantValue.h"
 #include "Sema/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -42,6 +42,17 @@ ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const ApInt& value,
     return cv;
 }
 
+ConstantValue ConstantValue::makeFloat(const TaskContext& ctx, const ApFloat& value, uint32_t bits, bool isSigned)
+{
+    ConstantValue cv;
+    cv.typeRef_   = ctx.compiler().typeMgr().getTypeFloat(bits);
+    cv.kind_      = ConstantKind::Float;
+    cv.float_.val = value;
+    cv.float_.sig = isSigned;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return cv;
+}
+
 bool ConstantValue::operator==(const ConstantValue& other) const noexcept
 {
     if (kind_ != other.kind_)
@@ -56,7 +67,7 @@ bool ConstantValue::operator==(const ConstantValue& other) const noexcept
         case ConstantKind::Int:
             return getInt().equals(other.getInt());
         case ConstantKind::Float:
-            return getFloat().equals(other.getFloat());            
+            return getFloat().equals(other.getFloat());
 
         default:
             SWC_UNREACHABLE();
@@ -74,7 +85,7 @@ Utf8 ConstantValue::toString() const
         case ConstantKind::Int:
             return "???";
         case ConstantKind::Float:
-            return "???";            
+            return "???";
 
         default:
             SWC_UNREACHABLE();
@@ -98,7 +109,7 @@ size_t ConstantValueHash::operator()(const ConstantValue& v) const noexcept
             break;
         case ConstantKind::Float:
             h = hash_combine(h, v.float_.val.hash());
-            break;            
+            break;
 
         default:
             SWC_UNREACHABLE();

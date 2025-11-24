@@ -8,6 +8,7 @@ enum class TypeInfoKind
     Invalid = 0,
     Bool,
     Int,
+    Float,
     String,
 };
 
@@ -34,6 +35,7 @@ private:
     {
         // clang-format off
         struct { uint32_t bits; bool isSigned; } int_;
+        struct { uint32_t bits; } float_;
         struct { std::string_view string; } string_;
         // clang-format on
     };
@@ -45,10 +47,12 @@ public:
     bool         isBool() const noexcept { return kind_ == TypeInfoKind::Bool; }
     bool         isString() const noexcept { return kind_ == TypeInfoKind::String; }
     bool         isInt() const noexcept { return kind_ == TypeInfoKind::Int; }
+    bool         isFloat() const noexcept { return kind_ == TypeInfoKind::Float; }
 
     static TypeInfo makeBool();
     static TypeInfo makeString();
-    static TypeInfo makeInt(uint8_t bits, bool isSigned);
+    static TypeInfo makeInt(uint32_t bits, bool isSigned);
+    static TypeInfo makeFloat(uint32_t bits);
 };
 
 struct TypeInfoHash

@@ -426,8 +426,8 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(SemaJob& job)
         floatValue.resetToZero(false);
     }
 
-    // const auto val = ConstantValue::makeFloat(ctx, floatValue);
-    // setConstant(job.constMgr().addConstant(ctx, val));
+    const auto val = ConstantValue::makeFloat(ctx, floatValue, 0, false);
+    setConstant(job.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 

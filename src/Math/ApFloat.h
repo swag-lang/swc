@@ -1,6 +1,7 @@
 #pragma once
 
 SWC_BEGIN_NAMESPACE()
+class ApInt;
 
 class ApFloat
 {
@@ -72,6 +73,7 @@ public:
     void resetToZero(bool negative = false);
 
     // Conversions
+    void   fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& overflow);
     void   fromDouble(double value);
     double toDouble() const;
 

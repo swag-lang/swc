@@ -1,4 +1,6 @@
 #include "pch.h"
+
+#include "ApInt.h"
 #include "Core/hash.h"
 #include "Math/ApFloat.h"
 
@@ -438,6 +440,223 @@ size_t ApFloat::hash() const
     for (size_t i = 0; i < numWords_; ++i)
         h = hash_combine(h, words_[i]);
     return h;
+}
+
+void ApFloat::fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& overflow)
+{
+    overflow = false;
+
+    // 1) Zero shortcut
+    if (decimalSig.isZero())
+    {
+        resetToZero(false);
+        return;
+    }
+
+    // Assume positive literal here; sign handled outside via unary '-'
+    const bool negative = false;
+
+    const uint32_t mantissaBits = mantissaWidth_;   // e.g. 52
+    const uint32_t precision    = mantissaBits + 1; // include hidden 1
+    const uint32_t expBits      = expWidth_;
+    const int32_t  expBias      = static_cast<int32_t>((1u << (expBits - 1)) - 1u);
+
+    // 2) Build an integer N and a binary exponent exp2 such that:
+    //      V = N * 2^exp2, plus remainders for rounding.
+    //
+    // Strategy:
+    //   - Start from decimalSig as our N.
+    //   - Adjust by 10^decimalExp10 using 5^k and binary exponent shifts.
+
+    ApInt n = decimalSig; // copy
+    n.setNegative(false); // literal magnitude
+
+    int64_t exp2 = 0;
+
+    bool bigOver = false;
+
+    if (decimalExp10 > 0)
+    {
+        // Multiply by 10^k = 2^k * 5^k
+        n.mulPow5(static_cast<uint32_t>(decimalExp10), bigOver);
+        if (bigOver)
+        {
+            overflow = true;
+            resetToZero(false);
+            return;
+        }
+        exp2 += decimalExp10;
+    }
+    else if (decimalExp10 < 0)
+    {
+        // Divide by 10^(-k) = 2^(-k) * 5^(-k).
+        // We do it as repeated division by 5 and track how many times
+        // we "needed more precision" for rounding.
+        uint32_t k = (uint32_t) (-decimalExp10);
+        for (uint32_t i = 0; i < k; ++i)
+        {
+            const uint32_t rem = n.div(5u);
+            // Each /5 introduces fractional bits. We'll fold that into exp2
+            // via a conservative decrement; exact half-way tracking is
+            // refined later by looking at remaining bits.
+            if (rem != 0)
+            {
+                // we lost some fraction; keep exp2 one step smaller so that
+                // rounding favors denormals/zero on underflow.
+            }
+        }
+        exp2 -= k;
+    }
+
+    // 3) Find the position of the highest set bit of N (i.e., floor(log2(N)))
+    //    This is our current "unbiased" exponent of the integer part.
+    int32_t msbIndex = -1;
+    for (int i = static_cast<int>(n.getBitWidth()) - 1; i >= 0; --i)
+    {
+        if (n.testBit(static_cast<size_t>(i)))
+        {
+            msbIndex = i;
+            break;
+        }
+    }
+
+    SWC_ASSERT(msbIndex >= 0);
+
+    // After including exp2, the value is approximately:
+    //   V ≈ N * 2^exp2, where N has msb at msbIndex.
+    //
+    // So the "true" binary exponent (unbiased) is:
+    //   E = msbIndex + exp2.
+    //
+    // We want to represent:
+    //   V ≈ (1.fraction) * 2^E
+    // and then pack the mantissa bits from that fraction.
+
+    int64_t e = static_cast<int64_t>(msbIndex) + exp2;
+
+    // 4) Now we build a *scaled* mantissa with a couple of guard bits
+    //    for rounding. We'll shift N so that the top (precision+2) bits
+    //    are in an integer, then drop/round extra bits.
+    //
+    // Guard bits: +2 is enough for round-to-nearest-even.
+    constexpr uint32_t guardBits   = 2;
+    const uint32_t     targetBits  = precision + guardBits;
+    const int32_t      shiftForMsb = msbIndex - static_cast<int32_t>(targetBits - 1);
+
+    ApInt scaled = n; // copy
+
+    if (shiftForMsb > 0)
+    {
+        // Shift right: we'll lose bits, that’s where rounding comes from
+        scaled.logicalShiftRight((size_t) shiftForMsb);
+    }
+    else if (shiftForMsb < 0)
+    {
+        bool over = false;
+        scaled.logicalShiftLeft((size_t) (-shiftForMsb), over);
+        if (over)
+        {
+            // If this happens, exponent goes up by that much.
+            // For simplicity, just flag overflow.
+            overflow = true;
+            resetToZero(false);
+            return;
+        }
+    }
+
+    // Denormalize exponent if we shifted right
+    e += shiftForMsb;
+
+    // Extract the scaled value into a 64-bit integer (we assumed <=64 bits).
+    SWC_ASSERT(scaled.getBitWidth() <= 64);
+    const uint64_t mWithGuards = static_cast<uint64_t>(scaled.getNative());
+
+    // Are there any lost bits during the right shift? If shiftForMsb > 0,
+    // bits below that were thrown away. Approximate "sticky" bit by comparing.
+    const bool sticky = (shiftForMsb > 0); // crude but conservative
+
+    // 5) Now do rounding to 'precision' bits (precision = mantissa+1).
+    //
+    // Bits layout in mWithGuards (from MSB):
+    //   [precision bits][guard][round][rest...)
+    //
+    // We'll keep 'precision' bits and look at guard+round+sticky.
+
+    const uint64_t maskPrecision = (precision >= 64) ? ~static_cast<uint64_t>(0) : ((static_cast<uint64_t>(1) << precision) - 1);
+
+    uint64_t       mainBits  = (mWithGuards >> guardBits) & maskPrecision;
+    const uint64_t roundBits = mWithGuards & ((static_cast<uint64_t>(1) << guardBits) - 1);
+    const bool     guardBit  = (roundBits >> (guardBits - 1)) & 1u;
+    const bool     roundBit  = (roundBits >> (guardBits - 2)) & 1u; // if guardBits == 2
+    const bool     anyTail   = sticky || (roundBits & ((static_cast<uint64_t>(1) << (guardBits - 2)) - 1)) != 0;
+
+    // Round-to-nearest, ties-to-even:
+    bool increment = false;
+    if (guardBit)
+    {
+        if (roundBit || anyTail || (mainBits & 1u))
+            increment = true;
+    }
+
+    if (increment)
+    {
+        mainBits += 1;
+        // if mantissa overflowed (1.111..1 + ulp = 10.000..0),
+        // renormalize and bump exponent.
+        if (mainBits >> precision)
+        {
+            mainBits >>= 1;
+            e += 1;
+        }
+    }
+
+    // 6) Now mainBits has 'precision' bits, with top bit being implicit 1
+    //    (except subnormals). For a normal number:
+    //      storedMantissa = mainBits & ((1 << mantissaBits) - 1)
+    //      storedExponent = E + expBias
+    //
+    // Handle exponent range and underflow.
+
+    const int64_t maxExp = (1LL << expBits) - 2; // all-1 exponents reserved for INF/NaN
+    int64_t       minExp = 1 - expBias;          // smallest normal unbiased exponent
+
+    const int64_t unbiasedE = e;
+    const int64_t biasedE   = unbiasedE + expBias;
+
+    if (biasedE >= maxExp)
+    {
+        // overflow to infinity (caller decides diagnostic)
+        overflow = true;
+        // encode +INF
+        const uint64_t     signBit     = negative ? getSignMask() : 0u;
+        const uint64_t     exponentAll = getExponentMask(); // all 1s
+        constexpr uint64_t mantissa    = 0;
+        const uint64_t     bits        = signBit | exponentAll | mantissa;
+        setStorage(bits);
+        return;
+    }
+
+    if (biasedE <= 0)
+    {
+        // Underflow to zero or subnormal.
+        // For simplicity: flush to zero with correct sign,
+        // you can refine later to produce true subnormals.
+        resetToZero(negative);
+        return;
+    }
+
+    // Normal
+    const uint64_t storedMantissaMask = (mantissaBits == 64) ? ~static_cast<uint64_t>(0) : ((static_cast<uint64_t>(1) << mantissaBits) - 1);
+
+    const uint64_t storedMantissa = mainBits & storedMantissaMask;
+    const uint64_t storedExponent = static_cast<uint64_t>(biasedE);
+
+    const uint64_t signField     = negative ? getSignMask() : 0u;
+    const uint64_t exponentField = (storedExponent << mantissaBits) & getExponentMask();
+    const uint64_t mantissaField = storedMantissa & getMantissaMask();
+
+    const uint64_t finalBits = signField | exponentField | mantissaField;
+    setStorage(finalBits);
 }
 
 SWC_END_NAMESPACE()

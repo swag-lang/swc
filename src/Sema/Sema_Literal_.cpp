@@ -22,6 +22,11 @@ AstVisitStepResult AstBoolLiteral::semaPreNode(SemaJob& job)
     return AstVisitStepResult::SkipChildren;
 }
 
+AstVisitStepResult AstCharacterLiteral::semaPreNode(SemaJob& job)
+{
+    return AstVisitStepResult::SkipChildren;
+}
+
 AstVisitStepResult AstStringLiteral::semaPreNode(SemaJob& job)
 {
     const auto& ctx     = job.ctx();
@@ -286,6 +291,143 @@ AstVisitStepResult AstIntegerLiteral::semaPreNode(SemaJob& job)
 
     const auto val = ConstantValue::makeInt(ctx, value, 0, false);
     setConstant(job.constMgr().addConstant(ctx, val));
+    return AstVisitStepResult::SkipChildren;
+}
+
+AstVisitStepResult AstFloatLiteral::semaPreNode(SemaJob& job)
+{
+    const auto& ctx = job.ctx();
+    const auto& tok = job.token(srcViewRef(), tokRef());
+    const auto  str = tok.string(job.compiler().srcView(srcViewRef()));
+
+    SWC_ASSERT(!str.empty());
+
+    const auto& langSpec = job.compiler().global().langSpec();
+
+    ApInt intValue; // accumulates all decimal digits (integer mantissa)
+    bool  errorRaised = false;
+
+    bool seenDot      = false;
+    bool seenExp      = false;
+    bool expNegative  = false;
+    bool expSignSeen  = false;
+    bool expDigitSeen = false;
+
+    size_t  fracDigits = 0; // number of digits AFTER '.'
+    int64_t expValue   = 0; // exponent part AFTER 'e'
+
+    for (const char c : str)
+    {
+        // skip numeric separators (NO cleaned copy)
+        if (langSpec.isNumberSep(c))
+            continue;
+
+        if (langSpec.isDigit(c))
+        {
+            const uint32_t digit = static_cast<uint32_t>(c - '0');
+
+            if (!seenExp)
+            {
+                bool over = false;
+                intValue.mul(10, over);
+                if (over && !errorRaised)
+                {
+                    job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+                    errorRaised = true;
+                }
+
+                intValue.add(digit, over);
+                if (over && !errorRaised)
+                {
+                    job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+                    errorRaised = true;
+                }
+
+                if (seenDot)
+                    ++fracDigits;
+            }
+            else
+            {
+                expDigitSeen = true;
+
+                // Avoid overflow of expValue
+                if (expValue <= (INT64_MAX - digit) / 10)
+                {
+                    expValue = expValue * 10 + digit;
+                }
+                else if (!errorRaised)
+                {
+                    job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+                    errorRaised = true;
+                }
+            }
+            continue;
+        }
+
+        if (c == '.' && !seenExp)
+        {
+            if (seenDot)
+            {
+                SWC_ASSERT(false && "Multiple '.' in float literal");
+                continue;
+            }
+
+            seenDot = true;
+            continue;
+        }
+
+        if ((c == 'e' || c == 'E') && !seenExp)
+        {
+            seenExp = true;
+            continue;
+        }
+
+        if ((c == '+' || c == '-') && seenExp && !expSignSeen && !expDigitSeen)
+        {
+            expSignSeen = true;
+            expNegative = (c == '-');
+            continue;
+        }
+
+        SWC_ASSERT(false && "Invalid character in float literal");
+    }
+
+    // exponent offset from decimal digits
+    int64_t totalExp10 = 0;
+
+    if (seenExp)
+    {
+        if (!expDigitSeen)
+            SWC_ASSERT(false && "Exponent without digits");
+
+        totalExp10 = expNegative ? -expValue : expValue;
+    }
+
+    // Apply fractional shift: e.g. 1.234e2  => 1234 * 10^(2 - 3) = 1234 * 10^-1
+    if (fracDigits > 0)
+        totalExp10 -= static_cast<int64_t>(fracDigits);
+
+    // Conversion: intValue * 10^totalExp10 -> ApFloat
+    ApFloat floatValue;
+    if (!errorRaised)
+    {
+        bool convOverflow = false;
+        floatValue.fromDecimal(intValue, totalExp10, convOverflow);
+
+        if (convOverflow && !errorRaised)
+        {
+            job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+            errorRaised = true;
+            floatValue.resetToZero(false);
+        }
+    }
+    else
+    {
+        floatValue.resetToZero(false);
+    }
+
+    // const auto val = ConstantValue::makeFloat(ctx, floatValue);
+    // setConstant(job.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 

@@ -515,6 +515,7 @@ struct AstIntegerLiteral : AstLiteralT<AstNodeId::IntegerLiteral>
 
 struct AstFloatLiteral : AstLiteralT<AstNodeId::FloatLiteral>
 {
+    AstVisitStepResult semaPreNode(SemaJob& job);
 };
 
 struct AstStringLiteral : AstLiteralT<AstNodeId::StringLiteral>
@@ -524,6 +525,7 @@ struct AstStringLiteral : AstLiteralT<AstNodeId::StringLiteral>
 
 struct AstCharacterLiteral : AstLiteralT<AstNodeId::CharacterLiteral>
 {
+    AstVisitStepResult semaPreNode(SemaJob& job);
 };
 
 struct AstBoolLiteral : AstLiteralT<AstNodeId::BoolLiteral>

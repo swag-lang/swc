@@ -174,39 +174,50 @@ void ApInt::logicalShiftLeft(size_t amount, bool& overflow)
     normalize();
 }
 
-namespace
+void ApInt::mulPow5(uint32_t exp, bool& overflow)
 {
-    void mulWordFull(size_t x, size_t y, size_t carryIn, size_t& outLow, size_t& outHigh)
+    for (uint32_t i = 0; i < exp; ++i)
     {
-        using U64 = uint64_t;
-        using U32 = uint32_t;
-
-        const U64 a = static_cast<U64>(x);
-        const U64 b = static_cast<U64>(y);
-
-        const U64 aHi = a >> 32;
-        const U64 aLo = static_cast<U32>(a);
-        const U64 bHi = b >> 32;
-        const U64 bLo = static_cast<U32>(b);
-
-        const U64 p0 = aLo * bLo; // 64-bit
-        const U64 p1 = aLo * bHi; // 64-bit
-        const U64 p2 = aHi * bLo; // 64-bit
-        const U64 p3 = aHi * bHi; // 64-bit
-
-        // Compose 128-bit product (high: p3 + ..., low: low64)
-        const U64 mid  = (p0 >> 32) + (p1 & 0xffffffffull) + (p2 & 0xffffffffull);
-        U64       high = p3 + (p1 >> 32) + (p2 >> 32) + (mid >> 32);
-        U64       low  = (p0 & 0xffffffffull) | (mid << 32);
-
-        // Add carryIn to low, adjust high on overflow
-        low += static_cast<U64>(carryIn);
-        if (low < static_cast<U64>(carryIn))
-            ++high;
-
-        outLow  = static_cast<size_t>(low);
-        outHigh = static_cast<size_t>(high);
+        mul(5u, overflow);
+        if (overflow)
+            return;
     }
+}
+
+void ApInt::logicalShiftRight(size_t amount)
+{
+    if (amount == 0 || isZero())
+        return;
+
+    const size_t wordShift = amount / WORD_BITS;
+    const size_t bitShift  = amount % WORD_BITS;
+
+    if (wordShift >= numWords_)
+    {
+        resetToZero();
+        return;
+    }
+
+    if (wordShift > 0)
+    {
+        for (uint8_t i = 0; i < numWords_ - wordShift; ++i)
+            words_[i] = words_[i + wordShift];
+        for (uint8_t i = static_cast<uint8_t>(numWords_ - wordShift); i < numWords_; ++i)
+            words_[i] = 0;
+    }
+
+    if (bitShift > 0)
+    {
+        size_t carry = 0;
+        for (int i = static_cast<int>(numWords_) - 1; i >= 0; --i)
+        {
+            const size_t newCarry = words_[i] << (WORD_BITS - bitShift);
+            words_[i]             = (words_[i] >> bitShift) | carry;
+            carry                 = newCarry;
+        }
+    }
+
+    normalize();
 }
 
 bool ApInt::hasTopBitsOverflow() const
@@ -244,6 +255,41 @@ void ApInt::add(size_t v, bool& overflow)
     normalize();
 }
 
+namespace
+{
+    void mulWordFull(size_t x, size_t y, size_t carryIn, size_t& outLow, size_t& outHigh)
+    {
+        using U64 = uint64_t;
+        using U32 = uint32_t;
+
+        const U64 a = static_cast<U64>(x);
+        const U64 b = static_cast<U64>(y);
+
+        const U64 aHi = a >> 32;
+        const U64 aLo = static_cast<U32>(a);
+        const U64 bHi = b >> 32;
+        const U64 bLo = static_cast<U32>(b);
+
+        const U64 p0 = aLo * bLo; // 64-bit
+        const U64 p1 = aLo * bHi; // 64-bit
+        const U64 p2 = aHi * bLo; // 64-bit
+        const U64 p3 = aHi * bHi; // 64-bit
+
+        // Compose 128-bit product (high: p3 + ..., low: low64)
+        const U64 mid  = (p0 >> 32) + (p1 & 0xffffffffull) + (p2 & 0xffffffffull);
+        U64       high = p3 + (p1 >> 32) + (p2 >> 32) + (mid >> 32);
+        U64       low  = (p0 & 0xffffffffull) | (mid << 32);
+
+        // Add carryIn to low, adjust high on overflow
+        low += static_cast<U64>(carryIn);
+        if (low < static_cast<U64>(carryIn))
+            ++high;
+
+        outLow  = static_cast<size_t>(low);
+        outHigh = static_cast<size_t>(high);
+    }
+}
+
 void ApInt::mul(size_t v, bool& overflow)
 {
     SWC_ASSERT(numWords_);
@@ -267,6 +313,65 @@ void ApInt::mul(size_t v, bool& overflow)
 
     overflow = carry != 0 || hasTopBitsOverflow();
     normalize();
+}
+
+uint32_t ApInt::div(uint32_t v)
+{
+    SWC_ASSERT(v != 0);
+
+    if (isZero())
+        return 0;
+
+    // the remainder always kept < v, and v <= UINT32_MAX
+    size_t rem = 0;
+
+    // Process from most-significant word to least-significant word
+    for (int i = static_cast<int>(numWords_) - 1; i >= 0; --i)
+    {
+        const size_t word  = words_[i];
+        size_t       qWord = 0;
+
+        // Bit-by-bit long division in base 2, from MSB to LSB of this word
+        for (int bit = static_cast<int>(WORD_BITS) - 1; bit >= 0; --bit)
+        {
+            // Bring down the next bit
+            rem = (rem << 1) | ((word >> bit) & static_cast<size_t>(1));
+
+            // Shift quotient and test if we can subtract divisor
+            qWord <<= 1;
+            if (rem >= v)
+            {
+                rem -= v;
+                qWord |= 1;
+            }
+        }
+
+        words_[i] = qWord;
+    }
+
+    normalize();
+    return static_cast<uint32_t>(rem);
+}
+
+bool ApInt::testBit(size_t bitIndex) const
+{
+    const size_t wordIndex = bitIndex / WORD_BITS;
+    const size_t bitInWord = bitIndex % WORD_BITS;
+    if (wordIndex >= numWords_)
+        return false;
+    return (words_[wordIndex] >> bitInWord) & 1u;
+}
+
+void ApInt::setBit(size_t bitIndex)
+{
+    const size_t wordIndex = bitIndex / WORD_BITS;
+    const size_t bitInWord = bitIndex % WORD_BITS;
+    SWC_ASSERT(wordIndex < MAX_WORDS);
+    if (wordIndex >= numWords_)
+        numWords_ = static_cast<uint8_t>(wordIndex + 1);
+    words_[wordIndex] |= (static_cast<size_t>(1) << bitInWord);
+    if (bitIndex + 1 > bitWidth_)
+        bitWidth_ = static_cast<uint16_t>(bitIndex + 1);
 }
 
 SWC_END_NAMESPACE()

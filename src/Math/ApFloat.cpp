@@ -569,7 +569,7 @@ void ApFloat::fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& o
 
     // Extract the scaled value into a 64-bit integer (we assumed <=64 bits).
     SWC_ASSERT(scaled.getBitWidth() <= 64);
-    const uint64_t mWithGuards = static_cast<uint64_t>(scaled.getNative());
+    const uint64_t mWithGuards = static_cast<uint64_t>(scaled.toNative());
 
     // Are there any lost bits during the right shift? If shiftForMsb > 0,
     // bits below that were thrown away. Approximate "sticky" bit by comparing.

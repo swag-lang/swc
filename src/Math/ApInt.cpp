@@ -59,7 +59,7 @@ void ApInt::normalize()
     }
 }
 
-size_t ApInt::getNative() const
+size_t ApInt::toNative() const
 {
     SWC_ASSERT(isNative());
     if (bitWidth_ < WORD_BITS)

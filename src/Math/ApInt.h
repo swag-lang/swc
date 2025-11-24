@@ -27,7 +27,7 @@ public:
     uint16_t getBitWidth() const { return bitWidth_; }
     bool     isNegative() const { return negative_; }
     bool     isNative() const { return numWords_ == 1; }
-    size_t   getNative() const;
+    size_t   toNative() const;
 
     bool equals(const ApInt& other) const;
     bool isZero() const;

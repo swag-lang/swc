@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Sema/ApValue.h"
+#include "Math/ApValue.h"
 #include "Core/hash.h"
 #include "Main/TaskContext.h"
 #include "Sema/TypeManager.h"
@@ -55,6 +55,8 @@ bool ApValue::operator==(const ApValue& other) const noexcept
             return getString() == other.getString();
         case ConstantKind::Int:
             return getInt().equals(other.getInt());
+        case ConstantKind::Float:
+            return getFloat().equals(other.getFloat());            
 
         default:
             SWC_UNREACHABLE();
@@ -71,6 +73,8 @@ Utf8 ApValue::toString() const
             return getString();
         case ConstantKind::Int:
             return "???";
+        case ConstantKind::Float:
+            return "???";            
 
         default:
             SWC_UNREACHABLE();
@@ -92,6 +96,9 @@ size_t ConstantValueHash::operator()(const ApValue& v) const noexcept
         case ConstantKind::Int:
             h = hash_combine(h, v.int_.val.hash());
             break;
+        case ConstantKind::Float:
+            h = hash_combine(h, v.float_.val.hash());
+            break;            
 
         default:
             SWC_UNREACHABLE();

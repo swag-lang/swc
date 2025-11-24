@@ -1,5 +1,6 @@
 #pragma once
-#include "Sema/ApInt.h"
+#include "Math/ApFloat.h"
+#include "Math/ApInt.h"
 
 SWC_BEGIN_NAMESPACE()
 class TaskContext;
@@ -11,6 +12,7 @@ enum class ConstantKind
     Bool,
     String,
     Int,
+    Float,
 };
 
 class ApValue
@@ -27,6 +29,7 @@ class ApValue
         struct { bool val; } bool_;
         struct { std::string_view val; } string_;
         struct { ApInt val; bool sig; } int_;
+        struct { ApFloat val; } float_;
         // clang-format on
     };
 
@@ -41,11 +44,13 @@ public:
     bool         isBool() const { return kind_ == ConstantKind::Bool; }
     bool         isString() const { return kind_ == ConstantKind::String; }
     bool         isInt() const { return kind_ == ConstantKind::Int; }
+    bool         isFloat() const { return kind_ == ConstantKind::Float; }
 
     // clang-format off
     bool getBool() const { SWC_ASSERT(isBool()); return bool_.val; }
     std::string_view getString() const { SWC_ASSERT(isString()); return string_.val; }
     const ApInt& getInt() const { SWC_ASSERT(isInt()); return int_.val; }
+    const ApFloat& getFloat() const { SWC_ASSERT(isFloat()); return float_.val; }
     // clang-format on
 
     const TypeInfo& type(const TaskContext& ctx) const;

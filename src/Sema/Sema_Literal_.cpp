@@ -403,7 +403,20 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(SemaJob& job)
 
     // Apply fractional shift: e.g., 1.234e2  => 1234 * 10^(2 - 3) = 1234 * 10^-1
     if (fracDigits > 0)
-        totalExp10 -= static_cast<int64_t>(fracDigits);
+    {
+        if (totalExp10 < (std::numeric_limits<int64_t>::min)() + static_cast<int64_t>(fracDigits))
+        {
+            if (!errorRaised)
+            {
+                job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+                errorRaised = true;
+            }
+        }
+        else
+        {
+            totalExp10 -= static_cast<int64_t>(fracDigits);
+        }
+    }
 
     // Conversion: intValue * 10^totalExp10 -> ApFloat
     ApFloat floatValue;

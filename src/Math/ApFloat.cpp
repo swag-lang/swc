@@ -469,7 +469,7 @@ void ApFloat::fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& o
     // Assume positive literal here; sign handled outside via unary '-'
     const bool negative = false;
 
-    const uint32_t mantissaBits = mantissaWidth_;   // e.g. 52
+    const uint32_t mantissaBits = mantissaWidth_; // e.g. 52
     const uint32_t expBits      = expWidth_;
 
     // We only support IEEE-like formats with an exponent field.
@@ -485,7 +485,7 @@ void ApFloat::fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& o
         static_cast<int32_t>((uint32_t(1) << (expBits - 1u)) - 1u);
 
     // 2) Build an integer N and a binary exponent exp2 such that:
-    //      V ≈ N * 2^exp2
+    //      V almost equals N * 2^exp2
     //
     // Adjust by 10^decimalExp10 = 2^k * 5^k (or its reciprocal).
 
@@ -504,10 +504,10 @@ void ApFloat::fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& o
         if (bigOver)
         {
             // Overflow during integer scaling -> +INF
-            overflow = true;
-            const uint64_t signField    = negative ? getSignMask() : 0u;
-            const uint64_t exponentAll  = getExponentMask(); // all exponent bits = 1, mantissa = 0
-            const uint64_t infBits      = signField | exponentAll;
+            overflow                   = true;
+            const uint64_t signField   = negative ? getSignMask() : 0u;
+            const uint64_t exponentAll = getExponentMask(); // all exponent bits = 1, mantissa = 0
+            const uint64_t infBits     = signField | exponentAll;
             setStorage(infBits);
             return;
         }
@@ -551,10 +551,9 @@ void ApFloat::fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& o
     // 4) Build a scaled mantissa with a couple of guard bits for rounding.
     //
     // We want (precision + guardBits) bits at the top of 'scaled'.
-    constexpr uint32_t guardBits  = 2;
-    const uint32_t     targetBits = precision + guardBits;
-    const int32_t      shiftForMsb =
-        msbIndex - static_cast<int32_t>(targetBits - 1u);
+    constexpr uint32_t guardBits   = 2;
+    const uint32_t     targetBits  = precision + guardBits;
+    const int32_t      shiftForMsb = msbIndex - static_cast<int32_t>(targetBits - 1u);
 
     ApInt scaled = n; // copy
 
@@ -587,7 +586,7 @@ void ApFloat::fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& o
         {
             // If we overflow here, it's effectively an exponent increase.
             // For simplicity, treat as overflow to +INF.
-            overflow = true;
+            overflow                   = true;
             const uint64_t signField   = negative ? getSignMask() : 0u;
             const uint64_t exponentAll = getExponentMask();
             const uint64_t infBits     = signField | exponentAll;
@@ -596,27 +595,27 @@ void ApFloat::fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& o
         }
     }
 
-    // Adjust exponent by any right shift of the integer.
-    e += shiftForMsb;
+    // IMPORTANT FIX:
+    // Do *not* change 'e' here. It already encodes the unbiased exponent
+    // of the original N (via msbIndex + exp2). The shifts above only
+    // rearrange bits so we can extract the mantissa; the exponent for the
+    // value should stay the same (apart from possible bump on rounding).
 
-    // Extract the scaled value into a 64-bit integer.
+    // 5) Extract the scaled value into a 64-bit integer.
     SWC_ASSERT(scaled.getBitWidth() <= 64);
     const uint64_t mWithGuards = static_cast<uint64_t>(scaled.toNative());
 
     // Overall sticky: from decimal /5 loss + from integer right shift.
     const bool sticky = fracLostFromDiv || stickyFromShift;
 
-    // 5) Round to 'precision' bits (mantissa+1) using guard bits.
+    // Round to 'precision' bits (mantissa+1) using guard bits.
     //
     // Layout in mWithGuards (from MSB):
     //   [precision bits][guard][round]
     //
     // We'll keep 'precision' bits and look at guard+round+sticky.
 
-    const uint64_t maskPrecision =
-        (precision >= 64)
-            ? ~static_cast<uint64_t>(0)
-            : ((static_cast<uint64_t>(1) << precision) - 1u);
+    const uint64_t maskPrecision = (precision >= 64) ? ~static_cast<uint64_t>(0) : ((static_cast<uint64_t>(1) << precision) - 1u);
 
     uint64_t       mainBits  = (mWithGuards >> guardBits) & maskPrecision;
     const uint64_t roundBits = mWithGuards & ((static_cast<uint64_t>(1) << guardBits) - 1u);
@@ -624,11 +623,8 @@ void ApFloat::fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& o
     const bool guardBit = (roundBits >> (guardBits - 1u)) & 1u;
     const bool roundBit = (roundBits >> (guardBits - 2u)) & 1u; // guardBits == 2
 
-    const uint64_t lowerMask =
-        (guardBits > 1u)
-            ? ((static_cast<uint64_t>(1) << (guardBits - 2u)) - 1u)
-            : 0u;
-    const bool anyTail = sticky || ((roundBits & lowerMask) != 0);
+    const uint64_t lowerMask = (guardBits > 1u) ? ((static_cast<uint64_t>(1) << (guardBits - 2u)) - 1u) : 0u;
+    const bool     anyTail   = sticky || ((roundBits & lowerMask) != 0);
 
     // Round-to-nearest, ties-to-even:
     bool increment = false;
@@ -641,8 +637,8 @@ void ApFloat::fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& o
     if (increment)
     {
         mainBits += 1u;
-        // If mantissa overflowed (1.111..1 + ulp = 10.000..0),
-        // renormalize and bump exponent.
+
+        // If mantissa overflowed (1.111..1 + ulp = 10.000..0), renormalize and bump exponent.
         if (mainBits >> precision)
         {
             mainBits >>= 1;
@@ -659,7 +655,7 @@ void ApFloat::fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& o
     //   finite normals use 1 .. max-1
     //
     // So the largest finite biased exponent is (2^expBits - 2).
-    const uint64_t maxBiased = (static_cast<uint64_t>(1) << expBits) - 1u;
+    const uint64_t maxBiased          = (static_cast<uint64_t>(1) << expBits) - 1u;
     const int64_t  maxFiniteBiasedExp = static_cast<int64_t>(maxBiased - 1u); // 2^expBits - 2
 
     const int64_t unbiasedE = e;
@@ -668,7 +664,7 @@ void ApFloat::fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& o
     if (biasedE > maxFiniteBiasedExp)
     {
         // Overflow to +INF
-        overflow = true;
+        overflow                   = true;
         const uint64_t signField   = negative ? getSignMask() : 0u;
         const uint64_t exponentAll = getExponentMask();
         const uint64_t infBits     = signField | exponentAll;
@@ -685,13 +681,9 @@ void ApFloat::fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& o
     }
 
     // 7) Normal number.
-    const uint64_t storedMantissaMask =
-        (mantissaBits == 64)
-            ? ~static_cast<uint64_t>(0)
-            : ((static_cast<uint64_t>(1) << mantissaBits) - 1u);
-
-    const uint64_t storedMantissa = mainBits & storedMantissaMask;
-    const uint64_t storedExponent = static_cast<uint64_t>(biasedE);
+    const uint64_t storedMantissaMask = (mantissaBits == 64) ? ~static_cast<uint64_t>(0) : ((static_cast<uint64_t>(1) << mantissaBits) - 1u);
+    const uint64_t storedMantissa     = mainBits & storedMantissaMask;
+    const uint64_t storedExponent     = static_cast<uint64_t>(biasedE);
 
     const uint64_t signField     = negative ? getSignMask() : 0u;
     const uint64_t exponentField = (storedExponent << mantissaBits) & getExponentMask();
@@ -700,6 +692,5 @@ void ApFloat::fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& o
     const uint64_t finalBits = signField | exponentField | mantissaField;
     setStorage(finalBits);
 }
-
 
 SWC_END_NAMESPACE()

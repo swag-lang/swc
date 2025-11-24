@@ -442,6 +442,19 @@ size_t ApFloat::hash() const
     return h;
 }
 
+namespace
+{
+    void mulPow5(ApInt& apInt, uint32_t exp, bool& overflow)
+    {
+        for (uint32_t i = 0; i < exp; ++i)
+        {
+            apInt.mul(5u, overflow);
+            if (overflow)
+                return;
+        }
+    }
+}
+
 void ApFloat::fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& overflow)
 {
     overflow = false;
@@ -454,7 +467,7 @@ void ApFloat::fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& o
     }
 
     // Assume positive literal here; sign handled outside via unary '-'
-    const bool negative = false;
+    constexpr bool negative = false;
 
     const uint32_t mantissaBits = mantissaWidth_;   // e.g. 52
     const uint32_t precision    = mantissaBits + 1; // include hidden 1
@@ -478,7 +491,7 @@ void ApFloat::fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& o
     if (decimalExp10 > 0)
     {
         // Multiply by 10^k = 2^k * 5^k
-        n.mulPow5(static_cast<uint32_t>(decimalExp10), bigOver);
+        mulPow5(n, static_cast<uint32_t>(decimalExp10), bigOver);
         if (bigOver)
         {
             overflow = true;
@@ -492,7 +505,7 @@ void ApFloat::fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& o
         // Divide by 10^(-k) = 2^(-k) * 5^(-k).
         // We do it as repeated division by 5 and track how many times
         // we "needed more precision" for rounding.
-        uint32_t k = (uint32_t) (-decimalExp10);
+        const uint32_t k = static_cast<uint32_t>(-decimalExp10);
         for (uint32_t i = 0; i < k; ++i)
         {
             const uint32_t rem = n.div(5u);
@@ -610,8 +623,8 @@ void ApFloat::fromDecimal(const ApInt& decimalSig, int64_t decimalExp10, bool& o
         }
     }
 
-    // 6) Now mainBits has 'precision' bits, with top bit being implicit 1
-    //    (except subnormals). For a normal number:
+    // 6) Now mainBits has 'precision' bits, with the top bit being implicit 1
+    //    (except subnormal). For a normal number:
     //      storedMantissa = mainBits & ((1 << mantissaBits) - 1)
     //      storedExponent = E + expBias
     //

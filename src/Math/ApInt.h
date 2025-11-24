@@ -42,7 +42,6 @@ public:
     void     add(size_t v, bool& overflow);
     void     mul(size_t v, bool& overflow);
     uint32_t div(uint32_t v);
-    void     mulPow5(uint32_t exp, bool& overflow);
 
     size_t hash() const;
 };

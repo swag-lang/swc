@@ -174,16 +174,6 @@ void ApInt::logicalShiftLeft(size_t amount, bool& overflow)
     normalize();
 }
 
-void ApInt::mulPow5(uint32_t exp, bool& overflow)
-{
-    for (uint32_t i = 0; i < exp; ++i)
-    {
-        mul(5u, overflow);
-        if (overflow)
-            return;
-    }
-}
-
 void ApInt::logicalShiftRight(size_t amount)
 {
     if (amount == 0 || isZero())

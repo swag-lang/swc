@@ -88,7 +88,6 @@ void ApInt::resetToZero()
 
 void ApInt::setNegative(bool isNeg)
 {
-    // Zero can never be negative
     if (isZero())
     {
         negative_ = false;
@@ -107,11 +106,24 @@ size_t ApInt::hash() const
     return h;
 }
 
+bool ApInt::hasTopBitsOverflow() const
+{
+    SWC_ASSERT(numWords_ && bitWidth_);
+
+    const size_t usedBitsInLastWord = bitWidth_ % WORD_BITS;
+    if (usedBitsInLastWord == 0)
+        return false;
+
+    const size_t mask = (static_cast<size_t>(1) << usedBitsInLastWord) - 1;
+    const size_t last = words_[numWords_ - 1];
+    return (last & ~mask) != 0;
+}
+
 void ApInt::bitwiseOr(size_t rhs)
 {
-    if (numWords_ == 0 || rhs == 0)
+    SWC_ASSERT(numWords_ && bitWidth_);
+    if (rhs == 0)
         return;
-
     words_[0] |= rhs;
     normalize();
 }
@@ -210,19 +222,6 @@ void ApInt::logicalShiftRight(size_t amount)
     normalize();
 }
 
-bool ApInt::hasTopBitsOverflow() const
-{
-    SWC_ASSERT(numWords_ && bitWidth_);
-
-    const size_t usedBitsInLastWord = bitWidth_ % WORD_BITS;
-    if (usedBitsInLastWord == 0)
-        return false;
-
-    const size_t mask = (static_cast<size_t>(1) << usedBitsInLastWord) - 1;
-    const size_t last = words_[numWords_ - 1];
-    return (last & ~mask) != 0;
-}
-
 void ApInt::add(size_t v, bool& overflow)
 {
     SWC_ASSERT(numWords_);
@@ -305,7 +304,7 @@ void ApInt::mul(size_t v, bool& overflow)
     normalize();
 }
 
-uint32_t ApInt::div(uint32_t v)
+size_t ApInt::div(size_t v)
 {
     SWC_ASSERT(v != 0);
 

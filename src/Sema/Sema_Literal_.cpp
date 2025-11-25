@@ -420,7 +420,7 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(SemaJob& job)
 
     // Conversion: intValue * 10^totalExp10 -> ApFloat
     ApFloat floatValue;
-    if (!errorRaised)
+    /*if (!errorRaised)
     {
         bool convOverflow = false;
         floatValue.fromDecimal(intValue, totalExp10, convOverflow);
@@ -434,7 +434,7 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(SemaJob& job)
     else
     {
         floatValue.resetToZero(false);
-    }
+    }*/
 
     const auto val = ConstantValue::makeFloat(ctx, floatValue, 0, false);
     setConstant(job.constMgr().addConstant(ctx, val));

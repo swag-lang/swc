@@ -36,12 +36,12 @@ public:
     bool testBit(size_t bitIndex) const;
     void setBit(size_t bitIndex);
 
-    void     bitwiseOr(size_t rhs);
-    void     logicalShiftLeft(size_t amount, bool& overflow);
-    void     logicalShiftRight(size_t amount);
-    void     add(size_t v, bool& overflow);
-    void     mul(size_t v, bool& overflow);
-    uint32_t div(uint32_t v);
+    void   bitwiseOr(size_t rhs);
+    void   logicalShiftLeft(size_t amount, bool& overflow);
+    void   logicalShiftRight(size_t amount);
+    void   add(size_t v, bool& overflow);
+    void   mul(size_t v, bool& overflow);
+    size_t div(size_t v);
 
     size_t hash() const;
 };

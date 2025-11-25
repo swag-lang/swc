@@ -85,7 +85,7 @@ Utf8 ConstantValue::toString() const
         case ConstantKind::Int:
             return std::to_string(getInt().toNative());
         case ConstantKind::Float:
-            return std::to_string(getFloat().toDouble());
+            return "???";
 
         default:
             SWC_UNREACHABLE();

@@ -31,24 +31,22 @@ ConstantValue ConstantValue::makeString(const TaskContext& ctx, std::string_view
     return cv;
 }
 
-ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const ApInt& value, uint32_t bits, bool negative)
+ConstantValue ConstantValue::makeApsInt(const TaskContext& ctx, const ApsInt& value)
 {
     ConstantValue cv;
-    cv.typeRef_      = ctx.compiler().typeMgr().getTypeInt(bits, negative);
-    cv.kind_         = ConstantKind::Int;
-    cv.int_.val      = value;
-    cv.int_.negative = negative;
+    cv.typeRef_ = ctx.compiler().typeMgr().getTypeInt(0, value.isSigned());
+    cv.kind_    = ConstantKind::Int;
+    cv.int_.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
 
-ConstantValue ConstantValue::makeFloat(const TaskContext& ctx, const ApFloat& value, uint32_t bits, bool negative)
+ConstantValue ConstantValue::makeFloat(const TaskContext& ctx, const ApFloat& value)
 {
     ConstantValue cv;
-    cv.typeRef_        = ctx.compiler().typeMgr().getTypeFloat(bits);
-    cv.kind_           = ConstantKind::Float;
-    cv.float_.val      = value;
-    cv.float_.negative = negative;
+    cv.typeRef_   = ctx.compiler().typeMgr().getTypeFloat(value.bitWidth());
+    cv.kind_      = ConstantKind::Float;
+    cv.float_.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -83,7 +81,7 @@ Utf8 ConstantValue::toString() const
         case ConstantKind::String:
             return getString();
         case ConstantKind::Int:
-            return std::to_string(getInt().toNative());
+            return std::to_string(getInt().to64());
         case ConstantKind::Float:
             return "???";
 

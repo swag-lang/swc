@@ -181,7 +181,7 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(SemaJob& job)
     str = str.substr(2);
 
     const auto& langSpec = job.compiler().global().langSpec();
-    ApInt       value;
+    ApsInt      value(false);
     bool        errorRaised = false;
     for (const char c : str)
     {
@@ -200,7 +200,7 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(SemaJob& job)
     }
 
     // Convert the binary string to an integer constant
-    const auto val = ConstantValue::makeInt(ctx, value, 0, false);
+    const auto val = ConstantValue::makeApsInt(ctx, value);
     setConstant(job.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
@@ -218,7 +218,7 @@ AstVisitStepResult AstHexaLiteral::semaPreNode(SemaJob& job)
     str = str.substr(2);
 
     const auto& langSpec = job.compiler().global().langSpec();
-    ApInt       value;
+    ApsInt      value(false);
     bool        errorRaised = false;
     for (const char c : str)
     {
@@ -239,7 +239,7 @@ AstVisitStepResult AstHexaLiteral::semaPreNode(SemaJob& job)
     }
 
     // Convert the hexadecimal string to an integer constant
-    const auto val = ConstantValue::makeInt(ctx, value, 0, false);
+    const auto val = ConstantValue::makeApsInt(ctx, value);
     setConstant(job.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
@@ -254,8 +254,8 @@ AstVisitStepResult AstIntegerLiteral::semaPreNode(SemaJob& job)
 
     const auto& langSpec = job.compiler().global().langSpec();
 
-    ApInt value;
-    bool  errorRaised = false;
+    ApsInt value(false);
+    bool   errorRaised = false;
 
     for (const char c : str)
     {
@@ -289,7 +289,7 @@ AstVisitStepResult AstIntegerLiteral::semaPreNode(SemaJob& job)
         }
     }
 
-    const auto val = ConstantValue::makeInt(ctx, value, 0, false);
+    const auto val = ConstantValue::makeApsInt(ctx, value);
     setConstant(job.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
@@ -304,14 +304,13 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(SemaJob& job)
 
     const auto& langSpec = job.compiler().global().langSpec();
 
-    ApInt intValue; // accumulates all decimal digits (integer mantissa)
-    bool  errorRaised = false;
-
-    bool seenDot      = false;
-    bool seenExp      = false;
-    bool expNegative  = false;
-    bool expSignSeen  = false;
-    bool expDigitSeen = false;
+    ApsInt intValue(false);
+    bool   errorRaised  = false;
+    bool   seenDot      = false;
+    bool   seenExp      = false;
+    bool   expNegative  = false;
+    bool   expSignSeen  = false;
+    bool   expDigitSeen = false;
 
     size_t  fracDigits = 0; // number of digits AFTER '.'
     int64_t expValue   = 0; // exponent part AFTER 'e'
@@ -419,7 +418,7 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(SemaJob& job)
     }
 
     // Conversion: intValue * 10^totalExp10 -> ApFloat
-    ApFloat floatValue;
+    ApFloat floatValue{0};
     /*if (!errorRaised)
     {
         bool convOverflow = false;
@@ -436,7 +435,7 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(SemaJob& job)
         floatValue.resetToZero(false);
     }*/
 
-    const auto val = ConstantValue::makeFloat(ctx, floatValue, 0, false);
+    const auto val = ConstantValue::makeFloat(ctx, floatValue);
     setConstant(job.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }

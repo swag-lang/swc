@@ -4,9 +4,18 @@ SWC_BEGIN_NAMESPACE()
 
 class ApFloat
 {
+    uint32_t bitWidth_;
+
 public:
-    bool   equals(const ApFloat& other) const;
-    size_t hash() const;
+    ApFloat() = delete;
+    explicit ApFloat(uint32_t bitWidth) :
+        bitWidth_(bitWidth)
+    {
+    }
+
+    bool     equals(const ApFloat& other) const;
+    size_t   hash() const;
+    uint32_t bitWidth() const { return bitWidth_; }
 };
 
 SWC_END_NAMESPACE()

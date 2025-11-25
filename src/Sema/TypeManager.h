@@ -16,20 +16,21 @@ class TypeManager
     mutable std::shared_mutex                                mutexString_[static_cast<int>(TypeInfo::ToStringMode::Count)];
 
     // Predefined types
-    TypeInfoRef typeBool_    = TypeInfoRef::invalid();
-    TypeInfoRef typeString_  = TypeInfoRef::invalid();
-    TypeInfoRef typeApInt_   = TypeInfoRef::invalid();
-    TypeInfoRef typeU8_      = TypeInfoRef::invalid();
-    TypeInfoRef typeU16_     = TypeInfoRef::invalid();
-    TypeInfoRef typeU32_     = TypeInfoRef::invalid();
-    TypeInfoRef typeU64_     = TypeInfoRef::invalid();
-    TypeInfoRef typeS8_      = TypeInfoRef::invalid();
-    TypeInfoRef typeS16_     = TypeInfoRef::invalid();
-    TypeInfoRef typeS32_     = TypeInfoRef::invalid();
-    TypeInfoRef typeS64_     = TypeInfoRef::invalid();
-    TypeInfoRef typeApFloat_ = TypeInfoRef::invalid();
-    TypeInfoRef typeF32_     = TypeInfoRef::invalid();
-    TypeInfoRef typeF64_     = TypeInfoRef::invalid();
+    TypeInfoRef typeBool_          = TypeInfoRef::invalid();
+    TypeInfoRef typeString_        = TypeInfoRef::invalid();
+    TypeInfoRef typeApIntUnsigned_ = TypeInfoRef::invalid();
+    TypeInfoRef typeApIntSigned_   = TypeInfoRef::invalid();
+    TypeInfoRef typeApFloat_       = TypeInfoRef::invalid();
+    TypeInfoRef typeU8_            = TypeInfoRef::invalid();
+    TypeInfoRef typeU16_           = TypeInfoRef::invalid();
+    TypeInfoRef typeU32_           = TypeInfoRef::invalid();
+    TypeInfoRef typeU64_           = TypeInfoRef::invalid();
+    TypeInfoRef typeS8_            = TypeInfoRef::invalid();
+    TypeInfoRef typeS16_           = TypeInfoRef::invalid();
+    TypeInfoRef typeS32_           = TypeInfoRef::invalid();
+    TypeInfoRef typeS64_           = TypeInfoRef::invalid();
+    TypeInfoRef typeF32_           = TypeInfoRef::invalid();
+    TypeInfoRef typeF64_           = TypeInfoRef::invalid();
 
 public:
     void setup(TaskContext& ctx);

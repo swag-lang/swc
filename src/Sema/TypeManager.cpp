@@ -6,20 +6,25 @@ SWC_BEGIN_NAMESPACE()
 
 void TypeManager::setup(TaskContext&)
 {
-    typeBool_    = addType(TypeInfo::makeBool());
-    typeString_  = addType(TypeInfo::makeString());
-    typeApInt_   = addType(TypeInfo::makeInt(0, false));
-    typeU8_      = addType(TypeInfo::makeInt(8, false));
-    typeU16_     = addType(TypeInfo::makeInt(16, false));
-    typeU32_     = addType(TypeInfo::makeInt(32, false));
-    typeU64_     = addType(TypeInfo::makeInt(64, false));
-    typeS8_      = addType(TypeInfo::makeInt(8, true));
-    typeS16_     = addType(TypeInfo::makeInt(16, true));
-    typeS32_     = addType(TypeInfo::makeInt(32, true));
-    typeS64_     = addType(TypeInfo::makeInt(64, true));
-    typeApFloat_ = addType(TypeInfo::makeFloat(0));
-    typeF32_     = addType(TypeInfo::makeFloat(32));
-    typeF64_     = addType(TypeInfo::makeFloat(64));
+    typeBool_   = addType(TypeInfo::makeBool());
+    typeString_ = addType(TypeInfo::makeString());
+
+    typeApIntUnsigned_ = addType(TypeInfo::makeInt(0, false));
+    typeApIntSigned_   = addType(TypeInfo::makeInt(0, true));
+    typeApFloat_       = addType(TypeInfo::makeFloat(0));
+
+    typeU8_  = addType(TypeInfo::makeInt(8, false));
+    typeU16_ = addType(TypeInfo::makeInt(16, false));
+    typeU32_ = addType(TypeInfo::makeInt(32, false));
+    typeU64_ = addType(TypeInfo::makeInt(64, false));
+
+    typeS8_  = addType(TypeInfo::makeInt(8, true));
+    typeS16_ = addType(TypeInfo::makeInt(16, true));
+    typeS32_ = addType(TypeInfo::makeInt(32, true));
+    typeS64_ = addType(TypeInfo::makeInt(64, true));
+
+    typeF32_ = addType(TypeInfo::makeFloat(32));
+    typeF64_ = addType(TypeInfo::makeFloat(64));
 }
 
 TypeInfoRef TypeManager::addType(const TypeInfo& typeInfo)
@@ -49,7 +54,7 @@ TypeInfoRef TypeManager::addType(const TypeInfo& typeInfo)
 TypeInfoRef TypeManager::getTypeInt(uint32_t bits, bool isSigned) const
 {
     if (bits == 0)
-        return typeApInt_;
+        return isSigned ? typeApIntSigned_ : typeApIntUnsigned_;
 
     if (isSigned)
     {

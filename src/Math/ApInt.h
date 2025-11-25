@@ -6,41 +6,43 @@ class ApInt
 {
     static constexpr unsigned MAX_BITS = 64;
     static_assert(MAX_BITS <= 255, "ApInt is only supported up to 255 bits");
-    static constexpr size_t WORD_BITS = sizeof(size_t) * 8;
-    static constexpr size_t MAX_WORDS = (MAX_BITS + WORD_BITS - 1) / WORD_BITS;
+    static constexpr uint64_t WORD_BITS = sizeof(uint64_t) * 8;
+    static constexpr uint64_t MAX_WORDS = (MAX_BITS + WORD_BITS - 1) / WORD_BITS;
+    static constexpr uint64_t ZERO      = 0;
+    static constexpr uint64_t ONE       = 1;
 
-    size_t   words_[MAX_WORDS];
-    uint16_t bitWidth_;
-    uint8_t  numWords_;
+    uint64_t words_[MAX_WORDS];
+    uint32_t bitWidth_;
+    uint32_t numWords_;
 
-    void           clearWords();
-    static uint8_t computeNumWords(uint32_t bitWidth);
-    void           normalize();
-    bool           hasTopBitsOverflow() const;
+    void            clearWords();
+    static uint32_t computeNumWords(uint32_t bitWidth);
+    void            normalize();
+    bool            hasTopBitsOverflow() const;
 
 public:
     explicit ApInt();
-    explicit ApInt(uint16_t bitWidth, bool negative);
-    explicit ApInt(size_t value, uint16_t bitWidth, bool negative);
+    explicit ApInt(uint32_t bitWidth);
+    explicit ApInt(uint64_t value, uint32_t bitWidth);
 
-    uint16_t getBitWidth() const { return bitWidth_; }
-    bool     isNative() const { return numWords_ == 1; }
-    size_t   toNative() const;
+    uint32_t bitWidth() const { return bitWidth_; }
+    bool     fits64() const { return numWords_ == 1; }
+    uint64_t to64() const;
 
-    bool equals(const ApInt& other) const;
+    bool     equals(const ApInt& other) const;
+    uint64_t hash() const;
+
     bool isZero() const;
     void resetToZero();
-    bool testBit(size_t bitIndex) const;
-    void setBit(size_t bitIndex);
+    bool testBit(uint64_t bitIndex) const;
+    void setBit(uint64_t bitIndex);
 
-    void   bitwiseOr(size_t rhs);
-    void   logicalShiftLeft(size_t amount, bool& overflow);
-    void   logicalShiftRight(size_t amount);
-    void   add(size_t v, bool& overflow);
-    void   mul(size_t v, bool& overflow);
-    size_t div(size_t v);
-
-    size_t hash() const;
+    void     bitwiseOr(uint64_t rhs);
+    void     logicalShiftLeft(uint64_t amount, bool& overflow);
+    void     logicalShiftRight(uint64_t amount);
+    void     add(uint64_t v, bool& overflow);
+    void     mul(uint64_t v, bool& overflow);
+    uint64_t div(uint64_t v);
 };
 
 SWC_END_NAMESPACE()

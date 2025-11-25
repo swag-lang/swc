@@ -1,6 +1,6 @@
 #pragma once
 #include "Math/ApFloat.h"
-#include "Math/ApInt.h"
+#include "Math/ApsInt.h"
 
 SWC_BEGIN_NAMESPACE()
 class TaskContext;
@@ -28,8 +28,8 @@ class ConstantValue
         // clang-format off
         struct { bool val; } bool_;
         struct { std::string_view val; } string_;
-        struct { ApInt val; bool negative; } int_;
-        struct { ApFloat val; bool negative; } float_;
+        struct { ApsInt val; } int_;
+        struct { ApFloat val; } float_;
         // clang-format on
     };
 
@@ -49,7 +49,7 @@ public:
     // clang-format off
     bool getBool() const { SWC_ASSERT(isBool()); return bool_.val; }
     std::string_view getString() const { SWC_ASSERT(isString()); return string_.val; }
-    const ApInt& getInt() const { SWC_ASSERT(isInt()); return int_.val; }
+    const ApsInt& getInt() const { SWC_ASSERT(isInt()); return int_.val; }
     const ApFloat& getFloat() const { SWC_ASSERT(isFloat()); return float_.val; }
     // clang-format on
 
@@ -57,8 +57,8 @@ public:
 
     static ConstantValue makeBool(const TaskContext& ctx, bool value);
     static ConstantValue makeString(const TaskContext& ctx, std::string_view value);
-    static ConstantValue makeInt(const TaskContext& ctx, const ApInt& value, uint32_t bits, bool negative);
-    static ConstantValue makeFloat(const TaskContext& ctx, const ApFloat& value, uint32_t bits, bool negative);
+    static ConstantValue makeApsInt(const TaskContext& ctx, const ApsInt& value);
+    static ConstantValue makeFloat(const TaskContext& ctx, const ApFloat& value);
 
     Utf8 toString() const;
 };

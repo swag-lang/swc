@@ -12,7 +12,6 @@ class ApInt
     size_t   words_[MAX_WORDS];
     uint16_t bitWidth_;
     uint8_t  numWords_;
-    bool     negative_;
 
     void           clearWords();
     static uint8_t computeNumWords(uint32_t bitWidth);
@@ -25,14 +24,12 @@ public:
     explicit ApInt(size_t value, uint16_t bitWidth, bool negative);
 
     uint16_t getBitWidth() const { return bitWidth_; }
-    bool     isNegative() const { return negative_; }
     bool     isNative() const { return numWords_ == 1; }
     size_t   toNative() const;
 
     bool equals(const ApInt& other) const;
     bool isZero() const;
     void resetToZero();
-    void setNegative(bool isNeg);
     bool testBit(size_t bitIndex) const;
     void setBit(size_t bitIndex);
 

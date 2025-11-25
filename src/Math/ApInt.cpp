@@ -11,8 +11,7 @@ ApInt::ApInt() :
 
 ApInt::ApInt(uint16_t bitWidth, bool negative) :
     bitWidth_(bitWidth),
-    numWords_(computeNumWords(bitWidth)),
-    negative_(negative)
+    numWords_(computeNumWords(bitWidth))
 {
     SWC_ASSERT(bitWidth <= MAX_BITS);
     clearWords();
@@ -21,8 +20,7 @@ ApInt::ApInt(uint16_t bitWidth, bool negative) :
 
 ApInt::ApInt(size_t value, uint16_t bitWidth, bool negative) :
     bitWidth_(bitWidth),
-    numWords_(computeNumWords(bitWidth)),
-    negative_(negative)
+    numWords_(computeNumWords(bitWidth))
 {
     SWC_ASSERT(bitWidth <= MAX_BITS);
     clearWords();
@@ -73,7 +71,7 @@ size_t ApInt::toNative() const
 
 bool ApInt::equals(const ApInt& other) const
 {
-    if (bitWidth_ != other.bitWidth_ || negative_ != other.negative_)
+    if (bitWidth_ != other.bitWidth_)
         return false;
 
     SWC_ASSERT(numWords_ == other.numWords_);
@@ -83,24 +81,11 @@ bool ApInt::equals(const ApInt& other) const
 void ApInt::resetToZero()
 {
     clearWords();
-    negative_ = false;
-}
-
-void ApInt::setNegative(bool isNeg)
-{
-    if (isZero())
-    {
-        negative_ = false;
-        return;
-    }
-
-    negative_ = isNeg;
 }
 
 size_t ApInt::hash() const
 {
     auto h = std::hash<int>()(bitWidth_);
-    h      = hash_combine(h, negative_);
     for (size_t i = 0; i < numWords_; ++i)
         h = hash_combine(h, words_[i]);
     return h;
@@ -117,15 +102,6 @@ bool ApInt::hasTopBitsOverflow() const
     const size_t mask = (static_cast<size_t>(1) << usedBitsInLastWord) - 1;
     const size_t last = words_[numWords_ - 1];
     return (last & ~mask) != 0;
-}
-
-void ApInt::bitwiseOr(size_t rhs)
-{
-    SWC_ASSERT(numWords_ && bitWidth_);
-    if (rhs == 0)
-        return;
-    words_[0] |= rhs;
-    normalize();
 }
 
 void ApInt::logicalShiftLeft(size_t amount, bool& overflow)
@@ -340,6 +316,15 @@ size_t ApInt::div(size_t v)
 
     normalize();
     return static_cast<uint32_t>(rem);
+}
+
+void ApInt::bitwiseOr(size_t rhs)
+{
+    SWC_ASSERT(numWords_ && bitWidth_);
+    if (rhs == 0)
+        return;
+    words_[0] |= rhs;
+    normalize();
 }
 
 bool ApInt::testBit(size_t bitIndex) const

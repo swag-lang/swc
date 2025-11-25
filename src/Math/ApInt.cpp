@@ -323,29 +323,33 @@ void ApInt::bitwiseOr(size_t rhs)
     SWC_ASSERT(numWords_ && bitWidth_);
     if (rhs == 0)
         return;
+
+    if (bitWidth_ < WORD_BITS)
+    {
+        const size_t mask = (static_cast<size_t>(1) << bitWidth_) - 1;
+        rhs &= mask;
+    }
+
     words_[0] |= rhs;
     normalize();
 }
 
 bool ApInt::testBit(size_t bitIndex) const
 {
+    SWC_ASSERT(bitIndex < bitWidth_);
     const size_t wordIndex = bitIndex / WORD_BITS;
     const size_t bitInWord = bitIndex % WORD_BITS;
-    if (wordIndex >= numWords_)
-        return false;
-    return (words_[wordIndex] >> bitInWord) & 1u;
+    SWC_ASSERT(wordIndex < numWords_);
+    return (words_[wordIndex] >> bitInWord) & 1;
 }
 
 void ApInt::setBit(size_t bitIndex)
 {
+    SWC_ASSERT(bitIndex < bitWidth_);
     const size_t wordIndex = bitIndex / WORD_BITS;
     const size_t bitInWord = bitIndex % WORD_BITS;
-    SWC_ASSERT(wordIndex < MAX_WORDS);
-    if (wordIndex >= numWords_)
-        numWords_ = static_cast<uint8_t>(wordIndex + 1);
+    SWC_ASSERT(wordIndex < numWords_);
     words_[wordIndex] |= (static_cast<size_t>(1) << bitInWord);
-    if (bitIndex + 1 > bitWidth_)
-        bitWidth_ = static_cast<uint16_t>(bitIndex + 1);
 }
 
 SWC_END_NAMESPACE()

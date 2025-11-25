@@ -26,16 +26,25 @@ public:
     explicit ApInt(uint64_t value, uint32_t bitWidth);
 
     uint32_t bitWidth() const { return bitWidth_; }
-    bool     fits64() const { return numWords_ == 1; }
+    bool     fits64() const;
     uint64_t to64() const;
 
     bool     equals(const ApInt& other) const;
+    int      compare(const ApInt& other) const;
     uint64_t hash() const;
 
-    bool isZero() const;
-    void resetToZero();
-    bool testBit(uint64_t bitIndex) const;
-    void setBit(uint64_t bitIndex);
+    bool     isZero() const;
+    void     resetToZero();
+    bool     testBit(uint64_t bitIndex) const;
+    void     clearBit(uint64_t bitIndex);
+    void     setBit(uint64_t bitIndex);
+    bool     isSignBitSet() const;
+    bool     isSignBitClear() const;
+    bool     isNegative() const;
+    bool     isNonNegative() const;
+    bool     isStrictlyPositive() const;
+    bool     isNonPositive() const;
+    uint64_t getSignBit() const;
 
     void     bitwiseOr(uint64_t rhs);
     void     logicalShiftLeft(uint64_t amount, bool& overflow);

@@ -57,9 +57,21 @@ void ApInt::normalize()
     }
 }
 
+bool ApInt::fits64() const
+{
+    for (uint32_t i = 1; i < numWords_; ++i)
+    {
+        if (words_[i] != 0)
+            return false;
+    }
+
+    return true;
+}
+
 uint64_t ApInt::to64() const
 {
     SWC_ASSERT(fits64());
+
     if (bitWidth_ < WORD_BITS)
     {
         const uint64_t mask = (ONE << bitWidth_) - 1;
@@ -78,9 +90,26 @@ bool ApInt::equals(const ApInt& other) const
 {
     if (bitWidth_ != other.bitWidth_)
         return false;
-
     SWC_ASSERT(numWords_ == other.numWords_);
     return std::equal(words_, words_ + numWords_, other.words_);
+}
+
+int ApInt::compare(const ApInt& other) const
+{
+    SWC_ASSERT(bitWidth_ == other.bitWidth_);
+    SWC_ASSERT(numWords_ == other.numWords_);
+
+    for (int i = static_cast<int>(numWords_) - 1; i >= 0; --i)
+    {
+        const uint64_t a = words_[static_cast<uint32_t>(i)];
+        const uint64_t b = other.words_[static_cast<uint32_t>(i)];
+        if (a < b)
+            return -1;
+        if (a > b)
+            return 1;
+    }
+
+    return 0;
 }
 
 uint64_t ApInt::hash() const
@@ -344,6 +373,52 @@ void ApInt::setBit(uint64_t bitIndex)
     const uint64_t bitInWord = bitIndex % WORD_BITS;
     SWC_ASSERT(wordIndex < numWords_);
     words_[wordIndex] |= (ONE << bitInWord);
+}
+
+void ApInt::clearBit(uint64_t bitIndex)
+{
+    SWC_ASSERT(bitIndex < bitWidth_);
+    const uint64_t wordIndex = bitIndex / WORD_BITS;
+    const uint64_t bitInWord = bitIndex % WORD_BITS;
+    SWC_ASSERT(wordIndex < numWords_);
+    words_[wordIndex] &= ~(ONE << bitInWord);
+}
+
+bool ApInt::isSignBitSet() const
+{
+    SWC_ASSERT(bitWidth_ > 0);
+    const uint64_t msb = bitWidth_ - 1;
+    return testBit(msb);
+}
+
+bool ApInt::isSignBitClear() const
+{
+    return !isSignBitSet();
+}
+
+bool ApInt::isNegative() const
+{
+    return isSignBitSet();
+}
+
+bool ApInt::isNonNegative() const
+{
+    return !isSignBitSet();
+}
+
+bool ApInt::isStrictlyPositive() const
+{
+    return isNonNegative() && !isZero();
+}
+
+bool ApInt::isNonPositive() const
+{
+    return isNegative() || isZero();
+}
+
+uint64_t ApInt::getSignBit() const
+{
+    return isSignBitSet() ? ONE : ZERO;
 }
 
 SWC_END_NAMESPACE()

@@ -38,6 +38,7 @@ public:
     bool     testBit(uint64_t bitIndex) const;
     void     clearBit(uint64_t bitIndex);
     void     setBit(uint64_t bitIndex);
+    void     setAllBits();
     bool     isSignBitSet() const;
     bool     isSignBitClear() const;
     bool     isNegative() const;

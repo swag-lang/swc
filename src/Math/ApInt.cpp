@@ -375,6 +375,12 @@ void ApInt::setBit(uint64_t bitIndex)
     words_[wordIndex] |= (ONE << bitInWord);
 }
 
+void ApInt::setAllBits()
+{
+    for (uint32_t i = 0; i < bitWidth_; ++i)
+        setBit(i);
+}
+
 void ApInt::clearBit(uint64_t bitIndex)
 {
     SWC_ASSERT(bitIndex < bitWidth_);

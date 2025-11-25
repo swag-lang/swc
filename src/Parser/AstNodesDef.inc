@@ -546,6 +546,8 @@ struct AstSuffixLiteral : AstNodeT<AstNodeId::SuffixLiteral>
     AstNodeRef nodeLiteral;
     AstNodeRef nodeSuffix;
 
+    AstVisitStepResult semaPostNode(SemaJob& job);
+
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeLiteral, nodeSuffix});

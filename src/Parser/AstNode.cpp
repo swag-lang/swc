@@ -3,6 +3,7 @@
 #include "Main/TaskContext.h"
 #include "Parser/Ast.h"
 #include "Parser/AstNodes.h"
+#include "Report/DiagnosticDef.h"
 #include "Sema/ConstantManager.h"
 #include "Sema/TypeManager.h"
 
@@ -39,6 +40,12 @@ const ConstantValue& AstNode::getSemaConstant(const TaskContext& ctx) const
 {
     SWC_ASSERT(isSemaConstant());
     return ctx.compiler().constMgr().get(sema_.constant);
+}
+
+ConstantRef AstNode::getSemaConstantRef(const TaskContext& ctx) const
+{
+    SWC_ASSERT(isSemaConstant());
+    return sema_.constant;
 }
 
 const TypeInfo& AstNode::getSemaType(const TaskContext& ctx) const

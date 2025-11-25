@@ -78,6 +78,6 @@ SWC_DIAG_DEF(sema_err_invalid_type)
 SWC_DIAG_DEF(sema_err_compiler_error)
 SWC_DIAG_DEF(sema_err_compiler_warning)
 SWC_DIAG_DEF(sema_err_compiler_assert)
-SWC_DIAG_DEF(sema_err_unsupported)
+SWC_DIAG_DEF(sema_err_internal)
 SWC_DIAG_DEF(sema_err_number_too_big)
 

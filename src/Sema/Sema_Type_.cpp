@@ -14,10 +14,20 @@ AstVisitStepResult AstBuiltinType::semaPostNode(SemaJob& job)
             setSemaType(job.typeMgr().getTypeInt(32, true));
             break;
         default:
-            job.raiseUnsupported(this);
+            job.raiseInternalError(this);
             break;
     }
 
+    return AstVisitStepResult::Continue;
+}
+
+AstVisitStepResult AstSuffixLiteral::semaPostNode(SemaJob& job)
+{
+    const auto& ctx            = job.ctx();
+    const auto& nodeLiteralPtr = job.node(nodeLiteral);
+    const auto& nodeSuffixPtr  = job.node(nodeSuffix);
+
+    setSemaConstant(nodeLiteralPtr->getSemaConstantRef(ctx));
     return AstVisitStepResult::Continue;
 }
 

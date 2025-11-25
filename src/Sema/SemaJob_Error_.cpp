@@ -41,9 +41,9 @@ void SemaJob::raiseInvalidType(AstNodeRef nodeRef, TypeInfoRef wantedType, TypeI
     diag.report(ctx());
 }
 
-void SemaJob::raiseUnsupported(const AstNode* node)
+void SemaJob::raiseInternalError(const AstNode* node)
 {
-    raiseError(DiagnosticId::sema_err_unsupported, node->srcViewRef(), node->tokRef());
+    raiseError(DiagnosticId::sema_err_internal, node->srcViewRef(), node->tokRef());
 }
 
 SWC_END_NAMESPACE()

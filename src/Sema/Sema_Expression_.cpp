@@ -70,11 +70,11 @@ AstVisitStepResult AstBinaryExpr::semaPostNode(SemaJob& job)
         if (cst.isValid())
             setSemaConstant(cst);
         else
-            job.raiseUnsupported(this);
+            job.raiseInternalError(this);
         return AstVisitStepResult::Continue;
     }
 
-    job.raiseUnsupported(this);
+    job.raiseInternalError(this);
     return AstVisitStepResult::Continue;
 }
 
@@ -90,11 +90,11 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(SemaJob& job)
         if (cst.isValid())
             setSemaConstant(cst);
         else
-            job.raiseUnsupported(this);
+            job.raiseInternalError(this);
         return AstVisitStepResult::Continue;
     }
 
-    job.raiseUnsupported(this);
+    job.raiseInternalError(this);
     return AstVisitStepResult::Continue;
 }
 

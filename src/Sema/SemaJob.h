@@ -39,7 +39,7 @@ public:
     void       raiseError(DiagnosticId id, AstNodeRef nodeRef);
 
     void raiseInvalidType(AstNodeRef nodeRef, TypeInfoRef wantedType, TypeInfoRef hasType);
-    void raiseUnsupported(const AstNode* node);
+    void raiseInternalError(const AstNode* node);
 };
 
 SWC_END_NAMESPACE()

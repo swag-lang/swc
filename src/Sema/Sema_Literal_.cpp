@@ -182,7 +182,6 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(SemaJob& job)
 
     const auto& langSpec = job.compiler().global().langSpec();
     ApsInt      value(false);
-    bool        errorRaised = false;
     for (const char c : str)
     {
         if (langSpec.isNumberSep(c))
@@ -190,10 +189,10 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(SemaJob& job)
 
         bool over = false;
         value.logicalShiftLeft(1, over);
-        if (over && !errorRaised)
+        if (over)
         {
             job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-            errorRaised = true;
+            return AstVisitStepResult::Stop;
         }
 
         value.bitwiseOr((c == '1') ? 1 : 0);
@@ -219,7 +218,6 @@ AstVisitStepResult AstHexaLiteral::semaPreNode(SemaJob& job)
 
     const auto& langSpec = job.compiler().global().langSpec();
     ApsInt      value(false);
-    bool        errorRaised = false;
     for (const char c : str)
     {
         if (langSpec.isNumberSep(c))
@@ -227,10 +225,10 @@ AstVisitStepResult AstHexaLiteral::semaPreNode(SemaJob& job)
 
         bool over = false;
         value.logicalShiftLeft(4, over); // multiply by 16
-        if (over && !errorRaised)
+        if (over)
         {
             job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-            errorRaised = true;
+            return AstVisitStepResult::Stop;
         }
 
         const unsigned char h     = (c >= 'A' && c <= 'F') ? (c + 32) : c;
@@ -255,8 +253,6 @@ AstVisitStepResult AstIntegerLiteral::semaPreNode(SemaJob& job)
     const auto& langSpec = job.compiler().global().langSpec();
 
     ApsInt value(false);
-    bool   errorRaised = false;
-
     for (const char c : str)
     {
         if (langSpec.isNumberSep(c))
@@ -274,18 +270,18 @@ AstVisitStepResult AstIntegerLiteral::semaPreNode(SemaJob& job)
         // multiply the current value by 10
         bool over = false;
         value.mul(10, over);
-        if (over && !errorRaised)
+        if (over)
         {
             job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-            errorRaised = true;
+            return AstVisitStepResult::Stop;
         }
 
         // add a digit
         value.add(digit, over);
-        if (over && !errorRaised)
+        if (over)
         {
             job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-            errorRaised = true;
+            return AstVisitStepResult::Stop;
         }
     }
 
@@ -305,7 +301,6 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(SemaJob& job)
     const auto& langSpec = job.compiler().global().langSpec();
 
     ApsInt intValue(false);
-    bool   errorRaised  = false;
     bool   seenDot      = false;
     bool   seenExp      = false;
     bool   expNegative  = false;
@@ -329,17 +324,17 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(SemaJob& job)
             {
                 bool over = false;
                 intValue.mul(10, over);
-                if (over && !errorRaised)
+                if (over)
                 {
                     job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-                    errorRaised = true;
+                    return AstVisitStepResult::Stop;
                 }
 
                 intValue.add(digit, over);
-                if (over && !errorRaised)
+                if (over)
                 {
                     job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-                    errorRaised = true;
+                    return AstVisitStepResult::Stop;
                 }
 
                 if (seenDot)
@@ -354,10 +349,10 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(SemaJob& job)
                 {
                     expValue = expValue * 10 + digit;
                 }
-                else if (!errorRaised)
+                else
                 {
                     job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-                    errorRaised = true;
+                    return AstVisitStepResult::Stop;
                 }
             }
             continue;
@@ -405,11 +400,8 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(SemaJob& job)
     {
         if (totalExp10 < (std::numeric_limits<int64_t>::min)() + static_cast<int64_t>(fracDigits))
         {
-            if (!errorRaised)
-            {
-                job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-                errorRaised = true;
-            }
+            job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+            return AstVisitStepResult::Stop;
         }
         else
         {

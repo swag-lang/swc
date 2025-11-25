@@ -68,14 +68,14 @@ AstVisitStepResult AstBinaryExpr::semaPostNode(SemaJob& job)
     {
         const auto cst = constantFoldBinaryExpr(job, tok.id, nodeLeft, nodeRight);
         if (cst.isValid())
+        {
             setSemaConstant(cst);
-        else
-            job.raiseInternalError(this);
-        return AstVisitStepResult::Continue;
+            return AstVisitStepResult::Continue;
+        }
     }
 
     job.raiseInternalError(this);
-    return AstVisitStepResult::Continue;
+    return AstVisitStepResult::Stop;
 }
 
 AstVisitStepResult AstRelationalExpr::semaPostNode(SemaJob& job)
@@ -88,14 +88,14 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(SemaJob& job)
     {
         const auto cst = constantFoldRelationalExpr(job, tok.id, nodeLeft, nodeRight);
         if (cst.isValid())
+        {
             setSemaConstant(cst);
-        else
-            job.raiseInternalError(this);
-        return AstVisitStepResult::Continue;
+            return AstVisitStepResult::Continue;
+        }
     }
 
     job.raiseInternalError(this);
-    return AstVisitStepResult::Continue;
+    return AstVisitStepResult::Stop;
 }
 
 SWC_END_NAMESPACE()

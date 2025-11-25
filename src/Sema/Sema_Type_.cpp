@@ -13,12 +13,10 @@ AstVisitStepResult AstBuiltinType::semaPostNode(SemaJob& job)
         case TokenId::TypeS32:
             setSemaType(job.typeMgr().getTypeInt(32, true));
             break;
-        default:
-            job.raiseInternalError(this);
-            break;
     }
 
-    return AstVisitStepResult::Continue;
+    job.raiseInternalError(this);
+    return AstVisitStepResult::Stop;
 }
 
 AstVisitStepResult AstSuffixLiteral::semaPostNode(SemaJob& job)

@@ -40,7 +40,7 @@ public:
     TypeInfoRef     getTypeString() const { return typeString_; }
     TypeInfoRef     getTypeInt(uint32_t bits, bool isSigned) const;
     TypeInfoRef     getTypeFloat(uint32_t bits) const;
-    const TypeInfo& getType(TypeInfoRef typeInfoRef) const;
+    const TypeInfo& get(TypeInfoRef typeInfoRef) const;
 
     std::string_view typeToString(TypeInfoRef typeInfoRef, TypeInfo::ToStringMode mode = TypeInfo::ToStringMode::Diagnostic) const;
     std::string_view typeToString(const TypeInfo& typeInfo, TypeInfo::ToStringMode mode = TypeInfo::ToStringMode::Diagnostic) const;

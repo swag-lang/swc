@@ -4,6 +4,7 @@
 #include "Parser/AstVisit.h"
 
 SWC_BEGIN_NAMESPACE()
+class TypeInfo;
 class SemaJob;
 class Ast;
 class SourceFile;
@@ -75,16 +76,21 @@ struct AstNode
     enum class SemaFlagE : uint8_t
     {
         IsConst = 1 << 0,
+        IsType  = 1 << 1,
         RefMask = IsConst,
     };
     using SemaFlags = EnumFlags<SemaFlagE>;
 
-    void           addSemaFlag(SemaFlagE val) { semaFlags_.add(val); }
-    bool           hasSemaFlag(SemaFlagE val) const { return semaFlags_.has(val); }
-    SemaFlags      semaFlags() const { return semaFlags_; }
-    bool           isConstant() const { return hasSemaFlag(SemaFlagE::IsConst); }
-    void           setConstant(ConstantRef ref);
-    const ConstantValue& getConstant(const TaskContext& ctx) const;
+    void      addSemaFlag(SemaFlagE val) { semaFlags_.add(val); }
+    bool      hasSemaFlag(SemaFlagE val) const { return semaFlags_.has(val); }
+    SemaFlags semaFlags() const { return semaFlags_; }
+
+    bool                 isSemaConstant() const { return hasSemaFlag(SemaFlagE::IsConst); }
+    void                 setSemaConstant(ConstantRef ref);
+    const ConstantValue& getSemaConstant(const TaskContext& ctx) const;
+    bool                 isSemaType() const { return hasSemaFlag(SemaFlagE::IsType); }
+    void                 setSemaType(TypeInfoRef ref);
+    const TypeInfo&      getSemaType(const TaskContext& ctx) const;
 
     AstNodeId     id() const { return id_; }
     void          setId(AstNodeId id) { id_ = id; }
@@ -95,12 +101,19 @@ struct AstNode
     TokenRef      tokRefEnd(const Ast& ast) const;
 
 private:
-    AstNodeId                 id_ = AstNodeId::Invalid;
-    ParserFlags               parserFlags_{};
-    SemaFlags                 semaFlags_{};
-    SourceViewRef             srcViewRef_ = SourceViewRef::invalid();
-    TokenRef                  tokRef_     = TokenRef::invalid();
-    std::variant<ConstantRef> sema_{};
+    AstNodeId     id_ = AstNodeId::Invalid;
+    ParserFlags   parserFlags_{};
+    SemaFlags     semaFlags_{};
+    SourceViewRef srcViewRef_ = SourceViewRef::invalid();
+    TokenRef      tokRef_     = TokenRef::invalid();
+
+    // clang-format off
+    union
+    {
+        ConstantRef constant;
+        TypeInfoRef type;
+    } sema_;
+    // clang-format on
 };
 
 template<AstNodeId I>

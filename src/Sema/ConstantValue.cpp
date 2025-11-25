@@ -8,7 +8,7 @@ SWC_BEGIN_NAMESPACE()
 
 const TypeInfo& ConstantValue::type(const TaskContext& ctx) const
 {
-    return ctx.compiler().typeMgr().getType(typeRef_);
+    return ctx.compiler().typeMgr().get(typeRef_);
 }
 
 ConstantValue ConstantValue::makeBool(const TaskContext& ctx, bool value)

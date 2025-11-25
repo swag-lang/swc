@@ -14,8 +14,8 @@ namespace
         auto&       constMgr = job.constMgr();
         const auto  leftPtr  = job.node(left);
         const auto  rightPtr = job.node(right);
-        const auto& leftCst  = leftPtr->getConstant(ctx);
-        const auto& rightCst = rightPtr->getConstant(ctx);
+        const auto& leftCst  = leftPtr->getSemaConstant(ctx);
+        const auto& rightCst = rightPtr->getSemaConstant(ctx);
 
         switch (op)
         {
@@ -39,8 +39,8 @@ namespace
         auto&       constMgr = job.constMgr();
         const auto  leftPtr  = job.node(left);
         const auto  rightPtr = job.node(right);
-        const auto& leftCst  = leftPtr->getConstant(ctx);
-        const auto& rightCst = rightPtr->getConstant(ctx);
+        const auto& leftCst  = leftPtr->getSemaConstant(ctx);
+        const auto& rightCst = rightPtr->getSemaConstant(ctx);
 
         switch (op)
         {
@@ -64,11 +64,11 @@ AstVisitStepResult AstBinaryExpr::semaPostNode(SemaJob& job)
     const auto  nodeLeftPtr  = job.node(nodeLeft);
     const auto  nodeRightPtr = job.node(nodeRight);
 
-    if (nodeLeftPtr->isConstant() && nodeRightPtr->isConstant())
+    if (nodeLeftPtr->isSemaConstant() && nodeRightPtr->isSemaConstant())
     {
         const auto cst = constantFoldBinaryExpr(job, tok.id, nodeLeft, nodeRight);
         if (cst.isValid())
-            setConstant(cst);
+            setSemaConstant(cst);
         else
             job.raiseUnsupported(this);
         return AstVisitStepResult::Continue;
@@ -84,11 +84,11 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(SemaJob& job)
     const auto  nodeLeftPtr  = job.node(nodeLeft);
     const auto  nodeRightPtr = job.node(nodeRight);
 
-    if (nodeLeftPtr->isConstant() && nodeRightPtr->isConstant())
+    if (nodeLeftPtr->isSemaConstant() && nodeRightPtr->isSemaConstant())
     {
         const auto cst = constantFoldRelationalExpr(job, tok.id, nodeLeft, nodeRight);
         if (cst.isValid())
-            setConstant(cst);
+            setSemaConstant(cst);
         else
             job.raiseUnsupported(this);
         return AstVisitStepResult::Continue;

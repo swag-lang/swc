@@ -13,9 +13,9 @@ AstVisitStepResult AstBoolLiteral::semaPreNode(SemaJob& job)
 {
     const auto& tok = job.token(srcViewRef(), tokRef());
     if (tok.is(TokenId::KwdTrue))
-        setConstant(job.constMgr().boolTrue());
+        setSemaConstant(job.constMgr().boolTrue());
     else if (tok.is(TokenId::KwdFalse))
-        setConstant(job.constMgr().boolFalse());
+        setSemaConstant(job.constMgr().boolFalse());
     else
         SWC_UNREACHABLE();
 
@@ -54,7 +54,7 @@ AstVisitStepResult AstStringLiteral::semaPreNode(SemaJob& job)
     if (!tok.hasFlag(TokenFlagsE::Escaped))
     {
         const auto val = ConstantValue::makeString(ctx, str);
-        setConstant(job.constMgr().addConstant(ctx, val));
+        setSemaConstant(job.constMgr().addConstant(ctx, val));
         return AstVisitStepResult::SkipChildren;
     }
 
@@ -164,7 +164,7 @@ AstVisitStepResult AstStringLiteral::semaPreNode(SemaJob& job)
     }
 
     const auto val = ConstantValue::makeString(ctx, result);
-    setConstant(job.constMgr().addConstant(ctx, val));
+    setSemaConstant(job.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 
@@ -201,7 +201,7 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(SemaJob& job)
 
     // Convert the binary string to an integer constant
     const auto val = ConstantValue::makeApsInt(ctx, value);
-    setConstant(job.constMgr().addConstant(ctx, val));
+    setSemaConstant(job.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 
@@ -240,7 +240,7 @@ AstVisitStepResult AstHexaLiteral::semaPreNode(SemaJob& job)
 
     // Convert the hexadecimal string to an integer constant
     const auto val = ConstantValue::makeApsInt(ctx, value);
-    setConstant(job.constMgr().addConstant(ctx, val));
+    setSemaConstant(job.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 
@@ -290,7 +290,7 @@ AstVisitStepResult AstIntegerLiteral::semaPreNode(SemaJob& job)
     }
 
     const auto val = ConstantValue::makeApsInt(ctx, value);
-    setConstant(job.constMgr().addConstant(ctx, val));
+    setSemaConstant(job.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 
@@ -436,7 +436,7 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(SemaJob& job)
     }*/
 
     const auto val = ConstantValue::makeFloat(ctx, floatValue);
-    setConstant(job.constMgr().addConstant(ctx, val));
+    setSemaConstant(job.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 

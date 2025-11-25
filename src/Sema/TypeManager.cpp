@@ -104,7 +104,7 @@ TypeInfoRef TypeManager::getTypeFloat(uint32_t bits) const
     }
 }
 
-const TypeInfo& TypeManager::getType(TypeInfoRef typeInfoRef) const
+const TypeInfo& TypeManager::get(TypeInfoRef typeInfoRef) const
 {
     std::shared_lock lk(mutexAdd_);
     SWC_ASSERT(typeInfoRef.isValid());
@@ -114,7 +114,7 @@ const TypeInfo& TypeManager::getType(TypeInfoRef typeInfoRef) const
 std::string_view TypeManager::typeToString(TypeInfoRef typeInfoRef, TypeInfo::ToStringMode mode) const
 {
     SWC_ASSERT(typeInfoRef.isValid());
-    return typeToString(getType(typeInfoRef), mode);
+    return typeToString(get(typeInfoRef), mode);
 }
 
 std::string_view TypeManager::typeToString(const TypeInfo& typeInfo, TypeInfo::ToStringMode mode) const

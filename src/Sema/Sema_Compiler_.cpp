@@ -16,13 +16,13 @@ AstVisitStepResult AstCompilerIf::semaPreChild(SemaJob& job, const AstNodeRef& c
         return AstVisitStepResult::Continue;
 
     const auto nodeConditionPtr = job.node(nodeCondition);
-    if (!nodeConditionPtr->isConstant())
+    if (!nodeConditionPtr->isSemaConstant())
     {
         job.raiseError(DiagnosticId::sema_err_expr_not_const, nodeCondition);
         return AstVisitStepResult::Continue;
     }
 
-    const auto& constant = nodeConditionPtr->getConstant(job.ctx());
+    const auto& constant = nodeConditionPtr->getSemaConstant(job.ctx());
     if (!constant.isBool())
     {
         job.raiseInvalidType(nodeCondition, job.typeMgr().getTypeBool(), constant.typeRef());
@@ -42,13 +42,13 @@ AstVisitStepResult AstCompilerFlow::semaPostNode(SemaJob& job) const
     const auto& tok        = job.token(srcViewRef(), tokRef());
     const auto  nodeArgPtr = job.node(nodeArg);
 
-    if (!nodeArgPtr->isConstant())
+    if (!nodeArgPtr->isSemaConstant())
     {
         job.raiseError(DiagnosticId::sema_err_expr_not_const, nodeArg);
         return AstVisitStepResult::Continue;
     }
 
-    const auto& constant = nodeArgPtr->getConstant(job.ctx());
+    const auto& constant = nodeArgPtr->getSemaConstant(job.ctx());
 
     switch (tok.id)
     {

@@ -749,6 +749,7 @@ struct AstNamedType : AstNodeT<AstNodeId::NamedType>
 
 struct AstBuiltinType : AstNodeT<AstNodeId::BuiltinType>
 {
+    AstVisitStepResult semaPostNode(SemaJob& job);
 };
 
 struct AstCompilerTypeExpr : AstNodeT<AstNodeId::CompilerTypeExpr>

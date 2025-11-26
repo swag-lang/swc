@@ -1,7 +1,4 @@
 #pragma once
-#include "Parser/Ast.h"
-#include "Parser/AstVisit.h"
-#include "Report/DiagnosticDef.h"
 #include "Sema/Sema.h"
 #include "Thread/Job.h"
 
@@ -11,13 +8,9 @@ class SemaJob : public Job
 {
     Sema sema_;
 
-    JobResult exec();
-
 public:
     SemaJob(TaskContext& ctx, Ast* ast, AstNodeRef root);
-
-    Sema&       sema() { return sema_; }
-    const Sema& sema() const { return sema_; }
+    JobResult exec();
 };
 
 SWC_END_NAMESPACE()

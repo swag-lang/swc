@@ -5,7 +5,6 @@
 #include "Thread/Job.h"
 
 SWC_BEGIN_NAMESPACE()
-class Ast;
 
 class Sema
 {
@@ -41,9 +40,8 @@ public:
     Diagnostic reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokenRef);
     void       raiseError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokenRef);
     void       raiseError(DiagnosticId id, AstNodeRef nodeRef);
-
-    void raiseInvalidType(AstNodeRef nodeRef, TypeInfoRef wantedType, TypeInfoRef hasType);
-    void raiseInternalError(const AstNode* node);
+    void       raiseInvalidType(AstNodeRef nodeRef, TypeInfoRef wantedType, TypeInfoRef hasType);
+    void       raiseInternalError(const AstNode* node);
 };
 
 SWC_END_NAMESPACE()

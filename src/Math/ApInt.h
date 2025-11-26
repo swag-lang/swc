@@ -72,9 +72,9 @@ public:
     bool sgt(const ApInt& rhs) const;
     bool sge(const ApInt& rhs) const;
 
-    ApInt trunc(uint32_t newBitWidth) const;
-    ApInt zextOrTrunc(uint32_t newBitWidth) const;
-    ApInt sextOrTrunc(uint32_t newBitWidth) const;
+    void shrink(uint32_t newBitWidth);
+    void resizeUnsigned(uint32_t newBitWidth);
+    void resizeSigned(uint32_t newBitWidth);
 };
 
 SWC_END_NAMESPACE()

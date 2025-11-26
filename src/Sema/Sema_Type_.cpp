@@ -1,9 +1,10 @@
 #include "pch.h"
-
-#include "ConstantManager.h"
 #include "Parser/AstVisit.h"
+#include "Report/Diagnostic.h"
+#include "Report/DiagnosticDef.h"
+#include "Sema/ConstantManager.h"
 #include "Sema/SemaJob.h"
-#include "TypeManager.h"
+#include "Sema/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -12,8 +13,30 @@ AstVisitStepResult AstBuiltinType::semaPostNode(SemaJob& job)
     const auto& tok = job.token(srcViewRef(), tokRef());
     switch (tok.id)
     {
+        case TokenId::TypeS8:
+            setSemaType(job.typeMgr().getTypeInt(8, true));
+            return AstVisitStepResult::Continue;
+        case TokenId::TypeS16:
+            setSemaType(job.typeMgr().getTypeInt(16, true));
+            return AstVisitStepResult::Continue;
         case TokenId::TypeS32:
             setSemaType(job.typeMgr().getTypeInt(32, true));
+            return AstVisitStepResult::Continue;
+        case TokenId::TypeS64:
+            setSemaType(job.typeMgr().getTypeInt(64, true));
+            return AstVisitStepResult::Continue;
+
+        case TokenId::TypeU8:
+            setSemaType(job.typeMgr().getTypeInt(8, false));
+            return AstVisitStepResult::Continue;
+        case TokenId::TypeU16:
+            setSemaType(job.typeMgr().getTypeInt(16, false));
+            return AstVisitStepResult::Continue;
+        case TokenId::TypeU32:
+            setSemaType(job.typeMgr().getTypeInt(32, false));
+            return AstVisitStepResult::Continue;
+        case TokenId::TypeU64:
+            setSemaType(job.typeMgr().getTypeInt(64, false));
             return AstVisitStepResult::Continue;
 
         default:
@@ -27,12 +50,21 @@ AstVisitStepResult AstBuiltinType::semaPostNode(SemaJob& job)
 AstVisitStepResult AstSuffixLiteral::semaPostNode(SemaJob& job)
 {
     auto&          ctx            = job.ctx();
+    auto&          cstMgr         = ctx.compiler().constMgr();
     const AstNode& nodeLiteralPtr = job.node(nodeLiteral);
     const AstNode& nodeSuffixPtr  = job.node(nodeSuffix);
 
     const TypeInfoRef type     = nodeSuffixPtr.getNodeTypeRef(ctx);
     bool              overflow = false;
-    const ConstantRef newCst   = ctx.compiler().constMgr().convert(ctx, nodeLiteralPtr.getSemaConstant(ctx), type, overflow);
+    const ConstantRef newCst   = cstMgr.convert(ctx, nodeLiteralPtr.getSemaConstant(ctx), type, overflow);
+    if (overflow)
+    {
+        auto diag = job.reportError(DiagnosticId::sema_err_literal_overflow, srcViewRef(), tokRef());
+        diag.addArgument(Diagnostic::ARG_TYPE, type);
+        diag.report(ctx);
+        return AstVisitStepResult::Stop;
+    }
+
     setSemaConstant(newCst);
 
     return AstVisitStepResult::Continue;

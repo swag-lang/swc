@@ -43,9 +43,9 @@ public:
     void extOrTrunc(uint32_t newBits)
     {
         if (isUnsigned_)
-            zextOrTrunc(newBits);
+            resizeUnsigned(newBits);
         else
-            sextOrTrunc(newBits);
+            resizeSigned(newBits);
     }
 
     bool operator<(const ApsInt& rhs) const

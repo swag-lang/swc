@@ -80,4 +80,5 @@ SWC_DIAG_DEF(sema_err_compiler_warning)
 SWC_DIAG_DEF(sema_err_compiler_assert)
 SWC_DIAG_DEF(sema_err_internal)
 SWC_DIAG_DEF(sema_err_number_too_big)
+SWC_DIAG_DEF(sema_err_literal_overflow)
 

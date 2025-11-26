@@ -92,10 +92,10 @@ AstNodeRef Parser::parseLiteralExpression()
         return AstNodeRef::invalid();
 
     const auto quoteTknRef = ref();
-    if (consumeIf(TokenId::SymQuote).isInvalid())
+    if (isNot(TokenId::SymQuote))
         return literal;
 
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SuffixLiteral>(ref());
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SuffixLiteral>(consume());
     nodePtr->nodeLiteral          = literal;
     nodePtr->nodeSuffix.setInvalid();
 

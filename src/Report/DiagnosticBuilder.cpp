@@ -9,6 +9,7 @@
 #include "Report/DiagnosticElement.h"
 #include "Report/LogColor.h"
 #include "Report/LogSymbol.h"
+#include "Sema/TypeManager.h"
 #include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -621,7 +622,7 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
 // Helper function to convert variant argument to string
 Utf8 DiagnosticBuilder::argumentToString(const Diagnostic::Argument& arg) const
 {
-    auto toUtf8 = []<typename T0>(const T0& v) -> Utf8 {
+    auto toUtf8 = [&]<typename T0>(const T0& v) -> Utf8 {
         using T = std::decay_t<T0>;
         if constexpr (std::same_as<T, Utf8>)
             return v;
@@ -631,6 +632,8 @@ Utf8 DiagnosticBuilder::argumentToString(const Diagnostic::Argument& arg) const
             return Diagnostic::diagIdMessage(v);
         else if constexpr (std::integral<T>)
             return Utf8{std::to_string(v)};
+        else if constexpr (std::same_as<T, TypeInfoRef>)
+            return ctx_->compiler().typeMgr().typeToString(v);
         else
             SWC_UNREACHABLE();
     };

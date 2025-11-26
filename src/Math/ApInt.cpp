@@ -634,70 +634,112 @@ bool ApInt::sge(const ApInt& rhs) const
     return thisNeg ? (result <= 0) : (result >= 0);
 }
 
-ApInt ApInt::trunc(uint32_t newBitWidth) const
+void ApInt::shrink(uint32_t newBitWidth)
 {
     SWC_ASSERT(newBitWidth > 0);
     SWC_ASSERT(newBitWidth <= bitWidth_);
 
-    ApInt res(newBitWidth);
+    if (newBitWidth == bitWidth_)
+        return;
 
-    const uint32_t bitsToCopy = newBitWidth;
-    for (uint32_t bit = 0; bit < bitsToCopy; ++bit)
+    const uint32_t newNumWords = computeNumWords(newBitWidth);
+
+    // Update bitWidth and word count
+    bitWidth_ = newBitWidth;
+    numWords_ = newNumWords;
+
+    // Mask off unused high bits of the last word
+    normalize();
+}
+
+// In-place zero-extend or truncate.
+void ApInt::resizeUnsigned(uint32_t newBitWidth)
+{
+    SWC_ASSERT(newBitWidth > 0);
+
+    if (newBitWidth == bitWidth_)
+        return;
+
+    const uint32_t oldBitWidth = bitWidth_;
+    const uint32_t oldNumWords = numWords_;
+    const uint32_t newNumWords = computeNumWords(newBitWidth);
+
+    if (newBitWidth < oldBitWidth)
     {
-        if (testBit(bit))
-            res.setBit(bit);
+        // Truncation: just shrink metadata and mask the new top word.
+        bitWidth_ = newBitWidth;
+        numWords_ = newNumWords;
+        normalize();
+        return;
     }
 
-    res.normalize();
-    return res;
+    // Zero-extension.
+    // Make sure any newly used words are cleared.
+    if (newNumWords > oldNumWords)
+        std::fill(words_ + oldNumWords, words_ + newNumWords, ZERO);
+
+    bitWidth_ = newBitWidth;
+    numWords_ = newNumWords;
+
+    // Ensure bits above newBitWidth are cleared in the last word.
+    normalize();
 }
 
-ApInt ApInt::zextOrTrunc(uint32_t newBitWidth) const
+// In-place sign-extend or truncate.
+void ApInt::resizeSigned(uint32_t newBitWidth)
 {
     SWC_ASSERT(newBitWidth > 0);
 
     if (newBitWidth == bitWidth_)
-        return *this;
+        return;
 
-    if (newBitWidth < bitWidth_)
-        return trunc(newBitWidth);
+    const uint32_t oldBitWidth = bitWidth_;
+    const uint32_t oldNumWords = numWords_;
+    const uint32_t newNumWords = computeNumWords(newBitWidth);
 
-    // Zero-extend
-    ApInt res(*this);
-    res.bitWidth_ = newBitWidth;
-    res.numWords_ = computeNumWords(newBitWidth);
+    if (newBitWidth < oldBitWidth)
+    {
+        // Truncation: same as unsigned; sign is not preserved when shrinking.
+        bitWidth_ = newBitWidth;
+        numWords_ = newNumWords;
+        normalize();
+        return;
+    }
 
-    // New bits are already zero because copy-ctor + clearWords, but make
-    // sure we normalize the top word
-    res.normalize();
-    return res;
-}
-
-ApInt ApInt::sextOrTrunc(uint32_t newBitWidth) const
-{
-    SWC_ASSERT(newBitWidth > 0);
-
-    if (newBitWidth == bitWidth_)
-        return *this;
-    if (newBitWidth < bitWidth_)
-        return trunc(newBitWidth);
-
-    // Sign-extend
-    ApInt      res(*this);
+    // Extension.
     const bool sign = isSignBitSet();
 
-    res.bitWidth_ = newBitWidth;
-    res.numWords_ = computeNumWords(newBitWidth);
-
-    // Fill new high bits with 1s from old bitWidth up to newBitWidth
-    if (sign)
+    if (!sign)
     {
-        for (uint32_t bit = bitWidth_; bit < newBitWidth; ++bit)
-            res.setBit(bit);
+        // Positive value: sign extension == zero extension.
+        if (newNumWords > oldNumWords)
+            std::fill(words_ + oldNumWords, words_ + newNumWords, ZERO);
+    }
+    else
+    {
+        // Negative value: replicate sign bit into the new high bits.
+
+        const uint32_t usedBitsInLastWord = oldBitWidth % WORD_BITS;
+        const uint32_t lastWordIndex      = oldNumWords - 1;
+
+        // If the old type didn't use the entire last word, fill the remaining bits
+        // in that word with 1s (they become part of the extended sign region).
+        if (usedBitsInLastWord != 0)
+        {
+            const uint64_t mask = ~((ONE << usedBitsInLastWord) - 1); // bits [usedBitsInLastWord .. 63] = 1
+            words_[lastWordIndex] |= mask;
+        }
+
+        // Any additional whole words that become newly visible should be all 1s.
+        for (uint32_t i = oldNumWords; i < newNumWords; ++i)
+            words_[i] = ~0ull;
     }
 
-    res.normalize();
-    return res;
+    bitWidth_ = newBitWidth;
+    numWords_ = newNumWords;
+
+    // Clear bits above the new bit width in the top word.
+    normalize();
 }
 
 SWC_END_NAMESPACE()

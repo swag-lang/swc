@@ -15,10 +15,6 @@ enum class JobPriority : std::uint8_t
     Low    = 2
 };
 
-struct JobContext : TaskContext
-{
-};
-
 enum class JobResult : std::uint8_t
 {
     Done,         // finished; remove and wake dependents
@@ -55,7 +51,7 @@ struct JobRecord
 
 class Job : public std::enable_shared_from_this<Job>
 {
-    JobContext ctx_;
+    TaskContext ctx_;
 
     // For Result::SleepOn
     void setDependency(const JobRef& dep)
@@ -105,17 +101,17 @@ public:
     {
     }
 
-    JobContext&       ctx() { return ctx_; }
-    const JobContext& ctx() const { return ctx_; }
-    JobManager*       owner() const { return owner_; }
-    void              setOwner(JobManager* owner) { owner_ = owner; }
-    JobRecord*        rec() const { return rec_; }
-    void              setRec(JobRecord* rec) { rec_ = rec; }
-    JobPriority       priority() const { return rec_->priority; }
-    JobPriority       childPriority() const { return childPriority_; }
-    JobClientId       clientId() const { return rec_->clientId; }
-    JobRef            child() const { return child_; }
-    JobRef            dep() const { return dep_; }
+    TaskContext&       ctx() { return ctx_; }
+    const TaskContext& ctx() const { return ctx_; }
+    JobManager*        owner() const { return owner_; }
+    void               setOwner(JobManager* owner) { owner_ = owner; }
+    JobRecord*         rec() const { return rec_; }
+    void               setRec(JobRecord* rec) { rec_ = rec; }
+    JobPriority        priority() const { return rec_->priority; }
+    JobPriority        childPriority() const { return childPriority_; }
+    JobClientId        clientId() const { return rec_->clientId; }
+    JobRef             child() const { return child_; }
+    JobRef             dep() const { return dep_; }
 
     void wakeDependents() const;
     void clearIntents();

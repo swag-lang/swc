@@ -1,8 +1,7 @@
 #include "pch.h"
-
-#include "Main/Global.h"
 #include "Sema/Sema.h"
-#include "SemaJob.h"
+#include "Main/Global.h"
+#include "Sema/SemaJob.h"
 #include "Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE()

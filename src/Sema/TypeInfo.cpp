@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "Sema/TypeInfo.h"
 #include "Core/hash.h"
-#include "Lexer/Token.h"
-#include "Parser/SyntaxColor.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -68,7 +66,6 @@ TypeInfo TypeInfo::makeInt(uint32_t bits, bool isSigned)
 {
     TypeInfo ti{TypeInfoKind::Int};
     ti.int_ = {.bits = bits, .isSigned = isSigned};
-    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
 
@@ -76,7 +73,6 @@ TypeInfo TypeInfo::makeFloat(uint32_t bits)
 {
     TypeInfo ti{TypeInfoKind::Float};
     ti.float_ = {.bits = bits};
-    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
 
@@ -100,7 +96,7 @@ Utf8 TypeInfo::toString(const TypeManager& typeMgr, ToStringMode mode) const
         {
             Utf8 out;
             out += "f";
-            out += std::to_string(int_.bits);
+            out += std::to_string(float_.bits);
             return out;
         }
 

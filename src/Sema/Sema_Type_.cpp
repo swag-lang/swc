@@ -12,6 +12,9 @@ AstVisitStepResult AstBuiltinType::semaPostNode(SemaJob& job)
     {
         case TokenId::TypeS32:
             setSemaType(job.typeMgr().getTypeInt(32, true));
+            return AstVisitStepResult::Continue;
+
+        default:
             break;
     }
 

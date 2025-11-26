@@ -3,9 +3,9 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstNodeRef Parser::parseCompilerFlow()
+AstNodeRef Parser::parseCompilerDiagnostic()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerFlow>(consume());
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerDiagnostic>(consume());
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);

@@ -110,7 +110,7 @@ struct AstCompilerScope : AstNodeT<AstNodeId::CompilerScope>
     }
 };
 
-struct AstCompilerFlow : AstInternalCallUnaryT<AstNodeId::CompilerFlow>
+struct AstCompilerDiagnostic : AstInternalCallUnaryT<AstNodeId::CompilerDiagnostic>
 {
     AstVisitStepResult semaPostNode(SemaJob& job) const;
 };

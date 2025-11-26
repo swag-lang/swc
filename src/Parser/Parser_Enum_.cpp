@@ -24,13 +24,13 @@ AstNodeRef Parser::parseEnumValue()
     switch (id())
     {
         case TokenId::CompilerAssert:
-            return parseCompilerFlow();
+            return parseCompilerDiagnostic();
         case TokenId::CompilerError:
-            return parseCompilerFlow();
+            return parseCompilerDiagnostic();
         case TokenId::CompilerWarning:
-            return parseCompilerFlow();
+            return parseCompilerDiagnostic();
         case TokenId::CompilerPrint:
-            return parseCompilerFlow();
+            return parseCompilerDiagnostic();
         case TokenId::CompilerIf:
             return parseCompilerIf<AstNodeId::EnumBody>();
 

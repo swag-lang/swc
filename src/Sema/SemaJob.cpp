@@ -44,7 +44,7 @@ AstVisitStepResult SemaJob::preChild(AstNode& node, AstNodeRef& childRef)
     const auto childPtr = ast().node(childRef);
     switch (childPtr->id())
     {
-        case AstNodeId::CompilerFlow:
+        case AstNodeId::CompilerDiagnostic:
         {
             if (visit().root() == ast().root())
             {

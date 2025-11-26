@@ -37,7 +37,7 @@ AstVisitStepResult AstCompilerIf::semaPreChild(SemaJob& job, const AstNodeRef& c
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstCompilerFlow::semaPostNode(SemaJob& job) const
+AstVisitStepResult AstCompilerDiagnostic::semaPostNode(SemaJob& job) const
 {
     const auto& tok        = job.token(srcViewRef(), tokRef());
     const auto  nodeArgPtr = job.node(nodeArg);

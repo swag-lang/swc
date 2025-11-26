@@ -99,7 +99,7 @@ class Parser
     AstNodeRef parseBreak();
     AstNodeRef parseCast();
     AstNodeRef parseClosureArg();
-    AstNodeRef parseCompilerFlow();
+    AstNodeRef parseCompilerDiagnostic();
     AstNodeRef parseCompilerCallUnary();
     AstNodeRef parseCompilerDependencies();
     AstNodeRef parseCompilerExpr();

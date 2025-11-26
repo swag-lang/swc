@@ -5,7 +5,7 @@
 
 SWC_BEGIN_NAMESPACE()
 class TypeInfo;
-class SemaJob;
+class Sema;
 class Ast;
 class SourceFile;
 class TaskContext;
@@ -69,9 +69,9 @@ struct AstNode
     static void        collectChildren(SmallVector<AstNodeRef>& out, std::initializer_list<AstNodeRef> nodes);
     SourceCodeLocation location(const TaskContext& ctx, const Ast& ast) const;
 
-    static AstVisitStepResult semaPreNode(SemaJob&) { return AstVisitStepResult::Continue; }
-    static AstVisitStepResult semaPostNode(SemaJob&) { return AstVisitStepResult::Continue; }
-    static AstVisitStepResult semaPreChild(SemaJob&, AstNodeRef&) { return AstVisitStepResult::Continue; }
+    static AstVisitStepResult semaPreNode(Sema&) { return AstVisitStepResult::Continue; }
+    static AstVisitStepResult semaPostNode(Sema&) { return AstVisitStepResult::Continue; }
+    static AstVisitStepResult semaPreChild(Sema&, AstNodeRef&) { return AstVisitStepResult::Continue; }
 
     enum class SemaFlagE : uint8_t
     {

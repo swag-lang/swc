@@ -1,11 +1,11 @@
 #include "pch.h"
 #include "Report/Diagnostic.h"
-#include "Sema/SemaJob.h"
-#include "TypeManager.h"
+#include "Sema/Sema.h"
+#include "Sema/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
-Diagnostic SemaJob::reportError(DiagnosticId id, AstNodeRef nodeRef)
+Diagnostic Sema::reportError(DiagnosticId id, AstNodeRef nodeRef)
 {
     auto       diag = Diagnostic::get(id, ast().srcView().fileRef());
     const auto loc  = node(nodeRef).location(ctx(), ast());
@@ -13,7 +13,7 @@ Diagnostic SemaJob::reportError(DiagnosticId id, AstNodeRef nodeRef)
     return diag;
 }
 
-Diagnostic SemaJob::reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokenRef)
+Diagnostic Sema::reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokenRef)
 {
     auto        diag    = Diagnostic::get(id, ast().srcView().fileRef());
     const auto& srcView = compiler().srcView(srcViewRef);
@@ -21,19 +21,19 @@ Diagnostic SemaJob::reportError(DiagnosticId id, SourceViewRef srcViewRef, Token
     return diag;
 }
 
-void SemaJob::raiseError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokenRef)
+void Sema::raiseError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokenRef)
 {
     const auto diag = reportError(id, srcViewRef, tokenRef);
     diag.report(ctx());
 }
 
-void SemaJob::raiseError(DiagnosticId id, AstNodeRef nodeRef)
+void Sema::raiseError(DiagnosticId id, AstNodeRef nodeRef)
 {
     const auto diag = reportError(id, nodeRef);
     diag.report(ctx());
 }
 
-void SemaJob::raiseInvalidType(AstNodeRef nodeRef, TypeInfoRef wantedType, TypeInfoRef hasType)
+void Sema::raiseInvalidType(AstNodeRef nodeRef, TypeInfoRef wantedType, TypeInfoRef hasType)
 {
     auto diag = reportError(DiagnosticId::sema_err_invalid_type, nodeRef);
     diag.addArgument(Diagnostic::ARG_TYPE, typeMgr().typeToString(hasType));
@@ -41,7 +41,7 @@ void SemaJob::raiseInvalidType(AstNodeRef nodeRef, TypeInfoRef wantedType, TypeI
     diag.report(ctx());
 }
 
-void SemaJob::raiseInternalError(const AstNode* node)
+void Sema::raiseInternalError(const AstNode* node)
 {
     raiseError(DiagnosticId::sema_err_internal, node->srcViewRef(), node->tokRef());
 }

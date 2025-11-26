@@ -242,8 +242,9 @@
         <ClCompile Include="src\Report\LogSymbol.cpp"/>
         <ClCompile Include="src\Sema\ConstantValue.cpp"/>
         <ClCompile Include="src\Sema\ConstantManager.cpp"/>
+        <ClCompile Include="src\Sema\Sema.cpp"/>
         <ClCompile Include="src\Sema\SemaJob.cpp"/>
-        <ClCompile Include="src\Sema\SemaJob_Error_.cpp"/>
+        <ClCompile Include="src\Sema\Sema_Error_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Compiler_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Expression_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Literal_.cpp"/>
@@ -308,6 +309,7 @@
         <ClInclude Include="src\Report\LogSymbol.h"/>
         <ClInclude Include="src\Sema\ConstantValue.h"/>
         <ClInclude Include="src\Sema\ConstantManager.h"/>
+        <ClInclude Include="src\Sema\Sema.h"/>
         <ClInclude Include="src\Sema\SemaJob.h"/>
         <ClInclude Include="src\Sema\TypeInfo.h"/>
         <ClInclude Include="src\Sema\TypeManager.h"/>

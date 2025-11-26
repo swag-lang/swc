@@ -5,33 +5,33 @@
 #include "Parser/AstNodes.h"
 #include "Report/DiagnosticDef.h"
 #include "Sema/ConstantManager.h"
-#include "Sema/SemaJob.h"
+#include "Sema/Sema.h"
 
 SWC_BEGIN_NAMESPACE()
 
-AstVisitStepResult AstBoolLiteral::semaPreNode(SemaJob& job)
+AstVisitStepResult AstBoolLiteral::semaPreNode(Sema& sema)
 {
-    const auto& tok = job.token(srcViewRef(), tokRef());
+    const auto& tok = sema.token(srcViewRef(), tokRef());
     if (tok.is(TokenId::KwdTrue))
-        setSemaConstant(job.constMgr().boolTrue());
+        setSemaConstant(sema.constMgr().boolTrue());
     else if (tok.is(TokenId::KwdFalse))
-        setSemaConstant(job.constMgr().boolFalse());
+        setSemaConstant(sema.constMgr().boolFalse());
     else
         SWC_UNREACHABLE();
 
     return AstVisitStepResult::SkipChildren;
 }
 
-AstVisitStepResult AstCharacterLiteral::semaPreNode(SemaJob& job)
+AstVisitStepResult AstCharacterLiteral::semaPreNode(Sema& sema)
 {
     return AstVisitStepResult::SkipChildren;
 }
 
-AstVisitStepResult AstStringLiteral::semaPreNode(SemaJob& job)
+AstVisitStepResult AstStringLiteral::semaPreNode(Sema& sema)
 {
-    const auto& ctx     = job.ctx();
-    const auto& tok     = job.token(srcViewRef(), tokRef());
-    const auto& srcView = job.compiler().srcView(srcViewRef());
+    const auto& ctx     = sema.ctx();
+    const auto& tok     = sema.token(srcViewRef(), tokRef());
+    const auto& srcView = sema.compiler().srcView(srcViewRef());
     auto        str     = tok.string(srcView);
 
     // Remove delimiters
@@ -54,7 +54,7 @@ AstVisitStepResult AstStringLiteral::semaPreNode(SemaJob& job)
     if (!tok.hasFlag(TokenFlagsE::Escaped))
     {
         const auto val = ConstantValue::makeString(ctx, str);
-        setSemaConstant(job.constMgr().addConstant(ctx, val));
+        setSemaConstant(sema.constMgr().addConstant(ctx, val));
         return AstVisitStepResult::SkipChildren;
     }
 
@@ -64,7 +64,7 @@ AstVisitStepResult AstStringLiteral::semaPreNode(SemaJob& job)
     auto parseHexEscape = [&](size_t& index, size_t maxDigits, uint32_t& valueOut) {
         uint32_t    value    = 0;
         size_t      digits   = 0;
-        const auto& langSpec = job.compiler().global().langSpec();
+        const auto& langSpec = sema.compiler().global().langSpec();
         do
         {
             SWC_ASSERT(index + 1 < str.size());
@@ -164,15 +164,15 @@ AstVisitStepResult AstStringLiteral::semaPreNode(SemaJob& job)
     }
 
     const auto val = ConstantValue::makeString(ctx, result);
-    setSemaConstant(job.constMgr().addConstant(ctx, val));
+    setSemaConstant(sema.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 
-AstVisitStepResult AstBinaryLiteral::semaPreNode(SemaJob& job)
+AstVisitStepResult AstBinaryLiteral::semaPreNode(Sema& sema)
 {
-    const auto& ctx = job.ctx();
-    const auto& tok = job.token(srcViewRef(), tokRef());
-    auto        str = tok.string(job.compiler().srcView(srcViewRef()));
+    const auto& ctx = sema.ctx();
+    const auto& tok = sema.token(srcViewRef(), tokRef());
+    auto        str = tok.string(sema.compiler().srcView(srcViewRef()));
 
     SWC_ASSERT(str.size() > 2);
     SWC_ASSERT(str[0] == '0' && (str[1] == 'b' || str[1] == 'B'));
@@ -180,7 +180,7 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(SemaJob& job)
     // Remove '0b' or '0B' prefix
     str = str.substr(2);
 
-    const auto& langSpec = job.compiler().global().langSpec();
+    const auto& langSpec = sema.compiler().global().langSpec();
     ApsInt      value(false);
     for (const char c : str)
     {
@@ -191,7 +191,7 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(SemaJob& job)
         value.logicalShiftLeft(1, over);
         if (over)
         {
-            job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+            sema.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
             return AstVisitStepResult::Stop;
         }
 
@@ -200,15 +200,15 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(SemaJob& job)
 
     // Convert the binary string to an integer constant
     const auto val = ConstantValue::makeApsInt(ctx, value);
-    setSemaConstant(job.constMgr().addConstant(ctx, val));
+    setSemaConstant(sema.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 
-AstVisitStepResult AstHexaLiteral::semaPreNode(SemaJob& job)
+AstVisitStepResult AstHexaLiteral::semaPreNode(Sema& sema)
 {
-    const auto& ctx = job.ctx();
-    const auto& tok = job.token(srcViewRef(), tokRef());
-    auto        str = tok.string(job.compiler().srcView(srcViewRef()));
+    const auto& ctx = sema.ctx();
+    const auto& tok = sema.token(srcViewRef(), tokRef());
+    auto        str = tok.string(sema.compiler().srcView(srcViewRef()));
 
     SWC_ASSERT(str.size() > 2);
     SWC_ASSERT(str[0] == '0' && (str[1] == 'x' || str[1] == 'X'));
@@ -216,7 +216,7 @@ AstVisitStepResult AstHexaLiteral::semaPreNode(SemaJob& job)
     // Remove '0x' or '0X' prefix
     str = str.substr(2);
 
-    const auto& langSpec = job.compiler().global().langSpec();
+    const auto& langSpec = sema.compiler().global().langSpec();
     ApsInt      value(false);
     for (const char c : str)
     {
@@ -227,7 +227,7 @@ AstVisitStepResult AstHexaLiteral::semaPreNode(SemaJob& job)
         value.logicalShiftLeft(4, over); // multiply by 16
         if (over)
         {
-            job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+            sema.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
             return AstVisitStepResult::Stop;
         }
 
@@ -238,19 +238,19 @@ AstVisitStepResult AstHexaLiteral::semaPreNode(SemaJob& job)
 
     // Convert the hexadecimal string to an integer constant
     const auto val = ConstantValue::makeApsInt(ctx, value);
-    setSemaConstant(job.constMgr().addConstant(ctx, val));
+    setSemaConstant(sema.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 
-AstVisitStepResult AstIntegerLiteral::semaPreNode(SemaJob& job)
+AstVisitStepResult AstIntegerLiteral::semaPreNode(Sema& sema)
 {
-    const auto& ctx = job.ctx();
-    const auto& tok = job.token(srcViewRef(), tokRef());
-    const auto  str = tok.string(job.compiler().srcView(srcViewRef()));
+    const auto& ctx = sema.ctx();
+    const auto& tok = sema.token(srcViewRef(), tokRef());
+    const auto  str = tok.string(sema.compiler().srcView(srcViewRef()));
 
     SWC_ASSERT(!str.empty());
 
-    const auto& langSpec = job.compiler().global().langSpec();
+    const auto& langSpec = sema.compiler().global().langSpec();
 
     ApsInt value(false);
     for (const char c : str)
@@ -272,7 +272,7 @@ AstVisitStepResult AstIntegerLiteral::semaPreNode(SemaJob& job)
         value.mul(10, over);
         if (over)
         {
-            job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+            sema.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
             return AstVisitStepResult::Stop;
         }
 
@@ -280,25 +280,25 @@ AstVisitStepResult AstIntegerLiteral::semaPreNode(SemaJob& job)
         value.add(digit, over);
         if (over)
         {
-            job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+            sema.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
             return AstVisitStepResult::Stop;
         }
     }
 
     const auto val = ConstantValue::makeApsInt(ctx, value);
-    setSemaConstant(job.constMgr().addConstant(ctx, val));
+    setSemaConstant(sema.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 
-AstVisitStepResult AstFloatLiteral::semaPreNode(SemaJob& job)
+AstVisitStepResult AstFloatLiteral::semaPreNode(Sema& sema)
 {
-    const auto& ctx = job.ctx();
-    const auto& tok = job.token(srcViewRef(), tokRef());
-    const auto  str = tok.string(job.compiler().srcView(srcViewRef()));
+    const auto& ctx = sema.ctx();
+    const auto& tok = sema.token(srcViewRef(), tokRef());
+    const auto  str = tok.string(sema.compiler().srcView(srcViewRef()));
 
     SWC_ASSERT(!str.empty());
 
-    const auto& langSpec = job.compiler().global().langSpec();
+    const auto& langSpec = sema.compiler().global().langSpec();
 
     ApsInt intValue(false);
     bool   seenDot      = false;
@@ -326,14 +326,14 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(SemaJob& job)
                 intValue.mul(10, over);
                 if (over)
                 {
-                    job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+                    sema.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
                     return AstVisitStepResult::Stop;
                 }
 
                 intValue.add(digit, over);
                 if (over)
                 {
-                    job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+                    sema.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
                     return AstVisitStepResult::Stop;
                 }
 
@@ -351,7 +351,7 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(SemaJob& job)
                 }
                 else
                 {
-                    job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+                    sema.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
                     return AstVisitStepResult::Stop;
                 }
             }
@@ -400,7 +400,7 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(SemaJob& job)
     {
         if (totalExp10 < (std::numeric_limits<int64_t>::min)() + static_cast<int64_t>(fracDigits))
         {
-            job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+            sema.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
             return AstVisitStepResult::Stop;
         }
         else
@@ -418,7 +418,7 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(SemaJob& job)
 
         if (convOverflow && !errorRaised)
         {
-            job.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+            sema.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
             floatValue.resetToZero(false);
         }
     }
@@ -428,7 +428,7 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(SemaJob& job)
     }*/
 
     const auto val = ConstantValue::makeFloat(ctx, floatValue);
-    setSemaConstant(job.constMgr().addConstant(ctx, val));
+    setSemaConstant(sema.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 

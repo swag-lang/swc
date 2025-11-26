@@ -112,7 +112,7 @@ struct AstCompilerScope : AstNodeT<AstNodeId::CompilerScope>
 
 struct AstCompilerDiagnostic : AstInternalCallUnaryT<AstNodeId::CompilerDiagnostic>
 {
-    AstVisitStepResult semaPostNode(SemaJob& job) const;
+    AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
 struct AstCompilerCallUnary : AstInternalCallUnaryT<AstNodeId::CompilerCallUnary>
@@ -444,14 +444,14 @@ struct AstLogicalExpr : AstBinaryT<AstNodeId::LogicalExpr>
 
 struct AstRelationalExpr : AstBinaryT<AstNodeId::RelationalExpr>
 {
-    AstVisitStepResult semaPostNode(SemaJob& job);
+    AstVisitStepResult semaPostNode(Sema& sema);
 };
 
 struct AstBinaryExpr : AstBinaryT<AstNodeId::BinaryExpr>
 {
     AstModifierFlags modifierFlags;
 
-    AstVisitStepResult semaPostNode(SemaJob& job);
+    AstVisitStepResult semaPostNode(Sema& sema);
 };
 
 struct AstUnaryExpr : AstNodeT<AstNodeId::UnaryExpr>
@@ -500,37 +500,37 @@ struct AstInitializerExpr : AstNodeT<AstNodeId::InitializerExpr>
 
 struct AstBinaryLiteral : AstLiteralT<AstNodeId::BinaryLiteral>
 {
-    AstVisitStepResult semaPreNode(SemaJob& job);
+    AstVisitStepResult semaPreNode(Sema& sema);
 };
 
 struct AstHexaLiteral : AstLiteralT<AstNodeId::HexaLiteral>
 {
-    AstVisitStepResult semaPreNode(SemaJob& job);
+    AstVisitStepResult semaPreNode(Sema& sema);
 };
 
 struct AstIntegerLiteral : AstLiteralT<AstNodeId::IntegerLiteral>
 {
-    AstVisitStepResult semaPreNode(SemaJob& job);
+    AstVisitStepResult semaPreNode(Sema& sema);
 };
 
 struct AstFloatLiteral : AstLiteralT<AstNodeId::FloatLiteral>
 {
-    AstVisitStepResult semaPreNode(SemaJob& job);
+    AstVisitStepResult semaPreNode(Sema& sema);
 };
 
 struct AstStringLiteral : AstLiteralT<AstNodeId::StringLiteral>
 {
-    AstVisitStepResult semaPreNode(SemaJob& job);
+    AstVisitStepResult semaPreNode(Sema& sema);
 };
 
 struct AstCharacterLiteral : AstLiteralT<AstNodeId::CharacterLiteral>
 {
-    AstVisitStepResult semaPreNode(SemaJob& job);
+    AstVisitStepResult semaPreNode(Sema& sema);
 };
 
 struct AstBoolLiteral : AstLiteralT<AstNodeId::BoolLiteral>
 {
-    AstVisitStepResult semaPreNode(SemaJob& job);
+    AstVisitStepResult semaPreNode(Sema& sema);
 };
 
 struct AstNullLiteral : AstLiteralT<AstNodeId::NullLiteral>
@@ -546,7 +546,7 @@ struct AstSuffixLiteral : AstNodeT<AstNodeId::SuffixLiteral>
     AstNodeRef nodeLiteral;
     AstNodeRef nodeSuffix;
 
-    AstVisitStepResult semaPostNode(SemaJob& job);
+    AstVisitStepResult semaPostNode(Sema& sema);
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
@@ -751,7 +751,7 @@ struct AstNamedType : AstNodeT<AstNodeId::NamedType>
 
 struct AstBuiltinType : AstNodeT<AstNodeId::BuiltinType>
 {
-    AstVisitStepResult semaPostNode(SemaJob& job);
+    AstVisitStepResult semaPostNode(Sema& sema);
 };
 
 struct AstCompilerTypeExpr : AstNodeT<AstNodeId::CompilerTypeExpr>
@@ -826,7 +826,7 @@ struct AstCompilerIf : AstNodeT<AstNodeId::CompilerIf>
         AstNode::collectChildren(out, {nodeCondition, nodeIfBlock, nodeElseBlock});
     }
 
-    AstVisitStepResult semaPreChild(SemaJob& job, const AstNodeRef& childRef) const;
+    AstVisitStepResult semaPreChild(Sema& sema, const AstNodeRef& childRef) const;
 };
 
 struct AstCompilerElse : AstCompoundT<AstNodeId::CompilerElse>

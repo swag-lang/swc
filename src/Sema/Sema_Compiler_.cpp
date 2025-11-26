@@ -5,27 +5,27 @@
 #include "Report/DiagnosticDef.h"
 #include "Report/Logger.h"
 #include "Sema/ConstantValue.h"
-#include "Sema/SemaJob.h"
+#include "Sema/Sema.h"
 #include "Sema/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
-AstVisitStepResult AstCompilerIf::semaPreChild(SemaJob& job, const AstNodeRef& childRef) const
+AstVisitStepResult AstCompilerIf::semaPreChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeCondition)
         return AstVisitStepResult::Continue;
 
-    const AstNode& nodeConditionPtr = job.node(nodeCondition);
+    const AstNode& nodeConditionPtr = sema.node(nodeCondition);
     if (!nodeConditionPtr.isSemaConstant())
     {
-        job.raiseError(DiagnosticId::sema_err_expr_not_const, nodeCondition);
+        sema.raiseError(DiagnosticId::sema_err_expr_not_const, nodeCondition);
         return AstVisitStepResult::Stop;
     }
 
-    const auto& constant = nodeConditionPtr.getSemaConstant(job.ctx());
+    const auto& constant = nodeConditionPtr.getSemaConstant(sema.ctx());
     if (!constant.isBool())
     {
-        job.raiseInvalidType(nodeCondition, job.typeMgr().getTypeBool(), constant.typeRef());
+        sema.raiseInvalidType(nodeCondition, sema.typeMgr().getTypeBool(), constant.typeRef());
         return AstVisitStepResult::Stop;
     }
 
@@ -37,18 +37,18 @@ AstVisitStepResult AstCompilerIf::semaPreChild(SemaJob& job, const AstNodeRef& c
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstCompilerDiagnostic::semaPostNode(SemaJob& job) const
+AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 {
-    const auto&    tok        = job.token(srcViewRef(), tokRef());
-    const AstNode& nodeArgPtr = job.node(nodeArg);
+    const auto&    tok        = sema.token(srcViewRef(), tokRef());
+    const AstNode& nodeArgPtr = sema.node(nodeArg);
 
     if (!nodeArgPtr.isSemaConstant())
     {
-        job.raiseError(DiagnosticId::sema_err_expr_not_const, nodeArg);
+        sema.raiseError(DiagnosticId::sema_err_expr_not_const, nodeArg);
         return AstVisitStepResult::Stop;
     }
 
-    const auto& constant = nodeArgPtr.getSemaConstant(job.ctx());
+    const auto& constant = nodeArgPtr.getSemaConstant(sema.ctx());
 
     switch (tok.id)
     {
@@ -56,7 +56,7 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(SemaJob& job) const
         case TokenId::CompilerWarning:
             if (!constant.isString())
             {
-                job.raiseInvalidType(nodeArg, job.typeMgr().getTypeString(), constant.typeRef());
+                sema.raiseInvalidType(nodeArg, sema.typeMgr().getTypeString(), constant.typeRef());
                 return AstVisitStepResult::Stop;
             }
             break;
@@ -64,7 +64,7 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(SemaJob& job) const
         case TokenId::CompilerAssert:
             if (!constant.isBool())
             {
-                job.raiseInvalidType(nodeArg, job.typeMgr().getTypeBool(), constant.typeRef());
+                sema.raiseInvalidType(nodeArg, sema.typeMgr().getTypeBool(), constant.typeRef());
                 return AstVisitStepResult::Stop;
             }
             break;
@@ -77,23 +77,23 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(SemaJob& job) const
     {
         case TokenId::CompilerError:
         {
-            auto diag = job.reportError(DiagnosticId::sema_err_compiler_error, srcViewRef(), tokRef());
+            auto diag = sema.reportError(DiagnosticId::sema_err_compiler_error, srcViewRef(), tokRef());
             diag.addArgument(Diagnostic::ARG_BECAUSE, constant.getString(), false);
-            diag.report(job.ctx());
+            diag.report(sema.ctx());
             return AstVisitStepResult::Stop;
         }
 
         case TokenId::CompilerWarning:
         {
-            auto diag = job.reportError(DiagnosticId::sema_warn_compiler_warning, srcViewRef(), tokRef());
+            auto diag = sema.reportError(DiagnosticId::sema_warn_compiler_warning, srcViewRef(), tokRef());
             diag.addArgument(Diagnostic::ARG_BECAUSE, constant.getString(), false);
-            diag.report(job.ctx());
+            diag.report(sema.ctx());
             return AstVisitStepResult::Continue;
         }
 
         case TokenId::CompilerPrint:
         {
-            const auto& ctx = job.ctx();
+            const auto& ctx = sema.ctx();
             ctx.global().logger().lock();
             Logger::print(ctx, constant.toString());
             Logger::print(ctx, "\n");
@@ -104,7 +104,7 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(SemaJob& job) const
         case TokenId::CompilerAssert:
             if (!constant.getBool())
             {
-                job.raiseError(DiagnosticId::sema_err_compiler_assert, srcViewRef(), tokRef());
+                sema.raiseError(DiagnosticId::sema_err_compiler_assert, srcViewRef(), tokRef());
                 return AstVisitStepResult::Stop;
             }
             break;

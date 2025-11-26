@@ -1,19 +1,19 @@
 #include "pch.h"
-#include "ConstantManager.h"
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisit.h"
-#include "Sema/SemaJob.h"
+#include "Sema/ConstantManager.h"
+#include "Sema/Sema.h"
 
 SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    ConstantRef constantFoldBinaryExpr(SemaJob& job, TokenId op, AstNodeRef left, AstNodeRef right)
+    ConstantRef constantFoldBinaryExpr(Sema& sema, TokenId op, AstNodeRef left, AstNodeRef right)
     {
-        const auto&    ctx      = job.ctx();
-        auto&          constMgr = job.constMgr();
-        const AstNode& leftPtr  = job.node(left);
-        const AstNode& rightPtr = job.node(right);
+        const auto&    ctx      = sema.ctx();
+        auto&          constMgr = sema.constMgr();
+        const AstNode& leftPtr  = sema.node(left);
+        const AstNode& rightPtr = sema.node(right);
         const auto&    leftCst  = leftPtr.getSemaConstant(ctx);
         const auto&    rightCst = rightPtr.getSemaConstant(ctx);
 
@@ -33,12 +33,12 @@ namespace
         return ConstantRef::invalid();
     }
 
-    ConstantRef constantFoldRelationalExpr(SemaJob& job, TokenId op, AstNodeRef left, AstNodeRef right)
+    ConstantRef constantFoldRelationalExpr(Sema& sema, TokenId op, AstNodeRef left, AstNodeRef right)
     {
-        const auto&    ctx      = job.ctx();
-        auto&          constMgr = job.constMgr();
-        const AstNode& leftPtr  = job.node(left);
-        const AstNode& rightPtr = job.node(right);
+        const auto&    ctx      = sema.ctx();
+        auto&          constMgr = sema.constMgr();
+        const AstNode& leftPtr  = sema.node(left);
+        const AstNode& rightPtr = sema.node(right);
         const auto&    leftCst  = leftPtr.getSemaConstant(ctx);
         const auto&    rightCst = rightPtr.getSemaConstant(ctx);
 
@@ -58,15 +58,15 @@ namespace
     }
 }
 
-AstVisitStepResult AstBinaryExpr::semaPostNode(SemaJob& job)
+AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema)
 {
-    const auto&    tok          = job.token(srcViewRef(), tokRef());
-    const AstNode& nodeLeftPtr  = job.node(nodeLeft);
-    const AstNode& nodeRightPtr = job.node(nodeRight);
+    const auto&    tok          = sema.token(srcViewRef(), tokRef());
+    const AstNode& nodeLeftPtr  = sema.node(nodeLeft);
+    const AstNode& nodeRightPtr = sema.node(nodeRight);
 
     if (nodeLeftPtr.isSemaConstant() && nodeRightPtr.isSemaConstant())
     {
-        const auto cst = constantFoldBinaryExpr(job, tok.id, nodeLeft, nodeRight);
+        const auto cst = constantFoldBinaryExpr(sema, tok.id, nodeLeft, nodeRight);
         if (cst.isValid())
         {
             setSemaConstant(cst);
@@ -74,19 +74,19 @@ AstVisitStepResult AstBinaryExpr::semaPostNode(SemaJob& job)
         }
     }
 
-    job.raiseInternalError(this);
+    sema.raiseInternalError(this);
     return AstVisitStepResult::Stop;
 }
 
-AstVisitStepResult AstRelationalExpr::semaPostNode(SemaJob& job)
+AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
 {
-    const auto&    tok          = job.token(srcViewRef(), tokRef());
-    const AstNode& nodeLeftPtr  = job.node(nodeLeft);
-    const AstNode& nodeRightPtr = job.node(nodeRight);
+    const auto&    tok          = sema.token(srcViewRef(), tokRef());
+    const AstNode& nodeLeftPtr  = sema.node(nodeLeft);
+    const AstNode& nodeRightPtr = sema.node(nodeRight);
 
     if (nodeLeftPtr.isSemaConstant() && nodeRightPtr.isSemaConstant())
     {
-        const auto cst = constantFoldRelationalExpr(job, tok.id, nodeLeft, nodeRight);
+        const auto cst = constantFoldRelationalExpr(sema, tok.id, nodeLeft, nodeRight);
         if (cst.isValid())
         {
             setSemaConstant(cst);
@@ -94,7 +94,7 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(SemaJob& job)
         }
     }
 
-    job.raiseInternalError(this);
+    sema.raiseInternalError(this);
     return AstVisitStepResult::Stop;
 }
 

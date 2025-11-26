@@ -239,9 +239,9 @@ struct AstNodeIdInfo
     std::string_view name;
 
     using CollectFunc  = void (*)(SmallVector<AstNodeRef>&, const Ast&, const AstNode&);
-    using SemaPreNode  = AstVisitStepResult (*)(SemaJob&, AstNode&);
-    using SemaPostNode = AstVisitStepResult (*)(SemaJob&, AstNode&);
-    using SemaPreChild = AstVisitStepResult (*)(SemaJob&, AstNode&, AstNodeRef&);
+    using SemaPreNode  = AstVisitStepResult (*)(Sema&, AstNode&);
+    using SemaPostNode = AstVisitStepResult (*)(Sema&, AstNode&);
+    using SemaPreChild = AstVisitStepResult (*)(Sema&, AstNode&, AstNodeRef&);
 
     CollectFunc  collectChildren;
     SemaPreNode  semaPreNode;
@@ -257,24 +257,24 @@ void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, const AstNode
 }
 
 template<AstNodeId ID>
-AstVisitStepResult semaPreNode(SemaJob& job, AstNode& node)
+AstVisitStepResult semaPreNode(Sema& sema, AstNode& node)
 {
     using NodeType = AstTypeOf<ID>::type;
-    return castAst<NodeType>(&node)->semaPreNode(job);
+    return castAst<NodeType>(&node)->semaPreNode(sema);
 }
 
 template<AstNodeId ID>
-AstVisitStepResult semaPostNode(SemaJob& job, AstNode& node)
+AstVisitStepResult semaPostNode(Sema& sema, AstNode& node)
 {
     using NodeType = AstTypeOf<ID>::type;
-    return castAst<NodeType>(&node)->semaPostNode(job);
+    return castAst<NodeType>(&node)->semaPostNode(sema);
 }
 
 template<AstNodeId ID>
-AstVisitStepResult semaPreChild(SemaJob& job, AstNode& node, AstNodeRef& childRef)
+AstVisitStepResult semaPreChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
 {
     using NodeType = AstTypeOf<ID>::type;
-    return castAst<NodeType>(&node)->semaPreChild(job, childRef);
+    return castAst<NodeType>(&node)->semaPreChild(sema, childRef);
 }
 
 constexpr std::array AST_NODE_ID_INFOS = {

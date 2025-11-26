@@ -72,6 +72,9 @@ ConstantRef ConstantManager::convert(const TaskContext& ctx, const ConstantValue
     ApsInt valueForCheck = value;
     valueForCheck.extOrTrunc(targetBits);
 
+    if (valueForCheck.isUnsigned() != targetUnsigned)
+        valueForCheck.setUnsigned(targetUnsigned);
+
     const ApsInt minVal = ApsInt::getMinValue(targetBits, targetUnsigned);
     const ApsInt maxVal = ApsInt::getMaxValue(targetBits, targetUnsigned);
 

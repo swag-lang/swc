@@ -59,7 +59,7 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(SemaJob& job)
     const ConstantRef newCst   = cstMgr.convert(ctx, nodeLiteralPtr.getSemaConstant(ctx), type, overflow);
     if (overflow)
     {
-        auto diag = job.reportError(DiagnosticId::sema_err_literal_overflow, srcViewRef(), tokRef());
+        auto diag = job.reportError(DiagnosticId::sema_err_literal_overflow, nodeLiteralPtr.srcViewRef(), nodeLiteralPtr.tokRef());
         diag.addArgument(Diagnostic::ARG_TYPE, type);
         diag.report(ctx);
         return AstVisitStepResult::Stop;

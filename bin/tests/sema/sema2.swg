@@ -14,4 +14,13 @@
 #assert(0xFFFFFFFF_FFFFFFFF_F == 0xFFFFFFFF_FFFFFFFF_F) // swc-expected-error {{sema_err_number_too_big}}
 #assert(0b11111111111111111111111111111111_111111111111111111111111111111110 == 0b11111111111111111111111111111111_111111111111111111111111111111110)  // swc-expected-error {{sema_err_number_too_big}}
 
-#print(1234's8)
+#assert(12's8 == 12's8)
+#assert(12's16 == 12's16)
+#assert(12's32 == 12's32)
+#assert(12's64 == 12's64)
+#assert(12'u8 == 12'u8)
+#assert(12'u16 == 12'u16)
+#assert(12'u32 == 12'u32)
+#assert(12'u64 == 12'u32)
+
+#assert(1244's8 == 0) // swc-expected-error {{sema_err_literal_overflow}}

@@ -79,8 +79,8 @@ TokenRef AstNode::tokRefEnd(const Ast& ast) const
     if (children.empty())
         return tokRef_;
 
-    const auto& nodePtr = ast.node(children.back());
-    return nodePtr->tokRefEnd(ast);
+    const AstNode& nodePtr = ast.node(children.back());
+    return nodePtr.tokRefEnd(ast);
 }
 
 SourceCodeLocation AstNode::location(const TaskContext& ctx, const Ast& ast) const
@@ -107,14 +107,14 @@ SourceCodeLocation AstNode::location(const TaskContext& ctx, const Ast& ast) con
         Ast::nodeIdInfos(leftMost->id()).collectChildren(children, ast, *leftMost);
         if (children.empty() || children.front().isInvalid())
             break;
-        const auto* childPtr = ast.node(children.front());
-        if (childPtr->srcViewRef() != baseViewRef)
+        const AstNode& childPtr = ast.node(children.front());
+        if (childPtr.srcViewRef() != baseViewRef)
             break;
-        const auto& childTok = view.token(childPtr->tokRef());
+        const auto& childTok = view.token(childPtr.tokRef());
         const auto  childLoc = childTok.location(ctx, view);
         if (childLoc.line != baseLine)
             break;
-        leftMost = childPtr;
+        leftMost = &childPtr;
         if (childLoc.offset < startLoc.offset)
             startLoc = childLoc;
     }
@@ -128,14 +128,14 @@ SourceCodeLocation AstNode::location(const TaskContext& ctx, const Ast& ast) con
         Ast::nodeIdInfos(rightMost->id()).collectChildren(children, ast, *rightMost);
         if (children.empty() || children.back().isInvalid())
             break;
-        const auto* childPtr = ast.node(children.back());
-        if (childPtr->srcViewRef() != baseViewRef)
+        const AstNode& childPtr = ast.node(children.back());
+        if (childPtr.srcViewRef() != baseViewRef)
             break;
-        const auto& childTok = view.token(childPtr->tokRef());
+        const auto& childTok = view.token(childPtr.tokRef());
         const auto  childLoc = childTok.location(ctx, view);
         if (childLoc.line != baseLine)
             break;
-        rightMost = childPtr;
+        rightMost = &childPtr;
         if (childLoc.offset > endLoc.offset)
             endLoc = childLoc;
     }

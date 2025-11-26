@@ -48,8 +48,8 @@ public:
         return castAst<NodeType>(store_.ptr<AstNode>(nodeRef.get()));
     }
 
-    AstNode*       node(AstNodeRef nodeRef) { return store_.ptr<AstNode>(nodeRef.get()); }
-    const AstNode* node(AstNodeRef nodeRef) const { return store_.ptr<AstNode>(nodeRef.get()); }
+    AstNode&       node(AstNodeRef nodeRef) { return *store_.ptr<AstNode>(nodeRef.get()); }
+    const AstNode& node(AstNodeRef nodeRef) const { return *store_.ptr<AstNode>(nodeRef.get()); }
 
     void nodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const;
 

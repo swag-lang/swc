@@ -29,8 +29,8 @@ public:
     const ConstantManager&  constMgr() const { return compiler().constMgr(); }
     TypeManager&            typeMgr() { return compiler().typeMgr(); }
     const TypeManager&      typeMgr() const { return compiler().typeMgr(); }
-    AstNode*                node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
-    const AstNode*          node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
+    AstNode&                node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
+    const AstNode&          node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
     const Token&            token(SourceViewRef srcViewRef, TokenRef tokenRef) const { return compiler().srcView(srcViewRef).token(tokenRef); }
 
     Diagnostic reportError(DiagnosticId id, AstNodeRef nodeRef);

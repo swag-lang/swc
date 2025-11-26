@@ -27,12 +27,12 @@ AstVisitStepResult AstBuiltinType::semaPostNode(SemaJob& job)
 AstVisitStepResult AstSuffixLiteral::semaPostNode(SemaJob& job)
 {
     auto&          ctx            = job.ctx();
-    const AstNode* nodeLiteralPtr = job.node(nodeLiteral);
-    const AstNode* nodeSuffixPtr  = job.node(nodeSuffix);
+    const AstNode& nodeLiteralPtr = job.node(nodeLiteral);
+    const AstNode& nodeSuffixPtr  = job.node(nodeSuffix);
 
-    const TypeInfoRef type     = nodeSuffixPtr->getNodeTypeRef(ctx);
+    const TypeInfoRef type     = nodeSuffixPtr.getNodeTypeRef(ctx);
     bool              overflow = false;
-    const ConstantRef newCst   = ctx.compiler().constMgr().convert(ctx, nodeLiteralPtr->getSemaConstant(ctx), type, overflow);
+    const ConstantRef newCst   = ctx.compiler().constMgr().convert(ctx, nodeLiteralPtr.getSemaConstant(ctx), type, overflow);
     setSemaConstant(newCst);
 
     return AstVisitStepResult::Continue;

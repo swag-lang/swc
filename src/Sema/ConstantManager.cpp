@@ -68,17 +68,38 @@ ConstantRef ConstantManager::convert(const TaskContext& ctx, const ConstantValue
     // Make a working copy of the integer value
     ApsInt value = src.getInt();
 
-    // Keep original signedness for the check
+    // Create a copy for overflow checking with the SOURCE signedness
     ApsInt valueForCheck = value;
-    valueForCheck.resize(targetBits);
 
+    // Set the target signedness for comparison
     if (valueForCheck.isUnsigned() != targetUnsigned)
         valueForCheck.setUnsigned(targetUnsigned);
 
+    // Get min/max values for the target type
     const ApsInt minVal = ApsInt::minValue(targetBits, targetUnsigned);
     const ApsInt maxVal = ApsInt::maxValue(targetBits, targetUnsigned);
 
-    overflow = (valueForCheck < minVal || valueForCheck > maxVal);
+    // Extend valueForCheck to match the bit width for comparison
+    // This ensures we can properly compare against min/max without truncation
+    const uint32_t sourceBits = valueForCheck.bitWidth();
+    if (sourceBits < targetBits)
+    {
+        valueForCheck.resize(targetBits);
+    }
+
+    // Also extend min/max to the source bit width if needed for comparison
+    ApsInt minValExtended = minVal;
+    ApsInt maxValExtended = maxVal;
+    if (targetBits < sourceBits)
+    {
+        minValExtended.resize(sourceBits);
+        maxValExtended.resize(sourceBits);
+        overflow = (valueForCheck < minValExtended || valueForCheck > maxValExtended);
+    }
+    else
+    {
+        overflow = (valueForCheck < minVal || valueForCheck > maxVal);
+    }
 
     // Now normalize to the target representation
     if (value.isUnsigned() != targetUnsigned)
@@ -94,5 +115,4 @@ ConstantRef ConstantManager::convert(const TaskContext& ctx, const ConstantValue
     result.int_.val = value;
     return addConstant(ctx, result);
 }
-
 SWC_END_NAMESPACE()

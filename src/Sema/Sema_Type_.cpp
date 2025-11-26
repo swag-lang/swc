@@ -1,4 +1,6 @@
 #include "pch.h"
+
+#include "ConstantManager.h"
 #include "Parser/AstVisit.h"
 #include "Sema/SemaJob.h"
 #include "TypeManager.h"
@@ -24,11 +26,15 @@ AstVisitStepResult AstBuiltinType::semaPostNode(SemaJob& job)
 
 AstVisitStepResult AstSuffixLiteral::semaPostNode(SemaJob& job)
 {
-    const auto& ctx            = job.ctx();
-    const auto& nodeLiteralPtr = job.node(nodeLiteral);
-    const auto& nodeSuffixPtr  = job.node(nodeSuffix);
+    auto&          ctx            = job.ctx();
+    const AstNode* nodeLiteralPtr = job.node(nodeLiteral);
+    const AstNode* nodeSuffixPtr  = job.node(nodeSuffix);
 
-    setSemaConstant(nodeLiteralPtr->getSemaConstantRef(ctx));
+    const TypeInfoRef type     = nodeSuffixPtr->getNodeTypeRef(ctx);
+    bool              overflow = false;
+    const ConstantRef newCst   = ctx.compiler().constMgr().convert(ctx, nodeLiteralPtr->getSemaConstant(ctx), type, overflow);
+    setSemaConstant(newCst);
+
     return AstVisitStepResult::Continue;
 }
 

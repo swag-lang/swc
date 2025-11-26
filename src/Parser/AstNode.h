@@ -92,6 +92,9 @@ struct AstNode
     bool                 isSemaType() const { return hasSemaFlag(SemaFlagE::IsType); }
     void                 setSemaType(TypeInfoRef ref);
     const TypeInfo&      getSemaType(const TaskContext& ctx) const;
+    TypeInfoRef          getSemaTypeRef(const TaskContext& ctx) const;
+
+    TypeInfoRef getNodeTypeRef(const TaskContext& ctx) const;
 
     AstNodeId     id() const { return id_; }
     void          setId(AstNodeId id) { id_ = id; }

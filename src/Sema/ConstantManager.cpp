@@ -51,7 +51,7 @@ const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
     return *store_.ptr<ConstantValue>(constantRef.get());
 }
 
-ConstantValue ConstantManager::convert(const TaskContext& ctx, const ConstantValue& src, TypeInfoRef targetTypeRef, bool& overflow)
+ConstantRef ConstantManager::convert(const TaskContext& ctx, const ConstantValue& src, TypeInfoRef targetTypeRef, bool& overflow)
 {
     SWC_ASSERT(src.isInt());
 
@@ -89,7 +89,7 @@ ConstantValue ConstantManager::convert(const TaskContext& ctx, const ConstantVal
     result.kind_    = ConstantKind::Int;
     result.typeRef_ = targetTypeRef;
     result.int_.val = value;
-    return result;
+    return addConstant(ctx, result);
 }
 
 SWC_END_NAMESPACE()

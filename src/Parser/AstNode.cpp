@@ -32,7 +32,7 @@ void AstNode::setSemaType(TypeInfoRef ref)
 {
     SWC_ASSERT(ref.isValid());
     semaFlags_.clearMask(SemaFlagE::RefMask);
-    addSemaFlag(SemaFlagE::IsConst);
+    addSemaFlag(SemaFlagE::IsType);
     sema_.type = ref;
 }
 
@@ -52,6 +52,21 @@ const TypeInfo& AstNode::getSemaType(const TaskContext& ctx) const
 {
     SWC_ASSERT(isSemaType());
     return ctx.compiler().typeMgr().get(sema_.type);
+}
+
+TypeInfoRef AstNode::getSemaTypeRef(const TaskContext& ctx) const
+{
+    SWC_ASSERT(isSemaType());
+    return sema_.type;
+}
+
+TypeInfoRef AstNode::getNodeTypeRef(const TaskContext& ctx) const
+{
+    if (isSemaConstant())
+        return getSemaConstant(ctx).typeRef();
+    if (isSemaType())
+        return getSemaTypeRef(ctx);
+    return TypeInfoRef::invalid();
 }
 
 TokenRef AstNode::tokRefEnd(const Ast& ast) const

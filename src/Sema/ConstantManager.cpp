@@ -70,7 +70,7 @@ ConstantRef ConstantManager::convert(const TaskContext& ctx, const ConstantValue
 
     // Keep original signedness for the check
     ApsInt valueForCheck = value;
-    valueForCheck.extOrTrunc(targetBits);
+    valueForCheck.resize(targetBits);
 
     if (valueForCheck.isUnsigned() != targetUnsigned)
         valueForCheck.setUnsigned(targetUnsigned);
@@ -85,7 +85,7 @@ ConstantRef ConstantManager::convert(const TaskContext& ctx, const ConstantValue
         value.setUnsigned(targetUnsigned);
 
     // Finally, adjust the bit width to the target (this may wrap if overflow == true)
-    value.setBitWidth(targetBits);
+    value.resize(targetBits);
 
     // Build the resulting constant with the *target* integer type
     ConstantValue result;

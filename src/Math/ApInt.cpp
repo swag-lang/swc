@@ -112,6 +112,13 @@ int ApInt::compareValues(const ApInt& i1, const ApInt& i2)
     return 0;
 }
 
+bool ApInt::same(const ApInt& other) const
+{
+    if (bitWidth_ != other.bitWidth_)
+        return false;
+    return isSameValue(other, *this);
+}
+
 uint64_t ApInt::hash() const
 {
     auto h = std::hash<int>()(static_cast<int>(bitWidth_));

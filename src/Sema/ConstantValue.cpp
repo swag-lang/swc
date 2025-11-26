@@ -59,9 +59,9 @@ bool ConstantValue::operator==(const ConstantValue& other) const noexcept
         case ConstantKind::String:
             return getString() == other.getString();
         case ConstantKind::Int:
-            return ApsInt::isSameValue(getInt(), other.getInt());
+            return getInt().same(other.getInt());
         case ConstantKind::Float:
-            return getFloat().equals(other.getFloat());
+            return getFloat().same(other.getFloat());
 
         default:
             SWC_UNREACHABLE();

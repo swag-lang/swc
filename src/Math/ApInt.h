@@ -26,13 +26,13 @@ public:
     explicit ApInt(uint64_t value, uint32_t bitWidth);
 
     uint32_t bitWidth() const { return bitWidth_; }
-    void     setBitWidth(uint32_t bitWidth) { bitWidth_ = bitWidth; }
     bool     fits64() const;
     uint64_t to64() const;
 
     static bool isSameValue(const ApInt& i1, const ApInt& i2);
     static int  compareValues(const ApInt& i1, const ApInt& i2);
 
+    bool     same(const ApInt& other) const;
     uint64_t hash() const;
 
     bool     isZero() const;

@@ -40,7 +40,7 @@ public:
     static ApsInt getMinValue(uint32_t bitWidth, bool isUnsigned);
     static ApsInt getMaxValue(uint32_t bitWidth, bool isUnsigned);
 
-    void extOrTrunc(uint32_t newBits)
+    void resize(uint32_t newBits)
     {
         if (isUnsigned_)
             resizeUnsigned(newBits);

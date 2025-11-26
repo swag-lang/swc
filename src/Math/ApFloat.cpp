@@ -5,7 +5,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-bool ApFloat::equals(const ApFloat& other) const
+bool ApFloat::same(const ApFloat& other) const
 {
     return true;
 }

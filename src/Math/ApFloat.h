@@ -13,7 +13,7 @@ public:
     {
     }
 
-    bool     equals(const ApFloat& other) const;
+    bool     same(const ApFloat& other) const;
     size_t   hash() const;
     uint32_t bitWidth() const { return bitWidth_; }
 };

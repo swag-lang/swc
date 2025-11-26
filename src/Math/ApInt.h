@@ -60,6 +60,17 @@ public:
     static ApInt getMinSignedValue(uint32_t bitWidth);
     static ApInt getMaxValue(uint32_t bitWidth);
     static ApInt getMaxSignedValue(uint32_t bitWidth);
+
+    bool eq(const ApInt& rhs) const;
+    bool ne(const ApInt& rhs) const;
+    bool ult(const ApInt& rhs) const;
+    bool ule(const ApInt& rhs) const;
+    bool ugt(const ApInt& rhs) const;
+    bool uge(const ApInt& rhs) const;
+    bool slt(const ApInt& rhs) const;
+    bool sle(const ApInt& rhs) const;
+    bool sgt(const ApInt& rhs) const;
+    bool sge(const ApInt& rhs) const;
 };
 
 SWC_END_NAMESPACE()

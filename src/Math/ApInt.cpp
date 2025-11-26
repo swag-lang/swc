@@ -536,4 +536,102 @@ ApInt ApInt::getMaxSignedValue(uint32_t bitWidth)
     }
 }
 
+bool ApInt::eq(const ApInt& rhs) const
+{
+    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+    return isSameValue(*this, rhs);
+}
+
+bool ApInt::ne(const ApInt& rhs) const
+{
+    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+    return !isSameValue(*this, rhs);
+}
+
+bool ApInt::ult(const ApInt& rhs) const
+{
+    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+    return compareValues(*this, rhs) < 0;
+}
+
+bool ApInt::ule(const ApInt& rhs) const
+{
+    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+    return compareValues(*this, rhs) <= 0;
+}
+
+bool ApInt::ugt(const ApInt& rhs) const
+{
+    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+    return compareValues(*this, rhs) > 0;
+}
+
+bool ApInt::uge(const ApInt& rhs) const
+{
+    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+    return compareValues(*this, rhs) >= 0;
+}
+
+bool ApInt::slt(const ApInt& rhs) const
+{
+    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+
+    const bool thisNeg = isNegative();
+    const bool rhsNeg  = rhs.isNegative();
+
+    if (thisNeg != rhsNeg)
+        return thisNeg;
+
+    // Same signs: Use unsigned comparison but reverse the result if both are negative.
+    const int result = compareValues(*this, rhs);
+    return thisNeg ? (result > 0) : (result < 0);
+}
+
+bool ApInt::sle(const ApInt& rhs) const
+{
+    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+
+    const bool thisNeg = isNegative();
+    const bool rhsNeg  = rhs.isNegative();
+
+    if (thisNeg != rhsNeg)
+        return thisNeg;
+
+    // Same signs: Use unsigned comparison but reverse the result for a negative case.
+    const int result = compareValues(*this, rhs);
+    return thisNeg ? (result >= 0) : (result <= 0);
+}
+
+bool ApInt::sgt(const ApInt& rhs) const
+{
+    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+
+    const bool thisNeg = isNegative();
+    const bool rhsNeg  = rhs.isNegative();
+
+    if (thisNeg != rhsNeg)
+        return !thisNeg;
+
+    // Same signs: Use unsigned comparison but reverse the result for a negative case.
+    const int result = compareValues(*this, rhs);
+    return thisNeg ? (result < 0) : (result > 0);
+}
+
+bool ApInt::sge(const ApInt& rhs) const
+{
+    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+
+    const bool thisNeg = isNegative();
+    const bool rhsNeg  = rhs.isNegative();
+
+    if (thisNeg != rhsNeg)
+    {
+        return !thisNeg;
+    }
+
+    // Same signs: Use unsigned comparison but reverse the result for a negative case.
+    const int result = compareValues(*this, rhs);
+    return thisNeg ? (result <= 0) : (result >= 0);
+}
+
 SWC_END_NAMESPACE()

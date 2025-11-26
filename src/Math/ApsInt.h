@@ -39,6 +39,41 @@ public:
 
     static ApsInt getMinValue(uint32_t bitWidth, bool isUnsigned);
     static ApsInt getMaxValue(uint32_t bitWidth, bool isUnsigned);
+
+    bool operator<(const ApsInt& rhs) const
+    {
+        SWC_ASSERT(isUnsigned_ == rhs.isUnsigned_);
+        return isUnsigned_ ? ult(rhs) : slt(rhs);
+    }
+
+    bool operator>(const ApsInt& rhs) const
+    {
+        SWC_ASSERT(isUnsigned_ == rhs.isUnsigned_);
+        return isUnsigned_ ? ugt(rhs) : sgt(rhs);
+    }
+
+    bool operator<=(const ApsInt& rhs) const
+    {
+        SWC_ASSERT(isUnsigned_ == rhs.isUnsigned_);
+        return isUnsigned_ ? ule(rhs) : sle(rhs);
+    }
+
+    bool operator>=(const ApsInt& rhs) const
+    {
+        SWC_ASSERT(isUnsigned_ == rhs.isUnsigned_);
+        return isUnsigned_ ? uge(rhs) : sge(rhs);
+    }
+
+    bool operator==(const ApsInt& rhs) const
+    {
+        SWC_ASSERT(isUnsigned_ == rhs.isUnsigned_);
+        return eq(rhs);
+    }
+
+    bool operator!=(const ApsInt& rhs) const
+    {
+        return ne(rhs);
+    }
 };
 
 SWC_END_NAMESPACE()

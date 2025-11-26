@@ -35,7 +35,7 @@ AstVisitResult AstVisit::step()
         {
             SWC_ASSERT(fr.nodeRef.isValid());
 
-            fr.node = ast_->node(fr.nodeRef);
+            fr.node = &ast_->node(fr.nodeRef);
 
             SWC_ASSERT(fr.node->isNot(AstNodeId::Invalid));
             SWC_ASSERT(fr.node->id() < AstNodeId::Count);

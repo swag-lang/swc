@@ -29,10 +29,10 @@ ConstantValue ConstantValue::makeString(const TaskContext& ctx, std::string_view
     return cv;
 }
 
-ConstantValue ConstantValue::makeApsInt(const TaskContext& ctx, const ApsInt& value)
+ConstantValue ConstantValue::makeApsInt(const TaskContext& ctx, const ApsInt& value, uint32_t bitWidth)
 {
     ConstantValue cv;
-    cv.typeRef_ = ctx.compiler().typeMgr().getTypeInt(0, value.isUnsigned());
+    cv.typeRef_ = ctx.compiler().typeMgr().getTypeInt(bitWidth, value.isUnsigned());
     cv.kind_    = ConstantKind::Int;
     cv.int_.val = value;
     return cv;

@@ -109,10 +109,7 @@ ConstantRef ConstantManager::convert(const TaskContext& ctx, const ConstantValue
     value.resize(targetBits);
 
     // Build the resulting constant with the *target* integer type
-    ConstantValue result;
-    result.kind_    = ConstantKind::Int;
-    result.typeRef_ = targetTypeRef;
-    result.int_.val = value;
+    const ConstantValue result = ConstantValue::makeApsInt(ctx, value, targetBits);
     return addConstant(ctx, result);
 }
 SWC_END_NAMESPACE()

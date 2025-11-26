@@ -8,7 +8,7 @@ SWC_BEGIN_NAMESPACE()
 Diagnostic SemaJob::reportError(DiagnosticId id, AstNodeRef nodeRef)
 {
     auto       diag = Diagnostic::get(id, ast().srcView().fileRef());
-    const auto loc  = node(nodeRef)->location(ctx(), ast());
+    const auto loc  = node(nodeRef).location(ctx(), ast());
     diag.last().addSpan(loc, "");
     return diag;
 }

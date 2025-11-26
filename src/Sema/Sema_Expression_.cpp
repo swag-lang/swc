@@ -10,12 +10,12 @@ namespace
 {
     ConstantRef constantFoldBinaryExpr(SemaJob& job, TokenId op, AstNodeRef left, AstNodeRef right)
     {
-        const auto& ctx      = job.ctx();
-        auto&       constMgr = job.constMgr();
-        const auto  leftPtr  = job.node(left);
-        const auto  rightPtr = job.node(right);
-        const auto& leftCst  = leftPtr->getSemaConstant(ctx);
-        const auto& rightCst = rightPtr->getSemaConstant(ctx);
+        const auto&    ctx      = job.ctx();
+        auto&          constMgr = job.constMgr();
+        const AstNode& leftPtr  = job.node(left);
+        const AstNode& rightPtr = job.node(right);
+        const auto&    leftCst  = leftPtr.getSemaConstant(ctx);
+        const auto&    rightCst = rightPtr.getSemaConstant(ctx);
 
         switch (op)
         {
@@ -35,12 +35,12 @@ namespace
 
     ConstantRef constantFoldRelationalExpr(SemaJob& job, TokenId op, AstNodeRef left, AstNodeRef right)
     {
-        const auto& ctx      = job.ctx();
-        auto&       constMgr = job.constMgr();
-        const auto  leftPtr  = job.node(left);
-        const auto  rightPtr = job.node(right);
-        const auto& leftCst  = leftPtr->getSemaConstant(ctx);
-        const auto& rightCst = rightPtr->getSemaConstant(ctx);
+        const auto&    ctx      = job.ctx();
+        auto&          constMgr = job.constMgr();
+        const AstNode& leftPtr  = job.node(left);
+        const AstNode& rightPtr = job.node(right);
+        const auto&    leftCst  = leftPtr.getSemaConstant(ctx);
+        const auto&    rightCst = rightPtr.getSemaConstant(ctx);
 
         switch (op)
         {
@@ -60,11 +60,11 @@ namespace
 
 AstVisitStepResult AstBinaryExpr::semaPostNode(SemaJob& job)
 {
-    const auto& tok          = job.token(srcViewRef(), tokRef());
-    const auto  nodeLeftPtr  = job.node(nodeLeft);
-    const auto  nodeRightPtr = job.node(nodeRight);
+    const auto&    tok          = job.token(srcViewRef(), tokRef());
+    const AstNode& nodeLeftPtr  = job.node(nodeLeft);
+    const AstNode& nodeRightPtr = job.node(nodeRight);
 
-    if (nodeLeftPtr->isSemaConstant() && nodeRightPtr->isSemaConstant())
+    if (nodeLeftPtr.isSemaConstant() && nodeRightPtr.isSemaConstant())
     {
         const auto cst = constantFoldBinaryExpr(job, tok.id, nodeLeft, nodeRight);
         if (cst.isValid())
@@ -80,11 +80,11 @@ AstVisitStepResult AstBinaryExpr::semaPostNode(SemaJob& job)
 
 AstVisitStepResult AstRelationalExpr::semaPostNode(SemaJob& job)
 {
-    const auto& tok          = job.token(srcViewRef(), tokRef());
-    const auto  nodeLeftPtr  = job.node(nodeLeft);
-    const auto  nodeRightPtr = job.node(nodeRight);
+    const auto&    tok          = job.token(srcViewRef(), tokRef());
+    const AstNode& nodeLeftPtr  = job.node(nodeLeft);
+    const AstNode& nodeRightPtr = job.node(nodeRight);
 
-    if (nodeLeftPtr->isSemaConstant() && nodeRightPtr->isSemaConstant())
+    if (nodeLeftPtr.isSemaConstant() && nodeRightPtr.isSemaConstant())
     {
         const auto cst = constantFoldRelationalExpr(job, tok.id, nodeLeft, nodeRight);
         if (cst.isValid())

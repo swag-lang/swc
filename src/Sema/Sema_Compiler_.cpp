@@ -15,14 +15,14 @@ AstVisitStepResult AstCompilerIf::semaPreChild(SemaJob& job, const AstNodeRef& c
     if (childRef == nodeCondition)
         return AstVisitStepResult::Continue;
 
-    const auto nodeConditionPtr = job.node(nodeCondition);
-    if (!nodeConditionPtr->isSemaConstant())
+    const AstNode& nodeConditionPtr = job.node(nodeCondition);
+    if (!nodeConditionPtr.isSemaConstant())
     {
         job.raiseError(DiagnosticId::sema_err_expr_not_const, nodeCondition);
         return AstVisitStepResult::Stop;
     }
 
-    const auto& constant = nodeConditionPtr->getSemaConstant(job.ctx());
+    const auto& constant = nodeConditionPtr.getSemaConstant(job.ctx());
     if (!constant.isBool())
     {
         job.raiseInvalidType(nodeCondition, job.typeMgr().getTypeBool(), constant.typeRef());
@@ -39,16 +39,16 @@ AstVisitStepResult AstCompilerIf::semaPreChild(SemaJob& job, const AstNodeRef& c
 
 AstVisitStepResult AstCompilerDiagnostic::semaPostNode(SemaJob& job) const
 {
-    const auto& tok        = job.token(srcViewRef(), tokRef());
-    const auto  nodeArgPtr = job.node(nodeArg);
+    const auto&    tok        = job.token(srcViewRef(), tokRef());
+    const AstNode& nodeArgPtr = job.node(nodeArg);
 
-    if (!nodeArgPtr->isSemaConstant())
+    if (!nodeArgPtr.isSemaConstant())
     {
         job.raiseError(DiagnosticId::sema_err_expr_not_const, nodeArg);
         return AstVisitStepResult::Stop;
     }
 
-    const auto& constant = nodeArgPtr->getSemaConstant(job.ctx());
+    const auto& constant = nodeArgPtr.getSemaConstant(job.ctx());
 
     switch (tok.id)
     {

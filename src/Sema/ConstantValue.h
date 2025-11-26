@@ -57,7 +57,7 @@ public:
 
     static ConstantValue makeBool(const TaskContext& ctx, bool value);
     static ConstantValue makeString(const TaskContext& ctx, std::string_view value);
-    static ConstantValue makeApsInt(const TaskContext& ctx, const ApsInt& value);
+    static ConstantValue makeApsInt(const TaskContext& ctx, const ApsInt& value, uint32_t bitWidth = 0);
     static ConstantValue makeFloat(const TaskContext& ctx, const ApFloat& value);
 
     Utf8 toString() const;

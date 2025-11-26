@@ -86,23 +86,23 @@ void ApInt::resetToZero()
     clearWords();
 }
 
-bool ApInt::equals(const ApInt& other) const
+bool ApInt::isSameValue(const ApInt& i1, const ApInt& i2)
 {
-    if (bitWidth_ != other.bitWidth_)
+    if (i1.bitWidth_ != i2.bitWidth_)
         return false;
-    SWC_ASSERT(numWords_ == other.numWords_);
-    return std::equal(words_, words_ + numWords_, other.words_);
+    SWC_ASSERT(i1.numWords_ == i2.numWords_);
+    return std::equal(i1.words_, i1.words_ + i1.numWords_, i2.words_);
 }
 
-int ApInt::compare(const ApInt& other) const
+int ApInt::compareValues(const ApInt& i1, const ApInt& i2)
 {
-    SWC_ASSERT(bitWidth_ == other.bitWidth_);
-    SWC_ASSERT(numWords_ == other.numWords_);
+    SWC_ASSERT(i1.bitWidth_ == i2.bitWidth_);
+    SWC_ASSERT(i1.numWords_ == i2.numWords_);
 
-    for (int i = static_cast<int>(numWords_) - 1; i >= 0; --i)
+    for (int i = static_cast<int>(i1.numWords_) - 1; i >= 0; --i)
     {
-        const uint64_t a = words_[static_cast<uint32_t>(i)];
-        const uint64_t b = other.words_[static_cast<uint32_t>(i)];
+        const uint64_t a = i1.words_[static_cast<uint32_t>(i)];
+        const uint64_t b = i2.words_[static_cast<uint32_t>(i)];
         if (a < b)
             return -1;
         if (a > b)
@@ -425,6 +425,115 @@ bool ApInt::isNonPositive() const
 uint64_t ApInt::getSignBit() const
 {
     return isSignBitSet() ? ONE : ZERO;
+}
+
+namespace
+{
+    ApInt makeMinValue(uint32_t bitWidth)
+    {
+        ApInt result(bitWidth);
+        result.resetToZero();
+        return result;
+    }
+
+    ApInt makeMinSignedValue(uint32_t bitWidth)
+    {
+        ApInt result(bitWidth);
+        result.resetToZero();
+        result.setBit(bitWidth - 1);
+        return result;
+    }
+
+    ApInt makeMaxValue(uint32_t bitWidth)
+    {
+        ApInt result(bitWidth);
+        result.setAllBits();
+        return result;
+    }
+
+    ApInt makeMaxSignedValue(uint32_t bitWidth)
+    {
+        ApInt result(bitWidth);
+        result.setAllBits();
+        result.clearBit(bitWidth - 1);
+        return result;
+    }
+}
+
+ApInt ApInt::getMinValue(uint32_t bitWidth)
+{
+    static const ApInt U8   = makeMinValue(8);
+    static const ApInt U16  = makeMinValue(16);
+    static const ApInt U32  = makeMinValue(32);
+    static const ApInt U64  = makeMinValue(64);
+    static const ApInt U128 = makeMinValue(128);
+
+    switch (bitWidth)
+    {
+        case 8: return U8;
+        case 16: return U16;
+        case 32: return U32;
+        case 64: return U64;
+        case 128: return U128;
+        default: return makeMinValue(bitWidth);
+    }
+}
+
+ApInt ApInt::getMinSignedValue(uint32_t bitWidth)
+{
+    static const ApInt S8   = makeMinSignedValue(8);
+    static const ApInt S16  = makeMinSignedValue(16);
+    static const ApInt S32  = makeMinSignedValue(32);
+    static const ApInt S64  = makeMinSignedValue(64);
+    static const ApInt S128 = makeMinSignedValue(128);
+
+    switch (bitWidth)
+    {
+        case 8: return S8;
+        case 16: return S16;
+        case 32: return S32;
+        case 64: return S64;
+        case 128: return S128;
+        default: return makeMinSignedValue(bitWidth);
+    }
+}
+
+ApInt ApInt::getMaxValue(uint32_t bitWidth)
+{
+    static const ApInt U8   = makeMaxValue(8);
+    static const ApInt U16  = makeMaxValue(16);
+    static const ApInt U32  = makeMaxValue(32);
+    static const ApInt U64  = makeMaxValue(64);
+    static const ApInt U128 = makeMaxValue(128);
+
+    switch (bitWidth)
+    {
+        case 8: return U8;
+        case 16: return U16;
+        case 32: return U32;
+        case 64: return U64;
+        case 128: return U128;
+        default: return makeMaxValue(bitWidth);
+    }
+}
+
+ApInt ApInt::getMaxSignedValue(uint32_t bitWidth)
+{
+    static const ApInt S8   = makeMaxSignedValue(8);
+    static const ApInt S16  = makeMaxSignedValue(16);
+    static const ApInt S32  = makeMaxSignedValue(32);
+    static const ApInt S64  = makeMaxSignedValue(64);
+    static const ApInt S128 = makeMaxSignedValue(128);
+
+    switch (bitWidth)
+    {
+        case 8: return S8;
+        case 16: return S16;
+        case 32: return S32;
+        case 64: return S64;
+        case 128: return S128;
+        default: return makeMaxSignedValue(bitWidth);
+    }
 }
 
 SWC_END_NAMESPACE()

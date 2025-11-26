@@ -26,15 +26,15 @@ class ConstantValue
     union
     {
         // clang-format off
+        struct { std::string_view val; } string_{};
         struct { bool val; } bool_;
-        struct { std::string_view val; } string_;
         struct { ApsInt val; } int_;
         struct { ApFloat val; } float_;
         // clang-format on
     };
 
 public:
-    ConstantValue() {}
+    ConstantValue() {};
 
     bool operator==(const ConstantValue& other) const noexcept;
 

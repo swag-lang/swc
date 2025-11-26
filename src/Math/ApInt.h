@@ -4,7 +4,7 @@ SWC_BEGIN_NAMESPACE()
 
 class ApInt
 {
-    static constexpr unsigned MAX_BITS = 64;
+    static constexpr unsigned MAX_BITS = 128;
     static_assert(MAX_BITS <= 255, "ApInt is only supported up to 255 bits");
     static constexpr uint64_t WORD_BITS = sizeof(uint64_t) * 8;
     static constexpr uint64_t MAX_WORDS = (MAX_BITS + WORD_BITS - 1) / WORD_BITS;
@@ -26,11 +26,13 @@ public:
     explicit ApInt(uint64_t value, uint32_t bitWidth);
 
     uint32_t bitWidth() const { return bitWidth_; }
+    void     setBitWidth(uint32_t bitWidth) { bitWidth_ = bitWidth; }
     bool     fits64() const;
     uint64_t to64() const;
 
-    bool     equals(const ApInt& other) const;
-    int      compare(const ApInt& other) const;
+    static bool isSameValue(const ApInt& i1, const ApInt& i2);
+    static int  compareValues(const ApInt& i1, const ApInt& i2);
+
     uint64_t hash() const;
 
     bool     isZero() const;
@@ -53,6 +55,11 @@ public:
     void     add(uint64_t v, bool& overflow);
     void     mul(uint64_t v, bool& overflow);
     uint64_t div(uint64_t v);
+
+    static ApInt getMinValue(uint32_t bitWidth);
+    static ApInt getMinSignedValue(uint32_t bitWidth);
+    static ApInt getMaxValue(uint32_t bitWidth);
+    static ApInt getMaxSignedValue(uint32_t bitWidth);
 };
 
 SWC_END_NAMESPACE()

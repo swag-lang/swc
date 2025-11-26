@@ -17,7 +17,6 @@ ConstantValue ConstantValue::makeBool(const TaskContext& ctx, bool value)
     cv.typeRef_  = ctx.compiler().typeMgr().getTypeBool();
     cv.kind_     = ConstantKind::Bool;
     cv.bool_.val = value;
-    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
 
@@ -27,17 +26,15 @@ ConstantValue ConstantValue::makeString(const TaskContext& ctx, std::string_view
     cv.typeRef_    = ctx.compiler().typeMgr().getTypeString();
     cv.kind_       = ConstantKind::String;
     cv.string_.val = value;
-    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
 
 ConstantValue ConstantValue::makeApsInt(const TaskContext& ctx, const ApsInt& value)
 {
     ConstantValue cv;
-    cv.typeRef_ = ctx.compiler().typeMgr().getTypeInt(0, value.isSigned());
+    cv.typeRef_ = ctx.compiler().typeMgr().getTypeInt(0, value.isUnsigned());
     cv.kind_    = ConstantKind::Int;
     cv.int_.val = value;
-    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
 
@@ -47,7 +44,6 @@ ConstantValue ConstantValue::makeFloat(const TaskContext& ctx, const ApFloat& va
     cv.typeRef_   = ctx.compiler().typeMgr().getTypeFloat(value.bitWidth());
     cv.kind_      = ConstantKind::Float;
     cv.float_.val = value;
-    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
 
@@ -63,7 +59,7 @@ bool ConstantValue::operator==(const ConstantValue& other) const noexcept
         case ConstantKind::String:
             return getString() == other.getString();
         case ConstantKind::Int:
-            return getInt().equals(other.getInt());
+            return ApsInt::compareValues(getInt(), other.getInt());
         case ConstantKind::Float:
             return getFloat().equals(other.getFloat());
 

@@ -5,44 +5,45 @@ SWC_BEGIN_NAMESPACE()
 
 class ApsInt : public ApInt
 {
-    static constexpr uint64_t ZERO        = 0;
-    static constexpr uint64_t ONE         = 1;
-    bool                      isUnsigned_ = false;
+    static constexpr uint64_t ZERO      = 0;
+    static constexpr uint64_t ONE       = 1;
+    bool                      unsigned_ = false;
 
 public:
     ApsInt() = delete;
 
     explicit ApsInt(const ApInt& value, bool isUnSigned) :
         ApInt(value),
-        isUnsigned_(isUnSigned)
+        unsigned_(isUnSigned)
     {
     }
 
     explicit ApsInt(bool isUnSigned) :
-        isUnsigned_(isUnSigned)
+        unsigned_(isUnSigned)
     {
     }
 
     explicit ApsInt(uint32_t bitWidth, bool isUnSigned) :
         ApInt(bitWidth),
-        isUnsigned_(isUnSigned)
+        unsigned_(isUnSigned)
     {
     }
 
-    bool isUnsigned() const { return isUnsigned_; }
-    void setUnsigned(bool isUnSigned) { isUnsigned_ = isUnSigned; }
+    bool isUnsigned() const { return unsigned_; }
+    void setUnsigned(bool isUnSigned) { unsigned_ = isUnSigned; }
 
     static bool compareValues(const ApsInt& i1, const ApsInt& i2);
     static bool isSameValue(const ApsInt& i1, const ApsInt& i2);
 
     uint64_t hash() const;
+    bool     same(const ApsInt& other) const;
 
-    static ApsInt getMinValue(uint32_t bitWidth, bool isUnsigned);
-    static ApsInt getMaxValue(uint32_t bitWidth, bool isUnsigned);
+    static ApsInt minValue(uint32_t bitWidth, bool isUnsigned);
+    static ApsInt maxValue(uint32_t bitWidth, bool isUnsigned);
 
     void resize(uint32_t newBits)
     {
-        if (isUnsigned_)
+        if (unsigned_)
             resizeUnsigned(newBits);
         else
             resizeSigned(newBits);
@@ -50,31 +51,31 @@ public:
 
     bool operator<(const ApsInt& rhs) const
     {
-        SWC_ASSERT(isUnsigned_ == rhs.isUnsigned_);
-        return isUnsigned_ ? ult(rhs) : slt(rhs);
+        SWC_ASSERT(unsigned_ == rhs.unsigned_);
+        return unsigned_ ? ult(rhs) : slt(rhs);
     }
 
     bool operator>(const ApsInt& rhs) const
     {
-        SWC_ASSERT(isUnsigned_ == rhs.isUnsigned_);
-        return isUnsigned_ ? ugt(rhs) : sgt(rhs);
+        SWC_ASSERT(unsigned_ == rhs.unsigned_);
+        return unsigned_ ? ugt(rhs) : sgt(rhs);
     }
 
     bool operator<=(const ApsInt& rhs) const
     {
-        SWC_ASSERT(isUnsigned_ == rhs.isUnsigned_);
-        return isUnsigned_ ? ule(rhs) : sle(rhs);
+        SWC_ASSERT(unsigned_ == rhs.unsigned_);
+        return unsigned_ ? ule(rhs) : sle(rhs);
     }
 
     bool operator>=(const ApsInt& rhs) const
     {
-        SWC_ASSERT(isUnsigned_ == rhs.isUnsigned_);
-        return isUnsigned_ ? uge(rhs) : sge(rhs);
+        SWC_ASSERT(unsigned_ == rhs.unsigned_);
+        return unsigned_ ? uge(rhs) : sge(rhs);
     }
 
     bool operator==(const ApsInt& rhs) const
     {
-        SWC_ASSERT(isUnsigned_ == rhs.isUnsigned_);
+        SWC_ASSERT(unsigned_ == rhs.unsigned_);
         return eq(rhs);
     }
 

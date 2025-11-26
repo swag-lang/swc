@@ -29,7 +29,7 @@ public:
     bool     fits64() const;
     uint64_t to64() const;
 
-    static bool isSameValue(const ApInt& i1, const ApInt& i2);
+    static bool sameValue(const ApInt& i1, const ApInt& i2);
     static int  compareValues(const ApInt& i1, const ApInt& i2);
 
     bool     same(const ApInt& other) const;
@@ -56,10 +56,10 @@ public:
     void     mul(uint64_t v, bool& overflow);
     uint64_t div(uint64_t v);
 
-    static ApInt getMinValue(uint32_t bitWidth);
-    static ApInt getMinSignedValue(uint32_t bitWidth);
-    static ApInt getMaxValue(uint32_t bitWidth);
-    static ApInt getMaxSignedValue(uint32_t bitWidth);
+    static ApInt minValue(uint32_t bitWidth);
+    static ApInt minSignedValue(uint32_t bitWidth);
+    static ApInt maxValue(uint32_t bitWidth);
+    static ApInt maxSignedValue(uint32_t bitWidth);
 
     bool eq(const ApInt& rhs) const;
     bool ne(const ApInt& rhs) const;

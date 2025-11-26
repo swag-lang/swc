@@ -75,8 +75,8 @@ ConstantRef ConstantManager::convert(const TaskContext& ctx, const ConstantValue
     if (valueForCheck.isUnsigned() != targetUnsigned)
         valueForCheck.setUnsigned(targetUnsigned);
 
-    const ApsInt minVal = ApsInt::getMinValue(targetBits, targetUnsigned);
-    const ApsInt maxVal = ApsInt::getMaxValue(targetBits, targetUnsigned);
+    const ApsInt minVal = ApsInt::minValue(targetBits, targetUnsigned);
+    const ApsInt maxVal = ApsInt::maxValue(targetBits, targetUnsigned);
 
     overflow = (valueForCheck < minVal || valueForCheck > maxVal);
 

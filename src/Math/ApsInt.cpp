@@ -4,26 +4,33 @@
 
 SWC_BEGIN_NAMESPACE()
 
+bool ApsInt::same(const ApsInt& other) const
+{
+    if (unsigned_ != other.unsigned_)
+        return false;
+    return ApInt::same(other);
+}
+
 uint64_t ApsInt::hash() const
 {
     auto h = ApInt::hash();
-    h      = hash_combine(h, isUnsigned_);
+    h      = hash_combine(h, unsigned_);
     return h;
 }
 
-ApsInt ApsInt::getMinValue(uint32_t bitWidth, bool isUnsigned)
+ApsInt ApsInt::minValue(uint32_t bitWidth, bool isUnsigned)
 {
-    return isUnsigned ? ApsInt(ApInt::getMinValue(bitWidth), true) : ApsInt(getMinSignedValue(bitWidth), false);
+    return isUnsigned ? ApsInt(ApInt::minValue(bitWidth), true) : ApsInt(minSignedValue(bitWidth), false);
 }
 
-ApsInt ApsInt::getMaxValue(uint32_t bitWidth, bool isUnsigned)
+ApsInt ApsInt::maxValue(uint32_t bitWidth, bool isUnsigned)
 {
-    return isUnsigned ? ApsInt(ApInt::getMaxValue(bitWidth), true) : ApsInt(getMaxSignedValue(bitWidth), false);
+    return isUnsigned ? ApsInt(ApInt::maxValue(bitWidth), true) : ApsInt(maxSignedValue(bitWidth), false);
 }
 
 bool ApsInt::compareValues(const ApsInt& i1, const ApsInt& i2)
 {
-    if (i1.isUnsigned_ != i2.isUnsigned_)
+    if (i1.unsigned_ != i2.unsigned_)
         return false;
     return ApInt::compareValues(i1, i2);
 }

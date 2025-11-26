@@ -86,7 +86,7 @@ void ApInt::resetToZero()
     clearWords();
 }
 
-bool ApInt::isSameValue(const ApInt& i1, const ApInt& i2)
+bool ApInt::sameValue(const ApInt& i1, const ApInt& i2)
 {
     if (i1.bitWidth_ != i2.bitWidth_)
         return false;
@@ -116,7 +116,7 @@ bool ApInt::same(const ApInt& other) const
 {
     if (bitWidth_ != other.bitWidth_)
         return false;
-    return isSameValue(other, *this);
+    return sameValue(other, *this);
 }
 
 uint64_t ApInt::hash() const
@@ -467,7 +467,7 @@ namespace
     }
 }
 
-ApInt ApInt::getMinValue(uint32_t bitWidth)
+ApInt ApInt::minValue(uint32_t bitWidth)
 {
     static const ApInt U8   = makeMinValue(8);
     static const ApInt U16  = makeMinValue(16);
@@ -486,7 +486,7 @@ ApInt ApInt::getMinValue(uint32_t bitWidth)
     }
 }
 
-ApInt ApInt::getMinSignedValue(uint32_t bitWidth)
+ApInt ApInt::minSignedValue(uint32_t bitWidth)
 {
     static const ApInt S8   = makeMinSignedValue(8);
     static const ApInt S16  = makeMinSignedValue(16);
@@ -505,7 +505,7 @@ ApInt ApInt::getMinSignedValue(uint32_t bitWidth)
     }
 }
 
-ApInt ApInt::getMaxValue(uint32_t bitWidth)
+ApInt ApInt::maxValue(uint32_t bitWidth)
 {
     static const ApInt U8   = makeMaxValue(8);
     static const ApInt U16  = makeMaxValue(16);
@@ -524,7 +524,7 @@ ApInt ApInt::getMaxValue(uint32_t bitWidth)
     }
 }
 
-ApInt ApInt::getMaxSignedValue(uint32_t bitWidth)
+ApInt ApInt::maxSignedValue(uint32_t bitWidth)
 {
     static const ApInt S8   = makeMaxSignedValue(8);
     static const ApInt S16  = makeMaxSignedValue(16);
@@ -546,13 +546,13 @@ ApInt ApInt::getMaxSignedValue(uint32_t bitWidth)
 bool ApInt::eq(const ApInt& rhs) const
 {
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
-    return isSameValue(*this, rhs);
+    return sameValue(*this, rhs);
 }
 
 bool ApInt::ne(const ApInt& rhs) const
 {
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
-    return !isSameValue(*this, rhs);
+    return !sameValue(*this, rhs);
 }
 
 bool ApInt::ult(const ApInt& rhs) const

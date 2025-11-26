@@ -1,7 +1,9 @@
 #include "pch.h"
 #include "Sema/SemaJob.h"
+#include "Main/Global.h"
 #include "Parser/Ast.h"
 #include "Parser/AstVisit.h"
+#include "Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -38,6 +40,26 @@ AstVisitStepResult SemaJob::postNode(AstNode& node)
 AstVisitStepResult SemaJob::preChild(AstNode& node, AstNodeRef& childRef)
 {
     const auto& info = Ast::nodeIdInfos(node.id());
+
+    const auto childPtr = ast().node(childRef);
+    switch (childPtr->id())
+    {
+        case AstNodeId::CompilerFlow:
+        {
+            if (visit().root() == ast().root())
+            {
+                const auto job = std::make_shared<SemaJob>(ctx(), &ast(), childRef);
+                compiler().global().jobMgr().enqueue(job, JobPriority::Normal, compiler().jobClientId());
+                return AstVisitStepResult::SkipChildren;
+            }
+
+            break;
+        }
+
+        default:
+            break;
+    }
+
     if (!info.semaPreChild)
         return AstVisitStepResult::Continue;
     return info.semaPreChild(*this, node, childRef);

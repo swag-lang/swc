@@ -61,30 +61,27 @@ ConstantValue ConstantManager::convert(const TaskContext& ctx, const ConstantVal
     // We only support integer target types here
     SWC_ASSERT(targetType.isInt());
 
-    const uint32_t targetBits   = targetType.intBits();
-    const bool     targetSigned = targetType.isIntSigned();
-
-    // We only allow 8/16/32/64 bits as per your requirement
-    SWC_ASSERT(targetBits == 8u || targetBits == 16u || targetBits == 32u || targetBits == 64u);
+    const uint32_t targetBits     = targetType.intBits();
+    const bool     targetSigned   = targetType.isIntSigned();
+    const bool     targetUnsigned = !targetSigned;
 
     // Make a working copy of the integer value
     ApsInt value = src.getInt();
 
-    // First, normalize the signedness to the target
-    if (value.isUnsigned() != targetSigned)
-        value.setUnsigned(targetSigned);
+    // Keep original signedness for the check
+    ApsInt valueForCheck = value;
+    valueForCheck.extOrTrunc(targetBits);
 
-    // Now check if it fits in the target range
-    // (assuming ApsInt has APSInt-like helpers)
-    const ApsInt minVal = ApsInt::getMinValue(targetBits, targetSigned);
-    const ApsInt maxVal = ApsInt::getMaxValue(targetBits, targetSigned);
+    const ApsInt minVal = ApsInt::getMinValue(targetBits, targetUnsigned);
+    const ApsInt maxVal = ApsInt::getMaxValue(targetBits, targetUnsigned);
 
-    if (value < minVal || value > maxVal)
-    {
-        overflow = true;
-    }
+    overflow = (valueForCheck < minVal || valueForCheck > maxVal);
 
-    // Safe to cast: change bit width to the target
+    // Now normalize to the target representation
+    if (value.isUnsigned() != targetUnsigned)
+        value.setUnsigned(targetUnsigned);
+
+    // Finally, adjust the bit width to the target (this may wrap if overflow == true)
     value.setBitWidth(targetBits);
 
     // Build the resulting constant with the *target* integer type

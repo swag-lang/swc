@@ -40,6 +40,14 @@ public:
     static ApsInt getMinValue(uint32_t bitWidth, bool isUnsigned);
     static ApsInt getMaxValue(uint32_t bitWidth, bool isUnsigned);
 
+    void extOrTrunc(uint32_t newBits)
+    {
+        if (isUnsigned_)
+            zextOrTrunc(newBits);
+        else
+            sextOrTrunc(newBits);
+    }
+
     bool operator<(const ApsInt& rhs) const
     {
         SWC_ASSERT(isUnsigned_ == rhs.isUnsigned_);

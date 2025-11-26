@@ -71,6 +71,10 @@ public:
     bool sle(const ApInt& rhs) const;
     bool sgt(const ApInt& rhs) const;
     bool sge(const ApInt& rhs) const;
+
+    ApInt trunc(uint32_t newBitWidth) const;
+    ApInt zextOrTrunc(uint32_t newBitWidth) const;
+    ApInt sextOrTrunc(uint32_t newBitWidth) const;
 };
 
 SWC_END_NAMESPACE()

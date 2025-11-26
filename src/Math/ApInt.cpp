@@ -634,4 +634,70 @@ bool ApInt::sge(const ApInt& rhs) const
     return thisNeg ? (result <= 0) : (result >= 0);
 }
 
+ApInt ApInt::trunc(uint32_t newBitWidth) const
+{
+    SWC_ASSERT(newBitWidth > 0);
+    SWC_ASSERT(newBitWidth <= bitWidth_);
+
+    ApInt res(newBitWidth);
+
+    const uint32_t bitsToCopy = newBitWidth;
+    for (uint32_t bit = 0; bit < bitsToCopy; ++bit)
+    {
+        if (testBit(bit))
+            res.setBit(bit);
+    }
+
+    res.normalize();
+    return res;
+}
+
+ApInt ApInt::zextOrTrunc(uint32_t newBitWidth) const
+{
+    SWC_ASSERT(newBitWidth > 0);
+
+    if (newBitWidth == bitWidth_)
+        return *this;
+
+    if (newBitWidth < bitWidth_)
+        return trunc(newBitWidth);
+
+    // Zero-extend
+    ApInt res(*this);
+    res.bitWidth_ = newBitWidth;
+    res.numWords_ = computeNumWords(newBitWidth);
+
+    // New bits are already zero because copy-ctor + clearWords, but make
+    // sure we normalize the top word
+    res.normalize();
+    return res;
+}
+
+ApInt ApInt::sextOrTrunc(uint32_t newBitWidth) const
+{
+    SWC_ASSERT(newBitWidth > 0);
+
+    if (newBitWidth == bitWidth_)
+        return *this;
+    if (newBitWidth < bitWidth_)
+        return trunc(newBitWidth);
+
+    // Sign-extend
+    ApInt      res(*this);
+    const bool sign = isSignBitSet();
+
+    res.bitWidth_ = newBitWidth;
+    res.numWords_ = computeNumWords(newBitWidth);
+
+    // Fill new high bits with 1s from old bitWidth up to newBitWidth
+    if (sign)
+    {
+        for (uint32_t bit = bitWidth_; bit < newBitWidth; ++bit)
+            res.setBit(bit);
+    }
+
+    res.normalize();
+    return res;
+}
+
 SWC_END_NAMESPACE()

@@ -26,7 +26,7 @@ class ConstantValue
     union
     {
         // clang-format off
-        struct { std::string_view val; } string_{};
+        struct { std::string_view val; } string_;
         struct { bool val; } bool_;
         struct { ApsInt val; } int_;
         struct { ApFloat val; } float_;

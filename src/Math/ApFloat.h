@@ -22,11 +22,12 @@ public:
     void   set(float value);
     void   set(double value);
     void   set(const ApInt& mantissa, int64_t exponent10);
-    float  toFloat() const;
-    double toDouble() const;
+    float  asFloat() const;
+    double asDouble() const;
 
-    bool     same(const ApFloat& other) const;
-    size_t   hash() const;
+    bool   same(const ApFloat& other) const;
+    size_t hash() const;
+
     uint32_t bitWidth() const { return bitWidth_; }
 };
 

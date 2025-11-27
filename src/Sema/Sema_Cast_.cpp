@@ -145,14 +145,14 @@ ConstantRef Sema::castIntToFloat(const CastContext& castCtx, const ConstantValue
         // For unsigned, convert directly
         if (intVal.fits64())
         {
-            value.set(static_cast<double>(intVal.to64()));
+            value.set(static_cast<double>(intVal.asU64()));
         }
         else
         {
             // For very large integers, there will be precision loss
             precisionLoss = true;
             // Convert word by word (simplified - may need better handling)
-            value.set(static_cast<double>(intVal.to64()));
+            value.set(static_cast<double>(intVal.asU64()));
         }
     }
     else
@@ -163,11 +163,11 @@ ConstantRef Sema::castIntToFloat(const CastContext& castCtx, const ConstantValue
             // Get absolute value (simplified)
             ApsInt absVal = intVal;
             // TODO: Proper two's complement negation
-            value.set(-static_cast<double>(absVal.to64()));
+            value.set(-static_cast<double>(absVal.asU64()));
         }
         else
         {
-            value.set(static_cast<double>(intVal.to64()));
+            value.set(static_cast<double>(intVal.asU64()));
         }
     }
 
@@ -179,12 +179,12 @@ ConstantRef Sema::castIntToFloat(const CastContext& castCtx, const ConstantValue
         if (intBits > 24)
         {
             // May have precision loss
-            const float f32Val = value.toFloat();
-            if (static_cast<double>(f32Val) != value.toDouble())
+            const float f32Val = value.asFloat();
+            if (static_cast<double>(f32Val) != value.asDouble())
                 precisionLoss = true;
         }
 
-        value.set(static_cast<float>(value.toDouble()));
+        value.set(static_cast<float>(value.asDouble()));
     }
 
     // f64 has 53 bits of precision

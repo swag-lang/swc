@@ -5,20 +5,21 @@
 SWC_BEGIN_NAMESPACE()
 
 ApFloat::ApFloat() :
-    bitWidth_(0)
+    bitWidth_(64),
+    value_{.f64 = 0}
 {
 }
 
 ApFloat::ApFloat(float value) :
-    bitWidth_(32)
+    bitWidth_(32),
+    value_{.f32 = value}
 {
-    value_.f32 = value;
 }
 
 ApFloat::ApFloat(double value) :
-    bitWidth_(64)
+    bitWidth_(64),
+    value_{.f64 = value}
 {
-    value_.f64 = value;
 }
 
 void ApFloat::set(float value)
@@ -62,7 +63,7 @@ void ApFloat::set(const ApInt& mantissa, int64_t exponent10)
     value_.f64 = static_cast<double>(res);
 }
 
-float ApFloat::toFloat() const
+float ApFloat::asFloat() const
 {
     if (bitWidth_ == 32)
         return value_.f32;
@@ -71,7 +72,7 @@ float ApFloat::toFloat() const
     SWC_UNREACHABLE();
 }
 
-double ApFloat::toDouble() const
+double ApFloat::asDouble() const
 {
     if (bitWidth_ == 32)
         return value_.f32;
@@ -87,9 +88,9 @@ bool ApFloat::same(const ApFloat& other) const
     switch (bitWidth_)
     {
         case 32:
-            return value_.f32 == other.value_.f32;
+            return std::bit_cast<uint32_t>(value_.f32) == std::bit_cast<uint32_t>(other.value_.f32);
         case 64:
-            return value_.f64 == other.value_.f64;
+            return std::bit_cast<uint64_t>(value_.f64) == std::bit_cast<uint64_t>(other.value_.f64);
         default:
             SWC_UNREACHABLE();
     }

@@ -27,7 +27,7 @@ public:
 
     uint32_t bitWidth() const { return bitWidth_; }
     bool     fits64() const;
-    uint64_t to64() const;
+    uint64_t asU64() const;
 
     static bool sameValue(const ApInt& i1, const ApInt& i2);
     static int  compareValues(const ApInt& i1, const ApInt& i2);
@@ -36,7 +36,7 @@ public:
     uint64_t hash() const;
 
     bool     isZero() const;
-    void     resetToZero();
+    void     setZero();
     bool     testBit(uint64_t bitIndex) const;
     void     clearBit(uint64_t bitIndex);
     void     setBit(uint64_t bitIndex);

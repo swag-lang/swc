@@ -68,7 +68,7 @@ bool ApInt::fits64() const
     return true;
 }
 
-uint64_t ApInt::to64() const
+uint64_t ApInt::asU64() const
 {
     SWC_ASSERT(fits64());
 
@@ -81,7 +81,7 @@ uint64_t ApInt::to64() const
     return words_[0];
 }
 
-void ApInt::resetToZero()
+void ApInt::setZero()
 {
     clearWords();
 }
@@ -151,7 +151,7 @@ void ApInt::logicalShiftLeft(uint64_t amount, bool& overflow)
     {
         // Everything is shifted out: overflow if any bit was set
         overflow = !isZero();
-        resetToZero();
+        setZero();
         return;
     }
 
@@ -208,7 +208,7 @@ void ApInt::logicalShiftRight(uint64_t amount)
 
     if (wordShift >= numWords_)
     {
-        resetToZero();
+        setZero();
         return;
     }
 
@@ -295,7 +295,7 @@ void ApInt::mul(uint64_t v, bool& overflow)
 
     if (v == 0)
     {
-        resetToZero();
+        setZero();
         return;
     }
 
@@ -448,14 +448,14 @@ namespace
     ApInt makeMinValue(uint32_t bitWidth)
     {
         ApInt result(bitWidth);
-        result.resetToZero();
+        result.setZero();
         return result;
     }
 
     ApInt makeMinSignedValue(uint32_t bitWidth)
     {
         ApInt result(bitWidth);
-        result.resetToZero();
+        result.setZero();
         result.setBit(bitWidth - 1);
         return result;
     }

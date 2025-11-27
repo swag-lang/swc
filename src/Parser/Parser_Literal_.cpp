@@ -96,13 +96,13 @@ AstNodeRef Parser::parseLiteralExpression()
         return literal;
 
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SuffixLiteral>(consume());
-    nodePtr->nodeLiteral          = literal;
-    nodePtr->nodeSuffix.setInvalid();
+    nodePtr->nodeLiteralRef       = literal;
+    nodePtr->nodeSuffixRef.setInvalid();
 
     switch (id())
     {
         case TokenId::Identifier:
-            nodePtr->nodeSuffix = parseIdentifier();
+            nodePtr->nodeSuffixRef = parseIdentifier();
             return nodeRef;
 
         case TokenId::TypeF32:
@@ -117,7 +117,7 @@ AstNodeRef Parser::parseLiteralExpression()
         case TokenId::TypeU64:
         case TokenId::TypeRune:
         case TokenId::TypeBool:
-            nodePtr->nodeSuffix = parseType();
+            nodePtr->nodeSuffixRef = parseType();
             return nodeRef;
 
         case TokenId::TypeAny:
@@ -138,15 +138,15 @@ AstNodeRef Parser::parseLiteralExpression()
 
 AstNodeRef Parser::parseLiteralArray()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ArrayLiteral>(ref());
-    nodePtr->spanChildren   = parseCompoundContent(AstNodeId::UnnamedArgumentList, TokenId::SymLeftBracket);
+    auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::ArrayLiteral>(ref());
+    nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::UnnamedArgumentList, TokenId::SymLeftBracket);
     return nodeRef;
 }
 
 AstNodeRef Parser::parseLiteralStruct()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructLiteral>(ref());
-    nodePtr->spanChildren   = parseCompoundContent(AstNodeId::NamedArgumentList, TokenId::SymLeftCurly);
+    auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::StructLiteral>(ref());
+    nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::NamedArgumentList, TokenId::SymLeftCurly);
     return nodeRef;
 }
 

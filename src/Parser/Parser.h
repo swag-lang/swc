@@ -82,8 +82,8 @@ class Parser
     template<AstNodeId ID>
     AstNodeRef parseCompound(TokenId tokenStartId)
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<ID>(ref());
-        nodePtr->spanChildren   = parseCompoundContent(ID, tokenStartId);
+        auto [nodeRef, nodePtr]  = ast_->makeNode<ID>(ref());
+        nodePtr->spanChildrenRef = parseCompoundContent(ID, tokenStartId);
         return nodeRef;
     }
 

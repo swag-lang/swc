@@ -82,7 +82,7 @@ AstNodeRef Parser::parseIntrinsicCallVariadic()
         nodeArgs.push_back(nodeArg);
     }
 
-    nodePtr->spanChildren = ast_->store().push_span(nodeArgs.span());
+    nodePtr->spanChildrenRef = ast_->store().push_span(nodeArgs.span());
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
     return nodeRef;
 }
@@ -90,11 +90,11 @@ AstNodeRef Parser::parseIntrinsicCallVariadic()
 AstNodeRef Parser::parseAttributeValue()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Attribute>(ref());
-    nodePtr->nodeIdent      = parseQualifiedIdentifier();
+    nodePtr->nodeIdentRef   = parseQualifiedIdentifier();
     if (is(TokenId::SymLeftParen))
-        nodePtr->nodeArgs = parseCompound<AstNodeId::NamedArgumentList>(TokenId::SymLeftParen);
+        nodePtr->nodeArgsRef = parseCompound<AstNodeId::NamedArgumentList>(TokenId::SymLeftParen);
     else
-        nodePtr->nodeArgs.setInvalid();
+        nodePtr->nodeArgsRef.setInvalid();
     return nodeRef;
 }
 
@@ -113,9 +113,9 @@ AstNodeRef Parser::parseAttributeList()
 
     const auto nodePtr = ast_->node<AstNodeId::AttributeList>(nodeRef);
     if (is(TokenId::SymLeftCurly))
-        nodePtr->nodeBody = parseCompound<ID>(TokenId::SymLeftCurly);
+        nodePtr->nodeBodyRef = parseCompound<ID>(TokenId::SymLeftCurly);
     else
-        nodePtr->nodeBody = parseCompoundValue(ID);
+        nodePtr->nodeBodyRef = parseCompoundValue(ID);
     return nodeRef;
 }
 

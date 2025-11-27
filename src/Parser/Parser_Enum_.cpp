@@ -9,11 +9,11 @@ AstNodeRef Parser::parseImplEnum()
     consumeAssert(TokenId::KwdImpl);
     consumeAssert(TokenId::KwdEnum);
 
-    nodePtr->nodeName = parseQualifiedIdentifier();
-    if (nodePtr->nodeName.isInvalid())
+    nodePtr->nodeNameRef = parseQualifiedIdentifier();
+    if (nodePtr->nodeNameRef.isInvalid())
         skipTo({TokenId::SymLeftCurly});
 
-    nodePtr->spanChildren = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
+    nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     return nodeRef;
 }
 
@@ -38,7 +38,7 @@ AstNodeRef Parser::parseEnumValue()
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingEnumDecl>(ref());
             consume();
-            nodePtr->nodeName = parseQualifiedIdentifier();
+            nodePtr->nodeNameRef = parseQualifiedIdentifier();
             return nodeRef;
         }
 
@@ -48,12 +48,12 @@ AstNodeRef Parser::parseEnumValue()
             consume();
             if (consumeIf(TokenId::SymEqual).isValid())
             {
-                nodePtr->nodeValue = parseExpression();
-                if (nodePtr->nodeValue.isInvalid())
+                nodePtr->nodeValueRef = parseExpression();
+                if (nodePtr->nodeValueRef.isInvalid())
                     skipTo(ENUM_VALUE_SYNC, SkipUntilFlagsE::EolBefore);
             }
             else
-                nodePtr->nodeValue.setInvalid();
+                nodePtr->nodeValueRef.setInvalid();
             return nodeRef;
         }
 
@@ -75,22 +75,22 @@ AstNodeRef Parser::parseEnumDecl()
     consumeAssert(TokenId::KwdEnum);
 
     // Name
-    nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
-    if (nodePtr->tokName.isInvalid())
+    nodePtr->tokNameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+    if (nodePtr->tokNameRef.isInvalid())
         skipTo({TokenId::SymLeftCurly, TokenId::SymColon});
 
     // Type
     if (consumeIf(TokenId::SymColon).isValid())
     {
-        nodePtr->nodeType = parseType();
-        if (nodePtr->nodeType.isInvalid())
+        nodePtr->nodeTypeRef = parseType();
+        if (nodePtr->nodeTypeRef.isInvalid())
             skipTo({TokenId::SymLeftCurly, TokenId::SymRightCurly});
     }
     else
-        nodePtr->nodeType.setInvalid();
+        nodePtr->nodeTypeRef.setInvalid();
 
     // Content
-    nodePtr->nodeBody = parseCompound<AstNodeId::EnumBody>(TokenId::SymLeftCurly);
+    nodePtr->nodeBodyRef = parseCompound<AstNodeId::EnumBody>(TokenId::SymLeftCurly);
 
     return nodeRef;
 }

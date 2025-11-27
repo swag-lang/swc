@@ -33,18 +33,16 @@ AstNodeRef Parser::parseCompilerFunc()
 
     if (nextIs(TokenId::SymLeftCurly))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerFunc>(ref());
-        consume();
-        nodePtr->nodeBody = parseFunctionBody();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerFunc>(consume());
+        nodePtr->nodeBodyRef = parseFunctionBody();
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerShortFunc>(ref());
-    consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerShortFunc>(consume());
     if (what == TokenId::CompilerAst)
-        nodePtr->nodeBody = parseExpression();
+        nodePtr->nodeBodyRef = parseExpression();
     else
-        nodePtr->nodeBody = parseEmbeddedStmt();
+        nodePtr->nodeBodyRef = parseEmbeddedStmt();
     return nodeRef;
 }
 
@@ -54,10 +52,10 @@ AstNodeRef Parser::parseCompilerMessageFunc()
     const auto openRef      = ref();
 
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    nodePtr->nodeParam = parseExpression();
+    nodePtr->nodeParamRef = parseExpression();
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
-    nodePtr->nodeBody = parseFunctionBody();
+    nodePtr->nodeBodyRef = parseFunctionBody();
     return nodeRef;
 }
 
@@ -65,22 +63,20 @@ AstNodeRef Parser::parseCompilerExpr()
 {
     if (nextIs(TokenId::SymLeftCurly))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerEmbeddedFunc>(ref());
-        consume();
-        nodePtr->nodeBody = parseFunctionBody();
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerEmbeddedFunc>(consume());
+        nodePtr->nodeBodyRef    = parseFunctionBody();
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerExpr>(ref());
-    consume();
-    nodePtr->nodeExpr = parseExpression();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerExpr>(consume());
+    nodePtr->nodeExprRef    = parseExpression();
     return nodeRef;
 }
 
 AstNodeRef Parser::parseCompilerTypeExpr()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerTypeExpr>(consume());
-    nodePtr->nodeType       = parseType();
+    nodePtr->nodeTypeRef    = parseType();
     return nodeRef;
 }
 
@@ -119,27 +115,27 @@ AstNodeRef Parser::parseCompilerIf()
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerIf>(consume());
 
     // Parse the condition expression
-    nodePtr->nodeCondition = parseExpression();
-    if (nodePtr->nodeCondition.isInvalid())
+    nodePtr->nodeConditionRef = parseExpression();
+    if (nodePtr->nodeConditionRef.isInvalid())
         skipTo({TokenId::KwdDo, TokenId::SymLeftCurly});
 
-    nodePtr->nodeIfBlock = parseCompilerIfStmt<ID>();
+    nodePtr->nodeIfBlockRef = parseCompilerIfStmt<ID>();
 
     // Parse optional 'else' or 'elif' block
     if (is(TokenId::CompilerElseIf))
-        nodePtr->nodeElseBlock = parseCompilerIf<ID>();
+        nodePtr->nodeElseBlockRef = parseCompilerIf<ID>();
     else if (consumeIf(TokenId::CompilerElse).isValid())
-        nodePtr->nodeElseBlock = parseCompilerIfStmt<ID>();
+        nodePtr->nodeElseBlockRef = parseCompilerIfStmt<ID>();
     else
-        nodePtr->nodeElseBlock.setInvalid();
+        nodePtr->nodeElseBlockRef.setInvalid();
 
     return nodeRef;
 }
 
 AstNodeRef Parser::parseCompilerDependencies()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::DependenciesBlock>(consume());
-    nodePtr->spanChildren   = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
+    auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::DependenciesBlock>(consume());
+    nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     return nodeRef;
 }
 
@@ -173,57 +169,57 @@ AstNodeRef Parser::parseCompilerGlobal()
 
     if (tokStr == Token::toName(TokenId::KwdSkipFmt))
     {
-        nodePtr->mode     = AstCompilerGlobal::Mode::SkipFmt;
-        nodePtr->nodeMode = AstNodeRef::invalid();
+        nodePtr->mode        = AstCompilerGlobal::Mode::SkipFmt;
+        nodePtr->nodeModeRef = AstNodeRef::invalid();
         consume();
     }
     else if (tokStr == Token::toName(TokenId::KwdGenerated))
     {
-        nodePtr->mode     = AstCompilerGlobal::Mode::Generated;
-        nodePtr->nodeMode = AstNodeRef::invalid();
+        nodePtr->mode        = AstCompilerGlobal::Mode::Generated;
+        nodePtr->nodeModeRef = AstNodeRef::invalid();
         consume();
     }
     else if (tokStr == Token::toName(TokenId::KwdExport))
     {
-        nodePtr->mode     = AstCompilerGlobal::Mode::Export;
-        nodePtr->nodeMode = AstNodeRef::invalid();
+        nodePtr->mode        = AstCompilerGlobal::Mode::Export;
+        nodePtr->nodeModeRef = AstNodeRef::invalid();
         consume();
     }
     else if (is(TokenId::SymAttrStart))
     {
-        nodePtr->mode      = AstCompilerGlobal::Mode::AttributeList;
-        nodePtr->nodeMode  = parseCompound<AstNodeId::AttributeList>(TokenId::SymAttrStart);
-        const auto attrPtr = ast_->node<AstNodeId::AttributeList>(nodePtr->nodeMode);
-        attrPtr->nodeBody.setInvalid();
+        nodePtr->mode        = AstCompilerGlobal::Mode::AttributeList;
+        nodePtr->nodeModeRef = parseCompound<AstNodeId::AttributeList>(TokenId::SymAttrStart);
+        const auto attrPtr   = ast_->node<AstNodeId::AttributeList>(nodePtr->nodeModeRef);
+        attrPtr->nodeBodyRef.setInvalid();
     }
     else if (is(TokenId::KwdPublic))
     {
-        nodePtr->mode     = AstCompilerGlobal::Mode::AccessPublic;
-        nodePtr->nodeMode = AstNodeRef::invalid();
+        nodePtr->mode        = AstCompilerGlobal::Mode::AccessPublic;
+        nodePtr->nodeModeRef = AstNodeRef::invalid();
         consume();
     }
     else if (is(TokenId::KwdInternal))
     {
-        nodePtr->mode     = AstCompilerGlobal::Mode::AccessInternal;
-        nodePtr->nodeMode = AstNodeRef::invalid();
+        nodePtr->mode        = AstCompilerGlobal::Mode::AccessInternal;
+        nodePtr->nodeModeRef = AstNodeRef::invalid();
         consume();
     }
     else if (is(TokenId::KwdNamespace))
     {
         nodePtr->mode = AstCompilerGlobal::Mode::Namespace;
         consume();
-        nodePtr->nodeMode = parseQualifiedIdentifier();
+        nodePtr->nodeModeRef = parseQualifiedIdentifier();
     }
     else if (is(TokenId::CompilerIf))
     {
         nodePtr->mode = AstCompilerGlobal::Mode::CompilerIf;
         consume();
-        nodePtr->nodeMode = parseExpression();
+        nodePtr->nodeModeRef = parseExpression();
     }
     else if (is(TokenId::KwdUsing))
     {
-        nodePtr->mode     = AstCompilerGlobal::Mode::Using;
-        nodePtr->nodeMode = parseUsing();
+        nodePtr->mode        = AstCompilerGlobal::Mode::Using;
+        nodePtr->nodeModeRef = parseUsing();
     }
     else
     {
@@ -240,9 +236,9 @@ AstNodeRef Parser::parseCompilerImport()
     const auto openRef      = ref();
 
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    nodePtr->tokModuleName = expectAndConsume(TokenId::StringLine, DiagnosticId::parser_err_expected_token_before);
-    nodePtr->tokLocation   = TokenRef::invalid();
-    nodePtr->tokVersion    = TokenRef::invalid();
+    nodePtr->tokModuleNameRef = expectAndConsume(TokenId::StringLine, DiagnosticId::parser_err_expected_token_before);
+    nodePtr->tokLocationRef   = TokenRef::invalid();
+    nodePtr->tokVersionRef    = TokenRef::invalid();
 
     if (consumeIf(TokenId::SymComma).isValid())
     {
@@ -251,7 +247,7 @@ AstNodeRef Parser::parseCompilerImport()
         {
             consume();
             expectAndConsume(TokenId::SymColon, DiagnosticId::parser_err_expected_token_before);
-            nodePtr->tokLocation = expectAndConsume(TokenId::StringLine, DiagnosticId::parser_err_expected_token_before);
+            nodePtr->tokLocationRef = expectAndConsume(TokenId::StringLine, DiagnosticId::parser_err_expected_token_before);
             if (consumeIf(TokenId::SymComma).isValid())
             {
                 tokStr = tok().string(ast_->srcView());
@@ -259,7 +255,7 @@ AstNodeRef Parser::parseCompilerImport()
                 {
                     consume();
                     expectAndConsume(TokenId::SymColon, DiagnosticId::parser_err_expected_token_before);
-                    nodePtr->tokVersion = expectAndConsume(TokenId::StringLine, DiagnosticId::parser_err_expected_token_before);
+                    nodePtr->tokVersionRef = expectAndConsume(TokenId::StringLine, DiagnosticId::parser_err_expected_token_before);
                 }
             }
         }
@@ -277,11 +273,11 @@ AstNodeRef Parser::parseCompilerScope()
     const auto openRef = ref();
     if (consumeIf(TokenId::SymLeftParen).isValid())
     {
-        nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
+        nodePtr->tokNameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
         expectAndConsumeClosing(TokenId::SymRightParen, openRef);
     }
 
-    nodePtr->nodeBody = parseEmbeddedStmt();
+    nodePtr->nodeBodyRef = parseEmbeddedStmt();
     return nodeRef;
 }
 
@@ -289,7 +285,7 @@ AstNodeRef Parser::parseCompilerMacro()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerMacro>(ref());
     consumeAssert(TokenId::CompilerMacro);
-    nodePtr->nodeBody = parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
+    nodePtr->nodeBodyRef = parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
     return nodeRef;
 }
 
@@ -301,16 +297,16 @@ AstNodeRef Parser::parseCompilerInject()
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
-    nodePtr->nodeExpr = parseExpression();
-    nodePtr->nodeReplaceBreak.setInvalid();
-    nodePtr->nodeReplaceContinue.setInvalid();
+    nodePtr->nodeExprRef = parseExpression();
+    nodePtr->nodeReplaceBreakRef.setInvalid();
+    nodePtr->nodeReplaceContinueRef.setInvalid();
 
     while (consumeIf(TokenId::SymComma).isValid())
     {
         // Replacement for 'break'
         if (consumeIf(TokenId::KwdBreak).isValid())
         {
-            if (nodePtr->nodeReplaceBreak.isValid())
+            if (nodePtr->nodeReplaceBreakRef.isValid())
             {
                 raiseError(DiagnosticId::parser_err_inject_instruction_done, ref());
                 skipTo({TokenId::SymRightParen, TokenId::SymLeftParen});
@@ -318,14 +314,14 @@ AstNodeRef Parser::parseCompilerInject()
             }
 
             expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_before);
-            nodePtr->nodeReplaceBreak = parseEmbeddedStmt();
+            nodePtr->nodeReplaceBreakRef = parseEmbeddedStmt();
             continue;
         }
 
         // Replacement for 'continue'
         if (consumeIf(TokenId::KwdContinue).isValid())
         {
-            if (nodePtr->nodeReplaceContinue.isValid())
+            if (nodePtr->nodeReplaceContinueRef.isValid())
             {
                 raiseError(DiagnosticId::parser_err_inject_instruction_done, ref());
                 skipTo({TokenId::SymRightParen, TokenId::SymLeftParen});
@@ -333,7 +329,7 @@ AstNodeRef Parser::parseCompilerInject()
             }
 
             expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_before);
-            nodePtr->nodeReplaceContinue = parseEmbeddedStmt();
+            nodePtr->nodeReplaceContinueRef = parseEmbeddedStmt();
             continue;
         }
 
@@ -355,13 +351,13 @@ AstNodeRef Parser::parseCompilerUp()
     const auto openRef = ref();
     if (consumeIf(TokenId::SymLeftParen).isValid())
     {
-        nodePtr->nodeValue = parseExpression();
+        nodePtr->nodeValueRef = parseExpression();
         expectAndConsumeClosing(TokenId::SymRightParen, openRef);
     }
     else
-        nodePtr->nodeValue.setInvalid();
+        nodePtr->nodeValueRef.setInvalid();
 
-    nodePtr->nodeIdent = parseQualifiedIdentifier();
+    nodePtr->nodeIdentRef = parseQualifiedIdentifier();
     return nodeRef;
 }
 

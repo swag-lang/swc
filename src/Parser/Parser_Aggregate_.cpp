@@ -27,24 +27,24 @@ AstNodeRef Parser::parseImpl()
 
     if (nodeFor.isInvalid())
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Impl>(tokImpl);
-        nodePtr->nodeIdent      = nodeIdent;
-        nodePtr->spanChildren   = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
+        auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::Impl>(tokImpl);
+        nodePtr->nodeIdentRef    = nodeIdent;
+        nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ImplFor>(tokImpl);
-    nodePtr->nodeIdent      = nodeIdent;
-    nodePtr->nodeFor        = nodeFor;
-    nodePtr->spanChildren   = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
+    auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::ImplFor>(tokImpl);
+    nodePtr->nodeIdentRef    = nodeIdent;
+    nodePtr->nodeForRef      = nodeFor;
+    nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     return nodeRef;
 }
 
 AstNodeRef Parser::parseAggregateAccessModifier()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AccessModifier>(ref());
-    nodePtr->tokAccess      = consume();
-    nodePtr->nodeWhat       = parseAggregateValue();
+    nodePtr->tokAccessRef   = consume();
+    nodePtr->nodeWhatRef    = parseAggregateValue();
     return nodeRef;
 }
 
@@ -102,7 +102,7 @@ AstNodeRef Parser::parseAggregateValue()
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingMemberDecl>(ref());
             consume();
-            nodePtr->nodeVar = parseVarDecl();
+            nodePtr->nodeVarRef = parseVarDecl();
             return nodeRef;
         }
 
@@ -129,12 +129,12 @@ AstNodeRef Parser::parseAggregateDecl()
     // Generic types
     if (is(TokenId::SymLeftParen))
     {
-        nodePtr->spanGenericParams = parseCompoundContent(AstNodeId::GenericParamList, TokenId::SymLeftParen);
-        if (nodePtr->spanGenericParams.isInvalid())
+        nodePtr->spanGenericParamsRef = parseCompoundContent(AstNodeId::GenericParamList, TokenId::SymLeftParen);
+        if (nodePtr->spanGenericParamsRef.isInvalid())
             skipTo({TokenId::SymLeftCurly});
     }
     else
-        nodePtr->spanGenericParams.setInvalid();
+        nodePtr->spanGenericParamsRef.setInvalid();
 
     // Name
     nodePtr->tokNameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
@@ -154,7 +154,7 @@ AstNodeRef Parser::parseAggregateDecl()
             consume();
     }
 
-    nodePtr->spanWhere = whereRefs.empty() ? SpanRef::invalid() : ast_->store().push_span(whereRefs.span());
+    nodePtr->spanWhereRef = whereRefs.empty() ? SpanRef::invalid() : ast_->store().push_span(whereRefs.span());
 
     // Content
     nodePtr->nodeBodyRef = parseAggregateBody();
@@ -205,8 +205,8 @@ AstNodeRef Parser::parseInterfaceDecl()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InterfaceDecl>(ref());
     consume();
-    nodePtr->tokName  = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
-    nodePtr->nodeBody = parseCompound<AstNodeId::InterfaceBody>(TokenId::SymLeftCurly);
+    nodePtr->tokNameRef  = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+    nodePtr->nodeBodyRef = parseCompound<AstNodeId::InterfaceBody>(TokenId::SymLeftCurly);
     return nodeRef;
 }
 

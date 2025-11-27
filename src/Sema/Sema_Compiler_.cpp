@@ -12,26 +12,26 @@ SWC_BEGIN_NAMESPACE()
 
 AstVisitStepResult AstCompilerIf::semaPreChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef == nodeCondition)
+    if (childRef == nodeConditionRef)
         return AstVisitStepResult::Continue;
 
-    const AstNode& nodeConditionPtr = sema.node(nodeCondition);
+    const AstNode& nodeConditionPtr = sema.node(nodeConditionRef);
     if (!nodeConditionPtr.isSemaConstant())
     {
-        sema.raiseError(DiagnosticId::sema_err_expr_not_const, nodeCondition);
+        sema.raiseError(DiagnosticId::sema_err_expr_not_const, nodeConditionRef);
         return AstVisitStepResult::Stop;
     }
 
     const auto& constant = nodeConditionPtr.getSemaConstant(sema.ctx());
     if (!constant.isBool())
     {
-        sema.raiseInvalidType(nodeCondition, constant.typeRef(), sema.typeMgr().getTypeBool());
+        sema.raiseInvalidType(nodeConditionRef, constant.typeRef(), sema.typeMgr().getTypeBool());
         return AstVisitStepResult::Stop;
     }
 
-    if (childRef == nodeIfBlock && !constant.getBool())
+    if (childRef == nodeIfBlockRef && !constant.getBool())
         return AstVisitStepResult::SkipChildren;
-    if (childRef == nodeElseBlock && constant.getBool())
+    if (childRef == nodeElseBlockRef && constant.getBool())
         return AstVisitStepResult::SkipChildren;
 
     return AstVisitStepResult::Continue;

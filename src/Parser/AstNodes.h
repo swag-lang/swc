@@ -13,7 +13,7 @@ enum class AstVisitStepResult;
 template<AstNodeId I>
 struct AstCompoundT : AstNodeT<I>
 {
-    SpanRef spanChildren;
+    SpanRef spanChildrenRef;
 
     explicit AstCompoundT(SourceViewRef srcViewRef, TokenRef tokRef) :
         AstNodeT<I>(srcViewRef, tokRef)
@@ -22,14 +22,14 @@ struct AstCompoundT : AstNodeT<I>
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
-        AstNode::collectChildren(out, ast, spanChildren);
+        AstNode::collectChildren(out, ast, spanChildrenRef);
     }
 };
 
 template<AstNodeId I>
 struct AstLambdaExprT : AstNodeT<I>
 {
-    SpanRef    spanArgs;
+    SpanRef    spanArgsRef;
     AstNodeRef nodeReturnTypeRef;
     AstNodeRef nodeBodyRef;
 
@@ -40,7 +40,7 @@ struct AstLambdaExprT : AstNodeT<I>
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
-        AstNode::collectChildren(out, ast, spanArgs);
+        AstNode::collectChildren(out, ast, spanArgsRef);
         AstNode::collectChildren(out, {nodeReturnTypeRef, nodeBodyRef});
     }
 };
@@ -75,8 +75,8 @@ template<AstNodeId I>
 struct AstAggregateDeclT : AstNodeT<I>
 {
     TokenRef   tokNameRef;
-    SpanRef    spanGenericParams;
-    SpanRef    spanWhere;
+    SpanRef    spanGenericParamsRef;
+    SpanRef    spanWhereRef;
     AstNodeRef nodeBodyRef;
 
     explicit AstAggregateDeclT(SourceViewRef srcViewRef, TokenRef tokRef) :
@@ -86,8 +86,8 @@ struct AstAggregateDeclT : AstNodeT<I>
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
-        AstNode::collectChildren(out, ast, spanGenericParams);
-        AstNode::collectChildren(out, ast, spanWhere);
+        AstNode::collectChildren(out, ast, spanGenericParamsRef);
+        AstNode::collectChildren(out, ast, spanWhereRef);
         AstNode::collectChildren(out, {nodeBodyRef});
     }
 };
@@ -199,6 +199,17 @@ struct AstInternalCallTernaryT : AstNodeT<I>
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeArg1Ref, nodeArg2Ref, nodeArg3Ref});
+    }
+};
+
+template<AstNodeId I>
+struct AstGenericParamT : AstNodeT<I>
+{
+    AstNodeRef nodeAssignRef;
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
+    {
+        AstNode::collectChildren(out, {nodeAssignRef});
     }
 };
 

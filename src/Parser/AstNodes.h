@@ -30,8 +30,8 @@ template<AstNodeId I>
 struct AstLambdaExprT : AstNodeT<I>
 {
     SpanRef    spanArgs;
-    AstNodeRef nodeReturnType;
-    AstNodeRef nodeBody;
+    AstNodeRef nodeReturnTypeRef;
+    AstNodeRef nodeBodyRef;
 
     explicit AstLambdaExprT(SourceViewRef srcViewRef, TokenRef tokRef) :
         AstNodeT<I>(srcViewRef, tokRef)
@@ -41,15 +41,15 @@ struct AstLambdaExprT : AstNodeT<I>
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, ast, spanArgs);
-        AstNode::collectChildren(out, {nodeReturnType, nodeBody});
+        AstNode::collectChildren(out, {nodeReturnTypeRef, nodeBodyRef});
     }
 };
 
 template<AstNodeId I>
 struct AstBinaryT : AstNodeT<I>
 {
-    AstNodeRef nodeLeft;
-    AstNodeRef nodeRight;
+    AstNodeRef nodeLeftRef;
+    AstNodeRef nodeRightRef;
 
     explicit AstBinaryT(SourceViewRef srcViewRef, TokenRef tokRef) :
         AstNodeT<I>(srcViewRef, tokRef)
@@ -58,7 +58,7 @@ struct AstBinaryT : AstNodeT<I>
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
-        AstNode::collectChildren(out, {nodeLeft, nodeRight});
+        AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef});
     }
 };
 
@@ -74,10 +74,10 @@ struct AstLiteralT : AstNodeT<I>
 template<AstNodeId I>
 struct AstAggregateDeclT : AstNodeT<I>
 {
-    TokenRef   tokName;
+    TokenRef   tokNameRef;
     SpanRef    spanGenericParams;
     SpanRef    spanWhere;
-    AstNodeRef nodeBody;
+    AstNodeRef nodeBodyRef;
 
     explicit AstAggregateDeclT(SourceViewRef srcViewRef, TokenRef tokRef) :
         AstNodeT<I>(srcViewRef, tokRef)
@@ -88,14 +88,14 @@ struct AstAggregateDeclT : AstNodeT<I>
     {
         AstNode::collectChildren(out, ast, spanGenericParams);
         AstNode::collectChildren(out, ast, spanWhere);
-        AstNode::collectChildren(out, {nodeBody});
+        AstNode::collectChildren(out, {nodeBodyRef});
     }
 };
 
 template<AstNodeId I>
 struct AstAnonymousAggregateDeclT : AstNodeT<I>
 {
-    AstNodeRef nodeBody;
+    AstNodeRef nodeBodyRef;
 
     explicit AstAnonymousAggregateDeclT(SourceViewRef srcViewRef, TokenRef tokRef) :
         AstNodeT<I>(srcViewRef, tokRef)
@@ -104,15 +104,15 @@ struct AstAnonymousAggregateDeclT : AstNodeT<I>
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
-        AstNode::collectChildren(out, {nodeBody});
+        AstNode::collectChildren(out, {nodeBodyRef});
     }
 };
 
 template<AstNodeId I>
 struct AstIfBaseT : AstNodeT<I>
 {
-    AstNodeRef nodeIfBlock;
-    AstNodeRef nodeElseBlock;
+    AstNodeRef nodeIfBlockRef;
+    AstNodeRef nodeElseBlockRef;
 
     explicit AstIfBaseT(SourceViewRef srcViewRef, TokenRef tokRef) :
         AstNodeT<I>(srcViewRef, tokRef)
@@ -121,15 +121,15 @@ struct AstIfBaseT : AstNodeT<I>
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
-        AstNode::collectChildren(out, {nodeIfBlock, nodeElseBlock});
+        AstNode::collectChildren(out, {nodeIfBlockRef, nodeElseBlockRef});
     }
 };
 
 template<AstNodeId I>
 struct AstIntrinsicInitDropCopyMoveT : AstNodeT<I>
 {
-    AstNodeRef nodeWhat;
-    AstNodeRef nodeCount;
+    AstNodeRef nodeWhatRef;
+    AstNodeRef nodeCountRef;
 
     explicit AstIntrinsicInitDropCopyMoveT(SourceViewRef srcViewRef, TokenRef tokRef) :
         AstNodeT<I>(srcViewRef, tokRef)
@@ -138,7 +138,7 @@ struct AstIntrinsicInitDropCopyMoveT : AstNodeT<I>
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
-        AstNode::collectChildren(out, {nodeWhat, nodeCount});
+        AstNode::collectChildren(out, {nodeWhatRef, nodeCountRef});
     }
 };
 
@@ -154,7 +154,7 @@ struct AstInternalCallZeroT : AstNodeT<I>
 template<AstNodeId I>
 struct AstInternalCallUnaryT : AstNodeT<I>
 {
-    AstNodeRef nodeArg;
+    AstNodeRef nodeArgRef;
 
     explicit AstInternalCallUnaryT(SourceViewRef srcViewRef, TokenRef tokRef) :
         AstNodeT<I>(srcViewRef, tokRef)
@@ -163,16 +163,15 @@ struct AstInternalCallUnaryT : AstNodeT<I>
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
-        AstNode::collectChildren(out, {nodeArg});
+        AstNode::collectChildren(out, {nodeArgRef});
     }
 };
 
 template<AstNodeId I>
 struct AstInternalCallBinaryT : AstNodeT<I>
 {
-    TokenRef   tokName;
-    AstNodeRef nodeArg1;
-    AstNodeRef nodeArg2;
+    AstNodeRef nodeArg1Ref;
+    AstNodeRef nodeArg2Ref;
 
     explicit AstInternalCallBinaryT(SourceViewRef srcViewRef, TokenRef tokRef) :
         AstNodeT<I>(srcViewRef, tokRef)
@@ -181,16 +180,16 @@ struct AstInternalCallBinaryT : AstNodeT<I>
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
-        AstNode::collectChildren(out, {nodeArg1, nodeArg2});
+        AstNode::collectChildren(out, {nodeArg1Ref, nodeArg2Ref});
     }
 };
 
 template<AstNodeId I>
 struct AstInternalCallTernaryT : AstNodeT<I>
 {
-    AstNodeRef nodeArg1;
-    AstNodeRef nodeArg2;
-    AstNodeRef nodeArg3;
+    AstNodeRef nodeArg1Ref;
+    AstNodeRef nodeArg2Ref;
+    AstNodeRef nodeArg3Ref;
 
     explicit AstInternalCallTernaryT(SourceViewRef srcViewRef, TokenRef tokRef) :
         AstNodeT<I>(srcViewRef, tokRef)
@@ -199,7 +198,7 @@ struct AstInternalCallTernaryT : AstNodeT<I>
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
-        AstNode::collectChildren(out, {nodeArg1, nodeArg2, nodeArg3});
+        AstNode::collectChildren(out, {nodeArg1Ref, nodeArg2Ref, nodeArg3Ref});
     }
 };
 

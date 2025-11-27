@@ -137,8 +137,8 @@ AstNodeRef Parser::parseAggregateDecl()
         nodePtr->spanGenericParams.setInvalid();
 
     // Name
-    nodePtr->tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
-    if (nodePtr->tokName.isInvalid())
+    nodePtr->tokNameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+    if (nodePtr->tokNameRef.isInvalid())
         skipTo({TokenId::SymLeftCurly});
 
     // Where
@@ -157,7 +157,7 @@ AstNodeRef Parser::parseAggregateDecl()
     nodePtr->spanWhere = whereRefs.empty() ? SpanRef::invalid() : ast_->store().push_span(whereRefs.span());
 
     // Content
-    nodePtr->nodeBody = parseAggregateBody();
+    nodePtr->nodeBodyRef = parseAggregateBody();
 
     return nodeRef;
 }

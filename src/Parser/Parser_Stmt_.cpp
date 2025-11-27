@@ -159,13 +159,13 @@ AstNodeRef Parser::parseIf()
         else
             nodePtr->nodeWhere.setInvalid();
 
-        nodePtr->nodeIfBlock = parseDoCurlyBlock();
+        nodePtr->nodeIfBlockRef = parseDoCurlyBlock();
         if (is(TokenId::KwdElseIf))
-            nodePtr->nodeElseBlock = parseIf();
+            nodePtr->nodeElseBlockRef = parseIf();
         else if (consumeIf(TokenId::KwdElse).isValid())
-            nodePtr->nodeElseBlock = parseDoCurlyBlock();
+            nodePtr->nodeElseBlockRef = parseDoCurlyBlock();
         else
-            nodePtr->nodeElseBlock.setInvalid();
+            nodePtr->nodeElseBlockRef.setInvalid();
 
         return nodeRef;
     }
@@ -178,13 +178,13 @@ AstNodeRef Parser::parseIf()
     if (nodePtr->nodeCondition.isInvalid())
         skipTo({TokenId::KwdDo, TokenId::SymLeftCurly});
 
-    nodePtr->nodeIfBlock = parseDoCurlyBlock();
+    nodePtr->nodeIfBlockRef = parseDoCurlyBlock();
     if (is(TokenId::KwdElseIf))
-        nodePtr->nodeElseBlock = parseIf();
+        nodePtr->nodeElseBlockRef = parseIf();
     else if (consumeIf(TokenId::KwdElse).isValid())
-        nodePtr->nodeElseBlock = parseDoCurlyBlock();
+        nodePtr->nodeElseBlockRef = parseDoCurlyBlock();
     else
-        nodePtr->nodeElseBlock.setInvalid();
+        nodePtr->nodeElseBlockRef.setInvalid();
 
     return nodeRef;
 }
@@ -214,11 +214,11 @@ AstNodeRef Parser::parseIntrinsicInit()
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    nodePtr->nodeWhat = parseExpression();
+    nodePtr->nodeWhatRef = parseExpression();
     if (consumeIf(TokenId::SymComma).isValid())
-        nodePtr->nodeCount = parseExpression();
+        nodePtr->nodeCountRef = parseExpression();
     else
-        nodePtr->nodeCount.setInvalid();
+        nodePtr->nodeCountRef.setInvalid();
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
     if (is(TokenId::SymLeftParen))
@@ -236,11 +236,11 @@ AstNodeRef Parser::parseIntrinsicDrop()
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    nodePtr->nodeWhat = parseExpression();
+    nodePtr->nodeWhatRef = parseExpression();
     if (consumeIf(TokenId::SymComma).isValid())
-        nodePtr->nodeCount = parseExpression();
+        nodePtr->nodeCountRef = parseExpression();
     else
-        nodePtr->nodeCount.setInvalid();
+        nodePtr->nodeCountRef.setInvalid();
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
     return nodeRef;
@@ -253,11 +253,11 @@ AstNodeRef Parser::parseIntrinsicPostCopy()
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    nodePtr->nodeWhat = parseExpression();
+    nodePtr->nodeWhatRef = parseExpression();
     if (consumeIf(TokenId::SymComma).isValid())
-        nodePtr->nodeCount = parseExpression();
+        nodePtr->nodeCountRef = parseExpression();
     else
-        nodePtr->nodeCount.setInvalid();
+        nodePtr->nodeCountRef.setInvalid();
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
     return nodeRef;
@@ -270,11 +270,11 @@ AstNodeRef Parser::parseIntrinsicPostMove()
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    nodePtr->nodeWhat = parseExpression();
+    nodePtr->nodeWhatRef = parseExpression();
     if (consumeIf(TokenId::SymComma).isValid())
-        nodePtr->nodeCount = parseExpression();
+        nodePtr->nodeCountRef = parseExpression();
     else
-        nodePtr->nodeCount.setInvalid();
+        nodePtr->nodeCountRef.setInvalid();
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
     return nodeRef;

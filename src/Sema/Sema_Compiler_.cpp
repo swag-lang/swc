@@ -40,11 +40,11 @@ AstVisitStepResult AstCompilerIf::semaPreChild(Sema& sema, const AstNodeRef& chi
 AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 {
     const auto&    tok        = sema.token(srcViewRef(), tokRef());
-    const AstNode& nodeArgPtr = sema.node(nodeArg);
+    const AstNode& nodeArgPtr = sema.node(nodeArgRef);
 
     if (!nodeArgPtr.isSemaConstant())
     {
-        sema.raiseError(DiagnosticId::sema_err_expr_not_const, nodeArg);
+        sema.raiseError(DiagnosticId::sema_err_expr_not_const, nodeArgRef);
         return AstVisitStepResult::Stop;
     }
 
@@ -56,7 +56,7 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
         case TokenId::CompilerWarning:
             if (!constant.isString())
             {
-                sema.raiseInvalidType(nodeArg, constant.typeRef(), sema.typeMgr().getTypeString());
+                sema.raiseInvalidType(nodeArgRef, constant.typeRef(), sema.typeMgr().getTypeString());
                 return AstVisitStepResult::Stop;
             }
             break;
@@ -64,7 +64,7 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
         case TokenId::CompilerAssert:
             if (!constant.isBool())
             {
-                sema.raiseInvalidType(nodeArg, constant.typeRef(), sema.typeMgr().getTypeBool());
+                sema.raiseInvalidType(nodeArgRef, constant.typeRef(), sema.typeMgr().getTypeBool());
                 return AstVisitStepResult::Stop;
             }
             break;

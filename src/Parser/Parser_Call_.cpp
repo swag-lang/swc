@@ -21,7 +21,7 @@ AstNodeRef Parser::parseIntrinsicCallUnary()
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    nodePtr->nodeArg = parseExpression();
+    nodePtr->nodeArgRef = parseExpression();
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
     return nodeRef;
@@ -34,11 +34,11 @@ AstNodeRef Parser::parseIntrinsicCallBinary()
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
-    nodePtr->nodeArg1 = parseExpression();
+    nodePtr->nodeArg1Ref = parseExpression();
     if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
         skipTo({TokenId::SymComma, TokenId::SymRightParen});
 
-    nodePtr->nodeArg2 = parseExpression();
+    nodePtr->nodeArg2Ref = parseExpression();
 
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
     return nodeRef;
@@ -51,15 +51,15 @@ AstNodeRef Parser::parseIntrinsicCallTernary()
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
-    nodePtr->nodeArg1 = parseExpression();
+    nodePtr->nodeArg1Ref = parseExpression();
     if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
         skipTo({TokenId::SymComma, TokenId::SymRightParen});
 
-    nodePtr->nodeArg2 = parseExpression();
+    nodePtr->nodeArg2Ref = parseExpression();
     if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
         skipTo({TokenId::SymComma, TokenId::SymRightParen});
 
-    nodePtr->nodeArg3 = parseExpression();
+    nodePtr->nodeArg3Ref = parseExpression();
 
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
     return nodeRef;

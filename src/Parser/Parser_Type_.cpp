@@ -43,19 +43,19 @@ AstNodeRef Parser::parseSingleType()
         case TokenId::KwdStruct:
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousStructDecl>(consume());
-            nodePtr->nodeBody       = parseAggregateBody();
+            nodePtr->nodeBodyRef       = parseAggregateBody();
             return nodeRef;
         }
         case TokenId::KwdUnion:
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousUnionDecl>(consume());
-            nodePtr->nodeBody       = parseAggregateBody();
+            nodePtr->nodeBodyRef       = parseAggregateBody();
             return nodeRef;
         }
         case TokenId::SymLeftCurly:
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousStructDecl>(ref());
-            nodePtr->nodeBody       = parseAggregateBody();
+            nodePtr->nodeBodyRef       = parseAggregateBody();
             return nodeRef;
         }
 

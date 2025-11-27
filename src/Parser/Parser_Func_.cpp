@@ -176,16 +176,16 @@ AstNodeRef Parser::parseLambdaExpression()
         nodePtr->addParserFlag(flags);
         nodePtr->nodeCaptureArgs = captureArgs;
         nodePtr->spanArgs        = args;
-        nodePtr->nodeReturnType  = returnType;
-        nodePtr->nodeBody        = body;
+        nodePtr->nodeReturnTypeRef  = returnType;
+        nodePtr->nodeBodyRef        = body;
         return nodeRef;
     }
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionExpr>(ref());
     nodePtr->addParserFlag(flags);
     nodePtr->spanArgs       = args;
-    nodePtr->nodeReturnType = returnType;
-    nodePtr->nodeBody       = body;
+    nodePtr->nodeReturnTypeRef = returnType;
+    nodePtr->nodeBodyRef       = body;
     return nodeRef;
 }
 

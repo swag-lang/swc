@@ -95,9 +95,9 @@ AstNodeRef Parser::parseBinaryExpr()
     {
         const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::BinaryExpr>(ref());
         consume();
-        nodePtr->nodeLeft      = nodeRef;
+        nodePtr->nodeLeftRef      = nodeRef;
         nodePtr->modifierFlags = parseModifiers();
-        nodePtr->nodeRight     = parseBinaryExpr();
+        nodePtr->nodeRightRef     = parseBinaryExpr();
         return nodeParen;
     }
 
@@ -281,8 +281,8 @@ AstNodeRef Parser::parseLogicalExpr()
             raiseError(DiagnosticId::parser_err_unexpected_and_or, ref());
 
         const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::LogicalExpr>(consume());
-        nodePtr->nodeLeft               = nodeRef;
-        nodePtr->nodeRight              = parseLogicalExpr();
+        nodePtr->nodeLeftRef               = nodeRef;
+        nodePtr->nodeRightRef              = parseLogicalExpr();
         return nodeParen;
     }
 
@@ -658,8 +658,8 @@ AstNodeRef Parser::parseRelationalExpr()
               TokenId::SymLowerEqualGreater))
     {
         const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::RelationalExpr>(consume());
-        nodePtr->nodeLeft               = nodeRef;
-        nodePtr->nodeRight              = parseRelationalExpr();
+        nodePtr->nodeLeftRef               = nodeRef;
+        nodePtr->nodeRightRef              = parseRelationalExpr();
         return nodeParen;
     }
 

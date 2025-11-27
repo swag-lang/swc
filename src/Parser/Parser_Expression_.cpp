@@ -672,6 +672,7 @@ AstNodeRef Parser::parsePrefixExpr()
     {
         case TokenId::KwdCast:
             return parseCast();
+
         case TokenId::KwdDRef:
         case TokenId::KwdMoveRef:
         case TokenId::SymPlus:

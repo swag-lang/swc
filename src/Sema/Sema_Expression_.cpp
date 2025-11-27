@@ -98,4 +98,9 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
     return AstVisitStepResult::Stop;
 }
 
+AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema)
+{
+    return AstVisitStepResult::Continue;
+}
+
 SWC_END_NAMESPACE()

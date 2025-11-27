@@ -462,6 +462,8 @@ struct AstUnaryExpr : AstNodeT<AstNodeId::UnaryExpr>
     {
         AstNode::collectChildren(out, {nodeExpr});
     }
+
+    AstVisitStepResult semaPostNode(Sema& sema);
 };
 
 struct AstBinaryConditionalExpr : AstNodeT<AstNodeId::BinaryConditionalExpr>

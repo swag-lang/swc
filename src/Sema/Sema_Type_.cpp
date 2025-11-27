@@ -56,7 +56,7 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema)
 
     const TypeInfoRef type     = nodeSuffixPtr.getNodeTypeRef(ctx);
     bool              overflow = false;
-    const ConstantRef newCst   = cstMgr.convert(ctx, nodeLiteralPtr.getSemaConstant(ctx), type, overflow);
+    const ConstantRef newCst   = sema.convert(nodeLiteralPtr.getSemaConstant(ctx), type, overflow);
     if (overflow)
     {
         auto diag = sema.reportError(DiagnosticId::sema_err_literal_overflow, nodeLiteralPtr.srcViewRef(), nodeLiteralPtr.tokRef());

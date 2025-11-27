@@ -22,7 +22,6 @@ public:
     ConstantRef          boolTrue() const { return boolTrue_; }
     ConstantRef          boolFalse() const { return boolFalse_; }
     const ConstantValue& get(ConstantRef constantRef) const;
-    ConstantRef          convert(const TaskContext& ctx, const ConstantValue& src, TypeInfoRef targetTypeRef, bool& overflow);
 };
 
 SWC_END_NAMESPACE()

@@ -31,4 +31,5 @@
 
 // --- large unsigned 32-bit boundary ---
 #assert(4294967295'u32 == 4294967295'u32)  // 2^32 - 1
-#assert(4294967296'u32 == 0'u32)              // swc-expected-error {{sema_err_literal_overflow}}
+#assert(4294967296'u32 == 0'u32)              // swc-expected-error {{sema_err_literal_overflow}}$
+

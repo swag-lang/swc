@@ -42,6 +42,8 @@ public:
     void       raiseError(DiagnosticId id, AstNodeRef nodeRef);
     void       raiseInvalidType(AstNodeRef nodeRef, TypeInfoRef wantedType, TypeInfoRef hasType);
     void       raiseInternalError(const AstNode* node);
+
+    ConstantRef convert(const ConstantValue& src, TypeInfoRef targetTypeRef, bool& overflow);
 };
 
 SWC_END_NAMESPACE()

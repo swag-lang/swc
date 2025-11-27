@@ -59,6 +59,7 @@ public:
     bool        castAllowed(const CastContext& castCtx, TypeInfoRef srcTypeRef, TypeInfoRef targetTypeRef);
     ConstantRef cast(const CastContext& castCtx, const ConstantValue& src, TypeInfoRef targetTypeRef);
     ConstantRef castIntToInt(const CastContext& castCtx, const ConstantValue& src, TypeInfoRef targetTypeRef);
+    ConstantRef castIntToFloat(const CastContext& castCtx, const ConstantValue& src, TypeInfoRef targetTypeRef);
 };
 
 SWC_END_NAMESPACE()

@@ -47,9 +47,13 @@ public:
     bool         isBool() const noexcept { return kind_ == TypeInfoKind::Bool; }
     bool         isString() const noexcept { return kind_ == TypeInfoKind::String; }
     bool         isInt() const noexcept { return kind_ == TypeInfoKind::Int; }
-    uint32_t     intBits() const noexcept { return int_.bits; }
     bool         isIntSigned() const noexcept { return isInt() && int_.isSigned; }
     bool         isFloat() const noexcept { return kind_ == TypeInfoKind::Float; }
+
+    // clang-format off
+    uint32_t intBits() const noexcept { SWC_ASSERT(isInt()); return int_.bits; }
+    uint32_t floatBits() const noexcept { SWC_ASSERT(isFloat()); return float_.bits; }
+    // clang-format on
 
     static TypeInfo makeBool();
     static TypeInfo makeString();

@@ -2,6 +2,7 @@
 #include "Sema/ConstantManager.h"
 #include "Sema/Sema.h"
 #include "Sema/TypeManager.h"
+#include <mimalloc/types.h>
 
 SWC_BEGIN_NAMESPACE()
 
@@ -17,13 +18,17 @@ bool Sema::castAllowed(const CastContext& castCtx, TypeInfoRef srcTypeRef, TypeI
         case CastKind::LiteralSuffix:
             if (srcType.isInt() && targetType.isInt())
                 return true;
+            if (srcType.isInt() && targetType.isFloat())
+                return true;
             break;
+
+        default:
+            SWC_UNREACHABLE();
     }
 
-    const AstNode& nodeLiteralPtr = node(castCtx.errorNode);
-    auto           diag           = reportError(DiagnosticId::sema_err_cannot_cast, nodeLiteralPtr.srcViewRef(), nodeLiteralPtr.tokRef());
-    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, targetTypeRef);
+    auto diag = reportError(DiagnosticId::sema_err_cannot_cast, castCtx.errorNode);
     diag.addArgument(Diagnostic::ARG_TYPE, srcTypeRef);
+    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, targetTypeRef);
     diag.report(ctx);
     return false;
 }
@@ -37,8 +42,11 @@ ConstantRef Sema::cast(const CastContext& castCtx, const ConstantValue& src, Typ
     const auto& typeMgr    = ctx.compiler().typeMgr();
     const auto& srcType    = typeMgr.get(src.typeRef());
     const auto& targetType = typeMgr.get(targetTypeRef);
+
     if (srcType.isInt() && targetType.isInt())
         return castIntToInt(castCtx, src, targetTypeRef);
+    if (srcType.isInt() && targetType.isFloat())
+        return castIntToFloat(castCtx, src, targetTypeRef);
 
     raiseInternalError(node(castCtx.errorNode));
     return ConstantRef::invalid();
@@ -98,8 +106,7 @@ ConstantRef Sema::castIntToInt(const CastContext& castCtx, const ConstantValue& 
 
     if (overflow)
     {
-        const AstNode& nodeLiteralPtr = node(castCtx.errorNode);
-        auto           diag           = reportError(DiagnosticId::sema_err_literal_overflow, nodeLiteralPtr.srcViewRef(), nodeLiteralPtr.tokRef());
+        auto diag = reportError(DiagnosticId::sema_err_literal_overflow, castCtx.errorNode);
         diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
         diag.report(ctx);
         return ConstantRef::invalid();
@@ -114,6 +121,80 @@ ConstantRef Sema::castIntToInt(const CastContext& castCtx, const ConstantValue& 
 
     // Build the resulting constant with the *target* integer type
     const ConstantValue result = ConstantValue::makeApsInt(ctx, value, targetBits);
+    return ctx.compiler().constMgr().addConstant(ctx, result);
+}
+
+ConstantRef Sema::castIntToFloat(const CastContext& castCtx, const ConstantValue& src, TypeInfoRef targetTypeRef)
+{
+    auto& ctx = *ctx_;
+    SWC_ASSERT(src.isInt());
+
+    const auto& typeMgr    = ctx.compiler().typeMgr();
+    const auto& targetType = typeMgr.get(targetTypeRef);
+    SWC_ASSERT(targetType.isFloat());
+
+    const ApsInt&  intVal     = src.getInt();
+    const uint32_t targetBits = targetType.floatBits();
+
+    bool    precisionLoss = false;
+    ApFloat value;
+
+    // Convert integer to floating point
+    if (intVal.isUnsigned())
+    {
+        // For unsigned, convert directly
+        if (intVal.fits64())
+        {
+            value.set(static_cast<double>(intVal.to64()));
+        }
+        else
+        {
+            // For very large integers, there will be precision loss
+            precisionLoss = true;
+            // Convert word by word (simplified - may need better handling)
+            value.set(static_cast<double>(intVal.to64()));
+        }
+    }
+    else
+    {
+        // For signed, check sign bit
+        if (intVal.isNegative())
+        {
+            // Get absolute value (simplified)
+            ApsInt absVal = intVal;
+            // TODO: Proper two's complement negation
+            value.set(-static_cast<double>(absVal.to64()));
+        }
+        else
+        {
+            value.set(static_cast<double>(intVal.to64()));
+        }
+    }
+
+    // Check for precision loss based on target float type
+    if (targetBits == 32)
+    {
+        // f32 has 24 bits of precision
+        const uint32_t intBits = intVal.bitWidth();
+        if (intBits > 24)
+        {
+            // May have precision loss
+            const float f32Val = value.toFloat();
+            if (static_cast<double>(f32Val) != value.toDouble())
+                precisionLoss = true;
+        }
+
+        value.set(static_cast<float>(value.toDouble()));
+    }
+
+    // f64 has 53 bits of precision
+    else if (intVal.bitWidth() > 53)
+    {
+        precisionLoss = true;
+    }
+
+    // Build the resulting constant with the *target* integer type
+    const ConstantValue result = ConstantValue::makeFloat(ctx, value, targetBits);
     return ctx.compiler().constMgr().addConstant(ctx, result);
 }
 

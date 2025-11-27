@@ -48,6 +48,7 @@ public:
     bool     isStrictlyPositive() const;
     bool     isNonPositive() const;
     uint64_t getSignBit() const;
+    void     setSignBit(bool isNegative);
 
     void     bitwiseOr(uint64_t rhs);
     void     logicalShiftLeft(uint64_t amount, bool& overflow);

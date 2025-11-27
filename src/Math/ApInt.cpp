@@ -434,6 +434,15 @@ uint64_t ApInt::getSignBit() const
     return isSignBitSet() ? ONE : ZERO;
 }
 
+void ApInt::setSignBit(bool isNegative)
+{
+    const uint64_t signIndex = bitWidth_ - 1;
+    if (isNegative)
+        setBit(signIndex);
+    else
+        clearBit(signIndex);
+}
+
 namespace
 {
     ApInt makeMinValue(uint32_t bitWidth)

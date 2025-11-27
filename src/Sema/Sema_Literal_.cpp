@@ -300,12 +300,13 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(Sema& sema)
 
     const auto& langSpec = sema.compiler().global().langSpec();
 
-    ApsInt intValue(false);
-    bool   seenDot      = false;
-    bool   seenExp      = false;
-    bool   expNegative  = false;
-    bool   expSignSeen  = false;
-    bool   expDigitSeen = false;
+    ApInt intValue;
+
+    bool seenDot      = false;
+    bool seenExp      = false;
+    bool expNegative  = false;
+    bool expSignSeen  = false;
+    bool expDigitSeen = false;
 
     size_t  fracDigits = 0; // number of digits AFTER '.'
     int64_t expValue   = 0; // exponent part AFTER 'e'
@@ -386,7 +387,7 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(Sema& sema)
         SWC_UNREACHABLE();
     }
 
-    // exponent offset from decimal digits
+    // Exponent offset from decimal digits
     int64_t totalExp10 = 0;
 
     if (seenExp)
@@ -403,31 +404,14 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(Sema& sema)
             sema.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
             return AstVisitStepResult::Stop;
         }
-        else
-        {
-            totalExp10 -= static_cast<int64_t>(fracDigits);
-        }
+
+        totalExp10 -= static_cast<int64_t>(fracDigits);
     }
 
-    // Conversion: intValue * 10^totalExp10 -> ApFloat
-    ApFloat floatValue{0};
-    /*if (!errorRaised)
-    {
-        bool convOverflow = false;
-        floatValue.fromDecimal(intValue, totalExp10, convOverflow);
+    ApFloat value;
+    value.set(intValue, totalExp10);
 
-        if (convOverflow && !errorRaised)
-        {
-            sema.raiseError(DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-            floatValue.resetToZero(false);
-        }
-    }
-    else
-    {
-        floatValue.resetToZero(false);
-    }*/
-
-    const auto val = ConstantValue::makeFloat(ctx, floatValue);
+    const auto val = ConstantValue::makeFloat(ctx, value, 64);
     setSemaConstant(sema.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }

@@ -38,10 +38,10 @@ ConstantValue ConstantValue::makeApsInt(const TaskContext& ctx, const ApsInt& va
     return cv;
 }
 
-ConstantValue ConstantValue::makeFloat(const TaskContext& ctx, const ApFloat& value)
+ConstantValue ConstantValue::makeFloat(const TaskContext& ctx, const ApFloat& value, uint32_t bitWidth)
 {
     ConstantValue cv;
-    cv.typeRef_   = ctx.compiler().typeMgr().getTypeFloat(value.bitWidth());
+    cv.typeRef_   = ctx.compiler().typeMgr().getTypeFloat(bitWidth);
     cv.kind_      = ConstantKind::Float;
     cv.float_.val = value;
     return cv;
@@ -79,7 +79,7 @@ Utf8 ConstantValue::toString() const
         case ConstantKind::Int:
             return std::to_string(getInt().to64());
         case ConstantKind::Float:
-            return "???";
+            return std::to_string(getFloat().toDouble());
 
         default:
             SWC_UNREACHABLE();

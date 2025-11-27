@@ -142,27 +142,28 @@ ConstantRef Sema::castIntToFloat(const CastContext& castCtx, const ConstantValue
     // Convert integer to floating point
     if (intVal.isUnsigned())
     {
-        // For unsigned, convert directly
-        if (intVal.fits64())
-        {
-            value.set(static_cast<double>(intVal.asU64()));
-        }
-        else
-        {
-            // For very large integers, there will be precision loss
+        if (!intVal.fits64())
             precisionLoss = true;
-            // Convert word by word (simplified - may need better handling)
-            value.set(static_cast<double>(intVal.asU64()));
-        }
+        value.set(static_cast<double>(intVal.asU64()));
     }
     else
     {
         // For signed, check sign bit
         if (intVal.isNegative())
         {
-            // Get absolute value (simplified)
+            // Get absolute value
             ApsInt absVal = intVal;
-            // TODO: Proper two's complement negation
+
+            bool overflow = false;
+            absVal.abs(overflow);
+            if (overflow)
+            {
+                auto diag = reportError(DiagnosticId::sema_err_literal_overflow, castCtx.errorNode);
+                diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
+                diag.report(ctx);
+                return ConstantRef::invalid();
+            }
+
             value.set(-static_cast<double>(absVal.asU64()));
         }
         else

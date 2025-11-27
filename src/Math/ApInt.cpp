@@ -758,4 +758,27 @@ void ApInt::resizeSigned(uint32_t newBitWidth)
     normalize();
 }
 
+void ApInt::abs(bool& overflow)
+{
+    overflow = false;
+
+    if (!isNegative())
+        return;
+
+    // Bitwise NOT on all used words
+    for (uint32_t i = 0; i < numWords_; ++i)
+        words_[i] = ~words_[i];
+
+    // Mask off unused high bits in the top word
+    if (bitWidth_ % WORD_BITS)
+    {
+        const uint64_t usedBits = bitWidth_ % WORD_BITS;
+        const uint64_t mask     = (usedBits == 64 ? ~ZERO : ((ONE << usedBits) - ONE));
+        words_[numWords_ - 1] &= mask;
+    }
+
+    // Add 1
+    add(1, overflow);
+}
+
 SWC_END_NAMESPACE()

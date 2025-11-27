@@ -1,11 +1,13 @@
 #include "pch.h"
+
+#include "Main/Command.h"
 #include "Sema/ConstantManager.h"
 #include "Sema/Sema.h"
 #include "Sema/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
-ConstantRef Sema::convert(const ConstantValue& src, TypeInfoRef targetTypeRef, bool& overflow)
+ConstantRef Sema::convert(const ConstantValue& src, TypeInfoRef targetTypeRef)
 {
     auto& ctx = *ctx_;
     SWC_ASSERT(src.isInt());
@@ -45,6 +47,7 @@ ConstantRef Sema::convert(const ConstantValue& src, TypeInfoRef targetTypeRef, b
     // Also extend min/max to the source bit width if needed for comparison
     ApsInt minValExtended = minVal;
     ApsInt maxValExtended = maxVal;
+    bool   overflow       = false;
     if (targetBits < sourceBits)
     {
         minValExtended.resize(sourceBits);
@@ -54,6 +57,15 @@ ConstantRef Sema::convert(const ConstantValue& src, TypeInfoRef targetTypeRef, b
     else
     {
         overflow = (valueForCheck < minVal || valueForCheck > maxVal);
+    }
+
+    if (overflow)
+    {
+        const AstNode& nodeLiteralPtr = node(visit().currentNodeRef());
+        auto           diag           = reportError(DiagnosticId::sema_err_literal_overflow, nodeLiteralPtr.srcViewRef(), nodeLiteralPtr.tokRef());
+        diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
+        diag.report(ctx);
+        return ConstantRef::invalid();
     }
 
     // Now normalize to the target representation

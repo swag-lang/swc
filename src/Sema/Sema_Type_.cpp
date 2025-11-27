@@ -54,19 +54,12 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema)
     const AstNode& nodeLiteralPtr = sema.node(nodeLiteral);
     const AstNode& nodeSuffixPtr  = sema.node(nodeSuffix);
 
-    const TypeInfoRef type     = nodeSuffixPtr.getNodeTypeRef(ctx);
-    bool              overflow = false;
-    const ConstantRef newCst   = sema.convert(nodeLiteralPtr.getSemaConstant(ctx), type, overflow);
-    if (overflow)
-    {
-        auto diag = sema.reportError(DiagnosticId::sema_err_literal_overflow, nodeLiteralPtr.srcViewRef(), nodeLiteralPtr.tokRef());
-        diag.addArgument(Diagnostic::ARG_TYPE, type);
-        diag.report(ctx);
+    const TypeInfoRef type   = nodeSuffixPtr.getNodeTypeRef(ctx);
+    const ConstantRef newCst = sema.convert(nodeLiteralPtr.getSemaConstant(ctx), type);
+    if (newCst.isInvalid())
         return AstVisitStepResult::Stop;
-    }
 
     setSemaConstant(newCst);
-
     return AstVisitStepResult::Continue;
 }
 

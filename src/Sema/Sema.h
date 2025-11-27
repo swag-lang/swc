@@ -43,7 +43,7 @@ public:
     void       raiseInvalidType(AstNodeRef nodeRef, TypeInfoRef wantedType, TypeInfoRef hasType);
     void       raiseInternalError(const AstNode* node);
 
-    ConstantRef convert(const ConstantValue& src, TypeInfoRef targetTypeRef, bool& overflow);
+    ConstantRef convert(const ConstantValue& src, TypeInfoRef targetTypeRef);
 };
 
 SWC_END_NAMESPACE()

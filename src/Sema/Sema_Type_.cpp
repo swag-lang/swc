@@ -53,18 +53,18 @@ AstVisitStepResult AstBuiltinType::semaPostNode(Sema& sema)
 
 AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema)
 {
-    auto&          ctx            = sema.ctx();
-    auto&          cstMgr         = ctx.compiler().constMgr();
-    const AstNode& nodeLiteralPtr = sema.node(nodeLiteralRef);
-    const AstNode& nodeSuffixPtr  = sema.node(nodeSuffixRef);
+    auto&          ctx         = sema.ctx();
+    auto&          cstMgr      = ctx.compiler().constMgr();
+    const AstNode& nodeLiteral = sema.node(nodeLiteralRef);
+    const AstNode& nodeSuffix  = sema.node(nodeSuffixRef);
 
-    const TypeInfoRef type = nodeSuffixPtr.getNodeTypeRef(ctx);
+    const TypeInfoRef typeRef = nodeSuffix.getNodeTypeRef(ctx);
 
     CastContext castCtx;
     castCtx.kind         = CastKind::LiteralSuffix;
     castCtx.errorNodeRef = nodeLiteralRef;
 
-    const ConstantRef newCst = sema.cast(castCtx, nodeLiteralPtr.getSemaConstant(ctx), type);
+    const ConstantRef newCst = sema.cast(castCtx, nodeLiteral.getSemaConstant(ctx), typeRef);
     if (newCst.isInvalid())
         return AstVisitStepResult::Stop;
 

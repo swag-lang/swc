@@ -15,14 +15,14 @@ AstVisitStepResult AstCompilerIf::semaPreChild(Sema& sema, const AstNodeRef& chi
     if (childRef == nodeConditionRef)
         return AstVisitStepResult::Continue;
 
-    const AstNode& nodeConditionPtr = sema.node(nodeConditionRef);
-    if (!nodeConditionPtr.isSemaConstant())
+    const AstNode& nodeCondition = sema.node(nodeConditionRef);
+    if (!nodeCondition.isSemaConstant())
     {
         sema.raiseError(DiagnosticId::sema_err_expr_not_const, nodeConditionRef);
         return AstVisitStepResult::Stop;
     }
 
-    const auto& constant = nodeConditionPtr.getSemaConstant(sema.ctx());
+    const auto& constant = nodeCondition.getSemaConstant(sema.ctx());
     if (!constant.isBool())
     {
         sema.raiseInvalidType(nodeConditionRef, constant.typeRef(), sema.typeMgr().getTypeBool());
@@ -39,16 +39,16 @@ AstVisitStepResult AstCompilerIf::semaPreChild(Sema& sema, const AstNodeRef& chi
 
 AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 {
-    const auto&    tok        = sema.token(srcViewRef(), tokRef());
-    const AstNode& nodeArgPtr = sema.node(nodeArgRef);
+    const auto&    tok     = sema.token(srcViewRef(), tokRef());
+    const AstNode& nodeArg = sema.node(nodeArgRef);
 
-    if (!nodeArgPtr.isSemaConstant())
+    if (!nodeArg.isSemaConstant())
     {
         sema.raiseError(DiagnosticId::sema_err_expr_not_const, nodeArgRef);
         return AstVisitStepResult::Stop;
     }
 
-    const auto& constant = nodeArgPtr.getSemaConstant(sema.ctx());
+    const auto& constant = nodeArg.getSemaConstant(sema.ctx());
 
     switch (tok.id)
     {

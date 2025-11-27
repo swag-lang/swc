@@ -8,14 +8,14 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    ConstantRef constantFoldBinaryExpr(Sema& sema, TokenId op, AstNodeRef left, AstNodeRef right)
+    ConstantRef constantFoldBinaryExpr(Sema& sema, TokenId op, AstNodeRef leftNodeRef, AstNodeRef rightNodeRef)
     {
-        const auto&    ctx      = sema.ctx();
-        auto&          constMgr = sema.constMgr();
-        const AstNode& leftPtr  = sema.node(left);
-        const AstNode& rightPtr = sema.node(right);
-        const auto&    leftCst  = leftPtr.getSemaConstant(ctx);
-        const auto&    rightCst = rightPtr.getSemaConstant(ctx);
+        const auto&    ctx       = sema.ctx();
+        auto&          constMgr  = sema.constMgr();
+        const AstNode& leftNode  = sema.node(leftNodeRef);
+        const AstNode& rightNode = sema.node(rightNodeRef);
+        const auto&    leftCst   = leftNode.getSemaConstant(ctx);
+        const auto&    rightCst  = rightNode.getSemaConstant(ctx);
 
         switch (op)
         {
@@ -33,14 +33,14 @@ namespace
         return ConstantRef::invalid();
     }
 
-    ConstantRef constantFoldRelationalExpr(Sema& sema, TokenId op, AstNodeRef left, AstNodeRef right)
+    ConstantRef constantFoldRelationalExpr(Sema& sema, TokenId op, AstNodeRef leftNodeRef, AstNodeRef rightNodeRef)
     {
-        const auto&    ctx      = sema.ctx();
-        auto&          constMgr = sema.constMgr();
-        const AstNode& leftPtr  = sema.node(left);
-        const AstNode& rightPtr = sema.node(right);
-        const auto&    leftCst  = leftPtr.getSemaConstant(ctx);
-        const auto&    rightCst = rightPtr.getSemaConstant(ctx);
+        const auto&    ctx       = sema.ctx();
+        auto&          constMgr  = sema.constMgr();
+        const AstNode& leftNode  = sema.node(leftNodeRef);
+        const AstNode& rightNode = sema.node(rightNodeRef);
+        const auto&    leftCst   = leftNode.getSemaConstant(ctx);
+        const auto&    rightCst  = rightNode.getSemaConstant(ctx);
 
         switch (op)
         {
@@ -60,11 +60,11 @@ namespace
 
 AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema)
 {
-    const auto&    tok          = sema.token(srcViewRef(), tokRef());
-    const AstNode& nodeLeftPtr  = sema.node(nodeLeftRef);
-    const AstNode& nodeRightPtr = sema.node(nodeRightRef);
+    const auto&    tok       = sema.token(srcViewRef(), tokRef());
+    const AstNode& nodeLeft  = sema.node(nodeLeftRef);
+    const AstNode& nodeRight = sema.node(nodeRightRef);
 
-    if (nodeLeftPtr.isSemaConstant() && nodeRightPtr.isSemaConstant())
+    if (nodeLeft.isSemaConstant() && nodeRight.isSemaConstant())
     {
         const auto cst = constantFoldBinaryExpr(sema, tok.id, nodeLeftRef, nodeRightRef);
         if (cst.isValid())
@@ -80,11 +80,11 @@ AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema)
 
 AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
 {
-    const auto&    tok          = sema.token(srcViewRef(), tokRef());
-    const AstNode& nodeLeftPtr  = sema.node(nodeLeftRef);
-    const AstNode& nodeRightPtr = sema.node(nodeRightRef);
+    const auto&    tok       = sema.token(srcViewRef(), tokRef());
+    const AstNode& nodeLeft  = sema.node(nodeLeftRef);
+    const AstNode& nodeRight = sema.node(nodeRightRef);
 
-    if (nodeLeftPtr.isSemaConstant() && nodeRightPtr.isSemaConstant())
+    if (nodeLeft.isSemaConstant() && nodeRight.isSemaConstant())
     {
         const auto cst = constantFoldRelationalExpr(sema, tok.id, nodeLeftRef, nodeRightRef);
         if (cst.isValid())

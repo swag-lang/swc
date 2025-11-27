@@ -25,7 +25,7 @@ AstVisitStepResult AstCompilerIf::semaPreChild(Sema& sema, const AstNodeRef& chi
     const auto& constant = nodeConditionPtr.getSemaConstant(sema.ctx());
     if (!constant.isBool())
     {
-        sema.raiseInvalidType(nodeCondition, sema.typeMgr().getTypeBool(), constant.typeRef());
+        sema.raiseInvalidType(nodeCondition, constant.typeRef(), sema.typeMgr().getTypeBool());
         return AstVisitStepResult::Stop;
     }
 
@@ -56,7 +56,7 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
         case TokenId::CompilerWarning:
             if (!constant.isString())
             {
-                sema.raiseInvalidType(nodeArg, sema.typeMgr().getTypeString(), constant.typeRef());
+                sema.raiseInvalidType(nodeArg, constant.typeRef(), sema.typeMgr().getTypeString());
                 return AstVisitStepResult::Stop;
             }
             break;
@@ -64,7 +64,7 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
         case TokenId::CompilerAssert:
             if (!constant.isBool())
             {
-                sema.raiseInvalidType(nodeArg, sema.typeMgr().getTypeBool(), constant.typeRef());
+                sema.raiseInvalidType(nodeArg, constant.typeRef(), sema.typeMgr().getTypeBool());
                 return AstVisitStepResult::Stop;
             }
             break;

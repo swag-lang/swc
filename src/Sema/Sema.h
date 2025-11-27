@@ -16,7 +16,7 @@ enum class CastKind
 struct CastContext
 {
     CastKind   kind;
-    AstNodeRef errorNode;
+    AstNodeRef errorNodeRef;
 };
 
 class Sema
@@ -53,7 +53,9 @@ public:
     Diagnostic reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokenRef);
     void       raiseError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokenRef);
     void       raiseError(DiagnosticId id, AstNodeRef nodeRef);
-    void       raiseInvalidType(AstNodeRef nodeRef, TypeInfoRef wantedType, TypeInfoRef hasType);
+    void       raiseInvalidType(AstNodeRef nodeRef, TypeInfoRef srcTypeRef, TypeInfoRef targetTypeRef);
+    void       raiseCannotCast(AstNodeRef nodeRef, TypeInfoRef srcTypeRef, TypeInfoRef targetTypeRef);
+    void       raiseLiteralOverflow(AstNodeRef nodeRef, TypeInfoRef targetTypeRef);
     void       raiseInternalError(const AstNode& node);
 
     bool        castAllowed(const CastContext& castCtx, TypeInfoRef srcTypeRef, TypeInfoRef targetTypeRef);

@@ -26,10 +26,7 @@ bool Sema::castAllowed(const CastContext& castCtx, TypeInfoRef srcTypeRef, TypeI
             SWC_UNREACHABLE();
     }
 
-    auto diag = reportError(DiagnosticId::sema_err_cannot_cast, castCtx.errorNode);
-    diag.addArgument(Diagnostic::ARG_TYPE, srcTypeRef);
-    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, targetTypeRef);
-    diag.report(ctx);
+    raiseCannotCast(castCtx.errorNodeRef, srcTypeRef, targetTypeRef);
     return false;
 }
 
@@ -48,7 +45,7 @@ ConstantRef Sema::cast(const CastContext& castCtx, const ConstantValue& src, Typ
     if (srcType.isInt() && targetType.isFloat())
         return castIntToFloat(castCtx, src, targetTypeRef);
 
-    raiseInternalError(node(castCtx.errorNode));
+    raiseInternalError(node(castCtx.errorNodeRef));
     return ConstantRef::invalid();
 }
 
@@ -106,9 +103,7 @@ ConstantRef Sema::castIntToInt(const CastContext& castCtx, const ConstantValue& 
 
     if (overflow)
     {
-        auto diag = reportError(DiagnosticId::sema_err_literal_overflow, castCtx.errorNode);
-        diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
-        diag.report(ctx);
+        raiseLiteralOverflow(castCtx.errorNodeRef, targetTypeRef);
         return ConstantRef::invalid();
     }
 
@@ -158,9 +153,7 @@ ConstantRef Sema::castIntToFloat(const CastContext& castCtx, const ConstantValue
             absVal.abs(overflow);
             if (overflow)
             {
-                auto diag = reportError(DiagnosticId::sema_err_literal_overflow, castCtx.errorNode);
-                diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
-                diag.report(ctx);
+                raiseLiteralOverflow(castCtx.errorNodeRef, targetTypeRef);
                 return ConstantRef::invalid();
             }
 
@@ -172,7 +165,7 @@ ConstantRef Sema::castIntToFloat(const CastContext& castCtx, const ConstantValue
         }
     }
 
-    // Check for precision loss based on target float type
+    // Check for precision loss based on the target float type
     if (targetBits == 32)
     {
         // f32 has 24 bits of precision

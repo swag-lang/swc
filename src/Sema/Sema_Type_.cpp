@@ -61,8 +61,8 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema)
     const TypeInfoRef type = nodeSuffixPtr.getNodeTypeRef(ctx);
 
     CastContext castCtx;
-    castCtx.kind      = CastKind::LiteralSuffix;
-    castCtx.errorNode = nodeLiteral;
+    castCtx.kind         = CastKind::LiteralSuffix;
+    castCtx.errorNodeRef = nodeLiteral;
 
     const ConstantRef newCst = sema.cast(castCtx, nodeLiteralPtr.getSemaConstant(ctx), type);
     if (newCst.isInvalid())

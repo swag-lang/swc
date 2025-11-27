@@ -41,9 +41,9 @@ void Sema::raiseInvalidType(AstNodeRef nodeRef, TypeInfoRef wantedType, TypeInfo
     diag.report(ctx());
 }
 
-void Sema::raiseInternalError(const AstNode* node)
+void Sema::raiseInternalError(const AstNode& node)
 {
-    raiseError(DiagnosticId::sema_err_internal, node->srcViewRef(), node->tokRef());
+    raiseError(DiagnosticId::sema_err_internal, node.srcViewRef(), node.tokRef());
 }
 
 SWC_END_NAMESPACE()

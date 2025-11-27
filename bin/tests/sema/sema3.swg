@@ -33,4 +33,4 @@
 #assert(4294967295'u32 == 4294967295'u32)  // 2^32 - 1
 #assert(4294967296'u32 == 0'u32)              // swc-expected-error {{sema_err_literal_overflow}}$
 
-#print(256's8)
+#print(1.0's32)

@@ -6,6 +6,19 @@
 
 SWC_BEGIN_NAMESPACE()
 
+enum class CastKind
+{
+    LiteralSuffix,
+    Implicit,
+    Explicit,
+};
+
+struct CastContext
+{
+    CastKind   kind;
+    AstNodeRef errorNode;
+};
+
 class Sema
 {
     TaskContext* ctx_ = nullptr;
@@ -41,9 +54,11 @@ public:
     void       raiseError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokenRef);
     void       raiseError(DiagnosticId id, AstNodeRef nodeRef);
     void       raiseInvalidType(AstNodeRef nodeRef, TypeInfoRef wantedType, TypeInfoRef hasType);
-    void       raiseInternalError(const AstNode* node);
+    void       raiseInternalError(const AstNode& node);
 
-    ConstantRef convert(const ConstantValue& src, TypeInfoRef targetTypeRef);
+    bool        castAllowed(const CastContext& castCtx, TypeInfoRef srcTypeRef, TypeInfoRef targetTypeRef);
+    ConstantRef cast(const CastContext& castCtx, const ConstantValue& src, TypeInfoRef targetTypeRef);
+    ConstantRef castIntToInt(const CastContext& castCtx, const ConstantValue& src, TypeInfoRef targetTypeRef);
 };
 
 SWC_END_NAMESPACE()

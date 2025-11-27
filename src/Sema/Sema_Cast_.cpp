@@ -1,13 +1,50 @@
 #include "pch.h"
-
-#include "Main/Command.h"
 #include "Sema/ConstantManager.h"
 #include "Sema/Sema.h"
 #include "Sema/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
-ConstantRef Sema::convert(const ConstantValue& src, TypeInfoRef targetTypeRef)
+bool Sema::castAllowed(const CastContext& castCtx, TypeInfoRef srcTypeRef, TypeInfoRef targetTypeRef)
+{
+    auto&       ctx        = *ctx_;
+    const auto& typeMgr    = ctx.compiler().typeMgr();
+    const auto& srcType    = typeMgr.get(srcTypeRef);
+    const auto& targetType = typeMgr.get(targetTypeRef);
+
+    switch (castCtx.kind)
+    {
+        case CastKind::LiteralSuffix:
+            if (srcType.isInt() && targetType.isInt())
+                return true;
+            break;
+    }
+
+    const AstNode& nodeLiteralPtr = node(castCtx.errorNode);
+    auto           diag           = reportError(DiagnosticId::sema_err_cannot_cast, nodeLiteralPtr.srcViewRef(), nodeLiteralPtr.tokRef());
+    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, targetTypeRef);
+    diag.addArgument(Diagnostic::ARG_TYPE, srcTypeRef);
+    diag.report(ctx);
+    return false;
+}
+
+ConstantRef Sema::cast(const CastContext& castCtx, const ConstantValue& src, TypeInfoRef targetTypeRef)
+{
+    if (!castAllowed(castCtx, src.typeRef(), targetTypeRef))
+        return ConstantRef::invalid();
+
+    auto&       ctx        = *ctx_;
+    const auto& typeMgr    = ctx.compiler().typeMgr();
+    const auto& srcType    = typeMgr.get(src.typeRef());
+    const auto& targetType = typeMgr.get(targetTypeRef);
+    if (srcType.isInt() && targetType.isInt())
+        return castIntToInt(castCtx, src, targetTypeRef);
+
+    raiseInternalError(node(castCtx.errorNode));
+    return ConstantRef::invalid();
+}
+
+ConstantRef Sema::castIntToInt(const CastContext& castCtx, const ConstantValue& src, TypeInfoRef targetTypeRef)
 {
     auto& ctx = *ctx_;
     SWC_ASSERT(src.isInt());
@@ -61,7 +98,7 @@ ConstantRef Sema::convert(const ConstantValue& src, TypeInfoRef targetTypeRef)
 
     if (overflow)
     {
-        const AstNode& nodeLiteralPtr = node(visit().currentNodeRef());
+        const AstNode& nodeLiteralPtr = node(castCtx.errorNode);
         auto           diag           = reportError(DiagnosticId::sema_err_literal_overflow, nodeLiteralPtr.srcViewRef(), nodeLiteralPtr.tokRef());
         diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
         diag.report(ctx);

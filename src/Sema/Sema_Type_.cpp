@@ -1,8 +1,5 @@
 #include "pch.h"
 #include "Parser/AstVisit.h"
-#include "Report/Diagnostic.h"
-#include "Report/DiagnosticDef.h"
-#include "Sema/ConstantManager.h"
 #include "Sema/Sema.h"
 #include "Sema/TypeManager.h"
 
@@ -39,11 +36,18 @@ AstVisitStepResult AstBuiltinType::semaPostNode(Sema& sema)
             setSemaType(sema.typeMgr().getTypeInt(64, false));
             return AstVisitStepResult::Continue;
 
+        case TokenId::TypeF32:
+            setSemaType(sema.typeMgr().getTypeFloat(32));
+            return AstVisitStepResult::Continue;
+        case TokenId::TypeF64:
+            setSemaType(sema.typeMgr().getTypeFloat(64));
+            return AstVisitStepResult::Continue;
+
         default:
             break;
     }
 
-    sema.raiseInternalError(this);
+    sema.raiseInternalError(*this);
     return AstVisitStepResult::Stop;
 }
 
@@ -54,8 +58,13 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema)
     const AstNode& nodeLiteralPtr = sema.node(nodeLiteral);
     const AstNode& nodeSuffixPtr  = sema.node(nodeSuffix);
 
-    const TypeInfoRef type   = nodeSuffixPtr.getNodeTypeRef(ctx);
-    const ConstantRef newCst = sema.convert(nodeLiteralPtr.getSemaConstant(ctx), type);
+    const TypeInfoRef type = nodeSuffixPtr.getNodeTypeRef(ctx);
+
+    CastContext castCtx;
+    castCtx.kind      = CastKind::LiteralSuffix;
+    castCtx.errorNode = nodeLiteral;
+
+    const ConstantRef newCst = sema.cast(castCtx, nodeLiteralPtr.getSemaConstant(ctx), type);
     if (newCst.isInvalid())
         return AstVisitStepResult::Stop;
 

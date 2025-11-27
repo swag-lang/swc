@@ -76,7 +76,7 @@ TypeInfo TypeInfo::makeFloat(uint32_t bits)
     return ti;
 }
 
-Utf8 TypeInfo::toString(const TypeManager& typeMgr, ToStringMode mode) const
+Utf8 TypeInfo::toString(ToStringMode mode) const
 {
     switch (kind_)
     {
@@ -88,15 +88,25 @@ Utf8 TypeInfo::toString(const TypeManager& typeMgr, ToStringMode mode) const
         case TypeInfoKind::Int:
         {
             Utf8 out;
-            out += int_.isSigned ? "s" : "u";
-            out += std::to_string(int_.bits);
+            if (int_.bits == 0)
+                out = "integer";
+            else
+            {
+                out += int_.isSigned ? "s" : "u";
+                out += std::to_string(int_.bits);
+            }
             return out;
         }
         case TypeInfoKind::Float:
         {
             Utf8 out;
-            out += "f";
-            out += std::to_string(float_.bits);
+            if (int_.bits == 0)
+                out = "float";
+            else
+            {
+                out += "f";
+                out += std::to_string(float_.bits);
+            }
             return out;
         }
 

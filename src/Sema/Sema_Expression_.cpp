@@ -74,7 +74,7 @@ AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema)
         }
     }
 
-    sema.raiseInternalError(this);
+    sema.raiseInternalError(*this);
     return AstVisitStepResult::Stop;
 }
 
@@ -94,7 +94,7 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
         }
     }
 
-    sema.raiseInternalError(this);
+    sema.raiseInternalError(*this);
     return AstVisitStepResult::Stop;
 }
 

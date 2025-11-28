@@ -20,7 +20,7 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
         case TypeInfoKind::String:
             return true;
         case TypeInfoKind::Int:
-            return int_.bits == other.int_.bits && int_.isSigned == other.int_.isSigned;
+            return int_.bits == other.int_.bits && int_.isUnsigned == other.int_.isUnsigned;
         case TypeInfoKind::Float:
             return float_.bits == other.float_.bits;
 
@@ -41,7 +41,7 @@ size_t TypeInfoHash::operator()(const TypeInfo& t) const noexcept
 
         case TypeInfoKind::Int:
             h = hash_combine(h, t.int_.bits);
-            h = hash_combine(h, t.int_.isSigned);
+            h = hash_combine(h, t.int_.isUnsigned);
             return h;
         case TypeInfoKind::Float:
             h = hash_combine(h, t.float_.bits);
@@ -62,10 +62,10 @@ TypeInfo TypeInfo::makeString()
     return TypeInfo{TypeInfoKind::String};
 }
 
-TypeInfo TypeInfo::makeInt(uint32_t bits, bool isSigned)
+TypeInfo TypeInfo::makeInt(uint32_t bits, bool isUnsigned)
 {
     TypeInfo ti{TypeInfoKind::Int};
-    ti.int_ = {.bits = bits, .isSigned = isSigned};
+    ti.int_ = {.bits = bits, .isUnsigned = isUnsigned};
     return ti;
 }
 
@@ -92,7 +92,7 @@ Utf8 TypeInfo::toString(ToStringMode mode) const
                 out = "integer";
             else
             {
-                out += int_.isSigned ? "s" : "u";
+                out += int_.isUnsigned ? "u" : "s";
                 out += std::to_string(int_.bits);
             }
             return out;

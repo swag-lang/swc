@@ -3,6 +3,7 @@
 #include "Parser/AstVisit.h"
 #include "Sema/ConstantManager.h"
 #include "Sema/Sema.h"
+#include "TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -56,6 +57,28 @@ namespace
 
         return ConstantRef::invalid();
     }
+
+    ConstantRef constantFoldUnaryExpr(Sema& sema, TokenId op, AstNodeRef nodeRef)
+    {
+        const auto&          ctx      = sema.ctx();
+        auto&                constMgr = sema.constMgr();
+        const AstNode&       node     = sema.node(nodeRef);
+        const ConstantValue& cst      = node.getSemaConstant(ctx);
+
+        switch (op)
+        {
+            case TokenId::SymMinus:
+            {
+                ConstantValue cpy = cst;
+                return constMgr.addConstant(ctx, cpy);
+            }
+
+            default:
+                break;
+        }
+
+        return ConstantRef::invalid();
+    }
 }
 
 AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema)
@@ -100,7 +123,35 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
 
 AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema)
 {
-    return AstVisitStepResult::Continue;
+    const auto&     tok  = sema.token(srcViewRef(), tokRef());
+    const AstNode&  node = sema.node(nodeExprRef);
+    const TypeInfo& type = sema.typeMgr().get(node.getNodeTypeRef(sema.ctx()));
+
+    switch (tok.id)
+    {
+        case TokenId::SymMinus:
+            if (type.isFloat() || type.isIntSigned() || type.isInt0())
+                break;
+            sema.raiseError(DiagnosticId::sema_err_cannot_cast, srcViewRef(), tokRef());
+            return AstVisitStepResult::Stop;
+
+        default:
+            sema.raiseInternalError(*this);
+            return AstVisitStepResult::Stop;
+    }
+
+    if (node.isSemaConstant())
+    {
+        const auto cst = constantFoldUnaryExpr(sema, tok.id, nodeExprRef);
+        if (cst.isValid())
+        {
+            setSemaConstant(cst);
+            return AstVisitStepResult::Continue;
+        }
+    }
+
+    sema.raiseInternalError(*this);
+    return AstVisitStepResult::Stop;
 }
 
 SWC_END_NAMESPACE()

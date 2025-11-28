@@ -34,7 +34,7 @@ private:
     union
     {
         // clang-format off
-        struct { uint32_t bits; bool isSigned; } int_;
+        struct { uint32_t bits; bool isUnsigned; } int_;
         struct { uint32_t bits; } float_;
         struct { std::string_view string; } string_;
         // clang-format on
@@ -47,7 +47,9 @@ public:
     bool         isBool() const noexcept { return kind_ == TypeInfoKind::Bool; }
     bool         isString() const noexcept { return kind_ == TypeInfoKind::String; }
     bool         isInt() const noexcept { return kind_ == TypeInfoKind::Int; }
-    bool         isIntSigned() const noexcept { return isInt() && int_.isSigned; }
+    bool         isInt0() const noexcept { return kind_ == TypeInfoKind::Int && int_.bits == 0; }
+    bool         isIntUnsigned() const noexcept { return isInt() && int_.isUnsigned; }
+    bool         isIntSigned() const noexcept { return isInt() && !int_.isUnsigned; }
     bool         isFloat() const noexcept { return kind_ == TypeInfoKind::Float; }
 
     // clang-format off
@@ -57,7 +59,7 @@ public:
 
     static TypeInfo makeBool();
     static TypeInfo makeString();
-    static TypeInfo makeInt(uint32_t bits, bool isSigned);
+    static TypeInfo makeInt(uint32_t bits, bool isUnsigned);
     static TypeInfo makeFloat(uint32_t bits);
 };
 

@@ -11,29 +11,29 @@ AstVisitStepResult AstBuiltinType::semaPostNode(Sema& sema)
     switch (tok.id)
     {
         case TokenId::TypeS8:
-            setSemaType(sema.typeMgr().getTypeInt(8, true));
+            setSemaType(sema.typeMgr().getTypeInt(8, false));
             return AstVisitStepResult::Continue;
         case TokenId::TypeS16:
-            setSemaType(sema.typeMgr().getTypeInt(16, true));
+            setSemaType(sema.typeMgr().getTypeInt(16, false));
             return AstVisitStepResult::Continue;
         case TokenId::TypeS32:
-            setSemaType(sema.typeMgr().getTypeInt(32, true));
+            setSemaType(sema.typeMgr().getTypeInt(32, false));
             return AstVisitStepResult::Continue;
         case TokenId::TypeS64:
-            setSemaType(sema.typeMgr().getTypeInt(64, true));
+            setSemaType(sema.typeMgr().getTypeInt(64, false));
             return AstVisitStepResult::Continue;
 
         case TokenId::TypeU8:
-            setSemaType(sema.typeMgr().getTypeInt(8, false));
+            setSemaType(sema.typeMgr().getTypeInt(8, true));
             return AstVisitStepResult::Continue;
         case TokenId::TypeU16:
-            setSemaType(sema.typeMgr().getTypeInt(16, false));
+            setSemaType(sema.typeMgr().getTypeInt(16, true));
             return AstVisitStepResult::Continue;
         case TokenId::TypeU32:
-            setSemaType(sema.typeMgr().getTypeInt(32, false));
+            setSemaType(sema.typeMgr().getTypeInt(32, true));
             return AstVisitStepResult::Continue;
         case TokenId::TypeU64:
-            setSemaType(sema.typeMgr().getTypeInt(64, false));
+            setSemaType(sema.typeMgr().getTypeInt(64, true));
             return AstVisitStepResult::Continue;
 
         case TokenId::TypeF32:

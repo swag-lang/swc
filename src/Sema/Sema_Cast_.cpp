@@ -61,8 +61,7 @@ ConstantRef Sema::castIntToInt(const CastContext& castCtx, const ConstantValue& 
     SWC_ASSERT(targetType.isInt());
 
     const uint32_t targetBits     = targetType.intBits();
-    const bool     targetSigned   = targetType.isIntSigned();
-    const bool     targetUnsigned = !targetSigned;
+    const bool     targetUnsigned = targetType.isIntUnsigned();
 
     // Make a working copy of the integer value
     ApsInt value = src.getInt();
@@ -115,7 +114,7 @@ ConstantRef Sema::castIntToInt(const CastContext& castCtx, const ConstantValue& 
     value.resize(targetBits);
 
     // Build the resulting constant with the *target* integer type
-    const ConstantValue result = ConstantValue::makeApsInt(ctx, value, targetBits);
+    const ConstantValue result = ConstantValue::makeInt(ctx, value, targetBits);
     return ctx.compiler().constMgr().addConstant(ctx, result);
 }
 

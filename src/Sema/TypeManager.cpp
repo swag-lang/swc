@@ -9,19 +9,19 @@ void TypeManager::setup(TaskContext&)
     typeBool_   = addType(TypeInfo::makeBool());
     typeString_ = addType(TypeInfo::makeString());
 
-    typeApIntUnsigned_ = addType(TypeInfo::makeInt(0, false));
-    typeApIntSigned_   = addType(TypeInfo::makeInt(0, true));
+    typeApIntUnsigned_ = addType(TypeInfo::makeInt(0, true));
+    typeApIntSigned_   = addType(TypeInfo::makeInt(0, false));
     typeApFloat_       = addType(TypeInfo::makeFloat(0));
 
-    typeU8_  = addType(TypeInfo::makeInt(8, false));
-    typeU16_ = addType(TypeInfo::makeInt(16, false));
-    typeU32_ = addType(TypeInfo::makeInt(32, false));
-    typeU64_ = addType(TypeInfo::makeInt(64, false));
+    typeU8_  = addType(TypeInfo::makeInt(8, true));
+    typeU16_ = addType(TypeInfo::makeInt(16, true));
+    typeU32_ = addType(TypeInfo::makeInt(32, true));
+    typeU64_ = addType(TypeInfo::makeInt(64, true));
 
-    typeS8_  = addType(TypeInfo::makeInt(8, true));
-    typeS16_ = addType(TypeInfo::makeInt(16, true));
-    typeS32_ = addType(TypeInfo::makeInt(32, true));
-    typeS64_ = addType(TypeInfo::makeInt(64, true));
+    typeS8_  = addType(TypeInfo::makeInt(8, false));
+    typeS16_ = addType(TypeInfo::makeInt(16, false));
+    typeS32_ = addType(TypeInfo::makeInt(32, false));
+    typeS64_ = addType(TypeInfo::makeInt(64, false));
 
     typeF32_ = addType(TypeInfo::makeFloat(32));
     typeF64_ = addType(TypeInfo::makeFloat(64));
@@ -51,23 +51,23 @@ TypeInfoRef TypeManager::addType(const TypeInfo& typeInfo)
     return ref;
 }
 
-TypeInfoRef TypeManager::getTypeInt(uint32_t bits, bool isSigned) const
+TypeInfoRef TypeManager::getTypeInt(uint32_t bits, bool isUnsigned) const
 {
     if (bits == 0)
-        return isSigned ? typeApIntSigned_ : typeApIntUnsigned_;
+        return isUnsigned ? typeApIntUnsigned_ : typeApIntSigned_;
 
-    if (isSigned)
+    if (isUnsigned)
     {
         switch (bits)
         {
             case 8:
-                return typeS8_;
+                return typeU8_;
             case 16:
-                return typeS16_;
+                return typeU16_;
             case 32:
-                return typeS32_;
+                return typeU32_;
             case 64:
-                return typeS64_;
+                return typeU64_;
             default:
                 SWC_UNREACHABLE();
         }
@@ -76,13 +76,13 @@ TypeInfoRef TypeManager::getTypeInt(uint32_t bits, bool isSigned) const
     switch (bits)
     {
         case 8:
-            return typeU8_;
+            return typeS8_;
         case 16:
-            return typeU16_;
+            return typeS16_;
         case 32:
-            return typeU32_;
+            return typeS32_;
         case 64:
-            return typeU64_;
+            return typeS64_;
         default:
             SWC_UNREACHABLE();
     }

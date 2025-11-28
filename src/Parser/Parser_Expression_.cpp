@@ -115,7 +115,7 @@ AstNodeRef Parser::parseCast()
     {
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AutoCastExpr>(tknOp);
         nodePtr->modifierFlags        = modifierFlags;
-        nodePtr->nodeExprRef          = parseExpression();
+        nodePtr->nodeExprRef          = parsePrefixExpr();
         return nodeRef;
     }
 
@@ -125,7 +125,7 @@ AstNodeRef Parser::parseCast()
     if (nodePtr->nodeTypeRef.isInvalid())
         skipTo({TokenId::SymRightParen});
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
-    nodePtr->nodeExprRef = parseExpression();
+    nodePtr->nodeExprRef = parsePrefixExpr();
 
     return nodeRef;
 }
@@ -682,7 +682,7 @@ AstNodeRef Parser::parsePrefixExpr()
         case TokenId::SymAmpersand:
         {
             const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpr>(consume());
-            nodePtr->nodeExprRef            = parseExpression();
+            nodePtr->nodeExprRef            = parsePrefixExpr();
             return nodeParen;
         }
 

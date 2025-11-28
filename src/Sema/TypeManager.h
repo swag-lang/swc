@@ -38,7 +38,7 @@ public:
     TypeInfoRef     addType(const TypeInfo& typeInfo);
     TypeInfoRef     getTypeBool() const { return typeBool_; }
     TypeInfoRef     getTypeString() const { return typeString_; }
-    TypeInfoRef     getTypeInt(uint32_t bits, bool isSigned) const;
+    TypeInfoRef     getTypeInt(uint32_t bits, bool isUnsigned) const;
     TypeInfoRef     getTypeFloat(uint32_t bits) const;
     const TypeInfo& get(TypeInfoRef typeInfoRef) const;
 

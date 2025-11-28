@@ -781,4 +781,47 @@ void ApInt::abs(bool& overflow)
     add(1, overflow);
 }
 
+void ApInt::negate(bool& overflow)
+{
+    overflow = false;
+
+    // If zero, the result stays zero
+    if (isZero())
+        return;
+
+    // If the value is the minimum signed value (1000...0),
+    // then -x is not representable in the same bit width.
+    bool isMinSigned = isSignBitSet();
+    for (uint32_t i = 0; i < numWords_ - 1 && isMinSigned; ++i)
+    {
+        if (words_[i] != ZERO)
+            isMinSigned = false;
+    }
+
+    // The pattern looks like: 1000...000 (all lower bits zero)
+    if (isMinSigned)
+    {
+        overflow = true;
+        return;
+    }
+
+    // Normal negation: x = ~x + 1
+    // Invert all words
+    for (uint32_t i = 0; i < numWords_; ++i)
+        words_[i] = ~words_[i];
+
+    // Mask off bits above bitWidth in the top word
+    if (bitWidth_ % WORD_BITS)
+    {
+        const uint64_t usedBits = bitWidth_ % WORD_BITS;
+        const uint64_t mask     = (usedBits == 64 ? ~ZERO : ((ONE << usedBits) - ONE));
+        words_[numWords_ - 1] &= mask;
+    }
+
+    // Add 1
+    add(1, overflow);
+
+    normalize();
+}
+
 SWC_END_NAMESPACE()

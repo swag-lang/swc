@@ -57,6 +57,7 @@ public:
     void     mul(uint64_t v, bool& overflow);
     uint64_t div(uint64_t v);
     void     abs(bool& overflow);
+    void     negate(bool& overflow);
 
     static ApInt minValue(uint32_t bitWidth);
     static ApInt minSignedValue(uint32_t bitWidth);

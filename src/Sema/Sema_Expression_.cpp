@@ -69,8 +69,18 @@ namespace
         {
             case TokenId::SymMinus:
             {
-                ConstantValue cpy = cst;
-                return constMgr.addConstant(ctx, cpy);
+                ApsInt cpy = cst.getInt();
+
+                bool overflow = false;
+                cpy.negate(overflow);
+                if (overflow)
+                {
+                    sema.raiseLiteralOverflow(nodeRef, node.getNodeTypeRef(sema.ctx()));
+                    return ConstantRef::invalid();
+                }
+
+                cpy.setUnsigned(false);
+                return constMgr.addConstant(ctx, ConstantValue::makeInt(ctx, cpy, cpy.bitWidth()));
             }
 
             default:

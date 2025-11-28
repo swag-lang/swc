@@ -34,10 +34,14 @@ namespace
         return constMgr.addConstant(ctx, ConstantValue::makeInt(ctx, cpy, cpy.bitWidth()));
     }
 
-    AstVisitStepResult checkMinus(Sema& sema, const AstUnaryExpr& expr, const TypeInfo& type, TypeInfoRef typeRef)
+    Result checkMinus(Sema& sema, const AstUnaryExpr& expr)
     {
+        const AstNode&    node    = sema.node(expr.nodeExprRef);
+        const TypeInfoRef typeRef = node.getNodeTypeRef(sema.ctx());
+        const TypeInfo&   type    = sema.typeMgr().get(typeRef);
+
         if (type.isFloat() || type.isIntSigned() || type.isInt0())
-            return AstVisitStepResult::Continue;
+            return Result::Success;
 
         if (type.isIntUnsigned())
         {
@@ -52,21 +56,7 @@ namespace
             diag.report(sema.ctx());
         }
 
-        return AstVisitStepResult::Stop;
-    }
-
-    AstVisitStepResult check(Sema& sema, const AstUnaryExpr& expr, TokenId op, const TypeInfo& type, TypeInfoRef typeRef)
-    {
-        switch (op)
-        {
-            case TokenId::SymMinus:
-                return checkMinus(sema, expr, type, typeRef);
-            default:
-                break;
-        }
-
-        sema.raiseInternalError(expr);
-        return AstVisitStepResult::Stop;
+        return Result::Error;
     }
 
     ConstantRef constantFold(Sema& sema, TokenId op, AstNodeRef nodeRef)
@@ -83,6 +73,20 @@ namespace
 
         return ConstantRef::invalid();
     }
+
+    Result check(Sema& sema, TokenId op, const AstUnaryExpr& expr)
+    {
+        switch (op)
+        {
+            case TokenId::SymMinus:
+                return checkMinus(sema, expr);
+            default:
+                break;
+        }
+
+        sema.raiseInternalError(expr);
+        return Result::Error;
+    }
 }
 
 AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema)
@@ -93,9 +97,8 @@ AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema)
     const TypeInfo&   type    = sema.typeMgr().get(typeRef);
 
     // Type-check
-    const auto step = check(sema, *this, tok.id, type, typeRef);
-    if (step != AstVisitStepResult::Continue)
-        return step;
+    if (check(sema, tok.id, *this) == Result::Error)
+        return AstVisitStepResult::Stop;
 
     // Constant folding
     if (node.isSemaConstant())
@@ -106,9 +109,6 @@ AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema)
             setSemaConstant(cst);
             return AstVisitStepResult::Continue;
         }
-
-        sema.raiseInternalError(*this);
-        return AstVisitStepResult::Stop;
     }
 
     sema.raiseInternalError(*this);

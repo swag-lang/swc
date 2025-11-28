@@ -248,7 +248,7 @@
         <ClCompile Include="src\Sema\Sema_Error_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Compiler_.cpp"/>
         <ClCompile Include="src\Sema\Sema_ExpressionRelational_.cpp"/>
-        <ClCompile Include="src\Sema\Sema_Expression_.cpp"/>
+        <ClCompile Include="src\Sema\Sema_ExpressionBinary_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Literal_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Type_.cpp"/>
         <ClCompile Include="src\Sema\Sema_ExpressionUnary_.cpp"/>

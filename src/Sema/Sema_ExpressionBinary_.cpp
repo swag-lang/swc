@@ -8,16 +8,16 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    ConstantRef constantFoldEqual(Sema& sema, const AstNode& leftNode, const AstNode& rightNode)
+    ConstantRef constantFoldPlusPlus(Sema& sema, const AstNode& leftNode, const AstNode& rightNode)
     {
         const auto& ctx      = sema.ctx();
         auto&       constMgr = sema.constMgr();
-
         const auto& leftCst  = leftNode.getSemaConstant(ctx);
         const auto& rightCst = rightNode.getSemaConstant(ctx);
 
-        const bool result = (leftCst == rightCst);
-        return constMgr.addConstant(ctx, ConstantValue::makeBool(ctx, result));
+        Utf8 result = leftCst.toString();
+        result += rightCst.toString();
+        return constMgr.addConstant(ctx, ConstantValue::makeString(ctx, result));
     }
 
     ConstantRef constantFold(Sema& sema, TokenId op, AstNodeRef leftNodeRef, AstNodeRef rightNodeRef)
@@ -27,8 +27,8 @@ namespace
 
         switch (op)
         {
-            case TokenId::SymEqualEqual:
-                return constantFoldEqual(sema, leftNode, rightNode);
+            case TokenId::SymPlusPlus:
+                return constantFoldPlusPlus(sema, leftNode, rightNode);
             default:
                 break;
         }
@@ -36,17 +36,17 @@ namespace
         return ConstantRef::invalid();
     }
 
-    Result checkEqualEqual(Sema& sema, const AstRelationalExpr& expr)
+    Result checkPlusPlus(Sema& sema, const AstBinaryExpr& expr)
     {
         return Result::Success;
     }
 
-    Result check(Sema& sema, TokenId op, const AstRelationalExpr& expr)
+    Result check(Sema& sema, TokenId op, const AstBinaryExpr& expr)
     {
         switch (op)
         {
-            case TokenId::SymEqualEqual:
-                return checkEqualEqual(sema, expr);
+            case TokenId::SymPlusPlus:
+                return checkPlusPlus(sema, expr);
             default:
                 break;
         }
@@ -56,7 +56,7 @@ namespace
     }
 }
 
-AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
+AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema)
 {
     const auto& tok = sema.token(srcViewRef(), tokRef());
 

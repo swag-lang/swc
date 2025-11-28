@@ -5,17 +5,28 @@
 
 SWC_BEGIN_NAMESPACE()
 
+void Sema::setReportArguments(Diagnostic& diag, TokenRef tokenRef) const
+{
+    const auto& token = ast_->srcView().token(tokenRef);
+    diag.addArgument(Diagnostic::ARG_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokenRef));
+    diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id), false);
+    diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Token::toAFamily(token.id), false);
+}
+
 Diagnostic Sema::reportError(DiagnosticId id, AstNodeRef nodeRef)
 {
-    auto       diag = Diagnostic::get(id, ast().srcView().fileRef());
-    const auto loc  = node(nodeRef).location(ctx(), ast());
+    auto diag = Diagnostic::get(id, ast().srcView().fileRef());
+    setReportArguments(diag, node(nodeRef).tokRef());
+    const auto loc = node(nodeRef).location(ctx(), ast());
     diag.last().addSpan(loc, "");
     return diag;
 }
 
 Diagnostic Sema::reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokenRef)
 {
-    auto        diag    = Diagnostic::get(id, ast().srcView().fileRef());
+    auto diag = Diagnostic::get(id, ast().srcView().fileRef());
+    setReportArguments(diag, tokenRef);
+
     const auto& srcView = compiler().srcView(srcViewRef);
     diag.last().addSpan(Diagnostic::tokenErrorLocation(ctx(), srcView, tokenRef), "");
     return diag;

@@ -123,16 +123,28 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
 
 AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema)
 {
-    const auto&     tok  = sema.token(srcViewRef(), tokRef());
-    const AstNode&  node = sema.node(nodeExprRef);
-    const TypeInfo& type = sema.typeMgr().get(node.getNodeTypeRef(sema.ctx()));
+    const auto&     tok     = sema.token(srcViewRef(), tokRef());
+    const AstNode&  node    = sema.node(nodeExprRef);
+    TypeInfoRef     typeRef = node.getNodeTypeRef(sema.ctx());
+    const TypeInfo& type    = sema.typeMgr().get(typeRef);
 
     switch (tok.id)
     {
         case TokenId::SymMinus:
             if (type.isFloat() || type.isIntSigned() || type.isInt0())
                 break;
-            sema.raiseError(DiagnosticId::sema_err_cannot_cast, srcViewRef(), tokRef());
+            if (type.isIntUnsigned())
+            {
+                auto diag = sema.reportError(DiagnosticId::sema_err_negate_unsigned, srcViewRef(), tokRef());
+                diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
+                diag.report(sema.ctx());
+            }
+            else
+            {
+                auto diag = sema.reportError(DiagnosticId::sema_err_unary_operand_type, srcViewRef(), tokRef());
+                diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
+                diag.report(sema.ctx());
+            }
             return AstVisitStepResult::Stop;
 
         default:

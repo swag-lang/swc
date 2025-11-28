@@ -115,11 +115,11 @@ void ApFloat::set(const ApsInt& value, uint32_t targetBits, bool& exact, bool& o
     // Now convert long double to the target float type, checking for overflow and exactness
     if (targetBits == 32)
     {
-        constexpr long double maxF = static_cast<long double>(std::numeric_limits<float>::max());
+        constexpr long double maxF = std::numeric_limits<float>::max();
         constexpr long double minF = -maxF;
 
         // Overflow if outside finite float range or already non-finite
-        overflow = !std::isfinite(static_cast<long double>(ldVal)) || ldVal > maxF || ldVal < minF;
+        overflow = !std::isfinite(ldVal) || ldVal > maxF || ldVal < minF;
         if (overflow)
         {
             // Store signed infinity as a placeholder; caller should treat this as an error.
@@ -137,10 +137,10 @@ void ApFloat::set(const ApsInt& value, uint32_t targetBits, bool& exact, bool& o
     }
 
     // targetBits == 64
-    constexpr long double maxD = static_cast<long double>(std::numeric_limits<double>::max());
+    constexpr long double maxD = std::numeric_limits<double>::max();
     constexpr long double minD = -maxD;
 
-    overflow = !std::isfinite(static_cast<long double>(ldVal)) || ldVal > maxD || ldVal < minD;
+    overflow = !std::isfinite(ldVal) || ldVal > maxD || ldVal < minD;
     if (overflow)
     {
         constexpr double inf = std::numeric_limits<double>::infinity();

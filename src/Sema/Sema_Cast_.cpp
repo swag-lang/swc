@@ -112,7 +112,6 @@ namespace
         // Resize to the target bit width (now safe; we already checked range)
         value.resize(targetBits);
 
-        // Build the resulting constant with the *target* integer type
         const ConstantValue result = ConstantValue::makeInt(ctx, value, targetBits);
         return ctx.compiler().constMgr().addConstant(ctx, result);
     }
@@ -129,67 +128,16 @@ namespace
         const ApsInt&  intVal     = src.getInt();
         const uint32_t targetBits = targetType.floatBits();
 
-        bool    precisionLoss = false;
         ApFloat value;
-
-        // Convert integer to floating point
-        if (intVal.isUnsigned())
+        bool    isExact  = false;
+        bool    overflow = false;
+        value.set(intVal, targetBits, isExact, overflow);
+        if (overflow)
         {
-            if (!intVal.fits64())
-            {
-                sema.raiseLiteralOverflow(castCtx.errorNodeRef, targetTypeRef);
-                return ConstantRef::invalid();
-            }
-
-            value.set(static_cast<double>(intVal.asU64()));
-        }
-        else
-        {
-            // For signed, check sign bit
-            if (intVal.isNegative())
-            {
-                // Get absolute value
-                ApsInt absVal = intVal;
-
-                bool overflow = false;
-                absVal.abs(overflow);
-                if (overflow)
-                {
-                    sema.raiseLiteralOverflow(castCtx.errorNodeRef, targetTypeRef);
-                    return ConstantRef::invalid();
-                }
-
-                value.set(-static_cast<double>(absVal.asU64()));
-            }
-            else
-            {
-                value.set(static_cast<double>(intVal.asU64()));
-            }
+            sema.raiseLiteralOverflow(castCtx.errorNodeRef, targetTypeRef);
+            return ConstantRef::invalid();
         }
 
-        // Check for precision loss based on the target float type
-        if (targetBits == 32)
-        {
-            // f32 has 24 bits of precision
-            const uint32_t intBits = intVal.bitWidth();
-            if (intBits > 24)
-            {
-                // May have precision loss
-                const float f32Val = value.asFloat();
-                if (static_cast<double>(f32Val) != value.asDouble())
-                    precisionLoss = true;
-            }
-
-            value.set(static_cast<float>(value.asDouble()));
-        }
-
-        // f64 has 53 bits of precision
-        else if (intVal.bitWidth() > 53)
-        {
-            precisionLoss = true;
-        }
-
-        // Build the resulting constant with the *target* integer type
         const ConstantValue result = ConstantValue::makeFloat(ctx, value, targetBits);
         return ctx.compiler().constMgr().addConstant(ctx, result);
     }

@@ -1,5 +1,6 @@
 #pragma once
-#include "ApInt.h"
+#include "Math/ApInt.h"
+#include "Math/ApsInt.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -22,6 +23,7 @@ public:
     void   set(float value);
     void   set(double value);
     void   set(const ApInt& mantissa, int64_t exponent10);
+    void   set(const ApsInt& value, uint32_t targetBits, bool& exact, bool& overflow);
     float  asFloat() const;
     double asDouble() const;
 

@@ -1,6 +1,8 @@
 #include "pch.h"
-#include "Math/ApFloat.h"
+
+#include "ApsInt.h"
 #include "Core/hash.h"
+#include "Math/ApFloat.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -61,6 +63,96 @@ void ApFloat::set(const ApInt& mantissa, int64_t exponent10)
 
     // Store as double
     value_.f64 = static_cast<double>(res);
+}
+
+void ApFloat::set(const ApsInt& value, uint32_t targetBits, bool& exact, bool& overflow)
+{
+    exact    = false;
+    overflow = false;
+
+    // Sanity check: only 32/64 bits supported for now
+    SWC_ASSERT(targetBits == 32 || targetBits == 64);
+
+    // Handle zero early
+    if (value.isZero())
+    {
+        if (targetBits == 32)
+            set(0.0f);
+        else
+            set(0.0);
+        exact = true;
+        return;
+    }
+
+    // Work with absolute value to accumulate magnitude
+    ApsInt absVal      = value;
+    bool   absOverflow = false;
+    absVal.abs(absOverflow);
+    if (absOverflow)
+    {
+        // Abs overflow shouldn't normally happen for arbitrary-precision but be safe.
+        overflow = true;
+        if (targetBits == 32)
+            set(std::numeric_limits<float>::infinity());
+        else
+            set(std::numeric_limits<double>::infinity());
+        return;
+    }
+
+    const bool isNegative = !value.isUnsigned() && value.isNegative();
+
+    // Accumulate |value| into a long double using its bits: sum( 2^i for each set bit i)
+    const uint32_t bw  = absVal.bitWidth();
+    long double    mag = 0.0L;
+    for (uint32_t i = 0; i < bw; ++i)
+    {
+        if (absVal.testBit(i))
+            mag += std::ldexp(1.0L, static_cast<int>(i)); // adds 2^i
+    }
+
+    const long double ldVal = isNegative ? -mag : mag;
+
+    // Now convert long double to the target float type, checking for overflow and exactness
+    if (targetBits == 32)
+    {
+        constexpr long double maxF = static_cast<long double>(std::numeric_limits<float>::max());
+        constexpr long double minF = -maxF;
+
+        // Overflow if outside finite float range or already non-finite
+        overflow = !std::isfinite(static_cast<long double>(ldVal)) || ldVal > maxF || ldVal < minF;
+        if (overflow)
+        {
+            // Store signed infinity as a placeholder; caller should treat this as an error.
+            constexpr float inf = std::numeric_limits<float>::infinity();
+            set(isNegative ? -inf : inf);
+            return;
+        }
+
+        const float f = static_cast<float>(ldVal);
+        set(f);
+
+        const long double back = f;
+        exact                  = (back == ldVal);
+        return;
+    }
+
+    // targetBits == 64
+    constexpr long double maxD = static_cast<long double>(std::numeric_limits<double>::max());
+    constexpr long double minD = -maxD;
+
+    overflow = !std::isfinite(static_cast<long double>(ldVal)) || ldVal > maxD || ldVal < minD;
+    if (overflow)
+    {
+        constexpr double inf = std::numeric_limits<double>::infinity();
+        set(isNegative ? -inf : inf);
+        return;
+    }
+
+    const double d = static_cast<double>(ldVal);
+    set(d);
+
+    const long double back = d;
+    exact                  = (back == ldVal);
 }
 
 float ApFloat::asFloat() const

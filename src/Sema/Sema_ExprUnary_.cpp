@@ -3,7 +3,7 @@
 #include "Parser/AstVisit.h"
 #include "Sema/ConstantManager.h"
 #include "Sema/Sema.h"
-#include "TypeManager.h"
+#include "Sema/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 

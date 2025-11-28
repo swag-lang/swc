@@ -20,20 +20,31 @@ namespace
         if (nodeExpr.is(AstNodeId::SuffixLiteral))
             return nodeExpr.getSemaConstantRef();
 
-        ApsInt cpyInt = cst.getInt();
-
-        bool overflow = false;
-        cpyInt.negate(overflow);
-        if (overflow)
+        const TypeInfo& type = sema.typeMgr().get(cst.typeRef());
+        if (type.isInt())
         {
-            sema.raiseLiteralOverflow(node.nodeExprRef, nodeExpr.getNodeTypeRef(sema.ctx()));
-            return ConstantRef::invalid();
+            ApsInt cpyInt = cst.getInt();
+
+            bool overflow = false;
+            cpyInt.negate(overflow);
+            if (overflow)
+            {
+                sema.raiseLiteralOverflow(node.nodeExprRef, nodeExpr.getNodeTypeRef(sema.ctx()));
+                return ConstantRef::invalid();
+            }
+
+            cpyInt.setUnsigned(false);
+            return sema.constMgr().addConstant(ctx, ConstantValue::makeInt(ctx, cpyInt, type.intBits()));
         }
 
-        cpyInt.setUnsigned(false);
-        if (cst.typeRef() == sema.typeMgr().getTypeInt(0, false))
-            return sema.constMgr().addConstant(ctx, ConstantValue::makeInt(ctx, cpyInt, 0));
-        return sema.constMgr().addConstant(ctx, ConstantValue::makeInt(ctx, cpyInt, cpyInt.bitWidth()));
+        if (type.isFloat())
+        {
+            ApFloat cpyFloat = cst.getFloat();
+            cpyFloat.negate();
+            return sema.constMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, cpyFloat, type.floatBits()));
+        }
+
+        return ConstantRef::invalid();
     }
 
     Result checkMinus(Sema& sema, const AstUnaryExpr& expr)

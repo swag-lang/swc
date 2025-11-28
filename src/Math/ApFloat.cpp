@@ -114,4 +114,19 @@ size_t ApFloat::hash() const
     return h;
 }
 
+void ApFloat::negate()
+{
+    switch (bitWidth_)
+    {
+        case 32:
+            value_.f32 = -value_.f32;
+            break;
+        case 64:
+            value_.f64 = -value_.f64;
+            break;
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
 SWC_END_NAMESPACE()

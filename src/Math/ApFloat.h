@@ -29,6 +29,7 @@ public:
     size_t hash() const;
 
     uint32_t bitWidth() const { return bitWidth_; }
+    void     negate();
 };
 
 SWC_END_NAMESPACE()

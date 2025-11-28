@@ -35,8 +35,11 @@ ConstantRef Sema::cast(const CastContext& castCtx, const ConstantValue& src, Typ
     if (!castAllowed(castCtx, src.typeRef(), targetTypeRef))
         return ConstantRef::invalid();
 
-    auto&       ctx        = *ctx_;
-    const auto& typeMgr    = ctx.compiler().typeMgr();
+    auto&       ctx     = *ctx_;
+    const auto& typeMgr = ctx.compiler().typeMgr();
+    if (src.typeRef() == targetTypeRef)
+        return ctx.compiler().constMgr().addConstant(ctx, src);
+
     const auto& srcType    = typeMgr.get(src.typeRef());
     const auto& targetType = typeMgr.get(targetTypeRef);
 

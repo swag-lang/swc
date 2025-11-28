@@ -16,6 +16,9 @@
 
 #assert(-127's8 == -127's8)
 
+#assert(-128's8 == -128's8)
+#assert(-32768's16 == -32768's16)
+
 #assert(128's8  == 0's8)            // swc-expected-error {{sema_err_literal_overflow}}
 #assert(256'u8 == 0'u8)             // swc-expected-error {{sema_err_literal_overflow}}
 #assert(32768's16  == 0's16)        // swc-expected-error {{sema_err_literal_overflow}}
@@ -26,8 +29,6 @@
 #assert(-127'u16 == -127'u16)       // swc-expected-error {{sema_err_negate_unsigned}}
 #assert(-127'u32 == -127'u32)       // swc-expected-error {{sema_err_negate_unsigned}}
 #assert(-127'u64 == -127'u64)       // swc-expected-error {{sema_err_negate_unsigned}}
-
-#assert(-128's8 == -128's8)
 
 #assert(-"127'u8" == -"127'u8")     // swc-expected-error {{sema_err_unary_operand_type}}
 #assert(-true == -true)             // swc-expected-error {{sema_err_unary_operand_type}}

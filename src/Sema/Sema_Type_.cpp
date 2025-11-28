@@ -68,7 +68,8 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema)
 
     auto cstRef = nodeLiteral.getSemaConstantRef();
 
-    // Special case for negation: we need to negate before casting, in order for -128's8 to compile for example
+    // Special case for negation: we need to negate before casting, in order for -128's8 to compile, for example.
+    // @MinusLiteralSuffix
     if (const auto parentNode = sema.visit().parentNode(); parentNode->is(AstNodeId::UnaryExpr))
     {
         const auto tok = sema.token(parentNode->srcViewRef(), parentNode->tokRef());

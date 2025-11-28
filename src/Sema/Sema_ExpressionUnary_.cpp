@@ -9,73 +9,94 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    ConstantRef constantFoldUnaryExpr(Sema& sema, TokenId op, AstNodeRef nodeRef)
+    ConstantRef constantFoldUnaryMinus(Sema& sema, const AstNode& node, AstNodeRef nodeRef)
     {
         const auto&          ctx      = sema.ctx();
         auto&                constMgr = sema.constMgr();
-        const AstNode&       node     = sema.node(nodeRef);
         const ConstantValue& cst      = node.getSemaConstant(ctx);
+
+        // In the case of a literal with a suffix, it has already been done
+        // @MinusLiteralSuffix
+        if (node.is(AstNodeId::SuffixLiteral))
+            return node.getSemaConstantRef();
+
+        ApsInt cpy = cst.getInt();
+
+        bool overflow = false;
+        cpy.negate(overflow);
+        if (overflow)
+        {
+            sema.raiseLiteralOverflow(nodeRef, node.getNodeTypeRef(sema.ctx()));
+            return ConstantRef::invalid();
+        }
+
+        cpy.setUnsigned(false);
+        return constMgr.addConstant(ctx, ConstantValue::makeInt(ctx, cpy, cpy.bitWidth()));
+    }
+
+    ConstantRef constantFoldUnaryExpr(Sema& sema, TokenId op, AstNodeRef nodeRef)
+    {
+        const AstNode& node = sema.node(nodeRef);
 
         switch (op)
         {
             case TokenId::SymMinus:
-            {
-                if (node.is(AstNodeId::SuffixLiteral))
-                    return node.getSemaConstantRef();
-
-                ApsInt cpy = cst.getInt();
-
-                bool overflow = false;
-                cpy.negate(overflow);
-                if (overflow)
-                {
-                    sema.raiseLiteralOverflow(nodeRef, node.getNodeTypeRef(sema.ctx()));
-                    return ConstantRef::invalid();
-                }
-
-                cpy.setUnsigned(false);
-                return constMgr.addConstant(ctx, ConstantValue::makeInt(ctx, cpy, cpy.bitWidth()));
-            }
-
+                return constantFoldUnaryMinus(sema, node, nodeRef);
             default:
                 break;
         }
 
         return ConstantRef::invalid();
     }
+
+    AstVisitStepResult checkUnaryMinus(Sema& sema, const AstUnaryExpr& expr, const TypeInfo& type, TypeInfoRef typeRef)
+    {
+        if (type.isFloat() || type.isIntSigned() || type.isInt0())
+            return AstVisitStepResult::Continue;
+
+        if (type.isIntUnsigned())
+        {
+            auto diag = sema.reportError(DiagnosticId::sema_err_negate_unsigned, expr.srcViewRef(), expr.tokRef());
+            diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
+            diag.report(sema.ctx());
+        }
+        else
+        {
+            auto diag = sema.reportError(DiagnosticId::sema_err_unary_operand_type, expr.srcViewRef(), expr.tokRef());
+            diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
+            diag.report(sema.ctx());
+        }
+
+        return AstVisitStepResult::Stop;
+    }
+
+    AstVisitStepResult checkUnaryExpr(Sema& sema, const AstUnaryExpr& expr, TokenId op, const TypeInfo& type, TypeInfoRef typeRef)
+    {
+        switch (op)
+        {
+            case TokenId::SymMinus:
+                return checkUnaryMinus(sema, expr, type, typeRef);
+
+            default:
+                sema.raiseInternalError(expr);
+                return AstVisitStepResult::Stop;
+        }
+    }
 }
 
 AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema)
 {
-    const auto&     tok     = sema.token(srcViewRef(), tokRef());
-    const AstNode&  node    = sema.node(nodeExprRef);
-    TypeInfoRef     typeRef = node.getNodeTypeRef(sema.ctx());
-    const TypeInfo& type    = sema.typeMgr().get(typeRef);
+    const auto&       tok     = sema.token(srcViewRef(), tokRef());
+    const AstNode&    node    = sema.node(nodeExprRef);
+    const TypeInfoRef typeRef = node.getNodeTypeRef(sema.ctx());
+    const TypeInfo&   type    = sema.typeMgr().get(typeRef);
 
-    switch (tok.id)
-    {
-        case TokenId::SymMinus:
-            if (type.isFloat() || type.isIntSigned() || type.isInt0())
-                break;
-            if (type.isIntUnsigned())
-            {
-                auto diag = sema.reportError(DiagnosticId::sema_err_negate_unsigned, srcViewRef(), tokRef());
-                diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
-                diag.report(sema.ctx());
-            }
-            else
-            {
-                auto diag = sema.reportError(DiagnosticId::sema_err_unary_operand_type, srcViewRef(), tokRef());
-                diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
-                diag.report(sema.ctx());
-            }
-            return AstVisitStepResult::Stop;
+    // Type-check
+    const auto step = checkUnaryExpr(sema, *this, tok.id, type, typeRef);
+    if (step != AstVisitStepResult::Continue)
+        return step;
 
-        default:
-            sema.raiseInternalError(*this);
-            return AstVisitStepResult::Stop;
-    }
-
+    // Constant folding
     if (node.isSemaConstant())
     {
         const auto cst = constantFoldUnaryExpr(sema, tok.id, nodeExprRef);
@@ -84,6 +105,9 @@ AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema)
             setSemaConstant(cst);
             return AstVisitStepResult::Continue;
         }
+
+        sema.raiseInternalError(*this);
+        return AstVisitStepResult::Stop;
     }
 
     sema.raiseInternalError(*this);

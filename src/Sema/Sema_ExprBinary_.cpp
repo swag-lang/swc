@@ -38,6 +38,20 @@ namespace
 
     Result checkPlusPlus(Sema& sema, const AstBinaryExpr& expr)
     {
+        const AstNode& nodeLeft = sema.node(expr.nodeLeftRef);
+        if (!nodeLeft.isSemaConstant())
+        {
+            sema.raiseError(DiagnosticId::sema_err_expr_not_const, expr.nodeLeftRef);
+            return Result::Error;
+        }
+
+        const AstNode& nodeRight = sema.node(expr.nodeRightRef);
+        if (!nodeRight.isSemaConstant())
+        {
+            sema.raiseError(DiagnosticId::sema_err_expr_not_const, expr.nodeRightRef);
+            return Result::Error;
+        }
+
         return Result::Success;
     }
 

@@ -20,18 +20,20 @@ namespace
         if (nodeExpr.is(AstNodeId::SuffixLiteral))
             return nodeExpr.getSemaConstantRef();
 
-        ApsInt cpy = cst.getInt();
+        ApsInt cpyInt = cst.getInt();
 
         bool overflow = false;
-        cpy.negate(overflow);
+        cpyInt.negate(overflow);
         if (overflow)
         {
             sema.raiseLiteralOverflow(node.nodeExprRef, nodeExpr.getNodeTypeRef(sema.ctx()));
             return ConstantRef::invalid();
         }
 
-        cpy.setUnsigned(false);
-        return sema.constMgr().addConstant(ctx, ConstantValue::makeInt(ctx, cpy, cpy.bitWidth()));
+        cpyInt.setUnsigned(false);
+        if (cst.typeRef() == sema.typeMgr().getTypeInt(0, false))
+            return sema.constMgr().addConstant(ctx, ConstantValue::makeInt(ctx, cpyInt, 0));
+        return sema.constMgr().addConstant(ctx, ConstantValue::makeInt(ctx, cpyInt, cpyInt.bitWidth()));
     }
 
     Result checkMinus(Sema& sema, const AstUnaryExpr& expr)

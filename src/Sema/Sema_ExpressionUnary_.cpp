@@ -9,7 +9,7 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    ConstantRef constantFoldUnaryMinus(Sema& sema, const AstNode& node, AstNodeRef nodeRef)
+    ConstantRef constantFoldMinus(Sema& sema, const AstNode& node, AstNodeRef nodeRef)
     {
         const auto&          ctx      = sema.ctx();
         auto&                constMgr = sema.constMgr();
@@ -34,22 +34,7 @@ namespace
         return constMgr.addConstant(ctx, ConstantValue::makeInt(ctx, cpy, cpy.bitWidth()));
     }
 
-    ConstantRef constantFoldUnaryExpr(Sema& sema, TokenId op, AstNodeRef nodeRef)
-    {
-        const AstNode& node = sema.node(nodeRef);
-
-        switch (op)
-        {
-            case TokenId::SymMinus:
-                return constantFoldUnaryMinus(sema, node, nodeRef);
-            default:
-                break;
-        }
-
-        return ConstantRef::invalid();
-    }
-
-    AstVisitStepResult checkUnaryMinus(Sema& sema, const AstUnaryExpr& expr, const TypeInfo& type, TypeInfoRef typeRef)
+    AstVisitStepResult checkMinus(Sema& sema, const AstUnaryExpr& expr, const TypeInfo& type, TypeInfoRef typeRef)
     {
         if (type.isFloat() || type.isIntSigned() || type.isInt0())
             return AstVisitStepResult::Continue;
@@ -70,17 +55,33 @@ namespace
         return AstVisitStepResult::Stop;
     }
 
-    AstVisitStepResult checkUnaryExpr(Sema& sema, const AstUnaryExpr& expr, TokenId op, const TypeInfo& type, TypeInfoRef typeRef)
+    AstVisitStepResult check(Sema& sema, const AstUnaryExpr& expr, TokenId op, const TypeInfo& type, TypeInfoRef typeRef)
     {
         switch (op)
         {
             case TokenId::SymMinus:
-                return checkUnaryMinus(sema, expr, type, typeRef);
-
+                return checkMinus(sema, expr, type, typeRef);
             default:
-                sema.raiseInternalError(expr);
-                return AstVisitStepResult::Stop;
+                break;
         }
+
+        sema.raiseInternalError(expr);
+        return AstVisitStepResult::Stop;
+    }
+
+    ConstantRef constantFold(Sema& sema, TokenId op, AstNodeRef nodeRef)
+    {
+        const AstNode& node = sema.node(nodeRef);
+
+        switch (op)
+        {
+            case TokenId::SymMinus:
+                return constantFoldMinus(sema, node, nodeRef);
+            default:
+                break;
+        }
+
+        return ConstantRef::invalid();
     }
 }
 
@@ -92,14 +93,14 @@ AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema)
     const TypeInfo&   type    = sema.typeMgr().get(typeRef);
 
     // Type-check
-    const auto step = checkUnaryExpr(sema, *this, tok.id, type, typeRef);
+    const auto step = check(sema, *this, tok.id, type, typeRef);
     if (step != AstVisitStepResult::Continue)
         return step;
 
     // Constant folding
     if (node.isSemaConstant())
     {
-        const auto cst = constantFoldUnaryExpr(sema, tok.id, nodeExprRef);
+        const auto cst = constantFold(sema, tok.id, nodeExprRef);
         if (cst.isValid())
         {
             setSemaConstant(cst);

@@ -136,7 +136,11 @@ namespace
         if (intVal.isUnsigned())
         {
             if (!intVal.fits64())
-                precisionLoss = true;
+            {
+                sema.raiseLiteralOverflow(castCtx.errorNodeRef, targetTypeRef);
+                return ConstantRef::invalid();
+            }
+
             value.set(static_cast<double>(intVal.asU64()));
         }
         else
@@ -195,7 +199,28 @@ namespace
         auto& ctx = sema.ctx();
         SWC_ASSERT(src.isFloat());
 
-        return ConstantRef::invalid();
+        const auto& typeMgr    = ctx.compiler().typeMgr();
+        const auto& targetType = typeMgr.get(targetTypeRef);
+        SWC_ASSERT(targetType.isFloat());
+
+        const ApFloat& floatVal   = src.getFloat();
+        const uint32_t targetBits = targetType.floatBits();
+
+        ApFloat value;
+        switch (targetBits)
+        {
+            case 32:
+                value.set(floatVal.asFloat());
+                break;
+            case 64:
+                value.set(floatVal.asDouble());
+                break;
+            default:
+                SWC_UNREACHABLE();
+        }
+
+        const ConstantValue result = ConstantValue::makeFloat(ctx, value, targetBits);
+        return ctx.compiler().constMgr().addConstant(ctx, result);
     }
 }
 
@@ -212,6 +237,8 @@ bool Sema::castAllowed(const CastContext& castCtx, TypeInfoRef srcTypeRef, TypeI
             if (srcType.isInt() && targetType.isInt())
                 return true;
             if (srcType.isInt() && targetType.isFloat())
+                return true;
+            if (srcType.isFloat() && targetType.isFloat())
                 return true;
             break;
 

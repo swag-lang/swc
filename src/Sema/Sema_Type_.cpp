@@ -1,4 +1,6 @@
 #include "pch.h"
+
+#include "ConstantManager.h"
 #include "Parser/AstVisit.h"
 #include "Sema/Sema.h"
 #include "Sema/TypeManager.h"
@@ -53,22 +55,50 @@ AstVisitStepResult AstBuiltinType::semaPostNode(Sema& sema)
 
 AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema)
 {
-    auto&          ctx         = sema.ctx();
-    auto&          cstMgr      = ctx.compiler().constMgr();
-    const AstNode& nodeLiteral = sema.node(nodeLiteralRef);
-    const AstNode& nodeSuffix  = sema.node(nodeSuffixRef);
+    auto&             ctx         = sema.ctx();
+    const AstNode&    nodeLiteral = sema.node(nodeLiteralRef);
+    const AstNode&    nodeSuffix  = sema.node(nodeSuffixRef);
+    const TypeInfoRef typeRef     = nodeSuffix.getNodeTypeRef(ctx);
 
-    const TypeInfoRef typeRef = nodeSuffix.getNodeTypeRef(ctx);
+    SWC_ASSERT(nodeLiteral.isSemaConstant());
 
     CastContext castCtx;
     castCtx.kind         = CastKind::LiteralSuffix;
     castCtx.errorNodeRef = nodeLiteralRef;
 
-    const ConstantRef newCst = sema.cast(castCtx, nodeLiteral.getSemaConstant(ctx), typeRef);
-    if (newCst.isInvalid())
-        return AstVisitStepResult::Stop;
+    auto cstRef = nodeLiteral.getSemaConstantRef();
 
-    setSemaConstant(newCst);
+    // Special case for negation: we need to negate before casting, in order for -128's8 to compile for example
+    if (const auto parentNode = sema.visit().parentNode(); parentNode->is(AstNodeId::UnaryExpr))
+    {
+        const auto tok = sema.token(parentNode->srcViewRef(), parentNode->tokRef());
+        if (tok.is(TokenId::SymMinus))
+        {
+            const auto& cst  = sema.constMgr().get(cstRef);
+            const auto  type = sema.typeMgr().get(cst.typeRef());
+            if (type.isInt())
+            {
+                ApsInt cpy = cst.getInt();
+
+                bool overflow = false;
+                cpy.negate(overflow);
+                if (overflow)
+                {
+                    sema.raiseLiteralOverflow(nodeLiteralRef, cst.typeRef());
+                    return AstVisitStepResult::Stop;
+                }
+
+                cpy.setUnsigned(false);
+                cstRef = sema.constMgr().addConstant(ctx, ConstantValue::makeInt(ctx, cpy, 0));
+            }
+        }
+    }
+
+    const ConstantRef newCstRef = sema.cast(castCtx, sema.constMgr().get(cstRef), typeRef);
+    if (newCstRef.isInvalid())
+        return AstVisitStepResult::Stop;
+    setSemaConstant(newCstRef);
+
     return AstVisitStepResult::Continue;
 }
 

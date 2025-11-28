@@ -33,7 +33,30 @@ namespace
 
         return ConstantRef::invalid();
     }
+}
 
+AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema)
+{
+    const auto&    tok       = sema.token(srcViewRef(), tokRef());
+    const AstNode& nodeLeft  = sema.node(nodeLeftRef);
+    const AstNode& nodeRight = sema.node(nodeRightRef);
+
+    if (nodeLeft.isSemaConstant() && nodeRight.isSemaConstant())
+    {
+        const auto cst = constantFoldBinaryExpr(sema, tok.id, nodeLeftRef, nodeRightRef);
+        if (cst.isValid())
+        {
+            setSemaConstant(cst);
+            return AstVisitStepResult::Continue;
+        }
+    }
+
+    sema.raiseInternalError(*this);
+    return AstVisitStepResult::Stop;
+}
+
+namespace
+{
     ConstantRef constantFoldRelationalExpr(Sema& sema, TokenId op, AstNodeRef leftNodeRef, AstNodeRef rightNodeRef)
     {
         const auto&    ctx       = sema.ctx();
@@ -57,58 +80,6 @@ namespace
 
         return ConstantRef::invalid();
     }
-
-    ConstantRef constantFoldUnaryExpr(Sema& sema, TokenId op, AstNodeRef nodeRef)
-    {
-        const auto&          ctx      = sema.ctx();
-        auto&                constMgr = sema.constMgr();
-        const AstNode&       node     = sema.node(nodeRef);
-        const ConstantValue& cst      = node.getSemaConstant(ctx);
-
-        switch (op)
-        {
-            case TokenId::SymMinus:
-            {
-                ApsInt cpy = cst.getInt();
-
-                bool overflow = false;
-                cpy.negate(overflow);
-                if (overflow)
-                {
-                    sema.raiseLiteralOverflow(nodeRef, node.getNodeTypeRef(sema.ctx()));
-                    return ConstantRef::invalid();
-                }
-
-                cpy.setUnsigned(false);
-                return constMgr.addConstant(ctx, ConstantValue::makeInt(ctx, cpy, cpy.bitWidth()));
-            }
-
-            default:
-                break;
-        }
-
-        return ConstantRef::invalid();
-    }
-}
-
-AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema)
-{
-    const auto&    tok       = sema.token(srcViewRef(), tokRef());
-    const AstNode& nodeLeft  = sema.node(nodeLeftRef);
-    const AstNode& nodeRight = sema.node(nodeRightRef);
-
-    if (nodeLeft.isSemaConstant() && nodeRight.isSemaConstant())
-    {
-        const auto cst = constantFoldBinaryExpr(sema, tok.id, nodeLeftRef, nodeRightRef);
-        if (cst.isValid())
-        {
-            setSemaConstant(cst);
-            return AstVisitStepResult::Continue;
-        }
-    }
-
-    sema.raiseInternalError(*this);
-    return AstVisitStepResult::Stop;
 }
 
 AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
@@ -129,6 +100,44 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
 
     sema.raiseInternalError(*this);
     return AstVisitStepResult::Stop;
+}
+
+namespace
+{
+    ConstantRef constantFoldUnaryExpr(Sema& sema, TokenId op, AstNodeRef nodeRef)
+    {
+        const auto&          ctx      = sema.ctx();
+        auto&                constMgr = sema.constMgr();
+        const AstNode&       node     = sema.node(nodeRef);
+        const ConstantValue& cst      = node.getSemaConstant(ctx);
+
+        switch (op)
+        {
+            case TokenId::SymMinus:
+            {
+                if (node.is(AstNodeId::SuffixLiteral))
+                    return node.getSemaConstantRef();
+
+                ApsInt cpy = cst.getInt();
+
+                bool overflow = false;
+                cpy.negate(overflow);
+                if (overflow)
+                {
+                    sema.raiseLiteralOverflow(nodeRef, node.getNodeTypeRef(sema.ctx()));
+                    return ConstantRef::invalid();
+                }
+
+                cpy.setUnsigned(false);
+                return constMgr.addConstant(ctx, ConstantValue::makeInt(ctx, cpy, cpy.bitWidth()));
+            }
+
+            default:
+                break;
+        }
+
+        return ConstantRef::invalid();
+    }
 }
 
 AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema)

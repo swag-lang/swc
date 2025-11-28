@@ -60,44 +60,85 @@ ConstantRef Sema::castIntToInt(const CastContext& castCtx, const ConstantValue& 
     // We only support integer target types here
     SWC_ASSERT(targetType.isInt());
 
-    const uint32_t targetBits     = targetType.intBits();
-    const bool     targetUnsigned = targetType.isIntUnsigned();
-
-    // Make a working copy of the integer value
+    // Working copy of the integer value (with SOURCE signedness)
     ApsInt value = src.getInt();
 
-    // Create a copy for overflow checking with the SOURCE signedness
-    ApsInt valueForCheck = value;
+    const uint32_t targetBits     = targetType.intBits();
+    const bool     targetUnsigned = targetType.isIntUnsigned();
+    const uint32_t valueBits      = value.bitWidth();
 
-    // Set the target signedness for comparison
-    if (valueForCheck.isUnsigned() != targetUnsigned)
-        valueForCheck.setUnsigned(targetUnsigned);
+    // We’ll use a width large enough to express both source and target safely.
+    const uint32_t checkBits = (valueBits > targetBits + 1) ? valueBits : (targetBits + 1);
 
-    // Get min/max values for the target type
-    const ApsInt minVal = ApsInt::minValue(targetBits, targetUnsigned);
-    const ApsInt maxVal = ApsInt::maxValue(targetBits, targetUnsigned);
+    bool overflow = false;
 
-    // Extend valueForCheck to match the bit width for comparison
-    // This ensures we can properly compare against min/max without truncation
-    const uint32_t sourceBits = valueForCheck.bitWidth();
-    if (sourceBits < targetBits)
+    // Unsigned target: [0, 2^N - 1]
+    if (targetUnsigned)
     {
-        valueForCheck.resize(targetBits);
+        // Negative signed source can never fit.
+        if (!value.isUnsigned() && value.isNegative())
+        {
+            auto diag = reportError(DiagnosticId::sema_err_negate_unsigned, castCtx.errorNodeRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
+            diag.report(ctx);
+            return ConstantRef::invalid();
+        }
+
+        // Compare in UNSIGNED space.
+        ApsInt vCheck = value;
+        if (!vCheck.isUnsigned())
+            vCheck.setUnsigned(true); // reinterpret bits as unsigned
+
+        vCheck.resize(checkBits); // zero-extend
+
+        ApsInt maxCheck = ApsInt::maxValue(targetBits, true);
+        maxCheck.resize(checkBits); // zero-extend
+
+        if (vCheck > maxCheck)
+            overflow = true;
     }
 
-    // Also extend min/max to the source bit width if needed for comparison
-    ApsInt minValExtended = minVal;
-    ApsInt maxValExtended = maxVal;
-    bool   overflow       = false;
-    if (targetBits < sourceBits)
-    {
-        minValExtended.resize(sourceBits);
-        maxValExtended.resize(sourceBits);
-        overflow = (valueForCheck < minValExtended || valueForCheck > maxValExtended);
-    }
+    // Signed target: [-(2^(N-1)), 2^(N-1) - 1]
     else
     {
-        overflow = (valueForCheck < minVal || valueForCheck > maxVal);
+        ApsInt minSigned = ApsInt::minValue(targetBits, false);
+        ApsInt maxSigned = ApsInt::maxValue(targetBits, false);
+
+        if (!value.isUnsigned())
+        {
+            // Signed source: do signed comparison in a widened signed type.
+            ApsInt vCheck = value;
+            if (vCheck.isUnsigned())
+                vCheck.setUnsigned(false);
+            vCheck.resize(checkBits); // sign-extend
+
+            ApsInt minCheck = minSigned;
+            ApsInt maxCheck = maxSigned;
+            minCheck.resize(checkBits);
+            maxCheck.resize(checkBits);
+
+            if (vCheck < minCheck || vCheck > maxCheck)
+                overflow = true;
+        }
+        else
+        {
+            // Unsigned source into signed target.
+            // Lower bound (>= 0) is always OK, so only check the upper bound.
+
+            // Compare in UNSIGNED space against maxSigned interpreted as unsigned.
+            ApsInt vCheck = value;
+            if (!vCheck.isUnsigned())
+                vCheck.setUnsigned(true);
+            vCheck.resize(checkBits); // zero-extend
+
+            ApsInt maxU = maxSigned;
+            if (!maxU.isUnsigned())
+                maxU.setUnsigned(true); // reinterpret bits as unsigned
+            maxU.resize(checkBits);     // zero-extend
+
+            if (vCheck > maxU)
+                overflow = true;
+        }
     }
 
     if (overflow)
@@ -106,11 +147,11 @@ ConstantRef Sema::castIntToInt(const CastContext& castCtx, const ConstantValue& 
         return ConstantRef::invalid();
     }
 
-    // Now normalize to the target representation
+    // Adjust signedness to target
     if (value.isUnsigned() != targetUnsigned)
         value.setUnsigned(targetUnsigned);
 
-    // Finally, adjust the bit width to the target (this may wrap if overflow == true)
+    // Resize to the target bit width (now safe; we already checked range)
     value.resize(targetBits);
 
     // Build the resulting constant with the *target* integer type

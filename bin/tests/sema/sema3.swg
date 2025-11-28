@@ -27,5 +27,7 @@
 #assert(-127'u32 == -127'u32)       // swc-expected-error {{sema_err_negate_unsigned}}
 #assert(-127'u64 == -127'u64)       // swc-expected-error {{sema_err_negate_unsigned}}
 
+#assert(-128's8 == -128's8)
+
 #assert(-"127'u8" == -"127'u8")     // swc-expected-error {{sema_err_unary_operand_type}}
 #assert(-true == -true)             // swc-expected-error {{sema_err_unary_operand_type}}

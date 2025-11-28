@@ -42,7 +42,7 @@ const ConstantValue& AstNode::getSemaConstant(const TaskContext& ctx) const
     return ctx.compiler().constMgr().get(sema_.constant);
 }
 
-ConstantRef AstNode::getSemaConstantRef(const TaskContext& ctx) const
+ConstantRef AstNode::getSemaConstantRef() const
 {
     SWC_ASSERT(isSemaConstant());
     return sema_.constant;
@@ -54,7 +54,7 @@ const TypeInfo& AstNode::getSemaType(const TaskContext& ctx) const
     return ctx.compiler().typeMgr().get(sema_.type);
 }
 
-TypeInfoRef AstNode::getSemaTypeRef(const TaskContext& ctx) const
+TypeInfoRef AstNode::getSemaTypeRef() const
 {
     SWC_ASSERT(isSemaType());
     return sema_.type;
@@ -65,7 +65,7 @@ TypeInfoRef AstNode::getNodeTypeRef(const TaskContext& ctx) const
     if (isSemaConstant())
         return getSemaConstant(ctx).typeRef();
     if (isSemaType())
-        return getSemaTypeRef(ctx);
+        return getSemaTypeRef();
     return TypeInfoRef::invalid();
 }
 

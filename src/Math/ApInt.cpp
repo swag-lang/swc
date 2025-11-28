@@ -592,62 +592,28 @@ bool ApInt::slt(const ApInt& rhs) const
 {
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
 
-    const bool thisNeg = isNegative();
-    const bool rhsNeg  = rhs.isNegative();
+    const bool lhsNeg = isNegative();
+    const bool rhsNeg = rhs.isNegative();
 
-    if (thisNeg != rhsNeg)
-        return thisNeg;
+    if (lhsNeg != rhsNeg)
+        return lhsNeg;
 
-    // Same signs: Use unsigned comparison but reverse the result if both are negative.
-    const int result = compareValues(*this, rhs);
-    return thisNeg ? (result > 0) : (result < 0);
+    return compareValues(*this, rhs) < 0;
 }
 
 bool ApInt::sle(const ApInt& rhs) const
 {
-    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
-
-    const bool thisNeg = isNegative();
-    const bool rhsNeg  = rhs.isNegative();
-
-    if (thisNeg != rhsNeg)
-        return thisNeg;
-
-    // Same signs: Use unsigned comparison but reverse the result for a negative case.
-    const int result = compareValues(*this, rhs);
-    return thisNeg ? (result >= 0) : (result <= 0);
+    return !rhs.slt(*this);
 }
 
 bool ApInt::sgt(const ApInt& rhs) const
 {
-    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
-
-    const bool thisNeg = isNegative();
-    const bool rhsNeg  = rhs.isNegative();
-
-    if (thisNeg != rhsNeg)
-        return !thisNeg;
-
-    // Same signs: Use unsigned comparison but reverse the result for a negative case.
-    const int result = compareValues(*this, rhs);
-    return thisNeg ? (result < 0) : (result > 0);
+    return rhs.slt(*this);
 }
 
 bool ApInt::sge(const ApInt& rhs) const
 {
-    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
-
-    const bool thisNeg = isNegative();
-    const bool rhsNeg  = rhs.isNegative();
-
-    if (thisNeg != rhsNeg)
-    {
-        return !thisNeg;
-    }
-
-    // Same signs: Use unsigned comparison but reverse the result for a negative case.
-    const int result = compareValues(*this, rhs);
-    return thisNeg ? (result <= 0) : (result >= 0);
+    return !slt(rhs);
 }
 
 void ApInt::shrink(uint32_t newBitWidth)

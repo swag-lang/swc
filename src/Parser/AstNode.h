@@ -88,11 +88,11 @@ struct AstNode
     bool                 isSemaConstant() const { return hasSemaFlag(SemaFlagE::IsConst); }
     void                 setSemaConstant(ConstantRef ref);
     const ConstantValue& getSemaConstant(const TaskContext& ctx) const;
-    ConstantRef          getSemaConstantRef(const TaskContext& ctx) const;
+    ConstantRef          getSemaConstantRef() const;
     bool                 isSemaType() const { return hasSemaFlag(SemaFlagE::IsType); }
     void                 setSemaType(TypeInfoRef ref);
     const TypeInfo&      getSemaType(const TaskContext& ctx) const;
-    TypeInfoRef          getSemaTypeRef(const TaskContext& ctx) const;
+    TypeInfoRef          getSemaTypeRef() const;
 
     TypeInfoRef getNodeTypeRef(const TaskContext& ctx) const;
 

@@ -18,7 +18,7 @@ AstVisitStepResult AstCompilerIf::semaPreChild(Sema& sema, const AstNodeRef& chi
     const AstNode& nodeCondition = sema.node(nodeConditionRef);
     if (!nodeCondition.isSemaConstant())
     {
-        sema.raiseError(DiagnosticId::sema_err_expr_not_const, nodeConditionRef);
+        sema.raiseExprNotConst(nodeConditionRef);
         return AstVisitStepResult::Stop;
     }
 
@@ -44,7 +44,7 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 
     if (!nodeArg.isSemaConstant())
     {
-        sema.raiseError(DiagnosticId::sema_err_expr_not_const, nodeArgRef);
+        sema.raiseExprNotConst(nodeArgRef);
         return AstVisitStepResult::Stop;
     }
 

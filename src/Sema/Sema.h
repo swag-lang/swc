@@ -57,6 +57,7 @@ public:
     void       raiseInvalidType(AstNodeRef nodeRef, TypeInfoRef srcTypeRef, TypeInfoRef targetTypeRef);
     void       raiseCannotCast(AstNodeRef nodeRef, TypeInfoRef srcTypeRef, TypeInfoRef targetTypeRef);
     void       raiseLiteralOverflow(AstNodeRef nodeRef, TypeInfoRef targetTypeRef);
+    void       raiseExprNotConst(AstNodeRef nodeRef);
     void       raiseInternalError(const AstNode& node);
 
     bool        castAllowed(const CastContext& castCtx, TypeInfoRef srcTypeRef, TypeInfoRef targetTypeRef);

@@ -67,6 +67,11 @@ void Sema::raiseLiteralOverflow(AstNodeRef nodeRef, TypeInfoRef targetTypeRef)
     diag.report(ctx());
 }
 
+void Sema::raiseExprNotConst(AstNodeRef nodeRef)
+{
+    return raiseError(DiagnosticId::sema_err_expr_not_const, nodeRef);
+}
+
 void Sema::raiseInternalError(const AstNode& node)
 {
     raiseError(DiagnosticId::sema_err_internal, node.srcViewRef(), node.tokRef());

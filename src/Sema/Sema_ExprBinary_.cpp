@@ -1,6 +1,8 @@
 #include "pch.h"
+
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisit.h"
+#include "Sema.h"
 #include "Sema/ConstantManager.h"
 #include "Sema/Sema.h"
 
@@ -8,27 +10,25 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    ConstantRef constantFoldPlusPlus(Sema& sema, const AstNode& leftNode, const AstNode& rightNode)
+    ConstantRef constantFoldPlusPlus(Sema& sema, const AstBinaryExpr& node)
     {
-        const auto& ctx      = sema.ctx();
-        auto&       constMgr = sema.constMgr();
-        const auto& leftCst  = leftNode.getSemaConstant(ctx);
-        const auto& rightCst = rightNode.getSemaConstant(ctx);
+        const auto&    ctx       = sema.ctx();
+        const AstNode& leftNode  = sema.node(node.nodeLeftRef);
+        const AstNode& rightNode = sema.node(node.nodeRightRef);
+        const auto&    leftCst   = leftNode.getSemaConstant(ctx);
+        const auto&    rightCst  = rightNode.getSemaConstant(ctx);
 
         Utf8 result = leftCst.toString();
         result += rightCst.toString();
-        return constMgr.addConstant(ctx, ConstantValue::makeString(ctx, result));
+        return sema.constMgr().addConstant(ctx, ConstantValue::makeString(ctx, result));
     }
 
-    ConstantRef constantFold(Sema& sema, TokenId op, AstNodeRef leftNodeRef, AstNodeRef rightNodeRef)
+    ConstantRef constantFold(Sema& sema, TokenId op, const AstBinaryExpr& node)
     {
-        const AstNode& leftNode  = sema.node(leftNodeRef);
-        const AstNode& rightNode = sema.node(rightNodeRef);
-
         switch (op)
         {
             case TokenId::SymPlusPlus:
-                return constantFoldPlusPlus(sema, leftNode, rightNode);
+                return constantFoldPlusPlus(sema, node);
             default:
                 break;
         }
@@ -72,9 +72,8 @@ namespace
 
 AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema)
 {
-    const auto& tok = sema.token(srcViewRef(), tokRef());
-
     // Type-check
+    const auto& tok = sema.token(srcViewRef(), tokRef());
     if (check(sema, tok.id, *this) == Result::Error)
         return AstVisitStepResult::Stop;
 
@@ -83,7 +82,7 @@ AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema)
     const AstNode& nodeRight = sema.node(nodeRightRef);
     if (nodeLeft.isSemaConstant() && nodeRight.isSemaConstant())
     {
-        const auto cst = constantFold(sema, tok.id, nodeLeftRef, nodeRightRef);
+        const auto cst = constantFold(sema, tok.id, *this);
         if (cst.isValid())
         {
             setSemaConstant(cst);

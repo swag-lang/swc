@@ -9,16 +9,16 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    ConstantRef constantFoldMinus(Sema& sema, const AstNode& node, AstNodeRef nodeRef)
+    ConstantRef constantFoldMinus(Sema& sema, const AstUnaryExpr& node)
     {
         const auto&          ctx      = sema.ctx();
-        auto&                constMgr = sema.constMgr();
-        const ConstantValue& cst      = node.getSemaConstant(ctx);
+        const AstNode&       nodeExpr = sema.node(node.nodeExprRef);
+        const ConstantValue& cst      = nodeExpr.getSemaConstant(ctx);
 
         // In the case of a literal with a suffix, it has already been done
         // @MinusLiteralSuffix
-        if (node.is(AstNodeId::SuffixLiteral))
-            return node.getSemaConstantRef();
+        if (nodeExpr.is(AstNodeId::SuffixLiteral))
+            return nodeExpr.getSemaConstantRef();
 
         ApsInt cpy = cst.getInt();
 
@@ -26,12 +26,12 @@ namespace
         cpy.negate(overflow);
         if (overflow)
         {
-            sema.raiseLiteralOverflow(nodeRef, node.getNodeTypeRef(sema.ctx()));
+            sema.raiseLiteralOverflow(node.nodeExprRef, nodeExpr.getNodeTypeRef(sema.ctx()));
             return ConstantRef::invalid();
         }
 
         cpy.setUnsigned(false);
-        return constMgr.addConstant(ctx, ConstantValue::makeInt(ctx, cpy, cpy.bitWidth()));
+        return sema.constMgr().addConstant(ctx, ConstantValue::makeInt(ctx, cpy, cpy.bitWidth()));
     }
 
     Result checkMinus(Sema& sema, const AstUnaryExpr& expr)
@@ -59,14 +59,12 @@ namespace
         return Result::Error;
     }
 
-    ConstantRef constantFold(Sema& sema, TokenId op, AstNodeRef nodeRef)
+    ConstantRef constantFold(Sema& sema, TokenId op, const AstUnaryExpr& node)
     {
-        const AstNode& node = sema.node(nodeRef);
-
         switch (op)
         {
             case TokenId::SymMinus:
-                return constantFoldMinus(sema, node, nodeRef);
+                return constantFoldMinus(sema, node);
             default:
                 break;
         }
@@ -91,19 +89,16 @@ namespace
 
 AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema)
 {
-    const auto&       tok     = sema.token(srcViewRef(), tokRef());
-    const AstNode&    node    = sema.node(nodeExprRef);
-    const TypeInfoRef typeRef = node.getNodeTypeRef(sema.ctx());
-    const TypeInfo&   type    = sema.typeMgr().get(typeRef);
-
     // Type-check
+    const auto& tok = sema.token(srcViewRef(), tokRef());
     if (check(sema, tok.id, *this) == Result::Error)
         return AstVisitStepResult::Stop;
 
     // Constant folding
+    const AstNode& node = sema.node(nodeExprRef);
     if (node.isSemaConstant())
     {
-        const auto cst = constantFold(sema, tok.id, nodeExprRef);
+        const auto cst = constantFold(sema, tok.id, *this);
         if (cst.isValid())
         {
             setSemaConstant(cst);

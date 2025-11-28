@@ -8,27 +8,24 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    ConstantRef constantFoldEqual(Sema& sema, const AstNode& leftNode, const AstNode& rightNode)
+    ConstantRef constantFoldEqual(Sema& sema, const AstRelationalExpr& node)
     {
-        const auto& ctx      = sema.ctx();
-        auto&       constMgr = sema.constMgr();
-
-        const auto& leftCst  = leftNode.getSemaConstant(ctx);
-        const auto& rightCst = rightNode.getSemaConstant(ctx);
+        const auto&    ctx       = sema.ctx();
+        const AstNode& leftNode  = sema.node(node.nodeLeftRef);
+        const AstNode& rightNode = sema.node(node.nodeRightRef);
+        const auto&    leftCst   = leftNode.getSemaConstant(ctx);
+        const auto&    rightCst  = rightNode.getSemaConstant(ctx);
 
         const bool result = (leftCst == rightCst);
-        return constMgr.addConstant(ctx, ConstantValue::makeBool(ctx, result));
+        return sema.constMgr().addConstant(ctx, ConstantValue::makeBool(ctx, result));
     }
 
-    ConstantRef constantFold(Sema& sema, TokenId op, AstNodeRef leftNodeRef, AstNodeRef rightNodeRef)
+    ConstantRef constantFold(Sema& sema, TokenId op, const AstRelationalExpr& node)
     {
-        const AstNode& leftNode  = sema.node(leftNodeRef);
-        const AstNode& rightNode = sema.node(rightNodeRef);
-
         switch (op)
         {
             case TokenId::SymEqualEqual:
-                return constantFoldEqual(sema, leftNode, rightNode);
+                return constantFoldEqual(sema, node);
             default:
                 break;
         }
@@ -58,9 +55,8 @@ namespace
 
 AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
 {
-    const auto& tok = sema.token(srcViewRef(), tokRef());
-
     // Type-check
+    const auto& tok = sema.token(srcViewRef(), tokRef());
     if (check(sema, tok.id, *this) == Result::Error)
         return AstVisitStepResult::Stop;
 
@@ -69,7 +65,7 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
     const AstNode& nodeRight = sema.node(nodeRightRef);
     if (nodeLeft.isSemaConstant() && nodeRight.isSemaConstant())
     {
-        const auto cst = constantFold(sema, tok.id, nodeLeftRef, nodeRightRef);
+        const auto cst = constantFold(sema, tok.id, *this);
         if (cst.isValid())
         {
             setSemaConstant(cst);

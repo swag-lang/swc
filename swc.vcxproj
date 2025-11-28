@@ -250,6 +250,7 @@
         <ClCompile Include="src\Sema\Sema_Expression_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Literal_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Type_.cpp"/>
+        <ClCompile Include="src\Sema\Sema_ExpressionUnary_.cpp"/>
         <ClCompile Include="src\Sema\TypeInfo.cpp"/>
         <ClCompile Include="src\Sema\TypeManager.cpp"/>
         <ClCompile Include="src\Thread\Job.cpp"/>

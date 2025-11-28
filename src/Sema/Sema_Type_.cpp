@@ -45,6 +45,13 @@ AstVisitStepResult AstBuiltinType::semaPostNode(Sema& sema)
             setSemaType(sema.typeMgr().getTypeFloat(64));
             return AstVisitStepResult::Continue;
 
+        case TokenId::TypeBool:
+            setSemaType(sema.typeMgr().getTypeBool());
+            return AstVisitStepResult::Continue;
+        case TokenId::TypeString:
+            setSemaType(sema.typeMgr().getTypeString());
+            return AstVisitStepResult::Continue;
+
         default:
             break;
     }
@@ -55,7 +62,7 @@ AstVisitStepResult AstBuiltinType::semaPostNode(Sema& sema)
 
 AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema)
 {
-    auto&             ctx         = sema.ctx();
+    const auto&       ctx         = sema.ctx();
     const AstNode&    nodeLiteral = sema.node(nodeLiteralRef);
     const AstNode&    nodeSuffix  = sema.node(nodeSuffixRef);
     const TypeInfoRef typeRef     = nodeSuffix.getNodeTypeRef(ctx);

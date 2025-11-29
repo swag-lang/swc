@@ -32,6 +32,8 @@ public:
 
     uint32_t bitWidth() const { return bitWidth_; }
     void     negate();
+
+    bool eq(const ApFloat& rhs) const;
 };
 
 SWC_END_NAMESPACE()

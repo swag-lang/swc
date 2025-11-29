@@ -75,3 +75,4 @@ SWC_DIAG_DEF(sema_err_number_too_big, Error, "number too big to be represented i
 SWC_DIAG_DEF(sema_err_literal_overflow, Error, "literal cannot fit in type {type}")
 SWC_DIAG_DEF(sema_err_negate_unsigned, Error, "cannot negate unsigned type {type}")
 SWC_DIAG_DEF(sema_err_unary_operand_type, Error, "unary operator {tok} cannot be applied to an operand of type {type}")
+SWC_DIAG_DEF(sema_err_binary_operand_type, Error, "binary operator {tok} cannot be applied to an operand of type {type}")

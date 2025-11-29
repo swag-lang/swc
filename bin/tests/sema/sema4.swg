@@ -10,5 +10,3 @@
 #assert(1.5575'f64 == 1.557'f64) // swc-expected-error {{sema_err_compiler_assert}}
 #assert(1'f32 == 2'f32)          // swc-expected-error {{sema_err_compiler_assert}}
 #assert(1'f64 == 2'f64)          // swc-expected-error {{sema_err_compiler_assert}}
-
-

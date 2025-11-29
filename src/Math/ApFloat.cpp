@@ -221,4 +221,18 @@ void ApFloat::negate()
     }
 }
 
+bool ApFloat::eq(const ApFloat& rhs) const
+{
+    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+    switch (bitWidth_)
+    {
+        case 32:
+            return value_.f32 == rhs.value_.f32;
+        case 64:
+            return value_.f64 == rhs.value_.f64;
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
 SWC_END_NAMESPACE()

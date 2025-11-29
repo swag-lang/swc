@@ -29,10 +29,8 @@ public:
     bool     fits64() const;
     uint64_t asU64() const;
 
-    static bool sameValue(const ApInt& i1, const ApInt& i2);
-    static int  compareValues(const ApInt& i1, const ApInt& i2);
-
     bool     same(const ApInt& other) const;
+    int      compare(const ApInt& other) const;
     uint64_t hash() const;
 
     bool     isZero() const;

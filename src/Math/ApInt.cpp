@@ -86,23 +86,23 @@ void ApInt::setZero()
     clearWords();
 }
 
-bool ApInt::sameValue(const ApInt& i1, const ApInt& i2)
+bool ApInt::same(const ApInt& other) const
 {
-    if (i1.bitWidth_ != i2.bitWidth_)
+    if (bitWidth_ != other.bitWidth_)
         return false;
-    SWC_ASSERT(i1.numWords_ == i2.numWords_);
-    return std::equal(i1.words_, i1.words_ + i1.numWords_, i2.words_);
+    SWC_ASSERT(numWords_ == other.numWords_);
+    return std::equal(words_, words_ + numWords_, other.words_);
 }
 
-int ApInt::compareValues(const ApInt& i1, const ApInt& i2)
+int ApInt::compare(const ApInt& other) const
 {
-    SWC_ASSERT(i1.bitWidth_ == i2.bitWidth_);
-    SWC_ASSERT(i1.numWords_ == i2.numWords_);
+    SWC_ASSERT(bitWidth_ == other.bitWidth_);
+    SWC_ASSERT(numWords_ == other.numWords_);
 
-    for (int i = static_cast<int>(i1.numWords_) - 1; i >= 0; --i)
+    for (int i = static_cast<int>(numWords_) - 1; i >= 0; --i)
     {
-        const uint64_t a = i1.words_[static_cast<uint32_t>(i)];
-        const uint64_t b = i2.words_[static_cast<uint32_t>(i)];
+        const uint64_t a = words_[static_cast<uint32_t>(i)];
+        const uint64_t b = other.words_[static_cast<uint32_t>(i)];
         if (a < b)
             return -1;
         if (a > b)
@@ -110,13 +110,6 @@ int ApInt::compareValues(const ApInt& i1, const ApInt& i2)
     }
 
     return 0;
-}
-
-bool ApInt::same(const ApInt& other) const
-{
-    if (bitWidth_ != other.bitWidth_)
-        return false;
-    return sameValue(other, *this);
 }
 
 uint64_t ApInt::hash() const
@@ -555,37 +548,37 @@ ApInt ApInt::maxSignedValue(uint32_t bitWidth)
 bool ApInt::eq(const ApInt& rhs) const
 {
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
-    return sameValue(*this, rhs);
+    return same(rhs);
 }
 
 bool ApInt::ne(const ApInt& rhs) const
 {
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
-    return !sameValue(*this, rhs);
+    return !same(rhs);
 }
 
 bool ApInt::ult(const ApInt& rhs) const
 {
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
-    return compareValues(*this, rhs) < 0;
+    return compare(rhs) < 0;
 }
 
 bool ApInt::ule(const ApInt& rhs) const
 {
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
-    return compareValues(*this, rhs) <= 0;
+    return compare(rhs) <= 0;
 }
 
 bool ApInt::ugt(const ApInt& rhs) const
 {
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
-    return compareValues(*this, rhs) > 0;
+    return compare(rhs) > 0;
 }
 
 bool ApInt::uge(const ApInt& rhs) const
 {
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
-    return compareValues(*this, rhs) >= 0;
+    return compare(rhs) >= 0;
 }
 
 bool ApInt::slt(const ApInt& rhs) const
@@ -598,7 +591,7 @@ bool ApInt::slt(const ApInt& rhs) const
     if (lhsNeg != rhsNeg)
         return lhsNeg;
 
-    return compareValues(*this, rhs) < 0;
+    return compare(rhs) < 0;
 }
 
 bool ApInt::sle(const ApInt& rhs) const

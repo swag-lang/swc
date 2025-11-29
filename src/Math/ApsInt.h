@@ -32,11 +32,9 @@ public:
     bool isUnsigned() const { return unsigned_; }
     void setUnsigned(bool isUnSigned) { unsigned_ = isUnSigned; }
 
-    static bool compareValues(const ApsInt& i1, const ApsInt& i2);
-    static bool isSameValue(const ApsInt& i1, const ApsInt& i2);
-
-    uint64_t hash() const;
     bool     same(const ApsInt& other) const;
+    int      compare(const ApsInt& other) const;
+    uint64_t hash() const;
 
     static ApsInt minValue(uint32_t bitWidth, bool isUnsigned);
     static ApsInt maxValue(uint32_t bitWidth, bool isUnsigned);

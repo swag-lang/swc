@@ -68,6 +68,25 @@ bool ConstantValue::operator==(const ConstantValue& other) const noexcept
     }
 }
 
+bool ConstantValue::eq(const ConstantValue& other) const noexcept
+{
+    SWC_ASSERT(kind_ == other.kind_);
+    switch (kind_)
+    {
+        case ConstantKind::Bool:
+            return getBool() == other.getBool();
+        case ConstantKind::String:
+            return getString() == other.getString();
+        case ConstantKind::Int:
+            return getInt().eq(other.getInt());
+        case ConstantKind::Float:
+            return getFloat().eq(other.getFloat());
+
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
 Utf8 ConstantValue::toString() const
 {
     switch (kind_)

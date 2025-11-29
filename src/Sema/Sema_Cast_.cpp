@@ -190,6 +190,9 @@ bool Sema::castAllowed(const CastContext& castCtx, TypeInfoRef srcTypeRef, TypeI
                 return true;
             break;
 
+        case CastKind::Promotion:
+            return true;
+
         default:
             SWC_UNREACHABLE();
     }

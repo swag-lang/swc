@@ -51,6 +51,7 @@ public:
     bool         isIntUnsigned() const noexcept { return isInt() && int_.isUnsigned; }
     bool         isIntSigned() const noexcept { return isInt() && !int_.isUnsigned; }
     bool         isFloat() const noexcept { return kind_ == TypeInfoKind::Float; }
+    bool         isIntFloat() const noexcept { return kind_ == TypeInfoKind::Int || kind_ == TypeInfoKind::Float; }
 
     // clang-format off
     uint32_t intBits() const noexcept { SWC_ASSERT(isInt()); return int_.bits; }

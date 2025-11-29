@@ -11,6 +11,7 @@ enum class CastKind
     LiteralSuffix,
     Implicit,
     Explicit,
+    Promotion,
 };
 
 struct CastContext

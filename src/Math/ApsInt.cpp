@@ -4,13 +4,6 @@
 
 SWC_BEGIN_NAMESPACE()
 
-bool ApsInt::same(const ApsInt& other) const
-{
-    if (unsigned_ != other.unsigned_)
-        return false;
-    return ApInt::same(other);
-}
-
 uint64_t ApsInt::hash() const
 {
     auto h = ApInt::hash();
@@ -28,16 +21,18 @@ ApsInt ApsInt::maxValue(uint32_t bitWidth, bool isUnsigned)
     return isUnsigned ? ApsInt(ApInt::maxValue(bitWidth), true) : ApsInt(maxSignedValue(bitWidth), false);
 }
 
-bool ApsInt::compareValues(const ApsInt& i1, const ApsInt& i2)
+bool ApsInt::same(const ApsInt& other) const
 {
-    if (i1.unsigned_ != i2.unsigned_)
+    if (unsigned_ != other.unsigned_)
         return false;
-    return ApInt::compareValues(i1, i2);
+    return ApInt::same(other);
 }
 
-bool ApsInt::isSameValue(const ApsInt& i1, const ApsInt& i2)
+int ApsInt::compare(const ApsInt& other) const
 {
-    return !compareValues(i1, i2);
+    if (unsigned_ != other.unsigned_)
+        return unsigned_ ? -1 : 1;
+    return ApInt::compare(other);
 }
 
 SWC_END_NAMESPACE()

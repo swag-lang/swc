@@ -121,7 +121,7 @@ TypeInfoRef TypeManager::addType(const TypeInfo& typeInfo)
     Stats::get().memTypes.fetch_add(sizeof(TypeInfo), std::memory_order_relaxed);
 #endif
 
-    const TypeInfoRef ref{store_.push_back(typeInfo) / static_cast<uint32_t>(sizeof(TypeInfoRef))};
+    const TypeInfoRef ref{store_.push_back(typeInfo) / static_cast<uint32_t>(sizeof(TypeInfo))};
     it->second = ref;
     return ref;
 }
@@ -183,7 +183,7 @@ const TypeInfo& TypeManager::get(TypeInfoRef typeInfoRef) const
 {
     std::shared_lock lk(mutexAdd_);
     SWC_ASSERT(typeInfoRef.isValid());
-    return *store_.ptr<TypeInfo>(typeInfoRef.get() * sizeof(TypeInfoRef));
+    return *store_.ptr<TypeInfo>(typeInfoRef.get() * sizeof(TypeInfo));
 }
 
 std::string_view TypeManager::typeToString(TypeInfoRef typeInfoRef, TypeInfo::ToStringMode mode) const

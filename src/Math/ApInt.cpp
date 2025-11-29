@@ -28,6 +28,15 @@ ApInt::ApInt(uint64_t value, uint32_t bitWidth) :
     normalize();
 }
 
+ApInt::ApInt(int32_t value) :
+    bitWidth_(32),
+    numWords_(computeNumWords(32))
+{
+    clearWords();
+    words_[0] = std::bit_cast<uint64_t>(static_cast<int64_t>(value));
+    normalize();
+}
+
 uint32_t ApInt::computeNumWords(uint32_t bitWidth)
 {
     SWC_ASSERT(bitWidth > 0 && bitWidth <= MAX_BITS);

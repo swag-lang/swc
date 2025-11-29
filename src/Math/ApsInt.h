@@ -12,6 +12,11 @@ class ApsInt : public ApInt
 public:
     ApsInt() = delete;
 
+    explicit ApsInt(int32_t value) :
+        ApInt(value)
+    {
+    }
+
     explicit ApsInt(const ApInt& value, bool isUnSigned) :
         ApInt(value),
         unsigned_(isUnSigned)

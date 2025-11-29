@@ -24,6 +24,7 @@ public:
     explicit ApInt();
     explicit ApInt(uint32_t bitWidth);
     explicit ApInt(uint64_t value, uint32_t bitWidth);
+    explicit ApInt(int32_t value);
 
     uint32_t bitWidth() const { return bitWidth_; }
     bool     fits64() const;

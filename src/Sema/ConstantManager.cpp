@@ -8,8 +8,26 @@ SWC_BEGIN_NAMESPACE()
 
 void ConstantManager::setup(const TaskContext& ctx)
 {
-    cstBoolTrue_  = addConstant(ctx, ConstantValue::makeBool(ctx, true));
-    cstBoolFalse_ = addConstant(ctx, ConstantValue::makeBool(ctx, false));
+    cstBool_true_  = addConstant(ctx, ConstantValue::makeBool(ctx, true));
+    cstBool_false_ = addConstant(ctx, ConstantValue::makeBool(ctx, false));
+    cstInt32_0_    = addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(0), 32));
+    cstInt32_1_    = addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(1), 32));
+    cstInt32_neg1_ = addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(-1), 32));
+}
+
+ConstantRef ConstantManager::cstS32(const TaskContext& ctx, int32_t value)
+{
+    switch (value)
+    {
+        case -1:
+            return cstInt32_neg1_;
+        case 0:
+            return cstInt32_0_;
+        case 1:
+            return cstInt32_1_;
+        default:
+            return addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(value, false), 32));
+    }
 }
 
 ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantValue& value)

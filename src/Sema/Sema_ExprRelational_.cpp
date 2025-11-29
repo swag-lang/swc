@@ -33,6 +33,33 @@ namespace
         }
     };
 
+    bool promoteConstantsIfNeeded(Sema& sema, const AstRelationalExpr& node, const RelationalOperands& ops, ConstantRef& leftRef, ConstantRef& rightRef)
+    {
+        if (ops.leftTypeRef == ops.rightTypeRef)
+            return true;
+
+        if (ops.leftType->canBePromoted() && ops.rightType->canBePromoted())
+        {
+            const TypeInfoRef promotedTypeRef = sema.typeMgr().promote(ops.leftTypeRef, ops.rightTypeRef);
+
+            CastContext castCtx;
+            castCtx.kind         = CastKind::Promotion;
+            castCtx.errorNodeRef = node.nodeLeftRef;
+
+            leftRef = sema.cast(castCtx, ops.nodeLeft->getSemaConstantRef(), promotedTypeRef);
+            if (leftRef.isInvalid())
+                return false;
+
+            rightRef = sema.cast(castCtx, ops.nodeRight->getSemaConstantRef(), promotedTypeRef);
+            if (rightRef.isInvalid())
+                return false;
+
+            return true;
+        }
+
+        SWC_UNREACHABLE();
+    }
+
     ConstantRef constantFoldEqual(Sema& sema, const AstRelationalExpr& node, const RelationalOperands& ops)
     {
         if (ops.leftCstRef == ops.rightCstRef)
@@ -41,27 +68,8 @@ namespace
         auto leftCstRef  = ops.leftCstRef;
         auto rightCstRef = ops.rightCstRef;
 
-        if (ops.leftTypeRef != ops.rightTypeRef)
-        {
-            if (ops.leftType->canBePromoted() && ops.rightType->canBePromoted())
-            {
-                const TypeInfoRef promotedTypeRef = sema.typeMgr().promote(ops.leftTypeRef, ops.rightTypeRef);
-
-                CastContext castCtx;
-                castCtx.kind         = CastKind::Promotion;
-                castCtx.errorNodeRef = node.nodeLeftRef;
-                leftCstRef           = sema.cast(castCtx, ops.nodeLeft->getSemaConstantRef(), promotedTypeRef);
-                if (leftCstRef.isInvalid())
-                    return ConstantRef::invalid();
-                rightCstRef = sema.cast(castCtx, ops.nodeRight->getSemaConstantRef(), promotedTypeRef);
-                if (rightCstRef.isInvalid())
-                    return ConstantRef::invalid();
-            }
-            else
-            {
-                SWC_UNREACHABLE();
-            }
-        }
+        if (!promoteConstantsIfNeeded(sema, node, ops, leftCstRef, rightCstRef))
+            return ConstantRef::invalid();
 
         return sema.constMgr().cstBool(leftCstRef == rightCstRef);
     }
@@ -74,31 +82,66 @@ namespace
         auto leftCstRef  = ops.leftCstRef;
         auto rightCstRef = ops.rightCstRef;
 
-        if (ops.leftTypeRef != ops.rightTypeRef)
-        {
-            if (ops.leftType->canBePromoted() && ops.rightType->canBePromoted())
-            {
-                const TypeInfoRef promotedTypeRef = sema.typeMgr().promote(ops.leftTypeRef, ops.rightTypeRef);
-
-                CastContext castCtx;
-                castCtx.kind         = CastKind::Promotion;
-                castCtx.errorNodeRef = node.nodeLeftRef;
-                leftCstRef           = sema.cast(castCtx, ops.nodeLeft->getSemaConstantRef(), promotedTypeRef);
-                if (leftCstRef.isInvalid())
-                    return ConstantRef::invalid();
-                rightCstRef = sema.cast(castCtx, ops.nodeRight->getSemaConstantRef(), promotedTypeRef);
-                if (rightCstRef.isInvalid())
-                    return ConstantRef::invalid();
-            }
-            else
-            {
-                SWC_UNREACHABLE();
-            }
-        }
+        if (!promoteConstantsIfNeeded(sema, node, ops, leftCstRef, rightCstRef))
+            return ConstantRef::invalid();
 
         const auto& leftCst  = sema.constMgr().get(leftCstRef);
         const auto& rightCst = sema.constMgr().get(rightCstRef);
+
         return sema.constMgr().cstBool(leftCst.lt(rightCst));
+    }
+
+    ConstantRef constantFoldLessEqual(Sema& sema, const AstRelationalExpr& node, RelationalOperands& ops)
+    {
+        if (ops.leftCstRef == ops.rightCstRef)
+            return sema.constMgr().cstTrue();
+        return constantFoldLess(sema, node, ops);
+    }
+
+    ConstantRef constantFoldGreater(Sema& sema, const AstRelationalExpr& node, RelationalOperands& ops)
+    {
+        RelationalOperands swapped = ops;
+        std::swap(swapped.nodeLeft, swapped.nodeRight);
+        std::swap(swapped.leftCstRef, swapped.rightCstRef);
+        std::swap(swapped.leftTypeRef, swapped.rightTypeRef);
+        std::swap(swapped.leftType, swapped.rightType);
+        return constantFoldLess(sema, node, swapped);
+    }
+
+    ConstantRef constantFoldGreaterEqual(Sema& sema, const AstRelationalExpr& node, RelationalOperands& ops)
+    {
+        if (ops.leftCstRef == ops.rightCstRef)
+            return sema.constMgr().cstTrue();
+
+        const ConstantRef lt = constantFoldLess(sema, node, ops);
+        if (lt.isInvalid())
+            return ConstantRef::invalid();
+
+        return sema.constMgr().cstNegBool(lt);
+    }
+
+    ConstantRef constantFoldCompareEqual(Sema& sema, const AstRelationalExpr& node, const RelationalOperands& ops)
+    {
+        auto leftCstRef  = ops.leftCstRef;
+        auto rightCstRef = ops.rightCstRef;
+
+        if (!promoteConstantsIfNeeded(sema, node, ops, leftCstRef, rightCstRef))
+            return ConstantRef::invalid();
+
+        const auto& left  = sema.constMgr().get(leftCstRef);
+        const auto& right = sema.constMgr().get(rightCstRef);
+
+        int result;
+        if (leftCstRef == rightCstRef)
+            result = 0;
+        else if (left.lt(right))
+            result = -1;
+        else if (right.lt(left))
+            result = 1;
+        else
+            result = 0;
+
+        return sema.constMgr().cstS32(sema.ctx(), result);
     }
 
     ConstantRef constantFold(Sema& sema, TokenId op, const AstRelationalExpr& node, RelationalOperands& ops)
@@ -112,15 +155,28 @@ namespace
         {
             case TokenId::SymEqualEqual:
                 return constantFoldEqual(sema, node, ops);
+
             case TokenId::SymBangEqual:
                 return sema.constMgr().cstNegBool(constantFoldEqual(sema, node, ops));
+
             case TokenId::SymLess:
                 return constantFoldLess(sema, node, ops);
-            default:
-                break;
-        }
 
-        return ConstantRef::invalid();
+            case TokenId::SymLessEqual:
+                return constantFoldLessEqual(sema, node, ops);
+
+            case TokenId::SymGreater:
+                return constantFoldGreater(sema, node, ops);
+
+            case TokenId::SymGreaterEqual:
+                return constantFoldGreaterEqual(sema, node, ops);
+
+            case TokenId::SymLessEqualGreater:
+                return constantFoldCompareEqual(sema, node, ops);
+
+            default:
+                return ConstantRef::invalid();
+        }
     }
 
     Result checkEqualEqual(Sema& sema, const AstRelationalExpr& node, const RelationalOperands& ops)
@@ -130,7 +186,8 @@ namespace
 
         if (!ops.leftType->canBePromoted())
         {
-            auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.nodeLeftRef);
+            auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type,
+                                         node.nodeLeftRef);
             diag.addArgument(Diagnostic::ARG_TYPE, ops.leftTypeRef);
             diag.report(sema.ctx());
             return Result::Error;
@@ -138,7 +195,8 @@ namespace
 
         if (!ops.rightType->canBePromoted())
         {
-            auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.nodeRightRef);
+            auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type,
+                                         node.nodeRightRef);
             diag.addArgument(Diagnostic::ARG_TYPE, ops.rightTypeRef);
             diag.report(sema.ctx());
             return Result::Error;
@@ -154,7 +212,8 @@ namespace
 
         if (!ops.leftType->canBePromoted())
         {
-            auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.nodeLeftRef);
+            auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type,
+                                         node.nodeLeftRef);
             diag.addArgument(Diagnostic::ARG_TYPE, ops.leftTypeRef);
             diag.report(sema.ctx());
             return Result::Error;
@@ -162,7 +221,8 @@ namespace
 
         if (!ops.rightType->canBePromoted())
         {
-            auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.nodeRightRef);
+            auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type,
+                                         node.nodeRightRef);
             diag.addArgument(Diagnostic::ARG_TYPE, ops.rightTypeRef);
             diag.report(sema.ctx());
             return Result::Error;
@@ -187,11 +247,9 @@ namespace
                 return checkCompareEqual(sema, node, ops);
 
             default:
-                break;
+                sema.raiseInternalError(node);
+                return Result::Error;
         }
-
-        sema.raiseInternalError(node);
-        return Result::Error;
     }
 }
 

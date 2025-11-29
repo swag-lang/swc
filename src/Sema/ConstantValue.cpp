@@ -2,7 +2,7 @@
 #include "Sema/ConstantValue.h"
 #include "Core/hash.h"
 #include "Main/TaskContext.h"
-#include "Sema/TypeManager.h"
+#include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 

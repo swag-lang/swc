@@ -255,8 +255,8 @@
         <ClCompile Include="src\Sema\Sema_Literal_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Type_.cpp"/>
         <ClCompile Include="src\Sema\Sema_ExprUnary_.cpp"/>
-        <ClCompile Include="src\Sema\TypeInfo.cpp"/>
-        <ClCompile Include="src\Sema\TypeManager.cpp"/>
+        <ClCompile Include="src\Sema\Type\TypeInfo.cpp"/>
+        <ClCompile Include="src\Sema\Type\TypeManager.cpp"/>
         <ClCompile Include="src\Thread\Job.cpp"/>
         <ClCompile Include="src\Thread\JobManager.cpp"/>
         <ClCompile Include="src\Thread\RaceCondition.cpp"/>
@@ -318,8 +318,8 @@
         <ClInclude Include="src\Sema\Scope.h"/>
         <ClInclude Include="src\Sema\Sema.h"/>
         <ClInclude Include="src\Sema\SemaJob.h"/>
-        <ClInclude Include="src\Sema\TypeInfo.h"/>
-        <ClInclude Include="src\Sema\TypeManager.h"/>
+        <ClInclude Include="src\Sema\Type\TypeInfo.h"/>
+        <ClInclude Include="src\Sema\Type\TypeManager.h"/>
         <ClInclude Include="src\Thread\Job.h"/>
         <ClInclude Include="src\Thread\JobManager.h"/>
         <ClInclude Include="src\Thread\RaceCondition.h"/>

@@ -1,7 +1,6 @@
 #include "pch.h"
-#include "Sema/TypeManager.h"
+#include "Sema/Type/TypeManager.h"
 #include "Main/Stats.h"
-#include <ranges>
 
 SWC_BEGIN_NAMESPACE()
 

@@ -14,7 +14,7 @@
 #include "Report/LogColor.h"
 #include "Report/Logger.h"
 #include "Sema/ConstantManager.h"
-#include "Sema/TypeManager.h"
+#include "Sema/Type/TypeManager.h"
 #include "Thread/JobManager.h"
 #include "Wmf/SourceFile.h"
 

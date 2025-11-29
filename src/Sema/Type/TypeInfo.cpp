@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Sema/TypeInfo.h"
+#include "Sema/Type/TypeInfo.h"
 #include "Core/hash.h"
 
 SWC_BEGIN_NAMESPACE()

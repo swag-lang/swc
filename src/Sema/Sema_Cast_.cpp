@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Sema/ConstantManager.h"
 #include "Sema/Sema.h"
-#include "Sema/TypeManager.h"
+#include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 

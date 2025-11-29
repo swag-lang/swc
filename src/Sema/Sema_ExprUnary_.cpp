@@ -3,7 +3,7 @@
 #include "Parser/AstVisit.h"
 #include "Sema/ConstantManager.h"
 #include "Sema/Sema.h"
-#include "Sema/TypeManager.h"
+#include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -115,7 +115,7 @@ namespace
     {
         if (ops.type->isBool() || ops.type->isInt())
             return Result::Success;
-        
+
         reportInvalidType(sema, expr, ops);
         return Result::Error;
     }

@@ -9,7 +9,7 @@
 #include "Report/DiagnosticElement.h"
 #include "Report/LogColor.h"
 #include "Report/LogSymbol.h"
-#include "Sema/TypeManager.h"
+#include "Sema/Type/TypeManager.h"
 #include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE()

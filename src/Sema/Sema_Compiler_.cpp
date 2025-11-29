@@ -6,7 +6,7 @@
 #include "Report/Logger.h"
 #include "Sema/ConstantValue.h"
 #include "Sema/Sema.h"
-#include "Sema/TypeManager.h"
+#include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 

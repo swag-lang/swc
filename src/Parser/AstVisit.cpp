@@ -11,7 +11,7 @@ void AstVisit::start(Ast& ast, AstNodeRef root)
     SWC_ASSERT(root.isValid());
 
     ast_  = &ast;
-    root_ = root;
+    rootRef_ = root;
 
     stack_.clear();
     children_.clear();

@@ -41,8 +41,8 @@ class AstVisit
         Stage      stage        = Stage::Pre;
     };
 
-    Ast*                                                     ast_  = nullptr;
-    AstNodeRef                                               root_ = AstNodeRef::invalid();
+    Ast*                                                     ast_     = nullptr;
+    AstNodeRef                                               rootRef_ = AstNodeRef::invalid();
     std::function<AstVisitStepResult(AstNode&)>              preNodeVisitor_;
     std::function<AstVisitStepResult(AstNode&)>              postNodeVisitor_;
     std::function<AstVisitStepResult(AstNode&, AstNodeRef&)> preChildVisitor_;
@@ -58,13 +58,14 @@ public:
     void           setPostNodeVisitor(const std::function<AstVisitStepResult(AstNode&)>& visitor) { postNodeVisitor_ = visitor; }
     void           setPreChildVisitor(const std::function<AstVisitStepResult(AstNode&, AstNodeRef&)>& visitor) { preChildVisitor_ = visitor; }
     AstVisitResult step();
+
     AstNode*       parentNode(size_t up = 0) { return parentNodeInternal(up); }
     const AstNode* parentNode(size_t up = 0) const { return parentNodeInternal(up); }
     AstNode*       currentNode() { return stack_.back().node; }
     const AstNode* currentNode() const { return stack_.back().node; }
     AstNodeRef     currentNodeRef() { return stack_.back().nodeRef; }
-    AstNodeRef     root() const { return root_; }
 
+    AstNodeRef root() const { return rootRef_; }
     const Ast& ast() const { return *ast_; }
     Ast&       ast() { return *ast_; }
 };

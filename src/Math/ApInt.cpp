@@ -831,14 +831,14 @@ Utf8 ApInt::toSignedString() const
                 break;
             }
         }
-        
+
         // Check that the highest word has only the sign bit set
         if (isMinSigned)
         {
             const uint32_t bitsInLastWord = bitWidth_ % WORD_BITS;
-            const uint32_t effectiveBits = (bitsInLastWord == 0) ? WORD_BITS : bitsInLastWord;
-            const uint64_t signBitMask = UINT64_C(1) << (effectiveBits - 1);
-            
+            const uint32_t effectiveBits  = (bitsInLastWord == 0) ? WORD_BITS : bitsInLastWord;
+            const uint64_t signBitMask    = UINT64_C(1) << (effectiveBits - 1);
+
             if (words_[numWords_ - 1] != signBitMask)
                 isMinSigned = false;
         }
@@ -852,7 +852,7 @@ Utf8 ApInt::toSignedString() const
     else
     {
         // Normal case: mag = abs(this)
-        mag           = *this; // uses copy assignment
+        mag           = *this;
         bool overflow = false;
         mag.abs(overflow);
         SWC_ASSERT(!overflow);

@@ -10,6 +10,7 @@ public:
     // clang-format off
     Utf8() = default;
     Utf8(const char* from) : std::string(from){}
+    Utf8(const char* from, size_t count) : std::string(from, count){}
     Utf8(uint32_t count, char c) : std::string(count, c) {}
     Utf8(const Utf8& other) : std::string(other) {}
     Utf8(Utf8&& other) noexcept : std::string(other) {}

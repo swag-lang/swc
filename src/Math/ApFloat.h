@@ -40,6 +40,8 @@ public:
     bool le(const ApFloat& rhs) const;
     bool gt(const ApFloat& rhs) const;
     bool ge(const ApFloat& rhs) const;
+
+    Utf8 toString() const;
 };
 
 SWC_END_NAMESPACE()

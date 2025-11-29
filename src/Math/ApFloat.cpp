@@ -272,4 +272,43 @@ bool ApFloat::ge(const ApFloat& rhs) const
     return !lt(rhs);
 }
 
+Utf8 ApFloat::toString() const
+{
+    switch (bitWidth_)
+    {
+        case 32:
+        {
+            // Handle special values
+            if (std::isnan(value_.f32))
+                return "nan";
+            if (std::isinf(value_.f32))
+                return value_.f32 > 0 ? "inf" : "-inf";
+            if (value_.f32 == 0.0f && std::signbit(value_.f32))
+                return "-0";
+
+            std::array<char, 64> buffer;
+            auto [ptr, ec] = std::to_chars(buffer.data(), buffer.data() + buffer.size(), value_.f32, std::chars_format::general);
+            SWC_ASSERT(ec == std::errc());
+            return Utf8{buffer.data(), static_cast<size_t>(ptr - buffer.data())};
+        }
+        case 64:
+        {
+            // Handle special values
+            if (std::isnan(value_.f64))
+                return "nan";
+            if (std::isinf(value_.f64))
+                return value_.f64 > 0 ? "inf" : "-inf";
+            if (value_.f64 == 0.0 && std::signbit(value_.f64))
+                return "-0";
+
+            std::array<char, 64> buffer;
+            auto [ptr, ec] = std::to_chars(buffer.data(), buffer.data() + buffer.size(), value_.f64, std::chars_format::general);
+            SWC_ASSERT(ec == std::errc());
+            return Utf8{buffer.data(), static_cast<size_t>(ptr - buffer.data())};
+        }
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
 SWC_END_NAMESPACE()

@@ -8,3 +8,6 @@
 
 #assert(1 ++ @err == "12") // swc-expected-error {{sema_err_expr_not_const}}
 #assert(@err ++ 1 == "12") // swc-expected-error {{sema_err_expr_not_const}}
+
+#assert(1.5645789'f32 ++ 0 == "1.56457890")
+#assert(1.5645789'f64 ++ 0 == "1.56457889999999990")

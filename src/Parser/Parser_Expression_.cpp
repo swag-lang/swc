@@ -673,11 +673,11 @@ AstNodeRef Parser::parsePrefixExpr()
 
         case TokenId::KwdDRef:
         case TokenId::KwdMoveRef:
+        case TokenId::SymAmpersand:
         case TokenId::SymPlus:
         case TokenId::SymMinus:
         case TokenId::SymBang:
         case TokenId::SymTilde:
-        case TokenId::SymAmpersand:
         {
             const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpr>(consume());
             nodePtr->nodeExprRef            = parsePrefixExpr();

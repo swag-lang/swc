@@ -51,6 +51,11 @@
 #assert(65535'u16 == 65535'u32)
 #assert(1's8 == 1'u64)
 
+#assert(1 != 2)
+#assert(!(1 == 2))
+#assert(!("1" == "2"))
+#assert(!1)
+
 #assert(1 < 2)
 #assert(1 <= 2)
 #assert(1 <= 1)
@@ -98,3 +103,7 @@
 #assert(40000'u16 == 40000's16)     // swc-expected-error {{sema_err_literal_overflow}}
 #assert(200's16 == 200's8)          // swc-expected-error {{sema_err_literal_overflow}}
 #assert(-1 == 0'u8)                 // swc-expected-error {{sema_err_signed_unsigned}}
+
+#assert(!(1 == 1))                  // swc-expected-error {{sema_err_compiler_assert}}
+#assert(!1.0)                       // swc-expected-error {{sema_err_unary_operand_type}}
+#assert(!0)                         // swc-expected-error {{sema_err_compiler_assert}}

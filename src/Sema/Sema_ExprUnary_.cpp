@@ -59,6 +59,32 @@ namespace
         return ConstantRef::invalid();
     }
 
+    ConstantRef constantFoldBang(Sema& sema, const AstUnaryExpr& node, const UnaryOperands& ops)
+    {
+        if (ops.cst->isBool())
+            return sema.constMgr().cstNegBool(ops.cstRef);
+        SWC_ASSERT(ops.cst->isInt());
+        return sema.constMgr().cstBool(!ops.cst->getInt().isZero());
+    }
+
+    ConstantRef constantFold(Sema& sema, TokenId op, const AstUnaryExpr& node, UnaryOperands& ops)
+    {
+        ops.cstRef = ops.node->getSemaConstantRef();
+        ops.cst    = &ops.node->getSemaConstant(sema.ctx());
+
+        switch (op)
+        {
+            case TokenId::SymMinus:
+                return constantFoldMinus(sema, node, ops);
+            case TokenId::SymBang:
+                return constantFoldBang(sema, node, ops);
+            default:
+                break;
+        }
+
+        return ConstantRef::invalid();
+    }
+
     Result checkMinus(Sema& sema, const AstUnaryExpr& expr, const UnaryOperands& ops)
     {
         if (ops.type->isFloat() || ops.type->isIntSigned() || ops.type->isInt0())
@@ -80,20 +106,15 @@ namespace
         return Result::Error;
     }
 
-    ConstantRef constantFold(Sema& sema, TokenId op, const AstUnaryExpr& node, UnaryOperands& ops)
+    Result checkBang(Sema& sema, const AstUnaryExpr& expr, const UnaryOperands& ops)
     {
-        ops.cstRef = ops.node->getSemaConstantRef();
-        ops.cst    = &ops.node->getSemaConstant(sema.ctx());
+        if (ops.type->isBool() || ops.type->isInt())
+            return Result::Success;
 
-        switch (op)
-        {
-            case TokenId::SymMinus:
-                return constantFoldMinus(sema, node, ops);
-            default:
-                break;
-        }
-
-        return ConstantRef::invalid();
+        auto diag = sema.reportError(DiagnosticId::sema_err_unary_operand_type, expr.srcViewRef(), expr.tokRef());
+        diag.addArgument(Diagnostic::ARG_TYPE, ops.typeRef);
+        diag.report(sema.ctx());
+        return Result::Error;
     }
 
     Result check(Sema& sema, TokenId op, const AstUnaryExpr& node, const UnaryOperands& ops)
@@ -102,6 +123,8 @@ namespace
         {
             case TokenId::SymMinus:
                 return checkMinus(sema, node, ops);
+            case TokenId::SymBang:
+                return checkBang(sema, node, ops);
             default:
                 break;
         }

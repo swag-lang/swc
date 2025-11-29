@@ -85,6 +85,13 @@ namespace
         return ConstantRef::invalid();
     }
 
+    void reportInvalidType(Sema& sema, const AstUnaryExpr& expr, const UnaryOperands& ops)
+    {
+        auto diag = sema.reportError(DiagnosticId::sema_err_unary_operand_type, expr.srcViewRef(), expr.tokRef());
+        diag.addArgument(Diagnostic::ARG_TYPE, ops.typeRef);
+        diag.report(sema.ctx());
+    }
+
     Result checkMinus(Sema& sema, const AstUnaryExpr& expr, const UnaryOperands& ops)
     {
         if (ops.type->isFloat() || ops.type->isIntSigned() || ops.type->isInt0())
@@ -98,9 +105,7 @@ namespace
         }
         else
         {
-            auto diag = sema.reportError(DiagnosticId::sema_err_unary_operand_type, expr.srcViewRef(), expr.tokRef());
-            diag.addArgument(Diagnostic::ARG_TYPE, ops.typeRef);
-            diag.report(sema.ctx());
+            reportInvalidType(sema, expr, ops);
         }
 
         return Result::Error;
@@ -110,10 +115,8 @@ namespace
     {
         if (ops.type->isBool() || ops.type->isInt())
             return Result::Success;
-
-        auto diag = sema.reportError(DiagnosticId::sema_err_unary_operand_type, expr.srcViewRef(), expr.tokRef());
-        diag.addArgument(Diagnostic::ARG_TYPE, ops.typeRef);
-        diag.report(sema.ctx());
+        
+        reportInvalidType(sema, expr, ops);
         return Result::Error;
     }
 

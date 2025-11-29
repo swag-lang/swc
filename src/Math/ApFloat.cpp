@@ -1,8 +1,7 @@
 #include "pch.h"
-
-#include "ApsInt.h"
-#include "Core/hash.h"
 #include "Math/ApFloat.h"
+#include "Core/hash.h"
+#include "Math/ApsInt.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -36,7 +35,6 @@ void ApFloat::set(double value)
     value_.f64 = value;
 }
 
-// @temp
 void ApFloat::set(const ApInt& mantissa, int64_t exponent10)
 {
     bitWidth_ = 64;
@@ -188,6 +186,20 @@ bool ApFloat::same(const ApFloat& other) const
     }
 }
 
+int ApFloat::compare(const ApFloat& other) const
+{
+    SWC_ASSERT(bitWidth_ == other.bitWidth_);
+    switch (bitWidth_)
+    {
+        case 32:
+            return value_.f32 < other.value_.f32 ? -1 : (value_.f32 > other.value_.f32 ? 1 : 0);
+        case 64:
+            return value_.f64 < other.value_.f64 ? -1 : (value_.f64 > other.value_.f64 ? 1 : 0);
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
 size_t ApFloat::hash() const
 {
     auto h = std::hash<int>()(static_cast<int>(bitWidth_));
@@ -233,6 +245,31 @@ bool ApFloat::eq(const ApFloat& rhs) const
         default:
             SWC_UNREACHABLE();
     }
+}
+
+bool ApFloat::ne(const ApFloat& rhs) const
+{
+    return !eq(rhs);
+}
+
+bool ApFloat::lt(const ApFloat& rhs) const
+{
+    return compare(rhs) < 0;
+}
+
+bool ApFloat::le(const ApFloat& rhs) const
+{
+    return !rhs.lt(*this);
+}
+
+bool ApFloat::gt(const ApFloat& rhs) const
+{
+    return rhs.lt(*this);
+}
+
+bool ApFloat::ge(const ApFloat& rhs) const
+{
+    return !lt(rhs);
 }
 
 SWC_END_NAMESPACE()

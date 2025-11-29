@@ -28,12 +28,18 @@ public:
     double asDouble() const;
 
     bool   same(const ApFloat& other) const;
+    int    compare(const ApFloat& other) const;
     size_t hash() const;
 
     uint32_t bitWidth() const { return bitWidth_; }
     void     negate();
 
     bool eq(const ApFloat& rhs) const;
+    bool ne(const ApFloat& rhs) const;
+    bool lt(const ApFloat& rhs) const;
+    bool le(const ApFloat& rhs) const;
+    bool gt(const ApFloat& rhs) const;
+    bool ge(const ApFloat& rhs) const;
 };
 
 SWC_END_NAMESPACE()

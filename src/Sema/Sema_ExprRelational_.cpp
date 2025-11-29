@@ -1,10 +1,9 @@
 #include "pch.h"
-
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisit.h"
 #include "Sema/ConstantManager.h"
 #include "Sema/Sema.h"
-#include "TypeManager.h"
+#include "Sema/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -12,37 +11,39 @@ namespace
 {
     ConstantRef constantFoldEqual(Sema& sema, const AstRelationalExpr& node)
     {
-        const auto&    ctx       = sema.ctx();
-        const AstNode& leftNode  = sema.node(node.nodeLeftRef);
-        const AstNode& rightNode = sema.node(node.nodeRightRef);
+        const auto&    ctx         = sema.ctx();
+        const auto&    constMgr    = sema.constMgr();
+        const auto&    typeMgr     = sema.typeMgr();
+        const AstNode& leftNode    = sema.node(node.nodeLeftRef);
+        const AstNode& rightNode   = sema.node(node.nodeRightRef);
+        ConstantRef    leftCstRef  = leftNode.getSemaConstantRef();
+        ConstantRef    rightCstRef = rightNode.getSemaConstantRef();
 
-        if (leftNode.getSemaConstantRef() == rightNode.getSemaConstantRef())
-            return sema.constMgr().addConstant(ctx, ConstantValue::makeBool(ctx, true));
+        if (leftCstRef == rightCstRef)
+            return constMgr.cstTrue();
 
         const ConstantValue& leftCst      = leftNode.getSemaConstant(ctx);
         const ConstantValue& rightCst     = rightNode.getSemaConstant(ctx);
         const TypeInfoRef    leftTypeRef  = leftCst.typeRef();
         const TypeInfoRef    rightTypeRef = rightCst.typeRef();
-        const TypeInfo&      leftType     = sema.typeMgr().get(leftTypeRef);
-        const TypeInfo&      rightType    = sema.typeMgr().get(rightTypeRef);
 
-        if (leftType.isIntFloat() && rightType.isIntFloat() && leftTypeRef != rightTypeRef)
+        if (leftTypeRef != rightTypeRef)
         {
-            const TypeInfoRef promotedTypeRef = sema.typeMgr().promote(leftTypeRef, rightTypeRef);
-            const TypeInfo&   promotedType    = sema.typeMgr().get(promotedTypeRef);
+            const TypeInfo& leftType  = typeMgr.get(leftTypeRef);
+            const TypeInfo& rightType = typeMgr.get(rightTypeRef);
+            if (leftType.canBePromoted() && rightType.canBePromoted())
+            {
+                const TypeInfoRef promotedTypeRef = typeMgr.promote(leftTypeRef, rightTypeRef);
 
-            CastContext castCtx;
-            castCtx.kind                   = CastKind::Promotion;
-            castCtx.errorNodeRef           = node.nodeLeftRef;
-            const auto leftPromotedCstRef  = sema.cast(castCtx, leftNode.getSemaConstantRef(), promotedTypeRef);
-            const auto rightPromotedCstRef = sema.cast(castCtx, rightNode.getSemaConstantRef(), promotedTypeRef);
-
-            const bool result = (leftPromotedCstRef == rightPromotedCstRef);
-            return sema.constMgr().addConstant(ctx, ConstantValue::makeBool(ctx, result));
+                CastContext castCtx;
+                castCtx.kind         = CastKind::Promotion;
+                castCtx.errorNodeRef = node.nodeLeftRef;
+                leftCstRef           = sema.cast(castCtx, leftNode.getSemaConstantRef(), promotedTypeRef);
+                rightCstRef          = sema.cast(castCtx, rightNode.getSemaConstantRef(), promotedTypeRef);
+            }
         }
 
-        const bool result = (leftCst == rightCst);
-        return sema.constMgr().addConstant(ctx, ConstantValue::makeBool(ctx, result));
+        return constMgr.cstBool(leftCstRef == rightCstRef);
     }
 
     ConstantRef constantFold(Sema& sema, TokenId op, const AstRelationalExpr& node)
@@ -71,10 +72,8 @@ namespace
         if (leftTypeRef == rightTypeRef)
             return Result::Success;
 
-        const TypeInfo& leftType  = sema.typeMgr().get(leftTypeRef);
-        const TypeInfo& rightType = sema.typeMgr().get(rightTypeRef);
-
-        if (!leftType.isIntFloat())
+        const TypeInfo& leftType = sema.typeMgr().get(leftTypeRef);
+        if (!leftType.canBePromoted())
         {
             auto diag = sema.reportError(DiagnosticId::sema_err_unary_operand_type, node.nodeLeftRef);
             diag.addArgument(Diagnostic::ARG_TYPE, leftTypeRef);
@@ -82,7 +81,8 @@ namespace
             return Result::Error;
         }
 
-        if (!rightType.isIntFloat())
+        const TypeInfo& rightType = sema.typeMgr().get(rightTypeRef);
+        if (!rightType.canBePromoted())
         {
             auto diag = sema.reportError(DiagnosticId::sema_err_unary_operand_type, node.nodeRightRef);
             diag.addArgument(Diagnostic::ARG_TYPE, rightTypeRef);

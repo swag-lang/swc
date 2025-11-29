@@ -8,8 +8,8 @@ SWC_BEGIN_NAMESPACE()
 
 void ConstantManager::setup(const TaskContext& ctx)
 {
-    boolTrue_  = addConstant(ctx, ConstantValue::makeBool(ctx, true));
-    boolFalse_ = addConstant(ctx, ConstantValue::makeBool(ctx, false));
+    cstBoolTrue_  = addConstant(ctx, ConstantValue::makeBool(ctx, true));
+    cstBoolFalse_ = addConstant(ctx, ConstantValue::makeBool(ctx, false));
 }
 
 ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantValue& value)

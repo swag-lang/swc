@@ -13,9 +13,9 @@ AstVisitStepResult AstBoolLiteral::semaPreNode(Sema& sema)
 {
     const auto& tok = sema.token(srcViewRef(), tokRef());
     if (tok.is(TokenId::KwdTrue))
-        setSemaConstant(sema.constMgr().boolTrue());
+        setSemaConstant(sema.constMgr().cstTrue());
     else if (tok.is(TokenId::KwdFalse))
-        setSemaConstant(sema.constMgr().boolFalse());
+        setSemaConstant(sema.constMgr().cstFalse());
     else
         SWC_UNREACHABLE();
 

@@ -258,10 +258,9 @@ AstNodeRef Parser::parseFunctionDecl()
 
 AstNodeRef Parser::parseAttrDecl()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AttrDecl>(ref());
-    consume();
-    nodePtr->tokNameRef    = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
-    nodePtr->nodeParamsRef = parseFunctionParamList();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AttrDecl>(consume());
+    nodePtr->tokNameRef     = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+    nodePtr->nodeParamsRef  = parseFunctionParamList();
 
     return nodeRef;
 }
@@ -276,17 +275,17 @@ AstNodeRef Parser::parseFunctionParam()
         return nodeRef;
     }
 
-    if (consumeIf(TokenId::KwdConst).isValid())
+    if (is(TokenId::KwdConst))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionParamMe>(ref());
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionParamMe>(consume());
         nodePtr->addParserFlag(AstFunctionParamMe::Const);
         expectAndConsume(TokenId::KwdMe, DiagnosticId::parser_err_expected_token_before);
         return nodeRef;
     }
 
-    if (consumeIf(TokenId::KwdMe).isValid())
+    if (is(TokenId::KwdMe))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionParamMe>(ref());
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionParamMe>(consume());
         return nodeRef;
     }
 
@@ -307,9 +306,8 @@ AstNodeRef Parser::parseFunctionArguments(AstNodeRef nodeExpr)
 {
     if (nextIs(TokenId::SymPipe))
     {
-        const auto openRef = consume();
-
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AliasCallExpr>(ref());
+        const auto openRef            = ref();
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AliasCallExpr>(consume());
         nodePtr->nodeExprRef          = nodeExpr;
         nodePtr->spanAliasesRef       = parseCompoundContent(AstNodeId::AliasCallExpr, TokenId::SymPipe);
         nodePtr->spanChildrenRef      = parseCompoundContentInside(AstNodeId::NamedArgumentList, openRef, TokenId::SymLeftParen);

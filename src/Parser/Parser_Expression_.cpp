@@ -93,11 +93,10 @@ AstNodeRef Parser::parseBinaryExpr()
               TokenId::SymPlusPlus,
               TokenId::SymCircumflex))
     {
-        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::BinaryExpr>(ref());
-        consume();
-        nodePtr->nodeLeftRef   = nodeRef;
-        nodePtr->modifierFlags = parseModifiers();
-        nodePtr->nodeRightRef  = parseBinaryExpr();
+        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::BinaryExpr>(consume());
+        nodePtr->nodeLeftRef            = nodeRef;
+        nodePtr->modifierFlags          = parseModifiers();
+        nodePtr->nodeRightRef           = parseBinaryExpr();
         return nodeParen;
     }
 
@@ -764,9 +763,8 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
 
 AstNodeRef Parser::parseThrow()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ThrowExpr>(ref());
-    consumeAssert(TokenId::KwdThrow);
-    nodePtr->nodeExprRef = parseExpression();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ThrowExpr>(consume());
+    nodePtr->nodeExprRef    = parseExpression();
     return nodeRef;
 }
 

@@ -5,8 +5,7 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseImplEnum()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ImplEnum>(ref());
-    consumeAssert(TokenId::KwdImpl);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ImplEnum>(consume());
     consumeAssert(TokenId::KwdEnum);
 
     nodePtr->nodeNameRef = parseQualifiedIdentifier();
@@ -36,16 +35,14 @@ AstNodeRef Parser::parseEnumValue()
 
         case TokenId::KwdUsing:
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingEnumDecl>(ref());
-            consume();
-            nodePtr->nodeNameRef = parseQualifiedIdentifier();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingEnumDecl>(consume());
+            nodePtr->nodeNameRef    = parseQualifiedIdentifier();
             return nodeRef;
         }
 
         case TokenId::Identifier:
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumValue>(ref());
-            consume();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumValue>(consume());
             if (consumeIf(TokenId::SymEqual).isValid())
             {
                 nodePtr->nodeValueRef = parseExpression();
@@ -71,8 +68,7 @@ AstNodeRef Parser::parseEnumValue()
 
 AstNodeRef Parser::parseEnumDecl()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumDecl>(ref());
-    consumeAssert(TokenId::KwdEnum);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumDecl>(consume());
 
     // Name
     nodePtr->tokNameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);

@@ -100,9 +100,8 @@ AstNodeRef Parser::parseAggregateValue()
 
         case TokenId::KwdUsing:
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingMemberDecl>(ref());
-            consume();
-            nodePtr->nodeVarRef = parseVarDecl();
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingMemberDecl>(consume());
+            nodePtr->nodeVarRef     = parseVarDecl();
             return nodeRef;
         }
 
@@ -203,10 +202,9 @@ AstNodeRef Parser::parseInterfaceValue()
 
 AstNodeRef Parser::parseInterfaceDecl()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InterfaceDecl>(ref());
-    consume();
-    nodePtr->tokNameRef  = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
-    nodePtr->nodeBodyRef = parseCompound<AstNodeId::InterfaceBody>(TokenId::SymLeftCurly);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InterfaceDecl>(consume());
+    nodePtr->tokNameRef     = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+    nodePtr->nodeBodyRef    = parseCompound<AstNodeId::InterfaceBody>(TokenId::SymLeftCurly);
     return nodeRef;
 }
 

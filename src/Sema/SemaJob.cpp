@@ -13,6 +13,15 @@ SemaJob::SemaJob(TaskContext& ctx, Ast* ast, AstNodeRef root) :
     };
 }
 
+SemaJob::SemaJob(TaskContext& ctx, Ast* ast, AstNodeRef root, const Sema& parentSema) :
+    Job(ctx),
+    sema_(ctx, ast, root, parentSema)
+{
+    func = [this]() {
+        return exec();
+    };
+}
+
 JobResult SemaJob::exec()
 {
     return sema_.exec();

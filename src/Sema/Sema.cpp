@@ -2,6 +2,7 @@
 #include "Sema/Sema.h"
 #include "Main/Global.h"
 #include "Sema/SemaJob.h"
+#include "Symbol/Scope.h"
 #include "Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -14,6 +15,60 @@ Sema::Sema(TaskContext& ctx, Ast* ast, AstNodeRef root) :
     visit_.setPreNodeVisitor([this](AstNode& node) { return preNode(node); });
     visit_.setPostNodeVisitor([this](AstNode& node) { return postNode(node); });
     visit_.setPreChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return preChild(node, childRef); });
+}
+
+Sema::Sema(TaskContext& ctx, Ast* ast, AstNodeRef root, const Sema& parent) :
+    ctx_(&ctx),
+    ast_(ast)
+{
+    cloneScopesFrom(parent);
+
+    visit_.start(*ast, root);
+    visit_.setPreNodeVisitor([this](AstNode& node) { return preNode(node); });
+    visit_.setPostNodeVisitor([this](AstNode& node) { return postNode(node); });
+    visit_.setPreChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return preChild(node, childRef); });
+}
+
+Sema::~Sema() = default;
+
+Scope* Sema::pushScope(ScopeKind kind)
+{
+    Scope* parent = currentScope_;
+    scopes_.emplace_back(std::make_unique<Scope>(kind, parent));
+    Scope* scope = scopes_.back().get();
+
+    if (!rootScope_)
+        rootScope_ = scope;
+    currentScope_ = scope;
+
+    return scope;
+}
+
+void Sema::popScope()
+{
+    if (!currentScope_)
+        return;
+    currentScope_ = currentScope_->parent();
+}
+
+void Sema::cloneScopesFrom(const Sema& other)
+{
+    // If the parent has no scopes yet, there is nothing to clone.
+    if (!other.rootScope_ || !other.currentScope_)
+        return;
+
+    // Rebuild the chain from root to current.
+    SmallVector<const Scope*> chain;
+    const Scope*              scope = other.currentScope_;
+    while (scope)
+    {
+        chain.push_back(scope);
+        scope = scope->parent();
+    }
+
+    // chain currently holds [current, ..., root]; recreate in order [root, ..., current]
+    for (const auto& it : std::ranges::reverse_view(chain))
+        pushScope(it->kind());
 }
 
 AstVisitStepResult Sema::preNode(AstNode& node)
@@ -44,7 +99,7 @@ AstVisitStepResult Sema::preChild(AstNode& node, AstNodeRef& childRef)
         {
             if (visit().root() == ast().root())
             {
-                const auto job = std::make_shared<SemaJob>(ctx(), &ast(), childRef);
+                const auto job = std::make_shared<SemaJob>(ctx(), &ast(), childRef, *this);
                 compiler().global().jobMgr().enqueue(job, JobPriority::Normal, compiler().jobClientId());
                 return AstVisitStepResult::SkipChildren;
             }

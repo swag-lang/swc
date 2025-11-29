@@ -5,6 +5,8 @@
 #include "Thread/Job.h"
 
 SWC_BEGIN_NAMESPACE()
+class Scope;
+enum class ScopeKind;
 
 enum class CastKind
 {
@@ -30,8 +32,16 @@ class Sema
     AstVisitStepResult postNode(AstNode& node);
     AstVisitStepResult preChild(AstNode& node, AstNodeRef& childRef);
 
+    Scope*                              rootScope_    = nullptr;
+    Scope*                              currentScope_ = nullptr;
+    std::vector<std::unique_ptr<Scope>> scopes_;
+
+    void cloneScopesFrom(const Sema& other);
+
 public:
     Sema(TaskContext& ctx, Ast* ast, AstNodeRef root);
+    Sema(TaskContext& ctx, Ast* ast, AstNodeRef root, const Sema& parent);
+    ~Sema();
     JobResult exec();
 
     TaskContext&            ctx() { return *ctx_; }
@@ -49,6 +59,13 @@ public:
     TypeManager&            typeMgr() { return compiler().typeMgr(); }
     const TypeManager&      typeMgr() const { return compiler().typeMgr(); }
     const Token&            token(SourceViewRef srcViewRef, TokenRef tokenRef) const { return compiler().srcView(srcViewRef).token(tokenRef); }
+
+    Scope*       currentScope() { return currentScope_; }
+    const Scope* currentScope() const { return currentScope_; }
+    Scope*       rootScope() { return rootScope_; }
+    const Scope* rootScope() const { return rootScope_; }
+    Scope*       pushScope(ScopeKind kind);
+    void         popScope();
 
     void       setReportArguments(Diagnostic& diag, SourceViewRef srcViewRef, TokenRef tokenRef) const;
     Diagnostic reportError(DiagnosticId id, AstNodeRef nodeRef);

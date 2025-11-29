@@ -96,7 +96,9 @@ namespace
             }
         }
 
-        return sema.constMgr().cstBool(leftCstRef == rightCstRef);
+        const auto& leftCst  = sema.constMgr().get(leftCstRef);
+        const auto& rightCst = sema.constMgr().get(rightCstRef);
+        return sema.constMgr().cstBool(leftCst.lt(rightCst));
     }
 
     ConstantRef constantFold(Sema& sema, TokenId op, const AstRelationalExpr& node, RelationalOperands& ops)

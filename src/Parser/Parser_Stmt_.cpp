@@ -14,8 +14,7 @@ AstNodeRef Parser::parseTopLevelCall()
 
 AstNodeRef Parser::parseGlobalAccessModifier()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AccessModifier>(ref());
-    nodePtr->tokAccessRef   = consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AccessModifier>(consume());
     nodePtr->nodeWhatRef    = parseTopLevelStmt();
     return nodeRef;
 }
@@ -50,15 +49,13 @@ AstNodeRef Parser::parseConstraint()
 {
     if (nextIs(TokenId::SymLeftCurly))
     {
-        auto [nodeRef, nodePtr]   = ast_->makeNode<AstNodeId::ConstraintBlock>(ref());
-        nodePtr->tokConstraintRef = consume();
-        nodePtr->spanChildrenRef  = parseCompoundContent(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
+        auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::ConstraintBlock>(consume());
+        nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr]   = ast_->makeNode<AstNodeId::ConstraintExpr>(ref());
-    nodePtr->tokConstraintRef = consume();
-    nodePtr->nodeExprRef      = parseExpression();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ConstraintExpr>(consume());
+    nodePtr->nodeExprRef    = parseExpression();
     return nodeRef;
 }
 
@@ -496,7 +493,7 @@ AstNodeRef Parser::parseFile()
 AstNodeRef Parser::parseNamespace()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamespaceDecl>(consume());
-    nodePtr->nodeNameRef = parseQualifiedIdentifier();
+    nodePtr->nodeNameRef    = parseQualifiedIdentifier();
     if (nodePtr->nodeNameRef.isInvalid())
         skipTo({TokenId::SymLeftCurly});
     nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);

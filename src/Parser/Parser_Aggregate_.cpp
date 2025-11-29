@@ -42,8 +42,7 @@ AstNodeRef Parser::parseImpl()
 
 AstNodeRef Parser::parseAggregateAccessModifier()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AccessModifier>(ref());
-    nodePtr->tokAccessRef   = consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AccessModifier>(consume());
     nodePtr->nodeWhatRef    = parseAggregateValue();
     return nodeRef;
 }

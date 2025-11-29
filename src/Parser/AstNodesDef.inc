@@ -888,7 +888,6 @@ struct AstAggregateBody : AstCompoundT<AstNodeId::AggregateBody>
 
 struct AstAccessModifier : AstNodeT<AstNodeId::AccessModifier>
 {
-    TokenRef   tokAccessRef;
     AstNodeRef nodeWhatRef;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
@@ -899,12 +898,10 @@ struct AstAccessModifier : AstNodeT<AstNodeId::AccessModifier>
 
 struct AstConstraintBlock : AstCompoundT<AstNodeId::ConstraintBlock>
 {
-    TokenRef tokConstraintRef;
 };
 
 struct AstConstraintExpr : AstNodeT<AstNodeId::ConstraintExpr>
 {
-    TokenRef   tokConstraintRef;
     AstNodeRef nodeExprRef;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const

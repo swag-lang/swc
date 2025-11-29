@@ -305,10 +305,9 @@ AstNodeRef Parser::parseNamedArg()
 
 AstNodeRef Parser::parseParenExpr()
 {
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ParenExpr>(ref());
     const auto openRef            = ref();
-    consumeAssert(TokenId::SymLeftParen);
-    nodePtr->nodeExprRef = parseExpression();
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ParenExpr>(consume());
+    nodePtr->nodeExprRef          = parseExpression();
     if (nodePtr->nodeExprRef.isInvalid())
         skipTo({TokenId::SymRightParen}, SkipUntilFlagsE::EolBefore);
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);

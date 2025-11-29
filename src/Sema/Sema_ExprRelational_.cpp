@@ -51,7 +51,11 @@ namespace
                 castCtx.kind         = CastKind::Promotion;
                 castCtx.errorNodeRef = node.nodeLeftRef;
                 leftCstRef           = sema.cast(castCtx, ops.nodeLeft->getSemaConstantRef(), promotedTypeRef);
-                rightCstRef          = sema.cast(castCtx, ops.nodeRight->getSemaConstantRef(), promotedTypeRef);
+                if (leftCstRef.isInvalid())
+                    return ConstantRef::invalid();
+                rightCstRef = sema.cast(castCtx, ops.nodeRight->getSemaConstantRef(), promotedTypeRef);
+                if (rightCstRef.isInvalid())
+                    return ConstantRef::invalid();
             }
             else
             {
@@ -137,6 +141,8 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
             setSemaConstant(cst);
             return AstVisitStepResult::Continue;
         }
+        
+        return AstVisitStepResult::Stop;
     }
 
     sema.raiseInternalError(*this);

@@ -36,7 +36,7 @@ namespace
             // Negative signed source can never fit.
             if (!value.isUnsigned() && value.isNegative())
             {
-                auto diag = sema.reportError(DiagnosticId::sema_err_negate_unsigned, castCtx.errorNodeRef);
+                auto diag = sema.reportError(DiagnosticId::sema_err_signed_unsigned, castCtx.errorNodeRef);
                 diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
                 diag.report(ctx);
                 return ConstantRef::invalid();
@@ -45,7 +45,7 @@ namespace
             // Compare in UNSIGNED space.
             ApsInt vCheck = value;
             if (!vCheck.isUnsigned())
-                vCheck.setUnsigned(true); // reinterpret bits as unsigned
+                vCheck.setUnsigned(true);
 
             vCheck.resize(checkBits); // zero-extend
 

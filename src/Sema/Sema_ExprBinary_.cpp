@@ -86,6 +86,8 @@ AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema)
             setSemaConstant(cst);
             return AstVisitStepResult::Continue;
         }
+        
+        return AstVisitStepResult::Stop;
     }
 
     sema.raiseInternalError(*this);

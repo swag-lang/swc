@@ -39,48 +39,13 @@ public:
     static ApsInt minValue(uint32_t bitWidth, bool isUnsigned);
     static ApsInt maxValue(uint32_t bitWidth, bool isUnsigned);
 
-    void resize(uint32_t newBits)
-    {
-        if (unsigned_)
-            resizeUnsigned(newBits);
-        else
-            resizeSigned(newBits);
-    }
+    void resize(uint32_t newBits);
 
-    bool operator<(const ApsInt& rhs) const
-    {
-        SWC_ASSERT(unsigned_ == rhs.unsigned_);
-        return unsigned_ ? ult(rhs) : slt(rhs);
-    }
-
-    bool operator>(const ApsInt& rhs) const
-    {
-        SWC_ASSERT(unsigned_ == rhs.unsigned_);
-        return unsigned_ ? ugt(rhs) : sgt(rhs);
-    }
-
-    bool operator<=(const ApsInt& rhs) const
-    {
-        SWC_ASSERT(unsigned_ == rhs.unsigned_);
-        return unsigned_ ? ule(rhs) : sle(rhs);
-    }
-
-    bool operator>=(const ApsInt& rhs) const
-    {
-        SWC_ASSERT(unsigned_ == rhs.unsigned_);
-        return unsigned_ ? uge(rhs) : sge(rhs);
-    }
-
-    bool operator==(const ApsInt& rhs) const
-    {
-        SWC_ASSERT(unsigned_ == rhs.unsigned_);
-        return eq(rhs);
-    }
-
-    bool operator!=(const ApsInt& rhs) const
-    {
-        return ne(rhs);
-    }
+    bool eq(const ApsInt& rhs) const;
+    bool lt(const ApsInt& rhs) const;
+    bool le(const ApsInt& rhs) const;
+    bool gt(const ApsInt& rhs) const;
+    bool ge(const ApsInt& rhs) const;
 };
 
 SWC_END_NAMESPACE()

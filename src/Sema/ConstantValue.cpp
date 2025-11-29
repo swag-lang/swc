@@ -87,6 +87,21 @@ bool ConstantValue::eq(const ConstantValue& other) const noexcept
     }
 }
 
+bool ConstantValue::lt(const ConstantValue& other) const noexcept
+{
+    SWC_ASSERT(kind_ == other.kind_);
+    switch (kind_)
+    {
+        case ConstantKind::Int:
+            return getInt().lt(other.getInt());
+        case ConstantKind::Float:
+            return getFloat().lt(other.getFloat());
+
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
 Utf8 ConstantValue::toString() const
 {
     switch (kind_)

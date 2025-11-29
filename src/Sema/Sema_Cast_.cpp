@@ -52,7 +52,7 @@ namespace
             ApsInt maxCheck = ApsInt::maxValue(targetBits, true);
             maxCheck.resize(checkBits);
 
-            if (vCheck > maxCheck)
+            if (vCheck.gt(maxCheck))
                 overflow = true;
         }
 
@@ -75,7 +75,7 @@ namespace
                 minCheck.resize(checkBits);
                 maxCheck.resize(checkBits);
 
-                if (vCheck < minCheck || vCheck > maxCheck)
+                if (vCheck.lt(minCheck) || vCheck.gt(maxCheck))
                     overflow = true;
             }
             else
@@ -94,7 +94,7 @@ namespace
                     maxU.setUnsigned(true); // reinterpret bits as unsigned
                 maxU.resize(checkBits);     // zero-extend
 
-                if (vCheck > maxU)
+                if (vCheck.gt(maxU))
                     overflow = true;
             }
         }

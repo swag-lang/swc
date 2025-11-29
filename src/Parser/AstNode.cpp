@@ -69,6 +69,12 @@ TypeInfoRef AstNode::getNodeTypeRef(const TaskContext& ctx) const
     return TypeInfoRef::invalid();
 }
 
+void AstNode::semaInherit(const AstNode& node)
+{
+    semaFlags_ = node.semaFlags_;
+    sema_      = node.sema_;
+}
+
 TokenRef AstNode::tokRefEnd(const Ast& ast) const
 {
     const auto& info = Ast::nodeIdInfos(id_);

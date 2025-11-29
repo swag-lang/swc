@@ -429,6 +429,9 @@ struct AstParenExpr : AstNodeT<AstNodeId::ParenExpr>
     {
         AstNode::collectChildren(out, {nodeExprRef});
     }
+
+    AstVisitStepResult semaPostNode(Sema& sema) const;
+    AstVisitStepResult semaPostNode(Sema& sema);
 };
 
 struct AstNamedArgumentList : AstCompoundT<AstNodeId::NamedArgumentList>

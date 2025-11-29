@@ -14,9 +14,9 @@ class ConstantManager
 
     ConstantRef cstBool_true_  = ConstantRef::invalid();
     ConstantRef cstBool_false_ = ConstantRef::invalid();
-    ConstantRef cstInt32_0_    = ConstantRef::invalid();
-    ConstantRef cstInt32_1_    = ConstantRef::invalid();
-    ConstantRef cstInt32_neg1_ = ConstantRef::invalid();
+    ConstantRef cstS32_0_      = ConstantRef::invalid();
+    ConstantRef cstS32_1_      = ConstantRef::invalid();
+    ConstantRef cstS32_neg1_   = ConstantRef::invalid();
 
 public:
     void setup(const TaskContext& ctx);
@@ -25,7 +25,7 @@ public:
     ConstantRef          cstTrue() const { return cstBool_true_; }
     ConstantRef          cstFalse() const { return cstBool_false_; }
     ConstantRef          cstBool(bool value) const { return value ? cstBool_true_ : cstBool_false_; }
-    ConstantRef          cstS32(const TaskContext& ctx, int32_t value);
+    ConstantRef          cstS32(int32_t value) const;
     ConstantRef          cstNegBool(ConstantRef cstRef) const { return cstRef == cstBool_true_ ? cstBool_false_ : cstBool_true_; }
     const ConstantValue& get(ConstantRef constantRef) const;
 };

@@ -5,9 +5,10 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void Sema::setReportArguments(Diagnostic& diag, TokenRef tokenRef) const
+void Sema::setReportArguments(Diagnostic& diag, SourceViewRef srcViewRef, TokenRef tokenRef) const
 {
-    const auto& token = ast_->srcView().token(tokenRef);
+    const auto& srcView = compiler().srcView(srcViewRef);
+    const auto& token   = srcView.token(tokenRef);
     diag.addArgument(Diagnostic::ARG_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokenRef));
     diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id), false);
     diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Token::toAFamily(token.id), false);
@@ -15,20 +16,38 @@ void Sema::setReportArguments(Diagnostic& diag, TokenRef tokenRef) const
 
 Diagnostic Sema::reportError(DiagnosticId id, AstNodeRef nodeRef)
 {
-    auto diag = Diagnostic::get(id, ast().srcView().fileRef());
-    setReportArguments(diag, node(nodeRef).tokRef());
+    auto        diag    = Diagnostic::get(id, ast().srcView().fileRef());
+    const auto& nodePtr = node(nodeRef);
+    setReportArguments(diag, nodePtr.srcViewRef(), nodePtr.tokRef());
+
     const auto loc = node(nodeRef).location(ctx(), ast());
     diag.last().addSpan(loc, "");
+
+    return diag;
+}
+
+Diagnostic Sema::reportError(DiagnosticId id, AstNodeRef nodeRef, SourceViewRef srcViewRef, TokenRef tokenRef)
+{
+    auto diag = Diagnostic::get(id, ast().srcView().fileRef());
+    setReportArguments(diag, srcViewRef, tokenRef);
+
+    const auto loc = node(nodeRef).location(ctx(), ast());
+    diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
+
+    const auto& srcView = compiler().srcView(srcViewRef);
+    diag.last().addSpan(Diagnostic::tokenErrorLocation(ctx(), srcView, tokenRef), "");
+
     return diag;
 }
 
 Diagnostic Sema::reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokenRef)
 {
     auto diag = Diagnostic::get(id, ast().srcView().fileRef());
-    setReportArguments(diag, tokenRef);
+    setReportArguments(diag, srcViewRef, tokenRef);
 
     const auto& srcView = compiler().srcView(srcViewRef);
     diag.last().addSpan(Diagnostic::tokenErrorLocation(ctx(), srcView, tokenRef), "");
+
     return diag;
 }
 

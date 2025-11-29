@@ -72,6 +72,7 @@ struct AstNode
     static AstVisitStepResult semaPreNode(Sema&) { return AstVisitStepResult::Continue; }
     static AstVisitStepResult semaPostNode(Sema&) { return AstVisitStepResult::Continue; }
     static AstVisitStepResult semaPreChild(Sema&, AstNodeRef&) { return AstVisitStepResult::Continue; }
+    void                      semaInherit(const AstNode& node);
 
     enum class SemaFlagE : uint8_t
     {

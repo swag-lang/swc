@@ -50,8 +50,9 @@ public:
     const TypeManager&      typeMgr() const { return compiler().typeMgr(); }
     const Token&            token(SourceViewRef srcViewRef, TokenRef tokenRef) const { return compiler().srcView(srcViewRef).token(tokenRef); }
 
-    void       setReportArguments(Diagnostic& diag, TokenRef tokenRef) const;
+    void       setReportArguments(Diagnostic& diag, SourceViewRef srcViewRef, TokenRef tokenRef) const;
     Diagnostic reportError(DiagnosticId id, AstNodeRef nodeRef);
+    Diagnostic reportError(DiagnosticId id, AstNodeRef nodeRef, SourceViewRef srcViewRef, TokenRef tokenRef);
     Diagnostic reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokenRef);
     void       raiseError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokenRef);
     void       raiseError(DiagnosticId id, AstNodeRef nodeRef);

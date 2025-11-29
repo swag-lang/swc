@@ -207,6 +207,11 @@ struct AstGenericParamT : AstNodeT<I>
 {
     AstNodeRef nodeAssignRef;
 
+    explicit AstGenericParamT(SourceViewRef srcViewRef, TokenRef tokRef) :
+        AstNodeT<I>(srcViewRef, tokRef)
+    {
+    }
+
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeAssignRef});

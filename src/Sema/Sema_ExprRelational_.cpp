@@ -55,7 +55,7 @@ namespace
             }
             else
             {
-                return ConstantRef::invalid();
+                SWC_UNREACHABLE();
             }
         }
 

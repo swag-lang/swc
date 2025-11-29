@@ -73,4 +73,11 @@ bool ApsInt::ge(const ApsInt& rhs) const
     return unsigned_ ? uge(rhs) : sge(rhs);
 }
 
+Utf8 ApsInt::toString() const
+{
+    if (unsigned_)
+        return ApInt::toString();
+    return toSignedString();
+}
+
 SWC_END_NAMESPACE()

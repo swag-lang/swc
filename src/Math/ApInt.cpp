@@ -784,4 +784,91 @@ void ApInt::negate(bool& overflow)
     normalize();
 }
 
+Utf8 ApInt::toString() const
+{
+    // Treat the bits as an unsigned integer.
+    if (isZero())
+        return "0";
+
+    ApInt       tmp(*this); // Work on a copy, since div() is in-place
+    std::string result;
+
+    while (!tmp.isZero())
+    {
+        const uint64_t rem = tmp.div(10); // tmp = tmp / 10, rem = tmp % 10
+        SWC_ASSERT(rem < 10);
+        result.push_back(static_cast<char>('0' + rem));
+    }
+
+    std::ranges::reverse(result);
+    return result;
+}
+
+Utf8 ApInt::toSignedString() const
+{
+    // Interpret the value as a signed two's-complement integer.
+    if (isZero())
+        return "0";
+
+    // Non-negative is just the unsigned representation.
+    if (isNonNegative())
+        return toString();
+
+    // Negative number: need magnitude = |value|
+    ApInt mag(bitWidth_);
+    mag.setZero();
+
+    // Detect minimum signed value: 1000...000 (sign bit = 1, others 0)
+    bool isMinSigned = isSignBitSet();
+    if (isMinSigned)
+    {
+        // Check all words except the last
+        for (uint32_t i = 0; i < numWords_ - 1; ++i)
+        {
+            if (words_[i] != ZERO)
+            {
+                isMinSigned = false;
+                break;
+            }
+        }
+        
+        // Check that the highest word has only the sign bit set
+        if (isMinSigned)
+        {
+            const uint32_t bitsInLastWord = bitWidth_ % WORD_BITS;
+            const uint32_t effectiveBits = (bitsInLastWord == 0) ? WORD_BITS : bitsInLastWord;
+            const uint64_t signBitMask = UINT64_C(1) << (effectiveBits - 1);
+            
+            if (words_[numWords_ - 1] != signBitMask)
+                isMinSigned = false;
+        }
+    }
+
+    if (isMinSigned)
+    {
+        // |min| = 2^(bitWidth_-1)
+        mag.setBit(bitWidth_ - 1);
+    }
+    else
+    {
+        // Normal case: mag = abs(this)
+        mag           = *this; // uses copy assignment
+        bool overflow = false;
+        mag.abs(overflow);
+        SWC_ASSERT(!overflow);
+    }
+
+    // Convert magnitude to decimal
+    std::string digits;
+    while (!mag.isZero())
+    {
+        const uint64_t rem = mag.div(10);
+        SWC_ASSERT(rem < 10);
+        digits.push_back(static_cast<char>('0' + rem));
+    }
+
+    std::ranges::reverse(digits);
+    return "-" + digits;
+}
+
 SWC_END_NAMESPACE()

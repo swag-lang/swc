@@ -51,6 +51,8 @@ public:
     bool le(const ApsInt& rhs) const;
     bool gt(const ApsInt& rhs) const;
     bool ge(const ApsInt& rhs) const;
+
+    Utf8 toString() const;
 };
 
 SWC_END_NAMESPACE()

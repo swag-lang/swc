@@ -111,7 +111,7 @@ Utf8 ConstantValue::toString() const
         case ConstantKind::String:
             return getString();
         case ConstantKind::Int:
-            return std::to_string(getInt().asU64());
+            return getInt().toString();
         case ConstantKind::Float:
             return std::to_string(getFloat().asDouble());
 

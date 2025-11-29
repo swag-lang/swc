@@ -77,6 +77,9 @@ public:
     void shrink(uint32_t newBitWidth);
     void resizeUnsigned(uint32_t newBitWidth);
     void resizeSigned(uint32_t newBitWidth);
+
+    Utf8 toString() const;
+    Utf8 toSignedString() const;
 };
 
 SWC_END_NAMESPACE()

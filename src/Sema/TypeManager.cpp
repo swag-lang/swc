@@ -1,17 +1,15 @@
 #include "pch.h"
 #include "Sema/TypeManager.h"
 #include "Main/Stats.h"
+#include <ranges>
 
 SWC_BEGIN_NAMESPACE()
 
 void TypeManager::setup(TaskContext&)
 {
-    typeBool_   = addType(TypeInfo::makeBool());
-    typeString_ = addType(TypeInfo::makeString());
-
-    typeApIntUnsigned_ = addType(TypeInfo::makeInt(0, true));
-    typeApIntSigned_   = addType(TypeInfo::makeInt(0, false));
-    typeApFloat_       = addType(TypeInfo::makeFloat(0));
+    typeIntUnsigned_ = addType(TypeInfo::makeInt(0, true));
+    typeIntSigned_   = addType(TypeInfo::makeInt(0, false));
+    typeFloat_       = addType(TypeInfo::makeFloat(0));
 
     typeU8_  = addType(TypeInfo::makeInt(8, true));
     typeU16_ = addType(TypeInfo::makeInt(16, true));
@@ -25,6 +23,83 @@ void TypeManager::setup(TaskContext&)
 
     typeF32_ = addType(TypeInfo::makeFloat(32));
     typeF64_ = addType(TypeInfo::makeFloat(64));
+
+    buildPromoteTable();
+
+    typeBool_   = addType(TypeInfo::makeBool());
+    typeString_ = addType(TypeInfo::makeString());
+}
+
+TypeInfoRef TypeManager::computePromotion(TypeInfoRef lhsRef, TypeInfoRef rhsRef) const
+{
+    const TypeInfo& lhs = get(lhsRef);
+    const TypeInfo& rhs = get(rhsRef);
+
+    if (lhsRef == rhsRef)
+        return lhsRef;
+
+    const bool lhsFloat = lhs.isFloat();
+    const bool rhsFloat = rhs.isFloat();
+
+    // Float promotions
+    if (lhsFloat || rhsFloat)
+    {
+        const uint32_t lhsBits = lhsFloat ? lhs.floatBits() : 0;
+        const uint32_t rhsBits = rhsFloat ? rhs.floatBits() : 0;
+        return (lhsBits >= rhsBits) ? lhsRef : rhsRef;
+    }
+
+    // Integer promotions
+    const uint32_t lhsBits = lhs.intBits();
+    const uint32_t rhsBits = rhs.intBits();
+
+    const bool lhsUnsigned = lhs.isIntUnsigned();
+    const bool rhsUnsigned = rhs.isIntUnsigned();
+
+    // Same signedness: pick larger
+    if (lhsUnsigned == rhsUnsigned)
+        return (lhsBits >= rhsBits) ? lhsRef : rhsRef;
+
+    // Mixed signedness:
+    const TypeInfoRef unsignedRef = lhsUnsigned ? lhsRef : rhsRef;
+    const TypeInfoRef signedRef   = lhsUnsigned ? rhsRef : lhsRef;
+
+    const uint32_t uBits = lhsUnsigned ? lhsBits : rhsBits;
+    const uint32_t sBits = lhsUnsigned ? rhsBits : lhsBits;
+
+    // If the signed type is strictly larger, it can hold all unsigned values
+    if (sBits > uBits)
+        return signedRef;
+
+    return unsignedRef;
+}
+
+void TypeManager::buildPromoteTable()
+{
+    const size_t n = map_.size();
+
+    std::vector<uint32_t> arithmeticTypes;
+    for (const auto ref : map_ | std::views::values)
+        arithmeticTypes.push_back(ref.get());
+
+    promoteTable_.resize(n);
+    for (uint32_t i = 0; i < n; ++i)
+        promoteTable_[i].resize(n);
+
+    for (uint32_t i = 0; i < n; ++i)
+    {
+        for (uint32_t j = 0; j < n; ++j)
+        {
+            const auto lhs      = TypeInfoRef{arithmeticTypes[i]};
+            const auto rhs      = TypeInfoRef{arithmeticTypes[j]};
+            promoteTable_[i][j] = computePromotion(lhs, rhs);
+        }
+    }
+}
+
+TypeInfoRef TypeManager::promote(TypeInfoRef lhs, TypeInfoRef rhs) const
+{
+    return promoteTable_[lhs.get()][rhs.get()];
 }
 
 TypeInfoRef TypeManager::addType(const TypeInfo& typeInfo)
@@ -46,7 +121,7 @@ TypeInfoRef TypeManager::addType(const TypeInfo& typeInfo)
     Stats::get().memTypes.fetch_add(sizeof(TypeInfo), std::memory_order_relaxed);
 #endif
 
-    const TypeInfoRef ref{store_.push_back(typeInfo)};
+    const TypeInfoRef ref{store_.push_back(typeInfo) / static_cast<uint32_t>(sizeof(TypeInfoRef))};
     it->second = ref;
     return ref;
 }
@@ -54,7 +129,7 @@ TypeInfoRef TypeManager::addType(const TypeInfo& typeInfo)
 TypeInfoRef TypeManager::getTypeInt(uint32_t bits, bool isUnsigned) const
 {
     if (bits == 0)
-        return isUnsigned ? typeApIntUnsigned_ : typeApIntSigned_;
+        return isUnsigned ? typeIntUnsigned_ : typeIntSigned_;
 
     if (isUnsigned)
     {
@@ -91,7 +166,7 @@ TypeInfoRef TypeManager::getTypeInt(uint32_t bits, bool isUnsigned) const
 TypeInfoRef TypeManager::getTypeFloat(uint32_t bits) const
 {
     if (bits == 0)
-        return typeApFloat_;
+        return typeFloat_;
 
     switch (bits)
     {
@@ -108,7 +183,7 @@ const TypeInfo& TypeManager::get(TypeInfoRef typeInfoRef) const
 {
     std::shared_lock lk(mutexAdd_);
     SWC_ASSERT(typeInfoRef.isValid());
-    return *store_.ptr<TypeInfo>(typeInfoRef.get());
+    return *store_.ptr<TypeInfo>(typeInfoRef.get() * sizeof(TypeInfoRef));
 }
 
 std::string_view TypeManager::typeToString(TypeInfoRef typeInfoRef, TypeInfo::ToStringMode mode) const

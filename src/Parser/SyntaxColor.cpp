@@ -429,7 +429,7 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
                 else if (Token::isCompilerFunc(tokenId))
                     tokColor = SyntaxColor::Function;
                 else if (Token::isCompiler(tokenId))
-                    tokColor = SyntaxColor::Compiler;                
+                    tokColor = SyntaxColor::Compiler;
 
                 if (tokColor != SyntaxColor::Code)
                 {

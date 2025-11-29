@@ -554,7 +554,7 @@ bool ApInt::eq(const ApInt& rhs) const
 bool ApInt::ne(const ApInt& rhs) const
 {
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
-    return !same(rhs);
+    return !eq(rhs);
 }
 
 bool ApInt::ult(const ApInt& rhs) const
@@ -566,19 +566,19 @@ bool ApInt::ult(const ApInt& rhs) const
 bool ApInt::ule(const ApInt& rhs) const
 {
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
-    return compare(rhs) <= 0;
+    return !rhs.ult(*this);
 }
 
 bool ApInt::ugt(const ApInt& rhs) const
 {
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
-    return compare(rhs) > 0;
+    return rhs.ult(*this);
 }
 
 bool ApInt::uge(const ApInt& rhs) const
 {
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
-    return compare(rhs) >= 0;
+    return !ult(rhs);
 }
 
 bool ApInt::slt(const ApInt& rhs) const

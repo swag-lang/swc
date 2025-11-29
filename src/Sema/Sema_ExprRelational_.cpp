@@ -77,6 +77,8 @@ namespace
         {
             case TokenId::SymEqualEqual:
                 return constantFoldEqual(sema, node, ops);
+            case TokenId::SymBangEqual:
+                return sema.constMgr().cstNegBool(constantFoldEqual(sema, node, ops));
             default:
                 break;
         }
@@ -113,6 +115,7 @@ namespace
         switch (op)
         {
             case TokenId::SymEqualEqual:
+            case TokenId::SymBangEqual:
                 return checkEqualEqual(sema, node, ops);
             default:
                 break;
@@ -141,7 +144,7 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
             setSemaConstant(cst);
             return AstVisitStepResult::Continue;
         }
-        
+
         return AstVisitStepResult::Stop;
     }
 

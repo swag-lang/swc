@@ -22,6 +22,7 @@ public:
     ConstantRef          cstTrue() const { return cstBoolTrue_; }
     ConstantRef          cstFalse() const { return cstBoolFalse_; }
     ConstantRef          cstBool(bool value) const { return value ? cstBoolTrue_ : cstBoolFalse_; }
+    ConstantRef          cstNegBool(ConstantRef cstRef) const { return cstRef == cstBoolTrue_ ? cstBoolFalse_ : cstBoolTrue_; }
     const ConstantValue& get(ConstantRef constantRef) const;
 };
 

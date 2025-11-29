@@ -13,13 +13,13 @@ AstNodeRef Parser::parseLiteral()
             return nodeRef;
         }
 
-        case TokenId::NumberBinary:
+        case TokenId::NumberBin:
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::BinaryLiteral>(consume());
             return nodeRef;
         }
 
-        case TokenId::NumberHexa:
+        case TokenId::NumberHex:
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::HexaLiteral>(consume());
             return nodeRef;
@@ -92,7 +92,7 @@ AstNodeRef Parser::parseLiteralExpression()
         return AstNodeRef::invalid();
 
     const auto quoteTknRef = ref();
-    if (isNot(TokenId::SymQuote))
+    if (isNot(TokenId::SymSingleQuote))
         return literal;
 
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SuffixLiteral>(consume());

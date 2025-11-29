@@ -618,10 +618,10 @@ AstNodeRef Parser::parseAssignStmt()
               TokenId::SymAsteriskEqual,
               TokenId::SymSlashEqual,
               TokenId::SymAmpersandEqual,
-              TokenId::SymVerticalEqual,
+              TokenId::SymPipeEqual,
               TokenId::SymCircumflexEqual,
               TokenId::SymPercentEqual,
-              TokenId::SymLowerLowerEqual,
+              TokenId::SymLessLowerEqual,
               TokenId::SymGreaterGreaterEqual))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AssignStmt>(ref());

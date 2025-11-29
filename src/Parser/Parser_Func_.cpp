@@ -95,7 +95,7 @@ AstNodeRef Parser::parseLambdaType()
     else
         consumeAssert(TokenId::KwdFunc);
 
-    if (consumeIf(TokenId::SymVerticalVertical).isValid())
+    if (consumeIf(TokenId::SymPipePipe).isValid())
         flags.add(AstLambdaType::Closure);
     else if (flags.has(AstLambdaType::Mtd))
     {
@@ -133,12 +133,12 @@ AstNodeRef Parser::parseLambdaExpression()
 
     // Capture
     SpanRef captureArgs = SpanRef::invalid();
-    if (is(TokenId::SymVertical))
+    if (is(TokenId::SymPipe))
     {
         flags.add(AstLambdaType::Closure);
-        captureArgs = parseCompoundContent(AstNodeId::ClosureExpr, TokenId::SymVertical);
+        captureArgs = parseCompoundContent(AstNodeId::ClosureExpr, TokenId::SymPipe);
     }
-    else if (consumeIf(TokenId::SymVerticalVertical).isValid())
+    else if (consumeIf(TokenId::SymPipePipe).isValid())
     {
         flags.add(AstLambdaType::Closure);
     }
@@ -305,13 +305,13 @@ AstNodeRef Parser::parseFunctionBody()
 
 AstNodeRef Parser::parseFunctionArguments(AstNodeRef nodeExpr)
 {
-    if (nextIs(TokenId::SymVertical))
+    if (nextIs(TokenId::SymPipe))
     {
         const auto openRef = consume();
 
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AliasCallExpr>(ref());
         nodePtr->nodeExprRef          = nodeExpr;
-        nodePtr->spanAliasesRef       = parseCompoundContent(AstNodeId::AliasCallExpr, TokenId::SymVertical);
+        nodePtr->spanAliasesRef       = parseCompoundContent(AstNodeId::AliasCallExpr, TokenId::SymPipe);
         nodePtr->spanChildrenRef      = parseCompoundContentInside(AstNodeId::NamedArgumentList, openRef, TokenId::SymLeftParen);
         return nodeRef;
     }

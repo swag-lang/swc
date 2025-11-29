@@ -108,8 +108,8 @@ TokenId Token::toRelated(TokenId id)
         case TokenId::SymAttrStart:
             return TokenId::SymRightBracket;
 
-        case TokenId::SymVertical:
-            return TokenId::SymVertical;
+        case TokenId::SymPipe:
+            return TokenId::SymPipe;
 
         default:
             return TokenId::Invalid;

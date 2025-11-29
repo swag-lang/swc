@@ -87,9 +87,9 @@ AstNodeRef Parser::parseBinaryExpr()
               TokenId::SymSlash,
               TokenId::SymPercent,
               TokenId::SymAmpersand,
-              TokenId::SymVertical,
+              TokenId::SymPipe,
               TokenId::SymGreaterGreater,
-              TokenId::SymLowerLower,
+              TokenId::SymLessLower,
               TokenId::SymPlusPlus,
               TokenId::SymCircumflex))
     {
@@ -226,7 +226,7 @@ AstNodeRef Parser::parseIdentifier()
     if (tokName.isInvalid())
         return AstNodeRef::invalid();
 
-    if (is(TokenId::SymQuote) && !tok().hasFlag(TokenFlagsE::BlankBefore))
+    if (is(TokenId::SymSingleQuote) && !tok().hasFlag(TokenFlagsE::BlankBefore))
     {
         consume();
         if (is(TokenId::SymLeftParen))
@@ -275,9 +275,9 @@ AstNodeRef Parser::parseLogicalExpr()
     if (nodeRef.isInvalid())
         return AstNodeRef::invalid();
 
-    if (isAny(TokenId::KwdAnd, TokenId::KwdOr, TokenId::SymAmpersandAmpersand, TokenId::SymVerticalVertical))
+    if (isAny(TokenId::KwdAnd, TokenId::KwdOr, TokenId::SymAmpersandAmpersand, TokenId::SymPipePipe))
     {
-        if (isAny(TokenId::SymAmpersandAmpersand, TokenId::SymVerticalVertical))
+        if (isAny(TokenId::SymAmpersandAmpersand, TokenId::SymPipePipe))
             raiseError(DiagnosticId::parser_err_unexpected_and_or, ref());
 
         const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::LogicalExpr>(consume());
@@ -508,8 +508,8 @@ AstNodeRef Parser::parsePrimaryExpression()
             return parseIntrinsicCallTernary();
 
         case TokenId::NumberInteger:
-        case TokenId::NumberBinary:
-        case TokenId::NumberHexa:
+        case TokenId::NumberBin:
+        case TokenId::NumberHex:
         case TokenId::NumberFloat:
         case TokenId::Character:
             return parseLiteralExpression();
@@ -651,11 +651,11 @@ AstNodeRef Parser::parseRelationalExpr()
 
     if (isAny(TokenId::SymEqualEqual,
               TokenId::SymBangEqual,
-              TokenId::SymLowerEqual,
+              TokenId::SymLessEqual,
               TokenId::SymGreaterEqual,
-              TokenId::SymLower,
+              TokenId::SymLess,
               TokenId::SymGreater,
-              TokenId::SymLowerEqualGreater))
+              TokenId::SymLessEqualGreater))
     {
         const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::RelationalExpr>(consume());
         nodePtr->nodeLeftRef            = nodeRef;

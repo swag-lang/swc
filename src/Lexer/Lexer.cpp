@@ -144,7 +144,7 @@ void Lexer::pushToken()
                 srcView_->trivia().push_back({.tokenRef = TokenRef{srcView_->numTokens()}, .token = token_});
             break;
         case TokenId::CommentLine:
-        case TokenId::CommentMultiLine:
+        case TokenId::CommentBlock:
             if (!isRawMode() && lexerFlags_.hasNot(LexerFlagsE::EmitTrivia))
                 break;
             srcView_->trivia().push_back({.tokenRef = TokenRef{srcView_->numTokens()}, .token = token_});
@@ -435,7 +435,7 @@ void Lexer::lexCharacterLiteral()
 
 void Lexer::lexHexNumber()
 {
-    token_.id = TokenId::NumberHexa;
+    token_.id = TokenId::NumberHex;
     buffer_ += 2;
 
     bool           lastWasSep = false;
@@ -483,7 +483,7 @@ void Lexer::lexHexNumber()
 
 void Lexer::lexBinNumber()
 {
-    token_.id = TokenId::NumberBinary;
+    token_.id = TokenId::NumberBin;
     buffer_ += 2;
 
     bool           lastWasSep = false;
@@ -733,7 +733,7 @@ void Lexer::lexSymbol()
     switch (c)
     {
         case '\'':
-            token_.id = TokenId::SymQuote;
+            token_.id = TokenId::SymSingleQuote;
             buffer_++;
             break;
 
@@ -921,17 +921,17 @@ void Lexer::lexSymbol()
         case '|':
             if (buffer_[1] == '=')
             {
-                token_.id = TokenId::SymVerticalEqual;
+                token_.id = TokenId::SymPipeEqual;
                 buffer_ += 2;
             }
             else if (buffer_[1] == '|')
             {
-                token_.id = TokenId::SymVerticalVertical;
+                token_.id = TokenId::SymPipePipe;
                 buffer_ += 2;
             }
             else
             {
-                token_.id = TokenId::SymVertical;
+                token_.id = TokenId::SymPipe;
                 buffer_++;
             }
             break;
@@ -988,12 +988,12 @@ void Lexer::lexSymbol()
             {
                 if (buffer_[2] == '>')
                 {
-                    token_.id = TokenId::SymLowerEqualGreater;
+                    token_.id = TokenId::SymLessEqualGreater;
                     buffer_ += 3;
                 }
                 else
                 {
-                    token_.id = TokenId::SymLowerEqual;
+                    token_.id = TokenId::SymLessEqual;
                     buffer_ += 2;
                 }
             }
@@ -1001,18 +1001,18 @@ void Lexer::lexSymbol()
             {
                 if (buffer_[2] == '=')
                 {
-                    token_.id = TokenId::SymLowerLowerEqual;
+                    token_.id = TokenId::SymLessLowerEqual;
                     buffer_ += 3;
                 }
                 else
                 {
-                    token_.id = TokenId::SymLowerLower;
+                    token_.id = TokenId::SymLessLower;
                     buffer_ += 2;
                 }
             }
             else
             {
-                token_.id = TokenId::SymLower;
+                token_.id = TokenId::SymLess;
                 buffer_++;
             }
             break;
@@ -1067,7 +1067,7 @@ void Lexer::lexSingleLineComment()
 
 void Lexer::lexMultiLineComment()
 {
-    token_.id = TokenId::CommentMultiLine;
+    token_.id = TokenId::CommentBlock;
     buffer_ += 2;
 
     uint32_t depth = 1;
@@ -1313,8 +1313,8 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
         {
             if (prevToken_.id != TokenId::Identifier &&
                 prevToken_.id != TokenId::Character &&
-                prevToken_.id != TokenId::NumberHexa &&
-                prevToken_.id != TokenId::NumberBinary &&
+                prevToken_.id != TokenId::NumberHex &&
+                prevToken_.id != TokenId::NumberBin &&
                 prevToken_.id != TokenId::NumberInteger &&
                 prevToken_.id != TokenId::NumberFloat &&
                 prevToken_.id != TokenId::StringLine &&

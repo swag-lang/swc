@@ -18,9 +18,15 @@
 #assert(1's32 != 0's8)
 
 #assert(1.0 < 2.0)
+#assert(2.0 > 1.9)
+#assert(2.0 >= 1.9)
+#assert(1.0 >= 1.0)
 #assert((1.0 <=> 2.0) == -1)
 #assert((2.0 <=> 1.0) == 1)
 #assert((1.0 <=> 1.0) == 0)
+#assert((1.0'f32 <=> 2.0'f64) == -1)
+#assert((2.0'f32 <=> 1.0'f64) == 1)
+#assert((1.0'f32 <=> 1.0'f64) == 0)
 
 #assert(1.5575'f32 == 1.557'f32) // swc-expected-error {{sema_err_compiler_assert}}
 #assert(1.5575'f64 == 1.557'f64) // swc-expected-error {{sema_err_compiler_assert}}

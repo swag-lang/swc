@@ -60,6 +60,9 @@
 #assert((1 <=> 2) == -1)
 #assert((2 <=> 1) == 1)
 #assert((1 <=> 1) == 0)
+#assert((1's8 <=> 2) == -1)
+#assert((2's64 <=> 1) == 1)
+#assert((1'u32 <=> 1) == 0)
 
 #assert(128's8  == 0's8)            // swc-expected-error {{sema_err_literal_overflow}}
 #assert(256'u8 == 0'u8)             // swc-expected-error {{sema_err_literal_overflow}}
@@ -78,6 +81,14 @@
 #assert("true" <=> 0)               // swc-expected-error {{sema_err_binary_operand_type}}
 #assert(0 <=> true)                 // swc-expected-error {{sema_err_binary_operand_type}}
 #assert(0 <=> "0")                  // swc-expected-error {{sema_err_binary_operand_type}}
+#assert(0 < true)                   // swc-expected-error {{sema_err_binary_operand_type}}
+#assert(0 < "0")                    // swc-expected-error {{sema_err_binary_operand_type}}
+#assert(0 <= true)                  // swc-expected-error {{sema_err_binary_operand_type}}
+#assert(0 <= "0")                   // swc-expected-error {{sema_err_binary_operand_type}}
+#assert(0 > true)                   // swc-expected-error {{sema_err_binary_operand_type}}
+#assert(0 > "0")                    // swc-expected-error {{sema_err_binary_operand_type}}
+#assert(0 >= true)                  // swc-expected-error {{sema_err_binary_operand_type}}
+#assert(0 >= "0")                   // swc-expected-error {{sema_err_binary_operand_type}}
 
 #assert(-1's8 == 0'u8)              // swc-expected-error {{sema_err_signed_unsigned}}
 #assert((-1's16 == 0'u16))          // swc-expected-error {{sema_err_signed_unsigned}}

@@ -20,7 +20,14 @@
 #assert(-128's8 == -128's8)
 #assert(-32768's16 == -32768's16)
 
+#assert(1's8 == 1)
+#assert(1's16 == 1)
 #assert(1's32 == 1)
+#assert(1's64 == 1)
+#assert(1'u8 == 1)
+#assert(1'u16 == 1)
+#assert(1'u32 == 1)
+#assert(1'u64 == 1)
 
 #assert(128's8  == 0's8)            // swc-expected-error {{sema_err_literal_overflow}}
 #assert(256'u8 == 0'u8)             // swc-expected-error {{sema_err_literal_overflow}}

@@ -77,21 +77,16 @@ TypeInfoRef TypeManager::computePromotion(TypeInfoRef lhsRef, TypeInfoRef rhsRef
 void TypeManager::buildPromoteTable()
 {
     const size_t n = map_.size();
-
-    std::vector<uint32_t> arithmeticTypes;
-    for (const auto ref : map_ | std::views::values)
-        arithmeticTypes.push_back(ref.get());
-
     promoteTable_.resize(n);
     for (uint32_t i = 0; i < n; ++i)
         promoteTable_[i].resize(n);
 
     for (uint32_t i = 0; i < n; ++i)
     {
+        const auto lhs = TypeInfoRef{i};
         for (uint32_t j = 0; j < n; ++j)
         {
-            const auto lhs      = TypeInfoRef{arithmeticTypes[i]};
-            const auto rhs      = TypeInfoRef{arithmeticTypes[j]};
+            const auto rhs      = TypeInfoRef{j};
             promoteTable_[i][j] = computePromotion(lhs, rhs);
         }
     }

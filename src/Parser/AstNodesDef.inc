@@ -141,6 +141,7 @@ struct AstIntrinsicCallVariadic : AstCompoundT<AstNodeId::IntrinsicCallVariadic>
 
 struct AstIntrinsicValue : AstNodeT<AstNodeId::IntrinsicValue>
 {
+    AstVisitStepResult semaPostNode(Sema& sema);
 };
 
 struct AstFunctionExpr : AstLambdaExprT<AstNodeId::FunctionExpr>

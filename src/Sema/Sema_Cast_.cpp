@@ -47,10 +47,10 @@ namespace
             if (!vCheck.isUnsigned())
                 vCheck.setUnsigned(true);
 
-            vCheck.resize(checkBits); // zero-extend
+            vCheck.resize(checkBits);
 
             ApsInt maxCheck = ApsInt::maxValue(targetBits, true);
-            maxCheck.resize(checkBits); // zero-extend
+            maxCheck.resize(checkBits);
 
             if (vCheck > maxCheck)
                 overflow = true;

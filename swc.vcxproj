@@ -247,11 +247,12 @@
         <ClCompile Include="src\Sema\Sema_Cast_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Error_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Compiler_.cpp"/>
-        <ClCompile Include="src\Sema\Sema_ExprRelational_.cpp" />
-        <ClCompile Include="src\Sema\Sema_ExprBinary_.cpp" />
+        <ClCompile Include="src\Sema\Sema_ExprRelational_.cpp"/>
+        <ClCompile Include="src\Sema\Sema_ExprBinary_.cpp"/>
+        <ClCompile Include="src\Sema\Sema_Intrinsic_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Literal_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Type_.cpp"/>
-        <ClCompile Include="src\Sema\Sema_ExprUnary_.cpp" />
+        <ClCompile Include="src\Sema\Sema_ExprUnary_.cpp"/>
         <ClCompile Include="src\Sema\TypeInfo.cpp"/>
         <ClCompile Include="src\Sema\TypeManager.cpp"/>
         <ClCompile Include="src\Thread\Job.cpp"/>

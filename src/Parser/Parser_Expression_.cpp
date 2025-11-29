@@ -650,7 +650,7 @@ AstNodeRef Parser::parseRelationalExpr()
         return AstNodeRef::invalid();
 
     if (isAny(TokenId::SymEqualEqual,
-              TokenId::SymExclamationEqual,
+              TokenId::SymBangEqual,
               TokenId::SymLowerEqual,
               TokenId::SymGreaterEqual,
               TokenId::SymLower,
@@ -677,7 +677,7 @@ AstNodeRef Parser::parsePrefixExpr()
         case TokenId::KwdMoveRef:
         case TokenId::SymPlus:
         case TokenId::SymMinus:
-        case TokenId::SymExclamation:
+        case TokenId::SymBang:
         case TokenId::SymTilde:
         case TokenId::SymAmpersand:
         {

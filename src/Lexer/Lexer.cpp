@@ -823,12 +823,12 @@ void Lexer::lexSymbol()
         case '!':
             if (buffer_[1] == '=')
             {
-                token_.id = TokenId::SymExclamationEqual;
+                token_.id = TokenId::SymBangEqual;
                 buffer_ += 2;
             }
             else
             {
-                token_.id = TokenId::SymExclamation;
+                token_.id = TokenId::SymBang;
                 buffer_++;
             }
             break;

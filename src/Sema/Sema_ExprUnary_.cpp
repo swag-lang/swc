@@ -35,25 +35,25 @@ namespace
         const auto& ctx = sema.ctx();
         if (ops.type->isInt())
         {
-            ApsInt cpyInt = ops.cst->getInt();
+            ApsInt value = ops.cst->getInt();
 
             bool overflow = false;
-            cpyInt.negate(overflow);
+            value.negate(overflow);
             if (overflow)
             {
                 sema.raiseLiteralOverflow(node.nodeExprRef, ops.node->getNodeTypeRef(sema.ctx()));
                 return ConstantRef::invalid();
             }
 
-            cpyInt.setUnsigned(false);
-            return sema.constMgr().addConstant(ctx, ConstantValue::makeInt(ctx, cpyInt, ops.type->intBits()));
+            value.setUnsigned(false);
+            return sema.constMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.type->intBits()));
         }
 
         if (ops.type->isFloat())
         {
-            ApFloat cpyFloat = ops.cst->getFloat();
-            cpyFloat.negate();
-            return sema.constMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, cpyFloat, ops.type->floatBits()));
+            ApFloat value = ops.cst->getFloat();
+            value.negate();
+            return sema.constMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, value, ops.type->floatBits()));
         }
 
         return ConstantRef::invalid();

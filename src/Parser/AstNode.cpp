@@ -23,16 +23,16 @@ void AstNode::collectChildren(SmallVector<AstNodeRef>& out, std::initializer_lis
 void AstNode::setSemaConstant(ConstantRef ref)
 {
     SWC_ASSERT(ref.isValid());
-    semaFlags_.clearMask(SemaFlagE::RefMask);
-    addSemaFlag(SemaFlagE::IsConst);
+    semaFlags_.clearMask(SemaFlagE::SemaRefMask);
+    addSemaFlag(SemaFlagE::SemaIsConst);
     sema_.constant = ref;
 }
 
 void AstNode::setSemaType(TypeInfoRef ref)
 {
     SWC_ASSERT(ref.isValid());
-    semaFlags_.clearMask(SemaFlagE::RefMask);
-    addSemaFlag(SemaFlagE::IsType);
+    semaFlags_.clearMask(SemaFlagE::SemaRefMask);
+    addSemaFlag(SemaFlagE::SemaIsType);
     sema_.type = ref;
 }
 

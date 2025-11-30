@@ -76,9 +76,10 @@ struct AstNode
 
     enum class SemaFlagE : uint8_t
     {
-        IsConst = 1 << 0,
-        IsType  = 1 << 1,
-        RefMask = IsConst,
+        // Signification of 'sema_'
+        SemaIsConst = 1 << 0,
+        SemaIsType  = 1 << 1,
+        SemaRefMask = SemaIsConst | SemaIsType,
     };
     using SemaFlags = EnumFlags<SemaFlagE>;
 
@@ -86,11 +87,11 @@ struct AstNode
     bool      hasSemaFlag(SemaFlagE val) const { return semaFlags_.has(val); }
     SemaFlags semaFlags() const { return semaFlags_; }
 
-    bool                 isSemaConstant() const { return hasSemaFlag(SemaFlagE::IsConst); }
+    bool                 isSemaConstant() const { return hasSemaFlag(SemaFlagE::SemaIsConst); }
     void                 setSemaConstant(ConstantRef ref);
     const ConstantValue& getSemaConstant(const TaskContext& ctx) const;
     ConstantRef          getSemaConstantRef() const;
-    bool                 isSemaType() const { return hasSemaFlag(SemaFlagE::IsType); }
+    bool                 isSemaType() const { return hasSemaFlag(SemaFlagE::SemaIsType); }
     void                 setSemaType(TypeInfoRef ref);
     const TypeInfo&      getSemaType(const TaskContext& ctx) const;
     TypeInfoRef          getSemaTypeRef() const;

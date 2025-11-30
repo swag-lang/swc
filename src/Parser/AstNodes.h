@@ -3,6 +3,7 @@
 #include "Core/SmallVector.h"
 #include "Parser/AstNode.h"
 #include "Parser/AstNodeId.h"
+#include "Sema/Symbol/Scope.h"
 
 SWC_BEGIN_NAMESPACE()
 enum class AstVisitStepResult;
@@ -224,11 +225,11 @@ struct AstGenericParamT : AstNodeT<I>
 template<AstNodeId ID>
 struct AstTypeOf;
 
-#define SWC_NODE_DEF(E)            \
-    template<>                     \
-    struct AstTypeOf<AstNodeId::E> \
-    {                              \
-        using type = Ast##E;       \
+#define SWC_NODE_DEF(__enum, __scopeFlags) \
+    template<>                             \
+    struct AstTypeOf<AstNodeId::__enum>    \
+    {                                      \
+        using type = Ast##__enum;          \
     };
 #include "Parser/AstNodesEnum.inc"
 #undef SWC_NODE_DEF
@@ -238,9 +239,9 @@ decltype(auto) visitAstNodeId(AstNodeId id, F f)
 {
     switch (id)
     {
-#define SWC_NODE_DEF(E) \
-    case AstNodeId::E:  \
-        return std::forward<F>(f).template operator()<AstNodeId::E>();
+#define SWC_NODE_DEF(__enum, __scopeFlags) \
+    case AstNodeId::__enum:                \
+        return std::forward<F>(f).template operator()<AstNodeId::__enum>();
 #include "Parser/AstNodesEnum.inc"
 
 #undef SWC_NODE_DEF
@@ -252,16 +253,17 @@ decltype(auto) visitAstNodeId(AstNodeId id, F f)
 struct AstNodeIdInfo
 {
     std::string_view name;
+    ScopeFlags       scopeFlags;
 
-    using CollectFunc  = void (*)(SmallVector<AstNodeRef>&, const Ast&, const AstNode&);
-    using SemaPreNode  = AstVisitStepResult (*)(Sema&, AstNode&);
-    using SemaPostNode = AstVisitStepResult (*)(Sema&, AstNode&);
-    using SemaPreChild = AstVisitStepResult (*)(Sema&, AstNode&, AstNodeRef&);
+    using CollectChildren = void (*)(SmallVector<AstNodeRef>&, const Ast&, const AstNode&);
+    using SemaPreNode     = AstVisitStepResult (*)(Sema&, AstNode&);
+    using SemaPostNode    = AstVisitStepResult (*)(Sema&, AstNode&);
+    using SemaPreChild    = AstVisitStepResult (*)(Sema&, AstNode&, AstNodeRef&);
 
-    CollectFunc  collectChildren;
-    SemaPreNode  semaPreNode;
-    SemaPreNode  semaPostNode;
-    SemaPreChild semaPreChild;
+    CollectChildren collectChildren;
+    SemaPreNode     semaPreNode;
+    SemaPreNode     semaPostNode;
+    SemaPreChild    semaPreChild;
 };
 
 template<AstNodeId ID>
@@ -293,12 +295,13 @@ AstVisitStepResult semaPreChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
 }
 
 constexpr std::array AST_NODE_ID_INFOS = {
-#define SWC_NODE_DEF(enum) AstNodeIdInfo{                         \
-                               #enum,                             \
-                               &collectChildren<AstNodeId::enum>, \
-                               &semaPreNode<AstNodeId::enum>,     \
-                               &semaPostNode<AstNodeId::enum>,    \
-                               &semaPreChild<AstNodeId::enum>},
+#define SWC_NODE_DEF(__enum, __scopeFlags) AstNodeIdInfo{                           \
+                                               #__enum,                             \
+                                               __scopeFlags,                        \
+                                               &collectChildren<AstNodeId::__enum>, \
+                                               &semaPreNode<AstNodeId::__enum>,     \
+                                               &semaPostNode<AstNodeId::__enum>,    \
+                                               &semaPreChild<AstNodeId::__enum>},
 #include "Parser/AstNodesEnum.inc"
 
 #undef SWC_NODE_DEF

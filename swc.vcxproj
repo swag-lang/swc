@@ -1,344 +1,346 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|x64">
-      <Configuration>Debug</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="DevMode|x64">
-      <Configuration>DevMode</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|x64">
-      <Configuration>Release</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Stats|x64">
-      <Configuration>Stats</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-  </ItemGroup>
-  <PropertyGroup Label="Globals">
-    <VCProjectVersion>15.0</VCProjectVersion>
-    <ProjectGuid>{FB096896-04AA-481F-A504-C2145B5C9043}</ProjectGuid>
-    <Keyword>Win32Proj</Keyword>
-    <RootNamespace>swc</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-  </PropertyGroup>
-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup>
-    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Stats|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <ImportGroup Label="ExtensionSettings">
-  </ImportGroup>
-  <ImportGroup Label="Shared">
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Stats|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LinkIncremental>true</LinkIncremental>
-    <OutDir>bin/</OutDir>
-    <IntDir>.tmp/x64/debug/</IntDir>
-    <TargetName>swc_debug</TargetName>
-    <IncludePath>src/;src/memory/mimalloc/include</IncludePath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LinkIncremental>false</LinkIncremental>
-    <OutDir>bin/</OutDir>
-    <IntDir>.tmp/x64/release/</IntDir>
-    <TargetName>swc</TargetName>
-    <IncludePath>src/;src/memory/mimalloc/include</IncludePath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">
-    <LinkIncremental>false</LinkIncremental>
-    <OutDir>bin/</OutDir>
-    <IntDir>.tmp/x64/stats/</IntDir>
-    <TargetName>swc_stats</TargetName>
-    <IncludePath>src/;src/memory/mimalloc/include</IncludePath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">
-    <LinkIncremental>false</LinkIncremental>
-    <OutDir>bin/</OutDir>
-    <IntDir>.tmp/x64/devmode/</IntDir>
-    <TargetName>swc_devmode</TargetName>
-    <IncludePath>src/;src/memory/mimalloc/include</IncludePath>
-  </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);SWC_DEBUG;SWC_DEV_MODE</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">
-    <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);SWC_STATS</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">
-    <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);SWC_DEV_MODE</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="src\Core\Utf8.cpp" />
-    <ClCompile Include="src\Core\Utf8Helper.cpp" />
-    <ClCompile Include="src\Lexer\LangSpec.cpp" />
-    <ClCompile Include="src\Lexer\Lexer.cpp" />
-    <ClCompile Include="src\Lexer\SourceCodeLocation.cpp" />
-    <ClCompile Include="src\Lexer\SourceView.cpp" />
-    <ClCompile Include="src\Lexer\Token.cpp" />
-    <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\Main\CommandLineParser.cpp" />
-    <ClCompile Include="src\Main\Command_Sema_.cpp" />
-    <ClCompile Include="src\Main\Command_Format_.cpp" />
-    <ClCompile Include="src\Main\Command_Syntax_.cpp" />
-    <ClCompile Include="src\Main\FileSystem.cpp" />
-    <ClCompile Include="src\Main\Global.cpp" />
-    <ClCompile Include="src\Main\CompilerInstance.cpp" />
-    <ClCompile Include="src\Main\Stats.cpp" />
-    <ClCompile Include="src\Math\ApFloat.cpp" />
-    <ClCompile Include="src\Math\ApInt.cpp" />
-    <ClCompile Include="src\Math\ApsInt.cpp" />
-    <ClCompile Include="src\Memory\Allocator.cpp" />
-    <ClCompile Include="src\Memory\Arena.cpp" />
-    <ClCompile Include="src\Memory\Mimalloc.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="src\Os\OsWin32.cpp" />
-    <ClCompile Include="src\Parser\Ast.cpp" />
-    <ClCompile Include="src\Parser\AstNode.cpp" />
-    <ClCompile Include="src\Parser\AstVisit.cpp" />
-    <ClCompile Include="src\Parser\Parser.cpp" />
-    <ClCompile Include="src\Parser\ParserJob.cpp" />
-    <ClCompile Include="src\Parser\Parser_Compound_.cpp" />
-    <ClCompile Include="src\Parser\Parser_Call_.cpp" />
-    <ClCompile Include="src\Parser\Parser_Compiler_.cpp" />
-    <ClCompile Include="src\Parser\Parser_Enum_.cpp" />
-    <ClCompile Include="src\Parser\Parser_Expression_.cpp" />
-    <ClCompile Include="src\Parser\Parser_Literal_.cpp" />
-    <ClCompile Include="src\Parser\Parser_Stmt_.cpp" />
-    <ClCompile Include="src\Parser\Parser_Aggregate_.cpp" />
-    <ClCompile Include="src\Parser\Parser_Type_.cpp" />
-    <ClCompile Include="src\Parser\Parser_Var_.cpp" />
-    <ClCompile Include="src\Parser\Parser_Func_.cpp" />
-    <ClCompile Include="src\Parser\SyntaxColor.cpp" />
-    <ClCompile Include="src\pch.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">Create</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="src\Report\Check.cpp" />
-    <ClCompile Include="src\Report\DiagnosticBuilder.cpp" />
-    <ClCompile Include="src\Report\LogColor.cpp" />
-    <ClCompile Include="src\Report\Diagnostic.cpp" />
-    <ClCompile Include="src\Report\DiagnosticElement.cpp" />
-    <ClCompile Include="src\Report\Logger.cpp" />
-    <ClCompile Include="src\Report\LogSymbol.cpp" />
-    <ClCompile Include="src\Sema\Constant\ConstantManager.cpp" />
-    <ClCompile Include="src\Sema\Constant\ConstantValue.cpp" />
-    <ClCompile Include="src\Sema\Sema.cpp" />
-    <ClCompile Include="src\Sema\SemaJob.cpp" />
-    <ClCompile Include="src\Sema\Sema_Cast_.cpp" />
-    <ClCompile Include="src\Sema\Sema_Error_.cpp" />
-    <ClCompile Include="src\Sema\Sema_Compiler_.cpp" />
-    <ClCompile Include="src\Sema\Sema_ExprRelational_.cpp" />
-    <ClCompile Include="src\Sema\Sema_ExprBinary_.cpp" />
-    <ClCompile Include="src\Sema\Sema_Expr_.cpp" />
-    <ClCompile Include="src\Sema\Sema_Intrinsic_.cpp" />
-    <ClCompile Include="src\Sema\Sema_Literal_.cpp" />
-    <ClCompile Include="src\Sema\Sema_Type_.cpp" />
-    <ClCompile Include="src\Sema\Sema_ExprUnary_.cpp" />
-    <ClCompile Include="src\Sema\Symbol\DeclContext.cpp" />
-    <ClCompile Include="src\Sema\Symbol\Scope.cpp" />
-    <ClCompile Include="src\Sema\Type\TypeInfo.cpp" />
-    <ClCompile Include="src\Sema\Type\TypeManager.cpp" />
-    <ClCompile Include="src\Thread\Job.cpp" />
-    <ClCompile Include="src\Thread\JobManager.cpp" />
-    <ClCompile Include="src\Thread\RaceCondition.cpp" />
-    <ClCompile Include="src\Wmf\SourceFile.cpp" />
-    <ClCompile Include="src\Wmf\Verify.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="src\Core\Flags.h" />
-    <ClInclude Include="src\Core\Hash.h" />
-    <ClInclude Include="src\Core\Store.h" />
-    <ClInclude Include="src\Core\SmallVector.h" />
-    <ClInclude Include="src\Core\StringMap.h" />
-    <ClInclude Include="src\Core\Timer.h" />
-    <ClInclude Include="src\Core\StrongRef.h" />
-    <ClInclude Include="src\Core\Utf8.h" />
-    <ClInclude Include="src\Core\Utf8Helper.h" />
-    <ClInclude Include="src\Lexer\LangSpec.h" />
-    <ClInclude Include="src\Lexer\Lexer.h" />
-    <ClInclude Include="src\Lexer\SourceCodeLocation.h" />
-    <ClInclude Include="src\Lexer\SourceView.h" />
-    <ClInclude Include="src\Lexer\Token.h" />
-    <ClInclude Include="src\Lexer\TokenIds.inc" />
-    <ClInclude Include="src\Main\CommandLine.h" />
-    <ClInclude Include="src\Main\CommandLineParser.h" />
-    <ClInclude Include="src\Main\Command.h" />
-    <ClInclude Include="src\Main\Stats.h" />
-    <ClInclude Include="src\Main\TaskContext.h" />
-    <ClInclude Include="src\Main\FileSystem.h" />
-    <ClInclude Include="src\Main\Global.h" />
-    <ClInclude Include="src\Main\CompilerInstance.h" />
-    <ClInclude Include="src\Main\Version.h" />
-    <ClInclude Include="src\Math\ApFloat.h" />
-    <ClInclude Include="src\Math\ApInt.h" />
-    <ClInclude Include="src\Math\ApsInt.h" />
-    <ClInclude Include="src\Memory\Arena.h" />
-    <ClInclude Include="src\Os\Os.h" />
-    <ClInclude Include="src\Parser\Ast.h" />
-    <ClInclude Include="src\Parser\AstNode.h" />
-    <ClInclude Include="src\Parser\AstNodeId.h" />
-    <ClInclude Include="src\Parser\AstNodesDef.inc" />
-    <ClInclude Include="src\Parser\AstNodesEnum.inc" />
-    <ClInclude Include="src\Parser\AstNodes.h" />
-    <ClInclude Include="src\Parser\AstVisit.h" />
-    <ClInclude Include="src\Parser\Parser.h" />
-    <ClInclude Include="src\Parser\ParserJob.h" />
-    <ClInclude Include="src\Parser\SyntaxColor.h" />
-    <ClInclude Include="src\pch.h" />
-    <ClInclude Include="src\Report\Check.h" />
-    <ClInclude Include="src\Report\DiagnosticBuilder.h" />
-    <ClInclude Include="src\Report\DiagnosticDef.h" />
-    <ClInclude Include="src\Report\ExitCodes.h" />
-    <ClInclude Include="src\Report\LogColor.h" />
-    <ClInclude Include="src\Report\Diagnostic.h" />
-    <ClInclude Include="src\Report\DiagnosticElement.h" />
-    <ClInclude Include="src\Report\Logger.h" />
-    <ClInclude Include="src\Report\LogSymbol.h" />
-    <ClInclude Include="src\Sema\Constant\ConstantManager.h" />
-    <ClInclude Include="src\Sema\Constant\ConstantValue.h" />
-    <ClInclude Include="src\Sema\Sema.h" />
-    <ClInclude Include="src\Sema\SemaJob.h" />
-    <ClInclude Include="src\Sema\Symbol\DeclContext.h" />
-    <ClInclude Include="src\Sema\Symbol\Decls.h" />
-    <ClInclude Include="src\Sema\Symbol\Scope.h" />
-    <ClInclude Include="src\Sema\Type\TypeInfo.h" />
-    <ClInclude Include="src\Sema\Type\TypeManager.h" />
-    <ClInclude Include="src\Thread\Job.h" />
-    <ClInclude Include="src\Thread\JobManager.h" />
-    <ClInclude Include="src\Thread\RaceCondition.h" />
-    <ClInclude Include="src\Wmf\SourceFile.h" />
-    <ClInclude Include="src\Wmf\Verify.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="src\Report\Diagnostic_Errors_.inc" />
-    <Content Include="src\Report\Diagnostic_Errors_.msg" />
-    <Content Include="src\Report\Diagnostic_Notes_.inc" />
-    <Content Include="src\Report\Diagnostic_Notes_.msg" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="src\Memory\mimalloc\" />
-  </ItemGroup>
-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-  </ImportGroup>
+    <ItemGroup Label="ProjectConfigurations">
+        <ProjectConfiguration Include="Debug|x64">
+            <Configuration>Debug</Configuration>
+            <Platform>x64</Platform>
+        </ProjectConfiguration>
+        <ProjectConfiguration Include="DevMode|x64">
+            <Configuration>DevMode</Configuration>
+            <Platform>x64</Platform>
+        </ProjectConfiguration>
+        <ProjectConfiguration Include="Release|x64">
+            <Configuration>Release</Configuration>
+            <Platform>x64</Platform>
+        </ProjectConfiguration>
+        <ProjectConfiguration Include="Stats|x64">
+            <Configuration>Stats</Configuration>
+            <Platform>x64</Platform>
+        </ProjectConfiguration>
+    </ItemGroup>
+    <PropertyGroup Label="Globals">
+        <VCProjectVersion>15.0</VCProjectVersion>
+        <ProjectGuid>{FB096896-04AA-481F-A504-C2145B5C9043}</ProjectGuid>
+        <Keyword>Win32Proj</Keyword>
+        <RootNamespace>swc</RootNamespace>
+        <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    </PropertyGroup>
+    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props"/>
+    <PropertyGroup>
+        <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+        <ConfigurationType>Application</ConfigurationType>
+        <UseDebugLibraries>true</UseDebugLibraries>
+        <PlatformToolset>v143</PlatformToolset>
+        <CharacterSet>Unicode</CharacterSet>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+        <ConfigurationType>Application</ConfigurationType>
+        <UseDebugLibraries>false</UseDebugLibraries>
+        <PlatformToolset>v143</PlatformToolset>
+        <WholeProgramOptimization>true</WholeProgramOptimization>
+        <CharacterSet>Unicode</CharacterSet>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Stats|x64'" Label="Configuration">
+        <ConfigurationType>Application</ConfigurationType>
+        <UseDebugLibraries>false</UseDebugLibraries>
+        <PlatformToolset>v143</PlatformToolset>
+        <WholeProgramOptimization>true</WholeProgramOptimization>
+        <CharacterSet>Unicode</CharacterSet>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'" Label="Configuration">
+        <ConfigurationType>Application</ConfigurationType>
+        <UseDebugLibraries>false</UseDebugLibraries>
+        <PlatformToolset>v143</PlatformToolset>
+        <WholeProgramOptimization>true</WholeProgramOptimization>
+        <CharacterSet>Unicode</CharacterSet>
+    </PropertyGroup>
+    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props"/>
+    <ImportGroup Label="ExtensionSettings">
+    </ImportGroup>
+    <ImportGroup Label="Shared">
+    </ImportGroup>
+    <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform"/>
+    </ImportGroup>
+    <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform"/>
+    </ImportGroup>
+    <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Stats|x64'" Label="PropertySheets">
+        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform"/>
+    </ImportGroup>
+    <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'" Label="PropertySheets">
+        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform"/>
+    </ImportGroup>
+    <PropertyGroup Label="UserMacros"/>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+        <LinkIncremental>true</LinkIncremental>
+        <OutDir>bin/</OutDir>
+        <IntDir>.tmp/x64/debug/</IntDir>
+        <TargetName>swc_debug</TargetName>
+        <IncludePath>src/;src/memory/mimalloc/include</IncludePath>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+        <LinkIncremental>false</LinkIncremental>
+        <OutDir>bin/</OutDir>
+        <IntDir>.tmp/x64/release/</IntDir>
+        <TargetName>swc</TargetName>
+        <IncludePath>src/;src/memory/mimalloc/include</IncludePath>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">
+        <LinkIncremental>false</LinkIncremental>
+        <OutDir>bin/</OutDir>
+        <IntDir>.tmp/x64/stats/</IntDir>
+        <TargetName>swc_stats</TargetName>
+        <IncludePath>src/;src/memory/mimalloc/include</IncludePath>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">
+        <LinkIncremental>false</LinkIncremental>
+        <OutDir>bin/</OutDir>
+        <IntDir>.tmp/x64/devmode/</IntDir>
+        <TargetName>swc_devmode</TargetName>
+        <IncludePath>src/;src/memory/mimalloc/include</IncludePath>
+    </PropertyGroup>
+    <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+        <ClCompile>
+            <PrecompiledHeader>Use</PrecompiledHeader>
+            <WarningLevel>Level3</WarningLevel>
+            <Optimization>Disabled</Optimization>
+            <SDLCheck>true</SDLCheck>
+            <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);SWC_DEBUG;SWC_DEV_MODE</PreprocessorDefinitions>
+            <ConformanceMode>true</ConformanceMode>
+            <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+            <LanguageStandard>stdcpplatest</LanguageStandard>
+        </ClCompile>
+        <Link>
+            <SubSystem>Console</SubSystem>
+            <GenerateDebugInformation>true</GenerateDebugInformation>
+        </Link>
+    </ItemDefinitionGroup>
+    <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+        <ClCompile>
+            <PrecompiledHeader>Use</PrecompiledHeader>
+            <WarningLevel>Level3</WarningLevel>
+            <Optimization>MaxSpeed</Optimization>
+            <FunctionLevelLinking>true</FunctionLevelLinking>
+            <IntrinsicFunctions>true</IntrinsicFunctions>
+            <SDLCheck>true</SDLCheck>
+            <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+            <ConformanceMode>true</ConformanceMode>
+            <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+            <LanguageStandard>stdcpplatest</LanguageStandard>
+        </ClCompile>
+        <Link>
+            <SubSystem>Console</SubSystem>
+            <EnableCOMDATFolding>true</EnableCOMDATFolding>
+            <OptimizeReferences>true</OptimizeReferences>
+            <GenerateDebugInformation>true</GenerateDebugInformation>
+            <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+        </Link>
+    </ItemDefinitionGroup>
+    <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">
+        <ClCompile>
+            <PrecompiledHeader>Use</PrecompiledHeader>
+            <WarningLevel>Level3</WarningLevel>
+            <Optimization>MaxSpeed</Optimization>
+            <FunctionLevelLinking>true</FunctionLevelLinking>
+            <IntrinsicFunctions>true</IntrinsicFunctions>
+            <SDLCheck>true</SDLCheck>
+            <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);SWC_STATS</PreprocessorDefinitions>
+            <ConformanceMode>true</ConformanceMode>
+            <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+            <LanguageStandard>stdcpplatest</LanguageStandard>
+        </ClCompile>
+        <Link>
+            <SubSystem>Console</SubSystem>
+            <EnableCOMDATFolding>true</EnableCOMDATFolding>
+            <OptimizeReferences>true</OptimizeReferences>
+            <GenerateDebugInformation>true</GenerateDebugInformation>
+            <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+        </Link>
+    </ItemDefinitionGroup>
+    <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">
+        <ClCompile>
+            <PrecompiledHeader>Use</PrecompiledHeader>
+            <WarningLevel>Level3</WarningLevel>
+            <Optimization>MaxSpeed</Optimization>
+            <FunctionLevelLinking>true</FunctionLevelLinking>
+            <IntrinsicFunctions>true</IntrinsicFunctions>
+            <SDLCheck>true</SDLCheck>
+            <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);SWC_DEV_MODE</PreprocessorDefinitions>
+            <ConformanceMode>true</ConformanceMode>
+            <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+            <LanguageStandard>stdcpplatest</LanguageStandard>
+        </ClCompile>
+        <Link>
+            <SubSystem>Console</SubSystem>
+            <EnableCOMDATFolding>true</EnableCOMDATFolding>
+            <OptimizeReferences>true</OptimizeReferences>
+            <GenerateDebugInformation>true</GenerateDebugInformation>
+            <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+        </Link>
+    </ItemDefinitionGroup>
+    <ItemGroup>
+        <ClCompile Include="src\Core\Utf8.cpp"/>
+        <ClCompile Include="src\Core\Utf8Helper.cpp"/>
+        <ClCompile Include="src\Lexer\LangSpec.cpp"/>
+        <ClCompile Include="src\Lexer\Lexer.cpp"/>
+        <ClCompile Include="src\Lexer\SourceCodeLocation.cpp"/>
+        <ClCompile Include="src\Lexer\SourceView.cpp"/>
+        <ClCompile Include="src\Lexer\Token.cpp"/>
+        <ClCompile Include="src\main.cpp"/>
+        <ClCompile Include="src\Main\CommandLineParser.cpp"/>
+        <ClCompile Include="src\Main\Command_Sema_.cpp"/>
+        <ClCompile Include="src\Main\Command_Format_.cpp"/>
+        <ClCompile Include="src\Main\Command_Syntax_.cpp"/>
+        <ClCompile Include="src\Main\FileSystem.cpp"/>
+        <ClCompile Include="src\Main\Global.cpp"/>
+        <ClCompile Include="src\Main\CompilerInstance.cpp"/>
+        <ClCompile Include="src\Main\Stats.cpp"/>
+        <ClCompile Include="src\Math\ApFloat.cpp"/>
+        <ClCompile Include="src\Math\ApInt.cpp"/>
+        <ClCompile Include="src\Math\ApsInt.cpp"/>
+        <ClCompile Include="src\Memory\Allocator.cpp"/>
+        <ClCompile Include="src\Memory\Arena.cpp"/>
+        <ClCompile Include="src\Memory\Mimalloc.cpp">
+            <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+            <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+            <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">NotUsing</PrecompiledHeader>
+            <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">NotUsing</PrecompiledHeader>
+        </ClCompile>
+        <ClCompile Include="src\Os\OsWin32.cpp"/>
+        <ClCompile Include="src\Parser\Ast.cpp"/>
+        <ClCompile Include="src\Parser\AstNode.cpp"/>
+        <ClCompile Include="src\Parser\AstVisit.cpp"/>
+        <ClCompile Include="src\Parser\Parser.cpp"/>
+        <ClCompile Include="src\Parser\ParserJob.cpp"/>
+        <ClCompile Include="src\Parser\Parser_Compound_.cpp"/>
+        <ClCompile Include="src\Parser\Parser_Call_.cpp"/>
+        <ClCompile Include="src\Parser\Parser_Compiler_.cpp"/>
+        <ClCompile Include="src\Parser\Parser_Enum_.cpp"/>
+        <ClCompile Include="src\Parser\Parser_Expression_.cpp"/>
+        <ClCompile Include="src\Parser\Parser_Literal_.cpp"/>
+        <ClCompile Include="src\Parser\Parser_Stmt_.cpp"/>
+        <ClCompile Include="src\Parser\Parser_Aggregate_.cpp"/>
+        <ClCompile Include="src\Parser\Parser_Type_.cpp"/>
+        <ClCompile Include="src\Parser\Parser_Var_.cpp"/>
+        <ClCompile Include="src\Parser\Parser_Func_.cpp"/>
+        <ClCompile Include="src\Parser\SyntaxColor.cpp"/>
+        <ClCompile Include="src\pch.cpp">
+            <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+            <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+            <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">Create</PrecompiledHeader>
+            <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">Create</PrecompiledHeader>
+        </ClCompile>
+        <ClCompile Include="src\Report\Check.cpp"/>
+        <ClCompile Include="src\Report\DiagnosticBuilder.cpp"/>
+        <ClCompile Include="src\Report\LogColor.cpp"/>
+        <ClCompile Include="src\Report\Diagnostic.cpp"/>
+        <ClCompile Include="src\Report\DiagnosticElement.cpp"/>
+        <ClCompile Include="src\Report\Logger.cpp"/>
+        <ClCompile Include="src\Report\LogSymbol.cpp"/>
+        <ClCompile Include="src\Sema\Constant\ConstantManager.cpp"/>
+        <ClCompile Include="src\Sema\Constant\ConstantValue.cpp"/>
+        <ClCompile Include="src\Sema\Sema.cpp"/>
+        <ClCompile Include="src\Sema\SemaJob.cpp"/>
+        <ClCompile Include="src\Sema\Sema_Cast_.cpp"/>
+        <ClCompile Include="src\Sema\Sema_Error_.cpp"/>
+        <ClCompile Include="src\Sema\Sema_Compiler_.cpp"/>
+        <ClCompile Include="src\Sema\Sema_ExprRelational_.cpp"/>
+        <ClCompile Include="src\Sema\Sema_ExprBinary_.cpp"/>
+        <ClCompile Include="src\Sema\Sema_Expr_.cpp"/>
+        <ClCompile Include="src\Sema\Sema_Intrinsic_.cpp"/>
+        <ClCompile Include="src\Sema\Sema_Literal_.cpp"/>
+        <ClCompile Include="src\Sema\Sema_Type_.cpp"/>
+        <ClCompile Include="src\Sema\Sema_ExprUnary_.cpp"/>
+        <ClCompile Include="src\Sema\Symbol\DeclContext.cpp"/>
+        <ClCompile Include="src\Sema\Symbol\Scope.cpp"/>
+        <ClCompile Include="src\Sema\Symbol\Symbol.cpp"/>
+        <ClCompile Include="src\Sema\Type\TypeInfo.cpp"/>
+        <ClCompile Include="src\Sema\Type\TypeManager.cpp"/>
+        <ClCompile Include="src\Thread\Job.cpp"/>
+        <ClCompile Include="src\Thread\JobManager.cpp"/>
+        <ClCompile Include="src\Thread\RaceCondition.cpp"/>
+        <ClCompile Include="src\Wmf\SourceFile.cpp"/>
+        <ClCompile Include="src\Wmf\Verify.cpp"/>
+    </ItemGroup>
+    <ItemGroup>
+        <ClInclude Include="src\Core\Flags.h"/>
+        <ClInclude Include="src\Core\Hash.h"/>
+        <ClInclude Include="src\Core\Store.h"/>
+        <ClInclude Include="src\Core\SmallVector.h"/>
+        <ClInclude Include="src\Core\StringMap.h"/>
+        <ClInclude Include="src\Core\Timer.h"/>
+        <ClInclude Include="src\Core\StrongRef.h"/>
+        <ClInclude Include="src\Core\Utf8.h"/>
+        <ClInclude Include="src\Core\Utf8Helper.h"/>
+        <ClInclude Include="src\Lexer\LangSpec.h"/>
+        <ClInclude Include="src\Lexer\Lexer.h"/>
+        <ClInclude Include="src\Lexer\SourceCodeLocation.h"/>
+        <ClInclude Include="src\Lexer\SourceView.h"/>
+        <ClInclude Include="src\Lexer\Token.h"/>
+        <ClInclude Include="src\Lexer\TokenIds.inc"/>
+        <ClInclude Include="src\Main\CommandLine.h"/>
+        <ClInclude Include="src\Main\CommandLineParser.h"/>
+        <ClInclude Include="src\Main\Command.h"/>
+        <ClInclude Include="src\Main\Stats.h"/>
+        <ClInclude Include="src\Main\TaskContext.h"/>
+        <ClInclude Include="src\Main\FileSystem.h"/>
+        <ClInclude Include="src\Main\Global.h"/>
+        <ClInclude Include="src\Main\CompilerInstance.h"/>
+        <ClInclude Include="src\Main\Version.h"/>
+        <ClInclude Include="src\Math\ApFloat.h"/>
+        <ClInclude Include="src\Math\ApInt.h"/>
+        <ClInclude Include="src\Math\ApsInt.h"/>
+        <ClInclude Include="src\Memory\Arena.h"/>
+        <ClInclude Include="src\Os\Os.h"/>
+        <ClInclude Include="src\Parser\Ast.h"/>
+        <ClInclude Include="src\Parser\AstNode.h"/>
+        <ClInclude Include="src\Parser\AstNodeId.h"/>
+        <ClInclude Include="src\Parser\AstNodesDef.inc"/>
+        <ClInclude Include="src\Parser\AstNodesEnum.inc"/>
+        <ClInclude Include="src\Parser\AstNodes.h"/>
+        <ClInclude Include="src\Parser\AstVisit.h"/>
+        <ClInclude Include="src\Parser\Parser.h"/>
+        <ClInclude Include="src\Parser\ParserJob.h"/>
+        <ClInclude Include="src\Parser\SyntaxColor.h"/>
+        <ClInclude Include="src\pch.h"/>
+        <ClInclude Include="src\Report\Check.h"/>
+        <ClInclude Include="src\Report\DiagnosticBuilder.h"/>
+        <ClInclude Include="src\Report\DiagnosticDef.h"/>
+        <ClInclude Include="src\Report\ExitCodes.h"/>
+        <ClInclude Include="src\Report\LogColor.h"/>
+        <ClInclude Include="src\Report\Diagnostic.h"/>
+        <ClInclude Include="src\Report\DiagnosticElement.h"/>
+        <ClInclude Include="src\Report\Logger.h"/>
+        <ClInclude Include="src\Report\LogSymbol.h"/>
+        <ClInclude Include="src\Sema\Constant\ConstantManager.h"/>
+        <ClInclude Include="src\Sema\Constant\ConstantValue.h"/>
+        <ClInclude Include="src\Sema\Sema.h"/>
+        <ClInclude Include="src\Sema\SemaJob.h"/>
+        <ClInclude Include="src\Sema\Symbol\DeclContext.h"/>
+        <ClInclude Include="src\Sema\Symbol\Decls.h"/>
+        <ClInclude Include="src\Sema\Symbol\Scope.h"/>
+        <ClInclude Include="src\Sema\Symbol\Symbol.h"/>
+        <ClInclude Include="src\Sema\Type\TypeInfo.h"/>
+        <ClInclude Include="src\Sema\Type\TypeManager.h"/>
+        <ClInclude Include="src\Thread\Job.h"/>
+        <ClInclude Include="src\Thread\JobManager.h"/>
+        <ClInclude Include="src\Thread\RaceCondition.h"/>
+        <ClInclude Include="src\Wmf\SourceFile.h"/>
+        <ClInclude Include="src\Wmf\Verify.h"/>
+    </ItemGroup>
+    <ItemGroup>
+        <Content Include="src\Report\Diagnostic_Errors_.inc"/>
+        <Content Include="src\Report\Diagnostic_Errors_.msg"/>
+        <Content Include="src\Report\Diagnostic_Notes_.inc"/>
+        <Content Include="src\Report\Diagnostic_Notes_.msg"/>
+    </ItemGroup>
+    <ItemGroup>
+        <Folder Include="src\Memory\mimalloc\"/>
+    </ItemGroup>
+    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets"/>
+    <ImportGroup Label="ExtensionTargets">
+    </ImportGroup>
 </Project>

@@ -4,7 +4,7 @@ SWC_NODE_DEF(Invalid, ScopeFlagsE::Zero)
 // -----------------------------------------------------------------------------
 //  Root, Files & Module / Namespace Structure
 // -----------------------------------------------------------------------------
-SWC_NODE_DEF(File, ScopeFlagsE::Zero)
+SWC_NODE_DEF(File, ScopeFlagsE::TopLevel)
 SWC_NODE_DEF(TopLevelBlock, ScopeFlagsE::Zero)
 SWC_NODE_DEF(EmbeddedBlock, ScopeFlagsE::Zero)
 SWC_NODE_DEF(DependenciesBlock, ScopeFlagsE::Zero)

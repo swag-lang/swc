@@ -28,6 +28,7 @@ class AstVisit
     {
         enum class Stage : uint8_t
         {
+            Enter,
             Pre,
             Children,
             Post
@@ -38,7 +39,7 @@ class AstVisit
         uint32_t   firstChildIx = 0; // offset into AstVisit::children_
         uint32_t   numChildren  = 0; // number of children in that range
         AstNodeRef nodeRef      = AstNodeRef::invalid();
-        Stage      stage        = Stage::Pre;
+        Stage      stage        = Stage::Enter;
     };
 
     Ast*                                                     ast_     = nullptr;

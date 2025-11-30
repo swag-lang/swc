@@ -24,6 +24,7 @@ public:
 
     Scope*     parent() const { return parent_; }
     ScopeFlags flags() const { return flags_; }
+    bool       has(ScopeFlags flag) const { return flags_.has(flag); }
 };
 
 SWC_END_NAMESPACE()

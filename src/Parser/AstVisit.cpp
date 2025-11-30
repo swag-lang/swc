@@ -10,7 +10,7 @@ void AstVisit::start(Ast& ast, AstNodeRef root)
 {
     SWC_ASSERT(root.isValid());
 
-    ast_  = &ast;
+    ast_     = &ast;
     rootRef_ = root;
 
     stack_.clear();
@@ -18,7 +18,7 @@ void AstVisit::start(Ast& ast, AstNodeRef root)
 
     Frame fr;
     fr.nodeRef = root;
-    fr.stage   = Frame::Stage::Pre;
+    fr.stage   = Frame::Stage::Enter;
     stack_.push_back(fr);
 }
 
@@ -31,12 +31,10 @@ AstVisitResult AstVisit::step()
 
     switch (fr.stage)
     {
-        case Frame::Stage::Pre:
+        case Frame::Stage::Enter:
         {
             SWC_ASSERT(fr.nodeRef.isValid());
-
             fr.node = &ast_->node(fr.nodeRef);
-
             SWC_ASSERT(fr.node->isNot(AstNodeId::Invalid));
             SWC_ASSERT(fr.node->id() < AstNodeId::Count);
 
@@ -44,6 +42,14 @@ AstVisitResult AstVisit::step()
             Stats::get().numVisitedAstNodes.fetch_add(1);
 #endif
 
+            if (enterNodeVisitor_)
+                enterNodeVisitor_(*fr.node);
+            fr.stage = Frame::Stage::Pre;
+            return AstVisitResult::Continue;
+        }
+
+        case Frame::Stage::Pre:
+        {
             // Pre-order callback
             if (preNodeVisitor_)
             {
@@ -101,7 +107,7 @@ AstVisitResult AstVisit::step()
 
                 Frame childFr;
                 childFr.nodeRef = childRef;
-                childFr.stage   = Frame::Stage::Pre;
+                childFr.stage   = Frame::Stage::Enter;
 
                 stack_.push_back(childFr);
                 fr.nextChildIx++;

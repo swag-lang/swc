@@ -82,30 +82,28 @@ AstVisitStepResult Sema::postNode(AstNode& node)
         if (info.scopeFlags != ScopeFlagsE::Zero)
             popScope();
     }
-    
+
     return result;
 }
 
 AstVisitStepResult Sema::preChild(AstNode& node, AstNodeRef& childRef)
 {
-    const AstNode& childPtr = ast().node(childRef);
-    switch (childPtr.id())
+    if (currentScope_->has(ScopeFlagsE::TopLevel))
     {
-        case AstNodeId::CompilerDiagnostic:
-        case AstNodeId::CompilerIf:
+        const AstNode& childPtr = ast().node(childRef);
+        switch (childPtr.id())
         {
-            if (visit().root() == ast().root())
+            case AstNodeId::CompilerDiagnostic:
+            case AstNodeId::CompilerIf:
             {
                 const auto job = std::make_shared<SemaJob>(ctx(), *this, childRef);
                 compiler().global().jobMgr().enqueue(job, JobPriority::Normal, compiler().jobClientId());
                 return AstVisitStepResult::SkipChildren;
             }
 
-            break;
+            default:
+                break;
         }
-
-        default:
-            break;
     }
 
     const auto& info = Ast::nodeIdInfos(node.id());

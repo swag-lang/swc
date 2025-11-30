@@ -43,6 +43,7 @@ class AstVisit
 
     Ast*                                                     ast_     = nullptr;
     AstNodeRef                                               rootRef_ = AstNodeRef::invalid();
+    std::function<void(AstNode&)>                            enterNodeVisitor_;
     std::function<AstVisitStepResult(AstNode&)>              preNodeVisitor_;
     std::function<AstVisitStepResult(AstNode&)>              postNodeVisitor_;
     std::function<AstVisitStepResult(AstNode&, AstNodeRef&)> preChildVisitor_;
@@ -54,6 +55,7 @@ class AstVisit
 
 public:
     void           start(Ast& ast, AstNodeRef root);
+    void           setEnterNodeVisitor(const std::function<void(AstNode&)>& visitor) { enterNodeVisitor_ = visitor; }
     void           setPreNodeVisitor(const std::function<AstVisitStepResult(AstNode&)>& visitor) { preNodeVisitor_ = visitor; }
     void           setPostNodeVisitor(const std::function<AstVisitStepResult(AstNode&)>& visitor) { postNodeVisitor_ = visitor; }
     void           setPreChildVisitor(const std::function<AstVisitStepResult(AstNode&, AstNodeRef&)>& visitor) { preChildVisitor_ = visitor; }

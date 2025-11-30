@@ -27,6 +27,8 @@ class Sema
     Ast*         ast_ = nullptr;
     AstVisit     visit_;
 
+    void               setVisitors();
+    void               enterNode(AstNode& node);
     AstVisitStepResult preNode(AstNode& node);
     AstVisitStepResult postNode(AstNode& node);
     AstVisitStepResult preChild(AstNode& node, AstNodeRef& childRef);

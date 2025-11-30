@@ -12,9 +12,7 @@ Sema::Sema(TaskContext& ctx, Ast* ast) :
     ast_(ast)
 {
     visit_.start(*ast, ast->root());
-    visit_.setPreNodeVisitor([this](AstNode& node) { return preNode(node); });
-    visit_.setPostNodeVisitor([this](AstNode& node) { return postNode(node); });
-    visit_.setPreChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return preChild(node, childRef); });
+    setVisitors();
 }
 
 Sema::Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root) :
@@ -23,6 +21,12 @@ Sema::Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root) :
     currentScope_(parent.currentScope_)
 {
     visit_.start(*ast_, root);
+    setVisitors();
+}
+
+void Sema::setVisitors()
+{
+    visit_.setEnterNodeVisitor([this](AstNode& node) { enterNode(node); });
     visit_.setPreNodeVisitor([this](AstNode& node) { return preNode(node); });
     visit_.setPostNodeVisitor([this](AstNode& node) { return postNode(node); });
     visit_.setPreChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return preChild(node, childRef); });
@@ -50,6 +54,17 @@ void Sema::popScope()
     scopes_.pop_back();
 }
 
+void Sema::enterNode(AstNode& node)
+{
+    const auto& info = Ast::nodeIdInfos(node.id());
+
+    // Push scope
+    if (info.scopeFlags != ScopeFlagsE::Zero)
+        pushScope(info.scopeFlags);
+
+    info.semaEnterNode(*this, node);
+}
+
 AstVisitStepResult Sema::preNode(AstNode& node)
 {
     const auto& info = Ast::nodeIdInfos(node.id());
@@ -58,8 +73,17 @@ AstVisitStepResult Sema::preNode(AstNode& node)
 
 AstVisitStepResult Sema::postNode(AstNode& node)
 {
-    const auto& info = Ast::nodeIdInfos(node.id());
-    return info.semaPostNode(*this, node);
+    const auto& info   = Ast::nodeIdInfos(node.id());
+    const auto  result = info.semaPostNode(*this, node);
+
+    // Pop scope once done
+    if (result == AstVisitStepResult::Continue)
+    {
+        if (info.scopeFlags != ScopeFlagsE::Zero)
+            popScope();
+    }
+    
+    return result;
 }
 
 AstVisitStepResult Sema::preChild(AstNode& node, AstNodeRef& childRef)

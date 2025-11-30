@@ -18,8 +18,8 @@ namespace
         const ConstantValue* rightCst     = nullptr;
         ConstantRef          leftCstRef   = ConstantRef::invalid();
         ConstantRef          rightCstRef  = ConstantRef::invalid();
-        TypeInfoRef          leftTypeRef  = TypeInfoRef::invalid();
-        TypeInfoRef          rightTypeRef = TypeInfoRef::invalid();
+        TypeRef              leftTypeRef  = TypeRef::invalid();
+        TypeRef              rightTypeRef = TypeRef::invalid();
         const TypeInfo*      leftType     = nullptr;
         const TypeInfo*      rightType    = nullptr;
 
@@ -41,7 +41,7 @@ namespace
 
         if (ops.leftType->canBePromoted() && ops.rightType->canBePromoted())
         {
-            const TypeInfoRef promotedTypeRef = sema.typeMgr().promote(ops.leftTypeRef, ops.rightTypeRef);
+            const TypeRef promotedTypeRef = sema.typeMgr().promote(ops.leftTypeRef, ops.rightTypeRef);
 
             CastContext castCtx;
             castCtx.kind         = CastKind::Promotion;

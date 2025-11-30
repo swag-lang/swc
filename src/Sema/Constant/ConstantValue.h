@@ -21,7 +21,7 @@ class ConstantValue
     friend class ConstantManager;
 
     ConstantKind kind_    = ConstantKind::Invalid;
-    TypeInfoRef  typeRef_ = TypeInfoRef::invalid();
+    TypeRef      typeRef_ = TypeRef::invalid();
 
     union
     {
@@ -42,7 +42,7 @@ public:
     bool lt(const ConstantValue& other) const noexcept;
 
     ConstantKind kind() const { return kind_; }
-    TypeInfoRef  typeRef() const { return typeRef_; }
+    TypeRef      typeRef() const { return typeRef_; }
     bool         isValid() const { return kind_ != ConstantKind::Invalid; }
     bool         isBool() const { return kind_ == ConstantKind::Bool; }
     bool         isString() const { return kind_ == ConstantKind::String; }

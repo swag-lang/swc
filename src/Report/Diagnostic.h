@@ -17,7 +17,7 @@ public:
         std::string_view name;
         bool             quoted;
 
-        std::variant<Utf8, TokenId, DiagnosticId, uint32_t, TypeInfoRef> val;
+        std::variant<Utf8, TokenId, DiagnosticId, uint32_t, TypeRef> val;
     };
 
 private:

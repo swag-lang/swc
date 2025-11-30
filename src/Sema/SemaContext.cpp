@@ -5,14 +5,14 @@
 
 SWC_BEGIN_NAMESPACE()
 
-TypeInfoRef SemaContext::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const
+TypeRef SemaContext::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const
 {
     const AstNode& node = ast().node(nodeRef);
     if (hasConstant(nodeRef))
         return getConstant(ctx, nodeRef).typeRef();
     if (hasType(nodeRef))
-        return TypeInfoRef{node.sema()};
-    return TypeInfoRef::invalid();
+        return TypeRef{node.sema()};
+    return TypeRef::invalid();
 }
 
 void SemaContext::setConstant(AstNodeRef nodeRef, ConstantRef ref)
@@ -39,7 +39,7 @@ bool SemaContext::hasType(AstNodeRef nodeRef) const
     return node.hasSemaFlag(SemaFlagE::SemaIsType);
 }
 
-void SemaContext::setType(AstNodeRef nodeRef, TypeInfoRef ref)
+void SemaContext::setType(AstNodeRef nodeRef, TypeRef ref)
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(ref.isValid());

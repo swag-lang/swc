@@ -76,14 +76,14 @@ public:
     Diagnostic reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokenRef);
     void       raiseError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokenRef);
     void       raiseError(DiagnosticId id, AstNodeRef nodeRef);
-    void       raiseInvalidType(AstNodeRef nodeRef, TypeInfoRef srcTypeRef, TypeInfoRef targetTypeRef);
-    void       raiseCannotCast(AstNodeRef nodeRef, TypeInfoRef srcTypeRef, TypeInfoRef targetTypeRef);
-    void       raiseLiteralOverflow(AstNodeRef nodeRef, TypeInfoRef targetTypeRef);
+    void       raiseInvalidType(AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
+    void       raiseCannotCast(AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
+    void       raiseLiteralOverflow(AstNodeRef nodeRef, TypeRef targetTypeRef);
     void       raiseExprNotConst(AstNodeRef nodeRef);
     void       raiseInternalError(const AstNode& node);
 
-    bool        castAllowed(const CastContext& castCtx, TypeInfoRef srcTypeRef, TypeInfoRef targetTypeRef);
-    ConstantRef cast(const CastContext& castCtx, ConstantRef srcRef, TypeInfoRef targetTypeRef);
+    bool        castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef);
+    ConstantRef cast(const CastContext& castCtx, ConstantRef srcRef, TypeRef targetTypeRef);
 };
 
 SWC_END_NAMESPACE()

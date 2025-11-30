@@ -15,7 +15,7 @@ namespace
         const AstNode*       nodeExpr = nullptr;
         const ConstantValue* cst      = nullptr;
         ConstantRef          cstRef   = ConstantRef::invalid();
-        TypeInfoRef          typeRef  = TypeInfoRef::invalid();
+        TypeRef              typeRef  = TypeRef::invalid();
         const TypeInfo*      type     = nullptr;
 
         UnaryOperands(Sema& sema, const AstUnaryExpr& node) :

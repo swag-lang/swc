@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    ConstantRef castIntToInt(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeInfoRef targetTypeRef)
+    ConstantRef castIntToInt(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
     {
         auto& ctx = sema.ctx();
         SWC_ASSERT(src.isInt());
@@ -116,7 +116,7 @@ namespace
         return ctx.compiler().constMgr().addConstant(ctx, result);
     }
 
-    ConstantRef castIntToFloat(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeInfoRef targetTypeRef)
+    ConstantRef castIntToFloat(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
     {
         auto& ctx = sema.ctx();
         SWC_ASSERT(src.isInt());
@@ -142,7 +142,7 @@ namespace
         return ctx.compiler().constMgr().addConstant(ctx, result);
     }
 
-    ConstantRef castFloatToFloat(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeInfoRef targetTypeRef)
+    ConstantRef castFloatToFloat(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
     {
         auto& ctx = sema.ctx();
         SWC_ASSERT(src.isFloat());
@@ -172,7 +172,7 @@ namespace
     }
 }
 
-bool Sema::castAllowed(const CastContext& castCtx, TypeInfoRef srcTypeRef, TypeInfoRef targetTypeRef)
+bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
     auto&       ctx        = *ctx_;
     const auto& typeMgr    = ctx.compiler().typeMgr();
@@ -201,7 +201,7 @@ bool Sema::castAllowed(const CastContext& castCtx, TypeInfoRef srcTypeRef, TypeI
     return false;
 }
 
-ConstantRef Sema::cast(const CastContext& castCtx, ConstantRef srcRef, TypeInfoRef targetTypeRef)
+ConstantRef Sema::cast(const CastContext& castCtx, ConstantRef srcRef, TypeRef targetTypeRef)
 {
     const auto src = constMgr().get(srcRef);
     if (src.typeRef() == targetTypeRef)

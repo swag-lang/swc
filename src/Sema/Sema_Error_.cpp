@@ -63,7 +63,7 @@ void Sema::raiseError(DiagnosticId id, AstNodeRef nodeRef)
     diag.report(ctx());
 }
 
-void Sema::raiseInvalidType(AstNodeRef nodeRef, TypeInfoRef srcTypeRef, TypeInfoRef targetTypeRef)
+void Sema::raiseInvalidType(AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
     auto diag = reportError(DiagnosticId::sema_err_invalid_type, nodeRef);
     diag.addArgument(Diagnostic::ARG_TYPE, typeMgr().typeToString(srcTypeRef));
@@ -71,7 +71,7 @@ void Sema::raiseInvalidType(AstNodeRef nodeRef, TypeInfoRef srcTypeRef, TypeInfo
     diag.report(ctx());
 }
 
-void Sema::raiseCannotCast(AstNodeRef nodeRef, TypeInfoRef srcTypeRef, TypeInfoRef targetTypeRef)
+void Sema::raiseCannotCast(AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
     auto diag = reportError(DiagnosticId::sema_err_cannot_cast, nodeRef);
     diag.addArgument(Diagnostic::ARG_TYPE, srcTypeRef);
@@ -79,7 +79,7 @@ void Sema::raiseCannotCast(AstNodeRef nodeRef, TypeInfoRef srcTypeRef, TypeInfoR
     diag.report(ctx());
 }
 
-void Sema::raiseLiteralOverflow(AstNodeRef nodeRef, TypeInfoRef targetTypeRef)
+void Sema::raiseLiteralOverflow(AstNodeRef nodeRef, TypeRef targetTypeRef)
 {
     auto diag = reportError(DiagnosticId::sema_err_literal_overflow, nodeRef);
     diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);

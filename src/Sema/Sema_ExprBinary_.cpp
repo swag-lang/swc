@@ -18,8 +18,8 @@ namespace
         const ConstantValue* rightCst     = nullptr;
         ConstantRef          leftCstRef   = ConstantRef::invalid();
         ConstantRef          rightCstRef  = ConstantRef::invalid();
-        TypeInfoRef          leftTypeRef  = TypeInfoRef::invalid();
-        TypeInfoRef          rightTypeRef = TypeInfoRef::invalid();
+        TypeRef              leftTypeRef  = TypeRef::invalid();
+        TypeRef              rightTypeRef = TypeRef::invalid();
         const TypeInfo*      leftType     = nullptr;
         const TypeInfo*      rightType    = nullptr;
 

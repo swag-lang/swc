@@ -632,7 +632,7 @@ Utf8 DiagnosticBuilder::argumentToString(const Diagnostic::Argument& arg) const
             return Diagnostic::diagIdMessage(v);
         else if constexpr (std::integral<T>)
             return Utf8{std::to_string(v)};
-        else if constexpr (std::same_as<T, TypeInfoRef>)
+        else if constexpr (std::same_as<T, TypeRef>)
             return ctx_->compiler().typeMgr().typeToString(v);
         else
             SWC_UNREACHABLE();

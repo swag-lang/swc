@@ -29,7 +29,7 @@ void TypeManager::setup(TaskContext&)
     typeString_ = addType(TypeInfo::makeString());
 }
 
-TypeInfoRef TypeManager::computePromotion(TypeInfoRef lhsRef, TypeInfoRef rhsRef) const
+TypeRef TypeManager::computePromotion(TypeRef lhsRef, TypeRef rhsRef) const
 {
     const TypeInfo& lhs = get(lhsRef);
     const TypeInfo& rhs = get(rhsRef);
@@ -60,8 +60,8 @@ TypeInfoRef TypeManager::computePromotion(TypeInfoRef lhsRef, TypeInfoRef rhsRef
         return (lhsBits >= rhsBits) ? lhsRef : rhsRef;
 
     // Mixed signedness:
-    const TypeInfoRef unsignedRef = lhsUnsigned ? lhsRef : rhsRef;
-    const TypeInfoRef signedRef   = lhsUnsigned ? rhsRef : lhsRef;
+    const TypeRef unsignedRef = lhsUnsigned ? lhsRef : rhsRef;
+    const TypeRef signedRef   = lhsUnsigned ? rhsRef : lhsRef;
 
     const uint32_t uBits = lhsUnsigned ? lhsBits : rhsBits;
     const uint32_t sBits = lhsUnsigned ? rhsBits : lhsBits;
@@ -82,21 +82,21 @@ void TypeManager::buildPromoteTable()
 
     for (uint32_t i = 0; i < n; ++i)
     {
-        const auto lhs = TypeInfoRef{i};
+        const auto lhs = TypeRef{i};
         for (uint32_t j = 0; j < n; ++j)
         {
-            const auto rhs      = TypeInfoRef{j};
+            const auto rhs      = TypeRef{j};
             promoteTable_[i][j] = computePromotion(lhs, rhs);
         }
     }
 }
 
-TypeInfoRef TypeManager::promote(TypeInfoRef lhs, TypeInfoRef rhs) const
+TypeRef TypeManager::promote(TypeRef lhs, TypeRef rhs) const
 {
     return promoteTable_[lhs.get()][rhs.get()];
 }
 
-TypeInfoRef TypeManager::addType(const TypeInfo& typeInfo)
+TypeRef TypeManager::addType(const TypeInfo& typeInfo)
 {
     {
         std::shared_lock lk(mutexAdd_);
@@ -106,7 +106,7 @@ TypeInfoRef TypeManager::addType(const TypeInfo& typeInfo)
     }
 
     std::unique_lock lk(mutexAdd_);
-    const auto [it, inserted] = map_.try_emplace(typeInfo, TypeInfoRef{});
+    const auto [it, inserted] = map_.try_emplace(typeInfo, TypeRef{});
     if (!inserted)
         return it->second;
 
@@ -115,12 +115,12 @@ TypeInfoRef TypeManager::addType(const TypeInfo& typeInfo)
     Stats::get().memTypes.fetch_add(sizeof(TypeInfo), std::memory_order_relaxed);
 #endif
 
-    const TypeInfoRef ref{store_.push_back(typeInfo) / static_cast<uint32_t>(sizeof(TypeInfo))};
+    const TypeRef ref{store_.push_back(typeInfo) / static_cast<uint32_t>(sizeof(TypeInfo))};
     it->second = ref;
     return ref;
 }
 
-TypeInfoRef TypeManager::getTypeInt(uint32_t bits, bool isUnsigned) const
+TypeRef TypeManager::getTypeInt(uint32_t bits, bool isUnsigned) const
 {
     if (bits == 0)
         return isUnsigned ? typeIntUnsigned_ : typeIntSigned_;
@@ -157,7 +157,7 @@ TypeInfoRef TypeManager::getTypeInt(uint32_t bits, bool isUnsigned) const
     }
 }
 
-TypeInfoRef TypeManager::getTypeFloat(uint32_t bits) const
+TypeRef TypeManager::getTypeFloat(uint32_t bits) const
 {
     if (bits == 0)
         return typeFloat_;
@@ -173,7 +173,7 @@ TypeInfoRef TypeManager::getTypeFloat(uint32_t bits) const
     }
 }
 
-std::string_view TypeManager::typeToString(TypeInfoRef typeInfoRef, TypeInfo::ToStringMode mode) const
+std::string_view TypeManager::typeToString(TypeRef typeInfoRef, TypeInfo::ToStringMode mode) const
 {
     SWC_ASSERT(typeInfoRef.isValid());
     return typeToString(get(typeInfoRef), mode);
@@ -199,7 +199,7 @@ std::string_view TypeManager::typeToString(const TypeInfo& typeInfo, TypeInfo::T
     return it->second;
 }
 
-const TypeInfo& TypeManager::get(TypeInfoRef typeInfoRef) const
+const TypeInfo& TypeManager::get(TypeRef typeInfoRef) const
 {
     SWC_ASSERT(typeInfoRef.isValid());
     return *store_.ptr<TypeInfo>(typeInfoRef.get() * sizeof(TypeInfo));

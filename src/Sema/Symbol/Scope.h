@@ -1,5 +1,7 @@
 #pragma once
+
 SWC_BEGIN_NAMESPACE()
+class DeclContext;
 
 enum class ScopeFlagsE
 {
@@ -10,8 +12,9 @@ using ScopeFlags = EnumFlags<ScopeFlagsE>;
 
 class Scope
 {
-    Scope*     parent_ = nullptr;
-    ScopeFlags flags_  = ScopeFlagsE::Zero;
+    Scope*       parent_      = nullptr;
+    ScopeFlags   flags_       = ScopeFlagsE::Zero;
+    DeclContext* declContext_ = nullptr;
 
 public:
     Scope() = default;
@@ -22,9 +25,12 @@ public:
     {
     }
 
-    Scope*     parent() const { return parent_; }
-    ScopeFlags flags() const { return flags_; }
-    bool       has(ScopeFlags flag) const { return flags_.has(flag); }
+    Scope*             parent() const { return parent_; }
+    ScopeFlags         flags() const { return flags_; }
+    bool               has(ScopeFlags flag) const { return flags_.has(flag); }
+    void               setDeclContext(DeclContext& declContext) { declContext_ = &declContext; }
+    DeclContext&       declContext() { return *declContext_; }
+    const DeclContext& declContext() const { return *declContext_; }
 };
 
 SWC_END_NAMESPACE()

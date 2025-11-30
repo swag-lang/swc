@@ -2,6 +2,7 @@
 #include "Sema/Sema.h"
 #include "Main/Global.h"
 #include "Sema/SemaJob.h"
+#include "Symbol/Decls.h"
 #include "Symbol/Scope.h"
 #include "Thread/JobManager.h"
 
@@ -41,9 +42,16 @@ Scope* Sema::pushScope(ScopeFlags flags)
     Scope* scope = scopes_.back().get();
 
     if (!rootScope_)
+    {
         rootScope_ = scope;
-    currentScope_ = scope;
+        rootScope_->setDeclContext(ctx_->compiler().moduleDecl());
+    }
+    else
+    {
+        scope->setDeclContext(parent->declContext());
+    }
 
+    currentScope_ = scope;
     return scope;
 }
 

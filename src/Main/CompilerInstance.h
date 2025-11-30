@@ -50,8 +50,10 @@ public:
     const TypeManager&     typeMgr() const { return *typeMgr_; }
     ConstantManager&       constMgr() { return *constMgr_; }
     const ConstantManager& constMgr() const { return *constMgr_; }
+    ModuleDecl&            moduleDecl() { return *moduleDecl_; }
+    const ModuleDecl&      moduleDecl() const { return *moduleDecl_; }
 
-    void setupSema(TaskContext &ctx);
+    void setupSema(TaskContext& ctx);
 
     SourceFile& addFile(fs::path path, FileFlags flags);
     SourceFile& file(FileRef ref) const { return *files_[ref.get()].get(); }

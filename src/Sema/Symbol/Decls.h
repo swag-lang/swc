@@ -7,7 +7,7 @@ class ModuleDecl : public DeclContext
 {
 public:
     ModuleDecl() :
-        DeclContext(DeclContextKind::Module)
+        DeclContext(DeclKind::Module)
     {
     }
 };
@@ -16,7 +16,7 @@ class NamespaceDecl : public DeclContext
 {
 public:
     NamespaceDecl() :
-        DeclContext(DeclContextKind::Namespace)
+        DeclContext(DeclKind::Namespace)
     {
     }
 };

@@ -4,7 +4,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-enum class DeclContextKind
+enum class DeclKind
 {
     Invalid = -1,
     Module,
@@ -13,7 +13,7 @@ enum class DeclContextKind
 
 class DeclContext
 {
-    DeclContextKind kind_ = DeclContextKind::Invalid;
+    DeclKind kind_ = DeclKind::Invalid;
 
     struct Shard
     {
@@ -26,12 +26,12 @@ class DeclContext
     Shard                     shards_[NUM_SHARDS];
 
 public:
-    explicit DeclContext(DeclContextKind kind) :
+    explicit DeclContext(DeclKind kind) :
         kind_(kind)
     {
     }
 
-    DeclContextKind kind() const { return kind_; }
+    DeclKind kind() const { return kind_; }
 };
 
 SWC_END_NAMESPACE()

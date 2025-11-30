@@ -47,6 +47,7 @@ void Sema::popScope()
 {
     SWC_ASSERT(currentScope_);
     currentScope_ = currentScope_->parent();
+    scopes_.pop_back();
 }
 
 AstVisitStepResult Sema::preNode(AstNode& node)

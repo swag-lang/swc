@@ -173,13 +173,6 @@ TypeInfoRef TypeManager::getTypeFloat(uint32_t bits) const
     }
 }
 
-const TypeInfo& TypeManager::get(TypeInfoRef typeInfoRef) const
-{
-    std::shared_lock lk(mutexAdd_);
-    SWC_ASSERT(typeInfoRef.isValid());
-    return *store_.ptr<TypeInfo>(typeInfoRef.get() * sizeof(TypeInfo));
-}
-
 std::string_view TypeManager::typeToString(TypeInfoRef typeInfoRef, TypeInfo::ToStringMode mode) const
 {
     SWC_ASSERT(typeInfoRef.isValid());
@@ -204,6 +197,12 @@ std::string_view TypeManager::typeToString(const TypeInfo& typeInfo, TypeInfo::T
 
     it->second = typeInfo.toString(mode);
     return it->second;
+}
+
+const TypeInfo& TypeManager::get(TypeInfoRef typeInfoRef) const
+{
+    SWC_ASSERT(typeInfoRef.isValid());
+    return *store_.ptr<TypeInfo>(typeInfoRef.get() * sizeof(TypeInfo));
 }
 
 SWC_END_NAMESPACE()

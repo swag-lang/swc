@@ -64,7 +64,6 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
 
 const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
 {
-    std::shared_lock lk(mutex_);
     SWC_ASSERT(constantRef.isValid());
     return *store_.ptr<ConstantValue>(constantRef.get());
 }

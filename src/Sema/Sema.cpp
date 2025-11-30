@@ -30,10 +30,10 @@ Sema::Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root) :
 
 Sema::~Sema() = default;
 
-Scope* Sema::pushScope(ScopeKind kind)
+Scope* Sema::pushScope(ScopeFlags flags)
 {
     Scope* parent = currentScope_;
-    scopes_.emplace_back(std::make_unique<Scope>(kind, parent));
+    scopes_.emplace_back(std::make_unique<Scope>(flags, parent));
     Scope* scope = scopes_.back().get();
 
     if (!rootScope_)
@@ -53,23 +53,17 @@ void Sema::popScope()
 AstVisitStepResult Sema::preNode(AstNode& node)
 {
     const auto& info = Ast::nodeIdInfos(node.id());
-    if (!info.semaPreNode)
-        return AstVisitStepResult::Continue;
     return info.semaPreNode(*this, node);
 }
 
 AstVisitStepResult Sema::postNode(AstNode& node)
 {
     const auto& info = Ast::nodeIdInfos(node.id());
-    if (!info.semaPostNode)
-        return AstVisitStepResult::Continue;
     return info.semaPostNode(*this, node);
 }
 
 AstVisitStepResult Sema::preChild(AstNode& node, AstNodeRef& childRef)
 {
-    const auto& info = Ast::nodeIdInfos(node.id());
-
     const AstNode& childPtr = ast().node(childRef);
     switch (childPtr.id())
     {
@@ -90,8 +84,7 @@ AstVisitStepResult Sema::preChild(AstNode& node, AstNodeRef& childRef)
             break;
     }
 
-    if (!info.semaPreChild)
-        return AstVisitStepResult::Continue;
+    const auto& info = Ast::nodeIdInfos(node.id());
     return info.semaPreChild(*this, node, childRef);
 }
 

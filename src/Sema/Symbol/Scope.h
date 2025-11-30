@@ -1,31 +1,29 @@
 #pragma once
 SWC_BEGIN_NAMESPACE()
 
-enum class ScopeKind
+enum class ScopeFlagsE
 {
-    Unknown = 0,
-    Global,
-    Module,
-    Function,
-    Block,
+    Zero     = 0,
+    TopLevel = 1 << 0,
 };
+using ScopeFlags = EnumFlags<ScopeFlagsE>;
 
 class Scope
 {
-    Scope*    parent_ = nullptr;
-    ScopeKind kind_   = ScopeKind::Unknown;
+    Scope*     parent_ = nullptr;
+    ScopeFlags flags_  = ScopeFlagsE::Zero;
 
 public:
     Scope() = default;
 
-    Scope(ScopeKind kind, Scope* parent) :
+    Scope(ScopeFlags flags, Scope* parent) :
         parent_(parent),
-        kind_(kind)
+        flags_(flags)
     {
     }
 
-    Scope*    parent() const { return parent_; }
-    ScopeKind kind() const { return kind_; }
+    Scope*     parent() const { return parent_; }
+    ScopeFlags flags() const { return flags_; }
 };
 
 SWC_END_NAMESPACE()

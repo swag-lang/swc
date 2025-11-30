@@ -2,11 +2,10 @@
 #include "Parser/Ast.h"
 #include "Parser/AstVisit.h"
 #include "Report/Diagnostic.h"
+#include "Symbol/Scope.h"
 #include "Thread/Job.h"
 
 SWC_BEGIN_NAMESPACE()
-class Scope;
-enum class ScopeKind;
 
 enum class CastKind
 {
@@ -62,7 +61,7 @@ public:
     const Scope* currentScope() const { return currentScope_; }
     Scope*       rootScope() { return rootScope_; }
     const Scope* rootScope() const { return rootScope_; }
-    Scope*       pushScope(ScopeKind kind);
+    Scope*       pushScope(ScopeFlags flags);
     void         popScope();
 
     void       setReportArguments(Diagnostic& diag, SourceViewRef srcViewRef, TokenRef tokenRef) const;

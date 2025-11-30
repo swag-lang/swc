@@ -48,6 +48,7 @@ struct SpanTag{};
 struct TypeTag{};
 struct ConstantTag{};
 struct SourceViewTag{};
+struct SemaTag{};
 // clang-format on
 
 // Type definitions
@@ -58,5 +59,6 @@ using SpanRef       = StrongRef<SpanTag>;
 using TypeInfoRef   = StrongRef<TypeTag>;
 using ConstantRef   = StrongRef<ConstantTag>;
 using SourceViewRef = StrongRef<SourceViewTag>;
+using SemaRef       = StrongRef<SemaTag>;
 
 SWC_END_NAMESPACE()

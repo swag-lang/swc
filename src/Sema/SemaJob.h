@@ -9,8 +9,8 @@ class SemaJob : public Job
     Sema sema_;
 
 public:
-    SemaJob(TaskContext& ctx, Ast* ast, AstNodeRef root);
-    SemaJob(TaskContext& ctx, Ast* ast, AstNodeRef root, const Sema& parentSema);
+    SemaJob(TaskContext& ctx, Ast* ast);
+    SemaJob(TaskContext& ctx, const Sema& parentSema, AstNodeRef root);
     JobResult exec();
 };
 

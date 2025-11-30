@@ -240,7 +240,7 @@ decltype(auto) visitAstNodeId(AstNodeId id, F f)
     {
 #define SWC_NODE_DEF(E) \
     case AstNodeId::E:  \
-        return std::forward<F>(f).operator()<AstNodeId::E>();
+        return std::forward<F>(f).template operator()<AstNodeId::E>();
 #include "Parser/AstNodesEnum.inc"
 
 #undef SWC_NODE_DEF

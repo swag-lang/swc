@@ -35,7 +35,7 @@ namespace Command
         {
             if (f->hasError())
                 continue;
-            auto job = std::make_shared<SemaJob>(ctx, &f->ast(), f->ast().root());
+            auto job = std::make_shared<SemaJob>(ctx, &f->ast());
             jobMgr.enqueue(job, JobPriority::Normal, clientId);
         }
 

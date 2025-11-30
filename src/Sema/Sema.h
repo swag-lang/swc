@@ -36,11 +36,9 @@ class Sema
     Scope*                              currentScope_ = nullptr;
     std::vector<std::unique_ptr<Scope>> scopes_;
 
-    void cloneScopesFrom(const Sema& other);
-
 public:
-    Sema(TaskContext& ctx, Ast* ast, AstNodeRef root);
-    Sema(TaskContext& ctx, Ast* ast, AstNodeRef root, const Sema& parent);
+    Sema(TaskContext& ctx, Ast* ast);
+    Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root);
     ~Sema();
     JobResult exec();
 

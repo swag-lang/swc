@@ -124,7 +124,7 @@ void Diagnostic::addArgument(std::string_view name, std::string_view arg, bool q
             continue;
         }
 
-        if (wc < 128 && !std::isprint(static_cast<int>(wc)) || wc >= 128)
+        if ((wc < 128 && !std::isprint(static_cast<int>(wc))) || wc >= 128)
         {
             char hex[10];
             (void) std::snprintf(hex, sizeof(hex), "\\x%02X", wc);
@@ -134,6 +134,7 @@ void Diagnostic::addArgument(std::string_view name, std::string_view arg, bool q
         else if (wc == '\t' || wc == '\n' || wc == '\r')
         {
             sanitized += ' ';
+
             ptr = buf;
         }
         else

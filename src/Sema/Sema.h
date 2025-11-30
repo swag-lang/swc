@@ -61,7 +61,7 @@ public:
 
     Ast&        ast();
     const Ast&  ast() const;
-    TypeInfoRef getTypeRef(const AstNode& node) const;
+    TypeInfoRef getTypeRef(AstNodeRef nodeRef) const;
 
     Scope*       currentScope() { return currentScope_; }
     const Scope* currentScope() const { return currentScope_; }

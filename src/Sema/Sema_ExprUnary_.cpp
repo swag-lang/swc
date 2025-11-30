@@ -11,15 +11,15 @@ namespace
 {
     struct UnaryOperands
     {
-        const AstNode*       node    = nullptr;
-        const ConstantValue* cst     = nullptr;
-        ConstantRef          cstRef  = ConstantRef::invalid();
-        TypeInfoRef          typeRef = TypeInfoRef::invalid();
-        const TypeInfo*      type    = nullptr;
+        const AstNode*       nodeExpr = nullptr;
+        const ConstantValue* cst      = nullptr;
+        ConstantRef          cstRef   = ConstantRef::invalid();
+        TypeInfoRef          typeRef  = TypeInfoRef::invalid();
+        const TypeInfo*      type     = nullptr;
 
-        UnaryOperands(Sema& sema, const AstUnaryExpr& expr) :
-            node(&sema.node(expr.nodeExprRef)),
-            typeRef(sema.getTypeRef(*node)),
+        UnaryOperands(Sema& sema, const AstUnaryExpr& node) :
+            nodeExpr(&sema.node(node.nodeExprRef)),
+            typeRef(sema.getTypeRef(node.nodeExprRef)),
             type(&sema.typeMgr().get(typeRef))
         {
         }
@@ -29,8 +29,8 @@ namespace
     {
         // In the case of a literal with a suffix, it has already been done
         // @MinusLiteralSuffix
-        if (ops.node->is(AstNodeId::SuffixLiteral))
-            return ops.node->getSemaConstantRef();
+        if (ops.nodeExpr->is(AstNodeId::SuffixLiteral))
+            return ops.nodeExpr->getSemaConstantRef();
 
         const auto& ctx = sema.ctx();
         if (ops.type->isInt())
@@ -41,7 +41,7 @@ namespace
             value.negate(overflow);
             if (overflow)
             {
-                sema.raiseLiteralOverflow(node.nodeExprRef, sema.getTypeRef(*ops.node));
+                sema.raiseLiteralOverflow(node.nodeExprRef, sema.getTypeRef(node.nodeExprRef));
                 return ConstantRef::invalid();
             }
 
@@ -69,8 +69,8 @@ namespace
 
     ConstantRef constantFold(Sema& sema, TokenId op, const AstUnaryExpr& node, UnaryOperands& ops)
     {
-        ops.cstRef = ops.node->getSemaConstantRef();
-        ops.cst    = &ops.node->getSemaConstant(sema.ctx());
+        ops.cstRef = ops.nodeExpr->getSemaConstantRef();
+        ops.cst    = &ops.nodeExpr->getSemaConstant(sema.ctx());
 
         switch (op)
         {
@@ -147,7 +147,7 @@ AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema)
         return AstVisitStepResult::Stop;
 
     // Constant folding
-    if (ops.node->isSemaConstant())
+    if (ops.nodeExpr->isSemaConstant())
     {
         const auto cst = constantFold(sema, tok.id, *this, ops);
         if (cst.isValid())

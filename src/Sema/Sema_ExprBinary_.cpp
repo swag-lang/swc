@@ -25,8 +25,8 @@ namespace
         BinaryOperands(Sema& sema, const AstBinaryExpr& expr) :
             nodeLeft(&sema.node(expr.nodeLeftRef)),
             nodeRight(&sema.node(expr.nodeRightRef)),
-            leftTypeRef(sema.getTypeRef(*nodeLeft)),
-            rightTypeRef(sema.getTypeRef(*nodeRight)),
+            leftTypeRef(sema.getTypeRef(expr.nodeLeftRef)),
+            rightTypeRef(sema.getTypeRef(expr.nodeRightRef)),
             leftType(&sema.typeMgr().get(leftTypeRef)),
             rightType(&sema.typeMgr().get(rightTypeRef))
         {

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Sema/Sema.h"
+#include "Constant/ConstantValue.h"
 #include "Main/Global.h"
 #include "Sema/SemaContext.h"
 #include "Sema/SemaJob.h"
@@ -34,6 +35,15 @@ Ast& Sema::ast()
 const Ast& Sema::ast() const
 {
     return semaCtx_->ast();
+}
+
+TypeInfoRef Sema::getTypeRef(const AstNode& node) const
+{
+    if (node.isSemaConstant())
+        return node.getSemaConstant(*ctx_).typeRef();
+    if (node.isSemaType())
+        return node.getSemaTypeRef();
+    return TypeInfoRef::invalid();
 }
 
 void Sema::setVisitors()

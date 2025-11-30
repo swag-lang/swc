@@ -19,7 +19,7 @@ namespace
 
         UnaryOperands(Sema& sema, const AstUnaryExpr& expr) :
             node(&sema.node(expr.nodeExprRef)),
-            typeRef(node->getNodeTypeRef(sema.ctx())),
+            typeRef(sema.getTypeRef(*node)),
             type(&sema.typeMgr().get(typeRef))
         {
         }
@@ -41,7 +41,7 @@ namespace
             value.negate(overflow);
             if (overflow)
             {
-                sema.raiseLiteralOverflow(node.nodeExprRef, ops.node->getNodeTypeRef(sema.ctx()));
+                sema.raiseLiteralOverflow(node.nodeExprRef, sema.getTypeRef(*ops.node));
                 return ConstantRef::invalid();
             }
 

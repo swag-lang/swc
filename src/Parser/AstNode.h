@@ -78,7 +78,7 @@ struct AstNode
 
     enum class SemaFlagE : uint8_t
     {
-        // Signification of 'sema_'
+        // Signification of field 'sema_'
         SemaIsConst = 1 << 0,
         SemaIsType  = 1 << 1,
         SemaRefMask = SemaIsConst | SemaIsType,
@@ -97,8 +97,6 @@ struct AstNode
     void                 setSemaType(TypeInfoRef ref);
     const TypeInfo&      getSemaType(const TaskContext& ctx) const;
     TypeInfoRef          getSemaTypeRef() const;
-
-    TypeInfoRef getNodeTypeRef(const TaskContext& ctx) const;
 
     AstNodeId     id() const { return id_; }
     void          setId(AstNodeId id) { id_ = id; }

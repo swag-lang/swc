@@ -60,15 +60,6 @@ TypeInfoRef AstNode::getSemaTypeRef() const
     return sema_.type;
 }
 
-TypeInfoRef AstNode::getNodeTypeRef(const TaskContext& ctx) const
-{
-    if (isSemaConstant())
-        return getSemaConstant(ctx).typeRef();
-    if (isSemaType())
-        return getSemaTypeRef();
-    return TypeInfoRef::invalid();
-}
-
 void AstNode::semaInherit(const AstNode& node)
 {
     semaFlags_ = node.semaFlags_;

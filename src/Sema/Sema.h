@@ -49,8 +49,6 @@ public:
     const SemaContext&      semaCtx() const { return *semaCtx_; }
     AstVisit&               visit() { return visit_; }
     const AstVisit&         visit() const { return visit_; }
-    Ast&                    ast();
-    const Ast&              ast() const;
     AstNode&                node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
     const AstNode&          node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
     CompilerInstance&       compiler() { return ctx().compiler(); }
@@ -60,6 +58,10 @@ public:
     TypeManager&            typeMgr() { return compiler().typeMgr(); }
     const TypeManager&      typeMgr() const { return compiler().typeMgr(); }
     const Token&            token(SourceViewRef srcViewRef, TokenRef tokenRef) const { return compiler().srcView(srcViewRef).token(tokenRef); }
+
+    Ast&        ast();
+    const Ast&  ast() const;
+    TypeInfoRef getTypeRef(const AstNode& node) const;
 
     Scope*       currentScope() { return currentScope_; }
     const Scope* currentScope() const { return currentScope_; }

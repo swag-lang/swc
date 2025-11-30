@@ -65,7 +65,7 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema)
     const auto&       ctx         = sema.ctx();
     const AstNode&    nodeLiteral = sema.node(nodeLiteralRef);
     const AstNode&    nodeSuffix  = sema.node(nodeSuffixRef);
-    const TypeInfoRef typeRef     = nodeSuffix.getNodeTypeRef(ctx);
+    const TypeInfoRef typeRef     = sema.getTypeRef(nodeSuffix);
 
     SWC_ASSERT(nodeLiteral.isSemaConstant());
 

@@ -31,6 +31,15 @@ enum class AstModifierFlagsE : uint32_t
 };
 using AstModifierFlags = EnumFlags<AstModifierFlagsE>;
 
+enum class SemaFlagE : uint8_t
+{
+    // Signification of field 'sema_'
+    SemaIsConst = 1 << 0,
+    SemaIsType  = 1 << 1,
+    SemaRefMask = SemaIsConst | SemaIsType,
+};
+using SemaFlags = EnumFlags<SemaFlagE>;
+
 struct AstNode
 {
     // ReSharper disable once CppPossiblyUninitializedMember
@@ -76,27 +85,10 @@ struct AstNode
 
     void semaInherit(const AstNode& node);
 
-    enum class SemaFlagE : uint8_t
-    {
-        // Signification of field 'sema_'
-        SemaIsConst = 1 << 0,
-        SemaIsType  = 1 << 1,
-        SemaRefMask = SemaIsConst | SemaIsType,
-    };
-    using SemaFlags = EnumFlags<SemaFlagE>;
-
-    void      addSemaFlag(SemaFlagE val) { semaFlags_.add(val); }
-    bool      hasSemaFlag(SemaFlagE val) const { return semaFlags_.has(val); }
-    SemaFlags semaFlags() const { return semaFlags_; }
-
-    bool                 isSemaConstant() const { return hasSemaFlag(SemaFlagE::SemaIsConst); }
-    void                 setSemaConstant(ConstantRef ref);
-    const ConstantValue& getSemaConstant(const TaskContext& ctx) const;
-    ConstantRef          getSemaConstantRef() const;
-    bool                 isSemaType() const { return hasSemaFlag(SemaFlagE::SemaIsType); }
-    void                 setSemaType(TypeInfoRef ref);
-    const TypeInfo&      getSemaType(const TaskContext& ctx) const;
-    TypeInfoRef          getSemaTypeRef() const;
+    SemaFlags& semaFlags() { return semaFlags_; }
+    bool       hasSemaFlag(SemaFlagE flag) const { return semaFlags_.has(flag); }
+    uint32_t   sema() const { return sema_; }
+    void       setSema(uint32_t val) { sema_ = val; }
 
     AstNodeId     id() const { return id_; }
     void          setId(AstNodeId id) { id_ = id; }
@@ -112,14 +104,7 @@ private:
     SemaFlags     semaFlags_{};
     SourceViewRef srcViewRef_ = SourceViewRef::invalid();
     TokenRef      tokRef_     = TokenRef::invalid();
-
-    // clang-format off
-    union
-    {
-        ConstantRef constant;
-        TypeInfoRef type;
-    } sema_;
-    // clang-format on
+    uint32_t      sema_       = 0;
 };
 
 template<AstNodeId I>

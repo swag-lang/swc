@@ -1,4 +1,5 @@
 #include "pch.h"
+
 #include "Lexer/LangSpec.h"
 #include "Main/Global.h"
 #include "Parser/Ast.h"
@@ -6,16 +7,17 @@
 #include "Report/DiagnosticDef.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Sema.h"
+#include "Sema/SemaContext.h"
 
 SWC_BEGIN_NAMESPACE()
 
-AstVisitStepResult AstBoolLiteral::semaPreNode(Sema& sema)
+AstVisitStepResult AstBoolLiteral::semaPreNode(Sema& sema) const
 {
     const auto& tok = sema.token(srcViewRef(), tokRef());
     if (tok.is(TokenId::KwdTrue))
-        setSemaConstant(sema.constMgr().cstTrue());
+        sema.semaCtx().setConstant(sema.currentNodeRef(), sema.constMgr().cstTrue());
     else if (tok.is(TokenId::KwdFalse))
-        setSemaConstant(sema.constMgr().cstFalse());
+        sema.semaCtx().setConstant(sema.currentNodeRef(), sema.constMgr().cstFalse());
     else
         SWC_UNREACHABLE();
 
@@ -54,7 +56,7 @@ AstVisitStepResult AstStringLiteral::semaPreNode(Sema& sema)
     if (!tok.hasFlag(TokenFlagsE::Escaped))
     {
         const auto val = ConstantValue::makeString(ctx, str);
-        setSemaConstant(sema.constMgr().addConstant(ctx, val));
+        sema.semaCtx().setConstant(sema.currentNodeRef(), sema.constMgr().addConstant(ctx, val));
         return AstVisitStepResult::SkipChildren;
     }
 
@@ -164,7 +166,7 @@ AstVisitStepResult AstStringLiteral::semaPreNode(Sema& sema)
     }
 
     const auto val = ConstantValue::makeString(ctx, result);
-    setSemaConstant(sema.constMgr().addConstant(ctx, val));
+    sema.semaCtx().setConstant(sema.currentNodeRef(), sema.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 
@@ -200,7 +202,7 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(Sema& sema)
 
     // Convert the binary string to an integer constant
     const auto val = ConstantValue::makeInt(ctx, value);
-    setSemaConstant(sema.constMgr().addConstant(ctx, val));
+    sema.semaCtx().setConstant(sema.currentNodeRef(), sema.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 
@@ -238,7 +240,7 @@ AstVisitStepResult AstHexaLiteral::semaPreNode(Sema& sema)
 
     // Convert the hexadecimal string to an integer constant
     const auto val = ConstantValue::makeInt(ctx, value);
-    setSemaConstant(sema.constMgr().addConstant(ctx, val));
+    sema.semaCtx().setConstant(sema.currentNodeRef(), sema.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 
@@ -286,7 +288,7 @@ AstVisitStepResult AstIntegerLiteral::semaPreNode(Sema& sema)
     }
 
     const auto val = ConstantValue::makeInt(ctx, value);
-    setSemaConstant(sema.constMgr().addConstant(ctx, val));
+    sema.semaCtx().setConstant(sema.currentNodeRef(), sema.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 
@@ -412,7 +414,7 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(Sema& sema)
     value.set(intValue, totalExp10);
 
     const auto val = ConstantValue::makeFloat(ctx, value, 64);
-    setSemaConstant(sema.constMgr().addConstant(ctx, val));
+    sema.semaCtx().setConstant(sema.currentNodeRef(), sema.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 

@@ -7,50 +7,53 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstVisitStepResult AstBuiltinType::semaPostNode(Sema& sema)
+AstVisitStepResult AstBuiltinType::semaPostNode(Sema& sema) const
 {
-    const auto& tok     = sema.token(srcViewRef(), tokRef());
-    const auto& typeMgr = sema.typeMgr();
+    const auto&      tok     = sema.token(srcViewRef(), tokRef());
+    const auto&      typeMgr = sema.typeMgr();
+    auto&            semaCtx = sema.semaCtx();
+    const AstNodeRef nodeRef = sema.currentNodeRef();
+
     switch (tok.id)
     {
         case TokenId::TypeS8:
-            setSemaType(typeMgr.getTypeInt(8, false));
+            semaCtx.setType(nodeRef, typeMgr.getTypeInt(8, false));
             return AstVisitStepResult::Continue;
         case TokenId::TypeS16:
-            setSemaType(typeMgr.getTypeInt(16, false));
+            semaCtx.setType(nodeRef, typeMgr.getTypeInt(16, false));
             return AstVisitStepResult::Continue;
         case TokenId::TypeS32:
-            setSemaType(typeMgr.getTypeInt(32, false));
+            semaCtx.setType(nodeRef, typeMgr.getTypeInt(32, false));
             return AstVisitStepResult::Continue;
         case TokenId::TypeS64:
-            setSemaType(typeMgr.getTypeInt(64, false));
+            semaCtx.setType(nodeRef, typeMgr.getTypeInt(64, false));
             return AstVisitStepResult::Continue;
 
         case TokenId::TypeU8:
-            setSemaType(typeMgr.getTypeInt(8, true));
+            semaCtx.setType(nodeRef, typeMgr.getTypeInt(8, true));
             return AstVisitStepResult::Continue;
         case TokenId::TypeU16:
-            setSemaType(typeMgr.getTypeInt(16, true));
+            semaCtx.setType(nodeRef, typeMgr.getTypeInt(16, true));
             return AstVisitStepResult::Continue;
         case TokenId::TypeU32:
-            setSemaType(typeMgr.getTypeInt(32, true));
+            semaCtx.setType(nodeRef, typeMgr.getTypeInt(32, true));
             return AstVisitStepResult::Continue;
         case TokenId::TypeU64:
-            setSemaType(typeMgr.getTypeInt(64, true));
+            semaCtx.setType(nodeRef, typeMgr.getTypeInt(64, true));
             return AstVisitStepResult::Continue;
 
         case TokenId::TypeF32:
-            setSemaType(typeMgr.getTypeFloat(32));
+            semaCtx.setType(nodeRef, typeMgr.getTypeFloat(32));
             return AstVisitStepResult::Continue;
         case TokenId::TypeF64:
-            setSemaType(typeMgr.getTypeFloat(64));
+            semaCtx.setType(nodeRef, typeMgr.getTypeFloat(64));
             return AstVisitStepResult::Continue;
 
         case TokenId::TypeBool:
-            setSemaType(typeMgr.getTypeBool());
+            semaCtx.setType(nodeRef, typeMgr.getTypeBool());
             return AstVisitStepResult::Continue;
         case TokenId::TypeString:
-            setSemaType(typeMgr.getTypeString());
+            semaCtx.setType(nodeRef, typeMgr.getTypeString());
             return AstVisitStepResult::Continue;
 
         default:
@@ -61,19 +64,18 @@ AstVisitStepResult AstBuiltinType::semaPostNode(Sema& sema)
     return AstVisitStepResult::Stop;
 }
 
-AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema)
+AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
 {
-    const auto&       ctx         = sema.ctx();
-    const AstNode&    nodeLiteral = sema.node(nodeLiteralRef);
-    const TypeInfoRef typeRef     = sema.semaCtx().getTypeRef(ctx, nodeSuffixRef);
+    const auto&       ctx     = sema.ctx();
+    const TypeInfoRef typeRef = sema.semaCtx().getTypeRef(ctx, nodeSuffixRef);
 
-    SWC_ASSERT(nodeLiteral.isSemaConstant());
+    SWC_ASSERT(sema.semaCtx().hasConstant(nodeLiteralRef));
 
     CastContext castCtx;
     castCtx.kind         = CastKind::LiteralSuffix;
     castCtx.errorNodeRef = nodeLiteralRef;
 
-    auto cstRef = nodeLiteral.getSemaConstantRef();
+    ConstantRef cstRef = sema.semaCtx().getConstantRef(nodeLiteralRef);
 
     // Special case for negation: we need to negate before casting, in order for -128's8 to compile, for example.
     // @MinusLiteralSuffix
@@ -105,7 +107,7 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema)
     const ConstantRef newCstRef = sema.cast(castCtx, cstRef, typeRef);
     if (newCstRef.isInvalid())
         return AstVisitStepResult::Stop;
-    setSemaConstant(newCstRef);
+    sema.semaCtx().setConstant(sema.currentNodeRef(), newCstRef);
 
     return AstVisitStepResult::Continue;
 }

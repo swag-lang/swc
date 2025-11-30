@@ -141,7 +141,7 @@ struct AstIntrinsicCallVariadic : AstCompoundT<AstNodeId::IntrinsicCallVariadic>
 
 struct AstIntrinsicValue : AstNodeT<AstNodeId::IntrinsicValue>
 {
-    AstVisitStepResult semaPostNode(Sema& sema);
+    static AstVisitStepResult semaPostNode(Sema& sema);
 };
 
 struct AstFunctionExpr : AstLambdaExprT<AstNodeId::FunctionExpr>
@@ -448,7 +448,7 @@ struct AstLogicalExpr : AstBinaryT<AstNodeId::LogicalExpr>
 
 struct AstRelationalExpr : AstBinaryT<AstNodeId::RelationalExpr>
 {
-    AstVisitStepResult semaPostNode(Sema& sema);
+    AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
 struct AstBinaryExpr : AstBinaryT<AstNodeId::BinaryExpr>
@@ -467,7 +467,7 @@ struct AstUnaryExpr : AstNodeT<AstNodeId::UnaryExpr>
         AstNode::collectChildren(out, {nodeExprRef});
     }
 
-    AstVisitStepResult semaPostNode(Sema& sema);
+    AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
 struct AstBinaryConditionalExpr : AstNodeT<AstNodeId::BinaryConditionalExpr>
@@ -531,12 +531,12 @@ struct AstStringLiteral : AstLiteralT<AstNodeId::StringLiteral>
 
 struct AstCharacterLiteral : AstLiteralT<AstNodeId::CharacterLiteral>
 {
-    AstVisitStepResult semaPreNode(Sema& sema);
+    static AstVisitStepResult semaPreNode(Sema& sema);
 };
 
 struct AstBoolLiteral : AstLiteralT<AstNodeId::BoolLiteral>
 {
-    AstVisitStepResult semaPreNode(Sema& sema);
+    AstVisitStepResult semaPreNode(Sema& sema) const;
 };
 
 struct AstNullLiteral : AstLiteralT<AstNodeId::NullLiteral>
@@ -552,7 +552,7 @@ struct AstSuffixLiteral : AstNodeT<AstNodeId::SuffixLiteral>
     AstNodeRef nodeLiteralRef;
     AstNodeRef nodeSuffixRef;
 
-    AstVisitStepResult semaPostNode(Sema& sema);
+    AstVisitStepResult semaPostNode(Sema& sema) const;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
@@ -757,7 +757,7 @@ struct AstNamedType : AstNodeT<AstNodeId::NamedType>
 
 struct AstBuiltinType : AstNodeT<AstNodeId::BuiltinType>
 {
-    AstVisitStepResult semaPostNode(Sema& sema);
+    AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
 struct AstCompilerTypeExpr : AstNodeT<AstNodeId::CompilerTypeExpr>

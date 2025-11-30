@@ -62,6 +62,7 @@ public:
     Ast&       ast();
     const Ast& ast() const;
 
+    AstNodeRef   currentNodeRef() const { return visit_.currentNodeRef(); }
     Scope*       currentScope() { return currentScope_; }
     const Scope* currentScope() const { return currentScope_; }
     Scope*       rootScope() { return rootScope_; }

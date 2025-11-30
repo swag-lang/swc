@@ -31,7 +31,7 @@ namespace
         // In the case of a literal with a suffix, it has already been done
         // @MinusLiteralSuffix
         if (ops.nodeExpr->is(AstNodeId::SuffixLiteral))
-            return ops.nodeExpr->getSemaConstantRef();
+            return sema.semaCtx().getConstantRef(node.nodeExprRef);
 
         const auto& ctx = sema.ctx();
         if (ops.type->isInt())
@@ -70,8 +70,8 @@ namespace
 
     ConstantRef constantFold(Sema& sema, TokenId op, const AstUnaryExpr& node, UnaryOperands& ops)
     {
-        ops.cstRef = ops.nodeExpr->getSemaConstantRef();
-        ops.cst    = &ops.nodeExpr->getSemaConstant(sema.ctx());
+        ops.cstRef = sema.semaCtx().getConstantRef(node.nodeExprRef);
+        ops.cst    = &sema.semaCtx().getConstant(sema.ctx(), node.nodeExprRef);
 
         switch (op)
         {
@@ -138,7 +138,7 @@ namespace
     }
 }
 
-AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema)
+AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema) const
 {
     UnaryOperands ops(sema, *this);
 
@@ -148,12 +148,12 @@ AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema)
         return AstVisitStepResult::Stop;
 
     // Constant folding
-    if (ops.nodeExpr->isSemaConstant())
+    if (sema.semaCtx().hasConstant(nodeExprRef))
     {
         const auto cst = constantFold(sema, tok.id, *this, ops);
         if (cst.isValid())
         {
-            setSemaConstant(cst);
+            sema.semaCtx().setConstant(sema.currentNodeRef(), cst);
             return AstVisitStepResult::Continue;
         }
 

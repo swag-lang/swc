@@ -47,11 +47,11 @@ namespace
             castCtx.kind         = CastKind::Promotion;
             castCtx.errorNodeRef = node.nodeLeftRef;
 
-            leftRef = sema.cast(castCtx, ops.nodeLeft->getSemaConstantRef(), promotedTypeRef);
+            leftRef = sema.cast(castCtx, sema.semaCtx().getConstantRef(node.nodeLeftRef), promotedTypeRef);
             if (leftRef.isInvalid())
                 return false;
 
-            rightRef = sema.cast(castCtx, ops.nodeRight->getSemaConstantRef(), promotedTypeRef);
+            rightRef = sema.cast(castCtx, sema.semaCtx().getConstantRef(node.nodeRightRef), promotedTypeRef);
             if (rightRef.isInvalid())
                 return false;
 
@@ -147,10 +147,10 @@ namespace
 
     ConstantRef constantFold(Sema& sema, TokenId op, const AstRelationalExpr& node, RelationalOperands& ops)
     {
-        ops.leftCstRef  = ops.nodeLeft->getSemaConstantRef();
-        ops.rightCstRef = ops.nodeRight->getSemaConstantRef();
-        ops.leftCst     = &ops.nodeLeft->getSemaConstant(sema.ctx());
-        ops.rightCst    = &ops.nodeRight->getSemaConstant(sema.ctx());
+        ops.leftCstRef  = sema.semaCtx().getConstantRef(node.nodeLeftRef);
+        ops.rightCstRef = sema.semaCtx().getConstantRef(node.nodeRightRef);
+        ops.leftCst     = &sema.semaCtx().getConstant(sema.ctx(), node.nodeLeftRef);
+        ops.rightCst    = &sema.semaCtx().getConstant(sema.ctx(), node.nodeRightRef);
 
         switch (op)
         {
@@ -247,7 +247,7 @@ namespace
     }
 }
 
-AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
+AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema) const
 {
     RelationalOperands ops(sema, *this);
 
@@ -257,12 +257,12 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
         return AstVisitStepResult::Stop;
 
     // Constant folding
-    if (ops.nodeLeft->isSemaConstant() && ops.nodeRight->isSemaConstant())
+    if (sema.semaCtx().hasConstant(nodeLeftRef) && sema.semaCtx().hasConstant(nodeRightRef))
     {
         const auto cst = constantFold(sema, tok.id, *this, ops);
         if (cst.isValid())
         {
-            setSemaConstant(cst);
+            sema.semaCtx().setConstant(sema.currentNodeRef(), cst);
             return AstVisitStepResult::Continue;
         }
 

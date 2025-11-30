@@ -2,14 +2,14 @@
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisit.h"
 #include "Sema/Sema.h"
+#include "Sema/SemaContext.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
 AstVisitStepResult AstIntrinsicValue::semaPostNode(Sema& sema)
 {
-    // @temp
-    setSemaType(sema.typeMgr().getTypeBool());
+    sema.semaCtx().setType(sema.currentNodeRef(), sema.typeMgr().getTypeBool());
     return AstVisitStepResult::Stop;
 }
 

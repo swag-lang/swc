@@ -3,9 +3,6 @@
 #include "Main/TaskContext.h"
 #include "Parser/Ast.h"
 #include "Parser/AstNodes.h"
-#include "Report/DiagnosticDef.h"
-#include "Sema/Constant/ConstantManager.h"
-#include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -18,46 +15,6 @@ void AstNode::collectChildren(SmallVector<AstNodeRef>& out, std::initializer_lis
 {
     for (auto n : nodes)
         out.push_back(n);
-}
-
-void AstNode::setSemaConstant(ConstantRef ref)
-{
-    SWC_ASSERT(ref.isValid());
-    semaFlags_.clearMask(SemaFlagE::SemaRefMask);
-    addSemaFlag(SemaFlagE::SemaIsConst);
-    sema_.constant = ref;
-}
-
-void AstNode::setSemaType(TypeInfoRef ref)
-{
-    SWC_ASSERT(ref.isValid());
-    semaFlags_.clearMask(SemaFlagE::SemaRefMask);
-    addSemaFlag(SemaFlagE::SemaIsType);
-    sema_.type = ref;
-}
-
-const ConstantValue& AstNode::getSemaConstant(const TaskContext& ctx) const
-{
-    SWC_ASSERT(isSemaConstant());
-    return ctx.compiler().constMgr().get(sema_.constant);
-}
-
-ConstantRef AstNode::getSemaConstantRef() const
-{
-    SWC_ASSERT(isSemaConstant());
-    return sema_.constant;
-}
-
-const TypeInfo& AstNode::getSemaType(const TaskContext& ctx) const
-{
-    SWC_ASSERT(isSemaType());
-    return ctx.compiler().typeMgr().get(sema_.type);
-}
-
-TypeInfoRef AstNode::getSemaTypeRef() const
-{
-    SWC_ASSERT(isSemaType());
-    return sema_.type;
 }
 
 void AstNode::semaInherit(const AstNode& node)

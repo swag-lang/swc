@@ -66,7 +66,7 @@ public:
     const AstNode* parentNode(size_t up = 0) const { return parentNodeInternal(up); }
     AstNode*       currentNode() { return stack_.back().node; }
     const AstNode* currentNode() const { return stack_.back().node; }
-    AstNodeRef     currentNodeRef() { return stack_.back().nodeRef; }
+    AstNodeRef     currentNodeRef() const { return stack_.back().nodeRef; }
 
     AstNodeRef root() const { return rootRef_; }
     const Ast& ast() const { return *ast_; }

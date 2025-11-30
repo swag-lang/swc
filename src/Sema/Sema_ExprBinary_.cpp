@@ -44,10 +44,10 @@ namespace
 
     ConstantRef constantFold(Sema& sema, TokenId op, const AstBinaryExpr& node, BinaryOperands& ops)
     {
-        ops.leftCstRef  = ops.nodeLeft->getSemaConstantRef();
-        ops.rightCstRef = ops.nodeRight->getSemaConstantRef();
-        ops.leftCst     = &ops.nodeLeft->getSemaConstant(sema.ctx());
-        ops.rightCst    = &ops.nodeRight->getSemaConstant(sema.ctx());
+        ops.leftCstRef  = sema.semaCtx().getConstantRef(node.nodeLeftRef);
+        ops.rightCstRef = sema.semaCtx().getConstantRef(node.nodeRightRef);
+        ops.leftCst     = &sema.semaCtx().getConstant(sema.ctx(), node.nodeLeftRef);
+        ops.rightCst    = &sema.semaCtx().getConstant(sema.ctx(), node.nodeRightRef);
 
         switch (op)
         {
@@ -60,17 +60,17 @@ namespace
         return ConstantRef::invalid();
     }
 
-    Result checkPlusPlus(Sema& sema, const AstBinaryExpr& expr, const BinaryOperands& ops)
+    Result checkPlusPlus(Sema& sema, const AstBinaryExpr& node, const BinaryOperands& ops)
     {
-        if (!ops.nodeLeft->isSemaConstant())
+        if (!sema.semaCtx().hasConstant(node.nodeLeftRef))
         {
-            sema.raiseExprNotConst(expr.nodeLeftRef);
+            sema.raiseExprNotConst(node.nodeLeftRef);
             return Result::Error;
         }
 
-        if (!ops.nodeRight->isSemaConstant())
+        if (!sema.semaCtx().hasConstant(node.nodeRightRef))
         {
-            sema.raiseExprNotConst(expr.nodeRightRef);
+            sema.raiseExprNotConst(node.nodeRightRef);
             return Result::Error;
         }
 
@@ -102,12 +102,12 @@ AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema)
         return AstVisitStepResult::Stop;
 
     // Constant folding
-    if (ops.nodeLeft->isSemaConstant() && ops.nodeRight->isSemaConstant())
+    if (sema.semaCtx().hasConstant(nodeLeftRef) && sema.semaCtx().hasConstant(nodeRightRef))
     {
         const auto cst = constantFold(sema, tok.id, *this, ops);
         if (cst.isValid())
         {
-            setSemaConstant(cst);
+            sema.semaCtx().setConstant(sema.currentNodeRef(), cst);
             return AstVisitStepResult::Continue;
         }
 

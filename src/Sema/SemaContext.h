@@ -23,7 +23,16 @@ public:
     const Ast& ast() const { return ast_; }
 
     TypeInfoRef getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const;
-    SemaRef     addSymbol(AstNodeRef nodeRef, Symbol* symbol);
+
+    void                 setConstant(AstNodeRef nodeRef, ConstantRef ref);
+    bool                 hasConstant(AstNodeRef nodeRef) const;
+    ConstantRef          getConstantRef(AstNodeRef nodeRef) const;
+    const ConstantValue& getConstant(const TaskContext& ctx, AstNodeRef nodeRef) const;
+
+    void setType(AstNodeRef nodeRef, TypeInfoRef ref);
+    bool hasType(AstNodeRef nodeRef) const;
+
+    SemaRef setSymbol(AstNodeRef nodeRef, Symbol* symbol);
 };
 
 SWC_END_NAMESPACE()

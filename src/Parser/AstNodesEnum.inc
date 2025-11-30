@@ -1,249 +1,551 @@
-// clang-format off
+// ============================================================================
+//  Sentinel
+// ============================================================================
+SWC_NODE_DEF(Invalid,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
-// Sentinel
-SWC_NODE_DEF(Invalid,               Zero,                      Zero)
+// ============================================================================
+//  Compilation Units, Scopes & Modules
+// ============================================================================
+SWC_NODE_DEF(File,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::TopLevel)
+SWC_NODE_DEF(TopLevelBlock,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(EmbeddedBlock,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(DependenciesBlock,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(NamespaceDecl,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(ScopeResolution,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(AccessModifier,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(UsingNamespaceStmt,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(UsingDecl,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(AliasDecl,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
-// -----------------------------------------------------------------------------
-//  Root, Files & Module / Namespace Structure
-// -----------------------------------------------------------------------------
-SWC_NODE_DEF(File,                  Zero,                      TopLevel)
-SWC_NODE_DEF(TopLevelBlock,         Zero,                      Zero)
-SWC_NODE_DEF(EmbeddedBlock,         Zero,                      Zero)
-SWC_NODE_DEF(DependenciesBlock,     Zero,                      Zero)
-SWC_NODE_DEF(NamespaceDecl,         Zero,                      Zero)
-SWC_NODE_DEF(UsingNamespaceStmt,    Zero,                      Zero)
-SWC_NODE_DEF(UsingDecl,             Zero,                      Zero)
-SWC_NODE_DEF(AliasDecl,             Zero,                      Zero)
-SWC_NODE_DEF(AccessModifier,        Zero,                      Zero)
-SWC_NODE_DEF(ScopeResolution,       Zero,                      Zero)
-
-// -----------------------------------------------------------------------------
+// ============================================================================
 //  Identifiers & Name Resolution
-// -----------------------------------------------------------------------------
-SWC_NODE_DEF(Identifier,            Zero,                      Zero)
-SWC_NODE_DEF(ScopedIdentifier,      Zero,                      Zero)
-SWC_NODE_DEF(AncestorIdentifier,    Zero,                      Zero)
-SWC_NODE_DEF(IdentifierSuffix,      Zero,                      Zero)
-SWC_NODE_DEF(IdentifierSuffixList,  Zero,                      Zero)
+// ============================================================================
+SWC_NODE_DEF(Identifier,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(ScopedIdentifier,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(AncestorIdentifier,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(IdentifierSuffix,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(IdentifierSuffixList,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
-// -----------------------------------------------------------------------------
+// ============================================================================
 //  Types
-// -----------------------------------------------------------------------------
-SWC_NODE_DEF(NamedType,             Zero,                      Zero)
-SWC_NODE_DEF(QualifiedType,         Zero,                      Zero)
-SWC_NODE_DEF(BuiltinType,           Zero,                      Zero)
-SWC_NODE_DEF(PointerType,           Zero,                      Zero)
-SWC_NODE_DEF(BlockPointerType,      Zero,                      Zero)
-SWC_NODE_DEF(LRefType,              Zero,                      Zero)
-SWC_NODE_DEF(RRefType,              Zero,                      Zero)
-SWC_NODE_DEF(SliceType,             Zero,                      Zero)
-SWC_NODE_DEF(ArrayType,             Zero,                      Zero)
-SWC_NODE_DEF(LambdaType,            Zero,                      Zero)
-SWC_NODE_DEF(LambdaTypeParam,       Zero,                      Zero)
-SWC_NODE_DEF(RetValType,            Zero,                      Zero)
-SWC_NODE_DEF(CodeType,              Zero,                      Zero)
-SWC_NODE_DEF(VariadicType,          Zero,                      Zero)
-SWC_NODE_DEF(TypedVariadicType,     Zero,                      Zero)
+// ============================================================================
+SWC_NODE_DEF(NamedType,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(QualifiedType,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(BuiltinType,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(PointerType,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(BlockPointerType,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(LRefType,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(RRefType,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(SliceType,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(ArrayType,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(LambdaType,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(LambdaTypeParam,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(RetValType,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(CodeType,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(VariadicType,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(TypedVariadicType,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
-// -----------------------------------------------------------------------------
+// ============================================================================
 //  Attributes & Constraints
-// -----------------------------------------------------------------------------
-SWC_NODE_DEF(AttrDecl,              Zero,                      Zero)
-SWC_NODE_DEF(Attribute,             Zero,                      Zero)
-SWC_NODE_DEF(AttributeList,         Zero,                      Zero)
-SWC_NODE_DEF(ConstraintBlock,       Zero,                      Zero)
-SWC_NODE_DEF(ConstraintExpr,        Zero,                      Zero)
+// ============================================================================
+SWC_NODE_DEF(AttrDecl,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(Attribute,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(AttributeList,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(ConstraintBlock,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(ConstraintExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
-// -----------------------------------------------------------------------------
+// ============================================================================
 //  Generics, Parameters & Arguments
-// -----------------------------------------------------------------------------
-SWC_NODE_DEF(GenericParamList,      Zero,                      Zero)
-SWC_NODE_DEF(GenericParamType,      Zero,                      Zero)
-SWC_NODE_DEF(GenericParamValue,     Zero,                      Zero)
-SWC_NODE_DEF(FunctionParamList,     Zero,                      Zero)
-SWC_NODE_DEF(FunctionParamMe,       Zero,                      Zero)
-SWC_NODE_DEF(NamedArgumentList,     Zero,                      Zero)
-SWC_NODE_DEF(NamedArgument,         Zero,                      Zero)
-SWC_NODE_DEF(UnnamedArgumentList,   Zero,                      Zero)
-SWC_NODE_DEF(UnnamedArgument,       Zero,                      Zero)
+// ============================================================================
+SWC_NODE_DEF(GenericParamList,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(GenericParamType,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(GenericParamValue,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(FunctionParamList,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(FunctionParamMe,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(NamedArgumentList,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(NamedArgument,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(UnnamedArgumentList,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(UnnamedArgument,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
-// -----------------------------------------------------------------------------
-//  Type & Trait Declarations
-// -----------------------------------------------------------------------------
+// ============================================================================
+//  Type, Trait & Data Declarations
+// ============================================================================
 
 // Interfaces
-SWC_NODE_DEF(InterfaceDecl,         Zero,                      Zero)
-SWC_NODE_DEF(InterfaceBody,         Zero,                      Zero)
+SWC_NODE_DEF(InterfaceDecl,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(InterfaceBody,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
 // Structs & Unions
-SWC_NODE_DEF(AggregateBody,         Zero,                      Zero)
-SWC_NODE_DEF(StructDecl,            Zero,                      Zero)
-SWC_NODE_DEF(UnionDecl,             Zero,                      Zero)
-SWC_NODE_DEF(AnonymousStructDecl,   Zero,                      Zero)
-SWC_NODE_DEF(AnonymousUnionDecl,    Zero,                      Zero)
-SWC_NODE_DEF(UsingMemberDecl,       Zero,                      Zero)
+SWC_NODE_DEF(AggregateBody,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(StructDecl,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(UnionDecl,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(AnonymousStructDecl,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(AnonymousUnionDecl,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(UsingMemberDecl,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
 // Enums
-SWC_NODE_DEF(EnumDecl,              Zero,                      Zero)
-SWC_NODE_DEF(EnumBody,              Zero,                      Zero)
-SWC_NODE_DEF(EnumValue,             Zero,                      Zero)
-SWC_NODE_DEF(ImplEnum,              Zero,                      Zero)
-SWC_NODE_DEF(UsingEnumDecl,         Zero,                      Zero)
+SWC_NODE_DEF(EnumDecl,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(EnumBody,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(EnumValue,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(ImplEnum,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(UsingEnumDecl,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
 // Implementations
-SWC_NODE_DEF(Impl,                  Zero,                      Zero)
-SWC_NODE_DEF(ImplFor,               Zero,                      Zero)
+SWC_NODE_DEF(Impl,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(ImplFor,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
-// -----------------------------------------------------------------------------
+// ============================================================================
 //  Functions & Callables
-// -----------------------------------------------------------------------------
-SWC_NODE_DEF(FunctionDecl,          Zero,                      Zero)
-SWC_NODE_DEF(FunctionBody,          Zero,                      Zero)
-SWC_NODE_DEF(FunctionExpr,          Zero,                      Zero)
-SWC_NODE_DEF(ClosureExpr,           Zero,                      Zero)
-SWC_NODE_DEF(ClosureArgument,       Zero,                      Zero)
+// ============================================================================
+SWC_NODE_DEF(FunctionDecl,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(FunctionBody,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(FunctionExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(ClosureExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(ClosureArgument,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
-// -----------------------------------------------------------------------------
+// ============================================================================
 //  Variables / Bindings
-// -----------------------------------------------------------------------------
-SWC_NODE_DEF(VarDecl,               Zero,                      Zero)
-SWC_NODE_DEF(VarNameListDecl,       Zero,                      Zero)
-SWC_NODE_DEF(VarDeclList,           Zero,                      Zero)
-SWC_NODE_DEF(VarDecompositionDecl,  Zero,                      Zero)
-SWC_NODE_DEF(IfVarDecl,             Zero,                      Zero)
-SWC_NODE_DEF(WithVarDecl,           Zero,                      Zero)
-SWC_NODE_DEF(UndefinedExpr,         Zero,                      Zero)
+// ============================================================================
+SWC_NODE_DEF(VarDecl,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(VarNameListDecl,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(VarDeclList,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(VarDecompositionDecl,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(IfVarDecl,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(WithVarDecl,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(UndefinedExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
-// -----------------------------------------------------------------------------
+// ============================================================================
 //  Expressions
-// -----------------------------------------------------------------------------
+// ============================================================================
 
 // Primary & Grouping
-SWC_NODE_DEF(ParenExpr,             Zero,                      Zero)
-SWC_NODE_DEF(InitializerExpr,       Zero,                      Zero)
-SWC_NODE_DEF(RangeExpr,             Zero,                      Zero)
+SWC_NODE_DEF(ParenExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(InitializerExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(RangeExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
 // Unary, Binary, Logical, Relational & Conditional
-SWC_NODE_DEF(UnaryExpr,             Zero,                      Zero)
-SWC_NODE_DEF(BinaryExpr,            Zero,                      Zero)
-SWC_NODE_DEF(LogicalExpr,           Zero,                      Zero)
-SWC_NODE_DEF(RelationalExpr,        Zero,                      Zero)
-SWC_NODE_DEF(BinaryConditionalExpr, Zero,                      Zero)
-SWC_NODE_DEF(ConditionalExpr,       Zero,                      Zero)
+SWC_NODE_DEF(UnaryExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(BinaryExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(LogicalExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(RelationalExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(BinaryConditionalExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(ConditionalExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
 // Postfix, Indexing & Aggregate Init
-SWC_NODE_DEF(IndexExpr,             Zero,                      Zero)
-SWC_NODE_DEF(IndexListExpr,         Zero,                      Zero)
-SWC_NODE_DEF(StructInitializerList, Zero,                      Zero)
+SWC_NODE_DEF(IndexExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(IndexListExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(StructInitializerList,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
 // Function Calls & Alias Calls
-SWC_NODE_DEF(CallExpr,              Zero,                      Zero)
-SWC_NODE_DEF(AliasCallExpr,         Zero,                      Zero)
-SWC_NODE_DEF(DiscardExpr,           Zero,                      Zero)
+SWC_NODE_DEF(CallExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(AliasCallExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(DiscardExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
 // Type Casting & Type Checks
-SWC_NODE_DEF(ExplicitCastExpr,      Zero,                      Zero)
-SWC_NODE_DEF(AutoCastExpr,          Zero,                      Zero)
-SWC_NODE_DEF(AsCastExpr,            Zero,                      Zero)
-SWC_NODE_DEF(IsTypeExpr,            Zero,                      Zero)
+SWC_NODE_DEF(ExplicitCastExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(AutoCastExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(AsCastExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(IsTypeExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
 // Exception Expressions
-SWC_NODE_DEF(TryCatchExpr,          Zero,                      Zero)
-SWC_NODE_DEF(ThrowExpr,             Zero,                      Zero)
+SWC_NODE_DEF(TryCatchExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(ThrowExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
-// -----------------------------------------------------------------------------
+// ============================================================================
 //  Literals
-// -----------------------------------------------------------------------------
-SWC_NODE_DEF(BoolLiteral,           Zero,                      Zero)
-SWC_NODE_DEF(CharacterLiteral,      Zero,                      Zero)
-SWC_NODE_DEF(FloatLiteral,          Zero,                      Zero)
-SWC_NODE_DEF(IntegerLiteral,        Zero,                      Zero)
-SWC_NODE_DEF(BinaryLiteral,         Zero,                      Zero)
-SWC_NODE_DEF(HexaLiteral,           Zero,                      Zero)
-SWC_NODE_DEF(NullLiteral,           Zero,                      Zero)
-SWC_NODE_DEF(StringLiteral,         Zero,                      Zero)
-SWC_NODE_DEF(ArrayLiteral,          Zero,                      Zero)
-SWC_NODE_DEF(StructLiteral,         Zero,                      Zero)
-SWC_NODE_DEF(CompilerLiteral,       Zero,                      Zero)
-SWC_NODE_DEF(SuffixLiteral,         Zero,                      Zero)
+// ============================================================================
+SWC_NODE_DEF(BoolLiteral,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(CharacterLiteral,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(FloatLiteral,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(IntegerLiteral,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(BinaryLiteral,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(HexaLiteral,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(NullLiteral,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(StringLiteral,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(ArrayLiteral,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(StructLiteral,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(CompilerLiteral,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(SuffixLiteral,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
-// -----------------------------------------------------------------------------
+// ============================================================================
 //  Compiler Directives & Meta
-// -----------------------------------------------------------------------------
-SWC_NODE_DEF(CompilerDiagnostic,    SemaJob,                   Zero)
+// ============================================================================
+SWC_NODE_DEF(CompilerDiagnostic,
+                AstNodeIdFlagsE::SemaJob,
+                ScopeFlagsE::Zero)
 
-SWC_NODE_DEF(CompilerCallUnary,     Zero,                      Zero)
-SWC_NODE_DEF(CompilerExpr,          Zero,                      Zero)
-SWC_NODE_DEF(CompilerFunc,          Zero,                      Zero)
-SWC_NODE_DEF(CompilerShortFunc,     Zero,                      Zero)
-SWC_NODE_DEF(CompilerEmbeddedFunc,  Zero,                      Zero)
-SWC_NODE_DEF(CompilerMessageFunc,   Zero,                      Zero)
-SWC_NODE_DEF(CompilerTypeExpr,      Zero,                      Zero)
-SWC_NODE_DEF(CompilerGlobal,        Zero,                      Zero)
-SWC_NODE_DEF(CompilerImport,        Zero,                      Zero)
-SWC_NODE_DEF(CompilerScope,         Zero,                      Zero)
-SWC_NODE_DEF(CompilerMacro,         Zero,                      Zero)
-SWC_NODE_DEF(CompilerInject,        Zero,                      Zero)
+SWC_NODE_DEF(CompilerCallUnary,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(CompilerExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(CompilerFunc,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(CompilerShortFunc,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(CompilerEmbeddedFunc,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(CompilerMessageFunc,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(CompilerTypeExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(CompilerGlobal,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(CompilerImport,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(CompilerScope,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(CompilerMacro,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(CompilerInject,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
 // Compiler Conditionals
-SWC_NODE_DEF(CompilerIf,            SemaJob,                   Zero)
-SWC_NODE_DEF(CompilerElse,          Zero,                      Zero)
+SWC_NODE_DEF(CompilerIf,
+                AstNodeIdFlagsE::SemaJob,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(CompilerElse,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
-// -----------------------------------------------------------------------------
+// ============================================================================
 //  Intrinsics / Internal Calls
-// -----------------------------------------------------------------------------
+// ============================================================================
 
 // Low-level intrinsic values & hooks
-SWC_NODE_DEF(IntrinsicValue,        Zero,                      Zero)
-SWC_NODE_DEF(IntrinsicInit,         Zero,                      Zero)
-SWC_NODE_DEF(IntrinsicDrop,         Zero,                      Zero)
-SWC_NODE_DEF(IntrinsicPostCopy,     Zero,                      Zero)
-SWC_NODE_DEF(IntrinsicPostMove,     Zero,                      Zero)
+SWC_NODE_DEF(IntrinsicValue,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(IntrinsicInit,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(IntrinsicDrop,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(IntrinsicPostCopy,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(IntrinsicPostMove,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
 // Internal compiler calls
-SWC_NODE_DEF(IntrinsicCallZero,     Zero,                      Zero)
-SWC_NODE_DEF(IntrinsicCallUnary,    Zero,                      Zero)
-SWC_NODE_DEF(IntrinsicCallBinary,   Zero,                      Zero)
-SWC_NODE_DEF(IntrinsicCallTernary,  Zero,                      Zero)
-SWC_NODE_DEF(IntrinsicCallVariadic, Zero,                      Zero)
+SWC_NODE_DEF(IntrinsicCallZero,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(IntrinsicCallUnary,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(IntrinsicCallBinary,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(IntrinsicCallTernary,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(IntrinsicCallVariadic,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
-// -----------------------------------------------------------------------------
+// ============================================================================
 //  Statements & Control Flow
-// -----------------------------------------------------------------------------
+// ============================================================================
 
 // Assignment / Affect
-SWC_NODE_DEF(AssignStmt,            Zero,                      Zero)
-SWC_NODE_DEF(AssignListStmt,        Zero,                      Zero)
+SWC_NODE_DEF(AssignStmt,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(AssignListStmt,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
 // Conditionals
-SWC_NODE_DEF(IfStmt,                Zero,                      Zero)
-SWC_NODE_DEF(ElseIfStmt,            Zero,                      Zero)
-SWC_NODE_DEF(ElseStmt,              Zero,                      Zero)
+SWC_NODE_DEF(IfStmt,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(ElseIfStmt,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(ElseStmt,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
 // Loops
-SWC_NODE_DEF(WhileStmt,             Zero,                      Zero)
-SWC_NODE_DEF(ForeachStmt,           Zero,                      Zero)
-SWC_NODE_DEF(ForCStyleStmt,         Zero,                      Zero)
-SWC_NODE_DEF(ForStmt,               Zero,                      Zero)
-SWC_NODE_DEF(InfiniteLoopStmt,      Zero,                      Zero)
+SWC_NODE_DEF(WhileStmt,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(ForeachStmt,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(ForCStyleStmt,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(ForStmt,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(InfiniteLoopStmt,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
 // Switch
-SWC_NODE_DEF(SwitchStmt,            Zero,                      Zero)
-SWC_NODE_DEF(SwitchCaseStmt,        Zero,                      Zero)
+SWC_NODE_DEF(SwitchStmt,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(SwitchCaseStmt,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
 // Exceptions
-SWC_NODE_DEF(TryCatchStmt,          Zero,                      Zero)
+SWC_NODE_DEF(TryCatchStmt,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
 // Returns
-SWC_NODE_DEF(ReturnStmt,            Zero,                      Zero)
+SWC_NODE_DEF(ReturnStmt,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
 // Jumps & Flow Control
-SWC_NODE_DEF(BreakStmt,             Zero,                      Zero)
-SWC_NODE_DEF(ScopedBreakStmt,       Zero,                      Zero)
-SWC_NODE_DEF(ContinueStmt,          Zero,                      Zero)
-SWC_NODE_DEF(FallThroughStmt,       Zero,                      Zero)
-SWC_NODE_DEF(UnreachableStmt,       Zero,                      Zero)
+SWC_NODE_DEF(BreakStmt,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(ScopedBreakStmt,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(ContinueStmt,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(FallThroughStmt,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(UnreachableStmt,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
 // Defer / With
-SWC_NODE_DEF(DeferStmt,             Zero,                      Zero)
-SWC_NODE_DEF(WithStmt,              Zero,                      Zero)
+SWC_NODE_DEF(DeferStmt,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(WithStmt,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)

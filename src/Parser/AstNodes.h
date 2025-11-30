@@ -316,8 +316,8 @@ AstVisitStepResult semaPreChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
 constexpr std::array AST_NODE_ID_INFOS = {
 #define SWC_NODE_DEF(__enum, __flags, __scopeFlags) AstNodeIdInfo{                           \
                                                         #__enum,                             \
-                                                        AstNodeIdFlagsE::__flags,            \
-                                                        ScopeFlagsE::__scopeFlags,           \
+                                                        __flags,                             \
+                                                        __scopeFlags,                        \
                                                         &collectChildren<AstNodeId::__enum>, \
                                                         &semaEnterNode<AstNodeId::__enum>,   \
                                                         &semaPreNode<AstNodeId::__enum>,     \

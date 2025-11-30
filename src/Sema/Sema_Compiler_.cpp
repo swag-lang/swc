@@ -4,7 +4,7 @@
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticDef.h"
 #include "Report/Logger.h"
-#include "Sema/ConstantValue.h"
+#include "Sema/Constant/ConstantValue.h"
 #include "Sema/Sema.h"
 #include "Sema/Type/TypeManager.h"
 

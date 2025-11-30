@@ -13,7 +13,7 @@
 #include "Report/Diagnostic.h"
 #include "Report/LogColor.h"
 #include "Report/Logger.h"
-#include "Sema/ConstantManager.h"
+#include "Sema/Constant/ConstantManager.h"
 #include "Sema/Type/TypeManager.h"
 #include "Thread/JobManager.h"
 #include "Wmf/SourceFile.h"

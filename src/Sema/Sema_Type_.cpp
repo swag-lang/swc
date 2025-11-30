@@ -1,7 +1,6 @@
 #include "pch.h"
-
-#include "ConstantManager.h"
 #include "Parser/AstVisit.h"
+#include "Sema/Constant/ConstantManager.h"
 #include "Sema/Sema.h"
 #include "Sema/Type/TypeManager.h"
 

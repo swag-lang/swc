@@ -4,7 +4,7 @@
 #include "Parser/Ast.h"
 #include "Parser/AstNodes.h"
 #include "Report/DiagnosticDef.h"
-#include "Sema/ConstantManager.h"
+#include "Sema/Constant/ConstantManager.h"
 #include "Sema/Sema.h"
 
 SWC_BEGIN_NAMESPACE()

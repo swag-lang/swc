@@ -1,6 +1,6 @@
 #pragma once
 #include "Core/Store.h"
-#include "Sema/ConstantValue.h"
+#include "Sema/Constant/ConstantValue.h"
 
 SWC_BEGIN_NAMESPACE()
 class CompilerInstance;

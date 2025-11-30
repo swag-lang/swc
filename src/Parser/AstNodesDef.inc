@@ -953,7 +953,7 @@ struct AstVarDecl : AstNodeT<AstNodeId::VarDecl>
     }
 };
 
-struct AstVarNameListDecl : AstNodeT<AstNodeId::VarNameListDecl>
+struct AstVarDeclNameList : AstNodeT<AstNodeId::VarDeclNameList>
 {
     SpanRef    spanNamesRef;
     AstNodeRef nodeTypeRef;
@@ -965,7 +965,7 @@ struct AstVarNameListDecl : AstNodeT<AstNodeId::VarNameListDecl>
     }
 };
 
-struct AstVarDecompositionDecl : AstNodeT<AstNodeId::VarDecompositionDecl>
+struct AstVarDeclDecomposition : AstNodeT<AstNodeId::VarDeclDecomposition>
 {
     SpanRef    spanNamesRef;
     AstNodeRef nodeInitRef;

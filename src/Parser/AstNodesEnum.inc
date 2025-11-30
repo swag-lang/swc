@@ -239,19 +239,23 @@ SWC_NODE_DEF(ClosureArgument,
 SWC_NODE_DEF(VarDecl,
                 AstNodeIdFlagsE::Zero,
                 ScopeFlagsE::Zero)
-SWC_NODE_DEF(VarNameListDecl,
+SWC_NODE_DEF(VarDeclNameList,
                 AstNodeIdFlagsE::Zero,
                 ScopeFlagsE::Zero)
 SWC_NODE_DEF(VarDeclList,
                 AstNodeIdFlagsE::Zero,
                 ScopeFlagsE::Zero)
-SWC_NODE_DEF(VarDecompositionDecl,
+SWC_NODE_DEF(VarDeclDecomposition,
                 AstNodeIdFlagsE::Zero,
                 ScopeFlagsE::Zero)
 SWC_NODE_DEF(IfVarDecl,
                 AstNodeIdFlagsE::Zero,
                 ScopeFlagsE::Zero)
 SWC_NODE_DEF(WithVarDecl,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+
+SWC_NODE_DEF(InitializerExpr,
                 AstNodeIdFlagsE::Zero,
                 ScopeFlagsE::Zero)
 SWC_NODE_DEF(UndefinedExpr,
@@ -264,9 +268,6 @@ SWC_NODE_DEF(UndefinedExpr,
 
 // Primary & Grouping
 SWC_NODE_DEF(ParenExpr,
-                AstNodeIdFlagsE::Zero,
-                ScopeFlagsE::Zero)
-SWC_NODE_DEF(InitializerExpr,
                 AstNodeIdFlagsE::Zero,
                 ScopeFlagsE::Zero)
 SWC_NODE_DEF(RangeExpr,

@@ -114,7 +114,7 @@ class Parser
     AstNodeRef parseCompilerTypeOf();
     AstNodeRef parseConstraint();
     AstNodeRef parseContinue();
-    AstNodeRef parseVarDecompositionDecl();
+    AstNodeRef parseVarDeclDecomposition();
     AstNodeRef parseDefer();
     AstNodeRef parseDiscard();
     AstNodeRef parseDoCurlyBlock();

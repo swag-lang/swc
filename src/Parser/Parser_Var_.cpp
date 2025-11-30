@@ -54,7 +54,7 @@ AstNodeRef Parser::parseGenericParam()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseVarDecompositionDecl()
+AstNodeRef Parser::parseVarDeclDecomposition()
 {
     AstVarDecl::Flags flags = AstVarDecl::Zero;
     if (consumeIf(TokenId::KwdConst).isValid())
@@ -97,7 +97,7 @@ AstNodeRef Parser::parseVarDecompositionDecl()
     expectAndConsumeClosing(TokenId::SymRightParen, openRef, {TokenId::SymEqual});
     expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_before);
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDecompositionDecl>(ref());
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDeclDecomposition>(ref());
     nodePtr->addParserFlag(flags);
     nodePtr->nodeInitRef  = parseInitializerExpression();
     nodePtr->spanNamesRef = ast_->store().push_span(tokNames.span());
@@ -159,7 +159,7 @@ AstNodeRef Parser::parseVarDecl()
         }
         else
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarNameListDecl>(ref());
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDeclNameList>(ref());
             nodePtr->addParserFlag(flags);
             nodePtr->spanNamesRef = ast_->store().push_span(tokNames.span());
             nodePtr->nodeTypeRef  = nodeType;

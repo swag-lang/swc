@@ -772,7 +772,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
         {
             AstNodeRef nodeRef;
             if (nextIs(TokenId::SymLeftParen))
-                nodeRef = parseVarDecompositionDecl();
+                nodeRef = parseVarDeclDecomposition();
             else
                 nodeRef = parseVarDecl();
 

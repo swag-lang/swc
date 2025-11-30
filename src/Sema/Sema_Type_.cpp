@@ -8,47 +8,48 @@ SWC_BEGIN_NAMESPACE()
 
 AstVisitStepResult AstBuiltinType::semaPostNode(Sema& sema)
 {
-    const auto& tok = sema.token(srcViewRef(), tokRef());
+    const auto& tok     = sema.token(srcViewRef(), tokRef());
+    const auto& typeMgr = sema.typeMgr();
     switch (tok.id)
     {
         case TokenId::TypeS8:
-            setSemaType(sema.typeMgr().getTypeInt(8, false));
+            setSemaType(typeMgr.getTypeInt(8, false));
             return AstVisitStepResult::Continue;
         case TokenId::TypeS16:
-            setSemaType(sema.typeMgr().getTypeInt(16, false));
+            setSemaType(typeMgr.getTypeInt(16, false));
             return AstVisitStepResult::Continue;
         case TokenId::TypeS32:
-            setSemaType(sema.typeMgr().getTypeInt(32, false));
+            setSemaType(typeMgr.getTypeInt(32, false));
             return AstVisitStepResult::Continue;
         case TokenId::TypeS64:
-            setSemaType(sema.typeMgr().getTypeInt(64, false));
+            setSemaType(typeMgr.getTypeInt(64, false));
             return AstVisitStepResult::Continue;
 
         case TokenId::TypeU8:
-            setSemaType(sema.typeMgr().getTypeInt(8, true));
+            setSemaType(typeMgr.getTypeInt(8, true));
             return AstVisitStepResult::Continue;
         case TokenId::TypeU16:
-            setSemaType(sema.typeMgr().getTypeInt(16, true));
+            setSemaType(typeMgr.getTypeInt(16, true));
             return AstVisitStepResult::Continue;
         case TokenId::TypeU32:
-            setSemaType(sema.typeMgr().getTypeInt(32, true));
+            setSemaType(typeMgr.getTypeInt(32, true));
             return AstVisitStepResult::Continue;
         case TokenId::TypeU64:
-            setSemaType(sema.typeMgr().getTypeInt(64, true));
+            setSemaType(typeMgr.getTypeInt(64, true));
             return AstVisitStepResult::Continue;
 
         case TokenId::TypeF32:
-            setSemaType(sema.typeMgr().getTypeFloat(32));
+            setSemaType(typeMgr.getTypeFloat(32));
             return AstVisitStepResult::Continue;
         case TokenId::TypeF64:
-            setSemaType(sema.typeMgr().getTypeFloat(64));
+            setSemaType(typeMgr.getTypeFloat(64));
             return AstVisitStepResult::Continue;
 
         case TokenId::TypeBool:
-            setSemaType(sema.typeMgr().getTypeBool());
+            setSemaType(typeMgr.getTypeBool());
             return AstVisitStepResult::Continue;
         case TokenId::TypeString:
-            setSemaType(sema.typeMgr().getTypeString());
+            setSemaType(typeMgr.getTypeString());
             return AstVisitStepResult::Continue;
 
         default:

@@ -16,6 +16,7 @@ namespace Command
     void sema(CompilerInstance& compiler)
     {
         TaskContext ctx(compiler);
+
         const auto& global   = ctx.global();
         auto&       jobMgr   = global.jobMgr();
         const auto  clientId = compiler.jobClientId();
@@ -31,6 +32,8 @@ namespace Command
 
         jobMgr.waitAll(clientId);
 
+        compiler.setupSema(ctx);
+        
         for (const auto& f : compiler.files())
         {
             if (f->hasError())

@@ -14,6 +14,7 @@
 #include "Report/LogColor.h"
 #include "Report/Logger.h"
 #include "Sema/Constant/ConstantManager.h"
+#include "Sema/Symbol/Decls.h"
 #include "Sema/Type/TypeManager.h"
 #include "Thread/JobManager.h"
 #include "Wmf/SourceFile.h"
@@ -28,10 +29,14 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
 {
     jobClientId_ = global.jobMgr().newClientId();
     exeFullName_ = Os::getExeFullName();
-    typeMgr_     = std::make_unique<TypeManager>();
-    constMgr_    = std::make_unique<ConstantManager>();
+}
 
-    TaskContext ctx(*this);
+void CompilerInstance::setupSema(TaskContext& ctx)
+{
+    typeMgr_    = std::make_unique<TypeManager>();
+    constMgr_   = std::make_unique<ConstantManager>();
+    moduleDecl_ = std::make_unique<ModuleDecl>();
+
     typeMgr_->setup(ctx);
     constMgr_->setup(ctx);
 }

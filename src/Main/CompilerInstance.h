@@ -9,6 +9,7 @@ class SourceView;
 class TaskContext;
 class TypeManager;
 class ConstantManager;
+class ModuleDecl;
 class Global;
 class SourceFile;
 struct CommandLine;
@@ -22,6 +23,7 @@ class CompilerInstance
     std::vector<std::unique_ptr<SourceView>> srcViews_;
     std::unique_ptr<TypeManager>             typeMgr_;
     std::unique_ptr<ConstantManager>         constMgr_;
+    std::unique_ptr<ModuleDecl>              moduleDecl_;
     JobClientId                              jobClientId_ = 0;
     fs::path                                 modulePathSrc_;
     fs::path                                 modulePathFile_;
@@ -48,6 +50,8 @@ public:
     const TypeManager&     typeMgr() const { return *typeMgr_; }
     ConstantManager&       constMgr() { return *constMgr_; }
     const ConstantManager& constMgr() const { return *constMgr_; }
+
+    void setupSema(TaskContext &ctx);
 
     SourceFile& addFile(fs::path path, FileFlags flags);
     SourceFile& file(FileRef ref) const { return *files_[ref.get()].get(); }

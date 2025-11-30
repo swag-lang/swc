@@ -33,12 +33,12 @@ namespace Command
         jobMgr.waitAll(clientId);
 
         compiler.setupSema(ctx);
-        
+
         for (const auto& f : compiler.files())
         {
             if (f->hasError())
                 continue;
-            auto job = std::make_shared<SemaJob>(ctx, &f->ast());
+            auto job = std::make_shared<SemaJob>(ctx, f->semaCtx());
             jobMgr.enqueue(job, JobPriority::Normal, clientId);
         }
 

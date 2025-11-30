@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Sema/Sema.h"
 #include "Main/Global.h"
+#include "Sema/SemaContext.h"
 #include "Sema/SemaJob.h"
 #include "Symbol/Decls.h"
 #include "Symbol/Scope.h"
@@ -8,21 +9,31 @@
 
 SWC_BEGIN_NAMESPACE()
 
-Sema::Sema(TaskContext& ctx, Ast* ast) :
+Sema::Sema(TaskContext& ctx, SemaContext& semCtx) :
     ctx_(&ctx),
-    ast_(ast)
+    semaCtx_(&semCtx)
 {
-    visit_.start(*ast, ast->root());
+    visit_.start(semaCtx_->ast(), semaCtx_->ast().root());
     setVisitors();
 }
 
 Sema::Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root) :
     ctx_(&ctx),
-    ast_(parent.ast_),
+    semaCtx_(parent.semaCtx_),
     currentScope_(parent.currentScope_)
 {
-    visit_.start(*ast_, root);
+    visit_.start(semaCtx_->ast(), root);
     setVisitors();
+}
+
+Ast& Sema::ast()
+{
+    return semaCtx_->ast();
+}
+
+const Ast& Sema::ast() const
+{
+    return semaCtx_->ast();
 }
 
 void Sema::setVisitors()

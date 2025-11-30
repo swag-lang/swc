@@ -243,6 +243,7 @@
         <ClCompile Include="src\Sema\Constant\ConstantManager.cpp"/>
         <ClCompile Include="src\Sema\Constant\ConstantValue.cpp"/>
         <ClCompile Include="src\Sema\Sema.cpp"/>
+        <ClCompile Include="src\Sema\SemaContext.cpp"/>
         <ClCompile Include="src\Sema\SemaJob.cpp"/>
         <ClCompile Include="src\Sema\Sema_Cast_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Error_.cpp"/>
@@ -318,6 +319,7 @@
         <ClInclude Include="src\Sema\Constant\ConstantManager.h"/>
         <ClInclude Include="src\Sema\Constant\ConstantValue.h"/>
         <ClInclude Include="src\Sema\Sema.h"/>
+        <ClInclude Include="src\Sema\SemaContext.h"/>
         <ClInclude Include="src\Sema\SemaJob.h"/>
         <ClInclude Include="src\Sema\Symbol\DeclContext.h"/>
         <ClInclude Include="src\Sema\Symbol\Decls.h"/>

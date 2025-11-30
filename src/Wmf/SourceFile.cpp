@@ -5,8 +5,8 @@
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
 #include "Os/Os.h"
-#include "Parser/Ast.h"
 #include "Report/Diagnostic.h"
+#include "Sema/SemaContext.h"
 #include "Wmf/Verify.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -18,8 +18,18 @@ SourceFile::SourceFile(FileRef fileRef, fs::path path, FileFlags flags) :
     path_(std::move(path)),
     flags_(flags)
 {
-    ast_      = std::make_unique<Ast>();
+    semaCtx_  = std::make_unique<SemaContext>();
     unitTest_ = std::make_unique<Verify>(this);
+}
+
+Ast& SourceFile::ast()
+{
+    return semaCtx_->ast();
+}
+
+const Ast& SourceFile::ast() const
+{
+    return semaCtx_->ast();
 }
 
 Result SourceFile::loadContent(TaskContext& ctx)
@@ -65,7 +75,7 @@ Result SourceFile::loadContent(TaskContext& ctx)
         content_.push_back(0);
 
     auto& srcView = ctx.compiler().addSourceView(fileRef_);
-    ast_->setSourceView(srcView);
+    ast().setSourceView(srcView);
     return Result::Success;
 }
 

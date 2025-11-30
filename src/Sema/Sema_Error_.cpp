@@ -9,7 +9,7 @@ void Sema::setReportArguments(Diagnostic& diag, SourceViewRef srcViewRef, TokenR
 {
     const auto& srcView = compiler().srcView(srcViewRef);
     const auto& token   = srcView.token(tokenRef);
-    diag.addArgument(Diagnostic::ARG_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokenRef));
+    diag.addArgument(Diagnostic::ARG_TOK, Diagnostic::tokenErrorString(*ctx_, ast().srcView(), tokenRef));
     diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id), false);
     diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Token::toAFamily(token.id), false);
 }

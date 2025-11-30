@@ -90,19 +90,13 @@ AstVisitStepResult Sema::preChild(AstNode& node, AstNodeRef& childRef)
 {
     if (currentScope_->has(ScopeFlagsE::TopLevel))
     {
-        const AstNode& childPtr = ast().node(childRef);
-        switch (childPtr.id())
+        const AstNode& child = ast().node(childRef);
+        const auto&    info  = Ast::nodeIdInfos(child.id());
+        if (info.hasFlag(AstNodeIdFlagsE::SemaJob))
         {
-            case AstNodeId::CompilerDiagnostic:
-            case AstNodeId::CompilerIf:
-            {
-                const auto job = std::make_shared<SemaJob>(ctx(), *this, childRef);
-                compiler().global().jobMgr().enqueue(job, JobPriority::Normal, compiler().jobClientId());
-                return AstVisitStepResult::SkipChildren;
-            }
-
-            default:
-                break;
+            const auto job = std::make_shared<SemaJob>(ctx(), *this, childRef);
+            compiler().global().jobMgr().enqueue(job, JobPriority::Normal, compiler().jobClientId());
+            return AstVisitStepResult::SkipChildren;
         }
     }
 

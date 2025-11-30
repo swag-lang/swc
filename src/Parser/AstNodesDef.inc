@@ -994,7 +994,7 @@ struct AstUsingMemberDecl : AstNodeT<AstNodeId::UsingMemberDecl>
     }
 };
 
-struct AstAliasStmt : AstNodeT<AstNodeId::AliasStmt>
+struct AstAliasDecl : AstNodeT<AstNodeId::AliasDecl>
 {
     TokenRef   tokNameRef;
     AstNodeRef nodeExprRef;

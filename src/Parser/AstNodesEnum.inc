@@ -11,7 +11,7 @@ SWC_NODE_DEF(DependenciesBlock, ScopeFlagsE::Zero)
 SWC_NODE_DEF(NamespaceDecl, ScopeFlagsE::Zero)
 SWC_NODE_DEF(UsingNamespaceStmt, ScopeFlagsE::Zero)
 SWC_NODE_DEF(UsingDecl, ScopeFlagsE::Zero)
-SWC_NODE_DEF(AliasStmt, ScopeFlagsE::Zero)
+SWC_NODE_DEF(AliasDecl, ScopeFlagsE::Zero)
 SWC_NODE_DEF(AccessModifier, ScopeFlagsE::Zero)
 SWC_NODE_DEF(ScopeResolution, ScopeFlagsE::Zero)
 

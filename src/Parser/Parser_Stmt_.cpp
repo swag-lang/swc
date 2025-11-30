@@ -61,7 +61,7 @@ AstNodeRef Parser::parseConstraint()
 
 AstNodeRef Parser::parseAlias()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AliasStmt>(consume());
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AliasDecl>(consume());
     nodePtr->tokNameRef     = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
     expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_fam);
 

@@ -2,6 +2,7 @@
 #include "Parser/AstVisit.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Sema.h"
+#include "Sema/SemaContext.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -64,7 +65,7 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema)
 {
     const auto&       ctx         = sema.ctx();
     const AstNode&    nodeLiteral = sema.node(nodeLiteralRef);
-    const TypeInfoRef typeRef     = sema.getTypeRef(nodeSuffixRef);
+    const TypeInfoRef typeRef     = sema.semaCtx().getTypeRef(ctx, nodeSuffixRef);
 
     SWC_ASSERT(nodeLiteral.isSemaConstant());
 

@@ -3,6 +3,7 @@
 #include "Parser/AstVisit.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Sema.h"
+#include "Sema/SemaContext.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -25,8 +26,8 @@ namespace
         BinaryOperands(Sema& sema, const AstBinaryExpr& expr) :
             nodeLeft(&sema.node(expr.nodeLeftRef)),
             nodeRight(&sema.node(expr.nodeRightRef)),
-            leftTypeRef(sema.getTypeRef(expr.nodeLeftRef)),
-            rightTypeRef(sema.getTypeRef(expr.nodeRightRef)),
+            leftTypeRef(sema.semaCtx().getTypeRef(sema.ctx(), expr.nodeLeftRef)),
+            rightTypeRef(sema.semaCtx().getTypeRef(sema.ctx(), expr.nodeRightRef)),
             leftType(&sema.typeMgr().get(leftTypeRef)),
             rightType(&sema.typeMgr().get(rightTypeRef))
         {

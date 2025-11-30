@@ -59,9 +59,8 @@ public:
     const TypeManager&      typeMgr() const { return compiler().typeMgr(); }
     const Token&            token(SourceViewRef srcViewRef, TokenRef tokenRef) const { return compiler().srcView(srcViewRef).token(tokenRef); }
 
-    Ast&        ast();
-    const Ast&  ast() const;
-    TypeInfoRef getTypeRef(AstNodeRef nodeRef) const;
+    Ast&       ast();
+    const Ast& ast() const;
 
     Scope*       currentScope() { return currentScope_; }
     const Scope* currentScope() const { return currentScope_; }

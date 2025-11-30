@@ -19,6 +19,8 @@ class SemaContext
 public:
     Ast&       ast() { return ast_; }
     const Ast& ast() const { return ast_; }
+
+    TypeInfoRef getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const;
 };
 
 SWC_END_NAMESPACE()

@@ -37,16 +37,6 @@ const Ast& Sema::ast() const
     return semaCtx_->ast();
 }
 
-TypeInfoRef Sema::getTypeRef(AstNodeRef nodeRef) const
-{
-    const AstNode& node = ast().node(nodeRef);
-    if (node.isSemaConstant())
-        return node.getSemaConstant(*ctx_).typeRef();
-    if (node.isSemaType())
-        return node.getSemaTypeRef();
-    return TypeInfoRef::invalid();
-}
-
 void Sema::setVisitors()
 {
     visit_.setEnterNodeVisitor([this](AstNode& node) { enterNode(node); });

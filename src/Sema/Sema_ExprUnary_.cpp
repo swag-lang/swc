@@ -3,6 +3,7 @@
 #include "Parser/AstVisit.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Sema.h"
+#include "Sema/SemaContext.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -19,7 +20,7 @@ namespace
 
         UnaryOperands(Sema& sema, const AstUnaryExpr& node) :
             nodeExpr(&sema.node(node.nodeExprRef)),
-            typeRef(sema.getTypeRef(node.nodeExprRef)),
+            typeRef(sema.semaCtx().getTypeRef(sema.ctx(), node.nodeExprRef)),
             type(&sema.typeMgr().get(typeRef))
         {
         }
@@ -41,7 +42,7 @@ namespace
             value.negate(overflow);
             if (overflow)
             {
-                sema.raiseLiteralOverflow(node.nodeExprRef, sema.getTypeRef(node.nodeExprRef));
+                sema.raiseLiteralOverflow(node.nodeExprRef, sema.semaCtx().getTypeRef(sema.ctx(), node.nodeExprRef));
                 return ConstantRef::invalid();
             }
 

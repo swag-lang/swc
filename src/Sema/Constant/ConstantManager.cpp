@@ -52,12 +52,12 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
         auto [itStr, _] = cacheStr_.insert(std::string(value.getString()));
         auto stored     = ConstantValue::makeString(ctx, std::string_view(itStr->data(), itStr->size()));
 
-        const ConstantRef ref{store_.push_back(stored)};
+        const ConstantRef ref{store_.push_back(stored) / static_cast<uint32_t>(sizeof(ConstantValue))};
         map_.emplace(stored, ref);
         return ref;
     }
 
-    const ConstantRef ref{store_.push_back(value)};
+    const ConstantRef ref{store_.push_back(value) / static_cast<uint32_t>(sizeof(ConstantValue))};
     map_.emplace(value, ref);
     return ref;
 }
@@ -65,7 +65,7 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
 const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
 {
     SWC_ASSERT(constantRef.isValid());
-    return *store_.ptr<ConstantValue>(constantRef.get());
+    return *store_.ptr<ConstantValue>(constantRef.get() * sizeof(ConstantValue));
 }
 
 SWC_END_NAMESPACE()

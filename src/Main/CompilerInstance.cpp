@@ -33,12 +33,12 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
 
 void CompilerInstance::setupSema(TaskContext& ctx)
 {
-    typeMgr_    = std::make_unique<TypeManager>();
-    constMgr_   = std::make_unique<ConstantManager>();
-    moduleDecl_ = std::make_unique<SymbolModule>();
+    typeMgr_   = std::make_unique<TypeManager>();
+    cstMgr_    = std::make_unique<ConstantManager>();
+    symModule_ = std::make_unique<SymbolModule>();
 
     typeMgr_->setup(ctx);
-    constMgr_->setup(ctx);
+    cstMgr_->setup(ctx);
 }
 
 void CompilerInstance::logBefore()

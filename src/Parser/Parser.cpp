@@ -5,9 +5,9 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void Parser::setReportArguments(Diagnostic& diag, TokenRef tokenRef) const
+void Parser::setReportArguments(Diagnostic& diag, TokenRef tokRef) const
 {
-    const auto& token = ast_->srcView().token(tokenRef);
+    const auto& token = ast_->srcView().token(tokRef);
 
     if (token.is(TokenId::EndOfFile))
     {
@@ -16,24 +16,24 @@ void Parser::setReportArguments(Diagnostic& diag, TokenRef tokenRef) const
     }
     else
     {
-        diag.addArgument(Diagnostic::ARG_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokenRef));
+        diag.addArgument(Diagnostic::ARG_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokRef));
         diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id), false);
         diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Token::toAFamily(token.id), false);
     }
 
     // Get the last non-trivia token
-    if (tokenRef.get() != 0)
+    if (tokRef.get() != 0)
     {
-        const auto& tokenPrev = ast_->srcView().token(tokenRef.offset(-1));
-        diag.addArgument(Diagnostic::ARG_PREV_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokenRef.offset(-1)));
+        const auto& tokenPrev = ast_->srcView().token(tokRef.offset(-1));
+        diag.addArgument(Diagnostic::ARG_PREV_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokRef.offset(-1)));
         diag.addArgument(Diagnostic::ARG_PREV_TOK_FAM, Token::toFamily(tokenPrev.id), false);
         diag.addArgument(Diagnostic::ARG_PREV_A_TOK_FAM, Token::toAFamily(tokenPrev.id), false);
     }
 
-    if (tokenRef.get() < ast_->srcView().tokens().size() - 1)
+    if (tokRef.get() < ast_->srcView().tokens().size() - 1)
     {
-        const auto& tokenNext = ast_->srcView().token(tokenRef.offset(1));
-        diag.addArgument(Diagnostic::ARG_NEXT_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokenRef.offset(1)));
+        const auto& tokenNext = ast_->srcView().token(tokRef.offset(1));
+        diag.addArgument(Diagnostic::ARG_NEXT_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokRef.offset(1)));
         diag.addArgument(Diagnostic::ARG_NEXT_TOK_FAM, Token::toFamily(tokenNext.id), false);
         diag.addArgument(Diagnostic::ARG_NEXT_A_TOK_FAM, Token::toAFamily(tokenNext.id), false);
     }

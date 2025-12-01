@@ -141,13 +141,13 @@ void Lexer::pushToken()
     {
         case TokenId::Whitespace:
             if (lexerFlags_.has(LexerFlagsE::EmitTrivia))
-                srcView_->trivia().push_back({.tokenRef = TokenRef{srcView_->numTokens()}, .token = token_});
+                srcView_->trivia().push_back({.tokRef = TokenRef{srcView_->numTokens()}, .tok = token_});
             break;
         case TokenId::CommentLine:
         case TokenId::CommentBlock:
             if (!isRawMode() && lexerFlags_.hasNot(LexerFlagsE::EmitTrivia))
                 break;
-            srcView_->trivia().push_back({.tokenRef = TokenRef{srcView_->numTokens()}, .token = token_});
+            srcView_->trivia().push_back({.tokRef = TokenRef{srcView_->numTokens()}, .tok = token_});
             break;
         default:
             if (isRawMode())
@@ -1352,7 +1352,7 @@ void Lexer::buildTriviaIndex() const
     auto&          triviaStart = srcView_->triviaStart();
     triviaStart.resize(numTok + 1);
 
-    // trivia_ is in lex order; tokenRef is monotonic non-decreasing
+    // trivia_ is in lex order; tokRef is monotonic non-decreasing
     uint32_t tIdx = 0;
     for (uint32_t tokIdx = 0; tokIdx < numTok; ++tokIdx)
     {

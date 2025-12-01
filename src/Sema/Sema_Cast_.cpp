@@ -204,7 +204,7 @@ bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef t
 
 ConstantRef Sema::cast(const CastContext& castCtx, ConstantRef srcRef, TypeRef targetTypeRef)
 {
-    const ConstantValue& src = constMgr().get(srcRef);
+    const ConstantValue& src = cstMgr().get(srcRef);
     if (src.typeRef() == targetTypeRef)
         return srcRef;
 

@@ -54,12 +54,21 @@ const ConstantValue& SemaInfo::getConstant(const TaskContext& ctx, AstNodeRef no
 SemaRef SemaInfo::setSymbol(AstNodeRef nodeRef, Symbol* symbol)
 {
     const uint32_t   shardIdx = nodeRef.get() % NUM_SHARDS;
-    std::unique_lock lock(shards_[shardIdx].mutex);
+    auto&            shard    = shards_[shardIdx];
+    std::unique_lock lock(shard.mutex);
 
     AstNode& node      = ast().node(nodeRef);
     semaNodeKind(node) = NodeSemaKind::IsSymbol;
 
-    return SemaRef{shards_[shardIdx].store.push_back(symbol)};
+    return SemaRef{shard.store.push_back(symbol)};
+}
+
+Symbol* SemaInfo::getSymbol(AstNodeRef nodeRef, SemaRef semaRef)
+{
+    SWC_ASSERT(hasSymbol(nodeRef));
+    const uint32_t shardIdx = nodeRef.get() % NUM_SHARDS;
+    auto&          shard    = shards_[shardIdx];
+    return *shard.store.ptr<Symbol*>(semaRef.get());
 }
 
 bool SemaInfo::hasConstant(AstNodeRef nodeRef) const

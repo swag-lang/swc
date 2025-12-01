@@ -83,7 +83,7 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
         const Token& tok = sema.token(parentNode->srcViewRef(), parentNode->tokRef());
         if (tok.is(TokenId::SymMinus))
         {
-            const ConstantValue& cst  = sema.constMgr().get(cstRef);
+            const ConstantValue& cst  = sema.cstMgr().get(cstRef);
             const TypeInfo&      type = sema.typeMgr().get(cst.typeRef());
             if (type.isInt())
             {
@@ -98,7 +98,7 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
                 }
 
                 cpy.setUnsigned(false);
-                cstRef = sema.constMgr().addConstant(ctx, ConstantValue::makeInt(ctx, cpy, 0));
+                cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, cpy, 0));
             }
         }
     }

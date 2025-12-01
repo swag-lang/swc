@@ -26,7 +26,7 @@ namespace
         const auto& ctx    = sema.ctx();
         Utf8        result = ops.nodeLeftView.cst->toString();
         result += ops.nodeRightView.cst->toString();
-        return sema.constMgr().addConstant(ctx, ConstantValue::makeString(ctx, result));
+        return sema.cstMgr().addConstant(ctx, ConstantValue::makeString(ctx, result));
     }
 
     ConstantRef constantFold(Sema& sema, TokenId op, const AstBinaryExpr& node, const BinaryOperands& ops)

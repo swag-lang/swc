@@ -53,7 +53,7 @@ namespace
     ConstantRef constantFoldEqual(Sema& sema, const AstRelationalExpr& node, const RelationalOperands& ops)
     {
         if (ops.nodeLeftView.cstRef == ops.nodeRightView.cstRef)
-            return sema.constMgr().cstTrue();
+            return sema.cstMgr().cstTrue();
 
         auto leftCstRef  = ops.nodeLeftView.cstRef;
         auto rightCstRef = ops.nodeRightView.cstRef;
@@ -61,13 +61,13 @@ namespace
         if (!promoteConstantsIfNeeded(sema, node, ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
 
-        return sema.constMgr().cstBool(leftCstRef == rightCstRef);
+        return sema.cstMgr().cstBool(leftCstRef == rightCstRef);
     }
 
     ConstantRef constantFoldLess(Sema& sema, const AstRelationalExpr& node, const RelationalOperands& ops)
     {
         if (ops.nodeLeftView.cstRef == ops.nodeRightView.cstRef)
-            return sema.constMgr().cstFalse();
+            return sema.cstMgr().cstFalse();
 
         auto leftCstRef  = ops.nodeLeftView.cstRef;
         auto rightCstRef = ops.nodeRightView.cstRef;
@@ -75,16 +75,16 @@ namespace
         if (!promoteConstantsIfNeeded(sema, node, ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
 
-        const auto& leftCst  = sema.constMgr().get(leftCstRef);
-        const auto& rightCst = sema.constMgr().get(rightCstRef);
+        const auto& leftCst  = sema.cstMgr().get(leftCstRef);
+        const auto& rightCst = sema.cstMgr().get(rightCstRef);
 
-        return sema.constMgr().cstBool(leftCst.lt(rightCst));
+        return sema.cstMgr().cstBool(leftCst.lt(rightCst));
     }
 
     ConstantRef constantFoldLessEqual(Sema& sema, const AstRelationalExpr& node, const RelationalOperands& ops)
     {
         if (ops.nodeLeftView.cstRef == ops.nodeRightView.cstRef)
-            return sema.constMgr().cstTrue();
+            return sema.cstMgr().cstTrue();
         return constantFoldLess(sema, node, ops);
     }
 
@@ -98,13 +98,13 @@ namespace
     ConstantRef constantFoldGreaterEqual(Sema& sema, const AstRelationalExpr& node, const RelationalOperands& ops)
     {
         if (ops.nodeLeftView.cstRef == ops.nodeRightView.cstRef)
-            return sema.constMgr().cstTrue();
+            return sema.cstMgr().cstTrue();
 
         const ConstantRef lt = constantFoldLess(sema, node, ops);
         if (lt.isInvalid())
             return ConstantRef::invalid();
 
-        return sema.constMgr().cstNegBool(lt);
+        return sema.cstMgr().cstNegBool(lt);
     }
 
     ConstantRef constantFoldCompareEqual(Sema& sema, const AstRelationalExpr& node, const RelationalOperands& ops)
@@ -115,8 +115,8 @@ namespace
         if (!promoteConstantsIfNeeded(sema, node, ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
 
-        const auto& left  = sema.constMgr().get(leftCstRef);
-        const auto& right = sema.constMgr().get(rightCstRef);
+        const auto& left  = sema.cstMgr().get(leftCstRef);
+        const auto& right = sema.cstMgr().get(rightCstRef);
 
         int result;
         if (leftCstRef == rightCstRef)
@@ -128,7 +128,7 @@ namespace
         else
             result = 0;
 
-        return sema.constMgr().cstS32(result);
+        return sema.cstMgr().cstS32(result);
     }
 
     ConstantRef constantFold(Sema& sema, TokenId op, const AstRelationalExpr& node, const RelationalOperands& ops)
@@ -139,7 +139,7 @@ namespace
                 return constantFoldEqual(sema, node, ops);
 
             case TokenId::SymBangEqual:
-                return sema.constMgr().cstNegBool(constantFoldEqual(sema, node, ops));
+                return sema.cstMgr().cstNegBool(constantFoldEqual(sema, node, ops));
 
             case TokenId::SymLess:
                 return constantFoldLess(sema, node, ops);

@@ -38,10 +38,10 @@ namespace
     constexpr auto DIAGNOSTIC_INFOS = makeDiagnosticInfos();
 }
 
-Utf8 Diagnostic::tokenErrorString(const TaskContext&, const SourceView& srcView, TokenRef tokenRef)
+Utf8 Diagnostic::tokenErrorString(const TaskContext&, const SourceView& srcView, TokenRef tokRef)
 {
     constexpr static size_t MAX_TOKEN_STR_LEN = 40;
-    const auto&             token             = srcView.token(tokenRef);
+    const Token&            token             = srcView.token(tokRef);
     Utf8                    str               = token.string(srcView);
 
     if (token.hasFlag(TokenFlagsE::EolInside))
@@ -64,10 +64,10 @@ Utf8 Diagnostic::tokenErrorString(const TaskContext&, const SourceView& srcView,
     return str;
 }
 
-SourceCodeLocation Diagnostic::tokenErrorLocation(const TaskContext& ctx, const SourceView& srcView, TokenRef tokenRef)
+SourceCodeLocation Diagnostic::tokenErrorLocation(const TaskContext& ctx, const SourceView& srcView, TokenRef tokRef)
 {
-    const auto& token = srcView.token(tokenRef);
-    auto        loc   = token.location(ctx, srcView);
+    const Token&       token = srcView.token(tokRef);
+    SourceCodeLocation loc   = token.location(ctx, srcView);
 
     if (token.hasFlag(TokenFlagsE::EolInside))
     {
@@ -173,7 +173,7 @@ void Diagnostic::report(TaskContext& ctx) const
         return;
 
     DiagnosticBuilder eng(ctx, *this);
-    const auto        msg     = eng.build();
+    const Utf8        msg     = eng.build();
     bool              dismiss = false;
 
     // Check that diagnostic was not awaited

@@ -197,7 +197,7 @@ class Parser
     bool skipAfter(const SmallVector<TokenId>& targets, SkipUntilFlags flags = SkipUntilFlagsE::Zero);
     bool skip(const SmallVector<TokenId>& targets, SkipUntilFlags flags);
 
-    void        setReportArguments(Diagnostic& diag, TokenRef tokenRef) const;
+    void        setReportArguments(Diagnostic& diag, TokenRef tokRef) const;
     static void setReportExpected(Diagnostic& diag, TokenId expectedTknId);
     Diagnostic  reportError(DiagnosticId id, TokenRef tknRef);
     void        raiseError(DiagnosticId id, TokenRef tknRef);

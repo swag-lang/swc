@@ -5,8 +5,8 @@ SWC_BEGIN_NAMESPACE()
 
 struct SourceTrivia
 {
-    TokenRef tokenRef; // The last pushed token when the trivia was found
-    Token    token;    // Trivia definition
+    TokenRef tokRef; // The last pushed token when the trivia was found
+    Token    tok;    // Trivia definition
 };
 
 struct SourceIdentifier

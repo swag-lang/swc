@@ -41,14 +41,14 @@ namespace
             }
 
             value.setUnsigned(false);
-            return sema.constMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.nodeView.type->intBits()));
+            return sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.nodeView.type->intBits()));
         }
 
         if (ops.nodeView.type->isFloat())
         {
             ApFloat value = ops.nodeView.cst->getFloat();
             value.negate();
-            return sema.constMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, value, ops.nodeView.type->floatBits()));
+            return sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, value, ops.nodeView.type->floatBits()));
         }
 
         return ConstantRef::invalid();
@@ -57,9 +57,9 @@ namespace
     ConstantRef constantFoldBang(Sema& sema, const AstUnaryExpr&, const UnaryOperands& ops)
     {
         if (ops.nodeView.cst->isBool())
-            return sema.constMgr().cstNegBool(ops.nodeView.cstRef);
+            return sema.cstMgr().cstNegBool(ops.nodeView.cstRef);
         SWC_ASSERT(ops.nodeView.cst->isInt());
-        return sema.constMgr().cstBool(!ops.nodeView.cst->getInt().isZero());
+        return sema.cstMgr().cstBool(!ops.nodeView.cst->getInt().isZero());
     }
 
     ConstantRef constantFold(Sema& sema, TokenId op, const AstUnaryExpr& node, const UnaryOperands& ops)

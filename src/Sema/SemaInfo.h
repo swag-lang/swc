@@ -44,6 +44,7 @@ public:
     TypeRef getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const;
 
     SemaRef setSymbol(AstNodeRef nodeRef, Symbol* symbol);
+    Symbol* getSymbol(AstNodeRef nodeRef, SemaRef semaRef);
 };
 
 SWC_END_NAMESPACE()

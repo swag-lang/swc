@@ -53,11 +53,11 @@ public:
     const AstNode&          node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
     CompilerInstance&       compiler() { return ctx().compiler(); }
     const CompilerInstance& compiler() const { return ctx().compiler(); }
-    ConstantManager&        constMgr() { return compiler().constMgr(); }
-    const ConstantManager&  constMgr() const { return compiler().constMgr(); }
+    ConstantManager&        cstMgr() { return compiler().cstMgr(); }
+    const ConstantManager&  cstMgr() const { return compiler().cstMgr(); }
     TypeManager&            typeMgr() { return compiler().typeMgr(); }
     const TypeManager&      typeMgr() const { return compiler().typeMgr(); }
-    const Token&            token(SourceViewRef srcViewRef, TokenRef tokenRef) const { return compiler().srcView(srcViewRef).token(tokenRef); }
+    const Token&            token(SourceViewRef srcViewRef, TokenRef tokRef) const { return compiler().srcView(srcViewRef).token(tokRef); }
 
     Ast&       ast();
     const Ast& ast() const;
@@ -77,11 +77,11 @@ public:
     Scope*       pushScope(ScopeFlags flags);
     void         popScope();
 
-    void       setReportArguments(Diagnostic& diag, SourceViewRef srcViewRef, TokenRef tokenRef) const;
+    void       setReportArguments(Diagnostic& diag, SourceViewRef srcViewRef, TokenRef tokRef) const;
     Diagnostic reportError(DiagnosticId id, AstNodeRef nodeRef);
-    Diagnostic reportError(DiagnosticId id, AstNodeRef nodeRef, SourceViewRef srcViewRef, TokenRef tokenRef);
-    Diagnostic reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokenRef);
-    void       raiseError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokenRef);
+    Diagnostic reportError(DiagnosticId id, AstNodeRef nodeRef, SourceViewRef srcViewRef, TokenRef tokRef);
+    Diagnostic reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef);
+    void       raiseError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef);
     void       raiseError(DiagnosticId id, AstNodeRef nodeRef);
     void       raiseInvalidType(AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
     void       raiseCannotCast(AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);

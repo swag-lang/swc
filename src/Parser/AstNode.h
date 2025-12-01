@@ -76,10 +76,10 @@ struct AstNode
 
     void semaInherit(const AstNode& node);
 
-    uint8_t&       semaFlags() { return semaFlags_; }
-    const uint8_t& semaFlags() const { return semaFlags_; }
-    uint32_t       sema() const { return sema_; }
-    void           setSema(uint32_t val) { sema_ = val; }
+    uint8_t&       semaFlagsRaw() { return semaFlags_; }
+    const uint8_t& semaFlagsRaw() const { return semaFlags_; }
+    uint32_t       semaRaw() const { return sema_; }
+    void           setSemaRaw(uint32_t val) { sema_ = val; }
 
     AstNodeId     id() const { return id_; }
     void          setId(AstNodeId id) { id_ = id; }

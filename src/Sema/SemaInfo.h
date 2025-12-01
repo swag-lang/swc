@@ -30,8 +30,8 @@ public:
     Ast&       ast() { return ast_; }
     const Ast& ast() const { return ast_; }
 
-    static NodeSemaFlags&       semaFlags(AstNode& node) { return reinterpret_cast<NodeSemaFlags&>(node.semaFlags()); }
-    static const NodeSemaFlags& semaFlags(const AstNode& node) { return reinterpret_cast<const NodeSemaFlags&>(node.semaFlags()); }
+    static NodeSemaFlags&       semaFlags(AstNode& node) { return reinterpret_cast<NodeSemaFlags&>(node.semaFlagsRaw()); }
+    static const NodeSemaFlags& semaFlags(const AstNode& node) { return reinterpret_cast<const NodeSemaFlags&>(node.semaFlagsRaw()); }
 
     void                 setConstant(AstNodeRef nodeRef, ConstantRef ref);
     bool                 hasConstant(AstNodeRef nodeRef) const;

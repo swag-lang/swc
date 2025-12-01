@@ -1,7 +1,7 @@
 #pragma once
 #include "Parser/Ast.h"
 #include "Parser/AstVisit.h"
-#include "Report/Diagnostic.h"
+#include "Sema/SemaInfo.h"
 #include "Symbol/Scope.h"
 #include "Thread/Job.h"
 
@@ -61,6 +61,11 @@ public:
 
     Ast&       ast();
     const Ast& ast() const;
+
+    TypeRef              typeRefOf(AstNodeRef n) const { return semaInfo().getTypeRef(ctx(), n); }
+    ConstantRef          constantRefOf(AstNodeRef n) const { return semaInfo().getConstantRef(n); }
+    const ConstantValue* constantOf(AstNodeRef n) const { return &semaInfo().getConstant(ctx(), n); }
+    bool                 hasConstant(AstNodeRef n) const { return semaInfo().hasConstant(n); }
 
     AstNodeRef   currentNodeRef() const { return visit_.currentNodeRef(); }
     Scope*       currentScope() { return currentScope_; }

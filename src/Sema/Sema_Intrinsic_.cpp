@@ -9,7 +9,7 @@ SWC_BEGIN_NAMESPACE()
 
 AstVisitStepResult AstIntrinsicValue::semaPostNode(Sema& sema)
 {
-    sema.semaCtx().setType(sema.currentNodeRef(), sema.typeMgr().getTypeBool());
+    sema.semaInfo().setType(sema.currentNodeRef(), sema.typeMgr().getTypeBool());
     return AstVisitStepResult::Stop;
 }
 

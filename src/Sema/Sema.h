@@ -23,8 +23,8 @@ struct CastContext
 
 class Sema
 {
-    TaskContext* ctx_     = nullptr;
-    SemaInfo*    semaCtx_ = nullptr;
+    TaskContext* ctx_      = nullptr;
+    SemaInfo*    semaInfo_ = nullptr;
     AstVisit     visit_;
 
     void               setVisitors();
@@ -45,8 +45,8 @@ public:
 
     TaskContext&            ctx() { return *ctx_; }
     const TaskContext&      ctx() const { return *ctx_; }
-    SemaInfo&               semaCtx() { return *semaCtx_; }
-    const SemaInfo&         semaCtx() const { return *semaCtx_; }
+    SemaInfo&               semaInfo() { return *semaInfo_; }
+    const SemaInfo&         semaInfo() const { return *semaInfo_; }
     AstVisit&               visit() { return visit_; }
     const AstVisit&         visit() const { return visit_; }
     AstNode&                node(AstNodeRef nodeRef) { return ast().node(nodeRef); }

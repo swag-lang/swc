@@ -12,29 +12,29 @@ SWC_BEGIN_NAMESPACE()
 
 Sema::Sema(TaskContext& ctx, SemaInfo& semCtx) :
     ctx_(&ctx),
-    semaCtx_(&semCtx)
+    semaInfo_(&semCtx)
 {
-    visit_.start(semaCtx_->ast(), semaCtx_->ast().root());
+    visit_.start(semaInfo_->ast(), semaInfo_->ast().root());
     setVisitors();
 }
 
 Sema::Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root) :
     ctx_(&ctx),
-    semaCtx_(parent.semaCtx_),
+    semaInfo_(parent.semaInfo_),
     currentScope_(parent.currentScope_)
 {
-    visit_.start(semaCtx_->ast(), root);
+    visit_.start(semaInfo_->ast(), root);
     setVisitors();
 }
 
 Ast& Sema::ast()
 {
-    return semaCtx_->ast();
+    return semaInfo_->ast();
 }
 
 const Ast& Sema::ast() const
 {
-    return semaCtx_->ast();
+    return semaInfo_->ast();
 }
 
 void Sema::setVisitors()

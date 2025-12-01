@@ -11,7 +11,7 @@ AstVisitStepResult AstBuiltinType::semaPostNode(Sema& sema) const
 {
     const auto&      tok     = sema.token(srcViewRef(), tokRef());
     const auto&      typeMgr = sema.typeMgr();
-    auto&            semaCtx = sema.semaCtx();
+    auto&            semaCtx = sema.semaInfo();
     const AstNodeRef nodeRef = sema.currentNodeRef();
 
     switch (tok.id)
@@ -67,15 +67,15 @@ AstVisitStepResult AstBuiltinType::semaPostNode(Sema& sema) const
 AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
 {
     const auto&   ctx     = sema.ctx();
-    const TypeRef typeRef = sema.semaCtx().getTypeRef(ctx, nodeSuffixRef);
+    const TypeRef typeRef = sema.semaInfo().getTypeRef(ctx, nodeSuffixRef);
 
-    SWC_ASSERT(sema.semaCtx().hasConstant(nodeLiteralRef));
+    SWC_ASSERT(sema.semaInfo().hasConstant(nodeLiteralRef));
 
     CastContext castCtx;
     castCtx.kind         = CastKind::LiteralSuffix;
     castCtx.errorNodeRef = nodeLiteralRef;
 
-    ConstantRef cstRef = sema.semaCtx().getConstantRef(nodeLiteralRef);
+    ConstantRef cstRef = sema.semaInfo().getConstantRef(nodeLiteralRef);
 
     // Special case for negation: we need to negate before casting, in order for -128's8 to compile, for example.
     // @MinusLiteralSuffix
@@ -107,7 +107,7 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
     const ConstantRef newCstRef = sema.cast(castCtx, cstRef, typeRef);
     if (newCstRef.isInvalid())
         return AstVisitStepResult::Stop;
-    sema.semaCtx().setConstant(sema.currentNodeRef(), newCstRef);
+    sema.semaInfo().setConstant(sema.currentNodeRef(), newCstRef);
 
     return AstVisitStepResult::Continue;
 }

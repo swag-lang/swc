@@ -67,8 +67,7 @@ public:
     template<class T>
     Ref push_back(const T& v)
     {
-        auto [r, p]         = allocate(static_cast<uint32_t>(sizeof(T)),
-                                       static_cast<uint32_t>(alignof(T)));
+        auto [r, p]         = allocate(static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)));
         *static_cast<T*>(p) = v;
         return r;
     }
@@ -77,14 +76,12 @@ public:
     template<class T>
     std::pair<Ref, T*> emplace_uninit()
     {
-        auto [r, p] = allocate(static_cast<uint32_t>(sizeof(T)),
-                               static_cast<uint32_t>(alignof(T)));
+        auto [r, p] = allocate(static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)));
         return {r, static_cast<T*>(p)};
     }
 
     // Allocate raw bytes with chosen alignment
-    std::pair<Ref, void*> push_back_raw(uint32_t size,
-                                        uint32_t align = alignof(std::max_align_t))
+    std::pair<Ref, void*> push_back_raw(uint32_t size, uint32_t align = alignof(std::max_align_t))
     {
         return allocate(size, align);
     }
@@ -115,9 +112,7 @@ public:
 
 private:
     template<class T>
-    static T* ptr_impl(const std::vector<std::unique_ptr<Page>>& pages,
-                       uint32_t                                  pageSize,
-                       Ref                                       ref)
+    static T* ptr_impl(const std::vector<std::unique_ptr<Page>>& pages, uint32_t pageSize, Ref ref)
     {
         static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
         uint32_t pageIndex, offset;
@@ -129,9 +124,7 @@ private:
 
     struct SpanHdrRaw
     {
-        // Minimal header: store only the total number of elements in the span.
-        // This is read from the *first* header; later chunks recompute their count from layout.
-        uint32_t total;
+        uint32_t total; // total number of elements in the span
     };
 
     static constexpr uint32_t align_up_u32(uint32_t v, uint32_t a) noexcept
@@ -139,234 +132,83 @@ private:
         return (v + (a - 1)) & ~(a - 1);
     }
 
-    // Compute where the data begins (after header, aligned to T) for a given header ref.
-    template<class T>
-    static uint32_t data_offset_from_hdr(uint32_t hdrOffset) noexcept
-    {
-        const uint32_t hdrSize = static_cast<uint32_t>(sizeof(SpanHdrRaw));
-        const uint32_t align   = static_cast<uint32_t>(alignof(T));
-        return align_up_u32(hdrOffset + hdrSize, align);
-    }
-
-    // Write one chunk (header + padding + data) on current/new page(s) as needed.
-    // Precondition: at least one T will fit when this is called.
-    template<class T>
-    std::pair<SpanRef, uint32_t> write_chunk(const T* src,
-                                             uint32_t remaining,
-                                             uint32_t totalElems)
-    {
-        Page* page = cur_ ? cur_ : newPage();
-
-        // Attempt on the current page
-        uint32_t       off        = page->used; // the header has no special alignment
-        const uint32_t bytesAvail = pageSize_ - off;
-
-        const uint32_t dataOffset = data_offset_from_hdr<T>(off);
-        const uint32_t padBytes   = dataOffset - (off + static_cast<uint32_t>(sizeof(SpanHdrRaw)));
-
-        // If we can't fit header+pad+one T, start a fresh page (header at 0)
-        if (sizeof(SpanHdrRaw) + padBytes + sizeof(T) > bytesAvail)
-        {
-            page = newPage();
-            off  = 0;
-        }
-
-        // Recompute for (potentially) new page
-        const uint32_t dataOffsetF = data_offset_from_hdr<T>(off);
-        const uint32_t maxData     = pageSize_ - dataOffsetF;
-        const uint32_t cap         = maxData / static_cast<uint32_t>(sizeof(T));
-        const uint32_t fit         = std::min<uint32_t>(remaining, cap);
-        SWC_ASSERT(fit > 0);
-
-        // Reserve space (advance used)
-        const SpanRef  hdrRef{makeRef(pageSize_, curIndex_, off)};
-        const uint32_t newUsed = dataOffsetF + fit * static_cast<uint32_t>(sizeof(T));
-        SWC_ASSERT(newUsed <= pageSize_);
-        page->used = newUsed;
-        totalBytes_ += static_cast<uint32_t>(sizeof(SpanHdrRaw)) +
-                       (dataOffsetF - (off + static_cast<uint32_t>(sizeof(SpanHdrRaw)))) +
-                       fit * static_cast<uint32_t>(sizeof(T));
-
-        // Write header (only 'total' is needed; duplicate in all chunks for convenience)
-        auto* hdr  = reinterpret_cast<SpanHdrRaw*>(page->bytes() + off);
-        hdr->total = totalElems;
-
-        // Copy payload
-        std::memcpy(page->bytes() + dataOffsetF, src, static_cast<size_t>(fit) * sizeof(T));
-
-        return {hdrRef, fit};
-    }
+    // Raw helper for writing a chunk (header + padding + data) for arbitrary element size/alignment.
+    // Precondition: at least one element will fit when this is called.
+    std::pair<SpanRef, uint32_t> write_chunk_raw(const uint8_t* src, uint32_t elemSize, uint32_t elemAlign, uint32_t remaining, uint32_t totalElems);
 
 public:
-    // Store a span of T split across pages. Returns Ref to the first chunk header
+    // Non-templated raw span push: data = contiguous array of elements (elemSize/elemAlign),
+    // count = number of elements. Returns Ref to first chunk header.
+    SpanRef push_span_raw(const void* data, uint32_t elemSize, uint32_t elemAlign, uint32_t count);
+
+    // Templated convenience wrapper for typed spans.
     template<class T>
     SpanRef push_span(const std::span<T>& s)
     {
         static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
-
-        if (s.empty())
-            return SpanRef::invalid();
-
-        const T* src       = s.data();
-        auto     remaining = static_cast<uint32_t>(s.size());
-
-        // Always emit a header so span<>() works even for empty spans.
-        if (remaining == 0)
-        {
-            Page*          page = cur_ ? cur_ : newPage();
-            const uint32_t need = static_cast<uint32_t>(sizeof(SpanHdrRaw));
-            if (page->used + need > pageSize_)
-                page = newPage();
-            const SpanRef hdrRef{makeRef(pageSize_, curIndex_, page->used)};
-            auto*         hdr = reinterpret_cast<SpanHdrRaw*>(page->bytes() + page->used);
-            hdr->total        = 0;
-            page->used += need;
-            totalBytes_ += need;
-            return hdrRef;
-        }
-
-        const uint32_t totalElems = remaining;
-        SpanRef        firstRef   = SpanRef::invalid();
-
-        while (remaining)
-        {
-            auto [hdrRef, wrote] = write_chunk<T>(src, remaining, totalElems);
-
-            if (firstRef.isInvalid())
-                firstRef = hdrRef;
-
-            src += wrote;
-            remaining -= wrote;
-        }
-
-        return firstRef;
+        return push_span_raw(s.data(), static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)), static_cast<uint32_t>(s.size()));
     }
 
-    template<class T>
+    // Span view over stored data (type-erased; elements described by size+alignment).
     class SpanView
     {
-        const Store* store_;
-        Ref          head_;
+        const Store* store_     = nullptr;
+        Ref          head_      = std::numeric_limits<Ref>::max();
+        uint32_t     elemSize_  = 0;
+        uint32_t     elemAlign_ = 0;
 
-        static void decode_ref(const Store* st, Ref ref, uint32_t& pageIndex, uint32_t& off)
-        {
-            Store::decodeRef(st->pageSize(), ref, pageIndex, off);
-        }
-
-        // Compute a data pointer for given header; caller decides how many elements fit.
-        static const T* data_ptr(const Store* st, Ref hdrRef)
-        {
-            uint32_t pageIndex, off;
-            decode_ref(st, hdrRef, pageIndex, off);
-            const uint32_t dataOffset = data_offset_from_hdr<T>(off);
-            return reinterpret_cast<const T*>(st->pages_[pageIndex]->bytes() + dataOffset);
-        }
-
-        // Number of elements in the full span (read from the first header)
-        static uint32_t total_elems(const Store* st, Ref hdrRef)
-        {
-            return st->template ptr<SpanHdrRaw>(hdrRef)->total;
-        }
-
-        // Given a header on some page and remaining elements, compute this chunk's count.
-        static uint32_t chunk_count_from_layout(const Store* st,
-                                                Ref          hdrRef,
-                                                uint32_t     remaining)
-        {
-            uint32_t pageIndex, off;
-            decode_ref(st, hdrRef, pageIndex, off);
-            const uint32_t dataOffset = data_offset_from_hdr<T>(off);
-            const uint32_t capBytes   = st->pageSize() - dataOffset;
-            const uint32_t cap        = capBytes / static_cast<uint32_t>(sizeof(T));
-            return std::min<uint32_t>(cap, remaining);
-        }
+        static void        decode_ref(const Store* st, Ref ref, uint32_t& pageIndex, uint32_t& off);
+        static uint32_t    data_offset_from_hdr(uint32_t hdrOffset, uint32_t elemAlign);
+        static const void* data_ptr(const Store* st, Ref hdrRef, uint32_t elemAlign);
+        static uint32_t    total_elems(const Store* st, Ref hdrRef);
+        static uint32_t    chunk_count_from_layout(const Store* st, Ref hdrRef, uint32_t remaining, uint32_t elemSize, uint32_t elemAlign);
 
     public:
-        explicit SpanView(const Store* s, Ref r) :
-            store_(s),
-            head_(r)
-        {
-        }
+        SpanView() = default;
+        SpanView(const Store* s, Ref r, uint32_t elemSize, uint32_t elemAlign);
 
-        uint32_t size() const { return total_elems(store_, head_); }
+        uint32_t size() const;
         bool     empty() const { return size() == 0; }
         Ref      ref() const { return head_; }
+        uint32_t elemSize() const { return elemSize_; }
+        uint32_t elemAlign() const { return elemAlign_; }
 
         struct chunk
         {
-            const T* ptr;
-            uint32_t count;
+            const void* ptr;
+            uint32_t    count; // number of elements, not bytes
         };
 
         struct chunk_iterator
         {
-            const Store* store  = nullptr;
-            Ref          hdrRef = UINT32_MAX;
-            uint32_t     total  = 0;
-            uint32_t     done   = 0;
+            const Store* store     = nullptr;
+            Ref          hdrRef    = std::numeric_limits<Ref>::max();
+            uint32_t     total     = 0;
+            uint32_t     done      = 0;
+            uint32_t     elemSize  = 0;
+            uint32_t     elemAlign = 0;
             chunk        current{nullptr, 0};
 
-            bool         operator!=(const chunk_iterator& o) const { return hdrRef != o.hdrRef; }
+            bool         operator!=(const chunk_iterator& o) const;
             const chunk& operator*() const { return current; }
             const chunk* operator->() const { return &current; }
 
-            chunk_iterator& operator++()
-            {
-                done += current.count;
-                if (done >= total)
-                {
-                    hdrRef  = UINT32_MAX;
-                    current = {nullptr, 0};
-                    return *this;
-                }
-
-                // The next chunk starts at the beginning of the next page
-                uint32_t  pageIndex, off;
-                const Ref cur = hdrRef;
-                decode_ref(store, cur, pageIndex, off);
-                const Ref nextHdr = Store::makeRef(store->pageSize(), pageIndex + 1, 0);
-
-                hdrRef                   = nextHdr;
-                const uint32_t remaining = total - done;
-                const uint32_t cnt       = chunk_count_from_layout(store, hdrRef, remaining);
-                const T*       p         = SpanView::data_ptr(store, hdrRef);
-                current                  = {p, cnt};
-                return *this;
-            }
+            chunk_iterator& operator++();
         };
 
-        chunk_iterator chunks_begin() const
-        {
-            chunk_iterator it;
-            it.store  = store_;
-            it.hdrRef = head_;
-            it.total  = total_elems(store_, head_);
-            it.done   = 0;
-
-            if (it.total == 0)
-            {
-                it.hdrRef  = UINT32_MAX;
-                it.current = {nullptr, 0};
-                return it;
-            }
-
-            const uint32_t cnt = chunk_count_from_layout(store_, head_, it.total);
-            const T*       p   = data_ptr(store_, head_);
-            it.current         = {p, cnt};
-            return it;
-        }
-
-        chunk_iterator chunks_end() const
-        {
-            return {store_, UINT32_MAX, 0, 0, {nullptr, 0}};
-        }
+        chunk_iterator chunks_begin() const;
+        chunk_iterator chunks_end() const;
     };
 
-    // Build a SpanView<T> for a Ref produced by push_span<T>()
+    // Build a type-erased SpanView given the element size and alignment.
+    SpanView span_view(Ref ref, uint32_t elemSize, uint32_t elemAlign) const;
+
+    // Templated "last mile" helper: same layout, but you reinterpret chunks as T.
     template<class T>
-    SpanView<T> span(Ref ref) const
+    SpanView span(Ref ref) const
     {
-        return SpanView<T>(this, ref);
+        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
+        return span_view(ref, static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)));
     }
 };
 

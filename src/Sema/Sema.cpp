@@ -2,7 +2,7 @@
 #include "Sema/Sema.h"
 #include "Constant/ConstantValue.h"
 #include "Main/Global.h"
-#include "Sema/SemaContext.h"
+#include "Sema/SemaInfo.h"
 #include "Sema/SemaJob.h"
 #include "Symbol/Decls.h"
 #include "Symbol/Scope.h"
@@ -10,7 +10,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-Sema::Sema(TaskContext& ctx, SemaContext& semCtx) :
+Sema::Sema(TaskContext& ctx, SemaInfo& semCtx) :
     ctx_(&ctx),
     semaCtx_(&semCtx)
 {

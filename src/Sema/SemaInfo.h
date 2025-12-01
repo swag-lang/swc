@@ -5,7 +5,7 @@ SWC_BEGIN_NAMESPACE()
 
 class Symbol;
 
-class SemaContext
+class SemaInfo
 {
     Ast ast_;
 

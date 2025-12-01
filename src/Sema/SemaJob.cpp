@@ -4,7 +4,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-SemaJob::SemaJob(TaskContext& ctx, SemaContext& semaCtx) :
+SemaJob::SemaJob(TaskContext& ctx, SemaInfo& semaCtx) :
     Job(ctx),
     sema_(ctx, semaCtx)
 {

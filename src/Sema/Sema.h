@@ -24,7 +24,7 @@ struct CastContext
 class Sema
 {
     TaskContext* ctx_     = nullptr;
-    SemaContext* semaCtx_ = nullptr;
+    SemaInfo*    semaCtx_ = nullptr;
     AstVisit     visit_;
 
     void               setVisitors();
@@ -38,15 +38,15 @@ class Sema
     std::vector<std::unique_ptr<Scope>> scopes_;
 
 public:
-    Sema(TaskContext& ctx, SemaContext& semCtx);
+    Sema(TaskContext& ctx, SemaInfo& semCtx);
     Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root);
     ~Sema();
     JobResult exec();
 
     TaskContext&            ctx() { return *ctx_; }
     const TaskContext&      ctx() const { return *ctx_; }
-    SemaContext&            semaCtx() { return *semaCtx_; }
-    const SemaContext&      semaCtx() const { return *semaCtx_; }
+    SemaInfo&               semaCtx() { return *semaCtx_; }
+    const SemaInfo&         semaCtx() const { return *semaCtx_; }
     AstVisit&               visit() { return visit_; }
     const AstVisit&         visit() const { return visit_; }
     AstNode&                node(AstNodeRef nodeRef) { return ast().node(nodeRef); }

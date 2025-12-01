@@ -26,8 +26,8 @@ namespace
         BinaryOperands(Sema& sema, const AstBinaryExpr& expr) :
             nodeLeft(&sema.node(expr.nodeLeftRef)),
             nodeRight(&sema.node(expr.nodeRightRef)),
-            leftTypeRef(sema.semaInfo().getTypeRef(sema.ctx(), expr.nodeLeftRef)),
-            rightTypeRef(sema.semaInfo().getTypeRef(sema.ctx(), expr.nodeRightRef)),
+            leftTypeRef(sema.typeRefOf(expr.nodeLeftRef)),
+            rightTypeRef(sema.typeRefOf(expr.nodeRightRef)),
             leftType(&sema.typeMgr().get(leftTypeRef)),
             rightType(&sema.typeMgr().get(rightTypeRef))
         {
@@ -44,10 +44,10 @@ namespace
 
     ConstantRef constantFold(Sema& sema, TokenId op, const AstBinaryExpr& node, BinaryOperands& ops)
     {
-        ops.leftCstRef  = sema.semaInfo().getConstantRef(node.nodeLeftRef);
-        ops.rightCstRef = sema.semaInfo().getConstantRef(node.nodeRightRef);
-        ops.leftCst     = &sema.semaInfo().getConstant(sema.ctx(), node.nodeLeftRef);
-        ops.rightCst    = &sema.semaInfo().getConstant(sema.ctx(), node.nodeRightRef);
+        ops.leftCstRef  = sema.constantRefOf(node.nodeLeftRef);
+        ops.rightCstRef = sema.constantRefOf(node.nodeRightRef);
+        ops.leftCst     = &sema.constantOf(node.nodeLeftRef);
+        ops.rightCst    = &sema.constantOf(node.nodeRightRef);
 
         switch (op)
         {
@@ -62,13 +62,13 @@ namespace
 
     Result checkPlusPlus(Sema& sema, const AstBinaryExpr& node, const BinaryOperands& ops)
     {
-        if (!sema.semaInfo().hasConstant(node.nodeLeftRef))
+        if (!sema.hasConstant(node.nodeLeftRef))
         {
             sema.raiseExprNotConst(node.nodeLeftRef);
             return Result::Error;
         }
 
-        if (!sema.semaInfo().hasConstant(node.nodeRightRef))
+        if (!sema.hasConstant(node.nodeRightRef))
         {
             sema.raiseExprNotConst(node.nodeRightRef);
             return Result::Error;
@@ -102,7 +102,7 @@ AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema) const
         return AstVisitStepResult::Stop;
 
     // Constant folding
-    if (sema.semaInfo().hasConstant(nodeLeftRef) && sema.semaInfo().hasConstant(nodeRightRef))
+    if (sema.hasConstant(nodeLeftRef) && sema.hasConstant(nodeRightRef))
     {
         const auto cst = constantFold(sema, tok.id, *this, ops);
         if (cst.isValid())

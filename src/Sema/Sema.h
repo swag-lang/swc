@@ -64,7 +64,7 @@ public:
 
     TypeRef              typeRefOf(AstNodeRef n) const { return semaInfo().getTypeRef(ctx(), n); }
     ConstantRef          constantRefOf(AstNodeRef n) const { return semaInfo().getConstantRef(n); }
-    const ConstantValue* constantOf(AstNodeRef n) const { return &semaInfo().getConstant(ctx(), n); }
+    const ConstantValue& constantOf(AstNodeRef n) const { return semaInfo().getConstant(ctx(), n); }
     bool                 hasConstant(AstNodeRef n) const { return semaInfo().hasConstant(n); }
 
     AstNodeRef   currentNodeRef() const { return visit_.currentNodeRef(); }

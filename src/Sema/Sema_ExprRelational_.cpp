@@ -27,8 +27,8 @@ namespace
         RelationalOperands(Sema& sema, const AstRelationalExpr& expr) :
             nodeLeft(&sema.node(expr.nodeLeftRef)),
             nodeRight(&sema.node(expr.nodeRightRef)),
-            leftTypeRef(sema.semaInfo().getTypeRef(sema.ctx(), expr.nodeLeftRef)),
-            rightTypeRef(sema.semaInfo().getTypeRef(sema.ctx(), expr.nodeRightRef)),
+            leftTypeRef(sema.typeRefOf(expr.nodeLeftRef)),
+            rightTypeRef(sema.typeRefOf(expr.nodeRightRef)),
             leftType(&sema.typeMgr().get(leftTypeRef)),
             rightType(&sema.typeMgr().get(rightTypeRef))
         {
@@ -48,11 +48,11 @@ namespace
             castCtx.kind         = CastKind::Promotion;
             castCtx.errorNodeRef = node.nodeLeftRef;
 
-            leftRef = sema.cast(castCtx, sema.semaInfo().getConstantRef(node.nodeLeftRef), promotedTypeRef);
+            leftRef = sema.cast(castCtx, sema.constantRefOf(node.nodeLeftRef), promotedTypeRef);
             if (leftRef.isInvalid())
                 return false;
 
-            rightRef = sema.cast(castCtx, sema.semaInfo().getConstantRef(node.nodeRightRef), promotedTypeRef);
+            rightRef = sema.cast(castCtx, sema.constantRefOf(node.nodeRightRef), promotedTypeRef);
             if (rightRef.isInvalid())
                 return false;
 
@@ -148,10 +148,10 @@ namespace
 
     ConstantRef constantFold(Sema& sema, TokenId op, const AstRelationalExpr& node, RelationalOperands& ops)
     {
-        ops.leftCstRef  = sema.semaInfo().getConstantRef(node.nodeLeftRef);
-        ops.rightCstRef = sema.semaInfo().getConstantRef(node.nodeRightRef);
-        ops.leftCst     = &sema.semaInfo().getConstant(sema.ctx(), node.nodeLeftRef);
-        ops.rightCst    = &sema.semaInfo().getConstant(sema.ctx(), node.nodeRightRef);
+        ops.leftCstRef  = sema.constantRefOf(node.nodeLeftRef);
+        ops.rightCstRef = sema.constantRefOf(node.nodeRightRef);
+        ops.leftCst     = &sema.constantOf(node.nodeLeftRef);
+        ops.rightCst    = &sema.constantOf(node.nodeRightRef);
 
         switch (op)
         {
@@ -258,7 +258,7 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema) const
         return AstVisitStepResult::Stop;
 
     // Constant folding
-    if (sema.semaInfo().hasConstant(nodeLeftRef) && sema.semaInfo().hasConstant(nodeRightRef))
+    if (sema.hasConstant(nodeLeftRef) && sema.hasConstant(nodeRightRef))
     {
         const auto cst = constantFold(sema, tok.id, *this, ops);
         if (cst.isValid())

@@ -67,15 +67,15 @@ AstVisitStepResult AstBuiltinType::semaPostNode(Sema& sema) const
 AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
 {
     const auto&   ctx     = sema.ctx();
-    const TypeRef typeRef = sema.semaInfo().getTypeRef(ctx, nodeSuffixRef);
+    const TypeRef typeRef = sema.typeRefOf(nodeSuffixRef);
 
-    SWC_ASSERT(sema.semaInfo().hasConstant(nodeLiteralRef));
+    SWC_ASSERT(sema.hasConstant(nodeLiteralRef));
 
     CastContext castCtx;
     castCtx.kind         = CastKind::LiteralSuffix;
     castCtx.errorNodeRef = nodeLiteralRef;
 
-    ConstantRef cstRef = sema.semaInfo().getConstantRef(nodeLiteralRef);
+    ConstantRef cstRef = sema.constantRefOf(nodeLiteralRef);
 
     // Special case for negation: we need to negate before casting, in order for -128's8 to compile, for example.
     // @MinusLiteralSuffix

@@ -21,7 +21,7 @@ namespace
 
         UnaryOperands(Sema& sema, const AstUnaryExpr& node) :
             nodeExpr(&sema.node(node.nodeExprRef)),
-            typeRef(sema.semaInfo().getTypeRef(sema.ctx(), node.nodeExprRef)),
+            typeRef(sema.typeRefOf(node.nodeExprRef)),
             type(&sema.typeMgr().get(typeRef))
         {
         }
@@ -32,7 +32,7 @@ namespace
         // In the case of a literal with a suffix, it has already been done
         // @MinusLiteralSuffix
         if (ops.nodeExpr->is(AstNodeId::SuffixLiteral))
-            return sema.semaInfo().getConstantRef(node.nodeExprRef);
+            return sema.constantRefOf(node.nodeExprRef);
 
         const auto& ctx = sema.ctx();
         if (ops.type->isInt())
@@ -43,7 +43,7 @@ namespace
             value.negate(overflow);
             if (overflow)
             {
-                sema.raiseLiteralOverflow(node.nodeExprRef, sema.semaInfo().getTypeRef(sema.ctx(), node.nodeExprRef));
+                sema.raiseLiteralOverflow(node.nodeExprRef, sema.typeRefOf(node.nodeExprRef));
                 return ConstantRef::invalid();
             }
 
@@ -71,8 +71,8 @@ namespace
 
     ConstantRef constantFold(Sema& sema, TokenId op, const AstUnaryExpr& node, UnaryOperands& ops)
     {
-        ops.cstRef = sema.semaInfo().getConstantRef(node.nodeExprRef);
-        ops.cst    = &sema.semaInfo().getConstant(sema.ctx(), node.nodeExprRef);
+        ops.cstRef = sema.constantRefOf(node.nodeExprRef);
+        ops.cst    = &sema.constantOf(node.nodeExprRef);
 
         switch (op)
         {
@@ -149,7 +149,7 @@ AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema) const
         return AstVisitStepResult::Stop;
 
     // Constant folding
-    if (sema.semaInfo().hasConstant(nodeExprRef))
+    if (sema.hasConstant(nodeExprRef))
     {
         const auto cst = constantFold(sema, tok.id, *this, ops);
         if (cst.isValid())

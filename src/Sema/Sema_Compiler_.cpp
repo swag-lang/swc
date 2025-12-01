@@ -16,13 +16,13 @@ AstVisitStepResult AstCompilerIf::semaPreChild(Sema& sema, const AstNodeRef& chi
     if (childRef == nodeConditionRef)
         return AstVisitStepResult::Continue;
 
-    if (!sema.semaInfo().hasConstant(nodeConditionRef))
+    if (!sema.hasConstant(nodeConditionRef))
     {
         sema.raiseExprNotConst(nodeConditionRef);
         return AstVisitStepResult::Stop;
     }
 
-    const auto& constant = sema.semaInfo().getConstant(sema.ctx(), nodeConditionRef);
+    const auto& constant = sema.constantOf(nodeConditionRef);
     if (!constant.isBool())
     {
         sema.raiseInvalidType(nodeConditionRef, constant.typeRef(), sema.typeMgr().getTypeBool());
@@ -39,14 +39,14 @@ AstVisitStepResult AstCompilerIf::semaPreChild(Sema& sema, const AstNodeRef& chi
 
 AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 {
-    if (!sema.semaInfo().hasConstant(nodeArgRef))
+    if (!sema.hasConstant(nodeArgRef))
     {
         sema.raiseExprNotConst(nodeArgRef);
         return AstVisitStepResult::Stop;
     }
 
     const auto& tok      = sema.token(srcViewRef(), tokRef());
-    const auto& constant = sema.semaInfo().getConstant(sema.ctx(), nodeArgRef);
+    const auto& constant = sema.constantOf(nodeArgRef);
     switch (tok.id)
     {
         case TokenId::CompilerError:

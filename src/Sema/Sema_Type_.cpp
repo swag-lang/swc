@@ -12,7 +12,7 @@ AstVisitStepResult AstBuiltinType::semaPostNode(Sema& sema) const
     const auto&      tok     = sema.token(srcViewRef(), tokRef());
     const auto&      typeMgr = sema.typeMgr();
     auto&            semaCtx = sema.semaInfo();
-    const AstNodeRef nodeRef = sema.currentNodeRef();
+    const AstNodeRef nodeRef = sema.curNodeRef();
 
     switch (tok.id)
     {
@@ -107,7 +107,7 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
     const ConstantRef newCstRef = sema.cast(castCtx, cstRef, typeRef);
     if (newCstRef.isInvalid())
         return AstVisitStepResult::Stop;
-    sema.semaInfo().setConstant(sema.currentNodeRef(), newCstRef);
+    sema.semaInfo().setConstant(sema.curNodeRef(), newCstRef);
 
     return AstVisitStepResult::Continue;
 }

@@ -1,5 +1,4 @@
 #include "pch.h"
-
 #include "Lexer/LangSpec.h"
 #include "Main/Global.h"
 #include "Parser/Ast.h"
@@ -15,9 +14,9 @@ AstVisitStepResult AstBoolLiteral::semaPreNode(Sema& sema) const
 {
     const auto& tok = sema.token(srcViewRef(), tokRef());
     if (tok.is(TokenId::KwdTrue))
-        sema.semaInfo().setConstant(sema.currentNodeRef(), sema.constMgr().cstTrue());
+        sema.semaInfo().setConstant(sema.curNodeRef(), sema.constMgr().cstTrue());
     else if (tok.is(TokenId::KwdFalse))
-        sema.semaInfo().setConstant(sema.currentNodeRef(), sema.constMgr().cstFalse());
+        sema.semaInfo().setConstant(sema.curNodeRef(), sema.constMgr().cstFalse());
     else
         SWC_UNREACHABLE();
 
@@ -29,7 +28,7 @@ AstVisitStepResult AstCharacterLiteral::semaPreNode(Sema& sema)
     return AstVisitStepResult::SkipChildren;
 }
 
-AstVisitStepResult AstStringLiteral::semaPreNode(Sema& sema)
+AstVisitStepResult AstStringLiteral::semaPreNode(Sema& sema) const
 {
     const auto& ctx     = sema.ctx();
     const auto& tok     = sema.token(srcViewRef(), tokRef());
@@ -56,7 +55,7 @@ AstVisitStepResult AstStringLiteral::semaPreNode(Sema& sema)
     if (!tok.hasFlag(TokenFlagsE::Escaped))
     {
         const auto val = ConstantValue::makeString(ctx, str);
-        sema.semaInfo().setConstant(sema.currentNodeRef(), sema.constMgr().addConstant(ctx, val));
+        sema.semaInfo().setConstant(sema.curNodeRef(), sema.constMgr().addConstant(ctx, val));
         return AstVisitStepResult::SkipChildren;
     }
 
@@ -166,11 +165,11 @@ AstVisitStepResult AstStringLiteral::semaPreNode(Sema& sema)
     }
 
     const auto val = ConstantValue::makeString(ctx, result);
-    sema.semaInfo().setConstant(sema.currentNodeRef(), sema.constMgr().addConstant(ctx, val));
+    sema.semaInfo().setConstant(sema.curNodeRef(), sema.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 
-AstVisitStepResult AstBinaryLiteral::semaPreNode(Sema& sema)
+AstVisitStepResult AstBinaryLiteral::semaPreNode(Sema& sema) const
 {
     const auto& ctx = sema.ctx();
     const auto& tok = sema.token(srcViewRef(), tokRef());
@@ -202,11 +201,11 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(Sema& sema)
 
     // Convert the binary string to an integer constant
     const auto val = ConstantValue::makeInt(ctx, value);
-    sema.semaInfo().setConstant(sema.currentNodeRef(), sema.constMgr().addConstant(ctx, val));
+    sema.semaInfo().setConstant(sema.curNodeRef(), sema.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 
-AstVisitStepResult AstHexaLiteral::semaPreNode(Sema& sema)
+AstVisitStepResult AstHexaLiteral::semaPreNode(Sema& sema) const
 {
     const auto& ctx = sema.ctx();
     const auto& tok = sema.token(srcViewRef(), tokRef());
@@ -240,11 +239,11 @@ AstVisitStepResult AstHexaLiteral::semaPreNode(Sema& sema)
 
     // Convert the hexadecimal string to an integer constant
     const auto val = ConstantValue::makeInt(ctx, value);
-    sema.semaInfo().setConstant(sema.currentNodeRef(), sema.constMgr().addConstant(ctx, val));
+    sema.semaInfo().setConstant(sema.curNodeRef(), sema.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 
-AstVisitStepResult AstIntegerLiteral::semaPreNode(Sema& sema)
+AstVisitStepResult AstIntegerLiteral::semaPreNode(Sema& sema) const
 {
     const auto& ctx = sema.ctx();
     const auto& tok = sema.token(srcViewRef(), tokRef());
@@ -288,11 +287,11 @@ AstVisitStepResult AstIntegerLiteral::semaPreNode(Sema& sema)
     }
 
     const auto val = ConstantValue::makeInt(ctx, value);
-    sema.semaInfo().setConstant(sema.currentNodeRef(), sema.constMgr().addConstant(ctx, val));
+    sema.semaInfo().setConstant(sema.curNodeRef(), sema.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 
-AstVisitStepResult AstFloatLiteral::semaPreNode(Sema& sema)
+AstVisitStepResult AstFloatLiteral::semaPreNode(Sema& sema) const
 {
     const auto& ctx = sema.ctx();
     const auto& tok = sema.token(srcViewRef(), tokRef());
@@ -414,7 +413,7 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(Sema& sema)
     value.set(intValue, totalExp10);
 
     const auto val = ConstantValue::makeFloat(ctx, value, 64);
-    sema.semaInfo().setConstant(sema.currentNodeRef(), sema.constMgr().addConstant(ctx, val));
+    sema.semaInfo().setConstant(sema.curNodeRef(), sema.constMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 

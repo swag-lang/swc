@@ -506,27 +506,27 @@ struct AstInitializerExpr : AstNodeT<AstNodeId::InitializerExpr>
 
 struct AstBinaryLiteral : AstLiteralT<AstNodeId::BinaryLiteral>
 {
-    AstVisitStepResult semaPreNode(Sema& sema);
+    AstVisitStepResult semaPreNode(Sema& sema) const;
 };
 
 struct AstHexaLiteral : AstLiteralT<AstNodeId::HexaLiteral>
 {
-    AstVisitStepResult semaPreNode(Sema& sema);
+    AstVisitStepResult semaPreNode(Sema& sema) const;
 };
 
 struct AstIntegerLiteral : AstLiteralT<AstNodeId::IntegerLiteral>
 {
-    AstVisitStepResult semaPreNode(Sema& sema);
+    AstVisitStepResult semaPreNode(Sema& sema) const;
 };
 
 struct AstFloatLiteral : AstLiteralT<AstNodeId::FloatLiteral>
 {
-    AstVisitStepResult semaPreNode(Sema& sema);
+    AstVisitStepResult semaPreNode(Sema& sema) const;
 };
 
 struct AstStringLiteral : AstLiteralT<AstNodeId::StringLiteral>
 {
-    AstVisitStepResult semaPreNode(Sema& sema);
+    AstVisitStepResult semaPreNode(Sema& sema) const;
 };
 
 struct AstCharacterLiteral : AstLiteralT<AstNodeId::CharacterLiteral>

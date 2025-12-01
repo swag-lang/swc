@@ -31,15 +31,6 @@ enum class AstModifierFlagsE : uint32_t
 };
 using AstModifierFlags = EnumFlags<AstModifierFlagsE>;
 
-enum class SemaFlagE : uint8_t
-{
-    // Signification of field 'sema_'
-    SemaIsConst = 1 << 0,
-    SemaIsType  = 1 << 1,
-    SemaRefMask = SemaIsConst | SemaIsType,
-};
-using SemaFlags = EnumFlags<SemaFlagE>;
-
 struct AstNode
 {
     // ReSharper disable once CppPossiblyUninitializedMember
@@ -61,7 +52,7 @@ struct AstNode
     void clearFlags()
     {
         parserFlags_ = 0;
-        semaFlags_.clear();
+        semaFlags_   = 0;
     }
 
     template<typename T>
@@ -85,10 +76,10 @@ struct AstNode
 
     void semaInherit(const AstNode& node);
 
-    SemaFlags& semaFlags() { return semaFlags_; }
-    bool       hasSemaFlag(SemaFlagE flag) const { return semaFlags_.has(flag); }
-    uint32_t   sema() const { return sema_; }
-    void       setSema(uint32_t val) { sema_ = val; }
+    uint8_t&       semaFlags() { return semaFlags_; }
+    const uint8_t& semaFlags() const { return semaFlags_; }
+    uint32_t       sema() const { return sema_; }
+    void           setSema(uint32_t val) { sema_ = val; }
 
     AstNodeId     id() const { return id_; }
     void          setId(AstNodeId id) { id_ = id; }
@@ -101,7 +92,7 @@ struct AstNode
 private:
     AstNodeId     id_ = AstNodeId::Invalid;
     ParserFlags   parserFlags_{};
-    SemaFlags     semaFlags_{};
+    uint8_t       semaFlags_  = 0;
     SourceViewRef srcViewRef_ = SourceViewRef::invalid();
     TokenRef      tokRef_     = TokenRef::invalid();
     uint32_t      sema_       = 0;

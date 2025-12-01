@@ -5,6 +5,14 @@ SWC_BEGIN_NAMESPACE()
 
 class Symbol;
 
+enum class NodeSemaFlagE : uint8_t
+{
+    SemaIsConst = 1 << 0,
+    SemaIsType  = 1 << 1,
+    SemaRefMask = SemaIsConst | SemaIsType,
+};
+using NodeSemaFlags = EnumFlags<NodeSemaFlagE>;
+
 class SemaInfo
 {
     Ast ast_;
@@ -21,6 +29,9 @@ class SemaInfo
 public:
     Ast&       ast() { return ast_; }
     const Ast& ast() const { return ast_; }
+
+    static NodeSemaFlags&       semaFlags(AstNode& node) { return reinterpret_cast<NodeSemaFlags&>(node.semaFlags()); }
+    static const NodeSemaFlags& semaFlags(const AstNode& node) { return reinterpret_cast<const NodeSemaFlags&>(node.semaFlags()); }
 
     void                 setConstant(AstNodeRef nodeRef, ConstantRef ref);
     bool                 hasConstant(AstNodeRef nodeRef) const;

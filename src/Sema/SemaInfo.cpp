@@ -20,8 +20,8 @@ void SemaInfo::setConstant(AstNodeRef nodeRef, ConstantRef ref)
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(ref.isValid());
     AstNode& node = ast().node(nodeRef);
-    node.semaFlags().clearMask(SemaFlagE::SemaRefMask);
-    node.semaFlags().add(SemaFlagE::SemaIsConst);
+    semaFlags(node).clearMask(NodeSemaFlagE::SemaRefMask);
+    semaFlags(node).add(NodeSemaFlagE::SemaIsConst);
     node.setSema(ref.get());
 }
 
@@ -29,14 +29,14 @@ bool SemaInfo::hasConstant(AstNodeRef nodeRef) const
 {
     SWC_ASSERT(nodeRef.isValid());
     const AstNode& node = ast().node(nodeRef);
-    return node.hasSemaFlag(SemaFlagE::SemaIsConst);
+    return semaFlags(node).has(NodeSemaFlagE::SemaIsConst);
 }
 
 bool SemaInfo::hasType(AstNodeRef nodeRef) const
 {
     SWC_ASSERT(nodeRef.isValid());
     const AstNode& node = ast().node(nodeRef);
-    return node.hasSemaFlag(SemaFlagE::SemaIsType);
+    return semaFlags(node).has(NodeSemaFlagE::SemaIsType);
 }
 
 void SemaInfo::setType(AstNodeRef nodeRef, TypeRef ref)
@@ -44,8 +44,8 @@ void SemaInfo::setType(AstNodeRef nodeRef, TypeRef ref)
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(ref.isValid());
     AstNode& node = ast().node(nodeRef);
-    node.semaFlags().clearMask(SemaFlagE::SemaRefMask);
-    node.semaFlags().add(SemaFlagE::SemaIsType);
+    semaFlags(node).clearMask(NodeSemaFlagE::SemaRefMask);
+    semaFlags(node).add(NodeSemaFlagE::SemaIsType);
     node.setSema(ref.get());
 }
 

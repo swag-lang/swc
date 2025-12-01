@@ -107,7 +107,7 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
     const ConstantRef newCstRef = sema.cast(castCtx, cstRef, typeRef);
     if (newCstRef.isInvalid())
         return AstVisitStepResult::Stop;
-    sema.semaInfo().setConstant(sema.curNodeRef(), newCstRef);
+    sema.setConstant(sema.curNodeRef(), newCstRef);
 
     return AstVisitStepResult::Continue;
 }

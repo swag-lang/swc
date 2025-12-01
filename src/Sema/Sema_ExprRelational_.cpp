@@ -243,7 +243,7 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema) const
         const auto cst = constantFold(sema, tok.id, *this, ops);
         if (cst.isValid())
         {
-            sema.semaInfo().setConstant(sema.curNodeRef(), cst);
+            sema.setConstant(sema.curNodeRef(), cst);
             return AstVisitStepResult::Continue;
         }
 

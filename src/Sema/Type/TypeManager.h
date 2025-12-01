@@ -9,7 +9,8 @@ class CompilerInstance;
 
 class TypeManager
 {
-    Store<>                                                  store_;
+    Store                                                    store_;
+    
     std::unordered_map<TypeInfo, TypeRef, TypeInfoHash>      map_;
     mutable std::shared_mutex                                mutexAdd_;
     mutable std::unordered_map<TypeInfo, Utf8, TypeInfoHash> mapString_[static_cast<int>(TypeInfo::ToStringMode::Count)];

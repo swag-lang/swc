@@ -7,7 +7,7 @@ class CompilerInstance;
 
 class ConstantManager
 {
-    Store<>                                                           store_;
+    Store                                                             store_;
     std::unordered_map<ConstantValue, ConstantRef, ConstantValueHash> map_;
     std::unordered_set<std::string>                                   cacheStr_;
     mutable std::shared_mutex                                         mutex_;

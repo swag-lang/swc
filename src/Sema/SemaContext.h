@@ -12,7 +12,7 @@ class SemaContext
     struct Shard
     {
         std::shared_mutex mutex;
-        Store<>           store;
+        Store             store;
     };
 
     constexpr static uint32_t NUM_SHARDS = 16;

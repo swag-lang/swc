@@ -6,31 +6,70 @@ SWC_BEGIN_NAMESPACE()
 using Ref = uint32_t;
 
 // Simple page-based POD store.
-// Each page holds up to N bytes of raw data (N must be a power of two).
+// Each page holds up to pageSize bytes of raw data (pageSize must be a power of two).
 // Items are packed sequentially; alignment is preserved relative to a max-aligned base.
 // Ref is a 32-bit index in BYTES from the start of the store.
-template<uint32_t N = 16 * 1024>
 class Store
 {
-    static_assert(N > 0 && (N & (N - 1)) == 0, "N must be a power of two");
+    static constexpr uint32_t kDefaultPageSize = 16u * 1024u;
 
     struct Page
     {
-        alignas(alignof(std::max_align_t)) std::byte storage[N];
-        uint32_t used;
+        std::byte* storage_ = nullptr;
+        uint32_t   used     = 0;
 
-        uint8_t*       bytes() noexcept { return reinterpret_cast<uint8_t*>(&storage); }
-        const uint8_t* bytes() const noexcept { return reinterpret_cast<const uint8_t*>(&storage); }
+        static std::byte* allocate_aligned(uint32_t size)
+        {
+#if defined(__cpp_aligned_new) && __cpp_aligned_new >= 201606
+            return static_cast<std::byte*>(
+                ::operator new(size, std::align_val_t(alignof(std::max_align_t))));
+#else
+            void* p = nullptr;
+#if defined(_MSC_VER)
+            p = _aligned_malloc(size, alignof(std::max_align_t));
+            if (!p)
+                throw std::bad_alloc();
+            return static_cast<std::byte*>(p);
+#else
+            if (posix_memalign(&p, alignof(std::max_align_t), size) != 0)
+                throw std::bad_alloc();
+            return static_cast<std::byte*>(p);
+#endif
+#endif
+        }
 
-        // ReSharper disable once CppPossiblyUninitializedMember
-        Page() noexcept :
+        static void deallocate_aligned(std::byte* p) noexcept
+        {
+            if (!p)
+                return;
+
+#if defined(__cpp_aligned_new) && __cpp_aligned_new >= 201606
+            ::operator delete(p, std::align_val_t(alignof(std::max_align_t)));
+#elif defined(_MSC_VER)
+            _aligned_free(p);
+#else
+            std::free(p);
+#endif
+        }
+
+        explicit Page(uint32_t pageSize) :
+            storage_(allocate_aligned(pageSize)),
             used(0)
         {
         }
+
+        ~Page()
+        {
+            deallocate_aligned(storage_);
+        }
+
+        uint8_t*       bytes() noexcept { return reinterpret_cast<uint8_t*>(storage_); }
+        const uint8_t* bytes() const noexcept { return reinterpret_cast<const uint8_t*>(storage_); }
     };
 
     std::vector<std::unique_ptr<Page>> pages_;
     uint64_t                           totalBytes_ = 0; // payload bytes (wider to avoid overflow)
+    uint32_t                           pageSize_   = kDefaultPageSize;
 
     // Fast-path cache for the current page
     Page*    cur_      = nullptr;
@@ -38,31 +77,34 @@ class Store
 
     Page* newPage()
     {
-        pages_.emplace_back(std::make_unique<Page>());
+        pages_.emplace_back(std::make_unique<Page>(pageSize_));
         cur_      = pages_.back().get();
         curIndex_ = static_cast<uint32_t>(pages_.size() - 1);
         return cur_;
     }
 
     // Convert (page, offset) -> global byte index Ref
-    static Ref makeRef(uint32_t pageIndex, uint32_t offset) noexcept
+    static Ref makeRef(uint32_t pageSize, uint32_t pageIndex, uint32_t offset) noexcept
     {
-        const uint64_t r = static_cast<uint64_t>(pageIndex) * static_cast<uint64_t>(N) + offset;
+        const uint64_t r =
+            static_cast<uint64_t>(pageIndex) * static_cast<uint64_t>(pageSize) + offset;
         SWC_ASSERT(r < std::numeric_limits<Ref>::max());
         return static_cast<Ref>(r);
     }
 
     // Convert Ref -> (page, offset)
-    static void decodeRef(Ref ref, uint32_t& pageIndex, uint32_t& offset) noexcept
+    static void decodeRef(uint32_t pageSize, Ref ref, uint32_t& pageIndex, uint32_t& offset) noexcept
     {
-        pageIndex = ref / N;
-        offset    = ref % N;
+        pageIndex = ref / pageSize;
+        offset    = ref % pageSize;
     }
 
     // Allocate raw bytes with alignment; returns a (ref, ptr)
     std::pair<Ref, void*> allocate(uint32_t size, uint32_t align)
     {
-        SWC_ASSERT(size <= N && (align & (align - 1)) == 0 && align <= alignof(std::max_align_t));
+        SWC_ASSERT(size <= pageSize_ &&
+                   (align & (align - 1)) == 0 &&
+                   align <= alignof(std::max_align_t));
 
         Page* page = cur_ ? cur_ : newPage();
 
@@ -70,7 +112,7 @@ class Store
         uint32_t offset = (page->used + (align - 1)) & ~(align - 1);
 
         // New page if not enough space
-        if (offset + size > N)
+        if (offset + size > pageSize_)
         {
             page   = newPage();
             offset = 0; // page start is max-aligned -> OK for all T
@@ -79,18 +121,24 @@ class Store
         page->used = offset + size;
         totalBytes_ += size;
 
-        const Ref r = makeRef(curIndex_, offset);
+        const Ref r = makeRef(pageSize_, curIndex_, offset);
         return {r, static_cast<void*>(page->bytes() + offset)};
     }
 
 public:
-    Store()                        = default;
+    explicit Store(uint32_t pageSize = kDefaultPageSize) :
+        pageSize_(pageSize)
+    {
+        SWC_ASSERT(pageSize_ > 0 && (pageSize_ & (pageSize_ - 1)) == 0);
+    }
+
     Store(const Store&)            = delete;
     Store& operator=(const Store&) = delete;
 
     Store(Store&& other) noexcept :
         pages_(std::move(other.pages_)),
         totalBytes_(other.totalBytes_),
+        pageSize_(other.pageSize_),
         cur_(other.cur_),
         curIndex_(other.curIndex_)
     {
@@ -105,11 +153,14 @@ public:
         {
             std::swap(pages_, other.pages_);
             std::swap(totalBytes_, other.totalBytes_);
+            std::swap(pageSize_, other.pageSize_);
             std::swap(cur_, other.cur_);
             std::swap(curIndex_, other.curIndex_);
         }
         return *this;
     }
+
+    uint32_t pageSize() const noexcept { return pageSize_; }
 
     void clear() noexcept
     {
@@ -133,14 +184,16 @@ public:
     // payload bytes (clamped to 32 bits to match the previous signature)
     uint32_t size() const noexcept
     {
-        return static_cast<uint32_t>(std::min<uint64_t>(totalBytes_, std::numeric_limits<uint32_t>::max()));
+        return static_cast<uint32_t>(
+            std::min<uint64_t>(totalBytes_, std::numeric_limits<uint32_t>::max()));
     }
 
     // Allocate and copy a POD value (bitwise)
     template<class T>
     Ref push_back(const T& v)
     {
-        auto [r, p]         = allocate(static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)));
+        auto [r, p]         = allocate(static_cast<uint32_t>(sizeof(T)),
+                                       static_cast<uint32_t>(alignof(T)));
         *static_cast<T*>(p) = v;
         return r;
     }
@@ -149,12 +202,14 @@ public:
     template<class T>
     std::pair<Ref, T*> emplace_uninit()
     {
-        auto [r, p] = allocate(static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)));
+        auto [r, p] = allocate(static_cast<uint32_t>(sizeof(T)),
+                               static_cast<uint32_t>(alignof(T)));
         return {r, static_cast<T*>(p)};
     }
 
     // Allocate raw bytes with chosen alignment
-    std::pair<Ref, void*> push_back_raw(uint32_t size, uint32_t align = alignof(std::max_align_t))
+    std::pair<Ref, void*> push_back_raw(uint32_t size,
+                                        uint32_t align = alignof(std::max_align_t))
     {
         return allocate(size, align);
     }
@@ -162,13 +217,13 @@ public:
     template<class T>
     T* ptr(Ref ref) noexcept
     {
-        return ptr_impl<T>(pages_, ref);
+        return ptr_impl<T>(pages_, pageSize_, ref);
     }
 
     template<class T>
     const T* ptr(Ref ref) const noexcept
     {
-        return ptr_impl<T>(pages_, ref);
+        return ptr_impl<T>(pages_, pageSize_, ref);
     }
 
     template<class T>
@@ -185,13 +240,15 @@ public:
 
 private:
     template<class T>
-    static T* ptr_impl(const std::vector<std::unique_ptr<Page>>& pages, Ref ref)
+    static T* ptr_impl(const std::vector<std::unique_ptr<Page>>& pages,
+                       uint32_t                                  pageSize,
+                       Ref                                       ref)
     {
         static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
         uint32_t pageIndex, offset;
-        decodeRef(ref, pageIndex, offset);
+        decodeRef(pageSize, ref, pageIndex, offset);
         SWC_ASSERT(pageIndex < pages.size());
-        SWC_ASSERT(offset + sizeof(T) <= N);
+        SWC_ASSERT(offset + sizeof(T) <= pageSize);
         return reinterpret_cast<T*>(pages[pageIndex]->bytes() + offset);
     }
 
@@ -219,13 +276,15 @@ private:
     // Write one chunk (header + padding + data) on current/new page(s) as needed.
     // Precondition: at least one T will fit when this is called.
     template<class T>
-    std::pair<SpanRef, uint32_t> write_chunk(const T* src, uint32_t remaining, uint32_t totalElems)
+    std::pair<SpanRef, uint32_t> write_chunk(const T* src,
+                                             uint32_t remaining,
+                                             uint32_t totalElems)
     {
         Page* page = cur_ ? cur_ : newPage();
 
         // Attempt on the current page
         uint32_t       off        = page->used; // the header has no special alignment
-        const uint32_t bytesAvail = N - off;
+        const uint32_t bytesAvail = pageSize_ - off;
 
         const uint32_t dataOffset = data_offset_from_hdr<T>(off);
         const uint32_t padBytes   = dataOffset - (off + static_cast<uint32_t>(sizeof(SpanHdrRaw)));
@@ -239,17 +298,19 @@ private:
 
         // Recompute for (potentially) new page
         const uint32_t dataOffsetF = data_offset_from_hdr<T>(off);
-        const uint32_t maxData     = N - dataOffsetF;
+        const uint32_t maxData     = pageSize_ - dataOffsetF;
         const uint32_t cap         = maxData / static_cast<uint32_t>(sizeof(T));
         const uint32_t fit         = std::min<uint32_t>(remaining, cap);
         SWC_ASSERT(fit > 0);
 
         // Reserve space (advance used)
-        const SpanRef  hdrRef{makeRef(curIndex_, off)};
+        const SpanRef  hdrRef{makeRef(pageSize_, curIndex_, off)};
         const uint32_t newUsed = dataOffsetF + fit * static_cast<uint32_t>(sizeof(T));
-        SWC_ASSERT(newUsed <= N);
+        SWC_ASSERT(newUsed <= pageSize_);
         page->used = newUsed;
-        totalBytes_ += static_cast<uint32_t>(sizeof(SpanHdrRaw)) + (dataOffsetF - (off + static_cast<uint32_t>(sizeof(SpanHdrRaw)))) + fit * static_cast<uint32_t>(sizeof(T));
+        totalBytes_ += static_cast<uint32_t>(sizeof(SpanHdrRaw)) +
+                       (dataOffsetF - (off + static_cast<uint32_t>(sizeof(SpanHdrRaw)))) +
+                       fit * static_cast<uint32_t>(sizeof(T));
 
         // Write header (only 'total' is needed; duplicate in all chunks for convenience)
         auto* hdr  = reinterpret_cast<SpanHdrRaw*>(page->bytes() + off);
@@ -266,10 +327,10 @@ public:
     template<class T>
     SpanRef push_span(const std::span<T>& s)
     {
+        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
+
         if (s.empty())
             return SpanRef::invalid();
-
-        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
 
         const T* src       = s.data();
         auto     remaining = static_cast<uint32_t>(s.size());
@@ -279,9 +340,9 @@ public:
         {
             Page*          page = cur_ ? cur_ : newPage();
             const uint32_t need = static_cast<uint32_t>(sizeof(SpanHdrRaw));
-            if (page->used + need > N)
+            if (page->used + need > pageSize_)
                 page = newPage();
-            const SpanRef hdrRef{makeRef(curIndex_, page->used)};
+            const SpanRef hdrRef{makeRef(pageSize_, curIndex_, page->used)};
             auto*         hdr = reinterpret_cast<SpanHdrRaw*>(page->bytes() + page->used);
             hdr->total        = 0;
             page->used += need;
@@ -312,11 +373,16 @@ public:
         const Store* store_;
         Ref          head_;
 
+        static void decode_ref(const Store* st, Ref ref, uint32_t& pageIndex, uint32_t& off)
+        {
+            Store::decodeRef(st->pageSize(), ref, pageIndex, off);
+        }
+
         // Compute a data pointer for given header; caller decides how many elements fit.
         static const T* data_ptr(const Store* st, Ref hdrRef)
         {
             uint32_t pageIndex, off;
-            decodeRef(hdrRef, pageIndex, off);
+            decode_ref(st, hdrRef, pageIndex, off);
             const uint32_t dataOffset = data_offset_from_hdr<T>(off);
             return reinterpret_cast<const T*>(st->pages_[pageIndex]->bytes() + dataOffset);
         }
@@ -324,16 +390,18 @@ public:
         // Number of elements in the full span (read from the first header)
         static uint32_t total_elems(const Store* st, Ref hdrRef)
         {
-            return st->ptr<SpanHdrRaw>(hdrRef)->total;
+            return st->template ptr<SpanHdrRaw>(hdrRef)->total;
         }
 
         // Given a header on some page and remaining elements, compute this chunk's count.
-        static uint32_t chunk_count_from_layout(Ref hdrRef, uint32_t remaining)
+        static uint32_t chunk_count_from_layout(const Store* st,
+                                                Ref          hdrRef,
+                                                uint32_t     remaining)
         {
             uint32_t pageIndex, off;
-            decodeRef(hdrRef, pageIndex, off);
+            decode_ref(st, hdrRef, pageIndex, off);
             const uint32_t dataOffset = data_offset_from_hdr<T>(off);
-            const uint32_t capBytes   = N - dataOffset;
+            const uint32_t capBytes   = st->pageSize() - dataOffset;
             const uint32_t cap        = capBytes / static_cast<uint32_t>(sizeof(T));
             return std::min<uint32_t>(cap, remaining);
         }
@@ -380,12 +448,12 @@ public:
                 // The next chunk starts at the beginning of the next page
                 uint32_t  pageIndex, off;
                 const Ref cur = hdrRef;
-                decodeRef(cur, pageIndex, off);
-                const Ref nextHdr = makeRef(pageIndex + 1, 0);
+                decode_ref(store, cur, pageIndex, off);
+                const Ref nextHdr = Store::makeRef(store->pageSize(), pageIndex + 1, 0);
 
                 hdrRef                   = nextHdr;
                 const uint32_t remaining = total - done;
-                const uint32_t cnt       = chunk_count_from_layout(hdrRef, remaining);
+                const uint32_t cnt       = chunk_count_from_layout(store, hdrRef, remaining);
                 const T*       p         = SpanView::data_ptr(store, hdrRef);
                 current                  = {p, cnt};
                 return *this;
@@ -407,7 +475,7 @@ public:
                 return it;
             }
 
-            const uint32_t cnt = chunk_count_from_layout(head_, it.total);
+            const uint32_t cnt = chunk_count_from_layout(store_, head_, it.total);
             const T*       p   = data_ptr(store_, head_);
             it.current         = {p, cnt};
             return it;

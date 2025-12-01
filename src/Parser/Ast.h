@@ -22,7 +22,7 @@ using AstFlags = EnumFlags<AstFlagsE>;
 
 class Ast
 {
-    Store<>     store_;
+    Store       store_;
     SourceView* srcView_ = nullptr;
     AstNodeRef  root_    = AstNodeRef::invalid();
     AstFlags    flags_   = AstFlagsE::Zero;

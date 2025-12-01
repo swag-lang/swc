@@ -8,14 +8,14 @@ SWC_BEGIN_NAMESPACE()
 
 const TypeInfo& ConstantValue::type(const TaskContext& ctx) const
 {
-    return ctx.compiler().typeMgr().get(typeRef_);
+    return ctx.typeMgr().get(typeRef_);
 }
 
 ConstantValue ConstantValue::makeBool(const TaskContext& ctx, bool value)
 {
     ConstantValue cv;
-    cv.typeRef_  = ctx.compiler().typeMgr().getTypeBool();
-    cv.kind_     = ConstantKind::Bool;
+    cv.typeRef_   = ctx.typeMgr().getTypeBool();
+    cv.kind_      = ConstantKind::Bool;
     cv.asBool.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
@@ -24,8 +24,8 @@ ConstantValue ConstantValue::makeBool(const TaskContext& ctx, bool value)
 ConstantValue ConstantValue::makeString(const TaskContext& ctx, std::string_view value)
 {
     ConstantValue cv;
-    cv.typeRef_    = ctx.compiler().typeMgr().getTypeString();
-    cv.kind_       = ConstantKind::String;
+    cv.typeRef_     = ctx.typeMgr().getTypeString();
+    cv.kind_        = ConstantKind::String;
     cv.asString.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
@@ -34,8 +34,8 @@ ConstantValue ConstantValue::makeString(const TaskContext& ctx, std::string_view
 ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const ApsInt& value, uint32_t bitWidth)
 {
     ConstantValue cv;
-    cv.typeRef_ = ctx.compiler().typeMgr().getTypeInt(bitWidth, value.isUnsigned());
-    cv.kind_    = ConstantKind::Int;
+    cv.typeRef_  = ctx.typeMgr().getTypeInt(bitWidth, value.isUnsigned());
+    cv.kind_     = ConstantKind::Int;
     cv.asInt.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
@@ -44,8 +44,8 @@ ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const ApsInt& value
 ConstantValue ConstantValue::makeFloat(const TaskContext& ctx, const ApFloat& value, uint32_t bitWidth)
 {
     ConstantValue cv;
-    cv.typeRef_   = ctx.compiler().typeMgr().getTypeFloat(bitWidth);
-    cv.kind_      = ConstantKind::Float;
+    cv.typeRef_    = ctx.typeMgr().getTypeFloat(bitWidth);
+    cv.kind_       = ConstantKind::Float;
     cv.asFloat.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;

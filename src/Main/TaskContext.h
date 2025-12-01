@@ -39,6 +39,11 @@ public:
     const CompilerInstance& compiler() const { SWC_ASSERT(compilerInstance_); return *compilerInstance_; }
     // clang-format on
 
+    ConstantManager&       cstMgr() { return compiler().constMgr(); }
+    const ConstantManager& cstMgr() const { return compiler().constMgr(); }
+    TypeManager&           typeMgr() { return compiler().typeMgr(); }
+    const TypeManager&     typeMgr() const { return compiler().typeMgr(); }
+
     bool silentDiagnostic() const { return silentDiagnostic_; }
     void setSilentDiagnostic(bool silent) { silentDiagnostic_ = silent; }
     void setHasError() { hasError_ = true; }

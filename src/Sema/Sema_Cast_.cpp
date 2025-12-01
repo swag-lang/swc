@@ -13,7 +13,7 @@ namespace
         auto& ctx = sema.ctx();
         SWC_ASSERT(src.isInt());
 
-        const auto&     typeMgr    = ctx.compiler().typeMgr();
+        const auto&     typeMgr    = ctx.typeMgr();
         const TypeInfo& targetType = typeMgr.get(targetTypeRef);
 
         // We only support integer target types here
@@ -114,7 +114,7 @@ namespace
         value.resize(targetBits);
 
         const ConstantValue result = ConstantValue::makeInt(ctx, value, targetBits);
-        return ctx.compiler().constMgr().addConstant(ctx, result);
+        return ctx.cstMgr().addConstant(ctx, result);
     }
 
     ConstantRef castIntToFloat(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
@@ -122,7 +122,7 @@ namespace
         auto& ctx = sema.ctx();
         SWC_ASSERT(src.isInt());
 
-        const auto&     typeMgr    = ctx.compiler().typeMgr();
+        const auto&     typeMgr    = ctx.typeMgr();
         const TypeInfo& targetType = typeMgr.get(targetTypeRef);
         SWC_ASSERT(targetType.isFloat());
 
@@ -140,7 +140,7 @@ namespace
         }
 
         const ConstantValue result = ConstantValue::makeFloat(ctx, value, targetBits);
-        return ctx.compiler().constMgr().addConstant(ctx, result);
+        return ctx.cstMgr().addConstant(ctx, result);
     }
 
     ConstantRef castFloatToFloat(Sema& sema, const CastContext&, const ConstantValue& src, TypeRef targetTypeRef)
@@ -148,7 +148,7 @@ namespace
         auto& ctx = sema.ctx();
         SWC_ASSERT(src.isFloat());
 
-        const auto&     typeMgr    = ctx.compiler().typeMgr();
+        const auto&     typeMgr    = ctx.typeMgr();
         const TypeInfo& targetType = typeMgr.get(targetTypeRef);
         SWC_ASSERT(targetType.isFloat());
 
@@ -169,14 +169,14 @@ namespace
         }
 
         const ConstantValue result = ConstantValue::makeFloat(ctx, value, targetBits);
-        return ctx.compiler().constMgr().addConstant(ctx, result);
+        return ctx.cstMgr().addConstant(ctx, result);
     }
 }
 
 bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
     auto&           ctx        = *ctx_;
-    const auto&     typeMgr    = ctx.compiler().typeMgr();
+    const auto&     typeMgr    = ctx.typeMgr();
     const TypeInfo& srcType    = typeMgr.get(srcTypeRef);
     const TypeInfo& targetType = typeMgr.get(targetTypeRef);
 
@@ -212,7 +212,7 @@ ConstantRef Sema::cast(const CastContext& castCtx, ConstantRef srcRef, TypeRef t
         return ConstantRef::invalid();
 
     auto&           ctx        = *ctx_;
-    const auto&     typeMgr    = ctx.compiler().typeMgr();
+    const auto&     typeMgr    = ctx.typeMgr();
     const TypeInfo& srcType    = typeMgr.get(src.typeRef());
     const TypeInfo& targetType = typeMgr.get(targetTypeRef);
 

@@ -60,7 +60,7 @@ const ConstantValue& SemaInfo::getConstant(const TaskContext& ctx, AstNodeRef no
 {
     SWC_ASSERT(hasConstant(nodeRef));
     const AstNode& node = ast().node(nodeRef);
-    return ctx.compiler().constMgr().get(ConstantRef{node.semaRaw()});
+    return ctx.cstMgr().get(ConstantRef{node.semaRaw()});
 }
 
 SemaRef SemaInfo::setSymbol(AstNodeRef nodeRef, Symbol* symbol)

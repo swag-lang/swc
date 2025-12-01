@@ -69,7 +69,7 @@ struct AstNode
     static void        collectChildren(SmallVector<AstNodeRef>& out, std::initializer_list<AstNodeRef> nodes);
     SourceCodeLocation location(const TaskContext& ctx, const Ast& ast) const;
 
-    static void               semaEnterNode(Sema&) { ; }
+    static void               semaEnterNode(Sema&) {}
     static AstVisitStepResult semaPreNode(Sema&) { return AstVisitStepResult::Continue; }
     static AstVisitStepResult semaPostNode(Sema&) { return AstVisitStepResult::Continue; }
     static AstVisitStepResult semaPreChild(Sema&, AstNodeRef&) { return AstVisitStepResult::Continue; }

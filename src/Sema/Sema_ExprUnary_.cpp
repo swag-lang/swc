@@ -54,7 +54,7 @@ namespace
         return ConstantRef::invalid();
     }
 
-    ConstantRef constantFoldBang(Sema& sema, const AstUnaryExpr& node, const UnaryOperands& ops)
+    ConstantRef constantFoldBang(Sema& sema, const AstUnaryExpr&, const UnaryOperands& ops)
     {
         if (ops.nodeView.cst->isBool())
             return sema.constMgr().cstNegBool(ops.nodeView.cstRef);
@@ -62,7 +62,7 @@ namespace
         return sema.constMgr().cstBool(!ops.nodeView.cst->getInt().isZero());
     }
 
-    ConstantRef constantFold(Sema& sema, TokenId op, const AstUnaryExpr& node, UnaryOperands& ops)
+    ConstantRef constantFold(Sema& sema, TokenId op, const AstUnaryExpr& node, const UnaryOperands& ops)
     {
         switch (op)
         {

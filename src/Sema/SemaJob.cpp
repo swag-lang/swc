@@ -8,7 +8,7 @@ SemaJob::SemaJob(TaskContext& ctx, SemaInfo& semaCtx) :
     Job(ctx),
     sema_(ctx, semaCtx)
 {
-    func = [this]() {
+    func = [this] {
         return exec();
     };
 }
@@ -17,7 +17,7 @@ SemaJob::SemaJob(TaskContext& ctx, const Sema& parentSema, AstNodeRef root) :
     Job(ctx),
     sema_(ctx, parentSema, root)
 {
-    func = [this]() {
+    func = [this] {
         return exec();
     };
 }

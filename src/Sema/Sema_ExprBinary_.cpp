@@ -21,7 +21,7 @@ namespace
         }
     };
 
-    ConstantRef constantFoldPlusPlus(Sema& sema, const AstBinaryExpr& node, const BinaryOperands& ops)
+    ConstantRef constantFoldPlusPlus(Sema& sema, const AstBinaryExpr&, const BinaryOperands& ops)
     {
         const auto& ctx    = sema.ctx();
         Utf8        result = ops.nodeLeftView.cst->toString();
@@ -29,7 +29,7 @@ namespace
         return sema.constMgr().addConstant(ctx, ConstantValue::makeString(ctx, result));
     }
 
-    ConstantRef constantFold(Sema& sema, TokenId op, const AstBinaryExpr& node, BinaryOperands& ops)
+    ConstantRef constantFold(Sema& sema, TokenId op, const AstBinaryExpr& node, const BinaryOperands& ops)
     {
         switch (op)
         {
@@ -42,7 +42,7 @@ namespace
         return ConstantRef::invalid();
     }
 
-    Result checkPlusPlus(Sema& sema, const AstBinaryExpr& node, const BinaryOperands& ops)
+    Result checkPlusPlus(Sema& sema, const AstBinaryExpr& node, const BinaryOperands&)
     {
         if (!sema.hasConstant(node.nodeLeftRef))
         {
@@ -89,7 +89,7 @@ AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema) const
         const auto cst = constantFold(sema, tok.id, *this, ops);
         if (cst.isValid())
         {
-            sema.setConstant(sema.curNodeRef(), cst);
+            sema.semaInfo().setConstant(sema.curNodeRef(), cst);
             return AstVisitStepResult::Continue;
         }
 

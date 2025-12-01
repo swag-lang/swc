@@ -143,7 +143,7 @@ namespace
         return ctx.compiler().constMgr().addConstant(ctx, result);
     }
 
-    ConstantRef castFloatToFloat(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
+    ConstantRef castFloatToFloat(Sema& sema, const CastContext&, const ConstantValue& src, TypeRef targetTypeRef)
     {
         auto& ctx = sema.ctx();
         SWC_ASSERT(src.isFloat());

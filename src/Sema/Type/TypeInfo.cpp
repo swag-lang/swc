@@ -76,7 +76,7 @@ TypeInfo TypeInfo::makeFloat(uint32_t bits)
     return ti;
 }
 
-Utf8 TypeInfo::toString(ToStringMode mode) const
+Utf8 TypeInfo::toString(ToStringMode) const
 {
     switch (kind_)
     {

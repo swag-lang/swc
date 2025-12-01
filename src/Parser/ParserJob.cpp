@@ -10,7 +10,7 @@ ParserJob::ParserJob(const TaskContext& ctx, SourceFile* file) :
     Job(ctx),
     file_(file)
 {
-    func = [this]() {
+    func = [this] {
         return exec();
     };
 }

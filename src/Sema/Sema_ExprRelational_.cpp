@@ -81,21 +81,21 @@ namespace
         return sema.constMgr().cstBool(leftCst.lt(rightCst));
     }
 
-    ConstantRef constantFoldLessEqual(Sema& sema, const AstRelationalExpr& node, RelationalOperands& ops)
+    ConstantRef constantFoldLessEqual(Sema& sema, const AstRelationalExpr& node, const RelationalOperands& ops)
     {
         if (ops.nodeLeftView.cstRef == ops.nodeRightView.cstRef)
             return sema.constMgr().cstTrue();
         return constantFoldLess(sema, node, ops);
     }
 
-    ConstantRef constantFoldGreater(Sema& sema, const AstRelationalExpr& node, RelationalOperands& ops)
+    ConstantRef constantFoldGreater(Sema& sema, const AstRelationalExpr& node, const RelationalOperands& ops)
     {
         RelationalOperands swapped = ops;
         std::swap(swapped.nodeLeftView, swapped.nodeRightView);
         return constantFoldLess(sema, node, swapped);
     }
 
-    ConstantRef constantFoldGreaterEqual(Sema& sema, const AstRelationalExpr& node, RelationalOperands& ops)
+    ConstantRef constantFoldGreaterEqual(Sema& sema, const AstRelationalExpr& node, const RelationalOperands& ops)
     {
         if (ops.nodeLeftView.cstRef == ops.nodeRightView.cstRef)
             return sema.constMgr().cstTrue();
@@ -131,7 +131,7 @@ namespace
         return sema.constMgr().cstS32(result);
     }
 
-    ConstantRef constantFold(Sema& sema, TokenId op, const AstRelationalExpr& node, RelationalOperands& ops)
+    ConstantRef constantFold(Sema& sema, TokenId op, const AstRelationalExpr& node, const RelationalOperands& ops)
     {
         switch (op)
         {

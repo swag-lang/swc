@@ -1,32 +1,8 @@
+// ReSharper disable CppInconsistentNaming
 #include "pch.h"
 #include "Core/Store.h"
 
 SWC_BEGIN_NAMESPACE()
-
-// === Store::Page ==========================================================
-
-std::byte* Store::Page::allocate_aligned(uint32_t size)
-{
-    return static_cast<std::byte*>(::operator new(size, std::align_val_t(alignof(std::max_align_t))));
-}
-
-void Store::Page::deallocate_aligned(std::byte* p) noexcept
-{
-    ::operator delete(p, std::align_val_t(alignof(std::max_align_t)));
-}
-
-Store::Page::Page(uint32_t pageSize) :
-    storage_(allocate_aligned(pageSize)),
-    used(0)
-{
-}
-
-Store::Page::~Page()
-{
-    deallocate_aligned(storage_);
-}
-
-// === Store core ===========================================================
 
 Store::Store(uint32_t pageSize) :
     pageSize_(pageSize)
@@ -103,7 +79,7 @@ std::pair<Ref, void*> Store::allocate(uint32_t size, uint32_t align)
 
 void Store::clear() noexcept
 {
-    for (auto& up : pages_)
+    for (const auto& up : pages_)
         up->used = 0;
     totalBytes_ = 0;
 
@@ -124,8 +100,6 @@ uint32_t Store::size() const noexcept
     return static_cast<uint32_t>(std::min<uint64_t>(totalBytes_, std::numeric_limits<uint32_t>::max()));
 }
 
-// === Raw span write helpers ===============================================
-
 std::pair<SpanRef, uint32_t> Store::write_chunk_raw(const uint8_t* src, uint32_t elemSize, uint32_t elemAlign, uint32_t remaining, uint32_t totalElems)
 {
     SWC_ASSERT(elemSize > 0);
@@ -136,9 +110,9 @@ std::pair<SpanRef, uint32_t> Store::write_chunk_raw(const uint8_t* src, uint32_t
     uint32_t       off        = page->used; // header has no special alignment
     const uint32_t bytesAvail = pageSize_ - off;
 
-    const uint32_t hdrSize    = static_cast<uint32_t>(sizeof(SpanHdrRaw));
-    const uint32_t dataOffset = align_up_u32(off + hdrSize, elemAlign);
-    const uint32_t padBytes   = dataOffset - (off + hdrSize);
+    constexpr uint32_t hdrSize    = sizeof(SpanHdrRaw);
+    const uint32_t     dataOffset = align_up_u32(off + hdrSize, elemAlign);
+    const uint32_t     padBytes   = dataOffset - (off + hdrSize);
 
     if (hdrSize + padBytes + elemSize > bytesAvail)
     {
@@ -170,8 +144,8 @@ SpanRef Store::push_span_raw(const void* data, uint32_t elemSize, uint32_t elemA
 {
     if (count == 0)
     {
-        Page*          page = cur_ ? cur_ : newPage();
-        const uint32_t need = static_cast<uint32_t>(sizeof(SpanHdrRaw));
+        Page*              page = cur_ ? cur_ : newPage();
+        constexpr uint32_t need = sizeof(SpanHdrRaw);
         if (page->used + need > pageSize_)
             page = newPage();
         const SpanRef hdrRef{makeRef(pageSize_, curIndex_, page->used)};
@@ -195,24 +169,42 @@ SpanRef Store::push_span_raw(const void* data, uint32_t elemSize, uint32_t elemA
         if (firstRef.isInvalid())
             firstRef = hdrRef;
 
-        src += wrote * elemSize;
+        src += static_cast<size_t>(wrote) * elemSize;
         remaining -= wrote;
     }
 
     return firstRef;
 }
 
-// === SpanView (type-erased) ===============================================
+std::byte* Store::Page::allocate_aligned(uint32_t size)
+{
+    return static_cast<std::byte*>(operator new(size, static_cast<std::align_val_t>(alignof(std::max_align_t))));
+}
+
+void Store::Page::deallocate_aligned(std::byte* p) noexcept
+{
+    operator delete(p, static_cast<std::align_val_t>(alignof(std::max_align_t)));
+}
+
+Store::Page::Page(uint32_t pageSize) :
+    storage_(allocate_aligned(pageSize))
+{
+}
+
+Store::Page::~Page()
+{
+    deallocate_aligned(storage_);
+}
 
 void Store::SpanView::decode_ref(const Store* st, Ref ref, uint32_t& pageIndex, uint32_t& off)
 {
-    Store::decodeRef(st->pageSize(), ref, pageIndex, off);
+    decodeRef(st->pageSize(), ref, pageIndex, off);
 }
 
 uint32_t Store::SpanView::data_offset_from_hdr(uint32_t hdrOffset, uint32_t elemAlign)
 {
-    const uint32_t hdrSize = static_cast<uint32_t>(sizeof(Store::SpanHdrRaw));
-    return Store::align_up_u32(hdrOffset + hdrSize, elemAlign);
+    constexpr uint32_t hdrSize = sizeof(SpanHdrRaw);
+    return align_up_u32(hdrOffset + hdrSize, elemAlign);
 }
 
 const void* Store::SpanView::data_ptr(const Store* st, Ref hdrRef, uint32_t elemAlign)
@@ -225,7 +217,7 @@ const void* Store::SpanView::data_ptr(const Store* st, Ref hdrRef, uint32_t elem
 
 uint32_t Store::SpanView::total_elems(const Store* st, Ref hdrRef)
 {
-    return st->ptr<Store::SpanHdrRaw>(hdrRef)->total;
+    return st->ptr<SpanHdrRaw>(hdrRef)->total;
 }
 
 uint32_t Store::SpanView::chunk_count_from_layout(const Store* st, Ref hdrRef, uint32_t remaining, uint32_t elemSize, uint32_t elemAlign)
@@ -264,20 +256,20 @@ Store::SpanView::chunk_iterator& Store::SpanView::chunk_iterator::operator++()
     if (done >= total)
     {
         hdrRef  = std::numeric_limits<Ref>::max();
-        current = {nullptr, 0};
+        current = {.ptr = nullptr, .count = 0};
         return *this;
     }
 
     uint32_t  pageIndex, off;
     const Ref cur = hdrRef;
     decode_ref(store, cur, pageIndex, off);
-    const Ref nextHdr = Store::makeRef(store->pageSize(), pageIndex + 1, 0);
+    const Ref nextHdr = makeRef(store->pageSize(), pageIndex + 1, 0);
 
     hdrRef                   = nextHdr;
     const uint32_t remaining = total - done;
-    const uint32_t cnt       = SpanView::chunk_count_from_layout(store, hdrRef, remaining, elemSize, elemAlign);
-    const void*    p         = SpanView::data_ptr(store, hdrRef, elemAlign);
-    current                  = {p, cnt};
+    const uint32_t cnt       = chunk_count_from_layout(store, hdrRef, remaining, elemSize, elemAlign);
+    const void*    p         = data_ptr(store, hdrRef, elemAlign);
+    current                  = {.ptr = p, .count = cnt};
     return *this;
 }
 
@@ -294,24 +286,30 @@ Store::SpanView::chunk_iterator Store::SpanView::chunks_begin() const
     if (it.total == 0)
     {
         it.hdrRef  = std::numeric_limits<Ref>::max();
-        it.current = {nullptr, 0};
+        it.current = {.ptr = nullptr, .count = 0};
         return it;
     }
 
     const uint32_t cnt = chunk_count_from_layout(store_, head_, it.total, elemSize_, elemAlign_);
     const void*    p   = data_ptr(store_, head_, elemAlign_);
-    it.current         = {p, cnt};
+    it.current         = {.ptr = p, .count = cnt};
     return it;
 }
 
 Store::SpanView::chunk_iterator Store::SpanView::chunks_end() const
 {
-    return {store_, std::numeric_limits<Ref>::max(), 0, 0, elemSize_, elemAlign_, {nullptr, 0}};
+    return {.store     = store_,
+            .hdrRef    = std::numeric_limits<Ref>::max(),
+            .total     = 0,
+            .done      = 0,
+            .elemSize  = elemSize_,
+            .elemAlign = elemAlign_,
+            .current   = {.ptr = nullptr, .count = 0}};
 }
 
 Store::SpanView Store::span_view(Ref ref, uint32_t elemSize, uint32_t elemAlign) const
 {
-    return SpanView(this, ref, elemSize, elemAlign);
+    return {this, ref, elemSize, elemAlign};
 }
 
 SWC_END_NAMESPACE()

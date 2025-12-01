@@ -7,35 +7,12 @@ SWC_BEGIN_NAMESPACE()
 
 std::byte* Store::Page::allocate_aligned(uint32_t size)
 {
-#if defined(__cpp_aligned_new) && __cpp_aligned_new >= 201606
     return static_cast<std::byte*>(::operator new(size, std::align_val_t(alignof(std::max_align_t))));
-#else
-    void* p = nullptr;
-#if defined(_MSC_VER)
-    p = _aligned_malloc(size, alignof(std::max_align_t));
-    if (!p)
-        throw std::bad_alloc();
-    return static_cast<std::byte*>(p);
-#else
-    if (posix_memalign(&p, alignof(std::max_align_t), size) != 0)
-        throw std::bad_alloc();
-    return static_cast<std::byte*>(p);
-#endif
-#endif
 }
 
 void Store::Page::deallocate_aligned(std::byte* p) noexcept
 {
-    if (!p)
-        return;
-
-#if defined(__cpp_aligned_new) && __cpp_aligned_new >= 201606
     ::operator delete(p, std::align_val_t(alignof(std::max_align_t)));
-#elif defined(_MSC_VER)
-    _aligned_free(p);
-#else
-    std::free(p);
-#endif
 }
 
 Store::Page::Page(uint32_t pageSize) :

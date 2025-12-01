@@ -131,7 +131,7 @@ namespace
 
 AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema) const
 {
-    UnaryOperands ops(sema, *this);
+    const UnaryOperands ops(sema, *this);
 
     // Type-check
     const auto& tok = sema.token(srcViewRef(), tokRef());

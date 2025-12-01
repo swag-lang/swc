@@ -26,10 +26,10 @@ class ConstantValue
     union
     {
         // clang-format off
-        struct { std::string_view val; } string_;
-        struct { bool val; } bool_;
-        struct { ApsInt val; } int_;
-        struct { ApFloat val; } float_;
+        struct { std::string_view val; } asString;
+        struct { bool val; } asBool;
+        struct { ApsInt val; } asInt;
+        struct { ApFloat val; } asFloat;
         // clang-format on
     };
 
@@ -50,10 +50,10 @@ public:
     bool         isFloat() const { return kind_ == ConstantKind::Float; }
 
     // clang-format off
-    bool getBool() const { SWC_ASSERT(isBool()); return bool_.val; }
-    std::string_view getString() const { SWC_ASSERT(isString()); return string_.val; }
-    const ApsInt& getInt() const { SWC_ASSERT(isInt()); return int_.val; }
-    const ApFloat& getFloat() const { SWC_ASSERT(isFloat()); return float_.val; }
+    bool getBool() const { SWC_ASSERT(isBool()); return asBool.val; }
+    std::string_view getString() const { SWC_ASSERT(isString()); return asString.val; }
+    const ApsInt& getInt() const { SWC_ASSERT(isInt()); return asInt.val; }
+    const ApFloat& getFloat() const { SWC_ASSERT(isFloat()); return asFloat.val; }
     // clang-format on
 
     const TypeInfo& type(const TaskContext& ctx) const;

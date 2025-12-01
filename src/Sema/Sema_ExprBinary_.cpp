@@ -76,7 +76,7 @@ namespace
 
 AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema) const
 {
-    BinaryOperands ops(sema, *this);
+    const BinaryOperands ops(sema, *this);
 
     // Type-check
     const auto& tok = sema.token(srcViewRef(), tokRef());

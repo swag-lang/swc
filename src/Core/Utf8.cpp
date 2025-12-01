@@ -1,3 +1,4 @@
+// ReSharper disable CppInconsistentNaming
 #include "pch.h"
 #include "Utf8.h"
 

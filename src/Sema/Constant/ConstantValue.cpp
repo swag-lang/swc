@@ -16,7 +16,7 @@ ConstantValue ConstantValue::makeBool(const TaskContext& ctx, bool value)
     ConstantValue cv;
     cv.typeRef_  = ctx.compiler().typeMgr().getTypeBool();
     cv.kind_     = ConstantKind::Bool;
-    cv.bool_.val = value;
+    cv.asBool.val = value;
     return cv;
 }
 
@@ -25,7 +25,7 @@ ConstantValue ConstantValue::makeString(const TaskContext& ctx, std::string_view
     ConstantValue cv;
     cv.typeRef_    = ctx.compiler().typeMgr().getTypeString();
     cv.kind_       = ConstantKind::String;
-    cv.string_.val = value;
+    cv.asString.val = value;
     return cv;
 }
 
@@ -34,7 +34,7 @@ ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const ApsInt& value
     ConstantValue cv;
     cv.typeRef_ = ctx.compiler().typeMgr().getTypeInt(bitWidth, value.isUnsigned());
     cv.kind_    = ConstantKind::Int;
-    cv.int_.val = value;
+    cv.asInt.val = value;
     return cv;
 }
 
@@ -43,7 +43,7 @@ ConstantValue ConstantValue::makeFloat(const TaskContext& ctx, const ApFloat& va
     ConstantValue cv;
     cv.typeRef_   = ctx.compiler().typeMgr().getTypeFloat(bitWidth);
     cv.kind_      = ConstantKind::Float;
-    cv.float_.val = value;
+    cv.asFloat.val = value;
     return cv;
 }
 
@@ -127,16 +127,16 @@ size_t ConstantValueHash::operator()(const ConstantValue& v) const noexcept
     switch (v.kind())
     {
         case ConstantKind::Bool:
-            h = hash_combine(h, v.bool_.val);
+            h = hash_combine(h, v.asBool.val);
             break;
         case ConstantKind::String:
-            h = hash_combine(h, hash(v.string_.val));
+            h = hash_combine(h, hash(v.asString.val));
             break;
         case ConstantKind::Int:
-            h = hash_combine(h, v.int_.val.hash());
+            h = hash_combine(h, v.asInt.val.hash());
             break;
         case ConstantKind::Float:
-            h = hash_combine(h, v.float_.val.hash());
+            h = hash_combine(h, v.asFloat.val.hash());
             break;
 
         default:

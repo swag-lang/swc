@@ -230,7 +230,7 @@ namespace
 
 AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema) const
 {
-    RelationalOperands ops(sema, *this);
+    const RelationalOperands ops(sema, *this);
 
     // Type-check
     const auto& tok = sema.token(srcViewRef(), tokRef());

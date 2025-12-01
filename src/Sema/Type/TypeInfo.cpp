@@ -20,9 +20,9 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
         case TypeInfoKind::String:
             return true;
         case TypeInfoKind::Int:
-            return int_.bits == other.int_.bits && int_.isUnsigned == other.int_.isUnsigned;
+            return asInt.bits == other.asInt.bits && asInt.isUnsigned == other.asInt.isUnsigned;
         case TypeInfoKind::Float:
-            return float_.bits == other.float_.bits;
+            return asFloat.bits == other.asFloat.bits;
 
         default:
             SWC_UNREACHABLE();
@@ -40,11 +40,11 @@ size_t TypeInfoHash::operator()(const TypeInfo& t) const noexcept
             return h;
 
         case TypeInfoKind::Int:
-            h = hash_combine(h, t.int_.bits);
-            h = hash_combine(h, t.int_.isUnsigned);
+            h = hash_combine(h, t.asInt.bits);
+            h = hash_combine(h, t.asInt.isUnsigned);
             return h;
         case TypeInfoKind::Float:
-            h = hash_combine(h, t.float_.bits);
+            h = hash_combine(h, t.asFloat.bits);
             return h;
 
         default:
@@ -65,14 +65,14 @@ TypeInfo TypeInfo::makeString()
 TypeInfo TypeInfo::makeInt(uint32_t bits, bool isUnsigned)
 {
     TypeInfo ti{TypeInfoKind::Int};
-    ti.int_ = {.bits = bits, .isUnsigned = isUnsigned};
+    ti.asInt = {.bits = bits, .isUnsigned = isUnsigned};
     return ti;
 }
 
 TypeInfo TypeInfo::makeFloat(uint32_t bits)
 {
     TypeInfo ti{TypeInfoKind::Float};
-    ti.float_ = {.bits = bits};
+    ti.asFloat = {.bits = bits};
     return ti;
 }
 
@@ -88,24 +88,24 @@ Utf8 TypeInfo::toString(ToStringMode) const
         case TypeInfoKind::Int:
         {
             Utf8 out;
-            if (int_.bits == 0)
+            if (asInt.bits == 0)
                 out = "integer";
             else
             {
-                out += int_.isUnsigned ? "u" : "s";
-                out += std::to_string(int_.bits);
+                out += asInt.isUnsigned ? "u" : "s";
+                out += std::to_string(asInt.bits);
             }
             return out;
         }
         case TypeInfoKind::Float:
         {
             Utf8 out;
-            if (int_.bits == 0)
+            if (asInt.bits == 0)
                 out = "float";
             else
             {
                 out += "f";
-                out += std::to_string(float_.bits);
+                out += std::to_string(asFloat.bits);
             }
             return out;
         }

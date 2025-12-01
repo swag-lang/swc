@@ -13,36 +13,24 @@ namespace
 {
     struct RelationalOperands
     {
-        const AstNode*       nodeLeft     = nullptr;
-        const AstNode*       nodeRight    = nullptr;
-        const ConstantValue* leftCst      = nullptr;
-        const ConstantValue* rightCst     = nullptr;
-        ConstantRef          leftCstRef   = ConstantRef::invalid();
-        ConstantRef          rightCstRef  = ConstantRef::invalid();
-        TypeRef              leftTypeRef  = TypeRef::invalid();
-        TypeRef              rightTypeRef = TypeRef::invalid();
-        const TypeInfo*      leftType     = nullptr;
-        const TypeInfo*      rightType    = nullptr;
-
-        RelationalOperands(Sema& sema, const AstRelationalExpr& expr) :
-            nodeLeft(&sema.node(expr.nodeLeftRef)),
-            nodeRight(&sema.node(expr.nodeRightRef)),
-            leftTypeRef(sema.typeRefOf(expr.nodeLeftRef)),
-            rightTypeRef(sema.typeRefOf(expr.nodeRightRef)),
-            leftType(&sema.typeMgr().get(leftTypeRef)),
-            rightType(&sema.typeMgr().get(rightTypeRef))
+        SemaNodeView nodeLeftView;
+        SemaNodeView nodeRightView;
+        RelationalOperands(Sema& sema, const AstRelationalExpr& node) :
+            nodeLeftView(sema, node.nodeLeftRef),
+            nodeRightView(sema, node.nodeRightRef)
         {
         }
     };
 
-    bool promoteConstantsIfNeeded(Sema& sema, const AstRelationalExpr& node, const RelationalOperands& ops, ConstantRef& leftRef, ConstantRef& rightRef)
+    bool
+    promoteConstantsIfNeeded(Sema& sema, const AstRelationalExpr& node, const RelationalOperands& ops, ConstantRef& leftRef, ConstantRef& rightRef)
     {
-        if (ops.leftTypeRef == ops.rightTypeRef)
+        if (ops.nodeLeftView.typeRef == ops.nodeRightView.typeRef)
             return true;
 
-        if (ops.leftType->canBePromoted() && ops.rightType->canBePromoted())
+        if (ops.nodeLeftView.type->canBePromoted() && ops.nodeRightView.type->canBePromoted())
         {
-            const TypeRef promotedTypeRef = sema.typeMgr().promote(ops.leftTypeRef, ops.rightTypeRef);
+            const TypeRef promotedTypeRef = sema.typeMgr().promote(ops.nodeLeftView.typeRef, ops.nodeRightView.typeRef);
 
             CastContext castCtx;
             castCtx.kind         = CastKind::Promotion;
@@ -64,11 +52,11 @@ namespace
 
     ConstantRef constantFoldEqual(Sema& sema, const AstRelationalExpr& node, const RelationalOperands& ops)
     {
-        if (ops.leftCstRef == ops.rightCstRef)
+        if (ops.nodeLeftView.cstRef == ops.nodeRightView.cstRef)
             return sema.constMgr().cstTrue();
 
-        auto leftCstRef  = ops.leftCstRef;
-        auto rightCstRef = ops.rightCstRef;
+        auto leftCstRef  = ops.nodeLeftView.cstRef;
+        auto rightCstRef = ops.nodeRightView.cstRef;
 
         if (!promoteConstantsIfNeeded(sema, node, ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
@@ -78,11 +66,11 @@ namespace
 
     ConstantRef constantFoldLess(Sema& sema, const AstRelationalExpr& node, const RelationalOperands& ops)
     {
-        if (ops.leftCstRef == ops.rightCstRef)
+        if (ops.nodeLeftView.cstRef == ops.nodeRightView.cstRef)
             return sema.constMgr().cstFalse();
 
-        auto leftCstRef  = ops.leftCstRef;
-        auto rightCstRef = ops.rightCstRef;
+        auto leftCstRef  = ops.nodeLeftView.cstRef;
+        auto rightCstRef = ops.nodeRightView.cstRef;
 
         if (!promoteConstantsIfNeeded(sema, node, ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
@@ -95,7 +83,7 @@ namespace
 
     ConstantRef constantFoldLessEqual(Sema& sema, const AstRelationalExpr& node, RelationalOperands& ops)
     {
-        if (ops.leftCstRef == ops.rightCstRef)
+        if (ops.nodeLeftView.cstRef == ops.nodeRightView.cstRef)
             return sema.constMgr().cstTrue();
         return constantFoldLess(sema, node, ops);
     }
@@ -103,16 +91,13 @@ namespace
     ConstantRef constantFoldGreater(Sema& sema, const AstRelationalExpr& node, RelationalOperands& ops)
     {
         RelationalOperands swapped = ops;
-        std::swap(swapped.nodeLeft, swapped.nodeRight);
-        std::swap(swapped.leftCstRef, swapped.rightCstRef);
-        std::swap(swapped.leftTypeRef, swapped.rightTypeRef);
-        std::swap(swapped.leftType, swapped.rightType);
+        std::swap(swapped.nodeLeftView, swapped.nodeRightView);
         return constantFoldLess(sema, node, swapped);
     }
 
     ConstantRef constantFoldGreaterEqual(Sema& sema, const AstRelationalExpr& node, RelationalOperands& ops)
     {
-        if (ops.leftCstRef == ops.rightCstRef)
+        if (ops.nodeLeftView.cstRef == ops.nodeRightView.cstRef)
             return sema.constMgr().cstTrue();
 
         const ConstantRef lt = constantFoldLess(sema, node, ops);
@@ -124,8 +109,8 @@ namespace
 
     ConstantRef constantFoldCompareEqual(Sema& sema, const AstRelationalExpr& node, const RelationalOperands& ops)
     {
-        auto leftCstRef  = ops.leftCstRef;
-        auto rightCstRef = ops.rightCstRef;
+        auto leftCstRef  = ops.nodeLeftView.cstRef;
+        auto rightCstRef = ops.nodeRightView.cstRef;
 
         if (!promoteConstantsIfNeeded(sema, node, ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
@@ -148,11 +133,6 @@ namespace
 
     ConstantRef constantFold(Sema& sema, TokenId op, const AstRelationalExpr& node, RelationalOperands& ops)
     {
-        ops.leftCstRef  = sema.constantRefOf(node.nodeLeftRef);
-        ops.rightCstRef = sema.constantRefOf(node.nodeRightRef);
-        ops.leftCst     = &sema.constantOf(node.nodeLeftRef);
-        ops.rightCst    = &sema.constantOf(node.nodeRightRef);
-
         switch (op)
         {
             case TokenId::SymEqualEqual:
@@ -183,21 +163,21 @@ namespace
 
     Result checkEqualEqual(Sema& sema, const AstRelationalExpr& node, const RelationalOperands& ops)
     {
-        if (ops.leftTypeRef == ops.rightTypeRef)
+        if (ops.nodeLeftView.typeRef == ops.nodeRightView.typeRef)
             return Result::Success;
 
-        if (!ops.leftType->canBePromoted())
+        if (!ops.nodeLeftView.type->canBePromoted())
         {
             auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.nodeLeftRef, node.srcViewRef(), node.tokRef());
-            diag.addArgument(Diagnostic::ARG_TYPE, ops.leftTypeRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeLeftView.typeRef);
             diag.report(sema.ctx());
             return Result::Error;
         }
 
-        if (!ops.rightType->canBePromoted())
+        if (!ops.nodeRightView.type->canBePromoted())
         {
             auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.nodeRightRef, node.srcViewRef(), node.tokRef());
-            diag.addArgument(Diagnostic::ARG_TYPE, ops.rightTypeRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeRightView.typeRef);
             diag.report(sema.ctx());
             return Result::Error;
         }
@@ -207,18 +187,18 @@ namespace
 
     Result checkCompareEqual(Sema& sema, const AstRelationalExpr& node, const RelationalOperands& ops)
     {
-        if (!ops.leftType->canBePromoted())
+        if (!ops.nodeLeftView.type->canBePromoted())
         {
             auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.nodeLeftRef, node.srcViewRef(), node.tokRef());
-            diag.addArgument(Diagnostic::ARG_TYPE, ops.leftTypeRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeLeftView.typeRef);
             diag.report(sema.ctx());
             return Result::Error;
         }
 
-        if (!ops.rightType->canBePromoted())
+        if (!ops.nodeRightView.type->canBePromoted())
         {
             auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.nodeRightRef, node.srcViewRef(), node.tokRef());
-            diag.addArgument(Diagnostic::ARG_TYPE, ops.rightTypeRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeRightView.typeRef);
             diag.report(sema.ctx());
             return Result::Error;
         }

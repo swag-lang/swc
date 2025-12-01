@@ -182,6 +182,7 @@
         </Link>
     </ItemDefinitionGroup>
     <ItemGroup>
+        <ClCompile Include="src\Core\Store.cpp"/>
         <ClCompile Include="src\Core\Utf8.cpp"/>
         <ClCompile Include="src\Core\Utf8Helper.cpp"/>
         <ClCompile Include="src\Lexer\LangSpec.cpp"/>

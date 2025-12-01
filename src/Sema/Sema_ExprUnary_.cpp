@@ -5,7 +5,6 @@
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Sema.h"
 #include "Sema/SemaInfo.h"
-#include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -13,16 +12,9 @@ namespace
 {
     struct UnaryOperands
     {
-        const AstNode*       nodeExpr = nullptr;
-        const ConstantValue* cst      = nullptr;
-        ConstantRef          cstRef   = ConstantRef::invalid();
-        TypeRef              typeRef  = TypeRef::invalid();
-        const TypeInfo*      type     = nullptr;
-
+        SemaNodeView nodeView;
         UnaryOperands(Sema& sema, const AstUnaryExpr& node) :
-            nodeExpr(&sema.node(node.nodeExprRef)),
-            typeRef(sema.typeRefOf(node.nodeExprRef)),
-            type(&sema.typeMgr().get(typeRef))
+            nodeView(sema, node.nodeExprRef)
         {
         }
     };
@@ -31,13 +23,13 @@ namespace
     {
         // In the case of a literal with a suffix, it has already been done
         // @MinusLiteralSuffix
-        if (ops.nodeExpr->is(AstNodeId::SuffixLiteral))
+        if (ops.nodeView.node->is(AstNodeId::SuffixLiteral))
             return sema.constantRefOf(node.nodeExprRef);
 
         const auto& ctx = sema.ctx();
-        if (ops.type->isInt())
+        if (ops.nodeView.type->isInt())
         {
-            ApsInt value = ops.cst->getInt();
+            ApsInt value = ops.nodeView.cst->getInt();
 
             bool overflow = false;
             value.negate(overflow);
@@ -48,14 +40,14 @@ namespace
             }
 
             value.setUnsigned(false);
-            return sema.constMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.type->intBits()));
+            return sema.constMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.nodeView.type->intBits()));
         }
 
-        if (ops.type->isFloat())
+        if (ops.nodeView.type->isFloat())
         {
-            ApFloat value = ops.cst->getFloat();
+            ApFloat value = ops.nodeView.cst->getFloat();
             value.negate();
-            return sema.constMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, value, ops.type->floatBits()));
+            return sema.constMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, value, ops.nodeView.type->floatBits()));
         }
 
         return ConstantRef::invalid();
@@ -63,17 +55,14 @@ namespace
 
     ConstantRef constantFoldBang(Sema& sema, const AstUnaryExpr& node, const UnaryOperands& ops)
     {
-        if (ops.cst->isBool())
-            return sema.constMgr().cstNegBool(ops.cstRef);
-        SWC_ASSERT(ops.cst->isInt());
-        return sema.constMgr().cstBool(!ops.cst->getInt().isZero());
+        if (ops.nodeView.cst->isBool())
+            return sema.constMgr().cstNegBool(ops.nodeView.cstRef);
+        SWC_ASSERT(ops.nodeView.cst->isInt());
+        return sema.constMgr().cstBool(!ops.nodeView.cst->getInt().isZero());
     }
 
     ConstantRef constantFold(Sema& sema, TokenId op, const AstUnaryExpr& node, UnaryOperands& ops)
     {
-        ops.cstRef = sema.constantRefOf(node.nodeExprRef);
-        ops.cst    = &sema.constantOf(node.nodeExprRef);
-
         switch (op)
         {
             case TokenId::SymMinus:
@@ -90,19 +79,19 @@ namespace
     void reportInvalidType(Sema& sema, const AstUnaryExpr& expr, const UnaryOperands& ops)
     {
         auto diag = sema.reportError(DiagnosticId::sema_err_unary_operand_type, expr.srcViewRef(), expr.tokRef());
-        diag.addArgument(Diagnostic::ARG_TYPE, ops.typeRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView.typeRef);
         diag.report(sema.ctx());
     }
 
     Result checkMinus(Sema& sema, const AstUnaryExpr& expr, const UnaryOperands& ops)
     {
-        if (ops.type->isFloat() || ops.type->isIntSigned() || ops.type->isInt0())
+        if (ops.nodeView.type->isFloat() || ops.nodeView.type->isIntSigned() || ops.nodeView.type->isInt0())
             return Result::Success;
 
-        if (ops.type->isIntUnsigned())
+        if (ops.nodeView.type->isIntUnsigned())
         {
             auto diag = sema.reportError(DiagnosticId::sema_err_negate_unsigned, expr.srcViewRef(), expr.tokRef());
-            diag.addArgument(Diagnostic::ARG_TYPE, ops.typeRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView.typeRef);
             diag.report(sema.ctx());
         }
         else
@@ -115,7 +104,7 @@ namespace
 
     Result checkBang(Sema& sema, const AstUnaryExpr& expr, const UnaryOperands& ops)
     {
-        if (ops.type->isBool() || ops.type->isInt())
+        if (ops.nodeView.type->isBool() || ops.nodeView.type->isInt())
             return Result::Success;
 
         reportInvalidType(sema, expr, ops);

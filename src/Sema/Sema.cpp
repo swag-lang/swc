@@ -3,7 +3,7 @@
 #include "Main/Global.h"
 #include "Sema/SemaInfo.h"
 #include "Sema/SemaJob.h"
-#include "Symbol/Decls.h"
+#include "Symbol/Symbols.h"
 #include "Symbol/Scope.h"
 #include "Thread/JobManager.h"
 

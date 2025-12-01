@@ -4,17 +4,8 @@
 
 SWC_BEGIN_NAMESPACE()
 
-enum class DeclKind
+class SymbolMap : public Symbol
 {
-    Invalid = -1,
-    Module,
-    Namespace,
-};
-
-class DeclContext
-{
-    DeclKind kind_ = DeclKind::Invalid;
-
     struct Shard
     {
         std::shared_mutex   mutex;
@@ -26,12 +17,10 @@ class DeclContext
     Shard                     shards_[NUM_SHARDS];
 
 public:
-    explicit DeclContext(DeclKind kind) :
-        kind_(kind)
+    explicit SymbolMap(SymbolKind kind) :
+        Symbol(kind)
     {
     }
-
-    DeclKind kind() const { return kind_; }
 };
 
 SWC_END_NAMESPACE()

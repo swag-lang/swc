@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Sema/Symbol/DeclContext.h"
+#include "Sema/Symbol/SymbolMap.h"
 
 SWC_BEGIN_NAMESPACE()
 

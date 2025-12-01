@@ -14,7 +14,7 @@
 #include "Report/LogColor.h"
 #include "Report/Logger.h"
 #include "Sema/Constant/ConstantManager.h"
-#include "Sema/Symbol/Decls.h"
+#include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/TypeManager.h"
 #include "Thread/JobManager.h"
 #include "Wmf/SourceFile.h"
@@ -35,7 +35,7 @@ void CompilerInstance::setupSema(TaskContext& ctx)
 {
     typeMgr_    = std::make_unique<TypeManager>();
     constMgr_   = std::make_unique<ConstantManager>();
-    moduleDecl_ = std::make_unique<ModuleDecl>();
+    moduleDecl_ = std::make_unique<SymbolModule>();
 
     typeMgr_->setup(ctx);
     constMgr_->setup(ctx);

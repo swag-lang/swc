@@ -11,49 +11,48 @@ AstVisitStepResult AstBuiltinType::semaPostNode(Sema& sema) const
 {
     const auto&      tok     = sema.token(srcViewRef(), tokRef());
     const auto&      typeMgr = sema.typeMgr();
-    auto&            semaCtx = sema.semaInfo();
     const AstNodeRef nodeRef = sema.curNodeRef();
 
     switch (tok.id)
     {
         case TokenId::TypeS8:
-            semaCtx.setType(nodeRef, typeMgr.getTypeInt(8, false));
+            sema.setType(nodeRef, typeMgr.getTypeInt(8, false));
             return AstVisitStepResult::Continue;
         case TokenId::TypeS16:
-            semaCtx.setType(nodeRef, typeMgr.getTypeInt(16, false));
+            sema.setType(nodeRef, typeMgr.getTypeInt(16, false));
             return AstVisitStepResult::Continue;
         case TokenId::TypeS32:
-            semaCtx.setType(nodeRef, typeMgr.getTypeInt(32, false));
+            sema.setType(nodeRef, typeMgr.getTypeInt(32, false));
             return AstVisitStepResult::Continue;
         case TokenId::TypeS64:
-            semaCtx.setType(nodeRef, typeMgr.getTypeInt(64, false));
+            sema.setType(nodeRef, typeMgr.getTypeInt(64, false));
             return AstVisitStepResult::Continue;
 
         case TokenId::TypeU8:
-            semaCtx.setType(nodeRef, typeMgr.getTypeInt(8, true));
+            sema.setType(nodeRef, typeMgr.getTypeInt(8, true));
             return AstVisitStepResult::Continue;
         case TokenId::TypeU16:
-            semaCtx.setType(nodeRef, typeMgr.getTypeInt(16, true));
+            sema.setType(nodeRef, typeMgr.getTypeInt(16, true));
             return AstVisitStepResult::Continue;
         case TokenId::TypeU32:
-            semaCtx.setType(nodeRef, typeMgr.getTypeInt(32, true));
+            sema.setType(nodeRef, typeMgr.getTypeInt(32, true));
             return AstVisitStepResult::Continue;
         case TokenId::TypeU64:
-            semaCtx.setType(nodeRef, typeMgr.getTypeInt(64, true));
+            sema.setType(nodeRef, typeMgr.getTypeInt(64, true));
             return AstVisitStepResult::Continue;
 
         case TokenId::TypeF32:
-            semaCtx.setType(nodeRef, typeMgr.getTypeFloat(32));
+            sema.setType(nodeRef, typeMgr.getTypeFloat(32));
             return AstVisitStepResult::Continue;
         case TokenId::TypeF64:
-            semaCtx.setType(nodeRef, typeMgr.getTypeFloat(64));
+            sema.setType(nodeRef, typeMgr.getTypeFloat(64));
             return AstVisitStepResult::Continue;
 
         case TokenId::TypeBool:
-            semaCtx.setType(nodeRef, typeMgr.getTypeBool());
+            sema.setType(nodeRef, typeMgr.getTypeBool());
             return AstVisitStepResult::Continue;
         case TokenId::TypeString:
-            semaCtx.setType(nodeRef, typeMgr.getTypeString());
+            sema.setType(nodeRef, typeMgr.getTypeString());
             return AstVisitStepResult::Continue;
 
         default:
@@ -81,11 +80,11 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
     // @MinusLiteralSuffix
     if (const auto parentNode = sema.visit().parentNode(); parentNode->is(AstNodeId::UnaryExpr))
     {
-        const auto tok = sema.token(parentNode->srcViewRef(), parentNode->tokRef());
+        const Token& tok = sema.token(parentNode->srcViewRef(), parentNode->tokRef());
         if (tok.is(TokenId::SymMinus))
         {
-            const auto& cst  = sema.constMgr().get(cstRef);
-            const auto  type = sema.typeMgr().get(cst.typeRef());
+            const ConstantValue& cst  = sema.constMgr().get(cstRef);
+            const TypeInfo&      type = sema.typeMgr().get(cst.typeRef());
             if (type.isInt())
             {
                 ApsInt cpy = cst.getInt();

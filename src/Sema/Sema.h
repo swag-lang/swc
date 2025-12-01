@@ -67,6 +67,7 @@ public:
     const ConstantValue& constantOf(AstNodeRef n) const { return semaInfo().getConstant(ctx(), n); }
     bool                 hasConstant(AstNodeRef n) const { return semaInfo().hasConstant(n); }
     void                 setConstant(AstNodeRef n, ConstantRef ref) { semaInfo().setConstant(n, ref); }
+    void                 setType(AstNodeRef n, TypeRef ref) { semaInfo().setType(n, ref); }
 
     AstNodeRef   curNodeRef() const { return visit_.currentNodeRef(); }
     Scope*       currentScope() { return currentScope_; }

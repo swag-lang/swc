@@ -5,13 +5,12 @@ SWC_BEGIN_NAMESPACE()
 
 class Symbol;
 
-enum class NodeSemaFlagE : uint8_t
+enum class NodeSemaKind : uint8_t
 {
-    SemaIsConst = 1 << 0,
-    SemaIsType  = 1 << 1,
-    SemaRefMask = SemaIsConst | SemaIsType,
+    IsConst  = 1,
+    IsType   = 2,
+    IsSymbol = 3,
 };
-using NodeSemaFlags = EnumFlags<NodeSemaFlagE>;
 
 class SemaInfo
 {
@@ -30,16 +29,18 @@ public:
     Ast&       ast() { return ast_; }
     const Ast& ast() const { return ast_; }
 
-    static NodeSemaFlags&       semaFlags(AstNode& node) { return reinterpret_cast<NodeSemaFlags&>(node.semaFlagsRaw()); }
-    static const NodeSemaFlags& semaFlags(const AstNode& node) { return reinterpret_cast<const NodeSemaFlags&>(node.semaFlagsRaw()); }
+    static NodeSemaKind&       semaNodeKind(AstNode& node) { return reinterpret_cast<NodeSemaKind&>(node.semaKindRaw()); }
+    static const NodeSemaKind& semaNodeKind(const AstNode& node) { return reinterpret_cast<const NodeSemaKind&>(node.semaKindRaw()); }
+
+    bool hasConstant(AstNodeRef nodeRef) const;
+    bool hasType(AstNodeRef nodeRef) const;
+    bool hasSymbol(AstNodeRef nodeRef) const;
 
     void                 setConstant(AstNodeRef nodeRef, ConstantRef ref);
-    bool                 hasConstant(AstNodeRef nodeRef) const;
     ConstantRef          getConstantRef(AstNodeRef nodeRef) const;
     const ConstantValue& getConstant(const TaskContext& ctx, AstNodeRef nodeRef) const;
 
     void    setType(AstNodeRef nodeRef, TypeRef ref);
-    bool    hasType(AstNodeRef nodeRef) const;
     TypeRef getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const;
 
     SemaRef setSymbol(AstNodeRef nodeRef, Symbol* symbol);

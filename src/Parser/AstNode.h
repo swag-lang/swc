@@ -76,8 +76,8 @@ struct AstNode
 
     void semaInherit(const AstNode& node);
 
-    uint8_t&       semaFlagsRaw() { return semaFlags_; }
-    const uint8_t& semaFlagsRaw() const { return semaFlags_; }
+    uint8_t&       semaKindRaw() { return semaFlags_; }
+    const uint8_t& semaKindRaw() const { return semaFlags_; }
     uint32_t       semaRaw() const { return sema_; }
     void           setSemaRaw(uint32_t val) { sema_ = val; }
 

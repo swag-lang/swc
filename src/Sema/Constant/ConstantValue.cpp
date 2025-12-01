@@ -17,6 +17,7 @@ ConstantValue ConstantValue::makeBool(const TaskContext& ctx, bool value)
     cv.typeRef_  = ctx.compiler().typeMgr().getTypeBool();
     cv.kind_     = ConstantKind::Bool;
     cv.asBool.val = value;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
 
@@ -26,6 +27,7 @@ ConstantValue ConstantValue::makeString(const TaskContext& ctx, std::string_view
     cv.typeRef_    = ctx.compiler().typeMgr().getTypeString();
     cv.kind_       = ConstantKind::String;
     cv.asString.val = value;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
 
@@ -35,6 +37,7 @@ ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const ApsInt& value
     cv.typeRef_ = ctx.compiler().typeMgr().getTypeInt(bitWidth, value.isUnsigned());
     cv.kind_    = ConstantKind::Int;
     cv.asInt.val = value;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
 
@@ -44,6 +47,7 @@ ConstantValue ConstantValue::makeFloat(const TaskContext& ctx, const ApFloat& va
     cv.typeRef_   = ctx.compiler().typeMgr().getTypeFloat(bitWidth);
     cv.kind_      = ConstantKind::Float;
     cv.asFloat.val = value;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
 

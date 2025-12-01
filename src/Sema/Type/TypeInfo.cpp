@@ -66,6 +66,7 @@ TypeInfo TypeInfo::makeInt(uint32_t bits, bool isUnsigned)
 {
     TypeInfo ti{TypeInfoKind::Int};
     ti.asInt = {.bits = bits, .isUnsigned = isUnsigned};
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
 
@@ -73,6 +74,7 @@ TypeInfo TypeInfo::makeFloat(uint32_t bits)
 {
     TypeInfo ti{TypeInfoKind::Float};
     ti.asFloat = {.bits = bits};
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
 

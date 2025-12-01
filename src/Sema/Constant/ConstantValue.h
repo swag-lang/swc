@@ -34,7 +34,8 @@ class ConstantValue
     };
 
 public:
-    ConstantValue() {};
+    // ReSharper disable once CppPossiblyUninitializedMember
+    ConstantValue() {}
 
     bool operator==(const ConstantValue& other) const noexcept;
 

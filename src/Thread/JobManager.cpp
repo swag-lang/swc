@@ -180,7 +180,7 @@ void JobManager::waitAll()
 void JobManager::waitAll(JobClientId client)
 {
     std::unique_lock lk(mtx_);
-    idleCv_.wait(lk, [this, client] {
+    idleCv_.wait(lk, [&] {
         const auto        it = clientReadyRunning_.find(client);
         const std::size_t n  = (it == clientReadyRunning_.end()) ? 0 : it->second;
         return n == 0;
@@ -216,7 +216,7 @@ void JobManager::cancelAll(JobClientId client)
 
     // Now wait for the client's RUNNING jobs to drain. Because we block new enqueues and
     // cancel children spawned in SpawnAndSleep (see workerLoop), the count will reach zero.
-    idleCv_.wait(lk, [this, client] {
+    idleCv_.wait(lk, [&] {
         const auto        it = clientReadyRunning_.find(client);
         const std::size_t n  = (it == clientReadyRunning_.end()) ? 0 : it->second;
         return n == 0;

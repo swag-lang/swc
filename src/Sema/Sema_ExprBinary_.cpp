@@ -92,7 +92,7 @@ namespace
     }
 }
 
-AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema)
+AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema) const
 {
     BinaryOperands ops(sema, *this);
 

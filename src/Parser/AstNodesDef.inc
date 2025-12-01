@@ -455,7 +455,7 @@ struct AstBinaryExpr : AstBinaryT<AstNodeId::BinaryExpr>
 {
     AstModifierFlags modifierFlags;
 
-    AstVisitStepResult semaPostNode(Sema& sema);
+    AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
 struct AstUnaryExpr : AstNodeT<AstNodeId::UnaryExpr>

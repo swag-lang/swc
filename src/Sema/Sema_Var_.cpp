@@ -20,12 +20,22 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
             sema.raiseError(DiagnosticId::sema_err_const_missing_init, srcViewRef(), tokNameRef);
             return AstVisitStepResult::Stop;
         }
+
+        if (!sema.hasConstant(nodeInitRef))
+        {
+            sema.raiseExprNotConst(nodeInitRef);
+            return AstVisitStepResult::Stop;
+        }
+    }
+    else
+    {
+        sema.raiseInternalError(*this);
+        return AstVisitStepResult::Stop;
     }
 
-    SWC_ASSERT(sema.hasConstant(nodeInitRef));
-    auto cst = new SymbolConstant(sema.ctx(), srcViewRef(), tokNameRef, sema.constantRefOf(nodeInitRef));
-
+    const auto cst = new SymbolConstant(sema.ctx(), srcViewRef(), tokNameRef, sema.constantRefOf(nodeInitRef));
     sema.setSymbol(sema.curNodeRef(), cst);
+
     return AstVisitStepResult::Continue;
 }
 

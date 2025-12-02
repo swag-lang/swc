@@ -237,7 +237,7 @@ SWC_NODE_DEF(ClosureArgument,
 //  Variables / Bindings
 // ============================================================================
 SWC_NODE_DEF(VarDecl,
-                AstNodeIdFlagsE::Zero,
+                AstNodeIdFlagsE::SemaJob,
                 ScopeFlagsE::Zero)
 SWC_NODE_DEF(VarDeclNameList,
                 AstNodeIdFlagsE::Zero,

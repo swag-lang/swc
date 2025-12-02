@@ -1,6 +1,7 @@
 // ReSharper disable CppInconsistentNaming
 // ReSharper disable IdentifierTypo
 #pragma once
+#include "Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -10,22 +11,10 @@ SWC_BEGIN_NAMESPACE()
 
 inline void wymum(uint64_t* a, uint64_t* b)
 {
-#if defined(__SIZEOF_INT128__)
-    __uint128_t r = *a;
-    r *= *b;
-    *a = (uint64_t) r;
-    *b = (uint64_t) (r >> 64);
-#elif defined(_MSC_VER) && defined(_M_X64)
-    *a = _umul128(*a, *b, b);
-#else
-    uint64_t ha = *a >> 32, hb = *b >> 32, la = (uint32_t) *a, lb = (uint32_t) *b, hi, lo;
-    uint64_t rh = ha * hb, rm0 = ha * lb, rm1 = hb * la, rl = la * lb, t = rl + (rm0 << 32), c = t < rl;
-    lo = t + (rm1 << 32);
-    c += lo < t;
-    hi = rh + (rm0 >> 32) + (rm1 >> 32) + c;
+    uint64_t lo, hi;
+    Math::mul64X64(*a, *b, lo, hi);
     *a = lo;
     *b = hi;
-#endif
 }
 
 inline uint64_t wymix(uint64_t a, uint64_t b)

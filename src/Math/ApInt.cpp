@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Math/APInt.h"
-#include "Core/hash.h"
+#include "Math/ApInt.h"
+#include "Core/Hash.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -262,31 +262,10 @@ namespace
 {
     void mulWordFull(uint64_t x, uint64_t y, uint64_t carryIn, uint64_t& outLow, uint64_t& outHigh)
     {
-        const uint64_t a = x;
-        const uint64_t b = y;
-
-        const uint64_t aHi = a >> 32;
-        const uint64_t aLo = static_cast<uint32_t>(a);
-        const uint64_t bHi = b >> 32;
-        const uint64_t bLo = static_cast<uint32_t>(b);
-
-        const uint64_t p0 = aLo * bLo;
-        const uint64_t p1 = aLo * bHi;
-        const uint64_t p2 = aHi * bLo;
-        const uint64_t p3 = aHi * bHi;
-
-        // Compose 128-bit product (high: p3 + ..., low: low64)
-        const uint64_t mid  = (p0 >> 32) + (p1 & 0xffffffffull) + (p2 & 0xffffffffull);
-        uint64_t       high = p3 + (p1 >> 32) + (p2 >> 32) + (mid >> 32);
-        uint64_t       low  = (p0 & 0xffffffffull) | (mid << 32);
-
-        // Add carryIn to low, adjust high on overflow
-        low += carryIn;
-        if (low < carryIn)
-            ++high;
-
-        outLow  = low;
-        outHigh = high;
+        Math::mul64X64(x, y, outLow, outHigh);
+        outLow += carryIn;
+        if (outLow < carryIn)
+            ++outHigh;
     }
 }
 

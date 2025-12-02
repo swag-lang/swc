@@ -10,9 +10,6 @@ SWC_BEGIN_NAMESPACE()
 
 AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
 {
-    SemaNodeView type(sema, nodeTypeRef);
-    SemaNodeView init(sema, nodeInitRef);
-
     if (hasParserFlag(Const))
     {
         if (nodeInitRef.isInvalid())
@@ -33,6 +30,9 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
         return AstVisitStepResult::Stop;
     }
 
+    //SemaNodeView type(sema, nodeTypeRef);
+    //SemaNodeView init(sema, nodeInitRef);
+    
     const auto cst = new SymbolConstant(sema.ctx(), srcViewRef(), tokNameRef, sema.constantRefOf(nodeInitRef));
     sema.setSymbol(sema.curNodeRef(), cst);
 

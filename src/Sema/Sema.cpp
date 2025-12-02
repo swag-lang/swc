@@ -55,11 +55,11 @@ Scope* Sema::pushScope(ScopeFlags flags)
     if (!rootScope_)
     {
         rootScope_ = scope;
-        rootScope_->setDeclContext(ctx_->compiler().moduleDecl());
+        rootScope_->setSymMap(ctx_->compiler().symModule());
     }
     else
     {
-        scope->setDeclContext(parent->declContext());
+        scope->setSymMap(parent->symMap());
     }
 
     currentScope_ = scope;

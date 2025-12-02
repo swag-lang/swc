@@ -50,8 +50,8 @@ public:
     const TypeManager&     typeMgr() const { return *typeMgr_; }
     ConstantManager&       cstMgr() { return *cstMgr_; }
     const ConstantManager& cstMgr() const { return *cstMgr_; }
-    SymbolModule&          moduleDecl() { return *symModule_; }
-    const SymbolModule&    moduleDecl() const { return *symModule_; }
+    SymbolModule&          symModule() { return *symModule_; }
+    const SymbolModule&    symModule() const { return *symModule_; }
 
     void setupSema(TaskContext& ctx);
 

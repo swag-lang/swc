@@ -16,6 +16,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
     SWC_ASSERT(sema.hasConstant(nodeInitRef));
     auto cst = new SymbolConstant(sema.ctx(), srcViewRef(), tokNameRef, sema.constantRefOf(nodeInitRef));
 
+    sema.setSymbol(sema.curNodeRef(), cst);
     return AstVisitStepResult::Continue;
 }
 

@@ -69,12 +69,13 @@ SemaRef SemaInfo::setSymbol(AstNodeRef nodeRef, Symbol* symbol)
     return SemaRef{shard.store.push_back(symbol)};
 }
 
-Symbol* SemaInfo::getSymbol(AstNodeRef nodeRef, SemaRef semaRef)
+const Symbol& SemaInfo::getSymbol(const TaskContext&, AstNodeRef nodeRef) const
 {
     SWC_ASSERT(hasSymbol(nodeRef));
     const uint32_t shardIdx = nodeRef.get() % NUM_SHARDS;
     auto&          shard    = shards_[shardIdx];
-    return *shard.store.ptr<Symbol*>(semaRef.get());
+    const AstNode& node     = ast().node(nodeRef);
+    return **shard.store.ptr<Symbol*>(node.semaRaw());
 }
 
 bool SemaInfo::hasConstant(AstNodeRef nodeRef) const

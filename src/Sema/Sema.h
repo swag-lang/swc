@@ -65,9 +65,13 @@ public:
     TypeRef              typeRefOf(AstNodeRef n) const { return semaInfo().getTypeRef(ctx(), n); }
     ConstantRef          constantRefOf(AstNodeRef n) const { return semaInfo().getConstantRef(n); }
     const ConstantValue& constantOf(AstNodeRef n) const { return semaInfo().getConstant(ctx(), n); }
-    bool                 hasConstant(AstNodeRef n) const { return semaInfo().hasConstant(n); }
-    void                 setConstant(AstNodeRef n, ConstantRef ref) { semaInfo().setConstant(n, ref); }
+    const Symbol&        symbolOf(AstNodeRef n) const { return semaInfo().getSymbol(ctx(), n); }
     void                 setType(AstNodeRef n, TypeRef ref) { semaInfo().setType(n, ref); }
+    void                 setConstant(AstNodeRef n, ConstantRef ref) { semaInfo().setConstant(n, ref); }
+    void                 setSymbol(AstNodeRef n, Symbol* symbol) { semaInfo().setSymbol(n, symbol); }
+    bool                 hasType(AstNodeRef n) const { return semaInfo().hasType(n); }
+    bool                 hasConstant(AstNodeRef n) const { return semaInfo().hasConstant(n); }
+    bool                 hasSymbol(AstNodeRef n) const { return semaInfo().hasSymbol(n); }
 
     AstNodeRef   curNodeRef() const { return visit_.currentNodeRef(); }
     Scope*       currentScope() { return currentScope_; }

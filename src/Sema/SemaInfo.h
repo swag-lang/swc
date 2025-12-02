@@ -36,15 +36,15 @@ public:
     bool hasType(AstNodeRef nodeRef) const;
     bool hasSymbol(AstNodeRef nodeRef) const;
 
-    void                 setConstant(AstNodeRef nodeRef, ConstantRef ref);
-    ConstantRef          getConstantRef(AstNodeRef nodeRef) const;
+    TypeRef     getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const;
+    ConstantRef getConstantRef(AstNodeRef nodeRef) const;
+
     const ConstantValue& getConstant(const TaskContext& ctx, AstNodeRef nodeRef) const;
+    const Symbol&        getSymbol(const TaskContext&, AstNodeRef nodeRef) const;
 
     void    setType(AstNodeRef nodeRef, TypeRef ref);
-    TypeRef getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const;
-
+    void    setConstant(AstNodeRef nodeRef, ConstantRef ref);
     SemaRef setSymbol(AstNodeRef nodeRef, Symbol* symbol);
-    Symbol* getSymbol(AstNodeRef nodeRef, SemaRef semaRef);
 };
 
 SWC_END_NAMESPACE()

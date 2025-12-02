@@ -17,8 +17,8 @@ class SymbolMap : public Symbol
     Shard                     shards_[NUM_SHARDS];
 
 public:
-    explicit SymbolMap(SymbolKind kind) :
-        Symbol(kind)
+    explicit SymbolMap(SymbolKind kind, std::string_view name, uint32_t hash) :
+        Symbol(kind, name, hash)
     {
     }
 };

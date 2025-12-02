@@ -115,7 +115,7 @@ void LangSpec::setupCharFlags()
     charFlags_['U'].add(CharFlagsE::Escape);
 }
 
-TokenId LangSpec::keyword(std::string_view name, uint64_t hash) const
+TokenId LangSpec::keyword(std::string_view name, uint32_t hash) const
 {
     const auto ptr = keywordMap_.find(name, hash);
     if (!ptr)

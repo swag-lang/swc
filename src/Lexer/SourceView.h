@@ -11,7 +11,7 @@ struct SourceTrivia
 
 struct SourceIdentifier
 {
-    uint64_t hash      = 0;
+    uint32_t hash      = 0;
     uint32_t byteStart = 0; // Byte offset in the source file buffer
 };
 

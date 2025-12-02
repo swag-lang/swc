@@ -1,10 +1,12 @@
 #include "pch.h"
-#include "Main/CompilerInstance.h"
+
+#include "Core/Hash.h"
 #include "Core/Timer.h"
 #include "Core/Utf8Helper.h"
 #include "Lexer/SourceView.h"
 #include "Main/Command.h"
 #include "Main/CommandLine.h"
+#include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
@@ -35,7 +37,7 @@ void CompilerInstance::setupSema(TaskContext& ctx)
 {
     typeMgr_   = std::make_unique<TypeManager>();
     cstMgr_    = std::make_unique<ConstantManager>();
-    symModule_ = std::make_unique<SymbolModule>();
+    symModule_ = std::make_unique<SymbolModule>("", hash(""));
 
     typeMgr_->setup(ctx);
     cstMgr_->setup(ctx);

@@ -691,8 +691,8 @@ void Lexer::lexIdentifier()
     else
     {
         // Is this a keyword?
-        const uint64_t hash64 = hash(name);
-        token_.id             = ctx_->global().langSpec().keyword(name, hash64);
+        const uint32_t hash32 = hash(name);
+        token_.id             = ctx_->global().langSpec().keyword(name, hash32);
         if (token_.id == TokenId::Identifier)
         {
             if (name[0] == '#')
@@ -701,7 +701,7 @@ void Lexer::lexIdentifier()
                 raiseTokenError(DiagnosticId::parser_err_invalid_intrinsic, startTokenOffset_, static_cast<uint32_t>(name.size()));
 
             const auto idx = static_cast<uint32_t>(srcView_->identifiers().size());
-            srcView_->identifiers().push_back({.hash = hash64, .byteStart = token_.byteStart});
+            srcView_->identifiers().push_back({.hash = hash32, .byteStart = token_.byteStart});
             token_.byteStart = idx;
         }
 

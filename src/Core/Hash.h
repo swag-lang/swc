@@ -112,9 +112,9 @@ inline uint64_t wyhash(const void* key, size_t len, uint64_t seed = 0xa0761d6478
     return wymix(a ^ SECRET[0] ^ len, b ^ SECRET[1]);
 }
 
-inline uint64_t hash(std::string_view v, uint64_t seed = 0xa0761d6478bd642full)
+inline uint32_t hash(std::string_view v, uint64_t seed = 0xa0761d6478bd642full)
 {
-    return wyhash(v.data(), v.size(), seed);
+    return wyhash(v.data(), v.size(), seed) & 0xFFFFFFFF;
 }
 
 inline size_t hash_combine(size_t h, size_t v)

@@ -5,7 +5,7 @@ SWC_BEGIN_NAMESPACE()
 
 // StringMap<T> (POD/Trivial T version)
 // - Keys are string_view (caller controls lifetime).
-// - You must pass a precomputed 64-bit hash for every operation.
+// - You must pass a precomputed 32-bit hash for every operation.
 // - Robin Hood hashing + control-byte fingerprint for speed and predictability.
 // - Auto-resizing at 87.5% load (power-of-two capacities).
 // - Requires: T is trivially copyable and trivially destructible (POD-friendly).
@@ -30,47 +30,47 @@ public:
     }
 
     // Insert-or-assign with precomputed hash. Returns {ptr, inserted?}.
-    std::pair<T*, bool> insert_or_assign(std::string_view key, uint64_t hash, const T& value)
+    std::pair<T*, bool> insert_or_assign(std::string_view key, uint32_t hash, const T& value)
     {
         return upsert_h_(key, hash, [&](T& dst) { dst = value; }, [&](T& dst) { dst = value; });
     }
 
-    std::pair<T*, bool> insert_or_assign(std::string_view key, uint64_t hash, T&& value)
+    std::pair<T*, bool> insert_or_assign(std::string_view key, uint32_t hash, T&& value)
     {
         return upsert_h_(key, hash, [&](T& dst) { dst = std::move(value); }, [&](T& dst) { dst = std::move(value); });
     }
 
     // Try-emplace with precomputed hash. (Construct only if missing.)
     template<class... Args>
-    std::pair<T*, bool> try_emplace(std::string_view key, uint64_t hash, Args&&... args)
+    std::pair<T*, bool> try_emplace(std::string_view key, uint32_t hash, Args&&... args)
     {
         return upsert_h_(key, hash, [&](T& dst) { dst = T(std::forward<Args>(args)...); }, [&](T&) {});
     }
 
     // Get existing or create default-constructed (zero-initialized) if missing.
-    T& get_or_insert(std::string_view key, uint64_t hash)
+    T& get_or_insert(std::string_view key, uint32_t hash)
     {
         return *try_emplace(key, hash, T{}).first;
     }
 
     // Convenience: insert the given value if missing; otherwise return existing unchanged.
-    T& get_or_insert(std::string_view key, uint64_t hash, const T& init)
+    T& get_or_insert(std::string_view key, uint32_t hash, const T& init)
     {
         return *try_emplace(key, hash, init).first;
     }
 
     // Find with precomputed hash.
-    T* find(std::string_view key, uint64_t hash)
+    T* find(std::string_view key, uint32_t hash)
     {
         return find_impl_(key, hash);
     }
 
-    const T* find(std::string_view key, uint64_t hash) const
+    const T* find(std::string_view key, uint32_t hash) const
     {
         return const_cast<StringMap*>(this)->find_impl_(key, hash);
     }
 
-    bool contains(std::string_view key, uint64_t hash) const
+    bool contains(std::string_view key, uint32_t hash) const
     {
         return find(key, hash) != nullptr;
     }
@@ -106,7 +106,7 @@ private:
     {
         uint16_t         dist = 0; // probe distance (Robin Hood)
         uint16_t         _pad = 0;
-        uint64_t         hash = 0; // full 64-bit hash (precomputed)
+        uint32_t         hash = 0; // 32-bit hash
         std::string_view key{};
         T                value{}; // POD value; uninitialized bits OK for EMPTY/TOMB
     };
@@ -121,11 +121,11 @@ private:
         return c != EMPTY && c != TOMB;
     }
 
-    static uint8_t fingerprint_(uint64_t h) noexcept
+    static uint8_t fingerprint_(uint32_t h) noexcept
     {
-        uint8_t fp = static_cast<uint8_t>((h >> 56) | 1u); // ensure non-zero
+        uint8_t fp = static_cast<uint8_t>((h >> 24) | 1u); // ensure non-zero, top 8 bits of 32-bit hash
         if (fp == EMPTY || fp == TOMB)
-            fp = 1; // avoid sentinel clash
+            fp = 1;
         return fp;
     }
 
@@ -189,7 +189,7 @@ private:
     }
 
     template<class FInsert, class FFound>
-    std::pair<T*, bool> upsert_h_(std::string_view key, uint64_t hash, FInsert on_insert, FFound on_found)
+    std::pair<T*, bool> upsert_h_(std::string_view key, uint32_t hash, FInsert on_insert, FFound on_found)
     {
         if (static_cast<double>(size_ + 1) > MAX_LOAD * static_cast<double>(capacity()))
             rehash_(capacity() ? capacity() * 2 : INIT_CAP);
@@ -211,7 +211,7 @@ private:
                 s.hash        = hash;
                 s.key         = key;
                 s.dist        = dist;
-                on_insert(s.value); // directly write
+                on_insert(s.value);
                 ++size_;
                 return {&s.value, true};
             }
@@ -252,8 +252,9 @@ private:
                         uint8_t carry_fp = c;
                         ctrl_[idx]       = TOMB;
 
+                        size_t   base  = carry.hash & mask_;
                         size_t   ins   = (target + 1) & mask_;
-                        uint16_t idist = static_cast<uint16_t>(((target >= (carry.hash & mask_)) ? (target - (carry.hash & mask_)) : (target + capacity() - (carry.hash & mask_))) + 1);
+                        uint16_t idist = static_cast<uint16_t>(((target >= base) ? (target - base) : (target + capacity() - base)) + 1);
 
                         while (true)
                         {
@@ -280,7 +281,7 @@ private:
                         }
                     }
 
-                    // Swap with a resident at idx and keep inserting the displaced one.
+                    // Swap with resident at idx
                     uint8_t new_fp = fp;
                     std::swap(ctrl_[idx], new_fp);
 
@@ -325,7 +326,7 @@ private:
         }
     }
 
-    bool find_index_(std::string_view key, uint64_t hash, size_t& out_idx)
+    bool find_index_(std::string_view key, uint32_t hash, size_t& out_idx)
     {
         if (slots_.empty())
             return false;
@@ -343,14 +344,12 @@ private:
             {
                 Slot& s = slots_[idx];
 
-                // Check for match first, before distance comparison
                 if (c == fp && s.hash == hash && s.key == key)
                 {
                     out_idx = idx;
                     return true;
                 }
 
-                // Robin Hood invariant: if slot has smaller distance, key doesn't exist
                 if (s.dist < dist)
                     return false;
             }
@@ -360,7 +359,7 @@ private:
         }
     }
 
-    T* find_impl_(std::string_view key, uint64_t hash)
+    T* find_impl_(std::string_view key, uint32_t hash)
     {
         size_t idx;
         if (!find_index_(key, hash, idx))

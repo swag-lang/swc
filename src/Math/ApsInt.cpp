@@ -4,10 +4,10 @@
 
 SWC_BEGIN_NAMESPACE()
 
-uint64_t ApsInt::hash() const
+uint32_t ApsInt::hash() const
 {
-    auto h = ApInt::hash();
-    h      = Math::hash_combine(h, unsigned_);
+    uint32_t h = ApInt::hash();
+    h          = Math::hashCombine(h, unsigned_);
     return h;
 }
 

@@ -32,7 +32,7 @@ public:
 
     bool     same(const ApInt& other) const;
     int      compare(const ApInt& other) const;
-    uint64_t hash() const;
+    uint32_t hash() const;
 
     bool     isZero() const;
     void     setZero();

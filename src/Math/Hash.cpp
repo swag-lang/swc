@@ -8,42 +8,42 @@ SWC_BEGIN_NAMESPACE()
 // Assumptions: 64-bit little-endian; compiler supports __int128.
 // Public domain (The Unlicense). Original: https://github.com/wangyi-fudan/wyhash
 
-namespace Math
+namespace
 {
-    inline void wymum(uint64_t* a, uint64_t* b)
+    void wymum(uint64_t* a, uint64_t* b)
     {
         uint64_t lo, hi;
-        mul64X64(*a, *b, lo, hi);
+        Math::mul64X64(*a, *b, lo, hi);
         *a = lo;
         *b = hi;
     }
 
-    inline uint64_t wymix(uint64_t a, uint64_t b)
+    uint64_t wymix(uint64_t a, uint64_t b)
     {
         wymum(&a, &b);
         return a ^ b;
     }
 
-    inline uint64_t wyr8(const uint8_t* p)
+    uint64_t wyr8(const uint8_t* p)
     {
         uint64_t v;
         memcpy(&v, p, 8);
         return v;
     }
 
-    inline uint64_t wyr4(const uint8_t* p)
+    uint64_t wyr4(const uint8_t* p)
     {
         uint32_t v;
         memcpy(&v, p, 4);
         return v;
     }
 
-    inline uint64_t wyr3(const uint8_t* p, size_t k)
+    uint64_t wyr3(const uint8_t* p, size_t k)
     {
         return (static_cast<uint64_t>(p[0]) << 16) | (static_cast<uint64_t>(p[k >> 1]) << 8) | p[k - 1];
     }
 
-    inline uint64_t wyhash(const void* key, size_t len, uint64_t seed = 0xa0761d6478bd642full)
+    uint64_t wyhash(const void* key, size_t len, uint64_t seed = 0xa0761d6478bd642full)
     {
         static constexpr uint64_t SECRET[4] = {
             0x2d358dccaa6c78a5ull, 0x8bb84b93962eacc9ull,
@@ -101,15 +101,43 @@ namespace Math
         wymum(&a, &b);
         return wymix(a ^ SECRET[0] ^ len, b ^ SECRET[1]);
     }
+}
 
+namespace Math
+{
     uint32_t hash(std::string_view v, uint64_t seed)
     {
         return wyhash(v.data(), v.size(), seed) & 0xFFFFFFFF;
     }
 
-    size_t hash_combine(size_t h, size_t v)
+    uint32_t hash(uint32_t v)
     {
-        return h ^ (v + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2));
+        v ^= v >> 16;
+        v *= 0x7feb352d;
+        v ^= v >> 15;
+        v *= 0x846ca68b;
+        v ^= v >> 16;
+        return v;
+    }
+
+    uint32_t hashCombine(uint32_t h, bool v)
+    {
+        return hashCombine(h, static_cast<uint32_t>(v));
+    }
+
+    uint32_t hashCombine(uint32_t h, uint32_t v)
+    {
+        constexpr uint32_t k = 0x9e3779b9u;
+        h ^= v + k + (h << 6) + (h >> 2);
+        return h;
+    }
+
+    uint32_t hashCombine(uint32_t h, uint64_t v)
+    {
+        const uint32_t     folded = static_cast<uint32_t>(v) ^ static_cast<uint32_t>(v >> 32);
+        constexpr uint32_t k      = 0x9e3779b9u;
+        h ^= folded + k + (h << 6) + (h >> 2);
+        return h;
     }
 }
 

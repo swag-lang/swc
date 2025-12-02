@@ -126,21 +126,21 @@ Utf8 ConstantValue::toString() const
 
 size_t ConstantValueHash::operator()(const ConstantValue& v) const noexcept
 {
-    auto h = std::hash<int>()(static_cast<int>(v.kind()));
+    auto h = Math::hash(static_cast<uint32_t>(v.kind()));
 
     switch (v.kind())
     {
         case ConstantKind::Bool:
-            h = Math::hash_combine(h, v.asBool.val);
+            h = Math::hashCombine(h, v.asBool.val);
             break;
         case ConstantKind::String:
-            h = Math::hash_combine(h, Math::hash(v.asString.val));
+            h = Math::hashCombine(h, Math::hash(v.asString.val));
             break;
         case ConstantKind::Int:
-            h = Math::hash_combine(h, v.asInt.val.hash());
+            h = Math::hashCombine(h, v.asInt.val.hash());
             break;
         case ConstantKind::Float:
-            h = Math::hash_combine(h, v.asFloat.val.hash());
+            h = Math::hashCombine(h, v.asFloat.val.hash());
             break;
 
         default:

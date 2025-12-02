@@ -27,9 +27,9 @@ public:
     float  asFloat() const;
     double asDouble() const;
 
-    bool   same(const ApFloat& other) const;
-    int    compare(const ApFloat& other) const;
-    size_t hash() const;
+    bool     same(const ApFloat& other) const;
+    int      compare(const ApFloat& other) const;
+    uint32_t hash() const;
 
     uint32_t bitWidth() const { return bitWidth_; }
     void     negate();

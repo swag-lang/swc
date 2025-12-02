@@ -39,7 +39,7 @@ public:
 
     bool     same(const ApsInt& other) const;
     int      compare(const ApsInt& other) const;
-    uint64_t hash() const;
+    uint32_t hash() const;
 
     static ApsInt minValue(uint32_t bitWidth, bool isUnsigned);
     static ApsInt maxValue(uint32_t bitWidth, bool isUnsigned);

@@ -200,16 +200,16 @@ int ApFloat::compare(const ApFloat& other) const
     }
 }
 
-size_t ApFloat::hash() const
+uint32_t ApFloat::hash() const
 {
-    auto h = std::hash<int>()(static_cast<int>(bitWidth_));
+    uint32_t h = Math::hash(bitWidth_);
     switch (bitWidth_)
     {
         case 32:
-            h = Math::hash_combine(h, std::bit_cast<uint32_t>(value_.f32));
+            h = Math::hashCombine(h, std::bit_cast<uint32_t>(value_.f32));
             break;
         case 64:
-            h = Math::hash_combine(h, std::bit_cast<uint64_t>(value_.f64));
+            h = Math::hashCombine(h, std::bit_cast<uint64_t>(value_.f64));
             break;
         default:
             SWC_UNREACHABLE();

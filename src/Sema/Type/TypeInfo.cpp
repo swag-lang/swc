@@ -31,7 +31,7 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
 
 size_t TypeInfoHash::operator()(const TypeInfo& t) const noexcept
 {
-    auto h = std::hash<int>()(static_cast<int>(t.kind_));
+    auto h = Math::hash(static_cast<uint32_t>(t.kind_));
 
     switch (t.kind_)
     {
@@ -40,11 +40,11 @@ size_t TypeInfoHash::operator()(const TypeInfo& t) const noexcept
             return h;
 
         case TypeInfoKind::Int:
-            h = Math::hash_combine(h, t.asInt.bits);
-            h = Math::hash_combine(h, t.asInt.isUnsigned);
+            h = Math::hashCombine(h, t.asInt.bits);
+            h = Math::hashCombine(h, t.asInt.isUnsigned);
             return h;
         case TypeInfoKind::Float:
-            h = Math::hash_combine(h, t.asFloat.bits);
+            h = Math::hashCombine(h, t.asFloat.bits);
             return h;
 
         default:

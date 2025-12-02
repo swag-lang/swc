@@ -122,11 +122,11 @@ int ApInt::compare(const ApInt& other) const
     return 0;
 }
 
-uint64_t ApInt::hash() const
+uint32_t ApInt::hash() const
 {
-    auto h = std::hash<int>()(static_cast<int>(bitWidth_));
+    uint32_t h = Math::hash(bitWidth_);
     for (uint64_t i = 0; i < numWords_; ++i)
-        h = Math::hash_combine(h, words_[i]);
+        h = Math::hashCombine(h, words_[i]);
     return h;
 }
 

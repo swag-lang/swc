@@ -255,6 +255,7 @@
         <ClCompile Include="src\Sema\Sema_Literal_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Type_.cpp"/>
         <ClCompile Include="src\Sema\Sema_ExprUnary_.cpp"/>
+        <ClCompile Include="src\Sema\Sema_Var_.cpp"/>
         <ClCompile Include="src\Sema\Symbol\SymbolMap.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Scope.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Symbol.cpp"/>

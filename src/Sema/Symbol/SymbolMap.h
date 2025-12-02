@@ -17,8 +17,13 @@ class SymbolMap : public Symbol
     Shard                     shards_[NUM_SHARDS];
 
 public:
-    explicit SymbolMap(SymbolKind kind, std::string_view name, uint32_t hash) :
-        Symbol(kind, name, hash)
+    explicit SymbolMap(SymbolKind kind) :
+        Symbol(kind)
+    {
+    }
+
+    explicit SymbolMap(const TaskContext& ctx, SymbolKind kind, SourceViewRef srcViewRef, TokenRef tokRef) :
+        Symbol(ctx, kind, srcViewRef, tokRef)
     {
     }
 };

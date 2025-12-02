@@ -950,6 +950,8 @@ struct AstVarDecl : AstNodeT<AstNodeId::VarDecl>
     {
         AstNode::collectChildren(out, {nodeTypeRef, nodeInitRef});
     }
+
+    AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
 struct AstVarDeclNameList : AstNodeT<AstNodeId::VarDeclNameList>

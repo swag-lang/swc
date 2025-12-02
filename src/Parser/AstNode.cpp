@@ -14,7 +14,10 @@ void AstNode::collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, Span
 void AstNode::collectChildren(SmallVector<AstNodeRef>& out, std::initializer_list<AstNodeRef> nodes)
 {
     for (auto n : nodes)
-        out.push_back(n);
+    {
+        if (n.isValid())
+            out.push_back(n);
+    }
 }
 
 void AstNode::semaInherit(const AstNode& node)

@@ -7,6 +7,9 @@ SWC_BEGIN_NAMESPACE()
 
 TypeRef SemaInfo::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const
 {
+    if (nodeRef.isInvalid())
+        return TypeRef::invalid();
+
     const AstNode& node = ast().node(nodeRef);
     switch (semaNodeKind(node))
     {
@@ -39,6 +42,9 @@ void SemaInfo::setType(AstNodeRef nodeRef, TypeRef ref)
 
 ConstantRef SemaInfo::getConstantRef(AstNodeRef nodeRef) const
 {
+    if (nodeRef.isInvalid())
+        return ConstantRef::invalid();
+
     SWC_ASSERT(hasConstant(nodeRef));
     const AstNode& node = ast().node(nodeRef);
     return ConstantRef{node.semaRaw()};
@@ -73,21 +79,24 @@ Symbol* SemaInfo::getSymbol(AstNodeRef nodeRef, SemaRef semaRef)
 
 bool SemaInfo::hasConstant(AstNodeRef nodeRef) const
 {
-    SWC_ASSERT(nodeRef.isValid());
+    if (nodeRef.isInvalid())
+        return false;
     const AstNode& node = ast().node(nodeRef);
     return semaNodeKind(node) == NodeSemaKind::IsConst;
 }
 
 bool SemaInfo::hasType(AstNodeRef nodeRef) const
 {
-    SWC_ASSERT(nodeRef.isValid());
+    if (nodeRef.isInvalid())
+        return false;
     const AstNode& node = ast().node(nodeRef);
     return semaNodeKind(node) == NodeSemaKind::IsType;
 }
 
 bool SemaInfo::hasSymbol(AstNodeRef nodeRef) const
 {
-    SWC_ASSERT(nodeRef.isValid());
+    if (nodeRef.isInvalid())
+        return false;
     const AstNode& node = ast().node(nodeRef);
     return semaNodeKind(node) == NodeSemaKind::IsSymbol;
 }

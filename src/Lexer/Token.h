@@ -73,7 +73,7 @@ struct Token
 
     bool               is(TokenId id) const { return this->id == id; }
     bool               isNot(TokenId id) const { return this->id != id; }
-    std::string_view   string(const SourceView& srcView) const;
+    std::string_view   string(const SourceView& srcView, uint32_t* crc = nullptr) const;
     SourceCodeLocation location(const TaskContext& ctx, const SourceView& srcView) const;
     bool               hasFlag(TokenFlags flag) const { return flags.has(flag); }
 

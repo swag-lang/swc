@@ -7,7 +7,7 @@ class SymbolModule : public SymbolMap
 {
 public:
     SymbolModule(std::string_view name, uint32_t hash) :
-        SymbolMap(SymbolKind::Module, name, hash)
+        SymbolMap(SymbolKind::Module)
     {
     }
 };
@@ -15,22 +15,22 @@ public:
 class SymbolNamespace : public SymbolMap
 {
 public:
-    SymbolNamespace(std::string_view name, uint32_t hash) :
-        SymbolMap(SymbolKind::Namespace, name, hash)
+    SymbolNamespace(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef, ConstantRef cstRef) :
+        SymbolMap(ctx, SymbolKind::Namespace, srcViewRef, tokRef)
     {
     }
 };
 
 class SymbolConstant : public Symbol
 {
+    ConstantRef cstRef_ = ConstantRef::invalid();
+
 public:
-    explicit SymbolConstant(ConstantRef cstRef, std::string_view name, uint32_t hash) :
-        Symbol(SymbolKind::Constant, name, hash),
-        cstRef(cstRef)
+    explicit SymbolConstant(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef, ConstantRef cstRef) :
+        Symbol(ctx, SymbolKind::Constant, srcViewRef, tokRef),
+        cstRef_(cstRef)
     {
     }
-
-    ConstantRef cstRef = ConstantRef::invalid();
 };
 
 SWC_END_NAMESPACE()

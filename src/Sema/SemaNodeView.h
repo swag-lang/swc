@@ -16,9 +16,12 @@ struct SemaNodeView
 
     SemaNodeView(Sema& sema, AstNodeRef nodeRef)
     {
-        node    = &sema.node(nodeRef);
-        typeRef = sema.typeRefOf(nodeRef);
-        type    = &sema.typeMgr().get(typeRef);
+        if (nodeRef.isValid())
+        {
+            node    = &sema.node(nodeRef);
+            typeRef = sema.typeRefOf(nodeRef);
+            type    = &sema.typeMgr().get(typeRef);
+        }
 
         if (sema.hasConstant(nodeRef))
         {

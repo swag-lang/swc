@@ -1,5 +1,8 @@
 #pragma once
+
 SWC_BEGIN_NAMESPACE()
+
+class TaskContext;
 
 enum class SymbolKind : uint8_t
 {
@@ -16,12 +19,12 @@ class Symbol
     SymbolKind       kind_ = SymbolKind::Invalid;
 
 public:
-    explicit Symbol(SymbolKind kind, std::string_view name, uint32_t hash) :
-        name_(name),
-        hash_(hash),
+    explicit Symbol(SymbolKind kind) :
         kind_(kind)
     {
     }
+
+    explicit Symbol(const TaskContext& ctx, SymbolKind kind, SourceViewRef srcViewRef, TokenRef tokRef);
 
     SymbolKind       kind() const { return kind_; }
     std::string_view name() const { return name_; }

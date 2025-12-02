@@ -64,6 +64,15 @@ struct AstNode
             parserFlags_ |= val.flags;
     }
 
+    template<typename T>
+    bool hasParserFlag(T val) const
+    {
+        if constexpr (std::is_enum_v<T>)
+            return parserFlags_ & static_cast<std::underlying_type_t<T>>(val);
+        else
+            return parserFlags_ & val.flags;
+    }
+
     static void        collectChildren(SmallVector<AstNodeRef>&, const Ast&) {}
     static void        collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, SpanRef spanRef);
     static void        collectChildren(SmallVector<AstNodeRef>& out, std::initializer_list<AstNodeRef> nodes);

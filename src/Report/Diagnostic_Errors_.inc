@@ -86,4 +86,4 @@ SWC_DIAG_DEF(sema_err_negate_unsigned)
 SWC_DIAG_DEF(sema_err_signed_unsigned)
 SWC_DIAG_DEF(sema_err_unary_operand_type)
 SWC_DIAG_DEF(sema_err_binary_operand_type)
-
+SWC_DIAG_DEF(sema_err_const_missing_init)

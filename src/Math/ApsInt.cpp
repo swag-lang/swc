@@ -1,13 +1,13 @@
 #include "pch.h"
 #include "Math/ApsInt.h"
-#include "Core/Hash.h"
+#include "Math/Hash.h"
 
 SWC_BEGIN_NAMESPACE()
 
 uint64_t ApsInt::hash() const
 {
     auto h = ApInt::hash();
-    h      = hash_combine(h, unsigned_);
+    h      = Math::hash_combine(h, unsigned_);
     return h;
 }
 

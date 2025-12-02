@@ -202,6 +202,7 @@
         <ClCompile Include="src\Math\ApFloat.cpp"/>
         <ClCompile Include="src\Math\ApInt.cpp"/>
         <ClCompile Include="src\Math\ApsInt.cpp"/>
+        <ClCompile Include="src\Math\Hash.cpp"/>
         <ClCompile Include="src\Math\Helpers.cpp"/>
         <ClCompile Include="src\Memory\Allocator.cpp"/>
         <ClCompile Include="src\Memory\Mimalloc.cpp">
@@ -270,7 +271,6 @@
     </ItemGroup>
     <ItemGroup>
         <ClInclude Include="src\Core\Flags.h"/>
-        <ClInclude Include="src\Core\Hash.h"/>
         <ClInclude Include="src\Core\Store.h"/>
         <ClInclude Include="src\Core\SmallVector.h"/>
         <ClInclude Include="src\Core\StringMap.h"/>
@@ -296,6 +296,7 @@
         <ClInclude Include="src\Math\ApFloat.h"/>
         <ClInclude Include="src\Math\ApInt.h"/>
         <ClInclude Include="src\Math\ApsInt.h"/>
+        <ClInclude Include="src\Math\Hash.h"/>
         <ClInclude Include="src\Math\Helpers.h"/>
         <ClInclude Include="src\Os\Os.h"/>
         <ClInclude Include="src\Parser\Ast.h"/>

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Sema/Constant/ConstantValue.h"
-#include "Core/hash.h"
 #include "Main/TaskContext.h"
+#include "Math/Hash.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -131,16 +131,16 @@ size_t ConstantValueHash::operator()(const ConstantValue& v) const noexcept
     switch (v.kind())
     {
         case ConstantKind::Bool:
-            h = hash_combine(h, v.asBool.val);
+            h = Math::hash_combine(h, v.asBool.val);
             break;
         case ConstantKind::String:
-            h = hash_combine(h, hash(v.asString.val));
+            h = Math::hash_combine(h, Math::hash(v.asString.val));
             break;
         case ConstantKind::Int:
-            h = hash_combine(h, v.asInt.val.hash());
+            h = Math::hash_combine(h, v.asInt.val.hash());
             break;
         case ConstantKind::Float:
-            h = hash_combine(h, v.asFloat.val.hash());
+            h = Math::hash_combine(h, v.asFloat.val.hash());
             break;
 
         default:

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Lexer/LangSpec.h"
-#include "Core/Hash.h"
 #include "Lexer/Token.h"
+#include "Math/Hash.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -16,7 +16,7 @@ void LangSpec::setupKeywords()
 #define SWC_TOKEN_DEF(__id, __name, __kind)                             \
     if (Token::isSpecialWord(TokenId::__id))                            \
     {                                                                   \
-        auto hash64 = hash(__name);                                     \
+        auto hash64 = Math::hash(__name);                               \
         keywordMap_.insert_or_assign(__name, hash64, TokenId::__id);    \
         keywordIdMap_[TokenId::__id] = __name;                          \
         SWC_ASSERT(keywordMap_.contains(__name, hash64));               \
@@ -125,7 +125,7 @@ TokenId LangSpec::keyword(std::string_view name, uint32_t hash) const
 
 TokenId LangSpec::keyword(std::string_view name) const
 {
-    return keyword(name, hash(name));
+    return keyword(name, Math::hash(name));
 }
 
 SWC_END_NAMESPACE()

@@ -1,12 +1,12 @@
 #include "pch.h"
 #include "Lexer/Lexer.h"
-#include "Core/Hash.h"
 #include "Core/Timer.h"
 #include "Core/Utf8Helper.h"
 #include "Lexer/LangSpec.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
+#include "Math/Hash.h"
 #include "Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -691,7 +691,7 @@ void Lexer::lexIdentifier()
     else
     {
         // Is this a keyword?
-        const uint32_t hash32 = hash(name);
+        const uint32_t hash32 = Math::hash(name);
         token_.id             = ctx_->global().langSpec().keyword(name, hash32);
         if (token_.id == TokenId::Identifier)
         {

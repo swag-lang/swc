@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Math/ApFloat.h"
-#include "Core/hash.h"
 #include "Math/ApsInt.h"
+#include "Math/Hash.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -206,10 +206,10 @@ size_t ApFloat::hash() const
     switch (bitWidth_)
     {
         case 32:
-            h = hash_combine(h, std::bit_cast<uint32_t>(value_.f32));
+            h = Math::hash_combine(h, std::bit_cast<uint32_t>(value_.f32));
             break;
         case 64:
-            h = hash_combine(h, std::bit_cast<uint64_t>(value_.f64));
+            h = Math::hash_combine(h, std::bit_cast<uint64_t>(value_.f64));
             break;
         default:
             SWC_UNREACHABLE();

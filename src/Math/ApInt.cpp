@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Math/ApInt.h"
-#include "Core/Hash.h"
+#include "Math/Hash.h"
+#include "Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -125,7 +126,7 @@ uint64_t ApInt::hash() const
 {
     auto h = std::hash<int>()(static_cast<int>(bitWidth_));
     for (uint64_t i = 0; i < numWords_; ++i)
-        h = hash_combine(h, words_[i]);
+        h = Math::hash_combine(h, words_[i]);
     return h;
 }
 

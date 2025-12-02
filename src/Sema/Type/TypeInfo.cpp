@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Sema/Type/TypeInfo.h"
-#include "Core/hash.h"
+#include "Math/Hash.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -40,11 +40,11 @@ size_t TypeInfoHash::operator()(const TypeInfo& t) const noexcept
             return h;
 
         case TypeInfoKind::Int:
-            h = hash_combine(h, t.asInt.bits);
-            h = hash_combine(h, t.asInt.isUnsigned);
+            h = Math::hash_combine(h, t.asInt.bits);
+            h = Math::hash_combine(h, t.asInt.isUnsigned);
             return h;
         case TypeInfoKind::Float:
-            h = hash_combine(h, t.asFloat.bits);
+            h = Math::hash_combine(h, t.asFloat.bits);
             return h;
 
         default:

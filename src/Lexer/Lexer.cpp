@@ -701,7 +701,7 @@ void Lexer::lexIdentifier()
                 raiseTokenError(DiagnosticId::parser_err_invalid_intrinsic, startTokenOffset_, static_cast<uint32_t>(name.size()));
 
             const auto idx = static_cast<uint32_t>(srcView_->identifiers().size());
-            srcView_->identifiers().push_back({.hash = hash32, .byteStart = token_.byteStart});
+            srcView_->identifiers().push_back({.crc = hash32, .byteStart = token_.byteStart});
             token_.byteStart = idx;
         }
 

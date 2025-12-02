@@ -5,12 +5,18 @@
 
 SWC_BEGIN_NAMESPACE()
 
-Symbol::Symbol(const TaskContext& ctx, SymbolKind kind, SourceViewRef srcViewRef, TokenRef tokRef) :
-    kind_(kind)
+std::string_view Symbol::name(const TaskContext& ctx) const
 {
-    const auto& srcView = ctx.compiler().srcView(srcViewRef);
-    const auto& tok     = srcView.token(tokRef);
-    name_               = tok.string(srcView, &hash_);
+    const auto& srcView = ctx.compiler().srcView(srcViewRef_);
+    const auto& tok     = srcView.token(tokRef_);
+    return tok.string(srcView);
+}
+
+uint32_t Symbol::crc(const TaskContext& ctx) const
+{
+    const auto& srcView = ctx.compiler().srcView(srcViewRef_);
+    const auto& tok     = srcView.token(tokRef_);
+    return tok.crc(srcView);
 }
 
 SWC_END_NAMESPACE()

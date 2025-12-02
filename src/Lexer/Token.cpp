@@ -4,7 +4,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-std::string_view Token::string(const SourceView& srcView, uint32_t* crc) const
+std::string_view Token::string(const SourceView& srcView) const
 {
     auto start = srcView.stringView().data();
 
@@ -12,14 +12,18 @@ std::string_view Token::string(const SourceView& srcView, uint32_t* crc) const
     // And the real 'byteStart' is stored in that table
     if (id == TokenId::Identifier)
     {
-        const auto& ids = srcView.identifiers();
-        if (crc)
-            *crc = ids[byteStart].hash;
-        const auto offset = ids[byteStart].byteStart;
+        const auto& ids    = srcView.identifiers();
+        const auto  offset = ids[byteStart].byteStart;
         return {start + offset, static_cast<size_t>(byteLength)};
     }
 
     return {start + byteStart, static_cast<size_t>(byteLength)};
+}
+
+uint32_t Token::crc(const SourceView& srcView) const
+{
+    SWC_ASSERT(id == TokenId::Identifier);
+    return srcView.identifiers()[byteStart].crc;
 }
 
 SourceCodeLocation Token::location(const TaskContext& ctx, const SourceView& srcView) const

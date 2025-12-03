@@ -9,12 +9,20 @@ class CompilerInstance;
 
 class TypeManager
 {
-    Store store_;
+    struct Shard
+    {
+        Store                                                    store;
+        std::unordered_map<TypeInfo, TypeRef, TypeInfoHash>      map;
+        mutable std::shared_mutex                                mutexAdd;
+        mutable std::unordered_map<TypeInfo, Utf8, TypeInfoHash> mapString[static_cast<int>(TypeInfo::ToStringMode::Count)];
+        mutable std::shared_mutex                                mutexString[static_cast<int>(TypeInfo::ToStringMode::Count)];
+    };
 
-    std::unordered_map<TypeInfo, TypeRef, TypeInfoHash>      map_;
-    mutable std::shared_mutex                                mutexAdd_;
-    mutable std::unordered_map<TypeInfo, Utf8, TypeInfoHash> mapString_[static_cast<int>(TypeInfo::ToStringMode::Count)];
-    mutable std::shared_mutex                                mutexString_[static_cast<int>(TypeInfo::ToStringMode::Count)];
+    static constexpr uint32_t SHARD_BITS  = 3;
+    static constexpr uint32_t SHARD_COUNT = 1u << SHARD_BITS;
+    static constexpr uint32_t LOCAL_BITS  = 32 - SHARD_BITS;
+    static constexpr uint32_t LOCAL_MASK  = (1u << LOCAL_BITS) - 1;
+    Shard                     shards_[SHARD_COUNT];
 
     // Predefined types
     TypeRef typeBool_        = TypeRef::invalid();
@@ -33,9 +41,11 @@ class TypeManager
     TypeRef typeF32_         = TypeRef::invalid();
     TypeRef typeF64_         = TypeRef::invalid();
 
-    std::vector<std::vector<TypeRef>> promoteTable_;
-    TypeRef                           computePromotion(TypeRef lhsRef, TypeRef rhsRef) const;
-    void                              buildPromoteTable();
+    std::vector<std::vector<TypeRef>>      promoteTable_;
+    std::unordered_map<uint32_t, uint32_t> promoteIndex_;
+
+    TypeRef computePromotion(TypeRef lhsRef, TypeRef rhsRef) const;
+    void    buildPromoteTable();
 
 public:
     void setup(TaskContext& ctx);
@@ -45,12 +55,11 @@ public:
     TypeRef         getTypeString() const { return typeString_; }
     TypeRef         getTypeInt(uint32_t bits, bool isUnsigned) const;
     TypeRef         getTypeFloat(uint32_t bits) const;
-    const TypeInfo& get(TypeRef typeInfoRef) const;
+    const TypeInfo& get(TypeRef typeRef) const;
 
     TypeRef promote(TypeRef lhs, TypeRef rhs) const;
 
     std::string_view typeToString(TypeRef typeInfoRef, TypeInfo::ToStringMode mode = TypeInfo::ToStringMode::Diagnostic) const;
-    std::string_view typeToString(const TypeInfo& typeInfo, TypeInfo::ToStringMode mode = TypeInfo::ToStringMode::Diagnostic) const;
 };
 
 SWC_END_NAMESPACE()

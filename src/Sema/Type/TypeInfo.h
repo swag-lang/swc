@@ -63,11 +63,13 @@ public:
     static TypeInfo makeString();
     static TypeInfo makeInt(uint32_t bits, bool isUnsigned);
     static TypeInfo makeFloat(uint32_t bits);
+
+    uint32_t hash() const;
 };
 
 struct TypeInfoHash
 {
-    size_t operator()(const TypeInfo& t) const noexcept;
+    size_t operator()(const TypeInfo& t) const noexcept { return t.hash(); }
 };
 
 SWC_END_NAMESPACE()

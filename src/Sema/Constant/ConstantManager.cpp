@@ -32,7 +32,7 @@ ConstantRef ConstantManager::cstS32(int32_t value) const
 
 ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantValue& value)
 {
-    const uint32_t shardIndex = value.hash() % (SHARD_COUNT - 1);
+    const uint32_t shardIndex = value.hash() & (SHARD_COUNT - 1);
     auto&          shard      = shards_[shardIndex];
 
     {
@@ -41,10 +41,10 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
             return it->second;
     }
 
+    std::unique_lock lk(shard.mutex);
+
     const uint32_t localIndex = shard.store.size() / sizeof(ConstantValue);
     SWC_ASSERT(localIndex <= LOCAL_MASK);
-
-    std::unique_lock lk(shard.mutex);
 
     ConstantRef result;
     if (!value.isString())

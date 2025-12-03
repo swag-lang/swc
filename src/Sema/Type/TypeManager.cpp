@@ -23,10 +23,10 @@ void TypeManager::setup(TaskContext&)
     typeF32_ = addType(TypeInfo::makeFloat(32));
     typeF64_ = addType(TypeInfo::makeFloat(64));
 
-    buildPromoteTable();
-
     typeBool_   = addType(TypeInfo::makeBool());
     typeString_ = addType(TypeInfo::makeString());
+
+    buildPromoteTable();
 }
 
 TypeRef TypeManager::computePromotion(TypeRef lhsRef, TypeRef rhsRef) const
@@ -75,17 +75,44 @@ TypeRef TypeManager::computePromotion(TypeRef lhsRef, TypeRef rhsRef) const
 
 void TypeManager::buildPromoteTable()
 {
-    const size_t n = map_.size();
-    promoteTable_.resize(n);
+    const std::array types = {
+        typeIntUnsigned_,
+        typeIntSigned_,
+        typeFloat_,
+        typeU8_,
+        typeU16_,
+        typeU32_,
+        typeU64_,
+        typeS8_,
+        typeS16_,
+        typeS32_,
+        typeS64_,
+        typeF32_,
+        typeF64_,
+    };
+
+    constexpr auto n = static_cast<uint32_t>(types.size());
+
+    promoteIndex_.clear();
+    promoteIndex_.reserve(n);
+
+    // Build mapping from sharded TypeRef to a compact 0..n-1 index
     for (uint32_t i = 0; i < n; ++i)
-        promoteTable_[i].resize(n);
+    {
+        const uint32_t key = types[i].get();
+        const auto     res = promoteIndex_.emplace(key, i);
+        SWC_ASSERT(res.second);
+    }
+
+    // Resize the promotion table with compact indices
+    promoteTable_.assign(n, std::vector<TypeRef>(n));
 
     for (uint32_t i = 0; i < n; ++i)
     {
-        const auto lhs = TypeRef{i};
+        const TypeRef lhs = types[i];
         for (uint32_t j = 0; j < n; ++j)
         {
-            const auto rhs      = TypeRef{j};
+            const TypeRef rhs   = types[j];
             promoteTable_[i][j] = computePromotion(lhs, rhs);
         }
     }
@@ -93,31 +120,15 @@ void TypeManager::buildPromoteTable()
 
 TypeRef TypeManager::promote(TypeRef lhs, TypeRef rhs) const
 {
-    return promoteTable_[lhs.get()][rhs.get()];
-}
+    const auto itL = promoteIndex_.find(lhs.get());
+    const auto itR = promoteIndex_.find(rhs.get());
 
-TypeRef TypeManager::addType(const TypeInfo& typeInfo)
-{
-    {
-        std::shared_lock lk(mutexAdd_);
-        const auto       it = map_.find(typeInfo);
-        if (it != map_.end())
-            return it->second;
-    }
+    // If this ever trips, you're trying to promote a type that was not in
+    // the numeric set when buildPromoteTable() was called.
+    SWC_ASSERT(itL != promoteIndex_.end());
+    SWC_ASSERT(itR != promoteIndex_.end());
 
-    std::unique_lock lk(mutexAdd_);
-    const auto [it, inserted] = map_.try_emplace(typeInfo, TypeRef{});
-    if (!inserted)
-        return it->second;
-
-#if SWC_HAS_STATS
-    Stats::get().numTypes.fetch_add(1);
-    Stats::get().memTypes.fetch_add(sizeof(TypeInfo), std::memory_order_relaxed);
-#endif
-
-    const TypeRef ref{store_.push_back(typeInfo) / static_cast<uint32_t>(sizeof(TypeInfo))};
-    it->second = ref;
-    return ref;
+    return promoteTable_[itL->second][itR->second];
 }
 
 TypeRef TypeManager::getTypeInt(uint32_t bits, bool isUnsigned) const
@@ -157,6 +168,36 @@ TypeRef TypeManager::getTypeInt(uint32_t bits, bool isUnsigned) const
     }
 }
 
+TypeRef TypeManager::addType(const TypeInfo& typeInfo)
+{
+    const uint32_t shardIndex = typeInfo.hash() & (SHARD_COUNT - 1);
+    auto&          shard      = shards_[shardIndex];
+
+    {
+        std::shared_lock lk(shard.mutexAdd);
+        if (const auto it = shard.map.find(typeInfo); it != shard.map.end())
+            return it->second;
+    }
+
+    std::unique_lock lk(shard.mutexAdd);
+    const auto [it, inserted] = shard.map.try_emplace(typeInfo, TypeRef{});
+    if (!inserted)
+        return it->second;
+
+#if SWC_HAS_STATS
+    Stats::get().numTypes.fetch_add(1);
+    Stats::get().memTypes.fetch_add(sizeof(TypeInfo), std::memory_order_relaxed);
+#endif
+
+    const uint32_t localIndex = shard.store.size() / sizeof(TypeInfo);
+    SWC_ASSERT(localIndex <= LOCAL_MASK);
+    shard.store.push_back(typeInfo);
+
+    const auto result = TypeRef{(shardIndex << LOCAL_BITS) | localIndex};
+    it->second        = result;
+    return result;
+}
+
 TypeRef TypeManager::getTypeFloat(uint32_t bits) const
 {
     if (bits == 0)
@@ -176,22 +217,21 @@ TypeRef TypeManager::getTypeFloat(uint32_t bits) const
 std::string_view TypeManager::typeToString(TypeRef typeInfoRef, TypeInfo::ToStringMode mode) const
 {
     SWC_ASSERT(typeInfoRef.isValid());
-    return typeToString(get(typeInfoRef), mode);
-}
 
-std::string_view TypeManager::typeToString(const TypeInfo& typeInfo, TypeInfo::ToStringMode mode) const
-{
-    const auto idx = static_cast<int>(mode);
+    const TypeInfo& typeInfo   = get(typeInfoRef);
+    const uint32_t  shardIndex = typeInfoRef.get() >> LOCAL_BITS;
+    auto&           shard      = shards_[shardIndex];
+    const auto      modeIndex  = static_cast<uint32_t>(mode);
 
     {
-        std::shared_lock lk(mutexString_[idx]);
-        const auto       it = mapString_[idx].find(typeInfo);
-        if (it != mapString_[idx].end())
+        std::shared_lock lk(shard.mutexString[modeIndex]);
+        const auto       it = shard.mapString[modeIndex].find(typeInfo);
+        if (it != shard.mapString[modeIndex].end())
             return it->second;
     }
 
-    std::unique_lock lk(mutexString_[idx]);
-    const auto [it, inserted] = mapString_[idx].try_emplace(typeInfo, Utf8{});
+    std::unique_lock lk(shard.mutexString[modeIndex]);
+    const auto [it, inserted] = shard.mapString[modeIndex].try_emplace(typeInfo, Utf8{});
     if (!inserted)
         return it->second;
 
@@ -199,10 +239,12 @@ std::string_view TypeManager::typeToString(const TypeInfo& typeInfo, TypeInfo::T
     return it->second;
 }
 
-const TypeInfo& TypeManager::get(TypeRef typeInfoRef) const
+const TypeInfo& TypeManager::get(TypeRef typeRef) const
 {
-    SWC_ASSERT(typeInfoRef.isValid());
-    return *store_.ptr<TypeInfo>(typeInfoRef.get() * sizeof(TypeInfo));
+    SWC_ASSERT(typeRef.isValid());
+    const auto shardIndex = typeRef.get() >> LOCAL_BITS;
+    const auto localIndex = typeRef.get() & LOCAL_MASK;
+    return *shards_[shardIndex].store.ptr<TypeInfo>(localIndex * sizeof(TypeInfo));
 }
 
 SWC_END_NAMESPACE()

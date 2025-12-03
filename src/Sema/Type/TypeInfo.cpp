@@ -29,22 +29,22 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
     }
 }
 
-size_t TypeInfoHash::operator()(const TypeInfo& t) const noexcept
+uint32_t TypeInfo::hash() const
 {
-    auto h = Math::hash(static_cast<uint32_t>(t.kind_));
+    auto h = Math::hash(static_cast<uint32_t>(kind_));
 
-    switch (t.kind_)
+    switch (kind_)
     {
         case TypeInfoKind::Bool:
         case TypeInfoKind::String:
             return h;
 
         case TypeInfoKind::Int:
-            h = Math::hashCombine(h, t.asInt.bits);
-            h = Math::hashCombine(h, t.asInt.isUnsigned);
+            h = Math::hashCombine(h, asInt.bits);
+            h = Math::hashCombine(h, asInt.isUnsigned);
             return h;
         case TypeInfoKind::Float:
-            h = Math::hashCombine(h, t.asFloat.bits);
+            h = Math::hashCombine(h, asFloat.bits);
             return h;
 
         default:

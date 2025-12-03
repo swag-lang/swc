@@ -32,8 +32,7 @@ ConstantRef ConstantManager::cstS32(int32_t value) const
 
 ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantValue& value)
 {
-    const uint32_t crc        = value.hash();
-    const uint32_t shardIndex = crc % SHARD_COUNT;
+    const uint32_t shardIndex = value.hash() % (SHARD_COUNT - 1);
     auto&          shard      = shards_[shardIndex];
 
     {
@@ -42,32 +41,45 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
             return it->second;
     }
 
+    const uint32_t localIndex = shard.store.size() / sizeof(ConstantValue);
+    SWC_ASSERT(localIndex <= LOCAL_MASK);
+
     std::unique_lock lk(shard.mutex);
-    if (const auto it = shard.map.find(value); it != shard.map.end())
-        return it->second;
+
+    ConstantRef result;
+    if (!value.isString())
+    {
+        auto [it, inserted] = shard.map.try_emplace(value, ConstantRef{});
+        if (!inserted)
+            return it->second;
+
+        shard.store.push_back(value);
+        result     = ConstantRef{(shardIndex << LOCAL_BITS) | localIndex};
+        it->second = result;
+    }
+
+    // For a string, we need to create a copy of the constant value so that it references the
+    // internal string constant store which will contain a copy of the input string_view
+    else
+    {
+        if (const auto it = shard.map.find(value); it != shard.map.end())
+            return it->second;
+
+        auto [itStr, _]     = shard.cacheStr.insert(std::string(value.getString()));
+        const auto view     = std::string_view(itStr->data(), itStr->size());
+        const auto strValue = ConstantValue::makeString(ctx, view);
+
+        shard.store.push_back(strValue);
+        result = ConstantRef{(shardIndex << LOCAL_BITS) | localIndex};
+        shard.map.emplace(strValue, result);
+    }
 
 #if SWC_HAS_STATS
     Stats::get().numConstants.fetch_add(1);
     Stats::get().memConstants.fetch_add(sizeof(ConstantValue), std::memory_order_relaxed);
 #endif
 
-    const uint32_t localIndex = shard.store.size() / sizeof(ConstantValue);
-    SWC_ASSERT(localIndex <= LOCAL_MASK);
-
-    if (value.isString())
-    {
-        auto [itStr, _]     = shard.cacheStr.insert(std::string(value.getString()));
-        const auto strValue = ConstantValue::makeString(ctx, std::string_view(itStr->data(), itStr->size()));
-        shard.store.push_back(strValue);
-        ConstantRef ref{(shardIndex << LOCAL_BITS) | localIndex};
-        shard.map.emplace(strValue, ref);
-        return ref;
-    }
-
-    shard.store.push_back(value);
-    ConstantRef ref{(shardIndex << LOCAL_BITS) | localIndex};
-    shard.map.emplace(value, ref);
-    return ref;
+    return result;
 }
 
 const ConstantValue& ConstantManager::get(ConstantRef constantRef) const

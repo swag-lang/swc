@@ -11,6 +11,20 @@
 
 SWC_BEGIN_NAMESPACE()
 
+AstVisitStepResult AstCompilerExpression::semaPostNode(Sema& sema)
+{
+    if (!sema.hasConstant(nodeExprRef))
+    {
+        sema.raiseExprNotConst(nodeExprRef);
+        return AstVisitStepResult::Stop;
+    }
+
+    const auto node = sema.node(nodeExprRef);
+    semaInherit(node);
+
+    return AstVisitStepResult::Continue;
+}
+
 AstVisitStepResult AstCompilerIf::semaPreChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeConditionRef)
@@ -39,11 +53,7 @@ AstVisitStepResult AstCompilerIf::semaPreChild(Sema& sema, const AstNodeRef& chi
 
 AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 {
-    if (!sema.hasConstant(nodeArgRef))
-    {
-        sema.raiseExprNotConst(nodeArgRef);
-        return AstVisitStepResult::Stop;
-    }
+    SWC_ASSERT(sema.hasConstant(nodeArgRef));
 
     const auto& tok      = sema.token(srcViewRef(), tokRef());
     const auto& constant = sema.constantOf(nodeArgRef);

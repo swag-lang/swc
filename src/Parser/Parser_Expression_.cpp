@@ -414,8 +414,9 @@ AstNodeRef Parser::parsePrimaryExpression()
             return parseCompilerCallUnary();
 
         case TokenId::CompilerRun:
+            return parseCompilerRun();
         case TokenId::CompilerCode:
-            return parseCompilerExpr();
+            return parseCompilerCode();
 
         case TokenId::IntrinsicErr:
         case TokenId::IntrinsicArgs:

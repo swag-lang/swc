@@ -3,13 +3,20 @@
 
 SWC_BEGIN_NAMESPACE()
 
+AstNodeRef Parser::parseCompilerExpression()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerExpression>(ref());
+    nodePtr->nodeExprRef    = parseExpression();
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseCompilerDiagnostic()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerDiagnostic>(consume());
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    nodePtr->nodeArgRef = parseExpression();
+    nodePtr->nodeArgRef = parseCompilerExpression();
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
     return nodeRef;
@@ -59,16 +66,30 @@ AstNodeRef Parser::parseCompilerMessageFunc()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseCompilerExpr()
+AstNodeRef Parser::parseCompilerRun()
 {
     if (nextIs(TokenId::SymLeftCurly))
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerEmbeddedFunc>(consume());
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerRunBlock>(consume());
         nodePtr->nodeBodyRef    = parseFunctionBody();
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerExpr>(consume());
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerRunExpr>(consume());
+    nodePtr->nodeExprRef    = parseExpression();
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseCompilerCode()
+{
+    if (nextIs(TokenId::SymLeftCurly))
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCodeBlock>(consume());
+        nodePtr->nodeBodyRef    = parseFunctionBody();
+        return nodeRef;
+    }
+
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCodeExpr>(consume());
     nodePtr->nodeExprRef    = parseExpression();
     return nodeRef;
 }

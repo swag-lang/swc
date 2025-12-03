@@ -110,6 +110,17 @@ struct AstCompilerScope : AstNodeT<AstNodeId::CompilerScope>
     }
 };
 
+struct AstCompilerExpression : AstNodeT<AstNodeId::CompilerExpression>
+{
+    AstNodeRef nodeExprRef;
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
+    {
+        AstNode::collectChildren(out, {nodeExprRef});
+    }
+    AstVisitStepResult semaPostNode(Sema& sema);
+};
+
 struct AstCompilerDiagnostic : AstInternalCallUnaryT<AstNodeId::CompilerDiagnostic>
 {
     AstVisitStepResult semaPostNode(Sema& sema) const;
@@ -280,13 +291,43 @@ struct AstCompilerMessageFunc : AstNodeT<AstNodeId::CompilerMessageFunc>
     }
 };
 
-struct AstCompilerEmbeddedFunc : AstNodeT<AstNodeId::CompilerEmbeddedFunc>
+struct AstCompilerRunBlock : AstNodeT<AstNodeId::CompilerRunBlock>
 {
     AstNodeRef nodeBodyRef;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeBodyRef});
+    }
+};
+
+struct AstCompilerRunExpr : AstNodeT<AstNodeId::CompilerRunExpr>
+{
+    AstNodeRef nodeExprRef;
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
+    {
+        AstNode::collectChildren(out, {nodeExprRef});
+    }
+};
+
+struct AstCompilerCodeBlock : AstNodeT<AstNodeId::CompilerCodeBlock>
+{
+    AstNodeRef nodeBodyRef;
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
+    {
+        AstNode::collectChildren(out, {nodeBodyRef});
+    }
+};
+
+struct AstCompilerCodeExpr : AstNodeT<AstNodeId::CompilerCodeExpr>
+{
+    AstNodeRef nodeExprRef;
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
+    {
+        AstNode::collectChildren(out, {nodeExprRef});
     }
 };
 
@@ -297,16 +338,6 @@ struct AstCompilerShortFunc : AstNodeT<AstNodeId::CompilerShortFunc>
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeBodyRef});
-    }
-};
-
-struct AstCompilerExpr : AstNodeT<AstNodeId::CompilerExpr>
-{
-    AstNodeRef nodeExprRef;
-
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
-    {
-        AstNode::collectChildren(out, {nodeExprRef});
     }
 };
 

@@ -384,20 +384,28 @@ SWC_NODE_DEF(SuffixLiteral,
 SWC_NODE_DEF(CompilerDiagnostic,
                 AstNodeIdFlagsE::SemaJob,
                 ScopeFlagsE::Zero)
-
+SWC_NODE_DEF(CompilerExpression,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 SWC_NODE_DEF(CompilerCallUnary,
                 AstNodeIdFlagsE::Zero,
                 ScopeFlagsE::Zero)
-SWC_NODE_DEF(CompilerExpr,
+SWC_NODE_DEF(CompilerRunBlock,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(CompilerRunExpr,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(CompilerCodeBlock,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
+SWC_NODE_DEF(CompilerCodeExpr,
                 AstNodeIdFlagsE::Zero,
                 ScopeFlagsE::Zero)
 SWC_NODE_DEF(CompilerFunc,
                 AstNodeIdFlagsE::Zero,
                 ScopeFlagsE::Zero)
 SWC_NODE_DEF(CompilerShortFunc,
-                AstNodeIdFlagsE::Zero,
-                ScopeFlagsE::Zero)
-SWC_NODE_DEF(CompilerEmbeddedFunc,
                 AstNodeIdFlagsE::Zero,
                 ScopeFlagsE::Zero)
 SWC_NODE_DEF(CompilerMessageFunc,

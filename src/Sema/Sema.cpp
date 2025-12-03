@@ -26,6 +26,13 @@ Sema::Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root) :
     setVisitors();
 }
 
+void Sema::semaInherit(AstNode& nodeDst, AstNodeRef srcRef)
+{
+    const AstNode& nodeSrc = node(srcRef);
+    nodeDst.semaKindRaw()  = nodeSrc.semaKindRaw();
+    nodeDst.setSemaRaw(nodeSrc.semaRaw());
+}
+
 Ast& Sema::ast()
 {
     return semaInfo_->ast();
@@ -134,5 +141,4 @@ JobResult Sema::exec()
             return JobResult::Done;
     }
 }
-
 SWC_END_NAMESPACE()

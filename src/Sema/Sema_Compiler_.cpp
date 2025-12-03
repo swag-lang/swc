@@ -19,9 +19,7 @@ AstVisitStepResult AstCompilerExpression::semaPostNode(Sema& sema)
         return AstVisitStepResult::Stop;
     }
 
-    const auto node = sema.node(nodeExprRef);
-    semaInherit(node);
-
+    sema.semaInherit(*this, nodeExprRef);
     return AstVisitStepResult::Continue;
 }
 

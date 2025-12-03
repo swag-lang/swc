@@ -52,7 +52,7 @@ struct AstNode
     void clearFlags()
     {
         parserFlags_ = 0;
-        semaFlags_   = 0;
+        semaKind_    = 0;
     }
 
     template<typename T>
@@ -83,10 +83,8 @@ struct AstNode
     static AstVisitStepResult semaPostNode(Sema&) { return AstVisitStepResult::Continue; }
     static AstVisitStepResult semaPreChild(Sema&, AstNodeRef&) { return AstVisitStepResult::Continue; }
 
-    void semaInherit(const AstNode& node);
-
-    uint8_t&       semaKindRaw() { return semaFlags_; }
-    const uint8_t& semaKindRaw() const { return semaFlags_; }
+    uint8_t&       semaKindRaw() { return semaKind_; }
+    const uint8_t& semaKindRaw() const { return semaKind_; }
     uint32_t       semaRaw() const { return sema_; }
     void           setSemaRaw(uint32_t val) { sema_ = val; }
 
@@ -101,7 +99,7 @@ struct AstNode
 private:
     AstNodeId     id_ = AstNodeId::Invalid;
     ParserFlags   parserFlags_{};
-    uint8_t       semaFlags_  = 0;
+    uint8_t       semaKind_   = 0;
     SourceViewRef srcViewRef_ = SourceViewRef::invalid();
     TokenRef      tokRef_     = TokenRef::invalid();
     uint32_t      sema_       = 0;

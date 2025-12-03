@@ -3,6 +3,7 @@
 #include "Main/TaskContext.h"
 #include "Parser/Ast.h"
 #include "Parser/AstNodes.h"
+#include "Sema/Sema.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -18,12 +19,6 @@ void AstNode::collectChildren(SmallVector<AstNodeRef>& out, std::initializer_lis
         if (n.isValid())
             out.push_back(n);
     }
-}
-
-void AstNode::semaInherit(const AstNode& node)
-{
-    semaFlags_ = node.semaFlags_;
-    sema_      = node.sema_;
 }
 
 TokenRef AstNode::tokRefEnd(const Ast& ast) const

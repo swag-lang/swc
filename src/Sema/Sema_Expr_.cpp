@@ -7,8 +7,7 @@ SWC_BEGIN_NAMESPACE()
 
 AstVisitStepResult AstParenExpr::semaPostNode(Sema& sema)
 {
-    const auto node = sema.node(nodeExprRef);
-    semaInherit(node);
+    sema.semaInherit(*this, nodeExprRef);
     return AstVisitStepResult::Continue;
 }
 

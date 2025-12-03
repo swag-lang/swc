@@ -63,6 +63,7 @@ public:
     const SourceView&        srcView(SourceViewRef srcViewRef) const { return compiler().srcView(srcViewRef); }
     const Token&             token(SourceViewRef srcViewRef, TokenRef tokRef) const { return srcView(srcViewRef).token(tokRef); }
 
+    void       semaInherit(AstNode& nodeDst, AstNodeRef srcRef);
     Ast&       ast();
     const Ast& ast() const;
 

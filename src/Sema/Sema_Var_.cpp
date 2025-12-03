@@ -33,10 +33,12 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
     // SemaNodeView type(sema, nodeTypeRef);
     // SemaNodeView init(sema, nodeInitRef);
 
-    const auto&            tok   = sema.token(srcViewRef(), tokNameRef);
-    const std::string_view name  = tok.string(sema.compiler().srcView(srcViewRef()));
-    const uint32_t         crc   = tok.crc(sema.compiler().srcView(srcViewRef()));
-    const IdentifierRef    idRef = sema.compiler().idMgr().addIdentifier(name, crc);
+    CompilerInstance&      compiler = sema.compiler();
+    const Token&           tok      = sema.token(srcViewRef(), tokNameRef);
+    const SourceView&      srcView  = compiler.srcView(srcViewRef());
+    const std::string_view name     = tok.string(srcView);
+    const uint32_t         crc      = tok.crc(srcView);
+    const IdentifierRef    idRef    = compiler.idMgr().addIdentifier(name, crc);
 
     const auto cst = new SymbolConstant(sema.ctx(), idRef, sema.constantRefOf(nodeInitRef));
     sema.setSymbol(sema.curNodeRef(), cst);

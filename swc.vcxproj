@@ -258,6 +258,7 @@
         <ClCompile Include="src\Sema\Sema_Type_.cpp"/>
         <ClCompile Include="src\Sema\Sema_ExprUnary_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Var_.cpp"/>
+        <ClCompile Include="src\Sema\Symbol\IdentifierManager.cpp"/>
         <ClCompile Include="src\Sema\Symbol\SymbolMap.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Scope.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Symbol.cpp"/>
@@ -325,6 +326,7 @@
         <ClInclude Include="src\Sema\SemaInfo.h"/>
         <ClInclude Include="src\Sema\SemaJob.h"/>
         <ClInclude Include="src\Sema\SemaNodeView.h"/>
+        <ClInclude Include="src\Sema\Symbol\IdentifierManager.h"/>
         <ClInclude Include="src\Sema\Symbol\SymbolMap.h"/>
         <ClInclude Include="src\Sema\Symbol\Scope.h"/>
         <ClInclude Include="src\Sema\Symbol\Symbol.h"/>

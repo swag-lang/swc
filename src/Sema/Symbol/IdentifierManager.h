@@ -1,0 +1,31 @@
+#pragma once
+#include "Core/Store.h"
+#include "Core/StringMap.h"
+
+SWC_BEGIN_NAMESPACE()
+
+struct Identifier
+{
+    std::string_view name;
+};
+
+class IdentifierManager
+{
+    struct Shard
+    {
+        Store                     store;
+        StringMap<IdentifierRef>  map;
+        mutable std::shared_mutex mutex;
+    };
+
+    static constexpr uint32_t SHARD_BITS  = 3;
+    static constexpr uint32_t SHARD_COUNT = 1u << SHARD_BITS;
+    static constexpr uint32_t LOCAL_BITS  = 32 - SHARD_BITS;
+    static constexpr uint32_t LOCAL_MASK  = (1u << LOCAL_BITS) - 1;
+    Shard                     shards_[SHARD_COUNT];
+
+public:
+    IdentifierRef addIdentifier(std::string_view name, uint32_t hash);
+};
+
+SWC_END_NAMESPACE()

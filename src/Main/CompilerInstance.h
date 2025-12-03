@@ -9,6 +9,7 @@ class SourceView;
 class TaskContext;
 class TypeManager;
 class ConstantManager;
+class IdentifierManager;
 class SymbolModule;
 class Global;
 class SourceFile;
@@ -23,6 +24,7 @@ class CompilerInstance
     std::vector<std::unique_ptr<SourceView>> srcViews_;
     std::unique_ptr<TypeManager>             typeMgr_;
     std::unique_ptr<ConstantManager>         cstMgr_;
+    std::unique_ptr<IdentifierManager>       idMgr_;
     std::unique_ptr<SymbolModule>            symModule_;
     JobClientId                              jobClientId_ = 0;
     fs::path                                 modulePathSrc_;
@@ -43,15 +45,18 @@ public:
 
     ExitCode run();
 
-    const Global&          global() const { return *global_; }
-    const CommandLine&     cmdLine() const { return *cmdLine_; }
-    JobClientId            jobClientId() const { return jobClientId_; }
-    TypeManager&           typeMgr() { return *typeMgr_; }
-    const TypeManager&     typeMgr() const { return *typeMgr_; }
-    ConstantManager&       cstMgr() { return *cstMgr_; }
-    const ConstantManager& cstMgr() const { return *cstMgr_; }
-    SymbolModule&          symModule() { return *symModule_; }
-    const SymbolModule&    symModule() const { return *symModule_; }
+    const Global&            global() const { return *global_; }
+    const CommandLine&       cmdLine() const { return *cmdLine_; }
+    JobClientId              jobClientId() const { return jobClientId_; }
+    TypeManager&             typeMgr() { return *typeMgr_; }
+    const TypeManager&       typeMgr() const { return *typeMgr_; }
+    ConstantManager&         cstMgr() { return *cstMgr_; }
+    const ConstantManager&   cstMgr() const { return *cstMgr_; }
+    IdentifierManager&       idMgr() { return *idMgr_; }
+    const IdentifierManager& idMgr() const { return *idMgr_; }
+
+    SymbolModule&       symModule() { return *symModule_; }
+    const SymbolModule& symModule() const { return *symModule_; }
 
     void setupSema(TaskContext& ctx);
 

@@ -25,6 +25,7 @@ struct Stats
     std::atomic<size_t> numVisitedAstNodes = 0;
     std::atomic<size_t> numConstants       = 0;
     std::atomic<size_t> numTypes           = 0;
+    std::atomic<size_t> numIdentifiers     = 0;
 #endif // SWC_HAS_STATS
 
     static Stats& get()

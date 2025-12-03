@@ -29,6 +29,7 @@ void Stats::print(const TaskContext& ctx) const
     Logger::printHeaderDot(ctx, colorHeader, "numVisitedAstNodes", colorMsg, Utf8Helper::toNiceBigNumber(numVisitedAstNodes.load()));
     Logger::printHeaderDot(ctx, colorHeader, "numConstants", colorMsg, Utf8Helper::toNiceBigNumber(numConstants.load()));
     Logger::printHeaderDot(ctx, colorHeader, "numTypes", colorMsg, Utf8Helper::toNiceBigNumber(numTypes.load()));
+    Logger::printHeaderDot(ctx, colorHeader, "numIdentifiers", colorMsg, Utf8Helper::toNiceBigNumber(numIdentifiers.load()));
 
     Logger::print(ctx, "\n");
     Logger::printHeaderDot(ctx, colorHeader, "timeLoadFile", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeLoadFile.load())));

@@ -1,9 +1,9 @@
 #pragma once
 #include "Core/Store.h"
 #include "Sema/Type/TypeInfo.h"
-#include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
+
 class TaskContext;
 class CompilerInstance;
 

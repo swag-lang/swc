@@ -6,8 +6,8 @@ SWC_BEGIN_NAMESPACE()
 class SymbolModule : public SymbolMap
 {
 public:
-    SymbolModule(std::string_view name, uint32_t hash) :
-        SymbolMap(SymbolKind::Module)
+    SymbolModule(const TaskContext& ctx, IdentifierRef idRef) :
+        SymbolMap(ctx, SymbolKind::Module, idRef)
     {
     }
 };

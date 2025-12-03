@@ -18,11 +18,6 @@ class Symbol
     SymbolKind    kind_ = SymbolKind::Invalid;
 
 public:
-    explicit Symbol(SymbolKind kind) :
-        kind_(kind)
-    {
-    }
-
     explicit Symbol(const TaskContext& ctx, SymbolKind kind, IdentifierRef idRef) :
         idRef_(idRef),
         kind_(kind)
@@ -30,6 +25,7 @@ public:
     }
 
     SymbolKind       kind() const { return kind_; }
+    IdentifierRef    idRef() const { return idRef_; }
     std::string_view name(const TaskContext& ctx) const;
 };
 

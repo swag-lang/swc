@@ -77,13 +77,13 @@ public:
     bool                 hasConstant(AstNodeRef n) const { return semaInfo().hasConstant(n); }
     bool                 hasSymbol(AstNodeRef n) const { return semaInfo().hasSymbol(n); }
 
-    AstNodeRef   curNodeRef() const { return visit_.currentNodeRef(); }
-    Scope*       currentScope() { return currentScope_; }
-    const Scope* currentScope() const { return currentScope_; }
-    Scope*       rootScope() { return rootScope_; }
-    const Scope* rootScope() const { return rootScope_; }
-    Scope*       pushScope(ScopeFlags flags);
-    void         popScope();
+    AstNodeRef       curNodeRef() const { return visit_.currentNodeRef(); }
+    Scope&           curScope() { return *currentScope_; }
+    const Scope&     curScope() const { return *currentScope_; }
+    SymbolMap&       curSymMap() { return currentScope_->symMap(); }
+    const SymbolMap& curSymMap() const { return currentScope_->symMap(); }
+    Scope*           pushScope(ScopeFlags flags);
+    void             popScope();
 
     void       setReportArguments(Diagnostic& diag, SourceViewRef srcViewRef, TokenRef tokRef) const;
     Diagnostic reportError(DiagnosticId id, AstNodeRef nodeRef);

@@ -35,13 +35,15 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
 
 void CompilerInstance::setupSema(TaskContext& ctx)
 {
-    typeMgr_   = std::make_unique<TypeManager>();
-    cstMgr_    = std::make_unique<ConstantManager>();
-    idMgr_     = std::make_unique<IdentifierManager>();
-    symModule_ = std::make_unique<SymbolModule>("", Math::hash(""));
+    typeMgr_ = std::make_unique<TypeManager>();
+    cstMgr_  = std::make_unique<ConstantManager>();
+    idMgr_   = std::make_unique<IdentifierManager>();
 
     typeMgr_->setup(ctx);
     cstMgr_->setup(ctx);
+
+    const auto idRef = idMgr_->addIdentifier("", Math::hash(""));
+    symModule_       = std::make_unique<SymbolModule>(ctx, idRef);
 }
 
 void CompilerInstance::logBefore()

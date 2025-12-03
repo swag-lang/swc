@@ -23,21 +23,15 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
             sema.raiseExprNotConst(nodeInitRef);
             return AstVisitStepResult::Stop;
         }
+
+        const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
+        const auto          cst   = sema.curSymMap().addConstant(sema.ctx(), idRef, sema.constantRefOf(nodeInitRef));
+        sema.setSymbol(sema.curNodeRef(), cst);
+        return AstVisitStepResult::Continue;
     }
-    else
-    {
-        sema.raiseInternalError(*this);
-        return AstVisitStepResult::Stop;
-    }
 
-    // SemaNodeView type(sema, nodeTypeRef);
-    // SemaNodeView init(sema, nodeInitRef);
-
-    const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
-    const auto          cst   = sema.curSymMap().addConstant(sema.ctx(), idRef, sema.constantRefOf(nodeInitRef));
-    sema.setSymbol(sema.curNodeRef(), cst);
-
-    return AstVisitStepResult::Continue;
+    sema.raiseInternalError(*this);
+    return AstVisitStepResult::Stop;
 }
 
 SWC_END_NAMESPACE()

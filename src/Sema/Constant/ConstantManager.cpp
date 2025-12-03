@@ -32,14 +32,18 @@ ConstantRef ConstantManager::cstS32(int32_t value) const
 
 ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantValue& value)
 {
+    const uint32_t crc        = value.hash();
+    const uint32_t shardIndex = crc % SHARD_COUNT;
+    auto&          shard      = shards_[shardIndex];
+
     {
-        std::shared_lock lk(mutex_);
-        if (const auto it = map_.find(value); it != map_.end())
+        std::shared_lock lk(shard.mutex);
+        if (const auto it = shard.map.find(value); it != shard.map.end())
             return it->second;
     }
 
-    std::unique_lock lk(mutex_);
-    if (const auto it = map_.find(value); it != map_.end())
+    std::unique_lock lk(shard.mutex);
+    if (const auto it = shard.map.find(value); it != shard.map.end())
         return it->second;
 
 #if SWC_HAS_STATS
@@ -47,25 +51,31 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
     Stats::get().memConstants.fetch_add(sizeof(ConstantValue), std::memory_order_relaxed);
 #endif
 
+    const uint32_t localIndex = shard.store.size() / sizeof(ConstantValue);
+    SWC_ASSERT(localIndex <= LOCAL_MASK);
+
     if (value.isString())
     {
-        auto [itStr, _] = cacheStr_.insert(std::string(value.getString()));
-        auto stored     = ConstantValue::makeString(ctx, std::string_view(itStr->data(), itStr->size()));
-
-        const ConstantRef ref{store_.push_back(stored) / static_cast<uint32_t>(sizeof(ConstantValue))};
-        map_.emplace(stored, ref);
+        auto [itStr, _]     = shard.cacheStr.insert(std::string(value.getString()));
+        const auto strValue = ConstantValue::makeString(ctx, std::string_view(itStr->data(), itStr->size()));
+        shard.store.push_back(strValue);
+        ConstantRef ref{(shardIndex << LOCAL_BITS) | localIndex};
+        shard.map.emplace(strValue, ref);
         return ref;
     }
 
-    const ConstantRef ref{store_.push_back(value) / static_cast<uint32_t>(sizeof(ConstantValue))};
-    map_.emplace(value, ref);
+    shard.store.push_back(value);
+    ConstantRef ref{(shardIndex << LOCAL_BITS) | localIndex};
+    shard.map.emplace(value, ref);
     return ref;
 }
 
 const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
 {
     SWC_ASSERT(constantRef.isValid());
-    return *store_.ptr<ConstantValue>(constantRef.get() * sizeof(ConstantValue));
+    const auto shardIndex = constantRef.get() >> LOCAL_BITS;
+    const auto localIndex = constantRef.get() & LOCAL_MASK;
+    return *shards_[shardIndex].store.ptr<ConstantValue>(localIndex * sizeof(ConstantValue));
 }
 
 SWC_END_NAMESPACE()

@@ -124,23 +124,22 @@ Utf8 ConstantValue::toString() const
     }
 }
 
-size_t ConstantValueHash::operator()(const ConstantValue& v) const noexcept
+uint32_t ConstantValue::hash() const noexcept
 {
-    auto h = Math::hash(static_cast<uint32_t>(v.kind()));
-
-    switch (v.kind())
+    auto h = Math::hash(static_cast<uint32_t>(kind_));
+    switch (kind_)
     {
         case ConstantKind::Bool:
-            h = Math::hashCombine(h, v.asBool.val);
+            h = Math::hashCombine(h, asBool.val);
             break;
         case ConstantKind::String:
-            h = Math::hashCombine(h, Math::hash(v.asString.val));
+            h = Math::hashCombine(h, Math::hash(asString.val));
             break;
         case ConstantKind::Int:
-            h = Math::hashCombine(h, v.asInt.val.hash());
+            h = Math::hashCombine(h, asInt.val.hash());
             break;
         case ConstantKind::Float:
-            h = Math::hashCombine(h, v.asFloat.val.hash());
+            h = Math::hashCombine(h, asFloat.val.hash());
             break;
 
         default:

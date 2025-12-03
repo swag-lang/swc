@@ -64,12 +64,13 @@ public:
     static ConstantValue makeInt(const TaskContext& ctx, const ApsInt& value, uint32_t bitWidth = 0);
     static ConstantValue makeFloat(const TaskContext& ctx, const ApFloat& value, uint32_t bitWidth = 0);
 
-    Utf8 toString() const;
+    uint32_t hash() const noexcept;
+    Utf8     toString() const;
 };
 
 struct ConstantValueHash
 {
-    size_t operator()(const ConstantValue& v) const noexcept;
+    size_t operator()(const ConstantValue& v) const noexcept { return v.hash(); }
 };
 
 SWC_END_NAMESPACE()

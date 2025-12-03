@@ -25,8 +25,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
         }
 
         const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
-        const auto          cst   = sema.curSymMap().addConstant(sema.ctx(), idRef, sema.constantRefOf(nodeInitRef));
-        sema.setSymbol(sema.curNodeRef(), cst);
+        sema.curSymMap().addConstant(sema.ctx(), idRef, sema.constantRefOf(nodeInitRef));
         return AstVisitStepResult::Continue;
     }
 

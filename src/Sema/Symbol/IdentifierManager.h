@@ -4,6 +4,8 @@
 
 SWC_BEGIN_NAMESPACE()
 
+class TaskContext;
+
 struct Identifier
 {
     std::string_view name;
@@ -25,6 +27,7 @@ class IdentifierManager
     Shard                     shards_[SHARD_COUNT];
 
 public:
+    IdentifierRef     addIdentifier(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef);
     IdentifierRef     addIdentifier(std::string_view name, uint32_t hash);
     const Identifier& get(IdentifierRef idRef) const;
 };

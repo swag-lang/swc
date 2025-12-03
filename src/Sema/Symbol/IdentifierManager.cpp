@@ -1,8 +1,20 @@
 #include "pch.h"
 #include "Sema/Symbol/IdentifierManager.h"
+#include "Lexer/SourceView.h"
+#include "Lexer/Token.h"
 #include "Main/Stats.h"
+#include "Main/TaskContext.h"
 
 SWC_BEGIN_NAMESPACE()
+
+IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef)
+{
+    const SourceView&      srcView = ctx.compiler().srcView(srcViewRef);
+    const Token&           tok     = srcView.token(tokRef);
+    const std::string_view name    = tok.string(srcView);
+    const uint32_t         crc     = tok.crc(srcView);
+    return addIdentifier(name, crc);
+}
 
 IdentifierRef IdentifierManager::addIdentifier(std::string_view name, uint32_t hash)
 {

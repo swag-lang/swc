@@ -43,21 +43,25 @@ public:
     ~Sema();
     JobResult exec();
 
-    TaskContext&            ctx() { return *ctx_; }
-    const TaskContext&      ctx() const { return *ctx_; }
-    SemaInfo&               semaInfo() { return *semaInfo_; }
-    const SemaInfo&         semaInfo() const { return *semaInfo_; }
-    AstVisit&               visit() { return visit_; }
-    const AstVisit&         visit() const { return visit_; }
-    AstNode&                node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
-    const AstNode&          node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
-    CompilerInstance&       compiler() { return ctx().compiler(); }
-    const CompilerInstance& compiler() const { return ctx().compiler(); }
-    ConstantManager&        cstMgr() { return compiler().cstMgr(); }
-    const ConstantManager&  cstMgr() const { return compiler().cstMgr(); }
-    TypeManager&            typeMgr() { return compiler().typeMgr(); }
-    const TypeManager&      typeMgr() const { return compiler().typeMgr(); }
-    const Token&            token(SourceViewRef srcViewRef, TokenRef tokRef) const { return compiler().srcView(srcViewRef).token(tokRef); }
+    TaskContext&             ctx() { return *ctx_; }
+    const TaskContext&       ctx() const { return *ctx_; }
+    SemaInfo&                semaInfo() { return *semaInfo_; }
+    const SemaInfo&          semaInfo() const { return *semaInfo_; }
+    AstVisit&                visit() { return visit_; }
+    const AstVisit&          visit() const { return visit_; }
+    AstNode&                 node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
+    const AstNode&           node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
+    CompilerInstance&        compiler() { return ctx().compiler(); }
+    const CompilerInstance&  compiler() const { return ctx().compiler(); }
+    ConstantManager&         cstMgr() { return compiler().cstMgr(); }
+    const ConstantManager&   cstMgr() const { return compiler().cstMgr(); }
+    TypeManager&             typeMgr() { return compiler().typeMgr(); }
+    const TypeManager&       typeMgr() const { return compiler().typeMgr(); }
+    IdentifierManager&       idMgr() { return compiler().idMgr(); }
+    const IdentifierManager& idMgr() const { return compiler().idMgr(); }
+    SourceView&              srcView(SourceViewRef srcViewRef) { return compiler().srcView(srcViewRef); }
+    const SourceView&        srcView(SourceViewRef srcViewRef) const { return compiler().srcView(srcViewRef); }
+    const Token&             token(SourceViewRef srcViewRef, TokenRef tokRef) const { return srcView(srcViewRef).token(tokRef); }
 
     Ast&       ast();
     const Ast& ast() const;

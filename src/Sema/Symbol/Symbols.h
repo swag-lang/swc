@@ -15,8 +15,8 @@ public:
 class SymbolNamespace : public SymbolMap
 {
 public:
-    SymbolNamespace(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef, ConstantRef cstRef) :
-        SymbolMap(ctx, SymbolKind::Namespace, srcViewRef, tokRef)
+    SymbolNamespace(const TaskContext& ctx, IdentifierRef idRef) :
+        SymbolMap(ctx, SymbolKind::Namespace, idRef)
     {
     }
 };
@@ -26,8 +26,8 @@ class SymbolConstant : public Symbol
     ConstantRef cstRef_ = ConstantRef::invalid();
 
 public:
-    explicit SymbolConstant(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef, ConstantRef cstRef) :
-        Symbol(ctx, SymbolKind::Constant, srcViewRef, tokRef),
+    explicit SymbolConstant(const TaskContext& ctx, IdentifierRef idRef, ConstantRef cstRef) :
+        Symbol(ctx, SymbolKind::Constant, idRef),
         cstRef_(cstRef)
     {
     }

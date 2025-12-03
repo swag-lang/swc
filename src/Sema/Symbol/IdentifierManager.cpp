@@ -1,7 +1,6 @@
 #include "pch.h"
-
-#include "Main/Stats.h"
 #include "Sema/Symbol/IdentifierManager.h"
+#include "Main/Stats.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -32,6 +31,14 @@ IdentifierRef IdentifierManager::addIdentifier(std::string_view name, uint32_t h
     const auto result = IdentifierRef{(shardIndex << LOCAL_BITS) | localIndex};
     *it               = result;
     return result;
+}
+
+const Identifier& IdentifierManager::get(IdentifierRef idRef) const
+{
+    SWC_ASSERT(idRef.isValid());
+    const auto shardIndex = idRef.get() >> LOCAL_BITS;
+    const auto localIndex = idRef.get() & LOCAL_MASK;
+    return *shards_[shardIndex].store.ptr<Identifier>(localIndex * sizeof(idRef));
 }
 
 SWC_END_NAMESPACE()

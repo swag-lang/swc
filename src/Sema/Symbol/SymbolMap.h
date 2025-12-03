@@ -22,8 +22,8 @@ public:
     {
     }
 
-    explicit SymbolMap(const TaskContext& ctx, SymbolKind kind, SourceViewRef srcViewRef, TokenRef tokRef) :
-        Symbol(ctx, kind, srcViewRef, tokRef)
+    explicit SymbolMap(const TaskContext& ctx, SymbolKind kind, IdentifierRef idRef) :
+        Symbol(ctx, kind, idRef)
     {
     }
 };

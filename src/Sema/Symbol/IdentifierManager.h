@@ -25,7 +25,8 @@ class IdentifierManager
     Shard                     shards_[SHARD_COUNT];
 
 public:
-    IdentifierRef addIdentifier(std::string_view name, uint32_t hash);
+    IdentifierRef     addIdentifier(std::string_view name, uint32_t hash);
+    const Identifier& get(IdentifierRef idRef) const;
 };
 
 SWC_END_NAMESPACE()

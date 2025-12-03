@@ -136,7 +136,7 @@ AstNodeRef Parser::parseCompilerIf()
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerIf>(consume());
 
     // Parse the condition expression
-    nodePtr->nodeConditionRef = parseExpression();
+    nodePtr->nodeConditionRef = parseCompilerExpression();
     if (nodePtr->nodeConditionRef.isInvalid())
         skipTo({TokenId::KwdDo, TokenId::SymLeftCurly});
 

@@ -30,12 +30,6 @@ AstVisitStepResult AstCompilerIf::semaPreChild(Sema& sema, const AstNodeRef& chi
     if (childRef == nodeConditionRef)
         return AstVisitStepResult::Continue;
 
-    if (!sema.hasConstant(nodeConditionRef))
-    {
-        sema.raiseExprNotConst(nodeConditionRef);
-        return AstVisitStepResult::Stop;
-    }
-
     const auto& constant = sema.constantOf(nodeConditionRef);
     if (!constant.isBool())
     {

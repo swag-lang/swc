@@ -42,8 +42,8 @@ void CompilerInstance::setupSema(TaskContext& ctx)
     typeMgr_->setup(ctx);
     cstMgr_->setup(ctx);
 
-    const auto idRef = idMgr_->addIdentifier("", Math::hash(""));
-    symModule_       = std::make_unique<SymbolModule>(ctx, idRef);
+    const auto idRef = idMgr_->addIdentifier("test", Math::hash("test"));
+    symNamespace_    = std::make_unique<SymbolNamespace>(ctx, idRef);
 }
 
 void CompilerInstance::logBefore()

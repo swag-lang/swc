@@ -7,7 +7,6 @@ class TaskContext;
 enum class SymbolKind : uint8_t
 {
     Invalid,
-    Module,
     Namespace,
     Constant,
 };

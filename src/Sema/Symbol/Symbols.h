@@ -3,15 +3,6 @@
 
 SWC_BEGIN_NAMESPACE()
 
-class SymbolModule : public SymbolMap
-{
-public:
-    SymbolModule(const TaskContext& ctx, IdentifierRef idRef) :
-        SymbolMap(ctx, SymbolKind::Module, idRef)
-    {
-    }
-};
-
 class SymbolNamespace : public SymbolMap
 {
 public:

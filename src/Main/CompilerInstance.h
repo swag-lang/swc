@@ -10,7 +10,7 @@ class TaskContext;
 class TypeManager;
 class ConstantManager;
 class IdentifierManager;
-class SymbolModule;
+class SymbolNamespace;
 class Global;
 class SourceFile;
 struct CommandLine;
@@ -25,7 +25,7 @@ class CompilerInstance
     std::unique_ptr<TypeManager>             typeMgr_;
     std::unique_ptr<ConstantManager>         cstMgr_;
     std::unique_ptr<IdentifierManager>       idMgr_;
-    std::unique_ptr<SymbolModule>            symModule_;
+    std::unique_ptr<SymbolNamespace>         symNamespace_;
     JobClientId                              jobClientId_ = 0;
     fs::path                                 modulePathSrc_;
     fs::path                                 modulePathFile_;
@@ -55,8 +55,8 @@ public:
     IdentifierManager&       idMgr() { return *idMgr_; }
     const IdentifierManager& idMgr() const { return *idMgr_; }
 
-    SymbolModule&       symModule() { return *symModule_; }
-    const SymbolModule& symModule() const { return *symModule_; }
+    SymbolNamespace&       symNamespace() { return *symNamespace_; }
+    const SymbolNamespace& symNamespace() const { return *symNamespace_; }
 
     void setupSema(TaskContext& ctx);
 

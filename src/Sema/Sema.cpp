@@ -62,7 +62,7 @@ Scope* Sema::pushScope(ScopeFlags flags)
     if (!rootScope_)
     {
         rootScope_ = scope;
-        rootScope_->setSymMap(ctx_->compiler().symModule());
+        rootScope_->setSymMap(ctx_->compiler().symNamespace());
     }
     else
     {

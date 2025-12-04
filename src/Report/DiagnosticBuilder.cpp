@@ -3,6 +3,7 @@
 #include "Core/Utf8Helper.h"
 #include "Lexer/Lexer.h"
 #include "Main/CommandLine.h"
+#include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 #include "Parser/SyntaxColor.h"
 #include "Report/Diagnostic.h"
@@ -10,7 +11,6 @@
 #include "Report/LogColor.h"
 #include "Report/LogSymbol.h"
 #include "Sema/Type/TypeManager.h"
-#include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE()
 

@@ -2,6 +2,7 @@
 #include "Sema/Symbol/IdentifierManager.h"
 #include "Lexer/SourceView.h"
 #include "Lexer/Token.h"
+#include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
 

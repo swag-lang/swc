@@ -40,11 +40,11 @@ public:
     // in READY/RUNNING/WAITING.
     void cancelAll(JobClientId client);
 
-    // Generate a new unique client ID (thread-safe).
     JobClientId newClientId();
 
-    uint32_t numWorkers() const noexcept { return static_cast<uint32_t>(workers_.size()); }
-    uint32_t randSeed() const noexcept { return randSeed_; }
+    uint32_t        numWorkers() const noexcept { return static_cast<uint32_t>(workers_.size()); }
+    uint32_t        randSeed() const noexcept { return randSeed_; }
+    static uint32_t threadIndex() noexcept { return threadIndex_; }
 
 protected:
     friend class Job;
@@ -67,8 +67,9 @@ private:
     void shutdown() noexcept;
 
     // Setup
-    const CommandLine* cmdLine_  = nullptr;
-    uint32_t           randSeed_ = 0;
+    const CommandLine*           cmdLine_  = nullptr;
+    uint32_t                     randSeed_ = 0;
+    static thread_local uint32_t threadIndex_;
 
     // Ready queues per priority (store Record* for direct access).
     std::deque<JobRecord*> readyQ_[3];

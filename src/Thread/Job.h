@@ -2,11 +2,13 @@
 #include "Main/TaskContext.h"
 
 SWC_BEGIN_NAMESPACE()
-class JobManager;
 
+class JobManager;
 class Job;
-using JobRef = std::shared_ptr<Job>;
 class CompilerContext;
+
+using JobRef      = std::shared_ptr<Job>;
+using JobClientId = uint32_t;
 
 enum class JobPriority : std::uint8_t
 {
@@ -25,19 +27,18 @@ enum class JobResult : std::uint8_t
 
 struct JobRecord
 {
-    // Keep the job alive while scheduled (the user may drop their last ref).
-    JobRef job;
+    JobRef      job;
+    JobPriority priority = JobPriority::Normal;
+    JobClientId clientId = 0;
 
-    JobPriority priority{JobPriority::Normal};
-    JobClientId clientId{0};
-
-    enum class State : std::uint8_t
+    enum class State : uint8_t
     {
         Ready,
         Running,
         Waiting,
         Done
     };
+
     State state{State::Ready};
 
     // "Wake ticket" to prevent lost-wake races.

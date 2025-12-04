@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Lexer/LangSpec.h"
+#include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Parser/Ast.h"
 #include "Parser/AstNodes.h"

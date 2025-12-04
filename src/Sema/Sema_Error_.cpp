@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Main/CompilerInstance.h"
 #include "Report/Diagnostic.h"
 #include "Sema/Sema.h"
 #include "Sema/Type/TypeManager.h"

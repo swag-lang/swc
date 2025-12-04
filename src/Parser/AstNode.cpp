@@ -1,9 +1,8 @@
 #include "pch.h"
-#include "Lexer/SourceView.h"
+#include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 #include "Parser/Ast.h"
 #include "Parser/AstNodes.h"
-#include "Sema/Sema.h"
 
 SWC_BEGIN_NAMESPACE()
 

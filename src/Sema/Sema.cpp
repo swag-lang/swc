@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Sema/Sema.h"
+#include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Sema/SemaInfo.h"
 #include "Sema/SemaJob.h"
@@ -31,6 +32,46 @@ void Sema::semaInherit(AstNode& nodeDst, AstNodeRef srcRef)
     const AstNode& nodeSrc = node(srcRef);
     nodeDst.semaKindRaw()  = nodeSrc.semaKindRaw();
     nodeDst.setSemaRaw(nodeSrc.semaRaw());
+}
+
+ConstantManager& Sema::cstMgr()
+{
+    return compiler().cstMgr();
+}
+
+const ConstantManager& Sema::cstMgr() const
+{
+    return compiler().cstMgr();
+}
+
+TypeManager& Sema::typeMgr()
+{
+    return compiler().typeMgr();
+}
+
+const TypeManager& Sema::typeMgr() const
+{
+    return compiler().typeMgr();
+}
+
+IdentifierManager& Sema::idMgr()
+{
+    return compiler().idMgr();
+}
+
+const IdentifierManager& Sema::idMgr() const
+{
+    return compiler().idMgr();
+}
+
+SourceView& Sema::srcView(SourceViewRef srcViewRef)
+{
+    return compiler().srcView(srcViewRef);
+}
+
+const SourceView& Sema::srcView(SourceViewRef srcViewRef) const
+{
+    return compiler().srcView(srcViewRef);
 }
 
 Ast& Sema::ast()

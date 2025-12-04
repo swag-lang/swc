@@ -23,15 +23,16 @@
 
 SWC_BEGIN_NAMESPACE()
 
-CompilerInstance::~CompilerInstance() = default;
-
 CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdLine) :
     cmdLine_(&cmdLine),
     global_(&global)
 {
     jobClientId_ = global.jobMgr().newClientId();
     exeFullName_ = Os::getExeFullName();
+    perThreadData_.resize(global.jobMgr().numWorkers());
 }
+
+CompilerInstance::~CompilerInstance() = default;
 
 void CompilerInstance::setupSema(TaskContext& ctx)
 {

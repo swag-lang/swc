@@ -1,10 +1,13 @@
 #pragma once
 #include "Core/StrongRef.h"
+#include "Memory/Arena.h"
 #include "Report/ExitCodes.h"
+#include "Thread/JobManager.h"
 #include "Thread/RaceCondition.h"
 #include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE()
+
 class SourceView;
 class TaskContext;
 class TypeManager;
@@ -14,7 +17,11 @@ class SymbolNamespace;
 class Global;
 class SourceFile;
 struct CommandLine;
-using JobClientId = uint32_t;
+
+struct PerThreadData
+{
+    Arena arena;
+};
 
 class CompilerInstance
 {
@@ -26,6 +33,7 @@ class CompilerInstance
     std::unique_ptr<ConstantManager>         cstMgr_;
     std::unique_ptr<IdentifierManager>       idMgr_;
     std::unique_ptr<SymbolNamespace>         symNamespace_;
+    std::vector<PerThreadData>               perThreadData_;
     JobClientId                              jobClientId_ = 0;
     fs::path                                 modulePathSrc_;
     fs::path                                 modulePathFile_;
@@ -69,6 +77,13 @@ public:
 
     Result                   collectFiles(TaskContext& ctx);
     std::vector<SourceFile*> files() const;
+
+    template<typename T, typename... ARGS>
+    T* allocate(ARGS&&... args)
+    {
+        void* mem = perThreadData_[JobManager::threadIndex()].arena.allocate(sizeof(T), alignof(T));
+        return new (mem) T(std::forward<ARGS>(args)...);
+    }
 };
 
 SWC_END_NAMESPACE()

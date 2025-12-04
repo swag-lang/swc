@@ -8,7 +8,7 @@
 #include "Report/DiagnosticBuilder.h"
 #include "Report/DiagnosticElement.h"
 #include "Report/Logger.h"
-#include "Wmf/SourceFile.h"
+#include "Main/CompilerInstance.h"
 #include "Wmf/Verify.h"
 
 SWC_BEGIN_NAMESPACE()

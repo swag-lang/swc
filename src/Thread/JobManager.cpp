@@ -19,6 +19,7 @@ struct JobManager::RecordPool
     static constexpr std::size_t   K_TLS_MAX = 1024; // cap per thread to avoid unbounded growth
 };
 
+thread_local uint32_t                JobManager::threadIndex_ = 0;
 thread_local std::vector<JobRecord*> JobManager::RecordPool::tls;
 std::mutex                           JobManager::RecordPool::gMutex;
 std::vector<JobRecord*>              JobManager::RecordPool::gFree;
@@ -67,6 +68,7 @@ void JobManager::freeRecord(JobRecord* r)
         v.push_back(r);
         return;
     }
+
     std::scoped_lock lk(RecordPool::gMutex);
     RecordPool::gFree.push_back(r);
 }
@@ -103,8 +105,8 @@ void JobManager::setup(const CommandLine& cmdLine)
     accepting_ = true;
     joined_    = false;
     workers_.reserve(count);
-    for (std::size_t i = 0; i < count; ++i)
-        workers_.emplace_back([this] { workerLoop(); });
+    for (std::uint32_t i = 0; i < count; ++i)
+        workers_.emplace_back([this, i] { threadIndex_ = i; workerLoop(); });
 }
 
 bool JobManager::enqueue(const JobRef& job, JobPriority priority, JobClientId client)

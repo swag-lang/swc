@@ -1,7 +1,7 @@
 #include "pch.h"
-
-#include "Main/TaskContext.h"
 #include "Sema/Symbol/SymbolMap.h"
+#include "Main/CompilerInstance.h"
+#include "Main/TaskContext.h"
 #include "Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -62,14 +62,14 @@ void SymbolMap::addSymbol(Symbol* symbol)
 
 SymbolConstant* SymbolMap::addConstant(TaskContext& ctx, IdentifierRef idRef, ConstantRef cstRef)
 {
-    auto* sym = new SymbolConstant(ctx, idRef, cstRef);
+    auto* sym = ctx.compiler().allocate<SymbolConstant>(ctx, idRef, cstRef);
     addSymbol(sym);
     return sym;
 }
 
 SymbolNamespace* SymbolMap::addNamespace(TaskContext& ctx, IdentifierRef idRef)
 {
-    auto* sym = new SymbolNamespace(ctx, idRef);
+    auto* sym = ctx.compiler().allocate<SymbolNamespace>(ctx, idRef);
     addSymbol(sym);
     return sym;
 }

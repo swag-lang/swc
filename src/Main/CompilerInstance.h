@@ -64,8 +64,8 @@ public:
     IdentifierManager&       idMgr() { return *idMgr_; }
     const IdentifierManager& idMgr() const { return *idMgr_; }
 
-    SymbolNamespace&       symNamespace() { return *symNamespace_; }
-    const SymbolNamespace& symNamespace() const { return *symNamespace_; }
+    SymbolNamespace*       symNamespace() { return symNamespace_.get(); }
+    const SymbolNamespace* symNamespace() const { return symNamespace_.get(); }
 
     void setupSema(TaskContext& ctx);
 

@@ -14,6 +14,9 @@ public:
     {
         symbols_.clear();
     }
+
+    SmallVector<Symbol*>& symbols() { return symbols_; }
+    bool                  empty() const { return symbols_.empty(); }
 };
 
 SWC_END_NAMESPACE()

@@ -36,8 +36,8 @@ class Sema
     AstVisitStepResult postNode(AstNode& node);
     AstVisitStepResult preChild(AstNode& node, AstNodeRef& childRef);
 
-    Scope*                              rootScope_    = nullptr;
-    Scope*                              currentScope_ = nullptr;
+    Scope*                              rootScope_ = nullptr;
+    Scope*                              curScope_  = nullptr;
     std::vector<std::unique_ptr<Scope>> scopes_;
 
 public:
@@ -82,10 +82,10 @@ public:
     bool                 hasSymbol(AstNodeRef n) const { return semaInfo().hasSymbol(n); }
 
     AstNodeRef       curNodeRef() const { return visit_.currentNodeRef(); }
-    Scope&           curScope() { return *currentScope_; }
-    const Scope&     curScope() const { return *currentScope_; }
-    SymbolMap&       curSymMap() { return currentScope_->symMap(); }
-    const SymbolMap& curSymMap() const { return currentScope_->symMap(); }
+    Scope&           curScope() { return *curScope_; }
+    const Scope&     curScope() const { return *curScope_; }
+    SymbolMap*       curSymMap() { return curScope_->symMap(); }
+    const SymbolMap* curSymMap() const { return curScope_->symMap(); }
     Scope*           pushScope(ScopeFlags flags);
     void             popScope();
 

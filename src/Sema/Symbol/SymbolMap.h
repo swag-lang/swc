@@ -40,8 +40,7 @@ public:
     {
     }
 
-    Symbol* lookupOne(IdentifierRef idRef) const;
-    void    lookupAll(IdentifierRef idRef, SmallVector<Symbol*>& out) const;
+    void lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const;
 
     SymbolConstant*  addConstant(TaskContext& ctx, IdentifierRef idRef, ConstantRef cstRef);
     SymbolNamespace* addNamespace(TaskContext& ctx, IdentifierRef idRef);

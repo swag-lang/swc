@@ -28,9 +28,9 @@ public:
     Scope*           parent() const { return parent_; }
     ScopeFlags       flags() const { return flags_; }
     bool             has(ScopeFlags flag) const { return flags_.has(flag); }
-    void             setSymMap(SymbolMap& symMap) { symMap_ = &symMap; }
-    SymbolMap&       symMap() { return *symMap_; }
-    const SymbolMap& symMap() const { return *symMap_; }
+    void             setSymMap(SymbolMap* symMap) { symMap_ = symMap; }
+    SymbolMap*       symMap() { return symMap_; }
+    const SymbolMap* symMap() const { return symMap_; }
 };
 
 SWC_END_NAMESPACE()

@@ -21,7 +21,7 @@ Sema::Sema(TaskContext& ctx, SemaInfo& semCtx) :
 Sema::Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root) :
     ctx_(&ctx),
     semaInfo_(parent.semaInfo_),
-    currentScope_(parent.currentScope_)
+    curScope_(parent.curScope_)
 {
     visit_.start(semaInfo_->ast(), root);
     setVisitors();
@@ -96,7 +96,7 @@ Sema::~Sema() = default;
 
 Scope* Sema::pushScope(ScopeFlags flags)
 {
-    Scope* parent = currentScope_;
+    Scope* parent = curScope_;
     scopes_.emplace_back(std::make_unique<Scope>(flags, parent));
     Scope* scope = scopes_.back().get();
 
@@ -110,14 +110,14 @@ Scope* Sema::pushScope(ScopeFlags flags)
         scope->setSymMap(parent->symMap());
     }
 
-    currentScope_ = scope;
+    curScope_ = scope;
     return scope;
 }
 
 void Sema::popScope()
 {
-    SWC_ASSERT(currentScope_);
-    currentScope_ = currentScope_->parent();
+    SWC_ASSERT(curScope_);
+    curScope_ = curScope_->parent();
     scopes_.pop_back();
 }
 
@@ -155,7 +155,7 @@ AstVisitStepResult Sema::postNode(AstNode& node)
 
 AstVisitStepResult Sema::preChild(AstNode& node, AstNodeRef& childRef)
 {
-    if (currentScope_->has(ScopeFlagsE::TopLevel))
+    if (curScope_->has(ScopeFlagsE::TopLevel))
     {
         const AstNode& child = ast().node(childRef);
         const auto&    info  = Ast::nodeIdInfos(child.id());

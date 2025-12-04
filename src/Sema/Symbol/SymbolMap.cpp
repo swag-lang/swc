@@ -6,20 +6,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-Symbol* SymbolMap::lookupOne(IdentifierRef idRef) const
-{
-    const uint32_t shardIndex = idRef.get() & (SHARD_COUNT - 1);
-    const Shard&   shard      = shards_[shardIndex];
-
-    std::shared_lock lk(shard.mutex);
-    const auto       it = shard.map.find(idRef);
-    if (it == shard.map.end())
-        return nullptr;
-
-    return it->second;
-}
-
-void SymbolMap::lookupAll(IdentifierRef idRef, SmallVector<Symbol*>& out) const
+void SymbolMap::lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const
 {
     out.clear();
 
@@ -56,6 +43,7 @@ void SymbolMap::addSymbol(Symbol* symbol)
     std::unique_lock lock(shard.mutex);
 
     Symbol*& head = shard.map[idRef];
+    symbol->setSymMap(this);
     symbol->setNextHomonym(head);
     head = symbol;
 }

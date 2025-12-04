@@ -1,32 +1,10 @@
 #include "pch.h"
+
+#include "Main/TaskContext.h"
 #include "Sema/Symbol/SymbolMap.h"
 #include "Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE()
-
-SymbolMap::~SymbolMap()
-{
-    for (auto& shard : shards_)
-    {
-        std::unique_lock lk(shard.mutex);
-
-        for (auto& head : shard.map | std::views::values)
-        {
-            Symbol* cur = head;
-            while (cur)
-            {
-                Symbol* next = cur->nextHomonym();
-                cur->setNextHomonym(nullptr);
-                delete cur;
-                cur = next;
-            }
-
-            head = nullptr;
-        }
-
-        shard.map.clear();
-    }
-}
 
 Symbol* SymbolMap::lookupOne(IdentifierRef idRef) const
 {
@@ -61,13 +39,19 @@ void SymbolMap::lookupAll(IdentifierRef idRef, SmallVector<Symbol*>& out) const
     }
 }
 
+SymbolMap::Shard& SymbolMap::getShard(const IdentifierRef idRef)
+{
+    const uint32_t index = idRef.get() & (SHARD_COUNT - 1);
+    Shard&         shard = shards_[index];
+    return shard;
+}
+
 void SymbolMap::addSymbol(Symbol* symbol)
 {
     SWC_ASSERT(symbol != nullptr);
 
     const IdentifierRef idRef = symbol->idRef();
-    const uint32_t      index = idRef.get() & (SHARD_COUNT - 1);
-    Shard&              shard = shards_[index];
+    Shard&              shard = getShard(idRef);
 
     std::unique_lock lock(shard.mutex);
 
@@ -76,14 +60,14 @@ void SymbolMap::addSymbol(Symbol* symbol)
     head = symbol;
 }
 
-SymbolConstant* SymbolMap::addConstant(const TaskContext& ctx, IdentifierRef idRef, ConstantRef cstRef)
+SymbolConstant* SymbolMap::addConstant(TaskContext& ctx, IdentifierRef idRef, ConstantRef cstRef)
 {
     auto* sym = new SymbolConstant(ctx, idRef, cstRef);
     addSymbol(sym);
     return sym;
 }
 
-SymbolNamespace* SymbolMap::addNamespace(const TaskContext& ctx, IdentifierRef idRef)
+SymbolNamespace* SymbolMap::addNamespace(TaskContext& ctx, IdentifierRef idRef)
 {
     auto* sym = new SymbolNamespace(ctx, idRef);
     addSymbol(sym);

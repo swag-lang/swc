@@ -31,7 +31,8 @@ class SymbolMap : public Symbol
     static constexpr uint32_t LOCAL_MASK  = (1u << LOCAL_BITS) - 1;
     Shard                     shards_[SHARD_COUNT];
 
-    void addSymbol(Symbol* symbol);
+    void   addSymbol(Symbol* symbol);
+    Shard& getShard(IdentifierRef idRef);
 
 public:
     explicit SymbolMap(const TaskContext& ctx, SymbolKind kind, IdentifierRef idRef) :
@@ -39,13 +40,11 @@ public:
     {
     }
 
-    ~SymbolMap();
-
     Symbol* lookupOne(IdentifierRef idRef) const;
     void    lookupAll(IdentifierRef idRef, SmallVector<Symbol*>& out) const;
 
-    SymbolConstant*  addConstant(const TaskContext& ctx, IdentifierRef idRef, ConstantRef cstRef);
-    SymbolNamespace* addNamespace(const TaskContext& ctx, IdentifierRef idRef);
+    SymbolConstant*  addConstant(TaskContext& ctx, IdentifierRef idRef, ConstantRef cstRef);
+    SymbolNamespace* addNamespace(TaskContext& ctx, IdentifierRef idRef);
 };
 
 SWC_END_NAMESPACE()

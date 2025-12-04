@@ -38,7 +38,7 @@ public:
     {
     }
 
-    Symbol* findSymbol(IdentifierRef idRef) const;
+    Symbol* lookupIdentifier(IdentifierRef idRef) const;
 
     SymbolConstant*  addConstant(const TaskContext& ctx, IdentifierRef idRef, ConstantRef cstRef);
     SymbolNamespace* addNamespace(const TaskContext& ctx, IdentifierRef idRef);

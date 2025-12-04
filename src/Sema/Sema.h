@@ -7,6 +7,8 @@
 
 SWC_BEGIN_NAMESPACE()
 
+class LookupResult;
+
 enum class CastKind
 {
     LiteralSuffix,
@@ -100,6 +102,8 @@ public:
 
     bool        castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef);
     ConstantRef cast(const CastContext& castCtx, ConstantRef srcRef, TypeRef targetTypeRef);
+
+    void lookupIdentifier(LookupResult& result, IdentifierRef idRef);
 };
 
 SWC_END_NAMESPACE()

@@ -4,7 +4,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-Symbol* SymbolMap::findSymbol(IdentifierRef idRef) const
+Symbol* SymbolMap::lookupIdentifier(IdentifierRef idRef) const
 {
     const uint32_t   shardIndex = idRef.get() % SHARD_COUNT;
     std::shared_lock lk(shards_[shardIndex].mutex);

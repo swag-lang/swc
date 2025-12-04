@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/SmallVector.h"
 #include "Math/Hash.h"
 #include "Sema/Symbol/Symbol.h"
 
@@ -20,8 +21,8 @@ class SymbolMap : public Symbol
 {
     struct Shard
     {
-        mutable std::shared_mutex                                  mutex;
-        std::unordered_map<IdentifierRef, std::unique_ptr<Symbol>> monoMap;
+        mutable std::shared_mutex                  mutex;
+        std::unordered_map<IdentifierRef, Symbol*> map;
     };
 
     static constexpr uint32_t SHARD_BITS  = 3;
@@ -30,7 +31,7 @@ class SymbolMap : public Symbol
     static constexpr uint32_t LOCAL_MASK  = (1u << LOCAL_BITS) - 1;
     Shard                     shards_[SHARD_COUNT];
 
-    Symbol* addSymbol(std::unique_ptr<Symbol> symbol);
+    void addSymbol(Symbol* symbol);
 
 public:
     explicit SymbolMap(const TaskContext& ctx, SymbolKind kind, IdentifierRef idRef) :
@@ -38,7 +39,10 @@ public:
     {
     }
 
-    Symbol* lookupIdentifier(IdentifierRef idRef) const;
+    ~SymbolMap();
+
+    Symbol* lookupOne(IdentifierRef idRef) const;
+    void    lookupAll(IdentifierRef idRef, SmallVector<Symbol*>& out) const;
 
     SymbolConstant*  addConstant(const TaskContext& ctx, IdentifierRef idRef, ConstantRef cstRef);
     SymbolNamespace* addNamespace(const TaskContext& ctx, IdentifierRef idRef);

@@ -18,11 +18,6 @@ class Global;
 class SourceFile;
 struct CommandLine;
 
-struct PerThreadData
-{
-    Arena arena;
-};
-
 class CompilerInstance
 {
     const CommandLine*                       cmdLine_ = nullptr;
@@ -33,13 +28,19 @@ class CompilerInstance
     std::unique_ptr<ConstantManager>         cstMgr_;
     std::unique_ptr<IdentifierManager>       idMgr_;
     std::unique_ptr<SymbolNamespace>         symNamespace_;
-    std::vector<PerThreadData>               perThreadData_;
     JobClientId                              jobClientId_ = 0;
     fs::path                                 modulePathSrc_;
     fs::path                                 modulePathFile_;
     fs::path                                 exeFullName_;
+    std::mutex                               mutex_;
 
-    std::mutex mutex_;
+    struct PerThreadData
+    {
+        Arena arena;
+    };
+
+    std::vector<PerThreadData> perThreadData_;
+
     SWC_RACE_CONDITION_INSTANCE(rcFiles_);
 
     void logBefore();

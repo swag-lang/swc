@@ -30,11 +30,18 @@ public:
     IdentifierRef    idRef() const { return idRef_; }
     const SymbolMap* symMap() const noexcept { return symMap_; }
     void             setSymMap(const SymbolMap* symMap) noexcept { symMap_ = symMap; }
+    bool             is(SymbolKind kind) const noexcept { return kind_ == kind; }
 
     Symbol* nextHomonym() const noexcept { return nextHomonym_; }
     void    setNextHomonym(Symbol* next) noexcept { nextHomonym_ = next; }
 
     std::string_view name(const TaskContext& ctx) const;
+
+    template<typename T>
+    const T* safeCast() const
+    {
+        return kind_ == T::K ? static_cast<const T*>(this) : nullptr;
+    }
 };
 
 SWC_END_NAMESPACE()

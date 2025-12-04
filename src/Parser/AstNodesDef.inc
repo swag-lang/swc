@@ -118,6 +118,7 @@ struct AstCompilerExpression : AstNodeT<AstNodeId::CompilerExpression>
     {
         AstNode::collectChildren(out, {nodeExprRef});
     }
+
     AstVisitStepResult semaPostNode(Sema& sema);
 };
 
@@ -343,6 +344,7 @@ struct AstCompilerShortFunc : AstNodeT<AstNodeId::CompilerShortFunc>
 
 struct AstIdentifier : AstNodeT<AstNodeId::Identifier>
 {
+    AstVisitStepResult semaPostNode(Sema& sema);
 };
 
 struct AstScopedIdentifier : AstNodeT<AstNodeId::ScopedIdentifier>

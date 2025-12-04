@@ -7,6 +7,8 @@ SWC_BEGIN_NAMESPACE()
 
 void Sema::lookupIdentifier(LookupResult& result, IdentifierRef idRef)
 {
+    result.clear();
+
     const SymbolMap* symMap = curScope_->symMap();
     while (symMap)
     {
@@ -15,8 +17,6 @@ void Sema::lookupIdentifier(LookupResult& result, IdentifierRef idRef)
             break;
         symMap = symMap->symMap();
     }
-
-    result.clear();
 }
 
 SWC_END_NAMESPACE()

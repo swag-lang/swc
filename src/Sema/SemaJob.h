@@ -11,9 +11,12 @@ class SemaJob : public Job
 public:
     static constexpr auto K = JobKind::Sema;
 
-    SemaJob(TaskContext& ctx, SemaInfo& semaCtx);
-    SemaJob(TaskContext& ctx, const Sema& parentSema, AstNodeRef root);
+    SemaJob(const TaskContext& ctx, SemaInfo& semaCtx);
+    SemaJob(const TaskContext& ctx, const Sema& parentSema, AstNodeRef root);
     JobResult exec();
+
+    Sema&       sema() { return sema_; }
+    const Sema& sema() const { return sema_; }
 };
 
 SWC_END_NAMESPACE()

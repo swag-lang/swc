@@ -15,7 +15,7 @@ void Sema::setReportArguments(Diagnostic& diag, SourceViewRef srcViewRef, TokenR
     diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Token::toAFamily(token.id), false);
 }
 
-Diagnostic Sema::reportError(DiagnosticId id, AstNodeRef nodeRef)
+Diagnostic Sema::reportError(DiagnosticId id, AstNodeRef nodeRef) const
 {
     auto        diag    = Diagnostic::get(id, ast().srcView().fileRef());
     const auto& nodePtr = node(nodeRef);
@@ -27,7 +27,7 @@ Diagnostic Sema::reportError(DiagnosticId id, AstNodeRef nodeRef)
     return diag;
 }
 
-Diagnostic Sema::reportError(DiagnosticId id, AstNodeRef nodeRef, SourceViewRef srcViewRef, TokenRef tokRef)
+Diagnostic Sema::reportError(DiagnosticId id, AstNodeRef nodeRef, SourceViewRef srcViewRef, TokenRef tokRef) const
 {
     auto diag = Diagnostic::get(id, ast().srcView().fileRef());
     setReportArguments(diag, srcViewRef, tokRef);
@@ -41,7 +41,7 @@ Diagnostic Sema::reportError(DiagnosticId id, AstNodeRef nodeRef, SourceViewRef 
     return diag;
 }
 
-Diagnostic Sema::reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef)
+Diagnostic Sema::reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef) const
 {
     auto diag = Diagnostic::get(id, ast().srcView().fileRef());
     setReportArguments(diag, srcViewRef, tokRef);
@@ -52,47 +52,47 @@ Diagnostic Sema::reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef
     return diag;
 }
 
-void Sema::raiseError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef)
+void Sema::raiseError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef) const
 {
     const auto diag = reportError(id, srcViewRef, tokRef);
-    diag.report(ctx());
+    diag.report(*ctx_);
 }
 
-void Sema::raiseError(DiagnosticId id, AstNodeRef nodeRef)
+void Sema::raiseError(DiagnosticId id, AstNodeRef nodeRef) const
 {
     const auto diag = reportError(id, nodeRef);
-    diag.report(ctx());
+    diag.report(*ctx_);
 }
 
-void Sema::raiseInvalidType(AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
+void Sema::raiseInvalidType(AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef) const
 {
     auto diag = reportError(DiagnosticId::sema_err_invalid_type, nodeRef);
     diag.addArgument(Diagnostic::ARG_TYPE, typeMgr().typeToString(srcTypeRef));
     diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, typeMgr().typeToString(targetTypeRef));
-    diag.report(ctx());
+    diag.report(*ctx_);
 }
 
-void Sema::raiseCannotCast(AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
+void Sema::raiseCannotCast(AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef) const
 {
     auto diag = reportError(DiagnosticId::sema_err_cannot_cast, nodeRef);
     diag.addArgument(Diagnostic::ARG_TYPE, srcTypeRef);
     diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, targetTypeRef);
-    diag.report(ctx());
+    diag.report(*ctx_);
 }
 
-void Sema::raiseLiteralOverflow(AstNodeRef nodeRef, TypeRef targetTypeRef)
+void Sema::raiseLiteralOverflow(AstNodeRef nodeRef, TypeRef targetTypeRef) const
 {
     auto diag = reportError(DiagnosticId::sema_err_literal_overflow, nodeRef);
     diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
-    diag.report(ctx());
+    diag.report(*ctx_);
 }
 
-void Sema::raiseExprNotConst(AstNodeRef nodeRef)
+void Sema::raiseExprNotConst(AstNodeRef nodeRef) const
 {
     return raiseError(DiagnosticId::sema_err_expr_not_const, nodeRef);
 }
 
-void Sema::raiseInternalError(const AstNode& node)
+void Sema::raiseInternalError(const AstNode& node) const
 {
     raiseError(DiagnosticId::sema_err_internal, node.srcViewRef(), node.tokRef());
 }

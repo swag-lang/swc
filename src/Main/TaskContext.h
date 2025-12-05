@@ -4,10 +4,28 @@ SWC_BEGIN_NAMESPACE()
 
 class CompilerInstance;
 class ConstantManager;
-class TypeManager;
 class Global;
-struct CommandLine;
 class SourceFile;
+class TypeManager;
+struct CommandLine;
+
+enum class TaskStateKind : uint8_t
+{
+    None,
+    SemaWaitingIdentifier,
+};
+
+struct TaskState
+{
+    TaskStateKind kind    = TaskStateKind::None;
+    AstNodeRef    nodeRef = AstNodeRef::invalid();
+
+    void reset()
+    {
+        kind    = TaskStateKind::None;
+        nodeRef = AstNodeRef::invalid();
+    }
+};
 
 class TaskContext
 {
@@ -17,6 +35,7 @@ class TaskContext
     bool               silentDiagnostic_ = false;
     bool               hasError_         = false;
     bool               hasWarning_       = false;
+    TaskState          state_;
 
 public:
     TaskContext() = delete;
@@ -31,6 +50,8 @@ public:
     const CompilerInstance& compiler() const { SWC_ASSERT(compilerInstance_); return *compilerInstance_; }
     // clang-format on
 
+    TaskState&             state() { return state_; }
+    const TaskState&       state() const { return state_; }
     ConstantManager&       cstMgr();
     const ConstantManager& cstMgr() const;
     TypeManager&           typeMgr();

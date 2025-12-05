@@ -15,14 +15,14 @@ AstVisitStepResult AstParenExpr::semaPostNode(Sema& sema)
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstIdentifier::semaPostNode(Sema& sema)
+AstVisitStepResult AstIdentifier::semaPostNode(Sema& sema) const
 {
     const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokRef());
 
     LookupResult lookup;
     sema.lookupIdentifier(lookup, idRef);
     if (lookup.empty())
-        return AstVisitStepResult::Pause;
+        return sema.pause(TaskStateKind::SemaWaitingIdentifier, sema.curNodeRef());
 
     const Symbol* sym = lookup.first();
 

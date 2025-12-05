@@ -6,3 +6,4 @@ const A = 52
 const B = A
 #assert(B == 52)
 
+#print(D)

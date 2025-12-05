@@ -5,7 +5,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void Sema::lookupIdentifier(LookupResult& result, IdentifierRef idRef)
+void Sema::lookupIdentifier(LookupResult& result, IdentifierRef idRef) const
 {
     result.clear();
 

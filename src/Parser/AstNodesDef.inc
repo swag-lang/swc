@@ -344,7 +344,7 @@ struct AstCompilerShortFunc : AstNodeT<AstNodeId::CompilerShortFunc>
 
 struct AstIdentifier : AstNodeT<AstNodeId::Identifier>
 {
-    AstVisitStepResult semaPostNode(Sema& sema);
+    AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
 struct AstScopedIdentifier : AstNodeT<AstNodeId::ScopedIdentifier>

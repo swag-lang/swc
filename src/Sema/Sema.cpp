@@ -2,6 +2,7 @@
 #include "Sema/Sema.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
+#include "Memory/Heap.h"
 #include "Sema/SemaInfo.h"
 #include "Sema/SemaJob.h"
 #include "Symbol/Scope.h"
@@ -161,7 +162,7 @@ AstVisitStepResult Sema::preChild(AstNode& node, AstNodeRef& childRef)
         const auto&    info  = Ast::nodeIdInfos(child.id());
         if (info.hasFlag(AstNodeIdFlagsE::SemaJob))
         {
-            const auto job = ctx().compiler().allocate<SemaJob>(ctx(), *this, childRef);
+            const auto job = heapNew<SemaJob>(ctx(), *this, childRef);
             compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, compiler().jobClientId());
             return AstVisitStepResult::SkipChildren;
         }
@@ -169,6 +170,14 @@ AstVisitStepResult Sema::preChild(AstNode& node, AstNodeRef& childRef)
 
     const auto& info = Ast::nodeIdInfos(node.id());
     return info.semaPreChild(*this, node, childRef);
+}
+
+AstVisitStepResult Sema::pause(TaskStateKind kind, AstNodeRef nodeRef)
+{
+    auto& wait   = ctx().state();
+    wait.kind    = kind;
+    wait.nodeRef = nodeRef;
+    return AstVisitStepResult::Pause;
 }
 
 JobResult Sema::exec()

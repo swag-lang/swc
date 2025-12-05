@@ -90,21 +90,23 @@ public:
     void             popScope();
 
     void       setReportArguments(Diagnostic& diag, SourceViewRef srcViewRef, TokenRef tokRef) const;
-    Diagnostic reportError(DiagnosticId id, AstNodeRef nodeRef);
-    Diagnostic reportError(DiagnosticId id, AstNodeRef nodeRef, SourceViewRef srcViewRef, TokenRef tokRef);
-    Diagnostic reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef);
-    void       raiseError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef);
-    void       raiseError(DiagnosticId id, AstNodeRef nodeRef);
-    void       raiseInvalidType(AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
-    void       raiseCannotCast(AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
-    void       raiseLiteralOverflow(AstNodeRef nodeRef, TypeRef targetTypeRef);
-    void       raiseExprNotConst(AstNodeRef nodeRef);
-    void       raiseInternalError(const AstNode& node);
+    Diagnostic reportError(DiagnosticId id, AstNodeRef nodeRef) const;
+    Diagnostic reportError(DiagnosticId id, AstNodeRef nodeRef, SourceViewRef srcViewRef, TokenRef tokRef) const;
+    Diagnostic reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef) const;
+    void       raiseError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef) const;
+    void       raiseError(DiagnosticId id, AstNodeRef nodeRef) const;
+
+    void raiseInvalidType(AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef) const;
+    void raiseCannotCast(AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef) const;
+    void raiseLiteralOverflow(AstNodeRef nodeRef, TypeRef targetTypeRef) const;
+    void raiseExprNotConst(AstNodeRef nodeRef) const;
+    void raiseInternalError(const AstNode& node) const;
 
     bool        castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef);
     ConstantRef cast(const CastContext& castCtx, ConstantRef srcRef, TypeRef targetTypeRef);
 
-    void lookupIdentifier(LookupResult& result, IdentifierRef idRef);
+    void               lookupIdentifier(LookupResult& result, IdentifierRef idRef) const;
+    AstVisitStepResult pause(TaskStateKind kind, AstNodeRef nodeRef);
 };
 
 SWC_END_NAMESPACE()

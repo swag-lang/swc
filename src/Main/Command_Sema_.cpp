@@ -4,6 +4,8 @@
 #include "Main/Global.h"
 #include "Memory/Heap.h"
 #include "Parser/ParserJob.h"
+#include "Report/Diagnostic.h"
+#include "Report/DiagnosticDef.h"
 #include "Sema/SemaJob.h"
 #include "Thread/Job.h"
 #include "Thread/JobManager.h"
@@ -55,9 +57,13 @@ namespace Command
         jobMgr.waitingJobs(jobs, clientId);
         for (const auto job : jobs)
         {
+            const auto& state = job->ctx().state();
             if (const auto semaJob = job->safeCast<SemaJob>())
             {
-                printf("x");
+                if (state.kind == TaskStateKind::SemaWaitingIdentifier)
+                {
+                    semaJob->sema().raiseError(DiagnosticId::cmd_err_no_input, state.nodeRef);
+                }
             }
         }
     }

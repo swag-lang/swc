@@ -267,7 +267,6 @@
         <ClCompile Include="src\Sema\Symbol\Symbol.cpp"/>
         <ClCompile Include="src\Sema\Type\TypeInfo.cpp"/>
         <ClCompile Include="src\Sema\Type\TypeManager.cpp"/>
-        <ClCompile Include="src\Thread\Job.cpp"/>
         <ClCompile Include="src\Thread\JobManager.cpp"/>
         <ClCompile Include="src\Thread\RaceCondition.cpp"/>
         <ClCompile Include="src\Wmf\SourceFile.cpp"/>

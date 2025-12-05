@@ -17,34 +17,22 @@ public:
     JobClientId newClientId();
 
     bool enqueue(Job& job, JobPriority priority, JobClientId client = 0);
-    bool wake(Job& job);
+    bool wake(const Job& job);
     bool wakeAll(JobClientId client);
     void waitAll();
     void waitAll(JobClientId client);
-    void cancelAll(JobClientId client);
 
     uint32_t        numWorkers() const noexcept { return static_cast<uint32_t>(workers_.size()); }
     uint32_t        randSeed() const noexcept { return randSeed_; }
     static uint32_t threadIndex() noexcept { return threadIndex_; }
 
-protected:
-    friend class Job;
-    void notifyDependents(JobRecord* finished);
-
 private:
-    // Ready-queue helpers
     void       pushReady(JobRecord* rec, JobPriority priority);
-    JobRecord* popReadyLocked();                            // High → Normal → Low
-    bool       removeFromReadyQueuesLocked(JobRecord* rec); // returns true if removed & decremented
+    JobRecord* popReadyLocked(); // High → Normal → Low
 
-    // Dependencies
-    static bool linkOrSkip(JobRecord* waiter, JobRecord* dep); // returns false if dep already Done
-
-    // Workers
-    static JobResult executeJob(Job& job);
+    static JobResult executeJob(const Job& job);
     void             workerLoop();
 
-    // Shutdown (private; called only by destructor)
     void shutdown() noexcept;
 
     // Setup
@@ -75,22 +63,13 @@ private:
     std::atomic<JobClientId>                     nextClientId_{1}; // start at 1, 0 reserved as "default client"
     std::unordered_map<JobClientId, std::size_t> clientReadyRunning_;
 
-    // All currently scheduled records (any state except free), to allow cancellation scans.
+    // All currently scheduled records (any state except free), to allow wakeAll scans.
     std::unordered_set<JobRecord*> liveRecs_;
 
-    // Clients currently under cancellation (block new enqueues; children are dropped)
-    std::unordered_set<JobClientId> cancellingClients_;
-
-    // Helpers for client accounting. Callers must hold mtx_.
     void bumpClientCountLocked(JobClientId client, int delta);
 
-    // Cancel a single record and recursively cancel same-client dependents.
-    // Assumes mtx_ held. Skips RUNNING/DONE. Returns true if this rec was canceled.
-    bool cancelCascadeLocked(JobRecord* rec, JobClientId client);
-
-    // We keep a tiny interface here; implementation detail is in .cpp.
     struct RecordPool;
-    static JobRecord* allocRecord(); // may use a TLS fast path
+    static JobRecord* allocRecord();
     static void       freeRecord(JobRecord* r);
 };
 

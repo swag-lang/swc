@@ -18,10 +18,8 @@ enum class JobPriority : std::uint8_t
 
 enum class JobResult : std::uint8_t
 {
-    Done,         // finished; remove and wake dependents
-    Sleep,        // pause until woken via JobManager::wake(job)
-    SleepOn,      // sleep until dep_ completes (set via setDependency / sleepOn)
-    SpawnAndSleep // enqueue child_ (at childPriority_) and sleep until it completes
+    Done,
+    Sleep
 };
 
 struct JobRecord
@@ -32,68 +30,22 @@ struct JobRecord
 
     enum class State : uint8_t
     {
-        Ready,
-        Running,
-        Waiting,
-        Done
+        Ready,   // queued to run
+        Running, // currently executing
+        Waiting, // sleeping / not runnable
+        Done     // completed
     };
 
     State state{State::Ready};
-
-    // "Wake ticket" to prevent lost-wake races.
-    // If a wake() occurs while the job is running, a following Sleep will NOT park it.
-    std::atomic<std::uint64_t> wakeGen{0};
-
-    // Jobs currently waiting for this job to complete (stored as Job*).
-    // We look up their Record via job->rec_ under the manager lock.
-    std::vector<Job*> dependents;
 };
 
 class Job
 {
     TaskContext ctx_;
 
-    // For Result::SleepOn
-    void setDependency(Job& dep)
-    {
-        dep_ = &dep;
-    }
-
-    // For Result::SpawnAndSleep
-    void setChildAndPriority(Job& child, JobPriority priority)
-    {
-        child_         = &child;
-        childPriority_ = priority;
-    }
-
-    // Convenience shorthands
-    JobResult sleep()
-    {
-        clearIntents();
-        return JobResult::Sleep;
-    }
-
-    JobResult sleepOn(Job& dep)
-    {
-        dep_ = &dep;
-        return JobResult::SleepOn;
-    }
-
-    JobResult spawnAndSleep(Job& child, JobPriority prio)
-    {
-        child_         = &child;
-        childPriority_ = prio;
-        return JobResult::SpawnAndSleep;
-    }
-
     // Back-pointers / scheduler hooks (manager-owned but stored on the job)
     JobManager* owner_ = nullptr; // which manager, if any, owns this job right now
     JobRecord*  rec_   = nullptr; // scheduler state for THIS manager run (from the pool)
-
-    // User intent (read by manager under lock after process()):
-    Job*        dep_           = nullptr; // dependency for SleepOn
-    Job*        child_         = nullptr; // child for SpawnAndSleep
-    JobPriority childPriority_ = JobPriority::Normal;
 
 public:
     explicit Job(const TaskContext& ctx) :
@@ -107,14 +59,11 @@ public:
     void               setOwner(JobManager* owner) { owner_ = owner; }
     JobRecord*         rec() const { return rec_; }
     void               setRec(JobRecord* rec) { rec_ = rec; }
-    JobPriority        priority() const { return rec_->priority; }
-    JobPriority        childPriority() const { return childPriority_; }
-    JobClientId        clientId() const { return rec_->clientId; }
-    Job*               child() const { return child_; }
-    Job*               dep() const { return dep_; }
+    JobPriority        priority() const { return rec_ ? rec_->priority : JobPriority::Normal; }
+    JobClientId        clientId() const { return rec_ ? rec_->clientId : 0; }
 
-    void wakeDependents() const;
-    void clearIntents();
+    // Convenience shorthand for sleeping
+    JobResult sleep() { return JobResult::Sleep; }
 
     std::function<JobResult()> func;
 };

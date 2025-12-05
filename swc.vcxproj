@@ -207,6 +207,7 @@
         <ClCompile Include="src\Math\Helpers.cpp"/>
         <ClCompile Include="src\Memory\Allocator.cpp"/>
         <ClCompile Include="src\Memory\Arena.cpp"/>
+        <ClCompile Include="src\Memory\Heap.cpp"/>
         <ClCompile Include="src\Memory\Mimalloc.cpp">
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -302,6 +303,7 @@
         <ClInclude Include="src\Math\Hash.h"/>
         <ClInclude Include="src\Math\Helpers.h"/>
         <ClInclude Include="src\Memory\Arena.h"/>
+        <ClInclude Include="src\Memory\Heap.h"/>
         <ClInclude Include="src\Os\Os.h"/>
         <ClInclude Include="src\Parser\Ast.h"/>
         <ClInclude Include="src\Parser\AstNode.h"/>

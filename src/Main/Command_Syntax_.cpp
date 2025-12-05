@@ -2,6 +2,7 @@
 #include "Main/Command.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
+#include "Memory/Heap.h"
 #include "Parser/Ast.h"
 #include "Parser/Parser.h"
 #include "Parser/ParserJob.h"
@@ -26,7 +27,7 @@ namespace Command
 
         for (const auto& f : compiler.files())
         {
-            const auto job = compiler.allocate<ParserJob>(ctx, f);
+            const auto job = heapNew<ParserJob>(ctx, f);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 

@@ -85,7 +85,8 @@ public:
     template<typename T, typename... ARGS>
     T* allocate(ARGS&&... args)
     {
-        void* mem = perThreadData_[JobManager::threadIndex()].arena.allocate(sizeof(T), alignof(T));
+        auto& td  = perThreadData_[JobManager::threadIndex()];
+        void* mem = td.arena.allocate(sizeof(T), alignof(T));
         return new (mem) T(std::forward<ARGS>(args)...);
     }
 };

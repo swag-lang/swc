@@ -2,6 +2,7 @@
 #include "Main/Command.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
+#include "Memory/Heap.h"
 #include "Parser/ParserJob.h"
 #include "Sema/SemaJob.h"
 #include "Thread/Job.h"
@@ -25,7 +26,7 @@ namespace Command
 
         for (const auto& f : compiler.files())
         {
-            const auto job = compiler.allocate<ParserJob>(ctx, f);
+            const auto job = heapNew<ParserJob>(ctx, f);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 
@@ -37,7 +38,7 @@ namespace Command
         {
             if (f->hasError())
                 continue;
-            const auto job = compiler.allocate<SemaJob>(ctx, f->semaCtx());
+            const auto job = heapNew<SemaJob>(ctx, f->semaCtx());
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 

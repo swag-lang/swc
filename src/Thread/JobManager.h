@@ -17,14 +17,13 @@ public:
     JobClientId newClientId();
 
     bool enqueue(Job& job, JobPriority priority, JobClientId client = 0);
-    bool wake(const Job& job);
     bool wakeAll(JobClientId client);
     void waitAll();
     void waitAll(JobClientId client);
 
-    uint32_t        numWorkers() const noexcept { return static_cast<uint32_t>(workers_.size()); }
-    uint32_t        randSeed() const noexcept { return randSeed_; }
-    static uint32_t threadIndex() noexcept { return threadIndex_; }
+    uint32_t      numWorkers() const noexcept { return static_cast<uint32_t>(workers_.size()); }
+    uint32_t      randSeed() const noexcept { return randSeed_; }
+    static size_t threadIndex() noexcept { return threadIndex_; }
 
 private:
     void       pushReady(JobRecord* rec, JobPriority priority);
@@ -37,9 +36,9 @@ private:
     void shutdown() noexcept;
 
     // Setup
-    const CommandLine*           cmdLine_  = nullptr;
-    uint32_t                     randSeed_ = 0;
-    static thread_local uint32_t threadIndex_;
+    const CommandLine*         cmdLine_  = nullptr;
+    uint32_t                   randSeed_ = 0;
+    static thread_local size_t threadIndex_;
 
     // Ready queues per priority (store Record* for direct access).
     std::deque<JobRecord*> readyQ_[3];

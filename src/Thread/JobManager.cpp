@@ -14,15 +14,15 @@ struct JobManager::RecordPool
     static thread_local std::vector<JobRecord*> tls;
 
     // Global fallback (small), guarded by a mutex.
-    static std::mutex              gMutex;
-    static std::vector<JobRecord*> gFree;
+    static std::mutex              mtx;
+    static std::vector<JobRecord*> freeList;
     static constexpr std::size_t   K_TLS_MAX = 1024; // cap per thread to avoid unbounded growth
 };
 
-thread_local uint32_t                JobManager::threadIndex_ = 0;
+thread_local size_t                  JobManager::threadIndex_ = 0;
 thread_local std::vector<JobRecord*> JobManager::RecordPool::tls;
-std::mutex                           JobManager::RecordPool::gMutex;
-std::vector<JobRecord*>              JobManager::RecordPool::gFree;
+std::mutex                           JobManager::RecordPool::mtx;
+std::vector<JobRecord*>              JobManager::RecordPool::freeList;
 
 JobRecord* JobManager::allocRecord()
 {
@@ -36,11 +36,11 @@ JobRecord* JobManager::allocRecord()
     }
 
     // Slow path: global pool
-    std::scoped_lock lk(RecordPool::gMutex);
-    if (!RecordPool::gFree.empty())
+    std::scoped_lock lk(RecordPool::mtx);
+    if (!RecordPool::freeList.empty())
     {
-        JobRecord* r = RecordPool::gFree.back();
-        RecordPool::gFree.pop_back();
+        JobRecord* r = RecordPool::freeList.back();
+        RecordPool::freeList.pop_back();
         return r;
     }
 
@@ -67,8 +67,8 @@ void JobManager::freeRecord(JobRecord* r)
         return;
     }
 
-    std::scoped_lock lk(RecordPool::gMutex);
-    RecordPool::gFree.push_back(r);
+    std::scoped_lock lk(RecordPool::mtx);
+    RecordPool::freeList.push_back(r);
 }
 
 JobManager::~JobManager()
@@ -102,8 +102,8 @@ void JobManager::setup(const CommandLine& cmdLine)
     accepting_ = true;
     joined_    = false;
     workers_.reserve(count);
-    for (std::uint32_t i = 0; i < count; ++i)
-        workers_.emplace_back([this, i] { threadIndex_ = i; workerLoop(); });
+    for (size_t i = 0; i < count; ++i)
+        workers_.emplace_back([&, i] { threadIndex_ = i; workerLoop(); });
 }
 
 JobClientId JobManager::newClientId()
@@ -136,28 +136,6 @@ bool JobManager::enqueue(Job& job, JobPriority priority, JobClientId client)
     pushReady(rec, priority);
     cv_.notify_one();
     return true;
-}
-
-bool JobManager::wake(const Job& job)
-{
-    std::unique_lock lk(mtx_);
-
-    // If not scheduled on this manager (or already completed), ignore.
-    if (job.owner() != this || job.rec() == nullptr)
-        return false;
-
-    JobRecord* rec = job.rec();
-
-    if (rec->state == JobRecord::State::Waiting)
-    {
-        rec->state = JobRecord::State::Ready;
-        bumpClientCountLocked(rec->clientId, +1);
-        pushReady(rec, rec->priority);
-        cv_.notify_one();
-        return true;
-    }
-
-    return false;
 }
 
 bool JobManager::wakeAll(JobClientId client)

@@ -7,7 +7,7 @@
 SWC_BEGIN_NAMESPACE()
 
 ParserJob::ParserJob(const TaskContext& ctx, SourceFile* file) :
-    Job(ctx),
+    Job(ctx, JobKind::Parser),
     file_(file)
 {
     func = [this] {

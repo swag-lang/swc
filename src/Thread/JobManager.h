@@ -17,6 +17,7 @@ public:
     JobClientId newClientId();
 
     bool enqueue(Job& job, JobPriority priority, JobClientId client = 0);
+    void waitingJobs(std::vector<Job*>& waiting, JobClientId client) const;
     bool wakeAll(JobClientId client);
     void waitAll();
     void waitAll(JobClientId client);

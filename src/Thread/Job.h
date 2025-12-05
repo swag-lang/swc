@@ -9,6 +9,13 @@ class CompilerContext;
 
 using JobClientId = uint32_t;
 
+enum class JobKind
+{
+    Invalid,
+    Parser,
+    Sema,
+};
+
 enum class JobPriority : std::uint8_t
 {
     High   = 0,
@@ -42,14 +49,14 @@ struct JobRecord
 class Job
 {
     TaskContext ctx_;
-
-    // Back-pointers / scheduler hooks (manager-owned but stored on the job)
+    JobKind     kind_  = JobKind::Invalid;
     JobManager* owner_ = nullptr; // which manager, if any, owns this job right now
     JobRecord*  rec_   = nullptr; // scheduler state for THIS manager run (from the pool)
 
 public:
-    explicit Job(const TaskContext& ctx) :
-        ctx_(ctx)
+    explicit Job(const TaskContext& ctx, JobKind kind) :
+        ctx_(ctx),
+        kind_(kind)
     {
     }
 
@@ -63,6 +70,12 @@ public:
     JobClientId        clientId() const { return rec_ ? rec_->clientId : 0; }
 
     std::function<JobResult()> func;
+
+    template<typename T>
+    const T* safeCast() const
+    {
+        return kind_ == T::K ? static_cast<const T*>(this) : nullptr;
+    }
 };
 
 SWC_END_NAMESPACE()

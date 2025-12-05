@@ -50,9 +50,6 @@ JobRecord* JobManager::allocRecord()
 
 void JobManager::freeRecord(JobRecord* r)
 {
-    if (!r)
-        return;
-
     // Minimal reset (fields set on reuse anyway).
     r->job      = nullptr;
     r->state    = JobRecord::State::Ready;
@@ -136,6 +133,27 @@ bool JobManager::enqueue(Job& job, JobPriority priority, JobClientId client)
     pushReady(rec, priority);
     cv_.notify_one();
     return true;
+}
+
+void JobManager::waitingJobs(std::vector<Job*>& waiting, JobClientId client) const
+{
+    waiting.clear();
+
+    std::unique_lock lk(mtx_);
+
+    if (liveRecs_.empty())
+        return;
+
+    for (const JobRecord* rec : liveRecs_)
+    {
+        if (!rec)
+            continue;
+        if (rec->clientId != client)
+            continue;
+
+        if (rec->state == JobRecord::State::Waiting)
+            waiting.push_back(rec->job);
+    }
 }
 
 bool JobManager::wakeAll(JobClientId client)

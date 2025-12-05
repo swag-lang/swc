@@ -50,6 +50,16 @@ namespace Command
                 break;
             jobMgr.wakeAll(clientId);
         }
+
+        std::vector<Job*> jobs;
+        jobMgr.waitingJobs(jobs, clientId);
+        for (const auto job : jobs)
+        {
+            if (const auto semaJob = job->safeCast<SemaJob>())
+            {
+                printf("x");
+            }
+        }
     }
 }
 

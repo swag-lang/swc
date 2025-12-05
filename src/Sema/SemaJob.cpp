@@ -5,7 +5,7 @@
 SWC_BEGIN_NAMESPACE()
 
 SemaJob::SemaJob(TaskContext& ctx, SemaInfo& semaCtx) :
-    Job(ctx),
+    Job(ctx, JobKind::Sema),
     sema_(ctx, semaCtx)
 {
     func = [this] {
@@ -14,7 +14,7 @@ SemaJob::SemaJob(TaskContext& ctx, SemaInfo& semaCtx) :
 }
 
 SemaJob::SemaJob(TaskContext& ctx, const Sema& parentSema, AstNodeRef root) :
-    Job(ctx),
+    Job(ctx, JobKind::Sema),
     sema_(ctx, parentSema, root)
 {
     func = [this] {

@@ -9,6 +9,8 @@ class SemaJob : public Job
     Sema sema_;
 
 public:
+    static constexpr auto K = JobKind::Sema;
+
     SemaJob(TaskContext& ctx, SemaInfo& semaCtx);
     SemaJob(TaskContext& ctx, const Sema& parentSema, AstNodeRef root);
     JobResult exec();

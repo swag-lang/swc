@@ -10,6 +10,8 @@ class ParserJob : public Job
     JobResult exec();
 
 public:
+    static constexpr auto K = JobKind::Sema;
+
     ParserJob(const TaskContext& ctx, SourceFile* file);
 };
 

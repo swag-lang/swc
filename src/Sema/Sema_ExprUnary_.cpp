@@ -68,6 +68,8 @@ namespace
         {
             case TokenId::SymMinus:
                 return constantFoldMinus(sema, node, ops);
+            case TokenId::SymPlus:
+                return ops.nodeView.cstRef;
             case TokenId::SymBang:
                 return constantFoldBang(sema, node, ops);
             default:
@@ -118,6 +120,8 @@ namespace
         {
             case TokenId::SymMinus:
                 return checkMinus(sema, node, ops);
+            case TokenId::SymPlus:
+                return Result::Success;
             case TokenId::SymBang:
                 return checkBang(sema, node, ops);
             default:

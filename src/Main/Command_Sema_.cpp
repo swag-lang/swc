@@ -43,28 +43,7 @@ namespace Command
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 
-        while (true)
-        {
-            compiler.setSemaAlive(false);
-            jobMgr.waitAll(clientId);
-            if (!compiler.semaAlive())
-                break;
-            jobMgr.wakeAll(clientId);
-        }
-
-        std::vector<Job*> jobs;
-        jobMgr.waitingJobs(jobs, clientId);
-        for (const auto job : jobs)
-        {
-            const auto& state = job->ctx().state();
-            if (const auto semaJob = job->safeCast<SemaJob>())
-            {
-                if (state.kind == TaskStateKind::SemaWaitingIdentifier)
-                {
-                    semaJob->sema().raiseError(DiagnosticId::sema_err_unknown_identifier, state.nodeRef);
-                }
-            }
-        }
+        Sema::waitAll(ctx, clientId);
     }
 }
 

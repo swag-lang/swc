@@ -3,6 +3,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Memory/Heap.h"
+#include "Report/DiagnosticDef.h"
 #include "Sema/SemaInfo.h"
 #include "Sema/SemaJob.h"
 #include "Symbol/Scope.h"
@@ -178,6 +179,43 @@ AstVisitStepResult Sema::pause(TaskStateKind kind, AstNodeRef nodeRef)
     wait.kind    = kind;
     wait.nodeRef = nodeRef;
     return AstVisitStepResult::Pause;
+}
+
+namespace
+{
+    void postProcess(const TaskContext& ctx, JobClientId clientId)
+    {
+        std::vector<Job*> jobs;
+        ctx.global().jobMgr().waitingJobs(jobs, clientId);
+
+        for (const auto job : jobs)
+        {
+            const auto& state = job->ctx().state();
+            if (const auto semaJob = job->safeCast<SemaJob>())
+            {
+                if (state.kind == TaskStateKind::SemaWaitingIdentifier)
+                {
+                    semaJob->sema().raiseError(DiagnosticId::sema_err_unknown_identifier, state.nodeRef);
+                }
+            }
+        }
+    }
+}
+
+void Sema::waitAll(TaskContext& ctx, JobClientId clientId)
+{
+    auto& jobMgr   = ctx.global().jobMgr();
+    auto& compiler = ctx.compiler();
+    while (true)
+    {
+        compiler.setSemaAlive(false);
+        jobMgr.waitAll(clientId);
+        if (!compiler.semaAlive())
+            break;
+        jobMgr.wakeAll(clientId);
+    }
+
+    postProcess(ctx, clientId);
 }
 
 JobResult Sema::exec()

@@ -107,6 +107,7 @@ public:
 
     void               lookupIdentifier(LookupResult& result, IdentifierRef idRef) const;
     AstVisitStepResult pause(TaskStateKind kind, AstNodeRef nodeRef);
+    static void        waitAll(TaskContext& ctx, JobClientId clientId);
 };
 
 SWC_END_NAMESPACE()

@@ -9,3 +9,9 @@
 #assert(a + #wrap b)
 
 #assert(a + / b) // swc-expected-error {{parser_err_unexpected_token}}
+
+#assert(!!a) // swc-expected-error {{parser_err_unexpected_token}}
+#assert(!!!a) // swc-expected-error {{parser_err_unexpected_token}}
+#assert(--a) // swc-expected-error {{parser_err_unexpected_token}}
+#assert(-+a) // swc-expected-error {{parser_err_unexpected_token}}
+#assert(!-a) // swc-expected-error {{parser_err_unexpected_token}}

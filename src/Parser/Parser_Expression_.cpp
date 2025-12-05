@@ -675,12 +675,26 @@ AstNodeRef Parser::parsePrefixExpr()
         case TokenId::KwdDRef:
         case TokenId::KwdMoveRef:
         case TokenId::SymAmpersand:
+        {
+            const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpr>(consume());
+            nodePtr->nodeExprRef            = parsePrefixExpr();
+            return nodeParen;
+        }
+
         case TokenId::SymPlus:
         case TokenId::SymMinus:
         case TokenId::SymBang:
         case TokenId::SymTilde:
         {
-            const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpr>(consume());
+            const auto tokOp = consume();
+            if (isAny(TokenId::SymPlus, TokenId::SymMinus, TokenId::SymBang, TokenId::SymTilde))
+            {
+                const auto diag = reportError(DiagnosticId::parser_err_unexpected_token, ref());
+                diag.report(*ctx_);
+                consume();
+            }
+
+            const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpr>(tokOp);
             nodePtr->nodeExprRef            = parsePrefixExpr();
             return nodeParen;
         }

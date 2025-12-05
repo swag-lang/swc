@@ -62,9 +62,6 @@ public:
     JobPriority        priority() const { return rec_ ? rec_->priority : JobPriority::Normal; }
     JobClientId        clientId() const { return rec_ ? rec_->clientId : 0; }
 
-    // Convenience shorthand for sleeping
-    JobResult sleep() { return JobResult::Sleep; }
-
     std::function<JobResult()> func;
 };
 

@@ -314,6 +314,33 @@ JobResult JobManager::executeJob(const Job& job)
     return res;
 }
 
+void JobManager::handleJobResult(JobRecord* rec, const JobResult res)
+{
+    std::unique_lock lk(mtx_);
+
+    switch (res)
+    {
+        case JobResult::Done:
+        {
+            rec->state = JobRecord::State::Done;
+            bumpClientCountLocked(rec->clientId, -1);
+
+            // Detach and recycle the record
+            rec->job->setRec(nullptr);
+            rec->job->setOwner(nullptr);
+            liveRecs_.erase(rec);
+            freeRecord(rec);
+            break;
+        }
+
+        case JobResult::Sleep:
+        {
+            rec->state = JobRecord::State::Waiting;
+            bumpClientCountLocked(rec->clientId, -1);
+            break;
+        }
+    }
+}
 void JobManager::workerLoop()
 {
     auto popReadyAndMarkRunningLocked = [this]() -> JobRecord* {
@@ -391,39 +418,8 @@ void JobManager::workerLoop()
 
         ActiveGuard activeGuard{.ref = &activeWorkers_, .ready = &readyCount_, .idleCv = &idleCv_};
 
-        // Execute a job
         const JobResult res = executeJob(*rec->job);
-
-        // Completion / state transition handling
-        {
-            std::unique_lock lk(mtx_);
-
-            switch (res)
-            {
-                case JobResult::Done:
-                {
-                    rec->state = JobRecord::State::Done;
-
-                    // RUNNING leaves the counted set.
-                    bumpClientCountLocked(rec->clientId, -1);
-
-                    // Detach and recycle
-                    rec->job->setRec(nullptr);
-                    rec->job->setOwner(nullptr);
-                    liveRecs_.erase(rec);
-                    freeRecord(rec);
-                    break;
-                }
-
-                case JobResult::Sleep:
-                {
-                    // Park: RUNNING -> WAITING leaves the counted set.
-                    rec->state = JobRecord::State::Waiting;
-                    bumpClientCountLocked(rec->clientId, -1);
-                    break;
-                }
-            }
-        }
+        handleJobResult(rec, res);
     }
 }
 
@@ -431,8 +427,6 @@ void JobManager::bumpClientCountLocked(JobClientId client, int delta)
 {
     auto& c = clientReadyRunning_[client];
     c       = static_cast<std::size_t>(static_cast<long long>(c) + delta);
-
-    // Someone may be waiting for this client.
     if (c == 0)
         idleCv_.notify_all();
 }

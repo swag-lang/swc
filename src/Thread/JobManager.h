@@ -31,6 +31,7 @@ private:
     JobRecord* popReadyLocked(); // High → Normal → Low
 
     static JobResult executeJob(const Job& job);
+    void             handleJobResult(JobRecord* rec, JobResult res);
     void             workerLoop();
 
     void shutdown() noexcept;

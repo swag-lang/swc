@@ -4,7 +4,6 @@
 #include "Main/Global.h"
 #include "Memory/Heap.h"
 #include "Parser/ParserJob.h"
-#include "Report/Diagnostic.h"
 #include "Report/DiagnosticDef.h"
 #include "Sema/SemaJob.h"
 #include "Thread/Job.h"
@@ -62,7 +61,7 @@ namespace Command
             {
                 if (state.kind == TaskStateKind::SemaWaitingIdentifier)
                 {
-                    semaJob->sema().raiseError(DiagnosticId::cmd_err_no_input, state.nodeRef);
+                    semaJob->sema().raiseError(DiagnosticId::sema_err_unknown_identifier, state.nodeRef);
                 }
             }
         }

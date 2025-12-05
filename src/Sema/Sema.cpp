@@ -206,6 +206,7 @@ void Sema::waitAll(TaskContext& ctx, JobClientId clientId)
 {
     auto& jobMgr   = ctx.global().jobMgr();
     auto& compiler = ctx.compiler();
+    
     while (true)
     {
         compiler.setSemaAlive(false);

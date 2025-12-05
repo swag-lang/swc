@@ -4,9 +4,9 @@
 
 SWC_BEGIN_NAMESPACE()
 
-SemaJob::SemaJob(const TaskContext& ctx, SemaInfo& semaCtx) :
+SemaJob::SemaJob(const TaskContext& ctx, SemaInfo& semaCtx, SymbolNamespace& moduleNamespace) :
     Job(ctx, JobKind::Sema),
-    sema_(Job::ctx(), semaCtx)
+    sema_(Job::ctx(), semaCtx, moduleNamespace)
 {
     func = [this] {
         return exec();

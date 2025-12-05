@@ -8,16 +8,17 @@ class SymbolMap;
 enum class SymbolKind : uint8_t
 {
     Invalid,
+    Module,
     Namespace,
     Constant,
 };
 
 class Symbol
 {
-    IdentifierRef    idRef_;
-    SymbolKind       kind_        = SymbolKind::Invalid;
-    Symbol*          nextHomonym_ = nullptr;
-    const SymbolMap* symMap_      = nullptr;
+    IdentifierRef idRef_;
+    SymbolKind    kind_        = SymbolKind::Invalid;
+    Symbol*       nextHomonym_ = nullptr;
+    SymbolMap*    symMap_      = nullptr;
 
 public:
     explicit Symbol(const TaskContext& ctx, SymbolKind kind, IdentifierRef idRef) :
@@ -28,8 +29,9 @@ public:
 
     SymbolKind       kind() const { return kind_; }
     IdentifierRef    idRef() const { return idRef_; }
+    SymbolMap*       symMap() noexcept { return symMap_; }
     const SymbolMap* symMap() const noexcept { return symMap_; }
-    void             setSymMap(const SymbolMap* symMap) noexcept { symMap_ = symMap; }
+    void             setSymMap(SymbolMap* symMap) noexcept { symMap_ = symMap; }
     bool             is(SymbolKind kind) const noexcept { return kind_ == kind; }
 
     Symbol* nextHomonym() const noexcept { return nextHomonym_; }

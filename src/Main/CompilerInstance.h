@@ -13,7 +13,7 @@ class TaskContext;
 class TypeManager;
 class ConstantManager;
 class IdentifierManager;
-class SymbolNamespace;
+class SymbolModule;
 class Global;
 class SourceFile;
 struct CommandLine;
@@ -27,8 +27,8 @@ class CompilerInstance
     std::unique_ptr<TypeManager>             typeMgr_;
     std::unique_ptr<ConstantManager>         cstMgr_;
     std::unique_ptr<IdentifierManager>       idMgr_;
-    SymbolNamespace*                         symNamespace_ = nullptr;
-    JobClientId                              jobClientId_  = 0;
+    SymbolModule*                            symModule_   = nullptr;
+    JobClientId                              jobClientId_ = 0;
     fs::path                                 modulePathSrc_;
     fs::path                                 modulePathFile_;
     fs::path                                 exeFullName_;
@@ -65,10 +65,10 @@ public:
     IdentifierManager&       idMgr() { return *idMgr_; }
     const IdentifierManager& idMgr() const { return *idMgr_; }
 
-    SymbolNamespace*       symNamespace() { return symNamespace_; }
-    const SymbolNamespace* symNamespace() const { return symNamespace_; }
-    bool                   semaAlive() const { return semaAlive_; }
-    void                   setSemaAlive(bool alive) { semaAlive_ = alive; }
+    SymbolModule*       symModule() { return symModule_; }
+    const SymbolModule* symModule() const { return symModule_; }
+    bool                semaAlive() const { return semaAlive_; }
+    void                setSemaAlive(bool alive) { semaAlive_ = alive; }
 
     void setupSema(TaskContext& ctx);
 

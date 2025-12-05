@@ -4,14 +4,17 @@
 
 SWC_BEGIN_NAMESPACE()
 
+class SymbolNamespace;
+
 class SemaJob : public Job
 {
-    Sema sema_;
+    Sema             sema_;
+    SymbolNamespace* moduleNamespace_ = nullptr;
 
 public:
     static constexpr auto K = JobKind::Sema;
 
-    SemaJob(const TaskContext& ctx, SemaInfo& semaCtx);
+    SemaJob(const TaskContext& ctx, SemaInfo& semaCtx, SymbolNamespace& moduleNamespace);
     SemaJob(const TaskContext& ctx, const Sema& parentSema, AstNodeRef root);
     JobResult exec();
 

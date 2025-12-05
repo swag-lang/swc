@@ -12,9 +12,11 @@
 
 SWC_BEGIN_NAMESPACE()
 
-Sema::Sema(TaskContext& ctx, SemaInfo& semCtx) :
+Sema::Sema(TaskContext& ctx, SemaInfo& semCtx, SymbolNamespace& moduleNamespace) :
     ctx_(&ctx),
-    semaInfo_(&semCtx)
+    semaInfo_(&semCtx),
+    moduleNamespace_(&moduleNamespace)
+
 {
     visit_.start(semaInfo_->ast(), semaInfo_->ast().root());
     setVisitors();
@@ -23,6 +25,8 @@ Sema::Sema(TaskContext& ctx, SemaInfo& semCtx) :
 Sema::Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root) :
     ctx_(&ctx),
     semaInfo_(parent.semaInfo_),
+    moduleNamespace_(parent.moduleNamespace_),
+    rootScope_(parent.rootScope_),
     curScope_(parent.curScope_)
 {
     visit_.start(semaInfo_->ast(), root);
@@ -101,17 +105,7 @@ Scope* Sema::pushScope(ScopeFlags flags)
     Scope* parent = curScope_;
     scopes_.emplace_back(std::make_unique<Scope>(flags, parent));
     Scope* scope = scopes_.back().get();
-
-    if (!rootScope_)
-    {
-        rootScope_ = scope;
-        rootScope_->setSymMap(ctx_->compiler().symNamespace());
-    }
-    else
-    {
-        scope->setSymMap(parent->symMap());
-    }
-
+    scope->setSymMap(parent->symMap());
     curScope_ = scope;
     return scope;
 }
@@ -206,7 +200,7 @@ void Sema::waitAll(TaskContext& ctx, JobClientId clientId)
 {
     auto& jobMgr   = ctx.global().jobMgr();
     auto& compiler = ctx.compiler();
-    
+
     while (true)
     {
         compiler.setSemaAlive(false);
@@ -221,6 +215,14 @@ void Sema::waitAll(TaskContext& ctx, JobClientId clientId)
 
 JobResult Sema::exec()
 {
+    if (!rootScope_)
+    {
+        scopes_.emplace_back(std::make_unique<Scope>(ScopeFlagsE::TopLevel, nullptr));
+        rootScope_ = scopes_.back().get();
+        rootScope_->setSymMap(moduleNamespace_->symMap());
+        curScope_ = rootScope_;
+    }
+
     while (true)
     {
         const auto result = visit_.step();

@@ -4,8 +4,9 @@
 #include "Main/Global.h"
 #include "Memory/Heap.h"
 #include "Parser/ParserJob.h"
-#include "Report/DiagnosticDef.h"
 #include "Sema/SemaJob.h"
+#include "Sema/Symbol/IdentifierManager.h"
+#include "Sema/Symbol/Symbols.h"
 #include "Thread/Job.h"
 #include "Thread/JobManager.h"
 #include "Wmf/SourceFile.h"
@@ -35,11 +36,15 @@ namespace Command
 
         compiler.setupSema(ctx);
 
+        const auto symModule       = ctx.compiler().allocate<SymbolModule>(ctx);
+        const auto idRef           = ctx.compiler().idMgr().addIdentifier("test", Math::hash("test"));
+        const auto moduleNamespace = symModule->addNamespace(ctx, idRef);
+
         for (const auto& f : compiler.files())
         {
             if (f->hasError())
                 continue;
-            const auto job = heapNew<SemaJob>(ctx, f->semaCtx());
+            const auto job = heapNew<SemaJob>(ctx, f->semaCtx(), *moduleNamespace);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 

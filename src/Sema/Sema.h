@@ -7,6 +7,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
+class SymbolNamespace;
 class LookupResult;
 class IdentifierManager;
 
@@ -26,9 +27,10 @@ struct CastContext
 
 class Sema
 {
-    TaskContext* ctx_      = nullptr;
-    SemaInfo*    semaInfo_ = nullptr;
-    AstVisit     visit_;
+    TaskContext*     ctx_             = nullptr;
+    SemaInfo*        semaInfo_        = nullptr;
+    SymbolNamespace* moduleNamespace_ = nullptr;
+    AstVisit         visit_;
 
     void               setVisitors();
     void               enterNode(AstNode& node);
@@ -41,7 +43,7 @@ class Sema
     std::vector<std::unique_ptr<Scope>> scopes_;
 
 public:
-    Sema(TaskContext& ctx, SemaInfo& semCtx);
+    Sema(TaskContext& ctx, SemaInfo& semCtx, SymbolNamespace& moduleNamespace);
     Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root);
     ~Sema();
     JobResult exec();

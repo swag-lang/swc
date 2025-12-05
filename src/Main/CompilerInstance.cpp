@@ -42,9 +42,6 @@ void CompilerInstance::setupSema(TaskContext& ctx)
 
     typeMgr_->setup(ctx);
     cstMgr_->setup(ctx);
-
-    const auto idRef = idMgr_->addIdentifier("test", Math::hash("test"));
-    symNamespace_    = allocate<SymbolNamespace>(ctx, idRef);
 }
 
 void CompilerInstance::logBefore()

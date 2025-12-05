@@ -3,12 +3,23 @@
 
 SWC_BEGIN_NAMESPACE()
 
+class SymbolModule : public SymbolMap
+{
+public:
+    static constexpr auto K = SymbolKind::Module;
+
+    explicit SymbolModule(const TaskContext& ctx) :
+        SymbolMap(ctx, SymbolKind::Module, IdentifierRef::invalid())
+    {
+    }
+};
+
 class SymbolNamespace : public SymbolMap
 {
 public:
     static constexpr auto K = SymbolKind::Namespace;
 
-    SymbolNamespace(const TaskContext& ctx, IdentifierRef idRef) :
+    explicit SymbolNamespace(const TaskContext& ctx, IdentifierRef idRef) :
         SymbolMap(ctx, SymbolKind::Namespace, idRef)
     {
     }

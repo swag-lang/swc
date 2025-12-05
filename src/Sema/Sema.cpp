@@ -161,8 +161,8 @@ AstVisitStepResult Sema::preChild(AstNode& node, AstNodeRef& childRef)
         const auto&    info  = Ast::nodeIdInfos(child.id());
         if (info.hasFlag(AstNodeIdFlagsE::SemaJob))
         {
-            const auto job = std::make_shared<SemaJob>(ctx(), *this, childRef);
-            compiler().global().jobMgr().enqueue(job, JobPriority::Normal, compiler().jobClientId());
+            const auto job = ctx().compiler().allocate<SemaJob>(ctx(), *this, childRef);
+            compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, compiler().jobClientId());
             return AstVisitStepResult::SkipChildren;
         }
     }

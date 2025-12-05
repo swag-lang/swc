@@ -22,8 +22,8 @@ namespace Command
 
         for (const auto& f : compiler.files())
         {
-            auto job = std::make_shared<ParserJob>(ctx, f);
-            jobMgr.enqueue(job, JobPriority::Normal, clientId);
+            const auto job = compiler.allocate<ParserJob>(ctx, f);
+            jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 
         global.jobMgr().waitAll(clientId);

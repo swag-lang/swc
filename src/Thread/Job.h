@@ -7,7 +7,6 @@ class JobManager;
 class Job;
 class CompilerContext;
 
-using JobRef      = std::shared_ptr<Job>;
 using JobClientId = uint32_t;
 
 enum class JobPriority : std::uint8_t
@@ -27,7 +26,7 @@ enum class JobResult : std::uint8_t
 
 struct JobRecord
 {
-    JobRef      job;
+    Job*        job      = nullptr;
     JobPriority priority = JobPriority::Normal;
     JobClientId clientId = 0;
 
@@ -50,20 +49,20 @@ struct JobRecord
     std::vector<Job*> dependents;
 };
 
-class Job : public std::enable_shared_from_this<Job>
+class Job
 {
     TaskContext ctx_;
 
     // For Result::SleepOn
-    void setDependency(const JobRef& dep)
+    void setDependency(Job& dep)
     {
-        dep_ = dep;
+        dep_ = &dep;
     }
 
     // For Result::SpawnAndSleep
-    void setChildAndPriority(const JobRef& child, JobPriority priority)
+    void setChildAndPriority(Job& child, JobPriority priority)
     {
-        child_         = child;
+        child_         = &child;
         childPriority_ = priority;
     }
 
@@ -74,15 +73,15 @@ class Job : public std::enable_shared_from_this<Job>
         return JobResult::Sleep;
     }
 
-    JobResult sleepOn(const JobRef& dep)
+    JobResult sleepOn(Job& dep)
     {
-        dep_ = dep;
+        dep_ = &dep;
         return JobResult::SleepOn;
     }
 
-    JobResult spawnAndSleep(const JobRef& child, JobPriority prio)
+    JobResult spawnAndSleep(Job& child, JobPriority prio)
     {
-        child_         = child;
+        child_         = &child;
         childPriority_ = prio;
         return JobResult::SpawnAndSleep;
     }
@@ -92,8 +91,8 @@ class Job : public std::enable_shared_from_this<Job>
     JobRecord*  rec_   = nullptr; // scheduler state for THIS manager run (from the pool)
 
     // User intent (read by manager under lock after process()):
-    JobRef      dep_;   // dependency for SleepOn
-    JobRef      child_; // child for SpawnAndSleep
+    Job*        dep_           = nullptr; // dependency for SleepOn
+    Job*        child_         = nullptr; // child for SpawnAndSleep
     JobPriority childPriority_ = JobPriority::Normal;
 
 public:
@@ -111,8 +110,8 @@ public:
     JobPriority        priority() const { return rec_->priority; }
     JobPriority        childPriority() const { return childPriority_; }
     JobClientId        clientId() const { return rec_->clientId; }
-    JobRef             child() const { return child_; }
-    JobRef             dep() const { return dep_; }
+    Job*               child() const { return child_; }
+    Job*               dep() const { return dep_; }
 
     void wakeDependents() const;
     void clearIntents();

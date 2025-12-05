@@ -16,8 +16,8 @@ public:
     void        setup(const CommandLine& cmdLine);
     JobClientId newClientId();
 
-    bool enqueue(const JobRef& job, JobPriority priority, JobClientId client = 0);
-    bool wake(const JobRef& job);
+    bool enqueue(Job& job, JobPriority priority, JobClientId client = 0);
+    bool wake(Job& job);
     bool wakeAll(JobClientId client);
     void waitAll();
     void waitAll(JobClientId client);
@@ -41,7 +41,7 @@ private:
     static bool linkOrSkip(JobRecord* waiter, JobRecord* dep); // returns false if dep already Done
 
     // Workers
-    static JobResult executeJob(const JobRef& job);
+    static JobResult executeJob(Job& job);
     void             workerLoop();
 
     // Shutdown (private; called only by destructor)

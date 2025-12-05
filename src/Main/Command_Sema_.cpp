@@ -25,8 +25,8 @@ namespace Command
 
         for (const auto& f : compiler.files())
         {
-            auto job = std::make_shared<ParserJob>(ctx, f);
-            jobMgr.enqueue(job, JobPriority::Normal, clientId);
+            const auto job = compiler.allocate<ParserJob>(ctx, f);
+            jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 
         jobMgr.waitAll(clientId);
@@ -37,8 +37,8 @@ namespace Command
         {
             if (f->hasError())
                 continue;
-            auto job = std::make_shared<SemaJob>(ctx, f->semaCtx());
-            jobMgr.enqueue(job, JobPriority::Normal, clientId);
+            const auto job = compiler.allocate<SemaJob>(ctx, f->semaCtx());
+            jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 
         while (true)

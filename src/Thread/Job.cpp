@@ -13,8 +13,8 @@ void Job::wakeDependents() const
 
 void Job::clearIntents()
 {
-    dep_.reset();
-    child_.reset();
+    dep_           = nullptr;
+    child_         = nullptr;
     childPriority_ = JobPriority::Normal;
 }
 

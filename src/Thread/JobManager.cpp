@@ -54,7 +54,7 @@ void JobManager::freeRecord(JobRecord* r)
         return;
 
     // Minimal reset (fields set on reuse anyway). Clear heavy stuff here.
-    r->job.reset();
+    r->job = nullptr;
     r->dependents.clear();
     r->wakeGen.store(0, std::memory_order_relaxed);
     r->state    = JobRecord::State::Ready;
@@ -109,11 +109,8 @@ void JobManager::setup(const CommandLine& cmdLine)
         workers_.emplace_back([this, i] { threadIndex_ = i; workerLoop(); });
 }
 
-bool JobManager::enqueue(const JobRef& job, JobPriority priority, JobClientId client)
+bool JobManager::enqueue(Job& job, JobPriority priority, JobClientId client)
 {
-    if (!job)
-        return false;
-
     std::unique_lock lk(mtx_);
     if (!accepting_)
         return false;
@@ -122,20 +119,20 @@ bool JobManager::enqueue(const JobRef& job, JobPriority priority, JobClientId cl
         return false;
 
     // If already scheduled on this manager, refuse (simplifies invariants).
-    if (job->owner() == this && job->rec() != nullptr)
+    if (job.owner() == this && job.rec() != nullptr)
         return false;
 
     // Acquire a Record from the pool and wire it up.
     JobRecord* rec = allocRecord();
-    rec->job       = job; // keep job alive while scheduled
+    rec->job       = &job;
     rec->priority  = priority;
     rec->clientId  = client;
     rec->state     = JobRecord::State::Ready;
     rec->dependents.clear();
     rec->wakeGen.store(0, std::memory_order_relaxed);
 
-    job->setOwner(this);
-    job->setRec(rec);
+    job.setOwner(this);
+    job.setRec(rec);
 
     liveRecs_.insert(rec);
     bumpClientCountLocked(client, +1); // READY enters a counted set
@@ -144,17 +141,15 @@ bool JobManager::enqueue(const JobRef& job, JobPriority priority, JobClientId cl
     return true;
 }
 
-bool JobManager::wake(const JobRef& job)
+bool JobManager::wake(Job& job)
 {
-    if (!job)
-        return false;
-
     std::unique_lock lk(mtx_);
+
     // If not scheduled on this manager (or already completed), ignore.
-    if (job->owner() != this || job->rec() == nullptr)
+    if (job.owner() != this || job.rec() == nullptr)
         return false;
 
-    JobRecord* rec = job->rec();
+    JobRecord* rec = job.rec();
 
     // Arm against a lost-wake during a run.
     rec->wakeGen.fetch_add(1, std::memory_order_acq_rel);
@@ -191,7 +186,6 @@ bool JobManager::wakeAll(JobClientId client)
 
         if (rec->state == JobRecord::State::Waiting)
         {
-            // WAITING -> READY enters the counted set.
             rec->state = JobRecord::State::Ready;
             bumpClientCountLocked(rec->clientId, +1);
             pushReady(rec, rec->priority);
@@ -314,7 +308,7 @@ bool JobManager::linkOrSkip(JobRecord* waiter, JobRecord* dep)
     if (!dep || dep->state == JobRecord::State::Done)
         return false;
     waiter->state = JobRecord::State::Waiting;
-    dep->dependents.push_back(waiter->job.get()); // store Job* for the waiter
+    dep->dependents.push_back(waiter->job);
     return true;
 }
 
@@ -373,9 +367,9 @@ JobRecord* JobManager::popReadyLocked()
 
 namespace
 {
-    void exceptionMessage(const JobRef& job, SWC_LP_EXCEPTION_POINTERS args)
+    void exceptionMessage(const Job& job, SWC_LP_EXCEPTION_POINTERS args)
     {
-        const auto& ctx    = job->ctx();
+        const auto& ctx    = job.ctx();
         auto&       logger = ctx.global().logger();
 
         logger.lock();
@@ -390,9 +384,9 @@ namespace
         logger.unlock();
     }
 
-    int exceptionHandler(const JobRef& job, SWC_LP_EXCEPTION_POINTERS args)
+    int exceptionHandler(const Job& job, SWC_LP_EXCEPTION_POINTERS args)
     {
-        const auto& ctx = job->ctx();
+        const auto& ctx = job.ctx();
 
         if (Os::isDebuggerAttached() || ctx.cmdLine().dbgDevMode)
         {
@@ -405,13 +399,13 @@ namespace
     }
 }
 
-JobResult JobManager::executeJob(const JobRef& job)
+JobResult JobManager::executeJob(Job& job)
 {
     JobResult res;
 
     SWC_TRY
     {
-        res = job->func();
+        res = job.func();
     }
     SWC_EXCEPT(exceptionHandler(job, SWC_GET_EXCEPTION_INFOS()))
     {
@@ -508,7 +502,7 @@ void JobManager::workerLoop()
         const auto wakeAtStart = rec->wakeGen.load(std::memory_order_acquire);
 
         // Execute a job
-        const JobResult res = executeJob(rec->job);
+        const JobResult res = executeJob(*rec->job);
 
         // Completion / state transition handling
         {
@@ -662,11 +656,10 @@ void JobManager::bumpClientCountLocked(JobClientId client, int delta)
 {
     auto& c = clientReadyRunning_[client];
     c       = static_cast<std::size_t>(static_cast<long long>(c) + delta);
+
+    // Someone may be waiting for this client.
     if (c == 0)
-    {
-        // Someone may be waiting for this client.
         idleCv_.notify_all();
-    }
 }
 
 bool JobManager::cancelCascadeLocked(JobRecord* rec, JobClientId client)

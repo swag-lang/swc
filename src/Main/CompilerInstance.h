@@ -33,6 +33,7 @@ class CompilerInstance
     fs::path                                 modulePathFile_;
     fs::path                                 exeFullName_;
     std::mutex                               mutex_;
+    bool                                     semaAlive_ = false;
 
     struct PerThreadData
     {
@@ -66,6 +67,8 @@ public:
 
     SymbolNamespace*       symNamespace() { return symNamespace_; }
     const SymbolNamespace* symNamespace() const { return symNamespace_; }
+    bool                   semaAlive() const { return semaAlive_; }
+    void                   setSemaAlive(bool alive) { semaAlive_ = alive; }
 
     void setupSema(TaskContext& ctx);
 

@@ -13,34 +13,15 @@ public:
     JobManager& operator=(const JobManager&) = delete;
     ~JobManager();
 
-    // Configure worker threads.
-    void setup(const CommandLine& cmdLine);
-
-    // Enqueue a job at a given priority for a given client. Returns false if:
-    //  - not accepting, or
-    //  - job is null, or
-    //  - job is already enqueued on this manager (job->rec_ != nullptr && job->owner_ == this), or
-    //  - the client is currently being cancelled (see cancelAll()).
-    bool enqueue(const JobRef& job, JobPriority priority, JobClientId client = 0);
-
-    // Wake a sleeping job.
-    // If it's waiting, it becomes ready immediately.
-    // If it's running or already ready, the wake is "armed" so a later Sleep won't park it.
-    bool wake(const JobRef& job);
-
-    // Wait until there are no READY or RUNNING jobs left (sleepers are ignored).
-    void waitAll();
-
-    // Wait until there are no READY or RUNNING jobs left for 'client' (sleepers are ignored).
-    void waitAll(JobClientId client);
-
-    // Cancel all **pending** jobs (READY or WAITING) for 'client',
-    // block new enqueues for that client, then wait for any RUNNING jobs
-    // of that client to finish. When this returns, the client has no jobs
-    // in READY/RUNNING/WAITING.
-    void cancelAll(JobClientId client);
-
+    void        setup(const CommandLine& cmdLine);
     JobClientId newClientId();
+
+    bool enqueue(const JobRef& job, JobPriority priority, JobClientId client = 0);
+    bool wake(const JobRef& job);
+    bool wakeAll(JobClientId client);
+    void waitAll();
+    void waitAll(JobClientId client);
+    void cancelAll(JobClientId client);
 
     uint32_t        numWorkers() const noexcept { return static_cast<uint32_t>(workers_.size()); }
     uint32_t        randSeed() const noexcept { return randSeed_; }
@@ -48,7 +29,7 @@ public:
 
 protected:
     friend class Job;
-    void notifyDependents(JobRecord* finished); // wake all waiting on 'finished'
+    void notifyDependents(JobRecord* finished);
 
 private:
     // Ready-queue helpers

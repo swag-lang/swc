@@ -16,9 +16,9 @@ namespace Command
     {
         TaskContext ctx(compiler);
 
-        const auto& global   = ctx.global();
-        auto&       jobMgr   = global.jobMgr();
-        const auto  clientId = compiler.jobClientId();
+        const auto&       global   = ctx.global();
+        auto&             jobMgr   = global.jobMgr();
+        const JobClientId clientId = compiler.jobClientId();
 
         if (compiler.collectFiles(ctx) == Result::Error)
             return;
@@ -41,7 +41,14 @@ namespace Command
             jobMgr.enqueue(job, JobPriority::Normal, clientId);
         }
 
-        jobMgr.waitAll(clientId);
+        while (true)
+        {
+            compiler.setSemaAlive(false);
+            jobMgr.waitAll(clientId);
+            if (!compiler.semaAlive())
+                break;
+            jobMgr.wakeAll(clientId);
+        }
     }
 }
 

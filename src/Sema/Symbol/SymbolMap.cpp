@@ -33,7 +33,7 @@ SymbolMap::Shard& SymbolMap::getShard(const IdentifierRef idRef)
     return shard;
 }
 
-void SymbolMap::addSymbol(Symbol* symbol)
+void SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol)
 {
     SWC_ASSERT(symbol != nullptr);
 
@@ -46,19 +46,21 @@ void SymbolMap::addSymbol(Symbol* symbol)
     symbol->setSymMap(this);
     symbol->setNextHomonym(head);
     head = symbol;
+
+    ctx.compiler().setSemaAlive(true);
 }
 
 SymbolConstant* SymbolMap::addConstant(TaskContext& ctx, IdentifierRef idRef, ConstantRef cstRef)
 {
     auto* sym = ctx.compiler().allocate<SymbolConstant>(ctx, idRef, cstRef);
-    addSymbol(sym);
+    addSymbol(ctx, sym);
     return sym;
 }
 
 SymbolNamespace* SymbolMap::addNamespace(TaskContext& ctx, IdentifierRef idRef)
 {
     auto* sym = ctx.compiler().allocate<SymbolNamespace>(ctx, idRef);
-    addSymbol(sym);
+    addSymbol(ctx, sym);
     return sym;
 }
 

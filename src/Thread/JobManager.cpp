@@ -170,6 +170,41 @@ bool JobManager::wake(const JobRef& job)
     return true;
 }
 
+bool JobManager::wakeAll(JobClientId client)
+{
+    std::unique_lock lk(mtx_);
+
+    if (liveRecs_.empty())
+        return false;
+
+    std::size_t woken = 0;
+
+    for (JobRecord* rec : liveRecs_)
+    {
+        if (!rec)
+            continue;
+        if (rec->clientId != client)
+            continue;
+
+        // Arm against lost-wake during a run (same pattern as wake()).
+        rec->wakeGen.fetch_add(1, std::memory_order_acq_rel);
+
+        if (rec->state == JobRecord::State::Waiting)
+        {
+            // WAITING -> READY enters the counted set.
+            rec->state = JobRecord::State::Ready;
+            bumpClientCountLocked(rec->clientId, +1);
+            pushReady(rec, rec->priority);
+            ++woken;
+        }
+    }
+
+    if (woken != 0)
+        cv_.notify_all(); // multiple jobs may have been enqueued
+
+    return woken != 0;
+}
+
 void JobManager::waitAll()
 {
     std::unique_lock lk(mtx_);

@@ -50,18 +50,20 @@ public:
     uint64_t getSignBit() const;
     void     setSignBit(bool isNegative);
 
-    void     bitwiseOr(uint64_t rhs);
-    void     logicalShiftLeft(uint64_t amount, bool& overflow);
-    void     logicalShiftRight(uint64_t amount);
+    void bitwiseOr(uint64_t rhs);
+    void logicalShiftLeft(uint64_t amount, bool& overflow);
+    void logicalShiftRight(uint64_t amount);
+    void abs(bool& overflow);
+    void negate(bool& overflow);
+
     void     add(uint64_t v, bool& overflow);
     void     mul(uint64_t v, bool& overflow);
     uint64_t div(uint64_t v);
+
     void     add(const ApInt& rhs, bool& overflow);
     void     sub(const ApInt& rhs, bool& overflow);
     void     mul(const ApInt& rhs, bool& overflow);
     uint64_t div(const ApInt& rhs);
-    void     abs(bool& overflow);
-    void     negate(bool& overflow);
 
     static ApInt minValue(uint32_t bitWidth);
     static ApInt minSignedValue(uint32_t bitWidth);

@@ -51,8 +51,8 @@ public:
     Utf8                          codeLine(const TaskContext& ctx, uint32_t line) const;
     std::string_view              codeView(uint32_t offset, uint32_t len) const;
     std::pair<uint32_t, uint32_t> triviaRangeForToken(TokenRef tok) const;
-    TokenRef                      findTokenRightFrom(TokenRef startRef, TokenId id) const;
-    TokenRef                      findTokenLeftFrom(TokenRef startRef, TokenId id) const;
+    TokenRef                      findRightFrom(TokenRef startRef, std::initializer_list<TokenId> ids) const;
+    TokenRef                      findLeftFrom(TokenRef startRef, std::initializer_list<TokenId> ids) const;
 };
 
 SWC_END_NAMESPACE()

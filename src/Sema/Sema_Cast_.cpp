@@ -228,14 +228,14 @@ ConstantRef Sema::cast(const CastContext& castCtx, ConstantRef srcRef, TypeRef t
     return ConstantRef::invalid();
 }
 
-bool Sema::promoteConstants(const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef)
+bool Sema::promoteConstants(const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef, bool force32BitInts)
 {
-    if (ops.nodeView[0].typeRef == ops.nodeView[1].typeRef)
+    if (!force32BitInts && ops.nodeView[0].typeRef == ops.nodeView[1].typeRef)
         return true;
 
     if (ops.nodeView[0].type->canBePromoted() && ops.nodeView[1].type->canBePromoted())
     {
-        const TypeRef promotedTypeRef = typeMgr().promote(ops.nodeView[0].typeRef, ops.nodeView[1].typeRef);
+        const TypeRef promotedTypeRef = typeMgr().promote(ops.nodeView[0].typeRef, ops.nodeView[1].typeRef, force32BitInts);
 
         CastContext castCtx;
         castCtx.kind         = CastKind::Promotion;

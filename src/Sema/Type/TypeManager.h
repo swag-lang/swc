@@ -57,7 +57,7 @@ public:
     TypeRef         getTypeFloat(uint32_t bits) const;
     const TypeInfo& get(TypeRef typeRef) const;
 
-    TypeRef promote(TypeRef lhs, TypeRef rhs) const;
+    TypeRef promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const;
 
     std::string_view typeToString(TypeRef typeInfoRef, TypeInfo::ToStringMode mode = TypeInfo::ToStringMode::Diagnostic) const;
 };

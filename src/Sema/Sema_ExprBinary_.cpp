@@ -1,5 +1,4 @@
 #include "pch.h"
-
 #include "Main/CompilerInstance.h"
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisit.h"
@@ -20,7 +19,8 @@ namespace
         ConstantRef leftCstRef  = ops.nodeView[0].cstRef;
         ConstantRef rightCstRef = ops.nodeView[1].cstRef;
 
-        if (!sema.promoteConstants(ops, leftCstRef, rightCstRef))
+        const bool promote = node.modifierFlags.has(AstModifierFlagsE::Promote);
+        if (!sema.promoteConstants(ops, leftCstRef, rightCstRef, promote))
             return ConstantRef::invalid();
 
         const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);
@@ -28,21 +28,13 @@ namespace
         const TypeInfo&      type     = leftCst.type(sema.ctx());
 
         // Wrap and promote modifiers can only be applied to integers
-        if (!type.isInt())
+        if (node.modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}))
         {
-            const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());
-            if (node.modifierFlags.has(AstModifierFlagsE::Wrap))
+            if (!type.isInt())
             {
-                const TokenRef mdfRef = srcView.findTokenRightFrom(node.tokRef(), TokenId::ModifierWrap);
-                auto           diag   = sema.reportError(DiagnosticId::sema_err_modifier_only_integer, node.srcViewRef(), mdfRef);
-                diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
-                diag.report(sema.ctx());
-                return ConstantRef::invalid();
-            }
-            if (node.modifierFlags.has(AstModifierFlagsE::Promote))
-            {
-                const TokenRef mdfRef = srcView.findTokenRightFrom(node.tokRef(), TokenId::ModifierPromote);
-                auto           diag   = sema.reportError(DiagnosticId::sema_err_modifier_only_integer, node.srcViewRef(), mdfRef);
+                const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());
+                const TokenRef    mdfRef  = srcView.findRightFrom(node.tokRef(), {TokenId::ModifierWrap, TokenId::ModifierPromote});
+                auto              diag    = sema.reportError(DiagnosticId::sema_err_modifier_only_integer, node.srcViewRef(), mdfRef);
                 diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
                 diag.report(sema.ctx());
                 return ConstantRef::invalid();
@@ -185,7 +177,7 @@ namespace
         return Result::Success;
     }
 
-    Result checkOp(Sema& sema, const AstBinaryExpr& node, const SemaNodeViewList& ops)
+    Result checkOp(Sema& sema, TokenId op, const AstBinaryExpr& node, const SemaNodeViewList& ops)
     {
         if (!ops.nodeView[0].type->canBePromoted())
         {
@@ -203,6 +195,20 @@ namespace
             return Result::Error;
         }
 
+        if (op == TokenId::SymSlash)
+        {
+            const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());
+            if (node.modifierFlags.has(AstModifierFlagsE::Wrap))
+            {
+                const TokenRef mdfRef = srcView.findRightFrom(node.tokRef(), {TokenId::ModifierWrap});
+                auto           diag   = sema.reportError(DiagnosticId::sema_err_modifier_unsupported, node.srcViewRef(), mdfRef);
+                diag.addArgument(Diagnostic::ARG_WHAT, "/");
+                diag.last().addSpan(Diagnostic::tokenErrorLocation(sema.ctx(), srcView, node.tokRef()), "", DiagnosticSeverity::Note);
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+        }
+
         return Result::Success;
     }
 
@@ -216,7 +222,7 @@ namespace
             case TokenId::SymMinus:
             case TokenId::SymAsterisk:
             case TokenId::SymSlash:
-                return checkOp(sema, expr, ops);
+                return checkOp(sema, op, expr, ops);
             default:
                 break;
         }

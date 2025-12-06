@@ -118,7 +118,7 @@ void TypeManager::buildPromoteTable()
     }
 }
 
-TypeRef TypeManager::promote(TypeRef lhs, TypeRef rhs) const
+TypeRef TypeManager::promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const
 {
     const auto itL = promoteIndex_.find(lhs.get());
     const auto itR = promoteIndex_.find(rhs.get());
@@ -128,7 +128,20 @@ TypeRef TypeManager::promote(TypeRef lhs, TypeRef rhs) const
     SWC_ASSERT(itL != promoteIndex_.end());
     SWC_ASSERT(itR != promoteIndex_.end());
 
-    return promoteTable_[itL->second][itR->second];
+    const TypeRef result = promoteTable_[itL->second][itR->second];
+    if (!force32BitInts)
+        return result;
+
+    const TypeInfo& t = get(result);
+    if (!t.isInt())
+        return result;
+
+    const uint32_t bits = t.intBits();
+    if (bits != 8 && bits != 16)
+        return result;
+
+    const bool isUnsigned = t.isIntUnsigned();
+    return getTypeInt(32, isUnsigned);
 }
 
 TypeRef TypeManager::getTypeInt(uint32_t bits, bool isUnsigned) const

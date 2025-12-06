@@ -107,7 +107,7 @@ public:
 
     bool        castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef);
     ConstantRef cast(const CastContext& castCtx, ConstantRef srcRef, TypeRef targetTypeRef);
-    bool        promoteConstants(const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef);
+    bool        promoteConstants(const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef, bool force32BitInts = false);
 
     void               lookupIdentifier(LookupResult& result, IdentifierRef idRef) const;
     AstVisitStepResult pause(TaskStateKind kind, AstNodeRef nodeRef);

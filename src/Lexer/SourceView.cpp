@@ -80,27 +80,35 @@ std::pair<uint32_t, uint32_t> SourceView::triviaRangeForToken(TokenRef tok) cons
     return {triviaStart_[i], triviaStart_[i + 1]};
 }
 
-TokenRef SourceView::findTokenRightFrom(TokenRef startRef, TokenId id) const
+TokenRef SourceView::findRightFrom(TokenRef startRef, std::initializer_list<TokenId> ids) const
 {
     const uint32_t start = startRef.get();
     const uint32_t n     = numTokens();
 
     for (uint32_t i = start; i < n; ++i)
     {
-        if (tokens_[i].id == id)
-            return TokenRef(i);
+        const TokenId tokId = tokens_[i].id;
+        for (const TokenId wanted : ids)
+        {
+            if (tokId == wanted)
+                return TokenRef(i);
+        }
     }
 
     return TokenRef::invalid();
 }
 
-TokenRef SourceView::findTokenLeftFrom(TokenRef startRef, TokenId id) const
+TokenRef SourceView::findLeftFrom(TokenRef startRef, std::initializer_list<TokenId> ids) const
 {
     int32_t i = static_cast<int32_t>(startRef.get());
     for (; i >= 0; --i)
     {
-        if (tokens_[i].id == id)
-            return TokenRef(static_cast<uint32_t>(i));
+        const TokenId tokId = tokens_[i].id;
+        for (const TokenId wanted : ids)
+        {
+            if (tokId == wanted)
+                return TokenRef(static_cast<uint32_t>(i));
+        }
     }
 
     return TokenRef::invalid();

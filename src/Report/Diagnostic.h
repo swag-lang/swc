@@ -53,6 +53,7 @@ public:
     constexpr static std::string_view ARG_REQUESTED_TYPE   = "{requested-type}";
     constexpr static std::string_view ARG_LEFT             = "{left}";
     constexpr static std::string_view ARG_RIGHT            = "{right}";
+    constexpr static std::string_view ARG_WHAT             = "{what}";
 
     Diagnostic() = default;
     explicit Diagnostic(FileRef file);

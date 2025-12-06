@@ -253,7 +253,7 @@ AstVisitStepResult AstIntegerLiteral::semaPreNode(Sema& sema) const
 
     const auto& langSpec = sema.compiler().global().langSpec();
 
-    ApsInt value(false);
+    ApInt value;
     for (const char c : str)
     {
         if (langSpec.isNumberSep(c))
@@ -286,7 +286,7 @@ AstVisitStepResult AstIntegerLiteral::semaPreNode(Sema& sema) const
         }
     }
 
-    const auto val = ConstantValue::makeInt(ctx, value);
+    const auto val = ConstantValue::makeInt(ctx, ApsInt{value, false});
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }

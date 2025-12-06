@@ -87,7 +87,7 @@ namespace
                         return ConstantRef::invalid();
                     }
 
-                    val1.div(val2);
+                    val1.div(val2, overflow);
                     break;
 
                 default:

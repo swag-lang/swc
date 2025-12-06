@@ -5,6 +5,7 @@ SWC_BEGIN_NAMESPACE()
 
 class ApsInt : public ApInt
 {
+protected:
     static constexpr uint64_t ZERO      = 0;
     static constexpr uint64_t ONE       = 1;
     bool                      unsigned_ = false;
@@ -36,6 +37,11 @@ public:
 
     bool isUnsigned() const { return unsigned_; }
     void setUnsigned(bool isUnSigned) { unsigned_ = isUnSigned; }
+
+    void    add(const ApsInt& rhs, bool& overflow);
+    void    sub(const ApsInt& rhs, bool& overflow);
+    void    mul(const ApsInt& rhs, bool& overflow);
+    int64_t div(const ApsInt& rhs, bool& overflow);
 
     bool     same(const ApsInt& other) const;
     int      compare(const ApsInt& other) const;

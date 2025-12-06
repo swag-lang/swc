@@ -366,8 +366,15 @@ void ApInt::setBit(uint64_t bitIndex)
 
 void ApInt::setAllBits()
 {
-    for (uint32_t i = 0; i < bitWidth_; ++i)
-        setBit(i);
+    std::fill_n(words_, numWords_, ~ZERO);
+    normalize();
+}
+
+void ApInt::invertAllBits()
+{
+    for (uint32_t i = 0; i < numWords_; ++i)
+        words_[i] = ~words_[i];
+    normalize();
 }
 
 void ApInt::clearBit(uint64_t bitIndex)
@@ -701,23 +708,9 @@ void ApInt::resizeSigned(uint32_t newBitWidth)
 void ApInt::abs(bool& overflow)
 {
     overflow = false;
-
     if (!isNegative())
         return;
-
-    // Bitwise NOT on all used words
-    for (uint32_t i = 0; i < numWords_; ++i)
-        words_[i] = ~words_[i];
-
-    // Mask off unused high bits in the top word
-    if (bitWidth_ % WORD_BITS)
-    {
-        const uint64_t usedBits = bitWidth_ % WORD_BITS;
-        const uint64_t mask     = (usedBits == 64 ? ~ZERO : ((ONE << usedBits) - ONE));
-        words_[numWords_ - 1] &= mask;
-    }
-
-    // Add 1
+    invertAllBits();
     add(1, overflow);
 }
 
@@ -725,7 +718,6 @@ void ApInt::negate(bool& overflow)
 {
     overflow = false;
 
-    // If zero, the result stays zero
     if (isZero())
         return;
 
@@ -738,7 +730,6 @@ void ApInt::negate(bool& overflow)
             isMinSigned = false;
     }
 
-    // The pattern looks like: 1000...000 (all lower bits zero)
     if (isMinSigned)
     {
         overflow = true;
@@ -746,22 +737,8 @@ void ApInt::negate(bool& overflow)
     }
 
     // Normal negation: x = ~x + 1
-    // Invert all words
-    for (uint32_t i = 0; i < numWords_; ++i)
-        words_[i] = ~words_[i];
-
-    // Mask off bits above bitWidth in the top word
-    if (bitWidth_ % WORD_BITS)
-    {
-        const uint64_t usedBits = bitWidth_ % WORD_BITS;
-        const uint64_t mask     = (usedBits == 64 ? ~ZERO : ((ONE << usedBits) - ONE));
-        words_[numWords_ - 1] &= mask;
-    }
-
-    // Add 1
+    invertAllBits();
     add(1, overflow);
-
-    normalize();
 }
 
 Utf8 ApInt::toString() const

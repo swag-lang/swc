@@ -40,6 +40,7 @@ public:
     void     clearBit(uint64_t bitIndex);
     void     setBit(uint64_t bitIndex);
     void     setAllBits();
+    void     invertAllBits();
     bool     isSignBitSet() const;
     bool     isSignBitClear() const;
     bool     isNegative() const;

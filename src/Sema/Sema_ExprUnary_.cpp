@@ -62,6 +62,19 @@ namespace
         return sema.cstMgr().cstBool(!ops.nodeView.cst->getInt().isZero());
     }
 
+    ConstantRef constantFoldTilde(Sema& sema, const AstUnaryExpr&, const UnaryOperands& ops)
+    {
+        if (!ops.nodeView.type->isInt())
+            return ConstantRef::invalid();
+
+        const auto& ctx   = sema.ctx();
+        ApsInt      value = ops.nodeView.cst->getInt();
+
+        value.invertAllBits();
+
+        return sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.nodeView.type->intBits()));
+    }
+
     ConstantRef constantFold(Sema& sema, TokenId op, const AstUnaryExpr& node, const UnaryOperands& ops)
     {
         switch (op)
@@ -72,6 +85,8 @@ namespace
                 return ops.nodeView.cstRef;
             case TokenId::SymBang:
                 return constantFoldBang(sema, node, ops);
+            case TokenId::SymTilde:
+                return constantFoldTilde(sema, node, ops);
             default:
                 break;
         }
@@ -114,6 +129,15 @@ namespace
         return Result::Error;
     }
 
+    Result checkTilde(Sema& sema, const AstUnaryExpr& expr, const UnaryOperands& ops)
+    {
+        if (ops.nodeView.type->isInt())
+            return Result::Success;
+
+        reportInvalidType(sema, expr, ops);
+        return Result::Error;
+    }
+
     Result check(Sema& sema, TokenId op, const AstUnaryExpr& node, const UnaryOperands& ops)
     {
         switch (op)
@@ -124,6 +148,8 @@ namespace
                 return Result::Success;
             case TokenId::SymBang:
                 return checkBang(sema, node, ops);
+            case TokenId::SymTilde:
+                return checkTilde(sema, node, ops);
             default:
                 break;
         }

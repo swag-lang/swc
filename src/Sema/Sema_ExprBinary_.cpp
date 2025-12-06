@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisit.h"
+#include "Report/Diagnostic.h"
+#include "Report/DiagnosticDef.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Sema.h"
 #include "Sema/SemaInfo.h"
@@ -21,6 +23,57 @@ namespace
         }
     };
 
+    bool promoteConstantsIfNeeded(Sema& sema, const AstBinaryExpr& node, const BinaryOperands& ops, ConstantRef& leftRef, ConstantRef& rightRef)
+    {
+        if (ops.nodeLeftView.typeRef == ops.nodeRightView.typeRef)
+            return true;
+
+        if (ops.nodeLeftView.type->canBePromoted() && ops.nodeRightView.type->canBePromoted())
+        {
+            const TypeRef promotedTypeRef = sema.typeMgr().promote(ops.nodeLeftView.typeRef, ops.nodeRightView.typeRef);
+
+            CastContext castCtx;
+            castCtx.kind         = CastKind::Promotion;
+            castCtx.errorNodeRef = node.nodeLeftRef;
+
+            leftRef = sema.cast(castCtx, sema.constantRefOf(node.nodeLeftRef), promotedTypeRef);
+            if (leftRef.isInvalid())
+                return false;
+
+            rightRef = sema.cast(castCtx, sema.constantRefOf(node.nodeRightRef), promotedTypeRef);
+            if (rightRef.isInvalid())
+                return false;
+
+            return true;
+        }
+
+        SWC_UNREACHABLE();
+    }
+
+    ConstantRef constantFoldPlus(Sema& sema, const AstBinaryExpr& node, const BinaryOperands& ops)
+    {
+        const auto& ctx = sema.ctx();
+
+        auto leftCstRef  = ops.nodeLeftView.cstRef;
+        auto rightCstRef = ops.nodeRightView.cstRef;
+
+        if (!promoteConstantsIfNeeded(sema, node, ops, leftCstRef, rightCstRef))
+            return ConstantRef::invalid();
+
+        const auto& leftCst  = sema.cstMgr().get(leftCstRef);
+        const auto& rightCst = sema.cstMgr().get(rightCstRef);
+
+        const TypeInfo& type = ops.nodeLeftView.cst->type(sema.ctx());
+        if (type.isFloat())
+        {
+            auto val1 = leftCst.getFloat();
+            val1.add(rightCst.getFloat());
+            return sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, val1, type.floatBits()));
+        }
+
+        return ConstantRef::invalid();
+    }
+
     ConstantRef constantFoldPlusPlus(Sema& sema, const AstBinaryExpr&, const BinaryOperands& ops)
     {
         const auto& ctx    = sema.ctx();
@@ -35,6 +88,8 @@ namespace
         {
             case TokenId::SymPlusPlus:
                 return constantFoldPlusPlus(sema, node, ops);
+            case TokenId::SymPlus:
+                return constantFoldPlus(sema, node, ops);
             default:
                 break;
         }
@@ -42,7 +97,7 @@ namespace
         return ConstantRef::invalid();
     }
 
-    Result checkPlusPlus(Sema& sema, const AstBinaryExpr& node, const BinaryOperands&)
+    Result checkPlusPlus(const Sema& sema, const AstBinaryExpr& node, const BinaryOperands&)
     {
         if (!sema.hasConstant(node.nodeLeftRef))
         {
@@ -59,12 +114,38 @@ namespace
         return Result::Success;
     }
 
+    Result checkPlus(Sema& sema, const AstBinaryExpr& node, const BinaryOperands& ops)
+    {
+        if (ops.nodeLeftView.typeRef == ops.nodeRightView.typeRef)
+            return Result::Success;
+
+        if (!ops.nodeLeftView.type->canBePromoted())
+        {
+            auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.nodeLeftRef, node.srcViewRef(), node.tokRef());
+            diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeLeftView.typeRef);
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        if (!ops.nodeRightView.type->canBePromoted())
+        {
+            auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.nodeRightRef, node.srcViewRef(), node.tokRef());
+            diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeRightView.typeRef);
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        return Result::Success;
+    }
+
     Result check(Sema& sema, TokenId op, const AstBinaryExpr& expr, const BinaryOperands& ops)
     {
         switch (op)
         {
             case TokenId::SymPlusPlus:
                 return checkPlusPlus(sema, expr, ops);
+            case TokenId::SymPlus:
+                return checkPlus(sema, expr, ops);
             default:
                 break;
         }

@@ -22,8 +22,7 @@ namespace
         }
     };
 
-    bool
-    promoteConstantsIfNeeded(Sema& sema, const AstRelationalExpr& node, const RelationalOperands& ops, ConstantRef& leftRef, ConstantRef& rightRef)
+    bool promoteConstantsIfNeeded(Sema& sema, const AstRelationalExpr& node, const RelationalOperands& ops, ConstantRef& leftRef, ConstantRef& rightRef)
     {
         if (ops.nodeLeftView.typeRef == ops.nodeRightView.typeRef)
             return true;

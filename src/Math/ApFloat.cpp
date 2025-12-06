@@ -233,6 +233,40 @@ void ApFloat::negate()
     }
 }
 
+void ApFloat::add(const ApFloat& rhs)
+{
+    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+
+    switch (bitWidth_)
+    {
+        case 32:
+            value_.f32 += rhs.value_.f32;
+            break;
+        case 64:
+            value_.f64 += rhs.value_.f64;
+            break;
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+void ApFloat::sub(const ApFloat& rhs)
+{
+    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+
+    switch (bitWidth_)
+    {
+        case 32:
+            value_.f32 -= rhs.value_.f32;
+            break;
+        case 64:
+            value_.f64 -= rhs.value_.f64;
+            break;
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
 bool ApFloat::eq(const ApFloat& rhs) const
 {
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);

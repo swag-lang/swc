@@ -41,6 +41,9 @@ public:
     bool gt(const ApFloat& rhs) const;
     bool ge(const ApFloat& rhs) const;
 
+    void add(const ApFloat& rhs);
+    void sub(const ApFloat& rhs);
+
     Utf8 toString() const;
 };
 

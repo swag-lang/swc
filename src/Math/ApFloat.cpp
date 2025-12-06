@@ -153,6 +153,124 @@ void ApFloat::set(const ApsInt& value, uint32_t targetBits, bool& exact, bool& o
     exact                  = (back == ldVal);
 }
 
+bool ApFloat::isZero() const
+{
+    switch (bitWidth_)
+    {
+        case 32:
+            // Treat both +0.0f and -0.0f as zero
+            return value_.f32 == 0.0f;
+        case 64:
+            // Treat both +0.0 and -0.0 as zero
+            return value_.f64 == 0.0;
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+void ApFloat::setZero()
+{
+    switch (bitWidth_)
+    {
+        case 32:
+            value_.f32 = 0.0f;
+            break;
+        case 64:
+            value_.f64 = 0.0;
+            break;
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+bool ApFloat::isNaN() const
+{
+    switch (bitWidth_)
+    {
+        case 32:
+            return std::isnan(value_.f32);
+        case 64:
+            return std::isnan(value_.f64);
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+bool ApFloat::isInfinity() const
+{
+    switch (bitWidth_)
+    {
+        case 32:
+            return std::isinf(value_.f32);
+        case 64:
+            return std::isinf(value_.f64);
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+bool ApFloat::isFinite() const
+{
+    switch (bitWidth_)
+    {
+        case 32:
+            return std::isfinite(value_.f32);
+        case 64:
+            return std::isfinite(value_.f64);
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+bool ApFloat::isNegative() const
+{
+    switch (bitWidth_)
+    {
+        case 32:
+            return std::signbit(value_.f32) != 0;
+        case 64:
+            return std::signbit(value_.f64) != 0;
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+void ApFloat::setNaN()
+{
+    switch (bitWidth_)
+    {
+        case 32:
+            value_.f32 = std::numeric_limits<float>::quiet_NaN();
+            break;
+        case 64:
+            value_.f64 = std::numeric_limits<double>::quiet_NaN();
+            break;
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+void ApFloat::setInfinity(bool negative)
+{
+    switch (bitWidth_)
+    {
+        case 32:
+        {
+            constexpr float inf = std::numeric_limits<float>::infinity();
+            value_.f32          = negative ? -inf : inf;
+            break;
+        }
+        case 64:
+        {
+            constexpr double inf = std::numeric_limits<double>::infinity();
+            value_.f64           = negative ? -inf : inf;
+            break;
+        }
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
 float ApFloat::asFloat() const
 {
     if (bitWidth_ == 32)

@@ -40,8 +40,16 @@ namespace
                     val1.mul(rightCst.getFloat());
                     break;
                 case TokenId::SymSlash:
+                    if (rightCst.getFloat().isZero())
+                    {
+                        const auto diag = sema.reportError(DiagnosticId::sema_err_division_zero, ops.nodeView[1].nodeRef, node.srcViewRef(), node.tokRef());
+                        diag.report(sema.ctx());
+                        return ConstantRef::invalid();
+                    }
+
                     val1.div(rightCst.getFloat());
                     break;
+
                 default:
                     SWC_UNREACHABLE();
             }

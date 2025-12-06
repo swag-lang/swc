@@ -24,6 +24,15 @@ public:
     void set(double value);
     void set(const ApInt& mantissa, int64_t exponent10);
     void set(const ApsInt& value, uint32_t targetBits, bool& exact, bool& overflow);
+    bool isZero() const;
+
+    void setZero();
+    bool isNaN() const;
+    bool isInfinity() const;
+    bool isFinite() const;
+    bool isNegative() const;
+    void setNaN();
+    void setInfinity(bool negative);
 
     float  asFloat() const;
     double asDouble() const;

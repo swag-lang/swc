@@ -277,8 +277,8 @@ void ApInt::mul(uint64_t v, bool& overflow)
         uint64_t high = 0;
 
         Math::mul64X64(words_[i], v, low, high);
-        carry += carry;
-        if (carry < carry)
+        low += carry;
+        if (low < carry)
             ++high;
 
         words_[i] = low;

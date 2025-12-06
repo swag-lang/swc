@@ -46,6 +46,16 @@
 #print(1 / #wrap 4)             // swc-expected-error {{sema_err_modifier_unsupported}}
 #print(1 / #bit 4)              // swc-expected-error {{sema_err_modifier_unsupported}}
 #print(1 ++ #wrap 4)            // swc-expected-error {{sema_err_modifier_unsupported}}
+#assert(1 ^ #wrap 0 == 1)       // swc-expected-error {{sema_err_modifier_unsupported}}
+#assert(1 & #wrap 0 == 1)       // swc-expected-error {{sema_err_modifier_unsupported}}
+#assert(1 | #wrap 0 == 1)       // swc-expected-error {{sema_err_modifier_unsupported}}
 
 #assert(127's8 + #wrap 1 == -128)
 #assert(127's8 + #prom 1 == 128)
+
+#assert(1 | 2 == 3)
+#assert(1 & 2 == 0)
+#assert(1 & 1 == 1)
+#assert(1 ^ 1 == 0)
+#assert(1 ^ 0 == 1)
+

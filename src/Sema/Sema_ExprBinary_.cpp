@@ -252,12 +252,16 @@ namespace
             case TokenId::SymPlus:
             case TokenId::SymMinus:
             case TokenId::SymAsterisk:
-            case TokenId::SymAmpersand:
-            case TokenId::SymPipe:
-            case TokenId::SymCircumflex:
             case TokenId::SymGreaterGreater:
             case TokenId::SymLowerLower:
                 if (sema.checkModifiers(node, node.modifierFlags, AstModifierFlagsE::Wrap | AstModifierFlagsE::Promote) == Result::Error)
+                    return Result::Error;
+                break;
+
+            case TokenId::SymAmpersand:
+            case TokenId::SymPipe:
+            case TokenId::SymCircumflex:
+                if (sema.checkModifiers(node, node.modifierFlags, AstModifierFlagsE::Zero) == Result::Error)
                     return Result::Error;
                 break;
 

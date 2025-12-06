@@ -81,4 +81,4 @@ SWC_DIAG_DEF(sema_err_const_missing_init, Error, "a constant must be initialized
 SWC_DIAG_DEF(sema_err_unknown_identifier, Error, "unknown identifier {tok}")
 SWC_DIAG_DEF(sema_err_division_zero, Error, "division by zero")
 SWC_DIAG_DEF(sema_err_integer_overflow, Error, "integer overflow in constant expression: {left} {tok-raw} {right} for type {type}")
-SWC_DIAG_DEF(sema_err_wrap_only_integer, Error, "'#wrap' can only be applied to integer types")
+SWC_DIAG_DEF(sema_err_modifier_only_integer, Error, "{tok} can only be applied to integer types; type is {type}")

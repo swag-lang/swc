@@ -1,4 +1,6 @@
 #include "pch.h"
+
+#include "Main/CompilerInstance.h"
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisit.h"
 #include "Report/Diagnostic.h"
@@ -23,8 +25,30 @@ namespace
 
         const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);
         const ConstantValue& rightCst = sema.cstMgr().get(rightCstRef);
+        const TypeInfo&      type     = leftCst.type(sema.ctx());
 
-        const TypeInfo& type = leftCst.type(sema.ctx());
+        // Wrap and promote modifiers can only be applied to integers
+        if (!type.isInt())
+        {
+            const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());
+            if (node.modifierFlags.has(AstModifierFlagsE::Wrap))
+            {
+                const TokenRef mdfRef = srcView.findTokenRightFrom(node.tokRef(), TokenId::ModifierWrap);
+                auto           diag   = sema.reportError(DiagnosticId::sema_err_modifier_only_integer, node.srcViewRef(), mdfRef);
+                diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
+                diag.report(sema.ctx());
+                return ConstantRef::invalid();
+            }
+            if (node.modifierFlags.has(AstModifierFlagsE::Promote))
+            {
+                const TokenRef mdfRef = srcView.findTokenRightFrom(node.tokRef(), TokenId::ModifierPromote);
+                auto           diag   = sema.reportError(DiagnosticId::sema_err_modifier_only_integer, node.srcViewRef(), mdfRef);
+                diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
+                diag.report(sema.ctx());
+                return ConstantRef::invalid();
+            }
+        }
+
         if (type.isFloat())
         {
             auto val1 = leftCst.getFloat();
@@ -177,20 +201,6 @@ namespace
             diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView[1].typeRef);
             diag.report(sema.ctx());
             return Result::Error;
-        }
-
-        if (node.modifierFlags.has(AstModifierFlagsE::Wrap))
-        {
-            const TypeInfo* leftType  = ops.nodeView[0].type;
-            const TypeInfo* rightType = ops.nodeView[1].type;
-
-            if (!leftType->isInt() || !rightType->isInt())
-            {
-                auto diag = sema.reportError(DiagnosticId::sema_err_wrap_only_integer, node.srcViewRef(), node.tokRef());
-                diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView[1].typeRef);
-                diag.report(sema.ctx());
-                return Result::Error;
-            }
         }
 
         return Result::Success;

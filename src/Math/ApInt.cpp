@@ -333,63 +333,148 @@ uint64_t ApInt::div(uint64_t v)
 void ApInt::add(const ApInt& rhs, bool& overflow)
 {
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+    SWC_ASSERT(numWords_ == rhs.numWords_);
 
-    // For now only support native-width (<= 64 bits).
-    if (bitWidth_ > WORD_BITS)
-        SWC_UNREACHABLE();
+    overflow       = false;
+    uint64_t carry = 0;
 
-    add(rhs.asU64(), overflow);
+    for (uint32_t i = 0; i < numWords_; ++i)
+    {
+        const uint64_t a = words_[i];
+        const uint64_t b = rhs.words_[i];
+
+        const uint64_t sum1   = a + b;
+        const uint64_t carry1 = (sum1 < a);
+
+        const uint64_t sum2   = sum1 + carry;
+        const uint64_t carry2 = (sum2 < sum1);
+
+        words_[i] = sum2;
+        carry     = carry1 | carry2;
+    }
+
+    overflow = (carry != 0) || hasTopBitsOverflow();
+    normalize();
 }
 
 void ApInt::sub(const ApInt& rhs, bool& overflow)
 {
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+    SWC_ASSERT(numWords_ == rhs.numWords_);
 
-    // For now only support native-width (<= 64 bits).
-    if (bitWidth_ > WORD_BITS)
-        SWC_UNREACHABLE();
+    overflow        = false;
+    uint64_t borrow = 0;
 
-    const uint64_t lhsVal = asU64();
-    const uint64_t rhsVal = rhs.asU64();
-
-    // Unsigned subtraction semantics.
-    overflow = lhsVal < rhsVal;
-
-    uint64_t res = lhsVal - rhsVal;
-
-    // Mask to current bit width if it's narrower than the native word.
-    if (bitWidth_ < WORD_BITS)
+    for (uint32_t i = 0; i < numWords_; ++i)
     {
-        const uint64_t mask = (ONE << bitWidth_) - 1;
-        res &= mask;
+        const uint64_t a = words_[i];
+        const uint64_t b = rhs.words_[i];
+        const uint64_t t = b + borrow;
+
+        const uint64_t result = a - t;
+        borrow                = (a < t);
+
+        words_[i] = result;
     }
 
-    // For bitWidth_ <= 64 we always have numWords_ == 1.
-    words_[0] = res;
+    overflow = (borrow != 0);
     normalize();
 }
 
 void ApInt::mul(const ApInt& rhs, bool& overflow)
 {
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+    SWC_ASSERT(numWords_ == rhs.numWords_);
 
-    // For now only support native-width (<= 64 bits).
-    if (bitWidth_ > WORD_BITS)
-        SWC_UNREACHABLE();
+    const uint32_t n = numWords_;
+    overflow         = false;
 
-    mul(rhs.asU64(), overflow);
+    SWC_ASSERT(2 * n <= 2 * MAX_WORDS);
+    uint64_t tmp[2 * MAX_WORDS] = {};
+
+    for (uint32_t i = 0; i < n; ++i)
+    {
+        uint64_t carry = 0;
+
+        for (uint32_t j = 0; j < n; ++j)
+        {
+            uint64_t low = 0, high = 0;
+            Math::mul64X64(words_[i], rhs.words_[j], low, high);
+
+            // add low + carry + tmp[i + j]
+            const uint64_t old = tmp[i + j];
+            const uint64_t sum = old + low + carry;
+
+            // detect carries
+            const uint64_t c1 = (sum < old);
+            const uint64_t c2 = (sum < low);
+
+            tmp[i + j] = sum;
+            carry      = high + c1 + c2;
+        }
+
+        tmp[i + n] += carry;
+    }
+
+    // copy lower n limbs into this ApInt
+    for (uint32_t i = 0; i < n; ++i)
+        words_[i] = tmp[i];
+
+    // overflow if upper n limbs nonzero OR top bits overflow width
+    for (uint32_t i = n; i < 2 * n; ++i)
+        if (tmp[i] != 0)
+            overflow = true;
+
+    if (hasTopBitsOverflow())
+        overflow = true;
+
+    normalize();
 }
 
 uint64_t ApInt::div(const ApInt& rhs)
 {
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+    SWC_ASSERT(!rhs.isZero());
 
-    // For now only support native-width (<= 64 bits).
-    if (bitWidth_ > WORD_BITS)
-        SWC_UNREACHABLE();
+    // If divisor fits in 64 bits, use the optimized version.
+    if (rhs.fits64())
+        return div(rhs.asU64());
 
-    const uint64_t v = rhs.asU64();
-    return div(v);
+    const uint32_t totalBits = bitWidth_;
+
+    // remainder stored as same width ApInt
+    ApInt rem(bitWidth_);
+    rem.setZero();
+
+    const ApInt divisor(rhs);
+    ApInt       quotient(bitWidth_);
+    quotient.setZero();
+
+    // bit-by-bit long division
+    for (int bit = static_cast<int>(totalBits) - 1; bit >= 0; --bit)
+    {
+        // rem <<= 1
+        bool ov = false;
+        rem.logicalShiftLeft(1, ov);
+
+        // bring next bit from dividend
+        if (testBit(bit))
+            rem.words_[0] |= 1; // MSB shift already done
+
+        // if rem >= divisor -> quotient bit = 1, rem -= divisor
+        if (!rem.ult(divisor))
+        {
+            rem.sub(divisor, ov);
+            quotient.setBit(bit);
+        }
+    }
+
+    // write quotient back to this ApInt
+    *this = quotient;
+
+    // return the remainder as 64-bit (assert it fits)
+    SWC_ASSERT(rem.fits64());
+    return rem.asU64();
 }
 
 void ApInt::bitwiseOr(uint64_t rhs)

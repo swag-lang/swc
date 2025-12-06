@@ -60,9 +60,11 @@ namespace
 
         if (type.isInt())
         {
-            ApsInt val1     = leftCst.getInt();
-            ApsInt val2     = rightCst.getInt();
-            bool   overflow = false;
+            ApsInt val1 = leftCst.getInt();
+            ApsInt val2 = rightCst.getInt();
+
+            const bool wrap     = node.modifierFlags.has(AstModifierFlagsE::Wrap);
+            bool       overflow = false;
 
             if (type.isIntUnsized())
             {
@@ -100,7 +102,7 @@ namespace
                     SWC_UNREACHABLE();
             }
 
-            if (type.intBits() != 0 && overflow)
+            if (!wrap && type.intBits() != 0 && overflow)
             {
                 auto diag = sema.reportError(DiagnosticId::sema_err_integer_overflow, node.srcViewRef(), node.tokRef());
                 diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
@@ -175,6 +177,20 @@ namespace
             diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView[1].typeRef);
             diag.report(sema.ctx());
             return Result::Error;
+        }
+
+        if (node.modifierFlags.has(AstModifierFlagsE::Wrap))
+        {
+            const TypeInfo* leftType  = ops.nodeView[0].type;
+            const TypeInfo* rightType = ops.nodeView[1].type;
+
+            if (!leftType->isInt() || !rightType->isInt())
+            {
+                auto diag = sema.reportError(DiagnosticId::sema_err_wrap_only_integer, node.srcViewRef(), node.tokRef());
+                diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView[1].typeRef);
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
         }
 
         return Result::Success;

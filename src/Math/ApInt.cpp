@@ -152,7 +152,6 @@ void ApInt::logicalShiftLeft(uint64_t amount, bool& overflow)
 
     if (amount >= bitWidth_)
     {
-        // Everything is shifted out: overflow if any bit was set
         overflow = !isZero();
         setZero();
         return;
@@ -161,7 +160,6 @@ void ApInt::logicalShiftLeft(uint64_t amount, bool& overflow)
     const uint64_t wordShift = amount / WORD_BITS;
     const uint64_t bitShift  = amount % WORD_BITS;
 
-    // Word-shift overflow check: words that will be completely shifted out
     if (wordShift > 0)
     {
         for (uint64_t i = numWords_ - wordShift; i < numWords_; ++i)
@@ -172,18 +170,13 @@ void ApInt::logicalShiftLeft(uint64_t amount, bool& overflow)
                 break;
             }
         }
-    }
 
-    // Word shift
-    if (wordShift > 0)
-    {
         for (uint64_t i = numWords_; i-- > wordShift;)
             words_[i] = words_[i - wordShift];
         for (uint64_t i = 0; i < wordShift; ++i)
             words_[i] = 0;
     }
 
-    // Bit shift with carry
     if (bitShift > 0)
     {
         uint64_t carry = 0;
@@ -302,13 +295,10 @@ uint64_t ApInt::div(uint64_t v)
         const uint64_t word  = words_[i];
         uint64_t       qWord = 0;
 
-        // Bit-by-bit long division in base 2, from MSB to LSB of this word
         for (int bit = static_cast<int>(WORD_BITS) - 1; bit >= 0; --bit)
         {
-            // Bring down the next bit
             rem = (rem << 1) | ((word >> bit) & ONE);
 
-            // Shift quotient and test if we can subtract divisor
             qWord <<= 1;
             if (rem >= v)
             {
@@ -395,11 +385,9 @@ void ApInt::mul(const ApInt& rhs, bool& overflow)
             uint64_t low = 0, high = 0;
             Math::mul64X64(words_[i], rhs.words_[j], low, high);
 
-            // add low + carry + tmp[i + j]
             const uint64_t old = tmp[i + j];
             const uint64_t sum = old + low + carry;
 
-            // detect carries
             const uint64_t c1 = (sum < old);
             const uint64_t c2 = (sum < low);
 
@@ -410,11 +398,9 @@ void ApInt::mul(const ApInt& rhs, bool& overflow)
         tmp[i + n] += carry;
     }
 
-    // copy lower n limbs into this ApInt
     for (uint32_t i = 0; i < n; ++i)
         words_[i] = tmp[i];
 
-    // overflow if upper n limbs nonzero OR top bits overflow width
     for (uint32_t i = n; i < 2 * n; ++i)
         if (tmp[i] != 0)
             overflow = true;
@@ -430,13 +416,11 @@ uint64_t ApInt::div(const ApInt& rhs)
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
     SWC_ASSERT(!rhs.isZero());
 
-    // If divisor fits in 64 bits, use the optimized version.
     if (rhs.fits64())
         return div(rhs.asU64());
 
     const uint32_t totalBits = bitWidth_;
 
-    // remainder stored as same width ApInt
     ApInt rem(bitWidth_);
     rem.setZero();
 
@@ -444,18 +428,14 @@ uint64_t ApInt::div(const ApInt& rhs)
     ApInt       quotient(bitWidth_);
     quotient.setZero();
 
-    // bit-by-bit long division
     for (int bit = static_cast<int>(totalBits) - 1; bit >= 0; --bit)
     {
-        // rem <<= 1
         bool ov = false;
         rem.logicalShiftLeft(1, ov);
 
-        // bring next bit from dividend
         if (testBit(bit))
-            rem.words_[0] |= 1; // MSB shift already done
+            rem.words_[0] |= 1;
 
-        // if rem >= divisor -> quotient bit = 1, rem -= divisor
         if (!rem.ult(divisor))
         {
             rem.sub(divisor, ov);
@@ -463,10 +443,8 @@ uint64_t ApInt::div(const ApInt& rhs)
         }
     }
 
-    // write quotient back to this ApInt
     *this = quotient;
 
-    // return the remainder as 64-bit (assert it fits)
     SWC_ASSERT(rem.fits64());
     return rem.asU64();
 }
@@ -475,7 +453,6 @@ void ApInt::addSigned(const ApInt& rhs, bool& overflow)
 {
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
 
-    // Signed two's-complement add.
     const bool lhsNeg = isNegative();
     const bool rhsNeg = rhs.isNegative();
 
@@ -491,7 +468,6 @@ void ApInt::subSigned(const ApInt& rhs, bool& overflow)
 {
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
 
-    // Signed subtraction: a - b.
     const bool lhsNeg = isNegative();
     const bool rhsNeg = rhs.isNegative();
 
@@ -501,6 +477,49 @@ void ApInt::subSigned(const ApInt& rhs, bool& overflow)
     const bool resNeg         = isNegative();
     const bool signedOverflow = (lhsNeg != rhsNeg) && (resNeg != lhsNeg);
     overflow                  = unsignedOverflow || signedOverflow;
+}
+
+namespace
+{
+    void makeMagnitude(ApInt& v, bool isNeg)
+    {
+        if (!isNeg)
+            return;
+
+        v.invertAllBits();
+        bool dummyOverflow = false;
+        v.add(1, dummyOverflow);
+    }
+
+    ApInt makeMinValue(uint32_t bitWidth)
+    {
+        ApInt result(bitWidth);
+        result.setZero();
+        return result;
+    }
+
+    ApInt makeMinSignedValue(uint32_t bitWidth)
+    {
+        ApInt result(bitWidth);
+        result.setZero();
+        result.setBit(bitWidth - 1);
+        return result;
+    }
+
+    ApInt makeMaxValue(uint32_t bitWidth)
+    {
+        ApInt result(bitWidth);
+        result.setAllBits();
+        return result;
+    }
+
+    ApInt makeMaxSignedValue(uint32_t bitWidth)
+    {
+        ApInt result(bitWidth);
+        result.setAllBits();
+        result.clearBit(bitWidth - 1);
+        return result;
+    }
 }
 
 void ApInt::mulSigned(const ApInt& rhs, bool& overflow)
@@ -514,65 +533,41 @@ void ApInt::mulSigned(const ApInt& rhs, bool& overflow)
     const bool rhsNeg    = rhs.isNegative();
     const bool resultNeg = lhsNeg ^ rhsNeg;
 
-    // --- 1) Compute magnitudes |lhs| and |rhs| in the same width ---
-
     ApInt magLhs = *this;
     ApInt magRhs = rhs;
-
-    auto makeMagnitude = [](ApInt& v, bool isNeg) {
-        if (!isNeg)
-            return;
-        // Two's complement magnitude: |x| = (~x + 1) for negative x.
-        v.invertAllBits();
-        bool dummyOverflow = false;
-        v.add(1, dummyOverflow); // ignore: we're treating as unsigned magnitude
-    };
 
     makeMagnitude(magLhs, lhsNeg);
     makeMagnitude(magRhs, rhsNeg);
 
-    // --- 2) Unsigned multiply of magnitudes in w bits ---
-
     bool unsignedOverflow = false;
-    magLhs.mul(magRhs, unsignedOverflow); // magLhs now holds |lhs * rhs| mod 2^w
-
-    // --- 3) Detect signed overflow ---
+    magLhs.mul(magRhs, unsignedOverflow);
 
     overflow = false;
 
-    // max positive signed value:  0b0111...111 =  2^(w-1) - 1
     const ApInt limitPos = maxSignedValue(w);
-
-    // pattern 1000...000 = 2^(w-1), magnitude of min signed value
     const ApInt limitNeg = minSignedValue(w);
 
     if (!resultNeg)
     {
-        // Positive result: |prod| must be <= 2^(w-1)-1.
         if (unsignedOverflow || magLhs.ugt(limitPos))
             overflow = true;
     }
     else
     {
-        // Negative result: |prod| must be <= 2^(w-1).
         if (unsignedOverflow || magLhs.ugt(limitNeg))
             overflow = true;
     }
 
-    // --- 4) Apply sign and store result (mod 2^w) in *this ---
-
     if (resultNeg)
     {
-        // prod = -|prod| in two's complement, in-place, width w.
         ApInt negProd = magLhs;
         negProd.invertAllBits();
         bool dummyOverflow = false;
-        negProd.add(1, dummyOverflow); // ignore overflow; arithmetic is modulo 2^w
+        negProd.add(1, dummyOverflow);
         *this = negProd;
     }
     else
     {
-        // prod = |prod|
         *this = magLhs;
     }
 }
@@ -586,61 +581,38 @@ int64_t ApInt::divSigned(const ApInt& rhs, bool& overflow)
 
     overflow = false;
 
-    // Signed division.
     const bool lhsNeg    = isNegative();
     const bool rhsNeg    = rhs.isNegative();
     const bool resultNeg = lhsNeg ^ rhsNeg;
 
-    // Detect the single signed overflow case: MIN / -1
-    // (result would be +2^(w-1), which can't be represented).
     const ApInt minVal = minValue(bitWidth_);
 
-    // Build -1 of this signed width.
     ApInt negOne(bitWidth_);
-    negOne.setAllBits(); // all ones is -1 in two's complement.
+    negOne.setAllBits();
 
     if (same(minVal) && rhs.same(negOne))
     {
-        // Overflow: leave *this as-is or set to minVal; here we keep minVal.
         overflow = true;
-        // Quotient is mathematically +2^(w-1), not representable; we keep minVal.
-        return 0; // the remainder is 0 in that case.
+        return 0;
     }
 
-    // Work on magnitudes using ApInt. We treat the underlying bits as two's
-    // complement and compute |x| via (~x + 1) for negatives. For minSigned
-    // this gives the correct magnitude as an *unsigned* value.
     ApInt magLhs = *this;
     ApInt magRhs = rhs;
-
-    auto makeMagnitude = [](ApInt& v, bool isNeg) {
-        if (!isNeg)
-            return;
-
-        v.invertAllBits();
-        bool dummyOverflow = false;
-        v.add(1, dummyOverflow); // ignore overflow: we're treating it as unsigned magnitude.
-    };
 
     makeMagnitude(magLhs, lhsNeg);
     makeMagnitude(magRhs, rhsNeg);
 
-    // Unsigned magnitude division: magLhs = magLhs / magRhs, remMag is remainder >= 0.
     const uint64_t remMag = magLhs.div(magRhs);
 
-    // magLhs now holds magnitude of quotient. Apply sign to quotient.
     if (resultNeg)
     {
         magLhs.invertAllBits();
         bool dummyOverflow = false;
-        magLhs.add(1, dummyOverflow); // again, overflow here would mean we exceeded width,
-                                      // which can't happen except in the MIN/-1 case we already handled.
+        magLhs.add(1, dummyOverflow);
     }
 
-    // Write quotient back.
     *this = magLhs;
 
-    // Build signed remainder: same sign as original dividend (C/C++ semantics).
     int64_t signedRem = 0;
     if (remMag == 0)
     {
@@ -648,18 +620,15 @@ int64_t ApInt::divSigned(const ApInt& rhs, bool& overflow)
     }
     else if (!lhsNeg)
     {
-        // Positive dividend => positive remainder.
         SWC_ASSERT(remMag <= static_cast<uint64_t>(std::numeric_limits<int64_t>::max()));
         signedRem = static_cast<int64_t>(remMag);
     }
     else
     {
-        // Negative dividend => negative remainder.
         SWC_ASSERT(remMag <= static_cast<uint64_t>(std::numeric_limits<int64_t>::max()));
         signedRem = -static_cast<int64_t>(remMag);
     }
 
-    // No further overflow possible here.
     overflow = false;
     return signedRem;
 }
@@ -764,39 +733,6 @@ void ApInt::setSignBit(bool isNegative)
         setBit(signIndex);
     else
         clearBit(signIndex);
-}
-
-namespace
-{
-    ApInt makeMinValue(uint32_t bitWidth)
-    {
-        ApInt result(bitWidth);
-        result.setZero();
-        return result;
-    }
-
-    ApInt makeMinSignedValue(uint32_t bitWidth)
-    {
-        ApInt result(bitWidth);
-        result.setZero();
-        result.setBit(bitWidth - 1);
-        return result;
-    }
-
-    ApInt makeMaxValue(uint32_t bitWidth)
-    {
-        ApInt result(bitWidth);
-        result.setAllBits();
-        return result;
-    }
-
-    ApInt makeMaxSignedValue(uint32_t bitWidth)
-    {
-        ApInt result(bitWidth);
-        result.setAllBits();
-        result.clearBit(bitWidth - 1);
-        return result;
-    }
 }
 
 ApInt ApInt::minValue(uint32_t bitWidth)
@@ -941,15 +877,12 @@ void ApInt::shrink(uint32_t newBitWidth)
 
     const uint32_t newNumWords = computeNumWords(newBitWidth);
 
-    // Update bitWidth and word count
     bitWidth_ = newBitWidth;
     numWords_ = newNumWords;
 
-    // Mask off unused high bits of the last word
     normalize();
 }
 
-// In-place zero-extend or truncate.
 void ApInt::resizeUnsigned(uint32_t newBitWidth)
 {
     SWC_ASSERT(newBitWidth > 0);
@@ -963,26 +896,21 @@ void ApInt::resizeUnsigned(uint32_t newBitWidth)
 
     if (newBitWidth < oldBitWidth)
     {
-        // Truncation: just shrink metadata and mask the new top word.
         bitWidth_ = newBitWidth;
         numWords_ = newNumWords;
         normalize();
         return;
     }
 
-    // Zero-extension.
-    // Make sure any newly used words are cleared.
     if (newNumWords > oldNumWords)
         std::fill(words_ + oldNumWords, words_ + newNumWords, ZERO);
 
     bitWidth_ = newBitWidth;
     numWords_ = newNumWords;
 
-    // Ensure bits above newBitWidth are cleared in the last word.
     normalize();
 }
 
-// In-place sign-extend or truncate.
 void ApInt::resizeSigned(uint32_t newBitWidth)
 {
     SWC_ASSERT(newBitWidth > 0);
@@ -996,38 +924,30 @@ void ApInt::resizeSigned(uint32_t newBitWidth)
 
     if (newBitWidth < oldBitWidth)
     {
-        // Truncation: same as unsigned; sign is not preserved when shrinking.
         bitWidth_ = newBitWidth;
         numWords_ = newNumWords;
         normalize();
         return;
     }
 
-    // Extension.
     const bool sign = isSignBitSet();
 
     if (!sign)
     {
-        // Positive value: sign extension == zero extension.
         if (newNumWords > oldNumWords)
             std::fill(words_ + oldNumWords, words_ + newNumWords, ZERO);
     }
     else
     {
-        // Negative value: replicate sign bit into the new high bits.
-
         const uint32_t usedBitsInLastWord = oldBitWidth % WORD_BITS;
         const uint32_t lastWordIndex      = oldNumWords - 1;
 
-        // If the old type didn't use the entire last word, fill the remaining bits
-        // in that word with 1s (they become part of the extended sign region).
         if (usedBitsInLastWord != 0)
         {
-            const uint64_t mask = ~((ONE << usedBitsInLastWord) - 1); // bits [usedBitsInLastWord .. 63] = 1
+            const uint64_t mask = ~((ONE << usedBitsInLastWord) - 1);
             words_[lastWordIndex] |= mask;
         }
 
-        // Any additional whole words that become newly visible should be all 1s.
         for (uint32_t i = oldNumWords; i < newNumWords; ++i)
             words_[i] = ~0ull;
     }
@@ -1035,7 +955,6 @@ void ApInt::resizeSigned(uint32_t newBitWidth)
     bitWidth_ = newBitWidth;
     numWords_ = newNumWords;
 
-    // Clear bits above the new bit width in the top word.
     normalize();
 }
 
@@ -1055,8 +974,6 @@ void ApInt::negate(bool& overflow)
     if (isZero())
         return;
 
-    // If the value is the minimum signed value (1000...0),
-    // then -x is not representable in the same bit width.
     bool isMinSigned = isSignBitSet();
     for (uint32_t i = 0; i < numWords_ - 1 && isMinSigned; ++i)
     {
@@ -1070,23 +987,21 @@ void ApInt::negate(bool& overflow)
         return;
     }
 
-    // Normal negation: x = ~x + 1
     invertAllBits();
     add(1, overflow);
 }
 
 Utf8 ApInt::toString() const
 {
-    // Treat the bits as an unsigned integer.
     if (isZero())
         return "0";
 
-    ApInt       tmp(*this); // Work on a copy, since div() is in-place
+    ApInt       tmp(*this);
     std::string result;
 
     while (!tmp.isZero())
     {
-        const uint64_t rem = tmp.div(10); // tmp = tmp / 10, rem = tmp % 10
+        const uint64_t rem = tmp.div(10);
         SWC_ASSERT(rem < 10);
         result.push_back(static_cast<char>('0' + rem));
     }
@@ -1097,23 +1012,18 @@ Utf8 ApInt::toString() const
 
 Utf8 ApInt::toSignedString() const
 {
-    // Interpret the value as a signed two's-complement integer.
     if (isZero())
         return "0";
 
-    // Non-negative is just the unsigned representation.
     if (isNonNegative())
         return toString();
 
-    // Negative number: need magnitude = |value|
     ApInt mag(bitWidth_);
     mag.setZero();
 
-    // Detect minimum signed value: 1000...000 (sign bit = 1, others 0)
     bool isMinSigned = isSignBitSet();
     if (isMinSigned)
     {
-        // Check all words except the last
         for (uint32_t i = 0; i < numWords_ - 1; ++i)
         {
             if (words_[i] != ZERO)
@@ -1123,7 +1033,6 @@ Utf8 ApInt::toSignedString() const
             }
         }
 
-        // Check that the highest word has only the sign bit set
         if (isMinSigned)
         {
             const uint32_t bitsInLastWord = bitWidth_ % WORD_BITS;
@@ -1137,19 +1046,16 @@ Utf8 ApInt::toSignedString() const
 
     if (isMinSigned)
     {
-        // |min| = 2^(bitWidth_-1)
         mag.setBit(bitWidth_ - 1);
     }
     else
     {
-        // Normal case: mag = abs(this)
         mag           = *this;
         bool overflow = false;
         mag.abs(overflow);
         SWC_ASSERT(!overflow);
     }
 
-    // Convert magnitude to decimal
     std::string digits;
     while (!mag.isZero())
     {

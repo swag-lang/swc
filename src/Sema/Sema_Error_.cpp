@@ -29,20 +29,6 @@ Diagnostic Sema::reportError(DiagnosticId id, AstNodeRef nodeRef) const
     return diag;
 }
 
-Diagnostic Sema::reportError(DiagnosticId id, AstNodeRef nodeRef, SourceViewRef srcViewRef, TokenRef tokRef) const
-{
-    auto diag = Diagnostic::get(id, ast().srcView().fileRef());
-    setReportArguments(diag, srcViewRef, tokRef);
-
-    const SourceCodeLocation loc = node(nodeRef).location(ctx(), ast());
-    diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
-
-    const SourceView& srcView = compiler().srcView(srcViewRef);
-    diag.last().addSpan(Diagnostic::tokenErrorLocation(ctx(), srcView, tokRef), "");
-
-    return diag;
-}
-
 Diagnostic Sema::reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef) const
 {
     auto diag = Diagnostic::get(id, ast().srcView().fileRef());
@@ -51,6 +37,14 @@ Diagnostic Sema::reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef
     const auto& srcView = compiler().srcView(srcViewRef);
     diag.last().addSpan(Diagnostic::tokenErrorLocation(ctx(), srcView, tokRef), "");
 
+    return diag;
+}
+
+Diagnostic Sema::reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef, AstNodeRef nodeSpanRef) const
+{
+    auto                     diag = reportError(id, srcViewRef, tokRef);
+    const SourceCodeLocation loc  = node(nodeSpanRef).location(ctx(), ast());
+    diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
     return diag;
 }
 

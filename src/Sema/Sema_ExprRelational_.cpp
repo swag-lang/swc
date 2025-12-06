@@ -19,7 +19,7 @@ namespace
         auto leftCstRef  = ops.nodeView[0].cstRef;
         auto rightCstRef = ops.nodeView[1].cstRef;
 
-        if (!sema.promoteConstants( ops, leftCstRef, rightCstRef))
+        if (!sema.promoteConstants(ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
 
         return sema.cstMgr().cstBool(leftCstRef == rightCstRef);
@@ -129,7 +129,7 @@ namespace
 
         if (!ops.nodeView[0].type->canBePromoted())
         {
-            auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.nodeLeftRef, node.srcViewRef(), node.tokRef());
+            auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.srcViewRef(), node.tokRef(), node.nodeLeftRef);
             diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView[0].typeRef);
             diag.report(sema.ctx());
             return Result::Error;
@@ -137,7 +137,7 @@ namespace
 
         if (!ops.nodeView[1].type->canBePromoted())
         {
-            auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.nodeRightRef, node.srcViewRef(), node.tokRef());
+            auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.srcViewRef(), node.tokRef(), node.nodeRightRef);
             diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView[1].typeRef);
             diag.report(sema.ctx());
             return Result::Error;
@@ -150,7 +150,7 @@ namespace
     {
         if (!ops.nodeView[0].type->canBePromoted())
         {
-            auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.nodeLeftRef, node.srcViewRef(), node.tokRef());
+            auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.srcViewRef(), node.tokRef(), node.nodeLeftRef);
             diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView[0].typeRef);
             diag.report(sema.ctx());
             return Result::Error;
@@ -158,7 +158,7 @@ namespace
 
         if (!ops.nodeView[1].type->canBePromoted())
         {
-            auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.nodeRightRef, node.srcViewRef(), node.tokRef());
+            auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.srcViewRef(), node.tokRef(), node.nodeRightRef);
             diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView[1].typeRef);
             diag.report(sema.ctx());
             return Result::Error;

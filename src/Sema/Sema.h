@@ -94,7 +94,7 @@ public:
 
     void       setReportArguments(Diagnostic& diag, SourceViewRef srcViewRef, TokenRef tokRef) const;
     Diagnostic reportError(DiagnosticId id, AstNodeRef nodeRef) const;
-    Diagnostic reportError(DiagnosticId id, AstNodeRef nodeRef, SourceViewRef srcViewRef, TokenRef tokRef) const;
+    Diagnostic reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef, AstNodeRef nodeSpanRef) const;
     Diagnostic reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef) const;
     void       raiseError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef) const;
     void       raiseError(DiagnosticId id, AstNodeRef nodeRef) const;

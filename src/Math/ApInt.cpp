@@ -389,7 +389,7 @@ void ApInt::mul(const ApInt& rhs, bool& overflow)
     const uint32_t n = numWords_;
     overflow         = false;
 
-    SWC_ASSERT(2 * n <= 2 * MAX_WORDS);
+    SWC_ASSERT(2u * n <= 2 * MAX_WORDS);
     uint64_t tmp[2 * MAX_WORDS] = {};
 
     for (uint32_t i = 0; i < n; ++i)

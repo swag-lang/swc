@@ -105,6 +105,8 @@ public:
     void raiseExprNotConst(AstNodeRef nodeRef) const;
     void raiseInternalError(const AstNode& node) const;
 
+    Result checkModifiers(const AstNode& node, AstModifierFlags mods, AstModifierFlags allowed);
+
     bool        castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef);
     ConstantRef cast(const CastContext& castCtx, ConstantRef srcRef, TypeRef targetTypeRef);
     bool        promoteConstants(const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef, bool force32BitInts = false);

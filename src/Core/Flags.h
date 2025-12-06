@@ -6,6 +6,7 @@ template<typename T>
 struct EnumFlags
 {
     static_assert(std::is_enum_v<T>, "EnumFlags<T> requires T to be an enum type");
+
     using U    = std::underlying_type_t<T>;
     using Type = T;
     using Self = EnumFlags;
@@ -80,7 +81,29 @@ struct EnumFlags
     constexpr void remove(T fl) { flags &= ~static_cast<U>(fl); }
     constexpr void clear() { flags = 0; }
 
+    constexpr bool any() const { return flags != 0; }
+    constexpr bool none() const { return flags == 0; }
+
+    // iterate each set bit and call fn(T flag)
+    template<typename FN>
+    void forEachSet(FN fn) const
+    {
+        U bits = flags;
+        while (bits != 0)
+        {
+            U lsb = bits & static_cast<U>(-static_cast<std::make_signed_t<U>>(bits));
+            bits &= ~lsb;
+            fn(static_cast<T>(lsb));
+        }
+    }
+
     U flags = 0;
 };
+
+template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
+constexpr EnumFlags<T> operator|(T lhs, T rhs)
+{
+    return EnumFlags<T>(lhs) | rhs;
+}
 
 SWC_END_NAMESPACE()

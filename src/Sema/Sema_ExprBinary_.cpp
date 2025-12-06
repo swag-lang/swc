@@ -160,8 +160,11 @@ namespace
         return ConstantRef::invalid();
     }
 
-    Result checkPlusPlus(const Sema& sema, const AstBinaryExpr& node, const SemaNodeViewList&)
+    Result checkPlusPlus(Sema& sema, const AstBinaryExpr& node, const SemaNodeViewList&)
     {
+        if (sema.checkModifiers(node, node.modifierFlags, AstModifierFlagsE::Zero) == Result::Error)
+            return Result::Error;
+        
         if (!sema.hasConstant(node.nodeLeftRef))
         {
             sema.raiseExprNotConst(node.nodeLeftRef);
@@ -195,18 +198,20 @@ namespace
             return Result::Error;
         }
 
-        if (op == TokenId::SymSlash)
+        switch (op)
         {
-            const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());
-            if (node.modifierFlags.has(AstModifierFlagsE::Wrap))
-            {
-                const TokenRef mdfRef = srcView.findRightFrom(node.tokRef(), {TokenId::ModifierWrap});
-                auto           diag   = sema.reportError(DiagnosticId::sema_err_modifier_unsupported, node.srcViewRef(), node.tokRef());
-                diag.addArgument(Diagnostic::ARG_WHAT, srcView.token(mdfRef).string(srcView));
-                diag.last().addSpan(Diagnostic::tokenErrorLocation(sema.ctx(), srcView, mdfRef), "");
-                diag.report(sema.ctx());
-                return Result::Error;
-            }
+            case TokenId::SymSlash:
+                if (sema.checkModifiers(node, node.modifierFlags, AstModifierFlagsE::Promote) == Result::Error)
+                    return Result::Error;
+                break;
+            case TokenId::SymPlus:
+            case TokenId::SymMinus:
+            case TokenId::SymAsterisk:
+                if (sema.checkModifiers(node, node.modifierFlags, AstModifierFlagsE::Wrap | AstModifierFlagsE::Promote) == Result::Error)
+                    return Result::Error;
+                break;
+            default:
+                break;
         }
 
         return Result::Success;

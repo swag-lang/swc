@@ -28,6 +28,7 @@ enum class AstModifierFlagsE : uint32_t
     Move     = 1 << 10,
     MoveRaw  = 1 << 11,
     Nullable = 1 << 12,
+    Count,
 };
 using AstModifierFlags = EnumFlags<AstModifierFlagsE>;
 

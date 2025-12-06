@@ -14,6 +14,7 @@
 #assert(4'u32 / 2 == 2)
 #assert(2 - 4 == -2)
 
+#print(127's8 + 1)  // swc-expected-error {{sema_err_integer_overflow}}
 #print(1.0 / 0.0)   // swc-expected-error {{sema_err_division_zero}}
 #print(255'u8 + 1)  // swc-expected-error {{sema_err_integer_overflow}}
 #print(255'u8 / 0)  // swc-expected-error {{sema_err_division_zero}}

@@ -80,4 +80,4 @@ SWC_DIAG_DEF(sema_err_binary_operand_type, Error, "binary operator {tok} cannot 
 SWC_DIAG_DEF(sema_err_const_missing_init, Error, "a constant must be initialized with a value")
 SWC_DIAG_DEF(sema_err_unknown_identifier, Error, "unknown identifier {tok}")
 SWC_DIAG_DEF(sema_err_division_zero, Error, "division by zero")
-SWC_DIAG_DEF(sema_err_integer_overflow, Error, "integer overflow during {tok} operation; type is {type}")
+SWC_DIAG_DEF(sema_err_integer_overflow, Error, "integer overflow in constant expression: {left} {tok-raw} {right} for type {type}")

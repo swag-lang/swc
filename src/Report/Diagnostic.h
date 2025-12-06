@@ -37,6 +37,7 @@ public:
     constexpr static std::string_view ARG_BEFORE           = "{before}";
     constexpr static std::string_view ARG_BECAUSE          = "{because}";
     constexpr static std::string_view ARG_TOK              = "{tok}";
+    constexpr static std::string_view ARG_TOK_RAW          = "{tok-raw}";
     constexpr static std::string_view ARG_TOK_FAM          = "{tok-fam}";
     constexpr static std::string_view ARG_A_TOK_FAM        = "{a-tok-fam}";
     constexpr static std::string_view ARG_EXPECT_TOK       = "{expect-tok}";
@@ -50,6 +51,8 @@ public:
     constexpr static std::string_view ARG_NEXT_A_TOK_FAM   = "{next-a-tok-fam}";
     constexpr static std::string_view ARG_TYPE             = "{type}";
     constexpr static std::string_view ARG_REQUESTED_TYPE   = "{requested-type}";
+    constexpr static std::string_view ARG_LEFT             = "{left}";
+    constexpr static std::string_view ARG_RIGHT            = "{right}";
 
     Diagnostic() = default;
     explicit Diagnostic(FileRef file);

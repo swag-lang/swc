@@ -8,20 +8,22 @@ SWC_BEGIN_NAMESPACE()
 
 void Sema::setReportArguments(Diagnostic& diag, SourceViewRef srcViewRef, TokenRef tokRef) const
 {
-    const auto& srcView = compiler().srcView(srcViewRef);
-    const auto& token   = srcView.token(tokRef);
-    diag.addArgument(Diagnostic::ARG_TOK, Diagnostic::tokenErrorString(*ctx_, ast().srcView(), tokRef));
+    const SourceView& srcView = compiler().srcView(srcViewRef);
+    const Token&      token   = srcView.token(tokRef);
+    const Utf8&       tokStr  = Diagnostic::tokenErrorString(*ctx_, ast().srcView(), tokRef);
+    diag.addArgument(Diagnostic::ARG_TOK, tokStr);
+    diag.addArgument(Diagnostic::ARG_TOK_RAW, tokStr, false);
     diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id), false);
     diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Token::toAFamily(token.id), false);
 }
 
 Diagnostic Sema::reportError(DiagnosticId id, AstNodeRef nodeRef) const
 {
-    auto        diag    = Diagnostic::get(id, ast().srcView().fileRef());
-    const auto& nodePtr = node(nodeRef);
+    auto           diag    = Diagnostic::get(id, ast().srcView().fileRef());
+    const AstNode& nodePtr = node(nodeRef);
     setReportArguments(diag, nodePtr.srcViewRef(), nodePtr.tokRef());
 
-    const auto loc = node(nodeRef).location(ctx(), ast());
+    const SourceCodeLocation loc = node(nodeRef).location(ctx(), ast());
     diag.last().addSpan(loc, "");
 
     return diag;
@@ -32,10 +34,10 @@ Diagnostic Sema::reportError(DiagnosticId id, AstNodeRef nodeRef, SourceViewRef 
     auto diag = Diagnostic::get(id, ast().srcView().fileRef());
     setReportArguments(diag, srcViewRef, tokRef);
 
-    const auto loc = node(nodeRef).location(ctx(), ast());
+    const SourceCodeLocation loc = node(nodeRef).location(ctx(), ast());
     diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
 
-    const auto& srcView = compiler().srcView(srcViewRef);
+    const SourceView& srcView = compiler().srcView(srcViewRef);
     diag.last().addSpan(Diagnostic::tokenErrorLocation(ctx(), srcView, tokRef), "");
 
     return diag;

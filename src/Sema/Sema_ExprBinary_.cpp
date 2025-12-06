@@ -104,6 +104,8 @@ namespace
             {
                 auto diag = sema.reportError(DiagnosticId::sema_err_integer_overflow, node.srcViewRef(), node.tokRef());
                 diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
+                diag.addArgument(Diagnostic::ARG_LEFT, leftCst.toString());
+                diag.addArgument(Diagnostic::ARG_RIGHT, rightCst.toString());
                 diag.report(sema.ctx());
                 return ConstantRef::invalid();
             }

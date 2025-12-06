@@ -66,6 +66,11 @@ public:
     void     mul(const ApInt& rhs, bool& overflow);
     uint64_t div(const ApInt& rhs);
 
+    void    addSigned(const ApInt& rhs, bool& overflow);
+    void    subSigned(const ApInt& rhs, bool& overflow);
+    void    mulSigned(const ApInt& rhs, bool& overflow);
+    int64_t divSigned(const ApInt& rhs, bool& overflow);
+
     static ApInt minValue(uint32_t bitWidth);
     static ApInt minSignedValue(uint32_t bitWidth);
     static ApInt maxValue(uint32_t bitWidth);

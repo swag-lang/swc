@@ -3,9 +3,8 @@
 
 SWC_BEGIN_NAMESPACE()
 
-enum class LogColor;
-
 class TaskContext;
+enum class LogColor;
 enum class DiagnosticId;
 enum class TokenId : uint16_t;
 
@@ -17,7 +16,7 @@ public:
         std::string_view name;
         bool             quoted;
 
-        std::variant<Utf8, TokenId, DiagnosticId, uint32_t, TypeRef> val;
+        std::variant<Utf8, TokenId, DiagnosticId, uint32_t, TypeRef, ConstantRef> val;
     };
 
 private:

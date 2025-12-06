@@ -10,6 +10,7 @@
 #include "Report/DiagnosticElement.h"
 #include "Report/LogColor.h"
 #include "Report/LogSymbol.h"
+#include "Sema/Constant/ConstantManager.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -634,6 +635,8 @@ Utf8 DiagnosticBuilder::argumentToString(const Diagnostic::Argument& arg) const
             return Utf8{std::to_string(v)};
         else if constexpr (std::same_as<T, TypeRef>)
             return ctx_->compiler().typeMgr().typeToString(v);
+        else if constexpr (std::same_as<T, ConstantRef>)
+            return ctx_->compiler().cstMgr().get(v).toString();
         else
             SWC_UNREACHABLE();
     };

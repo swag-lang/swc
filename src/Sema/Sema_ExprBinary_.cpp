@@ -93,11 +93,9 @@ namespace
                 case TokenId::SymPlus:
                     val1.add(val2, overflow);
                     break;
-
                 case TokenId::SymMinus:
                     val1.sub(val2, overflow);
                     break;
-
                 case TokenId::SymAsterisk:
                     val1.mul(val2, overflow);
                     break;
@@ -113,7 +111,6 @@ namespace
 
                     val1.div(val2, overflow);
                     break;
-
                 case TokenId::SymPercent:
                 {
                     if (val2.isZero())
@@ -132,21 +129,41 @@ namespace
                 case TokenId::SymAmpersand:
                     val1.bitwiseAnd(val2);
                     break;
-
                 case TokenId::SymPipe:
                     val1.bitwiseOr(val2);
                     break;
-
                 case TokenId::SymCircumflex:
                     val1.bitwiseXor(val2);
                     break;
 
                 case TokenId::SymGreaterGreater:
-                    val1.shiftRight(val2.asU64());
+                    if (val2.isNegative())
+                    {
+                        auto diag = sema.reportError(DiagnosticId::sema_err_negative_shift, node.nodeRightRef);
+                        diag.addArgument(Diagnostic::ARG_RIGHT, rightCst.toString());
+                        diag.report(sema.ctx());
+                        return ConstantRef::invalid();
+                    }
+
+                    if (!val2.fits64())
+                        overflow = true;
+                    else
+                        val1.shiftRight(val2.asU64());
                     break;
 
                 case TokenId::SymLowerLower:
-                    val1.shiftLeft(val2.asU64(), overflow);
+                    if (val2.isNegative())
+                    {
+                        auto diag = sema.reportError(DiagnosticId::sema_err_negative_shift, node.nodeRightRef);
+                        diag.addArgument(Diagnostic::ARG_RIGHT, rightCst.toString());
+                        diag.report(sema.ctx());
+                        return ConstantRef::invalid();
+                    }
+
+                    if (!val2.fits64())
+                        overflow = true;
+                    else
+                        val1.shiftLeft(val2.asU64(), overflow);
                     overflow = false;
                     break;
 
@@ -270,6 +287,9 @@ namespace
                     diag.report(sema.ctx());
                     return Result::Error;
                 }
+                break;
+
+            default:
                 break;
         }
 

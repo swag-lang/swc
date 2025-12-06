@@ -94,3 +94,6 @@
 #assert(true & 1)   // swc-expected-error {{sema_err_binary_operand_type}}
 #assert(true | 1)   // swc-expected-error {{sema_err_binary_operand_type}}
 #assert(true ^ 1)   // swc-expected-error {{sema_err_binary_operand_type}}
+
+#assert(1 << -1)    // swc-expected-error {{sema_err_negative_shift}}
+#assert(1 >> -1)    // swc-expected-error {{sema_err_negative_shift}}

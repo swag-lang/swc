@@ -56,6 +56,10 @@ public:
     void     add(uint64_t v, bool& overflow);
     void     mul(uint64_t v, bool& overflow);
     uint64_t div(uint64_t v);
+    void     add(const ApInt& rhs, bool& overflow);
+    void     sub(const ApInt& rhs, bool& overflow);
+    void     mul(const ApInt& rhs, bool& overflow);
+    uint64_t div(const ApInt& rhs);
     void     abs(bool& overflow);
     void     negate(bool& overflow);
 

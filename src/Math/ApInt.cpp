@@ -330,6 +330,68 @@ uint64_t ApInt::div(uint64_t v)
     return rem;
 }
 
+void ApInt::add(const ApInt& rhs, bool& overflow)
+{
+    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+
+    // For now only support native-width (<= 64 bits).
+    if (bitWidth_ > WORD_BITS)
+        SWC_UNREACHABLE();
+
+    add(rhs.asU64(), overflow);
+}
+
+void ApInt::sub(const ApInt& rhs, bool& overflow)
+{
+    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+
+    // For now only support native-width (<= 64 bits).
+    if (bitWidth_ > WORD_BITS)
+        SWC_UNREACHABLE();
+
+    const uint64_t lhsVal = asU64();
+    const uint64_t rhsVal = rhs.asU64();
+
+    // Unsigned subtraction semantics.
+    overflow = lhsVal < rhsVal;
+
+    uint64_t res = lhsVal - rhsVal;
+
+    // Mask to current bit width if it's narrower than the native word.
+    if (bitWidth_ < WORD_BITS)
+    {
+        const uint64_t mask = (ONE << bitWidth_) - 1;
+        res &= mask;
+    }
+
+    // For bitWidth_ <= 64 we always have numWords_ == 1.
+    words_[0] = res;
+    normalize();
+}
+
+void ApInt::mul(const ApInt& rhs, bool& overflow)
+{
+    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+
+    // For now only support native-width (<= 64 bits).
+    if (bitWidth_ > WORD_BITS)
+        SWC_UNREACHABLE();
+
+    mul(rhs.asU64(), overflow);
+}
+
+uint64_t ApInt::div(const ApInt& rhs)
+{
+    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+
+    // For now only support native-width (<= 64 bits).
+    if (bitWidth_ > WORD_BITS)
+        SWC_UNREACHABLE();
+
+    const uint64_t v = rhs.asU64();
+    return div(v);
+}
+
 void ApInt::bitwiseOr(uint64_t rhs)
 {
     SWC_ASSERT(numWords_ && bitWidth_);

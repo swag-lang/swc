@@ -57,6 +57,24 @@ namespace
             return sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, val1, type.floatBits()));
         }
 
+        if (type.isInt())
+        {
+            ApsInt val1     = leftCst.getInt();
+            bool   overflow = false;
+
+            switch (op)
+            {
+                case TokenId::SymPlus:
+                    val1.add(rightCst.getInt(), overflow);
+                    break;
+
+                default:
+                    SWC_UNREACHABLE();
+            }
+
+            return sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, val1, type.intBits()));
+        }
+
         return ConstantRef::invalid();
     }
 

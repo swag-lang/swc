@@ -1001,12 +1001,12 @@ void Lexer::lexSymbol()
             {
                 if (buffer_[2] == '=')
                 {
-                    token_.id = TokenId::SymLessLowerEqual;
+                    token_.id = TokenId::SymLowerLowerEqual;
                     buffer_ += 3;
                 }
                 else
                 {
-                    token_.id = TokenId::SymLessLower;
+                    token_.id = TokenId::SymLowerLower;
                     buffer_ += 2;
                 }
             }

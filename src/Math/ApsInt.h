@@ -18,6 +18,11 @@ public:
     {
     }
 
+    explicit ApsInt(int64_t value) :
+        ApInt(value)
+    {
+    }
+
     explicit ApsInt(const ApInt& value, bool isUnSigned) :
         ApInt(value),
         unsigned_(isUnSigned)

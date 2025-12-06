@@ -114,6 +114,41 @@ namespace
                     val1.div(val2, overflow);
                     break;
 
+                case TokenId::SymPercent:
+                {
+                    if (val2.isZero())
+                    {
+                        auto diag = sema.reportError(DiagnosticId::sema_err_division_zero, node.srcViewRef(), node.tokRef(), ops.nodeView[1].nodeRef);
+                        diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
+                        diag.report(sema.ctx());
+                        return ConstantRef::invalid();
+                    }
+
+                    const auto md = val1.div(val2, overflow);
+                    val1          = ApsInt(md);
+                }
+                break;
+
+                case TokenId::SymAmpersand:
+                    val1.bitwiseAnd(val2);
+                    break;
+
+                case TokenId::SymPipe:
+                    val1.bitwiseOr(val2);
+                    break;
+
+                case TokenId::SymCircumflex:
+                    val1.bitwiseXor(val2);
+                    break;
+
+                case TokenId::SymGreaterGreater:
+                    val1.logicalShiftRight(val2.asU64());
+                    break;
+
+                case TokenId::SymLowerLower:
+                    val1.logicalShiftLeft(val2.asU64(), overflow);
+                    break;
+
                 default:
                     SWC_UNREACHABLE();
             }
@@ -148,11 +183,19 @@ namespace
         {
             case TokenId::SymPlusPlus:
                 return constantFoldPlusPlus(sema, node, ops);
+
             case TokenId::SymPlus:
             case TokenId::SymMinus:
             case TokenId::SymAsterisk:
             case TokenId::SymSlash:
+            case TokenId::SymPercent:
+            case TokenId::SymAmpersand:
+            case TokenId::SymPipe:
+            case TokenId::SymCircumflex:
+            case TokenId::SymGreaterGreater:
+            case TokenId::SymLowerLower:
                 return constantFoldOp(sema, op, node, ops);
+
             default:
                 break;
         }
@@ -164,7 +207,7 @@ namespace
     {
         if (sema.checkModifiers(node, node.modifierFlags, AstModifierFlagsE::Zero) == Result::Error)
             return Result::Error;
-        
+
         if (!sema.hasConstant(node.nodeLeftRef))
         {
             sema.raiseExprNotConst(node.nodeLeftRef);
@@ -201,15 +244,23 @@ namespace
         switch (op)
         {
             case TokenId::SymSlash:
+            case TokenId::SymPercent:
                 if (sema.checkModifiers(node, node.modifierFlags, AstModifierFlagsE::Promote) == Result::Error)
                     return Result::Error;
                 break;
+
             case TokenId::SymPlus:
             case TokenId::SymMinus:
             case TokenId::SymAsterisk:
+            case TokenId::SymAmpersand:
+            case TokenId::SymPipe:
+            case TokenId::SymCircumflex:
+            case TokenId::SymGreaterGreater:
+            case TokenId::SymLowerLower:
                 if (sema.checkModifiers(node, node.modifierFlags, AstModifierFlagsE::Wrap | AstModifierFlagsE::Promote) == Result::Error)
                     return Result::Error;
                 break;
+
             default:
                 break;
         }
@@ -223,11 +274,19 @@ namespace
         {
             case TokenId::SymPlusPlus:
                 return checkPlusPlus(sema, expr, ops);
+
             case TokenId::SymPlus:
             case TokenId::SymMinus:
             case TokenId::SymAsterisk:
             case TokenId::SymSlash:
+            case TokenId::SymPercent:
+            case TokenId::SymAmpersand:
+            case TokenId::SymPipe:
+            case TokenId::SymCircumflex:
+            case TokenId::SymGreaterGreater:
+            case TokenId::SymLowerLower:
                 return checkOp(sema, op, expr, ops);
+
             default:
                 break;
         }

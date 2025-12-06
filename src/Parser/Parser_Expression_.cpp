@@ -89,7 +89,7 @@ AstNodeRef Parser::parseBinaryExpr()
               TokenId::SymAmpersand,
               TokenId::SymPipe,
               TokenId::SymGreaterGreater,
-              TokenId::SymLessLower,
+              TokenId::SymLowerLower,
               TokenId::SymPlusPlus,
               TokenId::SymCircumflex))
     {

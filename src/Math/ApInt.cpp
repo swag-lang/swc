@@ -75,6 +75,15 @@ ApInt::ApInt(int32_t value) :
     normalize();
 }
 
+ApInt::ApInt(int64_t value) :
+    bitWidth_(64),
+    numWords_(computeNumWords(64))
+{
+    clearWords();
+    words_[0] = std::bit_cast<uint64_t>(value);
+    normalize();
+}
+
 bool ApInt::fits64() const
 {
     for (uint32_t i = 1; i < numWords_; ++i)
@@ -646,6 +655,39 @@ void ApInt::bitwiseOr(uint64_t rhs)
     }
 
     words_[0] |= rhs;
+    normalize();
+}
+
+void ApInt::bitwiseOr(const ApInt& rhs)
+{
+    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+    SWC_ASSERT(numWords_ == rhs.numWords_);
+
+    for (uint32_t i = 0; i < numWords_; ++i)
+        words_[i] |= rhs.words_[i];
+
+    normalize();
+}
+
+void ApInt::bitwiseAnd(const ApInt& rhs)
+{
+    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+    SWC_ASSERT(numWords_ == rhs.numWords_);
+
+    for (uint32_t i = 0; i < numWords_; ++i)
+        words_[i] &= rhs.words_[i];
+
+    normalize();
+}
+
+void ApInt::bitwiseXor(const ApInt& rhs)
+{
+    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+    SWC_ASSERT(numWords_ == rhs.numWords_);
+
+    for (uint32_t i = 0; i < numWords_; ++i)
+        words_[i] ^= rhs.words_[i];
+
     normalize();
 }
 

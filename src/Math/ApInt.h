@@ -26,6 +26,7 @@ public:
     explicit ApInt(uint32_t bitWidth);
     explicit ApInt(uint64_t value, uint32_t bitWidth);
     explicit ApInt(int32_t value);
+    explicit ApInt(int64_t value);
 
     uint32_t bitWidth() const { return bitWidth_; }
     bool     fits64() const;
@@ -52,6 +53,9 @@ public:
     void     setSignBit(bool isNegative);
 
     void bitwiseOr(uint64_t rhs);
+    void bitwiseOr(const ApInt& rhs);
+    void bitwiseAnd(const ApInt& rhs);
+    void bitwiseXor(const ApInt& rhs);
     void logicalShiftLeft(uint64_t amount, bool& overflow);
     void logicalShiftRight(uint64_t amount);
     void abs(bool& overflow);

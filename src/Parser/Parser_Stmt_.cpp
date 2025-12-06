@@ -585,7 +585,7 @@ AstNodeRef Parser::parseAssignStmt()
               TokenId::SymPipeEqual,
               TokenId::SymCircumflexEqual,
               TokenId::SymPercentEqual,
-              TokenId::SymLessLowerEqual,
+              TokenId::SymLowerLowerEqual,
               TokenId::SymGreaterGreaterEqual))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AssignStmt>(ref());

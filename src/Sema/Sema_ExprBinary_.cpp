@@ -12,35 +12,24 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    struct BinaryOperands
+    bool promoteConstantsIfNeeded(Sema& sema, const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef)
     {
-        SemaNodeView nodeLeftView;
-        SemaNodeView nodeRightView;
-        BinaryOperands(Sema& sema, const AstBinaryExpr& node) :
-            nodeLeftView(sema, node.nodeLeftRef),
-            nodeRightView(sema, node.nodeRightRef)
-        {
-        }
-    };
-
-    bool promoteConstantsIfNeeded(Sema& sema, const AstBinaryExpr& node, const BinaryOperands& ops, ConstantRef& leftRef, ConstantRef& rightRef)
-    {
-        if (ops.nodeLeftView.typeRef == ops.nodeRightView.typeRef)
+        if (ops.nodeView[0].typeRef == ops.nodeView[1].typeRef)
             return true;
 
-        if (ops.nodeLeftView.type->canBePromoted() && ops.nodeRightView.type->canBePromoted())
+        if (ops.nodeView[0].type->canBePromoted() && ops.nodeView[1].type->canBePromoted())
         {
-            const TypeRef promotedTypeRef = sema.typeMgr().promote(ops.nodeLeftView.typeRef, ops.nodeRightView.typeRef);
+            const TypeRef promotedTypeRef = sema.typeMgr().promote(ops.nodeView[0].typeRef, ops.nodeView[1].typeRef);
 
             CastContext castCtx;
             castCtx.kind         = CastKind::Promotion;
-            castCtx.errorNodeRef = node.nodeLeftRef;
+            castCtx.errorNodeRef = ops.nodeView[0].nodeRef;
 
-            leftRef = sema.cast(castCtx, sema.constantRefOf(node.nodeLeftRef), promotedTypeRef);
+            leftRef = sema.cast(castCtx, sema.constantRefOf(ops.nodeView[0].nodeRef), promotedTypeRef);
             if (leftRef.isInvalid())
                 return false;
 
-            rightRef = sema.cast(castCtx, sema.constantRefOf(node.nodeRightRef), promotedTypeRef);
+            rightRef = sema.cast(castCtx, sema.constantRefOf(ops.nodeView[1].nodeRef), promotedTypeRef);
             if (rightRef.isInvalid())
                 return false;
 
@@ -50,20 +39,20 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    ConstantRef constantFoldPlus(Sema& sema, const AstBinaryExpr& node, const BinaryOperands& ops)
+    ConstantRef constantFoldPlus(Sema& sema, const AstBinaryExpr& node, const SemaNodeViewList& ops)
     {
         const auto& ctx = sema.ctx();
 
-        auto leftCstRef  = ops.nodeLeftView.cstRef;
-        auto rightCstRef = ops.nodeRightView.cstRef;
+        auto leftCstRef  = ops.nodeView[0].cstRef;
+        auto rightCstRef = ops.nodeView[1].cstRef;
 
-        if (!promoteConstantsIfNeeded(sema, node, ops, leftCstRef, rightCstRef))
+        if (!promoteConstantsIfNeeded(sema, ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
 
         const auto& leftCst  = sema.cstMgr().get(leftCstRef);
         const auto& rightCst = sema.cstMgr().get(rightCstRef);
 
-        const TypeInfo& type = ops.nodeLeftView.cst->type(sema.ctx());
+        const TypeInfo& type = ops.nodeView[0].cst->type(sema.ctx());
         if (type.isFloat())
         {
             auto val1 = leftCst.getFloat();
@@ -74,15 +63,15 @@ namespace
         return ConstantRef::invalid();
     }
 
-    ConstantRef constantFoldPlusPlus(Sema& sema, const AstBinaryExpr&, const BinaryOperands& ops)
+    ConstantRef constantFoldPlusPlus(Sema& sema, const AstBinaryExpr&, const SemaNodeViewList& ops)
     {
         const auto& ctx    = sema.ctx();
-        Utf8        result = ops.nodeLeftView.cst->toString();
-        result += ops.nodeRightView.cst->toString();
+        Utf8        result = ops.nodeView[0].cst->toString();
+        result += ops.nodeView[1].cst->toString();
         return sema.cstMgr().addConstant(ctx, ConstantValue::makeString(ctx, result));
     }
 
-    ConstantRef constantFold(Sema& sema, TokenId op, const AstBinaryExpr& node, const BinaryOperands& ops)
+    ConstantRef constantFold(Sema& sema, TokenId op, const AstBinaryExpr& node, const SemaNodeViewList& ops)
     {
         switch (op)
         {
@@ -97,7 +86,7 @@ namespace
         return ConstantRef::invalid();
     }
 
-    Result checkPlusPlus(const Sema& sema, const AstBinaryExpr& node, const BinaryOperands&)
+    Result checkPlusPlus(const Sema& sema, const AstBinaryExpr& node, const SemaNodeViewList&)
     {
         if (!sema.hasConstant(node.nodeLeftRef))
         {
@@ -114,23 +103,23 @@ namespace
         return Result::Success;
     }
 
-    Result checkPlus(Sema& sema, const AstBinaryExpr& node, const BinaryOperands& ops)
+    Result checkPlus(Sema& sema, const AstBinaryExpr& node, const SemaNodeViewList& ops)
     {
-        if (ops.nodeLeftView.typeRef == ops.nodeRightView.typeRef)
+        if (ops.nodeView[0].typeRef == ops.nodeView[1].typeRef)
             return Result::Success;
 
-        if (!ops.nodeLeftView.type->canBePromoted())
+        if (!ops.nodeView[0].type->canBePromoted())
         {
             auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.nodeLeftRef, node.srcViewRef(), node.tokRef());
-            diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeLeftView.typeRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView[0].typeRef);
             diag.report(sema.ctx());
             return Result::Error;
         }
 
-        if (!ops.nodeRightView.type->canBePromoted())
+        if (!ops.nodeView[1].type->canBePromoted())
         {
             auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.nodeRightRef, node.srcViewRef(), node.tokRef());
-            diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeRightView.typeRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView[1].typeRef);
             diag.report(sema.ctx());
             return Result::Error;
         }
@@ -138,7 +127,7 @@ namespace
         return Result::Success;
     }
 
-    Result check(Sema& sema, TokenId op, const AstBinaryExpr& expr, const BinaryOperands& ops)
+    Result check(Sema& sema, TokenId op, const AstBinaryExpr& expr, const SemaNodeViewList& ops)
     {
         switch (op)
         {
@@ -157,7 +146,7 @@ namespace
 
 AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema) const
 {
-    const BinaryOperands ops(sema, *this);
+    const SemaNodeViewList ops(sema, nodeLeftRef, nodeRightRef);
 
     // Type-check
     const auto& tok = sema.token(srcViewRef(), tokRef());

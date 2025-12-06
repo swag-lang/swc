@@ -14,16 +14,15 @@ namespace
 {
     ConstantRef constantFoldPlus(Sema& sema, const AstBinaryExpr& node, const SemaNodeViewList& ops)
     {
-        const auto& ctx = sema.ctx();
-
-        auto leftCstRef  = ops.nodeView[0].cstRef;
-        auto rightCstRef = ops.nodeView[1].cstRef;
+        const auto& ctx         = sema.ctx();
+        ConstantRef leftCstRef  = ops.nodeView[0].cstRef;
+        ConstantRef rightCstRef = ops.nodeView[1].cstRef;
 
         if (!sema.promoteConstantsIfNeeded(ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
 
-        const auto& leftCst  = sema.cstMgr().get(leftCstRef);
-        const auto& rightCst = sema.cstMgr().get(rightCstRef);
+        const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);
+        const ConstantValue& rightCst = sema.cstMgr().get(rightCstRef);
 
         const TypeInfo& type = ops.nodeView[0].cst->type(sema.ctx());
         if (type.isFloat())
@@ -35,6 +34,29 @@ namespace
 
         return ConstantRef::invalid();
     }
+    
+    ConstantRef constantFoldMinus(Sema& sema, const AstBinaryExpr& node, const SemaNodeViewList& ops)
+    {
+        const auto& ctx         = sema.ctx();
+        ConstantRef leftCstRef  = ops.nodeView[0].cstRef;
+        ConstantRef rightCstRef = ops.nodeView[1].cstRef;
+
+        if (!sema.promoteConstantsIfNeeded(ops, leftCstRef, rightCstRef))
+            return ConstantRef::invalid();
+
+        const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);
+        const ConstantValue& rightCst = sema.cstMgr().get(rightCstRef);
+
+        const TypeInfo& type = ops.nodeView[0].cst->type(sema.ctx());
+        if (type.isFloat())
+        {
+            auto val1 = leftCst.getFloat();
+            val1.sub(rightCst.getFloat());
+            return sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, val1, type.floatBits()));
+        }
+
+        return ConstantRef::invalid();
+    }    
 
     ConstantRef constantFoldPlusPlus(Sema& sema, const AstBinaryExpr&, const SemaNodeViewList& ops)
     {
@@ -52,6 +74,8 @@ namespace
                 return constantFoldPlusPlus(sema, node, ops);
             case TokenId::SymPlus:
                 return constantFoldPlus(sema, node, ops);
+            case TokenId::SymMinus:
+                return constantFoldMinus(sema, node, ops);                
             default:
                 break;
         }
@@ -107,6 +131,7 @@ namespace
             case TokenId::SymPlusPlus:
                 return checkPlusPlus(sema, expr, ops);
             case TokenId::SymPlus:
+            case TokenId::SymMinus:
                 return checkPlus(sema, expr, ops);
             default:
                 break;
@@ -122,7 +147,7 @@ AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema) const
     const SemaNodeViewList ops(sema, nodeLeftRef, nodeRightRef);
 
     // Type-check
-    const auto& tok = sema.token(srcViewRef(), tokRef());
+    const Token& tok = sema.token(srcViewRef(), tokRef());
     if (check(sema, tok.id, *this, ops) == Result::Error)
         return AstVisitStepResult::Stop;
 

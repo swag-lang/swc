@@ -58,6 +58,7 @@ public:
     void bitwiseXor(const ApInt& rhs);
     void logicalShiftLeft(uint64_t amount, bool& overflow);
     void logicalShiftRight(uint64_t amount);
+    void arithmeticShiftRight(uint64_t amount);
     void abs(bool& overflow);
     void negate(bool& overflow);
 

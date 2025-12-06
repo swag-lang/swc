@@ -142,11 +142,12 @@ namespace
                     break;
 
                 case TokenId::SymGreaterGreater:
-                    val1.logicalShiftRight(val2.asU64());
+                    val1.shiftRight(val2.asU64());
                     break;
 
                 case TokenId::SymLowerLower:
-                    val1.logicalShiftLeft(val2.asU64(), overflow);
+                    val1.shiftLeft(val2.asU64(), overflow);
+                    overflow = false;
                     break;
 
                 default:

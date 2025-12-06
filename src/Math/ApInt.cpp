@@ -205,7 +205,7 @@ void ApInt::logicalShiftLeft(uint64_t amount, bool& overflow)
 
 void ApInt::logicalShiftRight(uint64_t amount)
 {
-    if (amount == 0 || isZero())
+    if (isZero())
         return;
 
     const uint64_t wordShift = amount / WORD_BITS;
@@ -234,6 +234,52 @@ void ApInt::logicalShiftRight(uint64_t amount)
             words_[i]               = (words_[i] >> bitShift) | carry;
             carry                   = newCarry;
         }
+    }
+
+    normalize();
+}
+
+void ApInt::arithmeticShiftRight(uint64_t amount)
+{
+    if (amount == 0 || bitWidth_ == 0)
+        return;
+
+    const bool sign = isSignBitSet();
+
+    // If we shift by at least the entire width, the result is 0 for non-negative,
+    // and -1 (all bits set) for negative in two's complement.
+    if (amount >= bitWidth_)
+    {
+        if (sign)
+            setAllBits(); // -1
+        else
+            setZero(); // 0
+        return;
+    }
+
+    // Work from a copy so we can read old bits while writing new ones.
+    const ApInt    tmp(*this);
+    const uint64_t limit = bitWidth_;
+
+    for (uint64_t i = 0; i < limit; ++i)
+    {
+        const uint64_t srcBit   = i + amount;
+        bool           bitValue = false;
+
+        if (srcBit < limit)
+        {
+            bitValue = tmp.testBit(srcBit);
+        }
+        else
+        {
+            // Bits shifted in from the top are the sign bit
+            bitValue = sign;
+        }
+
+        if (bitValue)
+            setBit(i);
+        else
+            clearBit(i);
     }
 
     normalize();

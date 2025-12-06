@@ -43,6 +43,19 @@ int64_t ApsInt::div(const ApsInt& rhs, bool& overflow)
     return divSigned(rhs, overflow);
 }
 
+void ApsInt::shiftLeft(uint64_t amount, bool& overflow)
+{
+    logicalShiftLeft(amount, overflow);
+}
+
+void ApsInt::shiftRight(uint64_t amount)
+{
+    if (unsigned_)
+        logicalShiftRight(amount);
+    else
+        arithmeticShiftRight(amount);
+}
+
 bool ApsInt::same(const ApsInt& other) const
 {
     if (unsigned_ != other.unsigned_)

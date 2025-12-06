@@ -43,6 +43,8 @@ public:
 
     void add(const ApFloat& rhs);
     void sub(const ApFloat& rhs);
+    void mul(const ApFloat& rhs);
+    void div(const ApFloat& rhs);
 
     Utf8 toString() const;
 };

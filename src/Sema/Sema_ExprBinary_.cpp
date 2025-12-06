@@ -12,7 +12,7 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    ConstantRef constantFoldPlus(Sema& sema, const AstBinaryExpr& node, const SemaNodeViewList& ops)
+    ConstantRef constantFoldOp(Sema& sema, TokenId op, const AstBinaryExpr& node, const SemaNodeViewList& ops)
     {
         const auto& ctx         = sema.ctx();
         ConstantRef leftCstRef  = ops.nodeView[0].cstRef;
@@ -24,39 +24,33 @@ namespace
         const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);
         const ConstantValue& rightCst = sema.cstMgr().get(rightCstRef);
 
-        const TypeInfo& type = ops.nodeView[0].cst->type(sema.ctx());
+        const TypeInfo& type = leftCst.type(sema.ctx());
         if (type.isFloat())
         {
             auto val1 = leftCst.getFloat();
-            val1.add(rightCst.getFloat());
+            switch (op)
+            {
+                case TokenId::SymPlus:
+                    val1.add(rightCst.getFloat());
+                    break;
+                case TokenId::SymMinus:
+                    val1.sub(rightCst.getFloat());
+                    break;
+                case TokenId::SymAsterisk:
+                    val1.mul(rightCst.getFloat());
+                    break;
+                case TokenId::SymSlash:
+                    val1.div(rightCst.getFloat());
+                    break;
+                default:
+                    SWC_UNREACHABLE();
+            }
+
             return sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, val1, type.floatBits()));
         }
 
         return ConstantRef::invalid();
     }
-    
-    ConstantRef constantFoldMinus(Sema& sema, const AstBinaryExpr& node, const SemaNodeViewList& ops)
-    {
-        const auto& ctx         = sema.ctx();
-        ConstantRef leftCstRef  = ops.nodeView[0].cstRef;
-        ConstantRef rightCstRef = ops.nodeView[1].cstRef;
-
-        if (!sema.promoteConstantsIfNeeded(ops, leftCstRef, rightCstRef))
-            return ConstantRef::invalid();
-
-        const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);
-        const ConstantValue& rightCst = sema.cstMgr().get(rightCstRef);
-
-        const TypeInfo& type = ops.nodeView[0].cst->type(sema.ctx());
-        if (type.isFloat())
-        {
-            auto val1 = leftCst.getFloat();
-            val1.sub(rightCst.getFloat());
-            return sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, val1, type.floatBits()));
-        }
-
-        return ConstantRef::invalid();
-    }    
 
     ConstantRef constantFoldPlusPlus(Sema& sema, const AstBinaryExpr&, const SemaNodeViewList& ops)
     {
@@ -73,9 +67,10 @@ namespace
             case TokenId::SymPlusPlus:
                 return constantFoldPlusPlus(sema, node, ops);
             case TokenId::SymPlus:
-                return constantFoldPlus(sema, node, ops);
             case TokenId::SymMinus:
-                return constantFoldMinus(sema, node, ops);                
+            case TokenId::SymAsterisk:
+            case TokenId::SymSlash:
+                return constantFoldOp(sema, op, node, ops);
             default:
                 break;
         }
@@ -100,11 +95,8 @@ namespace
         return Result::Success;
     }
 
-    Result checkPlus(Sema& sema, const AstBinaryExpr& node, const SemaNodeViewList& ops)
+    Result checkOp(Sema& sema, const AstBinaryExpr& node, const SemaNodeViewList& ops)
     {
-        if (ops.nodeView[0].typeRef == ops.nodeView[1].typeRef)
-            return Result::Success;
-
         if (!ops.nodeView[0].type->canBePromoted())
         {
             auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.nodeLeftRef, node.srcViewRef(), node.tokRef());
@@ -132,7 +124,9 @@ namespace
                 return checkPlusPlus(sema, expr, ops);
             case TokenId::SymPlus:
             case TokenId::SymMinus:
-                return checkPlus(sema, expr, ops);
+            case TokenId::SymAsterisk:
+            case TokenId::SymSlash:
+                return checkOp(sema, expr, ops);
             default:
                 break;
         }

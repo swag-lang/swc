@@ -259,17 +259,6 @@ void ApInt::add(uint64_t v, bool& overflow)
     normalize();
 }
 
-namespace
-{
-    void mulWordFull(uint64_t x, uint64_t y, uint64_t carryIn, uint64_t& outLow, uint64_t& outHigh)
-    {
-        Math::mul64X64(x, y, outLow, outHigh);
-        outLow += carryIn;
-        if (outLow < carryIn)
-            ++outHigh;
-    }
-}
-
 void ApInt::mul(uint64_t v, bool& overflow)
 {
     SWC_ASSERT(numWords_);
@@ -286,7 +275,12 @@ void ApInt::mul(uint64_t v, bool& overflow)
     {
         uint64_t low  = 0;
         uint64_t high = 0;
-        mulWordFull(words_[i], v, carry, low, high);
+
+        Math::mul64X64(words_[i], v, low, high);
+        carry += carry;
+        if (carry < carry)
+            ++high;
+
         words_[i] = low;
         carry     = high;
     }

@@ -2,6 +2,7 @@
 #include "Report/Diagnostic.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Sema.h"
+#include "Sema/SemaNodeView.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -225,6 +226,33 @@ ConstantRef Sema::cast(const CastContext& castCtx, ConstantRef srcRef, TypeRef t
 
     raiseInternalError(node(castCtx.errorNodeRef));
     return ConstantRef::invalid();
+}
+
+bool Sema::promoteConstantsIfNeeded(const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef)
+{
+    if (ops.nodeView[0].typeRef == ops.nodeView[1].typeRef)
+        return true;
+
+    if (ops.nodeView[0].type->canBePromoted() && ops.nodeView[1].type->canBePromoted())
+    {
+        const TypeRef promotedTypeRef = typeMgr().promote(ops.nodeView[0].typeRef, ops.nodeView[1].typeRef);
+
+        CastContext castCtx;
+        castCtx.kind         = CastKind::Promotion;
+        castCtx.errorNodeRef = ops.nodeView[0].nodeRef;
+
+        leftRef = cast(castCtx, constantRefOf(ops.nodeView[0].nodeRef), promotedTypeRef);
+        if (leftRef.isInvalid())
+            return false;
+
+        rightRef = cast(castCtx, constantRefOf(ops.nodeView[1].nodeRef), promotedTypeRef);
+        if (rightRef.isInvalid())
+            return false;
+
+        return true;
+    }
+
+    SWC_UNREACHABLE();
 }
 
 SWC_END_NAMESPACE()

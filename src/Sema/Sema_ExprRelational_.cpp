@@ -11,33 +11,6 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    bool promoteConstantsIfNeeded(Sema& sema, const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef)
-    {
-        if (ops.nodeView[0].typeRef == ops.nodeView[1].typeRef)
-            return true;
-
-        if (ops.nodeView[0].type->canBePromoted() && ops.nodeView[1].type->canBePromoted())
-        {
-            const TypeRef promotedTypeRef = sema.typeMgr().promote(ops.nodeView[0].typeRef, ops.nodeView[1].typeRef);
-
-            CastContext castCtx;
-            castCtx.kind         = CastKind::Promotion;
-            castCtx.errorNodeRef = ops.nodeView[0].nodeRef;
-
-            leftRef = sema.cast(castCtx, sema.constantRefOf(ops.nodeView[0].nodeRef), promotedTypeRef);
-            if (leftRef.isInvalid())
-                return false;
-
-            rightRef = sema.cast(castCtx, sema.constantRefOf(ops.nodeView[1].nodeRef), promotedTypeRef);
-            if (rightRef.isInvalid())
-                return false;
-
-            return true;
-        }
-
-        SWC_UNREACHABLE();
-    }
-
     ConstantRef constantFoldEqual(Sema& sema, const AstRelationalExpr& node, const SemaNodeViewList& ops)
     {
         if (ops.nodeView[0].cstRef == ops.nodeView[1].cstRef)
@@ -46,7 +19,7 @@ namespace
         auto leftCstRef  = ops.nodeView[0].cstRef;
         auto rightCstRef = ops.nodeView[1].cstRef;
 
-        if (!promoteConstantsIfNeeded(sema, ops, leftCstRef, rightCstRef))
+        if (!sema.promoteConstantsIfNeeded( ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
 
         return sema.cstMgr().cstBool(leftCstRef == rightCstRef);
@@ -60,7 +33,7 @@ namespace
         auto leftCstRef  = ops.nodeView[0].cstRef;
         auto rightCstRef = ops.nodeView[1].cstRef;
 
-        if (!promoteConstantsIfNeeded(sema, ops, leftCstRef, rightCstRef))
+        if (!sema.promoteConstantsIfNeeded(ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
 
         const auto& leftCst  = sema.cstMgr().get(leftCstRef);
@@ -100,7 +73,7 @@ namespace
         auto leftCstRef  = ops.nodeView[0].cstRef;
         auto rightCstRef = ops.nodeView[1].cstRef;
 
-        if (!promoteConstantsIfNeeded(sema, ops, leftCstRef, rightCstRef))
+        if (!sema.promoteConstantsIfNeeded(ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
 
         const auto& left  = sema.cstMgr().get(leftCstRef);

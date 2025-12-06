@@ -7,6 +7,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
+struct SemaNodeViewList;
 class SymbolNamespace;
 class LookupResult;
 class IdentifierManager;
@@ -106,6 +107,7 @@ public:
 
     bool        castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef);
     ConstantRef cast(const CastContext& castCtx, ConstantRef srcRef, TypeRef targetTypeRef);
+    bool        promoteConstantsIfNeeded(const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef);
 
     void               lookupIdentifier(LookupResult& result, IdentifierRef idRef) const;
     AstVisitStepResult pause(TaskStateKind kind, AstNodeRef nodeRef);

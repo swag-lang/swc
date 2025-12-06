@@ -42,7 +42,8 @@ namespace
                 case TokenId::SymSlash:
                     if (rightCst.getFloat().isZero())
                     {
-                        const auto diag = sema.reportError(DiagnosticId::sema_err_division_zero, ops.nodeView[1].nodeRef, node.srcViewRef(), node.tokRef());
+                        auto diag = sema.reportError(DiagnosticId::sema_err_division_zero, ops.nodeView[1].nodeRef, node.srcViewRef(), node.tokRef());
+                        diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
                         diag.report(sema.ctx());
                         return ConstantRef::invalid();
                     }
@@ -59,17 +60,46 @@ namespace
 
         if (type.isInt())
         {
-            ApsInt val1     = leftCst.getInt();
-            bool   overflow = false;
+            ApsInt        val1     = leftCst.getInt();
+            const ApsInt& val2     = rightCst.getInt();
+            bool          overflow = false;
 
             switch (op)
             {
                 case TokenId::SymPlus:
-                    val1.add(rightCst.getInt(), overflow);
+                    val1.add(val2, overflow);
+                    break;
+
+                case TokenId::SymMinus:
+                    val1.sub(val2, overflow);
+                    break;
+
+                case TokenId::SymAsterisk:
+                    val1.mul(val2, overflow);
+                    break;
+
+                case TokenId::SymSlash:
+                    if (val2.isZero())
+                    {
+                        auto diag = sema.reportError(DiagnosticId::sema_err_division_zero, ops.nodeView[1].nodeRef, node.srcViewRef(), node.tokRef());
+                        diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
+                        diag.report(sema.ctx());
+                        return ConstantRef::invalid();
+                    }
+
+                    val1.div(val2);
                     break;
 
                 default:
                     SWC_UNREACHABLE();
+            }
+
+            if (overflow)
+            {
+                auto diag = sema.reportError(DiagnosticId::sema_err_integer_overflow, node.srcViewRef(), node.tokRef());
+                diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
+                diag.report(sema.ctx());
+                return ConstantRef::invalid();
             }
 
             return sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, val1, type.intBits()));

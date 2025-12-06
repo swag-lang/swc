@@ -226,20 +226,51 @@ namespace
 
     Result checkOp(Sema& sema, TokenId op, const AstBinaryExpr& node, const SemaNodeViewList& ops)
     {
-        if (!ops.nodeView[0].type->canBePromoted())
+        switch (op)
         {
-            auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.srcViewRef(), node.tokRef(), node.nodeLeftRef);
-            diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView[0].typeRef);
-            diag.report(sema.ctx());
-            return Result::Error;
-        }
+            case TokenId::SymSlash:
+            case TokenId::SymPercent:
+            case TokenId::SymPlus:
+            case TokenId::SymMinus:
+            case TokenId::SymAsterisk:
+                if (!ops.nodeView[0].type->canBePromoted())
+                {
+                    auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.srcViewRef(), node.tokRef(), node.nodeLeftRef);
+                    diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView[0].typeRef);
+                    diag.report(sema.ctx());
+                    return Result::Error;
+                }
 
-        if (!ops.nodeView[1].type->canBePromoted())
-        {
-            auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.srcViewRef(), node.tokRef(), node.nodeRightRef);
-            diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView[1].typeRef);
-            diag.report(sema.ctx());
-            return Result::Error;
+                if (!ops.nodeView[1].type->canBePromoted())
+                {
+                    auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.srcViewRef(), node.tokRef(), node.nodeRightRef);
+                    diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView[1].typeRef);
+                    diag.report(sema.ctx());
+                    return Result::Error;
+                }
+                break;
+
+            case TokenId::SymAmpersand:
+            case TokenId::SymPipe:
+            case TokenId::SymCircumflex:
+            case TokenId::SymGreaterGreater:
+            case TokenId::SymLowerLower:
+                if (!ops.nodeView[0].type->isInt())
+                {
+                    auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.srcViewRef(), node.tokRef(), node.nodeLeftRef);
+                    diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView[0].typeRef);
+                    diag.report(sema.ctx());
+                    return Result::Error;
+                }
+
+                if (!ops.nodeView[1].type->isInt())
+                {
+                    auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.srcViewRef(), node.tokRef(), node.nodeRightRef);
+                    diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView[1].typeRef);
+                    diag.report(sema.ctx());
+                    return Result::Error;
+                }
+                break;
         }
 
         switch (op)
@@ -253,8 +284,6 @@ namespace
             case TokenId::SymPlus:
             case TokenId::SymMinus:
             case TokenId::SymAsterisk:
-            case TokenId::SymGreaterGreater:
-            case TokenId::SymLowerLower:
                 if (sema.checkModifiers(node, node.modifierFlags, AstModifierFlagsE::Wrap | AstModifierFlagsE::Promote) == Result::Error)
                     return Result::Error;
                 break;
@@ -262,6 +291,8 @@ namespace
             case TokenId::SymAmpersand:
             case TokenId::SymPipe:
             case TokenId::SymCircumflex:
+            case TokenId::SymGreaterGreater:
+            case TokenId::SymLowerLower:
                 if (sema.checkModifiers(node, node.modifierFlags, AstModifierFlagsE::Zero) == Result::Error)
                     return Result::Error;
                 break;

@@ -88,3 +88,9 @@
 #assert(1'u8 << 20 == 0)
 #assert(5's8 << 8 == 0)
 #assert((-1's8) << 8 == 0)
+
+#assert(1.0 << 1)   // swc-expected-error {{sema_err_binary_operand_type}}
+#assert(true >> 1)  // swc-expected-error {{sema_err_binary_operand_type}}
+#assert(true & 1)   // swc-expected-error {{sema_err_binary_operand_type}}
+#assert(true | 1)   // swc-expected-error {{sema_err_binary_operand_type}}
+#assert(true ^ 1)   // swc-expected-error {{sema_err_binary_operand_type}}

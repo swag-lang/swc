@@ -13,6 +13,13 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
+    void raiseBinaryOperandType(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
+    {
+        auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, nodeOp.srcViewRef(), nodeOp.tokRef(), nodeValueRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
+        diag.report(sema.ctx());
+    }
+
     ConstantRef constantFoldOp(Sema& sema, TokenId op, const AstBinaryExpr& node, const SemaNodeViewList& ops)
     {
         const auto& ctx         = sema.ctx();
@@ -58,9 +65,7 @@ namespace
                 case TokenId::SymSlash:
                     if (rightCst.getFloat().isZero())
                     {
-                        auto diag = sema.reportError(DiagnosticId::sema_err_division_zero, node.srcViewRef(), node.tokRef(), ops.nodeView[1].nodeRef);
-                        diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
-                        diag.report(sema.ctx());
+                        sema.raiseDivZero(node, ops.nodeView[1].nodeRef, leftCst.typeRef());
                         return ConstantRef::invalid();
                     }
 
@@ -103,21 +108,18 @@ namespace
                 case TokenId::SymSlash:
                     if (val2.isZero())
                     {
-                        auto diag = sema.reportError(DiagnosticId::sema_err_division_zero, node.srcViewRef(), node.tokRef(), ops.nodeView[1].nodeRef);
-                        diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
-                        diag.report(sema.ctx());
+                        sema.raiseDivZero(node, ops.nodeView[1].nodeRef, leftCst.typeRef());
                         return ConstantRef::invalid();
                     }
 
                     val1.div(val2, overflow);
                     break;
+                    
                 case TokenId::SymPercent:
                 {
                     if (val2.isZero())
                     {
-                        auto diag = sema.reportError(DiagnosticId::sema_err_division_zero, node.srcViewRef(), node.tokRef(), ops.nodeView[1].nodeRef);
-                        diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
-                        diag.report(sema.ctx());
+                        sema.raiseDivZero(node, ops.nodeView[1].nodeRef, leftCst.typeRef());
                         return ConstantRef::invalid();
                     }
 
@@ -252,17 +254,13 @@ namespace
             case TokenId::SymAsterisk:
                 if (!ops.nodeView[0].type->canBePromoted())
                 {
-                    auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.srcViewRef(), node.tokRef(), node.nodeLeftRef);
-                    diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView[0].typeRef);
-                    diag.report(sema.ctx());
+                    raiseBinaryOperandType(sema, node, node.nodeLeftRef, ops.nodeView[0].typeRef);
                     return Result::Error;
                 }
 
                 if (!ops.nodeView[1].type->canBePromoted())
                 {
-                    auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.srcViewRef(), node.tokRef(), node.nodeRightRef);
-                    diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView[1].typeRef);
-                    diag.report(sema.ctx());
+                    raiseBinaryOperandType(sema, node, node.nodeRightRef, ops.nodeView[1].typeRef);
                     return Result::Error;
                 }
                 break;
@@ -274,17 +272,13 @@ namespace
             case TokenId::SymLowerLower:
                 if (!ops.nodeView[0].type->isInt())
                 {
-                    auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.srcViewRef(), node.tokRef(), node.nodeLeftRef);
-                    diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView[0].typeRef);
-                    diag.report(sema.ctx());
+                    raiseBinaryOperandType(sema, node, node.nodeLeftRef, ops.nodeView[0].typeRef);
                     return Result::Error;
                 }
 
                 if (!ops.nodeView[1].type->isInt())
                 {
-                    auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.srcViewRef(), node.tokRef(), node.nodeRightRef);
-                    diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView[1].typeRef);
-                    diag.report(sema.ctx());
+                    raiseBinaryOperandType(sema, node, node.nodeRightRef, ops.nodeView[1].typeRef);
                     return Result::Error;
                 }
                 break;

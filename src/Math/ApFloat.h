@@ -20,10 +20,11 @@ public:
     explicit ApFloat(double value);
     explicit ApFloat(float value);
 
-    void   set(float value);
-    void   set(double value);
-    void   set(const ApInt& mantissa, int64_t exponent10);
-    void   set(const ApsInt& value, uint32_t targetBits, bool& exact, bool& overflow);
+    void set(float value);
+    void set(double value);
+    void set(const ApInt& mantissa, int64_t exponent10);
+    void set(const ApsInt& value, uint32_t targetBits, bool& exact, bool& overflow);
+
     float  asFloat() const;
     double asDouble() const;
 
@@ -33,6 +34,10 @@ public:
 
     uint32_t bitWidth() const { return bitWidth_; }
     void     negate();
+    void     add(const ApFloat& rhs);
+    void     sub(const ApFloat& rhs);
+    void     mul(const ApFloat& rhs);
+    void     div(const ApFloat& rhs);
 
     bool eq(const ApFloat& rhs) const;
     bool ne(const ApFloat& rhs) const;
@@ -40,11 +45,6 @@ public:
     bool le(const ApFloat& rhs) const;
     bool gt(const ApFloat& rhs) const;
     bool ge(const ApFloat& rhs) const;
-
-    void add(const ApFloat& rhs);
-    void sub(const ApFloat& rhs);
-    void mul(const ApFloat& rhs);
-    void div(const ApFloat& rhs);
 
     Utf8 toString() const;
 };

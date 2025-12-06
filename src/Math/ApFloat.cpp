@@ -11,15 +11,15 @@ ApFloat::ApFloat() :
 {
 }
 
-ApFloat::ApFloat(float value) :
-    bitWidth_(32),
-    value_{.f32 = value}
-{
-}
-
 ApFloat::ApFloat(double value) :
     bitWidth_(64),
     value_{.f64 = value}
+{
+}
+
+ApFloat::ApFloat(float value) :
+    bitWidth_(32),
+    value_{.f32 = value}
 {
 }
 

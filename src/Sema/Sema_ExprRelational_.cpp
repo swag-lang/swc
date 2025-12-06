@@ -19,7 +19,7 @@ namespace
         auto leftCstRef  = ops.nodeView[0].cstRef;
         auto rightCstRef = ops.nodeView[1].cstRef;
 
-        if (!sema.promoteConstantsIfNeeded( ops, leftCstRef, rightCstRef))
+        if (!sema.promoteConstants( ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
 
         return sema.cstMgr().cstBool(leftCstRef == rightCstRef);
@@ -33,7 +33,7 @@ namespace
         auto leftCstRef  = ops.nodeView[0].cstRef;
         auto rightCstRef = ops.nodeView[1].cstRef;
 
-        if (!sema.promoteConstantsIfNeeded(ops, leftCstRef, rightCstRef))
+        if (!sema.promoteConstants(ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
 
         const auto& leftCst  = sema.cstMgr().get(leftCstRef);
@@ -73,7 +73,7 @@ namespace
         auto leftCstRef  = ops.nodeView[0].cstRef;
         auto rightCstRef = ops.nodeView[1].cstRef;
 
-        if (!sema.promoteConstantsIfNeeded(ops, leftCstRef, rightCstRef))
+        if (!sema.promoteConstants(ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
 
         const auto& left  = sema.cstMgr().get(leftCstRef);

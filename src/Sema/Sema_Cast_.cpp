@@ -228,7 +228,7 @@ ConstantRef Sema::cast(const CastContext& castCtx, ConstantRef srcRef, TypeRef t
     return ConstantRef::invalid();
 }
 
-bool Sema::promoteConstantsIfNeeded(const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef)
+bool Sema::promoteConstants(const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef)
 {
     if (ops.nodeView[0].typeRef == ops.nodeView[1].typeRef)
         return true;

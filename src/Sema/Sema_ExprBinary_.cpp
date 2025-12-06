@@ -18,7 +18,7 @@ namespace
         ConstantRef leftCstRef  = ops.nodeView[0].cstRef;
         ConstantRef rightCstRef = ops.nodeView[1].cstRef;
 
-        if (!sema.promoteConstantsIfNeeded(ops, leftCstRef, rightCstRef))
+        if (!sema.promoteConstants(ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
 
         const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);

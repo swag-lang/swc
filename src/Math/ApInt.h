@@ -70,6 +70,8 @@ public:
     void     sub(const ApInt& rhs, bool& overflow);
     void     mul(const ApInt& rhs, bool& overflow);
     uint64_t div(const ApInt& rhs);
+    void     mod(const ApInt& rhs);
+    void     modSigned(const ApInt& rhs, bool& overflow);
 
     void    addSigned(const ApInt& rhs, bool& overflow);
     void    subSigned(const ApInt& rhs, bool& overflow);

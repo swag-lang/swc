@@ -114,19 +114,16 @@ namespace
 
                     val1.div(val2, overflow);
                     break;
-                    
+
                 case TokenId::SymPercent:
-                {
                     if (val2.isZero())
                     {
                         sema.raiseDivZero(node, ops.nodeView[1].nodeRef, leftCst.typeRef());
                         return ConstantRef::invalid();
                     }
 
-                    const auto md = val1.div(val2, overflow);
-                    val1          = ApsInt(md);
-                }
-                break;
+                    val1.mod(val2, overflow);
+                    break;
 
                 case TokenId::SymAmpersand:
                     val1.bitwiseAnd(val2);

@@ -43,6 +43,14 @@ int64_t ApsInt::div(const ApsInt& rhs, bool& overflow)
     return divSigned(rhs, overflow);
 }
 
+void ApsInt::mod(const ApsInt& rhs, bool& overflow)
+{
+    if (unsigned_)
+        ApInt::mod(rhs);
+    else
+        modSigned(rhs, overflow);
+}
+
 void ApsInt::shiftLeft(uint64_t amount, bool& overflow)
 {
     logicalShiftLeft(amount, overflow);

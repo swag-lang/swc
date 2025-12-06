@@ -48,6 +48,7 @@ public:
     void    sub(const ApsInt& rhs, bool& overflow);
     void    mul(const ApsInt& rhs, bool& overflow);
     int64_t div(const ApsInt& rhs, bool& overflow);
+    void    mod(const ApsInt& rhs, bool& overflow);
     void    shiftLeft(uint64_t amount, bool& overflow);
     void    shiftRight(uint64_t amount);
 

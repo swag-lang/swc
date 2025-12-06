@@ -504,6 +504,46 @@ uint64_t ApInt::div(const ApInt& rhs)
     return rem.asU64();
 }
 
+void ApInt::mod(const ApInt& rhs)
+{
+    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+    SWC_ASSERT(!rhs.isZero());
+
+    // div(rhs) overwrites *this with quotient, returns a remainder.
+    const uint64_t rem = div(rhs);
+
+    // Install the remainder back into *this with the same width.
+    clearWords();
+    words_[0] = rem;
+
+    normalize();
+}
+
+void ApInt::modSigned(const ApInt& rhs, bool& overflow)
+{
+    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+    SWC_ASSERT(!rhs.isZero());
+
+    // divSigned overwrites *this with the quotient and returns the signed remainder.
+    const int64_t signedRem = divSigned(rhs, overflow);
+
+    // On signed overflow (min / -1), we define the remainder as 0 and signal overflow.
+    if (overflow)
+    {
+        setZero();
+        return;
+    }
+
+    // Rebuild *this from the signed remainder, keeping the same bit width.
+    // 1) Build a 64-bit signed ApInt from the int64_t remainder.
+    // 2) Sign-extend (or truncate) it to our current bit width.
+    ApInt remVal(signedRem); // 64-bit two's-complement value
+    remVal.resizeSigned(bitWidth_);
+
+    // Replace the current value with the remainder.
+    *this = remVal;
+}
+
 void ApInt::addSigned(const ApInt& rhs, bool& overflow)
 {
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);

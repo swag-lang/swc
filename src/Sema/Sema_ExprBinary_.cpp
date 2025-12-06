@@ -60,9 +60,15 @@ namespace
 
         if (type.isInt())
         {
-            ApsInt        val1     = leftCst.getInt();
-            const ApsInt& val2     = rightCst.getInt();
-            bool          overflow = false;
+            ApsInt val1     = leftCst.getInt();
+            ApsInt val2     = rightCst.getInt();
+            bool   overflow = false;
+
+            if (type.isIntUnsized())
+            {
+                val1.setSigned(true);
+                val2.setSigned(true);
+            }
 
             switch (op)
             {
@@ -94,7 +100,7 @@ namespace
                     SWC_UNREACHABLE();
             }
 
-            if (overflow)
+            if (type.intBits() != 0 && overflow)
             {
                 auto diag = sema.reportError(DiagnosticId::sema_err_integer_overflow, node.srcViewRef(), node.tokRef());
                 diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());

@@ -47,7 +47,7 @@ public:
     bool         isBool() const noexcept { return kind_ == TypeInfoKind::Bool; }
     bool         isString() const noexcept { return kind_ == TypeInfoKind::String; }
     bool         isInt() const noexcept { return kind_ == TypeInfoKind::Int; }
-    bool         isInt0() const noexcept { return kind_ == TypeInfoKind::Int && asInt.bits == 0; }
+    bool         isIntUnsized() const noexcept { return kind_ == TypeInfoKind::Int && asInt.bits == 0; }
     bool         isIntUnsigned() const noexcept { return isInt() && asInt.isUnsigned; }
     bool         isIntSigned() const noexcept { return isInt() && !asInt.isUnsigned; }
     bool         isFloat() const noexcept { return kind_ == TypeInfoKind::Float; }

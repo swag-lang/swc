@@ -103,7 +103,7 @@ namespace
 
     Result checkMinus(Sema& sema, const AstUnaryExpr& expr, const UnaryOperands& ops)
     {
-        if (ops.nodeView.type->isFloat() || ops.nodeView.type->isIntSigned() || ops.nodeView.type->isInt0())
+        if (ops.nodeView.type->isFloat() || ops.nodeView.type->isIntSigned() || ops.nodeView.type->isIntUnsized())
             return Result::Success;
 
         if (ops.nodeView.type->isIntUnsigned())

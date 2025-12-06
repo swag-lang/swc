@@ -37,6 +37,7 @@ public:
 
     bool isUnsigned() const { return unsigned_; }
     void setUnsigned(bool isUnSigned) { unsigned_ = isUnSigned; }
+    void setSigned(bool isSigned) { unsigned_ = !isSigned; }
 
     void    add(const ApsInt& rhs, bool& overflow);
     void    sub(const ApsInt& rhs, bool& overflow);

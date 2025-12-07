@@ -16,3 +16,5 @@
 #assert(1.0 == 1)
 #assert(1.0'f32 == 1)
 #assert("hello" != "world")
+#assert('a' == 'a')
+#assert('a' != 'b')

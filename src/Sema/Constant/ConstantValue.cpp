@@ -70,6 +70,8 @@ bool ConstantValue::operator==(const ConstantValue& other) const noexcept
     {
         case ConstantKind::Bool:
             return getBool() == other.getBool();
+        case ConstantKind::Char:
+            return getChar() == other.getChar();
         case ConstantKind::String:
             return getString() == other.getString();
         case ConstantKind::Int:
@@ -89,6 +91,8 @@ bool ConstantValue::eq(const ConstantValue& other) const noexcept
     {
         case ConstantKind::Bool:
             return getBool() == other.getBool();
+        case ConstantKind::Char:
+            return getChar() == other.getChar();            
         case ConstantKind::String:
             return getString() == other.getString();
         case ConstantKind::Int:
@@ -188,6 +192,9 @@ uint32_t ConstantValue::hash() const noexcept
     {
         case ConstantKind::Bool:
             h = Math::hashCombine(h, asBool.val);
+            break;
+        case ConstantKind::Char:
+            h = Math::hashCombine(h, Math::hash(asChar.val));
             break;
         case ConstantKind::String:
             h = Math::hashCombine(h, Math::hash(asString.val));

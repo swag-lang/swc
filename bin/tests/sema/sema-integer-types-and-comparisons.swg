@@ -82,18 +82,18 @@
 
 #assert(-"127'u8" == -"127'u8")     // swc-expected-error {{sema_err_unary_operand_type}}
 #assert(-true == -true)             // swc-expected-error {{sema_err_unary_operand_type}}
-#assert(true <=> 0)                 // swc-expected-error {{sema_err_binary_operand_type}}
-#assert("true" <=> 0)               // swc-expected-error {{sema_err_binary_operand_type}}
-#assert(0 <=> true)                 // swc-expected-error {{sema_err_binary_operand_type}}
-#assert(0 <=> "0")                  // swc-expected-error {{sema_err_binary_operand_type}}
-#assert(0 < true)                   // swc-expected-error {{sema_err_binary_operand_type}}
-#assert(0 < "0")                    // swc-expected-error {{sema_err_binary_operand_type}}
-#assert(0 <= true)                  // swc-expected-error {{sema_err_binary_operand_type}}
-#assert(0 <= "0")                   // swc-expected-error {{sema_err_binary_operand_type}}
-#assert(0 > true)                   // swc-expected-error {{sema_err_binary_operand_type}}
-#assert(0 > "0")                    // swc-expected-error {{sema_err_binary_operand_type}}
-#assert(0 >= true)                  // swc-expected-error {{sema_err_binary_operand_type}}
-#assert(0 >= "0")                   // swc-expected-error {{sema_err_binary_operand_type}}
+#assert(true <=> 0)                 // swc-expected-error {{sema_err_compare_operand_type}}
+#assert("true" <=> 0)               // swc-expected-error {{sema_err_compare_operand_type}}
+#assert(0 <=> true)                 // swc-expected-error {{sema_err_compare_operand_type}}
+#assert(0 <=> "0")                  // swc-expected-error {{sema_err_compare_operand_type}}
+#assert(0 < true)                   // swc-expected-error {{sema_err_compare_operand_type}}
+#assert(0 < "0")                    // swc-expected-error {{sema_err_compare_operand_type}}
+#assert(0 <= true)                  // swc-expected-error {{sema_err_compare_operand_type}}
+#assert(0 <= "0")                   // swc-expected-error {{sema_err_compare_operand_type}}
+#assert(0 > true)                   // swc-expected-error {{sema_err_compare_operand_type}}
+#assert(0 > "0")                    // swc-expected-error {{sema_err_compare_operand_type}}
+#assert(0 >= true)                  // swc-expected-error {{sema_err_compare_operand_type}}
+#assert(0 >= "0")                   // swc-expected-error {{sema_err_compare_operand_type}}
 
 #assert(-1's8 == 0'u8)              // swc-expected-error {{sema_err_signed_unsigned}}
 #assert((-1's16 == 0'u16))          // swc-expected-error {{sema_err_signed_unsigned}}

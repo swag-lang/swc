@@ -77,6 +77,7 @@ SWC_DIAG_DEF(sema_err_negate_unsigned, Error, "cannot negate unsigned type {type
 SWC_DIAG_DEF(sema_err_signed_unsigned, Error, "cannot cast negative value to unsigned type {type}")
 SWC_DIAG_DEF(sema_err_unary_operand_type, Error, "unary operator {tok} cannot be applied to an operand of type {type}")
 SWC_DIAG_DEF(sema_err_binary_operand_type, Error, "binary operator {tok} cannot be applied to an operand of type {type}")
+SWC_DIAG_DEF(sema_err_compare_operand_type, Error, "cannot compare with {tok} a left expression of type {left} and a right expression of type {right}")
 SWC_DIAG_DEF(sema_err_const_missing_init, Error, "a constant must be initialized with a value")
 SWC_DIAG_DEF(sema_err_unknown_identifier, Error, "unknown identifier {tok}")
 SWC_DIAG_DEF(sema_err_division_zero, Error, "division by zero")

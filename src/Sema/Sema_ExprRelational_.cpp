@@ -126,45 +126,26 @@ namespace
     {
         if (ops.nodeView[0].typeRef == ops.nodeView[1].typeRef)
             return Result::Success;
+        if (ops.nodeView[0].type->canBePromoted() && ops.nodeView[1].type->canBePromoted())
+            return Result::Success;
 
-        if (!ops.nodeView[0].type->canBePromoted())
-        {
-            auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.srcViewRef(), node.tokRef(), node.nodeLeftRef);
-            diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView[0].typeRef);
-            diag.report(sema.ctx());
-            return Result::Error;
-        }
-
-        if (!ops.nodeView[1].type->canBePromoted())
-        {
-            auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.srcViewRef(), node.tokRef(), node.nodeRightRef);
-            diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView[1].typeRef);
-            diag.report(sema.ctx());
-            return Result::Error;
-        }
-
-        return Result::Success;
+        auto diag = sema.reportError(DiagnosticId::sema_err_compare_operand_type, node.srcViewRef(), node.tokRef());
+        diag.addArgument(Diagnostic::ARG_LEFT, ops.nodeView[0].typeRef);
+        diag.addArgument(Diagnostic::ARG_RIGHT, ops.nodeView[1].typeRef);
+        diag.report(sema.ctx());
+        return Result::Error;
     }
 
     Result checkCompareEqual(Sema& sema, const AstRelationalExpr& node, const SemaNodeViewList& ops)
     {
-        if (!ops.nodeView[0].type->canBePromoted())
-        {
-            auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.srcViewRef(), node.tokRef(), node.nodeLeftRef);
-            diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView[0].typeRef);
-            diag.report(sema.ctx());
-            return Result::Error;
-        }
+        if (ops.nodeView[0].type->canBePromoted() && ops.nodeView[1].type->canBePromoted())
+            return Result::Success;
 
-        if (!ops.nodeView[1].type->canBePromoted())
-        {
-            auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, node.srcViewRef(), node.tokRef(), node.nodeRightRef);
-            diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView[1].typeRef);
-            diag.report(sema.ctx());
-            return Result::Error;
-        }
-
-        return Result::Success;
+        auto diag = sema.reportError(DiagnosticId::sema_err_compare_operand_type, node.srcViewRef(), node.tokRef());
+        diag.addArgument(Diagnostic::ARG_LEFT, ops.nodeView[0].typeRef);
+        diag.addArgument(Diagnostic::ARG_RIGHT, ops.nodeView[1].typeRef);
+        diag.report(sema.ctx());
+        return Result::Error;
     }
 
     Result check(Sema& sema, TokenId op, const AstRelationalExpr& node, const SemaNodeViewList& ops)

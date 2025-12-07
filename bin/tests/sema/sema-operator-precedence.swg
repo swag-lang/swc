@@ -27,6 +27,9 @@
 #assert(1 + 2 * 3 << 2 == (1 + (2 * 3)) << 2)   // (1+6)<<2 = 7<<2 = 28
 #assert(8 >> 1 + 2 * 1 == 8 >> (1 + 2))         // 8 >> 3 = 1
 #assert(1 | 2 ^ 3 & 4 == 1 | (2 ^ (3 & 4)))     // 3 ^ 4 == 7 → 1|0 == 1
-
-
-
+/*
+#assert(1 < 2 == true)
+#assert(1 == 1 < 2) // swc1-expected-error {{sema_err_binary_operand_type}}
+#assert((1 == 1) < 2)
+#assert((1 < 2) == true)
+#assert(1 < 2 and 3 > 1)*/

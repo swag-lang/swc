@@ -36,3 +36,11 @@
 #assert(1.0 < 0.5)               // swc-expected-error {{sema_err_compiler_assert}}
 #assert((1.0 <=> 2.0) == 1)      // swc-expected-error {{sema_err_compiler_assert}}
 
+#assert(1.0 != 1.0 + 1e-10)
+#assert(1.0 < 1.0000001)
+#assert(1.0 > 0.9999999)
+
+#assert(1.0'f32 == 1.0'f32)
+#assert(1.0'f64 == 1.0'f64)
+
+#assert(1.0 < 1) // swc-expected-error {{sema_err_compiler_assert}}

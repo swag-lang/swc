@@ -92,6 +92,11 @@
 #assert(3 % 4 == 3)
 #assert(-7 % 3 == -1)
 #assert(7 % -3 == 1)
+#assert(-7 % -3 == -1)
+#assert(0 % 5 == 0)
+#print(5 % 0) // swc-expected-error {{sema_err_division_zero}}
+#assert(10 % 3 == 1)
+#assert(10'u32 % 3'u32 == 1)
 
 #assert(1.0 << 1)   // swc-expected-error {{sema_err_binary_operand_type}}
 #assert(true >> 1)  // swc-expected-error {{sema_err_binary_operand_type}}
@@ -101,3 +106,7 @@
 
 #assert(1 << -1)    // swc-expected-error {{sema_err_negative_shift}}
 #assert(1 >> -1)    // swc-expected-error {{sema_err_negative_shift}}
+
+#assert(0xFF'u8 & 0x01'u8 == 1)
+#assert(0b1010 ^ 0b0110 == 0b1100) // 10 ^ 6 == 12
+#assert(0b1111 | 0b0000 == 0b1111) // 15 | 0 == 15

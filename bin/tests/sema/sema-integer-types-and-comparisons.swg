@@ -107,3 +107,8 @@
 #assert(!(1 == 1))                  // swc-expected-error {{sema_err_compiler_assert}}
 #assert(!1.0)                       // swc-expected-error {{sema_err_unary_operand_type}}
 #assert(!0)                         // swc-expected-error {{sema_err_compiler_assert}}
+
+#assert(-128's8 < -127's8)
+#assert(0'u8 == 0's8)
+#assert(-1's8 != 1'u8)              // swc-expected-error {{sema_err_signed_unsigned}}
+#assert((1's8 <=> -1's8) == 1)

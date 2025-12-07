@@ -33,3 +33,15 @@
 #print(1.0 / 0.0)    // swc-expected-error {{sema_err_division_zero}}
 #print(-1.0 / 0.0)   // swc-expected-error {{sema_err_division_zero}}
 #print(0.0 / 0.0)    // swc-expected-error {{sema_err_division_zero}}
+
+#assert(1.0 - 1.0 == 0.0)
+#assert(1.0 * 0.0 == 0.0)
+#assert(1.0 / 1.0 == 1.0)
+#assert(-1.0 / 1.0 == -1.0)
+#assert(0.0 / 1.0 == 0.0)
+#assert(1.0'f32 + 2.0'f64 == 3.0)
+
+//#assert(-5.0 * 0.0 == 0.0)
+//#assert(0.0 == -0.0)
+//#assert(0.0 <= -0.0)
+//#assert(-0.0 >= 0.0)

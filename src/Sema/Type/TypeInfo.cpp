@@ -102,7 +102,7 @@ TypeInfo TypeInfo::makeType(TypeRef typeRef)
     return ti;
 }
 
-Utf8 TypeInfo::toString(const TypeManager& typeMgr, ToStringMode mode) const
+Utf8 TypeInfo::toName(const TypeManager& typeMgr, ToNameMode mode) const
 {
     switch (kind_)
     {
@@ -115,7 +115,7 @@ Utf8 TypeInfo::toString(const TypeManager& typeMgr, ToStringMode mode) const
         case TypeInfoKind::Type:
             if (asType.typeRef.isInvalid())
                 return "typeinfo";
-            return typeMgr.typeToString(asType.typeRef, mode);
+            return std::format("typeinfo({})", typeMgr.typeToName(asType.typeRef, mode));
 
         case TypeInfoKind::Int:
         {

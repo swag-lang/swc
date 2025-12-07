@@ -194,7 +194,7 @@ Utf8 ConstantValue::toString(const TaskContext& ctx) const
         case ConstantKind::Float:
             return getFloat().toString();
         case ConstantKind::Type:
-            return ctx.typeMgr().typeToString(getType());
+            return ctx.typeMgr().typeToName(getType());
 
         default:
             SWC_UNREACHABLE();

@@ -29,5 +29,5 @@
 #assert('\n' == 10'u32)
 #assert('\n' == 10'u64)
 
-//#assert(s32 == s32)
-//#assert(s32 != u32)
+#assert(s32 == s32)
+#assert(s32 != u32)

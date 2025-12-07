@@ -229,7 +229,7 @@ TypeRef TypeManager::getTypeFloat(uint32_t bits) const
     }
 }
 
-std::string_view TypeManager::typeToString(TypeRef typeInfoRef, TypeInfo::ToStringMode mode) const
+std::string_view TypeManager::typeToName(TypeRef typeInfoRef, TypeInfo::ToNameMode mode) const
 {
     SWC_ASSERT(typeInfoRef.isValid());
 
@@ -250,7 +250,7 @@ std::string_view TypeManager::typeToString(TypeRef typeInfoRef, TypeInfo::ToStri
     if (!inserted)
         return it->second;
 
-    it->second = typeInfo.toString(*this, mode);
+    it->second = typeInfo.toName(*this, mode);
     return it->second;
 }
 

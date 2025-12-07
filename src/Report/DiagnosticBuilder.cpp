@@ -634,7 +634,7 @@ Utf8 DiagnosticBuilder::argumentToString(const Diagnostic::Argument& arg) const
         else if constexpr (std::integral<T>)
             return Utf8{std::to_string(v)};
         else if constexpr (std::same_as<T, TypeRef>)
-            return ctx_->compiler().typeMgr().typeToString(v);
+            return ctx_->compiler().typeMgr().typeToName(v);
         else if constexpr (std::same_as<T, ConstantRef>)
             return ctx_->compiler().cstMgr().get(v).toString(*ctx_);
         else

@@ -21,7 +21,7 @@ class TypeInfo
     friend class TypeManager;
 
 public:
-    enum class ToStringMode
+    enum class ToNameMode
     {
         Diagnostic,
         Count,
@@ -31,7 +31,7 @@ private:
     TypeInfo() = delete;
     explicit TypeInfo(TypeInfoKind kind);
 
-    Utf8 toString(const TypeManager& typeMgr, ToStringMode mode = ToStringMode::Diagnostic) const;
+    Utf8 toName(const TypeManager& typeMgr, ToNameMode mode = ToNameMode::Diagnostic) const;
 
     TypeInfoKind kind_ = TypeInfoKind::Invalid;
 

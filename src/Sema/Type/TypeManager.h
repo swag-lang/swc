@@ -14,8 +14,8 @@ class TypeManager
         Store                                                    store;
         std::unordered_map<TypeInfo, TypeRef, TypeInfoHash>      map;
         mutable std::shared_mutex                                mutexAdd;
-        mutable std::unordered_map<TypeInfo, Utf8, TypeInfoHash> mapString[static_cast<int>(TypeInfo::ToStringMode::Count)];
-        mutable std::shared_mutex                                mutexString[static_cast<int>(TypeInfo::ToStringMode::Count)];
+        mutable std::unordered_map<TypeInfo, Utf8, TypeInfoHash> mapString[static_cast<int>(TypeInfo::ToNameMode::Count)];
+        mutable std::shared_mutex                                mutexString[static_cast<int>(TypeInfo::ToNameMode::Count)];
     };
 
     static constexpr uint32_t SHARD_BITS  = 3;
@@ -61,7 +61,7 @@ public:
 
     TypeRef promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const;
 
-    std::string_view typeToString(TypeRef typeInfoRef, TypeInfo::ToStringMode mode = TypeInfo::ToStringMode::Diagnostic) const;
+    std::string_view typeToName(TypeRef typeInfoRef, TypeInfo::ToNameMode mode = TypeInfo::ToNameMode::Diagnostic) const;
 };
 
 SWC_END_NAMESPACE()

@@ -103,6 +103,20 @@ namespace
         }
     }
 
+    bool isLogicalOperator(TokenId id)
+    {
+        switch (id)
+        {
+            case TokenId::KwdAnd:
+            case TokenId::KwdOr:
+            case TokenId::SymAmpersandAmpersand:
+            case TokenId::SymPipePipe:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     int getLogicalPrecedence(TokenId id)
     {
         switch (id)
@@ -406,11 +420,17 @@ AstNodeRef Parser::parseLogicalExpr(int minPrecedence)
     auto left = parseRelationalExpr();
     if (left.isInvalid())
         return AstNodeRef::invalid();
-
+    
     while (true)
     {
-        const auto opId       = id();
-        const int  precedence = getLogicalPrecedence(opId);
+        const auto opId = id();
+        if (!isLogicalOperator(opId))
+            break;
+
+        if (isAny(TokenId::SymAmpersandAmpersand, TokenId::SymPipePipe))
+            raiseError(DiagnosticId::parser_err_unexpected_and_or, ref());
+
+        const int precedence = getLogicalPrecedence(opId);
         if (precedence < minPrecedence)
             break;
 

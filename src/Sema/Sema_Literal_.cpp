@@ -1,4 +1,6 @@
 #include "pch.h"
+
+#include "Core/Utf8Helper.h"
 #include "Lexer/LangSpec.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
@@ -101,57 +103,47 @@ AstVisitStepResult AstBoolLiteral::semaPreNode(Sema& sema) const
 
 AstVisitStepResult AstCharacterLiteral::semaPreNode(Sema& sema) const
 {
-    const auto& ctx     = sema.ctx();
-    const auto& tok     = sema.token(srcViewRef(), tokRef());
-    const auto& srcView = sema.compiler().srcView(srcViewRef());
-    const auto  str     = tok.string(srcView);
+    const auto&       ctx     = sema.ctx();
+    const Token&      tok     = sema.token(srcViewRef(), tokRef());
+    const SourceView& srcView = sema.compiler().srcView(srcViewRef());
+    std::string_view  str     = tok.string(srcView);
 
-    // Strip delimiters: find the first and last single quote.
-    const auto firstQuote = str.find('\'');
-    const auto lastQuote  = str.rfind('\'');
+    // Remove delimiters
+    str = str.substr(1, str.size() - 2);
 
-    SWC_ASSERT(firstQuote != Utf8::npos && lastQuote != Utf8::npos && firstQuote < lastQuote);
-
-    const Utf8 inner = str.substr(firstQuote + 1, lastQuote - firstQuote - 1);
-
-    uint32_t value = 0;
+    char32_t value = 0;
 
     if (!tok.hasFlag(TokenFlagsE::Escaped))
     {
-        // No escape sequence: should just be a single (byte) character.
-        SWC_ASSERT(inner.size() == 1);
-        value = static_cast<unsigned char>(inner[0]);
+        auto [buf, wc, eat] = Utf8Helper::decodeOneChar(reinterpret_cast<const char8_t*>(str.data()), reinterpret_cast<const char8_t*>(str.data() + str.size()));
+        value               = wc;
     }
     else
     {
         // Character literal contains a single escape sequence.
         const auto& langSpec = sema.compiler().global().langSpec();
 
-        SWC_ASSERT(!inner.empty());
-        SWC_ASSERT(inner[0] == '\\');
+        SWC_ASSERT(!str.empty());
+        SWC_ASSERT(str[0] == '\\');
 
         size_t i = 0;
-        value    = decodeEscapeSequence(inner, i, langSpec);
+        value    = decodeEscapeSequence(str, i, langSpec);
 
         // We expect exactly one escape sequence and nothing else.
-        SWC_ASSERT(i + 1 == inner.size());
+        SWC_ASSERT(i + 1 == str.size());
     }
 
-    // Assuming there is a dedicated char constant factory.
     const auto val = ConstantValue::makeChar(ctx, value);
-    // If you don't have makeChar, you can use:
-    // const auto val = ConstantValue::makeInt(ctx, ApsInt{ApInt(value), false});
-
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 
 AstVisitStepResult AstStringLiteral::semaPreNode(Sema& sema) const
 {
-    const auto& ctx     = sema.ctx();
-    const auto& tok     = sema.token(srcViewRef(), tokRef());
-    const auto& srcView = sema.compiler().srcView(srcViewRef());
-    auto        str     = tok.string(srcView);
+    const auto&       ctx     = sema.ctx();
+    const Token&      tok     = sema.token(srcViewRef(), tokRef());
+    const SourceView& srcView = sema.compiler().srcView(srcViewRef());
+    std::string_view  str     = tok.string(srcView);
 
     // Remove delimiters
     switch (tok.id)
@@ -193,7 +185,7 @@ AstVisitStepResult AstStringLiteral::semaPreNode(Sema& sema) const
             continue;
         }
 
-        char32_t cp = decodeEscapeSequence(str, i, langSpec);
+        const char32_t cp = decodeEscapeSequence(str, i, langSpec);
         result += cp;
     }
 

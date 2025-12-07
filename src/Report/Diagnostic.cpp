@@ -2,13 +2,13 @@
 #include "Report/Diagnostic.h"
 #include "Core/Utf8Helper.h"
 #include "Main/CommandLine.h"
+#include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
 #include "Report/DiagnosticBuilder.h"
 #include "Report/DiagnosticElement.h"
 #include "Report/Logger.h"
-#include "Main/CompilerInstance.h"
 #include "Wmf/Verify.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -127,7 +127,7 @@ void Diagnostic::addArgument(std::string_view name, std::string_view arg, bool q
         if ((wc < 128 && !std::isprint(static_cast<int>(wc))) || wc >= 128)
         {
             char hex[10];
-            (void) std::snprintf(hex, sizeof(hex), "\\x%02X", wc);
+            (void) std::snprintf(hex, sizeof(hex), "\\x%02X", static_cast<uint32_t>(wc));
             sanitized += hex;
             ptr = buf;
         }

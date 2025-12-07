@@ -17,6 +17,7 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
     switch (kind_)
     {
         case TypeInfoKind::Bool:
+        case TypeInfoKind::Char:
         case TypeInfoKind::String:
             return true;
         case TypeInfoKind::Int:
@@ -36,8 +37,8 @@ uint32_t TypeInfo::hash() const
     switch (kind_)
     {
         case TypeInfoKind::Bool:
-        case TypeInfoKind::String:
         case TypeInfoKind::Char:
+        case TypeInfoKind::String:
             return h;
 
         case TypeInfoKind::Int:
@@ -91,7 +92,7 @@ Utf8 TypeInfo::toString(ToStringMode) const
         case TypeInfoKind::Bool:
             return "bool";
         case TypeInfoKind::Char:
-            return "rune";
+            return "character";
         case TypeInfoKind::String:
             return "string";
 

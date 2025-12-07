@@ -17,3 +17,4 @@
 #assert("A" ++ "B" == "AB")
 #assert("1" == 1 ++ "")
 #assert("" ++ "" == "")
+#assert('a' ++ 'a' == "aa")

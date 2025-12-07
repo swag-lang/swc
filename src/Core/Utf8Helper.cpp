@@ -8,7 +8,7 @@ SWC_BEGIN_NAMESPACE()
 
 // Returns {next_ptr, code_point, bytes_consumed}.
 // On error: {nullptr, 0, 0}.
-std::tuple<const char8_t*, uint32_t, uint32_t> Utf8Helper::decodeOneChar(const char8_t* cur, const char8_t* end)
+std::tuple<const char8_t*, char32_t, uint32_t> Utf8Helper::decodeOneChar(const char8_t* cur, const char8_t* end)
 {
     const auto u = cur;
     const auto e = end;

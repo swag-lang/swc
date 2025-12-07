@@ -104,6 +104,7 @@ public:
     void raiseLiteralOverflow(AstNodeRef nodeRef, TypeRef targetTypeRef) const;
     void raiseDivZero(const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef) const;
     void raiseExprNotConst(AstNodeRef nodeRef) const;
+    void raiseBinaryOperandType(const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef) const;
     void raiseInternalError(const AstNode& node) const;
 
     Result checkModifiers(const AstNode& node, AstModifierFlags mods, AstModifierFlags allowed);

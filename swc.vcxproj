@@ -254,6 +254,7 @@
         <ClCompile Include="src\Sema\Sema_Check_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Error_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Compiler_.cpp"/>
+        <ClCompile Include="src\Sema\Sema_ExprLogical_.cpp"/>
         <ClCompile Include="src\Sema\Sema_ExprRelational_.cpp"/>
         <ClCompile Include="src\Sema\Sema_ExprBinary_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Expr_.cpp"/>

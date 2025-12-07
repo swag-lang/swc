@@ -13,13 +13,6 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    void raiseBinaryOperandType(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
-    {
-        auto diag = sema.reportError(DiagnosticId::sema_err_binary_operand_type, nodeOp.srcViewRef(), nodeOp.tokRef(), nodeValueRef);
-        diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
-        diag.report(sema.ctx());
-    }
-
     ConstantRef constantFoldOp(Sema& sema, TokenId op, const AstBinaryExpr& node, const SemaNodeViewList& ops)
     {
         const auto& ctx         = sema.ctx();
@@ -251,13 +244,13 @@ namespace
             case TokenId::SymAsterisk:
                 if (!ops.nodeView[0].type->canBePromoted())
                 {
-                    raiseBinaryOperandType(sema, node, node.nodeLeftRef, ops.nodeView[0].typeRef);
+                    sema.raiseBinaryOperandType(node, node.nodeLeftRef, ops.nodeView[0].typeRef);
                     return Result::Error;
                 }
 
                 if (!ops.nodeView[1].type->canBePromoted())
                 {
-                    raiseBinaryOperandType(sema, node, node.nodeRightRef, ops.nodeView[1].typeRef);
+                    sema.raiseBinaryOperandType(node, node.nodeRightRef, ops.nodeView[1].typeRef);
                     return Result::Error;
                 }
                 break;
@@ -269,13 +262,13 @@ namespace
             case TokenId::SymLowerLower:
                 if (!ops.nodeView[0].type->isInt())
                 {
-                    raiseBinaryOperandType(sema, node, node.nodeLeftRef, ops.nodeView[0].typeRef);
+                    sema.raiseBinaryOperandType(node, node.nodeLeftRef, ops.nodeView[0].typeRef);
                     return Result::Error;
                 }
 
                 if (!ops.nodeView[1].type->isInt())
                 {
-                    raiseBinaryOperandType(sema, node, node.nodeRightRef, ops.nodeView[1].typeRef);
+                    sema.raiseBinaryOperandType(node, node.nodeRightRef, ops.nodeView[1].typeRef);
                     return Result::Error;
                 }
                 break;

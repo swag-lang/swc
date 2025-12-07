@@ -95,6 +95,13 @@ void Sema::raiseExprNotConst(AstNodeRef nodeRef) const
     return raiseError(DiagnosticId::sema_err_expr_not_const, nodeRef);
 }
 
+void Sema::raiseBinaryOperandType(const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef) const
+{
+    auto diag = reportError(DiagnosticId::sema_err_binary_operand_type, nodeOp.srcViewRef(), nodeOp.tokRef(), nodeValueRef);
+    diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
+    diag.report(*ctx_);
+}
+
 void Sema::raiseInternalError(const AstNode& node) const
 {
     raiseError(DiagnosticId::sema_err_internal, node.srcViewRef(), node.tokRef());

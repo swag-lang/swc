@@ -476,6 +476,7 @@ struct AstUnnamedArgumentList : AstCompoundT<AstNodeId::UnnamedArgumentList>
 
 struct AstLogicalExpr : AstBinaryT<AstNodeId::LogicalExpr>
 {
+    AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
 struct AstRelationalExpr : AstBinaryT<AstNodeId::RelationalExpr>

@@ -154,21 +154,20 @@ AstNodeRef Parser::parseBinaryExpr(int minPrecedence)
         if (precedence < minPrecedence)
             break;
 
-        // Consume operator token
         const auto tokOp = consume();
 
-        // Your existing modifier logic goes here
+        // Modifier flags.
         const auto modifierFlags = parseModifiers();
 
         // All these operators are left-associative.
-        // For right-associative ops, you'd use 'precedence' instead of 'precedence + 1'
+        // For right-associative ops, use 'precedence' instead of 'precedence + 1'
         const int nextMinPrecedence = precedence + 1;
 
         auto right = parseBinaryExpr(nextMinPrecedence);
         if (right.isInvalid())
             return AstNodeRef::invalid();
 
-        // Build the BinaryExpr node just like before
+        // Build the BinaryExpr node
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::BinaryExpr>(tokOp);
         nodePtr->nodeLeftRef          = left;
         nodePtr->modifierFlags        = modifierFlags;

@@ -106,6 +106,51 @@ bool ConstantValue::lt(const ConstantValue& other) const noexcept
     }
 }
 
+bool ConstantValue::le(const ConstantValue& other) const noexcept
+{
+    SWC_ASSERT(kind_ == other.kind_);
+    switch (kind_)
+    {
+        case ConstantKind::Int:
+            return getInt().le(other.getInt());
+        case ConstantKind::Float:
+            return getFloat().le(other.getFloat());
+
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+bool ConstantValue::gt(const ConstantValue& other) const noexcept
+{
+    SWC_ASSERT(kind_ == other.kind_);
+    switch (kind_)
+    {
+        case ConstantKind::Int:
+            return getInt().gt(other.getInt());
+        case ConstantKind::Float:
+            return getFloat().gt(other.getFloat());
+
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+bool ConstantValue::ge(const ConstantValue& other) const noexcept
+{
+    SWC_ASSERT(kind_ == other.kind_);
+    switch (kind_)
+    {
+        case ConstantKind::Int:
+            return getInt().ge(other.getInt());
+        case ConstantKind::Float:
+            return getFloat().ge(other.getFloat());
+
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
 Utf8 ConstantValue::toString() const
 {
     switch (kind_)

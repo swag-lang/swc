@@ -22,12 +22,14 @@ namespace
         if (!sema.promoteConstants(ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
 
+        // For float, we need to compare by values, because two different constants
+        // can still have the same value. For example, 0.0 and -0.0 are two different
+        // constants but have equal values.
         const auto& left = sema.cstMgr().get(leftCstRef);
         if (left.isFloat())
         {
-            const auto& right   = sema.cstMgr().get(rightCstRef);
-            const bool  isEqual = !left.lt(right) && !right.lt(left);
-            return sema.cstMgr().cstBool(isEqual);
+            const auto& right = sema.cstMgr().get(rightCstRef);
+            return sema.cstMgr().cstBool(left.eq(right));
         }
 
         return sema.cstMgr().cstBool(leftCstRef == rightCstRef);
@@ -43,6 +45,8 @@ namespace
 
         if (!sema.promoteConstants(ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
+        if (leftCstRef == rightCstRef)
+            return sema.cstMgr().cstFalse();
 
         const auto& leftCst  = sema.cstMgr().get(leftCstRef);
         const auto& rightCst = sema.cstMgr().get(rightCstRef);
@@ -54,14 +58,35 @@ namespace
     {
         if (ops.nodeView[0].cstRef == ops.nodeView[1].cstRef)
             return sema.cstMgr().cstTrue();
-        return constantFoldLess(sema, node, ops);
+
+        auto leftCstRef  = ops.nodeView[0].cstRef;
+        auto rightCstRef = ops.nodeView[1].cstRef;
+
+        if (!sema.promoteConstants(ops, leftCstRef, rightCstRef))
+            return ConstantRef::invalid();
+        if (leftCstRef == rightCstRef)
+            return sema.cstMgr().cstTrue();
+
+        const auto& leftCst  = sema.cstMgr().get(leftCstRef);
+        const auto& rightCst = sema.cstMgr().get(rightCstRef);
+
+        return sema.cstMgr().cstBool(leftCst.le(rightCst));
     }
 
     ConstantRef constantFoldGreater(Sema& sema, const AstRelationalExpr& node, const SemaNodeViewList& ops)
     {
-        SemaNodeViewList swapped = ops;
-        std::swap(swapped.nodeView[0], swapped.nodeView[1]);
-        return constantFoldLess(sema, node, swapped);
+        auto leftCstRef  = ops.nodeView[0].cstRef;
+        auto rightCstRef = ops.nodeView[1].cstRef;
+
+        if (!sema.promoteConstants(ops, leftCstRef, rightCstRef))
+            return ConstantRef::invalid();
+        if (leftCstRef == rightCstRef)
+            return sema.cstMgr().cstFalse();
+
+        const auto& leftCst  = sema.cstMgr().get(leftCstRef);
+        const auto& rightCst = sema.cstMgr().get(rightCstRef);
+
+        return sema.cstMgr().cstBool(leftCst.gt(rightCst));
     }
 
     ConstantRef constantFoldGreaterEqual(Sema& sema, const AstRelationalExpr& node, const SemaNodeViewList& ops)
@@ -69,11 +94,18 @@ namespace
         if (ops.nodeView[0].cstRef == ops.nodeView[1].cstRef)
             return sema.cstMgr().cstTrue();
 
-        const ConstantRef lt = constantFoldLess(sema, node, ops);
-        if (lt.isInvalid())
-            return ConstantRef::invalid();
+        auto leftCstRef  = ops.nodeView[0].cstRef;
+        auto rightCstRef = ops.nodeView[1].cstRef;
 
-        return sema.cstMgr().cstNegBool(lt);
+        if (!sema.promoteConstants(ops, leftCstRef, rightCstRef))
+            return ConstantRef::invalid();
+        if (leftCstRef == rightCstRef)
+            return sema.cstMgr().cstTrue();
+
+        const auto& leftCst  = sema.cstMgr().get(leftCstRef);
+        const auto& rightCst = sema.cstMgr().get(rightCstRef);
+
+        return sema.cstMgr().cstBool(leftCst.ge(rightCst));
     }
 
     ConstantRef constantFoldCompareEqual(Sema& sema, const AstRelationalExpr& node, const SemaNodeViewList& ops)

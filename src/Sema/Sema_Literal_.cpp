@@ -207,7 +207,7 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(Sema& sema) const
     str = str.substr(2);
 
     const auto& langSpec = sema.compiler().global().langSpec();
-    ApsInt      value(false);
+    ApsInt      value;
     for (const char c : str)
     {
         if (langSpec.isNumberSep(c))
@@ -243,7 +243,7 @@ AstVisitStepResult AstHexaLiteral::semaPreNode(Sema& sema) const
     str = str.substr(2);
 
     const auto& langSpec = sema.compiler().global().langSpec();
-    ApsInt      value(false);
+    ApsInt      value;
     for (const char c : str)
     {
         if (langSpec.isNumberSep(c))

@@ -11,7 +11,7 @@ protected:
     bool                      unsigned_ = false;
 
 public:
-    ApsInt() = delete;
+    ApsInt() = default;
 
     explicit ApsInt(int32_t value) :
         ApInt(value)
@@ -25,11 +25,6 @@ public:
 
     explicit ApsInt(const ApInt& value, bool isUnSigned) :
         ApInt(value),
-        unsigned_(isUnSigned)
-    {
-    }
-
-    explicit ApsInt(bool isUnSigned) :
         unsigned_(isUnSigned)
     {
     }

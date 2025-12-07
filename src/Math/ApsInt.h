@@ -13,13 +13,8 @@ protected:
 public:
     ApsInt() = default;
 
-    explicit ApsInt(int32_t value) :
-        ApInt(std::bit_cast<uint64_t>(static_cast<int64_t>(value)), 32)
-    {
-    }
-
-    explicit ApsInt(int64_t value) :
-        ApInt(std::bit_cast<uint64_t>(value), 64)
+    explicit ApsInt(int64_t value, uint32_t bitWidth) :
+        ApInt(std::bit_cast<uint64_t>(value), bitWidth)
     {
     }
 

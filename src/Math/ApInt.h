@@ -22,7 +22,7 @@ protected:
     bool            hasTopBitsOverflow() const;
 
 public:
-    explicit ApInt();
+    ApInt();
     explicit ApInt(uint32_t bitWidth);
     explicit ApInt(uint64_t value, uint32_t bitWidth);
 

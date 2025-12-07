@@ -3,6 +3,69 @@
 
 SWC_BEGIN_NAMESPACE()
 
+namespace
+{
+    // Precedence: bigger = binds tighter
+    int getBinaryPrecedence(TokenId id)
+    {
+        switch (id)
+        {
+            // Multiplicative
+            case TokenId::SymAsterisk:
+            case TokenId::SymSlash:
+            case TokenId::SymPercent:
+                return 40;
+
+                // Additive (including ++ if you treat it as concat/add)
+            case TokenId::SymPlus:
+            case TokenId::SymMinus:
+            case TokenId::SymPlusPlus:
+                return 30;
+
+                // Shifts
+            case TokenId::SymGreaterGreater:
+            case TokenId::SymLowerLower:
+                return 20;
+
+                // Bitwise AND
+            case TokenId::SymAmpersand:
+                return 15;
+
+                // Bitwise XOR
+            case TokenId::SymCircumflex:
+                return 12;
+
+                // Bitwise OR
+            case TokenId::SymPipe:
+                return 10;
+
+            default:
+                return -1; // not a binary operator handled here
+        }
+    }
+
+    bool isBinaryOperator(TokenId id)
+    {
+        switch (id)
+        {
+            case TokenId::SymPlus:
+            case TokenId::SymMinus:
+            case TokenId::SymAsterisk:
+            case TokenId::SymSlash:
+            case TokenId::SymPercent:
+            case TokenId::SymAmpersand:
+            case TokenId::SymPipe:
+            case TokenId::SymGreaterGreater:
+            case TokenId::SymLowerLower:
+            case TokenId::SymPlusPlus:
+            case TokenId::SymCircumflex:
+                return true;
+            default:
+                return false;
+        }
+    }
+}
+
 AstModifierFlags Parser::parseModifiers()
 {
     AstModifierFlags                     result = AstModifierFlagsE::Zero;
@@ -75,32 +138,52 @@ AstModifierFlags Parser::parseModifiers()
     return result;
 }
 
-AstNodeRef Parser::parseBinaryExpr()
+AstNodeRef Parser::parseBinaryExpr(int minPrecedence)
 {
-    const auto nodeRef = parsePrefixExpr();
-    if (nodeRef.isInvalid())
+    auto left = parsePrefixExpr();
+    if (left.isInvalid())
         return AstNodeRef::invalid();
 
-    if (isAny(TokenId::SymPlus,
-              TokenId::SymMinus,
-              TokenId::SymAsterisk,
-              TokenId::SymSlash,
-              TokenId::SymPercent,
-              TokenId::SymAmpersand,
-              TokenId::SymPipe,
-              TokenId::SymGreaterGreater,
-              TokenId::SymLowerLower,
-              TokenId::SymPlusPlus,
-              TokenId::SymCircumflex))
+    while (true)
     {
-        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::BinaryExpr>(consume());
-        nodePtr->nodeLeftRef            = nodeRef;
-        nodePtr->modifierFlags          = parseModifiers();
-        nodePtr->nodeRightRef           = parseBinaryExpr();
-        return nodeParen;
+        const auto opId = id();
+        if (!isBinaryOperator(opId))
+            break;
+
+        const int precedence = getBinaryPrecedence(opId);
+        if (precedence < minPrecedence)
+            break;
+
+        // Consume operator token
+        const auto tokOp = consume();
+
+        // Your existing modifier logic goes here
+        const auto modifierFlags = parseModifiers();
+
+        // All these operators are left-associative.
+        // For right-associative ops, you'd use 'precedence' instead of 'precedence + 1'
+        const int nextMinPrecedence = precedence + 1;
+
+        auto right = parseBinaryExpr(nextMinPrecedence);
+        if (right.isInvalid())
+            return AstNodeRef::invalid();
+
+        // Build the BinaryExpr node just like before
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::BinaryExpr>(tokOp);
+        nodePtr->nodeLeftRef          = left;
+        nodePtr->modifierFlags        = modifierFlags;
+        nodePtr->nodeRightRef         = right;
+
+        // The new node becomes the left side for the next operator
+        left = nodeRef;
     }
 
-    return nodeRef;
+    return left;
+}
+
+AstNodeRef Parser::parseBinaryExpr()
+{
+    return parseBinaryExpr(0);
 }
 
 AstNodeRef Parser::parseCast()

@@ -69,6 +69,7 @@ class Parser
     AstNodeRef       parseFunctionArguments(AstNodeRef nodeExpr);
     AstNodeRef       parseArraySlicingIndex(AstNodeRef nodeRef);
     AstModifierFlags parseModifiers();
+    AstNodeRef       parseBinaryExpr(int minPrecedence);
 
     template<AstNodeId ID>
     AstNodeRef parseAttributeList();

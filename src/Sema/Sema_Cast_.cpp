@@ -9,16 +9,21 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
+    ConstantRef castCharToInt(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
+    {
+        auto&               ctx        = sema.ctx();
+        const TypeManager&  typeMgr    = ctx.typeMgr();
+        const TypeInfo&     targetType = typeMgr.get(targetTypeRef);
+        const ApsInt        value(static_cast<int64_t>(src.getChar()), targetType.intBits());
+        const ConstantValue result = ConstantValue::makeInt(ctx, value, targetType.intBits());
+        return ctx.cstMgr().addConstant(ctx, result);
+    }
+
     ConstantRef castIntToInt(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
     {
-        auto& ctx = sema.ctx();
-        SWC_ASSERT(src.isInt());
-
-        const auto&     typeMgr    = ctx.typeMgr();
-        const TypeInfo& targetType = typeMgr.get(targetTypeRef);
-
-        // We only support integer target types here
-        SWC_ASSERT(targetType.isInt());
+        auto&              ctx        = sema.ctx();
+        const TypeManager& typeMgr    = ctx.typeMgr();
+        const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
 
         // Working copy of the integer value (with SOURCE signedness)
         ApsInt value = src.getInt();
@@ -120,15 +125,11 @@ namespace
 
     ConstantRef castIntToFloat(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
     {
-        auto& ctx = sema.ctx();
-        SWC_ASSERT(src.isInt());
-
-        const auto&     typeMgr    = ctx.typeMgr();
-        const TypeInfo& targetType = typeMgr.get(targetTypeRef);
-        SWC_ASSERT(targetType.isFloat());
-
-        const ApsInt&  intVal     = src.getInt();
-        const uint32_t targetBits = targetType.floatBits();
+        auto&              ctx        = sema.ctx();
+        const TypeManager& typeMgr    = ctx.typeMgr();
+        const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
+        const ApsInt&      intVal     = src.getInt();
+        const uint32_t     targetBits = targetType.floatBits();
 
         ApFloat value;
         bool    isExact  = false;
@@ -146,15 +147,11 @@ namespace
 
     ConstantRef castFloatToFloat(Sema& sema, const CastContext&, const ConstantValue& src, TypeRef targetTypeRef)
     {
-        auto& ctx = sema.ctx();
-        SWC_ASSERT(src.isFloat());
-
-        const auto&     typeMgr    = ctx.typeMgr();
-        const TypeInfo& targetType = typeMgr.get(targetTypeRef);
-        SWC_ASSERT(targetType.isFloat());
-
-        const ApFloat& floatVal   = src.getFloat();
-        const uint32_t targetBits = targetType.floatBits();
+        auto&              ctx        = sema.ctx();
+        const TypeManager& typeMgr    = ctx.typeMgr();
+        const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
+        const ApFloat&     floatVal   = src.getFloat();
+        const uint32_t     targetBits = targetType.floatBits();
 
         ApFloat value;
         switch (targetBits)
@@ -176,14 +173,16 @@ namespace
 
 bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef) const
 {
-    auto&           ctx        = *ctx_;
-    const auto&     typeMgr    = ctx.typeMgr();
-    const TypeInfo& srcType    = typeMgr.get(srcTypeRef);
-    const TypeInfo& targetType = typeMgr.get(targetTypeRef);
+    auto&              ctx        = *ctx_;
+    const TypeManager& typeMgr    = ctx.typeMgr();
+    const TypeInfo&    srcType    = typeMgr.get(srcTypeRef);
+    const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
 
     switch (castCtx.kind)
     {
         case CastKind::LiteralSuffix:
+            if (srcType.isChar() && targetType.isIntUnsigned())
+                return true;
             if (srcType.isInt() && targetType.isInt())
                 return true;
             if (srcType.isInt() && targetType.isFloat())
@@ -212,11 +211,13 @@ ConstantRef Sema::cast(const CastContext& castCtx, ConstantRef srcRef, TypeRef t
     if (!castAllowed(castCtx, src.typeRef(), targetTypeRef))
         return ConstantRef::invalid();
 
-    auto&           ctx        = *ctx_;
-    const auto&     typeMgr    = ctx.typeMgr();
-    const TypeInfo& srcType    = typeMgr.get(src.typeRef());
-    const TypeInfo& targetType = typeMgr.get(targetTypeRef);
+    auto&              ctx        = *ctx_;
+    const TypeManager& typeMgr    = ctx.typeMgr();
+    const TypeInfo&    srcType    = typeMgr.get(src.typeRef());
+    const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
 
+    if (srcType.isChar())
+        return castCharToInt(*this, castCtx, src, targetTypeRef);
     if (srcType.isInt() && targetType.isInt())
         return castIntToInt(*this, castCtx, src, targetTypeRef);
     if (srcType.isInt() && targetType.isFloat())

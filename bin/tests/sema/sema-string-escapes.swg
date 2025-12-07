@@ -18,3 +18,8 @@
 #assert("\u000D" == "\r") // Carriage return
 #assert("\u2603" == "☃") // Unicode snowman
 #assert("\U0001F600" == "😀") // Unicode grinning face (requires 8-digit escape)
+
+#assert('\n''u8 == 10)
+#assert('\n''u16 == 10)
+#assert('\n''u32 == 10)
+#assert('\n''u64 == 10)

@@ -191,6 +191,7 @@ class Parser
     AstNodeRef parseTryCatch();
     AstNodeRef parseTryCatchAssume();
     AstNodeRef parseType();
+    AstNodeRef parseTypeValue();
     AstNodeRef parseUnionDecl();
     AstNodeRef parseUnreachable();
     AstNodeRef parseUsing();

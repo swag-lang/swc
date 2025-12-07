@@ -111,4 +111,13 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
     return AstVisitStepResult::Continue;
 }
 
+AstVisitStepResult AstValueType::semaPostNode(Sema& sema) const
+{
+    auto&               ctx     = sema.ctx();
+    const TypeRef       typeRef = sema.typeRefOf(nodeTypeRef);
+    const ConstantValue cst     = ConstantValue::makeType(ctx, typeRef);
+    sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, cst));
+    return AstVisitStepResult::Continue;
+}
+
 SWC_END_NAMESPACE()

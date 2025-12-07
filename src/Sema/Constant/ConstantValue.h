@@ -14,6 +14,7 @@ enum class ConstantKind
     String,
     Int,
     Float,
+    Type,
 };
 
 class ConstantValue
@@ -32,6 +33,7 @@ class ConstantValue
         struct { bool val; } asBool;
         struct { ApsInt val; } asInt;
         struct { ApFloat val; } asFloat;
+        struct { TypeRef val; } asType;
         // clang-format on
     };
 
@@ -54,6 +56,7 @@ public:
     bool         isString() const { return kind_ == ConstantKind::String; }
     bool         isInt() const { return kind_ == ConstantKind::Int; }
     bool         isFloat() const { return kind_ == ConstantKind::Float; }
+    bool         isType() const { return kind_ == ConstantKind::Type; }
 
     // clang-format off
     bool getBool() const { SWC_ASSERT(isBool()); return asBool.val; }
@@ -61,6 +64,7 @@ public:
     std::string_view getString() const { SWC_ASSERT(isString()); return asString.val; }
     const ApsInt& getInt() const { SWC_ASSERT(isInt()); return asInt.val; }
     const ApFloat& getFloat() const { SWC_ASSERT(isFloat()); return asFloat.val; }
+    TypeRef getType() const { SWC_ASSERT(isType()); return asType.val; }
     // clang-format on
 
     const TypeInfo& type(const TaskContext& ctx) const;
@@ -68,12 +72,13 @@ public:
     static ConstantValue makeBool(const TaskContext& ctx, bool value);
     static ConstantValue makeString(const TaskContext& ctx, std::string_view value);
     static ConstantValue makeChar(const TaskContext& ctx, char32_t value);
+    static ConstantValue makeType(TaskContext& ctx, TypeRef value);
     static ConstantValue makeInt(const TaskContext& ctx, const ApsInt& value, uint32_t bitWidth = 0);
     static ConstantValue makeFloat(const TaskContext& ctx, const ApFloat& value, uint32_t bitWidth = 0);
 
     uint32_t hash() const noexcept;
     bool     ge(const ConstantValue& other) const noexcept;
-    Utf8     toString() const;
+    Utf8     toString(const TaskContext& ctx) const;
 };
 
 struct ConstantValueHash

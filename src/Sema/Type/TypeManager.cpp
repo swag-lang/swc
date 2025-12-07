@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Sema/Type/TypeManager.h"
 #include "Main/Stats.h"
+#include <mimalloc/types.h>
 
 SWC_BEGIN_NAMESPACE()
 
@@ -249,7 +250,7 @@ std::string_view TypeManager::typeToString(TypeRef typeInfoRef, TypeInfo::ToStri
     if (!inserted)
         return it->second;
 
-    it->second = typeInfo.toString(mode);
+    it->second = typeInfo.toString(*this, mode);
     return it->second;
 }
 

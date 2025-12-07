@@ -420,7 +420,7 @@ AstNodeRef Parser::parseLogicalExpr(int minPrecedence)
     auto left = parseRelationalExpr();
     if (left.isInvalid())
         return AstNodeRef::invalid();
-    
+
     while (true)
     {
         const auto opId = id();
@@ -714,7 +714,7 @@ AstNodeRef Parser::parsePrimaryExpression()
 
         case TokenId::SymLeftBracket:
             if (nextIs(TokenId::SymDotDot) || nextIs(TokenId::SymQuestion) || nextIs(TokenId::SymAsterisk))
-                return parseType();
+                return parseTypeValue();
             return parseLiteralArray();
 
         case TokenId::TypeAny:
@@ -741,7 +741,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::SymAsterisk:
         case TokenId::SymAmpersand:
         case TokenId::ModifierNullable:
-            return parseType();
+            return parseTypeValue();
 
         case TokenId::Identifier:
         case TokenId::KwdMe:

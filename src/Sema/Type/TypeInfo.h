@@ -2,6 +2,8 @@
 
 SWC_BEGIN_NAMESPACE()
 
+class TypeManager;
+
 enum class TypeInfoKind
 {
     Invalid = 0,
@@ -10,6 +12,7 @@ enum class TypeInfoKind
     Float,
     Char,
     String,
+    Type,
 };
 
 class TypeInfo
@@ -28,7 +31,7 @@ private:
     TypeInfo() = delete;
     explicit TypeInfo(TypeInfoKind kind);
 
-    Utf8 toString(ToStringMode mode = ToStringMode::Diagnostic) const;
+    Utf8 toString(const TypeManager& typeMgr, ToStringMode mode = ToStringMode::Diagnostic) const;
 
     TypeInfoKind kind_ = TypeInfoKind::Invalid;
 
@@ -37,6 +40,7 @@ private:
         // clang-format off
         struct { uint32_t bits; bool isUnsigned; } asInt;
         struct { uint32_t bits; } asFloat;
+        struct { TypeRef typeRef; } asType;
         // clang-format on
     };
 
@@ -65,6 +69,7 @@ public:
     static TypeInfo makeString();
     static TypeInfo makeInt(uint32_t bits, bool isUnsigned);
     static TypeInfo makeFloat(uint32_t bits);
+    static TypeInfo makeType(TypeRef typeRef);
 
     uint32_t hash() const;
 };

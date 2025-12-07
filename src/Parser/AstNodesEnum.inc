@@ -106,6 +106,9 @@ SWC_NODE_DEF(VariadicType,
 SWC_NODE_DEF(TypedVariadicType,
                 AstNodeIdFlagsE::Zero,
                 ScopeFlagsE::Zero)
+SWC_NODE_DEF(ValueType,
+                AstNodeIdFlagsE::Zero,
+                ScopeFlagsE::Zero)
 
 // ============================================================================
 //  Attributes & Constraints

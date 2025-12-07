@@ -41,6 +41,16 @@ ConstantValue ConstantValue::makeChar(const TaskContext& ctx, char32_t value)
     return cv;
 }
 
+ConstantValue ConstantValue::makeType(TaskContext& ctx, TypeRef value)
+{
+    ConstantValue cv;
+    cv.typeRef_   = ctx.typeMgr().addType(TypeInfo::makeType(value));
+    cv.kind_      = ConstantKind::Type;
+    cv.asType.val = value;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return cv;
+}
+
 ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const ApsInt& value, uint32_t bitWidth)
 {
     ConstantValue cv;
@@ -78,6 +88,8 @@ bool ConstantValue::operator==(const ConstantValue& other) const noexcept
             return getInt().same(other.getInt());
         case ConstantKind::Float:
             return getFloat().same(other.getFloat());
+        case ConstantKind::Type:
+            return getType() == other.getType();
 
         default:
             SWC_UNREACHABLE();
@@ -99,6 +111,8 @@ bool ConstantValue::eq(const ConstantValue& other) const noexcept
             return getInt().eq(other.getInt());
         case ConstantKind::Float:
             return getFloat().eq(other.getFloat());
+        case ConstantKind::Type:
+            return getType() == other.getType();
 
         default:
             SWC_UNREACHABLE();
@@ -165,7 +179,7 @@ bool ConstantValue::ge(const ConstantValue& other) const noexcept
     }
 }
 
-Utf8 ConstantValue::toString() const
+Utf8 ConstantValue::toString(const TaskContext& ctx) const
 {
     switch (kind_)
     {
@@ -179,6 +193,8 @@ Utf8 ConstantValue::toString() const
             return getInt().toString();
         case ConstantKind::Float:
             return getFloat().toString();
+        case ConstantKind::Type:
+            return ctx.typeMgr().typeToString(getType());
 
         default:
             SWC_UNREACHABLE();
@@ -204,6 +220,9 @@ uint32_t ConstantValue::hash() const noexcept
             break;
         case ConstantKind::Float:
             h = Math::hashCombine(h, asFloat.val.hash());
+            break;
+        case ConstantKind::Type:
+            h = Math::hashCombine(h, asType.val.get());
             break;
 
         default:

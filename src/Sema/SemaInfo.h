@@ -7,9 +7,9 @@ class Symbol;
 
 enum class NodeSemaKind : uint8_t
 {
-    IsConst  = 1,
-    IsType   = 2,
-    IsSymbol = 3,
+    IsConstantRef = 1,
+    IsTypeRef     = 2,
+    IsSymbolRef   = 3,
 };
 
 class SemaInfo

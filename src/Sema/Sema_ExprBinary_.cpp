@@ -182,8 +182,8 @@ namespace
     ConstantRef constantFoldPlusPlus(Sema& sema, const AstBinaryExpr&, const SemaNodeViewList& ops)
     {
         const auto& ctx    = sema.ctx();
-        Utf8        result = ops.nodeView[0].cst->toString();
-        result += ops.nodeView[1].cst->toString();
+        Utf8        result = ops.nodeView[0].cst->toString(ctx);
+        result += ops.nodeView[1].cst->toString(ctx);
         return sema.cstMgr().addConstant(ctx, ConstantValue::makeString(ctx, result));
     }
 

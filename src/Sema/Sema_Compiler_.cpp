@@ -94,7 +94,7 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
         {
             const auto& ctx = sema.ctx();
             ctx.global().logger().lock();
-            Logger::print(ctx, constant.toString());
+            Logger::print(ctx, constant.toString(ctx));
             Logger::print(ctx, "\n");
             ctx.global().logger().unlock();
             return AstVisitStepResult::Continue;

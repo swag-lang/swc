@@ -237,4 +237,11 @@ AstNodeRef Parser::parseType()
     return nodeSubType;
 }
 
+AstNodeRef Parser::parseTypeValue()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ValueType>(ref());
+    nodePtr->nodeTypeRef    = parseType();
+    return nodeRef;
+}
+
 SWC_END_NAMESPACE()

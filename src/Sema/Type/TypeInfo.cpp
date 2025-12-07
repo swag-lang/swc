@@ -1,8 +1,12 @@
 #include "pch.h"
-#include "Sema/Type/TypeInfo.h"
+
+#include "Main/TaskContext.h"
 #include "Math/Hash.h"
+#include "Sema/Type/TypeInfo.h"
+#include "TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
+class TaskContext;
 
 // ReSharper disable once CppPossiblyUninitializedMember
 TypeInfo::TypeInfo(TypeInfoKind kind) :
@@ -24,6 +28,8 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
             return asInt.bits == other.asInt.bits && asInt.isUnsigned == other.asInt.isUnsigned;
         case TypeInfoKind::Float:
             return asFloat.bits == other.asFloat.bits;
+        case TypeInfoKind::Type:
+            return asType.typeRef == other.asType.typeRef;
 
         default:
             SWC_UNREACHABLE();
@@ -47,6 +53,9 @@ uint32_t TypeInfo::hash() const
             return h;
         case TypeInfoKind::Float:
             h = Math::hashCombine(h, asFloat.bits);
+            return h;
+        case TypeInfoKind::Type:
+            h = Math::hashCombine(h, asType.typeRef.get());
             return h;
 
         default:
@@ -85,7 +94,15 @@ TypeInfo TypeInfo::makeFloat(uint32_t bits)
     return ti;
 }
 
-Utf8 TypeInfo::toString(ToStringMode) const
+TypeInfo TypeInfo::makeType(TypeRef typeRef)
+{
+    TypeInfo ti{TypeInfoKind::Type};
+    ti.asType = {.typeRef = typeRef};
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return ti;
+}
+
+Utf8 TypeInfo::toString(const TypeManager& typeMgr, ToStringMode mode) const
 {
     switch (kind_)
     {
@@ -95,6 +112,10 @@ Utf8 TypeInfo::toString(ToStringMode) const
             return "character";
         case TypeInfoKind::String:
             return "string";
+        case TypeInfoKind::Type:
+            if (asType.typeRef.isInvalid())
+                return "typeinfo";
+            return typeMgr.typeToString(asType.typeRef, mode);
 
         case TypeInfoKind::Int:
         {

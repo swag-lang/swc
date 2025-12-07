@@ -636,7 +636,7 @@ Utf8 DiagnosticBuilder::argumentToString(const Diagnostic::Argument& arg) const
         else if constexpr (std::same_as<T, TypeRef>)
             return ctx_->compiler().typeMgr().typeToString(v);
         else if constexpr (std::same_as<T, ConstantRef>)
-            return ctx_->compiler().cstMgr().get(v).toString();
+            return ctx_->compiler().cstMgr().get(v).toString(*ctx_);
         else
             SWC_UNREACHABLE();
     };

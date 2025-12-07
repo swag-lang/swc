@@ -174,7 +174,7 @@ namespace
     }
 }
 
-bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef)
+bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef) const
 {
     auto&           ctx        = *ctx_;
     const auto&     typeMgr    = ctx.typeMgr();

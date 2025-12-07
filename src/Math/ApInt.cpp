@@ -66,24 +66,6 @@ ApInt::ApInt(uint64_t value, uint32_t bitWidth) :
     normalize();
 }
 
-ApInt::ApInt(int32_t value) :
-    bitWidth_(32),
-    numWords_(computeNumWords(32))
-{
-    clearWords();
-    words_[0] = std::bit_cast<uint64_t>(static_cast<int64_t>(value));
-    normalize();
-}
-
-ApInt::ApInt(int64_t value) :
-    bitWidth_(64),
-    numWords_(computeNumWords(64))
-{
-    clearWords();
-    words_[0] = std::bit_cast<uint64_t>(value);
-    normalize();
-}
-
 bool ApInt::fits64() const
 {
     for (uint32_t i = 1; i < numWords_; ++i)
@@ -537,7 +519,7 @@ void ApInt::modSigned(const ApInt& rhs, bool& overflow)
     // Rebuild *this from the signed remainder, keeping the same bit width.
     // 1) Build a 64-bit signed ApInt from the int64_t remainder.
     // 2) Sign-extend (or truncate) it to our current bit width.
-    ApInt remVal(signedRem); // 64-bit two's-complement value
+    ApInt remVal(signedRem, 64); // 64-bit two's-complement value
     remVal.resizeSigned(bitWidth_);
 
     // Replace the current value with the remainder.

@@ -14,12 +14,12 @@ public:
     ApsInt() = default;
 
     explicit ApsInt(int32_t value) :
-        ApInt(value)
+        ApInt(std::bit_cast<uint64_t>(static_cast<int64_t>(value)), 32)
     {
     }
 
     explicit ApsInt(int64_t value) :
-        ApInt(value)
+        ApInt(std::bit_cast<uint64_t>(value), 64)
     {
     }
 

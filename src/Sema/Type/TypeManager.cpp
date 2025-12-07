@@ -90,7 +90,7 @@ void TypeManager::buildPromoteTable()
         typeS64_,
         typeF32_,
         typeF64_,
-    };
+        typeChar_};
 
     constexpr auto n = static_cast<uint32_t>(types.size());
 

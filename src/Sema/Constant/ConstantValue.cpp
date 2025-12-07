@@ -31,7 +31,7 @@ ConstantValue ConstantValue::makeString(const TaskContext& ctx, std::string_view
     return cv;
 }
 
-ConstantValue ConstantValue::makeChar(const TaskContext& ctx, uint32_t value)
+ConstantValue ConstantValue::makeChar(const TaskContext& ctx, char32_t value)
 {
     ConstantValue cv;
     cv.typeRef_   = ctx.typeMgr().getTypeChar();
@@ -92,7 +92,7 @@ bool ConstantValue::eq(const ConstantValue& other) const noexcept
         case ConstantKind::Bool:
             return getBool() == other.getBool();
         case ConstantKind::Char:
-            return getChar() == other.getChar();            
+            return getChar() == other.getChar();
         case ConstantKind::String:
             return getString() == other.getString();
         case ConstantKind::Int:

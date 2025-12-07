@@ -9,9 +9,9 @@ void ConstantManager::setup(const TaskContext& ctx)
 {
     cstBool_true_  = addConstant(ctx, ConstantValue::makeBool(ctx, true));
     cstBool_false_ = addConstant(ctx, ConstantValue::makeBool(ctx, false));
-    cstS32_0_      = addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(0LL, 32), 32));
-    cstS32_1_      = addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(1LL, 32), 32));
-    cstS32_neg1_   = addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(-1LL, 32), 32));
+    cstS32_0_      = addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(0LL, 32, false), 32));
+    cstS32_1_      = addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(1LL, 32, false), 32));
+    cstS32_neg1_   = addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(-1LL, 32, false), 32));
 }
 
 ConstantRef ConstantManager::cstS32(int32_t value) const

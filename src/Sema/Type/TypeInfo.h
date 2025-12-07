@@ -53,10 +53,10 @@ public:
     bool         isIntSigned() const noexcept { return isInt() && !asInt.isUnsigned; }
     bool         isFloat() const noexcept { return kind_ == TypeInfoKind::Float; }
     bool         isIntFloat() const noexcept { return kind_ == TypeInfoKind::Int || kind_ == TypeInfoKind::Float; }
-    bool         canBePromoted() const noexcept { return isIntFloat(); }
+    bool         canBePromoted() const noexcept { return isIntFloat() || isChar(); }
 
     // clang-format off
-    uint32_t intBits() const noexcept { SWC_ASSERT(isInt()); return asInt.bits; }
+    uint32_t intBits() const noexcept { SWC_ASSERT(isInt() || isChar()); return isChar() ? 32 : asInt.bits; }
     uint32_t floatBits() const noexcept { SWC_ASSERT(isFloat()); return asFloat.bits; }
     // clang-format on
 

@@ -13,25 +13,26 @@ protected:
 public:
     ApsInt() = default;
 
-    explicit ApsInt(int64_t value, uint32_t bitWidth) :
-        ApInt(std::bit_cast<uint64_t>(value), bitWidth)
+    explicit ApsInt(int64_t value, uint32_t bitWidth, bool isUnsigned) :
+        ApInt(std::bit_cast<uint64_t>(value), bitWidth),
+        unsigned_(isUnsigned)
     {
     }
 
-    explicit ApsInt(const ApInt& value, bool isUnSigned) :
+    explicit ApsInt(const ApInt& value, bool isUnsigned) :
         ApInt(value),
-        unsigned_(isUnSigned)
+        unsigned_(isUnsigned)
     {
     }
 
-    explicit ApsInt(uint32_t bitWidth, bool isUnSigned) :
+    explicit ApsInt(uint32_t bitWidth, bool isUnsigned) :
         ApInt(bitWidth),
-        unsigned_(isUnSigned)
+        unsigned_(isUnsigned)
     {
     }
 
     bool isUnsigned() const { return unsigned_; }
-    void setUnsigned(bool isUnSigned) { unsigned_ = isUnSigned; }
+    void setUnsigned(bool isUnsigned) { unsigned_ = isUnsigned; }
     void setSigned(bool isSigned) { unsigned_ = !isSigned; }
 
     void    add(const ApsInt& rhs, bool& overflow);

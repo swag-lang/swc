@@ -14,8 +14,15 @@ namespace
         auto&               ctx        = sema.ctx();
         const TypeManager&  typeMgr    = ctx.typeMgr();
         const TypeInfo&     targetType = typeMgr.get(targetTypeRef);
-        const ApsInt        value(static_cast<int64_t>(src.getChar()), targetType.intBits());
+        const ApsInt        value(src.getChar(), targetType.intBits(), true);
         const ConstantValue result = ConstantValue::makeInt(ctx, value, targetType.intBits());
+        return ctx.cstMgr().addConstant(ctx, result);
+    }
+
+    ConstantRef castIntToChar(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
+    {
+        auto&               ctx    = sema.ctx();
+        const ConstantValue result = ConstantValue::makeChar(ctx, static_cast<uint32_t>(src.getInt().asU64()));
         return ctx.cstMgr().addConstant(ctx, result);
     }
 
@@ -218,6 +225,8 @@ ConstantRef Sema::cast(const CastContext& castCtx, ConstantRef srcRef, TypeRef t
 
     if (srcType.isChar())
         return castCharToInt(*this, castCtx, src, targetTypeRef);
+    if (targetType.isChar())
+        return castIntToChar(*this, castCtx, src, targetTypeRef);
     if (srcType.isInt() && targetType.isInt())
         return castIntToInt(*this, castCtx, src, targetTypeRef);
     if (srcType.isInt() && targetType.isFloat())

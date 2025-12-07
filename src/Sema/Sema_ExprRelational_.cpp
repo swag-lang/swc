@@ -22,6 +22,14 @@ namespace
         if (!sema.promoteConstants(ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
 
+        const auto& left = sema.cstMgr().get(leftCstRef);
+        if (left.isFloat())
+        {
+            const auto& right   = sema.cstMgr().get(rightCstRef);
+            const bool  isEqual = !left.lt(right) && !right.lt(left);
+            return sema.cstMgr().cstBool(isEqual);
+        }
+
         return sema.cstMgr().cstBool(leftCstRef == rightCstRef);
     }
 

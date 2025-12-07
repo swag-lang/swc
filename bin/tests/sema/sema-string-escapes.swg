@@ -1,5 +1,3 @@
-#assert('\n' == 10'u32)
-/*
 #assert('\x41' == 'A')
 
 #assert("\n" ++ "\t" == "\n\t")
@@ -28,4 +26,5 @@
 #assert('\n' == 10)
 #assert('\n' == 10'u8)
 #assert('\n' == 10'u16)
-#assert('\n' == 10'u64)*/
+#assert('\n' == 10'u32)
+#assert('\n' == 10'u64)

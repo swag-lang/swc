@@ -175,6 +175,7 @@ class Parser
     AstNodeRef parsePrefixExpr();
     AstNodeRef parsePrimaryExpression();
     AstNodeRef parseQualifiedIdentifier();
+    AstNodeRef parseRelationalExpr(int minPrecedence);
     AstNodeRef parseRelationalExpr();
     AstNodeRef parseRetValType();
     AstNodeRef parseReturn();

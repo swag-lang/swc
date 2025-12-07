@@ -5,7 +5,6 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    // Precedence: bigger = binds tighter
     int getBinaryPrecedence(TokenId id)
     {
         switch (id)
@@ -59,6 +58,45 @@ namespace
             case TokenId::SymLowerLower:
             case TokenId::SymPlusPlus:
             case TokenId::SymCircumflex:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    int getRelationalPrecedence(TokenId id)
+    {
+        switch (id)
+        {
+            // Equality
+            case TokenId::SymEqualEqual:
+            case TokenId::SymBangEqual:
+                return 5;
+
+                // Relational / ordering
+            case TokenId::SymLess:
+            case TokenId::SymLessEqual:
+            case TokenId::SymGreater:
+            case TokenId::SymGreaterEqual:
+            case TokenId::SymLessEqualGreater:
+                return 6;
+
+            default:
+                return -1;
+        }
+    }
+
+    bool isRelationalOperator(TokenId id)
+    {
+        switch (id)
+        {
+            case TokenId::SymEqualEqual:
+            case TokenId::SymBangEqual:
+            case TokenId::SymLessEqual:
+            case TokenId::SymGreaterEqual:
+            case TokenId::SymLess:
+            case TokenId::SymGreater:
+            case TokenId::SymLessEqualGreater:
                 return true;
             default:
                 return false;
@@ -724,27 +762,44 @@ AstNodeRef Parser::parseQualifiedIdentifier()
     return leftNode;
 }
 
-AstNodeRef Parser::parseRelationalExpr()
+AstNodeRef Parser::parseRelationalExpr(int minPrecedence)
 {
-    const auto nodeRef = parseBinaryExpr();
-    if (nodeRef.isInvalid())
+    // Parse the left-hand side from the next lower level (binary expr)
+    auto left = parseBinaryExpr();
+    if (left.isInvalid())
         return AstNodeRef::invalid();
 
-    if (isAny(TokenId::SymEqualEqual,
-              TokenId::SymBangEqual,
-              TokenId::SymLessEqual,
-              TokenId::SymGreaterEqual,
-              TokenId::SymLess,
-              TokenId::SymGreater,
-              TokenId::SymLessEqualGreater))
+    while (true)
     {
-        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::RelationalExpr>(consume());
-        nodePtr->nodeLeftRef            = nodeRef;
-        nodePtr->nodeRightRef           = parseRelationalExpr();
-        return nodeParen;
+        const auto opId = id();
+        if (!isRelationalOperator(opId))
+            break;
+
+        const int precedence = getRelationalPrecedence(opId);
+        if (precedence < minPrecedence)
+            break;
+
+        const auto tokOp = consume();
+
+        const int nextMinPrecedence = precedence + 1;
+
+        auto right = parseRelationalExpr(nextMinPrecedence);
+        if (right.isInvalid())
+            return AstNodeRef::invalid();
+
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::RelationalExpr>(tokOp);
+        nodePtr->nodeLeftRef          = left;
+        nodePtr->nodeRightRef         = right;
+
+        left = nodeRef;
     }
 
-    return nodeRef;
+    return left;
+}
+
+AstNodeRef Parser::parseRelationalExpr()
+{
+    return parseRelationalExpr(0);
 }
 
 AstNodeRef Parser::parsePrefixExpr()

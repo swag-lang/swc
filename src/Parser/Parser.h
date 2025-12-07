@@ -157,6 +157,7 @@ class Parser
     AstNodeRef parseIntrinsicPostCopy();
     AstNodeRef parseIntrinsicPostMove();
     AstNodeRef parseIntrinsicValue();
+    AstNodeRef parseLogicalExpr(int minPrecedence);
     AstNodeRef parseLambdaExpression();
     AstNodeRef parseLambdaType();
     AstNodeRef parseLambdaTypeParam();

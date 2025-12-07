@@ -102,6 +102,19 @@ namespace
                 return false;
         }
     }
+
+    int getLogicalPrecedence(TokenId id)
+    {
+        switch (id)
+        {
+            case TokenId::KwdOr:
+                return 1;
+            case TokenId::KwdAnd:
+                return 2;
+            default:
+                return -1;
+        }
+    }
 }
 
 AstModifierFlags Parser::parseModifiers()
@@ -388,24 +401,38 @@ AstNodeRef Parser::parseIntrinsicValue()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseLogicalExpr()
+AstNodeRef Parser::parseLogicalExpr(int minPrecedence)
 {
-    const auto nodeRef = parseRelationalExpr();
-    if (nodeRef.isInvalid())
+    auto left = parseRelationalExpr();
+    if (left.isInvalid())
         return AstNodeRef::invalid();
 
-    if (isAny(TokenId::KwdAnd, TokenId::KwdOr, TokenId::SymAmpersandAmpersand, TokenId::SymPipePipe))
+    while (true)
     {
-        if (isAny(TokenId::SymAmpersandAmpersand, TokenId::SymPipePipe))
-            raiseError(DiagnosticId::parser_err_unexpected_and_or, ref());
+        const auto opId       = id();
+        const int  precedence = getLogicalPrecedence(opId);
+        if (precedence < minPrecedence)
+            break;
 
-        const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::LogicalExpr>(consume());
-        nodePtr->nodeLeftRef            = nodeRef;
-        nodePtr->nodeRightRef           = parseLogicalExpr();
-        return nodeParen;
+        const auto tokOp             = consume();
+        const int  nextMinPrecedence = precedence + 1;
+
+        auto right = parseLogicalExpr(nextMinPrecedence);
+        if (right.isInvalid())
+            return AstNodeRef::invalid();
+
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LogicalExpr>(tokOp);
+        nodePtr->nodeLeftRef          = left;
+        nodePtr->nodeRightRef         = right;
+        left                          = nodeRef;
     }
 
-    return nodeRef;
+    return left;
+}
+
+AstNodeRef Parser::parseLogicalExpr()
+{
+    return parseLogicalExpr(0);
 }
 
 AstNodeRef Parser::parseNamedArg()

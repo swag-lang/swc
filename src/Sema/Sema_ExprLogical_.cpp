@@ -14,22 +14,24 @@ namespace
     {
         const ConstantRef leftCstRef  = ops.nodeView[0].cstRef;
         const ConstantRef rightCstRef = ops.nodeView[1].cstRef;
+        const ConstantRef cstFalseRef = sema.cstMgr().cstFalse();
+        const ConstantRef cstTrueRef  = sema.cstMgr().cstTrue();
 
         switch (op)
         {
             case TokenId::KwdAnd:
-                if (leftCstRef == sema.cstMgr().cstFalse())
-                    return sema.cstMgr().cstFalse();
-                if (rightCstRef == sema.cstMgr().cstFalse())
-                    return sema.cstMgr().cstFalse();
-                return sema.cstMgr().cstTrue();
+                if (leftCstRef == cstFalseRef)
+                    return cstFalseRef;
+                if (rightCstRef == cstFalseRef)
+                    return cstFalseRef;
+                return cstTrueRef;
 
             case TokenId::KwdOr:
-                if (leftCstRef == sema.cstMgr().cstTrue())
-                    return sema.cstMgr().cstTrue();
-                if (rightCstRef == sema.cstMgr().cstTrue())
-                    return sema.cstMgr().cstTrue();
-                return sema.cstMgr().cstFalse();
+                if (leftCstRef == cstTrueRef)
+                    return cstTrueRef;
+                if (rightCstRef == cstTrueRef)
+                    return cstTrueRef;
+                return cstFalseRef;
 
             default:
                 SWC_UNREACHABLE();

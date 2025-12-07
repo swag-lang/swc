@@ -21,3 +21,7 @@ struct(var A, const B) A { }
 struct(var A = s32, const B = 0) A { }
 struct(var A = s32, const B: s32 = 0) A { }
 struct(var A = [..] s32, const B: s32 = 0) A { }
+
+struct(var T : s32) A { } // swc-expected-error {{parser_err_gen_param_type}}
+struct(T = 0) A { } // swc-expected-error {{parser_err_invalid_type}}
+

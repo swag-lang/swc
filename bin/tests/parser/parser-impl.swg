@@ -8,3 +8,5 @@ impl I for A
 {
     mtd impl toto() {}
 }
+
+impl enum A.B. { } // swc-expected-error {{parser_err_expected_token_fam}}

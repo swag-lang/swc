@@ -14,3 +14,7 @@
 
 #assert(cast #bit #unconst (s32) 9)
 #assert(cast #bit #unconst #err (s32) 9)
+
+var a = #toto // swc-expected-error {{parser_err_invalid_compiler}}
+var a = @toto(6) // swc-expected-error {{parser_err_invalid_intrinsic}}
+var a = me.@t // swc-expected-error {{parser_err_invalid_intrinsic}}

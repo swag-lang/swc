@@ -1,3 +1,9 @@
+var a: s32
+var a, b: *s32
+var a = 0, b = 0
+var a, b = 0
+var a: s32 = 0, b: bool = true
+
 func toto()
 {
     let (a, 0) = titi() // swc-expected-error {{parser_err_expected_token_fam}}

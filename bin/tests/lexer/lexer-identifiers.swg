@@ -33,3 +33,4 @@ s8 s16 s32 s64 u8 u16 u32 u64 bool string cstring typeinfo
 _underscoreStart
 end_underscore_
 a_b_c_d_e
+

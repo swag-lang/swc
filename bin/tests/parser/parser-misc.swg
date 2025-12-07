@@ -13,3 +13,4 @@
 
 using A
 #assert(A == 5)
+

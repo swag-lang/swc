@@ -15,10 +15,11 @@ namespace
     {
         if (ops.nodeView[0].cstRef == ops.nodeView[1].cstRef)
             return sema.cstMgr().cstTrue();
+        if (ops.nodeView[0].type->isType() && ops.nodeView[1].type->isType())
+            return sema.cstMgr().cstBool(*ops.nodeView[0].type == *ops.nodeView[1].type);
 
         auto leftCstRef  = ops.nodeView[0].cstRef;
         auto rightCstRef = ops.nodeView[1].cstRef;
-
         if (!sema.promoteConstants(ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
 
@@ -167,6 +168,8 @@ namespace
         if (ops.nodeView[0].typeRef == ops.nodeView[1].typeRef)
             return Result::Success;
         if (ops.nodeView[0].type->canBePromoted() && ops.nodeView[1].type->canBePromoted())
+            return Result::Success;
+        if (ops.nodeView[0].type->isType() && ops.nodeView[1].type->isType())
             return Result::Success;
 
         auto diag = sema.reportError(DiagnosticId::sema_err_compare_operand_type, node.srcViewRef(), node.tokRef());

@@ -31,3 +31,4 @@
 
 #assert(s32 == s32)
 #assert(s32 != u32)
+#assert(!(s8 == s32))

@@ -57,6 +57,7 @@ public:
     bool         isIntSigned() const noexcept { return isInt() && !asInt.isUnsigned; }
     bool         isFloat() const noexcept { return kind_ == TypeInfoKind::Float; }
     bool         isIntFloat() const noexcept { return kind_ == TypeInfoKind::Int || kind_ == TypeInfoKind::Float; }
+    bool         isType() const noexcept { return kind_ == TypeInfoKind::Type; }
     bool         canBePromoted() const noexcept { return isIntFloat() || isChar(); }
 
     // clang-format off

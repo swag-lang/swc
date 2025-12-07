@@ -100,7 +100,7 @@ void Utf8::replace_loop(std::string_view from, std::string_view to, bool loopRep
     *this = next;
 }
 
-void Utf8::push_back_uni(uint32_t cp)
+void Utf8::push_back_uni(char32_t cp)
 {
     // Replace invalid values (surrogates or > U+10FFFF) with U+FFFD
     if ((cp >= 0xD800 && cp <= 0xDFFF) || cp > 0x10FFFF)

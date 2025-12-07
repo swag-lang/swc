@@ -16,6 +16,7 @@ public:
     Utf8(Utf8&& other) noexcept : std::string(other) {}
     Utf8(std::string&& other) : std::string(std::move(other)) {}
     Utf8(const std::string_view& other) : std::string(other) {}
+    Utf8(char32_t c) { push_back_uni(c); }
     // clang-format on
 
     Utf8& operator=(const Utf8& other)
@@ -40,12 +41,18 @@ public:
         return *this;
     }
 
+    Utf8& operator=(char32_t c) noexcept
+    {
+        push_back_uni(c);
+        return *this;
+    }
+
     void operator+=(const Utf8& txt) { this->append(txt); }
     void operator+=(const char* txt) { this->append(txt); }
-    void operator+=(uint32_t c) { push_back_uni(c); }
+    void operator+=(char32_t c) { push_back_uni(c); }
     void operator+=(char8_t c) { push_back_uni(c); }
     void operator+=(char c) { this->push_back(c); }
-    void push_back_uni(uint32_t cp);
+    void push_back_uni(char32_t cp);
 
     void trim_start();
     void trim_end();

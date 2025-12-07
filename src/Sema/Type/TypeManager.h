@@ -26,6 +26,7 @@ class TypeManager
 
     // Predefined types
     TypeRef typeBool_        = TypeRef::invalid();
+    TypeRef typeChar_        = TypeRef::invalid();
     TypeRef typeString_      = TypeRef::invalid();
     TypeRef typeIntUnsigned_ = TypeRef::invalid();
     TypeRef typeIntSigned_   = TypeRef::invalid();
@@ -52,6 +53,7 @@ public:
 
     TypeRef         addType(const TypeInfo& typeInfo);
     TypeRef         getTypeBool() const { return typeBool_; }
+    TypeRef         getTypeChar() const { return typeChar_; }
     TypeRef         getTypeString() const { return typeString_; }
     TypeRef         getTypeInt(uint32_t bits, bool isUnsigned) const;
     TypeRef         getTypeFloat(uint32_t bits) const;

@@ -75,7 +75,7 @@ std::tuple<const char8_t*, uint32_t, uint32_t> Utf8Helper::decodeOneChar(const c
     return {nullptr, 0, 0};
 }
 
-const char8_t* Utf8Helper::decodeOneChar(const char8_t* cur, const char8_t* end, uint32_t& c, uint32_t& offset)
+const char8_t* Utf8Helper::decodeOneChar(const char8_t* cur, const char8_t* end, char32_t& c, uint32_t& offset)
 {
     const auto result = decodeOneChar(cur, end);
     c                 = std::get<1>(result);

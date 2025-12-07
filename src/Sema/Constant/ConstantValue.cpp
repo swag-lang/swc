@@ -31,6 +31,16 @@ ConstantValue ConstantValue::makeString(const TaskContext& ctx, std::string_view
     return cv;
 }
 
+ConstantValue ConstantValue::makeChar(const TaskContext& ctx, uint32_t value)
+{
+    ConstantValue cv;
+    cv.typeRef_   = ctx.typeMgr().getTypeChar();
+    cv.kind_      = ConstantKind::Char;
+    cv.asChar.val = value;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return cv;
+}
+
 ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const ApsInt& value, uint32_t bitWidth)
 {
     ConstantValue cv;
@@ -157,6 +167,8 @@ Utf8 ConstantValue::toString() const
     {
         case ConstantKind::Bool:
             return getBool() ? "true" : "false";
+        case ConstantKind::Char:
+            return getChar();
         case ConstantKind::String:
             return getString();
         case ConstantKind::Int:

@@ -564,7 +564,7 @@ struct AstStringLiteral : AstLiteralT<AstNodeId::StringLiteral>
 
 struct AstCharacterLiteral : AstLiteralT<AstNodeId::CharacterLiteral>
 {
-    static AstVisitStepResult semaPreNode(Sema& sema);
+    AstVisitStepResult semaPreNode(Sema& sema) const;
 };
 
 struct AstBoolLiteral : AstLiteralT<AstNodeId::BoolLiteral>

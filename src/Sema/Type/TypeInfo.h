@@ -8,6 +8,7 @@ enum class TypeInfoKind
     Bool,
     Int,
     Float,
+    Char,
     String,
 };
 
@@ -36,7 +37,6 @@ private:
         // clang-format off
         struct { uint32_t bits; bool isUnsigned; } asInt;
         struct { uint32_t bits; } asFloat;
-        struct { std::string_view string; } asString;
         // clang-format on
     };
 
@@ -45,6 +45,7 @@ public:
 
     TypeInfoKind kind() const noexcept { return kind_; }
     bool         isBool() const noexcept { return kind_ == TypeInfoKind::Bool; }
+    bool         isChar() const noexcept { return kind_ == TypeInfoKind::Char; }
     bool         isString() const noexcept { return kind_ == TypeInfoKind::String; }
     bool         isInt() const noexcept { return kind_ == TypeInfoKind::Int; }
     bool         isIntUnsized() const noexcept { return kind_ == TypeInfoKind::Int && asInt.bits == 0; }
@@ -60,6 +61,7 @@ public:
     // clang-format on
 
     static TypeInfo makeBool();
+    static TypeInfo makeChar();
     static TypeInfo makeString();
     static TypeInfo makeInt(uint32_t bits, bool isUnsigned);
     static TypeInfo makeFloat(uint32_t bits);

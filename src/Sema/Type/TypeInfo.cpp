@@ -37,6 +37,7 @@ uint32_t TypeInfo::hash() const
     {
         case TypeInfoKind::Bool:
         case TypeInfoKind::String:
+        case TypeInfoKind::Char:
             return h;
 
         case TypeInfoKind::Int:
@@ -55,6 +56,11 @@ uint32_t TypeInfo::hash() const
 TypeInfo TypeInfo::makeBool()
 {
     return TypeInfo{TypeInfoKind::Bool};
+}
+
+TypeInfo TypeInfo::makeChar()
+{
+    return TypeInfo{TypeInfoKind::Char};
 }
 
 TypeInfo TypeInfo::makeString()
@@ -84,6 +90,8 @@ Utf8 TypeInfo::toString(ToStringMode) const
     {
         case TypeInfoKind::Bool:
             return "bool";
+        case TypeInfoKind::Char:
+            return "rune";
         case TypeInfoKind::String:
             return "string";
 

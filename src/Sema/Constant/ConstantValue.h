@@ -10,6 +10,7 @@ enum class ConstantKind
 {
     Invalid,
     Bool,
+    Char,
     String,
     Int,
     Float,
@@ -27,6 +28,7 @@ class ConstantValue
     {
         // clang-format off
         struct { std::string_view val; } asString;
+        struct { char32_t val; } asChar;
         struct { bool val; } asBool;
         struct { ApsInt val; } asInt;
         struct { ApFloat val; } asFloat;
@@ -48,12 +50,14 @@ public:
     TypeRef      typeRef() const { return typeRef_; }
     bool         isValid() const { return kind_ != ConstantKind::Invalid; }
     bool         isBool() const { return kind_ == ConstantKind::Bool; }
+    bool         isChar() const { return kind_ == ConstantKind::Char; }
     bool         isString() const { return kind_ == ConstantKind::String; }
     bool         isInt() const { return kind_ == ConstantKind::Int; }
     bool         isFloat() const { return kind_ == ConstantKind::Float; }
 
     // clang-format off
     bool getBool() const { SWC_ASSERT(isBool()); return asBool.val; }
+    char32_t getChar() const { SWC_ASSERT(isChar()); return asChar.val; }
     std::string_view getString() const { SWC_ASSERT(isString()); return asString.val; }
     const ApsInt& getInt() const { SWC_ASSERT(isInt()); return asInt.val; }
     const ApFloat& getFloat() const { SWC_ASSERT(isFloat()); return asFloat.val; }
@@ -63,6 +67,7 @@ public:
 
     static ConstantValue makeBool(const TaskContext& ctx, bool value);
     static ConstantValue makeString(const TaskContext& ctx, std::string_view value);
+    static ConstantValue makeChar(const TaskContext& ctx, uint32_t value);
     static ConstantValue makeInt(const TaskContext& ctx, const ApsInt& value, uint32_t bitWidth = 0);
     static ConstantValue makeFloat(const TaskContext& ctx, const ApFloat& value, uint32_t bitWidth = 0);
 

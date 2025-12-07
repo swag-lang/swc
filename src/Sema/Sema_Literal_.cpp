@@ -10,6 +10,82 @@
 
 SWC_BEGIN_NAMESPACE()
 
+namespace
+{
+    void parseHexEscape(const Utf8& str, size_t& index, size_t maxDigits, char32_t& valueOut, const LangSpec& langSpec)
+    {
+        char32_t value  = 0;
+        size_t   digits = 0;
+
+        do
+        {
+            SWC_ASSERT(index + 1 < str.size());
+            const unsigned char h = static_cast<unsigned char>(str[++index]);
+            SWC_ASSERT(langSpec.isHexNumber(h));
+
+            value <<= 4;
+
+            if (langSpec.isHexNumber(h))
+            {
+                const unsigned char c = (h >= 'A' && h <= 'F') ? (h + 32) : h;
+                value += (c <= '9') ? (c - '0') : (10u + (c - 'a'));
+            }
+
+            ++digits;
+        } while (digits < maxDigits && index + 1 < str.size() && langSpec.isHexNumber(static_cast<unsigned char>(str[index + 1])));
+
+        valueOut = value;
+    }
+
+    char32_t decodeEscapeSequence(const Utf8& str, size_t& index, const LangSpec& langSpec)
+    {
+        SWC_ASSERT(index < str.size());
+        SWC_ASSERT(str[index] == '\\');
+        SWC_ASSERT(index + 1 < str.size());
+
+        const char esc = str[++index];
+
+        switch (esc)
+        {
+            case '0': return '\0';
+            case 'a': return '\a';
+            case 'b': return '\b';
+            case '\\': return '\\';
+            case 't': return '\t';
+            case 'n': return '\n';
+            case 'f': return '\f';
+            case 'r': return '\r';
+            case 'v': return '\v';
+            case '\'': return '\'';
+            case '\"': return '\"';
+
+            case 'x':
+            {
+                char32_t cp = 0;
+                parseHexEscape(str, index, 2, cp, langSpec);
+                return cp;
+            }
+
+            case 'u':
+            {
+                char32_t cp = 0;
+                parseHexEscape(str, index, 4, cp, langSpec);
+                return cp;
+            }
+
+            case 'U':
+            {
+                char32_t cp = 0;
+                parseHexEscape(str, index, 8, cp, langSpec);
+                return cp;
+            }
+
+            default:
+                SWC_UNREACHABLE();
+        }
+    }
+}
+
 AstVisitStepResult AstBoolLiteral::semaPreNode(Sema& sema) const
 {
     const auto& tok = sema.token(srcViewRef(), tokRef());
@@ -23,8 +99,50 @@ AstVisitStepResult AstBoolLiteral::semaPreNode(Sema& sema) const
     return AstVisitStepResult::SkipChildren;
 }
 
-AstVisitStepResult AstCharacterLiteral::semaPreNode(Sema&)
+AstVisitStepResult AstCharacterLiteral::semaPreNode(Sema& sema) const
 {
+    const auto& ctx     = sema.ctx();
+    const auto& tok     = sema.token(srcViewRef(), tokRef());
+    const auto& srcView = sema.compiler().srcView(srcViewRef());
+    const auto  str     = tok.string(srcView);
+
+    // Strip delimiters: find the first and last single quote.
+    const auto firstQuote = str.find('\'');
+    const auto lastQuote  = str.rfind('\'');
+
+    SWC_ASSERT(firstQuote != Utf8::npos && lastQuote != Utf8::npos && firstQuote < lastQuote);
+
+    const Utf8 inner = str.substr(firstQuote + 1, lastQuote - firstQuote - 1);
+
+    uint32_t value = 0;
+
+    if (!tok.hasFlag(TokenFlagsE::Escaped))
+    {
+        // No escape sequence: should just be a single (byte) character.
+        SWC_ASSERT(inner.size() == 1);
+        value = static_cast<unsigned char>(inner[0]);
+    }
+    else
+    {
+        // Character literal contains a single escape sequence.
+        const auto& langSpec = sema.compiler().global().langSpec();
+
+        SWC_ASSERT(!inner.empty());
+        SWC_ASSERT(inner[0] == '\\');
+
+        size_t i = 0;
+        value    = decodeEscapeSequence(inner, i, langSpec);
+
+        // We expect exactly one escape sequence and nothing else.
+        SWC_ASSERT(i + 1 == inner.size());
+    }
+
+    // Assuming there is a dedicated char constant factory.
+    const auto val = ConstantValue::makeChar(ctx, value);
+    // If you don't have makeChar, you can use:
+    // const auto val = ConstantValue::makeInt(ctx, ApsInt{ApInt(value), false});
+
+    sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
 
@@ -62,28 +180,7 @@ AstVisitStepResult AstStringLiteral::semaPreNode(Sema& sema) const
     Utf8 result;
     result.reserve(str.size());
 
-    auto parseHexEscape = [&](size_t& index, size_t maxDigits, uint32_t& valueOut) {
-        uint32_t    value    = 0;
-        size_t      digits   = 0;
-        const auto& langSpec = sema.compiler().global().langSpec();
-        do
-        {
-            SWC_ASSERT(index + 1 < str.size());
-            const unsigned char h = str[++index];
-            SWC_ASSERT(langSpec.isHexNumber(h));
-
-            value <<= 4;
-
-            if (langSpec.isHexNumber(h))
-            {
-                const unsigned char c = (h >= 'A' && h <= 'F') ? (h + 32) : h;
-                value += (c <= '9') ? (c - '0') : (10u + (c - 'a'));
-            }
-
-            ++digits;
-        } while (digits < maxDigits && index + 1 < str.size() && langSpec.isHexNumber(str[index + 1]));
-        valueOut = value;
-    };
+    const auto& langSpec = sema.compiler().global().langSpec();
 
     // Decode escape sequences
     for (size_t i = 0; i < str.size(); ++i)
@@ -96,72 +193,8 @@ AstVisitStepResult AstStringLiteral::semaPreNode(Sema& sema) const
             continue;
         }
 
-        SWC_ASSERT(i + 1 < str.size());
-
-        const char esc = str[++i];
-        switch (esc)
-        {
-            case '0':
-                result += '\0';
-                break;
-            case 'a':
-                result += '\a';
-                break;
-            case 'b':
-                result += '\b';
-                break;
-            case '\\':
-                result += '\\';
-                break;
-            case 't':
-                result += '\t';
-                break;
-            case 'n':
-                result += '\n';
-                break;
-            case 'f':
-                result += '\f';
-                break;
-            case 'r':
-                result += '\r';
-                break;
-            case 'v':
-                result += '\v';
-                break;
-            case '\'':
-                result += '\'';
-                break;
-            case '\"':
-                result += '\"';
-                break;
-
-            case 'x':
-            {
-                uint32_t cp = 0;
-                parseHexEscape(i, 2, cp);
-                result += cp;
-                break;
-            }
-
-            case 'u':
-            {
-                uint32_t cp = 0;
-                parseHexEscape(i, 4, cp);
-                result += cp;
-                break;
-            }
-
-            case 'U':
-            {
-                uint32_t cp = 0;
-                parseHexEscape(i, 8, cp);
-                result += cp;
-                break;
-            }
-
-            default:
-                SWC_UNREACHABLE();
-        }
+        char32_t cp = decodeEscapeSequence(str, i, langSpec);
+        result += cp;
     }
 
     const auto val = ConstantValue::makeString(ctx, result);

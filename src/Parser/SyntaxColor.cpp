@@ -163,7 +163,8 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
     auto        cur      = reinterpret_cast<const char8_t*>(line.data());
     auto        end      = reinterpret_cast<const char8_t*>(line.data() + line.size());
     Utf8        result;
-    uint32_t    c, offset;
+    char32_t    c;
+    uint32_t    offset;
     uint32_t    multiLineCommentLevel = 0;
 
     bool hasCode = false;

@@ -24,6 +24,7 @@ void TypeManager::setup(TaskContext&)
     typeF64_ = addType(TypeInfo::makeFloat(64));
 
     typeBool_   = addType(TypeInfo::makeBool());
+    typeChar_   = addType(TypeInfo::makeChar());
     typeString_ = addType(TypeInfo::makeString());
 
     buildPromoteTable();

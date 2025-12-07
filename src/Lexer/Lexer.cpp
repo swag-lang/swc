@@ -411,7 +411,10 @@ void Lexer::lexCharacterLiteral()
 
         // Handle escape sequence
         if (buffer_[0] == '\\')
+        {
+            token_.flags.add(TokenFlagsE::Escaped);
             lexEscape(TokenId::Character, false);
+        }
         else
             eatUtf8Char();
 

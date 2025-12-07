@@ -15,5 +15,5 @@
 #assert("123" == 1 ++ "23")
 #assert("false-1" == false ++ -1)
 #assert("A" ++ "B" == "AB")
-//#assert("1.0" == 1.0 ++ "")
+#assert("1" == 1 ++ "")
 #assert("" ++ "" == "")

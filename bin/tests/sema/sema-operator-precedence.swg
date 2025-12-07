@@ -32,4 +32,3 @@
 #assert((1 < 2) == true)
 #assert(1 == 1 < 2)         // swc-expected-error {{sema_err_compare_operand_type}}
 #assert((1 == 1) < 2)       // swc-expected-error {{sema_err_compare_operand_type}}
-//#assert(1 < 2 and 3 > 1)

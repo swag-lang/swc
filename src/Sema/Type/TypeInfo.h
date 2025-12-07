@@ -12,7 +12,7 @@ enum class TypeInfoKind
     Float,
     Char,
     String,
-    Type,
+    TypeInfo,
 };
 
 class TypeInfo
@@ -40,7 +40,7 @@ private:
         // clang-format off
         struct { uint32_t bits; bool isUnsigned; } asInt;
         struct { uint32_t bits; } asFloat;
-        struct { TypeRef typeRef; } asType;
+        struct { TypeRef typeRef; } asTypeInfo;
         // clang-format on
     };
 
@@ -57,7 +57,7 @@ public:
     bool         isIntSigned() const noexcept { return isInt() && !asInt.isUnsigned; }
     bool         isFloat() const noexcept { return kind_ == TypeInfoKind::Float; }
     bool         isIntFloat() const noexcept { return kind_ == TypeInfoKind::Int || kind_ == TypeInfoKind::Float; }
-    bool         isType() const noexcept { return kind_ == TypeInfoKind::Type; }
+    bool         isTypeInfo() const noexcept { return kind_ == TypeInfoKind::TypeInfo; }
     bool         canBePromoted() const noexcept { return isIntFloat() || isChar(); }
 
     // clang-format off
@@ -70,7 +70,7 @@ public:
     static TypeInfo makeString();
     static TypeInfo makeInt(uint32_t bits, bool isUnsigned);
     static TypeInfo makeFloat(uint32_t bits);
-    static TypeInfo makeType(TypeRef typeRef);
+    static TypeInfo makeTypeInfo(TypeRef typeRef);
 
     uint32_t hash() const;
 };

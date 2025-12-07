@@ -28,8 +28,8 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
             return asInt.bits == other.asInt.bits && asInt.isUnsigned == other.asInt.isUnsigned;
         case TypeInfoKind::Float:
             return asFloat.bits == other.asFloat.bits;
-        case TypeInfoKind::Type:
-            return asType.typeRef == other.asType.typeRef;
+        case TypeInfoKind::TypeInfo:
+            return asTypeInfo.typeRef == other.asTypeInfo.typeRef;
 
         default:
             SWC_UNREACHABLE();
@@ -54,8 +54,8 @@ uint32_t TypeInfo::hash() const
         case TypeInfoKind::Float:
             h = Math::hashCombine(h, asFloat.bits);
             return h;
-        case TypeInfoKind::Type:
-            h = Math::hashCombine(h, asType.typeRef.get());
+        case TypeInfoKind::TypeInfo:
+            h = Math::hashCombine(h, asTypeInfo.typeRef.get());
             return h;
 
         default:
@@ -94,10 +94,10 @@ TypeInfo TypeInfo::makeFloat(uint32_t bits)
     return ti;
 }
 
-TypeInfo TypeInfo::makeType(TypeRef typeRef)
+TypeInfo TypeInfo::makeTypeInfo(TypeRef typeRef)
 {
-    TypeInfo ti{TypeInfoKind::Type};
-    ti.asType = {.typeRef = typeRef};
+    TypeInfo ti{TypeInfoKind::TypeInfo};
+    ti.asTypeInfo = {.typeRef = typeRef};
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -112,10 +112,10 @@ Utf8 TypeInfo::toName(const TypeManager& typeMgr, ToNameMode mode) const
             return "character";
         case TypeInfoKind::String:
             return "string";
-        case TypeInfoKind::Type:
-            if (asType.typeRef.isInvalid())
+        case TypeInfoKind::TypeInfo:
+            if (asTypeInfo.typeRef.isInvalid())
                 return "typeinfo";
-            return std::format("typeinfo({})", typeMgr.typeToName(asType.typeRef, mode));
+            return std::format("typeinfo({})", typeMgr.typeToName(asTypeInfo.typeRef, mode));
 
         case TypeInfoKind::Int:
         {

@@ -592,4 +592,61 @@ ApsInt ApFloat::toInt(uint32_t targetBits, bool isUnsigned, bool& isExact, bool&
     return ApsInt(s, targetBits, false);
 }
 
+ApFloat ApFloat::convertTo(uint32_t targetBits, bool& isExact, bool& overflow) const
+{
+    isExact  = true;
+    overflow = false;
+
+    SWC_ASSERT(targetBits == 32 || targetBits == 64);
+
+    if (bitWidth_ == targetBits)
+        return *this;
+
+    ApFloat result;
+
+    // Represent the original value in long double for comparison.
+    long double orig;
+    switch (bitWidth_)
+    {
+        case 32:
+            orig = static_cast<long double>(value_.f32);
+            break;
+        case 64:
+            orig = static_cast<long double>(value_.f64);
+            break;
+        default:
+            SWC_UNREACHABLE();
+    }
+
+    if (targetBits == 32)
+    {
+        float v;
+        if (bitWidth_ == 32)
+            v = value_.f32;
+        else
+            v = static_cast<float>(value_.f64);
+
+        result.set(v);
+
+        const long double back = static_cast<long double>(v);
+        isExact                = (back == orig);
+    }
+    else // targetBits == 64
+    {
+        double v;
+        if (bitWidth_ == 64)
+            v = value_.f64;
+        else // 32 -> 64
+            v = static_cast<double>(value_.f32);
+
+        result.set(v);
+
+        const long double back = static_cast<long double>(v);
+        isExact                = (back == orig);
+    }
+
+    overflow = false;
+    return result;
+}
+
 SWC_END_NAMESPACE()

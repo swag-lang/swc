@@ -181,7 +181,7 @@ namespace
         return ctx.cstMgr().addConstant(ctx, result);
     }
 
-    ConstantRef castFloatToFloat(Sema& sema, const CastContext&, const ConstantValue& src, TypeRef targetTypeRef)
+    ConstantRef castFloatToFloat(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
     {
         auto&              ctx        = sema.ctx();
         const TypeManager& typeMgr    = ctx.typeMgr();
@@ -189,22 +189,19 @@ namespace
         const ApFloat&     floatVal   = src.getFloat();
         const uint32_t     targetBits = targetType.floatBits();
 
-        ApFloat value;
-        switch (targetBits)
+        bool          isExact  = false;
+        bool          overflow = false;
+        const ApFloat value    = floatVal.convertTo(targetBits, isExact, overflow);
+        if (overflow)
         {
-            case 32:
-                value.set(floatVal.asFloat());
-                break;
-            case 64:
-                value.set(floatVal.asDouble());
-                break;
-            default:
-                SWC_UNREACHABLE();
+            sema.raiseLiteralOverflow(castCtx.errorNodeRef, targetTypeRef);
+            return ConstantRef::invalid();
         }
 
         const ConstantValue result = ConstantValue::makeFloat(ctx, value, targetBits);
         return ctx.cstMgr().addConstant(ctx, result);
     }
+
 }
 
 bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef) const

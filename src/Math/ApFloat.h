@@ -55,8 +55,9 @@ public:
     bool gt(const ApFloat& rhs) const;
     bool ge(const ApFloat& rhs) const;
 
-    Utf8   toString() const;
-    ApsInt toInt(uint32_t targetBits, bool isUnsigned, bool& isExact, bool& overflow) const;
+    Utf8    toString() const;
+    ApsInt  toInt(uint32_t targetBits, bool isUnsigned, bool& isExact, bool& overflow) const;
+    ApFloat convertTo(uint32_t targetBits, bool& isExact, bool& overflow) const;
 };
 
 SWC_END_NAMESPACE()

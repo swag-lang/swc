@@ -555,58 +555,42 @@ ApsInt ApFloat::toInt(uint32_t targetBits, bool isUnsigned, bool& isExact, bool&
 
 ApFloat ApFloat::convertTo(uint32_t targetBits, bool& isExact, bool& overflow) const
 {
-    isExact  = true;
+    SWC_ASSERT(targetBits == 32 || targetBits == 64);
+    SWC_ASSERT(bitWidth_ == 32 || bitWidth_ == 64);
+
+    // No overflow in float<->double conversion.
     overflow = false;
 
-    SWC_ASSERT(targetBits == 32 || targetBits == 64);
-
+    // Same format: nothing to do, trivially exact.
     if (bitWidth_ == targetBits)
+    {
+        isExact = true;
         return *this;
+    }
 
     ApFloat result;
 
-    // Represent the original value in long double for comparison.
-    long double orig;
-    switch (bitWidth_)
+    if (bitWidth_ == 32 && targetBits == 64)
     {
-        case 32:
-            orig = static_cast<long double>(value_.f32);
-            break;
-        case 64:
-            orig = static_cast<long double>(value_.f64);
-            break;
-        default:
-            SWC_UNREACHABLE();
+        // float -> double: always exactly representable.
+        const double d = value_.f32;
+        result.set(d);
+        isExact = true;
+    }
+    else if (bitWidth_ == 64 && targetBits == 32)
+    {
+        const float f = static_cast<float>(value_.f64);
+        result.set(f);
+
+        // Exact if a round-trip through float preserves the original double.
+        const double back = f;
+        isExact           = (back == value_.f64);
+    }
+    else
+    {
+        SWC_UNREACHABLE();
     }
 
-    if (targetBits == 32)
-    {
-        float v;
-        if (bitWidth_ == 32)
-            v = value_.f32;
-        else
-            v = static_cast<float>(value_.f64);
-
-        result.set(v);
-
-        const long double back = static_cast<long double>(v);
-        isExact                = (back == orig);
-    }
-    else // targetBits == 64
-    {
-        double v;
-        if (bitWidth_ == 64)
-            v = value_.f64;
-        else // 32 -> 64
-            v = static_cast<double>(value_.f32);
-
-        result.set(v);
-
-        const long double back = static_cast<long double>(v);
-        isExact                = (back == orig);
-    }
-
-    overflow = false;
     return result;
 }
 

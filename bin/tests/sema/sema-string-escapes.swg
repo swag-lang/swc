@@ -28,3 +28,5 @@
 #assert('\n' == 10'u16)
 #assert('\n' == 10'u32)
 #assert('\n' == 10'u64)
+
+#assert('a''rune == 'a')

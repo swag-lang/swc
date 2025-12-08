@@ -190,6 +190,8 @@ bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef t
         case CastKind::LiteralSuffix:
             if (srcType.isChar() && targetType.isIntUnsigned())
                 return true;
+            if (srcType.isChar() && targetType.isRune())
+                return true;
             if (srcType.isInt() && targetType.isInt())
                 return true;
             if (srcType.isInt() && targetType.isFloat())

@@ -55,6 +55,19 @@ AstVisitStepResult AstBuiltinType::semaPostNode(Sema& sema) const
             sema.setType(nodeRef, typeMgr.getTypeString());
             return AstVisitStepResult::Continue;
 
+        case TokenId::TypeVoid:
+            sema.setType(nodeRef, typeMgr.getTypeVoid());
+            return AstVisitStepResult::Continue;
+        case TokenId::TypeAny:
+            sema.setType(nodeRef, typeMgr.getTypeAny());
+            return AstVisitStepResult::Continue;
+        case TokenId::TypeCString:
+            sema.setType(nodeRef, typeMgr.getTypeCString());
+            return AstVisitStepResult::Continue;
+        case TokenId::TypeRune:
+            sema.setType(nodeRef, typeMgr.getTypeRune());
+            return AstVisitStepResult::Continue;
+
         default:
             break;
     }

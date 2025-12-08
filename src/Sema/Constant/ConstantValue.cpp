@@ -267,4 +267,24 @@ uint32_t ConstantValue::hash() const noexcept
     return h;
 }
 
+ApsInt ConstantValue::getIntLike() const
+{
+    if (isInt())
+        return getInt();
+    if (isChar())
+        return ApsInt(getChar(), 32u, true);
+    if (isRune())
+        return ApsInt(getRune(), 32u, true);
+    SWC_UNREACHABLE();
+}
+
+ConstantValue ConstantValue::makeFromIntLike(const TaskContext& ctx, const ApsInt& v, const TypeInfo& ty)
+{
+    if (ty.isChar())
+        return makeChar(ctx, static_cast<uint32_t>(v.asU64()));
+    if (ty.isRune())
+        return makeRune(ctx, static_cast<uint32_t>(v.asU64()));
+    return makeInt(ctx, v, ty.intBits());
+}
+
 SWC_END_NAMESPACE()

@@ -56,11 +56,11 @@ TypeRef TypeManager::computePromotion(TypeRef lhsRef, TypeRef rhsRef) const
     }
 
     // Integer promotions
-    const uint32_t lhsBits = lhs.intBits();
-    const uint32_t rhsBits = rhs.intBits();
+    const uint32_t lhsBits = lhs.intLikeBits();
+    const uint32_t rhsBits = rhs.intLikeBits();
 
-    const bool lhsUnsigned = lhs.isIntUnsigned();
-    const bool rhsUnsigned = rhs.isIntUnsigned();
+    const bool lhsUnsigned = lhs.isIntLikeUnsigned();
+    const bool rhsUnsigned = rhs.isIntLikeUnsigned();
 
     // Same signedness: pick larger
     if (lhsUnsigned == rhsUnsigned)
@@ -96,7 +96,8 @@ void TypeManager::buildPromoteTable()
         typeS64_,
         typeF32_,
         typeF64_,
-        typeChar_};
+        typeChar_,
+        typeRune_};
 
     constexpr auto n = static_cast<uint32_t>(types.size());
 

@@ -79,8 +79,10 @@ public:
     static ConstantValue makeTypeInfo(TaskContext& ctx, TypeRef value);
     static ConstantValue makeInt(const TaskContext& ctx, const ApsInt& value, uint32_t bitWidth = 0);
     static ConstantValue makeFloat(const TaskContext& ctx, const ApFloat& value, uint32_t bitWidth = 0);
+    static ConstantValue makeFromIntLike(const TaskContext& ctx, const ApsInt& v, const TypeInfo& ty);
 
     uint32_t hash() const noexcept;
+    ApsInt   getIntLike() const;
     bool     ge(const ConstantValue& rhs) const noexcept;
     Utf8     toString(const TaskContext& ctx) const;
 };

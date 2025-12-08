@@ -9,34 +9,17 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    ConstantRef castCharToInt(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
-    {
-        auto&               ctx        = sema.ctx();
-        const TypeManager&  typeMgr    = ctx.typeMgr();
-        const TypeInfo&     targetType = typeMgr.get(targetTypeRef);
-        const ApsInt        value(src.getChar(), targetType.intBits(), true);
-        const ConstantValue result = ConstantValue::makeInt(ctx, value, targetType.intBits());
-        return ctx.cstMgr().addConstant(ctx, result);
-    }
-
-    ConstantRef castIntToChar(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
-    {
-        auto&               ctx    = sema.ctx();
-        const ConstantValue result = ConstantValue::makeChar(ctx, static_cast<uint32_t>(src.getInt().asU64()));
-        return ctx.cstMgr().addConstant(ctx, result);
-    }
-
-    ConstantRef castIntToInt(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
+    ConstantRef castIntLikeToIntLike(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
     {
         auto&              ctx        = sema.ctx();
         const TypeManager& typeMgr    = ctx.typeMgr();
         const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
 
         // Working copy of the integer value (with SOURCE signedness)
-        ApsInt value = src.getInt();
+        ApsInt value = src.getIntLike();
 
-        const uint32_t targetBits     = targetType.intBits();
-        const bool     targetUnsigned = targetType.isIntUnsigned();
+        const uint32_t targetBits     = targetType.intLikeBits();
+        const bool     targetUnsigned = targetType.isIntLikeUnsigned();
         const uint32_t valueBits      = value.bitWidth();
 
         // We’ll use a width large enough to express both source and target safely.
@@ -126,16 +109,16 @@ namespace
         // Resize to the target bit width (now safe; we already checked range)
         value.resize(targetBits);
 
-        const ConstantValue result = ConstantValue::makeInt(ctx, value, targetBits);
+        const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, targetType);
         return ctx.cstMgr().addConstant(ctx, result);
     }
 
-    ConstantRef castIntToFloat(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
+    ConstantRef castIntLikeToFloat(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
     {
         auto&              ctx        = sema.ctx();
         const TypeManager& typeMgr    = ctx.typeMgr();
         const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
-        const ApsInt&      intVal     = src.getInt();
+        const ApsInt       intVal     = src.getIntLike();
         const uint32_t     targetBits = targetType.floatBits();
 
         ApFloat value;
@@ -152,14 +135,14 @@ namespace
         return ctx.cstMgr().addConstant(ctx, result);
     }
 
-    ConstantRef castFloatToInt(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
+    ConstantRef castFloatToIntLike(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
     {
         auto&              ctx        = sema.ctx();
         const TypeManager& typeMgr    = ctx.typeMgr();
         const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
         const ApFloat&     srcVal     = src.getFloat();
-        const uint32_t     targetBits = targetType.intBits();
-        const bool         isUnsigned = targetType.isIntUnsigned();
+        const uint32_t     targetBits = targetType.intLikeBits();
+        const bool         isUnsigned = targetType.isIntLikeUnsigned();
 
         bool         isExact  = false;
         bool         overflow = false;
@@ -170,14 +153,7 @@ namespace
             return ConstantRef::invalid();
         }
 
-        ConstantValue result;
-        if (targetType.isChar())
-            result = ConstantValue::makeChar(ctx, static_cast<uint32_t>(value.asU64()));
-        else if (targetType.isRune())
-            result = ConstantValue::makeRune(ctx, static_cast<uint32_t>(value.asU64()));
-        else
-            result = ConstantValue::makeInt(ctx, value, targetBits);
-
+        const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, targetType);
         return ctx.cstMgr().addConstant(ctx, result);
     }
 
@@ -254,18 +230,17 @@ ConstantRef Sema::castConstant(const CastContext& castCtx, ConstantRef srcRef, T
     const TypeInfo&    srcType    = typeMgr.get(src.typeRef());
     const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
 
-    if (srcType.isChar())
-        return castCharToInt(*this, castCtx, src, targetTypeRef);
-    if (targetType.isChar())
-        return castIntToChar(*this, castCtx, src, targetTypeRef);
-    if (srcType.isInt() && targetType.isInt())
-        return castIntToInt(*this, castCtx, src, targetTypeRef);
-    if (srcType.isInt() && targetType.isFloat())
-        return castIntToFloat(*this, castCtx, src, targetTypeRef);
+    if (srcType.isIntLike() && targetType.isIntLike())
+        return castIntLikeToIntLike(*this, castCtx, src, targetTypeRef);
+
+    if (srcType.isIntLike() && targetType.isFloat())
+        return castIntLikeToFloat(*this, castCtx, src, targetTypeRef);
+
     if (srcType.isFloat() && targetType.isFloat())
         return castFloatToFloat(*this, castCtx, src, targetTypeRef);
-    if (srcType.isFloat() && targetType.isIntCharRune())
-        return castFloatToInt(*this, castCtx, src, targetTypeRef);
+
+    if (srcType.isFloat() && targetType.isIntLike())
+        return castFloatToIntLike(*this, castCtx, src, targetTypeRef);
 
     raiseInternalError(node(castCtx.errorNodeRef));
     return ConstantRef::invalid();

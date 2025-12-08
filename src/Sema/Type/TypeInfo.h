@@ -59,12 +59,14 @@ public:
     bool         isVoid() const noexcept { return kind_ == TypeInfoKind::Void; }
     bool         isCString() const noexcept { return kind_ == TypeInfoKind::CString; }
     bool         isCharRune() const noexcept { return isChar() || isRune(); }
-    bool         isIntCharRune() const noexcept { return isInt() || isChar() || isRune(); }
+    bool         isIntLike() const noexcept { return isInt() || isCharRune(); }
+    bool         isIntLikeUnsigned() const noexcept { return isCharRune() || isIntUnsigned(); }
 
-    bool canBePromoted() const noexcept { return isIntFloat() || isChar(); }
+    bool canBePromoted() const noexcept { return isFloat() || isIntLike(); }
 
     // clang-format off
-    uint32_t intBits() const noexcept { SWC_ASSERT(isIntCharRune()); return isCharRune() ? 32 : asInt.bits; }
+    uint32_t intBits() const noexcept { SWC_ASSERT(isInt()); return asInt.bits; }
+    uint32_t intLikeBits() const noexcept { SWC_ASSERT(isIntLike()); return isCharRune() ? 32 : asInt.bits; }
     uint32_t floatBits() const noexcept { SWC_ASSERT(isFloat()); return asFloat.bits; }
     // clang-format on
 

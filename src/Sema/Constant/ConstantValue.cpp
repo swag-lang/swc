@@ -272,9 +272,9 @@ ApsInt ConstantValue::getIntLike() const
     if (isInt())
         return getInt();
     if (isChar())
-        return ApsInt(getChar(), 32u, true);
+        return ApsInt(getChar(), 32, true);
     if (isRune())
-        return ApsInt(getRune(), 32u, true);
+        return ApsInt(getRune(), 32, true);
     SWC_UNREACHABLE();
 }
 

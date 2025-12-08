@@ -20,9 +20,17 @@ enum class CastKind
     Promotion,
 };
 
+enum class CastFlagsE : uint32_t
+{
+    Zero    = 0,
+    BitCast = 1 << 0,
+};
+using CastFlags = EnumFlags<CastFlagsE>;
+
 struct CastContext
 {
     CastKind   kind;
+    CastFlags  flags = CastFlagsE::Zero;
     AstNodeRef errorNodeRef;
 };
 

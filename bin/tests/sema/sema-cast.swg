@@ -39,7 +39,8 @@
 #assert(cast(rune) cast(u32) 0x1F600'u32 == '😀')
 #assert(cast(f32) cast(s32) -123's32 == -123)
 
-//#print(cast(f64) 65535'u16)
+#assert(cast(f64) 65535'u16 == 65535)
 //#assert(cast(u8) -1's8 == 255'u8)
 //#assert(cast(s8) 255'u8 == -1's8)
 
+ #assert(-1's8 == -1'f32)

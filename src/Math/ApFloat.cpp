@@ -65,13 +65,11 @@ void ApFloat::set(const ApInt& mantissa, int64_t exponent10)
 
 void ApFloat::set(const ApsInt& value, uint32_t targetBits, bool& exact, bool& overflow)
 {
-    exact    = false;
-    overflow = false;
-
-    // Sanity check: only 32/64 bits supported for now
     SWC_ASSERT(targetBits == 32 || targetBits == 64);
 
-    // Handle zero early
+    exact    = false;
+    overflow = false; // no float/double overflow with 64-bit ints
+
     if (value.isZero())
     {
         if (targetBits == 32)
@@ -82,75 +80,40 @@ void ApFloat::set(const ApsInt& value, uint32_t targetBits, bool& exact, bool& o
         return;
     }
 
-    // Work with absolute value to accumulate magnitude
-    ApsInt absVal      = value;
-    bool   absOverflow = false;
-    absVal.abs(absOverflow);
-    if (absOverflow)
+    const uint64_t bits = value.asU64();
+
+    if (value.isUnsigned())
     {
-        // Abs overflow shouldn't normally happen for arbitrary-precision but be safe.
-        overflow = true;
+        const uint64_t u = bits;
         if (targetBits == 32)
-            set(std::numeric_limits<float>::infinity());
-        else
-            set(std::numeric_limits<double>::infinity());
-        return;
-    }
-
-    const bool isNegative = !value.isUnsigned() && value.isNegative();
-
-    // Accumulate |value| into a long double using its bits: sum( 2^i for each set bit i)
-    const uint32_t bw  = absVal.bitWidth();
-    long double    mag = 0.0L;
-    for (uint32_t i = 0; i < bw; ++i)
-    {
-        if (absVal.testBit(i))
-            mag += std::ldexp(1.0L, static_cast<int>(i)); // adds 2^i
-    }
-
-    const long double ldVal = isNegative ? -mag : mag;
-
-    // Now convert long double to the target float type, checking for overflow and exactness
-    if (targetBits == 32)
-    {
-        constexpr long double maxF = std::numeric_limits<float>::max();
-        constexpr long double minF = -maxF;
-
-        // Overflow if outside finite float range or already non-finite
-        overflow = !std::isfinite(ldVal) || ldVal > maxF || ldVal < minF;
-        if (overflow)
         {
-            // Store signed infinity as a placeholder; caller should treat this as an error.
-            constexpr float inf = std::numeric_limits<float>::infinity();
-            set(isNegative ? -inf : inf);
-            return;
+            const float f = static_cast<float>(u);
+            set(f);
+            exact = (static_cast<uint64_t>(f) == u);
         }
-
-        const float f = static_cast<float>(ldVal);
-        set(f);
-
-        const long double back = f;
-        exact                  = (back == ldVal);
-        return;
+        else
+        {
+            const double d = static_cast<double>(u);
+            set(d);
+            exact = (static_cast<uint64_t>(d) == u);
+        }
     }
-
-    // targetBits == 64
-    constexpr long double maxD = std::numeric_limits<double>::max();
-    constexpr long double minD = -maxD;
-
-    overflow = !std::isfinite(ldVal) || ldVal > maxD || ldVal < minD;
-    if (overflow)
+    else
     {
-        constexpr double inf = std::numeric_limits<double>::infinity();
-        set(isNegative ? -inf : inf);
-        return;
+        const int64_t s = static_cast<int64_t>(bits);
+        if (targetBits == 32)
+        {
+            const float f = static_cast<float>(s);
+            set(f);
+            exact = (static_cast<int64_t>(f) == s);
+        }
+        else
+        {
+            const double d = static_cast<double>(s);
+            set(d);
+            exact = (static_cast<int64_t>(d) == s);
+        }
     }
-
-    const double d = static_cast<double>(ldVal);
-    set(d);
-
-    const long double back = d;
-    exact                  = (back == ldVal);
 }
 
 bool ApFloat::isZero() const
@@ -158,10 +121,8 @@ bool ApFloat::isZero() const
     switch (bitWidth_)
     {
         case 32:
-            // Treat both +0.0f and -0.0f as zero
             return value_.f32 == 0.0f;
         case 64:
-            // Treat both +0.0 and -0.0 as zero
             return value_.f64 == 0.0;
         default:
             SWC_UNREACHABLE();

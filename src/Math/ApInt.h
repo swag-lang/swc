@@ -28,6 +28,7 @@ public:
 
     uint32_t bitWidth() const { return bitWidth_; }
     bool     fits64() const;
+    bool     fitsSigned64() const;
     uint64_t asU64() const;
 
     bool     same(const ApInt& other) const;

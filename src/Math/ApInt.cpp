@@ -68,9 +68,34 @@ ApInt::ApInt(uint64_t value, uint32_t bitWidth) :
 
 bool ApInt::fits64() const
 {
-    for (uint32_t i = 1; i < numWords_; ++i)
+    // Any value with logical width <= 64 fits in 64 bits
+    // with its current signedness.
+    if (bitWidth_ <= 64)
+        return true;
+
+    // Unsigned: all bits above 63 must be zero.
+    for (uint32_t i = 64; i < bitWidth_; ++i)
     {
-        if (words_[i] != 0)
+        if (testBit(i))
+            return false;
+    }
+
+    return true;
+}
+
+bool ApInt::fitsSigned64() const
+{
+    // Any value with logical width <= 64 fits in 64 bits
+    // with its current signedness.
+    if (bitWidth_ <= 64)
+        return true;
+
+    // Signed: all bits above 63 must match the sign bit (bit 63).
+    const bool signBit = testBit(63); // desired sign extension
+
+    for (uint32_t i = 64; i < bitWidth_; ++i)
+    {
+        if (testBit(i) != signBit)
             return false;
     }
 
@@ -79,15 +104,34 @@ bool ApInt::fits64() const
 
 uint64_t ApInt::asU64() const
 {
-    SWC_ASSERT(fits64());
+    if (bitWidth_ == 0)
+        return 0;
 
-    if (bitWidth_ < WORD_BITS)
+    const uint32_t maxBits   = std::min<uint32_t>(bitWidth_, 64);
+    const uint32_t wordCount = (maxBits + WORD_BITS - 1) / WORD_BITS;
+
+    uint64_t result = 0;
+
+    // Copy low bits from ApInt.
+    for (uint32_t i = 0; i < wordCount; ++i)
     {
-        const uint64_t mask = (ONE << bitWidth_) - 1;
-        return words_[0] & mask;
+        uint64_t       w        = words_[i];
+        const uint32_t bitIndex = i * WORD_BITS;
+
+        if (bitIndex + WORD_BITS > maxBits)
+        {
+            const uint32_t validBits = maxBits - bitIndex;
+            if (validBits < WORD_BITS)
+            {
+                const uint64_t mask = (uint64_t{1} << validBits) - 1;
+                w &= mask;
+            }
+        }
+
+        result |= (w << bitIndex);
     }
 
-    return words_[0];
+    return result;
 }
 
 bool ApInt::same(const ApInt& other) const

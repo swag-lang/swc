@@ -140,4 +140,26 @@ Utf8 ApsInt::toString() const
     return toSignedString();
 }
 
+bool ApsInt::fits64() const
+{
+    if (unsigned_)
+        return ApInt::fits64();
+    return fitsSigned64();
+}
+
+int64_t ApsInt::asU64() const
+{
+    uint64_t result = ApInt::asU64();
+
+    if (!unsigned_ && isNegative() && bitWidth_ < 64)
+    {
+        const uint32_t signBitIndex = bitWidth_ - 1;
+        const uint64_t lowMask      = (uint64_t{1} << (signBitIndex + 1)) - 1;
+        const uint64_t highMask     = ~lowMask;
+        result |= highMask;
+    }
+
+    return result;
+}
+
 SWC_END_NAMESPACE()

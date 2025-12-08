@@ -257,7 +257,7 @@ bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef t
     const TypeManager& typeMgr    = ctx.typeMgr();
     const TypeInfo&    srcType    = typeMgr.get(srcTypeRef);
     const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
-
+    
     if (castCtx.kind == CastKind::Explicit && castCtx.flags.has(CastFlagsE::BitCast))
     {
         const bool srcScalar = srcType.isIntLike() || srcType.isFloat();
@@ -269,13 +269,8 @@ bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef t
             return false;
         }
 
-        const uint32_t srcBits = srcType.isIntLike() ? srcType.intLikeBits()
-                                 : srcType.isFloat() ? srcType.floatBits()
-                                                     : 0;
-        const uint32_t dstBits = targetType.isIntLike() ? targetType.intLikeBits()
-                                 : targetType.isFloat() ? targetType.floatBits()
-                                                        : 0;
-
+        const uint32_t srcBits = srcType.isIntLike() ? srcType.intLikeBits() : srcType.floatBits();
+        const uint32_t dstBits = targetType.isIntLike() ? targetType.intLikeBits() : targetType.floatBits();
         if (srcBits == dstBits && srcBits != 0)
             return true;
 
@@ -283,6 +278,9 @@ bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef t
         return false;
     }
 
+    if (srcTypeRef == targetTypeRef)
+        return true;
+    
     switch (castCtx.kind)
     {
         case CastKind::LiteralSuffix:

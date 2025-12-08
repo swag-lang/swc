@@ -74,9 +74,24 @@ bool ApInt::fits64() const
         return true;
 
     // Unsigned: all bits above 63 must be zero.
-    for (uint32_t i = 64; i < bitWidth_; ++i)
+    constexpr uint32_t startWord = 64 / WORD_BITS;
+    constexpr uint32_t startBit  = 64 % WORD_BITS;
+
+    uint32_t wordIdx = startWord;
+
+    // First partial word if 64 is not word-aligned.
+    if (startBit != 0 && wordIdx < numWords_)
     {
-        if (testBit(i))
+        constexpr uint64_t mask = ~((ONE << startBit) - 1); // bits >= startBit
+        if (words_[wordIdx] & mask)
+            return false;
+        ++wordIdx;
+    }
+
+    // The remaining full words must be zero.
+    for (; wordIdx < numWords_; ++wordIdx)
+    {
+        if (words_[wordIdx] != 0)
             return false;
     }
 
@@ -231,7 +246,7 @@ void ApInt::logicalShiftLeft(uint64_t amount, bool& overflow)
 
 void ApInt::logicalShiftRight(uint64_t amount)
 {
-    if (isZero())
+    if (amount == 0 || isZero())
         return;
 
     const uint64_t wordShift = amount / WORD_BITS;
@@ -277,9 +292,9 @@ void ApInt::arithmeticShiftRight(uint64_t amount)
     if (amount >= bitWidth_)
     {
         if (sign)
-            setAllBits(); // -1
+            setAllBits();
         else
-            setZero(); // 0
+            setZero();
         return;
     }
 
@@ -750,7 +765,6 @@ int64_t ApInt::divSigned(const ApInt& rhs, bool& overflow)
         signedRem = -static_cast<int64_t>(remMag);
     }
 
-    overflow = false;
     return signedRem;
 }
 
@@ -1050,9 +1064,7 @@ void ApInt::resizeUnsigned(uint32_t newBitWidth)
 
     if (newBitWidth < oldBitWidth)
     {
-        bitWidth_ = newBitWidth;
-        numWords_ = newNumWords;
-        normalize();
+        shrink(newBitWidth);
         return;
     }
 
@@ -1078,9 +1090,7 @@ void ApInt::resizeSigned(uint32_t newBitWidth)
 
     if (newBitWidth < oldBitWidth)
     {
-        bitWidth_ = newBitWidth;
-        numWords_ = newNumWords;
-        normalize();
+        shrink(newBitWidth);
         return;
     }
 
@@ -1128,14 +1138,8 @@ void ApInt::negate(bool& overflow)
     if (isZero())
         return;
 
-    bool isMinSigned = isSignBitSet();
-    for (uint32_t i = 0; i < numWords_ - 1 && isMinSigned; ++i)
-    {
-        if (words_[i] != ZERO)
-            isMinSigned = false;
-    }
-
-    if (isMinSigned)
+    // Detect minimum signed value (which cannot be negated in-range).
+    if (same(minSignedValue(bitWidth_)))
     {
         overflow = true;
         return;

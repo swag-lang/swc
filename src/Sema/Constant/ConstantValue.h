@@ -42,12 +42,12 @@ public:
     // ReSharper disable once CppPossiblyUninitializedMember
     ConstantValue() {}
 
-    bool operator==(const ConstantValue& other) const noexcept;
+    bool operator==(const ConstantValue& rhs) const noexcept;
 
-    bool eq(const ConstantValue& other) const noexcept;
-    bool lt(const ConstantValue& other) const noexcept;
-    bool le(const ConstantValue& other) const noexcept;
-    bool gt(const ConstantValue& other) const noexcept;
+    bool eq(const ConstantValue& rhs) const noexcept;
+    bool lt(const ConstantValue& rhs) const noexcept;
+    bool le(const ConstantValue& rhs) const noexcept;
+    bool gt(const ConstantValue& rhs) const noexcept;
 
     ConstantKind kind() const { return kind_; }
     TypeRef      typeRef() const { return typeRef_; }
@@ -81,7 +81,7 @@ public:
     static ConstantValue makeFloat(const TaskContext& ctx, const ApFloat& value, uint32_t bitWidth = 0);
 
     uint32_t hash() const noexcept;
-    bool     ge(const ConstantValue& other) const noexcept;
+    bool     ge(const ConstantValue& rhs) const noexcept;
     Utf8     toString(const TaskContext& ctx) const;
 };
 

@@ -32,10 +32,10 @@
 #assert('☃''u32 == 0x2603)
 #assert('😀''u32 == 0x1F600)
 
-/*#assert('A' < 'B')
+#assert('A' < 'B')
 #assert('a' > 'A')
 #assert('0' < '9')
-#assert('\n' < ' ')*/
+#assert('\n' < ' ')
 
 #assert('H' == 'H')
 #assert('W' == 'W')

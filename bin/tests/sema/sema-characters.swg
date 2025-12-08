@@ -41,6 +41,11 @@
 #assert('W' == 'W')
 #assert('!' == '!')
 
+#assert('\u0000' == '\0')
+#assert('\u0061' == 'a')
+#assert('\u00E9' == 'é')
+#assert('\u4E00' == '一')
+
 #assert('a''s8 == 0)     // swc-expected-error {{sema_err_cannot_cast}}
 #assert('a''s16 == 0)    // swc-expected-error {{sema_err_cannot_cast}}
 #assert('a''s32 == 0)    // swc-expected-error {{sema_err_cannot_cast}}

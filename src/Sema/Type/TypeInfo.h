@@ -13,6 +13,10 @@ enum class TypeInfoKind
     Char,
     String,
     TypeInfo,
+    Rune,
+    Any,
+    Void,
+    CString,
 };
 
 class TypeInfo
@@ -20,18 +24,10 @@ class TypeInfo
     friend struct TypeInfoHash;
     friend class TypeManager;
 
-public:
-    enum class ToNameMode
-    {
-        Diagnostic,
-        Count,
-    };
-
-private:
     TypeInfo() = delete;
     explicit TypeInfo(TypeInfoKind kind);
 
-    Utf8 toName(const TypeManager& typeMgr, ToNameMode mode = ToNameMode::Diagnostic) const;
+    Utf8 toName(const TypeManager& typeMgr) const;
 
     TypeInfoKind kind_ = TypeInfoKind::Invalid;
 
@@ -58,7 +54,12 @@ public:
     bool         isFloat() const noexcept { return kind_ == TypeInfoKind::Float; }
     bool         isIntFloat() const noexcept { return kind_ == TypeInfoKind::Int || kind_ == TypeInfoKind::Float; }
     bool         isTypeInfo() const noexcept { return kind_ == TypeInfoKind::TypeInfo; }
-    bool         canBePromoted() const noexcept { return isIntFloat() || isChar(); }
+    bool         isRune() const noexcept { return kind_ == TypeInfoKind::Rune; }
+    bool         isAny() const noexcept { return kind_ == TypeInfoKind::Any; }
+    bool         isVoid() const noexcept { return kind_ == TypeInfoKind::Void; }
+    bool         isCString() const noexcept { return kind_ == TypeInfoKind::CString; }
+
+    bool canBePromoted() const noexcept { return isIntFloat() || isChar(); }
 
     // clang-format off
     uint32_t intBits() const noexcept { SWC_ASSERT(isInt() || isChar()); return isChar() ? 32 : asInt.bits; }
@@ -71,6 +72,10 @@ public:
     static TypeInfo makeInt(uint32_t bits, bool isUnsigned);
     static TypeInfo makeFloat(uint32_t bits);
     static TypeInfo makeTypeInfo(TypeRef typeRef);
+    static TypeInfo makeRune();
+    static TypeInfo makeAny();
+    static TypeInfo makeVoid();
+    static TypeInfo makeCString();
 
     uint32_t hash() const;
 };

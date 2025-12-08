@@ -14,8 +14,8 @@ class TypeManager
         Store                                                    store;
         std::unordered_map<TypeInfo, TypeRef, TypeInfoHash>      map;
         mutable std::shared_mutex                                mutexAdd;
-        mutable std::unordered_map<TypeInfo, Utf8, TypeInfoHash> mapString[static_cast<int>(TypeInfo::ToNameMode::Count)];
-        mutable std::shared_mutex                                mutexString[static_cast<int>(TypeInfo::ToNameMode::Count)];
+        mutable std::unordered_map<TypeInfo, Utf8, TypeInfoHash> mapName;
+        mutable std::shared_mutex                                mutexName;
     };
 
     static constexpr uint32_t SHARD_BITS  = 3;
@@ -41,6 +41,10 @@ class TypeManager
     TypeRef typeS64_         = TypeRef::invalid();
     TypeRef typeF32_         = TypeRef::invalid();
     TypeRef typeF64_         = TypeRef::invalid();
+    TypeRef typeAny_         = TypeRef::invalid();
+    TypeRef typeVoid_        = TypeRef::invalid();
+    TypeRef typeRune_        = TypeRef::invalid();
+    TypeRef typeCString_     = TypeRef::invalid();
 
     std::vector<std::vector<TypeRef>>      promoteTable_;
     std::unordered_map<uint32_t, uint32_t> promoteIndex_;
@@ -51,17 +55,22 @@ class TypeManager
 public:
     void setup(TaskContext& ctx);
 
+    TypeRef getTypeBool() const { return typeBool_; }
+    TypeRef getTypeChar() const { return typeChar_; }
+    TypeRef getTypeString() const { return typeString_; }
+    TypeRef getTypeInt(uint32_t bits, bool isUnsigned) const;
+    TypeRef getTypeFloat(uint32_t bits) const;
+    TypeRef getTypeAny() const { return typeAny_; }
+    TypeRef getTypeVoid() const { return typeVoid_; }
+    TypeRef getTypeRune() const { return typeRune_; }
+    TypeRef getTypeCString() const { return typeCString_; }
+
     TypeRef         addType(const TypeInfo& typeInfo);
-    TypeRef         getTypeBool() const { return typeBool_; }
-    TypeRef         getTypeChar() const { return typeChar_; }
-    TypeRef         getTypeString() const { return typeString_; }
-    TypeRef         getTypeInt(uint32_t bits, bool isUnsigned) const;
-    TypeRef         getTypeFloat(uint32_t bits) const;
     const TypeInfo& get(TypeRef typeRef) const;
 
     TypeRef promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const;
 
-    std::string_view typeToName(TypeRef typeInfoRef, TypeInfo::ToNameMode mode = TypeInfo::ToNameMode::Diagnostic) const;
+    std::string_view typeToName(TypeRef typeInfoRef) const;
 };
 
 SWC_END_NAMESPACE()

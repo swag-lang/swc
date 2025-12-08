@@ -28,6 +28,11 @@ void TypeManager::setup(TaskContext&)
     typeChar_   = addType(TypeInfo::makeChar());
     typeString_ = addType(TypeInfo::makeString());
 
+    typeAny_     = addType(TypeInfo::makeAny());
+    typeVoid_    = addType(TypeInfo::makeVoid());
+    typeRune_    = addType(TypeInfo::makeRune());
+    typeCString_ = addType(TypeInfo::makeCString());
+
     buildPromoteTable();
 }
 
@@ -229,28 +234,27 @@ TypeRef TypeManager::getTypeFloat(uint32_t bits) const
     }
 }
 
-std::string_view TypeManager::typeToName(TypeRef typeInfoRef, TypeInfo::ToNameMode mode) const
+std::string_view TypeManager::typeToName(TypeRef typeInfoRef) const
 {
     SWC_ASSERT(typeInfoRef.isValid());
 
     const TypeInfo& typeInfo   = get(typeInfoRef);
     const uint32_t  shardIndex = typeInfoRef.get() >> LOCAL_BITS;
     auto&           shard      = shards_[shardIndex];
-    const auto      modeIndex  = static_cast<uint32_t>(mode);
 
     {
-        std::shared_lock lk(shard.mutexString[modeIndex]);
-        const auto       it = shard.mapString[modeIndex].find(typeInfo);
-        if (it != shard.mapString[modeIndex].end())
+        std::shared_lock lk(shard.mutexName);
+        const auto       it = shard.mapName.find(typeInfo);
+        if (it != shard.mapName.end())
             return it->second;
     }
 
-    std::unique_lock lk(shard.mutexString[modeIndex]);
-    const auto [it, inserted] = shard.mapString[modeIndex].try_emplace(typeInfo, Utf8{});
+    std::unique_lock lk(shard.mutexName);
+    const auto [it, inserted] = shard.mapName.try_emplace(typeInfo, Utf8{});
     if (!inserted)
         return it->second;
 
-    it->second = typeInfo.toName(*this, mode);
+    it->second = typeInfo.toName(*this);
     return it->second;
 }
 

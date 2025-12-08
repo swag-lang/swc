@@ -1,6 +1,4 @@
 #include "pch.h"
-
-#include "Main/TaskContext.h"
 #include "Math/Hash.h"
 #include "Sema/Type/TypeInfo.h"
 #include "TypeManager.h"
@@ -23,7 +21,12 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
         case TypeInfoKind::Bool:
         case TypeInfoKind::Char:
         case TypeInfoKind::String:
+        case TypeInfoKind::Void:
+        case TypeInfoKind::Any:
+        case TypeInfoKind::Rune:
+        case TypeInfoKind::CString:            
             return true;
+            
         case TypeInfoKind::Int:
             return asInt.bits == other.asInt.bits && asInt.isUnsigned == other.asInt.isUnsigned;
         case TypeInfoKind::Float:
@@ -45,6 +48,10 @@ uint32_t TypeInfo::hash() const
         case TypeInfoKind::Bool:
         case TypeInfoKind::Char:
         case TypeInfoKind::String:
+        case TypeInfoKind::Void:
+        case TypeInfoKind::Any:
+        case TypeInfoKind::Rune:
+        case TypeInfoKind::CString:
             return h;
 
         case TypeInfoKind::Int:
@@ -78,6 +85,26 @@ TypeInfo TypeInfo::makeString()
     return TypeInfo{TypeInfoKind::String};
 }
 
+TypeInfo TypeInfo::makeVoid()
+{
+    return TypeInfo{TypeInfoKind::Void};
+}
+
+TypeInfo TypeInfo::makeAny()
+{
+    return TypeInfo{TypeInfoKind::Any};
+}
+
+TypeInfo TypeInfo::makeRune()
+{
+    return TypeInfo{TypeInfoKind::Rune};
+}
+
+TypeInfo TypeInfo::makeCString()
+{
+    return TypeInfo{TypeInfoKind::CString};
+}
+
 TypeInfo TypeInfo::makeInt(uint32_t bits, bool isUnsigned)
 {
     TypeInfo ti{TypeInfoKind::Int};
@@ -102,7 +129,7 @@ TypeInfo TypeInfo::makeTypeInfo(TypeRef typeRef)
     return ti;
 }
 
-Utf8 TypeInfo::toName(const TypeManager& typeMgr, ToNameMode mode) const
+Utf8 TypeInfo::toName(const TypeManager& typeMgr) const
 {
     switch (kind_)
     {
@@ -112,10 +139,19 @@ Utf8 TypeInfo::toName(const TypeManager& typeMgr, ToNameMode mode) const
             return "character";
         case TypeInfoKind::String:
             return "string";
+        case TypeInfoKind::Void:
+            return "void";
+        case TypeInfoKind::Any:
+            return "any";
+        case TypeInfoKind::Rune:
+            return "rune";
+        case TypeInfoKind::CString:
+            return "cstring";
+
         case TypeInfoKind::TypeInfo:
             if (asTypeInfo.typeRef.isInvalid())
                 return "typeinfo";
-            return std::format("typeinfo({})", typeMgr.typeToName(asTypeInfo.typeRef, mode));
+            return std::format("typeinfo({})", typeMgr.typeToName(asTypeInfo.typeRef));
 
         case TypeInfoKind::Int:
         {

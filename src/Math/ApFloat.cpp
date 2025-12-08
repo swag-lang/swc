@@ -440,6 +440,7 @@ Utf8 ApFloat::toString() const
             SWC_ASSERT(ec == std::errc());
             return Utf8{buffer.data(), static_cast<size_t>(ptr - buffer.data())};
         }
+            
         case 64:
         {
             // Handle special values
@@ -455,6 +456,7 @@ Utf8 ApFloat::toString() const
             SWC_ASSERT(ec == std::errc());
             return Utf8{buffer.data(), static_cast<size_t>(ptr - buffer.data())};
         }
+            
         default:
             SWC_UNREACHABLE();
     }
@@ -462,10 +464,10 @@ Utf8 ApFloat::toString() const
 
 ApsInt ApFloat::toInt(uint32_t targetBits, bool isUnsigned, bool& isExact, bool& overflow) const
 {
+    SWC_ASSERT(targetBits > 0);
+
     isExact  = true;
     overflow = false;
-
-    SWC_ASSERT(targetBits > 0);
 
     // NaN / Inf => overflow
     if (!isFinite())
@@ -474,38 +476,18 @@ ApsInt ApFloat::toInt(uint32_t targetBits, bool isUnsigned, bool& isExact, bool&
         return ApsInt::minValue(targetBits, isUnsigned);
     }
 
-    // Use ApFloat's own representation to get a scalar value.
-    long double v;
-    switch (bitWidth_)
-    {
-        case 32:
-            v = static_cast<long double>(value_.f32);
-            break;
-        case 64:
-            v = static_cast<long double>(value_.f64);
-            break;
-        default:
-            SWC_UNREACHABLE();
-    }
+    // Get scalar as double (float->double is exact).
+    const double v         = asDouble();
+    const double truncated = std::trunc(v);
 
-    // Truncate toward zero
-    const long double truncated = std::trunc(v);
     if (truncated != v)
         isExact = false;
 
-    // Unsigned target cannot represent negative values
-    if (isUnsigned && truncated < 0.0L)
-    {
-        overflow = true;
-        return ApsInt::minValue(targetBits, isUnsigned);
-    }
-
-    // We’ll only go through host 64-bit integers for now.
-    // If the magnitude doesn't fit in 64 bits, treat as overflow.
+    // Unsigned case
     if (isUnsigned)
     {
-        constexpr long double maxU64 = static_cast<long double>(std::numeric_limits<uint64_t>::max());
-        if (truncated < 0.0L || truncated > maxU64)
+        if (truncated < 0.0 ||
+            truncated > static_cast<double>(std::numeric_limits<uint64_t>::max()))
         {
             overflow = true;
             return ApsInt::minValue(targetBits, isUnsigned);
@@ -513,10 +495,9 @@ ApsInt ApFloat::toInt(uint32_t targetBits, bool isUnsigned, bool& isExact, bool&
 
         const uint64_t u = static_cast<uint64_t>(truncated);
 
-        // Now check against the target bit width.
         if (targetBits < 64)
         {
-            const uint64_t maxTarget = (targetBits == 64) ? std::numeric_limits<uint64_t>::max() : ((uint64_t{1} << targetBits) - 1);
+            const uint64_t maxTarget = (uint64_t{1} << targetBits) - 1;
             if (u > maxTarget)
             {
                 overflow = true;
@@ -524,13 +505,13 @@ ApsInt ApFloat::toInt(uint32_t targetBits, bool isUnsigned, bool& isExact, bool&
             }
         }
 
+        // Assuming ApsInt takes a 64-bit value encoded in int64_t when isUnsigned=true.
         return ApsInt(std::bit_cast<int64_t>(u), targetBits, true);
     }
 
-    constexpr long double minI64 = static_cast<long double>(std::numeric_limits<int64_t>::min());
-    constexpr long double maxI64 = static_cast<long double>(std::numeric_limits<int64_t>::max());
-
-    if (truncated < minI64 || truncated > maxI64)
+    // Signed case
+    if (truncated < static_cast<double>(std::numeric_limits<int64_t>::min()) ||
+        truncated > static_cast<double>(std::numeric_limits<int64_t>::max()))
     {
         overflow = true;
         return ApsInt::minValue(targetBits, isUnsigned);
@@ -538,11 +519,10 @@ ApsInt ApFloat::toInt(uint32_t targetBits, bool isUnsigned, bool& isExact, bool&
 
     const int64_t s = static_cast<int64_t>(truncated);
 
-    // Check against the target signed range if targetBits <= 63.
     if (targetBits < 63)
     {
-        const int64_t minTarget = -(static_cast<int64_t>(1) << (targetBits - 1));
-        const int64_t maxTarget = (static_cast<int64_t>(1) << (targetBits - 1)) - 1;
+        const int64_t minTarget = -(int64_t{1} << (targetBits - 1));
+        const int64_t maxTarget = (int64_t{1} << (targetBits - 1)) - 1;
         if (s < minTarget || s > maxTarget)
         {
             overflow = true;

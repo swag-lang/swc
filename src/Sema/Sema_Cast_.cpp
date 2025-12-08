@@ -298,6 +298,9 @@ bool Sema::promoteConstants(const SemaNodeViewList& ops, ConstantRef& leftRef, C
 
 AstVisitStepResult AstExplicitCastExpr::semaPostNode(Sema& sema) const
 {
+    if (sema.checkModifiers(*this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst) == Result::Error)
+        return AstVisitStepResult::Stop;
+
     const SemaNodeView nodeTypeView(sema, nodeTypeRef);
     const SemaNodeView nodeExprView(sema, nodeExprRef);
 

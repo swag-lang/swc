@@ -41,3 +41,8 @@
 #assert('W' == 'W')
 #assert('!' == '!')
 
+#assert('a''s8 == 0)     // swc-expected-error {{sema_err_cannot_cast}}
+#assert('a''s16 == 0)    // swc-expected-error {{sema_err_cannot_cast}}
+#assert('a''s32 == 0)    // swc-expected-error {{sema_err_cannot_cast}}
+#assert('a''s64 == 0)    // swc-expected-error {{sema_err_cannot_cast}}
+

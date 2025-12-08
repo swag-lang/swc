@@ -152,6 +152,35 @@ namespace
         return ctx.cstMgr().addConstant(ctx, result);
     }
 
+    ConstantRef castFloatToInt(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
+    {
+        auto&              ctx        = sema.ctx();
+        const TypeManager& typeMgr    = ctx.typeMgr();
+        const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
+        const ApFloat&     srcVal     = src.getFloat();
+        const uint32_t     targetBits = targetType.intBits();
+        const bool         isUnsigned = targetType.isIntUnsigned();
+
+        bool         isExact  = false;
+        bool         overflow = false;
+        const ApsInt value    = srcVal.toInt(targetBits, isUnsigned, isExact, overflow);
+        if (overflow)
+        {
+            sema.raiseLiteralOverflow(castCtx.errorNodeRef, targetTypeRef);
+            return ConstantRef::invalid();
+        }
+
+        ConstantValue result;
+        if (targetType.isChar())
+            result = ConstantValue::makeChar(ctx, static_cast<uint32_t>(value.asU64()));
+        else if (targetType.isRune())
+            result = ConstantValue::makeRune(ctx, static_cast<uint32_t>(value.asU64()));
+        else
+            result = ConstantValue::makeInt(ctx, value, targetBits);
+
+        return ctx.cstMgr().addConstant(ctx, result);
+    }
+
     ConstantRef castFloatToFloat(Sema& sema, const CastContext&, const ConstantValue& src, TypeRef targetTypeRef)
     {
         auto&              ctx        = sema.ctx();
@@ -238,6 +267,8 @@ ConstantRef Sema::castConstant(const CastContext& castCtx, ConstantRef srcRef, T
         return castIntToFloat(*this, castCtx, src, targetTypeRef);
     if (srcType.isFloat() && targetType.isFloat())
         return castFloatToFloat(*this, castCtx, src, targetTypeRef);
+    if (srcType.isFloat() && targetType.isIntCharRune())
+        return castFloatToInt(*this, castCtx, src, targetTypeRef);
 
     raiseInternalError(node(castCtx.errorNodeRef));
     return ConstantRef::invalid();

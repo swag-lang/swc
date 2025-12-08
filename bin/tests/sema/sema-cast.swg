@@ -1,3 +1,13 @@
 #assert(cast(s8) 1 == 1)
 #assert(cast(s8) -1 == -1)
 #assert(cast(s32) 0 == 0)
+
+#assert(cast(s32) 0 == 0)
+#assert(cast(u8) 1 == 1)
+#assert(cast(u16) 65535 == 65535)
+#assert(cast(f32) 45'u8 == 45)
+#assert(cast(f32) 45'u16 == 45)
+#assert(cast(f32) -45's8 == -45)
+#assert(cast(s32) 3.9 == 3)
+#assert(cast(s32) -3.9 == -3)
+#assert(cast(u8) 255'u16 == 255)

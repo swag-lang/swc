@@ -499,4 +499,97 @@ Utf8 ApFloat::toString() const
     }
 }
 
+ApsInt ApFloat::toInt(uint32_t targetBits, bool isUnsigned, bool& isExact, bool& overflow) const
+{
+    isExact  = true;
+    overflow = false;
+
+    SWC_ASSERT(targetBits > 0);
+
+    // NaN / Inf => overflow
+    if (!isFinite())
+    {
+        overflow = true;
+        return ApsInt::minValue(targetBits, isUnsigned);
+    }
+
+    // Use ApFloat's own representation to get a scalar value.
+    long double v;
+    switch (bitWidth_)
+    {
+        case 32:
+            v = static_cast<long double>(value_.f32);
+            break;
+        case 64:
+            v = static_cast<long double>(value_.f64);
+            break;
+        default:
+            SWC_UNREACHABLE();
+    }
+
+    // Truncate toward zero
+    const long double truncated = std::trunc(v);
+    if (truncated != v)
+        isExact = false;
+
+    // Unsigned target cannot represent negative values
+    if (isUnsigned && truncated < 0.0L)
+    {
+        overflow = true;
+        return ApsInt::minValue(targetBits, isUnsigned);
+    }
+
+    // We’ll only go through host 64-bit integers for now.
+    // If the magnitude doesn't fit in 64 bits, treat as overflow.
+    if (isUnsigned)
+    {
+        constexpr long double maxU64 = static_cast<long double>(std::numeric_limits<uint64_t>::max());
+        if (truncated < 0.0L || truncated > maxU64)
+        {
+            overflow = true;
+            return ApsInt::minValue(targetBits, isUnsigned);
+        }
+
+        const uint64_t u = static_cast<uint64_t>(truncated);
+
+        // Now check against the target bit width.
+        if (targetBits < 64)
+        {
+            const uint64_t maxTarget = (targetBits == 64) ? std::numeric_limits<uint64_t>::max() : ((uint64_t{1} << targetBits) - 1);
+            if (u > maxTarget)
+            {
+                overflow = true;
+                return ApsInt::minValue(targetBits, isUnsigned);
+            }
+        }
+
+        return ApsInt(std::bit_cast<int64_t>(u), targetBits, true);
+    }
+
+    constexpr long double minI64 = static_cast<long double>(std::numeric_limits<int64_t>::min());
+    constexpr long double maxI64 = static_cast<long double>(std::numeric_limits<int64_t>::max());
+
+    if (truncated < minI64 || truncated > maxI64)
+    {
+        overflow = true;
+        return ApsInt::minValue(targetBits, isUnsigned);
+    }
+
+    const int64_t s = static_cast<int64_t>(truncated);
+
+    // Check against the target signed range if targetBits <= 63.
+    if (targetBits < 63)
+    {
+        const int64_t minTarget = -(static_cast<int64_t>(1) << (targetBits - 1));
+        const int64_t maxTarget = (static_cast<int64_t>(1) << (targetBits - 1)) - 1;
+        if (s < minTarget || s > maxTarget)
+        {
+            overflow = true;
+            return ApsInt::minValue(targetBits, isUnsigned);
+        }
+    }
+
+    return ApsInt(s, targetBits, false);
+}
+
 SWC_END_NAMESPACE()

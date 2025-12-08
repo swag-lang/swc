@@ -657,6 +657,8 @@ struct AstExplicitCastExpr : AstNodeT<AstNodeId::ExplicitCastExpr>
     {
         AstNode::collectChildren(out, {nodeTypeRef, nodeExprRef});
     }
+
+    AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
 struct AstEnumBody : AstCompoundT<AstNodeId::EnumBody>

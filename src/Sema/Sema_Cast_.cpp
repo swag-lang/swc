@@ -201,6 +201,7 @@ bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef t
             break;
 
         case CastKind::Promotion:
+        case CastKind::Explicit:
             return true;
 
         default:
@@ -265,6 +266,30 @@ bool Sema::promoteConstants(const SemaNodeViewList& ops, ConstantRef& leftRef, C
     }
 
     SWC_UNREACHABLE();
+}
+
+AstVisitStepResult AstExplicitCastExpr::semaPostNode(Sema& sema) const
+{
+    const SemaNodeView nodeTypeView(sema, nodeTypeRef);
+    const SemaNodeView nodeExprView(sema, nodeExprRef);
+
+    CastContext castCtx;
+    castCtx.kind         = CastKind::Explicit;
+    castCtx.errorNodeRef = nodeTypeView.nodeRef;
+    if (!sema.castAllowed(castCtx, nodeExprView.typeRef, nodeTypeView.typeRef))
+        return AstVisitStepResult::Stop;
+
+    if (sema.hasConstant(nodeExprRef))
+    {
+        const ConstantRef cstRef = sema.cast(castCtx, nodeExprView.cstRef, nodeTypeView.typeRef);
+        if (cstRef.isInvalid())
+            return AstVisitStepResult::Stop;
+        sema.setConstant(sema.curNodeRef(), cstRef);
+        return AstVisitStepResult::Continue;
+    }
+
+    sema.setType(sema.curNodeRef(), nodeTypeView.typeRef);
+    return AstVisitStepResult::Continue;
 }
 
 SWC_END_NAMESPACE()

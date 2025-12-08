@@ -10,8 +10,9 @@ TypeRef SemaInfo::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const
     if (nodeRef.isInvalid())
         return TypeRef::invalid();
 
-    const AstNode& node = ast().node(nodeRef);
-    switch (semaNodeKind(node))
+    const AstNode&     node = ast().node(nodeRef);
+    const NodeSemaKind kind = semaNodeKind(node);
+    switch (kind)
     {
         case NodeSemaKind::IsConstantRef:
             return getConstant(ctx, nodeRef).typeRef();

@@ -19,14 +19,35 @@
 #assert("\u2603" == "☃")
 #assert("\U0001F600" == "😀")
 
-#assert('\n''u8 == 10)
-#assert('\n''u16 == 10)
-#assert('\n''u32 == 10)
-#assert('\n''u64 == 10)
-#assert('\n' == 10)
-#assert('\n' == 10'u8)
-#assert('\n' == 10'u16)
-#assert('\n' == 10'u32)
-#assert('\n' == 10'u64)
+#assert("\b" == "\b")
+#assert("\f" == "\f")
+#assert("\v" == "\v")
 
-#assert('a''rune == 'a')
+#assert("\r" == "\r")
+#assert("\r\n" != "\n")
+
+#assert("\0" == "\0")
+
+#assert("\x42" == "B")
+#assert("\x42" == "\x42")
+#assert("\xFF" == "\xFF")
+
+#assert("\u0000" == "\0")
+#assert("\u0061" == "a")
+#assert("\u00E9" == "é")
+#assert("\u4E00" == "一")
+
+#assert("\U00000041" == "A")
+#assert("\U0010FFFF" == "\U0010FFFF")
+
+#assert(#"Line\nNo\tEscape"# == "Line\\nNo\\tEscape")
+#assert(#"C:\Path\To\File"# == "C:\\Path\\To\\File")
+
+#assert("Hello\u0020World" == "Hello World")
+#assert("A" ++ "\n" ++ "B" == "A\nB")
+
+#assert("Quote: \"test\"" == "Quote: \"test\"")
+
+#assert("Path\\" == "Path\\")
+#assert("\\\\" == "\\\\")
+

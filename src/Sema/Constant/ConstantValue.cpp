@@ -34,9 +34,19 @@ ConstantValue ConstantValue::makeString(const TaskContext& ctx, std::string_view
 ConstantValue ConstantValue::makeChar(const TaskContext& ctx, char32_t value)
 {
     ConstantValue cv;
-    cv.typeRef_   = ctx.typeMgr().getTypeChar();
-    cv.kind_      = ConstantKind::Char;
-    cv.asChar.val = value;
+    cv.typeRef_       = ctx.typeMgr().getTypeChar();
+    cv.kind_          = ConstantKind::Char;
+    cv.asCharRune.val = value;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return cv;
+}
+
+ConstantValue ConstantValue::makeRune(const TaskContext& ctx, char32_t value)
+{
+    ConstantValue cv;
+    cv.typeRef_       = ctx.typeMgr().getTypeRune();
+    cv.kind_          = ConstantKind::Rune;
+    cv.asCharRune.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -44,8 +54,8 @@ ConstantValue ConstantValue::makeChar(const TaskContext& ctx, char32_t value)
 ConstantValue ConstantValue::makeTypeInfo(TaskContext& ctx, TypeRef value)
 {
     ConstantValue cv;
-    cv.typeRef_   = ctx.typeMgr().addType(TypeInfo::makeTypeInfo(value));
-    cv.kind_      = ConstantKind::TypeInfo;
+    cv.typeRef_       = ctx.typeMgr().addType(TypeInfo::makeTypeInfo(value));
+    cv.kind_          = ConstantKind::TypeInfo;
     cv.asTypeInfo.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
@@ -82,6 +92,8 @@ bool ConstantValue::operator==(const ConstantValue& other) const noexcept
             return getBool() == other.getBool();
         case ConstantKind::Char:
             return getChar() == other.getChar();
+        case ConstantKind::Rune:
+            return getRune() == other.getRune();            
         case ConstantKind::String:
             return getString() == other.getString();
         case ConstantKind::Int:
@@ -105,6 +117,8 @@ bool ConstantValue::eq(const ConstantValue& other) const noexcept
             return getBool() == other.getBool();
         case ConstantKind::Char:
             return getChar() == other.getChar();
+        case ConstantKind::Rune:
+            return getRune() == other.getRune();            
         case ConstantKind::String:
             return getString() == other.getString();
         case ConstantKind::Int:
@@ -187,6 +201,8 @@ Utf8 ConstantValue::toString(const TaskContext& ctx) const
             return getBool() ? "true" : "false";
         case ConstantKind::Char:
             return getChar();
+        case ConstantKind::Rune:
+            return getRune();            
         case ConstantKind::String:
             return getString();
         case ConstantKind::Int:
@@ -210,8 +226,11 @@ uint32_t ConstantValue::hash() const noexcept
             h = Math::hashCombine(h, asBool.val);
             break;
         case ConstantKind::Char:
-            h = Math::hashCombine(h, Math::hash(asChar.val));
+            h = Math::hashCombine(h, Math::hash(asCharRune.val));
             break;
+        case ConstantKind::Rune:
+            h = Math::hashCombine(h, Math::hash(asCharRune.val));
+            break;            
         case ConstantKind::String:
             h = Math::hashCombine(h, Math::hash(asString.val));
             break;

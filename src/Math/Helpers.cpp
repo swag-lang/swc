@@ -13,8 +13,10 @@ namespace Math
         __uint128_t r = (__uint128_t) a * b;
         lo            = (uint64_t) r;
         hi            = (uint64_t) (r >> 64);
+
 #elif defined(_MSC_VER) && defined(_M_X64)
         lo = _umul128(a, b, &hi);
+
 #else
         uint64_t ha = a >> 32, hb = b >> 32;
         uint64_t la = (uint32_t) a, lb = (uint32_t) b;
@@ -51,7 +53,6 @@ namespace Math
         r = static_cast<uint64_t>(r128);
 
 #elif defined(_MSC_VER) && defined(_M_X64)
-        // MSVC x64 has a 128/64-division intrinsic.
         q = _udiv128(hi, lo, d, &r);
 
 #else

@@ -36,6 +36,50 @@ namespace Math
 #endif
     }
 
+    void div128X64(uint64_t hi, uint64_t lo, uint64_t d, uint64_t& q, uint64_t& r)
+    {
+        SWC_ASSERT(d != 0);
+
+#ifdef __SIZEOF_INT128__
+        // Fast path using native 128-bit integer.
+        __uint128_t num  = (static_cast<__uint128_t>(hi) << 64) | lo;
+        __uint128_t q128 = num / d;
+        __uint128_t r128 = num % d;
+
+        // For (2^128-1) / (2^64) the quotient is < 2^64, so it fits.
+        q = static_cast<uint64_t>(q128);
+        r = static_cast<uint64_t>(r128);
+
+#elif defined(_MSC_VER) && defined(_M_X64)
+        // MSVC x64 has a 128/64-division intrinsic.
+        q = _udiv128(hi, lo, d, &r);
+
+#else
+        // Portable fallback: bit-by-bit restoring division on 128 bits.
+        //
+        // Conceptually divides (hi<<64 | lo) by d.
+        // We maintain 'rem' as the running remainder (up to 64 bits),
+        // and shift in bits from 'lo' high-to-low, just like standard
+        // long division.
+        uint64_t rem   = hi;
+        uint64_t qWord = 0;
+
+        for (int bit = 63; bit >= 0; --bit)
+        {
+            rem = (rem << 1) | ((lo >> bit) & 1u);
+            qWord <<= 1;
+            if (rem >= d)
+            {
+                rem -= d;
+                qWord |= 1u;
+            }
+        }
+
+        q = qWord;
+        r = rem;
+#endif
+    }
+
     ApsInt bitCastToApInt(const ApFloat& src)
     {
         const uint32_t bw = src.bitWidth();

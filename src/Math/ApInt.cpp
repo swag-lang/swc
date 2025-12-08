@@ -386,23 +386,11 @@ uint64_t ApInt::div(uint64_t v)
         return 0;
 
     uint64_t rem = 0;
+
     for (int i = static_cast<int>(numWords_) - 1; i >= 0; --i)
     {
-        const uint64_t word  = words_[i];
-        uint64_t       qWord = 0;
-
-        for (int bit = static_cast<int>(WORD_BITS) - 1; bit >= 0; --bit)
-        {
-            rem = (rem << 1) | ((word >> bit) & ONE);
-
-            qWord <<= 1;
-            if (rem >= v)
-            {
-                rem -= v;
-                qWord |= 1;
-            }
-        }
-
+        uint64_t qWord = 0;
+        Math::div128X64(rem, words_[i], v, qWord, rem);
         words_[i] = qWord;
     }
 

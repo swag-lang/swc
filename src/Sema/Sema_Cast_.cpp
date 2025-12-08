@@ -202,7 +202,9 @@ bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef t
 
         case CastKind::Promotion:
         case CastKind::Explicit:
-            return true;
+            if (srcType.canBePromoted() && targetType.canBePromoted())
+                return true;
+            break;
 
         default:
             SWC_UNREACHABLE();
@@ -212,7 +214,7 @@ bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef t
     return false;
 }
 
-ConstantRef Sema::cast(const CastContext& castCtx, ConstantRef srcRef, TypeRef targetTypeRef)
+ConstantRef Sema::castConstant(const CastContext& castCtx, ConstantRef srcRef, TypeRef targetTypeRef)
 {
     const ConstantValue& src = cstMgr().get(srcRef);
     if (src.typeRef() == targetTypeRef)
@@ -254,14 +256,12 @@ bool Sema::promoteConstants(const SemaNodeViewList& ops, ConstantRef& leftRef, C
         castCtx.kind         = CastKind::Promotion;
         castCtx.errorNodeRef = ops.nodeView[0].nodeRef;
 
-        leftRef = cast(castCtx, constantRefOf(ops.nodeView[0].nodeRef), promotedTypeRef);
+        leftRef = castConstant(castCtx, constantRefOf(ops.nodeView[0].nodeRef), promotedTypeRef);
         if (leftRef.isInvalid())
             return false;
-
-        rightRef = cast(castCtx, constantRefOf(ops.nodeView[1].nodeRef), promotedTypeRef);
+        rightRef = castConstant(castCtx, constantRefOf(ops.nodeView[1].nodeRef), promotedTypeRef);
         if (rightRef.isInvalid())
             return false;
-
         return true;
     }
 
@@ -281,7 +281,7 @@ AstVisitStepResult AstExplicitCastExpr::semaPostNode(Sema& sema) const
 
     if (sema.hasConstant(nodeExprRef))
     {
-        const ConstantRef cstRef = sema.cast(castCtx, nodeExprView.cstRef, nodeTypeView.typeRef);
+        const ConstantRef cstRef = sema.castConstant(castCtx, nodeExprView.cstRef, nodeTypeView.typeRef);
         if (cstRef.isInvalid())
             return AstVisitStepResult::Stop;
         sema.setConstant(sema.curNodeRef(), cstRef);

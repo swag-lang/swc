@@ -1,8 +1,6 @@
 #include "pch.h"
-
-#include "ApFloat.h"
-#include "ApInt.h"
 #include "Math/Helpers.h"
+#include "Math/ApFloat.h"
 
 SWC_BEGIN_NAMESPACE()
 class ApFloat;
@@ -53,7 +51,7 @@ namespace Math
         if (bw == 64)
         {
             const double d = src.asDouble();
-            uint64_t     u = 0;
+            int64_t      u = 0;
             std::memcpy(&u, &d, sizeof(u));
             return ApsInt(u, 64, true);
         }

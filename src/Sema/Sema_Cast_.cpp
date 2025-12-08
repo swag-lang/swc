@@ -238,7 +238,7 @@ namespace
 
         bool          isExact  = false;
         bool          overflow = false;
-        const ApFloat value    = floatVal.convertTo(targetBits, isExact, overflow);
+        const ApFloat value    = floatVal.toFloat(targetBits, isExact, overflow);
         if (overflow)
         {
             sema.raiseLiteralOverflow(castCtx.errorNodeRef, targetTypeRef);
@@ -257,7 +257,7 @@ bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef t
     const TypeManager& typeMgr    = ctx.typeMgr();
     const TypeInfo&    srcType    = typeMgr.get(srcTypeRef);
     const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
-    
+
     if (castCtx.kind == CastKind::Explicit && castCtx.flags.has(CastFlagsE::BitCast))
     {
         const bool srcScalar = srcType.isIntLike() || srcType.isFloat();
@@ -280,7 +280,7 @@ bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef t
 
     if (srcTypeRef == targetTypeRef)
         return true;
-    
+
     switch (castCtx.kind)
     {
         case CastKind::LiteralSuffix:

@@ -440,7 +440,7 @@ Utf8 ApFloat::toString() const
             SWC_ASSERT(ec == std::errc());
             return Utf8{buffer.data(), static_cast<size_t>(ptr - buffer.data())};
         }
-            
+
         case 64:
         {
             // Handle special values
@@ -456,7 +456,7 @@ Utf8 ApFloat::toString() const
             SWC_ASSERT(ec == std::errc());
             return Utf8{buffer.data(), static_cast<size_t>(ptr - buffer.data())};
         }
-            
+
         default:
             SWC_UNREACHABLE();
     }
@@ -533,15 +533,13 @@ ApsInt ApFloat::toInt(uint32_t targetBits, bool isUnsigned, bool& isExact, bool&
     return ApsInt(s, targetBits, false);
 }
 
-ApFloat ApFloat::convertTo(uint32_t targetBits, bool& isExact, bool& overflow) const
+ApFloat ApFloat::toFloat(uint32_t targetBits, bool& isExact, bool& overflow) const
 {
     SWC_ASSERT(targetBits == 32 || targetBits == 64);
     SWC_ASSERT(bitWidth_ == 32 || bitWidth_ == 64);
 
-    // No overflow in float<->double conversion.
     overflow = false;
 
-    // Same format: nothing to do, trivially exact.
     if (bitWidth_ == targetBits)
     {
         isExact = true;
@@ -552,7 +550,6 @@ ApFloat ApFloat::convertTo(uint32_t targetBits, bool& isExact, bool& overflow) c
 
     if (bitWidth_ == 32 && targetBits == 64)
     {
-        // float -> double: always exactly representable.
         const double d = value_.f32;
         result.set(d);
         isExact = true;
@@ -561,10 +558,7 @@ ApFloat ApFloat::convertTo(uint32_t targetBits, bool& isExact, bool& overflow) c
     {
         const float f = static_cast<float>(value_.f64);
         result.set(f);
-
-        // Exact if a round-trip through float preserves the original double.
-        const double back = f;
-        isExact           = (back == value_.f64);
+        isExact = static_cast<double>(f) == value_.f64;
     }
     else
     {

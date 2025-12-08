@@ -380,6 +380,7 @@ AstVisitStepResult AstExplicitCastExpr::semaPostNode(Sema& sema) const
     castCtx.kind = CastKind::Explicit;
     if (modifierFlags.has(AstModifierFlagsE::Bit))
         castCtx.flags.add(CastFlagsE::BitCast);
+    
     castCtx.errorNodeRef = nodeTypeView.nodeRef;
     if (!sema.castAllowed(castCtx, nodeExprView.typeRef, nodeTypeView.typeRef))
         return AstVisitStepResult::Stop;

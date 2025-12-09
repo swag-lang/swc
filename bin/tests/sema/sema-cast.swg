@@ -65,3 +65,5 @@
 #assert(cast(u16) 65537'u32 == 1'u16)           // swc-expected-error {{sema_err_literal_overflow}}
 
  #assert(-1's8 == -1'f32)
+
+

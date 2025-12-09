@@ -283,14 +283,17 @@ bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef t
     const TypeInfo&    srcType    = typeMgr.get(srcTypeRef);
     const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
 
-    if (castCtx.kind == CastKind::Explicit && castCtx.flags.has(CastFlagsE::BitCast))
+    if (castCtx.flags.has(CastFlagsE::BitCast))
     {
         const bool srcScalar = srcType.isIntLike() || srcType.isFloat();
         const bool dstScalar = targetType.isIntLike() || targetType.isFloat();
 
         if (!srcScalar || !dstScalar)
         {
-            raiseCannotCast(castCtx.errorNodeRef, srcTypeRef, targetTypeRef);
+            auto diag = reportError(DiagnosticId::sema_err_bit_cast_invalid_type, castCtx.errorNodeRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, !srcScalar ? srcTypeRef : targetTypeRef);
+            diag.report(ctx);
+            // raiseCannotCast(castCtx.errorNodeRef, srcTypeRef, targetTypeRef);
             return false;
         }
 
@@ -299,7 +302,10 @@ bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef t
         if (srcBits == dstBits && srcBits != 0)
             return true;
 
-        raiseCannotCast(castCtx.errorNodeRef, srcTypeRef, targetTypeRef);
+        auto diag = reportError(DiagnosticId::sema_err_bit_cast_size, castCtx.errorNodeRef);
+        diag.addArgument(Diagnostic::ARG_LEFT, srcTypeRef);
+        diag.addArgument(Diagnostic::ARG_RIGHT, targetTypeRef);
+        diag.report(ctx);
         return false;
     }
 
@@ -344,7 +350,7 @@ ConstantRef Sema::castConstant(const CastContext& castCtx, ConstantRef srcRef, T
     if (!castAllowed(castCtx, src.typeRef(), targetTypeRef))
         return ConstantRef::invalid();
 
-    if (castCtx.kind == CastKind::Explicit && castCtx.flags.has(CastFlagsE::BitCast))
+    if (castCtx.flags.has(CastFlagsE::BitCast))
         return bitCastConstant(*this, castCtx, srcRef, targetTypeRef);
 
     auto&              ctx        = *ctx_;

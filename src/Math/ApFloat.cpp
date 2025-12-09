@@ -65,6 +65,8 @@ void ApFloat::set(const ApInt& mantissa, int64_t exponent10)
 
 void ApFloat::set(const ApsInt& value, uint32_t targetBits, bool& exact, bool& overflow)
 {
+    if (targetBits == 0)
+        targetBits = 64;
     SWC_ASSERT(targetBits == 32 || targetBits == 64);
 
     exact    = false;

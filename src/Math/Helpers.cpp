@@ -80,57 +80,6 @@ namespace Math
         r = rem;
 #endif
     }
-
-    ApsInt bitCastToApInt(const ApFloat& src)
-    {
-        const uint32_t bw = src.bitWidth();
-
-        if (bw == 32)
-        {
-            const float f = src.asFloat();
-            uint32_t    u = 0;
-            std::memcpy(&u, &f, sizeof(u));
-            return ApsInt(static_cast<uint64_t>(u), 32, true);
-        }
-
-        if (bw == 64)
-        {
-            const double d = src.asDouble();
-            int64_t      u = 0;
-            std::memcpy(&u, &d, sizeof(u));
-            return ApsInt(u, 64, true);
-        }
-
-        SWC_UNREACHABLE();
-    }
-
-    ApFloat bitCastToApFloat(const ApsInt& src, uint32_t floatBits)
-    {
-        // We only support IEEE 32 and 64.
-        // SWC_ASSERT(floatBits == 32 || floatBits == 64);
-        // SWC_ASSERT(src.bitWidth() == floatBits);
-
-        const uint64_t raw = src.asU64();
-
-        if (floatBits == 32)
-        {
-            const uint32_t u = static_cast<uint32_t>(raw);
-            float          f = 0.0f;
-            std::memcpy(&f, &u, sizeof(f));
-            return ApFloat(f);
-        }
-
-        if (floatBits == 64)
-        {
-            const uint64_t u = raw;
-            double         d = 0.0;
-            std::memcpy(&d, &u, sizeof(d));
-            return ApFloat(d);
-        }
-
-        SWC_UNREACHABLE();
-    }
-
 };
 
 SWC_END_NAMESPACE()

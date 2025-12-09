@@ -10,6 +10,56 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
+    ApsInt bitCastToApInt(const ApFloat& src)
+    {
+        const uint32_t bw = src.bitWidth();
+
+        if (bw == 32)
+        {
+            const float f = src.asFloat();
+            uint32_t    u = 0;
+            std::memcpy(&u, &f, sizeof(u));
+            return ApsInt(u, 32, true);
+        }
+
+        if (bw == 64)
+        {
+            const double d = src.asDouble();
+            int64_t      u = 0;
+            std::memcpy(&u, &d, sizeof(u));
+            return ApsInt(u, 64, true);
+        }
+
+        SWC_UNREACHABLE();
+    }
+
+    ApFloat bitCastToApFloat(const ApsInt& src, uint32_t floatBits)
+    {
+        // We only support IEEE 32 and 64.
+        // SWC_ASSERT(floatBits == 32 || floatBits == 64);
+        // SWC_ASSERT(src.bitWidth() == floatBits);
+
+        const uint64_t raw = src.asU64();
+
+        if (floatBits == 32)
+        {
+            const uint32_t u = static_cast<uint32_t>(raw);
+            float          f = 0.0f;
+            std::memcpy(&f, &u, sizeof(f));
+            return ApFloat(f);
+        }
+
+        if (floatBits == 64)
+        {
+            const uint64_t u = raw;
+            double         d = 0.0;
+            std::memcpy(&d, &u, sizeof(d));
+            return ApFloat(d);
+        }
+
+        SWC_UNREACHABLE();
+    }
+
     ConstantRef bitCastConstant(Sema& sema, const CastContext& castCtx, ConstantRef srcRef, TypeRef targetTypeRef)
     {
         auto&                ctx        = sema.ctx();
@@ -18,30 +68,19 @@ namespace
         const TypeInfo&      srcType    = typeMgr.get(src.typeRef());
         const TypeInfo&      targetType = typeMgr.get(targetTypeRef);
 
-        // Only numeric bit-casts for now (int-like / float).
         const bool srcInt   = srcType.isIntLike();
         const bool srcFloat = srcType.isFloat();
         const bool dstInt   = targetType.isIntLike();
         const bool dstFloat = targetType.isFloat();
 
-        // Validate that both source and target are numeric types (int-like or float)
-        if ((!srcInt && !srcFloat) || (!dstInt && !dstFloat))
-        {
-            sema.raiseCannotCast(castCtx.errorNodeRef, src.typeRef(), targetTypeRef);
-            return ConstantRef::invalid();
-        }
+        SWC_ASSERT(srcInt || srcFloat);
+        SWC_ASSERT(dstInt || dstFloat);
 
         const uint32_t srcBits = srcInt ? srcType.intLikeBits() : srcType.floatBits();
         const uint32_t dstBits = dstInt ? targetType.intLikeBits() : targetType.floatBits();
+        SWC_ASSERT(srcBits == dstBits);
 
-        // Bit cast requires the same size - enforce exact bit width matching
-        if (srcBits == 0 || dstBits == 0 || srcBits != dstBits)
-        {
-            sema.raiseCannotCast(castCtx.errorNodeRef, src.typeRef(), targetTypeRef);
-            return ConstantRef::invalid();
-        }
-
-        // int-like -> int-like (same width): just re-tag signedness, do NOT change the underlying bit pattern.
+        // int-like -> int-like (same width): just re-tag signedness, do not change the underlying bit pattern.
         if (srcInt && dstInt)
         {
             ApsInt value = src.getIntLike();
@@ -62,11 +101,11 @@ namespace
             return ctx.cstMgr().addConstant(ctx, result);
         }
 
-        // float <-> int-like, same width: reinterpret raw bits.
+        // float -> int-like, same width: reinterpret raw bits.
         if (srcFloat && dstInt)
         {
             // Reinterpret a float bit pattern as integer without conversion
-            ApsInt              i      = Math::bitCastToApInt(src.getFloat());
+            ApsInt              i      = bitCastToApInt(src.getFloat());
             const ConstantValue result = ConstantValue::makeFromIntLike(ctx, i, targetType);
             return ctx.cstMgr().addConstant(ctx, result);
         }
@@ -74,7 +113,7 @@ namespace
         if (srcInt && dstFloat)
         {
             // Reinterpret an integer bit pattern as float without conversion
-            ApFloat             f      = Math::bitCastToApFloat(src.getIntLike(), dstBits);
+            ApFloat             f      = bitCastToApFloat(src.getIntLike(), dstBits);
             const ConstantValue result = ConstantValue::makeFloat(ctx, f, dstBits);
             return ctx.cstMgr().addConstant(ctx, result);
         }
@@ -293,7 +332,6 @@ bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef t
             auto diag = reportError(DiagnosticId::sema_err_bit_cast_invalid_type, castCtx.errorNodeRef);
             diag.addArgument(Diagnostic::ARG_TYPE, !srcScalar ? srcTypeRef : targetTypeRef);
             diag.report(ctx);
-            // raiseCannotCast(castCtx.errorNodeRef, srcTypeRef, targetTypeRef);
             return false;
         }
 
@@ -411,10 +449,7 @@ AstVisitStepResult AstExplicitCastExpr::semaPostNode(Sema& sema) const
     castCtx.kind = CastKind::Explicit;
     if (modifierFlags.has(AstModifierFlagsE::Bit))
         castCtx.flags.add(CastFlagsE::BitCast);
-
     castCtx.errorNodeRef = nodeTypeView.nodeRef;
-    if (!sema.castAllowed(castCtx, nodeExprView.typeRef, nodeTypeView.typeRef))
-        return AstVisitStepResult::Stop;
 
     if (sema.hasConstant(nodeExprRef))
     {
@@ -424,6 +459,9 @@ AstVisitStepResult AstExplicitCastExpr::semaPostNode(Sema& sema) const
         sema.setConstant(sema.curNodeRef(), cstRef);
         return AstVisitStepResult::Continue;
     }
+
+    if (!sema.castAllowed(castCtx, nodeExprView.typeRef, nodeTypeView.typeRef))
+        return AstVisitStepResult::Stop;
 
     sema.setType(sema.curNodeRef(), nodeTypeView.typeRef);
     return AstVisitStepResult::Continue;

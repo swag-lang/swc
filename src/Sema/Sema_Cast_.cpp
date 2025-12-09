@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    ApsInt bitCastToApInt(const ApFloat& src)
+    ApsInt bitCastToApInt(const ApFloat& src, bool isUnsigned)
     {
         const uint32_t bw = src.bitWidth();
 
@@ -19,7 +19,7 @@ namespace
             const float f = src.asFloat();
             uint32_t    u = 0;
             std::memcpy(&u, &f, sizeof(u));
-            return ApsInt(u, 32, true);
+            return ApsInt(u, 32, isUnsigned);
         }
 
         if (bw == 64)
@@ -27,7 +27,7 @@ namespace
             const double d = src.asDouble();
             int64_t      u = 0;
             std::memcpy(&u, &d, sizeof(u));
-            return ApsInt(u, 64, true);
+            return ApsInt(u, 64, isUnsigned);
         }
 
         SWC_UNREACHABLE();
@@ -105,7 +105,7 @@ namespace
         if (srcFloat && dstInt)
         {
             // Reinterpret a float bit pattern as integer without conversion
-            ApsInt              i      = bitCastToApInt(src.getFloat());
+            ApsInt              i      = bitCastToApInt(src.getFloat(), targetType.isIntLikeUnsigned());
             const ConstantValue result = ConstantValue::makeFromIntLike(ctx, i, targetType);
             return ctx.cstMgr().addConstant(ctx, result);
         }

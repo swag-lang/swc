@@ -111,13 +111,13 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
                 }
 
                 cpy.setUnsigned(false);
-                cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, cpy, 0));
+                cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, cpy, cst.type(ctx).intBits()));
             }
             else if (type.isFloat())
             {
                 ApFloat cpy = cst.getFloat();
                 cpy.negate();
-                cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, cpy, 0));
+                cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, cpy, cst.type(ctx).floatBits()));
             }
         }
     }

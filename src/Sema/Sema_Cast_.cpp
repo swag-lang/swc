@@ -102,7 +102,7 @@ namespace
         if (targetUnsigned)
         {
             // Negative signed source can never fit.
-            if (!value.isUnsigned() && value.isNegative())
+            if (!value.isUnsigned() && value.isNegative() && !castCtx.flags.has(CastFlagsE::NoOverflow))
             {
                 auto diag = sema.reportError(DiagnosticId::sema_err_signed_unsigned, castCtx.errorNodeRef);
                 diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
@@ -110,7 +110,7 @@ namespace
                 return ConstantRef::invalid();
             }
 
-            // Compare in UNSIGNED space.
+            // Compare in unsigned space.
             ApsInt vCheck = value;
             if (!vCheck.isUnsigned())
                 vCheck.setUnsigned(true);
@@ -155,19 +155,19 @@ namespace
                 ApsInt vCheck = value;
                 if (!vCheck.isUnsigned())
                     vCheck.setUnsigned(true);
-                vCheck.resize(checkBits); // zero-extend
+                vCheck.resize(checkBits);
 
                 ApsInt maxU = maxSigned;
                 if (!maxU.isUnsigned())
-                    maxU.setUnsigned(true); // reinterpret bits as unsigned
-                maxU.resize(checkBits);     // zero-extend
+                    maxU.setUnsigned(true);
+                maxU.resize(checkBits);
 
                 if (vCheck.gt(maxU))
                     overflow = true;
             }
         }
 
-        if (overflow)
+        if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
         {
             sema.raiseLiteralOverflow(castCtx.errorNodeRef, targetTypeRef);
             return ConstantRef::invalid();
@@ -196,7 +196,7 @@ namespace
         bool    isExact  = false;
         bool    overflow = false;
         value.set(intVal, targetBits, isExact, overflow);
-        if (overflow)
+        if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
         {
             sema.raiseLiteralOverflow(castCtx.errorNodeRef, targetTypeRef);
             return ConstantRef::invalid();
@@ -218,7 +218,7 @@ namespace
         bool         isExact  = false;
         bool         overflow = false;
         const ApsInt value    = srcVal.toInt(targetBits, isUnsigned, isExact, overflow);
-        if (overflow)
+        if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
         {
             sema.raiseLiteralOverflow(castCtx.errorNodeRef, targetTypeRef);
             return ConstantRef::invalid();
@@ -239,7 +239,7 @@ namespace
         bool          isExact  = false;
         bool          overflow = false;
         const ApFloat value    = floatVal.toFloat(targetBits, isExact, overflow);
-        if (overflow)
+        if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
         {
             sema.raiseLiteralOverflow(castCtx.errorNodeRef, targetTypeRef);
             return ConstantRef::invalid();
@@ -378,9 +378,10 @@ AstVisitStepResult AstExplicitCastExpr::semaPostNode(Sema& sema) const
 
     CastContext castCtx;
     castCtx.kind = CastKind::Explicit;
+    castCtx.flags.add(CastFlagsE::NoOverflow);
     if (modifierFlags.has(AstModifierFlagsE::Bit))
         castCtx.flags.add(CastFlagsE::BitCast);
-    
+
     castCtx.errorNodeRef = nodeTypeView.nodeRef;
     if (!sema.castAllowed(castCtx, nodeExprView.typeRef, nodeTypeView.typeRef))
         return AstVisitStepResult::Stop;

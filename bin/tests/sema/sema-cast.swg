@@ -40,7 +40,15 @@
 #assert(cast(f32) cast(s32) -123's32 == -123)
 
 #assert(cast(f64) 65535'u16 == 65535)
-//#assert(cast(u8) -1's8 == 255'u8)
-//#assert(cast(s8) 255'u8 == -1's8)
+#assert(cast(s16) -32768's16 == -32768)
+#assert(cast(u32) 4294967295'u32 == 4294967295)
+#assert(cast(s32) -2147483648's32 == -2147483648)
+#assert(cast(f32) 0.0'f32 == 0.0)
+#assert(cast(f64) -0.0'f64 == -0.0)
+#assert(cast(u8) 0'u8 == 0)
+#assert(cast(s8) -128's8 == -128)
+
+#assert(cast(u8) -1's8 == 255'u8)
+#assert(cast(s8) 255'u8 == -1's8)
 
  #assert(-1's8 == -1'f32)

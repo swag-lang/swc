@@ -22,8 +22,9 @@ enum class CastKind
 
 enum class CastFlagsE : uint32_t
 {
-    Zero    = 0,
-    BitCast = 1 << 0,
+    Zero       = 0,
+    BitCast    = 1 << 0,
+    NoOverflow = 1 << 1,
 };
 using CastFlags = EnumFlags<CastFlagsE>;
 

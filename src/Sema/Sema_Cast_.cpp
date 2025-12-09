@@ -194,7 +194,7 @@ namespace
 
         if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
         {
-            sema.raiseLiteralOverflow(castCtx.errorNodeRef, targetTypeRef);
+            sema.raiseLiteralOverflow(castCtx.errorNodeRef, src, targetTypeRef);
             return ConstantRef::invalid();
         }
 
@@ -223,7 +223,7 @@ namespace
         value.set(intVal, targetBits, isExact, overflow);
         if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
         {
-            sema.raiseLiteralOverflow(castCtx.errorNodeRef, targetTypeRef);
+            sema.raiseLiteralOverflow(castCtx.errorNodeRef, src, targetTypeRef);
             return ConstantRef::invalid();
         }
 
@@ -245,7 +245,7 @@ namespace
         const ApsInt value    = srcVal.toInt(targetBits, isUnsigned, isExact, overflow);
         if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
         {
-            sema.raiseLiteralOverflow(castCtx.errorNodeRef, targetTypeRef);
+            sema.raiseLiteralOverflow(castCtx.errorNodeRef, src, targetTypeRef);
             return ConstantRef::invalid();
         }
 
@@ -266,7 +266,7 @@ namespace
         const ApFloat value    = floatVal.toFloat(targetBits, isExact, overflow);
         if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
         {
-            sema.raiseLiteralOverflow(castCtx.errorNodeRef, targetTypeRef);
+            sema.raiseLiteralOverflow(castCtx.errorNodeRef, src, targetTypeRef);
             return ConstantRef::invalid();
         }
 

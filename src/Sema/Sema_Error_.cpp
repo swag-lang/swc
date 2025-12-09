@@ -1,4 +1,6 @@
 #include "pch.h"
+
+#include "Constant/ConstantValue.h"
 #include "Main/CompilerInstance.h"
 #include "Report/Diagnostic.h"
 #include "Sema/Sema.h"
@@ -76,10 +78,11 @@ void Sema::raiseCannotCast(AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targe
     diag.report(*ctx_);
 }
 
-void Sema::raiseLiteralOverflow(AstNodeRef nodeRef, TypeRef targetTypeRef) const
+void Sema::raiseLiteralOverflow(AstNodeRef nodeRef, const ConstantValue& literal, TypeRef targetTypeRef) const
 {
     auto diag = reportError(DiagnosticId::sema_err_literal_overflow, nodeRef);
     diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
+    diag.addArgument(Diagnostic::ARG_VALUE, literal.toString(*ctx_));
     diag.report(*ctx_);
 }
 

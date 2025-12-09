@@ -36,7 +36,7 @@ namespace
             value.negate(overflow);
             if (overflow)
             {
-                sema.raiseLiteralOverflow(node.nodeExprRef, sema.typeRefOf(node.nodeExprRef));
+                sema.raiseLiteralOverflow(node.nodeExprRef, *ops.nodeView.cst, sema.typeRefOf(node.nodeExprRef));
                 return ConstantRef::invalid();
             }
 

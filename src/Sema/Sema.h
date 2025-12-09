@@ -110,7 +110,7 @@ public:
 
     void raiseInvalidType(AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef) const;
     void raiseCannotCast(AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef) const;
-    void raiseLiteralOverflow(AstNodeRef nodeRef, TypeRef targetTypeRef) const;
+    void raiseLiteralOverflow(AstNodeRef nodeRef, const ConstantValue& literal, TypeRef targetTypeRef) const;
     void raiseDivZero(const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef) const;
     void raiseExprNotConst(AstNodeRef nodeRef) const;
     void raiseBinaryOperandType(const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef) const;

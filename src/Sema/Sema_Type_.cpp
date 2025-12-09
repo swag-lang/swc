@@ -106,7 +106,7 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
                 cpy.negate(overflow);
                 if (overflow)
                 {
-                    sema.raiseLiteralOverflow(nodeLiteralRef, cst.typeRef());
+                    sema.raiseLiteralOverflow(nodeLiteralRef, cst, cst.typeRef());
                     return AstVisitStepResult::Stop;
                 }
 

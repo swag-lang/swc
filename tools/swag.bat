@@ -1,4 +1,4 @@
 @echo off
 cd ../../swag/tools
-call tst_dm.bat
+call tst.bat -m:test_compiler
 cd ../../swc/tools

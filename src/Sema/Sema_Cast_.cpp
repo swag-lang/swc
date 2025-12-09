@@ -24,6 +24,7 @@ namespace
         const bool dstInt   = targetType.isIntLike();
         const bool dstFloat = targetType.isFloat();
 
+        // Validate that both source and target are numeric types (int-like or float)
         if ((!srcInt && !srcFloat) || (!dstInt && !dstFloat))
         {
             sema.raiseCannotCast(castCtx.errorNodeRef, src.typeRef(), targetTypeRef);
@@ -33,7 +34,7 @@ namespace
         const uint32_t srcBits = srcInt ? srcType.intLikeBits() : srcType.floatBits();
         const uint32_t dstBits = dstInt ? targetType.intLikeBits() : targetType.floatBits();
 
-        // bit cast requires the same size.
+        // Bit cast requires the same size - enforce exact bit width matching
         if (srcBits == 0 || dstBits == 0 || srcBits != dstBits)
         {
             sema.raiseCannotCast(castCtx.errorNodeRef, src.typeRef(), targetTypeRef);
@@ -45,7 +46,7 @@ namespace
         {
             ApsInt value = src.getIntLike();
 
-            // Only change the signed/unsigned *interpretation*; bitWidth already matches.
+            // Preserve bit pattern but reinterpret signedness for the target type
             if (value.isUnsigned() != targetType.isIntLikeUnsigned())
                 value.setUnsigned(targetType.isIntLikeUnsigned());
 
@@ -64,6 +65,7 @@ namespace
         // float <-> int-like, same width: reinterpret raw bits.
         if (srcFloat && dstInt)
         {
+            // Reinterpret a float bit pattern as integer without conversion
             ApsInt              i      = Math::bitCastToApInt(src.getFloat());
             const ConstantValue result = ConstantValue::makeFromIntLike(ctx, i, targetType);
             return ctx.cstMgr().addConstant(ctx, result);
@@ -71,6 +73,7 @@ namespace
 
         if (srcInt && dstFloat)
         {
+            // Reinterpret an integer bit pattern as float without conversion
             ApFloat             f      = Math::bitCastToApFloat(src.getIntLike(), dstBits);
             const ConstantValue result = ConstantValue::makeFloat(ctx, f, dstBits);
             return ctx.cstMgr().addConstant(ctx, result);
@@ -136,7 +139,7 @@ namespace
                 ApsInt vCheck = value;
                 if (vCheck.isUnsigned())
                     vCheck.setUnsigned(false);
-                vCheck.resize(checkBits); // sign-extend
+                vCheck.resize(checkBits);
 
                 ApsInt minCheck = minSigned;
                 ApsInt maxCheck = maxSigned;
@@ -378,7 +381,6 @@ AstVisitStepResult AstExplicitCastExpr::semaPostNode(Sema& sema) const
 
     CastContext castCtx;
     castCtx.kind = CastKind::Explicit;
-    castCtx.flags.add(CastFlagsE::NoOverflow);
     if (modifierFlags.has(AstModifierFlagsE::Bit))
         castCtx.flags.add(CastFlagsE::BitCast);
 

@@ -52,12 +52,13 @@
 #assert(cast(u8) -257's32 == 255'u8)            // swc-expected-error {{sema_err_signed_unsigned}}
 #assert(cast(u8) -256's32 == 0'u8)              // swc-expected-error {{sema_err_signed_unsigned}}
 
-#assert(cast(s8) 255'u8 == -1's8)               // swc-expected-error {{sema_err_literal_overflow}}
+#assert(cast(s8) 255'u8 == -1's8)               // swc-expected-error {{sema_err_signed_unsigned}}
+#assert(cast(s8) 128'u32 == -128's8)            // swc-expected-error {{sema_err_signed_unsigned}}
+#assert(cast(s8) 255'u32 == -1's8)              // swc-expected-error {{sema_err_signed_unsigned}}
+
 #assert(cast(u8) 256'u32 == 0'u8)               // swc-expected-error {{sema_err_literal_overflow}}
 #assert(cast(u8) 257'u32 == 1'u8)               // swc-expected-error {{sema_err_literal_overflow}}
 #assert(cast(u16) 65536'u32 == 0'u16)           // swc-expected-error {{sema_err_literal_overflow}}
-#assert(cast(s8) 128'u32 == -128's8)            // swc-expected-error {{sema_err_literal_overflow}}
-#assert(cast(s8) 255'u32 == -1's8)              // swc-expected-error {{sema_err_literal_overflow}}
 #assert(cast(u32) 4294967296'u64 == 0'u32)      // swc-expected-error {{sema_err_literal_overflow}}
 #assert(cast(s16) 65536'u32 == 0's16)           // swc-expected-error {{sema_err_literal_overflow}}
 #assert(cast(s32) 4294967296'u64 == 0's32)      // swc-expected-error {{sema_err_literal_overflow}}

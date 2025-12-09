@@ -154,19 +154,37 @@ namespace
                 // Unsigned source into signed target.
                 // Lower bound (>= 0) is always OK, so only check the upper bound.
 
-                // Compare in UNSIGNED space against maxSigned interpreted as unsigned.
                 ApsInt vCheck = value;
                 if (!vCheck.isUnsigned())
                     vCheck.setUnsigned(true);
                 vCheck.resize(checkBits);
 
-                ApsInt maxU = maxSigned;
-                if (!maxU.isUnsigned())
-                    maxU.setUnsigned(true);
-                maxU.resize(checkBits);
+                // maxSigned: 2^(N-1) - 1 (already computed above)
+                // maxBits: 2^N - 1 (max value representable in N bits, regardless of sign)
+                ApsInt maxBits = ApsInt::maxValue(targetBits, true);
+                maxBits.resize(checkBits);
 
-                if (vCheck.gt(maxU))
+                ApsInt maxSignedU = maxSigned;
+                if (!maxSignedU.isUnsigned())
+                    maxSignedU.setUnsigned(true);
+                maxSignedU.resize(checkBits);
+
+                if (vCheck.gt(maxBits))
+                {
+                    // Value does NOT fit in N bits at all -> generic overflow.
                     overflow = true;
+                }
+                else if (vCheck.gt(maxSignedU))
+                {
+                    // Value fits in N bits, but outside signed range -> signed/unsigned error.
+                    if (!castCtx.flags.has(CastFlagsE::NoOverflow))
+                    {
+                        auto diag = sema.reportError(DiagnosticId::sema_err_signed_unsigned, castCtx.errorNodeRef);
+                        diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
+                        diag.report(ctx);
+                        return ConstantRef::invalid();
+                    }
+                }
             }
         }
 

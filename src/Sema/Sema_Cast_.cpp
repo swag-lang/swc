@@ -109,6 +109,8 @@ namespace
             {
                 auto diag = sema.reportError(DiagnosticId::sema_err_signed_unsigned, castCtx.errorNodeRef);
                 diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
+                diag.addArgument(Diagnostic::ARG_VALUE, value.toString());
+                diag.addElement(DiagnosticId::sema_note_signed_unsigned);
                 diag.report(ctx);
                 return ConstantRef::invalid();
             }
@@ -181,6 +183,8 @@ namespace
                     {
                         auto diag = sema.reportError(DiagnosticId::sema_err_signed_unsigned, castCtx.errorNodeRef);
                         diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
+                        diag.addArgument(Diagnostic::ARG_VALUE, value.toString());
+                        diag.addElement(DiagnosticId::sema_note_unsigned_signed);
                         diag.report(ctx);
                         return ConstantRef::invalid();
                     }

@@ -6,3 +6,5 @@ SWC_DIAG_DEF(parser_note_gen_param_type)
 SWC_DIAG_DEF(parser_help_empty_array_dim)
 SWC_DIAG_DEF(parser_help_gen_param_type)
 
+SWC_DIAG_DEF(sema_note_signed_unsigned)
+SWC_DIAG_DEF(sema_note_unsigned_signed)

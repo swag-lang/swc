@@ -74,8 +74,8 @@ namespace
         SWC_ASSERT(srcInt || srcFloat);
         SWC_ASSERT(dstInt || dstFloat);
 
-        const uint32_t srcBits = srcInt ? srcType.intLikeBits() : srcType.floatBits();
-        const uint32_t dstBits = dstInt ? targetType.intLikeBits() : targetType.floatBits();
+        const uint32_t srcBits = srcType.scalarNumericBits();
+        const uint32_t dstBits = targetType.scalarNumericBits();
         SWC_ASSERT(srcBits == dstBits);
 
         // int-like -> int-like (same width): just re-tag signedness, do not change the underlying bit pattern.
@@ -88,7 +88,7 @@ namespace
                 value.setUnsigned(targetType.isIntLikeUnsigned());
 
             const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, targetType);
-            return ctx.cstMgr().addConstant(ctx, result);
+            return sema.cstMgr().addConstant(ctx, result);
         }
 
         // float -> float, same width: value is already that format.
@@ -96,7 +96,7 @@ namespace
         {
             const ApFloat&      value  = src.getFloat();
             const ConstantValue result = ConstantValue::makeFloat(ctx, value, dstBits);
-            return ctx.cstMgr().addConstant(ctx, result);
+            return sema.cstMgr().addConstant(ctx, result);
         }
 
         // float -> int-like, same width: reinterpret raw bits.
@@ -105,7 +105,7 @@ namespace
             // Reinterpret a float bit pattern as integer without conversion
             ApsInt              i      = bitCastToApInt(src.getFloat(), targetType.isIntLikeUnsigned());
             const ConstantValue result = ConstantValue::makeFromIntLike(ctx, i, targetType);
-            return ctx.cstMgr().addConstant(ctx, result);
+            return sema.cstMgr().addConstant(ctx, result);
         }
 
         if (srcInt && dstFloat)
@@ -113,7 +113,7 @@ namespace
             // Reinterpret an integer bit pattern as float without conversion
             ApFloat             f      = bitCastToApFloat(src.getIntLike(), dstBits);
             const ConstantValue result = ConstantValue::makeFloat(ctx, f, dstBits);
-            return ctx.cstMgr().addConstant(ctx, result);
+            return sema.cstMgr().addConstant(ctx, result);
         }
 
         sema.raiseCannotCast(castCtx.errorNodeRef, src.typeRef(), targetTypeRef);
@@ -243,7 +243,7 @@ namespace
         value.resize(targetBits);
 
         const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, targetType);
-        return ctx.cstMgr().addConstant(ctx, result);
+        return sema.cstMgr().addConstant(ctx, result);
     }
 
     ConstantRef castIntLikeToFloat(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
@@ -265,7 +265,7 @@ namespace
         }
 
         const ConstantValue result = ConstantValue::makeFloat(ctx, value, targetBits);
-        return ctx.cstMgr().addConstant(ctx, result);
+        return sema.cstMgr().addConstant(ctx, result);
     }
 
     ConstantRef castFloatToIntLike(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
@@ -287,7 +287,7 @@ namespace
         }
 
         const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, targetType);
-        return ctx.cstMgr().addConstant(ctx, result);
+        return sema.cstMgr().addConstant(ctx, result);
     }
 
     ConstantRef castFloatToFloat(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
@@ -308,7 +308,7 @@ namespace
         }
 
         const ConstantValue result = ConstantValue::makeFloat(ctx, value, targetBits);
-        return ctx.cstMgr().addConstant(ctx, result);
+        return sema.cstMgr().addConstant(ctx, result);
     }
 
 }
@@ -322,8 +322,8 @@ bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef t
 
     if (castCtx.flags.has(CastFlagsE::BitCast))
     {
-        const bool srcScalar = srcType.isIntLike() || srcType.isFloat();
-        const bool dstScalar = targetType.isIntLike() || targetType.isFloat();
+        const bool srcScalar = srcType.isScalarNumeric();
+        const bool dstScalar = targetType.isScalarNumeric();
 
         if (!srcScalar || !dstScalar)
         {
@@ -333,8 +333,8 @@ bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef t
             return false;
         }
 
-        const uint32_t srcBits = srcType.isIntLike() ? srcType.intLikeBits() : srcType.floatBits();
-        const uint32_t dstBits = targetType.isIntLike() ? targetType.intLikeBits() : targetType.floatBits();
+        const uint32_t srcBits = srcType.scalarNumericBits();
+        const uint32_t dstBits = targetType.scalarNumericBits();
         if (srcBits == dstBits)
             return true;
 

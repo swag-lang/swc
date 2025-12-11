@@ -60,6 +60,7 @@ public:
     bool         isCString() const noexcept { return kind_ == TypeInfoKind::CString; }
     bool         isCharRune() const noexcept { return isChar() || isRune(); }
     bool         isIntLike() const noexcept { return isInt() || isCharRune(); }
+    bool         isScalarNumeric() const noexcept { return isIntLike() || isFloat(); }
     bool         isIntLikeUnsigned() const noexcept { return isCharRune() || isIntUnsigned(); }
 
     bool canBePromoted() const noexcept { return isFloat() || isIntLike(); }
@@ -67,6 +68,7 @@ public:
     // clang-format off
     uint32_t intBits() const noexcept { SWC_ASSERT(isInt()); return asInt.bits; }
     uint32_t intLikeBits() const noexcept { SWC_ASSERT(isIntLike()); return isCharRune() ? 32 : asInt.bits; }
+    uint32_t scalarNumericBits() const noexcept { SWC_ASSERT(isScalarNumeric()); return isIntLike() ? intLikeBits() : floatBits(); }
     uint32_t floatBits() const noexcept { SWC_ASSERT(isFloat()); return asFloat.bits; }
     // clang-format on
 

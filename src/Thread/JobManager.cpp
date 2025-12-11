@@ -165,37 +165,6 @@ void JobManager::waitingJobs(std::vector<Job*>& waiting, JobClientId client) con
     }
 }
 
-bool JobManager::wakeAll(JobClientId client)
-{
-    std::unique_lock lk(mtx_);
-
-    if (liveRecs_.empty())
-        return false;
-
-    std::size_t woken = 0;
-
-    for (JobRecord* rec : liveRecs_)
-    {
-        if (!rec)
-            continue;
-        if (rec->clientId != client)
-            continue;
-
-        if (rec->state == JobRecord::State::Waiting)
-        {
-            rec->state = JobRecord::State::Ready;
-            bumpClientCountLocked(rec->clientId, +1);
-            pushReady(rec, rec->priority);
-            ++woken;
-        }
-    }
-
-    if (woken != 0)
-        cv_.notify_all();
-
-    return woken != 0;
-}
-
 JobRecord* JobManager::popReadyLocked()
 {
     for (int idx = static_cast<int>(JobPriority::High); idx <= static_cast<int>(JobPriority::Low); idx++)
@@ -279,6 +248,37 @@ void JobManager::waitAll()
         const JobResult res = executeJob(*rec->job);
         handleJobResult(rec, res);
     }
+}
+
+bool JobManager::wakeAll(JobClientId client)
+{
+    std::unique_lock lk(mtx_);
+
+    if (liveRecs_.empty())
+        return false;
+
+    std::size_t woken = 0;
+
+    for (JobRecord* rec : liveRecs_)
+    {
+        if (!rec)
+            continue;
+        if (rec->clientId != client)
+            continue;
+
+        if (rec->state == JobRecord::State::Waiting)
+        {
+            rec->state = JobRecord::State::Ready;
+            bumpClientCountLocked(rec->clientId, +1);
+            pushReady(rec, rec->priority);
+            ++woken;
+        }
+    }
+
+    if (woken != 0)
+        cv_.notify_all();
+
+    return woken != 0;
 }
 
 void JobManager::waitAll(JobClientId client)

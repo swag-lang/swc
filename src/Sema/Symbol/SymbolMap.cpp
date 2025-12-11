@@ -1,19 +1,30 @@
 #include "pch.h"
-
-#include "IdentifierManager.h"
+#include "Sema/Symbol/SymbolMap.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
-#include "Sema/Symbol/SymbolMap.h"
 #include "Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE()
+
+SymbolMap::Shard& SymbolMap::getShard(const IdentifierRef idRef)
+{
+    const uint32_t index = idRef.get() & (SHARD_COUNT - 1);
+    Shard&         shard = shards_[index];
+    return shard;
+}
+
+const SymbolMap::Shard& SymbolMap::getShard(const IdentifierRef idRef) const
+{
+    const uint32_t index = idRef.get() & (SHARD_COUNT - 1);
+    const Shard&   shard = shards_[index];
+    return shard;
+}
 
 void SymbolMap::lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const
 {
     out.clear();
 
-    const uint32_t shardIndex = idRef.get() & (SHARD_COUNT - 1);
-    const Shard&   shard      = shards_[shardIndex];
+    const Shard& shard = getShard(idRef);
 
     std::shared_lock lk(shard.mutex);
     const auto       it = shard.map.find(idRef);
@@ -26,13 +37,6 @@ void SymbolMap::lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const
         out.push_back(cur);
         cur = cur->nextHomonym();
     }
-}
-
-SymbolMap::Shard& SymbolMap::getShard(const IdentifierRef idRef)
-{
-    const uint32_t index = idRef.get() & (SHARD_COUNT - 1);
-    Shard&         shard = shards_[index];
-    return shard;
 }
 
 void SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol)
@@ -48,10 +52,6 @@ void SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol)
     symbol->setSymMap(this);
     symbol->setNextHomonym(head);
     head = symbol;
-
-    /*    const auto a = ctx.compiler().idMgr().get(idRef).name;
-        printf(a.data());
-        ctx.compiler().notifySymbolAdded();*/
 }
 
 SymbolConstant* SymbolMap::addConstant(TaskContext& ctx, IdentifierRef idRef, ConstantRef cstRef)

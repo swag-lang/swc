@@ -31,8 +31,9 @@ class SymbolMap : public Symbol
     static constexpr uint32_t LOCAL_MASK  = (1u << LOCAL_BITS) - 1;
     Shard                     shards_[SHARD_COUNT];
 
-    void   addSymbol(TaskContext& ctx, Symbol* symbol);
-    Shard& getShard(IdentifierRef idRef);
+    void         addSymbol(TaskContext& ctx, Symbol* symbol);
+    Shard&       getShard(IdentifierRef idRef);
+    const Shard& getShard(IdentifierRef idRef) const;
 
 public:
     explicit SymbolMap(const TaskContext& ctx, SymbolKind kind, IdentifierRef idRef) :

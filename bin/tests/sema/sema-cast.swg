@@ -78,8 +78,6 @@
 #assert(cast(u32) -1.0'f32 == 0'u32)                    // swc-expected-error {{sema_err_literal_overflow}}
 #assert(cast(u32) 4294967296.0'f64 == 0'u32)            // swc-expected-error {{sema_err_literal_overflow}}
 
-//#assert(cast(f32) 1.0e40'f64 == 0.0'f32)                // swc-expected-error {{sema_err_literal_overflow}}
-
 #assert(cast(u8) true == 1'u8)
 #assert(cast(u8) false == 0'u8)
 #assert(cast(bool) 1'u8 == true)

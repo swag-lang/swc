@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Math/Helpers.h"
 #include "Report/Diagnostic.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Sema.h"
@@ -39,7 +38,7 @@ namespace
         // SWC_ASSERT(floatBits == 32 || floatBits == 64);
         // SWC_ASSERT(src.bitWidth() == floatBits);
 
-        const uint64_t raw = src.asU64();
+        const uint64_t raw = src.asI64();
 
         if (floatBits == 32)
         {

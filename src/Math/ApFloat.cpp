@@ -82,7 +82,7 @@ void ApFloat::set(const ApsInt& value, uint32_t targetBits, bool& exact, bool& o
         return;
     }
 
-    const uint64_t bits = value.asU64();
+    const uint64_t bits = value.asI64();
 
     if (value.isUnsigned())
     {

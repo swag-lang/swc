@@ -60,7 +60,7 @@ public:
 
     Utf8    toString() const;
     bool    fits64() const;
-    int64_t asU64() const;
+    int64_t asI64() const;
 };
 
 SWC_END_NAMESPACE()

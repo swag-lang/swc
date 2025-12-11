@@ -281,9 +281,9 @@ ApsInt ConstantValue::getIntLike() const
 ConstantValue ConstantValue::makeFromIntLike(const TaskContext& ctx, const ApsInt& v, const TypeInfo& ty)
 {
     if (ty.isChar())
-        return makeChar(ctx, static_cast<uint32_t>(v.asU64()));
+        return makeChar(ctx, static_cast<uint32_t>(v.asI64()));
     if (ty.isRune())
-        return makeRune(ctx, static_cast<uint32_t>(v.asU64()));
+        return makeRune(ctx, static_cast<uint32_t>(v.asI64()));
     return makeInt(ctx, v, ty.intBits());
 }
 

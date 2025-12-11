@@ -147,9 +147,9 @@ bool ApsInt::fits64() const
     return fitsSigned64();
 }
 
-int64_t ApsInt::asU64() const
+int64_t ApsInt::asI64() const
 {
-    uint64_t result = ApInt::asU64();
+    uint64_t result = asU64();
 
     if (!unsigned_ && isNegative() && bitWidth_ < 64)
     {
@@ -159,7 +159,7 @@ int64_t ApsInt::asU64() const
         result |= highMask;
     }
 
-    return result;
+    return std::bit_cast<int64_t>(result);
 }
 
 SWC_END_NAMESPACE()

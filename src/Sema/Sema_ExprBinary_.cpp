@@ -140,7 +140,7 @@ namespace
                     if (!val2.fits64())
                         overflow = true;
                     else
-                        val1.shiftRight(val2.asU64());
+                        val1.shiftRight(val2.asI64());
                     break;
 
                 case TokenId::SymLowerLower:
@@ -155,7 +155,7 @@ namespace
                     if (!val2.fits64())
                         overflow = true;
                     else
-                        val1.shiftLeft(val2.asU64(), overflow);
+                        val1.shiftLeft(val2.asI64(), overflow);
                     overflow = false;
                     break;
 

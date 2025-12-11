@@ -34,9 +34,8 @@ namespace
 
     ApFloat bitCastToApFloat(const ApsInt& src, uint32_t floatBits)
     {
-        // We only support IEEE 32 and 64.
-        // SWC_ASSERT(floatBits == 32 || floatBits == 64);
-        // SWC_ASSERT(src.bitWidth() == floatBits);
+        SWC_ASSERT(floatBits == 32 || floatBits == 64);
+        SWC_ASSERT(src.bitWidth() == floatBits);
 
         const uint64_t raw = src.asI64();
 
@@ -336,7 +335,7 @@ bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef t
 
         const uint32_t srcBits = srcType.isIntLike() ? srcType.intLikeBits() : srcType.floatBits();
         const uint32_t dstBits = targetType.isIntLike() ? targetType.intLikeBits() : targetType.floatBits();
-        if (srcBits == dstBits && srcBits != 0)
+        if (srcBits == dstBits)
             return true;
 
         auto diag = reportError(DiagnosticId::sema_err_bit_cast_size, castCtx.errorNodeRef);

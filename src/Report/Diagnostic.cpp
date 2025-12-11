@@ -6,6 +6,7 @@
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
+#include "Os/Os.h"
 #include "Report/DiagnosticBuilder.h"
 #include "Report/DiagnosticElement.h"
 #include "Report/Logger.h"
@@ -235,6 +236,9 @@ void Diagnostic::report(TaskContext& ctx) const
         logger.lock();
         Logger::print(ctx, msg);
         logger.unlock();
+        
+        if (ctx.cmdLine().dbgDevMode)
+            Os::panicBox("[DevMode] Error raised!");
     }
 }
 

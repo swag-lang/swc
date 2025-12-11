@@ -9,14 +9,12 @@
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
-#include "Math/Hash.h"
 #include "Os/Os.h"
 #include "Report/Diagnostic.h"
 #include "Report/LogColor.h"
 #include "Report/Logger.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Symbol/IdentifierManager.h"
-#include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/TypeManager.h"
 #include "Thread/JobManager.h"
 #include "Wmf/SourceFile.h"
@@ -29,7 +27,9 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
 {
     jobClientId_ = global.jobMgr().newClientId();
     exeFullName_ = Os::getExeFullName();
-    perThreadData_.resize(global.jobMgr().numWorkers());
+
+    const auto numWorkers = global.jobMgr().isSingleThreaded() ? 1 : global.jobMgr().numWorkers();
+    perThreadData_.resize(numWorkers);
 }
 
 CompilerInstance::~CompilerInstance() = default;

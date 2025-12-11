@@ -96,11 +96,20 @@ void JobManager::setup(const CommandLine& cmdLine)
     if (count == 0)
         count = std::thread::hardware_concurrency();
 
+    // Decide mode: one core => fully synchronous, no worker threads.
+    singleThreaded_ = (count <= 1);
+
+    const size_t numThreads = singleThreaded_ ? 0 : count;
+
     accepting_ = true;
     joined_    = false;
-    workers_.reserve(count);
-    for (size_t i = 0; i < count; ++i)
-        workers_.emplace_back([&, i] { threadIndex_ = i; workerLoop(); });
+
+    workers_.reserve(numThreads);
+    for (size_t i = 0; i < numThreads; ++i)
+        workers_.emplace_back([&, i] {
+            threadIndex_ = i;
+            workerLoop();
+        });
 }
 
 JobClientId JobManager::newClientId()
@@ -187,23 +196,134 @@ bool JobManager::wakeAll(JobClientId client)
     return woken != 0;
 }
 
+JobRecord* JobManager::popReadyLocked()
+{
+    for (int idx = static_cast<int>(JobPriority::High); idx <= static_cast<int>(JobPriority::Low); idx++)
+    {
+        auto& q = readyQ_[idx];
+        if (!q.empty())
+        {
+#if SWC_DEV_MODE
+            uint32_t pickIndex = 0;
+            if (cmdLine_->randomize && !singleThreaded_)              // keep randomization only in MT mode
+                pickIndex = static_cast<uint32_t>(rand()) % q.size(); // NOLINT(concurrency-mt-unsafe)
+            JobRecord* rec = q[pickIndex];
+            q.erase(q.begin() + pickIndex);
+#else
+            JobRecord* rec = q.front();
+            q.pop_front();
+#endif
+            readyCount_.fetch_sub(1, std::memory_order_acq_rel);
+            return rec;
+        }
+    }
+
+    return nullptr;
+}
+
+JobRecord* JobManager::popReadyForClientLocked(JobClientId client)
+{
+    for (int idx = static_cast<int>(JobPriority::High); idx <= static_cast<int>(JobPriority::Low); idx++)
+    {
+        auto& q = readyQ_[idx];
+        if (q.empty())
+            continue;
+
+        for (auto it = q.begin(); it != q.end(); ++it)
+        {
+            JobRecord* rec = *it;
+            if (!rec || rec->clientId != client)
+                continue;
+
+            q.erase(it);
+            readyCount_.fetch_sub(1, std::memory_order_acq_rel);
+            return rec;
+        }
+    }
+
+    return nullptr;
+}
+
 void JobManager::waitAll()
 {
-    std::unique_lock lk(mtx_);
-    idleCv_.wait(lk, [this] {
-        return readyCount_.load(std::memory_order_acquire) == 0 &&
-               activeWorkers_.load(std::memory_order_acquire) == 0;
-    });
+    if (!singleThreaded_)
+    {
+        // Existing multithreaded behavior
+        std::unique_lock lk(mtx_);
+        idleCv_.wait(lk, [this] {
+            return readyCount_.load(std::memory_order_acquire) == 0 &&
+                   activeWorkers_.load(std::memory_order_acquire) == 0;
+        });
+        return;
+    }
+
+    // Single-threaded: run all ready jobs on the calling thread in priority order.
+    while (true)
+    {
+        JobRecord* rec = nullptr;
+
+        {
+            std::unique_lock lk(mtx_);
+            rec = popReadyLocked();
+            if (!rec)
+                break;
+
+            if (rec->state == JobRecord::State::Done)
+                continue;
+
+            rec->state = JobRecord::State::Running;
+            // Note: clientReadyRunning_ already includes this job from enqueue().
+            // We do NOT touch bumpClientCountLocked() here, just like in workerLoop().
+        }
+
+        const JobResult res = executeJob(*rec->job);
+        handleJobResult(rec, res);
+    }
 }
 
 void JobManager::waitAll(JobClientId client)
 {
-    std::unique_lock lk(mtx_);
-    idleCv_.wait(lk, [&] {
-        const auto        it = clientReadyRunning_.find(client);
-        const std::size_t n  = (it == clientReadyRunning_.end()) ? 0 : it->second;
-        return n == 0;
-    });
+    if (!singleThreaded_)
+    {
+        // Existing multithreaded behavior
+        std::unique_lock lk(mtx_);
+        idleCv_.wait(lk, [&] {
+            const auto        it = clientReadyRunning_.find(client);
+            const std::size_t n  = (it == clientReadyRunning_.end()) ? 0 : it->second;
+            return n == 0;
+        });
+        return;
+    }
+
+    // Single-threaded: execute this client's jobs until its ready+running count is 0,
+    // or all of its jobs are sleeping.
+    while (true)
+    {
+        JobRecord* rec = nullptr;
+
+        {
+            std::unique_lock lk(mtx_);
+
+            const auto it = clientReadyRunning_.find(client);
+            const auto n  = (it == clientReadyRunning_.end()) ? 0 : it->second;
+            if (n == 0)
+                break;
+
+            rec = popReadyForClientLocked(client);
+
+            // No ready jobs for this client (only sleepers): nothing more to do now.
+            if (!rec)
+                break;
+
+            if (rec->state == JobRecord::State::Done)
+                continue;
+
+            rec->state = JobRecord::State::Running;
+        }
+
+        const JobResult res = executeJob(*rec->job);
+        handleJobResult(rec, res);
+    }
 }
 
 void JobManager::shutdown() noexcept
@@ -232,32 +352,6 @@ void JobManager::pushReady(JobRecord* rec, JobPriority priority)
 {
     readyQ_[static_cast<int>(priority)].push_back(rec);
     readyCount_.fetch_add(1, std::memory_order_release);
-}
-
-// Favor High: Normal: Low. Caller must hold 'mtx_'.
-JobRecord* JobManager::popReadyLocked()
-{
-    for (int idx = static_cast<int>(JobPriority::High); idx <= static_cast<int>(JobPriority::Low); idx++)
-    {
-        auto& q = readyQ_[idx];
-        if (!q.empty())
-        {
-#if SWC_DEV_MODE
-            uint32_t pickIndex = 0;
-            if (cmdLine_->randomize)
-                pickIndex = static_cast<uint32_t>(rand()) % q.size(); // NOLINT(concurrency-mt-unsafe)
-            JobRecord* rec = q[pickIndex];
-            q.erase(q.begin() + pickIndex);
-#else
-            JobRecord* rec = q.front();
-            q.pop_front();
-#endif
-            readyCount_.fetch_sub(1, std::memory_order_acq_rel);
-            return rec;
-        }
-    }
-
-    return nullptr;
 }
 
 namespace

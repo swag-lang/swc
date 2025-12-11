@@ -25,10 +25,12 @@ public:
     uint32_t      numWorkers() const noexcept { return static_cast<uint32_t>(workers_.size()); }
     uint32_t      randSeed() const noexcept { return randSeed_; }
     static size_t threadIndex() noexcept { return threadIndex_; }
+    bool          isSingleThreaded() const noexcept { return singleThreaded_; }
 
 private:
     void       pushReady(JobRecord* rec, JobPriority priority);
-    JobRecord* popReadyLocked(); // High → Normal → Low
+    JobRecord* popReadyLocked();
+    JobRecord* popReadyForClientLocked(JobClientId client);
 
     static JobResult executeJob(const Job& job);
     void             handleJobResult(JobRecord* rec, JobResult res);
@@ -37,8 +39,9 @@ private:
     void shutdown() noexcept;
 
     // Setup
-    const CommandLine*         cmdLine_  = nullptr;
-    uint32_t                   randSeed_ = 0;
+    bool                       singleThreaded_ = false;
+    const CommandLine*         cmdLine_        = nullptr;
+    uint32_t                   randSeed_       = 0;
     static thread_local size_t threadIndex_;
 
     // Ready queues per priority (store Record* for direct access).

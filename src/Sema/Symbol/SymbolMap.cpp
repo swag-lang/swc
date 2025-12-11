@@ -1,7 +1,9 @@
 #include "pch.h"
-#include "Sema/Symbol/SymbolMap.h"
+
+#include "IdentifierManager.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
+#include "Sema/Symbol/SymbolMap.h"
 #include "Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -47,7 +49,9 @@ void SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol)
     symbol->setNextHomonym(head);
     head = symbol;
 
-    ctx.compiler().notifySymbolAdded();
+    /*    const auto a = ctx.compiler().idMgr().get(idRef).name;
+        printf(a.data());
+        ctx.compiler().notifySymbolAdded();*/
 }
 
 SymbolConstant* SymbolMap::addConstant(TaskContext& ctx, IdentifierRef idRef, ConstantRef cstRef)

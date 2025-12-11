@@ -167,7 +167,7 @@ namespace
     {
         if (ops.nodeView[0].typeRef == ops.nodeView[1].typeRef)
             return Result::Success;
-        if (ops.nodeView[0].type->canBePromoted() && ops.nodeView[1].type->canBePromoted())
+        if (ops.nodeView[0].type->isScalarNumeric() && ops.nodeView[1].type->isScalarNumeric())
             return Result::Success;
         if (ops.nodeView[0].type->isTypeInfo() && ops.nodeView[1].type->isTypeInfo())
             return Result::Success;
@@ -181,7 +181,7 @@ namespace
 
     Result checkCompareEqual(Sema& sema, const AstRelationalExpr& node, const SemaNodeViewList& ops)
     {
-        if (ops.nodeView[0].type->canBePromoted() && ops.nodeView[1].type->canBePromoted())
+        if (ops.nodeView[0].type->isScalarNumeric() && ops.nodeView[1].type->isScalarNumeric())
             return Result::Success;
 
         auto diag = sema.reportError(DiagnosticId::sema_err_compare_operand_type, node.srcViewRef(), node.tokRef());

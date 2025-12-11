@@ -63,8 +63,6 @@ public:
     bool         isScalarNumeric() const noexcept { return isIntLike() || isFloat(); }
     bool         isIntLikeUnsigned() const noexcept { return isCharRune() || isIntUnsigned(); }
 
-    bool canBePromoted() const noexcept { return isFloat() || isIntLike(); }
-
     // clang-format off
     uint32_t intBits() const noexcept { SWC_ASSERT(isInt()); return asInt.bits; }
     uint32_t intLikeBits() const noexcept { SWC_ASSERT(isIntLike()); return isCharRune() ? 32 : asInt.bits; }

@@ -242,13 +242,13 @@ namespace
             case TokenId::SymPlus:
             case TokenId::SymMinus:
             case TokenId::SymAsterisk:
-                if (!ops.nodeView[0].type->canBePromoted())
+                if (!ops.nodeView[0].type->isScalarNumeric())
                 {
                     sema.raiseBinaryOperandType(node, node.nodeLeftRef, ops.nodeView[0].typeRef);
                     return Result::Error;
                 }
 
-                if (!ops.nodeView[1].type->canBePromoted())
+                if (!ops.nodeView[1].type->isScalarNumeric())
                 {
                     sema.raiseBinaryOperandType(node, node.nodeRightRef, ops.nodeView[1].typeRef);
                     return Result::Error;

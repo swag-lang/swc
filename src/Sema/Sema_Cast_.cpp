@@ -58,6 +58,42 @@ namespace
         SWC_UNREACHABLE();
     }
 
+    ConstantRef castBoolToIntLike(Sema& sema, const CastContext&, const ConstantValue& src, TypeRef targetTypeRef)
+    {
+        auto&              ctx        = sema.ctx();
+        const TypeManager& typeMgr    = ctx.typeMgr();
+        const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
+
+        SWC_ASSERT(targetType.isIntLike());
+
+        const bool b              = src.getBool();
+        const auto targetBits     = targetType.intLikeBits();
+        const bool targetUnsigned = targetType.isIntLikeUnsigned();
+
+        // Represent bool as 0 / 1 in the target integer type.
+        const ApsInt value(b ? 1 : 0, targetBits, targetUnsigned);
+
+        const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, targetType);
+        return sema.cstMgr().addConstant(ctx, result);
+    }
+
+    ConstantRef castIntLikeToBool(Sema& sema, const CastContext&, const ConstantValue& src, TypeRef targetTypeRef)
+    {
+        auto&              ctx        = sema.ctx();
+        const TypeManager& typeMgr    = ctx.typeMgr();
+        const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
+
+        SWC_ASSERT(targetType.isBool());
+
+        const ApsInt value = src.getIntLike();
+
+        // Standard "to bool" semantics: 0 -> false, non-zero -> true.
+        const bool b = !value.isZero();
+
+        const ConstantValue result = ConstantValue::makeBool(ctx, b);
+        return sema.cstMgr().addConstant(ctx, result);
+    }
+
     ConstantRef bitCastConstant(Sema& sema, const CastContext& castCtx, ConstantRef srcRef, TypeRef targetTypeRef)
     {
         auto&                ctx        = sema.ctx();
@@ -364,8 +400,14 @@ bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef t
             break;
 
         case CastKind::Promotion:
+            if (srcType.isScalarNumeric() && targetType.isScalarNumeric())
+                return true;
+            break;
+
         case CastKind::Explicit:
-            if (srcType.canBePromoted() && targetType.canBePromoted())
+            if (srcType.isScalarNumeric() && targetType.isScalarNumeric())
+                return true;
+            if ((srcType.isBool() && targetType.isIntLike()) || (srcType.isIntLike() && targetType.isBool()))
                 return true;
             break;
 
@@ -394,6 +436,12 @@ ConstantRef Sema::castConstant(const CastContext& castCtx, ConstantRef srcRef, T
     const TypeInfo&    srcType    = typeMgr.get(src.typeRef());
     const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
 
+    if (srcType.isBool() && targetType.isIntLike())
+        return castBoolToIntLike(*this, castCtx, src, targetTypeRef);
+
+    if (srcType.isIntLike() && targetType.isBool())
+        return castIntLikeToBool(*this, castCtx, src, targetTypeRef);
+
     if (srcType.isIntLike() && targetType.isIntLike())
         return castIntLikeToIntLike(*this, castCtx, src, targetTypeRef);
 
@@ -415,7 +463,7 @@ bool Sema::promoteConstants(const SemaNodeViewList& ops, ConstantRef& leftRef, C
     if (!force32BitInts && ops.nodeView[0].typeRef == ops.nodeView[1].typeRef)
         return true;
 
-    if (ops.nodeView[0].type->canBePromoted() && ops.nodeView[1].type->canBePromoted())
+    if (ops.nodeView[0].type->isScalarNumeric() && ops.nodeView[1].type->isScalarNumeric())
     {
         const TypeRef promotedTypeRef = typeMgr().promote(ops.nodeView[0].typeRef, ops.nodeView[1].typeRef, force32BitInts);
 

@@ -68,3 +68,28 @@
 #assert(-1.0'f32 == -1)
 #assert(-1.0'f64 == -1)
 
+#assert(cast(s8) 127's32 == 127)
+#assert(cast(u8) 255's32 == 255'u8)
+#assert(cast(s16) -128's32 == -128's16)
+#assert(cast(u16) 65535'u32 == 65535'u16)
+
+#assert(cast(s32) 2147483648.0'f64 == 0's32)            // swc-expected-error {{sema_err_literal_overflow}}
+#assert(cast(s32) -2147483649.0'f64 == 0's32)           // swc-expected-error {{sema_err_literal_overflow}}
+#assert(cast(u32) -1.0'f32 == 0'u32)                    // swc-expected-error {{sema_err_literal_overflow}}
+#assert(cast(u32) 4294967296.0'f64 == 0'u32)            // swc-expected-error {{sema_err_literal_overflow}}
+
+//#assert(cast(f32) 1.0e40'f64 == 0.0'f32)                // swc-expected-error {{sema_err_literal_overflow}}
+
+#assert(cast(u8) true == 1'u8)
+#assert(cast(u8) false == 0'u8)
+#assert(cast(bool) 1'u8 == true)
+#assert(cast(bool) 0'u8 == false)
+#assert(cast(bool) 2'u8 == true)
+
+#assert(cast(u32) 'A' == 65'u32)
+#assert(cast(u32) '😀' == 0x1F600'u32)
+#assert(cast(rune) 65'u32 == 'A')
+
+#assert(cast(s32) cast(f32) -123.75'f32 == -123's32)
+#assert(cast(u16) cast(f32) 65535.0'f32 == 65535'u16)
+#assert(cast(f64) cast(s32) -2147483648's32 == -2147483648.0'f64)

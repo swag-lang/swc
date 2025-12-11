@@ -198,15 +198,19 @@ namespace
 
 void Sema::waitAll(TaskContext& ctx, JobClientId clientId)
 {
-    auto& jobMgr   = ctx.global().jobMgr();
-    auto& compiler = ctx.compiler();
+    auto&       jobMgr   = ctx.global().jobMgr();
+    const auto& compiler = ctx.compiler();
 
+    uint64_t lastEpoch = compiler.semaEpoch();
     while (true)
     {
-        compiler.setSemaAlive(false);
         jobMgr.waitAll(clientId);
-        if (!compiler.semaAlive())
+        
+        const uint64_t cur = compiler.semaEpoch();
+        if (cur == lastEpoch)
             break;
+        lastEpoch = cur;
+
         jobMgr.wakeAll(clientId);
     }
 

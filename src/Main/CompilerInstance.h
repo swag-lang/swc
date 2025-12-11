@@ -33,7 +33,7 @@ class CompilerInstance
     fs::path                                 modulePathFile_;
     fs::path                                 exeFullName_;
     std::mutex                               mutex_;
-    bool                                     semaAlive_ = false;
+    std::atomic<uint64_t>                    semaEpoch_{0};
 
     struct PerThreadData
     {
@@ -67,10 +67,10 @@ public:
 
     SymbolModule*       symModule() { return symModule_; }
     const SymbolModule* symModule() const { return symModule_; }
-    bool                semaAlive() const { return semaAlive_; }
-    void                setSemaAlive(bool alive) { semaAlive_ = alive; }
 
-    void setupSema(TaskContext& ctx);
+    void     setupSema(TaskContext& ctx);
+    void     notifySymbolAdded() { semaEpoch_.fetch_add(1, std::memory_order_release); }
+    uint64_t semaEpoch() const { return semaEpoch_.load(std::memory_order_acquire); }
 
     SourceFile& addFile(fs::path path, FileFlags flags);
     SourceFile& file(FileRef ref) const { return *files_[ref.get()].get(); }

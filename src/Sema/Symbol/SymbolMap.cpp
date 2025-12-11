@@ -47,7 +47,7 @@ void SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol)
     symbol->setNextHomonym(head);
     head = symbol;
 
-    ctx.compiler().setSemaAlive(true);
+    ctx.compiler().notifySymbolAdded();
 }
 
 SymbolConstant* SymbolMap::addConstant(TaskContext& ctx, IdentifierRef idRef, ConstantRef cstRef)

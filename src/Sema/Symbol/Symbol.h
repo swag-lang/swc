@@ -5,6 +5,14 @@ SWC_BEGIN_NAMESPACE()
 class TaskContext;
 class SymbolMap;
 
+enum class SymbolAccess : uint8_t
+{
+    Invalid,
+    Public,   // Visible in the module and from outside the module
+    Private,  // Visible only inside the module (across files)
+    Internal, // Visible only in the file it is declared
+};
+
 enum class SymbolKind : uint8_t
 {
     Invalid,

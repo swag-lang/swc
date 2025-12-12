@@ -44,7 +44,11 @@ namespace Command
         {
             if (f->hasError())
                 continue;
+
             f->semaInfo().setModuleNamespace(*moduleNamespace);
+            const auto fileNamespace = moduleNamespace->addNamespace(ctx, IdentifierRef::invalid());
+            f->semaInfo().setFileNamespace(*fileNamespace);
+
             const auto job = heapNew<SemaJob>(ctx, f->semaInfo());
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }

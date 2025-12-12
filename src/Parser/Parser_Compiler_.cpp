@@ -225,6 +225,12 @@ AstNodeRef Parser::parseCompilerGlobal()
         nodePtr->nodeModeRef = AstNodeRef::invalid();
         consume();
     }
+    else if (is(TokenId::KwdPrivate))
+    {
+        nodePtr->mode        = AstCompilerGlobal::Mode::AccessPrivate;
+        nodePtr->nodeModeRef = AstNodeRef::invalid();
+        consume();
+    }
     else if (is(TokenId::KwdNamespace))
     {
         nodePtr->mode = AstCompilerGlobal::Mode::Namespace;

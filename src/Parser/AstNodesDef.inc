@@ -78,6 +78,7 @@ struct AstCompilerGlobal : AstNodeT<AstNodeId::CompilerGlobal>
         AttributeList,
         AccessPublic,
         AccessInternal,
+        AccessPrivate,
         Namespace,
         CompilerIf,
         Using,
@@ -90,6 +91,8 @@ struct AstCompilerGlobal : AstNodeT<AstNodeId::CompilerGlobal>
     {
         AstNode::collectChildren(out, {nodeModeRef});
     }
+
+    AstVisitStepResult semaPostNode(Sema& sema);
 };
 
 struct AstCompilerImport : AstNodeT<AstNodeId::CompilerImport>

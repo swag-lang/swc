@@ -1,5 +1,6 @@
 #pragma once
 #include "Parser/Ast.h"
+#include "Symbol/Symbol.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -18,6 +19,8 @@ class SemaInfo
 {
     Ast              ast_;
     SymbolNamespace* moduleNamespace_ = nullptr;
+    SymbolNamespace* fileNamespace_   = nullptr;
+    SymbolAccess     defaultAccess_   = SymbolAccess::Private;
 
     struct Shard
     {
@@ -34,9 +37,17 @@ public:
 
     static NodeSemaKind&       semaNodeKind(AstNode& node) { return reinterpret_cast<NodeSemaKind&>(node.semaKindRaw()); }
     static const NodeSemaKind& semaNodeKind(const AstNode& node) { return reinterpret_cast<const NodeSemaKind&>(node.semaKindRaw()); }
-    const SymbolNamespace&     moduleNamespace() const { return *moduleNamespace_; }
-    SymbolNamespace&           moduleNamespace() { return *moduleNamespace_; }
-    void                       setModuleNamespace(SymbolNamespace& ns) { moduleNamespace_ = &ns; }
+
+    const SymbolNamespace& moduleNamespace() const { return *moduleNamespace_; }
+    SymbolNamespace&       moduleNamespace() { return *moduleNamespace_; }
+    void                   setModuleNamespace(SymbolNamespace& ns) { moduleNamespace_ = &ns; }
+
+    const SymbolNamespace& fileNamespace() const { return *fileNamespace_; }
+    SymbolNamespace&       fileNamespace() { return *fileNamespace_; }
+    void                   setFileNamespace(SymbolNamespace& ns) { fileNamespace_ = &ns; }
+
+    void         setDefaultAccess(SymbolAccess access) { defaultAccess_ = access; }
+    SymbolAccess defaultAccess() const { return defaultAccess_; }
 
     bool hasConstant(AstNodeRef nodeRef) const;
     bool hasType(AstNodeRef nodeRef) const;

@@ -7,3 +7,4 @@ const B = @err  // swc-expected-error {{sema_err_expr_not_const}}
 const A = 52
 const B = A
 #assert(B == 52)
+

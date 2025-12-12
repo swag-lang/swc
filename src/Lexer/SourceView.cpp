@@ -11,6 +11,7 @@ SourceView::SourceView(SourceViewRef ref, const SourceFile* file) :
 {
     if (file)
     {
+        file_       = file;
         fileRef_    = file->ref();
         stringView_ = file->sourceView();
     }

@@ -18,6 +18,7 @@ struct SourceIdentifier
 class SourceView
 {
     SourceViewRef                 ref_     = SourceViewRef::invalid();
+    const SourceFile*             file_    = nullptr;
     FileRef                       fileRef_ = FileRef::invalid();
     std::string_view              stringView_;
     std::vector<Token>            tokens_;
@@ -31,6 +32,7 @@ public:
     SourceView(SourceViewRef ref, const SourceFile* file);
 
     SourceViewRef                        ref() const { return ref_; }
+    const SourceFile*                    file() const { return file_; }
     FileRef                              fileRef() const { return fileRef_; }
     std::string_view                     stringView() const { return stringView_; }
     const std::vector<SourceTrivia>&     trivia() const { return trivia_; }

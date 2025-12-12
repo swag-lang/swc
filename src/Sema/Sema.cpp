@@ -85,6 +85,11 @@ Ast& Sema::ast()
     return semaInfo_->ast();
 }
 
+Utf8 Sema::fileName() const
+{
+    return ast().srcView().file()->path().string();
+}
+
 const Ast& Sema::ast() const
 {
     return semaInfo_->ast();
@@ -205,7 +210,7 @@ void Sema::waitAll(TaskContext& ctx, JobClientId clientId)
     while (true)
     {
         jobMgr.waitAll(clientId);
-        
+
         const uint64_t cur = compiler.semaEpoch();
         if (cur == lastEpoch)
             break;

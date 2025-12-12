@@ -80,6 +80,7 @@ public:
     SourceView&              srcView(SourceViewRef srcViewRef);
     const SourceView&        srcView(SourceViewRef srcViewRef) const;
     Ast&                     ast();
+    Utf8                     fileName() const;
     const Ast&               ast() const;
 
     TypeRef              typeRefOf(AstNodeRef n) const { return semaInfo().getTypeRef(ctx(), n); }

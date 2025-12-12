@@ -117,15 +117,13 @@ JobClientId JobManager::newClientId()
     return nextClientId_.fetch_add(1, std::memory_order_relaxed);
 }
 
-bool JobManager::enqueue(Job& job, JobPriority priority, JobClientId client)
+void JobManager::enqueue(Job& job, JobPriority priority, JobClientId client)
 {
     std::unique_lock lk(mtx_);
-    if (!accepting_)
-        return false;
+    SWC_ASSERT(accepting_);
 
     // If already scheduled on this manager, refuse (simplifies invariants).
-    if (job.owner() == this && job.rec() != nullptr)
-        return false;
+    SWC_ASSERT(!(job.owner() == this && job.rec() != nullptr));
 
     // Acquire a Record from the pool and wire it up.
     JobRecord* rec = allocRecord();
@@ -141,7 +139,6 @@ bool JobManager::enqueue(Job& job, JobPriority priority, JobClientId client)
     bumpClientCountLocked(client, +1);
     pushReady(rec, priority);
     cv_.notify_one();
-    return true;
 }
 
 void JobManager::waitingJobs(std::vector<Job*>& waiting, JobClientId client) const

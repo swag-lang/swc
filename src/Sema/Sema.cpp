@@ -15,7 +15,7 @@ SWC_BEGIN_NAMESPACE()
 Sema::Sema(TaskContext& ctx, SemaInfo& semInfo) :
     ctx_(&ctx),
     semaInfo_(&semInfo),
-    symMap_(semaInfo().moduleNamespace().symMap())
+    startSymMap_(semaInfo().moduleNamespace().symMap())
 {
     visit_.start(semaInfo_->ast(), semaInfo_->ast().root());
     setVisitors();
@@ -24,7 +24,7 @@ Sema::Sema(TaskContext& ctx, SemaInfo& semInfo) :
 Sema::Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root) :
     ctx_(&ctx),
     semaInfo_(parent.semaInfo_),
-    symMap_(parent.curScope_->symMap())
+    startSymMap_(parent.curScope_->symMap())
 
 {
     visit_.start(semaInfo_->ast(), root);
@@ -226,16 +226,33 @@ JobResult Sema::exec()
     {
         scopes_.emplace_back(std::make_unique<Scope>(ScopeFlagsE::TopLevel, nullptr));
         curScope_ = scopes_.back().get();
-        curScope_->setSymMap(symMap_);
+        curScope_->setSymMap(startSymMap_);
     }
 
+    auto jobResult = JobResult::Done;
     while (true)
     {
-        const auto result = visit_.step();
+        const AstVisitResult result = visit_.step();
         if (result == AstVisitResult::Pause)
-            return JobResult::Sleep;
+        {
+            jobResult = JobResult::Sleep;
+            break;
+        }
+
         if (result == AstVisitResult::Stop)
-            return JobResult::Done;
+        {
+            jobResult = JobResult::Done;
+            break;
+        }
     }
+
+    if (jobResult == JobResult::Done)
+    {
+        SWC_ASSERT(scopes_.size() == 1);
+        SWC_ASSERT(curScope_ == scopes_.back().get());
+        scopes_.clear();
+    }
+
+    return jobResult;
 }
 SWC_END_NAMESPACE()

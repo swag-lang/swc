@@ -2,3 +2,7 @@
 #assert(#line == 2)
 #assert(#line ++ 3's32 == "33")
 #assert(#swcversion == #swcversion)
+#assert(#swcrevision == #swcrevision)
+#assert(#swcrevision > 0)
+#assert(#swcbuildnum == #swcbuildnum)
+#assert(#swcbuildnum > 0)

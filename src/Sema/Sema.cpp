@@ -14,7 +14,8 @@ SWC_BEGIN_NAMESPACE()
 
 Sema::Sema(TaskContext& ctx, SemaInfo& semInfo) :
     ctx_(&ctx),
-    semaInfo_(&semInfo)
+    semaInfo_(&semInfo),
+    symMap_(semaInfo().moduleNamespace().symMap())
 {
     visit_.start(semaInfo_->ast(), semaInfo_->ast().root());
     setVisitors();
@@ -23,8 +24,8 @@ Sema::Sema(TaskContext& ctx, SemaInfo& semInfo) :
 Sema::Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root) :
     ctx_(&ctx),
     semaInfo_(parent.semaInfo_),
-    rootScope_(parent.rootScope_),
-    curScope_(parent.curScope_)
+    symMap_(parent.curScope_->symMap())
+
 {
     visit_.start(semaInfo_->ast(), root);
     setVisitors();
@@ -221,12 +222,11 @@ void Sema::waitAll(TaskContext& ctx, JobClientId clientId)
 
 JobResult Sema::exec()
 {
-    if (!rootScope_)
+    if (!curScope_)
     {
         scopes_.emplace_back(std::make_unique<Scope>(ScopeFlagsE::TopLevel, nullptr));
-        rootScope_ = scopes_.back().get();
-        rootScope_->setSymMap(semaInfo_->moduleNamespace().symMap());
-        curScope_ = rootScope_;
+        curScope_ = scopes_.back().get();
+        curScope_->setSymMap(symMap_);
     }
 
     while (true)

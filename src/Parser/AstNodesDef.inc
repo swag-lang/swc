@@ -92,7 +92,7 @@ struct AstCompilerGlobal : AstNodeT<AstNodeId::CompilerGlobal>
         AstNode::collectChildren(out, {nodeModeRef});
     }
 
-    AstVisitStepResult semaPostNode(Sema& sema);
+    AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
 struct AstCompilerImport : AstNodeT<AstNodeId::CompilerImport>

@@ -2,6 +2,7 @@
 #include "Parser/Ast.h"
 #include "Parser/AstVisit.h"
 #include "Sema/Scope.h"
+#include "Sema/SemaFrame.h"
 #include "Sema/SemaInfo.h"
 #include "Thread/Job.h"
 
@@ -51,6 +52,8 @@ class Sema
     SymbolMap*                          startSymMap_ = nullptr;
     Scope*                              curScope_    = nullptr;
 
+    std::vector<SemaFrame> frame_;
+
 public:
     Sema(TaskContext& ctx, SemaInfo& semInfo);
     Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root);
@@ -61,6 +64,8 @@ public:
     const TaskContext&      ctx() const { return *ctx_; }
     SemaInfo&               semaInfo() { return *semaInfo_; }
     const SemaInfo&         semaInfo() const { return *semaInfo_; }
+    SemaFrame&              frame() { return frame_.back(); }
+    const SemaFrame&        frame() const { return frame_.back(); }
     AstVisit&               visit() { return visit_; }
     const AstVisit&         visit() const { return visit_; }
     AstNode&                node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
@@ -100,6 +105,9 @@ public:
     const SymbolMap* curSymMap() const { return curScope_->symMap(); }
     Scope*           pushScope(ScopeFlags flags);
     void             popScope();
+
+    void pushFrame(const SemaFrame& frame);
+    void popFrame();
 
     void       setReportArguments(Diagnostic& diag, SourceViewRef srcViewRef, TokenRef tokRef) const;
     Diagnostic reportError(DiagnosticId id, AstNodeRef nodeRef) const;

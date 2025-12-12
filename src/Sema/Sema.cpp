@@ -19,6 +19,7 @@ Sema::Sema(TaskContext& ctx, SemaInfo& semInfo) :
 {
     visit_.start(semaInfo_->ast(), semaInfo_->ast().root());
     setVisitors();
+    pushFrame(semaInfo().defaultFrame());
 }
 
 Sema::Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root) :
@@ -28,6 +29,7 @@ Sema::Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root) :
 
 {
     visit_.start(semaInfo_->ast(), root);
+    pushFrame(parent.frame());
     setVisitors();
 }
 
@@ -102,6 +104,17 @@ void Sema::setVisitors()
 }
 
 Sema::~Sema() = default;
+
+void Sema::pushFrame(const SemaFrame& frame)
+{
+    frame_.push_back(frame);
+}
+
+void Sema::popFrame()
+{
+    SWC_ASSERT(!frame_.empty());
+    frame_.pop_back();
+}
 
 Scope* Sema::pushScope(ScopeFlags flags)
 {

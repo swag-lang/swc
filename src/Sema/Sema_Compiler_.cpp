@@ -184,18 +184,18 @@ AstVisitStepResult AstCompilerLiteral::semaPostNode(Sema& sema) const
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstCompilerGlobal::semaPostNode(Sema& sema)
+AstVisitStepResult AstCompilerGlobal::semaPostNode(Sema& sema) const
 {
     switch (mode)
     {
         case Mode::AccessPublic:
-            sema.semaInfo().setDefaultAccess(SymbolAccess::Public);
+            sema.semaInfo().defaultFrame().access = SymbolAccess::Public;
             break;
         case Mode::AccessInternal:
-            sema.semaInfo().setDefaultAccess(SymbolAccess::Internal);
+            sema.semaInfo().defaultFrame().access = SymbolAccess::Internal;
             break;
         case Mode::AccessPrivate:
-            sema.semaInfo().setDefaultAccess(SymbolAccess::Private);
+            sema.semaInfo().defaultFrame().access = SymbolAccess::Private;
             break;
 
         case Mode::Skip:

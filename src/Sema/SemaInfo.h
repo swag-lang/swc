@@ -1,5 +1,6 @@
 #pragma once
 #include "Parser/Ast.h"
+#include "Sema/SemaFrame.h"
 #include "Symbol/Symbol.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -20,7 +21,7 @@ class SemaInfo
     Ast              ast_;
     SymbolNamespace* moduleNamespace_ = nullptr;
     SymbolNamespace* fileNamespace_   = nullptr;
-    SymbolAccess     defaultAccess_   = SymbolAccess::Private;
+    SemaFrame        defaultFrame_;
 
     struct Shard
     {
@@ -46,8 +47,8 @@ public:
     SymbolNamespace&       fileNamespace() { return *fileNamespace_; }
     void                   setFileNamespace(SymbolNamespace& ns) { fileNamespace_ = &ns; }
 
-    void         setDefaultAccess(SymbolAccess access) { defaultAccess_ = access; }
-    SymbolAccess defaultAccess() const { return defaultAccess_; }
+    SemaFrame&       defaultFrame() { return defaultFrame_; }
+    const SemaFrame& defaultFrame() const { return defaultFrame_; }
 
     bool hasConstant(AstNodeRef nodeRef) const;
     bool hasType(AstNodeRef nodeRef) const;

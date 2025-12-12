@@ -1,8 +1,8 @@
 #pragma once
 #include "Parser/Ast.h"
 #include "Parser/AstVisit.h"
+#include "Sema/Scope.h"
 #include "Sema/SemaInfo.h"
-#include "Symbol/Scope.h"
 #include "Thread/Job.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -48,8 +48,8 @@ class Sema
     AstVisitStepResult preChild(AstNode& node, AstNodeRef& childRef);
 
     std::vector<std::unique_ptr<Scope>> scopes_;
-    SymbolMap*                          startSymMap_   = nullptr;
-    Scope*                              curScope_ = nullptr;
+    SymbolMap*                          startSymMap_ = nullptr;
+    Scope*                              curScope_    = nullptr;
 
 public:
     Sema(TaskContext& ctx, SemaInfo& semInfo);

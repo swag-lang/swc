@@ -4,9 +4,9 @@
 #include "Main/Global.h"
 #include "Memory/Heap.h"
 #include "Report/DiagnosticDef.h"
+#include "Sema/Scope.h"
 #include "Sema/SemaInfo.h"
 #include "Sema/SemaJob.h"
-#include "Symbol/Scope.h"
 #include "Symbol/Symbols.h"
 #include "Thread/JobManager.h"
 

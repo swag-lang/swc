@@ -1,4 +1,6 @@
 #include "pch.h"
+
+#include "Constant/ConstantManager.h"
 #include "Main/Global.h"
 #include "Parser/AstNodes.h"
 #include "Report/Diagnostic.h"
@@ -8,6 +10,7 @@
 #include "Sema/Sema.h"
 #include "Sema/SemaInfo.h"
 #include "Sema/Type/TypeManager.h"
+#include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -110,6 +113,45 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 
         default:
             break;
+    }
+
+    return AstVisitStepResult::Continue;
+}
+
+AstVisitStepResult AstCompilerLiteral::semaPostNode(Sema& sema) const
+{
+    const auto& ctx = sema.ctx();
+    const auto& tok = sema.token(srcViewRef(), tokRef());
+
+    switch (tok.id)
+    {
+        case TokenId::CompilerFile:
+        {
+            const SourceFile* file = sema.ast().srcView().file();
+            const auto        val  = ConstantValue::makeString(ctx, file->path().string());
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
+            break;
+        }
+
+        case TokenId::CompilerModule:
+        case TokenId::CompilerLine:
+        case TokenId::CompilerBuildVersion:
+        case TokenId::CompilerBuildRevision:
+        case TokenId::CompilerBuildNum:
+        case TokenId::CompilerBuildCfg:
+        case TokenId::CompilerCallerFunction:
+        case TokenId::CompilerCallerLocation:
+        case TokenId::CompilerOs:
+        case TokenId::CompilerArch:
+        case TokenId::CompilerCpu:
+        case TokenId::CompilerSwagOs:
+        case TokenId::CompilerBackend:
+        case TokenId::CompilerScopeName:
+        case TokenId::CompilerCurLocation:
+            break;
+
+        default:
+            SWC_UNREACHABLE();
     }
 
     return AstVisitStepResult::Continue;

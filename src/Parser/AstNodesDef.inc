@@ -578,6 +578,7 @@ struct AstNullLiteral : AstLiteralT<AstNodeId::NullLiteral>
 
 struct AstCompilerLiteral : AstLiteralT<AstNodeId::CompilerLiteral>
 {
+    AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
 struct AstSuffixLiteral : AstNodeT<AstNodeId::SuffixLiteral>
@@ -585,12 +586,12 @@ struct AstSuffixLiteral : AstNodeT<AstNodeId::SuffixLiteral>
     AstNodeRef nodeLiteralRef;
     AstNodeRef nodeSuffixRef;
 
-    AstVisitStepResult semaPostNode(Sema& sema) const;
-
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
     {
         AstNode::collectChildren(out, {nodeLiteralRef, nodeSuffixRef});
     }
+
+    AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
 struct AstArrayLiteral : AstCompoundT<AstNodeId::ArrayLiteral>

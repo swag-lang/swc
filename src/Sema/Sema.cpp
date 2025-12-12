@@ -108,8 +108,8 @@ Sema::~Sema() = default;
 Scope* Sema::pushScope(ScopeFlags flags)
 {
     Scope* parent = curScope_;
-    semaInfo_->scopes().emplace_back(std::make_unique<Scope>(flags, parent));
-    Scope* scope = semaInfo_->scopes().back().get();
+    scopes_.emplace_back(std::make_unique<Scope>(flags, parent));
+    Scope* scope = scopes_.back().get();
     scope->setSymMap(parent->symMap());
     curScope_ = scope;
     return scope;
@@ -119,7 +119,7 @@ void Sema::popScope()
 {
     SWC_ASSERT(curScope_);
     curScope_ = curScope_->parent();
-    semaInfo_->scopes().pop_back();
+    scopes_.pop_back();
 }
 
 void Sema::enterNode(AstNode& node)
@@ -206,7 +206,7 @@ void Sema::waitAll(TaskContext& ctx, JobClientId clientId)
     auto&       jobMgr   = ctx.global().jobMgr();
     const auto& compiler = ctx.compiler();
 
-    uint64_t lastEpoch = compiler.semaEpoch();
+    uint64_t lastEpoch = 0;
     while (true)
     {
         jobMgr.waitAll(clientId);
@@ -226,8 +226,8 @@ JobResult Sema::exec()
 {
     if (!rootScope_)
     {
-        semaInfo_->scopes().emplace_back(std::make_unique<Scope>(ScopeFlagsE::TopLevel, nullptr));
-        rootScope_ = semaInfo_->scopes().back().get();
+        scopes_.emplace_back(std::make_unique<Scope>(ScopeFlagsE::TopLevel, nullptr));
+        rootScope_ = scopes_.back().get();
         rootScope_->setSymMap(moduleNamespace_->symMap());
         curScope_ = rootScope_;
     }

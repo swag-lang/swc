@@ -48,8 +48,9 @@ class Sema
     AstVisitStepResult postNode(AstNode& node);
     AstVisitStepResult preChild(AstNode& node, AstNodeRef& childRef);
 
-    Scope* rootScope_ = nullptr;
-    Scope* curScope_  = nullptr;
+    std::vector<std::unique_ptr<Scope>> scopes_;
+    Scope*                              rootScope_ = nullptr;
+    Scope*                              curScope_  = nullptr;
 
 public:
     Sema(TaskContext& ctx, SemaInfo& semCtx, SymbolNamespace& moduleNamespace);

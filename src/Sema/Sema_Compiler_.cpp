@@ -137,7 +137,7 @@ AstVisitStepResult AstCompilerLiteral::semaPostNode(Sema& sema) const
         {
             const SourceView&        srcView = sema.ast().srcView();
             const SourceCodeLocation loc     = tok.location(ctx, srcView);
-            const ConstantValue&     val     = ConstantValue::makeInt(ctx, ApsInt::makeUnsigned32(loc.line), 0);
+            const ConstantValue&     val     = ConstantValue::makeInt(ctx, ApsInt::makeUnsigned(loc.line), 0);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
             break;
         }

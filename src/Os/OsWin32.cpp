@@ -53,7 +53,7 @@ namespace Os
         switch (result)
         {
             case IDCANCEL:
-                std::exit(static_cast<int>(ExitCode::PanicBox)); // NOLINT(concurrency-mt-unsafe)
+                Os::exit(ExitCode::PanicBox);
             case IDTRYAGAIN:
                 DebugBreak();
                 break;
@@ -120,6 +120,11 @@ namespace Os
     bool isDebuggerAttached()
     {
         return IsDebuggerPresent() ? true : false;
+    }
+
+    void exit(ExitCode code)
+    {
+        ExitProcess(static_cast<int>(code));
     }
 }
 

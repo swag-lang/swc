@@ -69,12 +69,12 @@
 #assert((2's64 <=> 1) == 1)
 #assert((1'u32 <=> 1) == 0)
 
-#assert(128's8  == 0's8)            // swc-expected-error {{sema_err_literal_overflow}}
 #assert(256'u8 == 0'u8)             // swc-expected-error {{sema_err_literal_overflow}}
-#assert(32768's16  == 0's16)        // swc-expected-error {{sema_err_literal_overflow}}
 #assert(65536'u16 == 0'u16)         // swc-expected-error {{sema_err_literal_overflow}}
 #assert(4294967296'u32 == 0'u32)    // swc-expected-error {{sema_err_literal_overflow}}
 
+#assert(32768's16  == 0's16)        // swc-expected-error {{sema_err_signed_unsigned}}
+#assert(128's8  == 0's8)            // swc-expected-error {{sema_err_signed_unsigned}}
 #assert(-127'u8 == -127'u8)         // swc-expected-error {{sema_err_signed_unsigned}}
 #assert(-127'u16 == -127'u16)       // swc-expected-error {{sema_err_signed_unsigned}}
 #assert(-127'u32 == -127'u32)       // swc-expected-error {{sema_err_signed_unsigned}}
@@ -97,11 +97,11 @@
 
 #assert(-1's8 == 0'u8)              // swc-expected-error {{sema_err_signed_unsigned}}
 #assert((-1's16 == 0'u16))          // swc-expected-error {{sema_err_signed_unsigned}}
-#assert(255'u8 == 255's8)           // swc-expected-error {{sema_err_literal_overflow}}
-#assert(65535'u16 == 65535's16)     // swc-expected-error {{sema_err_literal_overflow}}
-#assert(200'u8 == 200's8)           // swc-expected-error {{sema_err_literal_overflow}}
-#assert(40000'u16 == 40000's16)     // swc-expected-error {{sema_err_literal_overflow}}
-#assert(200's16 == 200's8)          // swc-expected-error {{sema_err_literal_overflow}}
+#assert(255'u8 == 255's8)           // swc-expected-error {{sema_err_signed_unsigned}}
+#assert(65535'u16 == 65535's16)     // swc-expected-error {{sema_err_signed_unsigned}}
+#assert(200'u8 == 200's8)           // swc-expected-error {{sema_err_signed_unsigned}}
+#assert(40000'u16 == 40000's16)     // swc-expected-error {{sema_err_signed_unsigned}}
+#assert(200's16 == 200's8)          // swc-expected-error {{sema_err_signed_unsigned}}
 #assert(-1 == 0'u8)                 // swc-expected-error {{sema_err_signed_unsigned}}
 
 #assert(!(1 == 1))                  // swc-expected-error {{sema_err_compiler_assert}}

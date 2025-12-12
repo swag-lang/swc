@@ -7,6 +7,8 @@
 
 SWC_BEGIN_NAMESPACE()
 
+enum class ExitCode;
+
 namespace Os
 {
     void initialize();
@@ -14,6 +16,9 @@ namespace Os
     void assertBox(const char* expr, const char* file, int line);
     void panicBox(const char* expr);
     Utf8 systemError();
+
+    [[noreturn]]
+    void exit(ExitCode code);
 
     fs::path getTemporaryPath();
     fs::path getExeFullName();

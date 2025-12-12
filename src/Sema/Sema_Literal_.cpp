@@ -311,7 +311,7 @@ AstVisitStepResult AstIntegerLiteral::semaPreNode(Sema& sema) const
         }
     }
 
-    const auto val = ConstantValue::makeInt(ctx, ApsInt{value, false});
+    const auto val = ConstantValue::makeInt(ctx, ApsInt{value, true});
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }

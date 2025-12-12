@@ -178,7 +178,7 @@ namespace
         if (targetUnsigned)
         {
             // Negative signed source can never fit.
-            if (!value.isUnsigned() && value.isNegative() && !castCtx.flags.has(CastFlagsE::NoOverflow))
+            if (!value.isUnsigned() && value.isNegative() && !castCtx.flags.has(CastFlagsE::NoOverflow) && targetBits != 0)
             {
                 auto diag = sema.reportError(DiagnosticId::sema_err_signed_unsigned, castCtx.errorNodeRef);
                 diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
@@ -276,7 +276,8 @@ namespace
             value.setUnsigned(targetUnsigned);
 
         // Resize to the target bit width (now safe; we already checked range)
-        value.resize(targetBits);
+        if (targetBits)
+            value.resize(targetBits);
 
         const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, targetType);
         return sema.cstMgr().addConstant(ctx, result);

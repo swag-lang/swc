@@ -31,7 +31,7 @@ AstVisitStepResult AstCompilerIf::semaPreChild(Sema& sema, const AstNodeRef& chi
     if (childRef == nodeConditionRef)
         return AstVisitStepResult::Continue;
 
-    const auto& constant = sema.constantOf(nodeConditionRef);
+    const ConstantValue& constant = sema.constantOf(nodeConditionRef);
     if (!constant.isBool())
     {
         sema.raiseInvalidType(nodeConditionRef, constant.typeRef(), sema.typeMgr().getTypeBool());
@@ -50,8 +50,8 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 {
     SWC_ASSERT(sema.hasConstant(nodeArgRef));
 
-    const auto& tok      = sema.token(srcViewRef(), tokRef());
-    const auto& constant = sema.constantOf(nodeArgRef);
+    const Token&         tok      = sema.token(srcViewRef(), tokRef());
+    const ConstantValue& constant = sema.constantOf(nodeArgRef);
     switch (tok.id)
     {
         case TokenId::CompilerError:
@@ -120,21 +120,29 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 
 AstVisitStepResult AstCompilerLiteral::semaPostNode(Sema& sema) const
 {
-    const auto& ctx = sema.ctx();
-    const auto& tok = sema.token(srcViewRef(), tokRef());
+    const auto&  ctx = sema.ctx();
+    const Token& tok = sema.token(srcViewRef(), tokRef());
 
     switch (tok.id)
     {
         case TokenId::CompilerFile:
         {
-            const SourceFile* file = sema.ast().srcView().file();
-            const auto        val  = ConstantValue::makeString(ctx, file->path().string());
+            const SourceFile*    file = sema.ast().srcView().file();
+            const ConstantValue& val  = ConstantValue::makeString(ctx, file ? file->path().string() : "");
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
+            break;
+        }
+
+        case TokenId::CompilerLine:
+        {
+            const SourceView&        srcView = sema.ast().srcView();
+            const SourceCodeLocation loc     = tok.location(ctx, srcView);
+            const ConstantValue&     val     = ConstantValue::makeInt(ctx, ApsInt::makeUnsigned32(loc.line), 0);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
             break;
         }
 
         case TokenId::CompilerModule:
-        case TokenId::CompilerLine:
         case TokenId::CompilerBuildVersion:
         case TokenId::CompilerBuildRevision:
         case TokenId::CompilerBuildNum:

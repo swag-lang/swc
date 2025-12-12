@@ -31,6 +31,11 @@ public:
     {
     }
 
+    static ApsInt makeSigned32(int32_t val) { return ApsInt(val, 32, false); }
+    static ApsInt makeSigned64(int64_t val) { return ApsInt(val, 64, false); }
+    static ApsInt makeUnsigned32(uint32_t val) { return ApsInt(val, 32, true); }
+    static ApsInt makeUnsigned64(uint64_t val) { return ApsInt(val, 64, true); }
+
     bool isUnsigned() const { return unsigned_; }
     void setUnsigned(bool isUnsigned) { unsigned_ = isUnsigned; }
     void setSigned(bool isSigned) { unsigned_ = !isSigned; }

@@ -943,6 +943,7 @@ ApInt ApInt::maxValue(uint32_t bitWidth)
         case 16: return U16;
         case 32: return U32;
         case 64: return U64;
+        case 0: [[fallthrough]];
         case 128: return U128;
         default: return makeMaxValue(bitWidth);
     }
@@ -962,6 +963,7 @@ ApInt ApInt::maxSignedValue(uint32_t bitWidth)
         case 16: return S16;
         case 32: return S32;
         case 64: return S64;
+        case 0: [[fallthrough]];
         case 128: return S128;
         default: return makeMaxSignedValue(bitWidth);
     }

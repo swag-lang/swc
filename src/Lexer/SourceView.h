@@ -30,6 +30,8 @@ class SourceView
 
 public:
     SourceView(SourceViewRef ref, const SourceFile* file);
+    SourceView(const SourceView&)            = delete;
+    SourceView& operator=(const SourceView&) = delete;
 
     SourceViewRef                        ref() const { return ref_; }
     const SourceFile*                    file() const { return file_; }

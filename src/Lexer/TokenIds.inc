@@ -253,9 +253,9 @@ SWC_TOKEN_DEF(CompilerScopeName, "#scopename",  Compiler)
 SWC_TOKEN_DEF(CompilerCurLocation, "#curlocation",  Compiler)
 SWC_TOKEN_DEF(CompilerCallerLocation, "#callerlocation",  Compiler)
 SWC_TOKEN_DEF(CompilerCallerFunction, "#callerfunction",  Compiler)
-SWC_TOKEN_DEF(CompilerBuildVersion, "#swagversion",  Compiler)
-SWC_TOKEN_DEF(CompilerBuildRevision, "#swagrevision",  Compiler)
-SWC_TOKEN_DEF(CompilerBuildNum, "#swagbuildnum",  Compiler)
+SWC_TOKEN_DEF(CompilerSwcVersion, "#swcversion",  Compiler)
+SWC_TOKEN_DEF(CompilerSwcRevision, "#swcrevision",  Compiler)
+SWC_TOKEN_DEF(CompilerSwcBuildNum, "#swcbuildnum",  Compiler)
 SWC_TOKEN_DEF(CompilerSwagOs, "#swagos",  Compiler)
 
 // COMPILER INTROSPECTION

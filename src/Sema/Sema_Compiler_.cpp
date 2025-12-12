@@ -1,7 +1,7 @@
 #include "pch.h"
-
 #include "Constant/ConstantManager.h"
 #include "Main/Global.h"
+#include "Main/Version.h"
 #include "Parser/AstNodes.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticDef.h"
@@ -120,8 +120,9 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 
 AstVisitStepResult AstCompilerLiteral::semaPostNode(Sema& sema) const
 {
-    const auto&  ctx = sema.ctx();
-    const Token& tok = sema.token(srcViewRef(), tokRef());
+    const auto&       ctx     = sema.ctx();
+    const Token&      tok     = sema.token(srcViewRef(), tokRef());
+    const SourceView& srcView = sema.ast().srcView();
 
     switch (tok.id)
     {
@@ -135,18 +136,35 @@ AstVisitStepResult AstCompilerLiteral::semaPostNode(Sema& sema) const
 
         case TokenId::CompilerLine:
         {
-            const SourceView&        srcView = sema.ast().srcView();
-            const SourceCodeLocation loc     = tok.location(ctx, srcView);
-            const ConstantValue&     val     = ConstantValue::makeInt(ctx, ApsInt::makeUnsigned(loc.line), 0);
+            const SourceCodeLocation loc = tok.location(ctx, srcView);
+            const ConstantValue&     val = ConstantValue::makeInt(ctx, ApsInt::makeUnsigned(loc.line), 0);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
             break;
         }
 
-        case TokenId::CompilerModule:
-        case TokenId::CompilerBuildVersion:
-        case TokenId::CompilerBuildRevision:
-        case TokenId::CompilerBuildNum:
+        case TokenId::CompilerSwcVersion:
+        {
+            const ConstantValue& val = ConstantValue::makeInt(ctx, ApsInt::makeUnsigned(SWC_VERSION), 0);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
+            break;
+        }
+
+        case TokenId::CompilerSwcRevision:
+        {
+            const ConstantValue& val = ConstantValue::makeInt(ctx, ApsInt::makeUnsigned(SWC_REVISION), 0);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
+            break;
+        }
+
+        case TokenId::CompilerSwcBuildNum:
+        {
+            const ConstantValue& val = ConstantValue::makeInt(ctx, ApsInt::makeUnsigned(SWC_BUILD_NUM), 0);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
+            break;
+        }
+
         case TokenId::CompilerBuildCfg:
+        case TokenId::CompilerModule:
         case TokenId::CompilerCallerFunction:
         case TokenId::CompilerCallerLocation:
         case TokenId::CompilerOs:

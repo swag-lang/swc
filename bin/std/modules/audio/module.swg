@@ -37,9 +37,9 @@ voice.play(Loop)
     {
         let itf = @compiler
         let cfg = itf.getBuildCfg()
-        cfg.moduleVersion   = #swagversion
-        cfg.moduleRevision  = #swagrevision
-        cfg.moduleBuildNum  = #swagbuildnum
+        cfg.moduleVersion   = #swcversion
+        cfg.moduleRevision  = #swcrevision
+        cfg.moduleBuildNum  = #swcbuildnum
         cfg.moduleNamespace = "Audio"
         cfg.backendKind     = .Library
         cfg.repoPath        = "https://github.com/swag-lang/swag/blob/master/bin/std/modules/audio"

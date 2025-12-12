@@ -691,9 +691,9 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::CompilerFile:
         case TokenId::CompilerModule:
         case TokenId::CompilerLine:
-        case TokenId::CompilerBuildVersion:
-        case TokenId::CompilerBuildRevision:
-        case TokenId::CompilerBuildNum:
+        case TokenId::CompilerSwcVersion:
+        case TokenId::CompilerSwcRevision:
+        case TokenId::CompilerSwcBuildNum:
         case TokenId::CompilerBuildCfg:
         case TokenId::CompilerCallerFunction:
         case TokenId::CompilerCallerLocation:

@@ -20,6 +20,9 @@ public:
     explicit ApFloat(double value);
     explicit ApFloat(float value);
 
+    uint32_t        bitWidth() const { return bitWidth_; }
+    static uint32_t maxBitWidth() { return MAX_BITS; }
+
     void set(float value);
     void set(double value);
     void set(const ApInt& mantissa, int64_t exponent10);
@@ -41,12 +44,11 @@ public:
     int      compare(const ApFloat& other) const;
     uint32_t hash() const;
 
-    uint32_t bitWidth() const { return bitWidth_; }
-    void     negate();
-    void     add(const ApFloat& rhs);
-    void     sub(const ApFloat& rhs);
-    void     mul(const ApFloat& rhs);
-    void     div(const ApFloat& rhs);
+    void negate();
+    void add(const ApFloat& rhs);
+    void sub(const ApFloat& rhs);
+    void mul(const ApFloat& rhs);
+    void div(const ApFloat& rhs);
 
     bool eq(const ApFloat& rhs) const;
     bool ne(const ApFloat& rhs) const;

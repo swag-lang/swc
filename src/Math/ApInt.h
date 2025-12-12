@@ -26,10 +26,11 @@ public:
     explicit ApInt(uint32_t bitWidth);
     explicit ApInt(uint64_t value, uint32_t bitWidth);
 
-    uint32_t bitWidth() const { return bitWidth_; }
-    bool     fits64() const;
-    bool     fitsSigned64() const;
-    uint64_t asU64() const;
+    uint32_t        bitWidth() const { return bitWidth_; }
+    static uint32_t maxBitWidth() { return MAX_BITS; }
+    bool            fits64() const;
+    bool            fitsSigned64() const;
+    uint64_t        asU64() const;
 
     bool     same(const ApInt& other) const;
     int      compare(const ApInt& other) const;

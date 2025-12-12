@@ -77,8 +77,10 @@ public:
     static ConstantValue makeChar(const TaskContext& ctx, char32_t value);
     static ConstantValue makeRune(const TaskContext& ctx, char32_t value);
     static ConstantValue makeTypeInfo(TaskContext& ctx, TypeRef value);
-    static ConstantValue makeInt(const TaskContext& ctx, const ApsInt& value, uint32_t bitWidth = 0);
-    static ConstantValue makeFloat(const TaskContext& ctx, const ApFloat& value, uint32_t bitWidth = 0);
+    static ConstantValue makeInt(const TaskContext& ctx, const ApsInt& value, uint32_t bitWidth);
+    static ConstantValue makeIntUnsized(const TaskContext& ctx, const ApsInt& value);
+    static ConstantValue makeFloat(const TaskContext& ctx, const ApFloat& value, uint32_t bitWidth);
+    static ConstantValue makeFloatUnsized(const TaskContext& ctx, const ApFloat& value);
     static ConstantValue makeFromIntLike(const TaskContext& ctx, const ApsInt& v, const TypeInfo& ty);
 
     uint32_t hash() const noexcept;

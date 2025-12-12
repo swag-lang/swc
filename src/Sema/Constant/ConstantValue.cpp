@@ -63,6 +63,9 @@ ConstantValue ConstantValue::makeTypeInfo(TaskContext& ctx, TypeRef value)
 
 ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const ApsInt& value, uint32_t bitWidth)
 {
+    if (!bitWidth)
+        return makeIntUnsized(ctx, value);
+
     ConstantValue cv;
     cv.typeRef_  = ctx.typeMgr().getTypeInt(bitWidth, value.isUnsigned());
     cv.kind_     = ConstantKind::Int;
@@ -71,10 +74,37 @@ ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const ApsInt& value
     return cv;
 }
 
+ConstantValue ConstantValue::makeIntUnsized(const TaskContext& ctx, const ApsInt& value)
+{
+    SWC_ASSERT(value.bitWidth() == ApInt::maxBitWidth());
+
+    ConstantValue cv;
+    cv.typeRef_  = ctx.typeMgr().getTypeInt(0, value.isUnsigned());
+    cv.kind_     = ConstantKind::Int;
+    cv.asInt.val = value;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return cv;
+}
+
 ConstantValue ConstantValue::makeFloat(const TaskContext& ctx, const ApFloat& value, uint32_t bitWidth)
 {
+    if (!bitWidth)
+        return makeFloatUnsized(ctx, value);
+
     ConstantValue cv;
     cv.typeRef_    = ctx.typeMgr().getTypeFloat(bitWidth);
+    cv.kind_       = ConstantKind::Float;
+    cv.asFloat.val = value;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return cv;
+}
+
+ConstantValue ConstantValue::makeFloatUnsized(const TaskContext& ctx, const ApFloat& value)
+{
+    SWC_ASSERT(value.bitWidth() == ApFloat::maxBitWidth());
+
+    ConstantValue cv;
+    cv.typeRef_    = ctx.typeMgr().getTypeFloat(0);
     cv.kind_       = ConstantKind::Float;
     cv.asFloat.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized

@@ -10,6 +10,14 @@ SWC_BEGIN_NAMESPACE()
 
 AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
 {
+    const IdentifierRef idRef     = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
+    SymbolMap*          symbolMap = nullptr;
+
+    if (sema.frame().access == SymbolAccess::Internal)
+        symbolMap = &sema.semaInfo().fileNamespace();
+    else
+        symbolMap = sema.curSymMap();
+
     if (hasParserFlag(Const))
     {
         if (nodeInitRef.isInvalid())
@@ -24,13 +32,14 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
             return AstVisitStepResult::Stop;
         }
 
-        const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
-        sema.curSymMap()->addConstant(sema.ctx(), idRef, sema.constantRefOf(nodeInitRef));
-        return AstVisitStepResult::Continue;
+        symbolMap->addConstant(sema.ctx(), idRef, sema.constantRefOf(nodeInitRef));
+    }
+    else
+    {
+        sema.raiseInternalError(*this);
     }
 
-    sema.raiseInternalError(*this);
-    return AstVisitStepResult::Stop;
+    return AstVisitStepResult::Continue;
 }
 
 SWC_END_NAMESPACE()

@@ -37,10 +37,9 @@ struct CastContext
 
 class Sema
 {
-    TaskContext*     ctx_             = nullptr;
-    SemaInfo*        semaInfo_        = nullptr;
-    SymbolNamespace* moduleNamespace_ = nullptr;
-    AstVisit         visit_;
+    TaskContext* ctx_      = nullptr;
+    SemaInfo*    semaInfo_ = nullptr;
+    AstVisit     visit_;
 
     void               setVisitors();
     void               enterNode(AstNode& node);
@@ -53,7 +52,7 @@ class Sema
     Scope*                              curScope_  = nullptr;
 
 public:
-    Sema(TaskContext& ctx, SemaInfo& semCtx, SymbolNamespace& moduleNamespace);
+    Sema(TaskContext& ctx, SemaInfo& semInfo);
     Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root);
     ~Sema();
     JobResult exec();

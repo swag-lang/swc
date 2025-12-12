@@ -40,8 +40,8 @@ public:
     std::string_view            sourceView() const { return std::string_view(reinterpret_cast<std::string_view::const_pointer>(content_.data()), size()); }
 
     size_t           size() const { return content_.size() - TRAILING_0; }
-    SemaInfo&        semaCtx() { return *semaCtx_; }
-    const SemaInfo&  semaCtx() const { return *semaCtx_; }
+    SemaInfo&        semaInfo() { return *semaCtx_; }
+    const SemaInfo&  semaInfo() const { return *semaCtx_; }
     FileFlags&       flags() { return flags_; }
     const FileFlags& flags() const { return flags_; }
     bool             hasFlag(FileFlags flag) const { return flags_.has(flag); }

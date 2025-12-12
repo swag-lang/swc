@@ -12,11 +12,9 @@
 
 SWC_BEGIN_NAMESPACE()
 
-Sema::Sema(TaskContext& ctx, SemaInfo& semCtx, SymbolNamespace& moduleNamespace) :
+Sema::Sema(TaskContext& ctx, SemaInfo& semInfo) :
     ctx_(&ctx),
-    semaInfo_(&semCtx),
-    moduleNamespace_(&moduleNamespace)
-
+    semaInfo_(&semInfo)
 {
     visit_.start(semaInfo_->ast(), semaInfo_->ast().root());
     setVisitors();
@@ -25,7 +23,6 @@ Sema::Sema(TaskContext& ctx, SemaInfo& semCtx, SymbolNamespace& moduleNamespace)
 Sema::Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root) :
     ctx_(&ctx),
     semaInfo_(parent.semaInfo_),
-    moduleNamespace_(parent.moduleNamespace_),
     rootScope_(parent.rootScope_),
     curScope_(parent.curScope_)
 {
@@ -228,7 +225,7 @@ JobResult Sema::exec()
     {
         scopes_.emplace_back(std::make_unique<Scope>(ScopeFlagsE::TopLevel, nullptr));
         rootScope_ = scopes_.back().get();
-        rootScope_->setSymMap(moduleNamespace_->symMap());
+        rootScope_->setSymMap(semaInfo_->moduleNamespace().symMap());
         curScope_ = rootScope_;
     }
 

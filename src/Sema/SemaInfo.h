@@ -3,6 +3,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
+class SymbolNamespace;
 class Symbol;
 class Scope;
 
@@ -15,7 +16,8 @@ enum class NodeSemaKind : uint8_t
 
 class SemaInfo
 {
-    Ast ast_;
+    Ast              ast_;
+    SymbolNamespace* moduleNamespace_ = nullptr;
 
     struct Shard
     {
@@ -32,6 +34,9 @@ public:
 
     static NodeSemaKind&       semaNodeKind(AstNode& node) { return reinterpret_cast<NodeSemaKind&>(node.semaKindRaw()); }
     static const NodeSemaKind& semaNodeKind(const AstNode& node) { return reinterpret_cast<const NodeSemaKind&>(node.semaKindRaw()); }
+    const SymbolNamespace&     moduleNamespace() const { return *moduleNamespace_; }
+    SymbolNamespace&           moduleNamespace() { return *moduleNamespace_; }
+    void                       setModuleNamespace(SymbolNamespace& ns) { moduleNamespace_ = &ns; }
 
     bool hasConstant(AstNodeRef nodeRef) const;
     bool hasType(AstNodeRef nodeRef) const;

@@ -44,7 +44,8 @@ namespace Command
         {
             if (f->hasError())
                 continue;
-            const auto job = heapNew<SemaJob>(ctx, f->semaCtx(), *moduleNamespace);
+            f->semaInfo().setModuleNamespace(*moduleNamespace);
+            const auto job = heapNew<SemaJob>(ctx, f->semaInfo());
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 

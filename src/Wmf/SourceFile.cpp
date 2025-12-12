@@ -18,18 +18,18 @@ SourceFile::SourceFile(FileRef fileRef, fs::path path, FileFlags flags) :
     path_(std::move(path)),
     flags_(flags)
 {
-    semaCtx_  = std::make_unique<SemaInfo>();
+    semaInfo_  = std::make_unique<SemaInfo>();
     unitTest_ = std::make_unique<Verify>(this);
 }
 
 Ast& SourceFile::ast()
 {
-    return semaCtx_->ast();
+    return semaInfo_->ast();
 }
 
 const Ast& SourceFile::ast() const
 {
-    return semaCtx_->ast();
+    return semaInfo_->ast();
 }
 
 Result SourceFile::loadContent(TaskContext& ctx)

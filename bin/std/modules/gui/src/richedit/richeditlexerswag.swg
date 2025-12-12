@@ -365,9 +365,9 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#curlocation", State.Compiler)
         .mapWords.add("#callerlocation", State.Compiler)
         .mapWords.add("#callerfunction", State.Compiler)
-        .mapWords.add("#swagversion", State.Compiler)
-        .mapWords.add("#swagrevision", State.Compiler)
-        .mapWords.add("#swagbuildnum", State.Compiler)
+        .mapWords.add("#swcversion", State.Compiler)
+        .mapWords.add("#swcrevision", State.Compiler)
+        .mapWords.add("#swcbuildnum", State.Compiler)
         .mapWords.add("#swagos", State.Compiler)
 
         .mapWords.add("#code", State.Intrinsic)

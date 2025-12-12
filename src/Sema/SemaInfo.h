@@ -4,6 +4,7 @@
 SWC_BEGIN_NAMESPACE()
 
 class Symbol;
+class Scope;
 
 enum class NodeSemaKind : uint8_t
 {
@@ -14,7 +15,8 @@ enum class NodeSemaKind : uint8_t
 
 class SemaInfo
 {
-    Ast ast_;
+    Ast                                 ast_;
+    std::vector<std::unique_ptr<Scope>> scopes_;
 
     struct Shard
     {
@@ -29,8 +31,9 @@ public:
     Ast&       ast() { return ast_; }
     const Ast& ast() const { return ast_; }
 
-    static NodeSemaKind&       semaNodeKind(AstNode& node) { return reinterpret_cast<NodeSemaKind&>(node.semaKindRaw()); }
-    static const NodeSemaKind& semaNodeKind(const AstNode& node) { return reinterpret_cast<const NodeSemaKind&>(node.semaKindRaw()); }
+    static NodeSemaKind&                 semaNodeKind(AstNode& node) { return reinterpret_cast<NodeSemaKind&>(node.semaKindRaw()); }
+    static const NodeSemaKind&           semaNodeKind(const AstNode& node) { return reinterpret_cast<const NodeSemaKind&>(node.semaKindRaw()); }
+    std::vector<std::unique_ptr<Scope>>& scopes() { return scopes_; }
 
     bool hasConstant(AstNodeRef nodeRef) const;
     bool hasType(AstNodeRef nodeRef) const;

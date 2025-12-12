@@ -108,8 +108,8 @@ Sema::~Sema() = default;
 Scope* Sema::pushScope(ScopeFlags flags)
 {
     Scope* parent = curScope_;
-    scopes_.emplace_back(std::make_unique<Scope>(flags, parent));
-    Scope* scope = scopes_.back().get();
+    semaInfo_->scopes().emplace_back(std::make_unique<Scope>(flags, parent));
+    Scope* scope = semaInfo_->scopes().back().get();
     scope->setSymMap(parent->symMap());
     curScope_ = scope;
     return scope;
@@ -119,7 +119,7 @@ void Sema::popScope()
 {
     SWC_ASSERT(curScope_);
     curScope_ = curScope_->parent();
-    scopes_.pop_back();
+    semaInfo_->scopes().pop_back();
 }
 
 void Sema::enterNode(AstNode& node)
@@ -226,8 +226,8 @@ JobResult Sema::exec()
 {
     if (!rootScope_)
     {
-        scopes_.emplace_back(std::make_unique<Scope>(ScopeFlagsE::TopLevel, nullptr));
-        rootScope_ = scopes_.back().get();
+        semaInfo_->scopes().emplace_back(std::make_unique<Scope>(ScopeFlagsE::TopLevel, nullptr));
+        rootScope_ = semaInfo_->scopes().back().get();
         rootScope_->setSymMap(moduleNamespace_->symMap());
         curScope_ = rootScope_;
     }

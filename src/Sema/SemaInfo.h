@@ -21,7 +21,6 @@ class SemaInfo
     Ast              ast_;
     SymbolNamespace* moduleNamespace_ = nullptr;
     SymbolNamespace* fileNamespace_   = nullptr;
-    SemaFrame        defaultFrame_;
 
     struct Shard
     {
@@ -46,9 +45,6 @@ public:
     const SymbolNamespace& fileNamespace() const { return *fileNamespace_; }
     SymbolNamespace&       fileNamespace() { return *fileNamespace_; }
     void                   setFileNamespace(SymbolNamespace& ns) { fileNamespace_ = &ns; }
-
-    SemaFrame&       defaultFrame() { return defaultFrame_; }
-    const SemaFrame& defaultFrame() const { return defaultFrame_; }
 
     bool hasConstant(AstNodeRef nodeRef) const;
     bool hasType(AstNodeRef nodeRef) const;

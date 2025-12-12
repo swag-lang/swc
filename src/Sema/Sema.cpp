@@ -19,7 +19,7 @@ Sema::Sema(TaskContext& ctx, SemaInfo& semInfo) :
 {
     visit_.start(semaInfo_->ast(), semaInfo_->ast().root());
     setVisitors();
-    pushFrame(semaInfo().defaultFrame());
+    pushFrame({});
 }
 
 Sema::Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root) :

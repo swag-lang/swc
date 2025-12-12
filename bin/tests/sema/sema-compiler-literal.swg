@@ -1,6 +1,7 @@
 #assert(#file == #file)
 #assert(#line == 2)
 #assert(#line ++ 3's32 == "33")
+#assert(#line ++ 3 == "43")
 #assert(#swcversion == #swcversion)
 #assert(#swcrevision == #swcrevision)
 #assert(#swcrevision > 0)

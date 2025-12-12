@@ -174,7 +174,8 @@ AstVisitStepResult AstCompilerLiteral::semaPostNode(Sema& sema) const
         case TokenId::CompilerBackend:
         case TokenId::CompilerScopeName:
         case TokenId::CompilerCurLocation:
-            break;
+            sema.raiseInternalError(*this);
+            return AstVisitStepResult::Stop;
 
         default:
             SWC_UNREACHABLE();

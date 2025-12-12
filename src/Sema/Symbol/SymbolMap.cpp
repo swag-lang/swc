@@ -66,7 +66,8 @@ SymbolConstant* SymbolMap::addConstant(TaskContext& ctx, IdentifierRef idRef, Co
 SymbolNamespace* SymbolMap::addNamespace(TaskContext& ctx, IdentifierRef idRef)
 {
     auto* sym = ctx.compiler().allocate<SymbolNamespace>(ctx, idRef);
-    addSymbol(ctx, sym);
+    if (idRef != IdentifierRef::invalid())
+        addSymbol(ctx, sym);
     return sym;
 }
 

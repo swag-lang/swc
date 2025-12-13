@@ -2,6 +2,7 @@
 #include "Report/DiagnosticElement.h"
 #include "Sema/Constant/ConstantValue.h"
 #include "Sema/Type/TypeInfo.h"
+#include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE()
 

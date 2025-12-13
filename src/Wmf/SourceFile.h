@@ -18,6 +18,9 @@ enum class FileFlagsE : uint32_t
 };
 using FileFlags = EnumFlags<FileFlagsE>;
 
+class SourceFile;
+using FileRef = StrongRef<SourceFile>;
+
 class SourceFile
 {
     static constexpr int      TRAILING_0 = 4; // Number of '\0' forced at the end of the file

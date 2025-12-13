@@ -147,9 +147,12 @@ SourceView& CompilerInstance::addSourceView(FileRef fileRef)
 SourceFile& CompilerInstance::addFile(fs::path path, FileFlags flags)
 {
     SWC_RACE_CONDITION_WRITE(rcFiles_);
-    path               = fs::absolute(path);
-    const auto fileRef = static_cast<FileRef>(static_cast<uint32_t>(files_.size()));
+    path         = fs::absolute(path);
+    auto fileRef = static_cast<FileRef>(static_cast<uint32_t>(files_.size()));
     files_.emplace_back(std::make_unique<SourceFile>(fileRef, std::move(path), flags));
+#if SWC_HAS_DEBUG_INFO
+    fileRef.setPtr(files_.back().get());
+#endif
     return *files_.back();
 }
 

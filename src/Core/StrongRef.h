@@ -49,14 +49,12 @@ public:
 
 // Tag types for different reference kinds
 // clang-format off
-struct FileTag{};
 struct TokenTag{};
 struct SpanTag{};
 struct SemaTag{};
 // clang-format on
 
 // Type definitions
-using FileRef  = StrongRef<FileTag>;
 using TokenRef = StrongRef<TokenTag>;
 using SpanRef  = StrongRef<SpanTag>;
 using SemaRef  = StrongRef<SemaTag>;

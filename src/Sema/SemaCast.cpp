@@ -475,17 +475,49 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
 
     if (ops.nodeView[0].type->isScalarNumeric() && ops.nodeView[1].type->isScalarNumeric())
     {
-        const TypeRef promotedTypeRef = sema.typeMgr().promote(ops.nodeView[0].typeRef, ops.nodeView[1].typeRef, force32BitInts);
+        auto isConcreteScalar = [](const TypeInfo& t) -> bool {
+            if (!t.isScalarNumeric())
+                return false;
+
+            if (t.isIntLike())
+                return t.intLikeBits() != 0;
+
+            if (t.isFloat())
+                return t.floatBits() != 0;
+
+            return false;
+        };
+
+        const bool leftConcrete  = isConcreteScalar(*ops.nodeView[0].type);
+        const bool rightConcrete = isConcreteScalar(*ops.nodeView[1].type);
+
+        // Start from the original constant refs
+        ConstantRef leftSrc  = ops.nodeView[0].cstRef;
+        ConstantRef rightSrc = ops.nodeView[1].cstRef;
+
+        // Concretize only in the mixed case: one concrete, the other not.
+        if (leftConcrete != rightConcrete)
+        {
+            if (!leftConcrete)
+                leftSrc = concretizeConstant(sema, leftSrc);
+            if (!rightConcrete)
+                rightSrc = concretizeConstant(sema, rightSrc);
+        }
+
+        const TypeRef promotedTypeRef =
+            sema.typeMgr().promote(ops.nodeView[0].typeRef, ops.nodeView[1].typeRef, force32BitInts);
 
         CastContext castCtx(CastKind::Promotion);
         castCtx.errorNodeRef = ops.nodeView[0].nodeRef;
 
-        leftRef = castConstant(sema, castCtx, ops.nodeView[0].cstRef, promotedTypeRef);
+        leftRef = castConstant(sema, castCtx, leftSrc, promotedTypeRef);
         if (leftRef.isInvalid())
             return false;
-        rightRef = castConstant(sema, castCtx, ops.nodeView[1].cstRef, promotedTypeRef);
+
+        rightRef = castConstant(sema, castCtx, rightSrc, promotedTypeRef);
         if (rightRef.isInvalid())
             return false;
+
         return true;
     }
 
@@ -494,40 +526,6 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
 
 namespace
 {
-    bool fitsInBits(const ApsInt& valueIn, uint32_t bits, bool unsignedTarget)
-    {
-        SWC_ASSERT(bits > 0);
-
-        const uint32_t checkBits = (valueIn.bitWidth() > bits + 1) ? valueIn.bitWidth() : (bits + 1);
-
-        ApsInt canon = valueIn;
-        if (canon.isUnsigned() != unsignedTarget)
-            canon.setUnsigned(unsignedTarget);
-        canon.resize(checkBits);
-
-        ApsInt round = canon;
-        round.resize(bits);
-        round.resize(checkBits);
-
-        return round.eq(canon);
-    }
-
-    // Try a small set of "default" widths first (32/64), then optionally grow if you want.
-    // Returns 0 if it doesn't fit in any of the default widths.
-    uint32_t pickConcreteIntBitsDefaultLadder(const ApsInt& value, bool unsignedTarget)
-    {
-        // Extend this list if your language supports more defaults (e.g. 128).
-        constexpr uint32_t kDefaultWidths[] = {32, 64};
-
-        for (const uint32_t bits : kDefaultWidths)
-        {
-            if (fitsInBits(value, bits, unsignedTarget))
-                return bits;
-        }
-
-        return 0;
-    }
-
     uint32_t pickConcreteFloatBitsDefaultLadder(const ApFloat& value)
     {
         bool isExact  = false;
@@ -561,28 +559,20 @@ ConstantRef SemaCast::concretizeConstant(Sema& sema, ConstantRef cstRef)
 
     if (ty.isIntLike())
     {
+        // Already sized.
         if (ty.intLikeBits() != 0)
             return cstRef;
 
         ApsInt value = src.getIntLike();
 
+        // Preserve the constant's signedness.
         const bool unsignedTarget = value.isUnsigned();
-        uint32_t   concreteBits   = pickConcreteIntBitsDefaultLadder(value, unsignedTarget);
 
-        // If it didn't fit in the ladder, you can either:
-        // - grow arbitrarily (old behavior), or
-        // - assert / error.
-        //
-        // Here: keep old "grow" behavior after the ladder is exhausted.
-        if (concreteBits == 0)
-        {
-            concreteBits = 64;
-            while (!fitsInBits(value, concreteBits, unsignedTarget))
-            {
-                concreteBits *= 2;
-                SWC_ASSERT(concreteBits != 0);
-            }
-        }
+        // Smallest standard width (8/16/32/64/...) for this value & signedness.
+        uint32_t concreteBits = value.minBitsStd();
+        concreteBits = std::max(concreteBits, 32u);
+        SWC_ASSERT(concreteBits < 128);
+        SWC_ASSERT(concreteBits > 0);
 
         if (value.isUnsigned() != unsignedTarget)
             value.setUnsigned(unsignedTarget);

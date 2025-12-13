@@ -65,9 +65,10 @@ public:
     bool gt(const ApsInt& rhs) const;
     bool ge(const ApsInt& rhs) const;
 
-    Utf8    toString() const;
-    bool    fits64() const;
-    int64_t asI64() const;
+    Utf8     toString() const;
+    bool     fits64() const;
+    int64_t  asI64() const;
+    uint32_t minBitsStd() const;
 };
 
 SWC_END_NAMESPACE()

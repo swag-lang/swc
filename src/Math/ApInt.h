@@ -98,8 +98,12 @@ public:
     void resizeUnsigned(uint32_t newBitWidth);
     void resizeSigned(uint32_t newBitWidth);
 
-    Utf8 toString() const;
-    Utf8 toSignedString() const;
+    Utf8     toString() const;
+    Utf8     toSignedString() const;
+    uint32_t minBits() const;
+    uint32_t minBitsSigned() const;
+    uint32_t minBitsStd() const;
+    uint32_t minBitsSignedStd() const;
 };
 
 SWC_END_NAMESPACE()

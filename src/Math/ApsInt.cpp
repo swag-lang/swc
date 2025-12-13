@@ -140,13 +140,6 @@ Utf8 ApsInt::toString() const
     return toSignedString();
 }
 
-bool ApsInt::fits64() const
-{
-    if (unsigned_)
-        return ApInt::fits64();
-    return fitsSigned64();
-}
-
 int64_t ApsInt::asI64() const
 {
     uint64_t result = asU64();
@@ -160,6 +153,20 @@ int64_t ApsInt::asI64() const
     }
 
     return std::bit_cast<int64_t>(result);
+}
+
+uint32_t ApsInt::minBitsStd() const
+{
+    if (unsigned_)
+        return ApInt::minBitsStd();
+    return minBitsSignedStd();
+}
+
+bool ApsInt::fits64() const
+{
+    if (unsigned_)
+        return ApInt::fits64();
+    return fitsSigned64();
 }
 
 SWC_END_NAMESPACE()

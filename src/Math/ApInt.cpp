@@ -66,57 +66,6 @@ ApInt::ApInt(uint64_t value, uint32_t bitWidth) :
     normalize();
 }
 
-bool ApInt::fits64() const
-{
-    // Any value with logical width <= 64 fits in 64 bits
-    // with its current signedness.
-    if (bitWidth_ <= 64)
-        return true;
-
-    // Unsigned: all bits above 63 must be zero.
-    constexpr uint32_t startWord = 64 / WORD_BITS;
-    constexpr uint32_t startBit  = 64 % WORD_BITS;
-
-    uint32_t wordIdx = startWord;
-
-    // First partial word if 64 is not word-aligned.
-    if (startBit != 0 && wordIdx < numWords_)
-    {
-        constexpr uint64_t mask = ~((ONE << startBit) - 1); // bits >= startBit
-        if (words_[wordIdx] & mask)
-            return false;
-        ++wordIdx;
-    }
-
-    // The remaining full words must be zero.
-    for (; wordIdx < numWords_; ++wordIdx)
-    {
-        if (words_[wordIdx] != 0)
-            return false;
-    }
-
-    return true;
-}
-
-bool ApInt::fitsSigned64() const
-{
-    // Any value with logical width <= 64 fits in 64 bits
-    // with its current signedness.
-    if (bitWidth_ <= 64)
-        return true;
-
-    // Signed: all bits above 63 must match the sign bit (bit 63).
-    const bool signBit = testBit(63); // desired sign extension
-
-    for (uint32_t i = 64; i < bitWidth_; ++i)
-    {
-        if (testBit(i) != signBit)
-            return false;
-    }
-
-    return true;
-}
-
 uint64_t ApInt::asU64() const
 {
     if (bitWidth_ == 0)
@@ -1226,6 +1175,132 @@ Utf8 ApInt::toSignedString() const
 
     std::ranges::reverse(digits);
     return "-" + digits;
+}
+
+uint32_t ApInt::minBits() const
+{
+    SWC_ASSERT(bitWidth_ > 0 && numWords_ > 0);
+
+    // Find highest non-zero word.
+    for (int wi = static_cast<int>(numWords_) - 1; wi >= 0; --wi)
+    {
+        uint64_t w = words_[static_cast<uint32_t>(wi)];
+
+        // Mask off unused bits in the top word (if any).
+        if (static_cast<uint32_t>(wi) == numWords_ - 1)
+        {
+            const uint32_t used = bitWidth_ % WORD_BITS;
+            if (used != 0)
+            {
+                const uint64_t mask = (uint64_t{1} << used) - 1;
+                w &= mask;
+            }
+        }
+
+        if (w != 0)
+        {
+            const uint32_t msbInWord = 63u - static_cast<uint32_t>(std::countl_zero(w));
+            const uint32_t bitIndex  = static_cast<uint32_t>(wi) * WORD_BITS + msbInWord;
+            const uint32_t bits      = bitIndex + 1;
+            return (bits == 0) ? 1u : std::min(bits, bitWidth_);
+        }
+    }
+
+    // Value is 0
+    return 1;
+}
+
+uint32_t ApInt::minBitsSigned() const
+{
+    SWC_ASSERT(bitWidth_ > 0 && numWords_ > 0);
+
+    const bool sign = isSignBitSet();
+
+    // We want to remove redundant sign-extension.
+    // Find the highest bit that differs from the sign bit.
+    for (int wi = static_cast<int>(numWords_) - 1; wi >= 0; --wi)
+    {
+        uint64_t w    = words_[static_cast<uint32_t>(wi)];
+        uint64_t fill = sign ? ~uint64_t{0} : uint64_t{0};
+
+        // Top word may have unused bits; ignore them for signed-min calculation.
+        if (static_cast<uint32_t>(wi) == numWords_ - 1)
+        {
+            const uint32_t used = bitWidth_ % WORD_BITS;
+            if (used != 0)
+            {
+                const uint64_t mask = (uint64_t{1} << used) - 1;
+                w &= mask;
+                fill &= mask; // "all sign bits" but only within used bits
+            }
+        }
+
+        const uint64_t diff = w ^ fill;
+        if (diff != 0)
+        {
+            const uint32_t msbInWord = 63u - static_cast<uint32_t>(std::countl_zero(diff));
+            const uint32_t bitIndex  = static_cast<uint32_t>(wi) * WORD_BITS + msbInWord;
+
+            // Need one extra bit above the highest differing bit to carry the sign.
+            // Example: +1 (01) => bitIndex=0 => 2 bits
+            //          -2 (10) => bitIndex=0 => 2 bits
+            uint32_t bits = bitIndex + 2;
+            bits          = std::max<uint32_t>(bits, 1);
+            bits          = std::min(bits, bitWidth_);
+            return bits;
+        }
+    }
+
+    // All bits equal the sign bit within the current width:
+    // 0 -> 1, -1 -> 1
+    return 1;
+}
+
+namespace
+{
+    uint32_t roundUpToByteMultiple(uint32_t bits)
+    {
+        SWC_ASSERT(bits > 0);
+        return (bits + 7u) & ~7u;
+    }
+
+    uint32_t roundUpToStdWidth(uint32_t bits)
+    {
+        SWC_ASSERT(bits > 0);
+        bits = std::min(bits, ApInt::maxBitWidth());
+
+        uint32_t w = 8;
+        while (w < bits && w < ApInt::maxBitWidth())
+            w <<= 1;
+
+        return (w > ApInt::maxBitWidth()) ? ApInt::maxBitWidth() : w;
+    }
+}
+
+uint32_t ApInt::minBitsStd() const
+{
+    const uint32_t bits = minBits();
+    return roundUpToStdWidth(bits);
+}
+
+uint32_t ApInt::minBitsSignedStd() const
+{
+    const uint32_t bits = minBitsSigned();
+    return roundUpToStdWidth(bits);
+}
+
+bool ApInt::fits64() const
+{
+    if (bitWidth_ <= 64)
+        return true;
+    return minBits() <= 64;
+}
+
+bool ApInt::fitsSigned64() const
+{
+    if (bitWidth_ <= 64)
+        return true;
+    return minBitsSigned() <= 64;
 }
 
 SWC_END_NAMESPACE()

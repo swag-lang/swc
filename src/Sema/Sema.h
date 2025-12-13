@@ -130,6 +130,7 @@ public:
 
     ConstantRef castConstant(const CastContext& castCtx, ConstantRef srcRef, TypeRef targetTypeRef);
     bool        promoteConstants(const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef, bool force32BitInts = false);
+    ConstantRef concretizeConstant(ConstantRef srcRef);
 
     void               lookupIdentifier(LookupResult& result, IdentifierRef idRef) const;
     AstVisitStepResult pause(TaskStateKind kind, AstNodeRef nodeRef);

@@ -411,12 +411,12 @@ bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef t
             if ((srcType.isBool() && targetType.isIntLike()) || (srcType.isIntLike() && targetType.isBool()))
                 return true;
             break;
-            
+
         case CastKind::Implicit:
             if (srcType.isScalarNumeric() && targetType.isScalarNumeric())
                 return true;
             break;
-            
+
         default:
             SWC_UNREACHABLE();
     }
@@ -487,6 +487,136 @@ bool Sema::promoteConstants(const SemaNodeViewList& ops, ConstantRef& leftRef, C
     }
 
     SWC_UNREACHABLE();
+}
+
+namespace
+{
+    // Returns true if `value` fits in exactly `bits` under the chosen signedness.
+    // Uses trunc -> extend roundtrip to avoid needing special "min bits" APIs.
+    bool fitsInBits(const ApsInt& valueIn, uint32_t bits, bool unsignedTarget)
+    {
+        SWC_ASSERT(bits > 0);
+
+        // Work in a widened width so comparisons are meaningful after re-extension.
+        const uint32_t checkBits = (valueIn.bitWidth() > bits + 1) ? valueIn.bitWidth() : (bits + 1);
+
+        ApsInt canon = valueIn;
+        if (canon.isUnsigned() != unsignedTarget)
+            canon.setUnsigned(unsignedTarget);
+        canon.resize(checkBits);
+
+        // Truncate to candidate width...
+        ApsInt round = canon;
+        round.resize(bits);
+
+        // ...then extend back and compare with canonical widened value.
+        round.resize(checkBits);
+
+        // ApsInt likely has eq(); if yours uses ==, replace this.
+        return round.eq(canon);
+    }
+
+    uint32_t pickConcreteIntBits(const ApsInt& value, bool unsignedTarget)
+    {
+        uint32_t bits = 32;
+
+        // Grow until it fits.
+        while (!fitsInBits(value, bits, unsignedTarget))
+        {
+            // Double to keep it fast; you can clamp if your compiler has a max int width.
+            bits *= 2;
+            SWC_ASSERT(bits != 0); // overflow guard
+        }
+
+        return bits;
+    }
+
+    uint32_t pickConcreteFloatBits(const ApFloat& value)
+    {
+        // Never below 32. Prefer 32 if it doesn't overflow; otherwise 64; otherwise keep original.
+        bool isExact  = false;
+        bool overflow = false;
+
+        (void) value.toFloat(32, isExact, overflow);
+        if (!overflow)
+            return 32;
+
+        overflow = false;
+        (void) value.toFloat(64, isExact, overflow);
+        if (!overflow)
+            return 64;
+
+        // If it overflows even at 64, keep the current precision/width (must be >= 32).
+        return (value.bitWidth() < 32) ? 32 : value.bitWidth();
+    }
+}
+
+// Concretize an unsized int/float constant into a sized one (>= 32 bits).
+ConstantRef Sema::concretizeConstant(ConstantRef srcRef)
+{
+    auto&                ctx     = this->ctx();
+    const TypeManager&   typeMgr = ctx.typeMgr();
+    const ConstantValue& src     = cstMgr().get(srcRef);
+    const TypeInfo&      ty      = typeMgr.get(src.typeRef());
+
+    // Only numeric scalars are supported here.
+    if (!ty.isScalarNumeric())
+        return srcRef;
+
+    // Unsized int-like
+    if (ty.isIntLike())
+    {
+        const uint32_t bits = ty.intLikeBits();
+
+        // If already sized, nothing to do.
+        if (bits != 0)
+            return srcRef;
+
+        ApsInt     value          = src.getIntLike();
+        const bool unsignedTarget = ty.isIntLikeUnsigned();
+
+        const uint32_t concreteBits = (bits >= 32) ? bits : pickConcreteIntBits(value, unsignedTarget);
+
+        // Resize the stored value to the chosen width.
+        if (value.isUnsigned() != unsignedTarget)
+            value.setUnsigned(unsignedTarget);
+        value.resize(concreteBits);
+
+        // You need a way to get a sized int-like type of `concreteBits` + signedness.
+        const TypeRef concreteTypeRef = typeMgr.getTypeInt(concreteBits, unsignedTarget);
+
+        const TypeInfo&     concreteTy = typeMgr.get(concreteTypeRef);
+        const ConstantValue result     = ConstantValue::makeFromIntLike(ctx, value, concreteTy);
+        return cstMgr().addConstant(ctx, result);
+    }
+
+    // Unsized float
+    if (ty.isFloat())
+    {
+        const uint32_t bits = ty.floatBits();
+
+        if (bits != 0)
+            return srcRef;
+
+        const ApFloat& srcF         = src.getFloat();
+        const uint32_t concreteBits = pickConcreteFloatBits(srcF);
+
+        bool    isExact   = false;
+        bool    overflow  = false;
+        ApFloat concreteF = srcF.toFloat(concreteBits, isExact, overflow);
+
+        // If this overflows even at chosen bits (shouldn't, given pickConcreteFloatBits),
+        // fall back to keeping the original value/width.
+        if (overflow)
+        {
+            concreteF = srcF;
+        }
+
+        const ConstantValue result = ConstantValue::makeFloat(ctx, concreteF, concreteBits);
+        return cstMgr().addConstant(ctx, result);
+    }
+
+    return srcRef;
 }
 
 AstVisitStepResult AstExplicitCastExpr::semaPostNode(Sema& sema) const

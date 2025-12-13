@@ -7,4 +7,6 @@ const A: s32 = 10
 #assert(#typeof(10) == s32)
 #assert(#typeof(10'u8) == u8)
 
-#print(#typeof(0xFFFFFFF))
+#assert(#typeof(0xFF) == u32)
+#assert(#typeof(0xFFFFFFFF) == u32)
+#assert(#typeof(0xFFFFFFFFF) == u64)

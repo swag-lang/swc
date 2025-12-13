@@ -561,33 +561,8 @@ ConstantRef SemaCast::concretizeConstant(Sema& sema, ConstantRef srcRef)
 
         ApsInt value = src.getIntLike();
 
-        // Signedness rule:
-        // 1) If the unsized int is signed, keep it signed.
-        // 2) Otherwise (value is unsigned), prefer signed if it can fit in the default widths; else unsigned.
-        const bool srcIsUnsigned = value.isUnsigned();
-
-        bool unsignedTarget = false;
-        if (!srcIsUnsigned)
-        {
-            // keep signed
-            unsignedTarget = false;
-        }
-        else
-        {
-            // value is unsigned: try signed first (unsignedTarget=false)
-            const uint32_t signedBits = pickConcreteIntBitsDefaultLadder(value, /*unsignedTarget*/ false);
-            if (signedBits != 0)
-            {
-                unsignedTarget = false;
-            }
-            else
-            {
-                unsignedTarget = true;
-            }
-        }
-
-        // Pick bits using the chosen signedness, defaulting to 32/64.
-        uint32_t concreteBits = pickConcreteIntBitsDefaultLadder(value, unsignedTarget);
+        const bool unsignedTarget = value.isUnsigned();
+        uint32_t   concreteBits   = pickConcreteIntBitsDefaultLadder(value, unsignedTarget);
 
         // If it didn't fit in the ladder, you can either:
         // - grow arbitrarily (old behavior), or

@@ -8,7 +8,7 @@ SWC_BEGIN_NAMESPACE()
 
 class SymbolNamespace;
 class Symbol;
-class Scope;
+class SemaScope;
 
 enum class NodeSemaKind : uint8_t
 {

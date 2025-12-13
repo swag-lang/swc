@@ -4,9 +4,9 @@
 #include "Main/Global.h"
 #include "Memory/Heap.h"
 #include "Report/DiagnosticDef.h"
-#include "Sema/Scope.h"
 #include "Sema/SemaInfo.h"
 #include "Sema/SemaJob.h"
+#include "Sema/SemaScope.h"
 #include "Symbol/Symbols.h"
 #include "Thread/JobManager.h"
 
@@ -116,11 +116,11 @@ void Sema::popFrame()
     frame_.pop_back();
 }
 
-Scope* Sema::pushScope(ScopeFlags flags)
+SemaScope* Sema::pushScope(SemaScopeFlags flags)
 {
-    Scope* parent = curScope_;
-    scopes_.emplace_back(std::make_unique<Scope>(flags, parent));
-    Scope* scope = scopes_.back().get();
+    SemaScope* parent = curScope_;
+    scopes_.emplace_back(std::make_unique<SemaScope>(flags, parent));
+    SemaScope* scope = scopes_.back().get();
     scope->setSymMap(parent->symMap());
     curScope_ = scope;
     return scope;
@@ -138,7 +138,7 @@ void Sema::enterNode(AstNode& node)
     const auto& info = Ast::nodeIdInfos(node.id());
 
     // Push scope
-    if (info.scopeFlags != ScopeFlagsE::Zero)
+    if (info.scopeFlags != SemaScopeFlagsE::Zero)
         pushScope(info.scopeFlags);
 
     info.semaEnterNode(*this, node);
@@ -158,7 +158,7 @@ AstVisitStepResult Sema::postNode(AstNode& node)
     // Pop scope once done
     if (result == AstVisitStepResult::Continue)
     {
-        if (info.scopeFlags != ScopeFlagsE::Zero)
+        if (info.scopeFlags != SemaScopeFlagsE::Zero)
             popScope();
     }
 
@@ -167,7 +167,7 @@ AstVisitStepResult Sema::postNode(AstNode& node)
 
 AstVisitStepResult Sema::preChild(AstNode& node, AstNodeRef& childRef)
 {
-    if (curScope_->has(ScopeFlagsE::TopLevel))
+    if (curScope_->has(SemaScopeFlagsE::TopLevel))
     {
         const AstNode& child = ast().node(childRef);
         const auto&    info  = Ast::nodeIdInfos(child.id());
@@ -237,7 +237,7 @@ JobResult Sema::exec()
 {
     if (!curScope_)
     {
-        scopes_.emplace_back(std::make_unique<Scope>(ScopeFlagsE::TopLevel, nullptr));
+        scopes_.emplace_back(std::make_unique<SemaScope>(SemaScopeFlagsE::TopLevel, nullptr));
         curScope_ = scopes_.back().get();
         curScope_->setSymMap(startSymMap_);
     }

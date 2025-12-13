@@ -3,7 +3,7 @@
 #include "Core/SmallVector.h"
 #include "Parser/AstNode.h"
 #include "Parser/AstNodeId.h"
-#include "Sema/Scope.h"
+#include "Sema/SemaScope.h"
 
 SWC_BEGIN_NAMESPACE()
 enum class AstVisitStepResult;
@@ -261,7 +261,7 @@ struct AstNodeIdInfo
 {
     std::string_view name;
     AstNodeIdFlags   flags;
-    ScopeFlags       scopeFlags;
+    SemaScopeFlags   scopeFlags;
 
     using CollectChildren = void (*)(SmallVector<AstNodeRef>&, const Ast&, const AstNode&);
     using SemaEnterNode   = void (*)(Sema&, AstNode&);

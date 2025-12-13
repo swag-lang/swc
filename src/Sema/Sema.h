@@ -1,9 +1,9 @@
 #pragma once
 #include "Parser/Ast.h"
 #include "Parser/AstVisit.h"
-#include "Sema/Scope.h"
 #include "Sema/SemaFrame.h"
 #include "Sema/SemaInfo.h"
+#include "Sema/SemaScope.h"
 #include "Thread/Job.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -26,9 +26,9 @@ class Sema
     AstVisitStepResult postNode(AstNode& node);
     AstVisitStepResult preChild(AstNode& node, AstNodeRef& childRef);
 
-    std::vector<std::unique_ptr<Scope>> scopes_;
-    SymbolMap*                          startSymMap_ = nullptr;
-    Scope*                              curScope_    = nullptr;
+    std::vector<std::unique_ptr<SemaScope>> scopes_;
+    SymbolMap*                              startSymMap_ = nullptr;
+    SemaScope*                              curScope_    = nullptr;
 
     std::vector<SemaFrame> frame_;
 
@@ -77,11 +77,11 @@ public:
     bool                 hasSymbol(AstNodeRef n) const { return semaInfo().hasSymbol(n); }
 
     AstNodeRef       curNodeRef() const { return visit_.currentNodeRef(); }
-    Scope&           curScope() { return *curScope_; }
-    const Scope&     curScope() const { return *curScope_; }
+    SemaScope&       curScope() { return *curScope_; }
+    const SemaScope& curScope() const { return *curScope_; }
     SymbolMap*       curSymMap() { return curScope_->symMap(); }
     const SymbolMap* curSymMap() const { return curScope_->symMap(); }
-    Scope*           pushScope(ScopeFlags flags);
+    SemaScope*       pushScope(SemaScopeFlags flags);
     void             popScope();
 
     void pushFrame(const SemaFrame& frame);

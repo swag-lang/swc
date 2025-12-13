@@ -2,7 +2,6 @@
 #include "Core/Store.h"
 #include "Lexer/Lexer.h"
 #include "Main/Stats.h"
-#include "Main/TaskContext.h"
 #include "Parser/AstNode.h"
 #include "Parser/AstNodes.h"
 
@@ -64,7 +63,7 @@ public:
 #endif
         auto value = std::pair<AstNodeRef, NodeType*>(result);
 #if SWC_HAS_DEBUG_INFO
-        value.first.setPtr(value.second);
+        value.first.setDbgPtr(value.second);
 #endif
         return value;
     }

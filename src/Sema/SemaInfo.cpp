@@ -2,7 +2,10 @@
 #include "Sema/SemaInfo.h"
 #include "Constant/ConstantManager.h"
 #include "Constant/ConstantValue.h"
-#include "Type/TypeManager.h"
+#include "Main/TaskContext.h"
+#if SWC_HAS_DEBUG_INFO
+#include "Sema/Type/TypeManager.h"
+#endif
 
 SWC_BEGIN_NAMESPACE()
 

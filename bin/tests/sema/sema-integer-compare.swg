@@ -95,8 +95,6 @@
 #assert(0 >= true)                  // swc-expected-error {{sema_err_compare_operand_type}}
 #assert(0 >= "0")                   // swc-expected-error {{sema_err_compare_operand_type}}
 
-#assert(-1's8 == 0'u8)              // swc-expected-error {{sema_err_signed_unsigned}}
-#assert((-1's16 == 0'u16))          // swc-expected-error {{sema_err_signed_unsigned}}
 #assert(255'u8 == 255's8)           // swc-expected-error {{sema_err_literal_overflow}}
 #assert(65535'u16 == 65535's16)     // swc-expected-error {{sema_err_literal_overflow}}
 #assert(200'u8 == 200's8)           // swc-expected-error {{sema_err_literal_overflow}}

@@ -91,10 +91,10 @@ TypeRef TypeManager::computePromotion(TypeRef lhsRef, TypeRef rhsRef) const
     const uint32_t uBits = lhsUnsigned ? lhsBits : rhsBits;
     const uint32_t sBits = lhsUnsigned ? rhsBits : lhsBits;
 
-    // If the signed type is strictly larger, it can hold all unsigned values
+    if (sBits == uBits)
+        return signedRef;
     if (sBits > uBits)
         return signedRef;
-
     return unsignedRef;
 }
 

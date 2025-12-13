@@ -617,6 +617,9 @@ namespace
 
     ApInt makeMinValue(uint32_t bitWidth)
     {
+        if (!bitWidth)
+            bitWidth = ApInt::maxBitWidth();
+
         ApInt result(bitWidth);
         result.setZero();
         return result;
@@ -624,6 +627,9 @@ namespace
 
     ApInt makeMinSignedValue(uint32_t bitWidth)
     {
+        if (!bitWidth)
+            bitWidth = ApInt::maxBitWidth();
+
         ApInt result(bitWidth);
         result.setZero();
         result.setBit(bitWidth - 1);
@@ -632,6 +638,9 @@ namespace
 
     ApInt makeMaxValue(uint32_t bitWidth)
     {
+        if (!bitWidth)
+            bitWidth = ApInt::maxBitWidth();
+
         ApInt result(bitWidth);
         result.setAllBits();
         return result;
@@ -639,6 +648,9 @@ namespace
 
     ApInt makeMaxSignedValue(uint32_t bitWidth)
     {
+        if (!bitWidth)
+            bitWidth = ApInt::maxBitWidth();
+
         ApInt result(bitWidth);
         result.setAllBits();
         result.clearBit(bitWidth - 1);

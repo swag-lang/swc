@@ -22,12 +22,21 @@ void AstVisit::start(Ast& ast, AstNodeRef root)
     stack_.push_back(fr);
 }
 
-AstVisitResult AstVisit::step()
+AstVisitResult AstVisit::step(const TaskContext& ctx)
 {
     if (stack_.empty())
         return AstVisitResult::Stop;
 
     Frame& fr = stack_.back();
+
+#if SWC_HAS_DEBUG_INFO
+    dbgNode_    = &ast_->node(fr.nodeRef);
+    dbgTokRef_  = dbgNode_->tokRef();
+    dbgTok_     = dbgTokRef_.isValid() ? &ast_->srcView().token(dbgTokRef_) : nullptr;
+    dbgTokView_ = dbgTok_->string(ast_->srcView());
+    dbgSrcFile_ = ast_->srcView().file();
+    dbgLoc_.fromOffset(ctx, ast_->srcView(), dbgTok_->byteStart, dbgTok_->byteLength);
+#endif
 
     switch (fr.stage)
     {

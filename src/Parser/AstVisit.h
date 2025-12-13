@@ -41,13 +41,22 @@ class AstVisit
 
     AstNode* parentNodeInternal(size_t up) const;
 
+#if SWC_HAS_DEBUG_INFO
+    const SourceFile*  dbgSrcFile_ = nullptr;
+    const AstNode*     dbgNode_    = nullptr;
+    const Token*       dbgTok_     = nullptr;
+    std::string_view   dbgTokView_;
+    TokenRef           dbgTokRef_ = TokenRef::invalid();
+    SourceCodeLocation dbgLoc_;
+#endif
+
 public:
     void           start(Ast& ast, AstNodeRef root);
     void           setEnterNodeVisitor(const std::function<void(AstNode&)>& visitor) { enterNodeVisitor_ = visitor; }
     void           setPreNodeVisitor(const std::function<AstVisitStepResult(AstNode&)>& visitor) { preNodeVisitor_ = visitor; }
     void           setPostNodeVisitor(const std::function<AstVisitStepResult(AstNode&)>& visitor) { postNodeVisitor_ = visitor; }
     void           setPreChildVisitor(const std::function<AstVisitStepResult(AstNode&, AstNodeRef&)>& visitor) { preChildVisitor_ = visitor; }
-    AstVisitResult step();
+    AstVisitResult step(const TaskContext& ctx);
 
     AstNode*       parentNode(size_t up = 0) { return parentNodeInternal(up); }
     const AstNode* parentNode(size_t up = 0) const { return parentNodeInternal(up); }

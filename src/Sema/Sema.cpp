@@ -245,7 +245,7 @@ JobResult Sema::exec()
     auto jobResult = JobResult::Done;
     while (true)
     {
-        const AstVisitResult result = visit_.step();
+        const AstVisitResult result = visit_.step(ctx());
         if (result == AstVisitResult::Pause)
         {
             jobResult = JobResult::Sleep;

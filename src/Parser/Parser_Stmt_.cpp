@@ -21,6 +21,10 @@ AstNodeRef Parser::parseAccessModifier()
         case TokenId::SymLeftCurly:
             nodePtr->nodeWhatRef = parseCompound<AstNodeId::TopLevelBlock>(TokenId::SymLeftCurly);
             break;
+        case TokenId::KwdImpl:
+            nodePtr->nodeWhatRef = parseImpl();
+            break;
+            
         case TokenId::KwdEnum:
             nodePtr->nodeWhatRef = parseEnumDecl();
             break;
@@ -29,9 +33,6 @@ AstNodeRef Parser::parseAccessModifier()
             break;
         case TokenId::KwdStruct:
             nodePtr->nodeWhatRef = parseStructDecl();
-            break;
-        case TokenId::KwdImpl:
-            nodePtr->nodeWhatRef = parseImpl();
             break;
         case TokenId::KwdNamespace:
             nodePtr->nodeWhatRef = parseNamespace();

@@ -187,6 +187,7 @@ class Parser
     AstNodeRef parseSwitchCaseDefault();
     AstNodeRef parseThrow();
     AstNodeRef parseTopLevelCall();
+    AstNodeRef parseTopLevelDeclOrBlock();
     AstNodeRef parseTopLevelStmt();
     AstNodeRef parseTryCatch();
     AstNodeRef parseTryCatchAssume();

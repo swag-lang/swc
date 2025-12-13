@@ -18,61 +18,17 @@ AstNodeRef Parser::parseAccessModifier()
 
     switch (id())
     {
-        case TokenId::SymLeftCurly:
-            nodePtr->nodeWhatRef = parseCompound<AstNodeId::TopLevelBlock>(TokenId::SymLeftCurly);
-            break;
-        case TokenId::KwdImpl:
-            nodePtr->nodeWhatRef = parseImpl();
-            break;
-            
-        case TokenId::KwdEnum:
-            nodePtr->nodeWhatRef = parseEnumDecl();
-            break;
-        case TokenId::KwdUnion:
-            nodePtr->nodeWhatRef = parseUnionDecl();
-            break;
-        case TokenId::KwdStruct:
-            nodePtr->nodeWhatRef = parseStructDecl();
-            break;
-        case TokenId::KwdNamespace:
-            nodePtr->nodeWhatRef = parseNamespace();
-            break;
-        case TokenId::SymAttrStart:
-            nodePtr->nodeWhatRef = parseAttributeList<AstNodeId::TopLevelBlock>();
-            break;
-        case TokenId::KwdConst:
-        case TokenId::KwdVar:
-            nodePtr->nodeWhatRef = parseVarDecl();
-            break;
-        case TokenId::KwdFunc:
-        case TokenId::KwdMtd:
-            nodePtr->nodeWhatRef = parseFunctionDecl();
-            break;
-        case TokenId::KwdAttr:
-            nodePtr->nodeWhatRef = parseAttrDecl();
-            break;
-
-        case TokenId::KwdAlias:
-            nodePtr->nodeWhatRef = parseAlias();
-            break;
-
-        case TokenId::KwdInterface:
-            nodePtr->nodeWhatRef = parseInterfaceDecl();
-            break;
-
         case TokenId::KwdPublic:
         case TokenId::KwdPrivate:
         case TokenId::KwdInternal:
             raiseError(DiagnosticId::parser_err_duplicate_modifier, ref());
             skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
             return AstNodeRef::invalid();
-
         default:
-            raiseError(DiagnosticId::parser_err_unexpected_token, ref());
-            skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
-            return AstNodeRef::invalid();
+            break;
     }
 
+    nodePtr->nodeWhatRef = parseTopLevelDeclOrBlock();
     return nodeRef;
 }
 
@@ -654,6 +610,47 @@ AstNodeRef Parser::parseAssignStmt()
     }
 
     return nodeLeft;
+}
+
+AstNodeRef Parser::parseTopLevelDeclOrBlock()
+{
+    switch (id())
+    {
+        case TokenId::SymLeftCurly:
+            return parseCompound<AstNodeId::TopLevelBlock>(TokenId::SymLeftCurly);
+        case TokenId::KwdImpl:
+            return parseImpl();
+
+        case TokenId::KwdEnum:
+            return parseEnumDecl();
+        case TokenId::KwdUnion:
+            return parseUnionDecl();
+        case TokenId::KwdStruct:
+            return parseStructDecl();
+        case TokenId::KwdNamespace:
+            return parseNamespace();
+        case TokenId::SymAttrStart:
+            return parseAttributeList<AstNodeId::TopLevelBlock>();
+        case TokenId::KwdConst:
+        case TokenId::KwdVar:
+            return parseVarDecl();
+        case TokenId::KwdFunc:
+        case TokenId::KwdMtd:
+            return parseFunctionDecl();
+        case TokenId::KwdAttr:
+            return parseAttrDecl();
+
+        case TokenId::KwdAlias:
+            return parseAlias();
+
+        case TokenId::KwdInterface:
+            return parseInterfaceDecl();
+
+        default:
+            raiseError(DiagnosticId::parser_err_unexpected_token, ref());
+            skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
+            return AstNodeRef::invalid();
+    }
 }
 
 AstNodeRef Parser::parseTopLevelStmt()

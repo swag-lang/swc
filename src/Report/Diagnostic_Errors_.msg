@@ -62,6 +62,7 @@ SWC_DIAG_DEF(parser_err_misplaced_global, Error, "misplaced '#global' directive;
 SWC_DIAG_DEF(parser_err_empty_var_decl, Error, "expected type annotation or initializer after declaration name")
 SWC_DIAG_DEF(parser_err_inject_instruction_done, Error, "replacement instruction {{tok}} already defined")
 SWC_DIAG_DEF(parser_err_inject_invalid_instruction, Error, "invalid replacement instruction; expected 'break' or 'continue', found {{tok}}")
+SWC_DIAG_DEF(parser_err_duplicate_modifier, Error, "duplicated access modifier")
 
 SWC_DIAG_DEF(sema_warn_compiler_warning, Warning, "compiler: {because}")
 

@@ -15,7 +15,63 @@ AstNodeRef Parser::parseTopLevelCall()
 AstNodeRef Parser::parseAccessModifier()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AccessModifier>(consume());
-    nodePtr->nodeWhatRef    = parseTopLevelStmt();
+
+    switch (id())
+    {
+        case TokenId::SymLeftCurly:
+            nodePtr->nodeWhatRef = parseCompound<AstNodeId::TopLevelBlock>(TokenId::SymLeftCurly);
+            break;
+        case TokenId::KwdEnum:
+            nodePtr->nodeWhatRef = parseEnumDecl();
+            break;
+        case TokenId::KwdUnion:
+            nodePtr->nodeWhatRef = parseUnionDecl();
+            break;
+        case TokenId::KwdStruct:
+            nodePtr->nodeWhatRef = parseStructDecl();
+            break;
+        case TokenId::KwdImpl:
+            nodePtr->nodeWhatRef = parseImpl();
+            break;
+        case TokenId::KwdNamespace:
+            nodePtr->nodeWhatRef = parseNamespace();
+            break;
+        case TokenId::SymAttrStart:
+            nodePtr->nodeWhatRef = parseAttributeList<AstNodeId::TopLevelBlock>();
+            break;
+        case TokenId::KwdConst:
+        case TokenId::KwdVar:
+            nodePtr->nodeWhatRef = parseVarDecl();
+            break;
+        case TokenId::KwdFunc:
+        case TokenId::KwdMtd:
+            nodePtr->nodeWhatRef = parseFunctionDecl();
+            break;
+        case TokenId::KwdAttr:
+            nodePtr->nodeWhatRef = parseAttrDecl();
+            break;
+
+        case TokenId::KwdAlias:
+            nodePtr->nodeWhatRef = parseAlias();
+            break;
+
+        case TokenId::KwdInterface:
+            nodePtr->nodeWhatRef = parseInterfaceDecl();
+            break;
+
+        case TokenId::KwdPublic:
+        case TokenId::KwdPrivate:
+        case TokenId::KwdInternal:
+            raiseError(DiagnosticId::parser_err_duplicate_modifier, ref());
+            skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
+            return AstNodeRef::invalid();
+
+        default:
+            raiseError(DiagnosticId::parser_err_unexpected_token, ref());
+            skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
+            return AstNodeRef::invalid();
+    }
+
     return nodeRef;
 }
 

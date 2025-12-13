@@ -44,7 +44,7 @@ class Parser
     {
         auto result = static_cast<TokenRef>(static_cast<uint32_t>(curToken_ - firstToken_));
 #if SWC_HAS_DEBUG_INFO
-        result.setPtr(curToken_);
+        result.setDbgPtr(curToken_);
 #endif
         return result;
     }

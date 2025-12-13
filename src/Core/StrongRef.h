@@ -9,7 +9,7 @@ class StrongRef
     uint32_t value_;
 
 #if SWC_HAS_DEBUG_INFO
-    const T* ptr_ = nullptr;
+    const T* dbgPtr_ = nullptr;
 #endif
 
 public:
@@ -43,7 +43,7 @@ public:
     explicit operator uint32_t() const = delete;
 
 #if SWC_HAS_DEBUG_INFO
-    void setPtr(const T* ptr) { ptr_ = ptr; }
+    void setDbgPtr(const T* ptr) { dbgPtr_ = ptr; }
 #endif
 };
 

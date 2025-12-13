@@ -17,7 +17,7 @@ SourceView::SourceView(SourceViewRef ref, const SourceFile* file) :
     }
     
 #if SWC_HAS_DEBUG_INFO
-    ref_.setPtr(this);
+    ref_.setDbgPtr(this);
 #endif
 }
 

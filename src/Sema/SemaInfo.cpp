@@ -27,7 +27,7 @@ TypeRef SemaInfo::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const
     }
 
 #if SWC_HAS_DEBUG_INFO
-    value.setPtr(&ctx.typeMgr().get(value));
+    value.setDbgPtr(&ctx.typeMgr().get(value));
 #endif
     return value;
 }
@@ -59,7 +59,7 @@ ConstantRef SemaInfo::getConstantRef(const TaskContext& ctx, AstNodeRef nodeRef)
     const AstNode& node  = ast().node(nodeRef);
     auto           value = ConstantRef{node.semaRaw()};
 #if SWC_HAS_DEBUG_INFO
-    value.setPtr(&getConstant(ctx, nodeRef));
+    value.setDbgPtr(&getConstant(ctx, nodeRef));
 #endif
     return value;
 }

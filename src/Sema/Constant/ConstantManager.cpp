@@ -79,7 +79,7 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
 #endif
 
 #if SWC_HAS_DEBUG_INFO
-    result.setPtr(&get(result));
+    result.setDbgPtr(&get(result));
 #endif
 
     return result;

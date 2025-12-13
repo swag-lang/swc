@@ -2,6 +2,7 @@
 #include "Sema/SemaInfo.h"
 #include "Constant/ConstantManager.h"
 #include "Constant/ConstantValue.h"
+#include "Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -12,15 +13,23 @@ TypeRef SemaInfo::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const
 
     const AstNode&     node = ast().node(nodeRef);
     const NodeSemaKind kind = semaNodeKind(node);
+    TypeRef            value;
     switch (kind)
     {
         case NodeSemaKind::IsConstantRef:
-            return getConstant(ctx, nodeRef).typeRef();
+            value = getConstant(ctx, nodeRef).typeRef();
+            break;
         case NodeSemaKind::IsTypeRef:
-            return TypeRef{node.semaRaw()};
+            value = TypeRef{node.semaRaw()};
+            break;
         default:
             SWC_UNREACHABLE();
     }
+
+#if SWC_HAS_DEBUG_INFO
+    value.setPtr(&ctx.typeMgr().get(value));
+#endif
+    return value;
 }
 
 void SemaInfo::setConstant(AstNodeRef nodeRef, ConstantRef ref)

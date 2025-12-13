@@ -949,7 +949,7 @@ struct AstAccessModifier : AstNodeT<AstNodeId::AccessModifier>
         AstNode::collectChildren(out, {nodeWhatRef});
     }
 
-    AstVisitStepResult semaPostNode(Sema& sema) const;
+    AstVisitStepResult semaPreNode(Sema& sema) const;
 };
 
 struct AstConstraintBlock : AstCompoundT<AstNodeId::ConstraintBlock>

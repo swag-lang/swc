@@ -1,4 +1,5 @@
 #include "pch.h"
+
 #include "Constant/ConstantManager.h"
 #include "Main/Global.h"
 #include "Main/Version.h"
@@ -10,6 +11,7 @@
 #include "Sema/Sema.h"
 #include "Sema/SemaInfo.h"
 #include "Sema/Type/TypeManager.h"
+#include "SemaNodeView.h"
 #include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -199,24 +201,44 @@ AstVisitStepResult AstCompilerGlobal::semaPostNode(Sema& sema) const
             break;
 
         case Mode::Skip:
-            break;
         case Mode::SkipFmt:
-            break;
         case Mode::Generated:
-            break;
         case Mode::Export:
-            break;
         case Mode::AttributeList:
-            break;
         case Mode::Namespace:
-            break;
         case Mode::CompilerIf:
-            break;
         case Mode::Using:
-            break;
+            sema.raiseInternalError(*this);
+            return AstVisitStepResult::Continue;
     };
 
     return AstVisitStepResult::Continue;
+}
+
+namespace
+{
+    AstVisitStepResult semaCompilerTypeOf(const AstCompilerCallUnary& node, Sema& sema)
+    {
+        const SemaNodeView nodeView(sema, node.nodeArgRef);
+        SWC_ASSERT(nodeView.typeRef.isValid());
+        const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeInfo(sema.ctx(), nodeView.typeRef));
+        sema.setConstant(sema.curNodeRef(), cstRef);
+        return AstVisitStepResult::Continue;
+    }
+}
+
+AstVisitStepResult AstCompilerCallUnary::semaPostNode(Sema& sema) const
+{
+    const Token& tok = sema.token(srcViewRef(), tokRef());
+    switch (tok.id)
+    {
+        case TokenId::CompilerTypeOf:
+            return semaCompilerTypeOf(*this, sema);
+
+        default:
+            sema.raiseInternalError(*this);
+            return AstVisitStepResult::Stop;
+    }
 }
 
 SWC_END_NAMESPACE()

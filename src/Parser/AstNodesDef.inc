@@ -132,6 +132,7 @@ struct AstCompilerDiagnostic : AstInternalCallUnaryT<AstNodeId::CompilerDiagnost
 
 struct AstCompilerCallUnary : AstInternalCallUnaryT<AstNodeId::CompilerCallUnary>
 {
+    AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
 struct AstIntrinsicCallZero : AstInternalCallZeroT<AstNodeId::IntrinsicCallZero>

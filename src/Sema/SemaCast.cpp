@@ -116,7 +116,7 @@ namespace
 
         const uint32_t srcBits = srcType.scalarNumericBits();
         const uint32_t dstBits = targetType.scalarNumericBits();
-        SWC_ASSERT(srcBits == dstBits);
+        SWC_ASSERT(srcBits == dstBits || !srcBits);
 
         // int-like -> int-like (same width): just re-tag signedness, do not change the underlying bit pattern.
         if (srcInt && dstInt)
@@ -376,7 +376,7 @@ bool SemaCast::castAllowed(Sema& sema, const CastContext& castCtx, TypeRef srcTy
 
         const uint32_t srcBits = srcType.scalarNumericBits();
         const uint32_t dstBits = targetType.scalarNumericBits();
-        if (srcBits == dstBits)
+        if (srcBits == dstBits || !srcBits)
             return true;
 
         auto diag = sema.reportError(DiagnosticId::sema_err_bit_cast_size, castCtx.errorNodeRef);
@@ -429,40 +429,40 @@ bool SemaCast::castAllowed(Sema& sema, const CastContext& castCtx, TypeRef srcTy
     return false;
 }
 
-ConstantRef SemaCast::castConstant(Sema& sema, const CastContext& castCtx, ConstantRef srcRef, TypeRef targetTypeRef)
+ConstantRef SemaCast::castConstant(Sema& sema, const CastContext& castCtx, ConstantRef cstRef, TypeRef targetTypeRef)
 {
-    const ConstantValue& src = sema.cstMgr().get(srcRef);
-    if (src.typeRef() == targetTypeRef)
-        return srcRef;
+    const ConstantValue& cst = sema.cstMgr().get(cstRef);
+    if (cst.typeRef() == targetTypeRef)
+        return cstRef;
 
-    if (!castAllowed(sema, castCtx, src.typeRef(), targetTypeRef))
+    if (!castAllowed(sema, castCtx, cst.typeRef(), targetTypeRef))
         return ConstantRef::invalid();
 
     if (castCtx.flags.has(CastFlagsE::BitCast))
-        return bitCastConstant(sema, castCtx, srcRef, targetTypeRef);
+        return bitCastConstant(sema, castCtx, cstRef, targetTypeRef);
 
     auto&              ctx        = sema.ctx();
     const TypeManager& typeMgr    = ctx.typeMgr();
-    const TypeInfo&    srcType    = typeMgr.get(src.typeRef());
+    const TypeInfo&    srcType    = typeMgr.get(cst.typeRef());
     const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
 
     if (srcType.isBool() && targetType.isIntLike())
-        return castBoolToIntLike(sema, castCtx, src, targetTypeRef);
+        return castBoolToIntLike(sema, castCtx, cst, targetTypeRef);
 
     if (srcType.isIntLike() && targetType.isBool())
-        return castIntLikeToBool(sema, castCtx, src, targetTypeRef);
+        return castIntLikeToBool(sema, castCtx, cst, targetTypeRef);
 
     if (srcType.isIntLike() && targetType.isIntLike())
-        return castIntLikeToIntLike(sema, castCtx, src, targetTypeRef);
+        return castIntLikeToIntLike(sema, castCtx, cst, targetTypeRef);
 
     if (srcType.isIntLike() && targetType.isFloat())
-        return castIntLikeToFloat(sema, castCtx, src, targetTypeRef);
+        return castIntLikeToFloat(sema, castCtx, cst, targetTypeRef);
 
     if (srcType.isFloat() && targetType.isFloat())
-        return castFloatToFloat(sema, castCtx, src, targetTypeRef);
+        return castFloatToFloat(sema, castCtx, cst, targetTypeRef);
 
     if (srcType.isFloat() && targetType.isIntLike())
-        return castFloatToIntLike(sema, castCtx, src, targetTypeRef);
+        return castFloatToIntLike(sema, castCtx, cst, targetTypeRef);
 
     sema.raiseInternalError(sema.node(castCtx.errorNodeRef));
     return ConstantRef::invalid();
@@ -549,20 +549,20 @@ namespace
 }
 
 // Concretize an unsized int/float constant into a sized one (>= 32 bits).
-ConstantRef SemaCast::concretizeConstant(Sema& sema, ConstantRef srcRef)
+ConstantRef SemaCast::concretizeConstant(Sema& sema, ConstantRef cstRef)
 {
     auto&                ctx     = sema.ctx();
     const TypeManager&   typeMgr = ctx.typeMgr();
-    const ConstantValue& src     = sema.cstMgr().get(srcRef);
+    const ConstantValue& src     = sema.cstMgr().get(cstRef);
     const TypeInfo&      ty      = typeMgr.get(src.typeRef());
 
     if (!ty.isScalarNumeric())
-        return srcRef;
+        return cstRef;
 
     if (ty.isIntLike())
     {
         if (ty.intLikeBits() != 0)
-            return srcRef;
+            return cstRef;
 
         ApsInt value = src.getIntLike();
 
@@ -597,7 +597,7 @@ ConstantRef SemaCast::concretizeConstant(Sema& sema, ConstantRef srcRef)
     if (ty.isFloat())
     {
         if (ty.floatBits() != 0)
-            return srcRef;
+            return cstRef;
 
         const ApFloat& srcF         = src.getFloat();
         const uint32_t concreteBits = pickConcreteFloatBitsDefaultLadder(srcF);
@@ -613,7 +613,7 @@ ConstantRef SemaCast::concretizeConstant(Sema& sema, ConstantRef srcRef)
         return sema.cstMgr().addConstant(ctx, result);
     }
 
-    return srcRef;
+    return cstRef;
 }
 
 SWC_END_NAMESPACE()

@@ -466,7 +466,8 @@ Utf8 ApFloat::toString() const
 
 ApsInt ApFloat::toInt(uint32_t targetBits, bool isUnsigned, bool& isExact, bool& overflow) const
 {
-    SWC_ASSERT(targetBits > 0);
+    if (targetBits == 0)
+        targetBits = 64;
 
     isExact  = true;
     overflow = false;
@@ -488,8 +489,7 @@ ApsInt ApFloat::toInt(uint32_t targetBits, bool isUnsigned, bool& isExact, bool&
     // Unsigned case
     if (isUnsigned)
     {
-        if (truncated < 0.0 ||
-            truncated > static_cast<double>(std::numeric_limits<uint64_t>::max()))
+        if (truncated < 0.0 || truncated > static_cast<double>(std::numeric_limits<uint64_t>::max()))
         {
             overflow = true;
             return ApsInt::minValue(targetBits, isUnsigned);

@@ -439,7 +439,7 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(Sema& sema) const
     ApFloat value;
     value.set(intValue, totalExp10);
 
-    const auto val = ConstantValue::makeFloat(ctx, value, 64);
+    const ConstantValue val = ConstantValue::makeFloatUnsized(ctx, value);
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }

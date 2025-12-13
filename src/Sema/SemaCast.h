@@ -37,9 +37,9 @@ struct CastContext
 namespace SemaCast
 {
     bool        castAllowed(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef);
-    ConstantRef castConstant(Sema& sema, const CastContext& castCtx, ConstantRef srcRef, TypeRef targetTypeRef);
+    ConstantRef castConstant(Sema& sema, const CastContext& castCtx, ConstantRef cstRef, TypeRef targetTypeRef);
     bool        promoteConstants(Sema& sema, const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef, bool force32BitInts = false);
-    ConstantRef concretizeConstant(Sema& sema, ConstantRef srcRef);
+    ConstantRef concretizeConstant(Sema& sema, ConstantRef cstRef);
 };
 
 SWC_END_NAMESPACE()

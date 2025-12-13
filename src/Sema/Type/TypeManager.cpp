@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Sema/Type/TypeManager.h"
 #include "Main/Stats.h"
-#include <mimalloc/types.h>
 
 SWC_BEGIN_NAMESPACE()
 
@@ -50,9 +49,28 @@ TypeRef TypeManager::computePromotion(TypeRef lhsRef, TypeRef rhsRef) const
     // Float promotions
     if (lhsFloat || rhsFloat)
     {
-        const uint32_t lhsBits = lhsFloat ? lhs.floatBits() : 0;
-        const uint32_t rhsBits = rhsFloat ? rhs.floatBits() : 0;
-        return (lhsBits >= rhsBits) ? lhsRef : rhsRef;
+        // Both floats: pick the wider float
+        if (lhsFloat && rhsFloat)
+        {
+            const uint32_t lhsBits = lhs.floatBits();
+            const uint32_t rhsBits = rhs.floatBits();
+            return (lhsBits >= rhsBits) ? lhsRef : rhsRef;
+        }
+
+        // Mixed float/int: Must return a float, potentially widened
+        const TypeRef floatRef = lhsFloat ? lhsRef : rhsRef;
+        const TypeRef intRef   = lhsFloat ? rhsRef : lhsRef;
+
+        const TypeInfo& fInfo = get(floatRef);
+        const TypeInfo& iInfo = get(intRef);
+
+        const uint32_t fBits = fInfo.floatBits();
+        const uint32_t iBits = iInfo.intLikeBits();
+
+        uint32_t resultBits = std::max(fBits, iBits);
+        if (resultBits)
+            resultBits = std::max(resultBits, 32u);
+        return getTypeFloat(resultBits);
     }
 
     // Integer promotions

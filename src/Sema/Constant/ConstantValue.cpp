@@ -2,6 +2,7 @@
 #include "Sema/Constant/ConstantValue.h"
 #include "Main/TaskContext.h"
 #include "Math/Hash.h"
+#include "Report/LogColor.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -126,12 +127,13 @@ bool ConstantValue::operator==(const ConstantValue& rhs) const noexcept
             return getRune() == rhs.getRune();
         case ConstantKind::String:
             return getString() == rhs.getString();
-        case ConstantKind::Int:
-            return getInt().same(rhs.getInt());
-        case ConstantKind::Float:
-            return getFloat().same(rhs.getFloat());
         case ConstantKind::TypeInfo:
             return getTypeIndo() == rhs.getTypeIndo();
+
+        case ConstantKind::Int:
+            return typeRef_ == rhs.typeRef_ && getInt().same(rhs.getInt());
+        case ConstantKind::Float:
+            return typeRef_ == rhs.typeRef_ && getFloat().same(rhs.getFloat());
 
         default:
             SWC_UNREACHABLE();
@@ -280,14 +282,16 @@ uint32_t ConstantValue::hash() const noexcept
         case ConstantKind::String:
             h = Math::hashCombine(h, Math::hash(asString.val));
             break;
+        case ConstantKind::TypeInfo:
+            h = Math::hashCombine(h, asTypeInfo.val.get());
+            break;
         case ConstantKind::Int:
+            h = Math::hashCombine(h, typeRef_.get());
             h = Math::hashCombine(h, asInt.val.hash());
             break;
         case ConstantKind::Float:
+            h = Math::hashCombine(h, typeRef_.get());
             h = Math::hashCombine(h, asFloat.val.hash());
-            break;
-        case ConstantKind::TypeInfo:
-            h = Math::hashCombine(h, asTypeInfo.val.get());
             break;
 
         default:

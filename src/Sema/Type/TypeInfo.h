@@ -19,6 +19,9 @@ enum class TypeInfoKind
     CString,
 };
 
+class TypeInfo;
+using TypeRef = StrongRef<TypeInfo>;
+
 class TypeInfo
 {
     friend struct TypeInfoHash;

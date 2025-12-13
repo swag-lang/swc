@@ -232,7 +232,11 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
     SWC_ASSERT(localIndex <= LOCAL_MASK);
     shard.store.push_back(typeInfo);
 
-    const auto result = TypeRef{(shardIndex << LOCAL_BITS) | localIndex};
+    auto result = TypeRef{(shardIndex << LOCAL_BITS) | localIndex};
+#if SWC_HAS_DEBUG_INFO
+    result.setPtr(shard.store.ptr<TypeInfo>(localIndex * sizeof(TypeInfo)));
+#endif
+    
     it->second        = result;
     return result;
 }

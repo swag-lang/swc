@@ -658,18 +658,13 @@ AstNodeRef Parser::parseTopLevelStmt()
     switch (id())
     {
         case TokenId::CompilerAssert:
-            return parseCompilerDiagnostic();
         case TokenId::CompilerError:
-            return parseCompilerDiagnostic();
         case TokenId::CompilerWarning:
-            return parseCompilerDiagnostic();
         case TokenId::CompilerPrint:
             return parseCompilerDiagnostic();
         case TokenId::CompilerIf:
             return parseCompilerIf<AstNodeId::TopLevelBlock>();
 
-        case TokenId::SymLeftCurly:
-            return parseCompound<AstNodeId::TopLevelBlock>(TokenId::SymLeftCurly);
         case TokenId::SymRightCurly:
             raiseError(DiagnosticId::parser_err_unexpected_token, ref());
             return AstNodeRef::invalid();
@@ -677,15 +672,6 @@ AstNodeRef Parser::parseTopLevelStmt()
         case TokenId::SymSemiColon:
             consume();
             return AstNodeRef::invalid();
-
-        case TokenId::KwdEnum:
-            return parseEnumDecl();
-        case TokenId::KwdUnion:
-            return parseUnionDecl();
-        case TokenId::KwdStruct:
-            return parseStructDecl();
-        case TokenId::KwdImpl:
-            return parseImpl();
 
         case TokenId::CompilerFuncTest:
         case TokenId::CompilerFuncMain:
@@ -699,43 +685,20 @@ AstNodeRef Parser::parseTopLevelStmt()
         case TokenId::CompilerFuncMessage:
             return parseCompilerMessageFunc();
 
-        case TokenId::KwdNamespace:
-            return parseNamespace();
         case TokenId::CompilerDependencies:
             return parseCompilerDependencies();
-
-        case TokenId::SymAttrStart:
-            return parseAttributeList<AstNodeId::TopLevelBlock>();
 
         case TokenId::KwdPublic:
         case TokenId::KwdInternal:
         case TokenId::KwdPrivate:
             return parseAccessModifier();
-
+            
         case TokenId::KwdUsing:
-            return parseUsing();
-
-        case TokenId::KwdConst:
-        case TokenId::KwdVar:
-        {
-            const AstNodeRef nodeRef = parseVarDecl();
-
-            return nodeRef;
-        }
+            return parseUsing();            
 
         case TokenId::CompilerLoad:
         case TokenId::CompilerForeignLib:
             return parseCompilerCallUnary();
-
-        case TokenId::KwdFunc:
-        case TokenId::KwdMtd:
-            return parseFunctionDecl();
-
-        case TokenId::KwdAttr:
-            return parseAttrDecl();
-
-        case TokenId::KwdAlias:
-            return parseAlias();
 
         case TokenId::CompilerImport:
             return parseCompilerImport();
@@ -744,9 +707,6 @@ AstNodeRef Parser::parseTopLevelStmt()
             raiseError(DiagnosticId::parser_err_misplaced_global, ref());
             return parseCompilerGlobal();
 
-        case TokenId::KwdInterface:
-            return parseInterfaceDecl();
-
         case TokenId::Identifier:
             return parseTopLevelCall();
 
@@ -754,9 +714,7 @@ AstNodeRef Parser::parseTopLevelStmt()
             return AstNodeRef::invalid();
 
         default:
-            raiseError(DiagnosticId::parser_err_unexpected_token, ref());
-            skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
-            return AstNodeRef::invalid();
+            return parseTopLevelDeclOrBlock();
     }
 }
 

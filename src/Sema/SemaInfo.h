@@ -17,6 +17,11 @@ enum class NodeSemaKind : uint8_t
     IsSymbolRef   = 3,
 };
 
+struct SemaTag
+{
+};
+using SemaRef = StrongRef<SemaTag>;
+
 class SemaInfo
 {
     Ast              ast_;

@@ -50,11 +50,9 @@ public:
 // Tag types for different reference kinds
 // clang-format off
 struct SpanTag{};
-struct SemaTag{};
 // clang-format on
 
 // Type definitions
 using SpanRef = StrongRef<SpanTag>;
-using SemaRef = StrongRef<SemaTag>;
 
 SWC_END_NAMESPACE()

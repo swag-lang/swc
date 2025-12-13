@@ -617,7 +617,6 @@ ConstantRef SemaCast::concretizeConstant(Sema& sema, ConstantRef cstRef, bool& o
         const uint32_t concreteBits = pickConcreteFloatBitsDefaultLadder(srcF);
 
         bool    isExact   = false;
-        bool    overflow  = false;
         ApFloat concreteF = srcF.toFloat(concreteBits, isExact, overflow);
 
         if (overflow)

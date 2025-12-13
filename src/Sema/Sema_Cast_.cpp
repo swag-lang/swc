@@ -13,8 +13,7 @@ AstVisitStepResult AstExplicitCastExpr::semaPostNode(Sema& sema) const
     const SemaNodeView nodeTypeView(sema, nodeTypeRef);
     const SemaNodeView nodeExprView(sema, nodeExprRef);
 
-    CastContext castCtx;
-    castCtx.kind = CastKind::Explicit;
+    CastContext castCtx(CastKind::Explicit);
     if (modifierFlags.has(AstModifierFlagsE::Bit))
         castCtx.flags.add(CastFlagsE::BitCast);
     castCtx.errorNodeRef = nodeTypeView.nodeRef;

@@ -477,8 +477,7 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
     {
         const TypeRef promotedTypeRef = sema.typeMgr().promote(ops.nodeView[0].typeRef, ops.nodeView[1].typeRef, force32BitInts);
 
-        CastContext castCtx;
-        castCtx.kind         = CastKind::Promotion;
+        CastContext castCtx(CastKind::Promotion);
         castCtx.errorNodeRef = ops.nodeView[0].nodeRef;
 
         leftRef = castConstant(sema, castCtx, sema.constantRefOf(ops.nodeView[0].nodeRef), promotedTypeRef);

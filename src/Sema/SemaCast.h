@@ -26,6 +26,12 @@ struct CastContext
     CastKind   kind;
     CastFlags  flags = CastFlagsE::Zero;
     AstNodeRef errorNodeRef;
+
+    CastContext() = delete;
+    explicit CastContext(CastKind kind) :
+        kind(kind)
+    {
+    }
 };
 
 namespace SemaCast

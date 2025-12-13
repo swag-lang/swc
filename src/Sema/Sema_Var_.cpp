@@ -40,8 +40,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
         {
             const SemaNodeView nodeTypeView(sema, nodeTypeRef);
 
-            CastContext castCtx;
-            castCtx.kind         = CastKind::Implicit;
+            CastContext castCtx(CastKind::Implicit);
             castCtx.errorNodeRef = nodeTypeRef;
             nodeInitView.cstRef  = SemaCast::castConstant(sema, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef);
             if (nodeInitView.cstRef.isInvalid())

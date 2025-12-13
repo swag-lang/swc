@@ -84,8 +84,7 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
 
     SWC_ASSERT(sema.hasConstant(nodeLiteralRef));
 
-    CastContext castCtx;
-    castCtx.kind         = CastKind::LiteralSuffix;
+    CastContext castCtx(CastKind::LiteralSuffix);
     castCtx.errorNodeRef = nodeLiteralRef;
 
     ConstantRef cstRef = sema.constantRefOf(nodeLiteralRef);

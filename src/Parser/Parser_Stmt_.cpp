@@ -12,7 +12,7 @@ AstNodeRef Parser::parseTopLevelCall()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseGlobalAccessModifier()
+AstNodeRef Parser::parseAccessModifier()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AccessModifier>(consume());
     nodePtr->nodeWhatRef    = parseTopLevelStmt();
@@ -656,7 +656,7 @@ AstNodeRef Parser::parseTopLevelStmt()
         case TokenId::KwdPublic:
         case TokenId::KwdInternal:
         case TokenId::KwdPrivate:
-            return parseGlobalAccessModifier();
+            return parseAccessModifier();
 
         case TokenId::KwdUsing:
             return parseUsing();

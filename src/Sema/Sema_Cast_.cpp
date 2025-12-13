@@ -411,7 +411,12 @@ bool Sema::castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef t
             if ((srcType.isBool() && targetType.isIntLike()) || (srcType.isIntLike() && targetType.isBool()))
                 return true;
             break;
-
+            
+        case CastKind::Implicit:
+            if (srcType.isScalarNumeric() && targetType.isScalarNumeric())
+                return true;
+            break;
+            
         default:
             SWC_UNREACHABLE();
     }

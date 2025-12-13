@@ -466,9 +466,6 @@ Utf8 ApFloat::toString() const
 
 ApsInt ApFloat::toInt(uint32_t targetBits, bool isUnsigned, bool& isExact, bool& overflow) const
 {
-    if (targetBits == 0)
-        targetBits = 64;
-
     isExact  = true;
     overflow = false;
 

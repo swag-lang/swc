@@ -11,6 +11,7 @@
 #include "Sema/Sema.h"
 #include "Sema/SemaInfo.h"
 #include "Sema/Type/TypeManager.h"
+#include "SemaCast.h"
 #include "SemaNodeView.h"
 #include "Wmf/SourceFile.h"
 
@@ -219,8 +220,15 @@ namespace
 {
     AstVisitStepResult semaCompilerTypeOf(const AstCompilerCallUnary& node, Sema& sema)
     {
-        const SemaNodeView nodeView(sema, node.nodeArgRef);
+        SemaNodeView nodeView(sema, node.nodeArgRef);
         SWC_ASSERT(nodeView.typeRef.isValid());
+
+        if (nodeView.cstRef.isValid())
+        {
+            nodeView.cstRef  = SemaCast::concretizeConstant(sema, nodeView.cstRef);
+            nodeView.typeRef = sema.cstMgr().get(nodeView.cstRef).typeRef();
+        }
+
         const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeInfo(sema.ctx(), nodeView.typeRef));
         sema.setConstant(sema.curNodeRef(), cstRef);
         return AstVisitStepResult::Continue;

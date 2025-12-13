@@ -23,25 +23,20 @@ AstVisitStepResult AstAccessModifier::semaPreNode(Sema& sema) const
             SWC_UNREACHABLE();
     }
 
-    const AstNode& node = sema.ast().node(nodeWhatRef);
-    if (node.is(AstNodeId::TopLevelBlock))
-    {
-        SemaFrame newFrame     = sema.frame();
-        newFrame.defaultAccess = access;
-        sema.pushFrame(newFrame);
-    }
+    const AstNode& node     = sema.ast().node(nodeWhatRef);
+    SemaFrame      newFrame = sema.frame();
 
+    if (node.is(AstNodeId::TopLevelBlock))
+        newFrame.defaultAccess = access;
+    else
+        newFrame.currentAccess = access;
+    sema.pushFrame(newFrame);
     return AstVisitStepResult::Continue;
 }
 
 AstVisitStepResult AstAccessModifier::semaPostNode(Sema& sema) const
 {
-    const AstNode& node = sema.ast().node(nodeWhatRef);
-    if (node.is(AstNodeId::TopLevelBlock))
-    {
-        sema.popFrame();
-    }
-    
+    sema.popFrame();
     return AstVisitStepResult::Continue;
 }
 

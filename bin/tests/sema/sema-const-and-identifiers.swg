@@ -13,3 +13,6 @@ internal
     const C = A + 10
     #assert(C == 62)
 }
+
+internal const D = A * 2
+#assert(D == 104)

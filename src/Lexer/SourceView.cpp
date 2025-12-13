@@ -15,6 +15,10 @@ SourceView::SourceView(SourceViewRef ref, const SourceFile* file) :
         fileRef_    = file->ref();
         stringView_ = file->sourceView();
     }
+    
+#if SWC_HAS_DEBUG_INFO
+    ref_.setPtr(this);
+#endif
 }
 
 Utf8 SourceView::codeLine(const TaskContext& ctx, uint32_t line) const

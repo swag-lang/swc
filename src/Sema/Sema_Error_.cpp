@@ -1,5 +1,4 @@
 #include "pch.h"
-
 #include "Constant/ConstantValue.h"
 #include "Main/CompilerInstance.h"
 #include "Report/Diagnostic.h"

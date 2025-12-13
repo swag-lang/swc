@@ -156,7 +156,7 @@ TokenRef Parser::consume()
 {
     if (atEnd())
         return TokenRef::invalid();
-    const auto result = ref();
+    const TokenRef result = ref();
     switch (id())
     {
         case TokenId::SymLeftParen:
@@ -213,8 +213,8 @@ TokenRef Parser::expectAndConsumeClosing(TokenId closeId, TokenRef openRef, cons
     if (is(closeId))
         return consume();
 
-    const auto openId = Token::toRelated(closeId);
-    const auto tok    = ast_->srcView().token(openRef);
+    const TokenId openId = Token::toRelated(closeId);
+    const Token&  tok    = ast_->srcView().token(openRef);
 
     if (tok.id == openId)
     {
@@ -247,8 +247,8 @@ void Parser::expectEndStatement()
     if (consumeIf(TokenId::SymSemiColon).isValid())
         return;
 
-    const auto diag = reportError(DiagnosticId::parser_err_expected_sep_stmt, ref().offset(-1));
-    auto       loc  = curToken_[-1].location(*ctx_, ast_->srcView());
+    const auto         diag = reportError(DiagnosticId::parser_err_expected_sep_stmt, ref().offset(-1));
+    SourceCodeLocation loc  = curToken_[-1].location(*ctx_, ast_->srcView());
     loc.column += loc.len;
     loc.offset += loc.len;
     loc.len = 1;

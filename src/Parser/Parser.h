@@ -33,13 +33,21 @@ class Parser
 
     const Token* tokPtr() const { return curToken_; }
     const Token& tok() const { return *curToken_; }
-    TokenRef     ref() const { return static_cast<TokenRef>(static_cast<uint32_t>(curToken_ - firstToken_)); }
     TokenId      id() const { return curToken_->id; }
     TokenId      nextId() const { return atEnd() ? TokenId::EndOfFile : curToken_[1].id; }
     bool         is(TokenId id0) const { return curToken_->id == id0; }
     bool         nextIs(TokenId id0) const { return atEnd() ? false : curToken_[1].id == id0; }
     bool         isNot(TokenId nid) const { return curToken_->id != nid; }
     bool         atEnd() const { return curToken_ >= lastToken_; }
+
+    TokenRef ref() const
+    {
+        auto result = static_cast<TokenRef>(static_cast<uint32_t>(curToken_ - firstToken_));
+#if SWC_HAS_DEBUG_INFO
+        result.setPtr(curToken_);
+#endif
+        return result;
+    }
 
     template<typename... IDS>
     bool isAny(IDS... ids) const

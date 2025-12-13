@@ -63,6 +63,9 @@ enum class TokenFlagsE : uint16_t
 };
 using TokenFlags = EnumFlags<TokenFlagsE>;
 
+struct Token;
+using TokenRef = StrongRef<Token>;
+
 struct Token
 {
     uint32_t byteStart  = 0; // Byte offset in the source file buffer

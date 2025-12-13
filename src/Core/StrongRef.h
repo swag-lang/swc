@@ -49,14 +49,12 @@ public:
 
 // Tag types for different reference kinds
 // clang-format off
-struct TokenTag{};
 struct SpanTag{};
 struct SemaTag{};
 // clang-format on
 
 // Type definitions
-using TokenRef = StrongRef<TokenTag>;
-using SpanRef  = StrongRef<SpanTag>;
-using SemaRef  = StrongRef<SemaTag>;
+using SpanRef = StrongRef<SpanTag>;
+using SemaRef = StrongRef<SemaTag>;
 
 SWC_END_NAMESPACE()

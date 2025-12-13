@@ -1,4 +1,5 @@
 #pragma once
+#include "Lexer/Token.h"
 #include "Report/DiagnosticElement.h"
 #include "Sema/Constant/ConstantValue.h"
 #include "Sema/Type/TypeInfo.h"

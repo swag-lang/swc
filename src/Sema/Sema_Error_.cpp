@@ -85,6 +85,13 @@ void Sema::raiseLiteralOverflow(AstNodeRef nodeRef, const ConstantValue& literal
     diag.report(*ctx_);
 }
 
+void Sema::raiseLiteralTooBig(AstNodeRef nodeRef, const ConstantValue& literal) const
+{
+    auto diag = reportError(DiagnosticId::sema_err_literal_too_big, nodeRef);
+    diag.addArgument(Diagnostic::ARG_VALUE, literal.toString(*ctx_));
+    diag.report(*ctx_);
+}
+
 void Sema::raiseDivZero(const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef) const
 {
     auto diag = reportError(DiagnosticId::sema_err_division_zero, nodeOp.srcViewRef(), nodeOp.tokRef(), nodeValueRef);

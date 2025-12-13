@@ -225,7 +225,14 @@ namespace
 
         if (nodeView.cstRef.isValid())
         {
-            nodeView.cstRef  = SemaCast::concretizeConstant(sema, nodeView.cstRef);
+            bool overflow;
+            nodeView.cstRef = SemaCast::concretizeConstant(sema, nodeView.cstRef, overflow);
+            if (overflow)
+            {
+                sema.raiseLiteralTooBig(node.nodeArgRef, sema.cstMgr().get(nodeView.cstRef));
+                return AstVisitStepResult::Stop;
+            }
+
             nodeView.typeRef = sema.cstMgr().get(nodeView.cstRef).typeRef();
         }
 

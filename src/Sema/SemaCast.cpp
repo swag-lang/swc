@@ -498,10 +498,26 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
         // Concretize only in the mixed case: one concrete, the other not.
         if (leftConcrete != rightConcrete)
         {
+            bool overflow;
             if (!leftConcrete)
-                leftSrc = concretizeConstant(sema, leftSrc);
+            {
+                leftSrc = concretizeConstant(sema, leftSrc, overflow);
+                if (overflow)
+                {
+                    sema.raiseLiteralTooBig(ops.nodeView[0].nodeRef, sema.cstMgr().get(leftSrc));
+                    return false;
+                }
+            }
+
             if (!rightConcrete)
-                rightSrc = concretizeConstant(sema, rightSrc);
+            {
+                rightSrc = concretizeConstant(sema, rightSrc, overflow);
+                if (overflow)
+                {
+                    sema.raiseLiteralTooBig(ops.nodeView[1].nodeRef, sema.cstMgr().get(rightSrc));
+                    return false;
+                }
+            }
         }
 
         const TypeRef promotedTypeRef =
@@ -547,12 +563,14 @@ namespace
 }
 
 // Concretize an unsized int/float constant into a sized one (>= 32 bits).
-ConstantRef SemaCast::concretizeConstant(Sema& sema, ConstantRef cstRef)
+ConstantRef SemaCast::concretizeConstant(Sema& sema, ConstantRef cstRef, bool& overflow)
 {
     auto&                ctx     = sema.ctx();
     const TypeManager&   typeMgr = ctx.typeMgr();
     const ConstantValue& src     = sema.cstMgr().get(cstRef);
     const TypeInfo&      ty      = typeMgr.get(src.typeRef());
+
+    overflow = false;
 
     if (!ty.isScalarNumeric())
         return cstRef;
@@ -570,8 +588,14 @@ ConstantRef SemaCast::concretizeConstant(Sema& sema, ConstantRef cstRef)
 
         // Smallest standard width (8/16/32/64/...) for this value & signedness.
         uint32_t concreteBits = value.minBitsStd();
-        concreteBits = std::max(concreteBits, 32u);
-        SWC_ASSERT(concreteBits < 128);
+        concreteBits          = std::max(concreteBits, 32u);
+
+        if (concreteBits > 64u)
+        {
+            overflow = true;
+            return cstRef;
+        }
+
         SWC_ASSERT(concreteBits > 0);
 
         if (value.isUnsigned() != unsignedTarget)

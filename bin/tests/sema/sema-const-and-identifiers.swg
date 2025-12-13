@@ -8,3 +8,8 @@ const A = 52
 const B = A
 #assert(B == 52)
 
+internal
+{
+    const C = A + 10
+    #assert(C == 62)
+}

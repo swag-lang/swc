@@ -78,6 +78,10 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
     Stats::get().memConstants.fetch_add(sizeof(ConstantValue), std::memory_order_relaxed);
 #endif
 
+#if SWC_HAS_DEBUG_INFO
+    result.setPtr(&get(result));
+#endif
+
     return result;
 }
 

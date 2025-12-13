@@ -234,10 +234,10 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
 
     auto result = TypeRef{(shardIndex << LOCAL_BITS) | localIndex};
 #if SWC_HAS_DEBUG_INFO
-    result.setPtr(shard.store.ptr<TypeInfo>(localIndex * sizeof(TypeInfo)));
+    result.setPtr(&get(result));
 #endif
-    
-    it->second        = result;
+
+    it->second = result;
     return result;
 }
 

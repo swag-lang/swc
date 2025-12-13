@@ -41,14 +41,18 @@ void SemaInfo::setType(AstNodeRef nodeRef, TypeRef ref)
     node.setSemaRaw(ref.get());
 }
 
-ConstantRef SemaInfo::getConstantRef(AstNodeRef nodeRef) const
+ConstantRef SemaInfo::getConstantRef(const TaskContext& ctx, AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return ConstantRef::invalid();
 
     SWC_ASSERT(hasConstant(nodeRef));
-    const AstNode& node = ast().node(nodeRef);
-    return ConstantRef{node.semaRaw()};
+    const AstNode& node  = ast().node(nodeRef);
+    auto           value = ConstantRef{node.semaRaw()};
+#if SWC_HAS_DEBUG_INFO
+    value.setPtr(&getConstant(ctx, nodeRef));
+#endif
+    return value;
 }
 
 const ConstantValue& SemaInfo::getConstant(const TaskContext& ctx, AstNodeRef nodeRef) const

@@ -53,7 +53,6 @@ struct AstNodeTag{};
 struct FileTag{};
 struct TokenTag{};
 struct SpanTag{};
-struct ConstantTag{};
 struct SourceViewTag{};
 struct SemaTag{};
 // clang-format on
@@ -63,7 +62,6 @@ using AstNodeRef    = StrongRef<AstNodeTag>;
 using FileRef       = StrongRef<FileTag>;
 using TokenRef      = StrongRef<TokenTag>;
 using SpanRef       = StrongRef<SpanTag>;
-using ConstantRef   = StrongRef<ConstantTag>;
 using SourceViewRef = StrongRef<SourceViewTag>;
 using SemaRef       = StrongRef<SemaTag>;
 

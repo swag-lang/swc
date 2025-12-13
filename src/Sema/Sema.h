@@ -66,7 +66,7 @@ public:
     const Ast&               ast() const;
 
     TypeRef              typeRefOf(AstNodeRef n) const { return semaInfo().getTypeRef(ctx(), n); }
-    ConstantRef          constantRefOf(AstNodeRef n) const { return semaInfo().getConstantRef(n); }
+    ConstantRef          constantRefOf(AstNodeRef n) const { return semaInfo().getConstantRef(ctx(), n); }
     const ConstantValue& constantOf(AstNodeRef n) const { return semaInfo().getConstant(ctx(), n); }
     const Symbol&        symbolOf(AstNodeRef n) const { return semaInfo().getSymbol(ctx(), n); }
     void                 setType(AstNodeRef n, TypeRef ref) { semaInfo().setType(n, ref); }

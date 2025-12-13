@@ -1,5 +1,6 @@
 #pragma once
 #include "Parser/Ast.h"
+#include "Sema/Constant/ConstantValue.h"
 #include "Sema/Type/TypeInfo.h"
 #include "Symbol/Symbol.h"
 
@@ -51,7 +52,7 @@ public:
     bool hasSymbol(AstNodeRef nodeRef) const;
 
     TypeRef     getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const;
-    ConstantRef getConstantRef(AstNodeRef nodeRef) const;
+    ConstantRef getConstantRef(const TaskContext& ctx, AstNodeRef nodeRef) const;
 
     const ConstantValue& getConstant(const TaskContext& ctx, AstNodeRef nodeRef) const;
     const Symbol&        getSymbol(const TaskContext&, AstNodeRef nodeRef) const;

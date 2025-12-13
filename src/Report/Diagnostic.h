@@ -1,5 +1,6 @@
 #pragma once
 #include "Report/DiagnosticElement.h"
+#include "Sema/Constant/ConstantValue.h"
 #include "Sema/Type/TypeInfo.h"
 
 SWC_BEGIN_NAMESPACE()

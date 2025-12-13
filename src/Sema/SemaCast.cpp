@@ -528,17 +528,22 @@ namespace
         return 0;
     }
 
-    // For floats: default to 64 bits.
-    uint32_t pickConcreteFloatBitsDefault64(const ApFloat& value)
+    uint32_t pickConcreteFloatBitsDefaultLadder(const ApFloat& value)
     {
         bool isExact  = false;
         bool overflow = false;
 
+        // Prefer 32-bit float
+        (void) value.toFloat(32, isExact, overflow);
+        if (!overflow)
+            return 32;
+
+        // Fall back to 64-bit float
         (void) value.toFloat(64, isExact, overflow);
         if (!overflow)
             return 64;
 
-        // If it overflows even at 64, keep the current precision/width (must be >= 32).
+        // If it doesn't fit even in 64, keep existing precision (>= 32)
         return (value.bitWidth() < 32) ? 32 : value.bitWidth();
     }
 }
@@ -595,7 +600,7 @@ ConstantRef SemaCast::concretizeConstant(Sema& sema, ConstantRef srcRef)
             return srcRef;
 
         const ApFloat& srcF         = src.getFloat();
-        const uint32_t concreteBits = pickConcreteFloatBitsDefault64(srcF);
+        const uint32_t concreteBits = pickConcreteFloatBitsDefaultLadder(srcF);
 
         bool    isExact   = false;
         bool    overflow  = false;

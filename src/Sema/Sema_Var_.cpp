@@ -1,11 +1,11 @@
 #include "pch.h"
-
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisit.h"
 #include "Report/DiagnosticDef.h"
 #include "Sema/Sema.h"
+#include "Sema/SemaCast.h"
+#include "Sema/SemaNodeView.h"
 #include "Sema/Symbol/Symbols.h"
-#include "SemaNodeView.h"
 #include "Symbol/IdentifierManager.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -39,10 +39,11 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
         if (nodeTypeRef.isValid())
         {
             const SemaNodeView nodeTypeView(sema, nodeTypeRef);
-            CastContext        castCtx;
-            castCtx.kind = CastKind::Implicit;
+
+            CastContext castCtx;
+            castCtx.kind         = CastKind::Implicit;
             castCtx.errorNodeRef = nodeTypeRef;
-            nodeInitView.cstRef  = sema.castConstant(castCtx, nodeInitView.cstRef, nodeTypeView.typeRef);
+            nodeInitView.cstRef  = SemaCast::castConstant(sema, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef);
             if (nodeInitView.cstRef.isInvalid())
                 return AstVisitStepResult::Stop;
         }

@@ -6,6 +6,7 @@
 #include "Report/DiagnosticDef.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Sema.h"
+#include "Sema/SemaCast.h"
 #include "Sema/SemaInfo.h"
 #include "Sema/SemaNodeView.h"
 
@@ -20,7 +21,7 @@ namespace
         ConstantRef rightCstRef = ops.nodeView[1].cstRef;
 
         const bool promote = node.modifierFlags.has(AstModifierFlagsE::Promote);
-        if (!sema.promoteConstants(ops, leftCstRef, rightCstRef, promote))
+        if (!SemaCast::promoteConstants(sema, ops, leftCstRef, rightCstRef, promote))
             return ConstantRef::invalid();
 
         const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);

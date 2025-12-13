@@ -2,6 +2,7 @@
 #include "Parser/AstVisit.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Sema.h"
+#include "Sema/SemaCast.h"
 #include "Sema/SemaInfo.h"
 #include "Sema/Type/TypeManager.h"
 
@@ -122,7 +123,7 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
         }
     }
 
-    const ConstantRef newCstRef = sema.castConstant(castCtx, cstRef, typeRef);
+    const ConstantRef newCstRef = SemaCast::castConstant(sema, castCtx, cstRef, typeRef);
     if (newCstRef.isInvalid())
         return AstVisitStepResult::Stop;
     sema.setConstant(sema.curNodeRef(), newCstRef);

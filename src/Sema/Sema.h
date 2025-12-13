@@ -8,33 +8,11 @@
 
 SWC_BEGIN_NAMESPACE()
 
+struct CastContext;
 struct SemaNodeViewList;
 class SymbolNamespace;
 class LookupResult;
 class IdentifierManager;
-
-enum class CastKind
-{
-    LiteralSuffix,
-    Implicit,
-    Explicit,
-    Promotion,
-};
-
-enum class CastFlagsE : uint32_t
-{
-    Zero       = 0,
-    BitCast    = 1 << 0,
-    NoOverflow = 1 << 1,
-};
-using CastFlags = EnumFlags<CastFlagsE>;
-
-struct CastContext
-{
-    CastKind   kind;
-    CastFlags  flags = CastFlagsE::Zero;
-    AstNodeRef errorNodeRef;
-};
 
 class Sema
 {
@@ -125,12 +103,6 @@ public:
     void raiseInternalError(const AstNode& node) const;
 
     Result checkModifiers(const AstNode& node, AstModifierFlags mods, AstModifierFlags allowed);
-
-    bool castAllowed(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef) const;
-
-    ConstantRef castConstant(const CastContext& castCtx, ConstantRef srcRef, TypeRef targetTypeRef);
-    bool        promoteConstants(const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef, bool force32BitInts = false);
-    ConstantRef concretizeConstant(ConstantRef srcRef);
 
     void               lookupIdentifier(LookupResult& result, IdentifierRef idRef) const;
     AstVisitStepResult pause(TaskStateKind kind, AstNodeRef nodeRef);

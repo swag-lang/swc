@@ -4,6 +4,7 @@
 #include "Report/Diagnostic.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Sema.h"
+#include "Sema/SemaCast.h"
 #include "Sema/SemaInfo.h"
 #include "Sema/SemaNodeView.h"
 
@@ -20,7 +21,7 @@ namespace
 
         auto leftCstRef  = ops.nodeView[0].cstRef;
         auto rightCstRef = ops.nodeView[1].cstRef;
-        if (!sema.promoteConstants(ops, leftCstRef, rightCstRef))
+        if (!SemaCast::promoteConstants(sema, ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
 
         // For float, we need to compare by values, because two different constants
@@ -44,7 +45,7 @@ namespace
         auto leftCstRef  = ops.nodeView[0].cstRef;
         auto rightCstRef = ops.nodeView[1].cstRef;
 
-        if (!sema.promoteConstants(ops, leftCstRef, rightCstRef))
+        if (!SemaCast::promoteConstants(sema, ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
         if (leftCstRef == rightCstRef)
             return sema.cstMgr().cstFalse();
@@ -63,7 +64,7 @@ namespace
         auto leftCstRef  = ops.nodeView[0].cstRef;
         auto rightCstRef = ops.nodeView[1].cstRef;
 
-        if (!sema.promoteConstants(ops, leftCstRef, rightCstRef))
+        if (!SemaCast::promoteConstants(sema, ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
         if (leftCstRef == rightCstRef)
             return sema.cstMgr().cstTrue();
@@ -79,7 +80,7 @@ namespace
         auto leftCstRef  = ops.nodeView[0].cstRef;
         auto rightCstRef = ops.nodeView[1].cstRef;
 
-        if (!sema.promoteConstants(ops, leftCstRef, rightCstRef))
+        if (!SemaCast::promoteConstants(sema, ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
         if (leftCstRef == rightCstRef)
             return sema.cstMgr().cstFalse();
@@ -98,7 +99,7 @@ namespace
         auto leftCstRef  = ops.nodeView[0].cstRef;
         auto rightCstRef = ops.nodeView[1].cstRef;
 
-        if (!sema.promoteConstants(ops, leftCstRef, rightCstRef))
+        if (!SemaCast::promoteConstants(sema, ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
         if (leftCstRef == rightCstRef)
             return sema.cstMgr().cstTrue();
@@ -114,7 +115,7 @@ namespace
         auto leftCstRef  = ops.nodeView[0].cstRef;
         auto rightCstRef = ops.nodeView[1].cstRef;
 
-        if (!sema.promoteConstants(ops, leftCstRef, rightCstRef))
+        if (!SemaCast::promoteConstants(sema, ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
 
         const auto& left  = sema.cstMgr().get(leftCstRef);

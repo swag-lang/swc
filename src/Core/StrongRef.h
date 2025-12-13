@@ -47,12 +47,4 @@ public:
 #endif
 };
 
-// Tag types for different reference kinds
-// clang-format off
-struct SpanTag{};
-// clang-format on
-
-// Type definitions
-using SpanRef = StrongRef<SpanTag>;
-
 SWC_END_NAMESPACE()

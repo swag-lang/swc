@@ -3,6 +3,7 @@
 #include "Lexer/SourceView.h"
 #include "Parser/AstNodeId.h"
 #include "Parser/AstVisitResult.h"
+#include "Core/Store.h"
 
 SWC_BEGIN_NAMESPACE()
 class TypeInfo;

@@ -5,6 +5,11 @@ SWC_BEGIN_NAMESPACE()
 
 using Ref = uint32_t;
 
+struct SpanTag
+{
+};
+using SpanRef = StrongRef<SpanTag>;
+
 // Simple page-based POD store.
 // Each page holds up to pageSize bytes of raw data (pageSize must be a power of two).
 // Items are packed sequentially; alignment is preserved relative to a max-aligned base.

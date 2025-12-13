@@ -122,8 +122,11 @@ ExitCode CompilerInstance::run()
 SourceView& CompilerInstance::addSourceView()
 {
     std::unique_lock lock(mutex_);
-    const auto       srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
+    auto             srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
     srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, nullptr));
+#if SWC_HAS_DEBUG_INFO
+    srcViewRef.setPtr(srcViews_.back().get());
+#endif
     return *srcViews_.back();
 }
 
@@ -131,9 +134,13 @@ SourceView& CompilerInstance::addSourceView(FileRef fileRef)
 {
     SWC_ASSERT(fileRef.isValid());
     SWC_RACE_CONDITION_READ(rcFiles_);
+
     std::unique_lock lock(mutex_);
-    const auto       srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
+    auto             srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
     srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, &file(fileRef)));
+#if SWC_HAS_DEBUG_INFO
+    srcViewRef.setPtr(srcViews_.back().get());
+#endif
     return *srcViews_.back();
 }
 

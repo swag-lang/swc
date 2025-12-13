@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/SmallVector.h"
+#include "Lexer/SourceView.h"
 #include "Parser/AstNodeId.h"
 #include "Parser/AstVisitResult.h"
 

@@ -52,15 +52,13 @@ public:
 struct FileTag{};
 struct TokenTag{};
 struct SpanTag{};
-struct SourceViewTag{};
 struct SemaTag{};
 // clang-format on
 
 // Type definitions
-using FileRef       = StrongRef<FileTag>;
-using TokenRef      = StrongRef<TokenTag>;
-using SpanRef       = StrongRef<SpanTag>;
-using SourceViewRef = StrongRef<SourceViewTag>;
-using SemaRef       = StrongRef<SemaTag>;
+using FileRef  = StrongRef<FileTag>;
+using TokenRef = StrongRef<TokenTag>;
+using SpanRef  = StrongRef<SpanTag>;
+using SemaRef  = StrongRef<SemaTag>;
 
 SWC_END_NAMESPACE()

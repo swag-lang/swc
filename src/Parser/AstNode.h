@@ -1,7 +1,7 @@
 #pragma once
 #include "Core/SmallVector.h"
 #include "Parser/AstNodeId.h"
-#include "Parser/AstVisit.h"
+#include "Parser/AstVisitResult.h"
 
 SWC_BEGIN_NAMESPACE()
 class TypeInfo;
@@ -31,6 +31,9 @@ enum class AstModifierFlagsE : uint32_t
     Count,
 };
 using AstModifierFlags = EnumFlags<AstModifierFlagsE>;
+
+struct AstNode;
+using AstNodeRef = StrongRef<AstNode>;
 
 struct AstNode
 {

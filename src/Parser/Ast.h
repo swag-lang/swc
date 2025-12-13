@@ -62,7 +62,11 @@ public:
 #if SWC_HAS_STATS
         Stats::get().numAstNodes.fetch_add(1);
 #endif
-        return std::pair<AstNodeRef, NodeType*>(result);
+        auto value = std::pair<AstNodeRef, NodeType*>(result);
+#if SWC_HAS_DEBUG_INFO
+        value.first.setPtr(value.second);
+#endif
+        return value;
     }
 };
 

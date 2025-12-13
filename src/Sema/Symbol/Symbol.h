@@ -1,4 +1,5 @@
 #pragma once
+#include "Sema/Symbol/IdentifierManager.h"
 
 SWC_BEGIN_NAMESPACE()
 

@@ -3,10 +3,14 @@
 SWC_BEGIN_NAMESPACE()
 
 // Base template for strong type wrappers
-template<typename>
+template<typename T>
 class StrongRef
 {
     uint32_t value_;
+
+#if SWC_HAS_DEBUG_INFO
+    const T* ptr_ = nullptr;
+#endif
 
 public:
     StrongRef() = default;
@@ -37,6 +41,10 @@ public:
     explicit operator bool() const     = delete;
     explicit operator int() const      = delete;
     explicit operator uint32_t() const = delete;
+
+#if SWC_HAS_DEBUG_INFO
+    void setPtr(const T* ptr) { ptr_ = ptr; }
+#endif
 };
 
 // Tag types for different reference kinds
@@ -49,7 +57,6 @@ struct TypeTag{};
 struct ConstantTag{};
 struct SourceViewTag{};
 struct SemaTag{};
-struct IdentifierTag{};
 // clang-format on
 
 // Type definitions
@@ -61,6 +68,5 @@ using TypeRef       = StrongRef<TypeTag>;
 using ConstantRef   = StrongRef<ConstantTag>;
 using SourceViewRef = StrongRef<SourceViewTag>;
 using SemaRef       = StrongRef<SemaTag>;
-using IdentifierRef = StrongRef<IdentifierTag>;
 
 SWC_END_NAMESPACE()

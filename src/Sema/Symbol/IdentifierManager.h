@@ -11,6 +11,8 @@ struct Identifier
     std::string_view name;
 };
 
+using IdentifierRef = StrongRef<Identifier>;
+
 class IdentifierManager
 {
     struct Shard

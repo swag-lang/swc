@@ -41,10 +41,12 @@ namespace fs = std::filesystem;
 #define SWC_HAS_ASSERT         1
 #define SWC_HAS_STATS          1
 #define SWC_HAS_RACE_CONDITION 1
+#define SWC_HAS_DEBUG_INFO     1
 #else
 #define SWC_HAS_ASSERT         0
 #define SWC_HAS_STATS          0
 #define SWC_HAS_RACE_CONDITION 0
+#define SWC_HAS_DEBUG_INFO     0
 #endif
 
 #include "Core/Flags.h"

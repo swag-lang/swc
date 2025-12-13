@@ -5,7 +5,7 @@ SWC_BEGIN_NAMESPACE()
 
 struct SemaFrame
 {
-    SymbolAccess access = SymbolAccess::Private;
+    SymbolAccess defaultAccess = SymbolAccess::Private;
 };
 
 SWC_END_NAMESPACE()

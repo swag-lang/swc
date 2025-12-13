@@ -250,6 +250,7 @@
         <ClCompile Include="src\Sema\Sema.cpp"/>
         <ClCompile Include="src\Sema\SemaInfo.cpp"/>
         <ClCompile Include="src\Sema\SemaJob.cpp"/>
+        <ClCompile Include="src\Sema\Sema_Attributes_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Cast_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Check_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Error_.cpp"/>

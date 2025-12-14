@@ -2,6 +2,7 @@
 #include "Helpers/SemaError.h"
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisit.h"
+#include "Sema/Helpers/SemaMatch.h"
 #include "Sema/Sema.h"
 #include "Symbol/IdentifierManager.h"
 #include "Symbol/LookupResult.h"
@@ -20,12 +21,12 @@ AstVisitStepResult AstIdentifier::semaPostNode(Sema& sema) const
 {
     const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokRef());
 
-    LookupResult lookup;
-    sema.lookupIdentifier(lookup, idRef);
-    if (lookup.empty())
+    LookupResult result;
+    SemaMatch::lookup(sema, result, idRef);
+    if (result.empty())
         return sema.pause(TaskStateKind::SemaWaitingIdentifier, sema.curNodeRef());
 
-    const Symbol* sym = lookup.first();
+    const Symbol* sym = result.first();
 
     const SymbolConstant* symCst = sym->safeCast<SymbolConstant>();
     if (symCst)

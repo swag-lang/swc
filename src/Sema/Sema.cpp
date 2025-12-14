@@ -136,24 +136,6 @@ void Sema::popScope()
     scopes_.pop_back();
 }
 
-void Sema::lookupIdentifier(LookupResult& result, IdentifierRef idRef) const
-{
-    result.clear();
-
-    const SymbolMap* symMap = curScope_->symMap();
-    while (symMap)
-    {
-        symMap->lookup(idRef, result.symbols());
-        if (!result.empty())
-            return;
-        symMap = symMap->symMap();
-    }
-
-    semaInfo().fileNamespace().lookup(idRef, result.symbols());
-    if (!result.empty())
-        return;
-}
-
 void Sema::enterNode(AstNode& node)
 {
     const auto& info = Ast::nodeIdInfos(node.id());

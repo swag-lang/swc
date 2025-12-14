@@ -8,17 +8,25 @@
 #assert(12'u32 == 12'u32)
 #assert(12'u64 == 12'u64)
 
-#assert(127's8  == 127's8)
+#assert(127's8 == 127's8)
 #assert(255'u8 == 255'u8)
-#assert(32767's16  == 32767's16)
+#assert(32767's16 == 32767's16)
 #assert(65535'u16 == 65535'u16)
+#assert(2147483647's32 == 2147483647's32)
 #assert(4294967295'u32 == 4294967295'u32)
+#assert(9223372036854775807's64 == 9223372036854775807's64)
+#assert(18446744073709551615'u64 == 18446744073709551615'u64)
 
 #assert(-127's8 == -127's8)
 #assert(-127 == -127)
+#assert(-32767's16 == -32767's16)
+#assert(-2147483647's32 == -2147483647's32)
+#assert(-9223372036854775807's64 == -9223372036854775807's64)
 
 #assert(-128's8 == -128's8)
 #assert(-32768's16 == -32768's16)
+#assert(-2147483648's32 == -2147483648's32)
+//#print(-9223372036854775808's64 == -9223372036854775808's64) // swc-expected-error {{sema_err_literal_overflow}}
 
 #assert(1's8 == 1)
 #assert(1's16 == 1)
@@ -29,12 +37,20 @@
 #assert(1'u32 == 1)
 #assert(1'u64 == 1)
 
-#assert(1's8  == 1's16)
-#assert(1's8  == 1's32)
-#assert(1's8  == 1's64)
+#assert(1's8 == 1's16)
+#assert(1's8 == 1's32)
+#assert(1's8 == 1's64)
 #assert(1's16 == 1's32)
 #assert(1's16 == 1's64)
 #assert(1's32 == 1's64)
+
+#assert(1'u8 == 1'u16)
+#assert(1'u8 == 1'u32)
+#assert(1'u8 == 1'u64)
+#assert(1'u16 == 1'u32)
+#assert(1'u16 == 1'u64)
+#assert(1'u32 == 1'u64)
+
 #assert(42 == 42's8)
 #assert(42 == 42's16)
 #assert(42 == 42's32)
@@ -43,6 +59,7 @@
 #assert(42 == 42'u16)
 #assert(42 == 42'u32)
 #assert(42 == 42'u64)
+
 #assert(10's8 == 10'u8)
 #assert(100's16 == 100'u16)
 #assert(127's8 == 127's16)
@@ -50,6 +67,10 @@
 #assert(32767's16 == 32767's32)
 #assert(65535'u16 == 65535'u32)
 #assert(1's8 == 1'u64)
+#assert(0's8 == 0'u8)
+#assert(0's16 == 0'u16)
+#assert(0's32 == 0'u32)
+#assert(0's64 == 0'u64)
 
 #assert(1 != 2)
 #assert(!(1 == 2))
@@ -62,19 +83,31 @@
 #assert(2 > 1)
 #assert(2 >= 1)
 #assert(2 >= 2)
+
 #assert((1 <=> 2) == -1)
 #assert((2 <=> 1) == 1)
 #assert((1 <=> 1) == 0)
+
 #assert((1's8 <=> 2) == -1)
 #assert((2's64 <=> 1) == 1)
 #assert((1'u32 <=> 1) == 0)
 
+#assert((1's8 <=> 2's8) == -1)
+#assert((2's16 <=> 1's16) == 1)
+#assert((1's32 <=> 1's32) == 0)
+#assert((1'u8 <=> 2'u8) == -1)
+#assert((2'u16 <=> 1'u16) == 1)
+#assert((1'u64 <=> 1'u64) == 0)
+
 #assert(256'u8 == 0'u8)             // swc-expected-error {{sema_err_literal_overflow}}
 #assert(65536'u16 == 0'u16)         // swc-expected-error {{sema_err_literal_overflow}}
 #assert(4294967296'u32 == 0'u32)    // swc-expected-error {{sema_err_literal_overflow}}
+#assert(18446744073709551616'u64 == 0'u64) // swc-expected-error {{sema_err_literal_overflow}}
 
-#assert(32768's16  == 0's16)        // swc-expected-error {{sema_err_literal_overflow}}
-#assert(128's8  == 0's8)            // swc-expected-error {{sema_err_literal_overflow}}
+#assert(32768's16 == 0's16)         // swc-expected-error {{sema_err_literal_overflow}}
+#assert(2147483648's32 == 0's32)    // swc-expected-error {{sema_err_literal_overflow}}
+#assert(128's8 == 0's8)             // swc-expected-error {{sema_err_literal_overflow}}
+
 #assert(-127'u8 == -127'u8)         // swc-expected-error {{sema_err_signed_unsigned}}
 #assert(-127'u16 == -127'u16)       // swc-expected-error {{sema_err_signed_unsigned}}
 #assert(-127'u32 == -127'u32)       // swc-expected-error {{sema_err_signed_unsigned}}
@@ -100,13 +133,30 @@
 #assert(200'u8 == 200's8)           // swc-expected-error {{sema_err_literal_overflow}}
 #assert(40000'u16 == 40000's16)     // swc-expected-error {{sema_err_literal_overflow}}
 #assert(200's16 == 200's8)          // swc-expected-error {{sema_err_literal_overflow}}
+#assert(40000'u16 == 40000's32)
+#assert(200'u8 == 200's16)
 #assert(-1 == 0'u8)                 // swc-expected-error {{sema_err_signed_unsigned}}
+#assert(-1's8 != 0'u8)
+#assert(-1's16 != 0'u16)
+#assert(-1's32 != 0'u32)
+#assert(-1's64 != 0'u64)
 
 #assert(!(1 == 1))                  // swc-expected-error {{sema_err_compiler_assert}}
 #assert(!1.0)                       // swc-expected-error {{sema_err_unary_operand_type}}
 #assert(!0)                         // swc-expected-error {{sema_err_compiler_assert}}
+#assert(!true)                      // swc-expected-error {{sema_err_compiler_assert}}
+#assert(!false)
+#assert(!(!false == false))
+#assert(!(!true == true))
 
 #assert(-128's8 < -127's8)
+#assert(-32768's16 < -32767's16)
 #assert(0'u8 == 0's8)
+#assert(0'u16 == 0's16)
+#assert(0'u32 == 0's32)
+#assert(0'u64 == 0's64)
 #assert(-1's8 != 1'u8)              // swc-expected-error {{sema_err_signed_unsigned}}
 #assert((1's8 <=> -1's8) == 1)
+#assert((-1's8 <=> 1's8) == -1)
+#assert((0's8 <=> 0's8) == 0)
+#assert((0'u8 <=> 0'u8) == 0)

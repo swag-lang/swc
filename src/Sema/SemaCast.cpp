@@ -275,13 +275,32 @@ namespace
             return ConstantRef::invalid();
         }
 
-        // Adjust signedness to target
+        // Adjust signedness to target without changing the numeric value.
         if (value.isUnsigned() != targetUnsigned)
-            value.setUnsigned(targetUnsigned);
-
-        // Resize to the target bit width (now safe; we already checked range)
-        if (targetBits)
-            value.resize(targetBits);
+        {
+            if (value.isUnsigned() && !targetUnsigned)
+            {
+                // unsigned -> signed: widen first so the sign bit is not taken from the old narrow width
+                if (targetBits)
+                    value.resize(targetBits + 1); // or checkBits; +1 ensures the top bit is 0 for values <= maxSigned
+                value.setUnsigned(false);
+                if (targetBits)
+                    value.resize(targetBits);
+            }
+            else
+            {
+                // signed -> unsigned (negative already rejected above)
+                // widen first too, to avoid reinterpreting a narrow signed value's the sign bit as data
+                if (targetBits)
+                    value.resize(targetBits);
+                value.setUnsigned(true);
+            }
+        }
+        else
+        {
+            if (targetBits)
+                value.resize(targetBits);
+        }
 
         const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, targetType);
         return sema.cstMgr().addConstant(ctx, result);
@@ -520,8 +539,7 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
             }
         }
 
-        const TypeRef promotedTypeRef =
-            sema.typeMgr().promote(ops.nodeView[0].typeRef, ops.nodeView[1].typeRef, force32BitInts);
+        const TypeRef promotedTypeRef = sema.typeMgr().promote(ops.nodeView[0].typeRef, ops.nodeView[1].typeRef, force32BitInts);
 
         CastContext castCtx(CastKind::Promotion);
         castCtx.errorNodeRef = ops.nodeView[0].nodeRef;

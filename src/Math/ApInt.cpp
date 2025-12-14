@@ -212,13 +212,12 @@ void ApInt::logicalShiftRight(uint64_t amount)
 
 void ApInt::arithmeticShiftRight(uint64_t amount)
 {
-    if (amount == 0 || bitWidth_ == 0)
+    if (amount == 0)
         return;
 
     const bool sign = isSignBitSet();
 
-    // If we shift by at least the entire width, the result is 0 for non-negative,
-    // and -1 (all bits set) for negative in two's complement.
+    // Shift by >= width: the result is 0 for non-negative, -1 for negative.
     if (amount >= bitWidth_)
     {
         if (sign)
@@ -228,24 +227,61 @@ void ApInt::arithmeticShiftRight(uint64_t amount)
         return;
     }
 
-    // Work from a copy so we can read old bits while writing new ones.
-    const ApInt    tmp(*this);
-    const uint64_t limit = bitWidth_;
-
-    for (uint64_t i = 0; i < limit; ++i)
+    // Non-negative: same as logical shift.
+    if (!sign)
     {
-        const uint64_t srcBit   = i + amount;
-        bool           bitValue = false;
+        logicalShiftRight(amount);
+        return;
+    }
 
-        if (srcBit < limit)
-            bitValue = tmp.testBit(srcBit);
-        else
-            bitValue = sign;
+    const uint64_t wordShift = amount / WORD_BITS;
+    const uint64_t bitShift  = amount % WORD_BITS;
 
-        if (bitValue)
-            setBit(i);
+    // Whole-word shift down, fill the top with all-ones (sign extension).
+    if (wordShift > 0)
+    {
+        if (wordShift >= numWords_)
+        {
+            setAllBits();
+            return;
+        }
+
+        const uint32_t ws = static_cast<uint32_t>(wordShift);
+
+        for (uint32_t i = 0; i < numWords_ - ws; ++i)
+            words_[i] = words_[i + ws];
+
+        for (uint32_t i = numWords_ - ws; i < numWords_; ++i)
+            words_[i] = ~0ull;
+    }
+
+    // Intra-word shift with sign-fill into the top word.
+    if (bitShift > 0)
+    {
+        // How many bits are actually used in the top word?
+        uint32_t topUsed = bitWidth_ % WORD_BITS;
+        if (topUsed == 0)
+            topUsed = WORD_BITS;
+
+        // Insert ones into the highest 'bitShift' bits of the *used* region of the top word.
+        uint64_t carry;
+        if (topUsed == 64)
+        {
+            carry = ~0ull << (64 - bitShift);
+        }
         else
-            clearBit(i);
+        {
+            // safe because amount < bitWidth_ => bitShift <= topUsed
+            carry = ((uint64_t{1} << bitShift) - 1) << (topUsed - bitShift);
+        }
+
+        for (int i = static_cast<int>(numWords_) - 1; i >= 0; --i)
+        {
+            const uint64_t newCarry = words_[static_cast<uint32_t>(i)] << (WORD_BITS - bitShift);
+            words_[static_cast<uint32_t>(i)] =
+                (words_[static_cast<uint32_t>(i)] >> bitShift) | carry;
+            carry = newCarry;
+        }
     }
 
     normalize();
@@ -551,9 +587,6 @@ uint32_t ApInt::computeNumWords(uint32_t bitWidth)
 
 void ApInt::normalize()
 {
-    if (bitWidth_ == 0)
-        return;
-
     const uint64_t usedBitsInLastWord = bitWidth_ % WORD_BITS;
     if (usedBitsInLastWord != 0)
     {

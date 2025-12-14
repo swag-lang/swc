@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Helpers/SemaError.h"
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisit.h"
 #include "Report/DiagnosticDef.h"
@@ -25,14 +26,14 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
     {
         if (nodeInitRef.isInvalid())
         {
-            sema.raiseError(DiagnosticId::sema_err_const_missing_init, srcViewRef(), tokNameRef);
+            SemaError::raiseError(sema, DiagnosticId::sema_err_const_missing_init, srcViewRef(), tokNameRef);
             return AstVisitStepResult::Stop;
         }
 
         SemaNodeView nodeInitView(sema, nodeInitRef);
         if (nodeInitView.cstRef.isInvalid())
         {
-            sema.raiseExprNotConst(nodeInitRef);
+            SemaError::raiseExprNotConst(sema, nodeInitRef);
             return AstVisitStepResult::Stop;
         }
 
@@ -51,7 +52,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
     }
     else
     {
-        sema.raiseInternalError(*this);
+        SemaError::raiseInternalError(sema, *this);
     }
 
     return AstVisitStepResult::Continue;

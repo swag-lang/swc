@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Helpers/SemaError.h"
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisit.h"
 #include "Sema/Sema.h"
@@ -33,7 +34,7 @@ AstVisitStepResult AstIdentifier::semaPostNode(Sema& sema) const
     }
     else
     {
-        sema.raiseInternalError(*this);
+        SemaError::raiseInternalError(sema, *this);
         return AstVisitStepResult::Stop;
     }
 

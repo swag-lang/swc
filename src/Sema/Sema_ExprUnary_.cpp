@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Helpers/SemaError.h"
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisit.h"
 #include "Report/Diagnostic.h"
@@ -35,7 +36,7 @@ namespace
             value.negate(overflow);
             if (overflow)
             {
-                sema.raiseLiteralOverflow(node.nodeExprRef, *ops.nodeView.cst, sema.typeRefOf(node.nodeExprRef));
+                SemaError::raiseLiteralOverflow(sema, node.nodeExprRef, *ops.nodeView.cst, sema.typeRefOf(node.nodeExprRef));
                 return ConstantRef::invalid();
             }
 
@@ -95,7 +96,7 @@ namespace
 
     void reportInvalidType(Sema& sema, const AstUnaryExpr& expr, const UnaryOperands& ops)
     {
-        auto diag = sema.reportError(DiagnosticId::sema_err_unary_operand_type, expr.srcViewRef(), expr.tokRef());
+        auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_unary_operand_type, expr.srcViewRef(), expr.tokRef());
         diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView.typeRef);
         diag.report(sema.ctx());
     }
@@ -107,7 +108,7 @@ namespace
 
         if (ops.nodeView.type->isIntUnsigned())
         {
-            auto diag = sema.reportError(DiagnosticId::sema_err_negate_unsigned, expr.srcViewRef(), expr.tokRef());
+            auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_negate_unsigned, expr.srcViewRef(), expr.tokRef());
             diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView.typeRef);
             diag.report(sema.ctx());
         }
@@ -153,7 +154,7 @@ namespace
                 break;
         }
 
-        sema.raiseInternalError(node);
+        SemaError::raiseInternalError(sema, node);
         return Result::Error;
     }
 }
@@ -180,7 +181,7 @@ AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema) const
         return AstVisitStepResult::Stop;
     }
 
-    sema.raiseInternalError(*this);
+    SemaError::raiseInternalError(sema, *this);
     return AstVisitStepResult::Stop;
 }
 

@@ -1,4 +1,6 @@
 #include "pch.h"
+
+#include "Helpers/SemaError.h"
 #include "Main/CompilerInstance.h"
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisit.h"
@@ -35,7 +37,7 @@ namespace
             {
                 const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());
                 const TokenRef    mdfRef  = srcView.findRightFrom(node.tokRef(), {TokenId::ModifierWrap, TokenId::ModifierPromote});
-                auto              diag    = sema.reportError(DiagnosticId::sema_err_modifier_only_integer, node.srcViewRef(), mdfRef);
+                auto              diag    = SemaError::reportError(sema, DiagnosticId::sema_err_modifier_only_integer, node.srcViewRef(), mdfRef);
                 diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
                 diag.report(sema.ctx());
                 return ConstantRef::invalid();
@@ -59,7 +61,7 @@ namespace
                 case TokenId::SymSlash:
                     if (rightCst.getFloat().isZero())
                     {
-                        sema.raiseDivZero(node, ops.nodeView[1].nodeRef, leftCst.typeRef());
+                        SemaError::raiseDivZero(sema, node, ops.nodeView[1].nodeRef, leftCst.typeRef());
                         return ConstantRef::invalid();
                     }
 
@@ -102,7 +104,7 @@ namespace
                 case TokenId::SymSlash:
                     if (val2.isZero())
                     {
-                        sema.raiseDivZero(node, ops.nodeView[1].nodeRef, leftCst.typeRef());
+                        SemaError::raiseDivZero(sema, node, ops.nodeView[1].nodeRef, leftCst.typeRef());
                         return ConstantRef::invalid();
                     }
 
@@ -112,7 +114,7 @@ namespace
                 case TokenId::SymPercent:
                     if (val2.isZero())
                     {
-                        sema.raiseDivZero(node, ops.nodeView[1].nodeRef, leftCst.typeRef());
+                        SemaError::raiseDivZero(sema, node, ops.nodeView[1].nodeRef, leftCst.typeRef());
                         return ConstantRef::invalid();
                     }
 
@@ -132,7 +134,7 @@ namespace
                 case TokenId::SymGreaterGreater:
                     if (val2.isNegative())
                     {
-                        auto diag = sema.reportError(DiagnosticId::sema_err_negative_shift, node.nodeRightRef);
+                        auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_negative_shift, node.nodeRightRef);
                         diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
                         diag.report(sema.ctx());
                         return ConstantRef::invalid();
@@ -147,7 +149,7 @@ namespace
                 case TokenId::SymLowerLower:
                     if (val2.isNegative())
                     {
-                        auto diag = sema.reportError(DiagnosticId::sema_err_negative_shift, node.nodeRightRef);
+                        auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_negative_shift, node.nodeRightRef);
                         diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
                         diag.report(sema.ctx());
                         return ConstantRef::invalid();
@@ -166,7 +168,7 @@ namespace
 
             if (!wrap && type.intBits() != 0 && overflow)
             {
-                auto diag = sema.reportError(DiagnosticId::sema_err_integer_overflow, node.srcViewRef(), node.tokRef());
+                auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_integer_overflow, node.srcViewRef(), node.tokRef());
                 diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
                 diag.addArgument(Diagnostic::ARG_LEFT, leftCstRef);
                 diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
@@ -221,13 +223,13 @@ namespace
 
         if (!sema.hasConstant(node.nodeLeftRef))
         {
-            sema.raiseExprNotConst(node.nodeLeftRef);
+            SemaError::raiseExprNotConst(sema, node.nodeLeftRef);
             return Result::Error;
         }
 
         if (!sema.hasConstant(node.nodeRightRef))
         {
-            sema.raiseExprNotConst(node.nodeRightRef);
+            SemaError::raiseExprNotConst(sema, node.nodeRightRef);
             return Result::Error;
         }
 
@@ -245,13 +247,13 @@ namespace
             case TokenId::SymAsterisk:
                 if (!ops.nodeView[0].type->isScalarNumeric())
                 {
-                    sema.raiseBinaryOperandType(node, node.nodeLeftRef, ops.nodeView[0].typeRef);
+                    SemaError::raiseBinaryOperandType(sema, node, node.nodeLeftRef, ops.nodeView[0].typeRef);
                     return Result::Error;
                 }
 
                 if (!ops.nodeView[1].type->isScalarNumeric())
                 {
-                    sema.raiseBinaryOperandType(node, node.nodeRightRef, ops.nodeView[1].typeRef);
+                    SemaError::raiseBinaryOperandType(sema, node, node.nodeRightRef, ops.nodeView[1].typeRef);
                     return Result::Error;
                 }
                 break;
@@ -263,13 +265,13 @@ namespace
             case TokenId::SymLowerLower:
                 if (!ops.nodeView[0].type->isInt())
                 {
-                    sema.raiseBinaryOperandType(node, node.nodeLeftRef, ops.nodeView[0].typeRef);
+                    SemaError::raiseBinaryOperandType(sema, node, node.nodeLeftRef, ops.nodeView[0].typeRef);
                     return Result::Error;
                 }
 
                 if (!ops.nodeView[1].type->isInt())
                 {
-                    sema.raiseBinaryOperandType(node, node.nodeRightRef, ops.nodeView[1].typeRef);
+                    SemaError::raiseBinaryOperandType(sema, node, node.nodeRightRef, ops.nodeView[1].typeRef);
                     return Result::Error;
                 }
                 break;
@@ -332,7 +334,7 @@ namespace
                 break;
         }
 
-        sema.raiseInternalError(expr);
+        SemaError::raiseInternalError(sema, expr);
         return Result::Error;
     }
 }
@@ -359,7 +361,7 @@ AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema) const
         return AstVisitStepResult::Stop;
     }
 
-    sema.raiseInternalError(*this);
+    SemaError::raiseInternalError(sema, *this);
     return AstVisitStepResult::Stop;
 }
 

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Helpers/SemaError.h"
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisit.h"
 #include "Report/Diagnostic.h"
@@ -172,7 +173,7 @@ namespace
         if (ops.nodeView[0].type->isTypeInfo() && ops.nodeView[1].type->isTypeInfo())
             return Result::Success;
 
-        auto diag = sema.reportError(DiagnosticId::sema_err_compare_operand_type, node.srcViewRef(), node.tokRef());
+        auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_compare_operand_type, node.srcViewRef(), node.tokRef());
         diag.addArgument(Diagnostic::ARG_LEFT, ops.nodeView[0].typeRef);
         diag.addArgument(Diagnostic::ARG_RIGHT, ops.nodeView[1].typeRef);
         diag.report(sema.ctx());
@@ -184,7 +185,7 @@ namespace
         if (ops.nodeView[0].type->isScalarNumeric() && ops.nodeView[1].type->isScalarNumeric())
             return Result::Success;
 
-        auto diag = sema.reportError(DiagnosticId::sema_err_compare_operand_type, node.srcViewRef(), node.tokRef());
+        auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_compare_operand_type, node.srcViewRef(), node.tokRef());
         diag.addArgument(Diagnostic::ARG_LEFT, ops.nodeView[0].typeRef);
         diag.addArgument(Diagnostic::ARG_RIGHT, ops.nodeView[1].typeRef);
         diag.report(sema.ctx());
@@ -207,7 +208,7 @@ namespace
                 return checkCompareEqual(sema, node, ops);
 
             default:
-                sema.raiseInternalError(node);
+                SemaError::raiseInternalError(sema, node);
                 return Result::Error;
         }
     }
@@ -235,7 +236,7 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema) const
         return AstVisitStepResult::Stop;
     }
 
-    sema.raiseInternalError(*this);
+    SemaError::raiseInternalError(sema, *this);
     return AstVisitStepResult::Stop;
 }
 

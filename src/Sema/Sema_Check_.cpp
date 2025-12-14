@@ -1,4 +1,6 @@
 #include "pch.h"
+
+#include "Helpers/SemaError.h"
 #include "Main/CompilerInstance.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticDef.h"
@@ -40,7 +42,7 @@ Result Sema::checkModifiers(const AstNode& node, AstModifierFlags mods, AstModif
         const TokenRef    mdfRef  = srcView.findRightFrom(node.tokRef(), {tokId});
 
         // Emit diagnostic
-        auto diag = reportError(DiagnosticId::sema_err_modifier_unsupported, node.srcViewRef(), node.tokRef());
+        auto diag = SemaError::reportError(*this, DiagnosticId::sema_err_modifier_unsupported, node.srcViewRef(), node.tokRef());
         diag.addArgument(Diagnostic::ARG_WHAT, srcView.token(mdfRef).string(srcView));
         diag.last().addSpan(Diagnostic::tokenErrorLocation(ctx(), srcView, mdfRef), "");
         diag.report(ctx());

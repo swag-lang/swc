@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "Constant/ConstantManager.h"
+#include "Helpers/SemaError.h"
 #include "Main/Global.h"
 #include "Main/Version.h"
 #include "Parser/AstNodes.h"
@@ -21,7 +22,7 @@ AstVisitStepResult AstCompilerExpression::semaPostNode(Sema& sema)
 {
     if (!sema.hasConstant(nodeExprRef))
     {
-        sema.raiseExprNotConst(nodeExprRef);
+        SemaError::raiseExprNotConst(sema, nodeExprRef);
         return AstVisitStepResult::Stop;
     }
 
@@ -37,7 +38,7 @@ AstVisitStepResult AstCompilerIf::semaPreChild(Sema& sema, const AstNodeRef& chi
     const ConstantValue& constant = sema.constantOf(nodeConditionRef);
     if (!constant.isBool())
     {
-        sema.raiseInvalidType(nodeConditionRef, constant.typeRef(), sema.typeMgr().getTypeBool());
+        SemaError::raiseInvalidType(sema, nodeConditionRef, constant.typeRef(), sema.typeMgr().getTypeBool());
         return AstVisitStepResult::Stop;
     }
 
@@ -61,7 +62,7 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
         case TokenId::CompilerWarning:
             if (!constant.isString())
             {
-                sema.raiseInvalidType(nodeArgRef, constant.typeRef(), sema.typeMgr().getTypeString());
+                SemaError::raiseInvalidType(sema, nodeArgRef, constant.typeRef(), sema.typeMgr().getTypeString());
                 return AstVisitStepResult::Stop;
             }
             break;
@@ -69,7 +70,7 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
         case TokenId::CompilerAssert:
             if (!constant.isBool())
             {
-                sema.raiseInvalidType(nodeArgRef, constant.typeRef(), sema.typeMgr().getTypeBool());
+                SemaError::raiseInvalidType(sema, nodeArgRef, constant.typeRef(), sema.typeMgr().getTypeBool());
                 return AstVisitStepResult::Stop;
             }
             break;
@@ -82,7 +83,7 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
     {
         case TokenId::CompilerError:
         {
-            auto diag = sema.reportError(DiagnosticId::sema_err_compiler_error, srcViewRef(), tokRef());
+            auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_compiler_error, srcViewRef(), tokRef());
             diag.addArgument(Diagnostic::ARG_BECAUSE, constant.getString(), false);
             diag.report(sema.ctx());
             return AstVisitStepResult::Stop;
@@ -90,7 +91,7 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 
         case TokenId::CompilerWarning:
         {
-            auto diag = sema.reportError(DiagnosticId::sema_warn_compiler_warning, srcViewRef(), tokRef());
+            auto diag = SemaError::reportError(sema, DiagnosticId::sema_warn_compiler_warning, srcViewRef(), tokRef());
             diag.addArgument(Diagnostic::ARG_BECAUSE, constant.getString(), false);
             diag.report(sema.ctx());
             return AstVisitStepResult::Continue;
@@ -109,7 +110,7 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
         case TokenId::CompilerAssert:
             if (!constant.getBool())
             {
-                sema.raiseError(DiagnosticId::sema_err_compiler_assert, srcViewRef(), tokRef());
+                SemaError::raiseError(sema, DiagnosticId::sema_err_compiler_assert, srcViewRef(), tokRef());
                 return AstVisitStepResult::Stop;
             }
             break;
@@ -177,7 +178,7 @@ AstVisitStepResult AstCompilerLiteral::semaPostNode(Sema& sema) const
         case TokenId::CompilerBackend:
         case TokenId::CompilerScopeName:
         case TokenId::CompilerCurLocation:
-            sema.raiseInternalError(*this);
+            SemaError::raiseInternalError(sema, *this);
             return AstVisitStepResult::Stop;
 
         default:
@@ -209,7 +210,7 @@ AstVisitStepResult AstCompilerGlobal::semaPostNode(Sema& sema) const
         case Mode::Namespace:
         case Mode::CompilerIf:
         case Mode::Using:
-            sema.raiseInternalError(*this);
+            SemaError::raiseInternalError(sema, *this);
             return AstVisitStepResult::Continue;
     };
 
@@ -229,7 +230,7 @@ namespace
             nodeView.cstRef = SemaCast::concretizeConstant(sema, nodeView.cstRef, overflow);
             if (overflow)
             {
-                sema.raiseLiteralTooBig(node.nodeArgRef, sema.cstMgr().get(nodeView.cstRef));
+                SemaError::raiseLiteralTooBig(sema, node.nodeArgRef, sema.cstMgr().get(nodeView.cstRef));
                 return AstVisitStepResult::Stop;
             }
 
@@ -251,7 +252,7 @@ AstVisitStepResult AstCompilerCallUnary::semaPostNode(Sema& sema) const
             return semaCompilerTypeOf(*this, sema);
 
         default:
-            sema.raiseInternalError(*this);
+            SemaError::raiseInternalError(sema, *this);
             return AstVisitStepResult::Stop;
     }
 }

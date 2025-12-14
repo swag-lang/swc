@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Sema/Sema.h"
+#include "Helpers/SemaError.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Memory/Heap.h"
@@ -206,7 +207,7 @@ namespace
             {
                 if (state.kind == TaskStateKind::SemaWaitingIdentifier)
                 {
-                    semaJob->sema().raiseError(DiagnosticId::sema_err_unknown_identifier, state.nodeRef);
+                    SemaError::raiseError(semaJob->sema(), DiagnosticId::sema_err_unknown_identifier, state.nodeRef);
                 }
             }
         }

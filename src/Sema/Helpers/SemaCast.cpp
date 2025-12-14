@@ -1,11 +1,13 @@
 #include "pch.h"
-#include "Sema/Helpers/SemaCast.h"
+
 #include "Math/ApFloat.h"
 #include "Math/ApsInt.h"
 #include "Report/Diagnostic.h"
 #include "Sema/Constant/ConstantManager.h"
+#include "Sema/Helpers/SemaCast.h"
 #include "Sema/Sema.h"
 #include "Sema/Type/TypeManager.h"
+#include "SemaError.h"
 #include "SemaNodeView.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -155,7 +157,7 @@ namespace
             return sema.cstMgr().addConstant(ctx, result);
         }
 
-        sema.raiseCannotCast(castCtx.errorNodeRef, src.typeRef(), targetTypeRef);
+        SemaError::raiseCannotCast(sema, castCtx.errorNodeRef, src.typeRef(), targetTypeRef);
         return ConstantRef::invalid();
     }
 
@@ -183,7 +185,7 @@ namespace
             // Negative signed source can never fit.
             if (!value.isUnsigned() && value.isNegative() && !castCtx.flags.has(CastFlagsE::NoOverflow) && targetBits != 0)
             {
-                auto diag = sema.reportError(DiagnosticId::sema_err_signed_unsigned, castCtx.errorNodeRef);
+                auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_signed_unsigned, castCtx.errorNodeRef);
                 diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
                 diag.addArgument(Diagnostic::ARG_VALUE, value.toString());
                 diag.addElement(DiagnosticId::sema_note_signed_unsigned);
@@ -257,7 +259,7 @@ namespace
                     // Value fits in N bits, but outside signed range -> signed/unsigned error.
                     if (!castCtx.flags.has(CastFlagsE::NoOverflow))
                     {
-                        auto diag = sema.reportError(DiagnosticId::sema_err_signed_unsigned, castCtx.errorNodeRef);
+                        auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_signed_unsigned, castCtx.errorNodeRef);
                         diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
                         diag.addArgument(Diagnostic::ARG_VALUE, value.toString());
                         diag.addElement(DiagnosticId::sema_note_unsigned_signed);
@@ -270,7 +272,7 @@ namespace
 
         if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
         {
-            sema.raiseLiteralOverflow(castCtx.errorNodeRef, src, targetTypeRef);
+            SemaError::raiseLiteralOverflow(sema, castCtx.errorNodeRef, src, targetTypeRef);
             return ConstantRef::invalid();
         }
 
@@ -319,7 +321,7 @@ namespace
         value.set(intVal, targetBits, isExact, overflow);
         if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
         {
-            sema.raiseLiteralOverflow(castCtx.errorNodeRef, src, targetTypeRef);
+            SemaError::raiseLiteralOverflow(sema, castCtx.errorNodeRef, src, targetTypeRef);
             return ConstantRef::invalid();
         }
 
@@ -341,7 +343,7 @@ namespace
         const ApsInt value    = srcVal.toInt(targetBits, isUnsigned, isExact, overflow);
         if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
         {
-            sema.raiseLiteralOverflow(castCtx.errorNodeRef, src, targetTypeRef);
+            SemaError::raiseLiteralOverflow(sema, castCtx.errorNodeRef, src, targetTypeRef);
             return ConstantRef::invalid();
         }
 
@@ -362,7 +364,7 @@ namespace
         const ApFloat value    = floatVal.toFloat(targetBits, isExact, overflow);
         if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
         {
-            sema.raiseLiteralOverflow(castCtx.errorNodeRef, src, targetTypeRef);
+            SemaError::raiseLiteralOverflow(sema, castCtx.errorNodeRef, src, targetTypeRef);
             return ConstantRef::invalid();
         }
 
@@ -386,7 +388,7 @@ bool SemaCast::castAllowed(Sema& sema, const CastContext& castCtx, TypeRef srcTy
 
         if (!srcScalar || !dstScalar)
         {
-            auto diag = sema.reportError(DiagnosticId::sema_err_bit_cast_invalid_type, castCtx.errorNodeRef);
+            auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_bit_cast_invalid_type, castCtx.errorNodeRef);
             diag.addArgument(Diagnostic::ARG_TYPE, !srcScalar ? srcTypeRef : targetTypeRef);
             diag.report(ctx);
             return false;
@@ -397,7 +399,7 @@ bool SemaCast::castAllowed(Sema& sema, const CastContext& castCtx, TypeRef srcTy
         if (srcBits == dstBits || !srcBits)
             return true;
 
-        auto diag = sema.reportError(DiagnosticId::sema_err_bit_cast_size, castCtx.errorNodeRef);
+        auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_bit_cast_size, castCtx.errorNodeRef);
         diag.addArgument(Diagnostic::ARG_LEFT, srcTypeRef);
         diag.addArgument(Diagnostic::ARG_RIGHT, targetTypeRef);
         diag.report(ctx);
@@ -443,7 +445,7 @@ bool SemaCast::castAllowed(Sema& sema, const CastContext& castCtx, TypeRef srcTy
             SWC_UNREACHABLE();
     }
 
-    sema.raiseCannotCast(castCtx.errorNodeRef, srcTypeRef, targetTypeRef);
+    SemaError::raiseCannotCast(sema, castCtx.errorNodeRef, srcTypeRef, targetTypeRef);
     return false;
 }
 
@@ -482,7 +484,7 @@ ConstantRef SemaCast::castConstant(Sema& sema, const CastContext& castCtx, Const
     if (srcType.isFloat() && targetType.isIntLike())
         return castFloatToIntLike(sema, castCtx, cst, targetTypeRef);
 
-    sema.raiseInternalError(sema.node(castCtx.errorNodeRef));
+    SemaError::raiseInternalError(sema, sema.node(castCtx.errorNodeRef));
     return ConstantRef::invalid();
 }
 
@@ -522,7 +524,7 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
                 leftSrc = concretizeConstant(sema, leftSrc, overflow);
                 if (overflow)
                 {
-                    sema.raiseLiteralTooBig(ops.nodeView[0].nodeRef, sema.cstMgr().get(leftSrc));
+                    SemaError::raiseLiteralTooBig(sema, ops.nodeView[0].nodeRef, sema.cstMgr().get(leftSrc));
                     return false;
                 }
             }
@@ -532,7 +534,7 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
                 rightSrc = concretizeConstant(sema, rightSrc, overflow);
                 if (overflow)
                 {
-                    sema.raiseLiteralTooBig(ops.nodeView[1].nodeRef, sema.cstMgr().get(rightSrc));
+                    SemaError::raiseLiteralTooBig(sema, ops.nodeView[1].nodeRef, sema.cstMgr().get(rightSrc));
                     return false;
                 }
             }

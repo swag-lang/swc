@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Constant/ConstantManager.h"
+#include "Helpers/SemaError.h"
 #include "Sema/Helpers/SemaCast.h"
 #include "Sema/Helpers/SemaNodeView.h"
 #include "Sema/Sema.h"
@@ -35,7 +36,7 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
                 cpy.negate(overflow);
                 if (overflow)
                 {
-                    sema.raiseLiteralOverflow(nodeLiteralRef, cst, cst.typeRef());
+                    SemaError::raiseLiteralOverflow(sema, nodeLiteralRef, cst, cst.typeRef());
                     return AstVisitStepResult::Stop;
                 }
 

@@ -87,22 +87,6 @@ public:
     void pushFrame(const SemaFrame& frame);
     void popFrame();
 
-    void       setReportArguments(Diagnostic& diag, SourceViewRef srcViewRef, TokenRef tokRef) const;
-    Diagnostic reportError(DiagnosticId id, AstNodeRef nodeRef) const;
-    Diagnostic reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef, AstNodeRef nodeSpanRef) const;
-    Diagnostic reportError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef) const;
-    void       raiseError(DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef) const;
-    void       raiseError(DiagnosticId id, AstNodeRef nodeRef) const;
-
-    void raiseInvalidType(AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef) const;
-    void raiseCannotCast(AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef) const;
-    void raiseLiteralOverflow(AstNodeRef nodeRef, const ConstantValue& literal, TypeRef targetTypeRef) const;
-    void raiseLiteralTooBig(AstNodeRef nodeRef, const ConstantValue& literal) const;
-    void raiseDivZero(const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef) const;
-    void raiseExprNotConst(AstNodeRef nodeRef) const;
-    void raiseBinaryOperandType(const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef) const;
-    void raiseInternalError(const AstNode& node) const;
-
     Result checkModifiers(const AstNode& node, AstModifierFlags mods, AstModifierFlags allowed);
 
     void               lookupIdentifier(LookupResult& result, IdentifierRef idRef) const;

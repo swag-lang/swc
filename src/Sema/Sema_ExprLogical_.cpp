@@ -1,8 +1,8 @@
 #include "pch.h"
+#include "Helpers/SemaError.h"
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisit.h"
 #include "Sema/Constant/ConstantManager.h"
-#include "Sema/Helpers/SemaInfo.h"
 #include "Sema/Helpers/SemaNodeView.h"
 #include "Sema/Sema.h"
 
@@ -38,17 +38,17 @@ namespace
         }
     }
 
-    Result check(const Sema& sema, TokenId op, const AstLogicalExpr& node, const SemaNodeViewList& ops)
+    Result check(Sema& sema, TokenId op, const AstLogicalExpr& node, const SemaNodeViewList& ops)
     {
         if (!ops.nodeView[0].type->isBool())
         {
-            sema.raiseBinaryOperandType(node, node.nodeLeftRef, ops.nodeView[0].typeRef);
+            SemaError::raiseBinaryOperandType(sema, node, node.nodeLeftRef, ops.nodeView[0].typeRef);
             return Result::Error;
         }
 
         if (!ops.nodeView[1].type->isBool())
         {
-            sema.raiseBinaryOperandType(node, node.nodeRightRef, ops.nodeView[1].typeRef);
+            SemaError::raiseBinaryOperandType(sema, node, node.nodeRightRef, ops.nodeView[1].typeRef);
             return Result::Error;
         }
 
@@ -78,7 +78,7 @@ AstVisitStepResult AstLogicalExpr::semaPostNode(Sema& sema) const
         return AstVisitStepResult::Stop;
     }
 
-    sema.raiseInternalError(*this);
+    SemaError::raiseInternalError(sema, *this);
     return AstVisitStepResult::Stop;
 }
 

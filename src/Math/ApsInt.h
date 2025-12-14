@@ -42,13 +42,13 @@ public:
     void setUnsigned(bool isUnsigned) { unsigned_ = isUnsigned; }
     void setSigned(bool isSigned) { unsigned_ = !isSigned; }
 
-    void    add(const ApsInt& rhs, bool& overflow);
-    void    sub(const ApsInt& rhs, bool& overflow);
-    void    mul(const ApsInt& rhs, bool& overflow);
-    int64_t div(const ApsInt& rhs, bool& overflow);
-    void    mod(const ApsInt& rhs, bool& overflow);
-    void    shiftLeft(uint64_t amount, bool& overflow);
-    void    shiftRight(uint64_t amount);
+    void   add(const ApsInt& rhs, bool& overflow);
+    void   sub(const ApsInt& rhs, bool& overflow);
+    void   mul(const ApsInt& rhs, bool& overflow);
+    ApsInt div(const ApsInt& rhs, bool& overflow);
+    void   mod(const ApsInt& rhs, bool& overflow);
+    void   shiftLeft(uint64_t amount, bool& overflow);
+    void   shiftRight(uint64_t amount);
 
     bool     same(const ApsInt& other) const;
     int      compare(const ApsInt& other) const;

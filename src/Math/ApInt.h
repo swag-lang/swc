@@ -12,8 +12,8 @@ public:
     uint32_t        bitWidth() const { return bitWidth_; }
     static uint32_t maxBitWidth() { return MAX_BITS; }
 
-    bool     fits64() const;
-    bool     fits64Signed() const;
+    bool     fit64() const;
+    bool     fit64Signed() const;
     uint64_t as64() const;
     int64_t  as64Signed() const;
 
@@ -51,17 +51,17 @@ public:
     void     mul(uint64_t v, bool& overflow);
     uint64_t div(uint64_t v);
 
-    void     add(const ApInt& rhs, bool& overflow);
-    void     sub(const ApInt& rhs, bool& overflow);
-    void     mul(const ApInt& rhs, bool& overflow);
-    uint64_t div(const ApInt& rhs);
-    void     mod(const ApInt& rhs);
-    void     modSigned(const ApInt& rhs, bool& overflow);
+    void  add(const ApInt& rhs, bool& overflow);
+    void  sub(const ApInt& rhs, bool& overflow);
+    void  mul(const ApInt& rhs, bool& overflow);
+    ApInt div(const ApInt& rhs);
+    void  mod(const ApInt& rhs);
+    void  modSigned(const ApInt& rhs, bool& overflow);
 
-    void    addSigned(const ApInt& rhs, bool& overflow);
-    void    subSigned(const ApInt& rhs, bool& overflow);
-    void    mulSigned(const ApInt& rhs, bool& overflow);
-    int64_t divSigned(const ApInt& rhs, bool& overflow);
+    void  addSigned(const ApInt& rhs, bool& overflow);
+    void  subSigned(const ApInt& rhs, bool& overflow);
+    void  mulSigned(const ApInt& rhs, bool& overflow);
+    ApInt divSigned(const ApInt& rhs, bool& overflow);
 
     static ApInt minValue(uint32_t bitWidth);
     static ApInt minValueSigned(uint32_t bitWidth);

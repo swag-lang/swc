@@ -31,16 +31,16 @@ void ApsInt::mul(const ApsInt& rhs, bool& overflow)
         mulSigned(rhs, overflow);
 }
 
-int64_t ApsInt::div(const ApsInt& rhs, bool& overflow)
+ApsInt ApsInt::div(const ApsInt& rhs, bool& overflow)
 {
     SWC_ASSERT(unsigned_ == rhs.unsigned_);
     if (unsigned_)
     {
         overflow = false;
-        return static_cast<int64_t>(ApInt::div(rhs));
+        return ApsInt{ApInt::div(rhs), true};
     }
 
-    return divSigned(rhs, overflow);
+    return ApsInt{divSigned(rhs, overflow), false};
 }
 
 void ApsInt::mod(const ApsInt& rhs, bool& overflow)
@@ -158,8 +158,8 @@ uint32_t ApsInt::minBits() const
 bool ApsInt::fits64() const
 {
     if (unsigned_)
-        return ApInt::fits64();
-    return fits64Signed();
+        return ApInt::fit64();
+    return fit64Signed();
 }
 
 SWC_END_NAMESPACE()

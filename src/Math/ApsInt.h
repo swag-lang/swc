@@ -68,7 +68,7 @@ public:
     Utf8     toString() const;
     bool     fits64() const;
     int64_t  asI64() const;
-    uint32_t minBitsStd() const;
+    uint32_t minBits() const;
 };
 
 SWC_END_NAMESPACE()

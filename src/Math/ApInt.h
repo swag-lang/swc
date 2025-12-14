@@ -85,8 +85,6 @@ public:
     Utf8     toSignedString() const;
     uint32_t minBits() const;
     uint32_t minBitsSigned() const;
-    uint32_t minBitsStd() const;
-    uint32_t minBitsSignedStd() const;
 
 protected:
     static constexpr unsigned MAX_BITS = 128;

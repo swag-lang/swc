@@ -587,7 +587,7 @@ ConstantRef SemaCast::concretizeConstant(Sema& sema, ConstantRef cstRef, bool& o
         const bool unsignedTarget = value.isUnsigned();
 
         // Smallest standard width (8/16/32/64/...) for this value & signedness.
-        uint32_t concreteBits = value.minBitsStd();
+        uint32_t concreteBits = value.minBits();
         concreteBits          = std::max(concreteBits, 32u);
 
         if (concreteBits > 64u)

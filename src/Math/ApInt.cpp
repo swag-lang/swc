@@ -1177,6 +1177,21 @@ Utf8 ApInt::toSignedString() const
     return "-" + digits;
 }
 
+namespace
+{
+    uint32_t roundUpToStdWidth(uint32_t bits)
+    {
+        SWC_ASSERT(bits > 0);
+        bits = std::min(bits, ApInt::maxBitWidth());
+
+        uint32_t w = 8;
+        while (w < bits && w < ApInt::maxBitWidth())
+            w <<= 1;
+
+        return (w > ApInt::maxBitWidth()) ? ApInt::maxBitWidth() : w;
+    }
+}
+
 uint32_t ApInt::minBits() const
 {
     SWC_ASSERT(bitWidth_ > 0 && numWords_ > 0);
@@ -1201,13 +1216,13 @@ uint32_t ApInt::minBits() const
         {
             const uint32_t msbInWord = 63u - static_cast<uint32_t>(std::countl_zero(w));
             const uint32_t bitIndex  = static_cast<uint32_t>(wi) * WORD_BITS + msbInWord;
-            const uint32_t bits      = bitIndex + 1;
-            return (bits == 0) ? 1u : std::min(bits, bitWidth_);
+            const uint32_t rawBits   = std::min(bitIndex + 1, bitWidth_);
+            return roundUpToStdWidth(std::max<uint32_t>(rawBits, 1u));
         }
     }
 
-    // Value is 0
-    return 1;
+    // Value is 0 => raw bits = 1 => std width = 8
+    return 8;
 }
 
 uint32_t ApInt::minBitsSigned() const
@@ -1216,8 +1231,7 @@ uint32_t ApInt::minBitsSigned() const
 
     const bool sign = isSignBitSet();
 
-    // We want to remove redundant sign-extension.
-    // Find the highest bit that differs from the sign bit.
+    // Remove redundant sign-extension: find highest bit that differs from the sign fill.
     for (int wi = static_cast<int>(numWords_) - 1; wi >= 0; --wi)
     {
         uint64_t w    = words_[static_cast<uint32_t>(wi)];
@@ -1231,7 +1245,7 @@ uint32_t ApInt::minBitsSigned() const
             {
                 const uint64_t mask = (uint64_t{1} << used) - 1;
                 w &= mask;
-                fill &= mask; // "all sign bits" but only within used bits
+                fill &= mask;
             }
         }
 
@@ -1241,46 +1255,16 @@ uint32_t ApInt::minBitsSigned() const
             const uint32_t msbInWord = 63u - static_cast<uint32_t>(std::countl_zero(diff));
             const uint32_t bitIndex  = static_cast<uint32_t>(wi) * WORD_BITS + msbInWord;
 
-            // Need one extra bit above the highest differing bit to carry the sign.
-            // Example: +1 (01) => bitIndex=0 => 2 bits
-            //          -2 (10) => bitIndex=0 => 2 bits
-            uint32_t bits = bitIndex + 2;
-            bits          = std::max<uint32_t>(bits, 1);
-            bits          = std::min(bits, bitWidth_);
-            return bits;
+            // One extra bit above the highest differing bit to carry the sign.
+            uint32_t rawBits = bitIndex + 2;
+            rawBits          = std::max<uint32_t>(rawBits, 1u);
+            rawBits          = std::min<uint32_t>(rawBits, bitWidth_);
+            return roundUpToStdWidth(rawBits);
         }
     }
 
-    // All bits equal the sign bit within the current width:
-    // 0 -> 1, -1 -> 1
-    return 1;
-}
-
-namespace
-{
-    uint32_t roundUpToStdWidth(uint32_t bits)
-    {
-        SWC_ASSERT(bits > 0);
-        bits = std::min(bits, ApInt::maxBitWidth());
-
-        uint32_t w = 8;
-        while (w < bits && w < ApInt::maxBitWidth())
-            w <<= 1;
-
-        return (w > ApInt::maxBitWidth()) ? ApInt::maxBitWidth() : w;
-    }
-}
-
-uint32_t ApInt::minBitsStd() const
-{
-    const uint32_t bits = minBits();
-    return roundUpToStdWidth(bits);
-}
-
-uint32_t ApInt::minBitsSignedStd() const
-{
-    const uint32_t bits = minBitsSigned();
-    return roundUpToStdWidth(bits);
+    // All bits are just sign-extension: 0 or -1 => rawBits = 1 => std width = 8
+    return 8;
 }
 
 bool ApInt::fits64() const

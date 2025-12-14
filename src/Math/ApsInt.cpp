@@ -155,11 +155,11 @@ int64_t ApsInt::asI64() const
     return std::bit_cast<int64_t>(result);
 }
 
-uint32_t ApsInt::minBitsStd() const
+uint32_t ApsInt::minBits() const
 {
     if (unsigned_)
-        return ApInt::minBitsStd();
-    return minBitsSignedStd();
+        return ApInt::minBits();
+    return minBitsSigned();
 }
 
 bool ApsInt::fits64() const

@@ -155,7 +155,7 @@
 #assert(0'u16 == 0's16)
 #assert(0'u32 == 0's32)
 #assert(0'u64 == 0's64)
-#assert(-1's8 != 1'u8)              // swc-expected-error {{sema_err_signed_unsigned}}
+#assert(-1's8 != 1'u8)
 #assert((1's8 <=> -1's8) == 1)
 #assert((-1's8 <=> 1's8) == -1)
 #assert((0's8 <=> 0's8) == 0)

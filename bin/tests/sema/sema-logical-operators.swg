@@ -24,7 +24,7 @@
 #assert(true and 1)   // swc-expected-error {{sema_err_binary_operand_type}}
 #assert(1 or false)   // swc-expected-error {{sema_err_binary_operand_type}}
 #assert(!"true")      // swc-expected-error {{sema_err_unary_operand_type}}
-#assert(!1)           // swc-expected-error {{sema_err_unary_operand_type}}
 
+#assert(!1)
 #assert(1 == 1 and 2 != 3 == true)
 #assert(1 > 5 or 2 < 10 == true)

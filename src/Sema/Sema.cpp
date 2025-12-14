@@ -9,6 +9,7 @@
 #include "Sema/SemaScope.h"
 #include "Symbol/Symbols.h"
 #include "Thread/JobManager.h"
+#include "Wmf/Verify.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -193,7 +194,7 @@ AstVisitStepResult Sema::pause(TaskStateKind kind, AstNodeRef nodeRef)
 
 namespace
 {
-    void postProcess(const TaskContext& ctx, JobClientId clientId)
+    void postProcess(TaskContext& ctx, JobClientId clientId)
     {
         std::vector<Job*> jobs;
         ctx.global().jobMgr().waitingJobs(jobs, clientId);
@@ -208,6 +209,14 @@ namespace
                     semaJob->sema().raiseError(DiagnosticId::sema_err_unknown_identifier, state.nodeRef);
                 }
             }
+        }
+
+        for (const auto& f : ctx.compiler().files())
+        {
+            const auto& srcView = f->ast().srcView();
+            if (srcView.mustSkip())
+                continue;
+            f->unitTest().verifyUntouchedExpected(ctx, srcView);
         }
     }
 }

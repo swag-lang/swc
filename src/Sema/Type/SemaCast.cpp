@@ -75,9 +75,8 @@ namespace
     {
         auto&              ctx     = sema.ctx();
         const TypeManager& typeMgr = ctx.typeMgr();
-
-        const TypeInfo& srcType = typeMgr.get(srcTypeRef);
-        const TypeInfo& dstType = typeMgr.get(dstTypeRef);
+        const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
+        const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
         const bool srcScalar = srcType.isScalarNumeric();
         const bool dstScalar = dstType.isScalarNumeric();

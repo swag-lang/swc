@@ -36,12 +36,24 @@ struct CastContext
     }
 };
 
+struct CastFailure
+{
+    DiagnosticId diagId;
+    AstNodeRef   nodeRef;   // where to point the error (usually castCtx.errorNodeRef)
+    TypeRef      leftType;  // optional, depends on diag
+    TypeRef      rightType; // optional
+    TypeRef      typeArg;   // optional (for "invalid type" cases)
+};
+
+using CastCheckResult = std::optional<CastFailure>; // nullopt => allowed
+
 namespace SemaCast
 {
-    bool        castAllowed(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef);
-    ConstantRef castConstant(Sema& sema, const CastContext& castCtx, ConstantRef cstRef, TypeRef targetTypeRef);
-    bool        promoteConstants(Sema& sema, const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef, bool force32BitInts = false);
-    ConstantRef concretizeConstant(Sema& sema, ConstantRef cstRef, bool& overflow);
+    std::optional<CastFailure> checkCast(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef);
+    bool                       castAllowed(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef);
+    ConstantRef                castConstant(Sema& sema, const CastContext& castCtx, ConstantRef cstRef, TypeRef targetTypeRef);
+    bool                       promoteConstants(Sema& sema, const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef, bool force32BitInts = false);
+    ConstantRef                concretizeConstant(Sema& sema, ConstantRef cstRef, bool& overflow);
 };
 
 SWC_END_NAMESPACE()

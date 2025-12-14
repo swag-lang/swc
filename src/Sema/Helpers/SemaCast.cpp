@@ -374,7 +374,7 @@ namespace
 
 }
 
-bool SemaCast::castAllowed(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef)
+std::optional<CastFailure> SemaCast::checkCast(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
     auto&              ctx        = sema.ctx();
     const TypeManager& typeMgr    = ctx.typeMgr();
@@ -388,65 +388,104 @@ bool SemaCast::castAllowed(Sema& sema, const CastContext& castCtx, TypeRef srcTy
 
         if (!srcScalar || !dstScalar)
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_bit_cast_invalid_type, castCtx.errorNodeRef);
-            diag.addArgument(Diagnostic::ARG_TYPE, !srcScalar ? srcTypeRef : targetTypeRef);
-            diag.report(ctx);
-            return false;
+            CastFailure f;
+            f.diagId  = DiagnosticId::sema_err_bit_cast_invalid_type;
+            f.nodeRef = castCtx.errorNodeRef;
+            f.typeArg = !srcScalar ? srcTypeRef : targetTypeRef;
+            return f;
         }
 
         const uint32_t srcBits = srcType.scalarNumericBits();
         const uint32_t dstBits = targetType.scalarNumericBits();
         if (srcBits == dstBits || !srcBits)
-            return true;
+            return std::nullopt;
 
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_bit_cast_size, castCtx.errorNodeRef);
-        diag.addArgument(Diagnostic::ARG_LEFT, srcTypeRef);
-        diag.addArgument(Diagnostic::ARG_RIGHT, targetTypeRef);
-        diag.report(ctx);
-        return false;
+        CastFailure f;
+        f.diagId    = DiagnosticId::sema_err_bit_cast_size;
+        f.nodeRef   = castCtx.errorNodeRef;
+        f.leftType  = srcTypeRef;
+        f.rightType = targetTypeRef;
+        return f;
     }
 
     if (srcTypeRef == targetTypeRef)
-        return true;
+        return std::nullopt;
 
     switch (castCtx.kind)
     {
         case CastKind::LiteralSuffix:
             if (srcType.isChar() && targetType.isIntUnsigned())
-                return true;
+                return std::nullopt;
             if (srcType.isChar() && targetType.isRune())
-                return true;
+                return std::nullopt;
             if (srcType.isInt() && targetType.isInt())
-                return true;
+                return std::nullopt;
             if (srcType.isInt() && targetType.isFloat())
-                return true;
+                return std::nullopt;
             if (srcType.isFloat() && targetType.isFloat())
-                return true;
+                return std::nullopt;
             break;
 
         case CastKind::Promotion:
             if (srcType.isScalarNumeric() && targetType.isScalarNumeric())
-                return true;
+                return std::nullopt;
             break;
 
         case CastKind::Explicit:
             if (srcType.isScalarNumeric() && targetType.isScalarNumeric())
-                return true;
-            if ((srcType.isBool() && targetType.isIntLike()) || (srcType.isIntLike() && targetType.isBool()))
-                return true;
+                return std::nullopt;
+            if ((srcType.isBool() && targetType.isIntLike()) ||
+                (srcType.isIntLike() && targetType.isBool()))
+                return std::nullopt;
             break;
 
         case CastKind::Implicit:
             if (srcType.isScalarNumeric() && targetType.isScalarNumeric())
-                return true;
+                return std::nullopt;
             break;
 
         default:
             SWC_UNREACHABLE();
     }
 
-    SemaError::raiseCannotCast(sema, castCtx.errorNodeRef, srcTypeRef, targetTypeRef);
-    return false;
+    // generic failure (no emission here)
+    CastFailure f;
+    f.diagId    = DiagnosticId::sema_err_cannot_cast; // or whatever your generic id is
+    f.nodeRef   = castCtx.errorNodeRef;
+    f.leftType  = srcTypeRef;
+    f.rightType = targetTypeRef;
+    return f;
+}
+
+bool SemaCast::castAllowed(Sema& sema, const CastContext& castCtx, TypeRef src, TypeRef dst)
+{
+    if (auto failure = checkCast(sema, castCtx, src, dst))
+    {
+        // Old behavior: emit immediately
+        auto diag = SemaError::report(sema, failure->diagId, failure->nodeRef);
+
+        // Fill args depending on id (centralized)
+        switch (failure->diagId)
+        {
+            case DiagnosticId::sema_err_bit_cast_invalid_type:
+                diag.addArgument(Diagnostic::ARG_TYPE, failure->typeArg);
+                break;
+            case DiagnosticId::sema_err_bit_cast_size:
+                diag.addArgument(Diagnostic::ARG_LEFT, failure->leftType);
+                diag.addArgument(Diagnostic::ARG_RIGHT, failure->rightType);
+                break;
+            default:
+                // your standard cannot-cast formatting
+                diag.addArgument(Diagnostic::ARG_LEFT, failure->leftType);
+                diag.addArgument(Diagnostic::ARG_RIGHT, failure->rightType);
+                break;
+        }
+
+        diag.report(sema.ctx());
+        return false;
+    }
+
+    return true;
 }
 
 ConstantRef SemaCast::castConstant(Sema& sema, const CastContext& castCtx, ConstantRef cstRef, TypeRef targetTypeRef)

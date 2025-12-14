@@ -16,6 +16,8 @@ namespace SemaError
     void raise(Sema& sema, DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef);
     void raise(Sema& sema, DiagnosticId id, AstNodeRef nodeRef);
 
+    Diagnostic reportCannotCast(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
+
     void raiseInvalidType(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
     void raiseCannotCast(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
     void raiseLiteralOverflow(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal, TypeRef targetTypeRef);

@@ -72,11 +72,17 @@ void SemaError::raiseInvalidType(Sema& sema, AstNodeRef nodeRef, TypeRef srcType
     diag.report(sema.ctx());
 }
 
-void SemaError::raiseCannotCast(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
+Diagnostic SemaError::reportCannotCast(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
     auto diag = report(sema, DiagnosticId::sema_err_cannot_cast, nodeRef);
     diag.addArgument(Diagnostic::ARG_TYPE, srcTypeRef);
     diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, targetTypeRef);
+    return diag;
+}
+
+void SemaError::raiseCannotCast(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
+{
+    const auto diag = reportCannotCast(sema, nodeRef, srcTypeRef, targetTypeRef);
     diag.report(sema.ctx());
 }
 

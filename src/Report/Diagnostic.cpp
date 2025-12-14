@@ -109,6 +109,14 @@ DiagnosticElement& Diagnostic::addElement(DiagnosticId id)
     return *raw;
 }
 
+DiagnosticElement& Diagnostic::addElement(DiagnosticElement& element)
+{
+    auto       ptr = std::make_shared<DiagnosticElement>(element);
+    const auto raw = ptr.get();
+    elements_.emplace_back(std::move(ptr));
+    return *raw;
+}
+
 void Diagnostic::addArgument(std::string_view name, std::string_view arg, bool quoted)
 {
     Utf8 sanitized;

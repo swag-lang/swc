@@ -1,5 +1,4 @@
 #include "pch.h"
-
 #include "Math/Helpers.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Helpers/SemaError.h"
@@ -9,27 +8,6 @@
 #include "Sema/Type/SemaCast.h"
 
 SWC_BEGIN_NAMESPACE()
-
-namespace
-{
-    bool foldConstantCast(Sema& sema, CastContext& castCtx, ConstantRef srcConstRef, TypeRef dstTypeRef, ConstantRef& outConstRef)
-    {
-        outConstRef = ConstantRef::invalid();
-
-        const ConstantValue& cst        = sema.cstMgr().get(srcConstRef);
-        const TypeRef        srcTypeRef = cst.typeRef();
-
-        CastFoldContext foldCtx{.srcConstRef = srcConstRef, .outConstRef = &outConstRef};
-
-        CastFoldContext* saved = castCtx.fold;
-        castCtx.fold           = &foldCtx;
-
-        const bool ok = SemaCast::analyseCastCore(sema, castCtx, srcTypeRef, dstTypeRef);
-
-        castCtx.fold = saved;
-        return ok;
-    }
-}
 
 void SemaCast::foldConstantIdentity(const CastContext& castCtx)
 {
@@ -325,8 +303,17 @@ bool SemaCast::foldConstantFloatToFloat(Sema& sema, CastContext& castCtx, TypeRe
 
 ConstantRef SemaCast::castConstant(Sema& sema, CastContext& castCtx, ConstantRef cstRef, TypeRef targetTypeRef)
 {
-    ConstantRef out = ConstantRef::invalid();
-    if (!foldConstantCast(sema, castCtx, cstRef, targetTypeRef, out))
+    ConstantRef          out        = ConstantRef::invalid();
+    const ConstantValue& cst        = sema.cstMgr().get(cstRef);
+    const TypeRef        srcTypeRef = cst.typeRef();
+    CastFoldContext      foldCtx{.srcConstRef = cstRef, .outConstRef = &out};
+    CastFoldContext*     saved = castCtx.fold;
+
+    castCtx.fold  = &foldCtx;
+    const bool ok = analyseCastCore(sema, castCtx, srcTypeRef, targetTypeRef);
+    castCtx.fold  = saved;
+
+    if (!ok)
     {
         emitCastFailure(sema, castCtx.failure);
         return ConstantRef::invalid();

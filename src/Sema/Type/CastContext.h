@@ -34,7 +34,7 @@ struct CastFailure
     AstNodeRef   nodeRef    = AstNodeRef::invalid();
     TypeRef      srcTypeRef = TypeRef::invalid();
     TypeRef      dstTypeRef = TypeRef::invalid();
-    Utf8         valueStr;
+    Utf8         valueStr{};
 
     void reset(AstNodeRef errorNodeRef);
     void set(AstNodeRef errorNodeRef, DiagnosticId d, TypeRef src, TypeRef dst);

@@ -6,15 +6,6 @@ SWC_BEGIN_NAMESPACE()
 
 class ApFloat
 {
-    static constexpr unsigned MAX_BITS = 64;
-
-    uint32_t bitWidth_;
-    union
-    {
-        float  f32;
-        double f64;
-    } value_;
-
 public:
     ApFloat();
     explicit ApFloat(double value);
@@ -57,9 +48,20 @@ public:
     bool gt(const ApFloat& rhs) const;
     bool ge(const ApFloat& rhs) const;
 
-    Utf8    toString() const;
-    ApsInt  toInt(uint32_t targetBits, bool isUnsigned, bool& isExact, bool& overflow) const;
-    ApFloat toFloat(uint32_t targetBits, bool& isExact, bool& overflow) const;
+    Utf8     toString() const;
+    ApsInt   toInt(uint32_t targetBits, bool isUnsigned, bool& isExact, bool& overflow) const;
+    ApFloat  toFloat(uint32_t targetBits, bool& isExact, bool& overflow) const;
+    uint32_t minBits() const;
+
+private:
+    static constexpr unsigned MAX_BITS = 64;
+
+    uint32_t bitWidth_;
+    union
+    {
+        float  f32;
+        double f64;
+    } value_;
 };
 
 SWC_END_NAMESPACE()

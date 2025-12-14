@@ -567,4 +567,35 @@ ApFloat ApFloat::toFloat(uint32_t targetBits, bool& isExact, bool& overflow) con
     return result;
 }
 
+uint32_t ApFloat::minBits() const
+{
+    SWC_ASSERT(bitWidth_ == 32 || bitWidth_ == 64);
+
+    // If we're already 32-bit, that's the minimum we support.
+    if (bitWidth_ == 32)
+        return 32;
+
+    const double d = value_.f64;
+
+    // NaN and Inf exist in both float and double.
+    if (std::isnan(d))
+        return 32;
+    if (std::isinf(d))
+        return 32;
+
+    // Preserve -0 exactly (signbit matters, but the round-trip test below also works).
+    // Check whether the value round-trips through float unchanged.
+    const float  f  = static_cast<float>(d);
+    const double rt = f;
+
+    if (rt == d)
+    {
+        // Covers normal/subnormal/zero (including -0) that are exactly representable.
+        // Also covers values that don't overflow/underflow in float.
+        return 32;
+    }
+
+    return 64;
+}
+
 SWC_END_NAMESPACE()

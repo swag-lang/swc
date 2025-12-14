@@ -5,43 +5,6 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void ApInt::clearWords()
-{
-    std::fill_n(words_, numWords_, ZERO);
-}
-
-uint32_t ApInt::computeNumWords(uint32_t bitWidth)
-{
-    SWC_ASSERT(bitWidth > 0 && bitWidth <= MAX_BITS);
-    return static_cast<uint32_t>((bitWidth + WORD_BITS - 1) / WORD_BITS);
-}
-
-void ApInt::normalize()
-{
-    if (bitWidth_ == 0)
-        return;
-
-    const uint64_t usedBitsInLastWord = bitWidth_ % WORD_BITS;
-    if (usedBitsInLastWord != 0)
-    {
-        const uint64_t mask = (ONE << usedBitsInLastWord) - 1;
-        words_[numWords_ - 1] &= mask;
-    }
-}
-
-bool ApInt::hasTopBitsOverflow() const
-{
-    SWC_ASSERT(numWords_ && bitWidth_);
-
-    const uint64_t usedBitsInLastWord = bitWidth_ % WORD_BITS;
-    if (usedBitsInLastWord == 0)
-        return false;
-
-    const uint64_t mask = (ONE << usedBitsInLastWord) - 1;
-    const uint64_t last = words_[numWords_ - 1];
-    return (last & ~mask) != 0;
-}
-
 ApInt::ApInt() :
     ApInt(MAX_BITS)
 {
@@ -550,6 +513,43 @@ void ApInt::subSigned(const ApInt& rhs, bool& overflow)
     const bool resNeg         = isNegative();
     const bool signedOverflow = (lhsNeg != rhsNeg) && (resNeg != lhsNeg);
     overflow                  = unsignedOverflow || signedOverflow;
+}
+
+void ApInt::clearWords()
+{
+    std::fill_n(words_, numWords_, ZERO);
+}
+
+uint32_t ApInt::computeNumWords(uint32_t bitWidth)
+{
+    SWC_ASSERT(bitWidth > 0 && bitWidth <= MAX_BITS);
+    return static_cast<uint32_t>((bitWidth + WORD_BITS - 1) / WORD_BITS);
+}
+
+void ApInt::normalize()
+{
+    if (bitWidth_ == 0)
+        return;
+
+    const uint64_t usedBitsInLastWord = bitWidth_ % WORD_BITS;
+    if (usedBitsInLastWord != 0)
+    {
+        const uint64_t mask = (ONE << usedBitsInLastWord) - 1;
+        words_[numWords_ - 1] &= mask;
+    }
+}
+
+bool ApInt::hasTopBitsOverflow() const
+{
+    SWC_ASSERT(numWords_ && bitWidth_);
+
+    const uint64_t usedBitsInLastWord = bitWidth_ % WORD_BITS;
+    if (usedBitsInLastWord == 0)
+        return false;
+
+    const uint64_t mask = (ONE << usedBitsInLastWord) - 1;
+    const uint64_t last = words_[numWords_ - 1];
+    return (last & ~mask) != 0;
 }
 
 namespace
@@ -1258,12 +1258,6 @@ uint32_t ApInt::minBitsSigned() const
 
 namespace
 {
-    uint32_t roundUpToByteMultiple(uint32_t bits)
-    {
-        SWC_ASSERT(bits > 0);
-        return (bits + 7u) & ~7u;
-    }
-
     uint32_t roundUpToStdWidth(uint32_t bits)
     {
         SWC_ASSERT(bits > 0);

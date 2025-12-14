@@ -596,8 +596,6 @@ ConstantRef SemaCast::concretizeConstant(Sema& sema, ConstantRef cstRef, bool& o
             return cstRef;
         }
 
-        SWC_ASSERT(concreteBits > 0);
-
         if (value.isUnsigned() != unsignedTarget)
             value.setUnsigned(unsignedTarget);
         value.resize(concreteBits);
@@ -610,15 +608,19 @@ ConstantRef SemaCast::concretizeConstant(Sema& sema, ConstantRef cstRef, bool& o
 
     if (ty.isFloat())
     {
+        // Already sized.
         if (ty.floatBits() != 0)
             return cstRef;
 
-        const ApFloat& srcF         = src.getFloat();
-        const uint32_t concreteBits = pickConcreteFloatBitsDefaultLadder(srcF);
+        const ApFloat& srcF = src.getFloat();
+
+        uint32_t concreteBits = srcF.minBits();
+        concreteBits          = std::max(concreteBits, 32u);
 
         bool    isExact   = false;
         ApFloat concreteF = srcF.toFloat(concreteBits, isExact, overflow);
 
+        // If for any reason conversion reports overflow, keep original.
         if (overflow)
             concreteF = srcF;
 

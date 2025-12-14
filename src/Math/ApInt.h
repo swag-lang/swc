@@ -4,23 +4,6 @@ SWC_BEGIN_NAMESPACE()
 
 class ApInt
 {
-protected:
-    static constexpr unsigned MAX_BITS = 128;
-    static_assert(MAX_BITS <= 255, "ApInt is only supported up to 255 bits");
-    static constexpr uint64_t WORD_BITS = sizeof(uint64_t) * 8;
-    static constexpr uint64_t MAX_WORDS = (MAX_BITS + WORD_BITS - 1) / WORD_BITS;
-    static constexpr uint64_t ZERO      = 0;
-    static constexpr uint64_t ONE       = 1;
-
-    uint64_t words_[MAX_WORDS];
-    uint32_t bitWidth_;
-    uint32_t numWords_;
-
-    void            clearWords();
-    static uint32_t computeNumWords(uint32_t bitWidth);
-    void            normalize();
-    bool            hasTopBitsOverflow() const;
-
 public:
     ApInt();
     explicit ApInt(uint32_t bitWidth);
@@ -104,6 +87,23 @@ public:
     uint32_t minBitsSigned() const;
     uint32_t minBitsStd() const;
     uint32_t minBitsSignedStd() const;
+
+protected:
+    static constexpr unsigned MAX_BITS = 128;
+    static_assert(MAX_BITS <= 255, "ApInt is only supported up to 255 bits");
+    static constexpr uint64_t WORD_BITS = sizeof(uint64_t) * 8;
+    static constexpr uint64_t MAX_WORDS = (MAX_BITS + WORD_BITS - 1) / WORD_BITS;
+    static constexpr uint64_t ZERO      = 0;
+    static constexpr uint64_t ONE       = 1;
+
+    uint64_t words_[MAX_WORDS];
+    uint32_t bitWidth_;
+    uint32_t numWords_;
+
+    void            clearWords();
+    static uint32_t computeNumWords(uint32_t bitWidth);
+    void            normalize();
+    bool            hasTopBitsOverflow() const;
 };
 
 SWC_END_NAMESPACE()

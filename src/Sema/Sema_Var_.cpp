@@ -21,13 +21,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
         CastContext castCtx(CastKind::Implicit);
         castCtx.errorNodeRef = nodeInitRef;
 
-        if (!SemaCast::analyseCast(sema,
-                                  castCtx,
-                                  nodeInitView.typeRef,
-                                  nodeTypeView.typeRef,
-                                  CastMode::Check,
-                                  ConstantRef::invalid(),
-                                  nullptr))
+        if (!SemaCast::analyseCast(sema, castCtx, nodeInitView.typeRef, nodeTypeView.typeRef))
         {
             const CastFailure& failure = castCtx.failure;
 
@@ -36,7 +30,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
             diag.addArgument(Diagnostic::ARG_TYPE, failure.srcTypeRef);
             diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, failure.dstTypeRef);
 
-            // Add the underlying reason as a note (format like your previous code)
+            // Underlying reason as a note
             if (failure.diagId != DiagnosticId::None)
                 diag.addNote(failure.diagId);
 
@@ -44,13 +38,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
             CastContext explicitCtx = castCtx;
             explicitCtx.kind        = CastKind::Explicit;
 
-            if (SemaCast::analyseCast(sema,
-                                     explicitCtx,
-                                     nodeInitView.typeRef,
-                                     nodeTypeView.typeRef,
-                                     CastMode::Check,
-                                     ConstantRef::invalid(),
-                                     nullptr))
+            if (SemaCast::analyseCast(sema, explicitCtx, nodeInitView.typeRef, nodeTypeView.typeRef))
             {
                 diag.addElement(DiagnosticId::sema_note_cast_explicit);
             }
@@ -83,12 +71,11 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
             return AstVisitStepResult::Stop;
         }
 
-        if (nodeTypeRef.isValid())
+        if (nodeTypeRef.isValid() && nodeTypeView.typeRef.isValid())
         {
             CastContext castCtx(CastKind::Implicit);
             castCtx.errorNodeRef = nodeInitRef;
 
-            // castConstant now takes CastContext& (mutable) and uses castCtx.failure internally.
             nodeInitView.cstRef = SemaCast::castConstant(sema, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef);
             if (nodeInitView.cstRef.isInvalid())
                 return AstVisitStepResult::Stop;
@@ -103,6 +90,5 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
 
     return AstVisitStepResult::Continue;
 }
-
 
 SWC_END_NAMESPACE()

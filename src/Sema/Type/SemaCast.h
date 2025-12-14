@@ -1,3 +1,4 @@
+// Sema/Type/SemaCast.h
 #pragma once
 #include "Parser/AstNode.h"
 #include "Report/Diagnostic.h"
@@ -28,10 +29,16 @@ struct CastFailure
 {
     DiagnosticId diagId;
     DiagnosticId noteId;
-    AstNodeRef   nodeRef;    // where to point the error (usually castCtx.errorNodeRef)
-    TypeRef      srcTypeRef; // optional, depends on diag
-    TypeRef      dstTypeRef; // optional
+    AstNodeRef   nodeRef;
+    TypeRef      srcTypeRef;
+    TypeRef      dstTypeRef;
     Utf8         valueStr;
+};
+
+struct CastFoldContext
+{
+    ConstantRef  srcConstRef;
+    ConstantRef* outConstRef; // optional (can be nullptr)
 };
 
 struct CastContext
@@ -41,6 +48,9 @@ struct CastContext
     AstNodeRef  errorNodeRef;
     CastFailure failure;
 
+    // nullptr => not folding. If set, cast ops may produce a folded constant.
+    CastFoldContext* fold = nullptr;
+
     CastContext() = delete;
     explicit CastContext(CastKind kind) :
         kind(kind)
@@ -48,19 +58,15 @@ struct CastContext
     }
 };
 
-enum class CastMode : uint8_t
-{
-    Check,    // validate only
-    Evaluate, // validate + fold if constant is provided
-};
-
 namespace SemaCast
 {
-    bool        analyseCast(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef, CastMode mode, ConstantRef srcConstRef, ConstantRef* outConstRef);
+    bool        analyseCast(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef);
+    bool        foldConstantCast(Sema& sema, CastContext& castCtx, ConstantRef srcConstRef, TypeRef dstTypeRef, ConstantRef& outConstRef);
     void        emitCastFailure(Sema& sema, const CastFailure& f);
     bool        castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef);
     ConstantRef castConstant(Sema& sema, CastContext& castCtx, ConstantRef cstRef, TypeRef targetTypeRef);
-    bool        promoteConstants(Sema& sema, const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef, bool force32BitInts = false);
+
+    bool promoteConstants(Sema& sema, const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef, bool force32BitInts = false);
 };
 
 SWC_END_NAMESPACE()

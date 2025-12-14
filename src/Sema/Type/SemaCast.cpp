@@ -64,42 +64,14 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    bool foldOpIdentity(Sema&, const CastContext& castCtx, TypeRef, TypeRef)
+    void foldConstantIdentity(CastContext& castCtx)
     {
-        if (castCtx.isFolding())
-            castCtx.setFoldOut(castCtx.foldSrc());
-        return true;
+        castCtx.setFoldOut(castCtx.foldSrc());
     }
 
-    bool foldOpBitCast(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    void foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstTypeRef, const TypeInfo& dstType, const TypeInfo& srcType)
     {
-        auto&              ctx     = sema.ctx();
-        const TypeManager& typeMgr = ctx.typeMgr();
-        const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
-        const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
-
-        const bool srcScalar = srcType.isScalarNumeric();
-        const bool dstScalar = dstType.isScalarNumeric();
-        if (!srcScalar || !dstScalar)
-        {
-            castCtx.failure            = CastFailure{.diagId = DiagnosticId::sema_err_bit_cast_invalid_type, .nodeRef = castCtx.errorNodeRef};
-            castCtx.failure.srcTypeRef = srcTypeRef;
-            castCtx.failure.dstTypeRef = dstTypeRef;
-            return false;
-        }
-
-        const uint32_t sb = srcType.scalarNumericBits();
-        const uint32_t db = dstType.scalarNumericBits();
-        if (!(sb == db || !sb))
-        {
-            castCtx.failure            = CastFailure{.diagId = DiagnosticId::sema_err_bit_cast_size, .nodeRef = castCtx.errorNodeRef};
-            castCtx.failure.srcTypeRef = srcTypeRef;
-            castCtx.failure.dstTypeRef = dstTypeRef;
-            return false;
-        }
-
-        if (!castCtx.isFolding())
-            return true;
+        auto& ctx = sema.ctx();
 
         const ConstantValue& src = sema.cstMgr().get(castCtx.foldSrc());
 
@@ -123,7 +95,7 @@ namespace
 
             const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
             castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
-            return true;
+            return;
         }
 
         if (srcFloat && dstFloat)
@@ -131,7 +103,7 @@ namespace
             const ApFloat&      value  = src.getFloat();
             const ConstantValue result = ConstantValue::makeFloat(ctx, value, dstBits);
             castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
-            return true;
+            return;
         }
 
         if (srcFloat && dstInt)
@@ -139,7 +111,7 @@ namespace
             ApsInt              i      = bitCastToApInt(src.getFloat(), dstType.isIntLikeUnsigned());
             const ConstantValue result = ConstantValue::makeFromIntLike(ctx, i, dstType);
             castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
-            return true;
+            return;
         }
 
         if (srcInt && dstFloat)
@@ -147,26 +119,16 @@ namespace
             ApFloat             f      = bitCastToApFloat(src.getIntLike(), dstBits);
             const ConstantValue result = ConstantValue::makeFloat(ctx, f, dstBits);
             castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
-            return true;
+            return;
         }
 
-        castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-        return false;
+        // Should be unreachable given earlier asserts, but keep consistent error behavior.
+        castCtx.fail(DiagnosticId::sema_err_cannot_cast, src.typeRef(), dstTypeRef);
     }
 
-    bool foldOpBoolToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    bool foldConstantBoolToIntLike(Sema& sema, const CastContext& castCtx, const TypeInfo& dstType)
     {
-        auto&           ctx     = sema.ctx();
-        const TypeInfo& dstType = ctx.typeMgr().get(dstTypeRef);
-
-        if (!dstType.isIntLike())
-        {
-            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            return false;
-        }
-
-        if (!castCtx.isFolding())
-            return true;
+        const auto& ctx = sema.ctx();
 
         const ConstantValue& src            = sema.cstMgr().get(castCtx.foldSrc());
         const bool           b              = src.getBool();
@@ -176,22 +138,13 @@ namespace
         const ApsInt        value(b ? 1 : 0, targetBits, targetUnsigned);
         const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
         castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
+
         return true;
     }
 
-    bool foldOpIntLikeToBool(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    bool foldConstantIntLikeToBool(Sema& sema, const CastContext& castCtx)
     {
-        auto&           ctx     = sema.ctx();
-        const TypeInfo& dstType = ctx.typeMgr().get(dstTypeRef);
-
-        if (!dstType.isBool())
-        {
-            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            return false;
-        }
-
-        if (!castCtx.isFolding())
-            return true;
+        const auto& ctx = sema.ctx();
 
         const ConstantValue& src   = sema.cstMgr().get(castCtx.foldSrc());
         const ApsInt         value = src.getIntLike();
@@ -199,23 +152,13 @@ namespace
 
         const ConstantValue result = ConstantValue::makeBool(ctx, b);
         castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
+
         return true;
     }
 
-    bool foldOpIntLikeToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    bool foldConstantIntLikeToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef, const TypeInfo& dstType)
     {
-        auto&              ctx     = sema.ctx();
-        const TypeManager& typeMgr = ctx.typeMgr();
-        const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
-
-        if (!dstType.isIntLike())
-        {
-            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            return false;
-        }
-
-        if (!castCtx.isFolding())
-            return true;
+        auto& ctx = sema.ctx();
 
         const ConstantValue& src   = sema.cstMgr().get(castCtx.foldSrc());
         ApsInt               value = src.getIntLike();
@@ -331,20 +274,9 @@ namespace
         return true;
     }
 
-    bool foldOpIntLikeToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    bool foldConstantIntLikeToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef, const TypeInfo& dstType)
     {
-        auto&              ctx     = sema.ctx();
-        const TypeManager& typeMgr = ctx.typeMgr();
-        const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
-
-        if (!dstType.isFloat())
-        {
-            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            return false;
-        }
-
-        if (!castCtx.isFolding())
-            return true;
+        const auto& ctx = sema.ctx();
 
         const ConstantValue& src        = sema.cstMgr().get(castCtx.foldSrc());
         const ApsInt         intVal     = src.getIntLike();
@@ -369,20 +301,9 @@ namespace
         return true;
     }
 
-    bool foldOpFloatToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    bool foldConstantFloatToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef, const TypeInfo& dstType)
     {
-        auto&              ctx     = sema.ctx();
-        const TypeManager& typeMgr = ctx.typeMgr();
-        const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
-
-        if (!dstType.isIntLike())
-        {
-            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            return false;
-        }
-
-        if (!castCtx.isFolding())
-            return true;
+        const auto& ctx = sema.ctx();
 
         const ConstantValue& src    = sema.cstMgr().get(castCtx.foldSrc());
         const ApFloat&       srcVal = src.getFloat();
@@ -408,20 +329,9 @@ namespace
         return true;
     }
 
-    bool foldOpFloatToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    bool foldConstantFloatToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef, const TypeInfo& dstType)
     {
-        auto&              ctx     = sema.ctx();
-        const TypeManager& typeMgr = ctx.typeMgr();
-        const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
-
-        if (!dstType.isFloat())
-        {
-            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            return false;
-        }
-
-        if (!castCtx.isFolding())
-            return true;
+        const auto& ctx = sema.ctx();
 
         const ConstantValue& src        = sema.cstMgr().get(castCtx.foldSrc());
         const ApFloat&       floatVal   = src.getFloat();
@@ -445,6 +355,147 @@ namespace
         return true;
     }
 
+    // ======================================================================
+    // Cast operations (validation + optional folding call)
+    // ======================================================================
+
+    bool castOpIdentity(Sema&, CastContext& castCtx, TypeRef, TypeRef)
+    {
+        if (castCtx.isFolding())
+            foldConstantIdentity(castCtx);
+        return true;
+    }
+
+    bool castOpBitCast(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        auto&              ctx     = sema.ctx();
+        const TypeManager& typeMgr = ctx.typeMgr();
+        const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
+        const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
+
+        const bool srcScalar = srcType.isScalarNumeric();
+        const bool dstScalar = dstType.isScalarNumeric();
+        if (!srcScalar || !dstScalar)
+        {
+            castCtx.failure            = CastFailure{.diagId = DiagnosticId::sema_err_bit_cast_invalid_type, .nodeRef = castCtx.errorNodeRef};
+            castCtx.failure.srcTypeRef = srcTypeRef;
+            castCtx.failure.dstTypeRef = dstTypeRef;
+            return false;
+        }
+
+        const uint32_t sb = srcType.scalarNumericBits();
+        const uint32_t db = dstType.scalarNumericBits();
+        if (!(sb == db || !sb))
+        {
+            castCtx.failure            = CastFailure{.diagId = DiagnosticId::sema_err_bit_cast_size, .nodeRef = castCtx.errorNodeRef};
+            castCtx.failure.srcTypeRef = srcTypeRef;
+            castCtx.failure.dstTypeRef = dstTypeRef;
+            return false;
+        }
+
+        if (!castCtx.isFolding())
+            return true;
+
+        foldConstantBitCast(sema, castCtx, dstTypeRef, dstType, srcType);
+        return castCtx.failure.diagId == DiagnosticId::None;
+    }
+
+    bool castOpBoolToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        const TypeInfo& dstType = sema.ctx().typeMgr().get(dstTypeRef);
+
+        if (!dstType.isIntLike())
+        {
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return false;
+        }
+
+        if (castCtx.isFolding())
+            return foldConstantBoolToIntLike(sema, castCtx, dstType);
+
+        return true;
+    }
+
+    bool castOpIntLikeToBool(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        const TypeInfo& dstType = sema.ctx().typeMgr().get(dstTypeRef);
+
+        if (!dstType.isBool())
+        {
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return false;
+        }
+
+        if (castCtx.isFolding())
+            return foldConstantIntLikeToBool(sema, castCtx);
+
+        return true;
+    }
+
+    bool castOpIntLikeToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        const TypeInfo& dstType = sema.ctx().typeMgr().get(dstTypeRef);
+
+        if (!dstType.isIntLike())
+        {
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return false;
+        }
+
+        if (castCtx.isFolding())
+            return foldConstantIntLikeToIntLike(sema, castCtx, srcTypeRef, dstTypeRef, dstType);
+
+        return true;
+    }
+
+    bool castOpIntLikeToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        const TypeInfo& dstType = sema.ctx().typeMgr().get(dstTypeRef);
+
+        if (!dstType.isFloat())
+        {
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return false;
+        }
+
+        if (castCtx.isFolding())
+            return foldConstantIntLikeToFloat(sema, castCtx, srcTypeRef, dstTypeRef, dstType);
+
+        return true;
+    }
+
+    bool castOpFloatToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        const TypeInfo& dstType = sema.ctx().typeMgr().get(dstTypeRef);
+
+        if (!dstType.isIntLike())
+        {
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return false;
+        }
+
+        if (castCtx.isFolding())
+            return foldConstantFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef, dstType);
+
+        return true;
+    }
+
+    bool castOpFloatToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        const TypeInfo& dstType = sema.ctx().typeMgr().get(dstTypeRef);
+
+        if (!dstType.isFloat())
+        {
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return false;
+        }
+
+        if (castCtx.isFolding())
+            return foldConstantFloatToFloat(sema, castCtx, srcTypeRef, dstTypeRef, dstType);
+
+        return true;
+    }
+
     bool analyseCastCore(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
         castCtx.resetFailure();
@@ -457,7 +508,7 @@ namespace
         const TypeInfo& dst     = typeMgr.get(dstTypeRef);
 
         if (srcTypeRef == dstTypeRef)
-            return foldOpIdentity(sema, castCtx, srcTypeRef, dstTypeRef);
+            return castOpIdentity(sema, castCtx, srcTypeRef, dstTypeRef);
 
         // Kind rules: Global / coarse only
         auto kindAllows = [&] {
@@ -497,19 +548,19 @@ namespace
         }
 
         if (castCtx.flags.has(CastFlagsE::BitCast))
-            return foldOpBitCast(sema, castCtx, srcTypeRef, dstTypeRef);
+            return castOpBitCast(sema, castCtx, srcTypeRef, dstTypeRef);
         if (src.isBool() && dst.isIntLike())
-            return foldOpBoolToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
+            return castOpBoolToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
         if (src.isIntLike() && dst.isBool())
-            return foldOpIntLikeToBool(sema, castCtx, srcTypeRef, dstTypeRef);
+            return castOpIntLikeToBool(sema, castCtx, srcTypeRef, dstTypeRef);
         if (src.isIntLike() && dst.isIntLike())
-            return foldOpIntLikeToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
+            return castOpIntLikeToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
         if (src.isIntLike() && dst.isFloat())
-            return foldOpIntLikeToFloat(sema, castCtx, srcTypeRef, dstTypeRef);
+            return castOpIntLikeToFloat(sema, castCtx, srcTypeRef, dstTypeRef);
         if (src.isFloat() && dst.isFloat())
-            return foldOpFloatToFloat(sema, castCtx, srcTypeRef, dstTypeRef);
+            return castOpFloatToFloat(sema, castCtx, srcTypeRef, dstTypeRef);
         if (src.isFloat() && dst.isIntLike())
-            return foldOpFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
+            return castOpFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
 
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
         return false;

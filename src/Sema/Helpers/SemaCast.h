@@ -45,7 +45,27 @@ struct CastFailure
     TypeRef      typeArg;   // optional (for "invalid type" cases)
 };
 
-using CastCheckResult = std::optional<CastFailure>; // nullopt => allowed
+enum class CastOp : uint8_t
+{
+    Identity,
+    BitCast,
+    BoolToIntLike,
+    IntLikeToBool,
+    IntLikeToIntLike,
+    IntLikeToFloat,
+    FloatToFloat,
+    FloatToIntLike,
+};
+
+struct CastPlan
+{
+    CastOp      op;
+    TypeRef     srcType;
+    TypeRef     dstType;
+    CastContext ctx;
+};
+
+using CastPlanOrFailure = std::variant<CastPlan, CastFailure>;
 
 namespace SemaCast
 {

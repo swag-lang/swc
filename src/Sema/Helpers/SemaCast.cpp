@@ -374,7 +374,7 @@ namespace
 
 }
 
-std::optional<CastFailure> SemaCast::checkCast(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef)
+std::optional<CastFailure> SemaCast::check(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
     auto&              ctx        = sema.ctx();
     const TypeManager& typeMgr    = ctx.typeMgr();
@@ -459,7 +459,7 @@ std::optional<CastFailure> SemaCast::checkCast(Sema& sema, const CastContext& ca
 
 bool SemaCast::castAllowed(Sema& sema, const CastContext& castCtx, TypeRef src, TypeRef dst)
 {
-    if (auto failure = checkCast(sema, castCtx, src, dst))
+    if (auto failure = check(sema, castCtx, src, dst))
     {
         // Old behavior: emit immediately
         auto diag = SemaError::report(sema, failure->diagId, failure->nodeRef);

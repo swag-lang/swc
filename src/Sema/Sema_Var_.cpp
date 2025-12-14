@@ -30,7 +30,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
 
     if (nodeInitView.typeRef.isValid() && nodeTypeView.typeRef.isValid())
     {
-        if (auto failure = SemaCast::checkCast(sema, castCtx, nodeInitView.typeRef, nodeTypeView.typeRef))
+        if (auto failure = SemaCast::check(sema, castCtx, nodeInitView.typeRef, nodeTypeView.typeRef))
         {
             // Primary, context-specific diagnostic
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_var_init_type_mismatch, castCtx.errorNodeRef);
@@ -63,7 +63,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
 
             // Explicit cast works hint
             castCtx.kind = CastKind::Explicit;
-            if (!SemaCast::checkCast(sema, castCtx, nodeInitView.typeRef, nodeTypeView.typeRef))
+            if (!SemaCast::check(sema, castCtx, nodeInitView.typeRef, nodeTypeView.typeRef))
                 diag.addElement(DiagnosticId::sema_note_cast_explicit);
 
             diag.report(sema.ctx());

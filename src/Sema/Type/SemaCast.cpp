@@ -14,22 +14,6 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    bool isFolding(const CastContext& c)
-    {
-        return c.fold != nullptr && c.fold->srcConstRef.isValid();
-    }
-
-    ConstantRef foldSrc(const CastContext& c)
-    {
-        return c.fold ? c.fold->srcConstRef : ConstantRef::invalid();
-    }
-
-    void setFoldOut(const CastContext& c, ConstantRef v)
-    {
-        if (c.fold && c.fold->outConstRef)
-            *c.fold->outConstRef = v;
-    }
-
     ApsInt bitCastToApInt(const ApFloat& src, bool isUnsigned)
     {
         const uint32_t bw = src.bitWidth();
@@ -79,12 +63,10 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    // ---- fold ops (type-check always, fold only if castCtx.fold != nullptr) ----
-
-    bool foldOpIdentity(Sema&, CastContext& castCtx, TypeRef, TypeRef)
+    bool foldOpIdentity(Sema&, const CastContext& castCtx, TypeRef, TypeRef)
     {
-        if (isFolding(castCtx))
-            setFoldOut(castCtx, foldSrc(castCtx));
+        if (castCtx.isFolding())
+            castCtx.setFoldOut(castCtx.foldSrc());
         return true;
     }
 
@@ -116,10 +98,10 @@ namespace
             return false;
         }
 
-        if (!isFolding(castCtx))
+        if (!castCtx.isFolding())
             return true;
 
-        const ConstantValue& src = sema.cstMgr().get(foldSrc(castCtx));
+        const ConstantValue& src = sema.cstMgr().get(castCtx.foldSrc());
 
         const bool srcInt   = srcType.isIntLike();
         const bool srcFloat = srcType.isFloat();
@@ -140,7 +122,7 @@ namespace
                 value.setUnsigned(dstType.isIntLikeUnsigned());
 
             const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
-            setFoldOut(castCtx, sema.cstMgr().addConstant(ctx, result));
+            castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
             return true;
         }
 
@@ -148,7 +130,7 @@ namespace
         {
             const ApFloat&      value  = src.getFloat();
             const ConstantValue result = ConstantValue::makeFloat(ctx, value, dstBits);
-            setFoldOut(castCtx, sema.cstMgr().addConstant(ctx, result));
+            castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
             return true;
         }
 
@@ -156,7 +138,7 @@ namespace
         {
             ApsInt              i      = bitCastToApInt(src.getFloat(), dstType.isIntLikeUnsigned());
             const ConstantValue result = ConstantValue::makeFromIntLike(ctx, i, dstType);
-            setFoldOut(castCtx, sema.cstMgr().addConstant(ctx, result));
+            castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
             return true;
         }
 
@@ -164,7 +146,7 @@ namespace
         {
             ApFloat             f      = bitCastToApFloat(src.getIntLike(), dstBits);
             const ConstantValue result = ConstantValue::makeFloat(ctx, f, dstBits);
-            setFoldOut(castCtx, sema.cstMgr().addConstant(ctx, result));
+            castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
             return true;
         }
 
@@ -183,17 +165,17 @@ namespace
             return false;
         }
 
-        if (!isFolding(castCtx))
+        if (!castCtx.isFolding())
             return true;
 
-        const ConstantValue& src            = sema.cstMgr().get(foldSrc(castCtx));
+        const ConstantValue& src            = sema.cstMgr().get(castCtx.foldSrc());
         const bool           b              = src.getBool();
         const auto           targetBits     = dstType.intLikeBits();
         const bool           targetUnsigned = dstType.isIntLikeUnsigned();
 
         const ApsInt        value(b ? 1 : 0, targetBits, targetUnsigned);
         const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
-        setFoldOut(castCtx, sema.cstMgr().addConstant(ctx, result));
+        castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
         return true;
     }
 
@@ -208,15 +190,15 @@ namespace
             return false;
         }
 
-        if (!isFolding(castCtx))
+        if (!castCtx.isFolding())
             return true;
 
-        const ConstantValue& src   = sema.cstMgr().get(foldSrc(castCtx));
+        const ConstantValue& src   = sema.cstMgr().get(castCtx.foldSrc());
         const ApsInt         value = src.getIntLike();
         const bool           b     = !value.isZero();
 
         const ConstantValue result = ConstantValue::makeBool(ctx, b);
-        setFoldOut(castCtx, sema.cstMgr().addConstant(ctx, result));
+        castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
         return true;
     }
 
@@ -232,10 +214,10 @@ namespace
             return false;
         }
 
-        if (!isFolding(castCtx))
+        if (!castCtx.isFolding())
             return true;
 
-        const ConstantValue& src   = sema.cstMgr().get(foldSrc(castCtx));
+        const ConstantValue& src   = sema.cstMgr().get(castCtx.foldSrc());
         ApsInt               value = src.getIntLike();
 
         const uint32_t targetBits     = dstType.intLikeBits();
@@ -345,7 +327,7 @@ namespace
         }
 
         const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
-        setFoldOut(castCtx, sema.cstMgr().addConstant(ctx, result));
+        castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
         return true;
     }
 
@@ -361,10 +343,10 @@ namespace
             return false;
         }
 
-        if (!isFolding(castCtx))
+        if (!castCtx.isFolding())
             return true;
 
-        const ConstantValue& src        = sema.cstMgr().get(foldSrc(castCtx));
+        const ConstantValue& src        = sema.cstMgr().get(castCtx.foldSrc());
         const ApsInt         intVal     = src.getIntLike();
         const uint32_t       targetBits = dstType.floatBits();
 
@@ -383,7 +365,7 @@ namespace
         }
 
         const ConstantValue result = ConstantValue::makeFloat(ctx, value, targetBits);
-        setFoldOut(castCtx, sema.cstMgr().addConstant(ctx, result));
+        castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
         return true;
     }
 
@@ -399,10 +381,10 @@ namespace
             return false;
         }
 
-        if (!isFolding(castCtx))
+        if (!castCtx.isFolding())
             return true;
 
-        const ConstantValue& src    = sema.cstMgr().get(foldSrc(castCtx));
+        const ConstantValue& src    = sema.cstMgr().get(castCtx.foldSrc());
         const ApFloat&       srcVal = src.getFloat();
 
         const uint32_t targetBits = dstType.intLikeBits();
@@ -422,7 +404,7 @@ namespace
         }
 
         const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
-        setFoldOut(castCtx, sema.cstMgr().addConstant(ctx, result));
+        castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
         return true;
     }
 
@@ -438,10 +420,10 @@ namespace
             return false;
         }
 
-        if (!isFolding(castCtx))
+        if (!castCtx.isFolding())
             return true;
 
-        const ConstantValue& src        = sema.cstMgr().get(foldSrc(castCtx));
+        const ConstantValue& src        = sema.cstMgr().get(castCtx.foldSrc());
         const ApFloat&       floatVal   = src.getFloat();
         const uint32_t       targetBits = dstType.floatBits();
 
@@ -459,7 +441,7 @@ namespace
         }
 
         const ConstantValue result = ConstantValue::makeFloat(ctx, value, targetBits);
-        setFoldOut(castCtx, sema.cstMgr().addConstant(ctx, result));
+        castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
         return true;
     }
 

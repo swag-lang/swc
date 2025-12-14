@@ -27,11 +27,11 @@ using CastFlags = EnumFlags<CastFlagsE>;
 
 struct CastFailure
 {
-    DiagnosticId diagId;
-    DiagnosticId noteId;
-    AstNodeRef   nodeRef;
-    TypeRef      srcTypeRef;
-    TypeRef      dstTypeRef;
+    DiagnosticId diagId     = DiagnosticId::None;
+    DiagnosticId noteId     = DiagnosticId::None;
+    AstNodeRef   nodeRef    = AstNodeRef::invalid();
+    TypeRef      srcTypeRef = TypeRef::invalid();
+    TypeRef      dstTypeRef = TypeRef::invalid();
     Utf8         valueStr;
 
     void reset(AstNodeRef errorNodeRef)
@@ -88,9 +88,36 @@ struct CastContext
     {
     }
 
-    void resetFailure() { failure.reset(errorNodeRef); }
-    void fail(DiagnosticId d, TypeRef src, TypeRef dst) { failure.set(errorNodeRef, d, src, dst); }
-    void failValueNote(DiagnosticId d, TypeRef src, TypeRef dst, std::string_view value, DiagnosticId note) { failure.setValueNote(errorNodeRef, d, src, dst, value, note); }
+    void resetFailure()
+    {
+        failure.reset(errorNodeRef);
+    }
+
+    void fail(DiagnosticId d, TypeRef src, TypeRef dst)
+    {
+        failure.set(errorNodeRef, d, src, dst);
+    }
+
+    void failValueNote(DiagnosticId d, TypeRef src, TypeRef dst, std::string_view value, DiagnosticId note)
+    {
+        failure.setValueNote(errorNodeRef, d, src, dst, value, note);
+    }
+
+    bool isFolding() const
+    {
+        return fold != nullptr && fold->srcConstRef.isValid();
+    }
+
+    ConstantRef foldSrc() const
+    {
+        return fold ? fold->srcConstRef : ConstantRef::invalid();
+    }
+
+    void setFoldOut(ConstantRef v) const
+    {
+        if (fold && fold->outConstRef)
+            *fold->outConstRef = v;
+    }
 };
 
 namespace SemaCast

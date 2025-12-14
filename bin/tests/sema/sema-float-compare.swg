@@ -2,45 +2,80 @@
 #assert(-1.5575 == -1.5575)
 #assert(1.5575'f32 == 1.5575'f32)
 #assert(1.5575'f64 == 1.5575'f64)
+#assert(-1.5575'f32 == -1.5575'f32)
+#assert(-1.5575'f64 == -1.5575'f64)
 
 #assert(1'f32 == 1'f32)
 #assert(1'f64 == 1'f64)
+#assert(0'f32 == 0'f32)
+#assert(0'f64 == 0'f64)
+#assert(-1'f32 == -1'f32)
+#assert(-1'f64 == -1'f64)
 
 #assert(1 == 1'f32)
 #assert(1 == 1'f64)
+#assert(1's8 == 1'f32)
+#assert(1's16 == 1'f64)
+#assert(1's32 == 1'f32)
+#assert(1's64 == 1'f64)
+#assert(1'u8 == 1'f32)
+#assert(1'u16 == 1'f64)
 #assert(1'u32 == 1'f64)
+#assert(1'u64 == 1'f64)
 #assert(1'f32 == 1'f64)
 #assert(-1's8 == -1'f32)
+#assert(-1's16 == -1'f32)
+#assert(-1's32 == -1'f32)
 #assert(-1's64 == -1'f64)
 #assert(-1's16 == -1'f64)
 
 #assert(1 != 0)
 #assert(1's32 != 0's8)
+#assert(1's8 != 0's32)
+#assert(1'u32 != 0'u8)
+#assert(1'f32 != 0'f32)
+#assert(1'f64 != 0'f64)
 
 #assert(1.0 < 2.0)
 #assert(2.0 > 1.9)
 #assert(2.0 >= 1.9)
 #assert(1.0 >= 1.0)
+#assert(1.0 <= 1.0)
+#assert(1.0 <= 2.0)
+#assert(-2.0 < -1.0)
+#assert(-1.0 > -2.0)
 #assert((1.0 <=> 2.0) == -1)
 #assert((2.0 <=> 1.0) == 1)
 #assert((1.0 <=> 1.0) == 0)
 #assert((1.0'f32 <=> 2.0'f64) == -1)
 #assert((2.0'f32 <=> 1.0'f64) == 1)
 #assert((1.0'f32 <=> 1.0'f64) == 0)
+#assert((1.0'f64 <=> 2.0'f32) == -1)
+#assert((2.0'f64 <=> 1.0'f32) == 1)
+#assert((1.0'f64 <=> 1.0'f32) == 0)
 
 #assert(1.5575'f32 == 1.557'f32) // swc-expected-error {{sema_err_compiler_assert}}
 #assert(1.5575'f64 == 1.557'f64) // swc-expected-error {{sema_err_compiler_assert}}
 #assert(1'f32 == 2'f32)          // swc-expected-error {{sema_err_compiler_assert}}
 #assert(1'f64 == 2'f64)          // swc-expected-error {{sema_err_compiler_assert}}
-
 #assert(1.0 < 0.5)               // swc-expected-error {{sema_err_compiler_assert}}
 #assert((1.0 <=> 2.0) == 1)      // swc-expected-error {{sema_err_compiler_assert}}
 
 #assert(1.0 != 1.0 + 1e-10)
 #assert(1.0 < 1.0000001)
 #assert(1.0 > 0.9999999)
+#assert(1.0'f32 != 1.0'f32 + 1e-6)
+#assert(1.0'f64 != 1.0'f64 + 1e-12)
+#assert(1.0'f32 < 1.0001'f32)
+#assert(1.0'f32 > 0.9999'f32)
+#assert(1.0'f64 < 1.000000000001'f64)
+#assert(1.0'f64 > 0.999999999999'f64)
 
 #assert(1.0'f32 == 1.0'f32)
 #assert(1.0'f64 == 1.0'f64)
+#assert(0.0'f32 == 0.0'f32)
+#assert(0.0'f64 == 0.0'f64)
+#assert(-0.0'f32 == 0.0'f32)
+#assert(-0.0'f64 == 0.0'f64)
 
 #assert(1.0 < 1) // swc-expected-error {{sema_err_compiler_assert}}

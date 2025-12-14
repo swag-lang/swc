@@ -395,13 +395,12 @@ void ApInt::mul(const ApInt& rhs, bool& overflow)
             Math::mul64X64(words_[i], rhs.words_[j], low, high);
 
             const uint64_t old = tmp[i + j];
-            const uint64_t sum = old + low + carry;
-
-            const uint64_t c1 = (sum < old);
-            const uint64_t c2 = (sum < low);
-
-            tmp[i + j] = sum;
-            carry      = high + c1 + c2;
+            uint64_t       sum = old + low;
+            const uint64_t c1  = (sum < old);
+            sum += carry;
+            const uint64_t c2 = (sum < carry);
+            tmp[i + j]        = sum;
+            carry             = high + c1 + c2;
         }
 
         // Propagate carry correctly across tmp[i+n] (tmp limb can overflow)

@@ -20,8 +20,14 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
     {
         CastContext castCtx(CastKind::Implicit);
         castCtx.errorNodeRef = nodeInitRef;
-        auto planOrFail      = SemaCast::analyzeCast(sema, castCtx, nodeInitView.typeRef, nodeTypeView.typeRef);
-        if (auto* failure = std::get_if<CastFailure>(&planOrFail))
+
+        if (const auto failure = SemaCast::analyseCast(sema,
+                                                       castCtx,
+                                                       nodeInitView.typeRef,
+                                                       nodeTypeView.typeRef,
+                                                       CastMode::Check,
+                                                       ConstantRef::invalid(),
+                                                       nullptr))
         {
             // Primary, context-specific diagnostic
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_var_init_type_mismatch, castCtx.errorNodeRef);
@@ -34,9 +40,17 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
             // Explicit cast works hint
             CastContext explicitCtx = castCtx;
             explicitCtx.kind        = CastKind::Explicit;
-            auto explicitPlanOrFail = SemaCast::analyzeCast(sema, explicitCtx, nodeInitView.typeRef, nodeTypeView.typeRef);
-            if (!std::holds_alternative<CastFailure>(explicitPlanOrFail))
+
+            if (!SemaCast::analyseCast(sema,
+                                       explicitCtx,
+                                       nodeInitView.typeRef,
+                                       nodeTypeView.typeRef,
+                                       CastMode::Check,
+                                       ConstantRef::invalid(),
+                                       nullptr))
+            {
                 diag.addElement(DiagnosticId::sema_note_cast_explicit);
+            }
 
             diag.report(sema.ctx());
             return AstVisitStepResult::Stop;

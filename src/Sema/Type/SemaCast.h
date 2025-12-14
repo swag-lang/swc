@@ -59,23 +59,19 @@ enum class CastOp : uint8_t
     FloatToIntLike,
 };
 
-struct CastPlan
+enum class CastMode : uint8_t
 {
-    CastOp      op;
-    TypeRef     srcTypeRef;
-    TypeRef     dstTypeRef;
-    CastContext ctx;
+    Check,    // validate only
+    Evaluate, // validate + fold if constant is provided
 };
-
-using CastPlanOrFailure = std::variant<CastPlan, CastFailure>;
 
 namespace SemaCast
 {
-    CastPlanOrFailure analyzeCast(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef);
-    void              emitCastFailure(Sema& sema, const CastFailure& f);
-    bool              castAllowed(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef);
-    ConstantRef       castConstant(Sema& sema, const CastContext& castCtx, ConstantRef cstRef, TypeRef targetTypeRef);
-    bool              promoteConstants(Sema& sema, const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef, bool force32BitInts = false);
+    std::optional<CastFailure> analyseCast(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef, CastMode mode, ConstantRef srcConst, ConstantRef* outConst);
+    void                       emitCastFailure(Sema& sema, const CastFailure& f);
+    bool                       castAllowed(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef);
+    ConstantRef                castConstant(Sema& sema, const CastContext& castCtx, ConstantRef cstRef, TypeRef targetTypeRef);
+    bool                       promoteConstants(Sema& sema, const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef, bool force32BitInts = false);
 };
 
 SWC_END_NAMESPACE()

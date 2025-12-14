@@ -14,17 +14,11 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    enum class CastMode : uint8_t
+    CastFailure makeCannotCastFailure(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
-        Check,    // validate only
-        Evaluate, // validate + fold if constant is provided
-    };
-
-    CastFailure makeCannotCastFailure(const CastPlan& plan)
-    {
-        CastFailure f{.diagId = DiagnosticId::sema_err_cannot_cast, .nodeRef = plan.ctx.errorNodeRef};
-        f.srcTypeRef = plan.srcTypeRef;
-        f.dstTypeRef = plan.dstTypeRef;
+        CastFailure f{.diagId = DiagnosticId::sema_err_cannot_cast, .nodeRef = castCtx.errorNodeRef};
+        f.srcTypeRef = srcTypeRef;
+        f.dstTypeRef = dstTypeRef;
         return f;
     }
 
@@ -77,28 +71,42 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    std::optional<CastFailure> opIdentity(Sema&, const CastPlan&, CastMode mode, ConstantRef srcConst, ConstantRef* outConst)
+    std::optional<CastFailure> opIdentity(
+        Sema&,
+        const CastContext&,
+        TypeRef,
+        TypeRef,
+        CastMode     mode,
+        ConstantRef  srcConst,
+        ConstantRef* outConst)
     {
         if (mode == CastMode::Evaluate && outConst)
             *outConst = srcConst;
         return std::nullopt;
     }
 
-    std::optional<CastFailure> opBitCast(Sema& sema, const CastPlan& plan, CastMode mode, ConstantRef srcConst, ConstantRef* outConst)
+    std::optional<CastFailure> opBitCast(
+        Sema&              sema,
+        const CastContext& castCtx,
+        TypeRef            srcTypeRef,
+        TypeRef            dstTypeRef,
+        CastMode           mode,
+        ConstantRef        srcConst,
+        ConstantRef*       outConst)
     {
         auto&              ctx     = sema.ctx();
         const TypeManager& typeMgr = ctx.typeMgr();
 
-        const TypeInfo& srcType = typeMgr.get(plan.srcTypeRef);
-        const TypeInfo& dstType = typeMgr.get(plan.dstTypeRef);
+        const TypeInfo& srcType = typeMgr.get(srcTypeRef);
+        const TypeInfo& dstType = typeMgr.get(dstTypeRef);
 
         const bool srcScalar = srcType.isScalarNumeric();
         const bool dstScalar = dstType.isScalarNumeric();
         if (!srcScalar || !dstScalar)
         {
-            CastFailure f{.diagId = DiagnosticId::sema_err_bit_cast_invalid_type, .nodeRef = plan.ctx.errorNodeRef};
-            f.srcTypeRef = plan.srcTypeRef;
-            f.dstTypeRef = plan.dstTypeRef;
+            CastFailure f{.diagId = DiagnosticId::sema_err_bit_cast_invalid_type, .nodeRef = castCtx.errorNodeRef};
+            f.srcTypeRef = srcTypeRef;
+            f.dstTypeRef = dstTypeRef;
             return f;
         }
 
@@ -106,9 +114,9 @@ namespace
         const uint32_t db = dstType.scalarNumericBits();
         if (!(sb == db || !sb))
         {
-            CastFailure f{.diagId = DiagnosticId::sema_err_bit_cast_size, .nodeRef = plan.ctx.errorNodeRef};
-            f.srcTypeRef = plan.srcTypeRef;
-            f.dstTypeRef = plan.dstTypeRef;
+            CastFailure f{.diagId = DiagnosticId::sema_err_bit_cast_size, .nodeRef = castCtx.errorNodeRef};
+            f.srcTypeRef = srcTypeRef;
+            f.dstTypeRef = dstTypeRef;
             return f;
         }
 
@@ -122,7 +130,7 @@ namespace
             const bool dstInt   = dstType.isIntLike();
             const bool dstFloat = dstType.isFloat();
 
-            // If the plan says BitCast, these should be scalar numeric but keep assertions.
+            // If the op says BitCast, these should be scalar numeric but keep assertions.
             SWC_ASSERT(srcInt || srcFloat);
             SWC_ASSERT(dstInt || dstFloat);
 
@@ -165,21 +173,28 @@ namespace
                 return std::nullopt;
             }
 
-            // Plan/op mismatch or unexpected type combo
-            return makeCannotCastFailure(plan);
+            // Op mismatch or unexpected type combo
+            return makeCannotCastFailure(castCtx, srcTypeRef, dstTypeRef);
         }
 
         return std::nullopt;
     }
 
-    std::optional<CastFailure> opBoolToIntLike(Sema& sema, const CastPlan& plan, CastMode mode, ConstantRef srcConst, ConstantRef* outConst)
+    std::optional<CastFailure> opBoolToIntLike(
+        Sema&              sema,
+        const CastContext& castCtx,
+        TypeRef            srcTypeRef,
+        TypeRef            dstTypeRef,
+        CastMode           mode,
+        ConstantRef        srcConst,
+        ConstantRef*       outConst)
     {
         auto&           ctx     = sema.ctx();
-        const TypeInfo& dstType = ctx.typeMgr().get(plan.dstTypeRef);
+        const TypeInfo& dstType = ctx.typeMgr().get(dstTypeRef);
 
         // Type-level validation (works for non-constants too)
         if (!dstType.isIntLike())
-            return makeCannotCastFailure(plan);
+            return makeCannotCastFailure(castCtx, srcTypeRef, dstTypeRef);
 
         if (mode == CastMode::Evaluate && srcConst.isValid() && outConst)
         {
@@ -195,13 +210,20 @@ namespace
         return std::nullopt;
     }
 
-    std::optional<CastFailure> opIntLikeToBool(Sema& sema, const CastPlan& plan, CastMode mode, ConstantRef srcConst, ConstantRef* outConst)
+    std::optional<CastFailure> opIntLikeToBool(
+        Sema&              sema,
+        const CastContext& castCtx,
+        TypeRef            srcTypeRef,
+        TypeRef            dstTypeRef,
+        CastMode           mode,
+        ConstantRef        srcConst,
+        ConstantRef*       outConst)
     {
         auto&           ctx     = sema.ctx();
-        const TypeInfo& dstType = ctx.typeMgr().get(plan.dstTypeRef);
+        const TypeInfo& dstType = ctx.typeMgr().get(dstTypeRef);
 
         if (!dstType.isBool())
-            return makeCannotCastFailure(plan);
+            return makeCannotCastFailure(castCtx, srcTypeRef, dstTypeRef);
 
         if (mode == CastMode::Evaluate && srcConst.isValid() && outConst)
         {
@@ -215,14 +237,21 @@ namespace
         return std::nullopt;
     }
 
-    std::optional<CastFailure> opIntLikeToIntLike(Sema& sema, const CastPlan& plan, CastMode mode, ConstantRef srcConst, ConstantRef* outConst)
+    std::optional<CastFailure> opIntLikeToIntLike(
+        Sema&              sema,
+        const CastContext& castCtx,
+        TypeRef            srcTypeRef,
+        TypeRef            dstTypeRef,
+        CastMode           mode,
+        ConstantRef        srcConst,
+        ConstantRef*       outConst)
     {
         auto&              ctx     = sema.ctx();
         const TypeManager& typeMgr = ctx.typeMgr();
-        const TypeInfo&    dstType = typeMgr.get(plan.dstTypeRef);
+        const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
         if (!dstType.isIntLike())
-            return makeCannotCastFailure(plan);
+            return makeCannotCastFailure(castCtx, srcTypeRef, dstTypeRef);
 
         // If we have no constant, we can’t do value-dependent overflow checks here.
         // That’s OK: this function still validates the cast structurally.
@@ -241,11 +270,11 @@ namespace
 
         if (targetUnsigned)
         {
-            if (!value.isUnsigned() && value.isNegative() && !plan.ctx.flags.has(CastFlagsE::NoOverflow) && targetBits != 0)
+            if (!value.isUnsigned() && value.isNegative() && !castCtx.flags.has(CastFlagsE::NoOverflow) && targetBits != 0)
             {
-                CastFailure f{.diagId = DiagnosticId::sema_err_signed_unsigned, .nodeRef = plan.ctx.errorNodeRef};
-                f.srcTypeRef = plan.srcTypeRef;
-                f.dstTypeRef = plan.dstTypeRef;
+                CastFailure f{.diagId = DiagnosticId::sema_err_signed_unsigned, .nodeRef = castCtx.errorNodeRef};
+                f.srcTypeRef = srcTypeRef;
+                f.dstTypeRef = dstTypeRef;
                 f.valueStr   = value.toString();
                 f.noteId     = DiagnosticId::sema_note_signed_unsigned;
                 return f;
@@ -300,11 +329,11 @@ namespace
                 }
                 else if (vCheck.gt(maxSignedU))
                 {
-                    if (!plan.ctx.flags.has(CastFlagsE::NoOverflow))
+                    if (!castCtx.flags.has(CastFlagsE::NoOverflow))
                     {
-                        CastFailure f{.diagId = DiagnosticId::sema_err_signed_unsigned, .nodeRef = plan.ctx.errorNodeRef};
-                        f.srcTypeRef = plan.srcTypeRef;
-                        f.dstTypeRef = plan.dstTypeRef;
+                        CastFailure f{.diagId = DiagnosticId::sema_err_signed_unsigned, .nodeRef = castCtx.errorNodeRef};
+                        f.srcTypeRef = srcTypeRef;
+                        f.dstTypeRef = dstTypeRef;
                         f.valueStr   = value.toString();
                         f.noteId     = DiagnosticId::sema_note_unsigned_signed;
                         return f;
@@ -313,11 +342,11 @@ namespace
             }
         }
 
-        if (overflow && !plan.ctx.flags.has(CastFlagsE::NoOverflow))
+        if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
         {
-            CastFailure f{.diagId = DiagnosticId::sema_err_literal_overflow, .nodeRef = plan.ctx.errorNodeRef};
-            f.srcTypeRef = plan.srcTypeRef;
-            f.dstTypeRef = plan.dstTypeRef;
+            CastFailure f{.diagId = DiagnosticId::sema_err_literal_overflow, .nodeRef = castCtx.errorNodeRef};
+            f.srcTypeRef = srcTypeRef;
+            f.dstTypeRef = dstTypeRef;
             f.valueStr   = value.toString();
             return f;
         }
@@ -356,14 +385,21 @@ namespace
         return std::nullopt;
     }
 
-    std::optional<CastFailure> opIntLikeToFloat(Sema& sema, const CastPlan& plan, CastMode mode, ConstantRef srcConst, ConstantRef* outConst)
+    std::optional<CastFailure> opIntLikeToFloat(
+        Sema&              sema,
+        const CastContext& castCtx,
+        TypeRef            srcTypeRef,
+        TypeRef            dstTypeRef,
+        CastMode           mode,
+        ConstantRef        srcConst,
+        ConstantRef*       outConst)
     {
         auto&              ctx     = sema.ctx();
         const TypeManager& typeMgr = ctx.typeMgr();
-        const TypeInfo&    dstType = typeMgr.get(plan.dstTypeRef);
+        const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
         if (!dstType.isFloat())
-            return makeCannotCastFailure(plan);
+            return makeCannotCastFailure(castCtx, srcTypeRef, dstTypeRef);
 
         if (!srcConst.isValid())
             return std::nullopt;
@@ -377,11 +413,11 @@ namespace
         bool    overflow = false;
         value.set(intVal, targetBits, isExact, overflow);
 
-        if (overflow && !plan.ctx.flags.has(CastFlagsE::NoOverflow))
+        if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
         {
-            CastFailure f{.diagId = DiagnosticId::sema_err_literal_overflow, .nodeRef = plan.ctx.errorNodeRef};
-            f.srcTypeRef = plan.srcTypeRef;
-            f.dstTypeRef = plan.dstTypeRef;
+            CastFailure f{.diagId = DiagnosticId::sema_err_literal_overflow, .nodeRef = castCtx.errorNodeRef};
+            f.srcTypeRef = srcTypeRef;
+            f.dstTypeRef = dstTypeRef;
             f.valueStr   = intVal.toString();
             return f;
         }
@@ -395,14 +431,21 @@ namespace
         return std::nullopt;
     }
 
-    std::optional<CastFailure> opFloatToIntLike(Sema& sema, const CastPlan& plan, CastMode mode, ConstantRef srcConst, ConstantRef* outConst)
+    std::optional<CastFailure> opFloatToIntLike(
+        Sema&              sema,
+        const CastContext& castCtx,
+        TypeRef            srcTypeRef,
+        TypeRef            dstTypeRef,
+        CastMode           mode,
+        ConstantRef        srcConst,
+        ConstantRef*       outConst)
     {
         auto&              ctx     = sema.ctx();
         const TypeManager& typeMgr = ctx.typeMgr();
-        const TypeInfo&    dstType = typeMgr.get(plan.dstTypeRef);
+        const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
         if (!dstType.isIntLike())
-            return makeCannotCastFailure(plan);
+            return makeCannotCastFailure(castCtx, srcTypeRef, dstTypeRef);
 
         if (!srcConst.isValid())
             return std::nullopt;
@@ -417,11 +460,11 @@ namespace
         bool         overflow = false;
         const ApsInt value    = srcVal.toInt(targetBits, isUnsigned, isExact, overflow);
 
-        if (overflow && !plan.ctx.flags.has(CastFlagsE::NoOverflow))
+        if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
         {
-            CastFailure f{.diagId = DiagnosticId::sema_err_literal_overflow, .nodeRef = plan.ctx.errorNodeRef};
-            f.srcTypeRef = plan.srcTypeRef;
-            f.dstTypeRef = plan.dstTypeRef;
+            CastFailure f{.diagId = DiagnosticId::sema_err_literal_overflow, .nodeRef = castCtx.errorNodeRef};
+            f.srcTypeRef = srcTypeRef;
+            f.dstTypeRef = dstTypeRef;
             f.valueStr   = srcVal.toString();
             return f;
         }
@@ -435,14 +478,21 @@ namespace
         return std::nullopt;
     }
 
-    std::optional<CastFailure> opFloatToFloat(Sema& sema, const CastPlan& plan, CastMode mode, ConstantRef srcConst, ConstantRef* outConst)
+    std::optional<CastFailure> opFloatToFloat(
+        Sema&              sema,
+        const CastContext& castCtx,
+        TypeRef            srcTypeRef,
+        TypeRef            dstTypeRef,
+        CastMode           mode,
+        ConstantRef        srcConst,
+        ConstantRef*       outConst)
     {
         auto&              ctx     = sema.ctx();
         const TypeManager& typeMgr = ctx.typeMgr();
-        const TypeInfo&    dstType = typeMgr.get(plan.dstTypeRef);
+        const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
         if (!dstType.isFloat())
-            return makeCannotCastFailure(plan);
+            return makeCannotCastFailure(castCtx, srcTypeRef, dstTypeRef);
 
         if (!srcConst.isValid())
             return std::nullopt;
@@ -455,11 +505,11 @@ namespace
         bool          overflow = false;
         const ApFloat value    = floatVal.toFloat(targetBits, isExact, overflow);
 
-        if (overflow && !plan.ctx.flags.has(CastFlagsE::NoOverflow))
+        if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
         {
-            CastFailure f{.diagId = DiagnosticId::sema_err_literal_overflow, .nodeRef = plan.ctx.errorNodeRef};
-            f.srcTypeRef = plan.srcTypeRef;
-            f.dstTypeRef = plan.dstTypeRef;
+            CastFailure f{.diagId = DiagnosticId::sema_err_literal_overflow, .nodeRef = castCtx.errorNodeRef};
+            f.srcTypeRef = srcTypeRef;
+            f.dstTypeRef = dstTypeRef;
             f.valueStr   = floatVal.toString();
             return f;
         }
@@ -472,35 +522,21 @@ namespace
 
         return std::nullopt;
     }
-
-    std::optional<CastFailure> applyCastPlan(Sema& sema, const CastPlan& plan, CastMode mode, ConstantRef srcConst, ConstantRef* outConst)
-    {
-        if (outConst)
-            *outConst = ConstantRef::invalid();
-
-        switch (plan.op)
-        {
-            case CastOp::Identity: return opIdentity(sema, plan, mode, srcConst, outConst);
-            case CastOp::BitCast: return opBitCast(sema, plan, mode, srcConst, outConst);
-            case CastOp::BoolToIntLike: return opBoolToIntLike(sema, plan, mode, srcConst, outConst);
-            case CastOp::IntLikeToBool: return opIntLikeToBool(sema, plan, mode, srcConst, outConst);
-            case CastOp::IntLikeToIntLike: return opIntLikeToIntLike(sema, plan, mode, srcConst, outConst);
-            case CastOp::IntLikeToFloat: return opIntLikeToFloat(sema, plan, mode, srcConst, outConst);
-            case CastOp::FloatToFloat: return opFloatToFloat(sema, plan, mode, srcConst, outConst);
-            case CastOp::FloatToIntLike: return opFloatToIntLike(sema, plan, mode, srcConst, outConst);
-            default: SWC_UNREACHABLE();
-        }
-    }
 }
 
-CastPlanOrFailure SemaCast::analyzeCast(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+// Replaces both the old analyzeCast() (plan-building) + applyCastPlan() (execution).
+// It analyses types/kind/flags, selects an op, validates, and optionally folds constants.
+std::optional<CastFailure> SemaCast::analyseCast(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef, CastMode mode, ConstantRef srcConst, ConstantRef* outConst)
 {
+    if (outConst)
+        *outConst = ConstantRef::invalid();
+
     const auto&     typeMgr = sema.ctx().typeMgr();
     const TypeInfo& src     = typeMgr.get(srcTypeRef);
     const TypeInfo& dst     = typeMgr.get(dstTypeRef);
 
     if (srcTypeRef == dstTypeRef)
-        return CastPlan{.op = CastOp::Identity, .srcTypeRef = srcTypeRef, .dstTypeRef = dstTypeRef, .ctx = castCtx};
+        return opIdentity(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConst, outConst);
 
     // Kind rules: Global / coarse only
     auto kindAllows = [&] {
@@ -534,34 +570,27 @@ CastPlanOrFailure SemaCast::analyzeCast(Sema& sema, const CastContext& castCtx, 
     };
 
     if (!kindAllows())
-    {
-        CastFailure f{.diagId = DiagnosticId::sema_err_cannot_cast, .nodeRef = castCtx.errorNodeRef};
-        f.srcTypeRef = srcTypeRef;
-        f.dstTypeRef = dstTypeRef;
-        return f;
-    }
+        return makeCannotCastFailure(castCtx, srcTypeRef, dstTypeRef);
 
+    // BitCast flag has priority (same behavior as before)
     if (castCtx.flags.has(CastFlagsE::BitCast))
-        return CastPlan{.op = CastOp::BitCast, .srcTypeRef = srcTypeRef, .dstTypeRef = dstTypeRef, .ctx = castCtx};
+        return opBitCast(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConst, outConst);
 
     if (src.isBool() && dst.isIntLike())
-        return CastPlan{.op = CastOp::BoolToIntLike, .srcTypeRef = srcTypeRef, .dstTypeRef = dstTypeRef, .ctx = castCtx};
+        return opBoolToIntLike(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConst, outConst);
     if (src.isIntLike() && dst.isBool())
-        return CastPlan{.op = CastOp::IntLikeToBool, .srcTypeRef = srcTypeRef, .dstTypeRef = dstTypeRef, .ctx = castCtx};
+        return opIntLikeToBool(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConst, outConst);
 
     if (src.isIntLike() && dst.isIntLike())
-        return CastPlan{.op = CastOp::IntLikeToIntLike, .srcTypeRef = srcTypeRef, .dstTypeRef = dstTypeRef, .ctx = castCtx};
+        return opIntLikeToIntLike(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConst, outConst);
     if (src.isIntLike() && dst.isFloat())
-        return CastPlan{.op = CastOp::IntLikeToFloat, .srcTypeRef = srcTypeRef, .dstTypeRef = dstTypeRef, .ctx = castCtx};
+        return opIntLikeToFloat(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConst, outConst);
     if (src.isFloat() && dst.isFloat())
-        return CastPlan{.op = CastOp::FloatToFloat, .srcTypeRef = srcTypeRef, .dstTypeRef = dstTypeRef, .ctx = castCtx};
+        return opFloatToFloat(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConst, outConst);
     if (src.isFloat() && dst.isIntLike())
-        return CastPlan{.op = CastOp::FloatToIntLike, .srcTypeRef = srcTypeRef, .dstTypeRef = dstTypeRef, .ctx = castCtx};
+        return opFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConst, outConst);
 
-    CastFailure f{.diagId = DiagnosticId::sema_err_cannot_cast, .nodeRef = castCtx.errorNodeRef};
-    f.srcTypeRef = srcTypeRef;
-    f.dstTypeRef = dstTypeRef;
-    return f;
+    return makeCannotCastFailure(castCtx, srcTypeRef, dstTypeRef);
 }
 
 void SemaCast::emitCastFailure(Sema& sema, const CastFailure& f)
@@ -582,17 +611,8 @@ void SemaCast::emitCastFailure(Sema& sema, const CastFailure& f)
 
 bool SemaCast::castAllowed(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
-    const auto planOrFail = analyzeCast(sema, castCtx, srcTypeRef, targetTypeRef);
-    if (const auto* f = std::get_if<CastFailure>(&planOrFail))
-    {
-        emitCastFailure(sema, *f);
-        return false;
-    }
-
-    const CastPlan& plan = std::get<CastPlan>(planOrFail);
-
     // Non-constant check: srcConst invalid
-    if (const auto fail = applyCastPlan(sema, plan, CastMode::Check, ConstantRef::invalid(), nullptr))
+    if (const auto fail = analyseCast(sema, castCtx, srcTypeRef, targetTypeRef, CastMode::Check, ConstantRef::invalid(), nullptr))
     {
         emitCastFailure(sema, *fail);
         return false;
@@ -605,17 +625,8 @@ ConstantRef SemaCast::castConstant(Sema& sema, const CastContext& castCtx, Const
 {
     const ConstantValue& cst = sema.cstMgr().get(cstRef);
 
-    const auto planOrFail = analyzeCast(sema, castCtx, cst.typeRef(), targetTypeRef);
-    if (const auto* f = std::get_if<CastFailure>(&planOrFail))
-    {
-        emitCastFailure(sema, *f);
-        return ConstantRef::invalid();
-    }
-
-    const CastPlan& plan = std::get<CastPlan>(planOrFail);
-
     ConstantRef out = ConstantRef::invalid();
-    if (const auto fail = applyCastPlan(sema, plan, CastMode::Evaluate, cstRef, &out))
+    if (const auto fail = analyseCast(sema, castCtx, cst.typeRef(), targetTypeRef, CastMode::Evaluate, cstRef, &out))
     {
         emitCastFailure(sema, *fail);
         return ConstantRef::invalid();

@@ -268,6 +268,7 @@
         <ClCompile Include="src\Sema\Symbol\IdentifierManager.cpp"/>
         <ClCompile Include="src\Sema\Symbol\SymbolMap.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Symbol.cpp"/>
+        <ClCompile Include="src\Sema\Type\CastContext.cpp"/>
         <ClCompile Include="src\Sema\Type\SemaCast.cpp"/>
         <ClCompile Include="src\Sema\Type\TypeInfo.cpp"/>
         <ClCompile Include="src\Sema\Type\TypeManager.cpp"/>
@@ -345,6 +346,7 @@
         <ClInclude Include="src\Sema\Symbol\SymbolMap.h"/>
         <ClInclude Include="src\Sema\Symbol\Symbol.h"/>
         <ClInclude Include="src\Sema\Symbol\Symbols.h"/>
+        <ClInclude Include="src\Sema\Type\CastContext.h"/>
         <ClInclude Include="src\Sema\Type\SemaCast.h"/>
         <ClInclude Include="src\Sema\Type\TypeInfo.h"/>
         <ClInclude Include="src\Sema\Type\TypeManager.h"/>

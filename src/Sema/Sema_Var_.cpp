@@ -8,6 +8,7 @@
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/SemaCast.h"
 #include "Symbol/IdentifierManager.h"
+#include "Type/CastContext.h"
 
 SWC_BEGIN_NAMESPACE()
 

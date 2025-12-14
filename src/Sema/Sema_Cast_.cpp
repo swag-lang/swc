@@ -5,6 +5,7 @@
 #include "Sema/Helpers/SemaNodeView.h"
 #include "Sema/Sema.h"
 #include "Sema/Type/SemaCast.h"
+#include "Type/CastContext.h"
 
 SWC_BEGIN_NAMESPACE()
 

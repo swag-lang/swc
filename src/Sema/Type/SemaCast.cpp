@@ -8,6 +8,7 @@
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaNodeView.h"
 #include "Sema/Sema.h"
+#include "Sema/Type/CastContext.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()

@@ -262,7 +262,6 @@
         <ClCompile Include="src\Sema\Sema_Expr_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Intrinsic_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Literal_.cpp"/>
-        <ClCompile Include="src\Sema\Sema_Symbol_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Type_.cpp"/>
         <ClCompile Include="src\Sema\Sema_ExprUnary_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Var_.cpp"/>

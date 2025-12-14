@@ -8,6 +8,7 @@
 #include "Sema/Helpers/SemaInfo.h"
 #include "Sema/Helpers/SemaJob.h"
 #include "Sema/Helpers/SemaScope.h"
+#include "Symbol/LookupResult.h"
 #include "Symbol/Symbols.h"
 #include "Thread/JobManager.h"
 #include "Wmf/Verify.h"
@@ -133,6 +134,24 @@ void Sema::popScope()
     SWC_ASSERT(curScope_);
     curScope_ = curScope_->parent();
     scopes_.pop_back();
+}
+
+void Sema::lookupIdentifier(LookupResult& result, IdentifierRef idRef) const
+{
+    result.clear();
+
+    const SymbolMap* symMap = curScope_->symMap();
+    while (symMap)
+    {
+        symMap->lookup(idRef, result.symbols());
+        if (!result.empty())
+            return;
+        symMap = symMap->symMap();
+    }
+
+    semaInfo().fileNamespace().lookup(idRef, result.symbols());
+    if (!result.empty())
+        return;
 }
 
 void Sema::enterNode(AstNode& node)
@@ -278,4 +297,5 @@ JobResult Sema::exec()
 
     return jobResult;
 }
+
 SWC_END_NAMESPACE()

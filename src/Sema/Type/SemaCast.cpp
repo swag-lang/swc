@@ -3,6 +3,7 @@
 #include "Sema/Type/SemaCast.h"
 #include "Math/ApFloat.h"
 #include "Math/ApsInt.h"
+#include "Math/Helpers.h"
 #include "Report/Diagnostic.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Helpers/SemaError.h"
@@ -15,56 +16,7 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    ApsInt bitCastToApInt(const ApFloat& src, bool isUnsigned)
-    {
-        const uint32_t bw = src.bitWidth();
-
-        if (bw == 32)
-        {
-            const float f = src.asFloat();
-            uint32_t    u = 0;
-            std::memcpy(&u, &f, sizeof(u));
-            return ApsInt(u, 32, isUnsigned);
-        }
-
-        if (bw == 64)
-        {
-            const double d = src.asDouble();
-            int64_t      u = 0;
-            std::memcpy(&u, &d, sizeof(u));
-            return ApsInt(u, 64, isUnsigned);
-        }
-
-        SWC_UNREACHABLE();
-    }
-
-    ApFloat bitCastToApFloat(const ApsInt& src, uint32_t floatBits)
-    {
-        SWC_ASSERT(floatBits == 32 || floatBits == 64);
-        SWC_ASSERT(src.bitWidth() == floatBits);
-
-        const uint64_t raw = src.asI64();
-
-        if (floatBits == 32)
-        {
-            const uint32_t u = static_cast<uint32_t>(raw);
-            float          f = 0.0f;
-            std::memcpy(&f, &u, sizeof(f));
-            return ApFloat(f);
-        }
-
-        if (floatBits == 64)
-        {
-            const uint64_t u = raw;
-            double         d = 0.0;
-            std::memcpy(&d, &u, sizeof(d));
-            return ApFloat(d);
-        }
-
-        SWC_UNREACHABLE();
-    }
-
-    void foldConstantIdentity(CastContext& castCtx)
+    void foldConstantIdentity(const CastContext& castCtx)
     {
         castCtx.setFoldOut(castCtx.foldSrc());
     }
@@ -108,7 +60,7 @@ namespace
 
         if (srcFloat && dstInt)
         {
-            ApsInt              i      = bitCastToApInt(src.getFloat(), dstType.isIntLikeUnsigned());
+            ApsInt              i      = Math::bitCastToApInt(src.getFloat(), dstType.isIntLikeUnsigned());
             const ConstantValue result = ConstantValue::makeFromIntLike(ctx, i, dstType);
             castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
             return;
@@ -116,7 +68,7 @@ namespace
 
         if (srcInt && dstFloat)
         {
-            ApFloat             f      = bitCastToApFloat(src.getIntLike(), dstBits);
+            ApFloat             f      = Math::bitCastToApFloat(src.getIntLike(), dstBits);
             const ConstantValue result = ConstantValue::makeFloat(ctx, f, dstBits);
             castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
             return;
@@ -355,11 +307,7 @@ namespace
         return true;
     }
 
-    // ======================================================================
-    // Cast operations (validation + optional folding call)
-    // ======================================================================
-
-    bool castOpIdentity(Sema&, CastContext& castCtx, TypeRef, TypeRef)
+    bool castOpIdentity(Sema&, const CastContext& castCtx, TypeRef, TypeRef)
     {
         if (castCtx.isFolding())
             foldConstantIdentity(castCtx);

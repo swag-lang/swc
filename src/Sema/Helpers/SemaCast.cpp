@@ -14,6 +14,20 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
+    enum class CastMode : uint8_t
+    {
+        Check,    // validate only
+        Evaluate, // validate + fold if constant is provided
+    };
+
+    CastFailure makeCannotCastFailure(const CastPlan& plan)
+    {
+        CastFailure f{.diagId = DiagnosticId::sema_err_cannot_cast, .nodeRef = plan.ctx.errorNodeRef};
+        f.srcTypeRef = plan.srcTypeRef;
+        f.dstTypeRef = plan.dstTypeRef;
+        return f;
+    }
+
     ApsInt bitCastToApInt(const ApFloat& src, bool isUnsigned)
     {
         const uint32_t bw = src.bitWidth();
@@ -63,137 +77,180 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    ConstantRef castConstantBoolToIntLike(Sema& sema, const CastContext&, const ConstantValue& src, TypeRef targetTypeRef)
+    std::optional<CastFailure> opIdentity(Sema&, const CastPlan&, CastMode mode, ConstantRef srcConst, ConstantRef* outConst)
     {
-        auto&              ctx        = sema.ctx();
-        const TypeManager& typeMgr    = ctx.typeMgr();
-        const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
-
-        SWC_ASSERT(targetType.isIntLike());
-
-        const bool b              = src.getBool();
-        const auto targetBits     = targetType.intLikeBits();
-        const bool targetUnsigned = targetType.isIntLikeUnsigned();
-
-        // Represent bool as 0 / 1 in the target integer type.
-        const ApsInt value(b ? 1 : 0, targetBits, targetUnsigned);
-
-        const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, targetType);
-        return sema.cstMgr().addConstant(ctx, result);
+        if (mode == CastMode::Evaluate && outConst)
+            *outConst = srcConst;
+        return std::nullopt;
     }
 
-    ConstantRef castConstantIntLikeToBool(Sema& sema, const CastContext&, const ConstantValue& src, TypeRef targetTypeRef)
+    std::optional<CastFailure> opBitCast(Sema& sema, const CastPlan& plan, CastMode mode, ConstantRef srcConst, ConstantRef* outConst)
     {
-        auto&              ctx        = sema.ctx();
-        const TypeManager& typeMgr    = ctx.typeMgr();
-        const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
+        auto&              ctx     = sema.ctx();
+        const TypeManager& typeMgr = ctx.typeMgr();
 
-        SWC_ASSERT(targetType.isBool());
+        const TypeInfo& srcType = typeMgr.get(plan.srcTypeRef);
+        const TypeInfo& dstType = typeMgr.get(plan.dstTypeRef);
 
-        const ApsInt value = src.getIntLike();
-
-        // Standard "to bool" semantics: 0 -> false, non-zero -> true.
-        const bool b = !value.isZero();
-
-        const ConstantValue result = ConstantValue::makeBool(ctx, b);
-        return sema.cstMgr().addConstant(ctx, result);
-    }
-
-    ConstantRef bitCastConstant(Sema& sema, const CastContext& castCtx, ConstantRef srcRef, TypeRef targetTypeRef)
-    {
-        auto&                ctx        = sema.ctx();
-        const TypeManager&   typeMgr    = ctx.typeMgr();
-        const ConstantValue& src        = sema.cstMgr().get(srcRef);
-        const TypeInfo&      srcType    = typeMgr.get(src.typeRef());
-        const TypeInfo&      targetType = typeMgr.get(targetTypeRef);
-
-        const bool srcInt   = srcType.isIntLike();
-        const bool srcFloat = srcType.isFloat();
-        const bool dstInt   = targetType.isIntLike();
-        const bool dstFloat = targetType.isFloat();
-
-        SWC_ASSERT(srcInt || srcFloat);
-        SWC_ASSERT(dstInt || dstFloat);
-
-        const uint32_t srcBits = srcType.scalarNumericBits();
-        const uint32_t dstBits = targetType.scalarNumericBits();
-        SWC_ASSERT(srcBits == dstBits || !srcBits);
-
-        // int-like -> int-like (same width): just re-tag signedness, do not change the underlying bit pattern.
-        if (srcInt && dstInt)
+        const bool srcScalar = srcType.isScalarNumeric();
+        const bool dstScalar = dstType.isScalarNumeric();
+        if (!srcScalar || !dstScalar)
         {
-            ApsInt value = src.getIntLike();
-
-            // Preserve bit pattern but reinterpret signedness for the target type
-            if (value.isUnsigned() != targetType.isIntLikeUnsigned())
-                value.setUnsigned(targetType.isIntLikeUnsigned());
-
-            const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, targetType);
-            return sema.cstMgr().addConstant(ctx, result);
+            CastFailure f{.diagId = DiagnosticId::sema_err_bit_cast_invalid_type, .nodeRef = plan.ctx.errorNodeRef};
+            f.srcTypeRef = plan.srcTypeRef;
+            f.dstTypeRef = plan.dstTypeRef;
+            return f;
         }
 
-        // float -> float, same width: value is already that format.
-        if (srcFloat && dstFloat)
+        const uint32_t sb = srcType.scalarNumericBits();
+        const uint32_t db = dstType.scalarNumericBits();
+        if (!(sb == db || !sb))
         {
-            const ApFloat&      value  = src.getFloat();
-            const ConstantValue result = ConstantValue::makeFloat(ctx, value, dstBits);
-            return sema.cstMgr().addConstant(ctx, result);
+            CastFailure f{.diagId = DiagnosticId::sema_err_bit_cast_size, .nodeRef = plan.ctx.errorNodeRef};
+            f.srcTypeRef = plan.srcTypeRef;
+            f.dstTypeRef = plan.dstTypeRef;
+            return f;
         }
 
-        // float -> int-like, same width: reinterpret raw bits.
-        if (srcFloat && dstInt)
+        // Fold if constant provided
+        if (mode == CastMode::Evaluate && srcConst.isValid() && outConst)
         {
-            // Reinterpret a float bit pattern as integer without conversion
-            ApsInt              i      = bitCastToApInt(src.getFloat(), targetType.isIntLikeUnsigned());
-            const ConstantValue result = ConstantValue::makeFromIntLike(ctx, i, targetType);
-            return sema.cstMgr().addConstant(ctx, result);
-        }
+            const ConstantValue& src = sema.cstMgr().get(srcConst);
 
-        if (srcInt && dstFloat)
-        {
-            // Reinterpret an integer bit pattern as float without conversion
-            ApFloat             f      = bitCastToApFloat(src.getIntLike(), dstBits);
-            const ConstantValue result = ConstantValue::makeFloat(ctx, f, dstBits);
-            return sema.cstMgr().addConstant(ctx, result);
-        }
+            const bool srcInt   = srcType.isIntLike();
+            const bool srcFloat = srcType.isFloat();
+            const bool dstInt   = dstType.isIntLike();
+            const bool dstFloat = dstType.isFloat();
 
-        SemaError::raiseCannotCast(sema, castCtx.errorNodeRef, src.typeRef(), targetTypeRef);
-        return ConstantRef::invalid();
-    }
+            // If the plan says BitCast, these should be scalar numeric but keep assertions.
+            SWC_ASSERT(srcInt || srcFloat);
+            SWC_ASSERT(dstInt || dstFloat);
 
-    ConstantRef castConstantIntLikeToIntLike(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
-    {
-        auto&              ctx        = sema.ctx();
-        const TypeManager& typeMgr    = ctx.typeMgr();
-        const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
+            const uint32_t srcBits = srcType.scalarNumericBits();
+            const uint32_t dstBits = dstType.scalarNumericBits();
+            SWC_ASSERT(srcBits == dstBits || !srcBits);
 
-        // Working copy of the integer value (with SOURCE signedness)
-        ApsInt value = src.getIntLike();
-
-        const uint32_t targetBits     = targetType.intLikeBits();
-        const bool     targetUnsigned = targetType.isIntLikeUnsigned();
-        const uint32_t valueBits      = value.bitWidth();
-
-        // We’ll use a width large enough to express both source and target safely.
-        const uint32_t checkBits = (valueBits > targetBits + 1) ? valueBits : (targetBits + 1);
-
-        bool overflow = false;
-
-        // Unsigned target: [0, 2^N - 1]
-        if (targetUnsigned)
-        {
-            // Negative signed source can never fit.
-            if (!value.isUnsigned() && value.isNegative() && !castCtx.flags.has(CastFlagsE::NoOverflow) && targetBits != 0)
+            if (srcInt && dstInt)
             {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_signed_unsigned, castCtx.errorNodeRef);
-                diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
-                diag.addArgument(Diagnostic::ARG_VALUE, value.toString());
-                diag.addElement(DiagnosticId::sema_note_signed_unsigned);
-                diag.report(ctx);
-                return ConstantRef::invalid();
+                ApsInt value = src.getIntLike();
+                if (value.isUnsigned() != dstType.isIntLikeUnsigned())
+                    value.setUnsigned(dstType.isIntLikeUnsigned());
+
+                const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
+                *outConst                  = sema.cstMgr().addConstant(ctx, result);
+                return std::nullopt;
             }
 
-            // Compare in unsigned space.
+            if (srcFloat && dstFloat)
+            {
+                const ApFloat&      value  = src.getFloat();
+                const ConstantValue result = ConstantValue::makeFloat(ctx, value, dstBits);
+                *outConst                  = sema.cstMgr().addConstant(ctx, result);
+                return std::nullopt;
+            }
+
+            if (srcFloat && dstInt)
+            {
+                ApsInt              i      = bitCastToApInt(src.getFloat(), dstType.isIntLikeUnsigned());
+                const ConstantValue result = ConstantValue::makeFromIntLike(ctx, i, dstType);
+                *outConst                  = sema.cstMgr().addConstant(ctx, result);
+                return std::nullopt;
+            }
+
+            if (srcInt && dstFloat)
+            {
+                ApFloat             f      = bitCastToApFloat(src.getIntLike(), dstBits);
+                const ConstantValue result = ConstantValue::makeFloat(ctx, f, dstBits);
+                *outConst                  = sema.cstMgr().addConstant(ctx, result);
+                return std::nullopt;
+            }
+
+            // Plan/op mismatch or unexpected type combo
+            return makeCannotCastFailure(plan);
+        }
+
+        return std::nullopt;
+    }
+
+    std::optional<CastFailure> opBoolToIntLike(Sema& sema, const CastPlan& plan, CastMode mode, ConstantRef srcConst, ConstantRef* outConst)
+    {
+        auto&           ctx     = sema.ctx();
+        const TypeInfo& dstType = ctx.typeMgr().get(plan.dstTypeRef);
+
+        // Type-level validation (works for non-constants too)
+        if (!dstType.isIntLike())
+            return makeCannotCastFailure(plan);
+
+        if (mode == CastMode::Evaluate && srcConst.isValid() && outConst)
+        {
+            const ConstantValue& src            = sema.cstMgr().get(srcConst);
+            const bool           b              = src.getBool();
+            const auto           targetBits     = dstType.intLikeBits();
+            const bool           targetUnsigned = dstType.isIntLikeUnsigned();
+
+            const ApsInt        value(b ? 1 : 0, targetBits, targetUnsigned);
+            const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
+            *outConst                  = sema.cstMgr().addConstant(ctx, result);
+        }
+        return std::nullopt;
+    }
+
+    std::optional<CastFailure> opIntLikeToBool(Sema& sema, const CastPlan& plan, CastMode mode, ConstantRef srcConst, ConstantRef* outConst)
+    {
+        auto&           ctx     = sema.ctx();
+        const TypeInfo& dstType = ctx.typeMgr().get(plan.dstTypeRef);
+
+        if (!dstType.isBool())
+            return makeCannotCastFailure(plan);
+
+        if (mode == CastMode::Evaluate && srcConst.isValid() && outConst)
+        {
+            const ConstantValue& src   = sema.cstMgr().get(srcConst);
+            const ApsInt         value = src.getIntLike();
+            const bool           b     = !value.isZero();
+
+            const ConstantValue result = ConstantValue::makeBool(ctx, b);
+            *outConst                  = sema.cstMgr().addConstant(ctx, result);
+        }
+        return std::nullopt;
+    }
+
+    std::optional<CastFailure> opIntLikeToIntLike(Sema& sema, const CastPlan& plan, CastMode mode, ConstantRef srcConst, ConstantRef* outConst)
+    {
+        auto&              ctx     = sema.ctx();
+        const TypeManager& typeMgr = ctx.typeMgr();
+        const TypeInfo&    dstType = typeMgr.get(plan.dstTypeRef);
+
+        if (!dstType.isIntLike())
+            return makeCannotCastFailure(plan);
+
+        // If we have no constant, we can’t do value-dependent overflow checks here.
+        // That’s OK: this function still validates the cast structurally.
+        if (!srcConst.isValid())
+            return std::nullopt;
+
+        const ConstantValue& src   = sema.cstMgr().get(srcConst);
+        ApsInt               value = src.getIntLike();
+
+        const uint32_t targetBits     = dstType.intLikeBits();
+        const bool     targetUnsigned = dstType.isIntLikeUnsigned();
+        const uint32_t valueBits      = value.bitWidth();
+
+        const uint32_t checkBits = (valueBits > targetBits + 1) ? valueBits : (targetBits + 1);
+        bool           overflow  = false;
+
+        if (targetUnsigned)
+        {
+            if (!value.isUnsigned() && value.isNegative() && !plan.ctx.flags.has(CastFlagsE::NoOverflow) && targetBits != 0)
+            {
+                CastFailure f{.diagId = DiagnosticId::sema_err_signed_unsigned, .nodeRef = plan.ctx.errorNodeRef};
+                f.srcTypeRef = plan.srcTypeRef;
+                f.dstTypeRef = plan.dstTypeRef;
+                f.valueStr   = value.toString();
+                f.noteId     = DiagnosticId::sema_note_signed_unsigned;
+                return f;
+            }
+
             ApsInt vCheck = value;
             if (!vCheck.isUnsigned())
                 vCheck.setUnsigned(true);
@@ -206,8 +263,6 @@ namespace
             if (vCheck.gt(maxCheck))
                 overflow = true;
         }
-
-        // Signed target: [-(2^(N-1)), 2^(N-1) - 1]
         else
         {
             ApsInt minSigned = ApsInt::minValue(targetBits, false);
@@ -215,10 +270,7 @@ namespace
 
             if (!value.isUnsigned())
             {
-                // Signed source: do signed comparison in a widened signed type.
                 ApsInt vCheck = value;
-                if (vCheck.isUnsigned())
-                    vCheck.setUnsigned(false);
                 vCheck.resize(checkBits);
 
                 ApsInt minCheck = minSigned;
@@ -231,16 +283,9 @@ namespace
             }
             else
             {
-                // Unsigned source into signed target.
-                // Lower bound (>= 0) is always OK, so only check the upper bound.
-
                 ApsInt vCheck = value;
-                if (!vCheck.isUnsigned())
-                    vCheck.setUnsigned(true);
                 vCheck.resize(checkBits);
 
-                // maxSigned: 2^(N-1) - 1 (already computed above)
-                // maxBits: 2^N - 1 (max value representable in N bits, regardless of sign)
                 ApsInt maxBits = ApsInt::maxValue(targetBits, true);
                 maxBits.resize(checkBits);
 
@@ -251,141 +296,198 @@ namespace
 
                 if (vCheck.gt(maxBits))
                 {
-                    // Value does NOT fit in N bits at all -> generic overflow.
                     overflow = true;
                 }
                 else if (vCheck.gt(maxSignedU))
                 {
-                    // Value fits in N bits, but outside signed range -> signed/unsigned error.
-                    if (!castCtx.flags.has(CastFlagsE::NoOverflow))
+                    if (!plan.ctx.flags.has(CastFlagsE::NoOverflow))
                     {
-                        auto diag = SemaError::report(sema, DiagnosticId::sema_err_signed_unsigned, castCtx.errorNodeRef);
-                        diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
-                        diag.addArgument(Diagnostic::ARG_VALUE, value.toString());
-                        diag.addElement(DiagnosticId::sema_note_unsigned_signed);
-                        diag.report(ctx);
-                        return ConstantRef::invalid();
+                        CastFailure f{.diagId = DiagnosticId::sema_err_signed_unsigned, .nodeRef = plan.ctx.errorNodeRef};
+                        f.srcTypeRef = plan.srcTypeRef;
+                        f.dstTypeRef = plan.dstTypeRef;
+                        f.valueStr   = value.toString();
+                        f.noteId     = DiagnosticId::sema_note_unsigned_signed;
+                        return f;
                     }
                 }
             }
         }
 
-        if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
+        if (overflow && !plan.ctx.flags.has(CastFlagsE::NoOverflow))
         {
-            SemaError::raiseLiteralOverflow(sema, castCtx.errorNodeRef, src, targetTypeRef);
-            return ConstantRef::invalid();
+            CastFailure f{.diagId = DiagnosticId::sema_err_literal_overflow, .nodeRef = plan.ctx.errorNodeRef};
+            f.srcTypeRef = plan.srcTypeRef;
+            f.dstTypeRef = plan.dstTypeRef;
+            f.valueStr   = value.toString();
+            return f;
         }
 
-        // Adjust signedness to the target without changing the numeric value.
-        if (value.isUnsigned() != targetUnsigned)
+        // Fold if requested
+        if (mode == CastMode::Evaluate && outConst)
         {
-            if (value.isUnsigned() && !targetUnsigned)
+            // Adjust signedness to the target without changing the numeric value.
+            if (value.isUnsigned() != targetUnsigned)
             {
-                // unsigned -> signed: widen first so the sign bit is not taken from the old narrow width
-                if (targetBits)
-                    value.resize(targetBits + 1); // or checkBits; +1 ensures the top bit is 0 for values <= maxSigned
-                value.setUnsigned(false);
-                if (targetBits)
-                    value.resize(targetBits);
+                if (value.isUnsigned() && !targetUnsigned)
+                {
+                    if (targetBits)
+                        value.resize(targetBits + 1);
+                    value.setUnsigned(false);
+                    if (targetBits)
+                        value.resize(targetBits);
+                }
+                else
+                {
+                    if (targetBits)
+                        value.resize(targetBits);
+                    value.setUnsigned(true);
+                }
             }
             else
             {
-                // signed -> unsigned (negative already rejected above)
-                // widen first too, to avoid reinterpreting a narrow signed value's the sign bit as data
                 if (targetBits)
                     value.resize(targetBits);
-                value.setUnsigned(true);
             }
-        }
-        else
-        {
-            if (targetBits)
-                value.resize(targetBits);
+
+            const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
+            *outConst                  = sema.cstMgr().addConstant(ctx, result);
         }
 
-        const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, targetType);
-        return sema.cstMgr().addConstant(ctx, result);
+        return std::nullopt;
     }
 
-    ConstantRef castConstantIntLikeToFloat(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
+    std::optional<CastFailure> opIntLikeToFloat(Sema& sema, const CastPlan& plan, CastMode mode, ConstantRef srcConst, ConstantRef* outConst)
     {
-        auto&              ctx        = sema.ctx();
-        const TypeManager& typeMgr    = ctx.typeMgr();
-        const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
-        const ApsInt       intVal     = src.getIntLike();
-        const uint32_t     targetBits = targetType.floatBits();
+        auto&              ctx     = sema.ctx();
+        const TypeManager& typeMgr = ctx.typeMgr();
+        const TypeInfo&    dstType = typeMgr.get(plan.dstTypeRef);
+
+        if (!dstType.isFloat())
+            return makeCannotCastFailure(plan);
+
+        if (!srcConst.isValid())
+            return std::nullopt;
+
+        const ConstantValue& src        = sema.cstMgr().get(srcConst);
+        const ApsInt         intVal     = src.getIntLike();
+        const uint32_t       targetBits = dstType.floatBits();
 
         ApFloat value;
         bool    isExact  = false;
         bool    overflow = false;
         value.set(intVal, targetBits, isExact, overflow);
-        if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
+
+        if (overflow && !plan.ctx.flags.has(CastFlagsE::NoOverflow))
         {
-            SemaError::raiseLiteralOverflow(sema, castCtx.errorNodeRef, src, targetTypeRef);
-            return ConstantRef::invalid();
+            CastFailure f{.diagId = DiagnosticId::sema_err_literal_overflow, .nodeRef = plan.ctx.errorNodeRef};
+            f.srcTypeRef = plan.srcTypeRef;
+            f.dstTypeRef = plan.dstTypeRef;
+            f.valueStr   = intVal.toString();
+            return f;
         }
 
-        const ConstantValue result = ConstantValue::makeFloat(ctx, value, targetBits);
-        return sema.cstMgr().addConstant(ctx, result);
+        if (mode == CastMode::Evaluate && outConst)
+        {
+            const ConstantValue result = ConstantValue::makeFloat(ctx, value, targetBits);
+            *outConst                  = sema.cstMgr().addConstant(ctx, result);
+        }
+
+        return std::nullopt;
     }
 
-    ConstantRef castConstantFloatToIntLike(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
+    std::optional<CastFailure> opFloatToIntLike(Sema& sema, const CastPlan& plan, CastMode mode, ConstantRef srcConst, ConstantRef* outConst)
     {
-        auto&              ctx        = sema.ctx();
-        const TypeManager& typeMgr    = ctx.typeMgr();
-        const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
-        const ApFloat&     srcVal     = src.getFloat();
-        const uint32_t     targetBits = targetType.intLikeBits();
-        const bool         isUnsigned = targetType.isIntLikeUnsigned();
+        auto&              ctx     = sema.ctx();
+        const TypeManager& typeMgr = ctx.typeMgr();
+        const TypeInfo&    dstType = typeMgr.get(plan.dstTypeRef);
+
+        if (!dstType.isIntLike())
+            return makeCannotCastFailure(plan);
+
+        if (!srcConst.isValid())
+            return std::nullopt;
+
+        const ConstantValue& src    = sema.cstMgr().get(srcConst);
+        const ApFloat&       srcVal = src.getFloat();
+
+        const uint32_t targetBits = dstType.intLikeBits();
+        const bool     isUnsigned = dstType.isIntLikeUnsigned();
 
         bool         isExact  = false;
         bool         overflow = false;
         const ApsInt value    = srcVal.toInt(targetBits, isUnsigned, isExact, overflow);
-        if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
+
+        if (overflow && !plan.ctx.flags.has(CastFlagsE::NoOverflow))
         {
-            SemaError::raiseLiteralOverflow(sema, castCtx.errorNodeRef, src, targetTypeRef);
-            return ConstantRef::invalid();
+            CastFailure f{.diagId = DiagnosticId::sema_err_literal_overflow, .nodeRef = plan.ctx.errorNodeRef};
+            f.srcTypeRef = plan.srcTypeRef;
+            f.dstTypeRef = plan.dstTypeRef;
+            f.valueStr   = srcVal.toString();
+            return f;
         }
 
-        const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, targetType);
-        return sema.cstMgr().addConstant(ctx, result);
+        if (mode == CastMode::Evaluate && outConst)
+        {
+            const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
+            *outConst                  = sema.cstMgr().addConstant(ctx, result);
+        }
+
+        return std::nullopt;
     }
 
-    ConstantRef castConstantFloatToFloat(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
+    std::optional<CastFailure> opFloatToFloat(Sema& sema, const CastPlan& plan, CastMode mode, ConstantRef srcConst, ConstantRef* outConst)
     {
-        auto&              ctx        = sema.ctx();
-        const TypeManager& typeMgr    = ctx.typeMgr();
-        const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
-        const ApFloat&     floatVal   = src.getFloat();
-        const uint32_t     targetBits = targetType.floatBits();
+        auto&              ctx     = sema.ctx();
+        const TypeManager& typeMgr = ctx.typeMgr();
+        const TypeInfo&    dstType = typeMgr.get(plan.dstTypeRef);
+
+        if (!dstType.isFloat())
+            return makeCannotCastFailure(plan);
+
+        if (!srcConst.isValid())
+            return std::nullopt;
+
+        const ConstantValue& src        = sema.cstMgr().get(srcConst);
+        const ApFloat&       floatVal   = src.getFloat();
+        const uint32_t       targetBits = dstType.floatBits();
 
         bool          isExact  = false;
         bool          overflow = false;
         const ApFloat value    = floatVal.toFloat(targetBits, isExact, overflow);
-        if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
+
+        if (overflow && !plan.ctx.flags.has(CastFlagsE::NoOverflow))
         {
-            SemaError::raiseLiteralOverflow(sema, castCtx.errorNodeRef, src, targetTypeRef);
-            return ConstantRef::invalid();
+            CastFailure f{.diagId = DiagnosticId::sema_err_literal_overflow, .nodeRef = plan.ctx.errorNodeRef};
+            f.srcTypeRef = plan.srcTypeRef;
+            f.dstTypeRef = plan.dstTypeRef;
+            f.valueStr   = floatVal.toString();
+            return f;
         }
 
-        const ConstantValue result = ConstantValue::makeFloat(ctx, value, targetBits);
-        return sema.cstMgr().addConstant(ctx, result);
+        if (mode == CastMode::Evaluate && outConst)
+        {
+            const ConstantValue result = ConstantValue::makeFloat(ctx, value, targetBits);
+            *outConst                  = sema.cstMgr().addConstant(ctx, result);
+        }
+
+        return std::nullopt;
     }
 
-    ConstantRef evalCastPlanOnConstant(Sema& sema, const CastPlan& plan, ConstantRef srcRef)
+    std::optional<CastFailure> applyCastPlan(Sema& sema, const CastPlan& plan, CastMode mode, ConstantRef srcConst, ConstantRef* outConst)
     {
-        const ConstantValue& cst = sema.cstMgr().get(srcRef);
+        if (outConst)
+            *outConst = ConstantRef::invalid();
 
         switch (plan.op)
         {
-            case CastOp::Identity: return srcRef;
-            case CastOp::BitCast: return bitCastConstant(sema, plan.ctx, srcRef, plan.dstTypeRef);
-            case CastOp::BoolToIntLike: return castConstantBoolToIntLike(sema, plan.ctx, cst, plan.dstTypeRef);
-            case CastOp::IntLikeToBool: return castConstantIntLikeToBool(sema, plan.ctx, cst, plan.dstTypeRef);
-            case CastOp::IntLikeToIntLike: return castConstantIntLikeToIntLike(sema, plan.ctx, cst, plan.dstTypeRef);
-            case CastOp::IntLikeToFloat: return castConstantIntLikeToFloat(sema, plan.ctx, cst, plan.dstTypeRef);
-            case CastOp::FloatToFloat: return castConstantFloatToFloat(sema, plan.ctx, cst, plan.dstTypeRef);
-            case CastOp::FloatToIntLike: return castConstantFloatToIntLike(sema, plan.ctx, cst, plan.dstTypeRef);
+            case CastOp::Identity: return opIdentity(sema, plan, mode, srcConst, outConst);
+            case CastOp::BitCast: return opBitCast(sema, plan, mode, srcConst, outConst);
+            case CastOp::BoolToIntLike: return opBoolToIntLike(sema, plan, mode, srcConst, outConst);
+            case CastOp::IntLikeToBool: return opIntLikeToBool(sema, plan, mode, srcConst, outConst);
+            case CastOp::IntLikeToIntLike: return opIntLikeToIntLike(sema, plan, mode, srcConst, outConst);
+            case CastOp::IntLikeToFloat: return opIntLikeToFloat(sema, plan, mode, srcConst, outConst);
+            case CastOp::FloatToFloat: return opFloatToFloat(sema, plan, mode, srcConst, outConst);
+            case CastOp::FloatToIntLike: return opFloatToIntLike(sema, plan, mode, srcConst, outConst);
             default: SWC_UNREACHABLE();
         }
     }
@@ -400,31 +502,7 @@ CastPlanOrFailure SemaCast::analyzeCast(Sema& sema, const CastContext& castCtx, 
     if (srcTypeRef == dstTypeRef)
         return CastPlan{.op = CastOp::Identity, .srcTypeRef = srcTypeRef, .dstTypeRef = dstTypeRef, .ctx = castCtx};
 
-    if (castCtx.flags.has(CastFlagsE::BitCast))
-    {
-        // Validate bit cast constraints here once
-        const bool srcScalar = src.isScalarNumeric();
-        const bool dstScalar = dst.isScalarNumeric();
-        if (!srcScalar || !dstScalar)
-        {
-            CastFailure f{.diagId = DiagnosticId::sema_err_bit_cast_invalid_type, .nodeRef = castCtx.errorNodeRef};
-            f.srcTypeRef = !srcScalar ? srcTypeRef : dstTypeRef;
-            return f;
-        }
-
-        const uint32_t sb = src.scalarNumericBits();
-        const uint32_t db = dst.scalarNumericBits();
-        if (!(sb == db || !sb))
-        {
-            CastFailure f{.diagId = DiagnosticId::sema_err_bit_cast_size, .nodeRef = castCtx.errorNodeRef};
-            f.srcTypeRef = srcTypeRef;
-            f.dstTypeRef = dstTypeRef;
-            return f;
-        }
-        return CastPlan{.op = CastOp::BitCast, .srcTypeRef = srcTypeRef, .dstTypeRef = dstTypeRef, .ctx = castCtx};
-    }
-
-    // Kind rules
+    // Kind rules: Global / coarse only
     auto kindAllows = [&] {
         switch (castCtx.kind)
         {
@@ -463,7 +541,9 @@ CastPlanOrFailure SemaCast::analyzeCast(Sema& sema, const CastContext& castCtx, 
         return f;
     }
 
-    // Decide operation
+    if (castCtx.flags.has(CastFlagsE::BitCast))
+        return CastPlan{.op = CastOp::BitCast, .srcTypeRef = srcTypeRef, .dstTypeRef = dstTypeRef, .ctx = castCtx};
+
     if (src.isBool() && dst.isIntLike())
         return CastPlan{.op = CastOp::BoolToIntLike, .srcTypeRef = srcTypeRef, .dstTypeRef = dstTypeRef, .ctx = castCtx};
     if (src.isIntLike() && dst.isBool())
@@ -478,7 +558,6 @@ CastPlanOrFailure SemaCast::analyzeCast(Sema& sema, const CastContext& castCtx, 
     if (src.isFloat() && dst.isIntLike())
         return CastPlan{.op = CastOp::FloatToIntLike, .srcTypeRef = srcTypeRef, .dstTypeRef = dstTypeRef, .ctx = castCtx};
 
-    // If kindAllows was right, should not happen
     CastFailure f{.diagId = DiagnosticId::sema_err_cannot_cast, .nodeRef = castCtx.errorNodeRef};
     f.srcTypeRef = srcTypeRef;
     f.dstTypeRef = dstTypeRef;
@@ -488,8 +567,16 @@ CastPlanOrFailure SemaCast::analyzeCast(Sema& sema, const CastContext& castCtx, 
 void SemaCast::emitCastFailure(Sema& sema, const CastFailure& f)
 {
     auto diag = SemaError::report(sema, f.diagId, f.nodeRef);
+
     diag.addArgument(Diagnostic::ARG_TYPE, f.srcTypeRef);
     diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, f.dstTypeRef);
+
+    if (!f.valueStr.empty())
+        diag.addArgument(Diagnostic::ARG_VALUE, f.valueStr);
+
+    if (f.noteId != DiagnosticId::None)
+        diag.addNote(f.noteId);
+
     diag.report(sema.ctx());
 }
 
@@ -499,6 +586,15 @@ bool SemaCast::castAllowed(Sema& sema, const CastContext& castCtx, TypeRef srcTy
     if (const auto* f = std::get_if<CastFailure>(&planOrFail))
     {
         emitCastFailure(sema, *f);
+        return false;
+    }
+
+    const CastPlan& plan = std::get<CastPlan>(planOrFail);
+
+    // Non-constant check: srcConst invalid
+    if (const auto fail = applyCastPlan(sema, plan, CastMode::Check, ConstantRef::invalid(), nullptr))
+    {
+        emitCastFailure(sema, *fail);
         return false;
     }
 
@@ -516,7 +612,18 @@ ConstantRef SemaCast::castConstant(Sema& sema, const CastContext& castCtx, Const
         return ConstantRef::invalid();
     }
 
-    return evalCastPlanOnConstant(sema, std::get<CastPlan>(planOrFail), cstRef);
+    const CastPlan& plan = std::get<CastPlan>(planOrFail);
+
+    ConstantRef out = ConstantRef::invalid();
+    if (const auto fail = applyCastPlan(sema, plan, CastMode::Evaluate, cstRef, &out))
+    {
+        emitCastFailure(sema, *fail);
+        return ConstantRef::invalid();
+    }
+
+    // If Evaluate was requested and folding was possible, out is valid.
+    // Otherwise (future non-constant path), out could be invalid; for constants it should fold.
+    return out.isValid() ? out : ConstantRef::invalid();
 }
 
 bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef, bool force32BitInts)
@@ -542,11 +649,9 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
         const bool leftConcrete  = isConcreteScalar(*ops.nodeView[0].type);
         const bool rightConcrete = isConcreteScalar(*ops.nodeView[1].type);
 
-        // Start from the original constant refs
         ConstantRef leftSrc  = ops.nodeView[0].cstRef;
         ConstantRef rightSrc = ops.nodeView[1].cstRef;
 
-        // Concretize only in the mixed case: one concrete, the other not.
         if (leftConcrete != rightConcrete)
         {
             bool overflow;

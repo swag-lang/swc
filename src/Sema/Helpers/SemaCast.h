@@ -40,9 +40,11 @@ struct CastContext
 struct CastFailure
 {
     DiagnosticId diagId;
+    DiagnosticId noteId;
     AstNodeRef   nodeRef;    // where to point the error (usually castCtx.errorNodeRef)
     TypeRef      srcTypeRef; // optional, depends on diag
     TypeRef      dstTypeRef; // optional
+    Utf8         valueStr;
 };
 
 enum class CastOp : uint8_t

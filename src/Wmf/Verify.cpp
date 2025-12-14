@@ -155,8 +155,11 @@ void Verify::tokenize(TaskContext& ctx)
     for (const auto& trivia : srcView_->trivia())
     {
         const std::string_view comment = trivia.tok.string(*srcView_);
-        tokenizeExpected(ctx, trivia, comment);
-        tokenizeOption(ctx, comment);
+        if (trivia.tok.is(TokenId::CommentLine))
+        {
+            tokenizeExpected(ctx, trivia, comment);
+            tokenizeOption(ctx, comment);
+        }
     }
 }
 

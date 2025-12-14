@@ -24,19 +24,6 @@ enum class CastFlagsE : uint32_t
 };
 using CastFlags = EnumFlags<CastFlagsE>;
 
-struct CastContext
-{
-    CastKind   kind;
-    CastFlags  flags = CastFlagsE::Zero;
-    AstNodeRef errorNodeRef;
-
-    CastContext() = delete;
-    explicit CastContext(CastKind kind) :
-        kind(kind)
-    {
-    }
-};
-
 struct CastFailure
 {
     DiagnosticId diagId;
@@ -47,16 +34,18 @@ struct CastFailure
     Utf8         valueStr;
 };
 
-enum class CastOp : uint8_t
+struct CastContext
 {
-    Identity,
-    BitCast,
-    BoolToIntLike,
-    IntLikeToBool,
-    IntLikeToIntLike,
-    IntLikeToFloat,
-    FloatToFloat,
-    FloatToIntLike,
+    CastKind    kind;
+    CastFlags   flags = CastFlagsE::Zero;
+    AstNodeRef  errorNodeRef;
+    CastFailure failure;
+
+    CastContext() = delete;
+    explicit CastContext(CastKind kind) :
+        kind(kind)
+    {
+    }
 };
 
 enum class CastMode : uint8_t
@@ -67,11 +56,11 @@ enum class CastMode : uint8_t
 
 namespace SemaCast
 {
-    std::optional<CastFailure> analyseCast(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef, CastMode mode, ConstantRef srcConst, ConstantRef* outConst);
-    void                       emitCastFailure(Sema& sema, const CastFailure& f);
-    bool                       castAllowed(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef);
-    ConstantRef                castConstant(Sema& sema, const CastContext& castCtx, ConstantRef cstRef, TypeRef targetTypeRef);
-    bool                       promoteConstants(Sema& sema, const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef, bool force32BitInts = false);
+    bool        analyseCast(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef, CastMode mode, ConstantRef srcConst, ConstantRef* outConst);
+    void        emitCastFailure(Sema& sema, const CastFailure& f);
+    bool        castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef);
+    ConstantRef castConstant(Sema& sema, CastContext& castCtx, ConstantRef cstRef, TypeRef targetTypeRef);
+    bool        promoteConstants(Sema& sema, const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef, bool force32BitInts = false);
 };
 
 SWC_END_NAMESPACE()

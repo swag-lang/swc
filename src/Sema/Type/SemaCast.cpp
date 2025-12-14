@@ -14,12 +14,35 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    CastFailure makeCannotCastFailure(const CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    void resetCastFailure(CastContext& castCtx)
     {
-        CastFailure f{.diagId = DiagnosticId::sema_err_cannot_cast, .nodeRef = castCtx.errorNodeRef};
-        f.srcTypeRef = srcTypeRef;
-        f.dstTypeRef = dstTypeRef;
-        return f;
+        castCtx.failure         = CastFailure{};
+        castCtx.failure.diagId  = DiagnosticId::None;
+        castCtx.failure.nodeRef = castCtx.errorNodeRef;
+    }
+
+    void setCastFailure(CastContext& castCtx,
+                        DiagnosticId diagId,
+                        TypeRef      srcTypeRef,
+                        TypeRef      dstTypeRef)
+    {
+        castCtx.failure            = CastFailure{.diagId = diagId, .nodeRef = castCtx.errorNodeRef};
+        castCtx.failure.srcTypeRef = srcTypeRef;
+        castCtx.failure.dstTypeRef = dstTypeRef;
+    }
+
+    void setCastFailureValueNote(CastContext&     castCtx,
+                                 DiagnosticId     diagId,
+                                 TypeRef          srcTypeRef,
+                                 TypeRef          dstTypeRef,
+                                 std::string_view valueStr,
+                                 DiagnosticId     noteId)
+    {
+        castCtx.failure            = CastFailure{.diagId = diagId, .nodeRef = castCtx.errorNodeRef};
+        castCtx.failure.srcTypeRef = srcTypeRef;
+        castCtx.failure.dstTypeRef = dstTypeRef;
+        castCtx.failure.valueStr   = std::string(valueStr);
+        castCtx.failure.noteId     = noteId;
     }
 
     ApsInt bitCastToApInt(const ApFloat& src, bool isUnsigned)
@@ -71,28 +94,20 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    std::optional<CastFailure> opIdentity(
-        Sema&,
-        const CastContext&,
-        TypeRef,
-        TypeRef,
-        CastMode     mode,
-        ConstantRef  srcConst,
-        ConstantRef* outConst)
+    bool opIdentity(Sema&, CastContext&, TypeRef, TypeRef, CastMode mode, ConstantRef srcConst, ConstantRef* outConst)
     {
         if (mode == CastMode::Evaluate && outConst)
             *outConst = srcConst;
-        return std::nullopt;
+        return true;
     }
 
-    std::optional<CastFailure> opBitCast(
-        Sema&              sema,
-        const CastContext& castCtx,
-        TypeRef            srcTypeRef,
-        TypeRef            dstTypeRef,
-        CastMode           mode,
-        ConstantRef        srcConst,
-        ConstantRef*       outConst)
+    bool opBitCast(Sema&        sema,
+                   CastContext& castCtx,
+                   TypeRef      srcTypeRef,
+                   TypeRef      dstTypeRef,
+                   CastMode     mode,
+                   ConstantRef  srcConst,
+                   ConstantRef* outConst)
     {
         auto&              ctx     = sema.ctx();
         const TypeManager& typeMgr = ctx.typeMgr();
@@ -104,20 +119,20 @@ namespace
         const bool dstScalar = dstType.isScalarNumeric();
         if (!srcScalar || !dstScalar)
         {
-            CastFailure f{.diagId = DiagnosticId::sema_err_bit_cast_invalid_type, .nodeRef = castCtx.errorNodeRef};
-            f.srcTypeRef = srcTypeRef;
-            f.dstTypeRef = dstTypeRef;
-            return f;
+            castCtx.failure            = CastFailure{.diagId = DiagnosticId::sema_err_bit_cast_invalid_type, .nodeRef = castCtx.errorNodeRef};
+            castCtx.failure.srcTypeRef = srcTypeRef;
+            castCtx.failure.dstTypeRef = dstTypeRef;
+            return false;
         }
 
         const uint32_t sb = srcType.scalarNumericBits();
         const uint32_t db = dstType.scalarNumericBits();
         if (!(sb == db || !sb))
         {
-            CastFailure f{.diagId = DiagnosticId::sema_err_bit_cast_size, .nodeRef = castCtx.errorNodeRef};
-            f.srcTypeRef = srcTypeRef;
-            f.dstTypeRef = dstTypeRef;
-            return f;
+            castCtx.failure            = CastFailure{.diagId = DiagnosticId::sema_err_bit_cast_size, .nodeRef = castCtx.errorNodeRef};
+            castCtx.failure.srcTypeRef = srcTypeRef;
+            castCtx.failure.dstTypeRef = dstTypeRef;
+            return false;
         }
 
         // Fold if constant provided
@@ -130,7 +145,6 @@ namespace
             const bool dstInt   = dstType.isIntLike();
             const bool dstFloat = dstType.isFloat();
 
-            // If the op says BitCast, these should be scalar numeric but keep assertions.
             SWC_ASSERT(srcInt || srcFloat);
             SWC_ASSERT(dstInt || dstFloat);
 
@@ -146,7 +160,7 @@ namespace
 
                 const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
                 *outConst                  = sema.cstMgr().addConstant(ctx, result);
-                return std::nullopt;
+                return true;
             }
 
             if (srcFloat && dstFloat)
@@ -154,7 +168,7 @@ namespace
                 const ApFloat&      value  = src.getFloat();
                 const ConstantValue result = ConstantValue::makeFloat(ctx, value, dstBits);
                 *outConst                  = sema.cstMgr().addConstant(ctx, result);
-                return std::nullopt;
+                return true;
             }
 
             if (srcFloat && dstInt)
@@ -162,7 +176,7 @@ namespace
                 ApsInt              i      = bitCastToApInt(src.getFloat(), dstType.isIntLikeUnsigned());
                 const ConstantValue result = ConstantValue::makeFromIntLike(ctx, i, dstType);
                 *outConst                  = sema.cstMgr().addConstant(ctx, result);
-                return std::nullopt;
+                return true;
             }
 
             if (srcInt && dstFloat)
@@ -170,31 +184,33 @@ namespace
                 ApFloat             f      = bitCastToApFloat(src.getIntLike(), dstBits);
                 const ConstantValue result = ConstantValue::makeFloat(ctx, f, dstBits);
                 *outConst                  = sema.cstMgr().addConstant(ctx, result);
-                return std::nullopt;
+                return true;
             }
 
-            // Op mismatch or unexpected type combo
-            return makeCannotCastFailure(castCtx, srcTypeRef, dstTypeRef);
+            // Unexpected combo
+            setCastFailure(castCtx, DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return false;
         }
 
-        return std::nullopt;
+        return true;
     }
 
-    std::optional<CastFailure> opBoolToIntLike(
-        Sema&              sema,
-        const CastContext& castCtx,
-        TypeRef            srcTypeRef,
-        TypeRef            dstTypeRef,
-        CastMode           mode,
-        ConstantRef        srcConst,
-        ConstantRef*       outConst)
+    bool opBoolToIntLike(Sema&        sema,
+                         CastContext& castCtx,
+                         TypeRef      srcTypeRef,
+                         TypeRef      dstTypeRef,
+                         CastMode     mode,
+                         ConstantRef  srcConst,
+                         ConstantRef* outConst)
     {
         auto&           ctx     = sema.ctx();
         const TypeInfo& dstType = ctx.typeMgr().get(dstTypeRef);
 
-        // Type-level validation (works for non-constants too)
         if (!dstType.isIntLike())
-            return makeCannotCastFailure(castCtx, srcTypeRef, dstTypeRef);
+        {
+            setCastFailure(castCtx, DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return false;
+        }
 
         if (mode == CastMode::Evaluate && srcConst.isValid() && outConst)
         {
@@ -207,23 +223,25 @@ namespace
             const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
             *outConst                  = sema.cstMgr().addConstant(ctx, result);
         }
-        return std::nullopt;
+        return true;
     }
 
-    std::optional<CastFailure> opIntLikeToBool(
-        Sema&              sema,
-        const CastContext& castCtx,
-        TypeRef            srcTypeRef,
-        TypeRef            dstTypeRef,
-        CastMode           mode,
-        ConstantRef        srcConst,
-        ConstantRef*       outConst)
+    bool opIntLikeToBool(Sema&        sema,
+                         CastContext& castCtx,
+                         TypeRef      srcTypeRef,
+                         TypeRef      dstTypeRef,
+                         CastMode     mode,
+                         ConstantRef  srcConst,
+                         ConstantRef* outConst)
     {
         auto&           ctx     = sema.ctx();
         const TypeInfo& dstType = ctx.typeMgr().get(dstTypeRef);
 
         if (!dstType.isBool())
-            return makeCannotCastFailure(castCtx, srcTypeRef, dstTypeRef);
+        {
+            setCastFailure(castCtx, DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return false;
+        }
 
         if (mode == CastMode::Evaluate && srcConst.isValid() && outConst)
         {
@@ -234,29 +252,29 @@ namespace
             const ConstantValue result = ConstantValue::makeBool(ctx, b);
             *outConst                  = sema.cstMgr().addConstant(ctx, result);
         }
-        return std::nullopt;
+        return true;
     }
 
-    std::optional<CastFailure> opIntLikeToIntLike(
-        Sema&              sema,
-        const CastContext& castCtx,
-        TypeRef            srcTypeRef,
-        TypeRef            dstTypeRef,
-        CastMode           mode,
-        ConstantRef        srcConst,
-        ConstantRef*       outConst)
+    bool opIntLikeToIntLike(Sema&        sema,
+                            CastContext& castCtx,
+                            TypeRef      srcTypeRef,
+                            TypeRef      dstTypeRef,
+                            CastMode     mode,
+                            ConstantRef  srcConst,
+                            ConstantRef* outConst)
     {
         auto&              ctx     = sema.ctx();
         const TypeManager& typeMgr = ctx.typeMgr();
         const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
         if (!dstType.isIntLike())
-            return makeCannotCastFailure(castCtx, srcTypeRef, dstTypeRef);
+        {
+            setCastFailure(castCtx, DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return false;
+        }
 
-        // If we have no constant, we can’t do value-dependent overflow checks here.
-        // That’s OK: this function still validates the cast structurally.
         if (!srcConst.isValid())
-            return std::nullopt;
+            return true;
 
         const ConstantValue& src   = sema.cstMgr().get(srcConst);
         ApsInt               value = src.getIntLike();
@@ -272,12 +290,13 @@ namespace
         {
             if (!value.isUnsigned() && value.isNegative() && !castCtx.flags.has(CastFlagsE::NoOverflow) && targetBits != 0)
             {
-                CastFailure f{.diagId = DiagnosticId::sema_err_signed_unsigned, .nodeRef = castCtx.errorNodeRef};
-                f.srcTypeRef = srcTypeRef;
-                f.dstTypeRef = dstTypeRef;
-                f.valueStr   = value.toString();
-                f.noteId     = DiagnosticId::sema_note_signed_unsigned;
-                return f;
+                setCastFailureValueNote(castCtx,
+                                        DiagnosticId::sema_err_signed_unsigned,
+                                        srcTypeRef,
+                                        dstTypeRef,
+                                        value.toString(),
+                                        DiagnosticId::sema_note_signed_unsigned);
+                return false;
             }
 
             ApsInt vCheck = value;
@@ -331,12 +350,13 @@ namespace
                 {
                     if (!castCtx.flags.has(CastFlagsE::NoOverflow))
                     {
-                        CastFailure f{.diagId = DiagnosticId::sema_err_signed_unsigned, .nodeRef = castCtx.errorNodeRef};
-                        f.srcTypeRef = srcTypeRef;
-                        f.dstTypeRef = dstTypeRef;
-                        f.valueStr   = value.toString();
-                        f.noteId     = DiagnosticId::sema_note_unsigned_signed;
-                        return f;
+                        setCastFailureValueNote(castCtx,
+                                                DiagnosticId::sema_err_signed_unsigned,
+                                                srcTypeRef,
+                                                dstTypeRef,
+                                                value.toString(),
+                                                DiagnosticId::sema_note_unsigned_signed);
+                        return false;
                     }
                 }
             }
@@ -344,17 +364,15 @@ namespace
 
         if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
         {
-            CastFailure f{.diagId = DiagnosticId::sema_err_literal_overflow, .nodeRef = castCtx.errorNodeRef};
-            f.srcTypeRef = srcTypeRef;
-            f.dstTypeRef = dstTypeRef;
-            f.valueStr   = value.toString();
-            return f;
+            castCtx.failure            = CastFailure{.diagId = DiagnosticId::sema_err_literal_overflow, .nodeRef = castCtx.errorNodeRef};
+            castCtx.failure.srcTypeRef = srcTypeRef;
+            castCtx.failure.dstTypeRef = dstTypeRef;
+            castCtx.failure.valueStr   = value.toString();
+            return false;
         }
 
-        // Fold if requested
         if (mode == CastMode::Evaluate && outConst)
         {
-            // Adjust signedness to the target without changing the numeric value.
             if (value.isUnsigned() != targetUnsigned)
             {
                 if (value.isUnsigned() && !targetUnsigned)
@@ -382,27 +400,29 @@ namespace
             *outConst                  = sema.cstMgr().addConstant(ctx, result);
         }
 
-        return std::nullopt;
+        return true;
     }
 
-    std::optional<CastFailure> opIntLikeToFloat(
-        Sema&              sema,
-        const CastContext& castCtx,
-        TypeRef            srcTypeRef,
-        TypeRef            dstTypeRef,
-        CastMode           mode,
-        ConstantRef        srcConst,
-        ConstantRef*       outConst)
+    bool opIntLikeToFloat(Sema&        sema,
+                          CastContext& castCtx,
+                          TypeRef      srcTypeRef,
+                          TypeRef      dstTypeRef,
+                          CastMode     mode,
+                          ConstantRef  srcConst,
+                          ConstantRef* outConst)
     {
         auto&              ctx     = sema.ctx();
         const TypeManager& typeMgr = ctx.typeMgr();
         const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
         if (!dstType.isFloat())
-            return makeCannotCastFailure(castCtx, srcTypeRef, dstTypeRef);
+        {
+            setCastFailure(castCtx, DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return false;
+        }
 
         if (!srcConst.isValid())
-            return std::nullopt;
+            return true;
 
         const ConstantValue& src        = sema.cstMgr().get(srcConst);
         const ApsInt         intVal     = src.getIntLike();
@@ -415,11 +435,11 @@ namespace
 
         if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
         {
-            CastFailure f{.diagId = DiagnosticId::sema_err_literal_overflow, .nodeRef = castCtx.errorNodeRef};
-            f.srcTypeRef = srcTypeRef;
-            f.dstTypeRef = dstTypeRef;
-            f.valueStr   = intVal.toString();
-            return f;
+            castCtx.failure            = CastFailure{.diagId = DiagnosticId::sema_err_literal_overflow, .nodeRef = castCtx.errorNodeRef};
+            castCtx.failure.srcTypeRef = srcTypeRef;
+            castCtx.failure.dstTypeRef = dstTypeRef;
+            castCtx.failure.valueStr   = intVal.toString();
+            return false;
         }
 
         if (mode == CastMode::Evaluate && outConst)
@@ -428,27 +448,29 @@ namespace
             *outConst                  = sema.cstMgr().addConstant(ctx, result);
         }
 
-        return std::nullopt;
+        return true;
     }
 
-    std::optional<CastFailure> opFloatToIntLike(
-        Sema&              sema,
-        const CastContext& castCtx,
-        TypeRef            srcTypeRef,
-        TypeRef            dstTypeRef,
-        CastMode           mode,
-        ConstantRef        srcConst,
-        ConstantRef*       outConst)
+    bool opFloatToIntLike(Sema&        sema,
+                          CastContext& castCtx,
+                          TypeRef      srcTypeRef,
+                          TypeRef      dstTypeRef,
+                          CastMode     mode,
+                          ConstantRef  srcConst,
+                          ConstantRef* outConst)
     {
         auto&              ctx     = sema.ctx();
         const TypeManager& typeMgr = ctx.typeMgr();
         const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
         if (!dstType.isIntLike())
-            return makeCannotCastFailure(castCtx, srcTypeRef, dstTypeRef);
+        {
+            setCastFailure(castCtx, DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return false;
+        }
 
         if (!srcConst.isValid())
-            return std::nullopt;
+            return true;
 
         const ConstantValue& src    = sema.cstMgr().get(srcConst);
         const ApFloat&       srcVal = src.getFloat();
@@ -462,11 +484,11 @@ namespace
 
         if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
         {
-            CastFailure f{.diagId = DiagnosticId::sema_err_literal_overflow, .nodeRef = castCtx.errorNodeRef};
-            f.srcTypeRef = srcTypeRef;
-            f.dstTypeRef = dstTypeRef;
-            f.valueStr   = srcVal.toString();
-            return f;
+            castCtx.failure            = CastFailure{.diagId = DiagnosticId::sema_err_literal_overflow, .nodeRef = castCtx.errorNodeRef};
+            castCtx.failure.srcTypeRef = srcTypeRef;
+            castCtx.failure.dstTypeRef = dstTypeRef;
+            castCtx.failure.valueStr   = srcVal.toString();
+            return false;
         }
 
         if (mode == CastMode::Evaluate && outConst)
@@ -475,27 +497,29 @@ namespace
             *outConst                  = sema.cstMgr().addConstant(ctx, result);
         }
 
-        return std::nullopt;
+        return true;
     }
 
-    std::optional<CastFailure> opFloatToFloat(
-        Sema&              sema,
-        const CastContext& castCtx,
-        TypeRef            srcTypeRef,
-        TypeRef            dstTypeRef,
-        CastMode           mode,
-        ConstantRef        srcConst,
-        ConstantRef*       outConst)
+    bool opFloatToFloat(Sema&        sema,
+                        CastContext& castCtx,
+                        TypeRef      srcTypeRef,
+                        TypeRef      dstTypeRef,
+                        CastMode     mode,
+                        ConstantRef  srcConst,
+                        ConstantRef* outConst)
     {
         auto&              ctx     = sema.ctx();
         const TypeManager& typeMgr = ctx.typeMgr();
         const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
         if (!dstType.isFloat())
-            return makeCannotCastFailure(castCtx, srcTypeRef, dstTypeRef);
+        {
+            setCastFailure(castCtx, DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return false;
+        }
 
         if (!srcConst.isValid())
-            return std::nullopt;
+            return true;
 
         const ConstantValue& src        = sema.cstMgr().get(srcConst);
         const ApFloat&       floatVal   = src.getFloat();
@@ -507,11 +531,11 @@ namespace
 
         if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
         {
-            CastFailure f{.diagId = DiagnosticId::sema_err_literal_overflow, .nodeRef = castCtx.errorNodeRef};
-            f.srcTypeRef = srcTypeRef;
-            f.dstTypeRef = dstTypeRef;
-            f.valueStr   = floatVal.toString();
-            return f;
+            castCtx.failure            = CastFailure{.diagId = DiagnosticId::sema_err_literal_overflow, .nodeRef = castCtx.errorNodeRef};
+            castCtx.failure.srcTypeRef = srcTypeRef;
+            castCtx.failure.dstTypeRef = dstTypeRef;
+            castCtx.failure.valueStr   = floatVal.toString();
+            return false;
         }
 
         if (mode == CastMode::Evaluate && outConst)
@@ -520,14 +544,20 @@ namespace
             *outConst                  = sema.cstMgr().addConstant(ctx, result);
         }
 
-        return std::nullopt;
+        return true;
     }
 }
 
-// Replaces both the old analyzeCast() (plan-building) + applyCastPlan() (execution).
-// It analyses types/kind/flags, selects an op, validates, and optionally folds constants.
-std::optional<CastFailure> SemaCast::analyseCast(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef, CastMode mode, ConstantRef srcConst, ConstantRef* outConst)
+bool SemaCast::analyseCast(Sema&        sema,
+                           CastContext& castCtx,
+                           TypeRef      srcTypeRef,
+                           TypeRef      dstTypeRef,
+                           CastMode     mode,
+                           ConstantRef  srcConst,
+                           ConstantRef* outConst)
 {
+    resetCastFailure(castCtx);
+
     if (outConst)
         *outConst = ConstantRef::invalid();
 
@@ -570,9 +600,12 @@ std::optional<CastFailure> SemaCast::analyseCast(Sema& sema, const CastContext& 
     };
 
     if (!kindAllows())
-        return makeCannotCastFailure(castCtx, srcTypeRef, dstTypeRef);
+    {
+        setCastFailure(castCtx, DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        return false;
+    }
 
-    // BitCast flag has priority (same behavior as before)
+    // BitCast flag has priority
     if (castCtx.flags.has(CastFlagsE::BitCast))
         return opBitCast(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConst, outConst);
 
@@ -590,7 +623,8 @@ std::optional<CastFailure> SemaCast::analyseCast(Sema& sema, const CastContext& 
     if (src.isFloat() && dst.isIntLike())
         return opFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConst, outConst);
 
-    return makeCannotCastFailure(castCtx, srcTypeRef, dstTypeRef);
+    setCastFailure(castCtx, DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+    return false;
 }
 
 void SemaCast::emitCastFailure(Sema& sema, const CastFailure& f)
@@ -609,31 +643,28 @@ void SemaCast::emitCastFailure(Sema& sema, const CastFailure& f)
     diag.report(sema.ctx());
 }
 
-bool SemaCast::castAllowed(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef)
+bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
-    // Non-constant check: srcConst invalid
-    if (const auto fail = analyseCast(sema, castCtx, srcTypeRef, targetTypeRef, CastMode::Check, ConstantRef::invalid(), nullptr))
+    if (!SemaCast::analyseCast(sema, castCtx, srcTypeRef, targetTypeRef, CastMode::Check, ConstantRef::invalid(), nullptr))
     {
-        emitCastFailure(sema, *fail);
+        emitCastFailure(sema, castCtx.failure);
         return false;
     }
 
     return true;
 }
 
-ConstantRef SemaCast::castConstant(Sema& sema, const CastContext& castCtx, ConstantRef cstRef, TypeRef targetTypeRef)
+ConstantRef SemaCast::castConstant(Sema& sema, CastContext& castCtx, ConstantRef cstRef, TypeRef targetTypeRef)
 {
     const ConstantValue& cst = sema.cstMgr().get(cstRef);
 
     ConstantRef out = ConstantRef::invalid();
-    if (const auto fail = analyseCast(sema, castCtx, cst.typeRef(), targetTypeRef, CastMode::Evaluate, cstRef, &out))
+    if (!SemaCast::analyseCast(sema, castCtx, cst.typeRef(), targetTypeRef, CastMode::Evaluate, cstRef, &out))
     {
-        emitCastFailure(sema, *fail);
+        emitCastFailure(sema, castCtx.failure);
         return ConstantRef::invalid();
     }
 
-    // If Evaluate was requested and folding was possible, out is valid.
-    // Otherwise (future non-constant path), out could be invalid; for constants it should fold.
     return out.isValid() ? out : ConstantRef::invalid();
 }
 

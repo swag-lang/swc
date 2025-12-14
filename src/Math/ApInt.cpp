@@ -556,9 +556,8 @@ void ApInt::addSigned(const ApInt& rhs, bool& overflow)
     bool unsignedOverflow = false;
     add(rhs, unsignedOverflow);
 
-    const bool resNeg         = isNegative();
-    const bool signedOverflow = (lhsNeg == rhsNeg) && (resNeg != lhsNeg);
-    overflow                  = unsignedOverflow || signedOverflow;
+    const bool resNeg = isNegative();
+    overflow          = (lhsNeg == rhsNeg) && (resNeg != lhsNeg);
 }
 
 void ApInt::subSigned(const ApInt& rhs, bool& overflow)
@@ -571,9 +570,8 @@ void ApInt::subSigned(const ApInt& rhs, bool& overflow)
     bool unsignedOverflow = false;
     sub(rhs, unsignedOverflow);
 
-    const bool resNeg         = isNegative();
-    const bool signedOverflow = (lhsNeg != rhsNeg) && (resNeg != lhsNeg);
-    overflow                  = unsignedOverflow || signedOverflow;
+    const bool resNeg = isNegative();
+    overflow          = (lhsNeg != rhsNeg) && (resNeg != lhsNeg);
 }
 
 void ApInt::clearWords()

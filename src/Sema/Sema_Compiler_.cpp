@@ -1,5 +1,4 @@
 #include "pch.h"
-
 #include "Constant/ConstantManager.h"
 #include "Helpers/SemaError.h"
 #include "Main/Global.h"
@@ -9,8 +8,6 @@
 #include "Report/DiagnosticDef.h"
 #include "Report/Logger.h"
 #include "Sema/Constant/ConstantValue.h"
-#include "Sema/Helpers/SemaCast.h"
-#include "Sema/Helpers/SemaInfo.h"
 #include "Sema/Helpers/SemaNodeView.h"
 #include "Sema/Sema.h"
 #include "Sema/Type/TypeManager.h"
@@ -227,7 +224,7 @@ namespace
         if (nodeView.cstRef.isValid())
         {
             bool overflow;
-            nodeView.cstRef = SemaCast::concretizeConstant(sema, nodeView.cstRef, overflow);
+            nodeView.cstRef = sema.cstMgr().concretizeConstant(sema.ctx(), nodeView.cstRef, overflow);
             if (overflow)
             {
                 SemaError::raiseLiteralTooBig(sema, node.nodeArgRef, sema.cstMgr().get(nodeView.cstRef));

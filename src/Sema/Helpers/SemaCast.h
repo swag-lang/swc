@@ -1,5 +1,6 @@
 #pragma once
 #include "Parser/AstNode.h"
+#include "Report/Diagnostic.h"
 #include "Sema/Constant/ConstantValue.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -69,11 +70,11 @@ using CastPlanOrFailure = std::variant<CastPlan, CastFailure>;
 
 namespace SemaCast
 {
-    std::optional<CastFailure> check(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef);
-    bool                       castAllowed(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef);
-    ConstantRef                castConstant(Sema& sema, const CastContext& castCtx, ConstantRef cstRef, TypeRef targetTypeRef);
-    bool                       promoteConstants(Sema& sema, const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef, bool force32BitInts = false);
-    ConstantRef                concretizeConstant(Sema& sema, ConstantRef cstRef, bool& overflow);
+    CastPlanOrFailure analyzeCast(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef);
+    void              emitCastFailure(Sema& sema, const CastFailure& f);
+    bool              castAllowed(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef);
+    ConstantRef       castConstant(Sema& sema, const CastContext& castCtx, ConstantRef cstRef, TypeRef targetTypeRef);
+    bool              promoteConstants(Sema& sema, const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef, bool force32BitInts = false);
 };
 
 SWC_END_NAMESPACE()

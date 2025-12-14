@@ -1,14 +1,13 @@
 #include "pch.h"
-
+#include "Sema/Helpers/SemaCast.h"
 #include "Math/ApFloat.h"
 #include "Math/ApsInt.h"
 #include "Report/Diagnostic.h"
 #include "Sema/Constant/ConstantManager.h"
-#include "Sema/Helpers/SemaCast.h"
+#include "Sema/Helpers/SemaError.h"
+#include "Sema/Helpers/SemaNodeView.h"
 #include "Sema/Sema.h"
 #include "Sema/Type/TypeManager.h"
-#include "SemaError.h"
-#include "SemaNodeView.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -389,204 +388,121 @@ namespace
             default: SWC_UNREACHABLE();
         }
     }
+}
 
-    CastPlanOrFailure analyzeCast(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+CastPlanOrFailure SemaCast::analyzeCast(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+{
+    const auto&     typeMgr = sema.ctx().typeMgr();
+    const TypeInfo& src     = typeMgr.get(srcTypeRef);
+    const TypeInfo& dst     = typeMgr.get(dstTypeRef);
+
+    if (srcTypeRef == dstTypeRef)
+        return CastPlan{.op = CastOp::Identity, .srcType = srcTypeRef, .dstType = dstTypeRef, .ctx = castCtx};
+
+    if (castCtx.flags.has(CastFlagsE::BitCast))
     {
-        const auto&     typeMgr = sema.ctx().typeMgr();
-        const TypeInfo& src     = typeMgr.get(srcTypeRef);
-        const TypeInfo& dst     = typeMgr.get(dstTypeRef);
-
-        if (srcTypeRef == dstTypeRef)
-            return CastPlan{CastOp::Identity, srcTypeRef, dstTypeRef, castCtx};
-
-        if (castCtx.flags.has(CastFlagsE::BitCast))
+        // Validate bitcast constraints here once
+        const bool srcScalar = src.isScalarNumeric();
+        const bool dstScalar = dst.isScalarNumeric();
+        if (!srcScalar || !dstScalar)
         {
-            // Validate bitcast constraints here once
-            const bool srcScalar = src.isScalarNumeric();
-            const bool dstScalar = dst.isScalarNumeric();
-            if (!srcScalar || !dstScalar)
-            {
-                CastFailure f{DiagnosticId::sema_err_bit_cast_invalid_type, castCtx.errorNodeRef};
-                f.typeArg = !srcScalar ? srcTypeRef : dstTypeRef;
-                return f;
-            }
-            const uint32_t sb = src.scalarNumericBits();
-            const uint32_t db = dst.scalarNumericBits();
-            if (!(sb == db || !sb))
-            {
-                CastFailure f{DiagnosticId::sema_err_bit_cast_size, castCtx.errorNodeRef};
-                f.leftType  = srcTypeRef;
-                f.rightType = dstTypeRef;
-                return f;
-            }
-            return CastPlan{CastOp::BitCast, srcTypeRef, dstTypeRef, castCtx};
+            CastFailure f{.diagId = DiagnosticId::sema_err_bit_cast_invalid_type, .nodeRef = castCtx.errorNodeRef};
+            f.typeArg = !srcScalar ? srcTypeRef : dstTypeRef;
+            return f;
         }
-
-        // Kind rules (your existing switch, unchanged in spirit)
-        auto kindAllows = [&] {
-            switch (castCtx.kind)
-            {
-                case CastKind::LiteralSuffix:
-                    if (src.isChar() && dst.isIntUnsigned())
-                        return true;
-                    if (src.isChar() && dst.isRune())
-                        return true;
-                    if (src.isInt() && dst.isInt())
-                        return true;
-                    if (src.isInt() && dst.isFloat())
-                        return true;
-                    if (src.isFloat() && dst.isFloat())
-                        return true;
-                    return false;
-                case CastKind::Promotion:
-                    return src.isScalarNumeric() && dst.isScalarNumeric();
-                case CastKind::Explicit:
-                    if (src.isScalarNumeric() && dst.isScalarNumeric())
-                        return true;
-                    if ((src.isBool() && dst.isIntLike()) || (src.isIntLike() && dst.isBool()))
-                        return true;
-                    return false;
-                case CastKind::Implicit:
-                    return src.isScalarNumeric() && dst.isScalarNumeric();
-                default:
-                    SWC_UNREACHABLE();
-            }
-        };
-
-        if (!kindAllows())
+        const uint32_t sb = src.scalarNumericBits();
+        const uint32_t db = dst.scalarNumericBits();
+        if (!(sb == db || !sb))
         {
-            CastFailure f{DiagnosticId::sema_err_cannot_cast, castCtx.errorNodeRef};
+            CastFailure f{.diagId = DiagnosticId::sema_err_bit_cast_size, .nodeRef = castCtx.errorNodeRef};
             f.leftType  = srcTypeRef;
             f.rightType = dstTypeRef;
             return f;
         }
+        return CastPlan{.op = CastOp::BitCast, .srcType = srcTypeRef, .dstType = dstTypeRef, .ctx = castCtx};
+    }
 
-        // Decide operation
-        if (src.isBool() && dst.isIntLike())
-            return CastPlan{CastOp::BoolToIntLike, srcTypeRef, dstTypeRef, castCtx};
-        if (src.isIntLike() && dst.isBool())
-            return CastPlan{CastOp::IntLikeToBool, srcTypeRef, dstTypeRef, castCtx};
+    // Kind rules (your existing switch, unchanged in spirit)
+    auto kindAllows = [&] {
+        switch (castCtx.kind)
+        {
+            case CastKind::LiteralSuffix:
+                if (src.isChar() && dst.isIntUnsigned())
+                    return true;
+                if (src.isChar() && dst.isRune())
+                    return true;
+                if (src.isInt() && dst.isInt())
+                    return true;
+                if (src.isInt() && dst.isFloat())
+                    return true;
+                if (src.isFloat() && dst.isFloat())
+                    return true;
+                return false;
+            case CastKind::Promotion:
+                return src.isScalarNumeric() && dst.isScalarNumeric();
+            case CastKind::Explicit:
+                if (src.isScalarNumeric() && dst.isScalarNumeric())
+                    return true;
+                if ((src.isBool() && dst.isIntLike()) || (src.isIntLike() && dst.isBool()))
+                    return true;
+                return false;
+            case CastKind::Implicit:
+                return src.isScalarNumeric() && dst.isScalarNumeric();
+            default:
+                SWC_UNREACHABLE();
+        }
+    };
 
-        if (src.isIntLike() && dst.isIntLike())
-            return CastPlan{CastOp::IntLikeToIntLike, srcTypeRef, dstTypeRef, castCtx};
-        if (src.isIntLike() && dst.isFloat())
-            return CastPlan{CastOp::IntLikeToFloat, srcTypeRef, dstTypeRef, castCtx};
-        if (src.isFloat() && dst.isFloat())
-            return CastPlan{CastOp::FloatToFloat, srcTypeRef, dstTypeRef, castCtx};
-        if (src.isFloat() && dst.isIntLike())
-            return CastPlan{CastOp::FloatToIntLike, srcTypeRef, dstTypeRef, castCtx};
-
-        // If kindAllows was right, should not happen
-        CastFailure f{DiagnosticId::sema_err_cannot_cast, castCtx.errorNodeRef};
+    if (!kindAllows())
+    {
+        CastFailure f{.diagId = DiagnosticId::sema_err_cannot_cast, .nodeRef = castCtx.errorNodeRef};
         f.leftType  = srcTypeRef;
         f.rightType = dstTypeRef;
         return f;
     }
 
-    void emitCastFailure(Sema& sema, const CastFailure& f)
-    {
-        auto diag = SemaError::report(sema, f.diagId, f.nodeRef);
+    // Decide operation
+    if (src.isBool() && dst.isIntLike())
+        return CastPlan{.op = CastOp::BoolToIntLike, .srcType = srcTypeRef, .dstType = dstTypeRef, .ctx = castCtx};
+    if (src.isIntLike() && dst.isBool())
+        return CastPlan{.op = CastOp::IntLikeToBool, .srcType = srcTypeRef, .dstType = dstTypeRef, .ctx = castCtx};
 
-        switch (f.diagId)
-        {
-            case DiagnosticId::sema_err_bit_cast_invalid_type:
-                diag.addArgument(Diagnostic::ARG_TYPE, f.typeArg);
-                break;
-            case DiagnosticId::sema_err_bit_cast_size:
-                diag.addArgument(Diagnostic::ARG_LEFT, f.leftType);
-                diag.addArgument(Diagnostic::ARG_RIGHT, f.rightType);
-                break;
-            default:
-                diag.addArgument(Diagnostic::ARG_LEFT, f.leftType);
-                diag.addArgument(Diagnostic::ARG_RIGHT, f.rightType);
-                break;
-        }
+    if (src.isIntLike() && dst.isIntLike())
+        return CastPlan{.op = CastOp::IntLikeToIntLike, .srcType = srcTypeRef, .dstType = dstTypeRef, .ctx = castCtx};
+    if (src.isIntLike() && dst.isFloat())
+        return CastPlan{.op = CastOp::IntLikeToFloat, .srcType = srcTypeRef, .dstType = dstTypeRef, .ctx = castCtx};
+    if (src.isFloat() && dst.isFloat())
+        return CastPlan{.op = CastOp::FloatToFloat, .srcType = srcTypeRef, .dstType = dstTypeRef, .ctx = castCtx};
+    if (src.isFloat() && dst.isIntLike())
+        return CastPlan{.op = CastOp::FloatToIntLike, .srcType = srcTypeRef, .dstType = dstTypeRef, .ctx = castCtx};
 
-        diag.report(sema.ctx());
-    }
+    // If kindAllows was right, should not happen
+    CastFailure f{.diagId = DiagnosticId::sema_err_cannot_cast, .nodeRef = castCtx.errorNodeRef};
+    f.leftType  = srcTypeRef;
+    f.rightType = dstTypeRef;
+    return f;
 }
 
-std::optional<CastFailure> SemaCast::check(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef)
+void SemaCast::emitCastFailure(Sema& sema, const CastFailure& f)
 {
-    auto&              ctx        = sema.ctx();
-    const TypeManager& typeMgr    = ctx.typeMgr();
-    const TypeInfo&    srcType    = typeMgr.get(srcTypeRef);
-    const TypeInfo&    targetType = typeMgr.get(targetTypeRef);
+    auto diag = SemaError::report(sema, f.diagId, f.nodeRef);
 
-    if (castCtx.flags.has(CastFlagsE::BitCast))
+    switch (f.diagId)
     {
-        const bool srcScalar = srcType.isScalarNumeric();
-        const bool dstScalar = targetType.isScalarNumeric();
-
-        if (!srcScalar || !dstScalar)
-        {
-            CastFailure f;
-            f.diagId  = DiagnosticId::sema_err_bit_cast_invalid_type;
-            f.nodeRef = castCtx.errorNodeRef;
-            f.typeArg = !srcScalar ? srcTypeRef : targetTypeRef;
-            return f;
-        }
-
-        const uint32_t srcBits = srcType.scalarNumericBits();
-        const uint32_t dstBits = targetType.scalarNumericBits();
-        if (srcBits == dstBits || !srcBits)
-            return std::nullopt;
-
-        CastFailure f;
-        f.diagId    = DiagnosticId::sema_err_bit_cast_size;
-        f.nodeRef   = castCtx.errorNodeRef;
-        f.leftType  = srcTypeRef;
-        f.rightType = targetTypeRef;
-        return f;
-    }
-
-    if (srcTypeRef == targetTypeRef)
-        return std::nullopt;
-
-    switch (castCtx.kind)
-    {
-        case CastKind::LiteralSuffix:
-            if (srcType.isChar() && targetType.isIntUnsigned())
-                return std::nullopt;
-            if (srcType.isChar() && targetType.isRune())
-                return std::nullopt;
-            if (srcType.isInt() && targetType.isInt())
-                return std::nullopt;
-            if (srcType.isInt() && targetType.isFloat())
-                return std::nullopt;
-            if (srcType.isFloat() && targetType.isFloat())
-                return std::nullopt;
+        case DiagnosticId::sema_err_bit_cast_invalid_type:
+            diag.addArgument(Diagnostic::ARG_TYPE, f.typeArg);
             break;
-
-        case CastKind::Promotion:
-            if (srcType.isScalarNumeric() && targetType.isScalarNumeric())
-                return std::nullopt;
+        case DiagnosticId::sema_err_bit_cast_size:
+            diag.addArgument(Diagnostic::ARG_LEFT, f.leftType);
+            diag.addArgument(Diagnostic::ARG_RIGHT, f.rightType);
             break;
-
-        case CastKind::Explicit:
-            if (srcType.isScalarNumeric() && targetType.isScalarNumeric())
-                return std::nullopt;
-            if ((srcType.isBool() && targetType.isIntLike()) ||
-                (srcType.isIntLike() && targetType.isBool()))
-                return std::nullopt;
-            break;
-
-        case CastKind::Implicit:
-            if (srcType.isScalarNumeric() && targetType.isScalarNumeric())
-                return std::nullopt;
-            break;
-
         default:
-            SWC_UNREACHABLE();
+            diag.addArgument(Diagnostic::ARG_LEFT, f.leftType);
+            diag.addArgument(Diagnostic::ARG_RIGHT, f.rightType);
+            break;
     }
 
-    // generic failure (no emission here)
-    CastFailure f;
-    f.diagId    = DiagnosticId::sema_err_cannot_cast; // or whatever your generic id is
-    f.nodeRef   = castCtx.errorNodeRef;
-    f.leftType  = srcTypeRef;
-    f.rightType = targetTypeRef;
-    return f;
+    diag.report(sema.ctx());
 }
 
 bool SemaCast::castAllowed(Sema& sema, const CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef)
@@ -648,7 +564,7 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
             bool overflow;
             if (!leftConcrete)
             {
-                leftSrc = concretizeConstant(sema, leftSrc, overflow);
+                leftSrc = sema.cstMgr().concretizeConstant(sema.ctx(), leftSrc, overflow);
                 if (overflow)
                 {
                     SemaError::raiseLiteralTooBig(sema, ops.nodeView[0].nodeRef, sema.cstMgr().get(leftSrc));
@@ -658,7 +574,7 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
 
             if (!rightConcrete)
             {
-                rightSrc = concretizeConstant(sema, rightSrc, overflow);
+                rightSrc = sema.cstMgr().concretizeConstant(sema.ctx(), rightSrc, overflow);
                 if (overflow)
                 {
                     SemaError::raiseLiteralTooBig(sema, ops.nodeView[1].nodeRef, sema.cstMgr().get(rightSrc));
@@ -684,74 +600,6 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
     }
 
     SWC_UNREACHABLE();
-}
-
-ConstantRef SemaCast::concretizeConstant(Sema& sema, ConstantRef cstRef, bool& overflow)
-{
-    auto&                ctx     = sema.ctx();
-    const TypeManager&   typeMgr = ctx.typeMgr();
-    const ConstantValue& src     = sema.cstMgr().get(cstRef);
-    const TypeInfo&      ty      = typeMgr.get(src.typeRef());
-
-    overflow = false;
-
-    if (!ty.isScalarNumeric())
-        return cstRef;
-
-    if (ty.isIntLike())
-    {
-        // Already sized.
-        if (ty.intLikeBits() != 0)
-            return cstRef;
-
-        ApsInt value = src.getIntLike();
-
-        // Preserve the constant's signedness.
-        const bool unsignedTarget = value.isUnsigned();
-
-        // Smallest standard width (8/16/32/64/...) for this value & signedness.
-        uint32_t concreteBits = value.minBits();
-        concreteBits          = std::max(concreteBits, 32u);
-
-        if (concreteBits > 64u)
-        {
-            overflow = true;
-            return cstRef;
-        }
-
-        if (value.isUnsigned() != unsignedTarget)
-            value.setUnsigned(unsignedTarget);
-        value.resize(concreteBits);
-
-        const TypeRef       concreteTypeRef = typeMgr.getTypeInt(concreteBits, unsignedTarget);
-        const TypeInfo&     concreteTy      = typeMgr.get(concreteTypeRef);
-        const ConstantValue result          = ConstantValue::makeFromIntLike(ctx, value, concreteTy);
-        return sema.cstMgr().addConstant(ctx, result);
-    }
-
-    if (ty.isFloat())
-    {
-        // Already sized.
-        if (ty.floatBits() != 0)
-            return cstRef;
-
-        const ApFloat& srcF = src.getFloat();
-
-        uint32_t concreteBits = srcF.minBits();
-        concreteBits          = std::max(concreteBits, 32u);
-
-        bool    isExact   = false;
-        ApFloat concreteF = srcF.toFloat(concreteBits, isExact, overflow);
-
-        // If for any reason conversion reports overflow, keep original.
-        if (overflow)
-            concreteF = srcF;
-
-        const ConstantValue result = ConstantValue::makeFloat(ctx, concreteF, concreteBits);
-        return sema.cstMgr().addConstant(ctx, result);
-    }
-
-    return cstRef;
 }
 
 SWC_END_NAMESPACE()

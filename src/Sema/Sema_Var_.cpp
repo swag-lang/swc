@@ -30,16 +30,19 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
 
     if (nodeInitView.typeRef.isValid() && nodeTypeView.typeRef.isValid())
     {
-        if (auto failure = SemaCast::check(sema, castCtx, nodeInitView.typeRef, nodeTypeView.typeRef))
+        auto planOrFail = SemaCast::analyzeCast(sema, castCtx, nodeInitView.typeRef, nodeTypeView.typeRef);
+        if (auto* failure = std::get_if<CastFailure>(&planOrFail))
         {
             // Primary, context-specific diagnostic
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_var_init_type_mismatch, castCtx.errorNodeRef);
             diag.addArgument(Diagnostic::ARG_TYPE, nodeInitView.typeRef);
             diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, nodeTypeView.typeRef);
 
-            // Add the underlying reason as a note
+            // Add the underlying reason as a note (format like your previous code)
             {
                 auto reason = SemaError::report(sema, failure->diagId, failure->nodeRef);
+
+                // Preserve your old "base args" behavior (even if some diag ids ignore them)
                 reason.addArgument(Diagnostic::ARG_TYPE, nodeInitView.typeRef);
                 reason.addArgument(Diagnostic::ARG_REQUESTED_TYPE, nodeTypeView.typeRef);
 
@@ -62,8 +65,11 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
             }
 
             // Explicit cast works hint
-            castCtx.kind = CastKind::Explicit;
-            if (!SemaCast::check(sema, castCtx, nodeInitView.typeRef, nodeTypeView.typeRef))
+            CastContext explicitCtx = castCtx;
+            explicitCtx.kind        = CastKind::Explicit;
+
+            auto explicitPlanOrFail = SemaCast::analyzeCast(sema, explicitCtx, nodeInitView.typeRef, nodeTypeView.typeRef);
+            if (!std::holds_alternative<CastFailure>(explicitPlanOrFail))
                 diag.addElement(DiagnosticId::sema_note_cast_explicit);
 
             diag.report(sema.ctx());

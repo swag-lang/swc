@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Main/Stats.h"
+#include "Main/TaskContext.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -91,6 +92,73 @@ const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
     const auto shardIndex = constantRef.get() >> LOCAL_BITS;
     const auto localIndex = constantRef.get() & LOCAL_MASK;
     return *shards_[shardIndex].store.ptr<ConstantValue>(localIndex * sizeof(ConstantValue));
+}
+
+ConstantRef ConstantManager::concretizeConstant(TaskContext& ctx, ConstantRef cstRef, bool& overflow)
+{
+    const TypeManager&   typeMgr = ctx.typeMgr();
+    const ConstantValue& src     = get(cstRef);
+    const TypeInfo&      ty      = typeMgr.get(src.typeRef());
+
+    overflow = false;
+
+    if (!ty.isScalarNumeric())
+        return cstRef;
+
+    if (ty.isIntLike())
+    {
+        // Already sized.
+        if (ty.intLikeBits() != 0)
+            return cstRef;
+
+        ApsInt value = src.getIntLike();
+
+        // Preserve the constant's signedness.
+        const bool unsignedTarget = value.isUnsigned();
+
+        // Smallest standard width (8/16/32/64/...) for this value & signedness.
+        uint32_t concreteBits = value.minBits();
+        concreteBits          = std::max(concreteBits, 32u);
+
+        if (concreteBits > 64u)
+        {
+            overflow = true;
+            return cstRef;
+        }
+
+        if (value.isUnsigned() != unsignedTarget)
+            value.setUnsigned(unsignedTarget);
+        value.resize(concreteBits);
+
+        const TypeRef       concreteTypeRef = typeMgr.getTypeInt(concreteBits, unsignedTarget);
+        const TypeInfo&     concreteTy      = typeMgr.get(concreteTypeRef);
+        const ConstantValue result          = ConstantValue::makeFromIntLike(ctx, value, concreteTy);
+        return addConstant(ctx, result);
+    }
+
+    if (ty.isFloat())
+    {
+        // Already sized.
+        if (ty.floatBits() != 0)
+            return cstRef;
+
+        const ApFloat& srcF = src.getFloat();
+
+        uint32_t concreteBits = srcF.minBits();
+        concreteBits          = std::max(concreteBits, 32u);
+
+        bool    isExact   = false;
+        ApFloat concreteF = srcF.toFloat(concreteBits, isExact, overflow);
+
+        // If for any reason conversion reports overflow, keep original.
+        if (overflow)
+            concreteF = srcF;
+
+        const ConstantValue result = ConstantValue::makeFloat(ctx, concreteF, concreteBits);
+        return addConstant(ctx, result);
+    }
+
+    return cstRef;
 }
 
 SWC_END_NAMESPACE()

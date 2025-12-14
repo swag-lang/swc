@@ -678,9 +678,8 @@ int64_t ApInt::divSigned(const ApInt& rhs, bool& overflow)
     const bool rhsNeg    = rhs.isNegative();
     const bool resultNeg = lhsNeg ^ rhsNeg;
 
-    const ApInt minVal = minValue(bitWidth_);
-
-    ApInt negOne(bitWidth_);
+    const ApInt minVal = minValueSigned(bitWidth_);
+    ApInt       negOne(bitWidth_);
     negOne.setAllBits();
 
     if (same(minVal) && rhs.same(negOne))

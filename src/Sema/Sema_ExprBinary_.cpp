@@ -7,10 +7,10 @@
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticDef.h"
 #include "Sema/Constant/ConstantManager.h"
-#include "Sema/Helpers/SemaCast.h"
 #include "Sema/Helpers/SemaInfo.h"
 #include "Sema/Helpers/SemaNodeView.h"
 #include "Sema/Sema.h"
+#include "Sema/Type/SemaCast.h"
 
 SWC_BEGIN_NAMESPACE()
 

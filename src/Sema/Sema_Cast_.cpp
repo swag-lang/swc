@@ -2,9 +2,9 @@
 #include "Constant/ConstantManager.h"
 #include "Helpers/SemaCheck.h"
 #include "Helpers/SemaError.h"
-#include "Sema/Helpers/SemaCast.h"
 #include "Sema/Helpers/SemaNodeView.h"
 #include "Sema/Sema.h"
+#include "Sema/Type/SemaCast.h"
 
 SWC_BEGIN_NAMESPACE()
 

@@ -4,9 +4,9 @@
 #include "Parser/AstVisit.h"
 #include "Report/Diagnostic.h"
 #include "Sema/Constant/ConstantManager.h"
-#include "Sema/Helpers/SemaCast.h"
 #include "Sema/Helpers/SemaNodeView.h"
 #include "Sema/Sema.h"
+#include "Sema/Type/SemaCast.h"
 
 SWC_BEGIN_NAMESPACE()
 

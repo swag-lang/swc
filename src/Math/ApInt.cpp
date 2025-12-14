@@ -468,7 +468,7 @@ void ApInt::mul(const ApInt& rhs, bool& overflow)
     normalize();
 }
 
-ApInt ApInt::div(const ApInt& rhs)
+ApInt ApInt::div(const ApInt& rhs, bool& overflow)
 {
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
     SWC_ASSERT(!rhs.isZero());
@@ -495,16 +495,18 @@ ApInt ApInt::div(const ApInt& rhs)
 
     for (int bit = static_cast<int>(totalBits) - 1; bit >= 0; --bit)
     {
-        bool ov = false;
-        rem.logicalShiftLeft(1, ov);
-        (void) ov; // shifting rem left by 1 within bitWidth should not overflow beyond width
+        rem.logicalShiftLeft(1, overflow);
+        if (overflow)
+            return ApInt(bitWidth_);
 
         if (testBit(static_cast<uint64_t>(bit)))
             rem.words_[0] |= 1;
 
         if (!rem.ult(divisor))
         {
-            rem.sub(divisor, ov);
+            rem.sub(divisor, overflow);
+            if (overflow)
+                return ApInt(bitWidth_);
             quotient.setBit(static_cast<uint64_t>(bit));
         }
     }
@@ -514,13 +516,13 @@ ApInt ApInt::div(const ApInt& rhs)
     return rem;
 }
 
-void ApInt::mod(const ApInt& rhs)
+void ApInt::mod(const ApInt& rhs, bool& overflow)
 {
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
     SWC_ASSERT(!rhs.isZero());
 
     // div(rhs) overwrites *this with quotient, returns the remainder.
-    const ApInt rem = div(rhs);
+    const ApInt rem = div(rhs, overflow);
 
     // Install the remainder back into *this.
     *this = rem;
@@ -735,9 +737,7 @@ ApInt ApInt::divSigned(const ApInt& rhs, bool& overflow)
     if (same(minVal) && rhs.same(negOne))
     {
         overflow = true;
-        ApInt rem(bitWidth_);
-        rem.setZero();
-        return rem;
+        return ApInt(bitWidth_);
     }
 
     ApInt magLhs = *this;
@@ -747,7 +747,9 @@ ApInt ApInt::divSigned(const ApInt& rhs, bool& overflow)
     makeMagnitude(magRhs, rhsNeg);
 
     // Divide magnitudes (unsigned). This overwrites magLhs with quotient and returns remainder.
-    ApInt remMag = magLhs.div(magRhs);
+    ApInt remMag = magLhs.div(magRhs, overflow);
+    if (overflow)
+        return ApInt(bitWidth_);
 
     // Apply sign to quotient.
     if (resultNeg)

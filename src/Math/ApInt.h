@@ -54,8 +54,8 @@ public:
     void  add(const ApInt& rhs, bool& overflow);
     void  sub(const ApInt& rhs, bool& overflow);
     void  mul(const ApInt& rhs, bool& overflow);
-    ApInt div(const ApInt& rhs);
-    void  mod(const ApInt& rhs);
+    ApInt div(const ApInt& rhs, bool& overflow);
+    void  mod(const ApInt& rhs, bool& overflow);
     void  modSigned(const ApInt& rhs, bool& overflow);
 
     void  addSigned(const ApInt& rhs, bool& overflow);

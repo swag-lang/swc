@@ -35,18 +35,14 @@ ApsInt ApsInt::div(const ApsInt& rhs, bool& overflow)
 {
     SWC_ASSERT(unsigned_ == rhs.unsigned_);
     if (unsigned_)
-    {
-        overflow = false;
-        return ApsInt{ApInt::div(rhs), true};
-    }
-
+        return ApsInt{ApInt::div(rhs, overflow), true};
     return ApsInt{divSigned(rhs, overflow), false};
 }
 
 void ApsInt::mod(const ApsInt& rhs, bool& overflow)
 {
     if (unsigned_)
-        ApInt::mod(rhs);
+        ApInt::mod(rhs, overflow);
     else
         modSigned(rhs, overflow);
 }

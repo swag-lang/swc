@@ -36,36 +36,9 @@ struct CastFailure
     TypeRef      dstTypeRef = TypeRef::invalid();
     Utf8         valueStr;
 
-    void reset(AstNodeRef errorNodeRef)
-    {
-        *this      = CastFailure{};
-        diagId     = DiagnosticId::None;
-        noteId     = DiagnosticId::None;
-        nodeRef    = errorNodeRef;
-        srcTypeRef = TypeRef{};
-        dstTypeRef = TypeRef{};
-        valueStr.clear();
-    }
-
-    void set(AstNodeRef errorNodeRef, DiagnosticId d, TypeRef src, TypeRef dst)
-    {
-        *this      = CastFailure{};
-        diagId     = d;
-        nodeRef    = errorNodeRef;
-        srcTypeRef = src;
-        dstTypeRef = dst;
-    }
-
-    void setValueNote(AstNodeRef errorNodeRef, DiagnosticId d, TypeRef src, TypeRef dst, std::string_view value, DiagnosticId note)
-    {
-        *this      = CastFailure{};
-        diagId     = d;
-        nodeRef    = errorNodeRef;
-        srcTypeRef = src;
-        dstTypeRef = dst;
-        valueStr   = std::string(value);
-        noteId     = note;
-    }
+    void reset(AstNodeRef errorNodeRef);
+    void set(AstNodeRef errorNodeRef, DiagnosticId d, TypeRef src, TypeRef dst);
+    void setValueNote(AstNodeRef errorNodeRef, DiagnosticId d, TypeRef src, TypeRef dst, std::string_view value, DiagnosticId note);
 };
 
 struct CastContext

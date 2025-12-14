@@ -70,50 +70,21 @@ struct CastFailure
 
 struct CastContext
 {
-    CastKind    kind;
-    CastFlags   flags = CastFlagsE::Zero;
-    AstNodeRef  errorNodeRef;
-    CastFailure failure;
-
-    // nullptr => not folding. If set, cast ops may produce a folded constant.
+    CastKind         kind;
+    CastFlags        flags = CastFlagsE::Zero;
+    AstNodeRef       errorNodeRef;
+    CastFailure      failure;
     CastFoldContext* fold = nullptr;
 
     CastContext() = delete;
-    explicit CastContext(CastKind kind) :
-        kind(kind)
-    {
-    }
+    explicit CastContext(CastKind kind);
 
-    void resetFailure()
-    {
-        failure.reset(errorNodeRef);
-    }
-
-    void fail(DiagnosticId d, TypeRef src, TypeRef dst)
-    {
-        failure.set(errorNodeRef, d, src, dst);
-    }
-
-    void failValueNote(DiagnosticId d, TypeRef src, TypeRef dst, std::string_view value, DiagnosticId note)
-    {
-        failure.setValueNote(errorNodeRef, d, src, dst, value, note);
-    }
-
-    bool isFolding() const
-    {
-        return fold != nullptr && fold->srcConstRef.isValid();
-    }
-
-    ConstantRef foldSrc() const
-    {
-        return fold ? fold->srcConstRef : ConstantRef::invalid();
-    }
-
-    void setFoldOut(ConstantRef v) const
-    {
-        if (fold && fold->outConstRef)
-            *fold->outConstRef = v;
-    }
+    void        resetFailure();
+    void        fail(DiagnosticId d, TypeRef src, TypeRef dst);
+    void        failValueNote(DiagnosticId d, TypeRef src, TypeRef dst, std::string_view value, DiagnosticId note);
+    bool        isFolding() const;
+    ConstantRef foldSrc() const;
+    void        setFoldOut(ConstantRef v) const;
 };
 
 SWC_END_NAMESPACE()

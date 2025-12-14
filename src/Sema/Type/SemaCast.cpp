@@ -553,20 +553,20 @@ bool SemaCast::analyseCast(Sema&        sema,
                            TypeRef      srcTypeRef,
                            TypeRef      dstTypeRef,
                            CastMode     mode,
-                           ConstantRef  srcConst,
-                           ConstantRef* outConst)
+                           ConstantRef  srcConstRef,
+                           ConstantRef* outConstRef)
 {
     resetCastFailure(castCtx);
 
-    if (outConst)
-        *outConst = ConstantRef::invalid();
+    if (outConstRef)
+        *outConstRef = ConstantRef::invalid();
 
     const auto&     typeMgr = sema.ctx().typeMgr();
     const TypeInfo& src     = typeMgr.get(srcTypeRef);
     const TypeInfo& dst     = typeMgr.get(dstTypeRef);
 
     if (srcTypeRef == dstTypeRef)
-        return opIdentity(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConst, outConst);
+        return opIdentity(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConstRef, outConstRef);
 
     // Kind rules: Global / coarse only
     auto kindAllows = [&] {
@@ -607,21 +607,21 @@ bool SemaCast::analyseCast(Sema&        sema,
 
     // BitCast flag has priority
     if (castCtx.flags.has(CastFlagsE::BitCast))
-        return opBitCast(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConst, outConst);
+        return opBitCast(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConstRef, outConstRef);
 
     if (src.isBool() && dst.isIntLike())
-        return opBoolToIntLike(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConst, outConst);
+        return opBoolToIntLike(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConstRef, outConstRef);
     if (src.isIntLike() && dst.isBool())
-        return opIntLikeToBool(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConst, outConst);
+        return opIntLikeToBool(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConstRef, outConstRef);
 
     if (src.isIntLike() && dst.isIntLike())
-        return opIntLikeToIntLike(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConst, outConst);
+        return opIntLikeToIntLike(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConstRef, outConstRef);
     if (src.isIntLike() && dst.isFloat())
-        return opIntLikeToFloat(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConst, outConst);
+        return opIntLikeToFloat(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConstRef, outConstRef);
     if (src.isFloat() && dst.isFloat())
-        return opFloatToFloat(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConst, outConst);
+        return opFloatToFloat(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConstRef, outConstRef);
     if (src.isFloat() && dst.isIntLike())
-        return opFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConst, outConst);
+        return opFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef, mode, srcConstRef, outConstRef);
 
     setCastFailure(castCtx, DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
     return false;
@@ -645,7 +645,7 @@ void SemaCast::emitCastFailure(Sema& sema, const CastFailure& f)
 
 bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
-    if (!SemaCast::analyseCast(sema, castCtx, srcTypeRef, targetTypeRef, CastMode::Check, ConstantRef::invalid(), nullptr))
+    if (!analyseCast(sema, castCtx, srcTypeRef, targetTypeRef, CastMode::Check, ConstantRef::invalid(), nullptr))
     {
         emitCastFailure(sema, castCtx.failure);
         return false;
@@ -659,7 +659,7 @@ ConstantRef SemaCast::castConstant(Sema& sema, CastContext& castCtx, ConstantRef
     const ConstantValue& cst = sema.cstMgr().get(cstRef);
 
     ConstantRef out = ConstantRef::invalid();
-    if (!SemaCast::analyseCast(sema, castCtx, cst.typeRef(), targetTypeRef, CastMode::Evaluate, cstRef, &out))
+    if (!analyseCast(sema, castCtx, cst.typeRef(), targetTypeRef, CastMode::Evaluate, cstRef, &out))
     {
         emitCastFailure(sema, castCtx.failure);
         return ConstantRef::invalid();

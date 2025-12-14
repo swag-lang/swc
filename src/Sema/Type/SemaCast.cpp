@@ -497,15 +497,12 @@ namespace
             return false;
         }
 
-        // BitCast flag has priority
         if (castCtx.flags.has(CastFlagsE::BitCast))
             return foldOpBitCast(sema, castCtx, srcTypeRef, dstTypeRef);
-
         if (src.isBool() && dst.isIntLike())
             return foldOpBoolToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
         if (src.isIntLike() && dst.isBool())
             return foldOpIntLikeToBool(sema, castCtx, srcTypeRef, dstTypeRef);
-
         if (src.isIntLike() && dst.isIntLike())
             return foldOpIntLikeToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
         if (src.isIntLike() && dst.isFloat())
@@ -518,7 +515,25 @@ namespace
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
         return false;
     }
-} // namespace
+
+    bool foldConstantCast(Sema& sema, CastContext& castCtx, ConstantRef srcConstRef, TypeRef dstTypeRef, ConstantRef& outConstRef)
+    {
+        outConstRef = ConstantRef::invalid();
+
+        const ConstantValue& cst        = sema.cstMgr().get(srcConstRef);
+        const TypeRef        srcTypeRef = cst.typeRef();
+
+        CastFoldContext foldCtx{.srcConstRef = srcConstRef, .outConstRef = &outConstRef};
+
+        CastFoldContext* saved = castCtx.fold;
+        castCtx.fold           = &foldCtx;
+
+        const bool ok = analyseCastCore(sema, castCtx, srcTypeRef, dstTypeRef);
+
+        castCtx.fold = saved;
+        return ok;
+    }
+}
 
 bool SemaCast::analyseCast(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
@@ -526,24 +541,6 @@ bool SemaCast::analyseCast(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef,
     castCtx.fold           = nullptr;
     const bool ok          = analyseCastCore(sema, castCtx, srcTypeRef, dstTypeRef);
     castCtx.fold           = saved;
-    return ok;
-}
-
-bool SemaCast::foldConstantCast(Sema& sema, CastContext& castCtx, ConstantRef srcConstRef, TypeRef dstTypeRef, ConstantRef& outConstRef)
-{
-    outConstRef = ConstantRef::invalid();
-
-    const ConstantValue& cst        = sema.cstMgr().get(srcConstRef);
-    const TypeRef        srcTypeRef = cst.typeRef();
-
-    CastFoldContext foldCtx{.srcConstRef = srcConstRef, .outConstRef = &outConstRef};
-
-    CastFoldContext* saved = castCtx.fold;
-    castCtx.fold           = &foldCtx;
-
-    const bool ok = analyseCastCore(sema, castCtx, srcTypeRef, dstTypeRef);
-
-    castCtx.fold = saved;
     return ok;
 }
 

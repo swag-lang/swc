@@ -37,7 +37,7 @@ namespace
             {
                 const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());
                 const TokenRef    mdfRef  = srcView.findRightFrom(node.tokRef(), {TokenId::ModifierWrap, TokenId::ModifierPromote});
-                auto              diag    = SemaError::reportError(sema, DiagnosticId::sema_err_modifier_only_integer, node.srcViewRef(), mdfRef);
+                auto              diag    = SemaError::report(sema, DiagnosticId::sema_err_modifier_only_integer, node.srcViewRef(), mdfRef);
                 diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
                 diag.report(sema.ctx());
                 return ConstantRef::invalid();
@@ -134,7 +134,7 @@ namespace
                 case TokenId::SymGreaterGreater:
                     if (val2.isNegative())
                     {
-                        auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_negative_shift, node.nodeRightRef);
+                        auto diag = SemaError::report(sema, DiagnosticId::sema_err_negative_shift, node.nodeRightRef);
                         diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
                         diag.report(sema.ctx());
                         return ConstantRef::invalid();
@@ -149,7 +149,7 @@ namespace
                 case TokenId::SymLowerLower:
                     if (val2.isNegative())
                     {
-                        auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_negative_shift, node.nodeRightRef);
+                        auto diag = SemaError::report(sema, DiagnosticId::sema_err_negative_shift, node.nodeRightRef);
                         diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
                         diag.report(sema.ctx());
                         return ConstantRef::invalid();
@@ -168,7 +168,7 @@ namespace
 
             if (!wrap && type.intBits() != 0 && overflow)
             {
-                auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_integer_overflow, node.srcViewRef(), node.tokRef());
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_integer_overflow, node.srcViewRef(), node.tokRef());
                 diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
                 diag.addArgument(Diagnostic::ARG_LEFT, leftCstRef);
                 diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
@@ -334,7 +334,7 @@ namespace
                 break;
         }
 
-        SemaError::raiseInternalError(sema, expr);
+        SemaError::raiseInternal(sema, expr);
         return Result::Error;
     }
 }
@@ -361,7 +361,7 @@ AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema) const
         return AstVisitStepResult::Stop;
     }
 
-    SemaError::raiseInternalError(sema, *this);
+    SemaError::raiseInternal(sema, *this);
     return AstVisitStepResult::Stop;
 }
 

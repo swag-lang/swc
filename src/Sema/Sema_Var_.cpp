@@ -26,7 +26,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
     {
         if (nodeInitRef.isInvalid())
         {
-            SemaError::raiseError(sema, DiagnosticId::sema_err_const_missing_init, srcViewRef(), tokNameRef);
+            SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, srcViewRef(), tokNameRef);
             return AstVisitStepResult::Stop;
         }
 
@@ -52,7 +52,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
     }
     else
     {
-        SemaError::raiseInternalError(sema, *this);
+        SemaError::raiseInternal(sema, *this);
     }
 
     return AstVisitStepResult::Continue;

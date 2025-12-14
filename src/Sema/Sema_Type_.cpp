@@ -72,7 +72,7 @@ AstVisitStepResult AstBuiltinType::semaPostNode(Sema& sema) const
             break;
     }
 
-    SemaError::raiseInternalError(sema, *this);
+    SemaError::raiseInternal(sema, *this);
     return AstVisitStepResult::Stop;
 }
 

@@ -34,7 +34,7 @@ AstVisitStepResult AstIdentifier::semaPostNode(Sema& sema) const
     }
     else
     {
-        SemaError::raiseInternalError(sema, *this);
+        SemaError::raiseInternal(sema, *this);
         return AstVisitStepResult::Stop;
     }
 

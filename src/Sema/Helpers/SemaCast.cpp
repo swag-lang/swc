@@ -185,7 +185,7 @@ namespace
             // Negative signed source can never fit.
             if (!value.isUnsigned() && value.isNegative() && !castCtx.flags.has(CastFlagsE::NoOverflow) && targetBits != 0)
             {
-                auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_signed_unsigned, castCtx.errorNodeRef);
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_signed_unsigned, castCtx.errorNodeRef);
                 diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
                 diag.addArgument(Diagnostic::ARG_VALUE, value.toString());
                 diag.addElement(DiagnosticId::sema_note_signed_unsigned);
@@ -259,7 +259,7 @@ namespace
                     // Value fits in N bits, but outside signed range -> signed/unsigned error.
                     if (!castCtx.flags.has(CastFlagsE::NoOverflow))
                     {
-                        auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_signed_unsigned, castCtx.errorNodeRef);
+                        auto diag = SemaError::report(sema, DiagnosticId::sema_err_signed_unsigned, castCtx.errorNodeRef);
                         diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
                         diag.addArgument(Diagnostic::ARG_VALUE, value.toString());
                         diag.addElement(DiagnosticId::sema_note_unsigned_signed);
@@ -388,7 +388,7 @@ bool SemaCast::castAllowed(Sema& sema, const CastContext& castCtx, TypeRef srcTy
 
         if (!srcScalar || !dstScalar)
         {
-            auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_bit_cast_invalid_type, castCtx.errorNodeRef);
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_bit_cast_invalid_type, castCtx.errorNodeRef);
             diag.addArgument(Diagnostic::ARG_TYPE, !srcScalar ? srcTypeRef : targetTypeRef);
             diag.report(ctx);
             return false;
@@ -399,7 +399,7 @@ bool SemaCast::castAllowed(Sema& sema, const CastContext& castCtx, TypeRef srcTy
         if (srcBits == dstBits || !srcBits)
             return true;
 
-        auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_bit_cast_size, castCtx.errorNodeRef);
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_bit_cast_size, castCtx.errorNodeRef);
         diag.addArgument(Diagnostic::ARG_LEFT, srcTypeRef);
         diag.addArgument(Diagnostic::ARG_RIGHT, targetTypeRef);
         diag.report(ctx);
@@ -484,7 +484,7 @@ ConstantRef SemaCast::castConstant(Sema& sema, const CastContext& castCtx, Const
     if (srcType.isFloat() && targetType.isIntLike())
         return castFloatToIntLike(sema, castCtx, cst, targetTypeRef);
 
-    SemaError::raiseInternalError(sema, sema.node(castCtx.errorNodeRef));
+    SemaError::raiseInternal(sema, sema.node(castCtx.errorNodeRef));
     return ConstantRef::invalid();
 }
 

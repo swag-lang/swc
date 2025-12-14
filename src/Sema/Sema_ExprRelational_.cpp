@@ -173,7 +173,7 @@ namespace
         if (ops.nodeView[0].type->isTypeInfo() && ops.nodeView[1].type->isTypeInfo())
             return Result::Success;
 
-        auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_compare_operand_type, node.srcViewRef(), node.tokRef());
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.srcViewRef(), node.tokRef());
         diag.addArgument(Diagnostic::ARG_LEFT, ops.nodeView[0].typeRef);
         diag.addArgument(Diagnostic::ARG_RIGHT, ops.nodeView[1].typeRef);
         diag.report(sema.ctx());
@@ -185,7 +185,7 @@ namespace
         if (ops.nodeView[0].type->isScalarNumeric() && ops.nodeView[1].type->isScalarNumeric())
             return Result::Success;
 
-        auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_compare_operand_type, node.srcViewRef(), node.tokRef());
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.srcViewRef(), node.tokRef());
         diag.addArgument(Diagnostic::ARG_LEFT, ops.nodeView[0].typeRef);
         diag.addArgument(Diagnostic::ARG_RIGHT, ops.nodeView[1].typeRef);
         diag.report(sema.ctx());
@@ -208,7 +208,7 @@ namespace
                 return checkCompareEqual(sema, node, ops);
 
             default:
-                SemaError::raiseInternalError(sema, node);
+                SemaError::raiseInternal(sema, node);
                 return Result::Error;
         }
     }
@@ -236,7 +236,7 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema) const
         return AstVisitStepResult::Stop;
     }
 
-    SemaError::raiseInternalError(sema, *this);
+    SemaError::raiseInternal(sema, *this);
     return AstVisitStepResult::Stop;
 }
 

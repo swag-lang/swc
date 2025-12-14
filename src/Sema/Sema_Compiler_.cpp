@@ -83,7 +83,7 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
     {
         case TokenId::CompilerError:
         {
-            auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_compiler_error, srcViewRef(), tokRef());
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_compiler_error, srcViewRef(), tokRef());
             diag.addArgument(Diagnostic::ARG_BECAUSE, constant.getString(), false);
             diag.report(sema.ctx());
             return AstVisitStepResult::Stop;
@@ -91,7 +91,7 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 
         case TokenId::CompilerWarning:
         {
-            auto diag = SemaError::reportError(sema, DiagnosticId::sema_warn_compiler_warning, srcViewRef(), tokRef());
+            auto diag = SemaError::report(sema, DiagnosticId::sema_warn_compiler_warning, srcViewRef(), tokRef());
             diag.addArgument(Diagnostic::ARG_BECAUSE, constant.getString(), false);
             diag.report(sema.ctx());
             return AstVisitStepResult::Continue;
@@ -110,7 +110,7 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
         case TokenId::CompilerAssert:
             if (!constant.getBool())
             {
-                SemaError::raiseError(sema, DiagnosticId::sema_err_compiler_assert, srcViewRef(), tokRef());
+                SemaError::raise(sema, DiagnosticId::sema_err_compiler_assert, srcViewRef(), tokRef());
                 return AstVisitStepResult::Stop;
             }
             break;
@@ -178,7 +178,7 @@ AstVisitStepResult AstCompilerLiteral::semaPostNode(Sema& sema) const
         case TokenId::CompilerBackend:
         case TokenId::CompilerScopeName:
         case TokenId::CompilerCurLocation:
-            SemaError::raiseInternalError(sema, *this);
+            SemaError::raiseInternal(sema, *this);
             return AstVisitStepResult::Stop;
 
         default:
@@ -210,7 +210,7 @@ AstVisitStepResult AstCompilerGlobal::semaPostNode(Sema& sema) const
         case Mode::Namespace:
         case Mode::CompilerIf:
         case Mode::Using:
-            SemaError::raiseInternalError(sema, *this);
+            SemaError::raiseInternal(sema, *this);
             return AstVisitStepResult::Continue;
     };
 
@@ -252,7 +252,7 @@ AstVisitStepResult AstCompilerCallUnary::semaPostNode(Sema& sema) const
             return semaCompilerTypeOf(*this, sema);
 
         default:
-            SemaError::raiseInternalError(sema, *this);
+            SemaError::raiseInternal(sema, *this);
             return AstVisitStepResult::Stop;
     }
 }

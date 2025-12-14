@@ -96,7 +96,7 @@ namespace
 
     void reportInvalidType(Sema& sema, const AstUnaryExpr& expr, const UnaryOperands& ops)
     {
-        auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_unary_operand_type, expr.srcViewRef(), expr.tokRef());
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_unary_operand_type, expr.srcViewRef(), expr.tokRef());
         diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView.typeRef);
         diag.report(sema.ctx());
     }
@@ -108,7 +108,7 @@ namespace
 
         if (ops.nodeView.type->isIntUnsigned())
         {
-            auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_negate_unsigned, expr.srcViewRef(), expr.tokRef());
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_negate_unsigned, expr.srcViewRef(), expr.tokRef());
             diag.addArgument(Diagnostic::ARG_TYPE, ops.nodeView.typeRef);
             diag.report(sema.ctx());
         }
@@ -154,7 +154,7 @@ namespace
                 break;
         }
 
-        SemaError::raiseInternalError(sema, node);
+        SemaError::raiseInternal(sema, node);
         return Result::Error;
     }
 }
@@ -181,7 +181,7 @@ AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema) const
         return AstVisitStepResult::Stop;
     }
 
-    SemaError::raiseInternalError(sema, *this);
+    SemaError::raiseInternal(sema, *this);
     return AstVisitStepResult::Stop;
 }
 

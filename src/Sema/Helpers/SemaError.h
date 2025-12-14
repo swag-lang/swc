@@ -5,17 +5,16 @@
 
 SWC_BEGIN_NAMESPACE()
 
-struct AstNode;
 class Sema;
 
 namespace SemaError
 {
-    Diagnostic reportError(Sema& sema, DiagnosticId id, AstNodeRef nodeRef);
-    Diagnostic reportError(Sema& sema, DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef);
-    Diagnostic reportError(Sema& sema, DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef, AstNodeRef nodeSpanRef);
+    Diagnostic report(Sema& sema, DiagnosticId id, AstNodeRef nodeRef);
+    Diagnostic report(Sema& sema, DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef);
+    Diagnostic report(Sema& sema, DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef, AstNodeRef nodeSpanRef);
 
-    void raiseError(Sema& sema, DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef);
-    void raiseError(Sema& sema, DiagnosticId id, AstNodeRef nodeRef);
+    void raise(Sema& sema, DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef);
+    void raise(Sema& sema, DiagnosticId id, AstNodeRef nodeRef);
 
     void raiseInvalidType(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
     void raiseCannotCast(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
@@ -24,7 +23,7 @@ namespace SemaError
     void raiseDivZero(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
     void raiseExprNotConst(Sema& sema, AstNodeRef nodeRef);
     void raiseBinaryOperandType(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
-    void raiseInternalError(Sema& sema, const AstNode& node);
+    void raiseInternal(Sema& sema, const AstNode& node);
 };
 
 SWC_END_NAMESPACE()

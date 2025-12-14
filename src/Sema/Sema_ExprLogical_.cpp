@@ -78,7 +78,7 @@ AstVisitStepResult AstLogicalExpr::semaPostNode(Sema& sema) const
         return AstVisitStepResult::Stop;
     }
 
-    SemaError::raiseInternalError(sema, *this);
+    SemaError::raiseInternal(sema, *this);
     return AstVisitStepResult::Stop;
 }
 

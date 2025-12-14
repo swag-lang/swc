@@ -217,7 +217,7 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(Sema& sema) const
         value.logicalShiftLeft(1, over);
         if (over)
         {
-            SemaError::raiseError(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+            SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
             return AstVisitStepResult::Stop;
         }
 
@@ -254,7 +254,7 @@ AstVisitStepResult AstHexaLiteral::semaPreNode(Sema& sema) const
         value.logicalShiftLeft(4, over); // multiply by 16
         if (over)
         {
-            SemaError::raiseError(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+            SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
             return AstVisitStepResult::Stop;
         }
 
@@ -300,7 +300,7 @@ AstVisitStepResult AstIntegerLiteral::semaPreNode(Sema& sema) const
         value.mul(10, over);
         if (over)
         {
-            SemaError::raiseError(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+            SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
             return AstVisitStepResult::Stop;
         }
 
@@ -308,7 +308,7 @@ AstVisitStepResult AstIntegerLiteral::semaPreNode(Sema& sema) const
         value.add(digit, over);
         if (over)
         {
-            SemaError::raiseError(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+            SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
             return AstVisitStepResult::Stop;
         }
     }
@@ -355,14 +355,14 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(Sema& sema) const
                 intValue.mul(10, over);
                 if (over)
                 {
-                    SemaError::raiseError(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+                    SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
                     return AstVisitStepResult::Stop;
                 }
 
                 intValue.add(digit, over);
                 if (over)
                 {
-                    SemaError::raiseError(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+                    SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
                     return AstVisitStepResult::Stop;
                 }
 
@@ -380,7 +380,7 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(Sema& sema) const
                 }
                 else
                 {
-                    SemaError::raiseError(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+                    SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
                     return AstVisitStepResult::Stop;
                 }
             }
@@ -429,7 +429,7 @@ AstVisitStepResult AstFloatLiteral::semaPreNode(Sema& sema) const
     {
         if (totalExp10 < (std::numeric_limits<int64_t>::min)() + static_cast<int64_t>(fracDigits))
         {
-            SemaError::raiseError(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
+            SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
             return AstVisitStepResult::Stop;
         }
 

@@ -207,7 +207,7 @@ namespace
             {
                 if (state.kind == TaskStateKind::SemaWaitingIdentifier)
                 {
-                    SemaError::raiseError(semaJob->sema(), DiagnosticId::sema_err_unknown_identifier, state.nodeRef);
+                    SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unknown_identifier, state.nodeRef);
                 }
             }
         }

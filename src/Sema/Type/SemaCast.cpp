@@ -242,7 +242,23 @@ namespace
     }
 }
 
-bool SemaCast::analyseCastCore(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+void SemaCast::emitCastFailure(Sema& sema, const CastFailure& f)
+{
+    auto diag = SemaError::report(sema, f.diagId, f.nodeRef);
+
+    diag.addArgument(Diagnostic::ARG_TYPE, f.srcTypeRef);
+    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, f.dstTypeRef);
+
+    if (!f.valueStr.empty())
+        diag.addArgument(Diagnostic::ARG_VALUE, f.valueStr);
+
+    if (f.noteId != DiagnosticId::None)
+        diag.addNote(f.noteId);
+
+    diag.report(sema.ctx());
+}
+
+bool SemaCast::cast(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     castCtx.resetFailure();
 
@@ -273,42 +289,6 @@ bool SemaCast::analyseCastCore(Sema& sema, CastContext& castCtx, TypeRef srcType
 
     castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
     return false;
-}
-
-bool SemaCast::analyseCast(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
-{
-    CastFoldContext* saved = castCtx.fold;
-    castCtx.fold           = nullptr;
-    const bool ok          = analyseCastCore(sema, castCtx, srcTypeRef, dstTypeRef);
-    castCtx.fold           = saved;
-    return ok;
-}
-
-void SemaCast::emitCastFailure(Sema& sema, const CastFailure& f)
-{
-    auto diag = SemaError::report(sema, f.diagId, f.nodeRef);
-
-    diag.addArgument(Diagnostic::ARG_TYPE, f.srcTypeRef);
-    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, f.dstTypeRef);
-
-    if (!f.valueStr.empty())
-        diag.addArgument(Diagnostic::ARG_VALUE, f.valueStr);
-
-    if (f.noteId != DiagnosticId::None)
-        diag.addNote(f.noteId);
-
-    diag.report(sema.ctx());
-}
-
-bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef targetTypeRef)
-{
-    if (!analyseCast(sema, castCtx, srcTypeRef, targetTypeRef))
-    {
-        emitCastFailure(sema, castCtx.failure);
-        return false;
-    }
-
-    return true;
 }
 
 SWC_END_NAMESPACE()

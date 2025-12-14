@@ -310,7 +310,7 @@ ConstantRef SemaCast::castConstant(Sema& sema, CastContext& castCtx, ConstantRef
     CastFoldContext*     saved = castCtx.fold;
 
     castCtx.fold  = &foldCtx;
-    const bool ok = analyseCastCore(sema, castCtx, srcTypeRef, targetTypeRef);
+    const bool ok = cast(sema, castCtx, srcTypeRef, targetTypeRef);
     castCtx.fold  = saved;
 
     if (!ok)
@@ -322,7 +322,7 @@ ConstantRef SemaCast::castConstant(Sema& sema, CastContext& castCtx, ConstantRef
     return out.isValid() ? out : ConstantRef::invalid();
 }
 
-bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, ConstantRef& leftRef, ConstantRef& rightRef, bool force32BitInts)
+bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, ConstantRef& leftCstRef, ConstantRef& rightCstRef, bool force32BitInts)
 {
     if (!force32BitInts && ops.nodeView[0].typeRef == ops.nodeView[1].typeRef)
         return true;
@@ -377,12 +377,12 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
         CastContext castCtx(CastKind::Promotion);
         castCtx.errorNodeRef = ops.nodeView[0].nodeRef;
 
-        leftRef = castConstant(sema, castCtx, leftSrc, promotedTypeRef);
-        if (leftRef.isInvalid())
+        leftCstRef = castConstant(sema, castCtx, leftSrc, promotedTypeRef);
+        if (leftCstRef.isInvalid())
             return false;
 
-        rightRef = castConstant(sema, castCtx, rightSrc, promotedTypeRef);
-        if (rightRef.isInvalid())
+        rightCstRef = castConstant(sema, castCtx, rightSrc, promotedTypeRef);
+        if (rightCstRef.isInvalid())
             return false;
 
         return true;

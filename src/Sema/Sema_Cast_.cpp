@@ -76,8 +76,6 @@ AstVisitStepResult AstExplicitCastExpr::semaPostNode(Sema& sema) const
     if (modifierFlags.has(AstModifierFlagsE::Bit))
         castCtx.flags.add(CastFlagsE::BitCast);
     castCtx.errorNodeRef = nodeTypeView.nodeRef;
-    if (!SemaCast::castAllowed(sema, castCtx, nodeExprView.typeRef, nodeTypeView.typeRef))
-        return AstVisitStepResult::Stop;
 
     // Update constant
     if (sema.hasConstant(nodeExprRef))

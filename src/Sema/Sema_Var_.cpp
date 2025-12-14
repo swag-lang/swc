@@ -22,7 +22,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
         CastContext castCtx(CastKind::Implicit);
         castCtx.errorNodeRef = nodeInitRef;
 
-        if (!SemaCast::analyseCast(sema, castCtx, nodeInitView.typeRef, nodeTypeView.typeRef))
+        if (!SemaCast::cast(sema, castCtx, nodeInitView.typeRef, nodeTypeView.typeRef))
         {
             const CastFailure& failure = castCtx.failure;
 
@@ -39,7 +39,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
             CastContext explicitCtx = castCtx;
             explicitCtx.kind        = CastKind::Explicit;
 
-            if (SemaCast::analyseCast(sema, explicitCtx, nodeInitView.typeRef, nodeTypeView.typeRef))
+            if (SemaCast::cast(sema, explicitCtx, nodeInitView.typeRef, nodeTypeView.typeRef))
             {
                 diag.addElement(DiagnosticId::sema_note_cast_explicit);
             }

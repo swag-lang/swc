@@ -87,18 +87,18 @@ uint32_t ApsInt::hash() const
 
 ApsInt ApsInt::minValue(uint32_t bitWidth, bool isUnsigned)
 {
-    return isUnsigned ? ApsInt(ApInt::minValue(bitWidth), true) : ApsInt(minSignedValue(bitWidth), false);
+    return isUnsigned ? ApsInt(ApInt::minValue(bitWidth), true) : ApsInt(minValueSigned(bitWidth), false);
 }
 
 ApsInt ApsInt::maxValue(uint32_t bitWidth, bool isUnsigned)
 {
-    return isUnsigned ? ApsInt(ApInt::maxValue(bitWidth), true) : ApsInt(maxSignedValue(bitWidth), false);
+    return isUnsigned ? ApsInt(ApInt::maxValue(bitWidth), true) : ApsInt(maxValueSigned(bitWidth), false);
 }
 
 void ApsInt::resize(uint32_t newBits)
 {
     if (unsigned_)
-        resizeUnsigned(newBits);
+        ApInt::resize(newBits);
     else
         resizeSigned(newBits);
 }
@@ -142,17 +142,10 @@ Utf8 ApsInt::toString() const
 
 int64_t ApsInt::asI64() const
 {
-    uint64_t result = asU64();
-
-    if (!unsigned_ && isNegative() && bitWidth_ < 64)
-    {
-        const uint32_t signBitIndex = bitWidth_ - 1;
-        const uint64_t lowMask      = (uint64_t{1} << (signBitIndex + 1)) - 1;
-        const uint64_t highMask     = ~lowMask;
-        result |= highMask;
-    }
-
-    return std::bit_cast<int64_t>(result);
+    SWC_ASSERT(fits64());
+    if (unsigned_)
+        return static_cast<int64_t>(as64());
+    return ApInt::as64Signed();
 }
 
 uint32_t ApsInt::minBits() const
@@ -166,7 +159,7 @@ bool ApsInt::fits64() const
 {
     if (unsigned_)
         return ApInt::fits64();
-    return fitsSigned64();
+    return fits64Signed();
 }
 
 SWC_END_NAMESPACE()

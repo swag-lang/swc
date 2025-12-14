@@ -11,9 +11,11 @@ public:
 
     uint32_t        bitWidth() const { return bitWidth_; }
     static uint32_t maxBitWidth() { return MAX_BITS; }
-    bool            fits64() const;
-    bool            fitsSigned64() const;
-    uint64_t        asU64() const;
+
+    bool     fits64() const;
+    bool     fits64Signed() const;
+    uint64_t as64() const;
+    int64_t  as64Signed() const;
 
     bool     same(const ApInt& other) const;
     int      compare(const ApInt& other) const;
@@ -62,9 +64,9 @@ public:
     int64_t divSigned(const ApInt& rhs, bool& overflow);
 
     static ApInt minValue(uint32_t bitWidth);
-    static ApInt minSignedValue(uint32_t bitWidth);
+    static ApInt minValueSigned(uint32_t bitWidth);
     static ApInt maxValue(uint32_t bitWidth);
-    static ApInt maxSignedValue(uint32_t bitWidth);
+    static ApInt maxValueSigned(uint32_t bitWidth);
 
     bool eq(const ApInt& rhs) const;
     bool ne(const ApInt& rhs) const;
@@ -78,7 +80,7 @@ public:
     bool sge(const ApInt& rhs) const;
 
     void shrink(uint32_t newBitWidth);
-    void resizeUnsigned(uint32_t newBitWidth);
+    void resize(uint32_t newBitWidth);
     void resizeSigned(uint32_t newBitWidth);
 
     Utf8     toString() const;

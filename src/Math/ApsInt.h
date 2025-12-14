@@ -66,8 +66,8 @@ public:
     bool ge(const ApsInt& rhs) const;
 
     Utf8     toString() const;
-    bool     fits64() const;
     int64_t  asI64() const;
+    bool     fits64() const;
     uint32_t minBits() const;
 };
 

@@ -29,11 +29,8 @@ ApInt::ApInt(uint64_t value, uint32_t bitWidth) :
     normalize();
 }
 
-uint64_t ApInt::asU64() const
+uint64_t ApInt::as64() const
 {
-    if (bitWidth_ == 0)
-        return 0;
-
     const uint32_t maxBits   = std::min<uint32_t>(bitWidth_, 64);
     const uint32_t wordCount = (maxBits + WORD_BITS - 1) / WORD_BITS;
 
@@ -59,6 +56,21 @@ uint64_t ApInt::asU64() const
     }
 
     return result;
+}
+
+int64_t ApInt::as64Signed() const
+{
+    uint64_t result = as64();
+
+    if (isNegative() && bitWidth_ < 64)
+    {
+        const uint32_t signBitIndex = bitWidth_ - 1;
+        const uint64_t lowMask      = (uint64_t{1} << (signBitIndex + 1)) - 1;
+        const uint64_t highMask     = ~lowMask;
+        result |= highMask;
+    }
+
+    return std::bit_cast<int64_t>(result);
 }
 
 bool ApInt::same(const ApInt& other) const
@@ -220,14 +232,10 @@ void ApInt::arithmeticShiftRight(uint64_t amount)
         bool           bitValue = false;
 
         if (srcBit < limit)
-        {
             bitValue = tmp.testBit(srcBit);
-        }
+        // Bits shifted in from the top are the sign bit
         else
-        {
-            // Bits shifted in from the top are the sign bit
             bitValue = sign;
-        }
 
         if (bitValue)
             setBit(i);
@@ -413,7 +421,7 @@ uint64_t ApInt::div(const ApInt& rhs)
     SWC_ASSERT(!rhs.isZero());
 
     if (rhs.fits64())
-        return div(rhs.asU64());
+        return div(rhs.as64());
 
     const uint32_t totalBits = bitWidth_;
 
@@ -442,7 +450,7 @@ uint64_t ApInt::div(const ApInt& rhs)
     *this = quotient;
 
     SWC_ASSERT(rem.fits64());
-    return rem.asU64();
+    return rem.as64();
 }
 
 void ApInt::mod(const ApInt& rhs)
@@ -629,8 +637,8 @@ void ApInt::mulSigned(const ApInt& rhs, bool& overflow)
 
     overflow = false;
 
-    const ApInt limitPos = maxSignedValue(w);
-    const ApInt limitNeg = minSignedValue(w);
+    const ApInt limitPos = maxValueSigned(w);
+    const ApInt limitNeg = minValueSigned(w);
 
     if (!resultNeg)
     {
@@ -871,7 +879,7 @@ ApInt ApInt::minValue(uint32_t bitWidth)
     }
 }
 
-ApInt ApInt::minSignedValue(uint32_t bitWidth)
+ApInt ApInt::minValueSigned(uint32_t bitWidth)
 {
     static const ApInt S8   = makeMinSignedValue(8);
     static const ApInt S16  = makeMinSignedValue(16);
@@ -910,7 +918,7 @@ ApInt ApInt::maxValue(uint32_t bitWidth)
     }
 }
 
-ApInt ApInt::maxSignedValue(uint32_t bitWidth)
+ApInt ApInt::maxValueSigned(uint32_t bitWidth)
 {
     static const ApInt S8   = makeMaxSignedValue(8);
     static const ApInt S16  = makeMaxSignedValue(16);
@@ -1002,7 +1010,7 @@ void ApInt::shrink(uint32_t newBitWidth)
     normalize();
 }
 
-void ApInt::resizeUnsigned(uint32_t newBitWidth)
+void ApInt::resize(uint32_t newBitWidth)
 {
     SWC_ASSERT(newBitWidth > 0);
 
@@ -1090,7 +1098,7 @@ void ApInt::negate(bool& overflow)
         return;
 
     // Detect minimum signed value (which cannot be negated in-range).
-    if (same(minSignedValue(bitWidth_)))
+    if (same(minValueSigned(bitWidth_)))
     {
         overflow = true;
         return;
@@ -1192,6 +1200,20 @@ namespace
     }
 }
 
+bool ApInt::fits64() const
+{
+    if (bitWidth_ <= 64)
+        return true;
+    return minBits() <= 64;
+}
+
+bool ApInt::fits64Signed() const
+{
+    if (bitWidth_ <= 64)
+        return true;
+    return minBitsSigned() <= 64;
+}
+
 uint32_t ApInt::minBits() const
 {
     SWC_ASSERT(bitWidth_ > 0 && numWords_ > 0);
@@ -1231,7 +1253,7 @@ uint32_t ApInt::minBitsSigned() const
 
     const bool sign = isSignBitSet();
 
-    // Remove redundant sign-extension: find highest bit that differs from the sign fill.
+    // Remove redundant sign-extension: find the highest bit that differs from the sign fill.
     for (int wi = static_cast<int>(numWords_) - 1; wi >= 0; --wi)
     {
         uint64_t w    = words_[static_cast<uint32_t>(wi)];
@@ -1265,20 +1287,6 @@ uint32_t ApInt::minBitsSigned() const
 
     // All bits are just sign-extension: 0 or -1 => rawBits = 1 => std width = 8
     return 8;
-}
-
-bool ApInt::fits64() const
-{
-    if (bitWidth_ <= 64)
-        return true;
-    return minBits() <= 64;
-}
-
-bool ApInt::fitsSigned64() const
-{
-    if (bitWidth_ <= 64)
-        return true;
-    return minBitsSigned() <= 64;
 }
 
 SWC_END_NAMESPACE()

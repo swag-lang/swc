@@ -6,29 +6,69 @@
 #assert(10 / 5 + 6 == 8)
 #assert(10 % 4 + 1 == 3)
 #assert(10 - 8 / 2 == 6)
-#assert(1 + 2 << 3 == (1 + 2) << 3)   // (3 << 3) == 24
-#assert(1 * 2 << 3 == (1 * 2) << 3)   // (2 << 3) == 16
-#assert(1 << 2 + 3 == 1 << (2 + 3))   // 1 << 5 == 32
-#assert(8 >> 1 + 1 == 8 >> (1 + 1))   // 8 >> 2 == 2
+
+#assert(1 + 2 + 3 * 4 == 15)
+#assert(1 + 2 * 3 + 4 == 11)
+#assert(18 / 3 * 2 == 12)
+#assert(18 / (3 * 2) == 3)
+#assert(18 % 7 + 1 * 2 == 6)
+
+#assert(1 + 2 << 3 == (1 + 2) << 3)
+#assert(1 * 2 << 3 == (1 * 2) << 3)
+#assert(1 << 2 + 3 == 1 << (2 + 3))
+#assert(8 >> 1 + 1 == 8 >> (1 + 1))
 #assert(1 + 2 << 3 == 24)
 #assert(1 * 2 << 3 == 16)
 #assert(1 << 2 + 3 == 32)
 #assert(8 >> 1 + 1 == 2)
-#assert(1 | 2 & 3 == 1 | (2 & 3))     // 1 | 2 == 3
-#assert(1 ^ 2 & 3 == 1 ^ (2 & 3))     // 1 ^ 2 == 3
-#assert(4 & 3 << 1 == 4 & (3 << 1))   // 4 & 6 == 4
-#assert(8 | 2 << 1 == 8 | (2 << 1))   // 8 | 4 == 12
+
+#assert(1 + 2'u8 << 3 == 24)
+#assert(1'u8 * 2'u8 << 3 == 16)
+#assert(1'u8 << 2 + 3 == 32)
+#assert(8'u8 >> 1 + 1 == 2)
+#assert(1's32 + 2's32 << 3 == 24)
+#assert(1's32 * 2's32 << 3 == 16)
+#assert(1's32 << 2 + 3 == 32)
+#assert(8's32 >> 1 + 1 == 2)
+
+#assert(1 | 2 & 3 == 1 | (2 & 3))
+#assert(1 ^ 2 & 3 == 1 ^ (2 & 3))
+#assert(4 & 3 << 1 == 4 & (3 << 1))
+#assert(8 | 2 << 1 == 8 | (2 << 1))
 #assert(1 | 2 & 3 == 3)
 #assert(1 ^ 2 & 3 == 3)
 #assert(4 & 3 << 1 == 4)
 #assert(8 | 2 << 1 == 12)
-#assert(-1 + 2 * 3 == 5)     // -(1) + 6 == 5
-#assert(~1 & 3 == (~1) & 3)  // (~1) = -2, -2 & 3 == 2
-#assert(1 + 2 * 3 << 2 == (1 + (2 * 3)) << 2)   // (1+6)<<2 = 7<<2 = 28
-#assert(8 >> 1 + 2 * 1 == 8 >> (1 + 2))         // 8 >> 3 = 1
-#assert(1 | 2 ^ 3 & 4 == 1 | (2 ^ (3 & 4)))     // 3 ^ 4 == 7 → 1|0 == 1
+
+#assert(1 ^ 2 | 4 == (1 ^ 2) | 4)
+#assert(1 ^ 2 | 4 == 7)
+#assert(7 & 3 ^ 1 == (7 & 3) ^ 1)
+#assert(7 & 3 ^ 1 == 2)
+#assert(1 << 1 & 3 == (1 << 1) & 3)
+#assert(1 << 1 & 3 == 2)
+#assert(8 >> 2 | 1 == (8 >> 2) | 1)
+#assert(8 >> 2 | 1 == 3)
+
+#assert(-1 + 2 * 3 == 5)
+#assert(~1 & 3 == (~1) & 3)
+#assert(~1 & 3 == 2)
+#assert(1 + 2 * 3 << 2 == (1 + (2 * 3)) << 2)
+#assert(1 + 2 * 3 << 2 == 28)
+#assert(8 >> 1 + 2 * 1 == 8 >> (1 + 2))
+#assert(8 >> 1 + 2 * 1 == 1)
+#assert(1 | 2 ^ 3 & 4 == 1 | (2 ^ (3 & 4)))
+#assert(1 | 2 ^ 3 & 4 == 3)
 
 #assert(1 < 2 == true)
 #assert((1 < 2) == true)
+#assert(1 <= 2 == true)
+#assert((1 <= 2) == true)
+#assert(2 > 1 == true)
+#assert((2 > 1) == true)
+#assert(2 >= 2 == true)
+#assert((2 >= 2) == true)
+
 #assert(1 == 1 < 2)         // swc-expected-error {{sema_err_compare_operand_type}}
 #assert((1 == 1) < 2)       // swc-expected-error {{sema_err_compare_operand_type}}
+#assert(1 < 2 == 0)         // swc-expected-error {{sema_err_compare_operand_type}}
+#assert((1 < 2) < 3)        // swc-expected-error {{sema_err_compare_operand_type}}

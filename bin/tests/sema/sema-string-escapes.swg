@@ -1,21 +1,40 @@
 #assert('\x41' == 'A')
+#assert('\x61' == 'a')
+#assert('\x30' == '0')
+#assert('\x0A' == '\n')
+#assert('\x0D' == '\r')
+#assert('\x09' == '\t')
+#assert('\x00' == '\0')
 
 #assert("\n" ++ "\t" == "\n\t")
+#assert("\r" ++ "\n" == "\r\n")
 #assert("A\\B" == #"A\B"#)
 #assert("The quote is: \"Hello\"" == "The quote is: \"Hello\"")
 #assert("Line one.\r\nLine two." == "Line one.\r\nLine two.")
+#assert("A" ++ "\n" ++ "B" == "A\nB")
+#assert("Hello\u0020World" == "Hello World")
+#assert("Quote: \"test\"" == "Quote: \"test\"")
 
 #assert('A' == 'A')
 #assert('\'' == '\'')
 #assert('\"' == '"')
 #assert('\\' == '\\')
+#assert('\n' == '\n')
+#assert('\t' == '\t')
+#assert('\r' == '\r')
+#assert('\0' == '\0')
 
 #assert("\x41" == "A")
 #assert("\x61" == "a")
 #assert("\x0A" == "\n")
+#assert("\x0D" == "\r")
+#assert("\x09" == "\t")
+#assert("\x00" == "\0")
 
 #assert("\u0041" == "A")
 #assert("\u000D" == "\r")
+#assert("\u000A" == "\n")
+#assert("\u0009" == "\t")
 #assert("\u2603" == "☃")
 #assert("\U0001F600" == "😀")
 
@@ -25,12 +44,16 @@
 
 #assert("\r" == "\r")
 #assert("\r\n" != "\n")
+#assert("\n" != "\r")
+#assert("\t" != " ")
 
 #assert("\0" == "\0")
+#assert("" ++ "\0" ++ "" == "\0")
 
 #assert("\x42" == "B")
 #assert("\x42" == "\x42")
 #assert("\xFF" == "\xFF")
+#assert("\x7F" == "\x7F")
 
 #assert("\u0000" == "\0")
 #assert("\u0061" == "a")
@@ -39,15 +62,14 @@
 
 #assert("\U00000041" == "A")
 #assert("\U0010FFFF" == "\U0010FFFF")
+#assert("\U00000000" == "\0")
 
 #assert(#"Line\nNo\tEscape"# == "Line\\nNo\\tEscape")
 #assert(#"C:\Path\To\File"# == "C:\\Path\\To\\File")
-
-#assert("Hello\u0020World" == "Hello World")
-#assert("A" ++ "\n" ++ "B" == "A\nB")
-
-#assert("Quote: \"test\"" == "Quote: \"test\"")
+#assert(#"\n"# == "\\n")
+#assert(#"\""# == "\\\"")
 
 #assert("Path\\" == "Path\\")
 #assert("\\\\" == "\\\\")
-
+#assert("C:\\\\" == "C:\\\\")
+#assert(#"C:\\"# == "C:\\\\")

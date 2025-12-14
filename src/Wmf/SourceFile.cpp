@@ -6,7 +6,7 @@
 #include "Main/TaskContext.h"
 #include "Os/Os.h"
 #include "Report/Diagnostic.h"
-#include "Sema/SemaInfo.h"
+#include "Sema/Helpers/SemaInfo.h"
 #include "Wmf/Verify.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -18,7 +18,7 @@ SourceFile::SourceFile(FileRef fileRef, fs::path path, FileFlags flags) :
     path_(std::move(path)),
     flags_(flags)
 {
-    semaInfo_  = std::make_unique<SemaInfo>();
+    semaInfo_ = std::make_unique<SemaInfo>();
     unitTest_ = std::make_unique<Verify>(this);
 }
 

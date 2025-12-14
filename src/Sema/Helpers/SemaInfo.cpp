@@ -1,8 +1,8 @@
 #include "pch.h"
-#include "Sema/SemaInfo.h"
-#include "Constant/ConstantManager.h"
-#include "Constant/ConstantValue.h"
+#include "Sema/Helpers/SemaInfo.h"
 #include "Main/TaskContext.h"
+#include "Sema/Constant/ConstantManager.h"
+#include "Sema/Constant/ConstantValue.h"
 #if SWC_HAS_DEBUG_INFO
 #include "Sema/Type/TypeManager.h"
 #endif

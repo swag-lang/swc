@@ -3,7 +3,7 @@
 #include "Core/SmallVector.h"
 #include "Parser/AstNode.h"
 #include "Parser/AstNodeId.h"
-#include "Sema/SemaScope.h"
+#include "Sema/Helpers/SemaScope.h"
 
 SWC_BEGIN_NAMESPACE()
 enum class AstVisitStepResult;

@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Constant/ConstantManager.h"
+#include "Sema/Helpers/SemaCast.h"
+#include "Sema/Helpers/SemaNodeView.h"
 #include "Sema/Sema.h"
-#include "Sema/SemaCast.h"
-#include "Sema/SemaNodeView.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -12,7 +12,7 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
     const TypeRef typeRef = sema.typeRefOf(nodeSuffixRef);
 
     SWC_ASSERT(sema.hasConstant(nodeLiteralRef));
-    
+
     CastContext castCtx(CastKind::LiteralSuffix);
     castCtx.errorNodeRef = nodeLiteralRef;
 

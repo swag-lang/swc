@@ -8,11 +8,11 @@
 #include "Report/DiagnosticDef.h"
 #include "Report/Logger.h"
 #include "Sema/Constant/ConstantValue.h"
+#include "Sema/Helpers/SemaCast.h"
+#include "Sema/Helpers/SemaInfo.h"
+#include "Sema/Helpers/SemaNodeView.h"
 #include "Sema/Sema.h"
-#include "Sema/SemaInfo.h"
 #include "Sema/Type/TypeManager.h"
-#include "SemaCast.h"
-#include "SemaNodeView.h"
 #include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE()

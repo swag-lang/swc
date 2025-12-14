@@ -2,9 +2,9 @@
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisit.h"
 #include "Report/DiagnosticDef.h"
+#include "Sema/Helpers/SemaCast.h"
+#include "Sema/Helpers/SemaNodeView.h"
 #include "Sema/Sema.h"
-#include "Sema/SemaCast.h"
-#include "Sema/SemaNodeView.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Symbol/IdentifierManager.h"
 

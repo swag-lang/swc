@@ -1,11 +1,10 @@
 #include "pch.h"
-
+#include "Sema/Helpers/SemaCast.h"
 #include "Math/ApFloat.h"
 #include "Math/ApsInt.h"
 #include "Report/Diagnostic.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Sema.h"
-#include "Sema/SemaCast.h"
 #include "Sema/Type/TypeManager.h"
 #include "SemaNodeView.h"
 

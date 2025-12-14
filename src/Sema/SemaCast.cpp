@@ -540,28 +540,6 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
     SWC_UNREACHABLE();
 }
 
-namespace
-{
-    uint32_t pickConcreteFloatBitsDefaultLadder(const ApFloat& value)
-    {
-        bool isExact  = false;
-        bool overflow = false;
-
-        // Prefer 32-bit float
-        (void) value.toFloat(32, isExact, overflow);
-        if (!overflow)
-            return 32;
-
-        // Fall back to 64-bit float
-        (void) value.toFloat(64, isExact, overflow);
-        if (!overflow)
-            return 64;
-
-        // If it doesn't fit even in 64, keep existing precision (>= 32)
-        return (value.bitWidth() < 32) ? 32 : value.bitWidth();
-    }
-}
-
 // Concretize an unsized int/float constant into a sized one (>= 32 bits).
 ConstantRef SemaCast::concretizeConstant(Sema& sema, ConstantRef cstRef, bool& overflow)
 {

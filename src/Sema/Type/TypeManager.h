@@ -7,13 +7,6 @@ SWC_BEGIN_NAMESPACE()
 class TaskContext;
 class CompilerInstance;
 
-struct ConcreteWidthPolicy
-{
-    uint32_t minBits    = 32;
-    uint32_t maxBits    = 64;
-    bool     clampToMax = false;
-};
-
 class TypeManager
 {
     struct Shard
@@ -76,7 +69,7 @@ public:
     const TypeInfo& get(TypeRef typeRef) const;
 
     TypeRef         promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const;
-    static uint32_t chooseConcreteScalarWidth(uint32_t minRequiredBits, ConcreteWidthPolicy policy, bool& overflow);
+    static uint32_t chooseConcreteScalarWidth(uint32_t minRequiredBits, bool& overflow);
 
     std::string_view typeToName(TypeRef typeInfoRef) const;
 };

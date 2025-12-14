@@ -289,10 +289,12 @@ const TypeInfo& TypeManager::get(TypeRef typeRef) const
     return *shards_[shardIndex].store.ptr<TypeInfo>(localIndex * sizeof(TypeInfo));
 }
 
-uint32_t TypeManager::chooseConcreteScalarWidth(uint32_t minRequiredBits, ConcreteWidthPolicy policy, bool& overflow)
+uint32_t TypeManager::chooseConcreteScalarWidth(uint32_t minRequiredBits, bool& overflow)
 {
-    const uint32_t bits = std::max(minRequiredBits, policy.minBits);
-    overflow            = bits > policy.maxBits;
+    constexpr uint32_t minBits = 32;
+    constexpr uint32_t maxBits = 64;
+    const uint32_t     bits    = std::max(minRequiredBits, minBits);
+    overflow                   = bits > maxBits;
     return bits;
 }
 

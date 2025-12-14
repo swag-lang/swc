@@ -113,7 +113,7 @@ ConstantRef ConstantManager::concretizeConstant(TaskContext& ctx, ConstantRef cs
 
         ApsInt value = src.getIntLike();
 
-        const auto destBits = TypeManager::chooseConcreteScalarWidth(value.minBits(), {}, overflow);
+        const auto destBits = TypeManager::chooseConcreteScalarWidth(value.minBits(), overflow);
         if (overflow)
             return cstRef;
 
@@ -134,7 +134,7 @@ ConstantRef ConstantManager::concretizeConstant(TaskContext& ctx, ConstantRef cs
 
         const ApFloat& srcF = src.getFloat();
 
-        const auto destBits = TypeManager::chooseConcreteScalarWidth(srcF.minBits(), {}, overflow);
+        const auto destBits = TypeManager::chooseConcreteScalarWidth(srcF.minBits(), overflow);
         if (overflow)
             return cstRef;
 

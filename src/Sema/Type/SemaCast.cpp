@@ -25,6 +25,26 @@ namespace
         const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
         const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
+        // Kind rules: keep acceptance local to this op.
+        // LiteralSuffix never allowed BitCast in the previous coarse rules.
+        if (castCtx.kind == CastKind::LiteralSuffix)
+        {
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return false;
+        }
+
+        // Promotion / Implicit used to be scalar-numeric only.
+        if (castCtx.kind == CastKind::Promotion || castCtx.kind == CastKind::Implicit)
+        {
+            if (!(srcType.isScalarNumeric() && dstType.isScalarNumeric()))
+            {
+                castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                return false;
+            }
+        }
+
+        // Explicit: this op only makes sense on scalar numeric anyway (validated below).
+
         const bool srcScalar = srcType.isScalarNumeric();
         const bool dstScalar = dstType.isScalarNumeric();
         if (!srcScalar || !dstScalar)
@@ -55,6 +75,13 @@ namespace
     {
         const TypeInfo& dstType = sema.ctx().typeMgr().get(dstTypeRef);
 
+        // Kind rules: only Explicit allowed bool <-> intlike.
+        if (castCtx.kind != CastKind::Explicit)
+        {
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return false;
+        }
+
         if (!dstType.isIntLike())
         {
             castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
@@ -71,6 +98,12 @@ namespace
     {
         const TypeInfo& dstType = sema.ctx().typeMgr().get(dstTypeRef);
 
+        if (castCtx.kind != CastKind::Explicit)
+        {
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return false;
+        }
+
         if (!dstType.isBool())
         {
             castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
@@ -85,7 +118,47 @@ namespace
 
     bool castOpIntLikeToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
-        const TypeInfo& dstType = sema.ctx().typeMgr().get(dstTypeRef);
+        const auto&     typeMgr = sema.ctx().typeMgr();
+        const TypeInfo& srcType = typeMgr.get(srcTypeRef);
+        const TypeInfo& dstType = typeMgr.get(dstTypeRef);
+
+        // Kind rules
+        switch (castCtx.kind)
+        {
+            case CastKind::LiteralSuffix:
+                if (srcType.isChar())
+                {
+                    if (!(dstType.isIntUnsigned() || dstType.isRune()))
+                    {
+                        castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                        return false;
+                    }
+                }
+                else
+                {
+                    if (!(srcType.isInt() && dstType.isInt()))
+                    {
+                        castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                        return false;
+                    }
+                }
+                break;
+
+            case CastKind::Promotion:
+            case CastKind::Implicit:
+                if (!(srcType.isScalarNumeric() && dstType.isScalarNumeric()))
+                {
+                    castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                    return false;
+                }
+                break;
+
+            case CastKind::Explicit:
+                break;
+
+            default:
+                SWC_UNREACHABLE();
+        }
 
         if (!dstType.isIntLike())
         {
@@ -101,7 +174,40 @@ namespace
 
     bool castOpIntLikeToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
-        const TypeInfo& dstType = sema.ctx().typeMgr().get(dstTypeRef);
+        const auto&     typeMgr = sema.ctx().typeMgr();
+        const TypeInfo& srcType = typeMgr.get(srcTypeRef);
+        const TypeInfo& dstType = typeMgr.get(dstTypeRef);
+
+        switch (castCtx.kind)
+        {
+            case CastKind::LiteralSuffix:
+                if (!srcType.isInt())
+                {
+                    castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                    return false;
+                }
+                break;
+
+            case CastKind::Promotion:
+            case CastKind::Implicit:
+                if (!srcType.isScalarNumeric())
+                {
+                    castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                    return false;
+                }
+                break;
+
+            case CastKind::Explicit:
+                if (!srcType.isScalarNumeric())
+                {
+                    castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                    return false;
+                }
+                break;
+
+            default:
+                SWC_UNREACHABLE();
+        }
 
         if (!dstType.isFloat())
         {
@@ -117,7 +223,21 @@ namespace
 
     bool castOpFloatToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
-        const TypeInfo& dstType = sema.ctx().typeMgr().get(dstTypeRef);
+        const auto&     typeMgr = sema.ctx().typeMgr();
+        const TypeInfo& srcType = typeMgr.get(srcTypeRef);
+        const TypeInfo& dstType = typeMgr.get(dstTypeRef);
+
+        if (castCtx.kind == CastKind::LiteralSuffix)
+        {
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return false;
+        }
+
+        if (!srcType.isScalarNumeric())
+        {
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return false;
+        }
 
         if (!dstType.isIntLike())
         {
@@ -133,7 +253,33 @@ namespace
 
     bool castOpFloatToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
-        const TypeInfo& dstType = sema.ctx().typeMgr().get(dstTypeRef);
+        const auto&     typeMgr = sema.ctx().typeMgr();
+        const TypeInfo& srcType = typeMgr.get(srcTypeRef);
+        const TypeInfo& dstType = typeMgr.get(dstTypeRef);
+
+        switch (castCtx.kind)
+        {
+            case CastKind::LiteralSuffix:
+                if (!srcType.isFloat())
+                {
+                    castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                    return false;
+                }
+                break;
+
+            case CastKind::Promotion:
+            case CastKind::Implicit:
+            case CastKind::Explicit:
+                if (!srcType.isScalarNumeric())
+                {
+                    castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                    return false;
+                }
+                break;
+
+            default:
+                SWC_UNREACHABLE();
+        }
 
         if (!dstType.isFloat())
         {
@@ -155,63 +301,26 @@ bool SemaCast::analyseCastCore(Sema& sema, CastContext& castCtx, TypeRef srcType
     if (castCtx.fold && castCtx.fold->outConstRef)
         *castCtx.fold->outConstRef = ConstantRef::invalid();
 
-    const auto&     typeMgr = sema.ctx().typeMgr();
-    const TypeInfo& src     = typeMgr.get(srcTypeRef);
-    const TypeInfo& dst     = typeMgr.get(dstTypeRef);
-
     if (srcTypeRef == dstTypeRef)
         return castOpIdentity(sema, castCtx, srcTypeRef, dstTypeRef);
 
-    // Kind rules: Global / coarse only
-    auto kindAllows = [&] {
-        switch (castCtx.kind)
-        {
-            case CastKind::LiteralSuffix:
-                if (src.isChar() && dst.isIntUnsigned())
-                    return true;
-                if (src.isChar() && dst.isRune())
-                    return true;
-                if (src.isInt() && dst.isInt())
-                    return true;
-                if (src.isInt() && dst.isFloat())
-                    return true;
-                if (src.isFloat() && dst.isFloat())
-                    return true;
-                return false;
-            case CastKind::Promotion:
-                return src.isScalarNumeric() && dst.isScalarNumeric();
-            case CastKind::Explicit:
-                if (src.isScalarNumeric() && dst.isScalarNumeric())
-                    return true;
-                if ((src.isBool() && dst.isIntLike()) || (src.isIntLike() && dst.isBool()))
-                    return true;
-                return false;
-            case CastKind::Implicit:
-                return src.isScalarNumeric() && dst.isScalarNumeric();
-            default:
-                SWC_UNREACHABLE();
-        }
-    };
-
-    if (!kindAllows())
-    {
-        castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-        return false;
-    }
+    const auto&     typeMgr = sema.ctx().typeMgr();
+    const TypeInfo& srcType = typeMgr.get(srcTypeRef);
+    const TypeInfo& dstType = typeMgr.get(dstTypeRef);
 
     if (castCtx.flags.has(CastFlagsE::BitCast))
         return castOpBitCast(sema, castCtx, srcTypeRef, dstTypeRef);
-    if (src.isBool() && dst.isIntLike())
+    if (srcType.isBool() && dstType.isIntLike())
         return castOpBoolToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
-    if (src.isIntLike() && dst.isBool())
+    if (srcType.isIntLike() && dstType.isBool())
         return castOpIntLikeToBool(sema, castCtx, srcTypeRef, dstTypeRef);
-    if (src.isIntLike() && dst.isIntLike())
+    if (srcType.isIntLike() && dstType.isIntLike())
         return castOpIntLikeToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
-    if (src.isIntLike() && dst.isFloat())
+    if (srcType.isIntLike() && dstType.isFloat())
         return castOpIntLikeToFloat(sema, castCtx, srcTypeRef, dstTypeRef);
-    if (src.isFloat() && dst.isFloat())
+    if (srcType.isFloat() && dstType.isFloat())
         return castOpFloatToFloat(sema, castCtx, srcTypeRef, dstTypeRef);
-    if (src.isFloat() && dst.isIntLike())
+    if (srcType.isFloat() && dstType.isIntLike())
         return castOpFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
 
     castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);

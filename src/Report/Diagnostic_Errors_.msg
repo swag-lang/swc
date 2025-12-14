@@ -89,4 +89,4 @@ SWC_DIAG_DEF(sema_err_modifier_unsupported, Error, "modifier {what} cannot be ap
 SWC_DIAG_DEF(sema_err_negative_shift, Error, "invalid negative shift operand {right}")
 SWC_DIAG_DEF(sema_err_bit_cast_size, Error, "cannot bit-cast from {type} to {requested-type} due to size mismatch")
 SWC_DIAG_DEF(sema_err_bit_cast_invalid_type, Error, "cannot bit-cast non-integral type {type}")
-SWC_DIAG_DEF(sema_err_var_init_type_mismatch, Error, "type mismatch in variable initializer")
+SWC_DIAG_DEF(sema_err_var_init_type_mismatch, Error, "type mismatch in initializer")

@@ -1,41 +1,93 @@
 #assert(cast(s8) 1 == 1)
 #assert(cast(s8) -1 == -1)
+#assert(cast(s16) 0 == 0)
 #assert(cast(s32) 0 == 0)
-
-#assert(cast(s32) 0 == 0)
+#assert(cast(s64) 0 == 0)
 #assert(cast(u8) 1 == 1)
 #assert(cast(u16) 65535 == 65535)
+#assert(cast(u32) 0 == 0)
+#assert(cast(u64) 0 == 0)
+
 #assert(cast(f32) 45'u8 == 45)
 #assert(cast(f32) 45'u16 == 45)
+#assert(cast(f32) 45'u32 == 45)
+#assert(cast(f32) 45'u64 == 45)
 #assert(cast(f32) -45's8 == -45)
-#assert(cast(s32) 3.9 == 3)
-#assert(cast(s32) -3.9 == -3)
-#assert(cast(u8) 255'u16 == 255)
+#assert(cast(f32) -45's16 == -45)
+#assert(cast(f32) -45's32 == -45)
+#assert(cast(f32) -45's64 == -45)
 
 #assert(cast(f64) 123456789'u32 == 123456789)
+#assert(cast(f64) 123456789'u64 == 123456789)
 #assert(cast(f64) -123456789's32 == -123456789)
-#assert(cast(s64) 9223372036854775807'u64 == 9223372036854775807)
+#assert(cast(f64) -123456789's64 == -123456789)
+
+#assert(cast(s32) 3.9 == 3)
+#assert(cast(s32) -3.9 == -3)
+#assert(cast(s32) 3.9'f32 == 3)
+#assert(cast(s32) -3.9'f32 == -3)
+#assert(cast(s64) 3.9 == 3)
+#assert(cast(s64) -3.9 == -3)
+
+#assert(cast(u8) 255'u16 == 255)
 #assert(cast(u16) 65535'u32 == 65535)
-#assert(cast(s16) -32768's32 == -32768)
 #assert(cast(u32) 4294967295'u64 == 4294967295)
+#assert(cast(s16) -32768's32 == -32768)
 #assert(cast(s32) -2147483648's64 == -2147483648)
+#assert(cast(s64) -2147483648's32 == -2147483648)
+
+#assert(cast(s64) 9223372036854775807'u64 == 9223372036854775807)
+
 #assert(cast(f32) 0.0'f32 == 0.0)
 #assert(cast(f64) -0.0'f64 == -0.0)
+#assert(cast(f32) 0.0 == 0.0)
+#assert(cast(f64) 0.0 == 0.0)
+#assert(cast(f64) -0.0 == -0.0)
+
 #assert(cast(u8) 0'u8 == 0)
+#assert(cast(u16) 0'u16 == 0)
+#assert(cast(u32) 0'u32 == 0)
+#assert(cast(u64) 0'u64 == 0)
+
 #assert(cast(s8) -128's8 == -128)
+#assert(cast(s16) -32768's16 == -32768)
+#assert(cast(s32) -2147483648's32 == -2147483648)
+#assert(cast(s64) -9223372036854775808's64 == -9223372036854775808)
+
 #assert(cast(rune) 'A' == 'A')
 #assert(cast(rune) 'é' == 'é')
 #assert(cast(rune) '☃' == '☃')
 #assert(cast(rune) '😀' == '😀')
+#assert(cast(u32) 'A' == 65'u32)
+#assert(cast(u32) '😀' == 0x1F600'u32)
+#assert(cast(rune) 65'u32 == 'A')
+#assert(cast(rune) 0x1F600'u32 == '😀')
+
 #assert(cast(bool) true == true)
 #assert(cast(bool) false == false)
 #assert(cast(bool) (1'u8 != 0'u8) == true)
 #assert(cast(bool) (0'u8 != 0'u8) == false)
+#assert(cast(u8) true == 1'u8)
+#assert(cast(u8) false == 0'u8)
+#assert(cast(u16) true == 1'u16)
+#assert(cast(u16) false == 0'u16)
+#assert(cast(u32) true == 1'u32)
+#assert(cast(u32) false == 0'u32)
+#assert(cast(u64) true == 1'u64)
+#assert(cast(u64) false == 0'u64)
+#assert(cast(bool) 1'u8 == true)
+#assert(cast(bool) 0'u8 == false)
+#assert(cast(bool) 2'u8 == true)
+#assert(cast(bool) 255'u8 == true)
+
 #assert(cast(s32) cast(f32) 123.456'f32 == 123's32)
-#assert(cast(s64) cast(f64) -9223372036854775808.0'f64 == -9223372036854775808's64)
-#assert(cast(f64) cast(s64) 9223372036854775807's64 == 9223372036854775807.0'f64)
-#assert(cast(rune) cast(u32) 0x1F600'u32 == '😀')
+#assert(cast(s32) cast(f32) -123.75'f32 == -123's32)
 #assert(cast(f32) cast(s32) -123's32 == -123)
+#assert(cast(s64) cast(f64) 123.999'f64 == 123's64)
+#assert(cast(s64) cast(f64) -123.999'f64 == -123's64)
+#assert(cast(u16) cast(f32) 65535.0'f32 == 65535'u16)
+#assert(cast(f64) cast(s32) -2147483648's32 == -2147483648.0'f64)
+#assert(cast(rune) cast(u32) 0x1F600'u32 == '😀')
 
 #assert(cast(f64) 65535'u16 == 65535)
 #assert(cast(s16) -32768's16 == -32768)
@@ -65,30 +117,23 @@
 #assert(-1's8 == -1'f32)
 #assert(-1.0'f32 == -1)
 #assert(-1.0'f64 == -1)
+#assert(1.0'f32 == 1)
+#assert(1.0'f64 == 1)
+#assert(0.0'f32 == 0)
+#assert(0.0'f64 == 0)
 
 #assert(cast(s8) 127's32 == 127)
 #assert(cast(u8) 255's32 == 255'u8)
 #assert(cast(s16) -128's32 == -128's16)
 #assert(cast(u16) 65535'u32 == 65535'u16)
+#assert(cast(s32) 32767's16 == 32767's32)
+#assert(cast(u32) 65535'u16 == 65535'u32)
 
-#assert(cast(s32) 2147483648.0'f64 == 0's32)            // swc-expected-error {{sema_err_literal_overflow}}
-#assert(cast(s32) -2147483649.0'f64 == 0's32)           // swc-expected-error {{sema_err_literal_overflow}}
-#assert(cast(u32) -1.0'f32 == 0'u32)                    // swc-expected-error {{sema_err_literal_overflow}}
-#assert(cast(u32) 4294967296.0'f64 == 0'u32)            // swc-expected-error {{sema_err_literal_overflow}}
-
-#assert(cast(u8) true == 1'u8)
-#assert(cast(u8) false == 0'u8)
-#assert(cast(bool) 1'u8 == true)
-#assert(cast(bool) 0'u8 == false)
-#assert(cast(bool) 2'u8 == true)
-
-#assert(cast(u32) 'A' == 65'u32)
-#assert(cast(u32) '😀' == 0x1F600'u32)
-#assert(cast(rune) 65'u32 == 'A')
-
-#assert(cast(s32) cast(f32) -123.75'f32 == -123's32)
-#assert(cast(u16) cast(f32) 65535.0'f32 == 65535'u16)
-#assert(cast(f64) cast(s32) -2147483648's32 == -2147483648.0'f64)
+#assert(cast(s32) 2147483648.0'f64 == 0's32)       // swc-expected-error {{sema_err_literal_overflow}}
+#assert(cast(s32) -2147483649.0'f64 == 0's32)      // swc-expected-error {{sema_err_literal_overflow}}
+#assert(cast(u32) -1.0'f32 == 0'u32)               // swc-expected-error {{sema_err_literal_overflow}}
+#assert(cast(u32) 4294967296.0'f64 == 0'u32)       // swc-expected-error {{sema_err_literal_overflow}}
+#assert(cast(u8) 256.0'f32 == 0'u8)                // swc-expected-error {{sema_err_literal_overflow}}
+#assert(cast(u16) -1.0'f64 == 0'u16)               // swc-expected-error {{sema_err_literal_overflow}}
 
 #assert(cast(u64) 18446744073709551615'u64 == 18446744073709551615) // swc-expected-error {{sema_err_literal_too_big}}
-//#assert(1.7976931348623157e+308'f64 == 1.7976931348623157e+308)

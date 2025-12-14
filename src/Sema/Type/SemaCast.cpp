@@ -21,7 +21,7 @@ namespace
         castCtx.setFoldOut(castCtx.foldSrc());
     }
 
-    void foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstTypeRef, const TypeInfo& dstType, const TypeInfo& srcType)
+    bool foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstTypeRef, const TypeInfo& dstType, const TypeInfo& srcType)
     {
         auto& ctx = sema.ctx();
 
@@ -47,7 +47,7 @@ namespace
 
             const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
             castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
-            return;
+            return true;
         }
 
         if (srcFloat && dstFloat)
@@ -55,7 +55,7 @@ namespace
             const ApFloat&      value  = src.getFloat();
             const ConstantValue result = ConstantValue::makeFloat(ctx, value, dstBits);
             castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
-            return;
+            return true;
         }
 
         if (srcFloat && dstInt)
@@ -63,7 +63,7 @@ namespace
             ApsInt              i      = Math::bitCastToApInt(src.getFloat(), dstType.isIntLikeUnsigned());
             const ConstantValue result = ConstantValue::makeFromIntLike(ctx, i, dstType);
             castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
-            return;
+            return true;
         }
 
         if (srcInt && dstFloat)
@@ -71,11 +71,12 @@ namespace
             ApFloat             f      = Math::bitCastToApFloat(src.getIntLike(), dstBits);
             const ConstantValue result = ConstantValue::makeFloat(ctx, f, dstBits);
             castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
-            return;
+            return true;
         }
 
         // Should be unreachable given earlier asserts, but keep consistent error behavior.
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, src.typeRef(), dstTypeRef);
+        return false;
     }
 
     bool foldConstantBoolToIntLike(Sema& sema, const CastContext& castCtx, const TypeInfo& dstType)
@@ -341,11 +342,10 @@ namespace
             return false;
         }
 
-        if (!castCtx.isFolding())
-            return true;
+        if (castCtx.isFolding())
+            return foldConstantBitCast(sema, castCtx, dstTypeRef, dstType, srcType);
 
-        foldConstantBitCast(sema, castCtx, dstTypeRef, dstType, srcType);
-        return castCtx.failure.diagId == DiagnosticId::None;
+        return true;
     }
 
     bool castOpBoolToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)

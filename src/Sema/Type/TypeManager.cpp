@@ -289,4 +289,11 @@ const TypeInfo& TypeManager::get(TypeRef typeRef) const
     return *shards_[shardIndex].store.ptr<TypeInfo>(localIndex * sizeof(TypeInfo));
 }
 
+uint32_t TypeManager::chooseConcreteScalarWidth(uint32_t minRequiredBits, ConcreteWidthPolicy policy, bool& overflow)
+{
+    const uint32_t bits = std::max(minRequiredBits, policy.minBits);
+    overflow            = bits > policy.maxBits;
+    return bits;
+}
+
 SWC_END_NAMESPACE()

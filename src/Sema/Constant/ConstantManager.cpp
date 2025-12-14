@@ -96,8 +96,8 @@ const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
 
 ConstantRef ConstantManager::concretizeConstant(TaskContext& ctx, ConstantRef cstRef, bool& overflow)
 {
-    const TypeManager&   typeMgr = ctx.typeMgr();
     const ConstantValue& src     = get(cstRef);
+    const TypeManager&   typeMgr = ctx.typeMgr();
     const TypeInfo&      ty      = typeMgr.get(src.typeRef());
 
     overflow = false;
@@ -113,24 +113,14 @@ ConstantRef ConstantManager::concretizeConstant(TaskContext& ctx, ConstantRef cs
 
         ApsInt value = src.getIntLike();
 
-        // Preserve the constant's signedness.
-        const bool unsignedTarget = value.isUnsigned();
-
-        // Smallest standard width (8/16/32/64/...) for this value & signedness.
-        uint32_t concreteBits = value.minBits();
-        concreteBits          = std::max(concreteBits, 32u);
-
-        if (concreteBits > 64u)
-        {
-            overflow = true;
+        const auto destBits = TypeManager::chooseConcreteScalarWidth(value.minBits(), {}, overflow);
+        if (overflow)
             return cstRef;
-        }
 
-        if (value.isUnsigned() != unsignedTarget)
-            value.setUnsigned(unsignedTarget);
-        value.resize(concreteBits);
+        value.resize(destBits);
 
-        const TypeRef       concreteTypeRef = typeMgr.getTypeInt(concreteBits, unsignedTarget);
+        const bool          unsignedTarget  = value.isUnsigned();
+        const TypeRef       concreteTypeRef = typeMgr.getTypeInt(destBits, unsignedTarget);
         const TypeInfo&     concreteTy      = typeMgr.get(concreteTypeRef);
         const ConstantValue result          = ConstantValue::makeFromIntLike(ctx, value, concreteTy);
         return addConstant(ctx, result);
@@ -144,17 +134,18 @@ ConstantRef ConstantManager::concretizeConstant(TaskContext& ctx, ConstantRef cs
 
         const ApFloat& srcF = src.getFloat();
 
-        uint32_t concreteBits = srcF.minBits();
-        concreteBits          = std::max(concreteBits, 32u);
+        const auto destBits = TypeManager::chooseConcreteScalarWidth(srcF.minBits(), {}, overflow);
+        if (overflow)
+            return cstRef;
 
         bool    isExact   = false;
-        ApFloat concreteF = srcF.toFloat(concreteBits, isExact, overflow);
+        ApFloat concreteF = srcF.toFloat(destBits, isExact, overflow);
 
-        // If for any reason conversion reports overflow, keep original.
+        // Keep your current behavior: if conversion says overflow, preserve the original.
         if (overflow)
             concreteF = srcF;
 
-        const ConstantValue result = ConstantValue::makeFloat(ctx, concreteF, concreteBits);
+        const ConstantValue result = ConstantValue::makeFloat(ctx, concreteF, destBits);
         return addConstant(ctx, result);
     }
 

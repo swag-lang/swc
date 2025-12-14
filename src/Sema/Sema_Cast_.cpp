@@ -63,17 +63,22 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
 
 AstVisitStepResult AstExplicitCastExpr::semaPostNode(Sema& sema) const
 {
-    if (SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst) == Result::Error)
-        return AstVisitStepResult::Stop;
-
     const SemaNodeView nodeTypeView(sema, nodeTypeRef);
     const SemaNodeView nodeExprView(sema, nodeExprRef);
 
+    // Check cast modifiers
+    if (SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst) == Result::Error)
+        return AstVisitStepResult::Stop;
+
+    // Validate cast
     CastContext castCtx(CastKind::Explicit);
     if (modifierFlags.has(AstModifierFlagsE::Bit))
         castCtx.flags.add(CastFlagsE::BitCast);
     castCtx.errorNodeRef = nodeTypeView.nodeRef;
+    if (!SemaCast::castAllowed(sema, castCtx, nodeExprView.typeRef, nodeTypeView.typeRef))
+        return AstVisitStepResult::Stop;
 
+    // Update constant
     if (sema.hasConstant(nodeExprRef))
     {
         const ConstantRef cstRef = SemaCast::castConstant(sema, castCtx, nodeExprView.cstRef, nodeTypeView.typeRef);
@@ -82,9 +87,6 @@ AstVisitStepResult AstExplicitCastExpr::semaPostNode(Sema& sema) const
         sema.setConstant(sema.curNodeRef(), cstRef);
         return AstVisitStepResult::Continue;
     }
-
-    if (!SemaCast::castAllowed(sema, castCtx, nodeExprView.typeRef, nodeTypeView.typeRef))
-        return AstVisitStepResult::Stop;
 
     sema.setType(sema.curNodeRef(), nodeTypeView.typeRef);
     return AstVisitStepResult::Continue;

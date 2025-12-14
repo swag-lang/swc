@@ -40,10 +40,9 @@ struct CastContext
 struct CastFailure
 {
     DiagnosticId diagId;
-    AstNodeRef   nodeRef;   // where to point the error (usually castCtx.errorNodeRef)
-    TypeRef      leftType;  // optional, depends on diag
-    TypeRef      rightType; // optional
-    TypeRef      typeArg;   // optional (for "invalid type" cases)
+    AstNodeRef   nodeRef;    // where to point the error (usually castCtx.errorNodeRef)
+    TypeRef      srcTypeRef; // optional, depends on diag
+    TypeRef      dstTypeRef; // optional
 };
 
 enum class CastOp : uint8_t
@@ -61,8 +60,8 @@ enum class CastOp : uint8_t
 struct CastPlan
 {
     CastOp      op;
-    TypeRef     srcType;
-    TypeRef     dstType;
+    TypeRef     srcTypeRef;
+    TypeRef     dstTypeRef;
     CastContext ctx;
 };
 

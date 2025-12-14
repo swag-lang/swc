@@ -41,6 +41,7 @@ public:
     std::string_view   idName() const;
     DiagnosticId       id() const { return id_; }
     DiagnosticSeverity severity() const { return severity_; }
+    void               setSeverity(DiagnosticSeverity sev) { severity_ = sev; }
     bool               isNoteOrHelp() const;
 };
 

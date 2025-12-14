@@ -379,13 +379,13 @@ namespace
         switch (plan.op)
         {
             case CastOp::Identity: return srcRef;
-            case CastOp::BitCast: return bitCastConstant(sema, plan.ctx, srcRef, plan.dstType);
-            case CastOp::BoolToIntLike: return castConstantBoolToIntLike(sema, plan.ctx, cst, plan.dstType);
-            case CastOp::IntLikeToBool: return castConstantIntLikeToBool(sema, plan.ctx, cst, plan.dstType);
-            case CastOp::IntLikeToIntLike: return castConstantIntLikeToIntLike(sema, plan.ctx, cst, plan.dstType);
-            case CastOp::IntLikeToFloat: return castConstantIntLikeToFloat(sema, plan.ctx, cst, plan.dstType);
-            case CastOp::FloatToFloat: return castConstantFloatToFloat(sema, plan.ctx, cst, plan.dstType);
-            case CastOp::FloatToIntLike: return castConstantFloatToIntLike(sema, plan.ctx, cst, plan.dstType);
+            case CastOp::BitCast: return bitCastConstant(sema, plan.ctx, srcRef, plan.dstTypeRef);
+            case CastOp::BoolToIntLike: return castConstantBoolToIntLike(sema, plan.ctx, cst, plan.dstTypeRef);
+            case CastOp::IntLikeToBool: return castConstantIntLikeToBool(sema, plan.ctx, cst, plan.dstTypeRef);
+            case CastOp::IntLikeToIntLike: return castConstantIntLikeToIntLike(sema, plan.ctx, cst, plan.dstTypeRef);
+            case CastOp::IntLikeToFloat: return castConstantIntLikeToFloat(sema, plan.ctx, cst, plan.dstTypeRef);
+            case CastOp::FloatToFloat: return castConstantFloatToFloat(sema, plan.ctx, cst, plan.dstTypeRef);
+            case CastOp::FloatToIntLike: return castConstantFloatToIntLike(sema, plan.ctx, cst, plan.dstTypeRef);
             default: SWC_UNREACHABLE();
         }
     }
@@ -398,7 +398,7 @@ CastPlanOrFailure SemaCast::analyzeCast(Sema& sema, const CastContext& castCtx, 
     const TypeInfo& dst     = typeMgr.get(dstTypeRef);
 
     if (srcTypeRef == dstTypeRef)
-        return CastPlan{.op = CastOp::Identity, .srcType = srcTypeRef, .dstType = dstTypeRef, .ctx = castCtx};
+        return CastPlan{.op = CastOp::Identity, .srcTypeRef = srcTypeRef, .dstTypeRef = dstTypeRef, .ctx = castCtx};
 
     if (castCtx.flags.has(CastFlagsE::BitCast))
     {
@@ -408,7 +408,7 @@ CastPlanOrFailure SemaCast::analyzeCast(Sema& sema, const CastContext& castCtx, 
         if (!srcScalar || !dstScalar)
         {
             CastFailure f{.diagId = DiagnosticId::sema_err_bit_cast_invalid_type, .nodeRef = castCtx.errorNodeRef};
-            f.typeArg = !srcScalar ? srcTypeRef : dstTypeRef;
+            f.srcTypeRef = !srcScalar ? srcTypeRef : dstTypeRef;
             return f;
         }
 
@@ -417,11 +417,11 @@ CastPlanOrFailure SemaCast::analyzeCast(Sema& sema, const CastContext& castCtx, 
         if (!(sb == db || !sb))
         {
             CastFailure f{.diagId = DiagnosticId::sema_err_bit_cast_size, .nodeRef = castCtx.errorNodeRef};
-            f.leftType  = srcTypeRef;
-            f.rightType = dstTypeRef;
+            f.srcTypeRef = srcTypeRef;
+            f.dstTypeRef = dstTypeRef;
             return f;
         }
-        return CastPlan{.op = CastOp::BitCast, .srcType = srcTypeRef, .dstType = dstTypeRef, .ctx = castCtx};
+        return CastPlan{.op = CastOp::BitCast, .srcTypeRef = srcTypeRef, .dstTypeRef = dstTypeRef, .ctx = castCtx};
     }
 
     // Kind rules
@@ -458,52 +458,38 @@ CastPlanOrFailure SemaCast::analyzeCast(Sema& sema, const CastContext& castCtx, 
     if (!kindAllows())
     {
         CastFailure f{.diagId = DiagnosticId::sema_err_cannot_cast, .nodeRef = castCtx.errorNodeRef};
-        f.leftType  = srcTypeRef;
-        f.rightType = dstTypeRef;
+        f.srcTypeRef = srcTypeRef;
+        f.dstTypeRef = dstTypeRef;
         return f;
     }
 
     // Decide operation
     if (src.isBool() && dst.isIntLike())
-        return CastPlan{.op = CastOp::BoolToIntLike, .srcType = srcTypeRef, .dstType = dstTypeRef, .ctx = castCtx};
+        return CastPlan{.op = CastOp::BoolToIntLike, .srcTypeRef = srcTypeRef, .dstTypeRef = dstTypeRef, .ctx = castCtx};
     if (src.isIntLike() && dst.isBool())
-        return CastPlan{.op = CastOp::IntLikeToBool, .srcType = srcTypeRef, .dstType = dstTypeRef, .ctx = castCtx};
+        return CastPlan{.op = CastOp::IntLikeToBool, .srcTypeRef = srcTypeRef, .dstTypeRef = dstTypeRef, .ctx = castCtx};
 
     if (src.isIntLike() && dst.isIntLike())
-        return CastPlan{.op = CastOp::IntLikeToIntLike, .srcType = srcTypeRef, .dstType = dstTypeRef, .ctx = castCtx};
+        return CastPlan{.op = CastOp::IntLikeToIntLike, .srcTypeRef = srcTypeRef, .dstTypeRef = dstTypeRef, .ctx = castCtx};
     if (src.isIntLike() && dst.isFloat())
-        return CastPlan{.op = CastOp::IntLikeToFloat, .srcType = srcTypeRef, .dstType = dstTypeRef, .ctx = castCtx};
+        return CastPlan{.op = CastOp::IntLikeToFloat, .srcTypeRef = srcTypeRef, .dstTypeRef = dstTypeRef, .ctx = castCtx};
     if (src.isFloat() && dst.isFloat())
-        return CastPlan{.op = CastOp::FloatToFloat, .srcType = srcTypeRef, .dstType = dstTypeRef, .ctx = castCtx};
+        return CastPlan{.op = CastOp::FloatToFloat, .srcTypeRef = srcTypeRef, .dstTypeRef = dstTypeRef, .ctx = castCtx};
     if (src.isFloat() && dst.isIntLike())
-        return CastPlan{.op = CastOp::FloatToIntLike, .srcType = srcTypeRef, .dstType = dstTypeRef, .ctx = castCtx};
+        return CastPlan{.op = CastOp::FloatToIntLike, .srcTypeRef = srcTypeRef, .dstTypeRef = dstTypeRef, .ctx = castCtx};
 
     // If kindAllows was right, should not happen
     CastFailure f{.diagId = DiagnosticId::sema_err_cannot_cast, .nodeRef = castCtx.errorNodeRef};
-    f.leftType  = srcTypeRef;
-    f.rightType = dstTypeRef;
+    f.srcTypeRef = srcTypeRef;
+    f.dstTypeRef = dstTypeRef;
     return f;
 }
 
 void SemaCast::emitCastFailure(Sema& sema, const CastFailure& f)
 {
     auto diag = SemaError::report(sema, f.diagId, f.nodeRef);
-
-    switch (f.diagId)
-    {
-        case DiagnosticId::sema_err_bit_cast_invalid_type:
-            diag.addArgument(Diagnostic::ARG_TYPE, f.typeArg);
-            break;
-        case DiagnosticId::sema_err_bit_cast_size:
-            diag.addArgument(Diagnostic::ARG_LEFT, f.leftType);
-            diag.addArgument(Diagnostic::ARG_RIGHT, f.rightType);
-            break;
-        default:
-            diag.addArgument(Diagnostic::ARG_LEFT, f.leftType);
-            diag.addArgument(Diagnostic::ARG_RIGHT, f.rightType);
-            break;
-    }
-
+    diag.addArgument(Diagnostic::ARG_TYPE, f.srcTypeRef);
+    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, f.dstTypeRef);
     diag.report(sema.ctx());
 }
 

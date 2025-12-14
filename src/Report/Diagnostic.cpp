@@ -109,10 +109,11 @@ DiagnosticElement& Diagnostic::addElement(DiagnosticId id)
     return *raw;
 }
 
-DiagnosticElement& Diagnostic::addElement(DiagnosticElement& element)
+DiagnosticElement& Diagnostic::addNote(DiagnosticId id)
 {
-    auto       ptr = std::make_shared<DiagnosticElement>(element);
+    auto       ptr = std::make_shared<DiagnosticElement>(id);
     const auto raw = ptr.get();
+    raw->setSeverity(DiagnosticSeverity::Note);
     elements_.emplace_back(std::move(ptr));
     return *raw;
 }

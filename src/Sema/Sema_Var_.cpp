@@ -13,61 +13,27 @@ SWC_BEGIN_NAMESPACE()
 
 AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
 {
-    SemaNodeView        nodeInitView(sema, nodeInitRef);
-    const SemaNodeView  nodeTypeView(sema, nodeTypeRef);
-    SymbolMap*          symbolMap = nullptr;
-    const IdentifierRef idRef     = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
-
-    // Get the destination symbolMap
-    const SymbolAccess access = sema.frame().currentAccess.value_or(sema.frame().defaultAccess);
-    if (access == SymbolAccess::Internal)
-        symbolMap = &sema.semaInfo().fileNamespace();
-    else
-        symbolMap = sema.curSymMap();
-
-    CastContext castCtx(CastKind::Implicit);
-    castCtx.errorNodeRef = nodeInitRef;
+    SemaNodeView       nodeInitView(sema, nodeInitRef);
+    const SemaNodeView nodeTypeView(sema, nodeTypeRef);
 
     if (nodeInitView.typeRef.isValid() && nodeTypeView.typeRef.isValid())
     {
-        auto planOrFail = SemaCast::analyzeCast(sema, castCtx, nodeInitView.typeRef, nodeTypeView.typeRef);
+        CastContext castCtx(CastKind::Implicit);
+        castCtx.errorNodeRef = nodeInitRef;
+        auto planOrFail      = SemaCast::analyzeCast(sema, castCtx, nodeInitView.typeRef, nodeTypeView.typeRef);
         if (auto* failure = std::get_if<CastFailure>(&planOrFail))
         {
             // Primary, context-specific diagnostic
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_var_init_type_mismatch, castCtx.errorNodeRef);
-            diag.addArgument(Diagnostic::ARG_TYPE, nodeInitView.typeRef);
-            diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, nodeTypeView.typeRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, failure->srcTypeRef);
+            diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, failure->dstTypeRef);
 
             // Add the underlying reason as a note (format like your previous code)
-            {
-                auto reason = SemaError::report(sema, failure->diagId, failure->nodeRef);
-
-                // Preserve your old "base args" behavior (even if some diag ids ignore them)
-                reason.addArgument(Diagnostic::ARG_TYPE, nodeInitView.typeRef);
-                reason.addArgument(Diagnostic::ARG_REQUESTED_TYPE, nodeTypeView.typeRef);
-
-                switch (failure->diagId)
-                {
-                    case DiagnosticId::sema_err_bit_cast_invalid_type:
-                        reason.addArgument(Diagnostic::ARG_TYPE, failure->typeArg);
-                        break;
-                    case DiagnosticId::sema_err_bit_cast_size:
-                        reason.addArgument(Diagnostic::ARG_LEFT, failure->leftType);
-                        reason.addArgument(Diagnostic::ARG_RIGHT, failure->rightType);
-                        break;
-                    default:
-                        reason.addArgument(Diagnostic::ARG_LEFT, failure->leftType);
-                        reason.addArgument(Diagnostic::ARG_RIGHT, failure->rightType);
-                        break;
-                }
-
-                diag.addElement(reason.last());
-            }
+            diag.addNote(failure->diagId);
 
             // Explicit cast works hint
             CastContext explicitCtx = castCtx;
             explicitCtx.kind        = CastKind::Explicit;
-
             auto explicitPlanOrFail = SemaCast::analyzeCast(sema, explicitCtx, nodeInitView.typeRef, nodeTypeView.typeRef);
             if (!std::holds_alternative<CastFailure>(explicitPlanOrFail))
                 diag.addElement(DiagnosticId::sema_note_cast_explicit);
@@ -76,6 +42,15 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
             return AstVisitStepResult::Stop;
         }
     }
+
+    // Get the destination symbolMap
+    const IdentifierRef idRef     = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
+    SymbolMap*          symbolMap = nullptr;
+    const SymbolAccess  access    = sema.frame().currentAccess.value_or(sema.frame().defaultAccess);
+    if (access == SymbolAccess::Internal)
+        symbolMap = &sema.semaInfo().fileNamespace();
+    else
+        symbolMap = sema.curSymMap();
 
     if (hasParserFlag(Const))
     {
@@ -93,7 +68,9 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
 
         if (nodeTypeRef.isValid())
         {
-            nodeInitView.cstRef = SemaCast::castConstant(sema, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef);
+            CastContext castCtx(CastKind::Implicit);
+            castCtx.errorNodeRef = nodeInitRef;
+            nodeInitView.cstRef  = SemaCast::castConstant(sema, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef);
             if (nodeInitView.cstRef.isInvalid())
                 return AstVisitStepResult::Stop;
         }

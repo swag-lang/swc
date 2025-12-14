@@ -1,3 +1,4 @@
+// ReSharper disable CppClangTidyClangDiagnosticMissingDesignatedFieldInitializers
 #include "pch.h"
 #include "Sema/Helpers/SemaCast.h"
 #include "Math/ApFloat.h"
@@ -62,7 +63,7 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    ConstantRef castBoolToIntLike(Sema& sema, const CastContext&, const ConstantValue& src, TypeRef targetTypeRef)
+    ConstantRef castConstantBoolToIntLike(Sema& sema, const CastContext&, const ConstantValue& src, TypeRef targetTypeRef)
     {
         auto&              ctx        = sema.ctx();
         const TypeManager& typeMgr    = ctx.typeMgr();
@@ -81,7 +82,7 @@ namespace
         return sema.cstMgr().addConstant(ctx, result);
     }
 
-    ConstantRef castIntLikeToBool(Sema& sema, const CastContext&, const ConstantValue& src, TypeRef targetTypeRef)
+    ConstantRef castConstantIntLikeToBool(Sema& sema, const CastContext&, const ConstantValue& src, TypeRef targetTypeRef)
     {
         auto&              ctx        = sema.ctx();
         const TypeManager& typeMgr    = ctx.typeMgr();
@@ -160,7 +161,7 @@ namespace
         return ConstantRef::invalid();
     }
 
-    ConstantRef castIntLikeToIntLike(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
+    ConstantRef castConstantIntLikeToIntLike(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
     {
         auto&              ctx        = sema.ctx();
         const TypeManager& typeMgr    = ctx.typeMgr();
@@ -275,7 +276,7 @@ namespace
             return ConstantRef::invalid();
         }
 
-        // Adjust signedness to target without changing the numeric value.
+        // Adjust signedness to the target without changing the numeric value.
         if (value.isUnsigned() != targetUnsigned)
         {
             if (value.isUnsigned() && !targetUnsigned)
@@ -306,7 +307,7 @@ namespace
         return sema.cstMgr().addConstant(ctx, result);
     }
 
-    ConstantRef castIntLikeToFloat(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
+    ConstantRef castConstantIntLikeToFloat(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
     {
         auto&              ctx        = sema.ctx();
         const TypeManager& typeMgr    = ctx.typeMgr();
@@ -328,7 +329,7 @@ namespace
         return sema.cstMgr().addConstant(ctx, result);
     }
 
-    ConstantRef castFloatToIntLike(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
+    ConstantRef castConstantFloatToIntLike(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
     {
         auto&              ctx        = sema.ctx();
         const TypeManager& typeMgr    = ctx.typeMgr();
@@ -350,7 +351,7 @@ namespace
         return sema.cstMgr().addConstant(ctx, result);
     }
 
-    ConstantRef castFloatToFloat(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
+    ConstantRef castConstantFloatToFloat(Sema& sema, const CastContext& castCtx, const ConstantValue& src, TypeRef targetTypeRef)
     {
         auto&              ctx        = sema.ctx();
         const TypeManager& typeMgr    = ctx.typeMgr();
@@ -379,12 +380,12 @@ namespace
         {
             case CastOp::Identity: return srcRef;
             case CastOp::BitCast: return bitCastConstant(sema, plan.ctx, srcRef, plan.dstType);
-            case CastOp::BoolToIntLike: return castBoolToIntLike(sema, plan.ctx, cst, plan.dstType);
-            case CastOp::IntLikeToBool: return castIntLikeToBool(sema, plan.ctx, cst, plan.dstType);
-            case CastOp::IntLikeToIntLike: return castIntLikeToIntLike(sema, plan.ctx, cst, plan.dstType);
-            case CastOp::IntLikeToFloat: return castIntLikeToFloat(sema, plan.ctx, cst, plan.dstType);
-            case CastOp::FloatToFloat: return castFloatToFloat(sema, plan.ctx, cst, plan.dstType);
-            case CastOp::FloatToIntLike: return castFloatToIntLike(sema, plan.ctx, cst, plan.dstType);
+            case CastOp::BoolToIntLike: return castConstantBoolToIntLike(sema, plan.ctx, cst, plan.dstType);
+            case CastOp::IntLikeToBool: return castConstantIntLikeToBool(sema, plan.ctx, cst, plan.dstType);
+            case CastOp::IntLikeToIntLike: return castConstantIntLikeToIntLike(sema, plan.ctx, cst, plan.dstType);
+            case CastOp::IntLikeToFloat: return castConstantIntLikeToFloat(sema, plan.ctx, cst, plan.dstType);
+            case CastOp::FloatToFloat: return castConstantFloatToFloat(sema, plan.ctx, cst, plan.dstType);
+            case CastOp::FloatToIntLike: return castConstantFloatToIntLike(sema, plan.ctx, cst, plan.dstType);
             default: SWC_UNREACHABLE();
         }
     }
@@ -401,7 +402,7 @@ CastPlanOrFailure SemaCast::analyzeCast(Sema& sema, const CastContext& castCtx, 
 
     if (castCtx.flags.has(CastFlagsE::BitCast))
     {
-        // Validate bitcast constraints here once
+        // Validate bit cast constraints here once
         const bool srcScalar = src.isScalarNumeric();
         const bool dstScalar = dst.isScalarNumeric();
         if (!srcScalar || !dstScalar)
@@ -410,6 +411,7 @@ CastPlanOrFailure SemaCast::analyzeCast(Sema& sema, const CastContext& castCtx, 
             f.typeArg = !srcScalar ? srcTypeRef : dstTypeRef;
             return f;
         }
+
         const uint32_t sb = src.scalarNumericBits();
         const uint32_t db = dst.scalarNumericBits();
         if (!(sb == db || !sb))
@@ -422,7 +424,7 @@ CastPlanOrFailure SemaCast::analyzeCast(Sema& sema, const CastContext& castCtx, 
         return CastPlan{.op = CastOp::BitCast, .srcType = srcTypeRef, .dstType = dstTypeRef, .ctx = castCtx};
     }
 
-    // Kind rules (your existing switch, unchanged in spirit)
+    // Kind rules
     auto kindAllows = [&] {
         switch (castCtx.kind)
         {

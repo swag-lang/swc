@@ -14,38 +14,6 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    void resetCastFailure(CastContext& castCtx)
-    {
-        castCtx.failure         = CastFailure{};
-        castCtx.failure.diagId  = DiagnosticId::None;
-        castCtx.failure.noteId  = DiagnosticId::None;
-        castCtx.failure.nodeRef = castCtx.errorNodeRef;
-    }
-
-    void setCastFailure(CastContext& castCtx,
-                        DiagnosticId diagId,
-                        TypeRef      srcTypeRef,
-                        TypeRef      dstTypeRef)
-    {
-        castCtx.failure            = CastFailure{.diagId = diagId, .nodeRef = castCtx.errorNodeRef};
-        castCtx.failure.srcTypeRef = srcTypeRef;
-        castCtx.failure.dstTypeRef = dstTypeRef;
-    }
-
-    void setCastFailureValueNote(CastContext&     castCtx,
-                                 DiagnosticId     diagId,
-                                 TypeRef          srcTypeRef,
-                                 TypeRef          dstTypeRef,
-                                 std::string_view valueStr,
-                                 DiagnosticId     noteId)
-    {
-        castCtx.failure            = CastFailure{.diagId = diagId, .nodeRef = castCtx.errorNodeRef};
-        castCtx.failure.srcTypeRef = srcTypeRef;
-        castCtx.failure.dstTypeRef = dstTypeRef;
-        castCtx.failure.valueStr   = std::string(valueStr);
-        castCtx.failure.noteId     = noteId;
-    }
-
     bool isFolding(const CastContext& c)
     {
         return c.fold != nullptr && c.fold->srcConstRef.isValid();
@@ -200,7 +168,7 @@ namespace
             return true;
         }
 
-        setCastFailure(castCtx, DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
         return false;
     }
 
@@ -211,7 +179,7 @@ namespace
 
         if (!dstType.isIntLike())
         {
-            setCastFailure(castCtx, DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             return false;
         }
 
@@ -236,7 +204,7 @@ namespace
 
         if (!dstType.isBool())
         {
-            setCastFailure(castCtx, DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             return false;
         }
 
@@ -260,7 +228,7 @@ namespace
 
         if (!dstType.isIntLike())
         {
-            setCastFailure(castCtx, DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             return false;
         }
 
@@ -281,12 +249,7 @@ namespace
         {
             if (!value.isUnsigned() && value.isNegative() && !castCtx.flags.has(CastFlagsE::NoOverflow) && targetBits != 0)
             {
-                setCastFailureValueNote(castCtx,
-                                        DiagnosticId::sema_err_signed_unsigned,
-                                        srcTypeRef,
-                                        dstTypeRef,
-                                        value.toString(),
-                                        DiagnosticId::sema_note_signed_unsigned);
+                castCtx.failValueNote(DiagnosticId::sema_err_signed_unsigned, srcTypeRef, dstTypeRef, value.toString(), DiagnosticId::sema_note_signed_unsigned);
                 return false;
             }
 
@@ -341,12 +304,7 @@ namespace
                 {
                     if (!castCtx.flags.has(CastFlagsE::NoOverflow))
                     {
-                        setCastFailureValueNote(castCtx,
-                                                DiagnosticId::sema_err_signed_unsigned,
-                                                srcTypeRef,
-                                                dstTypeRef,
-                                                value.toString(),
-                                                DiagnosticId::sema_note_unsigned_signed);
+                        castCtx.failValueNote(DiagnosticId::sema_err_signed_unsigned, srcTypeRef, dstTypeRef, value.toString(), DiagnosticId::sema_note_unsigned_signed);
                         return false;
                     }
                 }
@@ -399,7 +357,7 @@ namespace
 
         if (!dstType.isFloat())
         {
-            setCastFailure(castCtx, DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             return false;
         }
 
@@ -437,7 +395,7 @@ namespace
 
         if (!dstType.isIntLike())
         {
-            setCastFailure(castCtx, DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             return false;
         }
 
@@ -476,7 +434,7 @@ namespace
 
         if (!dstType.isFloat())
         {
-            setCastFailure(castCtx, DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             return false;
         }
 
@@ -505,11 +463,9 @@ namespace
         return true;
     }
 
-    // ---- core analysis (type-check always, may fold if castCtx.fold is set) ----
-
     bool analyseCastCore(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
-        resetCastFailure(castCtx);
+        castCtx.resetFailure();
 
         if (castCtx.fold && castCtx.fold->outConstRef)
             *castCtx.fold->outConstRef = ConstantRef::invalid();
@@ -554,7 +510,7 @@ namespace
 
         if (!kindAllows())
         {
-            setCastFailure(castCtx, DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             return false;
         }
 
@@ -576,7 +532,7 @@ namespace
         if (src.isFloat() && dst.isIntLike())
             return foldOpFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
 
-        setCastFailure(castCtx, DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
         return false;
     }
 } // namespace

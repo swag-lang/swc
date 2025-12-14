@@ -25,15 +25,12 @@ namespace
         const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
         const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
-        // Kind rules: keep acceptance local to this op.
-        // LiteralSuffix never allowed BitCast in the previous coarse rules.
         if (castCtx.kind == CastKind::LiteralSuffix)
         {
             castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             return false;
         }
 
-        // Promotion / Implicit used to be scalar-numeric only.
         if (castCtx.kind == CastKind::Promotion || castCtx.kind == CastKind::Implicit)
         {
             if (!(srcType.isScalarNumeric() && dstType.isScalarNumeric()))
@@ -42,8 +39,6 @@ namespace
                 return false;
             }
         }
-
-        // Explicit: this op only makes sense on scalar numeric anyway (validated below).
 
         const bool srcScalar = srcType.isScalarNumeric();
         const bool dstScalar = dstType.isScalarNumeric();
@@ -73,20 +68,13 @@ namespace
 
     bool castOpBoolToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
-        const TypeInfo& dstType = sema.ctx().typeMgr().get(dstTypeRef);
-
-        // Kind rules: only Explicit allowed bool <-> intlike.
         if (castCtx.kind != CastKind::Explicit)
         {
             castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             return false;
         }
 
-        if (!dstType.isIntLike())
-        {
-            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            return false;
-        }
+        const TypeInfo& dstType = sema.ctx().typeMgr().get(dstTypeRef);
 
         if (castCtx.isFolding())
             return SemaCast::foldConstantBoolToIntLike(sema, castCtx, dstType);
@@ -96,15 +84,7 @@ namespace
 
     bool castOpIntLikeToBool(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
-        const TypeInfo& dstType = sema.ctx().typeMgr().get(dstTypeRef);
-
         if (castCtx.kind != CastKind::Explicit)
-        {
-            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            return false;
-        }
-
-        if (!dstType.isBool())
         {
             castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             return false;
@@ -122,7 +102,6 @@ namespace
         const TypeInfo& srcType = typeMgr.get(srcTypeRef);
         const TypeInfo& dstType = typeMgr.get(dstTypeRef);
 
-        // Kind rules
         switch (castCtx.kind)
         {
             case CastKind::LiteralSuffix:
@@ -160,12 +139,6 @@ namespace
                 SWC_UNREACHABLE();
         }
 
-        if (!dstType.isIntLike())
-        {
-            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            return false;
-        }
-
         if (castCtx.isFolding())
             return SemaCast::foldConstantIntLikeToIntLike(sema, castCtx, srcTypeRef, dstTypeRef, dstType);
 
@@ -190,13 +163,6 @@ namespace
 
             case CastKind::Promotion:
             case CastKind::Implicit:
-                if (!srcType.isScalarNumeric())
-                {
-                    castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-                    return false;
-                }
-                break;
-
             case CastKind::Explicit:
                 if (!srcType.isScalarNumeric())
                 {
@@ -207,12 +173,6 @@ namespace
 
             default:
                 SWC_UNREACHABLE();
-        }
-
-        if (!dstType.isFloat())
-        {
-            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            return false;
         }
 
         if (castCtx.isFolding())
@@ -234,12 +194,6 @@ namespace
         }
 
         if (!srcType.isScalarNumeric())
-        {
-            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            return false;
-        }
-
-        if (!dstType.isIntLike())
         {
             castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             return false;
@@ -279,12 +233,6 @@ namespace
 
             default:
                 SWC_UNREACHABLE();
-        }
-
-        if (!dstType.isFloat())
-        {
-            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            return false;
         }
 
         if (castCtx.isFolding())

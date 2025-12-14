@@ -36,8 +36,14 @@
 #print(65535'u16 * 2)   // swc-expected-error {{sema_err_integer_overflow}}
 
 #print(1 / 0)           // swc-expected-error {{sema_err_division_zero}}
+#print(1's8 / 0)        // swc-expected-error {{sema_err_division_zero}}
+#print(1's16 / 0)       // swc-expected-error {{sema_err_division_zero}}
 #print(1's32 / 0)       // swc-expected-error {{sema_err_division_zero}}
+#print(1's64 / 0)       // swc-expected-error {{sema_err_division_zero}}
+#print(1'u8 / 0)        // swc-expected-error {{sema_err_division_zero}}
+#print(1'u16 / 0)       // swc-expected-error {{sema_err_division_zero}}
 #print(1'u32 / 0)       // swc-expected-error {{sema_err_division_zero}}
+#print(1'u64 / 0)       // swc-expected-error {{sema_err_division_zero}}
 #print(0 / 0)           // swc-expected-error {{sema_err_division_zero}}
 
 #print(127.0 + #wrap 1)         // swc-expected-error {{sema_err_modifier_only_integer}}
@@ -110,3 +116,8 @@
 #assert(0xFF'u8 & 0x01'u8 == 1)
 #assert(0b1010 ^ 0b0110 == 0b1100) // 10 ^ 6 == 12
 #assert(0b1111 | 0b0000 == 0b1111) // 15 | 0 == 15
+
+#print(-128's8 / -1)                    // swc-expected-error {{sema_err_integer_overflow}}
+#print(-32768's16 / -1)                 // swc-expected-error {{sema_err_integer_overflow}}
+#print(-2147483648's32 / -1)            // swc-expected-error {{sema_err_integer_overflow}}
+#print(-9223372036854775808's64 / -1)   // swc-expected-error {{sema_err_integer_overflow}}

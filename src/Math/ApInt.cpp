@@ -554,7 +554,7 @@ void ApInt::addSigned(const ApInt& rhs, bool& overflow)
     const bool rhsNeg = rhs.isNegative();
 
     bool unsignedOverflow = false;
-    ApInt::add(rhs, unsignedOverflow);
+    add(rhs, unsignedOverflow);
 
     const bool resNeg         = isNegative();
     const bool signedOverflow = (lhsNeg == rhsNeg) && (resNeg != lhsNeg);

@@ -248,13 +248,13 @@
         <ClCompile Include="src\Sema\Constant\ConstantManager.cpp"/>
         <ClCompile Include="src\Sema\Constant\ConstantValue.cpp"/>
         <ClCompile Include="src\Sema\Helpers\SemaCast.cpp"/>
+        <ClCompile Include="src\Sema\Helpers\SemaCheck.cpp"/>
         <ClCompile Include="src\Sema\Helpers\SemaError.cpp"/>
         <ClCompile Include="src\Sema\Helpers\SemaInfo.cpp"/>
         <ClCompile Include="src\Sema\Helpers\SemaJob.cpp"/>
         <ClCompile Include="src\Sema\Sema.cpp"/>
         <ClCompile Include="src\Sema\Sema_Attributes_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Cast_.cpp"/>
-        <ClCompile Include="src\Sema\Sema_Check_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Compiler_.cpp"/>
         <ClCompile Include="src\Sema\Sema_ExprLogical_.cpp"/>
         <ClCompile Include="src\Sema\Sema_ExprRelational_.cpp"/>
@@ -332,6 +332,7 @@
         <ClInclude Include="src\Sema\Constant\ConstantManager.h"/>
         <ClInclude Include="src\Sema\Constant\ConstantValue.h"/>
         <ClInclude Include="src\Sema\Helpers\SemaCast.h"/>
+        <ClInclude Include="src\Sema\Helpers\SemaCheck.h"/>
         <ClInclude Include="src\Sema\Helpers\SemaError.h"/>
         <ClInclude Include="src\Sema\Helpers\SemaFrame.h"/>
         <ClInclude Include="src\Sema\Helpers\SemaInfo.h"/>

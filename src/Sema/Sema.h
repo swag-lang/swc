@@ -87,8 +87,6 @@ public:
     void pushFrame(const SemaFrame& frame);
     void popFrame();
 
-    Result checkModifiers(const AstNode& node, AstModifierFlags mods, AstModifierFlags allowed);
-
     void               lookupIdentifier(LookupResult& result, IdentifierRef idRef) const;
     AstVisitStepResult pause(TaskStateKind kind, AstNodeRef nodeRef);
     static void        waitAll(TaskContext& ctx, JobClientId clientId);

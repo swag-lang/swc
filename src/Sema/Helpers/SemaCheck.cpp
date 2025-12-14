@@ -1,14 +1,12 @@
 #include "pch.h"
-
-#include "Helpers/SemaError.h"
+#include "Sema/Helpers/SemaCheck.h"
 #include "Main/CompilerInstance.h"
-#include "Report/Diagnostic.h"
-#include "Report/DiagnosticDef.h"
+#include "Sema/Helpers/SemaError.h"
 #include "Sema/Sema.h"
 
 SWC_BEGIN_NAMESPACE()
 
-Result Sema::checkModifiers(const AstNode& node, AstModifierFlags mods, AstModifierFlags allowed)
+Result SemaCheck::modifiers(Sema& sema, const AstNode& node, AstModifierFlags mods, AstModifierFlags allowed)
 {
     // Compute unsupported = mods & ~allowed
     const AstModifierFlags unsupported = mods.maskInvert(allowed);
@@ -38,14 +36,14 @@ Result Sema::checkModifiers(const AstNode& node, AstModifierFlags mods, AstModif
         }
 
         // Find actual source token for the modifier
-        const SourceView& srcView = compiler().srcView(node.srcViewRef());
+        const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());
         const TokenRef    mdfRef  = srcView.findRightFrom(node.tokRef(), {tokId});
 
         // Emit diagnostic
-        auto diag = SemaError::reportError(*this, DiagnosticId::sema_err_modifier_unsupported, node.srcViewRef(), node.tokRef());
+        auto diag = SemaError::reportError(sema, DiagnosticId::sema_err_modifier_unsupported, node.srcViewRef(), node.tokRef());
         diag.addArgument(Diagnostic::ARG_WHAT, srcView.token(mdfRef).string(srcView));
-        diag.last().addSpan(Diagnostic::tokenErrorLocation(ctx(), srcView, mdfRef), "");
-        diag.report(ctx());
+        diag.last().addSpan(Diagnostic::tokenErrorLocation(sema.ctx(), srcView, mdfRef), "");
+        diag.report(sema.ctx());
     });
 
     return Result::Error;

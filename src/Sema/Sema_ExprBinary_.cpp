@@ -1,5 +1,5 @@
 #include "pch.h"
-
+#include "Helpers/SemaCheck.h"
 #include "Helpers/SemaError.h"
 #include "Main/CompilerInstance.h"
 #include "Parser/AstNodes.h"
@@ -218,7 +218,7 @@ namespace
 
     Result checkPlusPlus(Sema& sema, const AstBinaryExpr& node, const SemaNodeViewList&)
     {
-        if (sema.checkModifiers(node, node.modifierFlags, AstModifierFlagsE::Zero) == Result::Error)
+        if (SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Zero) == Result::Error)
             return Result::Error;
 
         if (!sema.hasConstant(node.nodeLeftRef))
@@ -284,14 +284,14 @@ namespace
         {
             case TokenId::SymSlash:
             case TokenId::SymPercent:
-                if (sema.checkModifiers(node, node.modifierFlags, AstModifierFlagsE::Promote) == Result::Error)
+                if (SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Promote) == Result::Error)
                     return Result::Error;
                 break;
 
             case TokenId::SymPlus:
             case TokenId::SymMinus:
             case TokenId::SymAsterisk:
-                if (sema.checkModifiers(node, node.modifierFlags, AstModifierFlagsE::Wrap | AstModifierFlagsE::Promote) == Result::Error)
+                if (SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Wrap | AstModifierFlagsE::Promote) == Result::Error)
                     return Result::Error;
                 break;
 
@@ -300,7 +300,7 @@ namespace
             case TokenId::SymCircumflex:
             case TokenId::SymGreaterGreater:
             case TokenId::SymLowerLower:
-                if (sema.checkModifiers(node, node.modifierFlags, AstModifierFlagsE::Zero) == Result::Error)
+                if (SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Zero) == Result::Error)
                     return Result::Error;
                 break;
 

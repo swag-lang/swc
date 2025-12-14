@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Constant/ConstantManager.h"
+#include "Helpers/SemaCheck.h"
 #include "Helpers/SemaError.h"
 #include "Sema/Helpers/SemaCast.h"
 #include "Sema/Helpers/SemaNodeView.h"
@@ -62,7 +63,7 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
 
 AstVisitStepResult AstExplicitCastExpr::semaPostNode(Sema& sema) const
 {
-    if (sema.checkModifiers(*this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst) == Result::Error)
+    if (SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst) == Result::Error)
         return AstVisitStepResult::Stop;
 
     const SemaNodeView nodeTypeView(sema, nodeTypeRef);

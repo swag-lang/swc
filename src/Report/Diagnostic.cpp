@@ -212,6 +212,7 @@ void Diagnostic::report(TaskContext& ctx) const
     }
 
     // In tests, suppress diagnostics unless verbose errors are explicitly requested and match the filter.
+    bool orgDismissed = dismiss;
     if (dismiss && ctx.cmdLine().verboseDiag)
     {
         const auto& filter = ctx.cmdLine().verboseDiagFilter;
@@ -236,8 +237,8 @@ void Diagnostic::report(TaskContext& ctx) const
         logger.lock();
         Logger::print(ctx, msg);
         logger.unlock();
-        
-        if (ctx.cmdLine().dbgDevMode)
+
+        if (ctx.cmdLine().dbgDevMode && !orgDismissed)
             Os::panicBox("[DevMode] Error raised!");
     }
 }

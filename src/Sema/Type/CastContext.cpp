@@ -3,17 +3,6 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void CastFailure::reset(AstNodeRef errorNodeRef)
-{
-    *this      = CastFailure{};
-    diagId     = DiagnosticId::None;
-    noteId     = DiagnosticId::None;
-    nodeRef    = errorNodeRef;
-    srcTypeRef = TypeRef{};
-    dstTypeRef = TypeRef{};
-    valueStr.clear();
-}
-
 void CastFailure::set(AstNodeRef errorNodeRef, DiagnosticId d, TypeRef src, TypeRef dst)
 {
     *this      = CastFailure{};
@@ -37,11 +26,6 @@ void CastFailure::setValueNote(AstNodeRef errorNodeRef, DiagnosticId d, TypeRef 
 CastContext::CastContext(CastKind kind) :
     kind(kind)
 {
-}
-
-void CastContext::resetFailure()
-{
-    failure.reset(errorNodeRef);
 }
 
 void CastContext::fail(DiagnosticId d, TypeRef src, TypeRef dst)

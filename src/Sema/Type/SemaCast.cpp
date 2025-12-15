@@ -147,7 +147,7 @@ namespace
         switch (castCtx.kind)
         {
             case CastKind::LiteralSuffix:
-                if (!srcType.isInt())
+                if (!srcType.isIntUnsized())
                 {
                     castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
                     return false;
@@ -216,9 +216,6 @@ void SemaCast::emitCastFailure(Sema& sema, const CastFailure& f)
 
 bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    castCtx.resetFailure();
-    castCtx.outConstRef.setInvalid();
-
     if (srcTypeRef == dstTypeRef)
         return castIdentity(sema, castCtx, srcTypeRef, dstTypeRef);
 

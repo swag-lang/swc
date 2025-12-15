@@ -51,6 +51,7 @@ const N1: s64 = cast(s64) 1's32
 const O: u64 = 1'u32                 // swc-expected-error {{sema_err_var_init_type_mismatch}}
 const O1: u64 = cast(u64) 1'u32
 #assert(O1 == 1'u64)
+*/
 
 const P: u16 = 255'u8
 const P1: u16 = cast(u16) 255'u8
@@ -82,4 +83,3 @@ const U1: f64 = cast(f64) 1.0'f64
 #assert(U == 1.0'f64)
 #assert(U1 == 1.0'f64)
 
-*/

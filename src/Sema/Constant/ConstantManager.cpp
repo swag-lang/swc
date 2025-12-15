@@ -105,12 +105,8 @@ ConstantRef ConstantManager::concretizeConstant(TaskContext& ctx, ConstantRef cs
     if (!ty.isScalarNumeric())
         return cstRef;
 
-    if (ty.isIntLike())
+    if (ty.isIntUnsized())
     {
-        // Already sized.
-        if (ty.intLikeBits() != 0)
-            return cstRef;
-
         ApsInt value = srcCst.getIntLike();
 
         const auto destBits = TypeManager::chooseConcreteScalarWidth(value.minBits(), overflow);
@@ -125,12 +121,8 @@ ConstantRef ConstantManager::concretizeConstant(TaskContext& ctx, ConstantRef cs
         return addConstant(ctx, result);
     }
 
-    if (ty.isFloat())
+    if (ty.isFloatUnsized())
     {
-        // Already sized.
-        if (ty.floatBits() != 0)
-            return cstRef;
-
         const ApFloat& srcF = srcCst.getFloat();
 
         const auto destBits = TypeManager::chooseConcreteScalarWidth(srcF.minBits(), overflow);

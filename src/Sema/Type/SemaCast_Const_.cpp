@@ -324,8 +324,8 @@ ConstantRef SemaCast::castConstant(Sema& sema, CastContext& castCtx, ConstantRef
 
 bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, ConstantRef& leftCstRef, ConstantRef& rightCstRef, bool force32BitInts)
 {
-    const TypeRef leftTypeRef  = ops.nodeView[0].typeRef;
-    const TypeRef rightTypeRef = ops.nodeView[1].typeRef;
+    TypeRef leftTypeRef  = ops.nodeView[0].typeRef;
+    TypeRef rightTypeRef = ops.nodeView[1].typeRef;
     if (!force32BitInts && leftTypeRef == rightTypeRef)
         return true;
 
@@ -342,7 +342,7 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
     // We need to be sure that each side has a size and a sign
     if (leftConcrete != rightConcrete)
     {
-        bool overflow;
+        bool overflow = false;
         if (!leftConcrete)
         {
             leftCstRef = sema.cstMgr().concretizeConstant(sema.ctx(), leftCstRef, overflow);
@@ -351,6 +351,8 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
                 SemaError::raiseLiteralTooBig(sema, ops.nodeView[0].nodeRef, sema.cstMgr().get(leftCstRef));
                 return false;
             }
+
+            //leftTypeRef = sema.cstMgr().get(leftCstRef).typeRef();
         }
 
         if (!rightConcrete)
@@ -361,6 +363,8 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
                 SemaError::raiseLiteralTooBig(sema, ops.nodeView[1].nodeRef, sema.cstMgr().get(rightCstRef));
                 return false;
             }
+
+            //rightTypeRef = sema.cstMgr().get(rightCstRef).typeRef();
         }
     }
 

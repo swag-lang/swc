@@ -189,7 +189,35 @@ namespace
     bool castFloatToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
         const auto&     typeMgr = sema.ctx().typeMgr();
+        const TypeInfo& srcType = typeMgr.get(srcTypeRef);
         const TypeInfo& dstType = typeMgr.get(dstTypeRef);
+
+        const uint32_t sb        = srcType.floatBits();
+        const uint32_t db        = dstType.floatBits();
+        const bool     narrowing = db < sb;
+
+        switch (castCtx.kind)
+        {
+            case CastKind::LiteralSuffix:
+                break;
+
+            case CastKind::Promotion:
+                break;
+                
+            case CastKind::Implicit:
+                if (narrowing)
+                {
+                    castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                    return false;
+                }
+                break;
+                
+            case CastKind::Explicit:
+                break;
+
+            default:
+                SWC_UNREACHABLE();
+        }
 
         if (castCtx.isFolding())
             return SemaCast::foldConstantFloatToFloat(sema, castCtx, srcTypeRef, dstTypeRef, dstType);

@@ -70,6 +70,7 @@ public:
     bool isIntUnsizedUnknownSign() const noexcept { return isIntUnsized() && asInt.sign == IntSign::Unknown; }
 
     bool isFloat() const noexcept { return kind_ == TypeInfoKind::Float; }
+    bool isFloatUnsized() const noexcept { return kind_ == TypeInfoKind::Float && asFloat.bits == 0; }
     bool isTypeInfo() const noexcept { return kind_ == TypeInfoKind::TypeInfo; }
     bool isRune() const noexcept { return kind_ == TypeInfoKind::Rune; }
     bool isAny() const noexcept { return kind_ == TypeInfoKind::Any; }
@@ -80,6 +81,7 @@ public:
     bool isIntLike() const noexcept { return isInt() || isCharRune(); }
     bool isScalarNumeric() const noexcept { return isIntLike() || isFloat(); }
     bool isIntLikeUnsigned() const noexcept { return isCharRune() || isIntUnsigned(); }
+    bool isConcreteScalar() const noexcept { return isScalarNumeric() && !isIntUnsized() && !isFloatUnsized(); }
 
     // clang-format off
     IntSign intSign() const noexcept { SWC_ASSERT(isInt()); return asInt.sign; }

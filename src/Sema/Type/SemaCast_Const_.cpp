@@ -329,21 +329,8 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
 
     if (ops.nodeView[0].type->isScalarNumeric() && ops.nodeView[1].type->isScalarNumeric())
     {
-        auto isConcreteScalar = [](const TypeInfo& t) -> bool {
-            if (!t.isScalarNumeric())
-                return false;
-
-            if (t.isIntLike())
-                return t.intLikeBits() != 0;
-
-            if (t.isFloat())
-                return t.floatBits() != 0;
-
-            return false;
-        };
-
-        const bool leftConcrete  = isConcreteScalar(*ops.nodeView[0].type);
-        const bool rightConcrete = isConcreteScalar(*ops.nodeView[1].type);
+        const bool leftConcrete  = ops.nodeView[0].type->isConcreteScalar();
+        const bool rightConcrete = ops.nodeView[1].type->isConcreteScalar();
 
         ConstantRef leftSrc  = ops.nodeView[0].cstRef;
         ConstantRef rightSrc = ops.nodeView[1].cstRef;

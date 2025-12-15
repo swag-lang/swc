@@ -324,52 +324,58 @@ ConstantRef SemaCast::castConstant(Sema& sema, CastContext& castCtx, ConstantRef
 
 bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, ConstantRef& leftCstRef, ConstantRef& rightCstRef, bool force32BitInts)
 {
-    if (!force32BitInts && ops.nodeView[0].typeRef == ops.nodeView[1].typeRef)
+    const TypeRef leftTypeRef  = ops.nodeView[0].typeRef;
+    const TypeRef rightTypeRef = ops.nodeView[1].typeRef;
+
+    if (!force32BitInts && leftTypeRef == rightTypeRef)
         return true;
 
-    if (ops.nodeView[0].type->isScalarNumeric() && ops.nodeView[1].type->isScalarNumeric())
-    {
-        const bool leftConcrete  = ops.nodeView[0].type->isConcreteScalar();
-        const bool rightConcrete = ops.nodeView[1].type->isConcreteScalar();
+    const TypeInfo* leftType  = ops.nodeView[0].type;
+    const TypeInfo* rightType = ops.nodeView[1].type;
 
-        ConstantRef leftSrc  = ops.nodeView[0].cstRef;
-        ConstantRef rightSrc = ops.nodeView[1].cstRef;
+    if (leftType->isScalarNumeric() && rightType->isScalarNumeric())
+    {
+        const bool leftConcrete  = leftType->isConcreteScalar();
+        const bool rightConcrete = rightType->isConcreteScalar();
+
+        ConstantRef leftSrcRef  = ops.nodeView[0].cstRef;
+        ConstantRef rightSrcRef = ops.nodeView[1].cstRef;
 
         if (leftConcrete != rightConcrete)
         {
             bool overflow;
             if (!leftConcrete)
             {
-                leftSrc = sema.cstMgr().concretizeConstant(sema.ctx(), leftSrc, overflow);
+                leftSrcRef = sema.cstMgr().concretizeConstant(sema.ctx(), leftSrcRef, overflow);
                 if (overflow)
                 {
-                    SemaError::raiseLiteralTooBig(sema, ops.nodeView[0].nodeRef, sema.cstMgr().get(leftSrc));
+                    SemaError::raiseLiteralTooBig(sema, ops.nodeView[0].nodeRef, sema.cstMgr().get(leftSrcRef));
                     return false;
                 }
             }
 
             if (!rightConcrete)
             {
-                rightSrc = sema.cstMgr().concretizeConstant(sema.ctx(), rightSrc, overflow);
+                rightSrcRef = sema.cstMgr().concretizeConstant(sema.ctx(), rightSrcRef, overflow);
                 if (overflow)
                 {
-                    SemaError::raiseLiteralTooBig(sema, ops.nodeView[1].nodeRef, sema.cstMgr().get(rightSrc));
+                    SemaError::raiseLiteralTooBig(sema, ops.nodeView[1].nodeRef, sema.cstMgr().get(rightSrcRef));
                     return false;
                 }
             }
         }
 
-        const TypeRef promotedTypeRef = sema.typeMgr().promote(ops.nodeView[0].typeRef, ops.nodeView[1].typeRef, force32BitInts);
+        const TypeRef promotedTypeRef = sema.typeMgr().promote(leftTypeRef, rightTypeRef, force32BitInts);
 
         CastContext leftCastCtx(CastKind::Promotion);
         leftCastCtx.errorNodeRef = ops.nodeView[0].nodeRef;
-        leftCstRef               = castConstant(sema, leftCastCtx, leftSrc, promotedTypeRef);
+        leftCstRef               = castConstant(sema, leftCastCtx, leftSrcRef, promotedTypeRef);
         if (leftCstRef.isInvalid())
             return false;
 
         CastContext rightCastCtx(CastKind::Promotion);
-        rightCastCtx.errorNodeRef = ops.nodeView[0].nodeRef;
-        rightCstRef               = castConstant(sema, rightCastCtx, rightSrc, promotedTypeRef);
+        rightCastCtx.errorNodeRef = ops.nodeView[1].nodeRef;
+        rightCstRef               = castConstant(sema, rightCastCtx, rightSrcRef, promotedTypeRef);
         if (rightCstRef.isInvalid())
             return false;
 

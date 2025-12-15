@@ -1,5 +1,9 @@
 #global internal
 
+//#assert(#typeof(-1 + 1'u16) == s16)
+//#assert(#typeof(-1 + 1'u32) == s32)
+
+
 const A: s32 = 10
 #assert(#typeof(A) == s32)
 #assert(#typeof(A) != f32)
@@ -89,3 +93,17 @@ const A: s32 = 10
 #assert(#typeof(10'u64 + 20's16) == u64)
 #assert(#typeof(10'u64 + 20's32) == u64)
 #assert(#typeof(10'u64 + 20's64) == s64)
+
+#assert(#typeof(256 + 1'u8) == u16)
+#assert(#typeof(65536 + 1'u16) == u32)
+#assert(#typeof(4294967296 + 1'u32) == u64)
+#assert(#typeof(128 + 1's8) == s16)
+#assert(#typeof(32768 + 1's16) == s32)
+#assert(#typeof(2147483648 + 1's32) == s64)
+#assert(#typeof(-1 + 1'u8) == s8)
+#assert(#typeof(0x1FF + 1'u8) == u16)
+#assert(#typeof(0x1_0000 + 1'u16) == u32)
+#assert(#typeof(0b1_0000_0000 + 1'u8) == u16)
+#assert(#typeof(255 + 1's8) == s16)
+#assert(#typeof(65535 + 1's16) == s32)
+#assert(#typeof(4294967295 + 1's32) == s64)

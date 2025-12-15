@@ -353,7 +353,7 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
                 return false;
             }
 
-            // leftTypeRef = sema.cstMgr().get(leftCstRef).typeRef();
+            leftTypeRef = sema.cstMgr().get(leftCstRef).typeRef();
         }
 
         if (!rightConcrete)
@@ -366,7 +366,7 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
                 return false;
             }
 
-            // rightTypeRef = sema.cstMgr().get(rightCstRef).typeRef();
+            rightTypeRef = sema.cstMgr().get(rightCstRef).typeRef();
         }
     }
 

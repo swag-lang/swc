@@ -68,7 +68,7 @@ ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const ApsInt& value
         return makeIntUnsized(ctx, value, sign);
 
     ConstantValue cv;
-    cv.typeRef_  = ctx.typeMgr().getTypeInt(bitWidth, value.isUnsigned() ? TypeInfo::Sign::Unsigned : TypeInfo::Sign::Signed);
+    cv.typeRef_  = ctx.typeMgr().getTypeInt(bitWidth, sign);
     cv.kind_     = ConstantKind::Int;
     cv.asInt.val = value;
     cv.asInt.val.setUnsigned(sign == TypeInfo::Sign::Unsigned);

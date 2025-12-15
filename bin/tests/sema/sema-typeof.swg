@@ -4,9 +4,9 @@ const A: s32 = 10
 #assert(#typeof(A) == s32)
 #assert(#typeof(A) != f32)
 
-#assert(#typeof(10) == s32)
-#assert(#typeof(-10) == s32)
-#assert(#typeof(0) == s32)
+#assert(#typeof(10) == s8)
+#assert(#typeof(-10) == s8)
+#assert(#typeof(0) == s8)
 #assert(#typeof(10's8) == s8)
 #assert(#typeof(10's16) == s16)
 #assert(#typeof(10's32) == s32)
@@ -16,10 +16,10 @@ const A: s32 = 10
 #assert(#typeof(10'u32) == u32)
 #assert(#typeof(10'u64) == u64)
 
-#assert(#typeof(0xFF) == u32)
+#assert(#typeof(0xFF) == u8)
 #assert(#typeof(0xFFFFFFFF) == u32)
 #assert(#typeof(0xFFFFFFFFF) == u64)
-#assert(#typeof(0b1111) == u32)
+#assert(#typeof(0b1111) == u8)
 #assert(#typeof(0b1111_1111_1111_1111_1111_1111_1111_1111) == u32)
 #assert(#typeof(0b1_0000_0000_0000_0000_0000_0000_0000_0000_0000) == u64)
 

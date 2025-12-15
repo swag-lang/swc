@@ -297,7 +297,7 @@ const TypeInfo& TypeManager::get(TypeRef typeRef) const
 
 uint32_t TypeManager::chooseConcreteScalarWidth(uint32_t minRequiredBits, bool& overflow)
 {
-    constexpr uint32_t minBits = 32;
+    constexpr uint32_t minBits = 8;
     constexpr uint32_t maxBits = 64;
     const uint32_t     bits    = std::max(minRequiredBits, minBits);
     overflow                   = bits > maxBits;

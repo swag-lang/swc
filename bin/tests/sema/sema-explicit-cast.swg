@@ -114,14 +114,6 @@
 #assert(cast(s32) 4294967296'u64 == 0's32)      // swc-expected-error {{sema_err_literal_overflow}}
 #assert(cast(u16) 65537'u32 == 1'u16)           // swc-expected-error {{sema_err_literal_overflow}}
 
-#assert(-1's8 == -1'f32)
-#assert(-1.0'f32 == -1)
-#assert(-1.0'f64 == -1)
-#assert(1.0'f32 == 1)
-#assert(1.0'f64 == 1)
-#assert(0.0'f32 == 0)
-#assert(0.0'f64 == 0)
-
 #assert(cast(s8) 127's32 == 127)
 #assert(cast(u8) 255's32 == 255'u8)
 #assert(cast(s16) -128's32 == -128's16)

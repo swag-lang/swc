@@ -1,5 +1,5 @@
 #global internal
-/*
+
 const A: s32 = 10
 const B: s32 = 10's8
 
@@ -7,13 +7,13 @@ const C: bool = 10's8                // swc-expected-error {{sema_err_var_init_t
 const C1: bool = cast(bool) 10's8
 #assert(C1 == true)
 
-const D: u8 = -1's8                  // swc-expected-error {{sema_err_var_init_type_mismatch}}
+const D: u8 = -1's8                  // swc-expected-error {{sema_err_signed_unsigned}}
 const D1: u8 = cast(u8) -1's8        // swc-expected-error {{sema_err_signed_unsigned}}
 
-const E: s8 = 255'u8                 // swc-expected-error {{sema_err_var_init_type_mismatch}}
+const E: s8 = 255'u8                 // swc-expected-error {{sema_err_signed_unsigned}}
 const E1: s8 = cast(s8) 255'u8       // swc-expected-error {{sema_err_signed_unsigned}}
 
-const F: u8 = 256'u16                // swc-expected-error {{sema_err_var_init_type_mismatch}}
+const F: u8 = 256'u16                // swc-expected-error {{sema_err_literal_overflow}}
 const F1: u8 = cast(u8) 256'u16      // swc-expected-error {{sema_err_literal_overflow}}
 
 const G: s32 = 1.9                   // swc-expected-error {{sema_err_var_init_type_mismatch}}
@@ -27,7 +27,7 @@ const H1: u8 = cast(u8) true
 const I: bool = 2'u8                 // swc-expected-error {{sema_err_var_init_type_mismatch}}
 const I1: bool = cast(bool) 2'u8
 #assert(I1 == true)
-
+/*
 const J: rune = 65'u32               // swc-expected-error {{sema_err_var_init_type_mismatch}}
 const J1: rune = cast(rune) 65'u32
 #assert(J1 == 'A')
@@ -81,4 +81,5 @@ const U: f64 = 1.0'f64
 const U1: f64 = cast(f64) 1.0'f64
 #assert(U == 1.0'f64)
 #assert(U1 == 1.0'f64)
+
 */

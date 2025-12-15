@@ -160,3 +160,11 @@
 #assert((-1's8 <=> 1's8) == -1)
 #assert((0's8 <=> 0's8) == 0)
 #assert((0'u8 <=> 0'u8) == 0)
+
+#assert(-1's8 == -1'f32)
+#assert(-1.0'f32 == -1)
+#assert(-1.0'f64 == -1)
+#assert(1.0'f32 == 1)
+#assert(1.0'f64 == 1)
+#assert(0.0'f32 == 0)
+#assert(0.0'f64 == 0)

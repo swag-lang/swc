@@ -174,7 +174,7 @@ namespace
         const auto&     typeMgr = sema.ctx().typeMgr();
         const TypeInfo& dstType = typeMgr.get(dstTypeRef);
 
-        if (castCtx.kind == CastKind::LiteralSuffix)
+        if (castCtx.kind != CastKind::Explicit)
         {
             castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             return false;

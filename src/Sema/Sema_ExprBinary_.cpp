@@ -176,7 +176,7 @@ namespace
                 return ConstantRef::invalid();
             }
 
-            return sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, val1, type.intBits()));
+            return sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, val1, type.intBits(), type.intSign()));
         }
 
         return ConstantRef::invalid();

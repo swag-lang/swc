@@ -62,27 +62,29 @@ ConstantValue ConstantValue::makeTypeInfo(TaskContext& ctx, TypeRef value)
     return cv;
 }
 
-ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const ApsInt& value, uint32_t bitWidth)
+ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const ApsInt& value, uint32_t bitWidth, TypeInfo::IntSign sign)
 {
     if (!bitWidth)
-        return makeIntUnsized(ctx, value);
+        return makeIntUnsized(ctx, value, sign);
 
     ConstantValue cv;
-    cv.typeRef_  = ctx.typeMgr().getTypeInt(bitWidth, value.isUnsigned());
+    cv.typeRef_  = ctx.typeMgr().getTypeInt(bitWidth, value.isUnsigned() ? TypeInfo::IntSign::Unsigned : TypeInfo::IntSign::Signed);
     cv.kind_     = ConstantKind::Int;
     cv.asInt.val = value;
+    cv.asInt.val.setUnsigned(sign == TypeInfo::IntSign::Unsigned);
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
 
-ConstantValue ConstantValue::makeIntUnsized(const TaskContext& ctx, const ApsInt& value)
+ConstantValue ConstantValue::makeIntUnsized(const TaskContext& ctx, const ApsInt& value, TypeInfo::IntSign sign)
 {
     SWC_ASSERT(value.bitWidth() == ApInt::maxBitWidth());
 
     ConstantValue cv;
-    cv.typeRef_  = ctx.typeMgr().getTypeInt(0, value.isUnsigned());
+    cv.typeRef_  = ctx.typeMgr().getTypeInt(0, sign);
     cv.kind_     = ConstantKind::Int;
     cv.asInt.val = value;
+    cv.asInt.val.setUnsigned(sign == TypeInfo::IntSign::Unsigned);
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -318,7 +320,7 @@ ConstantValue ConstantValue::makeFromIntLike(const TaskContext& ctx, const ApsIn
         return makeChar(ctx, static_cast<uint32_t>(v.asI64()));
     if (ty.isRune())
         return makeRune(ctx, static_cast<uint32_t>(v.asI64()));
-    return makeInt(ctx, v, ty.intBits());
+    return makeInt(ctx, v, ty.intBits(), ty.intSign());
 }
 
 SWC_END_NAMESPACE()

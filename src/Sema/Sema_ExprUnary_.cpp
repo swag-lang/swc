@@ -41,7 +41,7 @@ namespace
             }
 
             value.setUnsigned(false);
-            return sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.nodeView.type->intBits()));
+            return sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.nodeView.type->intBits(), TypeInfo::IntSign::Signed));
         }
 
         if (ops.nodeView.type->isFloat())
@@ -72,7 +72,7 @@ namespace
 
         value.invertAllBits();
 
-        return sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.nodeView.type->intBits()));
+        return sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.nodeView.type->intBits(), ops.nodeView.type->intSign()));
     }
 
     ConstantRef constantFold(Sema& sema, TokenId op, const AstUnaryExpr& node, const UnaryOperands& ops)

@@ -10,9 +10,9 @@ void ConstantManager::setup(const TaskContext& ctx)
 {
     cstBool_true_  = addConstant(ctx, ConstantValue::makeBool(ctx, true));
     cstBool_false_ = addConstant(ctx, ConstantValue::makeBool(ctx, false));
-    cstS32_0_      = addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(0LL, 32, false), 32));
-    cstS32_1_      = addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(1LL, 32, false), 32));
-    cstS32_neg1_   = addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(-1LL, 32, false), 32));
+    cstS32_0_      = addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(0LL, 32, false), 32, TypeInfo::IntSign::Signed));
+    cstS32_1_      = addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(1LL, 32, false), 32, TypeInfo::IntSign::Signed));
+    cstS32_neg1_   = addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(-1LL, 32, false), 32, TypeInfo::IntSign::Signed));
 }
 
 ConstantRef ConstantManager::cstS32(int32_t value) const
@@ -96,9 +96,9 @@ const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
 
 ConstantRef ConstantManager::concretizeConstant(TaskContext& ctx, ConstantRef cstRef, bool& overflow)
 {
-    const ConstantValue& src     = get(cstRef);
+    const ConstantValue& srcCst  = get(cstRef);
     const TypeManager&   typeMgr = ctx.typeMgr();
-    const TypeInfo&      ty      = typeMgr.get(src.typeRef());
+    const TypeInfo&      ty      = typeMgr.get(srcCst.typeRef());
 
     overflow = false;
 
@@ -111,7 +111,7 @@ ConstantRef ConstantManager::concretizeConstant(TaskContext& ctx, ConstantRef cs
         if (ty.intLikeBits() != 0)
             return cstRef;
 
-        ApsInt value = src.getIntLike();
+        ApsInt value = srcCst.getIntLike();
 
         const auto destBits = TypeManager::chooseConcreteScalarWidth(value.minBits(), overflow);
         if (overflow)
@@ -119,8 +119,7 @@ ConstantRef ConstantManager::concretizeConstant(TaskContext& ctx, ConstantRef cs
 
         value.resize(destBits);
 
-        const bool          unsignedTarget  = value.isUnsigned();
-        const TypeRef       concreteTypeRef = typeMgr.getTypeInt(destBits, unsignedTarget);
+        const TypeRef       concreteTypeRef = typeMgr.getTypeInt(destBits, ty.isIntUnsigned() ? TypeInfo::IntSign::Unsigned : TypeInfo::IntSign::Signed);
         const TypeInfo&     concreteTy      = typeMgr.get(concreteTypeRef);
         const ConstantValue result          = ConstantValue::makeFromIntLike(ctx, value, concreteTy);
         return addConstant(ctx, result);
@@ -132,7 +131,7 @@ ConstantRef ConstantManager::concretizeConstant(TaskContext& ctx, ConstantRef cs
         if (ty.floatBits() != 0)
             return cstRef;
 
-        const ApFloat& srcF = src.getFloat();
+        const ApFloat& srcF = srcCst.getFloat();
 
         const auto destBits = TypeManager::chooseConcreteScalarWidth(srcF.minBits(), overflow);
         if (overflow)

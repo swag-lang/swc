@@ -225,8 +225,8 @@ AstVisitStepResult AstBinaryLiteral::semaPreNode(Sema& sema) const
     }
 
     // Convert the binary string to an integer constant
-    value.setSigned(false);
-    const auto val = ConstantValue::makeIntUnsized(ctx, value);
+    value.setUnsigned(true);
+    const auto val = ConstantValue::makeIntUnsized(ctx, value, TypeInfo::IntSign::Unsigned);
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
@@ -264,8 +264,8 @@ AstVisitStepResult AstHexaLiteral::semaPreNode(Sema& sema) const
     }
 
     // Convert the hexadecimal string to an integer constant
-    value.setSigned(false);
-    const auto val = ConstantValue::makeIntUnsized(ctx, value);
+    value.setUnsigned(true);
+    const auto val = ConstantValue::makeIntUnsized(ctx, value, TypeInfo::IntSign::Unsigned);
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }
@@ -313,7 +313,7 @@ AstVisitStepResult AstIntegerLiteral::semaPreNode(Sema& sema) const
         }
     }
 
-    const auto val = ConstantValue::makeIntUnsized(ctx, ApsInt{value, false});
+    const auto val = ConstantValue::makeIntUnsized(ctx, ApsInt{value, false}, TypeInfo::IntSign::Unknown);
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
     return AstVisitStepResult::SkipChildren;
 }

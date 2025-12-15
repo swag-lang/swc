@@ -43,7 +43,7 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
                 }
 
                 cpy.setUnsigned(false);
-                cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, cpy, cst.type(ctx).intBits()));
+                cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, cpy, cst.type(ctx).intBits(), TypeInfo::IntSign::Signed));
             }
             else if (type.isFloat())
             {

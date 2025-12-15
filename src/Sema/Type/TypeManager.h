@@ -30,6 +30,7 @@ class TypeManager
     TypeRef typeString_      = TypeRef::invalid();
     TypeRef typeIntUnsigned_ = TypeRef::invalid();
     TypeRef typeIntSigned_   = TypeRef::invalid();
+    TypeRef typeInt_         = TypeRef::invalid();
     TypeRef typeFloat_       = TypeRef::invalid();
     TypeRef typeU8_          = TypeRef::invalid();
     TypeRef typeU16_         = TypeRef::invalid();
@@ -58,7 +59,7 @@ public:
     TypeRef getTypeBool() const { return typeBool_; }
     TypeRef getTypeChar() const { return typeChar_; }
     TypeRef getTypeString() const { return typeString_; }
-    TypeRef getTypeInt(uint32_t bits, bool isUnsigned) const;
+    TypeRef getTypeInt(uint32_t bits, TypeInfo::IntSign sign) const;
     TypeRef getTypeFloat(uint32_t bits) const;
     TypeRef getTypeAny() const { return typeAny_; }
     TypeRef getTypeVoid() const { return typeVoid_; }

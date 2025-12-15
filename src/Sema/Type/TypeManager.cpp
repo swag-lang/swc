@@ -6,19 +6,20 @@ SWC_BEGIN_NAMESPACE()
 
 void TypeManager::setup(TaskContext&)
 {
-    typeIntUnsigned_ = addType(TypeInfo::makeInt(0, true));
-    typeIntSigned_   = addType(TypeInfo::makeInt(0, false));
+    typeIntUnsigned_ = addType(TypeInfo::makeInt(0, TypeInfo::IntSign::Unsigned));
+    typeIntSigned_   = addType(TypeInfo::makeInt(0, TypeInfo::IntSign::Signed));
+    typeInt_         = addType(TypeInfo::makeInt(0, TypeInfo::IntSign::Unknown));
     typeFloat_       = addType(TypeInfo::makeFloat(0));
 
-    typeU8_  = addType(TypeInfo::makeInt(8, true));
-    typeU16_ = addType(TypeInfo::makeInt(16, true));
-    typeU32_ = addType(TypeInfo::makeInt(32, true));
-    typeU64_ = addType(TypeInfo::makeInt(64, true));
+    typeU8_  = addType(TypeInfo::makeInt(8, TypeInfo::IntSign::Unsigned));
+    typeU16_ = addType(TypeInfo::makeInt(16, TypeInfo::IntSign::Unsigned));
+    typeU32_ = addType(TypeInfo::makeInt(32, TypeInfo::IntSign::Unsigned));
+    typeU64_ = addType(TypeInfo::makeInt(64, TypeInfo::IntSign::Unsigned));
 
-    typeS8_  = addType(TypeInfo::makeInt(8, false));
-    typeS16_ = addType(TypeInfo::makeInt(16, false));
-    typeS32_ = addType(TypeInfo::makeInt(32, false));
-    typeS64_ = addType(TypeInfo::makeInt(64, false));
+    typeS8_  = addType(TypeInfo::makeInt(8, TypeInfo::IntSign::Signed));
+    typeS16_ = addType(TypeInfo::makeInt(16, TypeInfo::IntSign::Signed));
+    typeS32_ = addType(TypeInfo::makeInt(32, TypeInfo::IntSign::Signed));
+    typeS64_ = addType(TypeInfo::makeInt(64, TypeInfo::IntSign::Signed));
 
     typeF32_ = addType(TypeInfo::makeFloat(32));
     typeF64_ = addType(TypeInfo::makeFloat(64));
@@ -103,6 +104,7 @@ void TypeManager::buildPromoteTable()
     const std::array types = {
         typeIntUnsigned_,
         typeIntSigned_,
+        typeInt_,
         typeFloat_,
         typeU8_,
         typeU16_,
@@ -166,16 +168,19 @@ TypeRef TypeManager::promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) cons
     if (bits != 8 && bits != 16)
         return result;
 
-    const bool isUnsigned = t.isIntUnsigned();
-    return getTypeInt(32, isUnsigned);
+    return getTypeInt(32, t.isIntUnsigned() ? TypeInfo::IntSign::Unsigned : TypeInfo::IntSign::Signed);
 }
 
-TypeRef TypeManager::getTypeInt(uint32_t bits, bool isUnsigned) const
+TypeRef TypeManager::getTypeInt(uint32_t bits, TypeInfo::IntSign sign) const
 {
     if (bits == 0)
-        return isUnsigned ? typeIntUnsigned_ : typeIntSigned_;
+    {
+        if (sign == TypeInfo::IntSign::Unknown)
+            return typeInt_;
+        return sign == TypeInfo::IntSign::Unsigned ? typeIntUnsigned_ : typeIntSigned_;
+    }
 
-    if (isUnsigned)
+    if (sign == TypeInfo::IntSign::Unsigned)
     {
         switch (bits)
         {
@@ -192,6 +197,7 @@ TypeRef TypeManager::getTypeInt(uint32_t bits, bool isUnsigned) const
         }
     }
 
+    SWC_ASSERT(sign == TypeInfo::IntSign::Signed);
     switch (bits)
     {
         case 8:

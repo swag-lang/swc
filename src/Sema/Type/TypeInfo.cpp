@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Math/Hash.h"
 #include "Sema/Type/TypeInfo.h"
+#include "Math/Hash.h"
 #include "TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -24,11 +24,11 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
         case TypeInfoKind::Void:
         case TypeInfoKind::Any:
         case TypeInfoKind::Rune:
-        case TypeInfoKind::CString:            
+        case TypeInfoKind::CString:
             return true;
-            
+
         case TypeInfoKind::Int:
-            return asInt.bits == other.asInt.bits && asInt.isUnsigned == other.asInt.isUnsigned;
+            return asInt.bits == other.asInt.bits && asInt.sign == other.asInt.sign;
         case TypeInfoKind::Float:
             return asFloat.bits == other.asFloat.bits;
         case TypeInfoKind::TypeInfo:
@@ -56,7 +56,7 @@ uint32_t TypeInfo::hash() const
 
         case TypeInfoKind::Int:
             h = Math::hashCombine(h, asInt.bits);
-            h = Math::hashCombine(h, asInt.isUnsigned);
+            h = Math::hashCombine(h, static_cast<uint32_t>(asInt.sign));
             return h;
         case TypeInfoKind::Float:
             h = Math::hashCombine(h, asFloat.bits);
@@ -105,10 +105,10 @@ TypeInfo TypeInfo::makeCString()
     return TypeInfo{TypeInfoKind::CString};
 }
 
-TypeInfo TypeInfo::makeInt(uint32_t bits, bool isUnsigned)
+TypeInfo TypeInfo::makeInt(uint32_t bits, IntSign sign)
 {
     TypeInfo ti{TypeInfoKind::Int};
-    ti.asInt = {.bits = bits, .isUnsigned = isUnsigned};
+    ti.asInt = {.bits = bits, .sign = sign};
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -157,10 +157,18 @@ Utf8 TypeInfo::toName(const TypeManager& typeMgr) const
         {
             Utf8 out;
             if (asInt.bits == 0)
-                out = "integer";
+            {
+                if (asInt.sign == IntSign::Unsigned)
+                    out = "uint";
+                else if (asInt.sign == IntSign::Signed)
+                    out = "sint";
+                else
+                    out = "int";
+            }
             else
             {
-                out += asInt.isUnsigned ? "u" : "s";
+                SWC_ASSERT(asInt.sign != IntSign::Unknown);
+                out += asInt.sign == IntSign::Unsigned ? "u" : "s";
                 out += std::to_string(asInt.bits);
             }
             return out;

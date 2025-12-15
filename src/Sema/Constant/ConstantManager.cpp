@@ -104,19 +104,19 @@ ConstantRef ConstantManager::concretizeConstant(TaskContext& ctx, ConstantRef cs
 
     if (ty.isIntUnsized())
     {
-        ApsInt value = srcCst.getIntLike();
-
-        const auto destBits = TypeManager::chooseConcreteScalarWidth(value.minBits(), overflow);
-        if (overflow)
-            return cstRef;
-
-        value.resize(destBits);
-
         TypeInfo::Sign sign = ty.intSign();
         if (sign == TypeInfo::Sign::Unknown)
             sign = hintSign;
         if (sign == TypeInfo::Sign::Unknown)
             sign = TypeInfo::Sign::Signed;
+
+        ApsInt value = srcCst.getIntLike();
+        value.setSigned(sign == TypeInfo::Sign::Signed);
+        const auto destBits = TypeManager::chooseConcreteScalarWidth(value.minBits(), overflow);
+        if (overflow)
+            return cstRef;
+
+        value.resize(destBits);
 
         const TypeRef       concreteTypeRef = typeMgr.getTypeInt(destBits, sign);
         const TypeInfo&     concreteTy      = typeMgr.get(concreteTypeRef);

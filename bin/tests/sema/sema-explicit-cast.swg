@@ -128,4 +128,4 @@
 #assert(cast(u8) 256.0'f32 == 0'u8)                // swc-expected-error {{sema_err_literal_overflow}}
 #assert(cast(u16) -1.0'f64 == 0'u16)               // swc-expected-error {{sema_err_literal_overflow}}
 
-#assert(cast(u64) 18446744073709551615'u64 == 18446744073709551615) // swc-expected-error {{sema_err_literal_too_big}}
+#assert(cast(u64) 18446744073709551615'u64 == 18446744073709551615)

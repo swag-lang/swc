@@ -74,10 +74,8 @@ namespace
             return false;
         }
 
-        const TypeInfo& dstType = sema.ctx().typeMgr().get(dstTypeRef);
-
         if (castCtx.isFolding())
-            return SemaCast::foldConstantBoolToIntLike(sema, castCtx, dstType);
+            return SemaCast::foldConstantBoolToIntLike(sema, castCtx, dstTypeRef);
 
         return true;
     }
@@ -133,7 +131,7 @@ namespace
         }
 
         if (castCtx.isFolding())
-            return SemaCast::foldConstantIntLikeToIntLike(sema, castCtx, srcTypeRef, dstTypeRef, dstType);
+            return SemaCast::foldConstantIntLikeToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
 
         return true;
     }
@@ -142,7 +140,6 @@ namespace
     {
         const auto&     typeMgr = sema.ctx().typeMgr();
         const TypeInfo& srcType = typeMgr.get(srcTypeRef);
-        const TypeInfo& dstType = typeMgr.get(dstTypeRef);
 
         switch (castCtx.kind)
         {
@@ -164,16 +161,13 @@ namespace
         }
 
         if (castCtx.isFolding())
-            return SemaCast::foldConstantIntLikeToFloat(sema, castCtx, srcTypeRef, dstTypeRef, dstType);
+            return SemaCast::foldConstantIntLikeToFloat(sema, castCtx, srcTypeRef, dstTypeRef);
 
         return true;
     }
 
     bool castFloatToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
-        const auto&     typeMgr = sema.ctx().typeMgr();
-        const TypeInfo& dstType = typeMgr.get(dstTypeRef);
-
         if (castCtx.kind != CastKind::Explicit)
         {
             castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
@@ -181,7 +175,7 @@ namespace
         }
 
         if (castCtx.isFolding())
-            return SemaCast::foldConstantFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef, dstType);
+            return SemaCast::foldConstantFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
 
         return true;
     }
@@ -203,7 +197,7 @@ namespace
 
             case CastKind::Promotion:
                 break;
-                
+
             case CastKind::Implicit:
                 if (narrowing)
                 {
@@ -211,7 +205,7 @@ namespace
                     return false;
                 }
                 break;
-                
+
             case CastKind::Explicit:
                 break;
 
@@ -220,7 +214,7 @@ namespace
         }
 
         if (castCtx.isFolding())
-            return SemaCast::foldConstantFloatToFloat(sema, castCtx, srcTypeRef, dstTypeRef, dstType);
+            return SemaCast::foldConstantFloatToFloat(sema, castCtx, srcTypeRef, dstTypeRef);
 
         return true;
     }

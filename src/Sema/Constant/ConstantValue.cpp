@@ -62,21 +62,21 @@ ConstantValue ConstantValue::makeTypeInfo(TaskContext& ctx, TypeRef value)
     return cv;
 }
 
-ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const ApsInt& value, uint32_t bitWidth, TypeInfo::IntSign sign)
+ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const ApsInt& value, uint32_t bitWidth, TypeInfo::Sign sign)
 {
     if (!bitWidth)
         return makeIntUnsized(ctx, value, sign);
 
     ConstantValue cv;
-    cv.typeRef_  = ctx.typeMgr().getTypeInt(bitWidth, value.isUnsigned() ? TypeInfo::IntSign::Unsigned : TypeInfo::IntSign::Signed);
+    cv.typeRef_  = ctx.typeMgr().getTypeInt(bitWidth, value.isUnsigned() ? TypeInfo::Sign::Unsigned : TypeInfo::Sign::Signed);
     cv.kind_     = ConstantKind::Int;
     cv.asInt.val = value;
-    cv.asInt.val.setUnsigned(sign == TypeInfo::IntSign::Unsigned);
+    cv.asInt.val.setUnsigned(sign == TypeInfo::Sign::Unsigned);
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
 
-ConstantValue ConstantValue::makeIntUnsized(const TaskContext& ctx, const ApsInt& value, TypeInfo::IntSign sign)
+ConstantValue ConstantValue::makeIntUnsized(const TaskContext& ctx, const ApsInt& value, TypeInfo::Sign sign)
 {
     SWC_ASSERT(value.bitWidth() == ApInt::maxBitWidth());
 
@@ -84,7 +84,7 @@ ConstantValue ConstantValue::makeIntUnsized(const TaskContext& ctx, const ApsInt
     cv.typeRef_  = ctx.typeMgr().getTypeInt(0, sign);
     cv.kind_     = ConstantKind::Int;
     cv.asInt.val = value;
-    cv.asInt.val.setUnsigned(sign == TypeInfo::IntSign::Unsigned);
+    cv.asInt.val.setUnsigned(sign == TypeInfo::Sign::Unsigned);
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }

@@ -345,26 +345,28 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
         bool overflow = false;
         if (!leftConcrete)
         {
-            leftCstRef = sema.cstMgr().concretizeConstant(sema.ctx(), leftCstRef, overflow);
+            const TypeInfo::Sign hintSign = rightType->isInt() ? rightType->intSign() : TypeInfo::Sign::Signed;
+            leftCstRef                    = sema.cstMgr().concretizeConstant(sema.ctx(), leftCstRef, hintSign, overflow);
             if (overflow)
             {
                 SemaError::raiseLiteralTooBig(sema, ops.nodeView[0].nodeRef, sema.cstMgr().get(leftCstRef));
                 return false;
             }
 
-            //leftTypeRef = sema.cstMgr().get(leftCstRef).typeRef();
+            // leftTypeRef = sema.cstMgr().get(leftCstRef).typeRef();
         }
 
         if (!rightConcrete)
         {
-            rightCstRef = sema.cstMgr().concretizeConstant(sema.ctx(), rightCstRef, overflow);
+            const TypeInfo::Sign hintSign = leftType->isInt() ? leftType->intSign() : TypeInfo::Sign::Signed;
+            rightCstRef                   = sema.cstMgr().concretizeConstant(sema.ctx(), rightCstRef, hintSign, overflow);
             if (overflow)
             {
                 SemaError::raiseLiteralTooBig(sema, ops.nodeView[1].nodeRef, sema.cstMgr().get(rightCstRef));
                 return false;
             }
 
-            //rightTypeRef = sema.cstMgr().get(rightCstRef).typeRef();
+            // rightTypeRef = sema.cstMgr().get(rightCstRef).typeRef();
         }
     }
 

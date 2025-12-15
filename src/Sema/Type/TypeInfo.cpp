@@ -105,7 +105,7 @@ TypeInfo TypeInfo::makeCString()
     return TypeInfo{TypeInfoKind::CString};
 }
 
-TypeInfo TypeInfo::makeInt(uint32_t bits, IntSign sign)
+TypeInfo TypeInfo::makeInt(uint32_t bits, Sign sign)
 {
     TypeInfo ti{TypeInfoKind::Int};
     ti.asInt = {.bits = bits, .sign = sign};
@@ -158,17 +158,17 @@ Utf8 TypeInfo::toName(const TypeManager& typeMgr) const
             Utf8 out;
             if (asInt.bits == 0)
             {
-                if (asInt.sign == IntSign::Unsigned)
+                if (asInt.sign == Sign::Unsigned)
                     out = "uint";
-                else if (asInt.sign == IntSign::Signed)
+                else if (asInt.sign == Sign::Signed)
                     out = "sint";
                 else
                     out = "int";
             }
             else
             {
-                SWC_ASSERT(asInt.sign != IntSign::Unknown);
-                out += asInt.sign == IntSign::Unsigned ? "u" : "s";
+                SWC_ASSERT(asInt.sign != Sign::Unknown);
+                out += asInt.sign == Sign::Unsigned ? "u" : "s";
                 out += std::to_string(asInt.bits);
             }
             return out;

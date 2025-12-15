@@ -16,29 +16,29 @@ AstVisitStepResult AstBuiltinType::semaPostNode(Sema& sema) const
     switch (tok.id)
     {
         case TokenId::TypeS8:
-            sema.setType(nodeRef, typeMgr.getTypeInt(8, TypeInfo::IntSign::Signed));
+            sema.setType(nodeRef, typeMgr.getTypeInt(8, TypeInfo::Sign::Signed));
             return AstVisitStepResult::Continue;
         case TokenId::TypeS16:
-            sema.setType(nodeRef, typeMgr.getTypeInt(16, TypeInfo::IntSign::Signed));
+            sema.setType(nodeRef, typeMgr.getTypeInt(16, TypeInfo::Sign::Signed));
             return AstVisitStepResult::Continue;
         case TokenId::TypeS32:
-            sema.setType(nodeRef, typeMgr.getTypeInt(32, TypeInfo::IntSign::Signed));
+            sema.setType(nodeRef, typeMgr.getTypeInt(32, TypeInfo::Sign::Signed));
             return AstVisitStepResult::Continue;
         case TokenId::TypeS64:
-            sema.setType(nodeRef, typeMgr.getTypeInt(64, TypeInfo::IntSign::Signed));
+            sema.setType(nodeRef, typeMgr.getTypeInt(64, TypeInfo::Sign::Signed));
             return AstVisitStepResult::Continue;
 
         case TokenId::TypeU8:
-            sema.setType(nodeRef, typeMgr.getTypeInt(8, TypeInfo::IntSign::Unsigned));
+            sema.setType(nodeRef, typeMgr.getTypeInt(8, TypeInfo::Sign::Unsigned));
             return AstVisitStepResult::Continue;
         case TokenId::TypeU16:
-            sema.setType(nodeRef, typeMgr.getTypeInt(16, TypeInfo::IntSign::Unsigned));
+            sema.setType(nodeRef, typeMgr.getTypeInt(16, TypeInfo::Sign::Unsigned));
             return AstVisitStepResult::Continue;
         case TokenId::TypeU32:
-            sema.setType(nodeRef, typeMgr.getTypeInt(32, TypeInfo::IntSign::Unsigned));
+            sema.setType(nodeRef, typeMgr.getTypeInt(32, TypeInfo::Sign::Unsigned));
             return AstVisitStepResult::Continue;
         case TokenId::TypeU64:
-            sema.setType(nodeRef, typeMgr.getTypeInt(64, TypeInfo::IntSign::Unsigned));
+            sema.setType(nodeRef, typeMgr.getTypeInt(64, TypeInfo::Sign::Unsigned));
             return AstVisitStepResult::Continue;
 
         case TokenId::TypeF32:

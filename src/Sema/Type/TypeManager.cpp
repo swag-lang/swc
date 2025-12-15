@@ -6,20 +6,20 @@ SWC_BEGIN_NAMESPACE()
 
 void TypeManager::setup(TaskContext&)
 {
-    typeIntUnsigned_ = addType(TypeInfo::makeInt(0, TypeInfo::IntSign::Unsigned));
-    typeIntSigned_   = addType(TypeInfo::makeInt(0, TypeInfo::IntSign::Signed));
-    typeInt_         = addType(TypeInfo::makeInt(0, TypeInfo::IntSign::Unknown));
+    typeIntUnsigned_ = addType(TypeInfo::makeInt(0, TypeInfo::Sign::Unsigned));
+    typeIntSigned_   = addType(TypeInfo::makeInt(0, TypeInfo::Sign::Signed));
+    typeInt_         = addType(TypeInfo::makeInt(0, TypeInfo::Sign::Unknown));
     typeFloat_       = addType(TypeInfo::makeFloat(0));
 
-    typeU8_  = addType(TypeInfo::makeInt(8, TypeInfo::IntSign::Unsigned));
-    typeU16_ = addType(TypeInfo::makeInt(16, TypeInfo::IntSign::Unsigned));
-    typeU32_ = addType(TypeInfo::makeInt(32, TypeInfo::IntSign::Unsigned));
-    typeU64_ = addType(TypeInfo::makeInt(64, TypeInfo::IntSign::Unsigned));
+    typeU8_  = addType(TypeInfo::makeInt(8, TypeInfo::Sign::Unsigned));
+    typeU16_ = addType(TypeInfo::makeInt(16, TypeInfo::Sign::Unsigned));
+    typeU32_ = addType(TypeInfo::makeInt(32, TypeInfo::Sign::Unsigned));
+    typeU64_ = addType(TypeInfo::makeInt(64, TypeInfo::Sign::Unsigned));
 
-    typeS8_  = addType(TypeInfo::makeInt(8, TypeInfo::IntSign::Signed));
-    typeS16_ = addType(TypeInfo::makeInt(16, TypeInfo::IntSign::Signed));
-    typeS32_ = addType(TypeInfo::makeInt(32, TypeInfo::IntSign::Signed));
-    typeS64_ = addType(TypeInfo::makeInt(64, TypeInfo::IntSign::Signed));
+    typeS8_  = addType(TypeInfo::makeInt(8, TypeInfo::Sign::Signed));
+    typeS16_ = addType(TypeInfo::makeInt(16, TypeInfo::Sign::Signed));
+    typeS32_ = addType(TypeInfo::makeInt(32, TypeInfo::Sign::Signed));
+    typeS64_ = addType(TypeInfo::makeInt(64, TypeInfo::Sign::Signed));
 
     typeF32_ = addType(TypeInfo::makeFloat(32));
     typeF64_ = addType(TypeInfo::makeFloat(64));
@@ -168,19 +168,19 @@ TypeRef TypeManager::promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) cons
     if (bits != 8 && bits != 16)
         return result;
 
-    return getTypeInt(32, t.isIntUnsigned() ? TypeInfo::IntSign::Unsigned : TypeInfo::IntSign::Signed);
+    return getTypeInt(32, t.isIntUnsigned() ? TypeInfo::Sign::Unsigned : TypeInfo::Sign::Signed);
 }
 
-TypeRef TypeManager::getTypeInt(uint32_t bits, TypeInfo::IntSign sign) const
+TypeRef TypeManager::getTypeInt(uint32_t bits, TypeInfo::Sign sign) const
 {
     if (bits == 0)
     {
-        if (sign == TypeInfo::IntSign::Unknown)
+        if (sign == TypeInfo::Sign::Unknown)
             return typeInt_;
-        return sign == TypeInfo::IntSign::Unsigned ? typeIntUnsigned_ : typeIntSigned_;
+        return sign == TypeInfo::Sign::Unsigned ? typeIntUnsigned_ : typeIntSigned_;
     }
 
-    if (sign == TypeInfo::IntSign::Unsigned)
+    if (sign == TypeInfo::Sign::Unsigned)
     {
         switch (bits)
         {
@@ -197,7 +197,7 @@ TypeRef TypeManager::getTypeInt(uint32_t bits, TypeInfo::IntSign sign) const
         }
     }
 
-    SWC_ASSERT(sign == TypeInfo::IntSign::Signed);
+    SWC_ASSERT(sign == TypeInfo::Sign::Signed);
     switch (bits)
     {
         case 8:

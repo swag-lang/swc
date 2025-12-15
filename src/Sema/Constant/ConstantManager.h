@@ -38,7 +38,7 @@ public:
     ConstantRef          cstNegBool(ConstantRef cstRef) const { return cstRef == cstBool_true_ ? cstBool_false_ : cstBool_true_; }
     const ConstantValue& get(ConstantRef constantRef) const;
 
-    ConstantRef concretizeConstant(TaskContext& ctx, ConstantRef cstRef, bool& overflow);
+    ConstantRef concretizeConstant(TaskContext& ctx, ConstantRef cstRef, TypeInfo::Sign hintSign, bool& overflow);
 };
 
 SWC_END_NAMESPACE()

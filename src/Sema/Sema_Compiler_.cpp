@@ -138,28 +138,28 @@ AstVisitStepResult AstCompilerLiteral::semaPostNode(Sema& sema) const
         case TokenId::CompilerLine:
         {
             const SourceCodeLocation loc = tok.location(ctx, srcView);
-            const ConstantValue&     val = ConstantValue::makeInt(ctx, ApsInt::makeUnsigned(loc.line), 0, TypeInfo::IntSign::Unsigned);
+            const ConstantValue&     val = ConstantValue::makeInt(ctx, ApsInt::makeUnsigned(loc.line), 0, TypeInfo::Sign::Unsigned);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
             break;
         }
 
         case TokenId::CompilerSwcVersion:
         {
-            const ConstantValue& val = ConstantValue::makeInt(ctx, ApsInt::makeUnsigned(SWC_VERSION), 0, TypeInfo::IntSign::Unsigned);
+            const ConstantValue& val = ConstantValue::makeInt(ctx, ApsInt::makeUnsigned(SWC_VERSION), 0, TypeInfo::Sign::Unsigned);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
             break;
         }
 
         case TokenId::CompilerSwcRevision:
         {
-            const ConstantValue& val = ConstantValue::makeInt(ctx, ApsInt::makeUnsigned(SWC_REVISION), 0, TypeInfo::IntSign::Unsigned);
+            const ConstantValue& val = ConstantValue::makeInt(ctx, ApsInt::makeUnsigned(SWC_REVISION), 0, TypeInfo::Sign::Unsigned);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
             break;
         }
 
         case TokenId::CompilerSwcBuildNum:
         {
-            const ConstantValue& val = ConstantValue::makeInt(ctx, ApsInt::makeUnsigned(SWC_BUILD_NUM), 0, TypeInfo::IntSign::Unsigned);
+            const ConstantValue& val = ConstantValue::makeInt(ctx, ApsInt::makeUnsigned(SWC_BUILD_NUM), 0, TypeInfo::Sign::Unsigned);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
             break;
         }
@@ -223,8 +223,8 @@ namespace
 
         if (nodeView.cstRef.isValid())
         {
-            bool overflow;
-            nodeView.cstRef = sema.cstMgr().concretizeConstant(sema.ctx(), nodeView.cstRef, overflow);
+            bool overflow   = false;
+            nodeView.cstRef = sema.cstMgr().concretizeConstant(sema.ctx(), nodeView.cstRef, TypeInfo::Sign::Unknown, overflow);
             if (overflow)
             {
                 SemaError::raiseLiteralTooBig(sema, node.nodeArgRef, sema.cstMgr().get(nodeView.cstRef));

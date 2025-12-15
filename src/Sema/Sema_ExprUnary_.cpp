@@ -41,7 +41,7 @@ namespace
             }
 
             value.setUnsigned(false);
-            return sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.nodeView.type->intBits(), TypeInfo::IntSign::Signed));
+            return sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.nodeView.type->intBits(), TypeInfo::Sign::Signed));
         }
 
         if (ops.nodeView.type->isFloat())

@@ -59,7 +59,7 @@ public:
     TypeRef getTypeBool() const { return typeBool_; }
     TypeRef getTypeChar() const { return typeChar_; }
     TypeRef getTypeString() const { return typeString_; }
-    TypeRef getTypeInt(uint32_t bits, TypeInfo::IntSign sign) const;
+    TypeRef getTypeInt(uint32_t bits, TypeInfo::Sign sign) const;
     TypeRef getTypeFloat(uint32_t bits) const;
     TypeRef getTypeAny() const { return typeAny_; }
     TypeRef getTypeVoid() const { return typeVoid_; }

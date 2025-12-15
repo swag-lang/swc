@@ -10,9 +10,9 @@ void ConstantManager::setup(const TaskContext& ctx)
 {
     cstBool_true_  = addConstant(ctx, ConstantValue::makeBool(ctx, true));
     cstBool_false_ = addConstant(ctx, ConstantValue::makeBool(ctx, false));
-    cstS32_0_      = addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(0LL, 32, false), 32, TypeInfo::IntSign::Signed));
-    cstS32_1_      = addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(1LL, 32, false), 32, TypeInfo::IntSign::Signed));
-    cstS32_neg1_   = addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(-1LL, 32, false), 32, TypeInfo::IntSign::Signed));
+    cstS32_0_      = addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(0LL, 32, false), 32, TypeInfo::Sign::Signed));
+    cstS32_1_      = addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(1LL, 32, false), 32, TypeInfo::Sign::Signed));
+    cstS32_neg1_   = addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(-1LL, 32, false), 32, TypeInfo::Sign::Signed));
 }
 
 ConstantRef ConstantManager::cstS32(int32_t value) const
@@ -94,16 +94,13 @@ const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
     return *shards_[shardIndex].store.ptr<ConstantValue>(localIndex * sizeof(ConstantValue));
 }
 
-ConstantRef ConstantManager::concretizeConstant(TaskContext& ctx, ConstantRef cstRef, bool& overflow)
+ConstantRef ConstantManager::concretizeConstant(TaskContext& ctx, ConstantRef cstRef, TypeInfo::Sign hintSign, bool& overflow)
 {
     const ConstantValue& srcCst  = get(cstRef);
     const TypeManager&   typeMgr = ctx.typeMgr();
     const TypeInfo&      ty      = typeMgr.get(srcCst.typeRef());
 
     overflow = false;
-
-    if (!ty.isScalarNumeric())
-        return cstRef;
 
     if (ty.isIntUnsized())
     {
@@ -115,7 +112,13 @@ ConstantRef ConstantManager::concretizeConstant(TaskContext& ctx, ConstantRef cs
 
         value.resize(destBits);
 
-        const TypeRef       concreteTypeRef = typeMgr.getTypeInt(destBits, ty.isIntUnsigned() ? TypeInfo::IntSign::Unsigned : TypeInfo::IntSign::Signed);
+        TypeInfo::Sign sign = ty.intSign();
+        if (sign == TypeInfo::Sign::Unknown)
+            sign = hintSign;
+        if (sign == TypeInfo::Sign::Unknown)
+            sign = TypeInfo::Sign::Signed;
+
+        const TypeRef       concreteTypeRef = typeMgr.getTypeInt(destBits, sign);
         const TypeInfo&     concreteTy      = typeMgr.get(concreteTypeRef);
         const ConstantValue result          = ConstantValue::makeFromIntLike(ctx, value, concreteTy);
         return addConstant(ctx, result);

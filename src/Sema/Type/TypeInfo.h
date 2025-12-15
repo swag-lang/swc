@@ -25,7 +25,7 @@ using TypeRef = StrongRef<TypeInfo>;
 class TypeInfo
 {
 public:
-    enum class IntSign : uint8_t
+    enum class Sign : uint8_t
     {
         Unknown,
         Signed,
@@ -46,7 +46,7 @@ private:
     union
     {
         // clang-format off
-        struct { uint32_t bits; IntSign sign; } asInt;
+        struct { uint32_t bits; Sign sign; } asInt;
         struct { uint32_t bits; } asFloat;
         struct { TypeRef typeRef; } asTypeInfo;
         // clang-format on
@@ -62,12 +62,12 @@ public:
 
     bool isInt() const noexcept { return kind_ == TypeInfoKind::Int; }
     bool isIntUnsized() const noexcept { return kind_ == TypeInfoKind::Int && asInt.bits == 0; }
-    bool isIntUnsigned() const noexcept { return isInt() && asInt.sign == IntSign::Unsigned; }
-    bool isIntSigned() const noexcept { return isInt() && asInt.sign == IntSign::Signed; }
-    bool isIntSignKnown() const noexcept { return isInt() && asInt.sign != IntSign::Unknown; }
+    bool isIntUnsigned() const noexcept { return isInt() && asInt.sign == Sign::Unsigned; }
+    bool isIntSigned() const noexcept { return isInt() && asInt.sign == Sign::Signed; }
+    bool isIntSignKnown() const noexcept { return isInt() && asInt.sign != Sign::Unknown; }
     bool isIntUnsizedSigned() const noexcept { return isIntUnsized() && isIntSigned(); }
     bool isIntUnsizedUnsigned() const noexcept { return isIntUnsized() && isIntUnsigned(); }
-    bool isIntUnsizedUnknownSign() const noexcept { return isIntUnsized() && asInt.sign == IntSign::Unknown; }
+    bool isIntUnsizedUnknownSign() const noexcept { return isIntUnsized() && asInt.sign == Sign::Unknown; }
 
     bool isFloat() const noexcept { return kind_ == TypeInfoKind::Float; }
     bool isFloatUnsized() const noexcept { return kind_ == TypeInfoKind::Float && asFloat.bits == 0; }
@@ -84,7 +84,7 @@ public:
     bool isConcreteScalar() const noexcept { return isScalarNumeric() && !isIntUnsized() && !isFloatUnsized(); }
 
     // clang-format off
-    IntSign intSign() const noexcept { SWC_ASSERT(isInt()); return asInt.sign; }
+    Sign intSign() const noexcept { SWC_ASSERT(isInt()); return asInt.sign; }
     uint32_t intBits() const noexcept { SWC_ASSERT(isInt()); return asInt.bits; }
     uint32_t intLikeBits() const noexcept { SWC_ASSERT(isIntLike()); return isCharRune() ? 32 : asInt.bits; }
     uint32_t scalarNumericBits() const noexcept { SWC_ASSERT(isScalarNumeric()); return isIntLike() ? intLikeBits() : floatBits(); }
@@ -94,7 +94,7 @@ public:
     static TypeInfo makeBool();
     static TypeInfo makeChar();
     static TypeInfo makeString();
-    static TypeInfo makeInt(uint32_t bits, IntSign sign);
+    static TypeInfo makeInt(uint32_t bits, Sign sign);
     static TypeInfo makeFloat(uint32_t bits);
     static TypeInfo makeTypeInfo(TypeRef typeRef);
     static TypeInfo makeRune();

@@ -37,12 +37,12 @@ struct CastFailure
 
 struct CastContext
 {
-    CastKind    kind;
-    CastFlags   flags = CastFlagsE::Zero;
-    AstNodeRef  errorNodeRef;
-    CastFailure failure;
-    ConstantRef srcConstRef;
-    ConstantRef outConstRef;
+    CastKind    kind         = CastKind::Implicit;
+    CastFlags   flags        = CastFlagsE::Zero;
+    AstNodeRef  errorNodeRef = AstNodeRef::invalid();
+    ConstantRef srcConstRef  = ConstantRef::invalid();
+    ConstantRef outConstRef  = ConstantRef::invalid();
+    CastFailure failure{};
 
     CastContext() = delete;
     explicit CastContext(CastKind kind);

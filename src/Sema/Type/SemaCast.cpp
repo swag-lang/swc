@@ -214,7 +214,7 @@ void SemaCast::emitCastFailure(Sema& sema, const CastFailure& f)
     diag.report(sema.ctx());
 }
 
-bool SemaCast::cast(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     castCtx.resetFailure();
     castCtx.outConstRef.setInvalid();

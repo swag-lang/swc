@@ -307,7 +307,7 @@ ConstantRef SemaCast::castConstant(Sema& sema, CastContext& castCtx, ConstantRef
     const TypeRef        srcTypeRef = cst.typeRef();
     castCtx.srcConstRef             = cstRef;
 
-    const bool ok = cast(sema, castCtx, srcTypeRef, targetTypeRef);
+    const bool ok = castAllowed(sema, castCtx, srcTypeRef, targetTypeRef);
     if (!ok)
     {
         emitCastFailure(sema, castCtx.failure);

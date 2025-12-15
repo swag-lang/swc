@@ -13,7 +13,7 @@ class Sema;
 
 namespace SemaCast
 {
-    bool cast(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef);
+    bool castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef);
     void emitCastFailure(Sema& sema, const CastFailure& f);
 
     void        foldConstantIdentity(CastContext& castCtx);

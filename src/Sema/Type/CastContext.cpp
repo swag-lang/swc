@@ -54,20 +54,4 @@ void CastContext::failValueNote(DiagnosticId d, TypeRef src, TypeRef dst, std::s
     failure.setValueNote(errorNodeRef, d, src, dst, value, note);
 }
 
-bool CastContext::isFolding() const
-{
-    return fold != nullptr && fold->srcConstRef.isValid();
-}
-
-ConstantRef CastContext::foldSrc() const
-{
-    return fold ? fold->srcConstRef : ConstantRef::invalid();
-}
-
-void CastContext::setFoldOut(ConstantRef v) const
-{
-    if (fold && fold->outConstRef)
-        *fold->outConstRef = v;
-}
-
 SWC_END_NAMESPACE()

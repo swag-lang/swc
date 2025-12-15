@@ -16,10 +16,10 @@ namespace SemaCast
     bool cast(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef);
     void emitCastFailure(Sema& sema, const CastFailure& f);
 
-    void        foldConstantIdentity(const CastContext& castCtx);
+    void        foldConstantIdentity(CastContext& castCtx);
     bool        foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstTypeRef, const TypeInfo& dstType, const TypeInfo& srcType);
-    bool        foldConstantBoolToIntLike(Sema& sema, const CastContext& castCtx, const TypeInfo& dstType);
-    bool        foldConstantIntLikeToBool(Sema& sema, const CastContext& castCtx);
+    bool        foldConstantBoolToIntLike(Sema& sema, CastContext& castCtx, const TypeInfo& dstType);
+    bool        foldConstantIntLikeToBool(Sema& sema, CastContext& castCtx);
     bool        foldConstantIntLikeToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef, const TypeInfo& dstType);
     bool        foldConstantIntLikeToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef, const TypeInfo& dstType);
     bool        foldConstantFloatToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef, const TypeInfo& dstType);

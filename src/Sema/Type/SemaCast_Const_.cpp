@@ -9,7 +9,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void SemaCast::foldConstantIdentity(const CastContext& castCtx)
+void SemaCast::foldConstantIdentity(CastContext& castCtx)
 {
     castCtx.setFoldOut(castCtx.foldSrc());
 }
@@ -72,7 +72,7 @@ bool SemaCast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dst
     return false;
 }
 
-bool SemaCast::foldConstantBoolToIntLike(Sema& sema, const CastContext& castCtx, const TypeInfo& dstType)
+bool SemaCast::foldConstantBoolToIntLike(Sema& sema, CastContext& castCtx, const TypeInfo& dstType)
 {
     const auto& ctx = sema.ctx();
 
@@ -88,7 +88,7 @@ bool SemaCast::foldConstantBoolToIntLike(Sema& sema, const CastContext& castCtx,
     return true;
 }
 
-bool SemaCast::foldConstantIntLikeToBool(Sema& sema, const CastContext& castCtx)
+bool SemaCast::foldConstantIntLikeToBool(Sema& sema, CastContext& castCtx)
 {
     const auto& ctx = sema.ctx();
 
@@ -303,23 +303,18 @@ bool SemaCast::foldConstantFloatToFloat(Sema& sema, CastContext& castCtx, TypeRe
 
 ConstantRef SemaCast::castConstant(Sema& sema, CastContext& castCtx, ConstantRef cstRef, TypeRef targetTypeRef)
 {
-    ConstantRef          out        = ConstantRef::invalid();
     const ConstantValue& cst        = sema.cstMgr().get(cstRef);
     const TypeRef        srcTypeRef = cst.typeRef();
-    CastFoldContext      foldCtx{.srcConstRef = cstRef, .outConstRef = &out};
-    CastFoldContext*     saved = castCtx.fold;
+    castCtx.srcConstRef             = cstRef;
 
-    castCtx.fold  = &foldCtx;
     const bool ok = cast(sema, castCtx, srcTypeRef, targetTypeRef);
-    castCtx.fold  = saved;
-
     if (!ok)
     {
         emitCastFailure(sema, castCtx.failure);
         return ConstantRef::invalid();
     }
 
-    return out.isValid() ? out : ConstantRef::invalid();
+    return castCtx.outConstRef;
 }
 
 bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, ConstantRef& leftCstRef, ConstantRef& rightCstRef, bool force32BitInts)

@@ -11,7 +11,7 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    bool castIdentity(Sema&, const CastContext& castCtx, TypeRef, TypeRef)
+    bool castIdentity(Sema&, CastContext& castCtx, TypeRef, TypeRef)
     {
         if (castCtx.isFolding())
             SemaCast::foldConstantIdentity(castCtx);
@@ -217,9 +217,7 @@ void SemaCast::emitCastFailure(Sema& sema, const CastFailure& f)
 bool SemaCast::cast(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     castCtx.resetFailure();
-
-    if (castCtx.fold && castCtx.fold->outConstRef)
-        *castCtx.fold->outConstRef = ConstantRef::invalid();
+    castCtx.outConstRef.setInvalid();
 
     if (srcTypeRef == dstTypeRef)
         return castIdentity(sema, castCtx, srcTypeRef, dstTypeRef);

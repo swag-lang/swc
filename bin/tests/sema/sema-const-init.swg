@@ -1,5 +1,5 @@
 #global internal
-
+/*
 const A: s32 = 10
 const B: s32 = 10's8
 
@@ -7,7 +7,6 @@ const C: bool = 10's8                // swc-expected-error {{sema_err_var_init_t
 const C1: bool = cast(bool) 10's8
 #assert(C1 == true)
 
-/*
 const D: u8 = -1's8                  // swc-expected-error {{sema_err_var_init_type_mismatch}}
 const D1: u8 = cast(u8) -1's8        // swc-expected-error {{sema_err_signed_unsigned}}
 

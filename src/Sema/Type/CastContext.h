@@ -21,12 +21,6 @@ enum class CastFlagsE : uint32_t
 };
 using CastFlags = EnumFlags<CastFlagsE>;
 
-struct CastFoldContext
-{
-    ConstantRef  srcConstRef;
-    ConstantRef* outConstRef; // optional (can be nullptr)
-};
-
 struct CastFailure
 {
     DiagnosticId diagId     = DiagnosticId::None;
@@ -43,21 +37,23 @@ struct CastFailure
 
 struct CastContext
 {
-    CastKind         kind;
-    CastFlags        flags = CastFlagsE::Zero;
-    AstNodeRef       errorNodeRef;
-    CastFailure      failure;
-    CastFoldContext* fold = nullptr;
+    CastKind    kind;
+    CastFlags   flags = CastFlagsE::Zero;
+    AstNodeRef  errorNodeRef;
+    CastFailure failure;
+    ConstantRef srcConstRef;
+    ConstantRef outConstRef;
 
     CastContext() = delete;
     explicit CastContext(CastKind kind);
 
-    void        resetFailure();
-    void        fail(DiagnosticId d, TypeRef src, TypeRef dst);
-    void        failValueNote(DiagnosticId d, TypeRef src, TypeRef dst, std::string_view value, DiagnosticId note);
-    bool        isFolding() const;
-    ConstantRef foldSrc() const;
-    void        setFoldOut(ConstantRef v) const;
+    void resetFailure();
+    void fail(DiagnosticId d, TypeRef src, TypeRef dst);
+    void failValueNote(DiagnosticId d, TypeRef src, TypeRef dst, std::string_view value, DiagnosticId note);
+
+    bool        isFolding() const { return srcConstRef.isValid(); }
+    ConstantRef foldSrc() const { return srcConstRef; }
+    void        setFoldOut(ConstantRef v) { outConstRef = v; }
 };
 
 SWC_END_NAMESPACE()

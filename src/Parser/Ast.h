@@ -5,8 +5,6 @@
 #include "Parser/AstNode.h"
 #include "Parser/AstNodes.h"
 
-#include <atomic>
-
 SWC_BEGIN_NAMESPACE()
 
 class SourceView;

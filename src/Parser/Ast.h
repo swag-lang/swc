@@ -29,7 +29,7 @@ class Ast
 public:
     static constexpr const AstNodeIdInfo& nodeIdInfos(AstNodeId id) { return AST_NODE_ID_INFOS[static_cast<size_t>(id)]; }
     static constexpr std::string_view     nodeIdName(AstNodeId id) { return nodeIdInfos(id).name; }
-    auto&                                 store() { return store_; }
+    Store&                                store() { return store_; }
     AstNodeRef                            root() const { return root_; }
     void                                  setRoot(AstNodeRef root) { root_ = root; }
     SourceView&                           srcView() { return *srcView_; }

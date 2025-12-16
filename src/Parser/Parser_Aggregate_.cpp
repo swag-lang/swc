@@ -152,7 +152,7 @@ AstNodeRef Parser::parseAggregateDecl()
             consume();
     }
 
-    nodePtr->spanWhereRef = whereRefs.empty() ? SpanRef::invalid() : ast_->store().push_span(whereRefs.span());
+    nodePtr->spanWhereRef = whereRefs.empty() ? SpanRef::invalid() : ast_->pushSpan(whereRefs.span());
 
     // Content
     nodePtr->nodeBodyRef = parseAggregateBody();

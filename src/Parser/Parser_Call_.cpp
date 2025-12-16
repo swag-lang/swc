@@ -82,7 +82,7 @@ AstNodeRef Parser::parseIntrinsicCallVariadic()
         nodeArgs.push_back(nodeArg);
     }
 
-    nodePtr->spanChildrenRef = ast_->store().push_span(nodeArgs.span());
+    nodePtr->spanChildrenRef = ast_->pushSpan(nodeArgs.span());
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
     return nodeRef;
 }

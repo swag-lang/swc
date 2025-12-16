@@ -52,7 +52,7 @@ AstNodeRef Parser::parseUsing()
         nodeChildren.push_back(nodeIdentifier);
     }
 
-    nodePtr->spanChildrenRef = ast_->store().push_span(nodeChildren.span());
+    nodePtr->spanChildrenRef = ast_->pushSpan(nodeChildren.span());
     expectEndStatement();
 
     return nodeRef;
@@ -363,7 +363,7 @@ AstNodeRef Parser::parseForeach()
         tokNames.push_back(tokName);
     }
 
-    nodePtr->spanNamesRef = ast_->store().push_span(tokNames.span());
+    nodePtr->spanNamesRef = ast_->pushSpan(tokNames.span());
     if (!tokNames.empty())
         expectAndConsume(TokenId::KwdIn, DiagnosticId::parser_err_expected_token_before);
 
@@ -409,7 +409,7 @@ AstNodeRef Parser::parseSwitchCaseDefault()
             nodeExpressions.push_back(nodeExpr);
         }
 
-        nodePtr->spanExprRef = ast_->store().push_span(nodeExpressions.span());
+        nodePtr->spanExprRef = ast_->pushSpan(nodeExpressions.span());
     }
     else
     {
@@ -450,7 +450,7 @@ AstNodeRef Parser::parseSwitch()
             case TokenId::KwdCase:
             {
                 if (currentCase)
-                    currentCase->spanChildrenRef = ast_->store().push_span(nodeStmts.span());
+                    currentCase->spanChildrenRef = ast_->pushSpan(nodeStmts.span());
                 nodeStmts.clear();
 
                 auto caseRef = parseSwitchCaseDefault();
@@ -469,9 +469,9 @@ AstNodeRef Parser::parseSwitch()
     }
 
     if (currentCase)
-        currentCase->spanChildrenRef = ast_->store().push_span(nodeStmts.span());
+        currentCase->spanChildrenRef = ast_->pushSpan(nodeStmts.span());
 
-    nodePtr->spanChildrenRef = ast_->store().push_span(nodeChildren.span());
+    nodePtr->spanChildrenRef = ast_->pushSpan(nodeChildren.span());
     expectAndConsumeClosing(TokenId::SymRightCurly, openRef);
     return nodeRef;
 }
@@ -496,7 +496,7 @@ AstNodeRef Parser::parseFile()
             globals.push_back(global);
     }
 
-    nodePtr->spanGlobalsRef = ast_->store().push_span(globals.span());
+    nodePtr->spanGlobalsRef = ast_->pushSpan(globals.span());
 
     // All the rest
     nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::Invalid);
@@ -561,7 +561,7 @@ AstNodeRef Parser::parseAssignStmt()
 
         expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
-        nodePtr->spanChildrenRef = ast_->store().push_span(nodeAffects.span());
+        nodePtr->spanChildrenRef = ast_->pushSpan(nodeAffects.span());
         nodeLeft                 = nodeRef;
     }
     else
@@ -583,7 +583,7 @@ AstNodeRef Parser::parseAssignStmt()
                 nodeAffects.push_back(nodeExpr);
             }
 
-            nodePtr->spanChildrenRef = ast_->store().push_span(nodeAffects.span());
+            nodePtr->spanChildrenRef = ast_->pushSpan(nodeAffects.span());
             nodeLeft                 = nodeRef;
         }
     }
@@ -692,9 +692,9 @@ AstNodeRef Parser::parseTopLevelStmt()
         case TokenId::KwdInternal:
         case TokenId::KwdPrivate:
             return parseAccessModifier();
-            
+
         case TokenId::KwdUsing:
-            return parseUsing();            
+            return parseUsing();
 
         case TokenId::CompilerLoad:
         case TokenId::CompilerForeignLib:

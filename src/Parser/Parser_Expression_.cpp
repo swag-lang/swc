@@ -940,7 +940,7 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
 
         const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IndexListExpr>(ref());
         nodePtr->nodeExprRef             = nodeRef;
-        nodePtr->spanChildrenRef         = ast_->store().push_span(nodeArgs.span());
+        nodePtr->spanChildrenRef         = ast_->pushSpan(nodeArgs.span());
         return nodeParent;
     }
 

@@ -99,7 +99,7 @@ AstNodeRef Parser::parseVarDeclDecomposition()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDeclDecomposition>(ref());
     nodePtr->addParserFlag(flags);
     nodePtr->nodeInitRef  = parseInitializerExpression();
-    nodePtr->spanNamesRef = ast_->store().push_span(tokNames.span());
+    nodePtr->spanNamesRef = ast_->pushSpan(tokNames.span());
 
     return nodeRef;
 }
@@ -160,7 +160,7 @@ AstNodeRef Parser::parseVarDecl()
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDeclNameList>(ref());
             nodePtr->addParserFlag(flags);
-            nodePtr->spanNamesRef = ast_->store().push_span(tokNames.span());
+            nodePtr->spanNamesRef = ast_->pushSpan(tokNames.span());
             nodePtr->nodeTypeRef  = nodeType;
             nodePtr->nodeInitRef  = nodeInit;
             vars.push_back(nodeRef);
@@ -177,7 +177,7 @@ AstNodeRef Parser::parseVarDecl()
 
     // Multiple variables
     auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::VarDeclList>(ref());
-    nodePtr->spanChildrenRef = ast_->store().push_span(vars.span());
+    nodePtr->spanChildrenRef = ast_->pushSpan(vars.span());
     return nodeRef;
 }
 

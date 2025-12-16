@@ -42,6 +42,10 @@ namespace Command
 
         for (const auto& f : compiler.files())
         {
+            const auto& srcView = f->ast().srcView();
+            if (srcView.mustSkip())
+                continue;
+
             if (f->hasError())
                 continue;
 

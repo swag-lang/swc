@@ -721,7 +721,7 @@ void Lexer::lexIdentifier()
 
             const auto tokStr = std::string_view(reinterpret_cast<std::string_view::const_pointer>(startTok), tmp - startTok);
             if (tokStr == Token::toName(TokenId::KwdSkip))
-                srcView_->setMustSkip(true);
+                srcView_->setMustSkip();
         }
     }
 

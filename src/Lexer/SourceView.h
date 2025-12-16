@@ -54,7 +54,7 @@ public:
     const std::vector<uint32_t>&         triviaStart() const { return triviaStart_; }
     std::vector<uint32_t>&               triviaStart() { return triviaStart_; }
     bool                                 mustSkip() const { return mustSkip_; }
-    void                                 setMustSkip(bool mustSkip) { mustSkip_ = mustSkip; }
+    void                                 setMustSkip() { mustSkip_ = true; }
 
     Utf8                          codeLine(const TaskContext& ctx, uint32_t line) const;
     std::string_view              codeView(uint32_t offset, uint32_t len) const;

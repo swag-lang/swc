@@ -17,6 +17,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
     SemaNodeView       nodeInitView(sema, nodeInitRef);
     const SemaNodeView nodeTypeView(sema, nodeTypeRef);
 
+    // Implicit cast from initializer to specified type
     if (nodeInitView.typeRef.isValid() && nodeTypeView.typeRef.isValid())
     {
         CastContext castCtx(CastKind::Implicit);
@@ -40,10 +41,12 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
         }
     }
 
+    // Register name
+    const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
+
     // Get the destination symbolMap
-    const IdentifierRef idRef     = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
-    SymbolMap*          symbolMap = nullptr;
-    const SymbolAccess  access    = sema.frame().currentAccess.value_or(sema.frame().defaultAccess);
+    SymbolMap*         symbolMap = nullptr;
+    const SymbolAccess access    = sema.frame().currentAccess.value_or(sema.frame().defaultAccess);
     if (access == SymbolAccess::Internal)
         symbolMap = &sema.semaInfo().fileNamespace();
     else

@@ -110,10 +110,14 @@ public:
     template<typename T>
     SpanRef pushSpan(const std::span<T>& s)
     {
-        const uint32_t   shard = chooseShard();
-        std::unique_lock lock(shards_[shard].mutex);
+        const uint32_t shard = chooseShard();
+        SpanRef        local;
 
-        const SpanRef local = shards_[shard].store.push_span(s);
+        {
+            std::unique_lock lock(shards_[shard].mutex);
+            local = shards_[shard].store.push_span(s);
+        }
+
         return SpanRef(packRef(shard, local.get()));
     }
 
@@ -122,10 +126,14 @@ public:
     {
         using NodeType = AstTypeOf<ID>::type;
 
-        const uint32_t   shard = chooseShard();
-        std::unique_lock lock(shards_[shard].mutex);
+        const uint32_t            shard = chooseShard();
+        std::pair<Ref, NodeType*> local;
 
-        auto           local        = shards_[shard].store.emplace_uninit<NodeType>();
+        {
+            std::unique_lock lock(shards_[shard].mutex);
+            local = shards_[shard].store.emplace_uninit<NodeType>();
+        }
+
         const uint32_t localByteRef = local.first;
 
         AstNodeRef globalRef{packRef(shard, localByteRef)};

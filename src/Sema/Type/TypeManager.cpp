@@ -92,9 +92,7 @@ TypeRef TypeManager::computePromotion(TypeRef lhsRef, TypeRef rhsRef) const
     const uint32_t uBits = lhsUnsigned ? lhsBits : rhsBits;
     const uint32_t sBits = lhsUnsigned ? rhsBits : lhsBits;
 
-    if (sBits == uBits)
-        return signedRef;
-    if (sBits > uBits)
+    if (sBits >= uBits)
         return signedRef;
     return unsignedRef;
 }

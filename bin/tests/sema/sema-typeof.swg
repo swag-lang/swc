@@ -1,9 +1,5 @@
 #global internal
 
-//#assert(#typeof(-1 + 1'u16) == s16)
-//#assert(#typeof(-1 + 1'u32) == s32)
-
-
 const A: s32 = 10
 #assert(#typeof(A) == s32)
 #assert(#typeof(A) != f32)
@@ -107,3 +103,8 @@ const A: s32 = 10
 #assert(#typeof(255 + 1's8) == s16)
 #assert(#typeof(65535 + 1's16) == s32)
 #assert(#typeof(4294967295 + 1's32) == s64)
+
+#assert(#typeof(-1 + 1'u8)  == s8)
+#assert(#typeof(-1 + 1'u16) == u16) // swc-expected-error {{sema_err_integer_overflow}}
+#assert(#typeof(-1 + 1'u32) == u32) // swc-expected-error {{sema_err_integer_overflow}}
+#assert(#typeof(-1 + 1'u64) == u64) // swc-expected-error {{sema_err_integer_overflow}}

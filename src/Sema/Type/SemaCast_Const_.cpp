@@ -120,7 +120,7 @@ bool SemaCast::foldConstantIntLikeToIntLike(Sema& sema, CastContext& castCtx, Ty
 
     if (targetUnsigned)
     {
-        if (!value.isUnsigned() && value.isNegative() && !castCtx.flags.has(CastFlagsE::NoOverflow) && targetBits != 0)
+        if (!value.isUnsigned() && value.isNegative() && !castCtx.flags.has(CastFlagsE::NoOverflow) && targetBits != 0 && castCtx.kind != CastKind::Promotion)
         {
             castCtx.fail(DiagnosticId::sema_err_signed_unsigned, srcTypeRef, dstTypeRef, value.toString(), DiagnosticId::sema_note_signed_unsigned);
             return false;
@@ -327,14 +327,16 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
     leftCstRef  = ops.nodeView[0].cstRef;
     rightCstRef = ops.nodeView[1].cstRef;
 
-    // We need to be sure that each side has a size and a sign
+    // If one side is concrete, concretize the other side.
+    // If both sides are not concrete, keep it that way to concretize at the very last moment.
     if (leftConcrete != rightConcrete)
     {
-        bool overflow = false;
         if (!leftConcrete)
         {
             const TypeInfo::Sign hintSign = rightType->isInt() ? rightType->intSign() : TypeInfo::Sign::Signed;
-            leftCstRef                    = sema.cstMgr().concretizeConstant(sema.ctx(), leftCstRef, hintSign, overflow);
+
+            bool overflow = false;
+            leftCstRef    = sema.cstMgr().concretizeConstant(sema.ctx(), leftCstRef, hintSign, overflow);
             if (overflow)
             {
                 SemaError::raiseLiteralTooBig(sema, ops.nodeView[0].nodeRef, sema.cstMgr().get(leftCstRef));
@@ -343,11 +345,12 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
 
             leftTypeRef = sema.cstMgr().get(leftCstRef).typeRef();
         }
-
-        if (!rightConcrete)
+        else if (!rightConcrete)
         {
             const TypeInfo::Sign hintSign = leftType->isInt() ? leftType->intSign() : TypeInfo::Sign::Signed;
-            rightCstRef                   = sema.cstMgr().concretizeConstant(sema.ctx(), rightCstRef, hintSign, overflow);
+
+            bool overflow = false;
+            rightCstRef   = sema.cstMgr().concretizeConstant(sema.ctx(), rightCstRef, hintSign, overflow);
             if (overflow)
             {
                 SemaError::raiseLiteralTooBig(sema, ops.nodeView[1].nodeRef, sema.cstMgr().get(rightCstRef));

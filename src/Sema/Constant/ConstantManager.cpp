@@ -44,7 +44,7 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
     std::unique_lock lk(shard.mutex);
 
     const uint32_t localIndex = shard.store.size() / sizeof(ConstantValue);
-    SWC_ASSERT(localIndex <= LOCAL_MASK);
+    SWC_ASSERT(localIndex < LOCAL_MASK);
 
     ConstantRef result;
     if (!value.isString())

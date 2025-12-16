@@ -34,7 +34,7 @@ class Ast
 
     static uint32_t packRef(uint32_t shard, uint32_t localIndex)
     {
-        SWC_ASSERT(localIndex <= LOCAL_MASK);
+        SWC_ASSERT(localIndex < LOCAL_MASK);
         return (shard << LOCAL_BITS) | (localIndex & LOCAL_MASK);
     }
 
@@ -70,8 +70,7 @@ public:
         using NodeType = AstTypeOf<ID>::type;
 
         const uint32_t g = nodeRef.get();
-        return castAst<NodeType>(
-            shards_[refShard(g)].store.ptr<AstNode>(refLocal(g)));
+        return castAst<NodeType>(shards_[refShard(g)].store.ptr<AstNode>(refLocal(g)));
     }
 
     AstNode& node(AstNodeRef nodeRef)

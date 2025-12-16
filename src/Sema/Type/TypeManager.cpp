@@ -233,7 +233,7 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
 #endif
 
     const uint32_t localIndex = shard.store.size() / sizeof(TypeInfo);
-    SWC_ASSERT(localIndex <= LOCAL_MASK);
+    SWC_ASSERT(localIndex < LOCAL_MASK);
     shard.store.push_back(typeInfo);
 
     auto result = TypeRef{(shardIndex << LOCAL_BITS) | localIndex};

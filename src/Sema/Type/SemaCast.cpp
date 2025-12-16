@@ -223,16 +223,10 @@ namespace
 void SemaCast::emitCastFailure(Sema& sema, const CastFailure& f)
 {
     auto diag = SemaError::report(sema, f.diagId, f.nodeRef);
-
     diag.addArgument(Diagnostic::ARG_TYPE, f.srcTypeRef);
     diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, f.dstTypeRef);
-
-    if (!f.valueStr.empty())
-        diag.addArgument(Diagnostic::ARG_VALUE, f.valueStr);
-
-    if (f.noteId != DiagnosticId::None)
-        diag.addNote(f.noteId);
-
+    diag.addArgument(Diagnostic::ARG_VALUE, f.valueStr);
+    diag.addNote(f.noteId);
     diag.report(sema.ctx());
 }
 

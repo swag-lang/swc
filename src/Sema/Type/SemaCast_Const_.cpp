@@ -122,7 +122,7 @@ bool SemaCast::foldConstantIntLikeToIntLike(Sema& sema, CastContext& castCtx, Ty
     {
         if (!value.isUnsigned() && value.isNegative() && !castCtx.flags.has(CastFlagsE::NoOverflow) && targetBits != 0)
         {
-            castCtx.failValueNote(DiagnosticId::sema_err_signed_unsigned, srcTypeRef, dstTypeRef, value.toString(), DiagnosticId::sema_note_signed_unsigned);
+            castCtx.fail(DiagnosticId::sema_err_signed_unsigned, srcTypeRef, dstTypeRef, value.toString(), DiagnosticId::sema_note_signed_unsigned);
             return false;
         }
 
@@ -177,7 +177,7 @@ bool SemaCast::foldConstantIntLikeToIntLike(Sema& sema, CastContext& castCtx, Ty
             {
                 if (!castCtx.flags.has(CastFlagsE::NoOverflow))
                 {
-                    castCtx.failValueNote(DiagnosticId::sema_err_signed_unsigned, srcTypeRef, dstTypeRef, value.toString(), DiagnosticId::sema_note_unsigned_signed);
+                    castCtx.fail(DiagnosticId::sema_err_signed_unsigned, srcTypeRef, dstTypeRef, value.toString(), DiagnosticId::sema_note_unsigned_signed);
                     return false;
                 }
             }

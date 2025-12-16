@@ -69,7 +69,7 @@ public:
     bool                                                   silent() const { return silent_; }
 
     DiagnosticElement& addElement(DiagnosticId id);
-    DiagnosticElement& addNote(DiagnosticId id);
+    void               addNote(DiagnosticId id);
     DiagnosticElement& last() const { return *elements_.back(); }
     void               addArgument(std::string_view name, std::string_view arg, bool quoted = true);
 

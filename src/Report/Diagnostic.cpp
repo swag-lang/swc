@@ -109,13 +109,14 @@ DiagnosticElement& Diagnostic::addElement(DiagnosticId id)
     return *raw;
 }
 
-DiagnosticElement& Diagnostic::addNote(DiagnosticId id)
+void Diagnostic::addNote(DiagnosticId id)
 {
+    if (id == DiagnosticId::None)
+        return;
     auto       ptr = std::make_shared<DiagnosticElement>(id);
     const auto raw = ptr.get();
     raw->setSeverity(DiagnosticSeverity::Note);
     elements_.emplace_back(std::move(ptr));
-    return *raw;
 }
 
 void Diagnostic::addArgument(std::string_view name, std::string_view arg, bool quoted)

@@ -3,22 +3,22 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void CastFailure::set(AstNodeRef errorNodeRef, DiagnosticId d, TypeRef src, TypeRef dst)
+void CastFailure::set(AstNodeRef errorNodeRef, DiagnosticId d, TypeRef srcRef, TypeRef dstRef)
 {
     *this      = CastFailure{};
     diagId     = d;
     nodeRef    = errorNodeRef;
-    srcTypeRef = src;
-    dstTypeRef = dst;
+    srcTypeRef = srcRef;
+    dstTypeRef = dstRef;
 }
 
-void CastFailure::setValueNote(AstNodeRef errorNodeRef, DiagnosticId d, TypeRef src, TypeRef dst, std::string_view value, DiagnosticId note)
+void CastFailure::setValueNote(AstNodeRef errorNodeRef, DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value, DiagnosticId note)
 {
     *this      = CastFailure{};
     diagId     = d;
     nodeRef    = errorNodeRef;
-    srcTypeRef = src;
-    dstTypeRef = dst;
+    srcTypeRef = srcRef;
+    dstTypeRef = dstRef;
     valueStr   = std::string(value);
     noteId     = note;
 }
@@ -28,14 +28,14 @@ CastContext::CastContext(CastKind kind) :
 {
 }
 
-void CastContext::fail(DiagnosticId d, TypeRef src, TypeRef dst)
+void CastContext::fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef)
 {
-    failure.set(errorNodeRef, d, src, dst);
+    failure.set(errorNodeRef, d, srcRef, dstRef);
 }
 
-void CastContext::failValueNote(DiagnosticId d, TypeRef src, TypeRef dst, std::string_view value, DiagnosticId note)
+void CastContext::fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value, DiagnosticId note)
 {
-    failure.setValueNote(errorNodeRef, d, src, dst, value, note);
+    failure.setValueNote(errorNodeRef, d, srcRef, dstRef, value, note);
 }
 
 SWC_END_NAMESPACE()

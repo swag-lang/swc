@@ -76,7 +76,7 @@ SWC_DIAG_DEF(sema_err_number_too_big, Error, "number too big to be represented i
 SWC_DIAG_DEF(sema_err_literal_overflow, Error, "value {value} cannot fit in type {type}")
 SWC_DIAG_DEF(sema_err_literal_too_big, Error, "value {value} cannot fit in a native type")
 SWC_DIAG_DEF(sema_err_negate_unsigned, Error, "cannot negate unsigned type {type}")
-SWC_DIAG_DEF(sema_err_signed_unsigned, Error, "cannot cast value {value} to {type} due to signed/unsigned range mismatch")
+SWC_DIAG_DEF(sema_err_signed_unsigned, Error, "cannot cast value {value} to {requested-type} due to signed/unsigned range mismatch")
 SWC_DIAG_DEF(sema_err_unary_operand_type, Error, "unary operator {tok} cannot be applied to an operand of type {type}")
 SWC_DIAG_DEF(sema_err_binary_operand_type, Error, "binary operator {tok} cannot be applied to an operand of type {type}")
 SWC_DIAG_DEF(sema_err_compare_operand_type, Error, "cannot compare with {tok} a left expression of type {left} and a right expression of type {right}")

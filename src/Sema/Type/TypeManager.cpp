@@ -92,9 +92,9 @@ TypeRef TypeManager::computePromotion(TypeRef lhsRef, TypeRef rhsRef) const
     const uint32_t uBits = lhsUnsigned ? lhsBits : rhsBits;
     const uint32_t sBits = lhsUnsigned ? rhsBits : lhsBits;
 
-    if (sBits >= uBits)
-        return signedRef;
-    return unsignedRef;
+    if (uBits >= sBits)
+        return unsignedRef;
+    return signedRef;
 }
 
 void TypeManager::buildPromoteTable()

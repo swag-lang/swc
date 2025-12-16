@@ -24,22 +24,22 @@ const A: s32 = 10
 #assert(#typeof(0b1_0000_0000_0000_0000_0000_0000_0000_0000_0000) == u64)
 
 #assert(#typeof(1.0) == f32)
-#assert(#typeof(1.0'f32) == f32)
-#assert(#typeof(1.0'f64) == f64)
 #assert(#typeof(-1.0) == f32)
+#assert(#typeof(1.0'f32) == f32)
 #assert(#typeof(-1.0'f32) == f32)
+#assert(#typeof(1.0'f64) == f64)
 #assert(#typeof(-1.0'f64) == f64)
 
-#assert(#typeof(1.0 + 5's64) == f64)
-#assert(#typeof(1.0 + 5's32) == f32)
-#assert(#typeof(1.0 + 5's16) == f32)
 #assert(#typeof(1.0 + 5's8) == f32)
-#assert(#typeof(1.0'f64 + 5's32) == f64)
-#assert(#typeof(1.0'f32 + 5's64) == f64)
-#assert(#typeof(1.0 + 5'u64) == f64)
+#assert(#typeof(1.0 + 5's16) == f32)
+#assert(#typeof(1.0 + 5's32) == f32)
+#assert(#typeof(1.0 + 5's64) == f64)
 #assert(#typeof(1.0 + 5'u32) == f32)
-#assert(#typeof(1.0'f64 + 5'u32) == f64)
+#assert(#typeof(1.0 + 5'u64) == f64)
+#assert(#typeof(1.0'f32 + 5's64) == f64)
 #assert(#typeof(1.0'f32 + 5'u64) == f64)
+#assert(#typeof(1.0'f64 + 5's32) == f64)
+#assert(#typeof(1.0'f64 + 5'u32) == f64)
 
 #assert(#typeof(10'u8 + 20'u16) == u16)
 #assert(#typeof(10'u8 + 20'u32) == u32)
@@ -48,9 +48,31 @@ const A: s32 = 10
 #assert(#typeof(10'u16 + 20'u64) == u64)
 #assert(#typeof(10'u32 + 20'u64) == u64)
 
+#assert(#typeof(10'u8 + 20's8) == u8)
+#assert(#typeof(10'u16 + 20's16) == u16)
+#assert(#typeof(10'u32 + 20's32) == u32)
+#assert(#typeof(10'u64 + 20's64) == u64)
+
+#assert(#typeof(10'u8 + 20's16) == s16)
+#assert(#typeof(10'u8 + 20's32) == s32)
+#assert(#typeof(10'u8 + 20's64) == s64)
+
+#assert(#typeof(10'u16 + 20's8) == u16)
+#assert(#typeof(10'u16 + 20's32) == s32)
+#assert(#typeof(10'u16 + 20's64) == s64)
+
+#assert(#typeof(10'u32 + 20's8) == u32)
+#assert(#typeof(10'u32 + 20's16) == u32)
+#assert(#typeof(10'u32 + 20's64) == s64)
+
+#assert(#typeof(10'u64 + 20's8) == u64)
+#assert(#typeof(10'u64 + 20's16) == u64)
+#assert(#typeof(10'u64 + 20's32) == u64)
+
 #assert(#typeof(10's8 + 20's16) == s16)
 #assert(#typeof(10's8 + 20's32) == s32)
 #assert(#typeof(10's8 + 20's64) == s64)
+
 #assert(#typeof(10's16 + 20's32) == s32)
 #assert(#typeof(10's16 + 20's64) == s64)
 #assert(#typeof(10's32 + 20's64) == s64)
@@ -59,6 +81,7 @@ const A: s32 = 10
 #assert(#typeof(0's16 + 1's16) == s16)
 #assert(#typeof(0's32 + 1's32) == s32)
 #assert(#typeof(0's64 + 1's64) == s64)
+
 #assert(#typeof(0'u8 + 1'u8) == u8)
 #assert(#typeof(0'u16 + 1'u16) == u16)
 #assert(#typeof(0'u32 + 1'u32) == u32)
@@ -68,27 +91,11 @@ const A: s32 = 10
 #assert(#typeof(1 + 1'u16) == u16)
 #assert(#typeof(1 + 1'u32) == u32)
 #assert(#typeof(1 + 1'u64) == u64)
+
 #assert(#typeof(1 + 1's8) == s8)
 #assert(#typeof(1 + 1's16) == s16)
 #assert(#typeof(1 + 1's32) == s32)
 #assert(#typeof(1 + 1's64) == s64)
-
-#assert(#typeof(10'u8 + 20's8) == s8)
-#assert(#typeof(10'u8 + 20's16) == s16)
-#assert(#typeof(10'u8 + 20's32) == s32)
-#assert(#typeof(10'u8 + 20's64) == s64)
-#assert(#typeof(10'u16 + 20's8) == u16)
-#assert(#typeof(10'u16 + 20's16) == s16)
-#assert(#typeof(10'u16 + 20's32) == s32)
-#assert(#typeof(10'u16 + 20's64) == s64)
-#assert(#typeof(10'u32 + 20's8) == u32)
-#assert(#typeof(10'u32 + 20's16) == u32)
-#assert(#typeof(10'u32 + 20's32) == s32)
-#assert(#typeof(10'u32 + 20's64) == s64)
-#assert(#typeof(10'u64 + 20's8) == u64)
-#assert(#typeof(10'u64 + 20's16) == u64)
-#assert(#typeof(10'u64 + 20's32) == u64)
-#assert(#typeof(10'u64 + 20's64) == s64)
 
 #assert(#typeof(256 + 1'u8) == u16)
 #assert(#typeof(65536 + 1'u16) == u32)
@@ -96,15 +103,14 @@ const A: s32 = 10
 #assert(#typeof(128 + 1's8) == s16)
 #assert(#typeof(32768 + 1's16) == s32)
 #assert(#typeof(2147483648 + 1's32) == s64)
-#assert(#typeof(-1 + 1'u8) == s8)
-#assert(#typeof(0x1FF + 1'u8) == u16)
-#assert(#typeof(0x1_0000 + 1'u16) == u32)
-#assert(#typeof(0b1_0000_0000 + 1'u8) == u16)
 #assert(#typeof(255 + 1's8) == s16)
 #assert(#typeof(65535 + 1's16) == s32)
 #assert(#typeof(4294967295 + 1's32) == s64)
+#assert(#typeof(0x1FF + 1'u8) == u16)
+#assert(#typeof(0x1_0000 + 1'u16) == u32)
+#assert(#typeof(0b1_0000_0000 + 1'u8) == u16)
 
-#assert(#typeof(-1 + 1'u8)  == s8)
+#assert(#typeof(-1 + 1'u8) == u8)   // swc-expected-error {{sema_err_integer_overflow}}
 #assert(#typeof(-1 + 1'u16) == u16) // swc-expected-error {{sema_err_integer_overflow}}
 #assert(#typeof(-1 + 1'u32) == u32) // swc-expected-error {{sema_err_integer_overflow}}
 #assert(#typeof(-1 + 1'u64) == u64) // swc-expected-error {{sema_err_integer_overflow}}

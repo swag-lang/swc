@@ -3,16 +3,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void CastFailure::set(AstNodeRef errorNodeRef, DiagnosticId d, TypeRef srcRef, TypeRef dstRef)
-{
-    *this      = CastFailure{};
-    diagId     = d;
-    nodeRef    = errorNodeRef;
-    srcTypeRef = srcRef;
-    dstTypeRef = dstRef;
-}
-
-void CastFailure::setValueNote(AstNodeRef errorNodeRef, DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value, DiagnosticId note)
+void CastFailure::set(AstNodeRef errorNodeRef, DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value, DiagnosticId note)
 {
     *this      = CastFailure{};
     diagId     = d;
@@ -28,14 +19,9 @@ CastContext::CastContext(CastKind kind) :
 {
 }
 
-void CastContext::fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef)
-{
-    failure.set(errorNodeRef, d, srcRef, dstRef);
-}
-
 void CastContext::fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value, DiagnosticId note)
 {
-    failure.setValueNote(errorNodeRef, d, srcRef, dstRef, value, note);
+    failure.set(errorNodeRef, d, srcRef, dstRef, value, note);
 }
 
 SWC_END_NAMESPACE()

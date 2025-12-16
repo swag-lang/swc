@@ -30,8 +30,7 @@ struct CastFailure
     TypeRef      dstTypeRef = TypeRef::invalid();
     Utf8         valueStr{};
 
-    void set(AstNodeRef errorNodeRef, DiagnosticId d, TypeRef srcRef, TypeRef dstRef);
-    void setValueNote(AstNodeRef errorNodeRef, DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value, DiagnosticId note);
+    void set(AstNodeRef errorNodeRef, DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value, DiagnosticId note);
 };
 
 struct CastContext
@@ -46,8 +45,7 @@ struct CastContext
     CastContext() = delete;
     explicit CastContext(CastKind kind);
 
-    void fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef);
-    void fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value, DiagnosticId note);
+    void fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value = "", DiagnosticId note = DiagnosticId::None);
 
     bool        isFolding() const { return srcConstRef.isValid(); }
     ConstantRef foldSrc() const { return srcConstRef; }

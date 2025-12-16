@@ -186,10 +186,7 @@ bool SemaCast::foldConstantIntLikeToIntLike(Sema& sema, CastContext& castCtx, Ty
 
     if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
     {
-        castCtx.failure            = CastFailure{.diagId = DiagnosticId::sema_err_literal_overflow, .nodeRef = castCtx.errorNodeRef};
-        castCtx.failure.srcTypeRef = srcTypeRef;
-        castCtx.failure.dstTypeRef = dstTypeRef;
-        castCtx.failure.valueStr   = value.toString();
+        castCtx.fail(DiagnosticId::sema_err_literal_overflow, srcTypeRef, dstTypeRef, value.toString());
         return false;
     }
 
@@ -238,10 +235,7 @@ bool SemaCast::foldConstantIntLikeToFloat(Sema& sema, CastContext& castCtx, Type
 
     if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
     {
-        castCtx.failure            = CastFailure{.diagId = DiagnosticId::sema_err_literal_overflow, .nodeRef = castCtx.errorNodeRef};
-        castCtx.failure.srcTypeRef = srcTypeRef;
-        castCtx.failure.dstTypeRef = dstTypeRef;
-        castCtx.failure.valueStr   = intVal.toString();
+        castCtx.fail(DiagnosticId::sema_err_literal_overflow, srcTypeRef, dstTypeRef, intVal.toString());
         return false;
     }
 
@@ -267,10 +261,7 @@ bool SemaCast::foldConstantFloatToIntLike(Sema& sema, CastContext& castCtx, Type
 
     if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
     {
-        castCtx.failure            = CastFailure{.diagId = DiagnosticId::sema_err_literal_overflow, .nodeRef = castCtx.errorNodeRef};
-        castCtx.failure.srcTypeRef = srcTypeRef;
-        castCtx.failure.dstTypeRef = dstTypeRef;
-        castCtx.failure.valueStr   = srcVal.toString();
+        castCtx.fail(DiagnosticId::sema_err_literal_overflow, srcTypeRef, dstTypeRef, srcVal.toString());
         return false;
     }
 
@@ -294,10 +285,7 @@ bool SemaCast::foldConstantFloatToFloat(Sema& sema, CastContext& castCtx, TypeRe
 
     if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
     {
-        castCtx.failure            = CastFailure{.diagId = DiagnosticId::sema_err_literal_overflow, .nodeRef = castCtx.errorNodeRef};
-        castCtx.failure.srcTypeRef = srcTypeRef;
-        castCtx.failure.dstTypeRef = dstTypeRef;
-        castCtx.failure.valueStr   = floatVal.toString();
+        castCtx.fail(DiagnosticId::sema_err_literal_overflow, srcTypeRef, dstTypeRef, floatVal.toString());
         return false;
     }
 

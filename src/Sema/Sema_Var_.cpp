@@ -17,7 +17,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
     SemaNodeView       nodeInitView(sema, nodeInitRef);
     const SemaNodeView nodeTypeView(sema, nodeTypeRef);
 
-    // Implicit cast from initializer to specified type
+    // Implicit cast from initializer to the specified type
     if (nodeInitView.typeRef.isValid() && nodeTypeView.typeRef.isValid())
     {
         CastContext castCtx(CastKind::Implicit);
@@ -38,6 +38,15 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
 
             diag.report(sema.ctx());
             return AstVisitStepResult::Stop;
+        }
+
+        // Convert init constant to the right type
+        if (nodeInitView.cstRef.isValid())
+        {
+            auto newCstRef = SemaCast::castConstant(sema, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef);
+            if (newCstRef.isInvalid())
+                return AstVisitStepResult::Stop;
+            sema.setConstant(nodeInitRef, newCstRef);
         }
     }
 

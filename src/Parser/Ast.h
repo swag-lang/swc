@@ -107,16 +107,8 @@ public:
         }
     }
 
-    SpanRef pushSpan(const std::span<const AstNodeRef>& s)
-    {
-        const uint32_t   shard = chooseShard();
-        std::unique_lock lock(shards_[shard].mutex);
-
-        const SpanRef local = shards_[shard].store.push_span(s);
-        return SpanRef(packRef(shard, local.get()));
-    }
-
-    SpanRef pushSpan(const std::span<const TokenRef>& s)
+    template<typename T>
+    SpanRef pushSpan(const std::span<T>& s)
     {
         const uint32_t   shard = chooseShard();
         std::unique_lock lock(shards_[shard].mutex);

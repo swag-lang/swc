@@ -63,6 +63,13 @@ SymbolConstant* SymbolMap::addConstant(TaskContext& ctx, IdentifierRef idRef, Co
     return sym;
 }
 
+SymbolVariable* SymbolMap::addVariable(TaskContext& ctx, IdentifierRef idRef, TypeRef typeRef)
+{
+    auto* sym = ctx.compiler().allocate<SymbolVariable>(ctx, idRef, typeRef);
+    addSymbol(ctx, sym);
+    return sym;
+}
+
 SymbolNamespace* SymbolMap::addNamespace(TaskContext& ctx, IdentifierRef idRef)
 {
     auto* sym = ctx.compiler().allocate<SymbolNamespace>(ctx, idRef);

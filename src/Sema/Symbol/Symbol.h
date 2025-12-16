@@ -20,6 +20,7 @@ enum class SymbolKind : uint8_t
     Module,
     Namespace,
     Constant,
+    Variable,
 };
 
 class Symbol

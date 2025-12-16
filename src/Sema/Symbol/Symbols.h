@@ -41,4 +41,20 @@ public:
     ConstantRef cstRef() const { return cstRef_; }
 };
 
+class SymbolVariable : public Symbol
+{
+    TypeRef typeRef_ = TypeRef::invalid();
+
+public:
+    static constexpr auto K = SymbolKind::Variable;
+
+    explicit SymbolVariable(const TaskContext& ctx, IdentifierRef idRef, TypeRef typeRef) :
+        Symbol(ctx, SymbolKind::Variable, idRef),
+        typeRef_(typeRef)
+    {
+    }
+
+    TypeRef typeRef() const { return typeRef_; }
+};
+
 SWC_END_NAMESPACE()

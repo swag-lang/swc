@@ -25,10 +25,9 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
         if (!SemaCast::castAllowed(sema, castCtx, nodeInitView.typeRef, nodeTypeView.typeRef))
         {
             // Primary, context-specific diagnostic
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_var_init_type_mismatch, castCtx.errorNodeRef);
+            auto diag = SemaError::report(sema, castCtx.failure.diagId, castCtx.errorNodeRef);
             diag.addArgument(Diagnostic::ARG_TYPE, castCtx.failure.srcTypeRef);
             diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, castCtx.failure.dstTypeRef);
-            diag.addNote(castCtx.failure.diagId);
 
             // Explicit cast works hint
             CastContext explicitCtx{CastKind::Explicit};
@@ -50,6 +49,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
     else
         symbolMap = sema.curSymMap();
 
+    // Constant
     if (hasParserFlag(Const))
     {
         if (nodeInitRef.isInvalid())
@@ -68,18 +68,21 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
         {
             CastContext castCtx(CastKind::Implicit);
             castCtx.errorNodeRef = nodeInitRef;
-
-            nodeInitView.cstRef = SemaCast::castConstant(sema, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef);
+            nodeInitView.cstRef  = SemaCast::castConstant(sema, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef);
             if (nodeInitView.cstRef.isInvalid())
                 return AstVisitStepResult::Stop;
         }
 
         symbolMap->addConstant(sema.ctx(), idRef, nodeInitView.cstRef);
+        return AstVisitStepResult::Continue;
     }
-    else
-    {
-        SemaError::raiseInternal(sema, *this);
-    }
+
+    TypeRef typeRef = nodeTypeView.typeRef;
+    if (typeRef.isInvalid())
+        typeRef = nodeInitView.typeRef;
+
+    const auto sym = symbolMap->addVariable(sema.ctx(), idRef, typeRef);
+    sema.setSymbol(sema.curNodeRef(), sym);
 
     return AstVisitStepResult::Continue;
 }

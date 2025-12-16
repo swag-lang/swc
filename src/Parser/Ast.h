@@ -32,10 +32,10 @@ class Ast
     static constexpr uint32_t LOCAL_BITS  = 32u - SHARD_BITS;
     static constexpr uint32_t LOCAL_MASK  = (1u << LOCAL_BITS) - 1u;
 
-    static uint32_t packRef(uint32_t shard, uint32_t localByteOffset)
+    static uint32_t packRef(uint32_t shard, uint32_t localIndex)
     {
-        SWC_ASSERT((localByteOffset & ~LOCAL_MASK) == 0 && "Shard-local Store exceeded LOCAL_BITS capacity");
-        return (shard << LOCAL_BITS) | (localByteOffset & LOCAL_MASK);
+        SWC_ASSERT(localIndex <= LOCAL_MASK);
+        return (shard << LOCAL_BITS) | (localIndex & LOCAL_MASK);
     }
 
     static uint32_t refShard(uint32_t globalRef) { return globalRef >> LOCAL_BITS; }

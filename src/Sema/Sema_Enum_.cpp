@@ -35,12 +35,10 @@ AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& child
     const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
 
     // Get the destination symbolMap
-    SymbolMap*         symbolMap = nullptr;
+    SymbolMap*         symbolMap = sema.curSymMap();
     const SymbolAccess access    = sema.frame().currentAccess.value_or(sema.frame().defaultAccess);
     if (access == SymbolAccess::Internal)
         symbolMap = &sema.semaInfo().fileNamespace();
-    else
-        symbolMap = sema.curSymMap();
 
     // Creates symbol with type
     const TypeInfo    enumType    = TypeInfo::makeEnum(idRef, typeView.typeRef);

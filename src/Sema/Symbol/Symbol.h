@@ -29,6 +29,7 @@ enum class SymbolFlagsE : uint8_t
 {
     Zero = 0,
     Public,
+    FullComplete,
 };
 using SymbolFlags = EnumFlags<SymbolFlagsE>;
 

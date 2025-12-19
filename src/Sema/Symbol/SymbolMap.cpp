@@ -58,14 +58,14 @@ void SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol)
 
 SymbolConstant* SymbolMap::addConstant(TaskContext& ctx, IdentifierRef idRef, ConstantRef cstRef, SymbolFlags flags)
 {
-    auto* sym = ctx.compiler().allocate<SymbolConstant>(ctx, idRef, cstRef, flags);
+    auto* sym = ctx.compiler().allocate<SymbolConstant>(ctx, idRef, cstRef, flags | SymbolFlagsE::FullComplete);
     addSymbol(ctx, sym);
     return sym;
 }
 
 SymbolVariable* SymbolMap::addVariable(TaskContext& ctx, IdentifierRef idRef, TypeRef typeRef, SymbolFlags flags)
 {
-    auto* sym = ctx.compiler().allocate<SymbolVariable>(ctx, idRef, typeRef, flags);
+    auto* sym = ctx.compiler().allocate<SymbolVariable>(ctx, idRef, typeRef, flags | SymbolFlagsE::FullComplete);
     addSymbol(ctx, sym);
     return sym;
 }

@@ -686,7 +686,7 @@ struct AstEnumDecl : AstNodeT<AstNodeId::EnumDecl>
         AstNode::collectChildren(out, {nodeTypeRef, nodeBodyRef});
     }
 
-    AstVisitStepResult semaPreNode(Sema& sema);
+    AstVisitStepResult semaPreChild(Sema& sema, const AstNodeRef& childRef);
 };
 
 struct AstEnumValue : AstNodeT<AstNodeId::EnumValue>

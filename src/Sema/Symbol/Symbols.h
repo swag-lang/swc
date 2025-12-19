@@ -44,8 +44,6 @@ public:
 
 class SymbolVariable : public Symbol
 {
-    TypeRef typeRef_ = TypeRef::invalid();
-
 public:
     static constexpr auto K = SymbolKind::Variable;
 
@@ -53,8 +51,17 @@ public:
         Symbol(ctx, SymbolKind::Variable, idRef, typeRef)
     {
     }
+};
 
-    TypeRef typeRef() const { return typeRef_; }
+class SymbolEnum : public Symbol
+{
+public:
+    static constexpr auto K = SymbolKind::Variable;
+
+    explicit SymbolEnum(const TaskContext& ctx, IdentifierRef idRef, TypeRef typeRef) :
+        Symbol(ctx, SymbolKind::Enum, idRef, typeRef)
+    {
+    }
 };
 
 SWC_END_NAMESPACE()

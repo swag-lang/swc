@@ -22,15 +22,16 @@ enum class SymbolKind : uint8_t
     Namespace,
     Constant,
     Variable,
+    Enum,
 };
 
 class Symbol
 {
     IdentifierRef idRef_       = IdentifierRef::invalid();
     TypeRef       typeRef_     = TypeRef::invalid();
-    SymbolKind    kind_        = SymbolKind::Invalid;
     Symbol*       nextHomonym_ = nullptr;
     SymbolMap*    symMap_      = nullptr;
+    SymbolKind    kind_        = SymbolKind::Invalid;
 
 public:
     explicit Symbol(const TaskContext& ctx, SymbolKind kind, IdentifierRef idRef, TypeRef typeRef) :

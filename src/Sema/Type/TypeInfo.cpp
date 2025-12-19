@@ -33,6 +33,8 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
             return asFloat.bits == other.asFloat.bits;
         case TypeInfoKind::TypeInfo:
             return asTypeInfo.typeRef == other.asTypeInfo.typeRef;
+        case TypeInfoKind::Enum:
+            return asEnum.idRef == other.asEnum.idRef;
 
         default:
             SWC_UNREACHABLE();
@@ -63,6 +65,9 @@ uint32_t TypeInfo::hash() const
             return h;
         case TypeInfoKind::TypeInfo:
             h = Math::hashCombine(h, asTypeInfo.typeRef.get());
+            return h;
+        case TypeInfoKind::Enum:
+            h = Math::hashCombine(h, asEnum.idRef.get());
             return h;
 
         default:
@@ -126,6 +131,14 @@ TypeInfo TypeInfo::makeTypeInfo(TypeRef typeRef)
     TypeInfo ti{TypeInfoKind::TypeInfo};
     ti.asTypeInfo = {.typeRef = typeRef};
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return ti;
+}
+
+TypeInfo TypeInfo::makeEnum(IdentifierRef idRef, TypeRef underlyingTypeRef)
+{
+    TypeInfo ti{TypeInfoKind::Enum};
+    ti.asEnum.idRef   = idRef;
+    ti.asEnum.typeRef = underlyingTypeRef;
     return ti;
 }
 

@@ -90,3 +90,4 @@ SWC_DIAG_DEF(sema_err_negative_shift, Error, "invalid negative shift operand {ri
 SWC_DIAG_DEF(sema_err_bit_cast_size, Error, "cannot bit-cast from {type} to {requested-type} due to size mismatch")
 SWC_DIAG_DEF(sema_err_bit_cast_invalid_type, Error, "cannot bit-cast non-integral type {type}")
 SWC_DIAG_DEF(sema_err_var_init_type_mismatch, Error, "type mismatch in initializer")
+SWC_DIAG_DEF(sema_err_invalid_enum_type, Error, "invalid enum type {type}")

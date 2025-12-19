@@ -1,4 +1,5 @@
 #pragma once
+#include "Sema/Symbol/IdentifierManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -17,6 +18,7 @@ enum class TypeInfoKind
     Any,
     Void,
     CString,
+    Enum,
 };
 
 class TypeInfo;
@@ -49,6 +51,7 @@ private:
         struct { uint32_t bits; Sign sign; } asInt;
         struct { uint32_t bits; } asFloat;
         struct { TypeRef typeRef; } asTypeInfo;
+        struct { IdentifierRef idRef; TypeRef typeRef; } asEnum;
         // clang-format on
     };
 
@@ -101,6 +104,7 @@ public:
     static TypeInfo makeAny();
     static TypeInfo makeVoid();
     static TypeInfo makeCString();
+    static TypeInfo makeEnum(IdentifierRef idRef, TypeRef underlyingTypeRef);
 
     uint32_t hash() const;
 };

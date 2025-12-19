@@ -18,6 +18,7 @@ class SymbolModule;
 class SymbolNamespace;
 class SymbolConstant;
 class SymbolVariable;
+class SymbolEnum;
 
 class SymbolMap : public Symbol
 {
@@ -47,6 +48,7 @@ public:
 
     SymbolConstant*  addConstant(TaskContext& ctx, IdentifierRef idRef, ConstantRef cstRef);
     SymbolVariable*  addVariable(TaskContext& ctx, IdentifierRef idRef, TypeRef typeRef);
+    SymbolEnum*      addEnum(TaskContext& ctx, IdentifierRef idRef, TypeRef typeRef);
     SymbolNamespace* addNamespace(TaskContext& ctx, IdentifierRef idRef);
 };
 

@@ -12,9 +12,10 @@ class SemaScope;
 
 enum class NodeSemaKind : uint8_t
 {
-    IsConstantRef = 1,
-    IsTypeRef     = 2,
-    IsSymbolRef   = 3,
+    ConstantRef = 1,
+    TypeRef     = 2,
+    SymbolRef   = 3,
+    Substitution     = 4,
 };
 
 struct SemaTag

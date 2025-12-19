@@ -2,6 +2,7 @@
 #include "Sema/Constant/ConstantManager.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
+#include "Sema/Helpers/SemaError.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -94,13 +95,12 @@ const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
     return *shards_[shardIndex].store.ptr<ConstantValue>(localIndex * sizeof(ConstantValue));
 }
 
-ConstantRef ConstantManager::concretizeConstant(TaskContext& ctx, ConstantRef cstRef, TypeInfo::Sign hintSign, bool& overflow)
+ConstantRef ConstantManager::concretizeConstant(Sema& sema, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign)
 {
+    const auto           ctx     = sema.ctx();
     const ConstantValue& srcCst  = get(cstRef);
     const TypeManager&   typeMgr = ctx.typeMgr();
     const TypeInfo&      ty      = typeMgr.get(srcCst.typeRef());
-
-    overflow = false;
 
     if (ty.isIntUnsized())
     {
@@ -112,9 +112,13 @@ ConstantRef ConstantManager::concretizeConstant(TaskContext& ctx, ConstantRef cs
 
         ApsInt value = srcCst.getIntLike();
         value.setSigned(sign == TypeInfo::Sign::Signed);
-        const auto destBits = TypeManager::chooseConcreteScalarWidth(value.minBits(), overflow);
+        bool           overflow = false;
+        const uint32_t destBits = TypeManager::chooseConcreteScalarWidth(value.minBits(), overflow);
         if (overflow)
-            return cstRef;
+        {
+            SemaError::raiseLiteralTooBig(sema, nodeOwnerRef, get(cstRef));
+            return ConstantRef::invalid();
+        }
 
         value.resize(destBits);
 
@@ -126,20 +130,18 @@ ConstantRef ConstantManager::concretizeConstant(TaskContext& ctx, ConstantRef cs
 
     if (ty.isFloatUnsized())
     {
-        const ApFloat& srcF = srcCst.getFloat();
-
-        const auto destBits = TypeManager::chooseConcreteScalarWidth(srcF.minBits(), overflow);
+        const ApFloat& srcF     = srcCst.getFloat();
+        bool           overflow = false;
+        const uint32_t destBits = TypeManager::chooseConcreteScalarWidth(srcF.minBits(), overflow);
         if (overflow)
-            return cstRef;
+        {
+            SemaError::raiseLiteralTooBig(sema, nodeOwnerRef, get(cstRef));
+            return ConstantRef::invalid();
+        }
 
-        bool    isExact   = false;
-        ApFloat concreteF = srcF.toFloat(destBits, isExact, overflow);
-
-        // Keep your current behavior: if conversion says overflow, preserve the original.
-        if (overflow)
-            concreteF = srcF;
-
-        const ConstantValue result = ConstantValue::makeFloat(ctx, concreteF, destBits);
+        bool                isExact   = false;
+        const ApFloat       concreteF = srcF.toFloat(destBits, isExact, overflow);
+        const ConstantValue result    = ConstantValue::makeFloat(ctx, concreteF, destBits);
         return addConstant(ctx, result);
     }
 

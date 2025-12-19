@@ -1,6 +1,8 @@
 #pragma once
 #include "Core/Store.h"
+#include "Main/CompilerInstance.h"
 #include "Sema/Constant/ConstantValue.h"
+#include "Sema/Sema.h"
 
 SWC_BEGIN_NAMESPACE()
 class CompilerInstance;
@@ -38,7 +40,7 @@ public:
     ConstantRef          cstNegBool(ConstantRef cstRef) const { return cstRef == cstBool_true_ ? cstBool_false_ : cstBool_true_; }
     const ConstantValue& get(ConstantRef constantRef) const;
 
-    ConstantRef concretizeConstant(TaskContext& ctx, ConstantRef cstRef, TypeInfo::Sign hintSign, bool& overflow);
+    ConstantRef concretizeConstant(Sema& sema, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign);
 };
 
 SWC_END_NAMESPACE()

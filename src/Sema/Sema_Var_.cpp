@@ -57,8 +57,9 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
     }
     else if (nodeInitView.cstRef.isValid())
     {
-        bool overflow        = false;
-        nodeInitView.cstRef  = sema.ctx().cstMgr().concretizeConstant(sema.ctx(), nodeInitView.cstRef, TypeInfo::Sign::Unknown, overflow);
+        nodeInitView.cstRef = sema.ctx().cstMgr().concretizeConstant(sema, nodeInitView.nodeRef, nodeInitView.cstRef, TypeInfo::Sign::Unknown);
+        if (nodeInitView.cstRef.isInvalid())
+            return AstVisitStepResult::Stop;
         nodeInitView.typeRef = sema.ctx().cstMgr().get(nodeInitView.cstRef).typeRef();
     }
 

@@ -223,14 +223,9 @@ namespace
 
         if (nodeView.cstRef.isValid())
         {
-            bool overflow   = false;
-            nodeView.cstRef = sema.cstMgr().concretizeConstant(sema.ctx(), nodeView.cstRef, TypeInfo::Sign::Unknown, overflow);
-            if (overflow)
-            {
-                SemaError::raiseLiteralTooBig(sema, node.nodeArgRef, sema.cstMgr().get(nodeView.cstRef));
+            nodeView.cstRef = sema.cstMgr().concretizeConstant(sema, nodeView.nodeRef, nodeView.cstRef, TypeInfo::Sign::Unknown);
+            if (nodeView.cstRef.isInvalid())
                 return AstVisitStepResult::Stop;
-            }
-
             nodeView.typeRef = sema.cstMgr().get(nodeView.cstRef).typeRef();
         }
 

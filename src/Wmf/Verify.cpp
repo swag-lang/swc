@@ -4,10 +4,10 @@
 #include "Lexer/LangSpec.h"
 #include "Lexer/Lexer.h"
 #include "Main/CommandLine.h"
+#include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Report/Diagnostic.h"
-#include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE()
 

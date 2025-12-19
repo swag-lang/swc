@@ -1,4 +1,5 @@
 #pragma once
+#include "Sema/Constant/ConstantManager.h"
 #include "Sema/Symbol/SymbolMap.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -33,7 +34,7 @@ public:
     static constexpr auto K = SymbolKind::Constant;
 
     explicit SymbolConstant(const TaskContext& ctx, IdentifierRef idRef, ConstantRef cstRef) :
-        Symbol(ctx, SymbolKind::Constant, idRef),
+        Symbol(ctx, SymbolKind::Constant, idRef, ctx.cstMgr().get(cstRef).typeRef()),
         cstRef_(cstRef)
     {
     }
@@ -49,8 +50,7 @@ public:
     static constexpr auto K = SymbolKind::Variable;
 
     explicit SymbolVariable(const TaskContext& ctx, IdentifierRef idRef, TypeRef typeRef) :
-        Symbol(ctx, SymbolKind::Variable, idRef),
-        typeRef_(typeRef)
+        Symbol(ctx, SymbolKind::Variable, idRef, typeRef)
     {
     }
 

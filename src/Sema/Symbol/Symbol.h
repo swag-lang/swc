@@ -1,5 +1,6 @@
 #pragma once
 #include "Sema/Symbol/IdentifierManager.h"
+#include "Sema/Type/TypeInfo.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -25,20 +26,23 @@ enum class SymbolKind : uint8_t
 
 class Symbol
 {
-    IdentifierRef idRef_;
+    IdentifierRef idRef_       = IdentifierRef::invalid();
+    TypeRef       typeRef_     = TypeRef::invalid();
     SymbolKind    kind_        = SymbolKind::Invalid;
     Symbol*       nextHomonym_ = nullptr;
     SymbolMap*    symMap_      = nullptr;
 
 public:
-    explicit Symbol(const TaskContext& ctx, SymbolKind kind, IdentifierRef idRef) :
+    explicit Symbol(const TaskContext& ctx, SymbolKind kind, IdentifierRef idRef, TypeRef typeRef) :
         idRef_(idRef),
+        typeRef_(typeRef),
         kind_(kind)
     {
     }
 
     SymbolKind       kind() const { return kind_; }
     IdentifierRef    idRef() const { return idRef_; }
+    TypeRef          typeRef() const { return typeRef_; }
     SymbolMap*       symMap() noexcept { return symMap_; }
     const SymbolMap* symMap() const noexcept { return symMap_; }
     void             setSymMap(SymbolMap* symMap) noexcept { symMap_ = symMap; }

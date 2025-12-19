@@ -99,6 +99,9 @@ TypeRef SemaInfo::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const
         case NodeSemaKind::TypeRef:
             value = TypeRef{node.semaRaw()};
             break;
+        case NodeSemaKind::SymbolRef:
+            value = getSymbol(ctx, nodeRef).typeRef();
+            break;
         default:
             SWC_UNREACHABLE();
     }
@@ -132,7 +135,8 @@ const Symbol& SemaInfo::getSymbol(const TaskContext&, AstNodeRef nodeRef) const
     const uint32_t shardIdx = nodeRef.get() % NUM_SHARDS;
     auto&          shard    = shards_[shardIdx];
     const AstNode& node     = ast().node(nodeRef);
-    return **shard.store.ptr<Symbol*>(node.semaRaw());
+    const Symbol&  value    = **shard.store.ptr<Symbol*>(node.semaRaw());
+    return value;
 }
 
 SemaRef SemaInfo::setSymbol(AstNodeRef nodeRef, Symbol* symbol)
@@ -143,8 +147,21 @@ SemaRef SemaInfo::setSymbol(AstNodeRef nodeRef, Symbol* symbol)
 
     AstNode& node      = ast().node(nodeRef);
     semaNodeKind(node) = NodeSemaKind::SymbolRef;
+    const auto value   = shard.store.push_back(symbol);
+    return SemaRef{value};
+}
 
-    return SemaRef{shard.store.push_back(symbol)};
+SemaRef SemaInfo::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
+{
+    const uint32_t   shardIdx = nodeRef.get() % NUM_SHARDS;
+    auto&            shard    = shards_[shardIdx];
+    std::unique_lock lock(shard.mutex);
+
+    AstNode& node      = ast().node(nodeRef);
+    semaNodeKind(node) = NodeSemaKind::SymbolRef;
+    const auto value   = SemaRef{shard.store.push_back(symbol)};
+    node.setSemaRaw(value.get());
+    return value;
 }
 
 SWC_END_NAMESPACE()

@@ -39,7 +39,7 @@ class SymbolMap : public Symbol
 
 public:
     explicit SymbolMap(const TaskContext& ctx, SymbolKind kind, IdentifierRef idRef) :
-        Symbol(ctx, kind, idRef)
+        Symbol(ctx, kind, idRef, TypeRef::invalid())
     {
     }
 

@@ -30,14 +30,9 @@ AstVisitStepResult AstIdentifier::semaPostNode(Sema& sema) const
 
     const SymbolConstant* symCst = sym->safeCast<SymbolConstant>();
     if (symCst)
-    {
         sema.setConstant(sema.curNodeRef(), symCst->cstRef());
-    }
     else
-    {
-        SemaError::raiseInternal(sema, *this);
-        return AstVisitStepResult::Stop;
-    }
+        sema.setSymbol(sema.curNodeRef(), sym);
 
     return AstVisitStepResult::Continue;
 }

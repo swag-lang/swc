@@ -39,17 +39,17 @@ class SymbolMap : public Symbol
     const Shard& getShard(IdentifierRef idRef) const;
 
 public:
-    explicit SymbolMap(const TaskContext& ctx, SymbolKind kind, IdentifierRef idRef) :
-        Symbol(ctx, kind, idRef, TypeRef::invalid())
+    explicit SymbolMap(const TaskContext& ctx, SymbolKind kind, IdentifierRef idRef, TypeRef typeRef, SymbolFlags flags) :
+        Symbol(ctx, kind, idRef, typeRef, flags)
     {
     }
 
     void lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const;
 
-    SymbolConstant*  addConstant(TaskContext& ctx, IdentifierRef idRef, ConstantRef cstRef);
-    SymbolVariable*  addVariable(TaskContext& ctx, IdentifierRef idRef, TypeRef typeRef);
-    SymbolEnum*      addEnum(TaskContext& ctx, IdentifierRef idRef, TypeRef typeRef);
-    SymbolNamespace* addNamespace(TaskContext& ctx, IdentifierRef idRef);
+    SymbolConstant*  addConstant(TaskContext& ctx, IdentifierRef idRef, ConstantRef cstRef, SymbolFlags flags);
+    SymbolVariable*  addVariable(TaskContext& ctx, IdentifierRef idRef, TypeRef typeRef, SymbolFlags flags);
+    SymbolEnum*      addEnum(TaskContext& ctx, IdentifierRef idRef, TypeRef typeRef, SymbolFlags flags);
+    SymbolNamespace* addNamespace(TaskContext& ctx, IdentifierRef idRef, SymbolFlags flags);
 };
 
 SWC_END_NAMESPACE()

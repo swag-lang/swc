@@ -45,7 +45,7 @@ AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& child
     // Creates symbol with type
     const TypeInfo    enumType    = TypeInfo::makeEnum(idRef, typeView.typeRef);
     const TypeRef     enumTypeRef = sema.ctx().typeMgr().addType(enumType);
-    const SymbolEnum* sym         = symbolMap->addEnum(sema.ctx(), idRef, enumTypeRef);
+    const SymbolEnum* sym         = symbolMap->addEnum(sema.ctx(), idRef, enumTypeRef, SymbolFlagsE::Zero);
     sema.setSymbol(sema.curNodeRef(), sym);
 
     SemaFrame newFrame       = sema.frame();

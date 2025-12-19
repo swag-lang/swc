@@ -25,6 +25,13 @@ enum class SymbolKind : uint8_t
     Enum,
 };
 
+enum class SymbolFlagsE : uint8_t
+{
+    Zero = 0,
+    Public,
+};
+using SymbolFlags = EnumFlags<SymbolFlagsE>;
+
 class Symbol
 {
     IdentifierRef idRef_       = IdentifierRef::invalid();
@@ -32,9 +39,10 @@ class Symbol
     Symbol*       nextHomonym_ = nullptr;
     SymbolMap*    symMap_      = nullptr;
     SymbolKind    kind_        = SymbolKind::Invalid;
+    SymbolFlags   flags_       = SymbolFlagsE::Zero;
 
 public:
-    explicit Symbol(const TaskContext& ctx, SymbolKind kind, IdentifierRef idRef, TypeRef typeRef) :
+    explicit Symbol(const TaskContext& ctx, SymbolKind kind, IdentifierRef idRef, TypeRef typeRef, SymbolFlags flags) :
         idRef_(idRef),
         typeRef_(typeRef),
         kind_(kind)

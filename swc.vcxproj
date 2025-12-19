@@ -255,6 +255,7 @@
         <ClCompile Include="src\Sema\Sema_Attributes_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Cast_.cpp"/>
         <ClCompile Include="src\Sema\Sema_Compiler_.cpp"/>
+        <ClCompile Include="src\Sema\Sema_Enum_.cpp"/>
         <ClCompile Include="src\Sema\Sema_ExprLogical_.cpp"/>
         <ClCompile Include="src\Sema\Sema_ExprRelational_.cpp"/>
         <ClCompile Include="src\Sema\Sema_ExprBinary_.cpp"/>

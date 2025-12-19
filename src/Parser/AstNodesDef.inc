@@ -685,6 +685,8 @@ struct AstEnumDecl : AstNodeT<AstNodeId::EnumDecl>
     {
         AstNode::collectChildren(out, {nodeTypeRef, nodeBodyRef});
     }
+
+    AstVisitStepResult semaPreNode(Sema& sema);
 };
 
 struct AstEnumValue : AstNodeT<AstNodeId::EnumValue>
@@ -956,7 +958,6 @@ struct AstAccessModifier : AstNodeT<AstNodeId::AccessModifier>
     }
 
     AstVisitStepResult semaPreNode(Sema& sema) const;
-    AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
 struct AstConstraintBlock : AstCompoundT<AstNodeId::ConstraintBlock>

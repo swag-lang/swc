@@ -31,12 +31,7 @@ AstVisitStepResult AstAccessModifier::semaPreNode(Sema& sema) const
     else
         newFrame.currentAccess = access;
     sema.pushFrame(newFrame);
-    return AstVisitStepResult::Continue;
-}
 
-AstVisitStepResult AstAccessModifier::semaPostNode(Sema& sema) const
-{
-    sema.popFrame();
     return AstVisitStepResult::Continue;
 }
 

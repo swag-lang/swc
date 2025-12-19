@@ -8,7 +8,6 @@
 #include "Sema/Helpers/SemaInfo.h"
 #include "Sema/Helpers/SemaJob.h"
 #include "Sema/Helpers/SemaScope.h"
-#include "Symbol/LookupResult.h"
 #include "Symbol/Symbols.h"
 #include "Thread/JobManager.h"
 #include "Wmf/Verify.h"
@@ -163,6 +162,8 @@ AstVisitStepResult Sema::postNode(AstNode& node)
     {
         if (info.scopeFlags != SemaScopeFlagsE::Zero)
             popScope();
+        if (info.hasFlag(AstNodeIdFlagsE::SemaFrame))
+            popFrame();
     }
 
     return result;

@@ -13,6 +13,9 @@ struct AstFile : AstCompoundT<AstNodeId::File>
         AstNode::collectChildren(out, ast, spanGlobalsRef);
         AstCompoundT::collectChildren(out, ast);
     }
+
+    static AstVisitStepResult semaPreNode(Sema& sema);
+    static AstVisitStepResult semaPostNode(Sema& sema);
 };
 
 struct AstTopLevelBlock : AstCompoundT<AstNodeId::TopLevelBlock>
@@ -686,8 +689,8 @@ struct AstEnumDecl : AstNodeT<AstNodeId::EnumDecl>
         AstNode::collectChildren(out, {nodeTypeRef, nodeBodyRef});
     }
 
-    AstVisitStepResult semaPreChild(Sema& sema, const AstNodeRef& childRef);
-    AstVisitStepResult semaPostNode(Sema& sema) const;
+    AstVisitStepResult        semaPreChild(Sema& sema, const AstNodeRef& childRef);
+    static AstVisitStepResult semaPostNode(Sema& sema);
 };
 
 struct AstEnumValue : AstNodeT<AstNodeId::EnumValue>

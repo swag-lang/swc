@@ -68,6 +68,7 @@ public:
 
     bool          hasSymbol(AstNodeRef nodeRef) const;
     const Symbol& getSymbol(const TaskContext&, AstNodeRef nodeRef) const;
+    Symbol&       getSymbol(const TaskContext&, AstNodeRef nodeRef);
     SemaRef       setSymbol(AstNodeRef nodeRef, Symbol* symbol);
     SemaRef       setSymbol(AstNodeRef nodeRef, const Symbol* symbol);
 };

@@ -107,7 +107,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
     if (typeRef.isInvalid())
         typeRef = nodeInitView.typeRef;
 
-    const auto sym = symbolMap->addVariable(sema.ctx(), idRef, typeRef, flags);
+    const SymbolVariable* sym = symbolMap->addVariable(sema.ctx(), idRef, typeRef, flags);
     sema.setSymbol(sema.curNodeRef(), sym);
 
     return AstVisitStepResult::Continue;

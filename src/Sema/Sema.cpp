@@ -137,33 +137,21 @@ void Sema::popScope()
 
 void Sema::enterNode(AstNode& node)
 {
-    const auto& info = Ast::nodeIdInfos(node.id());
-
-    // Push scope
-    if (info.scopeFlags != SemaScopeFlagsE::Zero)
-        pushScope(info.scopeFlags);
-
+    const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     info.semaEnterNode(*this, node);
 }
 
 AstVisitStepResult Sema::preNode(AstNode& node)
 {
-    const auto& info = Ast::nodeIdInfos(node.id());
-    return info.semaPreNode(*this, node);
+    const AstNodeIdInfo&     info   = Ast::nodeIdInfos(node.id());
+    const AstVisitStepResult result = info.semaPreNode(*this, node);
+    return result;
 }
 
 AstVisitStepResult Sema::postNode(AstNode& node)
 {
-    const auto& info   = Ast::nodeIdInfos(node.id());
-    const auto  result = info.semaPostNode(*this, node);
-
-    // Pop scope once done
-    if (result == AstVisitStepResult::Continue)
-    {
-        if (info.scopeFlags != SemaScopeFlagsE::Zero)
-            popScope();
-    }
-
+    const AstNodeIdInfo&     info   = Ast::nodeIdInfos(node.id());
+    const AstVisitStepResult result = info.semaPostNode(*this, node);
     return result;
 }
 
@@ -171,8 +159,8 @@ AstVisitStepResult Sema::preChild(AstNode& node, AstNodeRef& childRef)
 {
     if (curScope_->has(SemaScopeFlagsE::TopLevel))
     {
-        const AstNode& child = ast().node(childRef);
-        const auto&    info  = Ast::nodeIdInfos(child.id());
+        const AstNode&       child = ast().node(childRef);
+        const AstNodeIdInfo& info  = Ast::nodeIdInfos(child.id());
         if (info.hasFlag(AstNodeIdFlagsE::SemaJob))
         {
             const auto job = heapNew<SemaJob>(ctx(), *this, childRef);
@@ -181,15 +169,15 @@ AstVisitStepResult Sema::preChild(AstNode& node, AstNodeRef& childRef)
         }
     }
 
-    const auto& info = Ast::nodeIdInfos(node.id());
+    const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     return info.semaPreChild(*this, node, childRef);
 }
 
 AstVisitStepResult Sema::pause(TaskStateKind kind, AstNodeRef nodeRef)
 {
-    auto& wait   = ctx().state();
-    wait.kind    = kind;
-    wait.nodeRef = nodeRef;
+    TaskState& wait = ctx().state();
+    wait.kind       = kind;
+    wait.nodeRef    = nodeRef;
     return AstVisitStepResult::Pause;
 }
 
@@ -202,7 +190,7 @@ namespace
 
         for (const auto job : jobs)
         {
-            const auto& state = job->ctx().state();
+            const TaskState& state = job->ctx().state();
             if (const auto semaJob = job->safeCast<SemaJob>())
             {
                 if (state.kind == TaskStateKind::SemaWaitingIdentifier)
@@ -214,7 +202,7 @@ namespace
 
         for (const auto& f : ctx.compiler().files())
         {
-            const auto& srcView = f->ast().srcView();
+            const SourceView& srcView = f->ast().srcView();
             if (srcView.mustSkip())
                 continue;
             f->unitTest().verifyUntouchedExpected(ctx, srcView);
@@ -275,6 +263,18 @@ JobResult Sema::exec()
     }
 
     return jobResult;
+}
+
+AstVisitStepResult AstFile::semaPreNode(Sema& sema)
+{
+    sema.pushScope(SemaScopeFlagsE::TopLevel);
+    return AstVisitStepResult::Continue;
+}
+
+AstVisitStepResult AstFile::semaPostNode(Sema& sema)
+{
+    sema.popScope();
+    return AstVisitStepResult::Continue;
 }
 
 SWC_END_NAMESPACE()

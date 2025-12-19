@@ -68,6 +68,12 @@ public:
     {
         return kind_ == T::K ? static_cast<const T*>(this) : nullptr;
     }
+
+    template<typename T>
+    T* safeCast()
+    {
+        return kind_ == T::K ? static_cast<T*>(this) : nullptr;
+    }
 };
 
 SWC_END_NAMESPACE()

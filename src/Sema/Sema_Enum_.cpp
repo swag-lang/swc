@@ -44,10 +44,13 @@ AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& child
         flags.add(SymbolFlagsE::Public);
 
     // Creates symbol with type
-    const TypeInfo    enumType    = TypeInfo::makeEnum(idRef, typeView.typeRef);
-    const TypeRef     enumTypeRef = sema.ctx().typeMgr().addType(enumType);
-    const SymbolEnum* sym         = symbolMap->addEnum(sema.ctx(), idRef, enumTypeRef, flags);
+    const TypeInfo enumType    = TypeInfo::makeEnum(idRef, typeView.typeRef);
+    const TypeRef  enumTypeRef = sema.ctx().typeMgr().addType(enumType);
+    SymbolEnum*    sym         = symbolMap->addEnum(sema.ctx(), idRef, enumTypeRef, flags);
     sema.setSymbol(sema.curNodeRef(), sym);
+
+    sema.pushScope(SemaScopeFlagsE::Type);
+    sema.curScope().setSymMap(sym);
 
     SemaFrame newFrame       = sema.frame();
     newFrame.currentEnumDecl = this;
@@ -55,9 +58,13 @@ AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& child
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstEnumDecl::semaPostNode(Sema& sema) const
+AstVisitStepResult AstEnumDecl::semaPostNode(Sema& sema)
 {
+    const Symbol&     symbol  = sema.semaInfo().getSymbol(sema.ctx(), sema.curNodeRef());
+    const SymbolEnum* symEnum = symbol.safeCast<SymbolEnum>();
+
     sema.popFrame();
+    sema.popScope();
     return AstVisitStepResult::Continue;
 }
 

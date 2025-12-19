@@ -53,13 +53,13 @@ public:
     }
 };
 
-class SymbolEnum : public Symbol
+class SymbolEnum : public SymbolMap
 {
 public:
     static constexpr auto K = SymbolKind::Variable;
 
     explicit SymbolEnum(const TaskContext& ctx, IdentifierRef idRef, TypeRef typeRef, SymbolFlags flags) :
-        Symbol(ctx, SymbolKind::Enum, idRef, typeRef, flags)
+        SymbolMap(ctx, SymbolKind::Enum, idRef, typeRef, flags)
     {
     }
 };

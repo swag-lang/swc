@@ -7,6 +7,7 @@ enum class SemaScopeFlagsE
 {
     Zero     = 0,
     TopLevel = 1 << 0,
+    Type     = 1 << 1,
 };
 using SemaScopeFlags = EnumFlags<SemaScopeFlagsE>;
 

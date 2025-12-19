@@ -10,7 +10,7 @@ SWC_NODE_DEF(Invalid,
 // ============================================================================
 SWC_NODE_DEF(File,
                 AstNodeIdFlagsE::Zero,
-                SemaScopeFlagsE::TopLevel)
+                SemaScopeFlagsE::Zero)
 SWC_NODE_DEF(TopLevelBlock,
                 AstNodeIdFlagsE::Zero,
                 SemaScopeFlagsE::Zero)
@@ -195,7 +195,7 @@ SWC_NODE_DEF(UsingMemberDecl,
 // Enums
 SWC_NODE_DEF(EnumDecl,
                 AstNodeIdFlagsE::Zero,
-                SemaScopeFlagsE::Zero)
+                SemaScopeFlagsE::Type)
 SWC_NODE_DEF(EnumBody,
                 AstNodeIdFlagsE::Zero,
                 SemaScopeFlagsE::Zero)

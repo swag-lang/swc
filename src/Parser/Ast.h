@@ -4,6 +4,7 @@
 #include "Main/Stats.h"
 #include "Parser/AstNode.h"
 #include "Parser/AstNodes.h"
+#include "Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -40,9 +41,7 @@ class Ast
 
     static uint32_t refShard(uint32_t globalRef) { return globalRef >> LOCAL_BITS; }
     static uint32_t refLocal(uint32_t globalRef) { return globalRef & LOCAL_MASK; }
-
-    static inline std::atomic<uint32_t> allocCounter_{0};
-    static uint32_t                     chooseShard() { return allocCounter_.fetch_add(1, std::memory_order_relaxed) & (SHARD_COUNT - 1u); }
+    static uint32_t chooseShard() { return JobManager::threadIndex() % SHARD_COUNT; }
 
     Shard       shards_[SHARD_COUNT];
     SourceView* srcView_ = nullptr;

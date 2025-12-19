@@ -55,6 +55,12 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
             SemaCast::createImplicitCast(sema, nodeTypeView.typeRef, nodeInitRef);
         }
     }
+    else if (nodeInitView.cstRef.isValid())
+    {
+        bool overflow        = false;
+        nodeInitView.cstRef  = sema.ctx().cstMgr().concretizeConstant(sema.ctx(), nodeInitView.cstRef, TypeInfo::Sign::Unknown, overflow);
+        nodeInitView.typeRef = sema.ctx().cstMgr().get(nodeInitView.cstRef).typeRef();
+    }
 
     // Register name
     const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);

@@ -15,7 +15,7 @@ enum class NodeSemaKind : uint8_t
     ConstantRef = 1,
     TypeRef     = 2,
     SymbolRef   = 3,
-    Substitution     = 4,
+    Substitute  = 4,
 };
 
 struct SemaTag
@@ -53,19 +53,22 @@ public:
     SymbolNamespace&       fileNamespace() { return *fileNamespace_; }
     void                   setFileNamespace(SymbolNamespace& ns) { fileNamespace_ = &ns; }
 
-    bool hasConstant(AstNodeRef nodeRef) const;
-    bool hasType(AstNodeRef nodeRef) const;
-    bool hasSymbol(AstNodeRef nodeRef) const;
-
-    TypeRef     getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const;
-    ConstantRef getConstantRef(const TaskContext& ctx, AstNodeRef nodeRef) const;
-
+    bool                 hasConstant(AstNodeRef nodeRef) const;
     const ConstantValue& getConstant(const TaskContext& ctx, AstNodeRef nodeRef) const;
-    const Symbol&        getSymbol(const TaskContext&, AstNodeRef nodeRef) const;
+    ConstantRef          getConstantRef(const TaskContext& ctx, AstNodeRef nodeRef) const;
+    void                 setConstant(AstNodeRef nodeRef, ConstantRef ref);
 
+    bool       hasSubstitute(AstNodeRef nodeRef) const;
+    void       setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef);
+    AstNodeRef getSubstituteRef(const TaskContext&, AstNodeRef nodeRef) const;
+
+    bool    hasType(AstNodeRef nodeRef) const;
+    TypeRef getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const;
     void    setType(AstNodeRef nodeRef, TypeRef ref);
-    void    setConstant(AstNodeRef nodeRef, ConstantRef ref);
-    SemaRef setSymbol(AstNodeRef nodeRef, Symbol* symbol);
+
+    bool          hasSymbol(AstNodeRef nodeRef) const;
+    const Symbol& getSymbol(const TaskContext&, AstNodeRef nodeRef) const;
+    SemaRef       setSymbol(AstNodeRef nodeRef, Symbol* symbol);
 };
 
 SWC_END_NAMESPACE()

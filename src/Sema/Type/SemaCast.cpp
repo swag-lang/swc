@@ -258,4 +258,15 @@ bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef,
     return false;
 }
 
+AstNodeRef SemaCast::createImplicitCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef)
+{
+    SemaInfo&      semaInfo           = sema.semaInfo();
+    const AstNode& node               = sema.ast().node(nodeRef);
+    auto [substNodeRef, substNodePtr] = sema.ast().makeNode<AstNodeId::ImplicitCastExpr>(node.tokRef());
+    substNodePtr->nodeExprRef         = nodeRef;
+    semaInfo.setSubstitute(nodeRef, substNodeRef);
+    semaInfo.setType(substNodeRef, dstTypeRef);
+    return substNodeRef;
+}
+
 SWC_END_NAMESPACE()

@@ -323,6 +323,9 @@ SWC_NODE_DEF(DiscardExpr,
 SWC_NODE_DEF(ExplicitCastExpr,
                 AstNodeIdFlagsE::Zero,
                 SemaScopeFlagsE::Zero)
+SWC_NODE_DEF(ImplicitCastExpr,
+                AstNodeIdFlagsE::Zero,
+                SemaScopeFlagsE::Zero)
 SWC_NODE_DEF(AutoCastExpr,
                 AstNodeIdFlagsE::Zero,
                 SemaScopeFlagsE::Zero)

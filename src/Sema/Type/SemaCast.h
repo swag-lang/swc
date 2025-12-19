@@ -26,6 +26,8 @@ namespace SemaCast
     bool        foldConstantFloatToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef);
     ConstantRef castConstant(Sema& sema, CastContext& castCtx, ConstantRef cstRef, TypeRef targetTypeRef);
     bool        promoteConstants(Sema& sema, const SemaNodeViewList& ops, ConstantRef& leftCstRef, ConstantRef& rightCstRef, bool force32BitInts = false);
+
+    AstNodeRef createImplicitCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef);
 };
 
 SWC_END_NAMESPACE()

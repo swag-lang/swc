@@ -48,6 +48,12 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
                 return AstVisitStepResult::Stop;
             sema.setConstant(nodeInitRef, newCstRef);
         }
+
+        // Otherwise creates an implicit cast
+        else
+        {
+            SemaCast::createImplicitCast(sema, nodeTypeView.typeRef, nodeInitRef);
+        }
     }
 
     // Register name

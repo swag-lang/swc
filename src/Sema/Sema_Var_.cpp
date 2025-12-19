@@ -67,10 +67,13 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
     const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
 
     // Get the destination symbolMap
+    SymbolFlags        flags     = SymbolFlagsE::Zero;
     SymbolMap*         symbolMap = sema.curSymMap();
     const SymbolAccess access    = sema.frame().currentAccess.value_or(sema.frame().defaultAccess);
     if (access == SymbolAccess::Internal)
         symbolMap = &sema.semaInfo().fileNamespace();
+    else if (access == SymbolAccess::Public)
+        flags.add(SymbolFlagsE::Public);
 
     // Constant
     if (hasParserFlag(Const))
@@ -96,7 +99,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
                 return AstVisitStepResult::Stop;
         }
 
-        symbolMap->addConstant(sema.ctx(), idRef, nodeInitView.cstRef, SymbolFlagsE::Zero);
+        symbolMap->addConstant(sema.ctx(), idRef, nodeInitView.cstRef, flags);
         return AstVisitStepResult::Continue;
     }
 
@@ -104,7 +107,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
     if (typeRef.isInvalid())
         typeRef = nodeInitView.typeRef;
 
-    const auto sym = symbolMap->addVariable(sema.ctx(), idRef, typeRef, SymbolFlagsE::Zero);
+    const auto sym = symbolMap->addVariable(sema.ctx(), idRef, typeRef, flags);
     sema.setSymbol(sema.curNodeRef(), sym);
 
     return AstVisitStepResult::Continue;

@@ -252,9 +252,8 @@ decltype(auto) visitAstNodeId(AstNodeId id, F f)
 
 enum class AstNodeIdFlagsE
 {
-    Zero      = 0,
-    SemaJob   = 1 << 0,
-    SemaFrame = 1 << 1,
+    Zero    = 0,
+    SemaJob = 1 << 0,
 };
 using AstNodeIdFlags = EnumFlags<AstNodeIdFlagsE>;
 

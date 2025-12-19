@@ -35,4 +35,10 @@ AstVisitStepResult AstAccessModifier::semaPreNode(Sema& sema) const
     return AstVisitStepResult::Continue;
 }
 
+AstVisitStepResult AstAccessModifier::semaPostNode(Sema& sema) const
+{
+    sema.popFrame();
+    return AstVisitStepResult::Continue;
+}
+
 SWC_END_NAMESPACE()

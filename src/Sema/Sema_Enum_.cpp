@@ -35,20 +35,29 @@ AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& child
     const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
 
     // Get the destination symbolMap
+    SymbolFlags        flags     = SymbolFlagsE::Zero;
     SymbolMap*         symbolMap = sema.curSymMap();
     const SymbolAccess access    = sema.frame().currentAccess.value_or(sema.frame().defaultAccess);
     if (access == SymbolAccess::Internal)
         symbolMap = &sema.semaInfo().fileNamespace();
+    else if (access == SymbolAccess::Public)
+        flags.add(SymbolFlagsE::Public);
 
     // Creates symbol with type
     const TypeInfo    enumType    = TypeInfo::makeEnum(idRef, typeView.typeRef);
     const TypeRef     enumTypeRef = sema.ctx().typeMgr().addType(enumType);
-    const SymbolEnum* sym         = symbolMap->addEnum(sema.ctx(), idRef, enumTypeRef, SymbolFlagsE::Zero);
+    const SymbolEnum* sym         = symbolMap->addEnum(sema.ctx(), idRef, enumTypeRef, flags);
     sema.setSymbol(sema.curNodeRef(), sym);
 
     SemaFrame newFrame       = sema.frame();
     newFrame.currentEnumDecl = this;
     sema.pushFrame(newFrame);
+    return AstVisitStepResult::Continue;
+}
+
+AstVisitStepResult AstEnumDecl::semaPostNode(Sema& sema) const
+{
+    sema.popFrame();
     return AstVisitStepResult::Continue;
 }
 

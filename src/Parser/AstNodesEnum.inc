@@ -27,7 +27,7 @@ SWC_NODE_DEF(ScopeResolution,
                 AstNodeIdFlagsE::Zero,
                 SemaScopeFlagsE::Zero)
 SWC_NODE_DEF(AccessModifier,
-                AstNodeIdFlagsE::SemaFrame,
+                AstNodeIdFlagsE::Zero,
                 SemaScopeFlagsE::Zero)
 SWC_NODE_DEF(UsingNamespaceStmt,
                 AstNodeIdFlagsE::Zero,
@@ -194,7 +194,7 @@ SWC_NODE_DEF(UsingMemberDecl,
 
 // Enums
 SWC_NODE_DEF(EnumDecl,
-                AstNodeIdFlagsE::SemaFrame,
+                AstNodeIdFlagsE::Zero,
                 SemaScopeFlagsE::Zero)
 SWC_NODE_DEF(EnumBody,
                 AstNodeIdFlagsE::Zero,

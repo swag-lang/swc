@@ -162,8 +162,6 @@ AstVisitStepResult Sema::postNode(AstNode& node)
     {
         if (info.scopeFlags != SemaScopeFlagsE::Zero)
             popScope();
-        if (info.hasFlag(AstNodeIdFlagsE::SemaFrame))
-            popFrame();
     }
 
     return result;
@@ -226,18 +224,16 @@ namespace
 
 void Sema::waitAll(TaskContext& ctx, JobClientId clientId)
 {
-    auto&       jobMgr   = ctx.global().jobMgr();
-    const auto& compiler = ctx.compiler();
+    auto&             jobMgr   = ctx.global().jobMgr();
+    CompilerInstance& compiler = ctx.compiler();
 
-    uint64_t lastEpoch = 0;
     while (true)
     {
         jobMgr.waitAll(clientId);
 
-        const uint64_t cur = compiler.semaEpoch();
-        if (cur == lastEpoch)
+        if (!compiler.changed())
             break;
-        lastEpoch = cur;
+        compiler.clearChanged();
 
         jobMgr.wakeAll(clientId);
     }

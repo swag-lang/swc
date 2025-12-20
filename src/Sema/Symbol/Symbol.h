@@ -1,4 +1,6 @@
 #pragma once
+#include "Main/CompilerInstance.h"
+#include "Main/TaskContext.h"
 #include "Parser/AstNode.h"
 #include "Sema/Symbol/IdentifierManager.h"
 #include "Sema/Type/TypeInfo.h"
@@ -45,9 +47,8 @@ class Symbol
     SymbolFlags    flags_       = SymbolFlagsE::Zero;
 
 public:
-    explicit Symbol(const TaskContext& ctx, const AstNode* decl, SymbolKind kind, IdentifierRef idRef, TypeRef typeRef, SymbolFlags flags) :
+    explicit Symbol(const TaskContext& ctx, const AstNode* decl, SymbolKind kind, IdentifierRef idRef, SymbolFlags flags) :
         idRef_(idRef),
-        typeRef_(typeRef),
         decl_(decl),
         kind_(kind),
         flags_(flags)
@@ -82,6 +83,12 @@ public:
     T* safeCast()
     {
         return kind_ == T::K ? static_cast<T*>(this) : nullptr;
+    }
+
+    template<typename T>
+    static T* make(TaskContext& ctx, const AstNode* decl, IdentifierRef idRef, SymbolFlags flags)
+    {
+        return ctx.compiler().allocate<T>(ctx, decl, idRef, flags);
     }
 };
 

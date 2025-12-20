@@ -55,14 +55,13 @@ AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& child
     SemaFrame newFrame       = sema.frame();
     newFrame.currentEnumDecl = this;
     sema.pushFrame(newFrame);
+
     return AstVisitStepResult::Continue;
 }
 
 AstVisitStepResult AstEnumDecl::semaPostNode(Sema& sema)
 {
-    const Symbol&     symbol  = sema.semaInfo().getSymbol(sema.ctx(), sema.curNodeRef());
-    const SymbolEnum* symEnum = symbol.safeCast<SymbolEnum>();
-
+    sema.curSymMap()->setFullComplete(sema.ctx());
     sema.popFrame();
     sema.popScope();
     return AstVisitStepResult::Continue;

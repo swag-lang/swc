@@ -6,6 +6,13 @@
 
 SWC_BEGIN_NAMESPACE()
 
+void Symbol::setFullComplete(TaskContext& ctx)
+{
+    SWC_ASSERT(flags_.hasNot(SymbolFlagsE::FullComplete));
+    flags_.add(SymbolFlagsE::FullComplete);
+    ctx.compiler().notifySymbolFullComplete();
+}
+
 std::string_view Symbol::name(const TaskContext& ctx) const
 {
     const Identifier& id = ctx.compiler().idMgr().get(idRef_);

@@ -61,6 +61,7 @@ public:
     Symbol* nextHomonym() const noexcept { return nextHomonym_; }
     void    setNextHomonym(Symbol* next) noexcept { nextHomonym_ = next; }
 
+    void             setFullComplete(TaskContext& ctx);
     std::string_view name(const TaskContext& ctx) const;
 
     template<typename T>

@@ -70,6 +70,7 @@ public:
 
     void setupSema(TaskContext& ctx);
     void notifySymbolAdded() { changed_ = true; }
+    void notifySymbolFullComplete() { changed_ = true; }
     bool changed() const { return changed_; }
     void clearChanged() { changed_ = false; }
 

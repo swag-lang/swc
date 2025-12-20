@@ -1,4 +1,5 @@
 #pragma once
+#include "Parser/AstNode.h"
 #include "Sema/Symbol/IdentifierManager.h"
 #include "Sema/Type/TypeInfo.h"
 
@@ -35,31 +36,36 @@ using SymbolFlags = EnumFlags<SymbolFlagsE>;
 
 class Symbol
 {
-    IdentifierRef idRef_       = IdentifierRef::invalid();
-    TypeRef       typeRef_     = TypeRef::invalid();
-    Symbol*       nextHomonym_ = nullptr;
-    SymbolMap*    symMap_      = nullptr;
-    SymbolKind    kind_        = SymbolKind::Invalid;
-    SymbolFlags   flags_       = SymbolFlagsE::Zero;
+    IdentifierRef  idRef_       = IdentifierRef::invalid();
+    TypeRef        typeRef_     = TypeRef::invalid();
+    Symbol*        nextHomonym_ = nullptr;
+    SymbolMap*     ownerSymMap_ = nullptr;
+    const AstNode* decl_        = nullptr;
+    SymbolKind     kind_        = SymbolKind::Invalid;
+    SymbolFlags    flags_       = SymbolFlagsE::Zero;
 
 public:
-    explicit Symbol(const TaskContext& ctx, SymbolKind kind, IdentifierRef idRef, TypeRef typeRef, SymbolFlags flags) :
+    explicit Symbol(const TaskContext& ctx, const AstNode* decl, SymbolKind kind, IdentifierRef idRef, TypeRef typeRef, SymbolFlags flags) :
         idRef_(idRef),
         typeRef_(typeRef),
-        kind_(kind)
+        decl_(decl),
+        kind_(kind),
+        flags_(flags)
     {
     }
 
     void setFullComplete(TaskContext& ctx);
 
-    SymbolKind       kind() const { return kind_; }
-    IdentifierRef    idRef() const { return idRef_; }
-    void             setTypeRef(TypeRef typeRef) { typeRef_ = typeRef; }
-    TypeRef          typeRef() const { return typeRef_; }
-    SymbolMap*       symMap() noexcept { return symMap_; }
-    const SymbolMap* symMap() const noexcept { return symMap_; }
-    void             setSymMap(SymbolMap* symMap) noexcept { symMap_ = symMap; }
+    SymbolKind       kind() const noexcept { return kind_; }
+    IdentifierRef    idRef() const noexcept { return idRef_; }
+    void             setTypeRef(TypeRef typeRef) noexcept { typeRef_ = typeRef; }
+    TypeRef          typeRef() const noexcept { return typeRef_; }
+    SymbolMap*       symMap() noexcept { return ownerSymMap_; }
+    const SymbolMap* symMap() const noexcept { return ownerSymMap_; }
+    void             setSymMap(SymbolMap* symMap) noexcept { ownerSymMap_ = symMap; }
     bool             is(SymbolKind kind) const noexcept { return kind_ == kind; }
+    SymbolFlags      flags() const noexcept { return flags_; }
+    const AstNode*   decl() const noexcept { return decl_; }
 
     Symbol* nextHomonym() const noexcept { return nextHomonym_; }
     void    setNextHomonym(Symbol* next) noexcept { nextHomonym_ = next; }

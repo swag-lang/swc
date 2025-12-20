@@ -46,7 +46,7 @@ AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& child
         flags.add(SymbolFlagsE::Public);
 
     // Creates symbol with type
-    auto*          sym         = sema.compiler().allocate<SymbolEnum>(ctx, idRef, TypeRef::invalid(), flags);
+    auto*          sym         = sema.compiler().allocate<SymbolEnum>(ctx, this, idRef, TypeRef::invalid(), flags);
     const TypeInfo enumType    = TypeInfo::makeEnum(sym);
     const TypeRef  enumTypeRef = ctx.typeMgr().addType(enumType);
     sym->setTypeRef(enumTypeRef);

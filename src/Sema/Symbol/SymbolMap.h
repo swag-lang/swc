@@ -38,8 +38,8 @@ class SymbolMap : public Symbol
     const Shard& getShard(IdentifierRef idRef) const;
 
 public:
-    explicit SymbolMap(const TaskContext& ctx, SymbolKind kind, IdentifierRef idRef, TypeRef typeRef, SymbolFlags flags) :
-        Symbol(ctx, kind, idRef, typeRef, flags)
+    explicit SymbolMap(const TaskContext& ctx, const AstNode* decl, SymbolKind kind, IdentifierRef idRef, TypeRef typeRef, SymbolFlags flags) :
+        Symbol(ctx, decl, kind, idRef, typeRef, flags)
     {
     }
 

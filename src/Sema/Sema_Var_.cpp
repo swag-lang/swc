@@ -100,7 +100,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
                 return AstVisitStepResult::Stop;
         }
 
-        auto* sym = sema.compiler().allocate<SymbolConstant>(ctx, idRef, nodeInitView.cstRef, flags);
+        auto* sym = sema.compiler().allocate<SymbolConstant>(ctx, this, idRef, nodeInitView.cstRef, flags);
         symbolMap->addSymbol(ctx, sym);
         return AstVisitStepResult::Continue;
     }
@@ -109,7 +109,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
     if (typeRef.isInvalid())
         typeRef = nodeInitView.typeRef;
 
-    auto* sym = sema.compiler().allocate<SymbolVariable>(ctx, idRef, typeRef, flags);
+    auto* sym = sema.compiler().allocate<SymbolVariable>(ctx, this, idRef, typeRef, flags);
     symbolMap->addSymbol(ctx, sym);
     sema.setSymbol(sema.curNodeRef(), sym);
 

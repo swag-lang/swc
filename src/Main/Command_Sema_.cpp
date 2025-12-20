@@ -46,13 +46,9 @@ namespace Command
             const auto& srcView = f->ast().srcView();
             if (srcView.mustSkip())
                 continue;
-
             if (f->hasError())
                 continue;
-
             f->semaInfo().setModuleNamespace(*moduleNamespace);
-            SymbolNamespace* fileNamespace = ctx.compiler().allocate<SymbolNamespace>(ctx, nullptr, IdentifierRef::invalid(), SymbolFlagsE::Zero);
-            f->semaInfo().setFileNamespace(*fileNamespace);
 
             const auto job = heapNew<SemaJob>(ctx, f->semaInfo());
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);

@@ -33,24 +33,15 @@ class BigMap
     // When sharded, shards_ != nullptr.
     std::atomic<Shard*> shards_{nullptr};
 
-    bool isSharded() const noexcept
-    {
-        return shards_.load(std::memory_order_acquire) != nullptr;
-    }
-
-    static uint32_t shardIndex(IdentifierRef idRef) noexcept
-    {
-        return idRef.get() & (SHARD_COUNT - 1);
-    }
-
-    void maybeUpgradeToSharded(TaskContext& ctx);
+    bool            isSharded() const noexcept { return shards_.load(std::memory_order_acquire) != nullptr; }
+    static uint32_t shardIndex(IdentifierRef idRef) noexcept { return idRef.get() & (SHARD_COUNT - 1); }
+    void            maybeUpgradeToSharded(TaskContext& ctx);
 
     Shard&       getShard(IdentifierRef idRef);
     const Shard& getShard(IdentifierRef idRef) const;
 
 public:
     BigMap();
-
     void addSymbol(TaskContext& ctx, Symbol* symbol, bool notify = true);
     void lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const;
 };

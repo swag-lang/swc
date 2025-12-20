@@ -38,7 +38,9 @@ void BigMap::maybeUpgradeToSharded(TaskContext& ctx)
     if (isSharded())
         return;
 
-    // Allocate a shard array via compiler allocator.
+    printf("X");
+
+    // Allocate a shard array.
     Shard* newShards = ctx.compiler().allocateArray<Shard>(SHARD_COUNT);
 
 #if SWC_HAS_STATS
@@ -53,7 +55,7 @@ void BigMap::maybeUpgradeToSharded(TaskContext& ctx)
     for (uint32_t i = 0; i < SHARD_COUNT; ++i)
         newShards[i].map.reserve(per);
 
-    // Move everything into shards. (unordered_map node handles make move cheap-ish)
+    // Move everything into shards. (unordered_map node handles make the move cheap)
     for (const auto& kv : unsharded_)
     {
         const IdentifierRef id   = kv.first;
@@ -64,8 +66,7 @@ void BigMap::maybeUpgradeToSharded(TaskContext& ctx)
         shard.map.emplace(id, head);
     }
 
-    // Free the old unsharded storage by clearing (keeps buckets unless swap trick).
-    // If you care, do: std::unordered_map<...>().swap(unsharded_);
+    // Free the old unsharded storage by clearing (keeps buckets unless a swap trick).
     unsharded_.clear();
     std::unordered_map<IdentifierRef, Symbol*>().swap(unsharded_);
 
@@ -83,11 +84,9 @@ void BigMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool notify)
     {
         Shard&           shard = s[shardIndex(idRef)];
         std::unique_lock lock(shard.mutex);
-
-        Symbol*& head = shard.map[idRef];
+        Symbol*&         head = shard.map[idRef];
         symbol->setNextHomonym(head);
         head = symbol;
-
         if (notify)
             ctx.compiler().notifySymbolAdded();
         return;
@@ -106,11 +105,9 @@ void BigMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool notify)
             lock.unlock();
             Shard&           shard = s2[shardIndex(idRef)];
             std::unique_lock lock2(shard.mutex);
-
-            Symbol*& head = shard.map[idRef];
+            Symbol*&         head = shard.map[idRef];
             symbol->setNextHomonym(head);
             head = symbol;
-
             if (notify)
                 ctx.compiler().notifySymbolAdded();
             return;
@@ -138,9 +135,9 @@ void BigMap::lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const
         const auto it = shard.map.find(idRef);
         if (it == shard.map.end())
             return;
-
         for (Symbol* cur = it->second; cur; cur = cur->nextHomonym())
             out.push_back(cur);
+
         return;
     }
 

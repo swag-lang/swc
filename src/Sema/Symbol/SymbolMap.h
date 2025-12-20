@@ -19,7 +19,7 @@ class SymbolConstant;
 class SymbolVariable;
 class SymbolEnum;
 
-class SymbolMap : public Symbol
+class BigMap
 {
     struct Shard
     {
@@ -29,18 +29,39 @@ class SymbolMap : public Symbol
 
     static constexpr uint32_t SHARD_BITS  = 3;
     static constexpr uint32_t SHARD_COUNT = 1u << SHARD_BITS;
-    static constexpr uint32_t LOCAL_BITS  = 32 - SHARD_BITS;
-    static constexpr uint32_t LOCAL_MASK  = (1u << LOCAL_BITS) - 1;
-    Shard                     shards_[SHARD_COUNT];
+
+    Shard shards_[SHARD_COUNT];
 
     Shard&       getShard(IdentifierRef idRef);
     const Shard& getShard(IdentifierRef idRef) const;
 
 public:
-    explicit SymbolMap(const TaskContext& ctx, const AstNode* decl, SymbolKind kind, IdentifierRef idRef, SymbolFlags flags) :
-        Symbol(ctx, decl, kind, idRef, flags)
+    void addSymbol(TaskContext& ctx, Symbol* symbol, bool notify = true);
+    void lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const;
+};
+
+class SymbolMap : public Symbol
+{
+    struct Entry
     {
-    }
+        IdentifierRef key  = IdentifierRef::invalid();
+        Symbol*       head = nullptr;
+    };
+
+    static constexpr uint32_t SMALL_CAP = 8;
+
+    uint8_t smallSize_ = 0;
+    Entry   small_[SMALL_CAP];
+
+    mutable std::shared_mutex mutex_;
+    std::atomic<BigMap*>      big_{nullptr};
+
+    Entry*       smallFind(IdentifierRef key);
+    const Entry* smallFind(IdentifierRef key) const;
+    BigMap*      buildBig(TaskContext& ctx) const;
+
+public:
+    explicit SymbolMap(const TaskContext& ctx, const AstNode* decl, SymbolKind kind, IdentifierRef idRef, SymbolFlags flags);
 
     void addSymbol(TaskContext& ctx, Symbol* symbol);
     void lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const;

@@ -9,7 +9,6 @@ struct SemaFrame
 {
     SymbolAccess                defaultAccess = SymbolAccess::Private;
     std::optional<SymbolAccess> currentAccess;
-    SymbolEnum*                 symbolEnum = nullptr;
 };
 
 SWC_END_NAMESPACE()

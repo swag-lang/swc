@@ -15,6 +15,8 @@ AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& child
     if (childRef != nodeBodyRef)
         return AstVisitStepResult::Continue;
 
+    auto& ctx = sema.ctx();
+
     // Check type if specified
     SemaNodeView typeView(sema, nodeTypeRef);
     if (nodeTypeRef.isValid())
@@ -32,7 +34,7 @@ AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& child
         typeView.type    = &sema.typeMgr().get(typeView.typeRef);
     }
 
-    const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
+    const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokNameRef);
 
     // Get the destination symbolMap
     SymbolFlags        flags     = SymbolFlagsE::Zero;
@@ -44,19 +46,15 @@ AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& child
         flags.add(SymbolFlagsE::Public);
 
     // Creates symbol with type
-    auto*          sym         = sema.compiler().allocate<SymbolEnum>(sema.ctx(), idRef, TypeRef::invalid(), flags);
+    auto*          sym         = sema.compiler().allocate<SymbolEnum>(ctx, idRef, TypeRef::invalid(), flags);
     const TypeInfo enumType    = TypeInfo::makeEnum(sym);
-    const TypeRef  enumTypeRef = sema.ctx().typeMgr().addType(enumType);
+    const TypeRef  enumTypeRef = ctx.typeMgr().addType(enumType);
     sym->setTypeRef(enumTypeRef);
-    symbolMap->addSymbol(sema.ctx(), sym);
+    symbolMap->addSymbol(ctx, sym);
     sema.setSymbol(sema.curNodeRef(), sym);
 
     sema.pushScope(SemaScopeFlagsE::Type);
     sema.curScope().setSymMap(sym);
-
-    SemaFrame newFrame  = sema.frame();
-    newFrame.symbolEnum = sym;
-    sema.pushFrame(newFrame);
 
     return AstVisitStepResult::Continue;
 }
@@ -64,7 +62,6 @@ AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& child
 AstVisitStepResult AstEnumDecl::semaPostNode(Sema& sema)
 {
     sema.curSymMap()->setFullComplete(sema.ctx());
-    sema.popFrame();
     sema.popScope();
     return AstVisitStepResult::Continue;
 }

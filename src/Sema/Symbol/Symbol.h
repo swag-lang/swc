@@ -1,5 +1,6 @@
 #pragma once
 #include "Main/CompilerInstance.h"
+#include "Main/Stats.h"
 #include "Main/TaskContext.h"
 #include "Parser/AstNode.h"
 #include "Sema/Symbol/IdentifierManager.h"
@@ -88,6 +89,11 @@ public:
     template<typename T>
     static T* make(TaskContext& ctx, const AstNode* decl, IdentifierRef idRef, SymbolFlags flags)
     {
+#if SWC_HAS_STATS
+        Stats::get().numSymbols.fetch_add(1);
+        Stats::get().memSymbols.fetch_add(sizeof(T), std::memory_order_relaxed);
+#endif
+
         return ctx.compiler().allocate<T>(ctx, decl, idRef, flags);
     }
 };

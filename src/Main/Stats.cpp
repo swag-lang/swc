@@ -30,7 +30,9 @@ void Stats::print(const TaskContext& ctx) const
     Logger::printHeaderDot(ctx, colorHeader, "numConstants", colorMsg, Utf8Helper::toNiceBigNumber(numConstants.load()));
     Logger::printHeaderDot(ctx, colorHeader, "numTypes", colorMsg, Utf8Helper::toNiceBigNumber(numTypes.load()));
     Logger::printHeaderDot(ctx, colorHeader, "numIdentifiers", colorMsg, Utf8Helper::toNiceBigNumber(numIdentifiers.load()));
+    Logger::printHeaderDot(ctx, colorHeader, "numSymbols", colorMsg, Utf8Helper::toNiceBigNumber(numSymbols.load()));
 
+    // Time
     Logger::print(ctx, "\n");
     Logger::printHeaderDot(ctx, colorHeader, "timeLoadFile", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeLoadFile.load())));
     Logger::printHeaderDot(ctx, colorHeader, "timeLexer", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeLexer.load())));
@@ -41,6 +43,7 @@ void Stats::print(const TaskContext& ctx) const
     Logger::printHeaderDot(ctx, colorHeader, "memMaxAllocated", colorMsg, Utf8Helper::toNiceSize(memMaxAllocated.load()));
     Logger::printHeaderDot(ctx, colorHeader, "memConstants", colorMsg, Utf8Helper::toNiceSize(memConstants.load()));
     Logger::printHeaderDot(ctx, colorHeader, "memTypes", colorMsg, Utf8Helper::toNiceSize(memTypes.load()));
+    Logger::printHeaderDot(ctx, colorHeader, "memSymbols", colorMsg, Utf8Helper::toNiceSize(memSymbols.load()));
 #endif
 
     Logger::print(ctx, "\n");

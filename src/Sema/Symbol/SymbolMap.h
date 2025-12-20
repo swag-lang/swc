@@ -43,12 +43,8 @@ public:
     {
     }
 
+    void addSymbol(TaskContext& ctx, Symbol* symbol);
     void lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const;
-
-    void             addSymbol(TaskContext& ctx, Symbol* symbol);
-    SymbolConstant*  addConstant(TaskContext& ctx, IdentifierRef idRef, ConstantRef cstRef, SymbolFlags flags);
-    SymbolVariable*  addVariable(TaskContext& ctx, IdentifierRef idRef, TypeRef typeRef, SymbolFlags flags);
-    SymbolNamespace* addNamespace(TaskContext& ctx, IdentifierRef idRef, SymbolFlags flags);
 };
 
 SWC_END_NAMESPACE()

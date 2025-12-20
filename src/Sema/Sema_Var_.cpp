@@ -14,6 +14,7 @@ SWC_BEGIN_NAMESPACE()
 
 AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
 {
+    auto&              ctx = sema.ctx();
     SemaNodeView       nodeInitView(sema, nodeInitRef);
     const SemaNodeView nodeTypeView(sema, nodeTypeRef);
 
@@ -36,7 +37,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
             if (SemaCast::castAllowed(sema, explicitCtx, nodeInitView.typeRef, nodeTypeView.typeRef))
                 diag.addElement(DiagnosticId::sema_note_cast_explicit);
 
-            diag.report(sema.ctx());
+            diag.report(ctx);
             return AstVisitStepResult::Stop;
         }
 
@@ -57,14 +58,14 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
     }
     else if (nodeInitView.cstRef.isValid())
     {
-        nodeInitView.cstRef = sema.ctx().cstMgr().concretizeConstant(sema, nodeInitView.nodeRef, nodeInitView.cstRef, TypeInfo::Sign::Unknown);
+        nodeInitView.cstRef = ctx.cstMgr().concretizeConstant(sema, nodeInitView.nodeRef, nodeInitView.cstRef, TypeInfo::Sign::Unknown);
         if (nodeInitView.cstRef.isInvalid())
             return AstVisitStepResult::Stop;
-        nodeInitView.typeRef = sema.ctx().cstMgr().get(nodeInitView.cstRef).typeRef();
+        nodeInitView.typeRef = ctx.cstMgr().get(nodeInitView.cstRef).typeRef();
     }
 
     // Register name
-    const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
+    const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokNameRef);
 
     // Get the destination symbolMap
     SymbolFlags        flags     = SymbolFlagsE::Zero;
@@ -99,7 +100,8 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
                 return AstVisitStepResult::Stop;
         }
 
-        symbolMap->addConstant(sema.ctx(), idRef, nodeInitView.cstRef, flags);
+        auto* sym = sema.compiler().allocate<SymbolConstant>(ctx, idRef, nodeInitView.cstRef, flags);
+        symbolMap->addSymbol(ctx, sym);
         return AstVisitStepResult::Continue;
     }
 
@@ -107,7 +109,8 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
     if (typeRef.isInvalid())
         typeRef = nodeInitView.typeRef;
 
-    const SymbolVariable* sym = symbolMap->addVariable(sema.ctx(), idRef, typeRef, flags);
+    auto* sym = sema.compiler().allocate<SymbolVariable>(ctx, idRef, typeRef, flags);
+    symbolMap->addSymbol(ctx, sym);
     sema.setSymbol(sema.curNodeRef(), sym);
 
     return AstVisitStepResult::Continue;

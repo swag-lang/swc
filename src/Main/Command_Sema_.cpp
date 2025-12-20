@@ -36,9 +36,10 @@ namespace Command
 
         compiler.setupSema(ctx);
 
-        const auto symModule       = ctx.compiler().allocate<SymbolModule>(ctx);
-        const auto idRef           = ctx.compiler().idMgr().addIdentifier("test", Math::hash("test"));
-        const auto moduleNamespace = symModule->addNamespace(ctx, idRef, SymbolFlagsE::Zero);
+        SymbolModule*       symModule       = ctx.compiler().allocate<SymbolModule>(ctx);
+        const IdentifierRef idRef           = ctx.compiler().idMgr().addIdentifier("test", Math::hash("test"));
+        SymbolNamespace*    moduleNamespace = ctx.compiler().allocate<SymbolNamespace>(ctx, idRef, SymbolFlagsE::Zero);
+        symModule->addSymbol(ctx, moduleNamespace);
 
         for (const auto& f : compiler.files())
         {
@@ -50,7 +51,8 @@ namespace Command
                 continue;
 
             f->semaInfo().setModuleNamespace(*moduleNamespace);
-            f->semaInfo().setFileNamespace(*moduleNamespace->addNamespace(ctx, IdentifierRef::invalid(), SymbolFlagsE::Zero));
+            SymbolNamespace* fileNamespace = ctx.compiler().allocate<SymbolNamespace>(ctx, IdentifierRef::invalid(), SymbolFlagsE::Zero);
+            f->semaInfo().setFileNamespace(*fileNamespace);
 
             const auto job = heapNew<SemaJob>(ctx, f->semaInfo());
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);

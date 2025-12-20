@@ -56,26 +56,4 @@ void SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol)
     ctx.compiler().notifySymbolAdded();
 }
 
-SymbolConstant* SymbolMap::addConstant(TaskContext& ctx, IdentifierRef idRef, ConstantRef cstRef, SymbolFlags flags)
-{
-    auto* sym = ctx.compiler().allocate<SymbolConstant>(ctx, idRef, cstRef, flags | SymbolFlagsE::FullComplete);
-    addSymbol(ctx, sym);
-    return sym;
-}
-
-SymbolVariable* SymbolMap::addVariable(TaskContext& ctx, IdentifierRef idRef, TypeRef typeRef, SymbolFlags flags)
-{
-    auto* sym = ctx.compiler().allocate<SymbolVariable>(ctx, idRef, typeRef, flags | SymbolFlagsE::FullComplete);
-    addSymbol(ctx, sym);
-    return sym;
-}
-
-SymbolNamespace* SymbolMap::addNamespace(TaskContext& ctx, IdentifierRef idRef, SymbolFlags flags)
-{
-    auto* sym = ctx.compiler().allocate<SymbolNamespace>(ctx, idRef, flags);
-    if (idRef != IdentifierRef::invalid())
-        addSymbol(ctx, sym);
-    return sym;
-}
-
 SWC_END_NAMESPACE()

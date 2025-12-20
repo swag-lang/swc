@@ -3,13 +3,13 @@
 
 SWC_BEGIN_NAMESPACE()
 
-struct AstEnumDecl;
+class SymbolEnum;
 
 struct SemaFrame
 {
     SymbolAccess                defaultAccess = SymbolAccess::Private;
     std::optional<SymbolAccess> currentAccess;
-    AstEnumDecl*                currentEnumDecl = nullptr;
+    SymbolEnum*                 symbolEnum = nullptr;
 };
 
 SWC_END_NAMESPACE()

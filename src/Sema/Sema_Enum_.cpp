@@ -54,8 +54,8 @@ AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& child
     sema.pushScope(SemaScopeFlagsE::Type);
     sema.curScope().setSymMap(sym);
 
-    SemaFrame newFrame       = sema.frame();
-    newFrame.currentEnumDecl = this;
+    SemaFrame newFrame  = sema.frame();
+    newFrame.symbolEnum = sym;
     sema.pushFrame(newFrame);
 
     return AstVisitStepResult::Continue;

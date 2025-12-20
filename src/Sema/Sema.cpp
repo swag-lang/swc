@@ -256,12 +256,7 @@ JobResult Sema::exec()
     }
 
     if (jobResult == JobResult::Done)
-    {
-        SWC_ASSERT(scopes_.size() == 1);
-        SWC_ASSERT(curScope_ == scopes_.back().get());
         scopes_.clear();
-    }
-
     return jobResult;
 }
 

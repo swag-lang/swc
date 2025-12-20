@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE()
 
 AstVisitStepResult AstFile::semaPreNode(Sema& sema)
 {
-    SymbolNamespace* fileNamespace = sema.compiler().allocate<SymbolNamespace>(sema.ctx(), nullptr, IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    SymbolNamespace* fileNamespace = sema.compiler().allocate<SymbolNamespace>(sema.ctx(), this, IdentifierRef::invalid(), SymbolFlagsE::Zero);
     sema.semaInfo().setFileNamespace(*fileNamespace);
     sema.pushScope(SemaScopeFlagsE::TopLevel);
     return AstVisitStepResult::Continue;

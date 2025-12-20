@@ -108,7 +108,7 @@ void SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol)
             if (smallSize_ < SMALL_CAP)
             {
                 symbol->setNextHomonym(nullptr);
-                small_[smallSize_++] = Entry{idRef, symbol};
+                small_[smallSize_++] = Entry{.head = symbol, .key = idRef};
                 ctx.compiler().notifySymbolAdded();
                 return;
             }

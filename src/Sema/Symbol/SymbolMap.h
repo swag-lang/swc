@@ -10,17 +10,16 @@ class SymbolMap : public Symbol
 {
     struct Entry
     {
-        IdentifierRef key  = IdentifierRef::invalid();
         Symbol*       head = nullptr;
+        IdentifierRef key  = IdentifierRef::invalid();
     };
 
-    static constexpr uint32_t SMALL_CAP = 8;
+    std::atomic<BigMap*> big_{nullptr};
 
-    uint8_t smallSize_ = 0;
-    Entry   small_[SMALL_CAP];
-
-    mutable std::shared_mutex mutex_;
-    std::atomic<BigMap*>      big_{nullptr};
+    static constexpr uint32_t    SMALL_CAP = 8;
+    std::array<Entry, SMALL_CAP> small_;
+    mutable std::shared_mutex    mutex_;
+    uint32_t                     smallSize_ = 0;
 
     Entry*       smallFind(IdentifierRef key);
     const Entry* smallFind(IdentifierRef key) const;

@@ -39,6 +39,7 @@ class BigMap
 
     Shard&       getShard(IdentifierRef idRef);
     const Shard& getShard(IdentifierRef idRef) const;
+    static void  insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool notify);
 
 public:
     BigMap();

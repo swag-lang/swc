@@ -5,7 +5,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstVisitStepResult AstFile::semaPreNode(Sema& sema)
+AstVisitStepResult AstFile::semaPreNode(Sema& sema) const
 {
     SymbolNamespace* fileNamespace = Symbol::make<SymbolNamespace>(sema.ctx(), this, IdentifierRef::invalid(), SymbolFlagsE::Zero);
     sema.semaInfo().setFileNamespace(*fileNamespace);

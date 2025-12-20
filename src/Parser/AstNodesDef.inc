@@ -14,8 +14,8 @@ struct AstFile : AstCompoundT<AstNodeId::File>
         AstCompoundT::collectChildren(out, ast);
     }
 
-    AstVisitStepResult semaPreNode(Sema& sema);
-    AstVisitStepResult semaPostNode(Sema& sema);
+    AstVisitStepResult        semaPreNode(Sema& sema) const;
+    static AstVisitStepResult semaPostNode(Sema& sema);
 };
 
 struct AstTopLevelBlock : AstCompoundT<AstNodeId::TopLevelBlock>

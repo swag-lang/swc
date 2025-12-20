@@ -2,52 +2,9 @@
 #include "Sema/Symbol/SymbolMap.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
+#include "Sema/Symbol/BigMap.h"
 
 SWC_BEGIN_NAMESPACE()
-
-BigMap::Shard& BigMap::getShard(IdentifierRef idRef)
-{
-    const uint32_t index = idRef.get() & (SHARD_COUNT - 1);
-    return shards_[index];
-}
-
-const BigMap::Shard& BigMap::getShard(IdentifierRef idRef) const
-{
-    const uint32_t index = idRef.get() & (SHARD_COUNT - 1);
-    return shards_[index];
-}
-
-void BigMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool notify)
-{
-    SWC_ASSERT(symbol != nullptr);
-
-    const IdentifierRef idRef = symbol->idRef();
-    Shard&              shard = getShard(idRef);
-
-    std::unique_lock lock(shard.mutex);
-
-    Symbol*& head = shard.map[idRef];
-    symbol->setNextHomonym(head);
-    head = symbol;
-
-    if (notify)
-        ctx.compiler().notifySymbolAdded();
-}
-
-void BigMap::lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const
-{
-    out.clear();
-
-    const Shard&     shard = getShard(idRef);
-    std::shared_lock lk(shard.mutex);
-
-    const auto it = shard.map.find(idRef);
-    if (it == shard.map.end())
-        return;
-
-    for (Symbol* cur = it->second; cur; cur = cur->nextHomonym())
-        out.push_back(cur);
-}
 
 SymbolMap::SymbolMap(const TaskContext& ctx, const AstNode* decl, SymbolKind kind, IdentifierRef idRef, SymbolFlags flags) :
     Symbol(ctx, decl, kind, idRef, flags)

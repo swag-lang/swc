@@ -2,6 +2,7 @@
 #include "Main/Command.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
+#include "Math/Hash.h"
 #include "Memory/Heap.h"
 #include "Parser/ParserJob.h"
 #include "Sema/Helpers/SemaJob.h"

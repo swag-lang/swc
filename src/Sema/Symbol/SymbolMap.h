@@ -1,44 +1,10 @@
 #pragma once
 #include "Core/SmallVector.h"
-#include "Math/Hash.h"
 #include "Sema/Symbol/Symbol.h"
 
-template<>
-struct std::hash<swc::IdentifierRef>
-{
-    size_t operator()(const swc::IdentifierRef& r) const noexcept
-    {
-        return swc::Math::hash(r.get());
-    }
-};
-
 SWC_BEGIN_NAMESPACE()
-class SymbolModule;
-class SymbolNamespace;
-class SymbolConstant;
-class SymbolVariable;
-class SymbolEnum;
 
-class BigMap
-{
-    struct Shard
-    {
-        mutable std::shared_mutex                  mutex;
-        std::unordered_map<IdentifierRef, Symbol*> map;
-    };
-
-    static constexpr uint32_t SHARD_BITS  = 3;
-    static constexpr uint32_t SHARD_COUNT = 1u << SHARD_BITS;
-
-    Shard shards_[SHARD_COUNT];
-
-    Shard&       getShard(IdentifierRef idRef);
-    const Shard& getShard(IdentifierRef idRef) const;
-
-public:
-    void addSymbol(TaskContext& ctx, Symbol* symbol, bool notify = true);
-    void lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const;
-};
+class BigMap;
 
 class SymbolMap : public Symbol
 {

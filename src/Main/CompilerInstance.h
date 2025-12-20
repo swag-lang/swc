@@ -91,6 +91,21 @@ public:
         void* mem = td.arena.allocate(sizeof(T), alignof(T));
         return new (mem) T(std::forward<ARGS>(args)...);
     }
+
+    template<typename T>
+    T* allocateArray(size_t count)
+    {
+        auto& td  = perThreadData_[JobManager::threadIndex()];
+        void* mem = td.arena.allocate(sizeof(T) * count, alignof(T));
+        T*    ptr = static_cast<T*>(mem);
+        if constexpr (!std::is_trivially_default_constructible_v<T>)
+        {
+            for (size_t i = 0; i < count; ++i)
+                new (ptr + i) T();
+        }
+
+        return ptr;
+    }
 };
 
 SWC_END_NAMESPACE()

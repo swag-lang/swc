@@ -3,6 +3,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
+class SymbolEnum;
 class TypeManager;
 
 enum class TypeInfoKind
@@ -41,7 +42,7 @@ private:
     TypeInfo() = delete;
     explicit TypeInfo(TypeInfoKind kind);
 
-    Utf8 toName(const TypeManager& typeMgr) const;
+    Utf8 toName(const TaskContext& ctx) const;
 
     TypeInfoKind kind_ = TypeInfoKind::Invalid;
 
@@ -51,7 +52,7 @@ private:
         struct { uint32_t bits; Sign sign; } asInt;
         struct { uint32_t bits; } asFloat;
         struct { TypeRef typeRef; } asTypeInfo;
-        struct { IdentifierRef idRef; TypeRef typeRef; } asEnum;
+        struct { SymbolEnum* enumSym; } asEnum;
         // clang-format on
     };
 
@@ -104,7 +105,7 @@ public:
     static TypeInfo makeAny();
     static TypeInfo makeVoid();
     static TypeInfo makeCString();
-    static TypeInfo makeEnum(IdentifierRef idRef, TypeRef underlyingTypeRef);
+    static TypeInfo makeEnum(SymbolEnum* enumSym);
 
     uint32_t hash() const;
 };

@@ -67,8 +67,8 @@ void SemaError::raise(Sema& sema, DiagnosticId id, AstNodeRef nodeRef)
 void SemaError::raiseInvalidType(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
     auto diag = report(sema, DiagnosticId::sema_err_invalid_type, nodeRef);
-    diag.addArgument(Diagnostic::ARG_TYPE, sema.typeMgr().typeToName(srcTypeRef));
-    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, sema.typeMgr().typeToName(targetTypeRef));
+    diag.addArgument(Diagnostic::ARG_TYPE, sema.typeMgr().typeToName(sema.ctx(), srcTypeRef));
+    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, sema.typeMgr().typeToName(sema.ctx(), targetTypeRef));
     diag.report(sema.ctx());
 }
 

@@ -72,7 +72,7 @@ public:
     TypeRef         promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const;
     static uint32_t chooseConcreteScalarWidth(uint32_t minRequiredBits, bool& overflow);
 
-    std::string_view typeToName(TypeRef typeInfoRef) const;
+    std::string_view typeToName(const TaskContext& ctx, TypeRef typeInfoRef) const;
 };
 
 SWC_END_NAMESPACE()

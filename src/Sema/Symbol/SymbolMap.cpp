@@ -70,13 +70,6 @@ SymbolVariable* SymbolMap::addVariable(TaskContext& ctx, IdentifierRef idRef, Ty
     return sym;
 }
 
-SymbolEnum* SymbolMap::addEnum(TaskContext& ctx, IdentifierRef idRef, TypeRef typeRef, SymbolFlags flags)
-{
-    auto* sym = ctx.compiler().allocate<SymbolEnum>(ctx, idRef, typeRef, flags);
-    addSymbol(ctx, sym);
-    return sym;
-}
-
 SymbolNamespace* SymbolMap::addNamespace(TaskContext& ctx, IdentifierRef idRef, SymbolFlags flags)
 {
     auto* sym = ctx.compiler().allocate<SymbolNamespace>(ctx, idRef, flags);

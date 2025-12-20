@@ -50,8 +50,11 @@ public:
     {
     }
 
+    void setFullComplete(TaskContext& ctx);
+
     SymbolKind       kind() const { return kind_; }
     IdentifierRef    idRef() const { return idRef_; }
+    void             setTypeRef(TypeRef typeRef) { typeRef_ = typeRef; }
     TypeRef          typeRef() const { return typeRef_; }
     SymbolMap*       symMap() noexcept { return symMap_; }
     const SymbolMap* symMap() const noexcept { return symMap_; }
@@ -61,7 +64,6 @@ public:
     Symbol* nextHomonym() const noexcept { return nextHomonym_; }
     void    setNextHomonym(Symbol* next) noexcept { nextHomonym_ = next; }
 
-    void             setFullComplete(TaskContext& ctx);
     std::string_view name(const TaskContext& ctx) const;
 
     template<typename T>

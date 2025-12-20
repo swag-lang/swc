@@ -1,7 +1,8 @@
 #include "pch.h"
 #include "Sema/Type/TypeInfo.h"
 #include "Math/Hash.h"
-#include "TypeManager.h"
+#include "Sema/Symbol/Symbols.h"
+#include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 class TaskContext;
@@ -34,7 +35,7 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
         case TypeInfoKind::TypeInfo:
             return asTypeInfo.typeRef == other.asTypeInfo.typeRef;
         case TypeInfoKind::Enum:
-            return asEnum.idRef == other.asEnum.idRef;
+            return asEnum.enumSym == other.asEnum.enumSym;
 
         default:
             SWC_UNREACHABLE();
@@ -67,7 +68,7 @@ uint32_t TypeInfo::hash() const
             h = Math::hashCombine(h, asTypeInfo.typeRef.get());
             return h;
         case TypeInfoKind::Enum:
-            h = Math::hashCombine(h, asEnum.idRef.get());
+            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asEnum.enumSym));
             return h;
 
         default:
@@ -134,15 +135,15 @@ TypeInfo TypeInfo::makeTypeInfo(TypeRef typeRef)
     return ti;
 }
 
-TypeInfo TypeInfo::makeEnum(IdentifierRef idRef, TypeRef underlyingTypeRef)
+TypeInfo TypeInfo::makeEnum(SymbolEnum* enumSym)
 {
     TypeInfo ti{TypeInfoKind::Enum};
-    ti.asEnum.idRef   = idRef;
-    ti.asEnum.typeRef = underlyingTypeRef;
+    ti.asEnum.enumSym = enumSym;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
 
-Utf8 TypeInfo::toName(const TypeManager& typeMgr) const
+Utf8 TypeInfo::toName(const TaskContext& ctx) const
 {
     switch (kind_)
     {
@@ -160,11 +161,13 @@ Utf8 TypeInfo::toName(const TypeManager& typeMgr) const
             return "rune";
         case TypeInfoKind::CString:
             return "cstring";
+        case TypeInfoKind::Enum:
+            return std::format("enum {}", asEnum.enumSym->name(ctx));
 
         case TypeInfoKind::TypeInfo:
             if (asTypeInfo.typeRef.isInvalid())
                 return "typeinfo";
-            return std::format("typeinfo({})", typeMgr.typeToName(asTypeInfo.typeRef));
+            return std::format("typeinfo({})", ctx.typeMgr().typeToName(ctx, asTypeInfo.typeRef));
 
         case TypeInfoKind::Int:
         {
@@ -172,11 +175,11 @@ Utf8 TypeInfo::toName(const TypeManager& typeMgr) const
             if (asInt.bits == 0)
             {
                 if (asInt.sign == Sign::Unsigned)
-                    out = "uint";
+                    out = "unsigned integer";
                 else if (asInt.sign == Sign::Signed)
-                    out = "sint";
+                    out = "signed integer";
                 else
-                    out = "int";
+                    out = "integer";
             }
             else
             {

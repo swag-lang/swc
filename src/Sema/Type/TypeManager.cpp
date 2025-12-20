@@ -261,7 +261,7 @@ TypeRef TypeManager::getTypeFloat(uint32_t bits) const
     }
 }
 
-std::string_view TypeManager::typeToName(TypeRef typeInfoRef) const
+std::string_view TypeManager::typeToName(const TaskContext& ctx, TypeRef typeInfoRef) const
 {
     SWC_ASSERT(typeInfoRef.isValid());
 
@@ -281,7 +281,7 @@ std::string_view TypeManager::typeToName(TypeRef typeInfoRef) const
     if (!inserted)
         return it->second;
 
-    it->second = typeInfo.toName(*this);
+    it->second = typeInfo.toName(ctx);
     return it->second;
 }
 

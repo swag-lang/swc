@@ -7,6 +7,118 @@
 
 SWC_BEGIN_NAMESPACE()
 
+bool ConstantValue::operator==(const ConstantValue& rhs) const noexcept
+{
+    if (kind_ != rhs.kind_)
+        return false;
+
+    switch (kind_)
+    {
+        case ConstantKind::Bool:
+            return getBool() == rhs.getBool();
+        case ConstantKind::Char:
+            return getChar() == rhs.getChar();
+        case ConstantKind::Rune:
+            return getRune() == rhs.getRune();
+        case ConstantKind::String:
+            return getString() == rhs.getString();
+        case ConstantKind::TypeInfo:
+            return getTypeIndo() == rhs.getTypeIndo();
+        case ConstantKind::EnumValue:
+            return getEnumValue() == rhs.getEnumValue();
+
+        case ConstantKind::Int:
+            return typeRef_ == rhs.typeRef_ && getInt().same(rhs.getInt());
+        case ConstantKind::Float:
+            return typeRef_ == rhs.typeRef_ && getFloat().same(rhs.getFloat());
+
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+bool ConstantValue::eq(const ConstantValue& rhs) const noexcept
+{
+    SWC_ASSERT(kind_ == rhs.kind_);
+    switch (kind_)
+    {
+        case ConstantKind::Bool:
+            return getBool() == rhs.getBool();
+        case ConstantKind::Char:
+            return getChar() == rhs.getChar();
+        case ConstantKind::Rune:
+            return getRune() == rhs.getRune();
+        case ConstantKind::String:
+            return getString() == rhs.getString();
+        case ConstantKind::Int:
+            return getInt().eq(rhs.getInt());
+        case ConstantKind::Float:
+            return getFloat().eq(rhs.getFloat());
+        case ConstantKind::TypeInfo:
+            return getTypeIndo() == rhs.getTypeIndo();
+
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+bool ConstantValue::lt(const ConstantValue& rhs) const noexcept
+{
+    SWC_ASSERT(kind_ == rhs.kind_);
+    switch (kind_)
+    {
+        case ConstantKind::Int:
+            return getInt().lt(rhs.getInt());
+        case ConstantKind::Float:
+            return getFloat().lt(rhs.getFloat());
+        case ConstantKind::Char:
+            return getChar() < rhs.getChar();
+        case ConstantKind::Rune:
+            return getRune() < rhs.getRune();
+
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+bool ConstantValue::le(const ConstantValue& rhs) const noexcept
+{
+    SWC_ASSERT(kind_ == rhs.kind_);
+    switch (kind_)
+    {
+        case ConstantKind::Int:
+            return getInt().le(rhs.getInt());
+        case ConstantKind::Float:
+            return getFloat().le(rhs.getFloat());
+        case ConstantKind::Char:
+            return getChar() <= rhs.getChar();
+        case ConstantKind::Rune:
+            return getRune() <= rhs.getRune();
+
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+bool ConstantValue::gt(const ConstantValue& rhs) const noexcept
+{
+    SWC_ASSERT(kind_ == rhs.kind_);
+    switch (kind_)
+    {
+        case ConstantKind::Int:
+            return getInt().gt(rhs.getInt());
+        case ConstantKind::Float:
+            return getFloat().gt(rhs.getFloat());
+        case ConstantKind::Char:
+            return getChar() > rhs.getChar();
+        case ConstantKind::Rune:
+            return getRune() > rhs.getRune();
+
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
 const TypeInfo& ConstantValue::type(const TaskContext& ctx) const
 {
     return ctx.typeMgr().get(typeRef_);
@@ -114,114 +226,73 @@ ConstantValue ConstantValue::makeFloatUnsized(const TaskContext& ctx, const ApFl
     return cv;
 }
 
-bool ConstantValue::operator==(const ConstantValue& rhs) const noexcept
+ConstantValue ConstantValue::makeFromIntLike(const TaskContext& ctx, const ApsInt& v, const TypeInfo& ty)
 {
-    if (kind_ != rhs.kind_)
-        return false;
+    if (ty.isChar())
+        return makeChar(ctx, static_cast<uint32_t>(v.asI64()));
+    if (ty.isRune())
+        return makeRune(ctx, static_cast<uint32_t>(v.asI64()));
+    return makeInt(ctx, v, ty.intBits(), ty.intSign());
+}
 
+ConstantValue ConstantValue::makeEnumValue(const TaskContext& ctx, ConstantRef valueCst, TypeRef typeRef)
+{
+    ConstantValue cv;
+    cv.typeRef_        = typeRef;
+    cv.kind_           = ConstantKind::EnumValue;
+    cv.asEnumValue.val = valueCst;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return cv;
+}
+
+uint32_t ConstantValue::hash() const noexcept
+{
+    auto h = Math::hash(static_cast<uint32_t>(kind_));
     switch (kind_)
     {
         case ConstantKind::Bool:
-            return getBool() == rhs.getBool();
+            h = Math::hashCombine(h, asBool.val);
+            break;
         case ConstantKind::Char:
-            return getChar() == rhs.getChar();
+            h = Math::hashCombine(h, Math::hash(asCharRune.val));
+            break;
         case ConstantKind::Rune:
-            return getRune() == rhs.getRune();
+            h = Math::hashCombine(h, Math::hash(asCharRune.val));
+            break;
         case ConstantKind::String:
-            return getString() == rhs.getString();
+            h = Math::hashCombine(h, Math::hash(asString.val));
+            break;
         case ConstantKind::TypeInfo:
-            return getTypeIndo() == rhs.getTypeIndo();
-
+            h = Math::hashCombine(h, asTypeInfo.val.get());
+            break;
         case ConstantKind::Int:
-            return typeRef_ == rhs.typeRef_ && getInt().same(rhs.getInt());
+            h = Math::hashCombine(h, typeRef_.get());
+            h = Math::hashCombine(h, asInt.val.hash());
+            break;
         case ConstantKind::Float:
-            return typeRef_ == rhs.typeRef_ && getFloat().same(rhs.getFloat());
+            h = Math::hashCombine(h, typeRef_.get());
+            h = Math::hashCombine(h, asFloat.val.hash());
+            break;
+        case ConstantKind::EnumValue:
+            h = Math::hashCombine(h, asEnumValue.val.get());
+            break;
 
         default:
             SWC_UNREACHABLE();
     }
+
+    return h;
 }
 
-bool ConstantValue::eq(const ConstantValue& rhs) const noexcept
+ApsInt ConstantValue::getIntLike() const
 {
-    SWC_ASSERT(kind_ == rhs.kind_);
-    switch (kind_)
-    {
-        case ConstantKind::Bool:
-            return getBool() == rhs.getBool();
-        case ConstantKind::Char:
-            return getChar() == rhs.getChar();
-        case ConstantKind::Rune:
-            return getRune() == rhs.getRune();
-        case ConstantKind::String:
-            return getString() == rhs.getString();
-        case ConstantKind::Int:
-            return getInt().eq(rhs.getInt());
-        case ConstantKind::Float:
-            return getFloat().eq(rhs.getFloat());
-        case ConstantKind::TypeInfo:
-            return getTypeIndo() == rhs.getTypeIndo();
-
-        default:
-            SWC_UNREACHABLE();
-    }
-}
-
-bool ConstantValue::lt(const ConstantValue& rhs) const noexcept
-{
-    SWC_ASSERT(kind_ == rhs.kind_);
-    switch (kind_)
-    {
-        case ConstantKind::Int:
-            return getInt().lt(rhs.getInt());
-        case ConstantKind::Float:
-            return getFloat().lt(rhs.getFloat());
-        case ConstantKind::Char:
-            return getChar() < rhs.getChar();
-        case ConstantKind::Rune:
-            return getRune() < rhs.getRune();
-
-        default:
-            SWC_UNREACHABLE();
-    }
-}
-
-bool ConstantValue::le(const ConstantValue& rhs) const noexcept
-{
-    SWC_ASSERT(kind_ == rhs.kind_);
-    switch (kind_)
-    {
-        case ConstantKind::Int:
-            return getInt().le(rhs.getInt());
-        case ConstantKind::Float:
-            return getFloat().le(rhs.getFloat());
-        case ConstantKind::Char:
-            return getChar() <= rhs.getChar();
-        case ConstantKind::Rune:
-            return getRune() <= rhs.getRune();
-
-        default:
-            SWC_UNREACHABLE();
-    }
-}
-
-bool ConstantValue::gt(const ConstantValue& rhs) const noexcept
-{
-    SWC_ASSERT(kind_ == rhs.kind_);
-    switch (kind_)
-    {
-        case ConstantKind::Int:
-            return getInt().gt(rhs.getInt());
-        case ConstantKind::Float:
-            return getFloat().gt(rhs.getFloat());
-        case ConstantKind::Char:
-            return getChar() > rhs.getChar();
-        case ConstantKind::Rune:
-            return getRune() > rhs.getRune();
-
-        default:
-            SWC_UNREACHABLE();
-    }
+    if (isInt())
+        return getInt();
+    if (isChar())
+        return ApsInt(getChar(), 32, true);
+    if (isRune())
+        return ApsInt(getRune(), 32, true);
+    SWC_UNREACHABLE();
 }
 
 bool ConstantValue::ge(const ConstantValue& rhs) const noexcept
@@ -265,62 +336,6 @@ Utf8 ConstantValue::toString(const TaskContext& ctx) const
         default:
             SWC_UNREACHABLE();
     }
-}
-
-uint32_t ConstantValue::hash() const noexcept
-{
-    auto h = Math::hash(static_cast<uint32_t>(kind_));
-    switch (kind_)
-    {
-        case ConstantKind::Bool:
-            h = Math::hashCombine(h, asBool.val);
-            break;
-        case ConstantKind::Char:
-            h = Math::hashCombine(h, Math::hash(asCharRune.val));
-            break;
-        case ConstantKind::Rune:
-            h = Math::hashCombine(h, Math::hash(asCharRune.val));
-            break;
-        case ConstantKind::String:
-            h = Math::hashCombine(h, Math::hash(asString.val));
-            break;
-        case ConstantKind::TypeInfo:
-            h = Math::hashCombine(h, asTypeInfo.val.get());
-            break;
-        case ConstantKind::Int:
-            h = Math::hashCombine(h, typeRef_.get());
-            h = Math::hashCombine(h, asInt.val.hash());
-            break;
-        case ConstantKind::Float:
-            h = Math::hashCombine(h, typeRef_.get());
-            h = Math::hashCombine(h, asFloat.val.hash());
-            break;
-
-        default:
-            SWC_UNREACHABLE();
-    }
-
-    return h;
-}
-
-ApsInt ConstantValue::getIntLike() const
-{
-    if (isInt())
-        return getInt();
-    if (isChar())
-        return ApsInt(getChar(), 32, true);
-    if (isRune())
-        return ApsInt(getRune(), 32, true);
-    SWC_UNREACHABLE();
-}
-
-ConstantValue ConstantValue::makeFromIntLike(const TaskContext& ctx, const ApsInt& v, const TypeInfo& ty)
-{
-    if (ty.isChar())
-        return makeChar(ctx, static_cast<uint32_t>(v.asI64()));
-    if (ty.isRune())
-        return makeRune(ctx, static_cast<uint32_t>(v.asI64()));
-    return makeInt(ctx, v, ty.intBits(), ty.intSign());
 }
 
 SWC_END_NAMESPACE()

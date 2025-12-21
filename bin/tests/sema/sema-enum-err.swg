@@ -26,7 +26,7 @@ enum E: s32
 
 // swc-expected-error@(+1,+2) {{sema_err_already_defined}}
 enum F: u32 { A }
-enum F: f32 { A }
+enum F: f32 { A = 0 }
 
 enum G: s8
 {

@@ -354,8 +354,7 @@ struct AstScopedIdentifier : AstNodeT<AstNodeId::ScopedIdentifier>
 {
     AstNodeRef nodeIdentRef;
 
-    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeIdentRef}); }
-    AstVisitStepResult semaPreChild(Sema& sema, const AstNodeRef& childRef) const;
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeIdentRef}); }
 };
 
 struct AstAncestorIdentifier : AstNodeT<AstNodeId::AncestorIdentifier>

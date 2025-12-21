@@ -73,7 +73,7 @@ public:
     const ApsInt& nextValue() const { return nextValue_; }
     void          setNextValue(const ApsInt& value) { nextValue_ = value; }
     bool          hasNextValue() const { return hasNextValue_; }
-    void          setHasNextValue(bool value) { hasNextValue_ = value; }
+    void          setHasNextValue() { hasNextValue_ = true; }
 };
 
 class SymbolEnumValue : public Symbol

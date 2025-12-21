@@ -95,6 +95,7 @@ public:
     uint32_t intLikeBits() const noexcept { SWC_ASSERT(isIntLike()); return isCharRune() ? 32 : asInt.bits; }
     uint32_t scalarNumericBits() const noexcept { SWC_ASSERT(isScalarNumeric()); return isIntLike() ? intLikeBits() : floatBits(); }
     uint32_t floatBits() const noexcept { SWC_ASSERT(isFloat()); return asFloat.bits; }
+    SymbolEnum* enumSym() const noexcept { SWC_ASSERT(isEnum()); return asEnum.enumSym; }
     // clang-format on
 
     static TypeInfo makeBool();

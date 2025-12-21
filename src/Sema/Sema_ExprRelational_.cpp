@@ -7,6 +7,7 @@
 #include "Sema/Helpers/SemaNodeView.h"
 #include "Sema/Sema.h"
 #include "Sema/Type/SemaCast.h"
+#include "Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -198,12 +199,54 @@ namespace
         return Result::Error;
     }
 
-    Result check(Sema& sema, TokenId op, const AstRelationalExpr& node, const SemaNodeViewList& ops)
+    void promoteEqualEqual(Sema& sema, SemaNodeViewList& ops)
+    {
+        TaskContext&  ctx   = sema.ctx();
+        SemaNodeView& view0 = ops.view[0];
+        SemaNodeView& view1 = ops.view[1];
+
+        if (view0.type->isTypeInfo() && !view1.type->isTypeInfo() && view1.type->isType())
+        {
+            const ConstantRef cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeTypeInfo(ctx, view1.typeRef));
+            view1.setCstRef(sema, cstRef);
+        }
+
+        if (!view0.type->isTypeInfo() && view0.type->isType() && view1.type->isTypeInfo())
+        {
+            const ConstantRef cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeTypeInfo(ctx, view0.typeRef));
+            view0.setCstRef(sema, cstRef);
+        }
+
+        if (view0.type->isEnum() && !view1.type->isEnum())
+        {
+            if (view0.cstRef.isValid())
+                view0.setCstRef(sema, view0.cst->getEnumValue());
+            else
+            {
+                const SymbolEnum* symEnum = view0.type->enumSym();
+                SemaCast::createImplicitCast(sema, symEnum->underlyingTypeRef(), view0.nodeRef);
+            }
+        }
+
+        if (view1.type->isEnum() && !view0.type->isEnum())
+        {
+            if (view1.cstRef.isValid())
+                view1.setCstRef(sema, view1.cst->getEnumValue());
+            else
+            {
+                const SymbolEnum* symEnum = view1.type->enumSym();
+                SemaCast::createImplicitCast(sema, symEnum->underlyingTypeRef(), view1.nodeRef);
+            }
+        }
+    }
+
+    Result check(Sema& sema, TokenId op, const AstRelationalExpr& node, SemaNodeViewList& ops)
     {
         switch (op)
         {
             case TokenId::SymEqualEqual:
             case TokenId::SymBangEqual:
+                promoteEqualEqual(sema, ops);
                 return checkEqualEqual(sema, node, ops);
 
             case TokenId::SymLess:
@@ -223,28 +266,15 @@ namespace
 AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema) const
 {
     SemaNodeViewList ops(sema, nodeLeftRef, nodeRightRef);
+    const auto&      tok = sema.token(srcViewRef(), tokRef());
 
     // Type-check
-    const auto& tok = sema.token(srcViewRef(), tokRef());
     if (check(sema, tok.id, *this, ops) == Result::Error)
         return AstVisitStepResult::Stop;
 
-    TaskContext&  ctx   = sema.ctx();
-    SemaNodeView& view0 = ops.view[0];
-    SemaNodeView& view1 = ops.view[1];
-
-    // Conversions
-    if (view0.type->isTypeInfo() && !view1.type->isTypeInfo() && view1.type->isType())
-    {
-        const ConstantRef cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeTypeInfo(ctx, view1.typeRef));
-        view1.setCstRef(sema, cstRef);
-    }
-
-    if (view1.type->isTypeInfo() && !view0.type->isTypeInfo() && view0.type->isType())
-    {
-        const ConstantRef cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeTypeInfo(ctx, view1.typeRef));
-        view0.setCstRef(sema, cstRef);
-    }
+    TaskContext&        ctx   = sema.ctx();
+    const SemaNodeView& view0 = ops.view[0];
+    const SemaNodeView& view1 = ops.view[1];
 
     // Constant folding
     if (view0.cstRef.isValid() && view1.cstRef.isValid())

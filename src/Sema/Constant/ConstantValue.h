@@ -20,6 +20,7 @@ enum class ConstantKind
     Int,
     Float,
     TypeInfo,
+    EnumValue,
 };
 
 class ConstantValue
@@ -39,6 +40,7 @@ class ConstantValue
         struct { ApsInt val; } asInt;
         struct { ApFloat val; } asFloat;
         struct { TypeRef val; } asTypeInfo;
+        struct { ConstantRef val; } asEnumValue;
         // clang-format on
     };
 
@@ -63,6 +65,7 @@ public:
     bool         isInt() const { return kind_ == ConstantKind::Int; }
     bool         isFloat() const { return kind_ == ConstantKind::Float; }
     bool         isTypeInfo() const { return kind_ == ConstantKind::TypeInfo; }
+    bool         isEnumValue() const { return kind_ == ConstantKind::EnumValue; }
 
     // clang-format off
     bool getBool() const { SWC_ASSERT(isBool()); return asBool.val; }
@@ -72,6 +75,7 @@ public:
     const ApsInt& getInt() const { SWC_ASSERT(isInt()); return asInt.val; }
     const ApFloat& getFloat() const { SWC_ASSERT(isFloat()); return asFloat.val; }
     TypeRef getTypeIndo() const { SWC_ASSERT(isTypeInfo()); return asTypeInfo.val; }
+    ConstantRef getEnumValue() const { SWC_ASSERT(isEnumValue()); return asEnumValue.val; }
     // clang-format on
 
     const TypeInfo& type(const TaskContext& ctx) const;
@@ -86,6 +90,7 @@ public:
     static ConstantValue makeFloat(const TaskContext& ctx, const ApFloat& value, uint32_t bitWidth);
     static ConstantValue makeFloatUnsized(const TaskContext& ctx, const ApFloat& value);
     static ConstantValue makeFromIntLike(const TaskContext& ctx, const ApsInt& v, const TypeInfo& ty);
+    static ConstantValue makeEnumValue(const TaskContext& ctx, ConstantRef valueCst, TypeRef typeRef);
 
     uint32_t hash() const noexcept;
     ApsInt   getIntLike() const;

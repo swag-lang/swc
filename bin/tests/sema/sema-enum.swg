@@ -45,8 +45,8 @@ enum E
     #assert(A == 0)
 }
 
-/*#assert(#typeof(A1.A) == A1)
-#assert(cast(u32) C.A == 0)
+#assert(#typeof(A1.A) == A1)
+/*#assert(cast(u32) C.A == 0)
 #assert(cast(u32) C.B == 1)
 #assert((cast(s32) C.C) == 5)
 #assert((cast(s32) C.D) == 6)

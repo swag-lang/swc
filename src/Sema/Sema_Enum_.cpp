@@ -23,8 +23,8 @@ AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& child
     SemaNodeView typeView(sema, nodeTypeRef);
     if (nodeTypeRef.isValid())
     {
-        if (!typeView.type->isScalarNumeric() && 
-            !typeView.type->isBool() && 
+        if (!typeView.type->isScalarNumeric() &&
+            !typeView.type->isBool() &&
             !typeView.type->isRune() &&
             !typeView.type->isString())
         {
@@ -115,7 +115,7 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
         {
             const ConstantValue& cstVal = sema.cstMgr().get(valueCst);
             symEnum.setNextValue(cstVal.getInt());
-            symEnum.setHasNextValue(true);
+            symEnum.setHasNextValue();
         }
     }
     else
@@ -146,13 +146,16 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
 
         ConstantValue val = ConstantValue::makeInt(ctx, symEnum.nextValue(), underlyingType.intBits(), underlyingType.intSign());
         valueCst          = sema.cstMgr().addConstant(ctx, val);
-        symEnum.setHasNextValue(true);
+        symEnum.setHasNextValue();
     }
 
     // Create a symbol for this enum value
     const IdentifierRef idRef    = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokRef());
     auto*               symValue = Symbol::make<SymbolEnumValue>(ctx, this, idRef, SymbolFlagsE::Zero);
-    symValue->setCstRef(valueCst);
+
+    ConstantValue enumCst    = ConstantValue::makeEnumValue(ctx, valueCst, symEnum.typeRef());
+    ConstantRef   enumCstRef = sema.cstMgr().addConstant(ctx, enumCst);
+    symValue->setCstRef(enumCstRef);
     symValue->setTypeRef(symEnum.typeRef());
 
     if (!sema.curSymMap()->addSingleSymbol(sema, symValue))

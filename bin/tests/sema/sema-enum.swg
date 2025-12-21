@@ -3,6 +3,20 @@
 enum A: u32 { A }
 enum B { A }
 
+enum A1: s8 { A }
+enum A2: s16 { A }
+enum A3: s32 { A }
+enum A4: s64 { A }
+enum A5: u8 { A }
+enum A6: u16 { A }
+enum A7: u32 { A }
+enum A8: u64 { A }
+enum A9: rune { A = 'A'}
+enum A10: bool { A = true }
+enum A11: f32 { A = 0 }
+enum A12: f64 { A = 0  }
+enum A13: string { A = "0" }
+
 enum C
 {
     A = 0,

@@ -23,7 +23,10 @@ AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& child
     SemaNodeView typeView(sema, nodeTypeRef);
     if (nodeTypeRef.isValid())
     {
-        if (!typeView.type->isScalarNumeric())
+        if (!typeView.type->isScalarNumeric() && 
+            !typeView.type->isBool() && 
+            !typeView.type->isRune() &&
+            !typeView.type->isString())
         {
             SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_type, nodeTypeRef);
             return AstVisitStepResult::Stop;

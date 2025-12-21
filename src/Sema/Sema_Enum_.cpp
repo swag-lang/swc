@@ -10,6 +10,8 @@
 #include "Sema/Sema.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Symbol/LookupResult.h"
+#include "Type/CastContext.h"
+#include "Type/SemaCast.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -74,9 +76,10 @@ AstVisitStepResult AstEnumDecl::semaPostNode(Sema& sema)
 
 AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema)
 {
-    const SemaNodeView nodeInitView(sema, nodeInitRef);
-    const SymbolEnum&  sym = sema.curSymMap()->cast<SymbolEnum>();
-    SWC_ASSERT(sym.underlyingTypeRef().isValid());
+    auto&             ctx = sema.ctx();
+    SemaNodeView      nodeInitView(sema, nodeInitRef);
+    const SymbolEnum& symEnum = sema.curSymMap()->cast<SymbolEnum>();
+    SWC_ASSERT(symEnum.underlyingTypeRef().isValid());
 
     if (nodeInitView.nodeRef.isValid())
     {
@@ -86,19 +89,31 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema)
             SemaError::raiseExprNotConst(sema, nodeInitRef);
             return AstVisitStepResult::Stop;
         }
+
+        // Verify constant type
+        CastContext castCtx(CastKind::Implicit);
+        castCtx.errorNodeRef = nodeInitRef;
+        nodeInitView.cstRef  = SemaCast::castConstant(sema, castCtx, nodeInitView.cstRef, symEnum.underlyingTypeRef());
+        if (nodeInitView.cstRef.isInvalid())
+            return AstVisitStepResult::Stop;
     }
     else
     {
         // If no initializer, verify that the underlying type is integer to deduce the value
-        const auto& type = sema.typeMgr().get(sym.underlyingTypeRef());
+        const auto& type = sema.typeMgr().get(symEnum.underlyingTypeRef());
         if (!type.isInt())
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_missing_enum_value, srcViewRef(), tokRef());
-            diag.addArgument(Diagnostic::ARG_TYPE, sym.underlyingTypeRef());
+            diag.addArgument(Diagnostic::ARG_TYPE, symEnum.underlyingTypeRef());
             diag.report(sema.ctx());
             return AstVisitStepResult::Stop;
         }
     }
+
+    const IdentifierRef idRef    = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokRef());
+    auto*               symValue = Symbol::make<SymbolEnumValue>(ctx, this, idRef, SymbolFlagsE::Zero);
+    if (!sema.curSymMap()->addSingleSymbol(sema, symValue))
+        return AstVisitStepResult::Stop;
 
     return AstVisitStepResult::Continue;
 }

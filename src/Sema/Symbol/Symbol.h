@@ -27,6 +27,7 @@ enum class SymbolKind : uint8_t
     Constant,
     Variable,
     Enum,
+    EnumValue,
 };
 
 enum class SymbolFlagsE : uint8_t

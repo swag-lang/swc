@@ -10,7 +10,7 @@ public:
     static constexpr auto K = SymbolKind::Module;
 
     explicit SymbolModule(const TaskContext& ctx) :
-        SymbolMap(ctx, nullptr, SymbolKind::Module, IdentifierRef::invalid(), SymbolFlagsE::Zero)
+        SymbolMap(ctx, nullptr, K, IdentifierRef::invalid(), SymbolFlagsE::Zero)
     {
     }
 };
@@ -21,7 +21,7 @@ public:
     static constexpr auto K = SymbolKind::Namespace;
 
     explicit SymbolNamespace(const TaskContext& ctx, const AstNode* decl, IdentifierRef idRef, SymbolFlags flags) :
-        SymbolMap(ctx, decl, SymbolKind::Namespace, idRef, flags)
+        SymbolMap(ctx, decl, K, idRef, flags)
     {
     }
 };
@@ -34,7 +34,7 @@ public:
     static constexpr auto K = SymbolKind::Constant;
 
     explicit SymbolConstant(const TaskContext& ctx, const AstNode* decl, IdentifierRef idRef, SymbolFlags flags) :
-        Symbol(ctx, decl, SymbolKind::Constant, idRef, flags)
+        Symbol(ctx, decl, K, idRef, flags)
     {
     }
 
@@ -48,7 +48,7 @@ public:
     static constexpr auto K = SymbolKind::Variable;
 
     explicit SymbolVariable(const TaskContext& ctx, const AstNode* decl, IdentifierRef idRef, SymbolFlags flags) :
-        Symbol(ctx, decl, SymbolKind::Variable, idRef, flags)
+        Symbol(ctx, decl, K, idRef, flags)
     {
     }
 };
@@ -61,12 +61,28 @@ public:
     static constexpr auto K = SymbolKind::Enum;
 
     explicit SymbolEnum(const TaskContext& ctx, const AstNode* decl, IdentifierRef idRef, SymbolFlags flags) :
-        SymbolMap(ctx, decl, SymbolKind::Enum, idRef, flags)
+        SymbolMap(ctx, decl, K, idRef, flags)
     {
     }
 
     TypeRef underlyingTypeRef() const { return underlyingTypeRef_; }
     void    setUnderlyingTypeRef(TypeRef ref) { underlyingTypeRef_ = ref; }
+};
+
+class SymbolEnumValue : public Symbol
+{
+    ConstantRef cstRef_ = ConstantRef::invalid();
+
+public:
+    static constexpr auto K = SymbolKind::EnumValue;
+
+    explicit SymbolEnumValue(const TaskContext& ctx, const AstNode* decl, IdentifierRef idRef, SymbolFlags flags) :
+        Symbol(ctx, decl, K, idRef, flags)
+    {
+    }
+
+    ConstantRef cstRef() const { return cstRef_; }
+    void        setCstRef(ConstantRef cstRef) { cstRef_ = cstRef; }
 };
 
 SWC_END_NAMESPACE()

@@ -34,6 +34,7 @@ AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& child
     else
     {
         typeView.typeRef = sema.typeMgr().getTypeInt(32, TypeInfo::Sign::Signed);
+        typeView.type    = &sema.typeMgr().get(typeView.typeRef);
     }
 
     const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokNameRef);
@@ -53,6 +54,8 @@ AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& child
     const TypeRef  enumTypeRef = ctx.typeMgr().addType(enumType);
     sym->setTypeRef(enumTypeRef);
     sym->setUnderlyingTypeRef(typeView.typeRef);
+    if (typeView.type->isInt())
+        sym->setNextValue(ApsInt{typeView.type->intBits(), typeView.type->isIntUnsigned()});
     sema.setSymbol(sema.curNodeRef(), sym);
 
     if (!symbolMap->addSingleSymbol(sema, sym))
@@ -73,44 +76,66 @@ AstVisitStepResult AstEnumDecl::semaPostNode(Sema& sema)
 
 AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
 {
-    auto&             ctx = sema.ctx();
-    SemaNodeView      nodeInitView(sema, nodeInitRef);
-    const SymbolEnum& symEnum = sema.curSymMap()->cast<SymbolEnum>();
-    SWC_ASSERT(symEnum.underlyingTypeRef().isValid());
+    auto&              ctx = sema.ctx();
+    const SemaNodeView nodeInitView(sema, nodeInitRef);
+
+    auto&         symEnum    = sema.curSymMap()->cast<SymbolEnum>();
+    const TypeRef underlying = symEnum.underlyingTypeRef();
+    SWC_ASSERT(underlying.isValid());
+
+    const auto& underlyingType = sema.typeMgr().get(underlying);
+    ConstantRef valueCst;
 
     if (nodeInitView.nodeRef.isValid())
     {
-        // Verify that the initializer is constant
+        // Must be constant
         if (nodeInitView.cstRef.isInvalid())
         {
             SemaError::raiseExprNotConst(sema, nodeInitRef);
             return AstVisitStepResult::Stop;
         }
 
-        // Verify constant type
+        // Cast initializer constant to the underlying type
         CastContext castCtx(CastKind::Implicit);
         castCtx.errorNodeRef = nodeInitRef;
-        nodeInitView.cstRef  = SemaCast::castConstant(sema, castCtx, nodeInitView.cstRef, symEnum.underlyingTypeRef());
-        if (nodeInitView.cstRef.isInvalid())
+        valueCst             = SemaCast::castConstant(sema, castCtx, nodeInitView.cstRef, underlying);
+        if (valueCst.isInvalid())
             return AstVisitStepResult::Stop;
+
+        if (underlyingType.isInt())
+        {
+            const ConstantValue& cstVal = sema.cstMgr().get(valueCst);
+            symEnum.setNextValue(cstVal.getInt());
+        }
     }
     else
     {
-        // If no initializer, verify that the underlying type is integer to deduce the value
-        const auto& type = sema.typeMgr().get(symEnum.underlyingTypeRef());
-        if (!type.isInt())
+        // No initializer => auto value
+        if (!underlyingType.isInt())
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_missing_enum_value, srcViewRef(), tokRef());
-            diag.addArgument(Diagnostic::ARG_TYPE, symEnum.underlyingTypeRef());
-            diag.report(sema.ctx());
+            diag.addArgument(Diagnostic::ARG_TYPE, underlying);
+            diag.report(ctx);
             return AstVisitStepResult::Stop;
         }
+
+        ConstantValue val = ConstantValue::makeInt(ctx, symEnum.nextValue(), underlyingType.intBits(), underlyingType.intSign());
+        valueCst          = sema.cstMgr().addConstant(ctx, val);
     }
 
+    // Update enum "nextValue" = value + 1 (so subsequent no-init enumerators work)
+    if (underlyingType.isInt())
+    {
+        bool   overflow = false;
+        ApsInt one(1, symEnum.nextValue().bitWidth(), symEnum.nextValue().isUnsigned());
+        symEnum.nextValue().add(one, overflow);
+    }
+
+    // Create a symbol for this enum value
     const IdentifierRef idRef    = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokRef());
     auto*               symValue = Symbol::make<SymbolEnumValue>(ctx, this, idRef, SymbolFlagsE::Zero);
-    symValue->setCstRef(nodeInitView.cstRef);
-    symValue->setTypeRef(nodeInitView.typeRef);
+    symValue->setCstRef(valueCst);
+    symValue->setTypeRef(symEnum.typeRef());
 
     if (!sema.curSymMap()->addSingleSymbol(sema, symValue))
         return AstVisitStepResult::Stop;

@@ -93,3 +93,4 @@ SWC_DIAG_DEF(sema_err_var_init_type_mismatch, Error, "type mismatch in initializ
 SWC_DIAG_DEF(sema_err_invalid_enum_type, Error, "invalid enum underlying type {type}")
 SWC_DIAG_DEF(sema_err_already_defined, Error, "symbol {tok} already defined")
 SWC_DIAG_DEF(sema_err_missing_enum_value, Error, "missing initializer for enum value {tok}; an enum value of type {type} must be initialized with a constant expression")
+SWC_DIAG_DEF(sema_err_empty_enum, Error, "empty enum")

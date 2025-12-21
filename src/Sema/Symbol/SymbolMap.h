@@ -14,7 +14,7 @@ class SymbolMap : public Symbol
         IdentifierRef key  = IdentifierRef::invalid();
     };
 
-    std::atomic<BigMap*> big_{nullptr};
+    std::atomic<BigMap*> big_ = nullptr;
 
     static constexpr uint32_t    SMALL_CAP = 8;
     std::array<Entry, SMALL_CAP> small_;
@@ -27,6 +27,8 @@ class SymbolMap : public Symbol
 
 public:
     explicit SymbolMap(const TaskContext& ctx, const AstNode* decl, SymbolKind kind, IdentifierRef idRef, SymbolFlags flags);
+
+    bool empty() const noexcept { return smallSize_ == 0 && big_ == nullptr; }
 
     void addSymbol(TaskContext& ctx, Symbol* symbol);
     bool addSingleSymbol(Sema& sema, Symbol* symbol);

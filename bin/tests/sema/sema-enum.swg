@@ -1,7 +1,7 @@
 #global internal
 
-enum A: u32 {}
-enum B {}
+enum A: u32 { A }
+enum B { A }
 
 enum C
 {

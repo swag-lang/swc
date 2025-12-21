@@ -25,8 +25,8 @@ enum E: s32
 }
 
 // swc-expected-error@(+1,+2) {{sema_err_already_defined}}
-enum F: u32 {}
-enum F: f32 {}
+enum F: u32 { A }
+enum F: f32 { A }
 
 enum G: s8
 {
@@ -38,3 +38,5 @@ enum H: u8
     A = 255,
     B  // swc-expected-error {{sema_err_literal_overflow}}
 }
+
+enum I: u8 {} // swc-expected-error {{sema_err_empty_enum}}

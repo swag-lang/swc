@@ -67,8 +67,14 @@ AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& child
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstEnumDecl::semaPostNode(Sema& sema)
+AstVisitStepResult AstEnumDecl::semaPostNode(Sema& sema) const
 {
+    if (sema.curSymMap()->empty())
+    {
+        SemaError::raise(sema, DiagnosticId::sema_err_empty_enum, srcViewRef(), getTokNameRef());
+        return AstVisitStepResult::Stop;
+    }
+
     sema.curSymMap()->setFullComplete(sema.ctx());
     sema.popScope();
     return AstVisitStepResult::Continue;

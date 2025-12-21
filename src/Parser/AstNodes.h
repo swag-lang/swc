@@ -12,6 +12,17 @@ enum class AstVisitStepResult;
 // -----------------------------------------------------------------------------
 
 template<AstNodeId I>
+struct AstNamedNodeT : AstNodeT<I>
+{
+    TokenRef tokNameRef;
+
+    explicit AstNamedNodeT(SourceViewRef srcViewRef, TokenRef tokRef) :
+        AstNodeT<I>(srcViewRef, tokRef)
+    {
+    }
+};
+
+template<AstNodeId I>
 struct AstCompoundT : AstNodeT<I>
 {
     SpanRef spanChildrenRef;

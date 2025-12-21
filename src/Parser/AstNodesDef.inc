@@ -105,9 +105,8 @@ struct AstCompilerImport : AstNodeT<AstNodeId::CompilerImport>
     TokenRef tokVersionRef;
 };
 
-struct AstCompilerScope : AstNodeT<AstNodeId::CompilerScope>
+struct AstCompilerScope : AstNamedNodeT<AstNodeId::CompilerScope>
 {
-    TokenRef   tokNameRef;
     AstNodeRef nodeBodyRef;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
@@ -178,10 +177,9 @@ struct AstClosureExpr : AstLambdaExprT<AstNodeId::ClosureExpr>
     }
 };
 
-struct AstFunctionDecl : AstNodeT<AstNodeId::FunctionDecl>
+struct AstFunctionDecl : AstNamedNodeT<AstNodeId::FunctionDecl>
 {
     SpanRef    spanGenericParamsRef;
-    TokenRef   tokNameRef;
     AstNodeRef nodeParamsRef;
     AstNodeRef nodeReturnTypeRef;
     SpanRef    spanConstraintsRef;
@@ -196,9 +194,8 @@ struct AstFunctionDecl : AstNodeT<AstNodeId::FunctionDecl>
     }
 };
 
-struct AstInterfaceDecl : AstNodeT<AstNodeId::InterfaceDecl>
+struct AstInterfaceDecl : AstNamedNodeT<AstNodeId::InterfaceDecl>
 {
-    TokenRef   tokNameRef;
     AstNodeRef nodeBodyRef;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
@@ -211,9 +208,8 @@ struct AstInterfaceBody : AstCompoundT<AstNodeId::InterfaceBody>
 {
 };
 
-struct AstAttrDecl : AstNodeT<AstNodeId::AttrDecl>
+struct AstAttrDecl : AstNamedNodeT<AstNodeId::AttrDecl>
 {
-    TokenRef   tokNameRef;
     AstNodeRef nodeParamsRef;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
@@ -678,9 +674,8 @@ struct AstEnumBody : AstCompoundT<AstNodeId::EnumBody>
 {
 };
 
-struct AstEnumDecl : AstNodeT<AstNodeId::EnumDecl>
+struct AstEnumDecl : AstNamedNodeT<AstNodeId::EnumDecl>
 {
-    TokenRef   tokNameRef;
     AstNodeRef nodeTypeRef;
     AstNodeRef nodeBodyRef;
 
@@ -998,7 +993,7 @@ struct AstGenericParamType : AstGenericParamT<AstNodeId::GenericParamType>
 {
 };
 
-struct AstVarDecl : AstNodeT<AstNodeId::VarDecl>
+struct AstVarDecl : AstNamedNodeT<AstNodeId::VarDecl>
 {
     enum FlagsE : ParserFlags
     {
@@ -1009,7 +1004,6 @@ struct AstVarDecl : AstNodeT<AstNodeId::VarDecl>
     };
     using Flags = EnumFlags<FlagsE>;
 
-    TokenRef   tokNameRef;
     AstNodeRef nodeTypeRef;
     AstNodeRef nodeInitRef;
 
@@ -1062,9 +1056,8 @@ struct AstUsingMemberDecl : AstNodeT<AstNodeId::UsingMemberDecl>
     }
 };
 
-struct AstAliasDecl : AstNodeT<AstNodeId::AliasDecl>
+struct AstAliasDecl : AstNamedNodeT<AstNodeId::AliasDecl>
 {
-    TokenRef   tokNameRef;
     AstNodeRef nodeExprRef;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
@@ -1095,9 +1088,8 @@ struct AstBreakStmt : AstNodeT<AstNodeId::BreakStmt>
 {
 };
 
-struct AstScopedBreakStmt : AstNodeT<AstNodeId::ScopedBreakStmt>
+struct AstScopedBreakStmt : AstNamedNodeT<AstNodeId::ScopedBreakStmt>
 {
-    TokenRef tokNameRef;
 };
 
 struct AstFallThroughStmt : AstNodeT<AstNodeId::FallThroughStmt>
@@ -1237,10 +1229,9 @@ struct AstForCStyleStmt : AstNodeT<AstNodeId::ForCStyleStmt>
     }
 };
 
-struct AstForStmt : AstNodeT<AstNodeId::ForStmt>
+struct AstForStmt : AstNamedNodeT<AstNodeId::ForStmt>
 {
     AstModifierFlags modifierFlags;
-    TokenRef         tokNameRef;
     AstNodeRef       nodeExprRef;
     AstNodeRef       nodeWhereRef;
     AstNodeRef       nodeBodyRef;

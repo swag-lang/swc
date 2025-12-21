@@ -77,9 +77,10 @@ public:
     SourceFile& addFile(fs::path path, FileFlags flags);
     SourceFile& file(FileRef ref) const { return *files_[ref.get()].get(); }
 
-    SourceView& addSourceView();
-    SourceView& addSourceView(FileRef fileRef);
-    SourceView& srcView(SourceViewRef ref) const { return *srcViews_[ref.get()].get(); }
+    SourceView&       addSourceView();
+    SourceView&       addSourceView(FileRef fileRef);
+    SourceView&       srcView(SourceViewRef ref) { return *srcViews_[ref.get()].get(); }
+    const SourceView& srcView(SourceViewRef ref) const { return *srcViews_[ref.get()].get(); }
 
     Result                   collectFiles(TaskContext& ctx);
     std::vector<SourceFile*> files() const;

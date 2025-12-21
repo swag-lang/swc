@@ -194,7 +194,7 @@ SWC_NODE_DEF(UsingMemberDecl,
 
 // Enums
 SWC_NODE_DEF(EnumDecl,
-                AstNodeIdFlagsE::Zero,
+                AstNodeIdFlagsE::SemaJob,
                 SemaScopeFlagsE::Type)
 SWC_NODE_DEF(EnumBody,
                 AstNodeIdFlagsE::Zero,

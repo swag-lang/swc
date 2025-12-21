@@ -79,10 +79,9 @@ struct AstNode
             return parserFlags_ & val.flags;
     }
 
-    static void        collectChildren(SmallVector<AstNodeRef>&, const Ast&) {}
-    static void        collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, SpanRef spanRef);
-    static void        collectChildren(SmallVector<AstNodeRef>& out, std::initializer_list<AstNodeRef> nodes);
-    SourceCodeLocation location(const TaskContext& ctx, const Ast& ast) const;
+    static void collectChildren(SmallVector<AstNodeRef>&, const Ast&) {}
+    static void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, SpanRef spanRef);
+    static void collectChildren(SmallVector<AstNodeRef>& out, std::initializer_list<AstNodeRef> nodes);
 
     static void               semaEnterNode(Sema&) {}
     static AstVisitStepResult semaPreNode(Sema&) { return AstVisitStepResult::Continue; }
@@ -94,13 +93,17 @@ struct AstNode
     uint32_t       semaRaw() const { return sema_; }
     void           setSemaRaw(uint32_t val) { sema_ = val; }
 
-    AstNodeId     id() const { return id_; }
-    void          setId(AstNodeId id) { id_ = id; }
-    bool          is(AstNodeId id) const { return id_ == id; }
-    bool          isNot(AstNodeId id) const { return id_ != id; }
-    SourceViewRef srcViewRef() const { return srcViewRef_; }
-    TokenRef      tokRef() const { return tokRef_; }
-    TokenRef      tokRefEnd(const Ast& ast) const;
+    AstNodeId id() const { return id_; }
+    void      setId(AstNodeId id) { id_ = id; }
+    bool      is(AstNodeId id) const { return id_ == id; }
+    bool      isNot(AstNodeId id) const { return id_ != id; }
+
+    SourceCodeLocation location(const TaskContext& ctx) const;
+    SourceCodeLocation locationWithChildren(const TaskContext& ctx, const Ast& ast) const;
+    const SourceView&  srcView(const TaskContext& ctx) const;
+    SourceViewRef      srcViewRef() const { return srcViewRef_; }
+    TokenRef           tokRef() const { return tokRef_; }
+    TokenRef           tokRefEnd(const Ast& ast) const;
 
 private:
     AstNodeId     id_ = AstNodeId::Invalid;

@@ -20,21 +20,14 @@ void AstNode::collectChildren(SmallVector<AstNodeRef>& out, std::initializer_lis
     }
 }
 
-TokenRef AstNode::tokRefEnd(const Ast& ast) const
+SourceCodeLocation AstNode::location(const TaskContext& ctx) const
 {
-    const auto& info = Ast::nodeIdInfos(id_);
-
-    SmallVector<AstNodeRef> children;
-    info.collectChildren(children, ast, *this);
-
-    if (children.empty())
-        return tokRef_;
-
-    const AstNode& node = ast.node(children.back());
-    return node.tokRefEnd(ast);
+    const SourceView& view  = srcView(ctx);
+    const Token&      token = view.token(tokRef_);
+    return token.location(ctx, view);
 }
 
-SourceCodeLocation AstNode::location(const TaskContext& ctx, const Ast& ast) const
+SourceCodeLocation AstNode::locationWithChildren(const TaskContext& ctx, const Ast& ast) const
 {
     SourceCodeLocation loc{};
 
@@ -97,6 +90,25 @@ SourceCodeLocation AstNode::location(const TaskContext& ctx, const Ast& ast) con
     const uint32_t spanLen  = endByte > startOff ? (endByte - startOff) : 1u;
     loc.fromOffset(ctx, view, startOff, spanLen);
     return loc;
+}
+
+const SourceView& AstNode::srcView(const TaskContext& ctx) const
+{
+    return ctx.compiler().srcView(srcViewRef());
+}
+
+TokenRef AstNode::tokRefEnd(const Ast& ast) const
+{
+    const auto& info = Ast::nodeIdInfos(id_);
+
+    SmallVector<AstNodeRef> children;
+    info.collectChildren(children, ast, *this);
+
+    if (children.empty())
+        return tokRef_;
+
+    const AstNode& node = ast.node(children.back());
+    return node.tokRefEnd(ast);
 }
 
 SWC_END_NAMESPACE()

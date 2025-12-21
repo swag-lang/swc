@@ -27,7 +27,7 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, AstNodeRef nodeRef)
     const AstNode& nodePtr = sema.node(nodeRef);
     setReportArguments(sema, diag, nodePtr.srcViewRef(), nodePtr.tokRef());
 
-    const SourceCodeLocation loc = sema.node(nodeRef).location(sema.ctx(), sema.ast());
+    const SourceCodeLocation loc = sema.node(nodeRef).locationWithChildren(sema.ctx(), sema.ast());
     diag.last().addSpan(loc, "");
 
     return diag;
@@ -47,7 +47,7 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, SourceViewRef srcViewR
 Diagnostic SemaError::report(Sema& sema, DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef, AstNodeRef nodeSpanRef)
 {
     auto                     diag = report(sema, id, srcViewRef, tokRef);
-    const SourceCodeLocation loc  = sema.node(nodeSpanRef).location(sema.ctx(), sema.ast());
+    const SourceCodeLocation loc  = sema.node(nodeSpanRef).locationWithChildren(sema.ctx(), sema.ast());
     diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
     return diag;
 }

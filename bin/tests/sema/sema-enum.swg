@@ -6,10 +6,13 @@ enum A1 {}
 enum A2
 {
     A = 0,
+#assert(A == 0)
     B,
     C = 5,
+#assert(C == 5)
     D,
     E = 10,
+#assert(E == 10)
 }
 
 var XX: s32

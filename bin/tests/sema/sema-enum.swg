@@ -1,9 +1,9 @@
 #global internal
 
 enum A: u32 {}
-enum A1 {}
+enum B {}
 
-enum A2
+enum C
 {
     A = 0,
     #assert(A == 0)
@@ -15,4 +15,18 @@ enum A2
     #assert(D == 6)
     E = 10,
     #assert(E == 10)
+}
+
+enum D
+{
+    A = -10,
+    #assert(A == -10)
+    B,
+    #assert(B == -9)
+}
+
+enum E
+{
+    A,
+    #assert(A == 0)
 }

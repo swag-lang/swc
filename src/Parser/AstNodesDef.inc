@@ -680,7 +680,7 @@ struct AstEnumDecl : AstNamedNodeT<AstNodeId::EnumDecl>
     AstNodeRef nodeBodyRef;
 
     void                      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeBodyRef}); }
-    AstVisitStepResult        semaPreChild(Sema& sema, const AstNodeRef& childRef);
+    AstVisitStepResult        semaPreChild(Sema& sema, const AstNodeRef& childRef) const;
     static AstVisitStepResult semaPostNode(Sema& sema);
 };
 
@@ -689,7 +689,7 @@ struct AstEnumValue : AstNodeT<AstNodeId::EnumValue>
     AstNodeRef nodeInitRef;
 
     void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeInitRef}); }
-    AstVisitStepResult semaPostNode(Sema& sema);
+    AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
 struct AstUsingEnumDecl : AstNodeT<AstNodeId::UsingEnumDecl>

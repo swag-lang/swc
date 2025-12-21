@@ -1,6 +1,4 @@
 #include "pch.h"
-
-#include "Helpers/SemaMatch.h"
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisitResult.h"
 #include "Sema/Helpers/SemaError.h"
@@ -9,13 +7,12 @@
 #include "Sema/Helpers/SemaNodeView.h"
 #include "Sema/Sema.h"
 #include "Sema/Symbol/Symbols.h"
-#include "Symbol/LookupResult.h"
 #include "Type/CastContext.h"
 #include "Type/SemaCast.h"
 
 SWC_BEGIN_NAMESPACE()
 
-AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& childRef)
+AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef != nodeBodyRef)
         return AstVisitStepResult::Continue;
@@ -32,11 +29,11 @@ AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& child
             return AstVisitStepResult::Stop;
         }
     }
+
+    // Default enum type is 's32'
     else
     {
-        // Default enum type is 's32'
         typeView.typeRef = sema.typeMgr().getTypeInt(32, TypeInfo::Sign::Signed);
-        typeView.type    = &sema.typeMgr().get(typeView.typeRef);
     }
 
     const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokNameRef);
@@ -74,7 +71,7 @@ AstVisitStepResult AstEnumDecl::semaPostNode(Sema& sema)
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema)
+AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
 {
     auto&             ctx = sema.ctx();
     SemaNodeView      nodeInitView(sema, nodeInitRef);

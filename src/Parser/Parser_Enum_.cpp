@@ -45,12 +45,12 @@ AstNodeRef Parser::parseEnumValue()
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumValue>(consume());
             if (consumeIf(TokenId::SymEqual).isValid())
             {
-                nodePtr->nodeValueRef = parseExpression();
-                if (nodePtr->nodeValueRef.isInvalid())
+                nodePtr->nodeInitRef = parseExpression();
+                if (nodePtr->nodeInitRef.isInvalid())
                     skipTo(ENUM_VALUE_SYNC, SkipUntilFlagsE::EolBefore);
             }
             else
-                nodePtr->nodeValueRef.setInvalid();
+                nodePtr->nodeInitRef.setInvalid();
             return nodeRef;
         }
 

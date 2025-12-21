@@ -73,6 +73,13 @@ public:
     void    setNextHomonym(Symbol* next) noexcept { nextHomonym_ = next; }
 
     std::string_view name(const TaskContext& ctx) const;
+    const TypeInfo&  typeInfo(const TaskContext& ctx) const;
+
+    template<typename T>
+    T* safeCast()
+    {
+        return kind_ == T::K ? static_cast<T*>(this) : nullptr;
+    }
 
     template<typename T>
     const T* safeCast() const
@@ -81,9 +88,17 @@ public:
     }
 
     template<typename T>
-    T* safeCast()
+    T& cast()
     {
-        return kind_ == T::K ? static_cast<T*>(this) : nullptr;
+        SWC_ASSERT(kind_ == T::K);
+        return *static_cast<T*>(this);
+    }
+
+    template<typename T>
+    const T& cast() const
+    {
+        SWC_ASSERT(kind_ == T::K);
+        return *static_cast<T*>(this);
     }
 
     template<typename T>

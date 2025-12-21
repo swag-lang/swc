@@ -55,13 +55,18 @@ public:
 
 class SymbolEnum : public SymbolMap
 {
+    TypeRef underlyingTypeRef_ = TypeRef::invalid();
+
 public:
-    static constexpr auto K = SymbolKind::Variable;
+    static constexpr auto K = SymbolKind::Enum;
 
     explicit SymbolEnum(const TaskContext& ctx, const AstNode* decl, IdentifierRef idRef, SymbolFlags flags) :
         SymbolMap(ctx, decl, SymbolKind::Enum, idRef, flags)
     {
     }
+
+    TypeRef underlyingTypeRef() const { return underlyingTypeRef_; }
+    void    setUnderlyingTypeRef(TypeRef ref) { underlyingTypeRef_ = ref; }
 };
 
 SWC_END_NAMESPACE()

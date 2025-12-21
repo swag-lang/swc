@@ -53,6 +53,7 @@ AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& child
     const TypeInfo enumType    = TypeInfo::makeEnum(sym);
     const TypeRef  enumTypeRef = ctx.typeMgr().addType(enumType);
     sym->setTypeRef(enumTypeRef);
+    sym->setUnderlyingTypeRef(typeView.typeRef);
     sema.setSymbol(sema.curNodeRef(), sym);
 
     if (!symbolMap->addSingleSymbol(sema, sym))
@@ -68,6 +69,37 @@ AstVisitStepResult AstEnumDecl::semaPostNode(Sema& sema)
 {
     sema.curSymMap()->setFullComplete(sema.ctx());
     sema.popScope();
+    return AstVisitStepResult::Continue;
+}
+
+AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema)
+{
+    const SemaNodeView nodeInitView(sema, nodeInitRef);
+    const SymbolEnum&  sym = sema.curSymMap()->cast<SymbolEnum>();
+    SWC_ASSERT(sym.underlyingTypeRef().isValid());
+
+    if (nodeInitView.nodeRef.isValid())
+    {
+        // Verify that the initializer is constant
+        if (nodeInitView.cstRef.isInvalid())
+        {
+            SemaError::raiseExprNotConst(sema, nodeInitRef);
+            return AstVisitStepResult::Stop;
+        }
+    }
+    else
+    {
+        // If no initializer, verify that the underlying type is integer to deduce the value
+        const auto& type = sema.typeMgr().get(sym.underlyingTypeRef());
+        if (!type.isInt())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_missing_enum_value, srcViewRef(), tokRef());
+            diag.addArgument(Diagnostic::ARG_TYPE, sym.underlyingTypeRef());
+            diag.report(sema.ctx());
+            return AstVisitStepResult::Stop;
+        }
+    }
+
     return AstVisitStepResult::Continue;
 }
 

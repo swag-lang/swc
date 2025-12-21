@@ -1,10 +1,31 @@
 #global internal
 
 enum A: u32 {}
+enum A1 {}
 
-enum B: void {} // swc-expected-error {{sema_err_invalid_enum_type}}
+enum A2
+{
+    A = 0,
+    B,
+    C = 5,
+    D,
+    E = 10,
+}
+
+var XX: s32
+enum EA
+{
+    A = XX, // swc-expected-error {{sema_err_expr_not_const}}
+}
+
+enum EB: void {} // swc-expected-error {{sema_err_invalid_enum_type}}
+
+enum EC: f32
+{
+    A // swc-expected-error {{sema_err_missing_enum_value}}
+}
 
 // swc-expected-error@* {{sema_err_already_defined}}
-enum C: u32 {}
-enum C: f32 {}
+enum EX: u32 {}
+enum EX: f32 {}
 

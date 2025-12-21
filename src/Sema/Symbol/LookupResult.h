@@ -10,11 +10,7 @@ class LookupResult
     SmallVector<Symbol*> symbols_;
 
 public:
-    void clear()
-    {
-        symbols_.clear();
-    }
-
+    void                  clear() { symbols_.clear(); }
     SmallVector<Symbol*>& symbols() { return symbols_; }
     bool                  empty() const { return symbols_.empty(); }
     size_t                count() const { return symbols_.size(); }

@@ -42,8 +42,6 @@ private:
     TypeInfo() = delete;
     explicit TypeInfo(TypeInfoKind kind);
 
-    Utf8 toName(const TaskContext& ctx) const;
-
     TypeInfoKind kind_ = TypeInfoKind::Invalid;
 
     union
@@ -58,6 +56,7 @@ private:
 
 public:
     bool operator==(const TypeInfo& other) const noexcept;
+    Utf8 toName(const TaskContext& ctx) const;
 
     TypeInfoKind kind() const noexcept { return kind_; }
     bool         isBool() const noexcept { return kind_ == TypeInfoKind::Bool; }

@@ -43,7 +43,8 @@ public:
     explicit operator uint32_t() const = delete;
 
 #if SWC_HAS_DEBUG_INFO
-    void setDbgPtr(const T* ptr) { dbgPtr_ = ptr; }
+    void     setDbgPtr(const T* ptr) { dbgPtr_ = ptr; }
+    const T* dbgPtr() const { return dbgPtr_; }
 #endif
 };
 

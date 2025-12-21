@@ -198,7 +198,7 @@ namespace
         diag.report(sema.ctx());
         return Result::Error;
     }
-
+    
     void promoteTypeToTypeInfoForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
     {
         if (!other.type->isTypeInfo())
@@ -207,6 +207,7 @@ namespace
             return;
         if (!self.type->isType())
             return;
+        
         TaskContext&      ctx    = sema.ctx();
         const ConstantRef cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeTypeInfo(ctx, self.typeRef));
         self.setCstRef(sema, cstRef);
@@ -214,7 +215,6 @@ namespace
 
     void promoteEnumForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
     {
-        // Only kick in when comparing enum to a scalar numeric (or whatever rule you want)
         if (!self.type->isEnum())
             return;
         if (other.type->isEnum())

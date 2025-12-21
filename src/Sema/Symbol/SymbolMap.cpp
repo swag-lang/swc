@@ -128,19 +128,9 @@ bool SymbolMap::addSingleSymbol(Sema& sema, Symbol* symbol)
 {
     auto& ctx = sema.ctx();
     addSymbol(ctx, symbol);
-
     if (!symbol->nextHomonym())
         return true;
-
-    const AstNode*           decl      = symbol->decl();
-    const AstNode*           otherDecl = symbol->nextHomonym()->decl();
-    const auto               diag      = SemaError::report(sema, DiagnosticId::sema_err_already_defined, decl->srcViewRef(), decl->tokRef());
-    const SourceView&        srcView   = otherDecl->srcView(ctx);
-    const Token&             tok       = srcView.token(otherDecl->tokRef());
-    const SourceCodeLocation loc       = tok.location(ctx, srcView);
-    diag.last().addSpan(loc, DiagnosticId::sema_note_other_definition);
-    diag.report(ctx);
-
+    SemaError::raiseSymbolAlreadyDefined(sema, symbol);
     return false;
 }
 

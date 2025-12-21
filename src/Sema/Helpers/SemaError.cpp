@@ -125,4 +125,17 @@ void SemaError::raiseInternal(Sema& sema, const AstNode& node)
     raise(sema, DiagnosticId::sema_err_internal, node.srcViewRef(), node.tokRef());
 }
 
+void SemaError::raiseSymbolAlreadyDefined(Sema& sema, const Symbol* symbol)
+{
+    auto&                    ctx       = sema.ctx();
+    const AstNode*           decl      = symbol->decl();
+    const AstNode*           otherDecl = symbol->nextHomonym()->decl();
+    const auto               diag      = report(sema, DiagnosticId::sema_err_already_defined, decl->srcViewRef(), decl->tokRef());
+    const SourceView&        srcView   = otherDecl->srcView(ctx);
+    const Token&             tok       = srcView.token(otherDecl->tokRef());
+    const SourceCodeLocation loc       = tok.location(ctx, srcView);
+    diag.last().addSpan(loc, DiagnosticId::sema_note_other_definition);
+    diag.report(ctx);
+}
+
 SWC_END_NAMESPACE()

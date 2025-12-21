@@ -6,6 +6,7 @@
 SWC_BEGIN_NAMESPACE()
 
 class Sema;
+class Symbol;
 
 namespace SemaError
 {
@@ -26,6 +27,7 @@ namespace SemaError
     void raiseExprNotConst(Sema& sema, AstNodeRef nodeRef);
     void raiseBinaryOperandType(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
     void raiseInternal(Sema& sema, const AstNode& node);
+    void raiseSymbolAlreadyDefined(Sema& sema, const Symbol* symbol);
 };
 
 SWC_END_NAMESPACE()

@@ -29,6 +29,7 @@ public:
     explicit SymbolMap(const TaskContext& ctx, const AstNode* decl, SymbolKind kind, IdentifierRef idRef, SymbolFlags flags);
 
     void addSymbol(TaskContext& ctx, Symbol* symbol);
+    bool addSingleSymbol(Sema& sema, Symbol* symbol);
     void lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const;
 };
 

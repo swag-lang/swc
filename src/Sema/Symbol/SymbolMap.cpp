@@ -2,6 +2,8 @@
 #include "Sema/Symbol/SymbolMap.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
+#include "Sema/Helpers/SemaError.h"
+#include "Sema/Sema.h"
 #include "Sema/Symbol/BigMap.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -120,6 +122,26 @@ void SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol)
     }
 
     big->addSymbol(ctx, symbol);
+}
+
+bool SymbolMap::addSingleSymbol(Sema& sema, Symbol* symbol)
+{
+    auto& ctx = sema.ctx();
+    addSymbol(ctx, symbol);
+
+    if (!symbol->nextHomonym())
+        return true;
+
+    const AstNode*           decl      = symbol->decl();
+    const AstNode*           otherDecl = symbol->nextHomonym()->decl();
+    const auto               diag      = SemaError::report(sema, DiagnosticId::sema_err_already_defined, decl->srcViewRef(), decl->tokRef());
+    const SourceView&        srcView   = otherDecl->srcView(ctx);
+    const Token&             tok       = srcView.token(otherDecl->tokRef());
+    const SourceCodeLocation loc       = tok.location(ctx, srcView);
+    diag.last().addSpan(loc, DiagnosticId::sema_note_other_definition);
+    diag.report(ctx);
+
+    return false;
 }
 
 SWC_END_NAMESPACE()

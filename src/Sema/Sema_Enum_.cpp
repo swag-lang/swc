@@ -39,22 +39,6 @@ AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& child
 
     const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokNameRef);
 
-    // Ghosting
-    LookupResult result;
-    SemaMatch::lookup(sema, result, idRef);
-    if (!result.empty())
-    {
-        auto                     diag    = SemaError::report(sema, DiagnosticId::sema_err_already_defined, srcViewRef(), tokNameRef);
-        const Symbol*            sym     = result.first();
-        const AstEnumDecl*       decl    = castAst<AstEnumDecl>(sym->decl());
-        const SourceView&        srcView = decl->srcView(ctx);
-        const Token&             tok     = srcView.token(decl->tokNameRef);
-        const SourceCodeLocation loc     = tok.location(ctx, srcView);
-        diag.last().addSpan(loc, DiagnosticId::sema_note_other_definition);
-        diag.report(ctx);
-        return AstVisitStepResult::Stop;
-    }
-
     // Get the destination symbolMap
     SymbolFlags        flags     = SymbolFlagsE::Zero;
     SymbolMap*         symbolMap = sema.curSymMap();
@@ -69,8 +53,10 @@ AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& child
     const TypeInfo enumType    = TypeInfo::makeEnum(sym);
     const TypeRef  enumTypeRef = ctx.typeMgr().addType(enumType);
     sym->setTypeRef(enumTypeRef);
-    symbolMap->addSymbol(ctx, sym);
     sema.setSymbol(sema.curNodeRef(), sym);
+
+    if (!symbolMap->addSingleSymbol(sema, sym))
+        return AstVisitStepResult::Stop;
 
     sema.pushScope(SemaScopeFlagsE::Type);
     sema.curScope().setSymMap(sym);

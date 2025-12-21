@@ -1,4 +1,6 @@
 #include "pch.h"
+
+#include "Sema/Sema.h"
 #include "Sema/Symbol/BigMap.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -52,16 +54,16 @@ void BigMap::insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol,
 // IMPORTANT: must be called under unshardedMutex_ unique lock.
 void BigMap::maybeUpgradeToSharded(TaskContext& ctx)
 {
-    // Fast path: already sharded.    
+    // Fast path: already sharded.
     if (isSharded())
         return;
-    
+
     // Not enough keys yet — stay unsharded.
     if (unsharded_.size() < SHARD_AFTER_KEYS)
         return;
-    
+
     // Another thread may have upgraded while we waited for the mutex.
-    // Re-check before performing the one-time upgrade.    
+    // Re-check before performing the one-time upgrade.
     if (isSharded())
         return;
 
@@ -86,6 +88,7 @@ void BigMap::maybeUpgradeToSharded(TaskContext& ctx)
 void BigMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool notify)
 {
     SWC_ASSERT(symbol != nullptr);
+
     const IdentifierRef idRef = symbol->idRef();
 
     // Sharded fast path.

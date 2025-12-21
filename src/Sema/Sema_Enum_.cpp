@@ -79,11 +79,11 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
     auto&              ctx = sema.ctx();
     const SemaNodeView nodeInitView(sema, nodeInitRef);
 
-    auto&         symEnum    = sema.curSymMap()->cast<SymbolEnum>();
-    const TypeRef underlying = symEnum.underlyingTypeRef();
-    SWC_ASSERT(underlying.isValid());
+    auto&         symEnum           = sema.curSymMap()->cast<SymbolEnum>();
+    const TypeRef underlyingTypeRef = symEnum.underlyingTypeRef();
+    SWC_ASSERT(underlyingTypeRef.isValid());
 
-    const auto& underlyingType = sema.typeMgr().get(underlying);
+    const auto& underlyingType = sema.typeMgr().get(underlyingTypeRef);
     ConstantRef valueCst;
 
     if (nodeInitView.nodeRef.isValid())
@@ -98,7 +98,7 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
         // Cast initializer constant to the underlying type
         CastContext castCtx(CastKind::Implicit);
         castCtx.errorNodeRef = nodeInitRef;
-        valueCst             = SemaCast::castConstant(sema, castCtx, nodeInitView.cstRef, underlying);
+        valueCst             = SemaCast::castConstant(sema, castCtx, nodeInitView.cstRef, underlyingTypeRef);
         if (valueCst.isInvalid())
             return AstVisitStepResult::Stop;
 
@@ -115,7 +115,7 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
         if (!underlyingType.isInt())
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_missing_enum_value, srcViewRef(), tokRef());
-            diag.addArgument(Diagnostic::ARG_TYPE, underlying);
+            diag.addArgument(Diagnostic::ARG_TYPE, underlyingTypeRef);
             diag.report(ctx);
             return AstVisitStepResult::Stop;
         }
@@ -126,6 +126,13 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
             bool   overflow = false;
             ApsInt one(1, symEnum.nextValue().bitWidth(), symEnum.nextValue().isUnsigned());
             symEnum.nextValue().add(one, overflow);
+            if (overflow)
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_literal_overflow, srcViewRef(), tokRef());
+                diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, underlyingTypeRef);
+                diag.report(ctx);
+                return AstVisitStepResult::Stop;
+            }
         }
 
         ConstantValue val = ConstantValue::makeInt(ctx, symEnum.nextValue(), underlyingType.intBits(), underlyingType.intSign());

@@ -1,30 +1,40 @@
 #global internal
 
 var XX: s32
-enum EA
+enum A
 {
     A = XX, // swc-expected-error {{sema_err_expr_not_const}}
 }
 
-enum EB: void {} // swc-expected-error {{sema_err_invalid_enum_type}}
+enum B: void {} // swc-expected-error {{sema_err_invalid_enum_type}}
 
-enum EC: f32
+enum C: f32
 {
     A // swc-expected-error {{sema_err_missing_enum_value}}
 }
 
-enum ED: s32
+enum D: s32
 {
     A = 1.5 // swc-expected-error {{sema_err_cannot_cast}}
 }
 
-enum EE: s32
+enum E: s32
 {
     A,
     A   // swc-expected-error {{sema_err_already_defined}}
 }
 
 // swc-expected-error@(+1,+2) {{sema_err_already_defined}}
-enum EX: u32 {}
-enum EX: f32 {}
+enum F: u32 {}
+enum F: f32 {}
 
+enum G: s8
+{
+    A = 128 // swc-expected-error {{sema_err_literal_overflow}}
+}
+
+enum H: u8
+{
+    A = 255,
+    B  // swc-expected-error {{sema_err_literal_overflow}}
+}

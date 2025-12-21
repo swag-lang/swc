@@ -58,6 +58,7 @@ public:
     }
 
     void setFullComplete(TaskContext& ctx);
+    bool isFullComplete() const noexcept { return flags_.has(SymbolFlagsE::FullComplete); }
 
     SymbolKind       kind() const noexcept { return kind_; }
     IdentifierRef    idRef() const noexcept { return idRef_; }

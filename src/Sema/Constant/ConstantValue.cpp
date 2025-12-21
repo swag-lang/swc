@@ -2,7 +2,6 @@
 #include "Sema/Constant/ConstantValue.h"
 #include "Main/TaskContext.h"
 #include "Math/Hash.h"
-#include "Report/LogColor.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -10,6 +9,8 @@ SWC_BEGIN_NAMESPACE()
 bool ConstantValue::operator==(const ConstantValue& rhs) const noexcept
 {
     if (kind_ != rhs.kind_)
+        return false;
+    if (typeRef_ != rhs.typeRef_)
         return false;
 
     switch (kind_)
@@ -26,11 +27,10 @@ bool ConstantValue::operator==(const ConstantValue& rhs) const noexcept
             return getTypeIndo() == rhs.getTypeIndo();
         case ConstantKind::EnumValue:
             return getEnumValue() == rhs.getEnumValue();
-
         case ConstantKind::Int:
-            return typeRef_ == rhs.typeRef_ && getInt().same(rhs.getInt());
+            return getInt().same(rhs.getInt());
         case ConstantKind::Float:
-            return typeRef_ == rhs.typeRef_ && getFloat().same(rhs.getFloat());
+            return getFloat().same(rhs.getFloat());
 
         default:
             SWC_UNREACHABLE();
@@ -248,16 +248,15 @@ ConstantValue ConstantValue::makeEnumValue(const TaskContext& ctx, ConstantRef v
 uint32_t ConstantValue::hash() const noexcept
 {
     auto h = Math::hash(static_cast<uint32_t>(kind_));
+    h      = Math::hashCombine(h, typeRef_.get());
     switch (kind_)
     {
         case ConstantKind::Bool:
             h = Math::hashCombine(h, asBool.val);
             break;
         case ConstantKind::Char:
-            h = Math::hashCombine(h, Math::hash(asCharRune.val));
-            break;
         case ConstantKind::Rune:
-            h = Math::hashCombine(h, Math::hash(asCharRune.val));
+            h = Math::hashCombine(h, asCharRune.val);
             break;
         case ConstantKind::String:
             h = Math::hashCombine(h, Math::hash(asString.val));
@@ -266,11 +265,9 @@ uint32_t ConstantValue::hash() const noexcept
             h = Math::hashCombine(h, asTypeInfo.val.get());
             break;
         case ConstantKind::Int:
-            h = Math::hashCombine(h, typeRef_.get());
             h = Math::hashCombine(h, asInt.val.hash());
             break;
         case ConstantKind::Float:
-            h = Math::hashCombine(h, typeRef_.get());
             h = Math::hashCombine(h, asFloat.val.hash());
             break;
         case ConstantKind::EnumValue:

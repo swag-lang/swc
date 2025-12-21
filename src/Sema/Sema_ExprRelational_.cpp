@@ -219,8 +219,6 @@ namespace
             return;
         if (other.type->isEnum())
             return;
-        if (!other.type->isScalarNumeric())
-            return;
 
         if (self.cstRef.isValid())
         {

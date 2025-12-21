@@ -1,7 +1,9 @@
 #global internal
 
-enum A: u32 { A }
 enum B { A }
+#assert(#typeof(B.A) == B)
+
+enum A: u32 { A }
 
 enum A1: s8 { A }
 enum A2: s16 { A }
@@ -47,7 +49,6 @@ enum E
 
 #assert(#typeof(A1.A) == A1)
 #assert(#typeof(A9.A) == A9)
-//#assert(#typeof(B.A) == B)
 
 /*#assert(cast(u32) C.A == 0)
 #assert(cast(u32) C.B == 1)

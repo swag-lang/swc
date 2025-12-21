@@ -14,6 +14,7 @@ enum class TaskStateKind : uint8_t
 {
     None,
     SemaWaitingIdentifier,
+    SemaWaitingFullComplete,
 };
 
 struct TaskState

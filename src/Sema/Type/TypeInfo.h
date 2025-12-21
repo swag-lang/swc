@@ -80,6 +80,8 @@ public:
     bool isAny() const noexcept { return kind_ == TypeInfoKind::Any; }
     bool isVoid() const noexcept { return kind_ == TypeInfoKind::Void; }
     bool isCString() const noexcept { return kind_ == TypeInfoKind::CString; }
+    bool isEnum() const noexcept { return kind_ == TypeInfoKind::Enum; }
+    bool isType() const noexcept { return isTypeInfo() || isEnum(); }
 
     bool isCharRune() const noexcept { return isChar() || isRune(); }
     bool isIntLike() const noexcept { return isInt() || isCharRune(); }

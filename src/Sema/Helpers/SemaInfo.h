@@ -12,6 +12,7 @@ class SemaScope;
 
 enum class NodeSemaKind : uint8_t
 {
+    Invalid     = 0,
     ConstantRef = 1,
     TypeRef     = 2,
     SymbolRef   = 3,

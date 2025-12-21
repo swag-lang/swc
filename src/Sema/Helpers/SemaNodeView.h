@@ -1,4 +1,6 @@
 #pragma once
+#include "Main/Command.h"
+#include "Sema/Constant/ConstantManager.h"
 #include "Sema/Sema.h"
 #include "Sema/Type/TypeManager.h"
 
@@ -8,12 +10,14 @@ class TypeInfo;
 
 struct SemaNodeView
 {
-    const AstNode*       node    = nullptr;
-    AstNodeRef           nodeRef = AstNodeRef::invalid();
-    const ConstantValue* cst     = nullptr;
-    ConstantRef          cstRef  = ConstantRef::invalid();
-    TypeRef              typeRef = TypeRef::invalid();
-    const TypeInfo*      type    = nullptr;
+    const AstNode*       node = nullptr;
+    const ConstantValue* cst  = nullptr;
+    const TypeInfo*      type = nullptr;
+    Symbol*              sym  = nullptr;
+
+    AstNodeRef  nodeRef = AstNodeRef::invalid();
+    ConstantRef cstRef  = ConstantRef::invalid();
+    TypeRef     typeRef = TypeRef::invalid();
 
     SemaNodeView(Sema& sema, AstNodeRef nodeRef)
     {
@@ -31,6 +35,18 @@ struct SemaNodeView
             cstRef = sema.constantRefOf(nodeRef);
             cst    = &sema.constantOf(nodeRef);
         }
+        else if (sema.hasSymbol(nodeRef))
+        {
+            sym = &sema.symbolOf(nodeRef);
+        }
+    }
+
+    void setCstRef(Sema& sema, ConstantRef cstRef)
+    {
+        this->cstRef = cstRef;
+        cst          = &sema.cstMgr().get(cstRef);
+        typeRef      = cst->typeRef();
+        type         = &sema.typeMgr().get(typeRef);
     }
 };
 

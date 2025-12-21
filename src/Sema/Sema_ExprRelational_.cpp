@@ -14,13 +14,16 @@ namespace
 {
     ConstantRef constantFoldEqual(Sema& sema, const AstRelationalExpr& node, const SemaNodeViewList& ops)
     {
-        if (ops.nodeView[0].cstRef == ops.nodeView[1].cstRef)
-            return sema.cstMgr().cstTrue();
-        if (ops.nodeView[0].type->isTypeInfo() && ops.nodeView[1].type->isTypeInfo())
-            return sema.cstMgr().cstBool(*ops.nodeView[0].type == *ops.nodeView[1].type);
+        const SemaNodeView& view0 = ops.nodeView[0];
+        const SemaNodeView& view1 = ops.nodeView[1];
 
-        auto leftCstRef  = ops.nodeView[0].cstRef;
-        auto rightCstRef = ops.nodeView[1].cstRef;
+        if (view0.cstRef == view1.cstRef)
+            return sema.cstMgr().cstTrue();
+        if (view0.type->isTypeInfo() && view1.type->isTypeInfo())
+            return sema.cstMgr().cstBool(*view0.type == *view1.type);
+
+        auto leftCstRef  = view0.cstRef;
+        auto rightCstRef = view1.cstRef;
         if (!SemaCast::promoteConstants(sema, ops, leftCstRef, rightCstRef))
             return ConstantRef::invalid();
 
@@ -166,16 +169,19 @@ namespace
 
     Result checkEqualEqual(Sema& sema, const AstRelationalExpr& node, const SemaNodeViewList& ops)
     {
-        if (ops.nodeView[0].typeRef == ops.nodeView[1].typeRef)
+        const SemaNodeView& view0 = ops.nodeView[0];
+        const SemaNodeView& view1 = ops.nodeView[1];
+
+        if (view0.typeRef == view1.typeRef)
             return Result::Success;
-        if (ops.nodeView[0].type->isScalarNumeric() && ops.nodeView[1].type->isScalarNumeric())
+        if (view0.type->isScalarNumeric() && view1.type->isScalarNumeric())
             return Result::Success;
-        if (ops.nodeView[0].type->isTypeInfo() && ops.nodeView[1].type->isTypeInfo())
+        if (view0.type->isType() && view1.type->isType())
             return Result::Success;
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.srcViewRef(), node.tokRef());
-        diag.addArgument(Diagnostic::ARG_LEFT, ops.nodeView[0].typeRef);
-        diag.addArgument(Diagnostic::ARG_RIGHT, ops.nodeView[1].typeRef);
+        diag.addArgument(Diagnostic::ARG_LEFT, view0.typeRef);
+        diag.addArgument(Diagnostic::ARG_RIGHT, view1.typeRef);
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -216,15 +222,32 @@ namespace
 
 AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema) const
 {
-    const SemaNodeViewList ops(sema, nodeLeftRef, nodeRightRef);
+    SemaNodeViewList ops(sema, nodeLeftRef, nodeRightRef);
 
     // Type-check
     const auto& tok = sema.token(srcViewRef(), tokRef());
     if (check(sema, tok.id, *this, ops) == Result::Error)
         return AstVisitStepResult::Stop;
 
+    TaskContext&  ctx   = sema.ctx();
+    SemaNodeView& view0 = ops.nodeView[0];
+    SemaNodeView& view1 = ops.nodeView[1];
+
+    // Conversions
+    if (view0.type->isTypeInfo() && !view1.type->isTypeInfo() && view1.type->isType())
+    {
+        const ConstantRef cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeTypeInfo(ctx, view1.typeRef));
+        view1.setCstRef(sema, cstRef);
+    }
+
+    if (view1.type->isTypeInfo() && !view0.type->isTypeInfo() && view0.type->isType())
+    {
+        const ConstantRef cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeTypeInfo(ctx, view1.typeRef));
+        view0.setCstRef(sema, cstRef);
+    }
+
     // Constant folding
-    if (sema.hasConstant(nodeLeftRef) && sema.hasConstant(nodeRightRef))
+    if (view0.cstRef.isValid() && view1.cstRef.isValid())
     {
         const auto cst = constantFold(sema, tok.id, *this, ops);
         if (cst.isValid())

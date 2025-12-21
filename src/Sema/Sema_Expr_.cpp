@@ -37,4 +37,9 @@ AstVisitStepResult AstIdentifier::semaPostNode(Sema& sema) const
     return AstVisitStepResult::Continue;
 }
 
+AstVisitStepResult AstScopedIdentifier::semaPreChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    return AstVisitStepResult::Continue;
+}
+
 SWC_END_NAMESPACE()

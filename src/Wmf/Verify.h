@@ -26,6 +26,27 @@ struct VerifyDirective
     std::vector<uint32_t> allowedLines;
 
     mutable bool touched = false;
+
+    bool matchesLine(uint32_t line) const noexcept
+    {
+        // "anywhere" => both 0
+        if (lineMin == 0 && lineMax == 0 && allowedLines.empty())
+            return true;
+
+        // explicit list wins
+        if (!allowedLines.empty())
+        {
+            for (const uint32_t ln : allowedLines)
+            {
+                if (ln == line)
+                    return true;
+            }
+            return false;
+        }
+
+        // range / exact
+        return line >= lineMin && line <= lineMax;
+    }
 };
 
 enum class VerifyFlagsE : uint32_t

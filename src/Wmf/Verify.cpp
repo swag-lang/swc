@@ -11,6 +11,209 @@
 
 SWC_BEGIN_NAMESPACE()
 
+namespace
+{
+    bool isDigit(char c) noexcept
+    {
+        return c >= '0' && c <= '9';
+    }
+
+    uint32_t clampLine(int32_t v) noexcept
+    {
+        return (v > 0) ? static_cast<uint32_t>(v) : 1u;
+    }
+
+    // Parses an unsigned integer at p. Returns true if at least one digit was consumed.
+    bool parseUInt(std::string_view s, size_t& p, int& out) noexcept
+    {
+        int  v   = 0;
+        bool any = false;
+        while (p < s.size() && isDigit(s[p]))
+        {
+            any = true;
+            v   = v * 10 + (s[p] - '0');
+            ++p;
+        }
+        if (!any)
+            return false;
+        out = v;
+        return true;
+    }
+
+    // Parses: [+|-] [digits?]
+    // Rules:
+    //  - if sign is present but digits are missing -> implicit 1
+    //  - if no sign and no digits -> fail
+    // Sets hasSign accordingly.
+    bool parseSignedOrAbs(std::string_view s, size_t& p, int& value, bool& hasSign) noexcept
+    {
+        hasSign  = false;
+        int sign = +1;
+
+        if (p < s.size() && (s[p] == '+' || s[p] == '-'))
+        {
+            hasSign = true;
+            sign    = (s[p] == '-') ? -1 : +1;
+            ++p;
+
+            int mag = 0;
+            if (!parseUInt(s, p, mag))
+            {
+                value = sign * 1; // implicit +/-1
+                return true;
+            }
+
+            value = sign * mag;
+            return true;
+        }
+
+        // No sign -> must be digits (absolute line)
+        int absV = 0;
+        if (!parseUInt(s, p, absV))
+            return false;
+
+        value = absV;
+        return true;
+    }
+
+    void setAnywhere(VerifyDirective& d)
+    {
+        d.allowedLines.clear();
+        d.lineMin = 0;
+        d.lineMax = 0;
+    }
+
+    void setExact(VerifyDirective& d, uint32_t line)
+    {
+        d.allowedLines.clear();
+        d.lineMin = line;
+        d.lineMax = line;
+    }
+
+    void setRange(VerifyDirective& d, uint32_t a, uint32_t b)
+    {
+        d.allowedLines.clear();
+        d.lineMin = std::min(a, b);
+        d.lineMax = std::max(a, b);
+    }
+
+    void setAllowedList(VerifyDirective& d, std::vector<uint32_t> lines)
+    {
+        d.allowedLines = std::move(lines);
+        d.lineMin      = 0;
+        d.lineMax      = 0; // ignored when allowedLines non-empty
+    }
+
+    // Consumes optional "@..." at position i and applies constraint to directive.
+    // Returns a new index (i advanced), or leaves the directive at default if malformed.
+    size_t parseLineConstraint(const LangSpec& langSpec, std::string_view comment, size_t i, VerifyDirective& directive)
+    {
+        const uint32_t baseLine = directive.myLoc.line;
+
+        // default is exact base line unless "@..." overrides it
+        setExact(directive, baseLine);
+
+        if (i >= comment.size() || comment[i] != '@')
+            return i;
+
+        ++i; // consume '@'
+
+        if (i < comment.size() && comment[i] == '*')
+        {
+            ++i;
+            setAnywhere(directive);
+            return i;
+        }
+
+        if (i < comment.size() && comment[i] == '(')
+        {
+            ++i; // consume '('
+            std::vector<uint32_t> lines;
+
+            while (i < comment.size())
+            {
+                while (i < comment.size() && langSpec.isBlank(static_cast<char8_t>(comment[i])))
+                    ++i;
+
+                size_t save    = i;
+                int    v       = 0;
+                bool   hasSign = false;
+
+                if (!parseSignedOrAbs(comment, i, v, hasSign))
+                {
+                    i = save;
+                    break;
+                }
+
+                if (hasSign)
+                    lines.push_back(clampLine(static_cast<int32_t>(baseLine) + v));
+                else
+                    lines.push_back(clampLine(static_cast<int32_t>(v)));
+
+                while (i < comment.size() && langSpec.isBlank(static_cast<char8_t>(comment[i])))
+                    ++i;
+
+                if (i < comment.size() && comment[i] == ',')
+                {
+                    ++i;
+                    continue;
+                }
+                break;
+            }
+
+            // consume until ')'
+            while (i < comment.size() && comment[i] != ')')
+                ++i;
+            if (i < comment.size() && comment[i] == ')')
+                ++i;
+
+            if (!lines.empty())
+                setAllowedList(directive, std::move(lines));
+            // else keep default exact(baseLine)
+
+            return i;
+        }
+
+        // @+N / @-N / @+ / @- / @+A..+B
+        {
+            size_t save    = i;
+            int    offA    = 0;
+            bool   hasSign = false;
+
+            if (!parseSignedOrAbs(comment, i, offA, hasSign) || !hasSign)
+            {
+                // For this form we require a sign; otherwise treat as malformed and keep default exact(baseLine).
+                i = save;
+                return i;
+            }
+
+            const uint32_t lineA = clampLine(static_cast<int32_t>(baseLine) + offA);
+
+            // range?
+            if (i + 1 < comment.size() && comment[i] == '.' && comment[i + 1] == '.')
+            {
+                i += 2;
+
+                int  offB     = 0;
+                bool hasSignB = false;
+                if (!parseSignedOrAbs(comment, i, offB, hasSignB) || !hasSignB)
+                {
+                    // malformed range end -> just treat as exact lineA
+                    setExact(directive, lineA);
+                    return i;
+                }
+
+                const uint32_t lineB = clampLine(static_cast<int32_t>(baseLine) + offB);
+                setRange(directive, lineA, lineB);
+                return i;
+            }
+
+            setExact(directive, lineA);
+            return i;
+        }
+    }
+}
+
 void Verify::tokenizeOption(const TaskContext& ctx, std::string_view comment)
 {
     const auto& langSpec = ctx.global().langSpec();
@@ -108,192 +311,9 @@ void Verify::tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia
         //   @+A..+B / @-A..+B   => relative range (inclusive)
         //   @(+A,+B,...)        => one-of relative offsets list
         //   @(<abs>,<abs>,...)  => one-of absolute lines (if no sign)
-        //
-        // Note: baseline is directive.myLoc.line (line of the directive comment token)
-        directive.lineMin = directive.loc.line;
-        directive.lineMax = directive.loc.line;
-
-        auto isDigit = [](char c) {
-            return c >= '0' && c <= '9';
-        };
-
-        auto parseInt = [&](size_t& p) -> int {
-            // parse unsigned integer; caller handles sign
-            int  v   = 0;
-            bool any = false;
-            while (p < comment.size() && isDigit(comment[p]))
-            {
-                any = true;
-                v   = v * 10 + (comment[p] - '0');
-                ++p;
-            }
-            return any ? v : -1; // -1 means "missing"
-        };
-
-        auto parseSigned = [&](size_t& p) -> int {
-            int sign = +1;
-            if (p < comment.size() && (comment[p] == '+' || comment[p] == '-'))
-            {
-                sign = (comment[p] == '-') ? -1 : +1;
-                ++p;
-            }
-
-            const size_t before = p;
-            const int    mag    = parseInt(p);
-            if (mag < 0)
-            {
-                // no digits: treat bare "+" or "-" as 1 if the sign was explicit,
-                // otherwise (no sign and no digits) it's invalid.
-                if (before != p) // shouldn't happen
-                    return 0;
-
-                // If there was a sign char we consumed, accept implicit 1.
-                // We can detect that by checking comment[before-1] was +/-
-                if (before > 0 && (comment[before - 1] == '+' || comment[before - 1] == '-'))
-                    return sign * 1;
-
-                return 0;
-            }
-            return sign * mag;
-        };
-
-        auto setAnywhere = [&]() {
-            directive.lineMin = 0;
-            directive.lineMax = 0;
-            directive.allowedLines.clear();
-        };
-
-        auto setExactLine = [&](uint32_t line) {
-            directive.allowedLines.clear();
-            directive.lineMin = line;
-            directive.lineMax = line;
-        };
-
-        auto setRange = [&](uint32_t a, uint32_t b) {
-            directive.allowedLines.clear();
-            directive.lineMin = std::min(a, b);
-            directive.lineMax = std::max(a, b);
-        };
-
-        if (i < comment.size() && comment[i] == '@')
-        {
-            ++i;
-
-            const uint32_t baseLine = directive.myLoc.line; // line of the directive itself
-
-            if (i < comment.size() && comment[i] == '*')
-            {
-                ++i;
-                setAnywhere();
-            }
-            else if (i < comment.size() && comment[i] == '(')
-            {
-                // @(+1,+2) or @(12,14) etc.
-                ++i;
-
-                directive.allowedLines.clear();
-
-                while (i < comment.size())
-                {
-                    // skip blanks
-                    while (i < comment.size() && langSpec.isBlank(static_cast<char8_t>(comment[i])))
-                        ++i;
-
-                    // parse signed or unsigned
-                    size_t save     = i;
-                    int    offOrAbs = parseSigned(i);
-
-                    if (i == save)
-                        break;
-
-                    // If token had an explicit sign, treat as relative; otherwise absolute.
-                    bool hasSign = (save < comment.size() && (comment[save] == '+' || comment[save] == '-'));
-
-                    uint32_t line = 0;
-                    if (hasSign)
-                    {
-                        int32_t v = static_cast<int32_t>(baseLine) + offOrAbs;
-                        line      = (v > 0) ? static_cast<uint32_t>(v) : 1u;
-                    }
-                    else
-                    {
-                        // absolute (1-based line numbers assumed)
-                        line = (offOrAbs > 0) ? static_cast<uint32_t>(offOrAbs) : 1u;
-                    }
-
-                    directive.allowedLines.push_back(line);
-
-                    // skip blanks
-                    while (i < comment.size() && langSpec.isBlank(static_cast<char8_t>(comment[i])))
-                        ++i;
-
-                    if (i < comment.size() && comment[i] == ',')
-                    {
-                        ++i;
-                        continue;
-                    }
-                    break;
-                }
-
-                // consume to ')'
-                while (i < comment.size() && comment[i] != ')')
-                    ++i;
-                if (i < comment.size() && comment[i] == ')')
-                    ++i;
-
-                // If list ended up empty, fall back to exact base line
-                if (directive.allowedLines.empty())
-                    setExactLine(baseLine);
-                else
-                {
-                    directive.lineMin = 0;
-                    directive.lineMax = 0; // ignored when allowedLines is non-empty
-                }
-            }
-            else
-            {
-                // @+N / @-N / @+ / @- / @+A..+B
-                size_t save = i;
-                int    offA = parseSigned(i);
-                if (i == save)
-                {
-                    // malformed => ignore constraint and keep exact base line
-                    setExactLine(baseLine);
-                }
-                else
-                {
-                    uint32_t lineA = 1;
-                    {
-                        int32_t v = static_cast<int32_t>(baseLine) + offA;
-                        lineA     = (v > 0) ? static_cast<uint32_t>(v) : 1u;
-                    }
-
-                    // range?
-                    if (i + 1 < comment.size() && comment[i] == '.' && comment[i + 1] == '.')
-                    {
-                        i += 2;
-                        int offB = parseSigned(i);
-
-                        uint32_t lineB = lineA;
-                        {
-                            int32_t v = static_cast<int32_t>(baseLine) + offB;
-                            lineB     = (v > 0) ? static_cast<uint32_t>(v) : 1u;
-                        }
-
-                        setRange(lineA, lineB);
-                    }
-                    else
-                    {
-                        setExactLine(lineA);
-                    }
-                }
-            }
-        }
-        else
-        {
-            // Default: exact baseline (directive position)
-            setExactLine(directive.myLoc.line);
-        }
+        // Note:
+        //   baseline is directive.myLoc.line (line of the directive comment token)
+        i = parseLineConstraint(langSpec, comment, i, directive);
 
         // Find and parse all `{{ ... }}` blocks following this directive
         while (true)
@@ -349,31 +369,13 @@ bool Verify::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) cons
     for (auto& elem : diag.elements())
     {
         const SourceCodeLocation loc = elem->location(0, ctx);
-
         for (auto& directive : directives_)
         {
             if (directive.kind != elem->severity())
                 continue;
 
-            // line constraint matching
-            if (!directive.allowedLines.empty())
-            {
-                bool ok = false;
-                for (const uint32_t ln : directive.allowedLines)
-                {
-                    if (ln == loc.line)
-                    {
-                        ok = true;
-                        break;
-                    }
-                }
-                if (!ok)
-                    continue;
-            }
-            else if ((directive.lineMin || directive.lineMax) && loc.line < directive.lineMin || loc.line > directive.lineMax)
-            {
+            if (!directive.matchesLine(loc.line))
                 continue;
-            }
 
             if (elem->idName().find(directive.match) == Utf8::npos &&
                 elem->message().find(directive.match) == Utf8::npos)

@@ -20,6 +20,8 @@ struct AstNamedNodeT : AstNodeT<I>
         AstNodeT<I>(srcViewRef, tokRef)
     {
     }
+
+    TokenRef getTokNameRef() const { return tokNameRef; }
 };
 
 template<AstNodeId I>
@@ -274,17 +276,19 @@ struct AstNodeIdInfo
     AstNodeIdFlags   flags;
     SemaScopeFlags   scopeFlags;
 
-    using CollectChildren = void (*)(SmallVector<AstNodeRef>&, const Ast&, const AstNode&);
-    using SemaEnterNode   = void (*)(Sema&, AstNode&);
-    using SemaPreNode     = AstVisitStepResult (*)(Sema&, AstNode&);
-    using SemaPostNode    = AstVisitStepResult (*)(Sema&, AstNode&);
-    using SemaPreChild    = AstVisitStepResult (*)(Sema&, AstNode&, AstNodeRef&);
+    using AstCollectChildren = void (*)(SmallVector<AstNodeRef>&, const Ast&, const AstNode&);
+    using AstGetTokNameRef   = TokenRef (*)(const AstNode&);
+    using SemaEnterNode      = void (*)(Sema&, AstNode&);
+    using SemaPreNode        = AstVisitStepResult (*)(Sema&, AstNode&);
+    using SemaPostNode       = AstVisitStepResult (*)(Sema&, AstNode&);
+    using SemaPreChild       = AstVisitStepResult (*)(Sema&, AstNode&, AstNodeRef&);
 
-    CollectChildren collectChildren;
-    SemaEnterNode   semaEnterNode;
-    SemaPreNode     semaPreNode;
-    SemaPreNode     semaPostNode;
-    SemaPreChild    semaPreChild;
+    AstCollectChildren collectChildren;
+    AstGetTokNameRef   getTokNameRef;
+    SemaEnterNode      semaEnterNode;
+    SemaPreNode        semaPreNode;
+    SemaPreNode        semaPostNode;
+    SemaPreChild       semaPreChild;
 
     bool hasFlag(AstNodeIdFlagsE flag) const { return flags.has(flag); }
 };
@@ -294,6 +298,13 @@ void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, const AstNode
 {
     using NodeType = AstTypeOf<ID>::type;
     castAst<NodeType>(&node)->collectChildren(out, ast);
+}
+
+template<AstNodeId ID>
+TokenRef getTokNameRef(const AstNode& node)
+{
+    using NodeType = AstTypeOf<ID>::type;
+    return castAst<NodeType>(&node)->getTokNameRef();
 }
 
 template<AstNodeId ID>
@@ -330,6 +341,7 @@ constexpr std::array AST_NODE_ID_INFOS = {
                                                         __flags,                             \
                                                         __scopeFlags,                        \
                                                         &collectChildren<AstNodeId::__enum>, \
+                                                        &getTokNameRef<AstNodeId::__enum>,   \
                                                         &semaEnterNode<AstNodeId::__enum>,   \
                                                         &semaPreNode<AstNodeId::__enum>,     \
                                                         &semaPostNode<AstNodeId::__enum>,    \

@@ -127,13 +127,15 @@ void SemaError::raiseInternal(Sema& sema, const AstNode& node)
 
 void SemaError::raiseSymbolAlreadyDefined(Sema& sema, const Symbol* symbol)
 {
-    auto&                    ctx       = sema.ctx();
-    const AstNode*           decl      = symbol->decl();
-    const AstNode*           otherDecl = symbol->nextHomonym()->decl();
-    const auto               diag      = report(sema, DiagnosticId::sema_err_already_defined, decl->srcViewRef(), decl->tokRef());
-    const SourceView&        srcView   = otherDecl->srcView(ctx);
-    const Token&             tok       = srcView.token(otherDecl->tokRef());
-    const SourceCodeLocation loc       = tok.location(ctx, srcView);
+    auto&                    ctx             = sema.ctx();
+    const AstNode*           decl            = symbol->decl();
+    const AstNode*           otherDecl       = symbol->nextHomonym()->decl();
+    const TokenRef           tokDeclRef      = Ast::nodeIdInfos(decl->id()).getTokNameRef(*decl);
+    const TokenRef           otherTokDeclRef = Ast::nodeIdInfos(decl->id()).getTokNameRef(*otherDecl);
+    const auto               diag            = report(sema, DiagnosticId::sema_err_already_defined, decl->srcViewRef(), tokDeclRef);
+    const SourceView&        srcView         = otherDecl->srcView(ctx);
+    const Token&             tok             = srcView.token(otherTokDeclRef);
+    const SourceCodeLocation loc             = tok.location(ctx, srcView);
     diag.last().addSpan(loc, DiagnosticId::sema_note_other_definition);
     diag.report(ctx);
 }

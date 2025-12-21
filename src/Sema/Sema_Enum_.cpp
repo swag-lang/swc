@@ -119,16 +119,13 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
             return AstVisitStepResult::Stop;
         }
 
-        ConstantValue val = ConstantValue::makeInt(ctx, symEnum.nextValue(), underlyingType.intBits(), underlyingType.intSign());
-        valueCst          = sema.cstMgr().addConstant(ctx, val);
-    }
-
-    // Update enum "nextValue" = value + 1 (so subsequent no-init enumerators work)
-    if (underlyingType.isInt())
-    {
+        // Update enum "nextValue" = value + 1 (so subsequent no-init enumerators work)
         bool   overflow = false;
         ApsInt one(1, symEnum.nextValue().bitWidth(), symEnum.nextValue().isUnsigned());
         symEnum.nextValue().add(one, overflow);
+
+        ConstantValue val = ConstantValue::makeInt(ctx, symEnum.nextValue(), underlyingType.intBits(), underlyingType.intSign());
+        valueCst          = sema.cstMgr().addConstant(ctx, val);
     }
 
     // Create a symbol for this enum value

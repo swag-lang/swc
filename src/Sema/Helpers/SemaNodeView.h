@@ -52,24 +52,24 @@ struct SemaNodeView
 
 struct SemaNodeViewList
 {
-    SmallVector<SemaNodeView, 4> nodeView;
+    SmallVector<SemaNodeView, 4> view;
 
     SemaNodeViewList(Sema& sema, AstNodeRef lhs, AstNodeRef rhs)
     {
-        nodeView.emplace_back(sema, lhs);
-        nodeView.emplace_back(sema, rhs);
+        view.emplace_back(sema, lhs);
+        view.emplace_back(sema, rhs);
     }
 
     SemaNodeView& operator[](size_t index)
     {
-        SWC_ASSERT(index < nodeView.size());
-        return nodeView[index];
+        SWC_ASSERT(index < view.size());
+        return view[index];
     }
 
     const SemaNodeView& operator[](size_t index) const
     {
-        SWC_ASSERT(index < nodeView.size());
-        return nodeView[index];
+        SWC_ASSERT(index < view.size());
+        return view[index];
     }
 };
 

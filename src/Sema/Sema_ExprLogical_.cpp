@@ -12,8 +12,8 @@ namespace
 {
     ConstantRef constantFold(Sema& sema, TokenId op, const AstLogicalExpr& node, const SemaNodeViewList& ops)
     {
-        const ConstantRef leftCstRef  = ops.nodeView[0].cstRef;
-        const ConstantRef rightCstRef = ops.nodeView[1].cstRef;
+        const ConstantRef leftCstRef  = ops.view[0].cstRef;
+        const ConstantRef rightCstRef = ops.view[1].cstRef;
         const ConstantRef cstFalseRef = sema.cstMgr().cstFalse();
         const ConstantRef cstTrueRef  = sema.cstMgr().cstTrue();
 
@@ -40,15 +40,18 @@ namespace
 
     Result check(Sema& sema, TokenId op, const AstLogicalExpr& node, const SemaNodeViewList& ops)
     {
-        if (!ops.nodeView[0].type->isBool())
+        const SemaNodeView& view0 = ops.view[0];
+        const SemaNodeView& view1 = ops.view[1];
+
+        if (!view0.type->isBool())
         {
-            SemaError::raiseBinaryOperandType(sema, node, node.nodeLeftRef, ops.nodeView[0].typeRef);
+            SemaError::raiseBinaryOperandType(sema, node, node.nodeLeftRef, view0.typeRef);
             return Result::Error;
         }
 
-        if (!ops.nodeView[1].type->isBool())
+        if (!view1.type->isBool())
         {
-            SemaError::raiseBinaryOperandType(sema, node, node.nodeRightRef, ops.nodeView[1].typeRef);
+            SemaError::raiseBinaryOperandType(sema, node, node.nodeRightRef, view1.typeRef);
             return Result::Error;
         }
 
@@ -66,7 +69,7 @@ AstVisitStepResult AstLogicalExpr::semaPostNode(Sema& sema) const
         return AstVisitStepResult::Stop;
 
     // Constant folding
-    if (sema.hasConstant(nodeLeftRef) && sema.hasConstant(nodeRightRef))
+    if (ops.view[0].cstRef.isValid() && ops.view[1].cstRef.isValid())
     {
         const auto cst = constantFold(sema, tok.id, *this, ops);
         if (cst.isValid())

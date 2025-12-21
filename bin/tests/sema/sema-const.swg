@@ -17,6 +17,6 @@ internal
 internal const D = A * 2
 #assert(D == 104)
 
-// swc-expected-error@* {{sema_err_already_defined}}
+// swc-expected-error@(+1,+2) {{sema_err_already_defined}}
 const G = 52
 const G = 520

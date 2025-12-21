@@ -112,6 +112,9 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema)
 
     const IdentifierRef idRef    = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokRef());
     auto*               symValue = Symbol::make<SymbolEnumValue>(ctx, this, idRef, SymbolFlagsE::Zero);
+    symValue->setCstRef(nodeInitView.cstRef);
+    symValue->setTypeRef(nodeInitView.typeRef);
+
     if (!sema.curSymMap()->addSingleSymbol(sema, symValue))
         return AstVisitStepResult::Stop;
 

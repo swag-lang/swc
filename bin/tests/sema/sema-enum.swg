@@ -30,7 +30,13 @@ enum ED: s32
     A = 1.5 // swc-expected-error {{sema_err_cannot_cast}}
 }
 
-// swc-expected-error@* {{sema_err_already_defined}}
+enum EE: s32
+{
+    A,
+    A   // swc-expected-error {{sema_err_already_defined}}
+}
+
+// swc-expected-error@(+1,+2) {{sema_err_already_defined}}
 enum EX: u32 {}
 enum EX: f32 {}
 

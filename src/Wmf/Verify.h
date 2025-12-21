@@ -16,7 +16,16 @@ struct VerifyDirective
     Utf8               match;
     SourceCodeLocation loc;   // Location to raise the error
     SourceCodeLocation myLoc; // Location of the directive itself
-    mutable bool       touched = false;
+
+    // Line constraint:
+    // - if lineMin == 0 and lineMax == 0 and allowedLines empty => "anywhere" (@*)
+    // - if allowedLines not empty => match any line in the set
+    // - else match inclusive [lineMin, lineMax]
+    uint32_t              lineMin = 0;
+    uint32_t              lineMax = 0;
+    std::vector<uint32_t> allowedLines;
+
+    mutable bool touched = false;
 };
 
 enum class VerifyFlagsE : uint32_t

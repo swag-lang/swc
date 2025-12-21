@@ -237,7 +237,7 @@
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">Create</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">Create</PrecompiledHeader>
         </ClCompile>
-        <ClCompile Include="src\Report\Check.cpp"/>
+        <ClCompile Include="src\Report\Assert.cpp"/>
         <ClCompile Include="src\Report\DiagnosticBuilder.cpp"/>
         <ClCompile Include="src\Report\LogColor.cpp"/>
         <ClCompile Include="src\Report\Diagnostic.cpp"/>
@@ -324,7 +324,7 @@
         <ClInclude Include="src\Parser\ParserJob.h"/>
         <ClInclude Include="src\Parser\SyntaxColor.h"/>
         <ClInclude Include="src\pch.h"/>
-        <ClInclude Include="src\Report\Check.h"/>
+        <ClInclude Include="src\Report\Assert.h"/>
         <ClInclude Include="src\Report\DiagnosticBuilder.h"/>
         <ClInclude Include="src\Report\DiagnosticDef.h"/>
         <ClInclude Include="src\Report\ExitCodes.h"/>

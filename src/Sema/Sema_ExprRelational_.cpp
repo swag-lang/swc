@@ -199,44 +199,47 @@ namespace
         return Result::Error;
     }
 
+    void promoteTypeToTypeInfoForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
+    {
+        if (!other.type->isTypeInfo())
+            return;
+        if (self.type->isTypeInfo())
+            return;
+        if (!self.type->isType())
+            return;
+        TaskContext&      ctx    = sema.ctx();
+        const ConstantRef cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeTypeInfo(ctx, self.typeRef));
+        self.setCstRef(sema, cstRef);
+    }
+
+    void promoteEnumForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
+    {
+        // Only kick in when comparing enum to a scalar numeric (or whatever rule you want)
+        if (!self.type->isEnum())
+            return;
+        if (other.type->isEnum())
+            return;
+        if (!other.type->isScalarNumeric())
+            return;
+
+        if (self.cstRef.isValid())
+        {
+            self.setCstRef(sema, self.cst->getEnumValue());
+            return;
+        }
+
+        const SymbolEnum* symEnum = self.type->enumSym();
+        SemaCast::createImplicitCast(sema, symEnum->underlyingTypeRef(), self.nodeRef);
+    }
+
     void promoteEqualEqual(Sema& sema, SemaNodeViewList& ops)
     {
-        TaskContext&  ctx   = sema.ctx();
-        SemaNodeView& view0 = ops.view[0];
-        SemaNodeView& view1 = ops.view[1];
-
-        if (view0.type->isTypeInfo() && !view1.type->isTypeInfo() && view1.type->isType())
+        for (int i = 0; i < 2; ++i)
         {
-            const ConstantRef cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeTypeInfo(ctx, view1.typeRef));
-            view1.setCstRef(sema, cstRef);
-        }
-
-        if (!view0.type->isTypeInfo() && view0.type->isType() && view1.type->isTypeInfo())
-        {
-            const ConstantRef cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeTypeInfo(ctx, view0.typeRef));
-            view0.setCstRef(sema, cstRef);
-        }
-
-        if (view0.type->isEnum() && !view1.type->isEnum())
-        {
-            if (view0.cstRef.isValid())
-                view0.setCstRef(sema, view0.cst->getEnumValue());
-            else
-            {
-                const SymbolEnum* symEnum = view0.type->enumSym();
-                SemaCast::createImplicitCast(sema, symEnum->underlyingTypeRef(), view0.nodeRef);
-            }
-        }
-
-        if (view1.type->isEnum() && !view0.type->isEnum())
-        {
-            if (view1.cstRef.isValid())
-                view1.setCstRef(sema, view1.cst->getEnumValue());
-            else
-            {
-                const SymbolEnum* symEnum = view1.type->enumSym();
-                SemaCast::createImplicitCast(sema, symEnum->underlyingTypeRef(), view1.nodeRef);
-            }
+            auto& self  = ops.view[i];
+            auto& other = ops.view[1 - i];
+            promoteTypeToTypeInfoForEquality(sema, self, other);
+            promoteEnumForEquality(sema, self, other);
         }
     }
 
@@ -272,7 +275,6 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema) const
     if (check(sema, tok.id, *this, ops) == Result::Error)
         return AstVisitStepResult::Stop;
 
-    TaskContext&        ctx   = sema.ctx();
     const SemaNodeView& view0 = ops.view[0];
     const SemaNodeView& view1 = ops.view[1];
 

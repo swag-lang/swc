@@ -63,4 +63,6 @@ enum E
 #assert(cast(s32) B.A == 0)
 
 #assert(cast(string) C.A == "0") // swc-expected-error {{sema_err_cannot_cast}}
-//#assert(cast #bit (u32) C.A == 0)
+
+#assert(cast #bit (u32) C.A == 0)
+#assert(cast #bit (u64) C.A == 0) // swc-expected-error {{sema_err_bit_cast_size}}

@@ -28,10 +28,14 @@ namespace
         const TypeInfo*    srcType = &typeMgr.get(srcTypeRef);
         const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
-        if (srcType->isEnum())
+        const bool    isEnum        = srcType->isEnum();
+        const TypeRef orgSrcTypeRef = srcTypeRef;
+        if (isEnum)
         {
-            srcTypeRef = srcType->enumSym().underlyingTypeRef();
-            srcType    = &typeMgr.get(srcTypeRef);
+            srcTypeRef               = srcType->enumSym().underlyingTypeRef();
+            srcType                  = &typeMgr.get(srcTypeRef);
+            const ConstantValue& cst = sema.cstMgr().get(castCtx.srcConstRef);
+            castCtx.srcConstRef      = cst.getEnumValue();
         }
 
         const bool srcScalar = srcType->isScalarNumeric();
@@ -39,8 +43,13 @@ namespace
         if (!srcScalar || !dstScalar)
         {
             castCtx.failure            = CastFailure{.diagId = DiagnosticId::sema_err_bit_cast_invalid_type, .nodeRef = castCtx.errorNodeRef};
-            castCtx.failure.srcTypeRef = srcTypeRef;
+            castCtx.failure.srcTypeRef = orgSrcTypeRef;
             castCtx.failure.dstTypeRef = dstTypeRef;
+            if (isEnum)
+            {
+                castCtx.failure.noteId     = DiagnosticId::sema_err_enum_underlying_cast;
+                castCtx.failure.optTypeRef = srcTypeRef;
+            }
             return false;
         }
 
@@ -49,8 +58,13 @@ namespace
         if (!(sb == db || !sb))
         {
             castCtx.failure            = CastFailure{.diagId = DiagnosticId::sema_err_bit_cast_size, .nodeRef = castCtx.errorNodeRef};
-            castCtx.failure.srcTypeRef = srcTypeRef;
+            castCtx.failure.srcTypeRef = orgSrcTypeRef;
             castCtx.failure.dstTypeRef = dstTypeRef;
+            if (isEnum)
+            {
+                castCtx.failure.noteId     = DiagnosticId::sema_err_enum_underlying_cast;
+                castCtx.failure.optTypeRef = srcTypeRef;
+            }
             return false;
         }
 

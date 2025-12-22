@@ -180,6 +180,7 @@ class Parser
     AstNodeRef parseParenExpr();
     AstNodeRef parsePostFixExpression();
     AstNodeRef parseIdentifierSuffixValue();
+    AstNodeRef parseIdentifierBare();
     AstNodeRef parseScopedIdentifier();
     AstNodeRef parsePrefixExpr();
     AstNodeRef parsePrimaryExpression();

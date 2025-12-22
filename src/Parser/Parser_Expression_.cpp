@@ -334,7 +334,7 @@ AstNodeRef Parser::parseIdentifierSuffixValue()
     return parseExpression();
 }
 
-AstNodeRef Parser::parseIdentifier()
+AstNodeRef Parser::parseIdentifierBare()
 {
     switch (id())
     {
@@ -372,8 +372,15 @@ AstNodeRef Parser::parseIdentifier()
     if (tokName.isInvalid())
         return AstNodeRef::invalid();
     auto [identRef, identPtr] = ast_->makeNode<AstNodeId::Identifier>(tokName);
+    return identRef;
+}
 
-    // Quote
+AstNodeRef Parser::parseIdentifier()
+{
+    const AstNodeRef baseIdent = parseIdentifierBare();
+    if (baseIdent.isInvalid())
+        return AstNodeRef::invalid();
+
     if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::BlankBefore))
     {
         const auto tokQuote = consume();
@@ -381,18 +388,18 @@ AstNodeRef Parser::parseIdentifier()
         if (is(TokenId::SymLeftParen))
         {
             auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::PostfixQuoteSuffixListExpr>(tokQuote);
-            nodePtr->nodeExprRef     = identRef;
+            nodePtr->nodeExprRef     = baseIdent;
             nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::PostfixQuoteSuffixListExpr, TokenId::SymLeftParen);
             return nodeRef;
         }
 
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::PostfixQuoteSuffixExpr>(tokQuote);
-        nodePtr->nodeExprRef    = identRef;
+        nodePtr->nodeExprRef    = baseIdent;
         nodePtr->nodeSuffixRef  = parseIdentifierSuffixValue();
         return nodeRef;
     }
 
-    return identRef;
+    return baseIdent;
 }
 
 AstNodeRef Parser::parseInitializerExpression()

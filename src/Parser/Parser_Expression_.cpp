@@ -493,10 +493,16 @@ AstNodeRef Parser::parsePostFixExpression()
         // Scope resolution
         if (is(TokenId::SymDot) && !tok().flags.has(TokenFlagsE::EolBefore))
         {
-            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::ScopeResolution>(consume());
-            nodePtr->nodeLeftRef             = nodeRef;
-            nodePtr->nodeRightRef            = parsePostFixExpression();
-            nodeRef                          = nodeParent;
+            const auto tokDot = consume();
+            auto       member = parseIdentifier();
+            if (member.isInvalid())
+                return AstNodeRef::invalid();
+
+            auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::ScopeResolution>(tokDot);
+            nodePtr->nodeLeftRef       = nodeRef;
+            nodePtr->nodeRightRef      = member;
+
+            nodeRef = nodeParent;
             continue;
         }
 

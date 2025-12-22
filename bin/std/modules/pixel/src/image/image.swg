@@ -149,7 +149,8 @@ impl Image
     {
         Debug.assert(stride > 0)
 
-        var p = {me, userData}
+        let self = me
+        var p = {self, userData}
         Jobs.parallelVisit(|buffer, data| .pixels.toSlice(), cast(u32) (.bpp8 * stride), &p)
         {
             if !data do
@@ -157,7 +158,7 @@ impl Image
             let p = cast(*#decltype(p)) data
             #macro
             {
-                let image    = #up p.me
+                let image    = #up p.self
                 let userData = #up p.userData
                 let pix      = #up buffer
 

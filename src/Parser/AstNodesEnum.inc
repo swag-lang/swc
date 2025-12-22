@@ -23,7 +23,7 @@ SWC_NODE_DEF(DependenciesBlock,
 SWC_NODE_DEF(NamespaceDecl,
                 AstNodeIdFlagsE::Zero,
                 SemaScopeFlagsE::Zero)
-SWC_NODE_DEF(ScopeResolution,
+SWC_NODE_DEF(MemberAccessExpr,
                 AstNodeIdFlagsE::Zero,
                 SemaScopeFlagsE::Zero)
 SWC_NODE_DEF(AccessModifier,
@@ -51,10 +51,10 @@ SWC_NODE_DEF(ScopedIdentifier,
 SWC_NODE_DEF(AncestorIdentifier,
                 AstNodeIdFlagsE::Zero,
                 SemaScopeFlagsE::Zero)
-SWC_NODE_DEF(IdentifierSuffix,
+SWC_NODE_DEF(PostfixQuoteSuffixExpr,
                 AstNodeIdFlagsE::Zero,
                 SemaScopeFlagsE::Zero)
-SWC_NODE_DEF(IdentifierSuffixList,
+SWC_NODE_DEF(PostfixQuoteSuffixListExpr,
                 AstNodeIdFlagsE::Zero,
                 SemaScopeFlagsE::Zero)
 

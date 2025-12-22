@@ -365,15 +365,26 @@ struct AstAncestorIdentifier : AstNodeT<AstNodeId::AncestorIdentifier>
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeValueRef, nodeIdentRef}); }
 };
 
-struct AstIdentifierSuffix : AstNodeT<AstNodeId::IdentifierSuffix>
+struct AstPostfixQuoteSuffixExpr : AstNodeT<AstNodeId::PostfixQuoteSuffixExpr>
 {
+    AstNodeRef nodeExprRef;
     AstNodeRef nodeSuffixRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeSuffixRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
+    {
+        AstNode::collectChildren(out, {nodeExprRef, nodeSuffixRef});
+    }
 };
 
-struct AstIdentifierSuffixList : AstCompoundT<AstNodeId::IdentifierSuffixList>
+struct AstPostfixQuoteSuffixListExpr : AstCompoundT<AstNodeId::PostfixQuoteSuffixListExpr>
 {
+    AstNodeRef nodeExprRef;
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
+    {
+        AstNode::collectChildren(out, {nodeExprRef});
+        AstCompoundT::collectChildren(out, ast);
+    }
 };
 
 struct AstCallExpr : AstCompoundT<AstNodeId::CallExpr>
@@ -573,7 +584,7 @@ struct AstStructLiteral : AstCompoundT<AstNodeId::StructLiteral>
 {
 };
 
-struct AstScopeResolution : AstNodeT<AstNodeId::ScopeResolution>
+struct AstMemberAccessExpr : AstNodeT<AstNodeId::MemberAccessExpr>
 {
     AstNodeRef nodeLeftRef;
     TokenRef   tokMemberRef;

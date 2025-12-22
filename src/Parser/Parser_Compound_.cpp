@@ -41,7 +41,7 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
         case AstNodeId::FunctionParamList:
             return parseFunctionParam();
 
-        case AstNodeId::IdentifierSuffixList:
+        case AstNodeId::PostfixQuoteSuffixListExpr:
             return parseIdentifierSuffixValue();
 
         case AstNodeId::AliasCallExpr:
@@ -104,7 +104,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
         case AstNodeId::ClosureExpr:
         case AstNodeId::FunctionExpr:
         case AstNodeId::LambdaType:
-        case AstNodeId::IdentifierSuffixList:
+        case AstNodeId::PostfixQuoteSuffixListExpr:
         case AstNodeId::AliasCallExpr:
             if (consumeIf(TokenId::SymComma).isInvalid() && !is(tokenEndId))
             {

@@ -371,24 +371,28 @@ AstNodeRef Parser::parseIdentifier()
     const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
     if (tokName.isInvalid())
         return AstNodeRef::invalid();
+    auto [identRef, identPtr] = ast_->makeNode<AstNodeId::Identifier>(tokName);
 
-    if (is(TokenId::SymSingleQuote) && !tok().hasFlag(TokenFlagsE::BlankBefore))
+    // Quote
+    if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::BlankBefore))
     {
-        consume();
+        const auto tokQuote = consume();
+
         if (is(TokenId::SymLeftParen))
         {
-            auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::IdentifierSuffixList>(tokName);
-            nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::IdentifierSuffixList, TokenId::SymLeftParen);
+            auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::PostfixQuoteSuffixListExpr>(tokQuote);
+            nodePtr->nodeExprRef     = identRef;
+            nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::PostfixQuoteSuffixListExpr, TokenId::SymLeftParen);
             return nodeRef;
         }
 
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IdentifierSuffix>(tokName);
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::PostfixQuoteSuffixExpr>(tokQuote);
+        nodePtr->nodeExprRef    = identRef;
         nodePtr->nodeSuffixRef  = parseIdentifierSuffixValue();
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>(tokName);
-    return nodeRef;
+    return identRef;
 }
 
 AstNodeRef Parser::parseInitializerExpression()
@@ -499,7 +503,7 @@ AstNodeRef Parser::parsePostFixExpression()
             if (tokName.isInvalid())
                 return AstNodeRef::invalid();
 
-            auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::ScopeResolution>(tokDot);
+            auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::MemberAccessExpr>(tokDot);
             nodePtr->nodeLeftRef       = nodeRef;
             nodePtr->tokMemberRef      = tokName;
 
@@ -527,6 +531,28 @@ AstNodeRef Parser::parsePostFixExpression()
             nodeRef = parseInitializerList(nodeRef);
             continue;
         }
+
+        // Quote
+        if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::BlankBefore))
+        {
+            const auto tokQuote = consume();
+
+            if (is(TokenId::SymLeftParen))
+            {
+                auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::PostfixQuoteSuffixListExpr>(tokQuote);
+                nodePtr->nodeExprRef       = nodeRef;
+                nodePtr->spanChildrenRef   = parseCompoundContent(AstNodeId::PostfixQuoteSuffixListExpr, TokenId::SymLeftParen);
+                nodeRef                    = nodeParent;
+                continue;
+            }
+
+            auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::PostfixQuoteSuffixExpr>(tokQuote);
+            nodePtr->nodeExprRef       = nodeRef;
+            nodePtr->nodeSuffixRef     = parseIdentifierSuffixValue();
+            nodeRef                    = nodeParent;
+            continue;
+        }
+
         break;
     }
 
@@ -789,24 +815,46 @@ AstNodeRef Parser::parsePrimaryExpression()
 
 AstNodeRef Parser::parseQualifiedIdentifier()
 {
-    // Parse the first identifier
+    // Parse the first identifier (already supports A's32)
     auto leftNode = parseIdentifier();
     if (leftNode.isInvalid())
         return AstNodeRef::invalid();
 
-    // Check if there's a scope access operator
+    // Parse A.B.C... and allow postfix quote after each step: A.B's32.C's32
     while (!tok().startsLine() && is(TokenId::SymDot))
     {
-        const auto tokDot  = consume();
+        const auto tokDot = consume();
+
         const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
         if (tokName.isInvalid())
             return AstNodeRef::invalid();
 
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ScopeResolution>(tokDot);
+        // Build member access: left.member
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::MemberAccessExpr>(tokDot);
         nodePtr->nodeLeftRef    = leftNode;
-        nodePtr->tokMemberRef   = tokDot;
+        nodePtr->tokMemberRef   = tokName;
 
         leftNode = nodeRef;
+
+        while (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::BlankBefore))
+        {
+            const auto tokQuote = consume();
+
+            if (is(TokenId::SymLeftParen))
+            {
+                auto [qRef, qPtr]     = ast_->makeNode<AstNodeId::PostfixQuoteSuffixListExpr>(tokQuote);
+                qPtr->nodeExprRef     = leftNode;
+                qPtr->spanChildrenRef = parseCompoundContent(AstNodeId::PostfixQuoteSuffixListExpr, TokenId::SymLeftParen);
+                leftNode              = qRef;
+            }
+            else
+            {
+                auto [qRef, qPtr]   = ast_->makeNode<AstNodeId::PostfixQuoteSuffixExpr>(tokQuote);
+                qPtr->nodeExprRef   = leftNode;
+                qPtr->nodeSuffixRef = parseIdentifierSuffixValue();
+                leftNode            = qRef;
+            }
+        }
     }
 
     return leftNode;

@@ -75,7 +75,7 @@ public:
     void                 setSymbol(AstNodeRef n, Symbol* symbol) { semaInfo().setSymbol(n, symbol); }
     void                 setSymbol(AstNodeRef n, const Symbol* symbol) { semaInfo().setSymbol(n, symbol); }
     bool                 hasType(AstNodeRef n) const { return semaInfo().hasType(n); }
-    bool                 hasConstant(AstNodeRef n) const { return semaInfo().hasConstant(n); }
+    bool                 hasConstant(AstNodeRef n) const { return semaInfo().hasConstant(ctx(), n); }
     bool                 hasSymbol(AstNodeRef n) const { return semaInfo().hasSymbol(n); }
 
     AstNodeRef       curNodeRef() const { return visit_.currentNodeRef(); }

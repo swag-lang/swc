@@ -33,9 +33,10 @@ struct SemaNodeView
         if (sema.hasConstant(nodeRef))
         {
             cstRef = sema.constantRefOf(nodeRef);
-            cst    = &sema.constantOf(nodeRef);
+            cst    = &sema.cstMgr().get(cstRef);
         }
-        else if (sema.hasSymbol(nodeRef))
+
+        if (sema.hasSymbol(nodeRef))
         {
             sym = &sema.symbolOf(nodeRef);
         }

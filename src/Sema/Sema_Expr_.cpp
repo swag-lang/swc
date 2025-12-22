@@ -27,14 +27,7 @@ AstVisitStepResult AstIdentifier::semaPostNode(Sema& sema) const
     if (result.empty())
         return sema.pause(TaskStateKind::SemaWaitingIdentifier, sema.curNodeRef());
 
-    const Symbol* sym = result.first();
-    if (const SymbolConstant* symCst = sym->safeCast<SymbolConstant>())
-        sema.setConstant(sema.curNodeRef(), symCst->cstRef());
-    else if (const SymbolEnumValue* symEnumVal = sym->safeCast<SymbolEnumValue>())
-        sema.setConstant(sema.curNodeRef(), symEnumVal->cstRef());
-    else
-        sema.setSymbol(sema.curNodeRef(), sym);
-
+    sema.setSymbol(sema.curNodeRef(), result.first());
     return AstVisitStepResult::Continue;
 }
 

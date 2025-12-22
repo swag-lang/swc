@@ -19,11 +19,6 @@ enum class NodeSemaKind : uint8_t
     Substitute  = 4,
 };
 
-struct SemaTag
-{
-};
-using SemaRef = StrongRef<SemaTag>;
-
 class SemaInfo
 {
     Ast              ast_;
@@ -54,7 +49,7 @@ public:
     SymbolNamespace&       fileNamespace() { return *fileNamespace_; }
     void                   setFileNamespace(SymbolNamespace& ns) { fileNamespace_ = &ns; }
 
-    bool                 hasConstant(AstNodeRef nodeRef) const;
+    bool                 hasConstant(const TaskContext& ctx, AstNodeRef nodeRef) const;
     const ConstantValue& getConstant(const TaskContext& ctx, AstNodeRef nodeRef) const;
     ConstantRef          getConstantRef(const TaskContext& ctx, AstNodeRef nodeRef) const;
     void                 setConstant(AstNodeRef nodeRef, ConstantRef ref);
@@ -70,8 +65,8 @@ public:
     bool          hasSymbol(AstNodeRef nodeRef) const;
     const Symbol& getSymbol(const TaskContext&, AstNodeRef nodeRef) const;
     Symbol&       getSymbol(const TaskContext&, AstNodeRef nodeRef);
-    SemaRef       setSymbol(AstNodeRef nodeRef, Symbol* symbol);
-    SemaRef       setSymbol(AstNodeRef nodeRef, const Symbol* symbol);
+    void          setSymbol(AstNodeRef nodeRef, Symbol* symbol);
+    void          setSymbol(AstNodeRef nodeRef, const Symbol* symbol);
 };
 
 SWC_END_NAMESPACE()

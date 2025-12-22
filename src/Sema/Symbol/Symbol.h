@@ -100,7 +100,7 @@ public:
     const T& cast() const
     {
         SWC_ASSERT(kind_ == T::K);
-        return *static_cast<T*>(this);
+        return *static_cast<const T*>(this);
     }
 
     template<typename T>

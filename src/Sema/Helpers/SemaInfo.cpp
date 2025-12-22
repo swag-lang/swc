@@ -3,25 +3,38 @@
 #include "Main/TaskContext.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Constant/ConstantValue.h"
+#include "Sema/Symbol/Symbols.h"
 #if SWC_HAS_DEBUG_INFO
 #include "Sema/Type/TypeManager.h"
 #endif
 
 SWC_BEGIN_NAMESPACE()
 
-bool SemaInfo::hasConstant(AstNodeRef nodeRef) const
+bool SemaInfo::hasConstant(const TaskContext& ctx, AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
+
     const AstNode& node = ast().node(nodeRef);
-    return semaNodeKind(node) == NodeSemaKind::ConstantRef;
+
+    if (semaNodeKind(node) == NodeSemaKind::ConstantRef)
+        return true;
+
+    if (semaNodeKind(node) == NodeSemaKind::SymbolRef)
+    {
+        const Symbol& sym = getSymbol(ctx, nodeRef);
+        return sym.is(SymbolKind::Constant) || sym.is(SymbolKind::EnumValue);
+    }
+
+    return false;
 }
 
 const ConstantValue& SemaInfo::getConstant(const TaskContext& ctx, AstNodeRef nodeRef) const
 {
-    SWC_ASSERT(hasConstant(nodeRef));
-    const AstNode& node = ast().node(nodeRef);
-    return ctx.cstMgr().get(ConstantRef{node.semaRaw()});
+    SWC_ASSERT(hasConstant(ctx, nodeRef));
+    const ConstantRef cstRef = getConstantRef(ctx, nodeRef);
+    SWC_ASSERT(cstRef.isValid());
+    return ctx.cstMgr().get(cstRef);
 }
 
 ConstantRef SemaInfo::getConstantRef(const TaskContext& ctx, AstNodeRef nodeRef) const
@@ -29,13 +42,29 @@ ConstantRef SemaInfo::getConstantRef(const TaskContext& ctx, AstNodeRef nodeRef)
     if (nodeRef.isInvalid())
         return ConstantRef::invalid();
 
-    SWC_ASSERT(hasConstant(nodeRef));
-    const AstNode& node  = ast().node(nodeRef);
-    auto           value = ConstantRef{node.semaRaw()};
+    SWC_ASSERT(hasConstant(ctx, nodeRef));
+
+    const AstNode& node = ast().node(nodeRef);
+
+    if (semaNodeKind(node) == NodeSemaKind::ConstantRef)
+    {
+        ConstantRef value{node.semaRaw()};
 #if SWC_HAS_DEBUG_INFO
-    value.setDbgPtr(&getConstant(ctx, nodeRef));
+        value.setDbgPtr(&ctx.cstMgr().get(value));
 #endif
-    return value;
+        return value;
+    }
+
+    if (semaNodeKind(node) == NodeSemaKind::SymbolRef)
+    {
+        const Symbol& sym = getSymbol(ctx, nodeRef);
+        if (sym.is(SymbolKind::Constant))
+            return sym.cast<SymbolConstant>().cstRef();
+        if (sym.is(SymbolKind::EnumValue))
+            return sym.cast<SymbolEnumValue>().cstRef();
+    }
+
+    SWC_UNREACHABLE();
 }
 
 void SemaInfo::setConstant(AstNodeRef nodeRef, ConstantRef ref)
@@ -149,7 +178,7 @@ Symbol& SemaInfo::getSymbol(const TaskContext&, AstNodeRef nodeRef)
     return value;
 }
 
-SemaRef SemaInfo::setSymbol(AstNodeRef nodeRef, Symbol* symbol)
+void SemaInfo::setSymbol(AstNodeRef nodeRef, Symbol* symbol)
 {
     const uint32_t   shardIdx = nodeRef.get() % NUM_SHARDS;
     auto&            shard    = shards_[shardIdx];
@@ -157,11 +186,11 @@ SemaRef SemaInfo::setSymbol(AstNodeRef nodeRef, Symbol* symbol)
 
     AstNode& node      = ast().node(nodeRef);
     semaNodeKind(node) = NodeSemaKind::SymbolRef;
-    const auto value   = shard.store.push_back(symbol);
-    return SemaRef{value};
+    const Ref value    = shard.store.push_back(symbol);
+    node.setSemaRaw(value);
 }
 
-SemaRef SemaInfo::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
+void SemaInfo::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
 {
     const uint32_t   shardIdx = nodeRef.get() % NUM_SHARDS;
     auto&            shard    = shards_[shardIdx];
@@ -169,9 +198,8 @@ SemaRef SemaInfo::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
 
     AstNode& node      = ast().node(nodeRef);
     semaNodeKind(node) = NodeSemaKind::SymbolRef;
-    const auto value   = SemaRef{shard.store.push_back(symbol)};
-    node.setSemaRaw(value.get());
-    return value;
+    const Ref value    = shard.store.push_back(symbol);
+    node.setSemaRaw(value);
 }
 
 SWC_END_NAMESPACE()

@@ -1,4 +1,4 @@
 #global internal
 
 const A = 0
-#print(#nameof(A))
+#assert(#nameof(A) == "A")

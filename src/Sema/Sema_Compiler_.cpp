@@ -216,7 +216,7 @@ AstVisitStepResult AstCompilerGlobal::semaPostNode(Sema& sema) const
 
 namespace
 {
-    AstVisitStepResult semaCompilerTypeOf(const AstCompilerCallUnary& node, Sema& sema)
+    AstVisitStepResult semaCompilerTypeOf(Sema& sema, const AstCompilerCallUnary& node)
     {
         SemaNodeView nodeView(sema, node.nodeArgRef);
         SWC_ASSERT(nodeView.typeRef.isValid());
@@ -233,6 +233,21 @@ namespace
         sema.setConstant(sema.curNodeRef(), cstRef);
         return AstVisitStepResult::Continue;
     }
+
+    AstVisitStepResult semaCompilerNameOf(Sema& sema, const AstCompilerCallUnary& node)
+    {
+        const SemaNodeView nodeView(sema, node.nodeArgRef);
+
+        if (nodeView.sym)
+        {
+            const auto& sym = *nodeView.sym;
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeString(sema.ctx(), sym.name(sema.ctx()))));
+            return AstVisitStepResult::Continue;
+        }
+
+        SemaError::raise(sema, DiagnosticId::sema_err_failed_nameof, node.nodeArgRef);
+        return AstVisitStepResult::Stop;
+    }
 }
 
 AstVisitStepResult AstCompilerCallUnary::semaPostNode(Sema& sema) const
@@ -241,7 +256,26 @@ AstVisitStepResult AstCompilerCallUnary::semaPostNode(Sema& sema) const
     switch (tok.id)
     {
         case TokenId::CompilerTypeOf:
-            return semaCompilerTypeOf(*this, sema);
+            return semaCompilerTypeOf(sema, *this);
+
+        case TokenId::CompilerNameOf:
+            return semaCompilerNameOf(sema, *this);
+
+        case TokenId::CompilerSizeOf:
+        case TokenId::CompilerAlignOf:
+        case TokenId::CompilerOffsetOf:
+        case TokenId::CompilerDeclType:
+        case TokenId::CompilerStringOf:
+        case TokenId::CompilerRunes:
+        case TokenId::CompilerIsConstExpr:
+        case TokenId::CompilerDefined:
+        case TokenId::CompilerInclude:
+        case TokenId::CompilerSafety:
+        case TokenId::CompilerHasTag:
+        case TokenId::CompilerInject:
+        case TokenId::CompilerLocation:
+            SemaError::raiseInternal(sema, *this);
+            return AstVisitStepResult::Stop;
 
         default:
             SemaError::raiseInternal(sema, *this);

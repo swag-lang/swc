@@ -65,3 +65,79 @@ enum E
 #assert(cast(string) C.A == "0") // swc-expected-error {{sema_err_cannot_cast}}
 #assert(cast #bit (u32) C.A == 0)
 #assert(cast #bit (u64) C.A == 0) // swc-expected-error {{sema_err_bit_cast_size}}
+
+#assert(cast(s8)  A1.A == 0)
+#assert(cast(s16) A2.A == 0)
+#assert(cast(s32) A3.A == 0)
+#assert(cast(s64) A4.A == 0)
+#assert(cast(u8)  A5.A == 0)
+#assert(cast(u16) A6.A == 0)
+#assert(cast(u32) A7.A == 0)
+#assert(cast(u64) A8.A == 0)
+
+#assert(cast(u32) B.A == 0)
+#assert(cast(s32) C.B == 1)
+#assert(cast(u32) C.B == 1)
+
+#assert(#typeof(C.A) == C)
+#assert(#typeof(D.A) == D)
+#assert(#typeof(E.A) == E)
+
+#assert(cast(f32) C.A == 0)
+#assert(cast #bit (u16) A10.A == 1) // swc-expected-error {{sema_err_bit_cast_invalid_type}}
+
+enum InitMismatch1: u32 {
+  A = -1, // swc-expected-error {{sema_err_signed_unsigned}}
+}
+enum InitMismatch2: bool {
+  A = 1, // swc-expected-error {{sema_err_cannot_cast}}
+}
+
+enum Mixed1: s32 {
+  A = -2,
+  #assert(A == -2)
+  B,
+  #assert(B == -1)
+  C = 10,
+  #assert(C == 10)
+  D,
+  #assert(D == 11)
+}
+
+enum SmallRange1: u8 {
+  A = 255,
+  #assert(A == 255)
+  B, // swc-expected-error {{sema_err_literal_overflow}}
+}
+
+enum UnsignedNeg: u16 {
+  A = -1, // swc-expected-error {{sema_err_signed_unsigned}}
+}
+
+enum StartsAtZero: u32 {
+  A,
+  #assert(A == 0)
+  B,
+  #assert(B == 1)
+}
+
+enum RuneOk: rune {
+  A = 'A',
+  #assert(A == 'A')
+  B = 'B',
+  #assert(B == 'B')
+}
+
+enum BoolOk: bool {
+  T = true,
+  #assert(T == true)
+  F = false,
+  #assert(F == false)
+}
+
+enum BoolOk1: bool {
+  T = B1, // swc-expected-error {{sema_err_unknown_identifier}}
+  #assert(T == true)
+  F = false,
+  #assert(F == false)
+}

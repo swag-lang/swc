@@ -28,14 +28,18 @@ namespace
         const TypeInfo*    srcType = &typeMgr.get(srcTypeRef);
         const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
+        // In case of an enum, we must take the underlying type
         const bool    isEnum        = srcType->isEnum();
         const TypeRef orgSrcTypeRef = srcTypeRef;
         if (isEnum)
         {
-            srcTypeRef               = srcType->enumSym().underlyingTypeRef();
-            srcType                  = &typeMgr.get(srcTypeRef);
-            const ConstantValue& cst = sema.cstMgr().get(castCtx.srcConstRef);
-            castCtx.srcConstRef      = cst.getEnumValue();
+            srcTypeRef = srcType->enumSym().underlyingTypeRef();
+            srcType    = &typeMgr.get(srcTypeRef);
+            if (castCtx.isFolding())
+            {
+                const ConstantValue& cst = sema.cstMgr().get(castCtx.srcConstRef);
+                castCtx.srcConstRef      = cst.getEnumValue();
+            }
         }
 
         const bool srcScalar = srcType->isScalarNumeric();

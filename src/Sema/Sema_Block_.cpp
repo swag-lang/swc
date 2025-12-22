@@ -22,21 +22,21 @@ AstVisitStepResult AstFile::semaPostNode(Sema& sema)
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstScopeResolution::semaPostNode(Sema& sema)
+AstVisitStepResult AstScopeResolution::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView nodeView(sema, nodeLeftRef);
-    SWC_ASSERT(nodeView.sym && nodeView.sym->is(SymbolKind::Enum));
-    if (!nodeView.sym->isFullComplete())
-        return sema.pause(TaskStateKind::SemaWaitingFullComplete, nodeLeftRef);
-
+    const SemaNodeView  nodeView(sema, nodeLeftRef);
     const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokMemberRef);
 
-    if (nodeView.sym->is(SymbolKind::Enum))
+    if (nodeView.type->isEnum())
     {
-        const auto& symMap = nodeView.sym->cast<SymbolEnum>();
+        const auto& enumSym = nodeView.type->enumSym();
+        if (!enumSym.isFullComplete())
+            return sema.pause(TaskStateKind::SemaWaitingFullComplete, nodeLeftRef);
+
         SmallVector<Symbol*> matches;
-        symMap.lookup(idRef, matches);
+        enumSym.lookup(idRef, matches);
         SWC_ASSERT(matches.size() == 1);
+
         const auto& symValue = matches[0]->cast<SymbolEnumValue>();
         sema.semaInfo().setConstant(sema.curNodeRef(), symValue.cstRef());
     }

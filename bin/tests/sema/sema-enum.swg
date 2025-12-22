@@ -2,7 +2,6 @@
 
 enum A: u32 { A }
 enum B { A }
-#assert(#typeof(B.A) == B)
 
 enum A1: s8 { A }
 enum A2: s16 { A }
@@ -46,6 +45,7 @@ enum E
     #assert(A == 0)
 }
 
+#assert(#typeof(B.A) == B)
 #assert(#typeof(A1.A) == A1)
 #assert(#typeof(A9.A) == A9)
 

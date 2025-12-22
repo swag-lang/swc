@@ -42,9 +42,7 @@ namespace
         const bool dstScalar = dstType.isScalarNumeric();
         if (!srcScalar || !dstScalar)
         {
-            castCtx.failure            = CastFailure{.diagId = DiagnosticId::sema_err_bit_cast_invalid_type, .nodeRef = castCtx.errorNodeRef};
-            castCtx.failure.srcTypeRef = orgSrcTypeRef;
-            castCtx.failure.dstTypeRef = dstTypeRef;
+            castCtx.fail(DiagnosticId::sema_err_bit_cast_invalid_type, orgSrcTypeRef, dstTypeRef);
             if (isEnum)
             {
                 castCtx.failure.noteId     = DiagnosticId::sema_err_enum_underlying_cast;
@@ -57,9 +55,7 @@ namespace
         const uint32_t db = dstType.scalarNumericBits();
         if (!(sb == db || !sb))
         {
-            castCtx.failure            = CastFailure{.diagId = DiagnosticId::sema_err_bit_cast_size, .nodeRef = castCtx.errorNodeRef};
-            castCtx.failure.srcTypeRef = orgSrcTypeRef;
-            castCtx.failure.dstTypeRef = dstTypeRef;
+            castCtx.fail(DiagnosticId::sema_err_bit_cast_size, orgSrcTypeRef, dstTypeRef);
             if (isEnum)
             {
                 castCtx.failure.noteId     = DiagnosticId::sema_err_enum_underlying_cast;

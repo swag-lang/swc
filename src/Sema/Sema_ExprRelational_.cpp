@@ -20,7 +20,7 @@ namespace
 
         if (view0.cstRef == view1.cstRef)
             return sema.cstMgr().cstTrue();
-        if (view0.type->isTypeInfo() && view1.type->isTypeInfo())
+        if (view0.type->isTypeValue() && view1.type->isTypeValue())
             return sema.cstMgr().cstBool(*view0.type == *view1.type);
 
         auto leftCstRef  = view0.cstRef;
@@ -201,15 +201,15 @@ namespace
 
     void promoteTypeToTypeInfoForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
     {
-        if (!other.type->isTypeInfo())
+        if (!other.type->isTypeValue())
             return;
-        if (self.type->isTypeInfo())
+        if (self.type->isTypeValue())
             return;
         if (!self.type->isType())
             return;
 
         TaskContext&      ctx    = sema.ctx();
-        const ConstantRef cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeTypeInfo(ctx, self.typeRef));
+        const ConstantRef cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeTypeValue(ctx, self.typeRef));
         self.setCstRef(sema, cstRef);
     }
 

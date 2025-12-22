@@ -229,7 +229,7 @@ namespace
             nodeView.typeRef = sema.cstMgr().get(nodeView.cstRef).typeRef();
         }
 
-        const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeInfo(sema.ctx(), nodeView.typeRef));
+        const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), nodeView.typeRef));
         sema.setConstant(sema.curNodeRef(), cstRef);
         return AstVisitStepResult::Continue;
     }

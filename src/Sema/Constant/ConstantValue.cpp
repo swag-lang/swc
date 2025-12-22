@@ -1,7 +1,9 @@
 #include "pch.h"
-#include "Sema/Constant/ConstantValue.h"
+
+#include "ConstantManager.h"
 #include "Main/TaskContext.h"
 #include "Math/Hash.h"
+#include "Sema/Constant/ConstantValue.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -23,8 +25,8 @@ bool ConstantValue::operator==(const ConstantValue& rhs) const noexcept
             return getRune() == rhs.getRune();
         case ConstantKind::String:
             return getString() == rhs.getString();
-        case ConstantKind::TypeInfo:
-            return getTypeIndo() == rhs.getTypeIndo();
+        case ConstantKind::TypeValue:
+            return getTypeValue() == rhs.getTypeValue();
         case ConstantKind::EnumValue:
             return getEnumValue() == rhs.getEnumValue();
         case ConstantKind::Int:
@@ -54,8 +56,8 @@ bool ConstantValue::eq(const ConstantValue& rhs) const noexcept
             return getInt().eq(rhs.getInt());
         case ConstantKind::Float:
             return getFloat().eq(rhs.getFloat());
-        case ConstantKind::TypeInfo:
-            return getTypeIndo() == rhs.getTypeIndo();
+        case ConstantKind::TypeValue:
+            return getTypeValue() == rhs.getTypeValue();
 
         default:
             SWC_UNREACHABLE();
@@ -164,11 +166,11 @@ ConstantValue ConstantValue::makeRune(const TaskContext& ctx, char32_t value)
     return cv;
 }
 
-ConstantValue ConstantValue::makeTypeInfo(TaskContext& ctx, TypeRef value)
+ConstantValue ConstantValue::makeTypeValue(TaskContext& ctx, TypeRef value)
 {
     ConstantValue cv;
-    cv.typeRef_       = ctx.typeMgr().addType(TypeInfo::makeTypeInfo(value));
-    cv.kind_          = ConstantKind::TypeInfo;
+    cv.typeRef_       = ctx.typeMgr().addType(TypeInfo::makeTypeValue(value));
+    cv.kind_          = ConstantKind::TypeValue;
     cv.asTypeInfo.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
@@ -261,7 +263,7 @@ uint32_t ConstantValue::hash() const noexcept
         case ConstantKind::String:
             h = Math::hashCombine(h, Math::hash(asString.val));
             break;
-        case ConstantKind::TypeInfo:
+        case ConstantKind::TypeValue:
             h = Math::hashCombine(h, asTypeInfo.val.get());
             break;
         case ConstantKind::Int:
@@ -327,8 +329,10 @@ Utf8 ConstantValue::toString(const TaskContext& ctx) const
             return getInt().toString();
         case ConstantKind::Float:
             return getFloat().toString();
-        case ConstantKind::TypeInfo:
-            return ctx.typeMgr().typeToName(ctx, getTypeIndo());
+        case ConstantKind::TypeValue:
+            return ctx.typeMgr().typeToName(ctx, getTypeValue());
+        case ConstantKind::EnumValue:
+            return ctx.cstMgr().get(asEnumValue.val).toString(ctx);
 
         default:
             SWC_UNREACHABLE();

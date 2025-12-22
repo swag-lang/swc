@@ -32,7 +32,7 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
             return asInt.bits == other.asInt.bits && asInt.sign == other.asInt.sign;
         case TypeInfoKind::Float:
             return asFloat.bits == other.asFloat.bits;
-        case TypeInfoKind::TypeInfo:
+        case TypeInfoKind::TypeValue:
             return asTypeInfo.typeRef == other.asTypeInfo.typeRef;
         case TypeInfoKind::Enum:
             return asEnum.enumSym == other.asEnum.enumSym;
@@ -64,7 +64,7 @@ uint32_t TypeInfo::hash() const
         case TypeInfoKind::Float:
             h = Math::hashCombine(h, asFloat.bits);
             return h;
-        case TypeInfoKind::TypeInfo:
+        case TypeInfoKind::TypeValue:
             h = Math::hashCombine(h, asTypeInfo.typeRef.get());
             return h;
         case TypeInfoKind::Enum:
@@ -127,9 +127,9 @@ TypeInfo TypeInfo::makeFloat(uint32_t bits)
     return ti;
 }
 
-TypeInfo TypeInfo::makeTypeInfo(TypeRef typeRef)
+TypeInfo TypeInfo::makeTypeValue(TypeRef typeRef)
 {
-    TypeInfo ti{TypeInfoKind::TypeInfo};
+    TypeInfo ti{TypeInfoKind::TypeValue};
     ti.asTypeInfo = {.typeRef = typeRef};
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
@@ -164,7 +164,7 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
         case TypeInfoKind::Enum:
             return std::format("enum {}", asEnum.enumSym->name(ctx));
 
-        case TypeInfoKind::TypeInfo:
+        case TypeInfoKind::TypeValue:
             if (asTypeInfo.typeRef.isInvalid())
                 return "typeinfo";
             return std::format("typeinfo({})", ctx.typeMgr().typeToName(ctx, asTypeInfo.typeRef));

@@ -19,7 +19,7 @@ enum class ConstantKind
     String,
     Int,
     Float,
-    TypeInfo,
+    TypeValue,
     EnumValue,
 };
 
@@ -64,7 +64,7 @@ public:
     bool         isString() const { return kind_ == ConstantKind::String; }
     bool         isInt() const { return kind_ == ConstantKind::Int; }
     bool         isFloat() const { return kind_ == ConstantKind::Float; }
-    bool         isTypeInfo() const { return kind_ == ConstantKind::TypeInfo; }
+    bool         isTypeValue() const { return kind_ == ConstantKind::TypeValue; }
     bool         isEnumValue() const { return kind_ == ConstantKind::EnumValue; }
 
     // clang-format off
@@ -74,7 +74,7 @@ public:
     std::string_view getString() const { SWC_ASSERT(isString()); return asString.val; }
     const ApsInt& getInt() const { SWC_ASSERT(isInt()); return asInt.val; }
     const ApFloat& getFloat() const { SWC_ASSERT(isFloat()); return asFloat.val; }
-    TypeRef getTypeIndo() const { SWC_ASSERT(isTypeInfo()); return asTypeInfo.val; }
+    TypeRef getTypeValue() const { SWC_ASSERT(isTypeValue()); return asTypeInfo.val; }
     ConstantRef getEnumValue() const { SWC_ASSERT(isEnumValue()); return asEnumValue.val; }
     // clang-format on
 
@@ -84,7 +84,7 @@ public:
     static ConstantValue makeString(const TaskContext& ctx, std::string_view value);
     static ConstantValue makeChar(const TaskContext& ctx, char32_t value);
     static ConstantValue makeRune(const TaskContext& ctx, char32_t value);
-    static ConstantValue makeTypeInfo(TaskContext& ctx, TypeRef value);
+    static ConstantValue makeTypeValue(TaskContext& ctx, TypeRef value);
     static ConstantValue makeInt(const TaskContext& ctx, const ApsInt& value, uint32_t bitWidth, TypeInfo::Sign sign);
     static ConstantValue makeIntUnsized(const TaskContext& ctx, const ApsInt& value, TypeInfo::Sign sign);
     static ConstantValue makeFloat(const TaskContext& ctx, const ApFloat& value, uint32_t bitWidth);

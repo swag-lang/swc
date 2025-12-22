@@ -80,7 +80,7 @@ AstVisitStepResult AstValueType::semaPostNode(Sema& sema) const
 {
     auto&               ctx     = sema.ctx();
     const TypeRef       typeRef = sema.typeRefOf(nodeTypeRef);
-    const ConstantValue cst     = ConstantValue::makeTypeInfo(ctx, typeRef);
+    const ConstantValue cst     = ConstantValue::makeTypeValue(ctx, typeRef);
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, cst));
     return AstVisitStepResult::Continue;
 }

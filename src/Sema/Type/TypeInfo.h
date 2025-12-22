@@ -14,7 +14,7 @@ enum class TypeInfoKind
     Float,
     Char,
     String,
-    TypeInfo,
+    TypeValue,
     Rune,
     Any,
     Void,
@@ -74,13 +74,13 @@ public:
 
     bool isFloat() const noexcept { return kind_ == TypeInfoKind::Float; }
     bool isFloatUnsized() const noexcept { return kind_ == TypeInfoKind::Float && asFloat.bits == 0; }
-    bool isTypeInfo() const noexcept { return kind_ == TypeInfoKind::TypeInfo; }
+    bool isTypeValue() const noexcept { return kind_ == TypeInfoKind::TypeValue; }
     bool isRune() const noexcept { return kind_ == TypeInfoKind::Rune; }
     bool isAny() const noexcept { return kind_ == TypeInfoKind::Any; }
     bool isVoid() const noexcept { return kind_ == TypeInfoKind::Void; }
     bool isCString() const noexcept { return kind_ == TypeInfoKind::CString; }
     bool isEnum() const noexcept { return kind_ == TypeInfoKind::Enum; }
-    bool isType() const noexcept { return isTypeInfo() || isEnum(); }
+    bool isType() const noexcept { return isTypeValue() || isEnum(); }
 
     bool isCharRune() const noexcept { return isChar() || isRune(); }
     bool isIntLike() const noexcept { return isInt() || isCharRune(); }
@@ -102,7 +102,7 @@ public:
     static TypeInfo makeString();
     static TypeInfo makeInt(uint32_t bits, Sign sign);
     static TypeInfo makeFloat(uint32_t bits);
-    static TypeInfo makeTypeInfo(TypeRef typeRef);
+    static TypeInfo makeTypeValue(TypeRef typeRef);
     static TypeInfo makeRune();
     static TypeInfo makeAny();
     static TypeInfo makeVoid();

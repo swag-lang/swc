@@ -141,3 +141,14 @@ enum BoolOk1: bool {
   F = false,
   #assert(F == false)
 }
+
+enum Test{
+    A = 1,
+    B = 2,
+    C = 3,
+}
+
+const X = Test.A
+#assert(X == 1)
+#assert(X == Test.A)
+#assert(#typeof(X) == Test)

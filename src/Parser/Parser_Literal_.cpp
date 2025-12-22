@@ -102,7 +102,7 @@ AstNodeRef Parser::parseLiteralExpression()
     switch (id())
     {
         case TokenId::Identifier:
-            nodePtr->nodeSuffixRef = parseGenericIdentifier();
+            nodePtr->nodeSuffixRef = parseQuotedIdentifier();
             return nodeRef;
 
         case TokenId::TypeF32:

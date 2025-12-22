@@ -147,7 +147,7 @@ class Parser
     AstNodeRef parseFunctionParamList();
     AstNodeRef parseGenericParam();
     AstNodeRef parseAccessModifier();
-    AstNodeRef parseGenericIdentifier();
+    AstNodeRef parseQuotedIdentifier();
     AstNodeRef parseIdentifierType();
     AstNodeRef parseIf();
     AstNodeRef parseImpl();

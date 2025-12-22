@@ -41,11 +41,11 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
         case AstNodeId::FunctionParamList:
             return parseFunctionParam();
 
-        case AstNodeId::PostfixQuoteSuffixListExpr:
+        case AstNodeId::QuotedListExpr:
             return parseIdentifierSuffixValue();
 
         case AstNodeId::AliasCallExpr:
-            return parseGenericIdentifier();
+            return parseQuotedIdentifier();
 
         default:
             SWC_UNREACHABLE();
@@ -104,7 +104,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
         case AstNodeId::ClosureExpr:
         case AstNodeId::FunctionExpr:
         case AstNodeId::LambdaType:
-        case AstNodeId::PostfixQuoteSuffixListExpr:
+        case AstNodeId::QuotedListExpr:
         case AstNodeId::AliasCallExpr:
             if (consumeIf(TokenId::SymComma).isInvalid() && !is(tokenEndId))
             {

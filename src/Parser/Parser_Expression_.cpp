@@ -375,7 +375,7 @@ AstNodeRef Parser::parseIdentifier()
     return identRef;
 }
 
-AstNodeRef Parser::parseGenericIdentifier()
+AstNodeRef Parser::parseQuotedIdentifier()
 {
     const AstNodeRef baseIdent = parseIdentifier();
     if (baseIdent.isInvalid())
@@ -387,13 +387,13 @@ AstNodeRef Parser::parseGenericIdentifier()
 
         if (is(TokenId::SymLeftParen))
         {
-            auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::PostfixQuoteSuffixListExpr>(tokQuote);
+            auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::QuotedListExpr>(tokQuote);
             nodePtr->nodeExprRef     = baseIdent;
-            nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::PostfixQuoteSuffixListExpr, TokenId::SymLeftParen);
+            nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::QuotedListExpr, TokenId::SymLeftParen);
             return nodeRef;
         }
 
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::PostfixQuoteSuffixExpr>(tokQuote);
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::QuotedExpr>(tokQuote);
         nodePtr->nodeExprRef    = baseIdent;
         nodePtr->nodeSuffixRef  = parseIdentifierSuffixValue();
         return nodeRef;
@@ -546,14 +546,14 @@ AstNodeRef Parser::parsePostFixExpression()
 
             if (is(TokenId::SymLeftParen))
             {
-                auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::PostfixQuoteSuffixListExpr>(tokQuote);
+                auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::QuotedListExpr>(tokQuote);
                 nodePtr->nodeExprRef       = nodeRef;
-                nodePtr->spanChildrenRef   = parseCompoundContent(AstNodeId::PostfixQuoteSuffixListExpr, TokenId::SymLeftParen);
+                nodePtr->spanChildrenRef   = parseCompoundContent(AstNodeId::QuotedListExpr, TokenId::SymLeftParen);
                 nodeRef                    = nodeParent;
                 continue;
             }
 
-            auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::PostfixQuoteSuffixExpr>(tokQuote);
+            auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::QuotedExpr>(tokQuote);
             nodePtr->nodeExprRef       = nodeRef;
             nodePtr->nodeSuffixRef     = parseIdentifierSuffixValue();
             nodeRef                    = nodeParent;
@@ -805,7 +805,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::CompilerUniq7:
         case TokenId::CompilerUniq8:
         case TokenId::CompilerUniq9:
-            return parseGenericIdentifier();
+            return parseQuotedIdentifier();
 
         case TokenId::KwdFunc:
         case TokenId::KwdMtd:
@@ -822,7 +822,7 @@ AstNodeRef Parser::parsePrimaryExpression()
 
 AstNodeRef Parser::parseQualifiedIdentifier()
 {
-    auto leftNode = parseGenericIdentifier();
+    auto leftNode = parseQuotedIdentifier();
     if (leftNode.isInvalid())
         return AstNodeRef::invalid();
 
@@ -830,7 +830,7 @@ AstNodeRef Parser::parseQualifiedIdentifier()
     {
         const auto tokDot = consume();
 
-        auto memberNode = parseGenericIdentifier();
+        auto memberNode = parseQuotedIdentifier();
         if (memberNode.isInvalid())
             return AstNodeRef::invalid();
 

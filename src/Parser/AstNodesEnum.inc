@@ -54,10 +54,10 @@ SWC_NODE_DEF(QualifiedIdentifier,
 SWC_NODE_DEF(AncestorIdentifier,
                 AstNodeIdFlagsE::Zero,
                 SemaScopeFlagsE::Zero)
-SWC_NODE_DEF(PostfixQuoteSuffixExpr,
+SWC_NODE_DEF(QuotedExpr,
                 AstNodeIdFlagsE::Zero,
                 SemaScopeFlagsE::Zero)
-SWC_NODE_DEF(PostfixQuoteSuffixListExpr,
+SWC_NODE_DEF(QuotedListExpr,
                 AstNodeIdFlagsE::Zero,
                 SemaScopeFlagsE::Zero)
 

@@ -373,7 +373,7 @@ struct AstAncestorIdentifier : AstNodeT<AstNodeId::AncestorIdentifier>
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeValueRef, nodeIdentRef}); }
 };
 
-struct AstPostfixQuoteSuffixExpr : AstNodeT<AstNodeId::PostfixQuoteSuffixExpr>
+struct AstQuotedExpr : AstNodeT<AstNodeId::QuotedExpr>
 {
     AstNodeRef nodeExprRef;
     AstNodeRef nodeSuffixRef;
@@ -384,7 +384,7 @@ struct AstPostfixQuoteSuffixExpr : AstNodeT<AstNodeId::PostfixQuoteSuffixExpr>
     }
 };
 
-struct AstPostfixQuoteSuffixListExpr : AstCompoundT<AstNodeId::PostfixQuoteSuffixListExpr>
+struct AstQuotedListExpr : AstCompoundT<AstNodeId::QuotedListExpr>
 {
     AstNodeRef nodeExprRef;
 

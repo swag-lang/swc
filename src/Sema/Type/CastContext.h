@@ -28,6 +28,7 @@ struct CastFailure
     AstNodeRef   nodeRef    = AstNodeRef::invalid();
     TypeRef      srcTypeRef = TypeRef::invalid();
     TypeRef      dstTypeRef = TypeRef::invalid();
+    TypeRef      optTypeRef = TypeRef::invalid();
     Utf8         valueStr{};
 
     void set(AstNodeRef errorNodeRef, DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value, DiagnosticId note);

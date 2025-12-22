@@ -4,6 +4,7 @@
 #include "Report/Diagnostic.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Sema.h"
+#include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/CastContext.h"
 #include "Sema/Type/TypeManager.h"
 
@@ -20,27 +21,20 @@ namespace
 
     bool castBit(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
+        SWC_ASSERT(castCtx.kind == CastKind::Explicit);
+
         auto&              ctx     = sema.ctx();
         const TypeManager& typeMgr = ctx.typeMgr();
-        const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
+        const TypeInfo*    srcType = &typeMgr.get(srcTypeRef);
         const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
-        if (castCtx.kind == CastKind::LiteralSuffix)
+        if (srcType->isEnum())
         {
-            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            return false;
+            srcTypeRef = srcType->enumSym().underlyingTypeRef();
+            srcType    = &typeMgr.get(srcTypeRef);
         }
 
-        if (castCtx.kind == CastKind::Promotion || castCtx.kind == CastKind::Implicit)
-        {
-            if (!(srcType.isScalarNumeric() && dstType.isScalarNumeric()))
-            {
-                castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-                return false;
-            }
-        }
-
-        const bool srcScalar = srcType.isScalarNumeric();
+        const bool srcScalar = srcType->isScalarNumeric();
         const bool dstScalar = dstType.isScalarNumeric();
         if (!srcScalar || !dstScalar)
         {
@@ -50,7 +44,7 @@ namespace
             return false;
         }
 
-        const uint32_t sb = srcType.scalarNumericBits();
+        const uint32_t sb = srcType->scalarNumericBits();
         const uint32_t db = dstType.scalarNumericBits();
         if (!(sb == db || !sb))
         {
@@ -61,7 +55,7 @@ namespace
         }
 
         if (castCtx.isFolding())
-            return SemaCast::foldConstantBitCast(sema, castCtx, dstTypeRef, dstType, srcType);
+            return SemaCast::foldConstantBitCast(sema, castCtx, dstTypeRef, dstType, *srcType);
 
         return true;
     }
@@ -218,13 +212,45 @@ namespace
 
         return true;
     }
+
+    bool castFromEnum(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        if (castCtx.kind != CastKind::Explicit)
+        {
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return false;
+        }
+
+        const TypeInfo&   type    = sema.typeMgr().get(srcTypeRef);
+        const SymbolEnum& enumSym = type.enumSym();
+
+        if (castCtx.isFolding())
+        {
+            const ConstantValue& cst = sema.cstMgr().get(castCtx.srcConstRef);
+            castCtx.srcConstRef      = cst.getEnumValue();
+        }
+
+        const bool ok = SemaCast::castAllowed(sema, castCtx, enumSym.underlyingTypeRef(), dstTypeRef);
+        if (!ok)
+        {
+            castCtx.failure.srcTypeRef = srcTypeRef;
+            castCtx.failure.noteId     = DiagnosticId::sema_err_enum_underlying_cast;
+            castCtx.failure.optTypeRef = enumSym.underlyingTypeRef();
+        }
+
+        return ok;
+    }
 }
 
 void SemaCast::emitCastFailure(Sema& sema, const CastFailure& f)
 {
     auto diag = SemaError::report(sema, f.diagId, f.nodeRef);
-    diag.addArgument(Diagnostic::ARG_TYPE, f.srcTypeRef);
-    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, f.dstTypeRef);
+    if (f.srcTypeRef.isValid())
+        diag.addArgument(Diagnostic::ARG_TYPE, f.srcTypeRef);
+    if (f.dstTypeRef.isValid())
+        diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, f.dstTypeRef);
+    if (f.optTypeRef.isValid())
+        diag.addArgument(Diagnostic::ARG_OPT_TYPE, f.optTypeRef);
     diag.addArgument(Diagnostic::ARG_VALUE, f.valueStr);
     diag.addNote(f.noteId);
     diag.report(sema.ctx());
@@ -241,6 +267,9 @@ bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef,
 
     if (castCtx.flags.has(CastFlagsE::BitCast))
         return castBit(sema, castCtx, srcTypeRef, dstTypeRef);
+    if (srcType.isEnum() && !dstType.isEnum())
+        return castFromEnum(sema, castCtx, srcTypeRef, dstTypeRef);
+
     if (srcType.isBool() && dstType.isIntLike())
         return castBoolToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
     if (srcType.isIntLike() && dstType.isBool())

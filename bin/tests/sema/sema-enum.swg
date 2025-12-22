@@ -49,7 +49,7 @@ enum E
 #assert(#typeof(A1.A) == A1)
 #assert(#typeof(A9.A) == A9)
 
-/*#assert(cast(u32) C.A == 0)
+#assert(cast(u32) C.A == 0)
 #assert(cast(u32) C.B == 1)
 #assert((cast(s32) C.C) == 5)
 #assert((cast(s32) C.D) == 6)
@@ -60,4 +60,7 @@ enum E
 #assert(cast(f32) A11.A == 0)
 #assert(cast(f64) A12.A == 0)
 #assert(cast(string) A13.A == "0")
-#assert(cast(s32) B.A == 0)*/
+#assert(cast(s32) B.A == 0)
+
+#assert(cast(string) C.A == "0") // swc-expected-error {{sema_err_cannot_cast}}
+//#assert(cast #bit (u32) C.A == 0)

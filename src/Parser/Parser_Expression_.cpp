@@ -334,7 +334,7 @@ AstNodeRef Parser::parseIdentifierSuffixValue()
     return parseExpression();
 }
 
-AstNodeRef Parser::parseIdentifierBare()
+AstNodeRef Parser::parseIdentifier()
 {
     switch (id())
     {
@@ -375,9 +375,9 @@ AstNodeRef Parser::parseIdentifierBare()
     return identRef;
 }
 
-AstNodeRef Parser::parseIdentifier()
+AstNodeRef Parser::parseGenericIdentifier()
 {
-    const AstNodeRef baseIdent = parseIdentifierBare();
+    const AstNodeRef baseIdent = parseIdentifier();
     if (baseIdent.isInvalid())
         return AstNodeRef::invalid();
 
@@ -805,7 +805,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::CompilerUniq7:
         case TokenId::CompilerUniq8:
         case TokenId::CompilerUniq9:
-            return parseIdentifier();
+            return parseGenericIdentifier();
 
         case TokenId::KwdFunc:
         case TokenId::KwdMtd:
@@ -822,7 +822,7 @@ AstNodeRef Parser::parsePrimaryExpression()
 
 AstNodeRef Parser::parseQualifiedIdentifier()
 {
-    auto leftNode = parseIdentifier();
+    auto leftNode = parseGenericIdentifier();
     if (leftNode.isInvalid())
         return AstNodeRef::invalid();
 
@@ -830,7 +830,7 @@ AstNodeRef Parser::parseQualifiedIdentifier()
     {
         const auto tokDot = consume();
 
-        auto memberNode = parseIdentifier();
+        auto memberNode = parseGenericIdentifier();
         if (memberNode.isInvalid())
             return AstNodeRef::invalid();
 

@@ -45,7 +45,7 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
             return parseIdentifierSuffixValue();
 
         case AstNodeId::AliasCallExpr:
-            return parseIdentifier();
+            return parseGenericIdentifier();
 
         default:
             SWC_UNREACHABLE();

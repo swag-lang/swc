@@ -147,7 +147,7 @@ class Parser
     AstNodeRef parseFunctionParamList();
     AstNodeRef parseGenericParam();
     AstNodeRef parseAccessModifier();
-    AstNodeRef parseIdentifier();
+    AstNodeRef parseGenericIdentifier();
     AstNodeRef parseIdentifierType();
     AstNodeRef parseIf();
     AstNodeRef parseImpl();
@@ -180,7 +180,7 @@ class Parser
     AstNodeRef parseParenExpr();
     AstNodeRef parsePostFixExpression();
     AstNodeRef parseIdentifierSuffixValue();
-    AstNodeRef parseIdentifierBare();
+    AstNodeRef parseIdentifier();
     AstNodeRef parseAutoScopedIdentifier();
     AstNodeRef parsePrefixExpr();
     AstNodeRef parsePrimaryExpression();

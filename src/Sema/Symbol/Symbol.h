@@ -32,11 +32,11 @@ enum class SymbolKind : uint8_t
 
 enum class SymbolFlagsE : uint8_t
 {
-    Zero = 0,
-    Public,
-    FullComplete,
+    Zero         = 0,
+    Public       = 1 << 0,
+    FullComplete = 1 << 1,
 };
-using SymbolFlags = EnumFlags<SymbolFlagsE>;
+using SymbolFlags = AtomicEnumFlags<SymbolFlagsE>;
 
 class Symbol
 {

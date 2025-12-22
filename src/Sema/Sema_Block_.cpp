@@ -27,6 +27,8 @@ AstVisitStepResult AstScopeResolution::semaPreChild(Sema& sema, const AstNodeRef
 
     const SemaNodeView nodeView(sema, nodeLeftRef);
     SWC_ASSERT(nodeView.sym && nodeView.sym->is(SymbolKind::Enum));
+    if (!nodeView.sym->isFullComplete())
+        return sema.pause(TaskStateKind::SemaWaitingFullComplete, nodeLeftRef);
 
     sema.pushScope(SemaScopeFlagsE::Type);
     sema.curScope().setSymMap(static_cast<SymbolMap*>(nodeView.sym));

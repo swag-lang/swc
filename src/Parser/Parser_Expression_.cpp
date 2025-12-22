@@ -494,13 +494,14 @@ AstNodeRef Parser::parsePostFixExpression()
         if (is(TokenId::SymDot) && !tok().flags.has(TokenFlagsE::EolBefore))
         {
             const auto tokDot = consume();
-            auto       member = parseIdentifier();
-            if (member.isInvalid())
+
+            const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+            if (tokName.isInvalid())
                 return AstNodeRef::invalid();
 
             auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::ScopeResolution>(tokDot);
             nodePtr->nodeLeftRef       = nodeRef;
-            nodePtr->nodeRightRef      = member;
+            nodePtr->tokMemberRef      = tokName;
 
             nodeRef = nodeParent;
             continue;
@@ -796,19 +797,15 @@ AstNodeRef Parser::parseQualifiedIdentifier()
     // Check if there's a scope access operator
     while (!tok().startsLine() && is(TokenId::SymDot))
     {
-        const auto tokDot = consume();
-
-        // Parse the right side (another identifier)
-        const auto rightNode = parseIdentifier();
-        if (rightNode.isInvalid())
+        const auto tokDot  = consume();
+        const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+        if (tokName.isInvalid())
             return AstNodeRef::invalid();
 
-        // Create a ScopeResolution node with left and right
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ScopeResolution>(tokDot);
         nodePtr->nodeLeftRef    = leftNode;
-        nodePtr->nodeRightRef   = rightNode;
+        nodePtr->tokMemberRef   = tokDot;
 
-        // The new ScopeResolution becomes the left node for the next iteration
         leftNode = nodeRef;
     }
 

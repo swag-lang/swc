@@ -576,10 +576,9 @@ struct AstStructLiteral : AstCompoundT<AstNodeId::StructLiteral>
 struct AstScopeResolution : AstNodeT<AstNodeId::ScopeResolution>
 {
     AstNodeRef nodeLeftRef;
-    AstNodeRef nodeRightRef;
+    TokenRef   tokMemberRef;
 
-    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
-    AstVisitStepResult semaPreChild(Sema& sema, const AstNodeRef& childRef) const;
+    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef}); }
     AstVisitStepResult semaPostNode(Sema& sema);
 };
 

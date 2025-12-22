@@ -1,4 +1,6 @@
 #include "pch.h"
+
+#include "Helpers/SemaError.h"
 #include "Helpers/SemaNodeView.h"
 #include "Main/CompilerInstance.h"
 #include "Sema/Sema.h"
@@ -20,26 +22,29 @@ AstVisitStepResult AstFile::semaPostNode(Sema& sema)
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstScopeResolution::semaPreChild(Sema& sema, const AstNodeRef& childRef) const
+AstVisitStepResult AstScopeResolution::semaPostNode(Sema& sema)
 {
-    if (childRef == nodeLeftRef)
-        return AstVisitStepResult::Continue;
-
     const SemaNodeView nodeView(sema, nodeLeftRef);
     SWC_ASSERT(nodeView.sym && nodeView.sym->is(SymbolKind::Enum));
     if (!nodeView.sym->isFullComplete())
         return sema.pause(TaskStateKind::SemaWaitingFullComplete, nodeLeftRef);
 
-    sema.pushScope(SemaScopeFlagsE::Type);
-    sema.curScope().setSymMap(static_cast<SymbolMap*>(nodeView.sym));
+    const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokMemberRef);
 
-    return AstVisitStepResult::Continue;
-}
+    if (nodeView.sym->is(SymbolKind::Enum))
+    {
+        const auto& symMap = nodeView.sym->cast<SymbolEnum>();
+        SmallVector<Symbol*> matches;
+        symMap.lookup(idRef, matches);
+        SWC_ASSERT(matches.size() == 1);
+        const auto& symValue = matches[0]->cast<SymbolEnumValue>();
+        sema.semaInfo().setConstant(sema.curNodeRef(), symValue.cstRef());
+    }
+    else
+    {
+        SemaError::raiseInternal(sema, *this);
+    }
 
-AstVisitStepResult AstScopeResolution::semaPostNode(Sema& sema)
-{
-    sema.popScope();
-    sema.semaInherit(*this, nodeRightRef);
     return AstVisitStepResult::Continue;
 }
 

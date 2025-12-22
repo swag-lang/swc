@@ -350,11 +350,19 @@ struct AstIdentifier : AstNodeT<AstNodeId::Identifier>
     AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
-struct AstScopedIdentifier : AstNodeT<AstNodeId::ScopedIdentifier>
+struct AstAutoScopedIdentifier : AstNodeT<AstNodeId::AutoScopedIdentifier>
 {
     AstNodeRef nodeIdentRef;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeIdentRef}); }
+};
+
+struct AstQualifiedIdentifier : AstNodeT<AstNodeId::QualifiedIdentifier>
+{
+    AstNodeRef nodeLeftRef;
+    AstNodeRef nodeMemberRef;
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeMemberRef}); }
 };
 
 struct AstAncestorIdentifier : AstNodeT<AstNodeId::AncestorIdentifier>

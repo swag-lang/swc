@@ -584,9 +584,9 @@ AstNodeRef Parser::parsePostFixExpression()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseScopedIdentifier()
+AstNodeRef Parser::parseAutoScopedIdentifier()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ScopedIdentifier>(consume());
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AutoScopedIdentifier>(consume());
     nodePtr->nodeIdentRef   = parseQualifiedIdentifier();
     return nodeRef;
 }
@@ -596,7 +596,7 @@ AstNodeRef Parser::parsePrimaryExpression()
     switch (id())
     {
         case TokenId::SymDot:
-            return parseScopedIdentifier();
+            return parseAutoScopedIdentifier();
 
         case TokenId::CompilerUp:
             return parseCompilerUp();
@@ -822,46 +822,23 @@ AstNodeRef Parser::parsePrimaryExpression()
 
 AstNodeRef Parser::parseQualifiedIdentifier()
 {
-    // Parse the first identifier (already supports A's32)
     auto leftNode = parseIdentifier();
     if (leftNode.isInvalid())
         return AstNodeRef::invalid();
 
-    // Parse A.B.C... and allow postfix quote after each step: A.B's32.C's32
     while (!tok().startsLine() && is(TokenId::SymDot))
     {
         const auto tokDot = consume();
 
-        const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
-        if (tokName.isInvalid())
+        auto memberNode = parseIdentifier();
+        if (memberNode.isInvalid())
             return AstNodeRef::invalid();
 
-        // Build member access: left.member
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::MemberAccessExpr>(tokDot);
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::QualifiedIdentifier>(tokDot);
         nodePtr->nodeLeftRef    = leftNode;
-        nodePtr->tokMemberRef   = tokName;
+        nodePtr->nodeMemberRef  = memberNode;
 
         leftNode = nodeRef;
-
-        while (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::BlankBefore))
-        {
-            const auto tokQuote = consume();
-
-            if (is(TokenId::SymLeftParen))
-            {
-                auto [qRef, qPtr]     = ast_->makeNode<AstNodeId::PostfixQuoteSuffixListExpr>(tokQuote);
-                qPtr->nodeExprRef     = leftNode;
-                qPtr->spanChildrenRef = parseCompoundContent(AstNodeId::PostfixQuoteSuffixListExpr, TokenId::SymLeftParen);
-                leftNode              = qRef;
-            }
-            else
-            {
-                auto [qRef, qPtr]   = ast_->makeNode<AstNodeId::PostfixQuoteSuffixExpr>(tokQuote);
-                qPtr->nodeExprRef   = leftNode;
-                qPtr->nodeSuffixRef = parseIdentifierSuffixValue();
-                leftNode            = qRef;
-            }
-        }
     }
 
     return leftNode;

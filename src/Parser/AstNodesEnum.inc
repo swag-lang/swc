@@ -45,7 +45,10 @@ SWC_NODE_DEF(AliasDecl,
 SWC_NODE_DEF(Identifier,
                 AstNodeIdFlagsE::Zero,
                 SemaScopeFlagsE::Zero)
-SWC_NODE_DEF(ScopedIdentifier,
+SWC_NODE_DEF(AutoScopedIdentifier,
+                AstNodeIdFlagsE::Zero,
+                SemaScopeFlagsE::Zero)
+SWC_NODE_DEF(QualifiedIdentifier,
                 AstNodeIdFlagsE::Zero,
                 SemaScopeFlagsE::Zero)
 SWC_NODE_DEF(AncestorIdentifier,

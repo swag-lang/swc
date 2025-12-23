@@ -58,13 +58,9 @@ struct AstImplFor : AstCompoundT<AstNodeId::ImplFor>
 // -----------------------------------------------------------------------------
 struct AstNamespaceDecl : AstCompoundT<AstNodeId::NamespaceDecl>
 {
-    AstNodeRef nodeNameRef;
+    SpanRef spanNameRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
-    {
-        AstNode::collectChildren(out, {nodeNameRef});
-        AstCompoundT::collectChildren(out, ast);
-    }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const { AstCompoundT::collectChildren(out, ast); }
 };
 
 // -----------------------------------------------------------------------------

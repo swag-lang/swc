@@ -506,9 +506,32 @@ AstNodeRef Parser::parseFile()
 AstNodeRef Parser::parseNamespace()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamespaceDecl>(consume());
-    nodePtr->nodeNameRef    = parseQualifiedIdentifier();
-    if (nodePtr->nodeNameRef.isInvalid())
+
+    SmallVector<TokenRef> names;
+    TokenRef              tokRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+    if (tokRef.isInvalid())
+    {
+        nodePtr->spanNameRef.setInvalid();
         skipTo({TokenId::SymLeftCurly});
+    }
+    else
+    {
+        names.push_back(tokRef);
+        while (consumeIf(TokenId::SymDot).isValid())
+        {
+            tokRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+            if (tokRef.isInvalid())
+            {
+                skipTo({TokenId::SymLeftCurly});
+                break;
+            }
+
+            names.push_back(tokRef);
+        }
+
+        nodePtr->spanNameRef = ast_->pushSpan(names.span());
+    }
+
     nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     return nodeRef;
 }

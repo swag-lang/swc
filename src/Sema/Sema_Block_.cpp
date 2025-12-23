@@ -19,4 +19,9 @@ AstVisitStepResult AstFile::semaPostNode(Sema& sema)
     return AstVisitStepResult::Continue;
 }
 
+AstVisitStepResult AstUsingNamespaceStmt::semaPreNode(Sema& sema) const
+{
+    return AstVisitStepResult::Continue;
+}
+
 SWC_END_NAMESPACE()

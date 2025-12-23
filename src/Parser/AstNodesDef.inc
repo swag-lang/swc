@@ -72,7 +72,8 @@ struct AstUsingNamespaceStmt : AstNodeT<AstNodeId::UsingNamespaceStmt>
 {
     AstNodeRef nodeNameRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeNameRef}); }
+    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeNameRef}); }
+    AstVisitStepResult semaPreNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

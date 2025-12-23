@@ -19,7 +19,28 @@ AstVisitStepResult AstFile::semaPostNode(Sema& sema)
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstUsingNamespaceStmt::semaPreNode(Sema& sema) const
+AstVisitStepResult AstNamespaceDecl::semaPreNode(Sema& sema) const
+{
+    auto& ctx = sema.ctx();
+
+    SmallVector<TokenRef> namesRef;
+    sema.ast().tokens(namesRef, spanNameRef);
+
+    SymbolMap* symMap = SemaFrame::currentSymMap(sema);
+    for (const auto& nameRef : namesRef)
+    {
+        const Token&        tok   = sema.token(srcViewRef(), nameRef);
+        const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), nameRef);
+
+        SymbolNamespace* ns = ctx.compiler().allocate<SymbolNamespace>(ctx, nullptr, idRef, SymbolFlagsE::Zero);
+        symMap->addSymbol(ctx, ns);
+        symMap = ns;
+    }
+
+    return AstVisitStepResult::Continue;
+}
+
+AstVisitStepResult AstNamespaceDecl::semaPostNode(Sema& sema) const
 {
     return AstVisitStepResult::Continue;
 }

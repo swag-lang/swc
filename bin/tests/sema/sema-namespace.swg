@@ -1,0 +1,3 @@
+#global internal
+
+namespace NA {}

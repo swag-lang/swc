@@ -103,6 +103,23 @@ public:
         }
     }
 
+    void tokens(SmallVector<TokenRef>& out, SpanRef spanRef) const
+    {
+        if (spanRef.isInvalid())
+            return;
+
+        const uint32_t g = spanRef.get();
+        const uint32_t s = refShard(g);
+        const uint32_t l = refLocal(g);
+
+        const Store::SpanView view = shards_[s].store.span<AstNodeRef>(l);
+        for (Store::SpanView::chunk_iterator it = view.chunks_begin(); it != view.chunks_end(); ++it)
+        {
+            const Store::SpanView::chunk& c = *it;
+            out.append(static_cast<const TokenRef*>(c.ptr), c.count);
+        }
+    }
+
     template<typename T>
     SpanRef pushSpan(const std::span<T>& s)
     {

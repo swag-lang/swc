@@ -27,9 +27,9 @@ AstVisitStepResult AstAccessModifier::semaPreNode(Sema& sema) const
     SemaFrame      newFrame = sema.frame();
 
     if (node.is(AstNodeId::TopLevelBlock))
-        newFrame.defaultAccess = access;
+        newFrame.setDefaultAccess(access);
     else
-        newFrame.currentAccess = access;
+        newFrame.setCurrentAccess(access);
     sema.pushFrame(newFrame);
 
     return AstVisitStepResult::Continue;

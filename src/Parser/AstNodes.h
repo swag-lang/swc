@@ -8,8 +8,6 @@ SWC_BEGIN_NAMESPACE()
 enum class AstVisitStepResult;
 
 // -----------------------------------------------------------------------------
-// -----------------------------------------------------------------------------
-
 template<AstNodeId I>
 struct AstNamedNodeT : AstNodeT<I>
 {
@@ -23,6 +21,7 @@ struct AstNamedNodeT : AstNodeT<I>
     TokenRef getTokNameRef() const { return tokNameRef; }
 };
 
+// -----------------------------------------------------------------------------
 template<AstNodeId I>
 struct AstCompoundT : AstNodeT<I>
 {
@@ -39,6 +38,7 @@ struct AstCompoundT : AstNodeT<I>
     }
 };
 
+// -----------------------------------------------------------------------------
 template<AstNodeId I>
 struct AstLambdaExprT : AstNodeT<I>
 {
@@ -58,6 +58,7 @@ struct AstLambdaExprT : AstNodeT<I>
     }
 };
 
+// -----------------------------------------------------------------------------
 template<AstNodeId I>
 struct AstBinaryT : AstNodeT<I>
 {
@@ -75,6 +76,7 @@ struct AstBinaryT : AstNodeT<I>
     }
 };
 
+// -----------------------------------------------------------------------------
 template<AstNodeId I>
 struct AstLiteralT : AstNodeT<I>
 {
@@ -84,6 +86,7 @@ struct AstLiteralT : AstNodeT<I>
     }
 };
 
+// -----------------------------------------------------------------------------
 template<AstNodeId I>
 struct AstAggregateDeclT : AstNodeT<I>
 {
@@ -105,6 +108,7 @@ struct AstAggregateDeclT : AstNodeT<I>
     }
 };
 
+// -----------------------------------------------------------------------------
 template<AstNodeId I>
 struct AstAnonymousAggregateDeclT : AstNodeT<I>
 {
@@ -121,6 +125,7 @@ struct AstAnonymousAggregateDeclT : AstNodeT<I>
     }
 };
 
+// -----------------------------------------------------------------------------
 template<AstNodeId I>
 struct AstIfBaseT : AstNodeT<I>
 {
@@ -138,6 +143,7 @@ struct AstIfBaseT : AstNodeT<I>
     }
 };
 
+// -----------------------------------------------------------------------------
 template<AstNodeId I>
 struct AstIntrinsicInitDropCopyMoveT : AstNodeT<I>
 {
@@ -155,6 +161,7 @@ struct AstIntrinsicInitDropCopyMoveT : AstNodeT<I>
     }
 };
 
+// -----------------------------------------------------------------------------
 template<AstNodeId I>
 struct AstInternalCallZeroT : AstNodeT<I>
 {
@@ -164,6 +171,7 @@ struct AstInternalCallZeroT : AstNodeT<I>
     }
 };
 
+// -----------------------------------------------------------------------------
 template<AstNodeId I>
 struct AstInternalCallUnaryT : AstNodeT<I>
 {
@@ -180,6 +188,7 @@ struct AstInternalCallUnaryT : AstNodeT<I>
     }
 };
 
+// -----------------------------------------------------------------------------
 template<AstNodeId I>
 struct AstInternalCallBinaryT : AstNodeT<I>
 {
@@ -197,6 +206,7 @@ struct AstInternalCallBinaryT : AstNodeT<I>
     }
 };
 
+// -----------------------------------------------------------------------------
 template<AstNodeId I>
 struct AstInternalCallTernaryT : AstNodeT<I>
 {
@@ -215,6 +225,7 @@ struct AstInternalCallTernaryT : AstNodeT<I>
     }
 };
 
+// -----------------------------------------------------------------------------
 template<AstNodeId I>
 struct AstGenericParamT : AstNodeT<I>
 {

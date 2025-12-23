@@ -40,16 +40,15 @@ AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& child
         typeView.type    = &sema.typeMgr().get(typeView.typeRef);
     }
 
+    // Register name
     const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokNameRef);
 
     // Get the destination symbolMap
-    SymbolFlags        flags     = SymbolFlagsE::Zero;
-    SymbolMap*         symbolMap = sema.curSymMap();
-    const SymbolAccess access    = sema.frame().currentAccess.value_or(sema.frame().defaultAccess);
-    if (access == SymbolAccess::Internal)
-        symbolMap = &sema.semaInfo().fileNamespace();
-    else if (access == SymbolAccess::Public)
+    SymbolFlags        flags  = SymbolFlagsE::Zero;
+    const SymbolAccess access = SemaFrame::currentAccess(sema);
+    if (access == SymbolAccess::Public)
         flags.add(SymbolFlagsE::Public);
+    SymbolMap* symbolMap = SemaFrame::currentSymMap(sema);
 
     // Creates symbol with type
     auto*          sym         = Symbol::make<SymbolEnum>(ctx, this, idRef, flags);

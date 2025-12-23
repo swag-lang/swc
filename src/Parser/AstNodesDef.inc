@@ -60,7 +60,9 @@ struct AstNamespaceDecl : AstCompoundT<AstNodeId::NamespaceDecl>
 {
     SpanRef spanNameRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const { AstCompoundT::collectChildren(out, ast); }
+    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const { AstCompoundT::collectChildren(out, ast); }
+    AstVisitStepResult semaPreNode(Sema& sema) const;
+    AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -68,8 +70,7 @@ struct AstUsingNamespaceStmt : AstNodeT<AstNodeId::UsingNamespaceStmt>
 {
     AstNodeRef nodeNameRef;
 
-    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeNameRef}); }
-    AstVisitStepResult semaPreNode(Sema& sema) const;
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeNameRef}); }
 };
 
 // -----------------------------------------------------------------------------

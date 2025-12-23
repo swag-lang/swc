@@ -190,13 +190,13 @@ AstVisitStepResult AstCompilerGlobal::semaPostNode(Sema& sema) const
     switch (mode)
     {
         case Mode::AccessPublic:
-            sema.frame().defaultAccess = SymbolAccess::Public;
+            sema.frame().setDefaultAccess(SymbolAccess::Public);
             break;
         case Mode::AccessInternal:
-            sema.frame().defaultAccess = SymbolAccess::Internal;
+            sema.frame().setDefaultAccess(SymbolAccess::Internal);
             break;
         case Mode::AccessPrivate:
-            sema.frame().defaultAccess = SymbolAccess::Private;
+            sema.frame().setDefaultAccess(SymbolAccess::Private);
             break;
 
         case Mode::Skip:

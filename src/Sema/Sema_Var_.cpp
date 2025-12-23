@@ -68,13 +68,11 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
     const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokNameRef);
 
     // Get the destination symbolMap
-    SymbolFlags        flags     = SymbolFlagsE::Zero;
-    SymbolMap*         symbolMap = sema.curSymMap();
-    const SymbolAccess access    = sema.frame().currentAccess.value_or(sema.frame().defaultAccess);
-    if (access == SymbolAccess::Internal)
-        symbolMap = &sema.semaInfo().fileNamespace();
-    else if (access == SymbolAccess::Public)
+    SymbolFlags        flags  = SymbolFlagsE::Zero;
+    const SymbolAccess access = SemaFrame::currentAccess(sema);
+    if (access == SymbolAccess::Public)
         flags.add(SymbolFlagsE::Public);
+    SymbolMap* symbolMap = SemaFrame::currentSymMap(sema);
 
     // Constant
     if (hasParserFlag(Const))

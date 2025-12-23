@@ -60,7 +60,7 @@ AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& child
         sym->setNextValue(ApsInt{typeView.type->intBits(), typeView.type->isIntUnsigned()});
     sema.setSymbol(sema.curNodeRef(), sym);
 
-    if (!symbolMap->addSingleSymbol(sema, sym))
+    if (!symbolMap->addSingleSymbolOrError(sema, sym))
         return AstVisitStepResult::Stop;
 
     sema.pushScope(SemaScopeFlagsE::Type);
@@ -157,7 +157,7 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
     symValue->setCstRef(enumCstRef);
     symValue->setTypeRef(symEnum.typeRef());
 
-    if (!sema.curSymMap()->addSingleSymbol(sema, symValue))
+    if (!sema.curSymMap()->addSingleSymbolOrError(sema, symValue))
         return AstVisitStepResult::Stop;
 
     return AstVisitStepResult::Continue;

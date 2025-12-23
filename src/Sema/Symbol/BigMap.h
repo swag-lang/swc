@@ -39,11 +39,11 @@ class BigMap
 
     Shard&       getShard(IdentifierRef idRef);
     const Shard& getShard(IdentifierRef idRef) const;
-    static void  insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool notify);
+    static bool  insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool acceptHomonyms, bool notify);
 
 public:
     BigMap();
-    void addSymbol(TaskContext& ctx, Symbol* symbol, bool notify = true);
+    bool addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms, bool notify);
     void lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const;
 };
 

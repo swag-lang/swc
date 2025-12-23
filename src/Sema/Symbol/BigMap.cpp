@@ -39,19 +39,26 @@ const BigMap::Shard& BigMap::getShard(IdentifierRef idRef) const
     return shards[shardIndex(idRef)];
 }
 
-void BigMap::insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool notify)
+bool BigMap::insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool acceptHomonyms, bool notify)
 {
     SWC_ASSERT(shards != nullptr);
 
     Shard&           shard = shards[shardIndex(idRef)];
     std::unique_lock lock(shard.mutex);
 
+    if (!acceptHomonyms)
+    {
+        const auto it = shard.map.find(idRef);
+        if (it != shard.map.end())
+            return false;
+    }
+
     Symbol*& head = shard.map[idRef];
     prependSymbol(head, symbol);
     notifyIf(ctx, notify);
+    return true;
 }
 
-// IMPORTANT: must be called under unshardedMutex_ unique lock.
 void BigMap::maybeUpgradeToSharded(TaskContext& ctx)
 {
     // Fast path: already sharded.
@@ -85,7 +92,7 @@ void BigMap::maybeUpgradeToSharded(TaskContext& ctx)
     shards_.store(newShards, std::memory_order_release);
 }
 
-void BigMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool notify)
+bool BigMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms, bool notify)
 {
     SWC_ASSERT(symbol != nullptr);
 
@@ -94,8 +101,7 @@ void BigMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool notify)
     // Sharded fast path.
     if (Shard* shards = shards_.load(std::memory_order_acquire))
     {
-        insertIntoShard(shards, idRef, symbol, ctx, notify);
-        return;
+        return insertIntoShard(shards, idRef, symbol, ctx, acceptHomonyms, notify);
     }
 
     // Unsharded path (may upgrade under lock).
@@ -106,14 +112,21 @@ void BigMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool notify)
     if (Shard* shards = shards_.load(std::memory_order_acquire))
     {
         unshardedLock.unlock();
-        insertIntoShard(shards, idRef, symbol, ctx, notify);
-        return;
+        return insertIntoShard(shards, idRef, symbol, ctx, acceptHomonyms, notify);
     }
 
     // Still unsharded.
+    if (!acceptHomonyms)
+    {
+        const auto it = unsharded_.find(idRef);
+        if (it != unsharded_.end())
+            return false;
+    }
+
     Symbol*& head = unsharded_[idRef];
     prependSymbol(head, symbol);
     notifyIf(ctx, notify);
+    return true;
 }
 
 void BigMap::lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const

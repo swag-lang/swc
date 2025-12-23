@@ -103,7 +103,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
         symCst->setCstRef(nodeInitView.cstRef);
         symCst->setTypeRef(nodeInitView.typeRef);
 
-        if (!symbolMap->addSingleSymbol(sema, symCst))
+        if (!symbolMap->addSingleSymbolOrError(sema, symCst))
             return AstVisitStepResult::Stop;
         return AstVisitStepResult::Continue;
     }
@@ -116,7 +116,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
     symVar->setTypeRef(typeRef);
     sema.setSymbol(sema.curNodeRef(), symVar);
 
-    if (!symbolMap->addSingleSymbol(sema, symVar))
+    if (!symbolMap->addSingleSymbolOrError(sema, symVar))
         return AstVisitStepResult::Stop;
 
     return AstVisitStepResult::Continue;

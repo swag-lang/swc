@@ -40,7 +40,7 @@ namespace Command
         SymbolModule*       symModule       = ctx.compiler().allocate<SymbolModule>(ctx);
         const IdentifierRef idRef           = ctx.compiler().idMgr().addIdentifier("test", Math::hash("test"));
         SymbolNamespace*    moduleNamespace = ctx.compiler().allocate<SymbolNamespace>(ctx, nullptr, idRef, SymbolFlagsE::Zero);
-        symModule->addSymbol(ctx, moduleNamespace);
+        symModule->addSingleSymbol(ctx, moduleNamespace);
 
         for (const auto& f : compiler.files())
         {

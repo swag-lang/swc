@@ -33,15 +33,19 @@ AstVisitStepResult AstNamespaceDecl::semaPreNode(Sema& sema) const
         const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), nameRef);
 
         SymbolNamespace* ns = ctx.compiler().allocate<SymbolNamespace>(ctx, nullptr, idRef, SymbolFlagsE::Zero);
-        symMap->addSymbol(ctx, ns);
+        symMap->addSingleSymbol(ctx, ns);
         symMap = ns;
     }
+
+    sema.pushScope(SemaScopeFlagsE::TopLevel);
+    sema.curScope().setSymMap(symMap);
 
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstNamespaceDecl::semaPostNode(Sema& sema) const
+AstVisitStepResult AstNamespaceDecl::semaPostNode(Sema& sema)
 {
+    sema.popScope();
     return AstVisitStepResult::Continue;
 }
 

@@ -28,7 +28,8 @@ public:
 
     SemaScope*       parent() const { return parent_; }
     SemaScopeFlags   flags() const { return flags_; }
-    bool             has(SemaScopeFlags flag) const { return flags_.has(flag); }
+    bool             hasFlag(SemaScopeFlags flag) const { return flags_.has(flag); }
+    bool             isTopLevel() const { return hasFlag(SemaScopeFlagsE::TopLevel); }
     void             setSymMap(SymbolMap* symMap) { symMap_ = symMap; }
     SymbolMap*       symMap() { return symMap_; }
     const SymbolMap* symMap() const { return symMap_; }

@@ -31,9 +31,17 @@ AstVisitStepResult AstNamespaceDecl::semaPreNode(Sema& sema) const
     {
         const Token&        tok   = sema.token(srcViewRef(), nameRef);
         const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), nameRef);
+        sema.frame().pushNs(idRef);
 
-        SymbolNamespace* ns = ctx.compiler().allocate<SymbolNamespace>(ctx, nullptr, idRef, SymbolFlagsE::Zero);
-        symMap              = static_cast<SymbolMap*>(symMap->addSingleSymbol(ctx, ns));
+        SymbolNamespace* ns  = ctx.compiler().allocate<SymbolNamespace>(ctx, nullptr, idRef, SymbolFlagsE::Zero);
+        Symbol*          res = symMap->addSingleSymbol(ctx, ns);
+
+        if (!res->is(SymbolKind::Namespace))
+        {
+            SWC_UNREACHABLE();
+        }
+
+        symMap = static_cast<SymbolMap*>(static_cast<SymbolNamespace*>(res));
     }
 
     sema.pushScope(SemaScopeFlagsE::TopLevel);
@@ -42,8 +50,12 @@ AstVisitStepResult AstNamespaceDecl::semaPreNode(Sema& sema) const
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstNamespaceDecl::semaPostNode(Sema& sema)
+AstVisitStepResult AstNamespaceDecl::semaPostNode(Sema& sema) const
 {
+    SmallVector<TokenRef> namesRef;
+    sema.ast().tokens(namesRef, spanNameRef);
+    for (size_t i = 0; i < namesRef.size(); ++i)
+        sema.frame().popNs();
     sema.popScope();
     return AstVisitStepResult::Continue;
 }

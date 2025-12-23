@@ -157,7 +157,7 @@ AstVisitStepResult Sema::postNode(AstNode& node)
 
 AstVisitStepResult Sema::preChild(AstNode& node, AstNodeRef& childRef)
 {
-    if (curScope_->has(SemaScopeFlagsE::TopLevel))
+    if (curScope_->hasFlag(SemaScopeFlagsE::TopLevel))
     {
         const AstNode&       child = ast().node(childRef);
         const AstNodeIdInfo& info  = Ast::nodeIdInfos(child.id());

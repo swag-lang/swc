@@ -5,6 +5,30 @@
 
 SWC_BEGIN_NAMESPACE()
 
+namespace
+{
+    SymbolMap* followNamespace(Sema& sema, SymbolMap* root, std::span<const IdentifierRef> nsPath)
+    {
+        SymbolMap* m = root;
+        for (IdentifierRef idRef : nsPath)
+        {
+            auto&   ctx       = sema.ctx();
+            auto*   candidate = ctx.compiler().allocate<SymbolNamespace>(ctx, nullptr, idRef, SymbolFlagsE::Zero);
+            Symbol* res       = m->addSingleSymbol(ctx, candidate);
+
+            if (!res->is(SymbolKind::Namespace))
+            {
+                SWC_UNREACHABLE();
+                return m;
+            }
+
+            m = static_cast<SymbolMap*>(res);
+        }
+
+        return m;
+    }
+}
+
 SymbolAccess SemaFrame::currentAccess(Sema& sema)
 {
     return sema.frame().currentAccess();
@@ -12,11 +36,20 @@ SymbolAccess SemaFrame::currentAccess(Sema& sema)
 
 SymbolMap* SemaFrame::currentSymMap(Sema& sema)
 {
-    const SymbolAccess access    = currentAccess(sema);
-    SymbolMap*         symbolMap = sema.curSymMap();
+    SymbolMap* symbolMap = sema.curSymMap();
+
+    if (!sema.curScope().isTopLevel())
+        return symbolMap;
+
+    const SymbolAccess access = currentAccess(sema);
+
+    SymbolMap* root = nullptr;
     if (access == SymbolAccess::Internal)
-        symbolMap = &sema.semaInfo().fileNamespace();
-    return symbolMap;
+        root = &sema.semaInfo().fileNamespace();
+    else
+        root = &sema.semaInfo().moduleNamespace();
+
+    return followNamespace(sema, root, sema.frame().nsPath());
 }
 
 SWC_END_NAMESPACE()

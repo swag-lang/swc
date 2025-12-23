@@ -7,10 +7,15 @@ class SymbolEnum;
 
 class SemaFrame
 {
-    SymbolAccess                defaultAccess_ = SymbolAccess::Private;
-    std::optional<SymbolAccess> currentAccess_;
+    SymbolAccess                  defaultAccess_ = SymbolAccess::Private;
+    std::optional<SymbolAccess>   currentAccess_;
+    SmallVector<IdentifierRef, 8> nsPath_;
 
 public:
+    std::span<const IdentifierRef> nsPath() const { return nsPath_; }
+    void                           pushNs(IdentifierRef id) { nsPath_.push_back(id); }
+    void                           popNs() { nsPath_.pop_back(); }
+
     SymbolAccess defaultAccess() const { return defaultAccess_; }
     void         setDefaultAccess(SymbolAccess access) { defaultAccess_ = access; }
     SymbolAccess currentAccess() const { return currentAccess_.value_or(defaultAccess_); }

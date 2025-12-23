@@ -241,19 +241,53 @@ namespace
 
         if (nodeView.sym)
         {
-            const std::string_view name = nodeView.sym->name(sema.ctx());
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeString(sema.ctx(), name)));
+            const std::string_view name  = nodeView.sym->name(sema.ctx());
+            const ConstantValue    value = ConstantValue::makeString(sema.ctx(), name);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), value));
             return AstVisitStepResult::Continue;
         }
 
         if (nodeView.type && nodeView.type->isTypeValue())
         {
-            const std::string_view name = sema.typeMgr().typeToName(sema.ctx(), nodeView.type->typeValue());
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeString(sema.ctx(), name)));
+            const std::string_view name  = sema.typeMgr().typeToName(sema.ctx(), nodeView.type->typeValue());
+            const ConstantValue    value = ConstantValue::makeString(sema.ctx(), name);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), value));
             return AstVisitStepResult::Continue;
         }
 
         SemaError::raise(sema, DiagnosticId::sema_err_failed_nameof, node.nodeArgRef);
+        return AstVisitStepResult::Stop;
+    }
+
+    AstVisitStepResult semaCompilerStringOf(Sema& sema, const AstCompilerCallUnary& node)
+    {
+        const SemaNodeView nodeView(sema, node.nodeArgRef);
+
+        if (nodeView.sym)
+        {
+            const Utf8&         name  = nodeView.sym->getFullScopedName(sema.ctx());
+            const ConstantValue value = ConstantValue::makeString(sema.ctx(), name);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), value));
+            return AstVisitStepResult::Continue;
+        }
+
+        if (nodeView.cst)
+        {
+            const Utf8&         name  = nodeView.cst->toString(sema.ctx());
+            const ConstantValue value = ConstantValue::makeString(sema.ctx(), name);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), value));
+            return AstVisitStepResult::Continue;
+        }
+
+        if (nodeView.type && nodeView.type->isTypeValue())
+        {
+            const std::string_view name  = sema.typeMgr().typeToName(sema.ctx(), nodeView.type->typeValue());
+            const ConstantValue    value = ConstantValue::makeString(sema.ctx(), name);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), value));
+            return AstVisitStepResult::Continue;
+        }
+
+        SemaError::raise(sema, DiagnosticId::sema_err_failed_stringof, node.nodeArgRef);
         return AstVisitStepResult::Stop;
     }
 }
@@ -269,11 +303,13 @@ AstVisitStepResult AstCompilerCallUnary::semaPostNode(Sema& sema) const
         case TokenId::CompilerNameOf:
             return semaCompilerNameOf(sema, *this);
 
+        case TokenId::CompilerStringOf:
+            return semaCompilerStringOf(sema, *this);
+
         case TokenId::CompilerSizeOf:
         case TokenId::CompilerAlignOf:
         case TokenId::CompilerOffsetOf:
         case TokenId::CompilerDeclType:
-        case TokenId::CompilerStringOf:
         case TokenId::CompilerRunes:
         case TokenId::CompilerIsConstExpr:
         case TokenId::CompilerDefined:

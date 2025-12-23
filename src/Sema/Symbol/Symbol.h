@@ -75,6 +75,8 @@ public:
     void    setNextHomonym(Symbol* next) noexcept { nextHomonym_ = next; }
 
     std::string_view name(const TaskContext& ctx) const;
+    Utf8             getFullScopedName(const TaskContext& ctx) const;
+    void             appendFullScopedName(const TaskContext& ctx, Utf8& out) const;
     const TypeInfo&  typeInfo(const TaskContext& ctx) const;
 
     template<typename T>

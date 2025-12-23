@@ -9,16 +9,18 @@ class SmallVector
     static_assert(InlineCapacity > 0, "InlineCapacity must be > 0");
 
 public:
-    using value_type      = T;
-    using allocator_type  = Alloc;
-    using size_type       = std::size_t;
-    using difference_type = std::ptrdiff_t;
-    using reference       = T&;
-    using const_reference = const T&;
-    using pointer         = T*;
-    using const_pointer   = const T*;
-    using iterator        = T*;
-    using const_iterator  = const T*;
+    using value_type             = T;
+    using allocator_type         = Alloc;
+    using size_type              = std::size_t;
+    using difference_type        = std::ptrdiff_t;
+    using reference              = T&;
+    using const_reference        = const T&;
+    using pointer                = T*;
+    using const_pointer          = const T*;
+    using iterator               = T*;
+    using const_iterator         = const T*;
+    using reverse_iterator       = std::reverse_iterator<iterator>;
+    using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
     SmallVector() noexcept(std::is_nothrow_default_constructible_v<Alloc>) :
         SmallVector(Alloc{})
@@ -141,6 +143,13 @@ public:
     iterator       end() noexcept { return _ptr + _size; }
     const_iterator end() const noexcept { return _ptr + _size; }
     const_iterator cend() const noexcept { return _ptr + _size; }
+
+    reverse_iterator       rbegin() noexcept { return reverse_iterator(end()); }
+    const_reverse_iterator rbegin() const noexcept { return const_reverse_iterator(end()); }
+    const_reverse_iterator crbegin() const noexcept { return const_reverse_iterator(end()); }
+    reverse_iterator       rend() noexcept { return reverse_iterator(begin()); }
+    const_reverse_iterator rend() const noexcept { return const_reverse_iterator(begin()); }
+    const_reverse_iterator crend() const noexcept { return const_reverse_iterator(begin()); }
 
     size_type size() const noexcept { return _size; }
     uint32_t  size32() const noexcept { return static_cast<uint32_t>(_size); }

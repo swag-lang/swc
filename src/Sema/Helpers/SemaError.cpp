@@ -125,18 +125,23 @@ void SemaError::raiseInternal(Sema& sema, const AstNode& node)
     raise(sema, DiagnosticId::sema_err_internal, node.srcViewRef(), node.tokRef());
 }
 
-void SemaError::raiseSymbolAlreadyDefined(Sema& sema, const Symbol* symbol)
+void SemaError::raiseSymbolAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol)
 {
-    auto&                    ctx             = sema.ctx();
-    const AstNode*           decl            = symbol->decl();
-    const AstNode*           otherDecl       = symbol->nextHomonym()->decl();
-    const TokenRef           tokDeclRef      = Ast::nodeIdInfos(decl->id()).getTokNameRef(*decl);
-    const TokenRef           otherTokDeclRef = Ast::nodeIdInfos(decl->id()).getTokNameRef(*otherDecl);
-    const auto               diag            = report(sema, DiagnosticId::sema_err_already_defined, decl->srcViewRef(), tokDeclRef);
-    const SourceView&        srcView         = otherDecl->srcView(ctx);
-    const Token&             tok             = srcView.token(otherTokDeclRef);
-    const SourceCodeLocation loc             = tok.location(ctx, srcView);
-    diag.last().addSpan(loc, DiagnosticId::sema_note_other_definition);
+    auto&          ctx        = sema.ctx();
+    const AstNode* decl       = symbol->decl();
+    const TokenRef tokDeclRef = Ast::nodeIdInfos(decl->id()).getTokNameRef(*decl);
+    const auto     diag       = report(sema, DiagnosticId::sema_err_already_defined, decl->srcViewRef(), tokDeclRef);
+
+    const AstNode* otherDecl = otherSymbol->decl();
+    if (otherDecl)
+    {
+        const TokenRef           otherTokDeclRef = Ast::nodeIdInfos(otherDecl->id()).getTokNameRef(*otherDecl);
+        const SourceView&        srcView         = otherDecl->srcView(ctx);
+        const Token&             tok             = srcView.token(otherTokDeclRef);
+        const SourceCodeLocation loc             = tok.location(ctx, srcView);
+        diag.last().addSpan(loc, DiagnosticId::sema_note_other_definition);
+    }
+
     diag.report(ctx);
 }
 

@@ -137,7 +137,7 @@ Symbol* SymbolMap::addSingleSymbolOrError(Sema& sema, Symbol* symbol)
     auto&   ctx         = sema.ctx();
     Symbol* insertedSym = addSymbol(ctx, symbol, true);
     if (symbol->nextHomonym())
-        SemaError::raiseSymbolAlreadyDefined(sema, symbol);
+        SemaError::raiseSymbolAlreadyDefined(sema, symbol, symbol->nextHomonym());
     return insertedSym;
 }
 

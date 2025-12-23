@@ -12,3 +12,5 @@ namespace NB
 {
     const A = 0
 }
+
+//namespace NB.A {}

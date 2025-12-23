@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Main/CompilerInstance.h"
+#include "Sema/Helpers/SemaError.h"
 #include "Sema/Sema.h"
+#include "Sema/Symbol/Symbol.h"
 #include "Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -33,15 +35,16 @@ AstVisitStepResult AstNamespaceDecl::semaPreNode(Sema& sema) const
         const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), nameRef);
         sema.frame().pushNs(idRef);
 
-        SymbolNamespace* ns  = ctx.compiler().allocate<SymbolNamespace>(ctx, nullptr, idRef, SymbolFlagsE::Zero);
+        SymbolNamespace* ns  = Symbol::make<SymbolNamespace>(ctx, this, idRef, SymbolFlagsE::Zero);
         Symbol*          res = symMap->addSingleSymbol(ctx, ns);
 
         if (!res->is(SymbolKind::Namespace))
         {
-            SWC_UNREACHABLE();
+            SemaError::raiseSymbolAlreadyDefined(sema, ns, res);
+            return AstVisitStepResult::Stop;
         }
 
-        symMap = static_cast<SymbolMap*>(static_cast<SymbolNamespace*>(res));
+        symMap = static_cast<SymbolMap*>(res);
     }
 
     sema.pushScope(SemaScopeFlagsE::TopLevel);

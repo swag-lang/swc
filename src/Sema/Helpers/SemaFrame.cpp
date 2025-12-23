@@ -10,10 +10,10 @@ namespace
     SymbolMap* followNamespace(Sema& sema, SymbolMap* root, std::span<const IdentifierRef> nsPath)
     {
         SymbolMap* m = root;
-        for (IdentifierRef idRef : nsPath)
+        for (const IdentifierRef idRef : nsPath)
         {
             auto&   ctx       = sema.ctx();
-            auto*   candidate = ctx.compiler().allocate<SymbolNamespace>(ctx, nullptr, idRef, SymbolFlagsE::Zero);
+            auto*   candidate = Symbol::make<SymbolNamespace>(ctx, nullptr, idRef, SymbolFlagsE::Zero);
             Symbol* res       = m->addSingleSymbol(ctx, candidate);
 
             if (!res->is(SymbolKind::Namespace))

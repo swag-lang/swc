@@ -224,10 +224,10 @@ namespace
 
         if (nodeView.cstRef.isValid())
         {
-            nodeView.cstRef = sema.cstMgr().concretizeConstant(sema, nodeView.nodeRef, nodeView.cstRef, TypeInfo::Sign::Unknown);
-            if (nodeView.cstRef.isInvalid())
+            const ConstantRef newCstRef = sema.cstMgr().concretizeConstant(sema, nodeView.nodeRef, nodeView.cstRef, TypeInfo::Sign::Unknown);
+            if (newCstRef.isInvalid())
                 return AstVisitStepResult::Stop;
-            nodeView.typeRef = sema.cstMgr().get(nodeView.cstRef).typeRef();
+            nodeView.setCstRef(sema, newCstRef);
         }
 
         const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), nodeView.typeRef));

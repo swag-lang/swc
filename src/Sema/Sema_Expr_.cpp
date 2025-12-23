@@ -45,9 +45,7 @@ AstVisitStepResult AstMemberAccessExpr::semaPostNode(Sema& sema) const
         SmallVector<Symbol*> matches;
         enumSym.lookup(idRef, matches);
         SWC_ASSERT(matches.size() == 1);
-
-        const auto& symValue = matches[0]->cast<SymbolEnumValue>();
-        sema.semaInfo().setConstant(sema.curNodeRef(), symValue.cstRef());
+        sema.semaInfo().setSymbol(sema.curNodeRef(), matches[0]);
     }
     else
     {

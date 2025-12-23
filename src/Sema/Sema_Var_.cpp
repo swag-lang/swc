@@ -112,7 +112,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
     if (typeRef.isInvalid())
         typeRef = nodeInitView.typeRef;
 
-    SymbolVariable* symVar = sema.compiler().allocate<SymbolVariable>(ctx, this, idRef, flags);
+    SymbolVariable* symVar = Symbol::make<SymbolVariable>(ctx, this, idRef, flags);
     symVar->setTypeRef(typeRef);
     sema.setSymbol(sema.curNodeRef(), symVar);
 

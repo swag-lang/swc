@@ -2,6 +2,7 @@
 #include "pch.h"
 #include "Sema/Type/SemaCast.h"
 #include "Report/Diagnostic.h"
+#include "Sema/Constant/ConstantManager.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Sema.h"
 #include "Sema/Symbol/Symbols.h"

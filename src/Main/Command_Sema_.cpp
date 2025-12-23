@@ -37,9 +37,9 @@ namespace Command
 
         compiler.setupSema(ctx);
 
-        SymbolModule*       symModule       = ctx.compiler().allocate<SymbolModule>(ctx);
-        const IdentifierRef idRef           = ctx.compiler().idMgr().addIdentifier("test", Math::hash("test"));
-        SymbolNamespace*    moduleNamespace = ctx.compiler().allocate<SymbolNamespace>(ctx, nullptr, idRef, SymbolFlagsE::Zero);
+        SymbolModule*       symModule       = Symbol::make<SymbolModule>(ctx, nullptr, IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        const IdentifierRef idRef           = ctx.idMgr().addIdentifier("test", Math::hash("test"));
+        SymbolNamespace*    moduleNamespace = Symbol::make<SymbolNamespace>(ctx, nullptr, idRef, SymbolFlagsE::Zero);
         symModule->addSingleSymbol(ctx, moduleNamespace);
 
         for (const auto& f : compiler.files())

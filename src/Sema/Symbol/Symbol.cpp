@@ -20,7 +20,7 @@ void Symbol::setFullComplete(TaskContext& ctx)
 
 std::string_view Symbol::name(const TaskContext& ctx) const
 {
-    const Identifier& id = ctx.compiler().idMgr().get(idRef_);
+    const Identifier& id = ctx.idMgr().get(idRef_);
     return id.name;
 }
 

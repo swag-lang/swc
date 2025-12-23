@@ -37,4 +37,14 @@ const TypeManager& TaskContext::typeMgr() const
     return compiler().typeMgr();
 }
 
+IdentifierManager& TaskContext::idMgr()
+{
+    return compiler().idMgr();
+}
+
+const IdentifierManager& TaskContext::idMgr() const
+{
+    return compiler().idMgr();
+}
+
 SWC_END_NAMESPACE()

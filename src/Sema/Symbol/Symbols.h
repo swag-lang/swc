@@ -1,5 +1,5 @@
 #pragma once
-#include "Sema/Constant/ConstantManager.h"
+#include "Sema/Constant/ConstantValue.h"
 #include "Sema/Symbol/SymbolMap.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -9,7 +9,7 @@ class SymbolModule : public SymbolMap
 public:
     static constexpr auto K = SymbolKind::Module;
 
-    explicit SymbolModule(const TaskContext& ctx) :
+    explicit SymbolModule(const TaskContext& ctx, const AstNode*, IdentifierRef, const SymbolFlags&) :
         SymbolMap(ctx, nullptr, K, IdentifierRef::invalid(), SymbolFlagsE::Zero)
     {
     }
@@ -20,7 +20,7 @@ class SymbolNamespace : public SymbolMap
 public:
     static constexpr auto K = SymbolKind::Namespace;
 
-    explicit SymbolNamespace(const TaskContext& ctx, const AstNode* decl, IdentifierRef idRef, SymbolFlags flags) :
+    explicit SymbolNamespace(const TaskContext& ctx, const AstNode* decl, IdentifierRef idRef, const SymbolFlags& flags) :
         SymbolMap(ctx, decl, K, idRef, flags)
     {
     }
@@ -33,7 +33,7 @@ class SymbolConstant : public Symbol
 public:
     static constexpr auto K = SymbolKind::Constant;
 
-    explicit SymbolConstant(const TaskContext& ctx, const AstNode* decl, IdentifierRef idRef, SymbolFlags flags) :
+    explicit SymbolConstant(const TaskContext& ctx, const AstNode* decl, IdentifierRef idRef, const SymbolFlags& flags) :
         Symbol(ctx, decl, K, idRef, flags)
     {
     }
@@ -47,7 +47,7 @@ class SymbolVariable : public Symbol
 public:
     static constexpr auto K = SymbolKind::Variable;
 
-    explicit SymbolVariable(const TaskContext& ctx, const AstNode* decl, IdentifierRef idRef, SymbolFlags flags) :
+    explicit SymbolVariable(const TaskContext& ctx, const AstNode* decl, IdentifierRef idRef, const SymbolFlags& flags) :
         Symbol(ctx, decl, K, idRef, flags)
     {
     }
@@ -61,7 +61,7 @@ class SymbolEnum : public SymbolMap
 public:
     static constexpr auto K = SymbolKind::Enum;
 
-    explicit SymbolEnum(const TaskContext& ctx, const AstNode* decl, IdentifierRef idRef, SymbolFlags flags) :
+    explicit SymbolEnum(const TaskContext& ctx, const AstNode* decl, IdentifierRef idRef, const SymbolFlags& flags) :
         SymbolMap(ctx, decl, K, idRef, flags)
     {
     }
@@ -82,7 +82,7 @@ class SymbolEnumValue : public Symbol
 public:
     static constexpr auto K = SymbolKind::EnumValue;
 
-    explicit SymbolEnumValue(const TaskContext& ctx, const AstNode* decl, IdentifierRef idRef, SymbolFlags flags) :
+    explicit SymbolEnumValue(const TaskContext& ctx, const AstNode* decl, IdentifierRef idRef, const SymbolFlags& flags) :
         Symbol(ctx, decl, K, idRef, flags)
     {
     }

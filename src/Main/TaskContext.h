@@ -3,6 +3,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
+class IdentifierManager;
 class CompilerInstance;
 class ConstantManager;
 class Global;
@@ -52,12 +53,14 @@ public:
     const CompilerInstance& compiler() const { SWC_ASSERT(compilerInstance_); return *compilerInstance_; }
     // clang-format on
 
-    TaskState&             state() { return state_; }
-    const TaskState&       state() const { return state_; }
-    ConstantManager&       cstMgr();
-    const ConstantManager& cstMgr() const;
-    TypeManager&           typeMgr();
-    const TypeManager&     typeMgr() const;
+    TaskState&               state() { return state_; }
+    const TaskState&         state() const { return state_; }
+    ConstantManager&         cstMgr();
+    const ConstantManager&   cstMgr() const;
+    TypeManager&             typeMgr();
+    const TypeManager&       typeMgr() const;
+    IdentifierManager&       idMgr();
+    const IdentifierManager& idMgr() const;
 
     bool silentDiagnostic() const { return silentDiagnostic_; }
     void setSilentDiagnostic(bool silent) { silentDiagnostic_ = silent; }

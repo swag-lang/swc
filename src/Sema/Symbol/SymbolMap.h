@@ -30,10 +30,10 @@ public:
 
     bool empty() const noexcept { return smallSize_ == 0 && big_ == nullptr; }
 
-    bool addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms);
-    bool addSingleSymbol(TaskContext& ctx, Symbol* symbol);
-    bool addSingleSymbolOrError(Sema& sema, Symbol* symbol);
-    void lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const;
+    Symbol* addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms);
+    Symbol* addSingleSymbol(TaskContext& ctx, Symbol* symbol);
+    Symbol* addSingleSymbolOrError(Sema& sema, Symbol* symbol);
+    void    lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const;
 };
 
 SWC_END_NAMESPACE()

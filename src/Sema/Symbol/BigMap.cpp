@@ -39,7 +39,7 @@ const BigMap::Shard& BigMap::getShard(IdentifierRef idRef) const
     return shards[shardIndex(idRef)];
 }
 
-bool BigMap::insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool acceptHomonyms, bool notify)
+Symbol* BigMap::insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool acceptHomonyms, bool notify)
 {
     SWC_ASSERT(shards != nullptr);
 
@@ -50,13 +50,13 @@ bool BigMap::insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol,
     {
         const auto it = shard.map.find(idRef);
         if (it != shard.map.end())
-            return false;
+            return it->second;
     }
 
     Symbol*& head = shard.map[idRef];
     prependSymbol(head, symbol);
     notifyIf(ctx, notify);
-    return true;
+    return symbol;
 }
 
 void BigMap::maybeUpgradeToSharded(TaskContext& ctx)
@@ -92,7 +92,7 @@ void BigMap::maybeUpgradeToSharded(TaskContext& ctx)
     shards_.store(newShards, std::memory_order_release);
 }
 
-bool BigMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms, bool notify)
+Symbol* BigMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms, bool notify)
 {
     SWC_ASSERT(symbol != nullptr);
 
@@ -120,13 +120,13 @@ bool BigMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms, bo
     {
         const auto it = unsharded_.find(idRef);
         if (it != unsharded_.end())
-            return false;
+            return it->second;
     }
 
     Symbol*& head = unsharded_[idRef];
     prependSymbol(head, symbol);
     notifyIf(ctx, notify);
-    return true;
+    return symbol;
 }
 
 void BigMap::lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const

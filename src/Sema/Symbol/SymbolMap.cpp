@@ -78,16 +78,16 @@ void SymbolMap::lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const
         out.push_back(cur);
 }
 
-bool SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms)
+Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms)
 {
     SWC_ASSERT(symbol != nullptr);
 
     if (BigMap* big = big_.load(std::memory_order_acquire))
     {
-        const bool inserted = big->addSymbol(ctx, symbol, acceptHomonyms, true);
-        if (inserted)
+        Symbol* insertedSym = big->addSymbol(ctx, symbol, acceptHomonyms, true);
+        if (insertedSym == symbol)
             symbol->setSymMap(this);
-        return inserted;
+        return insertedSym;
     }
 
     BigMap* big = nullptr;
@@ -103,12 +103,12 @@ bool SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms)
             if (Entry* e = smallFind(idRef))
             {
                 if (!acceptHomonyms)
-                    return false;
+                    return e->head;
                 symbol->setSymMap(this);
                 symbol->setNextHomonym(e->head);
                 e->head = symbol;
                 ctx.compiler().notifySymbolAdded();
-                return true;
+                return symbol;
             }
 
             if (smallSize_ < SMALL_CAP)
@@ -117,7 +117,7 @@ bool SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms)
                 symbol->setNextHomonym(nullptr);
                 small_[smallSize_++] = Entry{.head = symbol, .key = idRef};
                 ctx.compiler().notifySymbolAdded();
-                return true;
+                return symbol;
             }
 
             BigMap* newBig = buildBig(ctx);
@@ -126,25 +126,24 @@ bool SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms)
         }
     }
 
-    const bool inserted = big->addSymbol(ctx, symbol, acceptHomonyms, true);
-    if (inserted)
+    Symbol* insertedSym = big->addSymbol(ctx, symbol, acceptHomonyms, true);
+    if (insertedSym == symbol)
         symbol->setSymMap(this);
-    return inserted;
+    return insertedSym;
 }
 
-bool SymbolMap::addSingleSymbolOrError(Sema& sema, Symbol* symbol)
+Symbol* SymbolMap::addSingleSymbolOrError(Sema& sema, Symbol* symbol)
 {
-    auto&      ctx      = sema.ctx();
-    const bool inserted = addSymbol(ctx, symbol, true);
+    auto&   ctx         = sema.ctx();
+    Symbol* insertedSym = addSymbol(ctx, symbol, true);
     if (symbol->nextHomonym())
         SemaError::raiseSymbolAlreadyDefined(sema, symbol);
-    return inserted;
+    return insertedSym;
 }
 
-bool SymbolMap::addSingleSymbol(TaskContext& ctx, Symbol* symbol)
+Symbol* SymbolMap::addSingleSymbol(TaskContext& ctx, Symbol* symbol)
 {
-    const bool inserted = addSymbol(ctx, symbol, false);
-    return inserted;
+    return addSymbol(ctx, symbol, false);
 }
 
 SWC_END_NAMESPACE()

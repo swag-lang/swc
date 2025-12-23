@@ -33,8 +33,7 @@ AstVisitStepResult AstNamespaceDecl::semaPreNode(Sema& sema) const
         const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), nameRef);
 
         SymbolNamespace* ns = ctx.compiler().allocate<SymbolNamespace>(ctx, nullptr, idRef, SymbolFlagsE::Zero);
-        symMap->addSingleSymbol(ctx, ns);
-        symMap = ns;
+        symMap              = static_cast<SymbolMap*>(symMap->addSingleSymbol(ctx, ns));
     }
 
     sema.pushScope(SemaScopeFlagsE::TopLevel);

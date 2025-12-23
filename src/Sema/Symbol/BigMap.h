@@ -37,14 +37,14 @@ class BigMap
     static uint32_t shardIndex(IdentifierRef idRef) noexcept { return idRef.get() & (SHARD_COUNT - 1); }
     void            maybeUpgradeToSharded(TaskContext& ctx);
 
-    Shard&       getShard(IdentifierRef idRef);
-    const Shard& getShard(IdentifierRef idRef) const;
-    static bool  insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool acceptHomonyms, bool notify);
+    Shard&         getShard(IdentifierRef idRef);
+    const Shard&   getShard(IdentifierRef idRef) const;
+    static Symbol* insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool acceptHomonyms, bool notify);
 
 public:
     BigMap();
-    bool addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms, bool notify);
-    void lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const;
+    Symbol* addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms, bool notify);
+    void    lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const;
 };
 
 SWC_END_NAMESPACE()

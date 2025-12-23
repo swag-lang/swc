@@ -49,7 +49,7 @@ private:
         // clang-format off
         struct { uint32_t bits; Sign sign; } asInt;
         struct { uint32_t bits; } asFloat;
-        struct { TypeRef typeRef; } asTypeInfo;
+        struct { TypeRef typeRef; } asTypeValue;
         struct { SymbolEnum* enumSym; } asEnum;
         // clang-format on
     };
@@ -89,12 +89,13 @@ public:
     bool isConcreteScalar() const noexcept { return isScalarNumeric() && !isIntUnsized() && !isFloatUnsized(); }
 
     // clang-format off
-    Sign intSign() const noexcept { SWC_ASSERT(isInt()); return asInt.sign; }
-    uint32_t intBits() const noexcept { SWC_ASSERT(isInt()); return asInt.bits; }
-    uint32_t intLikeBits() const noexcept { SWC_ASSERT(isIntLike()); return isCharRune() ? 32 : asInt.bits; }
-    uint32_t scalarNumericBits() const noexcept { SWC_ASSERT(isScalarNumeric()); return isIntLike() ? intLikeBits() : floatBits(); }
-    uint32_t floatBits() const noexcept { SWC_ASSERT(isFloat()); return asFloat.bits; }
+    Sign        intSign() const noexcept { SWC_ASSERT(isInt()); return asInt.sign; }
+    uint32_t    intBits() const noexcept { SWC_ASSERT(isInt()); return asInt.bits; }
+    uint32_t    intLikeBits() const noexcept { SWC_ASSERT(isIntLike()); return isCharRune() ? 32 : asInt.bits; }
+    uint32_t    scalarNumericBits() const noexcept { SWC_ASSERT(isScalarNumeric()); return isIntLike() ? intLikeBits() : floatBits(); }
+    uint32_t    floatBits() const noexcept { SWC_ASSERT(isFloat()); return asFloat.bits; }
     SymbolEnum& enumSym() const noexcept { SWC_ASSERT(isEnum()); return *asEnum.enumSym; }
+    TypeRef     typeValue() const noexcept { SWC_ASSERT(isTypeValue()); return asTypeValue.typeRef; }
     // clang-format on
 
     static TypeInfo makeBool();

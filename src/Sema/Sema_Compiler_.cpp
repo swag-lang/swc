@@ -12,6 +12,7 @@
 #include "Sema/Sema.h"
 #include "Sema/Type/TypeManager.h"
 #include "Wmf/SourceFile.h"
+#include <mimalloc/types.h>
 
 SWC_BEGIN_NAMESPACE()
 
@@ -240,8 +241,15 @@ namespace
 
         if (nodeView.sym)
         {
-            const auto& sym = *nodeView.sym;
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeString(sema.ctx(), sym.name(sema.ctx()))));
+            const std::string_view name = nodeView.sym->name(sema.ctx());
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeString(sema.ctx(), name)));
+            return AstVisitStepResult::Continue;
+        }
+
+        if (nodeView.type && nodeView.type->isTypeValue())
+        {
+            const std::string_view name = sema.typeMgr().typeToName(sema.ctx(), nodeView.type->typeValue());
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeString(sema.ctx(), name)));
             return AstVisitStepResult::Continue;
         }
 

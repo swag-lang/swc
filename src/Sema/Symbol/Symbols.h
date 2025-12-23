@@ -57,7 +57,6 @@ class SymbolEnum : public SymbolMap
 {
     TypeRef underlyingTypeRef_ = TypeRef::invalid();
     ApsInt  nextValue_;
-    bool    hasNextValue_ = false;
 
 public:
     static constexpr auto K = SymbolKind::Enum;
@@ -72,8 +71,8 @@ public:
     ApsInt&       nextValue() { return nextValue_; }
     const ApsInt& nextValue() const { return nextValue_; }
     void          setNextValue(const ApsInt& value) { nextValue_ = value; }
-    bool          hasNextValue() const { return hasNextValue_; }
-    void          setHasNextValue() { hasNextValue_ = true; }
+    bool          hasNextValue() const { return hasFlag(SymbolFlagsE::EnumHasNextValue); }
+    void          setHasNextValue() { addFlag(SymbolFlagsE::EnumHasNextValue); }
 };
 
 class SymbolEnumValue : public Symbol

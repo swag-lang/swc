@@ -35,7 +35,11 @@ enum class SymbolFlagsE : uint8_t
     Zero         = 0,
     Public       = 1 << 0,
     FullComplete = 1 << 1,
+
+    // Specific per symbol kind
+    EnumHasNextValue = 1 << 7,
 };
+
 using SymbolFlags = AtomicEnumFlags<SymbolFlagsE>;
 
 class Symbol
@@ -69,6 +73,8 @@ public:
     void             setSymMap(SymbolMap* symMap) noexcept { ownerSymMap_ = symMap; }
     bool             is(SymbolKind kind) const noexcept { return kind_ == kind; }
     SymbolFlags      flags() const noexcept { return flags_; }
+    bool             hasFlag(SymbolFlagsE flag) const noexcept { return flags_.has(flag); }
+    void             addFlag(SymbolFlagsE fl) { flags_.add(fl); }
     const AstNode*   decl() const noexcept { return decl_; }
 
     Symbol* nextHomonym() const noexcept { return nextHomonym_; }

@@ -12,7 +12,6 @@
 #include "Sema/Sema.h"
 #include "Sema/Type/TypeManager.h"
 #include "Wmf/SourceFile.h"
-#include <mimalloc/types.h>
 
 SWC_BEGIN_NAMESPACE()
 
@@ -203,6 +202,8 @@ AstVisitStepResult AstCompilerGlobal::semaPostNode(Sema& sema) const
         case Mode::Skip:
         case Mode::SkipFmt:
         case Mode::Generated:
+            return AstVisitStepResult::Continue;
+
         case Mode::Export:
         case Mode::AttributeList:
         case Mode::Namespace:
@@ -299,10 +300,8 @@ AstVisitStepResult AstCompilerCallUnary::semaPostNode(Sema& sema) const
     {
         case TokenId::CompilerTypeOf:
             return semaCompilerTypeOf(sema, *this);
-
         case TokenId::CompilerNameOf:
             return semaCompilerNameOf(sema, *this);
-
         case TokenId::CompilerStringOf:
             return semaCompilerStringOf(sema, *this);
 

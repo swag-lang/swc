@@ -64,10 +64,7 @@ struct AstUsingNamespaceStmt : AstNodeT<AstNodeId::UsingNamespaceStmt>
 {
     AstNodeRef nodeNameRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
-    {
-        AstNode::collectChildren(out, {nodeNameRef});
-    }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeNameRef}); }
 };
 
 struct AstCompilerGlobal : AstNodeT<AstNodeId::CompilerGlobal>
@@ -90,11 +87,7 @@ struct AstCompilerGlobal : AstNodeT<AstNodeId::CompilerGlobal>
     Mode       mode;
     AstNodeRef nodeModeRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
-    {
-        AstNode::collectChildren(out, {nodeModeRef});
-    }
-
+    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeModeRef}); }
     AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
@@ -109,10 +102,7 @@ struct AstCompilerScope : AstNamedNodeT<AstNodeId::CompilerScope>
 {
     AstNodeRef nodeBodyRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
-    {
-        AstNode::collectChildren(out, {nodeBodyRef});
-    }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
 };
 
 struct AstCompilerExpression : AstNodeT<AstNodeId::CompilerExpression>

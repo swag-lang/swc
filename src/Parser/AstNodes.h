@@ -3,7 +3,6 @@
 #include "Core/SmallVector.h"
 #include "Parser/AstNode.h"
 #include "Parser/AstNodeId.h"
-#include "Sema/Helpers/SemaScope.h"
 
 SWC_BEGIN_NAMESPACE()
 enum class AstVisitStepResult;
@@ -238,11 +237,11 @@ struct AstGenericParamT : AstNodeT<I>
 template<AstNodeId ID>
 struct AstTypeOf;
 
-#define SWC_NODE_DEF(__enum, __flags, __scopeFlags) \
-    template<>                                      \
-    struct AstTypeOf<AstNodeId::__enum>             \
-    {                                               \
-        using type = Ast##__enum;                   \
+#define SWC_NODE_DEF(__enum, __flags)   \
+    template<>                          \
+    struct AstTypeOf<AstNodeId::__enum> \
+    {                                   \
+        using type = Ast##__enum;       \
     };
 #include "Parser/AstNodesEnum.inc"
 #undef SWC_NODE_DEF
@@ -252,8 +251,8 @@ decltype(auto) visitAstNodeId(AstNodeId id, F f)
 {
     switch (id)
     {
-#define SWC_NODE_DEF(__enum, __flags, __scopeFlags) \
-    case AstNodeId::__enum:                         \
+#define SWC_NODE_DEF(__enum, __flags) \
+    case AstNodeId::__enum:           \
         return std::forward<F>(f).template operator()<AstNodeId::__enum>();
 #include "Parser/AstNodesEnum.inc"
 
@@ -274,7 +273,6 @@ struct AstNodeIdInfo
 {
     std::string_view name;
     AstNodeIdFlags   flags;
-    SemaScopeFlags   scopeFlags;
 
     using AstCollectChildren = void (*)(SmallVector<AstNodeRef>&, const Ast&, const AstNode&);
     using AstGetTokNameRef   = TokenRef (*)(const AstNode&);
@@ -336,16 +334,15 @@ AstVisitStepResult semaPreChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
 }
 
 constexpr std::array AST_NODE_ID_INFOS = {
-#define SWC_NODE_DEF(__enum, __flags, __scopeFlags) AstNodeIdInfo{                           \
-                                                        #__enum,                             \
-                                                        __flags,                             \
-                                                        __scopeFlags,                        \
-                                                        &collectChildren<AstNodeId::__enum>, \
-                                                        &getTokNameRef<AstNodeId::__enum>,   \
-                                                        &semaEnterNode<AstNodeId::__enum>,   \
-                                                        &semaPreNode<AstNodeId::__enum>,     \
-                                                        &semaPostNode<AstNodeId::__enum>,    \
-                                                        &semaPreChild<AstNodeId::__enum>},
+#define SWC_NODE_DEF(__enum, __flags) AstNodeIdInfo{                           \
+                                          #__enum,                             \
+                                          __flags,                             \
+                                          &collectChildren<AstNodeId::__enum>, \
+                                          &getTokNameRef<AstNodeId::__enum>,   \
+                                          &semaEnterNode<AstNodeId::__enum>,   \
+                                          &semaPreNode<AstNodeId::__enum>,     \
+                                          &semaPostNode<AstNodeId::__enum>,    \
+                                          &semaPreChild<AstNodeId::__enum>},
 #include "Parser/AstNodesEnum.inc"
 
 #undef SWC_NODE_DEF

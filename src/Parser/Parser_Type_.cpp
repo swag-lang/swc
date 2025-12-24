@@ -112,7 +112,7 @@ AstNodeRef Parser::parseSubType()
         const auto child = parseType();
         if (child.isInvalid())
             return AstNodeRef::invalid();
-        auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::PointerType>(ref());
+        auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::ValuePointerType>(ref());
         nodePtr->nodePointeeTypeRef = child;
         return nodeRef;
     }

@@ -86,10 +86,19 @@ AstVisitStepResult AstValueType::semaPostNode(Sema& sema) const
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstPointerType::semaPostNode(Sema& sema) const
+AstVisitStepResult AstValuePointerType::semaPostNode(Sema& sema) const
 {
     const SemaNodeView nodeView(sema, nodePointeeTypeRef);
     const TypeInfo     ty      = TypeInfo::makeValuePointer(nodeView.typeRef);
+    const TypeRef      typeRef = sema.typeMgr().addType(ty);
+    sema.setType(sema.curNodeRef(), typeRef);
+    return AstVisitStepResult::Continue;
+}
+
+AstVisitStepResult AstBlockPointerType::semaPostNode(Sema& sema) const
+{
+    const SemaNodeView nodeView(sema, nodePointeeTypeRef);
+    const TypeInfo     ty      = TypeInfo::makeBlockPointer(nodeView.typeRef);
     const TypeRef      typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
     return AstVisitStepResult::Continue;

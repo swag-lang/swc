@@ -21,6 +21,8 @@ enum class TypeInfoKind
     CString,
     Enum,
     ValuePointer,
+    BlockPointer,
+    BPointer,
 };
 
 class TypeInfo;
@@ -113,6 +115,7 @@ public:
     static TypeInfo makeCString();
     static TypeInfo makeEnum(SymbolEnum* enumSym);
     static TypeInfo makeValuePointer(TypeRef pointeeTypeRef);
+    static TypeInfo makeBlockPointer(TypeRef pointeeTypeRef);
 
     uint32_t hash() const;
 };

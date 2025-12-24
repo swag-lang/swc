@@ -745,7 +745,7 @@ struct AstRRefType : AstNodeT<AstNodeId::RRefType>
 };
 
 // -----------------------------------------------------------------------------
-struct AstPointerType : AstNodeT<AstNodeId::PointerType>
+struct AstValuePointerType : AstNodeT<AstNodeId::ValuePointerType>
 {
     AstNodeRef nodePointeeTypeRef;
 
@@ -758,7 +758,8 @@ struct AstBlockPointerType : AstNodeT<AstNodeId::BlockPointerType>
 {
     AstNodeRef nodePointeeTypeRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
+    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
+    AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

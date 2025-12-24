@@ -24,12 +24,10 @@ AstVisitStepResult AstIdentifier::semaPostNode(Sema& sema) const
 
     LookupResult result;
     SemaMatch::lookup(sema, result, idRef);
-
     if (result.empty())
         return sema.pause(TaskStateKind::SemaWaitingIdentifier);
     if (!result.isFullComplete())
         return sema.pause(TaskStateKind::SemaWaitingFullComplete);
-
     sema.setSymbol(sema.curNodeRef(), result.first());
     return AstVisitStepResult::Continue;
 }
@@ -50,7 +48,7 @@ AstVisitStepResult AstMemberAccessExpr::semaPostNode(Sema& sema) const
             return sema.pause(TaskStateKind::SemaWaitingIdentifier);
         if (!result.isFullComplete())
             return sema.pause(TaskStateKind::SemaWaitingFullComplete);
-        sema.semaInfo().setSymbol(sema.curNodeRef(), result.symbols()[0]);
+        sema.semaInfo().setSymbol(sema.curNodeRef(), result.first());
         return AstVisitStepResult::Continue;
     }
 
@@ -67,7 +65,7 @@ AstVisitStepResult AstMemberAccessExpr::semaPostNode(Sema& sema) const
             return sema.pause(TaskStateKind::SemaWaitingIdentifier);
         if (!result.isFullComplete())
             return sema.pause(TaskStateKind::SemaWaitingFullComplete);
-        sema.semaInfo().setSymbol(sema.curNodeRef(), result.symbols()[0]);
+        sema.semaInfo().setSymbol(sema.curNodeRef(), result.first());
         return AstVisitStepResult::Continue;
     }
 

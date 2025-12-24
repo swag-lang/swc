@@ -23,7 +23,7 @@ bool SemaInfo::hasConstant(const TaskContext& ctx, AstNodeRef nodeRef) const
     if (semaNodeKind(node) == NodeSemaKind::SymbolRef)
     {
         const Symbol& sym = getSymbol(ctx, nodeRef);
-        return sym.is(SymbolKind::Constant) || sym.is(SymbolKind::EnumValue);
+        return sym.isConstant() || sym.isEnumValue();
     }
 
     return false;
@@ -58,9 +58,9 @@ ConstantRef SemaInfo::getConstantRef(const TaskContext& ctx, AstNodeRef nodeRef)
     if (semaNodeKind(node) == NodeSemaKind::SymbolRef)
     {
         const Symbol& sym = getSymbol(ctx, nodeRef);
-        if (sym.is(SymbolKind::Constant))
+        if (sym.isConstant())
             return sym.cast<SymbolConstant>().cstRef();
-        if (sym.is(SymbolKind::EnumValue))
+        if (sym.isEnumValue())
             return sym.cast<SymbolEnumValue>().cstRef();
     }
 
@@ -136,7 +136,8 @@ TypeRef SemaInfo::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const
     }
 
 #if SWC_HAS_DEBUG_INFO
-    value.setDbgPtr(&ctx.typeMgr().get(value));
+    if (value.isValid())
+        value.setDbgPtr(&ctx.typeMgr().get(value));
 #endif
     return value;
 }

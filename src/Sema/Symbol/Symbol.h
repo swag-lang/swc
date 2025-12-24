@@ -63,23 +63,33 @@ public:
     {
     }
 
-    void setFullComplete(TaskContext& ctx);
-    bool isFullComplete() const noexcept { return flags_.has(SymbolFlagsE::FullComplete); }
-
     SymbolKind         kind() const noexcept { return kind_; }
     IdentifierRef      idRef() const noexcept { return idRef_; }
-    void               setTypeRef(TypeRef typeRef) noexcept { typeRef_ = typeRef; }
     TypeRef            typeRef() const noexcept { return typeRef_; }
-    SymbolMap*         symMap() noexcept { return ownerSymMap_; }
-    const SymbolMap*   symMap() const noexcept { return ownerSymMap_; }
-    void               setSymMap(SymbolMap* symMap) noexcept { ownerSymMap_ = symMap; }
-    bool               is(SymbolKind kind) const noexcept { return kind_ == kind; }
-    SymbolFlags        flags() const noexcept { return flags_; }
-    bool               hasFlag(SymbolFlagsE flag) const noexcept { return flags_.has(flag); }
-    void               addFlag(SymbolFlagsE fl) { flags_.add(fl); }
+    void               setTypeRef(TypeRef typeRef) noexcept { typeRef_ = typeRef; }
     SourceViewRef      srcViewRef() const noexcept { return srcViewRef_; }
     TokenRef           tokRef() const noexcept { return tokRef_; }
     SourceCodeLocation loc(TaskContext& ctx) const noexcept;
+
+    SymbolFlags flags() const noexcept { return flags_; }
+    bool        hasFlag(SymbolFlagsE flag) const noexcept { return flags_.has(flag); }
+    void        addFlag(SymbolFlagsE fl) { flags_.add(fl); }
+    bool        isPublic() const noexcept { return flags_.has(SymbolFlagsE::Public); }
+    bool        isFullComplete() const noexcept { return flags_.has(SymbolFlagsE::FullComplete); }
+    void        setFullComplete(TaskContext& ctx);
+
+    SymbolMap*       symMap() noexcept { return ownerSymMap_; }
+    const SymbolMap* symMap() const noexcept { return ownerSymMap_; }
+    void             setSymMap(SymbolMap* symMap) noexcept { ownerSymMap_ = symMap; }
+    bool             isTopLevel() const noexcept { return ownerSymMap_ == nullptr; }
+
+    bool is(SymbolKind kind) const noexcept { return kind_ == kind; }
+    bool isNamespace() const noexcept { return kind_ == SymbolKind::Namespace; }
+    bool isVariable() const noexcept { return kind_ == SymbolKind::Variable; }
+    bool isConstant() const noexcept { return kind_ == SymbolKind::Constant; }
+    bool isEnum() const noexcept { return kind_ == SymbolKind::Enum; }
+    bool isEnumValue() const noexcept { return kind_ == SymbolKind::EnumValue; }
+    bool isModule() const noexcept { return kind_ == SymbolKind::Module; }
 
     Symbol* nextHomonym() const noexcept { return nextHomonym_; }
     void    setNextHomonym(Symbol* next) noexcept { nextHomonym_ = next; }

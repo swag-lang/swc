@@ -37,7 +37,7 @@ AstVisitStepResult AstNamespaceDecl::semaPreNode(Sema& sema) const
         SymbolNamespace* ns  = Symbol::make<SymbolNamespace>(ctx, srcViewRef(), tokRef, idRef, SymbolFlagsE::FullComplete);
         Symbol*          res = symMap->addSingleSymbol(ctx, ns);
 
-        if (!res->is(SymbolKind::Namespace))
+        if (!res->isNamespace())
         {
             SemaError::raiseSymbolAlreadyDefined(sema, ns, res);
             return AstVisitStepResult::Stop;

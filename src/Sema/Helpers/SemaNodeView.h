@@ -22,24 +22,19 @@ struct SemaNodeView
     SemaNodeView(Sema& sema, AstNodeRef nodeRef)
     {
         this->nodeRef = nodeRef;
+        if (!nodeRef.isValid())
+            return;
 
-        if (nodeRef.isValid())
-        {
-            node    = &sema.node(nodeRef);
-            typeRef = sema.typeRefOf(nodeRef);
-            type    = &sema.typeMgr().get(typeRef);
-        }
-
+        node    = &sema.node(nodeRef);
+        typeRef = sema.typeRefOf(nodeRef);
+        if (typeRef.isValid())
+            type = &sema.typeMgr().get(typeRef);
         if (sema.hasConstant(nodeRef))
-        {
             cstRef = sema.constantRefOf(nodeRef);
-            cst    = &sema.cstMgr().get(cstRef);
-        }
-
+        if (cstRef.isValid())
+            cst = &sema.cstMgr().get(cstRef);
         if (sema.hasSymbol(nodeRef))
-        {
             sym = &sema.symbolOf(nodeRef);
-        }
     }
 
     void setCstRef(Sema& sema, ConstantRef cstRef)

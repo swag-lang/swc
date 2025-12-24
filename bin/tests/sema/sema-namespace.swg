@@ -5,9 +5,12 @@ namespace NA.NB.NC {}
 
 namespace NA
 {
-    const A = 0
+    const A = 52
 }
 
 // swc-expected-error@(+1,+2) {{sema_err_already_defined}}
 namespace NB { const A = 0; }
 namespace NB.A {}
+
+const B = NA.A
+#assert(B == 52)

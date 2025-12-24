@@ -39,7 +39,19 @@ AstVisitStepResult AstMemberAccessExpr::semaPostNode(Sema& sema) const
     const SemaNodeView  nodeView(sema, nodeLeftRef);
     const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokMemberRef);
 
-    if (nodeView.type->isEnum())
+    // Namespace
+    if (nodeView.sym && nodeView.sym->isNamespace())
+    {
+        const auto& namespaceSym = nodeView.sym->cast<SymbolNamespace>();
+        SmallVector<Symbol*> matches;
+        namespaceSym.lookup(idRef, matches);
+        SWC_ASSERT(matches.size() == 1);
+        sema.semaInfo().setSymbol(sema.curNodeRef(), matches[0]);
+        return AstVisitStepResult::Continue;        
+    }
+
+    // Enum
+    if (nodeView.type && nodeView.type->isEnum())
     {
         const auto& enumSym = nodeView.type->enumSym();
         if (!enumSym.isFullComplete())
@@ -49,13 +61,11 @@ AstVisitStepResult AstMemberAccessExpr::semaPostNode(Sema& sema) const
         enumSym.lookup(idRef, matches);
         SWC_ASSERT(matches.size() == 1);
         sema.semaInfo().setSymbol(sema.curNodeRef(), matches[0]);
-    }
-    else
-    {
-        SemaError::raiseInternal(sema, *this);
+        return AstVisitStepResult::Continue;
     }
 
-    return AstVisitStepResult::Continue;
+    SemaError::raiseInternal(sema, *this);
+    return AstVisitStepResult::Stop;
 }
 
 SWC_END_NAMESPACE()

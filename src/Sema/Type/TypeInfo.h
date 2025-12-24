@@ -22,7 +22,7 @@ enum class TypeInfoKind
     Enum,
     ValuePointer,
     BlockPointer,
-    BPointer,
+    Slice,
 };
 
 class TypeInfo;
@@ -116,6 +116,7 @@ public:
     static TypeInfo makeEnum(SymbolEnum* enumSym);
     static TypeInfo makeValuePointer(TypeRef pointeeTypeRef);
     static TypeInfo makeBlockPointer(TypeRef pointeeTypeRef);
+    static TypeInfo makeSlice(TypeRef pointeeTypeRef);
 
     uint32_t hash() const;
 };

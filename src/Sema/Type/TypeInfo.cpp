@@ -34,6 +34,7 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
             return asFloat.bits == other.asFloat.bits;
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
+        case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
             return asTypeRef.typeRef == other.asTypeRef.typeRef;
         case TypeInfoKind::Enum:
@@ -69,6 +70,7 @@ uint32_t TypeInfo::hash() const
         case TypeInfoKind::TypeValue:
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
+        case TypeInfoKind::Slice:
             h = Math::hashCombine(h, asTypeRef.typeRef.get());
             return h;
         case TypeInfoKind::Enum:
@@ -163,6 +165,14 @@ TypeInfo TypeInfo::makeBlockPointer(TypeRef pointeeTypeRef)
     return ti;
 }
 
+TypeInfo TypeInfo::makeSlice(TypeRef pointeeTypeRef)
+{
+    TypeInfo ti{TypeInfoKind::Slice};
+    ti.asTypeRef.typeRef = pointeeTypeRef;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return ti;
+}
+
 Utf8 TypeInfo::toName(const TaskContext& ctx) const
 {
     switch (kind_)
@@ -193,6 +203,8 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
             return std::format("*{}", ctx.typeMgr().typeToName(ctx, asTypeRef.typeRef));
         case TypeInfoKind::BlockPointer:
             return std::format("[*]{}", ctx.typeMgr().typeToName(ctx, asTypeRef.typeRef));
+        case TypeInfoKind::Slice:
+            return std::format("[..]{}", ctx.typeMgr().typeToName(ctx, asTypeRef.typeRef));
 
         case TypeInfoKind::Int:
         {

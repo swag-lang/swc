@@ -767,7 +767,8 @@ struct AstSliceType : AstNodeT<AstNodeId::SliceType>
 {
     AstNodeRef nodePointeeTypeRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
+    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
+    AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

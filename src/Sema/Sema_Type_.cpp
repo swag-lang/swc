@@ -104,4 +104,13 @@ AstVisitStepResult AstBlockPointerType::semaPostNode(Sema& sema) const
     return AstVisitStepResult::Continue;
 }
 
+AstVisitStepResult AstSliceType::semaPostNode(Sema& sema) const
+{
+    const SemaNodeView nodeView(sema, nodePointeeTypeRef);
+    const TypeInfo     ty      = TypeInfo::makeSlice(nodeView.typeRef);
+    const TypeRef      typeRef = sema.typeMgr().addType(ty);
+    sema.setType(sema.curNodeRef(), typeRef);
+    return AstVisitStepResult::Continue;
+}
+
 SWC_END_NAMESPACE()

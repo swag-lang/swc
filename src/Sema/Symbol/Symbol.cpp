@@ -8,10 +8,10 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void Symbol::setFullComplete(TaskContext& ctx)
+void Symbol::setComplete(TaskContext& ctx)
 {
-    SWC_ASSERT(flags_.hasNot(SymbolFlagsE::FullComplete));
-    flags_.add(SymbolFlagsE::FullComplete);
+    SWC_ASSERT(flags_.hasNot(SymbolFlagsE::Complete));
+    flags_.add(SymbolFlagsE::Complete);
     ctx.compiler().notifySymbolFullComplete();
 }
 

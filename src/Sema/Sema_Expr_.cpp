@@ -25,7 +25,7 @@ AstVisitStepResult AstIdentifier::semaPostNode(Sema& sema) const
     SemaMatch::lookup(sema, result, idRef);
     if (result.empty())
         return sema.pause(TaskStateKind::SemaWaitingIdentifier);
-    if (!result.isFullComplete())
+    if (!result.isComplete())
         return sema.pause(TaskStateKind::SemaWaitingFullComplete);
     sema.setSymbol(sema.curNodeRef(), result.first());
     return AstVisitStepResult::Continue;
@@ -45,7 +45,7 @@ AstVisitStepResult AstMemberAccessExpr::semaPostNode(Sema& sema) const
         SemaMatch::lookupAppend(sema, namespaceSym, result, idRef);
         if (result.empty())
             return sema.pause(TaskStateKind::SemaWaitingIdentifier);
-        if (!result.isFullComplete())
+        if (!result.isComplete())
             return sema.pause(TaskStateKind::SemaWaitingFullComplete);
 
         sema.semaInfo().setSymbol(sema.curNodeRef(), result.first());
@@ -56,14 +56,14 @@ AstVisitStepResult AstMemberAccessExpr::semaPostNode(Sema& sema) const
     if (nodeView.type && nodeView.type->isEnum())
     {
         const auto& enumSym = nodeView.type->enumSym();
-        if (!enumSym.isFullComplete())
+        if (!enumSym.isComplete())
             return sema.pause(TaskStateKind::SemaWaitingFullComplete);
 
         LookupResult result;
         SemaMatch::lookupAppend(sema, enumSym, result, idRef);
         if (result.empty())
             return sema.pause(TaskStateKind::SemaWaitingIdentifier);
-        if (!result.isFullComplete())
+        if (!result.isComplete())
             return sema.pause(TaskStateKind::SemaWaitingFullComplete);
 
         sema.semaInfo().setSymbol(sema.curNodeRef(), result.first());

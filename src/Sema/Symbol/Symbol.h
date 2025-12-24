@@ -32,9 +32,9 @@ enum class SymbolKind : uint8_t
 
 enum class SymbolFlagsE : uint8_t
 {
-    Zero         = 0,
-    Public       = 1 << 0,
-    FullComplete = 1 << 1,
+    Zero     = 0,
+    Public   = 1 << 0,
+    Complete = 1 << 1,
 
     // Specific per symbol kind
     EnumHasNextValue = 1 << 7,
@@ -75,8 +75,9 @@ public:
     bool        hasFlag(SymbolFlagsE flag) const noexcept { return flags_.has(flag); }
     void        addFlag(SymbolFlagsE fl) { flags_.add(fl); }
     bool        isPublic() const noexcept { return flags_.has(SymbolFlagsE::Public); }
-    bool        isFullComplete() const noexcept { return flags_.has(SymbolFlagsE::FullComplete); }
-    void        setFullComplete(TaskContext& ctx);
+
+    bool isComplete() const noexcept { return flags_.has(SymbolFlagsE::Complete); }
+    void setComplete(TaskContext& ctx);
 
     SymbolMap*       symMap() noexcept { return ownerSymMap_; }
     const SymbolMap* symMap() const noexcept { return ownerSymMap_; }

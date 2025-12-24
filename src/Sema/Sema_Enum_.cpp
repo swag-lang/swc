@@ -82,7 +82,7 @@ AstVisitStepResult AstEnumDecl::semaPostNode(Sema& sema) const
         return AstVisitStepResult::Stop;
     }
 
-    sema.curSymMap()->setFullComplete(sema.ctx());
+    sema.curSymMap()->setComplete(sema.ctx());
     sema.popScope();
     return AstVisitStepResult::Continue;
 }
@@ -155,7 +155,7 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
 
     // Create a symbol for this enum value
     const IdentifierRef idRef    = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokRef());
-    auto*               symValue = Symbol::make<SymbolEnumValue>(ctx, srcViewRef(), tokRef(), idRef, SymbolFlagsE::FullComplete);
+    auto*               symValue = Symbol::make<SymbolEnumValue>(ctx, srcViewRef(), tokRef(), idRef, SymbolFlagsE::Complete);
 
     ConstantValue enumCst    = ConstantValue::makeEnumValue(ctx, valueCst, symEnum.typeRef());
     ConstantRef   enumCstRef = sema.cstMgr().addConstant(ctx, enumCst);

@@ -16,11 +16,11 @@ public:
     size_t                      count() const { return symbols_.size(); }
     const Symbol*               first() const { return symbols_.front(); }
 
-    bool isFullComplete() const
+    bool isComplete() const
     {
         for (const auto sym : symbols_)
         {
-            if (!sym->isFullComplete())
+            if (!sym->isComplete())
                 return false;
         }
 

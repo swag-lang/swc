@@ -43,7 +43,7 @@ AstVisitStepResult AstNamespaceDecl::semaPreNode(Sema& sema) const
             return AstVisitStepResult::Stop;
         }
 
-        symMap = static_cast<SymbolMap*>(res);
+        symMap = res->asSymMap();
     }
 
     sema.pushScope(SemaScopeFlagsE::TopLevel);

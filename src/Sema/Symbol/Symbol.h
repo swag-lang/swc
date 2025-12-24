@@ -90,6 +90,7 @@ public:
     bool isEnum() const noexcept { return kind_ == SymbolKind::Enum; }
     bool isEnumValue() const noexcept { return kind_ == SymbolKind::EnumValue; }
     bool isModule() const noexcept { return kind_ == SymbolKind::Module; }
+    bool isSymMap() const noexcept { return kind_ == SymbolKind::Namespace || kind_ == SymbolKind::Module || kind_ == SymbolKind::Enum; }
 
     Symbol* nextHomonym() const noexcept { return nextHomonym_; }
     void    setNextHomonym(Symbol* next) noexcept { nextHomonym_ = next; }
@@ -124,6 +125,18 @@ public:
         SWC_ASSERT(kind_ == T::K);
         return *static_cast<const T*>(this);
     }
+
+    SymbolMap* asSymMap()
+    {
+        SWC_ASSERT(isSymMap());
+        return reinterpret_cast<SymbolMap*>(this);
+    }
+    
+    const SymbolMap* asSymMap() const
+    {
+        SWC_ASSERT(isSymMap());
+        return reinterpret_cast<const SymbolMap*>(this);
+    }    
 
     template<typename T>
     static T* make(TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, SymbolFlags flags)

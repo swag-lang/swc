@@ -16,7 +16,7 @@ namespace
             auto*   ns  = Symbol::make<SymbolNamespace>(ctx, SourceViewRef::invalid(), TokenRef::invalid(), idRef, SymbolFlagsE::Zero);
             Symbol* res = m->addSingleSymbol(ctx, ns);
             SWC_ASSERT(res->isNamespace());
-            m = static_cast<SymbolMap*>(res);
+            m = res->asSymMap();
         }
 
         return m;

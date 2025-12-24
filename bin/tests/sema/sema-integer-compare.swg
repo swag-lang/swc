@@ -73,9 +73,6 @@
 #assert(0's64 == 0'u64)
 
 #assert(1 != 2)
-#assert(!(1 == 2))
-#assert(!("1" == "2"))
-#assert(!1)
 
 #assert(1 < 2)
 #assert(1 <= 2)
@@ -141,14 +138,6 @@
 #assert(-1's16 != 0'u16)
 #assert(-1's32 != 0'u32)
 #assert(-1's64 != 0'u64)
-
-#assert(!(1 == 1))                  // swc-expected-error {{sema_err_compiler_assert}}
-#assert(!1.0)                       // swc-expected-error {{sema_err_unary_operand_type}}
-#assert(!0)                         // swc-expected-error {{sema_err_compiler_assert}}
-#assert(!true)                      // swc-expected-error {{sema_err_compiler_assert}}
-#assert(!false)
-#assert(!(!false == false))
-#assert(!(!true == true))
 
 #assert(-128's8 < -127's8)
 #assert(-32768's16 < -32767's16)

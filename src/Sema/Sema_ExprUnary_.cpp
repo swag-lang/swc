@@ -64,7 +64,7 @@ namespace
         if (ops.cst->isBool())
             return sema.cstMgr().cstNegBool(ops.cstRef);
         SWC_ASSERT(ops.cst->isInt());
-        return sema.cstMgr().cstBool(!ops.cst->getInt().isZero());
+        return sema.cstMgr().cstBool(ops.cst->getInt().isZero());
     }
 
     ConstantRef constantFoldTilde(Sema& sema, const AstUnaryExpr&, const SemaNodeView& ops)

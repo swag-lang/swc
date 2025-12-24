@@ -35,7 +35,6 @@
 #assert((1 > 5) or (2 < 10) == true)
 #assert((1 > 5) or (2 > 10) == false)
 
-#assert(!1)
 #assert(0 and true == 0 and true) // swc-expected-error {{sema_err_compare_operand_type}}
 
 #assert(1 and 2)      // swc-expected-error {{sema_err_binary_operand_type}}

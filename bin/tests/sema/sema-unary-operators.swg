@@ -8,7 +8,6 @@
 #assert(-"text")             // swc-expected-error {{sema_err_unary_operand_type}}
 
 // --- Bitwise NOT (~) ---
-// Logic: ~x is -(x + 1)
 #assert(~0 == -1)
 #assert(~1 == -2)
 #assert(~2 == -3)
@@ -38,5 +37,15 @@
 #assert(!true == false)
 #assert(!false == true)
 
-#assert(!0 == false)
+#assert(!(1 == 1))                  // swc-expected-error {{sema_err_compiler_assert}}
+#assert(!1.0)                       // swc-expected-error {{sema_err_unary_operand_type}}
+#assert(!true)                      // swc-expected-error {{sema_err_compiler_assert}}
+#assert(!false)
+#assert(!(!false == false))
+#assert(!(!true == true))
+
+#assert(!(1 == 2))
+#assert(!("1" == "2"))
+#assert(!1 == false)
+#assert(!0 == true)
 #assert(!"string")           // swc-expected-error {{sema_err_unary_operand_type}}

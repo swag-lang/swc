@@ -9,7 +9,7 @@ class SymbolMap;
 
 namespace SemaMatch
 {
-    void lookup(Sema& sema, const SymbolMap& symMap, LookupResult& result, IdentifierRef idRef);
+    void lookupAppend(Sema& sema, const SymbolMap& symMap, LookupResult& result, IdentifierRef idRef);
     void lookup(Sema& sema, LookupResult& result, IdentifierRef idRef);
 }
 

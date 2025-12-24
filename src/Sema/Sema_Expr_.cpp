@@ -42,11 +42,12 @@ AstVisitStepResult AstMemberAccessExpr::semaPostNode(Sema& sema) const
         const auto& namespaceSym = nodeView.sym->cast<SymbolNamespace>();
 
         LookupResult result;
-        SemaMatch::lookup(sema, namespaceSym, result, idRef);
+        SemaMatch::lookupAppend(sema, namespaceSym, result, idRef);
         if (result.empty())
             return sema.pause(TaskStateKind::SemaWaitingIdentifier);
         if (!result.isFullComplete())
             return sema.pause(TaskStateKind::SemaWaitingFullComplete);
+
         sema.semaInfo().setSymbol(sema.curNodeRef(), result.first());
         return AstVisitStepResult::Continue;
     }
@@ -59,11 +60,12 @@ AstVisitStepResult AstMemberAccessExpr::semaPostNode(Sema& sema) const
             return sema.pause(TaskStateKind::SemaWaitingFullComplete);
 
         LookupResult result;
-        SemaMatch::lookup(sema, enumSym, result, idRef);
+        SemaMatch::lookupAppend(sema, enumSym, result, idRef);
         if (result.empty())
             return sema.pause(TaskStateKind::SemaWaitingIdentifier);
         if (!result.isFullComplete())
             return sema.pause(TaskStateKind::SemaWaitingFullComplete);
+
         sema.semaInfo().setSymbol(sema.curNodeRef(), result.first());
         return AstVisitStepResult::Continue;
     }

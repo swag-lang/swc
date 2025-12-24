@@ -52,11 +52,11 @@ SymbolBigMap* SymbolMap::buildBig(TaskContext& ctx) const
     return newBig;
 }
 
-void SymbolMap::lookup(IdentifierRef idRef, SmallVector<const Symbol*>& out) const
+void SymbolMap::lookupAppend(IdentifierRef idRef, SmallVector<const Symbol*>& out) const
 {
     if (const SymbolBigMap* big = big_.load(std::memory_order_acquire))
     {
-        big->lookup(idRef, out);
+        big->lookupAppend(idRef, out);
         return;
     }
 
@@ -65,11 +65,9 @@ void SymbolMap::lookup(IdentifierRef idRef, SmallVector<const Symbol*>& out) con
     if (const SymbolBigMap* big = big_.load(std::memory_order_acquire))
     {
         lk.unlock();
-        big->lookup(idRef, out);
+        big->lookupAppend(idRef, out);
         return;
     }
-
-    out.clear();
 
     const Symbol* head = nullptr;
     if (const Entry* e = smallFind(idRef))

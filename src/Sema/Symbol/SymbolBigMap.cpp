@@ -129,10 +129,8 @@ Symbol* SymbolBigMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHom
     return symbol;
 }
 
-void SymbolBigMap::lookup(IdentifierRef idRef, SmallVector<const Symbol*>& out) const
+void SymbolBigMap::lookupAppend(IdentifierRef idRef, SmallVector<const Symbol*>& out) const
 {
-    out.clear();
-
     if (const Shard* shards = shards_.load(std::memory_order_acquire))
     {
         const Shard&     shard = shards[shardIndex(idRef)];

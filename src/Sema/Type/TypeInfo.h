@@ -20,6 +20,7 @@ enum class TypeInfoKind
     Void,
     CString,
     Enum,
+    ValuePointer,
 };
 
 class TypeInfo;
@@ -49,8 +50,8 @@ private:
         // clang-format off
         struct { uint32_t bits; Sign sign; } asInt;
         struct { uint32_t bits; } asFloat;
-        struct { TypeRef typeRef; } asTypeValue;
-        struct { SymbolEnum* enumSym; } asEnum;
+        struct { TypeRef typeRef; } asTypeRef;
+        struct { SymbolEnum* enumSym; } asEnumSym;
         // clang-format on
     };
 
@@ -81,6 +82,8 @@ public:
     bool isCString() const noexcept { return kind_ == TypeInfoKind::CString; }
     bool isEnum() const noexcept { return kind_ == TypeInfoKind::Enum; }
     bool isType() const noexcept { return isTypeValue() || isEnum(); }
+    bool isValuePointer() const noexcept { return kind_ == TypeInfoKind::ValuePointer; }
+    bool isPointer() const noexcept { return isValuePointer(); }
 
     bool isCharRune() const noexcept { return isChar() || isRune(); }
     bool isIntLike() const noexcept { return isInt() || isCharRune(); }
@@ -94,8 +97,8 @@ public:
     uint32_t    intLikeBits() const noexcept { SWC_ASSERT(isIntLike()); return isCharRune() ? 32 : asInt.bits; }
     uint32_t    scalarNumericBits() const noexcept { SWC_ASSERT(isScalarNumeric()); return isIntLike() ? intLikeBits() : floatBits(); }
     uint32_t    floatBits() const noexcept { SWC_ASSERT(isFloat()); return asFloat.bits; }
-    SymbolEnum& enumSym() const noexcept { SWC_ASSERT(isEnum()); return *asEnum.enumSym; }
-    TypeRef     typeValue() const noexcept { SWC_ASSERT(isTypeValue()); return asTypeValue.typeRef; }
+    SymbolEnum& enumSym() const noexcept { SWC_ASSERT(isEnum()); return *asEnumSym.enumSym; }
+    TypeRef     typeRef() const noexcept { SWC_ASSERT(isTypeValue() || isPointer()); return asTypeRef.typeRef; }
     // clang-format on
 
     static TypeInfo makeBool();
@@ -109,6 +112,7 @@ public:
     static TypeInfo makeVoid();
     static TypeInfo makeCString();
     static TypeInfo makeEnum(SymbolEnum* enumSym);
+    static TypeInfo makeValuePointer(TypeRef pointeeTypeRef);
 
     uint32_t hash() const;
 };

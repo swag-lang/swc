@@ -32,10 +32,11 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
             return asInt.bits == other.asInt.bits && asInt.sign == other.asInt.sign;
         case TypeInfoKind::Float:
             return asFloat.bits == other.asFloat.bits;
+        case TypeInfoKind::ValuePointer:
         case TypeInfoKind::TypeValue:
-            return asTypeValue.typeRef == other.asTypeValue.typeRef;
+            return asTypeRef.typeRef == other.asTypeRef.typeRef;
         case TypeInfoKind::Enum:
-            return asEnum.enumSym == other.asEnum.enumSym;
+            return asEnumSym.enumSym == other.asEnumSym.enumSym;
 
         default:
             SWC_UNREACHABLE();
@@ -65,10 +66,11 @@ uint32_t TypeInfo::hash() const
             h = Math::hashCombine(h, asFloat.bits);
             return h;
         case TypeInfoKind::TypeValue:
-            h = Math::hashCombine(h, asTypeValue.typeRef.get());
+        case TypeInfoKind::ValuePointer:
+            h = Math::hashCombine(h, asTypeRef.typeRef.get());
             return h;
         case TypeInfoKind::Enum:
-            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asEnum.enumSym));
+            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asEnumSym.enumSym));
             return h;
 
         default:
@@ -130,7 +132,7 @@ TypeInfo TypeInfo::makeFloat(uint32_t bits)
 TypeInfo TypeInfo::makeTypeValue(TypeRef typeRef)
 {
     TypeInfo ti{TypeInfoKind::TypeValue};
-    ti.asTypeValue = {.typeRef = typeRef};
+    ti.asTypeRef = {.typeRef = typeRef};
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -138,7 +140,15 @@ TypeInfo TypeInfo::makeTypeValue(TypeRef typeRef)
 TypeInfo TypeInfo::makeEnum(SymbolEnum* enumSym)
 {
     TypeInfo ti{TypeInfoKind::Enum};
-    ti.asEnum.enumSym = enumSym;
+    ti.asEnumSym.enumSym = enumSym;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return ti;
+}
+
+TypeInfo TypeInfo::makeValuePointer(TypeRef pointeeTypeRef)
+{
+    TypeInfo ti{TypeInfoKind::ValuePointer};
+    ti.asTypeRef.typeRef = pointeeTypeRef;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -162,12 +172,15 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
         case TypeInfoKind::CString:
             return "cstring";
         case TypeInfoKind::Enum:
-            return std::format("enum {}", asEnum.enumSym->name(ctx));
+            return std::format("enum {}", asEnumSym.enumSym->name(ctx));
 
         case TypeInfoKind::TypeValue:
-            if (asTypeValue.typeRef.isInvalid())
+            if (asTypeRef.typeRef.isInvalid())
                 return "typeinfo";
-            return std::format("typeinfo({})", ctx.typeMgr().typeToName(ctx, asTypeValue.typeRef));
+            return std::format("typeinfo({})", ctx.typeMgr().typeToName(ctx, asTypeRef.typeRef));
+
+        case TypeInfoKind::ValuePointer:
+            return std::format("*{}", ctx.typeMgr().typeToName(ctx, asTypeRef.typeRef));
 
         case TypeInfoKind::Int:
         {

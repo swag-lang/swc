@@ -749,7 +749,8 @@ struct AstPointerType : AstNodeT<AstNodeId::PointerType>
 {
     AstNodeRef nodePointeeTypeRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
+    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
+    AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

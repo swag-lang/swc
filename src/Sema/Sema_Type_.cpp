@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Helpers/SemaError.h"
+#include "Helpers/SemaNodeView.h"
 #include "Parser/AstVisit.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Sema.h"
@@ -82,6 +83,15 @@ AstVisitStepResult AstValueType::semaPostNode(Sema& sema) const
     const TypeRef       typeRef = sema.typeRefOf(nodeTypeRef);
     const ConstantValue cst     = ConstantValue::makeTypeValue(ctx, typeRef);
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, cst));
+    return AstVisitStepResult::Continue;
+}
+
+AstVisitStepResult AstPointerType::semaPostNode(Sema& sema) const
+{
+    const SemaNodeView nodeView(sema, nodePointeeTypeRef);
+    const TypeInfo     ty      = TypeInfo::makeValuePointer(nodeView.typeRef);
+    const TypeRef      typeRef = sema.typeMgr().addType(ty);
+    sema.setType(sema.curNodeRef(), typeRef);
     return AstVisitStepResult::Continue;
 }
 

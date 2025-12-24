@@ -250,7 +250,7 @@ namespace
 
         if (nodeView.type && nodeView.type->isTypeValue())
         {
-            const std::string_view name  = sema.typeMgr().typeToName(sema.ctx(), nodeView.type->typeValue());
+            const std::string_view name  = sema.typeMgr().typeToName(sema.ctx(), nodeView.type->typeRef());
             const ConstantValue    value = ConstantValue::makeString(sema.ctx(), name);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), value));
             return AstVisitStepResult::Continue;
@@ -282,7 +282,7 @@ namespace
 
         if (nodeView.type && nodeView.type->isTypeValue())
         {
-            const std::string_view name  = sema.typeMgr().typeToName(sema.ctx(), nodeView.type->typeValue());
+            const std::string_view name  = sema.typeMgr().typeToName(sema.ctx(), nodeView.type->typeRef());
             const ConstantValue    value = ConstantValue::makeString(sema.ctx(), name);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), value));
             return AstVisitStepResult::Continue;

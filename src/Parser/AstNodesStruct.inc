@@ -646,7 +646,6 @@ struct AstIsTypeExpr : AstNodeT<AstNodeId::IsTypeExpr>
 // -----------------------------------------------------------------------------
 struct AstAutoCastExpr : AstNodeT<AstNodeId::AutoCastExpr>
 {
-    TokenRef         tokOpRef;
     AstModifierFlags modifierFlags;
     AstNodeRef       nodeExprRef;
 
@@ -656,7 +655,6 @@ struct AstAutoCastExpr : AstNodeT<AstNodeId::AutoCastExpr>
 // -----------------------------------------------------------------------------
 struct AstExplicitCastExpr : AstNodeT<AstNodeId::ExplicitCastExpr>
 {
-    TokenRef         tokOpRef;
     AstModifierFlags modifierFlags;
     AstNodeRef       nodeTypeRef;
     AstNodeRef       nodeExprRef;
@@ -1314,7 +1312,6 @@ struct AstRangeExpr : AstNodeT<AstNodeId::RangeExpr>
 // -----------------------------------------------------------------------------
 struct AstAssignStmt : AstNodeT<AstNodeId::AssignStmt>
 {
-    TokenRef         tokOpRef;
     AstModifierFlags modifierFlags;
     AstNodeRef       nodeLeftRef;
     AstNodeRef       nodeRightRef;

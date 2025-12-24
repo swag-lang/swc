@@ -7,6 +7,11 @@
 
 SWC_BEGIN_NAMESPACE()
 
+void SemaMatch::lookup(Sema& sema, const SymbolMap& symMap, LookupResult& result, IdentifierRef idRef)
+{
+    symMap.lookup(idRef, result.symbols());
+}
+
 void SemaMatch::lookup(Sema& sema, LookupResult& result, IdentifierRef idRef)
 {
     result.clear();
@@ -14,14 +19,16 @@ void SemaMatch::lookup(Sema& sema, LookupResult& result, IdentifierRef idRef)
     const SymbolMap* symMap = sema.curScope().symMap();
     while (symMap)
     {
-        symMap->lookup(idRef, result.symbols());
+        lookup(sema, *symMap, result, idRef);
         if (!result.empty())
             break;
         symMap = symMap->symMap();
     }
 
     if (result.empty())
-        sema.semaInfo().fileNamespace().lookup(idRef, result.symbols());
+    {
+        lookup(sema, sema.semaInfo().fileNamespace(), result, idRef);
+    }
 }
 
 SWC_END_NAMESPACE()

@@ -43,11 +43,15 @@ AstVisitStepResult AstMemberAccessExpr::semaPostNode(Sema& sema) const
     if (nodeView.sym && nodeView.sym->isNamespace())
     {
         const auto& namespaceSym = nodeView.sym->cast<SymbolNamespace>();
-        SmallVector<Symbol*> matches;
-        namespaceSym.lookup(idRef, matches);
-        SWC_ASSERT(matches.size() == 1);
-        sema.semaInfo().setSymbol(sema.curNodeRef(), matches[0]);
-        return AstVisitStepResult::Continue;        
+
+        LookupResult result;
+        SemaMatch::lookup(sema, namespaceSym, result, idRef);
+        if (result.empty())
+            return sema.pause(TaskStateKind::SemaWaitingIdentifier);
+        if (!result.isFullComplete())
+            return sema.pause(TaskStateKind::SemaWaitingFullComplete);
+        sema.semaInfo().setSymbol(sema.curNodeRef(), result.symbols()[0]);
+        return AstVisitStepResult::Continue;
     }
 
     // Enum
@@ -57,10 +61,13 @@ AstVisitStepResult AstMemberAccessExpr::semaPostNode(Sema& sema) const
         if (!enumSym.isFullComplete())
             return sema.pause(TaskStateKind::SemaWaitingFullComplete);
 
-        SmallVector<Symbol*> matches;
-        enumSym.lookup(idRef, matches);
-        SWC_ASSERT(matches.size() == 1);
-        sema.semaInfo().setSymbol(sema.curNodeRef(), matches[0]);
+        LookupResult result;
+        SemaMatch::lookup(sema, enumSym, result, idRef);
+        if (result.empty())
+            return sema.pause(TaskStateKind::SemaWaitingIdentifier);
+        if (!result.isFullComplete())
+            return sema.pause(TaskStateKind::SemaWaitingFullComplete);
+        sema.semaInfo().setSymbol(sema.curNodeRef(), result.symbols()[0]);
         return AstVisitStepResult::Continue;
     }
 

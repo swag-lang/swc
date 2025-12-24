@@ -29,13 +29,12 @@ AstVisitStepResult AstNamespaceDecl::semaPreNode(Sema& sema) const
     sema.ast().tokens(namesRef, spanNameRef);
 
     SymbolMap* symMap = SemaFrame::currentSymMap(sema);
-    for (const auto& nameRef : namesRef)
+    for (const auto& tokRef : namesRef)
     {
-        const Token&        tok   = sema.token(srcViewRef(), nameRef);
-        const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), nameRef);
+        const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokRef);
         sema.frame().pushNs(idRef);
 
-        SymbolNamespace* ns  = Symbol::make<SymbolNamespace>(ctx, srcViewRef(), tokRef(), idRef, SymbolFlagsE::FullComplete);
+        SymbolNamespace* ns  = Symbol::make<SymbolNamespace>(ctx, srcViewRef(), tokRef, idRef, SymbolFlagsE::FullComplete);
         Symbol*          res = symMap->addSingleSymbol(ctx, ns);
 
         if (!res->is(SymbolKind::Namespace))

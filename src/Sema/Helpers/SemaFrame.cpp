@@ -12,16 +12,10 @@ namespace
         SymbolMap* m = root;
         for (const IdentifierRef idRef : nsPath)
         {
-            auto&   ctx       = sema.ctx();
-            auto*   candidate = Symbol::make<SymbolNamespace>(ctx, SourceViewRef::invalid(), TokenRef::invalid(), idRef, SymbolFlagsE::Zero);
-            Symbol* res       = m->addSingleSymbol(ctx, candidate);
-
-            if (!res->is(SymbolKind::Namespace))
-            {
-                SWC_UNREACHABLE();
-                return m;
-            }
-
+            auto&   ctx = sema.ctx();
+            auto*   ns  = Symbol::make<SymbolNamespace>(ctx, SourceViewRef::invalid(), TokenRef::invalid(), idRef, SymbolFlagsE::Zero);
+            Symbol* res = m->addSingleSymbol(ctx, ns);
+            SWC_ASSERT(res->is(SymbolKind::Namespace));
             m = static_cast<SymbolMap*>(res);
         }
 

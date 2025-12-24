@@ -127,10 +127,10 @@ void SemaError::raiseInternal(Sema& sema, const AstNode& node)
 
 void SemaError::raiseSymbolAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol)
 {
-    auto&                    ctx  = sema.ctx();
-    const auto               diag = report(sema, DiagnosticId::sema_err_already_defined, symbol->srcViewRef(), symbol->tokRef());
-    const SourceCodeLocation loc  = otherSymbol->loc(ctx);
-    diag.last().addSpan(loc, DiagnosticId::sema_note_other_definition);
+    auto& ctx  = sema.ctx();
+    auto  diag = report(sema, DiagnosticId::sema_err_already_defined, symbol->srcViewRef(), symbol->tokRef());
+    diag.addNote(DiagnosticId::sema_note_other_definition);
+    diag.last().addSpan(otherSymbol->loc(ctx));
     diag.report(ctx);
 }
 

@@ -106,7 +106,7 @@ AstNodeRef Parser::parseSubType()
         return nodeRef;
     }
 
-    // Pointer
+    // Value pointer
     if (consumeIf(TokenId::SymAsterisk).isValid())
     {
         const auto child = parseType();
@@ -121,7 +121,7 @@ AstNodeRef Parser::parseSubType()
     const TokenRef leftBracket = consumeIf(TokenId::SymLeftBracket);
     if (leftBracket.isValid())
     {
-        // [*]
+        // [*] Block pointer
         if (consumeIf(TokenId::SymAsterisk).isValid())
         {
             if (expectAndConsumeClosing(TokenId::SymRightBracket, leftBracket).isInvalid())
@@ -134,7 +134,7 @@ AstNodeRef Parser::parseSubType()
             return nodeRef;
         }
 
-        // [..]
+        // [..] Slice
         if (consumeIf(TokenId::SymDotDot).isValid())
         {
             if (expectAndConsumeClosing(TokenId::SymRightBracket, leftBracket).isInvalid())
@@ -147,7 +147,7 @@ AstNodeRef Parser::parseSubType()
             return nodeRef;
         }
 
-        // [?]
+        // [?] Static array deduced size
         if (consumeIf(TokenId::SymQuestion).isValid())
         {
             if (expectAndConsumeClosing(TokenId::SymRightBracket, leftBracket).isInvalid())

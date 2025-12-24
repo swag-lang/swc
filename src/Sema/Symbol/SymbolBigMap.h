@@ -14,7 +14,7 @@ struct std::hash<swc::IdentifierRef>
 
 SWC_BEGIN_NAMESPACE()
 
-class BigMap
+class SymbolBigMap
 {
     struct Shard
     {
@@ -42,7 +42,7 @@ class BigMap
     static Symbol* insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool acceptHomonyms, bool notify);
 
 public:
-    BigMap();
+    SymbolBigMap();
     Symbol* addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms, bool notify);
     void    lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const;
 };

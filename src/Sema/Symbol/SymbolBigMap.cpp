@@ -1,7 +1,7 @@
 #include "pch.h"
 
 #include "Sema/Sema.h"
-#include "Sema/Symbol/BigMap.h"
+#include "Sema/Symbol/SymbolBigMap.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -20,26 +20,26 @@ namespace
     }
 }
 
-BigMap::BigMap()
+SymbolBigMap::SymbolBigMap()
 {
     unsharded_.reserve(16);
 }
 
-BigMap::Shard& BigMap::getShard(IdentifierRef idRef)
+SymbolBigMap::Shard& SymbolBigMap::getShard(IdentifierRef idRef)
 {
     Shard* shards = shards_.load(std::memory_order_acquire);
     SWC_ASSERT(shards != nullptr);
     return shards[shardIndex(idRef)];
 }
 
-const BigMap::Shard& BigMap::getShard(IdentifierRef idRef) const
+const SymbolBigMap::Shard& SymbolBigMap::getShard(IdentifierRef idRef) const
 {
     Shard* shards = shards_.load(std::memory_order_acquire);
     SWC_ASSERT(shards != nullptr);
     return shards[shardIndex(idRef)];
 }
 
-Symbol* BigMap::insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool acceptHomonyms, bool notify)
+Symbol* SymbolBigMap::insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool acceptHomonyms, bool notify)
 {
     SWC_ASSERT(shards != nullptr);
 
@@ -59,7 +59,7 @@ Symbol* BigMap::insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symb
     return symbol;
 }
 
-void BigMap::maybeUpgradeToSharded(TaskContext& ctx)
+void SymbolBigMap::maybeUpgradeToSharded(TaskContext& ctx)
 {
     // Fast path: already sharded.
     if (isSharded())
@@ -92,7 +92,7 @@ void BigMap::maybeUpgradeToSharded(TaskContext& ctx)
     shards_.store(newShards, std::memory_order_release);
 }
 
-Symbol* BigMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms, bool notify)
+Symbol* SymbolBigMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms, bool notify)
 {
     SWC_ASSERT(symbol != nullptr);
 
@@ -129,7 +129,7 @@ Symbol* BigMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms,
     return symbol;
 }
 
-void BigMap::lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const
+void SymbolBigMap::lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const
 {
     out.clear();
 

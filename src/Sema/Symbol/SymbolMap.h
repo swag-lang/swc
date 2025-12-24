@@ -4,7 +4,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-class BigMap;
+class SymbolBigMap;
 
 class SymbolMap : public Symbol
 {
@@ -14,16 +14,16 @@ class SymbolMap : public Symbol
         IdentifierRef key  = IdentifierRef::invalid();
     };
 
-    std::atomic<BigMap*> big_ = nullptr;
+    std::atomic<SymbolBigMap*> big_ = nullptr;
 
     static constexpr uint32_t    SMALL_CAP = 8;
     std::array<Entry, SMALL_CAP> small_;
     mutable std::shared_mutex    mutex_;
     uint32_t                     smallSize_ = 0;
 
-    Entry*       smallFind(IdentifierRef key);
-    const Entry* smallFind(IdentifierRef key) const;
-    BigMap*      buildBig(TaskContext& ctx) const;
+    Entry*        smallFind(IdentifierRef key);
+    const Entry*  smallFind(IdentifierRef key) const;
+    SymbolBigMap* buildBig(TaskContext& ctx) const;
 
 public:
     explicit SymbolMap(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags);

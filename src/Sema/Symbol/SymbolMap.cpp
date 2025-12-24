@@ -4,7 +4,7 @@
 #include "Main/TaskContext.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Sema.h"
-#include "Sema/Symbol/BigMap.h"
+#include "Sema/Symbol/SymbolBigMap.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -29,13 +29,13 @@ const SymbolMap::Entry* SymbolMap::smallFind(IdentifierRef key) const
     return nullptr;
 }
 
-BigMap* SymbolMap::buildBig(TaskContext& ctx) const
+SymbolBigMap* SymbolMap::buildBig(TaskContext& ctx) const
 {
     SWC_ASSERT(big_.load(std::memory_order_relaxed) == nullptr);
 
-    BigMap* newBig = ctx.compiler().allocate<BigMap>();
+    SymbolBigMap* newBig = ctx.compiler().allocate<SymbolBigMap>();
 #if SWC_HAS_STATS
-    Stats::get().memSymbols.fetch_add(sizeof(BigMap), std::memory_order_relaxed);
+    Stats::get().memSymbols.fetch_add(sizeof(SymbolBigMap), std::memory_order_relaxed);
 #endif
 
     for (uint32_t i = 0; i < smallSize_; ++i)
@@ -54,7 +54,7 @@ BigMap* SymbolMap::buildBig(TaskContext& ctx) const
 
 void SymbolMap::lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const
 {
-    if (const BigMap* big = big_.load(std::memory_order_acquire))
+    if (const SymbolBigMap* big = big_.load(std::memory_order_acquire))
     {
         big->lookup(idRef, out);
         return;
@@ -62,7 +62,7 @@ void SymbolMap::lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const
 
     std::shared_lock lk(mutex_);
 
-    if (const BigMap* big = big_.load(std::memory_order_acquire))
+    if (const SymbolBigMap* big = big_.load(std::memory_order_acquire))
     {
         lk.unlock();
         big->lookup(idRef, out);
@@ -82,7 +82,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
 {
     SWC_ASSERT(symbol != nullptr);
 
-    if (BigMap* big = big_.load(std::memory_order_acquire))
+    if (SymbolBigMap* big = big_.load(std::memory_order_acquire))
     {
         Symbol* insertedSym = big->addSymbol(ctx, symbol, acceptHomonyms, true);
         if (insertedSym == symbol)
@@ -90,7 +90,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
         return insertedSym;
     }
 
-    BigMap* big = nullptr;
+    SymbolBigMap* big = nullptr;
 
     {
         std::unique_lock lk(mutex_);
@@ -120,7 +120,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
                 return symbol;
             }
 
-            BigMap* newBig = buildBig(ctx);
+            SymbolBigMap* newBig = buildBig(ctx);
             big_.store(newBig, std::memory_order_release);
             big = newBig;
         }

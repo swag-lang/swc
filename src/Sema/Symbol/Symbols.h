@@ -4,6 +4,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
+// -----------------------------------------------------------------------------
 class SymbolModule : public SymbolMap
 {
 public:
@@ -15,6 +16,7 @@ public:
     }
 };
 
+// -----------------------------------------------------------------------------
 class SymbolNamespace : public SymbolMap
 {
 public:
@@ -26,6 +28,7 @@ public:
     }
 };
 
+// -----------------------------------------------------------------------------
 class SymbolConstant : public Symbol
 {
     ConstantRef cstRef_ = ConstantRef::invalid();
@@ -42,6 +45,7 @@ public:
     void        setCstRef(ConstantRef cstRef) { cstRef_ = cstRef; }
 };
 
+// -----------------------------------------------------------------------------
 class SymbolVariable : public Symbol
 {
 public:
@@ -53,6 +57,7 @@ public:
     }
 };
 
+// -----------------------------------------------------------------------------
 class SymbolEnum : public SymbolMap
 {
     TypeRef underlyingTypeRef_ = TypeRef::invalid();
@@ -75,6 +80,7 @@ public:
     void          setHasNextValue() { addFlag(SymbolFlagsE::EnumHasNextValue); }
 };
 
+// -----------------------------------------------------------------------------
 class SymbolEnumValue : public Symbol
 {
     ConstantRef cstRef_ = ConstantRef::invalid();

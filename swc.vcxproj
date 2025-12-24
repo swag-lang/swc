@@ -320,8 +320,8 @@
         <ClInclude Include="src\Parser\Ast.h"/>
         <ClInclude Include="src\Parser\AstNode.h"/>
         <ClInclude Include="src\Parser\AstNodeId.h"/>
-        <ClInclude Include="src\Parser\AstNodesDef.inc"/>
-        <ClInclude Include="src\Parser\AstNodesEnum.inc"/>
+        <ClInclude Include="src\Parser\AstNodesStruct.inc" />
+        <ClInclude Include="src\Parser\AstNodesDef.inc" />
         <ClInclude Include="src\Parser\AstNodes.h"/>
         <ClInclude Include="src\Parser\AstVisit.h"/>
         <ClInclude Include="src\Parser\AstVisitResult.h"/>

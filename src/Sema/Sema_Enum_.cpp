@@ -12,6 +12,25 @@
 
 SWC_BEGIN_NAMESPACE()
 
+AstVisitStepResult AstEnumDecl::semaPreNode(Sema& sema) const
+{
+    auto&               ctx   = sema.ctx();
+    const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokNameRef);
+
+    SymbolFlags        flags  = SymbolFlagsE::Zero;
+    const SymbolAccess access = SemaFrame::currentAccess(sema);
+    if (access == SymbolAccess::Public)
+        flags.add(SymbolFlagsE::Public);
+    SymbolMap* symbolMap = SemaFrame::currentSymMap(sema);
+
+    SymbolEnum* sym = Symbol::make<SymbolEnum>(ctx, this, idRef, flags);
+    if (!symbolMap->addSingleSymbolOrError(sema, sym))
+        return AstVisitStepResult::Stop;
+    sema.setSymbol(sema.curNodeRef(), sym);
+
+    return AstVisitStepResult::Continue;
+}
+
 AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef != nodeBodyRef)
@@ -40,31 +59,17 @@ AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& child
         typeView.type    = &sema.typeMgr().get(typeView.typeRef);
     }
 
-    // Register name
-    const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokNameRef);
-
-    // Get the destination symbolMap
-    SymbolFlags        flags  = SymbolFlagsE::Zero;
-    const SymbolAccess access = SemaFrame::currentAccess(sema);
-    if (access == SymbolAccess::Public)
-        flags.add(SymbolFlagsE::Public);
-    SymbolMap* symbolMap = SemaFrame::currentSymMap(sema);
-
     // Creates symbol with type
-    auto*          sym         = Symbol::make<SymbolEnum>(ctx, this, idRef, flags);
-    const TypeInfo enumType    = TypeInfo::makeEnum(sym);
+    SymbolEnum&    sym         = sema.symbolOf(sema.curNodeRef()).cast<SymbolEnum>();
+    const TypeInfo enumType    = TypeInfo::makeEnum(&sym);
     const TypeRef  enumTypeRef = ctx.typeMgr().addType(enumType);
-    sym->setTypeRef(enumTypeRef);
-    sym->setUnderlyingTypeRef(typeView.typeRef);
+    sym.setTypeRef(enumTypeRef);
+    sym.setUnderlyingTypeRef(typeView.typeRef);
     if (typeView.type->isInt())
-        sym->setNextValue(ApsInt{typeView.type->intBits(), typeView.type->isIntUnsigned()});
-    sema.setSymbol(sema.curNodeRef(), sym);
-
-    if (!symbolMap->addSingleSymbolOrError(sema, sym))
-        return AstVisitStepResult::Stop;
+        sym.setNextValue(ApsInt{typeView.type->intBits(), typeView.type->isIntUnsigned()});
 
     sema.pushScope(SemaScopeFlagsE::Type);
-    sema.curScope().setSymMap(sym);
+    sema.curScope().setSymMap(&sym);
 
     return AstVisitStepResult::Continue;
 }
@@ -160,6 +165,7 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
     if (!sema.curSymMap()->addSingleSymbolOrError(sema, symValue))
         return AstVisitStepResult::Stop;
 
+    symValue->setFullComplete(ctx);
     return AstVisitStepResult::Continue;
 }
 

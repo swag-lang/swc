@@ -35,7 +35,7 @@ AstVisitStepResult AstNamespaceDecl::semaPreNode(Sema& sema) const
         const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), nameRef);
         sema.frame().pushNs(idRef);
 
-        SymbolNamespace* ns  = Symbol::make<SymbolNamespace>(ctx, this, idRef, SymbolFlagsE::Zero);
+        SymbolNamespace* ns  = Symbol::make<SymbolNamespace>(ctx, this, idRef, SymbolFlagsE::FullComplete);
         Symbol*          res = symMap->addSingleSymbol(ctx, ns);
 
         if (!res->is(SymbolKind::Namespace))

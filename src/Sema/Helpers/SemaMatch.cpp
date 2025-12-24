@@ -16,13 +16,21 @@ void SemaMatch::lookup(Sema& sema, LookupResult& result, IdentifierRef idRef)
     {
         symMap->lookup(idRef, result.symbols());
         if (!result.empty())
-            return;
+            break;
         symMap = symMap->symMap();
     }
 
-    sema.semaInfo().fileNamespace().lookup(idRef, result.symbols());
-    if (!result.empty())
-        return;
+    if (result.empty())
+        sema.semaInfo().fileNamespace().lookup(idRef, result.symbols());
+
+    for (const auto sym : result.symbols())
+    {
+        if (!sym->isFullComplete())
+        {
+            result.clear();
+            return;
+        }
+    }
 }
 
 SWC_END_NAMESPACE()

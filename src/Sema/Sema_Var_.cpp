@@ -12,6 +12,35 @@
 
 SWC_BEGIN_NAMESPACE()
 
+AstVisitStepResult AstVarDecl::semaPreNode(Sema& sema) const
+{
+    auto&               ctx   = sema.ctx();
+    const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokNameRef);
+
+    SymbolFlags        flags  = SymbolFlagsE::Zero;
+    const SymbolAccess access = SemaFrame::currentAccess(sema);
+    if (access == SymbolAccess::Public)
+        flags.add(SymbolFlagsE::Public);
+    SymbolMap* symbolMap = SemaFrame::currentSymMap(sema);
+
+    if (hasParserFlag(Const))
+    {
+        SymbolConstant* symCst = Symbol::make<SymbolConstant>(ctx, this, idRef, flags);
+        if (!symbolMap->addSingleSymbolOrError(sema, symCst))
+            return AstVisitStepResult::Stop;
+        sema.setSymbol(sema.curNodeRef(), symCst);
+    }
+    else
+    {
+        SymbolVariable* symVar = Symbol::make<SymbolVariable>(ctx, this, idRef, flags);
+        if (!symbolMap->addSingleSymbolOrError(sema, symVar))
+            return AstVisitStepResult::Stop;
+        sema.setSymbol(sema.curNodeRef(), symVar);
+    }
+
+    return AstVisitStepResult::Continue;
+}
+
 AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
 {
     auto&              ctx = sema.ctx();
@@ -64,16 +93,6 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
         nodeInitView.setCstRef(sema, newCstRef);
     }
 
-    // Register name
-    const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokNameRef);
-
-    // Get the destination symbolMap
-    SymbolFlags        flags  = SymbolFlagsE::Zero;
-    const SymbolAccess access = SemaFrame::currentAccess(sema);
-    if (access == SymbolAccess::Public)
-        flags.add(SymbolFlagsE::Public);
-    SymbolMap* symbolMap = SemaFrame::currentSymMap(sema);
-
     // Constant
     if (hasParserFlag(Const))
     {
@@ -99,26 +118,16 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
             nodeInitView.setCstRef(sema, newCstRef);
         }
 
-        SymbolConstant* symCst = Symbol::make<SymbolConstant>(ctx, this, idRef, flags);
-        symCst->setCstRef(nodeInitView.cstRef);
-        symCst->setTypeRef(nodeInitView.typeRef);
-
-        if (!symbolMap->addSingleSymbolOrError(sema, symCst))
-            return AstVisitStepResult::Stop;
+        SymbolConstant& symCst = sema.symbolOf(sema.curNodeRef()).cast<SymbolConstant>();
+        symCst.setCstRef(nodeInitView.cstRef);
+        symCst.setTypeRef(nodeInitView.typeRef);
+        symCst.setFullComplete(ctx);
         return AstVisitStepResult::Continue;
     }
 
-    TypeRef typeRef = nodeTypeView.typeRef;
-    if (typeRef.isInvalid())
-        typeRef = nodeInitView.typeRef;
-
-    SymbolVariable* symVar = Symbol::make<SymbolVariable>(ctx, this, idRef, flags);
-    symVar->setTypeRef(typeRef);
-    sema.setSymbol(sema.curNodeRef(), symVar);
-
-    if (!symbolMap->addSingleSymbolOrError(sema, symVar))
-        return AstVisitStepResult::Stop;
-
+    SymbolVariable& symVar = sema.symbolOf(sema.curNodeRef()).cast<SymbolVariable>();
+    symVar.setTypeRef(nodeTypeView.typeRef.isValid() ? nodeTypeView.typeRef : nodeInitView.typeRef);
+    symVar.setFullComplete(ctx);
     return AstVisitStepResult::Continue;
 }
 

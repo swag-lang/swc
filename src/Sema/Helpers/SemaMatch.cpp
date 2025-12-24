@@ -22,15 +22,6 @@ void SemaMatch::lookup(Sema& sema, LookupResult& result, IdentifierRef idRef)
 
     if (result.empty())
         sema.semaInfo().fileNamespace().lookup(idRef, result.symbols());
-
-    for (const auto sym : result.symbols())
-    {
-        if (!sym->isFullComplete())
-        {
-            result.clear();
-            return;
-        }
-    }
 }
 
 SWC_END_NAMESPACE()

@@ -89,7 +89,7 @@ public:
     void pushFrame(const SemaFrame& frame);
     void popFrame();
 
-    AstVisitStepResult pause(TaskStateKind kind, AstNodeRef nodeRef);
+    AstVisitStepResult pause(TaskStateKind kind);
     static void        waitAll(TaskContext& ctx, JobClientId clientId);
 };
 

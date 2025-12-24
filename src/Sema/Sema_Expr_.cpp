@@ -24,8 +24,11 @@ AstVisitStepResult AstIdentifier::semaPostNode(Sema& sema) const
 
     LookupResult result;
     SemaMatch::lookup(sema, result, idRef);
+
     if (result.empty())
-        return sema.pause(TaskStateKind::SemaWaitingIdentifier, sema.curNodeRef());
+        return sema.pause(TaskStateKind::SemaWaitingIdentifier);
+    if (!result.isFullComplete())
+        return sema.pause(TaskStateKind::SemaWaitingFullComplete);
 
     sema.setSymbol(sema.curNodeRef(), result.first());
     return AstVisitStepResult::Continue;
@@ -40,7 +43,7 @@ AstVisitStepResult AstMemberAccessExpr::semaPostNode(Sema& sema) const
     {
         const auto& enumSym = nodeView.type->enumSym();
         if (!enumSym.isFullComplete())
-            return sema.pause(TaskStateKind::SemaWaitingFullComplete, nodeLeftRef);
+            return sema.pause(TaskStateKind::SemaWaitingFullComplete);
 
         SmallVector<Symbol*> matches;
         enumSym.lookup(idRef, matches);

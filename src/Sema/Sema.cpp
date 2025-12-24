@@ -173,11 +173,11 @@ AstVisitStepResult Sema::preChild(AstNode& node, AstNodeRef& childRef)
     return info.semaPreChild(*this, node, childRef);
 }
 
-AstVisitStepResult Sema::pause(TaskStateKind kind, AstNodeRef nodeRef)
+AstVisitStepResult Sema::pause(TaskStateKind kind)
 {
     TaskState& wait = ctx().state();
     wait.kind       = kind;
-    wait.nodeRef    = nodeRef;
+    wait.nodeRef    = curNodeRef();
     return AstVisitStepResult::Pause;
 }
 

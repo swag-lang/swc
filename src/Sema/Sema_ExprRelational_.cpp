@@ -13,7 +13,7 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    ConstantRef constantFoldEqual(Sema& sema, const AstRelationalExpr&, const SemaNodeViewList& ops)
+    ConstantRef constantFoldEqual(Sema& sema, const SemaNodeViewList& ops)
     {
         const SemaNodeView& view0 = ops.view[0];
         const SemaNodeView& view1 = ops.view[1];
@@ -41,7 +41,7 @@ namespace
         return sema.cstMgr().cstBool(leftCstRef == rightCstRef);
     }
 
-    ConstantRef constantFoldLess(Sema& sema, const AstRelationalExpr&, const SemaNodeViewList& ops)
+    ConstantRef constantFoldLess(Sema& sema, const SemaNodeViewList& ops)
     {
         if (ops.view[0].cstRef == ops.view[1].cstRef)
             return sema.cstMgr().cstFalse();
@@ -60,7 +60,7 @@ namespace
         return sema.cstMgr().cstBool(leftCst.lt(rightCst));
     }
 
-    ConstantRef constantFoldLessEqual(Sema& sema, const AstRelationalExpr&, const SemaNodeViewList& ops)
+    ConstantRef constantFoldLessEqual(Sema& sema, const SemaNodeViewList& ops)
     {
         if (ops.view[0].cstRef == ops.view[1].cstRef)
             return sema.cstMgr().cstTrue();
@@ -79,7 +79,7 @@ namespace
         return sema.cstMgr().cstBool(leftCst.le(rightCst));
     }
 
-    ConstantRef constantFoldGreater(Sema& sema, const AstRelationalExpr&, const SemaNodeViewList& ops)
+    ConstantRef constantFoldGreater(Sema& sema, const SemaNodeViewList& ops)
     {
         auto leftCstRef  = ops.view[0].cstRef;
         auto rightCstRef = ops.view[1].cstRef;
@@ -95,7 +95,7 @@ namespace
         return sema.cstMgr().cstBool(leftCst.gt(rightCst));
     }
 
-    ConstantRef constantFoldGreaterEqual(Sema& sema, const AstRelationalExpr&, const SemaNodeViewList& ops)
+    ConstantRef constantFoldGreaterEqual(Sema& sema, const SemaNodeViewList& ops)
     {
         if (ops.view[0].cstRef == ops.view[1].cstRef)
             return sema.cstMgr().cstTrue();
@@ -114,7 +114,7 @@ namespace
         return sema.cstMgr().cstBool(leftCst.ge(rightCst));
     }
 
-    ConstantRef constantFoldCompareEqual(Sema& sema, const AstRelationalExpr&, const SemaNodeViewList& ops)
+    ConstantRef constantFoldCompareEqual(Sema& sema, const SemaNodeViewList& ops)
     {
         auto leftCstRef  = ops.view[0].cstRef;
         auto rightCstRef = ops.view[1].cstRef;
@@ -138,30 +138,30 @@ namespace
         return sema.cstMgr().cstS32(result);
     }
 
-    ConstantRef constantFold(Sema& sema, TokenId op, const AstRelationalExpr& node, const SemaNodeViewList& ops)
+    ConstantRef constantFold(Sema& sema, TokenId op, const SemaNodeViewList& ops)
     {
         switch (op)
         {
             case TokenId::SymEqualEqual:
-                return constantFoldEqual(sema, node, ops);
+                return constantFoldEqual(sema, ops);
 
             case TokenId::SymBangEqual:
-                return sema.cstMgr().cstNegBool(constantFoldEqual(sema, node, ops));
+                return sema.cstMgr().cstNegBool(constantFoldEqual(sema, ops));
 
             case TokenId::SymLess:
-                return constantFoldLess(sema, node, ops);
+                return constantFoldLess(sema, ops);
 
             case TokenId::SymLessEqual:
-                return constantFoldLessEqual(sema, node, ops);
+                return constantFoldLessEqual(sema, ops);
 
             case TokenId::SymGreater:
-                return constantFoldGreater(sema, node, ops);
+                return constantFoldGreater(sema, ops);
 
             case TokenId::SymGreaterEqual:
-                return constantFoldGreaterEqual(sema, node, ops);
+                return constantFoldGreaterEqual(sema, ops);
 
             case TokenId::SymLessEqualGreater:
-                return constantFoldCompareEqual(sema, node, ops);
+                return constantFoldCompareEqual(sema, ops);
 
             default:
                 return ConstantRef::invalid();
@@ -279,7 +279,7 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema) const
     // Constant folding
     if (view0.cstRef.isValid() && view1.cstRef.isValid())
     {
-        const auto cst = constantFold(sema, tok.id, *this, ops);
+        const auto cst = constantFold(sema, tok.id, ops);
         if (cst.isValid())
         {
             sema.setConstant(sema.curNodeRef(), cst);

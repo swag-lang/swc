@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    ConstantRef constantFold(Sema& sema, TokenId op, const AstLogicalExpr&, const SemaNodeViewList& ops)
+    ConstantRef constantFold(Sema& sema, TokenId op, const SemaNodeViewList& ops)
     {
         const ConstantRef leftCstRef  = ops.view[0].cstRef;
         const ConstantRef rightCstRef = ops.view[1].cstRef;
@@ -38,7 +38,7 @@ namespace
         }
     }
 
-    Result check(Sema& sema, TokenId, const AstLogicalExpr& node, const SemaNodeViewList& ops)
+    Result check(Sema& sema, const AstLogicalExpr& node, const SemaNodeViewList& ops)
     {
         const SemaNodeView& view0 = ops.view[0];
         const SemaNodeView& view1 = ops.view[1];
@@ -65,13 +65,13 @@ AstVisitStepResult AstLogicalExpr::semaPostNode(Sema& sema) const
 
     // Type-check
     const auto& tok = sema.token(srcViewRef(), tokRef());
-    if (check(sema, tok.id, *this, ops) == Result::Error)
+    if (check(sema, *this, ops) == Result::Error)
         return AstVisitStepResult::Stop;
 
     // Constant folding
     if (ops.view[0].cstRef.isValid() && ops.view[1].cstRef.isValid())
     {
-        const auto cst = constantFold(sema, tok.id, *this, ops);
+        const auto cst = constantFold(sema, tok.id, ops);
         if (cst.isValid())
         {
             sema.setConstant(sema.curNodeRef(), cst);

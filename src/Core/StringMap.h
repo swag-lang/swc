@@ -252,9 +252,9 @@ private:
                         uint8_t carry_fp = c;
                         ctrl_[idx]       = TOMB;
 
-                        size_t   base  = carry.hash & mask_;
-                        size_t   ins   = (target + 1) & mask_;
-                        uint16_t idist = static_cast<uint16_t>(((target >= base) ? (target - base) : (target + capacity() - base)) + 1);
+                        const size_t base  = carry.hash & mask_;
+                        size_t       ins   = (target + 1) & mask_;
+                        uint16_t     idist = static_cast<uint16_t>(((target >= base) ? (target - base) : (target + capacity() - base)) + 1);
 
                         while (true)
                         {

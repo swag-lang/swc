@@ -11,6 +11,6 @@ namespace Math
 
     ApFloat bitCastToApFloat(const ApsInt& src, uint32_t floatBits);
     ApsInt  bitCastToApInt(const ApFloat& src, bool isUnsigned);
-};
+}
 
 SWC_END_NAMESPACE()

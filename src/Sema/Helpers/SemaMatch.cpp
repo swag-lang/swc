@@ -7,7 +7,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void SemaMatch::lookup(Sema& sema, const SymbolMap& symMap, LookupResult& result, IdentifierRef idRef)
+void SemaMatch::lookup(Sema&, const SymbolMap& symMap, LookupResult& result, IdentifierRef idRef)
 {
     symMap.lookup(idRef, result.symbols());
 }

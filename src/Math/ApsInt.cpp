@@ -141,7 +141,7 @@ int64_t ApsInt::asI64() const
     SWC_ASSERT(fits64());
     if (unsigned_)
         return static_cast<int64_t>(as64());
-    return ApInt::as64Signed();
+    return as64Signed();
 }
 
 uint32_t ApsInt::minBits() const
@@ -154,7 +154,7 @@ uint32_t ApsInt::minBits() const
 bool ApsInt::fits64() const
 {
     if (unsigned_)
-        return ApInt::fit64();
+        return fit64();
     return fit64Signed();
 }
 

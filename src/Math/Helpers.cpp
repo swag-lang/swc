@@ -129,6 +129,6 @@ namespace Math
 
         SWC_UNREACHABLE();
     }
-};
+}
 
 SWC_END_NAMESPACE()

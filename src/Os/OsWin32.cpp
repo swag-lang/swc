@@ -53,7 +53,7 @@ namespace Os
         switch (result)
         {
             case IDCANCEL:
-                Os::exit(ExitCode::PanicBox);
+                exit(ExitCode::PanicBox);
             case IDTRYAGAIN:
                 DebugBreak();
                 break;

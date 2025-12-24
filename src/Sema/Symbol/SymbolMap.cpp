@@ -8,8 +8,8 @@
 
 SWC_BEGIN_NAMESPACE()
 
-SymbolMap::SymbolMap(const TaskContext& ctx, const AstNode* decl, SymbolKind kind, IdentifierRef idRef, SymbolFlags flags) :
-    Symbol(ctx, decl, kind, idRef, flags)
+SymbolMap::SymbolMap(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags) :
+    Symbol(ctx, srcViewRef, tokRef, kind, idRef, flags)
 {
 }
 

@@ -9,8 +9,8 @@ class SymbolModule : public SymbolMap
 public:
     static constexpr auto K = SymbolKind::Module;
 
-    explicit SymbolModule(const TaskContext& ctx, const AstNode*, IdentifierRef, const SymbolFlags&) :
-        SymbolMap(ctx, nullptr, K, IdentifierRef::invalid(), SymbolFlagsE::Zero)
+    explicit SymbolModule(const TaskContext& ctx, SourceViewRef, TokenRef, IdentifierRef, const SymbolFlags&) :
+        SymbolMap(ctx, SourceViewRef::invalid(), TokenRef::invalid(), K, IdentifierRef::invalid(), SymbolFlagsE::Zero)
     {
     }
 };
@@ -20,8 +20,8 @@ class SymbolNamespace : public SymbolMap
 public:
     static constexpr auto K = SymbolKind::Namespace;
 
-    explicit SymbolNamespace(const TaskContext& ctx, const AstNode* decl, IdentifierRef idRef, const SymbolFlags& flags) :
-        SymbolMap(ctx, decl, K, idRef, flags)
+    explicit SymbolNamespace(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        SymbolMap(ctx, srcViewRef, tokRef, K, idRef, flags)
     {
     }
 };
@@ -33,8 +33,8 @@ class SymbolConstant : public Symbol
 public:
     static constexpr auto K = SymbolKind::Constant;
 
-    explicit SymbolConstant(const TaskContext& ctx, const AstNode* decl, IdentifierRef idRef, const SymbolFlags& flags) :
-        Symbol(ctx, decl, K, idRef, flags)
+    explicit SymbolConstant(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        Symbol(ctx, srcViewRef, tokRef, K, idRef, flags)
     {
     }
 
@@ -47,8 +47,8 @@ class SymbolVariable : public Symbol
 public:
     static constexpr auto K = SymbolKind::Variable;
 
-    explicit SymbolVariable(const TaskContext& ctx, const AstNode* decl, IdentifierRef idRef, const SymbolFlags& flags) :
-        Symbol(ctx, decl, K, idRef, flags)
+    explicit SymbolVariable(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        Symbol(ctx, srcViewRef, tokRef, K, idRef, flags)
     {
     }
 };
@@ -61,8 +61,8 @@ class SymbolEnum : public SymbolMap
 public:
     static constexpr auto K = SymbolKind::Enum;
 
-    explicit SymbolEnum(const TaskContext& ctx, const AstNode* decl, IdentifierRef idRef, const SymbolFlags& flags) :
-        SymbolMap(ctx, decl, K, idRef, flags)
+    explicit SymbolEnum(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        SymbolMap(ctx, srcViewRef, tokRef, K, idRef, flags)
     {
     }
 
@@ -82,8 +82,8 @@ class SymbolEnumValue : public Symbol
 public:
     static constexpr auto K = SymbolKind::EnumValue;
 
-    explicit SymbolEnumValue(const TaskContext& ctx, const AstNode* decl, IdentifierRef idRef, const SymbolFlags& flags) :
-        Symbol(ctx, decl, K, idRef, flags)
+    explicit SymbolEnumValue(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        Symbol(ctx, srcViewRef, tokRef, K, idRef, flags)
     {
     }
 

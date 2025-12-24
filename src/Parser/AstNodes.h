@@ -17,8 +17,6 @@ struct AstNamedNodeT : AstNodeT<I>
         AstNodeT<I>(srcViewRef, tokRef)
     {
     }
-
-    TokenRef getTokNameRef() const { return tokNameRef; }
 };
 
 // -----------------------------------------------------------------------------
@@ -292,14 +290,12 @@ struct AstNodeIdInfo
     AstNodeIdFlags   flags;
 
     using AstCollectChildren = void (*)(SmallVector<AstNodeRef>&, const Ast&, const AstNode&);
-    using AstGetTokNameRef   = TokenRef (*)(const AstNode&);
     using SemaEnterNode      = void (*)(Sema&, AstNode&);
     using SemaPreNode        = AstVisitStepResult (*)(Sema&, AstNode&);
     using SemaPostNode       = AstVisitStepResult (*)(Sema&, AstNode&);
     using SemaPreChild       = AstVisitStepResult (*)(Sema&, AstNode&, AstNodeRef&);
 
     AstCollectChildren collectChildren;
-    AstGetTokNameRef   getTokNameRef;
     SemaEnterNode      semaEnterNode;
     SemaPreNode        semaPreNode;
     SemaPreNode        semaPostNode;
@@ -313,13 +309,6 @@ void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, const AstNode
 {
     using NodeType = AstTypeOf<ID>::type;
     castAst<NodeType>(&node)->collectChildren(out, ast);
-}
-
-template<AstNodeId ID>
-TokenRef getTokNameRef(const AstNode& node)
-{
-    using NodeType = AstTypeOf<ID>::type;
-    return castAst<NodeType>(&node)->getTokNameRef();
 }
 
 template<AstNodeId ID>
@@ -355,7 +344,6 @@ constexpr std::array AST_NODE_ID_INFOS = {
                                           #__enum,                             \
                                           __flags,                             \
                                           &collectChildren<AstNodeId::__enum>, \
-                                          &getTokNameRef<AstNodeId::__enum>,   \
                                           &semaEnterNode<AstNodeId::__enum>,   \
                                           &semaPreNode<AstNodeId::__enum>,     \
                                           &semaPostNode<AstNodeId::__enum>,    \

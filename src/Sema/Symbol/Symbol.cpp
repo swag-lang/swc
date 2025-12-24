@@ -64,4 +64,11 @@ const TypeInfo& Symbol::typeInfo(const TaskContext& ctx) const
     return ctx.typeMgr().get(typeRef_);
 }
 
+SourceCodeLocation Symbol::loc(TaskContext& ctx) const noexcept
+{
+    const SourceView& srcView = ctx.compiler().srcView(srcViewRef_);
+    const Token&      tok     = srcView.token(tokRef_);
+    return tok.location(ctx, srcView);
+}
+
 SWC_END_NAMESPACE()

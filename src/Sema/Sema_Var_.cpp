@@ -25,14 +25,14 @@ AstVisitStepResult AstVarDecl::semaPreNode(Sema& sema) const
 
     if (hasParserFlag(Const))
     {
-        SymbolConstant* symCst = Symbol::make<SymbolConstant>(ctx, this, idRef, flags);
+        SymbolConstant* symCst = Symbol::make<SymbolConstant>(ctx, srcViewRef(), tokNameRef, idRef, flags);
         if (!symbolMap->addSingleSymbolOrError(sema, symCst))
             return AstVisitStepResult::Stop;
         sema.setSymbol(sema.curNodeRef(), symCst);
     }
     else
     {
-        SymbolVariable* symVar = Symbol::make<SymbolVariable>(ctx, this, idRef, flags);
+        SymbolVariable* symVar = Symbol::make<SymbolVariable>(ctx, srcViewRef(), tokNameRef, idRef, flags);
         if (!symbolMap->addSingleSymbolOrError(sema, symVar))
             return AstVisitStepResult::Stop;
         sema.setSymbol(sema.curNodeRef(), symVar);

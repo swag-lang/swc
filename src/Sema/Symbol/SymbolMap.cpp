@@ -8,8 +8,8 @@
 
 SWC_BEGIN_NAMESPACE()
 
-SymbolMap::SymbolMap(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags) :
-    Symbol(ctx, srcViewRef, tokRef, kind, idRef, flags)
+SymbolMap::SymbolMap(SourceViewRef srcViewRef, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags) :
+    Symbol(srcViewRef, tokRef, kind, idRef, flags)
 {
 }
 
@@ -71,10 +71,10 @@ void SymbolMap::lookup(IdentifierRef idRef, SmallVector<const Symbol*>& out) con
 
     out.clear();
 
-    Symbol* head = nullptr;
+    const Symbol* head = nullptr;
     if (const Entry* e = smallFind(idRef))
         head = e->head;
-    for (Symbol* cur = head; cur; cur = cur->nextHomonym())
+    for (const Symbol* cur = head; cur; cur = cur->nextHomonym())
         out.push_back(cur);
 }
 

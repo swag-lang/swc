@@ -237,7 +237,7 @@ ConstantValue ConstantValue::makeFromIntLike(const TaskContext& ctx, const ApsIn
     return makeInt(ctx, v, ty.intBits(), ty.intSign());
 }
 
-ConstantValue ConstantValue::makeEnumValue(const TaskContext& ctx, ConstantRef valueCst, TypeRef typeRef)
+ConstantValue ConstantValue::makeEnumValue(const TaskContext&, ConstantRef valueCst, TypeRef typeRef)
 {
     ConstantValue cv;
     cv.typeRef_        = typeRef;

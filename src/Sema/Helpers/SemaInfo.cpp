@@ -93,7 +93,7 @@ void SemaInfo::setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef)
     node.setSemaRaw(substNodeRef.get());
 }
 
-AstNodeRef SemaInfo::getSubstituteRef(const TaskContext& ctx, AstNodeRef nodeRef) const
+AstNodeRef SemaInfo::getSubstituteRef(const TaskContext&, AstNodeRef nodeRef) const
 {
     SWC_ASSERT(hasSubstitute(nodeRef));
     const AstNode& node  = ast().node(nodeRef);

@@ -135,9 +135,9 @@ namespace
                 while (i < comment.size() && langSpec.isBlank(static_cast<char8_t>(comment[i])))
                     ++i;
 
-                size_t save    = i;
-                int    v       = 0;
-                bool   hasSign = false;
+                const size_t save    = i;
+                int          v       = 0;
+                bool         hasSign = false;
 
                 if (!parseSignedOrAbs(comment, i, v, hasSign))
                 {
@@ -148,7 +148,7 @@ namespace
                 if (hasSign)
                     lines.push_back(clampLine(static_cast<int32_t>(baseLine) + v));
                 else
-                    lines.push_back(clampLine(static_cast<int32_t>(v)));
+                    lines.push_back(clampLine(v));
 
                 while (i < comment.size() && langSpec.isBlank(static_cast<char8_t>(comment[i])))
                     ++i;
@@ -176,9 +176,9 @@ namespace
 
         // @+N / @-N / @+ / @- / @+A..+B
         {
-            size_t save    = i;
-            int    offA    = 0;
-            bool   hasSign = false;
+            const size_t save    = i;
+            int          offA    = 0;
+            bool         hasSign = false;
 
             if (!parseSignedOrAbs(comment, i, offA, hasSign) || !hasSign)
             {

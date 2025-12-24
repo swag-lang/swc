@@ -211,7 +211,7 @@ AstVisitStepResult AstCompilerGlobal::semaPostNode(Sema& sema) const
         case Mode::Using:
             SemaError::raiseInternal(sema, *this);
             return AstVisitStepResult::Continue;
-    };
+    }
 
     return AstVisitStepResult::Continue;
 }

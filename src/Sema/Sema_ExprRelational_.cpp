@@ -13,7 +13,7 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    ConstantRef constantFoldEqual(Sema& sema, const AstRelationalExpr& node, const SemaNodeViewList& ops)
+    ConstantRef constantFoldEqual(Sema& sema, const AstRelationalExpr&, const SemaNodeViewList& ops)
     {
         const SemaNodeView& view0 = ops.view[0];
         const SemaNodeView& view1 = ops.view[1];
@@ -41,7 +41,7 @@ namespace
         return sema.cstMgr().cstBool(leftCstRef == rightCstRef);
     }
 
-    ConstantRef constantFoldLess(Sema& sema, const AstRelationalExpr& node, const SemaNodeViewList& ops)
+    ConstantRef constantFoldLess(Sema& sema, const AstRelationalExpr&, const SemaNodeViewList& ops)
     {
         if (ops.view[0].cstRef == ops.view[1].cstRef)
             return sema.cstMgr().cstFalse();
@@ -60,7 +60,7 @@ namespace
         return sema.cstMgr().cstBool(leftCst.lt(rightCst));
     }
 
-    ConstantRef constantFoldLessEqual(Sema& sema, const AstRelationalExpr& node, const SemaNodeViewList& ops)
+    ConstantRef constantFoldLessEqual(Sema& sema, const AstRelationalExpr&, const SemaNodeViewList& ops)
     {
         if (ops.view[0].cstRef == ops.view[1].cstRef)
             return sema.cstMgr().cstTrue();
@@ -79,7 +79,7 @@ namespace
         return sema.cstMgr().cstBool(leftCst.le(rightCst));
     }
 
-    ConstantRef constantFoldGreater(Sema& sema, const AstRelationalExpr& node, const SemaNodeViewList& ops)
+    ConstantRef constantFoldGreater(Sema& sema, const AstRelationalExpr&, const SemaNodeViewList& ops)
     {
         auto leftCstRef  = ops.view[0].cstRef;
         auto rightCstRef = ops.view[1].cstRef;
@@ -95,7 +95,7 @@ namespace
         return sema.cstMgr().cstBool(leftCst.gt(rightCst));
     }
 
-    ConstantRef constantFoldGreaterEqual(Sema& sema, const AstRelationalExpr& node, const SemaNodeViewList& ops)
+    ConstantRef constantFoldGreaterEqual(Sema& sema, const AstRelationalExpr&, const SemaNodeViewList& ops)
     {
         if (ops.view[0].cstRef == ops.view[1].cstRef)
             return sema.cstMgr().cstTrue();
@@ -114,7 +114,7 @@ namespace
         return sema.cstMgr().cstBool(leftCst.ge(rightCst));
     }
 
-    ConstantRef constantFoldCompareEqual(Sema& sema, const AstRelationalExpr& node, const SemaNodeViewList& ops)
+    ConstantRef constantFoldCompareEqual(Sema& sema, const AstRelationalExpr&, const SemaNodeViewList& ops)
     {
         auto leftCstRef  = ops.view[0].cstRef;
         auto rightCstRef = ops.view[1].cstRef;

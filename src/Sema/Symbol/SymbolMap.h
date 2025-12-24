@@ -26,7 +26,7 @@ class SymbolMap : public Symbol
     SymbolBigMap* buildBig(TaskContext& ctx) const;
 
 public:
-    explicit SymbolMap(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags);
+    explicit SymbolMap(SourceViewRef srcViewRef, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags);
 
     bool empty() const noexcept { return smallSize_ == 0 && big_ == nullptr; }
 

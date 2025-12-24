@@ -1,11 +1,8 @@
-#include <ranges>
-
 #include "pch.h"
-
+#include "Sema/Symbol/Symbol.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 #include "Sema/Symbol/IdentifierManager.h"
-#include "Sema/Symbol/Symbol.h"
 #include "Sema/Type/TypeManager.h"
 #include "SymbolMap.h"
 

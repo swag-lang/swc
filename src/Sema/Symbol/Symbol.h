@@ -54,7 +54,7 @@ class Symbol
     SymbolFlags   flags_       = SymbolFlagsE::Zero;
 
 public:
-    explicit Symbol(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags) :
+    explicit Symbol(SourceViewRef srcViewRef, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags) :
         idRef_(idRef),
         srcViewRef_(srcViewRef),
         tokRef_(tokRef),
@@ -133,7 +133,7 @@ public:
         Stats::get().memSymbols.fetch_add(sizeof(T), std::memory_order_relaxed);
 #endif
 
-        return ctx.compiler().allocate<T>(ctx, srcViewRef, tokRef, idRef, flags);
+        return ctx.compiler().allocate<T>(srcViewRef, tokRef, idRef, flags);
     }
 };
 

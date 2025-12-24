@@ -142,7 +142,7 @@ void SymbolBigMap::lookup(IdentifierRef idRef, SmallVector<const Symbol*>& out) 
         if (it == shard.map.end())
             return;
 
-        for (Symbol* cur = it->second; cur; cur = cur->nextHomonym())
+        for (const Symbol* cur = it->second; cur; cur = cur->nextHomonym())
             out.push_back(cur);
 
         return;
@@ -153,7 +153,7 @@ void SymbolBigMap::lookup(IdentifierRef idRef, SmallVector<const Symbol*>& out) 
     const auto it = unsharded_.find(idRef);
     if (it == unsharded_.end())
         return;
-    for (Symbol* cur = it->second; cur; cur = cur->nextHomonym())
+    for (const Symbol* cur = it->second; cur; cur = cur->nextHomonym())
         out.push_back(cur);
 }
 

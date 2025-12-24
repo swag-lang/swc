@@ -1,10 +1,10 @@
 #pragma once
-#include "Main/Command.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Sema.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
+
 class ConstantValue;
 class TypeInfo;
 

@@ -134,7 +134,7 @@ void SemaError::raiseSymbolAlreadyDefined(Sema& sema, const Symbol* symbol, cons
     diag.report(ctx);
 }
 
-void SemaError::raiseAmbiguousSymbol(Sema& sema, SourceViewRef srcViewRef, TokenRef tokRef, std::span<const Symbol*> symbols)
+void SemaError::raiseAmbiguousSymbol(Sema& sema, SourceViewRef srcViewRef, TokenRef tokRef, std::span<const Symbol*>)
 {
     const auto diag = report(sema, DiagnosticId::sema_err_ambiguous_symbol, srcViewRef, tokRef);
     diag.report(sema.ctx());

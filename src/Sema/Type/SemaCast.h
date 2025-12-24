@@ -28,6 +28,6 @@ namespace SemaCast
     bool        promoteConstants(Sema& sema, const SemaNodeViewList& ops, ConstantRef& leftCstRef, ConstantRef& rightCstRef, bool force32BitInts = false);
 
     AstNodeRef createImplicitCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef);
-};
+}
 
 SWC_END_NAMESPACE()

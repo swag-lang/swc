@@ -35,7 +35,7 @@ AstVisitStepResult AstAccessModifier::semaPreNode(Sema& sema) const
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstAccessModifier::semaPostNode(Sema& sema) const
+AstVisitStepResult AstAccessModifier::semaPostNode(Sema& sema)
 {
     sema.popFrame();
     return AstVisitStepResult::Continue;

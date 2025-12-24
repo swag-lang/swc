@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Sema/Helpers/SemaMatch.h"
-#include "Sema/Helpers/SemaError.h"
 #include "Sema/Sema.h"
 #include "Sema/Symbol/LookupResult.h"
 #include "Sema/Symbol/SymbolMap.h"

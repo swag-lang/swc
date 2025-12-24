@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    ConstantRef constantFold(Sema& sema, TokenId op, const AstLogicalExpr& node, const SemaNodeViewList& ops)
+    ConstantRef constantFold(Sema& sema, TokenId op, const AstLogicalExpr&, const SemaNodeViewList& ops)
     {
         const ConstantRef leftCstRef  = ops.view[0].cstRef;
         const ConstantRef rightCstRef = ops.view[1].cstRef;
@@ -38,7 +38,7 @@ namespace
         }
     }
 
-    Result check(Sema& sema, TokenId op, const AstLogicalExpr& node, const SemaNodeViewList& ops)
+    Result check(Sema& sema, TokenId, const AstLogicalExpr& node, const SemaNodeViewList& ops)
     {
         const SemaNodeView& view0 = ops.view[0];
         const SemaNodeView& view1 = ops.view[1];

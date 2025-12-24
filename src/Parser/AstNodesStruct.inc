@@ -669,6 +669,8 @@ struct AstExplicitCastExpr : AstNodeT<AstNodeId::ExplicitCastExpr>
 struct AstImplicitCastExpr : AstNodeT<AstNodeId::ImplicitCastExpr>
 {
     AstNodeRef nodeExprRef;
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
 };
 
 // -----------------------------------------------------------------------------
@@ -702,10 +704,7 @@ struct AstUsingEnumDecl : AstNodeT<AstNodeId::UsingEnumDecl>
 {
     AstNodeRef nodeNameRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
-    {
-        AstNode::collectChildren(out, {nodeNameRef});
-    }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeNameRef}); }
 };
 
 // -----------------------------------------------------------------------------

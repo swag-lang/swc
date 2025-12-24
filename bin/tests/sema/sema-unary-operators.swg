@@ -23,6 +23,7 @@
 // --- Unary Minus (-) ---
 #assert(-1 == -1)
 #assert(-(-1) == 1)
+#assert(-(-1) == +1)
 #assert(-10's8 == -10)
 #assert(-0 == 0)
 #assert(-0.0 == 0.0)

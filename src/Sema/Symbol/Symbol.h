@@ -131,12 +131,12 @@ public:
         SWC_ASSERT(isSymMap());
         return reinterpret_cast<SymbolMap*>(this);
     }
-    
+
     const SymbolMap* asSymMap() const
     {
         SWC_ASSERT(isSymMap());
         return reinterpret_cast<const SymbolMap*>(this);
-    }    
+    }
 
     template<typename T>
     static T* make(TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, SymbolFlags flags)

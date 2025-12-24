@@ -52,7 +52,7 @@ SymbolBigMap* SymbolMap::buildBig(TaskContext& ctx) const
     return newBig;
 }
 
-void SymbolMap::lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const
+void SymbolMap::lookup(IdentifierRef idRef, SmallVector<const Symbol*>& out) const
 {
     if (const SymbolBigMap* big = big_.load(std::memory_order_acquire))
     {

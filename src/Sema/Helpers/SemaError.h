@@ -28,6 +28,7 @@ namespace SemaError
     void raiseBinaryOperandType(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
     void raiseInternal(Sema& sema, const AstNode& node);
     void raiseSymbolAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);
+    void raiseAmbiguousSymbol(Sema& sema, SourceViewRef srcViewRef, TokenRef tokRef, std::span<const Symbol*> symbols);
 };
 
 SWC_END_NAMESPACE()

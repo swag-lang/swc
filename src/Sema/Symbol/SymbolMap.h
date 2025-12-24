@@ -33,7 +33,7 @@ public:
     Symbol* addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms);
     Symbol* addSingleSymbol(TaskContext& ctx, Symbol* symbol);
     Symbol* addSingleSymbolOrError(Sema& sema, Symbol* symbol);
-    void    lookup(IdentifierRef idRef, SmallVector<Symbol*>& out) const;
+    void    lookup(IdentifierRef idRef, SmallVector<const Symbol*>& out) const;
 };
 
 SWC_END_NAMESPACE()

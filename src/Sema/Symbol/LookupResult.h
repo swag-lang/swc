@@ -7,14 +7,14 @@ class Symbol;
 
 class LookupResult
 {
-    SmallVector<Symbol*> symbols_;
+    SmallVector<const Symbol*> symbols_;
 
 public:
-    void                  clear() { symbols_.clear(); }
-    SmallVector<Symbol*>& symbols() { return symbols_; }
-    bool                  empty() const { return symbols_.empty(); }
-    size_t                count() const { return symbols_.size(); }
-    Symbol*               first() const { return symbols_.front(); }
+    void                        clear() { symbols_.clear(); }
+    SmallVector<const Symbol*>& symbols() { return symbols_; }
+    bool                        empty() const { return symbols_.empty(); }
+    size_t                      count() const { return symbols_.size(); }
+    const Symbol*               first() const { return symbols_.front(); }
 
     bool isFullComplete() const
     {

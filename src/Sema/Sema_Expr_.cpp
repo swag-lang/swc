@@ -2,7 +2,6 @@
 #include "Helpers/SemaError.h"
 #include "Helpers/SemaNodeView.h"
 #include "Parser/AstNodes.h"
-#include "Parser/AstVisit.h"
 #include "Sema/Helpers/SemaMatch.h"
 #include "Sema/Sema.h"
 #include "Symbol/IdentifierManager.h"

@@ -1,5 +1,3 @@
-#include <utility>
-
 #include "pch.h"
 #include "Core/SmallVector.h"
 #include "Parser/Parser.h"

@@ -504,17 +504,10 @@ AstNodeRef Parser::parsePostFixExpression()
         // Scope resolution
         if (is(TokenId::SymDot) && !tok().flags.has(TokenFlagsE::EolBefore))
         {
-            const auto tokDot = consume();
-
-            const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
-            if (tokName.isInvalid())
-                return AstNodeRef::invalid();
-
-            auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::MemberAccessExpr>(tokDot);
+            auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::MemberAccessExpr>(consume());
             nodePtr->nodeLeftRef       = nodeRef;
-            nodePtr->tokMemberRef      = tokName;
-
-            nodeRef = nodeParent;
+            nodePtr->nodeRightRef      = parseIdentifier();
+            nodeRef                    = nodeParent;
             continue;
         }
 

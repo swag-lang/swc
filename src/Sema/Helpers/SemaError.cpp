@@ -66,10 +66,11 @@ void SemaError::raise(Sema& sema, DiagnosticId id, AstNodeRef nodeRef)
 
 void SemaError::raiseInvalidType(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
-    auto diag = report(sema, DiagnosticId::sema_err_invalid_type, nodeRef);
-    diag.addArgument(Diagnostic::ARG_TYPE, sema.typeMgr().typeToName(sema.ctx(), srcTypeRef));
-    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, sema.typeMgr().typeToName(sema.ctx(), targetTypeRef));
-    diag.report(sema.ctx());
+    auto& ctx  = sema.ctx();
+    auto  diag = report(sema, DiagnosticId::sema_err_invalid_type, nodeRef);
+    diag.addArgument(Diagnostic::ARG_TYPE, sema.typeMgr().get(srcTypeRef).toName(ctx));
+    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, sema.typeMgr().get(targetTypeRef).toName(ctx));
+    diag.report(ctx);
 }
 
 Diagnostic SemaError::reportCannotCast(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)

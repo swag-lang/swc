@@ -11,11 +11,9 @@ class TypeManager
 {
     struct Shard
     {
-        Store                                                    store;
-        std::unordered_map<TypeInfo, TypeRef, TypeInfoHash>      map;
-        mutable std::shared_mutex                                mutexAdd;
-        mutable std::unordered_map<TypeInfo, Utf8, TypeInfoHash> mapName;
-        mutable std::shared_mutex                                mutexName;
+        Store                                               store;
+        std::unordered_map<TypeInfo, TypeRef, TypeInfoHash> map;
+        mutable std::shared_mutex                           mutex;
     };
 
     static constexpr uint32_t SHARD_BITS  = 3;
@@ -71,8 +69,6 @@ public:
 
     TypeRef         promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const;
     static uint32_t chooseConcreteScalarWidth(uint32_t minRequiredBits, bool& overflow);
-
-    std::string_view typeToName(const TaskContext& ctx, TypeRef typeInfoRef) const;
 };
 
 SWC_END_NAMESPACE()

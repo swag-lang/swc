@@ -113,4 +113,9 @@ AstVisitStepResult AstSliceType::semaPostNode(Sema& sema) const
     return AstVisitStepResult::Continue;
 }
 
+AstVisitStepResult AstQualifiedType::semaPostNode(Sema& sema) const
+{
+    return AstVisitStepResult::Continue;
+}
+
 SWC_END_NAMESPACE()

@@ -238,21 +238,22 @@ namespace
 
     AstVisitStepResult semaCompilerNameOf(Sema& sema, const AstCompilerCallUnary& node)
     {
+        auto&              ctx = sema.ctx();
         const SemaNodeView nodeView(sema, node.nodeArgRef);
 
         if (nodeView.sym)
         {
-            const std::string_view name  = nodeView.sym->name(sema.ctx());
-            const ConstantValue    value = ConstantValue::makeString(sema.ctx(), name);
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), value));
+            const std::string_view name  = nodeView.sym->name(ctx);
+            const ConstantValue    value = ConstantValue::makeString(ctx, name);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
             return AstVisitStepResult::Continue;
         }
 
         if (nodeView.type && nodeView.type->isTypeValue())
         {
-            const std::string_view name  = sema.typeMgr().typeToName(sema.ctx(), nodeView.type->typeRef());
-            const ConstantValue    value = ConstantValue::makeString(sema.ctx(), name);
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), value));
+            const Utf8          name  = sema.typeMgr().get(nodeView.type->typeRef()).toName(ctx);
+            const ConstantValue value = ConstantValue::makeString(ctx, name);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
             return AstVisitStepResult::Continue;
         }
 
@@ -262,29 +263,30 @@ namespace
 
     AstVisitStepResult semaCompilerStringOf(Sema& sema, const AstCompilerCallUnary& node)
     {
+        auto&              ctx = sema.ctx();
         const SemaNodeView nodeView(sema, node.nodeArgRef);
 
         if (nodeView.sym)
         {
-            const Utf8&         name  = nodeView.sym->getFullScopedName(sema.ctx());
-            const ConstantValue value = ConstantValue::makeString(sema.ctx(), name);
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), value));
+            const Utf8          name  = nodeView.sym->getFullScopedName(ctx);
+            const ConstantValue value = ConstantValue::makeString(ctx, name);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
             return AstVisitStepResult::Continue;
         }
 
         if (nodeView.cst)
         {
-            const Utf8&         name  = nodeView.cst->toString(sema.ctx());
-            const ConstantValue value = ConstantValue::makeString(sema.ctx(), name);
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), value));
+            const Utf8          name  = nodeView.cst->toString(ctx);
+            const ConstantValue value = ConstantValue::makeString(ctx, name);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
             return AstVisitStepResult::Continue;
         }
 
         if (nodeView.type && nodeView.type->isTypeValue())
         {
-            const std::string_view name  = sema.typeMgr().typeToName(sema.ctx(), nodeView.type->typeRef());
-            const ConstantValue    value = ConstantValue::makeString(sema.ctx(), name);
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), value));
+            const Utf8          name  = sema.typeMgr().get(nodeView.type->typeRef()).toName(ctx);
+            const ConstantValue value = ConstantValue::makeString(ctx, name);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
             return AstVisitStepResult::Continue;
         }
 

@@ -6,7 +6,15 @@ SWC_BEGIN_NAMESPACE()
 class SymbolEnum;
 class TypeManager;
 
-enum class TypeInfoKind
+enum class TypeInfoFlagsE : uint8_t
+{
+    Zero     = 0,
+    Const    = 1 << 0,
+    Nullable = 1 << 1,
+};
+using TypeInfoFlags = EnumFlags<TypeInfoFlagsE>;
+
+enum class TypeInfoKind : uint8_t
 {
     Invalid = 0,
     Bool,
@@ -43,9 +51,10 @@ private:
     friend class TypeManager;
 
     TypeInfo() = delete;
-    explicit TypeInfo(TypeInfoKind kind);
+    explicit TypeInfo(TypeInfoKind kind, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
 
-    TypeInfoKind kind_ = TypeInfoKind::Invalid;
+    TypeInfoKind  kind_  = TypeInfoKind::Invalid;
+    TypeInfoFlags flags_ = TypeInfoFlagsE::Zero;
 
     union
     {
@@ -61,10 +70,12 @@ public:
     bool operator==(const TypeInfo& other) const noexcept;
     Utf8 toName(const TaskContext& ctx) const;
 
-    TypeInfoKind kind() const noexcept { return kind_; }
-    bool         isBool() const noexcept { return kind_ == TypeInfoKind::Bool; }
-    bool         isChar() const noexcept { return kind_ == TypeInfoKind::Char; }
-    bool         isString() const noexcept { return kind_ == TypeInfoKind::String; }
+    TypeInfoKind  kind() const noexcept { return kind_; }
+    TypeInfoFlags flags() const noexcept { return flags_; }
+    bool          hasFlag(TypeInfoFlagsE flag) const noexcept { return flags_.has(flag); }
+    bool          isBool() const noexcept { return kind_ == TypeInfoKind::Bool; }
+    bool          isChar() const noexcept { return kind_ == TypeInfoKind::Char; }
+    bool          isString() const noexcept { return kind_ == TypeInfoKind::String; }
 
     bool isInt() const noexcept { return kind_ == TypeInfoKind::Int; }
     bool isIntUnsized() const noexcept { return kind_ == TypeInfoKind::Int && asInt.bits == 0; }
@@ -94,13 +105,13 @@ public:
     bool isConcreteScalar() const noexcept { return isScalarNumeric() && !isIntUnsized() && !isFloatUnsized(); }
 
     // clang-format off
-    Sign        intSign() const noexcept { SWC_ASSERT(isInt()); return asInt.sign; }
-    uint32_t    intBits() const noexcept { SWC_ASSERT(isInt()); return asInt.bits; }
-    uint32_t    intLikeBits() const noexcept { SWC_ASSERT(isIntLike()); return isCharRune() ? 32 : asInt.bits; }
-    uint32_t    scalarNumericBits() const noexcept { SWC_ASSERT(isScalarNumeric()); return isIntLike() ? intLikeBits() : floatBits(); }
-    uint32_t    floatBits() const noexcept { SWC_ASSERT(isFloat()); return asFloat.bits; }
-    SymbolEnum& enumSym() const noexcept { SWC_ASSERT(isEnum()); return *asEnumSym.enumSym; }
-    TypeRef     typeRef() const noexcept { SWC_ASSERT(isTypeValue() || isPointer()); return asTypeRef.typeRef; }
+    Sign              intSign() const noexcept { SWC_ASSERT(isInt()); return asInt.sign; }
+    uint32_t          intBits() const noexcept { SWC_ASSERT(isInt()); return asInt.bits; }
+    uint32_t          intLikeBits() const noexcept { SWC_ASSERT(isIntLike()); return isCharRune() ? 32 : asInt.bits; }
+    uint32_t          scalarNumericBits() const noexcept { SWC_ASSERT(isScalarNumeric()); return isIntLike() ? intLikeBits() : floatBits(); }
+    uint32_t          floatBits() const noexcept { SWC_ASSERT(isFloat()); return asFloat.bits; }
+    SymbolEnum&       enumSym() const noexcept { SWC_ASSERT(isEnum()); return *asEnumSym.enumSym; }
+    TypeRef           typeRef() const noexcept { SWC_ASSERT(isTypeValue()); return asTypeRef.typeRef; }
     // clang-format on
 
     static TypeInfo makeBool();
@@ -114,9 +125,9 @@ public:
     static TypeInfo makeVoid();
     static TypeInfo makeCString();
     static TypeInfo makeEnum(SymbolEnum* enumSym);
-    static TypeInfo makeValuePointer(TypeRef pointeeTypeRef);
-    static TypeInfo makeBlockPointer(TypeRef pointeeTypeRef);
-    static TypeInfo makeSlice(TypeRef pointeeTypeRef);
+    static TypeInfo makeValuePointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    static TypeInfo makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
 
     uint32_t hash() const;
 };

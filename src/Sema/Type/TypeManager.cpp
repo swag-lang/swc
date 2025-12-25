@@ -217,12 +217,12 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
     auto&          shard      = shards_[shardIndex];
 
     {
-        std::shared_lock lk(shard.mutexAdd);
+        std::shared_lock lk(shard.mutex);
         if (const auto it = shard.map.find(typeInfo); it != shard.map.end())
             return it->second;
     }
 
-    std::unique_lock lk(shard.mutexAdd);
+    std::unique_lock lk(shard.mutex);
     const auto [it, inserted] = shard.map.try_emplace(typeInfo, TypeRef{});
     if (!inserted)
         return it->second;
@@ -259,30 +259,6 @@ TypeRef TypeManager::getTypeFloat(uint32_t bits) const
         default:
             SWC_UNREACHABLE();
     }
-}
-
-std::string_view TypeManager::typeToName(const TaskContext& ctx, TypeRef typeInfoRef) const
-{
-    SWC_ASSERT(typeInfoRef.isValid());
-
-    const TypeInfo& typeInfo   = get(typeInfoRef);
-    const uint32_t  shardIndex = typeInfoRef.get() >> LOCAL_BITS;
-    auto&           shard      = shards_[shardIndex];
-
-    {
-        std::shared_lock lk(shard.mutexName);
-        const auto       it = shard.mapName.find(typeInfo);
-        if (it != shard.mapName.end())
-            return it->second;
-    }
-
-    std::unique_lock lk(shard.mutexName);
-    const auto [it, inserted] = shard.mapName.try_emplace(typeInfo, Utf8{});
-    if (!inserted)
-        return it->second;
-
-    it->second = typeInfo.toName(ctx);
-    return it->second;
 }
 
 const TypeInfo& TypeManager::get(TypeRef typeRef) const

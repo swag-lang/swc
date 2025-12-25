@@ -330,7 +330,7 @@ Utf8 ConstantValue::toString(const TaskContext& ctx) const
         case ConstantKind::Float:
             return getFloat().toString();
         case ConstantKind::TypeValue:
-            return ctx.typeMgr().typeToName(ctx, getTypeValue());
+            return ctx.typeMgr().get(getTypeValue()).toName(ctx);
         case ConstantKind::EnumValue:
             return ctx.cstMgr().get(asEnumValue.val).toString(ctx);
 

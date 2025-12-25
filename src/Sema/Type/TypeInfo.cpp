@@ -8,14 +8,17 @@ SWC_BEGIN_NAMESPACE()
 class TaskContext;
 
 // ReSharper disable once CppPossiblyUninitializedMember
-TypeInfo::TypeInfo(TypeInfoKind kind) :
-    kind_(kind)
+TypeInfo::TypeInfo(TypeInfoKind kind, TypeInfoFlags flags) :
+    kind_(kind),
+    flags_(flags)
 {
 }
 
 bool TypeInfo::operator==(const TypeInfo& other) const noexcept
 {
     if (kind_ != other.kind_)
+        return false;
+    if (flags_ != other.flags_)
         return false;
     switch (kind_)
     {
@@ -48,6 +51,7 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
 uint32_t TypeInfo::hash() const
 {
     auto h = Math::hash(static_cast<uint32_t>(kind_));
+    h      = Math::hashCombine(h, static_cast<uint32_t>(flags_.get()));
 
     switch (kind_)
     {
@@ -67,10 +71,10 @@ uint32_t TypeInfo::hash() const
         case TypeInfoKind::Float:
             h = Math::hashCombine(h, asFloat.bits);
             return h;
-        case TypeInfoKind::TypeValue:
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
         case TypeInfoKind::Slice:
+        case TypeInfoKind::TypeValue:
             h = Math::hashCombine(h, asTypeRef.typeRef.get());
             return h;
         case TypeInfoKind::Enum:
@@ -149,25 +153,25 @@ TypeInfo TypeInfo::makeEnum(SymbolEnum* enumSym)
     return ti;
 }
 
-TypeInfo TypeInfo::makeValuePointer(TypeRef pointeeTypeRef)
+TypeInfo TypeInfo::makeValuePointer(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 {
-    TypeInfo ti{TypeInfoKind::ValuePointer};
+    TypeInfo ti{TypeInfoKind::ValuePointer, flags};
     ti.asTypeRef.typeRef = pointeeTypeRef;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
 
-TypeInfo TypeInfo::makeBlockPointer(TypeRef pointeeTypeRef)
+TypeInfo TypeInfo::makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 {
-    TypeInfo ti{TypeInfoKind::BlockPointer};
+    TypeInfo ti{TypeInfoKind::BlockPointer, flags};
     ti.asTypeRef.typeRef = pointeeTypeRef;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
 
-TypeInfo TypeInfo::makeSlice(TypeRef pointeeTypeRef)
+TypeInfo TypeInfo::makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 {
-    TypeInfo ti{TypeInfoKind::Slice};
+    TypeInfo ti{TypeInfoKind::Slice, flags};
     ti.asTypeRef.typeRef = pointeeTypeRef;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
@@ -175,40 +179,70 @@ TypeInfo TypeInfo::makeSlice(TypeRef pointeeTypeRef)
 
 Utf8 TypeInfo::toName(const TaskContext& ctx) const
 {
+    Utf8 out;
+
+    if (hasFlag(TypeInfoFlagsE::Nullable))
+        out += "#null ";
+    if (hasFlag(TypeInfoFlagsE::Const))
+        out += "const ";
+
     switch (kind_)
     {
         case TypeInfoKind::Bool:
-            return "bool";
+            out += "bool";
+            break;
         case TypeInfoKind::Char:
-            return "character";
+            out += "character";
+            break;
         case TypeInfoKind::String:
-            return "string";
+            out += "string";
+            break;
         case TypeInfoKind::Void:
-            return "void";
+            out += "void";
+            break;
         case TypeInfoKind::Any:
-            return "any";
+            out += "any";
+            break;
         case TypeInfoKind::Rune:
-            return "rune";
+            out += "rune";
+            break;
         case TypeInfoKind::CString:
-            return "cstring";
+            out += "cstring";
+            break;
         case TypeInfoKind::Enum:
-            return std::format("enum {}", asEnumSym.enumSym->name(ctx));
+            out += std::format("enum {}", asEnumSym.enumSym->name(ctx));
+            break;
 
         case TypeInfoKind::TypeValue:
             if (asTypeRef.typeRef.isInvalid())
-                return "typeinfo";
-            return std::format("typeinfo({})", ctx.typeMgr().typeToName(ctx, asTypeRef.typeRef));
+                out += "typeinfo";
+            else
+            {
+                const TypeInfo& type = ctx.typeMgr().get(asTypeRef.typeRef);
+                out += std::format("typeinfo({})", type.toName(ctx));
+            }
+            break;
 
         case TypeInfoKind::ValuePointer:
-            return std::format("*{}", ctx.typeMgr().typeToName(ctx, asTypeRef.typeRef));
+        {
+            const TypeInfo& type = ctx.typeMgr().get(asTypeRef.typeRef);
+            out += std::format("*{}", type.toName(ctx));
+            break;
+        }
         case TypeInfoKind::BlockPointer:
-            return std::format("[*]{}", ctx.typeMgr().typeToName(ctx, asTypeRef.typeRef));
+        {
+            const TypeInfo& type = ctx.typeMgr().get(asTypeRef.typeRef);
+            out += std::format("[*]{}", type.toName(ctx));
+            break;
+        }
         case TypeInfoKind::Slice:
-            return std::format("[..]{}", ctx.typeMgr().typeToName(ctx, asTypeRef.typeRef));
+        {
+            const TypeInfo& type = ctx.typeMgr().get(asTypeRef.typeRef);
+            out += std::format("[..]{}", type.toName(ctx));
+            break;
+        }
 
         case TypeInfoKind::Int:
-        {
-            Utf8 out;
             if (asInt.bits == 0)
             {
                 if (asInt.sign == Sign::Unsigned)
@@ -224,11 +258,9 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
                 out += asInt.sign == Sign::Unsigned ? "u" : "s";
                 out += std::to_string(asInt.bits);
             }
-            return out;
-        }
+            break;
+
         case TypeInfoKind::Float:
-        {
-            Utf8 out;
             if (asInt.bits == 0)
                 out = "float";
             else
@@ -236,12 +268,13 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
                 out += "f";
                 out += std::to_string(asFloat.bits);
             }
-            return out;
-        }
+            break;
 
         default:
             SWC_UNREACHABLE();
     }
+
+    return out;
 }
 
 SWC_END_NAMESPACE()

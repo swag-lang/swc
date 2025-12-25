@@ -145,7 +145,7 @@ AstVisitStepResult AstQualifiedType::semaPostNode(Sema& sema) const
 AstVisitStepResult AstNamedType::semaPostNode(Sema& sema)
 {
     sema.semaInherit(*this, nodeIdentRef);
-
+    
     const Symbol& sym = sema.symbolOf(nodeIdentRef);
     if (!sym.isEnum())
     {

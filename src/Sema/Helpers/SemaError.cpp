@@ -20,7 +20,7 @@ namespace
         diag.addArgument(Diagnostic::ARG_TOK, tokStr);
         diag.addArgument(Diagnostic::ARG_TOK_RAW, tokStr, false);
         diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id), false);
-        diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Token::toAFamily(token.id), false);
+        diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(token.id)), false);
     }
 }
 

@@ -84,7 +84,6 @@ struct Token
     static TokenIdKind      toKind(TokenId id) { return TOKEN_ID_INFOS[static_cast<size_t>(id)].kind; }
     static std::string_view toName(TokenId id);
     static std::string_view toFamily(TokenId id);
-    static std::string_view toAFamily(TokenId id);
     static TokenId          toRelated(TokenId id);
 
     bool startsLine() const { return flags.has(TokenFlagsE::EolBefore); }

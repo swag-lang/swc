@@ -68,31 +68,6 @@ std::string_view Token::toFamily(TokenId id)
     return "token";
 }
 
-std::string_view Token::toAFamily(TokenId id)
-{
-    if (id == TokenId::Identifier)
-        return "an identifier";
-    if (id == TokenId::EndOfFile)
-        return "a end of file";
-
-    if (isSymbol(id))
-        return "a symbol";
-    if (isKeyword(id))
-        return "a keyword";
-    if (isType(id))
-        return "a type";
-    if (isCompiler(id))
-        return "a compiler instruction";
-    if (isIntrinsic(id))
-        return "a intrinsic";
-    if (isModifier(id))
-        return "a modifier";
-    if (isLiteral(id))
-        return "a literal";
-
-    return "a token";
-}
-
 TokenId Token::toRelated(TokenId id)
 {
     switch (id)

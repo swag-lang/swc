@@ -619,7 +619,7 @@ struct AstStructLiteral : AstCompoundT<AstNodeId::StructLiteral>
 struct AstMemberAccessExpr : AstNodeT<AstNodeId::MemberAccessExpr>
 {
     AstNodeRef nodeLeftRef;
-    AstNodeRef nodeRightRef;
+    TokenRef   tokMemberRef;
 
     void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef}); }
     AstVisitStepResult semaPostNode(Sema& sema) const;

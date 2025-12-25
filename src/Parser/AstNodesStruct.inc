@@ -612,8 +612,8 @@ struct AstMemberAccessExpr : AstNodeT<AstNodeId::MemberAccessExpr>
     AstNodeRef nodeLeftRef;
     AstNodeRef nodeRightRef;
 
-    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef}); }
-    AstVisitStepResult semaPostNode(Sema& sema) const;
+    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
+    AstVisitStepResult semaPreChild(Sema& sema, const AstNodeRef& childRef) const;
 };
 
 // -----------------------------------------------------------------------------

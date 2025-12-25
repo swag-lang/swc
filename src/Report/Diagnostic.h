@@ -58,6 +58,9 @@ public:
     constexpr static std::string_view ARG_LEFT             = "{left}";
     constexpr static std::string_view ARG_RIGHT            = "{right}";
     constexpr static std::string_view ARG_WHAT             = "{what}";
+    constexpr static std::string_view ARG_SYM              = "{sym}";
+    constexpr static std::string_view ARG_SYM_FAM          = "{sym-fam}";
+    constexpr static std::string_view ARG_A_SYM_FAM        = "{a-sym-fam}";
 
     Diagnostic() = default;
     explicit Diagnostic(FileRef file);

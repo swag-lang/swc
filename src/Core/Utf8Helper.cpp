@@ -286,4 +286,22 @@ uint32_t Utf8Helper::countLeadingBlanks(const TaskContext& ctx, std::string_view
     return i;
 }
 
+Utf8 Utf8Helper::addArticleAAn(std::string_view s)
+{
+    if (s.empty())
+        return s;
+
+    switch (std::tolower(s.front()))
+    {
+        case 'a':
+        case 'e':
+        case 'i':
+        case 'o':
+        case 'u':
+            return Utf8("an ") + Utf8(s);
+        default:
+            return Utf8("a ") + Utf8(s);
+    }
+}
+
 SWC_END_NAMESPACE()

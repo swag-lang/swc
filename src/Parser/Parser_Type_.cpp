@@ -6,13 +6,14 @@ SWC_BEGIN_NAMESPACE()
 
 AstNodeRef Parser::parseIdentifierType()
 {
-    const auto identifier = parseQualifiedIdentifier();
+    const TokenRef tokRef = ref();
+    const auto     idRef  = parseQualifiedIdentifier();
 
     if (is(TokenId::SymLeftCurly) && !tok().hasFlag(TokenFlagsE::BlankBefore))
-        return parseInitializerList(identifier);
+        return parseInitializerList(idRef);
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamedType>(ref());
-    nodePtr->nodeIdentRef   = identifier;
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamedType>(tokRef);
+    nodePtr->nodeIdentRef   = idRef;
     return nodeRef;
 }
 

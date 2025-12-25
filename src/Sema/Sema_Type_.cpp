@@ -142,4 +142,19 @@ AstVisitStepResult AstQualifiedType::semaPostNode(Sema& sema) const
     return AstVisitStepResult::Continue;
 }
 
+AstVisitStepResult AstNamedType::semaPostNode(Sema& sema)
+{
+    sema.semaInherit(*this, nodeIdentRef);
+
+    const Symbol& sym = sema.symbolOf(nodeIdentRef);
+    if (!sym.isEnum())
+    {
+        const auto diag = SemaError::report(sema, DiagnosticId::sema_err_not_a_type, nodeIdentRef);
+        diag.report(sema.ctx());
+        return AstVisitStepResult::Stop;
+    }
+
+    return AstVisitStepResult::Continue;
+}
+
 SWC_END_NAMESPACE()

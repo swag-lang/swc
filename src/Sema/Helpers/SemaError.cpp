@@ -1,9 +1,11 @@
 #include "pch.h"
-#include "Sema/Helpers/SemaError.h"
+
 #include "Main/CompilerInstance.h"
 #include "Report/Diagnostic.h"
+#include "Sema/Helpers/SemaError.h"
 #include "Sema/Sema.h"
 #include "Sema/Type/TypeManager.h"
+#include "SemaNodeView.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -23,9 +25,16 @@ namespace
 
 Diagnostic SemaError::report(Sema& sema, DiagnosticId id, AstNodeRef nodeRef)
 {
-    auto           diag    = Diagnostic::get(id, sema.ast().srcView().fileRef());
-    const AstNode& nodePtr = sema.node(nodeRef);
-    setReportArguments(sema, diag, nodePtr.srcViewRef(), nodePtr.tokRef());
+    const SemaNodeView nodeView(sema, nodeRef);
+    auto               diag = Diagnostic::get(id, sema.ast().srcView().fileRef());
+
+    setReportArguments(sema, diag, nodeView.node->srcViewRef(), nodeView.node->tokRef());
+    if (nodeView.sym)
+    {
+        diag.addArgument(Diagnostic::ARG_SYM, nodeView.sym->name(sema.ctx()));
+        diag.addArgument(Diagnostic::ARG_SYM_FAM, nodeView.sym->toFamily(), false);
+        diag.addArgument(Diagnostic::ARG_A_SYM_FAM, nodeView.sym->toAFamily(), false);
+    }
 
     const SourceCodeLocation loc = sema.node(nodeRef).locationWithChildren(sema.ctx(), sema.ast());
     diag.last().addSpan(loc, "");

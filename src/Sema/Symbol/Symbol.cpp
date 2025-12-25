@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Sema/Symbol/Symbol.h"
+#include "Core/Utf8Helper.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 #include "Sema/Symbol/IdentifierManager.h"
@@ -66,6 +67,24 @@ SourceCodeLocation Symbol::loc(TaskContext& ctx) const noexcept
     const SourceView& srcView = ctx.compiler().srcView(srcViewRef_);
     const Token&      tok     = srcView.token(tokRef_);
     return tok.location(ctx, srcView);
+}
+
+Utf8 Symbol::toFamily() const
+{
+    switch (kind_)
+    {
+        case SymbolKind::Namespace: return "namespace";
+        case SymbolKind::Variable: return "variable";
+        case SymbolKind::Constant: return "constant";
+        case SymbolKind::Enum: return "enum";
+        case SymbolKind::EnumValue: return "enum value";
+        default: return "symbol";
+    }
+}
+
+Utf8 Symbol::toAFamily() const
+{
+    return Utf8Helper::addArticleAAn(toFamily());
 }
 
 SWC_END_NAMESPACE()

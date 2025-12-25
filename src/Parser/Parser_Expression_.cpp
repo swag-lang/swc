@@ -784,6 +784,7 @@ AstNodeRef Parser::parsePrimaryExpression()
             return parseTypeValue();
 
         case TokenId::Identifier:
+            return parseQuotedIdentifier();
         case TokenId::KwdMe:
         case TokenId::CompilerAlias0:
         case TokenId::CompilerAlias1:
@@ -805,7 +806,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::CompilerUniq7:
         case TokenId::CompilerUniq8:
         case TokenId::CompilerUniq9:
-            return parseQuotedIdentifier();
+            return parseIdentifier();
 
         case TokenId::KwdFunc:
         case TokenId::KwdMtd:

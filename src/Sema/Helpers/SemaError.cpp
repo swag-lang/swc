@@ -12,15 +12,24 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    void setReportArguments(Sema& sema, Diagnostic& diag, SourceViewRef srcViewRef, TokenRef tokRef)
+    void setReportArguments(Sema& sema, Diagnostic& diag, SourceViewRef srcViewRef, TokenRef tokRef, const Symbol* sym = nullptr)
     {
+        const auto&       ctx     = sema.ctx();
         const SourceView& srcView = sema.compiler().srcView(srcViewRef);
         const Token&      token   = srcView.token(tokRef);
-        const Utf8&       tokStr  = Diagnostic::tokenErrorString(sema.ctx(), sema.ast().srcView(), tokRef);
+        const Utf8&       tokStr  = Diagnostic::tokenErrorString(ctx, sema.ast().srcView(), tokRef);
+
         diag.addArgument(Diagnostic::ARG_TOK, tokStr);
         diag.addArgument(Diagnostic::ARG_TOK_RAW, tokStr, false);
         diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id), false);
         diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(token.id)), false);
+
+        if (sym)
+        {
+            diag.addArgument(Diagnostic::ARG_SYM, sym->name(ctx));
+            diag.addArgument(Diagnostic::ARG_SYM_FAM, sym->toFamily(), false);
+            diag.addArgument(Diagnostic::ARG_A_SYM_FAM, Utf8Helper::addArticleAAn(sym->toFamily()), false);
+        }
     }
 }
 
@@ -28,15 +37,7 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, AstNodeRef nodeRef)
 {
     const SemaNodeView nodeView(sema, nodeRef);
     auto               diag = Diagnostic::get(id, sema.ast().srcView().fileRef());
-
-    setReportArguments(sema, diag, nodeView.node->srcViewRef(), nodeView.node->tokRef());
-    if (nodeView.sym)
-    {
-        diag.addArgument(Diagnostic::ARG_SYM, nodeView.sym->name(sema.ctx()));
-        diag.addArgument(Diagnostic::ARG_SYM_FAM, nodeView.sym->toFamily(), false);
-        diag.addArgument(Diagnostic::ARG_A_SYM_FAM, Utf8Helper::addArticleAAn(nodeView.sym->toFamily()), false);
-    }
-
+    setReportArguments(sema, diag, nodeView.node->srcViewRef(), nodeView.node->tokRef(), nodeView.sym);
     const SourceCodeLocation loc = sema.node(nodeRef).locationWithChildren(sema.ctx(), sema.ast());
     diag.last().addSpan(loc, "");
 
@@ -78,8 +79,8 @@ void SemaError::raiseInvalidType(Sema& sema, AstNodeRef nodeRef, TypeRef srcType
 {
     auto& ctx  = sema.ctx();
     auto  diag = report(sema, DiagnosticId::sema_err_invalid_type, nodeRef);
-    diag.addArgument(Diagnostic::ARG_TYPE, sema.typeMgr().get(srcTypeRef).toName(ctx));
-    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, sema.typeMgr().get(targetTypeRef).toName(ctx));
+    diag.addArgument(Diagnostic::ARG_TYPE, srcTypeRef);
+    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, targetTypeRef);
     diag.report(ctx);
 }
 

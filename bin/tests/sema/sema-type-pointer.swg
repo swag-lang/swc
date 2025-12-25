@@ -23,3 +23,4 @@ var E: const [*]s32
 var F: const [..]s32
 #assert(#typeof(F) == const [..]s32)
 #assert(#nameof(#typeof(F)) == "const [..]s32")
+

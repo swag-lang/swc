@@ -720,6 +720,14 @@ struct AstImplEnum : AstCompoundT<AstNodeId::ImplEnum>
 // -----------------------------------------------------------------------------
 struct AstQualifiedType : AstNodeT<AstNodeId::QualifiedType>
 {
+    enum FlagsE : ParserFlags
+    {
+        Zero     = 0,
+        Const    = 1 << 0,
+        Nullable = 1 << 1,
+    };
+    using Flags = EnumFlags<FlagsE>;
+
     AstNodeRef nodeTypeRef;
 
     void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef}); }

@@ -69,6 +69,8 @@ SWC_DIAG_DEF(parser_err_empty_var_decl)
 SWC_DIAG_DEF(parser_err_inject_instruction_done)
 SWC_DIAG_DEF(parser_err_inject_invalid_instruction)
 SWC_DIAG_DEF(parser_err_duplicate_modifier)
+SWC_DIAG_DEF(parser_err_duplicate_type_qualifier)
+SWC_DIAG_DEF(parser_err_misplace_type_qualifier)
 
 // Sema Warnings
 SWC_DIAG_DEF(sema_warn_compiler_warning)

@@ -192,6 +192,7 @@ class Parser
     AstNodeRef parseSingleType();
     AstNodeRef parseStructDecl();
     AstNodeRef parseSubType();
+    AstNodeRef parseSubTypeNoQualifiers();
     AstNodeRef parseSwitch();
     AstNodeRef parseSwitchCaseDefault();
     AstNodeRef parseThrow();

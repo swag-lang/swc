@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "pch.h"
 #include "Core/SmallVector.h"
 #include "Parser/Parser.h"
@@ -74,16 +76,86 @@ AstNodeRef Parser::parseSingleType()
     return AstNodeRef::invalid();
 }
 
+namespace
+{
+    struct QualifierDesc
+    {
+        TokenId                 tokenId;
+        AstQualifiedType::Flags flag;
+        uint8_t                 order;
+    };
+
+    constexpr QualifierDesc G_QUALIFIER_TABLE[] = {
+        {.tokenId = TokenId::ModifierNullable, .flag = AstQualifiedType::Nullable, .order = 0},
+        {.tokenId = TokenId::KwdConst, .flag = AstQualifiedType::Const, .order = 1},
+    };
+
+    const QualifierDesc* findQualifier(TokenId id)
+    {
+        for (const auto& q : G_QUALIFIER_TABLE)
+        {
+            if (q.tokenId == id)
+                return &q;
+        }
+
+        return nullptr;
+    }
+}
+
 AstNodeRef Parser::parseSubType()
 {
-    // Modifiers
-    if (isAny(TokenId::KwdConst, TokenId::ModifierNullable))
+    AstQualifiedType::Flags qualifiers  = AstQualifiedType::Zero;
+    int                     lastOrder   = -1;
+    const TokenRef          firstTokRef = ref();
+
+    // Consume all leading qualifiers in order, diagnose duplicates / mis-ordering.
+    for (;;)
     {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::QualifiedType>(consume());
-        nodePtr->nodeTypeRef    = parseType();
-        return nodeRef;
+        const auto* qd = findQualifier(id());
+        if (!qd)
+            break;
+
+        const TokenRef tokRef = ref();
+
+        // Duplicate?
+        if (qualifiers.has(qd->flag))
+        {
+            raiseError(DiagnosticId::parser_err_duplicate_type_qualifier, tokRef);
+            consume();
+            continue;
+        }
+
+        // Misplaced (violates canonical order)?
+        if (std::cmp_less(qd->order, lastOrder))
+        {
+            raiseError(DiagnosticId::parser_err_misplace_type_qualifier, tokRef);
+            consume();
+            continue;
+        }
+
+        qualifiers.add(qd->flag);
+        lastOrder = qd->order;
+        consume();
     }
 
+    // Parse the core subtype (pointers, refs, arrays, base type…)
+    const AstNodeRef subNodeRef = parseSubTypeNoQualifiers();
+    if (subNodeRef.isInvalid())
+        return AstNodeRef::invalid();
+
+    // No qualifiers? Just return the core type.
+    if (qualifiers == AstQualifiedType::Zero)
+        return subNodeRef;
+
+    // Wrap in a single QualifiedType node with all flags set.
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::QualifiedType>(firstTokRef);
+    nodePtr->nodeTypeRef    = subNodeRef;
+    nodePtr->addParserFlag(qualifiers);
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseSubTypeNoQualifiers()
+{
     // Left reference
     if (consumeIf(TokenId::SymAmpersand).isValid())
     {

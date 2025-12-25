@@ -116,19 +116,11 @@ AstVisitStepResult AstSliceType::semaPostNode(Sema& sema) const
 
 AstVisitStepResult AstQualifiedType::semaPostNode(Sema& sema) const
 {
-    const Token&  tok   = sema.token(srcViewRef(), tokRef());
     TypeInfoFlags flags = TypeInfoFlagsE::Zero;
-    switch (tok.id)
-    {
-        case TokenId::KwdConst:
-            flags.add(TypeInfoFlagsE::Const);
-            break;
-        case TokenId::ModifierNullable:
-            flags.add(TypeInfoFlagsE::Nullable);
-            break;
-        default:
-            SWC_UNREACHABLE();
-    }
+    if (hasParserFlag(Const))
+        flags.add(TypeInfoFlagsE::Const);
+    if (hasParserFlag(Nullable))
+        flags.add(TypeInfoFlagsE::Nullable);
 
     const SemaNodeView nodeView(sema, nodeTypeRef);
     TypeRef            typeRef;

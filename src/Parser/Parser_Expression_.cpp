@@ -377,8 +377,8 @@ AstNodeRef Parser::parseIdentifier()
 
 AstNodeRef Parser::parseQuotedIdentifier()
 {
-    const AstNodeRef baseIdent = parseIdentifier();
-    if (baseIdent.isInvalid())
+    const AstNodeRef idRef = parseIdentifier();
+    if (idRef.isInvalid())
         return AstNodeRef::invalid();
 
     if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::BlankBefore))
@@ -388,18 +388,18 @@ AstNodeRef Parser::parseQuotedIdentifier()
         if (is(TokenId::SymLeftParen))
         {
             auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::QuotedListExpr>(tokQuote);
-            nodePtr->nodeExprRef     = baseIdent;
+            nodePtr->nodeExprRef     = idRef;
             nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::QuotedListExpr, TokenId::SymLeftParen);
             return nodeRef;
         }
 
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::QuotedExpr>(tokQuote);
-        nodePtr->nodeExprRef    = baseIdent;
+        nodePtr->nodeExprRef    = idRef;
         nodePtr->nodeSuffixRef  = parseIdentifierSuffixValue();
         return nodeRef;
     }
 
-    return baseIdent;
+    return idRef;
 }
 
 AstNodeRef Parser::parseInitializerExpression()
@@ -410,7 +410,7 @@ AstNodeRef Parser::parseInitializerExpression()
         return nodeRef;
     }
 
-    const auto modifierFlags = parseModifiers();
+    const AstModifierFlags modifierFlags = parseModifiers();
     if (modifierFlags == AstModifierFlagsE::Zero)
         return parseExpression();
 

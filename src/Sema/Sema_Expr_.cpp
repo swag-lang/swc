@@ -31,11 +31,8 @@ AstVisitStepResult AstIdentifier::semaPostNode(Sema& sema) const
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstMemberAccessExpr::semaPreChild(Sema& sema, const AstNodeRef& childRef) const
+AstVisitStepResult AstMemberAccessExpr::semaPostNode(Sema& sema) const
 {
-    if (childRef != nodeRightRef)
-        return AstVisitStepResult::Continue;
-
     const SemaNodeView nodeLeftView(sema, nodeLeftRef);
     const SemaNodeView nodeRightView(sema, nodeRightRef);
     TokenRef           tokNameRef;
@@ -60,7 +57,7 @@ AstVisitStepResult AstMemberAccessExpr::semaPreChild(Sema& sema, const AstNodeRe
             return sema.pause(TaskStateKind::SemaWaitingFullComplete);
 
         sema.semaInfo().setSymbol(sema.curNodeRef(), result.first());
-        return AstVisitStepResult::SkipChildren;
+        return AstVisitStepResult::Continue;
     }
 
     // Enum
@@ -78,7 +75,7 @@ AstVisitStepResult AstMemberAccessExpr::semaPreChild(Sema& sema, const AstNodeRe
             return sema.pause(TaskStateKind::SemaWaitingFullComplete);
 
         sema.semaInfo().setSymbol(sema.curNodeRef(), result.first());
-        return AstVisitStepResult::SkipChildren;
+        return AstVisitStepResult::Continue;
     }
 
     SemaError::raiseInternal(sema, *this);

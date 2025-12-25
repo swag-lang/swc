@@ -40,3 +40,6 @@ enum H: u8
 }
 
 enum I: u8 {} // swc-expected-error {{sema_err_empty_enum}}
+
+enum J: any {} // swc-expected-error {{sema_err_invalid_enum_type}}
+enum K: cstring {} // swc-expected-error {{sema_err_invalid_enum_type}}

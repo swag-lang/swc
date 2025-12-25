@@ -144,16 +144,17 @@ AstVisitStepResult AstQualifiedType::semaPostNode(Sema& sema) const
 
 AstVisitStepResult AstNamedType::semaPostNode(Sema& sema)
 {
-    sema.semaInherit(*this, nodeIdentRef);
-    
-    const Symbol& sym = sema.symbolOf(nodeIdentRef);
-    if (!sym.isEnum())
+    const SemaNodeView nodeView(sema, nodeIdentRef);
+
+    SWC_ASSERT(nodeView.sym);
+    if (!nodeView.sym->isType())
     {
         const auto diag = SemaError::report(sema, DiagnosticId::sema_err_not_a_type, nodeIdentRef);
         diag.report(sema.ctx());
         return AstVisitStepResult::Stop;
     }
 
+    sema.semaInherit(*this, nodeIdentRef);
     return AstVisitStepResult::Continue;
 }
 

@@ -33,13 +33,21 @@ AstVisitStepResult AstIdentifier::semaPostNode(Sema& sema) const
 
 AstVisitStepResult AstMemberAccessExpr::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView  nodeView(sema, nodeLeftRef);
-    const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokMemberRef);
+    const SemaNodeView nodeLeftView(sema, nodeLeftRef);
+    const SemaNodeView nodeRightView(sema, nodeRightRef);
+    TokenRef           tokNameRef;
+
+    if (nodeRightView.node->is(AstNodeId::Identifier))
+        tokNameRef = nodeRightView.node->tokRef();
+    else
+        SWC_UNREACHABLE();
+
+    const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
 
     // Namespace
-    if (nodeView.sym && nodeView.sym->isNamespace())
+    if (nodeLeftView.sym && nodeLeftView.sym->isNamespace())
     {
-        const auto& namespaceSym = nodeView.sym->cast<SymbolNamespace>();
+        const auto& namespaceSym = nodeLeftView.sym->cast<SymbolNamespace>();
 
         LookupResult result;
         SemaMatch::lookupAppend(sema, namespaceSym, result, idRef);
@@ -53,9 +61,9 @@ AstVisitStepResult AstMemberAccessExpr::semaPostNode(Sema& sema) const
     }
 
     // Enum
-    if (nodeView.type && nodeView.type->isEnum())
+    if (nodeLeftView.type && nodeLeftView.type->isEnum())
     {
-        const auto& enumSym = nodeView.type->enumSym();
+        const auto& enumSym = nodeLeftView.type->enumSym();
         if (!enumSym.isComplete())
             return sema.pause(TaskStateKind::SemaWaitingFullComplete);
 

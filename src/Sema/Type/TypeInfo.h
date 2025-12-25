@@ -96,7 +96,9 @@ public:
     bool isEnum() const noexcept { return kind_ == TypeInfoKind::Enum; }
     bool isType() const noexcept { return isTypeValue() || isEnum(); }
     bool isValuePointer() const noexcept { return kind_ == TypeInfoKind::ValuePointer; }
-    bool isPointer() const noexcept { return isValuePointer(); }
+    bool isBlockPointer() const noexcept { return kind_ == TypeInfoKind::BlockPointer; }
+    bool isPointer() const noexcept { return isValuePointer() || isBlockPointer(); }
+    bool isSlice() const noexcept { return kind_ == TypeInfoKind::Slice; }
 
     bool isCharRune() const noexcept { return isChar() || isRune(); }
     bool isIntLike() const noexcept { return isInt() || isCharRune(); }
@@ -111,7 +113,7 @@ public:
     uint32_t          scalarNumericBits() const noexcept { SWC_ASSERT(isScalarNumeric()); return isIntLike() ? intLikeBits() : floatBits(); }
     uint32_t          floatBits() const noexcept { SWC_ASSERT(isFloat()); return asFloat.bits; }
     SymbolEnum&       enumSym() const noexcept { SWC_ASSERT(isEnum()); return *asEnumSym.enumSym; }
-    TypeRef           typeRef() const noexcept { SWC_ASSERT(isTypeValue()); return asTypeRef.typeRef; }
+    TypeRef           typeRef() const noexcept { SWC_ASSERT(isTypeValue() || isPointer() || isSlice()); return asTypeRef.typeRef; }
     // clang-format on
 
     static TypeInfo makeBool();

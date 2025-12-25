@@ -98,3 +98,4 @@ SWC_DIAG_DEF(sema_err_missing_enum_value, Error, "missing initializer for enum v
 SWC_DIAG_DEF(sema_err_empty_enum, Error, "empty enum")
 SWC_DIAG_DEF(sema_err_failed_nameof, Error, "failed to get name of expression")
 SWC_DIAG_DEF(sema_err_failed_stringof, Error, "failed to get string of expression")
+SWC_DIAG_DEF(sema_err_bad_type_qualifier, Error, "type qualifier {tok} is not allowed on type {type}")

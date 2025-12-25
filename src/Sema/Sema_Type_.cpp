@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Helpers/SemaError.h"
 #include "Helpers/SemaNodeView.h"
+#include "Os/Os.h"
 #include "Parser/AstVisit.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Sema.h"
@@ -115,6 +116,37 @@ AstVisitStepResult AstSliceType::semaPostNode(Sema& sema) const
 
 AstVisitStepResult AstQualifiedType::semaPostNode(Sema& sema) const
 {
+    const Token&  tok   = sema.token(srcViewRef(), tokRef());
+    TypeInfoFlags flags = TypeInfoFlagsE::Zero;
+    switch (tok.id)
+    {
+        case TokenId::KwdConst:
+            flags.add(TypeInfoFlagsE::Const);
+            break;
+        case TokenId::ModifierNullable:
+            flags.add(TypeInfoFlagsE::Nullable);
+            break;
+        default:
+            SWC_UNREACHABLE();
+    }
+
+    const SemaNodeView nodeView(sema, nodeTypeRef);
+    TypeRef            typeRef;
+    if (nodeView.type->isValuePointer())
+        typeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(nodeView.type->typeRef(), flags));
+    else if (nodeView.type->isBlockPointer())
+        typeRef = sema.typeMgr().addType(TypeInfo::makeBlockPointer(nodeView.type->typeRef(), flags));
+    else if (nodeView.type->isSlice())
+        typeRef = sema.typeMgr().addType(TypeInfo::makeSlice(nodeView.type->typeRef(), flags));
+    else
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, srcViewRef(), tokRef());
+        diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
+        diag.report(sema.ctx());
+        return AstVisitStepResult::Stop;
+    }
+
+    sema.setType(sema.curNodeRef(), typeRef);
     return AstVisitStepResult::Continue;
 }
 

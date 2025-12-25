@@ -97,6 +97,7 @@ enum A { B = 1'typeinfo } // swc-expected-error {{parser_err_invalid_literal_suf
 enum A { B = 1'void } // swc-expected-error {{parser_err_invalid_literal_suffix}}
 
 enum A {}
+enum A: {} // swc-expected-error {{parser_err_expected_token_fam_before}}
 
 enum A } // swc-expected-error {{parser_err_expected_token_before}}
 

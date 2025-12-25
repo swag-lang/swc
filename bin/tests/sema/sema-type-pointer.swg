@@ -25,3 +25,6 @@ var F: const [..]s32
 #assert(#nameof(#typeof(F)) == "const [..]s32")
 
 var G: *F // swc-expected-error {{sema_err_not_a_type}}
+enum H { A = 0 }
+var I: *H
+//var J: *H.A

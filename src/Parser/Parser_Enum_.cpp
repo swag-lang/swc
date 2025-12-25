@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Core/Utf8Helper.h"
 #include "Parser/Parser.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -78,9 +79,18 @@ AstNodeRef Parser::parseEnumDecl()
     // Type
     if (consumeIf(TokenId::SymColon).isValid())
     {
-        nodePtr->nodeTypeRef = parseType();
-        if (nodePtr->nodeTypeRef.isInvalid())
-            skipTo({TokenId::SymLeftCurly, TokenId::SymRightCurly});
+        if (is(TokenId::SymLeftCurly))
+        {
+            auto diag = reportError(DiagnosticId::parser_err_expected_token_fam_before, ref());
+            diag.addArgument(Diagnostic::ARG_EXPECT_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(TokenId::TypeBool)), false);
+            diag.report(*ctx_);
+        }
+        else
+        {
+            nodePtr->nodeTypeRef = parseType();
+            if (nodePtr->nodeTypeRef.isInvalid())
+                skipTo({TokenId::SymLeftCurly, TokenId::SymRightCurly});
+        }
     }
     else
         nodePtr->nodeTypeRef.setInvalid();

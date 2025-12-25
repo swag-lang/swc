@@ -131,6 +131,9 @@ TypeRef SemaInfo::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const
         case NodeSemaKind::SymbolRef:
             value = getSymbol(ctx, nodeRef).typeRef();
             break;
+        case NodeSemaKind::Invalid:
+            return TypeRef::invalid();
+
         default:
             SWC_UNREACHABLE();
     }

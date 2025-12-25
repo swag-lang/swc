@@ -71,7 +71,6 @@ public:
     TokenRef           tokRef() const noexcept { return tokRef_; }
     SourceCodeLocation loc(TaskContext& ctx) const noexcept;
     Utf8               toFamily() const;
-    Utf8               toAFamily() const;
 
     SymbolFlags flags() const noexcept { return flags_; }
     bool        hasFlag(SymbolFlagsE flag) const noexcept { return flags_.has(flag); }

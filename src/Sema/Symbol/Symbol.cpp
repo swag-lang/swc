@@ -82,9 +82,4 @@ Utf8 Symbol::toFamily() const
     }
 }
 
-Utf8 Symbol::toAFamily() const
-{
-    return Utf8Helper::addArticleAAn(toFamily());
-}
-
 SWC_END_NAMESPACE()

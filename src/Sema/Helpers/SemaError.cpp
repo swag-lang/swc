@@ -1,5 +1,6 @@
 #include "pch.h"
 
+#include "Core/Utf8Helper.h"
 #include "Main/CompilerInstance.h"
 #include "Report/Diagnostic.h"
 #include "Sema/Helpers/SemaError.h"
@@ -33,7 +34,7 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, AstNodeRef nodeRef)
     {
         diag.addArgument(Diagnostic::ARG_SYM, nodeView.sym->name(sema.ctx()));
         diag.addArgument(Diagnostic::ARG_SYM_FAM, nodeView.sym->toFamily(), false);
-        diag.addArgument(Diagnostic::ARG_A_SYM_FAM, nodeView.sym->toAFamily(), false);
+        diag.addArgument(Diagnostic::ARG_A_SYM_FAM, Utf8Helper::addArticleAAn(nodeView.sym->toFamily()), false);
     }
 
     const SourceCodeLocation loc = sema.node(nodeRef).locationWithChildren(sema.ctx(), sema.ast());

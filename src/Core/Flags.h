@@ -82,6 +82,8 @@ struct EnumFlags
     }
 
     U flags = 0;
+
+    U get() const { return flags; }
 };
 
 template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0>

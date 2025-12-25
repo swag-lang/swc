@@ -816,26 +816,26 @@ AstNodeRef Parser::parsePrimaryExpression()
 
 AstNodeRef Parser::parseQualifiedIdentifier()
 {
-    auto leftNodeRef = parseQuotedIdentifier();
-    if (leftNodeRef.isInvalid())
+    auto leftNode = parseQuotedIdentifier();
+    if (leftNode.isInvalid())
         return AstNodeRef::invalid();
 
     while (!tok().startsLine() && is(TokenId::SymDot))
     {
         const auto tokDot = consume();
 
-        auto rightNodeRef = parseQuotedIdentifier();
-        if (rightNodeRef.isInvalid())
+        auto memberNode = parseQuotedIdentifier();
+        if (memberNode.isInvalid())
             return AstNodeRef::invalid();
 
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::MemberAccessExpr>(tokDot);
-        nodePtr->nodeLeftRef    = leftNodeRef;
-        nodePtr->nodeRightRef   = rightNodeRef;
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::QualifiedIdentifier>(tokDot);
+        nodePtr->nodeLeftRef    = leftNode;
+        nodePtr->nodeMemberRef  = memberNode;
 
-        leftNodeRef = nodeRef;
+        leftNode = nodeRef;
     }
 
-    return leftNodeRef;
+    return leftNode;
 }
 
 AstNodeRef Parser::parseRelationalExpr(int minPrecedence)

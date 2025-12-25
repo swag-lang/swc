@@ -22,6 +22,7 @@ SWC_NODE_DEF(AliasDecl, AstNodeIdFlagsE::Zero)
 // ============================================================================
 SWC_NODE_DEF(Identifier, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(AutoScopedIdentifier, AstNodeIdFlagsE::Zero)
+SWC_NODE_DEF(QualifiedIdentifier, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(AncestorIdentifier, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(QuotedExpr, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(QuotedListExpr, AstNodeIdFlagsE::Zero)

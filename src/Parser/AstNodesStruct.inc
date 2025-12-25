@@ -356,15 +356,6 @@ struct AstAutoScopedIdentifier : AstNodeT<AstNodeId::AutoScopedIdentifier>
 };
 
 // -----------------------------------------------------------------------------
-struct AstQualifiedIdentifier : AstNodeT<AstNodeId::QualifiedIdentifier>
-{
-    AstNodeRef nodeLeftRef;
-    AstNodeRef nodeMemberRef;
-
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeMemberRef}); }
-};
-
-// -----------------------------------------------------------------------------
 struct AstAncestorIdentifier : AstNodeT<AstNodeId::AncestorIdentifier>
 {
     AstNodeRef nodeValueRef;

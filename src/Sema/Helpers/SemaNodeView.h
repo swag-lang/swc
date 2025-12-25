@@ -46,27 +46,4 @@ struct SemaNodeView
     }
 };
 
-struct SemaNodeViewList
-{
-    SmallVector<SemaNodeView, 4> view;
-
-    SemaNodeViewList(Sema& sema, AstNodeRef lhs, AstNodeRef rhs)
-    {
-        view.emplace_back(sema, lhs);
-        view.emplace_back(sema, rhs);
-    }
-
-    SemaNodeView& operator[](size_t index)
-    {
-        SWC_ASSERT(index < view.size());
-        return view[index];
-    }
-
-    const SemaNodeView& operator[](size_t index) const
-    {
-        SWC_ASSERT(index < view.size());
-        return view[index];
-    }
-};
-
 SWC_END_NAMESPACE()

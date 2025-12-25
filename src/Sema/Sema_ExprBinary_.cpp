@@ -16,14 +16,14 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    ConstantRef constantFoldOp(Sema& sema, TokenId op, const AstBinaryExpr& node, const SemaNodeViewList& ops)
+    ConstantRef constantFoldOp(Sema& sema, TokenId op, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         const auto& ctx         = sema.ctx();
-        ConstantRef leftCstRef  = ops.view[0].cstRef;
-        ConstantRef rightCstRef = ops.view[1].cstRef;
+        ConstantRef leftCstRef  = nodeLeftView.cstRef;
+        ConstantRef rightCstRef = nodeRightView.cstRef;
 
         const bool promote = node.modifierFlags.has(AstModifierFlagsE::Promote);
-        if (!SemaCast::promoteConstants(sema, ops, leftCstRef, rightCstRef, promote))
+        if (!SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef, promote))
             return ConstantRef::invalid();
 
         const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);
@@ -61,7 +61,7 @@ namespace
                 case TokenId::SymSlash:
                     if (rightCst.getFloat().isZero())
                     {
-                        SemaError::raiseDivZero(sema, node, ops.view[1].nodeRef, leftCst.typeRef());
+                        SemaError::raiseDivZero(sema, node, nodeRightView.nodeRef, leftCst.typeRef());
                         return ConstantRef::invalid();
                     }
 
@@ -104,7 +104,7 @@ namespace
                 case TokenId::SymSlash:
                     if (val2.isZero())
                     {
-                        SemaError::raiseDivZero(sema, node, ops.view[1].nodeRef, leftCst.typeRef());
+                        SemaError::raiseDivZero(sema, node, nodeRightView.nodeRef, leftCst.typeRef());
                         return ConstantRef::invalid();
                     }
 
@@ -114,7 +114,7 @@ namespace
                 case TokenId::SymPercent:
                     if (val2.isZero())
                     {
-                        SemaError::raiseDivZero(sema, node, ops.view[1].nodeRef, leftCst.typeRef());
+                        SemaError::raiseDivZero(sema, node, nodeRightView.nodeRef, leftCst.typeRef());
                         return ConstantRef::invalid();
                     }
 
@@ -182,23 +182,20 @@ namespace
         return ConstantRef::invalid();
     }
 
-    ConstantRef constantFoldPlusPlus(Sema& sema, const AstBinaryExpr&, const SemaNodeViewList& ops)
+    ConstantRef constantFoldPlusPlus(Sema& sema, const AstBinaryExpr&, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        const auto&         ctx   = sema.ctx();
-        const SemaNodeView& view0 = ops.view[0];
-        const SemaNodeView& view1 = ops.view[1];
-
-        Utf8 result = view0.cst->toString(ctx);
-        result += view1.cst->toString(ctx);
+        const auto& ctx    = sema.ctx();
+        Utf8        result = nodeLeftView.cst->toString(ctx);
+        result += nodeRightView.cst->toString(ctx);
         return sema.cstMgr().addConstant(ctx, ConstantValue::makeString(ctx, result));
     }
 
-    ConstantRef constantFold(Sema& sema, TokenId op, const AstBinaryExpr& node, const SemaNodeViewList& ops)
+    ConstantRef constantFold(Sema& sema, TokenId op, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         switch (op)
         {
             case TokenId::SymPlusPlus:
-                return constantFoldPlusPlus(sema, node, ops);
+                return constantFoldPlusPlus(sema, node, nodeLeftView, nodeRightView);
 
             case TokenId::SymPlus:
             case TokenId::SymMinus:
@@ -210,7 +207,7 @@ namespace
             case TokenId::SymCircumflex:
             case TokenId::SymGreaterGreater:
             case TokenId::SymLowerLower:
-                return constantFoldOp(sema, op, node, ops);
+                return constantFoldOp(sema, op, node, nodeLeftView, nodeRightView);
 
             default:
                 break;
@@ -219,7 +216,7 @@ namespace
         return ConstantRef::invalid();
     }
 
-    Result checkPlusPlus(Sema& sema, const AstBinaryExpr& node, const SemaNodeViewList&)
+    Result checkPlusPlus(Sema& sema, const AstBinaryExpr& node, const SemaNodeView&, const SemaNodeView&)
     {
         if (SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Zero) == Result::Error)
             return Result::Error;
@@ -239,11 +236,8 @@ namespace
         return Result::Success;
     }
 
-    Result checkOp(Sema& sema, TokenId op, const AstBinaryExpr& node, const SemaNodeViewList& ops)
+    Result checkOp(Sema& sema, TokenId op, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        const SemaNodeView& view0 = ops.view[0];
-        const SemaNodeView& view1 = ops.view[1];
-
         switch (op)
         {
             case TokenId::SymSlash:
@@ -251,15 +245,15 @@ namespace
             case TokenId::SymPlus:
             case TokenId::SymMinus:
             case TokenId::SymAsterisk:
-                if (!view0.type->isScalarNumeric())
+                if (!nodeLeftView.type->isScalarNumeric())
                 {
-                    SemaError::raiseBinaryOperandType(sema, node, node.nodeLeftRef, view0.typeRef);
+                    SemaError::raiseBinaryOperandType(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
                     return Result::Error;
                 }
 
-                if (!view1.type->isScalarNumeric())
+                if (!nodeRightView.type->isScalarNumeric())
                 {
-                    SemaError::raiseBinaryOperandType(sema, node, node.nodeRightRef, view1.typeRef);
+                    SemaError::raiseBinaryOperandType(sema, node, node.nodeRightRef, nodeRightView.typeRef);
                     return Result::Error;
                 }
                 break;
@@ -269,15 +263,15 @@ namespace
             case TokenId::SymCircumflex:
             case TokenId::SymGreaterGreater:
             case TokenId::SymLowerLower:
-                if (!view0.type->isInt())
+                if (!nodeLeftView.type->isInt())
                 {
-                    SemaError::raiseBinaryOperandType(sema, node, node.nodeLeftRef, view0.typeRef);
+                    SemaError::raiseBinaryOperandType(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
                     return Result::Error;
                 }
 
-                if (!view1.type->isInt())
+                if (!nodeRightView.type->isInt())
                 {
-                    SemaError::raiseBinaryOperandType(sema, node, node.nodeRightRef, view1.typeRef);
+                    SemaError::raiseBinaryOperandType(sema, node, node.nodeRightRef, nodeRightView.typeRef);
                     return Result::Error;
                 }
                 break;
@@ -317,12 +311,12 @@ namespace
         return Result::Success;
     }
 
-    Result check(Sema& sema, TokenId op, const AstBinaryExpr& expr, const SemaNodeViewList& ops)
+    Result check(Sema& sema, TokenId op, const AstBinaryExpr& expr, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         switch (op)
         {
             case TokenId::SymPlusPlus:
-                return checkPlusPlus(sema, expr, ops);
+                return checkPlusPlus(sema, expr, nodeLeftView, nodeRightView);
 
             case TokenId::SymPlus:
             case TokenId::SymMinus:
@@ -334,7 +328,7 @@ namespace
             case TokenId::SymCircumflex:
             case TokenId::SymGreaterGreater:
             case TokenId::SymLowerLower:
-                return checkOp(sema, op, expr, ops);
+                return checkOp(sema, op, expr, nodeLeftView, nodeRightView);
 
             default:
                 break;
@@ -347,17 +341,18 @@ namespace
 
 AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema) const
 {
-    const SemaNodeViewList ops(sema, nodeLeftRef, nodeRightRef);
+    const SemaNodeView nodeLeftView(sema, nodeLeftRef);
+    const SemaNodeView nodeRightView(sema, nodeRightRef);
 
     // Type-check
     const Token& tok = sema.token(srcViewRef(), tokRef());
-    if (check(sema, tok.id, *this, ops) == Result::Error)
+    if (check(sema, tok.id, *this, nodeLeftView, nodeRightView) == Result::Error)
         return AstVisitStepResult::Stop;
 
     // Constant folding
-    if (ops.view[0].cstRef.isValid() && ops.view[1].cstRef.isValid())
+    if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())
     {
-        const auto cst = constantFold(sema, tok.id, *this, ops);
+        const auto cst = constantFold(sema, tok.id, *this, nodeLeftView, nodeRightView);
         if (cst.isValid())
         {
             sema.semaInfo().setConstant(sema.curNodeRef(), cst);

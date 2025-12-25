@@ -10,10 +10,10 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    ConstantRef constantFold(Sema& sema, TokenId op, const SemaNodeViewList& ops)
+    ConstantRef constantFold(Sema& sema, TokenId op, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        const ConstantRef leftCstRef  = ops.view[0].cstRef;
-        const ConstantRef rightCstRef = ops.view[1].cstRef;
+        const ConstantRef leftCstRef  = nodeLeftView.cstRef;
+        const ConstantRef rightCstRef = nodeRightView.cstRef;
         const ConstantRef cstFalseRef = sema.cstMgr().cstFalse();
         const ConstantRef cstTrueRef  = sema.cstMgr().cstTrue();
 
@@ -38,20 +38,17 @@ namespace
         }
     }
 
-    Result check(Sema& sema, const AstLogicalExpr& node, const SemaNodeViewList& ops)
+    Result check(Sema& sema, const AstLogicalExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        const SemaNodeView& view0 = ops.view[0];
-        const SemaNodeView& view1 = ops.view[1];
-
-        if (!view0.type->isBool())
+        if (!nodeLeftView.type->isBool())
         {
-            SemaError::raiseBinaryOperandType(sema, node, node.nodeLeftRef, view0.typeRef);
+            SemaError::raiseBinaryOperandType(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
             return Result::Error;
         }
 
-        if (!view1.type->isBool())
+        if (!nodeRightView.type->isBool())
         {
-            SemaError::raiseBinaryOperandType(sema, node, node.nodeRightRef, view1.typeRef);
+            SemaError::raiseBinaryOperandType(sema, node, node.nodeRightRef, nodeRightView.typeRef);
             return Result::Error;
         }
 
@@ -61,17 +58,18 @@ namespace
 
 AstVisitStepResult AstLogicalExpr::semaPostNode(Sema& sema) const
 {
-    const SemaNodeViewList ops(sema, nodeLeftRef, nodeRightRef);
+    const SemaNodeView nodeLeftView(sema, nodeLeftRef);
+    const SemaNodeView nodeRightView(sema, nodeRightRef);
 
     // Type-check
     const auto& tok = sema.token(srcViewRef(), tokRef());
-    if (check(sema, *this, ops) == Result::Error)
+    if (check(sema, *this, nodeLeftView, nodeRightView) == Result::Error)
         return AstVisitStepResult::Stop;
 
     // Constant folding
-    if (ops.view[0].cstRef.isValid() && ops.view[1].cstRef.isValid())
+    if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())
     {
-        const auto cst = constantFold(sema, tok.id, ops);
+        const auto cst = constantFold(sema, tok.id, nodeLeftView, nodeRightView);
         if (cst.isValid())
         {
             sema.setConstant(sema.curNodeRef(), cst);

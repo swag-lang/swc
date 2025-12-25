@@ -310,22 +310,22 @@ ConstantRef SemaCast::castConstant(Sema& sema, CastContext& castCtx, ConstantRef
     return castCtx.outConstRef;
 }
 
-bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, ConstantRef& leftCstRef, ConstantRef& rightCstRef, bool force32BitInts)
+bool SemaCast::promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView, ConstantRef& leftCstRef, ConstantRef& rightCstRef, bool force32BitInts)
 {
-    TypeRef leftTypeRef  = ops.view[0].typeRef;
-    TypeRef rightTypeRef = ops.view[1].typeRef;
+    TypeRef leftTypeRef  = nodeLeftView.typeRef;
+    TypeRef rightTypeRef = nodeRightView.typeRef;
     if (!force32BitInts && leftTypeRef == rightTypeRef)
         return true;
 
-    const TypeInfo* leftType  = ops.view[0].type;
-    const TypeInfo* rightType = ops.view[1].type;
+    const TypeInfo* leftType  = nodeLeftView.type;
+    const TypeInfo* rightType = nodeRightView.type;
     SWC_ASSERT(leftType->isScalarNumeric() && rightType->isScalarNumeric());
 
     const bool leftConcrete  = leftType->isConcreteScalar();
     const bool rightConcrete = rightType->isConcreteScalar();
 
-    leftCstRef  = ops.view[0].cstRef;
-    rightCstRef = ops.view[1].cstRef;
+    leftCstRef  = nodeLeftView.cstRef;
+    rightCstRef = nodeRightView.cstRef;
 
     // If one side is concrete, concretize the other side.
     // If both sides are not concrete, keep it that way to concretize at the very last moment.
@@ -334,7 +334,7 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
         if (!leftConcrete)
         {
             const TypeInfo::Sign hintSign = rightType->isInt() ? rightType->intSign() : TypeInfo::Sign::Signed;
-            leftCstRef                    = sema.cstMgr().concretizeConstant(sema, ops.view[0].nodeRef, leftCstRef, hintSign);
+            leftCstRef                    = sema.cstMgr().concretizeConstant(sema, nodeLeftView.nodeRef, leftCstRef, hintSign);
             if (leftCstRef.isInvalid())
                 return false;
             leftTypeRef = sema.cstMgr().get(leftCstRef).typeRef();
@@ -342,7 +342,7 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
         else if (!rightConcrete)
         {
             const TypeInfo::Sign hintSign = leftType->isInt() ? leftType->intSign() : TypeInfo::Sign::Signed;
-            rightCstRef                   = sema.cstMgr().concretizeConstant(sema, ops.view[1].nodeRef, rightCstRef, hintSign);
+            rightCstRef                   = sema.cstMgr().concretizeConstant(sema, nodeRightView.nodeRef, rightCstRef, hintSign);
             if (rightCstRef.isInvalid())
                 return false;
             rightTypeRef = sema.cstMgr().get(rightCstRef).typeRef();
@@ -352,13 +352,13 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeViewList& ops, Constan
     const TypeRef promotedTypeRef = sema.typeMgr().promote(leftTypeRef, rightTypeRef, force32BitInts);
 
     CastContext leftCastCtx(CastKind::Promotion);
-    leftCastCtx.errorNodeRef = ops.view[0].nodeRef;
+    leftCastCtx.errorNodeRef = nodeLeftView.nodeRef;
     leftCstRef               = castConstant(sema, leftCastCtx, leftCstRef, promotedTypeRef);
     if (leftCstRef.isInvalid())
         return false;
 
     CastContext rightCastCtx(CastKind::Promotion);
-    rightCastCtx.errorNodeRef = ops.view[1].nodeRef;
+    rightCastCtx.errorNodeRef = nodeRightView.nodeRef;
     rightCstRef               = castConstant(sema, rightCastCtx, rightCstRef, promotedTypeRef);
     if (rightCstRef.isInvalid())
         return false;

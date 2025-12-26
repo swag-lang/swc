@@ -59,4 +59,15 @@ Result SemaCheck::isValueExpr(Sema& sema, AstNodeRef nodeRef)
     return Result::Error;
 }
 
+Result SemaCheck::isConstant(Sema& sema, AstNodeRef nodeRef)
+{
+    if (!sema.hasConstant(nodeRef))
+    {
+        SemaError::raiseExprNotConst(sema, nodeRef);
+        return Result::Error;
+    }
+    
+    return Result::Success;
+}
+
 SWC_END_NAMESPACE()

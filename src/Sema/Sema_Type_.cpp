@@ -182,11 +182,8 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema)
     {
         if (SemaCheck::isValueExpr(sema, node) != Result::Success)
             return AstVisitStepResult::Stop;
-        if (!sema.hasConstant(node))
-        {
-            SemaError::raiseExprNotConst(sema, node);
+        if (SemaCheck::isConstant(sema, node) != Result::Success)
             return AstVisitStepResult::Stop;
-        }
         
         /*       if (!node.isKind(AstNodeKind::IntegerLiteral))
         {

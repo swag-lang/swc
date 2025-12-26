@@ -76,7 +76,7 @@ AstVisitStepResult AstExplicitCastExpr::semaPostNode(Sema& sema)
     if (SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst) == Result::Error)
         return AstVisitStepResult::Stop;
 
-    // Validate cast
+    // Cast kind
     CastContext castCtx(CastKind::Explicit);
     if (modifierFlags.has(AstModifierFlagsE::Bit))
         castCtx.flags.add(CastFlagsE::BitCast);

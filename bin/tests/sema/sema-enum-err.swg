@@ -46,3 +46,5 @@ enum K: cstring {} // swc-expected-error {{sema_err_invalid_enum_type}}
 
 enum L { A }
 #assert(L == 1) // swc-expected-error {{sema_err_not_value_expr}}
+#assert(L >= 1) // swc-expected-error {{sema_err_not_value_expr}}
+#assert(!L) // swc-expected-error {{sema_err_not_value_expr}}

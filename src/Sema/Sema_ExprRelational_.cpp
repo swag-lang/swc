@@ -196,7 +196,7 @@ namespace
         return Result::Error;
     }
 
-    void promoteTypeToTypeInfoForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
+    void rewriteTypeToTypeValue(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
     {
         if (!self.type || !other.type)
             return;
@@ -243,8 +243,8 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
     
     if (tok.id == TokenId::SymEqualEqual || tok.id == TokenId::SymBangEqual)
     {
-        promoteTypeToTypeInfoForEquality(sema, nodeLeftView, nodeRightView);
-        promoteTypeToTypeInfoForEquality(sema, nodeRightView, nodeLeftView);
+        rewriteTypeToTypeValue(sema, nodeLeftView, nodeRightView);
+        rewriteTypeToTypeValue(sema, nodeRightView, nodeLeftView);
     }
     
     // Value-check

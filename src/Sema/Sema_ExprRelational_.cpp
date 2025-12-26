@@ -231,14 +231,6 @@ namespace
         SemaCast::createImplicitCast(sema, symEnum.underlyingTypeRef(), self.nodeRef);
     }
 
-    void promoteEqualEqual(Sema& sema, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
-    {
-        promoteTypeToTypeInfoForEquality(sema, nodeLeftView, nodeRightView);
-        promoteEnumForEquality(sema, nodeLeftView, nodeRightView);
-        promoteTypeToTypeInfoForEquality(sema, nodeRightView, nodeLeftView);
-        promoteEnumForEquality(sema, nodeRightView, nodeLeftView);
-    }
-
     Result check(Sema& sema, TokenId op, const AstRelationalExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
         switch (op)
@@ -268,7 +260,10 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
     const auto& tok = sema.token(srcViewRef(), tokRef());
     
     if (tok.id == TokenId::SymEqualEqual || tok.id == TokenId::SymBangEqual)
-        promoteEqualEqual(sema, nodeLeftView, nodeRightView);
+    {
+        promoteTypeToTypeInfoForEquality(sema, nodeLeftView, nodeRightView);
+        promoteTypeToTypeInfoForEquality(sema, nodeRightView, nodeLeftView);
+    }
     
     // Value-check
     if (SemaCheck::isValueExpr(sema, nodeLeftRef) != Result::Success)
@@ -276,6 +271,12 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
     if (SemaCheck::isValueExpr(sema, nodeRightRef) != Result::Success)
         return AstVisitStepResult::Stop;
     SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
+    
+    if (tok.id == TokenId::SymEqualEqual || tok.id == TokenId::SymBangEqual)
+    {
+        promoteEnumForEquality(sema, nodeLeftView, nodeRightView);
+        promoteEnumForEquality(sema, nodeRightView, nodeLeftView);
+    }
     
     // Type-check
     if (check(sema, tok.id, *this, nodeLeftView, nodeRightView) == Result::Error)

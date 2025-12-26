@@ -220,18 +220,10 @@ namespace
     {
         if (SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Zero) == Result::Error)
             return Result::Error;
-
-        if (!sema.hasConstant(node.nodeLeftRef))
-        {
-            SemaError::raiseExprNotConst(sema, node.nodeLeftRef);
+        if (SemaCheck::isConstant(sema, node.nodeLeftRef) != Result::Success)
             return Result::Error;
-        }
-
-        if (!sema.hasConstant(node.nodeRightRef))
-        {
-            SemaError::raiseExprNotConst(sema, node.nodeRightRef);
+        if (SemaCheck::isConstant(sema, node.nodeRightRef) != Result::Success)
             return Result::Error;
-        }
 
         return Result::Success;
     }

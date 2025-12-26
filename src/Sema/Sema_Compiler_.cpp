@@ -11,18 +11,15 @@
 #include "Sema/Helpers/SemaNodeView.h"
 #include "Sema/Sema.h"
 #include "Sema/Type/TypeManager.h"
+#include "Sema/Helpers/SemaCheck.h"
 #include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE()
 
 AstVisitStepResult AstCompilerExpression::semaPostNode(Sema& sema)
 {
-    if (!sema.hasConstant(nodeExprRef))
-    {
-        SemaError::raiseExprNotConst(sema, nodeExprRef);
+    if (SemaCheck::isConstant(sema, nodeExprRef) != Result::Success)
         return AstVisitStepResult::Stop;
-    }
-
     sema.semaInherit(*this, nodeExprRef);
     return AstVisitStepResult::Continue;
 }

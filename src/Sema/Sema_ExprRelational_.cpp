@@ -167,8 +167,9 @@ namespace
         }
     }
 
-    Result checkEqualEqual(Sema& sema, const AstRelationalExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    Result checkEqualEqual(Sema& sema, const AstRelationalExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
+        SemaCast::promoteForEquality(sema, nodeLeftView, nodeRightView);
         if (nodeLeftView.typeRef == nodeRightView.typeRef)
             return Result::Success;
         if (nodeLeftView.type->isScalarNumeric() && nodeRightView.type->isScalarNumeric())
@@ -218,7 +219,6 @@ namespace
         {
             case TokenId::SymEqualEqual:
             case TokenId::SymBangEqual:
-                SemaCast::promoteForEquality(sema, nodeLeftView, nodeRightView);
                 return checkEqualEqual(sema, node, nodeLeftView, nodeRightView);
 
             case TokenId::SymLess:

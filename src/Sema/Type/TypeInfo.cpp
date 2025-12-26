@@ -299,7 +299,8 @@ TypeInfo TypeInfo::makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 TypeInfo TypeInfo::makeArray(const std::vector<uint32_t> &dims, TypeRef elementTypeRef, TypeInfoFlags flags)
 {
     TypeInfo ti{TypeInfoKind::Array, flags};
-    ti.asArray = {.dims = dims, .typeRef = elementTypeRef};
+    std::construct_at(&ti.asArray.dims, dims);
+    ti.asArray.typeRef = elementTypeRef;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }

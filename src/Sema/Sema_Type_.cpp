@@ -160,8 +160,13 @@ AstVisitStepResult AstNamedType::semaPostNode(Sema& sema)
 
 AstVisitStepResult AstArrayType::semaPostNode(Sema& sema)
 {
+    const SemaNodeView nodeView(sema, nodePointeeTypeRef);
     if (spanDimensionsRef.isInvalid())
     {
+        const TypeInfo     ty      = TypeInfo::makeArray({}, nodeView.typeRef);
+        const TypeRef      typeRef = sema.typeMgr().addType(ty);
+        sema.setType(sema.curNodeRef(), typeRef);
+        return AstVisitStepResult::Continue;
     }
     
     return AstVisitStepResult::Continue;

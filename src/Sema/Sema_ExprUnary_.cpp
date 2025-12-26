@@ -1,4 +1,6 @@
 #include "pch.h"
+
+#include "Helpers/SemaCheck.h"
 #include "Helpers/SemaError.h"
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisit.h"
@@ -183,7 +185,7 @@ namespace
     }
 }
 
-AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema) const
+AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema)
 {
     const SemaNodeView ops(sema, nodeExprRef);
 
@@ -191,6 +193,11 @@ AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema) const
     const auto& tok = sema.token(srcViewRef(), tokRef());
     if (check(sema, tok.id, *this, ops) == Result::Error)
         return AstVisitStepResult::Stop;
+    
+    // Value-check
+    if (SemaCheck::isValueExpr(sema, nodeExprRef) != Result::Success)
+        return AstVisitStepResult::Stop;
+    SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
 
     // Constant folding
     if (sema.hasConstant(nodeExprRef))

@@ -503,7 +503,7 @@ struct AstUnaryExpr : AstNodeT<AstNodeId::UnaryExpr>
     AstNodeRef nodeExprRef;
 
     void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
-    AstVisitStepResult semaPostNode(Sema& sema) const;
+    AstVisitStepResult semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

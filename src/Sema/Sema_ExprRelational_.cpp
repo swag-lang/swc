@@ -1,5 +1,4 @@
 #include "pch.h"
-
 #include "Helpers/SemaCheck.h"
 #include "Helpers/SemaError.h"
 #include "Parser/AstNodes.h"

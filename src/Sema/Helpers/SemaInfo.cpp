@@ -72,7 +72,7 @@ void SemaInfo::setConstant(AstNodeRef nodeRef, ConstantRef ref)
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(ref.isValid());
     AstNode& node      = ast().node(nodeRef);
-    semaNodeKind(node) = NodeSemaKind::ConstantRef;
+    setSemaKind(node, NodeSemaKind::ConstantRef);
     node.setSemaRaw(ref.get());
 }
 
@@ -89,7 +89,7 @@ void SemaInfo::setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef)
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(substNodeRef.isValid());
     AstNode& node      = ast().node(nodeRef);
-    semaNodeKind(node) = NodeSemaKind::Substitute;
+    setSemaKind(node, NodeSemaKind::Substitute);
     node.setSemaRaw(substNodeRef.get());
 }
 
@@ -150,7 +150,7 @@ void SemaInfo::setType(AstNodeRef nodeRef, TypeRef ref)
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(ref.isValid());
     AstNode& node      = ast().node(nodeRef);
-    semaNodeKind(node) = NodeSemaKind::TypeRef;
+    setSemaKind(node, NodeSemaKind::TypeRef);
     node.setSemaRaw(ref.get());
 }
 
@@ -189,7 +189,7 @@ void SemaInfo::setSymbol(AstNodeRef nodeRef, Symbol* symbol)
     std::unique_lock lock(shard.mutex);
 
     AstNode& node      = ast().node(nodeRef);
-    semaNodeKind(node) = NodeSemaKind::SymbolRef;
+    setSemaKind(node, NodeSemaKind::SymbolRef);
     const Ref value    = shard.store.push_back(symbol);
     node.setSemaRaw(value);
 }
@@ -201,7 +201,7 @@ void SemaInfo::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
     std::unique_lock lock(shard.mutex);
 
     AstNode& node      = ast().node(nodeRef);
-    semaNodeKind(node) = NodeSemaKind::SymbolRef;
+    setSemaKind(node, NodeSemaKind::SymbolRef);
     const Ref value    = shard.store.push_back(symbol);
     node.setSemaRaw(value);
 }

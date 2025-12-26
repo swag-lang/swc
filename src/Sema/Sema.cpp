@@ -38,7 +38,7 @@ Sema::Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root) :
 void Sema::semaInherit(AstNode& nodeDst, AstNodeRef srcRef)
 {
     const AstNode& nodeSrc = node(srcRef);
-    nodeDst.semaKindRaw()  = nodeSrc.semaKindRaw();
+    nodeDst.semaBits()  = nodeSrc.semaBits();
     nodeDst.setSemaRaw(nodeSrc.semaRaw());
 }
 

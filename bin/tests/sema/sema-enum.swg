@@ -152,3 +152,6 @@ const X = Test.A
 #assert(X == 1)
 #assert(X == Test.A)
 #assert(#typeof(X) == Test)
+
+enum EN { A }
+//const CA = cast(u32)EN+1

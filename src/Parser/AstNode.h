@@ -88,8 +88,8 @@ struct AstNode
     static AstVisitStepResult semaPostNode(Sema&) { return AstVisitStepResult::Continue; }
     static AstVisitStepResult semaPreChild(Sema&, AstNodeRef&) { return AstVisitStepResult::Continue; }
 
-    uint8_t&       semaKindRaw() { return semaKind_; }
-    const uint8_t& semaKindRaw() const { return semaKind_; }
+    uint8_t&       semaBits() { return semaKind_; }
+    const uint8_t& semaBits() const { return semaKind_; }
     uint32_t       semaRaw() const { return sema_; }
     void           setSemaRaw(uint32_t val) { sema_ = val; }
 

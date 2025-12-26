@@ -48,3 +48,9 @@ enum L { A }
 #assert(L == 1) // swc-expected-error {{sema_err_not_value_expr}}
 #assert(L >= 1) // swc-expected-error {{sema_err_not_value_expr}}
 #assert(!L) // swc-expected-error {{sema_err_not_value_expr}}
+
+var YY: s32
+enum M: s32
+{
+    A = YY // swc-expected-error {{sema_err_expr_not_const}}
+}

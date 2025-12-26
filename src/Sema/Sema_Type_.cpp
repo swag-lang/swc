@@ -195,7 +195,22 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema)
         }
         
         const int64_t dim = cst.getInt().asI64();
-        dims.push_back(dim);
+        if (dim == 0)
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_zero, dimRef);
+            diag.report(sema.ctx());
+            return AstVisitStepResult::Stop;
+        }
+        
+        if (dim <= 0)
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_negative, dimRef);
+            diag.addArgument(Diagnostic::ARG_VALUE, cst.toString(sema.ctx()));
+            diag.report(sema.ctx());
+            return AstVisitStepResult::Stop;
+        }
+        
+        dims.push_back(static_cast<uint32_t>(dim));
     }
     
     const TypeInfo     ty      = TypeInfo::makeArray(dims, nodeView.typeRef);

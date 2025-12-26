@@ -104,3 +104,6 @@ SWC_DIAG_DEF(sema_err_bad_type_qualifier, Error, "Type qualifier {tok} is not al
 SWC_DIAG_DEF(sema_err_not_a_type, Error, "{sym} is not a type (it is {a-sym-fam})")
 SWC_DIAG_DEF(sema_err_not_value_expr, Error, "not a value expression")
 SWC_DIAG_DEF(sema_err_array_dim_not_int, Error, "Array dimension must be an integer literal (got {type})")
+SWC_DIAG_DEF(sema_err_array_dim_zero, Error, "Array dimension cannot be zero")
+SWC_DIAG_DEF(sema_err_array_dim_negative, Error, "Array dimension cannot be negative (got {value})")
+

@@ -1,4 +1,6 @@
 #include "pch.h"
+
+#include "Helpers/SemaCheck.h"
 #include "Helpers/SemaError.h"
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisit.h"
@@ -205,6 +207,7 @@ namespace
         TaskContext&      ctx    = sema.ctx();
         const ConstantRef cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeTypeValue(ctx, self.typeRef));
         self.setCstRef(sema, cstRef);
+        sema.semaInfo().setConstant(self.nodeRef, cstRef);
     }
 
     void promoteEnumForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
@@ -255,15 +258,22 @@ namespace
     }
 }
 
-AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema) const
+AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
 {
     SemaNodeView nodeLeftView(sema, nodeLeftRef);
     SemaNodeView nodeRightView(sema, nodeRightRef);
-
+    
     // Type-check
     const auto& tok = sema.token(srcViewRef(), tokRef());
     if (check(sema, tok.id, *this, nodeLeftView, nodeRightView) == Result::Error)
         return AstVisitStepResult::Stop;
+
+    // Value-check
+    if (SemaCheck::isValueExpr(sema, nodeLeftRef) != Result::Success)
+        return AstVisitStepResult::Stop;
+    if (SemaCheck::isValueExpr(sema, nodeRightRef) != Result::Success)
+        return AstVisitStepResult::Stop;
+    SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
 
     // Constant folding
     if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())

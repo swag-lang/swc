@@ -486,7 +486,7 @@ struct AstLogicalExpr : AstBinaryT<AstNodeId::LogicalExpr>
 // -----------------------------------------------------------------------------
 struct AstRelationalExpr : AstBinaryT<AstNodeId::RelationalExpr>
 {
-    AstVisitStepResult semaPostNode(Sema& sema) const;
+    AstVisitStepResult semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

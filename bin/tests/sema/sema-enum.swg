@@ -154,4 +154,4 @@ const X = Test.A
 #assert(#typeof(X) == Test)
 
 enum EN { A }
-//const CA = cast(u32)EN+1
+const CA = cast(u32)EN+1 // swc-expected-error {{sema_err_not_value_expr}}

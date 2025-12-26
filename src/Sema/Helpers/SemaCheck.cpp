@@ -49,4 +49,14 @@ Result SemaCheck::modifiers(Sema& sema, const AstNode& node, AstModifierFlags mo
     return Result::Error;
 }
 
+Result SemaCheck::isValueExpr(Sema& sema, AstNodeRef nodeRef)
+{
+    const AstNode& node = sema.ast().node(nodeRef); 
+    if (SemaInfo::hasSemaFlags(node, NodeSemaFlags::ValueExpr))
+        return Result::Success;
+    const auto diag = SemaError::report(sema, DiagnosticId::sema_err_not_value_expr, nodeRef);
+    diag.report(sema.ctx());
+    return Result::Error;
+}
+
 SWC_END_NAMESPACE()

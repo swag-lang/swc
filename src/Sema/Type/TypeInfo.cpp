@@ -359,13 +359,7 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
         case TypeInfoKind::BlockPointer:
         {
             const TypeInfo& type = ctx.typeMgr().get(asTypeRef.typeRef);
-            out += std::format("[*]{}", type.toName(ctx));
-            break;
-        }
-        case TypeInfoKind::Slice:
-        {
-            const TypeInfo& type = ctx.typeMgr().get(asTypeRef.typeRef);
-            out += std::format("[..]{}", type.toName(ctx));
+            out += std::format("[*] {}", type.toName(ctx));
             break;
         }
 
@@ -397,16 +391,29 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
             }
             break;
             
+        case TypeInfoKind::Slice:
+        {
+            const TypeInfo& type = ctx.typeMgr().get(asTypeRef.typeRef);
+            out += std::format("[..] {}", type.toName(ctx));
+            break;
+        }
+            
         case TypeInfoKind::Array:
         {
-            out += "[";
-            for (size_t i = 0; i < asArray.dims.size(); ++i)
+            if (asArray.dims.empty())
+                out += "[?]";
+            else
             {
-                if (i != 0)
-                    out += ", ";
-                out += std::to_string(asArray.dims[i]);
+                out += "[";
+                for (size_t i = 0; i < asArray.dims.size(); ++i)
+                {
+                    if (i != 0)
+                        out += ", ";
+                    out += std::to_string(asArray.dims[i]);
+                }
+                out += "]";
             }
-            out += "]";
+            out += " ";
             const TypeInfo& elemType = ctx.typeMgr().get(asArray.typeRef);
             out += elemType.toName(ctx);
             break;

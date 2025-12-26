@@ -197,12 +197,11 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema)
         const int64_t dim = cst.getInt().asI64();
         if (dim == 0)
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_zero, dimRef);
-            diag.report(sema.ctx());
+            SemaError::raise(sema, DiagnosticId::sema_err_array_dim_zero, dimRef);
             return AstVisitStepResult::Stop;
         }
         
-        if (dim <= 0)
+        if (dim < 0)
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_negative, dimRef);
             diag.addArgument(Diagnostic::ARG_VALUE, cst.toString(sema.ctx()));

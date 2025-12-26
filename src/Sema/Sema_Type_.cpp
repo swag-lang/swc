@@ -1,4 +1,6 @@
 #include "pch.h"
+
+#include "Helpers/SemaCheck.h"
 #include "Helpers/SemaError.h"
 #include "Helpers/SemaNodeView.h"
 #include "Os/Os.h"
@@ -161,6 +163,8 @@ AstVisitStepResult AstNamedType::semaPostNode(Sema& sema)
 AstVisitStepResult AstArrayType::semaPostNode(Sema& sema)
 {
     const SemaNodeView nodeView(sema, nodePointeeTypeRef);
+    
+    // Unknown dimension [?]
     if (spanDimensionsRef.isInvalid())
     {
         const TypeInfo     ty      = TypeInfo::makeArray({}, nodeView.typeRef);
@@ -169,6 +173,36 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema)
         return AstVisitStepResult::Continue;
     }
     
+    // Value-check
+    SmallVector<AstNodeRef> out;
+    sema.ast().nodes(out, spanDimensionsRef);
+    
+    std::vector<uint32_t> dims;
+    for (const auto& node : out)
+    {
+        if (SemaCheck::isValueExpr(sema, node) != Result::Success)
+            return AstVisitStepResult::Stop;
+        if (!sema.hasConstant(node))
+        {
+            SemaError::raiseExprNotConst(sema, node);
+            return AstVisitStepResult::Stop;
+        }
+        
+        /*       if (!node.isKind(AstNodeKind::IntegerLiteral))
+        {
+            const auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_not_int, node);
+            diag.report(sema.ctx());
+            return AstVisitStepResult::Stop;
+        }*/
+        
+        const ConstantValue& cst = sema.constantOf(node);
+        const int64_t dim = cst.getInt().asI64();
+        dims.push_back(dim);
+    }
+    
+    const TypeInfo     ty      = TypeInfo::makeArray(dims, nodeView.typeRef);
+    const TypeRef      typeRef = sema.typeMgr().addType(ty);
+    sema.setType(sema.curNodeRef(), typeRef);
     return AstVisitStepResult::Continue;
 }
 

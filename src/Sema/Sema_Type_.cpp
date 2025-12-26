@@ -178,21 +178,22 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema)
     sema.ast().nodes(out, spanDimensionsRef);
     
     std::vector<uint32_t> dims;
-    for (const auto& node : out)
+    for (const auto& dimRef : out)
     {
-        if (SemaCheck::isValueExpr(sema, node) != Result::Success)
+        if (SemaCheck::isValueExpr(sema, dimRef) != Result::Success)
             return AstVisitStepResult::Stop;
-        if (SemaCheck::isConstant(sema, node) != Result::Success)
+        if (SemaCheck::isConstant(sema, dimRef) != Result::Success)
             return AstVisitStepResult::Stop;
         
-        /*       if (!node.isKind(AstNodeKind::IntegerLiteral))
+        const ConstantValue& cst = sema.constantOf(dimRef);
+        if (!cst.isInt())
         {
-            const auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_not_int, node);
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_not_int, dimRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, cst.typeRef());
             diag.report(sema.ctx());
             return AstVisitStepResult::Stop;
-        }*/
+        }
         
-        const ConstantValue& cst = sema.constantOf(node);
         const int64_t dim = cst.getInt().asI64();
         dims.push_back(dim);
     }

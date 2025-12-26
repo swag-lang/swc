@@ -27,7 +27,8 @@ namespace SemaCast
     ConstantRef castConstant(Sema& sema, CastContext& castCtx, ConstantRef cstRef, TypeRef targetTypeRef);
     bool        promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView, ConstantRef& leftCstRef, ConstantRef& rightCstRef, bool force32BitInts = false);
 
-    AstNodeRef createImplicitCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef);
+    AstNodeRef  createImplicitCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef);
+    void        promoteForEquality(Sema& sema, SemaNodeView& leftNodeView, SemaNodeView& rightNodeView);
 }
 
 SWC_END_NAMESPACE()

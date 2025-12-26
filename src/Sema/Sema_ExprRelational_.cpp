@@ -212,31 +212,13 @@ namespace
         sema.semaInfo().setConstant(self.nodeRef, cstRef);
     }
 
-    void promoteEnumForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
-    {
-        if (!self.type || !other.type)
-            return;
-        if (!self.type->isEnum())
-            return;
-        if (other.type->isEnum())
-            return;
-
-        if (self.cstRef.isValid())
-        {
-            self.setCstRef(sema, self.cst->getEnumValue());
-            return;
-        }
-
-        const SymbolEnum& symEnum = self.type->enumSym();
-        SemaCast::createImplicitCast(sema, symEnum.underlyingTypeRef(), self.nodeRef);
-    }
-
     Result check(Sema& sema, TokenId op, const AstRelationalExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
         switch (op)
         {
             case TokenId::SymEqualEqual:
             case TokenId::SymBangEqual:
+                SemaCast::promoteForEquality(sema, nodeLeftView, nodeRightView);
                 return checkEqualEqual(sema, node, nodeLeftView, nodeRightView);
 
             case TokenId::SymLess:
@@ -271,12 +253,6 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
     if (SemaCheck::isValueExpr(sema, nodeRightRef) != Result::Success)
         return AstVisitStepResult::Stop;
     SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
-    
-    if (tok.id == TokenId::SymEqualEqual || tok.id == TokenId::SymBangEqual)
-    {
-        promoteEnumForEquality(sema, nodeLeftView, nodeRightView);
-        promoteEnumForEquality(sema, nodeRightView, nodeLeftView);
-    }
     
     // Type-check
     if (check(sema, tok.id, *this, nodeLeftView, nodeRightView) == Result::Error)

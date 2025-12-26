@@ -5,6 +5,7 @@
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Sema.h"
+#include "Sema/Helpers/SemaNodeView.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/CastContext.h"
 #include "Sema/Type/TypeManager.h"
@@ -311,6 +312,34 @@ AstNodeRef SemaCast::createImplicitCast(Sema& sema, TypeRef dstTypeRef, AstNodeR
     semaInfo.setSubstitute(nodeRef, substNodeRef);
     semaInfo.setType(substNodeRef, dstTypeRef);
     return substNodeRef;
+}
+
+namespace
+{
+    void promoteEnumForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
+    {
+        if (!self.type || !other.type)
+            return;
+        if (!self.type->isEnum())
+            return;
+        if (other.type->isEnum())
+            return;
+
+        if (self.cstRef.isValid())
+        {
+            self.setCstRef(sema, self.cst->getEnumValue());
+            return;
+        }
+
+        const SymbolEnum& symEnum = self.type->enumSym();
+        SemaCast::createImplicitCast(sema, symEnum.underlyingTypeRef(), self.nodeRef);
+    }
+}
+
+void SemaCast::promoteForEquality(Sema& sema, SemaNodeView& leftNodeView, SemaNodeView& rightNodeView)
+{
+    promoteEnumForEquality(sema, leftNodeView, rightNodeView);
+    promoteEnumForEquality(sema, rightNodeView, leftNodeView);
 }
 
 SWC_END_NAMESPACE()

@@ -62,7 +62,7 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstExplicitCastExpr::semaPostNode(Sema& sema) const
+AstVisitStepResult AstExplicitCastExpr::semaPostNode(Sema& sema)
 {
     const SemaNodeView nodeTypeView(sema, nodeTypeRef);
     const SemaNodeView nodeExprView(sema, nodeExprRef);
@@ -70,6 +70,11 @@ AstVisitStepResult AstExplicitCastExpr::semaPostNode(Sema& sema) const
     // Check cast modifiers
     if (SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst) == Result::Error)
         return AstVisitStepResult::Stop;
+    
+    // Value-check
+    if (SemaCheck::isValueExpr(sema, nodeExprRef) != Result::Success)
+        return AstVisitStepResult::Stop;
+    SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
 
     // Validate cast
     CastContext castCtx(CastKind::Explicit);

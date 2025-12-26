@@ -651,7 +651,7 @@ struct AstExplicitCastExpr : AstNodeT<AstNodeId::ExplicitCastExpr>
     AstNodeRef       nodeExprRef;
 
     void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeExprRef}); }
-    AstVisitStepResult semaPostNode(Sema& sema) const;
+    AstVisitStepResult semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

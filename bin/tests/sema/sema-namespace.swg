@@ -49,3 +49,6 @@ namespace NH
 #assert(NH.C == 15)
 
 #assert(NH == 1) // swc-expected-error {{sema_err_not_value_expr}}
+#assert(NH + 1) // swc-expected-error {{sema_err_not_value_expr}}
+#assert(-NH) // swc-expected-error {{sema_err_not_value_expr}}
+#assert(cast(bool) NH) // swc-expected-error {{sema_err_not_value_expr}}

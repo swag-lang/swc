@@ -1,9 +1,7 @@
 #include "pch.h"
-
 #include "Helpers/SemaCheck.h"
 #include "Helpers/SemaError.h"
 #include "Helpers/SemaNodeView.h"
-#include "Os/Os.h"
 #include "Parser/AstVisit.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Sema.h"
@@ -160,7 +158,7 @@ AstVisitStepResult AstNamedType::semaPostNode(Sema& sema)
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstArrayType::semaPostNode(Sema& sema)
+AstVisitStepResult AstArrayType::semaPostNode(Sema& sema) const
 {
     auto& ctx = sema.ctx();
     const SemaNodeView nodeView(sema, nodePointeeTypeRef);
@@ -194,22 +192,30 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema)
             diag.report(ctx);
             return AstVisitStepResult::Stop;
         }
-        
-        const int64_t dim = cst.getInt().asI64();
-        if (dim == 0)
+
+        if (!cst.getInt().fits64())
         {
-            SemaError::raise(sema, DiagnosticId::sema_err_array_dim_zero, dimRef);
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_overflow, dimRef);
+            diag.addArgument(Diagnostic::ARG_VALUE, cst.toString(ctx));
+            diag.report(ctx);
             return AstVisitStepResult::Stop;
         }
-        
-        if (dim < 0)
+
+        if (cst.getInt().isNegative())
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_negative, dimRef);
             diag.addArgument(Diagnostic::ARG_VALUE, cst.toString(ctx));
             diag.report(ctx);
             return AstVisitStepResult::Stop;
         }
-        
+
+        const uint64_t dim = cst.getInt().as64();
+        if (dim == 0)
+        {
+            SemaError::raise(sema, DiagnosticId::sema_err_array_dim_zero, dimRef);
+            return AstVisitStepResult::Stop;
+        }
+                
         dims.push_back(static_cast<uint32_t>(dim));
     }
     

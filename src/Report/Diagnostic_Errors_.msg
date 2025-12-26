@@ -105,5 +105,7 @@ SWC_DIAG_DEF(sema_err_not_a_type, Error, "{sym} is not a type (it is {a-sym-fam}
 SWC_DIAG_DEF(sema_err_not_value_expr, Error, "not a value expression")
 SWC_DIAG_DEF(sema_err_array_dim_not_int, Error, "Array dimension must be an integer literal (got {type})")
 SWC_DIAG_DEF(sema_err_array_dim_zero, Error, "Array dimension cannot be zero")
+SWC_DIAG_DEF(sema_err_array_dim_overflow, Error, "Array dimension overflow; Value {value} cannot fit in a 'u64'")
 SWC_DIAG_DEF(sema_err_array_dim_negative, Error, "Array dimension cannot be negative (got {value})")
+
 

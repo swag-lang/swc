@@ -780,7 +780,7 @@ struct AstArrayType : AstNodeT<AstNodeId::ArrayType>
         AstNode::collectChildren(out, {nodePointeeTypeRef});
     }
     
-    AstVisitStepResult semaPostNode(Sema& sema);
+    AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

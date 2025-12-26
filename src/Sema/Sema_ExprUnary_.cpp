@@ -202,7 +202,7 @@ AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema)
     // Constant folding
     if (sema.hasConstant(nodeExprRef))
     {
-        const auto cst = constantFold(sema, tok.id, *this, ops);
+        const ConstantRef cst = constantFold(sema, tok.id, *this, ops);
         if (cst.isValid())
         {
             sema.setConstant(sema.curNodeRef(), cst);

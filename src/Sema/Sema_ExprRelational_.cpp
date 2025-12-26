@@ -278,7 +278,7 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
     // Constant folding
     if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())
     {
-        const auto cst = constantFold(sema, tok.id, nodeLeftView, nodeRightView);
+        const ConstantRef cst = constantFold(sema, tok.id, nodeLeftView, nodeRightView);
         if (cst.isValid())
         {
             sema.setConstant(sema.curNodeRef(), cst);

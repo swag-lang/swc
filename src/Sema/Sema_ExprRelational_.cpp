@@ -241,14 +241,10 @@ namespace
 
     Result check(Sema& sema, TokenId op, const AstRelationalExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
-        if (!nodeLeftView.type || !nodeRightView.type)
-            return Result::Success;
-
         switch (op)
         {
             case TokenId::SymEqualEqual:
             case TokenId::SymBangEqual:
-                promoteEqualEqual(sema, nodeLeftView, nodeRightView);
                 return checkEqualEqual(sema, node, nodeLeftView, nodeRightView);
 
             case TokenId::SymLess:
@@ -269,18 +265,21 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
 {
     SemaNodeView nodeLeftView(sema, nodeLeftRef);
     SemaNodeView nodeRightView(sema, nodeRightRef);
-    
-    // Type-check
     const auto& tok = sema.token(srcViewRef(), tokRef());
-    if (check(sema, tok.id, *this, nodeLeftView, nodeRightView) == Result::Error)
-        return AstVisitStepResult::Stop;
-
+    
+    if (tok.id == TokenId::SymEqualEqual || tok.id == TokenId::SymBangEqual)
+        promoteEqualEqual(sema, nodeLeftView, nodeRightView);
+    
     // Value-check
     if (SemaCheck::isValueExpr(sema, nodeLeftRef) != Result::Success)
         return AstVisitStepResult::Stop;
     if (SemaCheck::isValueExpr(sema, nodeRightRef) != Result::Success)
         return AstVisitStepResult::Stop;
     SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
+    
+    // Type-check
+    if (check(sema, tok.id, *this, nodeLeftView, nodeRightView) == Result::Error)
+        return AstVisitStepResult::Stop;
 
     // Constant folding
     if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())

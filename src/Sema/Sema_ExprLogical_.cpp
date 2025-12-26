@@ -63,11 +63,6 @@ AstVisitStepResult AstLogicalExpr::semaPostNode(Sema& sema)
     const SemaNodeView nodeLeftView(sema, nodeLeftRef);
     const SemaNodeView nodeRightView(sema, nodeRightRef);
 
-    // Type-check
-    const auto& tok = sema.token(srcViewRef(), tokRef());
-    if (check(sema, *this, nodeLeftView, nodeRightView) == Result::Error)
-        return AstVisitStepResult::Stop;
-    
     // Value-check
     if (SemaCheck::isValueExpr(sema, nodeLeftRef) != Result::Success)
         return AstVisitStepResult::Stop;
@@ -75,6 +70,11 @@ AstVisitStepResult AstLogicalExpr::semaPostNode(Sema& sema)
         return AstVisitStepResult::Stop;
     SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
 
+    // Type-check
+    const auto& tok = sema.token(srcViewRef(), tokRef());
+    if (check(sema, *this, nodeLeftView, nodeRightView) == Result::Error)
+        return AstVisitStepResult::Stop;
+    
     // Constant folding
     if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())
     {

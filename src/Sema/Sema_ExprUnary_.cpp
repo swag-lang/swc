@@ -189,16 +189,16 @@ AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema)
 {
     const SemaNodeView ops(sema, nodeExprRef);
 
-    // Type-check
-    const auto& tok = sema.token(srcViewRef(), tokRef());
-    if (check(sema, tok.id, *this, ops) == Result::Error)
-        return AstVisitStepResult::Stop;
-    
     // Value-check
     if (SemaCheck::isValueExpr(sema, nodeExprRef) != Result::Success)
         return AstVisitStepResult::Stop;
     SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
 
+    // Type-check
+    const auto& tok = sema.token(srcViewRef(), tokRef());
+    if (check(sema, tok.id, *this, ops) == Result::Error)
+        return AstVisitStepResult::Stop;
+    
     // Constant folding
     if (sema.hasConstant(nodeExprRef))
     {

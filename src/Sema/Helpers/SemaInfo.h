@@ -77,7 +77,6 @@ public:
     bool          hasSymbol(AstNodeRef nodeRef) const;
     const Symbol& getSymbol(const TaskContext&, AstNodeRef nodeRef) const;
     Symbol&       getSymbol(const TaskContext&, AstNodeRef nodeRef);
-    void          setSymbol(AstNodeRef nodeRef, Symbol* symbol);
     void          setSymbol(AstNodeRef nodeRef, const Symbol* symbol);
 };
 

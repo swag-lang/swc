@@ -190,23 +190,6 @@ Symbol& SemaInfo::getSymbol(const TaskContext&, AstNodeRef nodeRef)
     return value;
 }
 
-void SemaInfo::setSymbol(AstNodeRef nodeRef, Symbol* symbol)
-{
-    const uint32_t   shardIdx = nodeRef.get() % NUM_SHARDS;
-    auto&            shard    = shards_[shardIdx];
-    std::unique_lock lock(shard.mutex);
-
-    AstNode& node      = ast().node(nodeRef);
-    setSemaKind(node, NodeSemaKind::SymbolRef);
-    const Ref value    = shard.store.push_back(symbol);
-    node.setSemaRef(value);
-    
-    if (symbol->isValueExpr())
-        addSemaFlags(node, NodeSemaFlags::ValueExpr);
-    else
-        removeSemaFlags(node, NodeSemaFlags::ValueExpr);
-}
-
 void SemaInfo::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
 {
     const uint32_t   shardIdx = nodeRef.get() % NUM_SHARDS;
@@ -215,8 +198,14 @@ void SemaInfo::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
 
     AstNode& node      = ast().node(nodeRef);
     setSemaKind(node, NodeSemaKind::SymbolRef);
+    
     const Ref value    = shard.store.push_back(symbol);
     node.setSemaRef(value);
+    
+    if (symbol->isValueExpr())
+        addSemaFlags(node, NodeSemaFlags::ValueExpr);
+    else
+        removeSemaFlags(node, NodeSemaFlags::ValueExpr);
 }
 
 SWC_END_NAMESPACE()

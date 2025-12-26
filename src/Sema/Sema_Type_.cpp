@@ -162,6 +162,7 @@ AstVisitStepResult AstNamedType::semaPostNode(Sema& sema)
 
 AstVisitStepResult AstArrayType::semaPostNode(Sema& sema)
 {
+    auto& ctx = sema.ctx();
     const SemaNodeView nodeView(sema, nodePointeeTypeRef);
     
     // Unknown dimension [?]
@@ -190,7 +191,7 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema)
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_not_int, dimRef);
             diag.addArgument(Diagnostic::ARG_TYPE, cst.typeRef());
-            diag.report(sema.ctx());
+            diag.report(ctx);
             return AstVisitStepResult::Stop;
         }
         
@@ -204,8 +205,8 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema)
         if (dim < 0)
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_negative, dimRef);
-            diag.addArgument(Diagnostic::ARG_VALUE, cst.toString(sema.ctx()));
-            diag.report(sema.ctx());
+            diag.addArgument(Diagnostic::ARG_VALUE, cst.toString(ctx));
+            diag.report(ctx);
             return AstVisitStepResult::Stop;
         }
         

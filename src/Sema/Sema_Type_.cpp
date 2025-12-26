@@ -158,4 +158,13 @@ AstVisitStepResult AstNamedType::semaPostNode(Sema& sema)
     return AstVisitStepResult::Continue;
 }
 
+AstVisitStepResult AstArrayType::semaPostNode(Sema& sema)
+{
+    if (spanDimensionsRef.isInvalid())
+    {
+    }
+    
+    return AstVisitStepResult::Continue;
+}
+
 SWC_END_NAMESPACE()

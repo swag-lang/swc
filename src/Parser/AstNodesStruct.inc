@@ -779,6 +779,8 @@ struct AstArrayType : AstNodeT<AstNodeId::ArrayType>
         AstNode::collectChildren(out, ast, spanDimensionsRef);
         AstNode::collectChildren(out, {nodePointeeTypeRef});
     }
+    
+    AstVisitStepResult semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

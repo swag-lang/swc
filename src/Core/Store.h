@@ -119,7 +119,6 @@ private:
     template<class T>
     static T* ptr_impl(const std::vector<std::unique_ptr<Page>>& pages, uint32_t pageSize, Ref ref)
     {
-        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
         uint32_t pageIndex, offset;
         decodeRef(pageSize, ref, pageIndex, offset);
         SWC_ASSERT(pageIndex < pages.size());

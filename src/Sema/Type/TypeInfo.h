@@ -31,6 +31,7 @@ enum class TypeInfoKind : uint8_t
     ValuePointer,
     BlockPointer,
     Slice,
+    Array,
 };
 
 class TypeInfo;
@@ -50,7 +51,6 @@ private:
     friend struct TypeInfoHash;
     friend class TypeManager;
 
-    TypeInfo() = delete;
     explicit TypeInfo(TypeInfoKind kind, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
 
     TypeInfoKind  kind_  = TypeInfoKind::Invalid;
@@ -59,14 +59,19 @@ private:
     union
     {
         // clang-format off
-        struct { uint32_t bits; Sign sign; } asInt;
-        struct { uint32_t bits; } asFloat;
-        struct { TypeRef typeRef; } asTypeRef;
-        struct { SymbolEnum* enumSym; } asEnumSym;
+        struct { uint32_t bits; Sign sign; }                     asInt;
+        struct { uint32_t bits; }                                asFloat;
+        struct { TypeRef typeRef; }                              asTypeRef;
+        struct { SymbolEnum* enumSym; }                          asEnumSym;
+        struct { std::vector<uint32_t> dims; TypeRef typeRef; }  asArray;
         // clang-format on
     };
 
 public:
+    ~TypeInfo() {};
+    TypeInfo(const TypeInfo&);
+    TypeInfo& operator=(const TypeInfo&);
+    
     bool operator==(const TypeInfo& other) const noexcept;
     Utf8 toName(const TaskContext& ctx) const;
 
@@ -99,6 +104,7 @@ public:
     bool isBlockPointer() const noexcept { return kind_ == TypeInfoKind::BlockPointer; }
     bool isPointer() const noexcept { return isValuePointer() || isBlockPointer(); }
     bool isSlice() const noexcept { return kind_ == TypeInfoKind::Slice; }
+    bool isArray() const noexcept { return kind_ == TypeInfoKind::Array; }
 
     bool isCharRune() const noexcept { return isChar() || isRune(); }
     bool isIntLike() const noexcept { return isInt() || isCharRune(); }
@@ -114,6 +120,8 @@ public:
     uint32_t          floatBits() const noexcept { SWC_ASSERT(isFloat()); return asFloat.bits; }
     SymbolEnum&       enumSym() const noexcept { SWC_ASSERT(isEnum()); return *asEnumSym.enumSym; }
     TypeRef           typeRef() const noexcept { SWC_ASSERT(isTypeValue() || isPointer() || isSlice()); return asTypeRef.typeRef; }
+    auto&             arrayDims() const noexcept { SWC_ASSERT(isArray()); return asArray.dims; }
+    TypeRef           arrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return asArray.typeRef; }
     // clang-format on
 
     static TypeInfo makeBool();
@@ -130,6 +138,7 @@ public:
     static TypeInfo makeValuePointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    static TypeInfo makeArray(const std::vector<uint32_t> &dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
 
     uint32_t hash() const;
 };

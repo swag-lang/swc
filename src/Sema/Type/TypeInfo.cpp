@@ -14,6 +14,110 @@ TypeInfo::TypeInfo(TypeInfoKind kind, TypeInfoFlags flags) :
 {
 }
 
+TypeInfo::TypeInfo(const TypeInfo& other) :
+    kind_(other.kind_),
+    flags_(other.flags_)
+{
+    switch (kind_)
+    {
+        case TypeInfoKind::Bool:
+        case TypeInfoKind::Char:
+        case TypeInfoKind::String:
+        case TypeInfoKind::Void:
+        case TypeInfoKind::Any:
+        case TypeInfoKind::Rune:
+        case TypeInfoKind::CString:
+            // no payload
+            break;
+
+        case TypeInfoKind::Int:
+            asInt = other.asInt;
+            break;
+
+        case TypeInfoKind::Float:
+            asFloat = other.asFloat;
+            break;
+
+        case TypeInfoKind::ValuePointer:
+        case TypeInfoKind::BlockPointer:
+        case TypeInfoKind::Slice:
+        case TypeInfoKind::TypeValue:
+            asTypeRef = other.asTypeRef;
+            break;
+
+        case TypeInfoKind::Enum:
+            asEnumSym = other.asEnumSym;
+            break;
+
+        case TypeInfoKind::Array:
+            asArray = other.asArray;
+            break;
+
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+TypeInfo& TypeInfo::operator=(const TypeInfo& other)
+{
+    if (this == &other)
+        return *this;
+
+    switch (kind_)
+    {
+        case TypeInfoKind::Array:
+            std::destroy_at(&asArray);
+            break;
+
+        default:
+            break;
+    }
+
+    kind_  = other.kind_;
+    flags_ = other.flags_;
+
+    // Copy payload for new kind
+    switch (kind_)
+    {
+        case TypeInfoKind::Bool:
+        case TypeInfoKind::Char:
+        case TypeInfoKind::String:
+        case TypeInfoKind::Void:
+        case TypeInfoKind::Any:
+        case TypeInfoKind::Rune:
+        case TypeInfoKind::CString:
+            break;
+
+        case TypeInfoKind::Int:
+            asInt = other.asInt;
+            break;
+
+        case TypeInfoKind::Float:
+            asFloat = other.asFloat;
+            break;
+
+        case TypeInfoKind::ValuePointer:
+        case TypeInfoKind::BlockPointer:
+        case TypeInfoKind::Slice:
+        case TypeInfoKind::TypeValue:
+            asTypeRef = other.asTypeRef;
+            break;
+
+        case TypeInfoKind::Enum:
+            asEnumSym = other.asEnumSym;
+            break;
+
+        case TypeInfoKind::Array:
+            new (&asArray) decltype(asArray)(other.asArray);
+            break;
+
+        default:
+            SWC_UNREACHABLE();
+    }
+
+    return *this;
+}
+
 bool TypeInfo::operator==(const TypeInfo& other) const noexcept
 {
     if (kind_ != other.kind_)
@@ -42,6 +146,16 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
             return asTypeRef.typeRef == other.asTypeRef.typeRef;
         case TypeInfoKind::Enum:
             return asEnumSym.enumSym == other.asEnumSym.enumSym;
+            
+        case TypeInfoKind::Array:
+            if (asArray.dims.size() != other.asArray.dims.size())
+                return false;
+            if (asArray.typeRef != other.asArray.typeRef)
+                return false;
+            for (uint32_t i = 0; i < asArray.dims.size(); ++i)
+                if (asArray.dims[i] != other.asArray.dims[i])
+                    return false;
+            return true;
 
         default:
             SWC_UNREACHABLE();
@@ -79,6 +193,11 @@ uint32_t TypeInfo::hash() const
             return h;
         case TypeInfoKind::Enum:
             h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asEnumSym.enumSym));
+            return h;
+        case TypeInfoKind::Array:
+            h = Math::hashCombine(h, asArray.typeRef.get());
+            for (const auto dim : asArray.dims)
+                h = Math::hashCombine(h, dim);
             return h;
 
         default:
@@ -177,6 +296,14 @@ TypeInfo TypeInfo::makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags)
     return ti;
 }
 
+TypeInfo TypeInfo::makeArray(const std::vector<uint32_t> &dims, TypeRef elementTypeRef, TypeInfoFlags flags)
+{
+    TypeInfo ti{TypeInfoKind::Array, flags};
+    ti.asArray = {.dims = dims, .typeRef = elementTypeRef};
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return ti;
+}
+
 Utf8 TypeInfo::toName(const TaskContext& ctx) const
 {
     Utf8 out;
@@ -269,6 +396,21 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
                 out += std::to_string(asFloat.bits);
             }
             break;
+            
+        case TypeInfoKind::Array:
+        {
+            out += "[";
+            for (size_t i = 0; i < asArray.dims.size(); ++i)
+            {
+                if (i != 0)
+                    out += ", ";
+                out += std::to_string(asArray.dims[i]);
+            }
+            out += "]";
+            const TypeInfo& elemType = ctx.typeMgr().get(asArray.typeRef);
+            out += elemType.toName(ctx);
+            break;
+        }
 
         default:
             SWC_UNREACHABLE();

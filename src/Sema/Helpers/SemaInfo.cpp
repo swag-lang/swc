@@ -48,7 +48,7 @@ ConstantRef SemaInfo::getConstantRef(const TaskContext& ctx, AstNodeRef nodeRef)
 
     if (semaKind(node) == NodeSemaKind::ConstantRef)
     {
-        ConstantRef value{node.semaRaw()};
+        ConstantRef value{node.semaRef()};
 #if SWC_HAS_DEBUG_INFO
         value.setDbgPtr(&ctx.cstMgr().get(value));
 #endif
@@ -73,7 +73,8 @@ void SemaInfo::setConstant(AstNodeRef nodeRef, ConstantRef ref)
     SWC_ASSERT(ref.isValid());
     AstNode& node      = ast().node(nodeRef);
     setSemaKind(node, NodeSemaKind::ConstantRef);
-    node.setSemaRaw(ref.get());
+    node.setSemaRef(ref.get());
+    addSemaFlags(node, NodeSemaFlags::ValueExpr);
 }
 
 bool SemaInfo::hasSubstitute(AstNodeRef nodeRef) const
@@ -90,18 +91,25 @@ void SemaInfo::setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef)
     SWC_ASSERT(substNodeRef.isValid());
     AstNode& node      = ast().node(nodeRef);
     setSemaKind(node, NodeSemaKind::Substitute);
-    node.setSemaRaw(substNodeRef.get());
+    node.setSemaRef(substNodeRef.get());
 }
 
-AstNodeRef SemaInfo::getSubstituteRef(const TaskContext&, AstNodeRef nodeRef) const
+AstNodeRef SemaInfo::getSubstitudeRef(AstNodeRef nodeRef) const
 {
-    SWC_ASSERT(hasSubstitute(nodeRef));
-    const AstNode& node  = ast().node(nodeRef);
-    auto           value = AstNodeRef{node.semaRaw()};
+    if (nodeRef.isInvalid())
+        return nodeRef;
+    
+    const AstNode* node = &ast().node(nodeRef);
+    while (semaKind(*node) == NodeSemaKind::Substitute)
+    {
+        nodeRef = AstNodeRef{node->semaRef()};
+        node = &ast().node(nodeRef);    
+    }
+    
 #if SWC_HAS_DEBUG_INFO
-    value.setDbgPtr(&ast().node(value));
+    nodeRef.setDbgPtr(&ast().node(nodeRef));
 #endif
-    return value;
+    return nodeRef;
 }
 
 bool SemaInfo::hasType(AstNodeRef nodeRef) const
@@ -126,7 +134,7 @@ TypeRef SemaInfo::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const
             value = getConstant(ctx, nodeRef).typeRef();
             break;
         case NodeSemaKind::TypeRef:
-            value = TypeRef{node.semaRaw()};
+            value = TypeRef{node.semaRef()};
             break;
         case NodeSemaKind::SymbolRef:
             value = getSymbol(ctx, nodeRef).typeRef();
@@ -151,7 +159,7 @@ void SemaInfo::setType(AstNodeRef nodeRef, TypeRef ref)
     SWC_ASSERT(ref.isValid());
     AstNode& node      = ast().node(nodeRef);
     setSemaKind(node, NodeSemaKind::TypeRef);
-    node.setSemaRaw(ref.get());
+    node.setSemaRef(ref.get());
 }
 
 bool SemaInfo::hasSymbol(AstNodeRef nodeRef) const
@@ -168,7 +176,7 @@ const Symbol& SemaInfo::getSymbol(const TaskContext&, AstNodeRef nodeRef) const
     const uint32_t shardIdx = nodeRef.get() % NUM_SHARDS;
     auto&          shard    = shards_[shardIdx];
     const AstNode& node     = ast().node(nodeRef);
-    const Symbol&  value    = **shard.store.ptr<Symbol*>(node.semaRaw());
+    const Symbol&  value    = **shard.store.ptr<Symbol*>(node.semaRef());
     return value;
 }
 
@@ -178,7 +186,7 @@ Symbol& SemaInfo::getSymbol(const TaskContext&, AstNodeRef nodeRef)
     const uint32_t shardIdx = nodeRef.get() % NUM_SHARDS;
     auto&          shard    = shards_[shardIdx];
     const AstNode& node     = ast().node(nodeRef);
-    Symbol&        value    = **shard.store.ptr<Symbol*>(node.semaRaw());
+    Symbol&        value    = **shard.store.ptr<Symbol*>(node.semaRef());
     return value;
 }
 
@@ -191,7 +199,12 @@ void SemaInfo::setSymbol(AstNodeRef nodeRef, Symbol* symbol)
     AstNode& node      = ast().node(nodeRef);
     setSemaKind(node, NodeSemaKind::SymbolRef);
     const Ref value    = shard.store.push_back(symbol);
-    node.setSemaRaw(value);
+    node.setSemaRef(value);
+    
+    if (symbol->isValueExpr())
+        addSemaFlags(node, NodeSemaFlags::ValueExpr);
+    else
+        removeSemaFlags(node, NodeSemaFlags::ValueExpr);
 }
 
 void SemaInfo::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
@@ -203,7 +216,7 @@ void SemaInfo::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
     AstNode& node      = ast().node(nodeRef);
     setSemaKind(node, NodeSemaKind::SymbolRef);
     const Ref value    = shard.store.push_back(symbol);
-    node.setSemaRaw(value);
+    node.setSemaRef(value);
 }
 
 SWC_END_NAMESPACE()

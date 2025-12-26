@@ -23,7 +23,7 @@ enum class NodeSemaKind : uint8_t
 
 enum class NodeSemaFlags : uint8_t 
 {
-    Value = 1 << 7,
+    ValueExpr = 1 << 7,
 };
 
 
@@ -68,7 +68,7 @@ public:
 
     bool       hasSubstitute(AstNodeRef nodeRef) const;
     void       setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef);
-    AstNodeRef getSubstituteRef(const TaskContext&, AstNodeRef nodeRef) const;
+    AstNodeRef getSubstitudeRef(AstNodeRef nodeRef) const;
 
     bool    hasType(AstNodeRef nodeRef) const;
     TypeRef getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const;

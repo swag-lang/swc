@@ -93,7 +93,9 @@ public:
     bool isEnumValue() const noexcept { return kind_ == SymbolKind::EnumValue; }
     bool isModule() const noexcept { return kind_ == SymbolKind::Module; }
     bool isSymMap() const noexcept { return kind_ == SymbolKind::Namespace || kind_ == SymbolKind::Module || kind_ == SymbolKind::Enum; }
+    
     bool isType() const noexcept { return isEnum(); }
+    bool isValueExpr() const noexcept { return isVariable() || isConstant() || isEnumValue(); }
 
     Symbol* nextHomonym() const noexcept { return nextHomonym_; }
     void    setNextHomonym(Symbol* next) noexcept { nextHomonym_ = next; }

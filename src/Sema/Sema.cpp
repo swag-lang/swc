@@ -39,7 +39,7 @@ void Sema::semaInherit(AstNode& nodeDst, AstNodeRef srcRef)
 {
     const AstNode& nodeSrc = node(srcRef);
     nodeDst.semaBits()  = nodeSrc.semaBits();
-    nodeDst.setSemaRaw(nodeSrc.semaRaw());
+    nodeDst.setSemaRef(nodeSrc.semaRef());
 }
 
 ConstantManager& Sema::cstMgr()

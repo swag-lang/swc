@@ -197,6 +197,8 @@ namespace
 
     void promoteTypeToTypeInfoForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
     {
+        if (!self.type || !other.type)
+            return;
         if (!other.type->isTypeValue())
             return;
         if (self.type->isTypeValue())
@@ -212,6 +214,8 @@ namespace
 
     void promoteEnumForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
     {
+        if (!self.type || !other.type)
+            return;
         if (!self.type->isEnum())
             return;
         if (other.type->isEnum())
@@ -237,6 +241,9 @@ namespace
 
     Result check(Sema& sema, TokenId op, const AstRelationalExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
+        if (!nodeLeftView.type || !nodeRightView.type)
+            return Result::Success;
+
         switch (op)
         {
             case TokenId::SymEqualEqual:

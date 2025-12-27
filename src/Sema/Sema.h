@@ -22,6 +22,8 @@ class Sema
 
     void               setVisitors();
     void               enterNode(AstNode& node);
+    AstVisitStepResult preDecl(AstNode& node);
+    AstVisitStepResult postDecl(AstNode& node);
     AstVisitStepResult preNode(AstNode& node);
     AstVisitStepResult postNode(AstNode& node);
     AstVisitStepResult preChild(AstNode& node, AstNodeRef& childRef);
@@ -29,17 +31,19 @@ class Sema
     std::vector<std::unique_ptr<SemaScope>> scopes_;
     SymbolMap*                              startSymMap_ = nullptr;
     SemaScope*                              curScope_    = nullptr;
+    bool                                    declPass_ = false;
 
     std::vector<SemaFrame> frame_;
 
 public:
-    Sema(TaskContext& ctx, SemaInfo& semInfo);
+    Sema(TaskContext& ctx, SemaInfo& semInfo, bool declPass);
     Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root);
     ~Sema();
     JobResult exec();
 
     TaskContext&            ctx() { return *ctx_; }
     const TaskContext&      ctx() const { return *ctx_; }
+    bool                    isDeclPass() const { return declPass_; }
     SemaInfo&               semaInfo() { return *semaInfo_; }
     const SemaInfo&         semaInfo() const { return *semaInfo_; }
     SemaFrame&              frame() { return frame_.back(); }
@@ -90,7 +94,7 @@ public:
     void popFrame();
 
     AstVisitStepResult pause(TaskStateKind kind);
-    static void        waitAll(TaskContext& ctx, JobClientId clientId);
+    static void        waitDone(TaskContext& ctx, JobClientId clientId);
 };
 
 SWC_END_NAMESPACE()

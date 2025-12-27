@@ -83,6 +83,8 @@ struct AstNode
     static void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, SpanRef spanRef);
     static void collectChildren(SmallVector<AstNodeRef>& out, std::initializer_list<AstNodeRef> nodes);
 
+    static AstVisitStepResult semaPreDecl(Sema&) { return AstVisitStepResult::Continue; }
+    static AstVisitStepResult semaPostDecl(Sema&) { return AstVisitStepResult::Continue; }
     static void               semaEnterNode(Sema&) {}
     static AstVisitStepResult semaPreNode(Sema&) { return AstVisitStepResult::Continue; }
     static AstVisitStepResult semaPostNode(Sema&) { return AstVisitStepResult::Continue; }

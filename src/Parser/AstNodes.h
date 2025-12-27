@@ -296,9 +296,11 @@ struct AstNodeIdInfo
     using SemaPreChild       = AstVisitStepResult (*)(Sema&, AstNode&, AstNodeRef&);
 
     AstCollectChildren collectChildren;
+    SemaPreNode        semaPreDecl;
+    SemaPostNode       semaPostDecl;
     SemaEnterNode      semaEnterNode;
     SemaPreNode        semaPreNode;
-    SemaPreNode        semaPostNode;
+    SemaPostNode       semaPostNode;
     SemaPreChild       semaPreChild;
 
     bool hasFlag(AstNodeIdFlagsE flag) const { return flags.has(flag); }
@@ -309,6 +311,20 @@ void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, const AstNode
 {
     using NodeType = AstTypeOf<ID>::type;
     castAst<NodeType>(&node)->collectChildren(out, ast);
+}
+
+template<AstNodeId ID>
+AstVisitStepResult semaPreDecl(Sema& sema, AstNode& node)
+{
+    using NodeType = AstTypeOf<ID>::type;
+    return castAst<NodeType>(&node)->semaPreDecl(sema);
+}
+
+template<AstNodeId ID>
+AstVisitStepResult semaPostDecl(Sema& sema, AstNode& node)
+{
+    using NodeType = AstTypeOf<ID>::type;
+    return castAst<NodeType>(&node)->semaPostDecl(sema);
 }
 
 template<AstNodeId ID>
@@ -344,6 +360,8 @@ constexpr std::array AST_NODE_ID_INFOS = {
                                           #__enum,                             \
                                           __flags,                             \
                                           &collectChildren<AstNodeId::__enum>, \
+                                          &semaPreDecl<AstNodeId::__enum>,     \
+                                          &semaPostDecl<AstNodeId::__enum>,    \
                                           &semaEnterNode<AstNodeId::__enum>,   \
                                           &semaPreNode<AstNodeId::__enum>,     \
                                           &semaPostNode<AstNodeId::__enum>,    \

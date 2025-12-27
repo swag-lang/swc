@@ -59,11 +59,19 @@ namespace Command
         for (SourceFile* f : files)
         {
             f->semaInfo().setModuleNamespace(*moduleNamespace);
-            const auto job = heapNew<SemaJob>(ctx, f->semaInfo());
+            const auto job = heapNew<SemaJob>(ctx, f->semaInfo(), true);
+            jobMgr.enqueue(*job, JobPriority::Normal, clientId);
+        }
+        
+        jobMgr.waitAll(clientId);
+
+        for (SourceFile* f : files)
+        {
+            const auto job = heapNew<SemaJob>(ctx, f->semaInfo(), false);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 
-        Sema::waitAll(ctx, clientId);
+        Sema::waitDone(ctx, clientId);
     }
 }
 

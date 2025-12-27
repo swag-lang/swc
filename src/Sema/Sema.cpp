@@ -14,10 +14,11 @@
 
 SWC_BEGIN_NAMESPACE()
 
-Sema::Sema(TaskContext& ctx, SemaInfo& semInfo) :
+Sema::Sema(TaskContext& ctx, SemaInfo& semInfo, bool declPass) :
     ctx_(&ctx),
     semaInfo_(&semInfo),
-    startSymMap_(semaInfo().moduleNamespace().symMap())
+    startSymMap_(semaInfo().moduleNamespace().symMap()),
+    declPass_(declPass)
 {
     visit_.start(semaInfo_->ast(), semaInfo_->ast().root());
     setVisitors();
@@ -34,6 +35,8 @@ Sema::Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root) :
     pushFrame(parent.frame());
     setVisitors();
 }
+
+Sema::~Sema() = default;
 
 void Sema::semaInherit(AstNode& nodeDst, AstNodeRef srcRef)
 {
@@ -99,13 +102,19 @@ const Ast& Sema::ast() const
 
 void Sema::setVisitors()
 {
-    visit_.setEnterNodeVisitor([this](AstNode& node) { enterNode(node); });
-    visit_.setPreNodeVisitor([this](AstNode& node) { return preNode(node); });
-    visit_.setPostNodeVisitor([this](AstNode& node) { return postNode(node); });
-    visit_.setPreChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return preChild(node, childRef); });
+    if (declPass_)
+    {
+        visit_.setPreNodeVisitor([this](AstNode& node) { return preDecl(node); });
+        visit_.setPostNodeVisitor([this](AstNode& node) { return postDecl(node); });
+    }
+    else
+    {
+        visit_.setEnterNodeVisitor([this](AstNode& node) { enterNode(node); });
+        visit_.setPreNodeVisitor([this](AstNode& node) { return preNode(node); });
+        visit_.setPostNodeVisitor([this](AstNode& node) { return postNode(node); });
+        visit_.setPreChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return preChild(node, childRef); });
+    }
 }
-
-Sema::~Sema() = default;
 
 void Sema::pushFrame(const SemaFrame& frame)
 {
@@ -139,6 +148,20 @@ void Sema::enterNode(AstNode& node)
 {
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     info.semaEnterNode(*this, node);
+}
+
+AstVisitStepResult Sema::preDecl(AstNode& node)
+{
+    const AstNodeIdInfo&     info   = Ast::nodeIdInfos(node.id());
+    const AstVisitStepResult result = info.semaPreDecl(*this, node);
+    return result;
+}
+
+AstVisitStepResult Sema::postDecl(AstNode& node)
+{
+    const AstNodeIdInfo&     info   = Ast::nodeIdInfos(node.id());
+    const AstVisitStepResult result = info.semaPostDecl(*this, node);
+    return result;
 }
 
 AstVisitStepResult Sema::preNode(AstNode& node)
@@ -217,7 +240,7 @@ namespace
     }
 }
 
-void Sema::waitAll(TaskContext& ctx, JobClientId clientId)
+void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
 {
     auto&             jobMgr   = ctx.global().jobMgr();
     CompilerInstance& compiler = ctx.compiler();
@@ -245,7 +268,7 @@ JobResult Sema::exec()
         curScope_->setSymMap(startSymMap_);
     }
 
-    auto jobResult = JobResult::Done;
+    JobResult jobResult;
     while (true)
     {
         const AstVisitResult result = visit_.step(ctx());

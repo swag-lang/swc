@@ -14,7 +14,7 @@ class SemaJob : public Job
 public:
     static constexpr auto K = JobKind::Sema;
 
-    SemaJob(const TaskContext& ctx, SemaInfo& semaInfo);
+    SemaJob(const TaskContext& ctx, SemaInfo& semaInfo, bool declPass);
     SemaJob(const TaskContext& ctx, const Sema& parentSema, AstNodeRef root);
     JobResult exec();
 

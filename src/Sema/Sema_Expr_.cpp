@@ -31,7 +31,7 @@ AstVisitStepResult AstIdentifier::semaPostNode(Sema& sema) const
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstMemberAccessExpr::semaPreChild(Sema& sema, const AstNodeRef& childRef) const
+AstVisitStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef != nodeRightRef)
         return AstVisitStepResult::Continue;

@@ -23,10 +23,11 @@ class Sema
     void               setVisitors();
     void               enterNode(AstNode& node);
     AstVisitStepResult preDecl(AstNode& node);
+    AstVisitStepResult preDeclChild(AstNode& node, AstNodeRef& childRef);
     AstVisitStepResult postDecl(AstNode& node);
     AstVisitStepResult preNode(AstNode& node);
     AstVisitStepResult postNode(AstNode& node);
-    AstVisitStepResult preChild(AstNode& node, AstNodeRef& childRef);
+    AstVisitStepResult preNodeChild(AstNode& node, AstNodeRef& childRef);
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;
     SymbolMap*                              startSymMap_ = nullptr;

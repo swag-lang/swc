@@ -618,7 +618,7 @@ struct AstMemberAccessExpr : AstNodeT<AstNodeId::MemberAccessExpr>
     AstNodeRef nodeRightRef;
 
     void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
-    AstVisitStepResult semaPreChild(Sema& sema, const AstNodeRef& childRef) const;
+    AstVisitStepResult semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -680,7 +680,7 @@ struct AstEnumDecl : AstNamedNodeT<AstNodeId::EnumDecl>
 
     void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeBodyRef}); }
     AstVisitStepResult semaPreDecl(Sema& sema) const;
-    AstVisitStepResult semaPreChild(Sema& sema, const AstNodeRef& childRef) const;
+    AstVisitStepResult semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
@@ -878,7 +878,7 @@ struct AstCompilerIf : AstNodeT<AstNodeId::CompilerIf>
     AstNodeRef nodeElseBlockRef;
 
     void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeConditionRef, nodeIfBlockRef, nodeElseBlockRef}); }
-    AstVisitStepResult semaPreChild(Sema& sema, const AstNodeRef& childRef) const;
+    AstVisitStepResult semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
 };
 
 // -----------------------------------------------------------------------------

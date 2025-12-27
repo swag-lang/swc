@@ -105,14 +105,15 @@ void Sema::setVisitors()
     if (declPass_)
     {
         visit_.setPreNodeVisitor([this](AstNode& node) { return preDecl(node); });
+        visit_.setPreChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return preDeclChild(node, childRef); });
         visit_.setPostNodeVisitor([this](AstNode& node) { return postDecl(node); });
     }
     else
     {
         visit_.setEnterNodeVisitor([this](AstNode& node) { enterNode(node); });
         visit_.setPreNodeVisitor([this](AstNode& node) { return preNode(node); });
+        visit_.setPreChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return preNodeChild(node, childRef); });
         visit_.setPostNodeVisitor([this](AstNode& node) { return postNode(node); });
-        visit_.setPreChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return preChild(node, childRef); });
     }
 }
 
@@ -157,6 +158,12 @@ AstVisitStepResult Sema::preDecl(AstNode& node)
     return result;
 }
 
+AstVisitStepResult Sema::preDeclChild(AstNode& node, AstNodeRef& childRef)
+{
+    const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
+    return info.semaPreDeclChild(*this, node, childRef);
+}
+
 AstVisitStepResult Sema::postDecl(AstNode& node)
 {
     const AstNodeIdInfo&     info   = Ast::nodeIdInfos(node.id());
@@ -171,14 +178,7 @@ AstVisitStepResult Sema::preNode(AstNode& node)
     return result;
 }
 
-AstVisitStepResult Sema::postNode(AstNode& node)
-{
-    const AstNodeIdInfo&     info   = Ast::nodeIdInfos(node.id());
-    const AstVisitStepResult result = info.semaPostNode(*this, node);
-    return result;
-}
-
-AstVisitStepResult Sema::preChild(AstNode& node, AstNodeRef& childRef)
+AstVisitStepResult Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
 {
     if (curScope_->hasFlag(SemaScopeFlagsE::TopLevel))
     {
@@ -193,7 +193,14 @@ AstVisitStepResult Sema::preChild(AstNode& node, AstNodeRef& childRef)
     }
 
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
-    return info.semaPreChild(*this, node, childRef);
+    return info.semaPreNodeChild(*this, node, childRef);
+}
+
+AstVisitStepResult Sema::postNode(AstNode& node)
+{
+    const AstNodeIdInfo&     info   = Ast::nodeIdInfos(node.id());
+    const AstVisitStepResult result = info.semaPostNode(*this, node);
+    return result;
 }
 
 AstVisitStepResult Sema::pause(TaskStateKind kind)

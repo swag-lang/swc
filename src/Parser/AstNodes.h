@@ -292,16 +292,19 @@ struct AstNodeIdInfo
     using AstCollectChildren = void (*)(SmallVector<AstNodeRef>&, const Ast&, const AstNode&);
     using SemaEnterNode      = void (*)(Sema&, AstNode&);
     using SemaPreNode        = AstVisitStepResult (*)(Sema&, AstNode&);
+    using SemaPreNodeChild   = AstVisitStepResult (*)(Sema&, AstNode&, AstNodeRef&);
     using SemaPostNode       = AstVisitStepResult (*)(Sema&, AstNode&);
-    using SemaPreChild       = AstVisitStepResult (*)(Sema&, AstNode&, AstNodeRef&);
 
     AstCollectChildren collectChildren;
+    
     SemaPreNode        semaPreDecl;
+    SemaPreNodeChild   semaPreDeclChild;
     SemaPostNode       semaPostDecl;
+    
     SemaEnterNode      semaEnterNode;
     SemaPreNode        semaPreNode;
+    SemaPreNodeChild   semaPreNodeChild;
     SemaPostNode       semaPostNode;
-    SemaPreChild       semaPreChild;
 
     bool hasFlag(AstNodeIdFlagsE flag) const { return flags.has(flag); }
 };
@@ -318,6 +321,13 @@ AstVisitStepResult semaPreDecl(Sema& sema, AstNode& node)
 {
     using NodeType = AstTypeOf<ID>::type;
     return castAst<NodeType>(&node)->semaPreDecl(sema);
+}
+
+template<AstNodeId ID>
+AstVisitStepResult semaPreDeclChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
+{
+    using NodeType = AstTypeOf<ID>::type;
+    return castAst<NodeType>(&node)->semaPreDeclChild(sema, childRef);
 }
 
 template<AstNodeId ID>
@@ -342,17 +352,17 @@ AstVisitStepResult semaPreNode(Sema& sema, AstNode& node)
 }
 
 template<AstNodeId ID>
+AstVisitStepResult semaPreNodeChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
+{
+    using NodeType = AstTypeOf<ID>::type;
+    return castAst<NodeType>(&node)->semaPreNodeChild(sema, childRef);
+}
+
+template<AstNodeId ID>
 AstVisitStepResult semaPostNode(Sema& sema, AstNode& node)
 {
     using NodeType = AstTypeOf<ID>::type;
     return castAst<NodeType>(&node)->semaPostNode(sema);
-}
-
-template<AstNodeId ID>
-AstVisitStepResult semaPreChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
-{
-    using NodeType = AstTypeOf<ID>::type;
-    return castAst<NodeType>(&node)->semaPreChild(sema, childRef);
 }
 
 constexpr std::array AST_NODE_ID_INFOS = {
@@ -361,11 +371,12 @@ constexpr std::array AST_NODE_ID_INFOS = {
                                           __flags,                             \
                                           &collectChildren<AstNodeId::__enum>, \
                                           &semaPreDecl<AstNodeId::__enum>,     \
+                                          &semaPreDeclChild<AstNodeId::__enum>,\
                                           &semaPostDecl<AstNodeId::__enum>,    \
                                           &semaEnterNode<AstNodeId::__enum>,   \
                                           &semaPreNode<AstNodeId::__enum>,     \
-                                          &semaPostNode<AstNodeId::__enum>,    \
-                                          &semaPreChild<AstNodeId::__enum>},
+                                          &semaPreNodeChild<AstNodeId::__enum>,\
+                                          &semaPostNode<AstNodeId::__enum>},
 #include "Parser/AstNodesDef.inc"
 
 #undef SWC_NODE_DEF

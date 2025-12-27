@@ -31,7 +31,7 @@ AstVisitStepResult AstEnumDecl::semaPreDecl(Sema& sema) const
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstEnumDecl::semaPreChild(Sema& sema, const AstNodeRef& childRef) const
+AstVisitStepResult AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef != nodeBodyRef)
         return AstVisitStepResult::Continue;

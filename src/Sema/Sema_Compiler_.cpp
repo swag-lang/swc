@@ -24,7 +24,7 @@ AstVisitStepResult AstCompilerExpression::semaPostNode(Sema& sema)
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstCompilerIf::semaPreChild(Sema& sema, const AstNodeRef& childRef) const
+AstVisitStepResult AstCompilerIf::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeConditionRef)
         return AstVisitStepResult::Continue;

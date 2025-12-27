@@ -227,7 +227,7 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema) const
     SmallVector<AstNodeRef> out;
     sema.ast().nodes(out, spanDimensionsRef);
     
-    std::vector<uint32_t> dims;
+    std::vector<uint64_t> dims;
     for (const auto& dimRef : out)
     {
         if (SemaCheck::isValueExpr(sema, dimRef) != Result::Success)
@@ -256,8 +256,8 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema) const
         const ConstantRef newCstRef = sema.cstMgr().concretizeConstant(sema, dimRef, cstRef, TypeInfo::Sign::Unsigned);
         if (newCstRef.isInvalid())
             return AstVisitStepResult::Stop;
-        const ConstantValue& newCst = sema.cstMgr().get(newCstRef);
        
+        const ConstantValue& newCst = sema.cstMgr().get(newCstRef);
         const uint64_t dim = newCst.getInt().as64();
         if (dim == 0)
         {
@@ -265,7 +265,7 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema) const
             return AstVisitStepResult::Stop;
         }
                 
-        dims.push_back(static_cast<uint32_t>(dim));
+        dims.push_back(dim);
     }
     
     const TypeInfo     ty      = TypeInfo::makeArray(dims, nodeView.typeRef);

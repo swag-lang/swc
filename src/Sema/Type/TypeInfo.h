@@ -63,7 +63,7 @@ private:
         struct { uint32_t bits; }                                asFloat;
         struct { TypeRef typeRef; }                              asTypeRef;
         struct { SymbolEnum* enumSym; }                          asEnumSym;
-        struct { std::vector<uint32_t> dims; TypeRef typeRef; }  asArray;
+        struct { std::vector<uint64_t> dims; TypeRef typeRef; }  asArray;
         // clang-format on
     };
 
@@ -138,7 +138,7 @@ public:
     static TypeInfo makeValuePointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
-    static TypeInfo makeArray(const std::vector<uint32_t> &dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    static TypeInfo makeArray(const std::vector<uint64_t> &dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
 
     uint32_t hash() const;
 };

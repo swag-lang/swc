@@ -108,6 +108,15 @@ AstVisitStepResult AstBlockPointerType::semaPostNode(Sema& sema) const
 AstVisitStepResult AstSliceType::semaPostNode(Sema& sema) const
 {
     const SemaNodeView nodeView(sema, nodePointeeTypeRef);
+    
+    if (nodeView.typeRef == sema.typeMgr().getTypeVoid())
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_bad_slice_element_type, nodePointeeTypeRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
+        diag.report(sema.ctx());
+        return AstVisitStepResult::Stop;
+    }
+    
     const TypeInfo     ty      = TypeInfo::makeSlice(nodeView.typeRef);
     const TypeRef      typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);

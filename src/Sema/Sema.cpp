@@ -193,9 +193,16 @@ namespace
             const TaskState& state = job->ctx().state();
             if (const auto semaJob = job->safeCast<SemaJob>())
             {
-                if (state.kind == TaskStateKind::SemaWaitingIdentifier)
+                switch (state.kind)
                 {
+                case TaskStateKind::SemaWaitingIdentifier:
                     SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unknown_identifier, state.nodeRef);
+                    break;
+                case TaskStateKind::SemaWaitingFullComplete:
+                    SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unsolved_identifier, state.nodeRef);
+                    break;
+                default:
+                    break;
                 }
             }
         }

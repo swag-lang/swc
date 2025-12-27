@@ -85,6 +85,7 @@ SWC_DIAG_DEF(sema_err_binary_operand_type, Error, "Binary operator {tok} cannot 
 SWC_DIAG_DEF(sema_err_compare_operand_type, Error, "Cannot compare using {tok}: left operand has type {left}, right operand has type {right}")
 SWC_DIAG_DEF(sema_err_const_missing_init, Error, "A constant must be initialized with a value")
 SWC_DIAG_DEF(sema_err_unknown_identifier, Error, "Unknown identifier {tok}")
+SWC_DIAG_DEF(sema_err_unsolved_identifier, Error, "Unsolved identifier {tok}")
 SWC_DIAG_DEF(sema_err_division_zero, Error, "Division by zero")
 SWC_DIAG_DEF(sema_err_integer_overflow, Error, "Integer overflow in constant expression: {left} {tok-raw} {right} for type {type}")
 SWC_DIAG_DEF(sema_err_modifier_only_integer, Error, "{tok} can only be applied to integer types; type is {type}")

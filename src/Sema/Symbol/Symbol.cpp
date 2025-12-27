@@ -16,11 +16,11 @@ void Symbol::setComplete(TaskContext& ctx)
     ctx.compiler().notifySymbolComplete();
 }
 
-void Symbol::setTouched(TaskContext& ctx)
+void Symbol::setDeclared(TaskContext& ctx)
 {
-    SWC_ASSERT(flags_.hasNot(SymbolFlagsE::Touched));
-    flags_.add(SymbolFlagsE::Touched);
-    ctx.compiler().notifySymbolTouched();
+    SWC_ASSERT(flags_.hasNot(SymbolFlagsE::Declared));
+    flags_.add(SymbolFlagsE::Declared);
+    ctx.compiler().notifySymbolDeclared();
 }
 
 std::string_view Symbol::name(const TaskContext& ctx) const

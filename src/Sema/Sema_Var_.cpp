@@ -46,7 +46,7 @@ AstVisitStepResult AstVarDecl::semaPreDecl(Sema& sema) const
 void AstVarDecl::semaEnterNode(Sema& sema)
 {
     Symbol& sym = sema.symbolOf(sema.curNodeRef());
-    sym.setTouched(sema.ctx());
+    sym.setDeclared(sema.ctx());
 }
 
 AstVisitStepResult AstVarDecl::semaPreNode(Sema& sema)

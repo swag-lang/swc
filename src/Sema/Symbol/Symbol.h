@@ -34,7 +34,7 @@ enum class SymbolFlagsE : uint8_t
 {
     Zero     = 0,
     Public   = 1 << 0,
-    Touched  = 1 << 1,
+    Declared  = 1 << 1,
     Complete = 1 << 2,
 
     // Specific per symbol kind
@@ -80,8 +80,8 @@ public:
 
     bool isComplete() const noexcept { return flags_.has(SymbolFlagsE::Complete); }
     void setComplete(TaskContext& ctx);
-    bool isTouched() const noexcept { return flags_.has(SymbolFlagsE::Touched); }
-    void setTouched(TaskContext& ctx);
+    bool isDeclared() const noexcept { return flags_.has(SymbolFlagsE::Declared); }
+    void setDeclared(TaskContext& ctx);
 
     SymbolMap*       symMap() noexcept { return ownerSymMap_; }
     const SymbolMap* symMap() const noexcept { return ownerSymMap_; }

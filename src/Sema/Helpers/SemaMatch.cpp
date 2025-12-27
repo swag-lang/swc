@@ -38,7 +38,7 @@ LookUpResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
 
     for (const Symbol* other : result.symbols())
     {
-        if (!other->isTouched())
+        if (!other->isDeclared())
         {
             sema.pause(TaskStateKind::SemaWaitingComplete);
             return LookUpResult::Wait;

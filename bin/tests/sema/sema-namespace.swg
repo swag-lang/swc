@@ -40,14 +40,14 @@ namespace NG { const VAL = 'A' }
 
 namespace NH
 {
-    const A = 5
-    const B = 10
-    const C = A + B
+    const AAA = 5
+    const BBB = 10
+    const CCC = AAA + BBB
 }
 
-#assert(NH.A == 5)
-#assert(NH.B == 10)
-#assert(NH.C == 15)
+#assert(NH.AAA == 5)
+#assert(NH.BBB == 10)
+#assert(NH.CCC == 15)
 
 #assert(NH == 1) // swc-expected-error {{sema_err_not_value_expr}}
 #assert(NH + 1) // swc-expected-error {{sema_err_not_value_expr}}

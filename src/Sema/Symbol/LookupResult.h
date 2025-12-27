@@ -5,6 +5,13 @@ SWC_BEGIN_NAMESPACE()
 
 class Symbol;
 
+enum class LookUpReturn
+{
+    Success,
+    Error,
+    Wait,
+};
+
 class LookupResult
 {
     SmallVector<const Symbol*> symbols_;

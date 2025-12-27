@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Helpers/SemaError.h"
+#include "Helpers/SemaMatch.h"
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisit.h"
 #include "Report/DiagnosticDef.h"
@@ -8,6 +9,7 @@
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/SemaCast.h"
 #include "Symbol/IdentifierManager.h"
+#include "Symbol/LookupResult.h"
 #include "Type/CastContext.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -44,7 +46,12 @@ AstVisitStepResult AstVarDecl::semaPreDecl(Sema& sema) const
 AstVisitStepResult AstVarDecl::semaPreNode(Sema& sema) const
 {
     Symbol& sym = sema.symbolOf(sema.curNodeRef());
-    return AstVisitStepResult::Continue;
+    LookUpReturn ret = SemaMatch::ghosting(sema, sym, sym.idRef());
+    if (ret == LookUpReturn::Error)
+        return AstVisitStepResult::Stop;
+    if (ret == LookUpReturn::Wait)
+        return AstVisitStepResult::Pause;
+    return AstVisitStepResult::Continue;    
 }
 
 AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const

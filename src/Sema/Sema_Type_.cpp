@@ -253,10 +253,10 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema) const
             return AstVisitStepResult::Stop;
         }
 
-        const ConstantRef newCstRef = sema.cstMgr().concretizeConstant(sema, dimRef, cstRef, TypeInfo::Sign::Unknown);
+        const ConstantRef newCstRef = sema.cstMgr().concretizeConstant(sema, dimRef, cstRef, TypeInfo::Sign::Unsigned);
         if (newCstRef.isInvalid())
             return AstVisitStepResult::Stop;
-        const ConstantValue& newCst = sema.constantOf(dimRef);
+        const ConstantValue& newCst = sema.cstMgr().get(newCstRef);
        
         const uint64_t dim = newCst.getInt().as64();
         if (dim == 0)

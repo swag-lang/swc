@@ -183,7 +183,7 @@ AstVisitStepResult Sema::pause(TaskStateKind kind)
 
 namespace
 {
-    void postProcess(TaskContext& ctx, JobClientId clientId)
+    void postPass(TaskContext& ctx, JobClientId clientId)
     {
         std::vector<Job*> jobs;
         ctx.global().jobMgr().waitingJobs(jobs, clientId);
@@ -226,7 +226,7 @@ void Sema::waitAll(TaskContext& ctx, JobClientId clientId)
         jobMgr.wakeAll(clientId);
     }
 
-    postProcess(ctx, clientId);
+    postPass(ctx, clientId);
 }
 
 JobResult Sema::exec()

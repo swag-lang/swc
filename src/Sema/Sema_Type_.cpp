@@ -184,6 +184,7 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema) const
         if (SemaCheck::isConstant(sema, dimRef) != Result::Success)
             return AstVisitStepResult::Stop;
         
+        const ConstantRef cstRef = sema.constantRefOf(dimRef); 
         const ConstantValue& cst = sema.constantOf(dimRef);
         if (!cst.isInt())
         {
@@ -192,14 +193,7 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema) const
             diag.report(ctx);
             return AstVisitStepResult::Stop;
         }
-
-        if (!cst.getInt().fits64())
-        {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_overflow, dimRef);
-            diag.addArgument(Diagnostic::ARG_VALUE, cst.toString(ctx));
-            diag.report(ctx);
-            return AstVisitStepResult::Stop;
-        }
+        
 
         if (cst.getInt().isNegative())
         {
@@ -209,7 +203,12 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema) const
             return AstVisitStepResult::Stop;
         }
 
-        const uint64_t dim = cst.getInt().as64();
+        const ConstantRef newCstRef = sema.cstMgr().concretizeConstant(sema, dimRef, cstRef, TypeInfo::Sign::Unknown);
+        if (newCstRef.isInvalid())
+            return AstVisitStepResult::Stop;
+        const ConstantValue& newCst = sema.constantOf(dimRef);
+       
+        const uint64_t dim = newCst.getInt().as64();
         if (dim == 0)
         {
             SemaError::raise(sema, DiagnosticId::sema_err_array_dim_zero, dimRef);

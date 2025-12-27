@@ -15,3 +15,5 @@ var E3: #null any
 var E4: #null string
 var E5: #null cstring
 
+namespace NS {}
+const F: const NS // swc-expected-error {{sema_err_not_a_type}}

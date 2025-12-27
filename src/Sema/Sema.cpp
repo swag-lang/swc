@@ -228,7 +228,7 @@ namespace
                 case TaskStateKind::SemaWaitingIdentifier:
                     SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unknown_identifier, state.nodeRef);
                     break;
-                case TaskStateKind::SemaWaitingFullComplete:
+                case TaskStateKind::SemaWaitingComplete:
                     SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unsolved_identifier, state.nodeRef);
                     break;
                 default:

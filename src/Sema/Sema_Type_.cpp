@@ -116,13 +116,50 @@ AstVisitStepResult AstSliceType::semaPostNode(Sema& sema) const
 
 AstVisitStepResult AstQualifiedType::semaPostNode(Sema& sema) const
 {
+    const SemaNodeView nodeView(sema, nodeTypeRef);
+    SWC_ASSERT(nodeView.type);
+
     TypeInfoFlags flags = TypeInfoFlagsE::Zero;
     if (hasParserFlag(Const))
+    {
+        switch (nodeView.type->kind())
+        {
+            case TypeInfoKind::ValuePointer:
+            case TypeInfoKind::BlockPointer:
+            case TypeInfoKind::Slice:
+                break;
+            default:
+                const SourceView& srcView = sema.compiler().srcView(srcViewRef());
+                const TokenRef constTokRef = srcView.findRightFrom(tokRef(), {TokenId::KwdConst});
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, srcViewRef(), constTokRef);
+                diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
+                diag.report(sema.ctx());
+                return AstVisitStepResult::Stop;
+        }
+        
         flags.add(TypeInfoFlagsE::Const);
+    }
+    
     if (hasParserFlag(Nullable))
-        flags.add(TypeInfoFlagsE::Nullable);
+    {
+        switch (nodeView.type->kind())
+        {
+            case TypeInfoKind::ValuePointer:
+            case TypeInfoKind::BlockPointer:
+            case TypeInfoKind::Slice:
+                break;
+            default:
+                const SourceView& srcView = sema.compiler().srcView(srcViewRef());
+                const TokenRef constTokRef = srcView.findRightFrom(tokRef(), {TokenId::ModifierNullable});
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, srcViewRef(), constTokRef);
+                diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
+                diag.report(sema.ctx());
+                return AstVisitStepResult::Stop;
+        }
 
-    const SemaNodeView nodeView(sema, nodeTypeRef);
+        flags.add(TypeInfoFlagsE::Nullable);
+    }
+    
     TypeRef            typeRef;
     if (nodeView.type->isValuePointer())
         typeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(nodeView.type->typeRef(), flags));
@@ -132,10 +169,7 @@ AstVisitStepResult AstQualifiedType::semaPostNode(Sema& sema) const
         typeRef = sema.typeMgr().addType(TypeInfo::makeSlice(nodeView.type->typeRef(), flags));
     else
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, srcViewRef(), tokRef());
-        diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
-        diag.report(sema.ctx());
-        return AstVisitStepResult::Stop;
+        SWC_UNREACHABLE();
     }
 
     sema.setType(sema.curNodeRef(), typeRef);
@@ -192,8 +226,7 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema) const
             diag.addArgument(Diagnostic::ARG_TYPE, cst.typeRef());
             diag.report(ctx);
             return AstVisitStepResult::Stop;
-        }
-        
+        }        
 
         if (cst.getInt().isNegative())
         {

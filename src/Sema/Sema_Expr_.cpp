@@ -22,11 +22,9 @@ AstVisitStepResult AstIdentifier::semaPostNode(Sema& sema) const
     const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokRef());
 
     MatchResult result;
-    SemaMatch::lookup(sema, result, idRef);
-    if (result.empty())
-        return sema.pause(TaskStateKind::SemaWaitingIdentifier);
-    if (!result.isComplete())
-        return sema.pause(TaskStateKind::SemaWaitingComplete);
+    const AstVisitStepResult ret = SemaMatch::match(sema, result, idRef);
+    if (ret != AstVisitStepResult::Continue)
+        return ret;
     sema.setSymbol(sema.curNodeRef(), result.first());
     return AstVisitStepResult::Continue;
 }

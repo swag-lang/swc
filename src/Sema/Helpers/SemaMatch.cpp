@@ -27,6 +27,28 @@ void SemaMatch::lookup(Sema& sema, MatchResult& result, IdentifierRef idRef)
     lookupAppend(sema, sema.semaInfo().fileNamespace(), result, idRef);
 }
 
+AstVisitStepResult SemaMatch::match(Sema& sema, MatchResult& result, IdentifierRef idRef)
+{
+    lookup(sema, result, idRef);
+    
+    if (result.empty())
+    {
+        sema.pause(TaskStateKind::SemaWaitingIdentifier);
+        return AstVisitStepResult::Pause;
+    }
+
+    for (const Symbol* other : result.symbols())
+    {
+        if (!other->isDeclared() || !other->isComplete())
+        {
+            sema.pause(TaskStateKind::SemaWaitingComplete);
+            return AstVisitStepResult::Pause;
+        }
+    }
+    
+    return AstVisitStepResult::Continue;
+}
+
 AstVisitStepResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
 {
     MatchResult result;

@@ -46,7 +46,10 @@ AstVisitStepResult AstNamespaceDecl::semaPreDecl(Sema& sema) const
         const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokRef);
         sema.frame().pushNs(idRef);
 
-        SymbolNamespace* ns  = Symbol::make<SymbolNamespace>(ctx, srcViewRef(), tokRef, idRef, SymbolFlagsE::Complete);
+        SymbolFlags flags = SymbolFlagsE::Complete;
+        flags.add(SymbolFlagsE::Declared);
+        
+        SymbolNamespace* ns  = Symbol::make<SymbolNamespace>(ctx, srcViewRef(), tokRef, idRef, flags);
         Symbol*          res = symMap->addSingleSymbol(ctx, ns);
 
         if (!res->isNamespace())

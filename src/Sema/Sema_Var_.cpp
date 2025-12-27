@@ -51,7 +51,7 @@ void AstVarDecl::semaEnterNode(Sema& sema)
 
 AstVisitStepResult AstVarDecl::semaPreNode(Sema& sema)
 {
-    Symbol& sym = sema.symbolOf(sema.curNodeRef());
+    const Symbol& sym = sema.symbolOf(sema.curNodeRef());
     return SemaMatch::ghosting(sema, sym);
 }
 

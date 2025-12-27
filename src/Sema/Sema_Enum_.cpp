@@ -7,6 +7,7 @@
 #include "Sema/Helpers/SemaNodeView.h"
 #include "Sema/Sema.h"
 #include "Sema/Symbol/Symbols.h"
+#include "Sema/Helpers/SemaMatch.h"
 #include "Type/CastContext.h"
 #include "Type/SemaCast.h"
 
@@ -72,6 +73,18 @@ AstVisitStepResult AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     sema.curScope().setSymMap(&sym);
 
     return AstVisitStepResult::Continue;
+}
+
+void AstEnumDecl::semaEnterNode(Sema& sema)
+{
+    Symbol& sym = sema.symbolOf(sema.curNodeRef());
+    sym.setDeclared(sema.ctx());
+}
+
+AstVisitStepResult AstEnumDecl::semaPreNode(Sema& sema)
+{
+    const Symbol& sym = sema.symbolOf(sema.curNodeRef());
+    return SemaMatch::ghosting(sema, sym);
 }
 
 AstVisitStepResult AstEnumDecl::semaPostNode(Sema& sema) const
@@ -155,7 +168,11 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
 
     // Create a symbol for this enum value
     const IdentifierRef idRef    = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokRef());
-    auto*               symValue = Symbol::make<SymbolEnumValue>(ctx, srcViewRef(), tokRef(), idRef, SymbolFlagsE::Complete);
+    
+    SymbolFlags flags = SymbolFlagsE::Complete;
+    flags.add(SymbolFlagsE::Declared);
+
+    auto*               symValue = Symbol::make<SymbolEnumValue>(ctx, srcViewRef(), tokRef(), idRef, flags);
 
     ConstantValue enumCst    = ConstantValue::makeEnumValue(ctx, valueCst, symEnum.typeRef());
     ConstantRef   enumCstRef = sema.cstMgr().addConstant(ctx, enumCst);

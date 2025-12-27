@@ -879,6 +879,7 @@ struct AstCompilerIf : AstNodeT<AstNodeId::CompilerIf>
 
     void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeConditionRef, nodeIfBlockRef, nodeElseBlockRef}); }
     AstVisitStepResult semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) const;
+    AstVisitStepResult semaPostDecl(Sema& sema) const;
     AstVisitStepResult semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
 };
 

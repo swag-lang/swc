@@ -37,10 +37,23 @@ AstVisitStepResult AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef&
         return AstVisitStepResult::Continue;
     }
         
+    sema.popFrame();
+    
     SWC_ASSERT(childRef == nodeElseBlockRef);
-    SemaFrame frame = sema.frame();
-    frame.setCompilerElseNodeRef(sema.curNodeRef());
-    sema.pushFrame(frame);
+    if (nodeElseBlockRef.isValid())
+    {
+        SemaFrame frame = sema.frame();
+        frame.setCompilerElseNodeRef(sema.curNodeRef());
+        sema.pushFrame(frame);
+    }
+    
+    return AstVisitStepResult::Continue;
+}
+
+AstVisitStepResult AstCompilerIf::semaPostDecl(Sema& sema) const
+{
+    if (nodeElseBlockRef.isValid())
+        sema.popFrame();
     return AstVisitStepResult::Continue;
 }
 

@@ -11,3 +11,7 @@ var D2: const [*] s32
 var E0: #null *s32
 var E1: #null [..] s32
 var E2: #null [*] s32
+var E3: #null any
+var E4: #null string
+var E5: #null cstring
+

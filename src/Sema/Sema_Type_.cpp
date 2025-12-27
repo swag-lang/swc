@@ -147,6 +147,9 @@ AstVisitStepResult AstQualifiedType::semaPostNode(Sema& sema) const
             case TypeInfoKind::ValuePointer:
             case TypeInfoKind::BlockPointer:
             case TypeInfoKind::Slice:
+            case TypeInfoKind::String:
+            case TypeInfoKind::CString:
+            case TypeInfoKind::Any:
                 break;
             default:
                 const SourceView& srcView = sema.compiler().srcView(srcViewRef());
@@ -161,15 +164,29 @@ AstVisitStepResult AstQualifiedType::semaPostNode(Sema& sema) const
     }
     
     TypeRef            typeRef;
-    if (nodeView.type->isValuePointer())
-        typeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(nodeView.type->typeRef(), flags));
-    else if (nodeView.type->isBlockPointer())
-        typeRef = sema.typeMgr().addType(TypeInfo::makeBlockPointer(nodeView.type->typeRef(), flags));
-    else if (nodeView.type->isSlice())
-        typeRef = sema.typeMgr().addType(TypeInfo::makeSlice(nodeView.type->typeRef(), flags));
-    else
+    TypeManager&       typeMgr = sema.typeMgr();
+    switch (nodeView.type->kind())
     {
-        SWC_UNREACHABLE();
+        case TypeInfoKind::ValuePointer:
+            typeRef = typeMgr.addType(TypeInfo::makeValuePointer(nodeView.type->typeRef(), flags));
+            break;
+        case TypeInfoKind::BlockPointer:
+            typeRef = typeMgr.addType(TypeInfo::makeBlockPointer(nodeView.type->typeRef(), flags));
+            break;
+        case TypeInfoKind::Slice:
+            typeRef = typeMgr.addType(TypeInfo::makeSlice(nodeView.type->typeRef(), flags));
+            break;
+        case TypeInfoKind::String:
+            typeRef = typeMgr.addType(TypeInfo::makeString(flags));
+            break;
+        case TypeInfoKind::CString:
+            typeRef = typeMgr.addType(TypeInfo::makeCString(flags));
+            break;
+        case TypeInfoKind::Any:
+            typeRef = typeMgr.addType(TypeInfo::makeAny(flags));
+            break;
+        default:
+            SWC_UNREACHABLE();
     }
 
     sema.setType(sema.curNodeRef(), typeRef);

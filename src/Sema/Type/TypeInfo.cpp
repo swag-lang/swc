@@ -215,9 +215,9 @@ TypeInfo TypeInfo::makeChar()
     return TypeInfo{TypeInfoKind::Char};
 }
 
-TypeInfo TypeInfo::makeString()
+TypeInfo TypeInfo::makeString(TypeInfoFlags flags)
 {
-    return TypeInfo{TypeInfoKind::String};
+    return TypeInfo{TypeInfoKind::String, flags};
 }
 
 TypeInfo TypeInfo::makeVoid()
@@ -225,9 +225,9 @@ TypeInfo TypeInfo::makeVoid()
     return TypeInfo{TypeInfoKind::Void};
 }
 
-TypeInfo TypeInfo::makeAny()
+TypeInfo TypeInfo::makeAny(TypeInfoFlags flags)
 {
-    return TypeInfo{TypeInfoKind::Any};
+    return TypeInfo{TypeInfoKind::Any, flags};
 }
 
 TypeInfo TypeInfo::makeRune()
@@ -235,9 +235,9 @@ TypeInfo TypeInfo::makeRune()
     return TypeInfo{TypeInfoKind::Rune};
 }
 
-TypeInfo TypeInfo::makeCString()
+TypeInfo TypeInfo::makeCString(TypeInfoFlags flags)
 {
-    return TypeInfo{TypeInfoKind::CString};
+    return TypeInfo{TypeInfoKind::CString, flags};
 }
 
 TypeInfo TypeInfo::makeInt(uint32_t bits, Sign sign)

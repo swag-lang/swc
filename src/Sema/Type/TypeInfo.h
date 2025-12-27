@@ -126,14 +126,14 @@ public:
 
     static TypeInfo makeBool();
     static TypeInfo makeChar();
-    static TypeInfo makeString();
+    static TypeInfo makeString(TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeInt(uint32_t bits, Sign sign);
     static TypeInfo makeFloat(uint32_t bits);
     static TypeInfo makeTypeValue(TypeRef typeRef);
     static TypeInfo makeRune();
-    static TypeInfo makeAny();
+    static TypeInfo makeAny(TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeVoid();
-    static TypeInfo makeCString();
+    static TypeInfo makeCString(TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeEnum(SymbolEnum* enumSym);
     static TypeInfo makeValuePointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);

@@ -24,6 +24,26 @@ AstVisitStepResult AstCompilerExpression::semaPostNode(Sema& sema)
     return AstVisitStepResult::Continue;
 }
 
+AstVisitStepResult AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeConditionRef)
+        return AstVisitStepResult::Continue;
+    
+    if (childRef == nodeIfBlockRef)
+    {
+        SemaFrame frame = sema.frame();
+        frame.setCompilerIfNodeRef(sema.curNodeRef());
+        sema.pushFrame(frame);
+        return AstVisitStepResult::Continue;
+    }
+        
+    SWC_ASSERT(childRef == nodeElseBlockRef);
+    SemaFrame frame = sema.frame();
+    frame.setCompilerElseNodeRef(sema.curNodeRef());
+    sema.pushFrame(frame);
+    return AstVisitStepResult::Continue;
+}
+
 AstVisitStepResult AstCompilerIf::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeConditionRef)

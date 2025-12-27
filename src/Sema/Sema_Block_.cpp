@@ -7,10 +7,22 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstVisitStepResult AstFile::semaPreNode(Sema& sema) const
+AstVisitStepResult AstFile::semaPreDecl(Sema& sema) const
 {
     SymbolNamespace* fileNamespace = Symbol::make<SymbolNamespace>(sema.ctx(), srcViewRef(), tokRef(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
     sema.semaInfo().setFileNamespace(*fileNamespace);
+    sema.pushScope(SemaScopeFlagsE::TopLevel);
+    return AstVisitStepResult::Continue;
+}
+
+AstVisitStepResult AstFile::semaPostDecl(Sema& sema)
+{
+    sema.popScope();
+    return AstVisitStepResult::Continue;
+}
+
+AstVisitStepResult AstFile::semaPreNode(Sema& sema)
+{
     sema.pushScope(SemaScopeFlagsE::TopLevel);
     return AstVisitStepResult::Continue;
 }
@@ -21,7 +33,7 @@ AstVisitStepResult AstFile::semaPostNode(Sema& sema)
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstNamespaceDecl::semaPreNode(Sema& sema) const
+AstVisitStepResult AstNamespaceDecl::semaPreDecl(Sema& sema) const
 {
     auto& ctx = sema.ctx();
 
@@ -40,7 +52,7 @@ AstVisitStepResult AstNamespaceDecl::semaPreNode(Sema& sema) const
         if (!res->isNamespace())
         {
             SemaError::raiseSymbolAlreadyDefined(sema, ns, res);
-            return AstVisitStepResult::Stop;
+            continue;
         }
 
         symMap = res->asSymMap();
@@ -52,7 +64,7 @@ AstVisitStepResult AstNamespaceDecl::semaPreNode(Sema& sema) const
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstNamespaceDecl::semaPostNode(Sema& sema) const
+AstVisitStepResult AstNamespaceDecl::semaPostDecl(Sema& sema) const
 {
     SmallVector<TokenRef> namesRef;
     sema.ast().tokens(namesRef, spanNameRef);
@@ -60,6 +72,16 @@ AstVisitStepResult AstNamespaceDecl::semaPostNode(Sema& sema) const
         sema.frame().popNs();
     sema.popScope();
     return AstVisitStepResult::Continue;
+}
+
+AstVisitStepResult AstNamespaceDecl::semaPreNode(Sema& sema) const
+{
+    return semaPreDecl(sema);
+}
+
+AstVisitStepResult AstNamespaceDecl::semaPostNode(Sema& sema) const
+{
+    return semaPostDecl(sema);
 }
 
 SWC_END_NAMESPACE()

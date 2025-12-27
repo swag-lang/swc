@@ -12,7 +12,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstVisitStepResult AstVarDecl::semaPreNode(Sema& sema) const
+AstVisitStepResult AstVarDecl::semaPreDecl(Sema& sema) const
 {
     auto&               ctx   = sema.ctx();
     const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokNameRef);
@@ -38,7 +38,7 @@ AstVisitStepResult AstVarDecl::semaPreNode(Sema& sema) const
         sema.setSymbol(sema.curNodeRef(), symVar);
     }
 
-    return AstVisitStepResult::Continue;
+    return AstVisitStepResult::SkipChildren;
 }
 
 AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const

@@ -44,6 +44,7 @@ namespace NH
     const B = 10
     const C = A + B
 }
+
 #assert(NH.A == 5)
 #assert(NH.B == 10)
 #assert(NH.C == 15)

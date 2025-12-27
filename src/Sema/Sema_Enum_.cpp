@@ -12,7 +12,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstVisitStepResult AstEnumDecl::semaPreNode(Sema& sema) const
+AstVisitStepResult AstEnumDecl::semaPreDecl(Sema& sema) const
 {
     auto&               ctx   = sema.ctx();
     const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokNameRef);

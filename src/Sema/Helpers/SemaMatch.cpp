@@ -27,21 +27,21 @@ void SemaMatch::lookup(Sema& sema, MatchResult& result, IdentifierRef idRef)
     lookupAppend(sema, sema.semaInfo().fileNamespace(), result, idRef);
 }
 
-LookUpResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
+AstVisitStepResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
 {
     MatchResult result;
     lookup(sema, result, sym.idRef());
     
     SWC_ASSERT(!result.empty());
     if (result.count() == 1)
-        return LookUpResult::Success;
+        return AstVisitStepResult::Continue;
 
     for (const Symbol* other : result.symbols())
     {
         if (!other->isDeclared())
         {
             sema.pause(TaskStateKind::SemaWaitingComplete);
-            return LookUpResult::Wait;
+            return AstVisitStepResult::Pause;
         }
     }
     
@@ -50,7 +50,7 @@ LookUpResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
         if (other == &sym)
             continue;
         SemaError::raiseSymbolAlreadyDefined(sema, &sym, other);
-        return LookUpResult::Error;
+        return AstVisitStepResult::Stop;
     }
     
     SWC_UNREACHABLE();

@@ -24,17 +24,31 @@ namespace Command
         auto&             jobMgr   = global.jobMgr();
         const JobClientId clientId = compiler.jobClientId();
 
+        // Collect files
         if (compiler.collectFiles(ctx) == Result::Error)
             return;
 
-        for (const auto& f : compiler.files())
+        // Parser
+        for (SourceFile* f : compiler.files())
         {
             const auto job = heapNew<ParserJob>(ctx, f);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 
         jobMgr.waitAll(clientId);
-
+        
+        // Filter files
+        std::vector<SourceFile*> files;
+        for (SourceFile* f : compiler.files())
+        {
+            const SourceView& srcView = f->ast().srcView();
+            if (srcView.mustSkip())
+                continue;
+            if (f->hasError())
+                continue;
+            files.push_back(f);
+        }
+        
         compiler.setupSema(ctx);
 
         SymbolModule*       symModule       = Symbol::make<SymbolModule>(ctx, SourceViewRef::invalid(), TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
@@ -42,15 +56,9 @@ namespace Command
         SymbolNamespace*    moduleNamespace = Symbol::make<SymbolNamespace>(ctx, SourceViewRef::invalid(), TokenRef::invalid(), idRef, SymbolFlagsE::Zero);
         symModule->addSingleSymbol(ctx, moduleNamespace);
 
-        for (const auto& f : compiler.files())
+        for (SourceFile* f : files)
         {
-            const SourceView& srcView = f->ast().srcView();
-            if (srcView.mustSkip())
-                continue;
-            if (f->hasError())
-                continue;
             f->semaInfo().setModuleNamespace(*moduleNamespace);
-
             const auto job = heapNew<SemaJob>(ctx, f->semaInfo());
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }

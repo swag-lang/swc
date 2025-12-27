@@ -28,7 +28,7 @@ void SemaMatch::lookup(Sema& sema, LookupResult& result, IdentifierRef idRef)
     lookupAppend(sema, sema.semaInfo().fileNamespace(), result, idRef);
 }
 
-LookUpReturn SemaMatch::ghosting(Sema& sema, Symbol& sym, IdentifierRef idRef)
+LookUpReturn SemaMatch::ghosting(Sema& sema, Symbol& sym)
 {
     LookupResult result;
     lookup(sema, result, sym.idRef());

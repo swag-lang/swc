@@ -12,7 +12,7 @@ namespace SemaMatch
 {
     void lookupAppend(Sema& sema, const SymbolMap& symMap, LookupResult& result, IdentifierRef idRef);
     void lookup(Sema& sema, LookupResult& result, IdentifierRef idRef);
-    LookUpReturn ghosting(Sema& sema, Symbol& sym, IdentifierRef idRef);
+    LookUpReturn ghosting(Sema& sema, Symbol& sym);
 }
 
 SWC_END_NAMESPACE()

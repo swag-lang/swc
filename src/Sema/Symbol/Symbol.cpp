@@ -13,7 +13,14 @@ void Symbol::setComplete(TaskContext& ctx)
 {
     SWC_ASSERT(flags_.hasNot(SymbolFlagsE::Complete));
     flags_.add(SymbolFlagsE::Complete);
-    ctx.compiler().notifySymbolFullComplete();
+    ctx.compiler().notifySymbolComplete();
+}
+
+void Symbol::setTouched(TaskContext& ctx)
+{
+    SWC_ASSERT(flags_.hasNot(SymbolFlagsE::Touched));
+    flags_.add(SymbolFlagsE::Touched);
+    ctx.compiler().notifySymbolTouched();
 }
 
 std::string_view Symbol::name(const TaskContext& ctx) const

@@ -43,10 +43,16 @@ AstVisitStepResult AstVarDecl::semaPreDecl(Sema& sema) const
     return AstVisitStepResult::SkipChildren;
 }
 
+void AstVarDecl::semaEnterNode(Sema& sema) const
+{
+    Symbol& sym = sema.symbolOf(sema.curNodeRef());
+    sym.setTouched(sema.ctx());
+}
+
 AstVisitStepResult AstVarDecl::semaPreNode(Sema& sema) const
 {
     Symbol& sym = sema.symbolOf(sema.curNodeRef());
-    LookUpReturn ret = SemaMatch::ghosting(sema, sym, sym.idRef());
+    LookUpReturn ret = SemaMatch::ghosting(sema, sym);
     if (ret == LookUpReturn::Error)
         return AstVisitStepResult::Stop;
     if (ret == LookUpReturn::Wait)

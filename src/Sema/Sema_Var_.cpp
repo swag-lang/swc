@@ -26,19 +26,25 @@ AstVisitStepResult AstVarDecl::semaPreDecl(Sema& sema) const
     if (hasParserFlag(Const))
     {
         SymbolConstant* symCst = Symbol::make<SymbolConstant>(ctx, srcViewRef(), tokNameRef, idRef, flags);
-        if (!symbolMap->addSingleSymbolOrError(sema, symCst))
+        if (!symbolMap->addSymbol(ctx, symCst, true))
             return AstVisitStepResult::Stop;
         sema.setSymbol(sema.curNodeRef(), symCst);
     }
     else
     {
         SymbolVariable* symVar = Symbol::make<SymbolVariable>(ctx, srcViewRef(), tokNameRef, idRef, flags);
-        if (!symbolMap->addSingleSymbolOrError(sema, symVar))
+        if (!symbolMap->addSymbol(ctx, symVar, true))
             return AstVisitStepResult::Stop;
         sema.setSymbol(sema.curNodeRef(), symVar);
     }
 
     return AstVisitStepResult::SkipChildren;
+}
+
+AstVisitStepResult AstVarDecl::semaPreNode(Sema& sema) const
+{
+    Symbol& sym = sema.symbolOf(sema.curNodeRef());
+    return AstVisitStepResult::Continue;
 }
 
 AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const

@@ -20,13 +20,9 @@ void SemaMatch::lookup(Sema& sema, LookupResult& result, IdentifierRef idRef)
     while (symMap)
     {
         lookupAppend(sema, *symMap, result, idRef);
-        if (!result.empty())
-            break;        
         symMap = symMap->symMap();
     }
 
-    if (!result.empty())
-        return;    
     lookupAppend(sema, sema.semaInfo().fileNamespace(), result, idRef);
 }
 

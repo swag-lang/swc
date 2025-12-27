@@ -23,8 +23,8 @@ enum C
     #assert(A == 0)
     B,
     #assert(B == 1)
-    C = 5,
-    #assert(C == 5)
+    CC = 5,
+    #assert(CC == 5)
     D,
     #assert(D == 6)
     E = 10,
@@ -51,7 +51,7 @@ enum E
 
 #assert(cast(u32) C.A == 0)
 #assert(cast(u32) C.B == 1)
-#assert((cast(s32) C.C) == 5)
+#assert((cast(s32) C.CC) == 5)
 #assert((cast(s32) C.D) == 6)
 #assert(cast(s32) D.A == -10)
 #assert(cast(s32) D.B == -9)

@@ -1004,11 +1004,11 @@ struct AstVarDecl : AstNamedNodeT<AstNodeId::VarDecl>
     AstNodeRef nodeTypeRef;
     AstNodeRef nodeInitRef;
 
-    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeInitRef}); }
-    AstVisitStepResult semaPreDecl(Sema& sema) const;
-    void               semaEnterNode(Sema& sema) const;
-    AstVisitStepResult semaPreNode(Sema& sema) const;
-    AstVisitStepResult semaPostNode(Sema& sema) const;
+    void                      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeInitRef}); }
+    AstVisitStepResult        semaPreDecl(Sema& sema) const;
+    static void               semaEnterNode(Sema& sema);
+    static AstVisitStepResult semaPreNode(Sema& sema);
+    AstVisitStepResult        semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

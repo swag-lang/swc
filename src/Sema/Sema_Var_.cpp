@@ -8,9 +8,9 @@
 #include "Sema/Sema.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/SemaCast.h"
-#include "Symbol/IdentifierManager.h"
-#include "Symbol/LookupResult.h"
-#include "Type/CastContext.h"
+#include "Sema/Symbol/IdentifierManager.h"
+#include "Sema/Symbol/MatchResult.h"
+#include "Sema/Type/CastContext.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -43,19 +43,19 @@ AstVisitStepResult AstVarDecl::semaPreDecl(Sema& sema) const
     return AstVisitStepResult::SkipChildren;
 }
 
-void AstVarDecl::semaEnterNode(Sema& sema) const
+void AstVarDecl::semaEnterNode(Sema& sema)
 {
     Symbol& sym = sema.symbolOf(sema.curNodeRef());
     sym.setTouched(sema.ctx());
 }
 
-AstVisitStepResult AstVarDecl::semaPreNode(Sema& sema) const
+AstVisitStepResult AstVarDecl::semaPreNode(Sema& sema)
 {
     Symbol& sym = sema.symbolOf(sema.curNodeRef());
-    LookUpReturn ret = SemaMatch::ghosting(sema, sym);
-    if (ret == LookUpReturn::Error)
+    LookUpResult ret = SemaMatch::ghosting(sema, sym);
+    if (ret == LookUpResult::Error)
         return AstVisitStepResult::Stop;
-    if (ret == LookUpReturn::Wait)
+    if (ret == LookUpResult::Wait)
         return AstVisitStepResult::Pause;
     return AstVisitStepResult::Continue;    
 }

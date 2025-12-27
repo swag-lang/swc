@@ -5,7 +5,7 @@
 #include "Sema/Helpers/SemaMatch.h"
 #include "Sema/Sema.h"
 #include "Symbol/IdentifierManager.h"
-#include "Symbol/LookupResult.h"
+#include "Symbol/MatchResult.h"
 #include "Symbol/Symbol.h"
 #include "Symbol/Symbols.h"
 
@@ -21,7 +21,7 @@ AstVisitStepResult AstIdentifier::semaPostNode(Sema& sema) const
 {
     const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokRef());
 
-    LookupResult result;
+    MatchResult result;
     SemaMatch::lookup(sema, result, idRef);
     if (result.empty())
         return sema.pause(TaskStateKind::SemaWaitingIdentifier);
@@ -52,7 +52,7 @@ AstVisitStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNo
     {
         const auto& namespaceSym = nodeLeftView.sym->cast<SymbolNamespace>();
 
-        LookupResult result;
+        MatchResult result;
         SemaMatch::lookupAppend(sema, namespaceSym, result, idRef);
         if (result.empty())
             return sema.pause(TaskStateKind::SemaWaitingIdentifier);
@@ -70,7 +70,7 @@ AstVisitStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNo
         if (!enumSym.isComplete())
             return sema.pause(TaskStateKind::SemaWaitingFullComplete);
 
-        LookupResult result;
+        MatchResult result;
         SemaMatch::lookupAppend(sema, enumSym, result, idRef);
         if (result.empty())
             return sema.pause(TaskStateKind::SemaWaitingIdentifier);

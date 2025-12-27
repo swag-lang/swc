@@ -1,20 +1,19 @@
 #include "pch.h"
-
 #include "SemaError.h"
 #include "Sema/Helpers/SemaMatch.h"
 #include "Sema/Sema.h"
-#include "Sema/Symbol/LookupResult.h"
+#include "Sema/Symbol/MatchResult.h"
 #include "Sema/Symbol/SymbolMap.h"
 #include "Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE()
 
-void SemaMatch::lookupAppend(Sema&, const SymbolMap& symMap, LookupResult& result, IdentifierRef idRef)
+void SemaMatch::lookupAppend(Sema&, const SymbolMap& symMap, MatchResult& result, IdentifierRef idRef)
 {
     symMap.lookupAppend(idRef, result.symbols());
 }
 
-void SemaMatch::lookup(Sema& sema, LookupResult& result, IdentifierRef idRef)
+void SemaMatch::lookup(Sema& sema, MatchResult& result, IdentifierRef idRef)
 {
     result.clear();
 
@@ -28,20 +27,26 @@ void SemaMatch::lookup(Sema& sema, LookupResult& result, IdentifierRef idRef)
     lookupAppend(sema, sema.semaInfo().fileNamespace(), result, idRef);
 }
 
-LookUpReturn SemaMatch::ghosting(Sema& sema, Symbol& sym)
+LookUpResult SemaMatch::ghosting(Sema& sema, Symbol& sym)
 {
-    LookupResult result;
+    MatchResult result;
     lookup(sema, result, sym.idRef());
     SWC_ASSERT(!result.empty());
     if (result.count() == 1)
-        return LookUpReturn::Success;
+        return LookUpResult::Success;
+
+    for (const Symbol* other : result.symbols())
+    {
+        if (!other->isTouched())  
+            return LookUpResult::Wait;
+    }
     
     for (const Symbol* other : result.symbols())
     {
         if (other == &sym)
             continue;
         SemaError::raiseSymbolAlreadyDefined(sema, &sym, other);
-        return LookUpReturn::Error;
+        return LookUpResult::Error;
     }
     
     SWC_UNREACHABLE();

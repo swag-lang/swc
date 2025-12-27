@@ -351,7 +351,7 @@
         <ClInclude Include="src\Sema\Sema.h"/>
         <ClInclude Include="src\Sema\Symbol\SymbolBigMap.h"/>
         <ClInclude Include="src\Sema\Symbol\IdentifierManager.h"/>
-        <ClInclude Include="src\Sema\Symbol\LookupResult.h"/>
+        <ClInclude Include="src\Sema\Symbol\MatchResult.h" />
         <ClInclude Include="src\Sema\Symbol\SymbolMap.h"/>
         <ClInclude Include="src\Sema\Symbol\Symbol.h"/>
         <ClInclude Include="src\Sema\Symbol\Symbols.h"/>

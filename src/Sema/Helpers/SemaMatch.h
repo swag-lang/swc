@@ -4,15 +4,15 @@
 SWC_BEGIN_NAMESPACE()
 
 class Sema;
-class LookupResult;
+class MatchResult;
 class SymbolMap;
-enum class LookUpReturn;
+enum class LookUpResult;
 
 namespace SemaMatch
 {
-    void lookupAppend(Sema& sema, const SymbolMap& symMap, LookupResult& result, IdentifierRef idRef);
-    void lookup(Sema& sema, LookupResult& result, IdentifierRef idRef);
-    LookUpReturn ghosting(Sema& sema, Symbol& sym);
+    void lookupAppend(Sema& sema, const SymbolMap& symMap, MatchResult& result, IdentifierRef idRef);
+    void lookup(Sema& sema, MatchResult& result, IdentifierRef idRef);
+    LookUpResult ghosting(Sema& sema, Symbol& sym);
 }
 
 SWC_END_NAMESPACE()

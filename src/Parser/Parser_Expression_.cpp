@@ -361,6 +361,8 @@ AstNodeRef Parser::parseIdentifier()
         case TokenId::CompilerUniq9:
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>(consume());
+            if (hasContextFlag(ParserContextFlagsE::InCompilerDefined))
+                nodePtr->addParserFlag(AstIdentifier::FlagsE::InCompilerDefined);
             return nodeRef;
         }
 
@@ -372,6 +374,8 @@ AstNodeRef Parser::parseIdentifier()
     if (tokName.isInvalid())
         return AstNodeRef::invalid();
     auto [identRef, identPtr] = ast_->makeNode<AstNodeId::Identifier>(tokName);
+    if (hasContextFlag(ParserContextFlagsE::InCompilerDefined))
+        identPtr->addParserFlag(AstIdentifier::FlagsE::InCompilerDefined);
     return identRef;
 }
 

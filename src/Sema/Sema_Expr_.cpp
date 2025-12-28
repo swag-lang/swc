@@ -19,10 +19,17 @@ AstVisitStepResult AstParenExpr::semaPostNode(Sema& sema)
 
 AstVisitStepResult AstIdentifier::semaPostNode(Sema& sema) const
 {
+    // Can be forced to false in case of an identifier inside a #defined
+    // @CompilerNotDefined
+    if (sema.hasConstant(sema.curNodeRef()))
+        return AstVisitStepResult::Continue;
+
     const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokRef());
 
     MatchResult              result;
     const AstVisitStepResult ret = SemaMatch::match(sema, result, idRef);
+    if (ret == AstVisitStepResult::Pause && hasParserFlag(InCompilerDefined))
+        return sema.pause(TaskStateKind::SemaWaitingCompilerDefined);
     if (ret != AstVisitStepResult::Continue)
         return ret;
     sema.setSymbol(sema.curNodeRef(), result.first());

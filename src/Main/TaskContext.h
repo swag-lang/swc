@@ -15,6 +15,7 @@ enum class TaskStateKind : uint8_t
 {
     None,
     SemaWaitingIdentifier,
+    SemaWaitingCompilerDefined,
     SemaWaitingComplete,
     SemaWaitingDeclared,
 };

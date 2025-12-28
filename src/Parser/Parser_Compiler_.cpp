@@ -24,11 +24,22 @@ AstNodeRef Parser::parseCompilerDiagnostic()
 
 AstNodeRef Parser::parseCompilerCallUnary()
 {
+    const auto token        = tok();
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCallUnary>(consume());
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    nodePtr->nodeArgRef = parseExpression();
+
+    if (token.id == TokenId::CompilerDefined)
+    {
+        PushContextFlags context(this, ParserContextFlagsE::InCompilerDefined);
+        nodePtr->nodeArgRef = parseExpression();
+    }
+    else
+    {
+        nodePtr->nodeArgRef = parseExpression();
+    }
+
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
     return nodeRef;

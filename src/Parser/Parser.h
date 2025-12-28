@@ -19,17 +19,25 @@ enum class SkipUntilFlagsE : uint32_t
 };
 using SkipUntilFlags = EnumFlags<SkipUntilFlagsE>;
 
+enum class ParserContextFlagsE : uint32_t
+{
+    Zero              = 0,
+    InCompilerDefined = 1 << 0,
+};
+using ParserContextFlags = EnumFlags<ParserContextFlagsE>;
+
 class Parser
 {
-    TaskContext* ctx_            = nullptr;
-    Ast*         ast_            = nullptr;
-    const Token* firstToken_     = nullptr;
-    const Token* curToken_       = nullptr;
-    const Token* lastToken_      = nullptr;
-    uint32_t     depthParen_     = 0;
-    uint32_t     depthBracket_   = 0;
-    uint32_t     depthCurly_     = 0;
-    TokenRef     lastErrorToken_ = TokenRef::invalid();
+    ParserContextFlags contextFlags_   = ParserContextFlagsE::Zero;
+    TaskContext*       ctx_            = nullptr;
+    Ast*               ast_            = nullptr;
+    const Token*       firstToken_     = nullptr;
+    const Token*       curToken_       = nullptr;
+    const Token*       lastToken_      = nullptr;
+    uint32_t           depthParen_     = 0;
+    uint32_t           depthBracket_   = 0;
+    uint32_t           depthCurly_     = 0;
+    TokenRef           lastErrorToken_ = TokenRef::invalid();
 
     const Token* tokPtr() const { return curToken_; }
     const Token& tok() const { return *curToken_; }
@@ -219,6 +227,25 @@ class Parser
     Diagnostic  reportError(DiagnosticId id, TokenRef tknRef);
     void        raiseError(DiagnosticId id, TokenRef tknRef);
     void        raiseExpected(DiagnosticId id, TokenRef tknRef, TokenId tknExpected);
+    bool        hasContextFlag(ParserContextFlags flags) const { return contextFlags_.has(flags); }
+
+    struct PushContextFlags
+    {
+        Parser*            parser;
+        ParserContextFlags oldFlags;
+
+        PushContextFlags(Parser* p, ParserContextFlags flags)
+        {
+            parser   = p;
+            oldFlags = p->contextFlags_;
+            p->contextFlags_.add(flags);
+        }
+
+        ~PushContextFlags()
+        {
+            parser->contextFlags_ = oldFlags;
+        }
+    };
 
 public:
     void parse(TaskContext& ctx, Ast& ast);

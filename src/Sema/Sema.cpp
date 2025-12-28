@@ -5,6 +5,7 @@
 #include "Main/Global.h"
 #include "Memory/Heap.h"
 #include "Report/DiagnosticDef.h"
+#include "Sema/Constant/ConstantManager.h"
 #include "Sema/Helpers/SemaInfo.h"
 #include "Sema/Helpers/SemaJob.h"
 #include "Sema/Helpers/SemaScope.h"
@@ -228,6 +229,9 @@ namespace
                     case TaskStateKind::SemaWaitingIdentifier:
                         SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unknown_identifier, state.nodeRef);
                         break;
+                    case TaskStateKind::SemaWaitingCompilerDefined:
+                        SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unknown_identifier, state.nodeRef);
+                        break;
                     case TaskStateKind::SemaWaitingComplete:
                         SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unsolved_identifier, state.nodeRef);
                         break;
@@ -259,11 +263,41 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
     {
         jobMgr.waitAll(clientId);
 
-        if (!compiler.changed())
-            break;
-        compiler.clearChanged();
+        if (compiler.changed())
+        {
+            compiler.clearChanged();
+            jobMgr.wakeAll(clientId);
+            continue;
+        }
 
-        jobMgr.wakeAll(clientId);
+        std::vector<Job*> jobs;
+        jobMgr.waitingJobs(jobs, clientId);
+
+        // If we are waiting for a symbol inside a #defined, then we must not trigger
+        // an error, and just force the evaluation to false.
+        bool doneSomething = false;
+        for (const auto job : jobs)
+        {
+            auto& state = job->ctx().state();
+            if (state.kind == TaskStateKind::SemaWaitingCompilerDefined)
+            {
+                if (const auto semaJob = job->safeCast<SemaJob>())
+                {
+                    // @CompilerNotDefined
+                    semaJob->sema().setConstant(state.nodeRef, semaJob->sema().cstMgr().cstFalse());
+                    state.reset();
+                    doneSomething = true;
+                }
+            }
+        }
+
+        if (doneSomething)
+        {
+            jobMgr.wakeAll(clientId);
+            continue;
+        }
+
+        break;
     }
 
     postPass(ctx, clientId);

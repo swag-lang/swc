@@ -349,6 +349,13 @@ struct AstCompilerShortFunc : AstNodeT<AstNodeId::CompilerShortFunc>
 // -----------------------------------------------------------------------------
 struct AstIdentifier : AstNodeT<AstNodeId::Identifier>
 {
+    enum FlagsE : ParserFlags
+    {
+        Zero              = 0,
+        InCompilerDefined = 1 << 0,
+    };
+    using Flags = EnumFlags<FlagsE>;
+
     AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 

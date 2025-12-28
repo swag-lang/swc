@@ -31,21 +31,28 @@ AstVisitStepResult AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef&
 
     if (childRef == nodeIfBlockRef)
     {
-        SemaFrame       frame   = sema.frame();
-        SemaCompilerIf* ifFrame = sema.compiler().allocate<SemaCompilerIf>();
+        SemaFrame       frame    = sema.frame();
+        SemaCompilerIf* parentIf = frame.compilerIf();
+        SemaCompilerIf* ifFrame  = sema.compiler().allocate<SemaCompilerIf>();
+        ifFrame->parent          = parentIf;
+
         frame.setCompilerIf(ifFrame);
         sema.setPayload(nodeIfBlockRef, ifFrame);
         sema.pushFrame(frame);
         return AstVisitStepResult::Continue;
     }
 
+    // Leaving the 'if' block
     sema.popFrame();
 
     SWC_ASSERT(childRef == nodeElseBlockRef);
     if (nodeElseBlockRef.isValid())
     {
         SemaFrame       frame     = sema.frame();
+        SemaCompilerIf* parentIf  = frame.compilerIf();
         SemaCompilerIf* elseFrame = sema.compiler().allocate<SemaCompilerIf>();
+        elseFrame->parent         = parentIf;
+
         frame.setCompilerIf(elseFrame);
         sema.setPayload(nodeElseBlockRef, elseFrame);
         sema.pushFrame(frame);
@@ -77,6 +84,30 @@ AstVisitStepResult AstCompilerIf::semaPreNodeChild(Sema& sema, const AstNodeRef&
         return AstVisitStepResult::SkipChildren;
     if (childRef == nodeElseBlockRef && constant.getBool())
         return AstVisitStepResult::SkipChildren;
+
+    return AstVisitStepResult::Continue;
+}
+
+AstVisitStepResult AstCompilerIf::semaPostNode(Sema& sema) const
+{
+    // Condition must already be a constant at this point
+    SWC_ASSERT(sema.hasConstant(nodeConditionRef));
+
+    const ConstantValue& constant      = sema.constantOf(nodeConditionRef);
+    const bool           takenIfBranch = constant.getBool();
+
+    // The block that will be ignored
+    const AstNodeRef& ignoredBlockRef = takenIfBranch ? nodeElseBlockRef : nodeIfBlockRef;
+    if (!ignoredBlockRef.isValid())
+        return AstVisitStepResult::Continue;
+
+    // Retrieve the SemaCompilerIf payload
+    const SemaCompilerIf* ignoredIfData = sema.payload<SemaCompilerIf>(ignoredBlockRef);
+    if (!ignoredIfData)
+        return AstVisitStepResult::Continue;
+
+    for (Symbol* sym : ignoredIfData->symbols)
+        sym->setIgnored(sema.ctx());
 
     return AstVisitStepResult::Continue;
 }

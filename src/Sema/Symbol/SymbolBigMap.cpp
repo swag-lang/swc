@@ -141,7 +141,10 @@ void SymbolBigMap::lookupAppend(IdentifierRef idRef, SmallVector<const Symbol*>&
             return;
 
         for (const Symbol* cur = it->second; cur; cur = cur->nextHomonym())
-            out.push_back(cur);
+        {
+            if (!cur->isIgnored())
+                out.push_back(cur);
+        }
 
         return;
     }
@@ -152,7 +155,10 @@ void SymbolBigMap::lookupAppend(IdentifierRef idRef, SmallVector<const Symbol*>&
     if (it == unsharded_.end())
         return;
     for (const Symbol* cur = it->second; cur; cur = cur->nextHomonym())
-        out.push_back(cur);
+    {
+        if (!cur->isIgnored())
+            out.push_back(cur);
+    }
 }
 
 SWC_END_NAMESPACE()

@@ -84,7 +84,12 @@ public:
     bool                 hasSymbol(AstNodeRef n) const { return semaInfo().hasSymbol(n); }
     bool                 hasPayload(AstNodeRef n) const { return semaInfo().hasPayload(n); }
     void                 setPayload(AstNodeRef n, void* payload) { semaInfo().setPayload(n, payload); }
-    void*                getPayload(AstNodeRef n) const { return semaInfo().getPayload(n); }
+
+    template<typename T>
+    T* payload(AstNodeRef n) const
+    {
+        return static_cast<T*>(semaInfo().getPayload(n));
+    }
 
     AstNodeRef       curNodeRef() const { return visit_.currentNodeRef(); }
     SemaScope&       curScope() { return *curScope_; }

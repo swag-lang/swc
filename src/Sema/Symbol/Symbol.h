@@ -36,6 +36,7 @@ enum class SymbolFlagsE : uint8_t
     Public   = 1 << 0,
     Declared = 1 << 1,
     Complete = 1 << 2,
+    Ignored  = 1 << 3,
 
     // Specific per symbol kind
     EnumHasNextValue = 1 << 7,
@@ -82,6 +83,9 @@ public:
     void setComplete(TaskContext& ctx);
     bool isDeclared() const noexcept { return flags_.has(SymbolFlagsE::Declared); }
     void setDeclared(TaskContext& ctx);
+    bool isIgnored() const noexcept { return flags_.has(SymbolFlagsE::Ignored); }
+    void setIgnored(TaskContext& ctx) noexcept;
+
     void setContext(Sema& sema);
 
     SymbolMap*       symMap() noexcept { return ownerSymMap_; }

@@ -23,6 +23,13 @@ void Symbol::setDeclared(TaskContext& ctx)
     ctx.compiler().notifySymbolDeclared();
 }
 
+void Symbol::setIgnored(TaskContext& ctx) noexcept
+{
+    SWC_ASSERT(flags_.hasNot(SymbolFlagsE::Ignored));
+    flags_.add(SymbolFlagsE::Ignored);
+    ctx.compiler().notifySymbolIgnored();
+}
+
 void Symbol::setContext(Sema& sema)
 {
     if (auto* compilerIf = sema.frame().compilerIf())

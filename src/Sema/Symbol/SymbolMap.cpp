@@ -72,8 +72,12 @@ void SymbolMap::lookupAppend(IdentifierRef idRef, SmallVector<const Symbol*>& ou
     const Symbol* head = nullptr;
     if (const Entry* e = smallFind(idRef))
         head = e->head;
+
     for (const Symbol* cur = head; cur; cur = cur->nextHomonym())
-        out.push_back(cur);
+    {
+        if (!cur->isIgnored())
+            out.push_back(cur);
+    }
 }
 
 Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms)

@@ -72,6 +72,7 @@ public:
     void notifySymbolAdded() { changed_ = true; }
     void notifySymbolComplete() { changed_ = true; }
     void notifySymbolDeclared() { changed_ = true; }
+    void notifySymbolIgnored() { changed_ = true; }
     bool changed() const { return changed_; }
     void clearChanged() { changed_ = false; }
 

@@ -786,7 +786,7 @@ struct AstArrayType : AstNodeT<AstNodeId::ArrayType>
         AstNode::collectChildren(out, ast, spanDimensionsRef);
         AstNode::collectChildren(out, {nodePointeeTypeRef});
     }
-    
+
     AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
@@ -883,6 +883,7 @@ struct AstCompilerIf : AstNodeT<AstNodeId::CompilerIf>
     AstVisitStepResult semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) const;
     AstVisitStepResult semaPostDecl(Sema& sema) const;
     AstVisitStepResult semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

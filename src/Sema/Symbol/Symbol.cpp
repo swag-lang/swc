@@ -25,7 +25,8 @@ void Symbol::setDeclared(TaskContext& ctx)
 
 void Symbol::setIgnored(TaskContext& ctx) noexcept
 {
-    SWC_ASSERT(flags_.hasNot(SymbolFlagsE::Ignored));
+    if (flags_.has(SymbolFlagsE::Ignored))
+        return;
     flags_.add(SymbolFlagsE::Ignored);
     ctx.compiler().notifySymbolIgnored();
 }

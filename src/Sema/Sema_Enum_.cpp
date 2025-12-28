@@ -4,10 +4,10 @@
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaFrame.h"
 #include "Sema/Helpers/SemaInfo.h"
+#include "Sema/Helpers/SemaMatch.h"
 #include "Sema/Helpers/SemaNodeView.h"
 #include "Sema/Sema.h"
 #include "Sema/Symbol/Symbols.h"
-#include "Sema/Helpers/SemaMatch.h"
 #include "Type/CastContext.h"
 #include "Type/SemaCast.h"
 
@@ -167,12 +167,10 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
     }
 
     // Create a symbol for this enum value
-    const IdentifierRef idRef    = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokRef());
-    
-    SymbolFlags flags = SymbolFlagsE::Complete;
-    flags.add(SymbolFlagsE::Declared);
+    const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokRef());
 
-    auto*               symValue = Symbol::make<SymbolEnumValue>(ctx, srcViewRef(), tokRef(), idRef, flags);
+    SymbolFlags flags    = SymbolFlagsE::Complete | SymbolFlagsE::Declared;
+    auto*       symValue = Symbol::make<SymbolEnumValue>(ctx, srcViewRef(), tokRef(), idRef, flags);
 
     ConstantValue enumCst    = ConstantValue::makeEnumValue(ctx, valueCst, symEnum.typeRef());
     ConstantRef   enumCstRef = sema.cstMgr().addConstant(ctx, enumCst);

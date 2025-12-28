@@ -109,6 +109,11 @@ struct AtomicEnumFlags
         flags{static_cast<U>(other)}
     {
     }
+    
+    constexpr AtomicEnumFlags(EnumFlags<T> other) noexcept
+    : flags{other.flags}
+    {
+    }
 
     AtomicEnumFlags(const Self& other) noexcept :
         flags{other.flags.load(std::memory_order_relaxed)}

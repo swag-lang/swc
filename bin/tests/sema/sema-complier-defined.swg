@@ -2,4 +2,10 @@
 
 const A = 0
 #assert(#defined(A))
-#print(#defined(B))
+#assert(!#defined(B))
+
+namespace NS { const AA = 0 }
+#assert(#defined(NS.AA))
+
+#assert(#defined(C))
+const C = 1

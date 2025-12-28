@@ -41,7 +41,7 @@ Sema::~Sema() = default;
 void Sema::semaInherit(AstNode& nodeDst, AstNodeRef srcRef)
 {
     const AstNode& nodeSrc = node(srcRef);
-    nodeDst.semaBits()  = nodeSrc.semaBits();
+    nodeDst.semaBits()     = nodeSrc.semaBits();
     nodeDst.setSemaRef(nodeSrc.semaRef());
 }
 
@@ -225,14 +225,17 @@ namespace
             {
                 switch (state.kind)
                 {
-                case TaskStateKind::SemaWaitingIdentifier:
-                    SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unknown_identifier, state.nodeRef);
-                    break;
-                case TaskStateKind::SemaWaitingComplete:
-                    SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unsolved_identifier, state.nodeRef);
-                    break;
-                default:
-                    break;
+                    case TaskStateKind::SemaWaitingIdentifier:
+                        SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unknown_identifier, state.nodeRef);
+                        break;
+                    case TaskStateKind::SemaWaitingComplete:
+                        SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unsolved_identifier, state.nodeRef);
+                        break;
+                    case TaskStateKind::SemaWaitingDeclared:
+                        SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unsolved_identifier, state.nodeRef);
+                        break;
+                    default:
+                        break;
                 }
             }
         }

@@ -1,10 +1,10 @@
 #include "pch.h"
-#include "SemaError.h"
 #include "Sema/Helpers/SemaMatch.h"
 #include "Sema/Sema.h"
 #include "Sema/Symbol/MatchResult.h"
 #include "Sema/Symbol/SymbolMap.h"
 #include "Sema/Symbol/Symbols.h"
+#include "SemaError.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -30,7 +30,7 @@ void SemaMatch::lookup(Sema& sema, MatchResult& result, IdentifierRef idRef)
 AstVisitStepResult SemaMatch::match(Sema& sema, MatchResult& result, IdentifierRef idRef)
 {
     lookup(sema, result, idRef);
-    
+
     if (result.empty())
     {
         sema.pause(TaskStateKind::SemaWaitingIdentifier);
@@ -45,7 +45,7 @@ AstVisitStepResult SemaMatch::match(Sema& sema, MatchResult& result, IdentifierR
             return AstVisitStepResult::Pause;
         }
     }
-    
+
     return AstVisitStepResult::Continue;
 }
 
@@ -53,7 +53,7 @@ AstVisitStepResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
 {
     MatchResult result;
     lookup(sema, result, sym.idRef());
-    
+
     SWC_ASSERT(!result.empty());
     if (result.count() == 1)
         return AstVisitStepResult::Continue;
@@ -62,11 +62,11 @@ AstVisitStepResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
     {
         if (!other->isDeclared())
         {
-            sema.pause(TaskStateKind::SemaWaitingComplete);
+            sema.pause(TaskStateKind::SemaWaitingDeclared);
             return AstVisitStepResult::Pause;
         }
     }
-    
+
     for (const Symbol* other : result.symbols())
     {
         if (other == &sym)
@@ -74,7 +74,7 @@ AstVisitStepResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
         SemaError::raiseSymbolAlreadyDefined(sema, &sym, other);
         return AstVisitStepResult::Stop;
     }
-    
+
     SWC_UNREACHABLE();
 }
 

@@ -106,7 +106,8 @@ AstNodeRef Parser::parseVarDeclDecomposition()
 
 AstNodeRef Parser::parseVarDecl()
 {
-    AstVarDecl::Flags flags = AstVarDecl::Zero;
+    AstVarDecl::Flags flags    = AstVarDecl::Zero;
+    TokenRef          tokStart = ref();
     if (consumeIf(TokenId::KwdConst).isValid())
         flags.add(AstVarDecl::Const);
     else if (consumeIf(TokenId::KwdVar).isValid())
@@ -149,7 +150,7 @@ AstNodeRef Parser::parseVarDecl()
 
         if (tokNames.size() == 1)
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDecl>(ref());
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDecl>(tokStart);
             nodePtr->addParserFlag(flags);
             nodePtr->tokNameRef  = tokNames[0];
             nodePtr->nodeTypeRef = nodeType;
@@ -158,7 +159,7 @@ AstNodeRef Parser::parseVarDecl()
         }
         else
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDeclNameList>(ref());
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDeclNameList>(tokStart);
             nodePtr->addParserFlag(flags);
             nodePtr->spanNamesRef = ast_->pushSpan(tokNames.span());
             nodePtr->nodeTypeRef  = nodeType;

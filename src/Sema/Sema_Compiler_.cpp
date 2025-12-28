@@ -375,6 +375,16 @@ namespace
         SemaError::raise(sema, DiagnosticId::sema_err_failed_stringof, node.nodeArgRef);
         return AstVisitStepResult::Stop;
     }
+
+    AstVisitStepResult semaCompilerDefined(Sema& sema, const AstCompilerCallUnary& node)
+    {
+        auto&               ctx = sema.ctx();
+        const SemaNodeView  nodeView(sema, node.nodeArgRef);
+        const bool          isDefined = nodeView.sym != nullptr;
+        const ConstantValue value     = ConstantValue::makeBool(ctx, isDefined);
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
+        return AstVisitStepResult::Continue;
+    }
 }
 
 AstVisitStepResult AstCompilerCallUnary::semaPostNode(Sema& sema) const
@@ -388,6 +398,8 @@ AstVisitStepResult AstCompilerCallUnary::semaPostNode(Sema& sema) const
             return semaCompilerNameOf(sema, *this);
         case TokenId::CompilerStringOf:
             return semaCompilerStringOf(sema, *this);
+        case TokenId::CompilerDefined:
+            return semaCompilerDefined(sema, *this);
 
         case TokenId::CompilerSizeOf:
         case TokenId::CompilerAlignOf:
@@ -395,7 +407,6 @@ AstVisitStepResult AstCompilerCallUnary::semaPostNode(Sema& sema) const
         case TokenId::CompilerDeclType:
         case TokenId::CompilerRunes:
         case TokenId::CompilerIsConstExpr:
-        case TokenId::CompilerDefined:
         case TokenId::CompilerInclude:
         case TokenId::CompilerSafety:
         case TokenId::CompilerHasTag:

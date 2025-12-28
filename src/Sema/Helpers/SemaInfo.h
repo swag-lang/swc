@@ -19,13 +19,13 @@ enum class NodeSemaKind : uint8_t
     TypeRef     = 2,
     SymbolRef   = 3,
     Substitute  = 4,
+    Payload     = 5,
 };
 
-enum class NodeSemaFlags : uint8_t 
+enum class NodeSemaFlags : uint8_t
 {
     ValueExpr = 1 << 7,
 };
-
 
 class SemaInfo
 {
@@ -46,11 +46,11 @@ public:
     Ast&       ast() { return ast_; }
     const Ast& ast() const { return ast_; }
 
-    static NodeSemaKind semaKind(const AstNode& node) { return static_cast<NodeSemaKind>(node.semaBits() & SEMA_KIND_MASK); }
-    static void setSemaKind(AstNode& node, NodeSemaKind value) { node.semaBits() = (node.semaBits() & ~SEMA_KIND_MASK) | static_cast<uint8_t>(value); }
-    static void addSemaFlags(AstNode& node, NodeSemaFlags value) { node.semaBits() |= static_cast<uint8_t>(value); }
-    static void removeSemaFlags(AstNode& node, NodeSemaFlags value) { node.semaBits() &= ~static_cast<uint8_t>(value); }
-    static bool hasSemaFlags(const AstNode& node, NodeSemaFlags value) { return (node.semaBits() & static_cast<uint8_t>(value)) != 0; }
+    static NodeSemaKind  semaKind(const AstNode& node) { return static_cast<NodeSemaKind>(node.semaBits() & SEMA_KIND_MASK); }
+    static void          setSemaKind(AstNode& node, NodeSemaKind value) { node.semaBits() = (node.semaBits() & ~SEMA_KIND_MASK) | static_cast<uint8_t>(value); }
+    static void          addSemaFlags(AstNode& node, NodeSemaFlags value) { node.semaBits() |= static_cast<uint8_t>(value); }
+    static void          removeSemaFlags(AstNode& node, NodeSemaFlags value) { node.semaBits() &= ~static_cast<uint8_t>(value); }
+    static bool          hasSemaFlags(const AstNode& node, NodeSemaFlags value) { return (node.semaBits() & static_cast<uint8_t>(value)) != 0; }
     static NodeSemaFlags semaFlags(const AstNode& node) { return static_cast<NodeSemaFlags>(node.semaBits() & ~SEMA_KIND_MASK); }
 
     const SymbolNamespace& moduleNamespace() const { return *moduleNamespace_; }
@@ -78,6 +78,10 @@ public:
     const Symbol& getSymbol(const TaskContext&, AstNodeRef nodeRef) const;
     Symbol&       getSymbol(const TaskContext&, AstNodeRef nodeRef);
     void          setSymbol(AstNodeRef nodeRef, const Symbol* symbol);
+
+    bool  hasPayload(AstNodeRef nodeRef) const;
+    void  setPayload(AstNodeRef nodeRef, void* payload);
+    void* getPayload(AstNodeRef nodeRef) const;
 };
 
 SWC_END_NAMESPACE()

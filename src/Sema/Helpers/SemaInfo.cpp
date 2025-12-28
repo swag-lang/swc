@@ -71,7 +71,7 @@ void SemaInfo::setConstant(AstNodeRef nodeRef, ConstantRef ref)
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(ref.isValid());
-    AstNode& node      = ast().node(nodeRef);
+    AstNode& node = ast().node(nodeRef);
     setSemaKind(node, NodeSemaKind::ConstantRef);
     node.setSemaRef(ref.get());
     addSemaFlags(node, NodeSemaFlags::ValueExpr);
@@ -89,7 +89,7 @@ void SemaInfo::setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef)
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(substNodeRef.isValid());
-    AstNode& node      = ast().node(nodeRef);
+    AstNode& node = ast().node(nodeRef);
     setSemaKind(node, NodeSemaKind::Substitute);
     node.setSemaRef(substNodeRef.get());
 }
@@ -98,14 +98,14 @@ AstNodeRef SemaInfo::getSubstitudeRef(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return nodeRef;
-    
+
     const AstNode* node = &ast().node(nodeRef);
     while (semaKind(*node) == NodeSemaKind::Substitute)
     {
         nodeRef = AstNodeRef{node->semaRef()};
-        node = &ast().node(nodeRef);    
+        node    = &ast().node(nodeRef);
     }
-    
+
 #if SWC_HAS_DEBUG_INFO
     nodeRef.setDbgPtr(&ast().node(nodeRef));
 #endif
@@ -157,7 +157,7 @@ void SemaInfo::setType(AstNodeRef nodeRef, TypeRef ref)
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(ref.isValid());
-    AstNode& node      = ast().node(nodeRef);
+    AstNode& node = ast().node(nodeRef);
     setSemaKind(node, NodeSemaKind::TypeRef);
     node.setSemaRef(ref.get());
 }
@@ -196,16 +196,48 @@ void SemaInfo::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
     auto&            shard    = shards_[shardIdx];
     std::unique_lock lock(shard.mutex);
 
-    AstNode& node      = ast().node(nodeRef);
+    AstNode& node = ast().node(nodeRef);
     setSemaKind(node, NodeSemaKind::SymbolRef);
-    
-    const Ref value    = shard.store.push_back(symbol);
+
+    const Ref value = shard.store.push_back(symbol);
     node.setSemaRef(value);
-    
+
     if (symbol->isValueExpr())
         addSemaFlags(node, NodeSemaFlags::ValueExpr);
     else
         removeSemaFlags(node, NodeSemaFlags::ValueExpr);
+}
+
+bool SemaInfo::hasPayload(AstNodeRef nodeRef) const
+{
+    if (nodeRef.isInvalid())
+        return false;
+    const AstNode& node = ast().node(nodeRef);
+    return semaKind(node) == NodeSemaKind::Payload;
+}
+
+void SemaInfo::setPayload(AstNodeRef nodeRef, void* payload)
+{
+    SWC_ASSERT(nodeRef.isValid());
+
+    const uint32_t   shardIdx = nodeRef.get() % NUM_SHARDS;
+    auto&            shard    = shards_[shardIdx];
+    std::unique_lock lock(shard.mutex);
+
+    AstNode& node = ast().node(nodeRef);
+    setSemaKind(node, NodeSemaKind::Payload);
+
+    const Ref value = shard.store.push_back(payload);
+    node.setSemaRef(value);
+}
+
+void* SemaInfo::getPayload(AstNodeRef nodeRef) const
+{
+    SWC_ASSERT(hasPayload(nodeRef));
+    const uint32_t shardIdx = nodeRef.get() % NUM_SHARDS;
+    auto&          shard    = shards_[shardIdx];
+    const AstNode& node     = ast().node(nodeRef);
+    return *shard.store.ptr<void*>(node.semaRef());
 }
 
 SWC_END_NAMESPACE()

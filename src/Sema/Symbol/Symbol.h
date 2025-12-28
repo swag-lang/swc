@@ -34,7 +34,7 @@ enum class SymbolFlagsE : uint8_t
 {
     Zero     = 0,
     Public   = 1 << 0,
-    Declared  = 1 << 1,
+    Declared = 1 << 1,
     Complete = 1 << 2,
 
     // Specific per symbol kind
@@ -96,7 +96,7 @@ public:
     bool isEnumValue() const noexcept { return kind_ == SymbolKind::EnumValue; }
     bool isModule() const noexcept { return kind_ == SymbolKind::Module; }
     bool isSymMap() const noexcept { return kind_ == SymbolKind::Namespace || kind_ == SymbolKind::Module || kind_ == SymbolKind::Enum; }
-    
+
     bool isType() const noexcept { return isEnum(); }
     bool isValueExpr() const noexcept { return isVariable() || isConstant() || isEnumValue(); }
 

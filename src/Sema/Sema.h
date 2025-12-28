@@ -32,7 +32,7 @@ class Sema
     std::vector<std::unique_ptr<SemaScope>> scopes_;
     SymbolMap*                              startSymMap_ = nullptr;
     SemaScope*                              curScope_    = nullptr;
-    bool                                    declPass_ = false;
+    bool                                    declPass_    = false;
 
     std::vector<SemaFrame> frame_;
 
@@ -82,6 +82,9 @@ public:
     bool                 hasType(AstNodeRef n) const { return semaInfo().hasType(n); }
     bool                 hasConstant(AstNodeRef n) const { return semaInfo().hasConstant(ctx(), n); }
     bool                 hasSymbol(AstNodeRef n) const { return semaInfo().hasSymbol(n); }
+    bool                 hasPayload(AstNodeRef n) const { return semaInfo().hasPayload(n); }
+    void                 setPayload(AstNodeRef n, void* payload) { semaInfo().setPayload(n, payload); }
+    void*                getPayload(AstNodeRef n) const { return semaInfo().getPayload(n); }
 
     AstNodeRef       curNodeRef() const { return visit_.currentNodeRef(); }
     SemaScope&       curScope() { return *curScope_; }

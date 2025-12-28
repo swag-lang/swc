@@ -8,10 +8,10 @@
 #include "Report/DiagnosticDef.h"
 #include "Report/Logger.h"
 #include "Sema/Constant/ConstantValue.h"
+#include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaNodeView.h"
 #include "Sema/Sema.h"
 #include "Sema/Type/TypeManager.h"
-#include "Sema/Helpers/SemaCheck.h"
 #include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -28,25 +28,29 @@ AstVisitStepResult AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef&
 {
     if (childRef == nodeConditionRef)
         return AstVisitStepResult::Continue;
-    
+
     if (childRef == nodeIfBlockRef)
     {
-        SemaFrame frame = sema.frame();
-        frame.setCompilerIfNodeRef(sema.curNodeRef());
+        SemaFrame       frame   = sema.frame();
+        SemaCompilerIf* ifFrame = sema.compiler().allocate<SemaCompilerIf>();
+        frame.setCompilerIf(ifFrame);
+        sema.setPayload(nodeIfBlockRef, ifFrame);
         sema.pushFrame(frame);
         return AstVisitStepResult::Continue;
     }
-        
+
     sema.popFrame();
-    
+
     SWC_ASSERT(childRef == nodeElseBlockRef);
     if (nodeElseBlockRef.isValid())
     {
-        SemaFrame frame = sema.frame();
-        frame.setCompilerElseNodeRef(sema.curNodeRef());
+        SemaFrame       frame     = sema.frame();
+        SemaCompilerIf* elseFrame = sema.compiler().allocate<SemaCompilerIf>();
+        frame.setCompilerIf(elseFrame);
+        sema.setPayload(nodeElseBlockRef, elseFrame);
         sema.pushFrame(frame);
     }
-    
+
     return AstVisitStepResult::Continue;
 }
 
@@ -228,7 +232,7 @@ AstVisitStepResult AstCompilerGlobal::semaPreDecl(Sema& sema) const
         case Mode::AccessPrivate:
             sema.frame().setDefaultAccess(SymbolAccess::Private);
     }
-    
+
     return AstVisitStepResult::Continue;
 }
 

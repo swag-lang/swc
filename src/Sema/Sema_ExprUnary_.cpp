@@ -198,7 +198,7 @@ AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema)
     const auto& tok = sema.token(srcViewRef(), tokRef());
     if (check(sema, tok.id, *this, ops) == Result::Error)
         return AstVisitStepResult::Stop;
-    
+
     // Constant folding
     if (sema.hasConstant(nodeExprRef))
     {

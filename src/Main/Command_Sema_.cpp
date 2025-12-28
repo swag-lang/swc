@@ -36,7 +36,7 @@ namespace Command
         }
 
         jobMgr.waitAll(clientId);
-        
+
         // Filter files
         std::vector<SourceFile*> files;
         for (SourceFile* f : compiler.files())
@@ -48,7 +48,7 @@ namespace Command
                 continue;
             files.push_back(f);
         }
-        
+
         compiler.setupSema(ctx);
 
         SymbolModule*       symModule       = Symbol::make<SymbolModule>(ctx, SourceViewRef::invalid(), TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
@@ -62,7 +62,7 @@ namespace Command
             const auto job = heapNew<SemaJob>(ctx, f->semaInfo(), true);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
-        
+
         jobMgr.waitAll(clientId);
 
         for (SourceFile* f : files)

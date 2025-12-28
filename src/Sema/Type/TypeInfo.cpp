@@ -146,7 +146,7 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
             return asTypeRef.typeRef == other.asTypeRef.typeRef;
         case TypeInfoKind::Enum:
             return asEnumSym.enumSym == other.asEnumSym.enumSym;
-            
+
         case TypeInfoKind::Array:
             if (asArray.dims.size() != other.asArray.dims.size())
                 return false;
@@ -296,7 +296,7 @@ TypeInfo TypeInfo::makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags)
     return ti;
 }
 
-TypeInfo TypeInfo::makeArray(const std::vector<uint64_t> &dims, TypeRef elementTypeRef, TypeInfoFlags flags)
+TypeInfo TypeInfo::makeArray(const std::vector<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags)
 {
     TypeInfo ti{TypeInfoKind::Array, flags};
     std::construct_at(&ti.asArray.dims, dims);
@@ -391,14 +391,14 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
                 out += std::to_string(asFloat.bits);
             }
             break;
-            
+
         case TypeInfoKind::Slice:
         {
             const TypeInfo& type = ctx.typeMgr().get(asTypeRef.typeRef);
             out += std::format("[..] {}", type.toName(ctx));
             break;
         }
-            
+
         case TypeInfoKind::Array:
         {
             if (asArray.dims.empty())

@@ -71,7 +71,7 @@ public:
     ~TypeInfo() {};
     TypeInfo(const TypeInfo&);
     TypeInfo& operator=(const TypeInfo&);
-    
+
     bool operator==(const TypeInfo& other) const noexcept;
     Utf8 toName(const TaskContext& ctx) const;
 
@@ -138,7 +138,7 @@ public:
     static TypeInfo makeValuePointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
-    static TypeInfo makeArray(const std::vector<uint64_t> &dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    static TypeInfo makeArray(const std::vector<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
 
     uint32_t hash() const;
 };

@@ -108,7 +108,7 @@ AstVisitStepResult AstBlockPointerType::semaPostNode(Sema& sema) const
 AstVisitStepResult AstSliceType::semaPostNode(Sema& sema) const
 {
     const SemaNodeView nodeView(sema, nodePointeeTypeRef);
-    
+
     if (nodeView.typeRef == sema.typeMgr().getTypeVoid())
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_bad_slice_element_type, nodePointeeTypeRef);
@@ -116,9 +116,9 @@ AstVisitStepResult AstSliceType::semaPostNode(Sema& sema) const
         diag.report(sema.ctx());
         return AstVisitStepResult::Stop;
     }
-    
-    const TypeInfo     ty      = TypeInfo::makeSlice(nodeView.typeRef);
-    const TypeRef      typeRef = sema.typeMgr().addType(ty);
+
+    const TypeInfo ty      = TypeInfo::makeSlice(nodeView.typeRef);
+    const TypeRef  typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
     return AstVisitStepResult::Continue;
 }
@@ -138,17 +138,17 @@ AstVisitStepResult AstQualifiedType::semaPostNode(Sema& sema) const
             case TypeInfoKind::Slice:
                 break;
             default:
-                const SourceView& srcView = sema.compiler().srcView(srcViewRef());
-                const TokenRef constTokRef = srcView.findRightFrom(tokRef(), {TokenId::KwdConst});
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, srcViewRef(), constTokRef);
+                const SourceView& srcView     = sema.compiler().srcView(srcViewRef());
+                const TokenRef    constTokRef = srcView.findRightFrom(tokRef(), {TokenId::KwdConst});
+                auto              diag        = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, srcViewRef(), constTokRef);
                 diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
                 diag.report(sema.ctx());
                 return AstVisitStepResult::Stop;
         }
-        
+
         flags.add(TypeInfoFlagsE::Const);
     }
-    
+
     if (hasParserFlag(Nullable))
     {
         switch (nodeView.type->kind())
@@ -161,9 +161,9 @@ AstVisitStepResult AstQualifiedType::semaPostNode(Sema& sema) const
             case TypeInfoKind::Any:
                 break;
             default:
-                const SourceView& srcView = sema.compiler().srcView(srcViewRef());
-                const TokenRef constTokRef = srcView.findRightFrom(tokRef(), {TokenId::ModifierNullable});
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, srcViewRef(), constTokRef);
+                const SourceView& srcView     = sema.compiler().srcView(srcViewRef());
+                const TokenRef    constTokRef = srcView.findRightFrom(tokRef(), {TokenId::ModifierNullable});
+                auto              diag        = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, srcViewRef(), constTokRef);
                 diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
                 diag.report(sema.ctx());
                 return AstVisitStepResult::Stop;
@@ -171,9 +171,9 @@ AstVisitStepResult AstQualifiedType::semaPostNode(Sema& sema) const
 
         flags.add(TypeInfoFlagsE::Nullable);
     }
-    
-    TypeRef            typeRef;
-    TypeManager&       typeMgr = sema.typeMgr();
+
+    TypeRef      typeRef;
+    TypeManager& typeMgr = sema.typeMgr();
     switch (nodeView.type->kind())
     {
         case TypeInfoKind::ValuePointer:
@@ -220,22 +220,22 @@ AstVisitStepResult AstNamedType::semaPostNode(Sema& sema)
 
 AstVisitStepResult AstArrayType::semaPostNode(Sema& sema) const
 {
-    auto& ctx = sema.ctx();
+    auto&              ctx = sema.ctx();
     const SemaNodeView nodeView(sema, nodePointeeTypeRef);
-    
+
     // Unknown dimension [?]
     if (spanDimensionsRef.isInvalid())
     {
-        const TypeInfo     ty      = TypeInfo::makeArray({}, nodeView.typeRef);
-        const TypeRef      typeRef = sema.typeMgr().addType(ty);
+        const TypeInfo ty      = TypeInfo::makeArray({}, nodeView.typeRef);
+        const TypeRef  typeRef = sema.typeMgr().addType(ty);
         sema.setType(sema.curNodeRef(), typeRef);
         return AstVisitStepResult::Continue;
     }
-    
+
     // Value-check
     SmallVector<AstNodeRef> out;
     sema.ast().nodes(out, spanDimensionsRef);
-    
+
     std::vector<uint64_t> dims;
     for (const auto& dimRef : out)
     {
@@ -243,16 +243,16 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema) const
             return AstVisitStepResult::Stop;
         if (SemaCheck::isConstant(sema, dimRef) != Result::Success)
             return AstVisitStepResult::Stop;
-        
-        const ConstantRef cstRef = sema.constantRefOf(dimRef); 
-        const ConstantValue& cst = sema.constantOf(dimRef);
+
+        const ConstantRef    cstRef = sema.constantRefOf(dimRef);
+        const ConstantValue& cst    = sema.constantOf(dimRef);
         if (!cst.isInt())
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_not_int, dimRef);
             diag.addArgument(Diagnostic::ARG_TYPE, cst.typeRef());
             diag.report(ctx);
             return AstVisitStepResult::Stop;
-        }        
+        }
 
         if (cst.getInt().isNegative())
         {
@@ -265,20 +265,20 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema) const
         const ConstantRef newCstRef = sema.cstMgr().concretizeConstant(sema, dimRef, cstRef, TypeInfo::Sign::Unsigned);
         if (newCstRef.isInvalid())
             return AstVisitStepResult::Stop;
-       
+
         const ConstantValue& newCst = sema.cstMgr().get(newCstRef);
-        const uint64_t dim = newCst.getInt().as64();
+        const uint64_t       dim    = newCst.getInt().as64();
         if (dim == 0)
         {
             SemaError::raise(sema, DiagnosticId::sema_err_array_dim_zero, dimRef);
             return AstVisitStepResult::Stop;
         }
-                
+
         dims.push_back(dim);
     }
-    
-    const TypeInfo     ty      = TypeInfo::makeArray(dims, nodeView.typeRef);
-    const TypeRef      typeRef = sema.typeMgr().addType(ty);
+
+    const TypeInfo ty      = TypeInfo::makeArray(dims, nodeView.typeRef);
+    const TypeRef  typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
     return AstVisitStepResult::Continue;
 }

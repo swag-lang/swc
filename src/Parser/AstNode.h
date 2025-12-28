@@ -114,7 +114,7 @@ private:
     uint8_t       semaBits_   = 0;
     SourceViewRef srcViewRef_ = SourceViewRef::invalid();
     TokenRef      tokRef_     = TokenRef::invalid();
-    uint32_t      semaRef_       = 0;
+    uint32_t      semaRef_    = 0;
 };
 
 template<AstNodeId I>

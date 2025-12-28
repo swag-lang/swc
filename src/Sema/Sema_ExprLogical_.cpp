@@ -74,7 +74,7 @@ AstVisitStepResult AstLogicalExpr::semaPostNode(Sema& sema)
     const auto& tok = sema.token(srcViewRef(), tokRef());
     if (check(sema, *this, nodeLeftView, nodeRightView) == Result::Error)
         return AstVisitStepResult::Stop;
-    
+
     // Constant folding
     if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())
     {

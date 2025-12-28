@@ -71,7 +71,7 @@ AstVisitStepResult AstExplicitCastExpr::semaPostNode(Sema& sema)
     if (SemaCheck::isValueExpr(sema, nodeExprRef) != Result::Success)
         return AstVisitStepResult::Stop;
     SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
-    
+
     // Check cast modifiers
     if (SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst) == Result::Error)
         return AstVisitStepResult::Stop;

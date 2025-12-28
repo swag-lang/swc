@@ -335,14 +335,14 @@ AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema)
 {
     const SemaNodeView nodeLeftView(sema, nodeLeftRef);
     const SemaNodeView nodeRightView(sema, nodeRightRef);
-    
+
     // Value-check
     if (SemaCheck::isValueExpr(sema, nodeLeftRef) != Result::Success)
         return AstVisitStepResult::Stop;
     if (SemaCheck::isValueExpr(sema, nodeRightRef) != Result::Success)
         return AstVisitStepResult::Stop;
     SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
-    
+
     // Type-check
     const Token& tok = sema.token(srcViewRef(), tokRef());
     if (check(sema, tok.id, *this, nodeLeftView, nodeRightView) == Result::Error)

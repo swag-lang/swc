@@ -51,7 +51,7 @@ Result SemaCheck::modifiers(Sema& sema, const AstNode& node, AstModifierFlags mo
 
 Result SemaCheck::isValueExpr(Sema& sema, AstNodeRef nodeRef)
 {
-    const AstNode& node = sema.ast().node(nodeRef); 
+    const AstNode& node = sema.ast().node(nodeRef);
     if (SemaInfo::hasSemaFlags(node, NodeSemaFlags::ValueExpr))
         return Result::Success;
     const auto diag = SemaError::report(sema, DiagnosticId::sema_err_not_value_expr, nodeRef);
@@ -66,7 +66,7 @@ Result SemaCheck::isConstant(Sema& sema, AstNodeRef nodeRef)
         SemaError::raiseExprNotConst(sema, nodeRef);
         return Result::Error;
     }
-    
+
     return Result::Success;
 }
 

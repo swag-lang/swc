@@ -109,9 +109,9 @@ struct AtomicEnumFlags
         flags{static_cast<U>(other)}
     {
     }
-    
-    constexpr AtomicEnumFlags(EnumFlags<T> other) noexcept
-    : flags{other.flags}
+
+    constexpr AtomicEnumFlags(EnumFlags<T> other) noexcept :
+        flags{other.flags}
     {
     }
 

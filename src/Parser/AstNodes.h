@@ -296,15 +296,15 @@ struct AstNodeIdInfo
     using SemaPostNode       = AstVisitStepResult (*)(Sema&, AstNode&);
 
     AstCollectChildren collectChildren;
-    
-    SemaPreNode        semaPreDecl;
-    SemaPreNodeChild   semaPreDeclChild;
-    SemaPostNode       semaPostDecl;
-    
-    SemaEnterNode      semaEnterNode;
-    SemaPreNode        semaPreNode;
-    SemaPreNodeChild   semaPreNodeChild;
-    SemaPostNode       semaPostNode;
+
+    SemaPreNode      semaPreDecl;
+    SemaPreNodeChild semaPreDeclChild;
+    SemaPostNode     semaPostDecl;
+
+    SemaEnterNode    semaEnterNode;
+    SemaPreNode      semaPreNode;
+    SemaPreNodeChild semaPreNodeChild;
+    SemaPostNode     semaPostNode;
 
     bool hasFlag(AstNodeIdFlagsE flag) const { return flags.has(flag); }
 };
@@ -366,16 +366,16 @@ AstVisitStepResult semaPostNode(Sema& sema, AstNode& node)
 }
 
 constexpr std::array AST_NODE_ID_INFOS = {
-#define SWC_NODE_DEF(__enum, __flags) AstNodeIdInfo{                           \
-                                          #__enum,                             \
-                                          __flags,                             \
-                                          &collectChildren<AstNodeId::__enum>, \
-                                          &semaPreDecl<AstNodeId::__enum>,     \
-                                          &semaPreDeclChild<AstNodeId::__enum>,\
-                                          &semaPostDecl<AstNodeId::__enum>,    \
-                                          &semaEnterNode<AstNodeId::__enum>,   \
-                                          &semaPreNode<AstNodeId::__enum>,     \
-                                          &semaPreNodeChild<AstNodeId::__enum>,\
+#define SWC_NODE_DEF(__enum, __flags) AstNodeIdInfo{                            \
+                                          #__enum,                              \
+                                          __flags,                              \
+                                          &collectChildren<AstNodeId::__enum>,  \
+                                          &semaPreDecl<AstNodeId::__enum>,      \
+                                          &semaPreDeclChild<AstNodeId::__enum>, \
+                                          &semaPostDecl<AstNodeId::__enum>,     \
+                                          &semaEnterNode<AstNodeId::__enum>,    \
+                                          &semaPreNode<AstNodeId::__enum>,      \
+                                          &semaPreNodeChild<AstNodeId::__enum>, \
                                           &semaPostNode<AstNodeId::__enum>},
 #include "Parser/AstNodesDef.inc"
 

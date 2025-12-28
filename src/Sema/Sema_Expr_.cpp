@@ -21,7 +21,7 @@ AstVisitStepResult AstIdentifier::semaPostNode(Sema& sema) const
 {
     const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokRef());
 
-    MatchResult result;
+    MatchResult              result;
     const AstVisitStepResult ret = SemaMatch::match(sema, result, idRef);
     if (ret != AstVisitStepResult::Continue)
         return ret;
@@ -48,15 +48,12 @@ AstVisitStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNo
     // Namespace
     if (nodeLeftView.sym && nodeLeftView.sym->isNamespace())
     {
-        const auto& namespaceSym = nodeLeftView.sym->cast<SymbolNamespace>();
+        const SymbolNamespace& namespaceSym = nodeLeftView.sym->cast<SymbolNamespace>();
 
-        MatchResult result;
-        SemaMatch::lookupAppend(sema, namespaceSym, result, idRef);
-        if (result.empty())
-            return sema.pause(TaskStateKind::SemaWaitingIdentifier);
-        if (!result.isComplete())
-            return sema.pause(TaskStateKind::SemaWaitingComplete);
-
+        MatchResult              result;
+        const AstVisitStepResult ret = SemaMatch::match(sema, namespaceSym, result, idRef);
+        if (ret != AstVisitStepResult::Continue)
+            return ret;
         sema.semaInfo().setSymbol(sema.curNodeRef(), result.first());
         return AstVisitStepResult::SkipChildren;
     }
@@ -64,17 +61,14 @@ AstVisitStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNo
     // Enum
     if (nodeLeftView.type && nodeLeftView.type->isEnum())
     {
-        const auto& enumSym = nodeLeftView.type->enumSym();
+        const SymbolEnum& enumSym = nodeLeftView.type->enumSym();
         if (!enumSym.isComplete())
             return sema.pause(TaskStateKind::SemaWaitingComplete);
 
-        MatchResult result;
-        SemaMatch::lookupAppend(sema, enumSym, result, idRef);
-        if (result.empty())
-            return sema.pause(TaskStateKind::SemaWaitingIdentifier);
-        if (!result.isComplete())
-            return sema.pause(TaskStateKind::SemaWaitingComplete);
-
+        MatchResult              result;
+        const AstVisitStepResult ret = SemaMatch::match(sema, enumSym, result, idRef);
+        if (ret != AstVisitStepResult::Continue)
+            return ret;
         sema.semaInfo().setSymbol(sema.curNodeRef(), result.first());
         return AstVisitStepResult::SkipChildren;
     }

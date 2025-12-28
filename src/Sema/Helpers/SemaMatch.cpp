@@ -8,23 +8,26 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void SemaMatch::lookupAppend(Sema&, const SymbolMap& symMap, MatchResult& result, IdentifierRef idRef)
+namespace
 {
-    symMap.lookupAppend(idRef, result.symbols());
-}
-
-void SemaMatch::lookup(Sema& sema, MatchResult& result, IdentifierRef idRef)
-{
-    result.clear();
-
-    const SymbolMap* symMap = sema.curScope().symMap();
-    while (symMap)
+    void lookupAppend(Sema&, const SymbolMap& symMap, MatchResult& result, IdentifierRef idRef)
     {
-        lookupAppend(sema, *symMap, result, idRef);
-        symMap = symMap->symMap();
+        symMap.lookupAppend(idRef, result.symbols());
     }
 
-    lookupAppend(sema, sema.semaInfo().fileNamespace(), result, idRef);
+    void lookup(Sema& sema, MatchResult& result, IdentifierRef idRef)
+    {
+        result.clear();
+
+        const SymbolMap* symMap = sema.curScope().symMap();
+        while (symMap)
+        {
+            lookupAppend(sema, *symMap, result, idRef);
+            symMap = symMap->symMap();
+        }
+
+        lookupAppend(sema, sema.semaInfo().fileNamespace(), result, idRef);
+    }
 }
 
 AstVisitStepResult SemaMatch::match(Sema& sema, MatchResult& result, IdentifierRef idRef)
@@ -36,6 +39,24 @@ AstVisitStepResult SemaMatch::match(Sema& sema, MatchResult& result, IdentifierR
         sema.pause(TaskStateKind::SemaWaitingIdentifier);
         return AstVisitStepResult::Pause;
     }
+
+    for (const Symbol* other : result.symbols())
+    {
+        if (!other->isDeclared() || !other->isComplete())
+        {
+            sema.pause(TaskStateKind::SemaWaitingComplete);
+            return AstVisitStepResult::Pause;
+        }
+    }
+
+    return AstVisitStepResult::Continue;
+}
+
+AstVisitStepResult SemaMatch::match(Sema& sema, const SymbolMap& symMap, MatchResult& result, IdentifierRef idRef)
+{
+    lookupAppend(sema, symMap, result, idRef);
+    if (result.empty())
+        return sema.pause(TaskStateKind::SemaWaitingIdentifier);
 
     for (const Symbol* other : result.symbols())
     {

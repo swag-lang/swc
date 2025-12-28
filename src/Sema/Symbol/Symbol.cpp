@@ -1,11 +1,11 @@
 #include "pch.h"
 #include "Sema/Symbol/Symbol.h"
-#include "Core/Utf8Helper.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
+#include "Sema/Sema.h"
 #include "Sema/Symbol/IdentifierManager.h"
+#include "Sema/Symbol/SymbolMap.h"
 #include "Sema/Type/TypeManager.h"
-#include "SymbolMap.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -21,6 +21,12 @@ void Symbol::setDeclared(TaskContext& ctx)
     SWC_ASSERT(flags_.hasNot(SymbolFlagsE::Declared));
     flags_.add(SymbolFlagsE::Declared);
     ctx.compiler().notifySymbolDeclared();
+}
+
+void Symbol::setContext(Sema& sema)
+{
+    if (auto* compilerIf = sema.frame().compilerIf())
+        compilerIf->addSymbol(this);
 }
 
 std::string_view Symbol::name(const TaskContext& ctx) const

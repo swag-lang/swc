@@ -6,11 +6,10 @@
 #include "Report/DiagnosticDef.h"
 #include "Sema/Helpers/SemaNodeView.h"
 #include "Sema/Sema.h"
-#include "Sema/Symbol/Symbols.h"
-#include "Sema/Type/SemaCast.h"
 #include "Sema/Symbol/IdentifierManager.h"
-#include "Sema/Symbol/MatchResult.h"
+#include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/CastContext.h"
+#include "Sema/Type/SemaCast.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -30,6 +29,7 @@ AstVisitStepResult AstVarDecl::semaPreDecl(Sema& sema) const
         SymbolConstant* symCst = Symbol::make<SymbolConstant>(ctx, srcViewRef(), tokNameRef, idRef, flags);
         if (!symbolMap->addSymbol(ctx, symCst, true))
             return AstVisitStepResult::Stop;
+        symCst->setContext(sema);
         sema.setSymbol(sema.curNodeRef(), symCst);
     }
     else
@@ -37,6 +37,7 @@ AstVisitStepResult AstVarDecl::semaPreDecl(Sema& sema) const
         SymbolVariable* symVar = Symbol::make<SymbolVariable>(ctx, srcViewRef(), tokNameRef, idRef, flags);
         if (!symbolMap->addSymbol(ctx, symVar, true))
             return AstVisitStepResult::Stop;
+        symVar->setContext(sema);
         sema.setSymbol(sema.curNodeRef(), symVar);
     }
 

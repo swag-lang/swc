@@ -8,6 +8,8 @@ class SymbolEnum;
 struct SemaCompilerIf
 {
     std::vector<Symbol*> symbols;
+
+    void addSymbol(Symbol* sym) { symbols.push_back(sym); }
 };
 
 class SemaFrame

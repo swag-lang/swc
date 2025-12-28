@@ -82,6 +82,7 @@ public:
     void setComplete(TaskContext& ctx);
     bool isDeclared() const noexcept { return flags_.has(SymbolFlagsE::Declared); }
     void setDeclared(TaskContext& ctx);
+    void setContext(Sema& sema);
 
     SymbolMap*       symMap() noexcept { return ownerSymMap_; }
     const SymbolMap* symMap() const noexcept { return ownerSymMap_; }

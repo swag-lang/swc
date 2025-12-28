@@ -274,7 +274,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         jobMgr.waitingJobs(jobs, clientId);
 
         // If we are waiting for a symbol inside a #defined, then we must not trigger
-        // an error, and just force the evaluation to false.
+        // an error and just force the evaluation to false.
         bool doneSomething = false;
         for (const auto job : jobs)
         {

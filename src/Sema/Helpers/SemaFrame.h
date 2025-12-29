@@ -39,7 +39,7 @@ public:
     SemaCompilerIf* compilerIf() const { return compilerIf_; }
     void            setCompilerIf(SemaCompilerIf* ifc) { compilerIf_ = ifc; }
 
-    static SymbolMap*   currentSymMap(Sema& sema);
+    static SymbolMap* currentSymMap(Sema& sema);
 };
 
 SWC_END_NAMESPACE()

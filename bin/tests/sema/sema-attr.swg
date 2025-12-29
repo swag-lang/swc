@@ -6,4 +6,7 @@ attr MyAttr();
 var A: s32 = 0
 
 #[MyAttr]
-var B: s32 = 0
+{
+    var B: s32 = 0
+    var C: s32 = 0
+}

@@ -10,29 +10,24 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    void lookupAppend(Sema&, const SymbolMap& symMap, LookUpContext& lookUpCxt, IdentifierRef idRef)
-    {
-        symMap.lookupAppend(idRef, lookUpCxt);
-    }
-
     void lookup(Sema& sema, LookUpContext& lookUpCxt, IdentifierRef idRef)
     {
         lookUpCxt.symbols().clear();
 
         if (lookUpCxt.symMapHint)
         {
-            lookupAppend(sema, *lookUpCxt.symMapHint, lookUpCxt, idRef);
+            lookUpCxt.symMapHint->lookupAppend(idRef, lookUpCxt);
         }
         else
         {
             const SymbolMap* symMap = sema.curScope().symMap();
             while (symMap)
             {
-                lookupAppend(sema, *symMap, lookUpCxt, idRef);
+                symMap->lookupAppend(idRef, lookUpCxt);
                 symMap = symMap->symMap();
             }
 
-            lookupAppend(sema, sema.semaInfo().fileNamespace(), lookUpCxt, idRef);
+            sema.semaInfo().fileNamespace().lookupAppend(idRef, lookUpCxt);
         }
     }
 }
@@ -82,19 +77,16 @@ AstVisitStepResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
     {
         if (other == &sym)
             continue;
-
-        if (other->symMap() == sym.symMap())
-        {
-            SemaError::raiseAlreadyDefined(sema, &sym, other);
-            return AstVisitStepResult::Stop;
-        }
+        if (other->symMap() != sym.symMap())
+            continue;
+        SemaError::raiseAlreadyDefined(sema, &sym, other);
+        return AstVisitStepResult::Stop;
     }
 
     for (const auto* other : lookUpCxt.symbols())
     {
         if (other == &sym)
             continue;
-
         SemaError::raiseGhosting(sema, &sym, other);
         return AstVisitStepResult::Stop;
     }

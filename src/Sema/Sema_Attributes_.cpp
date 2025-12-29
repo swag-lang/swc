@@ -78,21 +78,21 @@ AstVisitStepResult AstAttrDecl::semaPreNode(Sema& sema)
     return SemaMatch::ghosting(sema, sym);
 }
 
-AstVisitStepResult AstAttrDecl::semaPostNode(Sema& sema) const
+AstVisitStepResult AstAttrDecl::semaPostNode(Sema& sema)
 {
     Symbol& sym = sema.symbolOf(sema.curNodeRef());
     sym.setComplete(sema.ctx());
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstAttributeList::semaPreNode(Sema& sema) const
+AstVisitStepResult AstAttributeList::semaPreNode(Sema& sema)
 {
     SemaFrame newFrame = sema.frame();
     sema.pushFrame(newFrame);
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstAttributeList::semaPostNode(Sema& sema) const
+AstVisitStepResult AstAttributeList::semaPostNode(Sema& sema)
 {
     sema.popFrame();
     return AstVisitStepResult::Continue;

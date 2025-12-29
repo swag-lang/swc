@@ -11,7 +11,7 @@ SWC_BEGIN_NAMESPACE()
 struct CastContext;
 struct SemaNodeView;
 class SymbolNamespace;
-class MatchResult;
+class LookUpResult;
 class IdentifierManager;
 
 class Sema

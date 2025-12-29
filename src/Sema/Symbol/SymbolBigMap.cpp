@@ -1,6 +1,6 @@
 #include "pch.h"
 
-#include "MatchResult.h"
+#include "LookUpResult.h"
 #include "Sema/Sema.h"
 #include "Sema/Symbol/SymbolBigMap.h"
 
@@ -130,7 +130,7 @@ Symbol* SymbolBigMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHom
     return symbol;
 }
 
-void SymbolBigMap::lookupAppend(IdentifierRef idRef, MatchResult& result) const
+void SymbolBigMap::lookupAppend(IdentifierRef idRef, LookUpResult& result) const
 {
     if (const Shard* shards = shards_.load(std::memory_order_acquire))
     {

@@ -5,7 +5,7 @@ SWC_BEGIN_NAMESPACE()
 
 class Symbol;
 
-class MatchResult
+class LookUpResult
 {
     SmallVector<const Symbol*> symbols_;
 

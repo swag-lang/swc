@@ -1,8 +1,8 @@
 #include "pch.h"
 
+#include "LookUpResult.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
-#include "MatchResult.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Sema.h"
 #include "Sema/Symbol/SymbolBigMap.h"
@@ -54,7 +54,7 @@ SymbolBigMap* SymbolMap::buildBig(TaskContext& ctx) const
     return newBig;
 }
 
-void SymbolMap::lookupAppend(IdentifierRef idRef, MatchResult& result) const
+void SymbolMap::lookupAppend(IdentifierRef idRef, LookUpResult& result) const
 {
     if (const SymbolBigMap* big = big_.load(std::memory_order_acquire))
     {

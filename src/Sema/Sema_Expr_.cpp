@@ -5,7 +5,7 @@
 #include "Sema/Helpers/SemaMatch.h"
 #include "Sema/Sema.h"
 #include "Symbol/IdentifierManager.h"
-#include "Symbol/MatchResult.h"
+#include "Symbol/LookUpResult.h"
 #include "Symbol/Symbol.h"
 #include "Symbol/Symbols.h"
 
@@ -26,7 +26,7 @@ AstVisitStepResult AstIdentifier::semaPostNode(Sema& sema) const
 
     const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokRef());
 
-    MatchResult              result;
+    LookUpResult             result;
     const AstVisitStepResult ret = SemaMatch::match(sema, result, idRef);
     if (ret == AstVisitStepResult::Pause && hasParserFlag(InCompilerDefined))
         return sema.waitCompilerDefined(idRef);
@@ -57,7 +57,7 @@ AstVisitStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNo
     {
         const SymbolNamespace& namespaceSym = nodeLeftView.sym->cast<SymbolNamespace>();
 
-        MatchResult              result;
+        LookUpResult             result;
         const AstVisitStepResult ret = SemaMatch::match(sema, namespaceSym, result, idRef);
         if (ret != AstVisitStepResult::Continue)
             return ret;
@@ -72,7 +72,7 @@ AstVisitStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNo
         if (!enumSym.isComplete())
             return sema.waitComplete(&enumSym);
 
-        MatchResult              result;
+        LookUpResult             result;
         const AstVisitStepResult ret = SemaMatch::match(sema, enumSym, result, idRef);
         if (ret != AstVisitStepResult::Continue)
             return ret;

@@ -6,13 +6,13 @@ SWC_BEGIN_NAMESPACE()
 
 class Symbol;
 class Sema;
-class MatchResult;
+class LookUpResult;
 class SymbolMap;
 
 namespace SemaMatch
 {
-    AstVisitStepResult match(Sema& sema, MatchResult& result, IdentifierRef idRef);
-    AstVisitStepResult match(Sema& sema, const SymbolMap& symMa, MatchResult& result, IdentifierRef idRef);
+    AstVisitStepResult match(Sema& sema, LookUpResult& result, IdentifierRef idRef);
+    AstVisitStepResult match(Sema& sema, const SymbolMap& symMa, LookUpResult& result, IdentifierRef idRef);
     AstVisitStepResult ghosting(Sema& sema, const Symbol& sym);
 }
 

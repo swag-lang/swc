@@ -8,7 +8,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstVisitStepResult AstAccessModifier::semaPreNode(Sema& sema) const
+AstVisitStepResult AstAccessModifier::semaPreDecl(Sema& sema) const
 {
     const Token& tok = sema.token(srcViewRef(), tokRef());
 
@@ -35,10 +35,20 @@ AstVisitStepResult AstAccessModifier::semaPreNode(Sema& sema) const
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstAccessModifier::semaPostNode(Sema& sema)
+AstVisitStepResult AstAccessModifier::semaPostDecl(Sema& sema)
 {
     sema.popFrame();
     return AstVisitStepResult::Continue;
+}
+
+AstVisitStepResult AstAccessModifier::semaPreNode(Sema& sema) const
+{
+    return semaPreDecl(sema);
+}
+
+AstVisitStepResult AstAccessModifier::semaPostNode(Sema& sema)
+{
+    return semaPostDecl(sema);
 }
 
 AstVisitStepResult AstAttrDecl::semaPreDecl(Sema& sema) const

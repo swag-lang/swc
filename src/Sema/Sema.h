@@ -105,7 +105,7 @@ public:
     AstVisitStepResult waitIdentifier(IdentifierRef idRef);
     AstVisitStepResult waitCompilerDefined(IdentifierRef idRef);
     AstVisitStepResult waitComplete(const Symbol* symbol);
-    AstVisitStepResult waitDeclared();
+    AstVisitStepResult waitDeclared(const Symbol* symbol);
     static void        waitDone(TaskContext& ctx, JobClientId clientId);
 };
 

@@ -87,6 +87,7 @@ SWC_DIAG_DEF(sema_err_const_missing_init, Error, "A constant must be initialized
 SWC_DIAG_DEF(sema_err_unknown_identifier, Error, "Unknown identifier {tok}")
 SWC_DIAG_DEF(sema_err_unsolved_identifier, Error, "Unsolved identifier {tok}")
 SWC_DIAG_DEF(sema_err_unsolved_symbol, Error, "Unsolved symbol {sym}")
+SWC_DIAG_DEF(sema_err_unsolved_declared, Error, "Unsolved declared symbol {sym}")
 SWC_DIAG_DEF(sema_err_division_zero, Error, "Division by zero")
 SWC_DIAG_DEF(sema_err_integer_overflow, Error, "Integer overflow in constant expression: {left} {tok-raw} {right} for type {type}")
 SWC_DIAG_DEF(sema_err_modifier_only_integer, Error, "{tok} can only be applied to integer types; type is {type}")

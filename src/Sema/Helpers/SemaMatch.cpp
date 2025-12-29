@@ -41,7 +41,11 @@ AstVisitStepResult SemaMatch::match(Sema& sema, MatchResult& result, IdentifierR
 
     for (const Symbol* other : result.symbols())
     {
-        if (!other->isDeclared() || !other->isComplete())
+        if (!other->isDeclared())
+        {
+            return sema.waitDeclared(other);
+        }
+        if (!other->isComplete())
         {
             return sema.waitComplete(other);
         }
@@ -58,7 +62,11 @@ AstVisitStepResult SemaMatch::match(Sema& sema, const SymbolMap& symMap, MatchRe
 
     for (const Symbol* other : result.symbols())
     {
-        if (!other->isDeclared() || !other->isComplete())
+        if (!other->isDeclared())
+        {
+            return sema.waitDeclared(other);
+        }
+        if (!other->isComplete())
         {
             return sema.waitComplete(other);
         }
@@ -80,7 +88,7 @@ AstVisitStepResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
     {
         if (!other->isDeclared())
         {
-            return sema.waitDeclared();
+            return sema.waitDeclared(other);
         }
     }
 

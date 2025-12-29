@@ -231,11 +231,12 @@ AstVisitStepResult Sema::waitComplete(const Symbol* symbol)
     return AstVisitStepResult::Pause;
 }
 
-AstVisitStepResult Sema::waitDeclared()
+AstVisitStepResult Sema::waitDeclared(const Symbol* symbol)
 {
     TaskState& wait = ctx().state();
     wait.kind       = TaskStateKind::SemaWaitingDeclared;
     wait.nodeRef    = curNodeRef();
+    wait.symbol     = symbol;
     return AstVisitStepResult::Pause;
 }
 
@@ -278,8 +279,19 @@ namespace
                         break;
                     }
                     case TaskStateKind::SemaWaitingDeclared:
-                        SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unsolved_identifier, state.nodeRef);
+                    {
+                        if (state.symbol)
+                        {
+                            auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_unsolved_declared, state.nodeRef);
+                            diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
+                            diag.report(ctx);
+                        }
+                        else
+                        {
+                            SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unsolved_identifier, state.nodeRef);
+                        }
                         break;
+                    }
                     default:
                         break;
                 }
@@ -320,7 +332,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         bool doneSomething = false;
         for (const auto job : jobs)
         {
-            auto& state = job->ctx().state();
+            TaskState& state = job->ctx().state();
             if (state.kind == TaskStateKind::SemaWaitingCompilerDefined)
             {
                 if (const auto semaJob = job->safeCast<SemaJob>())

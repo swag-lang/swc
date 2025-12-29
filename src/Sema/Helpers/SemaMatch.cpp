@@ -17,45 +17,29 @@ namespace
 
     void lookup(Sema& sema, LookUpContext& lookUpCxt, IdentifierRef idRef)
     {
-        lookUpCxt.clear();
+        lookUpCxt.symbols().clear();
 
-        const SymbolMap* symMap = sema.curScope().symMap();
-        while (symMap)
+        if (lookUpCxt.symMapHint)
         {
-            lookupAppend(sema, *symMap, lookUpCxt, idRef);
-            symMap = symMap->symMap();
+            lookupAppend(sema, *lookUpCxt.symMapHint, lookUpCxt, idRef);
         }
+        else
+        {
+            const SymbolMap* symMap = sema.curScope().symMap();
+            while (symMap)
+            {
+                lookupAppend(sema, *symMap, lookUpCxt, idRef);
+                symMap = symMap->symMap();
+            }
 
-        lookupAppend(sema, sema.semaInfo().fileNamespace(), lookUpCxt, idRef);
+            lookupAppend(sema, sema.semaInfo().fileNamespace(), lookUpCxt, idRef);
+        }
     }
 }
 
 AstVisitStepResult SemaMatch::match(Sema& sema, LookUpContext& lookUpCxt, IdentifierRef idRef)
 {
     lookup(sema, lookUpCxt, idRef);
-    if (lookUpCxt.empty())
-        return sema.waitIdentifier(idRef);
-
-    for (const Symbol* other : lookUpCxt.symbols())
-    {
-        if (!other->isDeclared())
-            return sema.waitDeclared(other);
-        if (!other->isComplete())
-            return sema.waitComplete(other);
-    }
-
-    if (lookUpCxt.count() > 1)
-    {
-        SemaError::raiseAmbiguousSymbol(sema, lookUpCxt.srcViewRef, lookUpCxt.tokRef, lookUpCxt.symbols());
-        return AstVisitStepResult::Stop;
-    }
-
-    return AstVisitStepResult::Continue;
-}
-
-AstVisitStepResult SemaMatch::match(Sema& sema, LookUpContext& lookUpCxt, const SymbolMap& symMap, IdentifierRef idRef)
-{
-    lookupAppend(sema, symMap, lookUpCxt, idRef);
     if (lookUpCxt.empty())
         return sema.waitIdentifier(idRef);
 

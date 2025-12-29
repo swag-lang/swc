@@ -63,8 +63,9 @@ AstVisitStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNo
         LookUpContext lookUpCxt;
         lookUpCxt.srcViewRef = srcViewRef();
         lookUpCxt.tokRef     = tokNameRef;
+        lookUpCxt.symMapHint = &namespaceSym;
 
-        const AstVisitStepResult ret = SemaMatch::match(sema, lookUpCxt, namespaceSym, idRef);
+        const AstVisitStepResult ret = SemaMatch::match(sema, lookUpCxt, idRef);
         if (ret != AstVisitStepResult::Continue)
             return ret;
         sema.semaInfo().setSymbol(sema.curNodeRef(), lookUpCxt.first());
@@ -81,8 +82,9 @@ AstVisitStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNo
         LookUpContext lookUpCxt;
         lookUpCxt.srcViewRef = srcViewRef();
         lookUpCxt.tokRef     = tokNameRef;
+        lookUpCxt.symMapHint = &enumSym;
 
-        const AstVisitStepResult ret = SemaMatch::match(sema, lookUpCxt, enumSym, idRef);
+        const AstVisitStepResult ret = SemaMatch::match(sema, lookUpCxt, idRef);
         if (ret != AstVisitStepResult::Continue)
             return ret;
         sema.semaInfo().setSymbol(sema.curNodeRef(), lookUpCxt.first());

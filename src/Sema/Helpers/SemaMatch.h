@@ -12,7 +12,6 @@ class SymbolMap;
 namespace SemaMatch
 {
     AstVisitStepResult match(Sema& sema, LookUpContext& lookUpCxt, IdentifierRef idRef);
-    AstVisitStepResult match(Sema& sema, LookUpContext& lookUpCxt, const SymbolMap& symMa, IdentifierRef idRef);
     AstVisitStepResult ghosting(Sema& sema, const Symbol& sym);
 }
 

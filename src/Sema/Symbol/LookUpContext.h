@@ -6,18 +6,21 @@
 SWC_BEGIN_NAMESPACE()
 
 class Symbol;
+class SymbolMap;
 
 class LookUpContext
 {
     SmallVector<const Symbol*> symbols_;
 
 public:
-    SourceViewRef srcViewRef = SourceViewRef::invalid();
-    TokenRef      tokRef     = TokenRef::invalid();
+    SourceViewRef    srcViewRef = SourceViewRef::invalid();
+    TokenRef         tokRef     = TokenRef::invalid();
+    const SymbolMap* symMapHint = nullptr;
 
     void clear()
     {
         symbols_.clear();
+        symMapHint = nullptr;
     }
 
     void addSymbol(const Symbol* symbol)

@@ -102,7 +102,10 @@ public:
     void pushFrame(const SemaFrame& frame);
     void popFrame();
 
-    AstVisitStepResult pause(TaskStateKind kind);
+    AstVisitStepResult waitIdentifier(IdentifierRef idRef);
+    AstVisitStepResult waitCompilerDefined(IdentifierRef idRef);
+    AstVisitStepResult waitComplete(const Symbol* symbol);
+    AstVisitStepResult waitDeclared();
     static void        waitDone(TaskContext& ctx, JobClientId clientId);
 };
 

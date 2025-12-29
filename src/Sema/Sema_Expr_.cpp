@@ -29,7 +29,7 @@ AstVisitStepResult AstIdentifier::semaPostNode(Sema& sema) const
     MatchResult              result;
     const AstVisitStepResult ret = SemaMatch::match(sema, result, idRef);
     if (ret == AstVisitStepResult::Pause && hasParserFlag(InCompilerDefined))
-        return sema.pause(TaskStateKind::SemaWaitingCompilerDefined);
+        return sema.waitCompilerDefined(idRef);
     if (ret != AstVisitStepResult::Continue)
         return ret;
     sema.setSymbol(sema.curNodeRef(), result.first());
@@ -70,7 +70,7 @@ AstVisitStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNo
     {
         const SymbolEnum& enumSym = nodeLeftView.type->enumSym();
         if (!enumSym.isComplete())
-            return sema.pause(TaskStateKind::SemaWaitingComplete);
+            return sema.waitComplete(&enumSym);
 
         MatchResult              result;
         const AstVisitStepResult ret = SemaMatch::match(sema, enumSym, result, idRef);

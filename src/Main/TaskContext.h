@@ -1,4 +1,5 @@
 #pragma once
+#include "Sema/Symbol/IdentifierManager.h"
 #include "Parser/AstNode.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -9,6 +10,7 @@ class ConstantManager;
 class Global;
 class SourceFile;
 class TypeManager;
+class Symbol;
 struct CommandLine;
 
 enum class TaskStateKind : uint8_t
@@ -24,11 +26,15 @@ struct TaskState
 {
     TaskStateKind kind    = TaskStateKind::None;
     AstNodeRef    nodeRef = AstNodeRef::invalid();
+    IdentifierRef idRef   = IdentifierRef::invalid();
+    const Symbol* symbol  = nullptr;
 
     void reset()
     {
         kind    = TaskStateKind::None;
         nodeRef = AstNodeRef::invalid();
+        idRef   = IdentifierRef::invalid();
+        symbol  = nullptr;
     }
 };
 

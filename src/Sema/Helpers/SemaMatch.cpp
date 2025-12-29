@@ -36,16 +36,14 @@ AstVisitStepResult SemaMatch::match(Sema& sema, MatchResult& result, IdentifierR
 
     if (result.empty())
     {
-        sema.pause(TaskStateKind::SemaWaitingIdentifier);
-        return AstVisitStepResult::Pause;
+        return sema.waitIdentifier(idRef);
     }
 
     for (const Symbol* other : result.symbols())
     {
         if (!other->isDeclared() || !other->isComplete())
         {
-            sema.pause(TaskStateKind::SemaWaitingComplete);
-            return AstVisitStepResult::Pause;
+            return sema.waitComplete(other);
         }
     }
 
@@ -56,14 +54,13 @@ AstVisitStepResult SemaMatch::match(Sema& sema, const SymbolMap& symMap, MatchRe
 {
     lookupAppend(sema, symMap, result, idRef);
     if (result.empty())
-        return sema.pause(TaskStateKind::SemaWaitingIdentifier);
+        return sema.waitIdentifier(idRef);
 
     for (const Symbol* other : result.symbols())
     {
         if (!other->isDeclared() || !other->isComplete())
         {
-            sema.pause(TaskStateKind::SemaWaitingComplete);
-            return AstVisitStepResult::Pause;
+            return sema.waitComplete(other);
         }
     }
 
@@ -83,8 +80,7 @@ AstVisitStepResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
     {
         if (!other->isDeclared())
         {
-            sema.pause(TaskStateKind::SemaWaitingDeclared);
-            return AstVisitStepResult::Pause;
+            return sema.waitDeclared();
         }
     }
 

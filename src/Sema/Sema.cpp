@@ -204,10 +204,37 @@ AstVisitStepResult Sema::postNode(AstNode& node)
     return result;
 }
 
-AstVisitStepResult Sema::pause(TaskStateKind kind)
+AstVisitStepResult Sema::waitIdentifier(IdentifierRef idRef)
 {
     TaskState& wait = ctx().state();
-    wait.kind       = kind;
+    wait.kind       = TaskStateKind::SemaWaitingIdentifier;
+    wait.nodeRef    = curNodeRef();
+    wait.idRef      = idRef;
+    return AstVisitStepResult::Pause;
+}
+
+AstVisitStepResult Sema::waitCompilerDefined(IdentifierRef idRef)
+{
+    TaskState& wait = ctx().state();
+    wait.kind       = TaskStateKind::SemaWaitingCompilerDefined;
+    wait.nodeRef    = curNodeRef();
+    wait.idRef      = idRef;
+    return AstVisitStepResult::Pause;
+}
+
+AstVisitStepResult Sema::waitComplete(const Symbol* symbol)
+{
+    TaskState& wait = ctx().state();
+    wait.kind       = TaskStateKind::SemaWaitingComplete;
+    wait.nodeRef    = curNodeRef();
+    wait.symbol     = symbol;
+    return AstVisitStepResult::Pause;
+}
+
+AstVisitStepResult Sema::waitDeclared()
+{
+    TaskState& wait = ctx().state();
+    wait.kind       = TaskStateKind::SemaWaitingDeclared;
     wait.nodeRef    = curNodeRef();
     return AstVisitStepResult::Pause;
 }
@@ -227,14 +254,29 @@ namespace
                 switch (state.kind)
                 {
                     case TaskStateKind::SemaWaitingIdentifier:
+                    {
                         SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unknown_identifier, state.nodeRef);
                         break;
+                    }
                     case TaskStateKind::SemaWaitingCompilerDefined:
-                        SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unknown_identifier, state.nodeRef);
+                    {
+                        // No error for compiler defined
                         break;
+                    }
                     case TaskStateKind::SemaWaitingComplete:
-                        SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unsolved_identifier, state.nodeRef);
+                    {
+                        if (state.symbol)
+                        {
+                            auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_unsolved_symbol, state.nodeRef);
+                            diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
+                            diag.report(ctx);
+                        }
+                        else
+                        {
+                            SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unsolved_identifier, state.nodeRef);
+                        }
                         break;
+                    }
                     case TaskStateKind::SemaWaitingDeclared:
                         SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unsolved_identifier, state.nodeRef);
                         break;

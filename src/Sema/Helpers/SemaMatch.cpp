@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Sema/Helpers/SemaMatch.h"
 #include "Sema/Sema.h"
-#include "Sema/Symbol/LookUpResult.h"
+#include "Sema/Symbol/LookUpContext.h"
 #include "Sema/Symbol/SymbolMap.h"
 #include "Sema/Symbol/Symbols.h"
 #include "SemaError.h"
@@ -10,12 +10,12 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    void lookupAppend(Sema&, const SymbolMap& symMap, LookUpResult& result, IdentifierRef idRef)
+    void lookupAppend(Sema&, const SymbolMap& symMap, LookUpContext& result, IdentifierRef idRef)
     {
         symMap.lookupAppend(idRef, result);
     }
 
-    void lookup(Sema& sema, LookUpResult& result, IdentifierRef idRef)
+    void lookup(Sema& sema, LookUpContext& result, IdentifierRef idRef)
     {
         result.clear();
 
@@ -30,7 +30,7 @@ namespace
     }
 }
 
-AstVisitStepResult SemaMatch::match(Sema& sema, LookUpResult& result, IdentifierRef idRef)
+AstVisitStepResult SemaMatch::match(Sema& sema, LookUpContext& result, IdentifierRef idRef)
 {
     lookup(sema, result, idRef);
     if (result.empty())
@@ -53,7 +53,7 @@ AstVisitStepResult SemaMatch::match(Sema& sema, LookUpResult& result, Identifier
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult SemaMatch::match(Sema& sema, const SymbolMap& symMap, LookUpResult& result, IdentifierRef idRef)
+AstVisitStepResult SemaMatch::match(Sema& sema, const SymbolMap& symMap, LookUpContext& result, IdentifierRef idRef)
 {
     lookupAppend(sema, symMap, result, idRef);
     if (result.empty())
@@ -78,7 +78,7 @@ AstVisitStepResult SemaMatch::match(Sema& sema, const SymbolMap& symMap, LookUpR
 
 AstVisitStepResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
 {
-    LookUpResult result;
+    LookUpContext result;
     lookup(sema, result, sym.idRef());
     SWC_ASSERT(!result.empty());
 

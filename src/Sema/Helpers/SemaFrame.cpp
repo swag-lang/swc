@@ -23,11 +23,6 @@ namespace
     }
 }
 
-SymbolAccess SemaFrame::currentAccess(Sema& sema)
-{
-    return sema.frame().currentAccess();
-}
-
 SymbolMap* SemaFrame::currentSymMap(Sema& sema)
 {
     SymbolMap* symbolMap = sema.curSymMap();
@@ -35,7 +30,7 @@ SymbolMap* SemaFrame::currentSymMap(Sema& sema)
     if (!sema.curScope().isTopLevel())
         return symbolMap;
 
-    const SymbolAccess access = currentAccess(sema);
+    const SymbolAccess access = sema.frame().access();
 
     SymbolMap* root = nullptr;
     if (access == SymbolAccess::Internal)

@@ -19,7 +19,7 @@ AstVisitStepResult AstVarDecl::semaPreDecl(Sema& sema) const
     const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokNameRef);
 
     SymbolFlags        flags  = SymbolFlagsE::Zero;
-    const SymbolAccess access = SemaFrame::currentAccess(sema);
+    const SymbolAccess access = sema.frame().access();
     if (access == SymbolAccess::Public)
         flags.add(SymbolFlagsE::Public);
     SymbolMap* symbolMap = SemaFrame::currentSymMap(sema);

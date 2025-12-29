@@ -28,13 +28,8 @@ AstVisitStepResult AstAccessModifier::semaPreNode(Sema& sema) const
             SWC_UNREACHABLE();
     }
 
-    const AstNode& node     = sema.ast().node(nodeWhatRef);
-    SemaFrame      newFrame = sema.frame();
-
-    if (node.is(AstNodeId::TopLevelBlock))
-        newFrame.setDefaultAccess(access);
-    else
-        newFrame.setCurrentAccess(access);
+    SemaFrame newFrame = sema.frame();
+    newFrame.setAccess(access);
     sema.pushFrame(newFrame);
 
     return AstVisitStepResult::Continue;
@@ -52,7 +47,7 @@ AstVisitStepResult AstAttrDecl::semaPreDecl(Sema& sema) const
     const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokNameRef);
 
     SymbolFlags        flags  = SymbolFlagsE::Zero;
-    const SymbolAccess access = SemaFrame::currentAccess(sema);
+    const SymbolAccess access = sema.frame().access();
     if (access == SymbolAccess::Public)
         flags.add(SymbolFlagsE::Public);
     SymbolMap* symbolMap = SemaFrame::currentSymMap(sema);

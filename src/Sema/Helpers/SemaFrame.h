@@ -20,8 +20,7 @@ struct SemaCompilerIf
 
 class SemaFrame
 {
-    SymbolAccess                  defaultAccess_ = SymbolAccess::Private;
-    std::optional<SymbolAccess>   currentAccess_;
+    SymbolAccess                  access_ = SymbolAccess::Private;
     AttributeList                 attributes_;
     SmallVector<IdentifierRef, 8> nsPath_;
     SemaCompilerIf*               compilerIf_ = nullptr;
@@ -31,10 +30,8 @@ public:
     void                           pushNs(IdentifierRef id) { nsPath_.push_back(id); }
     void                           popNs() { nsPath_.pop_back(); }
 
-    SymbolAccess defaultAccess() const { return defaultAccess_; }
-    void         setDefaultAccess(SymbolAccess access) { defaultAccess_ = access; }
-    SymbolAccess currentAccess() const { return currentAccess_.value_or(defaultAccess_); }
-    void         setCurrentAccess(SymbolAccess access) { currentAccess_ = access; }
+    SymbolAccess access() const { return access_; }
+    void         setAccess(SymbolAccess access) { access_ = access; }
 
     AttributeList&       attributes() { return attributes_; }
     const AttributeList& attributes() const { return attributes_; }
@@ -42,7 +39,6 @@ public:
     SemaCompilerIf* compilerIf() const { return compilerIf_; }
     void            setCompilerIf(SemaCompilerIf* ifc) { compilerIf_ = ifc; }
 
-    static SymbolAccess currentAccess(Sema& sema);
     static SymbolMap*   currentSymMap(Sema& sema);
 };
 

@@ -242,7 +242,7 @@ AstVisitStepResult Sema::waitDeclared(const Symbol* symbol)
 
 namespace
 {
-    bool resolveCompilerDefined(TaskContext& ctx, JobClientId clientId)
+    bool resolveCompilerDefined(const TaskContext& ctx, JobClientId clientId)
     {
         std::vector<Job*> jobs;
         ctx.global().jobMgr().waitingJobs(jobs, clientId);

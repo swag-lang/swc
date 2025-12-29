@@ -50,6 +50,8 @@ public:
     static constexpr std::string_view VERIFY_COMMENT_OPTION   = "swc-option";
     static constexpr std::string_view VERIFY_COMMENT_EXPECTED = "swc-expected-";
 
+    static bool isReservedNamespace(std::string_view ns);
+
 private:
     CharFlags                                     charFlags_[256];
     StringMap<TokenId>                            keywordMap_;

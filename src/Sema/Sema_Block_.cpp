@@ -43,17 +43,15 @@ AstVisitStepResult AstNamespaceDecl::semaPreDecl(Sema& sema) const
     SmallVector<TokenRef> namesRef;
     sema.ast().tokens(namesRef, spanNameRef);
 
-    SymbolMap* symMap = SemaFrame::currentSymMap(sema);
+    const SourceView& srcView = ctx.compiler().srcView(srcViewRef());
+    SymbolMap*        symMap  = SemaFrame::currentSymMap(sema);
+
     for (const auto& tokRef : namesRef)
     {
-        // A namespace named 'swag' is reserved by the runtime
-        const SourceView& srcView = ctx.compiler().srcView(srcViewRef());
-        if (!srcView.file() || !srcView.file()->isRuntime())
+        if (!srcView.isRuntimeFile())
         {
-            const Token& tok  = srcView.token(tokRef);
-            Utf8         name = tok.string(srcView);
-            name.make_lower();
-            if (name == "swag")
+            const Token& tok = srcView.token(tokRef);
+            if (LangSpec::isReservedNamespace(tok.string(srcView)))
             {
                 SemaError::raise(sema, DiagnosticId::sema_err_reserved_swag_ns, srcViewRef(), tokRef);
                 return AstVisitStepResult::Stop;

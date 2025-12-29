@@ -128,4 +128,11 @@ TokenId LangSpec::keyword(std::string_view name) const
     return keyword(name, Math::hash(name));
 }
 
+bool LangSpec::isReservedNamespace(std::string_view ns)
+{
+    Utf8 name = ns;
+    name.make_lower();
+    return name == "swag";
+}
+
 SWC_END_NAMESPACE()

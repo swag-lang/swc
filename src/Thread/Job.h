@@ -72,6 +72,20 @@ public:
     std::function<JobResult()> func;
 
     template<typename T>
+    const T* cast() const
+    {
+        SWC_ASSERT(kind_ == T::K);
+        return static_cast<const T*>(this);
+    }
+
+    template<typename T>
+    T* cast()
+    {
+        SWC_ASSERT(kind_ == T::K);
+        return static_cast<T*>(this);
+    }
+
+    template<typename T>
     const T* safeCast() const
     {
         return kind_ == T::K ? static_cast<const T*>(this) : nullptr;

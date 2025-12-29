@@ -242,6 +242,27 @@ AstVisitStepResult Sema::waitDeclared(const Symbol* symbol)
 
 namespace
 {
+    bool resolveCompilerDefined(TaskContext& ctx, JobClientId clientId)
+    {
+        std::vector<Job*> jobs;
+        ctx.global().jobMgr().waitingJobs(jobs, clientId);
+
+        bool doneSomething = false;
+        for (const auto job : jobs)
+        {
+            const TaskState& state = job->ctx().state();
+            if (state.kind == TaskStateKind::SemaWaitingCompilerDefined)
+            {
+                // @CompilerNotDefined
+                const auto semaJob = job->cast<SemaJob>();
+                semaJob->sema().setConstant(state.nodeRef, semaJob->sema().cstMgr().cstFalse());
+                doneSomething = true;
+            }
+        }
+
+        return doneSomething;
+    }
+
     void postPass(TaskContext& ctx, JobClientId clientId)
     {
         std::vector<Job*> jobs;
@@ -306,27 +327,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
             continue;
         }
 
-        std::vector<Job*> jobs;
-        jobMgr.waitingJobs(jobs, clientId);
-
-        // If we are waiting for a symbol inside a #defined, then we must not trigger
-        // an error and just force the evaluation to false.
-        bool doneSomething = false;
-        for (const auto job : jobs)
-        {
-            const TaskState& state = job->ctx().state();
-            if (state.kind == TaskStateKind::SemaWaitingCompilerDefined)
-            {
-                if (const auto semaJob = job->safeCast<SemaJob>())
-                {
-                    // @CompilerNotDefined
-                    semaJob->sema().setConstant(state.nodeRef, semaJob->sema().cstMgr().cstFalse());
-                    doneSomething = true;
-                }
-            }
-        }
-
-        if (doneSomething)
+        if (resolveCompilerDefined(ctx, clientId))
         {
             jobMgr.wakeAll(clientId);
             continue;
@@ -348,7 +349,7 @@ JobResult Sema::exec()
     }
 
     ctx().state().reset();
-    
+
     JobResult jobResult;
     while (true)
     {

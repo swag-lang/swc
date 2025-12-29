@@ -44,7 +44,7 @@ class SymbolBigMap
 public:
     SymbolBigMap();
     Symbol* addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms, bool notify);
-    void    lookupAppend(IdentifierRef idRef, LookUpContext& result) const;
+    void    lookupAppend(IdentifierRef idRef, LookUpContext& lookUpCxt) const;
 };
 
 SWC_END_NAMESPACE()

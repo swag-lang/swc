@@ -10,33 +10,33 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    void lookupAppend(Sema&, const SymbolMap& symMap, LookUpContext& result, IdentifierRef idRef)
+    void lookupAppend(Sema&, const SymbolMap& symMap, LookUpContext& lookUpCxt, IdentifierRef idRef)
     {
-        symMap.lookupAppend(idRef, result);
+        symMap.lookupAppend(idRef, lookUpCxt);
     }
 
-    void lookup(Sema& sema, LookUpContext& result, IdentifierRef idRef)
+    void lookup(Sema& sema, LookUpContext& lookUpCxt, IdentifierRef idRef)
     {
-        result.clear();
+        lookUpCxt.clear();
 
         const SymbolMap* symMap = sema.curScope().symMap();
         while (symMap)
         {
-            lookupAppend(sema, *symMap, result, idRef);
+            lookupAppend(sema, *symMap, lookUpCxt, idRef);
             symMap = symMap->symMap();
         }
 
-        lookupAppend(sema, sema.semaInfo().fileNamespace(), result, idRef);
+        lookupAppend(sema, sema.semaInfo().fileNamespace(), lookUpCxt, idRef);
     }
 }
 
-AstVisitStepResult SemaMatch::match(Sema& sema, LookUpContext& result, IdentifierRef idRef)
+AstVisitStepResult SemaMatch::match(Sema& sema, LookUpContext& lookUpCxt, IdentifierRef idRef)
 {
-    lookup(sema, result, idRef);
-    if (result.empty())
+    lookup(sema, lookUpCxt, idRef);
+    if (lookUpCxt.empty())
         return sema.waitIdentifier(idRef);
 
-    for (const Symbol* other : result.symbols())
+    for (const Symbol* other : lookUpCxt.symbols())
     {
         if (!other->isDeclared())
             return sema.waitDeclared(other);
@@ -44,22 +44,22 @@ AstVisitStepResult SemaMatch::match(Sema& sema, LookUpContext& result, Identifie
             return sema.waitComplete(other);
     }
 
-    if (result.count() > 1)
+    if (lookUpCxt.count() > 1)
     {
-        SemaError::raiseAmbiguousSymbol(sema, sema.node(sema.curNodeRef()).srcViewRef(), sema.node(sema.curNodeRef()).tokRef(), result.symbols());
+        SemaError::raiseAmbiguousSymbol(sema, lookUpCxt.srcViewRef, lookUpCxt.tokRef, lookUpCxt.symbols());
         return AstVisitStepResult::Stop;
     }
 
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult SemaMatch::match(Sema& sema, const SymbolMap& symMap, LookUpContext& result, IdentifierRef idRef)
+AstVisitStepResult SemaMatch::match(Sema& sema, LookUpContext& lookUpCxt, const SymbolMap& symMap, IdentifierRef idRef)
 {
-    lookupAppend(sema, symMap, result, idRef);
-    if (result.empty())
+    lookupAppend(sema, symMap, lookUpCxt, idRef);
+    if (lookUpCxt.empty())
         return sema.waitIdentifier(idRef);
 
-    for (const Symbol* other : result.symbols())
+    for (const Symbol* other : lookUpCxt.symbols())
     {
         if (!other->isDeclared())
             return sema.waitDeclared(other);
@@ -67,9 +67,9 @@ AstVisitStepResult SemaMatch::match(Sema& sema, const SymbolMap& symMap, LookUpC
             return sema.waitComplete(other);
     }
 
-    if (result.count() > 1)
+    if (lookUpCxt.count() > 1)
     {
-        SemaError::raiseAmbiguousSymbol(sema, sema.node(sema.curNodeRef()).srcViewRef(), sema.node(sema.curNodeRef()).tokRef(), result.symbols());
+        SemaError::raiseAmbiguousSymbol(sema, lookUpCxt.srcViewRef, lookUpCxt.tokRef, lookUpCxt.symbols());
         return AstVisitStepResult::Stop;
     }
 
@@ -78,20 +78,23 @@ AstVisitStepResult SemaMatch::match(Sema& sema, const SymbolMap& symMap, LookUpC
 
 AstVisitStepResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
 {
-    LookUpContext result;
-    lookup(sema, result, sym.idRef());
-    SWC_ASSERT(!result.empty());
+    LookUpContext lookUpCxt;
+    lookUpCxt.srcViewRef = sym.srcViewRef();
+    lookUpCxt.tokRef     = sym.tokRef();
 
-    for (const Symbol* other : result.symbols())
+    lookup(sema, lookUpCxt, sym.idRef());
+    SWC_ASSERT(!lookUpCxt.empty());
+
+    for (const Symbol* other : lookUpCxt.symbols())
     {
         if (!other->isDeclared())
             return sema.waitDeclared(other);
     }
 
-    if (result.count() == 1)
+    if (lookUpCxt.count() == 1)
         return AstVisitStepResult::Continue;
 
-    for (const auto* other : result.symbols())
+    for (const auto* other : lookUpCxt.symbols())
     {
         if (other == &sym)
             continue;
@@ -103,7 +106,7 @@ AstVisitStepResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
         }
     }
 
-    for (const auto* other : result.symbols())
+    for (const auto* other : lookUpCxt.symbols())
     {
         if (other == &sym)
             continue;

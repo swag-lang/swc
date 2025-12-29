@@ -26,13 +26,16 @@ AstVisitStepResult AstIdentifier::semaPostNode(Sema& sema) const
 
     const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokRef());
 
-    LookUpContext             result;
-    const AstVisitStepResult ret = SemaMatch::match(sema, result, idRef);
+    LookUpContext lookUpCxt;
+    lookUpCxt.srcViewRef = srcViewRef();
+    lookUpCxt.tokRef     = tokRef();
+
+    const AstVisitStepResult ret = SemaMatch::match(sema, lookUpCxt, idRef);
     if (ret == AstVisitStepResult::Pause && hasParserFlag(InCompilerDefined))
         return sema.waitCompilerDefined(idRef);
     if (ret != AstVisitStepResult::Continue)
         return ret;
-    sema.setSymbol(sema.curNodeRef(), result.first());
+    sema.setSymbol(sema.curNodeRef(), lookUpCxt.first());
     return AstVisitStepResult::Continue;
 }
 
@@ -57,11 +60,14 @@ AstVisitStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNo
     {
         const SymbolNamespace& namespaceSym = nodeLeftView.sym->cast<SymbolNamespace>();
 
-        LookUpContext             result;
-        const AstVisitStepResult ret = SemaMatch::match(sema, namespaceSym, result, idRef);
+        LookUpContext lookUpCxt;
+        lookUpCxt.srcViewRef = srcViewRef();
+        lookUpCxt.tokRef     = tokNameRef;
+
+        const AstVisitStepResult ret = SemaMatch::match(sema, lookUpCxt, namespaceSym, idRef);
         if (ret != AstVisitStepResult::Continue)
             return ret;
-        sema.semaInfo().setSymbol(sema.curNodeRef(), result.first());
+        sema.semaInfo().setSymbol(sema.curNodeRef(), lookUpCxt.first());
         return AstVisitStepResult::SkipChildren;
     }
 
@@ -72,11 +78,14 @@ AstVisitStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNo
         if (!enumSym.isComplete())
             return sema.waitComplete(&enumSym);
 
-        LookUpContext             result;
-        const AstVisitStepResult ret = SemaMatch::match(sema, enumSym, result, idRef);
+        LookUpContext lookUpCxt;
+        lookUpCxt.srcViewRef = srcViewRef();
+        lookUpCxt.tokRef     = tokNameRef;
+
+        const AstVisitStepResult ret = SemaMatch::match(sema, lookUpCxt, enumSym, idRef);
         if (ret != AstVisitStepResult::Continue)
             return ret;
-        sema.semaInfo().setSymbol(sema.curNodeRef(), result.first());
+        sema.semaInfo().setSymbol(sema.curNodeRef(), lookUpCxt.first());
         return AstVisitStepResult::SkipChildren;
     }
 

@@ -130,7 +130,7 @@ Symbol* SymbolBigMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHom
     return symbol;
 }
 
-void SymbolBigMap::lookupAppend(IdentifierRef idRef, LookUpContext& result) const
+void SymbolBigMap::lookupAppend(IdentifierRef idRef, LookUpContext& lookUpCxt) const
 {
     if (const Shard* shards = shards_.load(std::memory_order_acquire))
     {
@@ -144,7 +144,7 @@ void SymbolBigMap::lookupAppend(IdentifierRef idRef, LookUpContext& result) cons
         for (const Symbol* cur = it->second; cur; cur = cur->nextHomonym())
         {
             if (!cur->isIgnored())
-                result.addSymbol(cur);
+                lookUpCxt.addSymbol(cur);
         }
 
         return;
@@ -158,7 +158,7 @@ void SymbolBigMap::lookupAppend(IdentifierRef idRef, LookUpContext& result) cons
     for (const Symbol* cur = it->second; cur; cur = cur->nextHomonym())
     {
         if (!cur->isIgnored())
-            result.addSymbol(cur);
+            lookUpCxt.addSymbol(cur);
     }
 }
 

@@ -1,5 +1,7 @@
 #pragma once
 #include "Core/SmallVector.h"
+#include "Lexer/SourceView.h"
+#include "Lexer/Token.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -10,6 +12,9 @@ class LookUpContext
     SmallVector<const Symbol*> symbols_;
 
 public:
+    SourceViewRef srcViewRef = SourceViewRef::invalid();
+    TokenRef      tokRef     = TokenRef::invalid();
+
     void clear()
     {
         symbols_.clear();

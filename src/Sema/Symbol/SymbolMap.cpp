@@ -54,11 +54,11 @@ SymbolBigMap* SymbolMap::buildBig(TaskContext& ctx) const
     return newBig;
 }
 
-void SymbolMap::lookupAppend(IdentifierRef idRef, LookUpContext& result) const
+void SymbolMap::lookupAppend(IdentifierRef idRef, LookUpContext& lookUpCxt) const
 {
     if (const SymbolBigMap* big = big_.load(std::memory_order_acquire))
     {
-        big->lookupAppend(idRef, result);
+        big->lookupAppend(idRef, lookUpCxt);
         return;
     }
 
@@ -67,7 +67,7 @@ void SymbolMap::lookupAppend(IdentifierRef idRef, LookUpContext& result) const
     if (const SymbolBigMap* big = big_.load(std::memory_order_acquire))
     {
         lk.unlock();
-        big->lookupAppend(idRef, result);
+        big->lookupAppend(idRef, lookUpCxt);
         return;
     }
 
@@ -78,7 +78,7 @@ void SymbolMap::lookupAppend(IdentifierRef idRef, LookUpContext& result) const
     for (const Symbol* cur = head; cur; cur = cur->nextHomonym())
     {
         if (!cur->isIgnored())
-            result.addSymbol(cur);
+            lookUpCxt.addSymbol(cur);
     }
 }
 

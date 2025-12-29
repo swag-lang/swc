@@ -161,7 +161,7 @@ void SemaError::raiseAmbiguousSymbol(Sema& sema, SourceViewRef srcViewRef, Token
     auto  diag = report(sema, DiagnosticId::sema_err_ambiguous_symbol, srcViewRef, tokRef);
     for (const auto other : symbols)
     {
-        diag.addNote(DiagnosticId::sema_note_other_definition);
+        diag.addNote(DiagnosticId::sema_note_could_be);
         diag.last().addSpan(other->loc(ctx));
     }
     diag.report(ctx);

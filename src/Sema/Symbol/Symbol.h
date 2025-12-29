@@ -3,7 +3,7 @@
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
 #include "Parser/AstNode.h"
-#include "Sema/Helpers/ComputedAttributes.h"
+#include "Sema/Helpers/AttributeList.h"
 #include "Sema/Symbol/IdentifierManager.h"
 #include "Sema/Type/TypeInfo.h"
 
@@ -48,15 +48,15 @@ using SymbolFlags = AtomicEnumFlags<SymbolFlagsE>;
 
 class Symbol
 {
-    IdentifierRef      idRef_       = IdentifierRef::invalid();
-    TypeRef            typeRef_     = TypeRef::invalid();
-    Symbol*            nextHomonym_ = nullptr;
-    SymbolMap*         ownerSymMap_ = nullptr;
-    SourceViewRef      srcViewRef_  = SourceViewRef::invalid();
-    TokenRef           tokRef_      = TokenRef::invalid();
-    SymbolKind         kind_        = SymbolKind::Invalid;
-    SymbolFlags        flags_       = SymbolFlagsE::Zero;
-    ComputedAttributes attributes_;
+    IdentifierRef idRef_       = IdentifierRef::invalid();
+    TypeRef       typeRef_     = TypeRef::invalid();
+    Symbol*       nextHomonym_ = nullptr;
+    SymbolMap*    ownerSymMap_ = nullptr;
+    SourceViewRef srcViewRef_  = SourceViewRef::invalid();
+    TokenRef      tokRef_      = TokenRef::invalid();
+    SymbolKind    kind_        = SymbolKind::Invalid;
+    SymbolFlags   flags_       = SymbolFlagsE::Zero;
+    AttributeList attributes_;
 
 public:
     explicit Symbol(SourceViewRef srcViewRef, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags) :
@@ -89,8 +89,8 @@ public:
     bool isIgnored() const noexcept { return flags_.has(SymbolFlagsE::Ignored); }
     void setIgnored(TaskContext& ctx) noexcept;
 
-    const ComputedAttributes& attributes() const { return attributes_; }
-    void                      setAttributes(const ComputedAttributes& attrs) { attributes_ = attrs; }
+    const AttributeList& attributes() const { return attributes_; }
+    void                 setAttributes(const AttributeList& attrs) { attributes_ = attrs; }
 
     void setContext(Sema& sema);
 

@@ -10,7 +10,7 @@ struct AttributeInstance
     const SymbolAttribute* symbol = nullptr;
 };
 
-struct ComputedAttributes
+struct AttributeList
 {
     SmallVector<AttributeInstance, 4> attributes;
 };

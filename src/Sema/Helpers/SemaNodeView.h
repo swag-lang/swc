@@ -1,5 +1,5 @@
 #pragma once
-#include "ComputedAttributes.h"
+#include "AttributeList.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Sema.h"
 #include "Sema/Type/TypeManager.h"

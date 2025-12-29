@@ -1,5 +1,5 @@
 #pragma once
-#include "ComputedAttributes.h"
+#include "AttributeList.h"
 #include "Sema/Symbol/Symbol.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -22,7 +22,7 @@ class SemaFrame
 {
     SymbolAccess                  defaultAccess_ = SymbolAccess::Private;
     std::optional<SymbolAccess>   currentAccess_;
-    ComputedAttributes            attributes_;
+    AttributeList                 attributes_;
     SmallVector<IdentifierRef, 8> nsPath_;
     SemaCompilerIf*               compilerIf_ = nullptr;
 
@@ -36,8 +36,8 @@ public:
     SymbolAccess currentAccess() const { return currentAccess_.value_or(defaultAccess_); }
     void         setCurrentAccess(SymbolAccess access) { currentAccess_ = access; }
 
-    ComputedAttributes&       attributes() { return attributes_; }
-    const ComputedAttributes& attributes() const { return attributes_; }
+    AttributeList&       attributes() { return attributes_; }
+    const AttributeList& attributes() const { return attributes_; }
 
     SemaCompilerIf* compilerIf() const { return compilerIf_; }
     void            setCompilerIf(SemaCompilerIf* ifc) { compilerIf_ = ifc; }

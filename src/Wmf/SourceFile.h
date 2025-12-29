@@ -53,6 +53,7 @@ public:
     const Verify&    unitTest() const { return *unitTest_; }
     Ast&             ast();
     const Ast&       ast() const;
+    bool             isRuntime() const { return (flags_.has(FileFlagsE::Runtime)); }
 
     void setHasError() { hasError_ = true; }
     void setHasWarning() { hasWarning_ = true; }

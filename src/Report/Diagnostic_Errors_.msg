@@ -111,3 +111,4 @@ SWC_DIAG_DEF(sema_err_array_dim_not_int, Error, "Array dimension must be an inte
 SWC_DIAG_DEF(sema_err_array_dim_zero, Error, "Array dimension cannot be zero")
 SWC_DIAG_DEF(sema_err_array_dim_negative, Error, "Array dimension cannot be negative (got {value})")
 SWC_DIAG_DEF(sema_err_bad_slice_element_type, Error, "Invalid slice element type {type}")
+SWC_DIAG_DEF(sema_err_reserved_swag_ns, Error, "Namespace {tok} is reserved")

@@ -53,3 +53,7 @@ namespace NH
 #assert(NH + 1) // swc-expected-error {{sema_err_not_value_expr}}
 #assert(-NH) // swc-expected-error {{sema_err_not_value_expr}}
 #assert(cast(bool) NH) // swc-expected-error {{sema_err_not_value_expr}}
+
+namespace Swag {} // swc-expected-error {{sema_err_reserved_swag_ns}}
+namespace swag {} // swc-expected-error {{sema_err_reserved_swag_ns}}
+namespace SWAG {} // swc-expected-error {{sema_err_reserved_swag_ns}}

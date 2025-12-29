@@ -1,5 +1,8 @@
 #include "pch.h"
+
+#include "Lexer/LangSpec.h"
 #include "Main/CompilerInstance.h"
+#include "Main/Global.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Sema.h"
 #include "Sema/Symbol/Symbol.h"
@@ -43,6 +46,20 @@ AstVisitStepResult AstNamespaceDecl::semaPreDecl(Sema& sema) const
     SymbolMap* symMap = SemaFrame::currentSymMap(sema);
     for (const auto& tokRef : namesRef)
     {
+        // A namespace named 'swag' is reserved by the runtime
+        const SourceView& srcView = ctx.compiler().srcView(srcViewRef());
+        if (!srcView.file() || !srcView.file()->isRuntime())
+        {
+            const Token& tok  = srcView.token(tokRef);
+            Utf8         name = tok.string(srcView);
+            name.make_lower();
+            if (name == "swag")
+            {
+                SemaError::raise(sema, DiagnosticId::sema_err_reserved_swag_ns, srcViewRef(), tokRef);
+                return AstVisitStepResult::Stop;
+            }
+        }
+
         const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokRef);
         sema.frame().pushNs(idRef);
 

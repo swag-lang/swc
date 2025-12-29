@@ -16,10 +16,10 @@ struct CommandLine;
 enum class TaskStateKind : uint8_t
 {
     None,
-    SemaWaitingIdentifier,
-    SemaWaitingCompilerDefined,
-    SemaWaitingComplete,
-    SemaWaitingDeclared,
+    SemaWaitIdentifier,
+    SemaWaitCompilerDefined,
+    SemaWaitComplete,
+    SemaWaitDeclared,
 };
 
 struct TaskState

@@ -207,7 +207,7 @@ AstVisitStepResult Sema::postNode(AstNode& node)
 AstVisitStepResult Sema::waitIdentifier(IdentifierRef idRef)
 {
     TaskState& wait = ctx().state();
-    wait.kind       = TaskStateKind::SemaWaitingIdentifier;
+    wait.kind       = TaskStateKind::SemaWaitIdentifier;
     wait.nodeRef    = curNodeRef();
     wait.idRef      = idRef;
     return AstVisitStepResult::Pause;
@@ -216,7 +216,7 @@ AstVisitStepResult Sema::waitIdentifier(IdentifierRef idRef)
 AstVisitStepResult Sema::waitCompilerDefined(IdentifierRef idRef)
 {
     TaskState& wait = ctx().state();
-    wait.kind       = TaskStateKind::SemaWaitingCompilerDefined;
+    wait.kind       = TaskStateKind::SemaWaitCompilerDefined;
     wait.nodeRef    = curNodeRef();
     wait.idRef      = idRef;
     return AstVisitStepResult::Pause;
@@ -225,7 +225,7 @@ AstVisitStepResult Sema::waitCompilerDefined(IdentifierRef idRef)
 AstVisitStepResult Sema::waitComplete(const Symbol* symbol)
 {
     TaskState& wait = ctx().state();
-    wait.kind       = TaskStateKind::SemaWaitingComplete;
+    wait.kind       = TaskStateKind::SemaWaitComplete;
     wait.nodeRef    = curNodeRef();
     wait.symbol     = symbol;
     return AstVisitStepResult::Pause;
@@ -234,7 +234,7 @@ AstVisitStepResult Sema::waitComplete(const Symbol* symbol)
 AstVisitStepResult Sema::waitDeclared(const Symbol* symbol)
 {
     TaskState& wait = ctx().state();
-    wait.kind       = TaskStateKind::SemaWaitingDeclared;
+    wait.kind       = TaskStateKind::SemaWaitDeclared;
     wait.nodeRef    = curNodeRef();
     wait.symbol     = symbol;
     return AstVisitStepResult::Pause;
@@ -251,7 +251,7 @@ namespace
         for (const auto job : jobs)
         {
             const TaskState& state = job->ctx().state();
-            if (state.kind == TaskStateKind::SemaWaitingCompilerDefined)
+            if (state.kind == TaskStateKind::SemaWaitCompilerDefined)
             {
                 // @CompilerNotDefined
                 const auto semaJob = job->cast<SemaJob>();
@@ -275,12 +275,12 @@ namespace
             {
                 switch (state.kind)
                 {
-                    case TaskStateKind::SemaWaitingIdentifier:
+                    case TaskStateKind::SemaWaitIdentifier:
                     {
                         SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unknown_identifier, state.nodeRef);
                         break;
                     }
-                    case TaskStateKind::SemaWaitingComplete:
+                    case TaskStateKind::SemaWaitComplete:
                     {
                         SWC_ASSERT(state.symbol);
                         auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_unsolved_symbol, state.nodeRef);
@@ -288,7 +288,7 @@ namespace
                         diag.report(ctx);
                         break;
                     }
-                    case TaskStateKind::SemaWaitingDeclared:
+                    case TaskStateKind::SemaWaitDeclared:
                     {
                         auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_unsolved_declared, state.nodeRef);
                         diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));

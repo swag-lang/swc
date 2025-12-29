@@ -137,7 +137,7 @@ void SemaError::raiseInternal(Sema& sema, const AstNode& node)
     raise(sema, DiagnosticId::sema_err_internal, node.srcViewRef(), node.tokRef());
 }
 
-void SemaError::raiseSymbolAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol)
+void SemaError::raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol)
 {
     auto& ctx  = sema.ctx();
     auto  diag = report(sema, DiagnosticId::sema_err_already_defined, symbol->srcViewRef(), symbol->tokRef());
@@ -146,10 +146,25 @@ void SemaError::raiseSymbolAlreadyDefined(Sema& sema, const Symbol* symbol, cons
     diag.report(ctx);
 }
 
-void SemaError::raiseAmbiguousSymbol(Sema& sema, SourceViewRef srcViewRef, TokenRef tokRef, std::span<const Symbol*>)
+void SemaError::raiseGhosting(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol)
 {
-    const auto diag = report(sema, DiagnosticId::sema_err_ambiguous_symbol, srcViewRef, tokRef);
-    diag.report(sema.ctx());
+    auto& ctx  = sema.ctx();
+    auto  diag = report(sema, DiagnosticId::sema_err_ghosting, symbol->srcViewRef(), symbol->tokRef());
+    diag.addNote(DiagnosticId::sema_note_other_definition);
+    diag.last().addSpan(otherSymbol->loc(ctx));
+    diag.report(ctx);
+}
+
+void SemaError::raiseAmbiguousSymbol(Sema& sema, SourceViewRef srcViewRef, TokenRef tokRef, std::span<const Symbol*> symbols)
+{
+    auto& ctx  = sema.ctx();
+    auto  diag = report(sema, DiagnosticId::sema_err_ambiguous_symbol, srcViewRef, tokRef);
+    for (const auto other : symbols)
+    {
+        diag.addNote(DiagnosticId::sema_note_other_definition);
+        diag.last().addSpan(other->loc(ctx));
+    }
+    diag.report(ctx);
 }
 
 SWC_END_NAMESPACE()

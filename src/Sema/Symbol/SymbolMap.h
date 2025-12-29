@@ -5,6 +5,7 @@
 SWC_BEGIN_NAMESPACE()
 
 class SymbolBigMap;
+class MatchResult;
 
 class SymbolMap : public Symbol
 {
@@ -33,7 +34,7 @@ public:
     Symbol* addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms);
     Symbol* addSingleSymbol(TaskContext& ctx, Symbol* symbol);
     Symbol* addSingleSymbolOrError(Sema& sema, Symbol* symbol);
-    void    lookupAppend(IdentifierRef idRef, SmallVector<const Symbol*>& out) const;
+    void    lookupAppend(IdentifierRef idRef, MatchResult& result) const;
 };
 
 SWC_END_NAMESPACE()

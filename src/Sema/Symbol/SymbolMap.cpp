@@ -1,10 +1,12 @@
 #include "pch.h"
-#include "Sema/Symbol/SymbolMap.h"
+
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
+#include "MatchResult.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Sema.h"
 #include "Sema/Symbol/SymbolBigMap.h"
+#include "Sema/Symbol/SymbolMap.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -52,11 +54,11 @@ SymbolBigMap* SymbolMap::buildBig(TaskContext& ctx) const
     return newBig;
 }
 
-void SymbolMap::lookupAppend(IdentifierRef idRef, SmallVector<const Symbol*>& out) const
+void SymbolMap::lookupAppend(IdentifierRef idRef, MatchResult& result) const
 {
     if (const SymbolBigMap* big = big_.load(std::memory_order_acquire))
     {
-        big->lookupAppend(idRef, out);
+        big->lookupAppend(idRef, result);
         return;
     }
 
@@ -65,7 +67,7 @@ void SymbolMap::lookupAppend(IdentifierRef idRef, SmallVector<const Symbol*>& ou
     if (const SymbolBigMap* big = big_.load(std::memory_order_acquire))
     {
         lk.unlock();
-        big->lookupAppend(idRef, out);
+        big->lookupAppend(idRef, result);
         return;
     }
 
@@ -76,7 +78,7 @@ void SymbolMap::lookupAppend(IdentifierRef idRef, SmallVector<const Symbol*>& ou
     for (const Symbol* cur = head; cur; cur = cur->nextHomonym())
     {
         if (!cur->isIgnored())
-            out.push_back(cur);
+            result.addSymbol(cur);
     }
 }
 
@@ -139,7 +141,7 @@ Symbol* SymbolMap::addSingleSymbolOrError(Sema& sema, Symbol* symbol)
     auto&   ctx         = sema.ctx();
     Symbol* insertedSym = addSymbol(ctx, symbol, true);
     if (symbol->nextHomonym())
-        SemaError::raiseSymbolAlreadyDefined(sema, symbol, symbol->nextHomonym());
+        SemaError::raiseAlreadyDefined(sema, symbol, symbol->nextHomonym());
     return insertedSym;
 }
 

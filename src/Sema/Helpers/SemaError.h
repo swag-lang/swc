@@ -27,7 +27,8 @@ namespace SemaError
     void raiseExprNotConst(Sema& sema, AstNodeRef nodeRef);
     void raiseBinaryOperandType(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
     void raiseInternal(Sema& sema, const AstNode& node);
-    void raiseSymbolAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);
+    void raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);
+    void raiseGhosting(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);
     void raiseAmbiguousSymbol(Sema& sema, SourceViewRef srcViewRef, TokenRef tokRef, std::span<const Symbol*> symbols);
 }
 

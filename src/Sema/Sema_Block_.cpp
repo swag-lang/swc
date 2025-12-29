@@ -52,7 +52,7 @@ AstVisitStepResult AstNamespaceDecl::semaPreDecl(Sema& sema) const
 
         if (!res->isNamespace())
         {
-            SemaError::raiseSymbolAlreadyDefined(sema, ns, res);
+            SemaError::raiseAlreadyDefined(sema, ns, res);
             continue;
         }
 

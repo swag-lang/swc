@@ -35,6 +35,7 @@ void Symbol::setContext(Sema& sema)
 {
     if (auto* compilerIf = sema.frame().compilerIf())
         compilerIf->addSymbol(this);
+    setAttributes(sema.frame().attributes());
 }
 
 std::string_view Symbol::name(const TaskContext& ctx) const
@@ -99,6 +100,7 @@ Utf8 Symbol::toFamily() const
         case SymbolKind::Constant: return "constant";
         case SymbolKind::Enum: return "enum";
         case SymbolKind::EnumValue: return "enum value";
+        case SymbolKind::Attribute: return "attribute";
         default: return "symbol";
     }
 }

@@ -228,6 +228,11 @@ struct AstAttrDecl : AstNamedNodeT<AstNodeId::AttrDecl>
     {
         AstNode::collectChildren(out, {nodeParamsRef});
     }
+
+    AstVisitStepResult        semaPreDecl(Sema& sema) const;
+    static void               semaEnterNode(Sema& sema);
+    static AstVisitStepResult semaPreNode(Sema& sema);
+    AstVisitStepResult        semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -904,7 +909,8 @@ struct AstAttribute : AstNodeT<AstNodeId::Attribute>
     AstNodeRef nodeIdentRef;
     AstNodeRef nodeArgsRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeIdentRef, nodeArgsRef}); }
+    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeIdentRef, nodeArgsRef}); }
+    AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -917,6 +923,9 @@ struct AstAttributeList : AstCompoundT<AstNodeId::AttributeList>
         AstCompoundT::collectChildren(out, ast);
         AstNode::collectChildren(out, {nodeBodyRef});
     }
+
+    AstVisitStepResult semaPreNode(Sema& sema) const;
+    AstVisitStepResult semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

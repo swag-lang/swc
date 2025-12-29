@@ -42,6 +42,18 @@ public:
 };
 
 // -----------------------------------------------------------------------------
+class SymbolAttribute : public Symbol
+{
+public:
+    static constexpr auto K = SymbolKind::Attribute;
+
+    explicit SymbolAttribute(SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        Symbol(srcViewRef, tokRef, K, idRef, flags)
+    {
+    }
+};
+
+// -----------------------------------------------------------------------------
 class SymbolVariable : public Symbol
 {
 public:

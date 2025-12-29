@@ -49,7 +49,7 @@ SWC_NODE_DEF(ValueType, AstNodeIdFlagsE::Zero)
 // ============================================================================
 //  Attributes & Constraints
 // ============================================================================
-SWC_NODE_DEF(AttrDecl, AstNodeIdFlagsE::Zero)
+SWC_NODE_DEF(AttrDecl, AstNodeIdFlagsE::SemaJob)
 SWC_NODE_DEF(Attribute, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(AttributeList, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(ConstraintBlock, AstNodeIdFlagsE::Zero)

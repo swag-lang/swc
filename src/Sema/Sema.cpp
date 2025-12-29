@@ -259,41 +259,23 @@ namespace
                         SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unknown_identifier, state.nodeRef);
                         break;
                     }
-                    case TaskStateKind::SemaWaitingCompilerDefined:
-                    {
-                        // No error for compiler defined
-                        break;
-                    }
                     case TaskStateKind::SemaWaitingComplete:
                     {
-                        if (state.symbol)
-                        {
-                            auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_unsolved_symbol, state.nodeRef);
-                            diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
-                            diag.report(ctx);
-                        }
-                        else
-                        {
-                            SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unsolved_identifier, state.nodeRef);
-                        }
+                        SWC_ASSERT(state.symbol);
+                        auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_unsolved_symbol, state.nodeRef);
+                        diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
+                        diag.report(ctx);
                         break;
                     }
                     case TaskStateKind::SemaWaitingDeclared:
                     {
-                        if (state.symbol)
-                        {
-                            auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_unsolved_declared, state.nodeRef);
-                            diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
-                            diag.report(ctx);
-                        }
-                        else
-                        {
-                            SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unsolved_identifier, state.nodeRef);
-                        }
+                        auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_unsolved_declared, state.nodeRef);
+                        diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
+                        diag.report(ctx);
                         break;
                     }
                     default:
-                        break;
+                        SWC_UNREACHABLE();
                 }
             }
         }
@@ -332,14 +314,13 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         bool doneSomething = false;
         for (const auto job : jobs)
         {
-            TaskState& state = job->ctx().state();
+            const TaskState& state = job->ctx().state();
             if (state.kind == TaskStateKind::SemaWaitingCompilerDefined)
             {
                 if (const auto semaJob = job->safeCast<SemaJob>())
                 {
                     // @CompilerNotDefined
                     semaJob->sema().setConstant(state.nodeRef, semaJob->sema().cstMgr().cstFalse());
-                    state.reset();
                     doneSomething = true;
                 }
             }
@@ -366,6 +347,8 @@ JobResult Sema::exec()
         curScope_->setSymMap(startSymMap_);
     }
 
+    ctx().state().reset();
+    
     JobResult jobResult;
     while (true)
     {

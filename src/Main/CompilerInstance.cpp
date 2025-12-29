@@ -207,20 +207,21 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
             std::ranges::sort(paths);
         for (const auto& f : paths)
             addFile(f, FileFlagsE::ModuleSrc);
-
-        // Collect runtime files
-        if (cmdLine.command == CommandKind::Sema)
-        {
-            fs::path runtimePath = exeFullName_.parent_path() / "Runtime";
-            if (FileSystem::resolveFolder(ctx, runtimePath) != Result::Success)
-                return Result::Error;
-            FileSystem::collectSwagFilesRec(ctx, runtimePath, paths);
-            if (cmdLine.numCores == 1)
-                std::ranges::sort(paths);
-            for (const auto& f : paths)
-                addFile(f, FileFlagsE::Runtime);
-        }
     }
+
+    // Collect runtime files
+    /*
+    if (cmdLine.command == CommandKind::Sema)
+    {
+        fs::path runtimePath = exeFullName_.parent_path() / "Runtime";
+        if (FileSystem::resolveFolder(ctx, runtimePath) != Result::Success)
+            return Result::Error;
+        FileSystem::collectSwagFilesRec(ctx, runtimePath, paths);
+        if (cmdLine.numCores == 1)
+            std::ranges::sort(paths);
+        for (const auto& f : paths)
+            addFile(f, FileFlagsE::Runtime);
+    }*/
 
     if (files_.empty())
     {

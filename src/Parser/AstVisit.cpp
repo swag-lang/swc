@@ -35,7 +35,7 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
     dbgTok_     = dbgTokRef_.isValid() ? &ast_->srcView().token(dbgTokRef_) : nullptr;
     dbgTokView_ = dbgTok_->string(ast_->srcView());
     dbgSrcFile_ = ast_->srcView().file();
-    dbgLoc_.fromOffset(ctx, ast_->srcView(), dbgTok_->byteStart, dbgTok_->byteLength);
+    dbgLoc_     = dbgTok_->location(ctx, ast_->srcView());
 #endif
 
     switch (fr.stage)

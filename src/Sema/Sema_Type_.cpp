@@ -226,8 +226,8 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema) const
     // Unknown dimension [?]
     if (spanDimensionsRef.isInvalid())
     {
-        const TypeInfo ty      = TypeInfo::makeArray({}, nodeView.typeRef);
-        const TypeRef  typeRef = sema.typeMgr().addType(ty);
+        const TypeInfo tyA     = TypeInfo::makeArray({}, nodeView.typeRef);
+        const TypeRef  typeRef = sema.typeMgr().addType(tyA);
         sema.setType(sema.curNodeRef(), typeRef);
         return AstVisitStepResult::Continue;
     }

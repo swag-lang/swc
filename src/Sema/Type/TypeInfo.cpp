@@ -3,6 +3,7 @@
 #include "Math/Hash.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/TypeManager.h"
+#include <memory>
 
 SWC_BEGIN_NAMESPACE()
 class TaskContext;
@@ -50,7 +51,7 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
             break;
 
         case TypeInfoKind::Array:
-            asArray = other.asArray;
+            std::construct_at(&asArray, other.asArray);
             break;
 
         default:

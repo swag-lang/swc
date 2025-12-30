@@ -1,8 +1,6 @@
 #include "pch.h"
-
 #include "Lexer/LangSpec.h"
 #include "Main/CompilerInstance.h"
-#include "Main/Global.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Sema.h"
 #include "Sema/Symbol/Symbol.h"
@@ -15,6 +13,7 @@ AstVisitStepResult AstFile::semaPreDecl(Sema& sema) const
     SymbolNamespace* fileNamespace = Symbol::make<SymbolNamespace>(sema.ctx(), srcViewRef(), tokRef(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
     sema.semaInfo().setFileNamespace(*fileNamespace);
     sema.pushScope(SemaScopeFlagsE::TopLevel);
+    sema.curScope().setSymMap(&sema.semaInfo().moduleNamespace());
     return AstVisitStepResult::Continue;
 }
 
@@ -27,6 +26,7 @@ AstVisitStepResult AstFile::semaPostDecl(Sema& sema)
 AstVisitStepResult AstFile::semaPreNode(Sema& sema)
 {
     sema.pushScope(SemaScopeFlagsE::TopLevel);
+    sema.curScope().setSymMap(&sema.semaInfo().moduleNamespace());
     return AstVisitStepResult::Continue;
 }
 

@@ -49,3 +49,12 @@ enum LL : u64
     A = 0x80000000,
     B,
 }
+
+#[Swag.EnumFlags]
+enum NN : u64
+{
+    A = 0,
+    B,
+}
+#assert(NN.A == 0)
+#assert(NN.B == 1)

@@ -215,7 +215,7 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
         fs::path runtimePath = exeFullName_.parent_path() / "Runtime";
         if (FileSystem::resolveFolder(ctx, runtimePath) != Result::Success)
             return Result::Error;
-        FileSystem::collectSwagFilesRec(ctx, runtimePath, paths);
+        FileSystem::collectSwagFilesRec(ctx, runtimePath, paths, false);
         if (cmdLine.numCores == 1)
             std::ranges::sort(paths);
         for (const auto& f : paths)

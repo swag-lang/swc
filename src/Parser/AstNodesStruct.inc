@@ -205,6 +205,8 @@ struct AstFunctionDecl : AstNamedNodeT<AstNodeId::FunctionDecl>
         AstNode::collectChildren(out, ast, spanConstraintsRef);
         AstNode::collectChildren(out, {nodeBodyRef});
     }
+
+    static AstVisitStepResult semaPreNode(Sema& sema) { return AstVisitStepResult::SkipChildren; }
 };
 
 // -----------------------------------------------------------------------------

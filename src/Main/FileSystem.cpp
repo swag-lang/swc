@@ -6,6 +6,54 @@
 
 SWC_BEGIN_NAMESPACE()
 
+Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
+{
+    std::error_code ec;
+
+    // Make absolute first (preserves input if it's already absolute)
+    fs::path resolved = fs::absolute(file, ec);
+    if (ec)
+    {
+        auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
+        diag.addArgument(Diagnostic::ARG_PATH, file.string());
+        diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec), false);
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    // Normalize/symlink-resolve if possible (does not throw)
+    const fs::path normalized = fs::weakly_canonical(resolved, ec);
+    if (!ec)
+        resolved = normalized;
+    ec.clear();
+
+    // Check existence and type; don't conflate errors with "not found"
+    if (!fs::exists(resolved, ec))
+    {
+        auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
+        diag.addArgument(Diagnostic::ARG_PATH, file.string());
+        if (ec)
+            diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec), false);
+        diag.report(ctx);
+        return Result::Error;
+    }
+    ec.clear();
+
+    // Be sure it's a regular file
+    if (!fs::is_regular_file(resolved, ec))
+    {
+        auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
+        diag.addArgument(Diagnostic::ARG_PATH, file.string());
+        if (ec)
+            diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec), false);
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    file = resolved;
+    return Result::Success;
+}
+
 Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
 {
     std::error_code ec;
@@ -56,54 +104,6 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
     return Result::Success;
 }
 
-Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
-{
-    std::error_code ec;
-
-    // Make absolute first (preserves input if it's already absolute)
-    fs::path resolved = fs::absolute(file, ec);
-    if (ec)
-    {
-        auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
-        diag.addArgument(Diagnostic::ARG_PATH, file.string());
-        diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec), false);
-        diag.report(ctx);
-        return Result::Error;
-    }
-
-    // Normalize/symlink-resolve if possible (does not throw)
-    const fs::path normalized = fs::weakly_canonical(resolved, ec);
-    if (!ec)
-        resolved = normalized;
-    ec.clear();
-
-    // Check existence and type; don't conflate errors with "not found"
-    if (!fs::exists(resolved, ec))
-    {
-        auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
-        diag.addArgument(Diagnostic::ARG_PATH, file.string());
-        if (ec)
-            diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec), false);
-        diag.report(ctx);
-        return Result::Error;
-    }
-    ec.clear();
-
-    // Be sure it's a regular file
-    if (!fs::is_regular_file(resolved, ec))
-    {
-        auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
-        diag.addArgument(Diagnostic::ARG_PATH, file.string());
-        if (ec)
-            diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec), false);
-        diag.report(ctx);
-        return Result::Error;
-    }
-
-    file = resolved;
-    return Result::Success;
-}
-
 Utf8 FileSystem::normalizeSystemMessage(const Utf8& msg)
 {
     auto result = msg;
@@ -120,7 +120,7 @@ Utf8 FileSystem::normalizeSystemMessage(std::error_code ec)
     return normalizeSystemMessage(ec.message());
 }
 
-void FileSystem::collectSwagFilesRec(const TaskContext& ctx, const fs::path& folder, std::vector<fs::path>& files)
+void FileSystem::collectSwagFilesRec(const TaskContext& ctx, const fs::path& folder, std::vector<fs::path>& files, bool canFilter)
 {
     for (const auto& entry : fs::recursive_directory_iterator(folder))
     {
@@ -130,17 +130,20 @@ void FileSystem::collectSwagFilesRec(const TaskContext& ctx, const fs::path& fol
         if (ext != ".swg" && ext != ".swgs")
             continue;
 
-        bool ignore = false;
-        for (const auto& filter : ctx.cmdLine().fileFilter)
+        if (canFilter)
         {
-            if (!entry.path().string().contains(filter))
+            bool ignore = false;
+            for (const auto& filter : ctx.cmdLine().fileFilter)
             {
-                ignore = true;
-                break;
+                if (!entry.path().string().contains(filter))
+                {
+                    ignore = true;
+                    break;
+                }
             }
+            if (ignore)
+                continue;
         }
-        if (ignore)
-            continue;
 
         files.push_back(entry.path());
     }

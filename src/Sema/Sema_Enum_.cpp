@@ -1,7 +1,5 @@
 #include "pch.h"
-
 #include "Lexer/LangSpec.h"
-#include "Main/Global.h"
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisitResult.h"
 #include "Sema/Helpers/SemaError.h"
@@ -41,7 +39,8 @@ AstVisitStepResult AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     if (childRef != nodeBodyRef)
         return AstVisitStepResult::Continue;
 
-    auto& ctx = sema.ctx();
+    auto&       ctx = sema.ctx();
+    SymbolEnum& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolEnum>();
 
     // Check type if specified
     SemaNodeView typeView(sema, nodeTypeRef);
@@ -51,6 +50,12 @@ AstVisitStepResult AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& c
             !typeView.type->isBool() &&
             !typeView.type->isRune() &&
             !typeView.type->isString())
+        {
+            SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_type, nodeTypeRef);
+            return AstVisitStepResult::Stop;
+        }
+
+        if (sym.isEnumFlags() && !typeView.type->isIntUnsigned())
         {
             SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_type, nodeTypeRef);
             return AstVisitStepResult::Stop;
@@ -65,7 +70,6 @@ AstVisitStepResult AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     }
 
     // Creates symbol with type
-    SymbolEnum&    sym         = sema.symbolOf(sema.curNodeRef()).cast<SymbolEnum>();
     const TypeInfo enumType    = TypeInfo::makeEnum(&sym);
     const TypeRef  enumTypeRef = ctx.typeMgr().addType(enumType);
     sym.setTypeRef(enumTypeRef);

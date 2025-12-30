@@ -172,12 +172,23 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
             return AstVisitStepResult::Stop;
         }
 
-        // Update enum "nextValue" = value + 1 (so subsequent no-init enumerators work)
         if (symEnum.hasNextValue())
         {
-            bool   overflow = false;
-            ApsInt one(1, symEnum.nextValue().bitWidth(), symEnum.nextValue().isUnsigned());
-            symEnum.nextValue().add(one, overflow);
+            bool overflow = false;
+            
+            // Update enum "nextValue" = value << 1
+            if (symEnum.isEnumFlags())
+            {
+                symEnum.nextValue().shiftLeft(1, overflow);
+            }
+            
+            // Update enum "nextValue" = value + 1
+            else
+            {
+                ApsInt one(1, symEnum.nextValue().bitWidth(), symEnum.nextValue().isUnsigned());
+                symEnum.nextValue().add(one, overflow);
+            }
+
             if (overflow)
             {
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_literal_overflow, srcViewRef(), tokRef());

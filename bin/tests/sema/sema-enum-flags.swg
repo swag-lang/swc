@@ -23,3 +23,5 @@ enum II { A, B, C }
 #[Swag.EnumFlags]
 enum JJ { A, B, C }
 #assert(JJ.A == 1)
+#assert(JJ.B == 2)
+#assert(JJ.C == 4)

@@ -262,6 +262,7 @@ AstVisitStepResult AstCompilerGlobal::semaPreDecl(Sema& sema) const
             break;
         case Mode::AccessPrivate:
             sema.frame().setAccess(SymbolAccess::Private);
+            break;
         default:
             break;
     }

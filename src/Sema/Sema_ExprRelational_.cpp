@@ -168,7 +168,6 @@ namespace
 
     Result checkEqualEqual(Sema& sema, const AstRelationalExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
-        SemaCast::promoteForEquality(sema, nodeLeftView, nodeRightView);
         if (nodeLeftView.typeRef == nodeRightView.typeRef)
             return Result::Success;
         if (nodeLeftView.type->isScalarNumeric() && nodeRightView.type->isScalarNumeric())
@@ -195,21 +194,14 @@ namespace
         return Result::Error;
     }
 
-    void rewriteTypeToTypeValue(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
+    Result promote(Sema& sema, TokenId op, const AstRelationalExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
-        if (!self.type || !other.type)
-            return;
-        if (!other.type->isTypeValue())
-            return;
-        if (self.type->isTypeValue())
-            return;
-        if (!self.type->isType())
-            return;
+        if (op == TokenId::SymEqualEqual || op == TokenId::SymBangEqual)
+        {
+            SemaCast::promoteForEquality(sema, nodeLeftView, nodeRightView);
+        }
 
-        TaskContext&      ctx    = sema.ctx();
-        const ConstantRef cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeTypeValue(ctx, self.typeRef));
-        self.setCstRef(sema, cstRef);
-        sema.semaInfo().setConstant(self.nodeRef, cstRef);
+        return Result::Success;
     }
 
     Result check(Sema& sema, TokenId op, const AstRelationalExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
@@ -240,11 +232,9 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
     SemaNodeView nodeRightView(sema, nodeRightRef);
     const auto&  tok = sema.token(srcViewRef(), tokRef());
 
-    if (tok.id == TokenId::SymEqualEqual || tok.id == TokenId::SymBangEqual)
-    {
-        rewriteTypeToTypeValue(sema, nodeLeftView, nodeRightView);
-        rewriteTypeToTypeValue(sema, nodeRightView, nodeLeftView);
-    }
+    // Force types
+    if (promote(sema, tok.id, *this, nodeLeftView, nodeRightView) == Result::Error)
+        return AstVisitStepResult::Stop;
 
     // Value-check
     if (SemaCheck::isValueExpr(sema, nodeLeftRef) != Result::Success)

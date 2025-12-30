@@ -25,3 +25,17 @@ enum JJ { A, B, C }
 #assert(JJ.A == 1)
 #assert(JJ.B == 2)
 #assert(JJ.C == 4)
+
+#[Swag.EnumFlags]
+enum KK
+{
+    A = 0x80000000,
+    B, // swc-expected-error {{sema_err_literal_overflow}}
+}
+
+#[Swag.EnumFlags]
+enum LL : u64
+{
+    A = 0x80000000,
+    B,
+}

@@ -10,3 +10,7 @@ var A: s32 = 0
     var B: s32 = 0
     var C: s32 = 0
 }
+
+const BB = 1
+#[BB]
+const CC = 0

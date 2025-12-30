@@ -19,3 +19,7 @@ enum DD: f32 { A, B, C } // swc-expected-error {{sema_err_invalid_enum_flags_typ
 enum II { A, B, C }
 #assert(#typeof(II) == II)
 #assert(#kindof(II) == u32)
+
+#[Swag.EnumFlags]
+enum JJ { A, B, C }
+#assert(JJ.A == 1)

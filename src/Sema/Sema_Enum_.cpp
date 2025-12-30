@@ -75,8 +75,15 @@ AstVisitStepResult AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     const TypeRef  enumTypeRef = ctx.typeMgr().addType(enumType);
     sym.setTypeRef(enumTypeRef);
     sym.setUnderlyingTypeRef(typeView.typeRef);
+
+    // Default first value
     if (typeView.type->isInt())
-        sym.setNextValue(ApsInt{typeView.type->intBits(), typeView.type->isIntUnsigned()});
+    {
+        if (sym.isEnumFlags())
+            sym.setNextValue(ApsInt{1, typeView.type->intBits(), typeView.type->isIntUnsigned()});
+        else
+            sym.setNextValue(ApsInt{typeView.type->intBits(), typeView.type->isIntUnsigned()});
+    }
 
     sema.pushScope(SemaScopeFlagsE::Type);
     sema.curScope().setSymMap(&sym);

@@ -17,24 +17,29 @@ void SemaCast::promoteEnumToUnderlying(Sema& sema, SemaNodeView& nodeView)
     }
 
     const SymbolEnum& symEnum = nodeView.type->enumSym();
-    SemaCast::createImplicitCast(sema, symEnum.underlyingTypeRef(), nodeView.nodeRef);
+    createImplicitCast(sema, symEnum.underlyingTypeRef(), nodeView.nodeRef);
+}
+
+void SemaCast::promoteTypeToTypeValue(Sema& sema, SemaNodeView& nodeView)
+{
+    if (!nodeView.type->isType())
+        return;
+
+    TaskContext&      ctx    = sema.ctx();
+    const ConstantRef cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeTypeValue(ctx, nodeView.typeRef));
+    nodeView.setCstRef(sema, cstRef);
+    sema.semaInfo().setConstant(nodeView.nodeRef, cstRef);
 }
 
 namespace
 {
-    void promoteTypeToTypeValue(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
+    void promoteTypeToTypeValueForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
     {
-        if (self.type->isTypeValue())
-            return;
+        if (!self.type->isType())
+            return;        
         if (!other.type->isTypeValue())
             return;
-        if (!self.type->isType())
-            return;
-
-        TaskContext&      ctx    = sema.ctx();
-        const ConstantRef cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeTypeValue(ctx, self.typeRef));
-        self.setCstRef(sema, cstRef);
-        sema.semaInfo().setConstant(self.nodeRef, cstRef);
+        SemaCast::promoteTypeToTypeValue(sema, self);
     }
 
     void promoteEnumForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
@@ -52,8 +57,8 @@ void SemaCast::promoteForEquality(Sema& sema, SemaNodeView& leftNodeView, SemaNo
     if (!leftNodeView.type || !rightNodeView.type)
         return;
 
-    promoteTypeToTypeValue(sema, leftNodeView, rightNodeView);
-    promoteTypeToTypeValue(sema, rightNodeView, leftNodeView);
+    promoteTypeToTypeValueForEquality(sema, leftNodeView, rightNodeView);
+    promoteTypeToTypeValueForEquality(sema, rightNodeView, leftNodeView);
     promoteEnumForEquality(sema, leftNodeView, rightNodeView);
     promoteEnumForEquality(sema, rightNodeView, leftNodeView);
 }

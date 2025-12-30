@@ -92,7 +92,7 @@ AstVisitStepResult AstAttrDecl::semaPostNode(Sema& sema)
 
 AstVisitStepResult AstAttributeList::semaPreNode(Sema& sema)
 {
-    SemaFrame newFrame = sema.frame();
+    const SemaFrame newFrame = sema.frame();
     sema.pushFrame(newFrame);
     return AstVisitStepResult::Continue;
 }
@@ -112,7 +112,8 @@ AstVisitStepResult AstAttribute::semaPostNode(Sema& sema) const
         return AstVisitStepResult::Stop;
     }
 
-    if (sym.symMap()->isNamespace() && sym.symMap()->idRef() == sema.idMgr().nameSwag())
+    // Predefined attributes
+    if (sym.symMap()->isSwagNamespace(sema.ctx()))
     {
         if (sym.idRef() == sema.idMgr().nameEnumFlags())
         {

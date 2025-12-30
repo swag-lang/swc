@@ -115,6 +115,7 @@ public:
     bool isSymMap() const noexcept { return isNamespace() || isModule() || isEnum() || isStruct(); }
     bool isType() const noexcept { return isEnum() || isStruct(); }
     bool isValueExpr() const noexcept { return isVariable() || isConstant() || isEnumValue(); }
+    bool isSwagNamespace(const TaskContext& ctx) const noexcept { return isNamespace() && idRef() == ctx.idMgr().nameSwag(); }
 
     Symbol* nextHomonym() const noexcept { return nextHomonym_; }
     void    setNextHomonym(Symbol* next) noexcept { nextHomonym_ = next; }

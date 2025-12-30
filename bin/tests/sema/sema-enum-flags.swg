@@ -93,7 +93,6 @@ enum RR : u8
 #assert(RR.G == 64)
 #assert(RR.H == 0x80)
 
-// Overflow when shifting beyond highest bit for u8
 #[Swag.EnumFlags]
 enum SS : u8
 {
@@ -101,17 +100,51 @@ enum SS : u8
     B, // swc-expected-error {{sema_err_literal_overflow}}
 }
 
-// Overflow when shifting beyond highest bit for u64
 #[Swag.EnumFlags]
-enum TT : u64
+enum SS0 : u16
+{
+    A = 0x8000,
+    B, // swc-expected-error {{sema_err_literal_overflow}}
+}
+
+#[Swag.EnumFlags]
+enum SS1 : u32
+{
+    A = 0x8000_0000,
+    B, // swc-expected-error {{sema_err_literal_overflow}}
+}
+
+#[Swag.EnumFlags]
+enum SS2 : u64
 {
     A = 0x8000000000000000,
     B, // swc-expected-error {{sema_err_literal_overflow}}
 }
 
-// Check bitwise combinations on an enum with default underlying type (u32)
 #assert((JJ.A | JJ.B) == 3)
 #assert((JJ.A | JJ.C) == 5)
 #assert((JJ.A | JJ.B | JJ.C) == 7)
 #assert((JJ.A & JJ.B) == 0)
 #assert(((JJ.A | JJ.B) & JJ.B) == JJ.B)
+
+#assert((JJ.A & JJ.A) == JJ.A)
+#assert((JJ.A & JJ.B) == 0)
+#assert(((JJ.A | JJ.B) & JJ.B) == JJ.B)
+#assert(((JJ.A | JJ.B | JJ.C) & JJ.C) == JJ.C)
+
+#assert((NN.A & NN.B) == 0)
+#assert((NN.B & NN.B) == NN.B)
+
+const AND1 = JJ.A & 1
+const AND2 = 1 & JJ.A
+
+#assert((JJ.A ^ JJ.B) == 3)              // 1 ^ 2 = 3
+#assert(((JJ.A | JJ.B) ^ JJ.B) == JJ.A)  // toggle off
+#assert(((JJ.A | JJ.B | JJ.C) ^ JJ.B) == (JJ.A | JJ.C))
+#assert((JJ.A ^ JJ.A) == 0)              // XOR cancels identical flag
+
+#assert((NN.A ^ NN.B) == 1)
+#assert((NN.B ^ NN.B) == 0)
+
+const XOR1 = JJ.A ^ 1
+const XOR2 = 1 ^ JJ.A

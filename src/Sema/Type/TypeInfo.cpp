@@ -49,6 +49,9 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
         case TypeInfoKind::Enum:
             asEnum = other.asEnum;
             break;
+        case TypeInfoKind::Struct:
+            asStruct = other.asStruct;
+            break;
 
         case TypeInfoKind::Array:
             std::construct_at(&asArray, other.asArray);
@@ -107,6 +110,9 @@ TypeInfo& TypeInfo::operator=(const TypeInfo& other)
         case TypeInfoKind::Enum:
             asEnum = other.asEnum;
             break;
+        case TypeInfoKind::Struct:
+            asStruct = other.asStruct;
+            break;
 
         case TypeInfoKind::Array:
             new (&asArray) decltype(asArray)(other.asArray);
@@ -145,8 +151,11 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
             return asTypeRef.typeRef == other.asTypeRef.typeRef;
+
         case TypeInfoKind::Enum:
             return asEnum.sym == other.asEnum.sym;
+        case TypeInfoKind::Struct:
+            return asStruct.sym == other.asStruct.sym;
 
         case TypeInfoKind::Array:
             if (asArray.dims.size() != other.asArray.dims.size())
@@ -194,6 +203,9 @@ uint32_t TypeInfo::hash() const
             return h;
         case TypeInfoKind::Enum:
             h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asEnum.sym));
+            return h;
+        case TypeInfoKind::Struct:
+            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asStruct.sym));
             return h;
         case TypeInfoKind::Array:
             h = Math::hashCombine(h, asArray.typeRef.get());

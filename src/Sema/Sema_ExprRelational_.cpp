@@ -198,7 +198,7 @@ namespace
     {
         if (op == TokenId::SymEqualEqual || op == TokenId::SymBangEqual)
         {
-            SemaCast::promoteForEquality(sema, nodeLeftView, nodeRightView);
+            SemaCast::convertForEquality(sema, nodeLeftView, nodeRightView);
         }
 
         return Result::Success;

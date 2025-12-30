@@ -5,7 +5,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void SemaCast::promoteEnumToUnderlying(Sema& sema, SemaNodeView& nodeView)
+void SemaCast::convertEnumToUnderlying(Sema& sema, SemaNodeView& nodeView)
 {
     if (!nodeView.type->isEnum())
         return;
@@ -20,7 +20,7 @@ void SemaCast::promoteEnumToUnderlying(Sema& sema, SemaNodeView& nodeView)
     createImplicitCast(sema, symEnum.underlyingTypeRef(), nodeView.nodeRef);
 }
 
-void SemaCast::promoteTypeToTypeValue(Sema& sema, SemaNodeView& nodeView)
+void SemaCast::convertTypeToTypeValue(Sema& sema, SemaNodeView& nodeView)
 {
     if (!nodeView.type->isType())
         return;
@@ -33,34 +33,34 @@ void SemaCast::promoteTypeToTypeValue(Sema& sema, SemaNodeView& nodeView)
 
 namespace
 {
-    void promoteTypeToTypeValueForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
+    void typeToTypeValueForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
     {
         if (!self.type->isType())
-            return;        
+            return;
         if (!other.type->isTypeValue())
             return;
-        SemaCast::promoteTypeToTypeValue(sema, self);
+        SemaCast::convertTypeToTypeValue(sema, self);
     }
 
-    void promoteEnumForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
+    void enumForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
     {
         if (!self.type->isEnum())
             return;
         if (other.type->isEnum())
             return;
-        SemaCast::promoteEnumToUnderlying(sema, self);
+        SemaCast::convertEnumToUnderlying(sema, self);
     }
 }
 
-void SemaCast::promoteForEquality(Sema& sema, SemaNodeView& leftNodeView, SemaNodeView& rightNodeView)
+void SemaCast::convertForEquality(Sema& sema, SemaNodeView& leftNodeView, SemaNodeView& rightNodeView)
 {
     if (!leftNodeView.type || !rightNodeView.type)
         return;
 
-    promoteTypeToTypeValueForEquality(sema, leftNodeView, rightNodeView);
-    promoteTypeToTypeValueForEquality(sema, rightNodeView, leftNodeView);
-    promoteEnumForEquality(sema, leftNodeView, rightNodeView);
-    promoteEnumForEquality(sema, rightNodeView, leftNodeView);
+    typeToTypeValueForEquality(sema, leftNodeView, rightNodeView);
+    typeToTypeValueForEquality(sema, rightNodeView, leftNodeView);
+    enumForEquality(sema, leftNodeView, rightNodeView);
+    enumForEquality(sema, rightNodeView, leftNodeView);
 }
 
 SWC_END_NAMESPACE()

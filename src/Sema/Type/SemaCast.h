@@ -30,9 +30,9 @@ namespace SemaCast
 
     AstNodeRef createImplicitCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef);
 
-    void promoteEnumToUnderlying(Sema& sema, SemaNodeView& nodeView);
-    void promoteTypeToTypeValue(Sema& sema, SemaNodeView& nodeView);
-    void promoteForEquality(Sema& sema, SemaNodeView& leftNodeView, SemaNodeView& rightNodeView);
+    void convertEnumToUnderlying(Sema& sema, SemaNodeView& nodeView);
+    void convertTypeToTypeValue(Sema& sema, SemaNodeView& nodeView);
+    void convertForEquality(Sema& sema, SemaNodeView& leftNodeView, SemaNodeView& rightNodeView);
 }
 
 SWC_END_NAMESPACE()

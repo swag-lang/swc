@@ -320,7 +320,7 @@ namespace
                     return Result::Error;
                 }
 
-                SemaCast::promoteEnumToUnderlying(sema, nodeLeftView);
+                SemaCast::convertEnumToUnderlying(sema, nodeLeftView);
             }
 
             if (nodeRightView.type->isEnum())
@@ -335,7 +335,7 @@ namespace
                     return Result::Error;
                 }
 
-                SemaCast::promoteEnumToUnderlying(sema, nodeRightView);
+                SemaCast::convertEnumToUnderlying(sema, nodeRightView);
             }
         }
 

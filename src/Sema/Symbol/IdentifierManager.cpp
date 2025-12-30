@@ -11,8 +11,9 @@ SWC_BEGIN_NAMESPACE()
 
 void IdentifierManager::setup(TaskContext& ctx)
 {
-    nameSwag_      = addIdentifier("Swag");
-    nameEnumFlags_ = addIdentifier("EnumFlags");
+    nameSwag_           = addIdentifier("Swag");
+    nameEnumFlags_      = addIdentifier("EnumFlags");
+    nameAttributeUsage_ = addIdentifier("AttributeUsage");
 }
 
 IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef)

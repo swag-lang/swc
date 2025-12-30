@@ -54,7 +54,6 @@ public:
     static constexpr std::string_view VERIFY_COMMENT_EXPECTED = "swc-expected-";
 
     static bool isReservedNamespace(std::string_view ns);
-    static bool isAttributeUsageEnum(const TaskContext& ctx, const AstEnumDecl& enumDecl);
 
 private:
     CharFlags                                     charFlags_[256];

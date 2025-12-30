@@ -31,6 +31,7 @@ class IdentifierManager
 
     IdentifierRef nameSwag_;
     IdentifierRef nameEnumFlags_;
+    IdentifierRef nameAttributeUsage_;
 
 public:
     void              setup(TaskContext&);
@@ -41,6 +42,7 @@ public:
 
     IdentifierRef nameSwag() const { return nameSwag_; }
     IdentifierRef nameEnumFlags() const { return nameEnumFlags_; }
+    IdentifierRef nameAttributeUsage() const { return nameAttributeUsage_; }
 };
 
 SWC_END_NAMESPACE()

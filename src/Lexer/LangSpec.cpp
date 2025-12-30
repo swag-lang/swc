@@ -138,18 +138,4 @@ bool LangSpec::isReservedNamespace(std::string_view ns)
     return name == "swag";
 }
 
-bool LangSpec::isAttributeUsageEnum(const TaskContext& ctx, const AstEnumDecl& enumDecl)
-{
-    const SourceView& srcView = ctx.compiler().srcView(enumDecl.srcViewRef());
-    if (!srcView.isRuntimeFile())
-        return false;
-
-    const Token&           tok      = srcView.token(enumDecl.tokNameRef);
-    const std::string_view enumName = tok.string(srcView);
-    if (enumName == "AttributeUsage")
-        return true;
-
-    return false;
-}
-
 SWC_END_NAMESPACE()

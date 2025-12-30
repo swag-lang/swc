@@ -117,7 +117,7 @@ AstVisitStepResult AstAttribute::semaPostNode(Sema& sema) const
     {
         if (sym.idRef() == sema.idMgr().nameEnumFlags())
         {
-            sema.frame().attributes().flags.add(AttributeFlagsE::EnumFlags);
+            sema.frame().attributes().addFlag(AttributeFlagsE::EnumFlags);
             return AstVisitStepResult::Continue;
         }
     }

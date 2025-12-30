@@ -42,6 +42,11 @@ void Symbol::registerAttributes(Sema& sema)
     setAttributes(sema.frame().attributes());
 }
 
+bool Symbol::isSwagNamespace(const TaskContext& ctx) const noexcept
+{
+    return isNamespace() && idRef() == ctx.idMgr().nameSwag();
+}
+
 std::string_view Symbol::name(const TaskContext& ctx) const
 {
     const Identifier& id = ctx.idMgr().get(idRef_);

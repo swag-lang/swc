@@ -206,7 +206,7 @@ struct AstFunctionDecl : AstNamedNodeT<AstNodeId::FunctionDecl>
         AstNode::collectChildren(out, {nodeBodyRef});
     }
 
-    static AstVisitStepResult semaPreNode(Sema& sema) { return AstVisitStepResult::SkipChildren; }
+    static AstVisitStepResult semaPreNode(Sema&) { return AstVisitStepResult::SkipChildren; }
 };
 
 // -----------------------------------------------------------------------------
@@ -270,7 +270,7 @@ struct AstLambdaTypeParam : AstNodeT<AstNodeId::LambdaTypeParam>
 // -----------------------------------------------------------------------------
 struct AstFunctionParamList : AstCompoundT<AstNodeId::FunctionParamList>
 {
-    static AstVisitStepResult semaPreNode(Sema& sema) { return AstVisitStepResult::SkipChildren; }
+    static AstVisitStepResult semaPreNode(Sema&) { return AstVisitStepResult::SkipChildren; }
 };
 
 // -----------------------------------------------------------------------------

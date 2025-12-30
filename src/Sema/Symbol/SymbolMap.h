@@ -1,5 +1,4 @@
 #pragma once
-#include "Core/SmallVector.h"
 #include "Sema/Symbol/Symbol.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -34,7 +33,7 @@ public:
     Symbol* addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms);
     Symbol* addSingleSymbol(TaskContext& ctx, Symbol* symbol);
     Symbol* addSingleSymbolOrError(Sema& sema, Symbol* symbol);
-    void    lookupAppend(IdentifierRef idRef, LookUpContext& result) const;
+    void    lookupAppend(IdentifierRef idRef, LookUpContext& lookUpCxt) const;
 };
 
 SWC_END_NAMESPACE()

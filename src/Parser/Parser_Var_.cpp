@@ -107,7 +107,7 @@ AstNodeRef Parser::parseVarDeclDecomposition()
 AstNodeRef Parser::parseVarDecl()
 {
     AstVarDecl::Flags flags    = AstVarDecl::Zero;
-    TokenRef          tokStart = ref();
+    const TokenRef    tokStart = ref();
     if (consumeIf(TokenId::KwdConst).isValid())
         flags.add(AstVarDecl::Const);
     else if (consumeIf(TokenId::KwdVar).isValid())

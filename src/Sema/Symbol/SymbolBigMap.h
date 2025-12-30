@@ -1,5 +1,4 @@
 #pragma once
-#include "Core/SmallVector.h"
 #include "Math/Hash.h"
 #include "Sema/Symbol/Symbol.h"
 

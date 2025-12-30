@@ -262,6 +262,8 @@ AstVisitStepResult AstCompilerGlobal::semaPreDecl(Sema& sema) const
             break;
         case Mode::AccessPrivate:
             sema.frame().setAccess(SymbolAccess::Private);
+        default:
+            break;
     }
 
     return AstVisitStepResult::Continue;
@@ -275,6 +277,8 @@ AstVisitStepResult AstCompilerGlobal::semaPreNode(Sema& sema) const
         case Mode::AccessInternal:
         case Mode::AccessPrivate:
             return semaPreDecl(sema);
+        default:
+            break;
     }
 
     return AstVisitStepResult::Continue;
@@ -296,6 +300,8 @@ AstVisitStepResult AstCompilerGlobal::semaPostNode(Sema& sema) const
         case Mode::Using:
             SemaError::raiseInternal(sema, *this);
             return AstVisitStepResult::Continue;
+        default:
+            break;
     }
 
     return AstVisitStepResult::Continue;
@@ -398,7 +404,7 @@ namespace
 
     AstVisitStepResult semaCompilerDefined(Sema& sema, const AstCompilerCallUnary& node)
     {
-        auto&               ctx = sema.ctx();
+        const auto&         ctx = sema.ctx();
         const SemaNodeView  nodeView(sema, node.nodeArgRef);
         const bool          isDefined = nodeView.sym != nullptr;
         const ConstantValue value     = ConstantValue::makeBool(ctx, isDefined);

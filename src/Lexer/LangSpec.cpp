@@ -1,10 +1,8 @@
 #include "pch.h"
 #include "Lexer/LangSpec.h"
 #include "Lexer/Token.h"
-#include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 #include "Math/Hash.h"
-#include "Parser/AstNodes.h"
 
 SWC_BEGIN_NAMESPACE()
 

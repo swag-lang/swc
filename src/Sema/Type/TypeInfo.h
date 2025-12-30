@@ -71,7 +71,7 @@ private:
     };
 
 public:
-    ~TypeInfo() {};
+    ~TypeInfo() {}
     TypeInfo(const TypeInfo&);
     TypeInfo& operator=(const TypeInfo&);
 

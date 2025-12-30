@@ -9,7 +9,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-void IdentifierManager::setup(TaskContext& ctx)
+void IdentifierManager::setup(TaskContext&)
 {
     nameSwag_           = addIdentifier("Swag");
     nameEnumFlags_      = addIdentifier("EnumFlags");

@@ -110,6 +110,7 @@ struct AtomicEnumFlags
     {
     }
 
+    // ReSharper disable once CppNonExplicitConvertingConstructor
     constexpr AtomicEnumFlags(EnumFlags<T> other) noexcept :
         flags{other.flags}
     {

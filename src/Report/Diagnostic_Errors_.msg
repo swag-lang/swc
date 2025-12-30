@@ -115,3 +115,4 @@ SWC_DIAG_DEF(sema_err_array_dim_negative, Error, "Array dimension cannot be nega
 SWC_DIAG_DEF(sema_err_bad_slice_element_type, Error, "Invalid slice element type {type}")
 SWC_DIAG_DEF(sema_err_reserved_swag_ns, Error, "Namespace {tok} is reserved")
 SWC_DIAG_DEF(sema_err_invalid_op_enum, Error, "Operator {tok} cannot be applied to enum type {type}; The enum is not marked with the '#[Swag.EnumFlags]' attribute")
+SWC_DIAG_DEF(sema_err_flag_enum_power_2, Error, "Cannot deduce enum flags value from non-power-of-two previous value {value}")

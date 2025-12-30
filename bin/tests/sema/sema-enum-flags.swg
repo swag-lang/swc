@@ -8,6 +8,9 @@ const CC = 1 | AA.A // swc-expected-error {{sema_err_invalid_op_enum}}
 enum DD: f32 { A, B, C } // swc-expected-error {{sema_err_invalid_enum_flags_type}}
 
 #[Swag.EnumFlags]
+enum DD0: s8 { A, B, C } // swc-expected-error {{sema_err_invalid_enum_flags_type}}
+
+#[Swag.EnumFlags]
 {
     enum EE: u8 { A, B, C }
     enum FF: u16 { A, B, C }
@@ -27,10 +30,17 @@ enum JJ { A, B, C }
 #assert(JJ.C == 4)
 
 #[Swag.EnumFlags]
-enum KK
+enum KK : u32
 {
     A = 0x80000000,
     B, // swc-expected-error {{sema_err_literal_overflow}}
+}
+
+#[Swag.EnumFlags]
+enum MM : u32
+{
+    A = 5,
+    B // swc-expected-error {{sema_err_flag_enum_power_2}}
 }
 
 #[Swag.EnumFlags]

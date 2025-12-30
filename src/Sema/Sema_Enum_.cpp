@@ -175,13 +175,28 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
         if (symEnum.hasNextValue())
         {
             bool overflow = false;
-            
+
             // Update enum "nextValue" = value << 1
             if (symEnum.isEnumFlags())
             {
-                symEnum.nextValue().shiftLeft(1, overflow);
+                if (symEnum.nextValue().isZero())
+                {
+                    ApsInt one(1, symEnum.nextValue().bitWidth(), symEnum.nextValue().isUnsigned());
+                    symEnum.nextValue().add(one, overflow);
+                }
+                else if (!symEnum.nextValue().isPowerOf2())
+                {
+                    auto diag = SemaError::report(sema, DiagnosticId::sema_err_flag_enum_power_2, srcViewRef(), tokRef());
+                    diag.addArgument(Diagnostic::ARG_VALUE, symEnum.nextValue().toString());
+                    diag.report(ctx);
+                    return AstVisitStepResult::Stop;
+                }
+                else
+                {
+                    symEnum.nextValue().shiftLeft(1, overflow);
+                }
             }
-            
+
             // Update enum "nextValue" = value + 1
             else
             {

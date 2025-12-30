@@ -87,6 +87,7 @@ public:
     Utf8     toSignedString() const;
     uint32_t minBits() const;
     uint32_t minBitsSigned() const;
+    bool     isPowerOf2() const;
 
 protected:
     static constexpr unsigned MAX_BITS = 128;

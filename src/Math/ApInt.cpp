@@ -1320,4 +1320,35 @@ uint32_t ApInt::minBitsSigned() const
     return 8;
 }
 
+bool ApInt::isPowerOf2() const
+{
+    // By convention, treat only non-negative, non-zero values as powers of two.
+    if (isZero())
+        return false;
+
+    bool foundOneBit = false;
+
+    for (uint32_t i = 0; i < numWords_; ++i)
+    {
+        const uint64_t w = words_[i];
+
+        if (w == 0)
+            continue;
+
+        // If w has more than one bit set, it's not a power of two.
+        if (w & (w - 1))
+            return false;
+
+        // If we already saw a non-zero word before, then the combined
+        // value has more than one-bit set overall.
+        if (foundOneBit)
+            return false;
+
+        foundOneBit = true;
+    }
+
+    // Must have found exactly one bit set in the entire number.
+    return foundOneBit;
+}
+
 SWC_END_NAMESPACE()

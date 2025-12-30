@@ -117,6 +117,7 @@ public:
     bool isConcreteScalar() const noexcept { return isScalarNumeric() && !isIntUnsized() && !isFloatUnsized(); }
 
     // clang-format off
+    Sign              intFloatSign() const noexcept { SWC_ASSERT(isInt() || isFloat()); return isInt() ? intSign() : Sign::Signed; }
     Sign              intSign() const noexcept { SWC_ASSERT(isInt()); return asInt.sign; }
     uint32_t          intBits() const noexcept { SWC_ASSERT(isInt()); return asInt.bits; }
     uint32_t          intLikeBits() const noexcept { SWC_ASSERT(isIntLike()); return isCharRune() ? 32 : asInt.bits; }

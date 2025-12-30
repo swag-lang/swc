@@ -50,6 +50,7 @@ struct CastContext
 
     bool        isFolding() const { return srcConstRef.isValid(); }
     ConstantRef foldSrc() const { return srcConstRef; }
+    void        setFoldSrc(ConstantRef v) { srcConstRef = v; }
     void        setFoldOut(ConstantRef v) { outConstRef = v; }
 };
 

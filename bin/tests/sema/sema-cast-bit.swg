@@ -1,3 +1,5 @@
+#global internal
+
 #assert(cast #bit (u32) 1.0'f32 == 0x3F800000)
 #assert(cast #bit (u32) 0.0'f32 == 0x00000000)
 #assert(cast #bit (u32) -1.0'f32 == 0xBF800000)
@@ -61,3 +63,10 @@
 #assert(cast #bit (bool) 1'u8 == true)                  // swc-expected-error {{sema_err_bit_cast_invalid_type}}
 
 #assert(cast #bit (rune) 65'u32 == 'A')
+
+const NaN0    = cast #bit (f32) 0x7F800001
+const Inf0    = cast #bit (f32) 0x7F800000
+const NegInf0 = cast #bit (f32) 0xFF800000
+const NaN1    = cast #bit (f64) 0x7ff8000000000001
+const Inf1    = cast #bit (f64) 0x7ff0000000000000
+const NegInf1 = cast #bit (f64) 0xfff0000000000000

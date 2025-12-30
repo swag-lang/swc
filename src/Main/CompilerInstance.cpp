@@ -40,6 +40,7 @@ void CompilerInstance::setupSema(TaskContext& ctx)
     cstMgr_  = std::make_unique<ConstantManager>();
     idMgr_   = std::make_unique<IdentifierManager>();
 
+    idMgr_->setup(ctx);
     typeMgr_->setup(ctx);
     cstMgr_->setup(ctx);
 }

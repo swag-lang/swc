@@ -46,16 +46,17 @@ AstVisitStepResult AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     SemaNodeView typeView(sema, nodeTypeRef);
     if (nodeTypeRef.isValid())
     {
+        if (sym.isEnumFlags() &&
+            !typeView.type->isIntUnsigned())
+        {
+            SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_flags_type, nodeTypeRef);
+            return AstVisitStepResult::Stop;
+        }
+
         if (!typeView.type->isScalarNumeric() &&
             !typeView.type->isBool() &&
             !typeView.type->isRune() &&
             !typeView.type->isString())
-        {
-            SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_type, nodeTypeRef);
-            return AstVisitStepResult::Stop;
-        }
-
-        if (sym.isEnumFlags() && !typeView.type->isIntUnsigned())
         {
             SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_type, nodeTypeRef);
             return AstVisitStepResult::Stop;

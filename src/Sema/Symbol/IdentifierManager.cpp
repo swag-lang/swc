@@ -5,8 +5,15 @@
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
+#include "Math/Hash.h"
 
 SWC_BEGIN_NAMESPACE()
+
+void IdentifierManager::setup(TaskContext& ctx)
+{
+    nameSwag_      = addIdentifier("Swag");
+    nameEnumFlags_ = addIdentifier("EnumFlags");
+}
 
 IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef)
 {
@@ -15,6 +22,11 @@ IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, SourceVie
     const std::string_view name    = tok.string(srcView);
     const uint32_t         crc     = tok.crc(srcView);
     return addIdentifier(name, crc);
+}
+
+IdentifierRef IdentifierManager::addIdentifier(std::string_view name)
+{
+    return addIdentifier(name, Math::hash(name));
 }
 
 IdentifierRef IdentifierManager::addIdentifier(std::string_view name, uint32_t hash)

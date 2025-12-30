@@ -5,5 +5,12 @@ const BB = AA.A | 1 // swc-expected-error {{sema_err_invalid_op_enum}}
 const CC = 1 | AA.A // swc-expected-error {{sema_err_invalid_op_enum}}
 
 #[Swag.EnumFlags]
-enum DD: f32 { A, B, C }
-#print(DD.A)
+enum DD: f32 { A, B, C } // swc-expected-error {{sema_err_invalid_enum_flags_type}}
+
+#[Swag.EnumFlags]
+{
+    enum EE: u8 { A, B, C }
+    enum FF: u16 { A, B, C }
+    enum GG: u32 { A, B, C }
+    enum HH: u64 { A, B, C }
+}

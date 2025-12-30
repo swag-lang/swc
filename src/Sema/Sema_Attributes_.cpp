@@ -112,6 +112,15 @@ AstVisitStepResult AstAttribute::semaPostNode(Sema& sema) const
         return AstVisitStepResult::Stop;
     }
 
+    if (sym.symMap()->isNamespace() && sym.symMap()->idRef() == sema.idMgr().nameSwag())
+    {
+        if (sym.idRef() == sema.idMgr().nameEnumFlags())
+        {
+            sema.frame().attributes().flags.add(AttributeFlagsE::EnumFlags);
+            return AstVisitStepResult::Continue;
+        }
+    }
+
     AttributeInstance inst;
     inst.symbol = &sym.cast<SymbolAttribute>();
     sema.frame().attributes().attributes.push_back(inst);

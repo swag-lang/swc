@@ -97,6 +97,7 @@ SWC_DIAG_DEF(sema_err_bit_cast_size, Error, "Cannot bit-cast from {type} to {req
 SWC_DIAG_DEF(sema_err_bit_cast_invalid_type, Error, "Cannot bit-cast non-integral type {type}")
 SWC_DIAG_DEF(sema_err_var_init_type_mismatch, Error, "Type mismatch in initializer")
 SWC_DIAG_DEF(sema_err_invalid_enum_type, Error, "Invalid enum underlying type {type}")
+SWC_DIAG_DEF(sema_err_invalid_enum_flags_type, Error, "Invalid enum flags underlying type {type}; Only unsigned integer types are allowed")
 SWC_DIAG_DEF(sema_err_already_defined, Error, "Symbol {tok} is already defined")
 SWC_DIAG_DEF(sema_err_ghosting, Error, "Symbol {tok} is ghosting an existing definition")
 SWC_DIAG_DEF(sema_err_ambiguous_symbol, Error, "Ambiguous symbol {tok}")

@@ -29,10 +29,18 @@ class IdentifierManager
     static constexpr uint32_t LOCAL_MASK  = (1u << LOCAL_BITS) - 1;
     Shard                     shards_[SHARD_COUNT];
 
+    IdentifierRef nameSwag_;
+    IdentifierRef nameEnumFlags_;
+
 public:
+    void              setup(TaskContext&);
     IdentifierRef     addIdentifier(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef);
+    IdentifierRef     addIdentifier(std::string_view name);
     IdentifierRef     addIdentifier(std::string_view name, uint32_t hash);
     const Identifier& get(IdentifierRef idRef) const;
+
+    IdentifierRef nameSwag() const { return nameSwag_; }
+    IdentifierRef nameEnumFlags() const { return nameEnumFlags_; }
 };
 
 SWC_END_NAMESPACE()

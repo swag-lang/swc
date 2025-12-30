@@ -28,6 +28,7 @@ namespace SemaCast
     bool        promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView, ConstantRef& leftCstRef, ConstantRef& rightCstRef, bool force32BitInts = false);
 
     AstNodeRef createImplicitCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef);
+    void       promoteEnumToUnderlying(Sema& sema, SemaNodeView& nodeView);
     void       promoteForEquality(Sema& sema, SemaNodeView& leftNodeView, SemaNodeView& rightNodeView);
 }
 

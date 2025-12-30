@@ -79,13 +79,16 @@ public:
     {
     }
 
-    TypeRef       underlyingTypeRef() const { return underlyingTypeRef_; }
-    void          setUnderlyingTypeRef(TypeRef ref) { underlyingTypeRef_ = ref; }
+    TypeRef underlyingTypeRef() const { return underlyingTypeRef_; }
+    void    setUnderlyingTypeRef(TypeRef ref) { underlyingTypeRef_ = ref; }
+
     ApsInt&       nextValue() { return nextValue_; }
     const ApsInt& nextValue() const { return nextValue_; }
     void          setNextValue(const ApsInt& value) { nextValue_ = value; }
     bool          hasNextValue() const { return hasFlag(SymbolFlagsE::EnumHasNextValue); }
     void          setHasNextValue() { addFlag(SymbolFlagsE::EnumHasNextValue); }
+
+    bool isEnumFlags() const { return attributes().hasFlag(AttributeFlagsE::EnumFlags); }
 };
 
 // -----------------------------------------------------------------------------

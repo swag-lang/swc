@@ -74,7 +74,12 @@ struct Token
     TokenId    id    = TokenId::Invalid;
     TokenFlags flags = TokenFlagsE::Zero;
 
-    bool               is(TokenId id) const { return this->id == id; }
+    bool is(TokenId id) const { return this->id == id; }
+    bool isAny(std::initializer_list<TokenId> list) const
+    {
+        return std::ranges::any_of(list, [this](auto id) { return this->id == id; });
+    }
+
     bool               isNot(TokenId id) const { return this->id != id; }
     std::string_view   string(const SourceView& srcView) const;
     uint32_t           crc(const SourceView& srcView) const;

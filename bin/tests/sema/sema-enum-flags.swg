@@ -1,9 +1,5 @@
 #global internal
 
-enum Permissions
-{
-    Read = 1,
-    Write = 2,
-    Execute = 4,
-    Delete = 8
-}
+enum AA { A, B }
+const BB = AA.A | 1 // swc-expected-error {{sema_err_invalid_op_enum}}
+const CC = 1 | AA.A // swc-expected-error {{sema_err_invalid_op_enum}}

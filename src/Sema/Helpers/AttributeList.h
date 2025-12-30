@@ -22,7 +22,9 @@ struct AttributeInstance
 struct AttributeList
 {
     SmallVector<AttributeInstance, 4> attributes;
-    AttributeFlagsE                   flags = AttributeFlagsE::Zero;
+    AttributeFlags                    flags = AttributeFlagsE::Zero;
+
+    bool hasFlag(AttributeFlagsE fl) const { return flags.has(fl); }
 };
 
 SWC_END_NAMESPACE()

@@ -10,6 +10,7 @@
 #include "Sema/Helpers/SemaInfo.h"
 #include "Sema/Helpers/SemaNodeView.h"
 #include "Sema/Sema.h"
+#include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/SemaCast.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -333,8 +334,8 @@ namespace
 
 AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema)
 {
-    const SemaNodeView nodeLeftView(sema, nodeLeftRef);
-    const SemaNodeView nodeRightView(sema, nodeRightRef);
+    SemaNodeView nodeLeftView(sema, nodeLeftRef);
+    SemaNodeView nodeRightView(sema, nodeRightRef);
 
     // Value-check
     if (SemaCheck::isValueExpr(sema, nodeLeftRef) != Result::Success)
@@ -343,8 +344,42 @@ AstVisitStepResult AstBinaryExpr::semaPostNode(Sema& sema)
         return AstVisitStepResult::Stop;
     SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
 
-    // Type-check
+    // Force types
     const Token& tok = sema.token(srcViewRef(), tokRef());
+    if (tok.isAny({TokenId::SymPipe, TokenId::SymAmpersand, TokenId::SymCircumflex}))
+    {
+        if (nodeLeftView.type->isEnum())
+        {
+            if (!nodeLeftView.type->enumSym().isEnumFlags())
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_op_enum, srcViewRef(), tokRef());
+                diag.addArgument(Diagnostic::ARG_TYPE, nodeLeftView.typeRef);
+                const SourceCodeLocation loc = sema.node(nodeLeftRef).locationWithChildren(sema.ctx(), sema.ast());
+                diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
+                diag.report(sema.ctx());
+                return AstVisitStepResult::Stop;
+            }
+
+            SemaCast::promoteEnumToUnderlying(sema, nodeLeftView);
+        }
+
+        if (nodeRightView.type->isEnum())
+        {
+            if (!nodeRightView.type->enumSym().isEnumFlags())
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_op_enum, srcViewRef(), tokRef());
+                diag.addArgument(Diagnostic::ARG_TYPE, nodeRightView.typeRef);
+                const SourceCodeLocation loc = sema.node(nodeRightRef).locationWithChildren(sema.ctx(), sema.ast());
+                diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
+                diag.report(sema.ctx());
+                return AstVisitStepResult::Stop;
+            }
+
+            SemaCast::promoteEnumToUnderlying(sema, nodeRightView);
+        }
+    }
+
+    // Type-check
     if (check(sema, tok.id, *this, nodeLeftView, nodeRightView) == Result::Error)
         return AstVisitStepResult::Stop;
 

@@ -258,20 +258,6 @@ namespace
     }
 }
 
-void SemaCast::emitCastFailure(Sema& sema, const CastFailure& f)
-{
-    auto diag = SemaError::report(sema, f.diagId, f.nodeRef);
-    if (f.srcTypeRef.isValid())
-        diag.addArgument(Diagnostic::ARG_TYPE, f.srcTypeRef);
-    if (f.dstTypeRef.isValid())
-        diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, f.dstTypeRef);
-    if (f.optTypeRef.isValid())
-        diag.addArgument(Diagnostic::ARG_OPT_TYPE, f.optTypeRef);
-    diag.addArgument(Diagnostic::ARG_VALUE, f.valueStr);
-    diag.addNote(f.noteId);
-    diag.report(sema.ctx());
-}
-
 bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     if (srcTypeRef == dstTypeRef)
@@ -303,6 +289,20 @@ bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef,
     return false;
 }
 
+void SemaCast::emitCastFailure(Sema& sema, const CastFailure& f)
+{
+    auto diag = SemaError::report(sema, f.diagId, f.nodeRef);
+    if (f.srcTypeRef.isValid())
+        diag.addArgument(Diagnostic::ARG_TYPE, f.srcTypeRef);
+    if (f.dstTypeRef.isValid())
+        diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, f.dstTypeRef);
+    if (f.optTypeRef.isValid())
+        diag.addArgument(Diagnostic::ARG_OPT_TYPE, f.optTypeRef);
+    diag.addArgument(Diagnostic::ARG_VALUE, f.valueStr);
+    diag.addNote(f.noteId);
+    diag.report(sema.ctx());
+}
+
 AstNodeRef SemaCast::createImplicitCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef)
 {
     SemaInfo&      semaInfo           = sema.semaInfo();
@@ -312,34 +312,6 @@ AstNodeRef SemaCast::createImplicitCast(Sema& sema, TypeRef dstTypeRef, AstNodeR
     semaInfo.setSubstitute(nodeRef, substNodeRef);
     semaInfo.setType(substNodeRef, dstTypeRef);
     return substNodeRef;
-}
-
-namespace
-{
-    void promoteEnumForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
-    {
-        if (!self.type || !other.type)
-            return;
-        if (!self.type->isEnum())
-            return;
-        if (other.type->isEnum())
-            return;
-
-        if (self.cstRef.isValid())
-        {
-            self.setCstRef(sema, self.cst->getEnumValue());
-            return;
-        }
-
-        const SymbolEnum& symEnum = self.type->enumSym();
-        SemaCast::createImplicitCast(sema, symEnum.underlyingTypeRef(), self.nodeRef);
-    }
-}
-
-void SemaCast::promoteForEquality(Sema& sema, SemaNodeView& leftNodeView, SemaNodeView& rightNodeView)
-{
-    promoteEnumForEquality(sema, leftNodeView, rightNodeView);
-    promoteEnumForEquality(sema, rightNodeView, leftNodeView);
 }
 
 SWC_END_NAMESPACE()

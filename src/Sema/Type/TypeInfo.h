@@ -103,7 +103,7 @@ public:
     bool isCString() const noexcept { return kind_ == TypeInfoKind::CString; }
     bool isEnum() const noexcept { return kind_ == TypeInfoKind::Enum; }
     bool isStruct() const noexcept { return kind_ == TypeInfoKind::Struct; }
-    bool isType() const noexcept { return isTypeValue() || isEnum(); }
+    bool isType() const noexcept { return isTypeValue() || isEnum() || isStruct(); }
     bool isValuePointer() const noexcept { return kind_ == TypeInfoKind::ValuePointer; }
     bool isBlockPointer() const noexcept { return kind_ == TypeInfoKind::BlockPointer; }
     bool isPointer() const noexcept { return isValuePointer() || isBlockPointer(); }

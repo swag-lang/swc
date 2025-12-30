@@ -22,7 +22,7 @@ struct SemaNodeView
 
     SemaNodeView(Sema& sema, AstNodeRef nodeRef)
     {
-        nodeRef       = sema.semaInfo().getSubstitudeRef(nodeRef);
+        nodeRef       = sema.semaInfo().getSubstituteRef(nodeRef);
         this->nodeRef = nodeRef;
         if (!nodeRef.isValid())
             return;

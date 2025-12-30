@@ -94,7 +94,7 @@ void SemaInfo::setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef)
     node.setSemaRef(substNodeRef.get());
 }
 
-AstNodeRef SemaInfo::getSubstitudeRef(AstNodeRef nodeRef) const
+AstNodeRef SemaInfo::getSubstituteRef(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return nodeRef;

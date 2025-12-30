@@ -68,7 +68,7 @@ public:
 
     bool       hasSubstitute(AstNodeRef nodeRef) const;
     void       setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef);
-    AstNodeRef getSubstitudeRef(AstNodeRef nodeRef) const;
+    AstNodeRef getSubstituteRef(AstNodeRef nodeRef) const;
 
     bool    hasType(AstNodeRef nodeRef) const;
     TypeRef getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const;

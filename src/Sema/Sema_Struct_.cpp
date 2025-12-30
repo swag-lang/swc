@@ -48,7 +48,7 @@ AstVisitStepResult AstStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef&
     sema.pushScope(SemaScopeFlagsE::Type);
     sema.curScope().setSymMap(&sym);
 
-    return AstVisitStepResult::Continue;
+    return AstVisitStepResult::SkipChildren;
 }
 
 void AstStructDecl::semaEnterNode(Sema& sema)

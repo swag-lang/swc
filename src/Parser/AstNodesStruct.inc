@@ -225,11 +225,7 @@ struct AstAttrDecl : AstNamedNodeT<AstNodeId::AttrDecl>
 {
     AstNodeRef nodeParamsRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
-    {
-        AstNode::collectChildren(out, {nodeParamsRef});
-    }
-
+    void                      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeParamsRef}); }
     AstVisitStepResult        semaPreDecl(Sema& sema) const;
     static void               semaEnterNode(Sema& sema);
     static AstVisitStepResult semaPreNode(Sema& sema);
@@ -252,10 +248,7 @@ struct AstReturnStmt : AstNodeT<AstNodeId::ReturnStmt>
 {
     AstNodeRef nodeExprRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
-    {
-        AstNode::collectChildren(out, {nodeExprRef});
-    }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
 };
 
 // -----------------------------------------------------------------------------
@@ -269,15 +262,13 @@ struct AstLambdaTypeParam : AstNodeT<AstNodeId::LambdaTypeParam>
     AstNodeRef nodeTypeRef;
     AstNodeRef nodeDefaultValueRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
-    {
-        AstNode::collectChildren(out, {nodeTypeRef, nodeDefaultValueRef});
-    }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeDefaultValueRef}); }
 };
 
 // -----------------------------------------------------------------------------
 struct AstFunctionParamList : AstCompoundT<AstNodeId::FunctionParamList>
 {
+    static AstVisitStepResult semaPreNode(Sema& sema) { return AstVisitStepResult::SkipChildren; }
 };
 
 // -----------------------------------------------------------------------------

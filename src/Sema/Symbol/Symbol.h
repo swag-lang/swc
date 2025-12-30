@@ -108,11 +108,12 @@ public:
     bool isConstant() const noexcept { return kind_ == SymbolKind::Constant; }
     bool isEnum() const noexcept { return kind_ == SymbolKind::Enum; }
     bool isEnumValue() const noexcept { return kind_ == SymbolKind::EnumValue; }
+    bool isStruct() const noexcept { return kind_ == SymbolKind::Struct; }
     bool isAttribute() const noexcept { return kind_ == SymbolKind::Attribute; }
     bool isModule() const noexcept { return kind_ == SymbolKind::Module; }
-    bool isSymMap() const noexcept { return kind_ == SymbolKind::Namespace || kind_ == SymbolKind::Module || kind_ == SymbolKind::Enum; }
 
-    bool isType() const noexcept { return isEnum(); }
+    bool isSymMap() const noexcept { return isNamespace() || isModule() || isEnum() || isStruct(); }
+    bool isType() const noexcept { return isEnum() || isStruct(); }
     bool isValueExpr() const noexcept { return isVariable() || isConstant() || isEnumValue(); }
 
     Symbol* nextHomonym() const noexcept { return nextHomonym_; }

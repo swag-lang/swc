@@ -130,7 +130,7 @@ AstVisitStepResult AstAttribute::semaPostNode(Sema& sema) const
     }
 
     AttributeInstance inst;
-    inst.symbol = &sym.cast<SymbolAttribute>();
+    inst.symbol = &attrSym;
     sema.frame().attributes().attributes.push_back(inst);
 
     return AstVisitStepResult::Continue;

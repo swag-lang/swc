@@ -63,10 +63,10 @@ AstVisitStepResult AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& c
         }
     }
 
-    // Default enum type is 's32'
+    // Default enum type is 's32/u32'
     else
     {
-        typeView.typeRef = sema.typeMgr().getTypeInt(32, TypeInfo::Sign::Signed);
+        typeView.typeRef = sema.typeMgr().getTypeInt(32, sym.isEnumFlags() ? TypeInfo::Sign::Unsigned : TypeInfo::Sign::Signed);
         typeView.type    = &sema.typeMgr().get(typeView.typeRef);
     }
 

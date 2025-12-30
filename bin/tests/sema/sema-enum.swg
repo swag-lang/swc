@@ -148,6 +148,8 @@ enum Test{
     C = 3,
 }
 
+#assert(#kindof(Test) == s32)
+
 const X = Test.A
 #assert(X == 1)
 #assert(X == Test.A)

@@ -205,7 +205,7 @@
       "patterns": [
         {
           "name": "entity.name.function.intrinsic",
-          "match": "(#)(defined|offsetof|typeof|alignof|sizeof|stringof|nameof|isconstexpr|location|decltype|hastag|gettag|runes|safety|include)"
+          "match": "(#)(defined|offsetof|typeof|kindof|alignof|sizeof|stringof|nameof|isconstexpr|location|decltype|hastag|gettag|runes|safety|include)"
         }
       ]
     },

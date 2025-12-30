@@ -599,6 +599,7 @@ AstNodeRef Parser::parsePrimaryExpression()
             return parseCompilerUp();
 
         case TokenId::CompilerTypeOf:
+        case TokenId::CompilerKindOf:
             return parseCompilerTypeOf();
 
         case TokenId::CompilerSizeOf:

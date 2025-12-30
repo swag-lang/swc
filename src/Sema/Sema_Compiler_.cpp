@@ -11,6 +11,7 @@
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaNodeView.h"
 #include "Sema/Sema.h"
+#include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/TypeManager.h"
 #include "Wmf/SourceFile.h"
 
@@ -320,6 +321,23 @@ namespace
         return AstVisitStepResult::Continue;
     }
 
+    AstVisitStepResult semaCompilerKindOf(Sema& sema, const AstCompilerCallUnary& node)
+    {
+        SemaNodeView nodeView(sema, node.nodeArgRef);
+        SWC_ASSERT(nodeView.typeRef.isValid());
+
+        if (nodeView.type->isEnum())
+        {
+            const TypeRef     typeRef = nodeView.type->enumSym().underlyingTypeRef();
+            const ConstantRef cstRef  = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), typeRef));
+            nodeView.setCstRef(sema, cstRef);
+            sema.setConstant(sema.curNodeRef(), cstRef);
+            return AstVisitStepResult::Continue;
+        }
+
+        return semaCompilerTypeOf(sema, node);
+    }
+
     AstVisitStepResult semaCompilerNameOf(Sema& sema, const AstCompilerCallUnary& node)
     {
         auto&              ctx = sema.ctx();
@@ -396,6 +414,8 @@ AstVisitStepResult AstCompilerCallUnary::semaPostNode(Sema& sema) const
     {
         case TokenId::CompilerTypeOf:
             return semaCompilerTypeOf(sema, *this);
+        case TokenId::CompilerKindOf:
+            return semaCompilerKindOf(sema, *this);
         case TokenId::CompilerNameOf:
             return semaCompilerNameOf(sema, *this);
         case TokenId::CompilerStringOf:

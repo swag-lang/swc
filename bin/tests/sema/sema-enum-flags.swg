@@ -58,3 +58,60 @@ enum NN : u64
 }
 #assert(NN.A == 0)
 #assert(NN.B == 1)
+
+#[Swag.EnumFlags]
+enum OO : u8 { A, B, C }
+#assert(#kindof(OO) == u8)
+
+#[Swag.EnumFlags]
+enum PP : u16 { A, B, C }
+#assert(#kindof(PP) == u16)
+
+#[Swag.EnumFlags]
+enum QQ : u64 { A, B, C }
+#assert(#kindof(QQ) == u64)
+
+// Check that auto-generated flags for u8 cover all bits and stop at 0x80
+#[Swag.EnumFlags]
+enum RR : u8
+{
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+}
+#assert(RR.A == 1)
+#assert(RR.B == 2)
+#assert(RR.C == 4)
+#assert(RR.D == 8)
+#assert(RR.E == 16)
+#assert(RR.F == 32)
+#assert(RR.G == 64)
+#assert(RR.H == 0x80)
+
+// Overflow when shifting beyond highest bit for u8
+#[Swag.EnumFlags]
+enum SS : u8
+{
+    A = 0x80,
+    B, // swc-expected-error {{sema_err_literal_overflow}}
+}
+
+// Overflow when shifting beyond highest bit for u64
+#[Swag.EnumFlags]
+enum TT : u64
+{
+    A = 0x8000000000000000,
+    B, // swc-expected-error {{sema_err_literal_overflow}}
+}
+
+// Check bitwise combinations on an enum with default underlying type (u32)
+#assert((JJ.A | JJ.B) == 3)
+#assert((JJ.A | JJ.C) == 5)
+#assert((JJ.A | JJ.B | JJ.C) == 7)
+#assert((JJ.A & JJ.B) == 0)
+#assert(((JJ.A | JJ.B) & JJ.B) == JJ.B)

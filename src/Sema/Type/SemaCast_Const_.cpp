@@ -19,8 +19,10 @@ bool SemaCast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dst
     auto& ctx = sema.ctx();
 
     // Be sure constant is sized
-    if (dstType.isInt() || dstType.isFloat())
-        castCtx.setFoldSrc(sema.cstMgr().concretizeConstant(sema, castCtx.errorNodeRef, castCtx.foldSrc(), dstType.intFloatSign()));
+    if (dstType.isInt())
+        castCtx.setFoldSrc(sema.cstMgr().concretizeConstant(sema, castCtx.errorNodeRef, castCtx.foldSrc(), dstType.intSign()));
+    else if (dstType.isFloat())
+        castCtx.setFoldSrc(sema.cstMgr().concretizeConstant(sema, castCtx.errorNodeRef, castCtx.foldSrc(), TypeInfo::Sign::Signed));
 
     const ConstantValue& src = sema.cstMgr().get(castCtx.foldSrc());
 

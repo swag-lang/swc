@@ -117,17 +117,16 @@ public:
     bool isConcreteScalar() const noexcept { return isScalarNumeric() && !isIntUnsized() && !isFloatUnsized(); }
 
     // clang-format off
-    Sign              intFloatSign() const noexcept { SWC_ASSERT(isInt() || isFloat()); return isInt() ? intSign() : Sign::Signed; }
-    Sign              intSign() const noexcept { SWC_ASSERT(isInt()); return asInt.sign; }
-    uint32_t          intBits() const noexcept { SWC_ASSERT(isInt()); return asInt.bits; }
-    uint32_t          intLikeBits() const noexcept { SWC_ASSERT(isIntLike()); return isCharRune() ? 32 : asInt.bits; }
-    uint32_t          scalarNumericBits() const noexcept { SWC_ASSERT(isScalarNumeric()); return isIntLike() ? intLikeBits() : floatBits(); }
-    uint32_t          floatBits() const noexcept { SWC_ASSERT(isFloat()); return asFloat.bits; }
-    SymbolEnum&       enumSym() const noexcept { SWC_ASSERT(isEnum()); return *asEnum.sym; }
-    SymbolStruct&     structSym() const noexcept { SWC_ASSERT(isStruct()); return *asStruct.sym; }
-    TypeRef           typeRef() const noexcept { SWC_ASSERT(isTypeValue() || isPointer() || isSlice()); return asTypeRef.typeRef; }
-    auto&             arrayDims() const noexcept { SWC_ASSERT(isArray()); return asArray.dims; }
-    TypeRef           arrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return asArray.typeRef; }
+    Sign          intSign() const noexcept { SWC_ASSERT(isInt()); return asInt.sign; }
+    uint32_t      intBits() const noexcept { SWC_ASSERT(isInt()); return asInt.bits; }
+    uint32_t      intLikeBits() const noexcept { SWC_ASSERT(isIntLike()); return isCharRune() ? 32 : asInt.bits; }
+    uint32_t      scalarNumericBits() const noexcept { SWC_ASSERT(isScalarNumeric()); return isIntLike() ? intLikeBits() : floatBits(); }
+    uint32_t      floatBits() const noexcept { SWC_ASSERT(isFloat()); return asFloat.bits; }
+    SymbolEnum&   enumSym() const noexcept { SWC_ASSERT(isEnum()); return *asEnum.sym; }
+    SymbolStruct& structSym() const noexcept { SWC_ASSERT(isStruct()); return *asStruct.sym; }
+    TypeRef       typeRef() const noexcept { SWC_ASSERT(isTypeValue() || isPointer() || isSlice()); return asTypeRef.typeRef; }
+    auto&         arrayDims() const noexcept { SWC_ASSERT(isArray()); return asArray.dims; }
+    TypeRef       arrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return asArray.typeRef; }
     // clang-format on
 
     static TypeInfo makeBool();

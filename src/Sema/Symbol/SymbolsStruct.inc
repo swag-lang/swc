@@ -107,3 +107,15 @@ public:
     ConstantRef cstRef() const { return cstRef_; }
     void        setCstRef(ConstantRef cstRef) { cstRef_ = cstRef; }
 };
+
+// -----------------------------------------------------------------------------
+class SymbolStruct : public SymbolMap
+{
+public:
+    static constexpr auto K = SymbolKind::Struct;
+
+    explicit SymbolStruct(SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        SymbolMap(srcViewRef, tokRef, K, idRef, flags)
+    {
+    }
+};

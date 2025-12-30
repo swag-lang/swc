@@ -47,7 +47,7 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
             break;
 
         case TypeInfoKind::Enum:
-            asEnumSym = other.asEnumSym;
+            asEnum = other.asEnum;
             break;
 
         case TypeInfoKind::Array:
@@ -105,7 +105,7 @@ TypeInfo& TypeInfo::operator=(const TypeInfo& other)
             break;
 
         case TypeInfoKind::Enum:
-            asEnumSym = other.asEnumSym;
+            asEnum = other.asEnum;
             break;
 
         case TypeInfoKind::Array:
@@ -146,7 +146,7 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
         case TypeInfoKind::TypeValue:
             return asTypeRef.typeRef == other.asTypeRef.typeRef;
         case TypeInfoKind::Enum:
-            return asEnumSym.enumSym == other.asEnumSym.enumSym;
+            return asEnum.sym == other.asEnum.sym;
 
         case TypeInfoKind::Array:
             if (asArray.dims.size() != other.asArray.dims.size())
@@ -193,7 +193,7 @@ uint32_t TypeInfo::hash() const
             h = Math::hashCombine(h, asTypeRef.typeRef.get());
             return h;
         case TypeInfoKind::Enum:
-            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asEnumSym.enumSym));
+            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asEnum.sym));
             return h;
         case TypeInfoKind::Array:
             h = Math::hashCombine(h, asArray.typeRef.get());
@@ -268,7 +268,15 @@ TypeInfo TypeInfo::makeTypeValue(TypeRef typeRef)
 TypeInfo TypeInfo::makeEnum(SymbolEnum* enumSym)
 {
     TypeInfo ti{TypeInfoKind::Enum};
-    ti.asEnumSym.enumSym = enumSym;
+    ti.asEnum.sym = enumSym;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return ti;
+}
+
+TypeInfo TypeInfo::makeStruct(SymbolStruct* structSym)
+{
+    TypeInfo ti{TypeInfoKind::Struct};
+    ti.asStruct.sym = structSym;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -339,7 +347,7 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
             out += "cstring";
             break;
         case TypeInfoKind::Enum:
-            out += std::format("enum {}", asEnumSym.enumSym->name(ctx));
+            out += std::format("enum {}", asEnum.sym->name(ctx));
             break;
 
         case TypeInfoKind::TypeValue:

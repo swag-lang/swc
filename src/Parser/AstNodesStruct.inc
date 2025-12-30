@@ -942,6 +942,11 @@ struct AstUsingDecl : AstCompoundT<AstNodeId::UsingDecl>
 // -----------------------------------------------------------------------------
 struct AstStructDecl : AstAggregateDeclT<AstNodeId::StructDecl>
 {
+    AstVisitStepResult        semaPreDecl(Sema& sema) const;
+    AstVisitStepResult        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    static void               semaEnterNode(Sema& sema);
+    static AstVisitStepResult semaPreNode(Sema& sema);
+    static AstVisitStepResult semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

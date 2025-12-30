@@ -62,7 +62,8 @@ AstVisitStepResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
     lookUpCxt.tokRef     = sym.tokRef();
 
     lookup(sema, lookUpCxt, sym.idRef());
-    SWC_ASSERT(!lookUpCxt.empty());
+    if (lookUpCxt.empty())
+        return sema.waitIdentifier(sym.idRef());
 
     for (const Symbol* other : lookUpCxt.symbols())
     {

@@ -26,6 +26,7 @@ struct CommandLine
     bool dbgDevMode   = false;
     bool verboseDiag  = false;
     bool verify       = true;
+    bool runtime      = false;
 
 #ifdef SWC_DEV_MODE
     bool     randomize = false;

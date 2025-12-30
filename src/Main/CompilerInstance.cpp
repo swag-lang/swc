@@ -210,8 +210,7 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
     }
 
     // Collect runtime files
-    /*
-    if (cmdLine.command == CommandKind::Sema)
+    if (cmdLine.runtime)
     {
         fs::path runtimePath = exeFullName_.parent_path() / "Runtime";
         if (FileSystem::resolveFolder(ctx, runtimePath) != Result::Success)
@@ -221,7 +220,7 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
             std::ranges::sort(paths);
         for (const auto& f : paths)
             addFile(f, FileFlagsE::Runtime);
-    }*/
+    }
 
     if (files_.empty())
     {

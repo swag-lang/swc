@@ -1,7 +1,10 @@
 #include "pch.h"
 #include "Lexer/LangSpec.h"
 #include "Lexer/Token.h"
+#include "Main/CompilerInstance.h"
+#include "Main/TaskContext.h"
 #include "Math/Hash.h"
+#include "Parser/AstNodes.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -133,6 +136,20 @@ bool LangSpec::isReservedNamespace(std::string_view ns)
     Utf8 name = ns;
     name.make_lower();
     return name == "swag";
+}
+
+bool LangSpec::isAttributeUsageEnum(const TaskContext& ctx, const AstEnumDecl& enumDecl)
+{
+    const SourceView& srcView = ctx.compiler().srcView(enumDecl.srcViewRef());
+    if (!srcView.isRuntimeFile())
+        return false;
+
+    const Token&           tok      = srcView.token(enumDecl.tokNameRef);
+    const std::string_view enumName = tok.string(srcView);
+    if (enumName == "AttributeUsage")
+        return true;
+
+    return false;
 }
 
 SWC_END_NAMESPACE()

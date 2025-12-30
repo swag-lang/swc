@@ -31,10 +31,14 @@ void Symbol::setIgnored(TaskContext& ctx) noexcept
     ctx.compiler().notifySymbolIgnored();
 }
 
-void Symbol::setContext(Sema& sema)
+void Symbol::registerCompilerIf(Sema& sema)
 {
     if (auto* compilerIf = sema.frame().compilerIf())
         compilerIf->addSymbol(this);
+}
+
+void Symbol::registerAttributes(Sema& sema)
+{
     setAttributes(sema.frame().attributes());
 }
 

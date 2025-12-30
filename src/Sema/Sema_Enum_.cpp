@@ -1,4 +1,7 @@
 #include "pch.h"
+
+#include "Lexer/LangSpec.h"
+#include "Main/Global.h"
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisitResult.h"
 #include "Sema/Helpers/SemaError.h"
@@ -27,7 +30,7 @@ AstVisitStepResult AstEnumDecl::semaPreDecl(Sema& sema) const
     SymbolEnum* sym = Symbol::make<SymbolEnum>(ctx, srcViewRef(), tokNameRef, idRef, flags);
     if (!symbolMap->addSymbol(ctx, sym, true))
         return AstVisitStepResult::Stop;
-    sym->setContext(sema);
+    sym->registerCompilerIf(sema);
     sema.setSymbol(sema.curNodeRef(), sym);
 
     return AstVisitStepResult::Continue;
@@ -76,9 +79,16 @@ AstVisitStepResult AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     return AstVisitStepResult::Continue;
 }
 
-void AstEnumDecl::semaEnterNode(Sema& sema)
+void AstEnumDecl::semaEnterNode(Sema& sema) const
 {
     Symbol& sym = sema.symbolOf(sema.curNodeRef());
+    sym.registerAttributes(sema);
+
+    // Runtime: enum 'AttributeUsage' is forced to be in flag mode.
+    // (we can't rely on #[Swag.EnumFlags] as attributes are constructed there)
+    if (LangSpec::isAttributeUsageEnum(sema.ctx(), *this))
+        sym.attributes().flags = AttributeFlagsE::EnumFlags;
+
     sym.setDeclared(sema.ctx());
 }
 
@@ -172,7 +182,7 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
 
     SymbolFlags      flags    = SymbolFlagsE::Complete | SymbolFlagsE::Declared;
     SymbolEnumValue* symValue = Symbol::make<SymbolEnumValue>(ctx, srcViewRef(), tokRef(), idRef, flags);
-    symValue->setContext(sema);
+    symValue->registerCompilerIf(sema);
 
     ConstantValue enumCst    = ConstantValue::makeEnumValue(ctx, valueCst, symEnum.typeRef());
     ConstantRef   enumCstRef = sema.cstMgr().addConstant(ctx, enumCst);

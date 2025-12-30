@@ -65,7 +65,7 @@ AstVisitStepResult AstAttrDecl::semaPreDecl(Sema& sema) const
     SymbolAttribute* sym = Symbol::make<SymbolAttribute>(ctx, srcViewRef(), tokNameRef, idRef, flags);
     if (!symbolMap->addSymbol(ctx, sym, true))
         return AstVisitStepResult::Stop;
-    sym->setContext(sema);
+    sym->registerCompilerIf(sema);
     sema.setSymbol(sema.curNodeRef(), sym);
 
     return AstVisitStepResult::Continue;

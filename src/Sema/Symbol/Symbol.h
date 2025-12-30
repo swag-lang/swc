@@ -90,9 +90,11 @@ public:
     void setIgnored(TaskContext& ctx) noexcept;
 
     const AttributeList& attributes() const { return attributes_; }
+    AttributeList&       attributes() { return attributes_; }
     void                 setAttributes(const AttributeList& attrs) { attributes_ = attrs; }
 
-    void setContext(Sema& sema);
+    void registerCompilerIf(Sema& sema);
+    void registerAttributes(Sema& sema);
 
     SymbolMap*       symMap() noexcept { return ownerSymMap_; }
     const SymbolMap* symMap() const noexcept { return ownerSymMap_; }

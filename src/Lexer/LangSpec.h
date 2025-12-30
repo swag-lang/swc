@@ -4,6 +4,9 @@
 
 SWC_BEGIN_NAMESPACE()
 
+class TaskContext;
+struct AstEnumDecl;
+
 enum class TokenId : uint16_t;
 
 enum class CharFlagsE : uint32_t
@@ -51,6 +54,7 @@ public:
     static constexpr std::string_view VERIFY_COMMENT_EXPECTED = "swc-expected-";
 
     static bool isReservedNamespace(std::string_view ns);
+    static bool isAttributeUsageEnum(const TaskContext& ctx, const AstEnumDecl& enumDecl);
 
 private:
     CharFlags                                     charFlags_[256];

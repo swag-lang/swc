@@ -29,7 +29,7 @@ AstVisitStepResult AstVarDecl::semaPreDecl(Sema& sema) const
         SymbolConstant* symCst = Symbol::make<SymbolConstant>(ctx, srcViewRef(), tokNameRef, idRef, flags);
         if (!symbolMap->addSymbol(ctx, symCst, true))
             return AstVisitStepResult::Stop;
-        symCst->setContext(sema);
+        symCst->registerCompilerIf(sema);
         sema.setSymbol(sema.curNodeRef(), symCst);
     }
     else
@@ -37,7 +37,7 @@ AstVisitStepResult AstVarDecl::semaPreDecl(Sema& sema) const
         SymbolVariable* symVar = Symbol::make<SymbolVariable>(ctx, srcViewRef(), tokNameRef, idRef, flags);
         if (!symbolMap->addSymbol(ctx, symVar, true))
             return AstVisitStepResult::Stop;
-        symVar->setContext(sema);
+        symVar->registerCompilerIf(sema);
         sema.setSymbol(sema.curNodeRef(), symVar);
     }
 
@@ -47,6 +47,7 @@ AstVisitStepResult AstVarDecl::semaPreDecl(Sema& sema) const
 void AstVarDecl::semaEnterNode(Sema& sema)
 {
     Symbol& sym = sema.symbolOf(sema.curNodeRef());
+    sym.registerAttributes(sema);
     sym.setDeclared(sema.ctx());
 }
 

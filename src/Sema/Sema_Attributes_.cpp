@@ -116,7 +116,7 @@ AstVisitStepResult AstAttribute::semaPostNode(Sema& sema) const
     const Symbol& sym = sema.symbolOf(nodeIdentRef);
     if (!sym.isAttribute())
     {
-        SemaError::raiseInternal(sema, *this);
+        SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeIdentRef);
         return AstVisitStepResult::Stop;
     }
 

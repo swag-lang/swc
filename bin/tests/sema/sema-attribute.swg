@@ -12,5 +12,5 @@ var A: s32 = 0
 }
 
 const BB = 1
-#[BB]
+#[BB] // swc-expected-error {{sema_err_not_attribute}}
 const CC = 0

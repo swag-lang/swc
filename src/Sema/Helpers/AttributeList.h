@@ -25,7 +25,7 @@ struct AttributeList
     AttributeFlags                    flags = AttributeFlagsE::Zero;
 
     bool hasFlag(AttributeFlagsE fl) const { return flags.has(fl); }
-    void addFlag(AttributeFlagsE fl) { flags.add(fl); }
+    void addFlag(AttributeFlags fl) { flags.add(fl); }
 };
 
 SWC_END_NAMESPACE()

@@ -44,6 +44,8 @@ public:
 // -----------------------------------------------------------------------------
 class SymbolAttribute : public Symbol
 {
+    AttributeFlags attributes_ = AttributeFlagsE::Zero;
+
 public:
     static constexpr auto K = SymbolKind::Attribute;
 
@@ -51,6 +53,9 @@ public:
         Symbol(srcViewRef, tokRef, K, idRef, flags)
     {
     }
+
+    AttributeFlags attributeFlags() const { return attributes_; }
+    void           setAttributeFlags(AttributeFlags attr) { attributes_ = attr; }
 };
 
 // -----------------------------------------------------------------------------

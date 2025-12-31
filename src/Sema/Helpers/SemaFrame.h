@@ -40,6 +40,7 @@ public:
     void            setCompilerIf(SemaCompilerIf* ifc) { compilerIf_ = ifc; }
 
     static SymbolMap* currentSymMap(Sema& sema);
+    SymbolFlags       flagsForCurrentAccess() const;
 };
 
 SWC_END_NAMESPACE()

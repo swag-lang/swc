@@ -41,4 +41,12 @@ SymbolMap* SemaFrame::currentSymMap(Sema& sema)
     return followNamespace(sema, root, sema.frame().nsPath());
 }
 
+SymbolFlags SemaFrame::flagsForCurrentAccess() const
+{
+    SymbolFlags flags = SymbolFlagsE::Zero;
+    if (access() == SymbolAccess::Public)
+        flags.add(SymbolFlagsE::Public);
+    return flags;
+}
+
 SWC_END_NAMESPACE()

@@ -16,14 +16,11 @@ SWC_BEGIN_NAMESPACE()
 
 AstVisitStepResult AstEnumDecl::semaPreDecl(Sema& sema) const
 {
-    auto&               ctx   = sema.ctx();
-    const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokNameRef);
+    auto& ctx = sema.ctx();
 
-    SymbolFlags        flags  = SymbolFlagsE::Zero;
-    const SymbolAccess access = sema.frame().access();
-    if (access == SymbolAccess::Public)
-        flags.add(SymbolFlagsE::Public);
-    SymbolMap* symbolMap = SemaFrame::currentSymMap(sema);
+    const IdentifierRef idRef     = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokNameRef);
+    const SymbolFlags   flags     = sema.frame().flagsForCurrentAccess();
+    SymbolMap*          symbolMap = SemaFrame::currentSymMap(sema);
 
     SymbolEnum* sym = Symbol::make<SymbolEnum>(ctx, srcViewRef(), tokNameRef, idRef, flags);
     if (!symbolMap->addSymbol(ctx, sym, true))

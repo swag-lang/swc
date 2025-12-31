@@ -220,7 +220,6 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
 
     // Create a symbol for this enum value
     const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokRef());
-
     SymbolFlags      flags    = SymbolFlagsE::Complete | SymbolFlagsE::Declared;
     SymbolEnumValue* symValue = Symbol::make<SymbolEnumValue>(ctx, srcViewRef(), tokRef(), idRef, flags);
     symValue->registerCompilerIf(sema);

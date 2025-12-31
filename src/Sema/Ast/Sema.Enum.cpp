@@ -133,13 +133,11 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
     auto&              ctx = sema.ctx();
     const SemaNodeView nodeInitView(sema, nodeInitRef);
 
-    SymbolEnum&   symEnum           = sema.curSymMap()->cast<SymbolEnum>();
-    const TypeRef underlyingTypeRef = symEnum.underlyingTypeRef();
-    SWC_ASSERT(underlyingTypeRef.isValid());
+    SymbolEnum&     symEnum           = sema.curSymMap()->cast<SymbolEnum>();
+    const TypeRef   underlyingTypeRef = symEnum.underlyingTypeRef();
+    const TypeInfo& underlyingType    = symEnum.underlyingType(ctx);
 
-    const TypeInfo& underlyingType = sema.typeMgr().get(underlyingTypeRef);
-    ConstantRef     valueCst;
-
+    ConstantRef valueCst;
     if (nodeInitView.nodeRef.isValid())
     {
         // Must be constant

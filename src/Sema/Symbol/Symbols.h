@@ -1,6 +1,7 @@
 #pragma once
 #include "Sema/Constant/ConstantValue.h"
 #include "Sema/Symbol/SymbolMap.h"
+#include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -88,8 +89,9 @@ public:
     {
     }
 
-    TypeRef underlyingTypeRef() const { return underlyingTypeRef_; }
-    void    setUnderlyingTypeRef(TypeRef ref) { underlyingTypeRef_ = ref; }
+    TypeRef         underlyingTypeRef() const { return underlyingTypeRef_; }
+    const TypeInfo& underlyingType(TaskContext& ctx) const { return ctx.typeMgr().get(underlyingTypeRef()); }
+    void            setUnderlyingTypeRef(TypeRef ref) { underlyingTypeRef_ = ref; }
 
     ApsInt&       nextValue() { return nextValue_; }
     const ApsInt& nextValue() const { return nextValue_; }

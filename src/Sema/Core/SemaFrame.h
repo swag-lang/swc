@@ -1,5 +1,5 @@
 #pragma once
-#include "AttributeList.h"
+#include "Sema/Core/AttributeList.h"
 #include "Sema/Symbol/Symbol.h"
 
 SWC_BEGIN_NAMESPACE()

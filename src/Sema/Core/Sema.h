@@ -1,9 +1,9 @@
 #pragma once
 #include "Parser/Ast.h"
 #include "Parser/AstVisit.h"
-#include "Sema/Helpers/SemaFrame.h"
+#include "Sema/Core/SemaFrame.h"
+#include "Sema/Core/SemaScope.h"
 #include "Sema/Helpers/SemaInfo.h"
-#include "Sema/Helpers/SemaScope.h"
 #include "Thread/Job.h"
 
 SWC_BEGIN_NAMESPACE()

@@ -3,7 +3,7 @@
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
 #include "Parser/AstNode.h"
-#include "Sema/Helpers/AttributeList.h"
+#include "Sema/Core/AttributeList.h"
 #include "Sema/Type/TypeInfo.h"
 
 SWC_BEGIN_NAMESPACE()

@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Sema/Helpers/SemaFrame.h"
+#include "Sema/Core/SemaFrame.h"
 #include "Sema/Core/Sema.h"
 #include "Sema/Symbol/Symbols.h"
 

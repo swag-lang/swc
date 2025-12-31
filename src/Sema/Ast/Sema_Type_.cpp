@@ -2,9 +2,9 @@
 #include "Parser/AstVisit.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/Sema.h"
+#include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
-#include "Sema/Helpers/SemaNodeView.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()

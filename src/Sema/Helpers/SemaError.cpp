@@ -4,7 +4,7 @@
 #include "Main/CompilerInstance.h"
 #include "Report/Diagnostic.h"
 #include "Sema/Core/Sema.h"
-#include "Sema/Helpers/SemaNodeView.h"
+#include "Sema/Core/SemaNodeView.h"
 
 SWC_BEGIN_NAMESPACE()
 

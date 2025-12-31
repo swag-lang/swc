@@ -3,7 +3,7 @@
 #include "Sema/Core/Sema.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
-#include "Sema/Helpers/SemaNodeView.h"
+#include "Sema/Core/SemaNodeView.h"
 #include "Sema/Type/CastContext.h"
 #include "Sema/Type/SemaCast.h"
 

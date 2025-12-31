@@ -3,11 +3,11 @@
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisitResult.h"
 #include "Sema/Core/Sema.h"
+#include "Sema/Core/SemaFrame.h"
+#include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
-#include "Sema/Helpers/SemaFrame.h"
 #include "Sema/Helpers/SemaInfo.h"
 #include "Sema/Helpers/SemaMatch.h"
-#include "Sema/Helpers/SemaNodeView.h"
 #include "Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE()

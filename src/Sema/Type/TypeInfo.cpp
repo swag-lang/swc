@@ -510,10 +510,10 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
             return enumSym().sizeOf(ctx);
 
         case TypeInfoKind::TypeValue:
-        case TypeInfoKind::Invalid:
-        default:
-            return 0;
+            return ctx.typeMgr().get(asTypeRef.typeRef).sizeOf(ctx);
     }
+
+    SWC_UNREACHABLE();
 }
 
 SWC_END_NAMESPACE()

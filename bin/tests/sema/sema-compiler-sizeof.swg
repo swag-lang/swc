@@ -21,3 +21,4 @@
 #assert(#sizeof(#type [4] u32) == 16)
 #assert(#sizeof(#type [4,2] u32) == 32)
 #assert(#sizeof(const [..] u32) == 16)
+

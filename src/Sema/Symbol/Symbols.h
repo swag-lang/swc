@@ -73,6 +73,12 @@ public:
         Symbol(srcViewRef, tokRef, K, idRef, flags)
     {
     }
+
+    uint32_t offset() const { return offset_; }
+    void     setOffset(uint32_t offset) { offset_ = offset; }
+
+private:
+    uint32_t offset_ = 0;
 };
 
 // -----------------------------------------------------------------------------
@@ -132,10 +138,15 @@ public:
     {
     }
 
-    uint64_t sizeOf(TaskContext& ctx) const { return sizeInBytes_; }
+    uint64_t                    sizeOf(TaskContext& ctx) const { return sizeInBytes_; }
+    std::vector<Symbol*>&       fields() { return fields_; }
+    const std::vector<Symbol*>& fields() const { return fields_; }
+    void                        computeLayout(Sema& sema);
 
 private:
-    uint64_t sizeInBytes_ = 0;
+    std::vector<Symbol*> fields_;
+    uint64_t             sizeInBytes_ = 0;
+    uint32_t             alignment_   = 0;
 };
 
 // -----------------------------------------------------------------------------

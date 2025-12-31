@@ -14,9 +14,21 @@ SWC_BEGIN_NAMESPACE()
 
 AstVisitStepResult AstStructDecl::semaPreDecl(Sema& sema) const
 {
-    if (!SemaHelpers::declareNamedSymbol<SymbolStruct>(sema, *this, tokNameRef))
-        return AstVisitStepResult::Stop;
-    return AstVisitStepResult::Continue;
+    SemaHelpers::declareNamedSymbol<SymbolStruct>(sema, *this, tokNameRef);
+    return AstVisitStepResult::SkipChildren;
+}
+
+void AstStructDecl::semaEnterNode(Sema& sema)
+{
+    Symbol& sym = sema.symbolOf(sema.curNodeRef());
+    sym.registerAttributes(sema);
+    sym.setDeclared(sema.ctx());
+}
+
+AstVisitStepResult AstStructDecl::semaPreNode(Sema& sema)
+{
+    const Symbol& sym = sema.symbolOf(sema.curNodeRef());
+    return SemaMatch::ghosting(sema, sym);
 }
 
 AstVisitStepResult AstStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -35,23 +47,55 @@ AstVisitStepResult AstStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef&
     sema.pushScope(SemaScopeFlagsE::Type);
     sema.curScope().setSymMap(&sym);
 
+    return AstVisitStepResult::Continue;
+}
+
+AstVisitStepResult AstStructDecl::semaPostNode(Sema& sema)
+{
+    sema.curSymMap()->setComplete(sema.ctx());
+    sema.popScope();
+    return AstVisitStepResult::Continue;
+}
+
+AstVisitStepResult AstInterfaceDecl::semaPreDecl(Sema& sema) const
+{
+    SemaHelpers::declareNamedSymbol<SymbolInterface>(sema, *this, tokNameRef);
     return AstVisitStepResult::SkipChildren;
 }
 
-void AstStructDecl::semaEnterNode(Sema& sema)
+void AstInterfaceDecl::semaEnterNode(Sema& sema)
 {
     Symbol& sym = sema.symbolOf(sema.curNodeRef());
     sym.registerAttributes(sema);
     sym.setDeclared(sema.ctx());
 }
 
-AstVisitStepResult AstStructDecl::semaPreNode(Sema& sema)
+AstVisitStepResult AstInterfaceDecl::semaPreNode(Sema& sema)
 {
     const Symbol& sym = sema.symbolOf(sema.curNodeRef());
     return SemaMatch::ghosting(sema, sym);
 }
 
-AstVisitStepResult AstStructDecl::semaPostNode(Sema& sema)
+AstVisitStepResult AstInterfaceDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeBodyRef)
+        return AstVisitStepResult::Continue;
+
+    auto& ctx = sema.ctx();
+
+    // Creates symbol with type
+    SymbolInterface& sym        = sema.symbolOf(sema.curNodeRef()).cast<SymbolInterface>();
+    const TypeInfo   itfType    = TypeInfo::makeInterface(&sym);
+    const TypeRef    itfTypeRef = ctx.typeMgr().addType(itfType);
+    sym.setTypeRef(itfTypeRef);
+
+    sema.pushScope(SemaScopeFlagsE::Type);
+    sema.curScope().setSymMap(&sym);
+
+    return AstVisitStepResult::Continue;
+}
+
+AstVisitStepResult AstInterfaceDecl::semaPostNode(Sema& sema)
 {
     sema.curSymMap()->setComplete(sema.ctx());
     sema.popScope();

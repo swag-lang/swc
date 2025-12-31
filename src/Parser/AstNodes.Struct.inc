@@ -206,20 +206,8 @@ struct AstFunctionDecl : AstNamedNodeT<AstNodeId::FunctionDecl>
         AstNode::collectChildren(out, {nodeBodyRef});
     }
 
+    static AstVisitStepResult semaPreDecl(Sema&) { return AstVisitStepResult::SkipChildren; }
     static AstVisitStepResult semaPreNode(Sema&) { return AstVisitStepResult::SkipChildren; }
-};
-
-// -----------------------------------------------------------------------------
-struct AstInterfaceDecl : AstNamedNodeT<AstNodeId::InterfaceDecl>
-{
-    AstNodeRef nodeBodyRef;
-
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
-};
-
-// -----------------------------------------------------------------------------
-struct AstInterfaceBody : AstCompoundT<AstNodeId::InterfaceBody>
-{
 };
 
 // -----------------------------------------------------------------------------
@@ -936,9 +924,9 @@ struct AstUsingDecl : AstCompoundT<AstNodeId::UsingDecl>
 struct AstStructDecl : AstAggregateDeclT<AstNodeId::StructDecl>
 {
     AstVisitStepResult        semaPreDecl(Sema& sema) const;
-    AstVisitStepResult        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     static void               semaEnterNode(Sema& sema);
     static AstVisitStepResult semaPreNode(Sema& sema);
+    AstVisitStepResult        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     static AstVisitStepResult semaPostNode(Sema& sema);
 };
 
@@ -959,6 +947,24 @@ struct AstAnonymousUnionDecl : AstAnonymousAggregateDeclT<AstNodeId::AnonymousUn
 
 // -----------------------------------------------------------------------------
 struct AstAggregateBody : AstCompoundT<AstNodeId::AggregateBody>
+{
+};
+
+// -----------------------------------------------------------------------------
+struct AstInterfaceDecl : AstNamedNodeT<AstNodeId::InterfaceDecl>
+{
+    AstNodeRef nodeBodyRef;
+
+    void                      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
+    AstVisitStepResult        semaPreDecl(Sema& sema) const;
+    static void               semaEnterNode(Sema& sema);
+    static AstVisitStepResult semaPreNode(Sema& sema);
+    AstVisitStepResult        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    static AstVisitStepResult semaPostNode(Sema& sema);
+};
+
+// -----------------------------------------------------------------------------
+struct AstInterfaceBody : AstCompoundT<AstNodeId::InterfaceBody>
 {
 };
 
@@ -1026,7 +1032,7 @@ struct AstVarDecl : AstNamedNodeT<AstNodeId::VarDecl>
 
     void                      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeInitRef}); }
     AstVisitStepResult        semaPreDecl(Sema& sema) const;
-    static void               semaEnterNode(Sema& sema);
+    void                      semaEnterNode(Sema& sema) const;
     static AstVisitStepResult semaPreNode(Sema& sema);
     AstVisitStepResult        semaPostNode(Sema& sema) const;
 };

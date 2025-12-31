@@ -5,6 +5,7 @@ SWC_BEGIN_NAMESPACE()
 
 class SymbolEnum;
 class SymbolStruct;
+class SymbolInterface;
 class TypeManager;
 
 enum class TypeInfoFlagsE : uint8_t
@@ -34,6 +35,7 @@ enum class TypeInfoKind : uint8_t
     Slice,
     Array,
     Struct,
+    Interface,
 };
 
 class TypeInfo;
@@ -84,7 +86,8 @@ public:
     bool isCString() const noexcept { return kind_ == TypeInfoKind::CString; }
     bool isEnum() const noexcept { return kind_ == TypeInfoKind::Enum; }
     bool isStruct() const noexcept { return kind_ == TypeInfoKind::Struct; }
-    bool isType() const noexcept { return isTypeValue() || isEnum() || isStruct(); }
+    bool isInterface() const noexcept { return kind_ == TypeInfoKind::Interface; }
+    bool isType() const noexcept { return isTypeValue() || isEnum() || isStruct() || isInterface(); }
     bool isValuePointer() const noexcept { return kind_ == TypeInfoKind::ValuePointer; }
     bool isBlockPointer() const noexcept { return kind_ == TypeInfoKind::BlockPointer; }
     bool isPointer() const noexcept { return isValuePointer() || isBlockPointer(); }
@@ -98,16 +101,17 @@ public:
     bool isConcreteScalar() const noexcept { return isScalarNumeric() && !isIntUnsized() && !isFloatUnsized(); }
 
     // clang-format off
-    Sign          intSign() const noexcept { SWC_ASSERT(isInt()); return asInt.sign; }
-    uint32_t      intBits() const noexcept { SWC_ASSERT(isInt()); return asInt.bits; }
-    uint32_t      intLikeBits() const noexcept { SWC_ASSERT(isIntLike()); return isCharRune() ? 32 : asInt.bits; }
-    uint32_t      scalarNumericBits() const noexcept { SWC_ASSERT(isScalarNumeric()); return isIntLike() ? intLikeBits() : floatBits(); }
-    uint32_t      floatBits() const noexcept { SWC_ASSERT(isFloat()); return asFloat.bits; }
-    SymbolEnum&   enumSym() const noexcept { SWC_ASSERT(isEnum()); return *asEnum.sym; }
-    SymbolStruct& structSym() const noexcept { SWC_ASSERT(isStruct()); return *asStruct.sym; }
-    TypeRef       typeRef() const noexcept { SWC_ASSERT(isTypeValue() || isPointer() || isSlice()); return asTypeRef.typeRef; }
-    auto&         arrayDims() const noexcept { SWC_ASSERT(isArray()); return asArray.dims; }
-    TypeRef       arrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return asArray.typeRef; }
+    Sign             intSign() const noexcept { SWC_ASSERT(isInt()); return asInt.sign; }
+    uint32_t         intBits() const noexcept { SWC_ASSERT(isInt()); return asInt.bits; }
+    uint32_t         intLikeBits() const noexcept { SWC_ASSERT(isIntLike()); return isCharRune() ? 32 : asInt.bits; }
+    uint32_t         scalarNumericBits() const noexcept { SWC_ASSERT(isScalarNumeric()); return isIntLike() ? intLikeBits() : floatBits(); }
+    uint32_t         floatBits() const noexcept { SWC_ASSERT(isFloat()); return asFloat.bits; }
+    SymbolEnum&      enumSym() const noexcept { SWC_ASSERT(isEnum()); return *asEnum.sym; }
+    SymbolStruct&    structSym() const noexcept { SWC_ASSERT(isStruct()); return *asStruct.sym; }
+    SymbolInterface& interfaceSym() const noexcept { SWC_ASSERT(isInterface()); return *asInterface.sym; }
+    TypeRef          typeRef() const noexcept { SWC_ASSERT(isTypeValue() || isPointer() || isSlice()); return asTypeRef.typeRef; }
+    auto&            arrayDims() const noexcept { SWC_ASSERT(isArray()); return asArray.dims; }
+    TypeRef          arrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return asArray.typeRef; }
     // clang-format on
 
     static TypeInfo makeBool();
@@ -122,6 +126,7 @@ public:
     static TypeInfo makeCString(TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeEnum(SymbolEnum* enumSym);
     static TypeInfo makeStruct(SymbolStruct* structSym);
+    static TypeInfo makeInterface(SymbolInterface* itfSym);
     static TypeInfo makeValuePointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
@@ -138,12 +143,13 @@ private:
     union
     {
         // clang-format off
-        struct { uint32_t bits; Sign sign; }                     asInt;
-        struct { uint32_t bits; }                                asFloat;
-        struct { TypeRef typeRef; }                              asTypeRef;
-        struct { SymbolEnum* sym; }                          asEnum;
-        struct { SymbolStruct* sym; }                      asStruct;
-        struct { std::vector<uint64_t> dims; TypeRef typeRef; }  asArray;
+        struct { uint32_t bits; Sign sign; }                    asInt;
+        struct { uint32_t bits; }                               asFloat;
+        struct { TypeRef typeRef; }                             asTypeRef;
+        struct { SymbolEnum* sym; }                             asEnum;
+        struct { SymbolStruct* sym; }                           asStruct;
+        struct { SymbolInterface* sym; }                        asInterface;
+        struct { std::vector<uint64_t> dims; TypeRef typeRef; } asArray;
         // clang-format on
     };
 };

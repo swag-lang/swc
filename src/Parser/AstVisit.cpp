@@ -33,9 +33,9 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
     dbgNode_    = &ast_->node(fr.nodeRef);
     dbgTokRef_  = dbgNode_->tokRef();
     dbgTok_     = dbgTokRef_.isValid() ? &ast_->srcView().token(dbgTokRef_) : nullptr;
-    dbgTokView_ = dbgTok_->string(ast_->srcView());
+    dbgTokView_ = dbgTok_ ? dbgTok_->string(ast_->srcView()) : "";
     dbgSrcFile_ = ast_->srcView().file();
-    dbgLoc_     = dbgTok_->location(ctx, ast_->srcView());
+    dbgLoc_     = dbgTok_ ? dbgTok_->location(ctx, ast_->srcView()) : SourceCodeLocation{};
 #endif
 
     switch (fr.stage)

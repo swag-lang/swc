@@ -30,6 +30,7 @@ enum class SymbolKind : uint8_t
     EnumValue,
     Attribute,
     Struct,
+    Interface,
 };
 
 enum class SymbolFlagsE : uint8_t
@@ -98,11 +99,12 @@ public:
     bool isEnum() const noexcept { return kind_ == SymbolKind::Enum; }
     bool isEnumValue() const noexcept { return kind_ == SymbolKind::EnumValue; }
     bool isStruct() const noexcept { return kind_ == SymbolKind::Struct; }
+    bool isInterface() const noexcept { return kind_ == SymbolKind::Interface; }
     bool isAttribute() const noexcept { return kind_ == SymbolKind::Attribute; }
     bool isModule() const noexcept { return kind_ == SymbolKind::Module; }
 
-    bool isSymMap() const noexcept { return isNamespace() || isModule() || isEnum() || isStruct(); }
-    bool isType() const noexcept { return isEnum() || isStruct(); }
+    bool isSymMap() const noexcept { return isNamespace() || isModule() || isEnum() || isStruct() || isInterface(); }
+    bool isType() const noexcept { return isEnum() || isStruct() || isInterface(); }
     bool isValueExpr() const noexcept { return isVariable() || isConstant() || isEnumValue(); }
     bool isSwagNamespace(const TaskContext& ctx) const noexcept;
 

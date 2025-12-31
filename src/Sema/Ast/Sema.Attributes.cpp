@@ -1,8 +1,9 @@
 #include "pch.h"
-#include "Parser/AstNodes.h"
 #include "Sema/Core/Sema.h"
+#include "Parser/AstNodes.h"
 #include "Sema/Core/SemaFrame.h"
 #include "Sema/Helpers/SemaError.h"
+#include "Sema/Helpers/SemaHelpers.h"
 #include "Sema/Helpers/SemaMatch.h"
 #include "Sema/Symbol/Symbols.h"
 
@@ -53,26 +54,16 @@ AstVisitStepResult AstAccessModifier::semaPostNode(Sema& sema)
 
 AstVisitStepResult AstAttrDecl::semaPreDecl(Sema& sema) const
 {
-    auto& ctx = sema.ctx();
-
-    const IdentifierRef idRef     = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokNameRef);
-    const SymbolFlags   flags     = sema.frame().flagsForCurrentAccess();
-    SymbolMap*          symbolMap = SemaFrame::currentSymMap(sema);
-
-    SymbolAttribute* sym = Symbol::make<SymbolAttribute>(ctx, srcViewRef(), tokNameRef, idRef, flags);
-    if (!symbolMap->addSymbol(ctx, sym, true))
-        return AstVisitStepResult::Stop;
-    sym->registerCompilerIf(sema);
-    sema.setSymbol(sema.curNodeRef(), sym);
+    SymbolAttribute* sym = SemaHelpers::declareNamedSymbol<SymbolAttribute>(sema, *this, tokNameRef);
 
     // Predefined attributes
-    if (symbolMap->isSwagNamespace(ctx))
+    if (sym->symMap()->isSwagNamespace(sema.ctx()))
     {
         if (sym->idRef() == sema.idMgr().nameEnumFlags())
             sym->setAttributeFlags(AttributeFlagsE::EnumFlags);
     }
 
-    return AstVisitStepResult::Continue;
+    return AstVisitStepResult::SkipChildren;
 }
 
 void AstAttrDecl::semaEnterNode(Sema& sema)

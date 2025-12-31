@@ -124,3 +124,15 @@ public:
     {
     }
 };
+
+// -----------------------------------------------------------------------------
+class SymbolInterface : public SymbolMap
+{
+public:
+    static constexpr auto K = SymbolKind::Interface;
+
+    explicit SymbolInterface(SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        SymbolMap(srcViewRef, tokRef, K, idRef, flags)
+    {
+    }
+};

@@ -2,12 +2,10 @@
 #include "Sema/Core/Sema.h"
 #include "Parser/AstNodes.h"
 #include "Report/DiagnosticDef.h"
-#include "Sema/Core/SemaFrame.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaHelpers.h"
 #include "Sema/Helpers/SemaMatch.h"
-#include "Sema/Symbol/IdentifierManager.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/CastContext.h"
 #include "Sema/Type/SemaCast.h"
@@ -17,21 +15,20 @@ SWC_BEGIN_NAMESPACE()
 AstVisitStepResult AstVarDecl::semaPreDecl(Sema& sema) const
 {
     if (hasParserFlag(Const))
-    {
-        if (!SemaHelpers::declareNamedSymbol<SymbolConstant>(sema, *this, tokNameRef))
-            return AstVisitStepResult::Stop;
-    }
+        SemaHelpers::declareNamedSymbol<SymbolConstant>(sema, *this, tokNameRef);
     else
-    {
-        if (!SemaHelpers::declareNamedSymbol<SymbolVariable>(sema, *this, tokNameRef))
-            return AstVisitStepResult::Stop;
-    }
-
+        SemaHelpers::declareNamedSymbol<SymbolVariable>(sema, *this, tokNameRef);
     return AstVisitStepResult::SkipChildren;
 }
 
-void AstVarDecl::semaEnterNode(Sema& sema)
+void AstVarDecl::semaEnterNode(Sema& sema) const
 {
+    if (!sema.curScope().isTopLevel())
+    {
+        SWC_ASSERT(!sema.hasSymbol(sema.curNodeRef()));
+        semaPreDecl(sema);
+    }
+
     Symbol& sym = sema.symbolOf(sema.curNodeRef());
     sym.registerAttributes(sema);
     sym.setDeclared(sema.ctx());

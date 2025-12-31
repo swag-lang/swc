@@ -43,6 +43,9 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
         case TypeInfoKind::Struct:
             asStruct = other.asStruct;
             break;
+        case TypeInfoKind::Interface:
+            asInterface = other.asInterface;
+            break;
 
         case TypeInfoKind::Array:
             std::construct_at(&asArray, other.asArray);
@@ -104,6 +107,9 @@ TypeInfo& TypeInfo::operator=(const TypeInfo& other)
         case TypeInfoKind::Struct:
             asStruct = other.asStruct;
             break;
+        case TypeInfoKind::Interface:
+            asInterface = other.asInterface;
+            break;            
 
         case TypeInfoKind::Array:
             new (&asArray) decltype(asArray)(other.asArray);
@@ -147,6 +153,8 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
             return asEnum.sym == other.asEnum.sym;
         case TypeInfoKind::Struct:
             return asStruct.sym == other.asStruct.sym;
+        case TypeInfoKind::Interface:
+            return asInterface.sym == other.asInterface.sym;
 
         case TypeInfoKind::Array:
             if (asArray.dims.size() != other.asArray.dims.size())
@@ -360,6 +368,14 @@ TypeInfo TypeInfo::makeStruct(SymbolStruct* structSym)
     return ti;
 }
 
+TypeInfo TypeInfo::makeInterface(SymbolInterface* itfSym)
+{
+    TypeInfo ti{TypeInfoKind::Interface};
+    ti.asInterface.sym = itfSym;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return ti;
+}
+
 TypeInfo TypeInfo::makeValuePointer(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 {
     TypeInfo ti{TypeInfoKind::ValuePointer, flags};
@@ -427,6 +443,9 @@ uint32_t TypeInfo::hash() const
             return h;
         case TypeInfoKind::Struct:
             h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asStruct.sym));
+            return h;
+        case TypeInfoKind::Interface:
+            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asInterface.sym));
             return h;
         case TypeInfoKind::Array:
             h = Math::hashCombine(h, asArray.typeRef.get());

@@ -78,8 +78,8 @@ SWC_NODE_DEF(InterfaceBody, AstNodeIdFlagsE::Zero)
 
 // Structs & Unions
 SWC_NODE_DEF(AggregateBody, AstNodeIdFlagsE::Zero)
-SWC_NODE_DEF(StructDecl, AstNodeIdFlagsE::Zero)
-SWC_NODE_DEF(UnionDecl, AstNodeIdFlagsE::Zero)
+SWC_NODE_DEF(StructDecl, AstNodeIdFlagsE::SemaJob)
+SWC_NODE_DEF(UnionDecl, AstNodeIdFlagsE::SemaJob)
 SWC_NODE_DEF(AnonymousStructDecl, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(AnonymousUnionDecl, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(UsingMemberDecl, AstNodeIdFlagsE::Zero)

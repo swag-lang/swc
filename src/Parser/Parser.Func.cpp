@@ -252,7 +252,6 @@ AstNodeRef Parser::parseFunctionDecl()
         nodePtr->nodeBodyRef = parseExpression();
     else
         nodePtr->nodeBodyRef = parseFunctionBody();
-
     return nodeRef;
 }
 
@@ -261,7 +260,6 @@ AstNodeRef Parser::parseAttrDecl()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AttrDecl>(consume());
     nodePtr->tokNameRef     = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
     nodePtr->nodeParamsRef  = parseFunctionParamList();
-
     return nodeRef;
 }
 

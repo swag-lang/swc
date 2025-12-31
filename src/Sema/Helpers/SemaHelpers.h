@@ -16,11 +16,10 @@ namespace SemaHelpers
         SymbolMap*          symbolMap = SemaFrame::currentSymMap(sema);
 
         T* sym = Symbol::make<T>(ctx, node.srcViewRef(), tokNameRef, idRef, flags);
-        if (!symbolMap->addSymbol(ctx, sym, true))
-            return nullptr;
-
+        symbolMap->addSymbol(ctx, sym, true);
         sym->registerCompilerIf(sema);
         sema.setSymbol(sema.curNodeRef(), sym);
+
         return sym;
     }
 };

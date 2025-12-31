@@ -16,9 +16,30 @@ SWC_BEGIN_NAMESPACE()
 
 AstVisitStepResult AstEnumDecl::semaPreDecl(Sema& sema) const
 {
-    if (!SemaHelpers::declareNamedSymbol<SymbolEnum>(sema, *this, tokNameRef))
-        return AstVisitStepResult::Stop;
+    SemaHelpers::declareNamedSymbol<SymbolEnum>(sema, *this, tokNameRef);
     return AstVisitStepResult::Continue;
+}
+
+void AstEnumDecl::semaEnterNode(Sema& sema)
+{
+    Symbol& sym = sema.symbolOf(sema.curNodeRef());
+    sym.registerAttributes(sema);
+
+    // Runtime: enum 'AttributeUsage' is forced to be in flag mode.
+    // (we can't rely on #[Swag.EnumFlags] as attributes are constructed there)
+    if (sym.symMap()->isSwagNamespace(sema.ctx()))
+    {
+        if (sym.idRef() == sema.idMgr().nameAttributeUsage())
+            sym.attributes().flags = AttributeFlagsE::EnumFlags;
+    }
+
+    sym.setDeclared(sema.ctx());
+}
+
+AstVisitStepResult AstEnumDecl::semaPreNode(Sema& sema)
+{
+    const Symbol& sym = sema.symbolOf(sema.curNodeRef());
+    return SemaMatch::ghosting(sema, sym);
 }
 
 AstVisitStepResult AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -76,28 +97,6 @@ AstVisitStepResult AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     sema.curScope().setSymMap(&sym);
 
     return AstVisitStepResult::Continue;
-}
-
-void AstEnumDecl::semaEnterNode(Sema& sema)
-{
-    Symbol& sym = sema.symbolOf(sema.curNodeRef());
-    sym.registerAttributes(sema);
-
-    // Runtime: enum 'AttributeUsage' is forced to be in flag mode.
-    // (we can't rely on #[Swag.EnumFlags] as attributes are constructed there)
-    if (sym.symMap()->isSwagNamespace(sema.ctx()))
-    {
-        if (sym.idRef() == sema.idMgr().nameAttributeUsage())
-            sym.attributes().flags = AttributeFlagsE::EnumFlags;
-    }
-
-    sym.setDeclared(sema.ctx());
-}
-
-AstVisitStepResult AstEnumDecl::semaPreNode(Sema& sema)
-{
-    const Symbol& sym = sema.symbolOf(sema.curNodeRef());
-    return SemaMatch::ghosting(sema, sym);
 }
 
 AstVisitStepResult AstEnumDecl::semaPostNode(Sema& sema) const

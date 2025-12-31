@@ -42,23 +42,14 @@ AstVisitStepResult AstEnumDecl::semaPreNode(Sema& sema)
     return SemaMatch::ghosting(sema, sym);
 }
 
-AstVisitStepResult AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+namespace
 {
-    if (childRef != nodeBodyRef)
-        return AstVisitStepResult::Continue;
-
-    auto&       ctx = sema.ctx();
-    SymbolEnum& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolEnum>();
-
-    // Check type if specified
-    SemaNodeView typeView(sema, nodeTypeRef);
-    if (nodeTypeRef.isValid())
+    bool validateEnumUnderlyingType(Sema& sema, const SymbolEnum& sym, const SemaNodeView& typeView, AstNodeRef typeNodeRef)
     {
-        if (sym.isEnumFlags() &&
-            !typeView.type->isIntUnsigned())
+        if (sym.isEnumFlags() && !typeView.type->isIntUnsigned())
         {
-            SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_flags_type, nodeTypeRef);
-            return AstVisitStepResult::Stop;
+            SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_flags_type, typeNodeRef);
+            return false;
         }
 
         if (!typeView.type->isScalarNumeric() &&
@@ -66,32 +57,57 @@ AstVisitStepResult AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& c
             !typeView.type->isRune() &&
             !typeView.type->isString())
         {
-            SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_type, nodeTypeRef);
-            return AstVisitStepResult::Stop;
+            SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_type, typeNodeRef);
+            return false;
         }
+
+        return true;
     }
 
-    // Default enum type is 's32/u32'
-    else
+    TypeRef resolveEnumUnderlyingType(Sema& sema, const SymbolEnum& sym, SemaNodeView& typeView)
     {
-        typeView.typeRef = sema.typeMgr().getTypeInt(32, sym.isEnumFlags() ? TypeInfo::Sign::Unsigned : TypeInfo::Sign::Signed);
+        if (typeView.nodeRef.isValid())
+            return typeView.typeRef;
+
+        const auto sign  = sym.isEnumFlags() ? TypeInfo::Sign::Unsigned : TypeInfo::Sign::Signed;
+        typeView.typeRef = sema.typeMgr().getTypeInt(32, sign);
         typeView.type    = &sema.typeMgr().get(typeView.typeRef);
+        return typeView.typeRef;
     }
 
-    // Creates symbol with type
-    const TypeInfo enumType    = TypeInfo::makeEnum(&sym);
-    const TypeRef  enumTypeRef = ctx.typeMgr().addType(enumType);
-    sym.setTypeRef(enumTypeRef);
-    sym.setUnderlyingTypeRef(typeView.typeRef);
-
-    // Default first value
-    if (typeView.type->isInt())
+    void initEnumNextValue(SymbolEnum& sym, const TypeInfo& underlyingType)
     {
+        if (!underlyingType.isInt())
+            return;
+
+        const bool isUnsigned = underlyingType.isIntUnsigned();
+        const auto bits       = underlyingType.intBits();
+
         if (sym.isEnumFlags())
-            sym.setNextValue(ApsInt{1, typeView.type->intBits(), typeView.type->isIntUnsigned()});
+            sym.setNextValue(ApsInt{1, bits, isUnsigned});
         else
-            sym.setNextValue(ApsInt{typeView.type->intBits(), typeView.type->isIntUnsigned()});
+            sym.setNextValue(ApsInt{bits, isUnsigned});
     }
+}
+
+AstVisitStepResult AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeBodyRef)
+        return AstVisitStepResult::Continue;
+
+    SymbolEnum&  sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolEnum>();
+    SemaNodeView typeView(sema, nodeTypeRef);
+
+    if (nodeTypeRef.isValid() && !validateEnumUnderlyingType(sema, sym, typeView, nodeTypeRef))
+        return AstVisitStepResult::Stop;
+
+    const TypeRef  underlyingTypeRef = resolveEnumUnderlyingType(sema, sym, typeView);
+    const TypeInfo enumType          = TypeInfo::makeEnum(&sym);
+    const TypeRef  enumTypeRef       = sema.typeMgr().addType(enumType);
+    sym.setTypeRef(enumTypeRef);
+    sym.setUnderlyingTypeRef(underlyingTypeRef);
+
+    initEnumNextValue(sym, *typeView.type);
 
     sema.pushScope(SemaScopeFlagsE::Type);
     sema.curScope().setSymMap(&sym);

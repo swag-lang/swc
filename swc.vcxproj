@@ -277,6 +277,7 @@
         <ClCompile Include="src\Sema\Symbol\IdentifierManager.cpp"/>
         <ClCompile Include="src\Sema\Symbol\SymbolMap.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Symbol.cpp"/>
+        <ClCompile Include="src\Sema\Symbol\Symbols.cpp"/>
         <ClCompile Include="src\Sema\Type\CastContext.cpp"/>
         <ClCompile Include="src\Sema\Type\SemaCast.Const.cpp"/>
         <ClCompile Include="src\Sema\Type\SemaCast.Convert.cpp"/>

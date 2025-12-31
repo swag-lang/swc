@@ -23,16 +23,6 @@ using FileRef = StrongRef<SourceFile>;
 
 class SourceFile
 {
-    static constexpr int      TRAILING_0 = 4; // Number of '\0' forced at the end of the file
-    FileRef                   fileRef_   = FileRef::invalid();
-    fs::path                  path_;
-    std::vector<char8_t>      content_;
-    FileFlags                 flags_ = FileFlagsE::Zero;
-    std::unique_ptr<SemaInfo> semaInfo_;
-    std::unique_ptr<Verify>   unitTest_;
-    bool                      hasError_   = false;
-    bool                      hasWarning_ = false;
-
 public:
     explicit SourceFile(FileRef fileRef, fs::path path, FileFlags flags);
     ~SourceFile();
@@ -61,6 +51,17 @@ public:
     bool hasWarning() const { return hasWarning_; }
 
     Result loadContent(TaskContext& ctx);
+
+private:
+    static constexpr int      TRAILING_0 = 4; // Number of '\0' forced at the end of the file
+    FileRef                   fileRef_   = FileRef::invalid();
+    fs::path                  path_;
+    std::vector<char8_t>      content_;
+    FileFlags                 flags_ = FileFlagsE::Zero;
+    std::unique_ptr<SemaInfo> semaInfo_;
+    std::unique_ptr<Verify>   unitTest_;
+    bool                      hasError_   = false;
+    bool                      hasWarning_ = false;
 };
 
 SWC_END_NAMESPACE()

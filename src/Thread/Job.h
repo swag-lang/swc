@@ -48,11 +48,6 @@ struct JobRecord
 
 class Job
 {
-    TaskContext ctx_;
-    JobKind     kind_  = JobKind::Invalid;
-    JobManager* owner_ = nullptr; // which manager, if any, owns this job right now
-    JobRecord*  rec_   = nullptr; // scheduler state for THIS manager run (from the pool)
-
 public:
     explicit Job(const TaskContext& ctx, JobKind kind) :
         ctx_(ctx),
@@ -96,6 +91,12 @@ public:
     {
         return kind_ == T::K ? static_cast<T*>(this) : nullptr;
     }
+
+private:
+    TaskContext ctx_;
+    JobKind     kind_  = JobKind::Invalid;
+    JobManager* owner_ = nullptr; // which manager, if any, owns this job right now
+    JobRecord*  rec_   = nullptr; // scheduler state for THIS manager run (from the pool)
 };
 
 SWC_END_NAMESPACE()

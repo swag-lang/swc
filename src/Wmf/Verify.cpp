@@ -214,6 +214,70 @@ namespace
     }
 }
 
+void Verify::tokenize(TaskContext& ctx)
+{
+    if (!ctx.cmdLine().verify)
+        return;
+
+    srcView_ = &ctx.compiler().addSourceView(file_->ref());
+
+    // Get all comments from the file
+    Lexer lexer;
+    lexer.tokenizeRaw(ctx, *srcView_);
+
+    // Parse all comments to find a verify directive
+    for (const auto& trivia : srcView_->trivia())
+    {
+        const std::string_view comment = trivia.tok.string(*srcView_);
+        if (trivia.tok.is(TokenId::CommentLine))
+        {
+            tokenizeExpected(ctx, trivia, comment);
+            tokenizeOption(ctx, comment);
+        }
+    }
+}
+
+bool Verify::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) const
+{
+    if (directives_.empty())
+        return false;
+
+    for (auto& elem : diag.elements())
+    {
+        const SourceCodeLocation loc = elem->location(0, ctx);
+        for (auto& directive : directives_)
+        {
+            if (directive.kind != elem->severity())
+                continue;
+
+            if (!directive.matchesLine(loc.line))
+                continue;
+
+            if (elem->idName().find(directive.match) == Utf8::npos &&
+                elem->message().find(directive.match) == Utf8::npos)
+                continue;
+
+            directive.touched = true;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void Verify::verifyUntouchedExpected(TaskContext& ctx, const SourceView& srcView) const
+{
+    for (const auto& directive : directives_)
+    {
+        if (!directive.touched)
+        {
+            const auto diag = Diagnostic::get(DiagnosticId::unittest_err_not_raised, srcView.fileRef());
+            diag.last().addSpan(directive.myLoc, "");
+            diag.report(ctx);
+        }
+    }
+}
+
 void Verify::tokenizeOption(const TaskContext& ctx, std::string_view comment)
 {
     const auto& langSpec = ctx.global().langSpec();
@@ -335,70 +399,6 @@ void Verify::tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia
         }
 
         pos = i;
-    }
-}
-
-void Verify::tokenize(TaskContext& ctx)
-{
-    if (!ctx.cmdLine().verify)
-        return;
-
-    srcView_ = &ctx.compiler().addSourceView(file_->ref());
-
-    // Get all comments from the file
-    Lexer lexer;
-    lexer.tokenizeRaw(ctx, *srcView_);
-
-    // Parse all comments to find a verify directive
-    for (const auto& trivia : srcView_->trivia())
-    {
-        const std::string_view comment = trivia.tok.string(*srcView_);
-        if (trivia.tok.is(TokenId::CommentLine))
-        {
-            tokenizeExpected(ctx, trivia, comment);
-            tokenizeOption(ctx, comment);
-        }
-    }
-}
-
-bool Verify::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) const
-{
-    if (directives_.empty())
-        return false;
-
-    for (auto& elem : diag.elements())
-    {
-        const SourceCodeLocation loc = elem->location(0, ctx);
-        for (auto& directive : directives_)
-        {
-            if (directive.kind != elem->severity())
-                continue;
-
-            if (!directive.matchesLine(loc.line))
-                continue;
-
-            if (elem->idName().find(directive.match) == Utf8::npos &&
-                elem->message().find(directive.match) == Utf8::npos)
-                continue;
-
-            directive.touched = true;
-            return true;
-        }
-    }
-
-    return false;
-}
-
-void Verify::verifyUntouchedExpected(TaskContext& ctx, const SourceView& srcView) const
-{
-    for (const auto& directive : directives_)
-    {
-        if (!directive.touched)
-        {
-            const auto diag = Diagnostic::get(DiagnosticId::unittest_err_not_raised, srcView.fileRef());
-            diag.last().addSpan(directive.myLoc, "");
-            diag.report(ctx);
-        }
     }
 }
 

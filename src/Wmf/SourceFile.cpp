@@ -11,8 +11,6 @@
 
 SWC_BEGIN_NAMESPACE()
 
-SourceFile::~SourceFile() = default;
-
 SourceFile::SourceFile(FileRef fileRef, fs::path path, FileFlags flags) :
     fileRef_(fileRef),
     path_(std::move(path)),
@@ -21,6 +19,8 @@ SourceFile::SourceFile(FileRef fileRef, fs::path path, FileFlags flags) :
     semaInfo_ = std::make_unique<SemaInfo>();
     unitTest_ = std::make_unique<Verify>(this);
 }
+
+SourceFile::~SourceFile() = default;
 
 Ast& SourceFile::ast()
 {

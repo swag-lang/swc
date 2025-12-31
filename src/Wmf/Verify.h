@@ -58,14 +58,6 @@ using VerifyFlags = EnumFlags<VerifyFlagsE>;
 
 class Verify
 {
-    SourceFile*                  file_    = nullptr;
-    SourceView*                  srcView_ = nullptr;
-    std::vector<VerifyDirective> directives_;
-    VerifyFlags                  flags_ = VerifyFlagsE::Zero;
-
-    void tokenizeOption(const TaskContext& ctx, std::string_view comment);
-    void tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia, std::string_view comment);
-
 public:
     explicit Verify(SourceFile* file) :
         file_(file)
@@ -76,6 +68,15 @@ public:
     bool hasFlag(VerifyFlagsE flag) const { return flags_.has(flag); }
     bool verifyExpected(const TaskContext& ctx, const Diagnostic& diag) const;
     void verifyUntouchedExpected(TaskContext& ctx, const SourceView& srcView) const;
+
+private:
+    SourceFile*                  file_    = nullptr;
+    SourceView*                  srcView_ = nullptr;
+    std::vector<VerifyDirective> directives_;
+    VerifyFlags                  flags_ = VerifyFlagsE::Zero;
+
+    void tokenizeOption(const TaskContext& ctx, std::string_view comment);
+    void tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia, std::string_view comment);
 };
 
 SWC_END_NAMESPACE()

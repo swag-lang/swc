@@ -12,26 +12,26 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstVisitStepResult AstStructDecl::semaPreDecl(Sema& sema) const
+AstVisitStepResult AstInterfaceDecl::semaPreDecl(Sema& sema) const
 {
-    SemaHelpers::declareNamedSymbol<SymbolStruct>(sema, *this, tokNameRef);
+    SemaHelpers::declareNamedSymbol<SymbolInterface>(sema, *this, tokNameRef);
     return AstVisitStepResult::SkipChildren;
 }
 
-void AstStructDecl::semaEnterNode(Sema& sema)
+void AstInterfaceDecl::semaEnterNode(Sema& sema)
 {
     Symbol& sym = sema.symbolOf(sema.curNodeRef());
     sym.registerAttributes(sema);
     sym.setDeclared(sema.ctx());
 }
 
-AstVisitStepResult AstStructDecl::semaPreNode(Sema& sema)
+AstVisitStepResult AstInterfaceDecl::semaPreNode(Sema& sema)
 {
     const Symbol& sym = sema.symbolOf(sema.curNodeRef());
     return SemaMatch::ghosting(sema, sym);
 }
 
-AstVisitStepResult AstStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+AstVisitStepResult AstInterfaceDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef != nodeBodyRef)
         return AstVisitStepResult::Continue;
@@ -39,10 +39,10 @@ AstVisitStepResult AstStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef&
     auto& ctx = sema.ctx();
 
     // Creates symbol with type
-    SymbolStruct&  sym           = sema.symbolOf(sema.curNodeRef()).cast<SymbolStruct>();
-    const TypeInfo structType    = TypeInfo::makeStruct(&sym);
-    const TypeRef  structTypeRef = ctx.typeMgr().addType(structType);
-    sym.setTypeRef(structTypeRef);
+    SymbolInterface& sym        = sema.symbolOf(sema.curNodeRef()).cast<SymbolInterface>();
+    const TypeInfo   itfType    = TypeInfo::makeInterface(&sym);
+    const TypeRef    itfTypeRef = ctx.typeMgr().addType(itfType);
+    sym.setTypeRef(itfTypeRef);
 
     sema.pushScope(SemaScopeFlagsE::Type);
     sema.curScope().setSymMap(&sym);
@@ -50,7 +50,7 @@ AstVisitStepResult AstStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef&
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstStructDecl::semaPostNode(Sema& sema)
+AstVisitStepResult AstInterfaceDecl::semaPostNode(Sema& sema)
 {
     sema.curSymMap()->setComplete(sema.ctx());
     sema.popScope();

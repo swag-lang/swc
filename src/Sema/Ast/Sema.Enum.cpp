@@ -42,14 +42,23 @@ AstVisitStepResult AstEnumDecl::semaPreNode(Sema& sema)
     return SemaMatch::ghosting(sema, sym);
 }
 
-namespace
+AstVisitStepResult AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    bool validateEnumUnderlyingType(Sema& sema, const SymbolEnum& sym, const SemaNodeView& typeView, AstNodeRef typeNodeRef)
+    if (childRef != nodeBodyRef)
+        return AstVisitStepResult::Continue;
+
+    auto&       ctx = sema.ctx();
+    SymbolEnum& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolEnum>();
+
+    // Check type if specified
+    SemaNodeView typeView(sema, nodeTypeRef);
+    if (nodeTypeRef.isValid())
     {
-        if (sym.isEnumFlags() && !typeView.type->isIntUnsigned())
+        if (sym.isEnumFlags() &&
+            !typeView.type->isIntUnsigned())
         {
-            SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_flags_type, typeNodeRef);
-            return false;
+            SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_flags_type, nodeTypeRef);
+            return AstVisitStepResult::Stop;
         }
 
         if (!typeView.type->isScalarNumeric() &&
@@ -57,57 +66,32 @@ namespace
             !typeView.type->isRune() &&
             !typeView.type->isString())
         {
-            SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_type, typeNodeRef);
-            return false;
+            SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_type, nodeTypeRef);
+            return AstVisitStepResult::Stop;
         }
-
-        return true;
     }
 
-    TypeRef resolveEnumUnderlyingType(Sema& sema, const SymbolEnum& sym, SemaNodeView& typeView)
+    // Default enum type is 's32/u32'
+    else
     {
-        if (typeView.nodeRef.isValid())
-            return typeView.typeRef;
-
-        const auto sign  = sym.isEnumFlags() ? TypeInfo::Sign::Unsigned : TypeInfo::Sign::Signed;
-        typeView.typeRef = sema.typeMgr().getTypeInt(32, sign);
+        typeView.typeRef = sema.typeMgr().getTypeInt(32, sym.isEnumFlags() ? TypeInfo::Sign::Unsigned : TypeInfo::Sign::Signed);
         typeView.type    = &sema.typeMgr().get(typeView.typeRef);
-        return typeView.typeRef;
     }
 
-    void initEnumNextValue(SymbolEnum& sym, const TypeInfo& underlyingType)
-    {
-        if (!underlyingType.isInt())
-            return;
-
-        const bool isUnsigned = underlyingType.isIntUnsigned();
-        const auto bits       = underlyingType.intBits();
-
-        if (sym.isEnumFlags())
-            sym.setNextValue(ApsInt{1, bits, isUnsigned});
-        else
-            sym.setNextValue(ApsInt{bits, isUnsigned});
-    }
-}
-
-AstVisitStepResult AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
-{
-    if (childRef != nodeBodyRef)
-        return AstVisitStepResult::Continue;
-
-    SymbolEnum& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolEnum>();
-
-    SemaNodeView typeView(sema, nodeTypeRef);
-    if (nodeTypeRef.isValid() && !validateEnumUnderlyingType(sema, sym, typeView, nodeTypeRef))
-        return AstVisitStepResult::Stop;
-
-    const TypeRef  underlyingTypeRef = resolveEnumUnderlyingType(sema, sym, typeView);
-    const TypeInfo enumType          = TypeInfo::makeEnum(&sym);
-    const TypeRef  enumTypeRef       = sema.typeMgr().addType(enumType);
+    // Creates symbol with type
+    const TypeInfo enumType    = TypeInfo::makeEnum(&sym);
+    const TypeRef  enumTypeRef = ctx.typeMgr().addType(enumType);
     sym.setTypeRef(enumTypeRef);
-    sym.setUnderlyingTypeRef(underlyingTypeRef);
+    sym.setUnderlyingTypeRef(typeView.typeRef);
 
-    initEnumNextValue(sym, *typeView.type);
+    // Default first value
+    if (typeView.type->isInt())
+    {
+        if (sym.isEnumFlags())
+            sym.setNextValue(ApsInt{1, typeView.type->intBits(), typeView.type->isIntUnsigned()});
+        else
+            sym.setNextValue(ApsInt{typeView.type->intBits(), typeView.type->isIntUnsigned()});
+    }
 
     sema.pushScope(SemaScopeFlagsE::Type);
     sema.curScope().setSymMap(&sym);
@@ -138,8 +122,6 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
     const TypeInfo& underlyingType    = symEnum.underlyingType(ctx);
 
     ConstantRef valueCst;
-
-    // Explicit value
     if (nodeInitView.nodeRef.isValid())
     {
         if (nodeInitView.cstRef.isInvalid())
@@ -157,8 +139,6 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
         const ConstantValue& cstVal = sema.cstMgr().get(valueCst);
         symEnum.assignExplicitValue(sema, cstVal);
     }
-
-    // Deduced value
     else
     {
         if (!underlyingType.isInt())
@@ -182,9 +162,10 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
     }
 
     // Create a symbol for this enum value
-    const IdentifierRef idRef    = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokRef());
-    SymbolFlags         flags    = SymbolFlagsE::Complete | SymbolFlagsE::Declared;
-    SymbolEnumValue*    symValue = Symbol::make<SymbolEnumValue>(ctx, srcViewRef(), tokRef(), idRef, flags);
+    const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokRef());
+
+    SymbolFlags      flags    = SymbolFlagsE::Complete | SymbolFlagsE::Declared;
+    SymbolEnumValue* symValue = Symbol::make<SymbolEnumValue>(ctx, srcViewRef(), tokRef(), idRef, flags);
     symValue->registerCompilerIf(sema);
 
     ConstantValue enumCst    = ConstantValue::makeEnumValue(ctx, valueCst, symEnum.typeRef());

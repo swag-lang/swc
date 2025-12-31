@@ -516,4 +516,39 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
     }
 }
 
+uint32_t TypeInfo::alignOf(TaskContext& ctx) const
+{
+    switch (kind_)
+    {
+        case TypeInfoKind::Void:
+        case TypeInfoKind::Bool:
+        case TypeInfoKind::Char:
+        case TypeInfoKind::Rune:
+        case TypeInfoKind::Int:
+        case TypeInfoKind::Float:
+        case TypeInfoKind::CString:
+        case TypeInfoKind::ValuePointer:
+        case TypeInfoKind::BlockPointer:
+        case TypeInfoKind::Slice:
+        case TypeInfoKind::String:
+        case TypeInfoKind::Interface:
+        case TypeInfoKind::Any:
+            return static_cast<uint32_t>(sizeOf(ctx));
+
+        case TypeInfoKind::Array:
+            return ctx.typeMgr().get(asArray.typeRef).alignOf(ctx);
+
+        case TypeInfoKind::Struct:
+            return structSym().alignment();
+        case TypeInfoKind::Enum:
+            return enumSym().underlyingType(ctx).alignOf(ctx);
+
+        case TypeInfoKind::TypeValue:
+            return ctx.typeMgr().get(asTypeRef.typeRef).alignOf(ctx);
+
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
 SWC_END_NAMESPACE()

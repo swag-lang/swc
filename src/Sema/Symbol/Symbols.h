@@ -139,6 +139,7 @@ public:
     }
 
     uint64_t                    sizeOf(TaskContext& ctx) const { return sizeInBytes_; }
+    uint32_t                    alignment() const { return alignment_; }
     std::vector<Symbol*>&       fields() { return fields_; }
     const std::vector<Symbol*>& fields() const { return fields_; }
     void                        computeLayout(Sema& sema);

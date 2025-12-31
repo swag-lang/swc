@@ -57,19 +57,19 @@ void SymbolStruct::computeLayout(Sema& sema)
 
     for (const auto field : fields_)
     {
-        SymbolVariable& symVar = field->cast<SymbolVariable>();
+        auto& symVar = field->cast<SymbolVariable>();
         if (symVar.isIgnored())
             continue;
         if (symVar.typeRef().isInvalid())
             continue; // TODO
 
-        const TypeInfo& type = symVar.typeInfo(ctx);
+        auto& type = symVar.typeInfo(ctx);
 
-        const uint64_t sizeOf  = type.sizeOf(ctx);
-        const uint64_t alignOf = std::max(1ULL, sizeOf); // TODO: implement real alignOf, for now use sizeOf
-        alignment_             = static_cast<uint32_t>(std::max(static_cast<uint64_t>(alignment_), alignOf));
+        const auto sizeOf  = type.sizeOf(ctx);
+        const auto alignOf = type.alignOf(ctx);
+        alignment_         = std::max(alignment_, alignOf);
 
-        const uint64_t padding = (alignOf - (sizeInBytes_ % alignOf)) % alignOf;
+        const auto padding = (alignOf - (sizeInBytes_ % alignOf)) % alignOf;
         sizeInBytes_ += padding;
 
         symVar.setOffset(static_cast<uint32_t>(sizeInBytes_));
@@ -81,8 +81,6 @@ void SymbolStruct::computeLayout(Sema& sema)
         const auto padding = (alignment_ - (sizeInBytes_ % alignment_)) % alignment_;
         sizeInBytes_ += padding;
     }
-
-    sizeInBytes_ = std::max(sizeInBytes_, 1ULL);
 }
 
 SWC_END_NAMESPACE()

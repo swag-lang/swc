@@ -1,15 +1,5 @@
 #pragma once
-#include "Math/Hash.h"
 #include "Sema/Symbol/Symbol.h"
-
-template<>
-struct std::hash<swc::IdentifierRef>
-{
-    size_t operator()(const swc::IdentifierRef& r) const noexcept
-    {
-        return swc::Math::hash(r.get());
-    }
-};
 
 SWC_BEGIN_NAMESPACE()
 

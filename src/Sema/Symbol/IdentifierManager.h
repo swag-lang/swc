@@ -2,6 +2,7 @@
 #include "Core/Store.h"
 #include "Core/StringMap.h"
 #include "Lexer/SourceView.h"
+#include "Math/Hash.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -47,3 +48,12 @@ private:
 };
 
 SWC_END_NAMESPACE()
+
+template<>
+struct std::hash<swc::IdentifierRef>
+{
+    size_t operator()(const swc::IdentifierRef& r) const noexcept
+    {
+        return swc::Math::hash(r.get());
+    }
+};

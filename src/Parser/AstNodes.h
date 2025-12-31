@@ -244,7 +244,7 @@ struct AstGenericParamT : AstNodeT<I>
 // -----------------------------------------------------------------------------
 
 // ReSharper disable once CppUnusedIncludeDirective
-#include "Parser/AstNodesStruct.inc"
+#include "Parser/AstNodes.Struct.inc"
 
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
@@ -258,7 +258,7 @@ struct AstTypeOf;
     {                                   \
         using type = Ast##__enum;       \
     };
-#include "Parser/AstNodesDef.inc"
+#include "Parser/AstNodes.Def.inc"
 #undef SWC_NODE_DEF
 
 template<class F>
@@ -269,7 +269,7 @@ decltype(auto) visitAstNodeId(AstNodeId id, F f)
 #define SWC_NODE_DEF(__enum, __flags) \
     case AstNodeId::__enum:           \
         return std::forward<F>(f).template operator()<AstNodeId::__enum>();
-#include "Parser/AstNodesDef.inc"
+#include "Parser/AstNodes.Def.inc"
 
 #undef SWC_NODE_DEF
         default:
@@ -377,7 +377,7 @@ constexpr std::array AST_NODE_ID_INFOS = {
                                           &semaPreNode<AstNodeId::__enum>,      \
                                           &semaPreNodeChild<AstNodeId::__enum>, \
                                           &semaPostNode<AstNodeId::__enum>},
-#include "Parser/AstNodesDef.inc"
+#include "Parser/AstNodes.Def.inc"
 
 #undef SWC_NODE_DEF
 };

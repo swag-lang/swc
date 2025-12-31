@@ -133,12 +133,14 @@ public:
     static TypeInfo makeArray(const std::vector<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
 
     uint32_t hash() const;
+    uint64_t sizeInBytes() const noexcept { return sizeInBytes_; }
 
 private:
-    explicit TypeInfo(TypeInfoKind kind, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    explicit TypeInfo(TypeInfoKind kind, TypeInfoFlags flags = TypeInfoFlagsE::Zero, uint32_t sizeInBytes = 0);
 
-    TypeInfoKind  kind_  = TypeInfoKind::Invalid;
-    TypeInfoFlags flags_ = TypeInfoFlagsE::Zero;
+    uint64_t      sizeInBytes_ = 0;
+    TypeInfoKind  kind_        = TypeInfoKind::Invalid;
+    TypeInfoFlags flags_       = TypeInfoFlagsE::Zero;
 
     union
     {

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Sema/Core/Sema.h"
 #include "Main/Global.h"
 #include "Main/Version.h"
 #include "Parser/AstNodes.h"
@@ -7,7 +8,6 @@
 #include "Report/Logger.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Constant/ConstantValue.h"
-#include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
@@ -345,6 +345,21 @@ namespace
         return semaCompilerTypeOf(sema, node);
     }
 
+    AstVisitStepResult semaCompilerSizeOf(Sema& sema, const AstCompilerCallUnary& node)
+    {
+        SemaNodeView nodeView(sema, node.nodeArgRef);
+
+        if (nodeView.type->isTypeValue())
+            nodeView.type = &sema.typeMgr().get(nodeView.type->typeRef());
+
+        const ApsInt      value{nodeView.type->sizeInBytes(), 64};
+        const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeInt(sema.ctx(), value, 64, TypeInfo::Sign::Unsigned));
+
+        nodeView.setCstRef(sema, cstRef);
+        sema.setConstant(sema.curNodeRef(), cstRef);
+        return AstVisitStepResult::Continue;
+    }
+
     AstVisitStepResult semaCompilerNameOf(Sema& sema, const AstCompilerCallUnary& node)
     {
         auto&              ctx = sema.ctx();
@@ -427,10 +442,11 @@ AstVisitStepResult AstCompilerCallUnary::semaPostNode(Sema& sema) const
             return semaCompilerNameOf(sema, *this);
         case TokenId::CompilerStringOf:
             return semaCompilerStringOf(sema, *this);
+        case TokenId::CompilerSizeOf:
+            return semaCompilerSizeOf(sema, *this);
         case TokenId::CompilerDefined:
             return semaCompilerDefined(sema, *this);
 
-        case TokenId::CompilerSizeOf:
         case TokenId::CompilerAlignOf:
         case TokenId::CompilerOffsetOf:
         case TokenId::CompilerDeclType:

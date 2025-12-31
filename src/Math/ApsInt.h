@@ -14,6 +14,12 @@ public:
     {
     }
 
+    explicit ApsInt(uint64_t value, uint32_t bitWidth) :
+        ApInt(value, bitWidth),
+        unsigned_(true)
+    {
+    }
+
     explicit ApsInt(const ApInt& value, bool isUnsigned) :
         ApInt(value),
         unsigned_(isUnsigned)

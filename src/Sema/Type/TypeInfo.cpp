@@ -7,6 +7,7 @@
 SWC_BEGIN_NAMESPACE()
 
 TypeInfo::TypeInfo(const TypeInfo& other) :
+    sizeInBytes_(other.sizeInBytes_),
     kind_(other.kind_),
     flags_(other.flags_)
 {
@@ -71,8 +72,9 @@ TypeInfo& TypeInfo::operator=(const TypeInfo& other)
             break;
     }
 
-    kind_  = other.kind_;
-    flags_ = other.flags_;
+    sizeInBytes_ = other.sizeInBytes_;
+    kind_        = other.kind_;
+    flags_       = other.flags_;
 
     // Copy payload for new kind
     switch (kind_)
@@ -109,7 +111,7 @@ TypeInfo& TypeInfo::operator=(const TypeInfo& other)
             break;
         case TypeInfoKind::Interface:
             asInterface = other.asInterface;
-            break;            
+            break;
 
         case TypeInfoKind::Array:
             new (&asArray) decltype(asArray)(other.asArray);
@@ -295,23 +297,24 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
 
 TypeInfo TypeInfo::makeBool()
 {
-    return TypeInfo{TypeInfoKind::Bool};
+    return TypeInfo{TypeInfoKind::Bool, TypeInfoFlagsE::Zero, 1};
 }
 
 TypeInfo TypeInfo::makeChar()
 {
-    return TypeInfo{TypeInfoKind::Char};
+    return TypeInfo{TypeInfoKind::Char, TypeInfoFlagsE::Zero, 4};
 }
 
 TypeInfo TypeInfo::makeString(TypeInfoFlags flags)
 {
-    return TypeInfo{TypeInfoKind::String, flags};
+    return TypeInfo{TypeInfoKind::String, flags, 16};
 }
 
 TypeInfo TypeInfo::makeInt(uint32_t bits, Sign sign)
 {
     TypeInfo ti{TypeInfoKind::Int};
-    ti.asInt = {.bits = bits, .sign = sign};
+    ti.asInt        = {.bits = bits, .sign = sign};
+    ti.sizeInBytes_ = bits / 8;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -319,7 +322,8 @@ TypeInfo TypeInfo::makeInt(uint32_t bits, Sign sign)
 TypeInfo TypeInfo::makeFloat(uint32_t bits)
 {
     TypeInfo ti{TypeInfoKind::Float};
-    ti.asFloat = {.bits = bits};
+    ti.asFloat      = {.bits = bits};
+    ti.sizeInBytes_ = bits / 8;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -334,12 +338,12 @@ TypeInfo TypeInfo::makeTypeValue(TypeRef typeRef)
 
 TypeInfo TypeInfo::makeRune()
 {
-    return TypeInfo{TypeInfoKind::Rune};
+    return TypeInfo{TypeInfoKind::Rune, TypeInfoFlagsE::Zero, 4};
 }
 
 TypeInfo TypeInfo::makeAny(TypeInfoFlags flags)
 {
-    return TypeInfo{TypeInfoKind::Any, flags};
+    return TypeInfo{TypeInfoKind::Any, flags, 16};
 }
 
 TypeInfo TypeInfo::makeVoid()
@@ -349,7 +353,7 @@ TypeInfo TypeInfo::makeVoid()
 
 TypeInfo TypeInfo::makeCString(TypeInfoFlags flags)
 {
-    return TypeInfo{TypeInfoKind::CString, flags};
+    return TypeInfo{TypeInfoKind::CString, flags, 8};
 }
 
 TypeInfo TypeInfo::makeEnum(SymbolEnum* enumSym)
@@ -378,7 +382,7 @@ TypeInfo TypeInfo::makeInterface(SymbolInterface* itfSym)
 
 TypeInfo TypeInfo::makeValuePointer(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 {
-    TypeInfo ti{TypeInfoKind::ValuePointer, flags};
+    TypeInfo ti{TypeInfoKind::ValuePointer, flags, 8};
     ti.asTypeRef.typeRef = pointeeTypeRef;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
@@ -386,7 +390,7 @@ TypeInfo TypeInfo::makeValuePointer(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 
 TypeInfo TypeInfo::makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 {
-    TypeInfo ti{TypeInfoKind::BlockPointer, flags};
+    TypeInfo ti{TypeInfoKind::BlockPointer, flags, 8};
     ti.asTypeRef.typeRef = pointeeTypeRef;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
@@ -394,7 +398,7 @@ TypeInfo TypeInfo::makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 
 TypeInfo TypeInfo::makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 {
-    TypeInfo ti{TypeInfoKind::Slice, flags};
+    TypeInfo ti{TypeInfoKind::Slice, flags, 16};
     ti.asTypeRef.typeRef = pointeeTypeRef;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
@@ -459,7 +463,8 @@ uint32_t TypeInfo::hash() const
 }
 
 // ReSharper disable once CppPossiblyUninitializedMember
-TypeInfo::TypeInfo(TypeInfoKind kind, TypeInfoFlags flags) :
+TypeInfo::TypeInfo(TypeInfoKind kind, TypeInfoFlags flags, uint32_t sizeInBytes) :
+    sizeInBytes_(sizeInBytes),
     kind_(kind),
     flags_(flags)
 {

@@ -2,7 +2,7 @@
 #include "Core/Store.h"
 #include "Main/CompilerInstance.h"
 #include "Sema/Constant/ConstantValue.h"
-#include "Sema/Sema.h"
+#include "Sema/Core/Sema.h"
 
 SWC_BEGIN_NAMESPACE()
 class CompilerInstance;

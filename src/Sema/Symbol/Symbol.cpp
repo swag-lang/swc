@@ -2,7 +2,7 @@
 #include "Sema/Symbol/Symbol.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
-#include "Sema/Sema.h"
+#include "Sema/Core/Sema.h"
 #include "Sema/Symbol/IdentifierManager.h"
 #include "Sema/Symbol/SymbolMap.h"
 #include "Sema/Type/TypeManager.h"

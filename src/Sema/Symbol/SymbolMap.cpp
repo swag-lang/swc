@@ -3,8 +3,8 @@
 #include "LookUpContext.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
+#include "Sema/Core/Sema.h"
 #include "Sema/Helpers/SemaError.h"
-#include "Sema/Sema.h"
 #include "Sema/Symbol/SymbolBigMap.h"
 #include "Sema/Symbol/SymbolMap.h"
 

@@ -2,8 +2,8 @@
 #include "Constant/ConstantManager.h"
 #include "Helpers/SemaCheck.h"
 #include "Helpers/SemaError.h"
+#include "Sema/Core/Sema.h"
 #include "Sema/Helpers/SemaNodeView.h"
-#include "Sema/Sema.h"
 #include "Sema/Type/SemaCast.h"
 #include "Type/CastContext.h"
 

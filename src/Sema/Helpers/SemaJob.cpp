@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Sema/Helpers/SemaJob.h"
-#include "Sema/Sema.h"
+#include "Sema/Core/Sema.h"
 
 SWC_BEGIN_NAMESPACE()
 

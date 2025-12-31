@@ -7,9 +7,9 @@
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticDef.h"
 #include "Sema/Constant/ConstantManager.h"
+#include "Sema/Core/Sema.h"
 #include "Sema/Helpers/SemaInfo.h"
 #include "Sema/Helpers/SemaNodeView.h"
-#include "Sema/Sema.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/SemaCast.h"
 

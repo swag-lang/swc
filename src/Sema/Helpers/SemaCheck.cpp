@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Main/CompilerInstance.h"
+#include "Sema/Core/Sema.h"
 #include "Sema/Helpers/SemaError.h"
-#include "Sema/Sema.h"
 
 SWC_BEGIN_NAMESPACE()
 

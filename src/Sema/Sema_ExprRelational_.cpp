@@ -5,8 +5,8 @@
 #include "Parser/AstVisit.h"
 #include "Report/Diagnostic.h"
 #include "Sema/Constant/ConstantManager.h"
+#include "Sema/Core/Sema.h"
 #include "Sema/Helpers/SemaNodeView.h"
-#include "Sema/Sema.h"
 #include "Sema/Type/SemaCast.h"
 #include "Symbol/Symbols.h"
 

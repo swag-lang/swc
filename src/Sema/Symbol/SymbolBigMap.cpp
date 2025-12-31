@@ -1,7 +1,7 @@
 #include "pch.h"
 
 #include "LookUpContext.h"
-#include "Sema/Sema.h"
+#include "Sema/Core/Sema.h"
 #include "Sema/Symbol/SymbolBigMap.h"
 
 SWC_BEGIN_NAMESPACE()

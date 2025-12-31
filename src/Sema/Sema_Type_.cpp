@@ -4,7 +4,7 @@
 #include "Helpers/SemaNodeView.h"
 #include "Parser/AstVisit.h"
 #include "Sema/Constant/ConstantManager.h"
-#include "Sema/Sema.h"
+#include "Sema/Core/Sema.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()

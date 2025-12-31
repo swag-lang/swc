@@ -2,12 +2,12 @@
 #include "Lexer/LangSpec.h"
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisitResult.h"
+#include "Sema/Core/Sema.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaFrame.h"
 #include "Sema/Helpers/SemaInfo.h"
 #include "Sema/Helpers/SemaMatch.h"
 #include "Sema/Helpers/SemaNodeView.h"
-#include "Sema/Sema.h"
 #include "Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE()

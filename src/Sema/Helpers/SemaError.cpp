@@ -3,8 +3,8 @@
 #include "Core/Utf8Helper.h"
 #include "Main/CompilerInstance.h"
 #include "Report/Diagnostic.h"
+#include "Sema/Core/Sema.h"
 #include "Sema/Helpers/SemaNodeView.h"
-#include "Sema/Sema.h"
 
 SWC_BEGIN_NAMESPACE()
 

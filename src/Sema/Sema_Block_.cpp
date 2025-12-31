@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Lexer/LangSpec.h"
 #include "Main/CompilerInstance.h"
+#include "Sema/Core/Sema.h"
 #include "Sema/Helpers/SemaError.h"
-#include "Sema/Sema.h"
 #include "Sema/Symbol/Symbol.h"
 #include "Sema/Symbol/Symbols.h"
 

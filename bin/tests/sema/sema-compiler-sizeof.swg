@@ -12,3 +12,7 @@
 #assert(#sizeof(f64) == 8)
 #assert(#sizeof(bool) == 1)
 #assert(#sizeof(rune) == 4)
+#assert(#sizeof(any) == 16)
+
+#assert(#sizeof('r') == 4)
+#assert(#sizeof("r") == 16)

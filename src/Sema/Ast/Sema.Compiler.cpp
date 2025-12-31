@@ -352,7 +352,7 @@ namespace
         if (nodeView.type->isTypeValue())
             nodeView.type = &sema.typeMgr().get(nodeView.type->typeRef());
 
-        const ApsInt      value{nodeView.type->sizeInBytes(), 64};
+        const ApsInt      value{nodeView.type->sizeOf(sema.ctx()), 64};
         const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeInt(sema.ctx(), value, 64, TypeInfo::Sign::Unsigned));
 
         nodeView.setCstRef(sema, cstRef);

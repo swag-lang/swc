@@ -100,7 +100,8 @@ public:
     void          setHasNextValue() { addFlag(SymbolFlagsE::EnumHasNextValue); }
     bool          computeNextValue(Sema& sema, SourceViewRef srcViewRef, TokenRef tokRef);
 
-    bool isEnumFlags() const { return attributes().hasFlag(AttributeFlagsE::EnumFlags); }
+    bool     isEnumFlags() const { return attributes().hasFlag(AttributeFlagsE::EnumFlags); }
+    uint64_t sizeOf(TaskContext& ctx) const { return underlyingType(ctx).sizeOf(ctx); }
 };
 
 // -----------------------------------------------------------------------------

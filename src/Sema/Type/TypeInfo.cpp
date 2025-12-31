@@ -7,7 +7,6 @@
 SWC_BEGIN_NAMESPACE()
 
 TypeInfo::TypeInfo(const TypeInfo& other) :
-    sizeInBytes_(other.sizeInBytes_),
     kind_(other.kind_),
     flags_(other.flags_)
 {
@@ -72,9 +71,8 @@ TypeInfo& TypeInfo::operator=(const TypeInfo& other)
             break;
     }
 
-    sizeInBytes_ = other.sizeInBytes_;
-    kind_        = other.kind_;
-    flags_       = other.flags_;
+    kind_  = other.kind_;
+    flags_ = other.flags_;
 
     // Copy payload for new kind
     switch (kind_)
@@ -297,24 +295,23 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
 
 TypeInfo TypeInfo::makeBool()
 {
-    return TypeInfo{TypeInfoKind::Bool, TypeInfoFlagsE::Zero, 1};
+    return TypeInfo{TypeInfoKind::Bool};
 }
 
 TypeInfo TypeInfo::makeChar()
 {
-    return TypeInfo{TypeInfoKind::Char, TypeInfoFlagsE::Zero, 4};
+    return TypeInfo{TypeInfoKind::Char};
 }
 
 TypeInfo TypeInfo::makeString(TypeInfoFlags flags)
 {
-    return TypeInfo{TypeInfoKind::String, flags, 16};
+    return TypeInfo{TypeInfoKind::String, flags};
 }
 
 TypeInfo TypeInfo::makeInt(uint32_t bits, Sign sign)
 {
     TypeInfo ti{TypeInfoKind::Int};
-    ti.asInt        = {.bits = bits, .sign = sign};
-    ti.sizeInBytes_ = bits / 8;
+    ti.asInt = {.bits = bits, .sign = sign};
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -322,8 +319,7 @@ TypeInfo TypeInfo::makeInt(uint32_t bits, Sign sign)
 TypeInfo TypeInfo::makeFloat(uint32_t bits)
 {
     TypeInfo ti{TypeInfoKind::Float};
-    ti.asFloat      = {.bits = bits};
-    ti.sizeInBytes_ = bits / 8;
+    ti.asFloat = {.bits = bits};
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -338,12 +334,12 @@ TypeInfo TypeInfo::makeTypeValue(TypeRef typeRef)
 
 TypeInfo TypeInfo::makeRune()
 {
-    return TypeInfo{TypeInfoKind::Rune, TypeInfoFlagsE::Zero, 4};
+    return TypeInfo{TypeInfoKind::Rune};
 }
 
 TypeInfo TypeInfo::makeAny(TypeInfoFlags flags)
 {
-    return TypeInfo{TypeInfoKind::Any, flags, 16};
+    return TypeInfo{TypeInfoKind::Any, flags};
 }
 
 TypeInfo TypeInfo::makeVoid()
@@ -353,7 +349,7 @@ TypeInfo TypeInfo::makeVoid()
 
 TypeInfo TypeInfo::makeCString(TypeInfoFlags flags)
 {
-    return TypeInfo{TypeInfoKind::CString, flags, 8};
+    return TypeInfo{TypeInfoKind::CString, flags};
 }
 
 TypeInfo TypeInfo::makeEnum(SymbolEnum* enumSym)
@@ -382,7 +378,7 @@ TypeInfo TypeInfo::makeInterface(SymbolInterface* itfSym)
 
 TypeInfo TypeInfo::makeValuePointer(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 {
-    TypeInfo ti{TypeInfoKind::ValuePointer, flags, 8};
+    TypeInfo ti{TypeInfoKind::ValuePointer, flags};
     ti.asTypeRef.typeRef = pointeeTypeRef;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
@@ -390,7 +386,7 @@ TypeInfo TypeInfo::makeValuePointer(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 
 TypeInfo TypeInfo::makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 {
-    TypeInfo ti{TypeInfoKind::BlockPointer, flags, 8};
+    TypeInfo ti{TypeInfoKind::BlockPointer, flags};
     ti.asTypeRef.typeRef = pointeeTypeRef;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
@@ -398,7 +394,7 @@ TypeInfo TypeInfo::makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 
 TypeInfo TypeInfo::makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 {
-    TypeInfo ti{TypeInfoKind::Slice, flags, 16};
+    TypeInfo ti{TypeInfoKind::Slice, flags};
     ti.asTypeRef.typeRef = pointeeTypeRef;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
@@ -463,11 +459,61 @@ uint32_t TypeInfo::hash() const
 }
 
 // ReSharper disable once CppPossiblyUninitializedMember
-TypeInfo::TypeInfo(TypeInfoKind kind, TypeInfoFlags flags, uint32_t sizeInBytes) :
-    sizeInBytes_(sizeInBytes),
+TypeInfo::TypeInfo(TypeInfoKind kind, TypeInfoFlags flags) :
     kind_(kind),
     flags_(flags)
 {
+}
+
+uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
+{
+    switch (kind_)
+    {
+        case TypeInfoKind::Void:
+            return 0;
+
+        case TypeInfoKind::Bool:
+            return 1;
+
+        case TypeInfoKind::Char:
+        case TypeInfoKind::Rune:
+            return 4;
+
+        case TypeInfoKind::Int:
+            return asInt.bits / 8;
+        case TypeInfoKind::Float:
+            return asFloat.bits / 8;
+
+        case TypeInfoKind::CString:
+        case TypeInfoKind::ValuePointer:
+        case TypeInfoKind::BlockPointer:
+            return 8;
+
+        case TypeInfoKind::Slice:
+        case TypeInfoKind::String:
+        case TypeInfoKind::Interface:
+        case TypeInfoKind::Any:
+            return 16;
+
+        case TypeInfoKind::Array:
+        {
+            uint64_t count = ctx.typeMgr().get(asArray.typeRef).sizeOf(ctx);
+            for (const uint64_t d : asArray.dims)
+                count *= d;
+            return count;
+        }
+
+        case TypeInfoKind::Struct:
+            return 0;
+
+        case TypeInfoKind::Enum:
+            return enumSym().sizeOf(ctx);
+
+        case TypeInfoKind::TypeValue:
+        case TypeInfoKind::Invalid:
+        default:
+            return 0;
+    }
 }
 
 SWC_END_NAMESPACE()

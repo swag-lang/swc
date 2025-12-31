@@ -48,16 +48,6 @@ using SymbolFlags = AtomicEnumFlags<SymbolFlagsE>;
 
 class Symbol
 {
-    IdentifierRef idRef_       = IdentifierRef::invalid();
-    TypeRef       typeRef_     = TypeRef::invalid();
-    Symbol*       nextHomonym_ = nullptr;
-    SymbolMap*    ownerSymMap_ = nullptr;
-    SourceViewRef srcViewRef_  = SourceViewRef::invalid();
-    TokenRef      tokRef_      = TokenRef::invalid();
-    SymbolKind    kind_        = SymbolKind::Invalid;
-    SymbolFlags   flags_       = SymbolFlagsE::Zero;
-    AttributeList attributes_;
-
 public:
     explicit Symbol(SourceViewRef srcViewRef, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags) :
         idRef_(idRef),
@@ -172,6 +162,17 @@ public:
 
         return ctx.compiler().allocate<T>(srcViewRef, tokRef, idRef, flags);
     }
+
+private:
+    IdentifierRef idRef_       = IdentifierRef::invalid();
+    TypeRef       typeRef_     = TypeRef::invalid();
+    Symbol*       nextHomonym_ = nullptr;
+    SymbolMap*    ownerSymMap_ = nullptr;
+    SourceViewRef srcViewRef_  = SourceViewRef::invalid();
+    TokenRef      tokRef_      = TokenRef::invalid();
+    SymbolKind    kind_        = SymbolKind::Invalid;
+    SymbolFlags   flags_       = SymbolFlagsE::Zero;
+    AttributeList attributes_;
 };
 
 SWC_END_NAMESPACE()

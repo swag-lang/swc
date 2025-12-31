@@ -15,6 +15,12 @@ SWC_BEGIN_NAMESPACE()
 
 class SymbolBigMap
 {
+public:
+    SymbolBigMap();
+    Symbol* addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms, bool notify);
+    void    lookupAppend(IdentifierRef idRef, LookUpContext& lookUpCxt) const;
+
+private:
     struct Shard
     {
         mutable std::shared_mutex                  mutex;
@@ -39,11 +45,6 @@ class SymbolBigMap
     Shard&         getShard(IdentifierRef idRef);
     const Shard&   getShard(IdentifierRef idRef) const;
     static Symbol* insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool acceptHomonyms, bool notify);
-
-public:
-    SymbolBigMap();
-    Symbol* addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms, bool notify);
-    void    lookupAppend(IdentifierRef idRef, LookUpContext& lookUpCxt) const;
 };
 
 SWC_END_NAMESPACE()

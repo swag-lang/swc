@@ -36,6 +36,140 @@ void TypeManager::setup(TaskContext&)
     buildPromoteTable();
 }
 
+TypeRef TypeManager::getTypeInt(uint32_t bits, TypeInfo::Sign sign) const
+{
+    if (bits == 0)
+    {
+        if (sign == TypeInfo::Sign::Unknown)
+            return typeInt_;
+        return sign == TypeInfo::Sign::Unsigned ? typeIntUnsigned_ : typeIntSigned_;
+    }
+
+    if (sign == TypeInfo::Sign::Unsigned)
+    {
+        switch (bits)
+        {
+            case 8:
+                return typeU8_;
+            case 16:
+                return typeU16_;
+            case 32:
+                return typeU32_;
+            case 64:
+                return typeU64_;
+            default:
+                SWC_UNREACHABLE();
+        }
+    }
+
+    SWC_ASSERT(sign == TypeInfo::Sign::Signed);
+    switch (bits)
+    {
+        case 8:
+            return typeS8_;
+        case 16:
+            return typeS16_;
+        case 32:
+            return typeS32_;
+        case 64:
+            return typeS64_;
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+TypeRef TypeManager::getTypeFloat(uint32_t bits) const
+{
+    if (bits == 0)
+        return typeFloat_;
+
+    switch (bits)
+    {
+        case 32:
+            return typeF32_;
+        case 64:
+            return typeF64_;
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+TypeRef TypeManager::addType(const TypeInfo& typeInfo)
+{
+    const uint32_t shardIndex = typeInfo.hash() & (SHARD_COUNT - 1);
+    auto&          shard      = shards_[shardIndex];
+
+    {
+        std::shared_lock lk(shard.mutex);
+        if (const auto it = shard.map.find(typeInfo); it != shard.map.end())
+            return it->second;
+    }
+
+    std::unique_lock lk(shard.mutex);
+    const auto [it, inserted] = shard.map.try_emplace(typeInfo, TypeRef{});
+    if (!inserted)
+        return it->second;
+
+#if SWC_HAS_STATS
+    Stats::get().numTypes.fetch_add(1);
+    Stats::get().memTypes.fetch_add(sizeof(TypeInfo), std::memory_order_relaxed);
+#endif
+
+    const uint32_t localIndex = shard.store.size() / sizeof(TypeInfo);
+    SWC_ASSERT(localIndex < LOCAL_MASK);
+    shard.store.push_back(typeInfo);
+
+    auto result = TypeRef{(shardIndex << LOCAL_BITS) | localIndex};
+#if SWC_HAS_DEBUG_INFO
+    result.setDbgPtr(&get(result));
+#endif
+
+    it->second = result;
+    return result;
+}
+
+const TypeInfo& TypeManager::get(TypeRef typeRef) const
+{
+    SWC_ASSERT(typeRef.isValid());
+    const auto shardIndex = typeRef.get() >> LOCAL_BITS;
+    const auto localIndex = typeRef.get() & LOCAL_MASK;
+    return *shards_[shardIndex].store.ptr<TypeInfo>(localIndex * sizeof(TypeInfo));
+}
+
+TypeRef TypeManager::promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const
+{
+    const auto itL = promoteIndex_.find(lhs.get());
+    const auto itR = promoteIndex_.find(rhs.get());
+
+    // If this ever trips, you're trying to promote a type that was not in
+    // the numeric set when buildPromoteTable() was called.
+    SWC_ASSERT(itL != promoteIndex_.end());
+    SWC_ASSERT(itR != promoteIndex_.end());
+
+    const TypeRef result = promoteTable_[itL->second][itR->second];
+    if (!force32BitInts)
+        return result;
+
+    const TypeInfo& t = get(result);
+    if (!t.isInt())
+        return result;
+
+    const uint32_t bits = t.intBits();
+    if (bits != 8 && bits != 16)
+        return result;
+
+    return getTypeInt(32, t.isIntUnsigned() ? TypeInfo::Sign::Unsigned : TypeInfo::Sign::Signed);
+}
+
+uint32_t TypeManager::chooseConcreteScalarWidth(uint32_t minRequiredBits, bool& overflow)
+{
+    constexpr uint32_t minBits = 8;
+    constexpr uint32_t maxBits = 64;
+    const uint32_t     bits    = std::max(minRequiredBits, minBits);
+    overflow                   = bits > maxBits;
+    return bits;
+}
+
 TypeRef TypeManager::computePromotion(TypeRef lhsRef, TypeRef rhsRef) const
 {
     const TypeInfo& lhs = get(lhsRef);
@@ -142,140 +276,6 @@ void TypeManager::buildPromoteTable()
             promoteTable_[i][j] = computePromotion(lhs, rhs);
         }
     }
-}
-
-TypeRef TypeManager::promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const
-{
-    const auto itL = promoteIndex_.find(lhs.get());
-    const auto itR = promoteIndex_.find(rhs.get());
-
-    // If this ever trips, you're trying to promote a type that was not in
-    // the numeric set when buildPromoteTable() was called.
-    SWC_ASSERT(itL != promoteIndex_.end());
-    SWC_ASSERT(itR != promoteIndex_.end());
-
-    const TypeRef result = promoteTable_[itL->second][itR->second];
-    if (!force32BitInts)
-        return result;
-
-    const TypeInfo& t = get(result);
-    if (!t.isInt())
-        return result;
-
-    const uint32_t bits = t.intBits();
-    if (bits != 8 && bits != 16)
-        return result;
-
-    return getTypeInt(32, t.isIntUnsigned() ? TypeInfo::Sign::Unsigned : TypeInfo::Sign::Signed);
-}
-
-TypeRef TypeManager::getTypeInt(uint32_t bits, TypeInfo::Sign sign) const
-{
-    if (bits == 0)
-    {
-        if (sign == TypeInfo::Sign::Unknown)
-            return typeInt_;
-        return sign == TypeInfo::Sign::Unsigned ? typeIntUnsigned_ : typeIntSigned_;
-    }
-
-    if (sign == TypeInfo::Sign::Unsigned)
-    {
-        switch (bits)
-        {
-            case 8:
-                return typeU8_;
-            case 16:
-                return typeU16_;
-            case 32:
-                return typeU32_;
-            case 64:
-                return typeU64_;
-            default:
-                SWC_UNREACHABLE();
-        }
-    }
-
-    SWC_ASSERT(sign == TypeInfo::Sign::Signed);
-    switch (bits)
-    {
-        case 8:
-            return typeS8_;
-        case 16:
-            return typeS16_;
-        case 32:
-            return typeS32_;
-        case 64:
-            return typeS64_;
-        default:
-            SWC_UNREACHABLE();
-    }
-}
-
-TypeRef TypeManager::addType(const TypeInfo& typeInfo)
-{
-    const uint32_t shardIndex = typeInfo.hash() & (SHARD_COUNT - 1);
-    auto&          shard      = shards_[shardIndex];
-
-    {
-        std::shared_lock lk(shard.mutex);
-        if (const auto it = shard.map.find(typeInfo); it != shard.map.end())
-            return it->second;
-    }
-
-    std::unique_lock lk(shard.mutex);
-    const auto [it, inserted] = shard.map.try_emplace(typeInfo, TypeRef{});
-    if (!inserted)
-        return it->second;
-
-#if SWC_HAS_STATS
-    Stats::get().numTypes.fetch_add(1);
-    Stats::get().memTypes.fetch_add(sizeof(TypeInfo), std::memory_order_relaxed);
-#endif
-
-    const uint32_t localIndex = shard.store.size() / sizeof(TypeInfo);
-    SWC_ASSERT(localIndex < LOCAL_MASK);
-    shard.store.push_back(typeInfo);
-
-    auto result = TypeRef{(shardIndex << LOCAL_BITS) | localIndex};
-#if SWC_HAS_DEBUG_INFO
-    result.setDbgPtr(&get(result));
-#endif
-
-    it->second = result;
-    return result;
-}
-
-TypeRef TypeManager::getTypeFloat(uint32_t bits) const
-{
-    if (bits == 0)
-        return typeFloat_;
-
-    switch (bits)
-    {
-        case 32:
-            return typeF32_;
-        case 64:
-            return typeF64_;
-        default:
-            SWC_UNREACHABLE();
-    }
-}
-
-const TypeInfo& TypeManager::get(TypeRef typeRef) const
-{
-    SWC_ASSERT(typeRef.isValid());
-    const auto shardIndex = typeRef.get() >> LOCAL_BITS;
-    const auto localIndex = typeRef.get() & LOCAL_MASK;
-    return *shards_[shardIndex].store.ptr<TypeInfo>(localIndex * sizeof(TypeInfo));
-}
-
-uint32_t TypeManager::chooseConcreteScalarWidth(uint32_t minRequiredBits, bool& overflow)
-{
-    constexpr uint32_t minBits = 8;
-    constexpr uint32_t maxBits = 64;
-    const uint32_t     bits    = std::max(minRequiredBits, minBits);
-    overflow                   = bits > maxBits;
-    return bits;
 }
 
 SWC_END_NAMESPACE()

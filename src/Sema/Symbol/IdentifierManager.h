@@ -16,6 +16,18 @@ using IdentifierRef = StrongRef<Identifier>;
 
 class IdentifierManager
 {
+public:
+    void              setup(TaskContext&);
+    IdentifierRef     addIdentifier(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef);
+    IdentifierRef     addIdentifier(std::string_view name);
+    IdentifierRef     addIdentifier(std::string_view name, uint32_t hash);
+    const Identifier& get(IdentifierRef idRef) const;
+
+    IdentifierRef nameSwag() const { return nameSwag_; }
+    IdentifierRef nameEnumFlags() const { return nameEnumFlags_; }
+    IdentifierRef nameAttributeUsage() const { return nameAttributeUsage_; }
+
+private:
     struct Shard
     {
         Store                     store;
@@ -32,17 +44,6 @@ class IdentifierManager
     IdentifierRef nameSwag_;
     IdentifierRef nameEnumFlags_;
     IdentifierRef nameAttributeUsage_;
-
-public:
-    void              setup(TaskContext&);
-    IdentifierRef     addIdentifier(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef);
-    IdentifierRef     addIdentifier(std::string_view name);
-    IdentifierRef     addIdentifier(std::string_view name, uint32_t hash);
-    const Identifier& get(IdentifierRef idRef) const;
-
-    IdentifierRef nameSwag() const { return nameSwag_; }
-    IdentifierRef nameEnumFlags() const { return nameEnumFlags_; }
-    IdentifierRef nameAttributeUsage() const { return nameAttributeUsage_; }
 };
 
 SWC_END_NAMESPACE()

@@ -1,4 +1,3 @@
-// Sema/Type/SemaCast.h
 #pragma once
 #include "Parser/AstNode.h"
 #include "Report/Diagnostic.h"

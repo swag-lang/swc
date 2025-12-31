@@ -10,8 +10,6 @@ class SymbolMap;
 
 class LookUpContext
 {
-    SmallVector<const Symbol*> symbols_;
-
 public:
     SourceViewRef    srcViewRef = SourceViewRef::invalid();
     TokenRef         tokRef     = TokenRef::invalid();
@@ -36,6 +34,9 @@ public:
     bool                              empty() const { return symbols_.empty(); }
     size_t                            count() const { return symbols_.size(); }
     const Symbol*                     first() const { return symbols_.front(); }
+
+private:
+    SmallVector<const Symbol*> symbols_;
 };
 
 SWC_END_NAMESPACE()

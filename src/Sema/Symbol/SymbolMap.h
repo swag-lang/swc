@@ -8,6 +8,17 @@ class LookUpContext;
 
 class SymbolMap : public Symbol
 {
+public:
+    explicit SymbolMap(SourceViewRef srcViewRef, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags);
+
+    bool empty() const noexcept { return smallSize_ == 0 && big_ == nullptr; }
+
+    Symbol* addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms);
+    Symbol* addSingleSymbol(TaskContext& ctx, Symbol* symbol);
+    Symbol* addSingleSymbolOrError(Sema& sema, Symbol* symbol);
+    void    lookupAppend(IdentifierRef idRef, LookUpContext& lookUpCxt) const;
+
+private:
     struct Entry
     {
         Symbol*       head = nullptr;
@@ -24,16 +35,6 @@ class SymbolMap : public Symbol
     Entry*        smallFind(IdentifierRef key);
     const Entry*  smallFind(IdentifierRef key) const;
     SymbolBigMap* buildBig(TaskContext& ctx) const;
-
-public:
-    explicit SymbolMap(SourceViewRef srcViewRef, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags);
-
-    bool empty() const noexcept { return smallSize_ == 0 && big_ == nullptr; }
-
-    Symbol* addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms);
-    Symbol* addSingleSymbol(TaskContext& ctx, Symbol* symbol);
-    Symbol* addSingleSymbolOrError(Sema& sema, Symbol* symbol);
-    void    lookupAppend(IdentifierRef idRef, LookUpContext& lookUpCxt) const;
 };
 
 SWC_END_NAMESPACE()

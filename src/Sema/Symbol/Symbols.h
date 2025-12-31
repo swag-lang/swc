@@ -4,6 +4,6 @@
 
 SWC_BEGIN_NAMESPACE()
 
-#include "Sema/Symbol/SymbolsStruct.inc"
+#include "Sema/Symbol/Symbols.Struct.inc"
 
 SWC_END_NAMESPACE()

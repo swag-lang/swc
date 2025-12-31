@@ -9,6 +9,27 @@
 
 SWC_BEGIN_NAMESPACE()
 
+SourceCodeLocation Symbol::loc(TaskContext& ctx) const noexcept
+{
+    const SourceView& srcView = ctx.compiler().srcView(srcViewRef_);
+    const Token&      tok     = srcView.token(tokRef_);
+    return tok.location(ctx, srcView);
+}
+
+Utf8 Symbol::toFamily() const
+{
+    switch (kind_)
+    {
+        case SymbolKind::Namespace: return "namespace";
+        case SymbolKind::Variable: return "variable";
+        case SymbolKind::Constant: return "constant";
+        case SymbolKind::Enum: return "enum";
+        case SymbolKind::EnumValue: return "enum value";
+        case SymbolKind::Attribute: return "attribute";
+        default: return "symbol";
+    }
+}
+
 void Symbol::setComplete(TaskContext& ctx)
 {
     SWC_ASSERT(flags_.hasNot(SymbolFlagsE::Complete));
@@ -91,27 +112,6 @@ const TypeInfo& Symbol::typeInfo(const TaskContext& ctx) const
 {
     SWC_ASSERT(typeRef_.isValid());
     return ctx.typeMgr().get(typeRef_);
-}
-
-SourceCodeLocation Symbol::loc(TaskContext& ctx) const noexcept
-{
-    const SourceView& srcView = ctx.compiler().srcView(srcViewRef_);
-    const Token&      tok     = srcView.token(tokRef_);
-    return tok.location(ctx, srcView);
-}
-
-Utf8 Symbol::toFamily() const
-{
-    switch (kind_)
-    {
-        case SymbolKind::Namespace: return "namespace";
-        case SymbolKind::Variable: return "variable";
-        case SymbolKind::Constant: return "constant";
-        case SymbolKind::Enum: return "enum";
-        case SymbolKind::EnumValue: return "enum value";
-        case SymbolKind::Attribute: return "attribute";
-        default: return "symbol";
-    }
 }
 
 SWC_END_NAMESPACE()

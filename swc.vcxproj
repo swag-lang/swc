@@ -360,7 +360,7 @@
         <ClInclude Include="src\Sema\Symbol\SymbolMap.h"/>
         <ClInclude Include="src\Sema\Symbol\Symbol.h"/>
         <ClInclude Include="src\Sema\Symbol\Symbols.h"/>
-        <ClInclude Include="src\Sema\Symbol\SymbolsStruct.inc"/>
+        <ClInclude Include="src\Sema\Symbol\Symbols.Struct.inc" />
         <ClInclude Include="src\Sema\Type\CastContext.h"/>
         <ClInclude Include="src\Sema\Type\SemaCast.h"/>
         <ClInclude Include="src\Sema\Type\TypeInfo.h"/>

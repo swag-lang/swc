@@ -9,6 +9,26 @@ class CompilerInstance;
 
 class TypeManager
 {
+public:
+    void setup(TaskContext& ctx);
+
+    TypeRef getTypeBool() const { return typeBool_; }
+    TypeRef getTypeChar() const { return typeChar_; }
+    TypeRef getTypeString() const { return typeString_; }
+    TypeRef getTypeInt(uint32_t bits, TypeInfo::Sign sign) const;
+    TypeRef getTypeFloat(uint32_t bits) const;
+    TypeRef getTypeAny() const { return typeAny_; }
+    TypeRef getTypeVoid() const { return typeVoid_; }
+    TypeRef getTypeRune() const { return typeRune_; }
+    TypeRef getTypeCString() const { return typeCString_; }
+
+    TypeRef         addType(const TypeInfo& typeInfo);
+    const TypeInfo& get(TypeRef typeRef) const;
+
+    TypeRef         promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const;
+    static uint32_t chooseConcreteScalarWidth(uint32_t minRequiredBits, bool& overflow);
+
+private:
     struct Shard
     {
         Store                                               store;
@@ -50,25 +70,6 @@ class TypeManager
 
     TypeRef computePromotion(TypeRef lhsRef, TypeRef rhsRef) const;
     void    buildPromoteTable();
-
-public:
-    void setup(TaskContext& ctx);
-
-    TypeRef getTypeBool() const { return typeBool_; }
-    TypeRef getTypeChar() const { return typeChar_; }
-    TypeRef getTypeString() const { return typeString_; }
-    TypeRef getTypeInt(uint32_t bits, TypeInfo::Sign sign) const;
-    TypeRef getTypeFloat(uint32_t bits) const;
-    TypeRef getTypeAny() const { return typeAny_; }
-    TypeRef getTypeVoid() const { return typeVoid_; }
-    TypeRef getTypeRune() const { return typeRune_; }
-    TypeRef getTypeCString() const { return typeCString_; }
-
-    TypeRef         addType(const TypeInfo& typeInfo);
-    const TypeInfo& get(TypeRef typeRef) const;
-
-    TypeRef         promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const;
-    static uint32_t chooseConcreteScalarWidth(uint32_t minRequiredBits, bool& overflow);
 };
 
 SWC_END_NAMESPACE()

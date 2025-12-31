@@ -1,11 +1,11 @@
 #include "pch.h"
+#include "Sema/Core/Sema.h"
 #include "Lexer/LangSpec.h"
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisitResult.h"
-#include "Sema/Core/Sema.h"
-#include "Sema/Core/SemaFrame.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
+#include "Sema/Helpers/SemaHelpers.h"
 #include "Sema/Helpers/SemaInfo.h"
 #include "Sema/Helpers/SemaMatch.h"
 #include "Sema/Symbol/Symbols.h"
@@ -16,18 +16,8 @@ SWC_BEGIN_NAMESPACE()
 
 AstVisitStepResult AstEnumDecl::semaPreDecl(Sema& sema) const
 {
-    auto& ctx = sema.ctx();
-
-    const IdentifierRef idRef     = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokNameRef);
-    const SymbolFlags   flags     = sema.frame().flagsForCurrentAccess();
-    SymbolMap*          symbolMap = SemaFrame::currentSymMap(sema);
-
-    SymbolEnum* sym = Symbol::make<SymbolEnum>(ctx, srcViewRef(), tokNameRef, idRef, flags);
-    if (!symbolMap->addSymbol(ctx, sym, true))
+    if (!SemaHelpers::declareNamedSymbol<SymbolEnum>(sema, *this, tokNameRef))
         return AstVisitStepResult::Stop;
-    sym->registerCompilerIf(sema);
-    sema.setSymbol(sema.curNodeRef(), sym);
-
     return AstVisitStepResult::Continue;
 }
 

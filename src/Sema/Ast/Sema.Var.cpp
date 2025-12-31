@@ -1,11 +1,12 @@
 #include "pch.h"
-#include "Sema/Helpers/SemaError.h"
-#include "Sema/Helpers/SemaMatch.h"
+#include "Sema/Core/Sema.h"
 #include "Parser/AstNodes.h"
 #include "Report/DiagnosticDef.h"
-#include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaFrame.h"
 #include "Sema/Core/SemaNodeView.h"
+#include "Sema/Helpers/SemaError.h"
+#include "Sema/Helpers/SemaHelpers.h"
+#include "Sema/Helpers/SemaMatch.h"
 #include "Sema/Symbol/IdentifierManager.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/CastContext.h"
@@ -15,27 +16,15 @@ SWC_BEGIN_NAMESPACE()
 
 AstVisitStepResult AstVarDecl::semaPreDecl(Sema& sema) const
 {
-    auto& ctx = sema.ctx();
-
-    const IdentifierRef idRef     = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokNameRef);
-    const SymbolFlags   flags     = sema.frame().flagsForCurrentAccess();
-    SymbolMap*          symbolMap = SemaFrame::currentSymMap(sema);
-
     if (hasParserFlag(Const))
     {
-        SymbolConstant* symCst = Symbol::make<SymbolConstant>(ctx, srcViewRef(), tokNameRef, idRef, flags);
-        if (!symbolMap->addSymbol(ctx, symCst, true))
+        if (!SemaHelpers::declareNamedSymbol<SymbolConstant>(sema, *this, tokNameRef))
             return AstVisitStepResult::Stop;
-        symCst->registerCompilerIf(sema);
-        sema.setSymbol(sema.curNodeRef(), symCst);
     }
     else
     {
-        SymbolVariable* symVar = Symbol::make<SymbolVariable>(ctx, srcViewRef(), tokNameRef, idRef, flags);
-        if (!symbolMap->addSymbol(ctx, symVar, true))
+        if (!SemaHelpers::declareNamedSymbol<SymbolVariable>(sema, *this, tokNameRef))
             return AstVisitStepResult::Stop;
-        symVar->registerCompilerIf(sema);
-        sema.setSymbol(sema.curNodeRef(), symVar);
     }
 
     return AstVisitStepResult::SkipChildren;

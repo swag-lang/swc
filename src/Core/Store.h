@@ -16,42 +16,6 @@ using SpanRef = StrongRef<SpanTag>;
 // Ref is a 32-bit index in BYTES from the start of the store.
 class Store
 {
-    static constexpr uint32_t kDefaultPageSize = 16u * 1024u;
-
-    struct Page
-    {
-        std::byte* storage_ = nullptr;
-        uint32_t   used     = 0;
-
-        static std::byte* allocate_aligned(uint32_t size);
-        static void       deallocate_aligned(std::byte* p) noexcept;
-
-        explicit Page(uint32_t pageSize);
-        ~Page();
-
-        uint8_t*       bytes() noexcept { return reinterpret_cast<uint8_t*>(storage_); }
-        const uint8_t* bytes() const noexcept { return reinterpret_cast<const uint8_t*>(storage_); }
-    };
-
-    std::vector<std::unique_ptr<Page>> pages_;
-    uint64_t                           totalBytes_ = 0; // payload bytes (wider to avoid overflow)
-    uint32_t                           pageSize_   = kDefaultPageSize;
-
-    // Fast-path cache for the current page
-    Page*    cur_      = nullptr;
-    uint32_t curIndex_ = 0;
-
-    Page* newPage();
-
-    // Convert (page, offset) -> global byte index Ref
-    static Ref makeRef(uint32_t pageSize, uint32_t pageIndex, uint32_t offset) noexcept;
-
-    // Convert Ref -> (page, offset)
-    static void decodeRef(uint32_t pageSize, Ref ref, uint32_t& pageIndex, uint32_t& offset) noexcept;
-
-    // Allocate raw bytes with alignment; returns a (ref, ptr)
-    std::pair<Ref, void*> allocate(uint32_t size, uint32_t align);
-
 public:
     explicit Store(uint32_t pageSize = kDefaultPageSize);
 
@@ -115,32 +79,6 @@ public:
         return *ptr<T>(ref);
     }
 
-private:
-    template<class T>
-    static T* ptr_impl(const std::vector<std::unique_ptr<Page>>& pages, uint32_t pageSize, Ref ref)
-    {
-        uint32_t pageIndex, offset;
-        decodeRef(pageSize, ref, pageIndex, offset);
-        SWC_ASSERT(pageIndex < pages.size());
-        SWC_ASSERT(offset + sizeof(T) <= pageSize);
-        return reinterpret_cast<T*>(pages[pageIndex]->bytes() + offset);
-    }
-
-    struct SpanHdrRaw
-    {
-        uint32_t total; // total number of elements in the span
-    };
-
-    static constexpr uint32_t align_up_u32(uint32_t v, uint32_t a) noexcept
-    {
-        return (v + (a - 1)) & ~(a - 1);
-    }
-
-    // Raw helper for writing a chunk (header + padding + data) for arbitrary element size/alignment.
-    // Precondition: at least one element will fit when this is called.
-    std::pair<SpanRef, uint32_t> write_chunk_raw(const uint8_t* src, uint32_t elemSize, uint32_t elemAlign, uint32_t remaining, uint32_t totalElems);
-
-public:
     // Non-templated raw span push: data = contiguous array of elements (elemSize/elemAlign),
     // count = number of elements. Returns Ref to first chunk header.
     SpanRef push_span_raw(const void* data, uint32_t elemSize, uint32_t elemAlign, uint32_t count);
@@ -214,6 +152,67 @@ public:
         static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
         return span_view(ref, static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)));
     }
+
+private:
+    static constexpr uint32_t kDefaultPageSize = 16u * 1024u;
+
+    struct Page
+    {
+        std::byte* storage_ = nullptr;
+        uint32_t   used     = 0;
+
+        static std::byte* allocate_aligned(uint32_t size);
+        static void       deallocate_aligned(std::byte* p) noexcept;
+
+        explicit Page(uint32_t pageSize);
+        ~Page();
+
+        uint8_t*       bytes() noexcept { return reinterpret_cast<uint8_t*>(storage_); }
+        const uint8_t* bytes() const noexcept { return reinterpret_cast<const uint8_t*>(storage_); }
+    };
+
+    std::vector<std::unique_ptr<Page>> pages_;
+    uint64_t                           totalBytes_ = 0; // payload bytes (wider to avoid overflow)
+    uint32_t                           pageSize_   = kDefaultPageSize;
+
+    // Fast-path cache for the current page
+    Page*    cur_      = nullptr;
+    uint32_t curIndex_ = 0;
+
+    Page* newPage();
+
+    // Convert (page, offset) -> global byte index Ref
+    static Ref makeRef(uint32_t pageSize, uint32_t pageIndex, uint32_t offset) noexcept;
+
+    // Convert Ref -> (page, offset)
+    static void decodeRef(uint32_t pageSize, Ref ref, uint32_t& pageIndex, uint32_t& offset) noexcept;
+
+    // Allocate raw bytes with alignment; returns a (ref, ptr)
+    std::pair<Ref, void*> allocate(uint32_t size, uint32_t align);
+
+    template<class T>
+    static T* ptr_impl(const std::vector<std::unique_ptr<Page>>& pages, uint32_t pageSize, Ref ref)
+    {
+        uint32_t pageIndex, offset;
+        decodeRef(pageSize, ref, pageIndex, offset);
+        SWC_ASSERT(pageIndex < pages.size());
+        SWC_ASSERT(offset + sizeof(T) <= pageSize);
+        return reinterpret_cast<T*>(pages[pageIndex]->bytes() + offset);
+    }
+
+    struct SpanHdrRaw
+    {
+        uint32_t total; // total number of elements in the span
+    };
+
+    static constexpr uint32_t align_up_u32(uint32_t v, uint32_t a) noexcept
+    {
+        return (v + (a - 1)) & ~(a - 1);
+    }
+
+    // Raw helper for writing a chunk (header + padding + data) for arbitrary element size/alignment.
+    // Precondition: at least one element will fit when this is called.
+    std::pair<SpanRef, uint32_t> write_chunk_raw(const uint8_t* src, uint32_t elemSize, uint32_t elemAlign, uint32_t remaining, uint32_t totalElems);
 };
 
 SWC_END_NAMESPACE()

@@ -21,17 +21,6 @@ using SourceViewRef = StrongRef<SourceView>;
 
 class SourceView
 {
-    SourceViewRef                 ref_     = SourceViewRef::invalid();
-    const SourceFile*             file_    = nullptr;
-    FileRef                       fileRef_ = FileRef::invalid();
-    std::string_view              stringView_;
-    std::vector<Token>            tokens_;
-    std::vector<uint32_t>         lines_;
-    std::vector<SourceTrivia>     trivia_;
-    std::vector<uint32_t>         triviaStart_;
-    std::vector<SourceIdentifier> identifiers_;
-    bool                          mustSkip_ = false;
-
 public:
     SourceView(SourceViewRef ref, const SourceFile* file);
     SourceView(const SourceView&)            = delete;
@@ -62,6 +51,18 @@ public:
     std::pair<uint32_t, uint32_t> triviaRangeForToken(TokenRef tok) const;
     TokenRef                      findRightFrom(TokenRef startRef, std::initializer_list<TokenId> ids) const;
     TokenRef                      findLeftFrom(TokenRef startRef, std::initializer_list<TokenId> ids) const;
+
+private:
+    SourceViewRef                 ref_     = SourceViewRef::invalid();
+    const SourceFile*             file_    = nullptr;
+    FileRef                       fileRef_ = FileRef::invalid();
+    std::string_view              stringView_;
+    std::vector<Token>            tokens_;
+    std::vector<uint32_t>         lines_;
+    std::vector<SourceTrivia>     trivia_;
+    std::vector<uint32_t>         triviaStart_;
+    std::vector<SourceIdentifier> identifiers_;
+    bool                          mustSkip_ = false;
 };
 
 SWC_END_NAMESPACE()

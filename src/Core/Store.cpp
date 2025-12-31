@@ -35,48 +35,6 @@ Store& Store::operator=(Store&& other) noexcept
     return *this;
 }
 
-Store::Page* Store::newPage()
-{
-    pages_.emplace_back(std::make_unique<Page>(pageSize_));
-    cur_      = pages_.back().get();
-    curIndex_ = static_cast<uint32_t>(pages_.size() - 1);
-    return cur_;
-}
-
-Ref Store::makeRef(uint32_t pageSize, uint32_t pageIndex, uint32_t offset) noexcept
-{
-    const uint64_t r = static_cast<uint64_t>(pageIndex) * static_cast<uint64_t>(pageSize) + offset;
-    SWC_ASSERT(r < std::numeric_limits<Ref>::max());
-    return static_cast<Ref>(r);
-}
-
-void Store::decodeRef(uint32_t pageSize, Ref ref, uint32_t& pageIndex, uint32_t& offset) noexcept
-{
-    pageIndex = ref / pageSize;
-    offset    = ref % pageSize;
-}
-
-std::pair<Ref, void*> Store::allocate(uint32_t size, uint32_t align)
-{
-    SWC_ASSERT(size <= pageSize_ && (align & (align - 1)) == 0 && align <= alignof(std::max_align_t));
-
-    Page* page = cur_ ? cur_ : newPage();
-
-    uint32_t offset = (page->used + (align - 1)) & ~(align - 1);
-
-    if (offset + size > pageSize_)
-    {
-        page   = newPage();
-        offset = 0;
-    }
-
-    page->used = offset + size;
-    totalBytes_ += size;
-
-    const Ref r = makeRef(pageSize_, curIndex_, offset);
-    return {r, static_cast<void*>(page->bytes() + offset)};
-}
-
 void Store::clear() noexcept
 {
     for (const auto& up : pages_)
@@ -174,26 +132,6 @@ SpanRef Store::push_span_raw(const void* data, uint32_t elemSize, uint32_t elemA
     }
 
     return firstRef;
-}
-
-std::byte* Store::Page::allocate_aligned(uint32_t size)
-{
-    return static_cast<std::byte*>(operator new(size, static_cast<std::align_val_t>(alignof(std::max_align_t))));
-}
-
-void Store::Page::deallocate_aligned(std::byte* p) noexcept
-{
-    operator delete(p, static_cast<std::align_val_t>(alignof(std::max_align_t)));
-}
-
-Store::Page::Page(uint32_t pageSize) :
-    storage_(allocate_aligned(pageSize))
-{
-}
-
-Store::Page::~Page()
-{
-    deallocate_aligned(storage_);
 }
 
 void Store::SpanView::decode_ref(const Store* st, Ref ref, uint32_t& pageIndex, uint32_t& off)
@@ -310,6 +248,68 @@ Store::SpanView::chunk_iterator Store::SpanView::chunks_end() const
 Store::SpanView Store::span_view(Ref ref, uint32_t elemSize, uint32_t elemAlign) const
 {
     return {this, ref, elemSize, elemAlign};
+}
+
+std::byte* Store::Page::allocate_aligned(uint32_t size)
+{
+    return static_cast<std::byte*>(operator new(size, static_cast<std::align_val_t>(alignof(std::max_align_t))));
+}
+
+void Store::Page::deallocate_aligned(std::byte* p) noexcept
+{
+    operator delete(p, static_cast<std::align_val_t>(alignof(std::max_align_t)));
+}
+
+Store::Page::Page(uint32_t pageSize) :
+    storage_(allocate_aligned(pageSize))
+{
+}
+
+Store::Page::~Page()
+{
+    deallocate_aligned(storage_);
+}
+
+Store::Page* Store::newPage()
+{
+    pages_.emplace_back(std::make_unique<Page>(pageSize_));
+    cur_      = pages_.back().get();
+    curIndex_ = static_cast<uint32_t>(pages_.size() - 1);
+    return cur_;
+}
+
+Ref Store::makeRef(uint32_t pageSize, uint32_t pageIndex, uint32_t offset) noexcept
+{
+    const uint64_t r = static_cast<uint64_t>(pageIndex) * static_cast<uint64_t>(pageSize) + offset;
+    SWC_ASSERT(r < std::numeric_limits<Ref>::max());
+    return static_cast<Ref>(r);
+}
+
+void Store::decodeRef(uint32_t pageSize, Ref ref, uint32_t& pageIndex, uint32_t& offset) noexcept
+{
+    pageIndex = ref / pageSize;
+    offset    = ref % pageSize;
+}
+
+std::pair<Ref, void*> Store::allocate(uint32_t size, uint32_t align)
+{
+    SWC_ASSERT(size <= pageSize_ && (align & (align - 1)) == 0 && align <= alignof(std::max_align_t));
+
+    Page* page = cur_ ? cur_ : newPage();
+
+    uint32_t offset = (page->used + (align - 1)) & ~(align - 1);
+
+    if (offset + size > pageSize_)
+    {
+        page   = newPage();
+        offset = 0;
+    }
+
+    page->used = offset + size;
+    totalBytes_ += size;
+
+    const Ref r = makeRef(pageSize_, curIndex_, offset);
+    return {r, static_cast<void*>(page->bytes() + offset)};
 }
 
 SWC_END_NAMESPACE()

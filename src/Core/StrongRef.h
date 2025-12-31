@@ -6,12 +6,6 @@ SWC_BEGIN_NAMESPACE()
 template<typename T>
 class StrongRef
 {
-    uint32_t value_;
-
-#if SWC_HAS_DEBUG_INFO
-    const T* dbgPtr_ = nullptr;
-#endif
-
 public:
     StrongRef() = default;
     explicit constexpr StrongRef(uint32_t val) :
@@ -45,6 +39,13 @@ public:
 #if SWC_HAS_DEBUG_INFO
     void     setDbgPtr(const T* ptr) { dbgPtr_ = ptr; }
     const T* dbgPtr() const { return dbgPtr_; }
+#endif
+
+private:
+    uint32_t value_;
+
+#if SWC_HAS_DEBUG_INFO
+    const T* dbgPtr_ = nullptr;
 #endif
 };
 

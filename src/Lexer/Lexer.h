@@ -22,6 +22,11 @@ using LexerFlags = EnumFlags<LexerFlagsE>;
 // Main lexer class - converts source text into tokens
 class Lexer
 {
+public:
+    void tokenizeRaw(TaskContext& ctx, SourceView& srcView);
+    void tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags);
+
+private:
     Token token_     = {};
     Token prevToken_ = {};
 
@@ -65,10 +70,6 @@ class Lexer
     void lexIdentifier();
     void lexSingleLineComment();
     void lexMultiLineComment();
-
-public:
-    void tokenizeRaw(TaskContext& ctx, SourceView& srcView);
-    void tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags);
 };
 
 SWC_END_NAMESPACE()

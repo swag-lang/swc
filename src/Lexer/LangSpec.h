@@ -30,7 +30,6 @@ using CharFlags = EnumFlags<CharFlagsE>;
 class LangSpec
 {
     friend class Global;
-    void setup();
 
 public:
     bool isBlank(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::Blank); }
@@ -60,6 +59,7 @@ private:
     StringMap<TokenId>                            keywordMap_;
     std::unordered_map<TokenId, std::string_view> keywordIdMap_;
 
+    void setup();
     void setupKeywords();
     void setupCharFlags();
 };

@@ -117,39 +117,30 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
     auto&              ctx = sema.ctx();
     const SemaNodeView nodeInitView(sema, nodeInitRef);
 
-    SymbolEnum&   symEnum           = sema.curSymMap()->cast<SymbolEnum>();
-    const TypeRef underlyingTypeRef = symEnum.underlyingTypeRef();
-    SWC_ASSERT(underlyingTypeRef.isValid());
+    SymbolEnum&     symEnum           = sema.curSymMap()->cast<SymbolEnum>();
+    const TypeRef   underlyingTypeRef = symEnum.underlyingTypeRef();
+    const TypeInfo& underlyingType    = symEnum.underlyingType(ctx);
 
-    const TypeInfo& underlyingType = sema.typeMgr().get(underlyingTypeRef);
-    ConstantRef     valueCst;
-
+    ConstantRef valueCst;
     if (nodeInitView.nodeRef.isValid())
     {
-        // Must be constant
         if (nodeInitView.cstRef.isInvalid())
         {
             SemaError::raiseExprNotConst(sema, nodeInitRef);
             return AstVisitStepResult::Stop;
         }
 
-        // Cast initializer constant to the underlying type
         CastContext castCtx(CastKind::Implicit);
         castCtx.errorNodeRef = nodeInitRef;
         valueCst             = SemaCast::castConstant(sema, castCtx, nodeInitView.cstRef, underlyingTypeRef);
         if (valueCst.isInvalid())
             return AstVisitStepResult::Stop;
 
-        if (underlyingType.isInt())
-        {
-            const ConstantValue& cstVal = sema.cstMgr().get(valueCst);
-            symEnum.setNextValue(cstVal.getInt());
-            symEnum.setHasNextValue();
-        }
+        const ConstantValue& cstVal = sema.cstMgr().get(valueCst);
+        symEnum.assignExplicitValue(sema, cstVal);
     }
     else
     {
-        // No initializer => auto value
         if (!underlyingType.isInt())
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_missing_enum_value, srcViewRef(), tokRef());
@@ -158,50 +149,16 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
             return AstVisitStepResult::Stop;
         }
 
-        if (symEnum.hasNextValue())
+        if (symEnum.hasNextValue() && !symEnum.computeNextAutoValue(sema, srcViewRef(), tokRef()))
         {
-            bool overflow = false;
-
-            // Update enum "nextValue" = value << 1
-            if (symEnum.isEnumFlags())
-            {
-                if (symEnum.nextValue().isZero())
-                {
-                    ApsInt one(1, symEnum.nextValue().bitWidth(), symEnum.nextValue().isUnsigned());
-                    symEnum.nextValue().add(one, overflow);
-                }
-                else if (!symEnum.nextValue().isPowerOf2())
-                {
-                    auto diag = SemaError::report(sema, DiagnosticId::sema_err_flag_enum_power_2, srcViewRef(), tokRef());
-                    diag.addArgument(Diagnostic::ARG_VALUE, symEnum.nextValue().toString());
-                    diag.report(ctx);
-                    return AstVisitStepResult::Stop;
-                }
-                else
-                {
-                    symEnum.nextValue().shiftLeft(1, overflow);
-                }
-            }
-
-            // Update enum "nextValue" = value + 1
-            else
-            {
-                ApsInt one(1, symEnum.nextValue().bitWidth(), symEnum.nextValue().isUnsigned());
-                symEnum.nextValue().add(one, overflow);
-            }
-
-            if (overflow)
-            {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_literal_overflow, srcViewRef(), tokRef());
-                diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, underlyingTypeRef);
-                diag.report(ctx);
-                return AstVisitStepResult::Stop;
-            }
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_literal_overflow, srcViewRef(), tokRef());
+            diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, underlyingTypeRef);
+            diag.report(ctx);
+            return AstVisitStepResult::Stop;
         }
 
         ConstantValue val = ConstantValue::makeInt(ctx, symEnum.nextValue(), underlyingType.intBits(), underlyingType.intSign());
         valueCst          = sema.cstMgr().addConstant(ctx, val);
-        symEnum.setHasNextValue();
     }
 
     // Create a symbol for this enum value

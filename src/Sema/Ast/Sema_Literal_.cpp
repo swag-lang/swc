@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Core/Utf8Helper.h"
-#include "Helpers/SemaError.h"
 #include "Lexer/LangSpec.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
@@ -9,6 +8,7 @@
 #include "Report/DiagnosticDef.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/Sema.h"
+#include "Sema/Helpers/SemaError.h"
 
 SWC_BEGIN_NAMESPACE()
 

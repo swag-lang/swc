@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Helpers/SemaError.h"
-#include "Helpers/SemaMatch.h"
+#include "Sema/Helpers/SemaError.h"
+#include "Sema/Helpers/SemaMatch.h"
 #include "Parser/AstNodes.h"
 #include "Report/DiagnosticDef.h"
 #include "Sema/Core/Sema.h"

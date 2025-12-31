@@ -1,13 +1,13 @@
 #include "pch.h"
-#include "Helpers/SemaError.h"
-#include "Helpers/SemaNodeView.h"
 #include "Parser/AstNodes.h"
 #include "Sema/Core/Sema.h"
+#include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaMatch.h"
-#include "Symbol/IdentifierManager.h"
-#include "Symbol/LookUpContext.h"
-#include "Symbol/Symbol.h"
-#include "Symbol/Symbols.h"
+#include "Sema/Helpers/SemaNodeView.h"
+#include "Sema/Symbol/IdentifierManager.h"
+#include "Sema/Symbol/LookUpContext.h"
+#include "Sema/Symbol/Symbol.h"
+#include "Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE()
 

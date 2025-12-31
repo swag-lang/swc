@@ -1,11 +1,11 @@
 #include "pch.h"
-#include "Constant/ConstantManager.h"
-#include "Helpers/SemaCheck.h"
-#include "Helpers/SemaError.h"
+#include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/Sema.h"
+#include "Sema/Helpers/SemaCheck.h"
+#include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaNodeView.h"
+#include "Sema/Type/CastContext.h"
 #include "Sema/Type/SemaCast.h"
-#include "Type/CastContext.h"
 
 SWC_BEGIN_NAMESPACE()
 

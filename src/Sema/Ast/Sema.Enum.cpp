@@ -172,46 +172,8 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
             return AstVisitStepResult::Stop;
         }
 
-        if (symEnum.hasNextValue())
-        {
-            bool overflow = false;
-
-            // Update enum "nextValue" = value << 1
-            if (symEnum.isEnumFlags())
-            {
-                if (symEnum.nextValue().isZero())
-                {
-                    ApsInt one(1, symEnum.nextValue().bitWidth(), symEnum.nextValue().isUnsigned());
-                    symEnum.nextValue().add(one, overflow);
-                }
-                else if (!symEnum.nextValue().isPowerOf2())
-                {
-                    auto diag = SemaError::report(sema, DiagnosticId::sema_err_flag_enum_power_2, srcViewRef(), tokRef());
-                    diag.addArgument(Diagnostic::ARG_VALUE, symEnum.nextValue().toString());
-                    diag.report(ctx);
-                    return AstVisitStepResult::Stop;
-                }
-                else
-                {
-                    symEnum.nextValue().shiftLeft(1, overflow);
-                }
-            }
-
-            // Update enum "nextValue" = value + 1
-            else
-            {
-                ApsInt one(1, symEnum.nextValue().bitWidth(), symEnum.nextValue().isUnsigned());
-                symEnum.nextValue().add(one, overflow);
-            }
-
-            if (overflow)
-            {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_literal_overflow, srcViewRef(), tokRef());
-                diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, underlyingTypeRef);
-                diag.report(ctx);
-                return AstVisitStepResult::Stop;
-            }
-        }
+        if (symEnum.hasNextValue() && !symEnum.computeNextValue(sema, srcViewRef(), tokRef()))
+            return AstVisitStepResult::Stop;
 
         ConstantValue val = ConstantValue::makeInt(ctx, symEnum.nextValue(), underlyingType.intBits(), underlyingType.intSign());
         valueCst          = sema.cstMgr().addConstant(ctx, val);
@@ -219,9 +181,9 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
     }
 
     // Create a symbol for this enum value
-    const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokRef());
-    SymbolFlags      flags    = SymbolFlagsE::Complete | SymbolFlagsE::Declared;
-    SymbolEnumValue* symValue = Symbol::make<SymbolEnumValue>(ctx, srcViewRef(), tokRef(), idRef, flags);
+    const IdentifierRef idRef    = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokRef());
+    SymbolFlags         flags    = SymbolFlagsE::Complete | SymbolFlagsE::Declared;
+    SymbolEnumValue*    symValue = Symbol::make<SymbolEnumValue>(ctx, srcViewRef(), tokRef(), idRef, flags);
     symValue->registerCompilerIf(sema);
 
     ConstantValue enumCst    = ConstantValue::makeEnumValue(ctx, valueCst, symEnum.typeRef());

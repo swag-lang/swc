@@ -98,6 +98,7 @@ public:
     void          setNextValue(const ApsInt& value) { nextValue_ = value; }
     bool          hasNextValue() const { return hasFlag(SymbolFlagsE::EnumHasNextValue); }
     void          setHasNextValue() { addFlag(SymbolFlagsE::EnumHasNextValue); }
+    bool          computeNextValue(Sema& sema, SourceViewRef srcViewRef, TokenRef tokRef);
 
     bool isEnumFlags() const { return attributes().hasFlag(AttributeFlagsE::EnumFlags); }
 };

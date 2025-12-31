@@ -274,7 +274,6 @@
         <ClCompile Include="src\Sema\Helpers\SemaInfo.cpp"/>
         <ClCompile Include="src\Sema\Helpers\SemaJob.cpp"/>
         <ClCompile Include="src\Sema\Helpers\SemaMatch.cpp"/>
-        <ClCompile Include="src\Sema\Symbol\SymbolBigMap.cpp"/>
         <ClCompile Include="src\Sema\Symbol\IdentifierManager.cpp"/>
         <ClCompile Include="src\Sema\Symbol\SymbolMap.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Symbol.cpp"/>
@@ -358,7 +357,6 @@
         <ClInclude Include="src\Sema\Helpers\SemaInfo.h"/>
         <ClInclude Include="src\Sema\Helpers\SemaJob.h"/>
         <ClInclude Include="src\Sema\Helpers\SemaMatch.h"/>
-        <ClInclude Include="src\Sema\Symbol\SymbolBigMap.h"/>
         <ClInclude Include="src\Sema\Symbol\IdentifierManager.h"/>
         <ClInclude Include="src\Sema\Symbol\LookUpContext.h"/>
         <ClInclude Include="src\Sema\Symbol\SymbolMap.h"/>

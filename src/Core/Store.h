@@ -171,24 +171,23 @@ private:
         const uint8_t* bytes() const noexcept { return reinterpret_cast<const uint8_t*>(storage_); }
     };
 
+    struct SpanHdrRaw
+    {
+        uint32_t total;
+    };
+
     std::vector<std::unique_ptr<Page>> pages_;
-    uint64_t                           totalBytes_ = 0; // payload bytes (wider to avoid overflow)
+    uint64_t                           totalBytes_ = 0;
     uint32_t                           pageSize_   = kDefaultPageSize;
+    Page*                              cur_        = nullptr;
+    uint32_t                           curIndex_   = 0;
 
-    // Fast-path cache for the current page
-    Page*    cur_      = nullptr;
-    uint32_t curIndex_ = 0;
-
-    Page* newPage();
-
-    // Convert (page, offset) -> global byte index Ref
-    static Ref makeRef(uint32_t pageSize, uint32_t pageIndex, uint32_t offset) noexcept;
-
-    // Convert Ref -> (page, offset)
-    static void decodeRef(uint32_t pageSize, Ref ref, uint32_t& pageIndex, uint32_t& offset) noexcept;
-
-    // Allocate raw bytes with alignment; returns a (ref, ptr)
-    std::pair<Ref, void*> allocate(uint32_t size, uint32_t align);
+    Page*                        newPage();
+    static Ref                   makeRef(uint32_t pageSize, uint32_t pageIndex, uint32_t offset) noexcept;
+    static void                  decodeRef(uint32_t pageSize, Ref ref, uint32_t& pageIndex, uint32_t& offset) noexcept;
+    std::pair<Ref, void*>        allocate(uint32_t size, uint32_t align);
+    static constexpr uint32_t    align_up_u32(uint32_t v, uint32_t a) noexcept { return (v + (a - 1)) & ~(a - 1); }
+    std::pair<SpanRef, uint32_t> write_chunk_raw(const uint8_t* src, uint32_t elemSize, uint32_t elemAlign, uint32_t remaining, uint32_t totalElems);
 
     template<class T>
     static T* ptr_impl(const std::vector<std::unique_ptr<Page>>& pages, uint32_t pageSize, Ref ref)
@@ -199,20 +198,6 @@ private:
         SWC_ASSERT(offset + sizeof(T) <= pageSize);
         return reinterpret_cast<T*>(pages[pageIndex]->bytes() + offset);
     }
-
-    struct SpanHdrRaw
-    {
-        uint32_t total; // total number of elements in the span
-    };
-
-    static constexpr uint32_t align_up_u32(uint32_t v, uint32_t a) noexcept
-    {
-        return (v + (a - 1)) & ~(a - 1);
-    }
-
-    // Raw helper for writing a chunk (header + padding + data) for arbitrary element size/alignment.
-    // Precondition: at least one element will fit when this is called.
-    std::pair<SpanRef, uint32_t> write_chunk_raw(const uint8_t* src, uint32_t elemSize, uint32_t elemAlign, uint32_t remaining, uint32_t totalElems);
 };
 
 SWC_END_NAMESPACE()

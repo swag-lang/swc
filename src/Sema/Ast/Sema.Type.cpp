@@ -1,7 +1,7 @@
 #include "pch.h"
+#include "Sema/Core/Sema.h"
 #include "Parser/AstVisit.h"
 #include "Sema/Constant/ConstantManager.h"
-#include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
@@ -279,6 +279,12 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema) const
     const TypeInfo ty      = TypeInfo::makeArray(dims, nodeView.typeRef);
     const TypeRef  typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
+    return AstVisitStepResult::Continue;
+}
+
+AstVisitStepResult AstCompilerTypeExpr::semaPostNode(Sema& sema)
+{
+    sema.semaInherit(*this, nodeTypeRef);
     return AstVisitStepResult::Continue;
 }
 

@@ -16,3 +16,7 @@
 
 #assert(#sizeof('r') == 4)
 #assert(#sizeof("r") == 16)
+
+#assert(#sizeof(*u8) == 8)
+#assert(#sizeof(#type [4] u32) == 16)
+#assert(#sizeof(#type [4,2] u32) == 32)

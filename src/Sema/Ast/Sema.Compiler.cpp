@@ -348,6 +348,7 @@ namespace
     AstVisitStepResult semaCompilerSizeOf(Sema& sema, const AstCompilerCallUnary& node)
     {
         SemaNodeView nodeView(sema, node.nodeArgRef);
+        SWC_ASSERT(nodeView.type);
 
         if (nodeView.type->isTypeValue())
             nodeView.type = &sema.typeMgr().get(nodeView.type->typeRef());

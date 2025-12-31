@@ -131,6 +131,11 @@ public:
         SymbolMap(srcViewRef, tokRef, K, idRef, flags)
     {
     }
+
+    uint64_t sizeOf(TaskContext& ctx) const { return sizeInBytes_; }
+
+private:
+    uint64_t sizeInBytes_ = 0;
 };
 
 // -----------------------------------------------------------------------------

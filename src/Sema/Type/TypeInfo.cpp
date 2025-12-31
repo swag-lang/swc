@@ -504,16 +504,16 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
         }
 
         case TypeInfoKind::Struct:
-            return 0;
-
+            return structSym().sizeOf(ctx);
         case TypeInfoKind::Enum:
             return enumSym().sizeOf(ctx);
 
         case TypeInfoKind::TypeValue:
             return ctx.typeMgr().get(asTypeRef.typeRef).sizeOf(ctx);
-    }
 
-    SWC_UNREACHABLE();
+        default:
+            SWC_UNREACHABLE();
+    }
 }
 
 SWC_END_NAMESPACE()

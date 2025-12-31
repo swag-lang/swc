@@ -301,7 +301,7 @@
         <ClInclude Include="src\Lexer\SourceCodeLocation.h"/>
         <ClInclude Include="src\Lexer\SourceView.h"/>
         <ClInclude Include="src\Lexer\Token.h"/>
-        <ClInclude Include="src\Lexer\TokenIds.inc"/>
+        <ClInclude Include="src\Lexer\Tokens.Def.inc" />
         <ClInclude Include="src\Main\CommandLine.h"/>
         <ClInclude Include="src\Main\CommandLineParser.h"/>
         <ClInclude Include="src\Main\Command.h"/>

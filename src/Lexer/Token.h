@@ -38,7 +38,7 @@ struct TokenIdInfo
 enum class TokenId : uint16_t
 {
 #define SWC_TOKEN_DEF(__enum, __name, __kind) __enum,
-#include "Lexer/TokenIds.inc"
+#include "Lexer/Tokens.Def.inc"
 
 #undef SWC_TOKEN_DEF
     Count
@@ -46,7 +46,7 @@ enum class TokenId : uint16_t
 
 constexpr std::array TOKEN_ID_INFOS = {
 #define SWC_TOKEN_DEF(__enum, __name, __kind) TokenIdInfo{#__enum, __name, TokenIdKind::__kind},
-#include "Lexer/TokenIds.inc"
+#include "Lexer/Tokens.Def.inc"
 
 #undef SWC_TOKEN_DEF
 };

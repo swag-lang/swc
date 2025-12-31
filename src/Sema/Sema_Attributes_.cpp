@@ -60,6 +60,10 @@ AstVisitStepResult AstAttrDecl::semaPreDecl(Sema& sema) const
     SymbolMap*          symbolMap = SemaFrame::currentSymMap(sema);
 
     SymbolAttribute* sym = Symbol::make<SymbolAttribute>(ctx, srcViewRef(), tokNameRef, idRef, flags);
+    if (!symbolMap->addSymbol(ctx, sym, true))
+        return AstVisitStepResult::Stop;
+    sym->registerCompilerIf(sema);
+    sema.setSymbol(sema.curNodeRef(), sym);
 
     // Predefined attributes
     if (symbolMap->isSwagNamespace(ctx))
@@ -67,11 +71,6 @@ AstVisitStepResult AstAttrDecl::semaPreDecl(Sema& sema) const
         if (sym->idRef() == sema.idMgr().nameEnumFlags())
             sym->setAttributeFlags(AttributeFlagsE::EnumFlags);
     }
-
-    if (!symbolMap->addSymbol(ctx, sym, true))
-        return AstVisitStepResult::Stop;
-    sym->registerCompilerIf(sema);
-    sema.setSymbol(sema.curNodeRef(), sym);
 
     return AstVisitStepResult::Continue;
 }

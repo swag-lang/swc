@@ -65,6 +65,70 @@ namespace
     }
 }
 
+DiagnosticBuilder::DiagnosticBuilder(const TaskContext& ctx, const Diagnostic& diag) :
+    ctx_(&ctx),
+    diag_(&diag)
+{
+}
+
+Utf8 DiagnosticBuilder::build()
+{
+    if (diag_->elements().empty())
+        return {};
+
+    // Make a copy of elements to modify them if necessary
+    SmallVector<std::unique_ptr<DiagnosticElement>> elements;
+    elements.reserve(diag_->elements().size());
+    for (auto& e : diag_->elements())
+        elements.push_back(std::make_unique<DiagnosticElement>(*e));
+
+    // Add elements by splitting messages parts
+    expandMessageParts(elements);
+
+    // Compute a unified gutter width based on the maximum line number among all located elements
+    uint32_t maxLine = 0;
+    for (const auto& e : elements)
+    {
+        if (e->hasCodeLocation())
+        {
+            for (uint32_t i = 0; i < e->spans().size(); ++i)
+                maxLine = std::max(e->location(i, *ctx_).line, maxLine);
+        }
+    }
+
+    gutterW_ = maxLine ? digits(maxLine) : 0;
+
+    // Primary element: the first one
+    const auto& primary = *elements.front();
+
+    if (ctx_->cmdLine().diagOneLine)
+    {
+        writeLocation(primary);
+        out_ += ": ";
+        writeLabelMsg(primary);
+        return out_;
+    }
+
+    // Render primary element body (location/code) if any
+    writeLabelMsg(primary);
+    if (primary.hasCodeLocation())
+        writeCodeBlock(primary);
+
+    // Now render all secondary elements as part of the same diagnostic
+    for (size_t i = 1; i < elements.size(); ++i)
+    {
+        const auto& el = *elements[i];
+        out_.append(gutterW_, ' ');
+        writeLabelMsg(el);
+        if (el.hasCodeLocation())
+            writeCodeBlock(el);
+    }
+
+    // single blank line after the whole diagnostic
+    out_ += "\n";
+    return out_;
+}
+
 // split message on ';' ignoring ';' inside quotes and escaped quotes
 SmallVector<std::string_view> DiagnosticBuilder::splitMessage(std::string_view msg)
 {
@@ -620,6 +684,30 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
     out_ += partStyle(DiagPart::Reset);
 }
 
+Utf8 DiagnosticBuilder::buildMessage(const Utf8& msg) const
+{
+    auto result = msg;
+
+    // Replace placeholders
+    for (const auto& arg : diag_->arguments())
+    {
+        Utf8   replacement = argumentToString(arg);
+        size_t pos         = 0;
+        while ((pos = result.find(arg.name, pos)) != Utf8::npos)
+        {
+            result.replace(pos, arg.name.length(), replacement);
+            pos += replacement.length();
+        }
+    }
+
+    // Clean some stuff
+    result = std::regex_replace(result, std::regex{R"(\{\w+\})"}, "");
+    result.replace_loop(" , ", ", ");
+    result.replace_loop("  ", " ", true);
+
+    return result;
+}
+
 // Helper function to convert variant argument to string
 Utf8 DiagnosticBuilder::argumentToString(const Diagnostic::Argument& arg) const
 {
@@ -650,30 +738,6 @@ Utf8 DiagnosticBuilder::argumentToString(const Diagnostic::Argument& arg) const
     result.push_back('\'');
     result += s;
     result.push_back('\'');
-    return result;
-}
-
-Utf8 DiagnosticBuilder::buildMessage(const Utf8& msg) const
-{
-    auto result = msg;
-
-    // Replace placeholders
-    for (const auto& arg : diag_->arguments())
-    {
-        Utf8   replacement = argumentToString(arg);
-        size_t pos         = 0;
-        while ((pos = result.find(arg.name, pos)) != Utf8::npos)
-        {
-            result.replace(pos, arg.name.length(), replacement);
-            pos += replacement.length();
-        }
-    }
-
-    // Clean some stuff
-    result = std::regex_replace(result, std::regex{R"(\{\w+\})"}, "");
-    result.replace_loop(" , ", ", ");
-    result.replace_loop("  ", " ", true);
-
     return result;
 }
 
@@ -709,64 +773,6 @@ void DiagnosticBuilder::expandMessageParts(SmallVector<std::unique_ptr<Diagnosti
             ++insertPos;
         }
     }
-}
-
-Utf8 DiagnosticBuilder::build()
-{
-    if (diag_->elements().empty())
-        return {};
-
-    // Make a copy of elements to modify them if necessary
-    SmallVector<std::unique_ptr<DiagnosticElement>> elements;
-    elements.reserve(diag_->elements().size());
-    for (auto& e : diag_->elements())
-        elements.push_back(std::make_unique<DiagnosticElement>(*e));
-
-    // Add elements by splitting messages parts
-    expandMessageParts(elements);
-
-    // Compute a unified gutter width based on the maximum line number among all located elements
-    uint32_t maxLine = 0;
-    for (const auto& e : elements)
-    {
-        if (e->hasCodeLocation())
-        {
-            for (uint32_t i = 0; i < e->spans().size(); ++i)
-                maxLine = std::max(e->location(i, *ctx_).line, maxLine);
-        }
-    }
-
-    gutterW_ = maxLine ? digits(maxLine) : 0;
-
-    // Primary element: the first one
-    const auto& primary = *elements.front();
-
-    if (ctx_->cmdLine().diagOneLine)
-    {
-        writeLocation(primary);
-        out_ += ": ";
-        writeLabelMsg(primary);
-        return out_;
-    }
-
-    // Render primary element body (location/code) if any
-    writeLabelMsg(primary);
-    if (primary.hasCodeLocation())
-        writeCodeBlock(primary);
-
-    // Now render all secondary elements as part of the same diagnostic
-    for (size_t i = 1; i < elements.size(); ++i)
-    {
-        const auto& el = *elements[i];
-        out_.append(gutterW_, ' ');
-        writeLabelMsg(el);
-        if (el.hasCodeLocation())
-            writeCodeBlock(el);
-    }
-
-    // single blank line after the whole diagnostic
-    out_ += "\n";
-    return out_;
 }
 
 SWC_END_NAMESPACE()

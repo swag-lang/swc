@@ -28,6 +28,10 @@ using ParserContextFlags = EnumFlags<ParserContextFlagsE>;
 
 class Parser
 {
+public:
+    void parse(TaskContext& ctx, Ast& ast);
+
+private:
     ParserContextFlags contextFlags_   = ParserContextFlagsE::Zero;
     TaskContext*       ctx_            = nullptr;
     Ast*               ast_            = nullptr;
@@ -246,9 +250,6 @@ class Parser
             parser->contextFlags_ = oldFlags;
         }
     };
-
-public:
-    void parse(TaskContext& ctx, Ast& ast);
 };
 
 SWC_END_NAMESPACE()

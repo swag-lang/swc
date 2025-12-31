@@ -20,35 +20,6 @@ struct CommandLine;
 
 class CompilerInstance
 {
-    const CommandLine*                       cmdLine_ = nullptr;
-    const Global*                            global_  = nullptr;
-    std::vector<std::unique_ptr<SourceFile>> files_;
-    std::vector<std::unique_ptr<SourceView>> srcViews_;
-    std::unique_ptr<TypeManager>             typeMgr_;
-    std::unique_ptr<ConstantManager>         cstMgr_;
-    std::unique_ptr<IdentifierManager>       idMgr_;
-    SymbolModule*                            symModule_   = nullptr;
-    JobClientId                              jobClientId_ = 0;
-    fs::path                                 modulePathSrc_;
-    fs::path                                 modulePathFile_;
-    fs::path                                 exeFullName_;
-    std::mutex                               mutex_;
-    bool                                     changed_ = true;
-
-    struct PerThreadData
-    {
-        Arena arena;
-    };
-
-    std::vector<PerThreadData> perThreadData_;
-
-    SWC_RACE_CONDITION_INSTANCE(rcFiles_);
-
-    void logBefore();
-    void logAfter();
-    void logStats();
-    void processCommand();
-
 public:
     CompilerInstance(const Global& global, const CommandLine& cmdLine);
     ~CompilerInstance();
@@ -109,6 +80,36 @@ public:
 
         return ptr;
     }
+
+private:
+    const CommandLine*                       cmdLine_ = nullptr;
+    const Global*                            global_  = nullptr;
+    std::vector<std::unique_ptr<SourceFile>> files_;
+    std::vector<std::unique_ptr<SourceView>> srcViews_;
+    std::unique_ptr<TypeManager>             typeMgr_;
+    std::unique_ptr<ConstantManager>         cstMgr_;
+    std::unique_ptr<IdentifierManager>       idMgr_;
+    SymbolModule*                            symModule_   = nullptr;
+    JobClientId                              jobClientId_ = 0;
+    fs::path                                 modulePathSrc_;
+    fs::path                                 modulePathFile_;
+    fs::path                                 exeFullName_;
+    std::mutex                               mutex_;
+    bool                                     changed_ = true;
+
+    struct PerThreadData
+    {
+        Arena arena;
+    };
+
+    std::vector<PerThreadData> perThreadData_;
+
+    SWC_RACE_CONDITION_INSTANCE(rcFiles_);
+
+    void logBefore();
+    void logAfter();
+    void logStats();
+    void processCommand();
 };
 
 SWC_END_NAMESPACE()

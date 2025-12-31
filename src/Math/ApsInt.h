@@ -5,11 +5,6 @@ SWC_BEGIN_NAMESPACE()
 
 class ApsInt : public ApInt
 {
-protected:
-    static constexpr uint64_t ZERO      = 0;
-    static constexpr uint64_t ONE       = 1;
-    bool                      unsigned_ = false;
-
 public:
     ApsInt() = default;
 
@@ -69,6 +64,11 @@ public:
     int64_t  asI64() const;
     bool     fits64() const;
     uint32_t minBits() const;
+
+protected:
+    static constexpr uint64_t ZERO      = 0;
+    static constexpr uint64_t ONE       = 1;
+    bool                      unsigned_ = false;
 };
 
 SWC_END_NAMESPACE()

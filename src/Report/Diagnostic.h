@@ -23,13 +23,6 @@ public:
         std::variant<Utf8, TokenId, DiagnosticId, uint32_t, TypeRef, ConstantRef> val;
     };
 
-private:
-    std::vector<std::shared_ptr<DiagnosticElement>> elements_;
-    std::vector<Argument>                           arguments_;
-    FileRef                                         fileOwner_ = FileRef::invalid();
-    bool                                            silent_    = false;
-
-public:
     constexpr static std::string_view ARG_PATH             = "{path}";
     constexpr static std::string_view ARG_ARG              = "{arg}";
     constexpr static std::string_view ARG_COMMAND          = "{command}";
@@ -92,6 +85,12 @@ public:
     }
 
     void report(TaskContext& ctx) const;
+
+private:
+    std::vector<std::shared_ptr<DiagnosticElement>> elements_;
+    std::vector<Argument>                           arguments_;
+    FileRef                                         fileOwner_ = FileRef::invalid();
+    bool                                            silent_    = false;
 };
 
 SWC_END_NAMESPACE()

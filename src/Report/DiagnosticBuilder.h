@@ -6,6 +6,11 @@ SWC_BEGIN_NAMESPACE()
 
 class DiagnosticBuilder
 {
+public:
+    DiagnosticBuilder(const TaskContext& ctx, const Diagnostic& diag);
+    Utf8 build();
+
+private:
     enum class DiagPart : uint8_t
     {
         FileLocationArrow,
@@ -69,15 +74,6 @@ class DiagnosticBuilder
     Utf8 buildMessage(const Utf8& msg) const;
     Utf8 argumentToString(const Diagnostic::Argument& arg) const;
     void expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements) const;
-
-public:
-    DiagnosticBuilder(const TaskContext& ctx, const Diagnostic& diag) :
-        ctx_(&ctx),
-        diag_(&diag)
-    {
-    }
-
-    Utf8 build();
 };
 
 SWC_END_NAMESPACE()

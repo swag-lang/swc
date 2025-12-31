@@ -10,14 +10,6 @@ enum class DiagnosticId;
 
 class DiagnosticElement
 {
-    Utf8               message_;
-    DiagnosticId       id_;
-    DiagnosticSeverity severity_;
-
-    const SourceView* srcView_ = nullptr;
-
-    std::vector<DiagnosticSpan> spans_;
-
 public:
     explicit DiagnosticElement(DiagnosticId id);
     explicit DiagnosticElement(DiagnosticSeverity severity, DiagnosticId id);
@@ -43,6 +35,13 @@ public:
     DiagnosticSeverity severity() const { return severity_; }
     void               setSeverity(DiagnosticSeverity sev) { severity_ = sev; }
     bool               isNoteOrHelp() const;
+
+private:
+    Utf8                        message_;
+    DiagnosticId                id_;
+    DiagnosticSeverity          severity_;
+    const SourceView*           srcView_ = nullptr;
+    std::vector<DiagnosticSpan> spans_;
 };
 
 SWC_END_NAMESPACE()

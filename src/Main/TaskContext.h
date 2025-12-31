@@ -40,14 +40,6 @@ struct TaskState
 
 class TaskContext
 {
-    const Global*      global_           = nullptr;
-    const CommandLine* cmdLine_          = nullptr;
-    CompilerInstance*  compilerInstance_ = nullptr;
-    bool               silentDiagnostic_ = false;
-    bool               hasError_         = false;
-    bool               hasWarning_       = false;
-    TaskState          state_;
-
 public:
     TaskContext() = delete;
 
@@ -76,6 +68,15 @@ public:
     void setHasWarning() { hasWarning_ = true; }
     bool hasError() const { return hasError_; }
     bool hasWarning() const { return hasWarning_; }
+
+private:
+    const Global*      global_           = nullptr;
+    const CommandLine* cmdLine_          = nullptr;
+    CompilerInstance*  compilerInstance_ = nullptr;
+    bool               silentDiagnostic_ = false;
+    bool               hasError_         = false;
+    bool               hasWarning_       = false;
+    TaskState          state_;
 };
 
 SWC_END_NAMESPACE()

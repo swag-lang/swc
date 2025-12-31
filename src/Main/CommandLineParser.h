@@ -41,6 +41,11 @@ struct ArgInfo
 
 class CommandLineParser
 {
+public:
+    explicit CommandLineParser(Global& global, CommandLine& cmdLine);
+    Result parse(int argc, char* argv[]);
+
+private:
     std::vector<ArgInfo>    args_;
     std::map<Utf8, ArgInfo> longFormMap_;
     std::map<Utf8, ArgInfo> shortFormMap_;
@@ -66,10 +71,6 @@ class CommandLineParser
     void                   addArg(const char* commands, const char* longForm, const char* shortForm, CommandLineType type, void* target, const char* enumValues, const char* description);
     bool                   reportEnumError(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value);
     Result                 checkCommandLine(TaskContext& ctx) const;
-
-public:
-    explicit CommandLineParser(Global& global, CommandLine& cmdLine);
-    Result parse(int argc, char* argv[]);
 };
 
 SWC_END_NAMESPACE()

@@ -11,6 +11,25 @@ struct AstNode;
 
 class AstVisit
 {
+public:
+    void           start(Ast& ast, AstNodeRef root);
+    void           setEnterNodeVisitor(const std::function<void(AstNode&)>& visitor) { enterNodeVisitor_ = visitor; }
+    void           setPreNodeVisitor(const std::function<AstVisitStepResult(AstNode&)>& visitor) { preNodeVisitor_ = visitor; }
+    void           setPostNodeVisitor(const std::function<AstVisitStepResult(AstNode&)>& visitor) { postNodeVisitor_ = visitor; }
+    void           setPreChildVisitor(const std::function<AstVisitStepResult(AstNode&, AstNodeRef&)>& visitor) { preChildVisitor_ = visitor; }
+    AstVisitResult step(const TaskContext& ctx);
+
+    AstNode*       parentNode(size_t up = 0) { return parentNodeInternal(up); }
+    const AstNode* parentNode(size_t up = 0) const { return parentNodeInternal(up); }
+    AstNode*       currentNode() { return stack_.back().node; }
+    const AstNode* currentNode() const { return stack_.back().node; }
+    AstNodeRef     currentNodeRef() const { return stack_.back().nodeRef; }
+
+    AstNodeRef root() const { return rootRef_; }
+    const Ast& ast() const { return *ast_; }
+    Ast&       ast() { return *ast_; }
+
+private:
     struct Frame
     {
         enum class Stage : uint8_t
@@ -49,24 +68,6 @@ class AstVisit
     TokenRef           dbgTokRef_ = TokenRef::invalid();
     SourceCodeLocation dbgLoc_;
 #endif
-
-public:
-    void           start(Ast& ast, AstNodeRef root);
-    void           setEnterNodeVisitor(const std::function<void(AstNode&)>& visitor) { enterNodeVisitor_ = visitor; }
-    void           setPreNodeVisitor(const std::function<AstVisitStepResult(AstNode&)>& visitor) { preNodeVisitor_ = visitor; }
-    void           setPostNodeVisitor(const std::function<AstVisitStepResult(AstNode&)>& visitor) { postNodeVisitor_ = visitor; }
-    void           setPreChildVisitor(const std::function<AstVisitStepResult(AstNode&, AstNodeRef&)>& visitor) { preChildVisitor_ = visitor; }
-    AstVisitResult step(const TaskContext& ctx);
-
-    AstNode*       parentNode(size_t up = 0) { return parentNodeInternal(up); }
-    const AstNode* parentNode(size_t up = 0) const { return parentNodeInternal(up); }
-    AstNode*       currentNode() { return stack_.back().node; }
-    const AstNode* currentNode() const { return stack_.back().node; }
-    AstNodeRef     currentNodeRef() const { return stack_.back().nodeRef; }
-
-    AstNodeRef root() const { return rootRef_; }
-    const Ast& ast() const { return *ast_; }
-    Ast&       ast() { return *ast_; }
 };
 
 SWC_END_NAMESPACE()

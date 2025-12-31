@@ -22,32 +22,6 @@ using AstFlags = EnumFlags<AstFlagsE>;
 
 class Ast
 {
-    struct Shard
-    {
-        Store              store;
-        mutable std::mutex mutex;
-    };
-
-    static constexpr uint32_t SHARD_BITS  = 3;
-    static constexpr uint32_t SHARD_COUNT = 1u << SHARD_BITS;
-    static constexpr uint32_t LOCAL_BITS  = 32u - SHARD_BITS;
-    static constexpr uint32_t LOCAL_MASK  = (1u << LOCAL_BITS) - 1u;
-
-    static uint32_t packRef(uint32_t shard, uint32_t localIndex)
-    {
-        SWC_ASSERT(localIndex < LOCAL_MASK);
-        return (shard << LOCAL_BITS) | (localIndex & LOCAL_MASK);
-    }
-
-    static uint32_t refShard(uint32_t globalRef) { return globalRef >> LOCAL_BITS; }
-    static uint32_t refLocal(uint32_t globalRef) { return globalRef & LOCAL_MASK; }
-    static uint32_t chooseShard() { return JobManager::threadIndex() % SHARD_COUNT; }
-
-    Shard       shards_[SHARD_COUNT];
-    SourceView* srcView_ = nullptr;
-    AstNodeRef  root_    = AstNodeRef::invalid();
-    AstFlags    flags_   = AstFlagsE::Zero;
-
 public:
     static constexpr const AstNodeIdInfo& nodeIdInfos(AstNodeId id) { return AST_NODE_ID_INFOS[static_cast<size_t>(id)]; }
     static constexpr std::string_view     nodeIdName(AstNodeId id) { return nodeIdInfos(id).name; }
@@ -162,6 +136,33 @@ public:
 #endif
         return value;
     }
+
+private:
+    struct Shard
+    {
+        Store              store;
+        mutable std::mutex mutex;
+    };
+
+    static constexpr uint32_t SHARD_BITS  = 3;
+    static constexpr uint32_t SHARD_COUNT = 1u << SHARD_BITS;
+    static constexpr uint32_t LOCAL_BITS  = 32u - SHARD_BITS;
+    static constexpr uint32_t LOCAL_MASK  = (1u << LOCAL_BITS) - 1u;
+
+    static uint32_t packRef(uint32_t shard, uint32_t localIndex)
+    {
+        SWC_ASSERT(localIndex < LOCAL_MASK);
+        return (shard << LOCAL_BITS) | (localIndex & LOCAL_MASK);
+    }
+
+    static uint32_t refShard(uint32_t globalRef) { return globalRef >> LOCAL_BITS; }
+    static uint32_t refLocal(uint32_t globalRef) { return globalRef & LOCAL_MASK; }
+    static uint32_t chooseShard() { return JobManager::threadIndex() % SHARD_COUNT; }
+
+    Shard       shards_[SHARD_COUNT];
+    SourceView* srcView_ = nullptr;
+    AstNodeRef  root_    = AstNodeRef::invalid();
+    AstFlags    flags_   = AstFlagsE::Zero;
 };
 
 SWC_END_NAMESPACE()

@@ -101,34 +101,6 @@ const Ast& Sema::ast() const
     return semaInfo_->ast();
 }
 
-void Sema::setVisitors()
-{
-    if (declPass_)
-    {
-        visit_.setPreNodeVisitor([this](AstNode& node) { return preDecl(node); });
-        visit_.setPreChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return preDeclChild(node, childRef); });
-        visit_.setPostNodeVisitor([this](AstNode& node) { return postDecl(node); });
-    }
-    else
-    {
-        visit_.setEnterNodeVisitor([this](AstNode& node) { enterNode(node); });
-        visit_.setPreNodeVisitor([this](AstNode& node) { return preNode(node); });
-        visit_.setPreChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return preNodeChild(node, childRef); });
-        visit_.setPostNodeVisitor([this](AstNode& node) { return postNode(node); });
-    }
-}
-
-void Sema::pushFrame(const SemaFrame& frame)
-{
-    frame_.push_back(frame);
-}
-
-void Sema::popFrame()
-{
-    SWC_ASSERT(!frame_.empty());
-    frame_.pop_back();
-}
-
 SemaScope* Sema::pushScope(SemaScopeFlags flags)
 {
     SemaScope* parent = curScope_;
@@ -146,62 +118,15 @@ void Sema::popScope()
     scopes_.pop_back();
 }
 
-void Sema::enterNode(AstNode& node)
+void Sema::pushFrame(const SemaFrame& frame)
 {
-    const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
-    info.semaEnterNode(*this, node);
+    frame_.push_back(frame);
 }
 
-AstVisitStepResult Sema::preDecl(AstNode& node)
+void Sema::popFrame()
 {
-    const AstNodeIdInfo&     info   = Ast::nodeIdInfos(node.id());
-    const AstVisitStepResult result = info.semaPreDecl(*this, node);
-    return result;
-}
-
-AstVisitStepResult Sema::preDeclChild(AstNode& node, AstNodeRef& childRef)
-{
-    const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
-    return info.semaPreDeclChild(*this, node, childRef);
-}
-
-AstVisitStepResult Sema::postDecl(AstNode& node)
-{
-    const AstNodeIdInfo&     info   = Ast::nodeIdInfos(node.id());
-    const AstVisitStepResult result = info.semaPostDecl(*this, node);
-    return result;
-}
-
-AstVisitStepResult Sema::preNode(AstNode& node)
-{
-    const AstNodeIdInfo&     info   = Ast::nodeIdInfos(node.id());
-    const AstVisitStepResult result = info.semaPreNode(*this, node);
-    return result;
-}
-
-AstVisitStepResult Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
-{
-    if (curScope_->hasFlag(SemaScopeFlagsE::TopLevel))
-    {
-        const AstNode&       child = ast().node(childRef);
-        const AstNodeIdInfo& info  = Ast::nodeIdInfos(child.id());
-        if (info.hasFlag(AstNodeIdFlagsE::SemaJob))
-        {
-            const auto job = heapNew<SemaJob>(ctx(), *this, childRef);
-            compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, compiler().jobClientId());
-            return AstVisitStepResult::SkipChildren;
-        }
-    }
-
-    const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
-    return info.semaPreNodeChild(*this, node, childRef);
-}
-
-AstVisitStepResult Sema::postNode(AstNode& node)
-{
-    const AstNodeIdInfo&     info   = Ast::nodeIdInfos(node.id());
-    const AstVisitStepResult result = info.semaPostNode(*this, node);
-    return result;
+    SWC_ASSERT(!frame_.empty());
+    frame_.pop_back();
 }
 
 AstVisitStepResult Sema::waitIdentifier(IdentifierRef idRef)
@@ -238,6 +163,81 @@ AstVisitStepResult Sema::waitDeclared(const Symbol* symbol)
     wait.nodeRef    = curNodeRef();
     wait.symbol     = symbol;
     return AstVisitStepResult::Pause;
+}
+
+void Sema::setVisitors()
+{
+    if (declPass_)
+    {
+        visit_.setPreNodeVisitor([this](AstNode& node) { return preDecl(node); });
+        visit_.setPreChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return preDeclChild(node, childRef); });
+        visit_.setPostNodeVisitor([this](AstNode& node) { return postDecl(node); });
+    }
+    else
+    {
+        visit_.setEnterNodeVisitor([this](AstNode& node) { enterNode(node); });
+        visit_.setPreNodeVisitor([this](AstNode& node) { return preNode(node); });
+        visit_.setPreChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return preNodeChild(node, childRef); });
+        visit_.setPostNodeVisitor([this](AstNode& node) { return postNode(node); });
+    }
+}
+
+void Sema::enterNode(AstNode& node)
+{
+    const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
+    info.semaEnterNode(*this, node);
+}
+
+AstVisitStepResult Sema::preDecl(AstNode& node)
+{
+    const AstNodeIdInfo&     info   = Ast::nodeIdInfos(node.id());
+    const AstVisitStepResult result = info.semaPreDecl(*this, node);
+    return result;
+}
+
+AstVisitStepResult Sema::preDeclChild(AstNode& node, AstNodeRef& childRef)
+{
+    const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
+    return info.semaPreDeclChild(*this, node, childRef);
+}
+
+AstVisitStepResult Sema::postDecl(AstNode& node)
+{
+    const AstNodeIdInfo&     info   = Ast::nodeIdInfos(node.id());
+    const AstVisitStepResult result = info.semaPostDecl(*this, node);
+    return result;
+}
+
+AstVisitStepResult Sema::preNode(AstNode& node)
+{
+    const AstNodeIdInfo&     info   = Ast::nodeIdInfos(node.id());
+    const AstVisitStepResult result = info.semaPreNode(*this, node);
+    return result;
+}
+
+AstVisitStepResult Sema::postNode(AstNode& node)
+{
+    const AstNodeIdInfo&     info   = Ast::nodeIdInfos(node.id());
+    const AstVisitStepResult result = info.semaPostNode(*this, node);
+    return result;
+}
+
+AstVisitStepResult Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
+{
+    if (curScope_->hasFlag(SemaScopeFlagsE::TopLevel))
+    {
+        const AstNode&       child = ast().node(childRef);
+        const AstNodeIdInfo& info  = Ast::nodeIdInfos(child.id());
+        if (info.hasFlag(AstNodeIdFlagsE::SemaJob))
+        {
+            const auto job = heapNew<SemaJob>(ctx(), *this, childRef);
+            compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, compiler().jobClientId());
+            return AstVisitStepResult::SkipChildren;
+        }
+    }
+
+    const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
+    return info.semaPreNodeChild(*this, node, childRef);
 }
 
 namespace
@@ -311,34 +311,6 @@ namespace
     }
 }
 
-void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
-{
-    auto&             jobMgr   = ctx.global().jobMgr();
-    CompilerInstance& compiler = ctx.compiler();
-
-    while (true)
-    {
-        jobMgr.waitAll(clientId);
-
-        if (compiler.changed())
-        {
-            compiler.clearChanged();
-            jobMgr.wakeAll(clientId);
-            continue;
-        }
-
-        if (resolveCompilerDefined(ctx, clientId))
-        {
-            jobMgr.wakeAll(clientId);
-            continue;
-        }
-
-        break;
-    }
-
-    postPass(ctx, clientId);
-}
-
 JobResult Sema::exec()
 {
     if (!curScope_)
@@ -370,6 +342,34 @@ JobResult Sema::exec()
     if (jobResult == JobResult::Done)
         scopes_.clear();
     return jobResult;
+}
+
+void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
+{
+    auto&             jobMgr   = ctx.global().jobMgr();
+    CompilerInstance& compiler = ctx.compiler();
+
+    while (true)
+    {
+        jobMgr.waitAll(clientId);
+
+        if (compiler.changed())
+        {
+            compiler.clearChanged();
+            jobMgr.wakeAll(clientId);
+            continue;
+        }
+
+        if (resolveCompilerDefined(ctx, clientId))
+        {
+            jobMgr.wakeAll(clientId);
+            continue;
+        }
+
+        break;
+    }
+
+    postPass(ctx, clientId);
 }
 
 SWC_END_NAMESPACE()

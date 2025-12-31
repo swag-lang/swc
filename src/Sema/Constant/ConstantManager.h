@@ -9,6 +9,20 @@ class CompilerInstance;
 
 class ConstantManager
 {
+public:
+    void setup(const TaskContext& ctx);
+
+    ConstantRef          addConstant(const TaskContext& ctx, const ConstantValue& value);
+    ConstantRef          cstTrue() const { return cstBool_true_; }
+    ConstantRef          cstFalse() const { return cstBool_false_; }
+    ConstantRef          cstBool(bool value) const { return value ? cstBool_true_ : cstBool_false_; }
+    ConstantRef          cstS32(int32_t value) const;
+    ConstantRef          cstNegBool(ConstantRef cstRef) const { return cstRef == cstBool_true_ ? cstBool_false_ : cstBool_true_; }
+    const ConstantValue& get(ConstantRef constantRef) const;
+
+    ConstantRef concretizeConstant(Sema& sema, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign);
+
+private:
     struct Shard
     {
         Store                                                             store;
@@ -28,19 +42,6 @@ class ConstantManager
     ConstantRef cstS32_0_      = ConstantRef::invalid();
     ConstantRef cstS32_1_      = ConstantRef::invalid();
     ConstantRef cstS32_neg1_   = ConstantRef::invalid();
-
-public:
-    void setup(const TaskContext& ctx);
-
-    ConstantRef          addConstant(const TaskContext& ctx, const ConstantValue& value);
-    ConstantRef          cstTrue() const { return cstBool_true_; }
-    ConstantRef          cstFalse() const { return cstBool_false_; }
-    ConstantRef          cstBool(bool value) const { return value ? cstBool_true_ : cstBool_false_; }
-    ConstantRef          cstS32(int32_t value) const;
-    ConstantRef          cstNegBool(ConstantRef cstRef) const { return cstRef == cstBool_true_ ? cstBool_false_ : cstBool_true_; }
-    const ConstantValue& get(ConstantRef constantRef) const;
-
-    ConstantRef concretizeConstant(Sema& sema, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign);
 };
 
 SWC_END_NAMESPACE()

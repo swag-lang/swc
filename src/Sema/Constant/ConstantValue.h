@@ -28,22 +28,6 @@ class ConstantValue
     friend struct ConstantValueHash;
     friend class ConstantManager;
 
-    ConstantKind kind_    = ConstantKind::Invalid;
-    TypeRef      typeRef_ = TypeRef::invalid();
-
-    union
-    {
-        // clang-format off
-        struct { std::string_view val; } asString;
-        struct { char32_t val; } asCharRune;
-        struct { bool val; } asBool;
-        struct { ApsInt val; } asInt;
-        struct { ApFloat val; } asFloat;
-        struct { TypeRef val; } asTypeInfo;
-        struct { ConstantRef val; } asEnumValue;
-        // clang-format on
-    };
-
 public:
     // ReSharper disable once CppPossiblyUninitializedMember
     ConstantValue() {}
@@ -96,6 +80,23 @@ public:
     ApsInt   getIntLike() const;
     bool     ge(const ConstantValue& rhs) const noexcept;
     Utf8     toString(const TaskContext& ctx) const;
+
+private:
+    ConstantKind kind_    = ConstantKind::Invalid;
+    TypeRef      typeRef_ = TypeRef::invalid();
+
+    union
+    {
+        // clang-format off
+        struct { std::string_view val; } asString;
+        struct { char32_t val; } asCharRune;
+        struct { bool val; } asBool;
+        struct { ApsInt val; } asInt;
+        struct { ApFloat val; } asFloat;
+        struct { TypeRef val; } asTypeInfo;
+        struct { ConstantRef val; } asEnumValue;
+        // clang-format on
+    };
 };
 
 struct ConstantValueHash

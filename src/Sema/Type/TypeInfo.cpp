@@ -3,17 +3,8 @@
 #include "Math/Hash.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/TypeManager.h"
-#include <memory>
 
 SWC_BEGIN_NAMESPACE()
-class TaskContext;
-
-// ReSharper disable once CppPossiblyUninitializedMember
-TypeInfo::TypeInfo(TypeInfoKind kind, TypeInfoFlags flags) :
-    kind_(kind),
-    flags_(flags)
-{
-}
 
 TypeInfo::TypeInfo(const TypeInfo& other) :
     kind_(other.kind_),
@@ -172,160 +163,6 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
     }
 }
 
-uint32_t TypeInfo::hash() const
-{
-    auto h = Math::hash(static_cast<uint32_t>(kind_));
-    h      = Math::hashCombine(h, static_cast<uint32_t>(flags_.get()));
-
-    switch (kind_)
-    {
-        case TypeInfoKind::Bool:
-        case TypeInfoKind::Char:
-        case TypeInfoKind::String:
-        case TypeInfoKind::Void:
-        case TypeInfoKind::Any:
-        case TypeInfoKind::Rune:
-        case TypeInfoKind::CString:
-            return h;
-
-        case TypeInfoKind::Int:
-            h = Math::hashCombine(h, asInt.bits);
-            h = Math::hashCombine(h, static_cast<uint32_t>(asInt.sign));
-            return h;
-        case TypeInfoKind::Float:
-            h = Math::hashCombine(h, asFloat.bits);
-            return h;
-        case TypeInfoKind::ValuePointer:
-        case TypeInfoKind::BlockPointer:
-        case TypeInfoKind::Slice:
-        case TypeInfoKind::TypeValue:
-            h = Math::hashCombine(h, asTypeRef.typeRef.get());
-            return h;
-        case TypeInfoKind::Enum:
-            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asEnum.sym));
-            return h;
-        case TypeInfoKind::Struct:
-            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asStruct.sym));
-            return h;
-        case TypeInfoKind::Array:
-            h = Math::hashCombine(h, asArray.typeRef.get());
-            for (const auto dim : asArray.dims)
-                h = Math::hashCombine(h, dim);
-            return h;
-
-        default:
-            SWC_UNREACHABLE();
-    }
-}
-
-TypeInfo TypeInfo::makeBool()
-{
-    return TypeInfo{TypeInfoKind::Bool};
-}
-
-TypeInfo TypeInfo::makeChar()
-{
-    return TypeInfo{TypeInfoKind::Char};
-}
-
-TypeInfo TypeInfo::makeString(TypeInfoFlags flags)
-{
-    return TypeInfo{TypeInfoKind::String, flags};
-}
-
-TypeInfo TypeInfo::makeVoid()
-{
-    return TypeInfo{TypeInfoKind::Void};
-}
-
-TypeInfo TypeInfo::makeAny(TypeInfoFlags flags)
-{
-    return TypeInfo{TypeInfoKind::Any, flags};
-}
-
-TypeInfo TypeInfo::makeRune()
-{
-    return TypeInfo{TypeInfoKind::Rune};
-}
-
-TypeInfo TypeInfo::makeCString(TypeInfoFlags flags)
-{
-    return TypeInfo{TypeInfoKind::CString, flags};
-}
-
-TypeInfo TypeInfo::makeInt(uint32_t bits, Sign sign)
-{
-    TypeInfo ti{TypeInfoKind::Int};
-    ti.asInt = {.bits = bits, .sign = sign};
-    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
-    return ti;
-}
-
-TypeInfo TypeInfo::makeFloat(uint32_t bits)
-{
-    TypeInfo ti{TypeInfoKind::Float};
-    ti.asFloat = {.bits = bits};
-    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
-    return ti;
-}
-
-TypeInfo TypeInfo::makeTypeValue(TypeRef typeRef)
-{
-    TypeInfo ti{TypeInfoKind::TypeValue};
-    ti.asTypeRef = {.typeRef = typeRef};
-    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
-    return ti;
-}
-
-TypeInfo TypeInfo::makeEnum(SymbolEnum* enumSym)
-{
-    TypeInfo ti{TypeInfoKind::Enum};
-    ti.asEnum.sym = enumSym;
-    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
-    return ti;
-}
-
-TypeInfo TypeInfo::makeStruct(SymbolStruct* structSym)
-{
-    TypeInfo ti{TypeInfoKind::Struct};
-    ti.asStruct.sym = structSym;
-    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
-    return ti;
-}
-
-TypeInfo TypeInfo::makeValuePointer(TypeRef pointeeTypeRef, TypeInfoFlags flags)
-{
-    TypeInfo ti{TypeInfoKind::ValuePointer, flags};
-    ti.asTypeRef.typeRef = pointeeTypeRef;
-    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
-    return ti;
-}
-
-TypeInfo TypeInfo::makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags)
-{
-    TypeInfo ti{TypeInfoKind::BlockPointer, flags};
-    ti.asTypeRef.typeRef = pointeeTypeRef;
-    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
-    return ti;
-}
-
-TypeInfo TypeInfo::makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags)
-{
-    TypeInfo ti{TypeInfoKind::Slice, flags};
-    ti.asTypeRef.typeRef = pointeeTypeRef;
-    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
-    return ti;
-}
-
-TypeInfo TypeInfo::makeArray(const std::vector<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags)
-{
-    TypeInfo ti{TypeInfoKind::Array, flags};
-    std::construct_at(&ti.asArray.dims, dims);
-    ti.asArray.typeRef = elementTypeRef;
-    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
-    return ti;
-}
-
 Utf8 TypeInfo::toName(const TaskContext& ctx) const
 {
     Utf8 out;
@@ -446,6 +283,167 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
     }
 
     return out;
+}
+
+TypeInfo TypeInfo::makeBool()
+{
+    return TypeInfo{TypeInfoKind::Bool};
+}
+
+TypeInfo TypeInfo::makeChar()
+{
+    return TypeInfo{TypeInfoKind::Char};
+}
+
+TypeInfo TypeInfo::makeString(TypeInfoFlags flags)
+{
+    return TypeInfo{TypeInfoKind::String, flags};
+}
+
+TypeInfo TypeInfo::makeInt(uint32_t bits, Sign sign)
+{
+    TypeInfo ti{TypeInfoKind::Int};
+    ti.asInt = {.bits = bits, .sign = sign};
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return ti;
+}
+
+TypeInfo TypeInfo::makeFloat(uint32_t bits)
+{
+    TypeInfo ti{TypeInfoKind::Float};
+    ti.asFloat = {.bits = bits};
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return ti;
+}
+
+TypeInfo TypeInfo::makeTypeValue(TypeRef typeRef)
+{
+    TypeInfo ti{TypeInfoKind::TypeValue};
+    ti.asTypeRef = {.typeRef = typeRef};
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return ti;
+}
+
+TypeInfo TypeInfo::makeRune()
+{
+    return TypeInfo{TypeInfoKind::Rune};
+}
+
+TypeInfo TypeInfo::makeAny(TypeInfoFlags flags)
+{
+    return TypeInfo{TypeInfoKind::Any, flags};
+}
+
+TypeInfo TypeInfo::makeVoid()
+{
+    return TypeInfo{TypeInfoKind::Void};
+}
+
+TypeInfo TypeInfo::makeCString(TypeInfoFlags flags)
+{
+    return TypeInfo{TypeInfoKind::CString, flags};
+}
+
+TypeInfo TypeInfo::makeEnum(SymbolEnum* enumSym)
+{
+    TypeInfo ti{TypeInfoKind::Enum};
+    ti.asEnum.sym = enumSym;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return ti;
+}
+
+TypeInfo TypeInfo::makeStruct(SymbolStruct* structSym)
+{
+    TypeInfo ti{TypeInfoKind::Struct};
+    ti.asStruct.sym = structSym;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return ti;
+}
+
+TypeInfo TypeInfo::makeValuePointer(TypeRef pointeeTypeRef, TypeInfoFlags flags)
+{
+    TypeInfo ti{TypeInfoKind::ValuePointer, flags};
+    ti.asTypeRef.typeRef = pointeeTypeRef;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return ti;
+}
+
+TypeInfo TypeInfo::makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags)
+{
+    TypeInfo ti{TypeInfoKind::BlockPointer, flags};
+    ti.asTypeRef.typeRef = pointeeTypeRef;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return ti;
+}
+
+TypeInfo TypeInfo::makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags)
+{
+    TypeInfo ti{TypeInfoKind::Slice, flags};
+    ti.asTypeRef.typeRef = pointeeTypeRef;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return ti;
+}
+
+TypeInfo TypeInfo::makeArray(const std::vector<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags)
+{
+    TypeInfo ti{TypeInfoKind::Array, flags};
+    std::construct_at(&ti.asArray.dims, dims);
+    ti.asArray.typeRef = elementTypeRef;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return ti;
+}
+
+uint32_t TypeInfo::hash() const
+{
+    auto h = Math::hash(static_cast<uint32_t>(kind_));
+    h      = Math::hashCombine(h, static_cast<uint32_t>(flags_.get()));
+
+    switch (kind_)
+    {
+        case TypeInfoKind::Bool:
+        case TypeInfoKind::Char:
+        case TypeInfoKind::String:
+        case TypeInfoKind::Void:
+        case TypeInfoKind::Any:
+        case TypeInfoKind::Rune:
+        case TypeInfoKind::CString:
+            return h;
+
+        case TypeInfoKind::Int:
+            h = Math::hashCombine(h, asInt.bits);
+            h = Math::hashCombine(h, static_cast<uint32_t>(asInt.sign));
+            return h;
+        case TypeInfoKind::Float:
+            h = Math::hashCombine(h, asFloat.bits);
+            return h;
+        case TypeInfoKind::ValuePointer:
+        case TypeInfoKind::BlockPointer:
+        case TypeInfoKind::Slice:
+        case TypeInfoKind::TypeValue:
+            h = Math::hashCombine(h, asTypeRef.typeRef.get());
+            return h;
+        case TypeInfoKind::Enum:
+            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asEnum.sym));
+            return h;
+        case TypeInfoKind::Struct:
+            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asStruct.sym));
+            return h;
+        case TypeInfoKind::Array:
+            h = Math::hashCombine(h, asArray.typeRef.get());
+            for (const auto dim : asArray.dims)
+                h = Math::hashCombine(h, dim);
+            return h;
+
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+// ReSharper disable once CppPossiblyUninitializedMember
+TypeInfo::TypeInfo(TypeInfoKind kind, TypeInfoFlags flags) :
+    kind_(kind),
+    flags_(flags)
+{
 }
 
 SWC_END_NAMESPACE()

@@ -13,10 +13,6 @@ using SemaScopeFlags = EnumFlags<SemaScopeFlagsE>;
 
 class SemaScope
 {
-    SemaScope*     parent_ = nullptr;
-    SemaScopeFlags flags_  = SemaScopeFlagsE::Zero;
-    SymbolMap*     symMap_ = nullptr;
-
 public:
     SemaScope() = default;
 
@@ -33,6 +29,11 @@ public:
     void             setSymMap(SymbolMap* symMap) { symMap_ = symMap; }
     SymbolMap*       symMap() { return symMap_; }
     const SymbolMap* symMap() const { return symMap_; }
+
+private:
+    SemaScope*     parent_ = nullptr;
+    SemaScopeFlags flags_  = SemaScopeFlagsE::Zero;
+    SymbolMap*     symMap_ = nullptr;
 };
 
 SWC_END_NAMESPACE()

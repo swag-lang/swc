@@ -16,26 +16,6 @@ class IdentifierManager;
 
 class Sema
 {
-    TaskContext* ctx_      = nullptr;
-    SemaInfo*    semaInfo_ = nullptr;
-    AstVisit     visit_;
-
-    void               setVisitors();
-    void               enterNode(AstNode& node);
-    AstVisitStepResult preDecl(AstNode& node);
-    AstVisitStepResult preDeclChild(AstNode& node, AstNodeRef& childRef);
-    AstVisitStepResult postDecl(AstNode& node);
-    AstVisitStepResult preNode(AstNode& node);
-    AstVisitStepResult postNode(AstNode& node);
-    AstVisitStepResult preNodeChild(AstNode& node, AstNodeRef& childRef);
-
-    std::vector<std::unique_ptr<SemaScope>> scopes_;
-    SymbolMap*                              startSymMap_ = nullptr;
-    SemaScope*                              curScope_    = nullptr;
-    bool                                    declPass_    = false;
-
-    std::vector<SemaFrame> frame_;
-
 public:
     Sema(TaskContext& ctx, SemaInfo& semInfo, bool declPass);
     Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root);
@@ -92,21 +72,42 @@ public:
     }
 
     AstNodeRef       curNodeRef() const { return visit_.currentNodeRef(); }
-    SemaScope&       curScope() { return *curScope_; }
-    const SemaScope& curScope() const { return *curScope_; }
     SymbolMap*       curSymMap() { return curScope_->symMap(); }
     const SymbolMap* curSymMap() const { return curScope_->symMap(); }
+
+    SemaScope&       curScope() { return *curScope_; }
+    const SemaScope& curScope() const { return *curScope_; }
     SemaScope*       pushScope(SemaScopeFlags flags);
     void             popScope();
-
-    void pushFrame(const SemaFrame& frame);
-    void popFrame();
+    void             pushFrame(const SemaFrame& frame);
+    void             popFrame();
 
     AstVisitStepResult waitIdentifier(IdentifierRef idRef);
     AstVisitStepResult waitCompilerDefined(IdentifierRef idRef);
     AstVisitStepResult waitComplete(const Symbol* symbol);
     AstVisitStepResult waitDeclared(const Symbol* symbol);
     static void        waitDone(TaskContext& ctx, JobClientId clientId);
+
+private:
+    TaskContext* ctx_      = nullptr;
+    SemaInfo*    semaInfo_ = nullptr;
+    AstVisit     visit_;
+
+    void               setVisitors();
+    void               enterNode(AstNode& node);
+    AstVisitStepResult preDecl(AstNode& node);
+    AstVisitStepResult preDeclChild(AstNode& node, AstNodeRef& childRef);
+    AstVisitStepResult postDecl(AstNode& node);
+    AstVisitStepResult preNode(AstNode& node);
+    AstVisitStepResult postNode(AstNode& node);
+    AstVisitStepResult preNodeChild(AstNode& node, AstNodeRef& childRef);
+
+    std::vector<std::unique_ptr<SemaScope>> scopes_;
+    SymbolMap*                              startSymMap_ = nullptr;
+    SemaScope*                              curScope_    = nullptr;
+    bool                                    declPass_    = false;
+
+    std::vector<SemaFrame> frame_;
 };
 
 SWC_END_NAMESPACE()

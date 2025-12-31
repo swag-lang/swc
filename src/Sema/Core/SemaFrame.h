@@ -20,11 +20,6 @@ struct SemaCompilerIf
 
 class SemaFrame
 {
-    SymbolAccess                  access_ = SymbolAccess::Private;
-    AttributeList                 attributes_;
-    SmallVector<IdentifierRef, 8> nsPath_;
-    SemaCompilerIf*               compilerIf_ = nullptr;
-
 public:
     std::span<const IdentifierRef> nsPath() const { return nsPath_; }
     void                           pushNs(IdentifierRef id) { nsPath_.push_back(id); }
@@ -41,6 +36,12 @@ public:
 
     static SymbolMap* currentSymMap(Sema& sema);
     SymbolFlags       flagsForCurrentAccess() const;
+
+private:
+    SymbolAccess                  access_ = SymbolAccess::Private;
+    AttributeList                 attributes_;
+    SmallVector<IdentifierRef, 8> nsPath_;
+    SemaCompilerIf*               compilerIf_ = nullptr;
 };
 
 SWC_END_NAMESPACE()

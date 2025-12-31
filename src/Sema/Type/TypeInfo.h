@@ -41,6 +41,9 @@ using TypeRef = StrongRef<TypeInfo>;
 
 class TypeInfo
 {
+    friend struct TypeInfoHash;
+    friend class TypeManager;
+
 public:
     enum class Sign : uint8_t
     {
@@ -49,31 +52,9 @@ public:
         Unsigned
     };
 
-private:
-    friend struct TypeInfoHash;
-    friend class TypeManager;
-
-    explicit TypeInfo(TypeInfoKind kind, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
-
-    TypeInfoKind  kind_  = TypeInfoKind::Invalid;
-    TypeInfoFlags flags_ = TypeInfoFlagsE::Zero;
-
-    union
-    {
-        // clang-format off
-        struct { uint32_t bits; Sign sign; }                     asInt;
-        struct { uint32_t bits; }                                asFloat;
-        struct { TypeRef typeRef; }                              asTypeRef;
-        struct { SymbolEnum* sym; }                          asEnum;
-        struct { SymbolStruct* sym; }                      asStruct;
-        struct { std::vector<uint64_t> dims; TypeRef typeRef; }  asArray;
-        // clang-format on
-    };
-
-public:
-    ~TypeInfo() {}
     TypeInfo(const TypeInfo&);
     TypeInfo& operator=(const TypeInfo&);
+    ~TypeInfo() {}
 
     bool operator==(const TypeInfo& other) const noexcept;
     Utf8 toName(const TaskContext& ctx) const;
@@ -147,6 +128,24 @@ public:
     static TypeInfo makeArray(const std::vector<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
 
     uint32_t hash() const;
+
+private:
+    explicit TypeInfo(TypeInfoKind kind, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+
+    TypeInfoKind  kind_  = TypeInfoKind::Invalid;
+    TypeInfoFlags flags_ = TypeInfoFlagsE::Zero;
+
+    union
+    {
+        // clang-format off
+        struct { uint32_t bits; Sign sign; }                     asInt;
+        struct { uint32_t bits; }                                asFloat;
+        struct { TypeRef typeRef; }                              asTypeRef;
+        struct { SymbolEnum* sym; }                          asEnum;
+        struct { SymbolStruct* sym; }                      asStruct;
+        struct { std::vector<uint64_t> dims; TypeRef typeRef; }  asArray;
+        // clang-format on
+    };
 };
 
 struct TypeInfoHash

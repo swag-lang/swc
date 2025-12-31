@@ -16,21 +16,6 @@ void ConstantManager::setup(const TaskContext& ctx)
     cstS32_neg1_   = addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(-1LL, 32, false), 32, TypeInfo::Sign::Signed));
 }
 
-ConstantRef ConstantManager::cstS32(int32_t value) const
-{
-    switch (value)
-    {
-        case -1:
-            return cstS32_neg1_;
-        case 0:
-            return cstS32_0_;
-        case 1:
-            return cstS32_1_;
-        default:
-            SWC_UNREACHABLE();
-    }
-}
-
 ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantValue& value)
 {
     const uint32_t shardIndex = value.hash() & (SHARD_COUNT - 1);
@@ -85,6 +70,21 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
 #endif
 
     return result;
+}
+
+ConstantRef ConstantManager::cstS32(int32_t value) const
+{
+    switch (value)
+    {
+        case -1:
+            return cstS32_neg1_;
+        case 0:
+            return cstS32_0_;
+        case 1:
+            return cstS32_1_;
+        default:
+            SWC_UNREACHABLE();
+    }
 }
 
 const ConstantValue& ConstantManager::get(ConstantRef constantRef) const

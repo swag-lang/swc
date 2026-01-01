@@ -559,6 +559,8 @@ bool TypeInfo::isCompleted(TaskContext& ctx) const
             return structSym().isCompleted();
         case TypeInfoKind::Enum:
             return enumSym().isCompleted();
+        case TypeInfoKind::Interface:
+            return interfaceSym().isCompleted();
         case TypeInfoKind::Array:
             return ctx.typeMgr().get(asArray.typeRef).isCompleted(ctx);
         default:

@@ -372,10 +372,17 @@ namespace
 
     AstVisitStepResult semaCompilerOffsetOf(Sema& sema, const AstCompilerCallUnary& node)
     {
-        SemaNodeView      nodeView(sema, node.nodeArgRef);
-        uint64_t          val = 0;
-        const ApsInt      value{val, 64};
-        const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeInt(sema.ctx(), value, 64, TypeInfo::Sign::Unsigned));
+        SemaNodeView nodeView(sema, node.nodeArgRef);
+        if (!nodeView.sym || !nodeView.sym->isVariable())
+        {
+            SemaError::raise(sema, DiagnosticId::sema_err_invalid_offsetof, node.nodeArgRef);
+            return AstVisitStepResult::Stop;
+        }
+
+        const SymbolVariable& symVar = nodeView.sym->cast<SymbolVariable>();
+        const uint64_t        val    = symVar.offset();
+        const ApsInt          value{val, 64};
+        const ConstantRef     cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeInt(sema.ctx(), value, 64, TypeInfo::Sign::Unsigned));
         nodeView.setCstRef(sema, cstRef);
         sema.setConstant(sema.curNodeRef(), cstRef);
         return AstVisitStepResult::Continue;
@@ -384,7 +391,7 @@ namespace
     AstVisitStepResult semaCompilerAlignOf(Sema& sema, const AstCompilerCallUnary& node)
     {
         SemaNodeView      nodeView(sema, node.nodeArgRef);
-        uint64_t          val = 0;
+        const uint64_t    val = 0;
         const ApsInt      value{val, 64};
         const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeInt(sema.ctx(), value, 64, TypeInfo::Sign::Unsigned));
         nodeView.setCstRef(sema, cstRef);

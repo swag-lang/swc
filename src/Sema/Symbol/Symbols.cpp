@@ -48,7 +48,7 @@ bool SymbolEnum::computeNextValue(Sema& sema, SourceViewRef srcViewRef, TokenRef
     return true;
 }
 
-bool SymbolStruct::canBeCompleted(Sema& sema) const
+AstVisitStepResult SymbolStruct::canBeCompleted(Sema& sema) const
 {
     for (const auto field : fields_)
     {
@@ -62,11 +62,11 @@ bool SymbolStruct::canBeCompleted(Sema& sema) const
         if (!type.isCompleted(sema.ctx()))
         {
             sema.waitCompleted(&type);
-            return false;
+            return AstVisitStepResult::Pause;
         }
     }
 
-    return true;
+    return AstVisitStepResult::Continue;
 }
 
 void SymbolStruct::computeLayout(Sema& sema)

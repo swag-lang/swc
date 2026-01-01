@@ -101,3 +101,15 @@ struct F
 #assert(#offsetof(F.b) == 4)
 #assert(#sizeof(F) == 8)
 #assert(#offsetof(F.mid) == 4) // swc-expected-error {{sema_err_unknown_symbol}}
+
+struct CC
+{
+    a: *CC
+}
+
+struct EE
+{
+    a: CC
+    b: u32
+}
+#assert(#sizeof(EE) == #sizeof(CC) + #sizeof(u64))

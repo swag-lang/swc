@@ -87,7 +87,7 @@ public:
     AstVisitStepResult waitCompleted(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef);
     AstVisitStepResult waitDeclared(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef);
     AstVisitStepResult waitTyped(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef);
-    AstVisitStepResult waitCompleted(const TypeInfo* type);
+    AstVisitStepResult waitCompleted(const TypeInfo* type, AstNodeRef nodeRef);
     static void        waitDone(TaskContext& ctx, JobClientId clientId);
 
 private:

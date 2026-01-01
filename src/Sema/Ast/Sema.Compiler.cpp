@@ -360,7 +360,7 @@ namespace
         if (nodeView.type->isTypeValue())
             nodeView.type = &sema.typeMgr().get(nodeView.type->typeRef());
         if (!nodeView.type->isCompleted(sema.ctx()))
-            return sema.waitCompleted(nodeView.type);
+            return sema.waitCompleted(nodeView.type, node.nodeArgRef);
 
         const uint64_t      val = nodeView.type->sizeOf(sema.ctx());
         const ApsInt        value{val, ApsInt::maxBitWidth()};
@@ -402,7 +402,7 @@ namespace
         if (nodeView.type->isTypeValue())
             nodeView.type = &sema.typeMgr().get(nodeView.type->typeRef());
         if (!nodeView.type->isCompleted(sema.ctx()))
-            return sema.waitCompleted(nodeView.type);
+            return sema.waitCompleted(nodeView.type, node.nodeArgRef);
 
         const uint64_t      val = nodeView.type->alignOf(sema.ctx());
         const ApsInt        value{val, ApsInt::maxBitWidth()};

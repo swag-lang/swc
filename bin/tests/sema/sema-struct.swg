@@ -21,5 +21,5 @@ struct CC
 
 struct DD
 {
-    //a: DD
+    a: DD // swc-expected-error {{sema_err_struct_circular_reference}}
 }

@@ -184,11 +184,11 @@ AstVisitStepResult Sema::waitCompleted(const Symbol* symbol, SourceViewRef srcVi
     return AstVisitStepResult::Pause;
 }
 
-AstVisitStepResult Sema::waitCompleted(const TypeInfo* type)
+AstVisitStepResult Sema::waitCompleted(const TypeInfo* type, AstNodeRef nodeRef)
 {
     TaskState& wait = ctx().state();
     wait.kind       = TaskStateKind::SemaWaitTypeCompleted;
-    wait.nodeRef    = curNodeRef();
+    wait.nodeRef    = nodeRef;
     wait.type       = type;
     return AstVisitStepResult::Pause;
 }

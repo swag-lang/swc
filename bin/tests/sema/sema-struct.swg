@@ -12,3 +12,9 @@ struct BB
     y: any
     z: *void
 }
+
+/*
+struct CC
+{
+    a: *CC
+}*/

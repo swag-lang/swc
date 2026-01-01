@@ -48,6 +48,27 @@ bool SymbolEnum::computeNextValue(Sema& sema, SourceViewRef srcViewRef, TokenRef
     return true;
 }
 
+bool SymbolStruct::canBeCompleted(Sema& sema) const
+{
+    for (const auto field : fields_)
+    {
+        auto& symVar = field->cast<SymbolVariable>();
+        if (symVar.isIgnored())
+            continue;
+        if (symVar.typeRef().isInvalid())
+            continue; // TODO
+
+        auto& type = symVar.typeInfo(sema.ctx());
+        if (!type.isCompleted(sema.ctx()))
+        {
+            sema.waitCompleted(&type);
+            return false;
+        }
+    }
+
+    return true;
+}
+
 void SymbolStruct::computeLayout(Sema& sema)
 {
     auto& ctx = sema.ctx();

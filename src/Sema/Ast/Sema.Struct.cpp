@@ -53,7 +53,9 @@ AstVisitStepResult AstStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef&
 
 AstVisitStepResult AstStructDecl::semaPostNode(Sema& sema)
 {
-    SymbolStruct& sym = sema.curSymMap()->cast<SymbolStruct>();
+    SymbolStruct& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolStruct>();
+    if (!sym.canBeCompleted(sema))
+        return AstVisitStepResult::Pause;
     sym.computeLayout(sema);
     sym.setCompleted(sema.ctx());
     sema.popScope();

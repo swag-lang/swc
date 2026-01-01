@@ -142,6 +142,7 @@ public:
     uint32_t                    alignment() const { return alignment_; }
     std::vector<Symbol*>&       fields() { return fields_; }
     const std::vector<Symbol*>& fields() const { return fields_; }
+    bool                        canBeCompleted(Sema& sema) const;
     void                        computeLayout(Sema& sema);
 
 private:

@@ -7,3 +7,13 @@ struct A
 }
 
 #assert(#sizeof(A) == 8)
+
+struct B
+{
+    a: u32
+#if false {
+    b: u32
+}
+}
+
+#assert(#sizeof(B) == 4)

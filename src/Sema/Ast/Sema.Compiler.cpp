@@ -103,12 +103,15 @@ AstVisitStepResult AstCompilerIf::semaPostNode(Sema& sema) const
         return AstVisitStepResult::Continue;
 
     // Retrieve the SemaCompilerIf payload
-    const SemaCompilerIf* ignoredIfData = sema.payload<SemaCompilerIf>(ignoredBlockRef);
-    if (!ignoredIfData)
-        return AstVisitStepResult::Continue;
+    if (sema.hasPayload(ignoredBlockRef))
+    {
+        const SemaCompilerIf* ignoredIfData = sema.payload<SemaCompilerIf>(ignoredBlockRef);
+        if (!ignoredIfData)
+            return AstVisitStepResult::Continue;
 
-    for (Symbol* sym : ignoredIfData->symbols)
-        sym->setIgnored(sema.ctx());
+        for (Symbol* sym : ignoredIfData->symbols)
+            sym->setIgnored(sema.ctx());
+    }
 
     return AstVisitStepResult::Continue;
 }

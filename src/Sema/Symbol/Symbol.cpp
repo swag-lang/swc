@@ -31,11 +31,18 @@ Utf8 Symbol::toFamily() const
     }
 }
 
+void Symbol::setTyped(TaskContext& ctx)
+{
+    SWC_ASSERT(flags_.hasNot(SymbolFlagsE::Typed));
+    flags_.add(SymbolFlagsE::Typed);
+    ctx.compiler().notifySymbolTyped();
+}
+
 void Symbol::setCompleted(TaskContext& ctx)
 {
     SWC_ASSERT(flags_.hasNot(SymbolFlagsE::Completed));
     flags_.add(SymbolFlagsE::Completed);
-    ctx.compiler().notifySymbolComplete();
+    ctx.compiler().notifySymbolCompleted();
 }
 
 void Symbol::setDeclared(TaskContext& ctx)

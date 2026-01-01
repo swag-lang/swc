@@ -41,7 +41,8 @@ public:
 
     void setupSema(TaskContext& ctx);
     void notifySymbolAdded() { changed_ = true; }
-    void notifySymbolComplete() { changed_ = true; }
+    void notifySymbolTyped() { changed_ = true; }
+    void notifySymbolCompleted() { changed_ = true; }
     void notifySymbolDeclared() { changed_ = true; }
     void notifySymbolIgnored() { changed_ = true; }
     bool changed() const { return changed_; }

@@ -40,6 +40,7 @@ enum class SymbolFlagsE : uint8_t
     Declared  = 1 << 1,
     Completed = 1 << 2,
     Ignored   = 1 << 3,
+    Typed     = 1 << 4,
 
     // Specific per symbol kind
     EnumHasNextValue = 1 << 7,
@@ -73,6 +74,8 @@ public:
     void        addFlag(SymbolFlagsE fl) { flags_.add(fl); }
     bool        isPublic() const noexcept { return flags_.has(SymbolFlagsE::Public); }
 
+    bool isTyped() const noexcept { return flags_.has(SymbolFlagsE::Typed); }
+    void setTyped(TaskContext& ctx);
     bool isCompleted() const noexcept { return flags_.has(SymbolFlagsE::Completed); }
     void setCompleted(TaskContext& ctx);
     bool isDeclared() const noexcept { return flags_.has(SymbolFlagsE::Declared); }

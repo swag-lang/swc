@@ -1,17 +1,14 @@
 #global internal
 
-namespace NS
+struct AA
 {
-    struct AA
-    {
-        x: s32
-        y: *BB
-    }
+    x: s32
+    y: *BB
+}
 
-    struct BB
-    {
-        x: s32
-        y: any
-        z: *void
-    }
+struct BB
+{
+    x: s32
+    y: any
+    z: *void
 }

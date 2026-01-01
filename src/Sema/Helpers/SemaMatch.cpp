@@ -42,8 +42,8 @@ AstVisitStepResult SemaMatch::match(Sema& sema, LookUpContext& lookUpCxt, Identi
     {
         if (!other->isDeclared())
             return sema.waitDeclared(other);
-        if (!other->isCompleted())
-            return sema.waitCompleted(other);
+        if (!other->isTyped())
+            return sema.waitTyped(other);
     }
 
     if (lookUpCxt.count() > 1)

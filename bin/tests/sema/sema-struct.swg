@@ -13,8 +13,13 @@ struct BB
     z: *void
 }
 
-/*
 struct CC
 {
     a: *CC
-}*/
+}
+#assert(#sizeof(CC) == 8)
+
+struct DD
+{
+    a: DD
+}

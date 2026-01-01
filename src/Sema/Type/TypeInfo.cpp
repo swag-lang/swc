@@ -206,6 +206,12 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
         case TypeInfoKind::Enum:
             out += std::format("enum {}", asEnum.sym->name(ctx));
             break;
+        case TypeInfoKind::Struct:
+            out += std::format("struct {}", asStruct.sym->name(ctx));
+            break;
+        case TypeInfoKind::Interface:
+            out += std::format("interface {}", asInterface.sym->name(ctx));
+            break;
 
         case TypeInfoKind::TypeValue:
             if (asTypeRef.typeRef.isInvalid())

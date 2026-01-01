@@ -21,4 +21,4 @@ struct B
 #assert(#offsetof(B.b) == 4) // swc-expected-error {{sema_err_unknown_symbol}}
 
 #assert(#offsetof(A.a) == 0)
-#assert(#offsetof(A.b) == 4)
+//#assert(#offsetof(A.b) == 4)

@@ -22,3 +22,5 @@
 #assert(#sizeof(#type [4,2] u32) == 32)
 #assert(#sizeof(const [..] u32) == 16)
 
+namespace NS {}
+#assert(#sizeof(NS) == 0) // swc-expected-error {{sema_err_invalid_sizeof}}

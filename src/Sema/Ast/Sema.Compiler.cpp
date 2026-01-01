@@ -351,7 +351,11 @@ namespace
     AstVisitStepResult semaCompilerSizeOf(Sema& sema, const AstCompilerCallUnary& node)
     {
         SemaNodeView nodeView(sema, node.nodeArgRef);
-        SWC_ASSERT(nodeView.type);
+        if (!nodeView.type)
+        {
+            SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, node.nodeArgRef);
+            return AstVisitStepResult::Stop;
+        }
 
         if (nodeView.type->isTypeValue())
             nodeView.type = &sema.typeMgr().get(nodeView.type->typeRef());

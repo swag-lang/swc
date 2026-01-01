@@ -1,5 +1,6 @@
 #include "pch.h"
-#include "Sema/Core/Sema.h"
+
+#include "Main/CommandLine.h"
 #include "Main/Global.h"
 #include "Main/Version.h"
 #include "Parser/AstNodes.h"
@@ -8,6 +9,7 @@
 #include "Report/Logger.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Constant/ConstantValue.h"
+#include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
@@ -238,8 +240,7 @@ AstVisitStepResult AstCompilerLiteral::semaPostNode(Sema& sema) const
             const TypeRef typeRef = sema.typeMgr().enumTargetOs();
             if (typeRef.isInvalid())
                 return sema.waitIdentifier(sema.idMgr().nameTargetOs(), srcViewRef(), tokRef());
-            const ConstantValue val          = ConstantValue::makeInt(ctx, ApsInt{0, 32, false}, 32, TypeInfo::Sign::Signed);
-            const ConstantRef   valueCst     = sema.cstMgr().addConstant(ctx, val);
+            const ConstantRef   valueCst     = sema.cstMgr().addS32(ctx, static_cast<int32_t>(sema.ctx().cmdLine().targetOs));
             const ConstantValue enumValue    = ConstantValue::makeEnumValue(ctx, valueCst, typeRef);
             const ConstantRef   enumValueRef = sema.cstMgr().addConstant(ctx, enumValue);
             sema.setConstant(sema.curNodeRef(), enumValueRef);

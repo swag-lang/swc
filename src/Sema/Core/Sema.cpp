@@ -151,29 +151,35 @@ AstVisitStepResult Sema::waitCompilerDefined(IdentifierRef idRef, SourceViewRef 
     return AstVisitStepResult::Pause;
 }
 
-AstVisitStepResult Sema::waitDeclared(const Symbol* symbol)
+AstVisitStepResult Sema::waitDeclared(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef)
 {
     TaskState& wait = ctx().state();
     wait.kind       = TaskStateKind::SemaWaitSymDeclared;
     wait.nodeRef    = curNodeRef();
+    wait.srcViewRef = srcViewRef;
+    wait.tokRef     = tokRef;
     wait.symbol     = symbol;
     return AstVisitStepResult::Pause;
 }
 
-AstVisitStepResult Sema::waitTyped(const Symbol* symbol)
+AstVisitStepResult Sema::waitTyped(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef)
 {
     TaskState& wait = ctx().state();
     wait.kind       = TaskStateKind::SemaWaitSymTyped;
     wait.nodeRef    = curNodeRef();
+    wait.srcViewRef = srcViewRef;
+    wait.tokRef     = tokRef;
     wait.symbol     = symbol;
     return AstVisitStepResult::Pause;
 }
 
-AstVisitStepResult Sema::waitCompleted(const Symbol* symbol)
+AstVisitStepResult Sema::waitCompleted(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef)
 {
     TaskState& wait = ctx().state();
     wait.kind       = TaskStateKind::SemaWaitSymCompleted;
     wait.nodeRef    = curNodeRef();
+    wait.srcViewRef = srcViewRef;
+    wait.tokRef     = tokRef;
     wait.symbol     = symbol;
     return AstVisitStepResult::Pause;
 }
@@ -306,7 +312,7 @@ namespace
                     }
                     case TaskStateKind::SemaWaitSymDeclared:
                     {
-                        auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_completed, state.nodeRef);
+                        auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_completed, state.srcViewRef, state.tokRef);
                         diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
                         diag.report(ctx);
                         break;
@@ -314,7 +320,7 @@ namespace
                     case TaskStateKind::SemaWaitSymTyped:
                     {
                         SWC_ASSERT(state.symbol);
-                        auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_completed, state.nodeRef);
+                        auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_completed, state.srcViewRef, state.tokRef);
                         diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
                         diag.report(ctx);
                         break;
@@ -322,7 +328,7 @@ namespace
                     case TaskStateKind::SemaWaitSymCompleted:
                     {
                         SWC_ASSERT(state.symbol);
-                        auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_completed, state.nodeRef);
+                        auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_completed, state.srcViewRef, state.tokRef);
                         diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
                         diag.report(ctx);
                         break;

@@ -77,7 +77,7 @@ AstVisitStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNo
     {
         const SymbolEnum& enumSym = nodeLeftView.type->enumSym();
         if (!enumSym.isCompleted())
-            return sema.waitCompleted(&enumSym);
+            return sema.waitCompleted(&enumSym, srcViewRef(), tokNameRef);
 
         LookUpContext lookUpCxt;
         lookUpCxt.srcViewRef = srcViewRef();
@@ -97,7 +97,7 @@ AstVisitStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNo
     {
         const SymbolStruct& enumStruct = nodeLeftView.type->structSym();
         if (!enumStruct.isCompleted())
-            return sema.waitCompleted(&enumStruct);
+            return sema.waitCompleted(&enumStruct, srcViewRef(), tokNameRef);
 
         LookUpContext lookUpCxt;
         lookUpCxt.srcViewRef = srcViewRef();

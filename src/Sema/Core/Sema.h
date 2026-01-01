@@ -84,9 +84,9 @@ public:
 
     AstVisitStepResult waitIdentifier(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef);
     AstVisitStepResult waitCompilerDefined(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef);
-    AstVisitStepResult waitCompleted(const Symbol* symbol);
-    AstVisitStepResult waitDeclared(const Symbol* symbol);
-    AstVisitStepResult waitTyped(const Symbol* symbol);
+    AstVisitStepResult waitCompleted(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef);
+    AstVisitStepResult waitDeclared(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef);
+    AstVisitStepResult waitTyped(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef);
     AstVisitStepResult waitCompleted(const TypeInfo* type);
     static void        waitDone(TaskContext& ctx, JobClientId clientId);
 

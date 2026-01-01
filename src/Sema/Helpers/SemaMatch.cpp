@@ -41,9 +41,9 @@ AstVisitStepResult SemaMatch::match(Sema& sema, LookUpContext& lookUpCxt, Identi
     for (const Symbol* other : lookUpCxt.symbols())
     {
         if (!other->isDeclared())
-            return sema.waitDeclared(other);
+            return sema.waitDeclared(other, lookUpCxt.srcViewRef, lookUpCxt.tokRef);
         if (!other->isTyped())
-            return sema.waitTyped(other);
+            return sema.waitTyped(other, lookUpCxt.srcViewRef, lookUpCxt.tokRef);
     }
 
     if (lookUpCxt.count() > 1)
@@ -68,7 +68,7 @@ AstVisitStepResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
     for (const Symbol* other : lookUpCxt.symbols())
     {
         if (!other->isDeclared())
-            return sema.waitDeclared(other);
+            return sema.waitDeclared(other, lookUpCxt.srcViewRef, lookUpCxt.tokRef);
     }
 
     if (lookUpCxt.count() == 1)

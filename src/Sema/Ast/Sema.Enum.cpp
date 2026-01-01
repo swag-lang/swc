@@ -184,7 +184,7 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
 
     // Create a symbol for this enum value
     const IdentifierRef idRef    = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokRef());
-    SymbolFlags         flags    = SymbolFlagsE::Completed | SymbolFlagsE::Declared;
+    SymbolFlags         flags    = SymbolFlagsE::Declared | SymbolFlagsE::Completed;
     SymbolEnumValue*    symValue = Symbol::make<SymbolEnumValue>(ctx, srcViewRef(), tokRef(), idRef, flags);
     symValue->registerCompilerIf(sema);
 
@@ -192,6 +192,7 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
     ConstantRef   enumCstRef = sema.cstMgr().addConstant(ctx, enumCst);
     symValue->setCstRef(enumCstRef);
     symValue->setTypeRef(symEnum.typeRef());
+    symValue->setTyped(ctx);
 
     if (!sema.curSymMap()->addSingleSymbolOrError(sema, symValue))
         return AstVisitStepResult::Stop;

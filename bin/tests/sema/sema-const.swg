@@ -19,4 +19,4 @@ const G = 520
 
 const AA: s32    // swc-expected-error {{sema_err_const_missing_init}}
 const BB = @err  // swc-expected-error {{sema_err_expr_not_const}}
-#print(SEMA6)   // swc-expected-error {{sema_err_unknown_identifier}}
+#print(SEMA6)   // swc-expected-error {{sema_err_unknown_symbol}}

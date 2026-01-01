@@ -129,20 +129,24 @@ void Sema::popFrame()
     frame_.pop_back();
 }
 
-AstVisitStepResult Sema::waitIdentifier(IdentifierRef idRef)
+AstVisitStepResult Sema::waitIdentifier(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef)
 {
     TaskState& wait = ctx().state();
     wait.kind       = TaskStateKind::SemaWaitIdentifier;
     wait.nodeRef    = curNodeRef();
+    wait.srcViewRef = srcViewRef;
+    wait.tokRef     = tokRef;
     wait.idRef      = idRef;
     return AstVisitStepResult::Pause;
 }
 
-AstVisitStepResult Sema::waitCompilerDefined(IdentifierRef idRef)
+AstVisitStepResult Sema::waitCompilerDefined(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef)
 {
     TaskState& wait = ctx().state();
     wait.kind       = TaskStateKind::SemaWaitCompilerDefined;
     wait.nodeRef    = curNodeRef();
+    wait.srcViewRef = srcViewRef;
+    wait.tokRef     = tokRef;
     wait.idRef      = idRef;
     return AstVisitStepResult::Pause;
 }
@@ -286,7 +290,9 @@ namespace
                 {
                     case TaskStateKind::SemaWaitIdentifier:
                     {
-                        SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unknown_identifier, state.nodeRef);
+                        auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_unknown_symbol, state.srcViewRef, state.tokRef);
+                        diag.addArgument(Diagnostic::ARG_SYM, state.idRef);
+                        diag.report(ctx);
                         break;
                     }
                     case TaskStateKind::SemaWaitSymCompleted:

@@ -136,7 +136,7 @@ enum BoolOk: bool {
 }
 
 enum BoolOk1: bool {
-  T = B1, // swc-expected-error {{sema_err_unknown_identifier}}
+  T = B1, // swc-expected-error {{sema_err_unknown_symbol}}
   #assert(T == true)
   F = false,
   #assert(F == false)

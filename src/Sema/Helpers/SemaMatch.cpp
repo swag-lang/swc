@@ -36,7 +36,7 @@ AstVisitStepResult SemaMatch::match(Sema& sema, LookUpContext& lookUpCxt, Identi
 {
     lookup(sema, lookUpCxt, idRef);
     if (lookUpCxt.empty())
-        return sema.waitIdentifier(idRef);
+        return sema.waitIdentifier(idRef, lookUpCxt.srcViewRef, lookUpCxt.tokRef);
 
     for (const Symbol* other : lookUpCxt.symbols())
     {
@@ -63,7 +63,7 @@ AstVisitStepResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
 
     lookup(sema, lookUpCxt, sym.idRef());
     if (lookUpCxt.empty())
-        return sema.waitIdentifier(sym.idRef());
+        return sema.waitIdentifier(sym.idRef(), sym.srcViewRef(), sym.tokRef());
 
     for (const Symbol* other : lookUpCxt.symbols())
     {

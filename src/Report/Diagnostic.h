@@ -20,7 +20,7 @@ public:
         std::string_view name;
         bool             quoted;
 
-        std::variant<Utf8, TokenId, DiagnosticId, uint32_t, TypeRef, ConstantRef> val;
+        std::variant<Utf8, TokenId, DiagnosticId, uint32_t, TypeRef, ConstantRef, IdentifierRef> val;
     };
 
     constexpr static std::string_view ARG_PATH             = "{path}";

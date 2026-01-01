@@ -82,8 +82,8 @@ public:
     void             pushFrame(const SemaFrame& frame);
     void             popFrame();
 
-    AstVisitStepResult waitIdentifier(IdentifierRef idRef);
-    AstVisitStepResult waitCompilerDefined(IdentifierRef idRef);
+    AstVisitStepResult waitIdentifier(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef);
+    AstVisitStepResult waitCompilerDefined(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef);
     AstVisitStepResult waitCompleted(const Symbol* symbol);
     AstVisitStepResult waitDeclared(const Symbol* symbol);
     AstVisitStepResult waitCompleted(const TypeInfo* type);

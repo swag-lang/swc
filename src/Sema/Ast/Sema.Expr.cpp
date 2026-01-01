@@ -32,7 +32,7 @@ AstVisitStepResult AstIdentifier::semaPostNode(Sema& sema) const
 
     const AstVisitStepResult ret = SemaMatch::match(sema, lookUpCxt, idRef);
     if (ret == AstVisitStepResult::Pause && hasParserFlag(InCompilerDefined))
-        return sema.waitCompilerDefined(idRef);
+        return sema.waitCompilerDefined(idRef, srcViewRef(), tokRef());
     if (ret != AstVisitStepResult::Continue)
         return ret;
     sema.setSymbol(sema.curNodeRef(), lookUpCxt.first());

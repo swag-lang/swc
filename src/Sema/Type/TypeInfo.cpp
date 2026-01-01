@@ -175,9 +175,9 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
 {
     Utf8 out;
 
-    if (hasFlag(TypeInfoFlagsE::Nullable))
+    if (isNullable())
         out += "#null ";
-    if (hasFlag(TypeInfoFlagsE::Const))
+    if (isConst())
         out += "const ";
 
     switch (kind_)

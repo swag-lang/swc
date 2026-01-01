@@ -64,10 +64,12 @@ public:
     TypeInfoKind  kind() const noexcept { return kind_; }
     TypeInfoFlags flags() const noexcept { return flags_; }
     bool          hasFlag(TypeInfoFlagsE flag) const noexcept { return flags_.has(flag); }
-    bool          isBool() const noexcept { return kind_ == TypeInfoKind::Bool; }
-    bool          isChar() const noexcept { return kind_ == TypeInfoKind::Char; }
-    bool          isString() const noexcept { return kind_ == TypeInfoKind::String; }
+    bool          isConst() const noexcept { return flags_.has(TypeInfoFlagsE::Const); }
+    bool          isNullable() const noexcept { return flags_.has(TypeInfoFlagsE::Nullable); }
 
+    bool isBool() const noexcept { return kind_ == TypeInfoKind::Bool; }
+    bool isChar() const noexcept { return kind_ == TypeInfoKind::Char; }
+    bool isString() const noexcept { return kind_ == TypeInfoKind::String; }
     bool isInt() const noexcept { return kind_ == TypeInfoKind::Int; }
     bool isIntUnsized() const noexcept { return kind_ == TypeInfoKind::Int && asInt.bits == 0; }
     bool isIntUnsigned() const noexcept { return isInt() && asInt.sign == Sign::Unsigned; }

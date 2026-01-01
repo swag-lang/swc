@@ -17,3 +17,5 @@ struct B
 }
 
 #assert(#sizeof(B) == 4)
+#assert(#offsetof(B.a) == 0)
+//#assert(#offsetof(B.b) == 4)

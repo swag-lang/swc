@@ -87,6 +87,27 @@ AstVisitStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNo
         const AstVisitStepResult ret = SemaMatch::match(sema, lookUpCxt, idRef);
         if (ret != AstVisitStepResult::Continue)
             return ret;
+
+        sema.semaInfo().setSymbol(sema.curNodeRef(), lookUpCxt.first());
+        return AstVisitStepResult::SkipChildren;
+    }
+
+    // Struct
+    if (nodeLeftView.type && nodeLeftView.type->isStruct())
+    {
+        const SymbolStruct& enumStruct = nodeLeftView.type->structSym();
+        if (!enumStruct.isCompleted())
+            return sema.waitCompleted(&enumStruct);
+
+        LookUpContext lookUpCxt;
+        lookUpCxt.srcViewRef = srcViewRef();
+        lookUpCxt.tokRef     = tokNameRef;
+        lookUpCxt.symMapHint = &enumStruct;
+
+        const AstVisitStepResult ret = SemaMatch::match(sema, lookUpCxt, idRef);
+        if (ret != AstVisitStepResult::Continue)
+            return ret;
+
         sema.semaInfo().setSymbol(sema.curNodeRef(), lookUpCxt.first());
         return AstVisitStepResult::SkipChildren;
     }

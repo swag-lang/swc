@@ -147,10 +147,10 @@ AstVisitStepResult Sema::waitCompilerDefined(IdentifierRef idRef)
     return AstVisitStepResult::Pause;
 }
 
-AstVisitStepResult Sema::waitComplete(const Symbol* symbol)
+AstVisitStepResult Sema::waitCompleted(const Symbol* symbol)
 {
     TaskState& wait = ctx().state();
-    wait.kind       = TaskStateKind::SemaWaitComplete;
+    wait.kind       = TaskStateKind::SemaWaitSymCompleted;
     wait.nodeRef    = curNodeRef();
     wait.symbol     = symbol;
     return AstVisitStepResult::Pause;
@@ -159,9 +159,18 @@ AstVisitStepResult Sema::waitComplete(const Symbol* symbol)
 AstVisitStepResult Sema::waitDeclared(const Symbol* symbol)
 {
     TaskState& wait = ctx().state();
-    wait.kind       = TaskStateKind::SemaWaitDeclared;
+    wait.kind       = TaskStateKind::SemaWaitSymDeclared;
     wait.nodeRef    = curNodeRef();
     wait.symbol     = symbol;
+    return AstVisitStepResult::Pause;
+}
+
+AstVisitStepResult Sema::waitCompleted(const TypeInfo* type)
+{
+    TaskState& wait = ctx().state();
+    wait.kind       = TaskStateKind::SemaWaitTypeCompleted;
+    wait.nodeRef    = curNodeRef();
+    wait.type       = type;
     return AstVisitStepResult::Pause;
 }
 
@@ -280,18 +289,26 @@ namespace
                         SemaError::raise(semaJob->sema(), DiagnosticId::sema_err_unknown_identifier, state.nodeRef);
                         break;
                     }
-                    case TaskStateKind::SemaWaitComplete:
+                    case TaskStateKind::SemaWaitSymCompleted:
                     {
                         SWC_ASSERT(state.symbol);
-                        auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_unsolved_symbol, state.nodeRef);
+                        auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_completed, state.nodeRef);
                         diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
                         diag.report(ctx);
                         break;
                     }
-                    case TaskStateKind::SemaWaitDeclared:
+                    case TaskStateKind::SemaWaitSymDeclared:
                     {
-                        auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_unsolved_declared, state.nodeRef);
+                        auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_completed, state.nodeRef);
                         diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
+                        diag.report(ctx);
+                        break;
+                    }
+                    case TaskStateKind::SemaWaitTypeCompleted:
+                    {
+                        SWC_ASSERT(state.type);
+                        auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_type_completed, state.nodeRef);
+                        diag.addArgument(Diagnostic::ARG_TYPE, state.type->toName(ctx));
                         diag.report(ctx);
                         break;
                     }

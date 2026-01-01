@@ -135,6 +135,7 @@ public:
     uint32_t hash() const;
     uint64_t sizeOf(TaskContext& ctx) const;
     uint32_t alignOf(TaskContext& ctx) const;
+    bool     isCompleted(TaskContext& ctx) const;
 
 private:
     explicit TypeInfo(TypeInfoKind kind, TypeInfoFlags flags = TypeInfoFlagsE::Zero);

@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Parser/AstNodes.h"
 #include "Sema/Core/Sema.h"
+#include "Parser/AstNodes.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaMatch.h"
@@ -76,8 +76,8 @@ AstVisitStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNo
     if (nodeLeftView.type && nodeLeftView.type->isEnum())
     {
         const SymbolEnum& enumSym = nodeLeftView.type->enumSym();
-        if (!enumSym.isComplete())
-            return sema.waitComplete(&enumSym);
+        if (!enumSym.isCompleted())
+            return sema.waitCompleted(&enumSym);
 
         LookUpContext lookUpCxt;
         lookUpCxt.srcViewRef = srcViewRef();

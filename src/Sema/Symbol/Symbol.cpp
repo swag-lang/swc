@@ -31,10 +31,10 @@ Utf8 Symbol::toFamily() const
     }
 }
 
-void Symbol::setComplete(TaskContext& ctx)
+void Symbol::setCompleted(TaskContext& ctx)
 {
-    SWC_ASSERT(flags_.hasNot(SymbolFlagsE::Complete));
-    flags_.add(SymbolFlagsE::Complete);
+    SWC_ASSERT(flags_.hasNot(SymbolFlagsE::Completed));
+    flags_.add(SymbolFlagsE::Completed);
     ctx.compiler().notifySymbolComplete();
 }
 

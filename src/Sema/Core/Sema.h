@@ -84,8 +84,9 @@ public:
 
     AstVisitStepResult waitIdentifier(IdentifierRef idRef);
     AstVisitStepResult waitCompilerDefined(IdentifierRef idRef);
-    AstVisitStepResult waitComplete(const Symbol* symbol);
+    AstVisitStepResult waitCompleted(const Symbol* symbol);
     AstVisitStepResult waitDeclared(const Symbol* symbol);
+    AstVisitStepResult waitCompleted(const TypeInfo* type);
     static void        waitDone(TaskContext& ctx, JobClientId clientId);
 
 private:

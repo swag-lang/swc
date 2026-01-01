@@ -52,7 +52,7 @@ AstVisitStepResult AstInterfaceDecl::semaPreNodeChild(Sema& sema, const AstNodeR
 
 AstVisitStepResult AstInterfaceDecl::semaPostNode(Sema& sema)
 {
-    sema.curSymMap()->setComplete(sema.ctx());
+    sema.curSymMap()->setCompleted(sema.ctx());
     sema.popScope();
     return AstVisitStepResult::Continue;
 }

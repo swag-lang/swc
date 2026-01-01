@@ -18,16 +18,18 @@ enum class TaskStateKind : uint8_t
     None,
     SemaWaitIdentifier,
     SemaWaitCompilerDefined,
-    SemaWaitComplete,
-    SemaWaitDeclared,
+    SemaWaitSymCompleted,
+    SemaWaitSymDeclared,
+    SemaWaitTypeCompleted,
 };
 
 struct TaskState
 {
-    TaskStateKind kind    = TaskStateKind::None;
-    AstNodeRef    nodeRef = AstNodeRef::invalid();
-    IdentifierRef idRef   = IdentifierRef::invalid();
-    const Symbol* symbol  = nullptr;
+    TaskStateKind   kind    = TaskStateKind::None;
+    AstNodeRef      nodeRef = AstNodeRef::invalid();
+    IdentifierRef   idRef   = IdentifierRef::invalid();
+    const Symbol*   symbol  = nullptr;
+    const TypeInfo* type    = nullptr;
 
     void reset()
     {
@@ -35,6 +37,7 @@ struct TaskState
         nodeRef = AstNodeRef::invalid();
         idRef   = IdentifierRef::invalid();
         symbol  = nullptr;
+        type    = nullptr;
     }
 };
 

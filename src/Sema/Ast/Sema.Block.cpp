@@ -1,7 +1,7 @@
 #include "pch.h"
+#include "Sema/Core/Sema.h"
 #include "Lexer/LangSpec.h"
 #include "Main/CompilerInstance.h"
-#include "Sema/Core/Sema.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/Symbol.h"
 #include "Sema/Symbol/Symbols.h"
@@ -61,7 +61,7 @@ AstVisitStepResult AstNamespaceDecl::semaPreDecl(Sema& sema) const
         const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokRef);
         sema.frame().pushNs(idRef);
 
-        constexpr SymbolFlags flags = SymbolFlagsE::Declared | SymbolFlagsE::Complete;
+        constexpr SymbolFlags flags = SymbolFlagsE::Declared | SymbolFlagsE::Completed;
         SymbolNamespace*      ns    = Symbol::make<SymbolNamespace>(ctx, srcViewRef(), tokRef, idRef, flags);
         Symbol*               res   = symMap->addSingleSymbol(ctx, ns);
 

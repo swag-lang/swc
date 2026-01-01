@@ -551,4 +551,21 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
     }
 }
 
+bool TypeInfo::isCompleted(TaskContext& ctx) const
+{
+    switch (kind_)
+    {
+        case TypeInfoKind::Struct:
+            return structSym().isCompleted();
+        case TypeInfoKind::Enum:
+            return enumSym().isCompleted();
+        case TypeInfoKind::Array:
+            return ctx.typeMgr().get(asArray.typeRef).isCompleted(ctx);
+        default:
+            break;
+    }
+
+    return true;
+}
+
 SWC_END_NAMESPACE()

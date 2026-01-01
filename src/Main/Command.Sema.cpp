@@ -51,9 +51,9 @@ namespace Command
 
         compiler.setupSema(ctx);
 
-        SymbolModule*       symModule       = Symbol::make<SymbolModule>(ctx, nullptr, SourceViewRef::invalid(), TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        SymbolModule*       symModule       = Symbol::make<SymbolModule>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
         const IdentifierRef idRef           = ctx.idMgr().addIdentifier("test", Math::hash("test"));
-        SymbolNamespace*    moduleNamespace = Symbol::make<SymbolNamespace>(ctx, nullptr, SourceViewRef::invalid(), TokenRef::invalid(), idRef, SymbolFlagsE::Zero);
+        SymbolNamespace*    moduleNamespace = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), idRef, SymbolFlagsE::Zero);
         symModule->addSingleSymbol(ctx, moduleNamespace);
 
         for (SourceFile* f : files)

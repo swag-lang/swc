@@ -8,7 +8,7 @@ class LookUpContext;
 class SymbolMap : public Symbol
 {
 public:
-    explicit SymbolMap(const AstNode* decl, SourceViewRef srcViewRef, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags);
+    explicit SymbolMap(const AstNode* decl, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags);
 
     bool empty() const noexcept;
 

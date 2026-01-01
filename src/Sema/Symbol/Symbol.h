@@ -51,10 +51,9 @@ using SymbolFlags = AtomicEnumFlags<SymbolFlagsE>;
 class Symbol
 {
 public:
-    explicit Symbol(const AstNode* decl, SourceViewRef srcViewRef, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags) :
+    explicit Symbol(const AstNode* decl, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags) :
         idRef_(idRef),
         decl_(decl),
-        srcViewRef_(srcViewRef),
         tokRef_(tokRef),
         kind_(kind),
         flags_(flags)
@@ -66,7 +65,7 @@ public:
     TypeRef            typeRef() const noexcept { return typeRef_; }
     void               setTypeRef(TypeRef typeRef) noexcept { typeRef_ = typeRef; }
     const AstNode*     decl() const noexcept { return decl_; }
-    SourceViewRef      srcViewRef() const noexcept { return srcViewRef_; }
+    SourceViewRef      srcViewRef() const noexcept { return decl_->srcViewRef(); }
     TokenRef           tokRef() const noexcept { return tokRef_; }
     SourceCodeLocation loc(TaskContext& ctx) const noexcept;
     Utf8               toFamily() const;
@@ -160,14 +159,14 @@ public:
     }
 
     template<typename T>
-    static T* make(TaskContext& ctx, const AstNode* decl, SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, SymbolFlags flags)
+    static T* make(TaskContext& ctx, const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, SymbolFlags flags)
     {
 #if SWC_HAS_STATS
         Stats::get().numSymbols.fetch_add(1);
         Stats::get().memSymbols.fetch_add(sizeof(T), std::memory_order_relaxed);
 #endif
 
-        return ctx.compiler().allocate<T>(decl, srcViewRef, tokRef, idRef, flags);
+        return ctx.compiler().allocate<T>(decl, tokRef, idRef, flags);
     }
 
 private:
@@ -176,7 +175,6 @@ private:
     Symbol*        nextHomonym_ = nullptr;
     SymbolMap*     ownerSymMap_ = nullptr;
     const AstNode* decl_        = nullptr;
-    SourceViewRef  srcViewRef_  = SourceViewRef::invalid();
     TokenRef       tokRef_      = TokenRef::invalid();
     SymbolKind     kind_        = SymbolKind::Invalid;
     SymbolFlags    flags_       = SymbolFlagsE::Zero;

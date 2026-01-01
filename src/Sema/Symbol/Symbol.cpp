@@ -5,14 +5,13 @@
 #include "Sema/Core/Sema.h"
 #include "Sema/Symbol/IdentifierManager.h"
 #include "Sema/Symbol/SymbolMap.h"
-#include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
 SourceCodeLocation Symbol::loc(TaskContext& ctx) const noexcept
 {
-    const SourceView& srcView = ctx.compiler().srcView(srcViewRef_);
+    const SourceView& srcView = ctx.compiler().srcView(srcViewRef());
     const Token&      tok     = srcView.token(tokRef_);
     return tok.location(ctx, srcView);
 }

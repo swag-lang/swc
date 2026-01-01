@@ -43,6 +43,7 @@ AstVisitStepResult AstStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef&
     const TypeInfo structType    = TypeInfo::makeStruct(&sym);
     const TypeRef  structTypeRef = ctx.typeMgr().addType(structType);
     sym.setTypeRef(structTypeRef);
+    sym.setTyped(sema.ctx());
 
     sema.pushScope(SemaScopeFlagsE::Type);
     sema.curScope().setSymMap(&sym);

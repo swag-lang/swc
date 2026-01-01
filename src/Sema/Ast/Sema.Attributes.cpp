@@ -81,6 +81,7 @@ AstVisitStepResult AstAttrDecl::semaPreNode(Sema& sema)
 AstVisitStepResult AstAttrDecl::semaPostNode(Sema& sema)
 {
     Symbol& sym = sema.symbolOf(sema.curNodeRef());
+    sym.setTyped(sema.ctx());
     sym.setCompleted(sema.ctx());
     return AstVisitStepResult::Continue;
 }

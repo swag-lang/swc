@@ -106,6 +106,7 @@ AstVisitStepResult AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     const TypeRef  enumTypeRef       = sema.typeMgr().addType(enumType);
     sym.setTypeRef(enumTypeRef);
     sym.setUnderlyingTypeRef(underlyingTypeRef);
+    sym.setTyped(sema.ctx());
 
     initEnumNextValue(sym, *typeView.type);
 
@@ -117,13 +118,14 @@ AstVisitStepResult AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& c
 
 AstVisitStepResult AstEnumDecl::semaPostNode(Sema& sema) const
 {
-    if (sema.curSymMap()->empty())
+    SymbolEnum& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolEnum>();
+    if (sym.empty())
     {
         SemaError::raise(sema, DiagnosticId::sema_err_empty_enum, srcViewRef(), tokNameRef);
         return AstVisitStepResult::Stop;
     }
 
-    sema.curSymMap()->setCompleted(sema.ctx());
+    sym.setCompleted(sema.ctx());
     sema.popScope();
     return AstVisitStepResult::Continue;
 }

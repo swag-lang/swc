@@ -120,6 +120,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
         SymbolConstant& symCst = sema.symbolOf(sema.curNodeRef()).cast<SymbolConstant>();
         symCst.setCstRef(nodeInitView.cstRef);
         symCst.setTypeRef(nodeInitView.typeRef);
+        symCst.setTyped(sema.ctx());
         symCst.setCompleted(ctx);
     }
 
@@ -128,6 +129,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
     {
         SymbolVariable& symVar = sema.symbolOf(sema.curNodeRef()).cast<SymbolVariable>();
         symVar.setTypeRef(nodeTypeView.typeRef.isValid() ? nodeTypeView.typeRef : nodeInitView.typeRef);
+        symVar.setTyped(sema.ctx());
         symVar.setCompleted(ctx);
     }
 

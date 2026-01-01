@@ -43,6 +43,7 @@ AstVisitStepResult AstInterfaceDecl::semaPreNodeChild(Sema& sema, const AstNodeR
     const TypeInfo   itfType    = TypeInfo::makeInterface(&sym);
     const TypeRef    itfTypeRef = ctx.typeMgr().addType(itfType);
     sym.setTypeRef(itfTypeRef);
+    sym.setTyped(sema.ctx());
 
     sema.pushScope(SemaScopeFlagsE::Type);
     sema.curScope().setSymMap(&sym);

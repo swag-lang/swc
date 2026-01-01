@@ -27,6 +27,7 @@ public:
     IdentifierRef nameSwag() const { return nameSwag_; }
     IdentifierRef nameEnumFlags() const { return nameEnumFlags_; }
     IdentifierRef nameAttributeUsage() const { return nameAttributeUsage_; }
+    IdentifierRef nameTargetOs() const { return nameTargetOs_; }
 
 private:
     struct Shard
@@ -42,9 +43,10 @@ private:
     static constexpr uint32_t LOCAL_MASK  = (1u << LOCAL_BITS) - 1;
     Shard                     shards_[SHARD_COUNT];
 
-    IdentifierRef nameSwag_;
-    IdentifierRef nameEnumFlags_;
-    IdentifierRef nameAttributeUsage_;
+    IdentifierRef nameSwag_           = IdentifierRef::invalid();
+    IdentifierRef nameEnumFlags_      = IdentifierRef::invalid();
+    IdentifierRef nameAttributeUsage_ = IdentifierRef::invalid();
+    IdentifierRef nameTargetOs_       = IdentifierRef::invalid();
 };
 
 SWC_END_NAMESPACE()

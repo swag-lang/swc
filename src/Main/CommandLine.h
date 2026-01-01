@@ -1,4 +1,5 @@
 #pragma once
+#include "Runtime/Runtime.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -14,6 +15,8 @@ enum class CommandKind
 struct CommandLine
 {
     CommandKind command = CommandKind::Format;
+
+    Runtime::TargetOs targetOs = Runtime::TargetOs::Windows;
 
     bool logColor     = true;
     bool logAscii     = false;

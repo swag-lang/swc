@@ -18,56 +18,56 @@ AstVisitStepResult AstBuiltinType::semaPostNode(Sema& sema) const
     switch (tok.id)
     {
         case TokenId::TypeS8:
-            sema.setType(nodeRef, typeMgr.getTypeInt(8, TypeInfo::Sign::Signed));
+            sema.setType(nodeRef, typeMgr.typeInt(8, TypeInfo::Sign::Signed));
             return AstVisitStepResult::Continue;
         case TokenId::TypeS16:
-            sema.setType(nodeRef, typeMgr.getTypeInt(16, TypeInfo::Sign::Signed));
+            sema.setType(nodeRef, typeMgr.typeInt(16, TypeInfo::Sign::Signed));
             return AstVisitStepResult::Continue;
         case TokenId::TypeS32:
-            sema.setType(nodeRef, typeMgr.getTypeInt(32, TypeInfo::Sign::Signed));
+            sema.setType(nodeRef, typeMgr.typeInt(32, TypeInfo::Sign::Signed));
             return AstVisitStepResult::Continue;
         case TokenId::TypeS64:
-            sema.setType(nodeRef, typeMgr.getTypeInt(64, TypeInfo::Sign::Signed));
+            sema.setType(nodeRef, typeMgr.typeInt(64, TypeInfo::Sign::Signed));
             return AstVisitStepResult::Continue;
 
         case TokenId::TypeU8:
-            sema.setType(nodeRef, typeMgr.getTypeInt(8, TypeInfo::Sign::Unsigned));
+            sema.setType(nodeRef, typeMgr.typeInt(8, TypeInfo::Sign::Unsigned));
             return AstVisitStepResult::Continue;
         case TokenId::TypeU16:
-            sema.setType(nodeRef, typeMgr.getTypeInt(16, TypeInfo::Sign::Unsigned));
+            sema.setType(nodeRef, typeMgr.typeInt(16, TypeInfo::Sign::Unsigned));
             return AstVisitStepResult::Continue;
         case TokenId::TypeU32:
-            sema.setType(nodeRef, typeMgr.getTypeInt(32, TypeInfo::Sign::Unsigned));
+            sema.setType(nodeRef, typeMgr.typeInt(32, TypeInfo::Sign::Unsigned));
             return AstVisitStepResult::Continue;
         case TokenId::TypeU64:
-            sema.setType(nodeRef, typeMgr.getTypeInt(64, TypeInfo::Sign::Unsigned));
+            sema.setType(nodeRef, typeMgr.typeInt(64, TypeInfo::Sign::Unsigned));
             return AstVisitStepResult::Continue;
 
         case TokenId::TypeF32:
-            sema.setType(nodeRef, typeMgr.getTypeFloat(32));
+            sema.setType(nodeRef, typeMgr.typeFloat(32));
             return AstVisitStepResult::Continue;
         case TokenId::TypeF64:
-            sema.setType(nodeRef, typeMgr.getTypeFloat(64));
+            sema.setType(nodeRef, typeMgr.typeFloat(64));
             return AstVisitStepResult::Continue;
 
         case TokenId::TypeBool:
-            sema.setType(nodeRef, typeMgr.getTypeBool());
+            sema.setType(nodeRef, typeMgr.typeBool());
             return AstVisitStepResult::Continue;
         case TokenId::TypeString:
-            sema.setType(nodeRef, typeMgr.getTypeString());
+            sema.setType(nodeRef, typeMgr.typeString());
             return AstVisitStepResult::Continue;
 
         case TokenId::TypeVoid:
-            sema.setType(nodeRef, typeMgr.getTypeVoid());
+            sema.setType(nodeRef, typeMgr.typeVoid());
             return AstVisitStepResult::Continue;
         case TokenId::TypeAny:
-            sema.setType(nodeRef, typeMgr.getTypeAny());
+            sema.setType(nodeRef, typeMgr.typeAny());
             return AstVisitStepResult::Continue;
         case TokenId::TypeCString:
-            sema.setType(nodeRef, typeMgr.getTypeCString());
+            sema.setType(nodeRef, typeMgr.typeCString());
             return AstVisitStepResult::Continue;
         case TokenId::TypeRune:
-            sema.setType(nodeRef, typeMgr.getTypeRune());
+            sema.setType(nodeRef, typeMgr.typeRune());
             return AstVisitStepResult::Continue;
 
         default:
@@ -109,7 +109,7 @@ AstVisitStepResult AstSliceType::semaPostNode(Sema& sema) const
 {
     const SemaNodeView nodeView(sema, nodePointeeTypeRef);
 
-    if (nodeView.typeRef == sema.typeMgr().getTypeVoid())
+    if (nodeView.typeRef == sema.typeMgr().typeVoid())
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_bad_slice_element_type, nodePointeeTypeRef);
         diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);

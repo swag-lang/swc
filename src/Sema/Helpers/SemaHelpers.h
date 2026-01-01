@@ -8,7 +8,7 @@ SWC_BEGIN_NAMESPACE()
 namespace SemaHelpers
 {
     template<typename T>
-    T* declareNamedSymbol(Sema& sema, const AstNode& node, TokenRef tokNameRef)
+    T& declareNamedSymbol(Sema& sema, const AstNode& node, TokenRef tokNameRef)
     {
         auto& ctx = sema.ctx();
 
@@ -28,7 +28,7 @@ namespace SemaHelpers
                 symStruct->fields().push_back(sym);
         }
 
-        return sym;
+        return *sym;
     }
 };
 

@@ -122,7 +122,7 @@ ConstantRef ConstantManager::concretizeConstant(Sema& sema, AstNodeRef nodeOwner
 
         value.resize(destBits);
 
-        const TypeRef       concreteTypeRef = typeMgr.getTypeInt(destBits, sign);
+        const TypeRef       concreteTypeRef = typeMgr.typeInt(destBits, sign);
         const TypeInfo&     concreteTy      = typeMgr.get(concreteTypeRef);
         const ConstantValue result          = ConstantValue::makeFromIntLike(ctx, value, concreteTy);
         return addConstant(ctx, result);

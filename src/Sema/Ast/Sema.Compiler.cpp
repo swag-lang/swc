@@ -77,7 +77,7 @@ AstVisitStepResult AstCompilerIf::semaPreNodeChild(Sema& sema, const AstNodeRef&
     const ConstantValue& constant = sema.constantOf(nodeConditionRef);
     if (!constant.isBool())
     {
-        SemaError::raiseInvalidType(sema, nodeConditionRef, constant.typeRef(), sema.typeMgr().getTypeBool());
+        SemaError::raiseInvalidType(sema, nodeConditionRef, constant.typeRef(), sema.typeMgr().typeBool());
         return AstVisitStepResult::Stop;
     }
 
@@ -128,7 +128,7 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
         case TokenId::CompilerWarning:
             if (!constant.isString())
             {
-                SemaError::raiseInvalidType(sema, nodeArgRef, constant.typeRef(), sema.typeMgr().getTypeString());
+                SemaError::raiseInvalidType(sema, nodeArgRef, constant.typeRef(), sema.typeMgr().typeString());
                 return AstVisitStepResult::Stop;
             }
             break;
@@ -136,7 +136,7 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
         case TokenId::CompilerAssert:
             if (!constant.isBool())
             {
-                SemaError::raiseInvalidType(sema, nodeArgRef, constant.typeRef(), sema.typeMgr().getTypeBool());
+                SemaError::raiseInvalidType(sema, nodeArgRef, constant.typeRef(), sema.typeMgr().typeBool());
                 return AstVisitStepResult::Stop;
             }
             break;
@@ -233,11 +233,23 @@ AstVisitStepResult AstCompilerLiteral::semaPostNode(Sema& sema) const
             break;
         }
 
+        case TokenId::CompilerOs:
+        {
+            const TypeRef typeRef = sema.typeMgr().enumTargetOs();
+            if (typeRef.isInvalid())
+                return sema.waitIdentifier(sema.idMgr().nameTargetOs(), srcViewRef(), tokRef());
+            const ConstantValue val          = ConstantValue::makeInt(ctx, ApsInt{0, 32, false}, 32, TypeInfo::Sign::Signed);
+            const ConstantRef   valueCst     = sema.cstMgr().addConstant(ctx, val);
+            const ConstantValue enumValue    = ConstantValue::makeEnumValue(ctx, valueCst, typeRef);
+            const ConstantRef   enumValueRef = sema.cstMgr().addConstant(ctx, enumValue);
+            sema.setConstant(sema.curNodeRef(), enumValueRef);
+            break;
+        }
+
         case TokenId::CompilerBuildCfg:
         case TokenId::CompilerModule:
         case TokenId::CompilerCallerFunction:
         case TokenId::CompilerCallerLocation:
-        case TokenId::CompilerOs:
         case TokenId::CompilerArch:
         case TokenId::CompilerCpu:
         case TokenId::CompilerSwagOs:
@@ -302,8 +314,7 @@ AstVisitStepResult AstCompilerGlobal::semaPostNode(Sema& sema) const
         case Mode::Namespace:
         case Mode::CompilerIf:
         case Mode::Using:
-            SemaError::raiseInternal(sema, *this);
-            return AstVisitStepResult::Continue;
+            return AstVisitStepResult::SkipChildren;
         default:
             break;
     }
@@ -512,8 +523,7 @@ AstVisitStepResult AstCompilerCallUnary::semaPostNode(Sema& sema) const
         case TokenId::CompilerHasTag:
         case TokenId::CompilerInject:
         case TokenId::CompilerLocation:
-            SemaError::raiseInternal(sema, *this);
-            return AstVisitStepResult::Stop;
+            return AstVisitStepResult::SkipChildren;
 
         default:
             SemaError::raiseInternal(sema, *this);

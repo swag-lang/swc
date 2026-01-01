@@ -306,7 +306,8 @@ struct AstCompilerRunExpr : AstNodeT<AstNodeId::CompilerRunExpr>
 {
     AstNodeRef nodeExprRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    void                      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    static AstVisitStepResult semaPreNode(Sema&);
 };
 
 // -----------------------------------------------------------------------------

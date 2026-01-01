@@ -12,21 +12,26 @@ class TypeManager
 public:
     void setup(TaskContext& ctx);
 
-    TypeRef getTypeBool() const { return typeBool_; }
-    TypeRef getTypeChar() const { return typeChar_; }
-    TypeRef getTypeString() const { return typeString_; }
-    TypeRef getTypeInt(uint32_t bits, TypeInfo::Sign sign) const;
-    TypeRef getTypeFloat(uint32_t bits) const;
-    TypeRef getTypeAny() const { return typeAny_; }
-    TypeRef getTypeVoid() const { return typeVoid_; }
-    TypeRef getTypeRune() const { return typeRune_; }
-    TypeRef getTypeCString() const { return typeCString_; }
+    TypeRef typeBool() const { return typeBool_; }
+    TypeRef typeChar() const { return typeChar_; }
+    TypeRef typeString() const { return typeString_; }
+    TypeRef typeInt(uint32_t bits, TypeInfo::Sign sign) const;
+    TypeRef typeFloat(uint32_t bits) const;
+    TypeRef typeAny() const { return typeAny_; }
+    TypeRef typeVoid() const { return typeVoid_; }
+    TypeRef typeRune() const { return typeRune_; }
+    TypeRef typeCString() const { return typeCString_; }
 
     TypeRef         addType(const TypeInfo& typeInfo);
     const TypeInfo& get(TypeRef typeRef) const;
 
     TypeRef         promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const;
     static uint32_t chooseConcreteScalarWidth(uint32_t minRequiredBits, bool& overflow);
+
+    // clang-format off
+    TypeRef enumTargetOs() const                { std::shared_lock lk(mutexRt_); return enumTargetOs_; }
+    void    setEnumTargetOs(TypeRef typeRef)    { std::unique_lock lk(mutexRt_); enumTargetOs_ = typeRef; }
+    // clang-format on
 
 private:
     struct Shard
@@ -41,6 +46,10 @@ private:
     static constexpr uint32_t LOCAL_BITS  = 32 - SHARD_BITS;
     static constexpr uint32_t LOCAL_MASK  = (1u << LOCAL_BITS) - 1;
     Shard                     shards_[SHARD_COUNT];
+
+    // Runtime types
+    mutable std::shared_mutex mutexRt_;
+    TypeRef                   enumTargetOs_ = TypeRef::invalid();
 
     // Predefined types
     TypeRef typeBool_        = TypeRef::invalid();

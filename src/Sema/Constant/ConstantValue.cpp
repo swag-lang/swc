@@ -129,7 +129,7 @@ const TypeInfo& ConstantValue::type(const TaskContext& ctx) const
 ConstantValue ConstantValue::makeBool(const TaskContext& ctx, bool value)
 {
     ConstantValue cv;
-    cv.typeRef_   = ctx.typeMgr().getTypeBool();
+    cv.typeRef_   = ctx.typeMgr().typeBool();
     cv.kind_      = ConstantKind::Bool;
     cv.asBool.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
@@ -139,7 +139,7 @@ ConstantValue ConstantValue::makeBool(const TaskContext& ctx, bool value)
 ConstantValue ConstantValue::makeString(const TaskContext& ctx, std::string_view value)
 {
     ConstantValue cv;
-    cv.typeRef_     = ctx.typeMgr().getTypeString();
+    cv.typeRef_     = ctx.typeMgr().typeString();
     cv.kind_        = ConstantKind::String;
     cv.asString.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
@@ -149,7 +149,7 @@ ConstantValue ConstantValue::makeString(const TaskContext& ctx, std::string_view
 ConstantValue ConstantValue::makeChar(const TaskContext& ctx, char32_t value)
 {
     ConstantValue cv;
-    cv.typeRef_       = ctx.typeMgr().getTypeChar();
+    cv.typeRef_       = ctx.typeMgr().typeChar();
     cv.kind_          = ConstantKind::Char;
     cv.asCharRune.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
@@ -159,7 +159,7 @@ ConstantValue ConstantValue::makeChar(const TaskContext& ctx, char32_t value)
 ConstantValue ConstantValue::makeRune(const TaskContext& ctx, char32_t value)
 {
     ConstantValue cv;
-    cv.typeRef_       = ctx.typeMgr().getTypeRune();
+    cv.typeRef_       = ctx.typeMgr().typeRune();
     cv.kind_          = ConstantKind::Rune;
     cv.asCharRune.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
@@ -182,7 +182,7 @@ ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const ApsInt& value
         return makeIntUnsized(ctx, value, sign);
 
     ConstantValue cv;
-    cv.typeRef_  = ctx.typeMgr().getTypeInt(bitWidth, sign);
+    cv.typeRef_  = ctx.typeMgr().typeInt(bitWidth, sign);
     cv.kind_     = ConstantKind::Int;
     cv.asInt.val = value;
     cv.asInt.val.setUnsigned(sign == TypeInfo::Sign::Unsigned);
@@ -195,7 +195,7 @@ ConstantValue ConstantValue::makeIntUnsized(const TaskContext& ctx, const ApsInt
     SWC_ASSERT(value.bitWidth() == ApInt::maxBitWidth());
 
     ConstantValue cv;
-    cv.typeRef_  = ctx.typeMgr().getTypeInt(0, sign);
+    cv.typeRef_  = ctx.typeMgr().typeInt(0, sign);
     cv.kind_     = ConstantKind::Int;
     cv.asInt.val = value;
     cv.asInt.val.setUnsigned(sign == TypeInfo::Sign::Unsigned);
@@ -209,7 +209,7 @@ ConstantValue ConstantValue::makeFloat(const TaskContext& ctx, const ApFloat& va
         return makeFloatUnsized(ctx, value);
 
     ConstantValue cv;
-    cv.typeRef_    = ctx.typeMgr().getTypeFloat(bitWidth);
+    cv.typeRef_    = ctx.typeMgr().typeFloat(bitWidth);
     cv.kind_       = ConstantKind::Float;
     cv.asFloat.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
@@ -221,7 +221,7 @@ ConstantValue ConstantValue::makeFloatUnsized(const TaskContext& ctx, const ApFl
     SWC_ASSERT(value.bitWidth() == ApFloat::maxBitWidth());
 
     ConstantValue cv;
-    cv.typeRef_    = ctx.typeMgr().getTypeFloat(0);
+    cv.typeRef_    = ctx.typeMgr().typeFloat(0);
     cv.kind_       = ConstantKind::Float;
     cv.asFloat.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized

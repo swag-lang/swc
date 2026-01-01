@@ -54,13 +54,13 @@ AstVisitStepResult AstAccessModifier::semaPostNode(Sema& sema)
 
 AstVisitStepResult AstAttrDecl::semaPreDecl(Sema& sema) const
 {
-    SymbolAttribute* sym = SemaHelpers::declareNamedSymbol<SymbolAttribute>(sema, *this, tokNameRef);
+    SymbolAttribute& sym = SemaHelpers::declareNamedSymbol<SymbolAttribute>(sema, *this, tokNameRef);
 
     // Predefined attributes
-    if (sym->symMap()->isSwagNamespace(sema.ctx()))
+    if (sym.symMap()->isSwagNamespace(sema.ctx()))
     {
-        if (sym->idRef() == sema.idMgr().nameEnumFlags())
-            sym->setAttributeFlags(AttributeFlagsE::EnumFlags);
+        if (sym.idRef() == sema.idMgr().nameEnumFlags())
+            sym.setAttributeFlags(AttributeFlagsE::EnumFlags);
     }
 
     return AstVisitStepResult::SkipChildren;

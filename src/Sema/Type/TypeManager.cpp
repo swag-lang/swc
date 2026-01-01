@@ -36,7 +36,7 @@ void TypeManager::setup(TaskContext&)
     buildPromoteTable();
 }
 
-TypeRef TypeManager::getTypeInt(uint32_t bits, TypeInfo::Sign sign) const
+TypeRef TypeManager::typeInt(uint32_t bits, TypeInfo::Sign sign) const
 {
     if (bits == 0)
     {
@@ -78,7 +78,7 @@ TypeRef TypeManager::getTypeInt(uint32_t bits, TypeInfo::Sign sign) const
     }
 }
 
-TypeRef TypeManager::getTypeFloat(uint32_t bits) const
+TypeRef TypeManager::typeFloat(uint32_t bits) const
 {
     if (bits == 0)
         return typeFloat_;
@@ -158,7 +158,7 @@ TypeRef TypeManager::promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) cons
     if (bits != 8 && bits != 16)
         return result;
 
-    return getTypeInt(32, t.isIntUnsigned() ? TypeInfo::Sign::Unsigned : TypeInfo::Sign::Signed);
+    return typeInt(32, t.isIntUnsigned() ? TypeInfo::Sign::Unsigned : TypeInfo::Sign::Signed);
 }
 
 uint32_t TypeManager::chooseConcreteScalarWidth(uint32_t minRequiredBits, bool& overflow)
@@ -205,7 +205,7 @@ TypeRef TypeManager::computePromotion(TypeRef lhsRef, TypeRef rhsRef) const
         uint32_t resultBits = std::max(fBits, iBits);
         if (resultBits)
             resultBits = std::max(resultBits, 32u);
-        return getTypeFloat(resultBits);
+        return typeFloat(resultBits);
     }
 
     // Integer promotions

@@ -70,7 +70,7 @@ namespace
             return typeView.typeRef;
 
         const auto sign  = sym.isEnumFlags() ? TypeInfo::Sign::Unsigned : TypeInfo::Sign::Signed;
-        typeView.typeRef = sema.typeMgr().getTypeInt(32, sign);
+        typeView.typeRef = sema.typeMgr().typeInt(32, sign);
         typeView.type    = &sema.typeMgr().get(typeView.typeRef);
         return typeView.typeRef;
     }
@@ -123,6 +123,13 @@ AstVisitStepResult AstEnumDecl::semaPostNode(Sema& sema) const
     {
         SemaError::raise(sema, DiagnosticId::sema_err_empty_enum, srcViewRef(), tokNameRef);
         return AstVisitStepResult::Stop;
+    }
+
+    // Runtime enum
+    if (sym.symMap()->isSwagNamespace(sema.ctx()))
+    {
+        if (sym.idRef() == sema.idMgr().nameTargetOs())
+            sema.typeMgr().setEnumTargetOs(sym.typeRef());
     }
 
     sym.setCompleted(sema.ctx());

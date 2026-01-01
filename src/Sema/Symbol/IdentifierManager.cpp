@@ -14,6 +14,7 @@ void IdentifierManager::setup(TaskContext&)
     nameSwag_           = addIdentifier("Swag");
     nameEnumFlags_      = addIdentifier("EnumFlags");
     nameAttributeUsage_ = addIdentifier("AttributeUsage");
+    nameTargetOs_       = addIdentifier("TargetOs");
 }
 
 IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef)

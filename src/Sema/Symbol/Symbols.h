@@ -11,8 +11,8 @@ class SymbolModule : public SymbolMap
 public:
     static constexpr auto K = SymbolKind::Module;
 
-    explicit SymbolModule(SourceViewRef, TokenRef, IdentifierRef, const SymbolFlags&) :
-        SymbolMap(SourceViewRef::invalid(), TokenRef::invalid(), K, IdentifierRef::invalid(), SymbolFlagsE::Zero)
+    explicit SymbolModule(const AstNode*, SourceViewRef, TokenRef, IdentifierRef, const SymbolFlags&) :
+        SymbolMap(nullptr, SourceViewRef::invalid(), TokenRef::invalid(), K, IdentifierRef::invalid(), SymbolFlagsE::Zero)
     {
     }
 };
@@ -23,8 +23,8 @@ class SymbolNamespace : public SymbolMap
 public:
     static constexpr auto K = SymbolKind::Namespace;
 
-    explicit SymbolNamespace(SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
-        SymbolMap(srcViewRef, tokRef, K, idRef, flags)
+    explicit SymbolNamespace(const AstNode* decl, SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        SymbolMap(decl, srcViewRef, tokRef, K, idRef, flags)
     {
     }
 };
@@ -37,8 +37,8 @@ class SymbolConstant : public Symbol
 public:
     static constexpr auto K = SymbolKind::Constant;
 
-    explicit SymbolConstant(SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
-        Symbol(srcViewRef, tokRef, K, idRef, flags)
+    explicit SymbolConstant(const AstNode* decl, SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        Symbol(decl, srcViewRef, tokRef, K, idRef, flags)
     {
     }
 
@@ -54,8 +54,8 @@ class SymbolAttribute : public Symbol
 public:
     static constexpr auto K = SymbolKind::Attribute;
 
-    explicit SymbolAttribute(SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
-        Symbol(srcViewRef, tokRef, K, idRef, flags)
+    explicit SymbolAttribute(const AstNode* decl, SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        Symbol(decl, srcViewRef, tokRef, K, idRef, flags)
     {
     }
 
@@ -69,8 +69,8 @@ class SymbolVariable : public Symbol
 public:
     static constexpr auto K = SymbolKind::Variable;
 
-    explicit SymbolVariable(SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
-        Symbol(srcViewRef, tokRef, K, idRef, flags)
+    explicit SymbolVariable(const AstNode* decl, SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        Symbol(decl, srcViewRef, tokRef, K, idRef, flags)
     {
     }
 
@@ -90,8 +90,8 @@ class SymbolEnum : public SymbolMap
 public:
     static constexpr auto K = SymbolKind::Enum;
 
-    explicit SymbolEnum(SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
-        SymbolMap(srcViewRef, tokRef, K, idRef, flags)
+    explicit SymbolEnum(const AstNode* decl, SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        SymbolMap(decl, srcViewRef, tokRef, K, idRef, flags)
     {
     }
 
@@ -118,8 +118,8 @@ class SymbolEnumValue : public Symbol
 public:
     static constexpr auto K = SymbolKind::EnumValue;
 
-    explicit SymbolEnumValue(SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
-        Symbol(srcViewRef, tokRef, K, idRef, flags)
+    explicit SymbolEnumValue(const AstNode* decl, SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        Symbol(decl, srcViewRef, tokRef, K, idRef, flags)
     {
     }
 
@@ -133,8 +133,8 @@ class SymbolStruct : public SymbolMap
 public:
     static constexpr auto K = SymbolKind::Struct;
 
-    explicit SymbolStruct(SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
-        SymbolMap(srcViewRef, tokRef, K, idRef, flags)
+    explicit SymbolStruct(const AstNode* decl, SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        SymbolMap(decl, srcViewRef, tokRef, K, idRef, flags)
     {
     }
 
@@ -157,8 +157,8 @@ class SymbolInterface : public SymbolMap
 public:
     static constexpr auto K = SymbolKind::Interface;
 
-    explicit SymbolInterface(SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
-        SymbolMap(srcViewRef, tokRef, K, idRef, flags)
+    explicit SymbolInterface(const AstNode* decl, SourceViewRef srcViewRef, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        SymbolMap(decl, srcViewRef, tokRef, K, idRef, flags)
     {
     }
 };

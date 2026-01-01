@@ -17,8 +17,8 @@ namespace
     }
 }
 
-SymbolMap::SymbolMap(SourceViewRef srcViewRef, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags) :
-    Symbol(srcViewRef, tokRef, kind, idRef, flags)
+SymbolMap::SymbolMap(const AstNode* decl, SourceViewRef srcViewRef, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags) :
+    Symbol(decl, srcViewRef, tokRef, kind, idRef, flags)
 {
 }
 

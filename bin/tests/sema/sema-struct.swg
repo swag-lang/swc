@@ -21,5 +21,5 @@ struct CC
 
 struct DD
 {
-    a: DD
+    //a: DD
 }

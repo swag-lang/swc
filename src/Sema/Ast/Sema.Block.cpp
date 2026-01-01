@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE()
 
 AstVisitStepResult AstFile::semaPreDecl(Sema& sema) const
 {
-    SymbolNamespace* fileNamespace = Symbol::make<SymbolNamespace>(sema.ctx(), srcViewRef(), tokRef(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    SymbolNamespace* fileNamespace = Symbol::make<SymbolNamespace>(sema.ctx(), this, srcViewRef(), tokRef(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
     sema.semaInfo().setFileNamespace(*fileNamespace);
     sema.pushScope(SemaScopeFlagsE::TopLevel);
     sema.curScope().setSymMap(&sema.semaInfo().moduleNamespace());
@@ -62,7 +62,7 @@ AstVisitStepResult AstNamespaceDecl::semaPreDecl(Sema& sema) const
         sema.frame().pushNs(idRef);
 
         constexpr SymbolFlags flags = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::Completed;
-        SymbolNamespace*      ns    = Symbol::make<SymbolNamespace>(ctx, srcViewRef(), tokRef, idRef, flags);
+        SymbolNamespace*      ns    = Symbol::make<SymbolNamespace>(ctx, this, srcViewRef(), tokRef, idRef, flags);
         Symbol*               res   = symMap->addSingleSymbol(ctx, ns);
 
         if (!res->isNamespace())

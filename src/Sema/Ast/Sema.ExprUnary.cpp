@@ -78,14 +78,10 @@ namespace
 
     Result constantFoldTilde(Sema& sema, ConstantRef& result, const AstUnaryExpr&, const SemaNodeView& ops)
     {
-        if (!ops.type->isInt())
-            return Result::Stop;
+        const auto& ctx = sema.ctx();
 
-        const auto& ctx   = sema.ctx();
-        ApsInt      value = ops.cst->getInt();
-
+        ApsInt value = ops.cst->getInt();
         value.invertAllBits();
-
         result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.type->intBits(), ops.type->intSign()));
         return Result::Continue;
     }
@@ -127,13 +123,10 @@ namespace
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_negate_unsigned, expr.srcViewRef(), expr.tokRef());
             diag.addArgument(Diagnostic::ARG_TYPE, ops.typeRef);
             diag.report(sema.ctx());
-        }
-        else
-        {
-            reportInvalidType(sema, expr, ops);
+            return Result::Stop;
         }
 
-        return Result::Stop;
+        return reportInvalidType(sema, expr, ops);
     }
 
     Result checkPlus(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
@@ -146,31 +139,24 @@ namespace
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_negate_unsigned, expr.srcViewRef(), expr.tokRef());
             diag.addArgument(Diagnostic::ARG_TYPE, ops.typeRef);
             diag.report(sema.ctx());
-        }
-        else
-        {
-            reportInvalidType(sema, expr, ops);
+            return Result::Stop;
         }
 
-        return Result::Stop;
+        return reportInvalidType(sema, expr, ops);
     }
 
     Result checkBang(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
     {
         if (ops.type->isBool() || ops.type->isInt())
             return Result::Continue;
-
-        reportInvalidType(sema, expr, ops);
-        return Result::Stop;
+        return reportInvalidType(sema, expr, ops);
     }
 
     Result checkTilde(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
     {
         if (ops.type->isInt())
             return Result::Continue;
-
-        reportInvalidType(sema, expr, ops);
-        return Result::Stop;
+        return reportInvalidType(sema, expr, ops);
     }
 
     Result check(Sema& sema, TokenId op, const AstUnaryExpr& node, const SemaNodeView& ops)
@@ -189,8 +175,7 @@ namespace
                 break;
         }
 
-        SemaError::raiseInternal(sema, node);
-        return Result::Stop;
+        return SemaError::raiseInternal(sema, node);
     }
 }
 

@@ -24,6 +24,6 @@ struct DD
     a: DD // swc-expected-error {{sema_err_struct_circular_reference}}
 }
 
-// swc1-expected-error@(+1,+2) {{sema_err_cyclic_dependency}}
+// swc-expected-error@(+1,+2) {{sema_err_cyclic_dependency}}
 struct EE { a: FF }
 struct FF { a: EE }

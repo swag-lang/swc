@@ -152,7 +152,7 @@ namespace
             msg += " -> ";
             msg += g.names.at(cyc.front());
 
-            // Pick a representative node for location.
+            // Pick a representative node for a location.
             const Symbol* rep   = cyc.front();
             auto          itLoc = g.locs.find(rep);
             SemaJob*      job   = nullptr;

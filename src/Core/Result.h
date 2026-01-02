@@ -10,8 +10,8 @@ enum class Result
     Stop
 };
 
-#define RESULT_VERIFY(__expr)                        \
-    if (const ret = __expr; ret != Result::Continue) \
-        return ret;
+#define RESULT_VERIFY(__expr)                                 \
+    if (const auto __ret = __expr; __ret != Result::Continue) \
+        return __ret;
 
 SWC_END_NAMESPACE()

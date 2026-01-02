@@ -54,9 +54,7 @@ Result AstStructDecl::semaPostNode(Sema& sema)
 {
     SymbolStruct& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolStruct>();
 
-    const Result ret = sym.canBeCompleted(sema);
-    if (ret != Result::Continue)
-        return ret;
+    RESULT_VERIFY(sym.canBeCompleted(sema));
 
     sym.computeLayout(sema);
     sym.setCompleted(sema.ctx());

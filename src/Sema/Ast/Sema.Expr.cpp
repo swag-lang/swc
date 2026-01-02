@@ -33,8 +33,8 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     const Result ret = SemaMatch::match(sema, lookUpCxt, idRef);
     if (ret == Result::Pause && hasParserFlag(InCompilerDefined))
         return sema.waitCompilerDefined(idRef, srcViewRef(), tokRef());
-    if (ret != Result::Continue)
-        return ret;
+    RESULT_VERIFY(ret);
+
     sema.setSymbol(sema.curNodeRef(), lookUpCxt.first());
     return Result::Continue;
 }
@@ -65,9 +65,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         lookUpCxt.tokRef     = tokNameRef;
         lookUpCxt.symMapHint = &namespaceSym;
 
-        const Result ret = SemaMatch::match(sema, lookUpCxt, idRef);
-        if (ret != Result::Continue)
-            return ret;
+        RESULT_VERIFY(SemaMatch::match(sema, lookUpCxt, idRef));
 
         sema.semaInfo().setSymbol(nodeRightRef, lookUpCxt.first());
         sema.semaInfo().setSymbol(sema.curNodeRef(), lookUpCxt.first());
@@ -86,9 +84,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         lookUpCxt.tokRef     = tokNameRef;
         lookUpCxt.symMapHint = &enumSym;
 
-        const Result ret = SemaMatch::match(sema, lookUpCxt, idRef);
-        if (ret != Result::Continue)
-            return ret;
+        RESULT_VERIFY(SemaMatch::match(sema, lookUpCxt, idRef));
 
         sema.semaInfo().setSymbol(nodeRightRef, lookUpCxt.first());
         sema.semaInfo().setSymbol(sema.curNodeRef(), lookUpCxt.first());
@@ -107,9 +103,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         lookUpCxt.tokRef     = tokNameRef;
         lookUpCxt.symMapHint = &symStruct;
 
-        const Result ret = SemaMatch::match(sema, lookUpCxt, idRef);
-        if (ret != Result::Continue)
-            return ret;
+        RESULT_VERIFY(SemaMatch::match(sema, lookUpCxt, idRef));
 
         sema.semaInfo().setSymbol(nodeRightRef, lookUpCxt.first());
         sema.semaInfo().setSymbol(sema.curNodeRef(), lookUpCxt.first());

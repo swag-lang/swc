@@ -55,10 +55,8 @@ Result AstLogicalExpr::semaPostNode(Sema& sema)
     const SemaNodeView nodeRightView(sema, nodeRightRef);
 
     // Value-check
-    if (SemaCheck::isValueExpr(sema, nodeLeftRef) != Result::Continue)
-        return Result::Stop;
-    if (SemaCheck::isValueExpr(sema, nodeRightRef) != Result::Continue)
-        return Result::Stop;
+    RESULT_VERIFY(SemaCheck::isValueExpr(sema, nodeLeftRef));
+    RESULT_VERIFY(SemaCheck::isValueExpr(sema, nodeRightRef));
     SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
 
     // Type-check

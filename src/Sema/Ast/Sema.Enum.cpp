@@ -93,9 +93,7 @@ Result AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
 
     if (nodeTypeRef.isValid())
     {
-        const auto ret = validateEnumUnderlyingType(sema, sym, typeView, nodeTypeRef);
-        if (ret != Result::Continue)
-            return ret;
+        RESULT_VERIFY(validateEnumUnderlyingType(sema, sym, typeView, nodeTypeRef));
     }
 
     const TypeRef  underlyingTypeRef = resolveEnumUnderlyingType(sema, sym, typeView);

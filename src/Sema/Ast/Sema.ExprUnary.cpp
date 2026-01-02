@@ -189,8 +189,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     const SemaNodeView ops(sema, nodeExprRef);
 
     // Value-check
-    if (SemaCheck::isValueExpr(sema, nodeExprRef) != Result::Continue)
-        return Result::Stop;
+    RESULT_VERIFY(SemaCheck::isValueExpr(sema, nodeExprRef));
     SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
 
     // Type-check

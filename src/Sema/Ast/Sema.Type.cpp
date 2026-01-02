@@ -241,10 +241,8 @@ Result AstArrayType::semaPostNode(Sema& sema) const
     std::vector<uint64_t> dims;
     for (const auto& dimRef : out)
     {
-        if (SemaCheck::isValueExpr(sema, dimRef) != Result::Continue)
-            return Result::Stop;
-        if (SemaCheck::isConstant(sema, dimRef) != Result::Continue)
-            return Result::Stop;
+        RESULT_VERIFY(SemaCheck::isValueExpr(sema, dimRef));
+        RESULT_VERIFY(SemaCheck::isConstant(sema, dimRef));
 
         const ConstantRef    cstRef = sema.constantRefOf(dimRef);
         const ConstantValue& cst    = sema.constantOf(dimRef);

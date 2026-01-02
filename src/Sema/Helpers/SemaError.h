@@ -12,7 +12,6 @@ namespace SemaError
 {
     Diagnostic report(Sema& sema, DiagnosticId id, AstNodeRef nodeRef);
     Diagnostic report(Sema& sema, DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef);
-    Diagnostic report(Sema& sema, DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef, AstNodeRef nodeSpanRef);
 
     void raise(Sema& sema, DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef);
     void raise(Sema& sema, DiagnosticId id, AstNodeRef nodeRef);

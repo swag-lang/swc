@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    void setReportArguments(Sema& sema, Diagnostic& diag, SourceViewRef srcViewRef, TokenRef tokRef, const Symbol* sym = nullptr)
+    void setReportArguments(Sema& sema, Diagnostic& diag, SourceViewRef srcViewRef, TokenRef tokRef)
     {
         const auto&       ctx     = sema.ctx();
         const SourceView& srcView = sema.compiler().srcView(srcViewRef);
@@ -21,21 +21,27 @@ namespace
         diag.addArgument(Diagnostic::ARG_TOK_RAW, tokStr, false);
         diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id), false);
         diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(token.id)), false);
+    }
 
-        if (sym)
-        {
-            diag.addArgument(Diagnostic::ARG_SYM, sym->name(ctx));
-            diag.addArgument(Diagnostic::ARG_SYM_FAM, sym->toFamily(), false);
-            diag.addArgument(Diagnostic::ARG_A_SYM_FAM, Utf8Helper::addArticleAAn(sym->toFamily()), false);
-        }
+    void setReportArguments(Sema& sema, Diagnostic& diag, const Symbol* sym)
+    {
+        if (!sym)
+            return;
+
+        diag.addArgument(Diagnostic::ARG_SYM, sym->name(sema.ctx()));
+        diag.addArgument(Diagnostic::ARG_SYM_FAM, sym->toFamily(), false);
+        diag.addArgument(Diagnostic::ARG_A_SYM_FAM, Utf8Helper::addArticleAAn(sym->toFamily()), false);
     }
 }
 
 Diagnostic SemaError::report(Sema& sema, DiagnosticId id, AstNodeRef nodeRef)
 {
+    auto diag = Diagnostic::get(id, sema.ast().srcView().fileRef());
+
     const SemaNodeView nodeView(sema, nodeRef);
-    auto               diag = Diagnostic::get(id, sema.ast().srcView().fileRef());
-    setReportArguments(sema, diag, nodeView.node->srcViewRef(), nodeView.node->tokRef(), nodeView.sym);
+    setReportArguments(sema, diag, nodeView.node->srcViewRef(), nodeView.node->tokRef());
+    setReportArguments(sema, diag, nodeView.sym);
+
     const SourceCodeLocation loc = sema.node(nodeRef).locationWithChildren(sema.ctx(), sema.ast());
     diag.last().addSpan(loc, "");
 
@@ -50,14 +56,6 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, SourceViewRef srcViewR
     const auto& srcView = sema.compiler().srcView(srcViewRef);
     diag.last().addSpan(Diagnostic::tokenErrorLocation(sema.ctx(), srcView, tokRef), "");
 
-    return diag;
-}
-
-Diagnostic SemaError::report(Sema& sema, DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef, AstNodeRef nodeSpanRef)
-{
-    auto                     diag = report(sema, id, srcViewRef, tokRef);
-    const SourceCodeLocation loc  = sema.node(nodeSpanRef).locationWithChildren(sema.ctx(), sema.ast());
-    diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
     return diag;
 }
 
@@ -113,8 +111,12 @@ void SemaError::raiseLiteralTooBig(Sema& sema, AstNodeRef nodeRef, const Constan
 
 void SemaError::raiseDivZero(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
 {
-    auto diag = report(sema, DiagnosticId::sema_err_division_zero, nodeOp.srcViewRef(), nodeOp.tokRef(), nodeValueRef);
+    auto diag = report(sema, DiagnosticId::sema_err_division_zero, nodeOp.srcViewRef(), nodeOp.tokRef());
     diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
+
+    const SourceCodeLocation loc = sema.node(nodeValueRef).locationWithChildren(sema.ctx(), sema.ast());
+    diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
+
     diag.report(sema.ctx());
 }
 
@@ -125,8 +127,12 @@ void SemaError::raiseExprNotConst(Sema& sema, AstNodeRef nodeRef)
 
 void SemaError::raiseBinaryOperandType(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
 {
-    auto diag = report(sema, DiagnosticId::sema_err_binary_operand_type, nodeOp.srcViewRef(), nodeOp.tokRef(), nodeValueRef);
+    auto diag = report(sema, DiagnosticId::sema_err_binary_operand_type, nodeOp.srcViewRef(), nodeOp.tokRef());
     diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
+
+    const SourceCodeLocation loc = sema.node(nodeValueRef).locationWithChildren(sema.ctx(), sema.ast());
+    diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
+
     diag.report(sema.ctx());
 }
 

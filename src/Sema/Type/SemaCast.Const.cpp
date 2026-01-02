@@ -14,7 +14,7 @@ void SemaCast::foldConstantIdentity(CastContext& castCtx)
     castCtx.setFoldOut(castCtx.foldSrc());
 }
 
-Result SemaCast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstTypeRef, const TypeInfo& dstType, const TypeInfo& srcType)
+bool SemaCast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstTypeRef, const TypeInfo& dstType, const TypeInfo& srcType)
 {
     auto& ctx = sema.ctx();
 
@@ -22,13 +22,15 @@ Result SemaCast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef d
     if (dstType.isInt())
     {
         ConstantRef newCstRef;
-        RESULT_VERIFY(sema.cstMgr().concretizeConstant(sema, newCstRef, castCtx.errorNodeRef, castCtx.foldSrc(), dstType.intSign()));
+        if (!sema.cstMgr().concretizeConstant(sema, newCstRef, castCtx, castCtx.foldSrc(), dstType.intSign()))
+            return false;
         castCtx.setFoldSrc(newCstRef);
     }
     else if (dstType.isFloat())
     {
         ConstantRef newCstRef;
-        RESULT_VERIFY(sema.cstMgr().concretizeConstant(sema, newCstRef, castCtx.errorNodeRef, castCtx.foldSrc(), TypeInfo::Sign::Signed));
+        if (!sema.cstMgr().concretizeConstant(sema, newCstRef, castCtx, castCtx.foldSrc(), TypeInfo::Sign::Signed))
+            return false;
         castCtx.setFoldSrc(newCstRef);
     }
 
@@ -54,7 +56,7 @@ Result SemaCast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef d
 
         const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
         castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
-        return Result::Continue;
+        return true;
     }
 
     if (srcFloat && dstFloat)
@@ -62,7 +64,7 @@ Result SemaCast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef d
         const ApFloat&      value  = src.getFloat();
         const ConstantValue result = ConstantValue::makeFloat(ctx, value, dstBits);
         castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
-        return Result::Continue;
+        return true;
     }
 
     if (srcFloat && dstInt)
@@ -70,7 +72,7 @@ Result SemaCast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef d
         ApsInt              i      = Math::bitCastToApInt(src.getFloat(), dstType.isIntLikeUnsigned());
         const ConstantValue result = ConstantValue::makeFromIntLike(ctx, i, dstType);
         castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
-        return Result::Continue;
+        return true;
     }
 
     if (srcInt && dstFloat)
@@ -78,12 +80,12 @@ Result SemaCast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef d
         ApFloat             f      = Math::bitCastToApFloat(src.getIntLike(), dstBits);
         const ConstantValue result = ConstantValue::makeFloat(ctx, f, dstBits);
         castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
-        return Result::Continue;
+        return true;
     }
 
     // Should be unreachable given earlier asserts, but keep consistent error behavior.
     castCtx.fail(DiagnosticId::sema_err_cannot_cast, src.typeRef(), dstTypeRef);
-    return Result::Stop;
+    return false;
 }
 
 bool SemaCast::foldConstantBoolToIntLike(Sema& sema, CastContext& castCtx, TypeRef dstTypeRef)

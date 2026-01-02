@@ -20,7 +20,7 @@ namespace
         return true;
     }
 
-    Result castBit(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    bool castBit(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
         SWC_ASSERT(castCtx.kind == CastKind::Explicit);
 
@@ -54,7 +54,7 @@ namespace
                 castCtx.failure.optTypeRef = srcTypeRef;
             }
 
-            return Result::Stop;
+            return false;
         }
 
         const uint32_t sb = srcType->scalarNumericBits();
@@ -68,13 +68,13 @@ namespace
                 castCtx.failure.optTypeRef = srcTypeRef;
             }
 
-            return Result::Stop;
+            return false;
         }
 
         if (castCtx.isFolding())
             return SemaCast::foldConstantBitCast(sema, castCtx, dstTypeRef, dstType, *srcType);
 
-        return Result::Continue;
+        return true;
     }
 
     bool castBoolToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
@@ -269,7 +269,7 @@ bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef,
     const TypeInfo& dstType = typeMgr.get(dstTypeRef);
 
     if (castCtx.flags.has(CastFlagsE::BitCast))
-        return castBit(sema, castCtx, srcTypeRef, dstTypeRef) == Result::Continue;
+        return castBit(sema, castCtx, srcTypeRef, dstTypeRef);
     if (srcType.isEnum() && !dstType.isEnum())
         return castFromEnum(sema, castCtx, srcTypeRef, dstTypeRef);
 

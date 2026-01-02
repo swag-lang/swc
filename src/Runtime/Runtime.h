@@ -7,8 +7,6 @@ namespace Runtime
     enum class TargetOs
     {
         Windows,
-        Linux,
-        MacOSX,
     };
 }
 

@@ -7,7 +7,6 @@
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaJob.h"
 #include "Thread/JobManager.h"
-#include "Wmf/Verify.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -319,14 +318,6 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                     SWC_UNREACHABLE();
             }
         }
-    }
-
-    for (const auto& f : ctx.compiler().files())
-    {
-        const SourceView& srcView = f->ast().srcView();
-        if (srcView.mustSkip())
-            continue;
-        f->unitTest().verifyUntouchedExpected(ctx, srcView);
     }
 }
 

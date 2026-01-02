@@ -9,6 +9,17 @@
 
 SWC_BEGIN_NAMESPACE()
 
+bool SemaCast::concretizeConstant(Sema& sema, ConstantRef& result, CastContext& castCtx, ConstantRef cstRef, TypeInfo::Sign hintSign)
+{
+    if (!sema.cstMgr().concretizeConstant(sema, result, cstRef, hintSign))
+    {
+        castCtx.fail(DiagnosticId::sema_err_literal_too_big, sema.cstMgr().get(cstRef).typeRef(), TypeRef::invalid());
+        return false;
+    }
+
+    return true;
+}
+
 void SemaCast::foldConstantIdentity(CastContext& castCtx)
 {
     castCtx.setFoldOut(castCtx.foldSrc());
@@ -22,14 +33,14 @@ bool SemaCast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dst
     if (dstType.isInt())
     {
         ConstantRef newCstRef;
-        if (!sema.cstMgr().concretizeConstant(sema, newCstRef, castCtx, castCtx.foldSrc(), dstType.intSign()))
+        if (!concretizeConstant(sema, newCstRef, castCtx, castCtx.foldSrc(), dstType.intSign()))
             return false;
         castCtx.setFoldSrc(newCstRef);
     }
     else if (dstType.isFloat())
     {
         ConstantRef newCstRef;
-        if (!sema.cstMgr().concretizeConstant(sema, newCstRef, castCtx, castCtx.foldSrc(), TypeInfo::Sign::Signed))
+        if (!concretizeConstant(sema, newCstRef, castCtx, castCtx.foldSrc(), TypeInfo::Sign::Signed))
             return false;
         castCtx.setFoldSrc(newCstRef);
     }

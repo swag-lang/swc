@@ -14,6 +14,7 @@ namespace SemaCast
 {
     bool   castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef);
     Result emitCastFailure(Sema& sema, const CastFailure& f);
+    bool   concretizeConstant(Sema& sema, ConstantRef& result, CastContext& castCtx, ConstantRef cstRef, TypeInfo::Sign hintSign);
 
     void foldConstantIdentity(CastContext& castCtx);
     bool foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstTypeRef, const TypeInfo& dstType, const TypeInfo& srcType);

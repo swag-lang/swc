@@ -45,7 +45,7 @@ void SemaCycle::reportCycle(const std::vector<const Symbol*>& cycle)
         return;
 
     auto diag = SemaError::report(itLoc->second.job->sema(), DiagnosticId::sema_err_cyclic_dependency, itLoc->second.nodeRef);
-    diag.addArgument(Diagnostic::ARG_VALUE, graph_.names.at(firstSym));
+    diag.addArgument(Diagnostic::ARG_SYM, graph_.names.at(firstSym));
 
     for (size_t i = 1; i < cycle.size(); i++)
     {
@@ -56,7 +56,7 @@ void SemaCycle::reportCycle(const std::vector<const Symbol*>& cycle)
             continue;
 
         diag.addNote(DiagnosticId::sema_note_cyclic_dependency_link);
-        diag.addArgument(Diagnostic::ARG_VALUE, graph_.names.at(next));
+        diag.addArgument(Diagnostic::ARG_SYM, graph_.names.at(next));
 
         const auto& node    = itEdge->second.job->sema().node(itEdge->second.nodeRef);
         const auto& srcView = itEdge->second.job->sema().compiler().srcView(node.srcViewRef());

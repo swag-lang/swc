@@ -3,6 +3,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
+class Symbol;
 class SymbolEnum;
 class SymbolStruct;
 class SymbolInterface;
@@ -138,6 +139,7 @@ public:
     uint64_t sizeOf(TaskContext& ctx) const;
     uint32_t alignOf(TaskContext& ctx) const;
     bool     isCompleted(TaskContext& ctx) const;
+    Symbol*  getSymbolDependency(TaskContext& ctx) const;
 
 private:
     explicit TypeInfo(TypeInfoKind kind, TypeInfoFlags flags = TypeInfoFlagsE::Zero);

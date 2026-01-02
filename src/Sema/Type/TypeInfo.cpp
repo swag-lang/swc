@@ -578,4 +578,25 @@ bool TypeInfo::isCompleted(TaskContext& ctx) const
     return true;
 }
 
+Symbol* TypeInfo::getSymbolDependency(TaskContext& ctx) const
+{
+    switch (kind_)
+    {
+        case TypeInfoKind::Struct:
+            return &structSym();
+        case TypeInfoKind::Enum:
+            return &enumSym();
+        case TypeInfoKind::Interface:
+            return &interfaceSym();
+        case TypeInfoKind::Array:
+            return ctx.typeMgr().get(asArray.typeRef).getSymbolDependency(ctx);
+        case TypeInfoKind::TypeValue:
+            return ctx.typeMgr().get(asTypeRef.typeRef).getSymbolDependency(ctx);
+        default:
+            break;
+    }
+
+    return nullptr;
+}
+
 SWC_END_NAMESPACE()

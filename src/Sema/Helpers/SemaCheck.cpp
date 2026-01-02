@@ -6,12 +6,12 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstStepResult SemaCheck::modifiers(Sema& sema, const AstNode& node, AstModifierFlags mods, AstModifierFlags allowed)
+Result SemaCheck::modifiers(Sema& sema, const AstNode& node, AstModifierFlags mods, AstModifierFlags allowed)
 {
     // Compute unsupported = mods & ~allowed
     const AstModifierFlags unsupported = mods.maskInvert(allowed);
     if (unsupported.none())
-        return AstStepResult::Continue;
+        return Result::Continue;
 
     // Iterate over each bit in AstModifierFlagsE
     unsupported.forEachSet([&](AstModifierFlagsE flag) {
@@ -46,28 +46,28 @@ AstStepResult SemaCheck::modifiers(Sema& sema, const AstNode& node, AstModifierF
         diag.report(sema.ctx());
     });
 
-    return AstStepResult::Stop;
+    return Result::Stop;
 }
 
-AstStepResult SemaCheck::isValueExpr(Sema& sema, AstNodeRef nodeRef)
+Result SemaCheck::isValueExpr(Sema& sema, AstNodeRef nodeRef)
 {
     const AstNode& node = sema.ast().node(nodeRef);
     if (SemaInfo::hasSemaFlags(node, NodeSemaFlags::ValueExpr))
-        return AstStepResult::Continue;
+        return Result::Continue;
     const auto diag = SemaError::report(sema, DiagnosticId::sema_err_not_value_expr, nodeRef);
     diag.report(sema.ctx());
-    return AstStepResult::Stop;
+    return Result::Stop;
 }
 
-AstStepResult SemaCheck::isConstant(Sema& sema, AstNodeRef nodeRef)
+Result SemaCheck::isConstant(Sema& sema, AstNodeRef nodeRef)
 {
     if (!sema.hasConstant(nodeRef))
     {
         SemaError::raiseExprNotConst(sema, nodeRef);
-        return AstStepResult::Stop;
+        return Result::Stop;
     }
 
-    return AstStepResult::Continue;
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE()

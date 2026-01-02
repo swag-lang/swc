@@ -18,7 +18,7 @@ namespace Command
         auto&       jobMgr   = global.jobMgr();
         const auto  clientId = compiler.jobClientId();
 
-        if (compiler.collectFiles(ctx) == AstStepResult::Stop)
+        if (compiler.collectFiles(ctx) == Result::Stop)
             return;
 
         for (const auto& f : compiler.files())

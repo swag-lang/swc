@@ -51,8 +51,8 @@ private:
     std::size_t defaultBlockSize_;
 
     static bool canAllocateFrom(const Block* block, std::size_t size, std::size_t alignment) noexcept;
-    Block* addBlock(std::size_t minSize);
-    void   releaseAll();
+    Block*      addBlock(std::size_t minSize);
+    void        releaseAll();
 };
 
 SWC_END_NAMESPACE()

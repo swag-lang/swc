@@ -81,7 +81,7 @@ private:
     void     expectEndStatement();
 
     AstNodeRef parseCompoundValue(AstNodeId blockNodeId);
-    AstStepResult     parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId);
+    Result     parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId);
     SpanRef    parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId);
     SpanRef    parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openTokRef, TokenId tokenStartId);
 

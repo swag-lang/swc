@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Core/Utf8Helper.h"
 #include "Parser/Parser.h"
+#include "Core/Utf8Helper.h"
 
 SWC_BEGIN_NAMESPACE()
 

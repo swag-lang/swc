@@ -20,9 +20,9 @@ class AstVisit
 public:
     void           start(Ast& ast, AstNodeRef root);
     void           setEnterNodeVisitor(const std::function<void(AstNode&)>& visitor) { enterNodeVisitor_ = visitor; }
-    void           setPreNodeVisitor(const std::function<AstStepResult(AstNode&)>& visitor) { preNodeVisitor_ = visitor; }
-    void           setPostNodeVisitor(const std::function<AstStepResult(AstNode&)>& visitor) { postNodeVisitor_ = visitor; }
-    void           setPreChildVisitor(const std::function<AstStepResult(AstNode&, AstNodeRef&)>& visitor) { preChildVisitor_ = visitor; }
+    void           setPreNodeVisitor(const std::function<Result(AstNode&)>& visitor) { preNodeVisitor_ = visitor; }
+    void           setPostNodeVisitor(const std::function<Result(AstNode&)>& visitor) { postNodeVisitor_ = visitor; }
+    void           setPreChildVisitor(const std::function<Result(AstNode&, AstNodeRef&)>& visitor) { preChildVisitor_ = visitor; }
     AstVisitResult step(const TaskContext& ctx);
 
     AstNode*       parentNode(size_t up = 0) { return parentNodeInternal(up); }
@@ -54,12 +54,12 @@ private:
         Stage      stage        = Stage::Enter;
     };
 
-    Ast*                                                ast_     = nullptr;
-    AstNodeRef                                          rootRef_ = AstNodeRef::invalid();
-    std::function<void(AstNode&)>                       enterNodeVisitor_;
-    std::function<AstStepResult(AstNode&)>              preNodeVisitor_;
-    std::function<AstStepResult(AstNode&)>              postNodeVisitor_;
-    std::function<AstStepResult(AstNode&, AstNodeRef&)> preChildVisitor_;
+    Ast*                                         ast_     = nullptr;
+    AstNodeRef                                   rootRef_ = AstNodeRef::invalid();
+    std::function<void(AstNode&)>                enterNodeVisitor_;
+    std::function<Result(AstNode&)>              preNodeVisitor_;
+    std::function<Result(AstNode&)>              postNodeVisitor_;
+    std::function<Result(AstNode&, AstNodeRef&)> preChildVisitor_;
 
     SmallVector<Frame, 64>  stack_;
     SmallVector<AstNodeRef> children_;

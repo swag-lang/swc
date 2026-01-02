@@ -32,10 +32,10 @@ const Ast& SourceFile::ast() const
     return semaInfo_->ast();
 }
 
-AstStepResult SourceFile::loadContent(TaskContext& ctx)
+Result SourceFile::loadContent(TaskContext& ctx)
 {
     if (!content_.empty())
-        return AstStepResult::Continue;
+        return Result::Continue;
 
 #if SWC_HAS_STATS
     Timer time(&Stats::get().timeLoadFile);
@@ -53,7 +53,7 @@ AstStepResult SourceFile::loadContent(TaskContext& ctx)
         diag.addArgument(Diagnostic::ARG_PATH, path_.string());
         diag.addArgument(Diagnostic::ARG_BECAUSE, Os::systemError(), false);
         diag.report(ctx);
-        return AstStepResult::Stop;
+        return Result::Stop;
     }
 
     const auto fileSize = file.tellg();
@@ -67,7 +67,7 @@ AstStepResult SourceFile::loadContent(TaskContext& ctx)
         diag.addArgument(Diagnostic::ARG_PATH, path_.string());
         diag.addArgument(Diagnostic::ARG_BECAUSE, Os::systemError(), false);
         diag.report(ctx);
-        return AstStepResult::Stop;
+        return Result::Stop;
     }
 
     // Ensure we have at least 4 characters in the buffer
@@ -76,7 +76,7 @@ AstStepResult SourceFile::loadContent(TaskContext& ctx)
 
     auto& srcView = ctx.compiler().addSourceView(fileRef_);
     ast().setSourceView(srcView);
-    return AstStepResult::Continue;
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE()

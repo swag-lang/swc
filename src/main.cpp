@@ -10,7 +10,7 @@ int main(int argc, char* argv[])
     swc::Global            global;
     swc::CommandLine       cmdLine;
     swc::CommandLineParser parser(global, cmdLine);
-    if (parser.parse(argc, argv) != swc::AstStepResult::Continue)
+    if (parser.parse(argc, argv) != swc::Result::Continue)
         return static_cast<int>(swc::ExitCode::ErrorCmdLine);
 
     global.initialize(cmdLine);

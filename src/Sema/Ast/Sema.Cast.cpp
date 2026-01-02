@@ -9,7 +9,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
+Result AstSuffixLiteral::semaPostNode(Sema& sema) const
 {
     const auto&   ctx     = sema.ctx();
     const TypeRef typeRef = sema.typeRefOf(nodeSuffixRef);
@@ -39,7 +39,7 @@ AstStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
                 if (overflow)
                 {
                     SemaError::raiseLiteralOverflow(sema, nodeLiteralRef, cst, cst.typeRef());
-                    return AstStepResult::Stop;
+                    return Result::Stop;
                 }
 
                 cpy.setUnsigned(false);
@@ -56,25 +56,25 @@ AstStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
 
     const ConstantRef newCstRef = SemaCast::castConstant(sema, castCtx, cstRef, typeRef);
     if (newCstRef.isInvalid())
-        return AstStepResult::Stop;
+        return Result::Stop;
     sema.setConstant(sema.curNodeRef(), newCstRef);
 
-    return AstStepResult::Continue;
+    return Result::Continue;
 }
 
-AstStepResult AstExplicitCastExpr::semaPostNode(Sema& sema)
+Result AstExplicitCastExpr::semaPostNode(Sema& sema)
 {
     const SemaNodeView nodeTypeView(sema, nodeTypeRef);
     const SemaNodeView nodeExprView(sema, nodeExprRef);
 
     // Value-check
-    if (SemaCheck::isValueExpr(sema, nodeExprRef) != AstStepResult::Continue)
-        return AstStepResult::Stop;
+    if (SemaCheck::isValueExpr(sema, nodeExprRef) != Result::Continue)
+        return Result::Stop;
     SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
 
     // Check cast modifiers
-    if (SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst) == AstStepResult::Stop)
-        return AstStepResult::Stop;
+    if (SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst) == Result::Stop)
+        return Result::Stop;
 
     // Cast kind
     CastContext castCtx(CastKind::Explicit);
@@ -87,13 +87,13 @@ AstStepResult AstExplicitCastExpr::semaPostNode(Sema& sema)
     {
         const ConstantRef cstRef = SemaCast::castConstant(sema, castCtx, nodeExprView.cstRef, nodeTypeView.typeRef);
         if (cstRef.isInvalid())
-            return AstStepResult::Stop;
+            return Result::Stop;
         sema.setConstant(sema.curNodeRef(), cstRef);
-        return AstStepResult::Continue;
+        return Result::Continue;
     }
 
     sema.setType(sema.curNodeRef(), nodeTypeView.typeRef);
-    return AstStepResult::Continue;
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE()

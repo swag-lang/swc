@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Core/SmallVector.h"
 #include "Parser/Parser.h"
+#include "Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE()
 

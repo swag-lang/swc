@@ -62,13 +62,13 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
             // Pre-order callback
             if (preNodeVisitor_)
             {
-                const AstStepResult result = preNodeVisitor_(*fr.node);
-                if (result == AstStepResult::Stop)
+                const Result result = preNodeVisitor_(*fr.node);
+                if (result == Result::Stop)
                     return AstVisitResult::Stop;
-                if (result == AstStepResult::Pause)
+                if (result == Result::Pause)
                     return AstVisitResult::Pause;
 
-                if (result == AstStepResult::SkipChildren)
+                if (result == Result::SkipChildren)
                 {
                     fr.stage = Frame::Stage::Post;
                     return AstVisitResult::Continue;
@@ -96,12 +96,12 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
                 AstNodeRef childRef = children_[globalIx];
                 if (preChildVisitor_)
                 {
-                    const AstStepResult result = preChildVisitor_(*fr.node, childRef);
-                    if (result == AstStepResult::Stop)
+                    const Result result = preChildVisitor_(*fr.node, childRef);
+                    if (result == Result::Stop)
                         return AstVisitResult::Stop;
-                    if (result == AstStepResult::Pause)
+                    if (result == Result::Pause)
                         return AstVisitResult::Pause;
-                    if (result == AstStepResult::SkipChildren)
+                    if (result == Result::SkipChildren)
                     {
                         fr.nextChildIx++;
                         continue;
@@ -132,10 +132,10 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
             // Post-order callback
             if (postNodeVisitor_)
             {
-                const AstStepResult result = postNodeVisitor_(*fr.node);
-                if (result == AstStepResult::Stop)
+                const Result result = postNodeVisitor_(*fr.node);
+                if (result == Result::Stop)
                     return AstVisitResult::Stop;
-                if (result == AstStepResult::Pause)
+                if (result == Result::Pause)
                     return AstVisitResult::Pause;
             }
 

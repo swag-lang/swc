@@ -1,7 +1,7 @@
 #include "pch.h"
+#include "Sema/Type/SemaCast.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Symbol/Symbols.h"
-#include "Sema/Type/SemaCast.h"
 
 SWC_BEGIN_NAMESPACE()
 

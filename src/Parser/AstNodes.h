@@ -290,9 +290,9 @@ struct AstNodeIdInfo
 
     using AstCollectChildren = void (*)(SmallVector<AstNodeRef>&, const Ast&, const AstNode&);
     using SemaEnterNode      = void (*)(Sema&, AstNode&);
-    using SemaPreNode        = AstStepResult (*)(Sema&, AstNode&);
-    using SemaPreNodeChild   = AstStepResult (*)(Sema&, AstNode&, AstNodeRef&);
-    using SemaPostNode       = AstStepResult (*)(Sema&, AstNode&);
+    using SemaPreNode        = Result (*)(Sema&, AstNode&);
+    using SemaPreNodeChild   = Result (*)(Sema&, AstNode&, AstNodeRef&);
+    using SemaPostNode       = Result (*)(Sema&, AstNode&);
 
     AstCollectChildren collectChildren;
 
@@ -316,21 +316,21 @@ void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, const AstNode
 }
 
 template<AstNodeId ID>
-AstStepResult semaPreDecl(Sema& sema, AstNode& node)
+Result semaPreDecl(Sema& sema, AstNode& node)
 {
     using NodeType = AstTypeOf<ID>::type;
     return node.cast<NodeType>()->semaPreDecl(sema);
 }
 
 template<AstNodeId ID>
-AstStepResult semaPreDeclChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
+Result semaPreDeclChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
 {
     using NodeType = AstTypeOf<ID>::type;
     return node.cast<NodeType>()->semaPreDeclChild(sema, childRef);
 }
 
 template<AstNodeId ID>
-AstStepResult semaPostDecl(Sema& sema, AstNode& node)
+Result semaPostDecl(Sema& sema, AstNode& node)
 {
     using NodeType = AstTypeOf<ID>::type;
     return node.cast<NodeType>()->semaPostDecl(sema);
@@ -344,21 +344,21 @@ void semaEnterNode(Sema& sema, AstNode& node)
 }
 
 template<AstNodeId ID>
-AstStepResult semaPreNode(Sema& sema, AstNode& node)
+Result semaPreNode(Sema& sema, AstNode& node)
 {
     using NodeType = AstTypeOf<ID>::type;
     return node.cast<NodeType>()->semaPreNode(sema);
 }
 
 template<AstNodeId ID>
-AstStepResult semaPreNodeChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
+Result semaPreNodeChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
 {
     using NodeType = AstTypeOf<ID>::type;
     return node.cast<NodeType>()->semaPreNodeChild(sema, childRef);
 }
 
 template<AstNodeId ID>
-AstStepResult semaPostNode(Sema& sema, AstNode& node)
+Result semaPostNode(Sema& sema, AstNode& node)
 {
     using NodeType = AstTypeOf<ID>::type;
     return node.cast<NodeType>()->semaPostNode(sema);

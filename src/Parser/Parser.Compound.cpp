@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Core/SmallVector.h"
 #include "Parser/Parser.h"
+#include "Core/SmallVector.h"
 #include "Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -52,7 +52,7 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
     }
 }
 
-AstStepResult Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
+Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
 {
     SmallVector skipTokens = {TokenId::SymComma, tokenEndId};
     if (depthParen_)
@@ -74,7 +74,7 @@ AstStepResult Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId toke
             {
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
                 skipTo(skipTokens);
-                return AstStepResult::Stop;
+                return Result::Stop;
             }
             break;
 
@@ -83,7 +83,7 @@ AstStepResult Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId toke
             {
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
                 skipTo(skipTokens);
-                return AstStepResult::Stop;
+                return Result::Stop;
             }
             break;
 
@@ -92,7 +92,7 @@ AstStepResult Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId toke
             {
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymSemiColon);
                 skipTo(skipTokens);
-                return AstStepResult::Stop;
+                return Result::Stop;
             }
             break;
 
@@ -110,7 +110,7 @@ AstStepResult Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId toke
             {
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
                 skipTo(skipTokens);
-                return AstStepResult::Stop;
+                return Result::Stop;
             }
             break;
 
@@ -118,7 +118,7 @@ AstStepResult Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId toke
             SWC_UNREACHABLE();
     }
 
-    return AstStepResult::Continue;
+    return Result::Continue;
 }
 
 SpanRef Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId)
@@ -153,7 +153,7 @@ SpanRef Parser::parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openT
             childrenRefs.push_back(childRef);
 
         // Separator between statements
-        if (parseCompoundSeparator(blockNodeId, tokenEndId) == AstStepResult::Stop)
+        if (parseCompoundSeparator(blockNodeId, tokenEndId) == Result::Stop)
         {
             if (depthParen_ && is(TokenId::SymRightParen))
                 break;

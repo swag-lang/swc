@@ -50,7 +50,7 @@ public:
     bool hasError() const { return hasError_; }
     bool hasWarning() const { return hasWarning_; }
 
-    AstStepResult loadContent(TaskContext& ctx);
+    Result loadContent(TaskContext& ctx);
 
 private:
     static constexpr int      TRAILING_0 = 4; // Number of '\0' forced at the end of the file

@@ -2,16 +2,16 @@
 
 SWC_BEGIN_NAMESPACE()
 
-enum class AstStepResult
+enum class Result
 {
-    Continue,     // normal flow
-    SkipChildren, // don't descend, go straight to post()
-    Pause,        // abort traversal immediately, but we are not finished
-    Stop          // abort traversal immediately
+    Continue,
+    SkipChildren,
+    Pause,
+    Stop
 };
 
-#define AST_VERIFY(__expr)                              \
-    if (const ret = __expr; ret != AstResult::Continue) \
+#define RESULT_VERIFY(__expr)                        \
+    if (const ret = __expr; ret != Result::Continue) \
         return ret;
 
 SWC_END_NAMESPACE()

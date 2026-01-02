@@ -13,22 +13,22 @@ namespace SemaError
     Diagnostic report(Sema& sema, DiagnosticId id, AstNodeRef nodeRef);
     Diagnostic report(Sema& sema, DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef);
 
-    AstStepResult raise(Sema& sema, DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef);
-    AstStepResult raise(Sema& sema, DiagnosticId id, AstNodeRef nodeRef);
+    Result raise(Sema& sema, DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef);
+    Result raise(Sema& sema, DiagnosticId id, AstNodeRef nodeRef);
 
     Diagnostic reportCannotCast(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
 
-    AstStepResult raiseInvalidType(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
-    void          raiseCannotCast(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
-    void          raiseLiteralOverflow(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal, TypeRef targetTypeRef);
-    void          raiseLiteralTooBig(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal);
-    void          raiseDivZero(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
-    AstStepResult raiseExprNotConst(Sema& sema, AstNodeRef nodeRef);
-    AstStepResult raiseBinaryOperandType(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
-    AstStepResult raiseInternal(Sema& sema, const AstNode& node);
-    AstStepResult raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);
-    AstStepResult raiseGhosting(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);
-    AstStepResult raiseAmbiguousSymbol(Sema& sema, SourceViewRef srcViewRef, TokenRef tokRef, std::span<const Symbol*> symbols);
+    Result raiseInvalidType(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
+    void   raiseCannotCast(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
+    void   raiseLiteralOverflow(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal, TypeRef targetTypeRef);
+    void   raiseLiteralTooBig(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal);
+    void   raiseDivZero(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
+    Result raiseExprNotConst(Sema& sema, AstNodeRef nodeRef);
+    Result raiseBinaryOperandType(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
+    Result raiseInternal(Sema& sema, const AstNode& node);
+    Result raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);
+    Result raiseGhosting(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);
+    Result raiseAmbiguousSymbol(Sema& sema, SourceViewRef srcViewRef, TokenRef tokRef, std::span<const Symbol*> symbols);
 }
 
 SWC_END_NAMESPACE()

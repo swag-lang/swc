@@ -9,7 +9,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstStepResult AstAccessModifier::semaPreDecl(Sema& sema) const
+Result AstAccessModifier::semaPreDecl(Sema& sema) const
 {
     const Token& tok = sema.token(srcViewRef(), tokRef());
 
@@ -33,26 +33,26 @@ AstStepResult AstAccessModifier::semaPreDecl(Sema& sema) const
     newFrame.setAccess(access);
     sema.pushFrame(newFrame);
 
-    return AstStepResult::Continue;
+    return Result::Continue;
 }
 
-AstStepResult AstAccessModifier::semaPostDecl(Sema& sema)
+Result AstAccessModifier::semaPostDecl(Sema& sema)
 {
     sema.popFrame();
-    return AstStepResult::Continue;
+    return Result::Continue;
 }
 
-AstStepResult AstAccessModifier::semaPreNode(Sema& sema) const
+Result AstAccessModifier::semaPreNode(Sema& sema) const
 {
     return semaPreDecl(sema);
 }
 
-AstStepResult AstAccessModifier::semaPostNode(Sema& sema)
+Result AstAccessModifier::semaPostNode(Sema& sema)
 {
     return semaPostDecl(sema);
 }
 
-AstStepResult AstAttrDecl::semaPreDecl(Sema& sema) const
+Result AstAttrDecl::semaPreDecl(Sema& sema) const
 {
     SymbolAttribute& sym = SemaHelpers::declareNamedSymbol<SymbolAttribute>(sema, *this, tokNameRef);
 
@@ -63,7 +63,7 @@ AstStepResult AstAttrDecl::semaPreDecl(Sema& sema) const
             sym.setAttributeFlags(AttributeFlagsE::EnumFlags);
     }
 
-    return AstStepResult::SkipChildren;
+    return Result::SkipChildren;
 }
 
 void AstAttrDecl::semaEnterNode(Sema& sema)
@@ -72,40 +72,40 @@ void AstAttrDecl::semaEnterNode(Sema& sema)
     sym.setDeclared(sema.ctx());
 }
 
-AstStepResult AstAttrDecl::semaPreNode(Sema& sema)
+Result AstAttrDecl::semaPreNode(Sema& sema)
 {
     const Symbol& sym = sema.symbolOf(sema.curNodeRef());
     return SemaMatch::ghosting(sema, sym);
 }
 
-AstStepResult AstAttrDecl::semaPostNode(Sema& sema)
+Result AstAttrDecl::semaPostNode(Sema& sema)
 {
     Symbol& sym = sema.symbolOf(sema.curNodeRef());
     sym.setTyped(sema.ctx());
     sym.setCompleted(sema.ctx());
-    return AstStepResult::Continue;
+    return Result::Continue;
 }
 
-AstStepResult AstAttributeList::semaPreNode(Sema& sema)
+Result AstAttributeList::semaPreNode(Sema& sema)
 {
     const SemaFrame newFrame = sema.frame();
     sema.pushFrame(newFrame);
-    return AstStepResult::Continue;
+    return Result::Continue;
 }
 
-AstStepResult AstAttributeList::semaPostNode(Sema& sema)
+Result AstAttributeList::semaPostNode(Sema& sema)
 {
     sema.popFrame();
-    return AstStepResult::Continue;
+    return Result::Continue;
 }
 
-AstStepResult AstAttribute::semaPostNode(Sema& sema) const
+Result AstAttribute::semaPostNode(Sema& sema) const
 {
     const Symbol& sym = sema.symbolOf(nodeIdentRef);
     if (!sym.isAttribute())
     {
         SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeIdentRef);
-        return AstStepResult::Stop;
+        return Result::Stop;
     }
 
     // Predefined attributes
@@ -114,14 +114,14 @@ AstStepResult AstAttribute::semaPostNode(Sema& sema) const
     if (attrFlags != AttributeFlagsE::Zero)
     {
         sema.frame().attributes().addFlag(attrFlags);
-        return AstStepResult::Continue;
+        return Result::Continue;
     }
 
     AttributeInstance inst;
     inst.symbol = &attrSym;
     sema.frame().attributes().attributes.push_back(inst);
 
-    return AstStepResult::Continue;
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE()

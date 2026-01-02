@@ -88,7 +88,7 @@ namespace
     }
 }
 
-AstStepResult AstBoolLiteral::semaPreNode(Sema& sema) const
+Result AstBoolLiteral::semaPreNode(Sema& sema) const
 {
     const auto& tok = sema.token(srcViewRef(), tokRef());
     if (tok.is(TokenId::KwdTrue))
@@ -98,10 +98,10 @@ AstStepResult AstBoolLiteral::semaPreNode(Sema& sema) const
     else
         SWC_UNREACHABLE();
 
-    return AstStepResult::SkipChildren;
+    return Result::SkipChildren;
 }
 
-AstStepResult AstCharacterLiteral::semaPreNode(Sema& sema) const
+Result AstCharacterLiteral::semaPreNode(Sema& sema) const
 {
     const auto&       ctx     = sema.ctx();
     const Token&      tok     = sema.token(srcViewRef(), tokRef());
@@ -135,10 +135,10 @@ AstStepResult AstCharacterLiteral::semaPreNode(Sema& sema) const
 
     const auto val = ConstantValue::makeChar(ctx, value);
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
-    return AstStepResult::SkipChildren;
+    return Result::SkipChildren;
 }
 
-AstStepResult AstStringLiteral::semaPreNode(Sema& sema) const
+Result AstStringLiteral::semaPreNode(Sema& sema) const
 {
     const auto&       ctx     = sema.ctx();
     const Token&      tok     = sema.token(srcViewRef(), tokRef());
@@ -166,7 +166,7 @@ AstStepResult AstStringLiteral::semaPreNode(Sema& sema) const
     {
         const auto val = ConstantValue::makeString(ctx, str);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
-        return AstStepResult::SkipChildren;
+        return Result::SkipChildren;
     }
 
     Utf8 result;
@@ -191,10 +191,10 @@ AstStepResult AstStringLiteral::semaPreNode(Sema& sema) const
 
     const auto val = ConstantValue::makeString(ctx, result);
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
-    return AstStepResult::SkipChildren;
+    return Result::SkipChildren;
 }
 
-AstStepResult AstBinaryLiteral::semaPreNode(Sema& sema) const
+Result AstBinaryLiteral::semaPreNode(Sema& sema) const
 {
     const auto& ctx = sema.ctx();
     const auto& tok = sema.token(srcViewRef(), tokRef());
@@ -225,10 +225,10 @@ AstStepResult AstBinaryLiteral::semaPreNode(Sema& sema) const
     value.setUnsigned(true);
     const auto val = ConstantValue::makeIntUnsized(ctx, value, TypeInfo::Sign::Unsigned);
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
-    return AstStepResult::SkipChildren;
+    return Result::SkipChildren;
 }
 
-AstStepResult AstHexaLiteral::semaPreNode(Sema& sema) const
+Result AstHexaLiteral::semaPreNode(Sema& sema) const
 {
     const auto& ctx = sema.ctx();
     const auto& tok = sema.token(srcViewRef(), tokRef());
@@ -252,7 +252,7 @@ AstStepResult AstHexaLiteral::semaPreNode(Sema& sema) const
         if (over)
         {
             SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-            return AstStepResult::Stop;
+            return Result::Stop;
         }
 
         const unsigned char h     = (c >= 'A' && c <= 'F') ? (c + 32) : c;
@@ -264,10 +264,10 @@ AstStepResult AstHexaLiteral::semaPreNode(Sema& sema) const
     value.setUnsigned(true);
     const auto val = ConstantValue::makeIntUnsized(ctx, value, TypeInfo::Sign::Unsigned);
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
-    return AstStepResult::SkipChildren;
+    return Result::SkipChildren;
 }
 
-AstStepResult AstIntegerLiteral::semaPreNode(Sema& sema) const
+Result AstIntegerLiteral::semaPreNode(Sema& sema) const
 {
     const auto& ctx = sema.ctx();
     const auto& tok = sema.token(srcViewRef(), tokRef());
@@ -298,7 +298,7 @@ AstStepResult AstIntegerLiteral::semaPreNode(Sema& sema) const
         if (over)
         {
             SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-            return AstStepResult::Stop;
+            return Result::Stop;
         }
 
         // add a digit
@@ -306,16 +306,16 @@ AstStepResult AstIntegerLiteral::semaPreNode(Sema& sema) const
         if (over)
         {
             SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-            return AstStepResult::Stop;
+            return Result::Stop;
         }
     }
 
     const auto val = ConstantValue::makeIntUnsized(ctx, ApsInt{value, false}, TypeInfo::Sign::Unknown);
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
-    return AstStepResult::SkipChildren;
+    return Result::SkipChildren;
 }
 
-AstStepResult AstFloatLiteral::semaPreNode(Sema& sema) const
+Result AstFloatLiteral::semaPreNode(Sema& sema) const
 {
     const auto& ctx = sema.ctx();
     const auto& tok = sema.token(srcViewRef(), tokRef());
@@ -353,14 +353,14 @@ AstStepResult AstFloatLiteral::semaPreNode(Sema& sema) const
                 if (over)
                 {
                     SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-                    return AstStepResult::Stop;
+                    return Result::Stop;
                 }
 
                 intValue.add(digit, over);
                 if (over)
                 {
                     SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-                    return AstStepResult::Stop;
+                    return Result::Stop;
                 }
 
                 if (seenDot)
@@ -378,7 +378,7 @@ AstStepResult AstFloatLiteral::semaPreNode(Sema& sema) const
                 else
                 {
                     SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-                    return AstStepResult::Stop;
+                    return Result::Stop;
                 }
             }
             continue;
@@ -427,7 +427,7 @@ AstStepResult AstFloatLiteral::semaPreNode(Sema& sema) const
         if (totalExp10 < (std::numeric_limits<int64_t>::min)() + static_cast<int64_t>(fracDigits))
         {
             SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-            return AstStepResult::Stop;
+            return Result::Stop;
         }
 
         totalExp10 -= static_cast<int64_t>(fracDigits);
@@ -438,7 +438,7 @@ AstStepResult AstFloatLiteral::semaPreNode(Sema& sema) const
 
     const ConstantValue val = ConstantValue::makeFloatUnsized(ctx, value);
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
-    return AstStepResult::SkipChildren;
+    return Result::SkipChildren;
 }
 
 SWC_END_NAMESPACE()

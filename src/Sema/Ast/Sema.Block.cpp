@@ -8,35 +8,35 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstStepResult AstFile::semaPreDecl(Sema& sema) const
+Result AstFile::semaPreDecl(Sema& sema) const
 {
     SymbolNamespace* fileNamespace = Symbol::make<SymbolNamespace>(sema.ctx(), this, tokRef(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
     sema.semaInfo().setFileNamespace(*fileNamespace);
     sema.pushScope(SemaScopeFlagsE::TopLevel);
     sema.curScope().setSymMap(&sema.semaInfo().moduleNamespace());
-    return AstStepResult::Continue;
+    return Result::Continue;
 }
 
-AstStepResult AstFile::semaPostDecl(Sema& sema)
+Result AstFile::semaPostDecl(Sema& sema)
 {
     sema.popScope();
-    return AstStepResult::Continue;
+    return Result::Continue;
 }
 
-AstStepResult AstFile::semaPreNode(Sema& sema)
+Result AstFile::semaPreNode(Sema& sema)
 {
     sema.pushScope(SemaScopeFlagsE::TopLevel);
     sema.curScope().setSymMap(&sema.semaInfo().moduleNamespace());
-    return AstStepResult::Continue;
+    return Result::Continue;
 }
 
-AstStepResult AstFile::semaPostNode(Sema& sema)
+Result AstFile::semaPostNode(Sema& sema)
 {
     sema.popScope();
-    return AstStepResult::Continue;
+    return Result::Continue;
 }
 
-AstStepResult AstNamespaceDecl::pushNamespace(Sema& sema, const AstNode* node, SpanRef spanNameRef)
+Result AstNamespaceDecl::pushNamespace(Sema& sema, const AstNode* node, SpanRef spanNameRef)
 {
     auto& ctx = sema.ctx();
 
@@ -74,35 +74,35 @@ AstStepResult AstNamespaceDecl::pushNamespace(Sema& sema, const AstNode* node, S
     sema.pushScope(SemaScopeFlagsE::TopLevel);
     sema.curScope().setSymMap(symMap);
 
-    return AstStepResult::Continue;
+    return Result::Continue;
 }
 
-AstStepResult AstNamespaceDecl::popNamespace(Sema& sema, SpanRef spanNameRef)
+Result AstNamespaceDecl::popNamespace(Sema& sema, SpanRef spanNameRef)
 {
     SmallVector<TokenRef> namesRef;
     sema.ast().tokens(namesRef, spanNameRef);
     for (size_t i = 0; i < namesRef.size(); ++i)
         sema.frame().popNs();
     sema.popScope();
-    return AstStepResult::Continue;
+    return Result::Continue;
 }
 
-AstStepResult AstNamespaceDecl::semaPreDecl(Sema& sema) const
+Result AstNamespaceDecl::semaPreDecl(Sema& sema) const
 {
     return pushNamespace(sema, this, spanNameRef);
 }
 
-AstStepResult AstNamespaceDecl::semaPostDecl(Sema& sema) const
+Result AstNamespaceDecl::semaPostDecl(Sema& sema) const
 {
     return popNamespace(sema, spanNameRef);
 }
 
-AstStepResult AstNamespaceDecl::semaPreNode(Sema& sema) const
+Result AstNamespaceDecl::semaPreNode(Sema& sema) const
 {
     return semaPreDecl(sema);
 }
 
-AstStepResult AstNamespaceDecl::semaPostNode(Sema& sema) const
+Result AstNamespaceDecl::semaPostNode(Sema& sema) const
 {
     return semaPostDecl(sema);
 }

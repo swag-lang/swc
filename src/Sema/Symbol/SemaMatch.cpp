@@ -33,7 +33,7 @@ namespace
     }
 }
 
-AstStepResult SemaMatch::match(Sema& sema, LookUpContext& lookUpCxt, IdentifierRef idRef)
+Result SemaMatch::match(Sema& sema, LookUpContext& lookUpCxt, IdentifierRef idRef)
 {
     lookup(sema, lookUpCxt, idRef);
     if (lookUpCxt.empty())
@@ -50,10 +50,10 @@ AstStepResult SemaMatch::match(Sema& sema, LookUpContext& lookUpCxt, IdentifierR
     if (lookUpCxt.count() > 1)
         return SemaError::raiseAmbiguousSymbol(sema, lookUpCxt.srcViewRef, lookUpCxt.tokRef, lookUpCxt.symbols());
 
-    return AstStepResult::Continue;
+    return Result::Continue;
 }
 
-AstStepResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
+Result SemaMatch::ghosting(Sema& sema, const Symbol& sym)
 {
     LookUpContext lookUpCxt;
     lookUpCxt.srcViewRef = sym.srcViewRef();
@@ -70,7 +70,7 @@ AstStepResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
     }
 
     if (lookUpCxt.count() == 1)
-        return AstStepResult::Continue;
+        return Result::Continue;
 
     for (const auto* other : lookUpCxt.symbols())
     {

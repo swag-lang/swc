@@ -48,7 +48,7 @@ bool SymbolEnum::computeNextValue(Sema& sema, SourceViewRef srcViewRef, TokenRef
     return true;
 }
 
-AstStepResult SymbolStruct::canBeCompleted(Sema& sema) const
+Result SymbolStruct::canBeCompleted(Sema& sema) const
 {
     for (const auto field : fields_)
     {
@@ -70,11 +70,11 @@ AstStepResult SymbolStruct::canBeCompleted(Sema& sema) const
         {
             const AstVarDecl* var = symVar.decl()->cast<AstVarDecl>();
             sema.waitCompleted(&type, var->nodeTypeRef.isValid() ? var->nodeTypeRef : var->nodeInitRef);
-            return AstStepResult::Pause;
+            return Result::Pause;
         }
     }
 
-    return AstStepResult::Continue;
+    return Result::Continue;
 }
 
 void SymbolStruct::computeLayout(Sema& sema)

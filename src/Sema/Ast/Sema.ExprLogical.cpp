@@ -39,40 +39,40 @@ namespace
         }
     }
 
-    AstStepResult check(Sema& sema, const AstLogicalExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    Result check(Sema& sema, const AstLogicalExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         if (!nodeLeftView.type->isBool())
         {
             SemaError::raiseBinaryOperandType(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
-            return AstStepResult::Stop;
+            return Result::Stop;
         }
 
         if (!nodeRightView.type->isBool())
         {
             SemaError::raiseBinaryOperandType(sema, node, node.nodeRightRef, nodeRightView.typeRef);
-            return AstStepResult::Stop;
+            return Result::Stop;
         }
 
-        return AstStepResult::Continue;
+        return Result::Continue;
     }
 }
 
-AstStepResult AstLogicalExpr::semaPostNode(Sema& sema)
+Result AstLogicalExpr::semaPostNode(Sema& sema)
 {
     const SemaNodeView nodeLeftView(sema, nodeLeftRef);
     const SemaNodeView nodeRightView(sema, nodeRightRef);
 
     // Value-check
-    if (SemaCheck::isValueExpr(sema, nodeLeftRef) != AstStepResult::Continue)
-        return AstStepResult::Stop;
-    if (SemaCheck::isValueExpr(sema, nodeRightRef) != AstStepResult::Continue)
-        return AstStepResult::Stop;
+    if (SemaCheck::isValueExpr(sema, nodeLeftRef) != Result::Continue)
+        return Result::Stop;
+    if (SemaCheck::isValueExpr(sema, nodeRightRef) != Result::Continue)
+        return Result::Stop;
     SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
 
     // Type-check
     const auto& tok = sema.token(srcViewRef(), tokRef());
-    if (check(sema, *this, nodeLeftView, nodeRightView) == AstStepResult::Stop)
-        return AstStepResult::Stop;
+    if (check(sema, *this, nodeLeftView, nodeRightView) == Result::Stop)
+        return Result::Stop;
 
     // Constant folding
     if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())
@@ -81,10 +81,10 @@ AstStepResult AstLogicalExpr::semaPostNode(Sema& sema)
         if (cst.isValid())
         {
             sema.setConstant(sema.curNodeRef(), cst);
-            return AstStepResult::Continue;
+            return Result::Continue;
         }
 
-        return AstStepResult::Stop;
+        return Result::Stop;
     }
 
     return SemaError::raiseInternal(sema, *this);

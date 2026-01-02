@@ -43,7 +43,7 @@ class CommandLineParser
 {
 public:
     explicit CommandLineParser(Global& global, CommandLine& cmdLine);
-    AstStepResult parse(int argc, char* argv[]);
+    Result parse(int argc, char* argv[]);
 
 private:
     std::vector<ArgInfo>    args_;
@@ -70,7 +70,7 @@ private:
     bool                   processArgument(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, bool invertBoolean, int& index, int argc, char* argv[]);
     void                   addArg(const char* commands, const char* longForm, const char* shortForm, CommandLineType type, void* target, const char* enumValues, const char* description);
     bool                   reportEnumError(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value);
-    AstStepResult                 checkCommandLine(TaskContext& ctx) const;
+    Result                 checkCommandLine(TaskContext& ctx) const;
 };
 
 SWC_END_NAMESPACE()

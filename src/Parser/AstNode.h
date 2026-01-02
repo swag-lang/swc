@@ -82,13 +82,13 @@ struct AstNode
     static void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, SpanRef spanRef);
     static void collectChildren(SmallVector<AstNodeRef>& out, std::initializer_list<AstNodeRef> nodes);
 
-    static AstStepResult semaPreDecl(Sema&) { return AstStepResult::Continue; }
-    static AstStepResult semaPreDeclChild(Sema&, AstNodeRef&) { return AstStepResult::Continue; }
-    static AstStepResult semaPostDecl(Sema&) { return AstStepResult::Continue; }
-    static void      semaEnterNode(Sema&) {}
-    static AstStepResult semaPreNode(Sema&) { return AstStepResult::Continue; }
-    static AstStepResult semaPreNodeChild(Sema&, AstNodeRef&) { return AstStepResult::Continue; }
-    static AstStepResult semaPostNode(Sema&) { return AstStepResult::Continue; }
+    static Result semaPreDecl(Sema&) { return Result::Continue; }
+    static Result semaPreDeclChild(Sema&, AstNodeRef&) { return Result::Continue; }
+    static Result semaPostDecl(Sema&) { return Result::Continue; }
+    static void   semaEnterNode(Sema&) {}
+    static Result semaPreNode(Sema&) { return Result::Continue; }
+    static Result semaPreNodeChild(Sema&, AstNodeRef&) { return Result::Continue; }
+    static Result semaPostNode(Sema&) { return Result::Continue; }
 
     uint8_t&       semaBits() { return semaBits_; }
     const uint8_t& semaBits() const { return semaBits_; }

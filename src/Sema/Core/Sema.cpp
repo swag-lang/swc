@@ -1,11 +1,9 @@
 #include "pch.h"
-
-#include "Main/Command.h"
+#include "Sema/Core/Sema.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Memory/Heap.h"
 #include "Sema/Constant/ConstantManager.h"
-#include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaScope.h"
 #include "Sema/Helpers/SemaCycle.h"
 #include "Sema/Helpers/SemaError.h"
@@ -135,21 +133,10 @@ namespace
 {
     const Symbol* guessCurrentSymbol(Sema& sema)
     {
-        AstNodeRef n = sema.visit().root();
+        const AstNodeRef n = sema.visit().root();
         if (sema.hasSymbol(n))
             return &sema.symbolOf(n);
         return sema.topSymMap();
-    }
-
-    const TypeInfo* guessCurrentType(Sema& sema)
-    {
-        AstNodeRef n = sema.visit().root();
-        if (sema.hasType(n))
-        {
-            TypeRef tr = sema.typeRefOf(n);
-            return &sema.typeMgr().get(tr);
-        }
-        return nullptr;
     }
 }
 

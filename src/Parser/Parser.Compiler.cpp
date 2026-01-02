@@ -196,12 +196,6 @@ AstNodeRef Parser::parseCompilerGlobal()
     nodePtr->spanNameRef.setInvalid();
     nodePtr->nodeModeRef.setInvalid();
 
-    if (tokStr == Token::toName(TokenId::KwdSkip))
-    {
-        // Should have been treated in lexer
-        SWC_UNREACHABLE();
-    }
-
     if (tokStr == Token::toName(TokenId::KwdSkipFmt))
     {
         nodePtr->mode        = AstCompilerGlobal::Mode::SkipFmt;

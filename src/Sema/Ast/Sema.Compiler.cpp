@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Sema/Core/Sema.h"
-#include "Lexer/LangSpec.h"
 #include "Main/CommandLine.h"
 #include "Main/Global.h"
 #include "Main/Version.h"
@@ -289,19 +288,6 @@ AstVisitStepResult AstCompilerGlobal::semaPreDecl(Sema& sema) const
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstCompilerGlobal::semaPostDecl(Sema& sema) const
-{
-    switch (mode)
-    {
-        case Mode::Namespace:
-            return AstNamespaceDecl::popNamespace(sema, spanNameRef);
-        default:
-            break;
-    }
-
-    return AstVisitStepResult::Continue;
-}
-
 AstVisitStepResult AstCompilerGlobal::semaPreNode(Sema& sema) const
 {
     return semaPreDecl(sema);
@@ -309,8 +295,6 @@ AstVisitStepResult AstCompilerGlobal::semaPreNode(Sema& sema) const
 
 AstVisitStepResult AstCompilerGlobal::semaPostNode(Sema& sema) const
 {
-    semaPostDecl(sema);
-
     switch (mode)
     {
         case Mode::Skip:

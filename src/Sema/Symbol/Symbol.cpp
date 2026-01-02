@@ -77,6 +77,8 @@ bool Symbol::isSwagNamespace(const TaskContext& ctx) const noexcept
 
 std::string_view Symbol::name(const TaskContext& ctx) const
 {
+    if (idRef_.isInvalid())
+        return "";
     const Identifier& id = ctx.idMgr().get(idRef_);
     return id.name;
 }
@@ -100,8 +102,8 @@ void Symbol::appendFullScopedName(const TaskContext& ctx, Utf8& out) const
     const SymbolMap* map = ownerSymMap_;
     while (map)
     {
-        if (map->isNamespace())
-            break;
+        //if (map->isNamespace())
+        //    break;
         scopeChain.push_back(map);
         map = map->symMap();
     }

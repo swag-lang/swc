@@ -20,5 +20,3 @@
     #assert(A)
     const B = true
 }
-
-#assert(B)

@@ -128,7 +128,7 @@ AstStepResult SemaError::raiseExprNotConst(Sema& sema, AstNodeRef nodeRef)
     return raise(sema, DiagnosticId::sema_err_expr_not_const, nodeRef);
 }
 
-void SemaError::raiseBinaryOperandType(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
+AstStepResult SemaError::raiseBinaryOperandType(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
 {
     auto diag = report(sema, DiagnosticId::sema_err_binary_operand_type, nodeOp.srcViewRef(), nodeOp.tokRef());
     diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
@@ -137,6 +137,7 @@ void SemaError::raiseBinaryOperandType(Sema& sema, const AstNode& nodeOp, AstNod
     diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
 
     diag.report(sema.ctx());
+    return AstStepResult::Stop;
 }
 
 AstStepResult SemaError::raiseInternal(Sema& sema, const AstNode& node)
@@ -144,25 +145,27 @@ AstStepResult SemaError::raiseInternal(Sema& sema, const AstNode& node)
     return raise(sema, DiagnosticId::sema_err_internal, node.srcViewRef(), node.tokRef());
 }
 
-void SemaError::raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol)
+AstStepResult SemaError::raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol)
 {
     auto& ctx  = sema.ctx();
     auto  diag = report(sema, DiagnosticId::sema_err_already_defined, symbol->srcViewRef(), symbol->tokRef());
     diag.addNote(DiagnosticId::sema_note_other_definition);
     diag.last().addSpan(otherSymbol->loc(ctx));
     diag.report(ctx);
+    return AstStepResult::Stop;
 }
 
-void SemaError::raiseGhosting(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol)
+AstStepResult SemaError::raiseGhosting(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol)
 {
     auto& ctx  = sema.ctx();
     auto  diag = report(sema, DiagnosticId::sema_err_ghosting, symbol->srcViewRef(), symbol->tokRef());
     diag.addNote(DiagnosticId::sema_note_other_definition);
     diag.last().addSpan(otherSymbol->loc(ctx));
     diag.report(ctx);
+    return AstStepResult::Stop;
 }
 
-void SemaError::raiseAmbiguousSymbol(Sema& sema, SourceViewRef srcViewRef, TokenRef tokRef, std::span<const Symbol*> symbols)
+AstStepResult SemaError::raiseAmbiguousSymbol(Sema& sema, SourceViewRef srcViewRef, TokenRef tokRef, std::span<const Symbol*> symbols)
 {
     auto& ctx  = sema.ctx();
     auto  diag = report(sema, DiagnosticId::sema_err_ambiguous_symbol, srcViewRef, tokRef);
@@ -172,6 +175,7 @@ void SemaError::raiseAmbiguousSymbol(Sema& sema, SourceViewRef srcViewRef, Token
         diag.last().addSpan(other->loc(ctx));
     }
     diag.report(ctx);
+    return AstStepResult::Stop;
 }
 
 SWC_END_NAMESPACE()

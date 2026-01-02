@@ -167,7 +167,7 @@ std::vector<SourceFile*> CompilerInstance::files() const
     return result;
 }
 
-Result CompilerInstance::collectFiles(TaskContext& ctx)
+AstStepResult CompilerInstance::collectFiles(TaskContext& ctx)
 {
     const auto&           cmdLine = ctx.cmdLine();
     std::vector<fs::path> paths;
@@ -196,13 +196,13 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
     if (!cmdLine.modulePath.empty())
     {
         modulePathFile_ = cmdLine.modulePath / "module.swg";
-        if (FileSystem::resolveFile(ctx, modulePathFile_) != Result::Success)
-            return Result::Error;
+        if (FileSystem::resolveFile(ctx, modulePathFile_) != AstStepResult::Continue)
+            return AstStepResult::Stop;
         addFile(modulePathFile_, FileFlagsE::Module);
 
         modulePathSrc_ = cmdLine.modulePath / "src";
-        if (FileSystem::resolveFolder(ctx, modulePathSrc_) != Result::Success)
-            return Result::Error;
+        if (FileSystem::resolveFolder(ctx, modulePathSrc_) != AstStepResult::Continue)
+            return AstStepResult::Stop;
         FileSystem::collectSwagFilesRec(ctx, modulePathSrc_, paths);
         if (cmdLine.numCores == 1)
             std::ranges::sort(paths);
@@ -214,8 +214,8 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
     if (cmdLine.runtime)
     {
         fs::path runtimePath = exeFullName_.parent_path() / "Runtime";
-        if (FileSystem::resolveFolder(ctx, runtimePath) != Result::Success)
-            return Result::Error;
+        if (FileSystem::resolveFolder(ctx, runtimePath) != AstStepResult::Continue)
+            return AstStepResult::Stop;
         FileSystem::collectSwagFilesRec(ctx, runtimePath, paths, false);
         if (cmdLine.numCores == 1)
             std::ranges::sort(paths);
@@ -227,10 +227,10 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
     {
         const auto diag = Diagnostic::get(DiagnosticId::cmd_err_no_input);
         diag.report(ctx);
-        return Result::Error;
+        return AstStepResult::Stop;
     }
 
-    return Result::Success;
+    return AstStepResult::Continue;
 }
 
 SWC_END_NAMESPACE()

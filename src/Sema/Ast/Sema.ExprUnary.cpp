@@ -107,10 +107,10 @@ namespace
         diag.report(sema.ctx());
     }
 
-    Result checkMinus(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
+    AstStepResult checkMinus(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
     {
         if (ops.type->isFloat() || ops.type->isIntSigned() || ops.type->isIntUnsized())
-            return Result::Success;
+            return AstStepResult::Continue;
 
         if (ops.type->isIntUnsigned())
         {
@@ -123,13 +123,13 @@ namespace
             reportInvalidType(sema, expr, ops);
         }
 
-        return Result::Error;
+        return AstStepResult::Stop;
     }
 
-    Result checkPlus(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
+    AstStepResult checkPlus(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
     {
         if (ops.type->isFloat() || ops.type->isIntUnsigned() || ops.type->isIntUnsized())
-            return Result::Success;
+            return AstStepResult::Continue;
 
         if (ops.type->isIntSigned())
         {
@@ -142,28 +142,28 @@ namespace
             reportInvalidType(sema, expr, ops);
         }
 
-        return Result::Error;
+        return AstStepResult::Stop;
     }
 
-    Result checkBang(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
+    AstStepResult checkBang(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
     {
         if (ops.type->isBool() || ops.type->isInt())
-            return Result::Success;
+            return AstStepResult::Continue;
 
         reportInvalidType(sema, expr, ops);
-        return Result::Error;
+        return AstStepResult::Stop;
     }
 
-    Result checkTilde(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
+    AstStepResult checkTilde(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
     {
         if (ops.type->isInt())
-            return Result::Success;
+            return AstStepResult::Continue;
 
         reportInvalidType(sema, expr, ops);
-        return Result::Error;
+        return AstStepResult::Stop;
     }
 
-    Result check(Sema& sema, TokenId op, const AstUnaryExpr& node, const SemaNodeView& ops)
+    AstStepResult check(Sema& sema, TokenId op, const AstUnaryExpr& node, const SemaNodeView& ops)
     {
         switch (op)
         {
@@ -180,7 +180,7 @@ namespace
         }
 
         SemaError::raiseInternal(sema, node);
-        return Result::Error;
+        return AstStepResult::Stop;
     }
 }
 
@@ -189,13 +189,13 @@ AstStepResult AstUnaryExpr::semaPostNode(Sema& sema)
     const SemaNodeView ops(sema, nodeExprRef);
 
     // Value-check
-    if (SemaCheck::isValueExpr(sema, nodeExprRef) != Result::Success)
+    if (SemaCheck::isValueExpr(sema, nodeExprRef) != AstStepResult::Continue)
         return AstStepResult::Stop;
     SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
 
     // Type-check
     const auto& tok = sema.token(srcViewRef(), tokRef());
-    if (check(sema, tok.id, *this, ops) == Result::Error)
+    if (check(sema, tok.id, *this, ops) == AstStepResult::Stop)
         return AstStepResult::Stop;
 
     // Constant folding

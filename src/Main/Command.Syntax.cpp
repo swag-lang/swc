@@ -22,7 +22,7 @@ namespace Command
         auto&       jobMgr   = global.jobMgr();
         const auto  clientId = compiler.jobClientId();
 
-        if (compiler.collectFiles(ctx) == Result::Error)
+        if (compiler.collectFiles(ctx) == AstStepResult::Stop)
             return;
 
         for (const auto& f : compiler.files())

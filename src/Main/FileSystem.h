@@ -3,11 +3,12 @@
 SWC_BEGIN_NAMESPACE()
 
 class TaskContext;
+enum class AstStepResult;
 
 namespace FileSystem
 {
-    Result resolveFile(TaskContext& ctx, fs::path& file);
-    Result resolveFolder(TaskContext& ctx, fs::path& folder);
+    AstStepResult resolveFile(TaskContext& ctx, fs::path& file);
+    AstStepResult resolveFolder(TaskContext& ctx, fs::path& folder);
     Utf8   normalizeSystemMessage(const Utf8& msg);
     Utf8   normalizeSystemMessage(std::error_code ec);
     void   collectSwagFilesRec(const TaskContext& ctx, const fs::path& folder, std::vector<fs::path>& files, bool canFilter = true);

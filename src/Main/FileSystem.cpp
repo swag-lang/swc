@@ -6,7 +6,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
+AstStepResult FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
 {
     std::error_code ec;
 
@@ -18,7 +18,7 @@ Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
         diag.addArgument(Diagnostic::ARG_PATH, file.string());
         diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec), false);
         diag.report(ctx);
-        return Result::Error;
+        return AstStepResult::Stop;
     }
 
     // Normalize/symlink-resolve if possible (does not throw)
@@ -35,7 +35,7 @@ Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
         if (ec)
             diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec), false);
         diag.report(ctx);
-        return Result::Error;
+        return AstStepResult::Stop;
     }
     ec.clear();
 
@@ -47,14 +47,14 @@ Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
         if (ec)
             diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec), false);
         diag.report(ctx);
-        return Result::Error;
+        return AstStepResult::Stop;
     }
 
     file = resolved;
-    return Result::Success;
+    return AstStepResult::Continue;
 }
 
-Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
+AstStepResult FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
 {
     std::error_code ec;
 
@@ -66,7 +66,7 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
         diag.addArgument(Diagnostic::ARG_PATH, folder.string());
         diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec), false);
         diag.report(ctx);
-        return Result::Error;
+        return AstStepResult::Stop;
     }
 
     // Normalize/symlink-resolve if possible (does not throw)
@@ -85,7 +85,7 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
         else
             diag.addArgument(Diagnostic::ARG_BECAUSE, "path does not exist", false);
         diag.report(ctx);
-        return Result::Error;
+        return AstStepResult::Stop;
     }
     ec.clear();
 
@@ -97,11 +97,11 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
         if (ec)
             diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec), false);
         diag.report(ctx);
-        return Result::Error;
+        return AstStepResult::Stop;
     }
 
     folder = resolved;
-    return Result::Success;
+    return AstStepResult::Continue;
 }
 
 Utf8 FileSystem::normalizeSystemMessage(const Utf8& msg)

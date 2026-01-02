@@ -63,8 +63,7 @@ AstStepResult SymbolStruct::canBeCompleted(Sema& sema) const
         if (type.isStruct() && &type.structSym() == this)
         {
             const AstVarDecl* var = symVar.decl()->cast<AstVarDecl>();
-            SemaError::raise(sema, DiagnosticId::sema_err_struct_circular_reference, var->nodeTypeRef.isValid() ? var->nodeTypeRef : var->nodeInitRef);
-            return AstStepResult::Stop;
+            return SemaError::raise(sema, DiagnosticId::sema_err_struct_circular_reference, var->nodeTypeRef.isValid() ? var->nodeTypeRef : var->nodeInitRef);
         }
 
         if (!type.isCompleted(sema.ctx()))

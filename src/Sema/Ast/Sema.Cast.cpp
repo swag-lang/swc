@@ -68,12 +68,12 @@ AstStepResult AstExplicitCastExpr::semaPostNode(Sema& sema)
     const SemaNodeView nodeExprView(sema, nodeExprRef);
 
     // Value-check
-    if (SemaCheck::isValueExpr(sema, nodeExprRef) != Result::Success)
+    if (SemaCheck::isValueExpr(sema, nodeExprRef) != AstStepResult::Continue)
         return AstStepResult::Stop;
     SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
 
     // Check cast modifiers
-    if (SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst) == Result::Error)
+    if (SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst) == AstStepResult::Stop)
         return AstStepResult::Stop;
 
     // Cast kind

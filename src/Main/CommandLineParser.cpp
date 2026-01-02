@@ -286,14 +286,14 @@ void CommandLineParser::printHelp(const TaskContext& ctx)
     ctx.global().logger().unlock();
 }
 
-Result CommandLineParser::parse(int argc, char* argv[])
+AstStepResult CommandLineParser::parse(int argc, char* argv[])
 {
     TaskContext ctx(*global_, *cmdLine_);
 
     if (argc == 1)
     {
         printHelp(ctx);
-        return Result::Error;
+        return AstStepResult::Stop;
     }
 
     // Require a command as the first positional token (no leading '-').
@@ -302,7 +302,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
         // Missing command name
         const auto diag = Diagnostic::get(DiagnosticId::cmdline_err_missing_command);
         diag.report(ctx);
-        return Result::Error;
+        return AstStepResult::Stop;
     }
 
     // Validate and set the command
@@ -315,7 +315,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
             setReportArguments(diag, argv[1]);
             diag.addArgument(Diagnostic::ARG_VALUES, ALLOWED_COMMANDS);
             diag.report(ctx);
-            return Result::Error;
+            return AstStepResult::Stop;
         }
 
         command_ = candidate;
@@ -331,7 +331,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
         {
             if (!errorRaised_)
                 reportInvalidArgument(ctx, arg);
-            return Result::Error;
+            return AstStepResult::Stop;
         }
 
         if (!commandMatches(info.value().commands))
@@ -339,17 +339,17 @@ Result CommandLineParser::parse(int argc, char* argv[])
             auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_cmd_arg);
             setReportArguments(diag, info.value(), arg);
             diag.report(ctx);
-            return Result::Error;
+            return AstStepResult::Stop;
         }
 
         if (!processArgument(ctx, info.value(), arg, invertBoolean, i, argc, argv))
-            return Result::Error;
+            return AstStepResult::Stop;
     }
 
     return checkCommandLine(ctx);
 }
 
-Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
+AstStepResult CommandLineParser::checkCommandLine(TaskContext& ctx) const
 {
     if (!cmdLine_->verboseDiagFilter.empty())
         cmdLine_->verboseDiag = true;
@@ -359,8 +359,8 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     for (const auto& folder : cmdLine_->directories)
     {
         fs::path temp = folder;
-        if (FileSystem::resolveFolder(ctx, temp) != Result::Success)
-            return Result::Error;
+        if (FileSystem::resolveFolder(ctx, temp) != AstStepResult::Continue)
+            return AstStepResult::Stop;
         resolvedFolders.insert(std::move(temp));
     }
     cmdLine_->directories = std::move(resolvedFolders);
@@ -370,8 +370,8 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     for (const auto& file : cmdLine_->files)
     {
         fs::path temp = file;
-        if (FileSystem::resolveFile(ctx, temp) != Result::Success)
-            return Result::Error;
+        if (FileSystem::resolveFile(ctx, temp) != AstStepResult::Continue)
+            return AstStepResult::Stop;
         resolvedFiles.insert(std::move(temp));
     }
     cmdLine_->files = std::move(resolvedFiles);
@@ -380,8 +380,8 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     if (!cmdLine_->modulePath.empty())
     {
         fs::path temp = cmdLine_->modulePath;
-        if (FileSystem::resolveFolder(ctx, temp) != Result::Success)
-            return Result::Error;
+        if (FileSystem::resolveFolder(ctx, temp) != AstStepResult::Continue)
+            return AstStepResult::Stop;
         cmdLine_->modulePath = std::move(temp);
     }
 
@@ -389,7 +389,7 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     cmdLine_->dbgDevMode = true;
 #endif
 
-    return Result::Success;
+    return AstStepResult::Continue;
 }
 
 CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :

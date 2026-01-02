@@ -241,9 +241,9 @@ AstStepResult AstArrayType::semaPostNode(Sema& sema) const
     std::vector<uint64_t> dims;
     for (const auto& dimRef : out)
     {
-        if (SemaCheck::isValueExpr(sema, dimRef) != Result::Success)
+        if (SemaCheck::isValueExpr(sema, dimRef) != AstStepResult::Continue)
             return AstStepResult::Stop;
-        if (SemaCheck::isConstant(sema, dimRef) != Result::Success)
+        if (SemaCheck::isConstant(sema, dimRef) != AstStepResult::Continue)
             return AstStepResult::Stop;
 
         const ConstantRef    cstRef = sema.constantRefOf(dimRef);
@@ -271,11 +271,7 @@ AstStepResult AstArrayType::semaPostNode(Sema& sema) const
         const ConstantValue& newCst = sema.cstMgr().get(newCstRef);
         const uint64_t       dim    = newCst.getInt().as64();
         if (dim == 0)
-        {
-            SemaError::raise(sema, DiagnosticId::sema_err_array_dim_zero, dimRef);
-            return AstStepResult::Stop;
-        }
-
+            return SemaError::raise(sema, DiagnosticId::sema_err_array_dim_zero, dimRef);
         dims.push_back(dim);
     }
 

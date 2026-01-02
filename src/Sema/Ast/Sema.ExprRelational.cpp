@@ -166,45 +166,45 @@ namespace
         }
     }
 
-    Result checkEqualEqual(Sema& sema, const AstRelationalExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
+    AstStepResult checkEqualEqual(Sema& sema, const AstRelationalExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
         if (nodeLeftView.typeRef == nodeRightView.typeRef)
-            return Result::Success;
+            return AstStepResult::Continue;
         if (nodeLeftView.type->isScalarNumeric() && nodeRightView.type->isScalarNumeric())
-            return Result::Success;
+            return AstStepResult::Continue;
         if (nodeLeftView.type->isType() && nodeRightView.type->isType())
-            return Result::Success;
+            return AstStepResult::Continue;
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.srcViewRef(), node.tokRef());
         diag.addArgument(Diagnostic::ARG_LEFT, nodeLeftView.typeRef);
         diag.addArgument(Diagnostic::ARG_RIGHT, nodeRightView.typeRef);
         diag.report(sema.ctx());
-        return Result::Error;
+        return AstStepResult::Stop;
     }
 
-    Result checkCompareEqual(Sema& sema, const AstRelationalExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    AstStepResult checkCompareEqual(Sema& sema, const AstRelationalExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         if (nodeLeftView.type->isScalarNumeric() && nodeRightView.type->isScalarNumeric())
-            return Result::Success;
+            return AstStepResult::Continue;
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.srcViewRef(), node.tokRef());
         diag.addArgument(Diagnostic::ARG_LEFT, nodeLeftView.typeRef);
         diag.addArgument(Diagnostic::ARG_RIGHT, nodeRightView.typeRef);
         diag.report(sema.ctx());
-        return Result::Error;
+        return AstStepResult::Stop;
     }
 
-    Result promote(Sema& sema, TokenId op, const AstRelationalExpr&, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
+    AstStepResult promote(Sema& sema, TokenId op, const AstRelationalExpr&, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
         if (op == TokenId::SymEqualEqual || op == TokenId::SymBangEqual)
         {
             SemaCast::convertForEquality(sema, nodeLeftView, nodeRightView);
         }
 
-        return Result::Success;
+        return AstStepResult::Continue;
     }
 
-    Result check(Sema& sema, TokenId op, const AstRelationalExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
+    AstStepResult check(Sema& sema, TokenId op, const AstRelationalExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
         switch (op)
         {
@@ -221,7 +221,7 @@ namespace
 
             default:
                 SemaError::raiseInternal(sema, node);
-                return Result::Error;
+                return AstStepResult::Stop;
         }
     }
 }
@@ -233,18 +233,18 @@ AstStepResult AstRelationalExpr::semaPostNode(Sema& sema)
     const auto&  tok = sema.token(srcViewRef(), tokRef());
 
     // Force types
-    if (promote(sema, tok.id, *this, nodeLeftView, nodeRightView) == Result::Error)
+    if (promote(sema, tok.id, *this, nodeLeftView, nodeRightView) == AstStepResult::Stop)
         return AstStepResult::Stop;
 
     // Value-check
-    if (SemaCheck::isValueExpr(sema, nodeLeftRef) != Result::Success)
+    if (SemaCheck::isValueExpr(sema, nodeLeftRef) != AstStepResult::Continue)
         return AstStepResult::Stop;
-    if (SemaCheck::isValueExpr(sema, nodeRightRef) != Result::Success)
+    if (SemaCheck::isValueExpr(sema, nodeRightRef) != AstStepResult::Continue)
         return AstStepResult::Stop;
     SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
 
     // Type-check
-    if (check(sema, tok.id, *this, nodeLeftView, nodeRightView) == Result::Error)
+    if (check(sema, tok.id, *this, nodeLeftView, nodeRightView) == AstStepResult::Stop)
         return AstStepResult::Stop;
 
     // Constant folding

@@ -25,7 +25,7 @@ namespace Command
         const JobClientId clientId = compiler.jobClientId();
 
         // Collect files
-        if (compiler.collectFiles(ctx) == Result::Error)
+        if (compiler.collectFiles(ctx) == AstStepResult::Stop)
             return;
 
         // Parser

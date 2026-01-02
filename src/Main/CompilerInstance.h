@@ -56,7 +56,7 @@ public:
     SourceView&       srcView(SourceViewRef ref) { return *srcViews_[ref.get()].get(); }
     const SourceView& srcView(SourceViewRef ref) const { return *srcViews_[ref.get()].get(); }
 
-    Result                   collectFiles(TaskContext& ctx);
+    AstStepResult                   collectFiles(TaskContext& ctx);
     std::vector<SourceFile*> files() const;
 
     template<typename T, typename... ARGS>

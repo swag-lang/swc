@@ -48,10 +48,7 @@ AstStepResult SemaMatch::match(Sema& sema, LookUpContext& lookUpCxt, IdentifierR
     }
 
     if (lookUpCxt.count() > 1)
-    {
-        SemaError::raiseAmbiguousSymbol(sema, lookUpCxt.srcViewRef, lookUpCxt.tokRef, lookUpCxt.symbols());
-        return AstStepResult::Stop;
-    }
+        return SemaError::raiseAmbiguousSymbol(sema, lookUpCxt.srcViewRef, lookUpCxt.tokRef, lookUpCxt.symbols());
 
     return AstStepResult::Continue;
 }
@@ -81,16 +78,14 @@ AstStepResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
             continue;
         if (other->symMap() != sym.symMap())
             continue;
-        SemaError::raiseAlreadyDefined(sema, &sym, other);
-        return AstStepResult::Stop;
+        return SemaError::raiseAlreadyDefined(sema, &sym, other);
     }
 
     for (const auto* other : lookUpCxt.symbols())
     {
         if (other == &sym)
             continue;
-        SemaError::raiseGhosting(sema, &sym, other);
-        return AstStepResult::Stop;
+        return SemaError::raiseGhosting(sema, &sym, other);
     }
 
     SWC_UNREACHABLE();

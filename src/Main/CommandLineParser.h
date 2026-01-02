@@ -7,6 +7,7 @@ class TaskContext;
 struct CommandLine;
 class Global;
 enum class CommandKind;
+enum class AstStepResult;
 
 // Enum for command line argument types
 enum class CommandLineType
@@ -43,7 +44,7 @@ class CommandLineParser
 {
 public:
     explicit CommandLineParser(Global& global, CommandLine& cmdLine);
-    Result parse(int argc, char* argv[]);
+    AstStepResult parse(int argc, char* argv[]);
 
 private:
     std::vector<ArgInfo>    args_;
@@ -70,7 +71,7 @@ private:
     bool                   processArgument(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, bool invertBoolean, int& index, int argc, char* argv[]);
     void                   addArg(const char* commands, const char* longForm, const char* shortForm, CommandLineType type, void* target, const char* enumValues, const char* description);
     bool                   reportEnumError(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value);
-    Result                 checkCommandLine(TaskContext& ctx) const;
+    AstStepResult                 checkCommandLine(TaskContext& ctx) const;
 };
 
 SWC_END_NAMESPACE()

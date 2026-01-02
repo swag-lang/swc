@@ -3,12 +3,6 @@ SWC_BEGIN_NAMESPACE()
 
 void swagAssert(const char* expr, const char* file, int line);
 
-enum class Result : bool
-{
-    Error   = false,
-    Success = true,
-};
-
 #define SWC_FORCE_ASSERT(__expr)                     \
     do                                               \
     {                                                \

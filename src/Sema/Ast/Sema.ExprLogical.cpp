@@ -39,21 +39,21 @@ namespace
         }
     }
 
-    Result check(Sema& sema, const AstLogicalExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    AstStepResult check(Sema& sema, const AstLogicalExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         if (!nodeLeftView.type->isBool())
         {
             SemaError::raiseBinaryOperandType(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
-            return Result::Error;
+            return AstStepResult::Stop;
         }
 
         if (!nodeRightView.type->isBool())
         {
             SemaError::raiseBinaryOperandType(sema, node, node.nodeRightRef, nodeRightView.typeRef);
-            return Result::Error;
+            return AstStepResult::Stop;
         }
 
-        return Result::Success;
+        return AstStepResult::Continue;
     }
 }
 
@@ -63,15 +63,15 @@ AstStepResult AstLogicalExpr::semaPostNode(Sema& sema)
     const SemaNodeView nodeRightView(sema, nodeRightRef);
 
     // Value-check
-    if (SemaCheck::isValueExpr(sema, nodeLeftRef) != Result::Success)
+    if (SemaCheck::isValueExpr(sema, nodeLeftRef) != AstStepResult::Continue)
         return AstStepResult::Stop;
-    if (SemaCheck::isValueExpr(sema, nodeRightRef) != Result::Success)
+    if (SemaCheck::isValueExpr(sema, nodeRightRef) != AstStepResult::Continue)
         return AstStepResult::Stop;
     SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
 
     // Type-check
     const auto& tok = sema.token(srcViewRef(), tokRef());
-    if (check(sema, *this, nodeLeftView, nodeRightView) == Result::Error)
+    if (check(sema, *this, nodeLeftView, nodeRightView) == AstStepResult::Stop)
         return AstStepResult::Stop;
 
     // Constant folding

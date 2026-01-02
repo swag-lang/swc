@@ -3,7 +3,6 @@
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Memory/Heap.h"
-#include "Report/DiagnosticDef.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/SemaScope.h"
 #include "Sema/Helpers/SemaCycle.h"
@@ -12,7 +11,6 @@
 #include "Sema/Helpers/SemaJob.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Thread/JobManager.h"
-#include "Wmf/Verify.h"
 
 SWC_BEGIN_NAMESPACE()
 

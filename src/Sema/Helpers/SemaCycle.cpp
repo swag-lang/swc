@@ -3,11 +3,9 @@
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Report/DiagnosticDef.h"
-#include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/Sema.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaJob.h"
-#include "Sema/Symbol/Symbols.h"
 #include "Thread/JobManager.h"
 #include "Wmf/Verify.h"
 
@@ -15,7 +13,7 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    enum class WaitNodeKind : uint8_t
+    enum class WaitNodeKind
     {
         Symbol,
         Type,
@@ -23,8 +21,8 @@ namespace
 
     struct WaitNode
     {
-        WaitNodeKind kind;
         const void*  ptr; // Symbol* or TypeInfo*
+        WaitNodeKind kind;
     };
 
     struct WaitNodeHash
@@ -62,15 +60,15 @@ namespace
 
     WaitNode makeNode(const Symbol* sym)
     {
-        return {WaitNodeKind::Symbol, sym};
+        return {.ptr = sym, .kind = WaitNodeKind::Symbol};
     }
 
     WaitNode makeNode(const TypeInfo* type)
     {
-        return {WaitNodeKind::Type, type};
+        return {.ptr = type, .kind = WaitNodeKind::Type};
     }
 
-    Utf8 getNodeName(const WaitNode& n, TaskContext& ctx)
+    Utf8 getNodeName(const WaitNode& n, const TaskContext& ctx)
     {
         switch (n.kind)
         {
@@ -83,15 +81,15 @@ namespace
         }
     }
 
-    void addNodeIfNeeded(WaitGraph& g, const WaitNode& n, TaskContext& ctx)
+    void addNodeIfNeeded(WaitGraph& g, const WaitNode& n, const TaskContext& ctx)
     {
-        if (!g.names.count(n))
+        if (!g.names.contains(n))
             g.names[n] = getNodeName(n, ctx);
-        if (!g.adj.count(n))
+        if (!g.adj.contains(n))
             g.adj[n] = {};
     }
 
-    void addEdge(WaitGraph& g, const WaitNode& from, const WaitNode& to, TaskContext& ctx, SemaJob* job, const TaskState& state)
+    void addEdge(WaitGraph& g, const WaitNode& from, const WaitNode& to, const TaskContext& ctx, SemaJob* job, const TaskState& state)
     {
         addNodeIfNeeded(g, from, ctx);
         addNodeIfNeeded(g, to, ctx);
@@ -135,12 +133,12 @@ namespace
             {
                 for (const auto& w : itAdj->second)
                 {
-                    if (!index.count(w))
+                    if (!index.contains(w))
                     {
                         strongConnect(w);
                         lowlink[v] = std::min(lowlink[v], lowlink[w]);
                     }
-                    else if (onStack.count(w))
+                    else if (onStack.contains(w))
                     {
                         lowlink[v] = std::min(lowlink[v], index[w]);
                     }
@@ -182,10 +180,10 @@ namespace
             }
         };
 
-        for (const auto& kv : g.adj)
+        for (const auto& key : g.adj | std::views::keys)
         {
-            const WaitNode& v = kv.first;
-            if (!index.count(v))
+            const WaitNode& v = key;
+            if (!index.contains(v))
                 strongConnect(v);
         }
 
@@ -207,19 +205,15 @@ namespace
             msg += g.names.at(cyc.front());
 
             // Pick a representative node for location.
-            const WaitNode& rep     = cyc.front();
-            auto            itLoc   = g.locs.find(rep);
-            SemaJob*        job     = nullptr;
-            AstNodeRef      node    = AstNodeRef::invalid();
-            SourceViewRef   srcView = SourceViewRef::invalid();
-            TokenRef        tok     = TokenRef::invalid();
+            const WaitNode& rep   = cyc.front();
+            auto            itLoc = g.locs.find(rep);
+            SemaJob*        job   = nullptr;
+            AstNodeRef      node  = AstNodeRef::invalid();
 
             if (itLoc != g.locs.end())
             {
-                job     = itLoc->second.job;
-                node    = itLoc->second.node;
-                srcView = itLoc->second.srcView;
-                tok     = itLoc->second.tok;
+                job  = itLoc->second.job;
+                node = itLoc->second.node;
             }
 
             if (!job)

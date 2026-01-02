@@ -57,16 +57,16 @@ namespace
 
     struct SCC
     {
-        WaitGraph&                              waitGraph;
         std::unordered_map<const Symbol*, int>  index;
         std::unordered_map<const Symbol*, int>  lowLink;
         std::unordered_set<const Symbol*>       onStack;
         std::vector<const Symbol*>              st;
         std::vector<std::vector<const Symbol*>> cycles;
+        WaitGraph*                              waitGraph;
         int                                     currentIndex = 0;
 
         explicit SCC(WaitGraph& waitGraph) :
-            waitGraph(waitGraph)
+            waitGraph(&waitGraph)
         {
         }
 
@@ -79,8 +79,8 @@ namespace
             st.push_back(v);
             onStack.insert(v);
 
-            const auto itAdj = waitGraph.adj.find(v);
-            if (itAdj != waitGraph.adj.end())
+            const auto itAdj = waitGraph->adj.find(v);
+            if (itAdj != waitGraph->adj.end())
             {
                 for (const auto w : itAdj->second)
                 {
@@ -112,8 +112,8 @@ namespace
                 bool hasCycle = component.size() > 1;
                 if (!hasCycle)
                 {
-                    const auto itAdjV = waitGraph.adj.find(v);
-                    if (itAdjV != waitGraph.adj.end())
+                    const auto itAdjV = waitGraph->adj.find(v);
+                    if (itAdjV != waitGraph->adj.end())
                     {
                         for (const auto to : itAdjV->second)
                         {

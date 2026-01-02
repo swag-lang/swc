@@ -43,7 +43,7 @@ public:
         using NodeType = AstTypeOf<ID>::type;
 
         const uint32_t g = nodeRef.get();
-        return castAst<NodeType>(shards_[refShard(g)].store.ptr<AstNode>(refLocal(g)));
+        return shards_[refShard(g)].store.ptr<AstNode>(refLocal(g))->cast<NodeType>();
     }
 
     AstNode& node(AstNodeRef nodeRef)

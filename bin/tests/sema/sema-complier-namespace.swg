@@ -5,4 +5,4 @@ const B = true
 #assert(B)
 #assert(#stringof(B) == "TOTO.B")
 
-//var C: Swag.TargetOs.Windows
+var C: Swag.TargetOs.Windows

@@ -313,56 +313,56 @@ template<AstNodeId ID>
 void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, const AstNode& node)
 {
     using NodeType = AstTypeOf<ID>::type;
-    castAst<NodeType>(&node)->collectChildren(out, ast);
+    node.cast<NodeType>()->collectChildren(out, ast);
 }
 
 template<AstNodeId ID>
 AstVisitStepResult semaPreDecl(Sema& sema, AstNode& node)
 {
     using NodeType = AstTypeOf<ID>::type;
-    return castAst<NodeType>(&node)->semaPreDecl(sema);
+    return node.cast<NodeType>()->semaPreDecl(sema);
 }
 
 template<AstNodeId ID>
 AstVisitStepResult semaPreDeclChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
 {
     using NodeType = AstTypeOf<ID>::type;
-    return castAst<NodeType>(&node)->semaPreDeclChild(sema, childRef);
+    return node.cast<NodeType>()->semaPreDeclChild(sema, childRef);
 }
 
 template<AstNodeId ID>
 AstVisitStepResult semaPostDecl(Sema& sema, AstNode& node)
 {
     using NodeType = AstTypeOf<ID>::type;
-    return castAst<NodeType>(&node)->semaPostDecl(sema);
+    return node.cast<NodeType>()->semaPostDecl(sema);
 }
 
 template<AstNodeId ID>
 void semaEnterNode(Sema& sema, AstNode& node)
 {
     using NodeType = AstTypeOf<ID>::type;
-    castAst<NodeType>(&node)->semaEnterNode(sema);
+    node.cast<NodeType>()->semaEnterNode(sema);
 }
 
 template<AstNodeId ID>
 AstVisitStepResult semaPreNode(Sema& sema, AstNode& node)
 {
     using NodeType = AstTypeOf<ID>::type;
-    return castAst<NodeType>(&node)->semaPreNode(sema);
+    return node.cast<NodeType>()->semaPreNode(sema);
 }
 
 template<AstNodeId ID>
 AstVisitStepResult semaPreNodeChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
 {
     using NodeType = AstTypeOf<ID>::type;
-    return castAst<NodeType>(&node)->semaPreNodeChild(sema, childRef);
+    return node.cast<NodeType>()->semaPreNodeChild(sema, childRef);
 }
 
 template<AstNodeId ID>
 AstVisitStepResult semaPostNode(Sema& sema, AstNode& node)
 {
     using NodeType = AstTypeOf<ID>::type;
-    return castAst<NodeType>(&node)->semaPostNode(sema);
+    return node.cast<NodeType>()->semaPostNode(sema);
 }
 
 constexpr std::array AST_NODE_ID_INFOS = {

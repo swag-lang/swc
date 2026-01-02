@@ -108,6 +108,36 @@ struct AstNode
     TokenRef           tokRef() const { return tokRef_; }
     TokenRef           tokRefEnd(const Ast& ast) const;
 
+    template<typename T>
+    T* cast()
+    {
+        SWC_ASSERT(is(T::ID));
+        return reinterpret_cast<T*>(this);
+    }
+
+    template<typename T>
+    const T* cast() const
+    {
+        SWC_ASSERT(is(T::ID));
+        return reinterpret_cast<const T*>(this);
+    }
+
+    template<typename T>
+    T* safeCast()
+    {
+        if (!is(T::ID))
+            return nullptr;
+        return reinterpret_cast<T*>(this);
+    }
+
+    template<typename T>
+    const T* safeCast() const
+    {
+        if (!is(T::ID))
+            return nullptr;
+        return reinterpret_cast<const T*>(this);
+    }
+
 private:
     AstNodeId     id_ = AstNodeId::Invalid;
     ParserFlags   parserFlags_{};
@@ -126,21 +156,5 @@ struct AstNodeT : AstNode
     {
     }
 };
-
-template<typename T>
-T* castAst(AstNode* node)
-{
-    SWC_ASSERT(node);
-    SWC_ASSERT(node->is(T::ID));
-    return reinterpret_cast<T*>(node);
-}
-
-template<typename T>
-const T* castAst(const AstNode* node)
-{
-    SWC_ASSERT(node);
-    SWC_ASSERT(node->is(T::ID));
-    return reinterpret_cast<const T*>(node);
-}
 
 SWC_END_NAMESPACE()

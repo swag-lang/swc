@@ -62,14 +62,14 @@ AstVisitStepResult SymbolStruct::canBeCompleted(Sema& sema) const
 
         if (type.isStruct() && &type.structSym() == this)
         {
-            const AstVarDecl* var = swc::castAst<AstVarDecl>(symVar.decl());
+            const AstVarDecl* var = symVar.decl()->cast<AstVarDecl>();
             SemaError::raise(sema, DiagnosticId::sema_err_struct_circular_reference, var->nodeTypeRef.isValid() ? var->nodeTypeRef : var->nodeInitRef);
             return AstVisitStepResult::Stop;
         }
 
         if (!type.isCompleted(sema.ctx()))
         {
-            const AstVarDecl* var = swc::castAst<AstVarDecl>(symVar.decl());
+            const AstVarDecl* var = symVar.decl()->cast<AstVarDecl>();
             sema.waitCompleted(&type, var->nodeTypeRef.isValid() ? var->nodeTypeRef : var->nodeInitRef);
             return AstVisitStepResult::Pause;
         }

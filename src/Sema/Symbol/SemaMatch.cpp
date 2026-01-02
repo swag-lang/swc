@@ -28,6 +28,7 @@ namespace
             }
 
             sema.semaInfo().fileNamespace().lookupAppend(idRef, lookUpCxt);
+            sema.semaInfo().moduleNamespace().lookupAppend(idRef, lookUpCxt);
         }
     }
 }

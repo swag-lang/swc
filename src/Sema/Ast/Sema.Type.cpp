@@ -209,7 +209,11 @@ AstVisitStepResult AstNamedType::semaPostNode(Sema& sema)
     SWC_ASSERT(nodeView.sym);
     if (!nodeView.sym->isType())
     {
-        SemaError::raise(sema, DiagnosticId::sema_err_not_type, nodeIdentRef);
+        AstNodeRef nodeRef  = nodeIdentRef;
+        const auto nodeQual = nodeView.node->safeCast<AstMemberAccessExpr>();
+        if (nodeQual)
+            nodeRef = nodeQual->nodeRightRef;
+        SemaError::raise(sema, DiagnosticId::sema_err_not_type, nodeRef);
         return AstVisitStepResult::Stop;
     }
 

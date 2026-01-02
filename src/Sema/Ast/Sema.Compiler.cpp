@@ -282,7 +282,7 @@ Result AstCompilerGlobal::semaPreNode(Sema& sema) const
     return semaPreDecl(sema);
 }
 
-Result AstCompilerGlobal::semaPostNode(Sema& sema) const
+Result AstCompilerGlobal::semaPostNode(Sema&) const
 {
     switch (mode)
     {

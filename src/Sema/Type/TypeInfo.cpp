@@ -510,7 +510,7 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
         }
 
         case TypeInfoKind::Struct:
-            return structSym().sizeOf(ctx);
+            return structSym().sizeOf();
         case TypeInfoKind::Enum:
             return enumSym().sizeOf(ctx);
 

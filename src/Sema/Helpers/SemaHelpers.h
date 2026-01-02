@@ -30,6 +30,6 @@ namespace SemaHelpers
 
         return *sym;
     }
-};
+}
 
 SWC_END_NAMESPACE()

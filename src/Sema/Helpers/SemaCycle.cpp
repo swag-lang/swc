@@ -246,7 +246,6 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
             continue;
 
         const Symbol*   waiterSym  = state.waiterSymbol;
-        const TypeInfo* waiterType = state.waiterType;
         const Symbol*   waiteeSym  = nullptr;
         const TypeInfo* waiteeType = nullptr;
 
@@ -263,10 +262,10 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                 break; // identifier/compiler-defined not part of symbol/type cycles
         }
 
-        if ((waiterSym || waiterType) && (waiteeSym || waiteeType))
+        if (waiterSym && waiteeSym)
         {
-            WaitNode from = waiterSym ? makeNode(waiterSym) : makeNode(waiterType);
-            WaitNode to   = waiteeSym ? makeNode(waiteeSym) : makeNode(waiteeType);
+            WaitNode from = makeNode(waiterSym);
+            WaitNode to   = makeNode(waiteeSym);
             addEdge(graph, from, to, ctx, semaJob, state);
         }
     }
@@ -293,6 +292,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                 case TaskStateKind::SemaWaitSymDeclared:
                 case TaskStateKind::SemaWaitSymTyped:
                 case TaskStateKind::SemaWaitSymCompleted:
+                case TaskStateKind::SemaWaitTypeCompleted:
                 {
                     SWC_ASSERT(state.symbol);
                     auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_completed, state.srcViewRef, state.tokRef);
@@ -302,18 +302,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                     diag.report(ctx);
                     break;
                 }
-
-                case TaskStateKind::SemaWaitTypeCompleted:
-                {
-                    SWC_ASSERT(state.type);
-                    auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_type_completed, state.nodeRef);
-                    diag.addArgument(Diagnostic::ARG_TYPE, state.type->toName(ctx));
-                    if (state.waiterType)
-                        diag.addArgument(Diagnostic::ARG_TYPE_2, state.waiterType->toName(ctx));
-                    diag.report(ctx);
-                    break;
-                }
-
+                    
                 default:
                     SWC_UNREACHABLE();
             }

@@ -1,9 +1,11 @@
 #include "pch.h"
-#include "Sema/Core/Sema.h"
+
+#include "Main/Command.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Memory/Heap.h"
 #include "Sema/Constant/ConstantManager.h"
+#include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaScope.h"
 #include "Sema/Helpers/SemaCycle.h"
 #include "Sema/Helpers/SemaError.h"
@@ -159,11 +161,6 @@ Result Sema::waitIdentifier(IdentifierRef idRef, SourceViewRef srcViewRef, Token
     wait.srcViewRef = srcViewRef;
     wait.tokRef     = tokRef;
     wait.idRef      = idRef;
-
-    // waiter info (for context; not part of cycles)
-    wait.waiterSymbol = guessCurrentSymbol(*this);
-    wait.waiterType   = guessCurrentType(*this);
-
     return Result::Pause;
 }
 
@@ -175,76 +172,52 @@ Result Sema::waitCompilerDefined(IdentifierRef idRef, SourceViewRef srcViewRef, 
     wait.srcViewRef = srcViewRef;
     wait.tokRef     = tokRef;
     wait.idRef      = idRef;
-
-    wait.waiterSymbol = guessCurrentSymbol(*this);
-    wait.waiterType   = guessCurrentType(*this);
-
     return Result::Pause;
 }
 
 Result Sema::waitDeclared(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef)
 {
-    TaskState& wait = ctx().state();
-    wait.kind       = TaskStateKind::SemaWaitSymDeclared;
-    wait.nodeRef    = curNodeRef();
-    wait.srcViewRef = srcViewRef;
-    wait.tokRef     = tokRef;
-    wait.symbol     = symbol;
-
+    TaskState& wait   = ctx().state();
+    wait.kind         = TaskStateKind::SemaWaitSymDeclared;
+    wait.nodeRef      = curNodeRef();
+    wait.srcViewRef   = srcViewRef;
+    wait.tokRef       = tokRef;
+    wait.symbol       = symbol;
     wait.waiterSymbol = guessCurrentSymbol(*this);
-    wait.waiterType   = guessCurrentType(*this);
-
     return Result::Pause;
 }
 
 Result Sema::waitTyped(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef)
 {
-    TaskState& wait = ctx().state();
-    wait.kind       = TaskStateKind::SemaWaitSymTyped;
-    wait.nodeRef    = curNodeRef();
-    wait.srcViewRef = srcViewRef;
-    wait.tokRef     = tokRef;
-    wait.symbol     = symbol;
-
+    TaskState& wait   = ctx().state();
+    wait.kind         = TaskStateKind::SemaWaitSymTyped;
+    wait.nodeRef      = curNodeRef();
+    wait.srcViewRef   = srcViewRef;
+    wait.tokRef       = tokRef;
+    wait.symbol       = symbol;
     wait.waiterSymbol = guessCurrentSymbol(*this);
-    wait.waiterType   = guessCurrentType(*this);
-
     return Result::Pause;
 }
 
 Result Sema::waitCompleted(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef)
 {
-    TaskState& wait = ctx().state();
-    wait.kind       = TaskStateKind::SemaWaitSymCompleted;
-    wait.nodeRef    = curNodeRef();
-    wait.srcViewRef = srcViewRef;
-    wait.tokRef     = tokRef;
-    wait.symbol     = symbol;
-
+    TaskState& wait   = ctx().state();
+    wait.kind         = TaskStateKind::SemaWaitSymCompleted;
+    wait.nodeRef      = curNodeRef();
+    wait.srcViewRef   = srcViewRef;
+    wait.tokRef       = tokRef;
+    wait.symbol       = symbol;
     wait.waiterSymbol = guessCurrentSymbol(*this);
-    wait.waiterType   = guessCurrentType(*this);
-
     return Result::Pause;
 }
 
 Result Sema::waitCompleted(const TypeInfo* type, AstNodeRef nodeRef)
 {
-    TaskState& wait = ctx().state();
-    wait.kind       = TaskStateKind::SemaWaitTypeCompleted;
-    wait.nodeRef    = nodeRef;
-
-    wait.type = type;
-    if (type->isStruct())
-        wait.symbol = &type->structSym();
-    else
-        wait.symbol = nullptr;
-
+    TaskState& wait   = ctx().state();
+    wait.kind         = TaskStateKind::SemaWaitTypeCompleted;
+    wait.nodeRef      = nodeRef;
+    wait.symbol       = type->getSymbolDependency(ctx());
     wait.waiterSymbol = guessCurrentSymbol(*this);
-    if (wait.waiterSymbol && wait.waiterSymbol->isStruct())
-        wait.waiterType = &typeMgr().get(wait.waiterSymbol->typeRef());
-    else
-        wait.waiterType = guessCurrentType(*this);
-
     return Result::Pause;
 }
 
@@ -406,14 +379,14 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
     }
 
     SemaCycle::check(ctx, clientId);
-    
+
     for (const auto& f : ctx.compiler().files())
     {
         const SourceView& srcView = f->ast().srcView();
         if (srcView.mustSkip())
             continue;
         f->unitTest().verifyUntouchedExpected(ctx, srcView);
-    }    
+    }
 }
 
 SWC_END_NAMESPACE()

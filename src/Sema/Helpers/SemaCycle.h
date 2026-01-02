@@ -14,6 +14,8 @@ public:
     void check(TaskContext& ctx, JobClientId clientId);
 
 private:
+    using SymbolSet = std::unordered_set<const Symbol*>;
+
     struct WaitGraph
     {
         struct NodeLoc
@@ -24,13 +26,13 @@ private:
 
         std::unordered_map<const Symbol*, std::vector<const Symbol*>> adj;
         std::unordered_map<const Symbol*, Utf8>                       names;
-        std::unordered_map<const Symbol*, NodeLoc>                    locs;
+        std::map<std::pair<const Symbol*, const Symbol*>, NodeLoc>    edges;
     };
 
     void addNodeIfNeeded(const Symbol* sym);
     void addEdge(const Symbol* from, const Symbol* to, SemaJob* job, const TaskState& state);
     void reportCycle(const std::vector<const Symbol*>& cycle);
-    void findCycles(const Symbol* v, std::vector<const Symbol*>& stack, std::unordered_set<const Symbol*>& visited, std::unordered_set<const Symbol*>& onStack);
+    void findCycles(const Symbol* v, std::vector<const Symbol*>& stack, SymbolSet& visited, SymbolSet& onStack);
     void detectAndReportCycles();
 
     TaskContext* ctx_ = nullptr;

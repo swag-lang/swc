@@ -25,7 +25,7 @@ void SemaCycle::addEdge(const Symbol* from, const Symbol* to, SemaJob* job, cons
 
     graph_.adj[from].push_back(to);
 
-    auto& loc = graph_.locs[from];
+    auto& loc = graph_.edges[{from, to}];
     if (!loc.job)
     {
         loc.job     = job;
@@ -38,54 +38,36 @@ void SemaCycle::reportCycle(const std::vector<const Symbol*>& cycle)
     for (const auto sym : cycle)
         const_cast<Symbol*>(sym)->addFlag(SymbolFlagsE::Ignored);
 
-    const auto firstSym = cycle.front();
-    const auto itLoc    = graph_.locs.find(firstSym);
-    if (itLoc == graph_.locs.end())
+    const auto firstSym = cycle[0];
+    const auto nextSym  = cycle.size() > 1 ? cycle[1] : cycle[0];
+    const auto itLoc    = graph_.edges.find({firstSym, nextSym});
+    if (itLoc == graph_.edges.end())
         return;
 
     auto diag = SemaError::report(itLoc->second.job->sema(), DiagnosticId::sema_err_cyclic_dependency, itLoc->second.nodeRef);
     diag.addArgument(Diagnostic::ARG_VALUE, graph_.names.at(firstSym));
 
-    for (const auto sym : cycle)
+    for (size_t i = 1; i < cycle.size(); i++)
     {
-        const auto itAdj = graph_.adj.find(sym);
-        if (itAdj == graph_.adj.end())
+        const auto sym    = cycle[i];
+        const auto next   = cycle[(i + 1) % cycle.size()];
+        const auto itEdge = graph_.edges.find({sym, next});
+        if (itEdge == graph_.edges.end())
             continue;
 
-        for (const auto nextSym : itAdj->second)
-        {
-            bool inCycle = false;
-            for (const auto s : cycle)
-            {
-                if (s == nextSym)
-                {
-                    inCycle = true;
-                    break;
-                }
-            }
+        diag.addNote(DiagnosticId::sema_note_cyclic_dependency_link);
+        diag.addArgument(Diagnostic::ARG_VALUE, graph_.names.at(next));
 
-            if (inCycle)
-            {
-                const auto itLocNext = graph_.locs.find(sym);
-                if (itLocNext != graph_.locs.end())
-                {
-                    diag.addNote(DiagnosticId::sema_note_cyclic_dependency_link);
-                    diag.addArgument(Diagnostic::ARG_VALUE, graph_.names.at(nextSym));
-
-                    const auto& node    = itLocNext->second.job->sema().node(itLocNext->second.nodeRef);
-                    const auto& srcView = itLocNext->second.job->sema().compiler().srcView(node.srcViewRef());
-                    const auto  loc     = Diagnostic::tokenErrorLocation(*ctx_, srcView, node.tokRef());
-                    diag.last().addSpan(loc);
-                }
-                break;
-            }
-        }
+        const auto& node    = itEdge->second.job->sema().node(itEdge->second.nodeRef);
+        const auto& srcView = itEdge->second.job->sema().compiler().srcView(node.srcViewRef());
+        const auto  loc     = Diagnostic::tokenErrorLocation(*ctx_, srcView, node.tokRef());
+        diag.last().addSpan(loc);
     }
 
     diag.report(*ctx_);
 }
 
-void SemaCycle::findCycles(const Symbol* v, std::vector<const Symbol*>& stack, std::unordered_set<const Symbol*>& visited, std::unordered_set<const Symbol*>& onStack)
+void SemaCycle::findCycles(const Symbol* v, std::vector<const Symbol*>& stack, SymbolSet& visited, SymbolSet& onStack)
 {
     visited.insert(v);
     onStack.insert(v);
@@ -116,9 +98,9 @@ void SemaCycle::findCycles(const Symbol* v, std::vector<const Symbol*>& stack, s
 
 void SemaCycle::detectAndReportCycles()
 {
-    std::unordered_set<const Symbol*> visited;
-    std::unordered_set<const Symbol*> onStack;
-    std::vector<const Symbol*>        stack;
+    SymbolSet                  visited;
+    SymbolSet                  onStack;
+    std::vector<const Symbol*> stack;
 
     for (const auto& key : graph_.adj | std::views::keys)
     {

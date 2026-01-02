@@ -344,11 +344,8 @@ namespace
                 return checkOp(sema, op, expr, nodeLeftView, nodeRightView);
 
             default:
-                break;
+                return SemaError::raiseInternal(sema, expr);
         }
-
-        SemaError::raiseInternal(sema, expr);
-        return Result::Stop;
     }
 }
 

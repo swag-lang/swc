@@ -172,10 +172,8 @@ namespace
             case TokenId::SymTilde:
                 return checkTilde(sema, node, ops);
             default:
-                break;
+                return SemaError::raiseInternal(sema, node);
         }
-
-        return SemaError::raiseInternal(sema, node);
     }
 }
 

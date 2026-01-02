@@ -255,8 +255,7 @@ namespace
                 return checkCompareEqual(sema, node, nodeLeftView, nodeRightView);
 
             default:
-                SemaError::raiseInternal(sema, node);
-                return Result::Stop;
+                return SemaError::raiseInternal(sema, node);
         }
     }
 }

@@ -262,9 +262,8 @@ Result AstArrayType::semaPostNode(Sema& sema) const
             return Result::Stop;
         }
 
-        const ConstantRef newCstRef = sema.cstMgr().concretizeConstant(sema, dimRef, cstRef, TypeInfo::Sign::Unsigned);
-        if (newCstRef.isInvalid())
-            return Result::Stop;
+        ConstantRef newCstRef;
+        RESULT_VERIFY(sema.cstMgr().concretizeConstant(sema, newCstRef, dimRef, cstRef, TypeInfo::Sign::Unsigned));
 
         const ConstantValue& newCst = sema.cstMgr().get(newCstRef);
         const uint64_t       dim    = newCst.getInt().as64();

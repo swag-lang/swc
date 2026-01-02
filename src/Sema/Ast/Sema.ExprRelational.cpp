@@ -28,8 +28,7 @@ namespace
 
         auto leftCstRef  = nodeLeftView.cstRef;
         auto rightCstRef = nodeRightView.cstRef;
-        if (!SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef))
-            return Result::Stop;
+        RESULT_VERIFY(SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
 
         // For float, we need to compare by values, because two different constants
         // can still have the same value. For example, 0.0 and -0.0 are two different
@@ -57,8 +56,7 @@ namespace
         auto leftCstRef  = nodeLeftView.cstRef;
         auto rightCstRef = nodeRightView.cstRef;
 
-        if (!SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef))
-            return Result::Stop;
+        RESULT_VERIFY(SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
         if (leftCstRef == rightCstRef)
         {
             result = sema.cstMgr().cstFalse();
@@ -83,8 +81,7 @@ namespace
         auto leftCstRef  = nodeLeftView.cstRef;
         auto rightCstRef = nodeRightView.cstRef;
 
-        if (!SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef))
-            return Result::Stop;
+        RESULT_VERIFY(SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
         if (leftCstRef == rightCstRef)
         {
             result = sema.cstMgr().cstTrue();
@@ -103,8 +100,7 @@ namespace
         auto leftCstRef  = nodeLeftView.cstRef;
         auto rightCstRef = nodeRightView.cstRef;
 
-        if (!SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef))
-            return Result::Stop;
+        RESULT_VERIFY(SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
         if (leftCstRef == rightCstRef)
         {
             result = sema.cstMgr().cstFalse();
@@ -129,8 +125,7 @@ namespace
         auto leftCstRef  = nodeLeftView.cstRef;
         auto rightCstRef = nodeRightView.cstRef;
 
-        if (!SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef))
-            return Result::Stop;
+        RESULT_VERIFY(SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
         if (leftCstRef == rightCstRef)
         {
             result = sema.cstMgr().cstTrue();
@@ -149,9 +144,7 @@ namespace
         auto leftCstRef  = nodeLeftView.cstRef;
         auto rightCstRef = nodeRightView.cstRef;
 
-        if (!SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef))
-            return Result::Stop;
-
+        RESULT_VERIFY(SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
         const auto& left  = sema.cstMgr().get(leftCstRef);
         const auto& right = sema.cstMgr().get(rightCstRef);
 

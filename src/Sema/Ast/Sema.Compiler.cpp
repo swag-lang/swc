@@ -312,9 +312,8 @@ namespace
 
         if (nodeView.cstRef.isValid())
         {
-            const ConstantRef newCstRef = sema.cstMgr().concretizeConstant(sema, nodeView.nodeRef, nodeView.cstRef, TypeInfo::Sign::Unknown);
-            if (newCstRef.isInvalid())
-                return Result::Stop;
+            ConstantRef newCstRef;
+            RESULT_VERIFY(sema.cstMgr().concretizeConstant(sema, newCstRef, nodeView.nodeRef, nodeView.cstRef, TypeInfo::Sign::Unknown));
             nodeView.setCstRef(sema, newCstRef);
         }
 

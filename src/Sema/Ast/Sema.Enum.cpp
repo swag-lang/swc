@@ -148,10 +148,7 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
         // Cast initializer constant to the underlying type
         CastContext castCtx(CastKind::Implicit);
         castCtx.errorNodeRef = nodeInitRef;
-        valueCst             = SemaCast::castConstant(sema, castCtx, nodeInitView.cstRef, underlyingTypeRef);
-        if (valueCst.isInvalid())
-            return Result::Stop;
-
+        RESULT_VERIFY(SemaCast::castConstant(sema, valueCst, castCtx, nodeInitView.cstRef, underlyingTypeRef));
         if (underlyingType.isInt())
         {
             const ConstantValue& cstVal = sema.cstMgr().get(valueCst);

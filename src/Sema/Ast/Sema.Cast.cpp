@@ -50,9 +50,8 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
         }
     }
 
-    const ConstantRef newCstRef = SemaCast::castConstant(sema, castCtx, cstRef, typeRef);
-    if (newCstRef.isInvalid())
-        return Result::Stop;
+    ConstantRef newCstRef;
+    RESULT_VERIFY(SemaCast::castConstant(sema, newCstRef, castCtx, cstRef, typeRef));
     sema.setConstant(sema.curNodeRef(), newCstRef);
 
     return Result::Continue;
@@ -79,9 +78,8 @@ Result AstExplicitCastExpr::semaPostNode(Sema& sema)
     // Update constant
     if (sema.hasConstant(nodeExprRef))
     {
-        const ConstantRef cstRef = SemaCast::castConstant(sema, castCtx, nodeExprView.cstRef, nodeTypeView.typeRef);
-        if (cstRef.isInvalid())
-            return Result::Stop;
+        ConstantRef cstRef;
+        RESULT_VERIFY(SemaCast::castConstant(sema, cstRef, castCtx, nodeExprView.cstRef, nodeTypeView.typeRef));
         sema.setConstant(sema.curNodeRef(), cstRef);
         return Result::Continue;
     }

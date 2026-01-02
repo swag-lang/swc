@@ -22,7 +22,7 @@ public:
     ConstantRef          cstNegBool(ConstantRef cstRef) const { return cstRef == cstBool_true_ ? cstBool_false_ : cstBool_true_; }
     const ConstantValue& get(ConstantRef constantRef) const;
 
-    ConstantRef concretizeConstant(Sema& sema, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign);
+    Result concretizeConstant(Sema& sema, ConstantRef& result, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign);
 
 private:
     struct Shard

@@ -107,7 +107,7 @@ const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
     return *shards_[shardIndex].store.ptr<ConstantValue>(localIndex * sizeof(ConstantValue));
 }
 
-ConstantRef ConstantManager::concretizeConstant(Sema& sema, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign)
+Result ConstantManager::concretizeConstant(Sema& sema, ConstantRef& result, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign)
 {
     const auto           ctx     = sema.ctx();
     const ConstantValue& srcCst  = get(cstRef);
@@ -127,17 +127,15 @@ ConstantRef ConstantManager::concretizeConstant(Sema& sema, AstNodeRef nodeOwner
         bool           overflow = false;
         const uint32_t destBits = TypeManager::chooseConcreteScalarWidth(value.minBits(), overflow);
         if (overflow)
-        {
-            SemaError::raiseLiteralTooBig(sema, nodeOwnerRef, get(cstRef));
-            return ConstantRef::invalid();
-        }
+            return SemaError::raiseLiteralTooBig(sema, nodeOwnerRef, get(cstRef));
 
         value.resize(destBits);
 
         const TypeRef       concreteTypeRef = typeMgr.typeInt(destBits, sign);
         const TypeInfo&     concreteTy      = typeMgr.get(concreteTypeRef);
-        const ConstantValue result          = ConstantValue::makeFromIntLike(ctx, value, concreteTy);
-        return addConstant(ctx, result);
+        const ConstantValue intVal          = ConstantValue::makeFromIntLike(ctx, value, concreteTy);
+        result                              = addConstant(ctx, intVal);
+        return Result::Continue;
     }
 
     if (ty.isFloatUnsized())
@@ -146,18 +144,17 @@ ConstantRef ConstantManager::concretizeConstant(Sema& sema, AstNodeRef nodeOwner
         bool           overflow = false;
         const uint32_t destBits = TypeManager::chooseConcreteScalarWidth(srcF.minBits(), overflow);
         if (overflow)
-        {
-            SemaError::raiseLiteralTooBig(sema, nodeOwnerRef, get(cstRef));
-            return ConstantRef::invalid();
-        }
+            return SemaError::raiseLiteralTooBig(sema, nodeOwnerRef, get(cstRef));
 
         bool                isExact   = false;
         const ApFloat       concreteF = srcF.toFloat(destBits, isExact, overflow);
-        const ConstantValue result    = ConstantValue::makeFloat(ctx, concreteF, destBits);
-        return addConstant(ctx, result);
+        const ConstantValue floatVal  = ConstantValue::makeFloat(ctx, concreteF, destBits);
+        result                        = addConstant(ctx, floatVal);
+        return Result::Continue;
     }
 
-    return cstRef;
+    result = cstRef;
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE()

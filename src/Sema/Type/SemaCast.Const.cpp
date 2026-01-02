@@ -14,15 +14,23 @@ void SemaCast::foldConstantIdentity(CastContext& castCtx)
     castCtx.setFoldOut(castCtx.foldSrc());
 }
 
-bool SemaCast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstTypeRef, const TypeInfo& dstType, const TypeInfo& srcType)
+Result SemaCast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstTypeRef, const TypeInfo& dstType, const TypeInfo& srcType)
 {
     auto& ctx = sema.ctx();
 
     // Be sure constant is sized
     if (dstType.isInt())
-        castCtx.setFoldSrc(sema.cstMgr().concretizeConstant(sema, castCtx.errorNodeRef, castCtx.foldSrc(), dstType.intSign()));
+    {
+        ConstantRef newCstRef;
+        RESULT_VERIFY(sema.cstMgr().concretizeConstant(sema, newCstRef, castCtx.errorNodeRef, castCtx.foldSrc(), dstType.intSign()));
+        castCtx.setFoldSrc(newCstRef);
+    }
     else if (dstType.isFloat())
-        castCtx.setFoldSrc(sema.cstMgr().concretizeConstant(sema, castCtx.errorNodeRef, castCtx.foldSrc(), TypeInfo::Sign::Signed));
+    {
+        ConstantRef newCstRef;
+        RESULT_VERIFY(sema.cstMgr().concretizeConstant(sema, newCstRef, castCtx.errorNodeRef, castCtx.foldSrc(), TypeInfo::Sign::Signed));
+        castCtx.setFoldSrc(newCstRef);
+    }
 
     const ConstantValue& src = sema.cstMgr().get(castCtx.foldSrc());
 
@@ -46,7 +54,7 @@ bool SemaCast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dst
 
         const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
         castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
-        return true;
+        return Result::Continue;
     }
 
     if (srcFloat && dstFloat)
@@ -54,7 +62,7 @@ bool SemaCast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dst
         const ApFloat&      value  = src.getFloat();
         const ConstantValue result = ConstantValue::makeFloat(ctx, value, dstBits);
         castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
-        return true;
+        return Result::Continue;
     }
 
     if (srcFloat && dstInt)
@@ -62,7 +70,7 @@ bool SemaCast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dst
         ApsInt              i      = Math::bitCastToApInt(src.getFloat(), dstType.isIntLikeUnsigned());
         const ConstantValue result = ConstantValue::makeFromIntLike(ctx, i, dstType);
         castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
-        return true;
+        return Result::Continue;
     }
 
     if (srcInt && dstFloat)
@@ -70,12 +78,12 @@ bool SemaCast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dst
         ApFloat             f      = Math::bitCastToApFloat(src.getIntLike(), dstBits);
         const ConstantValue result = ConstantValue::makeFloat(ctx, f, dstBits);
         castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
-        return true;
+        return Result::Continue;
     }
 
     // Should be unreachable given earlier asserts, but keep consistent error behavior.
     castCtx.fail(DiagnosticId::sema_err_cannot_cast, src.typeRef(), dstTypeRef);
-    return false;
+    return Result::Stop;
 }
 
 bool SemaCast::foldConstantBoolToIntLike(Sema& sema, CastContext& castCtx, TypeRef dstTypeRef)
@@ -300,7 +308,7 @@ bool SemaCast::foldConstantFloatToFloat(Sema& sema, CastContext& castCtx, TypeRe
     return true;
 }
 
-ConstantRef SemaCast::castConstant(Sema& sema, CastContext& castCtx, ConstantRef cstRef, TypeRef targetTypeRef)
+Result SemaCast::castConstant(Sema& sema, ConstantRef& result, CastContext& castCtx, ConstantRef cstRef, TypeRef targetTypeRef)
 {
     const ConstantValue& cst        = sema.cstMgr().get(cstRef);
     const TypeRef        srcTypeRef = cst.typeRef();
@@ -308,20 +316,17 @@ ConstantRef SemaCast::castConstant(Sema& sema, CastContext& castCtx, ConstantRef
 
     const bool ok = castAllowed(sema, castCtx, srcTypeRef, targetTypeRef);
     if (!ok)
-    {
-        emitCastFailure(sema, castCtx.failure);
-        return ConstantRef::invalid();
-    }
-
-    return castCtx.outConstRef;
+        return emitCastFailure(sema, castCtx.failure);
+    result = castCtx.outConstRef;
+    return Result::Continue;
 }
 
-bool SemaCast::promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView, ConstantRef& leftCstRef, ConstantRef& rightCstRef, bool force32BitInts)
+Result SemaCast::promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView, ConstantRef& leftCstRef, ConstantRef& rightCstRef, bool force32BitInts)
 {
     TypeRef leftTypeRef  = nodeLeftView.typeRef;
     TypeRef rightTypeRef = nodeRightView.typeRef;
     if (!force32BitInts && leftTypeRef == rightTypeRef)
-        return true;
+        return Result::Continue;
 
     const TypeInfo* leftType  = nodeLeftView.type;
     const TypeInfo* rightType = nodeRightView.type;
@@ -340,17 +345,13 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, co
         if (!leftConcrete)
         {
             const TypeInfo::Sign hintSign = rightType->isInt() ? rightType->intSign() : TypeInfo::Sign::Signed;
-            leftCstRef                    = sema.cstMgr().concretizeConstant(sema, nodeLeftView.nodeRef, leftCstRef, hintSign);
-            if (leftCstRef.isInvalid())
-                return false;
+            RESULT_VERIFY(sema.cstMgr().concretizeConstant(sema, leftCstRef, nodeLeftView.nodeRef, leftCstRef, hintSign));
             leftTypeRef = sema.cstMgr().get(leftCstRef).typeRef();
         }
         else if (!rightConcrete)
         {
             const TypeInfo::Sign hintSign = leftType->isInt() ? leftType->intSign() : TypeInfo::Sign::Signed;
-            rightCstRef                   = sema.cstMgr().concretizeConstant(sema, nodeRightView.nodeRef, rightCstRef, hintSign);
-            if (rightCstRef.isInvalid())
-                return false;
+            RESULT_VERIFY(sema.cstMgr().concretizeConstant(sema, rightCstRef, nodeRightView.nodeRef, rightCstRef, hintSign));
             rightTypeRef = sema.cstMgr().get(rightCstRef).typeRef();
         }
     }
@@ -359,17 +360,13 @@ bool SemaCast::promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, co
 
     CastContext leftCastCtx(CastKind::Promotion);
     leftCastCtx.errorNodeRef = nodeLeftView.nodeRef;
-    leftCstRef               = castConstant(sema, leftCastCtx, leftCstRef, promotedTypeRef);
-    if (leftCstRef.isInvalid())
-        return false;
+    RESULT_VERIFY(castConstant(sema, leftCstRef, leftCastCtx, leftCstRef, promotedTypeRef));
 
     CastContext rightCastCtx(CastKind::Promotion);
     rightCastCtx.errorNodeRef = nodeRightView.nodeRef;
-    rightCstRef               = castConstant(sema, rightCastCtx, rightCstRef, promotedTypeRef);
-    if (rightCstRef.isInvalid())
-        return false;
+    RESULT_VERIFY(castConstant(sema, rightCstRef, rightCastCtx, rightCstRef, promotedTypeRef));
 
-    return true;
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE()

@@ -72,9 +72,8 @@ Result AstVarDecl::semaPostNode(Sema& sema) const
         // Convert init constant to the right type
         if (nodeInitView.cstRef.isValid())
         {
-            ConstantRef newCstRef = SemaCast::castConstant(sema, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef);
-            if (newCstRef.isInvalid())
-                return Result::Stop;
+            ConstantRef newCstRef;
+            RESULT_VERIFY(SemaCast::castConstant(sema, newCstRef, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef));
             sema.setConstant(nodeInitRef, newCstRef);
         }
 
@@ -86,9 +85,8 @@ Result AstVarDecl::semaPostNode(Sema& sema) const
     }
     else if (nodeInitView.cstRef.isValid())
     {
-        const ConstantRef newCstRef = ctx.cstMgr().concretizeConstant(sema, nodeInitView.nodeRef, nodeInitView.cstRef, TypeInfo::Sign::Unknown);
-        if (newCstRef.isInvalid())
-            return Result::Stop;
+        ConstantRef newCstRef;
+        RESULT_VERIFY(ctx.cstMgr().concretizeConstant(sema, newCstRef, nodeInitView.nodeRef, nodeInitView.cstRef, TypeInfo::Sign::Unknown));
         nodeInitView.setCstRef(sema, newCstRef);
     }
 
@@ -105,9 +103,8 @@ Result AstVarDecl::semaPostNode(Sema& sema) const
         {
             CastContext castCtx(CastKind::Implicit);
             castCtx.errorNodeRef        = nodeInitRef;
-            const ConstantRef newCstRef = SemaCast::castConstant(sema, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef);
-            if (newCstRef.isInvalid())
-                return Result::Stop;
+            ConstantRef newCstRef;
+            RESULT_VERIFY(SemaCast::castConstant(sema, newCstRef, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef));
             nodeInitView.setCstRef(sema, newCstRef);
         }
 

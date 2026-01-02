@@ -23,8 +23,7 @@ namespace
         ConstantRef rightCstRef = nodeRightView.cstRef;
 
         const bool promote = node.modifierFlags.has(AstModifierFlagsE::Promote);
-        if (!SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef, promote))
-            return Result::Stop;
+        RESULT_VERIFY(SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef, promote));
 
         const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);
         const ConstantValue& rightCst = sema.cstMgr().get(rightCstRef);

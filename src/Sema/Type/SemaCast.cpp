@@ -20,7 +20,7 @@ namespace
         return true;
     }
 
-    bool castBit(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    Result castBit(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
         SWC_ASSERT(castCtx.kind == CastKind::Explicit);
 
@@ -29,7 +29,7 @@ namespace
         const TypeInfo*    srcType = &typeMgr.get(srcTypeRef);
         const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
-        // In case of an enum, we must take the underlying type
+        // In the case of an enum, we must take the underlying type
         const bool    isEnum        = srcType->isEnum();
         const TypeRef orgSrcTypeRef = srcTypeRef;
         if (isEnum)
@@ -53,7 +53,8 @@ namespace
                 castCtx.failure.noteId     = DiagnosticId::sema_err_enum_underlying_cast;
                 castCtx.failure.optTypeRef = srcTypeRef;
             }
-            return false;
+
+            return Result::Stop;
         }
 
         const uint32_t sb = srcType->scalarNumericBits();
@@ -66,13 +67,14 @@ namespace
                 castCtx.failure.noteId     = DiagnosticId::sema_err_enum_underlying_cast;
                 castCtx.failure.optTypeRef = srcTypeRef;
             }
-            return false;
+
+            return Result::Stop;
         }
 
         if (castCtx.isFolding())
             return SemaCast::foldConstantBitCast(sema, castCtx, dstTypeRef, dstType, *srcType);
 
-        return true;
+        return Result::Continue;
     }
 
     bool castBoolToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
@@ -267,7 +269,7 @@ bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef,
     const TypeInfo& dstType = typeMgr.get(dstTypeRef);
 
     if (castCtx.flags.has(CastFlagsE::BitCast))
-        return castBit(sema, castCtx, srcTypeRef, dstTypeRef);
+        return castBit(sema, castCtx, srcTypeRef, dstTypeRef) == Result::Continue;
     if (srcType.isEnum() && !dstType.isEnum())
         return castFromEnum(sema, castCtx, srcTypeRef, dstTypeRef);
 
@@ -288,7 +290,7 @@ bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef,
     return false;
 }
 
-void SemaCast::emitCastFailure(Sema& sema, const CastFailure& f)
+Result SemaCast::emitCastFailure(Sema& sema, const CastFailure& f)
 {
     auto diag = SemaError::report(sema, f.diagId, f.nodeRef);
     if (f.srcTypeRef.isValid())
@@ -300,6 +302,7 @@ void SemaCast::emitCastFailure(Sema& sema, const CastFailure& f)
     diag.addArgument(Diagnostic::ARG_VALUE, f.valueStr);
     diag.addNote(f.noteId);
     diag.report(sema.ctx());
+    return Result::Stop;
 }
 
 AstNodeRef SemaCast::createImplicitCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef)

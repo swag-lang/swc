@@ -11,3 +11,4 @@ SWC_DIAG_DEF(sema_note_unsigned_signed, Note, "The value exceeds the maximum val
 SWC_DIAG_DEF(sema_note_cast_explicit, Note, "You can cast the value explicitly")
 SWC_DIAG_DEF(sema_note_other_definition, Note, "The other definition of {tok} is here")
 SWC_DIAG_DEF(sema_note_could_be, Note, "Could be")
+SWC_DIAG_DEF(sema_note_cyclic_dependency_link, Note, "Waiting for {value} ...")

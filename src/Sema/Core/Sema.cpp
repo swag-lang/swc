@@ -378,7 +378,8 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         break;
     }
 
-    SemaCycle::check(ctx, clientId);
+    SemaCycle sc;
+    sc.check(ctx, clientId);
 
     for (const auto& f : ctx.compiler().files())
     {

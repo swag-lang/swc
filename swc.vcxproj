@@ -269,6 +269,7 @@
         <ClCompile Include="src\Sema\Core\Sema.cpp"/>
         <ClCompile Include="src\Sema\Core\SemaFrame.cpp"/>
         <ClCompile Include="src\Sema\Helpers\SemaCheck.cpp"/>
+        <ClCompile Include="src\Sema\Helpers\SemaCycle.cpp"/>
         <ClCompile Include="src\Sema\Helpers\SemaError.cpp"/>
         <ClCompile Include="src\Sema\Helpers\SemaHelpers.cpp"/>
         <ClCompile Include="src\Sema\Helpers\SemaInfo.cpp"/>
@@ -353,6 +354,7 @@
         <ClInclude Include="src\Sema\Core\SemaNodeView.h"/>
         <ClInclude Include="src\Sema\Core\SemaScope.h"/>
         <ClInclude Include="src\Sema\Helpers\SemaCheck.h"/>
+        <ClInclude Include="src\Sema\Helpers\SemaCycle.h"/>
         <ClInclude Include="src\Sema\Helpers\SemaError.h"/>
         <ClInclude Include="src\Sema\Helpers\SemaHelpers.h"/>
         <ClInclude Include="src\Sema\Helpers\SemaInfo.h"/>

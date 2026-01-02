@@ -12,38 +12,10 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    enum class WaitNodeKind
-    {
-        Symbol,
-        Type,
-    };
-
-    struct WaitNode
-    {
-        const void*  ptr; // Symbol* or TypeInfo*
-        WaitNodeKind kind;
-    };
-
-    struct WaitNodeHash
-    {
-        size_t operator()(const WaitNode& n) const noexcept
-        {
-            return (static_cast<size_t>(n.kind) << 1) ^ std::hash<const void*>{}(n.ptr);
-        }
-    };
-
-    struct WaitNodeEq
-    {
-        bool operator()(const WaitNode& a, const WaitNode& b) const noexcept
-        {
-            return a.kind == b.kind && a.ptr == b.ptr;
-        }
-    };
-
     struct WaitGraph
     {
-        std::unordered_map<WaitNode, std::vector<WaitNode>, WaitNodeHash, WaitNodeEq> adj;
-        std::unordered_map<WaitNode, Utf8, WaitNodeHash, WaitNodeEq>                  names;
+        std::unordered_map<const Symbol*, std::vector<const Symbol*>> adj;
+        std::unordered_map<const Symbol*, Utf8>                       names;
 
         // For pointing diagnostics, keep a representative job + state for each node
         struct NodeLoc
@@ -54,41 +26,18 @@ namespace
             TokenRef      tok     = TokenRef::invalid();
         };
 
-        std::unordered_map<WaitNode, NodeLoc, WaitNodeHash, WaitNodeEq> locs;
+        std::unordered_map<const Symbol*, NodeLoc> locs;
     };
 
-    WaitNode makeNode(const Symbol* sym)
+    void addNodeIfNeeded(WaitGraph& g, const Symbol* sym, const TaskContext& ctx)
     {
-        return {.ptr = sym, .kind = WaitNodeKind::Symbol};
+        if (!g.names.contains(sym))
+            g.names[sym] = sym->name(ctx);
+        if (!g.adj.contains(sym))
+            g.adj[sym] = {};
     }
 
-    WaitNode makeNode(const TypeInfo* type)
-    {
-        return {.ptr = type, .kind = WaitNodeKind::Type};
-    }
-
-    Utf8 getNodeName(const WaitNode& n, const TaskContext& ctx)
-    {
-        switch (n.kind)
-        {
-            case WaitNodeKind::Symbol:
-                return static_cast<const Symbol*>(n.ptr)->name(ctx);
-            case WaitNodeKind::Type:
-                return static_cast<const TypeInfo*>(n.ptr)->toName(ctx);
-            default:
-                return "<unknown>";
-        }
-    }
-
-    void addNodeIfNeeded(WaitGraph& g, const WaitNode& n, const TaskContext& ctx)
-    {
-        if (!g.names.contains(n))
-            g.names[n] = getNodeName(n, ctx);
-        if (!g.adj.contains(n))
-            g.adj[n] = {};
-    }
-
-    void addEdge(WaitGraph& g, const WaitNode& from, const WaitNode& to, const TaskContext& ctx, SemaJob* job, const TaskState& state)
+    void addEdge(WaitGraph& g, const Symbol* from, const Symbol* to, const TaskContext& ctx, SemaJob* job, const TaskState& state)
     {
         addNodeIfNeeded(g, from, ctx);
         addNodeIfNeeded(g, to, ctx);
@@ -108,18 +57,18 @@ namespace
 
     void detectAndReportCycles(TaskContext& ctx, JobClientId clientId, WaitGraph& g)
     {
-        using IndexMap   = std::unordered_map<WaitNode, int, WaitNodeHash, WaitNodeEq>;
-        using OnStackSet = std::unordered_set<WaitNode, WaitNodeHash, WaitNodeEq>;
+        using IndexMap   = std::unordered_map<const Symbol*, int>;
+        using OnStackSet = std::unordered_set<const Symbol*>;
 
-        IndexMap              index;
-        IndexMap              lowlink;
-        OnStackSet            onStack;
-        std::vector<WaitNode> st;
-        int                   currentIndex = 0;
+        IndexMap                   index;
+        IndexMap                   lowlink;
+        OnStackSet                 onStack;
+        std::vector<const Symbol*> st;
+        int                        currentIndex = 0;
 
-        std::vector<std::vector<WaitNode>> cycles;
+        std::vector<std::vector<const Symbol*>> cycles;
 
-        std::function<void(const WaitNode&)> strongConnect = [&](const WaitNode& v) {
+        std::function<void(const Symbol*)> strongConnect = [&](const Symbol* v) {
             index[v]   = currentIndex;
             lowlink[v] = currentIndex;
             ++currentIndex;
@@ -130,7 +79,7 @@ namespace
             auto itAdj = g.adj.find(v);
             if (itAdj != g.adj.end())
             {
-                for (const auto& w : itAdj->second)
+                for (const auto w : itAdj->second)
                 {
                     if (!index.contains(w))
                     {
@@ -146,14 +95,14 @@ namespace
 
             if (lowlink[v] == index[v])
             {
-                std::vector<WaitNode> component;
+                std::vector<const Symbol*> component;
                 while (true)
                 {
-                    WaitNode w = st.back();
+                    const Symbol* w = st.back();
                     st.pop_back();
                     onStack.erase(w);
                     component.push_back(w);
-                    if (w.ptr == v.ptr && w.kind == v.kind)
+                    if (w == v)
                         break;
                 }
 
@@ -163,9 +112,9 @@ namespace
                     auto itAdjV = g.adj.find(v);
                     if (itAdjV != g.adj.end())
                     {
-                        for (const auto& to : itAdjV->second)
+                        for (const auto to : itAdjV->second)
                         {
-                            if (to.kind == v.kind && to.ptr == v.ptr)
+                            if (to == v)
                             {
                                 hasCycle = true;
                                 break;
@@ -181,7 +130,7 @@ namespace
 
         for (const auto& key : g.adj | std::views::keys)
         {
-            const WaitNode& v = key;
+            const Symbol* v = key;
             if (!index.contains(v))
                 strongConnect(v);
         }
@@ -204,10 +153,10 @@ namespace
             msg += g.names.at(cyc.front());
 
             // Pick a representative node for location.
-            const WaitNode& rep   = cyc.front();
-            auto            itLoc = g.locs.find(rep);
-            SemaJob*        job   = nullptr;
-            AstNodeRef      node  = AstNodeRef::invalid();
+            const Symbol* rep   = cyc.front();
+            auto          itLoc = g.locs.find(rep);
+            SemaJob*      job   = nullptr;
+            AstNodeRef    node  = AstNodeRef::invalid();
 
             if (itLoc != g.locs.end())
             {
@@ -244,30 +193,8 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
         auto*            semaJob = job->safeCast<SemaJob>();
         if (!semaJob)
             continue;
-
-        const Symbol*   waiterSym  = state.waiterSymbol;
-        const Symbol*   waiteeSym  = nullptr;
-        const TypeInfo* waiteeType = nullptr;
-
-        switch (state.kind)
-        {
-            case TaskStateKind::SemaWaitSymDeclared:
-            case TaskStateKind::SemaWaitSymTyped:
-            case TaskStateKind::SemaWaitSymCompleted:
-            case TaskStateKind::SemaWaitTypeCompleted:
-                waiteeSym = state.symbol;
-                break;
-
-            default:
-                break; // identifier/compiler-defined not part of symbol/type cycles
-        }
-
-        if (waiterSym && waiteeSym)
-        {
-            WaitNode from = makeNode(waiterSym);
-            WaitNode to   = makeNode(waiteeSym);
-            addEdge(graph, from, to, ctx, semaJob, state);
-        }
+        if (state.waiterSymbol && state.symbol)
+            addEdge(graph, state.waiterSymbol, state.symbol, ctx, semaJob, state);
     }
 
     detectAndReportCycles(ctx, clientId, graph);
@@ -294,15 +221,15 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                 case TaskStateKind::SemaWaitSymCompleted:
                 case TaskStateKind::SemaWaitTypeCompleted:
                 {
-                    SWC_ASSERT(state.symbol);
                     auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_completed, state.srcViewRef, state.tokRef);
-                    diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
+                    if (state.symbol)
+                        diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
                     if (state.waiterSymbol)
                         diag.addArgument(Diagnostic::ARG_SYM_2, state.waiterSymbol->name(ctx));
                     diag.report(ctx);
                     break;
                 }
-                    
+
                 default:
                     SWC_UNREACHABLE();
             }

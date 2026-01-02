@@ -68,8 +68,7 @@ Result AstExplicitCastExpr::semaPostNode(Sema& sema)
     SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
 
     // Check cast modifiers
-    if (SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst) == Result::Stop)
-        return Result::Stop;
+    RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst));
 
     // Cast kind
     CastContext castCtx(CastKind::Explicit);

@@ -233,8 +233,7 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
     const auto&  tok = sema.token(srcViewRef(), tokRef());
 
     // Force types
-    if (promote(sema, tok.id, *this, nodeLeftView, nodeRightView) == Result::Stop)
-        return Result::Stop;
+    RESULT_VERIFY(promote(sema, tok.id, *this, nodeLeftView, nodeRightView));
 
     // Value-check
     RESULT_VERIFY(SemaCheck::isValueExpr(sema, nodeLeftRef));
@@ -242,8 +241,7 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
     SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
 
     // Type-check
-    if (check(sema, tok.id, *this, nodeLeftView, nodeRightView) == Result::Stop)
-        return Result::Stop;
+    RESULT_VERIFY(check(sema, tok.id, *this, nodeLeftView, nodeRightView));
 
     // Constant folding
     if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())

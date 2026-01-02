@@ -219,11 +219,9 @@ namespace
 
     Result checkPlusPlus(Sema& sema, const AstBinaryExpr& node, const SemaNodeView&, const SemaNodeView&)
     {
-        if (SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Zero) == Result::Stop)
-            return Result::Stop;
+        RESULT_VERIFY(SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Zero));
         RESULT_VERIFY(SemaCheck::isConstant(sema, node.nodeLeftRef));
         RESULT_VERIFY(SemaCheck::isConstant(sema, node.nodeRightRef));
-
         return Result::Continue;
     }
 
@@ -261,15 +259,13 @@ namespace
         {
             case TokenId::SymSlash:
             case TokenId::SymPercent:
-                if (SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Promote) == Result::Stop)
-                    return Result::Stop;
+                RESULT_VERIFY(SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Promote));
                 break;
 
             case TokenId::SymPlus:
             case TokenId::SymMinus:
             case TokenId::SymAsterisk:
-                if (SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Wrap | AstModifierFlagsE::Promote) == Result::Stop)
-                    return Result::Stop;
+                RESULT_VERIFY(SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Wrap | AstModifierFlagsE::Promote));
                 break;
 
             case TokenId::SymAmpersand:
@@ -277,8 +273,7 @@ namespace
             case TokenId::SymCircumflex:
             case TokenId::SymGreaterGreater:
             case TokenId::SymLowerLower:
-                if (SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Zero) == Result::Stop)
-                    return Result::Stop;
+                RESULT_VERIFY(SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Zero));
                 break;
 
             default:
@@ -366,12 +361,10 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
 
     // Force types
     const Token& tok = sema.token(srcViewRef(), tokRef());
-    if (promote(sema, tok.id, *this, nodeLeftView, nodeRightView) == Result::Stop)
-        return Result::Stop;
+    RESULT_VERIFY(promote(sema, tok.id, *this, nodeLeftView, nodeRightView));
 
     // Type-check
-    if (check(sema, tok.id, *this, nodeLeftView, nodeRightView) == Result::Stop)
-        return Result::Stop;
+    RESULT_VERIFY(check(sema, tok.id, *this, nodeLeftView, nodeRightView));
 
     // Constant folding
     if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())

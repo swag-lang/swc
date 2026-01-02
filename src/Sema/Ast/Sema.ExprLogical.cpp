@@ -61,8 +61,7 @@ Result AstLogicalExpr::semaPostNode(Sema& sema)
 
     // Type-check
     const auto& tok = sema.token(srcViewRef(), tokRef());
-    if (check(sema, *this, nodeLeftView, nodeRightView) == Result::Stop)
-        return Result::Stop;
+    RESULT_VERIFY(check(sema, *this, nodeLeftView, nodeRightView));
 
     // Constant folding
     if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())

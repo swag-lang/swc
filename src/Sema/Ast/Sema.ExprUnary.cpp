@@ -194,8 +194,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
 
     // Type-check
     const auto& tok = sema.token(srcViewRef(), tokRef());
-    if (check(sema, tok.id, *this, ops) == Result::Stop)
-        return Result::Stop;
+    RESULT_VERIFY(check(sema, tok.id, *this, ops));
 
     // Constant folding
     if (sema.hasConstant(nodeExprRef))

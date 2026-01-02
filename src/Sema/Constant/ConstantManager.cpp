@@ -21,6 +21,13 @@ ConstantRef ConstantManager::addS32(const TaskContext& ctx, int32_t value)
     return addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(value, 32, false), 32, TypeInfo::Sign::Signed));
 }
 
+ConstantRef ConstantManager::addInt(const TaskContext& ctx, uint64_t value)
+{
+    const ApsInt        val{value, ApsInt::maxBitWidth()};
+    const ConstantValue cstVal = ConstantValue::makeIntUnsized(ctx, val, TypeInfo::Sign::Unknown);
+    return addConstant(ctx, cstVal);
+}
+
 ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantValue& value)
 {
     const uint32_t shardIndex = value.hash() & (SHARD_COUNT - 1);

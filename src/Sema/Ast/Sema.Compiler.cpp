@@ -365,18 +365,13 @@ namespace
         if (!nodeView.type->isCompleted(sema.ctx()))
             return sema.waitCompleted(nodeView.type, node.nodeArgRef);
 
-        const uint64_t      val = nodeView.type->sizeOf(sema.ctx());
-        const ApsInt        value{val, ApsInt::maxBitWidth()};
-        const ConstantValue cstVal = ConstantValue::makeIntUnsized(sema.ctx(), value, TypeInfo::Sign::Unknown);
-        const ConstantRef   cstRef = sema.cstMgr().addConstant(sema.ctx(), cstVal);
-        nodeView.setCstRef(sema, cstRef);
-        sema.setConstant(sema.curNodeRef(), cstRef);
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), nodeView.type->sizeOf(sema.ctx())));
         return AstVisitStepResult::Continue;
     }
 
     AstVisitStepResult semaCompilerOffsetOf(Sema& sema, const AstCompilerCallUnary& node)
     {
-        SemaNodeView nodeView(sema, node.nodeArgRef);
+        const SemaNodeView nodeView(sema, node.nodeArgRef);
         if (!nodeView.sym || !nodeView.sym->isVariable())
         {
             SemaError::raise(sema, DiagnosticId::sema_err_invalid_offsetof, node.nodeArgRef);
@@ -384,12 +379,7 @@ namespace
         }
 
         const SymbolVariable& symVar = nodeView.sym->cast<SymbolVariable>();
-        const uint64_t        val    = symVar.offset();
-        const ApsInt          value{val, ApsInt::maxBitWidth()};
-        const ConstantValue   cstVal = ConstantValue::makeIntUnsized(sema.ctx(), value, TypeInfo::Sign::Unknown);
-        const ConstantRef     cstRef = sema.cstMgr().addConstant(sema.ctx(), cstVal);
-        nodeView.setCstRef(sema, cstRef);
-        sema.setConstant(sema.curNodeRef(), cstRef);
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), symVar.offset()));
         return AstVisitStepResult::Continue;
     }
 
@@ -407,12 +397,7 @@ namespace
         if (!nodeView.type->isCompleted(sema.ctx()))
             return sema.waitCompleted(nodeView.type, node.nodeArgRef);
 
-        const uint64_t      val = nodeView.type->alignOf(sema.ctx());
-        const ApsInt        value{val, ApsInt::maxBitWidth()};
-        const ConstantValue cstVal = ConstantValue::makeIntUnsized(sema.ctx(), value, TypeInfo::Sign::Unknown);
-        const ConstantRef   cstRef = sema.cstMgr().addConstant(sema.ctx(), cstVal);
-        nodeView.setCstRef(sema, cstRef);
-        sema.setConstant(sema.curNodeRef(), cstRef);
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), nodeView.type->alignOf(sema.ctx())));
         return AstVisitStepResult::Continue;
     }
 

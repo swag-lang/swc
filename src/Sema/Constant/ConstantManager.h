@@ -12,6 +12,7 @@ class ConstantManager
 public:
     void        setup(const TaskContext& ctx);
     ConstantRef addS32(const TaskContext& ctx, int32_t value);
+    ConstantRef addInt(const TaskContext& ctx, uint64_t value);
 
     ConstantRef          addConstant(const TaskContext& ctx, const ConstantValue& value);
     ConstantRef          cstTrue() const { return cstBool_true_; }

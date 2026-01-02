@@ -2,13 +2,6 @@
 
 SWC_BEGIN_NAMESPACE()
 
-enum class AstVisitResult
-{
-    Continue, // normal flow
-    Pause,    // abort traversal immediately, but we are not finished
-    Stop      // abort traversal immediately
-};
-
 enum class AstStepResult
 {
     Continue,     // normal flow

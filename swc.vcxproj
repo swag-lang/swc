@@ -291,6 +291,7 @@
     </ItemGroup>
     <ItemGroup>
         <ClInclude Include="src\Core\Flags.h"/>
+        <ClInclude Include="src\Core\Result.h"/>
         <ClInclude Include="src\Core\Store.h"/>
         <ClInclude Include="src\Core\SmallVector.h"/>
         <ClInclude Include="src\Core\StringMap.h"/>
@@ -328,7 +329,6 @@
         <ClInclude Include="src\Parser\AstNodes.Struct.inc"/>
         <ClInclude Include="src\Parser\AstNodes.h"/>
         <ClInclude Include="src\Parser\AstVisit.h"/>
-        <ClInclude Include="src\Parser\AstVisitResult.h"/>
         <ClInclude Include="src\Parser\Parser.h"/>
         <ClInclude Include="src\Parser\ParserJob.h"/>
         <ClInclude Include="src\Parser\SyntaxColor.h"/>

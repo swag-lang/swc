@@ -3,7 +3,6 @@
 SWC_BEGIN_NAMESPACE()
 
 class TaskContext;
-enum class AstStepResult;
 
 namespace FileSystem
 {

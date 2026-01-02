@@ -2,7 +2,6 @@
 #include "Sema/Core/Sema.h"
 #include "Lexer/LangSpec.h"
 #include "Parser/AstNodes.h"
-#include "Parser/AstVisitResult.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaHelpers.h"

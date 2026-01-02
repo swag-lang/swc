@@ -7,7 +7,6 @@ class TaskContext;
 struct CommandLine;
 class Global;
 enum class CommandKind;
-enum class AstStepResult;
 
 // Enum for command line argument types
 enum class CommandLineType

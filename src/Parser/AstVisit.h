@@ -1,13 +1,19 @@
 #pragma once
 #include "Core/SmallVector.h"
 #include "Parser/AstNode.h"
-#include "Parser/AstVisitResult.h"
 
 SWC_BEGIN_NAMESPACE()
 
 class Ast;
 class SourceView;
 struct AstNode;
+
+enum class AstVisitResult
+{
+    Continue, // normal flow
+    Pause,    // abort traversal immediately, but we are not finished
+    Stop      // abort traversal immediately
+};
 
 class AstVisit
 {
@@ -48,9 +54,9 @@ private:
         Stage      stage        = Stage::Enter;
     };
 
-    Ast*                                            ast_     = nullptr;
-    AstNodeRef                                      rootRef_ = AstNodeRef::invalid();
-    std::function<void(AstNode&)>                   enterNodeVisitor_;
+    Ast*                                                ast_     = nullptr;
+    AstNodeRef                                          rootRef_ = AstNodeRef::invalid();
+    std::function<void(AstNode&)>                       enterNodeVisitor_;
     std::function<AstStepResult(AstNode&)>              preNodeVisitor_;
     std::function<AstStepResult(AstNode&)>              postNodeVisitor_;
     std::function<AstStepResult(AstNode&, AstNodeRef&)> preChildVisitor_;

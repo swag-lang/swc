@@ -1,5 +1,4 @@
 #pragma once
-#include "Parser/AstVisitResult.h"
 #include "Sema/Symbol/IdentifierManager.h"
 
 SWC_BEGIN_NAMESPACE()

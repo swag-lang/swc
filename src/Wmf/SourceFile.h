@@ -7,7 +7,6 @@ class Ast;
 class TaskContext;
 class Global;
 class Verify;
-enum class AstStepResult;
 
 enum class FileFlagsE : uint32_t
 {

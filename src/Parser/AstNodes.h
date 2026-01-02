@@ -5,7 +5,6 @@
 #include "Parser/AstNodeId.h"
 
 SWC_BEGIN_NAMESPACE()
-enum class AstStepResult;
 
 // -----------------------------------------------------------------------------
 template<AstNodeId I>

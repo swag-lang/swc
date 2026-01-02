@@ -96,16 +96,10 @@ AstStepResult AstVarDecl::semaPostNode(Sema& sema) const
     if (hasParserFlag(Const))
     {
         if (nodeInitRef.isInvalid())
-        {
-            SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, srcViewRef(), tokNameRef);
-            return AstStepResult::Stop;
-        }
+            return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, srcViewRef(), tokNameRef);
 
         if (nodeInitView.cstRef.isInvalid())
-        {
-            SemaError::raiseExprNotConst(sema, nodeInitRef);
-            return AstStepResult::Stop;
-        }
+            return SemaError::raiseExprNotConst(sema, nodeInitRef);
 
         if (nodeTypeRef.isValid() && nodeTypeView.typeRef.isValid())
         {

@@ -176,10 +176,7 @@ AstStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 
         case TokenId::CompilerAssert:
             if (!constant.getBool())
-            {
-                SemaError::raise(sema, DiagnosticId::sema_err_compiler_assert, srcViewRef(), tokRef());
-                return AstStepResult::Stop;
-            }
+                return SemaError::raise(sema, DiagnosticId::sema_err_compiler_assert, srcViewRef(), tokRef());
             break;
 
         default:
@@ -355,10 +352,7 @@ namespace
     {
         const SemaNodeView nodeView(sema, node.nodeArgRef);
         if (!nodeView.type)
-        {
-            SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, node.nodeArgRef);
-            return AstStepResult::Stop;
-        }
+            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, node.nodeArgRef);
 
         if (!nodeView.type->isCompleted(sema.ctx()))
             return sema.waitCompleted(nodeView.type, node.nodeArgRef);
@@ -371,10 +365,7 @@ namespace
     {
         const SemaNodeView nodeView(sema, node.nodeArgRef);
         if (!nodeView.sym || !nodeView.sym->isVariable())
-        {
-            SemaError::raise(sema, DiagnosticId::sema_err_invalid_offsetof, node.nodeArgRef);
-            return AstStepResult::Stop;
-        }
+            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_offsetof, node.nodeArgRef);
 
         const SymbolVariable& symVar = nodeView.sym->cast<SymbolVariable>();
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), symVar.offset()));
@@ -385,10 +376,7 @@ namespace
     {
         const SemaNodeView nodeView(sema, node.nodeArgRef);
         if (!nodeView.type)
-        {
-            SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, node.nodeArgRef);
-            return AstStepResult::Stop;
-        }
+            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, node.nodeArgRef);
 
         if (!nodeView.type->isCompleted(sema.ctx()))
             return sema.waitCompleted(nodeView.type, node.nodeArgRef);

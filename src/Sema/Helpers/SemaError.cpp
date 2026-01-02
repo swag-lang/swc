@@ -59,16 +59,18 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, SourceViewRef srcViewR
     return diag;
 }
 
-void SemaError::raise(Sema& sema, DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef)
+AstStepResult SemaError::raise(Sema& sema, DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef)
 {
     const auto diag = report(sema, id, srcViewRef, tokRef);
     diag.report(sema.ctx());
+    return AstStepResult::Stop;
 }
 
-void SemaError::raise(Sema& sema, DiagnosticId id, AstNodeRef nodeRef)
+AstStepResult SemaError::raise(Sema& sema, DiagnosticId id, AstNodeRef nodeRef)
 {
     const auto diag = report(sema, id, nodeRef);
     diag.report(sema.ctx());
+    return AstStepResult::Stop;
 }
 
 void SemaError::raiseInvalidType(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
@@ -120,7 +122,7 @@ void SemaError::raiseDivZero(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeV
     diag.report(sema.ctx());
 }
 
-void SemaError::raiseExprNotConst(Sema& sema, AstNodeRef nodeRef)
+AstStepResult SemaError::raiseExprNotConst(Sema& sema, AstNodeRef nodeRef)
 {
     return raise(sema, DiagnosticId::sema_err_expr_not_const, nodeRef);
 }

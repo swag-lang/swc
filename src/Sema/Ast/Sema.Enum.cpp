@@ -44,24 +44,18 @@ AstStepResult AstEnumDecl::semaPreNode(Sema& sema)
 
 namespace
 {
-    bool validateEnumUnderlyingType(Sema& sema, const SymbolEnum& sym, const SemaNodeView& typeView, AstNodeRef typeNodeRef)
+    AstStepResult validateEnumUnderlyingType(Sema& sema, const SymbolEnum& sym, const SemaNodeView& typeView, AstNodeRef typeNodeRef)
     {
         if (sym.isEnumFlags() && !typeView.type->isIntUnsigned())
-        {
-            SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_flags_type, typeNodeRef);
-            return false;
-        }
+            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_flags_type, typeNodeRef);
 
         if (!typeView.type->isScalarNumeric() &&
             !typeView.type->isBool() &&
             !typeView.type->isRune() &&
             !typeView.type->isString())
-        {
-            SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_type, typeNodeRef);
-            return false;
-        }
+            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_type, typeNodeRef);
 
-        return true;
+        return AstStepResult::Continue;
     }
 
     TypeRef resolveEnumUnderlyingType(Sema& sema, const SymbolEnum& sym, SemaNodeView& typeView)
@@ -98,8 +92,12 @@ AstStepResult AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childR
     SymbolEnum&  sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolEnum>();
     SemaNodeView typeView(sema, nodeTypeRef);
 
-    if (nodeTypeRef.isValid() && !validateEnumUnderlyingType(sema, sym, typeView, nodeTypeRef))
-        return AstStepResult::Stop;
+    if (nodeTypeRef.isValid())
+    {
+        const auto ret = validateEnumUnderlyingType(sema, sym, typeView, nodeTypeRef);
+        if (ret != AstStepResult::Continue)
+            return ret;
+    }
 
     const TypeRef  underlyingTypeRef = resolveEnumUnderlyingType(sema, sym, typeView);
     const TypeInfo enumType          = TypeInfo::makeEnum(&sym);
@@ -120,10 +118,7 @@ AstStepResult AstEnumDecl::semaPostNode(Sema& sema) const
 {
     SymbolEnum& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolEnum>();
     if (sym.empty())
-    {
-        SemaError::raise(sema, DiagnosticId::sema_err_empty_enum, srcViewRef(), tokNameRef);
-        return AstStepResult::Stop;
-    }
+        return SemaError::raise(sema, DiagnosticId::sema_err_empty_enum, srcViewRef(), tokNameRef);
 
     // Runtime enum
     if (sym.symMap()->isSwagNamespace(sema.ctx()))

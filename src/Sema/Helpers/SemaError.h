@@ -1,5 +1,6 @@
 #pragma once
 #include "Parser/AstNode.h"
+#include "Parser/AstVisitResult.h"
 #include "Report/Diagnostic.h"
 #include "Sema/Type/TypeInfo.h"
 
@@ -13,8 +14,8 @@ namespace SemaError
     Diagnostic report(Sema& sema, DiagnosticId id, AstNodeRef nodeRef);
     Diagnostic report(Sema& sema, DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef);
 
-    void raise(Sema& sema, DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef);
-    void raise(Sema& sema, DiagnosticId id, AstNodeRef nodeRef);
+    AstStepResult raise(Sema& sema, DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef);
+    AstStepResult raise(Sema& sema, DiagnosticId id, AstNodeRef nodeRef);
 
     Diagnostic reportCannotCast(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
 
@@ -23,7 +24,7 @@ namespace SemaError
     void raiseLiteralOverflow(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal, TypeRef targetTypeRef);
     void raiseLiteralTooBig(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal);
     void raiseDivZero(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
-    void raiseExprNotConst(Sema& sema, AstNodeRef nodeRef);
+    AstStepResult raiseExprNotConst(Sema& sema, AstNodeRef nodeRef);
     void raiseBinaryOperandType(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
     void raiseInternal(Sema& sema, const AstNode& node);
     void raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);

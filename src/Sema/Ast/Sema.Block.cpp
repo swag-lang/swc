@@ -52,10 +52,7 @@ AstStepResult AstNamespaceDecl::pushNamespace(Sema& sema, const AstNode* node, S
         {
             const Token& tok = srcView.token(tokRef);
             if (LangSpec::isReservedNamespace(tok.string(srcView)))
-            {
-                SemaError::raise(sema, DiagnosticId::sema_err_reserved_swag_ns, node->srcViewRef(), tokRef);
-                return AstStepResult::Stop;
-            }
+                return SemaError::raise(sema, DiagnosticId::sema_err_reserved_swag_ns, node->srcViewRef(), tokRef);
         }
 
         const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), node->srcViewRef(), tokRef);

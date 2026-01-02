@@ -216,10 +216,7 @@ AstStepResult AstBinaryLiteral::semaPreNode(Sema& sema) const
         bool over = false;
         value.logicalShiftLeft(1, over);
         if (over)
-        {
-            SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-            return AstStepResult::Stop;
-        }
+            return SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
 
         value.bitwiseOr((c == '1') ? 1 : 0);
     }

@@ -102,7 +102,7 @@ Result AstVarDecl::semaPostNode(Sema& sema) const
         if (nodeTypeRef.isValid() && nodeTypeView.typeRef.isValid())
         {
             CastContext castCtx(CastKind::Implicit);
-            castCtx.errorNodeRef        = nodeInitRef;
+            castCtx.errorNodeRef = nodeInitRef;
             ConstantRef newCstRef;
             RESULT_VERIFY(SemaCast::castConstant(sema, newCstRef, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef));
             nodeInitView.setCstRef(sema, newCstRef);

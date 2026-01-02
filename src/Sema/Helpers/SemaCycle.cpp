@@ -55,20 +55,23 @@ namespace
         }
     }
 
-    void detectAndReportCycles(TaskContext& ctx, JobClientId clientId, WaitGraph& g)
+    struct SCC
     {
-        using IndexMap   = std::unordered_map<const Symbol*, int>;
-        using OnStackSet = std::unordered_set<const Symbol*>;
-
-        IndexMap                   index;
-        IndexMap                   lowLink;
-        OnStackSet                 onStack;
-        std::vector<const Symbol*> st;
-        int                        currentIndex = 0;
-
+        WaitGraph&                              waitGraph;
+        std::unordered_map<const Symbol*, int>  index;
+        std::unordered_map<const Symbol*, int>  lowLink;
+        std::unordered_set<const Symbol*>       onStack;
+        std::vector<const Symbol*>              st;
         std::vector<std::vector<const Symbol*>> cycles;
+        int                                     currentIndex = 0;
 
-        std::function<void(const Symbol*)> strongConnect = [&](const Symbol* v) {
+        explicit SCC(WaitGraph& waitGraph) :
+            waitGraph(waitGraph)
+        {
+        }
+
+        void strongConnect(const Symbol* v)
+        {
             index[v]   = currentIndex;
             lowLink[v] = currentIndex;
             ++currentIndex;
@@ -76,8 +79,8 @@ namespace
             st.push_back(v);
             onStack.insert(v);
 
-            auto itAdj = g.adj.find(v);
-            if (itAdj != g.adj.end())
+            const auto itAdj = waitGraph.adj.find(v);
+            if (itAdj != waitGraph.adj.end())
             {
                 for (const auto w : itAdj->second)
                 {
@@ -109,8 +112,8 @@ namespace
                 bool hasCycle = component.size() > 1;
                 if (!hasCycle)
                 {
-                    auto itAdjV = g.adj.find(v);
-                    if (itAdjV != g.adj.end())
+                    const auto itAdjV = waitGraph.adj.find(v);
+                    if (itAdjV != waitGraph.adj.end())
                     {
                         for (const auto to : itAdjV->second)
                         {
@@ -126,17 +129,20 @@ namespace
                 if (hasCycle)
                     cycles.push_back(std::move(component));
             }
-        };
+        }
+    };
 
+    void detectAndReportCycles(TaskContext& ctx, JobClientId clientId, WaitGraph& g)
+    {
+        SCC scc{g};
         for (const auto& key : g.adj | std::views::keys)
         {
-            const Symbol* v = key;
-            if (!index.contains(v))
-                strongConnect(v);
+            if (!scc.index.contains(key))
+                scc.strongConnect(key);
         }
 
         // Emit one diagnostic per strongly connected component that is actually a cycle.
-        for (const auto& cyc : cycles)
+        for (const auto& cyc : scc.cycles)
         {
             if (cyc.empty())
                 continue;

@@ -11,8 +11,8 @@ class SymbolMap;
 
 namespace SemaMatch
 {
-    AstVisitStepResult match(Sema& sema, LookUpContext& lookUpCxt, IdentifierRef idRef);
-    AstVisitStepResult ghosting(Sema& sema, const Symbol& sym);
+    AstStepResult match(Sema& sema, LookUpContext& lookUpCxt, IdentifierRef idRef);
+    AstStepResult ghosting(Sema& sema, const Symbol& sym);
 }
 
 SWC_END_NAMESPACE()

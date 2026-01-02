@@ -18,18 +18,18 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstVisitStepResult AstCompilerExpression::semaPostNode(Sema& sema)
+AstStepResult AstCompilerExpression::semaPostNode(Sema& sema)
 {
     if (SemaCheck::isConstant(sema, nodeExprRef) != Result::Success)
-        return AstVisitStepResult::Stop;
+        return AstStepResult::Stop;
     sema.semaInherit(*this, nodeExprRef);
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) const
+AstStepResult AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeConditionRef)
-        return AstVisitStepResult::Continue;
+        return AstStepResult::Continue;
 
     if (childRef == nodeIfBlockRef)
     {
@@ -41,7 +41,7 @@ AstVisitStepResult AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef&
         frame.setCompilerIf(ifFrame);
         sema.setPayload(nodeIfBlockRef, ifFrame);
         sema.pushFrame(frame);
-        return AstVisitStepResult::Continue;
+        return AstStepResult::Continue;
     }
 
     // Leaving the 'if' block
@@ -60,37 +60,37 @@ AstVisitStepResult AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef&
         sema.pushFrame(frame);
     }
 
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstCompilerIf::semaPostDecl(Sema& sema) const
+AstStepResult AstCompilerIf::semaPostDecl(Sema& sema) const
 {
     if (nodeElseBlockRef.isValid())
         sema.popFrame();
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstCompilerIf::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+AstStepResult AstCompilerIf::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeConditionRef)
-        return AstVisitStepResult::Continue;
+        return AstStepResult::Continue;
 
     const ConstantValue& constant = sema.constantOf(nodeConditionRef);
     if (!constant.isBool())
     {
         SemaError::raiseInvalidType(sema, nodeConditionRef, constant.typeRef(), sema.typeMgr().typeBool());
-        return AstVisitStepResult::Stop;
+        return AstStepResult::Stop;
     }
 
     if (childRef == nodeIfBlockRef && !constant.getBool())
-        return AstVisitStepResult::SkipChildren;
+        return AstStepResult::SkipChildren;
     if (childRef == nodeElseBlockRef && constant.getBool())
-        return AstVisitStepResult::SkipChildren;
+        return AstStepResult::SkipChildren;
 
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstCompilerIf::semaPostNode(Sema& sema) const
+AstStepResult AstCompilerIf::semaPostNode(Sema& sema) const
 {
     // Condition must already be a constant at this point
     SWC_ASSERT(sema.hasConstant(nodeConditionRef));
@@ -101,23 +101,23 @@ AstVisitStepResult AstCompilerIf::semaPostNode(Sema& sema) const
     // The block that will be ignored
     const AstNodeRef& ignoredBlockRef = takenIfBranch ? nodeElseBlockRef : nodeIfBlockRef;
     if (!ignoredBlockRef.isValid())
-        return AstVisitStepResult::Continue;
+        return AstStepResult::Continue;
 
     // Retrieve the SemaCompilerIf payload
     if (sema.hasPayload(ignoredBlockRef))
     {
         const SemaCompilerIf* ignoredIfData = sema.payload<SemaCompilerIf>(ignoredBlockRef);
         if (!ignoredIfData)
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
 
         for (Symbol* sym : ignoredIfData->symbols)
             sym->setIgnored(sema.ctx());
     }
 
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
+AstStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 {
     SWC_ASSERT(sema.hasConstant(nodeArgRef));
 
@@ -130,7 +130,7 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
             if (!constant.isString())
             {
                 SemaError::raiseInvalidType(sema, nodeArgRef, constant.typeRef(), sema.typeMgr().typeString());
-                return AstVisitStepResult::Stop;
+                return AstStepResult::Stop;
             }
             break;
 
@@ -138,7 +138,7 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
             if (!constant.isBool())
             {
                 SemaError::raiseInvalidType(sema, nodeArgRef, constant.typeRef(), sema.typeMgr().typeBool());
-                return AstVisitStepResult::Stop;
+                return AstStepResult::Stop;
             }
             break;
 
@@ -153,7 +153,7 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_compiler_error, srcViewRef(), tokRef());
             diag.addArgument(Diagnostic::ARG_BECAUSE, constant.getString(), false);
             diag.report(sema.ctx());
-            return AstVisitStepResult::Stop;
+            return AstStepResult::Stop;
         }
 
         case TokenId::CompilerWarning:
@@ -161,7 +161,7 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
             auto diag = SemaError::report(sema, DiagnosticId::sema_warn_compiler_warning, srcViewRef(), tokRef());
             diag.addArgument(Diagnostic::ARG_BECAUSE, constant.getString(), false);
             diag.report(sema.ctx());
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
         }
 
         case TokenId::CompilerPrint:
@@ -171,14 +171,14 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
             Logger::print(ctx, constant.toString(ctx));
             Logger::print(ctx, "\n");
             ctx.global().logger().unlock();
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
         }
 
         case TokenId::CompilerAssert:
             if (!constant.getBool())
             {
                 SemaError::raise(sema, DiagnosticId::sema_err_compiler_assert, srcViewRef(), tokRef());
-                return AstVisitStepResult::Stop;
+                return AstStepResult::Stop;
             }
             break;
 
@@ -186,10 +186,10 @@ AstVisitStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
             break;
     }
 
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstCompilerLiteral::semaPostNode(Sema& sema) const
+AstStepResult AstCompilerLiteral::semaPostNode(Sema& sema) const
 {
     const auto&       ctx     = sema.ctx();
     const Token&      tok     = sema.token(srcViewRef(), tokRef());
@@ -257,16 +257,16 @@ AstVisitStepResult AstCompilerLiteral::semaPostNode(Sema& sema) const
         case TokenId::CompilerBackend:
         case TokenId::CompilerScopeName:
         case TokenId::CompilerCurLocation:
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
 
         default:
             SWC_UNREACHABLE();
     }
 
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstCompilerGlobal::semaPreDecl(Sema& sema) const
+AstStepResult AstCompilerGlobal::semaPreDecl(Sema& sema) const
 {
     switch (mode)
     {
@@ -285,38 +285,38 @@ AstVisitStepResult AstCompilerGlobal::semaPreDecl(Sema& sema) const
             break;
     }
 
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstCompilerGlobal::semaPreNode(Sema& sema) const
+AstStepResult AstCompilerGlobal::semaPreNode(Sema& sema) const
 {
     return semaPreDecl(sema);
 }
 
-AstVisitStepResult AstCompilerGlobal::semaPostNode(Sema& sema) const
+AstStepResult AstCompilerGlobal::semaPostNode(Sema& sema) const
 {
     switch (mode)
     {
         case Mode::Skip:
         case Mode::SkipFmt:
         case Mode::Generated:
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
 
         case Mode::Export:
         case Mode::AttributeList:
         case Mode::CompilerIf:
         case Mode::Using:
-            return AstVisitStepResult::SkipChildren;
+            return AstStepResult::SkipChildren;
         default:
             break;
     }
 
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
 namespace
 {
-    AstVisitStepResult semaCompilerTypeOf(Sema& sema, const AstCompilerCallUnary& node)
+    AstStepResult semaCompilerTypeOf(Sema& sema, const AstCompilerCallUnary& node)
     {
         SemaNodeView nodeView(sema, node.nodeArgRef);
         SWC_ASSERT(nodeView.typeRef.isValid());
@@ -325,16 +325,16 @@ namespace
         {
             const ConstantRef newCstRef = sema.cstMgr().concretizeConstant(sema, nodeView.nodeRef, nodeView.cstRef, TypeInfo::Sign::Unknown);
             if (newCstRef.isInvalid())
-                return AstVisitStepResult::Stop;
+                return AstStepResult::Stop;
             nodeView.setCstRef(sema, newCstRef);
         }
 
         const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), nodeView.typeRef));
         sema.setConstant(sema.curNodeRef(), cstRef);
-        return AstVisitStepResult::Continue;
+        return AstStepResult::Continue;
     }
 
-    AstVisitStepResult semaCompilerKindOf(Sema& sema, const AstCompilerCallUnary& node)
+    AstStepResult semaCompilerKindOf(Sema& sema, const AstCompilerCallUnary& node)
     {
         SemaNodeView nodeView(sema, node.nodeArgRef);
         SWC_ASSERT(nodeView.typeRef.isValid());
@@ -345,59 +345,59 @@ namespace
             const ConstantRef cstRef  = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), typeRef));
             nodeView.setCstRef(sema, cstRef);
             sema.setConstant(sema.curNodeRef(), cstRef);
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
         }
 
         return semaCompilerTypeOf(sema, node);
     }
 
-    AstVisitStepResult semaCompilerSizeOf(Sema& sema, const AstCompilerCallUnary& node)
+    AstStepResult semaCompilerSizeOf(Sema& sema, const AstCompilerCallUnary& node)
     {
         const SemaNodeView nodeView(sema, node.nodeArgRef);
         if (!nodeView.type)
         {
             SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, node.nodeArgRef);
-            return AstVisitStepResult::Stop;
+            return AstStepResult::Stop;
         }
 
         if (!nodeView.type->isCompleted(sema.ctx()))
             return sema.waitCompleted(nodeView.type, node.nodeArgRef);
 
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), nodeView.type->sizeOf(sema.ctx())));
-        return AstVisitStepResult::Continue;
+        return AstStepResult::Continue;
     }
 
-    AstVisitStepResult semaCompilerOffsetOf(Sema& sema, const AstCompilerCallUnary& node)
+    AstStepResult semaCompilerOffsetOf(Sema& sema, const AstCompilerCallUnary& node)
     {
         const SemaNodeView nodeView(sema, node.nodeArgRef);
         if (!nodeView.sym || !nodeView.sym->isVariable())
         {
             SemaError::raise(sema, DiagnosticId::sema_err_invalid_offsetof, node.nodeArgRef);
-            return AstVisitStepResult::Stop;
+            return AstStepResult::Stop;
         }
 
         const SymbolVariable& symVar = nodeView.sym->cast<SymbolVariable>();
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), symVar.offset()));
-        return AstVisitStepResult::Continue;
+        return AstStepResult::Continue;
     }
 
-    AstVisitStepResult semaCompilerAlignOf(Sema& sema, const AstCompilerCallUnary& node)
+    AstStepResult semaCompilerAlignOf(Sema& sema, const AstCompilerCallUnary& node)
     {
         const SemaNodeView nodeView(sema, node.nodeArgRef);
         if (!nodeView.type)
         {
             SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, node.nodeArgRef);
-            return AstVisitStepResult::Stop;
+            return AstStepResult::Stop;
         }
 
         if (!nodeView.type->isCompleted(sema.ctx()))
             return sema.waitCompleted(nodeView.type, node.nodeArgRef);
 
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), nodeView.type->alignOf(sema.ctx())));
-        return AstVisitStepResult::Continue;
+        return AstStepResult::Continue;
     }
 
-    AstVisitStepResult semaCompilerNameOf(Sema& sema, const AstCompilerCallUnary& node)
+    AstStepResult semaCompilerNameOf(Sema& sema, const AstCompilerCallUnary& node)
     {
         auto&              ctx = sema.ctx();
         const SemaNodeView nodeView(sema, node.nodeArgRef);
@@ -407,7 +407,7 @@ namespace
             const std::string_view name  = nodeView.sym->name(ctx);
             const ConstantValue    value = ConstantValue::makeString(ctx, name);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
         }
 
         if (nodeView.type && nodeView.type->isTypeValue())
@@ -415,14 +415,14 @@ namespace
             const Utf8          name  = sema.typeMgr().get(nodeView.type->typeRef()).toName(ctx);
             const ConstantValue value = ConstantValue::makeString(ctx, name);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
         }
 
         SemaError::raise(sema, DiagnosticId::sema_err_failed_nameof, node.nodeArgRef);
-        return AstVisitStepResult::Stop;
+        return AstStepResult::Stop;
     }
 
-    AstVisitStepResult semaCompilerFullNameOf(Sema& sema, const AstCompilerCallUnary& node)
+    AstStepResult semaCompilerFullNameOf(Sema& sema, const AstCompilerCallUnary& node)
     {
         const auto&        ctx = sema.ctx();
         const SemaNodeView nodeView(sema, node.nodeArgRef);
@@ -432,13 +432,13 @@ namespace
             const Utf8          name  = nodeView.sym->getFullScopedName(ctx);
             const ConstantValue value = ConstantValue::makeString(ctx, name);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
         }
 
         return semaCompilerNameOf(sema, node);
     }
 
-    AstVisitStepResult semaCompilerStringOf(Sema& sema, const AstCompilerCallUnary& node)
+    AstStepResult semaCompilerStringOf(Sema& sema, const AstCompilerCallUnary& node)
     {
         const auto&        ctx = sema.ctx();
         const SemaNodeView nodeView(sema, node.nodeArgRef);
@@ -448,24 +448,24 @@ namespace
             const Utf8          name  = nodeView.cst->toString(ctx);
             const ConstantValue value = ConstantValue::makeString(ctx, name);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
         }
 
         return semaCompilerNameOf(sema, node);
     }
 
-    AstVisitStepResult semaCompilerDefined(Sema& sema, const AstCompilerCallUnary& node)
+    AstStepResult semaCompilerDefined(Sema& sema, const AstCompilerCallUnary& node)
     {
         const auto&         ctx = sema.ctx();
         const SemaNodeView  nodeView(sema, node.nodeArgRef);
         const bool          isDefined = nodeView.sym != nullptr;
         const ConstantValue value     = ConstantValue::makeBool(ctx, isDefined);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
-        return AstVisitStepResult::Continue;
+        return AstStepResult::Continue;
     }
 }
 
-AstVisitStepResult AstCompilerCallUnary::semaPostNode(Sema& sema) const
+AstStepResult AstCompilerCallUnary::semaPostNode(Sema& sema) const
 {
     const Token& tok = sema.token(srcViewRef(), tokRef());
     switch (tok.id)
@@ -499,11 +499,11 @@ AstVisitStepResult AstCompilerCallUnary::semaPostNode(Sema& sema) const
         case TokenId::CompilerLocation:
         case TokenId::CompilerForeignLib:
         case TokenId::CompilerLoad:
-            return AstVisitStepResult::SkipChildren;
+            return AstStepResult::SkipChildren;
 
         default:
             SemaError::raiseInternal(sema, *this);
-            return AstVisitStepResult::Stop;
+            return AstStepResult::Stop;
     }
 }
 

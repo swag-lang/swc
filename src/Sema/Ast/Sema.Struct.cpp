@@ -12,10 +12,10 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstVisitStepResult AstStructDecl::semaPreDecl(Sema& sema) const
+AstStepResult AstStructDecl::semaPreDecl(Sema& sema) const
 {
     SemaHelpers::declareNamedSymbol<SymbolStruct>(sema, *this, tokNameRef);
-    return AstVisitStepResult::SkipChildren;
+    return AstStepResult::SkipChildren;
 }
 
 void AstStructDecl::semaEnterNode(Sema& sema)
@@ -25,16 +25,16 @@ void AstStructDecl::semaEnterNode(Sema& sema)
     sym.setDeclared(sema.ctx());
 }
 
-AstVisitStepResult AstStructDecl::semaPreNode(Sema& sema)
+AstStepResult AstStructDecl::semaPreNode(Sema& sema)
 {
     const Symbol& sym = sema.symbolOf(sema.curNodeRef());
     return SemaMatch::ghosting(sema, sym);
 }
 
-AstVisitStepResult AstStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+AstStepResult AstStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef != nodeBodyRef)
-        return AstVisitStepResult::Continue;
+        return AstStepResult::Continue;
 
     auto& ctx = sema.ctx();
 
@@ -48,21 +48,21 @@ AstVisitStepResult AstStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef&
     sema.pushScope(SemaScopeFlagsE::Type);
     sema.curScope().setSymMap(&sym);
 
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstStructDecl::semaPostNode(Sema& sema)
+AstStepResult AstStructDecl::semaPostNode(Sema& sema)
 {
     SymbolStruct& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolStruct>();
 
-    const AstVisitStepResult ret = sym.canBeCompleted(sema);
-    if (ret != AstVisitStepResult::Continue)
+    const AstStepResult ret = sym.canBeCompleted(sema);
+    if (ret != AstStepResult::Continue)
         return ret;
 
     sym.computeLayout(sema);
     sym.setCompleted(sema.ctx());
     sema.popScope();
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
 SWC_END_NAMESPACE()

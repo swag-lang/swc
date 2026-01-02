@@ -1,9 +1,9 @@
 #include "pch.h"
+#include "Sema/Core/Sema.h"
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisit.h"
 #include "Report/Diagnostic.h"
 #include "Sema/Constant/ConstantManager.h"
-#include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
@@ -226,7 +226,7 @@ namespace
     }
 }
 
-AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
+AstStepResult AstRelationalExpr::semaPostNode(Sema& sema)
 {
     SemaNodeView nodeLeftView(sema, nodeLeftRef);
     SemaNodeView nodeRightView(sema, nodeRightRef);
@@ -234,18 +234,18 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
 
     // Force types
     if (promote(sema, tok.id, *this, nodeLeftView, nodeRightView) == Result::Error)
-        return AstVisitStepResult::Stop;
+        return AstStepResult::Stop;
 
     // Value-check
     if (SemaCheck::isValueExpr(sema, nodeLeftRef) != Result::Success)
-        return AstVisitStepResult::Stop;
+        return AstStepResult::Stop;
     if (SemaCheck::isValueExpr(sema, nodeRightRef) != Result::Success)
-        return AstVisitStepResult::Stop;
+        return AstStepResult::Stop;
     SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
 
     // Type-check
     if (check(sema, tok.id, *this, nodeLeftView, nodeRightView) == Result::Error)
-        return AstVisitStepResult::Stop;
+        return AstStepResult::Stop;
 
     // Constant folding
     if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())
@@ -254,14 +254,14 @@ AstVisitStepResult AstRelationalExpr::semaPostNode(Sema& sema)
         if (cst.isValid())
         {
             sema.setConstant(sema.curNodeRef(), cst);
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
         }
 
-        return AstVisitStepResult::Stop;
+        return AstStepResult::Stop;
     }
 
     SemaError::raiseInternal(sema, *this);
-    return AstVisitStepResult::Stop;
+    return AstStepResult::Stop;
 }
 
 SWC_END_NAMESPACE()

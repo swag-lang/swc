@@ -8,35 +8,35 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstVisitStepResult AstFile::semaPreDecl(Sema& sema) const
+AstStepResult AstFile::semaPreDecl(Sema& sema) const
 {
     SymbolNamespace* fileNamespace = Symbol::make<SymbolNamespace>(sema.ctx(), this, tokRef(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
     sema.semaInfo().setFileNamespace(*fileNamespace);
     sema.pushScope(SemaScopeFlagsE::TopLevel);
     sema.curScope().setSymMap(&sema.semaInfo().moduleNamespace());
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstFile::semaPostDecl(Sema& sema)
+AstStepResult AstFile::semaPostDecl(Sema& sema)
 {
     sema.popScope();
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstFile::semaPreNode(Sema& sema)
+AstStepResult AstFile::semaPreNode(Sema& sema)
 {
     sema.pushScope(SemaScopeFlagsE::TopLevel);
     sema.curScope().setSymMap(&sema.semaInfo().moduleNamespace());
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstFile::semaPostNode(Sema& sema)
+AstStepResult AstFile::semaPostNode(Sema& sema)
 {
     sema.popScope();
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstNamespaceDecl::pushNamespace(Sema& sema, const AstNode* node, SpanRef spanNameRef)
+AstStepResult AstNamespaceDecl::pushNamespace(Sema& sema, const AstNode* node, SpanRef spanNameRef)
 {
     auto& ctx = sema.ctx();
 
@@ -54,7 +54,7 @@ AstVisitStepResult AstNamespaceDecl::pushNamespace(Sema& sema, const AstNode* no
             if (LangSpec::isReservedNamespace(tok.string(srcView)))
             {
                 SemaError::raise(sema, DiagnosticId::sema_err_reserved_swag_ns, node->srcViewRef(), tokRef);
-                return AstVisitStepResult::Stop;
+                return AstStepResult::Stop;
             }
         }
 
@@ -77,35 +77,35 @@ AstVisitStepResult AstNamespaceDecl::pushNamespace(Sema& sema, const AstNode* no
     sema.pushScope(SemaScopeFlagsE::TopLevel);
     sema.curScope().setSymMap(symMap);
 
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstNamespaceDecl::popNamespace(Sema& sema, SpanRef spanNameRef)
+AstStepResult AstNamespaceDecl::popNamespace(Sema& sema, SpanRef spanNameRef)
 {
     SmallVector<TokenRef> namesRef;
     sema.ast().tokens(namesRef, spanNameRef);
     for (size_t i = 0; i < namesRef.size(); ++i)
         sema.frame().popNs();
     sema.popScope();
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstNamespaceDecl::semaPreDecl(Sema& sema) const
+AstStepResult AstNamespaceDecl::semaPreDecl(Sema& sema) const
 {
     return pushNamespace(sema, this, spanNameRef);
 }
 
-AstVisitStepResult AstNamespaceDecl::semaPostDecl(Sema& sema) const
+AstStepResult AstNamespaceDecl::semaPostDecl(Sema& sema) const
 {
     return popNamespace(sema, spanNameRef);
 }
 
-AstVisitStepResult AstNamespaceDecl::semaPreNode(Sema& sema) const
+AstStepResult AstNamespaceDecl::semaPreNode(Sema& sema) const
 {
     return semaPreDecl(sema);
 }
 
-AstVisitStepResult AstNamespaceDecl::semaPostNode(Sema& sema) const
+AstStepResult AstNamespaceDecl::semaPostNode(Sema& sema) const
 {
     return semaPostDecl(sema);
 }

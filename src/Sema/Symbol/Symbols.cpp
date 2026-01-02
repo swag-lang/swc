@@ -48,7 +48,7 @@ bool SymbolEnum::computeNextValue(Sema& sema, SourceViewRef srcViewRef, TokenRef
     return true;
 }
 
-AstVisitStepResult SymbolStruct::canBeCompleted(Sema& sema) const
+AstStepResult SymbolStruct::canBeCompleted(Sema& sema) const
 {
     for (const auto field : fields_)
     {
@@ -64,18 +64,18 @@ AstVisitStepResult SymbolStruct::canBeCompleted(Sema& sema) const
         {
             const AstVarDecl* var = symVar.decl()->cast<AstVarDecl>();
             SemaError::raise(sema, DiagnosticId::sema_err_struct_circular_reference, var->nodeTypeRef.isValid() ? var->nodeTypeRef : var->nodeInitRef);
-            return AstVisitStepResult::Stop;
+            return AstStepResult::Stop;
         }
 
         if (!type.isCompleted(sema.ctx()))
         {
             const AstVarDecl* var = symVar.decl()->cast<AstVarDecl>();
             sema.waitCompleted(&type, var->nodeTypeRef.isValid() ? var->nodeTypeRef : var->nodeInitRef);
-            return AstVisitStepResult::Pause;
+            return AstStepResult::Pause;
         }
     }
 
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
 void SymbolStruct::computeLayout(Sema& sema)

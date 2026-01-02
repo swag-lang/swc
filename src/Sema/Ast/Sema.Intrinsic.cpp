@@ -8,7 +8,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstVisitStepResult AstIntrinsicValue::semaPostNode(Sema& sema)
+AstStepResult AstIntrinsicValue::semaPostNode(Sema& sema)
 {
     SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
 
@@ -16,14 +16,14 @@ AstVisitStepResult AstIntrinsicValue::semaPostNode(Sema& sema)
     switch (tok.id)
     {
         case TokenId::IntrinsicCompiler:
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
 
         case TokenId::IntrinsicErr:
             sema.semaInfo().setType(sema.curNodeRef(), sema.typeMgr().typeAny());
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
         case TokenId::IntrinsicByteCode:
             sema.semaInfo().setType(sema.curNodeRef(), sema.typeMgr().typeBool());
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
 
         case TokenId::IntrinsicArgs:
         case TokenId::IntrinsicProcessInfos:
@@ -31,11 +31,11 @@ AstVisitStepResult AstIntrinsicValue::semaPostNode(Sema& sema)
         case TokenId::IntrinsicRtFlags:
         case TokenId::IntrinsicModules:
         case TokenId::IntrinsicGvtd:
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
 
         default:
             SemaError::raiseInternal(sema, *this);
-            return AstVisitStepResult::Stop;
+            return AstStepResult::Stop;
     }
 }
 

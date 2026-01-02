@@ -11,18 +11,18 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstVisitStepResult AstParenExpr::semaPostNode(Sema& sema)
+AstStepResult AstParenExpr::semaPostNode(Sema& sema)
 {
     sema.semaInherit(*this, nodeExprRef);
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstIdentifier::semaPostNode(Sema& sema) const
+AstStepResult AstIdentifier::semaPostNode(Sema& sema) const
 {
     // Can be forced to false in case of an identifier inside a #defined
     // @CompilerNotDefined
     if (sema.hasConstant(sema.curNodeRef()))
-        return AstVisitStepResult::Continue;
+        return AstStepResult::Continue;
 
     const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokRef());
 
@@ -30,19 +30,19 @@ AstVisitStepResult AstIdentifier::semaPostNode(Sema& sema) const
     lookUpCxt.srcViewRef = srcViewRef();
     lookUpCxt.tokRef     = tokRef();
 
-    const AstVisitStepResult ret = SemaMatch::match(sema, lookUpCxt, idRef);
-    if (ret == AstVisitStepResult::Pause && hasParserFlag(InCompilerDefined))
+    const AstStepResult ret = SemaMatch::match(sema, lookUpCxt, idRef);
+    if (ret == AstStepResult::Pause && hasParserFlag(InCompilerDefined))
         return sema.waitCompilerDefined(idRef, srcViewRef(), tokRef());
-    if (ret != AstVisitStepResult::Continue)
+    if (ret != AstStepResult::Continue)
         return ret;
     sema.setSymbol(sema.curNodeRef(), lookUpCxt.first());
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+AstStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef != nodeRightRef)
-        return AstVisitStepResult::Continue;
+        return AstStepResult::Continue;
 
     const SemaNodeView nodeLeftView(sema, nodeLeftRef);
     const SemaNodeView nodeRightView(sema, nodeRightRef);
@@ -65,13 +65,13 @@ AstVisitStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNo
         lookUpCxt.tokRef     = tokNameRef;
         lookUpCxt.symMapHint = &namespaceSym;
 
-        const AstVisitStepResult ret = SemaMatch::match(sema, lookUpCxt, idRef);
-        if (ret != AstVisitStepResult::Continue)
+        const AstStepResult ret = SemaMatch::match(sema, lookUpCxt, idRef);
+        if (ret != AstStepResult::Continue)
             return ret;
-        
+
         sema.semaInfo().setSymbol(nodeRightRef, lookUpCxt.first());
         sema.semaInfo().setSymbol(sema.curNodeRef(), lookUpCxt.first());
-        return AstVisitStepResult::SkipChildren;
+        return AstStepResult::SkipChildren;
     }
 
     // Enum
@@ -86,13 +86,13 @@ AstVisitStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNo
         lookUpCxt.tokRef     = tokNameRef;
         lookUpCxt.symMapHint = &enumSym;
 
-        const AstVisitStepResult ret = SemaMatch::match(sema, lookUpCxt, idRef);
-        if (ret != AstVisitStepResult::Continue)
+        const AstStepResult ret = SemaMatch::match(sema, lookUpCxt, idRef);
+        if (ret != AstStepResult::Continue)
             return ret;
 
         sema.semaInfo().setSymbol(nodeRightRef, lookUpCxt.first());
         sema.semaInfo().setSymbol(sema.curNodeRef(), lookUpCxt.first());
-        return AstVisitStepResult::SkipChildren;
+        return AstStepResult::SkipChildren;
     }
 
     // Struct
@@ -107,13 +107,13 @@ AstVisitStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNo
         lookUpCxt.tokRef     = tokNameRef;
         lookUpCxt.symMapHint = &symStruct;
 
-        const AstVisitStepResult ret = SemaMatch::match(sema, lookUpCxt, idRef);
-        if (ret != AstVisitStepResult::Continue)
+        const AstStepResult ret = SemaMatch::match(sema, lookUpCxt, idRef);
+        if (ret != AstStepResult::Continue)
             return ret;
 
         sema.semaInfo().setSymbol(nodeRightRef, lookUpCxt.first());
         sema.semaInfo().setSymbol(sema.curNodeRef(), lookUpCxt.first());
-        return AstVisitStepResult::SkipChildren;
+        return AstStepResult::SkipChildren;
     }
 
     // Interface
@@ -123,18 +123,18 @@ AstVisitStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNo
         if (!symInterface.isCompleted())
             return sema.waitCompleted(&symInterface, srcViewRef(), tokNameRef);
         // TODO
-        return AstVisitStepResult::SkipChildren;
+        return AstStepResult::SkipChildren;
     }
 
     SemaError::raiseInternal(sema, *this);
-    return AstVisitStepResult::Stop;
+    return AstStepResult::Stop;
 }
 
-AstVisitStepResult AstCompilerRunExpr::semaPreNode(Sema& sema)
+AstStepResult AstCompilerRunExpr::semaPreNode(Sema& sema)
 {
     // TODO
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
-    return AstVisitStepResult::SkipChildren;
+    return AstStepResult::SkipChildren;
 }
 
 SWC_END_NAMESPACE()

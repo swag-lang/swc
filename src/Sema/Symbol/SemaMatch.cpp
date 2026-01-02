@@ -33,7 +33,7 @@ namespace
     }
 }
 
-AstVisitStepResult SemaMatch::match(Sema& sema, LookUpContext& lookUpCxt, IdentifierRef idRef)
+AstStepResult SemaMatch::match(Sema& sema, LookUpContext& lookUpCxt, IdentifierRef idRef)
 {
     lookup(sema, lookUpCxt, idRef);
     if (lookUpCxt.empty())
@@ -50,13 +50,13 @@ AstVisitStepResult SemaMatch::match(Sema& sema, LookUpContext& lookUpCxt, Identi
     if (lookUpCxt.count() > 1)
     {
         SemaError::raiseAmbiguousSymbol(sema, lookUpCxt.srcViewRef, lookUpCxt.tokRef, lookUpCxt.symbols());
-        return AstVisitStepResult::Stop;
+        return AstStepResult::Stop;
     }
 
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
+AstStepResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
 {
     LookUpContext lookUpCxt;
     lookUpCxt.srcViewRef = sym.srcViewRef();
@@ -73,7 +73,7 @@ AstVisitStepResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
     }
 
     if (lookUpCxt.count() == 1)
-        return AstVisitStepResult::Continue;
+        return AstStepResult::Continue;
 
     for (const auto* other : lookUpCxt.symbols())
     {
@@ -82,7 +82,7 @@ AstVisitStepResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
         if (other->symMap() != sym.symMap())
             continue;
         SemaError::raiseAlreadyDefined(sema, &sym, other);
-        return AstVisitStepResult::Stop;
+        return AstStepResult::Stop;
     }
 
     for (const auto* other : lookUpCxt.symbols())
@@ -90,7 +90,7 @@ AstVisitStepResult SemaMatch::ghosting(Sema& sema, const Symbol& sym)
         if (other == &sym)
             continue;
         SemaError::raiseGhosting(sema, &sym, other);
-        return AstVisitStepResult::Stop;
+        return AstStepResult::Stop;
     }
 
     SWC_UNREACHABLE();

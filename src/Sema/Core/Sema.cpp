@@ -129,7 +129,7 @@ void Sema::popFrame()
     frame_.pop_back();
 }
 
-AstVisitStepResult Sema::waitIdentifier(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef)
+AstStepResult Sema::waitIdentifier(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef)
 {
     TaskState& wait = ctx().state();
     wait.kind       = TaskStateKind::SemaWaitIdentifier;
@@ -137,10 +137,10 @@ AstVisitStepResult Sema::waitIdentifier(IdentifierRef idRef, SourceViewRef srcVi
     wait.srcViewRef = srcViewRef;
     wait.tokRef     = tokRef;
     wait.idRef      = idRef;
-    return AstVisitStepResult::Pause;
+    return AstStepResult::Pause;
 }
 
-AstVisitStepResult Sema::waitCompilerDefined(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef)
+AstStepResult Sema::waitCompilerDefined(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef)
 {
     TaskState& wait = ctx().state();
     wait.kind       = TaskStateKind::SemaWaitCompilerDefined;
@@ -148,10 +148,10 @@ AstVisitStepResult Sema::waitCompilerDefined(IdentifierRef idRef, SourceViewRef 
     wait.srcViewRef = srcViewRef;
     wait.tokRef     = tokRef;
     wait.idRef      = idRef;
-    return AstVisitStepResult::Pause;
+    return AstStepResult::Pause;
 }
 
-AstVisitStepResult Sema::waitDeclared(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef)
+AstStepResult Sema::waitDeclared(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef)
 {
     TaskState& wait = ctx().state();
     wait.kind       = TaskStateKind::SemaWaitSymDeclared;
@@ -159,10 +159,10 @@ AstVisitStepResult Sema::waitDeclared(const Symbol* symbol, SourceViewRef srcVie
     wait.srcViewRef = srcViewRef;
     wait.tokRef     = tokRef;
     wait.symbol     = symbol;
-    return AstVisitStepResult::Pause;
+    return AstStepResult::Pause;
 }
 
-AstVisitStepResult Sema::waitTyped(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef)
+AstStepResult Sema::waitTyped(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef)
 {
     TaskState& wait = ctx().state();
     wait.kind       = TaskStateKind::SemaWaitSymTyped;
@@ -170,10 +170,10 @@ AstVisitStepResult Sema::waitTyped(const Symbol* symbol, SourceViewRef srcViewRe
     wait.srcViewRef = srcViewRef;
     wait.tokRef     = tokRef;
     wait.symbol     = symbol;
-    return AstVisitStepResult::Pause;
+    return AstStepResult::Pause;
 }
 
-AstVisitStepResult Sema::waitCompleted(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef)
+AstStepResult Sema::waitCompleted(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef)
 {
     TaskState& wait = ctx().state();
     wait.kind       = TaskStateKind::SemaWaitSymCompleted;
@@ -181,16 +181,16 @@ AstVisitStepResult Sema::waitCompleted(const Symbol* symbol, SourceViewRef srcVi
     wait.srcViewRef = srcViewRef;
     wait.tokRef     = tokRef;
     wait.symbol     = symbol;
-    return AstVisitStepResult::Pause;
+    return AstStepResult::Pause;
 }
 
-AstVisitStepResult Sema::waitCompleted(const TypeInfo* type, AstNodeRef nodeRef)
+AstStepResult Sema::waitCompleted(const TypeInfo* type, AstNodeRef nodeRef)
 {
     TaskState& wait = ctx().state();
     wait.kind       = TaskStateKind::SemaWaitTypeCompleted;
     wait.nodeRef    = nodeRef;
     wait.type       = type;
-    return AstVisitStepResult::Pause;
+    return AstStepResult::Pause;
 }
 
 void Sema::setVisitors()
@@ -216,41 +216,41 @@ void Sema::enterNode(AstNode& node)
     info.semaEnterNode(*this, node);
 }
 
-AstVisitStepResult Sema::preDecl(AstNode& node)
+AstStepResult Sema::preDecl(AstNode& node)
 {
-    const AstNodeIdInfo&     info   = Ast::nodeIdInfos(node.id());
-    const AstVisitStepResult result = info.semaPreDecl(*this, node);
+    const AstNodeIdInfo& info   = Ast::nodeIdInfos(node.id());
+    const AstStepResult      result = info.semaPreDecl(*this, node);
     return result;
 }
 
-AstVisitStepResult Sema::preDeclChild(AstNode& node, AstNodeRef& childRef)
+AstStepResult Sema::preDeclChild(AstNode& node, AstNodeRef& childRef)
 {
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     return info.semaPreDeclChild(*this, node, childRef);
 }
 
-AstVisitStepResult Sema::postDecl(AstNode& node)
+AstStepResult Sema::postDecl(AstNode& node)
 {
-    const AstNodeIdInfo&     info   = Ast::nodeIdInfos(node.id());
-    const AstVisitStepResult result = info.semaPostDecl(*this, node);
+    const AstNodeIdInfo& info   = Ast::nodeIdInfos(node.id());
+    const AstStepResult      result = info.semaPostDecl(*this, node);
     return result;
 }
 
-AstVisitStepResult Sema::preNode(AstNode& node)
+AstStepResult Sema::preNode(AstNode& node)
 {
-    const AstNodeIdInfo&     info   = Ast::nodeIdInfos(node.id());
-    const AstVisitStepResult result = info.semaPreNode(*this, node);
+    const AstNodeIdInfo& info   = Ast::nodeIdInfos(node.id());
+    const AstStepResult      result = info.semaPreNode(*this, node);
     return result;
 }
 
-AstVisitStepResult Sema::postNode(AstNode& node)
+AstStepResult Sema::postNode(AstNode& node)
 {
-    const AstNodeIdInfo&     info   = Ast::nodeIdInfos(node.id());
-    const AstVisitStepResult result = info.semaPostNode(*this, node);
+    const AstNodeIdInfo& info   = Ast::nodeIdInfos(node.id());
+    const AstStepResult      result = info.semaPostNode(*this, node);
     return result;
 }
 
-AstVisitStepResult Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
+AstStepResult Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
 {
     if (curScope_->hasFlag(SemaScopeFlagsE::TopLevel))
     {
@@ -260,7 +260,7 @@ AstVisitStepResult Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
         {
             const auto job = heapNew<SemaJob>(ctx(), *this, childRef);
             compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, compiler().jobClientId());
-            return AstVisitStepResult::SkipChildren;
+            return AstStepResult::SkipChildren;
         }
     }
 

@@ -9,7 +9,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstVisitStepResult AstBuiltinType::semaPostNode(Sema& sema) const
+AstStepResult AstBuiltinType::semaPostNode(Sema& sema) const
 {
     const auto&      tok     = sema.token(srcViewRef(), tokRef());
     const auto&      typeMgr = sema.typeMgr();
@@ -19,93 +19,93 @@ AstVisitStepResult AstBuiltinType::semaPostNode(Sema& sema) const
     {
         case TokenId::TypeS8:
             sema.setType(nodeRef, typeMgr.typeInt(8, TypeInfo::Sign::Signed));
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
         case TokenId::TypeS16:
             sema.setType(nodeRef, typeMgr.typeInt(16, TypeInfo::Sign::Signed));
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
         case TokenId::TypeS32:
             sema.setType(nodeRef, typeMgr.typeInt(32, TypeInfo::Sign::Signed));
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
         case TokenId::TypeS64:
             sema.setType(nodeRef, typeMgr.typeInt(64, TypeInfo::Sign::Signed));
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
 
         case TokenId::TypeU8:
             sema.setType(nodeRef, typeMgr.typeInt(8, TypeInfo::Sign::Unsigned));
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
         case TokenId::TypeU16:
             sema.setType(nodeRef, typeMgr.typeInt(16, TypeInfo::Sign::Unsigned));
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
         case TokenId::TypeU32:
             sema.setType(nodeRef, typeMgr.typeInt(32, TypeInfo::Sign::Unsigned));
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
         case TokenId::TypeU64:
             sema.setType(nodeRef, typeMgr.typeInt(64, TypeInfo::Sign::Unsigned));
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
 
         case TokenId::TypeF32:
             sema.setType(nodeRef, typeMgr.typeFloat(32));
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
         case TokenId::TypeF64:
             sema.setType(nodeRef, typeMgr.typeFloat(64));
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
 
         case TokenId::TypeBool:
             sema.setType(nodeRef, typeMgr.typeBool());
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
         case TokenId::TypeString:
             sema.setType(nodeRef, typeMgr.typeString());
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
 
         case TokenId::TypeVoid:
             sema.setType(nodeRef, typeMgr.typeVoid());
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
         case TokenId::TypeAny:
             sema.setType(nodeRef, typeMgr.typeAny());
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
         case TokenId::TypeCString:
             sema.setType(nodeRef, typeMgr.typeCString());
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
         case TokenId::TypeRune:
             sema.setType(nodeRef, typeMgr.typeRune());
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
 
         default:
             break;
     }
 
     SemaError::raiseInternal(sema, *this);
-    return AstVisitStepResult::Stop;
+    return AstStepResult::Stop;
 }
 
-AstVisitStepResult AstValueType::semaPostNode(Sema& sema) const
+AstStepResult AstValueType::semaPostNode(Sema& sema) const
 {
     auto&               ctx     = sema.ctx();
     const TypeRef       typeRef = sema.typeRefOf(nodeTypeRef);
     const ConstantValue cst     = ConstantValue::makeTypeValue(ctx, typeRef);
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, cst));
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstValuePointerType::semaPostNode(Sema& sema) const
+AstStepResult AstValuePointerType::semaPostNode(Sema& sema) const
 {
     const SemaNodeView nodeView(sema, nodePointeeTypeRef);
     const TypeInfo     ty      = TypeInfo::makeValuePointer(nodeView.typeRef);
     const TypeRef      typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstBlockPointerType::semaPostNode(Sema& sema) const
+AstStepResult AstBlockPointerType::semaPostNode(Sema& sema) const
 {
     const SemaNodeView nodeView(sema, nodePointeeTypeRef);
     const TypeInfo     ty      = TypeInfo::makeBlockPointer(nodeView.typeRef);
     const TypeRef      typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstSliceType::semaPostNode(Sema& sema) const
+AstStepResult AstSliceType::semaPostNode(Sema& sema) const
 {
     const SemaNodeView nodeView(sema, nodePointeeTypeRef);
 
@@ -114,16 +114,16 @@ AstVisitStepResult AstSliceType::semaPostNode(Sema& sema) const
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_bad_slice_element_type, nodePointeeTypeRef);
         diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
         diag.report(sema.ctx());
-        return AstVisitStepResult::Stop;
+        return AstStepResult::Stop;
     }
 
     const TypeInfo ty      = TypeInfo::makeSlice(nodeView.typeRef);
     const TypeRef  typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstQualifiedType::semaPostNode(Sema& sema) const
+AstStepResult AstQualifiedType::semaPostNode(Sema& sema) const
 {
     const SemaNodeView nodeView(sema, nodeTypeRef);
     SWC_ASSERT(nodeView.type);
@@ -143,7 +143,7 @@ AstVisitStepResult AstQualifiedType::semaPostNode(Sema& sema) const
                 auto              diag        = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, srcViewRef(), constTokRef);
                 diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
                 diag.report(sema.ctx());
-                return AstVisitStepResult::Stop;
+                return AstStepResult::Stop;
         }
 
         flags.add(TypeInfoFlagsE::Const);
@@ -166,7 +166,7 @@ AstVisitStepResult AstQualifiedType::semaPostNode(Sema& sema) const
                 auto              diag        = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, srcViewRef(), constTokRef);
                 diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
                 diag.report(sema.ctx());
-                return AstVisitStepResult::Stop;
+                return AstStepResult::Stop;
         }
 
         flags.add(TypeInfoFlagsE::Nullable);
@@ -199,10 +199,10 @@ AstVisitStepResult AstQualifiedType::semaPostNode(Sema& sema) const
     }
 
     sema.setType(sema.curNodeRef(), typeRef);
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstNamedType::semaPostNode(Sema& sema)
+AstStepResult AstNamedType::semaPostNode(Sema& sema)
 {
     const SemaNodeView nodeView(sema, nodeIdentRef);
 
@@ -214,14 +214,14 @@ AstVisitStepResult AstNamedType::semaPostNode(Sema& sema)
         if (nodeQual)
             nodeRef = nodeQual->nodeRightRef;
         SemaError::raise(sema, DiagnosticId::sema_err_not_type, nodeRef);
-        return AstVisitStepResult::Stop;
+        return AstStepResult::Stop;
     }
 
     sema.semaInherit(*this, nodeIdentRef);
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstArrayType::semaPostNode(Sema& sema) const
+AstStepResult AstArrayType::semaPostNode(Sema& sema) const
 {
     auto&              ctx = sema.ctx();
     const SemaNodeView nodeView(sema, nodePointeeTypeRef);
@@ -232,7 +232,7 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema) const
         const TypeInfo tyA     = TypeInfo::makeArray({}, nodeView.typeRef);
         const TypeRef  typeRef = sema.typeMgr().addType(tyA);
         sema.setType(sema.curNodeRef(), typeRef);
-        return AstVisitStepResult::Continue;
+        return AstStepResult::Continue;
     }
 
     // Value-check
@@ -243,9 +243,9 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema) const
     for (const auto& dimRef : out)
     {
         if (SemaCheck::isValueExpr(sema, dimRef) != Result::Success)
-            return AstVisitStepResult::Stop;
+            return AstStepResult::Stop;
         if (SemaCheck::isConstant(sema, dimRef) != Result::Success)
-            return AstVisitStepResult::Stop;
+            return AstStepResult::Stop;
 
         const ConstantRef    cstRef = sema.constantRefOf(dimRef);
         const ConstantValue& cst    = sema.constantOf(dimRef);
@@ -254,7 +254,7 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema) const
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_not_int, dimRef);
             diag.addArgument(Diagnostic::ARG_TYPE, cst.typeRef());
             diag.report(ctx);
-            return AstVisitStepResult::Stop;
+            return AstStepResult::Stop;
         }
 
         if (cst.getInt().isNegative())
@@ -262,19 +262,19 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema) const
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_negative, dimRef);
             diag.addArgument(Diagnostic::ARG_VALUE, cst.toString(ctx));
             diag.report(ctx);
-            return AstVisitStepResult::Stop;
+            return AstStepResult::Stop;
         }
 
         const ConstantRef newCstRef = sema.cstMgr().concretizeConstant(sema, dimRef, cstRef, TypeInfo::Sign::Unsigned);
         if (newCstRef.isInvalid())
-            return AstVisitStepResult::Stop;
+            return AstStepResult::Stop;
 
         const ConstantValue& newCst = sema.cstMgr().get(newCstRef);
         const uint64_t       dim    = newCst.getInt().as64();
         if (dim == 0)
         {
             SemaError::raise(sema, DiagnosticId::sema_err_array_dim_zero, dimRef);
-            return AstVisitStepResult::Stop;
+            return AstStepResult::Stop;
         }
 
         dims.push_back(dim);
@@ -283,13 +283,13 @@ AstVisitStepResult AstArrayType::semaPostNode(Sema& sema) const
     const TypeInfo ty      = TypeInfo::makeArray(dims, nodeView.typeRef);
     const TypeRef  typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstCompilerTypeExpr::semaPostNode(Sema& sema)
+AstStepResult AstCompilerTypeExpr::semaPostNode(Sema& sema)
 {
     sema.semaInherit(*this, nodeTypeRef);
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
 SWC_END_NAMESPACE()

@@ -1,15 +1,15 @@
 #include "pch.h"
-#include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/Sema.h"
+#include "Sema/Constant/ConstantManager.h"
+#include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
-#include "Sema/Core/SemaNodeView.h"
 #include "Sema/Type/CastContext.h"
 #include "Sema/Type/SemaCast.h"
 
 SWC_BEGIN_NAMESPACE()
 
-AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
+AstStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
 {
     const auto&   ctx     = sema.ctx();
     const TypeRef typeRef = sema.typeRefOf(nodeSuffixRef);
@@ -39,7 +39,7 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
                 if (overflow)
                 {
                     SemaError::raiseLiteralOverflow(sema, nodeLiteralRef, cst, cst.typeRef());
-                    return AstVisitStepResult::Stop;
+                    return AstStepResult::Stop;
                 }
 
                 cpy.setUnsigned(false);
@@ -56,25 +56,25 @@ AstVisitStepResult AstSuffixLiteral::semaPostNode(Sema& sema) const
 
     const ConstantRef newCstRef = SemaCast::castConstant(sema, castCtx, cstRef, typeRef);
     if (newCstRef.isInvalid())
-        return AstVisitStepResult::Stop;
+        return AstStepResult::Stop;
     sema.setConstant(sema.curNodeRef(), newCstRef);
 
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstExplicitCastExpr::semaPostNode(Sema& sema)
+AstStepResult AstExplicitCastExpr::semaPostNode(Sema& sema)
 {
     const SemaNodeView nodeTypeView(sema, nodeTypeRef);
     const SemaNodeView nodeExprView(sema, nodeExprRef);
 
     // Value-check
     if (SemaCheck::isValueExpr(sema, nodeExprRef) != Result::Success)
-        return AstVisitStepResult::Stop;
+        return AstStepResult::Stop;
     SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
 
     // Check cast modifiers
     if (SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst) == Result::Error)
-        return AstVisitStepResult::Stop;
+        return AstStepResult::Stop;
 
     // Cast kind
     CastContext castCtx(CastKind::Explicit);
@@ -87,13 +87,13 @@ AstVisitStepResult AstExplicitCastExpr::semaPostNode(Sema& sema)
     {
         const ConstantRef cstRef = SemaCast::castConstant(sema, castCtx, nodeExprView.cstRef, nodeTypeView.typeRef);
         if (cstRef.isInvalid())
-            return AstVisitStepResult::Stop;
+            return AstStepResult::Stop;
         sema.setConstant(sema.curNodeRef(), cstRef);
-        return AstVisitStepResult::Continue;
+        return AstStepResult::Continue;
     }
 
     sema.setType(sema.curNodeRef(), nodeTypeView.typeRef);
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
 SWC_END_NAMESPACE()

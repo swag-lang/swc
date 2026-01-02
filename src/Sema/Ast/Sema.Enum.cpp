@@ -14,10 +14,10 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstVisitStepResult AstEnumDecl::semaPreDecl(Sema& sema) const
+AstStepResult AstEnumDecl::semaPreDecl(Sema& sema) const
 {
     SemaHelpers::declareNamedSymbol<SymbolEnum>(sema, *this, tokNameRef);
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
 void AstEnumDecl::semaEnterNode(Sema& sema)
@@ -36,7 +36,7 @@ void AstEnumDecl::semaEnterNode(Sema& sema)
     sym.setDeclared(sema.ctx());
 }
 
-AstVisitStepResult AstEnumDecl::semaPreNode(Sema& sema)
+AstStepResult AstEnumDecl::semaPreNode(Sema& sema)
 {
     const Symbol& sym = sema.symbolOf(sema.curNodeRef());
     return SemaMatch::ghosting(sema, sym);
@@ -90,16 +90,16 @@ namespace
     }
 }
 
-AstVisitStepResult AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+AstStepResult AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef != nodeBodyRef)
-        return AstVisitStepResult::Continue;
+        return AstStepResult::Continue;
 
     SymbolEnum&  sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolEnum>();
     SemaNodeView typeView(sema, nodeTypeRef);
 
     if (nodeTypeRef.isValid() && !validateEnumUnderlyingType(sema, sym, typeView, nodeTypeRef))
-        return AstVisitStepResult::Stop;
+        return AstStepResult::Stop;
 
     const TypeRef  underlyingTypeRef = resolveEnumUnderlyingType(sema, sym, typeView);
     const TypeInfo enumType          = TypeInfo::makeEnum(&sym);
@@ -113,16 +113,16 @@ AstVisitStepResult AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     sema.pushScope(SemaScopeFlagsE::Type);
     sema.curScope().setSymMap(&sym);
 
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstEnumDecl::semaPostNode(Sema& sema) const
+AstStepResult AstEnumDecl::semaPostNode(Sema& sema) const
 {
     SymbolEnum& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolEnum>();
     if (sym.empty())
     {
         SemaError::raise(sema, DiagnosticId::sema_err_empty_enum, srcViewRef(), tokNameRef);
-        return AstVisitStepResult::Stop;
+        return AstStepResult::Stop;
     }
 
     // Runtime enum
@@ -134,10 +134,10 @@ AstVisitStepResult AstEnumDecl::semaPostNode(Sema& sema) const
 
     sym.setCompleted(sema.ctx());
     sema.popScope();
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
-AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
+AstStepResult AstEnumValue::semaPostNode(Sema& sema) const
 {
     auto&              ctx = sema.ctx();
     const SemaNodeView nodeInitView(sema, nodeInitRef);
@@ -153,7 +153,7 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
         if (nodeInitView.cstRef.isInvalid())
         {
             SemaError::raiseExprNotConst(sema, nodeInitRef);
-            return AstVisitStepResult::Stop;
+            return AstStepResult::Stop;
         }
 
         // Cast initializer constant to the underlying type
@@ -161,7 +161,7 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
         castCtx.errorNodeRef = nodeInitRef;
         valueCst             = SemaCast::castConstant(sema, castCtx, nodeInitView.cstRef, underlyingTypeRef);
         if (valueCst.isInvalid())
-            return AstVisitStepResult::Stop;
+            return AstStepResult::Stop;
 
         if (underlyingType.isInt())
         {
@@ -178,11 +178,11 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_missing_enum_value, srcViewRef(), tokRef());
             diag.addArgument(Diagnostic::ARG_TYPE, underlyingTypeRef);
             diag.report(ctx);
-            return AstVisitStepResult::Stop;
+            return AstStepResult::Stop;
         }
 
         if (symEnum.hasNextValue() && !symEnum.computeNextValue(sema, srcViewRef(), tokRef()))
-            return AstVisitStepResult::Stop;
+            return AstStepResult::Stop;
 
         ConstantValue val = ConstantValue::makeInt(ctx, symEnum.nextValue(), underlyingType.intBits(), underlyingType.intSign());
         valueCst          = sema.cstMgr().addConstant(ctx, val);
@@ -202,9 +202,9 @@ AstVisitStepResult AstEnumValue::semaPostNode(Sema& sema) const
     symValue->setTyped(ctx);
 
     if (!sema.curSymMap()->addSingleSymbolOrError(sema, symValue))
-        return AstVisitStepResult::Stop;
+        return AstStepResult::Stop;
 
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
 SWC_END_NAMESPACE()

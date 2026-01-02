@@ -16,10 +16,10 @@ struct AstFile : AstCompoundT<AstNodeId::File>
         AstCompoundT::collectChildren(out, ast);
     }
 
-    AstVisitStepResult        semaPreDecl(Sema& sema) const;
-    static AstVisitStepResult semaPostDecl(Sema& sema);
-    static AstVisitStepResult semaPreNode(Sema& sema);
-    static AstVisitStepResult semaPostNode(Sema& sema);
+    AstStepResult        semaPreDecl(Sema& sema) const;
+    static AstStepResult semaPostDecl(Sema& sema);
+    static AstStepResult semaPreNode(Sema& sema);
+    static AstStepResult semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
@@ -62,13 +62,13 @@ struct AstNamespaceDecl : AstCompoundT<AstNodeId::NamespaceDecl>
 {
     SpanRef spanNameRef;
 
-    void                      collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const { AstCompoundT::collectChildren(out, ast); }
-    static AstVisitStepResult pushNamespace(Sema& sema, const AstNode* node, SpanRef spanNameRef);
-    static AstVisitStepResult popNamespace(Sema& sema, SpanRef spanNameRef);
-    AstVisitStepResult        semaPreDecl(Sema& sema) const;
-    AstVisitStepResult        semaPostDecl(Sema& sema) const;
-    AstVisitStepResult        semaPreNode(Sema& sema) const;
-    AstVisitStepResult        semaPostNode(Sema& sema) const;
+    void             collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const { AstCompoundT::collectChildren(out, ast); }
+    static AstStepResult pushNamespace(Sema& sema, const AstNode* node, SpanRef spanNameRef);
+    static AstStepResult popNamespace(Sema& sema, SpanRef spanNameRef);
+    AstStepResult        semaPreDecl(Sema& sema) const;
+    AstStepResult        semaPostDecl(Sema& sema) const;
+    AstStepResult        semaPreNode(Sema& sema) const;
+    AstStepResult        semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -101,10 +101,10 @@ struct AstCompilerGlobal : AstNodeT<AstNodeId::CompilerGlobal>
     SpanRef    spanNameRef;
     AstNodeRef nodeModeRef;
 
-    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const { AstNode::collectChildren(out, {nodeModeRef}); }
-    AstVisitStepResult semaPreDecl(Sema& sema) const;
-    AstVisitStepResult semaPreNode(Sema& sema) const;
-    AstVisitStepResult semaPostNode(Sema& sema) const;
+    void      collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const { AstNode::collectChildren(out, {nodeModeRef}); }
+    AstStepResult semaPreDecl(Sema& sema) const;
+    AstStepResult semaPreNode(Sema& sema) const;
+    AstStepResult semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -128,20 +128,20 @@ struct AstCompilerExpression : AstNodeT<AstNodeId::CompilerExpression>
 {
     AstNodeRef nodeExprRef;
 
-    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
-    AstVisitStepResult semaPostNode(Sema& sema);
+    void      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    AstStepResult semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
 struct AstCompilerDiagnostic : AstInternalCallUnaryT<AstNodeId::CompilerDiagnostic>
 {
-    AstVisitStepResult semaPostNode(Sema& sema) const;
+    AstStepResult semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstCompilerCallUnary : AstInternalCallUnaryT<AstNodeId::CompilerCallUnary>
 {
-    AstVisitStepResult semaPostNode(Sema& sema) const;
+    AstStepResult semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -172,7 +172,7 @@ struct AstIntrinsicCallVariadic : AstCompoundT<AstNodeId::IntrinsicCallVariadic>
 // -----------------------------------------------------------------------------
 struct AstIntrinsicValue : AstNodeT<AstNodeId::IntrinsicValue>
 {
-    AstVisitStepResult semaPostNode(Sema& sema);
+    AstStepResult semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
@@ -209,8 +209,8 @@ struct AstFunctionDecl : AstNamedNodeT<AstNodeId::FunctionDecl>
         AstNode::collectChildren(out, {nodeBodyRef});
     }
 
-    static AstVisitStepResult semaPreDecl(Sema&) { return AstVisitStepResult::SkipChildren; }
-    static AstVisitStepResult semaPreNode(Sema&) { return AstVisitStepResult::SkipChildren; }
+    static AstStepResult semaPreDecl(Sema&) { return AstStepResult::SkipChildren; }
+    static AstStepResult semaPreNode(Sema&) { return AstStepResult::SkipChildren; }
 };
 
 // -----------------------------------------------------------------------------
@@ -218,11 +218,11 @@ struct AstAttrDecl : AstNamedNodeT<AstNodeId::AttrDecl>
 {
     AstNodeRef nodeParamsRef;
 
-    void                      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeParamsRef}); }
-    AstVisitStepResult        semaPreDecl(Sema& sema) const;
-    static void               semaEnterNode(Sema& sema);
-    static AstVisitStepResult semaPreNode(Sema& sema);
-    static AstVisitStepResult semaPostNode(Sema& sema);
+    void             collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeParamsRef}); }
+    AstStepResult        semaPreDecl(Sema& sema) const;
+    static void      semaEnterNode(Sema& sema);
+    static AstStepResult semaPreNode(Sema& sema);
+    static AstStepResult semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
@@ -261,7 +261,7 @@ struct AstLambdaTypeParam : AstNodeT<AstNodeId::LambdaTypeParam>
 // -----------------------------------------------------------------------------
 struct AstFunctionParamList : AstCompoundT<AstNodeId::FunctionParamList>
 {
-    static AstVisitStepResult semaPreNode(Sema&) { return AstVisitStepResult::SkipChildren; }
+    static AstStepResult semaPreNode(Sema&) { return AstStepResult::SkipChildren; }
 };
 
 // -----------------------------------------------------------------------------
@@ -309,8 +309,8 @@ struct AstCompilerRunExpr : AstNodeT<AstNodeId::CompilerRunExpr>
 {
     AstNodeRef nodeExprRef;
 
-    void                      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
-    static AstVisitStepResult semaPreNode(Sema&);
+    void             collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    static AstStepResult semaPreNode(Sema&);
 };
 
 // -----------------------------------------------------------------------------
@@ -347,7 +347,7 @@ struct AstIdentifier : AstNodeT<AstNodeId::Identifier>
     };
     using Flags = EnumFlags<FlagsE>;
 
-    AstVisitStepResult semaPostNode(Sema& sema) const;
+    AstStepResult semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -466,8 +466,8 @@ struct AstParenExpr : AstNodeT<AstNodeId::ParenExpr>
 {
     AstNodeRef nodeExprRef;
 
-    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
-    AstVisitStepResult semaPostNode(Sema& sema);
+    void      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    AstStepResult semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
@@ -483,13 +483,13 @@ struct AstUnnamedArgumentList : AstCompoundT<AstNodeId::UnnamedArgumentList>
 // -----------------------------------------------------------------------------
 struct AstLogicalExpr : AstBinaryT<AstNodeId::LogicalExpr>
 {
-    AstVisitStepResult semaPostNode(Sema& sema);
+    AstStepResult semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
 struct AstRelationalExpr : AstBinaryT<AstNodeId::RelationalExpr>
 {
-    AstVisitStepResult semaPostNode(Sema& sema);
+    AstStepResult semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
@@ -497,7 +497,7 @@ struct AstBinaryExpr : AstBinaryT<AstNodeId::BinaryExpr>
 {
     AstModifierFlags modifierFlags;
 
-    AstVisitStepResult semaPostNode(Sema& sema);
+    AstStepResult semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
@@ -505,8 +505,8 @@ struct AstUnaryExpr : AstNodeT<AstNodeId::UnaryExpr>
 {
     AstNodeRef nodeExprRef;
 
-    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
-    AstVisitStepResult semaPostNode(Sema& sema);
+    void      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    AstStepResult semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
@@ -540,43 +540,43 @@ struct AstInitializerExpr : AstNodeT<AstNodeId::InitializerExpr>
 // -----------------------------------------------------------------------------
 struct AstBinaryLiteral : AstLiteralT<AstNodeId::BinaryLiteral>
 {
-    AstVisitStepResult semaPreNode(Sema& sema) const;
+    AstStepResult semaPreNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstHexaLiteral : AstLiteralT<AstNodeId::HexaLiteral>
 {
-    AstVisitStepResult semaPreNode(Sema& sema) const;
+    AstStepResult semaPreNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstIntegerLiteral : AstLiteralT<AstNodeId::IntegerLiteral>
 {
-    AstVisitStepResult semaPreNode(Sema& sema) const;
+    AstStepResult semaPreNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstFloatLiteral : AstLiteralT<AstNodeId::FloatLiteral>
 {
-    AstVisitStepResult semaPreNode(Sema& sema) const;
+    AstStepResult semaPreNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstStringLiteral : AstLiteralT<AstNodeId::StringLiteral>
 {
-    AstVisitStepResult semaPreNode(Sema& sema) const;
+    AstStepResult semaPreNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstCharacterLiteral : AstLiteralT<AstNodeId::CharacterLiteral>
 {
-    AstVisitStepResult semaPreNode(Sema& sema) const;
+    AstStepResult semaPreNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstBoolLiteral : AstLiteralT<AstNodeId::BoolLiteral>
 {
-    AstVisitStepResult semaPreNode(Sema& sema) const;
+    AstStepResult semaPreNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -587,7 +587,7 @@ struct AstNullLiteral : AstLiteralT<AstNodeId::NullLiteral>
 // -----------------------------------------------------------------------------
 struct AstCompilerLiteral : AstLiteralT<AstNodeId::CompilerLiteral>
 {
-    AstVisitStepResult semaPostNode(Sema& sema) const;
+    AstStepResult semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -596,8 +596,8 @@ struct AstSuffixLiteral : AstNodeT<AstNodeId::SuffixLiteral>
     AstNodeRef nodeLiteralRef;
     AstNodeRef nodeSuffixRef;
 
-    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLiteralRef, nodeSuffixRef}); }
-    AstVisitStepResult semaPostNode(Sema& sema) const;
+    void      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLiteralRef, nodeSuffixRef}); }
+    AstStepResult semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -615,8 +615,8 @@ struct AstMemberAccessExpr : AstNodeT<AstNodeId::MemberAccessExpr>
     AstNodeRef nodeLeftRef;
     AstNodeRef nodeRightRef;
 
-    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
-    AstVisitStepResult semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    void      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
+    AstStepResult semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -653,8 +653,8 @@ struct AstExplicitCastExpr : AstNodeT<AstNodeId::ExplicitCastExpr>
     AstNodeRef       nodeTypeRef;
     AstNodeRef       nodeExprRef;
 
-    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeExprRef}); }
-    AstVisitStepResult semaPostNode(Sema& sema);
+    void      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeExprRef}); }
+    AstStepResult semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
@@ -676,12 +676,12 @@ struct AstEnumDecl : AstNamedNodeT<AstNodeId::EnumDecl>
     AstNodeRef nodeTypeRef;
     AstNodeRef nodeBodyRef;
 
-    void                      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeBodyRef}); }
-    AstVisitStepResult        semaPreDecl(Sema& sema) const;
-    AstVisitStepResult        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    static void               semaEnterNode(Sema& sema);
-    static AstVisitStepResult semaPreNode(Sema& sema);
-    AstVisitStepResult        semaPostNode(Sema& sema) const;
+    void             collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeBodyRef}); }
+    AstStepResult        semaPreDecl(Sema& sema) const;
+    AstStepResult        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    static void      semaEnterNode(Sema& sema);
+    static AstStepResult semaPreNode(Sema& sema);
+    AstStepResult        semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -689,8 +689,8 @@ struct AstEnumValue : AstNodeT<AstNodeId::EnumValue>
 {
     AstNodeRef nodeInitRef;
 
-    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeInitRef}); }
-    AstVisitStepResult semaPostNode(Sema& sema) const;
+    void      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeInitRef}); }
+    AstStepResult semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -726,8 +726,8 @@ struct AstQualifiedType : AstNodeT<AstNodeId::QualifiedType>
 
     AstNodeRef nodeTypeRef;
 
-    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef}); }
-    AstVisitStepResult semaPostNode(Sema& sema) const;
+    void      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef}); }
+    AstStepResult semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -751,8 +751,8 @@ struct AstValuePointerType : AstNodeT<AstNodeId::ValuePointerType>
 {
     AstNodeRef nodePointeeTypeRef;
 
-    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
-    AstVisitStepResult semaPostNode(Sema& sema) const;
+    void      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
+    AstStepResult semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -760,8 +760,8 @@ struct AstBlockPointerType : AstNodeT<AstNodeId::BlockPointerType>
 {
     AstNodeRef nodePointeeTypeRef;
 
-    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
-    AstVisitStepResult semaPostNode(Sema& sema) const;
+    void      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
+    AstStepResult semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -769,8 +769,8 @@ struct AstSliceType : AstNodeT<AstNodeId::SliceType>
 {
     AstNodeRef nodePointeeTypeRef;
 
-    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
-    AstVisitStepResult semaPostNode(Sema& sema) const;
+    void      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
+    AstStepResult semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -785,7 +785,7 @@ struct AstArrayType : AstNodeT<AstNodeId::ArrayType>
         AstNode::collectChildren(out, {nodePointeeTypeRef});
     }
 
-    AstVisitStepResult semaPostNode(Sema& sema) const;
+    AstStepResult semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -793,14 +793,14 @@ struct AstNamedType : AstNodeT<AstNodeId::NamedType>
 {
     AstNodeRef nodeIdentRef;
 
-    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeIdentRef}); }
-    AstVisitStepResult semaPostNode(Sema& sema);
+    void      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeIdentRef}); }
+    AstStepResult semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
 struct AstBuiltinType : AstNodeT<AstNodeId::BuiltinType>
 {
-    AstVisitStepResult semaPostNode(Sema& sema) const;
+    AstStepResult semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -808,8 +808,8 @@ struct AstCompilerTypeExpr : AstNodeT<AstNodeId::CompilerTypeExpr>
 {
     AstNodeRef nodeTypeRef;
 
-    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef}); }
-    AstVisitStepResult semaPostNode(Sema& sema);
+    void      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef}); }
+    AstStepResult semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
@@ -867,8 +867,8 @@ struct AstValueType : AstNodeT<AstNodeId::ValueType>
 {
     AstNodeRef nodeTypeRef;
 
-    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef}); }
-    AstVisitStepResult semaPostNode(Sema& sema) const;
+    void      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef}); }
+    AstStepResult semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -878,11 +878,11 @@ struct AstCompilerIf : AstNodeT<AstNodeId::CompilerIf>
     AstNodeRef nodeIfBlockRef;
     AstNodeRef nodeElseBlockRef;
 
-    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeConditionRef, nodeIfBlockRef, nodeElseBlockRef}); }
-    AstVisitStepResult semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) const;
-    AstVisitStepResult semaPostDecl(Sema& sema) const;
-    AstVisitStepResult semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    AstVisitStepResult semaPostNode(Sema& sema) const;
+    void      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeConditionRef, nodeIfBlockRef, nodeElseBlockRef}); }
+    AstStepResult semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) const;
+    AstStepResult semaPostDecl(Sema& sema) const;
+    AstStepResult semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    AstStepResult semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -896,8 +896,8 @@ struct AstAttribute : AstNodeT<AstNodeId::Attribute>
     AstNodeRef nodeIdentRef;
     AstNodeRef nodeArgsRef;
 
-    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeIdentRef, nodeArgsRef}); }
-    AstVisitStepResult semaPostNode(Sema& sema) const;
+    void      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeIdentRef, nodeArgsRef}); }
+    AstStepResult semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -911,8 +911,8 @@ struct AstAttributeList : AstCompoundT<AstNodeId::AttributeList>
         AstNode::collectChildren(out, {nodeBodyRef});
     }
 
-    static AstVisitStepResult semaPreNode(Sema& sema);
-    static AstVisitStepResult semaPostNode(Sema& sema);
+    static AstStepResult semaPreNode(Sema& sema);
+    static AstStepResult semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
@@ -928,11 +928,11 @@ struct AstUsingDecl : AstCompoundT<AstNodeId::UsingDecl>
 // -----------------------------------------------------------------------------
 struct AstStructDecl : AstAggregateDeclT<AstNodeId::StructDecl>
 {
-    AstVisitStepResult        semaPreDecl(Sema& sema) const;
-    static void               semaEnterNode(Sema& sema);
-    static AstVisitStepResult semaPreNode(Sema& sema);
-    AstVisitStepResult        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    static AstVisitStepResult semaPostNode(Sema& sema);
+    AstStepResult        semaPreDecl(Sema& sema) const;
+    static void      semaEnterNode(Sema& sema);
+    static AstStepResult semaPreNode(Sema& sema);
+    AstStepResult        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    static AstStepResult semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
@@ -960,12 +960,12 @@ struct AstInterfaceDecl : AstNamedNodeT<AstNodeId::InterfaceDecl>
 {
     AstNodeRef nodeBodyRef;
 
-    void                      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
-    AstVisitStepResult        semaPreDecl(Sema& sema) const;
-    static void               semaEnterNode(Sema& sema);
-    static AstVisitStepResult semaPreNode(Sema& sema);
-    AstVisitStepResult        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    static AstVisitStepResult semaPostNode(Sema& sema);
+    void             collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
+    AstStepResult        semaPreDecl(Sema& sema) const;
+    static void      semaEnterNode(Sema& sema);
+    static AstStepResult semaPreNode(Sema& sema);
+    AstStepResult        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    static AstStepResult semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
@@ -978,11 +978,11 @@ struct AstAccessModifier : AstNodeT<AstNodeId::AccessModifier>
 {
     AstNodeRef nodeWhatRef;
 
-    void                      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeWhatRef}); }
-    AstVisitStepResult        semaPreDecl(Sema& sema) const;
-    static AstVisitStepResult semaPostDecl(Sema& sema);
-    AstVisitStepResult        semaPreNode(Sema& sema) const;
-    static AstVisitStepResult semaPostNode(Sema& sema);
+    void             collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeWhatRef}); }
+    AstStepResult        semaPreDecl(Sema& sema) const;
+    static AstStepResult semaPostDecl(Sema& sema);
+    AstStepResult        semaPreNode(Sema& sema) const;
+    static AstStepResult semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
@@ -1035,11 +1035,11 @@ struct AstVarDecl : AstNamedNodeT<AstNodeId::VarDecl>
     AstNodeRef nodeTypeRef;
     AstNodeRef nodeInitRef;
 
-    void                      collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeInitRef}); }
-    AstVisitStepResult        semaPreDecl(Sema& sema) const;
-    void                      semaEnterNode(Sema& sema) const;
-    static AstVisitStepResult semaPreNode(Sema& sema);
-    AstVisitStepResult        semaPostNode(Sema& sema) const;
+    void             collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeInitRef}); }
+    AstStepResult        semaPreDecl(Sema& sema) const;
+    void             semaEnterNode(Sema& sema) const;
+    static AstStepResult semaPreNode(Sema& sema);
+    AstStepResult        semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

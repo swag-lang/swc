@@ -1,9 +1,9 @@
 #include "pch.h"
+#include "Sema/Core/Sema.h"
 #include "Parser/AstNodes.h"
 #include "Parser/AstVisit.h"
 #include "Report/Diagnostic.h"
 #include "Sema/Constant/ConstantManager.h"
-#include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
@@ -184,19 +184,19 @@ namespace
     }
 }
 
-AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema)
+AstStepResult AstUnaryExpr::semaPostNode(Sema& sema)
 {
     const SemaNodeView ops(sema, nodeExprRef);
 
     // Value-check
     if (SemaCheck::isValueExpr(sema, nodeExprRef) != Result::Success)
-        return AstVisitStepResult::Stop;
+        return AstStepResult::Stop;
     SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
 
     // Type-check
     const auto& tok = sema.token(srcViewRef(), tokRef());
     if (check(sema, tok.id, *this, ops) == Result::Error)
-        return AstVisitStepResult::Stop;
+        return AstStepResult::Stop;
 
     // Constant folding
     if (sema.hasConstant(nodeExprRef))
@@ -205,14 +205,14 @@ AstVisitStepResult AstUnaryExpr::semaPostNode(Sema& sema)
         if (cst.isValid())
         {
             sema.setConstant(sema.curNodeRef(), cst);
-            return AstVisitStepResult::Continue;
+            return AstStepResult::Continue;
         }
 
-        return AstVisitStepResult::Stop;
+        return AstStepResult::Stop;
     }
 
     SemaError::raiseInternal(sema, *this);
-    return AstVisitStepResult::Stop;
+    return AstStepResult::Stop;
 }
 
 SWC_END_NAMESPACE()

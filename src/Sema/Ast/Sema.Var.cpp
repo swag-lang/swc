@@ -12,13 +12,13 @@
 
 SWC_BEGIN_NAMESPACE()
 
-AstVisitStepResult AstVarDecl::semaPreDecl(Sema& sema) const
+AstStepResult AstVarDecl::semaPreDecl(Sema& sema) const
 {
     if (hasParserFlag(Const))
         SemaHelpers::declareNamedSymbol<SymbolConstant>(sema, *this, tokNameRef);
     else
         SemaHelpers::declareNamedSymbol<SymbolVariable>(sema, *this, tokNameRef);
-    return AstVisitStepResult::SkipChildren;
+    return AstStepResult::SkipChildren;
 }
 
 void AstVarDecl::semaEnterNode(Sema& sema) const
@@ -34,13 +34,13 @@ void AstVarDecl::semaEnterNode(Sema& sema) const
     sym.setDeclared(sema.ctx());
 }
 
-AstVisitStepResult AstVarDecl::semaPreNode(Sema& sema)
+AstStepResult AstVarDecl::semaPreNode(Sema& sema)
 {
     const Symbol& sym = sema.symbolOf(sema.curNodeRef());
     return SemaMatch::ghosting(sema, sym);
 }
 
-AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
+AstStepResult AstVarDecl::semaPostNode(Sema& sema) const
 {
     auto&              ctx = sema.ctx();
     SemaNodeView       nodeInitView(sema, nodeInitRef);
@@ -66,7 +66,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
                 diag.addElement(DiagnosticId::sema_note_cast_explicit);
 
             diag.report(ctx);
-            return AstVisitStepResult::Stop;
+            return AstStepResult::Stop;
         }
 
         // Convert init constant to the right type
@@ -74,7 +74,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
         {
             ConstantRef newCstRef = SemaCast::castConstant(sema, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef);
             if (newCstRef.isInvalid())
-                return AstVisitStepResult::Stop;
+                return AstStepResult::Stop;
             sema.setConstant(nodeInitRef, newCstRef);
         }
 
@@ -88,7 +88,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
     {
         const ConstantRef newCstRef = ctx.cstMgr().concretizeConstant(sema, nodeInitView.nodeRef, nodeInitView.cstRef, TypeInfo::Sign::Unknown);
         if (newCstRef.isInvalid())
-            return AstVisitStepResult::Stop;
+            return AstStepResult::Stop;
         nodeInitView.setCstRef(sema, newCstRef);
     }
 
@@ -98,13 +98,13 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
         if (nodeInitRef.isInvalid())
         {
             SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, srcViewRef(), tokNameRef);
-            return AstVisitStepResult::Stop;
+            return AstStepResult::Stop;
         }
 
         if (nodeInitView.cstRef.isInvalid())
         {
             SemaError::raiseExprNotConst(sema, nodeInitRef);
-            return AstVisitStepResult::Stop;
+            return AstStepResult::Stop;
         }
 
         if (nodeTypeRef.isValid() && nodeTypeView.typeRef.isValid())
@@ -113,7 +113,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
             castCtx.errorNodeRef        = nodeInitRef;
             const ConstantRef newCstRef = SemaCast::castConstant(sema, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef);
             if (newCstRef.isInvalid())
-                return AstVisitStepResult::Stop;
+                return AstStepResult::Stop;
             nodeInitView.setCstRef(sema, newCstRef);
         }
 
@@ -133,7 +133,7 @@ AstVisitStepResult AstVarDecl::semaPostNode(Sema& sema) const
         symVar.setCompleted(ctx);
     }
 
-    return AstVisitStepResult::Continue;
+    return AstStepResult::Continue;
 }
 
 SWC_END_NAMESPACE()

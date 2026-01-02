@@ -82,27 +82,27 @@ public:
     void             pushFrame(const SemaFrame& frame);
     void             popFrame();
 
-    AstVisitStepResult waitIdentifier(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef);
-    AstVisitStepResult waitCompilerDefined(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef);
-    AstVisitStepResult waitCompleted(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef);
-    AstVisitStepResult waitDeclared(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef);
-    AstVisitStepResult waitTyped(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef);
-    AstVisitStepResult waitCompleted(const TypeInfo* type, AstNodeRef nodeRef);
-    static void        waitDone(TaskContext& ctx, JobClientId clientId);
+    AstStepResult   waitIdentifier(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef);
+    AstStepResult   waitCompilerDefined(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef);
+    AstStepResult   waitCompleted(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef);
+    AstStepResult   waitDeclared(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef);
+    AstStepResult   waitTyped(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef);
+    AstStepResult   waitCompleted(const TypeInfo* type, AstNodeRef nodeRef);
+    static void waitDone(TaskContext& ctx, JobClientId clientId);
 
 private:
     TaskContext* ctx_      = nullptr;
     SemaInfo*    semaInfo_ = nullptr;
     AstVisit     visit_;
 
-    void               setVisitors();
-    void               enterNode(AstNode& node);
-    AstVisitStepResult preDecl(AstNode& node);
-    AstVisitStepResult preDeclChild(AstNode& node, AstNodeRef& childRef);
-    AstVisitStepResult postDecl(AstNode& node);
-    AstVisitStepResult preNode(AstNode& node);
-    AstVisitStepResult postNode(AstNode& node);
-    AstVisitStepResult preNodeChild(AstNode& node, AstNodeRef& childRef);
+    void      setVisitors();
+    void      enterNode(AstNode& node);
+    AstStepResult preDecl(AstNode& node);
+    AstStepResult preDeclChild(AstNode& node, AstNodeRef& childRef);
+    AstStepResult postDecl(AstNode& node);
+    AstStepResult preNode(AstNode& node);
+    AstStepResult postNode(AstNode& node);
+    AstStepResult preNodeChild(AstNode& node, AstNodeRef& childRef);
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;
     SymbolMap*                              startSymMap_ = nullptr;

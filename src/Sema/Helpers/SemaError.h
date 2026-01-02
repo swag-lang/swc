@@ -19,16 +19,16 @@ namespace SemaError
     Diagnostic reportCannotCast(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
 
     Result raiseInvalidType(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
-    void   raiseCannotCast(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
-    void   raiseLiteralOverflow(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal, TypeRef targetTypeRef);
-    void   raiseLiteralTooBig(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal);
-    void   raiseDivZero(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
+    Result raiseLiteralOverflow(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal, TypeRef targetTypeRef);
     Result raiseExprNotConst(Sema& sema, AstNodeRef nodeRef);
     Result raiseBinaryOperandType(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
     Result raiseInternal(Sema& sema, const AstNode& node);
     Result raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);
     Result raiseGhosting(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);
     Result raiseAmbiguousSymbol(Sema& sema, SourceViewRef srcViewRef, TokenRef tokRef, std::span<const Symbol*> symbols);
+
+    void raiseLiteralTooBig(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal);
+    void raiseDivZero(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
 }
 
 SWC_END_NAMESPACE()

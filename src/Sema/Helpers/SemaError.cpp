@@ -73,6 +73,14 @@ Result SemaError::raise(Sema& sema, DiagnosticId id, AstNodeRef nodeRef)
     return Result::Stop;
 }
 
+Diagnostic SemaError::reportCannotCast(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
+{
+    auto diag = report(sema, DiagnosticId::sema_err_cannot_cast, nodeRef);
+    diag.addArgument(Diagnostic::ARG_TYPE, srcTypeRef);
+    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, targetTypeRef);
+    return diag;
+}
+
 Result SemaError::raiseInvalidType(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
     auto& ctx  = sema.ctx();
@@ -83,44 +91,13 @@ Result SemaError::raiseInvalidType(Sema& sema, AstNodeRef nodeRef, TypeRef srcTy
     return Result::Stop;
 }
 
-Diagnostic SemaError::reportCannotCast(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
-{
-    auto diag = report(sema, DiagnosticId::sema_err_cannot_cast, nodeRef);
-    diag.addArgument(Diagnostic::ARG_TYPE, srcTypeRef);
-    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, targetTypeRef);
-    return diag;
-}
-
-void SemaError::raiseCannotCast(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
-{
-    const auto diag = reportCannotCast(sema, nodeRef, srcTypeRef, targetTypeRef);
-    diag.report(sema.ctx());
-}
-
-void SemaError::raiseLiteralOverflow(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal, TypeRef targetTypeRef)
+Result SemaError::raiseLiteralOverflow(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal, TypeRef targetTypeRef)
 {
     auto diag = report(sema, DiagnosticId::sema_err_literal_overflow, nodeRef);
     diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
     diag.addArgument(Diagnostic::ARG_VALUE, literal.toString(sema.ctx()));
     diag.report(sema.ctx());
-}
-
-void SemaError::raiseLiteralTooBig(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal)
-{
-    auto diag = report(sema, DiagnosticId::sema_err_literal_too_big, nodeRef);
-    diag.addArgument(Diagnostic::ARG_VALUE, literal.toString(sema.ctx()));
-    diag.report(sema.ctx());
-}
-
-void SemaError::raiseDivZero(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
-{
-    auto diag = report(sema, DiagnosticId::sema_err_division_zero, nodeOp.srcViewRef(), nodeOp.tokRef());
-    diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
-
-    const SourceCodeLocation loc = sema.node(nodeValueRef).locationWithChildren(sema.ctx(), sema.ast());
-    diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
-
-    diag.report(sema.ctx());
+    return Result::Stop;
 }
 
 Result SemaError::raiseExprNotConst(Sema& sema, AstNodeRef nodeRef)
@@ -176,6 +153,24 @@ Result SemaError::raiseAmbiguousSymbol(Sema& sema, SourceViewRef srcViewRef, Tok
     }
     diag.report(ctx);
     return Result::Stop;
+}
+
+void SemaError::raiseLiteralTooBig(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal)
+{
+    auto diag = report(sema, DiagnosticId::sema_err_literal_too_big, nodeRef);
+    diag.addArgument(Diagnostic::ARG_VALUE, literal.toString(sema.ctx()));
+    diag.report(sema.ctx());
+}
+
+void SemaError::raiseDivZero(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
+{
+    auto diag = report(sema, DiagnosticId::sema_err_division_zero, nodeOp.srcViewRef(), nodeOp.tokRef());
+    diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
+
+    const SourceCodeLocation loc = sema.node(nodeValueRef).locationWithChildren(sema.ctx(), sema.ast());
+    diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
+
+    diag.report(sema.ctx());
 }
 
 SWC_END_NAMESPACE()

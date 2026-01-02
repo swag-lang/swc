@@ -239,16 +239,9 @@ namespace
             case TokenId::SymMinus:
             case TokenId::SymAsterisk:
                 if (!nodeLeftView.type->isScalarNumeric())
-                {
-                    SemaError::raiseBinaryOperandType(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
-                    return Result::Stop;
-                }
-
+                    return SemaError::raiseBinaryOperandType(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
                 if (!nodeRightView.type->isScalarNumeric())
-                {
-                    SemaError::raiseBinaryOperandType(sema, node, node.nodeRightRef, nodeRightView.typeRef);
-                    return Result::Stop;
-                }
+                    return SemaError::raiseBinaryOperandType(sema, node, node.nodeRightRef, nodeRightView.typeRef);
                 break;
 
             case TokenId::SymAmpersand:
@@ -257,16 +250,9 @@ namespace
             case TokenId::SymGreaterGreater:
             case TokenId::SymLowerLower:
                 if (!nodeLeftView.type->isInt())
-                {
-                    SemaError::raiseBinaryOperandType(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
-                    return Result::Stop;
-                }
-
+                    return SemaError::raiseBinaryOperandType(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
                 if (!nodeRightView.type->isInt())
-                {
-                    SemaError::raiseBinaryOperandType(sema, node, node.nodeRightRef, nodeRightView.typeRef);
-                    return Result::Stop;
-                }
+                    return SemaError::raiseBinaryOperandType(sema, node, node.nodeRightRef, nodeRightView.typeRef);
                 break;
 
             default:

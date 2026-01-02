@@ -37,11 +37,7 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
                 bool overflow = false;
                 cpy.negate(overflow);
                 if (overflow)
-                {
-                    SemaError::raiseLiteralOverflow(sema, nodeLiteralRef, cst, cst.typeRef());
-                    return Result::Stop;
-                }
-
+                    return SemaError::raiseLiteralOverflow(sema, nodeLiteralRef, cst, cst.typeRef());
                 cpy.setUnsigned(false);
                 cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, cpy, cst.type(ctx).intBits(), TypeInfo::Sign::Signed));
             }

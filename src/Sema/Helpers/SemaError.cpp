@@ -73,13 +73,14 @@ AstStepResult SemaError::raise(Sema& sema, DiagnosticId id, AstNodeRef nodeRef)
     return AstStepResult::Stop;
 }
 
-void SemaError::raiseInvalidType(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
+AstStepResult SemaError::raiseInvalidType(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
     auto& ctx  = sema.ctx();
     auto  diag = report(sema, DiagnosticId::sema_err_invalid_type, nodeRef);
     diag.addArgument(Diagnostic::ARG_TYPE, srcTypeRef);
     diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, targetTypeRef);
     diag.report(ctx);
+    return AstStepResult::Stop;
 }
 
 Diagnostic SemaError::reportCannotCast(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
@@ -138,9 +139,9 @@ void SemaError::raiseBinaryOperandType(Sema& sema, const AstNode& nodeOp, AstNod
     diag.report(sema.ctx());
 }
 
-void SemaError::raiseInternal(Sema& sema, const AstNode& node)
+AstStepResult SemaError::raiseInternal(Sema& sema, const AstNode& node)
 {
-    raise(sema, DiagnosticId::sema_err_internal, node.srcViewRef(), node.tokRef());
+    return raise(sema, DiagnosticId::sema_err_internal, node.srcViewRef(), node.tokRef());
 }
 
 void SemaError::raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol)

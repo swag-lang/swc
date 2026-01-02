@@ -404,8 +404,7 @@ AstStepResult AstBinaryExpr::semaPostNode(Sema& sema)
         return AstStepResult::Stop;
     }
 
-    SemaError::raiseInternal(sema, *this);
-    return AstStepResult::Stop;
+    return SemaError::raiseInternal(sema, *this);
 }
 
 SWC_END_NAMESPACE()

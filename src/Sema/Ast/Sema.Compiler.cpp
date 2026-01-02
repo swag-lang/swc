@@ -77,10 +77,7 @@ AstStepResult AstCompilerIf::semaPreNodeChild(Sema& sema, const AstNodeRef& chil
 
     const ConstantValue& constant = sema.constantOf(nodeConditionRef);
     if (!constant.isBool())
-    {
-        SemaError::raiseInvalidType(sema, nodeConditionRef, constant.typeRef(), sema.typeMgr().typeBool());
-        return AstStepResult::Stop;
-    }
+        return SemaError::raiseInvalidType(sema, nodeConditionRef, constant.typeRef(), sema.typeMgr().typeBool());
 
     if (childRef == nodeIfBlockRef && !constant.getBool())
         return AstStepResult::SkipChildren;
@@ -128,18 +125,14 @@ AstStepResult AstCompilerDiagnostic::semaPostNode(Sema& sema) const
         case TokenId::CompilerError:
         case TokenId::CompilerWarning:
             if (!constant.isString())
-            {
-                SemaError::raiseInvalidType(sema, nodeArgRef, constant.typeRef(), sema.typeMgr().typeString());
-                return AstStepResult::Stop;
-            }
+                return SemaError::raiseInvalidType(sema, nodeArgRef, constant.typeRef(), sema.typeMgr().typeString());
             break;
 
         case TokenId::CompilerAssert:
             if (!constant.isBool())
-            {
-                SemaError::raiseInvalidType(sema, nodeArgRef, constant.typeRef(), sema.typeMgr().typeBool());
-                return AstStepResult::Stop;
-            }
+                return SemaError::raiseInvalidType(sema, nodeArgRef, constant.typeRef(), sema.typeMgr().typeBool());
+            if (!constant.getBool())
+                return SemaError::raise(sema, DiagnosticId::sema_err_compiler_assert, srcViewRef(), tokRef());
             break;
 
         default:
@@ -406,8 +399,7 @@ namespace
             return AstStepResult::Continue;
         }
 
-        SemaError::raise(sema, DiagnosticId::sema_err_failed_nameof, node.nodeArgRef);
-        return AstStepResult::Stop;
+        return SemaError::raise(sema, DiagnosticId::sema_err_failed_nameof, node.nodeArgRef);
     }
 
     AstStepResult semaCompilerFullNameOf(Sema& sema, const AstCompilerCallUnary& node)
@@ -490,8 +482,7 @@ AstStepResult AstCompilerCallUnary::semaPostNode(Sema& sema) const
             return AstStepResult::SkipChildren;
 
         default:
-            SemaError::raiseInternal(sema, *this);
-            return AstStepResult::Stop;
+            return SemaError::raiseInternal(sema, *this);
     }
 }
 

@@ -34,8 +34,7 @@ AstStepResult AstIntrinsicValue::semaPostNode(Sema& sema)
             return AstStepResult::Continue;
 
         default:
-            SemaError::raiseInternal(sema, *this);
-            return AstStepResult::Stop;
+            return SemaError::raiseInternal(sema, *this);
     }
 }
 

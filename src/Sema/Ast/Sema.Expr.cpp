@@ -126,8 +126,7 @@ AstStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef
         return AstStepResult::SkipChildren;
     }
 
-    SemaError::raiseInternal(sema, *this);
-    return AstStepResult::Stop;
+    return SemaError::raiseInternal(sema, *this);
 }
 
 AstStepResult AstCompilerRunExpr::semaPreNode(Sema& sema)

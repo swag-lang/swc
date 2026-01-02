@@ -74,8 +74,7 @@ AstStepResult AstBuiltinType::semaPostNode(Sema& sema) const
             break;
     }
 
-    SemaError::raiseInternal(sema, *this);
-    return AstStepResult::Stop;
+    return SemaError::raiseInternal(sema, *this);
 }
 
 AstStepResult AstValueType::semaPostNode(Sema& sema) const

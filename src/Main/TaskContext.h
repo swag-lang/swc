@@ -26,23 +26,27 @@ enum class TaskStateKind : uint8_t
 
 struct TaskState
 {
-    TaskStateKind   kind       = TaskStateKind::None;
-    AstNodeRef      nodeRef    = AstNodeRef::invalid();
-    SourceViewRef   srcViewRef = SourceViewRef::invalid();
-    TokenRef        tokRef     = TokenRef::invalid();
-    IdentifierRef   idRef      = IdentifierRef::invalid();
-    const Symbol*   symbol     = nullptr;
-    const TypeInfo* type       = nullptr;
+    TaskStateKind   kind         = TaskStateKind::None;
+    AstNodeRef      nodeRef      = AstNodeRef::invalid();
+    SourceViewRef   srcViewRef   = SourceViewRef::invalid();
+    TokenRef        tokRef       = TokenRef::invalid();
+    IdentifierRef   idRef        = IdentifierRef::invalid();
+    const Symbol*   symbol       = nullptr;
+    const TypeInfo* type         = nullptr;
+    const Symbol*   waiterSymbol = nullptr;
+    const TypeInfo* waiterType   = nullptr;
 
     void reset()
     {
-        kind       = TaskStateKind::None;
-        nodeRef    = AstNodeRef::invalid();
-        srcViewRef = SourceViewRef::invalid();
-        tokRef     = TokenRef::invalid();
-        idRef      = IdentifierRef::invalid();
-        symbol     = nullptr;
-        type       = nullptr;
+        kind         = TaskStateKind::None;
+        nodeRef      = AstNodeRef::invalid();
+        srcViewRef   = SourceViewRef::invalid();
+        tokRef       = TokenRef::invalid();
+        idRef        = IdentifierRef::invalid();
+        symbol       = nullptr;
+        type         = nullptr;
+        waiterSymbol = nullptr;
+        waiterType   = nullptr;
     }
 };
 

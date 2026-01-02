@@ -74,6 +74,7 @@ public:
     AstNodeRef       curNodeRef() const { return visit_.currentNodeRef(); }
     SymbolMap*       curSymMap() { return curScope_->symMap(); }
     const SymbolMap* curSymMap() const { return curScope_->symMap(); }
+    const SymbolMap* topSymMap() const { return startSymMap_; }
 
     SemaScope&       curScope() { return *curScope_; }
     const SemaScope& curScope() const { return *curScope_; }

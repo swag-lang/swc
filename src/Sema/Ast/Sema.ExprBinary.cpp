@@ -2,7 +2,6 @@
 #include "Sema/Core/Sema.h"
 #include "Main/CompilerInstance.h"
 #include "Parser/AstNodes.h"
-#include "Parser/AstVisit.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticDef.h"
 #include "Sema/Constant/ConstantManager.h"
@@ -17,7 +16,7 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    ConstantRef constantFoldOp(Sema& sema, TokenId op, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    Result constantFoldOp(Sema& sema, ConstantRef& result, TokenId op, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         const auto& ctx         = sema.ctx();
         ConstantRef leftCstRef  = nodeLeftView.cstRef;
@@ -25,7 +24,7 @@ namespace
 
         const bool promote = node.modifierFlags.has(AstModifierFlagsE::Promote);
         if (!SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef, promote))
-            return ConstantRef::invalid();
+            return Result::Stop;
 
         const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);
         const ConstantValue& rightCst = sema.cstMgr().get(rightCstRef);
@@ -41,7 +40,7 @@ namespace
                 auto              diag    = SemaError::report(sema, DiagnosticId::sema_err_modifier_only_integer, node.srcViewRef(), mdfRef);
                 diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
                 diag.report(sema.ctx());
-                return ConstantRef::invalid();
+                return Result::Stop;
             }
         }
 
@@ -63,7 +62,7 @@ namespace
                     if (rightCst.getFloat().isZero())
                     {
                         SemaError::raiseDivZero(sema, node, nodeRightView.nodeRef, leftCst.typeRef());
-                        return ConstantRef::invalid();
+                        return Result::Stop;
                     }
 
                     val1.div(rightCst.getFloat());
@@ -73,7 +72,8 @@ namespace
                     SWC_UNREACHABLE();
             }
 
-            return sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, val1, type.floatBits()));
+            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, val1, type.floatBits()));
+            return Result::Continue;
         }
 
         if (type.isInt())
@@ -106,7 +106,7 @@ namespace
                     if (val2.isZero())
                     {
                         SemaError::raiseDivZero(sema, node, nodeRightView.nodeRef, leftCst.typeRef());
-                        return ConstantRef::invalid();
+                        return Result::Stop;
                     }
 
                     val1.div(val2, overflow);
@@ -116,7 +116,7 @@ namespace
                     if (val2.isZero())
                     {
                         SemaError::raiseDivZero(sema, node, nodeRightView.nodeRef, leftCst.typeRef());
-                        return ConstantRef::invalid();
+                        return Result::Stop;
                     }
 
                     val1.mod(val2, overflow);
@@ -138,7 +138,7 @@ namespace
                         auto diag = SemaError::report(sema, DiagnosticId::sema_err_negative_shift, node.nodeRightRef);
                         diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
                         diag.report(sema.ctx());
-                        return ConstantRef::invalid();
+                        return Result::Stop;
                     }
 
                     if (!val2.fits64())
@@ -153,7 +153,7 @@ namespace
                         auto diag = SemaError::report(sema, DiagnosticId::sema_err_negative_shift, node.nodeRightRef);
                         diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
                         diag.report(sema.ctx());
-                        return ConstantRef::invalid();
+                        return Result::Stop;
                     }
 
                     if (!val2.fits64())
@@ -174,29 +174,32 @@ namespace
                 diag.addArgument(Diagnostic::ARG_LEFT, leftCstRef);
                 diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
                 diag.report(sema.ctx());
-                return ConstantRef::invalid();
+                return Result::Stop;
             }
 
-            return sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, val1, type.intBits(), type.intSign()));
+            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, val1, type.intBits(), type.intSign()));
+            return Result::Continue;
         }
 
-        return ConstantRef::invalid();
+        return Result::Stop;
     }
 
-    ConstantRef constantFoldPlusPlus(Sema& sema, const AstBinaryExpr&, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    Result constantFoldPlusPlus(Sema& sema, ConstantRef& result, const AstBinaryExpr&, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        const auto& ctx    = sema.ctx();
-        Utf8        result = nodeLeftView.cst->toString(ctx);
-        result += nodeRightView.cst->toString(ctx);
-        return sema.cstMgr().addConstant(ctx, ConstantValue::makeString(ctx, result));
+        const auto& ctx = sema.ctx();
+
+        Utf8 str = nodeLeftView.cst->toString(ctx);
+        str += nodeRightView.cst->toString(ctx);
+        result = sema.cstMgr().addConstant(ctx, ConstantValue::makeString(ctx, str));
+        return Result::Continue;
     }
 
-    ConstantRef constantFold(Sema& sema, TokenId op, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    Result constantFold(Sema& sema, ConstantRef& result, TokenId op, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         switch (op)
         {
             case TokenId::SymPlusPlus:
-                return constantFoldPlusPlus(sema, node, nodeLeftView, nodeRightView);
+                return constantFoldPlusPlus(sema, result, node, nodeLeftView, nodeRightView);
 
             case TokenId::SymPlus:
             case TokenId::SymMinus:
@@ -208,13 +211,13 @@ namespace
             case TokenId::SymCircumflex:
             case TokenId::SymGreaterGreater:
             case TokenId::SymLowerLower:
-                return constantFoldOp(sema, op, node, nodeLeftView, nodeRightView);
+                return constantFoldOp(sema, result, op, node, nodeLeftView, nodeRightView);
 
             default:
                 break;
         }
 
-        return ConstantRef::invalid();
+        return Result::Stop;
     }
 
     Result checkPlusPlus(Sema& sema, const AstBinaryExpr& node, const SemaNodeView&, const SemaNodeView&)
@@ -369,14 +372,10 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     // Constant folding
     if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())
     {
-        const ConstantRef cst = constantFold(sema, tok.id, *this, nodeLeftView, nodeRightView);
-        if (cst.isValid())
-        {
-            sema.semaInfo().setConstant(sema.curNodeRef(), cst);
-            return Result::Continue;
-        }
-
-        return Result::Stop;
+        ConstantRef result;
+        RESULT_VERIFY(constantFold(sema, result, tok.id, *this, nodeLeftView, nodeRightView));
+        sema.semaInfo().setConstant(sema.curNodeRef(), result);
+        return Result::Continue;
     }
 
     return SemaError::raiseInternal(sema, *this);

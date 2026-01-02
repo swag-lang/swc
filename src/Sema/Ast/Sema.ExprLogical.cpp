@@ -11,7 +11,7 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    ConstantRef constantFold(Sema& sema, TokenId op, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    Result constantFold(Sema& sema, ConstantRef& result, TokenId op, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         const ConstantRef leftCstRef  = nodeLeftView.cstRef;
         const ConstantRef rightCstRef = nodeRightView.cstRef;
@@ -22,17 +22,21 @@ namespace
         {
             case TokenId::KwdAnd:
                 if (leftCstRef == cstFalseRef)
-                    return cstFalseRef;
-                if (rightCstRef == cstFalseRef)
-                    return cstFalseRef;
-                return cstTrueRef;
+                    result = cstFalseRef;
+                else if (rightCstRef == cstFalseRef)
+                    result = cstFalseRef;
+                else
+                    result = cstTrueRef;
+                return Result::Continue;
 
             case TokenId::KwdOr:
                 if (leftCstRef == cstTrueRef)
-                    return cstTrueRef;
-                if (rightCstRef == cstTrueRef)
-                    return cstTrueRef;
-                return cstFalseRef;
+                    result = cstTrueRef;
+                else if (rightCstRef == cstTrueRef)
+                    result = cstTrueRef;
+                else
+                    result = cstFalseRef;
+                return Result::Continue;
 
             default:
                 SWC_UNREACHABLE();
@@ -66,14 +70,10 @@ Result AstLogicalExpr::semaPostNode(Sema& sema)
     // Constant folding
     if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())
     {
-        const ConstantRef cst = constantFold(sema, tok.id, nodeLeftView, nodeRightView);
-        if (cst.isValid())
-        {
-            sema.setConstant(sema.curNodeRef(), cst);
-            return Result::Continue;
-        }
-
-        return Result::Stop;
+        ConstantRef result;
+        RESULT_VERIFY(constantFold(sema, result, tok.id, nodeLeftView, nodeRightView));
+        sema.setConstant(sema.curNodeRef(), result);
+        return Result::Continue;
     }
 
     return SemaError::raiseInternal(sema, *this);

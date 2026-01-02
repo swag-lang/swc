@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Sema/Core/Sema.h"
 #include "Parser/AstNodes.h"
-#include "Parser/AstVisit.h"
 #include "Report/Diagnostic.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/SemaNodeView.h"
@@ -12,7 +11,7 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    ConstantRef constantFoldPlus(Sema& sema, const SemaNodeView& ops)
+    Result constantFoldPlus(Sema& sema, ConstantRef& result, const SemaNodeView& ops)
     {
         const auto& ctx = sema.ctx();
 
@@ -20,18 +19,23 @@ namespace
         {
             ApsInt value = ops.cst->getInt();
             value.setUnsigned(true);
-            return sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.type->intBits(), TypeInfo::Sign::Unsigned));
+            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.type->intBits(), TypeInfo::Sign::Unsigned));
+            return Result::Continue;
         }
 
-        return ops.cstRef;
+        result = ops.cstRef;
+        return Result::Continue;
     }
 
-    ConstantRef constantFoldMinus(Sema& sema, const SemaNodeView& ops)
+    Result constantFoldMinus(Sema& sema, ConstantRef& result, const SemaNodeView& ops)
     {
         // In the case of a literal with a suffix, it has already been done
         // @MinusLiteralSuffix
         if (ops.node->is(AstNodeId::SuffixLiteral))
-            return sema.constantRefOf(ops.nodeRef);
+        {
+            result = sema.constantRefOf(ops.nodeRef);
+            return Result::Continue;
+        }
 
         const auto& ctx = sema.ctx();
         if (ops.type->isInt())
@@ -41,70 +45,76 @@ namespace
             bool overflow = false;
             value.negate(overflow);
             if (overflow)
-            {
-                SemaError::raiseLiteralOverflow(sema, ops.nodeRef, *ops.cst, ops.typeRef);
-                return ConstantRef::invalid();
-            }
+                return SemaError::raiseLiteralOverflow(sema, ops.nodeRef, *ops.cst, ops.typeRef);
 
             value.setUnsigned(false);
-            return sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.type->intBits(), TypeInfo::Sign::Signed));
+            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.type->intBits(), TypeInfo::Sign::Signed));
+            return Result::Continue;
         }
 
         if (ops.type->isFloat())
         {
             ApFloat value = ops.cst->getFloat();
             value.negate();
-            return sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, value, ops.type->floatBits()));
+            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, value, ops.type->floatBits()));
+            return Result::Continue;
         }
 
-        return ConstantRef::invalid();
+        return Result::Stop;
     }
 
-    ConstantRef constantFoldBang(Sema& sema, const AstUnaryExpr&, const SemaNodeView& ops)
+    Result constantFoldBang(Sema& sema, ConstantRef& result, const AstUnaryExpr&, const SemaNodeView& ops)
     {
         if (ops.cst->isBool())
-            return sema.cstMgr().cstNegBool(ops.cstRef);
+        {
+            result = sema.cstMgr().cstNegBool(ops.cstRef);
+            return Result::Continue;
+        }
+
         SWC_ASSERT(ops.cst->isInt());
-        return sema.cstMgr().cstBool(ops.cst->getInt().isZero());
+        result = sema.cstMgr().cstBool(ops.cst->getInt().isZero());
+        return Result::Continue;
     }
 
-    ConstantRef constantFoldTilde(Sema& sema, const AstUnaryExpr&, const SemaNodeView& ops)
+    Result constantFoldTilde(Sema& sema, ConstantRef& result, const AstUnaryExpr&, const SemaNodeView& ops)
     {
         if (!ops.type->isInt())
-            return ConstantRef::invalid();
+            return Result::Stop;
 
         const auto& ctx   = sema.ctx();
         ApsInt      value = ops.cst->getInt();
 
         value.invertAllBits();
 
-        return sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.type->intBits(), ops.type->intSign()));
+        result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.type->intBits(), ops.type->intSign()));
+        return Result::Continue;
     }
 
-    ConstantRef constantFold(Sema& sema, TokenId op, const AstUnaryExpr& node, const SemaNodeView& ops)
+    Result constantFold(Sema& sema, ConstantRef& result, TokenId op, const AstUnaryExpr& node, const SemaNodeView& ops)
     {
         switch (op)
         {
             case TokenId::SymMinus:
-                return constantFoldMinus(sema, ops);
+                return constantFoldMinus(sema, result, ops);
             case TokenId::SymPlus:
-                return constantFoldPlus(sema, ops);
+                return constantFoldPlus(sema, result, ops);
             case TokenId::SymBang:
-                return constantFoldBang(sema, node, ops);
+                return constantFoldBang(sema, result, node, ops);
             case TokenId::SymTilde:
-                return constantFoldTilde(sema, node, ops);
+                return constantFoldTilde(sema, result, node, ops);
             default:
                 break;
         }
 
-        return ConstantRef::invalid();
+        return Result::Stop;
     }
 
-    void reportInvalidType(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
+    Result reportInvalidType(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_unary_operand_type, expr.srcViewRef(), expr.tokRef());
         diag.addArgument(Diagnostic::ARG_TYPE, ops.typeRef);
         diag.report(sema.ctx());
+        return Result::Stop;
     }
 
     Result checkMinus(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
@@ -199,14 +209,10 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     // Constant folding
     if (sema.hasConstant(nodeExprRef))
     {
-        const ConstantRef cst = constantFold(sema, tok.id, *this, ops);
-        if (cst.isValid())
-        {
-            sema.setConstant(sema.curNodeRef(), cst);
-            return Result::Continue;
-        }
-
-        return Result::Stop;
+        ConstantRef result;
+        RESULT_VERIFY(constantFold(sema, result, tok.id, *this, ops));
+        sema.setConstant(sema.curNodeRef(), result);
+        return Result::Continue;
     }
 
     return SemaError::raiseInternal(sema, *this);

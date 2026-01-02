@@ -21,7 +21,7 @@ namespace
         struct NodeLoc
         {
             SemaJob*      job     = nullptr;
-            AstNodeRef    node    = AstNodeRef::invalid();
+            AstNodeRef    nodeRef = AstNodeRef::invalid();
             SourceViewRef srcView = SourceViewRef::invalid();
             TokenRef      tok     = TokenRef::invalid();
         };
@@ -49,7 +49,7 @@ namespace
         if (!loc.job)
         {
             loc.job     = job;
-            loc.node    = state.nodeRef;
+            loc.nodeRef = state.nodeRef;
             loc.srcView = state.srcViewRef;
             loc.tok     = state.tokRef;
         }
@@ -61,7 +61,7 @@ namespace
         using OnStackSet = std::unordered_set<const Symbol*>;
 
         IndexMap                   index;
-        IndexMap                   lowlink;
+        IndexMap                   lowLink;
         OnStackSet                 onStack;
         std::vector<const Symbol*> st;
         int                        currentIndex = 0;
@@ -70,7 +70,7 @@ namespace
 
         std::function<void(const Symbol*)> strongConnect = [&](const Symbol* v) {
             index[v]   = currentIndex;
-            lowlink[v] = currentIndex;
+            lowLink[v] = currentIndex;
             ++currentIndex;
 
             st.push_back(v);
@@ -84,16 +84,16 @@ namespace
                     if (!index.contains(w))
                     {
                         strongConnect(w);
-                        lowlink[v] = std::min(lowlink[v], lowlink[w]);
+                        lowLink[v] = std::min(lowLink[v], lowLink[w]);
                     }
                     else if (onStack.contains(w))
                     {
-                        lowlink[v] = std::min(lowlink[v], index[w]);
+                        lowLink[v] = std::min(lowLink[v], index[w]);
                     }
                 }
             }
 
-            if (lowlink[v] == index[v])
+            if (lowLink[v] == index[v])
             {
                 std::vector<const Symbol*> component;
                 while (true)
@@ -148,34 +148,23 @@ namespace
                 if (i)
                     msg += " -> ";
                 msg += g.names.at(cyc[i]);
+                const_cast<Symbol*>(cyc[i])->addFlag(SymbolFlagsE::Ignored);
             }
+
             msg += " -> ";
             msg += g.names.at(cyc.front());
 
             // Pick a representative node for a location.
             const Symbol* rep   = cyc.front();
             auto          itLoc = g.locs.find(rep);
-            SemaJob*      job   = nullptr;
-            AstNodeRef    node  = AstNodeRef::invalid();
-
             if (itLoc != g.locs.end())
             {
-                job  = itLoc->second.job;
-                node = itLoc->second.node;
-            }
-
-            if (!job)
-            {
-                // Worst case: no specific location, just emit a global diagnostic.
-                auto diag = Diagnostic::get(DiagnosticId::sema_err_cyclic_dependency);
+                SemaJob*   job     = itLoc->second.job;
+                AstNodeRef nodeRef = itLoc->second.nodeRef;
+                auto       diag    = SemaError::report(job->sema(), DiagnosticId::sema_err_cyclic_dependency, nodeRef);
                 diag.addArgument(Diagnostic::ARG_VALUE, msg);
                 diag.report(ctx);
-                continue;
             }
-
-            auto diag = SemaError::report(job->sema(), DiagnosticId::sema_err_cyclic_dependency, node);
-            diag.addArgument(Diagnostic::ARG_VALUE, msg);
-            diag.report(ctx);
         }
     }
 }
@@ -186,7 +175,6 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
     ctx.global().jobMgr().waitingJobs(jobs, clientId);
 
     WaitGraph graph;
-
     for (const auto job : jobs)
     {
         const TaskState& state   = job->ctx().state();
@@ -202,6 +190,9 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
     for (const auto job : jobs)
     {
         const TaskState& state = job->ctx().state();
+        if (state.symbol && state.symbol->isIgnored())
+            continue;
+
         if (const auto semaJob = job->safeCast<SemaJob>())
         {
             switch (state.kind)
@@ -210,8 +201,6 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                 {
                     auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_unknown_symbol, state.srcViewRef, state.tokRef);
                     diag.addArgument(Diagnostic::ARG_SYM, state.idRef);
-                    if (state.waiterSymbol)
-                        diag.addArgument(Diagnostic::ARG_SYM_2, state.waiterSymbol->name(ctx));
                     diag.report(ctx);
                     break;
                 }
@@ -219,13 +208,19 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                 case TaskStateKind::SemaWaitSymDeclared:
                 case TaskStateKind::SemaWaitSymTyped:
                 case TaskStateKind::SemaWaitSymCompleted:
+                {
+                    SWC_ASSERT(state.symbol);
+                    auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_completed, state.srcViewRef, state.tokRef);
+                    diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
+                    diag.report(ctx);
+                    break;
+                }
+
                 case TaskStateKind::SemaWaitTypeCompleted:
                 {
-                    auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_completed, state.srcViewRef, state.tokRef);
-                    if (state.symbol)
-                        diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
-                    if (state.waiterSymbol)
-                        diag.addArgument(Diagnostic::ARG_SYM_2, state.waiterSymbol->name(ctx));
+                    SWC_ASSERT(state.symbol);
+                    auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_completed, state.nodeRef);
+                    diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
                     diag.report(ctx);
                     break;
                 }

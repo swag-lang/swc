@@ -3,9 +3,9 @@
 #include "Parser/AstNodes.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
-#include "Sema/Symbol/SemaMatch.h"
 #include "Sema/Symbol/IdentifierManager.h"
 #include "Sema/Symbol/LookUpContext.h"
+#include "Sema/Symbol/SemaMatch.h"
 #include "Sema/Symbol/Symbol.h"
 #include "Sema/Symbol/Symbols.h"
 
@@ -68,6 +68,8 @@ AstVisitStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNo
         const AstVisitStepResult ret = SemaMatch::match(sema, lookUpCxt, idRef);
         if (ret != AstVisitStepResult::Continue)
             return ret;
+        
+        sema.semaInfo().setSymbol(nodeRightRef, lookUpCxt.first());
         sema.semaInfo().setSymbol(sema.curNodeRef(), lookUpCxt.first());
         return AstVisitStepResult::SkipChildren;
     }
@@ -88,6 +90,7 @@ AstVisitStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNo
         if (ret != AstVisitStepResult::Continue)
             return ret;
 
+        sema.semaInfo().setSymbol(nodeRightRef, lookUpCxt.first());
         sema.semaInfo().setSymbol(sema.curNodeRef(), lookUpCxt.first());
         return AstVisitStepResult::SkipChildren;
     }
@@ -108,6 +111,7 @@ AstVisitStepResult AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNo
         if (ret != AstVisitStepResult::Continue)
             return ret;
 
+        sema.semaInfo().setSymbol(nodeRightRef, lookUpCxt.first());
         sema.semaInfo().setSymbol(sema.curNodeRef(), lookUpCxt.first());
         return AstVisitStepResult::SkipChildren;
     }

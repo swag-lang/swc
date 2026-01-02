@@ -193,6 +193,9 @@ AstNodeRef Parser::parseCompilerGlobal()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerGlobal>(consume());
     const auto tokStr       = tok().string(ast_->srcView());
 
+    nodePtr->spanNameRef.setInvalid();
+    nodePtr->nodeModeRef.setInvalid();
+
     if (tokStr == Token::toName(TokenId::KwdSkip))
     {
         // Should have been treated in lexer

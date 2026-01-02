@@ -281,30 +281,7 @@ AstVisitStepResult AstCompilerGlobal::semaPreDecl(Sema& sema) const
             sema.frame().setAccess(SymbolAccess::Private);
             break;
         case Mode::Namespace:
-        {
-            auto& ctx = sema.ctx();
-
-            SmallVector<TokenRef> namesRef;
-            sema.ast().tokens(namesRef, spanNameRef);
-
-            const SourceView& srcView = ctx.compiler().srcView(srcViewRef());
-            for (const auto& tokRef : namesRef)
-            {
-                if (!srcView.isRuntimeFile())
-                {
-                    const Token& tok = srcView.token(tokRef);
-                    if (LangSpec::isReservedNamespace(tok.string(srcView)))
-                    {
-                        SemaError::raise(sema, DiagnosticId::sema_err_reserved_swag_ns, srcViewRef(), tokRef);
-                        return AstVisitStepResult::Stop;
-                    }
-                }
-
-                const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokRef);
-                sema.frame().pushNs(idRef);
-            }
-            break;
-        }
+            return AstNamespaceDecl::pushNamespace(sema, this, spanNameRef);
         default:
             break;
     }
@@ -317,13 +294,7 @@ AstVisitStepResult AstCompilerGlobal::semaPostDecl(Sema& sema) const
     switch (mode)
     {
         case Mode::Namespace:
-        {
-            SmallVector<TokenRef> namesRef;
-            sema.ast().tokens(namesRef, spanNameRef);
-            for (size_t i = 0; i < namesRef.size(); ++i)
-                sema.frame().popNs();
-            break;
-        }
+            return AstNamespaceDecl::popNamespace(sema, spanNameRef);
         default:
             break;
     }

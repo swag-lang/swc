@@ -36,14 +36,14 @@ AstVisitStepResult AstFile::semaPostNode(Sema& sema)
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstNamespaceDecl::semaPreDecl(Sema& sema) const
+AstVisitStepResult AstNamespaceDecl::pushNamespace(Sema& sema, const AstNode* node, SpanRef spanNameRef)
 {
     auto& ctx = sema.ctx();
 
     SmallVector<TokenRef> namesRef;
     sema.ast().tokens(namesRef, spanNameRef);
 
-    const SourceView& srcView = ctx.compiler().srcView(srcViewRef());
+    const SourceView& srcView = ctx.compiler().srcView(node->srcViewRef());
     SymbolMap*        symMap  = SemaFrame::currentSymMap(sema);
 
     for (const auto& tokRef : namesRef)
@@ -53,16 +53,16 @@ AstVisitStepResult AstNamespaceDecl::semaPreDecl(Sema& sema) const
             const Token& tok = srcView.token(tokRef);
             if (LangSpec::isReservedNamespace(tok.string(srcView)))
             {
-                SemaError::raise(sema, DiagnosticId::sema_err_reserved_swag_ns, srcViewRef(), tokRef);
+                SemaError::raise(sema, DiagnosticId::sema_err_reserved_swag_ns, node->srcViewRef(), tokRef);
                 return AstVisitStepResult::Stop;
             }
         }
 
-        const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokRef);
+        const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), node->srcViewRef(), tokRef);
         sema.frame().pushNs(idRef);
 
         constexpr SymbolFlags flags = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::Completed;
-        SymbolNamespace*      ns    = Symbol::make<SymbolNamespace>(ctx, this, tokRef, idRef, flags);
+        SymbolNamespace*      ns    = Symbol::make<SymbolNamespace>(ctx, node, tokRef, idRef, flags);
         Symbol*               res   = symMap->addSingleSymbol(ctx, ns);
 
         if (!res->isNamespace())
@@ -80,7 +80,7 @@ AstVisitStepResult AstNamespaceDecl::semaPreDecl(Sema& sema) const
     return AstVisitStepResult::Continue;
 }
 
-AstVisitStepResult AstNamespaceDecl::semaPostDecl(Sema& sema) const
+AstVisitStepResult AstNamespaceDecl::popNamespace(Sema& sema, SpanRef spanNameRef)
 {
     SmallVector<TokenRef> namesRef;
     sema.ast().tokens(namesRef, spanNameRef);
@@ -88,6 +88,16 @@ AstVisitStepResult AstNamespaceDecl::semaPostDecl(Sema& sema) const
         sema.frame().popNs();
     sema.popScope();
     return AstVisitStepResult::Continue;
+}
+
+AstVisitStepResult AstNamespaceDecl::semaPreDecl(Sema& sema) const
+{
+    return pushNamespace(sema, this, spanNameRef);
+}
+
+AstVisitStepResult AstNamespaceDecl::semaPostDecl(Sema& sema) const
+{
+    return popNamespace(sema, spanNameRef);
 }
 
 AstVisitStepResult AstNamespaceDecl::semaPreNode(Sema& sema) const

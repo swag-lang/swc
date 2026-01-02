@@ -353,15 +353,13 @@ namespace
 
     AstVisitStepResult semaCompilerSizeOf(Sema& sema, const AstCompilerCallUnary& node)
     {
-        SemaNodeView nodeView(sema, node.nodeArgRef);
+        const SemaNodeView nodeView(sema, node.nodeArgRef);
         if (!nodeView.type)
         {
             SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, node.nodeArgRef);
             return AstVisitStepResult::Stop;
         }
 
-        if (nodeView.type->isTypeValue())
-            nodeView.type = &sema.typeMgr().get(nodeView.type->typeRef());
         if (!nodeView.type->isCompleted(sema.ctx()))
             return sema.waitCompleted(nodeView.type, node.nodeArgRef);
 
@@ -385,15 +383,13 @@ namespace
 
     AstVisitStepResult semaCompilerAlignOf(Sema& sema, const AstCompilerCallUnary& node)
     {
-        SemaNodeView nodeView(sema, node.nodeArgRef);
+        const SemaNodeView nodeView(sema, node.nodeArgRef);
         if (!nodeView.type)
         {
             SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, node.nodeArgRef);
             return AstVisitStepResult::Stop;
         }
 
-        if (nodeView.type->isTypeValue())
-            nodeView.type = &sema.typeMgr().get(nodeView.type->typeRef());
         if (!nodeView.type->isCompleted(sema.ctx()))
             return sema.waitCompleted(nodeView.type, node.nodeArgRef);
 

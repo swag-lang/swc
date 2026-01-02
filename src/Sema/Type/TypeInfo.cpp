@@ -569,6 +569,8 @@ bool TypeInfo::isCompleted(TaskContext& ctx) const
             return interfaceSym().isCompleted();
         case TypeInfoKind::Array:
             return ctx.typeMgr().get(asArray.typeRef).isCompleted(ctx);
+        case TypeInfoKind::TypeValue:
+            return ctx.typeMgr().get(asTypeRef.typeRef).isCompleted(ctx);
         default:
             break;
     }

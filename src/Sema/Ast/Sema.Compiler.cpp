@@ -441,9 +441,9 @@ namespace
         return AstVisitStepResult::Stop;
     }
 
-    AstVisitStepResult semaCompilerStringOf(Sema& sema, const AstCompilerCallUnary& node)
+    AstVisitStepResult semaCompilerFullNameOf(Sema& sema, const AstCompilerCallUnary& node)
     {
-        auto&              ctx = sema.ctx();
+        const auto&        ctx = sema.ctx();
         const SemaNodeView nodeView(sema, node.nodeArgRef);
 
         if (nodeView.sym)
@@ -454,6 +454,14 @@ namespace
             return AstVisitStepResult::Continue;
         }
 
+        return semaCompilerNameOf(sema, node);
+    }
+
+    AstVisitStepResult semaCompilerStringOf(Sema& sema, const AstCompilerCallUnary& node)
+    {
+        const auto&        ctx = sema.ctx();
+        const SemaNodeView nodeView(sema, node.nodeArgRef);
+
         if (nodeView.cst)
         {
             const Utf8          name  = nodeView.cst->toString(ctx);
@@ -462,16 +470,7 @@ namespace
             return AstVisitStepResult::Continue;
         }
 
-        if (nodeView.type && nodeView.type->isTypeValue())
-        {
-            const Utf8          name  = sema.typeMgr().get(nodeView.type->typeRef()).toName(ctx);
-            const ConstantValue value = ConstantValue::makeString(ctx, name);
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
-            return AstVisitStepResult::Continue;
-        }
-
-        SemaError::raise(sema, DiagnosticId::sema_err_failed_stringof, node.nodeArgRef);
-        return AstVisitStepResult::Stop;
+        return semaCompilerNameOf(sema, node);
     }
 
     AstVisitStepResult semaCompilerDefined(Sema& sema, const AstCompilerCallUnary& node)
@@ -496,6 +495,8 @@ AstVisitStepResult AstCompilerCallUnary::semaPostNode(Sema& sema) const
             return semaCompilerKindOf(sema, *this);
         case TokenId::CompilerNameOf:
             return semaCompilerNameOf(sema, *this);
+        case TokenId::CompilerFullNameOf:
+            return semaCompilerFullNameOf(sema, *this);
         case TokenId::CompilerStringOf:
             return semaCompilerStringOf(sema, *this);
         case TokenId::CompilerSizeOf:

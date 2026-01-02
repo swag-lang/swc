@@ -608,6 +608,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::CompilerDeclType:
         case TokenId::CompilerStringOf:
         case TokenId::CompilerNameOf:
+        case TokenId::CompilerFullNameOf:
         case TokenId::CompilerRunes:
         case TokenId::CompilerIsConstExpr:
         case TokenId::CompilerDefined:

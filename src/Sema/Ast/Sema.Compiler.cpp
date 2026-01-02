@@ -1,5 +1,6 @@
 #include "pch.h"
-
+#include "Sema/Core/Sema.h"
+#include "Lexer/LangSpec.h"
 #include "Main/CommandLine.h"
 #include "Main/Global.h"
 #include "Main/Version.h"
@@ -9,7 +10,6 @@
 #include "Report/Logger.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Constant/ConstantValue.h"
-#include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
@@ -247,12 +247,13 @@ AstVisitStepResult AstCompilerLiteral::semaPostNode(Sema& sema) const
             break;
         }
 
+        case TokenId::CompilerArch:
+        case TokenId::CompilerCpu:
         case TokenId::CompilerBuildCfg:
         case TokenId::CompilerModule:
         case TokenId::CompilerCallerFunction:
         case TokenId::CompilerCallerLocation:
-        case TokenId::CompilerArch:
-        case TokenId::CompilerCpu:
+
         case TokenId::CompilerSwagOs:
         case TokenId::CompilerBackend:
         case TokenId::CompilerScopeName:
@@ -279,6 +280,50 @@ AstVisitStepResult AstCompilerGlobal::semaPreDecl(Sema& sema) const
         case Mode::AccessPrivate:
             sema.frame().setAccess(SymbolAccess::Private);
             break;
+        case Mode::Namespace:
+        {
+            auto& ctx = sema.ctx();
+
+            SmallVector<TokenRef> namesRef;
+            sema.ast().tokens(namesRef, spanNameRef);
+
+            const SourceView& srcView = ctx.compiler().srcView(srcViewRef());
+            for (const auto& tokRef : namesRef)
+            {
+                if (!srcView.isRuntimeFile())
+                {
+                    const Token& tok = srcView.token(tokRef);
+                    if (LangSpec::isReservedNamespace(tok.string(srcView)))
+                    {
+                        SemaError::raise(sema, DiagnosticId::sema_err_reserved_swag_ns, srcViewRef(), tokRef);
+                        return AstVisitStepResult::Stop;
+                    }
+                }
+
+                const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokRef);
+                sema.frame().pushNs(idRef);
+            }
+            break;
+        }
+        default:
+            break;
+    }
+
+    return AstVisitStepResult::Continue;
+}
+
+AstVisitStepResult AstCompilerGlobal::semaPostDecl(Sema& sema) const
+{
+    switch (mode)
+    {
+        case Mode::Namespace:
+        {
+            SmallVector<TokenRef> namesRef;
+            sema.ast().tokens(namesRef, spanNameRef);
+            for (size_t i = 0; i < namesRef.size(); ++i)
+                sema.frame().popNs();
+            break;
+        }
         default:
             break;
     }
@@ -288,21 +333,13 @@ AstVisitStepResult AstCompilerGlobal::semaPreDecl(Sema& sema) const
 
 AstVisitStepResult AstCompilerGlobal::semaPreNode(Sema& sema) const
 {
-    switch (mode)
-    {
-        case Mode::AccessPublic:
-        case Mode::AccessInternal:
-        case Mode::AccessPrivate:
-            return semaPreDecl(sema);
-        default:
-            break;
-    }
-
-    return AstVisitStepResult::Continue;
+    return semaPreDecl(sema);
 }
 
 AstVisitStepResult AstCompilerGlobal::semaPostNode(Sema& sema) const
 {
+    semaPostDecl(sema);
+
     switch (mode)
     {
         case Mode::Skip:
@@ -312,7 +349,6 @@ AstVisitStepResult AstCompilerGlobal::semaPostNode(Sema& sema) const
 
         case Mode::Export:
         case Mode::AttributeList:
-        case Mode::Namespace:
         case Mode::CompilerIf:
         case Mode::Using:
             return AstVisitStepResult::SkipChildren;
@@ -524,6 +560,8 @@ AstVisitStepResult AstCompilerCallUnary::semaPostNode(Sema& sema) const
         case TokenId::CompilerHasTag:
         case TokenId::CompilerInject:
         case TokenId::CompilerLocation:
+        case TokenId::CompilerForeignLib:
+        case TokenId::CompilerLoad:
             return AstVisitStepResult::SkipChildren;
 
         default:

@@ -503,35 +503,36 @@ AstNodeRef Parser::parseFile()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseNamespace()
+SpanRef Parser::parseQualifiedName()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamespaceDecl>(consume());
-
     SmallVector<TokenRef> names;
     TokenRef              tokRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
     if (tokRef.isInvalid())
     {
-        nodePtr->spanNameRef.setInvalid();
         skipTo({TokenId::SymLeftCurly});
+        return SpanRef::invalid();
     }
-    else
-    {
-        names.push_back(tokRef);
-        while (consumeIf(TokenId::SymDot).isValid())
-        {
-            tokRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
-            if (tokRef.isInvalid())
-            {
-                skipTo({TokenId::SymLeftCurly});
-                break;
-            }
 
-            names.push_back(tokRef);
+    names.push_back(tokRef);
+    while (consumeIf(TokenId::SymDot).isValid())
+    {
+        tokRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+        if (tokRef.isInvalid())
+        {
+            skipTo({TokenId::SymLeftCurly});
+            break;
         }
 
-        nodePtr->spanNameRef = ast_->pushSpan(names.span());
+        names.push_back(tokRef);
     }
 
+    return ast_->pushSpan(names.span());
+}
+
+AstNodeRef Parser::parseNamespace()
+{
+    auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::NamespaceDecl>(consume());
+    nodePtr->spanNameRef     = parseQualifiedName();
     nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     return nodeRef;
 }

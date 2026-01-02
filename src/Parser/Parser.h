@@ -90,6 +90,7 @@ private:
     AstNodeRef       parseArraySlicingIndex(AstNodeRef nodeRef);
     AstModifierFlags parseModifiers();
     AstNodeRef       parseBinaryExpr(int minPrecedence);
+    SpanRef          parseQualifiedName();
 
     template<AstNodeId ID>
     AstNodeRef parseAttributeList();

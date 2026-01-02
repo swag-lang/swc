@@ -246,7 +246,7 @@ AstNodeRef Parser::parseCompilerGlobal()
     {
         nodePtr->mode = AstCompilerGlobal::Mode::Namespace;
         consume();
-        nodePtr->nodeModeRef = parseQualifiedIdentifier();
+        nodePtr->spanNameRef = parseQualifiedName();
     }
     else if (is(TokenId::CompilerIf))
     {

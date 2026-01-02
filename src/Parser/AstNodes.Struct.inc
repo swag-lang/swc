@@ -96,10 +96,12 @@ struct AstCompilerGlobal : AstNodeT<AstNodeId::CompilerGlobal>
     };
 
     Mode       mode;
+    SpanRef    spanNameRef;
     AstNodeRef nodeModeRef;
 
-    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeModeRef}); }
+    void               collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const { AstNode::collectChildren(out, {nodeModeRef}); }
     AstVisitStepResult semaPreDecl(Sema& sema) const;
+    AstVisitStepResult semaPostDecl(Sema& sema) const;
     AstVisitStepResult semaPreNode(Sema& sema) const;
     AstVisitStepResult semaPostNode(Sema& sema) const;
 };

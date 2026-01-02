@@ -5,7 +5,7 @@
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaHelpers.h"
-#include "Sema/Helpers/SemaMatch.h"
+#include "Sema/Symbol/SemaMatch.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/CastContext.h"
 #include "Sema/Type/SemaCast.h"

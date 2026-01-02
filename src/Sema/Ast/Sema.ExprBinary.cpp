@@ -60,11 +60,7 @@ namespace
                     break;
                 case TokenId::SymSlash:
                     if (rightCst.getFloat().isZero())
-                    {
-                        SemaError::raiseDivZero(sema, node, nodeRightView.nodeRef, leftCst.typeRef());
-                        return Result::Stop;
-                    }
-
+                        return SemaError::raiseDivZero(sema, node, nodeRightView.nodeRef, leftCst.typeRef());
                     val1.div(rightCst.getFloat());
                     break;
 

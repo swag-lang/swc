@@ -155,14 +155,15 @@ Result SemaError::raiseAmbiguousSymbol(Sema& sema, SourceViewRef srcViewRef, Tok
     return Result::Stop;
 }
 
-void SemaError::raiseLiteralTooBig(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal)
+Result SemaError::raiseLiteralTooBig(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal)
 {
     auto diag = report(sema, DiagnosticId::sema_err_literal_too_big, nodeRef);
     diag.addArgument(Diagnostic::ARG_VALUE, literal.toString(sema.ctx()));
     diag.report(sema.ctx());
+    return Result::Stop;
 }
 
-void SemaError::raiseDivZero(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
+Result SemaError::raiseDivZero(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
 {
     auto diag = report(sema, DiagnosticId::sema_err_division_zero, nodeOp.srcViewRef(), nodeOp.tokRef());
     diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
@@ -171,6 +172,7 @@ void SemaError::raiseDivZero(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeV
     diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
 
     diag.report(sema.ctx());
+    return Result::Stop;
 }
 
 SWC_END_NAMESPACE()

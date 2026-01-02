@@ -103,10 +103,7 @@ Result AstAttribute::semaPostNode(Sema& sema) const
 {
     const Symbol& sym = sema.symbolOf(nodeIdentRef);
     if (!sym.isAttribute())
-    {
-        SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeIdentRef);
-        return Result::Stop;
-    }
+        return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeIdentRef);
 
     // Predefined attributes
     const SymbolAttribute& attrSym   = sym.cast<SymbolAttribute>();

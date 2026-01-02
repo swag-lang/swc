@@ -143,10 +143,7 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
     {
         // Must be constant
         if (nodeInitView.cstRef.isInvalid())
-        {
-            SemaError::raiseExprNotConst(sema, nodeInitRef);
-            return Result::Stop;
-        }
+            return SemaError::raiseExprNotConst(sema, nodeInitRef);
 
         // Cast initializer constant to the underlying type
         CastContext castCtx(CastKind::Implicit);

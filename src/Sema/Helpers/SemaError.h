@@ -26,9 +26,8 @@ namespace SemaError
     Result raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);
     Result raiseGhosting(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);
     Result raiseAmbiguousSymbol(Sema& sema, SourceViewRef srcViewRef, TokenRef tokRef, std::span<const Symbol*> symbols);
-
-    void raiseLiteralTooBig(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal);
-    void raiseDivZero(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
+    Result raiseLiteralTooBig(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal);
+    Result raiseDivZero(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
 }
 
 SWC_END_NAMESPACE()

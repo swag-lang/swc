@@ -1,30 +1,35 @@
 #include "pch.h"
 #include "Sema/Core/Sema.h"
 #include "Parser/AstNodes.h"
-#include "Parser/AstVisit.h"
 #include "Report/Diagnostic.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
-#include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/SemaCast.h"
 
 SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    ConstantRef constantFoldEqual(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    Result constantFoldEqual(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         if (nodeLeftView.cstRef == nodeRightView.cstRef)
-            return sema.cstMgr().cstTrue();
+        {
+            result = sema.cstMgr().cstTrue();
+            return Result::Continue;
+        }
+
         if (nodeLeftView.type->isTypeValue() && nodeRightView.type->isTypeValue())
-            return sema.cstMgr().cstBool(*nodeLeftView.type == *nodeRightView.type);
+        {
+            result = sema.cstMgr().cstBool(*nodeLeftView.type == *nodeRightView.type);
+            return Result::Continue;
+        }
 
         auto leftCstRef  = nodeLeftView.cstRef;
         auto rightCstRef = nodeRightView.cstRef;
         if (!SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef))
-            return ConstantRef::invalid();
+            return Result::Stop;
 
         // For float, we need to compare by values, because two different constants
         // can still have the same value. For example, 0.0 and -0.0 are two different
@@ -33,136 +38,166 @@ namespace
         if (left.isFloat())
         {
             const auto& right = sema.cstMgr().get(rightCstRef);
-            return sema.cstMgr().cstBool(left.eq(right));
+            result            = sema.cstMgr().cstBool(left.eq(right));
+            return Result::Continue;
         }
 
-        return sema.cstMgr().cstBool(leftCstRef == rightCstRef);
+        result = sema.cstMgr().cstBool(leftCstRef == rightCstRef);
+        return Result::Continue;
     }
 
-    ConstantRef constantFoldLess(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    Result constantFoldLess(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         if (nodeLeftView.cstRef == nodeRightView.cstRef)
-            return sema.cstMgr().cstFalse();
+        {
+            result = sema.cstMgr().cstFalse();
+            return Result::Continue;
+        }
 
         auto leftCstRef  = nodeLeftView.cstRef;
         auto rightCstRef = nodeRightView.cstRef;
 
         if (!SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef))
-            return ConstantRef::invalid();
+            return Result::Stop;
         if (leftCstRef == rightCstRef)
-            return sema.cstMgr().cstFalse();
+        {
+            result = sema.cstMgr().cstFalse();
+            return Result::Continue;
+        }
 
         const auto& leftCst  = sema.cstMgr().get(leftCstRef);
         const auto& rightCst = sema.cstMgr().get(rightCstRef);
 
-        return sema.cstMgr().cstBool(leftCst.lt(rightCst));
+        result = sema.cstMgr().cstBool(leftCst.lt(rightCst));
+        return Result::Continue;
     }
 
-    ConstantRef constantFoldLessEqual(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    Result constantFoldLessEqual(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         if (nodeLeftView.cstRef == nodeRightView.cstRef)
-            return sema.cstMgr().cstTrue();
+        {
+            result = sema.cstMgr().cstTrue();
+            return Result::Continue;
+        }
 
         auto leftCstRef  = nodeLeftView.cstRef;
         auto rightCstRef = nodeRightView.cstRef;
 
         if (!SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef))
-            return ConstantRef::invalid();
+            return Result::Stop;
         if (leftCstRef == rightCstRef)
-            return sema.cstMgr().cstTrue();
+        {
+            result = sema.cstMgr().cstTrue();
+            return Result::Continue;
+        }
 
         const auto& leftCst  = sema.cstMgr().get(leftCstRef);
         const auto& rightCst = sema.cstMgr().get(rightCstRef);
 
-        return sema.cstMgr().cstBool(leftCst.le(rightCst));
+        result = sema.cstMgr().cstBool(leftCst.le(rightCst));
+        return Result::Continue;
     }
 
-    ConstantRef constantFoldGreater(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    Result constantFoldGreater(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         auto leftCstRef  = nodeLeftView.cstRef;
         auto rightCstRef = nodeRightView.cstRef;
 
         if (!SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef))
-            return ConstantRef::invalid();
+            return Result::Stop;
         if (leftCstRef == rightCstRef)
-            return sema.cstMgr().cstFalse();
+        {
+            result = sema.cstMgr().cstFalse();
+            return Result::Continue;
+        }
 
         const auto& leftCst  = sema.cstMgr().get(leftCstRef);
         const auto& rightCst = sema.cstMgr().get(rightCstRef);
 
-        return sema.cstMgr().cstBool(leftCst.gt(rightCst));
+        result = sema.cstMgr().cstBool(leftCst.gt(rightCst));
+        return Result::Continue;
     }
 
-    ConstantRef constantFoldGreaterEqual(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    Result constantFoldGreaterEqual(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         if (nodeLeftView.cstRef == nodeRightView.cstRef)
-            return sema.cstMgr().cstTrue();
+        {
+            result = sema.cstMgr().cstTrue();
+            return Result::Continue;
+        }
 
         auto leftCstRef  = nodeLeftView.cstRef;
         auto rightCstRef = nodeRightView.cstRef;
 
         if (!SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef))
-            return ConstantRef::invalid();
+            return Result::Stop;
         if (leftCstRef == rightCstRef)
-            return sema.cstMgr().cstTrue();
+        {
+            result = sema.cstMgr().cstTrue();
+            return Result::Continue;
+        }
 
         const auto& leftCst  = sema.cstMgr().get(leftCstRef);
         const auto& rightCst = sema.cstMgr().get(rightCstRef);
 
-        return sema.cstMgr().cstBool(leftCst.ge(rightCst));
+        result = sema.cstMgr().cstBool(leftCst.ge(rightCst));
+        return Result::Continue;
     }
 
-    ConstantRef constantFoldCompareEqual(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    Result constantFoldCompareEqual(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         auto leftCstRef  = nodeLeftView.cstRef;
         auto rightCstRef = nodeRightView.cstRef;
 
         if (!SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef))
-            return ConstantRef::invalid();
+            return Result::Stop;
 
         const auto& left  = sema.cstMgr().get(leftCstRef);
         const auto& right = sema.cstMgr().get(rightCstRef);
 
-        int result;
+        int val;
         if (leftCstRef == rightCstRef)
-            result = 0;
+            val = 0;
         else if (left.lt(right))
-            result = -1;
+            val = -1;
         else if (right.lt(left))
-            result = 1;
+            val = 1;
         else
-            result = 0;
+            val = 0;
 
-        return sema.cstMgr().cstS32(result);
+        result = sema.cstMgr().cstS32(val);
+        return Result::Continue;
     }
 
-    ConstantRef constantFold(Sema& sema, TokenId op, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    Result constantFold(Sema& sema, ConstantRef& result, TokenId op, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         switch (op)
         {
             case TokenId::SymEqualEqual:
-                return constantFoldEqual(sema, nodeLeftView, nodeRightView);
+                return constantFoldEqual(sema, result, nodeLeftView, nodeRightView);
 
             case TokenId::SymBangEqual:
-                return sema.cstMgr().cstNegBool(constantFoldEqual(sema, nodeLeftView, nodeRightView));
+                RESULT_VERIFY(constantFoldEqual(sema, result, nodeLeftView, nodeRightView));
+                result = sema.cstMgr().cstNegBool(result);
+                return Result::Continue;
 
             case TokenId::SymLess:
-                return constantFoldLess(sema, nodeLeftView, nodeRightView);
+                return constantFoldLess(sema, result, nodeLeftView, nodeRightView);
 
             case TokenId::SymLessEqual:
-                return constantFoldLessEqual(sema, nodeLeftView, nodeRightView);
+                return constantFoldLessEqual(sema, result, nodeLeftView, nodeRightView);
 
             case TokenId::SymGreater:
-                return constantFoldGreater(sema, nodeLeftView, nodeRightView);
+                return constantFoldGreater(sema, result, nodeLeftView, nodeRightView);
 
             case TokenId::SymGreaterEqual:
-                return constantFoldGreaterEqual(sema, nodeLeftView, nodeRightView);
+                return constantFoldGreaterEqual(sema, result, nodeLeftView, nodeRightView);
 
             case TokenId::SymLessEqualGreater:
-                return constantFoldCompareEqual(sema, nodeLeftView, nodeRightView);
+                return constantFoldCompareEqual(sema, result, nodeLeftView, nodeRightView);
 
             default:
-                return ConstantRef::invalid();
+                return Result::Stop;
         }
     }
 
@@ -246,14 +281,10 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
     // Constant folding
     if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())
     {
-        const ConstantRef cst = constantFold(sema, tok.id, nodeLeftView, nodeRightView);
-        if (cst.isValid())
-        {
-            sema.setConstant(sema.curNodeRef(), cst);
-            return Result::Continue;
-        }
-
-        return Result::Stop;
+        ConstantRef result;
+        RESULT_VERIFY(constantFold(sema, result, tok.id, nodeLeftView, nodeRightView));
+        sema.setConstant(sema.curNodeRef(), result);
+        return Result::Continue;
     }
 
     return SemaError::raiseInternal(sema, *this);

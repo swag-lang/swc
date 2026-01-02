@@ -473,6 +473,7 @@ struct AstParenExpr : AstNodeT<AstNodeId::ParenExpr>
 // -----------------------------------------------------------------------------
 struct AstNamedArgumentList : AstCompoundT<AstNodeId::NamedArgumentList>
 {
+    static Result semaPerNode(Sema&) { return Result::SkipChildren; }
 };
 
 // -----------------------------------------------------------------------------

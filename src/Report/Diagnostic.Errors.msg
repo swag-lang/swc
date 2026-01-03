@@ -118,5 +118,6 @@ SWC_DIAG_DEF(sema_err_flag_enum_power_2, Error, "Cannot deduce enum flags value 
 SWC_DIAG_DEF(sema_err_invalid_sizeof, Error, "Invalid '#sizeof' expression")
 SWC_DIAG_DEF(sema_err_invalid_alignof, Error, "Invalid '#alignof' expression")
 SWC_DIAG_DEF(sema_err_invalid_offsetof, Error, "Invalid '#offsetof' expression")
+SWC_DIAG_DEF(sema_err_invalid_alias, Error, "Invalid 'alias' expression")
 SWC_DIAG_DEF(sema_err_struct_circular_reference, Error, "Circular reference detected in struct definition")
 SWC_DIAG_DEF(sema_err_cyclic_dependency, Error, "Cyclic dependency detected of symbol {sym}")

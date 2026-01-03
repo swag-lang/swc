@@ -344,7 +344,6 @@ namespace
         const SemaNodeView nodeView(sema, node.nodeArgRef);
         if (!nodeView.type)
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, node.nodeArgRef);
-
         if (!nodeView.type->isCompleted(sema.ctx()))
             return sema.waitCompleted(nodeView.type, node.nodeArgRef);
 

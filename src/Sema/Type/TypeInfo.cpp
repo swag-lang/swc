@@ -34,6 +34,7 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
         case TypeInfoKind::BlockPointer:
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
+        case TypeInfoKind::Alias:
             asTypeRef = other.asTypeRef;
             break;
 
@@ -98,6 +99,7 @@ TypeInfo& TypeInfo::operator=(const TypeInfo& other)
         case TypeInfoKind::BlockPointer:
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
+        case TypeInfoKind::Alias:
             asTypeRef = other.asTypeRef;
             break;
 
@@ -143,10 +145,12 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
             return asInt.bits == other.asInt.bits && asInt.sign == other.asInt.sign;
         case TypeInfoKind::Float:
             return asFloat.bits == other.asFloat.bits;
+
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
+        case TypeInfoKind::Alias:
             return asTypeRef.typeRef == other.asTypeRef.typeRef;
 
         case TypeInfoKind::Enum:
@@ -222,6 +226,13 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
                 out += std::format("typeinfo({})", type.toName(ctx));
             }
             break;
+
+        case TypeInfoKind::Alias:
+        {
+            const TypeInfo& type = ctx.typeMgr().get(asTypeRef.typeRef);
+            out += std::format("alias({})", type.toName(ctx));
+            break;
+        }
 
         case TypeInfoKind::ValuePointer:
         {
@@ -382,6 +393,14 @@ TypeInfo TypeInfo::makeInterface(SymbolInterface* itfSym)
     return ti;
 }
 
+TypeInfo TypeInfo::makeAlias(TypeRef pointeeTypeRef)
+{
+    TypeInfo ti{TypeInfoKind::Alias};
+    ti.asTypeRef.typeRef = pointeeTypeRef;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return ti;
+}
+
 TypeInfo TypeInfo::makeValuePointer(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 {
     TypeInfo ti{TypeInfoKind::ValuePointer, flags};
@@ -442,6 +461,7 @@ uint32_t TypeInfo::hash() const
         case TypeInfoKind::BlockPointer:
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
+        case TypeInfoKind::Alias:
             h = Math::hashCombine(h, asTypeRef.typeRef.get());
             return h;
         case TypeInfoKind::Enum:
@@ -462,13 +482,6 @@ uint32_t TypeInfo::hash() const
         default:
             SWC_UNREACHABLE();
     }
-}
-
-// ReSharper disable once CppPossiblyUninitializedMember
-TypeInfo::TypeInfo(TypeInfoKind kind, TypeInfoFlags flags) :
-    kind_(kind),
-    flags_(flags)
-{
 }
 
 uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
@@ -515,6 +528,7 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
             return enumSym().sizeOf(ctx);
 
         case TypeInfoKind::TypeValue:
+        case TypeInfoKind::Alias:
             return ctx.typeMgr().get(asTypeRef.typeRef).sizeOf(ctx);
 
         default:
@@ -550,6 +564,7 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
             return enumSym().underlyingType(ctx).alignOf(ctx);
 
         case TypeInfoKind::TypeValue:
+        case TypeInfoKind::Alias:
             return ctx.typeMgr().get(asTypeRef.typeRef).alignOf(ctx);
 
         default:
@@ -570,6 +585,7 @@ bool TypeInfo::isCompleted(TaskContext& ctx) const
         case TypeInfoKind::Array:
             return ctx.typeMgr().get(asArray.typeRef).isCompleted(ctx);
         case TypeInfoKind::TypeValue:
+        case TypeInfoKind::Alias:
             return ctx.typeMgr().get(asTypeRef.typeRef).isCompleted(ctx);
         default:
             break;
@@ -591,12 +607,20 @@ Symbol* TypeInfo::getSymbolDependency(TaskContext& ctx) const
         case TypeInfoKind::Array:
             return ctx.typeMgr().get(asArray.typeRef).getSymbolDependency(ctx);
         case TypeInfoKind::TypeValue:
+        case TypeInfoKind::Alias:
             return ctx.typeMgr().get(asTypeRef.typeRef).getSymbolDependency(ctx);
         default:
             break;
     }
 
     return nullptr;
+}
+
+// ReSharper disable once CppPossiblyUninitializedMember
+TypeInfo::TypeInfo(TypeInfoKind kind, TypeInfoFlags flags) :
+    kind_(kind),
+    flags_(flags)
+{
 }
 
 SWC_END_NAMESPACE()

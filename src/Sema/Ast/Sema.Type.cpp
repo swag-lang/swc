@@ -317,7 +317,18 @@ Result AstAliasDecl::semaPostNode(Sema& sema) const
     }
 
     sym.setAliasedSymbol(nodeView.sym);
-    sym.setTypeRef(nodeView.typeRef);
+
+    if (sym.isStrict())
+    {
+        const TypeInfo ty      = TypeInfo::makeAlias(nodeView.typeRef);
+        const TypeRef  typeRef = sema.typeMgr().addType(ty);
+        sym.setTypeRef(typeRef);
+    }
+    else
+    {
+        sym.setTypeRef(nodeView.typeRef);
+    }
+
     sym.setTyped(sema.ctx());
     sym.setCompleted(sema.ctx());
     return Result::Continue;

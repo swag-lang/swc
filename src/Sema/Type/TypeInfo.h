@@ -37,6 +37,7 @@ enum class TypeInfoKind : uint8_t
     Array,
     Struct,
     Interface,
+    Alias,
 };
 
 class TypeInfo;
@@ -96,6 +97,7 @@ public:
     bool isPointer() const noexcept { return isValuePointer() || isBlockPointer(); }
     bool isSlice() const noexcept { return kind_ == TypeInfoKind::Slice; }
     bool isArray() const noexcept { return kind_ == TypeInfoKind::Array; }
+    bool isAlias() const noexcept { return kind_ == TypeInfoKind::Alias; }
 
     bool isCharRune() const noexcept { return isChar() || isRune(); }
     bool isIntLike() const noexcept { return isInt() || isCharRune(); }
@@ -112,7 +114,7 @@ public:
     SymbolEnum&      enumSym() const noexcept { SWC_ASSERT(isEnum()); return *asEnum.sym; }
     SymbolStruct&    structSym() const noexcept { SWC_ASSERT(isStruct()); return *asStruct.sym; }
     SymbolInterface& interfaceSym() const noexcept { SWC_ASSERT(isInterface()); return *asInterface.sym; }
-    TypeRef          typeRef() const noexcept { SWC_ASSERT(isTypeValue() || isPointer() || isSlice()); return asTypeRef.typeRef; }
+    TypeRef          typeRef() const noexcept { SWC_ASSERT(isTypeValue() || isPointer() || isSlice() || isAlias()); return asTypeRef.typeRef; }
     auto&            arrayDims() const noexcept { SWC_ASSERT(isArray()); return asArray.dims; }
     TypeRef          arrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return asArray.typeRef; }
     // clang-format on
@@ -130,6 +132,7 @@ public:
     static TypeInfo makeEnum(SymbolEnum* enumSym);
     static TypeInfo makeStruct(SymbolStruct* structSym);
     static TypeInfo makeInterface(SymbolInterface* itfSym);
+    static TypeInfo makeAlias(TypeRef pointeeTypeRef);
     static TypeInfo makeValuePointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);

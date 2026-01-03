@@ -279,22 +279,4 @@ void TypeManager::buildPromoteTable()
     }
 }
 
-TypeRef TypeManager::resolveNonStrictAlias(TypeRef typeRef) const
-{
-    while (typeRef.isValid())
-    {
-        const TypeInfo& type = get(typeRef);
-        if (!type.isAlias())
-            break;
-
-        const auto& symAlias = type.aliasSym();
-        if (symAlias.isStrict())
-            break;
-
-        typeRef = symAlias.underlyingTypeRef();
-    }
-
-    return typeRef;
-}
-
 SWC_END_NAMESPACE()

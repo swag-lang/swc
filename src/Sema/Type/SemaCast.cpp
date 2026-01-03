@@ -262,6 +262,36 @@ namespace
     }
 }
 
+namespace
+{
+    bool checkStrictAliasForCast(const SymbolAlias& symAlias, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef, bool isDstAlias)
+    {
+        if (!symAlias.isStrict())
+            return true;
+
+        if (isDstAlias)
+        {
+            // dst strict alias: allow explicit + initialization
+            if (castCtx.kind != CastKind::Explicit && castCtx.kind != CastKind::Initialization)
+            {
+                castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                return false;
+            }
+        }
+        else
+        {
+            // src strict alias: explicit only
+            if (castCtx.kind != CastKind::Explicit)
+            {
+                castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                return false;
+            }
+        }
+
+        return true;
+    }
+}
+
 bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const auto& typeMgr = sema.ctx().typeMgr();
@@ -276,21 +306,15 @@ bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef,
     if (srcType.isAlias())
     {
         const auto& symAlias = srcType.aliasSym();
-        if (symAlias.isStrict() && castCtx.kind != CastKind::Explicit)
-        {
-            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        if (!checkStrictAliasForCast(symAlias, castCtx, srcTypeRef, dstTypeRef, /*isDstAlias*/ false))
             return false;
-        }
         ok = castAllowed(sema, castCtx, symAlias.underlyingTypeRef(), dstTypeRef);
     }
     else if (dstType.isAlias())
     {
         const auto& symAlias = dstType.aliasSym();
-        if (symAlias.isStrict() && castCtx.kind != CastKind::Explicit && castCtx.kind != CastKind::Initialization)
-        {
-            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        if (!checkStrictAliasForCast(symAlias, castCtx, srcTypeRef, dstTypeRef, /*isDstAlias*/ true))
             return false;
-        }
         ok = castAllowed(sema, castCtx, srcTypeRef, symAlias.underlyingTypeRef());
     }
     else if (castCtx.flags.has(CastFlagsE::BitCast))

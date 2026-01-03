@@ -16,3 +16,13 @@ const C_DWORD2: u32 = cast(u32) A_DWORD2
 
 #[Swag.Strict]
 alias SSW1 = Swag // swc-expected-error {{sema_err_not_type}}
+
+#[Swag.Strict]
+{
+    alias Meters = s32
+    alias Seconds = s32
+}
+
+var m: Meters
+var s1: Seconds = m                 // swc-expected-error {{sema_err_cannot_cast}}
+var s2: Seconds = cast(Seconds) m

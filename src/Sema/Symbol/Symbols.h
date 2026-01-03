@@ -177,6 +177,7 @@ public:
     const Symbol* aliasedSymbol() const { return aliasedSymbol_; }
     void          setAliasedSymbol(const Symbol* sym) { aliasedSymbol_ = sym; }
     bool          isStrict() const { return attributes().hasFlag(AttributeFlagsE::Strict); }
+    uint64_t      sizeOf(TaskContext& ctx) const { return type(ctx).sizeOf(ctx); }
 
 private:
     const Symbol* aliasedSymbol_ = nullptr;

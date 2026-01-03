@@ -14,6 +14,9 @@ alias DWORD2 = u32
 #[Swag.Strict]
 alias SSW1 = Swag // swc-expected-error {{sema_err_not_type}}
 
+alias SRWLOCK = *void
+//const SRWLOCK_INIT: *void = null
+
 /*
 namespace TOTO
 {

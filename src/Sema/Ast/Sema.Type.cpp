@@ -320,7 +320,7 @@ Result AstAliasDecl::semaPostNode(Sema& sema) const
 
     if (sym.isStrict())
     {
-        const TypeInfo ty      = TypeInfo::makeAlias(nodeView.typeRef);
+        const TypeInfo ty      = TypeInfo::makeAlias(&sym);
         const TypeRef  typeRef = sema.typeMgr().addType(ty);
         sym.setTypeRef(typeRef);
     }

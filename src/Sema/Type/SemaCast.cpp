@@ -317,19 +317,8 @@ bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef,
 
     if (ok && castCtx.isFolding())
     {
-        TypeRef finalTypeRef = dstTypeRef;
-        while (true)
-        {
-            const TypeInfo& finalType = typeMgr.get(finalTypeRef);
-            if (finalType.isAlias() && !finalType.aliasSym().isStrict())
-            {
-                finalTypeRef = finalType.aliasSym().underlyingTypeRef();
-                continue;
-            }
-            break;
-        }
-
-        ConstantValue resCst = sema.cstMgr().get(castCtx.outConstRef);
+        const TypeRef finalTypeRef = typeMgr.resolveNonStrictAlias(dstTypeRef);
+        ConstantValue resCst       = sema.cstMgr().get(castCtx.outConstRef);
         if (resCst.typeRef() != finalTypeRef)
         {
             resCst.setTypeRef(finalTypeRef);

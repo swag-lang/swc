@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Sema/Type/TypeManager.h"
 #include "Main/Stats.h"
+#include "Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -276,6 +277,24 @@ void TypeManager::buildPromoteTable()
             promoteTable_[i][j] = computePromotion(lhs, rhs);
         }
     }
+}
+
+TypeRef TypeManager::resolveNonStrictAlias(TypeRef typeRef) const
+{
+    while (typeRef.isValid())
+    {
+        const TypeInfo& type = get(typeRef);
+        if (!type.isAlias())
+            break;
+
+        const auto& symAlias = type.aliasSym();
+        if (symAlias.isStrict())
+            break;
+
+        typeRef = symAlias.underlyingTypeRef();
+    }
+
+    return typeRef;
 }
 
 SWC_END_NAMESPACE()

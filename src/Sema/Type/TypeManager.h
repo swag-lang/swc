@@ -27,6 +27,7 @@ public:
 
     TypeRef         promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const;
     static uint32_t chooseConcreteScalarWidth(uint32_t minRequiredBits, bool& overflow);
+    TypeRef         resolveNonStrictAlias(TypeRef typeRef) const;
 
     // clang-format off
     TypeRef enumTargetOs() const                { std::shared_lock lk(mutexRt_); return enumTargetOs_; }

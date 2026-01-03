@@ -15,9 +15,9 @@ SWC_BEGIN_NAMESPACE()
 Result AstVarDecl::semaPreDecl(Sema& sema) const
 {
     if (hasParserFlag(Const))
-        SemaHelpers::declareNamedSymbol<SymbolConstant>(sema, *this, tokNameRef);
+        SemaHelpers::registerSymbol<SymbolConstant>(sema, *this, tokNameRef);
     else
-        SemaHelpers::declareNamedSymbol<SymbolVariable>(sema, *this, tokNameRef);
+        SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
     return Result::SkipChildren;
 }
 

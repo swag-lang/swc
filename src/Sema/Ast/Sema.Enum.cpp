@@ -15,7 +15,7 @@ SWC_BEGIN_NAMESPACE()
 
 Result AstEnumDecl::semaPreDecl(Sema& sema) const
 {
-    SemaHelpers::declareNamedSymbol<SymbolEnum>(sema, *this, tokNameRef);
+    SemaHelpers::registerSymbol<SymbolEnum>(sema, *this, tokNameRef);
     return Result::Continue;
 }
 

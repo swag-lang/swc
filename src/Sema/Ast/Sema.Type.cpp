@@ -288,7 +288,7 @@ Result AstCompilerTypeExpr::semaPostNode(Sema& sema)
 
 Result AstAliasDecl::semaPreDecl(Sema& sema) const
 {
-    SemaHelpers::declareNamedSymbol<SymbolAlias>(sema, *this, tokNameRef);
+    SemaHelpers::registerSymbol<SymbolAlias>(sema, *this, tokNameRef);
     return Result::SkipChildren;
 }
 

@@ -54,7 +54,7 @@ Result AstAccessModifier::semaPostNode(Sema& sema)
 
 Result AstAttrDecl::semaPreDecl(Sema& sema) const
 {
-    SymbolAttribute& sym = SemaHelpers::declareNamedSymbol<SymbolAttribute>(sema, *this, tokNameRef);
+    SymbolAttribute& sym = SemaHelpers::registerSymbol<SymbolAttribute>(sema, *this, tokNameRef);
 
     // Predefined attributes
     if (sym.symMap()->isSwagNamespace(sema.ctx()))

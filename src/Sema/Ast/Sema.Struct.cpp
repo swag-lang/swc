@@ -13,7 +13,7 @@ SWC_BEGIN_NAMESPACE()
 
 Result AstStructDecl::semaPreDecl(Sema& sema) const
 {
-    SemaHelpers::declareNamedSymbol<SymbolStruct>(sema, *this, tokNameRef);
+    SemaHelpers::registerSymbol<SymbolStruct>(sema, *this, tokNameRef);
     return Result::SkipChildren;
 }
 

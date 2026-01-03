@@ -34,11 +34,11 @@ Result AstVarDecl::semaPostNode(Sema& sema) const
     auto&              ctx = sema.ctx();
     SemaNodeView       nodeInitView(sema, nodeInitRef);
     const SemaNodeView nodeTypeView(sema, nodeTypeRef);
-
+    
     // Implicit cast from initializer to the specified type
     if (nodeInitView.typeRef.isValid() && nodeTypeView.typeRef.isValid())
     {
-        CastContext castCtx(CastKind::Implicit);
+        CastContext castCtx(CastKind::Initialization);
         castCtx.errorNodeRef = nodeInitRef;
 
         if (!SemaCast::castAllowed(sema, castCtx, nodeInitView.typeRef, nodeTypeView.typeRef))
@@ -90,7 +90,7 @@ Result AstVarDecl::semaPostNode(Sema& sema) const
 
         if (nodeTypeRef.isValid() && nodeTypeView.typeRef.isValid())
         {
-            CastContext castCtx(CastKind::Implicit);
+            CastContext castCtx(CastKind::Initialization);
             castCtx.errorNodeRef = nodeInitRef;
             ConstantRef newCstRef;
             RESULT_VERIFY(SemaCast::castConstant(sema, newCstRef, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef));

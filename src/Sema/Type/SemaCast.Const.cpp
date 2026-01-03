@@ -5,6 +5,7 @@
 #include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
+#include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/CastContext.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -330,6 +331,7 @@ Result SemaCast::castConstant(Sema& sema, ConstantRef& result, CastContext& cast
     const bool ok = castAllowed(sema, castCtx, srcTypeRef, targetTypeRef);
     if (!ok)
         return emitCastFailure(sema, castCtx.failure);
+
     result = castCtx.outConstRef;
     return Result::Continue;
 }

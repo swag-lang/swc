@@ -41,6 +41,7 @@ public:
 
     ConstantKind kind() const { return kind_; }
     TypeRef      typeRef() const { return typeRef_; }
+    void         setTypeRef(TypeRef ref) { typeRef_ = ref; }
     bool         isValid() const { return kind_ != ConstantKind::Invalid; }
     bool         isBool() const { return kind_ == ConstantKind::Bool; }
     bool         isChar() const { return kind_ == ConstantKind::Char; }

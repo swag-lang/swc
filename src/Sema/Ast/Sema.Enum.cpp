@@ -144,7 +144,7 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
             return SemaError::raiseExprNotConst(sema, nodeInitRef);
 
         // Cast initializer constant to the underlying type
-        CastContext castCtx(CastKind::Implicit);
+        CastContext castCtx(CastKind::Initialization);
         castCtx.errorNodeRef = nodeInitRef;
         RESULT_VERIFY(SemaCast::castConstant(sema, valueCst, castCtx, nodeInitView.cstRef, underlyingTypeRef));
         if (underlyingType.isInt())

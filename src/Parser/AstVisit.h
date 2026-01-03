@@ -35,6 +35,15 @@ public:
     const Ast& ast() const { return *ast_; }
     Ast&       ast() { return *ast_; }
 
+#if SWC_HAS_DEBUG_INFO
+    const SourceFile*  dbgSrcFile = nullptr;
+    const AstNode*     dbgNode    = nullptr;
+    const Token*       dbgTok     = nullptr;
+    std::string_view   dbgTokView;
+    TokenRef           dbgTokRef = TokenRef::invalid();
+    SourceCodeLocation dbgLoc;
+#endif
+
 private:
     struct Frame
     {
@@ -64,15 +73,6 @@ private:
     SmallVector<AstNodeRef> children_;
 
     AstNode* parentNodeInternal(size_t up) const;
-
-#if SWC_HAS_DEBUG_INFO
-    const SourceFile*  dbgSrcFile_ = nullptr;
-    const AstNode*     dbgNode_    = nullptr;
-    const Token*       dbgTok_     = nullptr;
-    std::string_view   dbgTokView_;
-    TokenRef           dbgTokRef_ = TokenRef::invalid();
-    SourceCodeLocation dbgLoc_;
-#endif
 };
 
 SWC_END_NAMESPACE()

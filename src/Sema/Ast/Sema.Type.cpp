@@ -317,6 +317,7 @@ Result AstAliasDecl::semaPostNode(Sema& sema) const
     }
 
     sym.setAliasedSymbol(nodeView.sym);
+    sym.setUnderlyingTypeRef(nodeView.typeRef);
 
     if (sym.isStrict())
     {

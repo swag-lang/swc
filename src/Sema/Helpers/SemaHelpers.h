@@ -30,6 +30,20 @@ namespace SemaHelpers
 
         return *sym;
     }
+
+    template<typename T>
+    void declareSymbol(Sema& sema, const T& node)
+    {
+        if (!sema.curScope().isTopLevel())
+        {
+            SWC_ASSERT(!sema.hasSymbol(sema.curNodeRef()));
+            node.semaPreDecl(sema);
+        }
+
+        Symbol& sym = sema.symbolOf(sema.curNodeRef());
+        sym.registerAttributes(sema);
+        sym.setDeclared(sema.ctx());
+    }
 }
 
 SWC_END_NAMESPACE()

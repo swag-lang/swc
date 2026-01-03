@@ -17,11 +17,9 @@ Result AstInterfaceDecl::semaPreDecl(Sema& sema) const
     return Result::SkipChildren;
 }
 
-void AstInterfaceDecl::semaEnterNode(Sema& sema)
+void AstInterfaceDecl::semaEnterNode(Sema& sema) const
 {
-    Symbol& sym = sema.symbolOf(sema.curNodeRef());
-    sym.registerAttributes(sema);
-    sym.setDeclared(sema.ctx());
+    SemaHelpers::declareSymbol(sema, *this);
 }
 
 Result AstInterfaceDecl::semaPreNode(Sema& sema)

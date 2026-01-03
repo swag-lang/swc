@@ -294,15 +294,7 @@ Result AstAliasDecl::semaPreDecl(Sema& sema) const
 
 void AstAliasDecl::semaEnterNode(Sema& sema) const
 {
-    if (!sema.curScope().isTopLevel())
-    {
-        SWC_ASSERT(!sema.hasSymbol(sema.curNodeRef()));
-        semaPreDecl(sema);
-    }
-
-    Symbol& sym = sema.symbolOf(sema.curNodeRef());
-    sym.registerAttributes(sema);
-    sym.setDeclared(sema.ctx());
+    SemaHelpers::declareSymbol(sema, *this);
 }
 
 Result AstAliasDecl::semaPreNode(Sema& sema)

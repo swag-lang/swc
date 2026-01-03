@@ -928,6 +928,7 @@ struct AstDependenciesBlock : AstCompoundT<AstNodeId::DependenciesBlock>
 // -----------------------------------------------------------------------------
 struct AstUsingDecl : AstCompoundT<AstNodeId::UsingDecl>
 {
+    Result semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

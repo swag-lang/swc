@@ -107,4 +107,26 @@ Result AstNamespaceDecl::semaPostNode(Sema& sema) const
     return semaPostDecl(sema);
 }
 
+Result AstUsingDecl::semaPostNode(Sema& sema) const
+{
+    SmallVector<AstNodeRef> nodeRefs;
+    sema.ast().nodes(nodeRefs, spanChildrenRef);
+    for (const auto& nodeRef : nodeRefs)
+    {
+        if (!sema.hasSymbol(nodeRef))
+            return SemaError::raiseInternal(sema, *this);
+        Symbol& sym = sema.symbolOf(nodeRef);
+
+        if (sym.isNamespace())
+        {
+            sema.curScope().addUsingSymMap(sym.asSymMap());
+            continue;
+        }
+        
+        return SemaError::raiseInternal(sema, *this);
+    }
+
+    return Result::Continue;
+}
+
 SWC_END_NAMESPACE()

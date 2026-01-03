@@ -22,18 +22,22 @@ public:
     {
     }
 
-    SemaScope*       parent() const { return parent_; }
-    SemaScopeFlags   flags() const { return flags_; }
-    bool             hasFlag(SemaScopeFlags flag) const { return flags_.has(flag); }
-    bool             isTopLevel() const { return hasFlag(SemaScopeFlagsE::TopLevel); }
+    SemaScope*     parent() const { return parent_; }
+    SemaScopeFlags flags() const { return flags_; }
+    bool           hasFlag(SemaScopeFlags flag) const { return flags_.has(flag); }
+    bool           isTopLevel() const { return hasFlag(SemaScopeFlagsE::TopLevel); }
+
     void             setSymMap(SymbolMap* symMap) { symMap_ = symMap; }
     SymbolMap*       symMap() { return symMap_; }
     const SymbolMap* symMap() const { return symMap_; }
 
+    void addUsingSymMap(SymbolMap* symMap) { usingSymMaps_.push_back(symMap); }
+
 private:
-    SemaScope*     parent_ = nullptr;
-    SemaScopeFlags flags_  = SemaScopeFlagsE::Zero;
-    SymbolMap*     symMap_ = nullptr;
+    SemaScope*              parent_ = nullptr;
+    SemaScopeFlags          flags_  = SemaScopeFlagsE::Zero;
+    SymbolMap*              symMap_ = nullptr;
+    SmallVector<SymbolMap*> usingSymMaps_;
 };
 
 SWC_END_NAMESPACE()

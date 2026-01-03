@@ -10,32 +10,45 @@ SWC_BEGIN_NAMESPACE()
 
 namespace
 {
-    void lookup(Sema& sema, LookUpContext& lookUpCxt, IdentifierRef idRef)
+    void collect(Sema& sema, LookUpContext& lookUpCxt)
     {
-        lookUpCxt.symbols().clear();
+        lookUpCxt.symMaps.clear();
 
         if (lookUpCxt.symMapHint)
         {
-            lookUpCxt.symMapHint->lookupAppend(idRef, lookUpCxt);
+            lookUpCxt.symMaps.push_back(lookUpCxt.symMapHint);
         }
         else
         {
-            const SymbolMap* symMap = sema.curScope().symMap();
-            while (symMap)
+            const SemaScope* scope = &sema.curScope();
+            while (scope)
             {
-                symMap->lookupAppend(idRef, lookUpCxt);
-                symMap = symMap->symMap();
+                if (const auto* symMap = scope->symMap())
+                    lookUpCxt.symMaps.push_back(symMap);
+                for (const auto* usingSymMap : scope->usingSymMaps())
+                    lookUpCxt.symMaps.push_back(usingSymMap);
+                scope = scope->parent();
             }
 
-            sema.semaInfo().fileNamespace().lookupAppend(idRef, lookUpCxt);
-            sema.semaInfo().moduleNamespace().lookupAppend(idRef, lookUpCxt);
+            lookUpCxt.symMaps.push_back(&sema.semaInfo().fileNamespace());
+            lookUpCxt.symMaps.push_back(&sema.semaInfo().moduleNamespace());
+        }
+    }
+
+    void lookup(LookUpContext& lookUpCxt, IdentifierRef idRef)
+    {
+        lookUpCxt.symbols().clear();
+        for (const auto* symMap : lookUpCxt.symMaps)
+        {
+            symMap->lookupAppend(idRef, lookUpCxt);
         }
     }
 }
 
 Result SemaMatch::match(Sema& sema, LookUpContext& lookUpCxt, IdentifierRef idRef)
 {
-    lookup(sema, lookUpCxt, idRef);
+    collect(sema, lookUpCxt);
+    lookup(lookUpCxt, idRef);
     if (lookUpCxt.empty())
         return sema.waitIdentifier(idRef, lookUpCxt.srcViewRef, lookUpCxt.tokRef);
 
@@ -59,7 +72,8 @@ Result SemaMatch::ghosting(Sema& sema, const Symbol& sym)
     lookUpCxt.srcViewRef = sym.srcViewRef();
     lookUpCxt.tokRef     = sym.tokRef();
 
-    lookup(sema, lookUpCxt, sym.idRef());
+    collect(sema, lookUpCxt);
+    lookup(lookUpCxt, sym.idRef());
     if (lookUpCxt.empty())
         return sema.waitIdentifier(sym.idRef(), sym.srcViewRef(), sym.tokRef());
 

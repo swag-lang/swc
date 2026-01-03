@@ -18,6 +18,7 @@ public:
     void clear()
     {
         symbols_.clear();
+        symMaps.clear();
         symMapHint = nullptr;
     }
 
@@ -34,6 +35,8 @@ public:
     bool                              empty() const { return symbols_.empty(); }
     size_t                            count() const { return symbols_.size(); }
     const Symbol*                     first() const { return symbols_.front(); }
+
+    SmallVector<const SymbolMap*> symMaps;
 
 private:
     SmallVector<const Symbol*> symbols_;

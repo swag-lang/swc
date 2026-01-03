@@ -34,7 +34,6 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
         case TypeInfoKind::BlockPointer:
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
-        case TypeInfoKind::Alias:
             asTypeRef = other.asTypeRef;
             break;
 
@@ -46,6 +45,9 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
             break;
         case TypeInfoKind::Interface:
             asInterface = other.asInterface;
+            break;
+        case TypeInfoKind::Alias:
+            asAlias = other.asAlias;
             break;
 
         case TypeInfoKind::Array:
@@ -99,7 +101,6 @@ TypeInfo& TypeInfo::operator=(const TypeInfo& other)
         case TypeInfoKind::BlockPointer:
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
-        case TypeInfoKind::Alias:
             asTypeRef = other.asTypeRef;
             break;
 
@@ -111,6 +112,9 @@ TypeInfo& TypeInfo::operator=(const TypeInfo& other)
             break;
         case TypeInfoKind::Interface:
             asInterface = other.asInterface;
+            break;
+        case TypeInfoKind::Alias:
+            asAlias = other.asAlias;
             break;
 
         case TypeInfoKind::Array:
@@ -150,7 +154,6 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
         case TypeInfoKind::BlockPointer:
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
-        case TypeInfoKind::Alias:
             return asTypeRef.typeRef == other.asTypeRef.typeRef;
 
         case TypeInfoKind::Enum:
@@ -159,6 +162,8 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
             return asStruct.sym == other.asStruct.sym;
         case TypeInfoKind::Interface:
             return asInterface.sym == other.asInterface.sym;
+        case TypeInfoKind::Alias:
+            return asAlias.sym == other.asAlias.sym;
 
         case TypeInfoKind::Array:
             if (asArray.dims.size() != other.asArray.dims.size())
@@ -216,6 +221,9 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
         case TypeInfoKind::Interface:
             out += std::format("interface {}", asInterface.sym->name(ctx));
             break;
+        case TypeInfoKind::Alias:
+            out += std::format("alias {}", asAlias.sym->name(ctx));
+            break;
 
         case TypeInfoKind::TypeValue:
             if (asTypeRef.typeRef.isInvalid())
@@ -226,13 +234,6 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
                 out += std::format("typeinfo({})", type.toName(ctx));
             }
             break;
-
-        case TypeInfoKind::Alias:
-        {
-            const TypeInfo& type = ctx.typeMgr().get(asTypeRef.typeRef);
-            out += std::format("alias({})", type.toName(ctx));
-            break;
-        }
 
         case TypeInfoKind::ValuePointer:
         {
@@ -369,34 +370,34 @@ TypeInfo TypeInfo::makeCString(TypeInfoFlags flags)
     return TypeInfo{TypeInfoKind::CString, flags};
 }
 
-TypeInfo TypeInfo::makeEnum(SymbolEnum* enumSym)
+TypeInfo TypeInfo::makeEnum(SymbolEnum* sym)
 {
     TypeInfo ti{TypeInfoKind::Enum};
-    ti.asEnum.sym = enumSym;
+    ti.asEnum.sym = sym;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
 
-TypeInfo TypeInfo::makeStruct(SymbolStruct* structSym)
+TypeInfo TypeInfo::makeStruct(SymbolStruct* sym)
 {
     TypeInfo ti{TypeInfoKind::Struct};
-    ti.asStruct.sym = structSym;
+    ti.asStruct.sym = sym;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
 
-TypeInfo TypeInfo::makeInterface(SymbolInterface* itfSym)
+TypeInfo TypeInfo::makeInterface(SymbolInterface* sym)
 {
     TypeInfo ti{TypeInfoKind::Interface};
-    ti.asInterface.sym = itfSym;
+    ti.asInterface.sym = sym;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
 
-TypeInfo TypeInfo::makeAlias(TypeRef pointeeTypeRef)
+TypeInfo TypeInfo::makeAlias(SymbolAlias* sym)
 {
     TypeInfo ti{TypeInfoKind::Alias};
-    ti.asTypeRef.typeRef = pointeeTypeRef;
+    ti.asAlias.sym = sym;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -461,7 +462,6 @@ uint32_t TypeInfo::hash() const
         case TypeInfoKind::BlockPointer:
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
-        case TypeInfoKind::Alias:
             h = Math::hashCombine(h, asTypeRef.typeRef.get());
             return h;
         case TypeInfoKind::Enum:
@@ -472,6 +472,9 @@ uint32_t TypeInfo::hash() const
             return h;
         case TypeInfoKind::Interface:
             h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asInterface.sym));
+            return h;
+        case TypeInfoKind::Alias:
+            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asAlias.sym));
             return h;
         case TypeInfoKind::Array:
             h = Math::hashCombine(h, asArray.typeRef.get());
@@ -526,9 +529,10 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
             return structSym().sizeOf();
         case TypeInfoKind::Enum:
             return enumSym().sizeOf(ctx);
+        case TypeInfoKind::Alias:
+            return aliasSym().sizeOf(ctx);
 
         case TypeInfoKind::TypeValue:
-        case TypeInfoKind::Alias:
             return ctx.typeMgr().get(asTypeRef.typeRef).sizeOf(ctx);
 
         default:
@@ -562,9 +566,10 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
             return structSym().alignment();
         case TypeInfoKind::Enum:
             return enumSym().underlyingType(ctx).alignOf(ctx);
+        case TypeInfoKind::Alias:
+            return aliasSym().type(ctx).alignOf(ctx);
 
         case TypeInfoKind::TypeValue:
-        case TypeInfoKind::Alias:
             return ctx.typeMgr().get(asTypeRef.typeRef).alignOf(ctx);
 
         default:
@@ -582,10 +587,12 @@ bool TypeInfo::isCompleted(TaskContext& ctx) const
             return enumSym().isCompleted();
         case TypeInfoKind::Interface:
             return interfaceSym().isCompleted();
+        case TypeInfoKind::Alias:
+            return aliasSym().isCompleted();
+
         case TypeInfoKind::Array:
             return ctx.typeMgr().get(asArray.typeRef).isCompleted(ctx);
         case TypeInfoKind::TypeValue:
-        case TypeInfoKind::Alias:
             return ctx.typeMgr().get(asTypeRef.typeRef).isCompleted(ctx);
         default:
             break;
@@ -604,10 +611,12 @@ Symbol* TypeInfo::getSymbolDependency(TaskContext& ctx) const
             return &enumSym();
         case TypeInfoKind::Interface:
             return &interfaceSym();
+        case TypeInfoKind::Alias:
+            return &aliasSym();
+
         case TypeInfoKind::Array:
             return ctx.typeMgr().get(asArray.typeRef).getSymbolDependency(ctx);
         case TypeInfoKind::TypeValue:
-        case TypeInfoKind::Alias:
             return ctx.typeMgr().get(asTypeRef.typeRef).getSymbolDependency(ctx);
         default:
             break;

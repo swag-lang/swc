@@ -5,6 +5,7 @@
 #include "Parser/AstNode.h"
 #include "Sema/Core/AttributeList.h"
 #include "Sema/Type/TypeInfo.h"
+#include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -65,6 +66,7 @@ public:
     IdentifierRef      idRef() const noexcept { return idRef_; }
     TypeRef            typeRef() const noexcept { return typeRef_; }
     void               setTypeRef(TypeRef typeRef) noexcept { typeRef_ = typeRef; }
+    const TypeInfo&    type(TaskContext& ctx) const { return ctx.typeMgr().get(typeRef_); }
     const AstNode*     decl() const noexcept { return decl_; }
     SourceViewRef      srcViewRef() const noexcept { return decl_->srcViewRef(); }
     TokenRef           tokRef() const noexcept { return tokRef_; }

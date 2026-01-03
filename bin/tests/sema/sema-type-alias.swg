@@ -9,6 +9,7 @@ const A: DWORD1 = 0
 
 #[Swag.Strict]
 alias DWORD2 = u32
+//const BasedOnDWORD2: DWORD2 = 0
 
 #[Swag.Strict]
 alias SSW1 = Swag // swc-expected-error {{sema_err_not_type}}

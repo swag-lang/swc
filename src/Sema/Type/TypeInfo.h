@@ -7,6 +7,7 @@ class Symbol;
 class SymbolEnum;
 class SymbolStruct;
 class SymbolInterface;
+class SymbolAlias;
 class TypeManager;
 
 enum class TypeInfoFlagsE : uint8_t
@@ -114,6 +115,7 @@ public:
     SymbolEnum&      enumSym() const noexcept { SWC_ASSERT(isEnum()); return *asEnum.sym; }
     SymbolStruct&    structSym() const noexcept { SWC_ASSERT(isStruct()); return *asStruct.sym; }
     SymbolInterface& interfaceSym() const noexcept { SWC_ASSERT(isInterface()); return *asInterface.sym; }
+    SymbolAlias&     aliasSym() const noexcept { SWC_ASSERT(isAlias()); return *asAlias.sym; }
     TypeRef          typeRef() const noexcept { SWC_ASSERT(isTypeValue() || isPointer() || isSlice() || isAlias()); return asTypeRef.typeRef; }
     auto&            arrayDims() const noexcept { SWC_ASSERT(isArray()); return asArray.dims; }
     TypeRef          arrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return asArray.typeRef; }
@@ -129,10 +131,10 @@ public:
     static TypeInfo makeAny(TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeVoid();
     static TypeInfo makeCString(TypeInfoFlags flags = TypeInfoFlagsE::Zero);
-    static TypeInfo makeEnum(SymbolEnum* enumSym);
-    static TypeInfo makeStruct(SymbolStruct* structSym);
-    static TypeInfo makeInterface(SymbolInterface* itfSym);
-    static TypeInfo makeAlias(TypeRef pointeeTypeRef);
+    static TypeInfo makeEnum(SymbolEnum* sym);
+    static TypeInfo makeStruct(SymbolStruct* sym);
+    static TypeInfo makeInterface(SymbolInterface* sym);
+    static TypeInfo makeAlias(SymbolAlias* sym);
     static TypeInfo makeValuePointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
@@ -159,6 +161,7 @@ private:
         struct { SymbolEnum* sym; }                             asEnum;
         struct { SymbolStruct* sym; }                           asStruct;
         struct { SymbolInterface* sym; }                        asInterface;
+        struct { SymbolAlias* sym; }                            asAlias;
         struct { std::vector<uint64_t> dims; TypeRef typeRef; } asArray;
         // clang-format on
     };

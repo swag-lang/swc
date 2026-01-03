@@ -484,7 +484,7 @@ AstNodeRef Parser::parseFile()
     SmallVector<AstNodeRef> globals;
     while (is(TokenId::CompilerGlobal))
     {
-        auto global = parseCompilerGlobal();
+        AstNodeRef one = parseCompilerGlobal();
         if (ast_->hasFlag(AstFlagsE::GlobalSkip))
         {
             nodePtr->spanGlobalsRef.setInvalid();
@@ -492,11 +492,22 @@ AstNodeRef Parser::parseFile()
             return nodeRef;
         }
 
-        if (global.isValid())
-            globals.push_back(global);
+        if (one.isValid())
+            globals.push_back(one);
     }
 
     nodePtr->spanGlobalsRef = ast_->pushSpan(globals.span());
+
+    // Then using
+    SmallVector<AstNodeRef> usings;
+    while (is(TokenId::KwdUsing))
+    {
+        AstNodeRef one = parseUsing();
+        if (one.isValid())
+            usings.push_back(one);
+    }
+
+    nodePtr->spanUsingsRef = ast_->pushSpan(usings.span());
 
     // All the rest
     nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::Invalid);

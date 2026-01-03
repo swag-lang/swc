@@ -9,10 +9,12 @@ struct AstInvalid : AstNodeT<AstNodeId::Invalid>
 struct AstFile : AstCompoundT<AstNodeId::File>
 {
     SpanRef spanGlobalsRef;
+    SpanRef spanUsingsRef;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, ast, spanGlobalsRef);
+        AstNode::collectChildren(out, ast, spanUsingsRef);
         AstCompoundT::collectChildren(out, ast);
     }
 

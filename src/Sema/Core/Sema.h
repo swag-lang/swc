@@ -82,6 +82,7 @@ public:
     void             popScope();
     void             pushFrame(const SemaFrame& frame);
     void             popFrame();
+    bool             enteringState() const { return visit_.enteringState(); }
 
     Result      waitIdentifier(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef);
     Result      waitCompilerDefined(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef);
@@ -97,7 +98,6 @@ private:
     AstVisit     visit_;
 
     void   setVisitors();
-    void   enterNode(AstNode& node);
     Result preDecl(AstNode& node);
     Result preDeclChild(AstNode& node, AstNodeRef& childRef);
     Result postDecl(AstNode& node);

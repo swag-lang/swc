@@ -18,7 +18,7 @@ void AstVisit::start(Ast& ast, AstNodeRef root)
 
     Frame fr;
     fr.nodeRef = root;
-    fr.stage   = Frame::Stage::Enter;
+    fr.stage   = Frame::Stage::Pre;
     stack_.push_back(fr);
 }
 
@@ -40,29 +40,26 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
 
     switch (fr.stage)
     {
-        case Frame::Stage::Enter:
-        {
-            SWC_ASSERT(fr.nodeRef.isValid());
-            fr.node = &ast_->node(fr.nodeRef);
-            SWC_ASSERT(fr.node->isNot(AstNodeId::Invalid));
-            SWC_ASSERT(fr.node->id() < AstNodeId::Count);
-
-#if SWC_HAS_STATS
-            Stats::get().numVisitedAstNodes.fetch_add(1);
-#endif
-
-            if (enterNodeVisitor_)
-                enterNodeVisitor_(*fr.node);
-            fr.stage = Frame::Stage::Pre;
-            return AstVisitResult::Continue;
-        }
-
         case Frame::Stage::Pre:
         {
+            if (fr.node == nullptr)
+            {
+                SWC_ASSERT(fr.nodeRef.isValid());
+                fr.node = &ast_->node(fr.nodeRef);
+                SWC_ASSERT(fr.node->isNot(AstNodeId::Invalid));
+                SWC_ASSERT(fr.node->id() < AstNodeId::Count);
+
+#if SWC_HAS_STATS
+                Stats::get().numVisitedAstNodes.fetch_add(1);
+#endif
+            }
+
             // Pre-order callback
             if (preNodeVisitor_)
             {
                 const Result result = preNodeVisitor_(*fr.node);
+                fr.firstPass        = false;
+
                 if (result == Result::Stop)
                     return AstVisitResult::Stop;
                 if (result == Result::Pause)
@@ -70,7 +67,8 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
 
                 if (result == Result::SkipChildren)
                 {
-                    fr.stage = Frame::Stage::Post;
+                    fr.stage     = Frame::Stage::Post;
+                    fr.firstPass = true;
                     return AstVisitResult::Continue;
                 }
             }
@@ -81,7 +79,8 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
             fr.numChildren = children_.size32() - fr.firstChildIx;
             fr.nextChildIx = 0;
 
-            fr.stage = Frame::Stage::Children;
+            fr.stage     = Frame::Stage::Children;
+            fr.firstPass = true;
             return AstVisitResult::Continue;
         }
 
@@ -97,6 +96,8 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
                 if (preChildVisitor_)
                 {
                     const Result result = preChildVisitor_(*fr.node, childRef);
+                    fr.firstPass        = false;
+
                     if (result == Result::Stop)
                         return AstVisitResult::Stop;
                     if (result == Result::Pause)
@@ -104,6 +105,7 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
                     if (result == Result::SkipChildren)
                     {
                         fr.nextChildIx++;
+                        fr.firstPass = true;
                         continue;
                     }
                 }
@@ -111,19 +113,22 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
                 if (childRef.isInvalid())
                 {
                     fr.nextChildIx++;
+                    fr.firstPass = true;
                     continue;
                 }
 
                 Frame childFr;
                 childFr.nodeRef = childRef;
-                childFr.stage   = Frame::Stage::Enter;
+                childFr.stage   = Frame::Stage::Pre;
 
                 stack_.push_back(childFr);
                 fr.nextChildIx++;
+                fr.firstPass = true;
                 return AstVisitResult::Continue;
             }
 
-            fr.stage = Frame::Stage::Post;
+            fr.stage     = Frame::Stage::Post;
+            fr.firstPass = true;
             return AstVisitResult::Continue;
         }
 
@@ -133,6 +138,8 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
             if (postNodeVisitor_)
             {
                 const Result result = postNodeVisitor_(*fr.node);
+                fr.firstPass        = false;
+
                 if (result == Result::Stop)
                     return AstVisitResult::Stop;
                 if (result == Result::Pause)

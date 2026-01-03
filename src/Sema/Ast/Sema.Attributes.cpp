@@ -66,13 +66,10 @@ Result AstAttrDecl::semaPreDecl(Sema& sema) const
     return Result::SkipChildren;
 }
 
-void AstAttrDecl::semaEnterNode(Sema& sema) const
+Result AstAttrDecl::semaPreNode(Sema& sema) const
 {
-    SemaHelpers::declareSymbol(sema, *this);
-}
-
-Result AstAttrDecl::semaPreNode(Sema& sema)
-{
+    if (sema.enteringState())
+        SemaHelpers::declareSymbol(sema, *this);
     const Symbol& sym = sema.symbolOf(sema.curNodeRef());
     return SemaMatch::ghosting(sema, sym);
 }

@@ -292,13 +292,10 @@ Result AstAliasDecl::semaPreDecl(Sema& sema) const
     return Result::SkipChildren;
 }
 
-void AstAliasDecl::semaEnterNode(Sema& sema) const
+Result AstAliasDecl::semaPreNode(Sema& sema) const
 {
-    SemaHelpers::declareSymbol(sema, *this);
-}
-
-Result AstAliasDecl::semaPreNode(Sema& sema)
-{
+    if (sema.enteringState())
+        SemaHelpers::declareSymbol(sema, *this);
     const Symbol& sym = sema.symbolOf(sema.curNodeRef());
     return SemaMatch::ghosting(sema, sym);
 }

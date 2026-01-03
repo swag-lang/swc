@@ -289,7 +289,6 @@ struct AstNodeIdInfo
     AstNodeIdFlags   flags;
 
     using AstCollectChildren = void (*)(SmallVector<AstNodeRef>&, const Ast&, const AstNode&);
-    using SemaEnterNode      = void (*)(Sema&, AstNode&);
     using SemaPreNode        = Result (*)(Sema&, AstNode&);
     using SemaPreNodeChild   = Result (*)(Sema&, AstNode&, AstNodeRef&);
     using SemaPostNode       = Result (*)(Sema&, AstNode&);
@@ -300,7 +299,6 @@ struct AstNodeIdInfo
     SemaPreNodeChild semaPreDeclChild;
     SemaPostNode     semaPostDecl;
 
-    SemaEnterNode    semaEnterNode;
     SemaPreNode      semaPreNode;
     SemaPreNodeChild semaPreNodeChild;
     SemaPostNode     semaPostNode;
@@ -336,12 +334,6 @@ Result semaPostDecl(Sema& sema, AstNode& node)
     return node.cast<NodeType>()->semaPostDecl(sema);
 }
 
-template<AstNodeId ID>
-void semaEnterNode(Sema& sema, AstNode& node)
-{
-    using NodeType = AstTypeOf<ID>::type;
-    node.cast<NodeType>()->semaEnterNode(sema);
-}
 
 template<AstNodeId ID>
 Result semaPreNode(Sema& sema, AstNode& node)
@@ -372,7 +364,6 @@ constexpr std::array AST_NODE_ID_INFOS = {
                                           &semaPreDecl<AstNodeId::__enum>,      \
                                           &semaPreDeclChild<AstNodeId::__enum>, \
                                           &semaPostDecl<AstNodeId::__enum>,     \
-                                          &semaEnterNode<AstNodeId::__enum>,    \
                                           &semaPreNode<AstNodeId::__enum>,      \
                                           &semaPreNodeChild<AstNodeId::__enum>, \
                                           &semaPostNode<AstNodeId::__enum>},

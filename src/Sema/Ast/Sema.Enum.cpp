@@ -19,22 +19,22 @@ Result AstEnumDecl::semaPreDecl(Sema& sema) const
     return Result::Continue;
 }
 
-void AstEnumDecl::semaEnterNode(Sema& sema) const
-{
-    SemaHelpers::declareSymbol(sema, *this);
-
-    // Runtime: enum 'AttributeUsage' is forced to be in flag mode.
-    // (we can't rely on #[Swag.EnumFlags] as attributes are constructed there)
-    Symbol& sym = sema.symbolOf(sema.curNodeRef());
-    if (sym.symMap()->isSwagNamespace(sema.ctx()))
-    {
-        if (sym.idRef() == sema.idMgr().nameAttributeUsage())
-            sym.attributes().flags = AttributeFlagsE::EnumFlags;
-    }
-}
-
 Result AstEnumDecl::semaPreNode(Sema& sema)
 {
+    if (sema.enteringState())
+    {
+        SemaHelpers::declareSymbol(sema, *this);
+
+        // Runtime: enum 'AttributeUsage' is forced to be in flag mode.
+        // (we can't rely on #[Swag.EnumFlags] as attributes are constructed there)
+        Symbol& sym = sema.symbolOf(sema.curNodeRef());
+        if (sym.symMap()->isSwagNamespace(sema.ctx()))
+        {
+            if (sym.idRef() == sema.idMgr().nameAttributeUsage())
+                sym.attributes().flags = AttributeFlagsE::EnumFlags;
+        }
+    }
+
     const Symbol& sym = sema.symbolOf(sema.curNodeRef());
     return SemaMatch::ghosting(sema, sym);
 }

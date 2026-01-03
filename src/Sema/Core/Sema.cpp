@@ -218,17 +218,10 @@ void Sema::setVisitors()
     }
     else
     {
-        visit_.setEnterNodeVisitor([this](AstNode& node) { enterNode(node); });
         visit_.setPreNodeVisitor([this](AstNode& node) { return preNode(node); });
         visit_.setPreChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return preNodeChild(node, childRef); });
         visit_.setPostNodeVisitor([this](AstNode& node) { return postNode(node); });
     }
-}
-
-void Sema::enterNode(AstNode& node)
-{
-    const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
-    info.semaEnterNode(*this, node);
 }
 
 Result Sema::preDecl(AstNode& node)

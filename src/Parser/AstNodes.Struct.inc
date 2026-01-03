@@ -222,8 +222,7 @@ struct AstAttrDecl : AstNamedNodeT<AstNodeId::AttrDecl>
 
     void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeParamsRef}); }
     Result        semaPreDecl(Sema& sema) const;
-    void          semaEnterNode(Sema& sema) const;
-    static Result semaPreNode(Sema& sema);
+    Result        semaPreNode(Sema& sema) const;
     static Result semaPostNode(Sema& sema);
 };
 
@@ -684,8 +683,7 @@ struct AstEnumDecl : AstNamedNodeT<AstNodeId::EnumDecl>
     void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeBodyRef}); }
     Result        semaPreDecl(Sema& sema) const;
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    void          semaEnterNode(Sema& sema) const;
-    static Result semaPreNode(Sema& sema);
+    Result        semaPreNode(Sema& sema);
     Result        semaPostNode(Sema& sema) const;
 };
 
@@ -935,8 +933,7 @@ struct AstUsingDecl : AstCompoundT<AstNodeId::UsingDecl>
 struct AstStructDecl : AstAggregateDeclT<AstNodeId::StructDecl>
 {
     Result        semaPreDecl(Sema& sema) const;
-    void          semaEnterNode(Sema& sema) const;
-    static Result semaPreNode(Sema& sema);
+    Result        semaPreNode(Sema& sema) const;
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     static Result semaPostNode(Sema& sema);
 };
@@ -968,8 +965,7 @@ struct AstInterfaceDecl : AstNamedNodeT<AstNodeId::InterfaceDecl>
 
     void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
     Result        semaPreDecl(Sema& sema) const;
-    void          semaEnterNode(Sema& sema) const;
-    static Result semaPreNode(Sema& sema);
+    Result        semaPreNode(Sema& sema);
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     static Result semaPostNode(Sema& sema);
 };
@@ -1043,8 +1039,7 @@ struct AstVarDecl : AstNamedNodeT<AstNodeId::VarDecl>
 
     void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeInitRef}); }
     Result        semaPreDecl(Sema& sema) const;
-    void          semaEnterNode(Sema& sema) const;
-    static Result semaPreNode(Sema& sema);
+    Result        semaPreNode(Sema& sema);
     Result        semaPostNode(Sema& sema) const;
 };
 
@@ -1093,8 +1088,7 @@ struct AstAliasDecl : AstNamedNodeT<AstNodeId::AliasDecl>
     void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
     Result        semaPostNode(Sema& sema) const;
     Result        semaPreDecl(Sema& sema) const;
-    void          semaEnterNode(Sema& sema) const;
-    static Result semaPreNode(Sema& sema);
+    Result        semaPreNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

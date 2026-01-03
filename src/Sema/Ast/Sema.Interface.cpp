@@ -17,13 +17,10 @@ Result AstInterfaceDecl::semaPreDecl(Sema& sema) const
     return Result::SkipChildren;
 }
 
-void AstInterfaceDecl::semaEnterNode(Sema& sema) const
-{
-    SemaHelpers::declareSymbol(sema, *this);
-}
-
 Result AstInterfaceDecl::semaPreNode(Sema& sema)
 {
+    if (sema.enteringState())
+        SemaHelpers::declareSymbol(sema, *this);
     const Symbol& sym = sema.symbolOf(sema.curNodeRef());
     return SemaMatch::ghosting(sema, sym);
 }

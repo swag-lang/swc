@@ -85,7 +85,6 @@ struct AstNode
     static Result semaPreDecl(Sema&) { return Result::Continue; }
     static Result semaPreDeclChild(Sema&, AstNodeRef&) { return Result::Continue; }
     static Result semaPostDecl(Sema&) { return Result::Continue; }
-    static void   semaEnterNode(Sema&) {}
     static Result semaPreNode(Sema&) { return Result::Continue; }
     static Result semaPreNodeChild(Sema&, AstNodeRef&) { return Result::Continue; }
     static Result semaPostNode(Sema&) { return Result::Continue; }

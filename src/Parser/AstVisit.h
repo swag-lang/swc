@@ -19,7 +19,6 @@ class AstVisit
 {
 public:
     void           start(Ast& ast, AstNodeRef root);
-    void           setEnterNodeVisitor(const std::function<void(AstNode&)>& visitor) { enterNodeVisitor_ = visitor; }
     void           setPreNodeVisitor(const std::function<Result(AstNode&)>& visitor) { preNodeVisitor_ = visitor; }
     void           setPostNodeVisitor(const std::function<Result(AstNode&)>& visitor) { postNodeVisitor_ = visitor; }
     void           setPreChildVisitor(const std::function<Result(AstNode&, AstNodeRef&)>& visitor) { preChildVisitor_ = visitor; }
@@ -30,6 +29,7 @@ public:
     AstNode*       currentNode() { return stack_.back().node; }
     const AstNode* currentNode() const { return stack_.back().node; }
     AstNodeRef     currentNodeRef() const { return stack_.back().nodeRef; }
+    bool           enteringState() const { return stack_.back().firstPass; }
 
     AstNodeRef root() const { return rootRef_; }
     const Ast& ast() const { return *ast_; }
@@ -40,7 +40,6 @@ private:
     {
         enum class Stage : uint8_t
         {
-            Enter,
             Pre,
             Children,
             Post
@@ -51,12 +50,12 @@ private:
         uint32_t   firstChildIx = 0; // offset into AstVisit::children_
         uint32_t   numChildren  = 0; // number of children in that range
         AstNodeRef nodeRef      = AstNodeRef::invalid();
-        Stage      stage        = Stage::Enter;
+        Stage      stage        = Stage::Pre;
+        bool       firstPass    = true;
     };
 
     Ast*                                         ast_     = nullptr;
     AstNodeRef                                   rootRef_ = AstNodeRef::invalid();
-    std::function<void(AstNode&)>                enterNodeVisitor_;
     std::function<Result(AstNode&)>              preNodeVisitor_;
     std::function<Result(AstNode&)>              postNodeVisitor_;
     std::function<Result(AstNode&, AstNodeRef&)> preChildVisitor_;

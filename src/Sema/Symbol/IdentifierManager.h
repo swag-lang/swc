@@ -25,8 +25,9 @@ public:
     const Identifier& get(IdentifierRef idRef) const;
 
     IdentifierRef nameSwag() const { return nameSwag_; }
-    IdentifierRef nameEnumFlags() const { return nameEnumFlags_; }
     IdentifierRef nameAttributeUsage() const { return nameAttributeUsage_; }
+    IdentifierRef nameEnumFlags() const { return nameEnumFlags_; }
+    IdentifierRef nameStrict() const { return nameStrict_; }
     IdentifierRef nameTargetOs() const { return nameTargetOs_; }
 
 private:
@@ -44,8 +45,9 @@ private:
     Shard                     shards_[SHARD_COUNT];
 
     IdentifierRef nameSwag_           = IdentifierRef::invalid();
-    IdentifierRef nameEnumFlags_      = IdentifierRef::invalid();
     IdentifierRef nameAttributeUsage_ = IdentifierRef::invalid();
+    IdentifierRef nameEnumFlags_      = IdentifierRef::invalid();
+    IdentifierRef nameStrict_         = IdentifierRef::invalid();
     IdentifierRef nameTargetOs_       = IdentifierRef::invalid();
 };
 

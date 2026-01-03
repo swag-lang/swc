@@ -303,14 +303,11 @@ Result AstAliasDecl::semaPreNode(Sema& sema) const
 Result AstAliasDecl::semaPostNode(Sema& sema) const
 {
     const SemaNodeView nodeView(sema, nodeExprRef);
-    if (!nodeView.type)
+    if (!nodeView.type && !nodeView.sym)
         return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alias, nodeExprRef);
 
-    if (!nodeView.sym)
-    {
-    }
-
-    Symbol& sym = sema.symbolOf(sema.curNodeRef());
+    SymbolAlias& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolAlias>();
+    sym.setAliasedSymbol(nodeView.sym);
     sym.setTypeRef(nodeView.typeRef);
     sym.setTyped(sema.ctx());
     sym.setCompleted(sema.ctx());

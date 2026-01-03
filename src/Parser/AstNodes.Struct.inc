@@ -680,11 +680,11 @@ struct AstEnumDecl : AstNamedNodeT<AstNodeId::EnumDecl>
     AstNodeRef nodeTypeRef;
     AstNodeRef nodeBodyRef;
 
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeBodyRef}); }
-    Result        semaPreDecl(Sema& sema) const;
-    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result        semaPreNode(Sema& sema);
-    Result        semaPostNode(Sema& sema) const;
+    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeBodyRef}); }
+    Result semaPreDecl(Sema& sema) const;
+    Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result semaPreNode(Sema& sema) const;
+    Result semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1037,10 +1037,10 @@ struct AstVarDecl : AstNamedNodeT<AstNodeId::VarDecl>
     AstNodeRef nodeTypeRef;
     AstNodeRef nodeInitRef;
 
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeInitRef}); }
-    Result        semaPreDecl(Sema& sema) const;
-    Result        semaPreNode(Sema& sema);
-    Result        semaPostNode(Sema& sema) const;
+    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeInitRef}); }
+    Result semaPreDecl(Sema& sema) const;
+    Result semaPreNode(Sema& sema);
+    Result semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1085,10 +1085,10 @@ struct AstAliasDecl : AstNamedNodeT<AstNodeId::AliasDecl>
 {
     AstNodeRef nodeExprRef;
 
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
-    Result        semaPostNode(Sema& sema) const;
-    Result        semaPreDecl(Sema& sema) const;
-    Result        semaPreNode(Sema& sema) const;
+    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    Result semaPostNode(Sema& sema) const;
+    Result semaPreDecl(Sema& sema) const;
+    Result semaPreNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

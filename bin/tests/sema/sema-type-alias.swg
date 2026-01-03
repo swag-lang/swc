@@ -1,7 +1,10 @@
 #global internal
 
+alias SSW = Swag
+
 alias DWORD1 = u32
-//const A: DWORD1
+const A: DWORD1 = 0
+#assert(#typeof(A) == u32)
 
 /*
 namespace TOTO

@@ -9,6 +9,7 @@ enum class AttributeFlagsE : uint64_t
 {
     Zero      = 0,
     EnumFlags = 1 << 0,
+    Strict    = 1 << 1,
 };
 using AttributeFlags = EnumFlags<AttributeFlagsE>;
 

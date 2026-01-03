@@ -107,9 +107,10 @@ public:
     bool isInterface() const noexcept { return kind_ == SymbolKind::Interface; }
     bool isAttribute() const noexcept { return kind_ == SymbolKind::Attribute; }
     bool isModule() const noexcept { return kind_ == SymbolKind::Module; }
+    bool isAlias() const noexcept { return kind_ == SymbolKind::Alias; }
 
     bool isSymMap() const noexcept { return isNamespace() || isModule() || isEnum() || isStruct() || isInterface(); }
-    bool isType() const noexcept { return isEnum() || isStruct() || isInterface(); }
+    bool isType() const;
     bool isValueExpr() const noexcept { return isVariable() || isConstant() || isEnumValue(); }
     bool isSwagNamespace(const TaskContext& ctx) const noexcept;
 

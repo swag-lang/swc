@@ -19,7 +19,7 @@ Result AstEnumDecl::semaPreDecl(Sema& sema) const
     return Result::Continue;
 }
 
-Result AstEnumDecl::semaPreNode(Sema& sema)
+Result AstEnumDecl::semaPreNode(Sema& sema) const
 {
     if (sema.enteringState())
     {

@@ -64,18 +64,6 @@ public:
 };
 
 // -----------------------------------------------------------------------------
-class SymbolAlias : public Symbol
-{
-public:
-    static constexpr auto K = SymbolKind::Alias;
-
-    explicit SymbolAlias(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
-        Symbol(decl, tokRef, K, idRef, flags)
-    {
-    }
-};
-
-// -----------------------------------------------------------------------------
 class SymbolVariable : public Symbol
 {
 public:
@@ -173,6 +161,25 @@ public:
         SymbolMap(decl, tokRef, K, idRef, flags)
     {
     }
+};
+
+// -----------------------------------------------------------------------------
+class SymbolAlias : public Symbol
+{
+public:
+    static constexpr auto K = SymbolKind::Alias;
+
+    explicit SymbolAlias(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        Symbol(decl, tokRef, K, idRef, flags)
+    {
+    }
+
+    const Symbol* aliasedSymbol() const { return aliasedSymbol_; }
+    void          setAliasedSymbol(const Symbol* sym) { aliasedSymbol_ = sym; }
+    bool          isStrict() const { return attributes().hasFlag(AttributeFlagsE::Strict); }
+
+private:
+    const Symbol* aliasedSymbol_ = nullptr;
 };
 
 SWC_END_NAMESPACE()

@@ -1,11 +1,13 @@
 #include "pch.h"
-#include "Sema/Symbol/Symbol.h"
+
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 #include "Sema/Core/Sema.h"
 #include "Sema/Symbol/IdentifierManager.h"
+#include "Sema/Symbol/Symbol.h"
 #include "Sema/Symbol/SymbolMap.h"
 #include "Sema/Type/TypeManager.h"
+#include "Symbols.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -68,6 +70,22 @@ void Symbol::registerCompilerIf(Sema& sema)
 void Symbol::registerAttributes(Sema& sema)
 {
     setAttributes(sema.frame().attributes());
+}
+
+bool Symbol::isType() const
+{
+    if (isEnum() || isStruct() || isInterface())
+        return true;
+
+    if (isAlias())
+    {
+        const SymbolAlias& symAlias = cast<SymbolAlias>();
+        if (symAlias.aliasedSymbol())
+            return symAlias.aliasedSymbol()->isType();
+        return symAlias.typeRef().isValid();
+    }
+
+    return false;
 }
 
 bool Symbol::isSwagNamespace(const TaskContext& ctx) const noexcept

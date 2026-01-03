@@ -61,6 +61,8 @@ Result AstAttrDecl::semaPreDecl(Sema& sema) const
     {
         if (sym.idRef() == sema.idMgr().nameEnumFlags())
             sym.setAttributeFlags(AttributeFlagsE::EnumFlags);
+        else if (sym.idRef() == sema.idMgr().nameStrict())
+            sym.setAttributeFlags(AttributeFlagsE::Strict);
     }
 
     return Result::SkipChildren;

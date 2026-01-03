@@ -242,6 +242,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
         }
 
         // Array with a dimension
+        const auto              startTok = ref();
         SmallVector<AstNodeRef> dimensions;
         const auto              firstDim = parseExpression();
         if (firstDim.isInvalid())
@@ -265,7 +266,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
         if (child.isInvalid())
             return AstNodeRef::invalid();
 
-        auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::ArrayType>(ref());
+        auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::ArrayType>(startTok);
         nodePtr->spanDimensionsRef  = ast_->pushSpan(dimensions.span());
         nodePtr->nodePointeeTypeRef = child;
         return nodeRef;

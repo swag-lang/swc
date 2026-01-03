@@ -52,12 +52,10 @@ void SemaCycle::reportCycle(const std::vector<const Symbol*>& cycle)
         const auto itEdge = graph_.edges.find({sym, next});
         if (itEdge == graph_.edges.end())
             continue;
+        Sema& sema = itEdge->second.job->sema();
 
         diag.addNote(DiagnosticId::sema_note_cyclic_dependency_link);
-
-        const auto& node    = itEdge->second.job->sema().node(itEdge->second.nodeRef);
-        const auto& srcView = itEdge->second.job->sema().compiler().srcView(node.srcViewRef());
-        const auto  loc     = Diagnostic::tokenErrorLocation(*ctx_, srcView, node.tokRef());
+        const SourceCodeLocation loc = sema.node(itEdge->second.nodeRef).locationWithChildren(sema.ctx(), sema.ast());
         diag.last().addSpan(loc, next->name(*ctx_), DiagnosticSeverity::Note);
     }
 

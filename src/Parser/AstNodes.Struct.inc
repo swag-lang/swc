@@ -261,6 +261,7 @@ struct AstLambdaTypeParam : AstNodeT<AstNodeId::LambdaTypeParam>
 // -----------------------------------------------------------------------------
 struct AstFunctionParamList : AstCompoundT<AstNodeId::FunctionParamList>
 {
+    static Result semaPreDecl(Sema&) { return Result::SkipChildren; }
     static Result semaPreNode(Sema&) { return Result::SkipChildren; }
 };
 
@@ -473,7 +474,8 @@ struct AstParenExpr : AstNodeT<AstNodeId::ParenExpr>
 // -----------------------------------------------------------------------------
 struct AstNamedArgumentList : AstCompoundT<AstNodeId::NamedArgumentList>
 {
-    static Result semaPerNode(Sema&) { return Result::SkipChildren; }
+    static Result semaPreDecl(Sema&) { return Result::SkipChildren; }
+    static Result semaPreNode(Sema&) { return Result::SkipChildren; }
 };
 
 // -----------------------------------------------------------------------------

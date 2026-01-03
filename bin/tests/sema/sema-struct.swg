@@ -1,6 +1,6 @@
 #global internal
 
-struct AA
+ struct AA
 {
     x: s32
     y: *BB

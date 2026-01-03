@@ -192,6 +192,8 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
     const TokenRef leftBracket = consumeIf(TokenId::SymLeftBracket);
     if (leftBracket.isValid())
     {
+        const auto startTok = ref();
+
         // [*] Block pointer
         if (consumeIf(TokenId::SymAsterisk).isValid())
         {
@@ -200,7 +202,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
             const auto child = parseType();
             if (child.isInvalid())
                 return AstNodeRef::invalid();
-            auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::BlockPointerType>(ref());
+            auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::BlockPointerType>(startTok);
             nodePtr->nodePointeeTypeRef = child;
             return nodeRef;
         }
@@ -213,7 +215,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
             const auto child = parseType();
             if (child.isInvalid())
                 return AstNodeRef::invalid();
-            auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::SliceType>(ref());
+            auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::SliceType>(startTok);
             nodePtr->nodePointeeTypeRef = child;
             return nodeRef;
         }
@@ -226,7 +228,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
             const auto child = parseType();
             if (child.isInvalid())
                 return AstNodeRef::invalid();
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ArrayType>(ref());
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ArrayType>(startTok);
             nodePtr->spanDimensionsRef.setInvalid();
             nodePtr->nodePointeeTypeRef = child;
             return nodeRef;
@@ -242,7 +244,6 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
         }
 
         // Array with a dimension
-        const auto              startTok = ref();
         SmallVector<AstNodeRef> dimensions;
         const auto              firstDim = parseExpression();
         if (firstDim.isInvalid())

@@ -1,5 +1,5 @@
 #global internal
-using Swag
+using Swag, Swag
 
 #[EnumFlags]
 enum A { B }

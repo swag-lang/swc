@@ -15,7 +15,7 @@ SWC_NODE_DEF(MemberAccessExpr, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(AccessModifier, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(UsingNamespaceStmt, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(UsingDecl, AstNodeIdFlagsE::Zero)
-SWC_NODE_DEF(AliasDecl, AstNodeIdFlagsE::Zero)
+SWC_NODE_DEF(AliasDecl, AstNodeIdFlagsE::SemaJob)
 
 // ============================================================================
 //  Identifiers & Name Resolution

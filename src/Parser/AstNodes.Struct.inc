@@ -1090,7 +1090,11 @@ struct AstAliasDecl : AstNamedNodeT<AstNodeId::AliasDecl>
 {
     AstNodeRef nodeExprRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    Result        semaPostNode(Sema& sema) const;
+    Result        semaPreDecl(Sema& sema) const;
+    void          semaEnterNode(Sema& sema) const;
+    static Result semaPreNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

@@ -64,6 +64,18 @@ public:
 };
 
 // -----------------------------------------------------------------------------
+class SymbolAlias : public Symbol
+{
+public:
+    static constexpr auto K = SymbolKind::Alias;
+
+    explicit SymbolAlias(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        Symbol(decl, tokRef, K, idRef, flags)
+    {
+    }
+};
+
+// -----------------------------------------------------------------------------
 class SymbolVariable : public Symbol
 {
 public:

@@ -5,6 +5,8 @@
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
+#include "Sema/Helpers/SemaHelpers.h"
+#include "Sema/Symbol/SemaMatch.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE()
@@ -281,6 +283,42 @@ Result AstArrayType::semaPostNode(Sema& sema) const
 Result AstCompilerTypeExpr::semaPostNode(Sema& sema)
 {
     sema.semaInherit(*this, nodeTypeRef);
+    return Result::Continue;
+}
+
+Result AstAliasDecl::semaPreDecl(Sema& sema) const
+{
+    SemaHelpers::declareNamedSymbol<SymbolAlias>(sema, *this, tokNameRef);
+    return Result::SkipChildren;
+}
+
+void AstAliasDecl::semaEnterNode(Sema& sema) const
+{
+    if (!sema.curScope().isTopLevel())
+    {
+        SWC_ASSERT(!sema.hasSymbol(sema.curNodeRef()));
+        semaPreDecl(sema);
+    }
+
+    Symbol& sym = sema.symbolOf(sema.curNodeRef());
+    sym.registerAttributes(sema);
+    sym.setDeclared(sema.ctx());
+}
+
+Result AstAliasDecl::semaPreNode(Sema& sema)
+{
+    const Symbol& sym = sema.symbolOf(sema.curNodeRef());
+    return SemaMatch::ghosting(sema, sym);
+}
+
+Result AstAliasDecl::semaPostNode(Sema& sema) const
+{
+    const SemaNodeView nodeView(sema, nodeExprRef);
+
+    Symbol& sym = sema.symbolOf(sema.curNodeRef());
+    sym.setTypeRef(nodeView.typeRef);
+    sym.setTyped(sema.ctx());
+    sym.setCompleted(sema.ctx());
     return Result::Continue;
 }
 

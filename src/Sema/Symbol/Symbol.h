@@ -31,6 +31,7 @@ enum class SymbolKind : uint8_t
     Attribute,
     Struct,
     Interface,
+    Alias,
 };
 
 enum class SymbolFlagsE : uint8_t

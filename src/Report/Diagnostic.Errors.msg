@@ -65,6 +65,7 @@ SWC_DIAG_DEF(parser_err_inject_invalid_instruction, Error, "Invalid replacement 
 SWC_DIAG_DEF(parser_err_duplicate_modifier, Error, "Duplicated access modifier {tok}")
 SWC_DIAG_DEF(parser_err_duplicate_type_qualifier, Error, "Duplicated type qualifier {tok}")
 SWC_DIAG_DEF(parser_err_misplace_type_qualifier, Error, "Misplaced type qualifier {tok}")
+SWC_DIAG_DEF(parser_err_expected_type_or_symbol, Error, "Expected type or symbol name")
 
 SWC_DIAG_DEF(sema_warn_compiler_warning, Warning, "Compiler warning: {because}")
 

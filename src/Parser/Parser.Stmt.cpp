@@ -78,12 +78,43 @@ AstNodeRef Parser::parseAlias()
     nodePtr->tokNameRef     = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
     expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_fam);
 
-    if (isAny(TokenId::CompilerDeclType, TokenId::SymLeftBracket, TokenId::SymLeftCurly, TokenId::KwdFunc, TokenId::KwdMtd))
+    // 1) Definitely looks like a type (array, func, struct literal type, pointer type, etc.)
+    if (isAny(TokenId::CompilerDeclType,
+              TokenId::SymLeftBracket,
+              TokenId::SymLeftCurly,
+              TokenId::KwdFunc,
+              TokenId::KwdMtd,
+              TokenId::KwdConst,
+              TokenId::ModifierNullable,
+              TokenId::SymAsterisk))
+    {
         nodePtr->nodeExprRef = parseType();
+    }
+
+    // 2) Built-in scalar types, etc.
     else if (Token::isType(id()))
+    {
         nodePtr->nodeExprRef = parseType();
+    }
+
+    // 3) Otherwise, allow only a symbol / qualified name as RHS
+    else if (is(TokenId::Identifier) ||
+             is(TokenId::CompilerAlias0) || is(TokenId::CompilerAlias1) ||
+             is(TokenId::CompilerAlias2) || is(TokenId::CompilerAlias3) ||
+             is(TokenId::CompilerAlias4) || is(TokenId::CompilerAlias5) ||
+             is(TokenId::CompilerAlias6) || is(TokenId::CompilerAlias7) ||
+             is(TokenId::CompilerAlias8) || is(TokenId::CompilerAlias9))
+    {
+        nodePtr->nodeExprRef = parseQualifiedIdentifier();
+    }
+
+    // 4) Everything else: error (e.g. "alias A = 1 + 2")
     else
-        nodePtr->nodeExprRef = parseExpression();
+    {
+        raiseError(DiagnosticId::parser_err_expected_type_or_symbol, ref());
+        skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
+        return AstNodeRef::invalid();
+    }
 
     return nodeRef;
 }

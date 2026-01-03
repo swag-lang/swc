@@ -307,6 +307,15 @@ Result AstAliasDecl::semaPostNode(Sema& sema) const
         return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alias, nodeExprRef);
 
     SymbolAlias& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolAlias>();
+
+    if (sym.isStrict() && nodeView.sym && !nodeView.sym->isType())
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_not_type, nodeExprRef);
+        diag.addNote(DiagnosticId::sema_note_strict_alias);
+        diag.report(sema.ctx());
+        return Result::Stop;
+    }
+
     sym.setAliasedSymbol(nodeView.sym);
     sym.setTypeRef(nodeView.typeRef);
     sym.setTyped(sema.ctx());

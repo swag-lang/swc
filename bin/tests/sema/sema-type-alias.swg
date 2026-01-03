@@ -5,6 +5,13 @@ alias SSW = Swag
 alias DWORD1 = u32
 const A: DWORD1 = 0
 #assert(#typeof(A) == u32)
+#assert(#typeof(DWORD1) == u32)
+
+#[Swag.Strict]
+alias DWORD2 = u32
+
+#[Swag.Strict]
+alias SSW1 = Swag // swc-expected-error {{sema_err_not_type}}
 
 /*
 namespace TOTO

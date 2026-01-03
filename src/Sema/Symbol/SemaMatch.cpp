@@ -13,33 +13,90 @@ namespace
     void collect(Sema& sema, LookUpContext& lookUpCxt)
     {
         lookUpCxt.symMaps.clear();
+        lookUpCxt.symMapPriorities.clear();
 
+        // If we have a symMapHint, treat it as a "precise" lookup
+        // and give it top priority.
         if (lookUpCxt.symMapHint)
         {
+            LookUpContext::Priority priority;
+            priority.scopeDepth  = 0;
+            priority.visibility  = LookUpContext::VisibilityTier::LocalScope;
+            priority.searchOrder = 0;
             lookUpCxt.symMaps.push_back(lookUpCxt.symMapHint);
+            lookUpCxt.symMapPriorities.push_back(priority);
+            return;
         }
-        else
+
+        uint16_t scopeDepth  = 0;
+        uint16_t searchOrder = 0;
+
+        // Walk lexical scopes from innermost to outermost.
+        const SemaScope* scope = &sema.curScope();
+        while (scope)
         {
-            const SemaScope* scope = &sema.curScope();
-            while (scope)
+            if (const auto* symMap = scope->symMap())
             {
-                if (const auto* symMap = scope->symMap())
-                    lookUpCxt.symMaps.push_back(symMap);
-                for (const auto* usingSymMap : scope->usingSymMaps())
-                    lookUpCxt.symMaps.push_back(usingSymMap);
-                scope = scope->parent();
+                LookUpContext::Priority priority;
+                priority.scopeDepth  = scopeDepth;
+                priority.visibility  = LookUpContext::VisibilityTier::LocalScope;
+                priority.searchOrder = searchOrder++;
+                lookUpCxt.symMaps.push_back(symMap);
+                lookUpCxt.symMapPriorities.push_back(priority);
             }
 
+            // Namespaces imported via "using" in this scope:
+            for (const auto* usingSymMap : scope->usingSymMaps())
+            {
+                LookUpContext::Priority priority;
+                priority.scopeDepth  = scopeDepth;
+                priority.visibility  = LookUpContext::VisibilityTier::UsingDirective;
+                priority.searchOrder = searchOrder++;
+                lookUpCxt.symMaps.push_back(usingSymMap);
+                lookUpCxt.symMapPriorities.push_back(priority);
+            }
+
+            scope = scope->parent();
+            ++scopeDepth;
+        }
+
+        // File-level namespace: conceptually outer than lexical scopes.
+        {
+            LookUpContext::Priority priority;
+            priority.scopeDepth  = scopeDepth;
+            priority.visibility  = LookUpContext::VisibilityTier::FileNamespace;
+            priority.searchOrder = searchOrder++;
             lookUpCxt.symMaps.push_back(&sema.semaInfo().fileNamespace());
+            lookUpCxt.symMapPriorities.push_back(priority);
+        }
+
+        // Module-level namespace: outer than file-level.
+        {
+            LookUpContext::Priority priority;
+            priority.scopeDepth  = static_cast<uint16_t>(scopeDepth + 1);
+            priority.visibility  = LookUpContext::VisibilityTier::ModuleNamespace;
+            priority.searchOrder = searchOrder++;
             lookUpCxt.symMaps.push_back(&sema.semaInfo().moduleNamespace());
+            lookUpCxt.symMapPriorities.push_back(priority);
         }
     }
 
     void lookup(LookUpContext& lookUpCxt, IdentifierRef idRef)
     {
-        lookUpCxt.symbols().clear();
-        for (const auto* symMap : lookUpCxt.symMaps)
+        // Reset candidates & priority state.
+        lookUpCxt.resetCandidates();
+
+        const auto count = lookUpCxt.symMaps.size();
+        for (size_t i = 0; i < count; ++i)
         {
+            const auto* symMap   = lookUpCxt.symMaps[i];
+            const auto& priority = lookUpCxt.symMapPriorities[i];
+
+            // Tell the context: "we're now scanning this layer with this priority".
+            lookUpCxt.beginSymMapLookup(priority);
+
+            // SymbolMap::lookupAppend must call lookUpCxt.addSymbol(...)
+            // for each matching symbol it finds.
             symMap->lookupAppend(idRef, lookUpCxt);
         }
     }

@@ -275,6 +275,7 @@
         <ClCompile Include="src\Sema\Helpers\SemaInfo.cpp"/>
         <ClCompile Include="src\Sema\Helpers\SemaJob.cpp"/>
         <ClCompile Include="src\Sema\Symbol\IdentifierManager.cpp"/>
+        <ClCompile Include="src\Sema\Symbol\LookUpContext.cpp"/>
         <ClCompile Include="src\Sema\Symbol\SemaMatch.cpp"/>
         <ClCompile Include="src\Sema\Symbol\SymbolMap.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Symbol.cpp"/>

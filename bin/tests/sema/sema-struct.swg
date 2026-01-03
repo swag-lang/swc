@@ -16,6 +16,11 @@ struct BB
 struct CC { a: *CC }
 #assert(#sizeof(CC) == 8)
 
+// swc-expected-error@(+1,+2) {{sema_err_cyclic_dependency}}
+const D1: s32 = D2 + 1
+const D2: s32 = D3 + 1
+const D3: s32 = D1
+
 struct DD { a: DD } // swc-expected-error {{sema_err_struct_circular_reference}}
 
 // swc-expected-error@(+1,+2) {{sema_err_cyclic_dependency}}
@@ -25,10 +30,6 @@ struct FF { a: EE }
 // swc-expected-error@(+1,+2) {{sema_err_cyclic_dependency}}
 const C1: s32 = C2
 const C2: s32 = C1
-// swc1-expected-error@(+1,+2) {{sema_err_cyclic_dependency}}
-const D1: s32 = D2 + 1
-const D2: s32 = D3 + 1
-const D3: s32 = D1
 
 // swc-expected-error@(+1,+2) {{sema_err_cyclic_dependency}}
 enum EG { EG_A = EH }
@@ -53,3 +54,13 @@ enum NonCyclicEnum
 }
 #assert(NonCyclicEnum.NCE_A == 42)
 #assert(NonCyclicEnum.NCE_B == 43)
+
+
+struct S0
+{
+    x: [4] S1
+}
+struct S1
+{
+    y: S0
+}

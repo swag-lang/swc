@@ -25,7 +25,6 @@ private:
         };
 
         std::unordered_map<const Symbol*, std::vector<const Symbol*>> adj;
-        std::unordered_map<const Symbol*, Utf8>                       names;
         std::map<std::pair<const Symbol*, const Symbol*>, NodeLoc>    edges;
     };
 

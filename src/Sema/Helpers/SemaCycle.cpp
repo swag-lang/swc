@@ -12,8 +12,6 @@ SWC_BEGIN_NAMESPACE()
 
 void SemaCycle::addNodeIfNeeded(const Symbol* sym)
 {
-    if (!graph_.names.contains(sym))
-        graph_.names[sym] = sym->name(*ctx_);
     if (!graph_.adj.contains(sym))
         graph_.adj[sym] = {};
 }
@@ -44,10 +42,10 @@ void SemaCycle::reportCycle(const std::vector<const Symbol*>& cycle)
     if (itLoc == graph_.edges.end())
         return;
 
-    auto diag = SemaError::report(itLoc->second.job->sema(), DiagnosticId::sema_err_cyclic_dependency, itLoc->second.nodeRef);
-    diag.addArgument(Diagnostic::ARG_SYM, graph_.names.at(firstSym));
+    auto diag = SemaError::report(itLoc->second.job->sema(), DiagnosticId::sema_err_cyclic_dependency, firstSym->srcViewRef(), firstSym->tokRef());
+    diag.addArgument(Diagnostic::ARG_SYM, firstSym->name(*ctx_));
 
-    for (size_t i = 1; i < cycle.size(); i++)
+    for (size_t i = 0; i < cycle.size(); i++)
     {
         const auto sym    = cycle[i];
         const auto next   = cycle[(i + 1) % cycle.size()];
@@ -56,12 +54,11 @@ void SemaCycle::reportCycle(const std::vector<const Symbol*>& cycle)
             continue;
 
         diag.addNote(DiagnosticId::sema_note_cyclic_dependency_link);
-        diag.addArgument(Diagnostic::ARG_SYM, graph_.names.at(next));
 
         const auto& node    = itEdge->second.job->sema().node(itEdge->second.nodeRef);
         const auto& srcView = itEdge->second.job->sema().compiler().srcView(node.srcViewRef());
         const auto  loc     = Diagnostic::tokenErrorLocation(*ctx_, srcView, node.tokRef());
-        diag.last().addSpan(loc);
+        diag.last().addSpan(loc, next->name(*ctx_), DiagnosticSeverity::Note);
     }
 
     diag.report(*ctx_);

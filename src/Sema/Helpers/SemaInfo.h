@@ -10,9 +10,10 @@ class SymbolNamespace;
 class Symbol;
 class SemaScope;
 
-constexpr uint16_t SEMA_KIND_MASK   = 0x000F;
-constexpr uint16_t SEMA_SHARD_MASK  = 0x00F0;
-constexpr uint16_t SEMA_SHARD_SHIFT = 4;
+constexpr uint16_t        SEMA_KIND_MASK   = 0x000F;
+constexpr uint16_t        SEMA_SHARD_MASK  = 0x00F0;
+constexpr uint16_t        SEMA_SHARD_SHIFT = 4;
+constexpr static uint32_t SEMA_SHARD_NUM   = 1 << SEMA_SHARD_SHIFT;
 
 enum class NodeSemaKind : uint16_t
 {
@@ -41,8 +42,7 @@ class SemaInfo
         Store             store;
     };
 
-    constexpr static uint32_t NUM_SHARDS = 16;
-    Shard                     shards_[NUM_SHARDS];
+    Shard shards_[SEMA_SHARD_NUM];
 
 public:
     Ast&       ast() { return ast_; }

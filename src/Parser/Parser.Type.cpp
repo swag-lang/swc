@@ -354,13 +354,13 @@ AstNodeRef Parser::parseLambdaType()
     const auto           tokStart = ref();
 
     if (consumeIf(TokenId::KwdMtd).isValid())
-        flags.add(AstLambdaType::Mtd);
+        flags.add(AstLambdaType::Method);
     else
         consumeAssert(TokenId::KwdFunc);
 
     if (consumeIf(TokenId::SymPipePipe).isValid())
         flags.add(AstLambdaType::Closure);
-    else if (flags.has(AstLambdaType::Mtd))
+    else if (flags.has(AstLambdaType::Method))
     {
         raiseError(DiagnosticId::parser_err_mtd_missing_capture, tokStart);
         flags.add(AstLambdaType::Closure);

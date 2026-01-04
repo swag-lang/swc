@@ -51,7 +51,7 @@ struct AstNode
     template<typename T>
     EnumFlags<T> parserFlags() const
     {
-        return static_cast<EnumFlags<T>>(parserFlags_);
+        return static_cast<T>(parserFlags_);
     }
 
     void clearFlags()

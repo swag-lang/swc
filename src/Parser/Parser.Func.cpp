@@ -60,7 +60,7 @@ AstNodeRef Parser::parseLambdaExpression()
     const auto           tokStart = ref();
 
     if (consumeIf(TokenId::KwdMtd).isValid())
-        flags.add(AstLambdaType::Mtd);
+        flags.add(AstLambdaType::Method);
     else
         consumeAssert(TokenId::KwdFunc);
 
@@ -75,7 +75,7 @@ AstNodeRef Parser::parseLambdaExpression()
     {
         flags.add(AstLambdaType::Closure);
     }
-    else if (flags.has(AstLambdaType::Mtd))
+    else if (flags.has(AstLambdaType::Method))
     {
         raiseError(DiagnosticId::parser_err_mtd_missing_capture, tokStart);
         flags.add(AstLambdaType::Closure);
@@ -126,7 +126,7 @@ AstNodeRef Parser::parseFunctionDecl()
 {
     AstLambdaType::Flags flags = AstLambdaType::Zero;
     if (consumeIf(TokenId::KwdMtd).isValid())
-        flags.add(AstLambdaType::Mtd);
+        flags.add(AstLambdaType::Method);
     else
         consumeAssert(TokenId::KwdFunc);
 

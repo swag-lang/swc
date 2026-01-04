@@ -822,7 +822,7 @@ struct AstLambdaType : AstNodeT<AstNodeId::LambdaType>
     enum FlagsE : ParserFlags
     {
         Zero    = 0,
-        Mtd     = 1 << 0,
+        Method     = 1 << 0,
         Throw   = 1 << 1,
         Closure = 1 << 2,
         Const   = 1 << 3,

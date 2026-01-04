@@ -187,6 +187,8 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
                     return false;
             return true;
         case TypeInfoKind::Lambda:
+            if (asLambda.flags != other.asLambda.flags)
+                return false;
             if (asLambda.paramTypes.size() != other.asLambda.paramTypes.size())
                 return false;
             if (asLambda.returnType != other.asLambda.returnType)
@@ -483,11 +485,12 @@ TypeInfo TypeInfo::makeArray(const std::vector<uint64_t>& dims, TypeRef elementT
     return ti;
 }
 
-TypeInfo TypeInfo::makeLambda(const std::vector<TypeRef>& paramTypes, TypeRef returnType, TypeInfoFlags flags)
+TypeInfo TypeInfo::makeLambda(const std::vector<TypeRef>& paramTypes, TypeRef returnType, TypeInfoFlags flags, LambdaFlags lambdaFlags)
 {
     TypeInfo ti{TypeInfoKind::Lambda, flags};
     std::construct_at(&ti.asLambda.paramTypes, paramTypes);
     ti.asLambda.returnType = returnType;
+    ti.asLambda.flags      = lambdaFlags;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -540,6 +543,7 @@ uint32_t TypeInfo::hash() const
                 h = Math::hashCombine(h, dim);
             return h;
         case TypeInfoKind::Lambda:
+            h = Math::hashCombine(h, static_cast<uint32_t>(asLambda.flags.get()));
             h = Math::hashCombine(h, asLambda.returnType.get());
             for (const auto& param : asLambda.paramTypes)
                 h = Math::hashCombine(h, param.get());

@@ -16,6 +16,7 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
         case TypeInfoKind::Char:
         case TypeInfoKind::String:
         case TypeInfoKind::Void:
+        case TypeInfoKind::Null:
         case TypeInfoKind::Any:
         case TypeInfoKind::Rune:
         case TypeInfoKind::CString:
@@ -84,6 +85,7 @@ TypeInfo& TypeInfo::operator=(const TypeInfo& other)
         case TypeInfoKind::Char:
         case TypeInfoKind::String:
         case TypeInfoKind::Void:
+        case TypeInfoKind::Null:
         case TypeInfoKind::Any:
         case TypeInfoKind::Rune:
         case TypeInfoKind::CString:
@@ -140,6 +142,7 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
         case TypeInfoKind::Char:
         case TypeInfoKind::String:
         case TypeInfoKind::Void:
+        case TypeInfoKind::Null:
         case TypeInfoKind::Any:
         case TypeInfoKind::Rune:
         case TypeInfoKind::CString:
@@ -202,6 +205,9 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
             break;
         case TypeInfoKind::Void:
             out += "void";
+            break;
+        case TypeInfoKind::Null:
+            out += "null";
             break;
         case TypeInfoKind::Any:
             out += "any";
@@ -365,6 +371,11 @@ TypeInfo TypeInfo::makeVoid()
     return TypeInfo{TypeInfoKind::Void};
 }
 
+TypeInfo TypeInfo::makeNull()
+{
+    return TypeInfo{TypeInfoKind::Null};
+}
+
 TypeInfo TypeInfo::makeCString(TypeInfoFlags flags)
 {
     return TypeInfo{TypeInfoKind::CString, flags};
@@ -449,6 +460,7 @@ uint32_t TypeInfo::hash() const
         case TypeInfoKind::Any:
         case TypeInfoKind::Rune:
         case TypeInfoKind::CString:
+        case TypeInfoKind::Null:
             return h;
 
         case TypeInfoKind::Int:
@@ -509,6 +521,7 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
         case TypeInfoKind::CString:
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
+        case TypeInfoKind::Null:
             return 8;
 
         case TypeInfoKind::Slice:
@@ -557,6 +570,7 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
         case TypeInfoKind::String:
         case TypeInfoKind::Interface:
         case TypeInfoKind::Any:
+        case TypeInfoKind::Null:
             return static_cast<uint32_t>(sizeOf(ctx));
 
         case TypeInfoKind::Array:

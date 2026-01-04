@@ -31,6 +31,7 @@ void TypeManager::setup(TaskContext&)
 
     typeAny_     = addType(TypeInfo::makeAny());
     typeVoid_    = addType(TypeInfo::makeVoid());
+    typeNull_    = addType(TypeInfo::makeNull());
     typeRune_    = addType(TypeInfo::makeRune());
     typeCString_ = addType(TypeInfo::makeCString());
 

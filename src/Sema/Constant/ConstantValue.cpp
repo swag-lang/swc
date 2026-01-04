@@ -33,6 +33,8 @@ bool ConstantValue::operator==(const ConstantValue& rhs) const noexcept
             return getInt().same(rhs.getInt());
         case ConstantKind::Float:
             return getFloat().same(rhs.getFloat());
+        case ConstantKind::Null:
+            return true;
 
         default:
             SWC_UNREACHABLE();
@@ -56,6 +58,8 @@ bool ConstantValue::eq(const ConstantValue& rhs) const noexcept
             return getInt().eq(rhs.getInt());
         case ConstantKind::Float:
             return getFloat().eq(rhs.getFloat());
+        case ConstantKind::Null:
+            return true;
         case ConstantKind::TypeValue:
             return getTypeValue() == rhs.getTypeValue();
 
@@ -132,6 +136,15 @@ ConstantValue ConstantValue::makeBool(const TaskContext& ctx, bool value)
     cv.typeRef_   = ctx.typeMgr().typeBool();
     cv.kind_      = ConstantKind::Bool;
     cv.asBool.val = value;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return cv;
+}
+
+ConstantValue ConstantValue::makeNull(const TaskContext& ctx)
+{
+    ConstantValue cv;
+    cv.typeRef_ = ctx.typeMgr().typeNull();
+    cv.kind_    = ConstantKind::Null;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -272,6 +285,8 @@ uint32_t ConstantValue::hash() const noexcept
         case ConstantKind::Float:
             h = Math::hashCombine(h, asFloat.val.hash());
             break;
+        case ConstantKind::Null:
+            break;
         case ConstantKind::EnumValue:
             h = Math::hashCombine(h, asEnumValue.val.get());
             break;
@@ -329,6 +344,8 @@ Utf8 ConstantValue::toString(const TaskContext& ctx) const
             return getInt().toString();
         case ConstantKind::Float:
             return getFloat().toString();
+        case ConstantKind::Null:
+            return "null";
         case ConstantKind::TypeValue:
             return ctx.typeMgr().get(getTypeValue()).toName(ctx);
         case ConstantKind::EnumValue:

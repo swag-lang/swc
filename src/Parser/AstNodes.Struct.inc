@@ -586,6 +586,7 @@ struct AstBoolLiteral : AstLiteralT<AstNodeId::BoolLiteral>
 // -----------------------------------------------------------------------------
 struct AstNullLiteral : AstLiteralT<AstNodeId::NullLiteral>
 {
+    Result semaPreNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

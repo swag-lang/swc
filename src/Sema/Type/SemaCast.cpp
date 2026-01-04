@@ -260,6 +260,20 @@ namespace
 
         return ok;
     }
+
+    bool castNull(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+        if (dstType.isPointerLike())
+        {
+            if (castCtx.isFolding())
+                castCtx.outConstRef = castCtx.srcConstRef;
+            return true;
+        }
+
+        castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        return false;
+    }
 }
 
 bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
@@ -289,6 +303,8 @@ bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef,
         ok = castBit(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isEnum() && !dstType.isEnum())
         ok = castFromEnum(sema, castCtx, srcTypeRef, dstTypeRef);
+    else if (srcType.isNull())
+        ok = castNull(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isBool() && dstType.isIntLike())
         ok = castBoolToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isIntLike() && dstType.isBool())

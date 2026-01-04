@@ -19,6 +19,7 @@ public:
     TypeRef typeFloat(uint32_t bits) const;
     TypeRef typeAny() const { return typeAny_; }
     TypeRef typeVoid() const { return typeVoid_; }
+    TypeRef typeNull() const { return typeNull_; }
     TypeRef typeRune() const { return typeRune_; }
     TypeRef typeCString() const { return typeCString_; }
 
@@ -71,6 +72,7 @@ private:
     TypeRef typeF64_         = TypeRef::invalid();
     TypeRef typeAny_         = TypeRef::invalid();
     TypeRef typeVoid_        = TypeRef::invalid();
+    TypeRef typeNull_        = TypeRef::invalid();
     TypeRef typeRune_        = TypeRef::invalid();
     TypeRef typeCString_     = TypeRef::invalid();
 

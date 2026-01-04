@@ -30,6 +30,7 @@ enum class TypeInfoKind : uint8_t
     Rune,
     Any,
     Void,
+    Null,
     CString,
     Enum,
     ValuePointer,
@@ -88,6 +89,7 @@ public:
     bool isRune() const noexcept { return kind_ == TypeInfoKind::Rune; }
     bool isAny() const noexcept { return kind_ == TypeInfoKind::Any; }
     bool isVoid() const noexcept { return kind_ == TypeInfoKind::Void; }
+    bool isNull() const noexcept { return kind_ == TypeInfoKind::Null; }
     bool isCString() const noexcept { return kind_ == TypeInfoKind::CString; }
     bool isEnum() const noexcept { return kind_ == TypeInfoKind::Enum; }
     bool isStruct() const noexcept { return kind_ == TypeInfoKind::Struct; }
@@ -102,6 +104,7 @@ public:
 
     bool isCharRune() const noexcept { return isChar() || isRune(); }
     bool isIntLike() const noexcept { return isInt() || isCharRune(); }
+    bool isPointerLike() const noexcept { return isPointer() || isSlice() || isString() || isCString() || isAny(); }
     bool isScalarNumeric() const noexcept { return isIntLike() || isFloat(); }
     bool isIntLikeUnsigned() const noexcept { return isCharRune() || isIntUnsigned(); }
     bool isConcreteScalar() const noexcept { return isScalarNumeric() && !isIntUnsized() && !isFloatUnsized(); }
@@ -130,6 +133,7 @@ public:
     static TypeInfo makeRune();
     static TypeInfo makeAny(TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeVoid();
+    static TypeInfo makeNull();
     static TypeInfo makeCString(TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeEnum(SymbolEnum* sym);
     static TypeInfo makeStruct(SymbolStruct* sym);

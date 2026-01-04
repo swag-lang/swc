@@ -19,6 +19,7 @@ enum class ConstantKind
     String,
     Int,
     Float,
+    Null,
     TypeValue,
     EnumValue,
 };
@@ -49,6 +50,7 @@ public:
     bool         isString() const { return kind_ == ConstantKind::String; }
     bool         isInt() const { return kind_ == ConstantKind::Int; }
     bool         isFloat() const { return kind_ == ConstantKind::Float; }
+    bool         isNull() const { return kind_ == ConstantKind::Null; }
     bool         isTypeValue() const { return kind_ == ConstantKind::TypeValue; }
     bool         isEnumValue() const { return kind_ == ConstantKind::EnumValue; }
 
@@ -66,6 +68,7 @@ public:
     const TypeInfo& type(const TaskContext& ctx) const;
 
     static ConstantValue makeBool(const TaskContext& ctx, bool value);
+    static ConstantValue makeNull(const TaskContext& ctx);
     static ConstantValue makeString(const TaskContext& ctx, std::string_view value);
     static ConstantValue makeChar(const TaskContext& ctx, char32_t value);
     static ConstantValue makeRune(const TaskContext& ctx, char32_t value);

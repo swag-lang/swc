@@ -100,6 +100,14 @@ Result AstBoolLiteral::semaPreNode(Sema& sema) const
     return Result::SkipChildren;
 }
 
+Result AstNullLiteral::semaPreNode(Sema& sema) const
+{
+    const auto& ctx = sema.ctx();
+    const auto  val = ConstantValue::makeNull(ctx);
+    sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
+    return Result::SkipChildren;
+}
+
 Result AstCharacterLiteral::semaPreNode(Sema& sema) const
 {
     const auto&       ctx     = sema.ctx();

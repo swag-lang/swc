@@ -122,7 +122,7 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
             sema.curScope().addUsingSymMap(sym.asSymMap());
             continue;
         }
-        
+
         return SemaError::raiseInternal(sema, *this);
     }
 

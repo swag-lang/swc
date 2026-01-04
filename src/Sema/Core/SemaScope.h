@@ -31,7 +31,7 @@ public:
     SymbolMap*       symMap() { return symMap_; }
     const SymbolMap* symMap() const { return symMap_; }
 
-    void addUsingSymMap(SymbolMap* symMap) { usingSymMaps_.push_back(symMap); }
+    void                           addUsingSymMap(SymbolMap* symMap) { usingSymMaps_.push_back(symMap); }
     const SmallVector<SymbolMap*>& usingSymMaps() const { return usingSymMaps_; }
 
 private:

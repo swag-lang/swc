@@ -334,7 +334,6 @@ Result semaPostDecl(Sema& sema, AstNode& node)
     return node.cast<NodeType>()->semaPostDecl(sema);
 }
 
-
 template<AstNodeId ID>
 Result semaPreNode(Sema& sema, AstNode& node)
 {

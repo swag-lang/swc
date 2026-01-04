@@ -295,10 +295,8 @@ std::pair<Ref, void*> Store::allocate(uint32_t size, uint32_t align)
 {
     SWC_ASSERT(size <= pageSize_ && (align & (align - 1)) == 0 && align <= alignof(std::max_align_t));
 
-    Page* page = cur_ ? cur_ : newPage();
-
+    Page*    page   = cur_ ? cur_ : newPage();
     uint32_t offset = (page->used + (align - 1)) & ~(align - 1);
-
     if (offset + size > pageSize_)
     {
         page   = newPage();

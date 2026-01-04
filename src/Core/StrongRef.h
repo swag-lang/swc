@@ -36,7 +36,7 @@ public:
     explicit operator int() const      = delete;
     explicit operator uint32_t() const = delete;
 
-#if SWC_HAS_DEBUG_INFO
+#if SWC_HAS_REF_DEBUG_INFO
     void     setDbgPtr(const T* ptr) { dbgPtr_ = ptr; }
     const T* dbgPtr() const { return dbgPtr_; }
 #endif
@@ -44,7 +44,7 @@ public:
 private:
     uint32_t value_;
 
-#if SWC_HAS_DEBUG_INFO
+#if SWC_HAS_REF_DEBUG_INFO
     const T* dbgPtr_ = nullptr;
 #endif
 };

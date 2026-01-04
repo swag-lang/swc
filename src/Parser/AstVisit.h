@@ -35,7 +35,7 @@ public:
     const Ast& ast() const { return *ast_; }
     Ast&       ast() { return *ast_; }
 
-#if SWC_HAS_DEBUG_INFO
+#if SWC_HAS_VISIT_DEBUG_INFO
     const SourceFile*  dbgSrcFile = nullptr;
     const AstNode*     dbgNode    = nullptr;
     const Token*       dbgTok     = nullptr;

@@ -125,7 +125,7 @@ SourceView& CompilerInstance::addSourceView()
     std::unique_lock lock(mutex_);
     auto             srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
     srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, nullptr));
-#if SWC_HAS_DEBUG_INFO
+#if SWC_HAS_REF_DEBUG_INFO
     srcViewRef.setDbgPtr(srcViews_.back().get());
 #endif
     return *srcViews_.back();
@@ -139,7 +139,7 @@ SourceView& CompilerInstance::addSourceView(FileRef fileRef)
     std::unique_lock lock(mutex_);
     auto             srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
     srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, &file(fileRef)));
-#if SWC_HAS_DEBUG_INFO
+#if SWC_HAS_REF_DEBUG_INFO
     srcViewRef.setDbgPtr(srcViews_.back().get());
 #endif
     return *srcViews_.back();
@@ -151,7 +151,7 @@ SourceFile& CompilerInstance::addFile(fs::path path, FileFlags flags)
     path         = fs::absolute(path);
     auto fileRef = static_cast<FileRef>(static_cast<uint32_t>(files_.size()));
     files_.emplace_back(std::make_unique<SourceFile>(fileRef, std::move(path), flags));
-#if SWC_HAS_DEBUG_INFO
+#if SWC_HAS_REF_DEBUG_INFO
     fileRef.setDbgPtr(files_.back().get());
 #endif
     return *files_.back();

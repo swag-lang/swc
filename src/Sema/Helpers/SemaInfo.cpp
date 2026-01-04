@@ -4,7 +4,7 @@
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Constant/ConstantValue.h"
 #include "Sema/Symbol/Symbols.h"
-#if SWC_HAS_DEBUG_INFO
+#if SWC_HAS_REF_DEBUG_INFO
 #include "Sema/Type/TypeManager.h"
 #endif
 
@@ -49,7 +49,7 @@ ConstantRef SemaInfo::getConstantRef(const TaskContext& ctx, AstNodeRef nodeRef)
     if (semaKind(node) == NodeSemaKind::ConstantRef)
     {
         ConstantRef value{node.semaRef()};
-#if SWC_HAS_DEBUG_INFO
+#if SWC_HAS_REF_DEBUG_INFO
         value.setDbgPtr(&ctx.cstMgr().get(value));
 #endif
         return value;
@@ -106,7 +106,7 @@ AstNodeRef SemaInfo::getSubstituteRef(AstNodeRef nodeRef) const
         node    = &ast().node(nodeRef);
     }
 
-#if SWC_HAS_DEBUG_INFO
+#if SWC_HAS_REF_DEBUG_INFO
     nodeRef.setDbgPtr(&ast().node(nodeRef));
 #endif
     return nodeRef;
@@ -146,7 +146,7 @@ TypeRef SemaInfo::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const
             SWC_UNREACHABLE();
     }
 
-#if SWC_HAS_DEBUG_INFO
+#if SWC_HAS_REF_DEBUG_INFO
     if (value.isValid())
         value.setDbgPtr(&ctx.typeMgr().get(value));
 #endif

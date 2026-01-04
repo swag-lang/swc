@@ -131,7 +131,7 @@ public:
 #endif
 
         auto value = std::pair<AstNodeRef, NodeType*>{globalRef, local.second};
-#if SWC_HAS_DEBUG_INFO
+#if SWC_HAS_REF_DEBUG_INFO
         value.first.setDbgPtr(value.second);
 #endif
         return value;

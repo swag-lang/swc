@@ -55,7 +55,7 @@ private:
     TokenRef ref() const
     {
         auto result = static_cast<TokenRef>(static_cast<uint32_t>(curToken_ - firstToken_));
-#if SWC_HAS_DEBUG_INFO
+#if SWC_HAS_REF_DEBUG_INFO
         result.setDbgPtr(curToken_);
 #endif
         return result;

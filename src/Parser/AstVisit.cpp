@@ -29,7 +29,7 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
 
     Frame& fr = stack_.back();
 
-#if SWC_HAS_DEBUG_INFO
+#if SWC_HAS_VISIT_DEBUG_INFO
     dbgNode    = &ast_->node(fr.nodeRef);
     dbgTokRef  = dbgNode->tokRef();
     dbgTok     = dbgTokRef.isValid() ? &ast_->srcView().token(dbgTokRef) : nullptr;

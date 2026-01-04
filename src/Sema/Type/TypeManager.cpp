@@ -123,7 +123,7 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
     shard.store.push_back(typeInfo);
 
     auto result = TypeRef{(shardIndex << LOCAL_BITS) | localIndex};
-#if SWC_HAS_DEBUG_INFO
+#if SWC_HAS_REF_DEBUG_INFO
     result.setDbgPtr(&get(result));
 #endif
 

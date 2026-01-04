@@ -257,13 +257,13 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
             out += "cstring";
             break;
         case TypeInfoKind::Enum:
-            out += std::format("enum {}", asEnum.sym->name(ctx));
+            out += asEnum.sym->name(ctx);
             break;
         case TypeInfoKind::Struct:
-            out += std::format("struct {}", asStruct.sym->name(ctx));
+            out += asStruct.sym->name(ctx);
             break;
         case TypeInfoKind::Interface:
-            out += std::format("interface {}", asInterface.sym->name(ctx));
+            out += asInterface.sym->name(ctx);
             break;
         case TypeInfoKind::Alias:
             out += asAlias.sym->name(ctx);

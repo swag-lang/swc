@@ -33,6 +33,7 @@ enum class SymbolKind : uint8_t
     Struct,
     Interface,
     Alias,
+    Function,
 };
 
 enum class SymbolFlagsE : uint8_t
@@ -110,6 +111,7 @@ public:
     bool isAttribute() const noexcept { return kind_ == SymbolKind::Attribute; }
     bool isModule() const noexcept { return kind_ == SymbolKind::Module; }
     bool isAlias() const noexcept { return kind_ == SymbolKind::Alias; }
+    bool isFunction() const noexcept { return kind_ == SymbolKind::Function; }
 
     bool isSymMap() const noexcept { return isNamespace() || isModule() || isEnum() || isStruct() || isInterface(); }
     bool isType() const;

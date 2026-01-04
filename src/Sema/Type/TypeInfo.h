@@ -8,6 +8,7 @@ class SymbolEnum;
 class SymbolStruct;
 class SymbolInterface;
 class SymbolAlias;
+class SymbolFunction;
 class TypeManager;
 
 enum class TypeInfoFlagsE : uint8_t
@@ -49,7 +50,7 @@ enum class TypeInfoKind : uint8_t
     Struct,
     Interface,
     Alias,
-    Lambda,
+    Function,
     Variadic,
     TypedVariadic,
 };
@@ -115,37 +116,36 @@ public:
     bool isSlice() const noexcept { return kind_ == TypeInfoKind::Slice; }
     bool isArray() const noexcept { return kind_ == TypeInfoKind::Array; }
     bool isAlias() const noexcept { return kind_ == TypeInfoKind::Alias; }
-    bool isLambda() const noexcept { return kind_ == TypeInfoKind::Lambda; }
+    bool isFunction() const noexcept { return kind_ == TypeInfoKind::Function; }
     bool isVariadic() const noexcept { return kind_ == TypeInfoKind::Variadic; }
     bool isTypedVariadic() const noexcept { return kind_ == TypeInfoKind::TypedVariadic; }
     bool isAnyVariadic() const noexcept { return isVariadic() || isTypedVariadic(); }
 
     bool isCharRune() const noexcept { return isChar() || isRune(); }
     bool isIntLike() const noexcept { return isInt() || isCharRune(); }
-    bool isPointerLike() const noexcept { return isPointer() || isSlice() || isString() || isCString() || isAny() || isInterface() || isLambda(); }
+    bool isPointerLike() const noexcept { return isPointer() || isSlice() || isString() || isCString() || isAny() || isInterface() || isFunction(); }
     bool isScalarNumeric() const noexcept { return isIntLike() || isFloat(); }
     bool isIntLikeUnsigned() const noexcept { return isCharRune() || isIntUnsigned(); }
     bool isConcreteScalar() const noexcept { return isScalarNumeric() && !isIntUnsized() && !isFloatUnsized(); }
 
     // clang-format off
-    Sign               intSign() const noexcept { SWC_ASSERT(isInt()); return asInt.sign; }
-    uint32_t           intBits() const noexcept { SWC_ASSERT(isInt()); return asInt.bits; }
-    uint32_t           intLikeBits() const noexcept { SWC_ASSERT(isIntLike()); return isCharRune() ? 32 : asInt.bits; }
-    uint32_t           scalarNumericBits() const noexcept { SWC_ASSERT(isScalarNumeric()); return isIntLike() ? intLikeBits() : floatBits(); }
-    uint32_t           floatBits() const noexcept { SWC_ASSERT(isFloat()); return asFloat.bits; }
-    SymbolEnum&        enumSym() const noexcept { SWC_ASSERT(isEnum()); return *asEnum.sym; }
-    SymbolStruct&      structSym() const noexcept { SWC_ASSERT(isStruct()); return *asStruct.sym; }
-    SymbolInterface&   interfaceSym() const noexcept { SWC_ASSERT(isInterface()); return *asInterface.sym; }
-    SymbolAlias&       aliasSym() const noexcept { SWC_ASSERT(isAlias()); return *asAlias.sym; }
-    TypeRef            typeRef() const noexcept { SWC_ASSERT(isTypeValue() || isPointer() || isSlice() || isAlias() || isTypedVariadic()); return asTypeRef.typeRef; }
-    auto&              arrayDims() const noexcept { SWC_ASSERT(isArray()); return asArray.dims; }
-    TypeRef            arrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return asArray.typeRef; }
-    auto&              lambdaParamTypes() const noexcept { SWC_ASSERT(isLambda()); return asLambda.paramTypes; }
-    TypeRef            lambdaReturnType() const noexcept { SWC_ASSERT(isLambda()); return asLambda.returnType; }
-    TypeInfoLambdaFlags        lambdaFlags() const noexcept { SWC_ASSERT(isLambda()); return asLambda.flags; }
-    bool               isLambdaClosure()   const noexcept { SWC_ASSERT(isLambda()); return asLambda.flags.has(TypeInfoLambdaFlagsE::Closure); }
-    bool               isLambdaMethod()    const noexcept { SWC_ASSERT(isLambda()); return asLambda.flags.has(TypeInfoLambdaFlagsE::Method); }
-    bool               isLambdaThrowable() const noexcept { SWC_ASSERT(isLambda()); return asLambda.flags.has(TypeInfoLambdaFlagsE::Throwable); }
+    Sign                 intSign() const noexcept { SWC_ASSERT(isInt()); return asInt.sign; }
+    uint32_t             intBits() const noexcept { SWC_ASSERT(isInt()); return asInt.bits; }
+    uint32_t             intLikeBits() const noexcept { SWC_ASSERT(isIntLike()); return isCharRune() ? 32 : asInt.bits; }
+    uint32_t             scalarNumericBits() const noexcept { SWC_ASSERT(isScalarNumeric()); return isIntLike() ? intLikeBits() : floatBits(); }
+    uint32_t             floatBits() const noexcept { SWC_ASSERT(isFloat()); return asFloat.bits; }
+    SymbolEnum&          enumSym() const noexcept { SWC_ASSERT(isEnum()); return *asEnum.sym; }
+    SymbolStruct&        structSym() const noexcept { SWC_ASSERT(isStruct()); return *asStruct.sym; }
+    SymbolInterface&     interfaceSym() const noexcept { SWC_ASSERT(isInterface()); return *asInterface.sym; }
+    SymbolAlias&         aliasSym() const noexcept { SWC_ASSERT(isAlias()); return *asAlias.sym; }
+    TypeRef              typeRef() const noexcept { SWC_ASSERT(isTypeValue() || isPointer() || isSlice() || isAlias() || isTypedVariadic()); return asTypeRef.typeRef; }
+    auto&                arrayDims() const noexcept { SWC_ASSERT(isArray()); return asArray.dims; }
+    TypeRef              arrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return asArray.typeRef; }
+    SymbolFunction&      functionSym() const noexcept { SWC_ASSERT(isFunction()); return *asFunction.sym; }
+    TypeInfoLambdaFlags  lambdaFlags() const noexcept { SWC_ASSERT(isFunction()); return asFunction.flags; }
+    bool                 isLambdaClosure()   const noexcept { SWC_ASSERT(isFunction()); return asFunction.flags.has(TypeInfoLambdaFlagsE::Closure); }
+    bool                 isLambdaMethod()    const noexcept { SWC_ASSERT(isFunction()); return asFunction.flags.has(TypeInfoLambdaFlagsE::Method); }
+    bool                 isLambdaThrowable() const noexcept { SWC_ASSERT(isFunction()); return asFunction.flags.has(TypeInfoLambdaFlagsE::Throwable); }
     // clang-format on
 
     static TypeInfo makeBool();
@@ -167,7 +167,7 @@ public:
     static TypeInfo makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeArray(const std::vector<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
-    static TypeInfo makeLambda(const std::vector<TypeRef>& paramTypes, TypeRef returnType, TypeInfoFlags flags = TypeInfoFlagsE::Zero, TypeInfoLambdaFlags lambdaFlags = TypeInfoLambdaFlagsE::Zero);
+    static TypeInfo makeLambda(SymbolFunction* sym, TypeInfoFlags flags = TypeInfoFlagsE::Zero, TypeInfoLambdaFlags lambdaFlags = TypeInfoLambdaFlagsE::Zero);
     static TypeInfo makeVariadic();
     static TypeInfo makeTypedVariadic(TypeRef typeRef);
 
@@ -229,10 +229,9 @@ private:
 
         struct
         {
-            std::vector<TypeRef> paramTypes;
-            TypeRef              returnType;
-            TypeInfoLambdaFlags          flags;
-        } asLambda;
+            SymbolFunction*     sym;
+            TypeInfoLambdaFlags flags;
+        } asFunction;
     };
 };
 

@@ -186,4 +186,24 @@ private:
     TypeRef       underlyingTypeRef_ = TypeRef::invalid();
 };
 
+// -----------------------------------------------------------------------------
+class SymbolFunction : public SymbolMap
+{
+public:
+    static constexpr auto K = SymbolKind::Function;
+
+    explicit SymbolFunction(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        SymbolMap(decl, tokRef, K, idRef, flags)
+    {
+    }
+
+    TypeRef               returnType() const { return returnType_; }
+    void                  setReturnType(TypeRef typeRef) { returnType_ = typeRef; }
+    std::vector<Symbol*>& parameters() { return parameters_; }
+
+private:
+    std::vector<Symbol*> parameters_;
+    TypeRef              returnType_ = TypeRef::invalid();
+};
+
 SWC_END_NAMESPACE()

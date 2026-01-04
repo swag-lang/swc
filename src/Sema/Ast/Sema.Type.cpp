@@ -352,21 +352,35 @@ Result AstAliasDecl::semaPostNode(Sema& sema) const
 
 Result AstLambdaType::semaPostNode(Sema& sema) const
 {
+    auto& ctx = sema.ctx();
+
+    const auto symFunc = Symbol::make<SymbolFunction>(ctx, this, tokRef(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+
     SmallVector<AstNodeRef> params;
     sema.ast().nodes(params, spanParamsRef);
 
-    std::vector<TypeRef> paramTypes;
     for (const auto& paramRef : params)
     {
         const auto* param        = sema.node(paramRef).cast<AstLambdaTypeParam>();
         TypeRef     paramTypeRef = sema.typeRefOf(param->nodeTypeRef);
         SWC_ASSERT(paramTypeRef.isValid());
-        paramTypes.push_back(paramTypeRef);
+
+        IdentifierRef idRef = IdentifierRef::invalid();
+        if (param->tokRef().isValid())
+            idRef = sema.idMgr().addIdentifier(ctx, param->srcViewRef(), param->tokRef());
+
+        const auto symVar = Symbol::make<SymbolVariable>(ctx, param, param->tokRef(), idRef, SymbolFlagsE::Zero);
+        symVar->setTypeRef(paramTypeRef);
+
+        symFunc->parameters().push_back(symVar);
+        if (idRef.isValid())
+            symFunc->addSymbol(ctx, symVar, false);
     }
 
     TypeRef returnType = TypeRef::invalid();
     if (nodeReturnTypeRef.isValid())
         returnType = sema.typeRefOf(nodeReturnTypeRef);
+    symFunc->setReturnType(returnType);
 
     TypeInfoLambdaFlags lambdaFlags = TypeInfoLambdaFlagsE::Zero;
     if (parserFlags<FlagsE>().has(Throw))
@@ -376,7 +390,7 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
     if (parserFlags<FlagsE>().has(Method))
         lambdaFlags.add(TypeInfoLambdaFlagsE::Method);
 
-    const TypeInfo ti      = TypeInfo::makeLambda(paramTypes, returnType, TypeInfoFlagsE::Zero, lambdaFlags);
+    const TypeInfo ti      = TypeInfo::makeLambda(symFunc, TypeInfoFlagsE::Zero, lambdaFlags);
     const TypeRef  typeRef = sema.typeMgr().addType(ti);
     sema.setType(sema.curNodeRef(), typeRef);
     return Result::Continue;

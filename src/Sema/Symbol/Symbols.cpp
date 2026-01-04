@@ -55,8 +55,6 @@ Result SymbolStruct::canBeCompleted(Sema& sema) const
         auto& symVar = field->cast<SymbolVariable>();
         if (symVar.isIgnored())
             continue;
-        if (symVar.typeRef().isInvalid())
-            continue; // TODO
 
         auto& type = symVar.typeInfo(sema.ctx());
 
@@ -89,8 +87,6 @@ void SymbolStruct::computeLayout(Sema& sema)
         auto& symVar = field->cast<SymbolVariable>();
         if (symVar.isIgnored())
             continue;
-        if (symVar.typeRef().isInvalid())
-            continue; // TODO
 
         auto& type = symVar.typeInfo(ctx);
 

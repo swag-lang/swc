@@ -838,6 +838,8 @@ struct AstLambdaType : AstNodeT<AstNodeId::LambdaType>
         AstNode::collectChildren(out, ast, spanParamsRef);
         AstNode::collectChildren(out, {nodeReturnTypeRef});
     }
+
+    Result semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

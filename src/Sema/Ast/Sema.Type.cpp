@@ -335,4 +335,26 @@ Result AstAliasDecl::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
+Result AstLambdaType::semaPostNode(Sema& sema) const
+{
+    SmallVector<AstNodeRef> params;
+    sema.ast().nodes(params, spanParamsRef);
+
+    std::vector<TypeRef> paramTypes;
+    for (const auto& paramRef : params)
+    {
+        const auto* param = sema.node(paramRef).cast<AstLambdaTypeParam>();
+        paramTypes.push_back(sema.typeRefOf(param->nodeTypeRef));
+    }
+
+    TypeRef returnType = TypeRef::invalid();
+    if (nodeReturnTypeRef.isValid())
+        returnType = sema.typeRefOf(nodeReturnTypeRef);
+
+    const TypeInfo ti      = TypeInfo::makeLambda(paramTypes, returnType);
+    const TypeRef  typeRef = sema.typeMgr().addType(ti);
+    sema.setType(sema.curNodeRef(), typeRef);
+    return Result::Continue;
+}
+
 SWC_END_NAMESPACE()

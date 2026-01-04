@@ -54,6 +54,9 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
         case TypeInfoKind::Array:
             std::construct_at(&asArray, other.asArray);
             break;
+        case TypeInfoKind::Lambda:
+            std::construct_at(&asLambda, other.asLambda);
+            break;
 
         default:
             SWC_UNREACHABLE();
@@ -69,6 +72,9 @@ TypeInfo& TypeInfo::operator=(const TypeInfo& other)
     {
         case TypeInfoKind::Array:
             std::destroy_at(&asArray);
+            break;
+        case TypeInfoKind::Lambda:
+            std::destroy_at(&asLambda);
             break;
 
         default:
@@ -121,6 +127,9 @@ TypeInfo& TypeInfo::operator=(const TypeInfo& other)
 
         case TypeInfoKind::Array:
             new (&asArray) decltype(asArray)(other.asArray);
+            break;
+        case TypeInfoKind::Lambda:
+            new (&asLambda) decltype(asLambda)(other.asLambda);
             break;
 
         default:
@@ -175,6 +184,15 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
                 return false;
             for (uint32_t i = 0; i < asArray.dims.size(); ++i)
                 if (asArray.dims[i] != other.asArray.dims[i])
+                    return false;
+            return true;
+        case TypeInfoKind::Lambda:
+            if (asLambda.paramTypes.size() != other.asLambda.paramTypes.size())
+                return false;
+            if (asLambda.returnType != other.asLambda.returnType)
+                return false;
+            for (uint32_t i = 0; i < asLambda.paramTypes.size(); ++i)
+                if (asLambda.paramTypes[i] != other.asLambda.paramTypes[i])
                     return false;
             return true;
 
@@ -307,6 +325,25 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
             out += " ";
             const TypeInfo& elemType = ctx.typeMgr().get(asArray.typeRef);
             out += elemType.toName(ctx);
+            break;
+        }
+        case TypeInfoKind::Lambda:
+        {
+            out += "func(";
+            for (size_t i = 0; i < asLambda.paramTypes.size(); ++i)
+            {
+                if (i != 0)
+                    out += ", ";
+                const TypeInfo& paramType = ctx.typeMgr().get(asLambda.paramTypes[i]);
+                out += paramType.toName(ctx);
+            }
+            out += ")";
+            if (asLambda.returnType.isValid())
+            {
+                out += " -> ";
+                const TypeInfo& returnType = ctx.typeMgr().get(asLambda.returnType);
+                out += returnType.toName(ctx);
+            }
             break;
         }
 
@@ -446,6 +483,15 @@ TypeInfo TypeInfo::makeArray(const std::vector<uint64_t>& dims, TypeRef elementT
     return ti;
 }
 
+TypeInfo TypeInfo::makeLambda(const std::vector<TypeRef>& paramTypes, TypeRef returnType, TypeInfoFlags flags)
+{
+    TypeInfo ti{TypeInfoKind::Lambda, flags};
+    std::construct_at(&ti.asLambda.paramTypes, paramTypes);
+    ti.asLambda.returnType = returnType;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return ti;
+}
+
 uint32_t TypeInfo::hash() const
 {
     auto h = Math::hash(static_cast<uint32_t>(kind_));
@@ -493,6 +539,11 @@ uint32_t TypeInfo::hash() const
             for (const auto dim : asArray.dims)
                 h = Math::hashCombine(h, dim);
             return h;
+        case TypeInfoKind::Lambda:
+            h = Math::hashCombine(h, asLambda.returnType.get());
+            for (const auto& param : asLambda.paramTypes)
+                h = Math::hashCombine(h, param.get());
+            return h;
 
         default:
             SWC_UNREACHABLE();
@@ -521,6 +572,7 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
         case TypeInfoKind::CString:
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
+        case TypeInfoKind::Lambda:
         case TypeInfoKind::Null:
             return 8;
 
@@ -566,6 +618,7 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
         case TypeInfoKind::CString:
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
+        case TypeInfoKind::Lambda:
         case TypeInfoKind::Slice:
         case TypeInfoKind::String:
         case TypeInfoKind::Interface:
@@ -606,6 +659,15 @@ bool TypeInfo::isCompleted(TaskContext& ctx) const
 
         case TypeInfoKind::Array:
             return ctx.typeMgr().get(asArray.typeRef).isCompleted(ctx);
+        case TypeInfoKind::Lambda:
+        {
+            if (asLambda.returnType.isValid() && !ctx.typeMgr().get(asLambda.returnType).isCompleted(ctx))
+                return false;
+            for (const auto& param : asLambda.paramTypes)
+                if (!ctx.typeMgr().get(param).isCompleted(ctx))
+                    return false;
+            return true;
+        }
         case TypeInfoKind::TypeValue:
             return ctx.typeMgr().get(asTypeRef.typeRef).isCompleted(ctx);
         default:
@@ -630,6 +692,20 @@ Symbol* TypeInfo::getSymbolDependency(TaskContext& ctx) const
 
         case TypeInfoKind::Array:
             return ctx.typeMgr().get(asArray.typeRef).getSymbolDependency(ctx);
+        case TypeInfoKind::Lambda:
+        {
+            if (asLambda.returnType.isValid())
+            {
+                if (auto sym = ctx.typeMgr().get(asLambda.returnType).getSymbolDependency(ctx))
+                    return sym;
+            }
+            for (const auto& param : asLambda.paramTypes)
+            {
+                if (auto sym = ctx.typeMgr().get(param).getSymbolDependency(ctx))
+                    return sym;
+            }
+            return nullptr;
+        }
         case TypeInfoKind::TypeValue:
             return ctx.typeMgr().get(asTypeRef.typeRef).getSymbolDependency(ctx);
         default:

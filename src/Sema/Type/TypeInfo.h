@@ -40,6 +40,7 @@ enum class TypeInfoKind : uint8_t
     Struct,
     Interface,
     Alias,
+    Lambda,
 };
 
 class TypeInfo;
@@ -101,6 +102,7 @@ public:
     bool isSlice() const noexcept { return kind_ == TypeInfoKind::Slice; }
     bool isArray() const noexcept { return kind_ == TypeInfoKind::Array; }
     bool isAlias() const noexcept { return kind_ == TypeInfoKind::Alias; }
+    bool isLambda() const noexcept { return kind_ == TypeInfoKind::Lambda; }
 
     bool isCharRune() const noexcept { return isChar() || isRune(); }
     bool isIntLike() const noexcept { return isInt() || isCharRune(); }
@@ -122,6 +124,8 @@ public:
     TypeRef          typeRef() const noexcept { SWC_ASSERT(isTypeValue() || isPointer() || isSlice() || isAlias()); return asTypeRef.typeRef; }
     auto&            arrayDims() const noexcept { SWC_ASSERT(isArray()); return asArray.dims; }
     TypeRef          arrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return asArray.typeRef; }
+    auto&            lambdaParamTypes() const noexcept { SWC_ASSERT(isLambda()); return asLambda.paramTypes; }
+    TypeRef          lambdaReturnType() const noexcept { SWC_ASSERT(isLambda()); return asLambda.returnType; }
     // clang-format on
 
     static TypeInfo makeBool();
@@ -143,6 +147,7 @@ public:
     static TypeInfo makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeArray(const std::vector<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    static TypeInfo makeLambda(const std::vector<TypeRef>& paramTypes, TypeRef returnType, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
 
     uint32_t hash() const;
     uint64_t sizeOf(TaskContext& ctx) const;
@@ -158,16 +163,53 @@ private:
 
     union
     {
-        // clang-format off
-        struct { uint32_t bits; Sign sign; }                    asInt;
-        struct { uint32_t bits; }                               asFloat;
-        struct { TypeRef typeRef; }                             asTypeRef;
-        struct { SymbolEnum* sym; }                             asEnum;
-        struct { SymbolStruct* sym; }                           asStruct;
-        struct { SymbolInterface* sym; }                        asInterface;
-        struct { SymbolAlias* sym; }                            asAlias;
-        struct { std::vector<uint64_t> dims; TypeRef typeRef; } asArray;
-        // clang-format on
+        struct
+        {
+            uint32_t bits;
+            Sign     sign;
+        } asInt;
+        
+        struct
+        {
+            uint32_t bits;
+        } asFloat;
+        
+        struct
+        {
+            TypeRef typeRef;
+        } asTypeRef;
+        
+        struct
+        {
+            SymbolEnum* sym;
+        } asEnum;
+        
+        struct
+        {
+            SymbolStruct* sym;
+        } asStruct;
+        
+        struct
+        {
+            SymbolInterface* sym;
+        } asInterface;
+        
+        struct
+        {
+            SymbolAlias* sym;
+        } asAlias;
+        
+        struct
+        {
+            std::vector<uint64_t> dims;
+            TypeRef               typeRef;
+        } asArray;
+        
+        struct
+        {
+            std::vector<TypeRef> paramTypes;
+            TypeRef              returnType;
+        } asLambda;
     };
 };
 

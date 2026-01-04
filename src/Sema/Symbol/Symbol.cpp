@@ -120,8 +120,6 @@ void Symbol::appendFullScopedName(const TaskContext& ctx, Utf8& out) const
     const SymbolMap* map = ownerSymMap_;
     while (map)
     {
-        // if (map->isNamespace())
-        //     break;
         scopeChain.push_back(map);
         map = map->symMap();
     }

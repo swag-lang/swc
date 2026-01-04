@@ -18,7 +18,7 @@ AstNodeRef Parser::parseClosureArg()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseLambdaExprArg()
+AstNodeRef Parser::parseLambdaExpressionArg()
 {
     AstNodeRef                nodeType;
     TokenRef                  tokName  = TokenRef::invalid();

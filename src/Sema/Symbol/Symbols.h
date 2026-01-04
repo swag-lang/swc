@@ -186,6 +186,15 @@ private:
     TypeRef       underlyingTypeRef_ = TypeRef::invalid();
 };
 
+enum class SymbolFunctionFlagsE : uint8_t
+{
+    Zero      = 0,
+    Closure   = 1 << 0, // captures environment
+    Method    = 1 << 1, // has an implicit receiver
+    Throwable = 1 << 2, // may throw
+};
+using SymbolFunctionFlags = EnumFlags<SymbolFunctionFlagsE>;
+
 // -----------------------------------------------------------------------------
 class SymbolFunction : public SymbolMap
 {
@@ -201,9 +210,14 @@ public:
     void                  setReturnType(TypeRef typeRef) { returnType_ = typeRef; }
     std::vector<Symbol*>& parameters() { return parameters_; }
 
+    SymbolFunctionFlags  funcFlags() const noexcept { return funcFlags_; }
+    bool                 hasFuncFlag(SymbolFunctionFlagsE flag) const noexcept { return funcFlags_.has(flag); }
+    void                 addFuncFlag(SymbolFunctionFlagsE fl) { funcFlags_.add(fl); }
+
 private:
     std::vector<Symbol*> parameters_;
     TypeRef              returnType_ = TypeRef::invalid();
+    SymbolFunctionFlags  funcFlags_  = SymbolFunctionFlagsE::Zero;
 };
 
 SWC_END_NAMESPACE()

@@ -19,14 +19,6 @@ enum class TypeInfoFlagsE : uint8_t
 };
 using TypeInfoFlags = EnumFlags<TypeInfoFlagsE>;
 
-enum class TypeInfoLambdaFlagsE : uint8_t
-{
-    Zero      = 0,
-    Closure   = 1 << 0, // captures environment
-    Method    = 1 << 1, // has an implicit receiver
-    Throwable = 1 << 2, // may throw
-};
-using TypeInfoLambdaFlags = EnumFlags<TypeInfoLambdaFlagsE>;
 
 enum class TypeInfoKind : uint8_t
 {
@@ -142,10 +134,9 @@ public:
     auto&                arrayDims() const noexcept { SWC_ASSERT(isArray()); return asArray.dims; }
     TypeRef              arrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return asArray.typeRef; }
     SymbolFunction&      functionSym() const noexcept { SWC_ASSERT(isFunction()); return *asFunction.sym; }
-    TypeInfoLambdaFlags  lambdaFlags() const noexcept { SWC_ASSERT(isFunction()); return asFunction.flags; }
-    bool                 isLambdaClosure()   const noexcept { SWC_ASSERT(isFunction()); return asFunction.flags.has(TypeInfoLambdaFlagsE::Closure); }
-    bool                 isLambdaMethod()    const noexcept { SWC_ASSERT(isFunction()); return asFunction.flags.has(TypeInfoLambdaFlagsE::Method); }
-    bool                 isLambdaThrowable() const noexcept { SWC_ASSERT(isFunction()); return asFunction.flags.has(TypeInfoLambdaFlagsE::Throwable); }
+    bool                 isLambdaClosure()   const noexcept;
+    bool                 isLambdaMethod()    const noexcept;
+    bool                 isLambdaThrowable() const noexcept;
     // clang-format on
 
     static TypeInfo makeBool();
@@ -167,7 +158,7 @@ public:
     static TypeInfo makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeArray(const std::vector<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
-    static TypeInfo makeLambda(SymbolFunction* sym, TypeInfoFlags flags = TypeInfoFlagsE::Zero, TypeInfoLambdaFlags lambdaFlags = TypeInfoLambdaFlagsE::Zero);
+    static TypeInfo makeLambda(SymbolFunction* sym, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeVariadic();
     static TypeInfo makeTypedVariadic(TypeRef typeRef);
 
@@ -229,8 +220,7 @@ private:
 
         struct
         {
-            SymbolFunction*     sym;
-            TypeInfoLambdaFlags flags;
+            SymbolFunction* sym;
         } asFunction;
     };
 };

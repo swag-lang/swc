@@ -205,7 +205,7 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
                     return false;
             return true;
         case TypeInfoKind::Function:
-            if (asFunction.flags != other.asFunction.flags)
+            if (asFunction.sym->funcFlags() != other.asFunction.sym->funcFlags())
                 return false;
             if (asFunction.sym->parameters().size() != other.asFunction.sym->parameters().size())
                 return false;
@@ -349,8 +349,8 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
         }
         case TypeInfoKind::Function:
         {
-            out += asFunction.flags.has(TypeInfoLambdaFlagsE::Method) ? "mtd" : "func";
-            out += asFunction.flags.has(TypeInfoLambdaFlagsE::Closure) ? "||" : "";
+            out += asFunction.sym->hasFuncFlag(SymbolFunctionFlagsE::Method) ? "mtd" : "func";
+            out += asFunction.sym->hasFuncFlag(SymbolFunctionFlagsE::Closure) ? "||" : "";
             out += "(";
             for (size_t i = 0; i < asFunction.sym->parameters().size(); ++i)
             {
@@ -368,7 +368,7 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
                 out += returnType.toName(ctx);
             }
 
-            out += asFunction.flags.has(TypeInfoLambdaFlagsE::Throwable) ? " throw" : "";
+            out += asFunction.sym->hasFuncFlag(SymbolFunctionFlagsE::Throwable) ? " throw" : "";
             break;
         }
 
@@ -518,11 +518,10 @@ TypeInfo TypeInfo::makeArray(const std::vector<uint64_t>& dims, TypeRef elementT
     return ti;
 }
 
-TypeInfo TypeInfo::makeLambda(SymbolFunction* sym, TypeInfoFlags flags, TypeInfoLambdaFlags lambdaFlags)
+TypeInfo TypeInfo::makeLambda(SymbolFunction* sym, TypeInfoFlags flags)
 {
     TypeInfo ti{TypeInfoKind::Function, flags};
-    ti.asFunction.sym   = sym;
-    ti.asFunction.flags = lambdaFlags;
+    ti.asFunction.sym = sym;
     return ti;
 }
 
@@ -589,7 +588,7 @@ uint32_t TypeInfo::hash() const
                 h = Math::hashCombine(h, dim);
             return h;
         case TypeInfoKind::Function:
-            h = Math::hashCombine(h, static_cast<uint32_t>(asFunction.flags.get()));
+            h = Math::hashCombine(h, static_cast<uint32_t>(asFunction.sym->funcFlags().get()));
             h = Math::hashCombine(h, asFunction.sym->returnType().get());
             for (const auto& param : asFunction.sym->parameters())
                 h = Math::hashCombine(h, param->typeRef().get());
@@ -774,6 +773,24 @@ Symbol* TypeInfo::getSymbolDependency(TaskContext& ctx) const
 }
 
 // ReSharper disable once CppPossiblyUninitializedMember
+bool TypeInfo::isLambdaClosure() const noexcept
+{
+    SWC_ASSERT(isFunction());
+    return asFunction.sym->hasFuncFlag(SymbolFunctionFlagsE::Closure);
+}
+
+bool TypeInfo::isLambdaMethod() const noexcept
+{
+    SWC_ASSERT(isFunction());
+    return asFunction.sym->hasFuncFlag(SymbolFunctionFlagsE::Method);
+}
+
+bool TypeInfo::isLambdaThrowable() const noexcept
+{
+    SWC_ASSERT(isFunction());
+    return asFunction.sym->hasFuncFlag(SymbolFunctionFlagsE::Throwable);
+}
+
 TypeInfo::TypeInfo(TypeInfoKind kind, TypeInfoFlags flags) :
     kind_(kind),
     flags_(flags)

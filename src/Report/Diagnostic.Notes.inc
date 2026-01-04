@@ -13,3 +13,5 @@ SWC_DIAG_DEF(sema_note_other_definition)
 SWC_DIAG_DEF(sema_note_could_be)
 SWC_DIAG_DEF(sema_note_cyclic_dependency_link)
 SWC_DIAG_DEF(sema_note_strict_alias)
+
+SWC_DIAG_DEF(sema_help_nameof_instruction)

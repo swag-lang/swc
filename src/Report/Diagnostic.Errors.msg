@@ -104,7 +104,7 @@ SWC_DIAG_DEF(sema_err_ghosting, Error, "Symbol {tok} is ghosting an existing def
 SWC_DIAG_DEF(sema_err_ambiguous_symbol, Error, "Ambiguous symbol {tok}")
 SWC_DIAG_DEF(sema_err_missing_enum_value, Error, "Missing initializer for enum value {tok}; an enum value of type {type} must be initialized with a constant expression")
 SWC_DIAG_DEF(sema_err_empty_enum, Error, "Empty enum")
-SWC_DIAG_DEF(sema_err_failed_nameof, Error, "Failed to convert the expression to a string")
+SWC_DIAG_DEF(sema_err_failed_nameof, Error, "Cannot get the name of the expression")
 SWC_DIAG_DEF(sema_err_bad_type_qualifier, Error, "Type qualifier {tok} is not allowed on type {type}")
 SWC_DIAG_DEF(sema_err_not_type, Error, "{sym} is not a type (it is {a-sym-fam})")
 SWC_DIAG_DEF(sema_err_not_attribute, Error, "{sym} is not an attribute (it is {a-sym-fam})")

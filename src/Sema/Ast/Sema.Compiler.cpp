@@ -396,7 +396,12 @@ namespace
             return Result::Continue;
         }
 
-        return SemaError::raise(sema, DiagnosticId::sema_err_failed_nameof, node.nodeArgRef);
+        auto        diag  = SemaError::report(sema, DiagnosticId::sema_err_failed_nameof, node.nodeArgRef);
+        const auto& token = sema.token(node.srcViewRef(), node.tokRef());
+        if (nodeView.cst && (token.id == TokenId::CompilerNameOf || token.id == TokenId::CompilerFullNameOf))
+            diag.addElement(DiagnosticId::sema_help_nameof_instruction);
+        diag.report(ctx);
+        return Result::Stop;
     }
 
     Result semaCompilerFullNameOf(Sema& sema, const AstCompilerCallUnary& node)

@@ -118,6 +118,13 @@ Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
     {
         if (i != 0)
             out += ", ";
+
+        if (parameters_[i]->idRef().isValid())
+        {
+            out += parameters_[i]->name(ctx);
+            out += ": ";
+        }
+
         const TypeInfo& paramType = ctx.typeMgr().get(parameters_[i]->typeRef());
         out += paramType.toName(ctx);
     }

@@ -9,7 +9,7 @@ const A: DWORD1 = 0
 
 #[Swag.Strict]
 alias DWORD2 = u32
-const A_DWORD2: DWORD2 = 5
+const A_DWORD2: DWORD2 = cast(DWORD2) 5
 const B_DWORD2: u32 = A_DWORD2 // swc-expected-error {{sema_err_cannot_cast}}
 const C_DWORD2: u32 = cast(u32) A_DWORD2
 #assert(C_DWORD2 == 5)
@@ -23,21 +23,21 @@ alias SSW1 = Swag // swc-expected-error {{sema_err_not_type}}
     alias Seconds = s32
 }
 
-const m: Meters = 10
+const m: Meters = cast(Meters) 10
 var s1: Seconds = m                 // swc-expected-error {{sema_err_cannot_cast}}
 var s2: Seconds = cast(Seconds) m
 
 var base_from_m: s32 = m               // swc-expected-error {{sema_err_cannot_cast}}
 var base_from_m_ok: s32 = cast(s32) m
 
-var m_from_base: Meters = base_from_m_ok
+var m_from_base: Meters = cast(Meters) base_from_m_ok
 var m_from_base_ok: Meters = cast(Meters) base_from_m_ok
 
 // Seconds <-> base
 var base_from_s: s32 = s2              // swc-expected-error {{sema_err_cannot_cast}}
 var base_from_s_ok: s32 = cast(s32) s2
 
-var s_from_base: Seconds = base_from_s_ok
+var s_from_base: Seconds = cast(Seconds) base_from_s_ok
 var s_from_base_ok: Seconds = cast(Seconds) base_from_s_ok
 
 // Cross strict aliases

@@ -272,7 +272,7 @@ namespace
         if (isDstAlias)
         {
             // dst strict alias: allow explicit + initialization
-            if (castCtx.kind != CastKind::Explicit && castCtx.kind != CastKind::Initialization)
+            if (castCtx.kind != CastKind::Explicit)
             {
                 castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
                 return false;

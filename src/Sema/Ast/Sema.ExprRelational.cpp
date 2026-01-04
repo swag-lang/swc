@@ -26,9 +26,9 @@ namespace
             return Result::Continue;
         }
 
-        if (nodeLeftView.type->isNull() || nodeRightView.type->isNull())
+        if (nodeLeftView.cst->isNull() || nodeRightView.cst->isNull())
         {
-            result = sema.cstMgr().cstBool(nodeLeftView.type->isNull() && nodeRightView.type->isNull());
+            result = sema.cstMgr().cstBool(nodeLeftView.cst->isNull() && nodeRightView.cst->isNull());
             return Result::Continue;
         }
 
@@ -208,11 +208,9 @@ namespace
             return Result::Continue;
         if (nodeLeftView.type->isType() && nodeRightView.type->isType())
             return Result::Continue;
-        if (nodeLeftView.type->isPointerLike() && nodeRightView.type->isPointerLike())
-            return Result::Continue;
         if (nodeLeftView.type->isNull() && nodeRightView.type->isPointerLike())
             return Result::Continue;
-        if (nodeRightView.type->isNull() && nodeLeftView.type->isPointerLike())
+        if (nodeLeftView.type->isPointerLike() && nodeRightView.type->isNull())
             return Result::Continue;
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.srcViewRef(), node.tokRef());

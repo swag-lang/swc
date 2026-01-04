@@ -326,7 +326,7 @@ bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef,
     if (ok && castCtx.isFolding())
     {
         ConstantValue resCst = sema.cstMgr().get(castCtx.outConstRef);
-        if (!resCst.isNull() && resCst.typeRef() != dstTypeRef)
+        if (resCst.typeRef() != dstTypeRef)
         {
             resCst.setTypeRef(dstTypeRef);
             castCtx.outConstRef = sema.cstMgr().addConstant(sema.ctx(), resCst);

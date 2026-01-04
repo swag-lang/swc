@@ -1,0 +1,135 @@
+#dependencies
+{
+    #import("gui", location: "swag@std")
+}
+
+using Core, Gui, Pixel, Core.Math
+const Div = "\u00F7"
+const Mul = "\u00D7"
+
+var g_FontTxt:      *Font
+var g_FontBtn:      *Font
+var g_Edit:         *EditBox
+var g_ComputeValue: s64
+var g_CurValue:     s64
+var g_Op:           String
+var g_Error:        string
+var g_Start:        bool = true
+
+func validateOp(str: string)
+{
+    if Latin1.isDigit(str[0])
+    {
+        if g_Start
+        {
+            g_CurValue = 0
+            g_Start    = false
+            g_Error    = null
+        }
+
+        let v = assume StrConv.toS64(str)
+        g_CurValue = (g_CurValue * 10) + v
+    }
+    else
+    {
+        switch g_Op
+        {
+        case "+":
+            g_ComputeValue += g_CurValue
+        case "-":
+            g_ComputeValue -= g_CurValue
+        case Mul:
+            g_ComputeValue *= g_CurValue
+        case Div:
+            if g_CurValue == 0 do
+                g_Error = "divide by zero"
+            else do
+                g_ComputeValue /= g_CurValue
+        default:
+            g_ComputeValue = g_CurValue
+        }
+
+        g_Start    = true
+        g_CurValue = g_ComputeValue
+        g_Op       = str
+    }
+
+    if g_Error do
+        g_Edit.setText(g_Error)
+    else do
+        g_Edit.setText(Format.toString("%", g_CurValue))
+}
+
+#[Swag.Mixin]
+func createBtn(str: string, x, y: s32)
+{
+    {
+        let btn = PushButton.create(layout, str)
+        btn.sigPressed += func(btn)
+        {
+            validateOp(btn.name.raw)
+        }
+        btn.style.setFont(g_FontBtn, .Regular)
+        layout.setColRowChild(btn, x, y)
+
+        switch str
+        {
+        case "=":
+            btn.style.addStyleSheetColors("btnPush_Bk 0xFF880000")
+        case "+", "-", Mul, Div:
+            btn.style.addStyleSheetColors("btnPush_Bk 0xFF008800")
+        }
+    }
+}
+
+func onEvent(wnd: *Wnd, evt: IEvent)->bool
+{
+    switch evt
+    {
+    case CreateEvent:
+        g_FontTxt = wnd.getTheme().createDefaultFont(30)
+        g_FontBtn = wnd.getTheme().createDefaultFont(30)
+
+        with let layout = GridLayoutCtrl.create(wnd, 4, 6)
+        {
+            .dockStyle       = .Center
+            .gridLayoutFlags = .AdaptColWidth | .AdaptRowHeight
+            .backgroundStyle = .Window
+            .margin          = 10
+        }
+
+        with g_Edit = EditBox.create(layout, "0")
+        {
+            .editBoxFlags = .ReadOnly | .RightAlign
+            .style.setFont(g_FontTxt, .Regular)
+        }
+        layout.setColRowChild(g_Edit, 0, 0, 4)
+
+        createBtn("7", 0, 2)
+        createBtn("6", 1, 2)
+        createBtn("5", 2, 2)
+        createBtn("4", 0, 3)
+        createBtn("5", 1, 3)
+        createBtn("6", 2, 3)
+        createBtn("1", 0, 4)
+        createBtn("2", 1, 4)
+        createBtn("3", 2, 4)
+        createBtn("0", 1, 5)
+
+        createBtn(Div, 3, 1)
+        createBtn(Mul, 3, 2)
+        createBtn("-", 3, 3)
+        createBtn("+", 3, 4)
+        createBtn("=", 3, 5)
+
+        layout.computeLayout()
+    }
+
+    return false
+}
+
+#main
+{
+    func test(app: *Application) { if Env.hasArg("swag.test") do app.maxRunFrame = 100 }
+    Application.runSurface(100, 100, 400, 400, title: "Calc", hook: &onEvent, init: &test)
+}

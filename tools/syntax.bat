@@ -5,3 +5,4 @@ swc syntax -d ../bin/tests/legit %1 %2 %3 %4 %5 %6 %7 %8 %9
 swc syntax -d ../bin/std/modules %1 %2 %3 %4 %5 %6 %7 %8 %9
 swc syntax -d ../bin/runtime %1 %2 %3 %4 %5 %6 %7 %8 %9
 swc syntax -d ../bin/reference %1 %2 %3 %4 %5 %6 %7 %8 %9
+swc syntax -d ../bin/examples %1 %2 %3 %4 %5 %6 %7 %8 %9

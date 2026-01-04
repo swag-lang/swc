@@ -1,0 +1,103 @@
+// This Swag script has been done thanks to "The Coding Train" youtube channel.
+// https://www.youtube.com/watch?v=4hA7G3gup-4
+
+#dependencies
+{
+    #import("gui", location: "swag@std")
+}
+
+using Core, Gui, Pixel, Core.Math
+
+var g_Rng:    Random.Rng
+var g_Points: Array'C
+
+struct C
+{
+    pos:        Vector2
+    target:     Vector2
+    speed:      Vector2
+    acc:        Vector2
+}
+
+impl C
+{
+    mtd update(wnd: *Wnd)
+    {
+        let app = wnd.getApp()
+
+        .speed += .acc
+        .pos += .speed * app.getDt()
+        .acc.setZero()
+
+        var v = .target - .pos
+        var d = v.length()
+        if d < 100 do
+            d = map(d, 0, 100, 0, 120)
+        v.setLength(d)
+        var steer = v - .speed
+        d = min(steer.length(), 80)
+        steer.setLengthSafe(d)
+        .acc += steer
+
+        var pm = app.getMouse().getPosition()
+        pm = wnd.screenToSurface(pm)
+        pm = wnd.surfaceToLocal(pm)
+        v  = .pos - Vector2{pm.x, pm.y}
+        d  = v.length()
+        if d < 50
+        {
+            d = 50 - d
+            d *= d
+            v.setLength(d)
+            .acc += v
+        }
+    }
+}
+
+func onEvent(wnd: *Wnd, evt: IEvent)->bool
+{
+    switch evt
+    {
+    case CreateEvent:
+        var pl: LinePathList
+        assume wnd.getTheme().res.defaultTypeFaceR.getStringOutline(&pl, "Swag", 200)
+        foreach path in pl.paths
+        {
+            path.flatten()
+            path.polygon.normalizeDist(10)
+            foreach &el in path.polygon.points
+            {
+                var c: C
+                c.pos, c.target = {el.x + 160, el.y + 260}
+                c.pos.x += g_Rng.nextF32(-100, 100)
+                c.pos.y += g_Rng.nextF32(-100, 100)
+                g_Points.add(c)
+            }
+        }
+
+    case PaintEvent as paintEvt:
+        let painter = paintEvt.bc.painter
+        let rect    = wnd.getClientRect()
+
+        painter.fillRect(rect, Argb.Black)
+
+        foreach &p in g_Points
+        {
+            p.update(wnd)
+            let v = p.target - p.pos
+            let d = map(Math.min(v.length(), 100), 0, 100, 0, 1)
+            let c = Color.getBlend(Argb.White, Argb.Black, d)
+            painter.fillCircle(p.pos.x, p.pos.y, 4, c)
+        }
+
+        wnd.invalidate()
+    }
+
+    return false
+}
+
+#main
+{
+    func test(app: *Application) { if Env.hasArg("swag.test") do app.maxRunFrame = 50 }
+    Application.runSurface(100, 100, 800, 512, title: "Swag (move mouse on me!)", hook: &onEvent, init: &test)
+}

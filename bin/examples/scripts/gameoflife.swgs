@@ -1,0 +1,115 @@
+#dependencies
+{
+    #import("gui", location: "swag@std")
+}
+
+using Core, Gui, Pixel
+
+const GridSize = 60
+
+var g_Grid:   [2, GridSize, GridSize] bool
+var g_CurGen: s32
+
+func onEvent(wnd: *Wnd, evt: IEvent)->bool
+{
+    let leftPressed  = wnd.getApp().mouse.isButtonPressed(.Left)
+    let rightPressed = wnd.getApp().mouse.isButtonPressed(.Right)
+    let cellSize     = Math.min(wnd.position.width, wnd.position.height) / GridSize
+
+    switch evt
+    {
+    case MouseEvent as mouseEvt where mouseEvt.kind == .MousePressed or mouseEvt.kind == .MouseMove:
+        if leftPressed or rightPressed
+        {
+            let pos = wnd.surfaceToLocal(mouseEvt.surfacePos)
+            let x   = cast(s32) (pos.x / cellSize)
+            let y   = cast(s32) (pos.y / cellSize)
+            if x < 1 or x >= GridSize - 1 or y < 1 or y >= GridSize - 1 do
+                break
+            g_Grid[g_CurGen, x, y] = leftPressed ? true : false
+        }
+
+        return true
+
+    case CreateEvent:
+        // Initial population
+        for i in 1 until GridSize - 1
+        {
+            for j in 1 until GridSize - 1
+            {
+                g_Grid[g_CurGen, i, j] = Random.shared().nextBool()
+            }
+        }
+
+    case PaintEvent as paintEvt:
+        let painter = paintEvt.bc.painter
+        let nextGen = (g_CurGen + 1) % 2
+
+        // Compute next generation, except if user is painting
+        if !leftPressed and !rightPressed
+        {
+            for i in 1 until GridSize - 1
+            {
+                for j in 1 until GridSize - 1
+                {
+                    // Count cell neighbours
+                    var cpt = 0
+                    for x in -1 to 1
+                    {
+                        for y in -1 to 1
+                        {
+                            if x == 0 and y == 0 do
+                                continue
+                            cpt += g_Grid[g_CurGen, i + x, j + y] ? 1 : 0
+                        }
+                    }
+
+                    // Game of life rules
+                    if !g_Grid[g_CurGen, i, j] and cpt == 3 do
+                        g_Grid[nextGen, i, j] = true
+                    elif g_Grid[g_CurGen, i, j] and (cpt == 2 or cpt == 3) do
+                        g_Grid[nextGen, i, j] = true
+                    else do
+                        g_Grid[nextGen, i, j] = false
+                }
+            }
+
+            g_CurGen = nextGen
+        }
+
+        // Paint grid
+        painter.clear(Argb.White)
+        for i in 1 until GridSize - 1
+        {
+            let x = i * cellSize
+            let w = Math.min(wnd.position.width, wnd.position.height) - (2 * cellSize)
+            painter.drawRect(cellSize, x, w, cellSize, Argb.Black)
+            painter.drawRect(x, cellSize, cellSize, w, Argb.Black)
+        }
+
+        // Paint generation
+        for i in 1 to GridSize - 1
+        {
+            for j in 1 to GridSize - 1
+            {
+                if g_Grid[g_CurGen, i, j]
+                {
+                    let x = i * cellSize
+                    let y = j * cellSize
+                    painter.fillRect(x + 1, y + 1, cellSize - 2, cellSize - 2, Argb.Black)
+                }
+            }
+        }
+
+        wnd.invalidate()
+        Threading.Thread.sleep(1'ms)
+    }
+
+    return false
+}
+
+#main
+{
+    func test(app: *Application) { if Env.hasArg("swag.test") do app.maxRunFrame = 100 }
+    Application.runSurface(100, 100, 1024, 1024, title: "Game of Life", hook: &onEvent, init: &test)
+}

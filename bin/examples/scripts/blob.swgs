@@ -1,0 +1,60 @@
+// This Swag script has been done thanks to "The Coding Train" youtube channel.
+// https://www.youtube.com/watch?v=ZI1dmHv3MeM&list=PLRqwX-V7Uu6ZiZxtDDRCi6uhfTH4FilpH
+
+#dependencies
+{
+    #import("gui", location: "swag@std")
+}
+
+using Core, Gui, Pixel, Core.Math
+const NoiseMax = 5.0
+
+func onEvent(wnd: *Wnd, evt: IEvent)->bool
+{
+    let paintEvt = evt as PaintEvent
+    if !paintEvt do
+        return false
+    if paintEvt.kind != .Paint do
+        return false
+
+    let painter = paintEvt.bc.painter
+
+    let centerX = wnd.position.width * 0.5
+    let centerY = wnd.position.height * 0.5
+
+    #[Swag.Global]
+    var zoff: f32
+    zoff += wnd.getApp().getDt()
+
+    var lp: LinePath
+    for var a = 0'f32; a < ConstF32.TwoPi; a += 0.1
+    {
+        let xoff = map(cos(a), -1, 1, 0, NoiseMax)
+        let yoff = map(sin(a), -1, 1, 0, NoiseMax)
+        let r    = map(Noise.perlin(xoff, yoff, zoff), -1, 1, 100, 200)
+
+        let x = r * cos(a)
+        let y = r * sin(a)
+        if a == 0 do
+            lp.start(x, y)
+        else do
+            lp.curveTo(x, y)
+    }
+
+    lp.close()
+
+    painter.setParams(.Antialiased)
+    painter.clear(Argb.Black)
+    painter.translateTransform(centerX, centerY)
+    painter.fillPath(&lp, Argb.DarkBlue)
+    painter.drawPath(&lp, Argb.White, 2)
+
+    wnd.invalidate()
+    return true
+}
+
+#main
+{
+    func test(app: *Application) { if Env.hasArg("swag.test") do app.maxRunFrame = 100 }
+    Application.runSurface(100, 100, 512, 512, title: "Blob", hook: &onEvent, init: &test)
+}

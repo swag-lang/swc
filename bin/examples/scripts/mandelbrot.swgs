@@ -1,0 +1,94 @@
+// This Swag script has been done thanks to "The Coding Train" youtube channel.
+// https://www.youtube.com/watch?v=6z7GQewK-Ks&list=PLRqwX-V7Uu6ZiZxtDDRCi6uhfTH4FilpH
+
+#dependencies
+{
+    #import("gui", location: "swag@std")
+}
+
+using Core, Gui, Pixel
+
+var g_Image:   Image
+var g_Texture: Texture
+var g_Slider:  *Slider
+
+func compute()
+{
+    using Math
+
+    var data = {minS: g_Slider.getValueLeft(), maxS: g_Slider.getValueRight()}
+    g_Image.visitPixels(&data)
+    {
+        var params = cast(*#decltype(data)) userData
+        var minS   = params.minS
+        var maxS   = params.maxS
+
+        var a = map(cast(f32) x, 0, cast(f32) g_Image.width, minS, maxS)
+        var b = map(cast(f32) y, 0, cast(f32) g_Image.height, minS, maxS)
+
+        var ca = a
+        var cb = b
+
+        var n               = 0
+        const MaxIterations = 100
+        while n < MaxIterations
+        {
+            var aa = a
+            var bb = b
+
+            a = aa * aa - bb * bb
+            b = 2 * aa * bb
+            a += ca
+            b += cb
+            n += 1
+            if a * a + b * b > 4 do
+                break
+        }
+
+        var light = cast(u8) Math.map(cast(f32) n, 0, cast(f32) MaxIterations, 0, 255)
+        pix[0] = light
+        pix[1] = light
+        pix[2] = light
+    }
+}
+
+func onEvent(wnd: *Wnd, evt: IEvent)->bool
+{
+    let w = cast(s32) wnd.position.width
+    let h = cast(s32) wnd.position.height
+
+    switch evt
+    {
+    case CreateEvent:
+        g_Slider = Slider.create(wnd, {0, 0, 200}, range: true)
+        g_Slider.setMinMax(-2.5, 2.5)
+        g_Slider.setRangeValues(-2.5, 2.5)
+        g_Slider.sigChanged += func|wnd|(s)
+        {
+            compute()
+            wnd.invalidate()
+        }
+
+        g_Image   = Image.create(200, 200, .BGR8)
+        g_Texture = wnd.getApp().renderer.addImage(g_Image)
+
+        compute()
+        return true
+
+    case PaintEvent as paintEvt:
+        let painter  = paintEvt.bc.painter
+        let renderer = paintEvt.bc.renderer
+        renderer.updateTexture(g_Texture, g_Image.pixels.buffer)
+        painter.drawTexture(0, 0, cast(f32) w, cast(f32) h, g_Texture)
+        return true
+    }
+
+    return false
+}
+
+#main
+{
+    try Jobs.setNumWorkers(4)
+    func test(app: *Application) { if Env.hasArg("swag.test") do app.maxRunFrame = 100 }
+    Application.runSurface(100, 100, 512, 512, title: "Mandelbrot", hook: &onEvent, init: &test)
+}

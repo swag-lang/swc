@@ -1,0 +1,46 @@
+// This Swag script has been done thanks to "The Coding Train" youtube channel.
+// https://www.youtube.com/watch?v=ZI1dmHv3MeM&list=PLRqwX-V7Uu6ZiZxtDDRCi6uhfTH4FilpH
+
+#dependencies
+{
+    #import("gui", location: "swag@std")
+}
+
+using Core, Gui, Pixel
+
+func onEvent(wnd: *Wnd, evt: IEvent)->bool
+{
+    switch evt
+    {
+    case PaintEvent as paintEvt:
+        let painter = paintEvt.bc.painter
+
+        let centerX = wnd.position.width * 0.5
+        let centerY = wnd.position.height * 0.5
+
+        painter.setParams(.Antialiased)
+        painter.clear(Argb.Black)
+        painter.drawCircle(centerX, centerY, 150, Argb.Purple, 8)
+
+        let now = Time.DateTime.now()
+
+        using Math
+        let hour   = map(cast(f32) (now.hour % 12), 0, 12, 0, ConstF32.TwoPi)
+        let minute = map(cast(f32) now.minute, 0, 60, 0, ConstF32.TwoPi)
+        let sec    = map(cast(f32) now.second, 0, 60, 0, ConstF32.TwoPi)
+
+        painter.drawArc(centerX, centerY, 60, 0, hour, Argb.Red, 8)
+        painter.drawArc(centerX, centerY, 80, 0, minute, Argb.Green, 8)
+        painter.drawArc(centerX, centerY, 100, 0, sec, Argb.Blue, 8)
+
+        wnd.invalidate()
+    }
+
+    return false
+}
+
+#main
+{
+    func test(app: *Application) { if Env.hasArg("swag.test") do app.maxRunFrame = 100 }
+    Application.runSurface(100, 100, 512, 512, title: "Clock", hook: &onEvent, init: &test)
+}

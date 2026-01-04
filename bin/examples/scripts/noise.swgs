@@ -1,0 +1,118 @@
+#dependencies
+{
+    #import("gui", location: "swag@std")
+}
+
+using Core, Gui, Pixel, Core.Math
+
+var g_Texture: Texture
+var g_Image:   Image
+
+const W, H = 1024
+const UX = 300
+
+#[Swag.Using(Gui.Properties)]
+struct NoiseParams
+{
+    #[RecalcLayout]
+    kind = Noise.FastNoiseKind.Perlin
+
+    seed = 1337
+
+    #[SliderMinMax(0.01, 1), Description("The period in which we sample the noise. A higher frequency results in more frequent noise change")]
+    frequency = 0.01
+
+    #[Description("The number of layers of noise. More octaves create a more varied look but are also more resource-intensive to calculate"), MinMax(1, 10), RecalcLayout]
+    octaves = 3
+
+    #[SliderMinMax(1.0, 3.0), Description("The rate of change of the frequency for each successive octave. A 'lacunarity' value of 1 results in each octave having the same frequency")]
+    lacunarity = 2.0
+
+    #[SliderMinMax(0.01, 0.5), Description("The scaling factor applied to each octave. 'gain' is only used when 'octaves' is set to a value higher than 1.")]
+    gain = 0.5
+}
+
+impl IPropertyNotify for NoiseParams
+{
+    mtd impl isItemEnabled(list: *Properties, item: *PropertiesItem)->bool
+    {
+        let isFractal = .kind != Noise.FastNoiseKind.Perlin and .kind != Noise.FastNoiseKind.Value
+
+        switch item.typeValue.name
+        {
+        case #nameof(NoiseParams.octaves):
+            return isFractal
+
+        case #nameof(NoiseParams.lacunarity):
+            return isFractal and .octaves > 1
+
+        case #nameof(NoiseParams.gain):
+            return isFractal and .octaves > 1
+        }
+
+        return true
+    }
+}
+
+var g_NoiseParams: NoiseParams
+var g_Noise:       Noise.FastNoise
+
+func compute()
+{
+    g_Noise.seed       = g_NoiseParams.seed
+    g_Noise.kind       = g_NoiseParams.kind
+    g_Noise.frequency  = g_NoiseParams.frequency
+    g_Noise.octaves    = g_NoiseParams.octaves
+    g_Noise.lacunarity = g_NoiseParams.lacunarity
+    g_Noise.gain       = g_NoiseParams.gain
+    g_Noise.update()
+
+    g_Image.noise(&g_Noise)
+}
+
+func createUI(wnd: *Wnd)
+{
+    with let prop = PropertiesCtrl.create(wnd, {0, 0, UX, H - 70}, .Grid)
+    {
+        .padding         = 10
+        .backgroundStyle = .Window
+        .splitter.showPane(0, false)
+        .prop.sizeEditValue = 260
+        .prop.setColumnSize(65)
+        .prop.addStruct(g_NoiseParams)
+        .prop.sigChanged += func|wnd|(list, item)
+        {
+            compute()
+            wnd.invalidate()
+        }
+    }
+}
+
+func onEvent(wnd: *Wnd, evt: IEvent)->bool
+{
+    switch evt
+    {
+    case CreateEvent:
+        g_Image   = Image.create(W, H, .BGR8)
+        g_Texture = wnd.getApp().renderer.addImage(g_Image)
+        g_Noise.update()
+        createUI(wnd)
+        compute()
+
+    case PaintEvent as paintEvt:
+        let painter  = paintEvt.bc.painter
+        let renderer = paintEvt.bc.renderer
+        renderer.updateTexture(g_Texture, g_Image.pixels.buffer)
+        painter.drawTexture(cast() UX, 0, cast() W, cast() H, g_Texture)
+    }
+
+    return false
+}
+
+#main
+{
+    try Jobs.setNumWorkers()
+
+    func test(app: *Application) { if Env.hasArg("swag.test") do app.maxRunFrame = 100 }
+    Application.runSurface(100, 100, W + UX, H, title: "Noise", canSize: false, hook: &onEvent, init: &test)
+}

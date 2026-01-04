@@ -1,0 +1,93 @@
+#dependencies
+{
+    #import("gui", location: "swag@std")
+}
+
+using Gui, Core, Pixel
+
+var g_Img:     Image
+var g_Texture: Texture
+var g_Font:    *Font
+
+func openImage(surface: *Surface)
+{
+    var opt: FileDlgOptions
+    with opt
+    {
+        .mode      = .SelectOneFile
+        .title     = "Load Image"
+        .btnOkName = "Load"
+        .shortcuts.add({Env.SpecialDirectory.Desktop, "Desktop"})
+        .shortcuts.add({Env.SpecialDirectory.UserPictures, "My Images"})
+        .shortcuts.add({Env.SpecialDirectory.CommonPictures, "Images"})
+        .filters.add({"PNG - Portable Network Graphics (*.png)", ".png"})
+        .filters.add({"JPG - JPEG Image (*.jpg)", ".jpg"})
+        .filters.add({"BMP - Windows Bitmap (*.bmp)", ".bmp"})
+        .filters.add({"TGA - Truevision Targa (*.tga)", ".tga"})
+    }
+
+    let dlg = FileDlg.create(surface, opt)
+    if dlg.doModal() != Dialog.BtnOk do
+        return
+
+    g_Img = catch Image.load(dlg.getSelectedName())
+    if @err != null do
+        MessageDlg.error(surface, "Failed to load image")
+}
+
+func compute(render: *RenderOgl)
+{
+    if !g_Img.isValid() do
+        return
+
+    g_Img.resize(128, 128)
+    g_Img.grayScale()
+
+    g_Texture = render.addImage(g_Img)
+}
+
+func onEvent(wnd: *Wnd, evt: IEvent)->bool
+{
+    switch evt
+    {
+    case CreateEvent:
+        let btn = PushButton.create(wnd, "Load Image", {10, 10, 100})
+        btn.sigPressed += func|wnd|(btn)
+        {
+            openImage(btn.surface)
+            compute(&btn.getApp().renderer)
+            wnd.invalidate()
+        }
+
+        g_Font = wnd.getTheme().createDefaultFont(10)
+
+    case PaintEvent as paintEvt:
+        if !g_Img.isValid() do
+            break
+
+        let painter = paintEvt.bc.painter
+
+        const GrayRamp = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/|()1{}[?]?-_+~<>i!lI;:,\"^`\'. "
+
+        let size = cast(f32) g_Font.size * 0.8
+
+        for x in g_Img.width
+        {
+            for y in g_Img.height
+            {
+                let col = g_Img.getPixelColor(x, y)
+                let idx = Math.map(cast(f32) col.r, 0, 255, 0, cast(f32) @countof(GrayRamp))
+                let v   = @mkstring(@dataof(GrayRamp) + cast(s32) idx, 1)
+                painter.drawString(x * size, y * size, v, g_Font, Argb.White)
+            }
+        }
+    }
+
+    return false
+}
+
+#main
+{
+    func test(app: *Application) { if Env.hasArg("swag.test") do app.maxRunFrame = 100 }
+    Application.runSurface(100, 100, 1024, 1024, title: "Ascii art", hook: &onEvent, init: &test)
+}

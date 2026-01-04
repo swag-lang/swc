@@ -1,0 +1,110 @@
+#global #[Swag.Safety(.All, .All, false)]
+
+// Swag script file
+#dependencies
+{
+    // Here you can add your external dependencies
+    #import("core", location: "swag@std")
+}
+
+using Core
+
+struct OneFile
+{
+    name:           String
+    content:        String
+    newContent:     String
+    changed:        bool
+}
+
+var files: Array'OneFile
+
+func replace(dst, src: string, inSwg, inCpp: &s32)
+{
+    foreach &f in files
+    {
+        var idx = 0'u64
+        for
+        {
+            idx = f.content.indexOf(src, idx, Utf8.ComparisonType.Latin1NoCase)
+            if idx == Swag.U64.Max do
+                break
+
+            if Path.getExtension(f.name) == ".swg" do
+                inSwg += 1
+            elif Path.getFileName(f.name) != "ErrorIds.cpp" and Path.getFileName(f.name) != "ErrorList.h" do
+                inCpp += 1
+
+            if f.newContent[idx to idx + 6] != dst[ to 6]
+            {
+                Console.printf("% => % %\n", f.content[idx to idx + 6], dst, f.name)
+                for i in 7 do
+                    f.newContent[idx + i] = dst[i]
+                f.changed = true
+            }
+
+            idx += 1
+        }
+    }
+}
+
+func addFiles(folder: string, extension: string)
+{
+    let srcFiles = assume Directory.enumerateFiles(folder, extension, recurse: true)
+    foreach f in srcFiles
+    {
+        var of: OneFile
+        of.name       = f.fullname
+        of.content    = assume File.readAllText(f.fullname)
+        of.newContent = of.content
+        files.add(of)
+    }
+}
+
+#main
+{
+    addFiles("../src/", ".cpp")
+    addFiles("../src/", ".h")
+    addFiles("../bin", ".swg")
+    addFiles("../bin", ".swgs")
+
+    var ids: HashTable'(string, s32)
+
+    let lines = assume File.readAllLines("../src/report/errorids.cpp")
+    foreach l in lines
+    {
+        l = Latin1.trim(l)
+        if !l.startsWith("SWAG_ERROR(") do
+            continue
+        let what = l[11 to 13]
+
+        if what != "Err" do
+            continue
+
+        ids.findOrAdd(what).value += 1
+
+        var dst: String
+        dst += what
+        dst += Format.toString("%{04}", ids.findOrAdd(what).value)
+
+        var inSwg, inCpp: s32
+        replace(dst, l[11 to 17], &inSwg, &inCpp)
+
+        if !inCpp do
+            Console.printf("UNUSED: %\n", dst)
+
+        if !inSwg and what != "Fat" and what != "Nte"
+        {
+            Console.printf("UNTESTED: %\n", dst)
+            //dst[3] = 'X'
+            //replace(dst, l[11..17], &inSwg, &inCpp)
+        }
+    }
+
+    foreach f in files
+    {
+        if !f.changed do
+            continue
+        assume File.writeAllBytes(f.name, f.newContent)
+    }
+}

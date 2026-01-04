@@ -1,0 +1,2237 @@
+/*
+    :LICENCE
+    Based on the pacman project by Alex Macpherson (https://github.com/alexjamesmacpherson/pacman/blob/master).
+    The original code has been modified for Swag.
+    Most of comments are from the original code.
+
+    BSD 3-Clause License
+
+    Copyright (c) 2017, Alex Macpherson
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, this
+    list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
+
+    * Neither the name of the copyright holder nor the names of its
+    contributors may be used to endorse or promote products derived from
+    this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+#dependencies
+{
+    #import("gui", location: "swag@std")
+    #import("audio", location: "swag@std")
+}
+
+using Gui, Core, Pixel
+const Scale = 3.0
+
+var g_Wnd:      *Wnd
+var g_DataPath: String
+var g_Painter:  *Painter
+
+var g_MapTex:      Texture
+var g_PillTex:     Texture
+var g_BigPillTex:  [2] Texture
+var g_Pac0Tex:     Texture
+var g_Pac1Tex:     Texture
+var g_Pac2Tex:     Texture
+var g_ReadyTex:    Texture
+var g_PauseTex:    Texture
+var g_PauseAltTex: Texture
+var g_QuitTex:     Texture
+var g_HelpTex:     Texture
+var g_ScoreTex:    Texture
+var g_Num0Tex:     Texture
+var g_Num1Tex:     Texture
+var g_Num2Tex:     Texture
+var g_Num3Tex:     Texture
+var g_Num4Tex:     Texture
+var g_Num5Tex:     Texture
+var g_Num6Tex:     Texture
+var g_Num7Tex:     Texture
+var g_Num8Tex:     Texture
+var g_Num9Tex:     Texture
+var g_DeadTex:     [11] Texture     // Array storing all death animation frames
+var g_GhostTexR:   [2] Texture      // Array storing red        ghost sprites
+var g_GhostTexP:   [2] Texture      // Array storing pink       ghost sprites
+var g_GhostTexB:   [2] Texture      // Array storing blue       ghost sprites
+var g_GhostTexY:   [2] Texture      // Array storing yellow     ghost sprites
+var g_GhostTexF:   [4] Texture      // Array storing frightened ghost sprites
+var g_EyeTexU:     Texture
+var g_EyeTexR:     Texture
+var g_EyeTexD:     Texture
+var g_EyeTexL:     Texture
+var g_LifeTex:     Texture
+var g_OneUpTex:    Texture
+var g_FruitsTex:   [8] Texture      // Array storing all fruit textures
+var g_FScoreTex:   [8] Texture      // Array storing all fruit score textures
+var g_GScoreTex:   [4] Texture      // Array storing all ghosts score textures
+var g_GameOverTex: Texture
+
+var g_SoundReady:    Audio.SoundFile
+var g_SoundDeath:    Audio.SoundFile
+var g_SoundEatFruit: Audio.SoundFile
+var g_SoundEatGhost: Audio.SoundFile
+var g_SoundChomp:    Audio.SoundFile
+var g_SoundSiren:    Audio.SoundFile
+var g_SoundRetreat:  Audio.SoundFile
+var g_SoundScared:   Audio.SoundFile
+
+var g_VoiceReady:    *Audio.Voice
+var g_VoiceDeath:    *Audio.Voice
+var g_VoiceEatFruit: *Audio.Voice
+var g_VoiceEatGhost: *Audio.Voice
+var g_VoiceChomp:    *Audio.Voice
+var g_VoiceSiren:    *Audio.Voice
+var g_VoiceRetreat:  *Audio.Voice
+var g_VoiceScared:   *Audio.Voice
+
+var g_Mode:        GameMode = STARTLEVEL
+var g_TempMode:    GameMode = STARTLEVEL
+var g_LastTime:    u64
+var g_Score:       s32
+var g_HighScore:   s32
+var g_Level        = 1
+var g_Lives        = 2
+var g_PillsLeft    = 244
+var g_Fruits:      s32
+var g_ExtraLife:   bool                      // True if received
+var g_FruitSpawned = false
+var g_GhostsEaten: s32                       // Counts how many ghosts have been eaten since consuming the last big pill
+var g_FruitTimer   = -1                      // Fruit timer incremented with each frame - fruit is removed after approx 10s if not eaten
+var g_Wave         = Movement.SCATTER        // Ghost AI targeting is wave-based, varying between CHASE and SCATTER over time
+var g_Ticks:       s32                       // Game ticks, effectively enacting a frame counter
+
+/**
+ * Timestamp represents symbolic points in the game, allowing specific frame-based timing from a certain tick:
+ *      -1: default, unset state
+ * Set to current ticks in a number of situations, effecting a short pause in the game
+ * Set to current ticks on entering DEATH-mode, ensuring READY-mode is entered a given number of ticks later
+ */
+var g_TimeStamp = -1
+
+var g_PacMan: Pacman
+var g_Ghosts: [4] Ghost = [
+    {13.5, 19, GhostColor.RED},
+    {13.5, 16, GhostColor.PINK},
+    {11.5, 16, GhostColor.BLUE},
+    {15.5, 16, GhostColor.YELLOW}]
+
+struct Dest { x, y: s32 }
+
+struct Pacman
+{
+    x                 = 13.5        // X position relative to map - float allows for smooth movement between tiles
+    y                 = 7.0         // Y position relative to map - float allows for smooth movement between tiles
+    dir:              Direction     // Direction of movement
+    tempDir:          Direction     // Temporary direction storage
+    saveDir:          Direction     // Secondary direction storage for stopping and starting animation
+    texCount          = 10          // Counter to determine which texture to draw
+    deadTexCount:     f32           // Counter to determine which sprite of death animation sequence to draw
+    angle:            f32           // Angle at which to draw the sprite - class var to retain angle when dir=NONE
+    ready             = false       // Flag prevents incorrect Pac-Man texture or position rounding at start of game
+}
+
+struct Ghost
+{
+    xInit:         f32            // Initial X position stored for later resets
+    yInit:         f32            // Initial Y position stored for later resets
+    colour:        GhostColor     // Colour of ghost
+    x:             f32            // X position relative to map - float allows for smooth movement between tiles
+    y:             f32            // Y position relative to map - float allows for smooth movement between tiles
+    dPos:          f32            // Delta position - the amount the ghost should move each tick
+    dir:           Direction      // Direction of movement
+    texCount:      s32            // Counter to determine which texture to draw
+    ai:            Movement       // Movement AI type
+    reverse:       bool           // Flag determining whether to reverse the ghost
+    timeout:       s32            // Timeout used to determine when to leave FRIGHTENED mode AI, -1 = default
+    drawScore:     bool           // Flag determining whether to draw the score for eating this ghost
+}
+
+// Enum defines possible ghost colours
+enum GhostColor
+{
+    RED
+    PINK
+    BLUE
+    YELLOW
+}
+
+// Enum defines possible ghost movement types
+enum Movement
+{
+    CHASE
+    SCATTER
+    FRIGHTENED
+    DEAD
+    LEAVE
+    SPAWN
+}
+
+/**
+ * Game modes defined as enum:
+ *      READY:    Set game to starting state, display READY! text until game begins
+ *      PLAY:     Game is in play
+ *      FRUIT:    Pause game briefly during play upon eating a fruit
+ *      EAT:      Pause game briefly during play upon eating a ghost - the two differ only in what is drawn
+ *      PAUSE:    Game is paused, draw help screen
+ *      DEATH:    Pac-Man has been eaten, play death sequence
+ *      GAMEOVER: Game is over, display GAME OVER text until quit/restart
+ * Gamemode is defined as new type for ease of use.
+ * Default starting mode is READY
+ */
+enum GameMode
+{
+    NONE
+    STARTLEVEL
+    READY
+    PLAY
+    FRUIT
+    EAT
+    PAUSE
+    DEATH
+    GAMEOVER
+}
+
+// Enum defines possible movement directions
+enum Direction
+{
+    NONE
+    UP
+    RIGHT
+    DOWN
+    LEFT
+}
+
+/**
+ * Tile types defined as enum:
+ *      W: Wall
+ *      G: Gate
+ *      P: Portal
+ *      n: Non-Filled Path
+ *      o: Pill
+ *      e: Eaten Pill
+ *      O: Big Pill
+ *      E: Eaten Big Pill
+ *      F: Fruit
+ * Tile is defined as new type for ease of use.
+ * Each tile-type is used to determine behaviour of Pac-Man & Ghosts.
+ */
+enum Tile
+{
+    W
+    G
+    P
+    n
+    o
+    e
+    O
+    E
+    F
+}
+
+// Big map. Each element is a 'Tile'
+var g_Map: [28, 31] Tile = [
+    [W, W, W, W, W, W, W, W, W, W, W, W, n, n, n, W, P, W, n, n, n, W, W, W, W, W, W, W, W, W, W],
+    [W, o, o, o, o, W, W, O, o, o, o, W, n, n, n, W, n, W, n, n, n, W, o, o, o, o, O, o, o, o, W],
+    [W, o, W, W, o, W, W, o, W, W, o, W, n, n, n, W, n, W, n, n, n, W, o, W, W, o, W, W, W, o, W],
+    [W, o, W, W, o, o, o, o, W, W, o, W, n, n, n, W, n, W, n, n, n, W, o, W, W, o, W, W, W, o, W],
+    [W, o, W, W, o, W, W, W, W, W, o, W, n, n, n, W, n, W, n, n, n, W, o, W, W, o, W, W, W, o, W],
+    [W, o, W, W, o, W, W, W, W, W, o, W, W, W, W, W, n, W, W, W, W, W, o, W, W, o, W, W, W, o, W],
+    [W, o, W, W, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, W],
+    [W, o, W, W, W, W, W, o, W, W, o, W, W, W, W, W, n, W, W, W, W, W, W, W, W, o, W, W, W, o, W],
+    [W, o, W, W, W, W, W, o, W, W, o, W, W, W, W, W, n, W, W, W, W, W, W, W, W, o, W, W, W, o, W],
+    [W, o, W, W, o, o, o, o, W, W, o, n, n, n, n, n, n, n, n, n, W, W, o, o, o, o, W, W, W, o, W],
+    [W, o, W, W, o, W, W, o, W, W, o, W, W, n, W, W, W, W, W, n, W, W, o, W, W, o, W, W, W, o, W],
+    [W, o, W, W, o, W, W, o, W, W, o, W, W, n, W, W, n, n, W, n, W, W, o, W, W, o, W, W, W, o, W],
+    [W, o, o, o, o, W, W, o, o, o, o, W, W, n, W, W, n, n, W, n, n, n, o, W, W, o, o, o, o, o, W],
+    [W, o, W, W, W, W, W, n, W, W, W, W, W, n, W, W, n, n, G, n, W, W, W, W, W, o, W, W, W, W, W],
+    [W, o, W, W, W, W, W, n, W, W, W, W, W, n, W, W, n, n, G, n, W, W, W, W, W, o, W, W, W, W, W],
+    [W, o, o, o, o, W, W, o, o, o, o, W, W, n, W, W, n, n, W, n, n, n, o, W, W, o, o, o, o, o, W],
+    [W, o, W, W, o, W, W, o, W, W, o, W, W, n, W, W, n, n, W, n, W, W, o, W, W, o, W, W, W, o, W],
+    [W, o, W, W, o, W, W, o, W, W, o, W, W, n, W, W, W, W, W, n, W, W, o, W, W, o, W, W, W, o, W],
+    [W, o, W, W, o, o, o, o, W, W, o, n, n, n, n, n, n, n, n, n, W, W, o, o, o, o, W, W, W, o, W],
+    [W, o, W, W, W, W, W, o, W, W, o, W, W, W, W, W, n, W, W, W, W, W, W, W, W, o, W, W, W, o, W],
+    [W, o, W, W, W, W, W, o, W, W, o, W, W, W, W, W, n, W, W, W, W, W, W, W, W, o, W, W, W, o, W],
+    [W, o, W, W, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, W],
+    [W, o, W, W, o, W, W, W, W, W, o, W, W, W, W, W, n, W, W, W, W, W, o, W, W, o, W, W, W, o, W],
+    [W, o, W, W, o, W, W, W, W, W, o, W, n, n, n, W, n, W, n, n, n, W, o, W, W, o, W, W, W, o, W],
+    [W, o, W, W, o, o, o, o, W, W, o, W, n, n, n, W, n, W, n, n, n, W, o, W, W, o, W, W, W, o, W],
+    [W, o, W, W, o, W, W, o, W, W, o, W, n, n, n, W, n, W, n, n, n, W, o, W, W, o, W, W, W, o, W],
+    [W, o, o, o, o, W, W, O, o, o, o, W, n, n, n, W, n, W, n, n, n, W, o, o, o, o, O, o, o, o, W],
+    [W, W, W, W, W, W, W, W, W, W, W, W, n, n, n, W, P, W, n, n, n, W, W, W, W, W, W, W, W, W, W]]
+
+impl Ghost
+{
+    mtd reset()
+    {
+        .x         = .xInit
+        .y         = .yInit
+        .dPos      = 0.1
+        .texCount  = 0
+        .reverse   = false
+        .timeout   = -1
+        .drawScore = false
+
+        // Reset starting direction and movement type based on colour
+        switch .colour
+        {
+        case RED:
+            .dir = .LEFT
+            .ai  = g_Wave
+        case PINK:
+            .dir = .DOWN
+            .ai  = .LEAVE // PINK starts in LEAVE mode, leaving the SPAWN pen straight away
+        case BLUE, YELLOW:
+            // YELLOW and BLUE both start facing UP, trapped within the SPAWN
+            .dir = .UP
+            .ai  = .SPAWN
+        }
+    }
+
+    /**
+     * Update the ghost's AI movement mode, reversing its direction on doing so if required
+     *
+     * @param newAI - AI movement type for ghost to now use
+     */
+    mtd setAI(newAI: Movement, switchDir: bool)
+    {
+        .ai      = newAI
+        .reverse = switchDir
+
+        // Some AI modes have additional cases to account for
+        if newAI == .FRIGHTENED
+        {
+            .setSpeed(40)
+        }
+        elif newAI == .DEAD
+        {
+            .setSpeed(200)
+            // Flag also ensures the score for eating a ghost is displayed during the short pause
+            .drawScore = true
+        }
+    }
+
+    /**
+     * Timeout set independently from AI, ensuring all ghosts carry the same timeout value
+     *
+     * This is necessary for how timeout is reset - take the following scenario:
+     *      Pac-Man eats a big pill and all ghosts enter FRIGHTENED
+     *      A ghost is eaten and will no longer register as FRIGHTENED
+     *      Another big pill is eaten while this ghost is dead, timeout is set to 0 for all living ghosts as they enter/remain FRIGHTENED
+     *      When the ghost respawns, it's timer is now ahead of all other FRIGHTENED ghosts
+     *      When its timer expires, the eaten ghost count is reset, removing any score multiplier accrued even though other ghosts remain FRIGHTENED
+     *
+     * Obviously, this is a very rare case, but separating the timeout being set to zero prevents it occurring
+     */
+    mtd zeroTimeout()
+    {
+        // FRIGHTENED mode requires a timeout to ensure ghosts don't remain FRIGHTENED indefinitely
+        .timeout = 0
+    }
+
+    /**
+     * On each call to move(), there are a number of special cases which must be assessed prior to any other logic being computed
+     *
+     * If a timeout is set, the ghost is (or was) in FRIGHTENED mode:
+     *      If the timeout exceeds 600 ticks, exit FRIGHTENED (if still in it) and enter the correct wave AI type
+     *      Also reset timeout and ghostsEaten count
+     *      Otherwise, increment the timeout counter every tick
+     *
+     * If the ghost is DEAD, check its current position
+     *      If directly above the SPAWN pen, correctly center X coordinate and begin entering the pen at 50% speed
+     *      Once within the pen, set AI mode to LEAVE, allowing the ghost to 'respawn'
+     *
+     * These cases are checked every tick that move() is called
+     */
+    mtd checkSpecialCases()
+    {
+        // Timeout exceeds max time to be in FRIGHTENED mode
+        if .timeout >= 600
+        {
+            if .ai == .FRIGHTENED
+            {
+                .ai = g_Wave
+                .setSpeed(100)
+            }
+
+            .timeout = -1
+
+            // Reset eaten ghosts count to zero as effects of big pill have ended - score bonus should not carry
+            g_GhostsEaten = 0
+        }
+
+        // If not at max timeout, increment counter
+        elif .timeout != -1 do
+            .timeout += 1
+
+        if .ai == .DEAD
+        {
+            if .x >= 13.4 and .x <= 13.6 // Check X position to check centrality
+            {
+                // Check ghost is also directly above the SPAWN pen
+                if .getY() == 19
+                {
+                    .x   = 13.5
+                    .dir = .DOWN // Set ghost to enter the SPAWN pen
+                    .setSpeed(50)
+                }
+                elif .getY() < 17 and .getY() >= 15
+                {
+                    // Once far enough into the pen, set AI to LEAVE to 'respawn' the ghost
+                    .ai = .LEAVE
+                }
+            }
+        }
+    }
+
+    /**
+     * Special movement behaviour:
+     *      Very simply move ghost up and down within the SPAWN pen
+     */
+    mtd aiSpawn()
+    {
+        .setSpeed(50)
+        if cast(s32) (.y * 10.0) % 10 == 5 and cast(s32) (.x * 10.0) % 10 == 5 and isImpassible(.getNextTile(.dir))
+        {
+            // Switch direction upon hitting a WALL
+            switch .dir
+            {
+            case UP:
+                .dir = DOWN
+            case DOWN:
+                .dir = UP
+            }
+        }
+    }
+
+    /**
+     * Special movement behaviour:
+     *      If within SPAWN pen and not heading down, move towards the center of the enclosure
+     *      Once at center of pen, head up until exited PEN
+     *      Immediately head LEFT and set speed to 100%
+     *      Once the first tile center is reached, enter AI of current wave
+     */
+    mtd aiLeave()
+    {
+        if .y < 19 and .dir != .DOWN
+        {
+            .setSpeed(50)
+
+            // Move towards the center
+            if .x < 13.4 do
+                .dir = .RIGHT
+            elif .x > 13.6 do
+                .dir = .LEFT
+            else
+            {
+                .x   = 13.5
+                .dir = .UP // Then set direction to move out of the SPAWN
+            }
+        }
+        // Once out of the SPAWN, act as a normal ghost
+        elif .y >= 19
+        {
+            .dir = .LEFT
+            .ai  = g_Wave
+            .setSpeed(100)
+        }
+        elif cast(s32) (.y * 10.0) % 10 == 5 and isImpassible(.getNextTile(.dir)) do
+            .dir = .UP
+    }
+
+    /**
+     * SCATTER movement AI attempts to force all ghosts to disperse from one another
+     * Each ghost is set to target a point outside the map (one in each of the four corners) based on their colour
+     *
+     * If left in SCATTER mode, this will cause each to for around a small section of the map in a different corner
+     * SCATTER mode is not normally enabled long enough for this to occur, instead just forcing ghosts to separate
+     */
+    mtd aiScatter()
+    {
+        var target: Dest
+
+        // Each colour selects a unique corner to target
+        switch .colour
+        {
+        case RED:
+            target = {25, 33}
+        case PINK:
+            target = {2, 33}
+        case BLUE:
+            target = {27, -2}
+        case YELLOW:
+            target = {0, -2}
+        }
+
+        // Set direction at junction to head towards SCATTER point
+        .dir = .targetTile(target)
+        .setSpeed(100)
+    }
+
+    /**
+     * Calculate a target as Pac-Man's position +- an offset of given size in Pac-Man's direction of movement
+     *
+     * @param offsetSize - Size of offset to apply
+     * @return -           New target vector, accounting for offset
+     */
+    func targetPacmanOffsetBy(offsetSize: s32)->Dest
+    {
+        var offset: retval = {g_PacMan.getX(), g_PacMan.getY()}
+
+        // Apply offset to correct coordinate based on Pacman's direction
+        switch g_PacMan.dir
+        {
+        case UP:
+            offset.y += offsetSize
+        case RIGHT:
+            offset.x += offsetSize
+        case DOWN:
+            offset.y -= offsetSize
+        case LEFT:
+            offset.x -= offsetSize
+        }
+
+        return offset
+    }
+
+    /**
+     * CHASE mode AI is different for every ghost colour:
+     *      RED:    Targets and chases Pac-Man
+     *      PINK:   Targets four tiles ahead of Pac-Man in his direction of movement, attempting an ambush tactic
+     *      BLUE:   The most complex AI type (explained below) often acts somewhat erratically
+     *              However, if RED is closely chasing Pac-Man, BLUE will generally also be in pursuit:
+     *                      Find point two tiles ahead of Pac-Man
+     *                      Find vector from RED ghost to this point
+     *                      Double this vector - the point at the end of this doubled vector is the target
+     *      YELLOW: Targets and chases Pac-Man as RED does until within 8 tiles range, then emulating SCATTER behaviour
+     */
+    mtd aiChase(redGhost: Ghost)
+    {
+        var target: Dest = {g_PacMan.getX(), g_PacMan.getY()}
+        // Default target for RED and (sometimes) YELLOW
+        let currentPos: Dest = {.getX(), .getY()}
+        var dx, dy: s32
+
+        // Determine ghost chasing behaviour based on their colour
+        switch .colour
+        {
+        case PINK:
+            // Update target to reflect offset in Pac-Man's direction of movement
+            target = targetPacmanOffsetBy(4)
+
+        case BLUE:
+            // Start by finding the point 2 tiles ahead of Pac-Man in his direction of movement
+            target = targetPacmanOffsetBy(2)
+            dx     = target.x - redGhost.getX()
+            dy     = target.y - redGhost.getY()
+            // BLUE's target is then twice the change in X and Y from RED's position
+            target = {redGhost.getX() + 2 * dx, redGhost.getY() + 2 * dy}
+        case YELLOW:
+            if distanceBetween(currentPos, target) <= 8 do
+                target = {0, -2}
+        }
+
+        .dir = .targetTile(target)
+        .setSpeed(100)
+    }
+
+    /**
+     * FRIGHTENED mode AI chooses a direction randomly at each junction, moving at half speed
+     */
+    mtd aiFrightened()
+    {
+        for
+        {
+            // Choose random direction from UP, RIGHT, DOWN or LEFT
+            let newDir = cast(Direction) ((Random.shared().nextU32() % cast(u32) Direction.LEFT) + 1)
+            // Ensure random direction is traversible
+            if !isImpassible(.getNextTile(newDir))
+            {
+                .dir = newDir
+                .setSpeed(40)
+                break
+            }
+        }
+    }
+
+    /**
+     * DEAD mode AI races back to the SPAWN pen at 200% speed
+     */
+    mtd aiDead()
+    {
+        // Coordinate directly above SPAWN entrance
+        let target: Dest = {14, 19}
+        .dir = .targetTile(target)
+        .setSpeed(200)
+    }
+
+    /**
+     * Calculate and return the straight line distance between two points (tiles) in the map
+     *
+     * @param p1 - Vector storing the x,y map coordinates of the first point
+     * @param p2 - Vector storing the x,y map coordinates of the second point
+     * @return -   Straight line distance between p1 and p2, floating point precision
+     */
+    func distanceBetween(p1, p2: Dest)->f32
+    {
+        let dx = cast(f32) p1.x - p2.x
+        let dy = cast(f32) p1.y - p2.y
+        return Math.sqrt((dx * dx) + (dy * dy))
+    }
+
+    /**
+     * Determine the direction from the current junction which yields the closest straight line distance to a target tile
+     *      Method checks the next tile in every traversible direction from the junction
+     *      The optimal direction is only updated should it prove closer than previously checked exits
+     *
+     * Note: this does not always give the shortest PATH to the target
+     *      However, this behaviour is as the original Pac-Man was designed
+     *
+     * @param target - Vector storing the x,y map coordinates of the target tile
+     * @return -       Direction of shortest straight line distance to target
+     */
+    mtd targetTile(target: Dest)->Direction
+    {
+        var nextPos: Dest          // Initialize next position, updated in each possible direction
+        var distance = 999.0       // Set max distance to unreachable value
+        var newDir:  Direction     // Initialize returned direction
+
+        // Check UP exit
+        // UP exits have an additional condition such that, at 4 specific intersections, the ghost cannot opt to travel UP
+        if !(.getY() == 19 and (.getX() == 12 or .getX() == 15)) and !(.getY() == 7 and (.getX() == 12 or .getX() == 15))
+        {
+            // Prevent direction reversing and ensure exit is traversible
+            if .dir != .DOWN and !isImpassible(.getNextTile(.UP))
+            {
+                nextPos = {.getX(), .getY() + 1}
+                let d = distanceBetween(nextPos, target)
+                if d < distance
+                {
+                    distance = d
+                    // This process is repeated for all traversible exits from the current junction
+                    newDir = .UP
+                }
+            }
+        }
+
+        // Check RIGHT exit
+        if .dir != .LEFT and !isImpassible(.getNextTile(.RIGHT))
+        {
+            nextPos = {.getX() + 1, .getY()}
+            let d = distanceBetween(nextPos, target)
+            if d < distance
+            {
+                distance = d
+                newDir   = .RIGHT
+            }
+        }
+
+        // Check DOWN exit
+        if .dir != .UP and !isImpassible(.getNextTile(.DOWN))
+        {
+            nextPos = {.getX(), .getY() - 1}
+            let d = distanceBetween(nextPos, target)
+            if d < distance
+            {
+                distance = d
+                newDir   = .DOWN
+            }
+        }
+
+        // Check LEFT exit
+        if .dir != .RIGHT and !isImpassible(.getNextTile(.LEFT))
+        {
+            nextPos = {.getX() - 1, .getY()}
+            let d = distanceBetween(nextPos, target)
+            if d < distance
+            {
+                distance = d
+                newDir   = .LEFT
+            }
+        }
+
+        // Return newly found direction, yielding lowest straight line distance to target
+        return newDir
+    }
+
+    /**
+     * Reverse the ghost's direction of movement, then resetting the corresponding flag
+     */
+    mtd reverseDirection()
+    {
+        switch .dir
+        {
+        case UP:
+            .dir = DOWN
+        case RIGHT:
+            .dir = LEFT
+        case DOWN:
+            .dir = UP
+        case LEFT:
+            .dir = RIGHT
+        }
+
+        .reverse = false
+    }
+
+    /**
+     * Method updates direction to navigate around a corner
+     */
+    mtd turnCorner()
+    {
+        if .dir != .DOWN and !isImpassible(.getNextTile(.UP)) do
+            .dir = .UP
+        elif .dir != .LEFT and !isImpassible(.getNextTile(.RIGHT)) do
+            .dir = .RIGHT
+        elif .dir != .UP and !isImpassible(.getNextTile(.DOWN)) do
+            .dir = .DOWN
+        elif .dir != .RIGHT and !isImpassible(.getNextTile(.LEFT)) do
+            .dir = .LEFT
+    }
+
+    /**
+     * When setting the speed of a ghost, it is necessary to round the ghost's coordinates to the correct degree of precision
+     *
+     * Rounding prevents errors such as being unable to recognise the center of a tile or overshooting a junction when changing speeds
+     *      EXAMPLE CASE:   Ghost is travelling at 50% speed (FRIGHTENED) so increases position by 0.05 each tick
+     *                      Upon death, its speed is incremented to 200%, moving by 0.2 tiles each tick
+     *                      Suppose the ghost was eaten at x=12.05 - possible when moving at 50% speed
+     *                      Its position will now be unable to round to x=12.0 to ascertain it is at the center of a tile
+     *
+     * Because of cases like the above, position rounding is necessary when changing speeds
+     */
+    mtd roundPosition()
+    {
+        .x = Math.round(.x / .dPos) * .dPos
+        .y = Math.round(.y / .dPos) * .dPos
+    }
+
+    /**
+     * Set the speed of the ghost and round the position to account for movement precision inaccuracies
+     *
+     * @param percentage - Float representing speed. 100% sets d_pos=0.1f (normal playing speed)
+     */
+    mtd setSpeed(percentage: f32)
+    {
+        .dPos = percentage / 1000
+        .roundPosition()
+    }
+
+    /**
+     * Count the number of exits from the current position
+     * If the ghost is not at the tile center, exits=0
+     * If the ghost is at the tile center, exit count can determine what kind of junction the ghost is at
+     *      2 Exits: Straight/Corner (corner requires && isImpassible(getNextTile(dir)) to confirm)
+     *      3 Exits: T-Junction
+     *      4 Exits: X-Intersection
+     *
+     * @return integer number of exits from the current position
+     */
+    mtd countExits()->s32
+    {
+        var exits = 0
+        if .atTileCenter()
+        {
+            if !isImpassible(.getNextTile(.UP)) do
+                exits += 1
+            if !isImpassible(.getNextTile(.RIGHT)) do
+                exits += 1
+            if !isImpassible(.getNextTile(.DOWN)) do
+                exits += 1
+            if !isImpassible(.getNextTile(.LEFT)) do
+                exits += 1
+        }
+
+        return exits
+    }
+
+    /**
+     * Determines and returns absolute X coordinate of map tile on which ghost resides
+     *
+     * @return - integer, X coordinate of current tile
+     */
+    mtd const getX() => Math.roundS32(.x)
+
+    /**
+     * Determines and returns absolute Y coordinate of map tile on which ghost resides
+     *
+     * @return - integer, Y coordinate of current tile
+     */
+    mtd const getY() => Math.roundS32(.y)
+
+    /**
+     * Determines and returns the next tile in the given direction of movement
+     *
+     * @param d - direction of movement in which to check to the next tile
+     * @return -  next tile in direction d
+     */
+    mtd getNextTile(d: Direction)->Tile
+    {
+        // Return next tile in given direction
+        switch d
+        {
+        case UP:
+            return getTile(.getX(), .getY() + 1)
+        case RIGHT:
+            return getTile(.getX() + 1, .getY())
+        case DOWN:
+            return getTile(.getX(), .getY() - 1)
+        case LEFT:
+            return getTile(.getX() - 1, .getY())
+        default:
+            return getTile(.getX(), .getY())
+        }
+    }
+
+    /**
+     * Determines whether ghost is currently at the center of a tile
+     * Expression basically validates that the first decimal point of each coordinate is a zero
+     * If each is a zero, ghost is at the center of his tile
+     *
+     * @return - boolean, true if at center
+     */
+    mtd atTileCenter()->bool
+    {
+        let mod = cast(s32) (1 / .dPos)
+        return Math.roundS32(.y * mod) % mod == 0 and Math.roundS32(.x * mod) % mod == 0
+    }
+
+    mtd move(redGhost: Ghost)
+    {
+        // Check any special case AI behaviour
+        .checkSpecialCases()
+
+        // Handle special case movement behaviours
+
+        // Behaviour within SPAWN pen
+        if .ai == .SPAWN do
+            .aiSpawn()
+        // AI to LEAVE SPAWN pen
+        elif .ai == .LEAVE do
+            .aiLeave()
+        // Handle PORTAL collision - only teleport if at center of tile
+        elif .atTileCenter() and getTile(.getX(), .getY()) == .P
+        {
+            if .dir == .RIGHT do
+                .x = 1
+            else do
+                .x = 26
+        }
+        // If the a new AI mode has been set, reverse the current direction
+        elif .reverse do
+            .reverseDirection()
+        // If no special case exists, direction can only be changed when 2 or more exits exist
+        // Ghost is at corner so must turn
+        elif .countExits() == 2 and isImpassible(.getNextTile(.dir)) do
+            .turnCorner()
+        // Ghost is at junction - run targeting AI and update direction
+        elif .countExits() > 2
+        {
+            switch .ai
+            {
+            case SCATTER:
+                .aiScatter()
+            case CHASE:
+                .aiChase(redGhost)
+            case FRIGHTENED:
+                .aiFrightened()
+            case DEAD:
+                .aiDead()
+            }
+        }
+
+        // Half speed when travelling down PORTAL corridors
+        if .getY() == 16 and (.getX() < 6 or .getX() > 21) and .ai != .DEAD do
+            .setSpeed(50)
+
+        // Perform smooth movement between tiles in the current direction of movement
+        // Round the unchanging position coordinate, preventing directional query mishaps
+        switch .dir
+        {
+        case LEFT:
+            .x -= .dPos
+            if .ai != .LEAVE do
+                .y = Math.round(.y)
+        case RIGHT:
+            .x += .dPos
+            if .ai != .LEAVE do
+                .y = Math.round(.y)
+        case UP:
+            .y += .dPos
+            if .ai != .SPAWN and .ai != .LEAVE and .ai != .DEAD do
+                .x = Math.round(.x)
+        case DOWN:
+            .y -= .dPos
+            if .ai != .SPAWN and .ai != .LEAVE and .ai != .DEAD do
+                .x = Math.round(.x)
+        }
+    }
+
+    /**
+     * If ghost has just been eaten, draw the score for eating it, otherwise draw as normal
+     */
+    mtd drawEaten()
+    {
+        if .drawScore
+        {
+            g_Painter.pushTransform()
+            translateMapOrigin()
+            translateMapCoords(.x, .y)
+            g_Painter.translateTransform(-4 * Scale, 0) // Account for over-sized sprite (16x8 on 8x8 tile)
+            g_Painter.translateTransform(8 * Scale, 4 * Scale)
+            // Determine which score sprite to draw based on the number of ghosts eaten since the last big pill was eaten
+            let ghostScore = Math.min(g_GhostsEaten - 1, 3)
+            g_Painter.drawTexture(-8, -4, 16, 8, g_GScoreTex[ghostScore])
+            g_Painter.popTransform()
+        }
+        else
+        {
+            // If the ghost hasn't just been eaten, draw it as normal
+            .draw()
+        }
+    }
+
+    mtd draw()
+    {
+        // Reset drawScore flag - when eaten, drawEaten() is called during pause,: not draw score again
+        .drawScore = false
+
+        g_Painter.pushTransform()
+        translateMapOrigin()
+        translateMapCoords(.x, .y)
+        g_Painter.translateTransform(-3 * Scale, -3 * Scale) // Account for over-sized sprite (14x14 on 8x8 tile)
+        g_Painter.translateTransform(7 * Scale, 7 * Scale)
+
+        // Determine which colour ghost to draw and whether it is the alternate texture (wiggle animation)
+        var ghostTex: Texture
+        let ghostAlt  = cast(s32) Math.floor(.texCount % 20 / 10.0)
+
+        // If in FRIGHTENED mode, draw the correct skin
+        if .ai == .FRIGHTENED
+        {
+            // Draw white (flashing) skin when FRIGHTENED mode is nearing its end
+            if .timeout >= 480 and .texCount % 30 >= 15 do
+                ghostTex = g_GhostTexF[ghostAlt + 2]
+            else do
+                ghostTex = g_GhostTexF[ghostAlt]
+        }
+        elif .ai != .DEAD
+        {
+            // If not in FRIGHTENED or DEAD AI, draw the ghost according to colour
+            switch .colour
+            {
+            case RED:
+                ghostTex = g_GhostTexR[ghostAlt]
+            case PINK:
+                ghostTex = g_GhostTexP[ghostAlt]
+            case BLUE:
+                ghostTex = g_GhostTexB[ghostAlt]
+            case YELLOW:
+                ghostTex = g_GhostTexY[ghostAlt]
+            }
+        }
+
+        // Draw ghost sprite with determined texture at current location only if not DEAD
+        if .ai != .DEAD do
+            g_Painter.drawTexture(-7, -7, 14, 14, ghostTex)
+
+        // Only draw the ghost's eyes if it's not FRIGHTENED
+        if .ai != .FRIGHTENED
+        {
+            // Determine which way the ghost's eyes should be facing
+            var eyesTex: Texture
+            switch .dir
+            {
+            case LEFT:
+                eyesTex = g_EyeTexL
+            case RIGHT:
+                eyesTex = g_EyeTexR
+            case UP:
+                eyesTex = g_EyeTexD
+            case DOWN:
+                eyesTex = g_EyeTexU
+            }
+
+            // Draw direction-based eyes sprite atop ghost body
+            g_Painter.drawTexture(-7, -7, 14, 14, eyesTex)
+        }
+
+        // Increment texture counter every frame
+        .texCount += 1
+
+        g_Painter.popTransform()
+    }
+}
+
+impl Pacman
+{
+    /**
+     * Reset pacman state to its original values
+     */
+    mtd reset()
+    {
+        .x            = 13.5
+        .y            = 7.0
+        .angle        = 0.0
+        .dir          = .NONE
+        .tempDir      = .NONE
+        .texCount     = 10
+        .deadTexCount = 0
+        .ready        = false
+    }
+
+    /**
+     * Determines whether Pac-Man is currently at the center of a tile
+     * Expression basically validates that the first decimal point of each coordinate is a zero
+     * If each is a zero, Pac-Man is at the center of his tile
+     *
+     * @return - boolean, true if at center
+     */
+    mtd atTileCenter()->bool
+    {
+        return Math.roundS32(.y * 10.0) % 10 == 0 and Math.roundS32(.x * 10.0) % 10 == 0
+    }
+
+    /**
+     * Determines and returns absolute X coordinate of map tile on which Pac-Man resides
+     *
+     * @return - integer, X coordinate of current tile
+     */
+    mtd const getX() => Math.roundS32(.x)
+
+    /**
+     * Determines and returns absolute Y coordinate of map tile on which Pac-Man resides
+     *
+     * @return - integer, Y coordinate of current tile
+     */
+    mtd const getY() => Math.roundS32(.y)
+
+    /**
+     * "Eat" the current tile:
+     *      Pill: empty the array position appropriately, reduce remaining pill count and return score
+     *      Portal: teleport to the opposite portal based on Pac-Man's direction of movement
+     *      Fruit: increment consumed fruit count, empty array position and determine & return how much the fruit is worth
+     * Only eat current tile if at tile center
+     *
+     * @return - integer score increment from eating tile
+     */
+    mtd eat()->s32
+    {
+        if !.atTileCenter() do
+            return 0
+
+        switch getTile(.getX(), .getY())
+        {
+        case o:
+            if !g_VoiceChomp or !g_VoiceChomp.isPlaying()
+            {
+                if g_VoiceChomp do
+                    g_VoiceChomp.destroy()
+                g_VoiceChomp = assume Audio.Voice.play(&g_SoundChomp)
+            }
+
+            setTile(.getX(), .getY(), e)
+            g_PillsLeft -= 1
+            return 10
+
+        case O:
+            setTile(.getX(), .getY(), E)
+            g_PillsLeft -= 1
+            return 50
+
+        case P:
+            if .dir == .RIGHT do
+                .x = 1
+            else do
+                .x = 26
+            return 0
+
+        case F:
+            setTile(.getX(), .getY(), .e)
+            g_FruitSpawned = false
+            g_Fruits += 1
+            switch g_Fruits - 1
+            {
+            case 0:
+                return 100
+            case 1:
+                return 300
+            case 2:
+                return 500
+            case 3:
+                return 700
+            case 4:
+                return 1000
+            case 5:
+                return 2000
+            case 6:
+                return 3000
+            case 7:
+                return 5000
+            }
+
+        default:
+            if g_VoiceChomp and !g_VoiceChomp.isPlaying()
+            {
+                g_VoiceChomp.destroy()
+                g_VoiceChomp = null
+            }
+        }
+
+        return 0
+    }
+
+    /**
+     * Determines and returns the next tile in the given direction of movement
+     *
+     * @param d - direction of movement in which to check to the next tile
+     * @return -  next tile in direction d
+     */
+    mtd getNextTile(d: Direction)->Tile
+    {
+        switch d
+        {
+        case UP:
+            return getTile(.getX(), .getY() + 1)
+        case RIGHT:
+            return getTile(.getX() + 1, .getY())
+        case DOWN:
+            return getTile(.getX(), .getY() - 1)
+        case LEFT:
+            return getTile(.getX() - 1, .getY())
+        default:
+            return getTile(.getX(), .getY())
+        }
+    }
+
+    mtd move()
+    {
+        // Ascertain whether direction can be changed
+        // Direction can only be changed at the center of a tile
+        if .atTileCenter()
+        {
+            if !isImpassible(.getNextTile(.tempDir)) do
+                .dir = .tempDir
+            elif isImpassible(.getNextTile(.dir)) do
+                .dir = .NONE
+        }
+
+        // The only exception to the above rule is at game start (when ready=false), as Pac-Man starts between two tiles
+        if !.ready and .tempDir != .NONE and !isImpassible(.getNextTile(.tempDir))
+        {
+            .dir = .tempDir
+            if !.ready
+            {
+                // Ready flag is set to true, enabling position rounding when dir=NONE and correct texture drawing
+                .ready = true
+            }
+        }
+
+        // Perform smooth movement between tiles in the current direction of movement
+        // While moving, round the unchanging position coordinate, preventing directional query mishaps
+        switch .dir
+        {
+        case LEFT:
+            .x -= 0.1
+            .y = Math.round(.y)
+        case RIGHT:
+            .x += 0.1
+            .y = Math.round(.y)
+        case UP:
+            .y += 0.1
+            .x = Math.round(.x)
+        case DOWN:
+            .y -= 0.1
+            .x = Math.round(.x)
+        default:
+            if .ready
+            {
+                .x = Math.round(.x)
+                .y = Math.round(.y)
+            }
+        }
+    }
+
+    /**
+     * Stop Pac-Man's eating animation when he dies/completes level or pause it upon eating a ghost - also save tempDir
+     */
+    mtd stopChomping()
+    {
+        .saveDir = .tempDir
+        .tempDir = .NONE
+        .ready   = false
+    }
+
+    /**
+     * Restart Pac-Man's eating animation, resetting tempDir if it hasn't since been changed
+     */
+    mtd startChomping()
+    {
+        if .tempDir == .NONE do
+            .tempDir = .saveDir
+        .ready = true
+    }
+
+    /**
+     * Draw Pac-Man's death animation sequence at his current location
+     */
+    mtd drawDead()
+    {
+        g_Painter.pushTransform()
+
+        translateMapOrigin()
+        translateMapCoords(.x, .y)
+        g_Painter.translateTransform(-3 * Scale, -4 * Scale) // Account for over-sized sprite (15x15 on 8x8 tile)
+        g_Painter.translateTransform(7.5 * Scale, 7.5 * Scale)
+
+        // Determine which texture to draw based on tick-incremented counter
+        // Draw current sprite of Pac-Man's death animation sequence
+        if .deadTexCount < 55
+        {
+            let deadFrame = cast(s32) Math.floor(.deadTexCount / 5)
+            g_Painter.drawTexture(-7.5, -7.5, 15, 15, g_DeadTex[deadFrame])
+        }
+
+        // Increment dead texture counter
+        .deadTexCount += 1
+
+        g_Painter.popTransform()
+    }
+
+    /**
+     * Upon eating a fruit, draw the score for eating said fruit during the short pause INSTEAD of drawing Pac-Man
+     */
+    mtd drawFruitScore()
+    {
+        g_Painter.pushTransform()
+
+        translateMapOrigin()
+        translateMapCoords(.x, .y)
+        g_Painter.translateTransform(-6 * Scale, 0) // Account for over-sized sprite (20x8 on 8x8 tile)
+        g_Painter.translateTransform(10 * Scale, 4 * Scale)
+
+        // Determine which fruit score texture to draw based on how many fruits have been eaten
+        g_Painter.drawTexture(-10, -4, 20, 8, g_FScoreTex[g_Fruits - 1])
+
+        g_Painter.popTransform()
+    }
+
+    mtd draw()
+    {
+        g_Painter.pushTransform()
+        translateMapOrigin()
+        translateMapCoords(.x, .y)
+        g_Painter.translateTransform(-2 * Scale, -2 * Scale)
+        g_Painter.translateTransform(6.5 * Scale, 6.5 * Scale)
+
+        // Determine rotation angle of sprite based on direction
+        switch .dir
+        {
+        case UP:
+            .angle = 270.0
+        case RIGHT:
+            .angle = 180.0
+        case DOWN:
+            .angle = 90.0
+        case LEFT:
+            .angle = 0.0
+        }
+
+        g_Painter.rotateTransformInPlace(Math.toRadians(.angle))
+
+        // Determine which texture to draw based on tick-incremented counter
+        var pacmanTex: Texture
+        if .texCount % 20 < 5 do
+            pacmanTex = g_Pac0Tex
+        elif .texCount % 20 < 10 or .texCount % 20 >= 15 do
+            pacmanTex = g_Pac1Tex
+        else do
+            pacmanTex = g_Pac2Tex
+
+        // Draw Pac-Man sprite with determined texture at determined angle
+        g_Painter.drawTexture(-6.5, -6.5, 13, 13, pacmanTex)
+
+        // Increment texture counter only if moving
+        // If stationary, continue until sprite animation cycle is complete
+        if !(.dir == .NONE and .texCount % 20 < 5) and .ready do
+            .texCount += 1
+
+        g_Painter.popTransform()
+    }
+}
+
+func translateMapOrigin()          => g_Painter.translateTransform(38.0, 26.0)
+func translateMapCoords(x, y: f32) => g_Painter.translateTransform(x * 8 * Scale, y * 8 * Scale)
+func isImpassible(t: Tile)         => t == .W or t == .G
+
+func getTile(x, y: s32)          => g_Map[x, y]
+func setTile(x, y: s32, t: Tile) { g_Map[x, y] = t }
+
+func drawMap()
+{
+    g_Painter.pushTransform()
+    translateMapOrigin()
+
+    // Map (background)
+    g_Painter.drawTexture(0, 0, 224, 248, g_MapTex)
+
+    // Content
+    for x in 28
+    {
+        g_Painter.pushTransform()
+        for y in 31
+        {
+            // Determine size of big pills to draw depending on ticks
+            let bigPill = cast(s32) Math.floor((g_Ticks % 40) / 20.0)
+
+            switch getTile(x, y)
+            {
+            case o:
+                g_Painter.drawTexture(0, 0, 8, 8, g_PillTex)
+            case O:
+                g_Painter.drawTexture(0, 0, 8, 8, g_BigPillTex[bigPill])
+            case F:
+                drawFruit(x, y)
+            }
+
+            translateMapCoords(0, 1)
+        }
+
+        g_Painter.popTransform()
+        translateMapCoords(1, 0)
+    }
+
+    g_Painter.popTransform()
+}
+
+/**
+ * Draws a number as a set of sprites
+ *
+ * @param number - integer number to draw
+ */
+func drawNumberAsSprite(number: s32)
+{
+    g_Painter.pushTransform()
+
+    let str = Format.toString("%", number)
+    for #reverse i in str
+    {
+        switch str[i]
+        {
+        case '0':
+            g_Painter.drawTexture(0, 0, 8, 8, g_Num0Tex)
+        case '1':
+            g_Painter.drawTexture(0, 0, 8, 8, g_Num1Tex)
+        case '2':
+            g_Painter.drawTexture(0, 0, 8, 8, g_Num2Tex)
+        case '3':
+            g_Painter.drawTexture(0, 0, 8, 8, g_Num3Tex)
+        case '4':
+            g_Painter.drawTexture(0, 0, 8, 8, g_Num4Tex)
+        case '5':
+            g_Painter.drawTexture(0, 0, 8, 8, g_Num5Tex)
+        case '6':
+            g_Painter.drawTexture(0, 0, 8, 8, g_Num6Tex)
+        case '7':
+            g_Painter.drawTexture(0, 0, 8, 8, g_Num7Tex)
+        case '8':
+            g_Painter.drawTexture(0, 0, 8, 8, g_Num8Tex)
+        case '9':
+            g_Painter.drawTexture(0, 0, 8, 8, g_Num9Tex)
+        }
+
+        translateMapCoords(-1, 0)
+    }
+
+    if str.length == 1 do
+        g_Painter.drawTexture(0, 0, 8, 8, g_Num0Tex)
+
+    g_Painter.popTransform()
+}
+
+func drawLevel()
+{
+    g_Painter.pushTransform()
+    translateMapOrigin()
+    translateMapCoords(1, -2.5)
+    g_Painter.drawTexture(0, 0, 24, 8, g_OneUpTex)
+    translateMapCoords(3, 1)
+    drawNumberAsSprite(g_Level)
+    g_Painter.popTransform()
+}
+
+func drawScore()
+{
+    g_Painter.pushTransform()
+
+    translateMapOrigin()
+    translateMapCoords(6.5, -2.5)
+    g_Painter.drawTexture(0, 0, 80, 8, g_ScoreTex)
+
+    translateMapCoords(4, 1)
+    drawNumberAsSprite(Math.min(g_HighScore, 99999))
+    translateMapCoords(6, 0)
+    drawNumberAsSprite(Math.min(g_Score, 99999))
+
+    g_Painter.popTransform()
+}
+
+func drawLives()
+{
+    g_Painter.pushTransform()
+    translateMapOrigin()
+    translateMapCoords(1, 31.5)
+    for i in g_Lives
+    {
+        g_Painter.drawTexture(0, 0, 14, 14, g_LifeTex)
+        translateMapCoords(2, 0)
+    }
+    g_Painter.popTransform()
+}
+
+func drawFruits()
+{
+    g_Painter.pushTransform()
+    translateMapOrigin()
+    translateMapCoords(25, 31.5)
+    for i in g_Fruits
+    {
+        g_Painter.drawTexture(0, 0, 14, 14, g_FruitsTex[i])
+        translateMapCoords(-2, 0)
+    }
+    g_Painter.popTransform()
+}
+
+func drawCharacters()
+{
+    g_PacMan.draw()
+    for i in 4 do
+        g_Ghosts[i].draw()
+}
+
+func drawHelp()
+{
+    g_Painter.pushTransform()
+    translateMapOrigin()
+    translateMapCoords(19, -2)
+    g_Painter.drawTexture(0, 0, 64, 8, g_HelpTex)
+    g_Painter.popTransform()
+}
+
+func drawGameOver()
+{
+    g_Painter.pushTransform()
+    translateMapOrigin()
+    translateMapCoords(9, 13)
+    g_Painter.drawTexture(0, 0, 80, 8, g_GameOverTex)
+    g_Painter.popTransform()
+}
+
+func drawReady()
+{
+    g_Painter.pushTransform()
+    translateMapOrigin()
+    translateMapCoords(11, 13)
+    g_Painter.drawTexture(0, 0, 48, 8, g_ReadyTex)
+    g_Painter.popTransform()
+}
+
+func drawPause(gameover: bool)
+{
+    g_Painter.pushTransform()
+    translateMapOrigin()
+    if !gameover do
+        g_Painter.drawTexture(0, 0, 224, 248, g_PauseTex)
+    else do
+        g_Painter.drawTexture(0, 0, 224, 248, g_PauseAltTex)
+    g_Painter.popTransform()
+}
+
+func drawQuit()
+{
+    g_Painter.pushTransform()
+    translateMapOrigin()
+    translateMapCoords(19, 32)
+    g_Painter.drawTexture(0, 0, 64, 8, g_QuitTex)
+    g_Painter.popTransform()
+}
+
+/**
+ * Method tidies up display() switch on game mode, drawing common PLAY-mode features
+ */
+func drawPlayScreen()
+{
+    drawMap()
+    drawLevel()
+    drawScore()
+    drawLives()
+    drawFruits()
+    drawHelp()
+}
+
+/**
+ * Draw all elements of the game, depending on the game mode
+ * Common elements have been extracted to methods in globals.h for simplicity of code
+ */
+func display()
+{
+    let rect = g_Wnd.getClientRect()
+    g_Painter.fillRect(rect, Argb.Black)
+    g_Painter.scaleTransform(Scale, Scale)
+
+    switch g_Mode
+    {
+    case STARTLEVEL, READY:
+        drawPlayScreen()
+        drawCharacters()
+        drawReady()
+
+    case PLAY:
+        drawPlayScreen()
+        drawCharacters()
+
+    case FRUIT:
+        drawPlayScreen()
+        for i in 4 do
+            g_Ghosts[i].draw()
+        g_PacMan.drawFruitScore()
+
+    case EAT:
+        drawPlayScreen()
+        for i in 4 do
+            g_Ghosts[i].drawEaten()
+
+    case PAUSE:
+        drawPause(g_TempMode == GAMEOVER)
+        drawLevel()
+        drawScore()
+        drawLives()
+        drawFruits()
+        drawQuit()
+
+    case DEATH:
+        drawPlayScreen()
+        g_PacMan.drawDead()
+
+    case GAMEOVER:
+        drawPlayScreen()
+        drawGameOver()
+    }
+}
+
+func soundState()
+{
+    if g_Mode != .PLAY or g_TimeStamp != -1
+    {
+        if g_VoiceSiren
+        {
+            g_VoiceSiren.destroy()
+            g_VoiceSiren = null
+        }
+        if g_VoiceScared
+        {
+            g_VoiceScared.destroy()
+            g_VoiceScared = null
+        }
+        if g_VoiceRetreat
+        {
+            g_VoiceRetreat.destroy()
+            g_VoiceRetreat = null
+        }
+        if g_VoiceChomp
+        {
+            g_VoiceChomp.destroy()
+            g_VoiceChomp = null
+        }
+        return
+    }
+
+    enum SoundState
+    {
+        DEATH
+        FRIGHTENED
+        SIREN
+    }
+
+    var soundState = SoundState.SIREN
+    foreach g in g_Ghosts
+    {
+        if g.ai == .DEAD
+        {
+            soundState = .DEATH
+            break
+        }
+
+        if g.ai == .FRIGHTENED do
+            soundState = .FRIGHTENED
+    }
+
+    switch soundState
+    {
+    case DEATH:
+        if g_VoiceSiren
+        {
+            g_VoiceSiren.destroy()
+            g_VoiceSiren = null
+        }
+        if g_VoiceScared
+        {
+            g_VoiceScared.destroy()
+            g_VoiceScared = null
+        }
+        if !g_VoiceRetreat do
+            g_VoiceRetreat = assume Audio.Voice.play(&g_SoundRetreat, playFlags: .Loop)
+
+    case FRIGHTENED:
+        if g_VoiceSiren
+        {
+            g_VoiceSiren.destroy()
+            g_VoiceSiren = null
+        }
+        if g_VoiceRetreat
+        {
+            g_VoiceRetreat.destroy()
+            g_VoiceRetreat = null
+        }
+        if !g_VoiceScared do
+            g_VoiceScared = assume Audio.Voice.play(&g_SoundScared, playFlags: .Loop)
+
+    case SIREN:
+        if g_VoiceScared
+        {
+            g_VoiceScared.destroy()
+            g_VoiceScared = null
+        }
+        if g_VoiceRetreat
+        {
+            g_VoiceRetreat.destroy()
+            g_VoiceRetreat = null
+        }
+        if !g_VoiceSiren
+        {
+            g_VoiceSiren = assume Audio.Voice.play(&g_SoundSiren, playFlags: .Loop)
+            assume g_VoiceSiren.setVolume(0.4)
+        }
+    }
+}
+
+/**
+ * Check all possible collisions:
+ *      Call Pac-Man to eat its current tile, incrementing score accordingly
+ *       - If all pills are eaten, move to the next level
+ *       - Once score exceeds 10,000, award a bonus life
+ *       - On eating a big pill, set ghosts to FRIGHTENED
+ *       - Release ghosts from the SPAWN pen after a specific number of pills have been eaten
+ *       - If a fruit is eaten, pause the game briefly to display the score for eating it
+ *      Check whether Pac-Man has collided with a ghost
+ *       - Set mode=DEATH if collision has occurred with alive ghost
+ *       - If the ghost is frightened, eat it (set AI=DEAD)
+ */
+func checkCollisions()
+{
+    let scoreIncrement = g_PacMan.eat()
+    g_Score += scoreIncrement
+    if g_Score > g_HighScore do
+        g_HighScore = g_Score
+
+    // If score is increased by 50, a big pill has been eaten - set ghosts to FRIGHTENED
+    if scoreIncrement == 50
+    {
+        foreach g in g_Ghosts
+        {
+            g.zeroTimeout()
+            if g.ai == g_Wave or g.ai == .FRIGHTENED do
+                g.setAI(.FRIGHTENED, true)
+        }
+    }
+    // If score is increased by more than 100, a fruit has been eaten, pause game briefly to show score
+    elif scoreIncrement >= 100
+    {
+        g_TimeStamp = g_Ticks
+        g_PacMan.stopChomping()
+        g_Mode = .FRUIT
+    }
+
+    // Award extra life for reaching 10000 points
+    if !g_ExtraLife and g_Score > 10000
+    {
+        g_Lives += 1
+        g_ExtraLife = true
+    }
+
+    // If all pills have been eaten, stop Pac-Man's animation and set timestamp to restart level after short pause
+    if g_PillsLeft == 0
+    {
+        g_TimeStamp = g_Ticks
+        g_PacMan.stopChomping()
+    }
+    // Ghosts exit SPAWN pen when a certain number of pills have been eaten
+    // To prevent all piling out at once after a death, tick timers only allow the ghosts to leave after a certain point
+    // BLUE leaves after 30 pills are eaten
+    elif g_Ghosts[2].ai == .SPAWN and g_PillsLeft <= 244 - 30 and g_Ticks >= 300 do
+        g_Ghosts[2].setAI(.LEAVE, false)
+    // YELLOW leaves after 1/3 of the pills are eaten
+    elif g_Ghosts[3].ai == .SPAWN and g_PillsLeft <= 244 * 2 / 3 and g_Ticks >= 420 do
+        g_Ghosts[3].setAI(.LEAVE, false)
+
+    // Check for ghost collisions
+    foreach g in g_Ghosts
+    {
+        if g.getX() == g_PacMan.getX() and g.getY() == g_PacMan.getY()
+        {
+            // If the ghost is alive and not FRIGHTENED, Pac-Man will die
+            if g.ai == g_Wave
+            {
+                // Begin DEATH procedure by setting timestamp and stopping Pac-Man's animation
+                g_TimeStamp = g_Ticks
+                g_PacMan.stopChomping()
+                break
+            }
+            // If ghost is FRIGHTENED, it can be eaten itself
+            elif g.ai == .FRIGHTENED
+            {
+                // Set ghost AI to DEAD, increasing the score and count of ghosts eaten since the last big pill
+                g.setAI(.DEAD, false)
+                g_GhostsEaten += 1
+                g_Score += 200 * cast(s32) Math.pow(2.0, cast(f32) Math.min(g_GhostsEaten, 3))
+                if g_Score > g_HighScore do
+                    g_HighScore = g_Score
+                // Briefly pause the game to show score for eating ghost
+                g_TimeStamp = g_Ticks
+                g_PacMan.stopChomping()
+                g_Mode = .EAT
+            }
+        }
+    }
+}
+
+/**
+ * Ghost AI targeting mode is set in waves, adding small respite where all enemies back off for a short period
+ * Timings of each wave are calculated as tick approximations of seconds, based on a performance-capped 30fps tick rate
+ * Tick count is adjusted as game does not begin until 240 ticks have passed
+ *      SCATTER:    420  ticks      approx.  7 seconds
+ *                      Above level 5, this decreases to 300 ticks      approx. 5 seconds
+ *      CHASE:      1200 ticks      approx. 20 seconds
+ *      SCATTER:    420  ticks      approx.  7 seconds
+ *                      Above level 5, this decreases to 300 ticks      approx. 5 seconds
+ *      CHASE:      1200 ticks      approx. 20 seconds
+ *      SCATTER:    300  ticks      approx.  5 seconds
+ *      CHASE:      1200 ticks      approx. 20 seconds
+ *                      Above level 2, this extends to 61980 ticks      approx. 1033s/17m13s
+ *                      Above level 5, this increases to 62220 ticks    approx. 1037s/17m17s
+ *      SCATTER:    300  ticks      approx.  5 seconds
+ *                      Above level 2, this decreases to 1 tick         approx. 1/60th of a second
+ *      CHASE:      indefintely beyond this point
+ * On changing wave, the ghost's direction is reversed
+ */
+func aiWave()
+{
+    // Account for game not entering PLAY-mode until ticks=240
+    let playTicks = g_Ticks - 240
+    // SCATTER: 7s, or 5s if level 2+
+    var wave1: s32
+    if g_Level >= 5 do
+        wave1 = 5 * 60
+    else do
+        wave1 = 7 * 60
+    // CHASE: 20s
+    let wave2 = wave1 + 20 * 60
+    // SCATTER: 7s, or 5s if level 2+
+    var wave3: s32
+    if g_Level >= 5 do
+        wave3 = wave2 + 5 * 60
+    else do
+        wave3 = wave2 + 7 * 60
+    // CHASE: 20s
+    let wave4 = wave3 + 20 * 60
+    // SCATTER: 5s
+    let wave5 = wave4 + 5 * 60
+    // CHASE: 20s, or 17m13s if level 2+, or 17m17s if level 5+
+    var wave6: s32
+    if g_Level >= 5 do
+        wave6 = wave5 + 1037 * 60
+    elif g_Level >= 2 do
+        wave6 = wave5 + 1033 * 60
+    else do
+        wave6 = wave5 + 20 * 60
+    // SCATTER: 5s, or 1/60s (one frame - simply forces direction switch) if level 2+
+    var wave7: s32
+    if g_Level >= 2 do
+        wave7 = wave6 + 1
+    else do
+        wave7 = wave6 + 5 * 60
+    // CHASE permanently beyond this point
+
+    // Change AI wave based on game ticks (performance-capped approximation of time)
+    if playTicks <= wave1 do
+        g_Wave = .SCATTER
+    elif playTicks <= wave2 do
+        g_Wave = .CHASE
+    elif playTicks <= wave3 do
+        g_Wave = .SCATTER
+    elif playTicks <= wave4 do
+        g_Wave = .CHASE
+    elif playTicks <= wave5 do
+        g_Wave = .SCATTER
+    elif playTicks <= wave6 do
+        g_Wave = .CHASE
+    elif playTicks <= wave7 do
+        g_Wave = .SCATTER
+    else do
+        g_Wave = .CHASE
+
+    // Update ghost AI to new wave only if they are in CHASE/SCATTER mode
+    // Checked every frame to ensure ghost AI correctly reset following FRIGHTENED mode
+    foreach g in g_Ghosts
+    {
+        let ai = g.ai
+        if (ai == .SCATTER or ai == .CHASE) and ai != g_Wave do
+            g.setAI(g_Wave, true)
+    }
+}
+
+/**
+ * Determine which fruit to draw based on how many have already been consumed
+ * If the timer exceeds 600 ticks (approx 15s) remove the fruit and reset the timer
+ */
+func drawFruit(x, y: s32)
+{
+    if g_FruitTimer <= 900
+    {
+        g_Painter.pushTransform()
+        g_Painter.translateTransform(-3 * Scale, -3 * Scale) // Account for over-sized sprite (14x14 on 8x8 tile)
+        g_Painter.translateTransform(7 * Scale, 7 * Scale)
+        // Determine which fruit sprite to draw from the array based on current fruit consumption count
+        g_Painter.drawTexture(-7, -7, 14, 14, g_FruitsTex[g_Fruits])
+        g_Painter.popTransform()
+        g_FruitTimer += 1
+    }
+    else
+    {
+        setTile(x, y, .e)
+        g_FruitTimer = -1
+    }
+}
+
+/**
+ * Randomly spawn a fruit in the lower third of the map
+ */
+func spawnFruit()
+{
+    for
+    {
+        let x = cast(s32) Random.shared().nextU32(0, 27) + 1     // Generate random X within the map (excluding outer walls)
+        let y = cast(s32) Random.shared().nextU32(0, 10) + 1     // Generate random Y within the lower third of the map (excluding outer walls)
+
+        // Randomly selected tile must be empty
+        if getTile(x, y) == .e
+        {
+            // Once randomly selected tile is empty, spawn fruit and set timer to 0
+            setTile(x, y, .F)
+            g_FruitSpawned = true
+            g_FruitTimer   = 0
+            break
+        }
+    }
+}
+
+/**
+ * Iterates through map array repopulating it with pills where they have been eaten
+ */
+func resetMap()
+{
+    for x in 28
+    {
+        for y in 31
+        {
+            switch getTile(x, y)
+            {
+            case F, e:
+                setTile(x, y, .o)
+            case E:
+                setTile(x, y, .O)
+            }
+        }
+    }
+}
+
+/**
+ * When Pac-Man dies, remove any spawned fruits from the map
+ */
+func resetFruit()
+{
+    for x in 28
+    {
+        for y in 31
+        {
+            // Fruits only spawn on empty pill tiles, not empty big pill tiles - if it still exists on map reset, reset to pill
+            if getTile(x, y) == .F do
+                setTile(x, y, .e)
+        }
+    }
+}
+
+/**
+ * Reset level:
+ *      Set ticks, timestamp, eaten ghost count and fruit spawned flag to initial values
+ *      Call reset() method on Pac-Man and all Ghosts
+ *      Enter READY mode
+ * This function is called when advancing level, resetting a level on death, or when restarting the game
+ */
+func resetLevel()
+{
+    g_Ticks       = 0
+    g_TimeStamp   = -1
+    g_Wave        = .SCATTER
+    g_GhostsEaten = 0
+    g_PacMan.reset()
+    foreach g in g_Ghosts do
+        g.reset()
+    g_Mode         = .STARTLEVEL
+    g_FruitSpawned = false
+}
+
+/**
+ * Called when any key is pressed
+ * As mode=GAMEOVER, restart the game by resetting all variables to initial values
+ * Also reset map, Pac-Man and ghosts to default
+ */
+func restartGame()
+{
+    g_Level     = 1
+    g_Lives     = 2
+    g_Fruits    = 0
+    g_Score     = 0
+    g_PillsLeft = 244
+    g_ExtraLife = false
+    resetMap()
+    resetLevel()
+}
+
+/**
+ * Compute all game logic prior to redrawing anything
+ * Logic to compute varies on gamemode
+ */
+func gameLoop()
+{
+    // Fake synchro (a very ugly one, but this does the job)
+    let curTime = Time.nowMilliseconds()
+    if curTime - g_LastTime < 16
+    {
+        let delay = cast(u32) (16 - (curTime - g_LastTime))
+        Threading.Thread.sleep(Time.Duration.fromMs(delay))
+    }
+
+    g_LastTime = curTime
+    soundState()
+
+    switch g_Mode
+    {
+    case STARTLEVEL:
+        if !g_VoiceReady do
+            g_VoiceReady = assume Audio.Voice.play(&g_SoundReady)
+        if !g_VoiceReady.isPlaying()
+        {
+            g_VoiceReady.destroy()
+            g_VoiceReady = null
+            g_Mode       = READY
+        }
+
+    case READY:
+        if g_Ticks > 120
+        {
+            g_Mode = PLAY
+        }
+    case PLAY:
+        if g_TimeStamp == -1
+        {
+            checkCollisions()
+            g_PacMan.move()
+            checkCollisions()
+            aiWave()
+            // Move each ghost - pass RED ghost for BLUE's CHASE mode AI
+            foreach g in g_Ghosts do
+                g.move(g_Ghosts[0])
+            // If no fruit is currently spawned, enough pills have been eaten,
+            // The eaten fruit count doesn't exceed the level and a random quantifier is satisfied, spawn a fruit
+            if !g_FruitSpawned and g_Fruits < g_Level and g_PillsLeft <= 240 - 30 and Random.shared().nextU32() % 1500 == 0 do
+                spawnFruit()
+        }
+
+        // If timestamp is set, incur a short pause
+        // Timestamp is only set in PLAY-mode when Pac-Man dies or level is complete
+        elif g_Ticks == g_TimeStamp + 90
+        {
+            // If no pills remain, level is complete
+            if g_PillsLeft == 0
+            {
+                // Reset map & pill count and enter READY-mode for next level
+                g_PillsLeft = 244
+                g_Level += 1
+                resetMap()
+                resetLevel()
+            }
+            // If there are still pills remaining, Pac-Man has died
+            else
+            {
+                g_TimeStamp = g_Ticks
+                g_Mode      = .DEATH
+            }
+        }
+    case FRUIT:
+        if !g_VoiceEatFruit do
+            g_VoiceEatFruit = assume Audio.Voice.play(&g_SoundEatFruit)
+        //if g_Ticks == g_TimeStamp + 90
+        if !g_VoiceEatFruit.isPlaying()
+        {
+            g_VoiceEatFruit.destroy()
+            g_VoiceEatFruit = null
+            g_TimeStamp     = -1
+            g_PacMan.startChomping()
+            g_Mode = .PLAY
+        }
+    case EAT:
+        if !g_VoiceEatGhost do
+            g_VoiceEatGhost = assume Audio.Voice.play(&g_SoundEatGhost)
+        //if g_Ticks == g_TimeStamp + 90
+        if !g_VoiceEatGhost.isPlaying()
+        {
+            g_VoiceEatGhost.destroy()
+            g_VoiceEatGhost = null
+            g_TimeStamp     = -1
+            g_PacMan.startChomping()
+            g_Mode = .PLAY
+        }
+    case DEATH:
+        if !g_VoiceDeath do
+            g_VoiceDeath = assume Audio.Voice.play(&g_SoundDeath)
+        //if g_Ticks > g_TimeStamp + 180
+        if !g_VoiceDeath.isPlaying()
+        {
+            g_VoiceDeath.destroy()
+            g_VoiceDeath = null
+
+            if g_Lives == 0
+            {
+                g_Mode = .GAMEOVER
+                if g_Score > g_HighScore do
+                    g_HighScore = g_Score
+            }
+            else
+            {
+                g_Lives -= 1
+                resetFruit()
+                resetLevel()
+                g_Mode = .READY
+            }
+        }
+    }
+
+    // Increment game ticks once the frame is drawn, but only if not paused
+    if g_Mode != .NONE do
+        g_Ticks += 1
+}
+
+func onEvent(wnd: *Wnd, evt: IEvent)->bool
+{
+    switch evt
+    {
+    case CreateEvent:
+        g_Wnd = wnd
+        loadBindTextures()
+        restartGame()
+
+    case PaintEvent as paintEvt:
+        g_Painter = paintEvt.bc.painter
+        gameLoop()
+        display()
+        wnd.invalidate()
+
+    case KeyEvent as keyEvt where keyEvt.kind == .KeyPressed:
+        switch keyEvt.key
+        {
+        case Escape:
+            if g_Mode != .PAUSE
+            {
+                g_TempMode = g_Mode
+                g_Mode     = .PAUSE
+            }
+            else
+            {
+                g_Wnd.postQuitEvent()
+            }
+
+        case Left:
+            g_PacMan.tempDir = .LEFT
+        case Right:
+            g_PacMan.tempDir = .RIGHT
+        case Down:
+            g_PacMan.tempDir = .UP
+        case Up:
+            g_PacMan.tempDir = .DOWN
+
+        default:
+            if g_Mode == .PAUSE and g_TempMode != .GAMEOVER do
+                g_Mode = g_TempMode
+            elif g_Mode == .GAMEOVER or g_Mode == .PAUSE do
+                restartGame()
+        }
+    }
+
+    return false
+}
+
+/**
+ * Load all assets
+ */
+func loadBindTextures()
+{
+    func loadAndBindTexture(name: string)->Texture
+    {
+        return assume g_Wnd.getApp().getRenderer().addImage(Path.combine(g_DataPath, name))
+    }
+
+    // Assets are located in the 'datas/pacman' sub folder
+    g_DataPath = Path.getDirectoryName(#curlocation.fileName)
+    g_DataPath = Path.combine(g_DataPath, "datas")
+    g_DataPath = Path.combine(g_DataPath, "pacman")
+
+    // Bind map textures
+    g_MapTex        = loadAndBindTexture("map/map.png")
+    g_PillTex       = loadAndBindTexture("map/pill.png")
+    g_BigPillTex[0] = loadAndBindTexture("map/big-0.png")
+    g_BigPillTex[1] = loadAndBindTexture("map/big-1.png")
+
+    // Bind Pac-Man textures
+    g_Pac0Tex = loadAndBindTexture("pacman/0.png")
+    g_Pac1Tex = loadAndBindTexture("pacman/1.png")
+    g_Pac2Tex = loadAndBindTexture("pacman/2.png")
+
+    // Bind Pac-Man Death textures
+    g_DeadTex[0]  = loadAndBindTexture("pacman/d-0.png")
+    g_DeadTex[1]  = loadAndBindTexture("pacman/d-1.png")
+    g_DeadTex[2]  = loadAndBindTexture("pacman/d-2.png")
+    g_DeadTex[3]  = loadAndBindTexture("pacman/d-3.png")
+    g_DeadTex[4]  = loadAndBindTexture("pacman/d-4.png")
+    g_DeadTex[5]  = loadAndBindTexture("pacman/d-5.png")
+    g_DeadTex[6]  = loadAndBindTexture("pacman/d-6.png")
+    g_DeadTex[7]  = loadAndBindTexture("pacman/d-7.png")
+    g_DeadTex[8]  = loadAndBindTexture("pacman/d-8.png")
+    g_DeadTex[9]  = loadAndBindTexture("pacman/d-9.png")
+    g_DeadTex[10] = loadAndBindTexture("pacman/d-10.png")
+
+    // Bind ghost textures
+    g_GhostTexR[0] = loadAndBindTexture("ghosts/r-0.png")
+    g_GhostTexR[1] = loadAndBindTexture("ghosts/r-1.png")
+    g_GhostTexP[0] = loadAndBindTexture("ghosts/p-0.png")
+    g_GhostTexP[1] = loadAndBindTexture("ghosts/p-1.png")
+    g_GhostTexB[0] = loadAndBindTexture("ghosts/b-0.png")
+    g_GhostTexB[1] = loadAndBindTexture("ghosts/b-1.png")
+    g_GhostTexY[0] = loadAndBindTexture("ghosts/y-0.png")
+    g_GhostTexY[1] = loadAndBindTexture("ghosts/y-1.png")
+    g_GhostTexF[0] = loadAndBindTexture("ghosts/f-0.png")
+    g_GhostTexF[1] = loadAndBindTexture("ghosts/f-1.png")
+    g_GhostTexF[2] = loadAndBindTexture("ghosts/f-2.png")
+    g_GhostTexF[3] = loadAndBindTexture("ghosts/f-3.png")
+
+    // Bind ghost eye textures
+    g_EyeTexU = loadAndBindTexture("eyes/u.png")
+    g_EyeTexR = loadAndBindTexture("eyes/r.png")
+    g_EyeTexD = loadAndBindTexture("eyes/d.png")
+    g_EyeTexL = loadAndBindTexture("eyes/l.png")
+
+    // Bind fruit textures
+    g_FruitsTex[0] = loadAndBindTexture("fruits/cherry.png")
+    g_FruitsTex[1] = loadAndBindTexture("fruits/strawberry.png")
+    g_FruitsTex[2] = loadAndBindTexture("fruits/orange.png")
+    g_FruitsTex[3] = loadAndBindTexture("fruits/apple.png")
+    g_FruitsTex[4] = loadAndBindTexture("fruits/melon.png")
+    g_FruitsTex[5] = loadAndBindTexture("fruits/boss.png")
+    g_FruitsTex[6] = loadAndBindTexture("fruits/bell.png")
+    g_FruitsTex[7] = loadAndBindTexture("fruits/key.png")
+    g_FScoreTex[0] = loadAndBindTexture("ui/100.png")
+    g_FScoreTex[1] = loadAndBindTexture("ui/300.png")
+    g_FScoreTex[2] = loadAndBindTexture("ui/500.png")
+    g_FScoreTex[3] = loadAndBindTexture("ui/700.png")
+    g_FScoreTex[4] = loadAndBindTexture("ui/1000.png")
+    g_FScoreTex[5] = loadAndBindTexture("ui/2000.png")
+    g_FScoreTex[6] = loadAndBindTexture("ui/3000.png")
+    g_FScoreTex[7] = loadAndBindTexture("ui/5000.png")
+
+    // Bind UI textures
+    g_Num0Tex      = loadAndBindTexture("ui/0.png")
+    g_Num1Tex      = loadAndBindTexture("ui/1.png")
+    g_Num2Tex      = loadAndBindTexture("ui/2.png")
+    g_Num3Tex      = loadAndBindTexture("ui/3.png")
+    g_Num4Tex      = loadAndBindTexture("ui/4.png")
+    g_Num5Tex      = loadAndBindTexture("ui/5.png")
+    g_Num6Tex      = loadAndBindTexture("ui/6.png")
+    g_Num7Tex      = loadAndBindTexture("ui/7.png")
+    g_Num8Tex      = loadAndBindTexture("ui/8.png")
+    g_Num9Tex      = loadAndBindTexture("ui/9.png")
+    g_ReadyTex     = loadAndBindTexture("ui/ready.png")
+    g_PauseTex     = loadAndBindTexture("ui/pause.png")
+    g_PauseAltTex  = loadAndBindTexture("ui/pause_alt.png")
+    g_QuitTex      = loadAndBindTexture("ui/quit.png")
+    g_HelpTex      = loadAndBindTexture("ui/help.png")
+    g_ScoreTex     = loadAndBindTexture("ui/score.png")
+    g_LifeTex      = loadAndBindTexture("ui/life.png")
+    g_OneUpTex     = loadAndBindTexture("ui/1up.png")
+    g_GameOverTex  = loadAndBindTexture("ui/gameover.png")
+    g_GScoreTex[0] = loadAndBindTexture("ui/200.png")
+    g_GScoreTex[1] = loadAndBindTexture("ui/400.png")
+    g_GScoreTex[2] = loadAndBindTexture("ui/800.png")
+    g_GScoreTex[3] = loadAndBindTexture("ui/1600.png")
+
+    // Sounds
+    func loadSound(name: string, loadDatas = true)->Audio.SoundFile
+    {
+        return assume Audio.SoundFile.load(Path.combine(g_DataPath, name), loadDatas)
+    }
+
+    g_SoundReady    = loadSound("audio/pacman_beginning.wav", false)
+    g_SoundDeath    = loadSound("audio/pacman_death.wav")
+    g_SoundEatFruit = loadSound("audio/pacman_eatfruit.wav")
+    g_SoundEatGhost = loadSound("audio/pacman_eatghost.wav")
+    g_SoundChomp    = loadSound("audio/pacman_chomp.wav")
+    g_SoundSiren    = loadSound("audio/pacman_siren.wav")
+    g_SoundRetreat  = loadSound("audio/pacman_retreat.wav")
+    g_SoundScared   = loadSound("audio/pacman_scared.wav")
+}
+
+#main
+{
+    assume Audio.createEngine()
+    defer Audio.destroyEngine()
+
+    func test(app: *Application)
+    {
+        if Env.hasArg("swag.test")
+        {
+            app.maxRunFrame = 100
+            assume Audio.setOutputVolume(0)
+        }
+    }
+
+    Application.runSurface(100, 100, cast(s32) (300 * Scale), cast(s32) (345 * Scale), title: "Pacman", hook: &onEvent, init: &test)
+}

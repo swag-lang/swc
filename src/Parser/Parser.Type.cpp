@@ -317,4 +317,71 @@ AstNodeRef Parser::parseTypeValue()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseLambdaTypeParam()
+{
+    AstNodeRef nodeType;
+    TokenRef   tokName = TokenRef::invalid();
+
+    if (is(TokenId::CompilerType))
+        nodeType = parseCompilerTypeExpr();
+    else
+    {
+        // Optional name
+        if (is(TokenId::Identifier) && nextIs(TokenId::SymColon))
+        {
+            tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
+            consumeAssert(TokenId::SymColon);
+        }
+
+        nodeType = parseType();
+    }
+
+    // Normal parameter
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaTypeParam>(tokName);
+    nodePtr->nodeTypeRef    = nodeType;
+
+    if (consumeIf(TokenId::SymEqual).isValid())
+        nodePtr->nodeDefaultValueRef = parseInitializerExpression();
+    else
+        nodePtr->nodeDefaultValueRef = AstNodeRef::invalid();
+
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseLambdaType()
+{
+    AstLambdaType::Flags flags    = AstLambdaType::Zero;
+    const auto           tokStart = ref();
+
+    if (consumeIf(TokenId::KwdMtd).isValid())
+        flags.add(AstLambdaType::Mtd);
+    else
+        consumeAssert(TokenId::KwdFunc);
+
+    if (consumeIf(TokenId::SymPipePipe).isValid())
+        flags.add(AstLambdaType::Closure);
+    else if (flags.has(AstLambdaType::Mtd))
+    {
+        raiseError(DiagnosticId::parser_err_mtd_missing_capture, tokStart);
+        flags.add(AstLambdaType::Closure);
+    }
+
+    const SpanRef params = parseCompoundContent(AstNodeId::LambdaType, TokenId::SymLeftParen);
+
+    // Return type
+    AstNodeRef returnType = AstNodeRef::invalid();
+    if (consumeIf(TokenId::SymMinusGreater).isValid())
+        returnType = parseType();
+
+    // Can raise errors
+    if (consumeIf(TokenId::KwdThrow).isValid())
+        flags.add(AstLambdaType::Throw);
+
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaType>(tokStart);
+    nodePtr->addParserFlag(flags);
+    nodePtr->spanParamsRef     = params;
+    nodePtr->nodeReturnTypeRef = returnType;
+    return nodeRef;
+}
+
 SWC_END_NAMESPACE()

@@ -222,7 +222,7 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
             out += std::format("interface {}", asInterface.sym->name(ctx));
             break;
         case TypeInfoKind::Alias:
-            out += std::format("alias {}", asAlias.sym->name(ctx));
+            out += asAlias.sym->name(ctx);
             break;
 
         case TypeInfoKind::TypeValue:
@@ -267,7 +267,7 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
             break;
 
         case TypeInfoKind::Float:
-            if (asInt.bits == 0)
+            if (asFloat.bits == 0)
                 out = "float";
             else
             {

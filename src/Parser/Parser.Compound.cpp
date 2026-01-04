@@ -35,7 +35,7 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
         case AstNodeId::ClosureExpr:
             return parseClosureArg();
         case AstNodeId::FunctionExpr:
-            return parseLambdaExpressionArg();
+            return parseLambdaArgumentExpr();
         case AstNodeId::LambdaType:
             return parseLambdaParam();
         case AstNodeId::FunctionParamList:

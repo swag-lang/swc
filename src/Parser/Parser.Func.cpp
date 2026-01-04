@@ -72,7 +72,7 @@ AstNodeRef Parser::parseLambdaParam(bool isType)
     return nodeRef;
 }
 
-AstNodeRef Parser::parseLambdaExpressionArg()
+AstNodeRef Parser::parseLambdaArgumentExpr()
 {
     return parseLambdaParam(false);
 }

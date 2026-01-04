@@ -183,7 +183,7 @@ private:
     AstNodeRef parseLambdaExpression();
     AstNodeRef parseLambdaType();
     AstNodeRef parseLambdaParam();
-    AstNodeRef parseLambdaExpressionArg();
+    AstNodeRef parseLambdaArgumentExpr();
     AstNodeRef parseLiteral();
     AstNodeRef parseLiteralArray();
     AstNodeRef parseLiteralExpression();

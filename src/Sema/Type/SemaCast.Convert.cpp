@@ -50,6 +50,15 @@ namespace
             return;
         SemaCast::convertEnumToUnderlying(sema, self);
     }
+
+    void nullForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
+    {
+        if (!self.type->isNull())
+            return;
+        if (!other.type->isPointerLike())
+            return;
+        SemaCast::createImplicitCast(sema, other.typeRef, self.nodeRef);
+    }
 }
 
 void SemaCast::convertForEquality(Sema& sema, SemaNodeView& leftNodeView, SemaNodeView& rightNodeView)
@@ -61,6 +70,8 @@ void SemaCast::convertForEquality(Sema& sema, SemaNodeView& leftNodeView, SemaNo
     typeToTypeValueForEquality(sema, rightNodeView, leftNodeView);
     enumForEquality(sema, leftNodeView, rightNodeView);
     enumForEquality(sema, rightNodeView, leftNodeView);
+    nullForEquality(sema, leftNodeView, rightNodeView);
+    nullForEquality(sema, rightNodeView, leftNodeView);
 }
 
 SWC_END_NAMESPACE()

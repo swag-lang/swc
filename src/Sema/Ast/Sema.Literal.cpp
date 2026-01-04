@@ -100,11 +100,10 @@ Result AstBoolLiteral::semaPreNode(Sema& sema) const
     return Result::SkipChildren;
 }
 
-Result AstNullLiteral::semaPreNode(Sema& sema) const
+Result AstNullLiteral::semaPreNode(Sema& sema)
 {
     const auto& ctx = sema.ctx();
-    const auto  val = ConstantValue::makeNull(ctx);
-    sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
+    sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstNull());
     return Result::SkipChildren;
 }
 

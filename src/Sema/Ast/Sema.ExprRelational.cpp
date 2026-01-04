@@ -26,6 +26,12 @@ namespace
             return Result::Continue;
         }
 
+        if (nodeLeftView.type->isNull() || nodeRightView.type->isNull())
+        {
+            result = sema.cstMgr().cstBool(nodeLeftView.type->isNull() && nodeRightView.type->isNull());
+            return Result::Continue;
+        }
+
         auto leftCstRef  = nodeLeftView.cstRef;
         auto rightCstRef = nodeRightView.cstRef;
         RESULT_VERIFY(SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
@@ -201,6 +207,12 @@ namespace
         if (nodeLeftView.type->isScalarNumeric() && nodeRightView.type->isScalarNumeric())
             return Result::Continue;
         if (nodeLeftView.type->isType() && nodeRightView.type->isType())
+            return Result::Continue;
+        if (nodeLeftView.type->isPointerLike() && nodeRightView.type->isPointerLike())
+            return Result::Continue;
+        if (nodeLeftView.type->isNull() && nodeRightView.type->isPointerLike())
+            return Result::Continue;
+        if (nodeRightView.type->isNull() && nodeLeftView.type->isPointerLike())
             return Result::Continue;
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.srcViewRef(), node.tokRef());

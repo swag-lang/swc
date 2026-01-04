@@ -21,7 +21,7 @@ Result AstVarDecl::semaPreDecl(Sema& sema) const
     return Result::SkipChildren;
 }
 
-Result AstVarDecl::semaPreNode(Sema& sema)
+Result AstVarDecl::semaPreNode(Sema& sema) const
 {
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
@@ -34,7 +34,7 @@ Result AstVarDecl::semaPostNode(Sema& sema) const
     auto&              ctx = sema.ctx();
     SemaNodeView       nodeInitView(sema, nodeInitRef);
     const SemaNodeView nodeTypeView(sema, nodeTypeRef);
-    
+
     // Implicit cast from initializer to the specified type
     if (nodeInitView.typeRef.isValid() && nodeTypeView.typeRef.isValid())
     {
@@ -84,7 +84,6 @@ Result AstVarDecl::semaPostNode(Sema& sema) const
     {
         if (nodeInitRef.isInvalid())
             return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, srcViewRef(), tokNameRef);
-
         if (nodeInitView.cstRef.isInvalid())
             return SemaError::raiseExprNotConst(sema, nodeInitRef);
 

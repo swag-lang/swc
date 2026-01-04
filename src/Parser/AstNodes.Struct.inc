@@ -586,7 +586,7 @@ struct AstBoolLiteral : AstLiteralT<AstNodeId::BoolLiteral>
 // -----------------------------------------------------------------------------
 struct AstNullLiteral : AstLiteralT<AstNodeId::NullLiteral>
 {
-    Result semaPreNode(Sema& sema) const;
+    static Result semaPreNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
@@ -1040,7 +1040,7 @@ struct AstVarDecl : AstNamedNodeT<AstNodeId::VarDecl>
 
     void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeInitRef}); }
     Result semaPreDecl(Sema& sema) const;
-    Result semaPreNode(Sema& sema);
+    Result semaPreNode(Sema& sema) const;
     Result semaPostNode(Sema& sema) const;
 };
 

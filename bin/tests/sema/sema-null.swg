@@ -1,4 +1,5 @@
 #global internal
 
 const A: *s32 = null
-const B: string = null
+#assert(A == null)
+//const B: string = null

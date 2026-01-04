@@ -3,8 +3,24 @@
 #include "Math/Hash.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/TypeManager.h"
+#include <new> // for placement new
 
 SWC_BEGIN_NAMESPACE()
+
+TypeInfo::~TypeInfo()
+{
+    switch (kind_)
+    {
+        case TypeInfoKind::Array:
+            std::destroy_at(&asArray.dims);
+            break;
+        case TypeInfoKind::Lambda:
+            std::destroy_at(&asLambda.paramTypes);
+            break;
+        default:
+            break;
+    }
+}
 
 TypeInfo::TypeInfo(const TypeInfo& other) :
     kind_(other.kind_),
@@ -53,10 +69,13 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
             break;
 
         case TypeInfoKind::Array:
-            std::construct_at(&asArray, other.asArray);
+            std::construct_at(&asArray.dims, other.asArray.dims);
+            asArray.typeRef = other.asArray.typeRef;
             break;
         case TypeInfoKind::Lambda:
-            std::construct_at(&asLambda, other.asLambda);
+            std::construct_at(&asLambda.paramTypes, other.asLambda.paramTypes);
+            asLambda.returnType = other.asLambda.returnType;
+            asLambda.flags      = other.asLambda.flags;
             break;
 
         default:
@@ -64,28 +83,10 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
     }
 }
 
-TypeInfo& TypeInfo::operator=(const TypeInfo& other)
+TypeInfo::TypeInfo(TypeInfo&& other) noexcept :
+    kind_(other.kind_),
+    flags_(other.flags_)
 {
-    if (this == &other)
-        return *this;
-
-    switch (kind_)
-    {
-        case TypeInfoKind::Array:
-            std::destroy_at(&asArray);
-            break;
-        case TypeInfoKind::Lambda:
-            std::destroy_at(&asLambda);
-            break;
-
-        default:
-            break;
-    }
-
-    kind_  = other.kind_;
-    flags_ = other.flags_;
-
-    // Copy payload for new kind
     switch (kind_)
     {
         case TypeInfoKind::Bool:
@@ -110,8 +111,8 @@ TypeInfo& TypeInfo::operator=(const TypeInfo& other)
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
         case TypeInfoKind::Slice:
-        case TypeInfoKind::TypedVariadic:
         case TypeInfoKind::TypeValue:
+        case TypeInfoKind::TypedVariadic:
             asTypeRef = other.asTypeRef;
             break;
 
@@ -129,16 +130,35 @@ TypeInfo& TypeInfo::operator=(const TypeInfo& other)
             break;
 
         case TypeInfoKind::Array:
-            new (&asArray) decltype(asArray)(other.asArray);
+            std::construct_at(&asArray.dims, std::move(other.asArray.dims));
+            asArray.typeRef = other.asArray.typeRef;
             break;
         case TypeInfoKind::Lambda:
-            new (&asLambda) decltype(asLambda)(other.asLambda);
+            std::construct_at(&asLambda.paramTypes, std::move(other.asLambda.paramTypes));
+            asLambda.returnType = other.asLambda.returnType;
+            asLambda.flags      = other.asLambda.flags;
             break;
 
         default:
             SWC_UNREACHABLE();
     }
+}
 
+TypeInfo& TypeInfo::operator=(const TypeInfo& other)
+{
+    if (this == &other)
+        return *this;
+    this->~TypeInfo();
+    new (this) TypeInfo(other);
+    return *this;
+}
+
+TypeInfo& TypeInfo::operator=(TypeInfo&& other) noexcept
+{
+    if (this == &other)
+        return *this;
+    this->~TypeInfo();
+    new (this) TypeInfo(std::move(other));
     return *this;
 }
 
@@ -283,11 +303,11 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
             if (asInt.bits == 0)
             {
                 if (asInt.sign == Sign::Unsigned)
-                    out = "unsigned integer";
+                    out += "unsigned integer"; // keep qualifiers
                 else if (asInt.sign == Sign::Signed)
-                    out = "signed integer";
+                    out += "signed integer";
                 else
-                    out = "integer";
+                    out += "integer";
             }
             else
             {
@@ -299,7 +319,7 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
 
         case TypeInfoKind::Float:
             if (asFloat.bits == 0)
-                out = "float";
+                out += "float"; // keep qualifiers
             else
             {
                 out += "f";

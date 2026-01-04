@@ -71,8 +71,10 @@ public:
     };
 
     TypeInfo(const TypeInfo&);
+    TypeInfo(TypeInfo&& other) noexcept;
     TypeInfo& operator=(const TypeInfo&);
-    ~TypeInfo() {}
+    TypeInfo& operator=(TypeInfo&& other) noexcept;
+    ~TypeInfo();
 
     bool operator==(const TypeInfo& other) const noexcept;
     Utf8 toName(const TaskContext& ctx) const;

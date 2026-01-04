@@ -20,10 +20,10 @@ AstNodeRef Parser::parseClosureArg()
 
 AstNodeRef Parser::parseLambdaExprArg()
 {
-    AstNodeRef              nodeType;
-    TokenRef                tokName  = TokenRef::invalid();
+    AstNodeRef                nodeType;
+    TokenRef                  tokName  = TokenRef::invalid();
     AstLambdaTypeParam::Flags flags    = AstLambdaTypeParam::Zero;
-    const auto              tokStart = ref();
+    const auto                tokStart = ref();
 
     if (is(TokenId::CompilerType))
     {

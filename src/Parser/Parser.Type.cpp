@@ -319,10 +319,10 @@ AstNodeRef Parser::parseTypeValue()
 
 AstNodeRef Parser::parseLambdaTypeParam()
 {
-    AstNodeRef              nodeType;
-    TokenRef                tokName = TokenRef::invalid();
-    AstLambdaTypeParam::Flags flags   = AstLambdaTypeParam::Zero;
-    const auto              tokStart = ref();
+    AstNodeRef                nodeType;
+    TokenRef                  tokName  = TokenRef::invalid();
+    AstLambdaTypeParam::Flags flags    = AstLambdaTypeParam::Zero;
+    const auto                tokStart = ref();
 
     if (is(TokenId::CompilerType))
     {

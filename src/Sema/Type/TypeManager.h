@@ -22,6 +22,7 @@ public:
     TypeRef typeNull() const { return typeNull_; }
     TypeRef typeRune() const { return typeRune_; }
     TypeRef typeCString() const { return typeCString_; }
+    TypeRef typeVariadic() const { return typeVariadic_; }
 
     TypeRef         addType(const TypeInfo& typeInfo);
     const TypeInfo& get(TypeRef typeRef) const;
@@ -75,6 +76,7 @@ private:
     TypeRef typeNull_        = TypeRef::invalid();
     TypeRef typeRune_        = TypeRef::invalid();
     TypeRef typeCString_     = TypeRef::invalid();
+    TypeRef typeVariadic_    = TypeRef::invalid();
 
     std::vector<std::vector<TypeRef>>      promoteTable_;
     std::unordered_map<uint32_t, uint32_t> promoteIndex_;

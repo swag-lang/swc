@@ -79,11 +79,9 @@ Result AstBuiltinType::semaPostNode(Sema& sema) const
     return SemaError::raiseInternal(sema, *this);
 }
 
-Result AstVariadicType::semaPostNode(Sema& sema) const
+Result AstVariadicType::semaPostNode(Sema& sema)
 {
-    const TypeInfo ty      = TypeInfo::makeVariadic();
-    const TypeRef  typeRef = sema.typeMgr().addType(ty);
-    sema.setType(sema.curNodeRef(), typeRef);
+    sema.setType(sema.curNodeRef(), sema.typeMgr().typeVariadic());
     return Result::Continue;
 }
 

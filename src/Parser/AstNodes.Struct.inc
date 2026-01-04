@@ -858,7 +858,7 @@ struct AstCodeType : AstNodeT<AstNodeId::CodeType>
 // -----------------------------------------------------------------------------
 struct AstVariadicType : AstNodeT<AstNodeId::VariadicType>
 {
-    Result semaPostNode(Sema& sema) const;
+    static Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

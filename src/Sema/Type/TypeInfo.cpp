@@ -268,6 +268,9 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
         case TypeInfoKind::Alias:
             out += asAlias.sym->name(ctx);
             break;
+        case TypeInfoKind::Function:
+            out += asFunction.sym->computeName(ctx);
+            break;
 
         case TypeInfoKind::TypeValue:
             if (asTypeRef.typeRef.isInvalid())
@@ -345,30 +348,6 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
             out += " ";
             const TypeInfo& elemType = ctx.typeMgr().get(asArray.typeRef);
             out += elemType.toName(ctx);
-            break;
-        }
-        case TypeInfoKind::Function:
-        {
-            out += asFunction.sym->hasFuncFlag(SymbolFunctionFlagsE::Method) ? "mtd" : "func";
-            out += asFunction.sym->hasFuncFlag(SymbolFunctionFlagsE::Closure) ? "||" : "";
-            out += "(";
-            for (size_t i = 0; i < asFunction.sym->parameters().size(); ++i)
-            {
-                if (i != 0)
-                    out += ", ";
-                const TypeInfo& paramType = ctx.typeMgr().get(asFunction.sym->parameters()[i]->typeRef());
-                out += paramType.toName(ctx);
-            }
-            out += ")";
-
-            if (asFunction.sym->returnType().isValid())
-            {
-                out += "->";
-                const TypeInfo& returnType = ctx.typeMgr().get(asFunction.sym->returnType());
-                out += returnType.toName(ctx);
-            }
-
-            out += asFunction.sym->hasFuncFlag(SymbolFunctionFlagsE::Throwable) ? " throw" : "";
             break;
         }
 
@@ -518,10 +497,11 @@ TypeInfo TypeInfo::makeArray(const std::vector<uint64_t>& dims, TypeRef elementT
     return ti;
 }
 
-TypeInfo TypeInfo::makeLambda(SymbolFunction* sym, TypeInfoFlags flags)
+TypeInfo TypeInfo::makeFunction(SymbolFunction* sym, TypeInfoFlags flags)
 {
     TypeInfo ti{TypeInfoKind::Function, flags};
     ti.asFunction.sym = sym;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
 
@@ -582,16 +562,13 @@ uint32_t TypeInfo::hash() const
         case TypeInfoKind::Alias:
             h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asAlias.sym));
             return h;
+        case TypeInfoKind::Function:
+            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asFunction.sym));
+            return h;
         case TypeInfoKind::Array:
             h = Math::hashCombine(h, asArray.typeRef.get());
             for (const auto dim : asArray.dims)
                 h = Math::hashCombine(h, dim);
-            return h;
-        case TypeInfoKind::Function:
-            h = Math::hashCombine(h, static_cast<uint32_t>(asFunction.sym->funcFlags().get()));
-            h = Math::hashCombine(h, asFunction.sym->returnType().get());
-            for (const auto& param : asFunction.sym->parameters())
-                h = Math::hashCombine(h, param->typeRef().get());
             return h;
 
         default:
@@ -621,8 +598,10 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
         case TypeInfoKind::CString:
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
-        case TypeInfoKind::Function:
         case TypeInfoKind::Null:
+            return 8;
+
+        case TypeInfoKind::Function:
             return 8;
 
         case TypeInfoKind::Slice:

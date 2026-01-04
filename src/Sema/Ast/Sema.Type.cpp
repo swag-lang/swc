@@ -389,7 +389,7 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
     if (parserFlags<FlagsE>().has(Method))
         symFunc->addFuncFlag(SymbolFunctionFlagsE::Method);
 
-    const TypeInfo ti      = TypeInfo::makeLambda(symFunc, TypeInfoFlagsE::Zero);
+    const TypeInfo ti      = TypeInfo::makeFunction(symFunc, TypeInfoFlagsE::Zero);
     const TypeRef  typeRef = sema.typeMgr().addType(ti);
     sema.setType(sema.curNodeRef(), typeRef);
     return Result::Continue;

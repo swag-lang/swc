@@ -108,4 +108,30 @@ void SymbolStruct::computeLayout(Sema& sema)
     }
 }
 
+Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
+{
+    Utf8 out;
+    out += hasFuncFlag(SymbolFunctionFlagsE::Method) ? "mtd" : "func";
+    out += hasFuncFlag(SymbolFunctionFlagsE::Closure) ? "||" : "";
+    out += "(";
+    for (size_t i = 0; i < parameters_.size(); ++i)
+    {
+        if (i != 0)
+            out += ", ";
+        const TypeInfo& paramType = ctx.typeMgr().get(parameters_[i]->typeRef());
+        out += paramType.toName(ctx);
+    }
+    out += ")";
+
+    if (returnType_.isValid())
+    {
+        out += "->";
+        const TypeInfo& returnType = ctx.typeMgr().get(returnType_);
+        out += returnType.toName(ctx);
+    }
+
+    out += hasFuncFlag(SymbolFunctionFlagsE::Throwable) ? " throw" : "";
+    return out;
+}
+
 SWC_END_NAMESPACE()

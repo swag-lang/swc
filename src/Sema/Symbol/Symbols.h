@@ -210,9 +210,10 @@ public:
     void                  setReturnType(TypeRef typeRef) { returnType_ = typeRef; }
     std::vector<Symbol*>& parameters() { return parameters_; }
 
-    SymbolFunctionFlags  funcFlags() const noexcept { return funcFlags_; }
-    bool                 hasFuncFlag(SymbolFunctionFlagsE flag) const noexcept { return funcFlags_.has(flag); }
-    void                 addFuncFlag(SymbolFunctionFlagsE fl) { funcFlags_.add(fl); }
+    SymbolFunctionFlags funcFlags() const noexcept { return funcFlags_; }
+    bool                hasFuncFlag(SymbolFunctionFlagsE flag) const noexcept { return funcFlags_.has(flag); }
+    void                addFuncFlag(SymbolFunctionFlagsE fl) { funcFlags_.add(fl); }
+    Utf8                computeName(const TaskContext& ctx) const;
 
 private:
     std::vector<Symbol*> parameters_;

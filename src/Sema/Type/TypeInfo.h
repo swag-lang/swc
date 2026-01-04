@@ -19,7 +19,6 @@ enum class TypeInfoFlagsE : uint8_t
 };
 using TypeInfoFlags = EnumFlags<TypeInfoFlagsE>;
 
-
 enum class TypeInfoKind : uint8_t
 {
     Invalid = 0,
@@ -158,7 +157,7 @@ public:
     static TypeInfo makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeArray(const std::vector<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
-    static TypeInfo makeLambda(SymbolFunction* sym, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    static TypeInfo makeFunction(SymbolFunction* sym, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeVariadic();
     static TypeInfo makeTypedVariadic(TypeRef typeRef);
 

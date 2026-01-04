@@ -331,7 +331,9 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
         }
         case TypeInfoKind::Lambda:
         {
-            out += "func(";
+            out += asLambda.flags.has(LambdaFlagsE::Method) ? "mtd" : "func";
+            out += asLambda.flags.has(LambdaFlagsE::Closure) ? "||" : "";
+            out += "(";
             for (size_t i = 0; i < asLambda.paramTypes.size(); ++i)
             {
                 if (i != 0)
@@ -340,12 +342,15 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
                 out += paramType.toName(ctx);
             }
             out += ")";
+            
             if (asLambda.returnType.isValid())
             {
-                out += " -> ";
+                out += "->";
                 const TypeInfo& returnType = ctx.typeMgr().get(asLambda.returnType);
                 out += returnType.toName(ctx);
             }
+            
+            out += asLambda.flags.has(LambdaFlagsE::Throwable) ? " throw" : "";
             break;
         }
 
@@ -700,12 +705,12 @@ Symbol* TypeInfo::getSymbolDependency(TaskContext& ctx) const
         {
             if (asLambda.returnType.isValid())
             {
-                if (auto sym = ctx.typeMgr().get(asLambda.returnType).getSymbolDependency(ctx))
+                if (const auto sym = ctx.typeMgr().get(asLambda.returnType).getSymbolDependency(ctx))
                     return sym;
             }
             for (const auto& param : asLambda.paramTypes)
             {
-                if (auto sym = ctx.typeMgr().get(param).getSymbolDependency(ctx))
+                if (const auto sym = ctx.typeMgr().get(param).getSymbolDependency(ctx))
                     return sym;
             }
             return nullptr;

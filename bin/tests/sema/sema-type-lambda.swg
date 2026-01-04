@@ -8,3 +8,12 @@ var C: func(s32, bool)->string
 #assert(#nameof(#typeof(C)) == "func(s32, bool)->string")
 var D: func(s32, string)->*s32 throw
 #assert(#nameof(#typeof(D)) == "func(s32, string)->*s32 throw")
+var E: func||(s32)
+#assert(#nameof(#typeof(E)) == "func||(s32)")
+var F: func||(s32, bool)
+#assert(#nameof(#typeof(F)) == "func||(s32, bool)")
+var G: func||(s32, bool)->string
+#assert(#nameof(#typeof(G)) == "func||(s32, bool)->string")
+var H: func||(s32, string)->*s32 throw
+#assert(#nameof(#typeof(H)) == "func||(s32, string)->*s32 throw")
+

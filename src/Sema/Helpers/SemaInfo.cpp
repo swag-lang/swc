@@ -173,9 +173,9 @@ bool SemaInfo::hasSymbol(AstNodeRef nodeRef) const
 const Symbol& SemaInfo::getSymbol(const TaskContext&, AstNodeRef nodeRef) const
 {
     SWC_ASSERT(hasSymbol(nodeRef));
-    const uint32_t shardIdx = nodeRef.get() % NUM_SHARDS;
-    auto&          shard    = shards_[shardIdx];
     const AstNode& node     = ast().node(nodeRef);
+    const uint32_t shardIdx = semaShard(node);
+    auto&          shard    = shards_[shardIdx];
     const Symbol&  value    = **shard.store.ptr<Symbol*>(node.semaRef());
     return value;
 }
@@ -183,9 +183,9 @@ const Symbol& SemaInfo::getSymbol(const TaskContext&, AstNodeRef nodeRef) const
 Symbol& SemaInfo::getSymbol(const TaskContext&, AstNodeRef nodeRef)
 {
     SWC_ASSERT(hasSymbol(nodeRef));
-    const uint32_t shardIdx = nodeRef.get() % NUM_SHARDS;
-    auto&          shard    = shards_[shardIdx];
     const AstNode& node     = ast().node(nodeRef);
+    const uint32_t shardIdx = semaShard(node);
+    auto&          shard    = shards_[shardIdx];
     Symbol&        value    = **shard.store.ptr<Symbol*>(node.semaRef());
     return value;
 }
@@ -198,6 +198,7 @@ void SemaInfo::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
 
     AstNode& node = ast().node(nodeRef);
     setSemaKind(node, NodeSemaKind::SymbolRef);
+    setSemaShard(node, shardIdx);
 
     const Ref value = shard.store.push_back(symbol);
     node.setSemaRef(value);
@@ -226,6 +227,7 @@ void SemaInfo::setPayload(AstNodeRef nodeRef, void* payload)
 
     AstNode& node = ast().node(nodeRef);
     setSemaKind(node, NodeSemaKind::Payload);
+    setSemaShard(node, shardIdx);
 
     const Ref value = shard.store.push_back(payload);
     node.setSemaRef(value);
@@ -234,9 +236,9 @@ void SemaInfo::setPayload(AstNodeRef nodeRef, void* payload)
 void* SemaInfo::getPayload(AstNodeRef nodeRef) const
 {
     SWC_ASSERT(hasPayload(nodeRef));
-    const uint32_t shardIdx = nodeRef.get() % NUM_SHARDS;
-    auto&          shard    = shards_[shardIdx];
     const AstNode& node     = ast().node(nodeRef);
+    const uint32_t shardIdx = semaShard(node);
+    auto&          shard    = shards_[shardIdx];
     return *shard.store.ptr<void*>(node.semaRef());
 }
 

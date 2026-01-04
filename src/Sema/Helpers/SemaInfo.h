@@ -10,7 +10,9 @@ class SymbolNamespace;
 class Symbol;
 class SemaScope;
 
-constexpr uint8_t SEMA_KIND_MASK = 0x7;
+constexpr uint8_t SEMA_KIND_MASK  = 0x07;
+constexpr uint8_t SEMA_SHARD_MASK = 0x78;
+constexpr uint8_t SEMA_SHARD_SHIFT = 3;
 
 enum class NodeSemaKind : uint8_t
 {
@@ -48,10 +50,12 @@ public:
 
     static NodeSemaKind  semaKind(const AstNode& node) { return static_cast<NodeSemaKind>(node.semaBits() & SEMA_KIND_MASK); }
     static void          setSemaKind(AstNode& node, NodeSemaKind value) { node.semaBits() = (node.semaBits() & ~SEMA_KIND_MASK) | static_cast<uint8_t>(value); }
+    static uint32_t      semaShard(const AstNode& node) { return (node.semaBits() & SEMA_SHARD_MASK) >> SEMA_SHARD_SHIFT; }
+    static void          setSemaShard(AstNode& node, uint32_t shard) { node.semaBits() = (node.semaBits() & ~SEMA_SHARD_MASK) | static_cast<uint8_t>(shard << SEMA_SHARD_SHIFT); }
     static void          addSemaFlags(AstNode& node, NodeSemaFlags value) { node.semaBits() |= static_cast<uint8_t>(value); }
     static void          removeSemaFlags(AstNode& node, NodeSemaFlags value) { node.semaBits() &= ~static_cast<uint8_t>(value); }
     static bool          hasSemaFlags(const AstNode& node, NodeSemaFlags value) { return (node.semaBits() & static_cast<uint8_t>(value)) != 0; }
-    static NodeSemaFlags semaFlags(const AstNode& node) { return static_cast<NodeSemaFlags>(node.semaBits() & ~SEMA_KIND_MASK); }
+    static NodeSemaFlags semaFlags(const AstNode& node) { return static_cast<NodeSemaFlags>(node.semaBits() & ~SEMA_KIND_MASK & ~SEMA_SHARD_MASK); }
 
     const SymbolNamespace& moduleNamespace() const { return *moduleNamespace_; }
     SymbolNamespace&       moduleNamespace() { return *moduleNamespace_; }

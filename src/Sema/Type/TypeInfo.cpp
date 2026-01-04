@@ -20,7 +20,7 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
         case TypeInfoKind::Any:
         case TypeInfoKind::Rune:
         case TypeInfoKind::CString:
-            // no payload
+        case TypeInfoKind::Variadic:
             break;
 
         case TypeInfoKind::Int:
@@ -35,6 +35,7 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
         case TypeInfoKind::BlockPointer:
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
+        case TypeInfoKind::TypedVariadic:
             asTypeRef = other.asTypeRef;
             break;
 
@@ -95,6 +96,7 @@ TypeInfo& TypeInfo::operator=(const TypeInfo& other)
         case TypeInfoKind::Any:
         case TypeInfoKind::Rune:
         case TypeInfoKind::CString:
+        case TypeInfoKind::Variadic:
             break;
 
         case TypeInfoKind::Int:
@@ -108,6 +110,7 @@ TypeInfo& TypeInfo::operator=(const TypeInfo& other)
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
         case TypeInfoKind::Slice:
+        case TypeInfoKind::TypedVariadic:
         case TypeInfoKind::TypeValue:
             asTypeRef = other.asTypeRef;
             break;
@@ -155,6 +158,7 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
         case TypeInfoKind::Any:
         case TypeInfoKind::Rune:
         case TypeInfoKind::CString:
+        case TypeInfoKind::Variadic:
             return true;
 
         case TypeInfoKind::Int:
@@ -166,6 +170,7 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
         case TypeInfoKind::BlockPointer:
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
+        case TypeInfoKind::TypedVariadic:
             return asTypeRef.typeRef == other.asTypeRef.typeRef;
 
         case TypeInfoKind::Enum:
@@ -342,15 +347,25 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
                 out += paramType.toName(ctx);
             }
             out += ")";
-            
+
             if (asLambda.returnType.isValid())
             {
                 out += "->";
                 const TypeInfo& returnType = ctx.typeMgr().get(asLambda.returnType);
                 out += returnType.toName(ctx);
             }
-            
+
             out += asLambda.flags.has(LambdaFlagsE::Throwable) ? " throw" : "";
+            break;
+        }
+
+        case TypeInfoKind::Variadic:
+            out += "...";
+            break;
+        case TypeInfoKind::TypedVariadic:
+        {
+            const TypeInfo& type = ctx.typeMgr().get(asTypeRef.typeRef);
+            out += std::format("{}...", type.toName(ctx));
             break;
         }
 
@@ -500,6 +515,19 @@ TypeInfo TypeInfo::makeLambda(const std::vector<TypeRef>& paramTypes, TypeRef re
     return ti;
 }
 
+TypeInfo TypeInfo::makeVariadic()
+{
+    return TypeInfo{TypeInfoKind::Variadic};
+}
+
+TypeInfo TypeInfo::makeTypedVariadic(TypeRef typeRef)
+{
+    TypeInfo ti{TypeInfoKind::TypedVariadic};
+    ti.asTypeRef = {.typeRef = typeRef};
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return ti;
+}
+
 uint32_t TypeInfo::hash() const
 {
     auto h = Math::hash(static_cast<uint32_t>(kind_));
@@ -515,6 +543,7 @@ uint32_t TypeInfo::hash() const
         case TypeInfoKind::Rune:
         case TypeInfoKind::CString:
         case TypeInfoKind::Null:
+        case TypeInfoKind::Variadic:
             return h;
 
         case TypeInfoKind::Int:
@@ -528,6 +557,7 @@ uint32_t TypeInfo::hash() const
         case TypeInfoKind::BlockPointer:
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
+        case TypeInfoKind::TypedVariadic:
             h = Math::hashCombine(h, asTypeRef.typeRef.get());
             return h;
         case TypeInfoKind::Enum:
@@ -606,6 +636,10 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
         case TypeInfoKind::Alias:
             return aliasSym().sizeOf(ctx);
 
+        case TypeInfoKind::Variadic:
+        case TypeInfoKind::TypedVariadic:
+            return 0;
+
         case TypeInfoKind::TypeValue:
             return ctx.typeMgr().get(asTypeRef.typeRef).sizeOf(ctx);
 
@@ -633,6 +667,8 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
         case TypeInfoKind::Interface:
         case TypeInfoKind::Any:
         case TypeInfoKind::Null:
+        case TypeInfoKind::Variadic:
+        case TypeInfoKind::TypedVariadic:
             return static_cast<uint32_t>(sizeOf(ctx));
 
         case TypeInfoKind::Array:
@@ -678,6 +714,8 @@ bool TypeInfo::isCompleted(TaskContext& ctx) const
             return true;
         }
         case TypeInfoKind::TypeValue:
+            return ctx.typeMgr().get(asTypeRef.typeRef).isCompleted(ctx);
+        case TypeInfoKind::TypedVariadic:
             return ctx.typeMgr().get(asTypeRef.typeRef).isCompleted(ctx);
         default:
             break;

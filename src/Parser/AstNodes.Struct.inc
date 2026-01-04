@@ -822,7 +822,7 @@ struct AstLambdaType : AstNodeT<AstNodeId::LambdaType>
     enum FlagsE : ParserFlags
     {
         Zero    = 0,
-        Method     = 1 << 0,
+        Method  = 1 << 0,
         Throw   = 1 << 1,
         Closure = 1 << 2,
         Const   = 1 << 3,
@@ -858,6 +858,7 @@ struct AstCodeType : AstNodeT<AstNodeId::CodeType>
 // -----------------------------------------------------------------------------
 struct AstVariadicType : AstNodeT<AstNodeId::VariadicType>
 {
+    Result semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -865,7 +866,8 @@ struct AstTypedVariadicType : AstNodeT<AstNodeId::TypedVariadicType>
 {
     AstNodeRef nodeTypeRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef}); }
+    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef}); }
+    Result semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

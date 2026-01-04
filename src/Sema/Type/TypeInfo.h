@@ -50,6 +50,8 @@ enum class TypeInfoKind : uint8_t
     Interface,
     Alias,
     Lambda,
+    Variadic,
+    TypedVariadic,
 };
 
 class TypeInfo;
@@ -112,6 +114,9 @@ public:
     bool isArray() const noexcept { return kind_ == TypeInfoKind::Array; }
     bool isAlias() const noexcept { return kind_ == TypeInfoKind::Alias; }
     bool isLambda() const noexcept { return kind_ == TypeInfoKind::Lambda; }
+    bool isVariadic() const noexcept { return kind_ == TypeInfoKind::Variadic; }
+    bool isTypedVariadic() const noexcept { return kind_ == TypeInfoKind::TypedVariadic; }
+    bool isAnyVariadic() const noexcept { return isVariadic() || isTypedVariadic(); }
 
     bool isCharRune() const noexcept { return isChar() || isRune(); }
     bool isIntLike() const noexcept { return isInt() || isCharRune(); }
@@ -130,7 +135,7 @@ public:
     SymbolStruct&      structSym() const noexcept { SWC_ASSERT(isStruct()); return *asStruct.sym; }
     SymbolInterface&   interfaceSym() const noexcept { SWC_ASSERT(isInterface()); return *asInterface.sym; }
     SymbolAlias&       aliasSym() const noexcept { SWC_ASSERT(isAlias()); return *asAlias.sym; }
-    TypeRef            typeRef() const noexcept { SWC_ASSERT(isTypeValue() || isPointer() || isSlice() || isAlias()); return asTypeRef.typeRef; }
+    TypeRef            typeRef() const noexcept { SWC_ASSERT(isTypeValue() || isPointer() || isSlice() || isAlias() || isTypedVariadic()); return asTypeRef.typeRef; }
     auto&              arrayDims() const noexcept { SWC_ASSERT(isArray()); return asArray.dims; }
     TypeRef            arrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return asArray.typeRef; }
     auto&              lambdaParamTypes() const noexcept { SWC_ASSERT(isLambda()); return asLambda.paramTypes; }
@@ -161,6 +166,8 @@ public:
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeArray(const std::vector<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeLambda(const std::vector<TypeRef>& paramTypes, TypeRef returnType, TypeInfoFlags flags = TypeInfoFlagsE::Zero, LambdaFlags lambdaFlags = LambdaFlagsE::Zero);
+    static TypeInfo makeVariadic();
+    static TypeInfo makeTypedVariadic(TypeRef typeRef);
 
     uint32_t hash() const;
     uint64_t sizeOf(TaskContext& ctx) const;

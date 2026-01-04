@@ -19,3 +19,7 @@ var H: func||(s32, string)->*s32 throw
 
 var I: func() = null
 var J: func(...) = null
+var K: func(s32...) = null
+#assert(#nameof(#typeof(I)) == "func()")
+#assert(#nameof(#typeof(J)) == "func(...)")
+#assert(#nameof(#typeof(K)) == "func(s32...)")

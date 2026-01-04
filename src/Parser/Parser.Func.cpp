@@ -20,14 +20,19 @@ AstNodeRef Parser::parseClosureArg()
 
 AstNodeRef Parser::parseLambdaExprArg()
 {
-    AstNodeRef nodeType;
-    TokenRef   tokName = TokenRef::invalid();
+    AstNodeRef              nodeType;
+    TokenRef                tokName  = TokenRef::invalid();
+    AstLambdaTypeParam::Flags flags    = AstLambdaTypeParam::Zero;
+    const auto              tokStart = ref();
 
     if (is(TokenId::CompilerType))
+    {
         nodeType = parseCompilerTypeExpr();
+    }
     else if (is(TokenId::Identifier) && nextIs(TokenId::SymColon))
     {
         tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
+        flags.add(AstLambdaTypeParam::Named);
         consumeAssert(TokenId::SymColon);
         nodeType = parseType();
     }
@@ -35,16 +40,25 @@ AstNodeRef Parser::parseLambdaExprArg()
     {
         nodeType = AstNodeRef::invalid();
         if (is(TokenId::Identifier))
+        {
             tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
+            flags.add(AstLambdaTypeParam::Named);
+        }
         else if (is(TokenId::SymQuestion))
+        {
             tokName = consume();
+            flags.add(AstLambdaTypeParam::Named);
+        }
         else
+        {
             raiseError(DiagnosticId::parser_err_unexpected_token, ref());
+        }
     }
 
     // Normal parameter
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaTypeParam>(tokName);
-    nodePtr->nodeTypeRef    = nodeType;
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaTypeParam>(flags.has(AstLambdaTypeParam::Named) ? tokName : tokStart);
+    nodePtr->addParserFlag(flags);
+    nodePtr->nodeTypeRef = nodeType;
 
     if (consumeIf(TokenId::SymEqual).isValid())
         nodePtr->nodeDefaultValueRef = parseInitializerExpression();

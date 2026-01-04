@@ -366,7 +366,7 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
         SWC_ASSERT(paramTypeRef.isValid());
 
         IdentifierRef idRef = IdentifierRef::invalid();
-        if (param->tokRef().isValid())
+        if (param->parserFlags<AstLambdaTypeParam::FlagsE>().has(AstLambdaTypeParam::Named))
             idRef = sema.idMgr().addIdentifier(ctx, param->srcViewRef(), param->tokRef());
 
         const auto symVar = Symbol::make<SymbolVariable>(ctx, param, param->tokRef(), idRef, SymbolFlagsE::Zero);

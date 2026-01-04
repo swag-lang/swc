@@ -319,17 +319,22 @@ AstNodeRef Parser::parseTypeValue()
 
 AstNodeRef Parser::parseLambdaTypeParam()
 {
-    AstNodeRef nodeType;
-    TokenRef   tokName = TokenRef::invalid();
+    AstNodeRef              nodeType;
+    TokenRef                tokName = TokenRef::invalid();
+    AstLambdaTypeParam::Flags flags   = AstLambdaTypeParam::Zero;
+    const auto              tokStart = ref();
 
     if (is(TokenId::CompilerType))
+    {
         nodeType = parseCompilerTypeExpr();
+    }
     else
     {
         // Optional name
         if (is(TokenId::Identifier) && nextIs(TokenId::SymColon))
         {
             tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
+            flags.add(AstLambdaTypeParam::Named);
             consumeAssert(TokenId::SymColon);
         }
 
@@ -337,8 +342,9 @@ AstNodeRef Parser::parseLambdaTypeParam()
     }
 
     // Normal parameter
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaTypeParam>(tokName);
-    nodePtr->nodeTypeRef    = nodeType;
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaTypeParam>(flags.has(AstLambdaTypeParam::Named) ? tokName : tokStart);
+    nodePtr->addParserFlag(flags);
+    nodePtr->nodeTypeRef = nodeType;
 
     if (consumeIf(TokenId::SymEqual).isValid())
         nodePtr->nodeDefaultValueRef = parseInitializerExpression();

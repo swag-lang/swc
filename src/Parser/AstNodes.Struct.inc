@@ -253,6 +253,13 @@ struct AstFunctionBody : AstCompoundT<AstNodeId::FunctionBody>
 // -----------------------------------------------------------------------------
 struct AstLambdaTypeParam : AstNodeT<AstNodeId::LambdaTypeParam>
 {
+    enum FlagsE : ParserFlags
+    {
+        Zero  = 0,
+        Named = 1 << 0,
+    };
+    using Flags = EnumFlags<FlagsE>;
+
     AstNodeRef nodeTypeRef;
     AstNodeRef nodeDefaultValueRef;
 

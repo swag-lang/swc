@@ -23,3 +23,7 @@ var K: func(s32...) = null
 #assert(#nameof(#typeof(I)) == "func()")
 #assert(#nameof(#typeof(J)) == "func(...)")
 #assert(#nameof(#typeof(K)) == "func(s32...)")
+
+
+var A0: func(a: s32)
+//#assert(#nameof(#typeof(A0)) == "func(a: s32)")

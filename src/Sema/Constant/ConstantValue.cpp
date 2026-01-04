@@ -58,10 +58,10 @@ bool ConstantValue::eq(const ConstantValue& rhs) const noexcept
             return getInt().eq(rhs.getInt());
         case ConstantKind::Float:
             return getFloat().eq(rhs.getFloat());
-        case ConstantKind::Null:
-            return true;
         case ConstantKind::TypeValue:
             return getTypeValue() == rhs.getTypeValue();
+        case ConstantKind::Null:
+            return true;
 
         default:
             SWC_UNREACHABLE();
@@ -344,12 +344,12 @@ Utf8 ConstantValue::toString(const TaskContext& ctx) const
             return getInt().toString();
         case ConstantKind::Float:
             return getFloat().toString();
-        case ConstantKind::Null:
-            return "null";
         case ConstantKind::TypeValue:
             return ctx.typeMgr().get(getTypeValue()).toName(ctx);
         case ConstantKind::EnumValue:
             return ctx.cstMgr().get(asEnumValue.val).toString(ctx);
+        case ConstantKind::Null:
+            return "null";
 
         default:
             SWC_UNREACHABLE();

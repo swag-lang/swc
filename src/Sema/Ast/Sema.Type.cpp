@@ -343,8 +343,10 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
     std::vector<TypeRef> paramTypes;
     for (const auto& paramRef : params)
     {
-        const auto* param = sema.node(paramRef).cast<AstLambdaTypeParam>();
-        paramTypes.push_back(sema.typeRefOf(param->nodeTypeRef));
+        const auto* param        = sema.node(paramRef).cast<AstLambdaTypeParam>();
+        TypeRef     paramTypeRef = sema.typeRefOf(param->nodeTypeRef);
+        SWC_ASSERT(paramTypeRef.isValid());
+        paramTypes.push_back(paramTypeRef);
     }
 
     TypeRef returnType = TypeRef::invalid();

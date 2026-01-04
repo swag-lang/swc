@@ -115,7 +115,7 @@ public:
 
     bool isCharRune() const noexcept { return isChar() || isRune(); }
     bool isIntLike() const noexcept { return isInt() || isCharRune(); }
-    bool isPointerLike() const noexcept { return isPointer() || isSlice() || isString() || isCString() || isAny() || isInterface(); }
+    bool isPointerLike() const noexcept { return isPointer() || isSlice() || isString() || isCString() || isAny() || isInterface() || isLambda(); }
     bool isScalarNumeric() const noexcept { return isIntLike() || isFloat(); }
     bool isIntLikeUnsigned() const noexcept { return isCharRune() || isIntUnsigned(); }
     bool isConcreteScalar() const noexcept { return isScalarNumeric() && !isIntUnsized() && !isFloatUnsized(); }

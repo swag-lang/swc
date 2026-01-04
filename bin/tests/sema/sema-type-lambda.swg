@@ -17,3 +17,5 @@ var G: func||(s32, bool)->string
 var H: func||(s32, string)->*s32 throw
 #assert(#nameof(#typeof(H)) == "func||(s32, string)->*s32 throw")
 
+var I: func() = null
+var J: func(...) = null

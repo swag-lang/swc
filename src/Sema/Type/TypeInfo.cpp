@@ -336,8 +336,8 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
         }
         case TypeInfoKind::Lambda:
         {
-            out += asLambda.flags.has(LambdaFlagsE::Method) ? "mtd" : "func";
-            out += asLambda.flags.has(LambdaFlagsE::Closure) ? "||" : "";
+            out += asLambda.flags.has(TypeInfoLambdaFlagsE::Method) ? "mtd" : "func";
+            out += asLambda.flags.has(TypeInfoLambdaFlagsE::Closure) ? "||" : "";
             out += "(";
             for (size_t i = 0; i < asLambda.paramTypes.size(); ++i)
             {
@@ -355,7 +355,7 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
                 out += returnType.toName(ctx);
             }
 
-            out += asLambda.flags.has(LambdaFlagsE::Throwable) ? " throw" : "";
+            out += asLambda.flags.has(TypeInfoLambdaFlagsE::Throwable) ? " throw" : "";
             break;
         }
 
@@ -505,7 +505,7 @@ TypeInfo TypeInfo::makeArray(const std::vector<uint64_t>& dims, TypeRef elementT
     return ti;
 }
 
-TypeInfo TypeInfo::makeLambda(const std::vector<TypeRef>& paramTypes, TypeRef returnType, TypeInfoFlags flags, LambdaFlags lambdaFlags)
+TypeInfo TypeInfo::makeLambda(const std::vector<TypeRef>& paramTypes, TypeRef returnType, TypeInfoFlags flags, TypeInfoLambdaFlags lambdaFlags)
 {
     TypeInfo ti{TypeInfoKind::Lambda, flags};
     std::construct_at(&ti.asLambda.paramTypes, paramTypes);

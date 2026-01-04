@@ -18,14 +18,14 @@ enum class TypeInfoFlagsE : uint8_t
 };
 using TypeInfoFlags = EnumFlags<TypeInfoFlagsE>;
 
-enum class LambdaFlagsE : uint8_t
+enum class TypeInfoLambdaFlagsE : uint8_t
 {
     Zero      = 0,
     Closure   = 1 << 0, // captures environment
     Method    = 1 << 1, // has an implicit receiver
     Throwable = 1 << 2, // may throw
 };
-using LambdaFlags = EnumFlags<LambdaFlagsE>;
+using TypeInfoLambdaFlags = EnumFlags<TypeInfoLambdaFlagsE>;
 
 enum class TypeInfoKind : uint8_t
 {
@@ -140,10 +140,10 @@ public:
     TypeRef            arrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return asArray.typeRef; }
     auto&              lambdaParamTypes() const noexcept { SWC_ASSERT(isLambda()); return asLambda.paramTypes; }
     TypeRef            lambdaReturnType() const noexcept { SWC_ASSERT(isLambda()); return asLambda.returnType; }
-    LambdaFlags        lambdaFlags() const noexcept { SWC_ASSERT(isLambda()); return asLambda.flags; }
-    bool               isLambdaClosure()   const noexcept { SWC_ASSERT(isLambda()); return asLambda.flags.has(LambdaFlagsE::Closure); }
-    bool               isLambdaMethod()    const noexcept { SWC_ASSERT(isLambda()); return asLambda.flags.has(LambdaFlagsE::Method); }
-    bool               isLambdaThrowable() const noexcept { SWC_ASSERT(isLambda()); return asLambda.flags.has(LambdaFlagsE::Throwable); }
+    TypeInfoLambdaFlags        lambdaFlags() const noexcept { SWC_ASSERT(isLambda()); return asLambda.flags; }
+    bool               isLambdaClosure()   const noexcept { SWC_ASSERT(isLambda()); return asLambda.flags.has(TypeInfoLambdaFlagsE::Closure); }
+    bool               isLambdaMethod()    const noexcept { SWC_ASSERT(isLambda()); return asLambda.flags.has(TypeInfoLambdaFlagsE::Method); }
+    bool               isLambdaThrowable() const noexcept { SWC_ASSERT(isLambda()); return asLambda.flags.has(TypeInfoLambdaFlagsE::Throwable); }
     // clang-format on
 
     static TypeInfo makeBool();
@@ -165,7 +165,7 @@ public:
     static TypeInfo makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeArray(const std::vector<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
-    static TypeInfo makeLambda(const std::vector<TypeRef>& paramTypes, TypeRef returnType, TypeInfoFlags flags = TypeInfoFlagsE::Zero, LambdaFlags lambdaFlags = LambdaFlagsE::Zero);
+    static TypeInfo makeLambda(const std::vector<TypeRef>& paramTypes, TypeRef returnType, TypeInfoFlags flags = TypeInfoFlagsE::Zero, TypeInfoLambdaFlags lambdaFlags = TypeInfoLambdaFlagsE::Zero);
     static TypeInfo makeVariadic();
     static TypeInfo makeTypedVariadic(TypeRef typeRef);
 
@@ -229,7 +229,7 @@ private:
         {
             std::vector<TypeRef> paramTypes;
             TypeRef              returnType;
-            LambdaFlags          flags;
+            TypeInfoLambdaFlags          flags;
         } asLambda;
     };
 };

@@ -89,10 +89,10 @@ struct AstNode
     static Result semaPreNodeChild(Sema&, AstNodeRef&) { return Result::Continue; }
     static Result semaPostNode(Sema&) { return Result::Continue; }
 
-    uint8_t&       semaBits() { return semaBits_; }
-    const uint8_t& semaBits() const { return semaBits_; }
-    uint32_t       semaRef() const { return semaRef_; }
-    void           setSemaRef(uint32_t val) { semaRef_ = val; }
+    uint16_t&       semaBits() { return semaBits_; }
+    const uint16_t& semaBits() const { return semaBits_; }
+    uint32_t        semaRef() const { return semaRef_; }
+    void            setSemaRef(uint32_t val) { semaRef_ = val; }
 
     AstNodeId id() const { return id_; }
     void      setId(AstNodeId id) { id_ = id; }
@@ -137,9 +137,9 @@ struct AstNode
     }
 
 private:
-    AstNodeId     id_ = AstNodeId::Invalid;
+    uint16_t      semaBits_ = 0;
+    AstNodeId     id_       = AstNodeId::Invalid;
     ParserFlags   parserFlags_{};
-    uint8_t       semaBits_   = 0;
     SourceViewRef srcViewRef_ = SourceViewRef::invalid();
     TokenRef      tokRef_     = TokenRef::invalid();
     uint32_t      semaRef_    = 0;

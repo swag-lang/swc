@@ -91,6 +91,7 @@ private:
     AstModifierFlags parseModifiers();
     AstNodeRef       parseBinaryExpr(int minPrecedence);
     SpanRef          parseQualifiedName();
+    AstNodeRef       parseLambdaParam(bool isType);
 
     template<AstNodeId ID>
     AstNodeRef parseAttributeList();
@@ -181,7 +182,7 @@ private:
     AstNodeRef parseLogicalExpr(int minPrecedence);
     AstNodeRef parseLambdaExpression();
     AstNodeRef parseLambdaType();
-    AstNodeRef parseLambdaTypeParam();
+    AstNodeRef parseLambdaParam();
     AstNodeRef parseLambdaExpressionArg();
     AstNodeRef parseLiteral();
     AstNodeRef parseLiteralArray();

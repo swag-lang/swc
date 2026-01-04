@@ -18,12 +18,12 @@ AstNodeRef Parser::parseClosureArg()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseLambdaExpressionArg()
+AstNodeRef Parser::parseLambdaParam(bool isType)
 {
-    AstNodeRef                nodeType;
-    TokenRef                  tokName  = TokenRef::invalid();
-    AstLambdaTypeParam::Flags flags    = AstLambdaTypeParam::Zero;
-    const auto                tokStart = ref();
+    AstNodeRef            nodeType;
+    TokenRef              tokName  = TokenRef::invalid();
+    AstLambdaParam::Flags flags    = AstLambdaParam::Zero;
+    const auto            tokStart = ref();
 
     if (is(TokenId::CompilerType))
     {
@@ -32,8 +32,12 @@ AstNodeRef Parser::parseLambdaExpressionArg()
     else if (is(TokenId::Identifier) && nextIs(TokenId::SymColon))
     {
         tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
-        flags.add(AstLambdaTypeParam::Named);
+        flags.add(AstLambdaParam::Named);
         consumeAssert(TokenId::SymColon);
+        nodeType = parseType();
+    }
+    else if (isType)
+    {
         nodeType = parseType();
     }
     else
@@ -42,21 +46,21 @@ AstNodeRef Parser::parseLambdaExpressionArg()
         if (is(TokenId::Identifier))
         {
             tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
-            flags.add(AstLambdaTypeParam::Named);
+            flags.add(AstLambdaParam::Named);
         }
         else if (is(TokenId::SymQuestion))
         {
             tokName = consume();
-            flags.add(AstLambdaTypeParam::Named);
+            flags.add(AstLambdaParam::Named);
         }
-        else
+        else if (!is(TokenId::SymEqual))
         {
-            raiseError(DiagnosticId::parser_err_unexpected_token, ref());
+            nodeType = parseType();
         }
     }
 
     // Normal parameter
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaTypeParam>(flags.has(AstLambdaTypeParam::Named) ? tokName : tokStart);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaParam>(flags.has(AstLambdaParam::Named) ? tokName : tokStart);
     nodePtr->addParserFlag(flags);
     nodePtr->nodeTypeRef = nodeType;
 
@@ -66,6 +70,11 @@ AstNodeRef Parser::parseLambdaExpressionArg()
         nodePtr->nodeDefaultValueRef = AstNodeRef::invalid();
 
     return nodeRef;
+}
+
+AstNodeRef Parser::parseLambdaExpressionArg()
+{
+    return parseLambdaParam(false);
 }
 
 AstNodeRef Parser::parseLambdaExpression()

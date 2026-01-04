@@ -39,7 +39,6 @@ SWC_NODE_DEF(RRefType, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(SliceType, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(ArrayType, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(LambdaType, AstNodeIdFlagsE::Zero)
-SWC_NODE_DEF(LambdaTypeParam, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(RetValType, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(CodeType, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(VariadicType, AstNodeIdFlagsE::Zero)
@@ -67,6 +66,7 @@ SWC_NODE_DEF(NamedArgumentList, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(NamedArgument, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(UnnamedArgumentList, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(UnnamedArgument, AstNodeIdFlagsE::Zero)
+SWC_NODE_DEF(LambdaParam, AstNodeIdFlagsE::Zero)
 
 // ============================================================================
 //  Type, Trait & Data Declarations

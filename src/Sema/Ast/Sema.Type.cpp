@@ -361,12 +361,12 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
 
     for (const auto& paramRef : params)
     {
-        const auto* param        = sema.node(paramRef).cast<AstLambdaTypeParam>();
+        const auto* param        = sema.node(paramRef).cast<AstLambdaParam>();
         TypeRef     paramTypeRef = sema.typeRefOf(param->nodeTypeRef);
         SWC_ASSERT(paramTypeRef.isValid());
 
         IdentifierRef idRef = IdentifierRef::invalid();
-        if (param->parserFlags<AstLambdaTypeParam::FlagsE>().has(AstLambdaTypeParam::Named))
+        if (param->parserFlags<AstLambdaParam::FlagsE>().has(AstLambdaParam::Named))
             idRef = sema.idMgr().addIdentifier(ctx, param->srcViewRef(), param->tokRef());
 
         const auto symVar = Symbol::make<SymbolVariable>(ctx, param, param->tokRef(), idRef, SymbolFlagsE::Zero);

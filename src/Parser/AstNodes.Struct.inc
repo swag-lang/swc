@@ -251,7 +251,7 @@ struct AstFunctionBody : AstCompoundT<AstNodeId::FunctionBody>
 };
 
 // -----------------------------------------------------------------------------
-struct AstLambdaTypeParam : AstNodeT<AstNodeId::LambdaTypeParam>
+struct AstLambdaParam : AstNodeT<AstNodeId::LambdaParam>
 {
     enum FlagsE : ParserFlags
     {

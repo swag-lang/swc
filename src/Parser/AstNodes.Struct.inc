@@ -223,6 +223,7 @@ struct AstAttrDecl : AstNamedNodeT<AstNodeId::AttrDecl>
     void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeParamsRef}); }
     Result        semaPreDecl(Sema& sema) const;
     Result        semaPreNode(Sema& sema) const;
+    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     static Result semaPostNode(Sema& sema);
 };
 
@@ -269,8 +270,6 @@ struct AstLambdaParam : AstNodeT<AstNodeId::LambdaParam>
 // -----------------------------------------------------------------------------
 struct AstFunctionParamList : AstCompoundT<AstNodeId::FunctionParamList>
 {
-    static Result semaPreDecl(Sema&) { return Result::SkipChildren; }
-    static Result semaPreNode(Sema&) { return Result::SkipChildren; }
 };
 
 // -----------------------------------------------------------------------------

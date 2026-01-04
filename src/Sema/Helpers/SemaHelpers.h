@@ -21,7 +21,6 @@ namespace SemaHelpers
         sym->registerCompilerIf(sema);
         sema.setSymbol(sema.curNodeRef(), sym);
 
-        // Special case when adding a variable inside a struct
         if (const auto symStruct = symbolMap->safeCast<SymbolStruct>())
         {
             if (sym->isVariable())
@@ -34,13 +33,10 @@ namespace SemaHelpers
     template<typename T>
     void declareSymbol(Sema& sema, const T& node)
     {
-        if (!sema.curScope().isTopLevel())
-        {
-            SWC_ASSERT(!sema.hasSymbol(sema.curNodeRef()));
+        const AstNodeRef curNodeRef = sema.curNodeRef();
+        if (!sema.hasSymbol(curNodeRef))
             node.semaPreDecl(sema);
-        }
-
-        Symbol& sym = sema.symbolOf(sema.curNodeRef());
+        Symbol& sym = sema.symbolOf(curNodeRef);
         sym.registerAttributes(sema);
         sym.setDeclared(sema.ctx());
     }

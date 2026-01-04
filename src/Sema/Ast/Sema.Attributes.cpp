@@ -76,9 +76,39 @@ Result AstAttrDecl::semaPreNode(Sema& sema) const
     return SemaMatch::ghosting(sema, sym);
 }
 
+Result AstAttrDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    return Result::SkipChildren; // TODO
+    if (childRef != nodeParamsRef)
+        return Result::Continue;
+
+    SymbolAttribute& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolAttribute>();
+    sema.pushScope(SemaScopeFlagsE::Type);
+    sema.curScope().setSymMap(&sym);
+
+    return Result::Continue;
+}
+
 Result AstAttrDecl::semaPostNode(Sema& sema)
 {
-    Symbol& sym = sema.symbolOf(sema.curNodeRef());
+    SymbolAttribute& sym      = sema.symbolOf(sema.curNodeRef()).cast<SymbolAttribute>();
+    /*const auto*      nodeAttr = sema.node(sema.curNodeRef()).cast<AstAttrDecl>();
+
+    if (nodeAttr->nodeParamsRef.isValid())
+    {
+        const auto* params = sema.node(nodeAttr->nodeParamsRef).cast<AstFunctionParamList>();
+
+        SmallVector<AstNodeRef> children;
+        sema.ast().nodes(children, params->spanChildrenRef);
+        for (const auto& child : children)
+        {
+            auto& symVar = sema.symbolOf(child).cast<SymbolVariable>();
+            sym.parameters().push_back(&symVar);
+        }
+
+        sema.popScope();
+    }*/
+
     sym.setTyped(sema.ctx());
     sym.setCompleted(sema.ctx());
     return Result::Continue;

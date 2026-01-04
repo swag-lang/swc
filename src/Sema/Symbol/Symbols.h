@@ -47,7 +47,7 @@ public:
 };
 
 // -----------------------------------------------------------------------------
-class SymbolAttribute : public Symbol
+class SymbolAttribute : public SymbolMap
 {
     AttributeFlags attributes_ = AttributeFlagsE::Zero;
 
@@ -55,12 +55,16 @@ public:
     static constexpr auto K = SymbolKind::Attribute;
 
     explicit SymbolAttribute(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
-        Symbol(decl, tokRef, K, idRef, flags)
+        SymbolMap(decl, tokRef, K, idRef, flags)
     {
     }
 
-    AttributeFlags attributeFlags() const { return attributes_; }
-    void           setAttributeFlags(AttributeFlags attr) { attributes_ = attr; }
+    AttributeFlags        attributeFlags() const { return attributes_; }
+    void                  setAttributeFlags(AttributeFlags attr) { attributes_ = attr; }
+    std::vector<Symbol*>& parameters() { return parameters_; }
+
+private:
+    std::vector<Symbol*> parameters_;
 };
 
 // -----------------------------------------------------------------------------

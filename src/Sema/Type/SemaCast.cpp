@@ -262,61 +262,29 @@ namespace
     }
 }
 
-namespace
-{
-    bool checkStrictAliasForCast(const SymbolAlias& symAlias, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef, bool isDstAlias)
-    {
-        if (!symAlias.isStrict())
-            return true;
-
-        if (isDstAlias)
-        {
-            // dst strict alias: allow explicit + initialization
-            if (castCtx.kind != CastKind::Explicit)
-            {
-                castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-                return false;
-            }
-        }
-        else
-        {
-            // src strict alias: explicit only
-            if (castCtx.kind != CastKind::Explicit)
-            {
-                castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-                return false;
-            }
-        }
-
-        return true;
-    }
-}
-
 bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    const auto& typeMgr = sema.ctx().typeMgr();
-    bool        ok      = false;
-
     if (srcTypeRef == dstTypeRef)
         return castIdentity(sema, castCtx, srcTypeRef, dstTypeRef);
 
+    const auto&     typeMgr = sema.ctx().typeMgr();
     const TypeInfo& srcType = typeMgr.get(srcTypeRef);
     const TypeInfo& dstType = typeMgr.get(dstTypeRef);
 
+    if (srcType.isAlias() || dstType.isAlias())
+    {
+        if (castCtx.kind != CastKind::Explicit)
+        {
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return false;
+        }
+    }
+
+    bool ok = false;
     if (srcType.isAlias())
-    {
-        const auto& symAlias = srcType.aliasSym();
-        if (!checkStrictAliasForCast(symAlias, castCtx, srcTypeRef, dstTypeRef, /*isDstAlias*/ false))
-            return false;
-        ok = castAllowed(sema, castCtx, symAlias.underlyingTypeRef(), dstTypeRef);
-    }
+        ok = castAllowed(sema, castCtx, srcType.aliasSym().underlyingTypeRef(), dstTypeRef);
     else if (dstType.isAlias())
-    {
-        const auto& symAlias = dstType.aliasSym();
-        if (!checkStrictAliasForCast(symAlias, castCtx, srcTypeRef, dstTypeRef, /*isDstAlias*/ true))
-            return false;
-        ok = castAllowed(sema, castCtx, srcTypeRef, symAlias.underlyingTypeRef());
-    }
+        ok = castAllowed(sema, castCtx, srcTypeRef, dstType.aliasSym().underlyingTypeRef());
     else if (castCtx.flags.has(CastFlagsE::BitCast))
         ok = castBit(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isEnum() && !dstType.isEnum())

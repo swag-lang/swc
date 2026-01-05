@@ -24,14 +24,14 @@ namespace SemaHelpers
         if (const auto symStruct = symbolMap->safeCast<SymbolStruct>())
         {
             if (sym->isVariable())
-                symStruct->fields().push_back(sym);
+                symStruct->addField(sym);
         }
-        
+
         if (const auto symAttr = symbolMap->safeCast<SymbolAttribute>())
         {
             if (sym->isVariable())
-                symAttr->parameters().push_back(sym);
-        }        
+                symAttr->addParameter(sym);
+        }
 
         return *sym;
     }

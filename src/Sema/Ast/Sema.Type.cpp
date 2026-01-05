@@ -71,9 +71,9 @@ Result AstBuiltinType::semaPostNode(Sema& sema) const
         case TokenId::TypeRune:
             sema.setType(nodeRef, typeMgr.typeRune());
             return Result::Continue;
-                    case TokenId::TypeTypeInfo:
+        case TokenId::TypeTypeInfo:
             sema.setType(nodeRef, typeMgr.typeTypeInfo());
-            return Result::Continue;            
+            return Result::Continue;
 
         default:
             break;
@@ -375,7 +375,7 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
         const auto symVar = Symbol::make<SymbolVariable>(ctx, param, param->tokRef(), idRef, SymbolFlagsE::Zero);
         symVar->setTypeRef(paramTypeRef);
 
-        symFunc->parameters().push_back(symVar);
+        symFunc->addParameter(symVar);
         if (idRef.isValid())
             symFunc->addSymbol(ctx, symVar, false);
     }

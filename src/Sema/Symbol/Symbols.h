@@ -127,6 +127,7 @@ public:
     const std::vector<Symbol*>& fields() const { return fields_; }
     Result                      canBeCompleted(Sema& sema) const;
     void                        computeLayout(Sema& sema);
+    void                        addField(Symbol* sym) { fields_.push_back(sym); }
 
 private:
     std::vector<Symbol*> fields_;
@@ -192,6 +193,7 @@ public:
     TypeRef               returnType() const { return returnType_; }
     void                  setReturnType(TypeRef typeRef) { returnType_ = typeRef; }
     std::vector<Symbol*>& parameters() { return parameters_; }
+    void                  addParameter(Symbol* sym) { parameters_.push_back(sym); }
 
     SymbolFunctionFlags funcFlags() const noexcept { return funcFlags_; }
     bool                hasFuncFlag(SymbolFunctionFlagsE flag) const noexcept { return funcFlags_.has(flag); }
@@ -220,6 +222,7 @@ public:
     AttributeFlags        attributeFlags() const { return attributes_; }
     void                  setAttributeFlags(AttributeFlags attr) { attributes_ = attr; }
     std::vector<Symbol*>& parameters() { return parameters_; }
+    void                  addParameter(Symbol* sym) { parameters_.push_back(sym); }
 
 private:
     std::vector<Symbol*> parameters_;

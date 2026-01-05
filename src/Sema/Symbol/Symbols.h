@@ -47,27 +47,6 @@ public:
 };
 
 // -----------------------------------------------------------------------------
-class SymbolAttribute : public SymbolMap
-{
-    AttributeFlags attributes_ = AttributeFlagsE::Zero;
-
-public:
-    static constexpr auto K = SymbolKind::Attribute;
-
-    explicit SymbolAttribute(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
-        SymbolMap(decl, tokRef, K, idRef, flags)
-    {
-    }
-
-    AttributeFlags        attributeFlags() const { return attributes_; }
-    void                  setAttributeFlags(AttributeFlags attr) { attributes_ = attr; }
-    std::vector<Symbol*>& parameters() { return parameters_; }
-
-private:
-    std::vector<Symbol*> parameters_;
-};
-
-// -----------------------------------------------------------------------------
 class SymbolVariable : public Symbol
 {
 public:
@@ -190,6 +169,7 @@ private:
     TypeRef       underlyingTypeRef_ = TypeRef::invalid();
 };
 
+// -----------------------------------------------------------------------------
 enum class SymbolFunctionFlagsE : uint8_t
 {
     Zero      = 0,
@@ -199,7 +179,6 @@ enum class SymbolFunctionFlagsE : uint8_t
 };
 using SymbolFunctionFlags = EnumFlags<SymbolFunctionFlagsE>;
 
-// -----------------------------------------------------------------------------
 class SymbolFunction : public SymbolMap
 {
 public:
@@ -223,6 +202,27 @@ private:
     std::vector<Symbol*> parameters_;
     TypeRef              returnType_ = TypeRef::invalid();
     SymbolFunctionFlags  funcFlags_  = SymbolFunctionFlagsE::Zero;
+};
+
+// -----------------------------------------------------------------------------
+class SymbolAttribute : public SymbolMap
+{
+    AttributeFlags attributes_ = AttributeFlagsE::Zero;
+
+public:
+    static constexpr auto K = SymbolKind::Attribute;
+
+    explicit SymbolAttribute(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        SymbolMap(decl, tokRef, K, idRef, flags)
+    {
+    }
+
+    AttributeFlags        attributeFlags() const { return attributes_; }
+    void                  setAttributeFlags(AttributeFlags attr) { attributes_ = attr; }
+    std::vector<Symbol*>& parameters() { return parameters_; }
+
+private:
+    std::vector<Symbol*> parameters_;
 };
 
 SWC_END_NAMESPACE()

@@ -70,4 +70,55 @@ Result SemaCheck::isConstant(Sema& sema, AstNodeRef nodeRef)
     return Result::Continue;
 }
 
+Result SemaCheck::checkSignature(Sema& sema, const std::vector<Symbol*>& parameters, bool attribute)
+{
+    bool hasName = false;
+    for (size_t i = 0; i < parameters.size(); i++)
+    {
+        const auto& param = *parameters[i];
+        const auto& type  = param.type(sema.ctx());
+
+        // Variadic must be last
+        if (type.isVariadic() && i != parameters.size() - 1)
+            return SemaError::raise(sema, DiagnosticId::sema_err_variadic_not_last, param.decl()->srcViewRef(), param.tokRef());
+
+        // If a parameter has a name then what follows should have a name
+        if (param.idRef().isValid())
+            hasName = true;
+        else if (hasName)
+            return SemaError::raise(sema, DiagnosticId::sema_err_unnamed_parameter, param.decl()->srcViewRef(), param.tokRef());
+
+        if (attribute)
+        {
+            auto baseType = &type;
+            if (type.isTypedVariadic())
+                baseType = &sema.ctx().typeMgr().get(type.typeRef());
+
+            bool allowed = false;
+            if (baseType->isBool() ||
+                baseType->isChar() ||
+                baseType->isString() ||
+                baseType->isInt() ||
+                baseType->isFloat() ||
+                baseType->isRune() ||
+                baseType->isEnum() ||
+                baseType->isTypeInfo() ||
+                baseType->isType())
+            {
+                allowed = true;
+            }
+
+            if (!allowed)
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_attribute_parameter_type, param.decl()->srcViewRef(), param.tokRef());
+                diag.addArgument(Diagnostic::ARG_TYPE, type.toName(sema.ctx()));
+                diag.report(sema.ctx());
+                return Result::Stop;
+            }
+        }
+    }
+
+    return Result::Continue;
+}
+
 SWC_END_NAMESPACE()

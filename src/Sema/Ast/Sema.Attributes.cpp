@@ -2,6 +2,7 @@
 #include "Sema/Core/Sema.h"
 #include "Parser/AstNodes.h"
 #include "Sema/Core/SemaFrame.h"
+#include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaHelpers.h"
 #include "Sema/Symbol/SemaMatch.h"
@@ -83,6 +84,7 @@ Result AstAttrDecl::semaPostNode(Sema& sema)
     sema.popScope();
 
     SymbolAttribute& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolAttribute>();
+    RESULT_VERIFY(SemaCheck::checkSignature(sema, sym.parameters(), true));
     sym.setTyped(sema.ctx());
     sym.setCompleted(sema.ctx());
     return Result::Continue;

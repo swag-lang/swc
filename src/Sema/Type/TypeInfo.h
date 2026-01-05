@@ -101,7 +101,8 @@ public:
     bool isEnum() const noexcept { return kind_ == TypeInfoKind::Enum; }
     bool isStruct() const noexcept { return kind_ == TypeInfoKind::Struct; }
     bool isInterface() const noexcept { return kind_ == TypeInfoKind::Interface; }
-    bool isType() const noexcept { return isTypeValue() || isEnum() || isStruct() || isInterface(); }
+    bool isTypeInfo() const noexcept { return kind_ == TypeInfoKind::TypeInfo; }
+    bool isType() const noexcept { return isTypeValue() || isEnum() || isStruct() || isInterface() || isTypeInfo(); }
     bool isValuePointer() const noexcept { return kind_ == TypeInfoKind::ValuePointer; }
     bool isBlockPointer() const noexcept { return kind_ == TypeInfoKind::BlockPointer; }
     bool isPointer() const noexcept { return isValuePointer() || isBlockPointer(); }

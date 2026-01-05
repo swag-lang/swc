@@ -3,7 +3,6 @@
 #include "Math/Hash.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/TypeManager.h"
-#include <new> // for placement new
 
 SWC_BEGIN_NAMESPACE()
 
@@ -34,6 +33,7 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
         case TypeInfoKind::Rune:
         case TypeInfoKind::CString:
         case TypeInfoKind::Variadic:
+        case TypeInfoKind::TypeInfo:
             break;
 
         case TypeInfoKind::Int:
@@ -93,6 +93,7 @@ TypeInfo::TypeInfo(TypeInfo&& other) noexcept :
         case TypeInfoKind::Rune:
         case TypeInfoKind::CString:
         case TypeInfoKind::Variadic:
+        case TypeInfoKind::TypeInfo:
             break;
 
         case TypeInfoKind::Int:
@@ -172,6 +173,7 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
         case TypeInfoKind::Rune:
         case TypeInfoKind::CString:
         case TypeInfoKind::Variadic:
+        case TypeInfoKind::TypeInfo:
             return true;
 
         case TypeInfoKind::Int:
@@ -272,15 +274,15 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
             out += asFunction.sym->computeName(ctx);
             break;
 
-        case TypeInfoKind::TypeValue:
-            if (asTypeRef.typeRef.isInvalid())
-                out += "typeinfo";
-            else
-            {
-                const TypeInfo& type = ctx.typeMgr().get(asTypeRef.typeRef);
-                out += std::format("typeinfo({})", type.toName(ctx));
-            }
+        case TypeInfoKind::TypeInfo:
+            out += "typeinfo";
             break;
+        case TypeInfoKind::TypeValue:
+        {
+            const TypeInfo& type = ctx.typeMgr().get(asTypeRef.typeRef);
+            out += std::format("typeinfo({})", type.toName(ctx));
+            break;
+        }
 
         case TypeInfoKind::ValuePointer:
         {
@@ -539,6 +541,7 @@ uint32_t TypeInfo::hash() const
         case TypeInfoKind::CString:
         case TypeInfoKind::Null:
         case TypeInfoKind::Variadic:
+        case TypeInfoKind::TypeInfo:
             return h;
 
         case TypeInfoKind::Int:
@@ -604,6 +607,7 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
         case TypeInfoKind::Null:
+        case TypeInfoKind::TypeInfo:
             return 8;
 
         case TypeInfoKind::Function:
@@ -663,6 +667,7 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
         case TypeInfoKind::Null:
         case TypeInfoKind::Variadic:
         case TypeInfoKind::TypedVariadic:
+        case TypeInfoKind::TypeInfo:
             return static_cast<uint32_t>(sizeOf(ctx));
 
         case TypeInfoKind::Array:

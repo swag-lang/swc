@@ -26,6 +26,12 @@ namespace SemaHelpers
             if (sym->isVariable())
                 symStruct->fields().push_back(sym);
         }
+        
+        if (const auto symAttr = symbolMap->safeCast<SymbolAttribute>())
+        {
+            if (sym->isVariable())
+                symAttr->parameters().push_back(sym);
+        }        
 
         return *sym;
     }

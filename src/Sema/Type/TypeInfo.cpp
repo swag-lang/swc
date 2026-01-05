@@ -791,13 +791,13 @@ TypeRef TypeInfo::underlyingTypeRef() const noexcept
 
 TypeRef TypeInfo::ultimateTypeRef(const TaskContext& ctx) const noexcept
 {
-    auto result = underlyingTypeRef();
+    TypeRef result = underlyingTypeRef();
     if (!result.isValid())
-        return {};
+        return TypeRef::invalid();
 
     while (true)
     {
-        auto sub = ctx.typeMgr().get(result).underlyingTypeRef();
+        TypeRef sub = ctx.typeMgr().get(result).underlyingTypeRef();
         if (!sub.isValid())
             break;
         result = sub;

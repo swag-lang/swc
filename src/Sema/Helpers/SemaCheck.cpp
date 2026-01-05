@@ -75,24 +75,25 @@ Result SemaCheck::checkSignature(Sema& sema, const std::vector<Symbol*>& paramet
     bool hasName = false;
     for (size_t i = 0; i < parameters.size(); i++)
     {
-        const auto& param = *parameters[i];
-        const auto& type  = param.type(sema.ctx());
-        
+        const Symbol&   param = *parameters[i];
+        const TypeInfo& type  = param.type(sema.ctx());
+
         if (attribute)
         {
-            auto sub = type.ultimateTypeRef(sema.ctx());
-            const auto& baseType = sub.isValid() ? sema.ctx().typeMgr().get(sub) : type;
+            const TypeInfo* baseType = &type;
+            if (type.isTypedVariadic())
+                baseType = &sema.ctx().typeMgr().get(type.typeRef());
 
             bool allowed = false;
-            if (baseType.isBool() ||
-                baseType.isChar() ||
-                baseType.isString() ||
-                baseType.isInt() ||
-                baseType.isFloat() ||
-                baseType.isRune() ||
-                baseType.isEnum() ||
-                baseType.isTypeInfo() ||
-                baseType.isType())
+            if (baseType->isBool() ||
+                baseType->isChar() ||
+                baseType->isString() ||
+                baseType->isInt() ||
+                baseType->isFloat() ||
+                baseType->isRune() ||
+                baseType->isEnum() ||
+                baseType->isTypeInfo() ||
+                baseType->isType())
             {
                 allowed = true;
             }
@@ -104,7 +105,7 @@ Result SemaCheck::checkSignature(Sema& sema, const std::vector<Symbol*>& paramet
                 diag.report(sema.ctx());
                 return Result::Stop;
             }
-        }        
+        }
 
         // Variadic must be last
         if (type.isAnyVariadic() && i != parameters.size() - 1)

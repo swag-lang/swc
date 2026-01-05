@@ -77,17 +77,7 @@ Result SemaCheck::checkSignature(Sema& sema, const std::vector<Symbol*>& paramet
     {
         const auto& param = *parameters[i];
         const auto& type  = param.type(sema.ctx());
-
-        // Variadic must be last
-        if (type.isVariadic() && i != parameters.size() - 1)
-            return SemaError::raise(sema, DiagnosticId::sema_err_variadic_not_last, param.decl()->srcViewRef(), param.tokRef());
-
-        // If a parameter has a name then what follows should have a name
-        if (param.idRef().isValid())
-            hasName = true;
-        else if (hasName)
-            return SemaError::raise(sema, DiagnosticId::sema_err_unnamed_parameter, param.decl()->srcViewRef(), param.tokRef());
-
+        
         if (attribute)
         {
             auto baseType = &type;
@@ -115,7 +105,17 @@ Result SemaCheck::checkSignature(Sema& sema, const std::vector<Symbol*>& paramet
                 diag.report(sema.ctx());
                 return Result::Stop;
             }
-        }
+        }        
+
+        // Variadic must be last
+        if (type.isAnyVariadic() && i != parameters.size() - 1)
+            return SemaError::raise(sema, DiagnosticId::sema_err_variadic_not_last, param.decl()->srcViewRef(), param.tokRef());
+
+        // If a parameter has a name then what follows should have a name
+        if (param.idRef().isValid())
+            hasName = true;
+        else if (hasName)
+            return SemaError::raise(sema, DiagnosticId::sema_err_unnamed_parameter, param.decl()->srcViewRef(), param.tokRef());
     }
 
     return Result::Continue;

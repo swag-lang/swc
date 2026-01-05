@@ -50,7 +50,7 @@ SWC_NODE_DEF(ValueType, AstNodeIdFlagsE::Zero)
 // ============================================================================
 SWC_NODE_DEF(AttrDecl, AstNodeIdFlagsE::SemaJob)
 SWC_NODE_DEF(Attribute, AstNodeIdFlagsE::Zero)
-SWC_NODE_DEF(AttributeList, AstNodeIdFlagsE::Zero)
+SWC_NODE_DEF(AttributeList, AstNodeIdFlagsE::SemaJob)
 SWC_NODE_DEF(ConstraintBlock, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(ConstraintExpr, AstNodeIdFlagsE::Zero)
 

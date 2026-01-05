@@ -29,12 +29,22 @@ Sema::Sema(TaskContext& ctx, SemaInfo& semInfo, bool declPass) :
 Sema::Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root) :
     ctx_(&ctx),
     semaInfo_(parent.semaInfo_),
-    startSymMap_(parent.curScope_->symMap())
-
+    startSymMap_(parent.curScope_ ? parent.curScope_->symMap() : parent.startSymMap_)
 {
     visit_.start(semaInfo_->ast(), root);
     pushFrame(parent.frame());
     setVisitors();
+
+    for (const auto& scope : parent.scopes_)
+    {
+        scopes_.emplace_back(std::make_unique<SemaScope>(*scope));
+        if (scopes_.size() > 1)
+            scopes_.back()->setParent(scopes_[scopes_.size() - 2].get());
+        else
+            scopes_.back()->setParent(nullptr);
+    }
+
+    curScope_ = scopes_.empty() ? nullptr : scopes_.back().get();
 }
 
 Sema::~Sema() = default;
@@ -278,7 +288,7 @@ Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
 
 JobResult Sema::exec()
 {
-    if (!curScope_)
+    if (!curScope_ && scopes_.empty())
     {
         scopes_.emplace_back(std::make_unique<SemaScope>(SemaScopeFlagsE::TopLevel, nullptr));
         curScope_ = scopes_.back().get();

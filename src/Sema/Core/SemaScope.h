@@ -24,6 +24,7 @@ public:
     }
 
     SemaScope*     parent() const { return parent_; }
+    void           setParent(SemaScope* parent) { parent_ = parent; }
     SemaScopeFlags flags() const { return flags_; }
     bool           hasFlag(SemaScopeFlags flag) const { return flags_.has(flag); }
     bool           isTopLevel() const { return hasFlag(SemaScopeFlagsE::TopLevel); }

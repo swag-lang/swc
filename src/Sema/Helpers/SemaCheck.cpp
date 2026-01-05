@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Main/CompilerInstance.h"
+#include "Parser/AstNodes.h"
 #include "Sema/Core/Sema.h"
 #include "Sema/Helpers/SemaError.h"
+#include "Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -70,13 +72,14 @@ Result SemaCheck::isConstant(Sema& sema, AstNodeRef nodeRef)
     return Result::Continue;
 }
 
-Result SemaCheck::checkSignature(Sema& sema, const std::vector<Symbol*>& parameters, bool attribute)
+Result SemaCheck::checkSignature(Sema& sema, const std::vector<SymbolVariable*>& parameters, bool attribute)
 {
-    bool hasName = false;
+    bool hasName    = false;
+    bool hasDefault = false;
     for (size_t i = 0; i < parameters.size(); i++)
     {
-        const Symbol&   param = *parameters[i];
-        const TypeInfo& type  = param.type(sema.ctx());
+        const SymbolVariable& param = *parameters[i];
+        const TypeInfo&       type  = param.type(sema.ctx());
 
         if (attribute)
         {
@@ -111,7 +114,14 @@ Result SemaCheck::checkSignature(Sema& sema, const std::vector<Symbol*>& paramet
         if (type.isAnyVariadic() && i != parameters.size() - 1)
             return SemaError::raise(sema, DiagnosticId::sema_err_variadic_not_last, param.decl()->srcViewRef(), param.tokRef());
 
-        // If a parameter has a name then what follows should have a name
+        // A parameter without a default follows a parameter with a default value
+        const auto varDecl = param.decl()->cast<AstVarDecl>();
+        if (varDecl->nodeInitRef.isValid())
+            hasDefault = true;
+        else if (hasDefault)
+            return SemaError::raise(sema, DiagnosticId::sema_err_parameter_default_value_not_last, param.decl()->srcViewRef(), param.tokRef());
+
+        // If a parameter has a name, then what follows should have a name
         if (param.idRef().isValid())
             hasName = true;
         else if (hasName)

@@ -24,13 +24,13 @@ namespace SemaHelpers
         if (const auto symStruct = symbolMap->safeCast<SymbolStruct>())
         {
             if (sym->isVariable())
-                symStruct->addField(sym);
+                symStruct->addField(reinterpret_cast<SymbolVariable*>(sym));
         }
 
         if (const auto symAttr = symbolMap->safeCast<SymbolAttribute>())
         {
             if (sym->isVariable())
-                symAttr->addParameter(sym);
+                symAttr->addParameter(reinterpret_cast<SymbolVariable*>(sym));
         }
 
         return *sym;

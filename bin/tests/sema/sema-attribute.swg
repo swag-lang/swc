@@ -21,3 +21,6 @@ attr Foreign3(module: s32...)
 attr Foreign2(module: any)              // swc-expected-error {{sema_err_invalid_attribute_parameter_type}}
 attr Foreign4(module: ..., x: s32)      // swc-expected-error {{sema_err_invalid_attribute_parameter_type}}
 attr Foreign5(module: s32..., x: s32)   // swc-expected-error {{sema_err_variadic_not_last}}
+attr Default1(x: s32 = 0, y: s32)       // swc-expected-error {{sema_err_parameter_default_value_not_last}}
+
+attr Default2(x: s32, x: bool)  // swc-expected-error {{sema_err_already_defined}}

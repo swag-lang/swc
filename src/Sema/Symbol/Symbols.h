@@ -121,18 +121,18 @@ public:
     {
     }
 
-    uint64_t                    sizeOf() const { return sizeInBytes_; }
-    uint32_t                    alignment() const { return alignment_; }
-    std::vector<Symbol*>&       fields() { return fields_; }
-    const std::vector<Symbol*>& fields() const { return fields_; }
-    Result                      canBeCompleted(Sema& sema) const;
-    void                        computeLayout(Sema& sema);
-    void                        addField(Symbol* sym) { fields_.push_back(sym); }
+    uint64_t                            sizeOf() const { return sizeInBytes_; }
+    uint32_t                            alignment() const { return alignment_; }
+    std::vector<SymbolVariable*>&       fields() { return fields_; }
+    const std::vector<SymbolVariable*>& fields() const { return fields_; }
+    Result                              canBeCompleted(Sema& sema) const;
+    void                                computeLayout(Sema& sema);
+    void                                addField(SymbolVariable* sym) { fields_.push_back(sym); }
 
 private:
-    std::vector<Symbol*> fields_;
-    uint64_t             sizeInBytes_ = 0;
-    uint32_t             alignment_   = 0;
+    std::vector<SymbolVariable*> fields_;
+    uint64_t                     sizeInBytes_ = 0;
+    uint32_t                     alignment_   = 0;
 };
 
 // -----------------------------------------------------------------------------
@@ -190,10 +190,10 @@ public:
     {
     }
 
-    TypeRef               returnType() const { return returnType_; }
-    void                  setReturnType(TypeRef typeRef) { returnType_ = typeRef; }
-    std::vector<Symbol*>& parameters() { return parameters_; }
-    void                  addParameter(Symbol* sym) { parameters_.push_back(sym); }
+    TypeRef                       returnType() const { return returnType_; }
+    void                          setReturnType(TypeRef typeRef) { returnType_ = typeRef; }
+    std::vector<SymbolVariable*>& parameters() { return parameters_; }
+    void                          addParameter(SymbolVariable* sym) { parameters_.push_back(sym); }
 
     SymbolFunctionFlags funcFlags() const noexcept { return funcFlags_; }
     bool                hasFuncFlag(SymbolFunctionFlagsE flag) const noexcept { return funcFlags_.has(flag); }
@@ -201,9 +201,9 @@ public:
     Utf8                computeName(const TaskContext& ctx) const;
 
 private:
-    std::vector<Symbol*> parameters_;
-    TypeRef              returnType_ = TypeRef::invalid();
-    SymbolFunctionFlags  funcFlags_  = SymbolFunctionFlagsE::Zero;
+    std::vector<SymbolVariable*> parameters_;
+    TypeRef                      returnType_ = TypeRef::invalid();
+    SymbolFunctionFlags          funcFlags_  = SymbolFunctionFlagsE::Zero;
 };
 
 // -----------------------------------------------------------------------------
@@ -219,13 +219,13 @@ public:
     {
     }
 
-    AttributeFlags        attributeFlags() const { return attributes_; }
-    void                  setAttributeFlags(AttributeFlags attr) { attributes_ = attr; }
-    std::vector<Symbol*>& parameters() { return parameters_; }
-    void                  addParameter(Symbol* sym) { parameters_.push_back(sym); }
+    AttributeFlags                attributeFlags() const { return attributes_; }
+    void                          setAttributeFlags(AttributeFlags attr) { attributes_ = attr; }
+    std::vector<SymbolVariable*>& parameters() { return parameters_; }
+    void                          addParameter(SymbolVariable* sym) { parameters_.push_back(sym); }
 
 private:
-    std::vector<Symbol*> parameters_;
+    std::vector<SymbolVariable*> parameters_;
 };
 
 SWC_END_NAMESPACE()

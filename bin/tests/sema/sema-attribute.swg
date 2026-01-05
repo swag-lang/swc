@@ -24,3 +24,39 @@ attr Foreign5(module: s32..., x: s32)   // swc-expected-error {{sema_err_variadi
 attr Default1(x: s32 = 0, y: s32)       // swc-expected-error {{sema_err_parameter_default_value_not_last}}
 
 attr Default2(x: s32, x: bool)  // swc-expected-error {{sema_err_already_defined}}
+
+attr AttrSignedInts1(a: s8)
+attr AttrSignedInts2(a: s8, b: s16, c: s32, d: s64)
+
+attr AttrUnsignedInts1(a: u8)
+attr AttrUnsignedInts2(a: u8, b: u16, c: u32, d: u64)
+
+attr AttrMixedInts(a: s8, b: u8, c: s16, d: u16, e: s32, f: u32)
+
+attr AttrStrings(a: string)
+attr AttrStringRune(a: string, b: rune)
+attr AttrTypeInfo(t: typeinfo)
+attr AttrAllKinds(a: s8, b: u8, c: string, d: rune, e: typeinfo)
+
+attr DefaultOkInt1(x: s8 = 0)
+attr DefaultOkInt2(x: s16, y: u8 = 1)
+attr DefaultOkString(x: string = "")
+attr DefaultOkRune(ch: rune = 'a')
+attr DefaultOkMixed(a: s8, b: string = "", c: rune = 'x')
+
+attr ValidFloat32(x: f32)
+attr ValidFloat64(x: f64)
+attr ValidMixed1(a: s8, b: f32)
+attr ValidMixed2(a: string, b: f64)
+attr ValidVariadicFloat(x: f32...)
+
+attr DefaultBadInt8(a: s8 = 0, b: s16)           // swc-expected-error {{sema_err_parameter_default_value_not_last}}
+attr DefaultBadString(a: string = "", b: rune)   // swc-expected-error {{sema_err_parameter_default_value_not_last}}
+
+attr VariadicSigned(a: s8...)
+attr VariadicUnsigned(a: u8...)
+attr VariadicString(a: string...)
+
+attr VariadicNotLast1(a: s8..., b: s16)      // swc-expected-error {{sema_err_variadic_not_last}}
+attr VariadicNotLast2(a: string..., b: s32)  // swc-expected-error {{sema_err_variadic_not_last}}
+

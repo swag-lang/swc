@@ -80,20 +80,19 @@ Result SemaCheck::checkSignature(Sema& sema, const std::vector<Symbol*>& paramet
         
         if (attribute)
         {
-            auto baseType = &type;
-            if (type.isTypedVariadic())
-                baseType = &sema.ctx().typeMgr().get(type.typeRef());
+            auto sub = type.ultimateTypeRef(sema.ctx());
+            const auto& baseType = sub.isValid() ? sema.ctx().typeMgr().get(sub) : type;
 
             bool allowed = false;
-            if (baseType->isBool() ||
-                baseType->isChar() ||
-                baseType->isString() ||
-                baseType->isInt() ||
-                baseType->isFloat() ||
-                baseType->isRune() ||
-                baseType->isEnum() ||
-                baseType->isTypeInfo() ||
-                baseType->isType())
+            if (baseType.isBool() ||
+                baseType.isChar() ||
+                baseType.isString() ||
+                baseType.isInt() ||
+                baseType.isFloat() ||
+                baseType.isRune() ||
+                baseType.isEnum() ||
+                baseType.isTypeInfo() ||
+                baseType.isType())
             {
                 allowed = true;
             }

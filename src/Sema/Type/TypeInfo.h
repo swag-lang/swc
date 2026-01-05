@@ -134,6 +134,8 @@ public:
     TypeRef              typeRef() const noexcept { SWC_ASSERT(isTypeValue() || isPointer() || isSlice() || isAlias() || isTypedVariadic()); return asTypeRef.typeRef; }
     auto&                arrayDims() const noexcept { SWC_ASSERT(isArray()); return asArray.dims; }
     TypeRef              arrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return asArray.typeRef; }
+    TypeRef              underlyingTypeRef() const noexcept;
+    TypeRef              ultimateTypeRef(const TaskContext& ctx) const noexcept;
     SymbolFunction&      functionSym() const noexcept { SWC_ASSERT(isFunction()); return *asFunction.sym; }
     bool                 isLambdaClosure()   const noexcept;
     bool                 isLambdaMethod()    const noexcept;

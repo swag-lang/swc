@@ -780,6 +780,32 @@ bool TypeInfo::isLambdaThrowable() const noexcept
     return asFunction.sym->hasFuncFlag(SymbolFunctionFlagsE::Throwable);
 }
 
+TypeRef TypeInfo::underlyingTypeRef() const noexcept
+{
+    if (isPointer() || isSlice() || isAlias() || isTypedVariadic() || isTypeValue())
+        return asTypeRef.typeRef;
+    if (isArray())
+        return asArray.typeRef;
+    return {};
+}
+
+TypeRef TypeInfo::ultimateTypeRef(const TaskContext& ctx) const noexcept
+{
+    auto result = underlyingTypeRef();
+    if (!result.isValid())
+        return {};
+
+    while (true)
+    {
+        auto sub = ctx.typeMgr().get(result).underlyingTypeRef();
+        if (!sub.isValid())
+            break;
+        result = sub;
+    }
+
+    return result;
+}
+
 TypeInfo::TypeInfo(TypeInfoKind kind, TypeInfoFlags flags) :
     kind_(kind),
     flags_(flags)

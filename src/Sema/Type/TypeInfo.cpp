@@ -196,6 +196,8 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
             return asInterface.sym == other.asInterface.sym;
         case TypeInfoKind::Alias:
             return asAlias.sym == other.asAlias.sym;
+        case TypeInfoKind::Function:
+            return asFunction.sym == other.asFunction.sym;
 
         case TypeInfoKind::Array:
             if (asArray.dims.size() != other.asArray.dims.size())
@@ -204,17 +206,6 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
                 return false;
             for (uint32_t i = 0; i < asArray.dims.size(); ++i)
                 if (asArray.dims[i] != other.asArray.dims[i])
-                    return false;
-            return true;
-        case TypeInfoKind::Function:
-            if (asFunction.sym->funcFlags() != other.asFunction.sym->funcFlags())
-                return false;
-            if (asFunction.sym->parameters().size() != other.asFunction.sym->parameters().size())
-                return false;
-            if (asFunction.sym->returnType() != other.asFunction.sym->returnType())
-                return false;
-            for (uint32_t i = 0; i < asFunction.sym->parameters().size(); ++i)
-                if (asFunction.sym->parameters()[i]->typeRef() != other.asFunction.sym->parameters()[i]->typeRef())
                     return false;
             return true;
 

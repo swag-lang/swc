@@ -26,5 +26,4 @@ var K: func(s32...) = null
 
 
 var A0: func(a: s32)
-//#assert(#nameof(#typeof(A0)) == "func(a: s32)")
-#assert(#nameof(#typeof(A0)) != "func(s32)")
+#assert(#nameof(#typeof(A0)) == "func(a: s32)")

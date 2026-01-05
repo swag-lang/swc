@@ -361,7 +361,7 @@ Utf8 ConstantValue::toString(const TaskContext& ctx) const
         case ConstantKind::Null:
             return "null";
         case ConstantKind::Undefined:
-            return "undefined";            
+            return "undefined";
 
         default:
             SWC_UNREACHABLE();

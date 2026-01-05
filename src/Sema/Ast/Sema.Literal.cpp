@@ -102,8 +102,13 @@ Result AstBoolLiteral::semaPreNode(Sema& sema) const
 
 Result AstNullLiteral::semaPreNode(Sema& sema)
 {
-    const auto& ctx = sema.ctx();
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstNull());
+    return Result::SkipChildren;
+}
+
+Result AstUndefinedExpr::semaPreNode(Sema& sema)
+{
+    sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstUndefined());
     return Result::SkipChildren;
 }
 

@@ -20,6 +20,7 @@ public:
     TypeRef typeAny() const { return typeAny_; }
     TypeRef typeVoid() const { return typeVoid_; }
     TypeRef typeNull() const { return typeNull_; }
+    TypeRef typeUndefined() const { return typeUndefined_; }
     TypeRef typeRune() const { return typeRune_; }
     TypeRef typeCString() const { return typeCString_; }
     TypeRef typeVariadic() const { return typeVariadic_; }
@@ -75,6 +76,7 @@ private:
     TypeRef typeAny_         = TypeRef::invalid();
     TypeRef typeVoid_        = TypeRef::invalid();
     TypeRef typeNull_        = TypeRef::invalid();
+    TypeRef typeUndefined_   = TypeRef::invalid();
     TypeRef typeRune_        = TypeRef::invalid();
     TypeRef typeCString_     = TypeRef::invalid();
     TypeRef typeVariadic_    = TypeRef::invalid();

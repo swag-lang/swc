@@ -34,6 +34,7 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
         case TypeInfoKind::CString:
         case TypeInfoKind::Variadic:
         case TypeInfoKind::TypeInfo:
+        case TypeInfoKind::Undefined:
             break;
 
         case TypeInfoKind::Int:
@@ -94,6 +95,7 @@ TypeInfo::TypeInfo(TypeInfo&& other) noexcept :
         case TypeInfoKind::CString:
         case TypeInfoKind::Variadic:
         case TypeInfoKind::TypeInfo:
+        case TypeInfoKind::Undefined:
             break;
 
         case TypeInfoKind::Int:
@@ -239,6 +241,9 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
             break;
         case TypeInfoKind::Null:
             out += "null";
+            break;
+        case TypeInfoKind::Undefined:
+            out += "undefined";
             break;
         case TypeInfoKind::Any:
             out += "any";
@@ -420,6 +425,11 @@ TypeInfo TypeInfo::makeNull()
     return TypeInfo{TypeInfoKind::Null};
 }
 
+TypeInfo TypeInfo::makeUndefined()
+{
+    return TypeInfo{TypeInfoKind::Undefined, TypeInfoFlagsE::Zero};
+}
+
 TypeInfo TypeInfo::makeCString(TypeInfoFlags flags)
 {
     return TypeInfo{TypeInfoKind::CString, flags};
@@ -531,6 +541,7 @@ uint32_t TypeInfo::hash() const
         case TypeInfoKind::Rune:
         case TypeInfoKind::CString:
         case TypeInfoKind::Null:
+        case TypeInfoKind::Undefined:
         case TypeInfoKind::Variadic:
         case TypeInfoKind::TypeInfo:
             return h;
@@ -580,6 +591,7 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
     switch (kind_)
     {
         case TypeInfoKind::Void:
+        case TypeInfoKind::Undefined:
             return 0;
 
         case TypeInfoKind::Bool:
@@ -656,6 +668,7 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
         case TypeInfoKind::Interface:
         case TypeInfoKind::Any:
         case TypeInfoKind::Null:
+        case TypeInfoKind::Undefined:
         case TypeInfoKind::Variadic:
         case TypeInfoKind::TypedVariadic:
         case TypeInfoKind::TypeInfo:

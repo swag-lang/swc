@@ -149,6 +149,15 @@ ConstantValue ConstantValue::makeNull(const TaskContext& ctx)
     return cv;
 }
 
+ConstantValue ConstantValue::makeUndefined(const TaskContext& ctx)
+{
+    ConstantValue cv;
+    cv.typeRef_ = ctx.typeMgr().typeUndefined();
+    cv.kind_    = ConstantKind::Undefined;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return cv;
+}
+
 ConstantValue ConstantValue::makeString(const TaskContext& ctx, std::string_view value)
 {
     ConstantValue cv;
@@ -286,6 +295,7 @@ uint32_t ConstantValue::hash() const noexcept
             h = Math::hashCombine(h, asFloat.val.hash());
             break;
         case ConstantKind::Null:
+        case ConstantKind::Undefined:
             break;
         case ConstantKind::EnumValue:
             h = Math::hashCombine(h, asEnumValue.val.get());
@@ -350,6 +360,8 @@ Utf8 ConstantValue::toString(const TaskContext& ctx) const
             return ctx.cstMgr().get(asEnumValue.val).toString(ctx);
         case ConstantKind::Null:
             return "null";
+        case ConstantKind::Undefined:
+            return "undefined";            
 
         default:
             SWC_UNREACHABLE();

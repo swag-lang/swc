@@ -16,6 +16,7 @@ void ConstantManager::setup(const TaskContext& ctx)
     cstS32_1_      = addS32(ctx, 1);
     cstS32_neg1_   = addS32(ctx, -1);
     cstNull_       = addConstant(ctx, ConstantValue::makeNull(ctx));
+    cstUndefined_  = addConstant(ctx, ConstantValue::makeUndefined(ctx));
 }
 
 ConstantRef ConstantManager::addS32(const TaskContext& ctx, int32_t value)

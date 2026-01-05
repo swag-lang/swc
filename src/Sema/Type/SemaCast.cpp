@@ -274,6 +274,13 @@ namespace
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
         return false;
     }
+
+    bool castUndefined(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        if (castCtx.isFolding())
+            castCtx.outConstRef = castCtx.srcConstRef;
+        return true;
+    }
 }
 
 bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
@@ -305,6 +312,8 @@ bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef,
         ok = castFromEnum(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isNull())
         ok = castNull(sema, castCtx, srcTypeRef, dstTypeRef);
+    else if (srcType.isUndefined())
+        ok = castUndefined(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isBool() && dstType.isIntLike())
         ok = castBoolToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isIntLike() && dstType.isBool())

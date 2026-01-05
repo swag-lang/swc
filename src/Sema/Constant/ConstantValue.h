@@ -20,6 +20,7 @@ enum class ConstantKind
     Int,
     Float,
     Null,
+    Undefined,
     TypeValue,
     EnumValue,
 };
@@ -69,6 +70,7 @@ public:
 
     static ConstantValue makeBool(const TaskContext& ctx, bool value);
     static ConstantValue makeNull(const TaskContext& ctx);
+    static ConstantValue makeUndefined(const TaskContext& ctx);
     static ConstantValue makeString(const TaskContext& ctx, std::string_view value);
     static ConstantValue makeChar(const TaskContext& ctx, char32_t value);
     static ConstantValue makeRune(const TaskContext& ctx, char32_t value);

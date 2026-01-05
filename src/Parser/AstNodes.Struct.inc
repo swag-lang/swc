@@ -1080,6 +1080,7 @@ struct AstVarDeclList : AstCompoundT<AstNodeId::VarDeclList>
 // -----------------------------------------------------------------------------
 struct AstUndefinedExpr : AstNodeT<AstNodeId::UndefinedExpr>
 {
+    static Result semaPreNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

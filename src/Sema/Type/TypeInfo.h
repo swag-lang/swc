@@ -32,6 +32,7 @@ enum class TypeInfoKind : uint8_t
     Any,
     Void,
     Null,
+    Undefined,
     CString,
     Enum,
     ValuePointer,
@@ -97,6 +98,7 @@ public:
     bool isAny() const noexcept { return kind_ == TypeInfoKind::Any; }
     bool isVoid() const noexcept { return kind_ == TypeInfoKind::Void; }
     bool isNull() const noexcept { return kind_ == TypeInfoKind::Null; }
+    bool isUndefined() const noexcept { return kind_ == TypeInfoKind::Undefined; }
     bool isCString() const noexcept { return kind_ == TypeInfoKind::CString; }
     bool isEnum() const noexcept { return kind_ == TypeInfoKind::Enum; }
     bool isStruct() const noexcept { return kind_ == TypeInfoKind::Struct; }
@@ -152,6 +154,7 @@ public:
     static TypeInfo makeAny(TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeVoid();
     static TypeInfo makeNull();
+    static TypeInfo makeUndefined();
     static TypeInfo makeCString(TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeTypeInfo();
     static TypeInfo makeEnum(SymbolEnum* sym);

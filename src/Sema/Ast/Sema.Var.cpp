@@ -3,6 +3,7 @@
 #include "Parser/AstNodes.h"
 #include "Report/DiagnosticDef.h"
 #include "Sema/Core/SemaNodeView.h"
+#include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaHelpers.h"
 #include "Sema/Symbol/SemaMatch.h"
@@ -34,6 +35,18 @@ Result AstVarDecl::semaPostNode(Sema& sema) const
     auto&              ctx = sema.ctx();
     SemaNodeView       nodeInitView(sema, nodeInitRef);
     const SemaNodeView nodeTypeView(sema, nodeTypeRef);
+
+    // Initialized to 'undefined'
+    if (nodeInitRef.isValid() && nodeInitView.cstRef == sema.cstMgr().cstUndefined())
+    {
+        if (hasParserFlag(Const))
+            return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, srcViewRef(), tokNameRef);
+        if (nodeTypeRef.isInvalid())
+            return SemaError::raise(sema, DiagnosticId::sema_err_not_type, srcViewRef(), tokNameRef);
+
+        Symbol& sym = sema.symbolOf(sema.curNodeRef());
+        sym.addFlag(SymbolFlagsE::ExplicitUndefined);
+    }
 
     // Implicit cast from initializer to the specified type
     if (nodeInitView.typeRef.isValid() && nodeTypeView.typeRef.isValid())
@@ -78,6 +91,9 @@ Result AstVarDecl::semaPostNode(Sema& sema) const
         RESULT_VERIFY(ctx.cstMgr().concretizeConstant(sema, newCstRef, nodeInitView.nodeRef, nodeInitView.cstRef, TypeInfo::Sign::Unknown));
         nodeInitView.setCstRef(sema, newCstRef);
     }
+
+    if (nodeInitRef.isValid())
+        RESULT_VERIFY(SemaCheck::isValueExpr(sema, nodeInitRef));
 
     // Constant
     if (hasParserFlag(Const))

@@ -44,6 +44,7 @@ enum class TypeInfoKind : uint8_t
     Function,
     Variadic,
     TypedVariadic,
+    TypeInfo,
 };
 
 class TypeInfo;
@@ -149,6 +150,7 @@ public:
     static TypeInfo makeVoid();
     static TypeInfo makeNull();
     static TypeInfo makeCString(TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    static TypeInfo makeTypeInfo();
     static TypeInfo makeEnum(SymbolEnum* sym);
     static TypeInfo makeStruct(SymbolStruct* sym);
     static TypeInfo makeInterface(SymbolInterface* sym);

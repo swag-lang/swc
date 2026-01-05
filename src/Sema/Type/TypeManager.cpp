@@ -35,6 +35,7 @@ void TypeManager::setup(TaskContext&)
     typeRune_     = addType(TypeInfo::makeRune());
     typeCString_  = addType(TypeInfo::makeCString());
     typeVariadic_ = addType(TypeInfo::makeVariadic());
+    typeTypeInfo_ = addType(TypeInfo::makeTypeInfo());
 
     buildPromoteTable();
 }

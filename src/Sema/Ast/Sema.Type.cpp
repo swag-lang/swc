@@ -71,6 +71,9 @@ Result AstBuiltinType::semaPostNode(Sema& sema) const
         case TokenId::TypeRune:
             sema.setType(nodeRef, typeMgr.typeRune());
             return Result::Continue;
+                    case TokenId::TypeTypeInfo:
+            sema.setType(nodeRef, typeMgr.typeTypeInfo());
+            return Result::Continue;            
 
         default:
             break;

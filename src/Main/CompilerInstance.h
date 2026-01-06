@@ -8,6 +8,7 @@
 
 SWC_BEGIN_NAMESPACE()
 
+struct AstCompilerFunc;
 class SourceView;
 class TaskContext;
 class TypeManager;
@@ -39,15 +40,17 @@ public:
     SymbolModule*       symModule() { return symModule_; }
     const SymbolModule* symModule() const { return symModule_; }
 
-    void setupSema(TaskContext& ctx);
-    void notifySymbolAdded() { changed_ = true; }
-    void notifySymbolTyped() { changed_ = true; }
-    void notifySymbolCompleted() { changed_ = true; }
-    void notifySymbolDeclared() { changed_ = true; }
-    void notifySymbolIgnored() { changed_ = true; }
-    bool changed() const { return changed_; }
-    void clearChanged() { changed_ = false; }
+    void                   setupSema(TaskContext& ctx);
+    void                   notifySymbolAdded() { changed_ = true; }
+    void                   notifySymbolTyped() { changed_ = true; }
+    void                   notifySymbolCompleted() { changed_ = true; }
+    void                   notifySymbolDeclared() { changed_ = true; }
+    void                   notifySymbolIgnored() { changed_ = true; }
+    bool                   changed() const { return changed_; }
+    void                   clearChanged() { changed_ = false; }
     std::atomic<uint32_t>& atomicId() const { return const_cast<CompilerInstance*>(this)->atomicId_; }
+    bool                   setMainFunc(AstCompilerFunc* node);
+    AstCompilerFunc*       mainFunc() const { return mainFunc_; }
 
     SourceFile& addFile(fs::path path, FileFlags flags);
     SourceFile& file(FileRef ref) const { return *files_[ref.get()].get(); }
@@ -106,6 +109,7 @@ private:
 
     std::vector<PerThreadData> perThreadData_;
     std::atomic<uint32_t>      atomicId_ = 0;
+    AstCompilerFunc*           mainFunc_ = nullptr;
 
     SWC_RACE_CONDITION_INSTANCE(rcFiles_);
 

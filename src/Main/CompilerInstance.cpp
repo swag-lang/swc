@@ -145,6 +145,15 @@ SourceView& CompilerInstance::addSourceView(FileRef fileRef)
     return *srcViews_.back();
 }
 
+bool CompilerInstance::setMainFunc(AstCompilerFunc* node)
+{
+    std::unique_lock lock(mutex_);
+    if (mainFunc_)
+        return false;
+    mainFunc_ = node;
+    return true;
+}
+
 SourceFile& CompilerInstance::addFile(fs::path path, FileFlags flags)
 {
     SWC_RACE_CONDITION_WRITE(rcFiles_);

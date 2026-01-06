@@ -492,7 +492,21 @@ Result AstCompilerCallUnary::semaPostNode(Sema& sema) const
 Result AstCompilerFunc::semaPreNode(Sema& sema)
 {
     auto& ctx = sema.ctx();
-    
+
+    const Token& tok = sema.token(srcViewRef(), tokRef());
+    if (tok.id == TokenId::CompilerFuncMain)
+    {
+        if (!ctx.compiler().setMainFunc(this))
+        {
+            auto  diag = SemaError::report(sema, DiagnosticId::sema_err_already_defined, srcViewRef(), tokRef());
+            auto& note = diag.addElement(DiagnosticId::sema_note_other_definition);
+            note.setSeverity(DiagnosticSeverity::Note);
+            note.addSpan(Diagnostic::tokenErrorLocation(ctx, ctx.compiler().mainFunc()->srcView(ctx), ctx.compiler().mainFunc()->tokRef()));
+            diag.report(ctx);
+            return Result::Stop;
+        }
+    }
+
     // Register a unique symbol for the compiler function
     const uint32_t id      = ctx.compiler().atomicId().fetch_add(1);
     const Utf8     name    = std::format("__func_{}", id);

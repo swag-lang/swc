@@ -38,14 +38,14 @@ namespace SemaHelpers
         return *sym;
     }
 
-    inline IdentifierRef getUniqueIdentifier(Sema& sema, const Utf8& name)
+    inline IdentifierRef getUniqueIdentifier(Sema& sema, const std::string_view& name)
     {
         const uint32_t id = sema.ctx().compiler().atomicId().fetch_add(1);
         return sema.idMgr().addIdentifier(std::format("{}_{}", name, id));
     }
 
     template<typename T>
-    T& registerUniqueSymbol(Sema& sema, const AstNode& node, const Utf8& name)
+    T& registerUniqueSymbol(Sema& sema, const AstNode& node, const std::string_view& name)
     {
         auto&               ctx    = sema.ctx();
         const IdentifierRef idRef  = getUniqueIdentifier(sema, name);

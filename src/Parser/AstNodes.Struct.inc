@@ -300,7 +300,7 @@ struct AstCompilerFunc : AstNodeT<AstNodeId::CompilerFunc>
 
     void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
     Result        semaPreDecl(Sema& sema);
-    Result        semaPreNode(Sema& sema) const;
+    static Result semaPreNode(Sema& sema);
     static Result semaPostNode(Sema& sema);
 };
 

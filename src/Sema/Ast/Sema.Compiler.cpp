@@ -507,13 +507,7 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
         }
     }
 
-    return Result::SkipChildren;
-}
-
-Result AstCompilerFunc::semaPreNode(Sema& sema) const
-{
-    const Token& tok = sema.token(srcViewRef(), tokRef());
-    Utf8         name;
+    std::string_view name;
     switch (tok.id)
     {
         case TokenId::CompilerRun:
@@ -544,6 +538,11 @@ Result AstCompilerFunc::semaPreNode(Sema& sema) const
     }
 
     SemaHelpers::registerUniqueSymbol<SymbolFunction>(sema, *this, name);
+    return Result::SkipChildren;
+}
+
+Result AstCompilerFunc::semaPreNode(Sema& sema)
+{
     sema.pushScope(SemaScopeFlagsE::Local);
     return Result::Continue;
 }

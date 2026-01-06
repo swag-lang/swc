@@ -92,8 +92,8 @@ SWC_NODE_DEF(ImplEnum, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(UsingEnumDecl, AstNodeIdFlagsE::Zero)
 
 // Implementations
-SWC_NODE_DEF(Impl, AstNodeIdFlagsE::Zero)
-SWC_NODE_DEF(ImplFor, AstNodeIdFlagsE::Zero)
+SWC_NODE_DEF(Impl, AstNodeIdFlagsE::SemaJob)
+SWC_NODE_DEF(ImplFor, AstNodeIdFlagsE::SemaJob)
 
 // ============================================================================
 //  Functions & Callables

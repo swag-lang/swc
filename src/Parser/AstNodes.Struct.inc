@@ -211,8 +211,11 @@ struct AstFunctionDecl : AstNamedNodeT<AstNodeId::FunctionDecl>
         AstNode::collectChildren(out, {nodeBodyRef});
     }
 
-    static Result semaPreDecl(Sema&) { return Result::SkipChildren; }
-    static Result semaPreNode(Sema&) { return Result::SkipChildren; }
+    Result        semaPreDecl(Sema& sema) const;
+    Result        semaPreNode(Sema& sema) const;
+    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    static Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

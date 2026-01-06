@@ -75,6 +75,7 @@
     <ClCompile Include="src\Sema\Sema_Literal_.cpp" />
     <ClCompile Include="src\Sema\Sema_Type_.cpp" />
     <ClCompile Include="src\Sema\Sema_ExprUnary_.cpp" />
+    <ClCompile Include="src\Sema\Sema_Function_.cpp" />
     <ClCompile Include="src\Sema\Sema_Var_.cpp" />
     <ClCompile Include="src\Sema\Symbol\BigMap.cpp" />
     <ClCompile Include="src\Sema\Symbol\IdentifierManager.cpp" />

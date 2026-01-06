@@ -258,6 +258,7 @@
         <ClCompile Include="src\Sema\Ast\Sema.ExprLogical.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.ExprRelational.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.ExprUnary.cpp"/>
+        <ClCompile Include="src\Sema\Ast\Sema.Function.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Interface.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Intrinsic.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Literal.cpp"/>

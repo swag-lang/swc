@@ -25,8 +25,14 @@ IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, SourceVie
     const SourceView&      srcView = ctx.compiler().srcView(srcViewRef);
     const Token&           tok     = srcView.token(tokRef);
     const std::string_view name    = tok.string(srcView);
-    const uint32_t         crc     = tok.crc(srcView);
-    return addIdentifier(name, crc);
+
+    if (tok.id == TokenId::Identifier)
+    {
+        const uint32_t crc = tok.crc(srcView);
+        return addIdentifier(name, crc);
+    }
+
+    return addIdentifier(name);
 }
 
 IdentifierRef IdentifierManager::addIdentifier(std::string_view name)

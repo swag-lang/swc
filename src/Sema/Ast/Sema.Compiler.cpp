@@ -241,11 +241,12 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema) const
         case TokenId::CompilerModule:
         case TokenId::CompilerCallerFunction:
         case TokenId::CompilerCallerLocation:
-
         case TokenId::CompilerSwagOs:
         case TokenId::CompilerBackend:
         case TokenId::CompilerScopeName:
         case TokenId::CompilerCurLocation:
+            // TODO
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
             return Result::Continue;
 
         default:

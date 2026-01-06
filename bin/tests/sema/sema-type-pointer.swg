@@ -28,3 +28,7 @@ var G: *F // swc-expected-error {{sema_err_not_type}}
 enum H { A = 0 }
 var I: *H
 var J: *H.A // swc-expected-error {{sema_err_not_type}}
+
+#test
+{
+}

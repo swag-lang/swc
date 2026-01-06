@@ -61,16 +61,9 @@ Result AstIntrinsicCallUnary::semaPostNode(Sema& sema)
 
 Result AstIntrinsicCallZero::semaPostNode(Sema& sema) const
 {
-    const Token& tok = sema.token(srcViewRef(), tokRef());
-    switch (tok.id)
-    {
-        default:
-            // TODO
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
-            break;
-    }
-
-    return Result::Continue;
+    // TODO
+    sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
+    return Result::SkipChildren;
 }
 
 SWC_END_NAMESPACE()

@@ -47,6 +47,7 @@ public:
     void notifySymbolIgnored() { changed_ = true; }
     bool changed() const { return changed_; }
     void clearChanged() { changed_ = false; }
+    std::atomic<uint32_t>& atomicId() const { return const_cast<CompilerInstance*>(this)->atomicId_; }
 
     SourceFile& addFile(fs::path path, FileFlags flags);
     SourceFile& file(FileRef ref) const { return *files_[ref.get()].get(); }
@@ -104,6 +105,7 @@ private:
     };
 
     std::vector<PerThreadData> perThreadData_;
+    std::atomic<uint32_t>      atomicId_ = 0;
 
     SWC_RACE_CONDITION_INSTANCE(rcFiles_);
 

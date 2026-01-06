@@ -489,4 +489,28 @@ Result AstCompilerCallUnary::semaPostNode(Sema& sema) const
     }
 }
 
+Result AstCompilerFunc::semaPreNode(Sema& sema)
+{
+    auto& ctx = sema.ctx();
+    
+    // Register a unique symbol for the compiler function
+    const uint32_t id      = ctx.compiler().atomicId().fetch_add(1);
+    const Utf8     name    = std::format("__func_{}", id);
+    const auto     idRef   = sema.idMgr().addIdentifier(name);
+    const auto     flags   = sema.frame().flagsForCurrentAccess();
+    SymbolMap*     symMap  = SemaFrame::currentSymMap(sema);
+    auto*          symFunc = Symbol::make<SymbolFunction>(ctx, this, tokRef(), idRef, flags);
+    symMap->addSymbol(ctx, symFunc, true);
+    sema.setSymbol(sema.curNodeRef(), symFunc);
+
+    sema.pushScope(SemaScopeFlagsE::Local);
+    return Result::Continue;
+}
+
+Result AstCompilerFunc::semaPostNode(Sema& sema)
+{
+    sema.popScope();
+    return Result::Continue;
+}
+
 SWC_END_NAMESPACE()

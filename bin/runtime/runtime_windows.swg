@@ -246,11 +246,11 @@ func __raiseException666(message: string, loc: Swag.SourceCodeLocation, kind: Sw
 {
     let cxt = @getcontext()
     cxt.exceptionLoc       = loc
-    //TODO cxt.exceptionParams[0] = cast(const *void) &cxt.exceptionLoc
-    //TODO cxt.exceptionParams[1] = cast(const *void) @dataof(message)
-    //TODO cxt.exceptionParams[2] = cast(const *void) cast(u64) @countof(message)
-    //TODO cxt.exceptionParams[3] = cast(const *void) cast(u64) kind
-    //TODO __Win32RT.RaiseException(666, 0, 4, &cxt.exceptionParams[0])
+    cxt.exceptionParams[0] = cast(const *void) &cxt.exceptionLoc
+    cxt.exceptionParams[1] = cast(const *void) @dataof(message)
+    cxt.exceptionParams[2] = cast(const *void) cast(u64) @countof(message)
+    cxt.exceptionParams[3] = cast(const *void) cast(u64) kind
+    __Win32RT.RaiseException(666, 0, 4, &cxt.exceptionParams[0])
 }
 
 ////////////////////////////////////////////////////////////

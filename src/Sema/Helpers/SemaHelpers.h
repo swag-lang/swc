@@ -1,7 +1,9 @@
 #pragma once
+#include "Core/Utf8.h"
 #include "Sema/Core/Sema.h"
 #include "Sema/Symbol/SymbolMap.h"
 #include "Sema/Symbol/Symbols.h"
+#include <format>
 
 SWC_BEGIN_NAMESPACE()
 
@@ -32,6 +34,27 @@ namespace SemaHelpers
             if (sym->isVariable())
                 symAttr->addParameter(reinterpret_cast<SymbolVariable*>(sym));
         }
+
+        return *sym;
+    }
+
+    inline IdentifierRef getUniqueIdentifier(Sema& sema, const Utf8& name)
+    {
+        const uint32_t id = sema.ctx().compiler().atomicId().fetch_add(1);
+        return sema.idMgr().addIdentifier(std::format("{}_{}", name, id));
+    }
+
+    template<typename T>
+    T& registerUniqueSymbol(Sema& sema, const AstNode& node, const Utf8& name)
+    {
+        auto&               ctx    = sema.ctx();
+        const IdentifierRef idRef  = getUniqueIdentifier(sema, name);
+        const SymbolFlags   flags  = sema.frame().flagsForCurrentAccess();
+        SymbolMap*          symMap = SemaFrame::currentSymMap(sema);
+
+        T* sym = Symbol::make<T>(ctx, &node, node.tokRef(), idRef, flags);
+        symMap->addSymbol(ctx, sym, true);
+        sema.setSymbol(sema.curNodeRef(), sym);
 
         return *sym;
     }

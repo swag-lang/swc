@@ -12,6 +12,7 @@
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
+#include "Sema/Helpers/SemaHelpers.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/TypeManager.h"
 #include "Wmf/SourceFile.h"
@@ -509,20 +510,40 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
     return Result::SkipChildren;
 }
 
-Result AstCompilerFunc::semaPreNode(Sema& sema)
+Result AstCompilerFunc::semaPreNode(Sema& sema) const
 {
-    auto& ctx = sema.ctx();
+    const Token& tok = sema.token(srcViewRef(), tokRef());
+    Utf8         name;
+    switch (tok.id)
+    {
+        case TokenId::CompilerRun:
+        case TokenId::CompilerAst:
+            name = "__run";
+            break;
+        case TokenId::CompilerFuncTest:
+            name = "__test";
+            break;
+        case TokenId::CompilerFuncInit:
+            name = "__init";
+            break;
+        case TokenId::CompilerFuncDrop:
+            name = "__drop";
+            break;
+        case TokenId::CompilerFuncMain:
+            name = "__main";
+            break;
+        case TokenId::CompilerFuncPreMain:
+            name = "__premain";
+            break;
+        case TokenId::CompilerFuncMessage:
+            name = "__message";
+            break;
+        default:
+            name = "__func";
+            break;
+    }
 
-    // Register a unique symbol for the compiler function
-    const uint32_t id      = ctx.compiler().atomicId().fetch_add(1);
-    const Utf8     name    = std::format("__func_{}", id);
-    const auto     idRef   = sema.idMgr().addIdentifier(name);
-    const auto     flags   = sema.frame().flagsForCurrentAccess();
-    SymbolMap*     symMap  = SemaFrame::currentSymMap(sema);
-    auto*          symFunc = Symbol::make<SymbolFunction>(ctx, this, tokRef(), idRef, flags);
-    symMap->addSymbol(ctx, symFunc, true);
-    sema.setSymbol(sema.curNodeRef(), symFunc);
-
+    SemaHelpers::registerUniqueSymbol<SymbolFunction>(sema, *this, name);
     sema.pushScope(SemaScopeFlagsE::Local);
     return Result::Continue;
 }

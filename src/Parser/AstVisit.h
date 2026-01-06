@@ -22,6 +22,7 @@ public:
     void           setPreNodeVisitor(const std::function<Result(AstNode&)>& visitor) { preNodeVisitor_ = visitor; }
     void           setPostNodeVisitor(const std::function<Result(AstNode&)>& visitor) { postNodeVisitor_ = visitor; }
     void           setPreChildVisitor(const std::function<Result(AstNode&, AstNodeRef&)>& visitor) { preChildVisitor_ = visitor; }
+    void           setPostChildVisitor(const std::function<Result(AstNode&, AstNodeRef&)>& visitor) { postChildVisitor_ = visitor; }
     AstVisitResult step(const TaskContext& ctx);
 
     AstNode*       parentNode(size_t up = 0) { return parentNodeInternal(up); }
@@ -68,6 +69,7 @@ private:
     std::function<Result(AstNode&)>              preNodeVisitor_;
     std::function<Result(AstNode&)>              postNodeVisitor_;
     std::function<Result(AstNode&, AstNodeRef&)> preChildVisitor_;
+    std::function<Result(AstNode&, AstNodeRef&)> postChildVisitor_;
 
     SmallVector<Frame, 64>  stack_;
     SmallVector<AstNodeRef> children_;

@@ -291,16 +291,19 @@ struct AstNodeIdInfo
     using AstCollectChildren = void (*)(SmallVector<AstNodeRef>&, const Ast&, const AstNode&);
     using SemaPreNode        = Result (*)(Sema&, AstNode&);
     using SemaPreNodeChild   = Result (*)(Sema&, AstNode&, AstNodeRef&);
+    using SemaPostNodeChild  = Result (*)(Sema&, AstNode&, AstNodeRef&);
     using SemaPostNode       = Result (*)(Sema&, AstNode&);
 
     AstCollectChildren collectChildren;
 
     SemaPreNode      semaPreDecl;
     SemaPreNodeChild semaPreDeclChild;
+    SemaPostNodeChild semaPostDeclChild;
     SemaPostNode     semaPostDecl;
 
     SemaPreNode      semaPreNode;
     SemaPreNodeChild semaPreNodeChild;
+    SemaPostNodeChild semaPostNodeChild;
     SemaPostNode     semaPostNode;
 
     bool hasFlag(AstNodeIdFlagsE flag) const { return flags.has(flag); }
@@ -328,6 +331,13 @@ Result semaPreDeclChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
 }
 
 template<AstNodeId ID>
+Result semaPostDeclChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
+{
+    using NodeType = AstTypeOf<ID>::type;
+    return node.cast<NodeType>()->semaPostDeclChild(sema, childRef);
+}
+
+template<AstNodeId ID>
 Result semaPostDecl(Sema& sema, AstNode& node)
 {
     using NodeType = AstTypeOf<ID>::type;
@@ -349,6 +359,13 @@ Result semaPreNodeChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
 }
 
 template<AstNodeId ID>
+Result semaPostNodeChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
+{
+    using NodeType = AstTypeOf<ID>::type;
+    return node.cast<NodeType>()->semaPostNodeChild(sema, childRef);
+}
+
+template<AstNodeId ID>
 Result semaPostNode(Sema& sema, AstNode& node)
 {
     using NodeType = AstTypeOf<ID>::type;
@@ -356,15 +373,17 @@ Result semaPostNode(Sema& sema, AstNode& node)
 }
 
 constexpr std::array AST_NODE_ID_INFOS = {
-#define SWC_NODE_DEF(__enum, __flags) AstNodeIdInfo{                            \
-                                          #__enum,                              \
-                                          __flags,                              \
-                                          &collectChildren<AstNodeId::__enum>,  \
-                                          &semaPreDecl<AstNodeId::__enum>,      \
-                                          &semaPreDeclChild<AstNodeId::__enum>, \
-                                          &semaPostDecl<AstNodeId::__enum>,     \
-                                          &semaPreNode<AstNodeId::__enum>,      \
-                                          &semaPreNodeChild<AstNodeId::__enum>, \
+#define SWC_NODE_DEF(__enum, __flags) AstNodeIdInfo{                             \
+                                          #__enum,                               \
+                                          __flags,                               \
+                                          &collectChildren<AstNodeId::__enum>,   \
+                                          &semaPreDecl<AstNodeId::__enum>,       \
+                                          &semaPreDeclChild<AstNodeId::__enum>,  \
+                                          &semaPostDeclChild<AstNodeId::__enum>, \
+                                          &semaPostDecl<AstNodeId::__enum>,      \
+                                          &semaPreNode<AstNodeId::__enum>,       \
+                                          &semaPreNodeChild<AstNodeId::__enum>,  \
+                                          &semaPostNodeChild<AstNodeId::__enum>, \
                                           &semaPostNode<AstNodeId::__enum>},
 #include "Parser/AstNodes.Def.inc"
 

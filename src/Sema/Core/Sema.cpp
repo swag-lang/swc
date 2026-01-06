@@ -224,12 +224,14 @@ void Sema::setVisitors()
     {
         visit_.setPreNodeVisitor([this](AstNode& node) { return preDecl(node); });
         visit_.setPreChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return preDeclChild(node, childRef); });
+        visit_.setPostChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return postDeclChild(node, childRef); });
         visit_.setPostNodeVisitor([this](AstNode& node) { return postDecl(node); });
     }
     else
     {
         visit_.setPreNodeVisitor([this](AstNode& node) { return preNode(node); });
         visit_.setPreChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return preNodeChild(node, childRef); });
+        visit_.setPostChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return postNodeChild(node, childRef); });
         visit_.setPostNodeVisitor([this](AstNode& node) { return postNode(node); });
     }
 }
@@ -245,6 +247,12 @@ Result Sema::preDeclChild(AstNode& node, AstNodeRef& childRef)
 {
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     return info.semaPreDeclChild(*this, node, childRef);
+}
+
+Result Sema::postDeclChild(AstNode& node, AstNodeRef& childRef)
+{
+    const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
+    return info.semaPostDeclChild(*this, node, childRef);
 }
 
 Result Sema::postDecl(AstNode& node)
@@ -284,6 +292,12 @@ Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
 
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     return info.semaPreNodeChild(*this, node, childRef);
+}
+
+Result Sema::postNodeChild(AstNode& node, AstNodeRef& childRef)
+{
+    const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
+    return info.semaPostNodeChild(*this, node, childRef);
 }
 
 JobResult Sema::exec()

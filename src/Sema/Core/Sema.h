@@ -100,10 +100,12 @@ private:
     void   setVisitors();
     Result preDecl(AstNode& node);
     Result preDeclChild(AstNode& node, AstNodeRef& childRef);
+    Result postDeclChild(AstNode& node, AstNodeRef& childRef);
     Result postDecl(AstNode& node);
     Result preNode(AstNode& node);
     Result postNode(AstNode& node);
     Result preNodeChild(AstNode& node, AstNodeRef& childRef);
+    Result postNodeChild(AstNode& node, AstNodeRef& childRef);
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;
     SymbolMap*                              startSymMap_ = nullptr;

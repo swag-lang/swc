@@ -489,10 +489,9 @@ Result AstCompilerCallUnary::semaPostNode(Sema& sema) const
     }
 }
 
-Result AstCompilerFunc::semaPreNode(Sema& sema)
+Result AstCompilerFunc::semaPreDecl(Sema& sema)
 {
-    auto& ctx = sema.ctx();
-
+    auto&        ctx = sema.ctx();
     const Token& tok = sema.token(srcViewRef(), tokRef());
     if (tok.id == TokenId::CompilerFuncMain)
     {
@@ -506,6 +505,13 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
             return Result::Stop;
         }
     }
+
+    return Result::SkipChildren;
+}
+
+Result AstCompilerFunc::semaPreNode(Sema& sema)
+{
+    auto& ctx = sema.ctx();
 
     // Register a unique symbol for the compiler function
     const uint32_t id      = ctx.compiler().atomicId().fetch_add(1);

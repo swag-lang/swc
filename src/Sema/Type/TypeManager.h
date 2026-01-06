@@ -25,6 +25,8 @@ public:
     TypeRef typeCString() const { return typeCString_; }
     TypeRef typeVariadic() const { return typeVariadic_; }
     TypeRef typeTypeInfo() const { return typeTypeInfo_; }
+    TypeRef typePtrVoid() const { return typePtrVoid_; }
+    TypeRef typeConstPtrVoid() const { return typeConstPtrVoid_; }
 
     TypeRef         addType(const TypeInfo& typeInfo);
     const TypeInfo& get(TypeRef typeRef) const;
@@ -56,31 +58,33 @@ private:
     TypeRef                   enumTargetOs_ = TypeRef::invalid();
 
     // Predefined types
-    TypeRef typeBool_        = TypeRef::invalid();
-    TypeRef typeChar_        = TypeRef::invalid();
-    TypeRef typeString_      = TypeRef::invalid();
-    TypeRef typeIntUnsigned_ = TypeRef::invalid();
-    TypeRef typeIntSigned_   = TypeRef::invalid();
-    TypeRef typeInt_         = TypeRef::invalid();
-    TypeRef typeFloat_       = TypeRef::invalid();
-    TypeRef typeU8_          = TypeRef::invalid();
-    TypeRef typeU16_         = TypeRef::invalid();
-    TypeRef typeU32_         = TypeRef::invalid();
-    TypeRef typeU64_         = TypeRef::invalid();
-    TypeRef typeS8_          = TypeRef::invalid();
-    TypeRef typeS16_         = TypeRef::invalid();
-    TypeRef typeS32_         = TypeRef::invalid();
-    TypeRef typeS64_         = TypeRef::invalid();
-    TypeRef typeF32_         = TypeRef::invalid();
-    TypeRef typeF64_         = TypeRef::invalid();
-    TypeRef typeAny_         = TypeRef::invalid();
-    TypeRef typeVoid_        = TypeRef::invalid();
-    TypeRef typeNull_        = TypeRef::invalid();
-    TypeRef typeUndefined_   = TypeRef::invalid();
-    TypeRef typeRune_        = TypeRef::invalid();
-    TypeRef typeCString_     = TypeRef::invalid();
-    TypeRef typeVariadic_    = TypeRef::invalid();
-    TypeRef typeTypeInfo_    = TypeRef::invalid();
+    TypeRef typeBool_         = TypeRef::invalid();
+    TypeRef typeChar_         = TypeRef::invalid();
+    TypeRef typeString_       = TypeRef::invalid();
+    TypeRef typeIntUnsigned_  = TypeRef::invalid();
+    TypeRef typeIntSigned_    = TypeRef::invalid();
+    TypeRef typeInt_          = TypeRef::invalid();
+    TypeRef typeFloat_        = TypeRef::invalid();
+    TypeRef typeU8_           = TypeRef::invalid();
+    TypeRef typeU16_          = TypeRef::invalid();
+    TypeRef typeU32_          = TypeRef::invalid();
+    TypeRef typeU64_          = TypeRef::invalid();
+    TypeRef typeS8_           = TypeRef::invalid();
+    TypeRef typeS16_          = TypeRef::invalid();
+    TypeRef typeS32_          = TypeRef::invalid();
+    TypeRef typeS64_          = TypeRef::invalid();
+    TypeRef typeF32_          = TypeRef::invalid();
+    TypeRef typeF64_          = TypeRef::invalid();
+    TypeRef typeAny_          = TypeRef::invalid();
+    TypeRef typeVoid_         = TypeRef::invalid();
+    TypeRef typeNull_         = TypeRef::invalid();
+    TypeRef typeUndefined_    = TypeRef::invalid();
+    TypeRef typeRune_         = TypeRef::invalid();
+    TypeRef typeCString_      = TypeRef::invalid();
+    TypeRef typePtrVoid_      = TypeRef::invalid();
+    TypeRef typeConstPtrVoid_ = TypeRef::invalid();
+    TypeRef typeVariadic_     = TypeRef::invalid();
+    TypeRef typeTypeInfo_     = TypeRef::invalid();
 
     std::vector<std::vector<TypeRef>>      promoteTable_;
     std::unordered_map<uint32_t, uint32_t> promoteIndex_;

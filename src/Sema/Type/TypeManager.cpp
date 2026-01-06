@@ -38,6 +38,9 @@ void TypeManager::setup(TaskContext&)
     typeVariadic_  = addType(TypeInfo::makeVariadic());
     typeTypeInfo_  = addType(TypeInfo::makeTypeInfo());
 
+    typePtrVoid_      = addType(TypeInfo::makeBlockPointer(typeVoid_));
+    typeConstPtrVoid_ = addType(TypeInfo::makeBlockPointer(typeVoid_, TypeInfoFlagsE::Const));
+
     buildPromoteTable();
 }
 

@@ -66,16 +66,18 @@ Result AstLogicalExpr::semaPostNode(Sema& sema)
     const auto& tok = sema.token(srcViewRef(), tokRef());
     RESULT_VERIFY(check(sema, *this, nodeLeftView, nodeRightView));
 
+    // Set the result type
+    sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
+
     // Constant folding
     if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())
     {
         ConstantRef result;
         RESULT_VERIFY(constantFold(sema, result, tok.id, nodeLeftView, nodeRightView));
         sema.setConstant(sema.curNodeRef(), result);
-        return Result::Continue;
     }
 
-    return SemaError::raiseInternal(sema, *this);
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE()

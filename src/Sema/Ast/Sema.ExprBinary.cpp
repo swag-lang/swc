@@ -227,6 +227,30 @@ namespace
     {
         switch (op)
         {
+            case TokenId::SymPlus:
+                if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isScalarNumeric())
+                    return Result::Continue;
+                if (nodeLeftView.type->isScalarNumeric() && nodeRightView.type->isBlockPointer())
+                    return Result::Continue;
+                if (nodeLeftView.type->isValuePointer() && nodeRightView.type->isScalarNumeric())
+                    return SemaError::raisePointerArithmetic(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
+                if (nodeLeftView.type->isScalarNumeric() && nodeRightView.type->isValuePointer())
+                    return SemaError::raisePointerArithmetic(sema, node, node.nodeRightRef, nodeRightView.typeRef);
+                break;
+
+            case TokenId::SymMinus:
+                if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isScalarNumeric())
+                    return Result::Continue;
+                if (nodeLeftView.type->isValuePointer() && nodeRightView.type->isScalarNumeric())
+                    return SemaError::raisePointerArithmetic(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
+                break;
+
+            default:
+                break;
+        }
+
+        switch (op)
+        {
             case TokenId::SymSlash:
             case TokenId::SymPercent:
             case TokenId::SymPlus:
@@ -361,16 +385,25 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     // Type-check
     RESULT_VERIFY(check(sema, tok.id, *this, nodeLeftView, nodeRightView));
 
+    // Set the result type
+    sema.setType(sema.curNodeRef(), nodeLeftView.typeRef);
+
     // Constant folding
     if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())
     {
         ConstantRef result;
         RESULT_VERIFY(constantFold(sema, result, tok.id, *this, nodeLeftView, nodeRightView));
         sema.semaInfo().setConstant(sema.curNodeRef(), result);
-        return Result::Continue;
     }
 
-    return SemaError::raiseInternal(sema, *this);
+    return Result::Continue;
+}
+
+Result AstBinaryConditionalExpr::semaPostNode(Sema& sema)
+{
+    // TODO
+    sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstS32(1));
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE()

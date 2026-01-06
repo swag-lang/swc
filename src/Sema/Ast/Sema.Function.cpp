@@ -18,8 +18,8 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
 {
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
-    //const SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
-    //return SemaMatch::ghosting(sema, sym);
+    // const SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+    // return SemaMatch::ghosting(sema, sym);
     return Result::Continue;
 }
 

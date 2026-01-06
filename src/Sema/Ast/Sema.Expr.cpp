@@ -39,7 +39,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
-Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
 {
     if (childRef != nodeRightRef)
         return Result::Continue;
@@ -72,8 +72,15 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         return Result::SkipChildren;
     }
 
+    if (!nodeLeftView.type)
+    {
+        // TODO
+        sema.setType(sema.curNodeRef(), sema.typeMgr().typeInt(32, TypeInfo::Sign::Signed));
+        return Result::SkipChildren;
+    }
+
     // Enum
-    if (nodeLeftView.type && nodeLeftView.type->isEnum())
+    if (nodeLeftView.type->isEnum())
     {
         const SymbolEnum& enumSym = nodeLeftView.type->enumSym();
         if (!enumSym.isCompleted())
@@ -91,10 +98,24 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         return Result::SkipChildren;
     }
 
-    // Struct
-    if (nodeLeftView.type && nodeLeftView.type->isStruct())
+    // Interface
+    if (nodeLeftView.type->isInterface())
     {
-        const SymbolStruct& symStruct = nodeLeftView.type->structSym();
+        const SymbolInterface& symInterface = nodeLeftView.type->interfaceSym();
+        if (!symInterface.isCompleted())
+            return sema.waitCompleted(&symInterface, srcViewRef(), tokNameRef);
+        // TODO
+        return Result::SkipChildren;
+    }
+
+    const TypeInfo* typeInfo = nodeLeftView.type;
+    if (typeInfo && typeInfo->isPointer())
+        typeInfo = &sema.typeMgr().get(typeInfo->typeRef());
+
+    // Struct
+    if (typeInfo->isStruct())
+    {
+        const SymbolStruct& symStruct = typeInfo->structSym();
         if (!symStruct.isCompleted())
             return sema.waitCompleted(&symStruct, srcViewRef(), tokNameRef);
 
@@ -110,20 +131,37 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         return Result::SkipChildren;
     }
 
-    // Interface
-    if (nodeLeftView.type && nodeLeftView.type->isInterface())
-    {
-        const SymbolInterface& symInterface = nodeLeftView.type->interfaceSym();
-        if (!symInterface.isCompleted())
-            return sema.waitCompleted(&symInterface, srcViewRef(), tokNameRef);
-        // TODO
-        return Result::SkipChildren;
-    }
-
-    return SemaError::raiseInternal(sema, *this);
+    // TODO
+    if (nodeLeftView.type->isPointer())
+        sema.setType(sema.curNodeRef(), nodeLeftView.type->typeRef());
+    else
+        sema.setType(sema.curNodeRef(), sema.typeMgr().typeInt(32, TypeInfo::Sign::Signed));
+    SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
+    return Result::SkipChildren;
 }
 
 Result AstCompilerRunExpr::semaPreNode(Sema& sema)
+{
+    // TODO
+    sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
+    return Result::SkipChildren;
+}
+
+Result AstCallExpr::semaPostNode(Sema& sema)
+{
+    // TODO
+    sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
+    return Result::SkipChildren;
+}
+
+Result AstIndexExpr::semaPostNode(Sema& sema)
+{
+    // TODO
+    sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
+    return Result::SkipChildren;
+}
+
+Result AstAutoScopedIdentifier::semaPostNode(Sema& sema)
 {
     // TODO
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));

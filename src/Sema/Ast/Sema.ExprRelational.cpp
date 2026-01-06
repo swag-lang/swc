@@ -258,7 +258,7 @@ namespace
                 return checkCompareEqual(sema, node, nodeLeftView, nodeRightView);
 
             default:
-                return SemaError::raiseInternal(sema, node);
+                SWC_UNREACHABLE();
         }
     }
 }
@@ -280,16 +280,21 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
     // Type-check
     RESULT_VERIFY(check(sema, tok.id, *this, nodeLeftView, nodeRightView));
 
+    // Set the result type
+    if (tok.id == TokenId::SymLessEqualGreater)
+        sema.setType(sema.curNodeRef(), sema.typeMgr().typeInt(32, TypeInfo::Sign::Signed));
+    else
+        sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
+
     // Constant folding
     if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())
     {
         ConstantRef result;
         RESULT_VERIFY(constantFold(sema, result, tok.id, nodeLeftView, nodeRightView));
         sema.setConstant(sema.curNodeRef(), result);
-        return Result::Continue;
     }
 
-    return SemaError::raiseInternal(sema, *this);
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE()

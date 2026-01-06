@@ -171,6 +171,13 @@ namespace
                 return checkBang(sema, node, ops);
             case TokenId::SymTilde:
                 return checkTilde(sema, node, ops);
+
+            case TokenId::KwdDRef:
+            case TokenId::KwdMoveRef:
+            case TokenId::SymAmpersand:
+                // TODO
+                return Result::Continue;
+
             default:
                 return SemaError::raiseInternal(sema, node);
         }
@@ -189,16 +196,28 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     const auto& tok = sema.token(srcViewRef(), tokRef());
     RESULT_VERIFY(check(sema, tok.id, *this, ops));
 
+    // Set the result type
+    sema.setType(sema.curNodeRef(), ops.typeRef);
+
     // Constant folding
     if (sema.hasConstant(nodeExprRef))
     {
         ConstantRef result;
         RESULT_VERIFY(constantFold(sema, result, tok.id, *this, ops));
         sema.setConstant(sema.curNodeRef(), result);
-        return Result::Continue;
     }
 
-    return SemaError::raiseInternal(sema, *this);
+    // TODO
+    switch (tok.id)
+    {
+        case TokenId::KwdDRef:
+        case TokenId::KwdMoveRef:
+        case TokenId::SymAmpersand:
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
+            break;
+    }
+
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE()

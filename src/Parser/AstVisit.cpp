@@ -86,9 +86,26 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
 
         case Frame::Stage::Children:
         {
-            // Still have a child to descend into?
-            while (fr.nextChildIx < fr.numChildren)
+            while (true)
             {
+                if (fr.firstPass && fr.nextChildIx > 0)
+                {
+                    if (postChildVisitor_)
+                    {
+                        AstNodeRef lastChildRef = children_[fr.firstChildIx + fr.nextChildIx - 1];
+                        const Result result     = postChildVisitor_(*fr.node, lastChildRef);
+                        if (result == Result::Stop)
+                            return AstVisitResult::Stop;
+                        if (result == Result::Pause)
+                            return AstVisitResult::Pause;
+                    }
+
+                    fr.firstPass = false;
+                }
+
+                if (fr.nextChildIx >= fr.numChildren)
+                    break;
+
                 const uint32_t localIdx = fr.nextChildIx;
                 const uint32_t globalIx = fr.firstChildIx + localIdx;
 
@@ -124,16 +141,6 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
                 stack_.push_back(childFr);
                 fr.nextChildIx++;
                 fr.firstPass = true;
-
-                if (postChildVisitor_)
-                {
-                    const Result result = postChildVisitor_(*fr.node, childRef);
-                    if (result == Result::Stop)
-                        return AstVisitResult::Stop;
-                    if (result == Result::Pause)
-                        return AstVisitResult::Pause;
-                }
-
                 return AstVisitResult::Continue;
             }
 

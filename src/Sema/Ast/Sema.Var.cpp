@@ -35,6 +35,7 @@ Result AstVarDecl::semaPostNode(Sema& sema) const
     auto&              ctx = sema.ctx();
     SemaNodeView       nodeInitView(sema, nodeInitRef);
     const SemaNodeView nodeTypeView(sema, nodeTypeRef);
+    bool               isConst = hasParserFlag(Const);
 
     // Initialized to 'undefined'
     if (nodeInitRef.isValid() && nodeInitView.cstRef == sema.cstMgr().cstUndefined())
@@ -95,8 +96,14 @@ Result AstVarDecl::semaPostNode(Sema& sema) const
     if (nodeInitRef.isValid())
         RESULT_VERIFY(SemaCheck::isValueExpr(sema, nodeInitRef));
 
+    // Global variable must be initialized to a constexpr
+    if (!sema.curScope().isLocal() && !isConst && nodeInitRef.isValid())
+    {
+        RESULT_VERIFY(SemaCheck::isConstant(sema, nodeInitRef));
+    }
+
     // Constant
-    if (hasParserFlag(Const))
+    if (isConst)
     {
         if (nodeInitRef.isInvalid())
             return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, srcViewRef(), tokNameRef);

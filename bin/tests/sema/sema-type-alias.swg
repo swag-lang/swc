@@ -25,17 +25,17 @@ alias SSW1 = Swag // swc-expected-error {{sema_err_not_type}}
 
 const m: Meters = cast(Meters) 10
 var s1: Seconds = m                 // swc-expected-error {{sema_err_cannot_cast}}
-var s2: Seconds = cast(Seconds) m
+const s2: Seconds = cast(Seconds) m
 
 var base_from_m: s32 = m               // swc-expected-error {{sema_err_cannot_cast}}
-var base_from_m_ok: s32 = cast(s32) m
+const base_from_m_ok: s32 = cast(s32) m
 
 var m_from_base: Meters = cast(Meters) base_from_m_ok
 var m_from_base_ok: Meters = cast(Meters) base_from_m_ok
 
 // Seconds <-> base
 var base_from_s: s32 = s2              // swc-expected-error {{sema_err_cannot_cast}}
-var base_from_s_ok: s32 = cast(s32) s2
+const base_from_s_ok: s32 = cast(s32) s2
 
 var s_from_base: Seconds = cast(Seconds) base_from_s_ok
 var s_from_base_ok: Seconds = cast(Seconds) base_from_s_ok

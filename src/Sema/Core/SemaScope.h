@@ -29,6 +29,7 @@ public:
     SemaScopeFlags flags() const { return flags_; }
     bool           hasFlag(SemaScopeFlags flag) const { return flags_.has(flag); }
     bool           isTopLevel() const { return hasFlag(SemaScopeFlagsE::TopLevel); }
+    bool           isLocal() const { return hasFlag(SemaScopeFlagsE::Local); }
 
     void             setSymMap(SymbolMap* symMap) { symMap_ = symMap; }
     SymbolMap*       symMap() { return symMap_; }

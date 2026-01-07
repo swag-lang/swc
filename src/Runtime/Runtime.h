@@ -4,32 +4,32 @@ SWC_BEGIN_NAMESPACE();
 
 namespace Runtime
 {
+    enum class TargetOs
+    {
+        Windows,
+        Linux,
+        MaxOSX,
+    };
+
     struct TypeInfo;
 
-    struct SwagString
+    struct String
     {
         const char* ptr;
         uint64_t    length;
     };
 
     template<typename T>
-    struct SwagSlice
+    struct Slice
     {
         T*       ptr;
         uint64_t count;
     };
 
-    struct SwagAny
+    struct Any
     {
         void*           value;
         const TypeInfo* type;
-    };
-
-    enum class TargetOs
-    {
-        Windows,
-        Linux,
-        MaxOSX,
     };
 
     enum class TypeInfoKind : uint8_t
@@ -121,32 +121,32 @@ namespace Runtime
 
     struct AttributeParam
     {
-        SwagString name;
-        SwagAny    value;
+        String name;
+        Any    value;
     };
 
     struct Attribute
     {
-        const TypeInfo*           type;
-        SwagSlice<AttributeParam> params;
+        const TypeInfo*       type;
+        Slice<AttributeParam> params;
     };
 
     struct TypeValue
     {
-        SwagString           name;
-        const TypeInfo*      pointedType;
-        const void*          value;
-        SwagSlice<Attribute> attributes;
-        uint32_t             offset;
-        uint32_t             crc;
-        TypeValueFlags       flags;
-        uint32_t             padding;
+        String           name;
+        const TypeInfo*  pointedType;
+        const void*      value;
+        Slice<Attribute> attributes;
+        uint32_t         offset;
+        uint32_t         crc;
+        TypeValueFlags   flags;
+        uint32_t         padding;
     };
 
     struct TypeInfo
     {
-        SwagString    fullname;
-        SwagString    name;
+        String        fullname;
+        String        name;
         uint32_t      sizeofType;
         uint32_t      crc;
         TypeInfoFlags flags = TypeInfoFlags::Zero;
@@ -185,31 +185,31 @@ namespace Runtime
         void (*opDrop)(void*);
         void (*opPostCopy)(void*);
         void (*opPostMove)(void*);
-        SwagString           structName;
-        const TypeInfo*      fromGeneric;
-        SwagSlice<TypeValue> generics;
-        SwagSlice<TypeValue> fields;
-        SwagSlice<TypeValue> usingFields;
-        SwagSlice<TypeValue> methods;
-        SwagSlice<TypeValue> interfaces;
-        SwagSlice<Attribute> attributes;
+        String           structName;
+        const TypeInfo*  fromGeneric;
+        Slice<TypeValue> generics;
+        Slice<TypeValue> fields;
+        Slice<TypeValue> usingFields;
+        Slice<TypeValue> methods;
+        Slice<TypeValue> interfaces;
+        Slice<Attribute> attributes;
     };
 
     struct TypeInfoFunc
     {
-        TypeInfo             base;
-        SwagSlice<TypeValue> generics;
-        SwagSlice<TypeValue> parameters;
-        const TypeInfo*      returnType;
-        SwagSlice<Attribute> attributes;
+        TypeInfo         base;
+        Slice<TypeValue> generics;
+        Slice<TypeValue> parameters;
+        const TypeInfo*  returnType;
+        Slice<Attribute> attributes;
     };
 
     struct TypeInfoEnum
     {
-        TypeInfo             base;
-        SwagSlice<TypeValue> values;
-        const TypeInfo*      rawType;
-        SwagSlice<Attribute> attributes;
+        TypeInfo         base;
+        Slice<TypeValue> values;
+        const TypeInfo*  rawType;
+        Slice<Attribute> attributes;
     };
 
     struct TypeInfoArray
@@ -245,12 +245,12 @@ namespace Runtime
     };
     struct SourceCodeLocation
     {
-        SwagString fileName;
-        SwagString funcName;
-        uint32_t   lineStart;
-        uint32_t   colStart;
-        uint32_t   lineEnd;
-        uint32_t   colEnd;
+        String   fileName;
+        String   funcName;
+        uint32_t lineStart;
+        uint32_t colStart;
+        uint32_t lineEnd;
+        uint32_t colEnd;
     };
 }
 

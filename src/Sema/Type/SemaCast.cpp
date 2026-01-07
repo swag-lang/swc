@@ -281,6 +281,28 @@ namespace
             castCtx.outConstRef = castCtx.srcConstRef;
         return true;
     }
+
+    bool castPointer(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
+        const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+
+        if (srcType.typeRef() == dstType.typeRef())
+        {
+            if (srcType.isConst() && !dstType.isConst())
+            {
+                castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+                return false;
+            }
+
+            if (castCtx.isFolding())
+                castCtx.outConstRef = castCtx.srcConstRef;
+            return true;
+        }
+
+        castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        return false;
+    }
 }
 
 bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
@@ -326,6 +348,8 @@ bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef,
         ok = castFloatToFloat(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isFloat() && dstType.isIntLike())
         ok = castFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
+    else if (srcType.isPointer() && dstType.isPointer())
+        ok = castPointer(sema, castCtx, srcTypeRef, dstTypeRef);
     else
     {
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);

@@ -22,6 +22,6 @@
 
     var st: AA
     var v: const *AA = &st
-    //var v1 = dref v
-    //#assert(#typeof(v1) == const AA)
+    var v1 = dref v
+    #assert(#typeof(v1) == AA)
 }

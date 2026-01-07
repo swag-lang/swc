@@ -187,4 +187,52 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
+Result AstIndexListExpr::semaPostNode(Sema& sema)
+{
+    const SemaNodeView nodeExprView(sema, nodeExprRef);
+
+    if (nodeExprView.type->isArray())
+    {
+        SmallVector<AstNodeRef> children;
+        sema.ast().nodes(children, spanChildrenRef);
+
+        const auto&    arrayDims   = nodeExprView.type->arrayDims();
+        const uint64_t numExpected = arrayDims.size();
+        const size_t   numGot      = children.size();
+
+        if (numGot > numExpected)
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_num_dims, children[numExpected]);
+            diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(numExpected));
+            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(numGot));
+            diag.report(sema.ctx());
+            return Result::Stop;
+        }
+
+        for (const AstNodeRef nodeRef : children)
+        {
+            const SemaNodeView nodeArgView(sema, nodeRef);
+            if (!nodeArgView.type->isInt())
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_not_int, nodeRef);
+                diag.addArgument(Diagnostic::ARG_TYPE, nodeArgView.typeRef);
+                diag.report(sema.ctx());
+                return Result::Stop;
+            }
+        }
+
+        sema.setType(sema.curNodeRef(), nodeExprView.type->arrayElemTypeRef());
+        if (SemaInfo::isLValue(sema.node(nodeExprRef)))
+            SemaInfo::setIsLValue(*this);
+    }
+    else
+    {
+        // TODO: Other types (slices, etc.)
+        sema.setType(sema.curNodeRef(), sema.typeMgr().typeInt(32, TypeInfo::Sign::Signed));
+    }
+
+    SemaInfo::setIsValue(*this);
+    return Result::Continue;
+}
+
 SWC_END_NAMESPACE();

@@ -467,6 +467,7 @@ struct AstIndexListExpr : AstCompoundT<AstNodeId::IndexListExpr>
         AstNode::collectChildren(out, {nodeExprRef});
         AstCompoundT::collectChildren(out, ast);
     }
+    Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

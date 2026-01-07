@@ -947,7 +947,8 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
         return AstNodeRef::invalid();
     }
 
-    AstNodeRef nodeExpr = AstNodeRef::invalid();
+    const TokenRef tokStart = ref();
+    AstNodeRef     nodeExpr = AstNodeRef::invalid();
     if (!isAny(TokenId::KwdTo, TokenId::KwdUntil))
         nodeExpr = parseExpression();
 
@@ -967,20 +968,20 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
 
         if (nodeArgs.size() == 1)
         {
-            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IndexExpr>(ref());
+            const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IndexExpr>(tokStart);
             nodePtr->nodeExprRef             = nodeRef;
             nodePtr->nodeArgRef              = nodeExpr;
             return nodeParent;
         }
 
-        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IndexListExpr>(ref());
+        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IndexListExpr>(tokStart);
         nodePtr->nodeExprRef             = nodeRef;
         nodePtr->spanChildrenRef         = ast_->pushSpan(nodeArgs.span());
         return nodeParent;
     }
 
     // Slicing
-    const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::RangeExpr>(ref());
+    const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::RangeExpr>(tokStart);
     if (is(TokenId::KwdTo))
         nodePtr->addParserFlag(AstRangeExpr::Inclusive);
     consume();

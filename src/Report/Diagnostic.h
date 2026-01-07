@@ -46,6 +46,7 @@ public:
     constexpr static std::string_view ARG_NEXT_TOK_FAM     = "{next-tok-fam}";
     constexpr static std::string_view ARG_NEXT_A_TOK_FAM   = "{next-a-tok-fam}";
     constexpr static std::string_view ARG_TYPE             = "{type}";
+    constexpr static std::string_view ARG_COUNT            = "{count}";
     constexpr static std::string_view ARG_REQUESTED_TYPE   = "{requested-type}";
     constexpr static std::string_view ARG_OPT_TYPE         = "{opt-type}";
     constexpr static std::string_view ARG_LEFT             = "{left}";

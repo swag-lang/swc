@@ -32,9 +32,9 @@
 #test
 {
     var x = 0
-    var y = &(x + 1) // swc1-expected-error {{sema_err_unary_operand_type}}
-    /*var st: struct { x: s32 }
+    var y = &(x + 1) // swc-expected-error {{sema_err_take_address_not_lvalue}}
+    var st: struct { x: s32 }
     var z = &st.x
-    var w = &(st.x + 1) // swc-expected-error {{sema_err_unary_operand_type}}
+    /*var w = &(st.x + 1) // swc-expected-error {{sema_err_unary_operand_type}}
     */
 }

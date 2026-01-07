@@ -171,10 +171,16 @@ namespace
             return Result::Stop;
         }
 
-        if (SemaInfo::isLValue(*nodeView.node))
-            return Result::Continue;
+        if (!SemaInfo::isLValue(*nodeView.node))
+        {
+            const auto               diag = SemaError::report(sema, DiagnosticId::sema_err_take_address_not_lvalue, node.srcViewRef(), node.tokRef());
+            const SourceCodeLocation loc  = sema.node(nodeView.nodeRef).locationWithChildren(sema.ctx(), sema.ast());
+            diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
+            diag.report(sema.ctx());
+            return Result::Stop;
+        }
 
-        return SemaError::raiseUnaryOperandType(sema, node, nodeView.nodeRef, nodeView.typeRef);
+        return Result::Continue;
     }
 
     Result semaTakeAddress(Sema& sema, const AstUnaryExpr&, const SemaNodeView& nodeView)

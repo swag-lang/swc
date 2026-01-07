@@ -47,6 +47,13 @@ public:
 };
 
 // -----------------------------------------------------------------------------
+enum class SymbolVariableFlagsE : uint8_t
+{
+    Zero = 0,
+    Let  = 1 << 0,
+};
+using SymbolVariableFlags = EnumFlags<SymbolVariableFlagsE>;
+
 class SymbolVariable : public Symbol
 {
 public:
@@ -57,11 +64,15 @@ public:
     {
     }
 
-    uint32_t offset() const { return offset_; }
-    void     setOffset(uint32_t offset) { offset_ = offset; }
+    uint32_t            offset() const { return offset_; }
+    void                setOffset(uint32_t offset) { offset_ = offset; }
+    SymbolVariableFlags varFlags() const noexcept { return varFlags_; }
+    bool                hasVarFlag(SymbolVariableFlags flag) const noexcept { return varFlags_.has(flag); }
+    void                addVarFlag(SymbolVariableFlags fl) { varFlags_.add(fl); }
 
 private:
-    uint32_t offset_ = 0;
+    SymbolVariableFlags varFlags_ = SymbolVariableFlagsE::Zero;
+    uint32_t            offset_   = 0;
 };
 
 // -----------------------------------------------------------------------------

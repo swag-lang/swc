@@ -85,6 +85,7 @@ SWC_DIAG_DEF(sema_err_unary_operand_type, Error, "Unary operator {tok} cannot be
 SWC_DIAG_DEF(sema_err_binary_operand_type, Error, "Binary operator {tok} cannot be applied to an operand of type {type}")
 SWC_DIAG_DEF(sema_err_compare_operand_type, Error, "Cannot compare using {tok}: left operand has type {left}, right operand has type {right}")
 SWC_DIAG_DEF(sema_err_const_missing_init, Error, "A constant must be initialized with a value")
+SWC_DIAG_DEF(sema_err_let_missing_init, Error, "A 'let' variable must be initialized with a value")
 SWC_DIAG_DEF(sema_err_unknown_symbol, Error, "Unknown symbol {sym}")
 SWC_DIAG_DEF(sema_err_wait_sym_declared, Error, "Symbol {sym} has not been declared")
 SWC_DIAG_DEF(sema_err_wait_sym_typed, Error, "Symbol {sym} has not been typed")

@@ -18,7 +18,15 @@ Result AstVarDecl::semaPreDecl(Sema& sema) const
     if (hasParserFlag(Const))
         SemaHelpers::registerSymbol<SymbolConstant>(sema, *this, tokNameRef);
     else
+    {
         SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
+        if (hasParserFlag(Let))
+        {
+            SymbolVariable& symVar = sema.symbolOf(sema.curNodeRef()).cast<SymbolVariable>();
+            symVar.addVarFlag(SymbolVariableFlagsE::Let);
+        }
+    }
+
     return Result::SkipChildren;
 }
 
@@ -36,12 +44,15 @@ Result AstVarDecl::semaPostNode(Sema& sema) const
     SemaNodeView       nodeInitView(sema, nodeInitRef);
     const SemaNodeView nodeTypeView(sema, nodeTypeRef);
     bool               isConst = hasParserFlag(Const);
+    bool               isLet   = hasParserFlag(Let);
 
     // Initialized to 'undefined'
     if (nodeInitRef.isValid() && nodeInitView.cstRef == sema.cstMgr().cstUndefined())
     {
         if (hasParserFlag(Const))
             return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, srcViewRef(), tokNameRef);
+        if (hasParserFlag(Let))
+            return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, srcViewRef(), tokNameRef);
         if (nodeTypeRef.isInvalid())
             return SemaError::raise(sema, DiagnosticId::sema_err_not_type, srcViewRef(), tokNameRef);
 
@@ -93,6 +104,7 @@ Result AstVarDecl::semaPostNode(Sema& sema) const
         nodeInitView.setCstRef(sema, newCstRef);
     }
 
+    // Be sure the initialization expression has a value
     if (nodeInitRef.isValid())
         RESULT_VERIFY(SemaCheck::isValueExpr(sema, nodeInitRef));
 
@@ -124,17 +136,17 @@ Result AstVarDecl::semaPostNode(Sema& sema) const
         symCst.setTypeRef(nodeInitView.typeRef);
         symCst.setTyped(sema.ctx());
         symCst.setCompleted(ctx);
+        return Result::Continue;
     }
 
     // Variable
-    else
-    {
-        SymbolVariable& symVar = sema.symbolOf(sema.curNodeRef()).cast<SymbolVariable>();
-        symVar.setTypeRef(nodeTypeView.typeRef.isValid() ? nodeTypeView.typeRef : nodeInitView.typeRef);
-        symVar.setTyped(sema.ctx());
-        symVar.setCompleted(ctx);
-    }
+    if (hasParserFlag(Let) && nodeInitRef.isInvalid())
+        return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, srcViewRef(), tokNameRef);
 
+    SymbolVariable& symVar = sema.symbolOf(sema.curNodeRef()).cast<SymbolVariable>();
+    symVar.setTypeRef(nodeTypeView.typeRef.isValid() ? nodeTypeView.typeRef : nodeInitView.typeRef);
+    symVar.setTyped(sema.ctx());
+    symVar.setCompleted(ctx);
     return Result::Continue;
 }
 

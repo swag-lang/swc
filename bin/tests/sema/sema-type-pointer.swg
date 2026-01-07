@@ -39,5 +39,8 @@ var J: *H.A // swc-expected-error {{sema_err_not_type}}
     var st: AA
     var v: *AA = &st
     #assert(#typeof(v) == *AA)
-    let st1: AA
+
+    let A = 10
+    let PA = &A
+    #print(#typeof(PA))
 }

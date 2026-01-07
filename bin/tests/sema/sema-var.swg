@@ -18,4 +18,7 @@ struct F
 {
     var D0 = 1.0
     var E0 = D0
+
+    let L0: s32 // swc-expected-error {{sema_err_let_missing_init}}
+    let L1 = 10
 }

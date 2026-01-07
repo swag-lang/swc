@@ -101,6 +101,20 @@ Result AstVarDecl::semaPostNode(Sema& sema) const
     {
         ConstantRef newCstRef;
         RESULT_VERIFY(ctx.cstMgr().concretizeConstant(sema, newCstRef, nodeInitView.nodeRef, nodeInitView.cstRef, TypeInfo::Sign::Unknown));
+
+        // Be sure it's at least 32 bits for an integer
+        const ConstantValue& cst = sema.cstMgr().get(newCstRef);
+        if (cst.type(ctx).isInt())
+        {
+            const TypeRef newTypeRef = sema.typeMgr().promote(cst.typeRef(), cst.typeRef(), true);
+            if (newTypeRef != cst.typeRef())
+            {
+                CastContext castCtx(CastKind::Implicit);
+                castCtx.errorNodeRef = nodeInitRef;
+                RESULT_VERIFY(SemaCast::castConstant(sema, newCstRef, castCtx, newCstRef, newTypeRef));
+            }
+        }
+
         nodeInitView.setCstRef(sema, newCstRef);
     }
 
@@ -140,7 +154,7 @@ Result AstVarDecl::semaPostNode(Sema& sema) const
     }
 
     // Variable
-    if (hasParserFlag(Let) && nodeInitRef.isInvalid())
+    if (isLet && nodeInitRef.isInvalid())
         return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, srcViewRef(), tokNameRef);
 
     SymbolVariable& symVar = sema.symbolOf(sema.curNodeRef()).cast<SymbolVariable>();

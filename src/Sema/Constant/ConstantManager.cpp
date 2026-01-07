@@ -140,6 +140,7 @@ bool ConstantManager::concretizeConstant(Sema& sema, ConstantRef& result, Consta
             return false;
 
         value.resize(destBits);
+        value.setSigned(sign == TypeInfo::Sign::Signed);
 
         const TypeRef       concreteTypeRef = typeMgr.typeInt(destBits, sign);
         const TypeInfo&     concreteTy      = typeMgr.get(concreteTypeRef);

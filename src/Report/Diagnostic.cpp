@@ -257,4 +257,4 @@ void Diagnostic::report(TaskContext& ctx) const
     }
 }
 
-SWC_END_NAMESPACE();;
+SWC_END_NAMESPACE();

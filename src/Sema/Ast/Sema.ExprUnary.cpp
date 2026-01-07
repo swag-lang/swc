@@ -1,8 +1,10 @@
 #include "pch.h"
-#include "Sema/Core/Sema.h"
+
+#include "Os/Os.h"
 #include "Parser/AstNodes.h"
 #include "Report/Diagnostic.h"
 #include "Sema/Constant/ConstantManager.h"
+#include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
@@ -159,6 +161,11 @@ namespace
         return reportInvalidType(sema, expr, ops);
     }
 
+    Result checkTakeAddress(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
+    {
+        return Result::Continue;
+    }
+
     Result check(Sema& sema, TokenId op, const AstUnaryExpr& node, const SemaNodeView& ops)
     {
         switch (op)
@@ -171,10 +178,11 @@ namespace
                 return checkBang(sema, node, ops);
             case TokenId::SymTilde:
                 return checkTilde(sema, node, ops);
+            case TokenId::SymAmpersand:
+                return checkTakeAddress(sema, node, ops);
 
             case TokenId::KwdDRef:
             case TokenId::KwdMoveRef:
-            case TokenId::SymAmpersand:
                 // TODO
                 return Result::Continue;
 
@@ -196,24 +204,33 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     const auto& tok = sema.token(srcViewRef(), tokRef());
     RESULT_VERIFY(check(sema, tok.id, *this, ops));
 
-    // Set the result type
-    sema.setType(sema.curNodeRef(), ops.typeRef);
-
     // Constant folding
     if (sema.hasConstant(nodeExprRef))
     {
         ConstantRef result;
         RESULT_VERIFY(constantFold(sema, result, tok.id, *this, ops));
         sema.setConstant(sema.curNodeRef(), result);
+        return Result::Continue;
     }
 
-    // TODO
     switch (tok.id)
     {
         case TokenId::KwdDRef:
         case TokenId::KwdMoveRef:
-        case TokenId::SymAmpersand:
+            // TODO
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
+            break;
+
+        case TokenId::SymAmpersand:
+        {
+            const TypeInfo& ty      = TypeInfo::makeValuePointer(ops.typeRef);
+            const TypeRef   typeRef = sema.typeMgr().addType(ty);
+            sema.setType(sema.curNodeRef(), typeRef);
+            break;
+        }
+
+        default:
+            sema.setType(sema.curNodeRef(), ops.typeRef);
             break;
     }
 

@@ -28,3 +28,16 @@ var G: *F // swc-expected-error {{sema_err_not_type}}
 enum H { A = 0 }
 var I: *H
 var J: *H.A // swc-expected-error {{sema_err_not_type}}
+
+#test
+{
+    struct AA
+    {
+        x: s32
+    }
+
+    var st: AA
+    var v: *AA = &st
+    #assert(#typeof(v) == *AA)
+    let st1: AA
+}

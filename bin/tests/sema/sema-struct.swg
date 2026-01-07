@@ -58,3 +58,13 @@ enum NonCyclicEnum
 // swc-expected-error@(+1,+2) {{sema_err_cyclic_dependency}}
 struct S0 { x: [4] S1 }
 struct S1 { y: S0 }
+
+#test
+{
+    struct AA
+    {
+        x: s32
+    }
+
+    var st: AA
+}

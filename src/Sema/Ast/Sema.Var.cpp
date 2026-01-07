@@ -120,7 +120,7 @@ Result AstVarDecl::semaPostNode(Sema& sema) const
 
     // Be sure the initialization expression has a value
     if (nodeInitRef.isValid())
-        RESULT_VERIFY(SemaCheck::isValueExpr(sema, nodeInitRef));
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeInitRef));
 
     // Global variable must be initialized to a constexpr
     if (!sema.curScope().isLocal() && !isConst && nodeInitRef.isValid())

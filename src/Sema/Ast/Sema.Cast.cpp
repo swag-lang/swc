@@ -63,8 +63,8 @@ Result AstExplicitCastExpr::semaPostNode(Sema& sema)
     const SemaNodeView nodeExprView(sema, nodeExprRef);
 
     // Value-check
-    RESULT_VERIFY(SemaCheck::isValueExpr(sema, nodeExprRef));
-    SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
+    RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprRef));
+    SemaInfo::setIsValue(*this);
 
     // Check cast modifiers
     RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst));

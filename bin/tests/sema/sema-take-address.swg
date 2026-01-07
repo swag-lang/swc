@@ -28,13 +28,13 @@
     #assert(#typeof(px) == [*][4] s32)
     #assert(#typeof(px) == *[4] s32) // swc-expected-error {{sema_err_compiler_assert}}
 }
-/*
+
 #test
 {
     var x = 0
-    var y = &(x + 1) // swc-expected-error {{sema_err_unary_operand_type}}
-    var st: struct { x: s32 }
+    var y = &(x + 1) // swc1-expected-error {{sema_err_unary_operand_type}}
+    /*var st: struct { x: s32 }
     var z = &st.x
     var w = &(st.x + 1) // swc-expected-error {{sema_err_unary_operand_type}}
+    */
 }
-*/

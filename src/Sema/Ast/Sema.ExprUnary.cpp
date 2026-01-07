@@ -220,7 +220,7 @@ namespace
         }
 
         sema.setType(sema.curNodeRef(), resultTypeRef);
-        SemaInfo::addSemaFlags(node, NodeSemaFlags::LValue);
+        SemaInfo::setIsLValue(node);
         return Result::Continue;
     }
 
@@ -258,8 +258,8 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     const SemaNodeView nodeView(sema, nodeExprRef);
 
     // Value-check
-    RESULT_VERIFY(SemaCheck::isValueExpr(sema, nodeExprRef));
-    SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
+    RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprRef));
+    SemaInfo::setIsValue(*this);
 
     // Type-check
     const auto& tok = sema.token(srcViewRef(), tokRef());

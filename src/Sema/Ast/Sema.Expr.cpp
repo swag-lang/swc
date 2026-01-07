@@ -14,8 +14,6 @@ SWC_BEGIN_NAMESPACE();
 Result AstParenExpr::semaPostNode(Sema& sema)
 {
     sema.semaInherit(*this, nodeExprRef);
-    if (SemaInfo::isLValue(sema.node(nodeExprRef)))
-        SemaInfo::addSemaFlags(*this, NodeSemaFlags::LValue);
     return Result::Continue;
 }
 
@@ -131,7 +129,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         sema.semaInfo().setSymbol(nodeRightRef, lookUpCxt.first());
         sema.semaInfo().setSymbol(sema.curNodeRef(), lookUpCxt.first());
         if (nodeLeftView.type->isPointer() || SemaInfo::isLValue(sema.node(nodeLeftRef)))
-            SemaInfo::addSemaFlags(*this, NodeSemaFlags::LValue);
+            SemaInfo::setIsLValue(*this);
         return Result::SkipChildren;
     }
 
@@ -140,7 +138,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         sema.setType(sema.curNodeRef(), nodeLeftView.type->typeRef());
     else
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeInt(32, TypeInfo::Sign::Signed));
-    SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
+    SemaInfo::setIsValue(*this);
     return Result::SkipChildren;
 }
 
@@ -167,13 +165,13 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     if (nodeExprView.type->isArray())
     {
         sema.setType(sema.curNodeRef(), nodeExprView.type->arrayElemTypeRef());
-        if (SemaInfo::hasSemaFlags(sema.node(nodeExprRef), NodeSemaFlags::LValue))
-            SemaInfo::addSemaFlags(*this, NodeSemaFlags::LValue);
+        if (SemaInfo::isLValue(sema.node(nodeExprRef)))
+            SemaInfo::setIsLValue(*this);
     }
     else if (nodeExprView.type->isBlockPointer())
     {
         sema.setType(sema.curNodeRef(), nodeExprView.type->typeRef());
-        SemaInfo::addSemaFlags(*this, NodeSemaFlags::LValue);
+        SemaInfo::setIsLValue(*this);
     }
     else if (nodeExprView.type->isValuePointer())
     {
@@ -185,7 +183,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeInt(32, TypeInfo::Sign::Signed));
     }
 
-    SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
+    SemaInfo::setIsValue(*this);
     return Result::Continue;
 }
 

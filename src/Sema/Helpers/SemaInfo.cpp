@@ -74,7 +74,7 @@ void SemaInfo::setConstant(AstNodeRef nodeRef, ConstantRef ref)
     AstNode& node = ast().node(nodeRef);
     setSemaKind(node, NodeSemaKind::ConstantRef);
     node.setSemaRef(ref.get());
-    addSemaFlags(node, NodeSemaFlags::Value);
+    setIsValue(node);
 }
 
 bool SemaInfo::hasSubstitute(AstNodeRef nodeRef) const

@@ -58,9 +58,9 @@ Result AstLogicalExpr::semaPostNode(Sema& sema)
     const SemaNodeView nodeRightView(sema, nodeRightRef);
 
     // Value-check
-    RESULT_VERIFY(SemaCheck::isValueExpr(sema, nodeLeftRef));
-    RESULT_VERIFY(SemaCheck::isValueExpr(sema, nodeRightRef));
-    SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
+    RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftRef));
+    RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightRef));
+    SemaInfo::setIsValue(*this);
 
     // Type-check
     const auto& tok = sema.token(srcViewRef(), tokRef());

@@ -56,8 +56,11 @@ public:
     static void          addSemaFlags(AstNode& node, NodeSemaFlags value) { node.semaBits() |= static_cast<uint16_t>(value); }
     static void          removeSemaFlags(AstNode& node, NodeSemaFlags value) { node.semaBits() &= ~static_cast<uint16_t>(value); }
     static bool          hasSemaFlags(const AstNode& node, NodeSemaFlags value) { return (node.semaBits() & static_cast<uint16_t>(value)) != 0; }
-    static bool          isLValue(const AstNode& node) { return hasSemaFlags(node, NodeSemaFlags::LValue); }
     static NodeSemaFlags semaFlags(const AstNode& node) { return static_cast<NodeSemaFlags>(node.semaBits() & ~SEMA_KIND_MASK & ~SEMA_SHARD_MASK); }
+    static bool          isLValue(const AstNode& node) { return hasSemaFlags(node, NodeSemaFlags::LValue); }
+    static bool          isValue(const AstNode& node) { return hasSemaFlags(node, NodeSemaFlags::Value); }
+    static void          setIsLValue(AstNode& node) { addSemaFlags(node, NodeSemaFlags::LValue); }
+    static void          setIsValue(AstNode& node) { addSemaFlags(node, NodeSemaFlags::Value); }
 
     const SymbolNamespace& moduleNamespace() const { return *moduleNamespace_; }
     SymbolNamespace&       moduleNamespace() { return *moduleNamespace_; }

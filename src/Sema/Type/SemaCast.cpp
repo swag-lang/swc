@@ -289,16 +289,27 @@ namespace
 
         if (srcType.typeRef() == dstType.typeRef())
         {
-            if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
+            bool ok = false;
+            if (srcType.kind() == dstType.kind())
+                ok = true;
+            else if (srcType.isBlockPointer() && dstType.isValuePointer())
+                ok = true;
+            else if (srcType.isValuePointer() && dstType.isBlockPointer() && castCtx.kind == CastKind::Explicit)
+                ok = true;
+
+            if (ok)
             {
-                castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
-                return false;
+                if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
+                {
+                    castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+                    return false;
+                }
+
+                if (castCtx.isFolding())
+                    castCtx.outConstRef = castCtx.srcConstRef;
+
+                return true;
             }
-
-            if (castCtx.isFolding())
-                castCtx.outConstRef = castCtx.srcConstRef;
-
-            return true;
         }
 
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);

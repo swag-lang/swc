@@ -140,14 +140,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     return Result::SkipChildren;
 }
 
-Result AstCompilerRunExpr::semaPreNode(Sema& sema)
-{
-    // TODO
-    sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
-    return Result::SkipChildren;
-}
-
-Result AstCallExpr::semaPostNode(Sema& sema)
+Result AstAutoScopedIdentifier::semaPostNode(Sema& sema)
 {
     // TODO
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
@@ -155,13 +148,6 @@ Result AstCallExpr::semaPostNode(Sema& sema)
 }
 
 Result AstIndexExpr::semaPostNode(Sema& sema)
-{
-    // TODO
-    sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
-    return Result::SkipChildren;
-}
-
-Result AstAutoScopedIdentifier::semaPostNode(Sema& sema)
 {
     // TODO
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));

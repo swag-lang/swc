@@ -555,4 +555,11 @@ Result AstCompilerFunc::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
+Result AstCompilerRunExpr::semaPreNode(Sema& sema)
+{
+    // TODO
+    sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
+    return Result::SkipChildren;
+}
+
 SWC_END_NAMESPACE();

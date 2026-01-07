@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Sema/Core/Sema.h"
 #include "Parser/AstNodes.h"
+#include "Sema/Constant/ConstantManager.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaHelpers.h"
 #include "Sema/Symbol/SemaMatch.h"
@@ -56,6 +57,13 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
     sym.setTyped(sema.ctx());
     sym.setCompleted(sema.ctx());
     return Result::Continue;
+}
+
+Result AstCallExpr::semaPostNode(Sema& sema)
+{
+    // TODO
+    sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
+    return Result::SkipChildren;
 }
 
 SWC_END_NAMESPACE();

@@ -6,5 +6,6 @@
     var a = buf[0]
     #assert(#typeof(a) == s32)
 
-    var ptr = &buf[0]
+    var ptr: [*] s32 = &buf[0]
+    #print(#typeof(ptr))
 }

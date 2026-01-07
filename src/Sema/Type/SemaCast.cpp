@@ -297,6 +297,7 @@ namespace
 
             if (castCtx.isFolding())
                 castCtx.outConstRef = castCtx.srcConstRef;
+
             return true;
         }
 

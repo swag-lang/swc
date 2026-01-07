@@ -43,5 +43,5 @@ var J: *H.A // swc-expected-error {{sema_err_not_type}}
     let A = 10's32
     let PA = &A
     #assert(#typeof(PA) == const *s32)
-    let PB = &0
+    let PB = &0 // swc-expected-error {{sema_err_take_address_constant}}
 }

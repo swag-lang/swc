@@ -162,31 +162,23 @@ namespace
 
     Result checkTakeAddress(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& nodeView)
     {
-        if (sema.hasConstant(node.nodeExprRef))
-            return SemaError::raiseUnaryOperandType(sema, node, node.nodeExprRef, nodeView.typeRef);
-
-        const auto operand = &sema.node(node.nodeExprRef);
-        switch (operand->id())
+        if (nodeView.cstRef.isValid())
         {
-            case AstNodeId::Identifier:
-            case AstNodeId::ArrayType:
-            case AstNodeId::SliceType:
-            case AstNodeId::IndexExpr:
-            case AstNodeId::MemberAccessExpr:
-                break;
-            case AstNodeId::UnaryExpr:
-            {
-                const auto  unary = operand->cast<AstUnaryExpr>();
-                const auto& tok   = sema.token(unary->srcViewRef(), unary->tokRef());
-                if (tok.id == TokenId::KwdDRef)
-                    break;
-                return SemaError::raiseUnaryOperandType(sema, node, node.nodeExprRef, nodeView.typeRef);
-            }
-            default:
-                return SemaError::raiseUnaryOperandType(sema, node, node.nodeExprRef, nodeView.typeRef);
+            const auto               diag = SemaError::report(sema, DiagnosticId::sema_err_take_address_constant, node.srcViewRef(), node.tokRef());
+            const SourceCodeLocation loc  = sema.node(nodeView.nodeRef).locationWithChildren(sema.ctx(), sema.ast());
+            diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
+            diag.report(sema.ctx());
+            return Result::Stop;
         }
 
-        return Result::Continue;
+        if (nodeView.sym)
+        {
+            if (nodeView.sym->isVariable() || nodeView.sym->isFunction())
+                return Result::Continue;
+            return SemaError::raiseUnaryOperandType(sema, node, nodeView.nodeRef, nodeView.typeRef);
+        }
+
+        return SemaError::raiseUnaryOperandType(sema, node, nodeView.nodeRef, nodeView.typeRef);
     }
 
     Result semaTakeAddress(Sema& sema, const AstUnaryExpr&, const SemaNodeView& nodeView)

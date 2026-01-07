@@ -128,3 +128,4 @@ SWC_DIAG_DEF(sema_err_parameter_default_value_not_last, Error, "Parameter with a
 SWC_DIAG_DEF(sema_err_unnamed_parameter, Error, "Unnamed parameter cannot follow a named parameter")
 SWC_DIAG_DEF(sema_err_invalid_attribute_parameter_type, Error, "Parameter type {type} is not allowed for an attribute")
 SWC_DIAG_DEF(sema_err_pointer_arithmetic, Error, "Pointer arithmetic is not allowed on a value pointer of type {type}")
+SWC_DIAG_DEF(sema_err_take_address_constant, Error, "Cannot take the address of a constant expression")

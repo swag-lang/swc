@@ -118,8 +118,19 @@ Result AstEnumDecl::semaPostNode(Sema& sema) const
     // Runtime enum
     if (sym.symMap()->isSwagNamespace(sema.ctx()))
     {
-        if (sym.idRef() == sema.idMgr().nameTargetOs())
-            sema.typeMgr().setEnumTargetOs(sym.typeRef());
+        const auto& idMgr   = sema.idMgr();
+        auto&       typeMgr = sema.typeMgr();
+        const auto  idRef   = sym.idRef();
+        if (idRef == idMgr.nameTargetOs())
+            typeMgr.setEnumTargetOs(sym.typeRef());
+        else if (idRef == idMgr.nameTypeInfoKind())
+            typeMgr.setEnumTypeInfoKind(sym.typeRef());
+        else if (idRef == idMgr.nameTypeInfoNativeKind())
+            typeMgr.setEnumTypeInfoNativeKind(sym.typeRef());
+        else if (idRef == idMgr.nameTypeInfoFlags())
+            typeMgr.setEnumTypeInfoFlags(sym.typeRef());
+        else if (idRef == idMgr.nameTypeValueFlags())
+            typeMgr.setEnumTypeValueFlags(sym.typeRef());
     }
 
     sym.setCompleted(sema.ctx());

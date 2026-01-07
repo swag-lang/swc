@@ -17,7 +17,29 @@ void IdentifierManager::setup(TaskContext&)
     nameEnumFlags_      = addIdentifier("EnumFlags");
     nameStrict_         = addIdentifier("Strict");
 
-    nameTargetOs_ = addIdentifier("TargetOs");
+    nameTargetOs_           = addIdentifier("TargetOs");
+    nameTypeInfo_           = addIdentifier("TypeInfo");
+    nameTypeInfoNative_     = addIdentifier("TypeInfoNative");
+    nameTypeInfoPointer_    = addIdentifier("TypeInfoPointer");
+    nameTypeInfoStruct_     = addIdentifier("TypeInfoStruct");
+    nameTypeInfoFunc_       = addIdentifier("TypeInfoFunc");
+    nameTypeInfoEnum_       = addIdentifier("TypeInfoEnum");
+    nameTypeInfoArray_      = addIdentifier("TypeInfoArray");
+    nameTypeInfoSlice_      = addIdentifier("TypeInfoSlice");
+    nameTypeInfoAlias_      = addIdentifier("TypeInfoAlias");
+    nameTypeInfoVariadic_   = addIdentifier("TypeInfoVariadic");
+    nameTypeInfoGeneric_    = addIdentifier("TypeInfoGeneric");
+    nameTypeInfoNamespace_  = addIdentifier("TypeInfoNamespace");
+    nameTypeInfoCodeBlock_  = addIdentifier("TypeInfoCodeBlock");
+    nameTypeInfoKind_       = addIdentifier("TypeInfoKind");
+    nameTypeInfoNativeKind_ = addIdentifier("TypeInfoNativeKind");
+    nameTypeInfoFlags_      = addIdentifier("TypeInfoFlags");
+    nameTypeValue_          = addIdentifier("TypeValue");
+    nameTypeValueFlags_     = addIdentifier("TypeValueFlags");
+    nameAttribute_          = addIdentifier("Attribute");
+    nameAttributeParam_     = addIdentifier("AttributeParam");
+    nameInterface_          = addIdentifier("Interface");
+    nameSourceCodeLocation_ = addIdentifier("SourceCodeLocation");
 }
 
 IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef)

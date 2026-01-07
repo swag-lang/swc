@@ -289,7 +289,7 @@ namespace
 
         if (srcType.typeRef() == dstType.typeRef())
         {
-            if (srcType.isConst() && !dstType.isConst())
+            if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
             {
                 castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
                 return false;

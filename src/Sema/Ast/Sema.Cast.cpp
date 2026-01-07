@@ -73,6 +73,8 @@ Result AstExplicitCastExpr::semaPostNode(Sema& sema)
     CastContext castCtx(CastKind::Explicit);
     if (modifierFlags.has(AstModifierFlagsE::Bit))
         castCtx.flags.add(CastFlagsE::BitCast);
+    if (modifierFlags.has(AstModifierFlagsE::UnConst))
+        castCtx.flags.add(CastFlagsE::UnConst);
     castCtx.errorNodeRef = nodeTypeView.nodeRef;
 
     // Update constant

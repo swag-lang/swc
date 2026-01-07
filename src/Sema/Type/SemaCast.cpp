@@ -287,7 +287,8 @@ namespace
         const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
         const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
 
-        if (srcType.typeRef() == dstType.typeRef())
+        const bool sameUnderlying = srcType.typeRef() == dstType.typeRef();
+        if (sameUnderlying || castCtx.kind == CastKind::Explicit)
         {
             bool ok = false;
             if (srcType.kind() == dstType.kind())

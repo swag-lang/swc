@@ -40,3 +40,43 @@
     var b3 = cast([*]s32) x
     #assert(#typeof(b3) == [*]s32)
 }
+
+#test
+{
+    var x: *s32 = null
+    var y = cast(*u8) x
+    #assert(#typeof(y) == *u8)
+}
+
+#test
+{
+    var x: *s32 = null
+    var y: *u8 = x // swc-expected-error {{sema_err_cannot_cast}}
+}
+
+#test
+{
+    var x: const *s32 = null
+    var y = cast(*u8) x // swc-expected-error {{sema_err_cannot_cast_const}}
+}
+
+#test
+{
+    var x: const *s32 = null
+    var y = cast #unconst (*u8) x
+    #assert(#typeof(y) == *u8)
+}
+
+#test
+{
+    var x: [*]s32 = null
+    var y = cast([*]u8) x
+    #assert(#typeof(y) == [*]u8)
+}
+
+#test
+{
+    var x: *s32 = null
+    var y = cast([*]u8) x
+    #assert(#typeof(y) == [*]u8)
+}

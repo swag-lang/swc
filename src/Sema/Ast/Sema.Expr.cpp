@@ -73,11 +73,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     }
 
     if (!nodeLeftView.type)
-    {
-        // TODO
-        sema.setType(sema.curNodeRef(), sema.typeMgr().typeInt(32, TypeInfo::Sign::Signed));
-        return Result::SkipChildren;
-    }
+        return SemaError::raiseInternal(sema, *this);
 
     // Enum
     if (nodeLeftView.type->isEnum())

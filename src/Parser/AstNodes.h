@@ -296,15 +296,15 @@ struct AstNodeIdInfo
 
     AstCollectChildren collectChildren;
 
-    SemaPreNode      semaPreDecl;
-    SemaPreNodeChild semaPreDeclChild;
+    SemaPreNode       semaPreDecl;
+    SemaPreNodeChild  semaPreDeclChild;
     SemaPostNodeChild semaPostDeclChild;
-    SemaPostNode     semaPostDecl;
+    SemaPostNode      semaPostDecl;
 
-    SemaPreNode      semaPreNode;
-    SemaPreNodeChild semaPreNodeChild;
+    SemaPreNode       semaPreNode;
+    SemaPreNodeChild  semaPreNodeChild;
     SemaPostNodeChild semaPostNodeChild;
-    SemaPostNode     semaPostNode;
+    SemaPostNode      semaPostNode;
 
     bool hasFlag(AstNodeIdFlagsE flag) const { return flags.has(flag); }
 };

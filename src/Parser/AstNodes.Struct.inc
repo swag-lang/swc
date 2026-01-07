@@ -372,8 +372,8 @@ struct AstAutoScopedIdentifier : AstNodeT<AstNodeId::AutoScopedIdentifier>
 {
     AstNodeRef nodeIdentRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeIdentRef}); }
-    Result semaPostNode(Sema& sema);
+    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeIdentRef}); }
+    static Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
@@ -417,7 +417,7 @@ struct AstCallExpr : AstCompoundT<AstNodeId::CallExpr>
         AstCompoundT::collectChildren(out, ast);
     }
 
-    Result semaPostNode(Sema& sema);
+    static Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
@@ -453,8 +453,8 @@ struct AstIndexExpr : AstNodeT<AstNodeId::IndexExpr>
     AstNodeRef nodeExprRef;
     AstNodeRef nodeArgRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeArgRef}); }
-    Result semaPostNode(Sema& sema);
+    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeArgRef}); }
+    static Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

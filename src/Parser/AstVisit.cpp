@@ -92,8 +92,8 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
                 {
                     if (postChildVisitor_)
                     {
-                        AstNodeRef lastChildRef = children_[fr.firstChildIx + fr.nextChildIx - 1];
-                        const Result result     = postChildVisitor_(*fr.node, lastChildRef);
+                        AstNodeRef   lastChildRef = children_[fr.firstChildIx + fr.nextChildIx - 1];
+                        const Result result       = postChildVisitor_(*fr.node, lastChildRef);
                         if (result == Result::Stop)
                             return AstVisitResult::Stop;
                         if (result == Result::Pause)

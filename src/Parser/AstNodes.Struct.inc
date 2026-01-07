@@ -453,8 +453,8 @@ struct AstIndexExpr : AstNodeT<AstNodeId::IndexExpr>
     AstNodeRef nodeExprRef;
     AstNodeRef nodeArgRef;
 
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeArgRef}); }
-    static Result semaPostNode(Sema& sema);
+    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeArgRef}); }
+    Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

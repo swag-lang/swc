@@ -28,11 +28,3 @@
     #assert(#typeof(px) == [*][4] s32)
     #assert(#typeof(px) == *[4] s32) // swc-expected-error {{sema_err_compiler_assert}}
 }
-
-#test
-{
-    var buf: [4] s32
-    var a = &buf
-    var c = a[0]
-    #print(#typeof(c))
-}

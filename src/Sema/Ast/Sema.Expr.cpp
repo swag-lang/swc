@@ -149,9 +149,37 @@ Result AstAutoScopedIdentifier::semaPostNode(Sema& sema)
 
 Result AstIndexExpr::semaPostNode(Sema& sema)
 {
-    // TODO
-    sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
-    return Result::SkipChildren;
+    const SemaNodeView nodeExprView(sema, nodeExprRef);
+    const SemaNodeView nodeArgView(sema, nodeArgRef);
+
+    if (!nodeArgView.type->isInt())
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_not_int, nodeArgRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, nodeArgView.typeRef);
+        diag.report(sema.ctx());
+        return Result::Stop;
+    }
+
+    if (nodeExprView.type->isArray())
+    {
+        sema.setType(sema.curNodeRef(), nodeExprView.type->arrayElemTypeRef());
+    }
+    else if (nodeExprView.type->isBlockPointer())
+    {
+        sema.setType(sema.curNodeRef(), nodeExprView.type->typeRef());
+    }
+    else if (nodeExprView.type->isValuePointer())
+    {
+        return SemaError::raisePointerArithmetic(sema, sema.node(nodeExprRef), nodeExprRef, nodeExprView.typeRef);
+    }
+    else
+    {
+        // TODO: Other types (slices, etc.)
+        sema.setType(sema.curNodeRef(), sema.typeMgr().typeInt(32, TypeInfo::Sign::Signed));
+    }
+
+    SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

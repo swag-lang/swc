@@ -21,13 +21,14 @@ namespace
         std::string_view   name;
         std::string_view   msg;
         DiagnosticSeverity severity;
+        DiagnosticId       id = DiagnosticId::None;
     };
 
     constexpr auto makeDiagnosticInfos()
     {
         std::array<DiagnosticIdInfo, static_cast<size_t>(DiagnosticId::Count)> arr{};
 #define SWC_DIAG_DEF(id, sev, msg) \
-    arr[(size_t) DiagnosticId::id] = {#id, msg, DiagnosticSeverity::sev};
+    arr[(size_t) DiagnosticId::id] = {#id, msg, DiagnosticSeverity::sev, DiagnosticId::id};
 #include "Diagnostic.Errors.msg"
 
 #include "Diagnostic.Notes.msg"
@@ -83,16 +84,19 @@ SourceCodeLocation Diagnostic::tokenErrorLocation(const TaskContext& ctx, const 
 
 std::string_view Diagnostic::diagIdMessage(DiagnosticId id)
 {
+    SWC_ASSERT(DIAGNOSTIC_INFOS[static_cast<size_t>(id)].id == id);
     return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].msg;
 }
 
 std::string_view Diagnostic::diagIdName(DiagnosticId id)
 {
+    SWC_ASSERT(DIAGNOSTIC_INFOS[static_cast<size_t>(id)].id == id);
     return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].name;
 }
 
 DiagnosticSeverity Diagnostic::diagIdSeverity(DiagnosticId id)
 {
+    SWC_ASSERT(DIAGNOSTIC_INFOS[static_cast<size_t>(id)].id == id);
     return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].severity;
 }
 

@@ -184,7 +184,11 @@ namespace
     Result semaTakeAddress(Sema& sema, const AstUnaryExpr&, const SemaNodeView& nodeView)
     {
         TypeInfoFlags flags = TypeInfoFlagsE::Zero;
-        if (nodeView.sym && nodeView.sym->isVariable())
+        if (nodeView.type->isConst())
+        {
+            flags.add(TypeInfoFlagsE::Const);
+        }
+        else if (nodeView.sym && nodeView.sym->isVariable())
         {
             const auto symVar = &nodeView.sym->cast<SymbolVariable>();
             if (symVar->hasVarFlag(SymbolVariableFlagsE::Let))
@@ -195,18 +199,9 @@ namespace
         if (nodeView.type->isArray())
             blockPointer = true;
 
-        if (blockPointer)
-        {
-            const TypeInfo& ty      = TypeInfo::makeBlockPointer(nodeView.typeRef, flags);
-            const TypeRef   typeRef = sema.typeMgr().addType(ty);
-            sema.setType(sema.curNodeRef(), typeRef);
-        }
-        else
-        {
-            const TypeInfo& ty      = TypeInfo::makeValuePointer(nodeView.typeRef, flags);
-            const TypeRef   typeRef = sema.typeMgr().addType(ty);
-            sema.setType(sema.curNodeRef(), typeRef);
-        }
+        const TypeInfo& ty      = blockPointer ? TypeInfo::makeBlockPointer(nodeView.typeRef, flags) : TypeInfo::makeValuePointer(nodeView.typeRef, flags);
+        const TypeRef   typeRef = sema.typeMgr().addType(ty);
+        sema.setType(sema.curNodeRef(), typeRef);
 
         return Result::Continue;
     }

@@ -171,12 +171,8 @@ namespace
             return Result::Stop;
         }
 
-        if (nodeView.sym)
-        {
-            if (nodeView.sym->isVariable() || nodeView.sym->isFunction())
-                return Result::Continue;
-            return SemaError::raiseUnaryOperandType(sema, node, nodeView.nodeRef, nodeView.typeRef);
-        }
+        if (SemaInfo::isLValue(*nodeView.node))
+            return Result::Continue;
 
         return SemaError::raiseUnaryOperandType(sema, node, nodeView.nodeRef, nodeView.typeRef);
     }
@@ -213,7 +209,7 @@ namespace
         return Result::Continue;
     }
 
-    Result semaDRef(Sema& sema, const AstUnaryExpr&, const SemaNodeView& nodeView)
+    Result semaDRef(Sema& sema, AstUnaryExpr& node, const SemaNodeView& nodeView)
     {
         TypeRef resultTypeRef = nodeView.type->typeRef();
         if (nodeView.type->isConst())
@@ -224,6 +220,7 @@ namespace
         }
 
         sema.setType(sema.curNodeRef(), resultTypeRef);
+        SemaInfo::addSemaFlags(node, NodeSemaFlags::LValue);
         return Result::Continue;
     }
 

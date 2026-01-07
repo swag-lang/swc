@@ -207,6 +207,11 @@ void SemaInfo::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
         addSemaFlags(node, NodeSemaFlags::Value);
     else
         removeSemaFlags(node, NodeSemaFlags::Value);
+
+    if (symbol->isVariable() || symbol->isFunction())
+        addSemaFlags(node, NodeSemaFlags::LValue);
+    else
+        removeSemaFlags(node, NodeSemaFlags::LValue);
 }
 
 bool SemaInfo::hasPayload(AstNodeRef nodeRef) const

@@ -403,6 +403,7 @@ Result AstBinaryConditionalExpr::semaPostNode(Sema& sema)
 {
     // TODO
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstS32(1));
+    SemaInfo::addSemaFlags(sema.node(sema.curNodeRef()), NodeSemaFlags::Value);
     return Result::Continue;
 }
 

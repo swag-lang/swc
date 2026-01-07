@@ -6,6 +6,7 @@
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
+#include "Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE()
 
@@ -159,7 +160,59 @@ namespace
         return reportInvalidType(sema, expr, ops);
     }
 
-    Result checkTakeAddress(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
+    Result checkTakeAddress(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& nodeView)
+    {
+        if (sema.hasConstant(node.nodeExprRef))
+            return SemaError::raiseUnaryOperandType(sema, node, node.nodeExprRef, nodeView.typeRef);
+
+        const auto operand = &sema.node(node.nodeExprRef);
+        switch (operand->id())
+        {
+            case AstNodeId::Identifier:
+            case AstNodeId::ArrayType:
+            case AstNodeId::SliceType:
+            case AstNodeId::IndexExpr:
+            case AstNodeId::MemberAccessExpr:
+                break;
+            case AstNodeId::UnaryExpr:
+            {
+                const auto  unary = operand->cast<AstUnaryExpr>();
+                const auto& tok   = sema.token(unary->srcViewRef(), unary->tokRef());
+                if (tok.id == TokenId::KwdDRef)
+                    break;
+                return SemaError::raiseUnaryOperandType(sema, node, node.nodeExprRef, nodeView.typeRef);
+            }
+            default:
+                return SemaError::raiseUnaryOperandType(sema, node, node.nodeExprRef, nodeView.typeRef);
+        }
+
+        return Result::Continue;
+    }
+
+    Result semaTakeAddress(Sema& sema, const AstUnaryExpr&, const SemaNodeView& nodeView)
+    {
+        TypeInfoFlags flags = TypeInfoFlagsE::Zero;
+        if (nodeView.type->isConst())
+            flags.add(TypeInfoFlagsE::Const);
+        else if (nodeView.sym && nodeView.sym->isVariable())
+        {
+            const auto symVar = &nodeView.sym->cast<SymbolVariable>();
+            if (symVar->hasVarFlag(SymbolVariableFlagsE::Let))
+                flags.add(TypeInfoFlagsE::Const);
+        }
+
+        const TypeInfo& ty      = TypeInfo::makeValuePointer(nodeView.typeRef, flags);
+        const TypeRef   typeRef = sema.typeMgr().addType(ty);
+        sema.setType(sema.curNodeRef(), typeRef);
+        return Result::Continue;
+    }
+
+    Result checkDRef(Sema&, const AstUnaryExpr&, const SemaNodeView&)
+    {
+        return Result::Continue;
+    }
+
+    Result checkMoveRef(Sema&, const AstUnaryExpr&, const SemaNodeView&)
     {
         return Result::Continue;
     }
@@ -178,12 +231,10 @@ namespace
                 return checkTilde(sema, node, ops);
             case TokenId::SymAmpersand:
                 return checkTakeAddress(sema, node, ops);
-
             case TokenId::KwdDRef:
+                return checkDRef(sema, node, ops);
             case TokenId::KwdMoveRef:
-                // TODO
-                return Result::Continue;
-
+                return checkMoveRef(sema, node, ops);
             default:
                 return SemaError::raiseInternal(sema, node);
         }
@@ -192,7 +243,7 @@ namespace
 
 Result AstUnaryExpr::semaPostNode(Sema& sema)
 {
-    const SemaNodeView ops(sema, nodeExprRef);
+    const SemaNodeView nodeView(sema, nodeExprRef);
 
     // Value-check
     RESULT_VERIFY(SemaCheck::isValueExpr(sema, nodeExprRef));
@@ -200,13 +251,13 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
 
     // Type-check
     const auto& tok = sema.token(srcViewRef(), tokRef());
-    RESULT_VERIFY(check(sema, tok.id, *this, ops));
+    RESULT_VERIFY(check(sema, tok.id, *this, nodeView));
 
     // Constant folding
     if (sema.hasConstant(nodeExprRef))
     {
         ConstantRef result;
-        RESULT_VERIFY(constantFold(sema, result, tok.id, *this, ops));
+        RESULT_VERIFY(constantFold(sema, result, tok.id, *this, nodeView));
         sema.setConstant(sema.curNodeRef(), result);
         return Result::Continue;
     }
@@ -220,15 +271,10 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
             break;
 
         case TokenId::SymAmpersand:
-        {
-            const TypeInfo& ty      = TypeInfo::makeValuePointer(ops.typeRef);
-            const TypeRef   typeRef = sema.typeMgr().addType(ty);
-            sema.setType(sema.curNodeRef(), typeRef);
-            break;
-        }
+            return semaTakeAddress(sema, *this, nodeView);
 
         default:
-            sema.setType(sema.curNodeRef(), ops.typeRef);
+            sema.setType(sema.curNodeRef(), nodeView.typeRef);
             break;
     }
 

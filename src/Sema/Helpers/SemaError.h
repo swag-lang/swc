@@ -22,6 +22,7 @@ namespace SemaError
     Result raiseLiteralOverflow(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal, TypeRef targetTypeRef);
     Result raiseExprNotConst(Sema& sema, AstNodeRef nodeRef);
     Result raiseBinaryOperandType(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
+    Result raiseUnaryOperandType(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
     Result raiseInternal(Sema& sema, const AstNode& node);
     Result raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);
     Result raiseGhosting(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);

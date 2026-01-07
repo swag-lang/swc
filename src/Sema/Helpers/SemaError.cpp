@@ -117,6 +117,18 @@ Result SemaError::raiseBinaryOperandType(Sema& sema, const AstNode& nodeOp, AstN
     return Result::Stop;
 }
 
+Result SemaError::raiseUnaryOperandType(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
+{
+    auto diag = report(sema, DiagnosticId::sema_err_unary_operand_type, nodeOp.srcViewRef(), nodeOp.tokRef());
+    diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
+
+    const SourceCodeLocation loc = sema.node(nodeValueRef).locationWithChildren(sema.ctx(), sema.ast());
+    diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
+
+    diag.report(sema.ctx());
+    return Result::Stop;
+}
+
 Result SemaError::raiseInternal(Sema& sema, const AstNode& node)
 {
     return raise(sema, DiagnosticId::sema_err_internal, node.srcViewRef(), node.tokRef());

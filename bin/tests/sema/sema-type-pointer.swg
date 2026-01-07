@@ -40,7 +40,8 @@ var J: *H.A // swc-expected-error {{sema_err_not_type}}
     var v: *AA = &st
     #assert(#typeof(v) == *AA)
 
-    let A = 10
+    let A = 10's32
     let PA = &A
-    #print(#typeof(PA))
+    #assert(#typeof(PA) == const *s32)
+    let PB = &0
 }

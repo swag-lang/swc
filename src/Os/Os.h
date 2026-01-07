@@ -5,7 +5,7 @@
 #include <windows.h>
 #endif
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 enum class ExitCode;
 
@@ -35,4 +35,4 @@ namespace Os
 #define SWC_GET_EXCEPTION_INFOS()        GetExceptionInformation()
 #endif
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -6,7 +6,7 @@
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/Symbols.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 Result SemaCheck::modifiers(Sema& sema, const AstNode& node, AstModifierFlags mods, AstModifierFlags allowed)
 {
@@ -131,4 +131,4 @@ Result SemaCheck::checkSignature(Sema& sema, const std::vector<SymbolVariable*>&
     return Result::Continue;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

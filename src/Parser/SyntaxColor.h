@@ -1,6 +1,6 @@
 #pragma once
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
 
@@ -50,4 +50,4 @@ namespace SyntaxColorHelper
     Utf8 colorize(const TaskContext& ctx, SyntaxColorMode mode, const std::string_view& line, bool force = false);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

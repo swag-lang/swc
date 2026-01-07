@@ -4,7 +4,7 @@
 #include "Sema/Symbol/Symbols.h"
 #include <format>
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 namespace SemaHelpers
 {
@@ -70,4 +70,4 @@ namespace SemaHelpers
     }
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

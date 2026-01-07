@@ -3,7 +3,7 @@
 #include "Lexer/SourceCodeLocation.h"
 #include "Report/DiagnosticDef.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
 class Global;
@@ -79,4 +79,4 @@ private:
     void tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia, std::string_view comment);
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

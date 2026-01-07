@@ -6,7 +6,7 @@
 #include "Sema/Type/CastContext.h"
 #include "Sema/Type/TypeManager.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 void ConstantManager::setup(const TaskContext& ctx)
 {
@@ -168,4 +168,4 @@ bool ConstantManager::concretizeConstant(Sema& sema, ConstantRef& result, Consta
     return true;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

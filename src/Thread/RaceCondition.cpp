@@ -2,7 +2,7 @@
 #include "Thread/RaceCondition.h"
 #include "Report/Assert.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 #if SWC_HAS_RACE_CONDITION
 
@@ -67,4 +67,4 @@ RaceCondition::~RaceCondition()
 
 #endif // SWC_HAS_RACE_CONDITION
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

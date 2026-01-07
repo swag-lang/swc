@@ -1,7 +1,7 @@
 // ReSharper disable CppInconsistentNaming
 #pragma once
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 template<class T, std::size_t InlineCapacity = 16, class Alloc = std::allocator<T>>
 class SmallVector
@@ -453,4 +453,4 @@ private:
     alignas(T) std::byte _inline_data[sizeof(T) * InlineCapacity]{};
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

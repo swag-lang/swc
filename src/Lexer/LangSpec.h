@@ -2,7 +2,7 @@
 #include "Core/Flags.h"
 #include "Core/StringMap.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
 struct AstEnumDecl;
@@ -64,4 +64,4 @@ private:
     void setupCharFlags();
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

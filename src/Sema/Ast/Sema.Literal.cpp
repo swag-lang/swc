@@ -9,7 +9,7 @@
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Helpers/SemaError.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 namespace
 {
@@ -452,4 +452,4 @@ Result AstFloatLiteral::semaPreNode(Sema& sema) const
     return Result::SkipChildren;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

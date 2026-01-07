@@ -5,7 +5,7 @@
 #include "Report/Logger.h"
 #include "Thread/JobManager.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 Global::Global()
 {
@@ -25,4 +25,4 @@ void Global::initialize(const CommandLine& cmdLine) const
     jobManager_->setup(cmdLine);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

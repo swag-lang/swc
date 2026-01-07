@@ -2,7 +2,7 @@
 #include "Core/Store.h"
 #include "Sema/Type/TypeInfo.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
 class CompilerInstance;
@@ -93,4 +93,4 @@ private:
     void    buildPromoteTable();
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -1,6 +1,6 @@
 #pragma once
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 #if SWC_HAS_RACE_CONDITION
 struct RaceCondition
@@ -65,4 +65,4 @@ private:
 #endif
 // clang-format on
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

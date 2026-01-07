@@ -17,7 +17,7 @@
 #include "Sema/Type/TypeManager.h"
 #include "Wmf/SourceFile.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 Result AstCompilerExpression::semaPostNode(Sema& sema)
 {
@@ -555,4 +555,4 @@ Result AstCompilerFunc::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

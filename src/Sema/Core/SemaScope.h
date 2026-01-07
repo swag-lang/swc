@@ -1,6 +1,6 @@
 #pragma once
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 class SymbolMap;
 
 enum class SemaScopeFlagsE
@@ -45,4 +45,4 @@ private:
     SmallVector<SymbolMap*> usingSymMaps_;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

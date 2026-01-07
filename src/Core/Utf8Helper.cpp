@@ -4,7 +4,7 @@
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 // Returns {next_ptr, code_point, bytes_consumed}.
 // On error: {nullptr, 0, 0}.
@@ -304,4 +304,4 @@ Utf8 Utf8Helper::addArticleAAn(std::string_view s)
     }
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

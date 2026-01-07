@@ -4,7 +4,7 @@
 #include "Core/Utf8Helper.h"
 #include "Main/Stats.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 void Parser::setReportArguments(Diagnostic& diag, TokenRef tokRef) const
 {
@@ -277,4 +277,4 @@ void Parser::parse(TaskContext& ctx, Ast& ast)
     ast_->setRoot(parseFile());
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

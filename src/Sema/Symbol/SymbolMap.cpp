@@ -6,7 +6,7 @@
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/LookUpContext.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 namespace
 {
@@ -249,4 +249,4 @@ Symbol* SymbolMap::addSingleSymbol(TaskContext& ctx, Symbol* symbol)
     return addSymbol(ctx, symbol, false);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

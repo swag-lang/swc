@@ -1,7 +1,7 @@
 #pragma once
 #include "Thread/Job.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 using JobClientId = uint32_t;
 
@@ -77,4 +77,4 @@ private:
     static void       freeRecord(JobRecord* r);
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

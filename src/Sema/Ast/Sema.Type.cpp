@@ -9,7 +9,7 @@
 #include "Sema/Symbol/SemaMatch.h"
 #include "Sema/Type/TypeManager.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 Result AstBuiltinType::semaPostNode(Sema& sema) const
 {
@@ -398,4 +398,4 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

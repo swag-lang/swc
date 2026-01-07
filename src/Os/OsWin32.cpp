@@ -4,7 +4,7 @@
 #include "Os/Os.h"
 #include "Report/ExitCodes.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 namespace Os
 {
@@ -128,6 +128,6 @@ namespace Os
     }
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();
 
 #endif // _WIN32

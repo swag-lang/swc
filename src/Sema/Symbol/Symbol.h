@@ -7,7 +7,7 @@
 #include "Sema/Type/TypeInfo.h"
 #include "Sema/Type/TypeManager.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
 class SymbolMap;
@@ -188,4 +188,4 @@ private:
     AttributeList  attributes_;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

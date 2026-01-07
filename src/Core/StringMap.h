@@ -1,7 +1,7 @@
 // ReSharper disable CppInconsistentNaming
 #pragma once
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 // StringMap<T> (POD/Trivial T version)
 // - Keys are string_view (caller controls lifetime).
@@ -370,4 +370,4 @@ private:
     static constexpr size_t INVALID_POS = static_cast<size_t>(-1);
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

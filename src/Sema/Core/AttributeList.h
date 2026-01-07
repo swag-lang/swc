@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "Parser/AstNode.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class SymbolAttribute;
 
@@ -29,4 +29,4 @@ struct AttributeList
     void addFlag(AttributeFlags fl) { flags.add(fl); }
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -1,5 +1,5 @@
 #pragma once
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
 
@@ -48,4 +48,4 @@ struct Stats
     void print(const TaskContext& ctx) const;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -4,7 +4,7 @@
 #include "Main/TaskContext.h"
 #include "Report/LogSymbol.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 Utf8 LogSymbolHelper::toString(const TaskContext& ctx, LogSymbol symbol)
 {
@@ -46,4 +46,4 @@ Utf8 LogSymbolHelper::toString(const TaskContext& ctx, LogSymbol symbol)
     return "?";
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

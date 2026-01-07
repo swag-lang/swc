@@ -2,7 +2,7 @@
 #include "Lexer/Token.h"
 #include "Wmf/SourceFile.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 struct SourceTrivia
 {
@@ -65,4 +65,4 @@ private:
     bool                          mustSkip_ = false;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

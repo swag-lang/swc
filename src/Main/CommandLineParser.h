@@ -1,6 +1,6 @@
 #pragma once
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class Diagnostic;
 class TaskContext;
@@ -73,4 +73,4 @@ private:
     Result                 checkCommandLine(TaskContext& ctx) const;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

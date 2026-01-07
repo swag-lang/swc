@@ -2,7 +2,7 @@
 #include "pch.h"
 #include "Core/Store.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 Store::Store(uint32_t pageSize) :
     pageSize_(pageSize)
@@ -310,4 +310,4 @@ std::pair<Ref, void*> Store::allocate(uint32_t size, uint32_t align)
     return {r, static_cast<void*>(page->bytes() + offset)};
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

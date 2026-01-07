@@ -1,7 +1,7 @@
 #pragma once
 #include "Lexer/SourceCodeLocation.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 class SourceView;
 
 class SourceFile;
@@ -112,4 +112,4 @@ struct Token
     static bool isReserved(TokenId id) { return toKind(id) == TokenIdKind::Reserved; }
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

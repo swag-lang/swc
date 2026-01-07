@@ -8,7 +8,7 @@
 #include "Sema/Symbol/SemaMatch.h"
 #include "Sema/Symbol/Symbols.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 Result AstAccessModifier::semaPreDecl(Sema& sema) const
 {
@@ -141,4 +141,4 @@ Result AstAttribute::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

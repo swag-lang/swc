@@ -2,7 +2,7 @@
 #include "Core/SmallVector.h"
 #include "Report/Diagnostic.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class DiagnosticBuilder
 {
@@ -76,4 +76,4 @@ private:
     void expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements) const;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

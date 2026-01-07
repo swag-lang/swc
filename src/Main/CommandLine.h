@@ -1,7 +1,7 @@
 #pragma once
 #include "Runtime/Runtime.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 inline constexpr auto ALLOWED_COMMANDS = "syntax|format|sema";
 enum class CommandKind
@@ -50,4 +50,4 @@ struct CommandLine
     fs::path modulePath;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

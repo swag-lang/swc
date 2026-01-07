@@ -4,7 +4,7 @@
 #include "Parser/Ast.h"
 #include "Parser/AstNodes.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 void AstNode::collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, SpanRef spanRef)
 {
@@ -111,4 +111,4 @@ TokenRef AstNode::tokRefEnd(const Ast& ast) const
     return node.tokRefEnd(ast);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

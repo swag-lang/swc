@@ -3,7 +3,7 @@
 #include "Sema/Symbol/SymbolMap.h"
 #include "Sema/Type/TypeManager.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 // -----------------------------------------------------------------------------
 class SymbolModule : public SymbolMap
@@ -239,4 +239,4 @@ private:
     std::vector<SymbolVariable*> parameters_;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

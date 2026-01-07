@@ -12,7 +12,7 @@
 #include "Thread/JobManager.h"
 #include "Wmf/SourceFile.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 namespace Command
 {
@@ -75,4 +75,4 @@ namespace Command
     }
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -1,7 +1,7 @@
 #pragma once
 #include "Math/ApInt.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class ApsInt : public ApInt
 {
@@ -77,4 +77,4 @@ protected:
     bool                      unsigned_ = false;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

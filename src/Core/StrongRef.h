@@ -1,6 +1,6 @@
 #pragma once
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 // Base template for strong type wrappers
 template<typename T>
@@ -49,4 +49,4 @@ private:
 #endif
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

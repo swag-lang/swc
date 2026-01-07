@@ -2,7 +2,7 @@
 #include "Lexer/SourceView.h"
 #include "Lexer/Token.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 enum class DiagnosticId;
 class Diagnostic;
@@ -72,4 +72,4 @@ private:
     void lexMultiLineComment();
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

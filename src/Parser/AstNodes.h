@@ -4,7 +4,7 @@
 #include "Parser/AstNode.h"
 #include "Parser/AstNodeId.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 // -----------------------------------------------------------------------------
 template<AstNodeId I>
@@ -390,4 +390,4 @@ constexpr std::array AST_NODE_ID_INFOS = {
 #undef SWC_NODE_DEF
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

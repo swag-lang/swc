@@ -8,7 +8,7 @@
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/Symbols.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 namespace
 {
@@ -297,4 +297,4 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -3,7 +3,7 @@
 #include "Sema/Core/Sema.h"
 #include "Sema/Helpers/SemaError.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 bool SymbolEnum::computeNextValue(Sema& sema, SourceViewRef srcViewRef, TokenRef tokRef)
 {
@@ -141,4 +141,4 @@ Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
     return out;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

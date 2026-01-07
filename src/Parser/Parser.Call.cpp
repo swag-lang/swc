@@ -2,7 +2,7 @@
 #include "Parser/Parser.h"
 #include "Report/Diagnostic.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 AstNodeRef Parser::parseIntrinsicCallZero()
 {
@@ -119,4 +119,4 @@ AstNodeRef Parser::parseAttributeList()
     return nodeRef;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

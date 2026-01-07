@@ -2,7 +2,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 TaskContext::TaskContext(const Global& global, const CommandLine& cmdLine) :
     global_(&global),
@@ -47,4 +47,4 @@ const IdentifierManager& TaskContext::idMgr() const
     return compiler().idMgr();
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

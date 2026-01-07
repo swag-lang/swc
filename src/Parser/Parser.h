@@ -6,7 +6,7 @@
 #include "Parser/AstNode.h"
 #include "Report/Diagnostic.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class SourceFile;
 class TaskContext;
@@ -254,4 +254,4 @@ private:
     };
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

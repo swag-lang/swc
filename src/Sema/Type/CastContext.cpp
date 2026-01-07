@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Sema/Type/CastContext.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 void CastFailure::set(AstNodeRef errorNodeRef, DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value, DiagnosticId note)
 {
@@ -24,4 +24,4 @@ void CastContext::fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::stri
     failure.set(errorNodeRef, d, srcRef, dstRef, value, note);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

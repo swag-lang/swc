@@ -12,7 +12,7 @@
 #include "Report/Logger.h"
 #include "Wmf/Verify.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 namespace
 {
@@ -257,4 +257,4 @@ void Diagnostic::report(TaskContext& ctx) const
     }
 }
 
-SWC_END_NAMESPACE();
+SWC_END_NAMESPACE();;

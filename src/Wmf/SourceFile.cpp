@@ -9,7 +9,7 @@
 #include "Sema/Helpers/SemaInfo.h"
 #include "Wmf/Verify.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 SourceFile::SourceFile(FileRef fileRef, fs::path path, FileFlags flags) :
     fileRef_(fileRef),
@@ -79,4 +79,4 @@ Result SourceFile::loadContent(TaskContext& ctx)
     return Result::Continue;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

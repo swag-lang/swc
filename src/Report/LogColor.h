@@ -1,6 +1,6 @@
 #pragma once
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
 
@@ -41,4 +41,4 @@ namespace LogColorHelper
     RgbColor hslToRgb(float h, float s, float l);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

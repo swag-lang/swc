@@ -6,7 +6,7 @@
 #include "Sema/Helpers/SemaInfo.h"
 #include "Sema/Type/TypeManager.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 Result AstIntrinsicValue::semaPostNode(Sema& sema)
 {
@@ -66,4 +66,4 @@ Result AstIntrinsicCallZero::semaPostNode(Sema& sema) const
     return Result::SkipChildren;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -9,7 +9,7 @@
 #include "Main/TaskContext.h"
 #include "Report/Diagnostic.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 namespace
 {
@@ -402,4 +402,4 @@ void Verify::tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia
     }
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -2,7 +2,7 @@
 #include "DiagnosticElement.h"
 #include "Diagnostic.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 DiagnosticElement::DiagnosticElement(DiagnosticId id) :
     id_(id),
@@ -100,4 +100,4 @@ void DiagnosticElement::setMessage(Utf8 m)
     message_ = std::move(m);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Parser/Parser.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 AstNodeRef Parser::parseLiteral()
 {
@@ -155,4 +155,4 @@ AstNodeRef Parser::parseLiteralStruct()
     return nodeRef;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -8,7 +8,7 @@
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/CastContext.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 bool SemaCast::concretizeConstant(Sema& sema, ConstantRef& result, CastContext& castCtx, ConstantRef cstRef, TypeInfo::Sign hintSign)
 {
@@ -384,4 +384,4 @@ Result SemaCast::promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, 
     return Result::Continue;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

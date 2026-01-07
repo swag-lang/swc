@@ -8,7 +8,7 @@
 #include "Report/Diagnostic.h"
 #include "Report/Logger.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 constexpr auto   LONG_PREFIX         = "--";
 constexpr auto   SHORT_PREFIX        = "-";
@@ -419,4 +419,4 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
 #endif
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

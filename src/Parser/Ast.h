@@ -6,7 +6,7 @@
 #include "Parser/AstNodes.h"
 #include "Thread/JobManager.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class SourceView;
 class Verify;
@@ -165,4 +165,4 @@ private:
     AstFlags    flags_   = AstFlagsE::Zero;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

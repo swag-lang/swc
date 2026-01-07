@@ -2,7 +2,7 @@
 #include "Math/Helpers.h"
 #include "Math/ApFloat.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 class ApFloat;
 
 namespace Math
@@ -131,4 +131,4 @@ namespace Math
     }
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

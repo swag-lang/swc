@@ -4,7 +4,7 @@
 #include "Lexer/SourceView.h"
 #include "Math/Hash.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
 
@@ -51,7 +51,7 @@ private:
     IdentifierRef nameTargetOs_       = IdentifierRef::invalid();
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();
 
 template<>
 struct std::hash<swc::IdentifierRef>

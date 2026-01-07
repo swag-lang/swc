@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Parser/Parser.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 AstNodeRef Parser::parseGenericParam()
 {
@@ -182,4 +182,4 @@ AstNodeRef Parser::parseVarDecl()
     return nodeRef;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

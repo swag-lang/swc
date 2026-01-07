@@ -1,5 +1,5 @@
 #pragma once
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class Arena
 {
@@ -55,4 +55,4 @@ private:
     void        releaseAll();
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

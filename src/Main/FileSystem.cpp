@@ -4,7 +4,7 @@
 #include "Main/TaskContext.h"
 #include "Report/Diagnostic.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
 {
@@ -149,4 +149,4 @@ void FileSystem::collectSwagFilesRec(const TaskContext& ctx, const fs::path& fol
     }
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -1,7 +1,7 @@
 #pragma once
 #include "Sema/Symbol/IdentifierManager.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class Symbol;
 class Sema;
@@ -14,4 +14,4 @@ namespace SemaMatch
     Result ghosting(Sema& sema, const Symbol& sym);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -3,7 +3,7 @@
 #include "Main/Stats.h"
 #include "Sema/Symbol/Symbols.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 void TypeManager::setup(TaskContext&)
 {
@@ -286,4 +286,4 @@ void TypeManager::buildPromoteTable()
     }
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

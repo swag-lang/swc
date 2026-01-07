@@ -2,7 +2,7 @@
 #include "Sema/Core/Sema.h"
 #include "Thread/Job.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class SymbolNamespace;
 
@@ -22,4 +22,4 @@ public:
     const Sema& sema() const { return sema_; }
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

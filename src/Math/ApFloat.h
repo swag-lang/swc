@@ -2,7 +2,7 @@
 #include "Math/ApInt.h"
 #include "Math/ApsInt.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class ApFloat
 {
@@ -64,4 +64,4 @@ private:
     } value_;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

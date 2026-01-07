@@ -11,7 +11,7 @@
 #include "Sema/Type/CastContext.h"
 #include "Sema/Type/SemaCast.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 Result AstEnumDecl::semaPreDecl(Sema& sema) const
 {
@@ -191,4 +191,4 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

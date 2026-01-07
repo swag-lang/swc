@@ -9,7 +9,7 @@
 #include "Sema/Type/CastContext.h"
 #include "Sema/Type/TypeManager.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 namespace
 {
@@ -395,4 +395,4 @@ AstNodeRef SemaCast::createImplicitCast(Sema& sema, TypeRef dstTypeRef, AstNodeR
     return substNodeRef;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -8,7 +8,7 @@
 #include "Sema/Type/TypeManager.h"
 #endif
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 bool SemaInfo::hasConstant(const TaskContext& ctx, AstNodeRef nodeRef) const
 {
@@ -242,4 +242,4 @@ void* SemaInfo::getPayload(AstNodeRef nodeRef) const
     return *shard.store.ptr<void*>(node.semaRef());
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

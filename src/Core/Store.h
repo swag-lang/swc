@@ -1,7 +1,7 @@
 // ReSharper disable CppInconsistentNaming
 #pragma once
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 using Ref = uint32_t;
 
@@ -200,4 +200,4 @@ private:
     }
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

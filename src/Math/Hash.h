@@ -1,6 +1,6 @@
 #pragma once
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 namespace Math
 {
@@ -11,4 +11,4 @@ namespace Math
     uint32_t hashCombine(uint32_t h, uint64_t v);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

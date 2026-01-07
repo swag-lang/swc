@@ -2,7 +2,7 @@
 #include "Parser/Parser.h"
 #include "Core/Utf8Helper.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 AstNodeRef Parser::parseImplEnum()
 {
@@ -101,4 +101,4 @@ AstNodeRef Parser::parseEnumDecl()
     return nodeRef;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

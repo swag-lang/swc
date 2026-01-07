@@ -4,7 +4,7 @@
 #include "Main/TaskContext.h"
 #include "Report/LogColor.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 Utf8 LogColorHelper::colorToAnsi(uint32_t r, uint32_t g, uint32_t b)
 {
@@ -135,4 +135,4 @@ RgbColor LogColorHelper::hslToRgb(float h, float s, float l)
     return result;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

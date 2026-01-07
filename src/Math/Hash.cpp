@@ -2,7 +2,7 @@
 #include "Math/Hash.h"
 #include "Math/Helpers.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 // wyhash — tiny, simplified
 // Assumptions: 64-bit little-endian; compiler supports __int128.
@@ -141,4 +141,4 @@ namespace Math
     }
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -3,7 +3,7 @@
 #include "Lexer/SourceView.h"
 #include "Lexer/Token.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class Symbol;
 class SymbolMap;
@@ -67,4 +67,4 @@ private:
     Priority currentPriority_    = {};
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -5,7 +5,7 @@
 #include "Sema/Type/TypeInfo.h"
 #include "Wmf/SourceFile.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
 enum class LogColor;
@@ -93,4 +93,4 @@ private:
     bool                                            silent_    = false;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

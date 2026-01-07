@@ -2,7 +2,7 @@
 #include "Math/ApFloat.h"
 #include "Math/ApsInt.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 namespace Math
 {
@@ -13,4 +13,4 @@ namespace Math
     ApsInt  bitCastToApInt(const ApFloat& src, bool isUnsigned);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

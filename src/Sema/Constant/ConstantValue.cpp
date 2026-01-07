@@ -6,7 +6,7 @@
 #include "Sema/Constant/ConstantValue.h"
 #include "Sema/Type/TypeManager.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 bool ConstantValue::operator==(const ConstantValue& rhs) const noexcept
 {
@@ -368,4 +368,4 @@ Utf8 ConstantValue::toString(const TaskContext& ctx) const
     }
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

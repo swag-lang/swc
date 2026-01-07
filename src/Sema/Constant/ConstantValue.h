@@ -3,7 +3,7 @@
 #include "Math/ApsInt.h"
 #include "Sema/Type/TypeInfo.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 class TaskContext;
 class TypeInfo;
 
@@ -110,4 +110,4 @@ struct ConstantValueHash
     size_t operator()(const ConstantValue& v) const noexcept { return v.hash(); }
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

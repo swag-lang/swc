@@ -4,7 +4,7 @@
 #include "Sema/Symbol/Symbol.h"
 #include "Sema/Type/TypeInfo.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class SymbolNamespace;
 class Symbol;
@@ -88,4 +88,4 @@ public:
     void* getPayload(AstNodeRef nodeRef) const;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

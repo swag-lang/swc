@@ -1,6 +1,6 @@
 #pragma once
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 template<typename T>
 struct EnumFlags
@@ -298,4 +298,4 @@ struct AtomicEnumFlags
     std::atomic<U> flags{0};
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -1,7 +1,7 @@
 #pragma once
 #include "Thread/Job.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class ParserJob : public Job
 {
@@ -14,4 +14,4 @@ private:
     JobResult   exec();
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

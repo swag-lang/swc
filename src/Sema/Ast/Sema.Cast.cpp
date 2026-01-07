@@ -7,7 +7,7 @@
 #include "Sema/Type/CastContext.h"
 #include "Sema/Type/SemaCast.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 Result AstSuffixLiteral::semaPostNode(Sema& sema) const
 {
@@ -93,4 +93,4 @@ Result AstExplicitCastExpr::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -1,7 +1,7 @@
 #pragma once
 #include "Main/TaskContext.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class JobManager;
 class Job;
@@ -99,4 +99,4 @@ private:
     JobRecord*  rec_   = nullptr; // scheduler state for THIS manager run (from the pool)
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

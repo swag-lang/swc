@@ -13,7 +13,7 @@
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Type/TypeManager.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 namespace
 {
@@ -777,4 +777,4 @@ void DiagnosticBuilder::expandMessageParts(SmallVector<std::unique_ptr<Diagnosti
     }
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

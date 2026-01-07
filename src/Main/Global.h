@@ -1,6 +1,6 @@
 #pragma once
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class Logger;
 class LangSpec;
@@ -23,4 +23,4 @@ private:
     JobManager* jobManager_ = nullptr;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

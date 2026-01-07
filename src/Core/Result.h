@@ -1,6 +1,6 @@
 #pragma once
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 enum class Result
 {
@@ -14,4 +14,4 @@ enum class Result
     if (const auto __ret = __expr; __ret != Result::Continue) \
         return __ret;
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

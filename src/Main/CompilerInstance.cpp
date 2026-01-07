@@ -19,7 +19,7 @@
 #include "Thread/JobManager.h"
 #include "Wmf/SourceFile.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdLine) :
     cmdLine_(&cmdLine),
@@ -239,4 +239,4 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
     return Result::Continue;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

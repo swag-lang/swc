@@ -4,7 +4,7 @@
 #include "Main/TaskContext.h"
 #include "Wmf/SourceFile.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 SourceView::SourceView(SourceViewRef ref, const SourceFile* file) :
     ref_(ref)
@@ -119,4 +119,4 @@ TokenRef SourceView::findLeftFrom(TokenRef startRef, std::initializer_list<Token
     return TokenRef::invalid();
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

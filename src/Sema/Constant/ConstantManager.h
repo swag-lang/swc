@@ -4,7 +4,7 @@
 #include "Sema/Constant/ConstantValue.h"
 #include "Sema/Core/Sema.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 class CompilerInstance;
 
 class ConstantManager
@@ -51,4 +51,4 @@ private:
     ConstantRef cstUndefined_  = ConstantRef::invalid();
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

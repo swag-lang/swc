@@ -6,7 +6,7 @@
 #include "Thread/RaceCondition.h"
 #include "Wmf/SourceFile.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 struct AstCompilerFunc;
 class SourceView;
@@ -119,4 +119,4 @@ private:
     void processCommand();
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

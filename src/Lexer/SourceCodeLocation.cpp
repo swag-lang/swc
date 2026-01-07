@@ -5,7 +5,7 @@
 #include "Main/TaskContext.h"
 #include "Os/Os.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class CompilerInstance;
 namespace
@@ -81,4 +81,4 @@ void SourceCodeLocation::fromOffset(const TaskContext& ctx, const SourceView& vi
     }
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

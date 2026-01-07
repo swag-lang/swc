@@ -3,7 +3,7 @@
 #include "Report/Diagnostic.h"
 #include "Sema/Type/TypeInfo.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class Sema;
 class Symbol;
@@ -32,4 +32,4 @@ namespace SemaError
     Result raisePointerArithmetic(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

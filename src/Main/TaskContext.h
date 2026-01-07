@@ -2,7 +2,7 @@
 #include "Parser/AstNode.h"
 #include "Sema/Symbol/IdentifierManager.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class IdentifierManager;
 class CompilerInstance;
@@ -87,4 +87,4 @@ private:
     TaskState          state_;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

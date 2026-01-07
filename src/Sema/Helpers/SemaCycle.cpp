@@ -8,7 +8,7 @@
 #include "Sema/Helpers/SemaJob.h"
 #include "Thread/JobManager.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 void SemaCycle::addNodeIfNeeded(const Symbol* sym)
 {
@@ -170,4 +170,4 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
     }
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -6,7 +6,7 @@
 #include "Sema/Helpers/SemaInfo.h"
 #include "Thread/Job.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 struct CastContext;
 struct SemaNodeView;
@@ -115,4 +115,4 @@ private:
     std::vector<SemaFrame> frame_;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

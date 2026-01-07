@@ -9,7 +9,7 @@
 #include "Sema/Type/TypeManager.h"
 #include "Symbols.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 SourceCodeLocation Symbol::loc(TaskContext& ctx) const noexcept
 {
@@ -139,4 +139,4 @@ const TypeInfo& Symbol::typeInfo(const TaskContext& ctx) const
     return ctx.typeMgr().get(typeRef_);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

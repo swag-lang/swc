@@ -7,7 +7,7 @@
 #include "Thread/Job.h"
 #include "Thread/JobManager.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 namespace Command
 {
@@ -31,4 +31,4 @@ namespace Command
     }
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

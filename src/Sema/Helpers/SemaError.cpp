@@ -6,7 +6,7 @@
 #include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 namespace
 {
@@ -199,4 +199,4 @@ Result SemaError::raisePointerArithmetic(Sema& sema, const AstNode& nodeOp, AstN
     return Result::Stop;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

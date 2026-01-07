@@ -9,7 +9,7 @@
 #include "Sema/Symbol/SemaMatch.h"
 #include "Sema/Symbol/Symbols.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 Result AstInterfaceDecl::semaPreDecl(Sema& sema) const
 {
@@ -52,4 +52,4 @@ Result AstInterfaceDecl::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

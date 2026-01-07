@@ -3,7 +3,7 @@
 #include "Core/SmallVector.h"
 #include "Report/Diagnostic.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
 {
@@ -174,4 +174,4 @@ SpanRef Parser::parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openT
     return ast_->pushSpan(childrenRefs.span());
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -13,7 +13,7 @@
 #include "Thread/JobManager.h"
 #include "Wmf/Verify.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 Sema::Sema(TaskContext& ctx, SemaInfo& semInfo, bool declPass) :
     ctx_(&ctx),
@@ -394,4 +394,4 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
     }
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

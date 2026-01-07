@@ -2,7 +2,7 @@
 #include "Sema/Core/AttributeList.h"
 #include "Sema/Symbol/Symbol.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class SymbolEnum;
 
@@ -44,4 +44,4 @@ private:
     SemaCompilerIf*               compilerIf_ = nullptr;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

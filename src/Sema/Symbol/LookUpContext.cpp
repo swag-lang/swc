@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Sema/Symbol/LookUpContext.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 int LookUpContext::Priority::compare(const Priority& a, const Priority& b)
 {
@@ -73,4 +73,4 @@ void LookUpContext::addSymbol(const Symbol* symbol, const Priority& priority)
     symbols_.push_back(symbol);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

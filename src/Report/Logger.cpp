@@ -5,7 +5,7 @@
 #include "Report/LogColor.h"
 #include "Report/Logger.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 void Logger::print(const TaskContext& ctx, std::string_view message)
 {
@@ -72,4 +72,4 @@ void Logger::printHeaderCentered(const TaskContext& ctx,
     print(ctx, "\n");
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

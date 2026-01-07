@@ -3,7 +3,7 @@
 #include "Sema/Core/Sema.h"
 #include "Sema/Symbol/Symbols.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 namespace
 {
@@ -49,4 +49,4 @@ SymbolFlags SemaFrame::flagsForCurrentAccess() const
     return flags;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

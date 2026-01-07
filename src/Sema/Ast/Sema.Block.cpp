@@ -6,7 +6,7 @@
 #include "Sema/Symbol/Symbol.h"
 #include "Sema/Symbol/Symbols.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 Result AstFile::semaPreDecl(Sema& sema) const
 {
@@ -129,4 +129,4 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

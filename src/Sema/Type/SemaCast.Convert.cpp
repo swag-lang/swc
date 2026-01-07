@@ -3,7 +3,7 @@
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Symbol/Symbols.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 void SemaCast::convertEnumToUnderlying(Sema& sema, SemaNodeView& nodeView)
 {
@@ -74,4 +74,4 @@ void SemaCast::convertForEquality(Sema& sema, SemaNodeView& leftNodeView, SemaNo
     nullForEquality(sema, rightNodeView, leftNodeView);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

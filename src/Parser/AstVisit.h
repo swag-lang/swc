@@ -2,7 +2,7 @@
 #include "Core/SmallVector.h"
 #include "Parser/AstNode.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class Ast;
 class SourceView;
@@ -77,4 +77,4 @@ private:
     AstNode* parentNodeInternal(size_t up) const;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

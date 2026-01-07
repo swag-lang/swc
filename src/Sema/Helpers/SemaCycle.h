@@ -2,7 +2,7 @@
 #include "Main/TaskContext.h"
 #include "Thread/JobManager.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class SemaJob;
 struct TaskState;
@@ -38,4 +38,4 @@ private:
     WaitGraph    graph_;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

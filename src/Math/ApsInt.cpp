@@ -2,7 +2,7 @@
 #include "Math/ApsInt.h"
 #include "Math/Hash.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 void ApsInt::add(const ApsInt& rhs, bool& overflow)
 {
@@ -158,4 +158,4 @@ bool ApsInt::fits64() const
     return fit64Signed();
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

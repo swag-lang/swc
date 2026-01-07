@@ -2,7 +2,7 @@
 #include "Lexer/SourceCodeLocation.h"
 #include "Report/DiagnosticDef.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class SourceFile;
 class TaskContext;
@@ -44,4 +44,4 @@ private:
     std::vector<DiagnosticSpan> spans_;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

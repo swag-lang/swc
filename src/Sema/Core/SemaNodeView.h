@@ -3,7 +3,7 @@
 #include "Sema/Core/Sema.h"
 #include "Sema/Type/TypeManager.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class ConstantValue;
 class TypeInfo;
@@ -47,4 +47,4 @@ struct SemaNodeView
     }
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

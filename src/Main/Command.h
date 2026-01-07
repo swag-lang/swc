@@ -1,6 +1,6 @@
 #pragma once
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class CompilerInstance;
 
@@ -11,4 +11,4 @@ namespace Command
     void sema(CompilerInstance& compiler);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

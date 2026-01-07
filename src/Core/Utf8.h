@@ -2,7 +2,7 @@
 // ReSharper disable CppInconsistentNaming
 #pragma once
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class Utf8 : public std::string
 {
@@ -63,7 +63,7 @@ public:
     void replace_loop(std::string_view from, std::string_view to, bool loopReplace = false);
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();
 
 template<>
 struct std::formatter<swc::Utf8> : std::formatter<std::string>

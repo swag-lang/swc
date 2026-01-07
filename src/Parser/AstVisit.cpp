@@ -4,7 +4,7 @@
 #include "Parser/Ast.h"
 #include "Parser/AstNodes.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 void AstVisit::start(Ast& ast, AstNodeRef root)
 {
@@ -188,4 +188,4 @@ AstNode* AstVisit::parentNodeInternal(size_t up) const
     return fr.node;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Memory/Arena.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 Arena::Arena(Arena&& other) noexcept :
     head_(other.head_),
@@ -102,4 +102,4 @@ void Arena::releaseAll()
     }
     head_ = nullptr;
 }
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

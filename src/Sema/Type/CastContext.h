@@ -3,7 +3,7 @@
 #include "Report/DiagnosticDef.h"
 #include "Sema/Constant/ConstantValue.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 enum class CastKind
 {
@@ -56,4 +56,4 @@ struct CastContext
     void        setFoldOut(ConstantRef v) { outConstRef = v; }
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

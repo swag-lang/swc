@@ -3,7 +3,7 @@
 #include "Math/Hash.h"
 #include "Math/Helpers.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 ApInt::ApInt() :
     ApInt(MAX_BITS)
@@ -1351,4 +1351,4 @@ bool ApInt::isPowerOf2() const
     return foundOneBit;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

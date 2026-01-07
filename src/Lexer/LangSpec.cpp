@@ -4,7 +4,7 @@
 #include "Main/TaskContext.h"
 #include "Math/Hash.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 void LangSpec::setup()
 {
@@ -136,4 +136,4 @@ bool LangSpec::isReservedNamespace(std::string_view ns)
     return name == "swag";
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

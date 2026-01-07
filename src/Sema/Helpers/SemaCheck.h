@@ -2,7 +2,7 @@
 #include "Core/Result.h"
 #include "Parser/AstNode.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class SymbolVariable;
 
@@ -14,4 +14,4 @@ namespace SemaCheck
     Result checkSignature(Sema& sema, const std::vector<SymbolVariable*>& parameters, bool attribute);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

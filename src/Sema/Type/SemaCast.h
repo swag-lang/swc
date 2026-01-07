@@ -3,7 +3,7 @@
 #include "Report/Diagnostic.h"
 #include "Sema/Constant/ConstantValue.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 struct CastContext;
 struct CastFailure;
@@ -35,4 +35,4 @@ namespace SemaCast
     void convertForEquality(Sema& sema, SemaNodeView& leftNodeView, SemaNodeView& rightNodeView);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

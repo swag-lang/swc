@@ -4,7 +4,7 @@
 #include "Lexer/SourceView.h"
 #include "Parser/AstNodeId.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 class TypeInfo;
 class Sema;
 class Ast;
@@ -157,4 +157,4 @@ struct AstNodeT : AstNode
     }
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

@@ -4,7 +4,7 @@
 #include "Wmf/SourceFile.h"
 #include "Wmf/Verify.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 ParserJob::ParserJob(const TaskContext& ctx, SourceFile* file) :
     Job(ctx, JobKind::Parser),
@@ -39,4 +39,4 @@ JobResult ParserJob::exec()
     return JobResult::Done;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

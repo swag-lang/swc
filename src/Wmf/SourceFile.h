@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class SemaInfo;
 class Ast;
@@ -65,4 +65,4 @@ private:
     bool                      hasWarning_ = false;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

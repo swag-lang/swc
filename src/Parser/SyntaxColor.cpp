@@ -8,7 +8,7 @@
 #include "Main/TaskContext.h"
 #include "Report/LogColor.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 namespace
 {
@@ -489,4 +489,4 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
     return result;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

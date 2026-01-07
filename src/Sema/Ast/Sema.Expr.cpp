@@ -9,7 +9,7 @@
 #include "Sema/Symbol/Symbol.h"
 #include "Sema/Symbol/Symbols.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 Result AstParenExpr::semaPostNode(Sema& sema)
 {
@@ -168,4 +168,4 @@ Result AstAutoScopedIdentifier::semaPostNode(Sema& sema)
     return Result::SkipChildren;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

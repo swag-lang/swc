@@ -1,7 +1,7 @@
 #pragma once
 #include "Sema/Symbol/IdentifierManager.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class Symbol;
 class SymbolEnum;
@@ -237,4 +237,4 @@ struct TypeInfoHash
     size_t operator()(const TypeInfo& t) const noexcept { return t.hash(); }
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

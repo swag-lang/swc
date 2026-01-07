@@ -9,7 +9,7 @@
 #include "Math/Hash.h"
 #include "Report/Diagnostic.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 // Helper: does the next char after the 'x'/'u'/'U' count as a hard terminator
 // for an escape in the given container token?
@@ -1367,4 +1367,4 @@ void Lexer::buildTriviaIndex() const
     triviaStart[numTok] = tIdx;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

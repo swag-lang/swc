@@ -2,7 +2,7 @@
 #include "Parser/Parser.h"
 #include "Core/SmallVector.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 AstNodeRef Parser::parseIdentifierType()
 {
@@ -358,4 +358,4 @@ AstNodeRef Parser::parseLambdaType()
     return nodeRef;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

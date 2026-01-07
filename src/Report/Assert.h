@@ -1,5 +1,5 @@
 #pragma once
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 void swagAssert(const char* expr, const char* file, int line);
 
@@ -42,4 +42,4 @@ void swagAssert(const char* expr, const char* file, int line);
 
 #endif // SWC_HAS_ASSERT
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

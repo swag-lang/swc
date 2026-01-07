@@ -7,7 +7,7 @@
 #include "Main/TaskContext.h"
 #include "Math/Hash.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 void IdentifierManager::setup(TaskContext&)
 {
@@ -81,4 +81,4 @@ const Identifier& IdentifierManager::get(IdentifierRef idRef) const
     return *shards_[shardIndex].store.ptr<Identifier>(localIndex * sizeof(Identifier));
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

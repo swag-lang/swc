@@ -6,7 +6,7 @@
 #include "Sema/Symbol/SymbolMap.h"
 #include "Sema/Symbol/Symbols.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 namespace
 {
@@ -162,4 +162,4 @@ Result SemaMatch::ghosting(Sema& sema, const Symbol& sym)
     SWC_UNREACHABLE();
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

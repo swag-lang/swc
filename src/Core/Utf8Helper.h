@@ -1,6 +1,6 @@
 #pragma once
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
 
@@ -23,4 +23,4 @@ namespace Utf8Helper
     Utf8             addArticleAAn(std::string_view s);
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

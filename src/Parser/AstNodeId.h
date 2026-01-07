@@ -1,6 +1,6 @@
 #pragma once
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 enum class AstNodeId : uint8_t
 {
@@ -11,4 +11,4 @@ enum class AstNodeId : uint8_t
     Count
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

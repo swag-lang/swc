@@ -6,7 +6,7 @@
 #include "Sema/Symbol/SemaMatch.h"
 #include "Sema/Symbol/Symbols.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 Result AstFunctionDecl::semaPreDecl(Sema& sema) const
 {
@@ -58,4 +58,4 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

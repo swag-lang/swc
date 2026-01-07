@@ -6,7 +6,7 @@
 #include "Report/LogColor.h"
 #include "Report/Logger.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 struct JobManager::RecordPool
 {
@@ -518,4 +518,4 @@ void JobManager::bumpClientCountLocked(JobClientId client, int delta)
         idleCv_.notify_all();
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

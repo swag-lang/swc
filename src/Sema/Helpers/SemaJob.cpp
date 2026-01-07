@@ -2,7 +2,7 @@
 #include "Sema/Helpers/SemaJob.h"
 #include "Sema/Core/Sema.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 SemaJob::SemaJob(const TaskContext& ctx, SemaInfo& semaInfo, bool declPass) :
     Job(ctx, JobKind::Sema),
@@ -27,4 +27,4 @@ JobResult SemaJob::exec()
     return sema_.exec();
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

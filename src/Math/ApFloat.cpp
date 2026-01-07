@@ -3,7 +3,7 @@
 #include "Math/ApsInt.h"
 #include "Math/Hash.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 ApFloat::ApFloat() :
     bitWidth_(64),
@@ -598,4 +598,4 @@ uint32_t ApFloat::minBits() const
     return 64;
 }
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

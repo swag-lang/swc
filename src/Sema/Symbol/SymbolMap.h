@@ -1,7 +1,7 @@
 #pragma once
 #include "Sema/Symbol/Symbol.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class LookUpContext;
 
@@ -51,4 +51,4 @@ private:
     static Symbol*  insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool acceptHomonyms, bool notify);
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

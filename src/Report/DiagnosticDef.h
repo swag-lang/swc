@@ -1,6 +1,6 @@
 #pragma once
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 enum class DiagnosticSeverity
 {
@@ -32,4 +32,4 @@ struct DiagnosticSpan
     Utf8               message;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

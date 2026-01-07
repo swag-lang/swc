@@ -1,6 +1,6 @@
 #pragma once
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 class ApInt
 {
@@ -107,4 +107,4 @@ protected:
     bool            hasTopBitsOverflow() const;
 };
 
-SWC_END_NAMESPACE()
+SWC_END_NAMESPACE();

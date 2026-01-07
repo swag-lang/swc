@@ -206,8 +206,24 @@ namespace
         return Result::Continue;
     }
 
-    Result checkDRef(Sema&, const AstUnaryExpr&, const SemaNodeView&)
+    Result checkDRef(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& nodeView)
     {
+        if (!nodeView.type->isPointer())
+            return SemaError::raiseUnaryOperandType(sema, node, nodeView.nodeRef, nodeView.typeRef);
+        return Result::Continue;
+    }
+
+    Result semaDRef(Sema& sema, const AstUnaryExpr&, const SemaNodeView& nodeView)
+    {
+        TypeRef resultTypeRef = nodeView.type->typeRef();
+        if (nodeView.type->isConst())
+        {
+            const TypeInfo ty = sema.typeMgr().get(resultTypeRef);
+            ty.flags().add(TypeInfoFlagsE::Const);
+            resultTypeRef = sema.typeMgr().addType(ty);
+        }
+
+        sema.setType(sema.curNodeRef(), resultTypeRef);
         return Result::Continue;
     }
 
@@ -264,6 +280,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     switch (tok.id)
     {
         case TokenId::KwdDRef:
+            return semaDRef(sema, *this, nodeView);
         case TokenId::KwdMoveRef:
             // TODO
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));

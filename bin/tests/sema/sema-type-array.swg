@@ -21,3 +21,8 @@ var F0: [2, 3, 4] s32
 #assert(#nameof(#typeof(F0[0])) == "[3, 4] s32")
 #assert(#nameof(#typeof(F0[0, 0])) == "[4] s32")
 #assert(#nameof(#typeof(F0[0, 0, 0])) == "s32")
+
+var F1: [2][3][4] s32
+#assert(#nameof(#typeof(F1[0])) == "[3][4] s32")
+#assert(#nameof(#typeof(F1[0][0])) == "[4] s32")
+#assert(#nameof(#typeof(F1[0][0][0])) == "s32")

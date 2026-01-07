@@ -343,8 +343,9 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
                 }
                 out += "]";
             }
-            out += " ";
             const TypeInfo& elemType = ctx.typeMgr().get(asArray.typeRef);
+            if (!elemType.isArray())
+                out += " ";
             out += elemType.toName(ctx);
             break;
         }

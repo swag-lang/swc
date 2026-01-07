@@ -1,5 +1,4 @@
 #pragma once
-#include "Core/Utf8.h"
 #include "Sema/Core/Sema.h"
 #include "Sema/Symbol/SymbolMap.h"
 #include "Sema/Symbol/Symbols.h"

@@ -136,7 +136,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         sema.setType(sema.curNodeRef(), nodeLeftView.type->typeRef());
     else
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeInt(32, TypeInfo::Sign::Signed));
-    SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
+    SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
     return Result::SkipChildren;
 }
 
@@ -178,7 +178,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeInt(32, TypeInfo::Sign::Signed));
     }
 
-    SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
+    SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
     return Result::Continue;
 }
 

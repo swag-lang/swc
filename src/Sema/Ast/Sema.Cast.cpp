@@ -64,7 +64,7 @@ Result AstExplicitCastExpr::semaPostNode(Sema& sema)
 
     // Value-check
     RESULT_VERIFY(SemaCheck::isValueExpr(sema, nodeExprRef));
-    SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
+    SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
 
     // Check cast modifiers
     RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst));

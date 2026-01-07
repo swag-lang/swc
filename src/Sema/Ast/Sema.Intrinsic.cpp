@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE();
 
 Result AstIntrinsicValue::semaPostNode(Sema& sema)
 {
-    SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
+    SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
 
     const Token& tok = sema.token(srcViewRef(), tokRef());
     switch (tok.id)
@@ -47,7 +47,7 @@ Result AstIntrinsicCallUnary::semaPostNode(Sema& sema)
         case TokenId::IntrinsicDataOf:
             // TODO
             sema.setType(sema.curNodeRef(), sema.typeMgr().typePtrVoid());
-            SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
+            SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
             break;
 
         default:

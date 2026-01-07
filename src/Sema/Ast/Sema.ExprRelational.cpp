@@ -275,7 +275,7 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
     // Value-check
     RESULT_VERIFY(SemaCheck::isValueExpr(sema, nodeLeftRef));
     RESULT_VERIFY(SemaCheck::isValueExpr(sema, nodeRightRef));
-    SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
+    SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
 
     // Type-check
     RESULT_VERIFY(check(sema, tok.id, *this, nodeLeftView, nodeRightView));

@@ -262,7 +262,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
 
     // Value-check
     RESULT_VERIFY(SemaCheck::isValueExpr(sema, nodeExprRef));
-    SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
+    SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
 
     // Type-check
     const auto& tok = sema.token(srcViewRef(), tokRef());

@@ -376,7 +376,7 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     // Value-check
     RESULT_VERIFY(SemaCheck::isValueExpr(sema, nodeLeftRef));
     RESULT_VERIFY(SemaCheck::isValueExpr(sema, nodeRightRef));
-    SemaInfo::addSemaFlags(*this, NodeSemaFlags::ValueExpr);
+    SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
 
     // Force types
     const Token& tok = sema.token(srcViewRef(), tokRef());

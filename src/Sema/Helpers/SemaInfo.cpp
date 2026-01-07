@@ -74,7 +74,7 @@ void SemaInfo::setConstant(AstNodeRef nodeRef, ConstantRef ref)
     AstNode& node = ast().node(nodeRef);
     setSemaKind(node, NodeSemaKind::ConstantRef);
     node.setSemaRef(ref.get());
-    addSemaFlags(node, NodeSemaFlags::ValueExpr);
+    addSemaFlags(node, NodeSemaFlags::Value);
 }
 
 bool SemaInfo::hasSubstitute(AstNodeRef nodeRef) const
@@ -204,9 +204,9 @@ void SemaInfo::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
     node.setSemaRef(value);
 
     if (symbol->isValueExpr())
-        addSemaFlags(node, NodeSemaFlags::ValueExpr);
+        addSemaFlags(node, NodeSemaFlags::Value);
     else
-        removeSemaFlags(node, NodeSemaFlags::ValueExpr);
+        removeSemaFlags(node, NodeSemaFlags::Value);
 }
 
 bool SemaInfo::hasPayload(AstNodeRef nodeRef) const

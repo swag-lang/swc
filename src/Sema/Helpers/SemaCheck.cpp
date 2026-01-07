@@ -54,7 +54,7 @@ Result SemaCheck::modifiers(Sema& sema, const AstNode& node, AstModifierFlags mo
 Result SemaCheck::isValueExpr(Sema& sema, AstNodeRef nodeRef)
 {
     const AstNode& node = sema.ast().node(nodeRef);
-    if (SemaInfo::hasSemaFlags(node, NodeSemaFlags::ValueExpr))
+    if (SemaInfo::hasSemaFlags(node, NodeSemaFlags::Value))
         return Result::Continue;
     const auto diag = SemaError::report(sema, DiagnosticId::sema_err_not_value_expr, nodeRef);
     diag.report(sema.ctx());

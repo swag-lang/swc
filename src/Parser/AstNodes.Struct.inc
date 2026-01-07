@@ -834,7 +834,7 @@ struct AstCompilerTypeExpr : AstNodeT<AstNodeId::CompilerTypeExpr>
     AstNodeRef nodeTypeRef;
 
     void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef}); }
-    Result semaPostNode(Sema& sema);
+    Result semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

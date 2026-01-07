@@ -782,6 +782,9 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::ModifierNullable:
             return parseTypeValue();
 
+        case TokenId::CompilerType:
+            return parseCompilerTypeExpr();
+
         case TokenId::Identifier:
             return parseQuotedIdentifier();
         case TokenId::KwdMe:
@@ -810,9 +813,6 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::KwdFunc:
         case TokenId::KwdMtd:
             return parseLambdaExpression();
-
-        case TokenId::CompilerType:
-            return parseCompilerTypeExpr();
 
         default:
             raiseError(DiagnosticId::parser_err_unexpected_token, ref());

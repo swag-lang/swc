@@ -12,12 +12,18 @@
 
 #test
 {
-    var a: [2, 2] s32;
+    var a: [2, 2] s32
     var b = a[0, 0, 0] // swc-expected-error {{sema_err_array_num_dims}}
 }
 
 #test
 {
-    var a: [2, 2] s32;
+    var a: [2, 2] s32
     var b = a[0, 0.0] // swc-expected-error {{sema_err_array_dim_not_int}}
+}
+
+#test
+{
+    var a: [2, 3] s32
+    #assert(#typeof(a[0]) == #type [3] s32)
 }

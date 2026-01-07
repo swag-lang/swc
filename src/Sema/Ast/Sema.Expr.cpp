@@ -164,7 +164,22 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
 
     if (nodeExprView.type->isArray())
     {
-        sema.setType(sema.curNodeRef(), nodeExprView.type->arrayElemTypeRef());
+        const auto& arrayDims   = nodeExprView.type->arrayDims();
+        const auto  numExpected = arrayDims.size();
+
+        if (numExpected > 1)
+        {
+            std::vector<uint64_t> dims;
+            for (size_t i = 1; i < numExpected; i++)
+                dims.push_back(arrayDims[i]);
+            const auto typeArray = TypeInfo::makeArray(dims, nodeExprView.type->arrayElemTypeRef(), nodeExprView.type->flags());
+            sema.setType(sema.curNodeRef(), sema.typeMgr().addType(typeArray));
+        }
+        else
+        {
+            sema.setType(sema.curNodeRef(), nodeExprView.type->arrayElemTypeRef());
+        }
+
         if (SemaInfo::isLValue(sema.node(nodeExprRef)))
             SemaInfo::setIsLValue(*this);
     }
@@ -221,7 +236,19 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
             }
         }
 
-        sema.setType(sema.curNodeRef(), nodeExprView.type->arrayElemTypeRef());
+        if (numGot < numExpected)
+        {
+            std::vector<uint64_t> dims;
+            for (size_t i = numGot; i < numExpected; i++)
+                dims.push_back(arrayDims[i]);
+            const auto typeArray = TypeInfo::makeArray(dims, nodeExprView.type->arrayElemTypeRef(), nodeExprView.type->flags());
+            sema.setType(sema.curNodeRef(), sema.typeMgr().addType(typeArray));
+        }
+        else
+        {
+            sema.setType(sema.curNodeRef(), nodeExprView.type->arrayElemTypeRef());
+        }
+
         if (SemaInfo::isLValue(sema.node(nodeExprRef)))
             SemaInfo::setIsLValue(*this);
     }

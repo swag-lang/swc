@@ -298,9 +298,12 @@ Result AstArrayType::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
-Result AstCompilerTypeExpr::semaPostNode(Sema& sema)
+Result AstCompilerTypeExpr::semaPostNode(Sema& sema) const
 {
-    sema.semaInherit(*this, nodeTypeRef);
+    auto&               ctx     = sema.ctx();
+    const TypeRef       typeRef = sema.typeRefOf(nodeTypeRef);
+    const ConstantValue cst     = ConstantValue::makeTypeValue(ctx, typeRef);
+    sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, cst));
     return Result::Continue;
 }
 

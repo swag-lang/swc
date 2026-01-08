@@ -48,15 +48,109 @@ Result AstIntrinsicCallUnary::semaPostNode(Sema& sema)
             // TODO
             sema.setType(sema.curNodeRef(), sema.typeMgr().typePtrVoid());
             SemaInfo::setIsValue(*this);
-            break;
+            return Result::Continue;
 
-        default:
+        case TokenId::IntrinsicAssert:
+        case TokenId::IntrinsicSetContext:
+        case TokenId::IntrinsicCountOf:
+        case TokenId::IntrinsicCVaStart:
+        case TokenId::IntrinsicCVaEnd:
+        case TokenId::IntrinsicMakeCallback:
+        case TokenId::IntrinsicAlloc:
+        case TokenId::IntrinsicFree:
+        case TokenId::IntrinsicStrLen:
+        case TokenId::IntrinsicAbs:
+        case TokenId::IntrinsicSqrt:
+        case TokenId::IntrinsicSin:
+        case TokenId::IntrinsicCos:
+        case TokenId::IntrinsicTan:
+        case TokenId::IntrinsicSinh:
+        case TokenId::IntrinsicCosh:
+        case TokenId::IntrinsicTanh:
+        case TokenId::IntrinsicASin:
+        case TokenId::IntrinsicACos:
+        case TokenId::IntrinsicATan:
+        case TokenId::IntrinsicLog:
+        case TokenId::IntrinsicLog2:
+        case TokenId::IntrinsicLog10:
+        case TokenId::IntrinsicFloor:
+        case TokenId::IntrinsicCeil:
+        case TokenId::IntrinsicTrunc:
+        case TokenId::IntrinsicRound:
+        case TokenId::IntrinsicExp:
+        case TokenId::IntrinsicExp2:
+        case TokenId::IntrinsicByteSwap:
+        case TokenId::IntrinsicBitCountNz:
+        case TokenId::IntrinsicBitCountTz:
+        case TokenId::IntrinsicBitCountLz:
             // TODO
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
-            break;
-    }
+            return Result::Continue;
 
-    return Result::Continue;
+        default:
+            return SemaError::raiseInternal(sema, *this);
+    }
+}
+
+Result AstIntrinsicCallBinary::semaPostNode(Sema& sema)
+{
+    const Token& tok = sema.token(srcViewRef(), tokRef());
+    switch (tok.id)
+    {
+        case TokenId::IntrinsicMakeAny:
+        case TokenId::IntrinsicMakeSlice:
+        case TokenId::IntrinsicMakeString:
+        case TokenId::IntrinsicCVaArg:
+        case TokenId::IntrinsicRealloc:
+        case TokenId::IntrinsicStrCmp:
+        case TokenId::IntrinsicStringCmp:
+        case TokenId::IntrinsicIs:
+        case TokenId::IntrinsicTableOf:
+        case TokenId::IntrinsicMin:
+        case TokenId::IntrinsicMax:
+        case TokenId::IntrinsicRol:
+        case TokenId::IntrinsicRor:
+        case TokenId::IntrinsicPow:
+        case TokenId::IntrinsicATan2:
+        case TokenId::IntrinsicAtomicXchg:
+        case TokenId::IntrinsicAtomicXor:
+        case TokenId::IntrinsicAtomicOr:
+        case TokenId::IntrinsicAtomicAnd:
+        case TokenId::IntrinsicAtomicAdd:
+        case TokenId::IntrinsicCompilerError:
+        case TokenId::IntrinsicCompilerWarning:
+        case TokenId::IntrinsicPanic:
+            // TODO
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
+            return Result::Continue;
+
+        default:
+            return SemaError::raiseInternal(sema, *this);
+    }
+}
+
+Result AstIntrinsicCallTernary::semaPostNode(Sema& sema)
+{
+    const Token& tok = sema.token(srcViewRef(), tokRef());
+    switch (tok.id)
+    {
+        case TokenId::IntrinsicMakeInterface:
+        case TokenId::IntrinsicMemCmp:
+        case TokenId::IntrinsicAs:
+        case TokenId::CompilerGetTag:
+        case TokenId::IntrinsicAtomicCmpXchg:
+        case TokenId::IntrinsicTypeCmp:
+        case TokenId::IntrinsicMulAdd:
+        case TokenId::IntrinsicMemCpy:
+        case TokenId::IntrinsicMemMove:
+        case TokenId::IntrinsicMemSet:
+            // TODO
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
+            return Result::Continue;
+
+        default:
+            return SemaError::raiseInternal(sema, *this);
+    }
 }
 
 namespace

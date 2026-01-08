@@ -161,11 +161,13 @@ struct AstIntrinsicCallUnary : AstInternalCallUnaryT<AstNodeId::IntrinsicCallUna
 // -----------------------------------------------------------------------------
 struct AstIntrinsicCallBinary : AstInternalCallBinaryT<AstNodeId::IntrinsicCallBinary>
 {
+    Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
 struct AstIntrinsicCallTernary : AstInternalCallTernaryT<AstNodeId::IntrinsicCallTernary>
 {
+    Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

@@ -2,9 +2,10 @@
 #include "Sema/Core/Sema.h"
 #include "Parser/AstNodes.h"
 #include "Sema/Constant/ConstantManager.h"
+#include "Sema/Core/SemaNodeView.h"
+#include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaInfo.h"
-#include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -92,13 +93,50 @@ Result AstIntrinsicCallUnary::semaPostNode(Sema& sema)
     }
 }
 
+namespace
+{
+    Result semaIntrinsicMakeSlice(Sema& sema, AstIntrinsicCallBinary& node)
+    {
+        RESULT_VERIFY(SemaCheck::isValue(sema, node.nodeArg1Ref));
+        RESULT_VERIFY(SemaCheck::isValue(sema, node.nodeArg2Ref));
+
+        const SemaNodeView nodeView1(sema, node.nodeArg1Ref);
+        const SemaNodeView nodeView2(sema, node.nodeArg2Ref);
+
+        if (!nodeView1.type->isPointer())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_type, node.nodeArg1Ref);
+            diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, sema.typeMgr().typePtrVoid());
+            diag.addArgument(Diagnostic::ARG_TYPE, nodeView1.typeRef);
+            diag.report(sema.ctx());
+            return Result::Stop;
+        }
+
+        if (!nodeView2.type->isIntLike())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_type, node.nodeArg2Ref);
+            diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, sema.typeMgr().typeU64());
+            diag.addArgument(Diagnostic::ARG_TYPE, nodeView2.typeRef);
+            diag.report(sema.ctx());
+            return Result::Stop;
+        }
+
+        const TypeInfo ty      = TypeInfo::makeSlice(nodeView1.type->typeRef());
+        const TypeRef  typeRef = sema.typeMgr().addType(ty);
+        sema.setType(sema.curNodeRef(), typeRef);
+        SemaInfo::setIsValue(node);
+        return Result::Continue;
+    }
+}
+
 Result AstIntrinsicCallBinary::semaPostNode(Sema& sema)
 {
     const Token& tok = sema.token(srcViewRef(), tokRef());
     switch (tok.id)
     {
-        case TokenId::IntrinsicMakeAny:
         case TokenId::IntrinsicMakeSlice:
+            return semaIntrinsicMakeSlice(sema, *this);
+        case TokenId::IntrinsicMakeAny:
         case TokenId::IntrinsicMakeString:
         case TokenId::IntrinsicCVaArg:
         case TokenId::IntrinsicRealloc:

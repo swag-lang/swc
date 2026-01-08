@@ -15,8 +15,6 @@ public:
     TypeRef typeBool() const { return typeBool_; }
     TypeRef typeChar() const { return typeChar_; }
     TypeRef typeString() const { return typeString_; }
-    TypeRef typeInt(uint32_t bits, TypeInfo::Sign sign) const;
-    TypeRef typeFloat(uint32_t bits) const;
     TypeRef typeAny() const { return typeAny_; }
     TypeRef typeVoid() const { return typeVoid_; }
     TypeRef typeNull() const { return typeNull_; }
@@ -27,6 +25,10 @@ public:
     TypeRef typeTypeInfo() const { return typeTypeInfo_; }
     TypeRef typePtrVoid() const { return typePtrVoid_; }
     TypeRef typeConstPtrVoid() const { return typeConstPtrVoid_; }
+
+    TypeRef typeInt(uint32_t bits, TypeInfo::Sign sign) const;
+    TypeRef typeFloat(uint32_t bits) const;
+    TypeRef typeU64() const { return typeU64_; }
 
     TypeRef         addType(const TypeInfo& typeInfo);
     const TypeInfo& get(TypeRef typeRef) const;
@@ -103,6 +105,10 @@ private:
     // Runtime types
     mutable std::shared_mutex mutexRt_;
     TypeRef                   enumTargetOs_             = TypeRef::invalid();
+    TypeRef                   enumTypeInfoKind_         = TypeRef::invalid();
+    TypeRef                   enumTypeInfoNativeKind_   = TypeRef::invalid();
+    TypeRef                   enumTypeInfoFlags_        = TypeRef::invalid();
+    TypeRef                   enumTypeValueFlags_       = TypeRef::invalid();
     TypeRef                   structTypeInfo_           = TypeRef::invalid();
     TypeRef                   structTypeInfoNative_     = TypeRef::invalid();
     TypeRef                   structTypeInfoPointer_    = TypeRef::invalid();
@@ -116,11 +122,7 @@ private:
     TypeRef                   structTypeInfoGeneric_    = TypeRef::invalid();
     TypeRef                   structTypeInfoNamespace_  = TypeRef::invalid();
     TypeRef                   structTypeInfoCodeBlock_  = TypeRef::invalid();
-    TypeRef                   enumTypeInfoKind_         = TypeRef::invalid();
-    TypeRef                   enumTypeInfoNativeKind_   = TypeRef::invalid();
-    TypeRef                   enumTypeInfoFlags_        = TypeRef::invalid();
     TypeRef                   structTypeValue_          = TypeRef::invalid();
-    TypeRef                   enumTypeValueFlags_       = TypeRef::invalid();
     TypeRef                   structAttribute_          = TypeRef::invalid();
     TypeRef                   structAttributeParam_     = TypeRef::invalid();
     TypeRef                   structInterface_          = TypeRef::invalid();

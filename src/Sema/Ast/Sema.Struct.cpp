@@ -49,11 +49,6 @@ Result AstStructDecl::semaPostNode(Sema& sema)
 {
     SymbolStruct& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolStruct>();
 
-    RESULT_VERIFY(sym.canBeCompleted(sema));
-
-    sym.computeLayout(sema);
-    sym.setCompleted(sema.ctx());
-
     // Runtime struct
     if (sym.symMap()->isSwagNamespace(sema.ctx()))
     {
@@ -105,6 +100,9 @@ Result AstStructDecl::semaPostNode(Sema& sema)
             typeMgr.setStructSourceCodeLocation(sym.typeRef());
     }
 
+    RESULT_VERIFY(sym.canBeCompleted(sema));
+    sym.computeLayout(sema);
+    sym.setCompleted(sema.ctx());
     sema.popScope();
     return Result::Continue;
 }

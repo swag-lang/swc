@@ -149,7 +149,7 @@ struct AstCompilerCallUnary : AstInternalCallUnaryT<AstNodeId::CompilerCallUnary
 // -----------------------------------------------------------------------------
 struct AstIntrinsicCallZero : AstInternalCallZeroT<AstNodeId::IntrinsicCallZero>
 {
-    Result semaPostNode(Sema& sema) const;
+    Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

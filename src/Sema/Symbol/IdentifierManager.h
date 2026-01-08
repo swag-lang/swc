@@ -51,6 +51,7 @@ public:
     IdentifierRef nameAttributeParam() const { return nameAttributeParam_; }
     IdentifierRef nameInterface() const { return nameInterface_; }
     IdentifierRef nameSourceCodeLocation() const { return nameSourceCodeLocation_; }
+    IdentifierRef nameContext() const { return nameContext_; }
 
 private:
     struct Shard
@@ -93,6 +94,7 @@ private:
     IdentifierRef nameAttributeParam_     = IdentifierRef::invalid();
     IdentifierRef nameInterface_          = IdentifierRef::invalid();
     IdentifierRef nameSourceCodeLocation_ = IdentifierRef::invalid();
+    IdentifierRef nameContext_            = IdentifierRef::invalid();
 };
 
 SWC_END_NAMESPACE();

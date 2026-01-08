@@ -59,12 +59,28 @@ Result AstIntrinsicCallUnary::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
-Result AstIntrinsicCallZero::semaPostNode(Sema& sema) const
+namespace
+{
+    Result semaIntrinsicContext(Sema& sema, AstIntrinsicCallZero& node)
+    {
+        const TypeRef typeRef = sema.typeMgr().structContext();
+        if (typeRef.isInvalid())
+            return sema.waitIdentifier(sema.idMgr().nameContext(), node.srcViewRef(), node.tokRef());
+        const TypeInfo ty = TypeInfo::makeValuePointer(typeRef, TypeInfoFlagsE::Const);
+        sema.setType(sema.curNodeRef(), sema.typeMgr().addType(ty));
+        SemaInfo::setIsValue(node);
+        return Result::Continue;
+    }
+};
+
+Result AstIntrinsicCallZero::semaPostNode(Sema& sema)
 {
     const Token& tok = sema.token(srcViewRef(), tokRef());
     switch (tok.id)
     {
         case TokenId::IntrinsicGetContext:
+            return semaIntrinsicContext(sema, *this);
+
         case TokenId::IntrinsicDbgAlloc:
         case TokenId::IntrinsicSysAlloc:
         case TokenId::IntrinsicBcBreakpoint:

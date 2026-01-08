@@ -82,6 +82,8 @@ public:
     void    setStructInterface(TypeRef typeRef)    { std::unique_lock lk(mutexRt_); structInterface_ = typeRef; }
     TypeRef structSourceCodeLocation() const                { std::shared_lock lk(mutexRt_); return structSourceCodeLocation_; }
     void    setStructSourceCodeLocation(TypeRef typeRef)    { std::unique_lock lk(mutexRt_); structSourceCodeLocation_ = typeRef; }
+    TypeRef structContext() const                { std::shared_lock lk(mutexRt_); return structContext_; }
+    void    setStructContext(TypeRef typeRef)    { std::unique_lock lk(mutexRt_); structContext_ = typeRef; }
     // clang-format on
 
 private:
@@ -123,6 +125,7 @@ private:
     TypeRef                   structAttributeParam_     = TypeRef::invalid();
     TypeRef                   structInterface_          = TypeRef::invalid();
     TypeRef                   structSourceCodeLocation_ = TypeRef::invalid();
+    TypeRef                   structContext_            = TypeRef::invalid();
 
     // Predefined types
     TypeRef typeBool_         = TypeRef::invalid();

@@ -80,43 +80,46 @@ Result AstStructDecl::semaPostNode(Sema& sema)
         const auto&         idMgr   = sema.idMgr();
         auto&               typeMgr = sema.typeMgr();
         const IdentifierRef idRef   = sym.idRef();
+        const TypeRef       typeRef = sym.typeRef();
 
         if (idRef == idMgr.nameTypeInfo())
-            typeMgr.setStructTypeInfo(sym.typeRef());
+            typeMgr.setStructTypeInfo(typeRef);
         else if (idRef == idMgr.nameTypeInfoNative())
-            typeMgr.setStructTypeInfoNative(sym.typeRef());
+            typeMgr.setStructTypeInfoNative(typeRef);
         else if (idRef == idMgr.nameTypeInfoPointer())
-            typeMgr.setStructTypeInfoPointer(sym.typeRef());
+            typeMgr.setStructTypeInfoPointer(typeRef);
         else if (idRef == idMgr.nameTypeInfoStruct())
-            typeMgr.setStructTypeInfoStruct(sym.typeRef());
+            typeMgr.setStructTypeInfoStruct(typeRef);
         else if (idRef == idMgr.nameTypeInfoFunc())
-            typeMgr.setStructTypeInfoFunc(sym.typeRef());
+            typeMgr.setStructTypeInfoFunc(typeRef);
         else if (idRef == idMgr.nameTypeInfoEnum())
-            typeMgr.setStructTypeInfoEnum(sym.typeRef());
+            typeMgr.setStructTypeInfoEnum(typeRef);
         else if (idRef == idMgr.nameTypeInfoArray())
-            typeMgr.setStructTypeInfoArray(sym.typeRef());
+            typeMgr.setStructTypeInfoArray(typeRef);
         else if (idRef == idMgr.nameTypeInfoSlice())
-            typeMgr.setStructTypeInfoSlice(sym.typeRef());
+            typeMgr.setStructTypeInfoSlice(typeRef);
         else if (idRef == idMgr.nameTypeInfoAlias())
-            typeMgr.setStructTypeInfoAlias(sym.typeRef());
+            typeMgr.setStructTypeInfoAlias(typeRef);
         else if (idRef == idMgr.nameTypeInfoVariadic())
-            typeMgr.setStructTypeInfoVariadic(sym.typeRef());
+            typeMgr.setStructTypeInfoVariadic(typeRef);
         else if (idRef == idMgr.nameTypeInfoGeneric())
-            typeMgr.setStructTypeInfoGeneric(sym.typeRef());
+            typeMgr.setStructTypeInfoGeneric(typeRef);
         else if (idRef == idMgr.nameTypeInfoNamespace())
-            typeMgr.setStructTypeInfoNamespace(sym.typeRef());
+            typeMgr.setStructTypeInfoNamespace(typeRef);
         else if (idRef == idMgr.nameTypeInfoCodeBlock())
-            typeMgr.setStructTypeInfoCodeBlock(sym.typeRef());
+            typeMgr.setStructTypeInfoCodeBlock(typeRef);
         else if (idRef == idMgr.nameTypeValue())
-            typeMgr.setStructTypeValue(sym.typeRef());
+            typeMgr.setStructTypeValue(typeRef);
         else if (idRef == idMgr.nameAttribute())
-            typeMgr.setStructAttribute(sym.typeRef());
+            typeMgr.setStructAttribute(typeRef);
         else if (idRef == idMgr.nameAttributeParam())
-            typeMgr.setStructAttributeParam(sym.typeRef());
+            typeMgr.setStructAttributeParam(typeRef);
         else if (idRef == idMgr.nameInterface())
-            typeMgr.setStructInterface(sym.typeRef());
+            typeMgr.setStructInterface(typeRef);
         else if (idRef == idMgr.nameSourceCodeLocation())
-            typeMgr.setStructSourceCodeLocation(sym.typeRef());
+            typeMgr.setStructSourceCodeLocation(typeRef);
+        else if (idRef == idMgr.nameContext())
+            typeMgr.setStructContext(typeRef);
     }
 
     RESULT_VERIFY(sym.canBeCompleted(sema));

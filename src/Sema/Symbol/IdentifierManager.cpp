@@ -17,7 +17,8 @@ void IdentifierManager::setup(TaskContext&)
     nameEnumFlags_      = addIdentifier("EnumFlags");
     nameStrict_         = addIdentifier("Strict");
 
-    nameTargetOs_           = addIdentifier("TargetOs");
+    nameTargetOs_ = addIdentifier("TargetOs");
+
     nameTypeInfo_           = addIdentifier("TypeInfo");
     nameTypeInfoNative_     = addIdentifier("TypeInfoNative");
     nameTypeInfoPointer_    = addIdentifier("TypeInfoPointer");
@@ -34,12 +35,14 @@ void IdentifierManager::setup(TaskContext&)
     nameTypeInfoKind_       = addIdentifier("TypeInfoKind");
     nameTypeInfoNativeKind_ = addIdentifier("TypeInfoNativeKind");
     nameTypeInfoFlags_      = addIdentifier("TypeInfoFlags");
+
     nameTypeValue_          = addIdentifier("TypeValue");
     nameTypeValueFlags_     = addIdentifier("TypeValueFlags");
     nameAttribute_          = addIdentifier("Attribute");
     nameAttributeParam_     = addIdentifier("AttributeParam");
     nameInterface_          = addIdentifier("Interface");
     nameSourceCodeLocation_ = addIdentifier("SourceCodeLocation");
+    nameContext_            = addIdentifier("Context");
 }
 
 IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef)

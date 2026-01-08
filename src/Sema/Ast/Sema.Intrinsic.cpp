@@ -61,9 +61,18 @@ Result AstIntrinsicCallUnary::semaPostNode(Sema& sema)
 
 Result AstIntrinsicCallZero::semaPostNode(Sema& sema) const
 {
-    // TODO
-    sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
-    return Result::SkipChildren;
+    const Token& tok = sema.token(srcViewRef(), tokRef());
+    switch (tok.id)
+    {
+        case TokenId::IntrinsicGetContext:
+        case TokenId::IntrinsicDbgAlloc:
+        case TokenId::IntrinsicSysAlloc:
+        case TokenId::IntrinsicBcBreakpoint:
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
+            return Result::SkipChildren;
+        default:
+            return SemaError::raiseInternal(sema, *this);
+    }
 }
 
 SWC_END_NAMESPACE();

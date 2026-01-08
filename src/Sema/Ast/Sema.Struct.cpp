@@ -13,7 +13,32 @@ SWC_BEGIN_NAMESPACE();
 
 Result AstStructDecl::semaPreDecl(Sema& sema) const
 {
-    SemaHelpers::registerSymbol<SymbolStruct>(sema, *this, tokNameRef);
+    auto& sym = SemaHelpers::registerSymbol<SymbolStruct>(sema, *this, tokNameRef);
+
+    // Runtime struct
+    if (sym.symMap()->isSwagNamespace(sema.ctx()))
+    {
+        const auto&         idMgr = sema.idMgr();
+        const IdentifierRef idRef = sym.idRef();
+
+        if (idRef == idMgr.nameTypeInfo() ||
+            idRef == idMgr.nameTypeInfoNative() ||
+            idRef == idMgr.nameTypeInfoPointer() ||
+            idRef == idMgr.nameTypeInfoStruct() ||
+            idRef == idMgr.nameTypeInfoFunc() ||
+            idRef == idMgr.nameTypeInfoEnum() ||
+            idRef == idMgr.nameTypeInfoArray() ||
+            idRef == idMgr.nameTypeInfoSlice() ||
+            idRef == idMgr.nameTypeInfoAlias() ||
+            idRef == idMgr.nameTypeInfoVariadic() ||
+            idRef == idMgr.nameTypeInfoGeneric() ||
+            idRef == idMgr.nameTypeInfoNamespace() ||
+            idRef == idMgr.nameTypeInfoCodeBlock())
+        {
+            sym.addStructFlag(SymbolStructFlagsE::TypeInfo);
+        }
+    }
+
     return Result::SkipChildren;
 }
 
@@ -56,7 +81,6 @@ Result AstStructDecl::semaPostNode(Sema& sema)
         auto&               typeMgr = sema.typeMgr();
         const IdentifierRef idRef   = sym.idRef();
 
-        bool isTypeInfo = true;
         if (idRef == idMgr.nameTypeInfo())
             typeMgr.setStructTypeInfo(sym.typeRef());
         else if (idRef == idMgr.nameTypeInfoNative())
@@ -83,12 +107,7 @@ Result AstStructDecl::semaPostNode(Sema& sema)
             typeMgr.setStructTypeInfoNamespace(sym.typeRef());
         else if (idRef == idMgr.nameTypeInfoCodeBlock())
             typeMgr.setStructTypeInfoCodeBlock(sym.typeRef());
-        else
-            isTypeInfo = false;
-        if (isTypeInfo)
-            sym.addStructFlag(SymbolStructFlagsE::TypeInfo);
-
-        if (idRef == idMgr.nameTypeValue())
+        else if (idRef == idMgr.nameTypeValue())
             typeMgr.setStructTypeValue(sym.typeRef());
         else if (idRef == idMgr.nameAttribute())
             typeMgr.setStructAttribute(sym.typeRef());

@@ -39,11 +39,64 @@ Result AstIntrinsicValue::semaPostNode(Sema& sema)
     }
 }
 
+namespace
+{
+    Result semaIntrinsicContext(Sema& sema, AstIntrinsicCallZero& node)
+    {
+        const TypeRef typeRef = sema.typeMgr().structContext();
+        if (typeRef.isInvalid())
+            return sema.waitIdentifier(sema.idMgr().nameContext(), node.srcViewRef(), node.tokRef());
+        const TypeInfo ty = TypeInfo::makeValuePointer(typeRef, TypeInfoFlagsE::Const);
+        sema.setType(sema.curNodeRef(), sema.typeMgr().addType(ty));
+        SemaInfo::setIsValue(node);
+        return Result::Continue;
+    }
+};
+
+Result AstIntrinsicCallZero::semaPostNode(Sema& sema)
+{
+    const Token& tok = sema.token(srcViewRef(), tokRef());
+    switch (tok.id)
+    {
+        case TokenId::IntrinsicGetContext:
+            return semaIntrinsicContext(sema, *this);
+
+        case TokenId::IntrinsicDbgAlloc:
+        case TokenId::IntrinsicSysAlloc:
+        case TokenId::IntrinsicBcBreakpoint:
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
+            return Result::SkipChildren;
+        default:
+            return SemaError::raiseInternal(sema, *this);
+    }
+}
+
+namespace
+{
+    Result semaIntrinsicStrLen(Sema& sema, AstIntrinsicCallUnary& node)
+    {
+        RESULT_VERIFY(SemaCheck::isValue(sema, node.nodeArgRef));
+        const SemaNodeView nodeView(sema, node.nodeArgRef);
+
+        if (!nodeView.type->isPointer())
+        {
+            return SemaError::raiseInvalidType(sema, node.nodeArgRef, sema.typeMgr().typePtrVoid(), nodeView.typeRef);
+        }
+
+        sema.setType(sema.curNodeRef(), sema.typeMgr().typeU64());
+        SemaInfo::setIsValue(node);
+        return Result::Continue;
+    }
+}
+
 Result AstIntrinsicCallUnary::semaPostNode(Sema& sema)
 {
     const Token& tok = sema.token(srcViewRef(), tokRef());
     switch (tok.id)
     {
+        case TokenId::IntrinsicStrLen:
+            return semaIntrinsicStrLen(sema, *this);
+
         case TokenId::IntrinsicKindOf:
         case TokenId::IntrinsicDataOf:
             // TODO
@@ -59,7 +112,6 @@ Result AstIntrinsicCallUnary::semaPostNode(Sema& sema)
         case TokenId::IntrinsicMakeCallback:
         case TokenId::IntrinsicAlloc:
         case TokenId::IntrinsicFree:
-        case TokenId::IntrinsicStrLen:
         case TokenId::IntrinsicAbs:
         case TokenId::IntrinsicSqrt:
         case TokenId::IntrinsicSin:
@@ -105,20 +157,12 @@ namespace
 
         if (!nodeView1.type->isPointer())
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_type, node.nodeArg1Ref);
-            diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, sema.typeMgr().typePtrVoid());
-            diag.addArgument(Diagnostic::ARG_TYPE, nodeView1.typeRef);
-            diag.report(sema.ctx());
-            return Result::Stop;
+            return SemaError::raiseInvalidType(sema, node.nodeArg1Ref, sema.typeMgr().typePtrVoid(), nodeView1.typeRef);
         }
 
         if (!nodeView2.type->isIntLike())
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_type, node.nodeArg2Ref);
-            diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, sema.typeMgr().typeU64());
-            diag.addArgument(Diagnostic::ARG_TYPE, nodeView2.typeRef);
-            diag.report(sema.ctx());
-            return Result::Stop;
+            return SemaError::raiseInvalidType(sema, node.nodeArg2Ref, sema.typeMgr().typeU64(), nodeView2.typeRef);
         }
 
         const TypeInfo ty      = TypeInfo::makeSlice(nodeView1.type->typeRef());
@@ -186,38 +230,6 @@ Result AstIntrinsicCallTernary::semaPostNode(Sema& sema)
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
             return Result::Continue;
 
-        default:
-            return SemaError::raiseInternal(sema, *this);
-    }
-}
-
-namespace
-{
-    Result semaIntrinsicContext(Sema& sema, AstIntrinsicCallZero& node)
-    {
-        const TypeRef typeRef = sema.typeMgr().structContext();
-        if (typeRef.isInvalid())
-            return sema.waitIdentifier(sema.idMgr().nameContext(), node.srcViewRef(), node.tokRef());
-        const TypeInfo ty = TypeInfo::makeValuePointer(typeRef, TypeInfoFlagsE::Const);
-        sema.setType(sema.curNodeRef(), sema.typeMgr().addType(ty));
-        SemaInfo::setIsValue(node);
-        return Result::Continue;
-    }
-};
-
-Result AstIntrinsicCallZero::semaPostNode(Sema& sema)
-{
-    const Token& tok = sema.token(srcViewRef(), tokRef());
-    switch (tok.id)
-    {
-        case TokenId::IntrinsicGetContext:
-            return semaIntrinsicContext(sema, *this);
-
-        case TokenId::IntrinsicDbgAlloc:
-        case TokenId::IntrinsicSysAlloc:
-        case TokenId::IntrinsicBcBreakpoint:
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
-            return Result::SkipChildren;
         default:
             return SemaError::raiseInternal(sema, *this);
     }

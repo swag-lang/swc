@@ -107,6 +107,7 @@ public:
     bool isType() const noexcept { return isTypeValue() || isEnum() || isStruct() || isInterface() || isTypeInfo(); }
     bool isValuePointer() const noexcept { return kind_ == TypeInfoKind::ValuePointer; }
     bool isBlockPointer() const noexcept { return kind_ == TypeInfoKind::BlockPointer; }
+    bool isConstPointerToRuntimeTypeInfo(TaskContext& ctx) const noexcept;
     bool isPointer() const noexcept { return isValuePointer() || isBlockPointer(); }
     bool isSlice() const noexcept { return kind_ == TypeInfoKind::Slice; }
     bool isArray() const noexcept { return kind_ == TypeInfoKind::Array; }

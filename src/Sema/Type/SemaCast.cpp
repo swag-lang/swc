@@ -316,6 +316,13 @@ namespace
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
         return false;
     }
+
+    bool castTypeInfo(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        if (castCtx.isFolding())
+            castCtx.outConstRef = castCtx.srcConstRef;
+        return true;
+    }
 }
 
 bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
@@ -363,6 +370,10 @@ bool SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef,
         ok = castFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isPointer() && dstType.isPointer())
         ok = castPointer(sema, castCtx, srcTypeRef, dstTypeRef);
+    else if (srcType.isTypeInfo() && dstType.isConstPointerToRuntimeTypeInfo(sema.ctx()))
+        ok = castTypeInfo(sema, castCtx, srcTypeRef, dstTypeRef);
+    else if (srcType.isConstPointerToRuntimeTypeInfo(sema.ctx()) && dstType.isTypeInfo())
+        ok = castTypeInfo(sema, castCtx, srcTypeRef, dstTypeRef);
     else
     {
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);

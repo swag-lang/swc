@@ -766,7 +766,6 @@ Symbol* TypeInfo::getSymbolDependency(TaskContext& ctx) const
     return nullptr;
 }
 
-// ReSharper disable once CppPossiblyUninitializedMember
 bool TypeInfo::isLambdaClosure() const noexcept
 {
     SWC_ASSERT(isFunction());
@@ -783,6 +782,18 @@ bool TypeInfo::isLambdaThrowable() const noexcept
 {
     SWC_ASSERT(isFunction());
     return asFunction.sym->hasFuncFlag(SymbolFunctionFlagsE::Throwable);
+}
+
+bool TypeInfo::isConstPointerToRuntimeTypeInfo(TaskContext& ctx) const noexcept
+{
+    if (!isConst())
+        return false;
+    if (!isValuePointer())
+        return false;
+    const TypeInfo& type = ctx.typeMgr().get(asTypeRef.typeRef);
+    if (!type.isStruct())
+        return false;
+    return type.structSym().hasStructFlag(SymbolStructFlagsE::TypeInfo);
 }
 
 TypeRef TypeInfo::underlyingTypeRef() const noexcept

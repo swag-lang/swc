@@ -122,6 +122,13 @@ public:
 };
 
 // -----------------------------------------------------------------------------
+enum class SymbolStructFlagsE : uint8_t
+{
+    Zero     = 0,
+    TypeInfo = 1 << 0,
+};
+using SymbolStructFlags = EnumFlags<SymbolStructFlagsE>;
+
 class SymbolStruct : public SymbolMap
 {
 public:
@@ -139,11 +146,15 @@ public:
     Result                              canBeCompleted(Sema& sema) const;
     void                                computeLayout(Sema& sema);
     void                                addField(SymbolVariable* sym) { fields_.push_back(sym); }
+    SymbolStructFlags                   structFlags() const noexcept { return structFlags_; }
+    bool                                hasStructFlag(SymbolStructFlagsE flag) const noexcept { return structFlags_.has(flag); }
+    void                                addStructFlag(SymbolStructFlagsE fl) { structFlags_.add(fl); }
 
 private:
     std::vector<SymbolVariable*> fields_;
     uint64_t                     sizeInBytes_ = 0;
     uint32_t                     alignment_   = 0;
+    SymbolStructFlags            structFlags_ = SymbolStructFlagsE::Zero;
 };
 
 // -----------------------------------------------------------------------------
@@ -205,11 +216,10 @@ public:
     void                          setReturnType(TypeRef typeRef) { returnType_ = typeRef; }
     std::vector<SymbolVariable*>& parameters() { return parameters_; }
     void                          addParameter(SymbolVariable* sym) { parameters_.push_back(sym); }
-
-    SymbolFunctionFlags funcFlags() const noexcept { return funcFlags_; }
-    bool                hasFuncFlag(SymbolFunctionFlagsE flag) const noexcept { return funcFlags_.has(flag); }
-    void                addFuncFlag(SymbolFunctionFlagsE fl) { funcFlags_.add(fl); }
-    Utf8                computeName(const TaskContext& ctx) const;
+    SymbolFunctionFlags           funcFlags() const noexcept { return funcFlags_; }
+    bool                          hasFuncFlag(SymbolFunctionFlagsE flag) const noexcept { return funcFlags_.has(flag); }
+    void                          addFuncFlag(SymbolFunctionFlagsE fl) { funcFlags_.add(fl); }
+    Utf8                          computeName(const TaskContext& ctx) const;
 
 private:
     std::vector<SymbolVariable*> parameters_;

@@ -60,6 +60,8 @@ Result AstStructDecl::semaPostNode(Sema& sema)
         const auto&         idMgr   = sema.idMgr();
         auto&               typeMgr = sema.typeMgr();
         const IdentifierRef idRef   = sym.idRef();
+
+        bool isTypeInfo = true;
         if (idRef == idMgr.nameTypeInfo())
             typeMgr.setStructTypeInfo(sym.typeRef());
         else if (idRef == idMgr.nameTypeInfoNative())
@@ -86,7 +88,12 @@ Result AstStructDecl::semaPostNode(Sema& sema)
             typeMgr.setStructTypeInfoNamespace(sym.typeRef());
         else if (idRef == idMgr.nameTypeInfoCodeBlock())
             typeMgr.setStructTypeInfoCodeBlock(sym.typeRef());
-        else if (idRef == idMgr.nameTypeValue())
+        else
+            isTypeInfo = false;
+        if (isTypeInfo)
+            sym.addStructFlag(SymbolStructFlagsE::TypeInfo);
+
+        if (idRef == idMgr.nameTypeValue())
             typeMgr.setStructTypeValue(sym.typeRef());
         else if (idRef == idMgr.nameAttribute())
             typeMgr.setStructAttribute(sym.typeRef());

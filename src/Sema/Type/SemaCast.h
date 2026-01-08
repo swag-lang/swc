@@ -12,7 +12,7 @@ class Sema;
 
 namespace SemaCast
 {
-    bool   castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef);
+    Result castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef);
     Result emitCastFailure(Sema& sema, const CastFailure& f);
     bool   concretizeConstant(Sema& sema, ConstantRef& result, CastContext& castCtx, ConstantRef cstRef, TypeInfo::Sign hintSign);
 

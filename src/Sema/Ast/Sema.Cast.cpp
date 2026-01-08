@@ -86,8 +86,12 @@ Result AstExplicitCastExpr::semaPostNode(Sema& sema)
         return Result::Continue;
     }
 
-    if (!SemaCast::castAllowed(sema, castCtx, nodeExprView.typeRef, nodeTypeView.typeRef))
-        return SemaCast::emitCastFailure(sema, castCtx.failure);
+    if (const auto res = SemaCast::castAllowed(sema, castCtx, nodeExprView.typeRef, nodeTypeView.typeRef); res != Result::Continue)
+    {
+        if (res == Result::Stop)
+            return SemaCast::emitCastFailure(sema, castCtx.failure);
+        return res;
+    }
 
     sema.setType(sema.curNodeRef(), nodeTypeView.typeRef);
     return Result::Continue;

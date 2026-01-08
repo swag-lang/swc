@@ -328,9 +328,13 @@ Result SemaCast::castConstant(Sema& sema, ConstantRef& result, CastContext& cast
     const TypeRef        srcTypeRef = cst.typeRef();
     castCtx.srcConstRef             = cstRef;
 
-    const bool ok = castAllowed(sema, castCtx, srcTypeRef, targetTypeRef);
-    if (!ok)
-        return emitCastFailure(sema, castCtx.failure);
+    const auto res = castAllowed(sema, castCtx, srcTypeRef, targetTypeRef);
+    if (res != Result::Continue)
+    {
+        if (res == Result::Stop)
+            return emitCastFailure(sema, castCtx.failure);
+        return res;
+    }
 
     result = castCtx.outConstRef;
     return Result::Continue;

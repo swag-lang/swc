@@ -66,21 +66,26 @@ Result AstVarDecl::semaPostNode(Sema& sema) const
         CastContext castCtx(CastKind::Initialization);
         castCtx.errorNodeRef = nodeInitRef;
 
-        if (!SemaCast::castAllowed(sema, castCtx, nodeInitView.typeRef, nodeTypeView.typeRef))
+        const auto res = SemaCast::castAllowed(sema, castCtx, nodeInitView.typeRef, nodeTypeView.typeRef);
+        if (res != Result::Continue)
         {
-            // Primary, context-specific diagnostic
-            auto diag = SemaError::report(sema, castCtx.failure.diagId, castCtx.errorNodeRef);
-            diag.addArgument(Diagnostic::ARG_TYPE, castCtx.failure.srcTypeRef);
-            diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, castCtx.failure.dstTypeRef);
+            if (res == Result::Stop)
+            {
+                // Primary, context-specific diagnostic
+                auto diag = SemaError::report(sema, castCtx.failure.diagId, castCtx.errorNodeRef);
+                diag.addArgument(Diagnostic::ARG_TYPE, castCtx.failure.srcTypeRef);
+                diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, castCtx.failure.dstTypeRef);
 
-            // Explicit cast works hint
-            CastContext explicitCtx{CastKind::Explicit};
-            castCtx.errorNodeRef = nodeInitRef;
-            if (SemaCast::castAllowed(sema, explicitCtx, nodeInitView.typeRef, nodeTypeView.typeRef))
-                diag.addElement(DiagnosticId::sema_note_cast_explicit);
+                // Explicit cast works hint
+                CastContext explicitCtx{CastKind::Explicit};
+                explicitCtx.errorNodeRef = nodeInitRef;
+                if (SemaCast::castAllowed(sema, explicitCtx, nodeInitView.typeRef, nodeTypeView.typeRef) == Result::Continue)
+                    diag.addElement(DiagnosticId::sema_note_cast_explicit);
 
-            diag.report(ctx);
-            return Result::Stop;
+                diag.report(ctx);
+            }
+
+            return res;
         }
 
         // Convert init constant to the right type

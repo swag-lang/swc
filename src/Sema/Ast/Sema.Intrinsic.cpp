@@ -161,15 +161,7 @@ namespace
         const SemaNodeView nodeView2(sema, node.nodeArg2Ref);
 
         if (!nodeView1.type->isPointer())
-        {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_expected_type_fam, node.nodeArg1Ref);
-            diag.addArgument(Diagnostic::ARG_TYPE, nodeView1.typeRef);
-            const TypeInfo& ty = sema.typeMgr().get(sema.typeMgr().typePtrVoid());
-            diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE_FAM, ty.toFamily(ctx), false);
-            diag.addArgument(Diagnostic::ARG_A_REQUESTED_TYPE_FAM, Utf8Helper::addArticleAAn(ty.toFamily(ctx)), false);
-            diag.report(ctx);
-            return Result::Stop;
-        }
+            return SemaError::raiseRequestedTypeFam(sema, node.nodeArg1Ref, nodeView1.typeRef, sema.typeMgr().typePtrVoid());
 
         if (nodeView2.typeRef != sema.typeMgr().typeU64())
         {
@@ -177,15 +169,7 @@ namespace
             if (SemaCast::castAllowed(sema, castCtx, nodeView2.typeRef, sema.typeMgr().typeU64()) == Result::Continue)
                 node.nodeArg2Ref = SemaCast::createImplicitCast(sema, sema.typeMgr().typeU64(), node.nodeArg2Ref);
             else
-            {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_expected_type_fam, node.nodeArg2Ref);
-                diag.addArgument(Diagnostic::ARG_TYPE, nodeView1.typeRef);
-                const TypeInfo& ty = sema.typeMgr().get(sema.typeMgr().typeInt(0, TypeInfo::Sign::Unknown));
-                diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE_FAM, ty.toFamily(ctx), false);
-                diag.addArgument(Diagnostic::ARG_A_REQUESTED_TYPE_FAM, Utf8Helper::addArticleAAn(ty.toFamily(ctx)), false);
-                diag.report(ctx);
-                return Result::Stop;
-            }
+                return SemaError::raiseRequestedTypeFam(sema, node.nodeArg2Ref, nodeView2.typeRef, sema.typeMgr().typeInt(0, TypeInfo::Sign::Unknown));
         }
 
         TypeInfo ty = TypeInfo::makeSlice(nodeView1.type->typeRef());

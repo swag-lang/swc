@@ -91,6 +91,18 @@ Result SemaError::raiseInvalidType(Sema& sema, AstNodeRef nodeRef, TypeRef srcTy
     return Result::Stop;
 }
 
+Result SemaError::raiseRequestedTypeFam(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
+{
+    auto& ctx  = sema.ctx();
+    auto  diag = SemaError::report(sema, DiagnosticId::sema_err_expected_type_fam, nodeRef);
+    diag.addArgument(Diagnostic::ARG_TYPE, srcTypeRef);
+    const TypeInfo& ty = sema.typeMgr().get(targetTypeRef);
+    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE_FAM, ty.toFamily(ctx), false);
+    diag.addArgument(Diagnostic::ARG_A_REQUESTED_TYPE_FAM, Utf8Helper::addArticleAAn(ty.toFamily(ctx)), false);
+    diag.report(ctx);
+    return Result::Stop;
+}
+
 Result SemaError::raiseLiteralOverflow(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal, TypeRef targetTypeRef)
 {
     auto diag = report(sema, DiagnosticId::sema_err_literal_overflow, nodeRef);

@@ -50,20 +50,22 @@ public:
     Utf8                     fileName() const;
     const Ast&               ast() const;
 
-    TypeRef              typeRefOf(AstNodeRef n) const { return semaInfo().getTypeRef(ctx(), n); }
-    ConstantRef          constantRefOf(AstNodeRef n) const { return semaInfo().getConstantRef(ctx(), n); }
-    const ConstantValue& constantOf(AstNodeRef n) const { return semaInfo().getConstant(ctx(), n); }
-    const Symbol&        symbolOf(AstNodeRef n) const { return semaInfo().getSymbol(ctx(), n); }
-    Symbol&              symbolOf(AstNodeRef n) { return semaInfo().getSymbol(ctx(), n); }
-    void                 setType(AstNodeRef n, TypeRef ref) { semaInfo().setType(n, ref); }
-    void                 setConstant(AstNodeRef n, ConstantRef ref) { semaInfo().setConstant(n, ref); }
-    void                 setSymbol(AstNodeRef n, Symbol* symbol) { semaInfo().setSymbol(n, symbol); }
-    void                 setSymbol(AstNodeRef n, const Symbol* symbol) { semaInfo().setSymbol(n, symbol); }
-    bool                 hasType(AstNodeRef n) const { return semaInfo().hasType(n); }
-    bool                 hasConstant(AstNodeRef n) const { return semaInfo().hasConstant(ctx(), n); }
-    bool                 hasSymbol(AstNodeRef n) const { return semaInfo().hasSymbol(n); }
-    bool                 hasPayload(AstNodeRef n) const { return semaInfo().hasPayload(n); }
-    void                 setPayload(AstNodeRef n, void* payload) { semaInfo().setPayload(n, payload); }
+    TypeRef                  typeRefOf(AstNodeRef n) const { return semaInfo().getTypeRef(ctx(), n); }
+    ConstantRef              constantRefOf(AstNodeRef n) const { return semaInfo().getConstantRef(ctx(), n); }
+    const ConstantValue&     constantOf(AstNodeRef n) const { return semaInfo().getConstant(ctx(), n); }
+    const Symbol&            symbolOf(AstNodeRef n) const { return semaInfo().getSymbol(ctx(), n); }
+    Symbol&                  symbolOf(AstNodeRef n) { return semaInfo().getSymbol(ctx(), n); }
+    void                     setType(AstNodeRef n, TypeRef ref) { semaInfo().setType(n, ref); }
+    void                     setConstant(AstNodeRef n, ConstantRef ref) { semaInfo().setConstant(n, ref); }
+    void                     setSymbol(AstNodeRef n, Symbol* symbol) { semaInfo().setSymbol(n, symbol); }
+    void                     setSymbol(AstNodeRef n, const Symbol* symbol) { semaInfo().setSymbol(n, symbol); }
+    bool                     hasType(AstNodeRef n) const { return semaInfo().hasType(n); }
+    bool                     hasConstant(AstNodeRef n) const { return semaInfo().hasConstant(ctx(), n); }
+    bool                     hasSymbol(AstNodeRef n) const { return semaInfo().hasSymbol(n); }
+    bool                     hasSymbols(AstNodeRef n) const { return semaInfo().hasSymbols(n); }
+    std::span<const Symbol*> getSymbols(AstNodeRef n) const { return semaInfo().getSymbols(n); }
+    bool                     hasPayload(AstNodeRef n) const { return semaInfo().hasPayload(n); }
+    void                     setPayload(AstNodeRef n, void* payload) { semaInfo().setPayload(n, payload); }
 
     template<typename T>
     T* payload(AstNodeRef n) const

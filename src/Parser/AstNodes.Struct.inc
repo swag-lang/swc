@@ -1078,7 +1078,10 @@ struct AstVarDeclNameList : AstNodeT<AstNodeId::VarDeclNameList>
     AstNodeRef nodeTypeRef;
     AstNodeRef nodeInitRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeInitRef}); }
+    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeInitRef}); }
+    Result semaPreDecl(Sema& sema) const;
+    Result semaPreNode(Sema& sema) const;
+    Result semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

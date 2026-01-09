@@ -30,8 +30,8 @@ const V2 = 0x1FFFFFFFF
 const V3 = 10000000000000000000.0
 #assert(#typeof(V3) == f64)
 
-const A, B: s32 = 0
-#assert(A == B)
-#assert(A == 0)
-#assert(#typeof(A) == s32)
-#assert(#typeof(B) == s32)
+const A0, B0: s32 = 0
+#assert(A0 == B0)
+#assert(A0 == 0)
+#assert(#typeof(A0) == s32)
+#assert(#typeof(B0) == s32)

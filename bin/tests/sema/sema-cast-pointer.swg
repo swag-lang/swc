@@ -79,4 +79,10 @@
     var x: *s32 = null
     var y = cast([*]u8) x
     #assert(#typeof(y) == [*]u8)
+
+    var x1: u64
+    var v1 = cast(*void) x1
+
+    var x2: u32
+    var v2 = cast(*void) x2
 }

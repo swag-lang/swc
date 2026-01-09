@@ -332,10 +332,15 @@ namespace
 
                     if (castCtx.isFolding())
                         castCtx.outConstRef = castCtx.srcConstRef;
-
                     return Result::Continue;
                 }
             }
+        }
+        else if (srcTypeRef == sema.ctx().typeMgr().typeU64())
+        {
+            if (castCtx.isFolding())
+                castCtx.outConstRef = castCtx.srcConstRef;
+            return Result::Continue;
         }
 
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);

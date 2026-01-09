@@ -95,7 +95,8 @@ public:
     void                     setSymbols(AstNodeRef nodeRef, std::span<const Symbol*> symbols);
 
 private:
-    static void updateSemaFlags(AstNode& node, std::span<const Symbol*> symbols);
+    std::span<const Symbol*> getSymbolListImpl(AstNodeRef nodeRef) const;
+    static void              updateSemaFlags(AstNode& node, std::span<const Symbol*> symbols);
 
 public:
     bool  hasPayload(AstNodeRef nodeRef) const;

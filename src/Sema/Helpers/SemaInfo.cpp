@@ -213,7 +213,7 @@ bool SemaInfo::hasSymbolList(AstNodeRef nodeRef) const
     return semaKind(node) == NodeSemaKind::SymbolList;
 }
 
-std::span<const Symbol*> SemaInfo::getSymbolList(AstNodeRef nodeRef) const
+std::span<const Symbol*> SemaInfo::getSymbolListImpl(AstNodeRef nodeRef) const
 {
     SWC_ASSERT(hasSymbolList(nodeRef));
     const AstNode& node     = ast().node(nodeRef);
@@ -221,34 +221,24 @@ std::span<const Symbol*> SemaInfo::getSymbolList(AstNodeRef nodeRef) const
     auto&          shard    = shards_[shardIdx];
     const auto     spanView = shard.store.span<const Symbol*>(node.semaRef());
 
-    // We only support contiguous spans for now for this.
-    // shard.store.span<T> returns a SpanView which might be fragmented.
-    // However, if we pushed it all at once, it's likely contiguous in the same page.
-    // Actually Store::span<T> returns a SpanView, and we need a std::span.
-    // If it's not contiguous, we have a problem.
+    if (spanView.empty())
+        return {};
 
-    SWC_ASSERT(spanView.chunks_begin() != spanView.chunks_end());
     const auto  it    = spanView.chunks_begin();
     const auto& chunk = *it;
-    SWC_ASSERT(chunk.count == spanView.size()); // Ensure it's not fragmented
-
+    SWC_ASSERT(chunk.count == spanView.size());
     return std::span{static_cast<const Symbol**>(const_cast<void*>(chunk.ptr)), chunk.count};
+}
+
+std::span<const Symbol*> SemaInfo::getSymbolList(AstNodeRef nodeRef) const
+{
+    return getSymbolListImpl(nodeRef);
 }
 
 std::span<Symbol*> SemaInfo::getSymbolList(AstNodeRef nodeRef)
 {
-    SWC_ASSERT(hasSymbolList(nodeRef));
-    const AstNode& node     = ast().node(nodeRef);
-    const uint32_t shardIdx = semaShard(node);
-    auto&          shard    = shards_[shardIdx];
-    const auto     spanView = shard.store.span<Symbol*>(node.semaRef());
-
-    SWC_ASSERT(spanView.chunks_begin() != spanView.chunks_end());
-    const auto  it    = spanView.chunks_begin();
-    const auto& chunk = *it;
-    SWC_ASSERT(chunk.count == spanView.size());
-
-    return std::span{static_cast<Symbol**>(const_cast<void*>(chunk.ptr)), chunk.count};
+    const auto res = getSymbolListImpl(nodeRef);
+    return {const_cast<Symbol**>(res.data()), res.size()};
 }
 
 void SemaInfo::setSymbols(AstNodeRef nodeRef, std::span<const Symbol*> symbols)

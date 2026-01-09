@@ -39,6 +39,13 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
+Result AstAutoScopedIdentifier::semaPostNode(Sema& sema)
+{
+    // TODO
+    sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
+    return Result::SkipChildren;
+}
+
 Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
 {
     if (childRef != nodeRightRef)
@@ -135,13 +142,6 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     else
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeInt(32, TypeInfo::Sign::Signed));
     SemaInfo::setIsValue(*this);
-    return Result::SkipChildren;
-}
-
-Result AstAutoScopedIdentifier::semaPostNode(Sema& sema)
-{
-    // TODO
-    sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
     return Result::SkipChildren;
 }
 

@@ -283,7 +283,7 @@ namespace
         return Result::Continue;
     }
 
-    Result castNull(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    Result castFromNull(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
         const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
         if (dstType.isPointerLike())
@@ -297,7 +297,7 @@ namespace
         return Result::Stop;
     }
 
-    Result castUndefined(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    Result castFromUndefined(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
         if (castCtx.isFolding())
             castCtx.outConstRef = castCtx.srcConstRef;
@@ -342,7 +342,7 @@ namespace
         return Result::Stop;
     }
 
-    Result castTypeInfo(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    Result castToFromTypeInfo(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
         if (castCtx.isFolding())
             castCtx.outConstRef = castCtx.srcConstRef;
@@ -405,9 +405,9 @@ Result SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRe
     else if (srcType.isEnum() && !dstType.isEnum())
         res = castFromEnum(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isNull())
-        res = castNull(sema, castCtx, srcTypeRef, dstTypeRef);
+        res = castFromNull(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isUndefined())
-        res = castUndefined(sema, castCtx, srcTypeRef, dstTypeRef);
+        res = castFromUndefined(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isBool() && dstType.isIntLike())
         res = castBoolToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isIntLike() && dstType.isBool())
@@ -421,9 +421,9 @@ Result SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRe
     else if (srcType.isFloat() && dstType.isIntLike())
         res = castFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isTypeInfo() && dstType.isConstPointerToRuntimeTypeInfo(sema.ctx()))
-        res = castTypeInfo(sema, castCtx, srcTypeRef, dstTypeRef);
+        res = castToFromTypeInfo(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isConstPointerToRuntimeTypeInfo(sema.ctx()) && dstType.isTypeInfo())
-        res = castTypeInfo(sema, castCtx, srcTypeRef, dstTypeRef);
+        res = castToFromTypeInfo(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (dstType.isPointer())
         res = castToPointer(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (dstType.isString())

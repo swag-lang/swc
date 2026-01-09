@@ -167,7 +167,7 @@ struct AstIntrinsicCallBinary : AstInternalCallBinaryT<AstNodeId::IntrinsicCallB
 // -----------------------------------------------------------------------------
 struct AstIntrinsicCallTernary : AstInternalCallTernaryT<AstNodeId::IntrinsicCallTernary>
 {
-    Result semaPostNode(Sema& sema);
+    Result semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

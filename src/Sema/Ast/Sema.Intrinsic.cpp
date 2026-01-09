@@ -221,7 +221,7 @@ Result AstIntrinsicCallBinary::semaPostNode(Sema& sema)
     }
 }
 
-Result AstIntrinsicCallTernary::semaPostNode(Sema& sema)
+Result AstIntrinsicCallTernary::semaPostNode(Sema& sema) const
 {
     const Token& tok = sema.token(srcViewRef(), tokRef());
     switch (tok.id)

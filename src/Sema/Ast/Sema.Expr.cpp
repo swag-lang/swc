@@ -189,6 +189,11 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
         sema.setType(sema.curNodeRef(), nodeExprView.type->typeRef());
         SemaInfo::setIsLValue(*this);
     }
+    else if (nodeExprView.type->isString() || nodeExprView.type->isCString())
+    {
+        sema.setType(sema.curNodeRef(), sema.typeMgr().typeU8());
+        SemaInfo::setIsLValue(*this);
+    }    
     else if (nodeExprView.type->isValuePointer())
     {
         return SemaError::raisePointerArithmetic(sema, sema.node(nodeExprRef), nodeExprRef, nodeExprView.typeRef);

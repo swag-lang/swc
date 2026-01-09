@@ -65,3 +65,9 @@
     var a3: [..] s32
     var b3 = a3[0, 0] // swc-expected-error {{sema_err_array_num_dims}}
 }
+
+#test
+{
+    var A = "titi"
+    var B = A[1]
+}

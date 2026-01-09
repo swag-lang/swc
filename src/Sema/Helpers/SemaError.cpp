@@ -211,4 +211,14 @@ Result SemaError::raisePointerArithmetic(Sema& sema, const AstNode& nodeOp, AstN
     return Result::Stop;
 }
 
+Result SemaError::raiseInvalidOpEnum(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
+{
+    auto diag = report(sema, DiagnosticId::sema_err_invalid_op_enum, nodeOp.srcViewRef(), nodeOp.tokRef());
+    diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
+    const SourceCodeLocation loc = sema.node(nodeValueRef).locationWithChildren(sema.ctx(), sema.ast());
+    diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
+    diag.report(sema.ctx());
+    return Result::Stop;
+}
+
 SWC_END_NAMESPACE();

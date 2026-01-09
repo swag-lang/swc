@@ -13,3 +13,5 @@ SWC_DIAG_DEF(sema_note_other_definition, Note, "The other definition of {tok} is
 SWC_DIAG_DEF(sema_note_could_be, Note, "Could be")
 SWC_DIAG_DEF(sema_note_cyclic_dependency_link, Note, "Waiting ...")
 SWC_DIAG_DEF(sema_note_strict_alias, Note, "The attribute '#[Swag.Strict]' can only be applied to a type alias")
+
+SWC_DIAG_DEF(sema_help_nameof_instruction, Help, "Use '#stringof' to convert a constant expression to a string")

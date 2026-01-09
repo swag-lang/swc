@@ -312,30 +312,14 @@ namespace
             if (nodeLeftView.type->isEnum())
             {
                 if (!nodeLeftView.type->enumSym().isEnumFlags())
-                {
-                    auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_op_enum, node.srcViewRef(), node.tokRef());
-                    diag.addArgument(Diagnostic::ARG_TYPE, nodeLeftView.typeRef);
-                    const SourceCodeLocation loc = sema.node(node.nodeLeftRef).locationWithChildren(sema.ctx(), sema.ast());
-                    diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
-                    diag.report(sema.ctx());
-                    return Result::Stop;
-                }
-
+                    return SemaError::raiseInvalidOpEnum(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
                 SemaCast::convertEnumToUnderlying(sema, nodeLeftView);
             }
 
             if (nodeRightView.type->isEnum())
             {
                 if (!nodeRightView.type->enumSym().isEnumFlags())
-                {
-                    auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_op_enum, node.srcViewRef(), node.tokRef());
-                    diag.addArgument(Diagnostic::ARG_TYPE, nodeRightView.typeRef);
-                    const SourceCodeLocation loc = sema.node(node.nodeRightRef).locationWithChildren(sema.ctx(), sema.ast());
-                    diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
-                    diag.report(sema.ctx());
-                    return Result::Stop;
-                }
-
+                    return SemaError::raiseInvalidOpEnum(sema, node, node.nodeRightRef, nodeRightView.typeRef);
                 SemaCast::convertEnumToUnderlying(sema, nodeRightView);
             }
         }

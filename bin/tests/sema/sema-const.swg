@@ -35,3 +35,5 @@ const A0, B0: s32 = 0
 #assert(A0 == 0)
 #assert(#typeof(A0) == s32)
 #assert(#typeof(B0) == s32)
+
+const A1, B1: s32 = undefined // swc-expected-error {{sema_err_const_missing_init}}

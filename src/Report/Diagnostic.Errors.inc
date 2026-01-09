@@ -79,6 +79,7 @@ SWC_DIAG_DEF(sema_warn_compiler_warning)
 // Sema errors
 SWC_DIAG_DEF(sema_err_expr_not_const)
 SWC_DIAG_DEF(sema_err_invalid_type)
+SWC_DIAG_DEF(sema_err_expected_type_fam)
 SWC_DIAG_DEF(sema_err_cannot_cast)
 SWC_DIAG_DEF(sema_err_cannot_cast_const)
 SWC_DIAG_DEF(sema_err_enum_underlying_cast)

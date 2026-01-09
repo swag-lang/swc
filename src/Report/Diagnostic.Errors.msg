@@ -71,6 +71,7 @@ SWC_DIAG_DEF(sema_warn_compiler_warning, Warning, "Compiler warning: {because}")
 
 SWC_DIAG_DEF(sema_err_expr_not_const, Error, "Expression cannot be evaluated at compile time")
 SWC_DIAG_DEF(sema_err_invalid_type, Error, "Invalid type; expected {requested-type}, got {type}")
+SWC_DIAG_DEF(sema_err_expected_type_fam, Error, "Invalid type; expected {a-requested-type-fam} type, got {type}")
 SWC_DIAG_DEF(sema_err_cannot_cast, Error, "Cannot cast from {type} to {requested-type}")
 SWC_DIAG_DEF(sema_err_cannot_cast_const, Error, "Cannot cast from {type} to {requested-type} (const mismatch)")
 SWC_DIAG_DEF(sema_err_enum_underlying_cast, Error, "Enum casts must use underlying type {opt-type}")

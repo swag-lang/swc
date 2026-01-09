@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Sema/Type/TypeInfo.h"
+#include "Core/Utf8Helper.h"
 #include "Math/Hash.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/TypeManager.h"
@@ -365,6 +366,65 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
     }
 
     return out;
+}
+
+Utf8 TypeInfo::toFamily(const TaskContext&) const
+{
+    switch (kind_)
+    {
+        case TypeInfoKind::Bool:
+            return "bool";
+        case TypeInfoKind::Char:
+            return "character";
+        case TypeInfoKind::String:
+            return "string";
+        case TypeInfoKind::Void:
+            return "void";
+        case TypeInfoKind::Null:
+            return "null";
+        case TypeInfoKind::Undefined:
+            return "undefined";
+        case TypeInfoKind::Any:
+            return "any";
+        case TypeInfoKind::Rune:
+            return "rune";
+        case TypeInfoKind::CString:
+            return "cstring";
+        case TypeInfoKind::Enum:
+            return "enum";
+        case TypeInfoKind::Struct:
+            return "struct";
+        case TypeInfoKind::Interface:
+            return "interface";
+        case TypeInfoKind::Alias:
+            return "alias";
+        case TypeInfoKind::Function:
+            return "function";
+        case TypeInfoKind::TypeInfo:
+        case TypeInfoKind::TypeValue:
+            return "typeinfo";
+        case TypeInfoKind::ValuePointer:
+        case TypeInfoKind::BlockPointer:
+            return "pointer";
+        case TypeInfoKind::Int:
+            return "integer";
+        case TypeInfoKind::Float:
+            return "float";
+        case TypeInfoKind::Slice:
+            return "slice";
+        case TypeInfoKind::Array:
+            return "array";
+        case TypeInfoKind::Variadic:
+        case TypeInfoKind::TypedVariadic:
+            return "variadic";
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+Utf8 TypeInfo::toArticleFamily(const TaskContext& ctx) const
+{
+    return Utf8Helper::addArticleAAn(toFamily(ctx));
 }
 
 TypeInfo TypeInfo::makeBool()

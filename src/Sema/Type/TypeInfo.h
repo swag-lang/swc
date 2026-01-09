@@ -72,12 +72,15 @@ public:
 
     bool operator==(const TypeInfo& other) const noexcept;
     Utf8 toName(const TaskContext& ctx) const;
+    Utf8 toFamily(const TaskContext& ctx) const;
+    Utf8 toArticleFamily(const TaskContext& ctx) const;
 
     TypeInfoKind  kind() const noexcept { return kind_; }
     TypeInfoFlags flags() const noexcept { return flags_; }
     bool          hasFlag(TypeInfoFlagsE flag) const noexcept { return flags_.has(flag); }
     bool          isConst() const noexcept { return flags_.has(TypeInfoFlagsE::Const); }
     bool          isNullable() const noexcept { return flags_.has(TypeInfoFlagsE::Nullable); }
+    void          addFlag(TypeInfoFlagsE flag) noexcept { flags_.add(flag); }
 
     bool isBool() const noexcept { return kind_ == TypeInfoKind::Bool; }
     bool isChar() const noexcept { return kind_ == TypeInfoKind::Char; }

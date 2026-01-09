@@ -1,11 +1,15 @@
 #include "pch.h"
-#include "Sema/Core/Sema.h"
+
+#include "Core/Utf8Helper.h"
 #include "Parser/AstNodes.h"
 #include "Sema/Constant/ConstantManager.h"
+#include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaInfo.h"
+#include "Sema/Type/CastContext.h"
+#include "Sema/Type/SemaCast.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -152,21 +156,43 @@ namespace
         RESULT_VERIFY(SemaCheck::isValue(sema, node.nodeArg1Ref));
         RESULT_VERIFY(SemaCheck::isValue(sema, node.nodeArg2Ref));
 
+        auto&              ctx = sema.ctx();
         const SemaNodeView nodeView1(sema, node.nodeArg1Ref);
         const SemaNodeView nodeView2(sema, node.nodeArg2Ref);
 
         if (!nodeView1.type->isPointer())
         {
-            return SemaError::raiseInvalidType(sema, node.nodeArg1Ref, sema.typeMgr().typePtrVoid(), nodeView1.typeRef);
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_expected_type_fam, node.nodeArg1Ref);
+            diag.addArgument(Diagnostic::ARG_TYPE, nodeView1.typeRef);
+            const TypeInfo& ty = sema.typeMgr().get(sema.typeMgr().typePtrVoid());
+            diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE_FAM, ty.toFamily(ctx), false);
+            diag.addArgument(Diagnostic::ARG_A_REQUESTED_TYPE_FAM, Utf8Helper::addArticleAAn(ty.toFamily(ctx)), false);
+            diag.report(ctx);
+            return Result::Stop;
         }
 
-        if (!nodeView2.type->isIntLike())
+        if (nodeView2.typeRef != sema.typeMgr().typeU64())
         {
-            return SemaError::raiseInvalidType(sema, node.nodeArg2Ref, sema.typeMgr().typeU64(), nodeView2.typeRef);
+            CastContext castCtx(CastKind::Implicit);
+            if (SemaCast::castAllowed(sema, castCtx, nodeView2.typeRef, sema.typeMgr().typeU64()) == Result::Continue)
+                node.nodeArg2Ref = SemaCast::createImplicitCast(sema, sema.typeMgr().typeU64(), node.nodeArg2Ref);
+            else
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_expected_type_fam, node.nodeArg2Ref);
+                diag.addArgument(Diagnostic::ARG_TYPE, nodeView1.typeRef);
+                const TypeInfo& ty = sema.typeMgr().get(sema.typeMgr().typeInt(0, TypeInfo::Sign::Unknown));
+                diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE_FAM, ty.toFamily(ctx), false);
+                diag.addArgument(Diagnostic::ARG_A_REQUESTED_TYPE_FAM, Utf8Helper::addArticleAAn(ty.toFamily(ctx)), false);
+                diag.report(ctx);
+                return Result::Stop;
+            }
         }
 
-        const TypeInfo ty      = TypeInfo::makeSlice(nodeView1.type->typeRef());
-        const TypeRef  typeRef = sema.typeMgr().addType(ty);
+        TypeInfo ty = TypeInfo::makeSlice(nodeView1.type->typeRef());
+        if (nodeView1.type->isConst())
+            ty.addFlag(TypeInfoFlagsE::Const);
+
+        const TypeRef typeRef = sema.typeMgr().addType(ty);
         sema.setType(sema.curNodeRef(), typeRef);
         SemaInfo::setIsValue(node);
         return Result::Continue;

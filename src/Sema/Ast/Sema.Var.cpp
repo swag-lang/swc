@@ -219,9 +219,9 @@ Result AstVarDeclNameList::semaPreNode(Sema& sema) const
 {
     if (sema.enteringState())
     {
-        if (!sema.hasSymbols(sema.curNodeRef()))
+        if (!sema.hasSymbolList(sema.curNodeRef()))
             semaPreDecl(sema);
-        const auto symbols = sema.getSymbols(sema.curNodeRef());
+        const auto symbols = sema.getSymbolList(sema.curNodeRef());
         for (const auto sym : symbols)
         {
             const_cast<Symbol*>(sym)->registerAttributes(sema);
@@ -229,7 +229,7 @@ Result AstVarDeclNameList::semaPreNode(Sema& sema) const
         }
     }
 
-    const auto symbols = sema.getSymbols(sema.curNodeRef());
+    const auto symbols = sema.getSymbolList(sema.curNodeRef());
     for (const auto sym : symbols)
     {
         RESULT_VERIFY(SemaMatch::ghosting(sema, *sym));
@@ -256,7 +256,7 @@ Result AstVarDeclNameList::semaPostNode(Sema& sema) const
         if (nodeTypeRef.isInvalid())
             return SemaError::raise(sema, DiagnosticId::sema_err_not_type, srcViewRef(), tokRef());
 
-        const auto symbols = sema.getSymbols(sema.curNodeRef());
+        const auto symbols = sema.getSymbolList(sema.curNodeRef());
         for (const auto sym : symbols)
             const_cast<Symbol*>(sym)->addFlag(SymbolFlagsE::ExplicitUndefined);
     }
@@ -326,7 +326,7 @@ Result AstVarDeclNameList::semaPostNode(Sema& sema) const
         RESULT_VERIFY(SemaCheck::isConstant(sema, nodeInitRef));
     }
 
-    const auto symbols = sema.getSymbols(sema.curNodeRef());
+    const auto symbols = sema.getSymbolList(sema.curNodeRef());
 
     // Constant
     if (isConst)

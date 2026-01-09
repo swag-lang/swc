@@ -23,7 +23,7 @@ enum class NodeSemaKind : uint16_t
     SymbolRef   = 3,
     Substitute  = 4,
     Payload     = 5,
-    SymbolsRef  = 6,
+    SymbolList  = 6,
 };
 
 enum class NodeSemaFlags : uint16_t
@@ -89,8 +89,8 @@ public:
     Symbol&       getSymbol(const TaskContext&, AstNodeRef nodeRef);
     void          setSymbol(AstNodeRef nodeRef, const Symbol* symbol);
 
-    bool                     hasSymbols(AstNodeRef nodeRef) const;
-    std::span<const Symbol*> getSymbols(AstNodeRef nodeRef) const;
+    bool                     hasSymbolList(AstNodeRef nodeRef) const;
+    std::span<const Symbol*> getSymbolList(AstNodeRef nodeRef) const;
     void                     setSymbols(AstNodeRef nodeRef, std::span<const Symbol*> symbols);
 
 private:

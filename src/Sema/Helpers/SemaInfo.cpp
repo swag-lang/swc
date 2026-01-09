@@ -205,17 +205,17 @@ void SemaInfo::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
     updateSemaFlags(node, {&symbol, 1});
 }
 
-bool SemaInfo::hasSymbols(AstNodeRef nodeRef) const
+bool SemaInfo::hasSymbolList(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
     const AstNode& node = ast().node(nodeRef);
-    return semaKind(node) == NodeSemaKind::SymbolsRef;
+    return semaKind(node) == NodeSemaKind::SymbolList;
 }
 
-std::span<const Symbol*> SemaInfo::getSymbols(AstNodeRef nodeRef) const
+std::span<const Symbol*> SemaInfo::getSymbolList(AstNodeRef nodeRef) const
 {
-    SWC_ASSERT(hasSymbols(nodeRef));
+    SWC_ASSERT(hasSymbolList(nodeRef));
     const AstNode& node     = ast().node(nodeRef);
     const uint32_t shardIdx = semaShard(node);
     auto&          shard    = shards_[shardIdx];
@@ -242,7 +242,7 @@ void SemaInfo::setSymbols(AstNodeRef nodeRef, std::span<const Symbol*> symbols)
     std::unique_lock lock(shard.mutex);
 
     AstNode& node = ast().node(nodeRef);
-    setSemaKind(node, NodeSemaKind::SymbolsRef);
+    setSemaKind(node, NodeSemaKind::SymbolList);
     setSemaShard(node, shardIdx);
 
     const Ref value = shard.store.push_span(symbols).get();

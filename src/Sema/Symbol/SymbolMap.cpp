@@ -152,12 +152,6 @@ void SymbolMap::lookupAppend(IdentifierRef idRef, LookUpContext& lookUpCxt) cons
         if (!cur->isIgnored())
             lookUpCxt.addSymbol(cur);
     }
-
-    if (const auto structSym = safeCast<SymbolStruct>())
-    {
-        for (const auto impl : structSym->impls())
-            impl->lookupAppend(idRef, lookUpCxt);
-    }
 }
 
 Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms)

@@ -10,46 +10,16 @@ void SymbolEnum::merge(TaskContext& ctx, SymbolMap* other)
     SymbolMap::merge(ctx, other);
 }
 
-void SymbolStruct::merge(TaskContext& ctx, SymbolMap* other)
+void SymbolStruct::addImpl(SymbolMap* symMap)
 {
-    if (!other)
-        return;
+    std::unique_lock lk(mutexImpls_);
+    impls_.push_back(symMap);
+}
 
-    // TODO: sharded
-    SWC_ASSERT(!isSharded());
-    SWC_ASSERT(!other->isSharded());
-
-    auto add = [&](Symbol* cur) {
-        while (cur)
-        {
-            Symbol*    next     = cur->nextHomonym();
-            const auto inserted = addSymbol(ctx, cur, true);
-            if (inserted == cur && cur->isVariable())
-                addField(reinterpret_cast<SymbolVariable*>(cur));
-            cur = next;
-        }
-    };
-
-    if (!other->isBig())
-    {
-        for (uint32_t i = 0; i < other->smallSize_; ++i)
-            add(other->small_[i].head);
-    }
-    else
-    {
-        for (auto& [id, head] : other->bigMap_)
-            add(head);
-    }
-
-    if (const auto otherStruct = other->safeCast<SymbolStruct>())
-    {
-        for (const auto impl : otherStruct->impls_)
-            addImpl(impl);
-        otherStruct->impls_.clear();
-    }
-
-    other->smallSize_ = 0;
-    other->bigMap_.clear();
+std::vector<SymbolMap*> SymbolStruct::impls() const
+{
+    std::shared_lock lk(mutexImpls_);
+    return impls_;
 }
 
 bool SymbolEnum::computeNextValue(Sema& sema, SourceViewRef srcViewRef, TokenRef tokRef)

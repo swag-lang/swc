@@ -98,6 +98,12 @@ namespace
             // SymbolMap::lookupAppend must call lookUpCxt.addSymbol(...)
             // for each matching symbol it finds.
             symMap->lookupAppend(idRef, lookUpCxt);
+
+            if (const auto* structSym = symMap->safeCast<SymbolStruct>())
+            {
+                for (const auto* impl : structSym->impls())
+                    impl->lookupAppend(idRef, lookUpCxt);
+            }
         }
     }
 }

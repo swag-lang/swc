@@ -145,20 +145,28 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
             }
 
             case TaskStateKind::SemaWaitSymDeclared:
-            case TaskStateKind::SemaWaitSymTyped:
-            case TaskStateKind::SemaWaitSymCompleted:
             {
                 SWC_ASSERT(state.symbol);
-                auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_completed, state.srcViewRef, state.tokRef);
+                auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_declared, state.srcViewRef, state.tokRef);
                 diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
                 diag.report(ctx);
                 break;
             }
 
+            case TaskStateKind::SemaWaitSymTyped:
+            {
+                SWC_ASSERT(state.symbol);
+                auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_typed, state.srcViewRef, state.tokRef);
+                diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
+                diag.report(ctx);
+                break;
+            }
+
+            case TaskStateKind::SemaWaitSymCompleted:
             case TaskStateKind::SemaWaitTypeCompleted:
             {
                 SWC_ASSERT(state.symbol);
-                auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_completed, state.nodeRef);
+                auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_completed, state.srcViewRef, state.tokRef);
                 diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
                 diag.report(ctx);
                 break;

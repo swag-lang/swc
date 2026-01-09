@@ -4,7 +4,6 @@
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaHelpers.h"
-#include "Sema/Symbol/SemaMatch.h"
 #include "Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -35,6 +34,8 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     else if (childRef == nodeBodyRef)
     {
         SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+        RESULT_VERIFY(SemaCheck::checkSignature(sema, sym.parameters(), true));
+        sym.setTyped(sema.ctx());
         sema.pushScope(SemaScopeFlagsE::Local);
         sema.curScope().setSymMap(&sym);
         return Result::SkipChildren; // TODO
@@ -53,8 +54,6 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 Result AstFunctionDecl::semaPostNode(Sema& sema)
 {
     SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
-    RESULT_VERIFY(SemaCheck::checkSignature(sema, sym.parameters(), true));
-    sym.setTyped(sema.ctx());
     sym.setCompleted(sema.ctx());
     return Result::Continue;
 }

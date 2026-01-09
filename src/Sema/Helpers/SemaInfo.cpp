@@ -202,13 +202,72 @@ void SemaInfo::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
 
     const Ref value = shard.store.push_back(symbol);
     node.setSemaRef(value);
+    updateSemaFlags(node, {&symbol, 1});
+}
 
-    if (symbol->isValueExpr())
+bool SemaInfo::hasSymbols(AstNodeRef nodeRef) const
+{
+    if (nodeRef.isInvalid())
+        return false;
+    const AstNode& node = ast().node(nodeRef);
+    return semaKind(node) == NodeSemaKind::SymbolsRef;
+}
+
+std::span<const Symbol*> SemaInfo::getSymbols(AstNodeRef nodeRef) const
+{
+    SWC_ASSERT(hasSymbols(nodeRef));
+    const AstNode& node     = ast().node(nodeRef);
+    const uint32_t shardIdx = semaShard(node);
+    auto&          shard    = shards_[shardIdx];
+    const auto     spanView = shard.store.span<const Symbol*>(node.semaRef());
+
+    // We only support contiguous spans for now for this.
+    // shard.store.span<T> returns a SpanView which might be fragmented.
+    // However, if we pushed it all at once, it's likely contiguous in the same page.
+    // Actually Store::span<T> returns a SpanView, and we need a std::span.
+    // If it's not contiguous, we have a problem.
+
+    SWC_ASSERT(spanView.chunks_begin() != spanView.chunks_end());
+    const auto  it    = spanView.chunks_begin();
+    const auto& chunk = *it;
+    SWC_ASSERT(chunk.count == spanView.size()); // Ensure it's not fragmented
+
+    return std::span{static_cast<const Symbol**>(const_cast<void*>(chunk.ptr)), chunk.count};
+}
+
+void SemaInfo::setSymbols(AstNodeRef nodeRef, std::span<const Symbol*> symbols)
+{
+    const uint32_t   shardIdx = nodeRef.get() % SEMA_SHARD_NUM;
+    auto&            shard    = shards_[shardIdx];
+    std::unique_lock lock(shard.mutex);
+
+    AstNode& node = ast().node(nodeRef);
+    setSemaKind(node, NodeSemaKind::SymbolsRef);
+    setSemaShard(node, shardIdx);
+
+    const Ref value = shard.store.push_span(symbols).get();
+    node.setSemaRef(value);
+    updateSemaFlags(node, symbols);
+}
+
+void SemaInfo::updateSemaFlags(AstNode& node, std::span<const Symbol*> symbols)
+{
+    bool isValue  = true;
+    bool isLValue = true;
+    for (const auto* sym : symbols)
+    {
+        if (!sym->isValueExpr())
+            isValue = false;
+        if (!sym->isVariable() && !sym->isFunction())
+            isLValue = false;
+    }
+
+    if (isValue)
         addSemaFlags(node, NodeSemaFlags::Value);
     else
         removeSemaFlags(node, NodeSemaFlags::Value);
 
-    if (symbol->isVariable() || symbol->isFunction())
+    if (isLValue)
         addSemaFlags(node, NodeSemaFlags::LValue);
     else
         removeSemaFlags(node, NodeSemaFlags::LValue);

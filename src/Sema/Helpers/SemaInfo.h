@@ -91,6 +91,7 @@ public:
 
     bool                     hasSymbolList(AstNodeRef nodeRef) const;
     std::span<const Symbol*> getSymbolList(AstNodeRef nodeRef) const;
+    std::span<Symbol*>       getSymbolList(AstNodeRef nodeRef);
     void                     setSymbols(AstNodeRef nodeRef, std::span<const Symbol*> symbols);
 
 private:

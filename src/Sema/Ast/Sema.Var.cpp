@@ -224,8 +224,8 @@ Result AstVarDeclNameList::semaPreNode(Sema& sema) const
         const auto symbols = sema.getSymbolList(sema.curNodeRef());
         for (const auto sym : symbols)
         {
-            const_cast<Symbol*>(sym)->registerAttributes(sema);
-            const_cast<Symbol*>(sym)->setDeclared(sema.ctx());
+            sym->registerAttributes(sema);
+            sym->setDeclared(sema.ctx());
         }
     }
 

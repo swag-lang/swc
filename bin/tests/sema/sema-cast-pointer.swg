@@ -84,5 +84,5 @@
     var v1 = cast(*void) x1
 
     var x2: u32
-    var v2 = cast(*void) x2
+    var v2 = cast(*void) x2 // swc-expected-error {{sema_err_cannot_cast}}
 }

@@ -345,6 +345,33 @@ namespace
             castCtx.outConstRef = castCtx.srcConstRef;
         return Result::Continue;
     }
+
+    Result castToString(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        const auto& typeMgr = sema.ctx().typeMgr();
+        const auto& srcType = typeMgr.get(srcTypeRef);
+        if (srcType.isSlice())
+        {
+            if (castCtx.kind != CastKind::Explicit)
+            {
+                castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                return Result::Stop;
+            }
+
+            if (srcType.typeRef() != typeMgr.typeU8())
+            {
+                castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                return Result::Stop;
+            }
+
+            if (castCtx.isFolding())
+                castCtx.outConstRef = castCtx.srcConstRef;
+            return Result::Continue;
+        }
+
+        castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        return Result::Stop;
+    }
 }
 
 Result SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
@@ -365,7 +392,7 @@ Result SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRe
         }
     }
 
-    Result res = Result::Stop;
+    auto res = Result::Stop;
     if (srcType.isAlias())
         res = castAllowed(sema, castCtx, srcType.aliasSym().underlyingTypeRef(), dstTypeRef);
     else if (dstType.isAlias())
@@ -396,6 +423,8 @@ Result SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRe
         res = castTypeInfo(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isConstPointerToRuntimeTypeInfo(sema.ctx()) && dstType.isTypeInfo())
         res = castTypeInfo(sema, castCtx, srcTypeRef, dstTypeRef);
+    else if (srcType.isSlice() && dstType.isString())
+        res = castToString(sema, castCtx, srcTypeRef, dstTypeRef);
     else
     {
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);

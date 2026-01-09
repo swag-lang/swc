@@ -29,6 +29,7 @@ public:
     TypeRef typeInt(uint32_t bits, TypeInfo::Sign sign) const;
     TypeRef typeFloat(uint32_t bits) const;
     TypeRef typeU64() const { return typeU64_; }
+    TypeRef typeU8() const { return typeU8_; }
 
     TypeRef         addType(const TypeInfo& typeInfo);
     const TypeInfo& get(TypeRef typeRef) const;

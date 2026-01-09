@@ -10,6 +10,21 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    void addSymMap(LookUpContext& lookUpCxt, const SymbolMap* symMap, const LookUpContext::Priority& priority)
+    {
+        lookUpCxt.symMaps.push_back(symMap);
+        lookUpCxt.symMapPriorities.push_back(priority);
+
+        if (const auto* structSym = symMap->safeCast<SymbolStruct>())
+        {
+            for (const auto* impl : structSym->impls())
+            {
+                lookUpCxt.symMaps.push_back(impl);
+                lookUpCxt.symMapPriorities.push_back(priority);
+            }
+        }
+    }
+
     void collect(Sema& sema, LookUpContext& lookUpCxt)
     {
         lookUpCxt.symMaps.clear();
@@ -23,8 +38,7 @@ namespace
             priority.scopeDepth  = 0;
             priority.visibility  = LookUpContext::VisibilityTier::LocalScope;
             priority.searchOrder = 0;
-            lookUpCxt.symMaps.push_back(lookUpCxt.symMapHint);
-            lookUpCxt.symMapPriorities.push_back(priority);
+            addSymMap(lookUpCxt, lookUpCxt.symMapHint, priority);
             return;
         }
 
@@ -41,8 +55,7 @@ namespace
                 priority.scopeDepth  = scopeDepth;
                 priority.visibility  = LookUpContext::VisibilityTier::LocalScope;
                 priority.searchOrder = searchOrder++;
-                lookUpCxt.symMaps.push_back(symMap);
-                lookUpCxt.symMapPriorities.push_back(priority);
+                addSymMap(lookUpCxt, symMap, priority);
             }
 
             // Namespaces imported via "using" in this scope:
@@ -52,8 +65,7 @@ namespace
                 priority.scopeDepth  = scopeDepth;
                 priority.visibility  = LookUpContext::VisibilityTier::UsingDirective;
                 priority.searchOrder = searchOrder++;
-                lookUpCxt.symMaps.push_back(usingSymMap);
-                lookUpCxt.symMapPriorities.push_back(priority);
+                addSymMap(lookUpCxt, usingSymMap, priority);
             }
 
             scope = scope->parent();
@@ -66,8 +78,7 @@ namespace
             priority.scopeDepth  = scopeDepth;
             priority.visibility  = LookUpContext::VisibilityTier::FileNamespace;
             priority.searchOrder = searchOrder++;
-            lookUpCxt.symMaps.push_back(&sema.semaInfo().fileNamespace());
-            lookUpCxt.symMapPriorities.push_back(priority);
+            addSymMap(lookUpCxt, &sema.semaInfo().fileNamespace(), priority);
         }
 
         // Module-level namespace: outer than file-level.
@@ -76,8 +87,7 @@ namespace
             priority.scopeDepth  = static_cast<uint16_t>(scopeDepth + 1);
             priority.visibility  = LookUpContext::VisibilityTier::ModuleNamespace;
             priority.searchOrder = searchOrder++;
-            lookUpCxt.symMaps.push_back(&sema.semaInfo().moduleNamespace());
-            lookUpCxt.symMapPriorities.push_back(priority);
+            addSymMap(lookUpCxt, &sema.semaInfo().moduleNamespace(), priority);
         }
     }
 
@@ -98,12 +108,6 @@ namespace
             // SymbolMap::lookupAppend must call lookUpCxt.addSymbol(...)
             // for each matching symbol it finds.
             symMap->lookupAppend(idRef, lookUpCxt);
-
-            if (const auto* structSym = symMap->safeCast<SymbolStruct>())
-            {
-                for (const auto* impl : structSym->impls())
-                    impl->lookupAppend(idRef, lookUpCxt);
-            }
         }
     }
 }

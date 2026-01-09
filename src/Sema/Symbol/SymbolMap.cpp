@@ -5,6 +5,7 @@
 #include "Sema/Core/Sema.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/LookUpContext.h"
+#include "Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -151,6 +152,12 @@ void SymbolMap::lookupAppend(IdentifierRef idRef, LookUpContext& lookUpCxt) cons
         if (!cur->isIgnored())
             lookUpCxt.addSymbol(cur);
     }
+
+    if (const auto structSym = safeCast<SymbolStruct>())
+    {
+        for (const auto impl : structSym->impls())
+            impl->lookupAppend(idRef, lookUpCxt);
+    }
 }
 
 Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms)
@@ -247,6 +254,46 @@ Symbol* SymbolMap::addSingleSymbolOrError(Sema& sema, Symbol* symbol)
 Symbol* SymbolMap::addSingleSymbol(TaskContext& ctx, Symbol* symbol)
 {
     return addSymbol(ctx, symbol, false);
+}
+
+void SymbolMap::merge(TaskContext& ctx, SymbolMap* other)
+{
+    if (auto structSym = safeCast<SymbolStruct>())
+        structSym->merge(ctx, other);
+    else if (auto enumSym = safeCast<SymbolEnum>())
+        enumSym->merge(ctx, other);
+    else
+    {
+        if (!other)
+            return;
+
+        // TODO: sharded
+        SWC_ASSERT(!isSharded());
+        SWC_ASSERT(!other->isSharded());
+
+        auto add = [&](Symbol* cur) {
+            while (cur)
+            {
+                Symbol* next = cur->nextHomonym();
+                addSymbol(ctx, cur, true);
+                cur = next;
+            }
+        };
+
+        if (!other->isBig())
+        {
+            for (uint32_t i = 0; i < other->smallSize_; ++i)
+                add(other->small_[i].head);
+        }
+        else
+        {
+            for (auto& [id, head] : other->bigMap_)
+                add(head);
+        }
+
+        other->smallSize_ = 0;
+        other->bigMap_.clear();
+    }
 }
 
 SWC_END_NAMESPACE();

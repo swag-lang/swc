@@ -6,6 +6,7 @@
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaHelpers.h"
 #include "Sema/Helpers/SemaInfo.h"
+#include "Sema/Symbol/LookUpContext.h"
 #include "Sema/Symbol/SemaMatch.h"
 #include "Sema/Symbol/Symbols.h"
 
@@ -126,6 +127,45 @@ Result AstStructDecl::semaPostNode(Sema& sema)
     sym.computeLayout(sema);
     sym.setCompleted(sema.ctx());
     sema.popScope();
+    return Result::Continue;
+}
+
+Result AstImpl::semaPreDecl(Sema& sema) const
+{
+    auto&      ctx = sema.ctx();
+    const auto sym = Symbol::make<SymbolNamespace>(ctx, this, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    sema.setPayload(sema.curNodeRef(), sym);
+
+    sema.pushScope(SemaScopeFlagsE::Type | SemaScopeFlagsE::TopLevel);
+    sema.curScope().setSymMap(sym);
+    return Result::Continue;
+}
+
+Result AstImpl::semaPostDecl(Sema& sema)
+{
+    sema.popScope();
+    return Result::Continue;
+}
+
+Result AstImpl::semaPreNode(Sema& sema) const
+{
+    const auto nodeIdent = sema.node(nodeIdentRef);
+    const auto idRef     = sema.idMgr().addIdentifier(sema.ctx(), nodeIdent.srcViewRef(), nodeIdent.tokRef());
+
+    LookUpContext lookUpCxt;
+    lookUpCxt.srcViewRef = nodeIdent.srcViewRef();
+    lookUpCxt.tokRef     = nodeIdent.tokRef();
+
+    RESULT_VERIFY(SemaMatch::match(sema, lookUpCxt, idRef));
+
+    const auto sym = const_cast<Symbol*>(lookUpCxt.first());
+    if (!sym->isStruct())
+        return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_struct, nodeIdentRef);
+
+    const auto tmpSymMap = sema.payload<SymbolMap>(sema.curNodeRef());
+    sym->cast<SymbolStruct>().addImpl(tmpSymMap);
+    sema.setSymbol(sema.curNodeRef(), sym);
+
     return Result::Continue;
 }
 

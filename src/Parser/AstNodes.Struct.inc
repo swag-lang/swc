@@ -44,6 +44,10 @@ struct AstImpl : AstCompoundT<AstNodeId::Impl>
         AstNode::collectChildren(out, {nodeIdentRef});
         AstCompoundT::collectChildren(out, ast);
     }
+
+    Result        semaPreDecl(Sema& sema) const;
+    static Result semaPostDecl(Sema& sema);
+    Result        semaPreNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

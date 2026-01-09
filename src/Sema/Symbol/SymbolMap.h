@@ -7,6 +7,8 @@ class LookUpContext;
 
 class SymbolMap : public Symbol
 {
+    friend class SymbolStruct;
+
 public:
     explicit SymbolMap(const AstNode* decl, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags);
 
@@ -16,8 +18,9 @@ public:
     Symbol* addSingleSymbol(TaskContext& ctx, Symbol* symbol);
     Symbol* addSingleSymbolOrError(Sema& sema, Symbol* symbol);
     void    lookupAppend(IdentifierRef idRef, LookUpContext& lookUpCxt) const;
+    void    merge(TaskContext& ctx, SymbolMap* other);
 
-private:
+protected:
     struct Entry
     {
         Symbol*       head = nullptr;
@@ -41,11 +44,13 @@ private:
     mutable std::shared_mutex                  mutex_;
     uint32_t                                   smallSize_ = 0;
 
+    bool isBig() const noexcept { return smallSize_ > SMALL_CAP; }
+    bool isSharded() const noexcept { return shards_.load(std::memory_order_acquire) != nullptr; }
+
+private:
     Entry*       smallFind(IdentifierRef key);
     const Entry* smallFind(IdentifierRef key) const;
 
-    bool            isBig() const noexcept { return smallSize_ > SMALL_CAP; }
-    bool            isSharded() const noexcept { return shards_.load(std::memory_order_acquire) != nullptr; }
     static uint32_t shardIndex(IdentifierRef idRef) noexcept { return idRef.get() & (SHARD_COUNT - 1); }
     void            maybeUpgradeToSharded(TaskContext& ctx);
     static Symbol*  insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool acceptHomonyms, bool notify);

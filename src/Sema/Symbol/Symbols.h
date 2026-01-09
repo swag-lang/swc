@@ -99,6 +99,7 @@ public:
     bool          hasNextValue() const { return hasFlag(SymbolFlagsE::EnumHasNextValue); }
     void          setHasNextValue() { addFlag(SymbolFlagsE::EnumHasNextValue); }
     bool          computeNextValue(Sema& sema, SourceViewRef srcViewRef, TokenRef tokRef);
+    void          merge(TaskContext& ctx, SymbolMap* other);
 
     bool     isEnumFlags() const { return attributes().hasFlag(AttributeFlagsE::EnumFlags); }
     uint64_t sizeOf(TaskContext& ctx) const { return underlyingType(ctx).sizeOf(ctx); }
@@ -146,12 +147,16 @@ public:
     Result                              canBeCompleted(Sema& sema) const;
     void                                computeLayout(Sema& sema);
     void                                addField(SymbolVariable* sym) { fields_.push_back(sym); }
+    void                                addImpl(SymbolMap* symMap) { impls_.push_back(symMap); }
+    const std::vector<SymbolMap*>&      impls() const { return impls_; }
+    void                                merge(TaskContext& ctx, SymbolMap* other);
     SymbolStructFlags                   structFlags() const noexcept { return structFlags_; }
     bool                                hasStructFlag(SymbolStructFlagsE flag) const noexcept { return structFlags_.has(flag); }
     void                                addStructFlag(SymbolStructFlagsE fl) { structFlags_.add(fl); }
 
 private:
     std::vector<SymbolVariable*> fields_;
+    std::vector<SymbolMap*>      impls_;
     uint64_t                     sizeInBytes_ = 0;
     uint32_t                     alignment_   = 0;
     SymbolStructFlags            structFlags_ = SymbolStructFlagsE::Zero;

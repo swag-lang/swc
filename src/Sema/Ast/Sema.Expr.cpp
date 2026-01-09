@@ -184,14 +184,18 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
         sema.setType(sema.curNodeRef(), nodeExprView.type->typeRef());
         SemaInfo::setIsLValue(*this);
     }
+    else if (nodeExprView.type->isSlice())
+    {
+        sema.setType(sema.curNodeRef(), nodeExprView.type->typeRef());
+        SemaInfo::setIsLValue(*this);
+    }
     else if (nodeExprView.type->isValuePointer())
     {
         return SemaError::raisePointerArithmetic(sema, sema.node(nodeExprRef), nodeExprRef, nodeExprView.typeRef);
     }
     else
     {
-        // TODO: Other types (slices, etc.)
-        sema.setType(sema.curNodeRef(), sema.typeMgr().typeInt(32, TypeInfo::Sign::Signed));
+        return SemaError::raiseTypeNotIndexable(sema, nodeExprRef, nodeExprView.typeRef);
     }
 
     SemaInfo::setIsValue(*this);
@@ -248,10 +252,40 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
         if (SemaInfo::isLValue(sema.node(nodeExprRef)))
             SemaInfo::setIsLValue(*this);
     }
+    else if (nodeExprView.type->isSlice())
+    {
+        SmallVector<AstNodeRef> children;
+        sema.ast().nodes(children, spanChildrenRef);
+
+        const size_t numGot = children.size();
+        if (numGot > 1)
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_num_dims, children[1]);
+            diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(1));
+            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(numGot));
+            diag.report(sema.ctx());
+            return Result::Stop;
+        }
+
+        for (const AstNodeRef nodeRef : children)
+        {
+            const SemaNodeView nodeArgView(sema, nodeRef);
+            if (!nodeArgView.type->isInt())
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_not_int, nodeRef);
+                diag.addArgument(Diagnostic::ARG_TYPE, nodeArgView.typeRef);
+                diag.report(sema.ctx());
+                return Result::Stop;
+            }
+        }
+
+        sema.setType(sema.curNodeRef(), nodeExprView.type->arrayElemTypeRef());
+        if (SemaInfo::isLValue(sema.node(nodeExprRef)))
+            SemaInfo::setIsLValue(*this);
+    }
     else
     {
-        // TODO: Other types (slices, etc.)
-        sema.setType(sema.curNodeRef(), sema.typeMgr().typeInt(32, TypeInfo::Sign::Signed));
+        return SemaError::raiseTypeNotIndexable(sema, nodeExprRef, nodeExprView.typeRef);
     }
 
     SemaInfo::setIsValue(*this);

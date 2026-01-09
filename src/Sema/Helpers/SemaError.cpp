@@ -221,4 +221,12 @@ Result SemaError::raiseInvalidOpEnum(Sema& sema, const AstNode& nodeOp, AstNodeR
     return Result::Stop;
 }
 
+Result SemaError::raiseTypeNotIndexable(Sema& sema, AstNodeRef nodeRef, TypeRef typeRef)
+{
+    auto diag = report(sema, DiagnosticId::sema_err_type_not_indexable, nodeRef);
+    diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
+    diag.report(sema.ctx());
+    return Result::Stop;
+}
+
 SWC_END_NAMESPACE();

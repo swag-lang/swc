@@ -32,6 +32,7 @@ namespace SemaError
     Result raiseDivZero(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
     Result raisePointerArithmetic(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
     Result raiseInvalidOpEnum(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
+    Result raiseTypeNotIndexable(Sema& sema, AstNodeRef nodeRef, TypeRef typeRef);
 }
 
 SWC_END_NAMESPACE();

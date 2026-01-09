@@ -15,33 +15,17 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void markExplicitUndefined(Symbol* one, const std::span<Symbol*>& many)
+    void markExplicitUndefined(const std::span<Symbol*>& syms)
     {
-        if (one)
-        {
-            one->addFlag(SymbolFlagsE::ExplicitUndefined);
-            return;
-        }
-
-        for (const auto s : many)
+        for (auto* s : syms)
             s->addFlag(SymbolFlagsE::ExplicitUndefined);
     }
 
-    void completeConst(Sema& sema, Symbol* one, const std::span<Symbol*>& many, ConstantRef cstRef, TypeRef typeRef)
+    void completeConst(Sema& sema, const std::span<Symbol*>& syms, ConstantRef cstRef, TypeRef typeRef)
     {
         auto& ctx = sema.ctx();
 
-        if (one)
-        {
-            auto& symCst = one->cast<SymbolConstant>();
-            symCst.setCstRef(cstRef);
-            symCst.setTypeRef(typeRef);
-            symCst.setTyped(sema.ctx());
-            symCst.setCompleted(ctx);
-            return;
-        }
-
-        for (const auto s : many)
+        for (auto* s : syms)
         {
             auto& symCst = s->cast<SymbolConstant>();
             symCst.setCstRef(cstRef);
@@ -51,20 +35,11 @@ namespace
         }
     }
 
-    void completeVar(Sema& sema, Symbol* one, const std::span<Symbol*>& many, TypeRef typeRef)
+    void completeVar(Sema& sema, const std::span<Symbol*>& syms, TypeRef typeRef)
     {
         auto& ctx = sema.ctx();
 
-        if (one)
-        {
-            auto& symVar = one->cast<SymbolVariable>();
-            symVar.setTypeRef(typeRef);
-            symVar.setTyped(sema.ctx());
-            symVar.setCompleted(ctx);
-            return;
-        }
-
-        for (const auto s : many)
+        for (auto* s : syms)
         {
             auto& symVar = s->cast<SymbolVariable>();
             symVar.setTypeRef(typeRef);
@@ -73,7 +48,7 @@ namespace
         }
     }
 
-    Result semaPostVarDeclCommon(Sema& sema, const AstNode& owner, TokenRef tokDiag, AstNodeRef nodeInitRef, AstNodeRef nodeTypeRef, bool isConst, bool isLet, Symbol* oneSym, const std::span<Symbol*>& manySyms)
+    Result semaPostVarDeclCommon(Sema& sema, const AstNode& owner, TokenRef tokDiag, AstNodeRef nodeInitRef, AstNodeRef nodeTypeRef, bool isConst, bool isLet, const std::span<Symbol*>& syms)
     {
         auto&              ctx = sema.ctx();
         SemaNodeView       nodeInitView(sema, nodeInitRef);
@@ -89,7 +64,7 @@ namespace
             if (nodeTypeRef.isInvalid())
                 return SemaError::raise(sema, DiagnosticId::sema_err_not_type, owner.srcViewRef(), tokDiag);
 
-            markExplicitUndefined(oneSym, manySyms);
+            markExplicitUndefined(syms);
         }
 
         // Implicit cast from initializer to the specified type
@@ -172,7 +147,7 @@ namespace
                 nodeInitView.setCstRef(sema, newCstRef);
             }
 
-            completeConst(sema, oneSym, manySyms, nodeInitView.cstRef, nodeInitView.typeRef);
+            completeConst(sema, syms, nodeInitView.cstRef, nodeInitView.typeRef);
             return Result::Continue;
         }
 
@@ -180,10 +155,7 @@ namespace
         if (isLet && nodeInitRef.isInvalid())
             return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, owner.srcViewRef(), tokDiag);
 
-        completeVar(sema,
-                    oneSym,
-                    manySyms,
-                    nodeTypeView.typeRef.isValid() ? nodeTypeView.typeRef : nodeInitView.typeRef);
+        completeVar(sema, syms, nodeTypeView.typeRef.isValid() ? nodeTypeView.typeRef : nodeInitView.typeRef);
         return Result::Continue;
     }
 }
@@ -215,8 +187,9 @@ Result AstVarDecl::semaPreNode(Sema& sema) const
 
 Result AstVarDecl::semaPostNode(Sema& sema) const
 {
-    Symbol& sym = sema.symbolOf(sema.curNodeRef());
-    return semaPostVarDeclCommon(sema, *this, tokNameRef, nodeInitRef, nodeTypeRef, hasParserFlag(Const), hasParserFlag(Let), &sym, {});
+    Symbol& sym   = sema.symbolOf(sema.curNodeRef());
+    Symbol* one[] = {&sym};
+    return semaPostVarDeclCommon(sema, *this, tokNameRef, nodeInitRef, nodeTypeRef, hasParserFlag(Const), hasParserFlag(Let), std::span<Symbol*>{one});
 }
 
 Result AstVarDeclNameList::semaPreDecl(Sema& sema) const
@@ -289,7 +262,7 @@ Result AstVarDeclNameList::semaPreNode(Sema& sema) const
 Result AstVarDeclNameList::semaPostNode(Sema& sema) const
 {
     const auto symbols = sema.getSymbolList(sema.curNodeRef());
-    return semaPostVarDeclCommon(sema, *this, tokRef(), nodeInitRef, nodeTypeRef, hasParserFlag(AstVarDecl::Const), hasParserFlag(AstVarDecl::Let), nullptr, symbols);
+    return semaPostVarDeclCommon(sema, *this, tokRef(), nodeInitRef, nodeTypeRef, hasParserFlag(AstVarDecl::Const), hasParserFlag(AstVarDecl::Let), symbols);
 }
 
 SWC_END_NAMESPACE();

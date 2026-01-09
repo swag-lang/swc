@@ -15,25 +15,82 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void reportCastFailureWithHint(Sema& sema, CastContext& castCtx, TypeRef srcType, TypeRef dstType, AstNodeRef errorNodeRef)
+    void markExplicitUndefined(Symbol* one, const std::span<Symbol*>& many)
     {
-        auto& ctx = sema.ctx();
+        if (one)
+        {
+            one->addFlag(SymbolFlagsE::ExplicitUndefined);
+            return;
+        }
 
-        auto diag = SemaError::report(sema, castCtx.failure.diagId, errorNodeRef);
-        diag.addArgument(Diagnostic::ARG_TYPE, castCtx.failure.srcTypeRef);
-        diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, castCtx.failure.dstTypeRef);
-
-        CastContext explicitCtx{CastKind::Explicit};
-        explicitCtx.errorNodeRef = errorNodeRef;
-        if (SemaCast::castAllowed(sema, explicitCtx, srcType, dstType) == Result::Continue)
-            diag.addElement(DiagnosticId::sema_note_cast_explicit);
-
-        diag.report(ctx);
+        for (const auto s : many)
+            s->addFlag(SymbolFlagsE::ExplicitUndefined);
     }
 
-    Result applyInitTypeRules(Sema& sema, SemaNodeView& nodeInitView, const SemaNodeView& nodeTypeView, AstNodeRef nodeInitRef)
+    void completeConst(Sema& sema, Symbol* one, const std::span<Symbol*>& many, ConstantRef cstRef, TypeRef typeRef)
     {
         auto& ctx = sema.ctx();
+
+        if (one)
+        {
+            auto& symCst = one->cast<SymbolConstant>();
+            symCst.setCstRef(cstRef);
+            symCst.setTypeRef(typeRef);
+            symCst.setTyped(sema.ctx());
+            symCst.setCompleted(ctx);
+            return;
+        }
+
+        for (const auto s : many)
+        {
+            auto& symCst = s->cast<SymbolConstant>();
+            symCst.setCstRef(cstRef);
+            symCst.setTypeRef(typeRef);
+            symCst.setTyped(sema.ctx());
+            symCst.setCompleted(ctx);
+        }
+    }
+
+    void completeVar(Sema& sema, Symbol* one, const std::span<Symbol*>& many, TypeRef typeRef)
+    {
+        auto& ctx = sema.ctx();
+
+        if (one)
+        {
+            auto& symVar = one->cast<SymbolVariable>();
+            symVar.setTypeRef(typeRef);
+            symVar.setTyped(sema.ctx());
+            symVar.setCompleted(ctx);
+            return;
+        }
+
+        for (const auto s : many)
+        {
+            auto& symVar = s->cast<SymbolVariable>();
+            symVar.setTypeRef(typeRef);
+            symVar.setTyped(sema.ctx());
+            symVar.setCompleted(ctx);
+        }
+    }
+
+    Result semaPostVarDeclCommon(Sema& sema, const AstNode& owner, TokenRef tokDiag, AstNodeRef nodeInitRef, AstNodeRef nodeTypeRef, bool isConst, bool isLet, Symbol* oneSym, const std::span<Symbol*>& manySyms)
+    {
+        auto&              ctx = sema.ctx();
+        SemaNodeView       nodeInitView(sema, nodeInitRef);
+        const SemaNodeView nodeTypeView(sema, nodeTypeRef);
+
+        // Initialized to 'undefined'
+        if (nodeInitRef.isValid() && nodeInitView.cstRef == sema.cstMgr().cstUndefined())
+        {
+            if (isConst)
+                return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, owner.srcViewRef(), tokDiag);
+            if (isLet)
+                return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, owner.srcViewRef(), tokDiag);
+            if (nodeTypeRef.isInvalid())
+                return SemaError::raise(sema, DiagnosticId::sema_err_not_type, owner.srcViewRef(), tokDiag);
+
+            markExplicitUndefined(oneSym, manySyms);
+        }
 
         // Implicit cast from initializer to the specified type
         if (nodeInitView.typeRef.isValid() && nodeTypeView.typeRef.isValid())
@@ -45,28 +102,34 @@ namespace
             if (res != Result::Continue)
             {
                 if (res == Result::Stop)
-                    reportCastFailureWithHint(sema, castCtx, nodeInitView.typeRef, nodeTypeView.typeRef, nodeInitRef);
+                {
+                    auto diag = SemaError::report(sema, castCtx.failure.diagId, castCtx.errorNodeRef);
+                    diag.addArgument(Diagnostic::ARG_TYPE, castCtx.failure.srcTypeRef);
+                    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, castCtx.failure.dstTypeRef);
+
+                    CastContext explicitCtx{CastKind::Explicit};
+                    explicitCtx.errorNodeRef = nodeInitRef;
+                    if (SemaCast::castAllowed(sema, explicitCtx, nodeInitView.typeRef, nodeTypeView.typeRef) == Result::Continue)
+                        diag.addElement(DiagnosticId::sema_note_cast_explicit);
+
+                    diag.report(ctx);
+                }
+
                 return res;
             }
 
-            // Convert init constant to the right type
             if (nodeInitView.cstRef.isValid())
             {
                 ConstantRef newCstRef;
                 RESULT_VERIFY(SemaCast::castConstant(sema, newCstRef, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef));
                 sema.setConstant(nodeInitRef, newCstRef);
             }
-            // Otherwise creates an implicit cast
             else
             {
                 SemaCast::createImplicitCast(sema, nodeTypeView.typeRef, nodeInitRef);
             }
-
-            return Result::Continue;
         }
-
-        // No specified type: concretize constants (and promote ints to at least 32 bits)
-        if (nodeInitView.cstRef.isValid())
+        else if (nodeInitView.cstRef.isValid())
         {
             ConstantRef newCstRef;
             RESULT_VERIFY(ctx.cstMgr().concretizeConstant(sema, newCstRef, nodeInitView.nodeRef, nodeInitView.cstRef, TypeInfo::Sign::Unknown));
@@ -86,6 +149,41 @@ namespace
             nodeInitView.setCstRef(sema, newCstRef);
         }
 
+        if (nodeInitRef.isValid())
+            RESULT_VERIFY(SemaCheck::isValue(sema, nodeInitRef));
+
+        if (!sema.curScope().isLocal() && !isConst && nodeInitRef.isValid())
+            RESULT_VERIFY(SemaCheck::isConstant(sema, nodeInitRef));
+
+        // Constant
+        if (isConst)
+        {
+            if (nodeInitRef.isInvalid())
+                return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, owner.srcViewRef(), tokDiag);
+            if (nodeInitView.cstRef.isInvalid())
+                return SemaError::raiseExprNotConst(sema, nodeInitRef);
+
+            if (nodeTypeRef.isValid() && nodeTypeView.typeRef.isValid())
+            {
+                CastContext castCtx(CastKind::Initialization);
+                castCtx.errorNodeRef = nodeInitRef;
+                ConstantRef newCstRef;
+                RESULT_VERIFY(SemaCast::castConstant(sema, newCstRef, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef));
+                nodeInitView.setCstRef(sema, newCstRef);
+            }
+
+            completeConst(sema, oneSym, manySyms, nodeInitView.cstRef, nodeInitView.typeRef);
+            return Result::Continue;
+        }
+
+        // Variable
+        if (isLet && nodeInitRef.isInvalid())
+            return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, owner.srcViewRef(), tokDiag);
+
+        completeVar(sema,
+                    oneSym,
+                    manySyms,
+                    nodeTypeView.typeRef.isValid() ? nodeTypeView.typeRef : nodeInitView.typeRef);
         return Result::Continue;
     }
 }
@@ -117,71 +215,8 @@ Result AstVarDecl::semaPreNode(Sema& sema) const
 
 Result AstVarDecl::semaPostNode(Sema& sema) const
 {
-    auto&              ctx = sema.ctx();
-    SemaNodeView       nodeInitView(sema, nodeInitRef);
-    const SemaNodeView nodeTypeView(sema, nodeTypeRef);
-    const bool         isConst = hasParserFlag(Const);
-    const bool         isLet   = hasParserFlag(Let);
-
-    // Initialized to 'undefined'
-    if (nodeInitRef.isValid() && nodeInitView.cstRef == sema.cstMgr().cstUndefined())
-    {
-        if (isConst)
-            return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, srcViewRef(), tokNameRef);
-        if (isLet)
-            return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, srcViewRef(), tokNameRef);
-        if (nodeTypeRef.isInvalid())
-            return SemaError::raise(sema, DiagnosticId::sema_err_not_type, srcViewRef(), tokNameRef);
-
-        Symbol& sym = sema.symbolOf(sema.curNodeRef());
-        sym.addFlag(SymbolFlagsE::ExplicitUndefined);
-    }
-
-    // Init/type rules (shared)
-    RESULT_VERIFY(applyInitTypeRules(sema, nodeInitView, nodeTypeView, nodeInitRef));
-
-    // Be sure the initialization expression has a value
-    if (nodeInitRef.isValid())
-        RESULT_VERIFY(SemaCheck::isValue(sema, nodeInitRef));
-
-    // Global variable must be initialized to a constexpr
-    if (!sema.curScope().isLocal() && !isConst && nodeInitRef.isValid())
-        RESULT_VERIFY(SemaCheck::isConstant(sema, nodeInitRef));
-
-    // Constant
-    if (isConst)
-    {
-        if (nodeInitRef.isInvalid())
-            return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, srcViewRef(), tokNameRef);
-        if (nodeInitView.cstRef.isInvalid())
-            return SemaError::raiseExprNotConst(sema, nodeInitRef);
-
-        if (nodeTypeRef.isValid() && nodeTypeView.typeRef.isValid())
-        {
-            CastContext castCtx(CastKind::Initialization);
-            castCtx.errorNodeRef = nodeInitRef;
-            ConstantRef newCstRef;
-            RESULT_VERIFY(SemaCast::castConstant(sema, newCstRef, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef));
-            nodeInitView.setCstRef(sema, newCstRef);
-        }
-
-        SymbolConstant& symCst = sema.symbolOf(sema.curNodeRef()).cast<SymbolConstant>();
-        symCst.setCstRef(nodeInitView.cstRef);
-        symCst.setTypeRef(nodeInitView.typeRef);
-        symCst.setTyped(sema.ctx());
-        symCst.setCompleted(ctx);
-        return Result::Continue;
-    }
-
-    // Variable
-    if (isLet && nodeInitRef.isInvalid())
-        return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, srcViewRef(), tokNameRef);
-
-    SymbolVariable& symVar = sema.symbolOf(sema.curNodeRef()).cast<SymbolVariable>();
-    symVar.setTypeRef(nodeTypeView.typeRef.isValid() ? nodeTypeView.typeRef : nodeInitView.typeRef);
-    symVar.setTyped(sema.ctx());
-    symVar.setCompleted(ctx);
-    return Result::Continue;
+    Symbol& sym = sema.symbolOf(sema.curNodeRef());
+    return semaPostVarDeclCommon(sema, *this, tokNameRef, nodeInitRef, nodeTypeRef, hasParserFlag(Const), hasParserFlag(Let), &sym, {});
 }
 
 Result AstVarDeclNameList::semaPreDecl(Sema& sema) const
@@ -253,80 +288,8 @@ Result AstVarDeclNameList::semaPreNode(Sema& sema) const
 
 Result AstVarDeclNameList::semaPostNode(Sema& sema) const
 {
-    auto&              ctx = sema.ctx();
-    SemaNodeView       nodeInitView(sema, nodeInitRef);
-    const SemaNodeView nodeTypeView(sema, nodeTypeRef);
-    const bool         isConst = hasParserFlag(AstVarDecl::Const);
-    const bool         isLet   = hasParserFlag(AstVarDecl::Let);
-
-    // Initialized to 'undefined'
-    if (nodeInitRef.isValid() && nodeInitView.cstRef == sema.cstMgr().cstUndefined())
-    {
-        if (isConst)
-            return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, srcViewRef(), tokRef());
-        if (isLet)
-            return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, srcViewRef(), tokRef());
-        if (nodeTypeRef.isInvalid())
-            return SemaError::raise(sema, DiagnosticId::sema_err_not_type, srcViewRef(), tokRef());
-
-        const auto symbols = sema.getSymbolList(sema.curNodeRef());
-        for (const auto sym : symbols)
-            const_cast<Symbol*>(sym)->addFlag(SymbolFlagsE::ExplicitUndefined);
-    }
-
-    // Init/type rules (shared)
-    RESULT_VERIFY(applyInitTypeRules(sema, nodeInitView, nodeTypeView, nodeInitRef));
-
-    if (nodeInitRef.isValid())
-        RESULT_VERIFY(SemaCheck::isValue(sema, nodeInitRef));
-
-    if (!sema.curScope().isLocal() && !isConst && nodeInitRef.isValid())
-        RESULT_VERIFY(SemaCheck::isConstant(sema, nodeInitRef));
-
     const auto symbols = sema.getSymbolList(sema.curNodeRef());
-
-    // Constant
-    if (isConst)
-    {
-        if (nodeInitRef.isInvalid())
-            return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, srcViewRef(), tokRef());
-        if (nodeInitView.cstRef.isInvalid())
-            return SemaError::raiseExprNotConst(sema, nodeInitRef);
-
-        if (nodeTypeRef.isValid() && nodeTypeView.typeRef.isValid())
-        {
-            CastContext castCtx(CastKind::Initialization);
-            castCtx.errorNodeRef = nodeInitRef;
-            ConstantRef newCstRef;
-            RESULT_VERIFY(SemaCast::castConstant(sema, newCstRef, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef));
-            nodeInitView.setCstRef(sema, newCstRef);
-        }
-
-        for (const auto sym : symbols)
-        {
-            SymbolConstant& symCst = sym->cast<SymbolConstant>();
-            symCst.setCstRef(nodeInitView.cstRef);
-            symCst.setTypeRef(nodeInitView.typeRef);
-            symCst.setTyped(sema.ctx());
-            symCst.setCompleted(ctx);
-        }
-
-        return Result::Continue;
-    }
-
-    // Variable
-    if (isLet && nodeInitRef.isInvalid())
-        return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, srcViewRef(), tokRef());
-
-    for (const auto sym : symbols)
-    {
-        SymbolVariable& symVar = sym->cast<SymbolVariable>();
-        symVar.setTypeRef(nodeTypeView.typeRef.isValid() ? nodeTypeView.typeRef : nodeInitView.typeRef);
-        symVar.setTyped(sema.ctx());
-        symVar.setCompleted(ctx);
-    }
-
-    return Result::Continue;
+    return semaPostVarDeclCommon(sema, *this, tokRef(), nodeInitRef, nodeTypeRef, hasParserFlag(AstVarDecl::Const), hasParserFlag(AstVarDecl::Let), nullptr, symbols);
 }
 
 SWC_END_NAMESPACE();

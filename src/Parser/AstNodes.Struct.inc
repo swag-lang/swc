@@ -254,7 +254,7 @@ enum class AstFunctionParamMeFlagsE : AstNode::ParserFlags
 
 struct AstFunctionParamMe : AstNodeT<AstNodeId::FunctionParamMe, AstFunctionParamMeFlagsE>
 {
-    Result semaPreDecl(Sema& sema) const;
+    Result semaPreNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

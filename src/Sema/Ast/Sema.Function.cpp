@@ -9,12 +9,12 @@
 
 SWC_BEGIN_NAMESPACE();
 
-Result AstFunctionParamMe::semaPreDecl(Sema& sema) const
+Result AstFunctionParamMe::semaPreNode(Sema& sema) const
 {
-    if (!sema.curScope().isImpl())
-        return SemaError::raise(sema, DiagnosticId::sema_err_method_outside_impl, sema.curNodeRef());
+    if (!sema.frame().impl())
+        return SemaError::raise(sema, DiagnosticId::sema_err_tok_outside_impl, sema.curNodeRef());
 
-    const SymbolImpl*   symImpl   = sema.curScope().symMap()->safeCast<SymbolImpl>();
+    const SymbolImpl*   symImpl   = sema.frame().impl()->symMap()->safeCast<SymbolImpl>();
     const SymbolStruct* symStruct = symImpl->structSym();
 
     auto& sym = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokRef());

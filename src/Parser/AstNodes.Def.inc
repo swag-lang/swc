@@ -96,7 +96,7 @@ SWC_NODE_DEF(Impl, AstNodeIdFlagsE::SemaJob)
 // ============================================================================
 //  Functions & Callables
 // ============================================================================
-SWC_NODE_DEF(FunctionDecl, AstNodeIdFlagsE::Zero)
+SWC_NODE_DEF(FunctionDecl, AstNodeIdFlagsE::SemaJob)
 SWC_NODE_DEF(FunctionBody, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(FunctionExpr, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(ClosureExpr, AstNodeIdFlagsE::Zero)

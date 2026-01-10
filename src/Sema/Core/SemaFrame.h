@@ -1,5 +1,6 @@
 #pragma once
 #include "Sema/Core/AttributeList.h"
+#include "Sema/Symbol/Symbol.Struct.h"
 #include "Sema/Symbol/Symbol.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -25,14 +26,14 @@ public:
     void                           pushNs(IdentifierRef id) { nsPath_.push_back(id); }
     void                           popNs() { nsPath_.pop_back(); }
 
-    SymbolAccess access() const { return access_; }
-    void         setAccess(SymbolAccess access) { access_ = access; }
-
+    SymbolAccess         access() const { return access_; }
+    void                 setAccess(SymbolAccess access) { access_ = access; }
     AttributeList&       attributes() { return attributes_; }
     const AttributeList& attributes() const { return attributes_; }
-
-    SemaCompilerIf* compilerIf() const { return compilerIf_; }
-    void            setCompilerIf(SemaCompilerIf* ifc) { compilerIf_ = ifc; }
+    SemaCompilerIf*      compilerIf() const { return compilerIf_; }
+    void                 setCompilerIf(SemaCompilerIf* ifc) { compilerIf_ = ifc; }
+    SymbolImpl*          impl() const { return impl_; }
+    void                 setImpl(SymbolImpl* impl) { impl_ = impl; }
 
     static SymbolMap* currentSymMap(Sema& sema);
     SymbolFlags       flagsForCurrentAccess() const;
@@ -42,6 +43,7 @@ private:
     AttributeList                 attributes_;
     SmallVector<IdentifierRef, 8> nsPath_;
     SemaCompilerIf*               compilerIf_ = nullptr;
+    SymbolImpl*                   impl_       = nullptr;
 };
 
 SWC_END_NAMESPACE();

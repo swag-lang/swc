@@ -72,6 +72,11 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
         return Result::Continue;
 
     SymbolImpl& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolImpl>();
+
+    auto frame = sema.frame();
+    frame.setImpl(&sym);
+    sema.pushFrame(frame);
+
     sema.pushScope(SemaScopeFlagsE::TopLevel | SemaScopeFlagsE::Impl);
     sema.curScope().setSymMap(sym.asSymMap());
     return Result::Continue;
@@ -80,6 +85,7 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 Result AstImpl::semaPostNode(Sema& sema)
 {
     sema.popScope();
+    sema.popFrame();
     return Result::Continue;
 }
 

@@ -42,14 +42,11 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
         SemaHelpers::declareSymbol(sema, *this);
 
     const SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
-    if (sym.isMethod())
+    if (sym.isMethod() && !sema.frame().impl() && !sema.curScope().isInterface())
     {
-        if (!sema.curScope().isImpl() && !sema.curScope().isInterface())
-        {
-            const SourceView& srcView   = sema.srcView(srcViewRef());
-            const TokenRef    mtdTokRef = srcView.findLeftFrom(tokNameRef, {TokenId::KwdMtd});
-            return SemaError::raise(sema, DiagnosticId::sema_err_method_outside_impl, srcViewRef(), mtdTokRef);
-        }
+        const SourceView& srcView   = sema.srcView(srcViewRef());
+        const TokenRef    mtdTokRef = srcView.findLeftFrom(tokNameRef, {TokenId::KwdMtd});
+        return SemaError::raise(sema, DiagnosticId::sema_err_method_outside_impl, srcViewRef(), mtdTokRef);
     }
 
     // return SemaMatch::ghosting(sema, sym);

@@ -1,11 +1,11 @@
 #pragma once
 #include "Sema/Core/Sema.h"
-#include "Sema/Symbol/SymbolMap.h"
 #include "Sema/Symbol/Symbol.Attribute.h"
 #include "Sema/Symbol/Symbol.Function.h"
 #include "Sema/Symbol/Symbol.Interface.h"
 #include "Sema/Symbol/Symbol.Struct.h"
 #include "Sema/Symbol/Symbol.Variable.h"
+#include "Sema/Symbol/SymbolMap.h"
 #include <format>
 
 SWC_BEGIN_NAMESPACE();
@@ -36,6 +36,12 @@ namespace SemaHelpers
         {
             if (sym->isVariable())
                 symAttr->addParameter(reinterpret_cast<SymbolVariable*>(sym));
+        }
+
+        if (const auto symFunc = symbolMap->safeCast<SymbolFunction>())
+        {
+            if (sym->isVariable())
+                symFunc->addParameter(reinterpret_cast<SymbolVariable*>(sym));
         }
 
         if (const auto symInterface = symbolMap->safeCast<SymbolInterface>())

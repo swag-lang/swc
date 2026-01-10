@@ -57,32 +57,21 @@ namespace
 {
     void addMeParameter(Sema& sema, SymbolFunction& sym)
     {
-        const IdentifierRef idMe = sema.idMgr().addIdentifier("me");
-        if (sym.parameters().empty() || sym.parameters()[0]->idRef() != idMe)
+        const IdentifierRef idMe      = sema.idMgr().addIdentifier("me");
+        const Symbol*       symStruct = nullptr;
+        if (sema.frame().impl())
+            symStruct = sema.frame().impl()->structSym();
+        else if (sema.curScope().parent() && sema.curScope().parent()->isInterface())
+            symStruct = sema.curScope().parent()->symMap();
+        if (symStruct)
         {
-            const Symbol* symStruct = nullptr;
-            if (sema.frame().impl())
-                symStruct = sema.frame().impl()->structSym();
-            else if (sema.curScope().parent() && sema.curScope().parent()->isInterface())
-                symStruct = sema.curScope().parent()->symMap();
+            auto&           ctx     = sema.ctx();
+            SymbolVariable* symMe   = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), idMe, SymbolFlagsE::Zero);
+            const TypeRef   typeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(symStruct->typeRef(), TypeInfoFlagsE::Zero));
+            symMe->setTypeRef(typeRef);
 
-            if (symStruct)
-            {
-                auto&           ctx     = sema.ctx();
-                SymbolVariable* symMe   = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), idMe, SymbolFlagsE::Zero);
-                const TypeRef   typeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(symStruct->typeRef(), TypeInfoFlagsE::Zero));
-                symMe->setTypeRef(typeRef);
-
-                sym.addParameter(symMe);
-                if (sym.parameters().size() > 1)
-                {
-                    for (size_t i = sym.parameters().size() - 1; i > 0; --i)
-                        sym.parameters()[i] = sym.parameters()[i - 1];
-                    sym.parameters()[0] = symMe;
-                }
-
-                sym.addSymbol(ctx, symMe, true);
-            }
+            sym.addParameter(symMe);
+            sym.addSymbol(ctx, symMe, true);
         }
     }
 }

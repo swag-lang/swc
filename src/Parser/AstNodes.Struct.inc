@@ -1,80 +1,6 @@
 #pragma once
 
 // -----------------------------------------------------------------------------
-enum class AstImplFlagsE : AstNode::ParserFlags
-{
-    Zero = 0,
-    Enum = 1 << 0,
-};
-
-enum class AstFunctionParamMeFlagsE : AstNode::ParserFlags
-{
-    Zero  = 0,
-    Const = 1 << 0,
-};
-
-enum class AstLambdaParamFlagsE : AstNode::ParserFlags
-{
-    Zero  = 0,
-    Named = 1 << 0,
-};
-
-enum class AstClosureArgumentFlagsE : AstNode::ParserFlags
-{
-    Zero    = 0,
-    Address = 1 << 0,
-};
-
-enum class AstIdentifierFlagsE : AstNode::ParserFlags
-{
-    Zero              = 0,
-    InCompilerDefined = 1 << 0,
-};
-
-enum class AstQualifiedTypeFlagsE : AstNode::ParserFlags
-{
-    Zero     = 0,
-    Const    = 1 << 0,
-    Nullable = 1 << 1,
-};
-
-enum class AstLambdaTypeFlagsE : AstNode::ParserFlags
-{
-    Zero      = 0,
-    Method    = 1 << 0,
-    Throwable = 1 << 1,
-    Closure   = 1 << 2,
-    Const     = 1 << 3,
-    Impl      = 1 << 4,
-};
-
-enum class AstVarDeclFlagsE : AstNode::ParserFlags
-{
-    Zero  = 0,
-    Var   = 1 << 0,
-    Const = 1 << 1,
-    Let   = 1 << 2,
-};
-
-enum class AstForeachStmtFlagsE : AstNode::ParserFlags
-{
-    Zero      = 0,
-    ByAddress = 1 << 0,
-};
-
-enum class AstRangeExprFlagsE : AstNode::ParserFlags
-{
-    Zero      = 0,
-    Inclusive = 1 << 0,
-};
-
-enum class AstAssignListStmtFlagsE : AstNode::ParserFlags
-{
-    Zero          = 0,
-    Decomposition = 1 << 0,
-};
-
-// -----------------------------------------------------------------------------
 struct AstInvalid : AstNodeT<AstNodeId::Invalid>
 {
 };
@@ -109,7 +35,12 @@ struct AstEmbeddedBlock : AstCompoundT<AstNodeId::EmbeddedBlock>
 };
 
 // -----------------------------------------------------------------------------
-// -----------------------------------------------------------------------------
+enum class AstImplFlagsE : AstNode::ParserFlags
+{
+    Zero = 0,
+    Enum = 1 << 0,
+};
+
 struct AstImpl : AstCompoundT<AstNodeId::Impl, AstImplFlagsE>
 {
     AstNodeRef nodeIdentRef;
@@ -252,12 +183,22 @@ struct AstIntrinsicValue : AstNodeT<AstNodeId::IntrinsicValue>
 };
 
 // -----------------------------------------------------------------------------
-struct AstFunctionExpr : AstLambdaExprT<AstNodeId::FunctionExpr, AstLambdaTypeFlagsE>
+enum class AstFunctionFlagsE : AstNode::ParserFlags
+{
+    Zero      = 0,
+    Method    = 1 << 0,
+    Throwable = 1 << 1,
+    Closure   = 1 << 2,
+    Const     = 1 << 3,
+    Impl      = 1 << 4,
+};
+
+struct AstFunctionExpr : AstLambdaExprT<AstNodeId::FunctionExpr, AstFunctionFlagsE>
 {
 };
 
 // -----------------------------------------------------------------------------
-struct AstClosureExpr : AstLambdaExprT<AstNodeId::ClosureExpr, AstLambdaTypeFlagsE>
+struct AstClosureExpr : AstLambdaExprT<AstNodeId::ClosureExpr, AstFunctionFlagsE>
 {
     SpanRef nodeCaptureArgsRef;
 
@@ -269,7 +210,7 @@ struct AstClosureExpr : AstLambdaExprT<AstNodeId::ClosureExpr, AstLambdaTypeFlag
 };
 
 // -----------------------------------------------------------------------------
-struct AstFunctionDecl : AstNamedNodeT<AstNodeId::FunctionDecl, AstLambdaTypeFlagsE>
+struct AstFunctionDecl : AstNamedNodeT<AstNodeId::FunctionDecl, AstFunctionFlagsE>
 {
     SpanRef    spanGenericParamsRef;
     AstNodeRef nodeParamsRef;
@@ -306,6 +247,12 @@ struct AstAttrDecl : AstNamedNodeT<AstNodeId::AttrDecl>
 };
 
 // -----------------------------------------------------------------------------
+enum class AstFunctionParamMeFlagsE : AstNode::ParserFlags
+{
+    Zero  = 0,
+    Const = 1 << 0,
+};
+
 struct AstFunctionParamMe : AstNodeT<AstNodeId::FunctionParamMe, AstFunctionParamMeFlagsE>
 {
     Result semaPreDecl(Sema& sema) const;
@@ -325,6 +272,12 @@ struct AstFunctionBody : AstCompoundT<AstNodeId::FunctionBody>
 };
 
 // -----------------------------------------------------------------------------
+enum class AstLambdaParamFlagsE : AstNode::ParserFlags
+{
+    Zero  = 0,
+    Named = 1 << 0,
+};
+
 struct AstLambdaParam : AstNodeT<AstNodeId::LambdaParam, AstLambdaParamFlagsE>
 {
     AstNodeRef nodeTypeRef;
@@ -339,6 +292,12 @@ struct AstFunctionParamList : AstCompoundT<AstNodeId::FunctionParamList>
 };
 
 // -----------------------------------------------------------------------------
+enum class AstClosureArgumentFlagsE : AstNode::ParserFlags
+{
+    Zero    = 0,
+    Address = 1 << 0,
+};
+
 struct AstClosureArgument : AstNodeT<AstNodeId::ClosureArgument, AstClosureArgumentFlagsE>
 {
     AstNodeRef nodeIdentifierRef;
@@ -408,6 +367,12 @@ struct AstCompilerShortFunc : AstNodeT<AstNodeId::CompilerShortFunc>
 };
 
 // -----------------------------------------------------------------------------
+enum class AstIdentifierFlagsE : AstNode::ParserFlags
+{
+    Zero              = 0,
+    InCompilerDefined = 1 << 0,
+};
+
 struct AstIdentifier : AstNodeT<AstNodeId::Identifier, AstIdentifierFlagsE>
 {
     Result semaPostNode(Sema& sema) const;
@@ -773,6 +738,13 @@ struct AstUsingEnumDecl : AstNodeT<AstNodeId::UsingEnumDecl>
 };
 
 // -----------------------------------------------------------------------------
+enum class AstQualifiedTypeFlagsE : AstNode::ParserFlags
+{
+    Zero     = 0,
+    Const    = 1 << 0,
+    Nullable = 1 << 1,
+};
+
 struct AstQualifiedType : AstNodeT<AstNodeId::QualifiedType, AstQualifiedTypeFlagsE>
 {
     AstNodeRef nodeTypeRef;
@@ -864,7 +836,7 @@ struct AstCompilerTypeExpr : AstNodeT<AstNodeId::CompilerTypeExpr>
 };
 
 // -----------------------------------------------------------------------------
-struct AstLambdaType : AstNodeT<AstNodeId::LambdaType, AstLambdaTypeFlagsE>
+struct AstLambdaType : AstNodeT<AstNodeId::LambdaType, AstFunctionFlagsE>
 {
     SpanRef    spanParamsRef;
     AstNodeRef nodeReturnTypeRef;
@@ -1061,6 +1033,14 @@ struct AstGenericParamType : AstGenericParamT<AstNodeId::GenericParamType>
 };
 
 // -----------------------------------------------------------------------------
+enum class AstVarDeclFlagsE : AstNode::ParserFlags
+{
+    Zero  = 0,
+    Var   = 1 << 0,
+    Const = 1 << 1,
+    Let   = 1 << 2,
+};
+
 struct AstVarDecl : AstNamedNodeT<AstNodeId::VarDecl, AstVarDeclFlagsE>
 {
     AstNodeRef nodeTypeRef;
@@ -1263,6 +1243,12 @@ struct AstWhileStmt : AstNodeT<AstNodeId::WhileStmt>
 };
 
 // -----------------------------------------------------------------------------
+enum class AstForeachStmtFlagsE : AstNode::ParserFlags
+{
+    Zero      = 0,
+    ByAddress = 1 << 0,
+};
+
 struct AstForeachStmt : AstNodeT<AstNodeId::ForeachStmt, AstForeachStmtFlagsE>
 {
     TokenRef         tokSpecializationRef;
@@ -1374,6 +1360,12 @@ struct AstCompilerInject : AstNodeT<AstNodeId::CompilerInject>
 };
 
 // -----------------------------------------------------------------------------
+enum class AstRangeExprFlagsE : AstNode::ParserFlags
+{
+    Zero      = 0,
+    Inclusive = 1 << 0,
+};
+
 struct AstRangeExpr : AstNodeT<AstNodeId::RangeExpr, AstRangeExprFlagsE>
 {
     AstNodeRef nodeExprDownRef;
@@ -1393,6 +1385,12 @@ struct AstAssignStmt : AstNodeT<AstNodeId::AssignStmt>
 };
 
 // -----------------------------------------------------------------------------
+enum class AstAssignListStmtFlagsE : AstNode::ParserFlags
+{
+    Zero          = 0,
+    Decomposition = 1 << 0,
+};
+
 struct AstAssignListStmt : AstCompoundT<AstNodeId::AssignListStmt, AstAssignListStmtFlagsE>
 {
 };

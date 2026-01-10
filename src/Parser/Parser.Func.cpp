@@ -79,11 +79,11 @@ AstNodeRef Parser::parseLambdaArgumentExpr()
 
 AstNodeRef Parser::parseLambdaExpression()
 {
-    EnumFlags<AstLambdaTypeFlagsE> flags    = AstLambdaTypeFlagsE::Zero;
-    const auto                     tokStart = ref();
+    EnumFlags<AstFunctionFlagsE> flags    = AstFunctionFlagsE::Zero;
+    const auto                   tokStart = ref();
 
     if (consumeIf(TokenId::KwdMtd).isValid())
-        flags.add(AstLambdaTypeFlagsE::Method);
+        flags.add(AstFunctionFlagsE::Method);
     else
         consumeAssert(TokenId::KwdFunc);
 
@@ -91,17 +91,17 @@ AstNodeRef Parser::parseLambdaExpression()
     SpanRef captureArgs = SpanRef::invalid();
     if (is(TokenId::SymPipe))
     {
-        flags.add(AstLambdaTypeFlagsE::Closure);
+        flags.add(AstFunctionFlagsE::Closure);
         captureArgs = parseCompoundContent(AstNodeId::ClosureExpr, TokenId::SymPipe);
     }
     else if (consumeIf(TokenId::SymPipePipe).isValid())
     {
-        flags.add(AstLambdaTypeFlagsE::Closure);
+        flags.add(AstFunctionFlagsE::Closure);
     }
-    else if (flags.has(AstLambdaTypeFlagsE::Method))
+    else if (flags.has(AstFunctionFlagsE::Method))
     {
         raiseError(DiagnosticId::parser_err_mtd_missing_capture, tokStart);
-        flags.add(AstLambdaTypeFlagsE::Closure);
+        flags.add(AstFunctionFlagsE::Closure);
     }
 
     // Arguments
@@ -114,7 +114,7 @@ AstNodeRef Parser::parseLambdaExpression()
 
     // Can raise errors
     if (consumeIf(TokenId::KwdThrow).isValid())
-        flags.add(AstLambdaTypeFlagsE::Throwable);
+        flags.add(AstFunctionFlagsE::Throwable);
 
     // Body
     AstNodeRef body = AstNodeRef::invalid();
@@ -126,7 +126,7 @@ AstNodeRef Parser::parseLambdaExpression()
         body = parseExpression();
     }
 
-    if (flags.has(AstLambdaTypeFlagsE::Closure))
+    if (flags.has(AstFunctionFlagsE::Closure))
     {
         auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::ClosureExpr>(ref());
         nodePtr->flags()            = flags;
@@ -147,9 +147,9 @@ AstNodeRef Parser::parseLambdaExpression()
 
 AstNodeRef Parser::parseFunctionDecl()
 {
-    EnumFlags<AstLambdaTypeFlagsE> flags = AstLambdaTypeFlagsE::Zero;
+    EnumFlags<AstFunctionFlagsE> flags = AstFunctionFlagsE::Zero;
     if (consumeIf(TokenId::KwdMtd).isValid())
-        flags.add(AstLambdaTypeFlagsE::Method);
+        flags.add(AstFunctionFlagsE::Method);
     else
         consumeAssert(TokenId::KwdFunc);
 
@@ -164,9 +164,9 @@ AstNodeRef Parser::parseFunctionDecl()
 
     // Modifiers
     if (consumeIf(TokenId::KwdConst).isValid())
-        flags.add(AstLambdaTypeFlagsE::Const);
+        flags.add(AstFunctionFlagsE::Const);
     if (consumeIf(TokenId::KwdImpl).isValid())
-        flags.add(AstLambdaTypeFlagsE::Impl);
+        flags.add(AstFunctionFlagsE::Impl);
 
     // Name
     if (Token::isIntrinsic(id()))
@@ -185,7 +185,7 @@ AstNodeRef Parser::parseFunctionDecl()
 
     // Throw
     if (consumeIf(TokenId::KwdThrow).isValid())
-        flags.add(AstLambdaTypeFlagsE::Throwable);
+        flags.add(AstFunctionFlagsE::Throwable);
 
     // Constraints
     SmallVector<AstNodeRef> whereRefs;

@@ -254,7 +254,7 @@ public:
     bool                hasFuncFlag(SymbolFunctionFlagsE flag) const noexcept { return funcFlags_.has(flag); }
     void                addFuncFlag(SymbolFunctionFlagsE fl) { funcFlags_.add(fl); }
     void                addFuncFlags(SymbolFunctionFlags fl) { funcFlags_.add(fl); }
-    void                setFuncFlags(EnumFlags<AstLambdaTypeFlagsE> parserFlags);
+    void                setFuncFlags(EnumFlags<AstFunctionFlagsE> parserFlags);
     bool                isClosure() const noexcept { return funcFlags_.has(SymbolFunctionFlagsE::Closure); }
     bool                isMethod() const noexcept { return funcFlags_.has(SymbolFunctionFlagsE::Method); }
     bool                isThrowable() const noexcept { return funcFlags_.has(SymbolFunctionFlagsE::Throwable); }

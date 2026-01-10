@@ -324,20 +324,20 @@ AstNodeRef Parser::parseLambdaParam()
 
 AstNodeRef Parser::parseLambdaType()
 {
-    EnumFlags<AstLambdaTypeFlagsE> flags    = AstLambdaTypeFlagsE::Zero;
-    const auto                     tokStart = ref();
+    EnumFlags<AstFunctionFlagsE> flags    = AstFunctionFlagsE::Zero;
+    const auto                   tokStart = ref();
 
     if (consumeIf(TokenId::KwdMtd).isValid())
-        flags.add(AstLambdaTypeFlagsE::Method);
+        flags.add(AstFunctionFlagsE::Method);
     else
         consumeAssert(TokenId::KwdFunc);
 
     if (consumeIf(TokenId::SymPipePipe).isValid())
-        flags.add(AstLambdaTypeFlagsE::Closure);
-    else if (flags.has(AstLambdaTypeFlagsE::Method))
+        flags.add(AstFunctionFlagsE::Closure);
+    else if (flags.has(AstFunctionFlagsE::Method))
     {
         raiseError(DiagnosticId::parser_err_mtd_missing_capture, tokStart);
-        flags.add(AstLambdaTypeFlagsE::Closure);
+        flags.add(AstFunctionFlagsE::Closure);
     }
 
     const SpanRef params = parseCompoundContent(AstNodeId::LambdaType, TokenId::SymLeftParen);
@@ -349,7 +349,7 @@ AstNodeRef Parser::parseLambdaType()
 
     // Can raise errors
     if (consumeIf(TokenId::KwdThrow).isValid())
-        flags.add(AstLambdaTypeFlagsE::Throwable);
+        flags.add(AstFunctionFlagsE::Throwable);
 
     auto [nodeRef, nodePtr]    = ast_->makeNode<AstNodeId::LambdaType>(tokStart);
     nodePtr->flags()           = flags;

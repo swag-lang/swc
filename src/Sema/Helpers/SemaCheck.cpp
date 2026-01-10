@@ -115,11 +115,14 @@ Result SemaCheck::checkSignature(Sema& sema, const std::vector<SymbolVariable*>&
             return SemaError::raise(sema, DiagnosticId::sema_err_variadic_not_last, param.decl()->srcViewRef(), param.tokRef());
 
         // A parameter without a default follows a parameter with a default value
-        const auto varDecl = param.decl()->cast<AstVarDecl>();
-        if (varDecl->nodeInitRef.isValid())
-            hasDefault = true;
-        else if (hasDefault)
-            return SemaError::raise(sema, DiagnosticId::sema_err_parameter_default_value_not_last, param.decl()->srcViewRef(), param.tokRef());
+        if(param.decl())
+        {
+            const auto varDecl = param.decl()->cast<AstVarDecl>();
+            if (varDecl->nodeInitRef.isValid())
+                hasDefault = true;
+            else if (hasDefault)
+                return SemaError::raise(sema, DiagnosticId::sema_err_parameter_default_value_not_last, param.decl()->srcViewRef(), param.tokRef());
+        }
 
         // If a parameter has a name, then what follows should have a name
         if (param.idRef().isValid())

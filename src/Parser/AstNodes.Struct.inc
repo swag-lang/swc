@@ -37,11 +37,19 @@ struct AstEmbeddedBlock : AstCompoundT<AstNodeId::EmbeddedBlock>
 // -----------------------------------------------------------------------------
 struct AstImpl : AstCompoundT<AstNodeId::Impl>
 {
+    enum FlagsE : ParserFlags
+    {
+        Zero = 0,
+        Enum = 1 << 0,
+    };
+    using Flags = EnumFlags<FlagsE>;
+
     AstNodeRef nodeIdentRef;
+    AstNodeRef nodeForRef;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
-        AstNode::collectChildren(out, {nodeIdentRef});
+        AstNode::collectChildren(out, {nodeIdentRef, nodeForRef});
         AstCompoundT::collectChildren(out, ast);
     }
 
@@ -51,19 +59,6 @@ struct AstImpl : AstCompoundT<AstNodeId::Impl>
     Result        semaPreNode(Sema& sema) const;
     Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     static Result semaPostNode(Sema& sema);
-};
-
-// -----------------------------------------------------------------------------
-struct AstImplFor : AstCompoundT<AstNodeId::ImplFor>
-{
-    AstNodeRef nodeIdentRef;
-    AstNodeRef nodeForRef;
-
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
-    {
-        AstNode::collectChildren(out, {nodeIdentRef, nodeForRef});
-        AstCompoundT::collectChildren(out, ast);
-    }
 };
 
 // -----------------------------------------------------------------------------
@@ -735,18 +730,6 @@ struct AstUsingEnumDecl : AstNodeT<AstNodeId::UsingEnumDecl>
     AstNodeRef nodeNameRef;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeNameRef}); }
-};
-
-// -----------------------------------------------------------------------------
-struct AstImplEnum : AstCompoundT<AstNodeId::ImplEnum>
-{
-    AstNodeRef nodeNameRef;
-
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
-    {
-        AstNode::collectChildren(out, {nodeNameRef});
-        AstCompoundT::collectChildren(out, ast);
-    }
 };
 
 // -----------------------------------------------------------------------------

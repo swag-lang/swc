@@ -5,11 +5,18 @@ SWC_BEGIN_NAMESPACE();
 
 AstNodeRef Parser::parseImpl()
 {
-    if (nextIs(TokenId::KwdEnum))
-        return parseImplEnum();
-
     const auto tokImpl = ref();
     consume();
+
+    // Enum
+    if (consumeIf(TokenId::KwdEnum).isValid())
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Impl>(tokImpl);
+        nodePtr->addParserFlag(AstImpl::Enum);
+        nodePtr->nodeIdentRef    = parseQualifiedIdentifier();
+        nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
+        return nodeRef;
+    }
 
     // Name
     const AstNodeRef nodeIdent = parseQualifiedIdentifier();
@@ -25,15 +32,7 @@ AstNodeRef Parser::parseImpl()
             skipTo({TokenId::SymLeftCurly});
     }
 
-    if (nodeFor.isInvalid())
-    {
-        auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::Impl>(tokImpl);
-        nodePtr->nodeIdentRef    = nodeIdent;
-        nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
-        return nodeRef;
-    }
-
-    auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::ImplFor>(tokImpl);
+    auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::Impl>(tokImpl);
     nodePtr->nodeIdentRef    = nodeIdent;
     nodePtr->nodeForRef      = nodeFor;
     nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);

@@ -165,7 +165,6 @@ private:
     AstNodeRef parseIdentifierType();
     AstNodeRef parseIf();
     AstNodeRef parseImpl();
-    AstNodeRef parseImplEnum();
     AstNodeRef parseInitializerExpression();
     AstNodeRef parseInterfaceDecl();
     AstNodeRef parseInterfaceValue();

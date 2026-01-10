@@ -4,19 +4,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-AstNodeRef Parser::parseImplEnum()
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ImplEnum>(consume());
-    consumeAssert(TokenId::KwdEnum);
-
-    nodePtr->nodeNameRef = parseQualifiedIdentifier();
-    if (nodePtr->nodeNameRef.isInvalid())
-        skipTo({TokenId::SymLeftCurly});
-
-    nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
-    return nodeRef;
-}
-
 AstNodeRef Parser::parseEnumValue()
 {
     static constexpr std::initializer_list ENUM_VALUE_SYNC = {TokenId::SymRightCurly, TokenId::SymComma, TokenId::Identifier};

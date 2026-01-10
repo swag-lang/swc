@@ -6,7 +6,6 @@
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaHelpers.h"
 #include "Sema/Helpers/SemaInfo.h"
-#include "Sema/Symbol/LookUpContext.h"
 #include "Sema/Symbol/SemaMatch.h"
 #include "Sema/Symbol/Symbols.h"
 
@@ -126,70 +125,6 @@ Result AstStructDecl::semaPostNode(Sema& sema)
     RESULT_VERIFY(sym.canBeCompleted(sema));
     sym.computeLayout(sema);
     sym.setCompleted(sema.ctx());
-    sema.popScope();
-    return Result::Continue;
-}
-
-Result AstImpl::semaPreDecl(Sema& sema) const
-{
-    auto&      ctx = sema.ctx();
-    const auto sym = Symbol::make<SymbolImpl>(ctx, this, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
-    sema.setSymbol(sema.curNodeRef(), sym);
-
-    return Result::Continue;
-}
-
-Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
-{
-    if (childRef != nodeIdentRef)
-        return Result::Continue;
-
-    SymbolMap* sym = sema.symbolOf(sema.curNodeRef()).asSymMap();
-    sema.pushScope(SemaScopeFlagsE::TopLevel | SemaScopeFlagsE::Impl);
-    sema.curScope().setSymMap(sym);
-    return Result::Continue;
-}
-
-Result AstImpl::semaPostDecl(Sema& sema)
-{
-    sema.popScope();
-    return Result::Continue;
-}
-
-Result AstImpl::semaPreNode(Sema& sema) const
-{
-    const auto nodeIdent = sema.node(nodeIdentRef);
-    const auto idRef     = sema.idMgr().addIdentifier(sema.ctx(), nodeIdent.srcViewRef(), nodeIdent.tokRef());
-
-    LookUpContext lookUpCxt;
-    lookUpCxt.srcViewRef = nodeIdent.srcViewRef();
-    lookUpCxt.tokRef     = nodeIdent.tokRef();
-
-    RESULT_VERIFY(SemaMatch::match(sema, lookUpCxt, idRef));
-
-    const auto sym = const_cast<Symbol*>(lookUpCxt.first());
-    if (!sym->isStruct())
-        return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_struct, nodeIdentRef);
-
-    SymbolImpl& symImpl = sema.symbolOf(sema.curNodeRef()).cast<SymbolImpl>();
-    sym->cast<SymbolStruct>().addImpl(symImpl);
-
-    return Result::Continue;
-}
-
-Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
-{
-    if (childRef != nodeIdentRef)
-        return Result::Continue;
-
-    SymbolImpl& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolImpl>();
-    sema.pushScope(SemaScopeFlagsE::TopLevel | SemaScopeFlagsE::Impl);
-    sema.curScope().setSymMap(sym.asSymMap());
-    return Result::Continue;
-}
-
-Result AstImpl::semaPostNode(Sema& sema)
-{
     sema.popScope();
     return Result::Continue;
 }

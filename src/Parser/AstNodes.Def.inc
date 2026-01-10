@@ -88,12 +88,10 @@ SWC_NODE_DEF(UsingMemberDecl, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(EnumDecl, AstNodeIdFlagsE::SemaJob)
 SWC_NODE_DEF(EnumBody, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(EnumValue, AstNodeIdFlagsE::Zero)
-SWC_NODE_DEF(ImplEnum, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(UsingEnumDecl, AstNodeIdFlagsE::Zero)
 
 // Implementations
 SWC_NODE_DEF(Impl, AstNodeIdFlagsE::SemaJob)
-SWC_NODE_DEF(ImplFor, AstNodeIdFlagsE::SemaJob)
 
 // ============================================================================
 //  Functions & Callables

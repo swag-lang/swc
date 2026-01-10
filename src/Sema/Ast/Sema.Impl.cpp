@@ -26,6 +26,7 @@ Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
     SymbolMap* sym = sema.symbolOf(sema.curNodeRef()).asSymMap();
     sema.pushScope(SemaScopeFlagsE::TopLevel | SemaScopeFlagsE::Impl);
     sema.curScope().setSymMap(sym);
+
     return Result::Continue;
 }
 
@@ -35,50 +36,51 @@ Result AstImpl::semaPostDecl(Sema& sema)
     return Result::Continue;
 }
 
-Result AstImpl::semaPreNode(Sema& sema) const
-{
-    const auto nodeIdent = sema.node(nodeIdentRef);
-    const auto idRef     = sema.idMgr().addIdentifier(sema.ctx(), nodeIdent.srcViewRef(), nodeIdent.tokRef());
-
-    MatchContext lookUpCxt;
-    lookUpCxt.srcViewRef = nodeIdent.srcViewRef();
-    lookUpCxt.tokRef     = nodeIdent.tokRef();
-
-    RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
-
-    const auto sym = const_cast<Symbol*>(lookUpCxt.first());
-
-    if (hasFlag(AstImplFlagsE::Enum))
-    {
-        if (!sym->isEnum())
-            return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_enum, nodeIdentRef);
-    }
-    else if (nodeForRef.isInvalid())
-    {
-        if (!sym->isStruct())
-            return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_struct, nodeIdentRef);
-    }
-
-    SymbolImpl& symImpl = sema.symbolOf(sema.curNodeRef()).cast<SymbolImpl>();
-    if (sym->isStruct())
-        sym->cast<SymbolStruct>().addImpl(symImpl);
-
-    return Result::Continue;
-}
-
 Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef != nodeIdentRef)
-        return Result::Continue;
+    SymbolImpl& symImpl = sema.symbolOf(sema.curNodeRef()).cast<SymbolImpl>();
 
-    SymbolImpl& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolImpl>();
+    if (childRef == nodeIdentRef)
+    {
+        Symbol& sym = sema.symbolOf(nodeIdentRef);
+        if (hasFlag(AstImplFlagsE::Enum))
+        {
+            if (!sym.isEnum())
+                return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_enum, nodeIdentRef);
+        }
+        else if (nodeForRef.isInvalid())
+        {
+            if (!sym.isStruct())
+                return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_struct, nodeIdentRef);
+            sym.cast<SymbolStruct>().addImpl(symImpl);
+        }
+        else
+        {
+            if (!sym.isInterface())
+                return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_interface, nodeIdentRef);
+        }
 
-    auto frame = sema.frame();
-    frame.setImpl(&sym);
-    sema.pushFrame(frame);
+        if (nodeForRef.isValid())
+            return Result::Continue;
+    }
 
-    sema.pushScope(SemaScopeFlagsE::TopLevel | SemaScopeFlagsE::Impl);
-    sema.curScope().setSymMap(sym.asSymMap());
+    if (childRef == nodeForRef)
+    {
+        const Symbol& sym = sema.symbolOf(nodeForRef);
+        if (!sym.isStruct())
+            return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_struct, nodeForRef);
+    }
+
+    if ((childRef == nodeIdentRef && nodeForRef.isInvalid()) || childRef == nodeForRef)
+    {
+        auto frame = sema.frame();
+        frame.setImpl(&symImpl);
+        sema.pushFrame(frame);
+
+        sema.pushScope(SemaScopeFlagsE::TopLevel | SemaScopeFlagsE::Impl);
+        sema.curScope().setSymMap(symImpl.asSymMap());
+    }
+
     return Result::Continue;
 }
 

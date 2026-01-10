@@ -49,13 +49,12 @@ struct AstImpl : AstCompoundT<AstNodeId::Impl, AstImplFlagsE>
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, {nodeIdentRef, nodeForRef});
-        AstCompoundT<AstNodeId::Impl, AstImplFlagsE>::collectChildren(out, ast);
+        AstCompoundT::collectChildren(out, ast);
     }
 
     Result        semaPreDecl(Sema& sema) const;
     Result        semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const;
     static Result semaPostDecl(Sema& sema);
-    Result        semaPreNode(Sema& sema) const;
     Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     static Result semaPostNode(Sema& sema);
 };

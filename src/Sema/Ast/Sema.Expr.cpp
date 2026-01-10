@@ -4,8 +4,8 @@
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/IdentifierManager.h"
-#include "Sema/Symbol/LookUpContext.h"
-#include "Sema/Symbol/SemaMatch.h"
+#include "Sema/Symbol/Match.h"
+#include "Sema/Symbol/MatchContext.h"
 #include "Sema/Symbol/Symbol.h"
 #include "Sema/Symbol/Symbols.h"
 
@@ -26,11 +26,11 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
 
     const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokRef());
 
-    LookUpContext lookUpCxt;
+    MatchContext lookUpCxt;
     lookUpCxt.srcViewRef = srcViewRef();
     lookUpCxt.tokRef     = tokRef();
 
-    const Result ret = SemaMatch::match(sema, lookUpCxt, idRef);
+    const Result ret = Match::match(sema, lookUpCxt, idRef);
     if (ret == Result::Pause && hasFlag(AstIdentifierFlagsE::InCompilerDefined))
         return sema.waitCompilerDefined(idRef, srcViewRef(), tokRef());
     RESULT_VERIFY(ret);
@@ -67,12 +67,12 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     {
         const SymbolNamespace& namespaceSym = nodeLeftView.sym->cast<SymbolNamespace>();
 
-        LookUpContext lookUpCxt;
+        MatchContext lookUpCxt;
         lookUpCxt.srcViewRef = srcViewRef();
         lookUpCxt.tokRef     = tokNameRef;
         lookUpCxt.symMapHint = &namespaceSym;
 
-        RESULT_VERIFY(SemaMatch::match(sema, lookUpCxt, idRef));
+        RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
 
         sema.semaInfo().setSymbol(nodeRightRef, lookUpCxt.first());
         sema.semaInfo().setSymbol(sema.curNodeRef(), lookUpCxt.first());
@@ -89,12 +89,12 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         if (!enumSym.isCompleted())
             return sema.waitCompleted(&enumSym, srcViewRef(), tokNameRef);
 
-        LookUpContext lookUpCxt;
+        MatchContext lookUpCxt;
         lookUpCxt.srcViewRef = srcViewRef();
         lookUpCxt.tokRef     = tokNameRef;
         lookUpCxt.symMapHint = &enumSym;
 
-        RESULT_VERIFY(SemaMatch::match(sema, lookUpCxt, idRef));
+        RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
 
         sema.semaInfo().setSymbol(nodeRightRef, lookUpCxt.first());
         sema.semaInfo().setSymbol(sema.curNodeRef(), lookUpCxt.first());
@@ -122,12 +122,12 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         if (!symStruct.isCompleted())
             return sema.waitCompleted(&symStruct, srcViewRef(), tokNameRef);
 
-        LookUpContext lookUpCxt;
+        MatchContext lookUpCxt;
         lookUpCxt.srcViewRef = srcViewRef();
         lookUpCxt.tokRef     = tokNameRef;
         lookUpCxt.symMapHint = &symStruct;
 
-        RESULT_VERIFY(SemaMatch::match(sema, lookUpCxt, idRef));
+        RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
 
         sema.semaInfo().setSymbol(nodeRightRef, lookUpCxt.first());
         sema.semaInfo().setSymbol(sema.curNodeRef(), lookUpCxt.first());

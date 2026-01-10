@@ -1,9 +1,9 @@
 #include "pch.h"
-#include "Sema/Symbol/LookUpContext.h"
+#include "Sema/Symbol/MatchContext.h"
 
 SWC_BEGIN_NAMESPACE();
 
-int LookUpContext::Priority::compare(const Priority& a, const Priority& b)
+int MatchContext::Priority::compare(const Priority& a, const Priority& b)
 {
     if (a.scopeDepth != b.scopeDepth)
         return (a.scopeDepth < b.scopeDepth) ? -1 : 1;
@@ -14,7 +14,7 @@ int LookUpContext::Priority::compare(const Priority& a, const Priority& b)
     return 0;
 }
 
-void LookUpContext::clear()
+void MatchContext::clear()
 {
     resetCandidates();
     symMaps.clear();
@@ -23,20 +23,20 @@ void LookUpContext::clear()
     hasCurrentPriority_ = false;
 }
 
-void LookUpContext::resetCandidates()
+void MatchContext::resetCandidates()
 {
     symbols_.clear();
     hasBestPriority_ = false;
     bestPriority_    = Priority{};
 }
 
-void LookUpContext::beginSymMapLookup(const Priority& priority)
+void MatchContext::beginSymMapLookup(const Priority& priority)
 {
     currentPriority_    = priority;
     hasCurrentPriority_ = true;
 }
 
-void LookUpContext::addSymbol(const Symbol* symbol, const Priority& priority)
+void MatchContext::addSymbol(const Symbol* symbol, const Priority& priority)
 {
     if (!hasBestPriority_)
     {

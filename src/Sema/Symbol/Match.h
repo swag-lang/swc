@@ -5,12 +5,12 @@ SWC_BEGIN_NAMESPACE();
 
 class Symbol;
 class Sema;
-class LookUpContext;
+class MatchContext;
 class SymbolMap;
 
-namespace SemaMatch
+namespace Match
 {
-    Result match(Sema& sema, LookUpContext& lookUpCxt, IdentifierRef idRef);
+    Result match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef);
     Result ghosting(Sema& sema, const Symbol& sym);
 }
 

@@ -6,7 +6,7 @@
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaHelpers.h"
 #include "Sema/Helpers/SemaInfo.h"
-#include "Sema/Symbol/SemaMatch.h"
+#include "Sema/Symbol/Match.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/Cast.h"
 
@@ -35,7 +35,7 @@ Result AstEnumDecl::semaPreNode(Sema& sema) const
     }
 
     const Symbol& sym = sema.symbolOf(sema.curNodeRef());
-    return SemaMatch::ghosting(sema, sym);
+    return Match::ghosting(sema, sym);
 }
 
 namespace

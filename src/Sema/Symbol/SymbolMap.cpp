@@ -4,7 +4,7 @@
 #include "Main/TaskContext.h"
 #include "Sema/Core/Sema.h"
 #include "Sema/Helpers/SemaError.h"
-#include "Sema/Symbol/LookUpContext.h"
+#include "Sema/Symbol/MatchContext.h"
 #include "Sema/Symbol/Symbol.Enum.h"
 #include "Sema/Symbol/Symbol.Struct.h"
 
@@ -97,7 +97,7 @@ Symbol* SymbolMap::insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* s
     return symbol;
 }
 
-void SymbolMap::lookupAppend(IdentifierRef idRef, LookUpContext& lookUpCxt) const
+void SymbolMap::lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const
 {
     if (const Shard* shards = shards_.load(std::memory_order_acquire))
     {

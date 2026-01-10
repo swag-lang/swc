@@ -8,7 +8,7 @@ SWC_BEGIN_NAMESPACE();
 class Symbol;
 class SymbolMap;
 
-class LookUpContext
+class MatchContext
 {
 public:
     // How a symbol became visible at a given point.

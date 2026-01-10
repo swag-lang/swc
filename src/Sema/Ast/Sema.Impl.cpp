@@ -2,8 +2,8 @@
 #include "Sema/Core/Sema.h"
 #include "Parser/AstNodes.h"
 #include "Sema/Helpers/SemaError.h"
-#include "Sema/Symbol/LookUpContext.h"
-#include "Sema/Symbol/SemaMatch.h"
+#include "Sema/Symbol/Match.h"
+#include "Sema/Symbol/MatchContext.h"
 #include "Sema/Symbol/Symbol.h"
 #include "Sema/Symbol/Symbols.h"
 
@@ -40,11 +40,11 @@ Result AstImpl::semaPreNode(Sema& sema) const
     const auto nodeIdent = sema.node(nodeIdentRef);
     const auto idRef     = sema.idMgr().addIdentifier(sema.ctx(), nodeIdent.srcViewRef(), nodeIdent.tokRef());
 
-    LookUpContext lookUpCxt;
+    MatchContext lookUpCxt;
     lookUpCxt.srcViewRef = nodeIdent.srcViewRef();
     lookUpCxt.tokRef     = nodeIdent.tokRef();
 
-    RESULT_VERIFY(SemaMatch::match(sema, lookUpCxt, idRef));
+    RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
 
     const auto sym = const_cast<Symbol*>(lookUpCxt.first());
 

@@ -6,7 +6,7 @@
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaHelpers.h"
-#include "Sema/Symbol/SemaMatch.h"
+#include "Sema/Symbol/Match.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/Cast.h"
 
@@ -181,7 +181,7 @@ Result AstVarDecl::semaPreNode(Sema& sema) const
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
     const Symbol& sym = sema.symbolOf(sema.curNodeRef());
-    return SemaMatch::ghosting(sema, sym);
+    return Match::ghosting(sema, sym);
 }
 
 Result AstVarDecl::semaPostNode(Sema& sema) const
@@ -253,7 +253,7 @@ Result AstVarDeclNameList::semaPreNode(Sema& sema) const
 
     const auto symbols = sema.getSymbolList(sema.curNodeRef());
     for (const auto sym : symbols)
-        RESULT_VERIFY(SemaMatch::ghosting(sema, *sym));
+        RESULT_VERIFY(Match::ghosting(sema, *sym));
 
     return Result::Continue;
 }

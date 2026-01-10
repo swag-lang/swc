@@ -5,7 +5,7 @@
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaHelpers.h"
-#include "Sema/Symbol/SemaMatch.h"
+#include "Sema/Symbol/Match.h"
 #include "Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -74,7 +74,7 @@ Result AstAttrDecl::semaPreNode(Sema& sema) const
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
     const SymbolAttribute& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolAttribute>();
-    return SemaMatch::ghosting(sema, sym);
+    return Match::ghosting(sema, sym);
 }
 
 Result AstAttrDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const

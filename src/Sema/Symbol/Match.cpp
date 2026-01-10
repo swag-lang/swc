@@ -1,8 +1,8 @@
 #include "pch.h"
-#include "Sema/Symbol/SemaMatch.h"
+#include "Sema/Symbol/Match.h"
 #include "Sema/Core/Sema.h"
 #include "Sema/Helpers/SemaError.h"
-#include "Sema/Symbol/LookUpContext.h"
+#include "Sema/Symbol/MatchContext.h"
 #include "Sema/Symbol/SymbolMap.h"
 #include "Sema/Symbol/Symbols.h"
 
@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void addSymMap(LookUpContext& lookUpCxt, const SymbolMap* symMap, const LookUpContext::Priority& priority)
+    void addSymMap(MatchContext& lookUpCxt, const SymbolMap* symMap, const MatchContext::Priority& priority)
     {
         for (const auto* existing : lookUpCxt.symMaps)
         {
@@ -33,7 +33,7 @@ namespace
         }
     }
 
-    void collect(Sema& sema, LookUpContext& lookUpCxt)
+    void collect(Sema& sema, MatchContext& lookUpCxt)
     {
         lookUpCxt.symMaps.clear();
         lookUpCxt.symMapPriorities.clear();
@@ -42,9 +42,9 @@ namespace
         // and give it top priority.
         if (lookUpCxt.symMapHint)
         {
-            LookUpContext::Priority priority;
+            MatchContext::Priority priority;
             priority.scopeDepth  = 0;
-            priority.visibility  = LookUpContext::VisibilityTier::LocalScope;
+            priority.visibility  = MatchContext::VisibilityTier::LocalScope;
             priority.searchOrder = 0;
             addSymMap(lookUpCxt, lookUpCxt.symMapHint, priority);
             return;
@@ -59,9 +59,9 @@ namespace
         {
             if (const auto* symMap = scope->symMap())
             {
-                LookUpContext::Priority priority;
+                MatchContext::Priority priority;
                 priority.scopeDepth  = scopeDepth;
-                priority.visibility  = LookUpContext::VisibilityTier::LocalScope;
+                priority.visibility  = MatchContext::VisibilityTier::LocalScope;
                 priority.searchOrder = searchOrder++;
                 addSymMap(lookUpCxt, symMap, priority);
             }
@@ -69,9 +69,9 @@ namespace
             // Namespaces imported via "using" in this scope:
             for (const auto* usingSymMap : scope->usingSymMaps())
             {
-                LookUpContext::Priority priority;
+                MatchContext::Priority priority;
                 priority.scopeDepth  = scopeDepth;
-                priority.visibility  = LookUpContext::VisibilityTier::UsingDirective;
+                priority.visibility  = MatchContext::VisibilityTier::UsingDirective;
                 priority.searchOrder = searchOrder++;
                 addSymMap(lookUpCxt, usingSymMap, priority);
             }
@@ -82,24 +82,24 @@ namespace
 
         // File-level namespace: conceptually outer than lexical scopes.
         {
-            LookUpContext::Priority priority;
+            MatchContext::Priority priority;
             priority.scopeDepth  = scopeDepth;
-            priority.visibility  = LookUpContext::VisibilityTier::FileNamespace;
+            priority.visibility  = MatchContext::VisibilityTier::FileNamespace;
             priority.searchOrder = searchOrder++;
             addSymMap(lookUpCxt, &sema.semaInfo().fileNamespace(), priority);
         }
 
         // Module-level namespace: outer than file-level.
         {
-            LookUpContext::Priority priority;
+            MatchContext::Priority priority;
             priority.scopeDepth  = static_cast<uint16_t>(scopeDepth + 1);
-            priority.visibility  = LookUpContext::VisibilityTier::ModuleNamespace;
+            priority.visibility  = MatchContext::VisibilityTier::ModuleNamespace;
             priority.searchOrder = searchOrder;
             addSymMap(lookUpCxt, &sema.semaInfo().moduleNamespace(), priority);
         }
     }
 
-    void lookup(LookUpContext& lookUpCxt, IdentifierRef idRef)
+    void lookup(MatchContext& lookUpCxt, IdentifierRef idRef)
     {
         // Reset candidates & priority state.
         lookUpCxt.resetCandidates();
@@ -120,7 +120,7 @@ namespace
     }
 }
 
-Result SemaMatch::match(Sema& sema, LookUpContext& lookUpCxt, IdentifierRef idRef)
+Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
 {
     collect(sema, lookUpCxt);
     lookup(lookUpCxt, idRef);
@@ -141,9 +141,9 @@ Result SemaMatch::match(Sema& sema, LookUpContext& lookUpCxt, IdentifierRef idRe
     return Result::Continue;
 }
 
-Result SemaMatch::ghosting(Sema& sema, const Symbol& sym)
+Result Match::ghosting(Sema& sema, const Symbol& sym)
 {
-    LookUpContext lookUpCxt;
+    MatchContext lookUpCxt;
     lookUpCxt.srcViewRef = sym.srcViewRef();
     lookUpCxt.tokRef     = sym.tokRef();
 

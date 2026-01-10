@@ -3,14 +3,52 @@
 #include "Parser/AstNodes.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Helpers/SemaCheck.h"
+#include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaHelpers.h"
 #include "Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE();
 
+Result AstFunctionParamMe::semaPreDecl(Sema& sema) const
+{
+    if (!sema.curScope().isImpl())
+        return SemaError::raise(sema, DiagnosticId::sema_err_method_outside_impl, sema.curNodeRef());
+
+    const SymbolImpl*   symImpl   = sema.curScope().symMap()->safeCast<SymbolImpl>();
+    const SymbolStruct* symStruct = symImpl->structSym();
+
+    auto& sym = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokRef());
+
+    TypeRef       typeRef   = symStruct->typeRef();
+    TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
+    if (hasParserFlag(Const))
+        typeFlags.add(TypeInfoFlagsE::Const);
+    typeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(typeRef, typeFlags));
+    sym.setTypeRef(typeRef);
+
+    return Result::Continue;
+}
+
 Result AstFunctionDecl::semaPreDecl(Sema& sema) const
 {
-    SemaHelpers::registerSymbol<SymbolFunction>(sema, *this, tokNameRef);
+    SymbolFunction& sym = SemaHelpers::registerSymbol<SymbolFunction>(sema, *this, tokNameRef);
+    if (parserFlags<AstLambdaType::FlagsE>().has(AstLambdaType::Throw))
+        sym.addFuncFlag(SymbolFunctionFlagsE::Throwable);
+    if (parserFlags<AstLambdaType::FlagsE>().has(AstLambdaType::Closure))
+        sym.addFuncFlag(SymbolFunctionFlagsE::Closure);
+    if (parserFlags<AstLambdaType::FlagsE>().has(AstLambdaType::Method))
+        sym.addFuncFlag(SymbolFunctionFlagsE::Method);
+
+    if (sym.isMethod())
+    {
+        if (!sema.curScope().isImpl())
+        {
+            const SourceView& srcView   = sema.srcView(srcViewRef());
+            const TokenRef    mtdTokRef = srcView.findLeftFrom(tokNameRef, {TokenId::KwdMtd});
+            return SemaError::raise(sema, DiagnosticId::sema_err_method_outside_impl, srcViewRef(), mtdTokRef);
+        }
+    }
+
     return Result::SkipChildren;
 }
 

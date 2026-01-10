@@ -239,10 +239,14 @@ public:
     void                          setReturnType(TypeRef typeRef) { returnType_ = typeRef; }
     std::vector<SymbolVariable*>& parameters() { return parameters_; }
     void                          addParameter(SymbolVariable* sym) { parameters_.push_back(sym); }
-    SymbolFunctionFlags           funcFlags() const noexcept { return funcFlags_; }
-    bool                          hasFuncFlag(SymbolFunctionFlagsE flag) const noexcept { return funcFlags_.has(flag); }
-    void                          addFuncFlag(SymbolFunctionFlagsE fl) { funcFlags_.add(fl); }
     Utf8                          computeName(const TaskContext& ctx) const;
+
+    SymbolFunctionFlags funcFlags() const noexcept { return funcFlags_; }
+    bool                hasFuncFlag(SymbolFunctionFlagsE flag) const noexcept { return funcFlags_.has(flag); }
+    void                addFuncFlag(SymbolFunctionFlagsE fl) { funcFlags_.add(fl); }
+    bool                isClosure() const noexcept { return funcFlags_.has(SymbolFunctionFlagsE::Closure); }
+    bool                isMethod() const noexcept { return funcFlags_.has(SymbolFunctionFlagsE::Method); }
+    bool                isThrowable() const noexcept { return funcFlags_.has(SymbolFunctionFlagsE::Throwable); }
 
 private:
     std::vector<SymbolVariable*> parameters_;

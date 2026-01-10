@@ -251,6 +251,8 @@ struct AstFunctionParamMe : AstNodeT<AstNodeId::FunctionParamMe>
         Const = 1 << 0,
     };
     using Flags = EnumFlags<FlagsE>;
+
+    Result semaPreDecl(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

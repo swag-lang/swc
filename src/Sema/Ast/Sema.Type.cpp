@@ -360,22 +360,22 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
 {
     auto& ctx = sema.ctx();
 
-    const auto symFunc = Symbol::make<SymbolFunction>(ctx, this, tokRef(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    SymbolFunction* const symFunc = Symbol::make<SymbolFunction>(ctx, this, tokRef(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
 
     SmallVector<AstNodeRef> params;
     sema.ast().nodes(params, spanParamsRef);
 
     for (const auto& paramRef : params)
     {
-        const auto* param        = sema.node(paramRef).cast<AstLambdaParam>();
-        TypeRef     paramTypeRef = sema.typeRefOf(param->nodeTypeRef);
+        const AstLambdaParam* param        = sema.node(paramRef).cast<AstLambdaParam>();
+        TypeRef               paramTypeRef = sema.typeRefOf(param->nodeTypeRef);
         SWC_ASSERT(paramTypeRef.isValid());
 
         IdentifierRef idRef = IdentifierRef::invalid();
         if (param->parserFlags<AstLambdaParam::FlagsE>().has(AstLambdaParam::Named))
             idRef = sema.idMgr().addIdentifier(ctx, param->srcViewRef(), param->tokRef());
 
-        const auto symVar = Symbol::make<SymbolVariable>(ctx, param, param->tokRef(), idRef, SymbolFlagsE::Zero);
+        SymbolVariable* const symVar = Symbol::make<SymbolVariable>(ctx, param, param->tokRef(), idRef, SymbolFlagsE::Zero);
         symVar->setTypeRef(paramTypeRef);
 
         symFunc->addParameter(symVar);

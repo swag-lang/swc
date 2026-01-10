@@ -277,8 +277,8 @@
         <ClCompile Include="src\Sema\Helpers\SemaInfo.cpp"/>
         <ClCompile Include="src\Sema\Helpers\SemaJob.cpp"/>
         <ClCompile Include="src\Sema\Symbol\IdentifierManager.cpp"/>
-        <ClCompile Include="src\Sema\Symbol\MatchContext.cpp" />
-        <ClCompile Include="src\Sema\Symbol\Match.cpp" />
+        <ClCompile Include="src\Sema\Symbol\MatchContext.cpp"/>
+        <ClCompile Include="src\Sema\Symbol\Match.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Symbol.Enum.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Symbol.Function.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Symbol.Interface.cpp"/>
@@ -365,13 +365,14 @@
         <ClInclude Include="src\Sema\Helpers\SemaInfo.h"/>
         <ClInclude Include="src\Sema\Helpers\SemaJob.h"/>
         <ClInclude Include="src\Sema\Symbol\IdentifierManager.h"/>
-        <ClInclude Include="src\Sema\Symbol\MatchContext.h" />
-        <ClInclude Include="src\Sema\Symbol\Match.h" />
+        <ClInclude Include="src\Sema\Symbol\MatchContext.h"/>
+        <ClInclude Include="src\Sema\Symbol\Match.h"/>
         <ClInclude Include="src\Sema\Symbol\Symbol.Alias.h"/>
         <ClInclude Include="src\Sema\Symbol\Symbol.Attribute.h"/>
         <ClInclude Include="src\Sema\Symbol\Symbol.Constant.h"/>
         <ClInclude Include="src\Sema\Symbol\Symbol.Enum.h"/>
         <ClInclude Include="src\Sema\Symbol\Symbol.Function.h"/>
+        <ClInclude Include="src\Sema\Symbol\Symbol.Impl.h"/>
         <ClInclude Include="src\Sema\Symbol\Symbol.Interface.h"/>
         <ClInclude Include="src\Sema\Symbol\Symbol.Module.h"/>
         <ClInclude Include="src\Sema\Symbol\Symbol.Struct.h"/>

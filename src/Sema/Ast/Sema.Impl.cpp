@@ -4,6 +4,7 @@
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/Match.h"
 #include "Sema/Symbol/MatchContext.h"
+#include "Sema/Symbol/Symbol.Impl.h"
 #include "Sema/Symbol/Symbol.h"
 #include "Sema/Symbol/Symbols.h"
 

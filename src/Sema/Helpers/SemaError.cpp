@@ -12,6 +12,9 @@ namespace
 {
     void setReportArguments(Sema& sema, Diagnostic& diag, SourceViewRef srcViewRef, TokenRef tokRef)
     {
+        SWC_ASSERT(srcViewRef.isValid());
+        SWC_ASSERT(tokRef.isValid());
+
         const auto&       ctx     = sema.ctx();
         const SourceView& srcView = sema.compiler().srcView(srcViewRef);
         const Token&      token   = srcView.token(tokRef);

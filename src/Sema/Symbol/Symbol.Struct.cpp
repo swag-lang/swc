@@ -27,6 +27,29 @@ void SymbolStruct::addInterface(SymbolImpl& symImpl)
     interfaces_.push_back(&symImpl);
 }
 
+Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
+{
+    std::unique_lock lk(mutexInterfaces_);
+    for (const auto itf : interfaces_)
+    {
+        if (itf->idRef() == symImpl.idRef())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_interface_already_implemented, symImpl.srcViewRef(), symImpl.tokRef());
+            diag.addArgument(Diagnostic::ARG_SYM, symImpl.name(sema.ctx()));
+            diag.addArgument(Diagnostic::ARG_WHAT, name(sema.ctx()));
+            auto& note = diag.addElement(DiagnosticId::sema_note_other_implementation);
+            note.setSrcView(&sema.compiler().srcView(itf->srcViewRef()));
+            note.addSpan(Diagnostic::tokenErrorLocation(sema.ctx(), sema.compiler().srcView(symImpl.srcViewRef()), symImpl.tokRef()), "");
+            diag.report(sema.ctx());
+            return Result::Stop;
+        }
+    }
+
+    symImpl.setSymStruct(this);
+    interfaces_.push_back(&symImpl);
+    return Result::Continue;
+}
+
 std::vector<SymbolImpl*> SymbolStruct::interfaces() const
 {
     std::shared_lock lk(mutexInterfaces_);

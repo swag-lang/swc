@@ -33,6 +33,7 @@ public:
     void                                addImpl(SymbolImpl& symImpl);
     std::vector<SymbolImpl*>            impls() const;
     void                                addInterface(SymbolImpl& symImpl);
+    Result                              addInterface(Sema& sema, SymbolImpl& symImpl);
     std::vector<SymbolImpl*>            interfaces() const;
     SymbolStructFlags                   structFlags() const noexcept { return structFlags_; }
     bool                                hasStructFlag(SymbolStructFlagsE flag) const noexcept { return structFlags_.has(flag); }

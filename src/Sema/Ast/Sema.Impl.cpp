@@ -3,28 +3,20 @@
 #include "Parser/AstNodes.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/Match.h"
-#include "Sema/Symbol/MatchContext.h"
 #include "Sema/Symbol/Symbol.Impl.h"
 #include "Sema/Symbol/Symbol.h"
 #include "Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE();
 
-Result AstImpl::semaPreDecl(Sema& sema) const
-{
-    auto&      ctx = sema.ctx();
-    const auto sym = Symbol::make<SymbolImpl>(ctx, this, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
-    sema.setSymbol(sema.curNodeRef(), sym);
-
-    return Result::Continue;
-}
-
 Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef != nodeIdentRef)
         return Result::Continue;
 
-    SymbolMap* sym = sema.symbolOf(sema.curNodeRef()).asSymMap();
+    SymbolImpl* sym = Symbol::make<SymbolImpl>(sema.ctx(), this, tokRef(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    sema.setSymbol(sema.curNodeRef(), sym);
+
     sema.pushScope(SemaScopeFlagsE::TopLevel | SemaScopeFlagsE::Impl);
     sema.curScope().setSymMap(sym);
 
@@ -61,6 +53,7 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
         {
             if (!sym.isInterface())
                 return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_interface, nodeIdentRef);
+            symImpl.setIdRef(sym.idRef());
         }
 
         if (nodeForRef.isValid())
@@ -73,7 +66,9 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
         Symbol& sym = sema.symbolOf(nodeForRef);
         if (!sym.isStruct())
             return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_struct, nodeForRef);
-        sym.cast<SymbolStruct>().addInterface(symImpl);
+        const auto res = sym.cast<SymbolStruct>().addInterface(sema, symImpl);
+        if (res != Result::Continue)
+            return res;
     }
 
     // Before the body

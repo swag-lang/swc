@@ -67,6 +67,7 @@ public:
 
     SymbolKind         kind() const noexcept { return kind_; }
     IdentifierRef      idRef() const noexcept { return idRef_; }
+    void               setIdRef(IdentifierRef idRef) noexcept { idRef_ = idRef; }
     TypeRef            typeRef() const noexcept { return typeRef_; }
     void               setTypeRef(TypeRef typeRef) noexcept { typeRef_ = typeRef; }
     const TypeInfo&    type(TaskContext& ctx) const { return ctx.typeMgr().get(typeRef_); }

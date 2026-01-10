@@ -139,3 +139,4 @@ SWC_DIAG_DEF(sema_err_tok_outside_impl, Error, "{tok} can only be used inside an
 SWC_DIAG_DEF(sema_err_impl_not_struct, Error, "expected a struct implementation block, but {sym} is {a-sym-fam}")
 SWC_DIAG_DEF(sema_err_impl_not_enum, Error, "expected an enum implementation block, but {sym} is {a-sym-fam}")
 SWC_DIAG_DEF(sema_err_impl_not_interface, Error, "expected an interface implementation block, but {sym} is {a-sym-fam}")
+SWC_DIAG_DEF(sema_err_interface_already_implemented, Error, "the interface {sym} is already implemented for struct {what}")

@@ -17,7 +17,7 @@ Result AstInterfaceDecl::semaPreDecl(Sema& sema) const
     return Result::SkipChildren;
 }
 
-Result AstInterfaceDecl::semaPreNode(Sema& sema)
+Result AstInterfaceDecl::semaPreNode(Sema& sema) const
 {
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
@@ -39,7 +39,7 @@ Result AstInterfaceDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
     sym.setTypeRef(itfTypeRef);
     sym.setTyped(sema.ctx());
 
-    sema.pushScope(SemaScopeFlagsE::Type);
+    sema.pushScope(SemaScopeFlagsE::Type | SemaScopeFlagsE::Interface);
     sema.curScope().setSymMap(&sym);
 
     return Result::Continue;
@@ -47,8 +47,12 @@ Result AstInterfaceDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
 
 Result AstInterfaceDecl::semaPostNode(Sema& sema)
 {
-    sema.curSymMap()->setCompleted(sema.ctx());
+    auto& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolInterface>();
+
+    RESULT_VERIFY(sym.canBeCompleted(sema));
+    sym.setCompleted(sema.ctx());
     sema.popScope();
+
     return Result::Continue;
 }
 

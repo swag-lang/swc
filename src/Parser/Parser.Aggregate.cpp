@@ -154,7 +154,10 @@ AstNodeRef Parser::parseAggregateDecl()
     nodePtr->spanWhereRef = whereRefs.empty() ? SpanRef::invalid() : ast_->pushSpan(whereRefs.span());
 
     // Content
-    nodePtr->nodeBodyRef = parseAggregateBody();
+    if constexpr (ID == AstNodeId::InterfaceDecl)
+        nodePtr->nodeBodyRef = parseCompound<AstNodeId::InterfaceBody>(TokenId::SymLeftCurly);
+    else
+        nodePtr->nodeBodyRef = parseAggregateBody();
 
     return nodeRef;
 }
@@ -200,10 +203,7 @@ AstNodeRef Parser::parseInterfaceValue()
 
 AstNodeRef Parser::parseInterfaceDecl()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InterfaceDecl>(consume());
-    nodePtr->tokNameRef     = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
-    nodePtr->nodeBodyRef    = parseCompound<AstNodeId::InterfaceBody>(TokenId::SymLeftCurly);
-    return nodeRef;
+    return parseAggregateDecl<AstNodeId::InterfaceDecl>();
 }
 
 SWC_END_NAMESPACE();

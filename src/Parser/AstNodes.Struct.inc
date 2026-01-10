@@ -979,13 +979,10 @@ struct AstAggregateBody : AstCompoundT<AstNodeId::AggregateBody>
 };
 
 // -----------------------------------------------------------------------------
-struct AstInterfaceDecl : AstNamedNodeT<AstNodeId::InterfaceDecl>
+struct AstInterfaceDecl : AstAggregateDeclT<AstNodeId::InterfaceDecl>
 {
-    AstNodeRef nodeBodyRef;
-
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
     Result        semaPreDecl(Sema& sema) const;
-    Result        semaPreNode(Sema& sema);
+    Result        semaPreNode(Sema& sema) const;
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     static Result semaPostNode(Sema& sema);
 };

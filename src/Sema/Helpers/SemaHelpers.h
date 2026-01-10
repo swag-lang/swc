@@ -34,6 +34,12 @@ namespace SemaHelpers
                 symAttr->addParameter(reinterpret_cast<SymbolVariable*>(sym));
         }
 
+        if (const auto symInterface = symbolMap->safeCast<SymbolInterface>())
+        {
+            if (sym->isFunction())
+                symInterface->addMethod(reinterpret_cast<SymbolFunction*>(sym));
+        }
+
         return *sym;
     }
 

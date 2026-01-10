@@ -93,6 +93,21 @@ Result SymbolStruct::canBeCompleted(Sema& sema) const
     return Result::Continue;
 }
 
+Result SymbolInterface::canBeCompleted(Sema& sema) const
+{
+    for (const auto method : methods_)
+    {
+        auto& symFunc = method->cast<SymbolFunction>();
+        if (!symFunc.isCompleted())
+        {
+            sema.waitCompleted(&symFunc, symFunc.srcViewRef(), symFunc.tokRef());
+            return Result::Pause;
+        }
+    }
+
+    return Result::Continue;
+}
+
 void SymbolStruct::computeLayout(Sema& sema)
 {
     auto& ctx = sema.ctx();

@@ -191,6 +191,14 @@ public:
         SymbolMap(decl, tokRef, K, idRef, flags)
     {
     }
+
+    std::vector<SymbolFunction*>&       methods() { return methods_; }
+    const std::vector<SymbolFunction*>& methods() const { return methods_; }
+    void                                addMethod(SymbolFunction* sym) { methods_.push_back(sym); }
+    Result                              canBeCompleted(Sema& sema) const;
+
+private:
+    std::vector<SymbolFunction*> methods_;
 };
 
 // -----------------------------------------------------------------------------

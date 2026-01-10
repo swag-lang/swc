@@ -44,7 +44,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     const SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
     if (sym.isMethod())
     {
-        if (!sema.curScope().isImpl())
+        if (!sema.curScope().isImpl() && !sema.curScope().isInterface())
         {
             const SourceView& srcView   = sema.srcView(srcViewRef());
             const TokenRef    mtdTokRef = srcView.findLeftFrom(tokNameRef, {TokenId::KwdMtd});

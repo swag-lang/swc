@@ -85,7 +85,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     // Enum
     if (nodeLeftView.type->isEnum())
     {
-        const SymbolEnum& enumSym = nodeLeftView.type->enumSym();
+        const SymbolEnum& enumSym = nodeLeftView.type->symEnum();
         if (!enumSym.isCompleted())
             return sema.waitCompleted(&enumSym, srcViewRef(), tokNameRef);
 
@@ -104,7 +104,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     // Interface
     if (nodeLeftView.type->isInterface())
     {
-        const SymbolInterface& symInterface = nodeLeftView.type->interfaceSym();
+        const SymbolInterface& symInterface = nodeLeftView.type->symInterface();
         if (!symInterface.isCompleted())
             return sema.waitCompleted(&symInterface, srcViewRef(), tokNameRef);
         // TODO
@@ -118,7 +118,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     // Struct
     if (typeInfo->isStruct())
     {
-        const SymbolStruct& symStruct = typeInfo->structSym();
+        const SymbolStruct& symStruct = typeInfo->symStruct();
         if (!symStruct.isCompleted())
             return sema.waitCompleted(&symStruct, srcViewRef(), tokNameRef);
 

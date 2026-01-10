@@ -331,7 +331,7 @@ namespace
 
         if (nodeView.type->isEnum())
         {
-            const TypeRef     typeRef = nodeView.type->enumSym().underlyingTypeRef();
+            const TypeRef     typeRef = nodeView.type->symEnum().underlyingTypeRef();
             const ConstantRef cstRef  = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), typeRef));
             nodeView.setCstRef(sema, cstRef);
             sema.setConstant(sema.curNodeRef(), cstRef);

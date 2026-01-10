@@ -54,7 +54,7 @@ namespace
         const TypeRef orgSrcTypeRef = srcTypeRef;
         if (isEnum)
         {
-            srcTypeRef = srcType->enumSym().underlyingTypeRef();
+            srcTypeRef = srcType->symEnum().underlyingTypeRef();
             srcType    = &typeMgr.get(srcTypeRef);
             if (castCtx.isFolding())
             {
@@ -283,7 +283,7 @@ namespace
         }
 
         const TypeInfo&   type    = sema.typeMgr().get(srcTypeRef);
-        const SymbolEnum& enumSym = type.enumSym();
+        const SymbolEnum& enumSym = type.symEnum();
 
         if (castCtx.isFolding())
         {
@@ -422,9 +422,9 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
 
     auto res = Result::Stop;
     if (srcType.isAlias())
-        res = castAllowed(sema, castCtx, srcType.aliasSym().underlyingTypeRef(), dstTypeRef);
+        res = castAllowed(sema, castCtx, srcType.symAlias().underlyingTypeRef(), dstTypeRef);
     else if (dstType.isAlias())
-        res = castAllowed(sema, castCtx, srcTypeRef, dstType.aliasSym().underlyingTypeRef());
+        res = castAllowed(sema, castCtx, srcTypeRef, dstType.symAlias().underlyingTypeRef());
     else if (castCtx.flags.has(CastFlagsE::BitCast))
         res = castBit(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isEnum() && !dstType.isEnum())

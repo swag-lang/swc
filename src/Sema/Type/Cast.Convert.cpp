@@ -1,7 +1,7 @@
 #include "pch.h"
+#include "Sema/Type/Cast.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Symbol/Symbols.h"
-#include "Sema/Type/Cast.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -16,7 +16,7 @@ void Cast::convertEnumToUnderlying(Sema& sema, SemaNodeView& nodeView)
         return;
     }
 
-    const SymbolEnum& symEnum = nodeView.type->enumSym();
+    const SymbolEnum& symEnum = nodeView.type->symEnum();
     createImplicitCast(sema, symEnum.underlyingTypeRef(), nodeView.nodeRef);
 }
 

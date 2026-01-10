@@ -692,11 +692,11 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
         }
 
         case TypeInfoKind::Struct:
-            return structSym().sizeOf();
+            return symStruct().sizeOf();
         case TypeInfoKind::Enum:
-            return enumSym().sizeOf(ctx);
+            return symEnum().sizeOf(ctx);
         case TypeInfoKind::Alias:
-            return aliasSym().sizeOf(ctx);
+            return symAlias().sizeOf(ctx);
 
         case TypeInfoKind::Variadic:
         case TypeInfoKind::TypedVariadic:
@@ -739,11 +739,11 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
             return ctx.typeMgr().get(asArray.typeRef).alignOf(ctx);
 
         case TypeInfoKind::Struct:
-            return structSym().alignment();
+            return symStruct().alignment();
         case TypeInfoKind::Enum:
-            return enumSym().underlyingType(ctx).alignOf(ctx);
+            return symEnum().underlyingType(ctx).alignOf(ctx);
         case TypeInfoKind::Alias:
-            return aliasSym().type(ctx).alignOf(ctx);
+            return symAlias().type(ctx).alignOf(ctx);
 
         case TypeInfoKind::TypeValue:
             return ctx.typeMgr().get(asTypeRef.typeRef).alignOf(ctx);
@@ -758,13 +758,13 @@ bool TypeInfo::isCompleted(TaskContext& ctx) const
     switch (kind_)
     {
         case TypeInfoKind::Struct:
-            return structSym().isCompleted();
+            return symStruct().isCompleted();
         case TypeInfoKind::Enum:
-            return enumSym().isCompleted();
+            return symEnum().isCompleted();
         case TypeInfoKind::Interface:
-            return interfaceSym().isCompleted();
+            return symInterface().isCompleted();
         case TypeInfoKind::Alias:
-            return aliasSym().isCompleted();
+            return symAlias().isCompleted();
 
         case TypeInfoKind::Array:
             return ctx.typeMgr().get(asArray.typeRef).isCompleted(ctx);
@@ -793,13 +793,13 @@ Symbol* TypeInfo::getSymbolDependency(TaskContext& ctx) const
     switch (kind_)
     {
         case TypeInfoKind::Struct:
-            return &structSym();
+            return &symStruct();
         case TypeInfoKind::Enum:
-            return &enumSym();
+            return &symEnum();
         case TypeInfoKind::Interface:
-            return &interfaceSym();
+            return &symInterface();
         case TypeInfoKind::Alias:
-            return &aliasSym();
+            return &symAlias();
 
         case TypeInfoKind::Array:
             return ctx.typeMgr().get(asArray.typeRef).getSymbolDependency(ctx);
@@ -828,20 +828,17 @@ Symbol* TypeInfo::getSymbolDependency(TaskContext& ctx) const
 
 bool TypeInfo::isLambdaClosure() const noexcept
 {
-    SWC_ASSERT(isFunction());
-    return asFunction.sym->hasFuncFlag(SymbolFunctionFlagsE::Closure);
+    return isFunction() && asFunction.sym->hasFuncFlag(SymbolFunctionFlagsE::Closure);
 }
 
 bool TypeInfo::isLambdaMethod() const noexcept
 {
-    SWC_ASSERT(isFunction());
-    return asFunction.sym->hasFuncFlag(SymbolFunctionFlagsE::Method);
+    return isFunction() && asFunction.sym->hasFuncFlag(SymbolFunctionFlagsE::Method);
 }
 
 bool TypeInfo::isLambdaThrowable() const noexcept
 {
-    SWC_ASSERT(isFunction());
-    return asFunction.sym->hasFuncFlag(SymbolFunctionFlagsE::Throwable);
+    return isFunction() && asFunction.sym->hasFuncFlag(SymbolFunctionFlagsE::Throwable);
 }
 
 bool TypeInfo::isConstPointerToRuntimeTypeInfo(TaskContext& ctx) const noexcept
@@ -853,7 +850,7 @@ bool TypeInfo::isConstPointerToRuntimeTypeInfo(TaskContext& ctx) const noexcept
     const TypeInfo& type = ctx.typeMgr().get(asTypeRef.typeRef);
     if (!type.isStruct())
         return false;
-    return type.structSym().hasStructFlag(SymbolStructFlagsE::TypeInfo);
+    return type.symStruct().hasStructFlag(SymbolStructFlagsE::TypeInfo);
 }
 
 TypeRef TypeInfo::underlyingTypeRef() const noexcept

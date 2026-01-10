@@ -78,22 +78,15 @@ public:
     TypeInfoKind  kind() const noexcept { return kind_; }
     TypeInfoFlags flags() const noexcept { return flags_; }
     bool          hasFlag(TypeInfoFlagsE flag) const noexcept { return flags_.has(flag); }
+    void          addFlag(TypeInfoFlagsE flag) noexcept { flags_.add(flag); }
     bool          isConst() const noexcept { return flags_.has(TypeInfoFlagsE::Const); }
     bool          isNullable() const noexcept { return flags_.has(TypeInfoFlagsE::Nullable); }
-    void          addFlag(TypeInfoFlagsE flag) noexcept { flags_.add(flag); }
 
     bool isBool() const noexcept { return kind_ == TypeInfoKind::Bool; }
     bool isChar() const noexcept { return kind_ == TypeInfoKind::Char; }
     bool isString() const noexcept { return kind_ == TypeInfoKind::String; }
     bool isInt() const noexcept { return kind_ == TypeInfoKind::Int; }
     bool isIntUnsized() const noexcept { return kind_ == TypeInfoKind::Int && asInt.bits == 0; }
-    bool isIntUnsigned() const noexcept { return isInt() && asInt.sign == Sign::Unsigned; }
-    bool isIntSigned() const noexcept { return isInt() && asInt.sign == Sign::Signed; }
-    bool isIntSignKnown() const noexcept { return isInt() && asInt.sign != Sign::Unknown; }
-    bool isIntUnsizedSigned() const noexcept { return isIntUnsized() && isIntSigned(); }
-    bool isIntUnsizedUnsigned() const noexcept { return isIntUnsized() && isIntUnsigned(); }
-    bool isIntUnsizedUnknownSign() const noexcept { return isIntUnsized() && asInt.sign == Sign::Unknown; }
-
     bool isFloat() const noexcept { return kind_ == TypeInfoKind::Float; }
     bool isFloatUnsized() const noexcept { return kind_ == TypeInfoKind::Float && asFloat.bits == 0; }
     bool isTypeValue() const noexcept { return kind_ == TypeInfoKind::TypeValue; }
@@ -107,25 +100,35 @@ public:
     bool isStruct() const noexcept { return kind_ == TypeInfoKind::Struct; }
     bool isInterface() const noexcept { return kind_ == TypeInfoKind::Interface; }
     bool isTypeInfo() const noexcept { return kind_ == TypeInfoKind::TypeInfo; }
-    bool isType() const noexcept { return isTypeValue() || isEnum() || isStruct() || isInterface() || isTypeInfo(); }
     bool isValuePointer() const noexcept { return kind_ == TypeInfoKind::ValuePointer; }
     bool isBlockPointer() const noexcept { return kind_ == TypeInfoKind::BlockPointer; }
-    bool isConstPointerToRuntimeTypeInfo(TaskContext& ctx) const noexcept;
-    bool isPointer() const noexcept { return isValuePointer() || isBlockPointer(); }
     bool isSlice() const noexcept { return kind_ == TypeInfoKind::Slice; }
     bool isArray() const noexcept { return kind_ == TypeInfoKind::Array; }
     bool isAlias() const noexcept { return kind_ == TypeInfoKind::Alias; }
     bool isFunction() const noexcept { return kind_ == TypeInfoKind::Function; }
     bool isVariadic() const noexcept { return kind_ == TypeInfoKind::Variadic; }
     bool isTypedVariadic() const noexcept { return kind_ == TypeInfoKind::TypedVariadic; }
-    bool isAnyVariadic() const noexcept { return isVariadic() || isTypedVariadic(); }
 
+    bool isIntUnsigned() const noexcept { return isInt() && asInt.sign == Sign::Unsigned; }
+    bool isIntSigned() const noexcept { return isInt() && asInt.sign == Sign::Signed; }
+    bool isIntSignKnown() const noexcept { return isInt() && asInt.sign != Sign::Unknown; }
+    bool isIntUnsizedSigned() const noexcept { return isIntUnsized() && isIntSigned(); }
+    bool isIntUnsizedUnsigned() const noexcept { return isIntUnsized() && isIntUnsigned(); }
+    bool isIntUnsizedUnknownSign() const noexcept { return isIntUnsized() && asInt.sign == Sign::Unknown; }
+    bool isType() const noexcept { return isTypeValue() || isEnum() || isStruct() || isInterface() || isTypeInfo(); }
+    bool isPointer() const noexcept { return isValuePointer() || isBlockPointer(); }
     bool isCharRune() const noexcept { return isChar() || isRune(); }
     bool isIntLike() const noexcept { return isInt() || isCharRune(); }
     bool isPointerLike() const noexcept { return isPointer() || isSlice() || isString() || isCString() || isAny() || isInterface() || isFunction(); }
     bool isScalarNumeric() const noexcept { return isIntLike() || isFloat(); }
     bool isIntLikeUnsigned() const noexcept { return isCharRune() || isIntUnsigned(); }
     bool isConcreteScalar() const noexcept { return isScalarNumeric() && !isIntUnsized() && !isFloatUnsized(); }
+    bool isAnyVariadic() const noexcept { return isVariadic() || isTypedVariadic(); }
+
+    bool isLambdaClosure() const noexcept;
+    bool isLambdaMethod() const noexcept;
+    bool isLambdaThrowable() const noexcept;
+    bool isConstPointerToRuntimeTypeInfo(TaskContext& ctx) const noexcept;
 
     // clang-format off
     Sign                 intSign() const noexcept { SWC_ASSERT(isInt()); return asInt.sign; }
@@ -133,19 +136,16 @@ public:
     uint32_t             intLikeBits() const noexcept { SWC_ASSERT(isIntLike()); return isCharRune() ? 32 : asInt.bits; }
     uint32_t             scalarNumericBits() const noexcept { SWC_ASSERT(isScalarNumeric()); return isIntLike() ? intLikeBits() : floatBits(); }
     uint32_t             floatBits() const noexcept { SWC_ASSERT(isFloat()); return asFloat.bits; }
-    SymbolEnum&          enumSym() const noexcept { SWC_ASSERT(isEnum()); return *asEnum.sym; }
-    SymbolStruct&        structSym() const noexcept { SWC_ASSERT(isStruct()); return *asStruct.sym; }
-    SymbolInterface&     interfaceSym() const noexcept { SWC_ASSERT(isInterface()); return *asInterface.sym; }
-    SymbolAlias&         aliasSym() const noexcept { SWC_ASSERT(isAlias()); return *asAlias.sym; }
+    SymbolEnum&          symEnum() const noexcept { SWC_ASSERT(isEnum()); return *asEnum.sym; }
+    SymbolStruct&        symStruct() const noexcept { SWC_ASSERT(isStruct()); return *asStruct.sym; }
+    SymbolInterface&     symInterface() const noexcept { SWC_ASSERT(isInterface()); return *asInterface.sym; }
+    SymbolAlias&         symAlias() const noexcept { SWC_ASSERT(isAlias()); return *asAlias.sym; }
+    SymbolFunction&      symFunction() const noexcept { SWC_ASSERT(isFunction()); return *asFunction.sym; }
     TypeRef              typeRef() const noexcept { SWC_ASSERT(isTypeValue() || isPointer() || isSlice() || isAlias() || isTypedVariadic()); return asTypeRef.typeRef; }
     auto&                arrayDims() const noexcept { SWC_ASSERT(isArray()); return asArray.dims; }
     TypeRef              arrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return asArray.typeRef; }
     TypeRef              underlyingTypeRef() const noexcept;
     TypeRef              ultimateTypeRef(const TaskContext& ctx) const noexcept;
-    SymbolFunction&      functionSym() const noexcept { SWC_ASSERT(isFunction()); return *asFunction.sym; }
-    bool                 isLambdaClosure()   const noexcept;
-    bool                 isLambdaMethod()    const noexcept;
-    bool                 isLambdaThrowable() const noexcept;
     // clang-format on
 
     static TypeInfo makeBool();

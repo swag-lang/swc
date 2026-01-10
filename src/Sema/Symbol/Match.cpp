@@ -27,10 +27,17 @@ namespace
             for (const auto* impl : structSym->impls())
                 addSymMap(lookUpCxt, impl, priority);
         }
+        else if (const auto* enumSym = symMap->safeCast<SymbolEnum>())
+        {
+            for (const auto* impl : enumSym->impls())
+                addSymMap(lookUpCxt, impl, priority);
+        }
         else if (const auto* implSym = symMap->safeCast<SymbolImpl>())
         {
-            if (const auto* sym = implSym->symStruct())
-                addSymMap(lookUpCxt, sym, priority);
+            if (implSym->ownerKind() == SymbolImplOwnerKind::Struct)
+                addSymMap(lookUpCxt, implSym->symStruct(), priority);
+            else
+                addSymMap(lookUpCxt, implSym->symEnum(), priority);
         }
     }
 

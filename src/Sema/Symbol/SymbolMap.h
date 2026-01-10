@@ -12,13 +12,11 @@ class SymbolMap : public Symbol
 public:
     explicit SymbolMap(const AstNode* decl, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags);
 
-    bool empty() const noexcept;
-
     Symbol* addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms);
     Symbol* addSingleSymbol(TaskContext& ctx, Symbol* symbol);
     Symbol* addSingleSymbolOrError(Sema& sema, Symbol* symbol);
     void    lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const;
-    void    merge(TaskContext& ctx, SymbolMap* other);
+    bool    empty() const noexcept;
 
 protected:
     struct Entry

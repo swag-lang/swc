@@ -32,6 +32,8 @@ public:
     void                                addField(SymbolVariable* sym) { fields_.push_back(sym); }
     void                                addImpl(SymbolImpl& symImpl);
     std::vector<SymbolImpl*>            impls() const;
+    void                                addInterface(SymbolImpl& symImpl);
+    std::vector<SymbolImpl*>            interfaces() const;
     SymbolStructFlags                   structFlags() const noexcept { return structFlags_; }
     bool                                hasStructFlag(SymbolStructFlagsE flag) const noexcept { return structFlags_.has(flag); }
     void                                addStructFlag(SymbolStructFlagsE fl) { structFlags_.add(fl); }
@@ -40,6 +42,8 @@ private:
     std::vector<SymbolVariable*> fields_;
     mutable std::shared_mutex    mutexImpls_;
     std::vector<SymbolImpl*>     impls_;
+    mutable std::shared_mutex    mutexInterfaces_;
+    std::vector<SymbolImpl*>     interfaces_;
     uint64_t                     sizeInBytes_ = 0;
     uint32_t                     alignment_   = 0;
     SymbolStructFlags            structFlags_ = SymbolStructFlagsE::Zero;

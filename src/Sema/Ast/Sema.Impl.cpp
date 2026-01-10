@@ -49,6 +49,7 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
         {
             if (!sym.isEnum())
                 return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_enum, nodeIdentRef);
+            sym.cast<SymbolEnum>().addImpl(symImpl);
         }
         else if (nodeForRef.isInvalid())
         {
@@ -69,9 +70,10 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
     // After the 'for' name, if defined
     if (childRef == nodeForRef)
     {
-        const Symbol& sym = sema.symbolOf(nodeForRef);
+        Symbol& sym = sema.symbolOf(nodeForRef);
         if (!sym.isStruct())
             return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_struct, nodeForRef);
+        sym.cast<SymbolStruct>().addInterface(symImpl);
     }
 
     // Before the body

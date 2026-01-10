@@ -251,44 +251,4 @@ Symbol* SymbolMap::addSingleSymbol(TaskContext& ctx, Symbol* symbol)
     return addSymbol(ctx, symbol, false);
 }
 
-void SymbolMap::merge(TaskContext& ctx, SymbolMap* other)
-{
-    if (auto structSym = safeCast<SymbolStruct>())
-        structSym->merge(ctx, other);
-    else if (auto enumSym = safeCast<SymbolEnum>())
-        enumSym->merge(ctx, other);
-    else
-    {
-        if (!other)
-            return;
-
-        // TODO: sharded
-        SWC_ASSERT(!isSharded());
-        SWC_ASSERT(!other->isSharded());
-
-        auto add = [&](Symbol* cur) {
-            while (cur)
-            {
-                Symbol* next = cur->nextHomonym();
-                addSymbol(ctx, cur, true);
-                cur = next;
-            }
-        };
-
-        if (!other->isBig())
-        {
-            for (uint32_t i = 0; i < other->smallSize_; ++i)
-                add(other->small_[i].head);
-        }
-        else
-        {
-            for (auto& [id, head] : other->bigMap_)
-                add(head);
-        }
-
-        other->smallSize_ = 0;
-        other->bigMap_.clear();
-    }
-}
-
 SWC_END_NAMESPACE();

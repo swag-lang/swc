@@ -1,14 +1,22 @@
 #include "pch.h"
 #include "Sema/Symbol/Symbol.Enum.h"
-#include "Sema/Symbol/SymbolMap.h"
 #include "Sema/Core/Sema.h"
 #include "Sema/Helpers/SemaError.h"
+#include "Sema/Symbol/Symbol.Impl.h"
 
 SWC_BEGIN_NAMESPACE();
 
-void SymbolEnum::merge(TaskContext& ctx, SymbolMap* other)
+void SymbolEnum::addImpl(SymbolImpl& symImpl)
 {
-    SymbolMap::merge(ctx, other);
+    std::unique_lock lk(mutexImpls_);
+    symImpl.setSymEnum(this);
+    impls_.push_back(&symImpl);
+}
+
+std::vector<SymbolImpl*> SymbolEnum::impls() const
+{
+    std::shared_lock lk(mutexImpls_);
+    return impls_;
 }
 
 bool SymbolEnum::computeNextValue(Sema& sema, SourceViewRef srcViewRef, TokenRef tokRef)

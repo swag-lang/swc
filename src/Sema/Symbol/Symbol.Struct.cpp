@@ -20,6 +20,19 @@ std::vector<SymbolImpl*> SymbolStruct::impls() const
     return impls_;
 }
 
+void SymbolStruct::addInterface(SymbolImpl& symImpl)
+{
+    std::unique_lock lk(mutexInterfaces_);
+    symImpl.setSymStruct(this);
+    interfaces_.push_back(&symImpl);
+}
+
+std::vector<SymbolImpl*> SymbolStruct::interfaces() const
+{
+    std::shared_lock lk(mutexInterfaces_);
+    return interfaces_;
+}
+
 Result SymbolStruct::canBeCompleted(Sema& sema) const
 {
     for (const auto field : fields_)

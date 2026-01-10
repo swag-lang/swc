@@ -1,15 +1,14 @@
 #pragma once
+#include "Sema/Constant/ConstantValue.h"
 #include "Sema/Symbol/SymbolMap.h"
 #include "Sema/Type/TypeManager.h"
-#include "Sema/Constant/ConstantValue.h"
 
 SWC_BEGIN_NAMESPACE();
 
+class SymbolImpl;
+
 class SymbolEnum : public SymbolMap
 {
-    TypeRef underlyingTypeRef_ = TypeRef::invalid();
-    ApsInt  nextValue_;
-
 public:
     static constexpr auto K = SymbolKind::Enum;
 
@@ -28,10 +27,19 @@ public:
     bool          hasNextValue() const { return hasFlag(SymbolFlagsE::EnumHasNextValue); }
     void          setHasNextValue() { addFlag(SymbolFlagsE::EnumHasNextValue); }
     bool          computeNextValue(Sema& sema, SourceViewRef srcViewRef, TokenRef tokRef);
-    void          merge(TaskContext& ctx, SymbolMap* other);
+
+    void                     addImpl(SymbolImpl& symImpl);
+    std::vector<SymbolImpl*> impls() const;
 
     bool     isEnumFlags() const { return attributes().hasFlag(AttributeFlagsE::EnumFlags); }
     uint64_t sizeOf(TaskContext& ctx) const { return underlyingType(ctx).sizeOf(ctx); }
+
+private:
+    TypeRef underlyingTypeRef_ = TypeRef::invalid();
+    ApsInt  nextValue_;
+
+    mutable std::shared_mutex mutexImpls_;
+    std::vector<SymbolImpl*>  impls_;
 };
 
 class SymbolEnumValue : public Symbol

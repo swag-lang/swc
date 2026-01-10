@@ -55,15 +55,15 @@ AstNodeRef Parser::parseGenericParam()
 
 AstNodeRef Parser::parseVarDeclDecomposition()
 {
-    AstVarDecl::Flags flags = AstVarDecl::Zero;
+    EnumFlags<AstVarDeclFlagsE> flags = AstVarDeclFlagsE::Zero;
     if (consumeIf(TokenId::KwdConst).isValid())
-        flags.add(AstVarDecl::Const);
+        flags.add(AstVarDeclFlagsE::Const);
     else if (consumeIf(TokenId::KwdVar).isValid())
-        flags.add(AstVarDecl::Var);
+        flags.add(AstVarDeclFlagsE::Var);
     else
     {
         consumeAssert(TokenId::KwdLet);
-        flags.add(AstVarDecl::Let);
+        flags.add(AstVarDeclFlagsE::Let);
     }
 
     const auto openRef = consumeAssert(TokenId::SymLeftParen);
@@ -97,23 +97,23 @@ AstNodeRef Parser::parseVarDeclDecomposition()
     expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_before);
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDeclDecomposition>(ref());
-    nodePtr->addParserFlag(flags);
-    nodePtr->nodeInitRef  = parseInitializerExpression();
-    nodePtr->spanNamesRef = ast_->pushSpan(tokNames.span());
+    nodePtr->flags()        = flags;
+    nodePtr->nodeInitRef    = parseInitializerExpression();
+    nodePtr->spanNamesRef   = ast_->pushSpan(tokNames.span());
 
     return nodeRef;
 }
 
 AstNodeRef Parser::parseVarDecl()
 {
-    AstVarDecl::Flags flags    = AstVarDecl::Zero;
-    const TokenRef    tokStart = ref();
+    EnumFlags<AstVarDeclFlagsE> flags    = AstVarDeclFlagsE::Zero;
+    const TokenRef              tokStart = ref();
     if (consumeIf(TokenId::KwdConst).isValid())
-        flags.add(AstVarDecl::Const);
+        flags.add(AstVarDeclFlagsE::Const);
     else if (consumeIf(TokenId::KwdVar).isValid())
-        flags.add(AstVarDecl::Var);
+        flags.add(AstVarDeclFlagsE::Var);
     else if (consumeIf(TokenId::KwdLet).isValid())
-        flags.add(AstVarDecl::Let);
+        flags.add(AstVarDeclFlagsE::Let);
 
     SmallVector<AstNodeRef> vars;
     while (true)
@@ -151,19 +151,19 @@ AstNodeRef Parser::parseVarDecl()
         if (tokNames.size() == 1)
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDecl>(tokStart);
-            nodePtr->addParserFlag(flags);
-            nodePtr->tokNameRef  = tokNames[0];
-            nodePtr->nodeTypeRef = nodeType;
-            nodePtr->nodeInitRef = nodeInit;
+            nodePtr->flags()        = flags;
+            nodePtr->tokNameRef     = tokNames[0];
+            nodePtr->nodeTypeRef    = nodeType;
+            nodePtr->nodeInitRef    = nodeInit;
             vars.push_back(nodeRef);
         }
         else
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDeclNameList>(tokStart);
-            nodePtr->addParserFlag(flags);
-            nodePtr->spanNamesRef = ast_->pushSpan(tokNames.span());
-            nodePtr->nodeTypeRef  = nodeType;
-            nodePtr->nodeInitRef  = nodeInit;
+            nodePtr->flags()        = flags;
+            nodePtr->spanNamesRef   = ast_->pushSpan(tokNames.span());
+            nodePtr->nodeTypeRef    = nodeType;
+            nodePtr->nodeInitRef    = nodeInit;
             vars.push_back(nodeRef);
         }
 

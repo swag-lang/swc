@@ -147,8 +147,8 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
     const SemaNodeView nodeView(sema, nodeTypeRef);
     SWC_ASSERT(nodeView.type);
 
-    TypeInfoFlags flags = TypeInfoFlagsE::Zero;
-    if (hasParserFlag(Const))
+    TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
+    if (this->flags().has(AstQualifiedTypeFlagsE::Const))
     {
         switch (nodeView.type->kind())
         {
@@ -165,10 +165,10 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
                 return Result::Stop;
         }
 
-        flags.add(TypeInfoFlagsE::Const);
+        typeFlags.add(TypeInfoFlagsE::Const);
     }
 
-    if (hasParserFlag(Nullable))
+    if (this->flags().has(AstQualifiedTypeFlagsE::Nullable))
     {
         switch (nodeView.type->kind())
         {
@@ -188,7 +188,7 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
                 return Result::Stop;
         }
 
-        flags.add(TypeInfoFlagsE::Nullable);
+        typeFlags.add(TypeInfoFlagsE::Nullable);
     }
 
     TypeRef      typeRef;
@@ -196,22 +196,22 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
     switch (nodeView.type->kind())
     {
         case TypeInfoKind::ValuePointer:
-            typeRef = typeMgr.addType(TypeInfo::makeValuePointer(nodeView.type->typeRef(), flags));
+            typeRef = typeMgr.addType(TypeInfo::makeValuePointer(nodeView.type->typeRef(), typeFlags));
             break;
         case TypeInfoKind::BlockPointer:
-            typeRef = typeMgr.addType(TypeInfo::makeBlockPointer(nodeView.type->typeRef(), flags));
+            typeRef = typeMgr.addType(TypeInfo::makeBlockPointer(nodeView.type->typeRef(), typeFlags));
             break;
         case TypeInfoKind::Slice:
-            typeRef = typeMgr.addType(TypeInfo::makeSlice(nodeView.type->typeRef(), flags));
+            typeRef = typeMgr.addType(TypeInfo::makeSlice(nodeView.type->typeRef(), typeFlags));
             break;
         case TypeInfoKind::String:
-            typeRef = typeMgr.addType(TypeInfo::makeString(flags));
+            typeRef = typeMgr.addType(TypeInfo::makeString(typeFlags));
             break;
         case TypeInfoKind::CString:
-            typeRef = typeMgr.addType(TypeInfo::makeCString(flags));
+            typeRef = typeMgr.addType(TypeInfo::makeCString(typeFlags));
             break;
         case TypeInfoKind::Any:
-            typeRef = typeMgr.addType(TypeInfo::makeAny(flags));
+            typeRef = typeMgr.addType(TypeInfo::makeAny(typeFlags));
             break;
         default:
             SWC_UNREACHABLE();
@@ -372,7 +372,7 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
         SWC_ASSERT(paramTypeRef.isValid());
 
         IdentifierRef idRef = IdentifierRef::invalid();
-        if (param->parserFlags<AstLambdaParam::FlagsE>().has(AstLambdaParam::Named))
+        if (param->flags().has(AstLambdaParamFlagsE::Named))
             idRef = sema.idMgr().addIdentifier(ctx, param->srcViewRef(), param->tokRef());
 
         SymbolVariable* const symVar = Symbol::make<SymbolVariable>(ctx, param, param->tokRef(), idRef, SymbolFlagsE::Zero);
@@ -387,7 +387,7 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
     if (nodeReturnTypeRef.isValid())
         returnType = sema.typeRefOf(nodeReturnTypeRef);
     symFunc->setReturnType(returnType);
-    symFunc->setFuncFlags(parserFlags<FlagsE>());
+    symFunc->setFuncFlags(flags());
 
     const TypeInfo ti      = TypeInfo::makeFunction(symFunc, TypeInfoFlagsE::Zero);
     const TypeRef  typeRef = sema.typeMgr().addType(ti);

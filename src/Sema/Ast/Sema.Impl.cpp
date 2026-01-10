@@ -7,7 +7,7 @@
 #include "Sema/Symbol/Symbol.h"
 #include "Sema/Symbol/Symbols.h"
 
-SWC_BEGIN_NAMESPACE()
+SWC_BEGIN_NAMESPACE();
 
 Result AstImpl::semaPreDecl(Sema& sema) const
 {
@@ -48,7 +48,7 @@ Result AstImpl::semaPreNode(Sema& sema) const
 
     const auto sym = const_cast<Symbol*>(lookUpCxt.first());
 
-    if (hasParserFlag(Enum))
+    if (flags().has(AstImplFlagsE::Enum))
     {
         if (!sym->isEnum())
             return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_enum, nodeIdentRef);

@@ -12,7 +12,7 @@ AstNodeRef Parser::parseImpl()
     if (consumeIf(TokenId::KwdEnum).isValid())
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Impl>(tokImpl);
-        nodePtr->addParserFlag(AstImpl::Enum);
+        nodePtr->flags().add(AstImplFlagsE::Enum);
         nodePtr->nodeIdentRef    = parseQualifiedIdentifier();
         nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
         return nodeRef;

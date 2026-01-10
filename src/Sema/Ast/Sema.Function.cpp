@@ -21,7 +21,7 @@ Result AstFunctionParamMe::semaPreDecl(Sema& sema) const
 
     TypeRef       typeRef   = symStruct->typeRef();
     TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
-    if (hasParserFlag(Const))
+    if (flags().has(AstFunctionParamMeFlagsE::Const))
         typeFlags.add(TypeInfoFlagsE::Const);
     typeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(typeRef, typeFlags));
     sym.setTypeRef(typeRef);
@@ -32,7 +32,7 @@ Result AstFunctionParamMe::semaPreDecl(Sema& sema) const
 Result AstFunctionDecl::semaPreDecl(Sema& sema) const
 {
     SymbolFunction& sym = SemaHelpers::registerSymbol<SymbolFunction>(sema, *this, tokNameRef);
-    sym.setFuncFlags(parserFlags<AstLambdaType::FlagsE>());
+    sym.setFuncFlags(this->flags());
     return Result::SkipChildren;
 }
 

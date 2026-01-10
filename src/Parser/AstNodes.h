@@ -7,25 +7,25 @@
 SWC_BEGIN_NAMESPACE();
 
 // -----------------------------------------------------------------------------
-template<AstNodeId I>
-struct AstNamedNodeT : AstNodeT<I>
+template<AstNodeId I, typename E = void>
+struct AstNamedNodeT : AstNodeT<I, E>
 {
     TokenRef tokNameRef;
 
     explicit AstNamedNodeT(SourceViewRef srcViewRef, TokenRef tokRef) :
-        AstNodeT<I>(srcViewRef, tokRef)
+        AstNodeT<I, E>(srcViewRef, tokRef)
     {
     }
 };
 
 // -----------------------------------------------------------------------------
-template<AstNodeId I>
-struct AstCompoundT : AstNodeT<I>
+template<AstNodeId I, typename E = void>
+struct AstCompoundT : AstNodeT<I, E>
 {
     SpanRef spanChildrenRef;
 
     explicit AstCompoundT(SourceViewRef srcViewRef, TokenRef tokRef) :
-        AstNodeT<I>(srcViewRef, tokRef)
+        AstNodeT<I, E>(srcViewRef, tokRef)
     {
     }
 
@@ -36,15 +36,15 @@ struct AstCompoundT : AstNodeT<I>
 };
 
 // -----------------------------------------------------------------------------
-template<AstNodeId I>
-struct AstLambdaExprT : AstNodeT<I>
+template<AstNodeId I, typename E = void>
+struct AstLambdaExprT : AstNodeT<I, E>
 {
     SpanRef    spanArgsRef;
     AstNodeRef nodeReturnTypeRef;
     AstNodeRef nodeBodyRef;
 
     explicit AstLambdaExprT(SourceViewRef srcViewRef, TokenRef tokRef) :
-        AstNodeT<I>(srcViewRef, tokRef)
+        AstNodeT<I, E>(srcViewRef, tokRef)
     {
     }
 
@@ -56,14 +56,14 @@ struct AstLambdaExprT : AstNodeT<I>
 };
 
 // -----------------------------------------------------------------------------
-template<AstNodeId I>
-struct AstBinaryT : AstNodeT<I>
+template<AstNodeId I, typename E = void>
+struct AstBinaryT : AstNodeT<I, E>
 {
     AstNodeRef nodeLeftRef;
     AstNodeRef nodeRightRef;
 
     explicit AstBinaryT(SourceViewRef srcViewRef, TokenRef tokRef) :
-        AstNodeT<I>(srcViewRef, tokRef)
+        AstNodeT<I, E>(srcViewRef, tokRef)
     {
     }
 
@@ -74,18 +74,18 @@ struct AstBinaryT : AstNodeT<I>
 };
 
 // -----------------------------------------------------------------------------
-template<AstNodeId I>
-struct AstLiteralT : AstNodeT<I>
+template<AstNodeId I, typename E = void>
+struct AstLiteralT : AstNodeT<I, E>
 {
     explicit AstLiteralT(SourceViewRef srcViewRef, TokenRef tokRef) :
-        AstNodeT<I>(srcViewRef, tokRef)
+        AstNodeT<I, E>(srcViewRef, tokRef)
     {
     }
 };
 
 // -----------------------------------------------------------------------------
-template<AstNodeId I>
-struct AstAggregateDeclT : AstNodeT<I>
+template<AstNodeId I, typename E = void>
+struct AstAggregateDeclT : AstNodeT<I, E>
 {
     TokenRef   tokNameRef;
     SpanRef    spanGenericParamsRef;
@@ -93,7 +93,7 @@ struct AstAggregateDeclT : AstNodeT<I>
     AstNodeRef nodeBodyRef;
 
     explicit AstAggregateDeclT(SourceViewRef srcViewRef, TokenRef tokRef) :
-        AstNodeT<I>(srcViewRef, tokRef)
+        AstNodeT<I, E>(srcViewRef, tokRef)
     {
     }
 
@@ -106,13 +106,13 @@ struct AstAggregateDeclT : AstNodeT<I>
 };
 
 // -----------------------------------------------------------------------------
-template<AstNodeId I>
-struct AstAnonymousAggregateDeclT : AstNodeT<I>
+template<AstNodeId I, typename E = void>
+struct AstAnonymousAggregateDeclT : AstNodeT<I, E>
 {
     AstNodeRef nodeBodyRef;
 
     explicit AstAnonymousAggregateDeclT(SourceViewRef srcViewRef, TokenRef tokRef) :
-        AstNodeT<I>(srcViewRef, tokRef)
+        AstNodeT<I, E>(srcViewRef, tokRef)
     {
     }
 
@@ -123,14 +123,14 @@ struct AstAnonymousAggregateDeclT : AstNodeT<I>
 };
 
 // -----------------------------------------------------------------------------
-template<AstNodeId I>
-struct AstIfBaseT : AstNodeT<I>
+template<AstNodeId I, typename E = void>
+struct AstIfBaseT : AstNodeT<I, E>
 {
     AstNodeRef nodeIfBlockRef;
     AstNodeRef nodeElseBlockRef;
 
     explicit AstIfBaseT(SourceViewRef srcViewRef, TokenRef tokRef) :
-        AstNodeT<I>(srcViewRef, tokRef)
+        AstNodeT<I, E>(srcViewRef, tokRef)
     {
     }
 
@@ -141,14 +141,14 @@ struct AstIfBaseT : AstNodeT<I>
 };
 
 // -----------------------------------------------------------------------------
-template<AstNodeId I>
-struct AstIntrinsicInitDropCopyMoveT : AstNodeT<I>
+template<AstNodeId I, typename E = void>
+struct AstIntrinsicInitDropCopyMoveT : AstNodeT<I, E>
 {
     AstNodeRef nodeWhatRef;
     AstNodeRef nodeCountRef;
 
     explicit AstIntrinsicInitDropCopyMoveT(SourceViewRef srcViewRef, TokenRef tokRef) :
-        AstNodeT<I>(srcViewRef, tokRef)
+        AstNodeT<I, E>(srcViewRef, tokRef)
     {
     }
 
@@ -159,23 +159,23 @@ struct AstIntrinsicInitDropCopyMoveT : AstNodeT<I>
 };
 
 // -----------------------------------------------------------------------------
-template<AstNodeId I>
-struct AstInternalCallZeroT : AstNodeT<I>
+template<AstNodeId I, typename E = void>
+struct AstInternalCallZeroT : AstNodeT<I, E>
 {
     explicit AstInternalCallZeroT(SourceViewRef srcViewRef, TokenRef tokRef) :
-        AstNodeT<I>(srcViewRef, tokRef)
+        AstNodeT<I, E>(srcViewRef, tokRef)
     {
     }
 };
 
 // -----------------------------------------------------------------------------
-template<AstNodeId I>
-struct AstInternalCallUnaryT : AstNodeT<I>
+template<AstNodeId I, typename E = void>
+struct AstInternalCallUnaryT : AstNodeT<I, E>
 {
     AstNodeRef nodeArgRef;
 
     explicit AstInternalCallUnaryT(SourceViewRef srcViewRef, TokenRef tokRef) :
-        AstNodeT<I>(srcViewRef, tokRef)
+        AstNodeT<I, E>(srcViewRef, tokRef)
     {
     }
 
@@ -186,14 +186,14 @@ struct AstInternalCallUnaryT : AstNodeT<I>
 };
 
 // -----------------------------------------------------------------------------
-template<AstNodeId I>
-struct AstInternalCallBinaryT : AstNodeT<I>
+template<AstNodeId I, typename E = void>
+struct AstInternalCallBinaryT : AstNodeT<I, E>
 {
     AstNodeRef nodeArg1Ref;
     AstNodeRef nodeArg2Ref;
 
     explicit AstInternalCallBinaryT(SourceViewRef srcViewRef, TokenRef tokRef) :
-        AstNodeT<I>(srcViewRef, tokRef)
+        AstNodeT<I, E>(srcViewRef, tokRef)
     {
     }
 
@@ -204,15 +204,15 @@ struct AstInternalCallBinaryT : AstNodeT<I>
 };
 
 // -----------------------------------------------------------------------------
-template<AstNodeId I>
-struct AstInternalCallTernaryT : AstNodeT<I>
+template<AstNodeId I, typename E = void>
+struct AstInternalCallTernaryT : AstNodeT<I, E>
 {
     AstNodeRef nodeArg1Ref;
     AstNodeRef nodeArg2Ref;
     AstNodeRef nodeArg3Ref;
 
     explicit AstInternalCallTernaryT(SourceViewRef srcViewRef, TokenRef tokRef) :
-        AstNodeT<I>(srcViewRef, tokRef)
+        AstNodeT<I, E>(srcViewRef, tokRef)
     {
     }
 
@@ -223,13 +223,13 @@ struct AstInternalCallTernaryT : AstNodeT<I>
 };
 
 // -----------------------------------------------------------------------------
-template<AstNodeId I>
-struct AstGenericParamT : AstNodeT<I>
+template<AstNodeId I, typename E = void>
+struct AstGenericParamT : AstNodeT<I, E>
 {
     AstNodeRef nodeAssignRef;
 
     explicit AstGenericParamT(SourceViewRef srcViewRef, TokenRef tokRef) :
-        AstNodeT<I>(srcViewRef, tokRef)
+        AstNodeT<I, E>(srcViewRef, tokRef)
     {
     }
 

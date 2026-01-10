@@ -174,14 +174,13 @@ Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
     return out;
 }
 
-void SymbolFunction::setFuncFlags(EnumFlags<AstLambdaType::FlagsE> parserFlags)
+void SymbolFunction::setFuncFlags(EnumFlags<AstLambdaTypeFlagsE> parserFlags)
 {
-    SymbolFunctionFlags result = SymbolFunctionFlagsE::Zero;
-    if (parserFlags.has(AstLambdaType::Method))
+    if (parserFlags.has(AstLambdaTypeFlagsE::Method))
         addFuncFlag(SymbolFunctionFlagsE::Method);
-    if (parserFlags.has(AstLambdaType::Throwable))
+    if (parserFlags.has(AstLambdaTypeFlagsE::Throwable))
         addFuncFlag(SymbolFunctionFlagsE::Throwable);
-    if (parserFlags.has(AstLambdaType::Closure))
+    if (parserFlags.has(AstLambdaTypeFlagsE::Closure))
         addFuncFlag(SymbolFunctionFlagsE::Closure);
 }
 

@@ -48,34 +48,10 @@ struct AstNode
 
     using ParserFlags = uint8_t;
 
-    template<typename T>
-    EnumFlags<T> parserFlags() const
-    {
-        return static_cast<T>(parserFlags_);
-    }
-
     void clearFlags()
     {
         parserFlags_ = 0;
         semaBits_    = 0;
-    }
-
-    template<typename T>
-    void addParserFlag(T val)
-    {
-        if constexpr (std::is_enum_v<T>)
-            parserFlags_ |= static_cast<std::underlying_type_t<T>>(val);
-        else
-            parserFlags_ |= val.flags;
-    }
-
-    template<typename T>
-    bool hasParserFlag(T val) const
-    {
-        if constexpr (std::is_enum_v<T>)
-            return parserFlags_ & static_cast<std::underlying_type_t<T>>(val);
-        else
-            return parserFlags_ & val.flags;
     }
 
     static void collectChildren(SmallVector<AstNodeRef>&, const Ast&) {}
@@ -140,7 +116,7 @@ struct AstNode
         return reinterpret_cast<const T*>(this);
     }
 
-private:
+protected:
     uint16_t      semaBits_ = 0;
     AstNodeId     id_       = AstNodeId::Invalid;
     ParserFlags   parserFlags_{};
@@ -149,13 +125,32 @@ private:
     uint32_t      semaRef_    = 0;
 };
 
-template<AstNodeId I>
+template<AstNodeId I, typename E = void>
 struct AstNodeT : AstNode
 {
     static constexpr auto ID = I;
+    using FlagsE             = E;
+    using FlagsType          = std::conditional_t<std::is_void_v<E>, uint8_t, EnumFlags<E>>;
+
     explicit AstNodeT(SourceViewRef srcViewRef, TokenRef tokRef) :
         AstNode(I, srcViewRef, tokRef)
     {
+    }
+
+    FlagsType& flags()
+    {
+        if constexpr (!std::is_void_v<E>)
+            return *reinterpret_cast<FlagsType*>(&parserFlags_);
+        else
+            return parserFlags_;
+    }
+
+    const FlagsType& flags() const
+    {
+        if constexpr (!std::is_void_v<E>)
+            return *reinterpret_cast<const FlagsType*>(&parserFlags_);
+        else
+            return parserFlags_;
     }
 };
 

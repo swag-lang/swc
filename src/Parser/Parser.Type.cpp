@@ -79,14 +79,14 @@ namespace
 {
     struct QualifierDesc
     {
-        TokenId                 tokenId;
-        AstQualifiedType::Flags flag;
-        uint8_t                 order;
+        TokenId                           tokenId;
+        EnumFlags<AstQualifiedTypeFlagsE> flag;
+        uint8_t                           order;
     };
 
     constexpr QualifierDesc G_QUALIFIER_TABLE[] = {
-        {.tokenId = TokenId::ModifierNullable, .flag = AstQualifiedType::Nullable, .order = 0},
-        {.tokenId = TokenId::KwdConst, .flag = AstQualifiedType::Const, .order = 1},
+        {.tokenId = TokenId::ModifierNullable, .flag = AstQualifiedTypeFlagsE::Nullable, .order = 0},
+        {.tokenId = TokenId::KwdConst, .flag = AstQualifiedTypeFlagsE::Const, .order = 1},
     };
 
     const QualifierDesc* findQualifier(TokenId id)
@@ -103,9 +103,9 @@ namespace
 
 AstNodeRef Parser::parseSubType()
 {
-    AstQualifiedType::Flags qualifiers  = AstQualifiedType::Zero;
-    int                     lastOrder   = -1;
-    const TokenRef          firstTokRef = ref();
+    EnumFlags<AstQualifiedTypeFlagsE> qualifiers  = AstQualifiedTypeFlagsE::Zero;
+    uint8_t                           lastOrder   = 0;
+    const TokenRef                    firstTokRef = ref();
 
     // Consume all leading qualifiers in order, diagnose duplicates / mis-ordering.
     for (;;)
@@ -143,13 +143,13 @@ AstNodeRef Parser::parseSubType()
         return AstNodeRef::invalid();
 
     // No qualifiers? Just return the core type.
-    if (qualifiers == AstQualifiedType::Zero)
+    if (qualifiers == AstQualifiedTypeFlagsE::Zero)
         return subNodeRef;
 
     // Wrap in a single QualifiedType node with all flags set.
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::QualifiedType>(firstTokRef);
     nodePtr->nodeTypeRef    = subNodeRef;
-    nodePtr->addParserFlag(qualifiers);
+    nodePtr->flags()        = qualifiers;
     return nodeRef;
 }
 
@@ -324,20 +324,20 @@ AstNodeRef Parser::parseLambdaParam()
 
 AstNodeRef Parser::parseLambdaType()
 {
-    AstLambdaType::Flags flags    = AstLambdaType::Zero;
-    const auto           tokStart = ref();
+    EnumFlags<AstLambdaTypeFlagsE> flags    = AstLambdaTypeFlagsE::Zero;
+    const auto                     tokStart = ref();
 
     if (consumeIf(TokenId::KwdMtd).isValid())
-        flags.add(AstLambdaType::Method);
+        flags.add(AstLambdaTypeFlagsE::Method);
     else
         consumeAssert(TokenId::KwdFunc);
 
     if (consumeIf(TokenId::SymPipePipe).isValid())
-        flags.add(AstLambdaType::Closure);
-    else if (flags.has(AstLambdaType::Method))
+        flags.add(AstLambdaTypeFlagsE::Closure);
+    else if (flags.has(AstLambdaTypeFlagsE::Method))
     {
         raiseError(DiagnosticId::parser_err_mtd_missing_capture, tokStart);
-        flags.add(AstLambdaType::Closure);
+        flags.add(AstLambdaTypeFlagsE::Closure);
     }
 
     const SpanRef params = parseCompoundContent(AstNodeId::LambdaType, TokenId::SymLeftParen);
@@ -349,10 +349,10 @@ AstNodeRef Parser::parseLambdaType()
 
     // Can raise errors
     if (consumeIf(TokenId::KwdThrow).isValid())
-        flags.add(AstLambdaType::Throwable);
+        flags.add(AstLambdaTypeFlagsE::Throwable);
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaType>(tokStart);
-    nodePtr->addParserFlag(flags);
+    auto [nodeRef, nodePtr]    = ast_->makeNode<AstNodeId::LambdaType>(tokStart);
+    nodePtr->flags()           = flags;
     nodePtr->spanParamsRef     = params;
     nodePtr->nodeReturnTypeRef = returnType;
     return nodeRef;

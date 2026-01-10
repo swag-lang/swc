@@ -53,6 +53,40 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     return Result::Continue;
 }
 
+namespace
+{
+    void addMeParameter(Sema& sema, SymbolFunction& sym)
+    {
+        const IdentifierRef idMe = sema.idMgr().addIdentifier("me");
+        if (sym.parameters().empty() || sym.parameters()[0]->idRef() != idMe)
+        {
+            const Symbol* symStruct = nullptr;
+            if (sema.frame().impl())
+                symStruct = sema.frame().impl()->structSym();
+            else if (sema.curScope().parent() && sema.curScope().parent()->isInterface())
+                symStruct = sema.curScope().parent()->symMap();
+
+            if (symStruct)
+            {
+                auto&           ctx     = sema.ctx();
+                SymbolVariable* symMe   = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), idMe, SymbolFlagsE::Zero);
+                const TypeRef   typeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(symStruct->typeRef(), TypeInfoFlagsE::Zero));
+                symMe->setTypeRef(typeRef);
+
+                sym.addParameter(symMe);
+                if (sym.parameters().size() > 1)
+                {
+                    for (size_t i = sym.parameters().size() - 1; i > 0; --i)
+                        sym.parameters()[i] = sym.parameters()[i - 1];
+                    sym.parameters()[0] = symMe;
+                }
+
+                sym.addSymbol(ctx, symMe, true);
+            }
+        }
+    }
+}
+
 Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeParamsRef)
@@ -60,37 +94,8 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
         sema.pushScope(SemaScopeFlagsE::Parameters);
         sema.curScope().setSymMap(&sym);
-
         if (sym.isMethod())
-        {
-            IdentifierRef idMe = sema.idMgr().addIdentifier("me");
-            if (sym.parameters().empty() || sym.parameters()[0]->idRef() != idMe)
-            {
-                const Symbol* symStruct = nullptr;
-                if (sema.frame().impl())
-                    symStruct = sema.frame().impl()->structSym();
-                else if (sema.curScope().parent() && sema.curScope().parent()->isInterface())
-                    symStruct = sema.curScope().parent()->symMap();
-
-                if (symStruct)
-                {
-                    auto&           ctx   = sema.ctx();
-                    SymbolVariable* symMe = Symbol::make<SymbolVariable>(ctx, nullptr, tokRef(), idMe, SymbolFlagsE::Zero);
-                    const TypeRef   typeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(symStruct->typeRef(), TypeInfoFlagsE::Zero));
-                    symMe->setTypeRef(typeRef);
-
-                    sym.addParameter(symMe);
-                    if (sym.parameters().size() > 1)
-                    {
-                        for (size_t i = sym.parameters().size() - 1; i > 0; --i)
-                            sym.parameters()[i] = sym.parameters()[i - 1];
-                        sym.parameters()[0] = symMe;
-                    }
-
-                    sym.addSymbol(ctx, symMe, true);
-                }
-            }
-        }
+            addMeParameter(sema, sym);
     }
     else if (childRef == nodeBodyRef)
     {

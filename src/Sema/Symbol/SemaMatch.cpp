@@ -12,16 +12,24 @@ namespace
 {
     void addSymMap(LookUpContext& lookUpCxt, const SymbolMap* symMap, const LookUpContext::Priority& priority)
     {
+        for (const auto* existing : lookUpCxt.symMaps)
+        {
+            if (existing == symMap)
+                return;
+        }
+
         lookUpCxt.symMaps.push_back(symMap);
         lookUpCxt.symMapPriorities.push_back(priority);
 
         if (const auto* structSym = symMap->safeCast<SymbolStruct>())
         {
             for (const auto* impl : structSym->impls())
-            {
-                lookUpCxt.symMaps.push_back(impl);
-                lookUpCxt.symMapPriorities.push_back(priority);
-            }
+                addSymMap(lookUpCxt, impl, priority);
+        }
+        else if (const auto* implSym = symMap->safeCast<SymbolImpl>())
+        {
+            if (const auto* sym = implSym->structSym())
+                addSymMap(lookUpCxt, sym, priority);
         }
     }
 
@@ -86,7 +94,7 @@ namespace
             LookUpContext::Priority priority;
             priority.scopeDepth  = static_cast<uint16_t>(scopeDepth + 1);
             priority.visibility  = LookUpContext::VisibilityTier::ModuleNamespace;
-            priority.searchOrder = searchOrder++;
+            priority.searchOrder = searchOrder;
             addSymMap(lookUpCxt, &sema.semaInfo().moduleNamespace(), priority);
         }
     }

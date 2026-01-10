@@ -188,4 +188,10 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
     return Result::Continue;
 }
 
+Result AstImpl::semaPostNode(Sema& sema)
+{
+    sema.popScope();
+    return Result::Continue;
+}
+
 SWC_END_NAMESPACE();

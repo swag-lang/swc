@@ -1,6 +1,6 @@
 #pragma once
-#include "Sema/Symbol/Symbol.h"
 #include "Sema/Constant/ConstantValue.h"
+#include "Sema/Symbol/Symbol.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -9,7 +9,7 @@ class SymbolConstant : public Symbol
     ConstantRef cstRef_ = ConstantRef::invalid();
 
 public:
-    static constexpr auto K = SymbolKind::Constant;
+    static constexpr auto K = SymbolKind::Const;
 
     explicit SymbolConstant(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
         Symbol(decl, tokRef, K, idRef, flags)

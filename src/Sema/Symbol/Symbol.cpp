@@ -4,10 +4,10 @@
 #include "Main/TaskContext.h"
 #include "Sema/Core/Sema.h"
 #include "Sema/Symbol/IdentifierManager.h"
+#include "Sema/Symbol/Symbol.Alias.h"
 #include "Sema/Symbol/Symbol.h"
 #include "Sema/Symbol/SymbolMap.h"
 #include "Sema/Type/TypeManager.h"
-#include "Sema/Symbol/Symbol.Alias.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -24,7 +24,7 @@ Utf8 Symbol::toFamily() const
     {
         case SymbolKind::Namespace: return "namespace";
         case SymbolKind::Variable: return "variable";
-        case SymbolKind::Constant: return "constant";
+        case SymbolKind::Const: return "constant";
         case SymbolKind::Enum: return "enum";
         case SymbolKind::EnumValue: return "enum value";
         case SymbolKind::Attribute: return "attribute";

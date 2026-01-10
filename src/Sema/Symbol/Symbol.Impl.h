@@ -15,11 +15,11 @@ public:
     {
     }
 
-    SymbolStruct* structSym() const { return structSym_; }
-    void          setStructSym(SymbolStruct* sym) { structSym_ = sym; }
+    SymbolStruct* symStruct() const { return symStruct_; }
+    void          setSymStruct(SymbolStruct* sym) { symStruct_ = sym; }
 
 private:
-    SymbolStruct* structSym_ = nullptr;
+    SymbolStruct* symStruct_ = nullptr;
 };
 
 SWC_END_NAMESPACE();

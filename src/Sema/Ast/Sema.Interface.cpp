@@ -33,14 +33,18 @@ Result AstInterfaceDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
     auto& ctx = sema.ctx();
 
     // Creates symbol with type
-    SymbolInterface& sym        = sema.symbolOf(sema.curNodeRef()).cast<SymbolInterface>();
-    const TypeInfo   itfType    = TypeInfo::makeInterface(&sym);
+    SymbolInterface& symItf     = sema.symbolOf(sema.curNodeRef()).cast<SymbolInterface>();
+    const TypeInfo   itfType    = TypeInfo::makeInterface(&symItf);
     const TypeRef    itfTypeRef = ctx.typeMgr().addType(itfType);
-    sym.setTypeRef(itfTypeRef);
-    sym.setTyped(sema.ctx());
+    symItf.setTypeRef(itfTypeRef);
+    symItf.setTyped(sema.ctx());
+
+    SemaFrame frame = sema.frame();
+    frame.setInterface(&symItf);
+    sema.pushFrame(frame);
 
     sema.pushScope(SemaScopeFlagsE::Type | SemaScopeFlagsE::Interface);
-    sema.curScope().setSymMap(&sym);
+    sema.curScope().setSymMap(&symItf);
 
     return Result::Continue;
 }
@@ -51,7 +55,9 @@ Result AstInterfaceDecl::semaPostNode(Sema& sema)
 
     RESULT_VERIFY(sym.canBeCompleted(sema));
     sym.setCompleted(sema.ctx());
+
     sema.popScope();
+    sema.popFrame();
 
     return Result::Continue;
 }

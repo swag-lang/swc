@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Sema/Symbol/Symbol.Function.h"
-#include "Sema/Symbol/Symbol.Variable.h"
 #include "Sema/Core/Sema.h"
+#include "Sema/Symbol/Symbol.Variable.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -46,6 +46,8 @@ void SymbolFunction::setFuncFlags(EnumFlags<AstFunctionFlagsE> parserFlags)
         addFuncFlag(SymbolFunctionFlagsE::Throwable);
     if (parserFlags.has(AstFunctionFlagsE::Closure))
         addFuncFlag(SymbolFunctionFlagsE::Closure);
+    if (parserFlags.has(AstFunctionFlagsE::Const))
+        addFuncFlag(SymbolFunctionFlagsE::Const);
 }
 
 SWC_END_NAMESPACE();

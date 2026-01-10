@@ -29,7 +29,7 @@ namespace
         }
         else if (const auto* implSym = symMap->safeCast<SymbolImpl>())
         {
-            if (const auto* sym = implSym->structSym())
+            if (const auto* sym = implSym->symStruct())
                 addSymMap(lookUpCxt, sym, priority);
         }
     }

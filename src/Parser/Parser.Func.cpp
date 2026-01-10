@@ -5,7 +5,7 @@ SWC_BEGIN_NAMESPACE();
 
 AstNodeRef Parser::parseClosureArg()
 {
-    EnumFlags<AstClosureArgumentFlagsE> flags = AstClosureArgumentFlagsE::Zero;
+    EnumFlags flags = AstClosureArgumentFlagsE::Zero;
 
     const auto tokStart = ref();
     if (consumeIf(TokenId::SymAmpersand).isValid())
@@ -20,10 +20,10 @@ AstNodeRef Parser::parseClosureArg()
 
 AstNodeRef Parser::parseLambdaParam(bool isType)
 {
-    AstNodeRef                      nodeType;
-    TokenRef                        tokName  = TokenRef::invalid();
-    EnumFlags<AstLambdaParamFlagsE> flags    = AstLambdaParamFlagsE::Zero;
-    const auto                      tokStart = ref();
+    AstNodeRef nodeType;
+    TokenRef   tokName  = TokenRef::invalid();
+    EnumFlags  flags    = AstLambdaParamFlagsE::Zero;
+    const auto tokStart = ref();
 
     if (is(TokenId::CompilerType))
     {
@@ -79,8 +79,8 @@ AstNodeRef Parser::parseLambdaArgumentExpr()
 
 AstNodeRef Parser::parseLambdaExpression()
 {
-    EnumFlags<AstFunctionFlagsE> flags    = AstFunctionFlagsE::Zero;
-    const auto                   tokStart = ref();
+    EnumFlags  flags    = AstFunctionFlagsE::Zero;
+    const auto tokStart = ref();
 
     if (consumeIf(TokenId::KwdMtd).isValid())
         flags.add(AstFunctionFlagsE::Method);
@@ -147,7 +147,7 @@ AstNodeRef Parser::parseLambdaExpression()
 
 AstNodeRef Parser::parseFunctionDecl()
 {
-    EnumFlags<AstFunctionFlagsE> flags = AstFunctionFlagsE::Zero;
+    EnumFlags flags = AstFunctionFlagsE::Zero;
     if (consumeIf(TokenId::KwdMtd).isValid())
         flags.add(AstFunctionFlagsE::Method);
     else

@@ -28,6 +28,7 @@ public:
     IdentifierRef nameAttributeUsage() const { return nameAttributeUsage_; }
     IdentifierRef nameEnumFlags() const { return nameEnumFlags_; }
     IdentifierRef nameStrict() const { return nameStrict_; }
+    IdentifierRef nameMe() const { return nameMe_; }
     IdentifierRef nameTargetOs() const { return nameTargetOs_; }
     IdentifierRef nameTypeInfo() const { return nameTypeInfo_; }
     IdentifierRef nameTypeInfoNative() const { return nameTypeInfoNative_; }
@@ -71,6 +72,7 @@ private:
     IdentifierRef nameAttributeUsage_     = IdentifierRef::invalid();
     IdentifierRef nameEnumFlags_          = IdentifierRef::invalid();
     IdentifierRef nameStrict_             = IdentifierRef::invalid();
+    IdentifierRef nameMe_                 = IdentifierRef::invalid();
     IdentifierRef nameTargetOs_           = IdentifierRef::invalid();
     IdentifierRef nameTypeInfo_           = IdentifierRef::invalid();
     IdentifierRef nameTypeInfoNative_     = IdentifierRef::invalid();

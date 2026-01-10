@@ -34,6 +34,8 @@ public:
     void                 setCompilerIf(SemaCompilerIf* ifc) { compilerIf_ = ifc; }
     SymbolImpl*          impl() const { return impl_; }
     void                 setImpl(SymbolImpl* impl) { impl_ = impl; }
+    SymbolInterface*     interface() const { return interface_; }
+    void                 setInterface(SymbolInterface* itf) { interface_ = itf; }
 
     static SymbolMap* currentSymMap(Sema& sema);
     SymbolFlags       flagsForCurrentAccess() const;
@@ -44,6 +46,7 @@ private:
     SmallVector<IdentifierRef, 8> nsPath_;
     SemaCompilerIf*               compilerIf_ = nullptr;
     SymbolImpl*                   impl_       = nullptr;
+    SymbolInterface*              interface_  = nullptr;
 };
 
 SWC_END_NAMESPACE();

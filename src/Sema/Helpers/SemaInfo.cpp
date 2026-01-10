@@ -23,7 +23,7 @@ bool SemaInfo::hasConstant(const TaskContext& ctx, AstNodeRef nodeRef) const
     if (semaKind(node) == NodeSemaKind::SymbolRef)
     {
         const Symbol& sym = getSymbol(ctx, nodeRef);
-        return sym.isConstant() || sym.isEnumValue();
+        return sym.isConst() || sym.isEnumValue();
     }
 
     return false;
@@ -58,7 +58,7 @@ ConstantRef SemaInfo::getConstantRef(const TaskContext& ctx, AstNodeRef nodeRef)
     if (semaKind(node) == NodeSemaKind::SymbolRef)
     {
         const Symbol& sym = getSymbol(ctx, nodeRef);
-        if (sym.isConstant())
+        if (sym.isConst())
             return sym.cast<SymbolConstant>().cstRef();
         if (sym.isEnumValue())
             return sym.cast<SymbolEnumValue>().cstRef();

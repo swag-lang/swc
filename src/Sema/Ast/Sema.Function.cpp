@@ -16,7 +16,7 @@ Result AstFunctionParamMe::semaPreNode(Sema& sema) const
         return SemaError::raise(sema, DiagnosticId::sema_err_tok_outside_impl, sema.curNodeRef());
 
     const SymbolImpl*   symImpl   = sema.frame().impl()->symMap()->safeCast<SymbolImpl>();
-    const SymbolStruct* symStruct = symImpl->structSym();
+    const SymbolStruct* symStruct = symImpl->symStruct();
 
     auto& sym = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokRef());
 
@@ -42,7 +42,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
         SemaHelpers::declareSymbol(sema, *this);
 
     const SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
-    if (sym.isMethod() && !sema.frame().impl() && !sema.curScope().isInterface())
+    if (sym.isMethod() && !sema.frame().impl() && !sema.frame().interface())
     {
         const SourceView& srcView   = sema.srcView(srcViewRef());
         const TokenRef    mtdTokRef = srcView.findLeftFrom(tokNameRef, {TokenId::KwdMtd});
@@ -57,17 +57,15 @@ namespace
 {
     void addMeParameter(Sema& sema, SymbolFunction& sym)
     {
-        const IdentifierRef idMe      = sema.idMgr().addIdentifier("me");
-        const Symbol*       symStruct = nullptr;
-        if (sema.frame().impl())
-            symStruct = sema.frame().impl()->structSym();
-        else if (sema.curScope().parent() && sema.curScope().parent()->isInterface())
-            symStruct = sema.curScope().parent()->symMap();
-        if (symStruct)
+        if (sema.frame().impl() && sema.frame().impl()->symStruct())
         {
-            auto&           ctx     = sema.ctx();
-            SymbolVariable* symMe   = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), idMe, SymbolFlagsE::Zero);
-            const TypeRef   typeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(symStruct->typeRef(), TypeInfoFlagsE::Zero));
+            const SymbolStruct* symStruct = sema.frame().impl()->symStruct();
+            auto&               ctx       = sema.ctx();
+            SymbolVariable*     symMe     = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), sema.idMgr().nameMe(), SymbolFlagsE::Zero);
+            TypeInfoFlags       typeFlags = TypeInfoFlagsE::Zero;
+            if (sym.hasFuncFlag(SymbolFunctionFlagsE::Const))
+                typeFlags.add(TypeInfoFlagsE::Const);
+            const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(symStruct->typeRef(), typeFlags));
             symMe->setTypeRef(typeRef);
 
             sym.addParameter(symMe);

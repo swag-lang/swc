@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE();
 void SymbolStruct::addImpl(SymbolImpl& symImpl)
 {
     std::unique_lock lk(mutexImpls_);
-    symImpl.setStructSym(this);
+    symImpl.setSymStruct(this);
     impls_.push_back(&symImpl);
 }
 

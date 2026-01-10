@@ -9,7 +9,6 @@
 #include "Sema/Symbol/SemaMatch.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/Cast.h"
-#include "Sema/Type/CastContext.h"
 
 SWC_BEGIN_NAMESPACE();
 

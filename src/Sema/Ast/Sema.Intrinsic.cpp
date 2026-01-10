@@ -1,6 +1,4 @@
 #include "pch.h"
-
-#include "Core/Utf8Helper.h"
 #include "Parser/AstNodes.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/Sema.h"
@@ -9,7 +7,6 @@
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaInfo.h"
 #include "Sema/Type/Cast.h"
-#include "Sema/Type/CastContext.h"
 
 SWC_BEGIN_NAMESPACE();
 

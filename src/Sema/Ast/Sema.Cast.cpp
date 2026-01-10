@@ -5,7 +5,6 @@
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Type/Cast.h"
-#include "Sema/Type/CastContext.h"
 
 SWC_BEGIN_NAMESPACE();
 

@@ -1,15 +1,35 @@
 // ReSharper disable CppClangTidyClangDiagnosticMissingDesignatedFieldInitializers
 #include "pch.h"
+#include "Sema/Type/Cast.h"
 #include "Report/Diagnostic.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/Sema.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/Symbols.h"
-#include "Sema/Type/Cast.h"
-#include "Sema/Type/CastContext.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE();
+
+void CastFailure::set(AstNodeRef errorNodeRef, DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value, DiagnosticId note)
+{
+    *this      = CastFailure{};
+    diagId     = d;
+    nodeRef    = errorNodeRef;
+    srcTypeRef = srcRef;
+    dstTypeRef = dstRef;
+    valueStr   = std::string(value);
+    noteId     = note;
+}
+
+CastContext::CastContext(CastKind kind) :
+    kind(kind)
+{
+}
+
+void CastContext::fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value, DiagnosticId note)
+{
+    failure.set(errorNodeRef, d, srcRef, dstRef, value, note);
+}
 
 namespace
 {

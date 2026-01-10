@@ -1,7 +1,11 @@
 #pragma once
 #include "Sema/Core/Sema.h"
 #include "Sema/Symbol/SymbolMap.h"
-#include "Sema/Symbol/Symbols.h"
+#include "Sema/Symbol/Symbol.Attribute.h"
+#include "Sema/Symbol/Symbol.Function.h"
+#include "Sema/Symbol/Symbol.Interface.h"
+#include "Sema/Symbol/Symbol.Struct.h"
+#include "Sema/Symbol/Symbol.Variable.h"
 #include <format>
 
 SWC_BEGIN_NAMESPACE();

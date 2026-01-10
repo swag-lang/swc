@@ -7,7 +7,7 @@
 #include "Sema/Symbol/Symbol.h"
 #include "Sema/Symbol/SymbolMap.h"
 #include "Sema/Type/TypeManager.h"
-#include "Symbols.h"
+#include "Sema/Symbol/Symbol.Alias.h"
 
 SWC_BEGIN_NAMESPACE();
 

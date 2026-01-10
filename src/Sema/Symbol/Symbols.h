@@ -123,6 +123,24 @@ public:
 };
 
 // -----------------------------------------------------------------------------
+class SymbolImpl : public SymbolMap
+{
+public:
+    static constexpr auto K = SymbolKind::Impl;
+
+    explicit SymbolImpl(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        SymbolMap(decl, tokRef, K, idRef, flags)
+    {
+    }
+
+    SymbolStruct* structSym() const { return structSym_; }
+    void          setStructSym(SymbolStruct* sym) { structSym_ = sym; }
+
+private:
+    SymbolStruct* structSym_ = nullptr;
+};
+
+// -----------------------------------------------------------------------------
 enum class SymbolStructFlagsE : uint8_t
 {
     Zero     = 0,
@@ -147,8 +165,8 @@ public:
     Result                              canBeCompleted(Sema& sema) const;
     void                                computeLayout(Sema& sema);
     void                                addField(SymbolVariable* sym) { fields_.push_back(sym); }
-    void                                addImpl(SymbolMap* symMap);
-    std::vector<SymbolMap*>             impls() const;
+    void                                addImpl(SymbolImpl& symImpl);
+    std::vector<SymbolImpl*>            impls() const;
     SymbolStructFlags                   structFlags() const noexcept { return structFlags_; }
     bool                                hasStructFlag(SymbolStructFlagsE flag) const noexcept { return structFlags_.has(flag); }
     void                                addStructFlag(SymbolStructFlagsE fl) { structFlags_.add(fl); }
@@ -156,7 +174,7 @@ public:
 private:
     std::vector<SymbolVariable*> fields_;
     mutable std::shared_mutex    mutexImpls_;
-    std::vector<SymbolMap*>      impls_;
+    std::vector<SymbolImpl*>     impls_;
     uint64_t                     sizeInBytes_ = 0;
     uint32_t                     alignment_   = 0;
     SymbolStructFlags            structFlags_ = SymbolStructFlagsE::Zero;

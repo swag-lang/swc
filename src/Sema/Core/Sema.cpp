@@ -278,7 +278,7 @@ Result Sema::postNode(AstNode& node)
 
 Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
 {
-    if (curScope_->hasFlag(SemaScopeFlagsE::TopLevel))
+    if (curScope_->isTopLevel())
     {
         const AstNode&       child = ast().node(childRef);
         const AstNodeIdInfo& info  = Ast::nodeIdInfos(child.id());

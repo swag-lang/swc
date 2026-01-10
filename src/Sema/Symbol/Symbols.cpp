@@ -10,13 +10,14 @@ void SymbolEnum::merge(TaskContext& ctx, SymbolMap* other)
     SymbolMap::merge(ctx, other);
 }
 
-void SymbolStruct::addImpl(SymbolMap* symMap)
+void SymbolStruct::addImpl(SymbolImpl& symImpl)
 {
     std::unique_lock lk(mutexImpls_);
-    impls_.push_back(symMap);
+    symImpl.setStructSym(this);
+    impls_.push_back(&symImpl);
 }
 
-std::vector<SymbolMap*> SymbolStruct::impls() const
+std::vector<SymbolImpl*> SymbolStruct::impls() const
 {
     std::shared_lock lk(mutexImpls_);
     return impls_;

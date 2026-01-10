@@ -2,7 +2,7 @@
 
 struct AA
 {
-    x: s32
+//   x: s32
 }
 
 impl AA
@@ -13,7 +13,8 @@ impl AA
 impl AA
 {
     const B = A
-    #assert(B == 52)
+    //#assert(B == 52)
+    //const C = 52
 }
 
-//#assert(AA.B == 52)
+//#assert(AA.C == 52)

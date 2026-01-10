@@ -27,7 +27,7 @@ SymbolMap* SemaFrame::currentSymMap(Sema& sema)
 {
     SymbolMap* symbolMap = sema.curSymMap();
 
-    if (!sema.curScope().isTopLevel())
+    if (!sema.curScope().isTopLevel() || sema.curScope().isImpl())
         return symbolMap;
 
     const SymbolAccess access = sema.frame().access();

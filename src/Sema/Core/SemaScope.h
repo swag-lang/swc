@@ -10,6 +10,7 @@ enum class SemaScopeFlagsE
     Type       = 1 << 1,
     Parameters = 1 << 2,
     Local      = 1 << 3,
+    Impl       = 1 << 4,
 };
 using SemaScopeFlags = EnumFlags<SemaScopeFlagsE>;
 
@@ -30,6 +31,7 @@ public:
     bool           hasFlag(SemaScopeFlags flag) const { return flags_.has(flag); }
     bool           isTopLevel() const { return hasFlag(SemaScopeFlagsE::TopLevel); }
     bool           isLocal() const { return hasFlag(SemaScopeFlagsE::Local); }
+    bool           isImpl() const { return hasFlag(SemaScopeFlagsE::Impl); }
 
     void             setSymMap(SymbolMap* symMap) { symMap_ = symMap; }
     SymbolMap*       symMap() { return symMap_; }

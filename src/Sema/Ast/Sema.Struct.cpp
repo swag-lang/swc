@@ -133,10 +133,19 @@ Result AstStructDecl::semaPostNode(Sema& sema)
 Result AstImpl::semaPreDecl(Sema& sema) const
 {
     auto&      ctx = sema.ctx();
-    const auto sym = Symbol::make<SymbolNamespace>(ctx, this, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
-    sema.setPayload(sema.curNodeRef(), sym);
+    const auto sym = Symbol::make<SymbolImpl>(ctx, this, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    sema.setSymbol(sema.curNodeRef(), sym);
 
-    sema.pushScope(SemaScopeFlagsE::Type | SemaScopeFlagsE::TopLevel);
+    return Result::Continue;
+}
+
+Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeIdentRef)
+        return Result::Continue;
+
+    SymbolMap* sym = sema.symbolOf(sema.curNodeRef()).asSymMap();
+    sema.pushScope(SemaScopeFlagsE::TopLevel | SemaScopeFlagsE::Impl);
     sema.curScope().setSymMap(sym);
     return Result::Continue;
 }
@@ -162,10 +171,20 @@ Result AstImpl::semaPreNode(Sema& sema) const
     if (!sym->isStruct())
         return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_struct, nodeIdentRef);
 
-    const auto tmpSymMap = sema.payload<SymbolMap>(sema.curNodeRef());
-    sym->cast<SymbolStruct>().addImpl(tmpSymMap);
-    sema.setSymbol(sema.curNodeRef(), sym);
+    SymbolImpl& symImpl = sema.symbolOf(sema.curNodeRef()).cast<SymbolImpl>();
+    sym->cast<SymbolStruct>().addImpl(symImpl);
 
+    return Result::Continue;
+}
+
+Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeIdentRef)
+        return Result::Continue;
+
+    SymbolImpl& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolImpl>();
+    sema.pushScope(SemaScopeFlagsE::TopLevel | SemaScopeFlagsE::Impl);
+    sema.curScope().setSymMap(sym.asSymMap());
     return Result::Continue;
 }
 

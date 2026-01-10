@@ -34,6 +34,7 @@ enum class SymbolKind : uint8_t
     Interface,
     Alias,
     Function,
+    Impl,
 };
 
 enum class SymbolFlagsE : uint8_t
@@ -113,8 +114,9 @@ public:
     bool isModule() const noexcept { return kind_ == SymbolKind::Module; }
     bool isAlias() const noexcept { return kind_ == SymbolKind::Alias; }
     bool isFunction() const noexcept { return kind_ == SymbolKind::Function; }
+    bool isImpl() const noexcept { return kind_ == SymbolKind::Impl; }
 
-    bool isSymMap() const noexcept { return isNamespace() || isModule() || isEnum() || isStruct() || isInterface(); }
+    bool isSymMap() const noexcept { return isNamespace() || isModule() || isEnum() || isStruct() || isInterface() || isImpl(); }
     bool isType() const;
     bool isValueExpr() const noexcept { return isVariable() || isConstant() || isEnumValue(); }
     bool isSwagNamespace(const TaskContext& ctx) const noexcept;

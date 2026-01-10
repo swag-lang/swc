@@ -6,7 +6,7 @@
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
-#include "Sema/Type/SemaCast.h"
+#include "Sema/Type/Cast.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -34,7 +34,7 @@ namespace
 
         auto leftCstRef  = nodeLeftView.cstRef;
         auto rightCstRef = nodeRightView.cstRef;
-        RESULT_VERIFY(SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
+        RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
 
         // For float, we need to compare by values, because two different constants
         // can still have the same value. For example, 0.0 and -0.0 are two different
@@ -62,7 +62,7 @@ namespace
         auto leftCstRef  = nodeLeftView.cstRef;
         auto rightCstRef = nodeRightView.cstRef;
 
-        RESULT_VERIFY(SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
+        RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
         if (leftCstRef == rightCstRef)
         {
             result = sema.cstMgr().cstFalse();
@@ -87,7 +87,7 @@ namespace
         auto leftCstRef  = nodeLeftView.cstRef;
         auto rightCstRef = nodeRightView.cstRef;
 
-        RESULT_VERIFY(SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
+        RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
         if (leftCstRef == rightCstRef)
         {
             result = sema.cstMgr().cstTrue();
@@ -106,7 +106,7 @@ namespace
         auto leftCstRef  = nodeLeftView.cstRef;
         auto rightCstRef = nodeRightView.cstRef;
 
-        RESULT_VERIFY(SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
+        RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
         if (leftCstRef == rightCstRef)
         {
             result = sema.cstMgr().cstFalse();
@@ -131,7 +131,7 @@ namespace
         auto leftCstRef  = nodeLeftView.cstRef;
         auto rightCstRef = nodeRightView.cstRef;
 
-        RESULT_VERIFY(SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
+        RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
         if (leftCstRef == rightCstRef)
         {
             result = sema.cstMgr().cstTrue();
@@ -150,7 +150,7 @@ namespace
         auto leftCstRef  = nodeLeftView.cstRef;
         auto rightCstRef = nodeRightView.cstRef;
 
-        RESULT_VERIFY(SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
+        RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
         const auto& left  = sema.cstMgr().get(leftCstRef);
         const auto& right = sema.cstMgr().get(rightCstRef);
 
@@ -236,7 +236,7 @@ namespace
     {
         if (op == TokenId::SymEqualEqual || op == TokenId::SymBangEqual)
         {
-            SemaCast::convertForEquality(sema, nodeLeftView, nodeRightView);
+            Cast::convertForEquality(sema, nodeLeftView, nodeRightView);
         }
 
         return Result::Continue;

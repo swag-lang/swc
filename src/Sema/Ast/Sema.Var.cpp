@@ -8,8 +8,8 @@
 #include "Sema/Helpers/SemaHelpers.h"
 #include "Sema/Symbol/SemaMatch.h"
 #include "Sema/Symbol/Symbols.h"
+#include "Sema/Type/Cast.h"
 #include "Sema/Type/CastContext.h"
-#include "Sema/Type/SemaCast.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -73,7 +73,7 @@ namespace
             CastContext castCtx(CastKind::Initialization);
             castCtx.errorNodeRef = nodeInitRef;
 
-            const auto res = SemaCast::castAllowed(sema, castCtx, nodeInitView.typeRef, nodeTypeView.typeRef);
+            const auto res = Cast::castAllowed(sema, castCtx, nodeInitView.typeRef, nodeTypeView.typeRef);
             if (res != Result::Continue)
             {
                 if (res == Result::Stop)
@@ -84,7 +84,7 @@ namespace
 
                     CastContext explicitCtx{CastKind::Explicit};
                     explicitCtx.errorNodeRef = nodeInitRef;
-                    if (SemaCast::castAllowed(sema, explicitCtx, nodeInitView.typeRef, nodeTypeView.typeRef) == Result::Continue)
+                    if (Cast::castAllowed(sema, explicitCtx, nodeInitView.typeRef, nodeTypeView.typeRef) == Result::Continue)
                         diag.addElement(DiagnosticId::sema_note_cast_explicit);
 
                     diag.report(ctx);
@@ -96,12 +96,12 @@ namespace
             if (nodeInitView.cstRef.isValid())
             {
                 ConstantRef newCstRef;
-                RESULT_VERIFY(SemaCast::castConstant(sema, newCstRef, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef));
+                RESULT_VERIFY(Cast::castConstant(sema, newCstRef, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef));
                 sema.setConstant(nodeInitRef, newCstRef);
             }
             else
             {
-                SemaCast::createImplicitCast(sema, nodeTypeView.typeRef, nodeInitRef);
+                Cast::createImplicitCast(sema, nodeTypeView.typeRef, nodeInitRef);
             }
         }
         else if (nodeInitView.cstRef.isValid())
@@ -117,7 +117,7 @@ namespace
                 {
                     CastContext castCtx(CastKind::Implicit);
                     castCtx.errorNodeRef = nodeInitRef;
-                    RESULT_VERIFY(SemaCast::castConstant(sema, newCstRef, castCtx, newCstRef, newTypeRef));
+                    RESULT_VERIFY(Cast::castConstant(sema, newCstRef, castCtx, newCstRef, newTypeRef));
                 }
             }
 
@@ -143,7 +143,7 @@ namespace
                 CastContext castCtx(CastKind::Initialization);
                 castCtx.errorNodeRef = nodeInitRef;
                 ConstantRef newCstRef;
-                RESULT_VERIFY(SemaCast::castConstant(sema, newCstRef, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef));
+                RESULT_VERIFY(Cast::castConstant(sema, newCstRef, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef));
                 nodeInitView.setCstRef(sema, newCstRef);
             }
 

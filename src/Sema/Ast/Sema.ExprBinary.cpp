@@ -10,7 +10,7 @@
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaInfo.h"
 #include "Sema/Symbol/Symbols.h"
-#include "Sema/Type/SemaCast.h"
+#include "Sema/Type/Cast.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -23,7 +23,7 @@ namespace
         ConstantRef rightCstRef = nodeRightView.cstRef;
 
         const bool promote = node.modifierFlags.has(AstModifierFlagsE::Promote);
-        RESULT_VERIFY(SemaCast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef, promote));
+        RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef, promote));
 
         const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);
         const ConstantValue& rightCst = sema.cstMgr().get(rightCstRef);
@@ -313,14 +313,14 @@ namespace
             {
                 if (!nodeLeftView.type->enumSym().isEnumFlags())
                     return SemaError::raiseInvalidOpEnum(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
-                SemaCast::convertEnumToUnderlying(sema, nodeLeftView);
+                Cast::convertEnumToUnderlying(sema, nodeLeftView);
             }
 
             if (nodeRightView.type->isEnum())
             {
                 if (!nodeRightView.type->enumSym().isEnumFlags())
                     return SemaError::raiseInvalidOpEnum(sema, node, node.nodeRightRef, nodeRightView.typeRef);
-                SemaCast::convertEnumToUnderlying(sema, nodeRightView);
+                Cast::convertEnumToUnderlying(sema, nodeRightView);
             }
         }
 

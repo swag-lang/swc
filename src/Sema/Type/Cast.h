@@ -10,7 +10,7 @@ struct CastFailure;
 struct SemaNodeView;
 class Sema;
 
-namespace SemaCast
+namespace Cast
 {
     Result castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef);
     Result emitCastFailure(Sema& sema, const CastFailure& f);

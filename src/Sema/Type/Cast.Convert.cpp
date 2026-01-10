@@ -1,11 +1,11 @@
 #include "pch.h"
-#include "Sema/Type/SemaCast.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Symbol/Symbols.h"
+#include "Sema/Type/Cast.h"
 
 SWC_BEGIN_NAMESPACE();
 
-void SemaCast::convertEnumToUnderlying(Sema& sema, SemaNodeView& nodeView)
+void Cast::convertEnumToUnderlying(Sema& sema, SemaNodeView& nodeView)
 {
     if (!nodeView.type->isEnum())
         return;
@@ -20,7 +20,7 @@ void SemaCast::convertEnumToUnderlying(Sema& sema, SemaNodeView& nodeView)
     createImplicitCast(sema, symEnum.underlyingTypeRef(), nodeView.nodeRef);
 }
 
-void SemaCast::convertTypeToTypeValue(Sema& sema, SemaNodeView& nodeView)
+void Cast::convertTypeToTypeValue(Sema& sema, SemaNodeView& nodeView)
 {
     if (!nodeView.type->isType())
         return;
@@ -39,7 +39,7 @@ namespace
             return;
         if (!other.type->isTypeValue())
             return;
-        SemaCast::convertTypeToTypeValue(sema, self);
+        Cast::convertTypeToTypeValue(sema, self);
     }
 
     void enumForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
@@ -48,7 +48,7 @@ namespace
             return;
         if (other.type->isEnum())
             return;
-        SemaCast::convertEnumToUnderlying(sema, self);
+        Cast::convertEnumToUnderlying(sema, self);
     }
 
     void nullForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
@@ -57,11 +57,11 @@ namespace
             return;
         if (!other.type->isPointerLike())
             return;
-        SemaCast::createImplicitCast(sema, other.typeRef, self.nodeRef);
+        Cast::createImplicitCast(sema, other.typeRef, self.nodeRef);
     }
 }
 
-void SemaCast::convertForEquality(Sema& sema, SemaNodeView& leftNodeView, SemaNodeView& rightNodeView)
+void Cast::convertForEquality(Sema& sema, SemaNodeView& leftNodeView, SemaNodeView& rightNodeView)
 {
     if (!leftNodeView.type || !rightNodeView.type)
         return;

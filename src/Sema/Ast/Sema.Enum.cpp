@@ -8,8 +8,8 @@
 #include "Sema/Helpers/SemaInfo.h"
 #include "Sema/Symbol/SemaMatch.h"
 #include "Sema/Symbol/Symbols.h"
+#include "Sema/Type/Cast.h"
 #include "Sema/Type/CastContext.h"
-#include "Sema/Type/SemaCast.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -157,7 +157,7 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
         // Cast initializer constant to the underlying type
         CastContext castCtx(CastKind::Initialization);
         castCtx.errorNodeRef = nodeInitRef;
-        RESULT_VERIFY(SemaCast::castConstant(sema, valueCst, castCtx, nodeInitView.cstRef, underlyingTypeRef));
+        RESULT_VERIFY(Cast::castConstant(sema, valueCst, castCtx, nodeInitView.cstRef, underlyingTypeRef));
         if (underlyingType.isInt())
         {
             const ConstantValue& cstVal = sema.cstMgr().get(valueCst);

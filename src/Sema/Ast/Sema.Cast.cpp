@@ -4,8 +4,8 @@
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
+#include "Sema/Type/Cast.h"
 #include "Sema/Type/CastContext.h"
-#include "Sema/Type/SemaCast.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -51,7 +51,7 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
     }
 
     ConstantRef newCstRef;
-    RESULT_VERIFY(SemaCast::castConstant(sema, newCstRef, castCtx, cstRef, typeRef));
+    RESULT_VERIFY(Cast::castConstant(sema, newCstRef, castCtx, cstRef, typeRef));
     sema.setConstant(sema.curNodeRef(), newCstRef);
 
     return Result::Continue;
@@ -81,15 +81,15 @@ Result AstExplicitCastExpr::semaPostNode(Sema& sema)
     if (sema.hasConstant(nodeExprRef))
     {
         ConstantRef cstRef;
-        RESULT_VERIFY(SemaCast::castConstant(sema, cstRef, castCtx, nodeExprView.cstRef, nodeTypeView.typeRef));
+        RESULT_VERIFY(Cast::castConstant(sema, cstRef, castCtx, nodeExprView.cstRef, nodeTypeView.typeRef));
         sema.setConstant(sema.curNodeRef(), cstRef);
         return Result::Continue;
     }
 
-    if (const auto res = SemaCast::castAllowed(sema, castCtx, nodeExprView.typeRef, nodeTypeView.typeRef); res != Result::Continue)
+    if (const auto res = Cast::castAllowed(sema, castCtx, nodeExprView.typeRef, nodeTypeView.typeRef); res != Result::Continue)
     {
         if (res == Result::Stop)
-            return SemaCast::emitCastFailure(sema, castCtx.failure);
+            return Cast::emitCastFailure(sema, castCtx.failure);
         return res;
     }
 

@@ -8,8 +8,8 @@
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaInfo.h"
+#include "Sema/Type/Cast.h"
 #include "Sema/Type/CastContext.h"
-#include "Sema/Type/SemaCast.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -166,8 +166,8 @@ namespace
         if (nodeView2.typeRef != sema.typeMgr().typeU64())
         {
             CastContext castCtx(CastKind::Implicit);
-            if (SemaCast::castAllowed(sema, castCtx, nodeView2.typeRef, sema.typeMgr().typeU64()) == Result::Continue)
-                node.nodeArg2Ref = SemaCast::createImplicitCast(sema, sema.typeMgr().typeU64(), node.nodeArg2Ref);
+            if (Cast::castAllowed(sema, castCtx, nodeView2.typeRef, sema.typeMgr().typeU64()) == Result::Continue)
+                node.nodeArg2Ref = Cast::createImplicitCast(sema, sema.typeMgr().typeU64(), node.nodeArg2Ref);
             else
                 return SemaError::raiseRequestedTypeFam(sema, node.nodeArg2Ref, nodeView2.typeRef, sema.typeMgr().typeInt(0, TypeInfo::Sign::Unknown));
         }

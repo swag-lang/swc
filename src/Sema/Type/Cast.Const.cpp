@@ -1,16 +1,16 @@
 #include "pch.h"
-#include "Sema/Type/SemaCast.h"
 #include "Math/Helpers.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/Symbols.h"
+#include "Sema/Type/Cast.h"
 #include "Sema/Type/CastContext.h"
 
 SWC_BEGIN_NAMESPACE();
 
-bool SemaCast::concretizeConstant(Sema& sema, ConstantRef& result, CastContext& castCtx, ConstantRef cstRef, TypeInfo::Sign hintSign)
+bool Cast::concretizeConstant(Sema& sema, ConstantRef& result, CastContext& castCtx, ConstantRef cstRef, TypeInfo::Sign hintSign)
 {
     if (!sema.cstMgr().concretizeConstant(sema, result, cstRef, hintSign))
     {
@@ -21,12 +21,12 @@ bool SemaCast::concretizeConstant(Sema& sema, ConstantRef& result, CastContext& 
     return true;
 }
 
-void SemaCast::foldConstantIdentity(CastContext& castCtx)
+void Cast::foldConstantIdentity(CastContext& castCtx)
 {
     castCtx.setFoldOut(castCtx.foldSrc());
 }
 
-bool SemaCast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstTypeRef, const TypeInfo& dstType, const TypeInfo& srcType)
+bool Cast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstTypeRef, const TypeInfo& dstType, const TypeInfo& srcType)
 {
     auto& ctx = sema.ctx();
 
@@ -100,7 +100,7 @@ bool SemaCast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dst
     return false;
 }
 
-bool SemaCast::foldConstantBoolToIntLike(Sema& sema, CastContext& castCtx, TypeRef dstTypeRef)
+bool Cast::foldConstantBoolToIntLike(Sema& sema, CastContext& castCtx, TypeRef dstTypeRef)
 {
     const auto& ctx = sema.ctx();
 
@@ -117,7 +117,7 @@ bool SemaCast::foldConstantBoolToIntLike(Sema& sema, CastContext& castCtx, TypeR
     return true;
 }
 
-bool SemaCast::foldConstantIntLikeToBool(Sema& sema, CastContext& castCtx)
+bool Cast::foldConstantIntLikeToBool(Sema& sema, CastContext& castCtx)
 {
     const auto& ctx = sema.ctx();
 
@@ -131,7 +131,7 @@ bool SemaCast::foldConstantIntLikeToBool(Sema& sema, CastContext& castCtx)
     return true;
 }
 
-bool SemaCast::foldConstantIntLikeToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+bool Cast::foldConstantIntLikeToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     auto& ctx = sema.ctx();
 
@@ -247,7 +247,7 @@ bool SemaCast::foldConstantIntLikeToIntLike(Sema& sema, CastContext& castCtx, Ty
     return true;
 }
 
-bool SemaCast::foldConstantIntLikeToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+bool Cast::foldConstantIntLikeToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const auto& ctx = sema.ctx();
 
@@ -272,7 +272,7 @@ bool SemaCast::foldConstantIntLikeToFloat(Sema& sema, CastContext& castCtx, Type
     return true;
 }
 
-bool SemaCast::foldConstantFloatToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+bool Cast::foldConstantFloatToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const auto& ctx = sema.ctx();
 
@@ -298,7 +298,7 @@ bool SemaCast::foldConstantFloatToIntLike(Sema& sema, CastContext& castCtx, Type
     return true;
 }
 
-bool SemaCast::foldConstantFloatToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+bool Cast::foldConstantFloatToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const auto& ctx = sema.ctx();
 
@@ -322,7 +322,7 @@ bool SemaCast::foldConstantFloatToFloat(Sema& sema, CastContext& castCtx, TypeRe
     return true;
 }
 
-Result SemaCast::castConstant(Sema& sema, ConstantRef& result, CastContext& castCtx, ConstantRef cstRef, TypeRef targetTypeRef)
+Result Cast::castConstant(Sema& sema, ConstantRef& result, CastContext& castCtx, ConstantRef cstRef, TypeRef targetTypeRef)
 {
     const ConstantValue& cst        = sema.cstMgr().get(cstRef);
     const TypeRef        srcTypeRef = cst.typeRef();
@@ -340,7 +340,7 @@ Result SemaCast::castConstant(Sema& sema, ConstantRef& result, CastContext& cast
     return Result::Continue;
 }
 
-Result SemaCast::promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView, ConstantRef& leftCstRef, ConstantRef& rightCstRef, bool force32BitInts)
+Result Cast::promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView, ConstantRef& leftCstRef, ConstantRef& rightCstRef, bool force32BitInts)
 {
     TypeRef leftTypeRef  = nodeLeftView.typeRef;
     TypeRef rightTypeRef = nodeRightView.typeRef;

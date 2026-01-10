@@ -1,11 +1,11 @@
 // ReSharper disable CppClangTidyClangDiagnosticMissingDesignatedFieldInitializers
 #include "pch.h"
-#include "Sema/Type/SemaCast.h"
 #include "Report/Diagnostic.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/Sema.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/Symbols.h"
+#include "Sema/Type/Cast.h"
 #include "Sema/Type/CastContext.h"
 #include "Sema/Type/TypeManager.h"
 
@@ -16,7 +16,7 @@ namespace
     Result castIdentity(Sema&, CastContext& castCtx, TypeRef, TypeRef)
     {
         if (castCtx.isFolding())
-            SemaCast::foldConstantIdentity(castCtx);
+            Cast::foldConstantIdentity(castCtx);
         return Result::Continue;
     }
 
@@ -73,7 +73,7 @@ namespace
 
         if (castCtx.isFolding())
         {
-            if (!SemaCast::foldConstantBitCast(sema, castCtx, dstTypeRef, dstType, *srcType))
+            if (!Cast::foldConstantBitCast(sema, castCtx, dstTypeRef, dstType, *srcType))
                 return Result::Stop;
         }
 
@@ -90,7 +90,7 @@ namespace
 
         if (castCtx.isFolding())
         {
-            if (!SemaCast::foldConstantBoolToIntLike(sema, castCtx, dstTypeRef))
+            if (!Cast::foldConstantBoolToIntLike(sema, castCtx, dstTypeRef))
                 return Result::Stop;
         }
 
@@ -107,7 +107,7 @@ namespace
 
         if (castCtx.isFolding())
         {
-            if (!SemaCast::foldConstantIntLikeToBool(sema, castCtx))
+            if (!Cast::foldConstantIntLikeToBool(sema, castCtx))
                 return Result::Stop;
         }
 
@@ -153,7 +153,7 @@ namespace
 
         if (castCtx.isFolding())
         {
-            if (!SemaCast::foldConstantIntLikeToIntLike(sema, castCtx, srcTypeRef, dstTypeRef))
+            if (!Cast::foldConstantIntLikeToIntLike(sema, castCtx, srcTypeRef, dstTypeRef))
                 return Result::Stop;
         }
 
@@ -187,7 +187,7 @@ namespace
 
         if (castCtx.isFolding())
         {
-            if (!SemaCast::foldConstantIntLikeToFloat(sema, castCtx, srcTypeRef, dstTypeRef))
+            if (!Cast::foldConstantIntLikeToFloat(sema, castCtx, srcTypeRef, dstTypeRef))
                 return Result::Stop;
         }
 
@@ -204,7 +204,7 @@ namespace
 
         if (castCtx.isFolding())
         {
-            if (!SemaCast::foldConstantFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef))
+            if (!Cast::foldConstantFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef))
                 return Result::Stop;
         }
 
@@ -247,7 +247,7 @@ namespace
 
         if (castCtx.isFolding())
         {
-            if (!SemaCast::foldConstantFloatToFloat(sema, castCtx, srcTypeRef, dstTypeRef))
+            if (!Cast::foldConstantFloatToFloat(sema, castCtx, srcTypeRef, dstTypeRef))
                 return Result::Stop;
         }
 
@@ -271,7 +271,7 @@ namespace
             castCtx.srcConstRef      = cst.getEnumValue();
         }
 
-        const auto res = SemaCast::castAllowed(sema, castCtx, enumSym.underlyingTypeRef(), dstTypeRef);
+        const auto res = Cast::castAllowed(sema, castCtx, enumSym.underlyingTypeRef(), dstTypeRef);
         if (res != Result::Continue)
         {
             castCtx.failure.srcTypeRef = srcTypeRef;
@@ -382,7 +382,7 @@ namespace
     }
 }
 
-Result SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     if (srcTypeRef == dstTypeRef)
         return castIdentity(sema, castCtx, srcTypeRef, dstTypeRef);
@@ -452,7 +452,7 @@ Result SemaCast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRe
     return res;
 }
 
-Result SemaCast::emitCastFailure(Sema& sema, const CastFailure& f)
+Result Cast::emitCastFailure(Sema& sema, const CastFailure& f)
 {
     auto diag = SemaError::report(sema, f.diagId, f.nodeRef);
     if (f.srcTypeRef.isValid())
@@ -467,7 +467,7 @@ Result SemaCast::emitCastFailure(Sema& sema, const CastFailure& f)
     return Result::Stop;
 }
 
-AstNodeRef SemaCast::createImplicitCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef)
+AstNodeRef Cast::createImplicitCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef)
 {
     SemaInfo&      semaInfo           = sema.semaInfo();
     const AstNode& node               = sema.ast().node(nodeRef);

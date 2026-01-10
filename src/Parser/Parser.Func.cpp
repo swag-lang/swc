@@ -232,7 +232,7 @@ AstNodeRef Parser::parseFunctionParam()
     if (is(TokenId::KwdConst))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionParamMe>(consume());
-        nodePtr->flags().add(AstFunctionParamMeFlagsE::Const);
+        nodePtr->addFlag(AstFunctionParamMeFlagsE::Const);
         expectAndConsume(TokenId::KwdMe, DiagnosticId::parser_err_expected_token_before);
         return nodeRef;
     }

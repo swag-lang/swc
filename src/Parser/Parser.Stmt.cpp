@@ -378,7 +378,7 @@ AstNodeRef Parser::parseForeach()
     // By address
     if (consumeIf(TokenId::SymAmpersand).isValid())
     {
-        nodePtr->flags().add(AstForeachStmtFlagsE::ByAddress);
+        nodePtr->addFlag(AstForeachStmtFlagsE::ByAddress);
         const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
         tokNames.push_back(tokName);
     }
@@ -609,7 +609,7 @@ AstNodeRef Parser::parseAssignStmt()
     {
         const auto openRef            = consume();
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AssignListStmt>(ref());
-        nodePtr->flags().add(AstAssignListStmtFlagsE::Decomposition);
+        nodePtr->addFlag(AstAssignListStmtFlagsE::Decomposition);
         if (consumeIf(TokenId::SymQuestion).isValid())
             nodeLeft = AstNodeRef::invalid();
         else

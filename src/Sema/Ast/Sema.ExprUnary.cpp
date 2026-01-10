@@ -220,7 +220,7 @@ namespace
         TypeRef resultTypeRef = nodeView.type->typeRef();
         if (nodeView.type->isConst())
         {
-            const TypeInfo ty = sema.typeMgr().get(resultTypeRef);
+            TypeInfo ty = sema.typeMgr().get(resultTypeRef);
             ty.flags().add(TypeInfoFlagsE::Const);
             resultTypeRef = sema.typeMgr().addType(ty);
         }

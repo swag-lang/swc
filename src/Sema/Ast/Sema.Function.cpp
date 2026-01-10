@@ -21,7 +21,7 @@ Result AstFunctionParamMe::semaPreDecl(Sema& sema) const
 
     TypeRef       typeRef   = symStruct->typeRef();
     TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
-    if (flags().has(AstFunctionParamMeFlagsE::Const))
+    if (hasFlag(AstFunctionParamMeFlagsE::Const))
         typeFlags.add(TypeInfoFlagsE::Const);
     typeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(typeRef, typeFlags));
     sym.setTypeRef(typeRef);

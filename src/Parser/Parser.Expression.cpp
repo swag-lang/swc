@@ -317,7 +317,7 @@ AstNodeRef Parser::parseRangeExpression()
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::RangeExpr>(ref());
         if (is(TokenId::KwdTo))
-            nodePtr->flags().add(AstRangeExprFlagsE::Inclusive);
+            nodePtr->addFlag(AstRangeExprFlagsE::Inclusive);
         consume();
         nodePtr->nodeExprDownRef = nodeExpr1;
         nodePtr->nodeExprUpRef   = parseExpression();
@@ -362,7 +362,7 @@ AstNodeRef Parser::parseIdentifier()
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>(consume());
             if (hasContextFlag(ParserContextFlagsE::InCompilerDefined))
-                nodePtr->flags().add(AstIdentifierFlagsE::InCompilerDefined);
+                nodePtr->addFlag(AstIdentifierFlagsE::InCompilerDefined);
             return nodeRef;
         }
 
@@ -375,7 +375,7 @@ AstNodeRef Parser::parseIdentifier()
         return AstNodeRef::invalid();
     auto [identRef, identPtr] = ast_->makeNode<AstNodeId::Identifier>(tokName);
     if (hasContextFlag(ParserContextFlagsE::InCompilerDefined))
-        identPtr->flags().add(AstIdentifierFlagsE::InCompilerDefined);
+        identPtr->addFlag(AstIdentifierFlagsE::InCompilerDefined);
     return identRef;
 }
 
@@ -983,7 +983,7 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
     // Slicing
     const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::RangeExpr>(tokStart);
     if (is(TokenId::KwdTo))
-        nodePtr->flags().add(AstRangeExprFlagsE::Inclusive);
+        nodePtr->addFlag(AstRangeExprFlagsE::Inclusive);
     consume();
     nodePtr->nodeExprDownRef = nodeExpr;
     if (!is(TokenId::SymRightBracket))

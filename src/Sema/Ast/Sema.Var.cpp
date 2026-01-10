@@ -162,12 +162,12 @@ namespace
 
 Result AstVarDecl::semaPreDecl(Sema& sema) const
 {
-    if (flags().has(AstVarDeclFlagsE::Const))
+    if (hasFlag(AstVarDeclFlagsE::Const))
         SemaHelpers::registerSymbol<SymbolConstant>(sema, *this, tokNameRef);
     else
     {
         SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
-        if (flags().has(AstVarDeclFlagsE::Let))
+        if (hasFlag(AstVarDeclFlagsE::Let))
         {
             SymbolVariable& symVar = sema.symbolOf(sema.curNodeRef()).cast<SymbolVariable>();
             symVar.addVarFlag(SymbolVariableFlagsE::Let);
@@ -189,7 +189,7 @@ Result AstVarDecl::semaPostNode(Sema& sema) const
 {
     Symbol& sym   = sema.symbolOf(sema.curNodeRef());
     Symbol* one[] = {&sym};
-    return semaPostVarDeclCommon(sema, *this, tokNameRef, nodeInitRef, nodeTypeRef, flags().has(AstVarDeclFlagsE::Const), flags().has(AstVarDeclFlagsE::Let), std::span<Symbol*>{one});
+    return semaPostVarDeclCommon(sema, *this, tokNameRef, nodeInitRef, nodeTypeRef, hasFlag(AstVarDeclFlagsE::Const), hasFlag(AstVarDeclFlagsE::Let), std::span<Symbol*>{one});
 }
 
 Result AstVarDeclNameList::semaPreDecl(Sema& sema) const
@@ -208,12 +208,12 @@ Result AstVarDeclNameList::semaPreDecl(Sema& sema) const
         const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokNameRef);
         Symbol*             sym;
 
-        if (flags().has(AstVarDeclFlagsE::Const))
+        if (hasFlag(AstVarDeclFlagsE::Const))
             sym = Symbol::make<SymbolConstant>(ctx, this, tokNameRef, idRef, symFlags);
         else
         {
             sym = Symbol::make<SymbolVariable>(ctx, this, tokNameRef, idRef, symFlags);
-            if (flags().has(AstVarDeclFlagsE::Let))
+            if (hasFlag(AstVarDeclFlagsE::Let))
                 sym->cast<SymbolVariable>().addVarFlag(SymbolVariableFlagsE::Let);
         }
 
@@ -262,7 +262,7 @@ Result AstVarDeclNameList::semaPreNode(Sema& sema) const
 Result AstVarDeclNameList::semaPostNode(Sema& sema) const
 {
     const auto symbols = sema.getSymbolList(sema.curNodeRef());
-    return semaPostVarDeclCommon(sema, *this, tokRef(), nodeInitRef, nodeTypeRef, flags().has(AstVarDeclFlagsE::Const), flags().has(AstVarDeclFlagsE::Let), symbols);
+    return semaPostVarDeclCommon(sema, *this, tokRef(), nodeInitRef, nodeTypeRef, hasFlag(AstVarDeclFlagsE::Const), hasFlag(AstVarDeclFlagsE::Let), symbols);
 }
 
 SWC_END_NAMESPACE();

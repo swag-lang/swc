@@ -148,7 +148,7 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
     SWC_ASSERT(nodeView.type);
 
     TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
-    if (this->flags().has(AstQualifiedTypeFlagsE::Const))
+    if (this->hasFlag(AstQualifiedTypeFlagsE::Const))
     {
         switch (nodeView.type->kind())
         {
@@ -168,7 +168,7 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
         typeFlags.add(TypeInfoFlagsE::Const);
     }
 
-    if (this->flags().has(AstQualifiedTypeFlagsE::Nullable))
+    if (this->hasFlag(AstQualifiedTypeFlagsE::Nullable))
     {
         switch (nodeView.type->kind())
         {
@@ -372,7 +372,7 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
         SWC_ASSERT(paramTypeRef.isValid());
 
         IdentifierRef idRef = IdentifierRef::invalid();
-        if (param->flags().has(AstLambdaParamFlagsE::Named))
+        if (param->hasFlag(AstLambdaParamFlagsE::Named))
             idRef = sema.idMgr().addIdentifier(ctx, param->srcViewRef(), param->tokRef());
 
         SymbolVariable* const symVar = Symbol::make<SymbolVariable>(ctx, param, param->tokRef(), idRef, SymbolFlagsE::Zero);

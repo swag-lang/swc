@@ -31,7 +31,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     lookUpCxt.tokRef     = tokRef();
 
     const Result ret = SemaMatch::match(sema, lookUpCxt, idRef);
-    if (ret == Result::Pause && flags().has(AstIdentifierFlagsE::InCompilerDefined))
+    if (ret == Result::Pause && hasFlag(AstIdentifierFlagsE::InCompilerDefined))
         return sema.waitCompilerDefined(idRef, srcViewRef(), tokRef());
     RESULT_VERIFY(ret);
 

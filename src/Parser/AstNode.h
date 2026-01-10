@@ -152,6 +152,21 @@ struct AstNodeT : AstNode
         else
             return parserFlags_;
     }
+
+    template<typename T = E>
+    bool hasFlag(T flag) const
+    {
+        if constexpr (!std::is_void_v<E>)
+            return flags().has(flag);
+        return false;
+    }
+
+    template<typename T = E>
+    void addFlag(T flag)
+    {
+        if constexpr (!std::is_void_v<E>)
+            flags().add(flag);
+    }
 };
 
 SWC_END_NAMESPACE();

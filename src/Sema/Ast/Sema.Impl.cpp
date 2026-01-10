@@ -48,7 +48,7 @@ Result AstImpl::semaPreNode(Sema& sema) const
 
     const auto sym = const_cast<Symbol*>(lookUpCxt.first());
 
-    if (flags().has(AstImplFlagsE::Enum))
+    if (hasFlag(AstImplFlagsE::Enum))
     {
         if (!sym->isEnum())
             return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_enum, nodeIdentRef);

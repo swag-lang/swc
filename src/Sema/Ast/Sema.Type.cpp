@@ -387,13 +387,7 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
     if (nodeReturnTypeRef.isValid())
         returnType = sema.typeRefOf(nodeReturnTypeRef);
     symFunc->setReturnType(returnType);
-
-    if (parserFlags<FlagsE>().has(Throw))
-        symFunc->addFuncFlag(SymbolFunctionFlagsE::Throwable);
-    if (parserFlags<FlagsE>().has(Closure))
-        symFunc->addFuncFlag(SymbolFunctionFlagsE::Closure);
-    if (parserFlags<FlagsE>().has(Method))
-        symFunc->addFuncFlag(SymbolFunctionFlagsE::Method);
+    symFunc->setFuncFlags(parserFlags<FlagsE>());
 
     const TypeInfo ti      = TypeInfo::makeFunction(symFunc, TypeInfoFlagsE::Zero);
     const TypeRef  typeRef = sema.typeMgr().addType(ti);

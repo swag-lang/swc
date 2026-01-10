@@ -96,6 +96,8 @@ struct AstNode
     uint32_t        semaRef() const { return semaRef_; }
     void            setSemaRef(uint32_t val) { semaRef_ = val; }
 
+    ParserFlags parserFlags() const { return parserFlags_; }
+
     AstNodeId id() const { return id_; }
     void      setId(AstNodeId id) { id_ = id; }
     bool      is(AstNodeId id) const { return id_ == id; }

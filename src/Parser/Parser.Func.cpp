@@ -114,7 +114,7 @@ AstNodeRef Parser::parseLambdaExpression()
 
     // Can raise errors
     if (consumeIf(TokenId::KwdThrow).isValid())
-        flags.add(AstLambdaType::Throw);
+        flags.add(AstLambdaType::Throwable);
 
     // Body
     AstNodeRef body = AstNodeRef::invalid();
@@ -185,7 +185,7 @@ AstNodeRef Parser::parseFunctionDecl()
 
     // Throw
     if (consumeIf(TokenId::KwdThrow).isValid())
-        flags.add(AstLambdaType::Throw);
+        flags.add(AstLambdaType::Throwable);
 
     // Constraints
     SmallVector<AstNodeRef> whereRefs;

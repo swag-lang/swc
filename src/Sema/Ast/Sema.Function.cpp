@@ -32,23 +32,7 @@ Result AstFunctionParamMe::semaPreDecl(Sema& sema) const
 Result AstFunctionDecl::semaPreDecl(Sema& sema) const
 {
     SymbolFunction& sym = SemaHelpers::registerSymbol<SymbolFunction>(sema, *this, tokNameRef);
-    if (parserFlags<AstLambdaType::FlagsE>().has(AstLambdaType::Throw))
-        sym.addFuncFlag(SymbolFunctionFlagsE::Throwable);
-    if (parserFlags<AstLambdaType::FlagsE>().has(AstLambdaType::Closure))
-        sym.addFuncFlag(SymbolFunctionFlagsE::Closure);
-    if (parserFlags<AstLambdaType::FlagsE>().has(AstLambdaType::Method))
-        sym.addFuncFlag(SymbolFunctionFlagsE::Method);
-
-    if (sym.isMethod())
-    {
-        if (!sema.curScope().isImpl())
-        {
-            const SourceView& srcView   = sema.srcView(srcViewRef());
-            const TokenRef    mtdTokRef = srcView.findLeftFrom(tokNameRef, {TokenId::KwdMtd});
-            return SemaError::raise(sema, DiagnosticId::sema_err_method_outside_impl, srcViewRef(), mtdTokRef);
-        }
-    }
-
+    sym.setFuncFlags(parserFlags<AstLambdaType::FlagsE>());
     return Result::SkipChildren;
 }
 
@@ -56,7 +40,18 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
 {
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
-    // const SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+
+    const SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+    if (sym.isMethod())
+    {
+        if (!sema.curScope().isImpl())
+        {
+            const SourceView& srcView   = sema.srcView(srcViewRef());
+            const TokenRef    mtdTokRef = srcView.findLeftFrom(tokNameRef, {TokenId::KwdMtd});
+            //return SemaError::raise(sema, DiagnosticId::sema_err_method_outside_impl, srcViewRef(), mtdTokRef);
+        }
+    }
+
     // return SemaMatch::ghosting(sema, sym);
     return Result::Continue;
 }

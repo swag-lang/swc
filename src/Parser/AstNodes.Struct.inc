@@ -853,12 +853,12 @@ struct AstLambdaType : AstNodeT<AstNodeId::LambdaType>
 {
     enum FlagsE : ParserFlags
     {
-        Zero    = 0,
-        Method  = 1 << 0,
-        Throw   = 1 << 1,
-        Closure = 1 << 2,
-        Const   = 1 << 3,
-        Impl    = 1 << 4,
+        Zero      = 0,
+        Method    = 1 << 0,
+        Throwable = 1 << 1,
+        Closure   = 1 << 2,
+        Const     = 1 << 3,
+        Impl      = 1 << 4,
     };
     using Flags = EnumFlags<FlagsE>;
 

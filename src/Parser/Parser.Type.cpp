@@ -349,7 +349,7 @@ AstNodeRef Parser::parseLambdaType()
 
     // Can raise errors
     if (consumeIf(TokenId::KwdThrow).isValid())
-        flags.add(AstLambdaType::Throw);
+        flags.add(AstLambdaType::Throwable);
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaType>(tokStart);
     nodePtr->addParserFlag(flags);

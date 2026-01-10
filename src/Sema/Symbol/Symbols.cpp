@@ -159,4 +159,15 @@ Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
     return out;
 }
 
+void SymbolFunction::setFuncFlags(EnumFlags<AstLambdaType::FlagsE> parserFlags)
+{
+    SymbolFunctionFlags result = SymbolFunctionFlagsE::Zero;
+    if (parserFlags.has(AstLambdaType::Method))
+        addFuncFlag(SymbolFunctionFlagsE::Method);
+    if (parserFlags.has(AstLambdaType::Throwable))
+        addFuncFlag(SymbolFunctionFlagsE::Throwable);
+    if (parserFlags.has(AstLambdaType::Closure))
+        addFuncFlag(SymbolFunctionFlagsE::Closure);
+}
+
 SWC_END_NAMESPACE();

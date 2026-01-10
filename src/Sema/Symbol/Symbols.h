@@ -1,4 +1,5 @@
 #pragma once
+#include "Parser/AstNodes.h"
 #include "Sema/Constant/ConstantValue.h"
 #include "Sema/Symbol/SymbolMap.h"
 #include "Sema/Type/TypeManager.h"
@@ -244,6 +245,8 @@ public:
     SymbolFunctionFlags funcFlags() const noexcept { return funcFlags_; }
     bool                hasFuncFlag(SymbolFunctionFlagsE flag) const noexcept { return funcFlags_.has(flag); }
     void                addFuncFlag(SymbolFunctionFlagsE fl) { funcFlags_.add(fl); }
+    void                addFuncFlags(SymbolFunctionFlags fl) { funcFlags_.add(fl); }
+    void                setFuncFlags(EnumFlags<AstLambdaType::FlagsE> parserFlags);
     bool                isClosure() const noexcept { return funcFlags_.has(SymbolFunctionFlagsE::Closure); }
     bool                isMethod() const noexcept { return funcFlags_.has(SymbolFunctionFlagsE::Method); }
     bool                isThrowable() const noexcept { return funcFlags_.has(SymbolFunctionFlagsE::Throwable); }

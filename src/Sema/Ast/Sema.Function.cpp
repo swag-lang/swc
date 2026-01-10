@@ -20,11 +20,10 @@ Result AstFunctionParamMe::semaPreNode(Sema& sema) const
 
     auto& sym = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokRef());
 
-    TypeRef       typeRef   = symStruct->typeRef();
     TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
     if (hasFlag(AstFunctionParamMeFlagsE::Const))
         typeFlags.add(TypeInfoFlagsE::Const);
-    typeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(typeRef, typeFlags));
+    const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(symStruct->typeRef(), typeFlags));
     sym.setTypeRef(typeRef);
 
     return Result::Continue;

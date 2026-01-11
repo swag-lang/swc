@@ -154,19 +154,13 @@ namespace
         RESULT_VERIFY(SemaCheck::isValue(sema, node.nodeArg2Ref));
 
         const SemaNodeView nodeViewPtr(sema, node.nodeArg1Ref);
-        const SemaNodeView nodeViewSize(sema, node.nodeArg2Ref);
+        SemaNodeView       nodeViewSize(sema, node.nodeArg2Ref);
 
         if (!nodeViewPtr.type->isPointer())
             return SemaError::raiseRequestedTypeFam(sema, node.nodeArg1Ref, nodeViewPtr.typeRef, sema.typeMgr().typePtrVoid());
 
-        if (nodeViewSize.typeRef != sema.typeMgr().typeU64())
-        {
-            CastContext castCtx(CastKind::Implicit);
-            if (Cast::castAllowed(sema, castCtx, nodeViewSize.typeRef, sema.typeMgr().typeU64()) == Result::Continue)
-                node.nodeArg2Ref = Cast::createImplicitCast(sema, sema.typeMgr().typeU64(), node.nodeArg2Ref);
-            else
-                return SemaError::raiseRequestedTypeFam(sema, node.nodeArg2Ref, nodeViewSize.typeRef, sema.typeMgr().typeInt(0, TypeInfo::Sign::Unknown));
-        }
+        RESULT_VERIFY(Cast::cast(sema, nodeViewSize, sema.typeMgr().typeU64(), CastKind::Implicit));
+        node.nodeArg2Ref = nodeViewSize.nodeRef;
 
         TypeRef typeRef;
         if (forString)

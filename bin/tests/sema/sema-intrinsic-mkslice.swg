@@ -25,7 +25,7 @@
 #test
 {
     var buf3: [100] u8
-    var str = @mkslice(&buf3[0], 0.0) // swc-expected-error {{sema_err_expected_type_fam}}
+    var str = @mkslice(&buf3[0], 0.0) // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test

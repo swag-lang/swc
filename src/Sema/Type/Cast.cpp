@@ -475,6 +475,9 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
 
 Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind)
 {
+    if (view.typeRef == dstTypeRef)
+        return Result::Continue;
+
     CastContext castCtx(castKind);
     castCtx.errorNodeRef = view.nodeRef;
     castCtx.setConstantFoldingSrc(view.cstRef);

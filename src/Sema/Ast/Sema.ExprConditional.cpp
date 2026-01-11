@@ -22,10 +22,10 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeFalseRef));
     SemaInfo::setIsValue(*this);
 
-    // Type-check
-    if (!nodeCondView.type->isBool())
-        RESULT_VERIFY(Cast::cast(sema, nodeCondView, sema.ctx().typeMgr().typeBool(), CastKind::Condition));
+    // Condition must be bool
+    RESULT_VERIFY(Cast::cast(sema, nodeCondView, sema.ctx().typeMgr().typeBool(), CastKind::Condition));
 
+    // Make both branches compatible
     TypeRef typeRef = TypeRef::invalid();
     if (nodeTrueView.typeRef == nodeFalseView.typeRef)
         typeRef = nodeTrueView.typeRef;
@@ -33,7 +33,6 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     {
         CastContext castCtxTrue(CastKind::Implicit);
         CastContext castCtxFalse(CastKind::Implicit);
-
         if (Cast::castAllowed(sema, castCtxTrue, nodeTrueView.typeRef, nodeFalseView.typeRef) == Result::Continue)
             typeRef = nodeFalseView.typeRef;
         else if (Cast::castAllowed(sema, castCtxFalse, nodeFalseView.typeRef, nodeTrueView.typeRef) == Result::Continue)

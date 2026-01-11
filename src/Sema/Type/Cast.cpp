@@ -510,10 +510,18 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     if (castAllowed(sema, castCtx, view.typeRef, dstTypeRef) == Result::Continue)
     {
         if (castCtx.constantFoldingResult().isInvalid())
-            createImplicitCast(sema, dstTypeRef, view.nodeRef);
+            view.nodeRef = createImplicitCast(sema, dstTypeRef, view.nodeRef);
         else
             view.setCstRef(sema, castCtx.constantFoldingResult());
         return Result::Continue;
+    }
+
+    if (castKind != CastKind::Explicit)
+    {
+        CastContext explicitCtx(CastKind::Explicit);
+        explicitCtx.errorNodeRef = view.nodeRef;
+        if (castAllowed(sema, explicitCtx, view.typeRef, dstTypeRef) == Result::Continue)
+            castCtx.failure.noteId = DiagnosticId::sema_note_cast_explicit;
     }
 
     return emitCastFailure(sema, castCtx.failure);

@@ -69,39 +69,7 @@ namespace
         // Implicit cast from initializer to the specified type
         if (nodeInitView.typeRef.isValid() && nodeTypeView.typeRef.isValid())
         {
-            CastContext castCtx(CastKind::Initialization);
-            castCtx.errorNodeRef = nodeInitRef;
-
-            const auto res = Cast::castAllowed(sema, castCtx, nodeInitView.typeRef, nodeTypeView.typeRef);
-            if (res != Result::Continue)
-            {
-                if (res == Result::Stop)
-                {
-                    auto diag = SemaError::report(sema, castCtx.failure.diagId, castCtx.errorNodeRef);
-                    diag.addArgument(Diagnostic::ARG_TYPE, castCtx.failure.srcTypeRef);
-                    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, castCtx.failure.dstTypeRef);
-
-                    CastContext explicitCtx{CastKind::Explicit};
-                    explicitCtx.errorNodeRef = nodeInitRef;
-                    if (Cast::castAllowed(sema, explicitCtx, nodeInitView.typeRef, nodeTypeView.typeRef) == Result::Continue)
-                        diag.addElement(DiagnosticId::sema_note_cast_explicit);
-
-                    diag.report(ctx);
-                }
-
-                return res;
-            }
-
-            if (nodeInitView.cstRef.isValid())
-            {
-                ConstantRef newCstRef;
-                RESULT_VERIFY(Cast::castConstant(sema, newCstRef, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef));
-                sema.setConstant(nodeInitRef, newCstRef);
-            }
-            else
-            {
-                Cast::createImplicitCast(sema, nodeTypeView.typeRef, nodeInitRef);
-            }
+            RESULT_VERIFY(Cast::cast(sema, nodeInitView, nodeTypeView.typeRef, CastKind::Initialization));
         }
         else if (nodeInitView.cstRef.isValid())
         {
@@ -139,11 +107,7 @@ namespace
 
             if (nodeTypeRef.isValid() && nodeTypeView.typeRef.isValid())
             {
-                CastContext castCtx(CastKind::Initialization);
-                castCtx.errorNodeRef = nodeInitRef;
-                ConstantRef newCstRef;
-                RESULT_VERIFY(Cast::castConstant(sema, newCstRef, castCtx, nodeInitView.cstRef, nodeTypeView.typeRef));
-                nodeInitView.setCstRef(sema, newCstRef);
+                RESULT_VERIFY(Cast::cast(sema, nodeInitView, nodeTypeView.typeRef, CastKind::Initialization));
             }
 
             completeConst(sema, syms, nodeInitView.cstRef, nodeInitView.typeRef);

@@ -35,7 +35,7 @@ namespace
 {
     Result castIdentity(Sema&, CastContext& castCtx, TypeRef, TypeRef)
     {
-        if (castCtx.isFolding())
+        if (castCtx.isConstantFolding())
             Cast::foldConstantIdentity(castCtx);
         return Result::Continue;
     }
@@ -56,7 +56,7 @@ namespace
         {
             srcTypeRef = srcType->symEnum().underlyingTypeRef();
             srcType    = &typeMgr.get(srcTypeRef);
-            if (castCtx.isFolding())
+            if (castCtx.isConstantFolding())
             {
                 const ConstantValue& cst = sema.cstMgr().get(castCtx.srcConstRef);
                 castCtx.srcConstRef      = cst.getEnumValue();
@@ -91,7 +91,7 @@ namespace
             return Result::Stop;
         }
 
-        if (castCtx.isFolding())
+        if (castCtx.isConstantFolding())
         {
             if (!Cast::foldConstantBitCast(sema, castCtx, dstTypeRef, dstType, *srcType))
                 return Result::Stop;
@@ -108,7 +108,7 @@ namespace
             return Result::Stop;
         }
 
-        if (castCtx.isFolding())
+        if (castCtx.isConstantFolding())
         {
             if (!Cast::foldConstantBoolToIntLike(sema, castCtx, dstTypeRef))
                 return Result::Stop;
@@ -119,13 +119,13 @@ namespace
 
     Result castIntLikeToBool(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
-        if (castCtx.kind != CastKind::Explicit)
+        if (castCtx.kind != CastKind::Explicit && castCtx.kind != CastKind::Condition)
         {
             castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             return Result::Stop;
         }
 
-        if (castCtx.isFolding())
+        if (castCtx.isConstantFolding())
         {
             if (!Cast::foldConstantIntLikeToBool(sema, castCtx))
                 return Result::Stop;
@@ -171,7 +171,7 @@ namespace
                 SWC_UNREACHABLE();
         }
 
-        if (castCtx.isFolding())
+        if (castCtx.isConstantFolding())
         {
             if (!Cast::foldConstantIntLikeToIntLike(sema, castCtx, srcTypeRef, dstTypeRef))
                 return Result::Stop;
@@ -205,7 +205,7 @@ namespace
                 SWC_UNREACHABLE();
         }
 
-        if (castCtx.isFolding())
+        if (castCtx.isConstantFolding())
         {
             if (!Cast::foldConstantIntLikeToFloat(sema, castCtx, srcTypeRef, dstTypeRef))
                 return Result::Stop;
@@ -222,7 +222,7 @@ namespace
             return Result::Stop;
         }
 
-        if (castCtx.isFolding())
+        if (castCtx.isConstantFolding())
         {
             if (!Cast::foldConstantFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef))
                 return Result::Stop;
@@ -265,7 +265,7 @@ namespace
                 SWC_UNREACHABLE();
         }
 
-        if (castCtx.isFolding())
+        if (castCtx.isConstantFolding())
         {
             if (!Cast::foldConstantFloatToFloat(sema, castCtx, srcTypeRef, dstTypeRef))
                 return Result::Stop;
@@ -285,7 +285,7 @@ namespace
         const TypeInfo&   type    = sema.typeMgr().get(srcTypeRef);
         const SymbolEnum& enumSym = type.symEnum();
 
-        if (castCtx.isFolding())
+        if (castCtx.isConstantFolding())
         {
             const ConstantValue& cst = sema.cstMgr().get(castCtx.srcConstRef);
             castCtx.srcConstRef      = cst.getEnumValue();
@@ -308,7 +308,7 @@ namespace
         const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
         if (dstType.isPointerLike())
         {
-            if (castCtx.isFolding())
+            if (castCtx.isConstantFolding())
                 castCtx.outConstRef = castCtx.srcConstRef;
             return Result::Continue;
         }
@@ -319,7 +319,7 @@ namespace
 
     Result castFromUndefined(Sema&, CastContext& castCtx, TypeRef, TypeRef)
     {
-        if (castCtx.isFolding())
+        if (castCtx.isConstantFolding())
             castCtx.outConstRef = castCtx.srcConstRef;
         return Result::Continue;
     }
@@ -350,7 +350,7 @@ namespace
                         return Result::Stop;
                     }
 
-                    if (castCtx.isFolding())
+                    if (castCtx.isConstantFolding())
                         castCtx.outConstRef = castCtx.srcConstRef;
                     return Result::Continue;
                 }
@@ -358,7 +358,7 @@ namespace
         }
         else if (srcTypeRef == sema.ctx().typeMgr().typeU64())
         {
-            if (castCtx.isFolding())
+            if (castCtx.isConstantFolding())
                 castCtx.outConstRef = castCtx.srcConstRef;
             return Result::Continue;
         }
@@ -369,7 +369,7 @@ namespace
 
     Result castToFromTypeInfo(Sema&, CastContext& castCtx, TypeRef, TypeRef)
     {
-        if (castCtx.isFolding())
+        if (castCtx.isConstantFolding())
             castCtx.outConstRef = castCtx.srcConstRef;
         return Result::Continue;
     }
@@ -392,7 +392,7 @@ namespace
                 return Result::Stop;
             }
 
-            if (castCtx.isFolding())
+            if (castCtx.isConstantFolding())
                 castCtx.outConstRef = castCtx.srcConstRef;
             return Result::Continue;
         }
@@ -435,7 +435,7 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
         res = castFromUndefined(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isBool() && dstType.isIntLike())
         res = castBoolToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
-    else if (srcType.isIntLike() && dstType.isBool())
+    else if ((srcType.isIntLike() || srcType.isPointer()) && dstType.isBool())
         res = castIntLikeToBool(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isIntLike() && dstType.isIntLike())
         res = castIntLikeToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
@@ -459,7 +459,7 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
         return Result::Stop;
     }
 
-    if (res == Result::Continue && castCtx.isFolding())
+    if (res == Result::Continue && castCtx.isConstantFolding())
     {
         ConstantValue resCst = sema.cstMgr().get(castCtx.outConstRef);
         if (resCst.typeRef() != dstTypeRef)

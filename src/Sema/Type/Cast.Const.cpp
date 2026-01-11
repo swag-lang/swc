@@ -1,11 +1,11 @@
 #include "pch.h"
+#include "Sema/Type/Cast.h"
 #include "Math/Helpers.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/Symbols.h"
-#include "Sema/Type/Cast.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -22,7 +22,7 @@ bool Cast::concretizeConstant(Sema& sema, ConstantRef& result, CastContext& cast
 
 void Cast::foldConstantIdentity(CastContext& castCtx)
 {
-    castCtx.setFoldOut(castCtx.foldSrc());
+    castCtx.setConstantFoldingResult(castCtx.constantFoldingSrc());
 }
 
 bool Cast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstTypeRef, const TypeInfo& dstType, const TypeInfo& srcType)
@@ -33,19 +33,19 @@ bool Cast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstType
     if (dstType.isInt())
     {
         ConstantRef newCstRef;
-        if (!concretizeConstant(sema, newCstRef, castCtx, castCtx.foldSrc(), dstType.intSign()))
+        if (!concretizeConstant(sema, newCstRef, castCtx, castCtx.constantFoldingSrc(), dstType.intSign()))
             return false;
-        castCtx.setFoldSrc(newCstRef);
+        castCtx.setConstantFoldingSrc(newCstRef);
     }
     else if (dstType.isFloat())
     {
         ConstantRef newCstRef;
-        if (!concretizeConstant(sema, newCstRef, castCtx, castCtx.foldSrc(), TypeInfo::Sign::Signed))
+        if (!concretizeConstant(sema, newCstRef, castCtx, castCtx.constantFoldingSrc(), TypeInfo::Sign::Signed))
             return false;
-        castCtx.setFoldSrc(newCstRef);
+        castCtx.setConstantFoldingSrc(newCstRef);
     }
 
-    const ConstantValue& src = sema.cstMgr().get(castCtx.foldSrc());
+    const ConstantValue& src = sema.cstMgr().get(castCtx.constantFoldingSrc());
 
     const bool srcInt   = srcType.isIntLike();
     const bool srcFloat = srcType.isFloat();
@@ -66,7 +66,7 @@ bool Cast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstType
             value.setUnsigned(dstType.isIntLikeUnsigned());
 
         const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
-        castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
+        castCtx.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
         return true;
     }
 
@@ -74,7 +74,7 @@ bool Cast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstType
     {
         const ApFloat&      value  = src.getFloat();
         const ConstantValue result = ConstantValue::makeFloat(ctx, value, dstBits);
-        castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
+        castCtx.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
         return true;
     }
 
@@ -82,7 +82,7 @@ bool Cast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstType
     {
         ApsInt              i      = Math::bitCastToApInt(src.getFloat(), dstType.isIntLikeUnsigned());
         const ConstantValue result = ConstantValue::makeFromIntLike(ctx, i, dstType);
-        castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
+        castCtx.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
         return true;
     }
 
@@ -90,7 +90,7 @@ bool Cast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstType
     {
         ApFloat             f      = Math::bitCastToApFloat(src.getIntLike(), dstBits);
         const ConstantValue result = ConstantValue::makeFloat(ctx, f, dstBits);
-        castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
+        castCtx.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
         return true;
     }
 
@@ -104,14 +104,14 @@ bool Cast::foldConstantBoolToIntLike(Sema& sema, CastContext& castCtx, TypeRef d
     const auto& ctx = sema.ctx();
 
     const TypeInfo&      dstType        = sema.typeMgr().get(dstTypeRef);
-    const ConstantValue& src            = sema.cstMgr().get(castCtx.foldSrc());
+    const ConstantValue& src            = sema.cstMgr().get(castCtx.constantFoldingSrc());
     const bool           b              = src.getBool();
     const auto           targetBits     = dstType.intLikeBits();
     const bool           targetUnsigned = dstType.isIntLikeUnsigned();
 
     const ApsInt        value(b ? 1 : 0, targetBits, targetUnsigned);
     const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
-    castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
+    castCtx.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
 
     return true;
 }
@@ -120,12 +120,12 @@ bool Cast::foldConstantIntLikeToBool(Sema& sema, CastContext& castCtx)
 {
     const auto& ctx = sema.ctx();
 
-    const ConstantValue& src   = sema.cstMgr().get(castCtx.foldSrc());
+    const ConstantValue& src   = sema.cstMgr().get(castCtx.constantFoldingSrc());
     const ApsInt         value = src.getIntLike();
     const bool           b     = !value.isZero();
 
     const ConstantValue result = ConstantValue::makeBool(ctx, b);
-    castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
+    castCtx.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
 
     return true;
 }
@@ -135,7 +135,7 @@ bool Cast::foldConstantIntLikeToIntLike(Sema& sema, CastContext& castCtx, TypeRe
     auto& ctx = sema.ctx();
 
     const TypeInfo&      dstType = sema.typeMgr().get(dstTypeRef);
-    const ConstantValue& src     = sema.cstMgr().get(castCtx.foldSrc());
+    const ConstantValue& src     = sema.cstMgr().get(castCtx.constantFoldingSrc());
     ApsInt               value   = src.getIntLike();
 
     const uint32_t targetBits     = dstType.intLikeBits();
@@ -242,7 +242,7 @@ bool Cast::foldConstantIntLikeToIntLike(Sema& sema, CastContext& castCtx, TypeRe
     }
 
     const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
-    castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
+    castCtx.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
     return true;
 }
 
@@ -251,7 +251,7 @@ bool Cast::foldConstantIntLikeToFloat(Sema& sema, CastContext& castCtx, TypeRef 
     const auto& ctx = sema.ctx();
 
     const TypeInfo&      dstType    = sema.typeMgr().get(dstTypeRef);
-    const ConstantValue& src        = sema.cstMgr().get(castCtx.foldSrc());
+    const ConstantValue& src        = sema.cstMgr().get(castCtx.constantFoldingSrc());
     const ApsInt         intVal     = src.getIntLike();
     const uint32_t       targetBits = dstType.floatBits();
 
@@ -267,7 +267,7 @@ bool Cast::foldConstantIntLikeToFloat(Sema& sema, CastContext& castCtx, TypeRef 
     }
 
     const ConstantValue result = ConstantValue::makeFloat(ctx, value, targetBits);
-    castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
+    castCtx.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
     return true;
 }
 
@@ -276,7 +276,7 @@ bool Cast::foldConstantFloatToIntLike(Sema& sema, CastContext& castCtx, TypeRef 
     const auto& ctx = sema.ctx();
 
     const TypeInfo&      dstType = sema.typeMgr().get(dstTypeRef);
-    const ConstantValue& src     = sema.cstMgr().get(castCtx.foldSrc());
+    const ConstantValue& src     = sema.cstMgr().get(castCtx.constantFoldingSrc());
     const ApFloat&       srcVal  = src.getFloat();
 
     const uint32_t targetBits = dstType.intLikeBits();
@@ -293,7 +293,7 @@ bool Cast::foldConstantFloatToIntLike(Sema& sema, CastContext& castCtx, TypeRef 
     }
 
     const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
-    castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
+    castCtx.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
     return true;
 }
 
@@ -302,7 +302,7 @@ bool Cast::foldConstantFloatToFloat(Sema& sema, CastContext& castCtx, TypeRef sr
     const auto& ctx = sema.ctx();
 
     const TypeInfo&      dstType    = sema.typeMgr().get(dstTypeRef);
-    const ConstantValue& src        = sema.cstMgr().get(castCtx.foldSrc());
+    const ConstantValue& src        = sema.cstMgr().get(castCtx.constantFoldingSrc());
     const ApFloat&       floatVal   = src.getFloat();
     const uint32_t       targetBits = dstType.floatBits();
 
@@ -317,7 +317,7 @@ bool Cast::foldConstantFloatToFloat(Sema& sema, CastContext& castCtx, TypeRef sr
     }
 
     const ConstantValue result = ConstantValue::makeFloat(ctx, value, targetBits);
-    castCtx.setFoldOut(sema.cstMgr().addConstant(ctx, result));
+    castCtx.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
     return true;
 }
 

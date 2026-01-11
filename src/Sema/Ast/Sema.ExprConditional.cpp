@@ -12,7 +12,7 @@ SWC_BEGIN_NAMESPACE();
 
 Result AstConditionalExpr::semaPostNode(Sema& sema)
 {
-    const SemaNodeView nodeCondView(sema, nodeCondRef);
+    SemaNodeView       nodeCondView(sema, nodeCondRef);
     const SemaNodeView nodeTrueView(sema, nodeTrueRef);
     const SemaNodeView nodeFalseView(sema, nodeFalseRef);
 
@@ -24,7 +24,20 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
 
     // Type-check
     if (!nodeCondView.type->isBool())
-        return SemaError::raiseBinaryOperandType(sema, *this, nodeCondRef, nodeCondView.typeRef);
+    {
+        CastContext castCtx(CastKind::Condition);
+        castCtx.errorNodeRef = nodeCondRef;
+        castCtx.setConstantFoldingSrc(nodeCondView.cstRef);
+        if (Cast::castAllowed(sema, castCtx, nodeCondView.typeRef, sema.ctx().typeMgr().typeBool()) == Result::Continue)
+        {
+            if (castCtx.constantFoldingResult().isInvalid())
+                Cast::createImplicitCast(sema, sema.ctx().typeMgr().typeBool(), nodeCondRef);
+            else
+                nodeCondView.setCstRef(sema, castCtx.constantFoldingResult());
+        }
+        else
+            return Cast::emitCastFailure(sema, castCtx.failure);
+    }
 
     TypeRef typeRef = TypeRef::invalid();
     if (nodeTrueView.typeRef == nodeFalseView.typeRef)
@@ -55,7 +68,7 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     // Constant folding
     if (nodeCondView.cstRef.isValid())
     {
-        AstNodeRef selectedBranchRef = nodeCondView.cst->getBool() ? nodeTrueRef : nodeFalseRef;
+        AstNodeRef selectedBranchRef  = nodeCondView.cst->getBool() ? nodeTrueRef : nodeFalseRef;
         const auto selectedBranchView = selectedBranchRef == nodeTrueRef ? nodeTrueView : nodeFalseView;
         if (selectedBranchView.typeRef != typeRef)
             selectedBranchRef = Cast::createImplicitCast(sema, typeRef, selectedBranchRef);
@@ -71,7 +84,7 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
             {
                 ConstantRef promotedCstRef;
                 CastContext castCtx(CastKind::Implicit);
-                castCtx.setFoldSrc(cstRef);
+                castCtx.setConstantFoldingSrc(cstRef);
                 if (Cast::castConstant(sema, promotedCstRef, castCtx, cstRef, typeRef) == Result::Continue)
                     sema.setConstant(sema.curNodeRef(), promotedCstRef);
             }

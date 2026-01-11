@@ -12,6 +12,7 @@ enum class CastKind
 {
     LiteralSuffix,
     Implicit,
+    Condition,
     Explicit,
     Promotion,
     Initialization,
@@ -53,10 +54,11 @@ struct CastContext
 
     void fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value = "", DiagnosticId note = DiagnosticId::None);
 
-    bool        isFolding() const { return srcConstRef.isValid(); }
-    ConstantRef foldSrc() const { return srcConstRef; }
-    void        setFoldSrc(ConstantRef v) { srcConstRef = v; }
-    void        setFoldOut(ConstantRef v) { outConstRef = v; }
+    bool        isConstantFolding() const { return srcConstRef.isValid(); }
+    ConstantRef constantFoldingSrc() const { return srcConstRef; }
+    ConstantRef constantFoldingResult() const { return outConstRef; }
+    void        setConstantFoldingSrc(ConstantRef v) { srcConstRef = v; }
+    void        setConstantFoldingResult(ConstantRef v) { outConstRef = v; }
 };
 
 namespace Cast

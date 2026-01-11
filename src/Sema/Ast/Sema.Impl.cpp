@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Sema/Core/Sema.h"
 #include "Parser/AstNodes.h"
+#include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/Match.h"
 #include "Sema/Symbol/Symbol.Impl.h"
@@ -14,7 +15,9 @@ Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
     if (childRef != nodeIdentRef)
         return Result::Continue;
 
-    SymbolImpl* sym = Symbol::make<SymbolImpl>(sema.ctx(), this, tokRef(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    const SemaNodeView  identView(sema, nodeIdentRef);
+    const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), identView.node->srcViewRef(), identView.node->tokRef());
+    SymbolImpl*         sym   = Symbol::make<SymbolImpl>(sema.ctx(), this, tokRef(), idRef, SymbolFlagsE::Zero);
     sema.setSymbol(sema.curNodeRef(), sym);
 
     sema.pushScope(SemaScopeFlagsE::TopLevel | SemaScopeFlagsE::Impl);
@@ -53,7 +56,6 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
         {
             if (!sym.isInterface())
                 return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_interface, nodeIdentRef);
-            symImpl.setIdRef(sym.idRef());
         }
 
         if (nodeForRef.isValid())

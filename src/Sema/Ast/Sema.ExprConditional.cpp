@@ -51,17 +51,14 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
 
         if (cstRef.isValid())
         {
+            sema.setConstant(sema.curNodeRef(), cstRef);
             const auto& cst = sema.cstMgr().get(cstRef);
-            if (cst.typeRef() == typeRef)
-            {
-                sema.setConstant(sema.curNodeRef(), cstRef);
-            }
-            else
+            if (cst.typeRef() != typeRef)
             {
                 ConstantRef promotedCstRef;
                 CastContext castCtx(CastKind::Promotion);
-                if (Cast::castConstant(sema, promotedCstRef, castCtx, cstRef, typeRef) == Result::Continue)
-                    sema.setConstant(sema.curNodeRef(), promotedCstRef);
+                RESULT_VERIFY(Cast::castConstant(sema, promotedCstRef, castCtx, cstRef, typeRef));
+                sema.setConstant(sema.curNodeRef(), promotedCstRef);
             }
         }
     }

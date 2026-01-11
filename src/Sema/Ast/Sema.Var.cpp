@@ -75,20 +75,13 @@ namespace
         {
             ConstantRef newCstRef;
             RESULT_VERIFY(ctx.cstMgr().concretizeConstant(sema, newCstRef, nodeInitView.nodeRef, nodeInitView.cstRef, TypeInfo::Sign::Unknown));
-
-            const ConstantValue& cst = sema.cstMgr().get(newCstRef);
-            if (cst.type(ctx).isInt())
-            {
-                const TypeRef newTypeRef = sema.typeMgr().promote(cst.typeRef(), cst.typeRef(), true);
-                if (newTypeRef != cst.typeRef())
-                {
-                    CastContext castCtx(CastKind::Implicit);
-                    castCtx.errorNodeRef = nodeInitRef;
-                    RESULT_VERIFY(Cast::castConstant(sema, newCstRef, castCtx, newCstRef, newTypeRef));
-                }
-            }
-
             nodeInitView.setCstRef(sema, newCstRef);
+
+            if (nodeInitView.type->isInt())
+            {
+                const TypeRef newTypeRef = sema.typeMgr().promote(nodeInitView.typeRef, nodeInitView.typeRef, true);
+                RESULT_VERIFY(Cast::cast(sema, nodeInitView, newTypeRef, CastKind::Implicit));
+            }
         }
 
         if (nodeInitRef.isValid())

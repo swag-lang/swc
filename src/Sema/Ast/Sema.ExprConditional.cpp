@@ -7,7 +7,6 @@
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaInfo.h"
 #include "Sema/Type/Cast.h"
-#include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -56,12 +55,13 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     // Constant folding
     if (nodeCondView.cstRef.isValid())
     {
-        ConstantRef cstRef = ConstantRef::invalid();
-        if (nodeCondView.cst->getBool())
-            cstRef = nodeTrueView.cstRef;
-        else
-            cstRef = nodeFalseView.cstRef;
+        AstNodeRef selectedBranchRef = nodeCondView.cst->getBool() ? nodeTrueRef : nodeFalseRef;
+        const auto selectedBranchView = selectedBranchRef == nodeTrueRef ? nodeTrueView : nodeFalseView;
+        if (selectedBranchView.typeRef != typeRef)
+            selectedBranchRef = Cast::createImplicitCast(sema, typeRef, selectedBranchRef);
+        sema.semaInfo().setSubstitute(sema.curNodeRef(), selectedBranchRef);
 
+        ConstantRef cstRef = selectedBranchView.cstRef;
         if (cstRef.isValid())
         {
             sema.setConstant(sema.curNodeRef(), cstRef);
@@ -76,6 +76,13 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
                     sema.setConstant(sema.curNodeRef(), promotedCstRef);
             }
         }
+    }
+    else
+    {
+        if (nodeTrueView.typeRef != typeRef)
+            Cast::createImplicitCast(sema, typeRef, nodeTrueRef);
+        if (nodeFalseView.typeRef != typeRef)
+            Cast::createImplicitCast(sema, typeRef, nodeFalseRef);
     }
 
     return Result::Continue;

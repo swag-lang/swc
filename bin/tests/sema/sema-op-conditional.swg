@@ -24,49 +24,21 @@
 }
 
 // Condition must be bool
-#test
-{
-    var a = 0 ? 1 : 2       // swc-expected-error {{sema_err_binary_operand_type}}
-}
-
-#test
-{
-    var b = 1.0 ? 1 : 2     // swc-expected-error {{sema_err_binary_operand_type}}
-}
-
-#test
-{
-    var c = "true" ? 1 : 2  // swc-expected-error {{sema_err_binary_operand_type}}
-}
+#test { var a = 0 ? 1 : 2 }     // swc-expected-error {{sema_err_binary_operand_type}}
+#test { var b = 1.0 ? 1 : 2 }   // swc-expected-error {{sema_err_binary_operand_type}}
+const C0 = "true" ? 1 : 2       // swc-expected-error {{sema_err_binary_operand_type}}
 
 // Incompatible types
-#test
-{
-    var a = true ? 10 : "string" // swc-expected-error {{sema_err_binary_operand_type}}
-}
-
-#test
-{
-    var b = true ? 10 : true     // swc-expected-error {{sema_err_binary_operand_type}}
-}
+#test { var a = true ? 10 : "string" }  // swc-expected-error {{sema_err_binary_operand_type}}
+const C1 = true ? 10 : true             // swc-expected-error {{sema_err_binary_operand_type}}
 
 // Branches must be values
-#test
-{
-    var a = true ? s32 : s16    // swc-expected-error {{sema_err_binary_operand_type}}
-}
-
-#test
-{
-    var b = true ? 10 : s16     // swc-expected-error {{sema_err_binary_operand_type}}
-}
+#test { var a = true ? s32 : s16 }  // swc-expected-error {{sema_err_binary_operand_type}}
+const C2 = true ? 10 : s16          // swc-expected-error {{sema_err_binary_operand_type}}
 
 // Condition must be a value
 namespace NC{}
-#test
-{
-    var a = NC ? 10 : 20      // swc-expected-error {{sema_err_not_value_expr}}
-}
+#test { var a = NC ? 10 : 20 }      // swc-expected-error {{sema_err_not_value_expr}}
 
 // Nested conditional expressions
 #assert((true ? (false ? 1 : 2) : 3) == 2)

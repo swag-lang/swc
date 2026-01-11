@@ -41,9 +41,47 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
 
 Result AstAutoScopedIdentifier::semaPostNode(Sema& sema)
 {
-    // TODO
-    sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
-    return Result::SkipChildren;
+    const auto node = sema.node(sema.curNodeRef()).cast<AstAutoScopedIdentifier>();
+
+    const auto symFunc = sema.frame().function();
+    if (!symFunc || symFunc->parameters().empty())
+        return SemaError::raise(sema, DiagnosticId::sema_err_internal, sema.curNodeRef());
+
+    const auto symMe = symFunc->parameters()[0];
+    if (symMe->idRef() != sema.idMgr().nameMe())
+        return SemaError::raise(sema, DiagnosticId::sema_err_internal, sema.curNodeRef());
+
+    const auto      typeRef  = symMe->typeRef();
+    const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+    if (!typeInfo.isPointer() || !typeInfo.underlyingTypeRef().isValid())
+        return SemaError::raise(sema, DiagnosticId::sema_err_internal, sema.curNodeRef());
+
+    const TypeInfo&  pointeeType = sema.typeMgr().get(typeInfo.underlyingTypeRef());
+    const SymbolMap* symMapHint  = nullptr;
+    if (pointeeType.isStruct())
+        symMapHint = &pointeeType.symStruct();
+    else if (pointeeType.isEnum())
+        symMapHint = &pointeeType.symEnum();
+    else if (pointeeType.isInterface())
+        symMapHint = &pointeeType.symInterface();
+
+    if (!symMapHint)
+        return SemaError::raise(sema, DiagnosticId::sema_err_internal, sema.curNodeRef());
+
+    const SemaNodeView  nodeRightView(sema, node->nodeIdentRef);
+    const TokenRef      tokNameRef = nodeRightView.node->tokRef();
+    const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), node->srcViewRef(), tokNameRef);
+
+    MatchContext lookUpCxt;
+    lookUpCxt.srcViewRef = node->srcViewRef();
+    lookUpCxt.tokRef     = tokNameRef;
+    lookUpCxt.symMapHint = symMapHint;
+
+    RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
+
+    const Symbol* symbols[2] = {symMe, lookUpCxt.first()};
+    sema.semaInfo().setSymbols(sema.curNodeRef(), symbols);
+    return Result::Continue;
 }
 
 Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)

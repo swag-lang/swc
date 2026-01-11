@@ -9,23 +9,33 @@
 // Type promotion
 #test
 {
-    const a = true ? 10's32 : 20's16
+    const a = true ? 10's16 : 20's32
     #assert(#typeof(a) == s32)
 
-
-    const b = false ? 10's32 : 20's16
+    const b = false ? 10's16 : 20's32
     #assert(#typeof(b) == s32)
     #assert(b == 20)
 
     const c = true ? 1.0'f32 : 2.0'f64
     #assert(#typeof(c) == f64)
+
+    const d = true ? 20's32 : 10's16
+    #assert(#typeof(d) == s32)
 }
 
 // Condition must be bool
 #test
 {
     var a = 0 ? 1 : 2       // swc-expected-error {{sema_err_binary_operand_type}}
+}
+
+#test
+{
     var b = 1.0 ? 1 : 2     // swc-expected-error {{sema_err_binary_operand_type}}
+}
+
+#test
+{
     var c = "true" ? 1 : 2  // swc-expected-error {{sema_err_binary_operand_type}}
 }
 
@@ -33,14 +43,22 @@
 #test
 {
     var a = true ? 10 : "string" // swc-expected-error {{sema_err_binary_operand_type}}
+}
+
+#test
+{
     var b = true ? 10 : true     // swc-expected-error {{sema_err_binary_operand_type}}
 }
 
 // Branches must be values
 #test
 {
-    var a = true ? s32 : s16    // swc-expected-error {{sema_err_not_value_expr}}
-    var b = true ? 10 : s16     // swc-expected-error {{sema_err_not_value_expr}}
+    var a = true ? s32 : s16    // swc-expected-error {{sema_err_binary_operand_type}}
+}
+
+#test
+{
+    var b = true ? 10 : s16     // swc-expected-error {{sema_err_binary_operand_type}}
 }
 
 // Condition must be a value

@@ -27,7 +27,20 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     if (!nodeCondView.type->isBool())
         return SemaError::raiseBinaryOperandType(sema, *this, nodeCondRef, nodeCondView.typeRef);
 
-    const auto typeRef = sema.typeMgr().promote(nodeTrueView.typeRef, nodeFalseView.typeRef, false);
+    TypeRef typeRef = TypeRef::invalid();
+    if (nodeTrueView.typeRef == nodeFalseView.typeRef)
+        typeRef = nodeTrueView.typeRef;
+    else
+    {
+        CastContext castCtxTrue(CastKind::Implicit);
+        CastContext castCtxFalse(CastKind::Implicit);
+
+        if (Cast::castAllowed(sema, castCtxTrue, nodeTrueView.typeRef, nodeFalseView.typeRef) == Result::Continue)
+            typeRef = nodeFalseView.typeRef;
+        else if (Cast::castAllowed(sema, castCtxFalse, nodeFalseView.typeRef, nodeTrueView.typeRef) == Result::Continue)
+            typeRef = nodeTrueView.typeRef;
+    }
+
     if (!typeRef.isValid())
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_binary_operand_type, srcViewRef(), tokRef());
@@ -51,14 +64,17 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
 
         if (cstRef.isValid())
         {
-            sema.setConstant(sema.curNodeRef(), cstRef);
-            const auto& cst = sema.cstMgr().get(cstRef);
-            if (cst.typeRef() != typeRef)
+            if (sema.cstMgr().get(cstRef).typeRef() == typeRef)
+            {
+                sema.setConstant(sema.curNodeRef(), cstRef);
+            }
+            else
             {
                 ConstantRef promotedCstRef;
-                CastContext castCtx(CastKind::Promotion);
-                RESULT_VERIFY(Cast::castConstant(sema, promotedCstRef, castCtx, cstRef, typeRef));
-                sema.setConstant(sema.curNodeRef(), promotedCstRef);
+                CastContext castCtx(CastKind::Implicit);
+                castCtx.setFoldSrc(cstRef);
+                if (Cast::castConstant(sema, promotedCstRef, castCtx, cstRef, typeRef) == Result::Continue)
+                    sema.setConstant(sema.curNodeRef(), promotedCstRef);
             }
         }
     }

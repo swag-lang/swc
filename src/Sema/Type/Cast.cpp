@@ -380,6 +380,26 @@ namespace
                 castCtx.outConstRef = castCtx.srcConstRef;
             return Result::Continue;
         }
+        else if (srcType.isArray())
+        {
+            const auto srcElemTypeRef = srcType.arrayElemTypeRef();
+            const auto dstElemTypeRef = dstType.typeRef();
+
+            if (castCtx.kind == CastKind::Explicit ||
+                srcElemTypeRef == dstElemTypeRef ||
+                dstElemTypeRef == sema.typeMgr().typeVoid())
+            {
+                if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
+                {
+                    castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+                    return Result::Stop;
+                }
+
+                if (castCtx.isConstantFolding())
+                    castCtx.outConstRef = castCtx.srcConstRef;
+                return Result::Continue;
+            }
+        }
 
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
         return Result::Stop;

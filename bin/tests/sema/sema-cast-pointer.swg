@@ -86,3 +86,22 @@
     var x2: u32
     var v2 = cast(*void) x2 // swc-expected-error {{sema_err_cannot_cast}}
 }
+
+#test
+{
+    var a: [2] s32
+    var p1: *s32 = a
+    var p2: const *s32 = a
+}
+
+#test
+{
+    var a: [2] s32
+    var p1: *s8 = a // swc-expected-error {{sema_err_cannot_cast}}
+}
+
+#test
+{
+    var a: [2] s32
+    var p1: *void = a
+}

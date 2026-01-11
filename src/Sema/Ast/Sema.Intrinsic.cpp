@@ -1,7 +1,7 @@
 #include "pch.h"
+#include "Sema/Core/Sema.h"
 #include "Parser/AstNodes.h"
 #include "Sema/Constant/ConstantManager.h"
-#include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
@@ -177,6 +177,33 @@ namespace
         SemaInfo::setIsValue(node);
         return Result::Continue;
     }
+
+    Result semaIntrinsicMakeString(Sema& sema, AstIntrinsicCallBinary& node)
+    {
+        RESULT_VERIFY(SemaCheck::isValue(sema, node.nodeArg1Ref));
+        RESULT_VERIFY(SemaCheck::isValue(sema, node.nodeArg2Ref));
+
+        const SemaNodeView nodeView1(sema, node.nodeArg1Ref);
+        const SemaNodeView nodeView2(sema, node.nodeArg2Ref);
+
+        if (!nodeView1.type->isPointer())
+            return SemaError::raiseRequestedTypeFam(sema, node.nodeArg1Ref, nodeView1.typeRef, sema.typeMgr().typePtrVoid());
+
+        if (nodeView2.typeRef != sema.typeMgr().typeU64())
+        {
+            CastContext castCtx(CastKind::Implicit);
+            if (Cast::castAllowed(sema, castCtx, nodeView2.typeRef, sema.typeMgr().typeU64()) == Result::Continue)
+                node.nodeArg2Ref = Cast::createImplicitCast(sema, sema.typeMgr().typeU64(), node.nodeArg2Ref);
+            else
+                return SemaError::raiseRequestedTypeFam(sema, node.nodeArg2Ref, nodeView2.typeRef, sema.typeMgr().typeInt(0, TypeInfo::Sign::Unknown));
+        }
+
+        TypeInfo      ty      = TypeInfo::makeString();
+        const TypeRef typeRef = sema.typeMgr().addType(ty);
+        sema.setType(sema.curNodeRef(), typeRef);
+        SemaInfo::setIsValue(node);
+        return Result::Continue;
+    }
 }
 
 Result AstIntrinsicCallBinary::semaPostNode(Sema& sema)
@@ -186,8 +213,9 @@ Result AstIntrinsicCallBinary::semaPostNode(Sema& sema)
     {
         case TokenId::IntrinsicMakeSlice:
             return semaIntrinsicMakeSlice(sema, *this);
-        case TokenId::IntrinsicMakeAny:
         case TokenId::IntrinsicMakeString:
+            return semaIntrinsicMakeString(sema, *this);
+        case TokenId::IntrinsicMakeAny:
         case TokenId::IntrinsicCVaArg:
         case TokenId::IntrinsicRealloc:
         case TokenId::IntrinsicStrCmp:

@@ -86,9 +86,8 @@ IdentifierRef IdentifierManager::addIdentifier(std::string_view name, uint32_t h
     Stats::get().numIdentifiers.fetch_add(1);
 #endif
 
-    const uint32_t localIndex = shard.store.size() / sizeof(Identifier);
+    const uint32_t localIndex = shard.store.push_back(Identifier{name});
     SWC_ASSERT(localIndex < LOCAL_MASK);
-    shard.store.push_back(Identifier{name});
 
     auto result = IdentifierRef{(shardIndex << LOCAL_BITS) | localIndex};
 #if SWC_HAS_REF_DEBUG_INFO
@@ -104,7 +103,7 @@ const Identifier& IdentifierManager::get(IdentifierRef idRef) const
     SWC_ASSERT(idRef.isValid());
     const auto shardIndex = idRef.get() >> LOCAL_BITS;
     const auto localIndex = idRef.get() & LOCAL_MASK;
-    return *shards_[shardIndex].store.ptr<Identifier>(localIndex * sizeof(Identifier));
+    return *shards_[shardIndex].store.ptr<Identifier>(localIndex);
 }
 
 SWC_END_NAMESPACE();

@@ -44,9 +44,6 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
 
     std::unique_lock lk(shard.mutex);
 
-    const uint32_t localIndex = shard.store.size() / sizeof(ConstantValue);
-    SWC_ASSERT(localIndex < LOCAL_MASK);
-
     ConstantRef result;
     if (!value.isString())
     {
@@ -54,7 +51,8 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
         if (!inserted)
             return it->second;
 
-        shard.store.push_back(value);
+        const uint32_t localIndex = shard.store.push_back(value);
+        SWC_ASSERT(localIndex < LOCAL_MASK);
         result     = ConstantRef{(shardIndex << LOCAL_BITS) | localIndex};
         it->second = result;
     }
@@ -70,7 +68,8 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
         const auto view     = std::string_view(itStr->data(), itStr->size());
         const auto strValue = ConstantValue::makeString(ctx, view);
 
-        shard.store.push_back(strValue);
+        const uint32_t localIndex = shard.store.push_back(strValue);
+        SWC_ASSERT(localIndex < LOCAL_MASK);
         result = ConstantRef{(shardIndex << LOCAL_BITS) | localIndex};
         shard.map.emplace(strValue, result);
     }
@@ -107,7 +106,7 @@ const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
     SWC_ASSERT(constantRef.isValid());
     const auto shardIndex = constantRef.get() >> LOCAL_BITS;
     const auto localIndex = constantRef.get() & LOCAL_MASK;
-    return *shards_[shardIndex].store.ptr<ConstantValue>(localIndex * sizeof(ConstantValue));
+    return *shards_[shardIndex].store.ptr<ConstantValue>(localIndex);
 }
 
 Result ConstantManager::concretizeConstant(Sema& sema, ConstantRef& result, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign)

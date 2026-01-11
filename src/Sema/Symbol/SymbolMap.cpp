@@ -202,7 +202,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
         }
 
         // Transition to big
-        bigMap_.reserve(SMALL_CAP * 2);
+        bigMap_.reserve(SMALL_CAP * 2ull);
         for (uint32_t i = 0; i < smallSize_; ++i)
             bigMap_.emplace(small_[i].key, small_[i].head);
         smallSize_ = SMALL_CAP + 1; // Mark as big

@@ -499,12 +499,13 @@ TypeRef Cast::castAllowedBothWays(Sema& sema, CastContext& castCtx, TypeRef srcT
     return TypeRef::invalid();
 }
 
-Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind)
+Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags)
 {
-    if (view.typeRef == dstTypeRef)
+    if (view.typeRef == dstTypeRef && castFlags == CastFlagsE::Zero)
         return Result::Continue;
 
     CastContext castCtx(castKind);
+    castCtx.flags        = castFlags;
     castCtx.errorNodeRef = view.nodeRef;
     castCtx.setConstantFoldingSrc(view.cstRef);
     if (castAllowed(sema, castCtx, view.typeRef, dstTypeRef) == Result::Continue)
@@ -512,7 +513,10 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
         if (castCtx.constantFoldingResult().isInvalid())
             view.nodeRef = createImplicitCast(sema, dstTypeRef, view.nodeRef);
         else
+        {
             view.setCstRef(sema, castCtx.constantFoldingResult());
+            sema.setConstant(view.nodeRef, castCtx.constantFoldingResult());
+        }
         return Result::Continue;
     }
 

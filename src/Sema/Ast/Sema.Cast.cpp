@@ -59,40 +59,25 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
 Result AstExplicitCastExpr::semaPostNode(Sema& sema)
 {
     const SemaNodeView nodeTypeView(sema, nodeTypeRef);
-    const SemaNodeView nodeExprView(sema, nodeExprRef);
 
     // Value-check
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprRef));
-    SemaInfo::setIsValue(*this);
 
     // Check cast modifiers
     RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst));
 
     // Cast kind
-    CastContext castCtx(CastKind::Explicit);
+    CastFlags castFlags = CastFlagsE::Zero;
     if (modifierFlags.has(AstModifierFlagsE::Bit))
-        castCtx.flags.add(CastFlagsE::BitCast);
+        castFlags.add(CastFlagsE::BitCast);
     if (modifierFlags.has(AstModifierFlagsE::UnConst))
-        castCtx.flags.add(CastFlagsE::UnConst);
-    castCtx.errorNodeRef = nodeTypeView.nodeRef;
+        castFlags.add(CastFlagsE::UnConst);
 
-    // Update constant
-    if (sema.hasConstant(nodeExprRef))
-    {
-        ConstantRef cstRef;
-        RESULT_VERIFY(Cast::castConstant(sema, cstRef, castCtx, nodeExprView.cstRef, nodeTypeView.typeRef));
-        sema.setConstant(sema.curNodeRef(), cstRef);
-        return Result::Continue;
-    }
+    SemaNodeView nodeExprView(sema, nodeExprRef);
+    RESULT_VERIFY(Cast::cast(sema, nodeExprView, nodeTypeView.typeRef, CastKind::Explicit, castFlags));
+    sema.semaInherit(*this, nodeExprView.nodeRef);
+    SemaInfo::setIsValue(*this);
 
-    if (const auto res = Cast::castAllowed(sema, castCtx, nodeExprView.typeRef, nodeTypeView.typeRef); res != Result::Continue)
-    {
-        if (res == Result::Stop)
-            return Cast::emitCastFailure(sema, castCtx.failure);
-        return res;
-    }
-
-    sema.setType(sema.curNodeRef(), nodeTypeView.typeRef);
     return Result::Continue;
 }
 

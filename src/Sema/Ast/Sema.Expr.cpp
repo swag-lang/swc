@@ -55,10 +55,8 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     const SemaNodeView nodeRightView(sema, nodeRightRef);
     TokenRef           tokNameRef;
 
-    if (nodeRightView.node->is(AstNodeId::Identifier))
-        tokNameRef = nodeRightView.node->tokRef();
-    else
-        SWC_UNREACHABLE();
+    SWC_ASSERT(nodeRightView.node->is(AstNodeId::Identifier));
+    tokNameRef = nodeRightView.node->tokRef();
 
     const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
 

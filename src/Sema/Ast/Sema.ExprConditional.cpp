@@ -6,6 +6,7 @@
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaInfo.h"
+#include "Sema/Type/Cast.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -42,15 +43,26 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     // Constant folding
     if (nodeCondView.cstRef.isValid())
     {
+        ConstantRef cstRef = ConstantRef::invalid();
         if (nodeCondView.cst->getBool())
-        {
-            if (nodeTrueView.cstRef.isValid())
-                sema.setConstant(sema.curNodeRef(), nodeTrueView.cstRef);
-        }
+            cstRef = nodeTrueView.cstRef;
         else
+            cstRef = nodeFalseView.cstRef;
+
+        if (cstRef.isValid())
         {
-            if (nodeFalseView.cstRef.isValid())
-                sema.setConstant(sema.curNodeRef(), nodeFalseView.cstRef);
+            const auto& cst = sema.cstMgr().get(cstRef);
+            if (cst.typeRef() == typeRef)
+            {
+                sema.setConstant(sema.curNodeRef(), cstRef);
+            }
+            else
+            {
+                ConstantRef promotedCstRef;
+                CastContext castCtx(CastKind::Promotion);
+                if (Cast::castConstant(sema, promotedCstRef, castCtx, cstRef, typeRef) == Result::Continue)
+                    sema.setConstant(sema.curNodeRef(), promotedCstRef);
+            }
         }
     }
 

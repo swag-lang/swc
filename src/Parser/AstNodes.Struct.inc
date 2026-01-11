@@ -559,7 +559,8 @@ struct AstConditionalExpr : AstNodeT<AstNodeId::ConditionalExpr>
     AstNodeRef nodeTrueRef;
     AstNodeRef nodeFalseRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeCondRef, nodeTrueRef, nodeFalseRef}); }
+    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeCondRef, nodeTrueRef, nodeFalseRef}); }
+    Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

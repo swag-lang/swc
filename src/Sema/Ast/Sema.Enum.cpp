@@ -138,8 +138,8 @@ Result AstEnumDecl::semaPostNode(Sema& sema) const
 
 Result AstEnumValue::semaPostNode(Sema& sema) const
 {
-    auto&              ctx = sema.ctx();
-    const SemaNodeView nodeInitView(sema, nodeInitRef);
+    auto&        ctx = sema.ctx();
+    SemaNodeView nodeInitView(sema, nodeInitRef);
 
     SymbolEnum&     symEnum           = sema.curSymMap()->cast<SymbolEnum>();
     const TypeRef   underlyingTypeRef = symEnum.underlyingTypeRef();
@@ -153,9 +153,8 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
             return SemaError::raiseExprNotConst(sema, nodeInitRef);
 
         // Cast initializer constant to the underlying type
-        CastContext castCtx(CastKind::Initialization);
-        castCtx.errorNodeRef = nodeInitRef;
-        RESULT_VERIFY(Cast::castConstant(sema, valueCst, castCtx, nodeInitView.cstRef, underlyingTypeRef));
+        RESULT_VERIFY(Cast::cast(sema, nodeInitView, underlyingTypeRef, CastKind::Initialization));
+        valueCst = nodeInitView.cstRef;
         if (underlyingType.isInt())
         {
             const ConstantValue& cstVal = sema.cstMgr().get(valueCst);

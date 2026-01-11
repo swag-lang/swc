@@ -19,3 +19,10 @@ func T1(a0, b0: s32)->s32
     let c = a0
     return c
 }
+
+#test
+{
+    F1(1)
+}
+
+func F1(x: s32) {}

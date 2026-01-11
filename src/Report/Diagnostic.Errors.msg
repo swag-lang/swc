@@ -140,3 +140,6 @@ SWC_DIAG_DEF(sema_err_impl_not_struct, Error, "expected a struct implementation 
 SWC_DIAG_DEF(sema_err_impl_not_enum, Error, "expected an enum implementation block, but {sym} is {a-sym-fam}")
 SWC_DIAG_DEF(sema_err_impl_not_interface, Error, "expected an interface implementation block, but {sym} is {a-sym-fam}")
 SWC_DIAG_DEF(sema_err_interface_already_implemented, Error, "the interface {sym} is already implemented for struct {what}")
+SWC_DIAG_DEF(sema_err_too_many_arguments, Error, "too many arguments for function call; expected {count}, but got {value}")
+SWC_DIAG_DEF(sema_err_too_few_arguments, Error, "too few arguments for function call; expected {count}, but got {value}")
+SWC_DIAG_DEF(sema_err_not_callable, Error, "cannot call {sym}; the expression has type {type}")

@@ -26,11 +26,12 @@ public:
     {
     }
 
-    TypeRef                       returnType() const { return returnType_; }
-    void                          setReturnType(TypeRef typeRef) { returnType_ = typeRef; }
-    std::vector<SymbolVariable*>& parameters() { return parameters_; }
-    void                          addParameter(SymbolVariable* sym) { parameters_.push_back(sym); }
-    Utf8                          computeName(const TaskContext& ctx) const;
+    TypeRef                             returnType() const { return returnType_; }
+    void                                setReturnType(TypeRef typeRef) { returnType_ = typeRef; }
+    const std::vector<SymbolVariable*>& parameters() const { return parameters_; }
+    std::vector<SymbolVariable*>&       parameters() { return parameters_; }
+    void                                addParameter(SymbolVariable* sym) { parameters_.push_back(sym); }
+    Utf8                                computeName(const TaskContext& ctx) const;
 
     SymbolFunctionFlags funcFlags() const noexcept { return funcFlags_; }
     bool                hasFuncFlag(SymbolFunctionFlagsE flag) const noexcept { return funcFlags_.has(flag); }

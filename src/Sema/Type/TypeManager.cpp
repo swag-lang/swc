@@ -123,9 +123,8 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
     Stats::get().memTypes.fetch_add(sizeof(TypeInfo), std::memory_order_relaxed);
 #endif
 
-    const uint32_t localIndex = shard.store.size() / sizeof(TypeInfo);
+    const uint32_t localIndex = shard.store.push_back(typeInfo);
     SWC_ASSERT(localIndex < LOCAL_MASK);
-    shard.store.push_back(typeInfo);
 
     auto result = TypeRef{(shardIndex << LOCAL_BITS) | localIndex};
 #if SWC_HAS_REF_DEBUG_INFO
@@ -141,7 +140,7 @@ const TypeInfo& TypeManager::get(TypeRef typeRef) const
     SWC_ASSERT(typeRef.isValid());
     const auto shardIndex = typeRef.get() >> LOCAL_BITS;
     const auto localIndex = typeRef.get() & LOCAL_MASK;
-    return *shards_[shardIndex].store.ptr<TypeInfo>(localIndex * sizeof(TypeInfo));
+    return *shards_[shardIndex].store.ptr<TypeInfo>(localIndex);
 }
 
 TypeRef TypeManager::promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const

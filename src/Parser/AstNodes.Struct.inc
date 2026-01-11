@@ -426,7 +426,7 @@ struct AstCallExpr : AstCompoundT<AstNodeId::CallExpr>
         AstCompoundT::collectChildren(out, ast);
     }
 
-    static Result semaPostNode(Sema& sema);
+    Result semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

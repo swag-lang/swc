@@ -2,11 +2,13 @@
 #include "Sema/Core/Sema.h"
 #include "Parser/AstNodes.h"
 #include "Sema/Constant/ConstantManager.h"
+#include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaHelpers.h"
 #include "Sema/Symbol/Symbol.Impl.h"
 #include "Sema/Symbol/Symbols.h"
+#include "Sema/Type/Cast.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -93,8 +95,6 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     else if (childRef == nodeBodyRef)
     {
         SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
-        RESULT_VERIFY(SemaCheck::checkSignature(sema, sym.parameters(), false));
-        sym.setTyped(sema.ctx());
         sema.pushScope(SemaScopeFlagsE::Local);
         sema.curScope().setSymMap(&sym);
         return Result::SkipChildren; // TODO
@@ -105,8 +105,28 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
 
 Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef == nodeParamsRef || childRef == nodeBodyRef)
+    if (childRef == nodeReturnTypeRef || (childRef == nodeParamsRef && nodeReturnTypeRef.isInvalid()))
+    {
+        SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+
+        TypeRef returnType = sema.typeMgr().typeVoid();
+        if (nodeReturnTypeRef.isValid())
+            returnType = sema.typeRefOf(nodeReturnTypeRef);
+        sym.setReturnType(returnType);
+
+        const TypeInfo ti      = TypeInfo::makeFunction(&sym, TypeInfoFlagsE::Zero);
+        const TypeRef  typeRef = sema.typeMgr().addType(ti);
+        sym.setTypeRef(typeRef);
+
+        RESULT_VERIFY(SemaCheck::checkSignature(sema, sym.parameters(), false));
+        sym.setTyped(sema.ctx());
         sema.popScope();
+    }
+    else if (childRef == nodeBodyRef)
+    {
+        sema.popScope();
+    }
+
     return Result::Continue;
 }
 
@@ -118,11 +138,63 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
-Result AstCallExpr::semaPostNode(Sema& sema)
+Result AstCallExpr::semaPostNode(Sema& sema) const
 {
-    // TODO
-    sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
-    return Result::SkipChildren;
+    SemaNodeView nodeCallee(sema, nodeExprRef);
+
+    if (!nodeCallee.type || !nodeCallee.type->isFunction())
+    {
+        auto        diag    = SemaError::report(sema, DiagnosticId::sema_err_not_callable, nodeExprRef);
+        const auto& srcView = sema.srcView(nodeCallee.node->srcViewRef());
+        diag.addArgument(Diagnostic::ARG_SYM, srcView.token(nodeCallee.node->tokRef()).string(srcView));
+        diag.addArgument(Diagnostic::ARG_TYPE, nodeCallee.type ? nodeCallee.type->toName(sema.ctx()) : "invalid type");
+        diag.report(sema.ctx());
+        return Result::Stop;
+    }
+
+    const auto& symFunc    = nodeCallee.type->symFunction();
+    const auto& parameters = symFunc.parameters();
+
+    SmallVector<AstNodeRef> children;
+    collectChildren(children, sema.ast());
+    const uint32_t numArgs   = static_cast<uint32_t>(children.size() - 1);
+    const uint32_t numParams = static_cast<uint32_t>(parameters.size());
+
+    if (numArgs > numParams)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_too_many_arguments, sema.curNodeRef());
+        diag.addArgument(Diagnostic::ARG_COUNT, std::to_string(numParams));
+        diag.addArgument(Diagnostic::ARG_VALUE, std::to_string(numArgs));
+        diag.report(sema.ctx());
+        return Result::Stop;
+    }
+
+    for (uint32_t i = 0; i < numParams; ++i)
+    {
+        if (i < numArgs)
+        {
+            const AstNodeRef argRef = children[i + 1];
+            SemaNodeView     argView(sema, argRef);
+            RESULT_VERIFY(Cast::cast(sema, argView, parameters[i]->typeRef(), CastKind::Implicit));
+        }
+        else
+        {
+            const auto paramDecl = parameters[i]->decl()->cast<AstVarDecl>();
+            if (!paramDecl->nodeInitRef.isValid())
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_too_few_arguments, sema.curNodeRef());
+                diag.addArgument(Diagnostic::ARG_COUNT, std::to_string(numParams));
+                diag.addArgument(Diagnostic::ARG_VALUE, std::to_string(numArgs));
+                diag.report(sema.ctx());
+                return Result::Stop;
+            }
+        }
+    }
+
+    sema.setType(sema.curNodeRef(), symFunc.returnType());
+    SemaInfo::setIsValue(sema.node(sema.curNodeRef()));
+
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

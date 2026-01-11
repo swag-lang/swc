@@ -63,10 +63,11 @@ struct CastContext
 
 namespace Cast
 {
-    Result castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef);
-    Result cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind);
-    Result emitCastFailure(Sema& sema, const CastFailure& f);
-    bool   concretizeConstant(Sema& sema, ConstantRef& result, CastContext& castCtx, ConstantRef cstRef, TypeInfo::Sign hintSign);
+    Result  castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef);
+    TypeRef castAllowedBothWays(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef);
+    Result  cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind);
+    Result  emitCastFailure(Sema& sema, const CastFailure& f);
+    bool    concretizeConstant(Sema& sema, ConstantRef& result, CastContext& castCtx, ConstantRef cstRef, TypeInfo::Sign hintSign);
 
     void foldConstantIdentity(CastContext& castCtx);
     bool foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstTypeRef, const TypeInfo& dstType, const TypeInfo& srcType);

@@ -473,6 +473,15 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
     return res;
 }
 
+TypeRef Cast::castAllowedBothWays(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+{
+    if (castAllowed(sema, castCtx, srcTypeRef, dstTypeRef) == Result::Continue)
+        return dstTypeRef;
+    if (castAllowed(sema, castCtx, dstTypeRef, srcTypeRef) == Result::Continue)
+        return srcTypeRef;
+    return TypeRef::invalid();
+}
+
 Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind)
 {
     if (view.typeRef == dstTypeRef)

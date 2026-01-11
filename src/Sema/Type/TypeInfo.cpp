@@ -879,6 +879,7 @@ TypeRef TypeInfo::ultimateTypeRef(const TaskContext& ctx) const noexcept
     return result;
 }
 
+// ReSharper disable once CppPossiblyUninitializedMember
 TypeInfo::TypeInfo(TypeInfoKind kind, TypeInfoFlags flags) :
     kind_(kind),
     flags_(flags)

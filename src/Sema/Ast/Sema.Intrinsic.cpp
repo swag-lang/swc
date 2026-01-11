@@ -52,7 +52,7 @@ namespace
         SemaInfo::setIsValue(node);
         return Result::Continue;
     }
-};
+}
 
 Result AstIntrinsicCallZero::semaPostNode(Sema& sema)
 {
@@ -153,7 +153,6 @@ namespace
         RESULT_VERIFY(SemaCheck::isValue(sema, node.nodeArg1Ref));
         RESULT_VERIFY(SemaCheck::isValue(sema, node.nodeArg2Ref));
 
-        auto&              ctx = sema.ctx();
         const SemaNodeView nodeView1(sema, node.nodeArg1Ref);
         const SemaNodeView nodeView2(sema, node.nodeArg2Ref);
 

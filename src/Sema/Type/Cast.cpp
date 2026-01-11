@@ -317,7 +317,7 @@ namespace
         return Result::Stop;
     }
 
-    Result castFromUndefined(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    Result castFromUndefined(Sema&, CastContext& castCtx, TypeRef, TypeRef)
     {
         if (castCtx.isFolding())
             castCtx.outConstRef = castCtx.srcConstRef;
@@ -367,7 +367,7 @@ namespace
         return Result::Stop;
     }
 
-    Result castToFromTypeInfo(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    Result castToFromTypeInfo(Sema&, CastContext& castCtx, TypeRef, TypeRef)
     {
         if (castCtx.isFolding())
             castCtx.outConstRef = castCtx.srcConstRef;

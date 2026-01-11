@@ -5,8 +5,6 @@
 #include "Sema/Core/Sema.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/MatchContext.h"
-#include "Sema/Symbol/Symbol.Enum.h"
-#include "Sema/Symbol/Symbol.Struct.h"
 
 SWC_BEGIN_NAMESPACE();
 

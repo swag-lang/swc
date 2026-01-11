@@ -103,9 +103,9 @@ namespace
 
 AstNodeRef Parser::parseSubType()
 {
-    EnumFlags<AstQualifiedTypeFlagsE> qualifiers  = AstQualifiedTypeFlagsE::Zero;
-    uint8_t                           lastOrder   = 0;
-    const TokenRef                    firstTokRef = ref();
+    EnumFlags      qualifiers  = AstQualifiedTypeFlagsE::Zero;
+    uint8_t        lastOrder   = 0;
+    const TokenRef firstTokRef = ref();
 
     // Consume all leading qualifiers in order, diagnose duplicates / mis-ordering.
     for (;;)
@@ -324,8 +324,8 @@ AstNodeRef Parser::parseLambdaParam()
 
 AstNodeRef Parser::parseLambdaType()
 {
-    EnumFlags<AstFunctionFlagsE> flags    = AstFunctionFlagsE::Zero;
-    const auto                   tokStart = ref();
+    EnumFlags  flags    = AstFunctionFlagsE::Zero;
+    const auto tokStart = ref();
 
     if (consumeIf(TokenId::KwdMtd).isValid())
         flags.add(AstFunctionFlagsE::Method);

@@ -51,7 +51,7 @@ namespace
         Cast::convertEnumToUnderlying(sema, self);
     }
 
-    void nullForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
+    void nullForEquality(Sema& sema, const SemaNodeView& self, const SemaNodeView& other)
     {
         if (!self.type->isNull())
             return;

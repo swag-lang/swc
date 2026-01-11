@@ -55,7 +55,7 @@ AstNodeRef Parser::parseGenericParam()
 
 AstNodeRef Parser::parseVarDeclDecomposition()
 {
-    EnumFlags<AstVarDeclFlagsE> flags = AstVarDeclFlagsE::Zero;
+    EnumFlags flags = AstVarDeclFlagsE::Zero;
     if (consumeIf(TokenId::KwdConst).isValid())
         flags.add(AstVarDeclFlagsE::Const);
     else if (consumeIf(TokenId::KwdVar).isValid())
@@ -106,8 +106,8 @@ AstNodeRef Parser::parseVarDeclDecomposition()
 
 AstNodeRef Parser::parseVarDecl()
 {
-    EnumFlags<AstVarDeclFlagsE> flags    = AstVarDeclFlagsE::Zero;
-    const TokenRef              tokStart = ref();
+    EnumFlags      flags    = AstVarDeclFlagsE::Zero;
+    const TokenRef tokStart = ref();
     if (consumeIf(TokenId::KwdConst).isValid())
         flags.add(AstVarDeclFlagsE::Const);
     else if (consumeIf(TokenId::KwdVar).isValid())

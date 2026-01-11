@@ -8,7 +8,6 @@ namespace Runtime
     {
         Windows,
         Linux,
-        MaxOSX,
     };
 
     struct TypeInfo;

@@ -24,20 +24,7 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
 
     // Type-check
     if (!nodeCondView.type->isBool())
-    {
-        CastContext castCtx(CastKind::Condition);
-        castCtx.errorNodeRef = nodeCondRef;
-        castCtx.setConstantFoldingSrc(nodeCondView.cstRef);
-        if (Cast::castAllowed(sema, castCtx, nodeCondView.typeRef, sema.ctx().typeMgr().typeBool()) == Result::Continue)
-        {
-            if (castCtx.constantFoldingResult().isInvalid())
-                Cast::createImplicitCast(sema, sema.ctx().typeMgr().typeBool(), nodeCondRef);
-            else
-                nodeCondView.setCstRef(sema, castCtx.constantFoldingResult());
-        }
-        else
-            return Cast::emitCastFailure(sema, castCtx.failure);
-    }
+        RESULT_VERIFY(Cast::cast(sema, nodeCondView, sema.ctx().typeMgr().typeBool(), CastKind::Condition));
 
     TypeRef typeRef = TypeRef::invalid();
     if (nodeTrueView.typeRef == nodeFalseView.typeRef)

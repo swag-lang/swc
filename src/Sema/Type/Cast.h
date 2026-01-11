@@ -64,6 +64,7 @@ struct CastContext
 namespace Cast
 {
     Result castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef);
+    Result cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind);
     Result emitCastFailure(Sema& sema, const CastFailure& f);
     bool   concretizeConstant(Sema& sema, ConstantRef& result, CastContext& castCtx, ConstantRef cstRef, TypeInfo::Sign hintSign);
 

@@ -4,6 +4,7 @@
 #include "Report/Diagnostic.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/Sema.h"
+#include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/TypeManager.h"
@@ -470,6 +471,23 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
     }
 
     return res;
+}
+
+Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind)
+{
+    CastContext castCtx(castKind);
+    castCtx.errorNodeRef = view.nodeRef;
+    castCtx.setConstantFoldingSrc(view.cstRef);
+    if (castAllowed(sema, castCtx, view.typeRef, dstTypeRef) == Result::Continue)
+    {
+        if (castCtx.constantFoldingResult().isInvalid())
+            createImplicitCast(sema, dstTypeRef, view.nodeRef);
+        else
+            view.setCstRef(sema, castCtx.constantFoldingResult());
+        return Result::Continue;
+    }
+
+    return emitCastFailure(sema, castCtx.failure);
 }
 
 Result Cast::emitCastFailure(Sema& sema, const CastFailure& f)

@@ -148,58 +148,40 @@ Result AstIntrinsicCallUnary::semaPostNode(Sema& sema)
 
 namespace
 {
-    Result semaIntrinsicMakeSlice(Sema& sema, AstIntrinsicCallBinary& node)
+    Result semaIntrinsicMakeSlice(Sema& sema, AstIntrinsicCallBinary& node, bool forString)
     {
         RESULT_VERIFY(SemaCheck::isValue(sema, node.nodeArg1Ref));
         RESULT_VERIFY(SemaCheck::isValue(sema, node.nodeArg2Ref));
 
-        const SemaNodeView nodeView1(sema, node.nodeArg1Ref);
-        const SemaNodeView nodeView2(sema, node.nodeArg2Ref);
+        const SemaNodeView nodeViewPtr(sema, node.nodeArg1Ref);
+        const SemaNodeView nodeViewSize(sema, node.nodeArg2Ref);
 
-        if (!nodeView1.type->isPointer())
-            return SemaError::raiseRequestedTypeFam(sema, node.nodeArg1Ref, nodeView1.typeRef, sema.typeMgr().typePtrVoid());
+        if (!nodeViewPtr.type->isPointer())
+            return SemaError::raiseRequestedTypeFam(sema, node.nodeArg1Ref, nodeViewPtr.typeRef, sema.typeMgr().typePtrVoid());
 
-        if (nodeView2.typeRef != sema.typeMgr().typeU64())
+        if (nodeViewSize.typeRef != sema.typeMgr().typeU64())
         {
             CastContext castCtx(CastKind::Implicit);
-            if (Cast::castAllowed(sema, castCtx, nodeView2.typeRef, sema.typeMgr().typeU64()) == Result::Continue)
+            if (Cast::castAllowed(sema, castCtx, nodeViewSize.typeRef, sema.typeMgr().typeU64()) == Result::Continue)
                 node.nodeArg2Ref = Cast::createImplicitCast(sema, sema.typeMgr().typeU64(), node.nodeArg2Ref);
             else
-                return SemaError::raiseRequestedTypeFam(sema, node.nodeArg2Ref, nodeView2.typeRef, sema.typeMgr().typeInt(0, TypeInfo::Sign::Unknown));
+                return SemaError::raiseRequestedTypeFam(sema, node.nodeArg2Ref, nodeViewSize.typeRef, sema.typeMgr().typeInt(0, TypeInfo::Sign::Unknown));
         }
 
-        TypeInfo ty = TypeInfo::makeSlice(nodeView1.type->typeRef());
-        if (nodeView1.type->isConst())
-            ty.addFlag(TypeInfoFlagsE::Const);
-
-        const TypeRef typeRef = sema.typeMgr().addType(ty);
-        sema.setType(sema.curNodeRef(), typeRef);
-        SemaInfo::setIsValue(node);
-        return Result::Continue;
-    }
-
-    Result semaIntrinsicMakeString(Sema& sema, AstIntrinsicCallBinary& node)
-    {
-        RESULT_VERIFY(SemaCheck::isValue(sema, node.nodeArg1Ref));
-        RESULT_VERIFY(SemaCheck::isValue(sema, node.nodeArg2Ref));
-
-        const SemaNodeView nodeView1(sema, node.nodeArg1Ref);
-        const SemaNodeView nodeView2(sema, node.nodeArg2Ref);
-
-        if (!nodeView1.type->isPointer())
-            return SemaError::raiseRequestedTypeFam(sema, node.nodeArg1Ref, nodeView1.typeRef, sema.typeMgr().typePtrVoid());
-
-        if (nodeView2.typeRef != sema.typeMgr().typeU64())
+        TypeRef typeRef;
+        if (forString)
         {
-            CastContext castCtx(CastKind::Implicit);
-            if (Cast::castAllowed(sema, castCtx, nodeView2.typeRef, sema.typeMgr().typeU64()) == Result::Continue)
-                node.nodeArg2Ref = Cast::createImplicitCast(sema, sema.typeMgr().typeU64(), node.nodeArg2Ref);
-            else
-                return SemaError::raiseRequestedTypeFam(sema, node.nodeArg2Ref, nodeView2.typeRef, sema.typeMgr().typeInt(0, TypeInfo::Sign::Unknown));
+            TypeInfo ty = TypeInfo::makeString();
+            typeRef     = sema.typeMgr().addType(ty);
+        }
+        else
+        {
+            TypeInfo ty = TypeInfo::makeSlice(nodeViewPtr.type->typeRef());
+            if (nodeViewPtr.type->isConst())
+                ty.addFlag(TypeInfoFlagsE::Const);
+            typeRef = sema.typeMgr().addType(ty);
         }
 
-        TypeInfo      ty      = TypeInfo::makeString();
-        const TypeRef typeRef = sema.typeMgr().addType(ty);
         sema.setType(sema.curNodeRef(), typeRef);
         SemaInfo::setIsValue(node);
         return Result::Continue;
@@ -212,9 +194,9 @@ Result AstIntrinsicCallBinary::semaPostNode(Sema& sema)
     switch (tok.id)
     {
         case TokenId::IntrinsicMakeSlice:
-            return semaIntrinsicMakeSlice(sema, *this);
+            return semaIntrinsicMakeSlice(sema, *this, false);
         case TokenId::IntrinsicMakeString:
-            return semaIntrinsicMakeString(sema, *this);
+            return semaIntrinsicMakeSlice(sema, *this, true);
         case TokenId::IntrinsicMakeAny:
         case TokenId::IntrinsicCVaArg:
         case TokenId::IntrinsicRealloc:

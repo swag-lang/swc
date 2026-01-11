@@ -339,6 +339,13 @@ Result Cast::castConstant(Sema& sema, ConstantRef& result, CastContext& castCtx,
     return Result::Continue;
 }
 
+Result Cast::castConstant(Sema& sema, ConstantRef& result, ConstantRef cstRef, TypeRef targetTypeRef, AstNodeRef errorNodeRef, CastKind castKind)
+{
+    CastContext castCtx(castKind);
+    castCtx.errorNodeRef = errorNodeRef;
+    return castConstant(sema, result, castCtx, cstRef, targetTypeRef);
+}
+
 Result Cast::promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView, ConstantRef& leftCstRef, ConstantRef& rightCstRef, bool force32BitInts)
 {
     TypeRef leftTypeRef  = nodeLeftView.typeRef;
@@ -375,14 +382,8 @@ Result Cast::promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, cons
     }
 
     const TypeRef promotedTypeRef = sema.typeMgr().promote(leftTypeRef, rightTypeRef, force32BitInts);
-
-    CastContext leftCastCtx(CastKind::Promotion);
-    leftCastCtx.errorNodeRef = nodeLeftView.nodeRef;
-    RESULT_VERIFY(castConstant(sema, leftCstRef, leftCastCtx, leftCstRef, promotedTypeRef));
-
-    CastContext rightCastCtx(CastKind::Promotion);
-    rightCastCtx.errorNodeRef = nodeRightView.nodeRef;
-    RESULT_VERIFY(castConstant(sema, rightCstRef, rightCastCtx, rightCstRef, promotedTypeRef));
+    RESULT_VERIFY(castConstant(sema, leftCstRef, leftCstRef, promotedTypeRef, nodeLeftView.nodeRef, CastKind::Promotion));
+    RESULT_VERIFY(castConstant(sema, rightCstRef, rightCstRef, promotedTypeRef, nodeRightView.nodeRef, CastKind::Promotion));
 
     return Result::Continue;
 }

@@ -98,11 +98,6 @@ namespace
             if (nodeInitView.cstRef.isInvalid())
                 return SemaError::raiseExprNotConst(sema, nodeInitRef);
 
-            if (nodeTypeRef.isValid() && nodeTypeView.typeRef.isValid())
-            {
-                RESULT_VERIFY(Cast::cast(sema, nodeInitView, nodeTypeView.typeRef, CastKind::Initialization));
-            }
-
             completeConst(sema, syms, nodeInitView.cstRef, nodeInitView.typeRef);
             return Result::Continue;
         }

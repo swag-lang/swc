@@ -30,10 +30,7 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     if (nodeTrueView.typeRef == nodeFalseView.typeRef)
         typeRef = nodeTrueView.typeRef;
     else
-    {
-        CastContext castCtx(CastKind::Implicit);
-        typeRef = Cast::castAllowedBothWays(sema, castCtx, nodeTrueView.typeRef, nodeFalseView.typeRef);
-    }
+        typeRef = Cast::castAllowedBothWays(sema, nodeTrueView.typeRef, nodeFalseView.typeRef);
 
     if (!typeRef.isValid())
     {

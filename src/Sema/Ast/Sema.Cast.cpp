@@ -15,9 +15,6 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
 
     SWC_ASSERT(sema.hasConstant(nodeLiteralRef));
 
-    CastContext castCtx(CastKind::LiteralSuffix);
-    castCtx.errorNodeRef = nodeLiteralRef;
-
     ConstantRef cstRef = sema.constantRefOf(nodeLiteralRef);
 
     // Special case for negation: we need to negate before casting, in order for -128's8 to compile, for example.
@@ -49,9 +46,10 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
         }
     }
 
-    ConstantRef newCstRef;
-    RESULT_VERIFY(Cast::castConstant(sema, newCstRef, castCtx, cstRef, typeRef));
-    sema.setConstant(sema.curNodeRef(), newCstRef);
+    SemaNodeView nodeLiteralView(sema, nodeLiteralRef);
+    nodeLiteralView.setCstRef(sema, cstRef);
+    RESULT_VERIFY(Cast::cast(sema, nodeLiteralView, typeRef, CastKind::LiteralSuffix));
+    sema.setConstant(sema.curNodeRef(), nodeLiteralView.cstRef);
 
     return Result::Continue;
 }

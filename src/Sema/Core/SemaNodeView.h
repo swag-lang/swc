@@ -40,6 +40,8 @@ struct SemaNodeView
 
     void setCstRef(Sema& sema, ConstantRef cstRef)
     {
+        if (this->cstRef == cstRef)
+            return;
         this->cstRef = cstRef;
         cst          = &sema.cstMgr().get(cstRef);
         typeRef      = cst->typeRef();

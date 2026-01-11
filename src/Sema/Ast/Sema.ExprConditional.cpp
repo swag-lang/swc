@@ -54,34 +54,19 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     // Constant folding
     if (nodeCondView.cstRef.isValid())
     {
-        AstNodeRef selectedBranchRef  = nodeCondView.cst->getBool() ? nodeTrueRef : nodeFalseRef;
-        const auto selectedBranchView = selectedBranchRef == nodeTrueRef ? nodeTrueView : nodeFalseView;
-        if (selectedBranchView.typeRef != typeRef)
-            selectedBranchRef = Cast::createImplicitCast(sema, typeRef, selectedBranchRef);
-        sema.semaInfo().setSubstitute(sema.curNodeRef(), selectedBranchRef);
-
-        ConstantRef cstRef = selectedBranchView.cstRef;
-        if (cstRef.isValid())
-        {
-            sema.setConstant(sema.curNodeRef(), cstRef);
-
-            const ConstantValue& cst = sema.cstMgr().get(cstRef);
-            if (cst.typeRef() != typeRef)
-            {
-                ConstantRef promotedCstRef;
-                CastContext castCtx(CastKind::Implicit);
-                castCtx.setConstantFoldingSrc(cstRef);
-                if (Cast::castConstant(sema, promotedCstRef, castCtx, cstRef, typeRef) == Result::Continue)
-                    sema.setConstant(sema.curNodeRef(), promotedCstRef);
-            }
-        }
+        AstNodeRef   selectedBranchRef = nodeCondView.cst->getBool() ? nodeTrueRef : nodeFalseRef;
+        SemaNodeView selectedBranchView(sema, selectedBranchRef);
+        RESULT_VERIFY(Cast::cast(sema, selectedBranchView, typeRef, CastKind::Implicit));
+        sema.semaInfo().setSubstitute(sema.curNodeRef(), selectedBranchView.nodeRef);
+        if (selectedBranchView.cstRef.isValid())
+            sema.setConstant(sema.curNodeRef(), selectedBranchView.cstRef);
     }
     else
     {
-        if (nodeTrueView.typeRef != typeRef)
-            Cast::createImplicitCast(sema, typeRef, nodeTrueRef);
-        if (nodeFalseView.typeRef != typeRef)
-            Cast::createImplicitCast(sema, typeRef, nodeFalseRef);
+        SemaNodeView mutableTrueView(sema, nodeTrueRef);
+        SemaNodeView mutableFalseView(sema, nodeFalseRef);
+        RESULT_VERIFY(Cast::cast(sema, mutableTrueView, typeRef, CastKind::Implicit));
+        RESULT_VERIFY(Cast::cast(sema, mutableFalseView, typeRef, CastKind::Implicit));
     }
 
     return Result::Continue;

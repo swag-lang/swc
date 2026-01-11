@@ -30,12 +30,15 @@ public:
     void                 setAccess(SymbolAccess access) { access_ = access; }
     AttributeList&       attributes() { return attributes_; }
     const AttributeList& attributes() const { return attributes_; }
-    SemaCompilerIf*      compilerIf() const { return compilerIf_; }
-    void                 setCompilerIf(SemaCompilerIf* ifc) { compilerIf_ = ifc; }
-    SymbolImpl*          impl() const { return impl_; }
-    void                 setImpl(SymbolImpl* impl) { impl_ = impl; }
-    SymbolInterface*     interface() const { return interface_; }
-    void                 setInterface(SymbolInterface* itf) { interface_ = itf; }
+
+    SemaCompilerIf*  compilerIf() const { return compilerIf_; }
+    void             setCompilerIf(SemaCompilerIf* ifc) { compilerIf_ = ifc; }
+    SymbolImpl*      impl() const { return impl_; }
+    void             setImpl(SymbolImpl* impl) { impl_ = impl; }
+    SymbolInterface* interface() const { return interface_; }
+    void             setInterface(SymbolInterface* itf) { interface_ = itf; }
+    SymbolFunction*  function() const { return function_; }
+    void             setFunction(SymbolFunction* func) { function_ = func; }
 
     static SymbolMap* currentSymMap(Sema& sema);
     SymbolFlags       flagsForCurrentAccess() const;
@@ -47,6 +50,7 @@ private:
     SemaCompilerIf*               compilerIf_ = nullptr;
     SymbolImpl*                   impl_       = nullptr;
     SymbolInterface*              interface_  = nullptr;
+    SymbolFunction*               function_   = nullptr;
 };
 
 SWC_END_NAMESPACE();

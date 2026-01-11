@@ -41,7 +41,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
 
-    const SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+    SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
     if (sym.isMethod() && !sema.frame().impl() && !sema.frame().interface())
     {
         const SourceView& srcView   = sema.srcView(srcViewRef());
@@ -50,6 +50,11 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     }
 
     // return SemaMatch::ghosting(sema, sym);
+
+    SemaFrame frame = sema.frame();
+    frame.setFunction(&sym);
+    sema.pushFrame(frame);
+
     return Result::Continue;
 }
 
@@ -109,6 +114,7 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
 {
     SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
     sym.setCompleted(sema.ctx());
+    sema.popFrame();
     return Result::Continue;
 }
 

@@ -115,7 +115,7 @@ Result SemaCheck::checkSignature(Sema& sema, const std::vector<SymbolVariable*>&
             return SemaError::raise(sema, DiagnosticId::sema_err_variadic_not_last, param.decl()->srcViewRef(), param.tokRef());
 
         // A parameter without a default follows a parameter with a default value
-        if(param.decl())
+        if (param.decl())
         {
             const auto varDecl = param.decl()->cast<AstVarDecl>();
             if (varDecl->nodeInitRef.isValid())

@@ -148,7 +148,7 @@ TypeRef TypeManager::promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) cons
 {
     if (lhs == rhs && !force32BitInts)
         return lhs;
-    
+
     const auto itL = promoteIndex_.find(lhs.get());
     const auto itR = promoteIndex_.find(rhs.get());
 

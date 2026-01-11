@@ -64,11 +64,10 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
 
         if (cstRef.isValid())
         {
-            if (sema.cstMgr().get(cstRef).typeRef() == typeRef)
-            {
-                sema.setConstant(sema.curNodeRef(), cstRef);
-            }
-            else
+            sema.setConstant(sema.curNodeRef(), cstRef);
+
+            const ConstantValue& cst = sema.cstMgr().get(cstRef);
+            if (cst.typeRef() != typeRef)
             {
                 ConstantRef promotedCstRef;
                 CastContext castCtx(CastKind::Implicit);

@@ -118,7 +118,7 @@ namespace
         return Result::Continue;
     }
 
-    Result castIntLikeToBool(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    Result castToBool(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
         if (castCtx.kind != CastKind::Explicit && castCtx.kind != CastKind::Condition)
         {
@@ -126,10 +126,27 @@ namespace
             return Result::Stop;
         }
 
+        const auto&     typeMgr = sema.ctx().typeMgr();
+        const TypeInfo& srcType = typeMgr.get(srcTypeRef);
+        if (!srcType.isIntLike() &&
+            !srcType.isPointer() &&
+            !srcType.isInterface() &&
+            !srcType.isLambdaClosure() &&
+            !srcType.isSlice())
+        {
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return Result::Stop;
+        }
+
         if (castCtx.isConstantFolding())
         {
-            if (!Cast::foldConstantIntLikeToBool(sema, castCtx))
-                return Result::Stop;
+            if (srcType.isIntLike())
+            {
+                if (!Cast::foldConstantIntLikeToBool(sema, castCtx))
+                    return Result::Stop;
+            }
+            else
+                SWC_UNREACHABLE();
         }
 
         return Result::Continue;
@@ -436,8 +453,8 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
         res = castFromUndefined(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isBool() && dstType.isIntLike())
         res = castBoolToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
-    else if ((srcType.isIntLike() || srcType.isPointer()) && dstType.isBool())
-        res = castIntLikeToBool(sema, castCtx, srcTypeRef, dstTypeRef);
+    else if (dstType.isBool())
+        res = castToBool(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isIntLike() && dstType.isIntLike())
         res = castIntLikeToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isIntLike() && dstType.isFloat())

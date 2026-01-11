@@ -56,3 +56,9 @@ var var2 = 20
     var res = true ? x : y
     #assert(res == 10) // swc-expected-error {{sema_err_expr_not_const}}
 }
+
+#test
+{
+    var A: *s32
+    var C = A ? A : null
+}

@@ -9,6 +9,8 @@ bool SymbolAttribute::deepCompare(const SymbolAttribute& otherAttr) const noexce
     if (this == &otherAttr)
         return true;
 
+    if (idRef() != otherAttr.idRef())
+        return false;
     const auto& params1 = parameters();
     const auto& params2 = otherAttr.parameters();
     if (params1.size() != params2.size())

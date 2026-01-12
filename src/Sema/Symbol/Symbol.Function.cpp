@@ -55,9 +55,10 @@ bool SymbolFunction::deepCompare(const SymbolFunction& otherFunc) const noexcept
     if (this == &otherFunc)
         return true;
 
+    if (idRef() != otherFunc.idRef())
+        return false;
     if (returnType() != otherFunc.returnType())
         return false;
-
     if (funcFlags() != otherFunc.funcFlags())
         return false;
 

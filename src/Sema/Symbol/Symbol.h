@@ -53,8 +53,8 @@ class Symbol
 {
 public:
     explicit Symbol(const AstNode* decl, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags) :
-        idRef_(idRef),
         decl_(decl),
+        idRef_(idRef),
         tokRef_(tokRef),
         kind_(kind),
         flags_(flags)
@@ -178,15 +178,15 @@ public:
     }
 
 private:
-    IdentifierRef  idRef_       = IdentifierRef::invalid();
-    TypeRef        typeRef_     = TypeRef::invalid();
     Symbol*        nextHomonym_ = nullptr;
     SymbolMap*     ownerSymMap_ = nullptr;
     const AstNode* decl_        = nullptr;
-    TokenRef       tokRef_      = TokenRef::invalid();
-    SymbolKind     kind_        = SymbolKind::Invalid;
-    SymbolFlags    flags_       = SymbolFlagsE::Zero;
     AttributeList  attributes_;
+    IdentifierRef  idRef_   = IdentifierRef::invalid();
+    TypeRef        typeRef_ = TypeRef::invalid();
+    TokenRef       tokRef_  = TokenRef::invalid();
+    SymbolKind     kind_    = SymbolKind::Invalid;
+    SymbolFlags    flags_   = SymbolFlagsE::Zero;
 };
 
 SWC_END_NAMESPACE();

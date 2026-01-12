@@ -5,9 +5,10 @@ SWC_BEGIN_NAMESPACE();
 
 enum class SymbolVariableFlagsE : uint8_t
 {
-    Zero        = 0,
-    Let         = 1 << 0,
-    Initialized = 1 << 1,
+    Zero              = 0,
+    Let               = 1 << 0,
+    Initialized       = 1 << 1,
+    ExplicitUndefined = 1 << 2,
 };
 using SymbolVariableFlags = EnumFlags<SymbolVariableFlagsE>;
 

@@ -14,36 +14,35 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void markExplicitUndefined(const std::span<Symbol*>& syms)
+    void markExplicitUndefined(const std::span<Symbol*>& symbols)
     {
-        for (auto* s : syms)
-            s->addFlag(SymbolFlagsE::ExplicitUndefined);
+        for (auto* s : symbols)
+        {
+            if (const auto symVar = s->safeCast<SymbolVariable>())
+                symVar->addVarFlag(SymbolVariableFlagsE::ExplicitUndefined);
+        }
     }
 
-    void completeConst(Sema& sema, const std::span<Symbol*>& syms, ConstantRef cstRef, TypeRef typeRef)
+    void completeConst(Sema& sema, const std::span<Symbol*>& symbols, ConstantRef cstRef, TypeRef typeRef)
     {
-        auto& ctx = sema.ctx();
-
-        for (auto* s : syms)
+        for (auto* s : symbols)
         {
             auto& symCst = s->cast<SymbolConstant>();
             symCst.setCstRef(cstRef);
             symCst.setTypeRef(typeRef);
             symCst.setTyped(sema.ctx());
-            symCst.setCompleted(ctx);
+            symCst.setCompleted(sema.ctx());
         }
     }
 
-    void completeVar(Sema& sema, const std::span<Symbol*>& syms, TypeRef typeRef)
+    void completeVar(Sema& sema, const std::span<Symbol*>& symbols, TypeRef typeRef)
     {
-        auto& ctx = sema.ctx();
-
-        for (auto* s : syms)
+        for (auto* s : symbols)
         {
             auto& symVar = s->cast<SymbolVariable>();
             symVar.setTypeRef(typeRef);
             symVar.setTyped(sema.ctx());
-            symVar.setCompleted(ctx);
+            symVar.setCompleted(sema.ctx());
         }
     }
 
@@ -112,7 +111,7 @@ namespace
         {
             for (auto* s : syms)
             {
-                if (auto symVar = s->safeCast<SymbolVariable>())
+                if (const auto symVar = s->safeCast<SymbolVariable>())
                     symVar->addVarFlag(SymbolVariableFlagsE::Initialized);
             }
         }

@@ -195,9 +195,8 @@ protected:
 template<SymbolKind K, typename E = void>
 struct SymbolT : Symbol
 {
-    static constexpr auto K_ = K;
-    using FlagsE             = E;
-    using FlagsType          = std::conditional_t<std::is_void_v<E>, uint8_t, EnumFlags<E>>;
+    using FlagsE    = E;
+    using FlagsType = std::conditional_t<std::is_void_v<E>, uint8_t, EnumFlags<E>>;
 
     explicit SymbolT(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
         Symbol(decl, tokRef, K, idRef, flags)

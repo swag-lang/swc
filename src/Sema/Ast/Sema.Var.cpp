@@ -154,8 +154,6 @@ Result AstVarDecl::semaPostNode(Sema& sema) const
 
 Result AstVarDeclNameList::semaPreDecl(Sema& sema) const
 {
-    auto& ctx = sema.ctx();
-
     SmallVector<TokenRef> tokNames;
     sema.ast().tokens(tokNames, spanNamesRef);
 

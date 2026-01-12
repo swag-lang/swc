@@ -38,7 +38,7 @@ public:
     void                     addImpl(SymbolImpl& symImpl);
     std::vector<SymbolImpl*> impls() const;
 
-    bool     isEnumFlags() const { return attributes().hasFlag(AttributeFlagsE::EnumFlags); }
+    bool     isEnumFlags() const { return attributes().hasSwagFlag(SwagAttributeFlagsE::EnumFlags); }
     uint64_t sizeOf(TaskContext& ctx) const { return underlyingType(ctx).sizeOf(ctx); }
 
 private:

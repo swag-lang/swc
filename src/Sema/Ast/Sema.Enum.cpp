@@ -29,7 +29,7 @@ Result AstEnumDecl::semaPreNode(Sema& sema) const
         if (sym.symMap()->isSwagNamespace(sema.ctx()))
         {
             if (sym.idRef() == sema.idMgr().nameAttributeUsage())
-                sym.attributes().flags = AttributeFlagsE::EnumFlags;
+                sym.attributes().addSwagFlag(SwagAttributeFlagsE::EnumFlags);
         }
     }
 

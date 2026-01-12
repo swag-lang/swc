@@ -61,9 +61,9 @@ Result AstAttrDecl::semaPreDecl(Sema& sema) const
     if (sym.symMap()->isSwagNamespace(sema.ctx()))
     {
         if (sym.idRef() == sema.idMgr().nameEnumFlags())
-            sym.setAttributeFlags(AttributeFlagsE::EnumFlags);
+            sym.setSwagAttributeFlags(SwagAttributeFlagsE::EnumFlags);
         else if (sym.idRef() == sema.idMgr().nameStrict())
-            sym.setAttributeFlags(AttributeFlagsE::Strict);
+            sym.setSwagAttributeFlags(SwagAttributeFlagsE::Strict);
     }
 
     return Result::SkipChildren;
@@ -126,11 +126,11 @@ Result AstAttribute::semaPostNode(Sema& sema) const
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeIdentRef);
 
     // Predefined attributes
-    const SymbolAttribute& attrSym   = sym.cast<SymbolAttribute>();
-    const AttributeFlags   attrFlags = attrSym.attributeFlags();
-    if (attrFlags != AttributeFlagsE::Zero)
+    const SymbolAttribute&   attrSym   = sym.cast<SymbolAttribute>();
+    const SwagAttributeFlags attrFlags = attrSym.swagAttributeFlags();
+    if (attrFlags != SwagAttributeFlagsE::Zero)
     {
-        sema.frame().attributes().addFlag(attrFlags);
+        sema.frame().attributes().addSwagFlag(attrFlags);
         return Result::Continue;
     }
 

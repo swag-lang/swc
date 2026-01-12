@@ -57,9 +57,8 @@ private:
 template<SymbolKind K, typename E = void>
 struct SymbolMapT : SymbolMap
 {
-    static constexpr auto K_ = K;
-    using FlagsE             = E;
-    using FlagsType          = std::conditional_t<std::is_void_v<E>, uint8_t, EnumFlags<E>>;
+    using FlagsE    = E;
+    using FlagsType = std::conditional_t<std::is_void_v<E>, uint8_t, EnumFlags<E>>;
 
     explicit SymbolMapT(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
         SymbolMap(decl, tokRef, K, idRef, flags)

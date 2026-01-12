@@ -1,17 +1,18 @@
 ﻿#pragma once
-#include "Parser/AstNode.h"
+#include "Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
 
 class SymbolAttribute;
 
-enum class AttributeFlagsE : uint64_t
+// Some runtime attributes have their own flag
+enum class SwagAttributeFlagsE : uint64_t
 {
     Zero      = 0,
     EnumFlags = 1 << 0,
     Strict    = 1 << 1,
 };
-using AttributeFlags = EnumFlags<AttributeFlagsE>;
+using SwagAttributeFlags = EnumFlags<SwagAttributeFlagsE>;
 
 // One attribute
 struct AttributeInstance
@@ -23,10 +24,10 @@ struct AttributeInstance
 struct AttributeList
 {
     SmallVector<AttributeInstance, 4> attributes;
-    AttributeFlags                    flags = AttributeFlagsE::Zero;
+    SwagAttributeFlags                swagFlags = SwagAttributeFlagsE::Zero;
 
-    bool hasFlag(AttributeFlagsE fl) const { return flags.has(fl); }
-    void addFlag(AttributeFlags fl) { flags.add(fl); }
+    bool hasSwagFlag(SwagAttributeFlagsE fl) const { return swagFlags.has(fl); }
+    void addSwagFlag(SwagAttributeFlags fl) { swagFlags.add(fl); }
 };
 
 SWC_END_NAMESPACE();

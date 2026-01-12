@@ -7,8 +7,6 @@ class SymbolVariable;
 
 class SymbolAttribute : public SymbolMapT<SymbolKind::Attribute>
 {
-    AttributeFlags attributes_ = AttributeFlagsE::Zero;
-
 public:
     static constexpr auto K = SymbolKind::Attribute;
 
@@ -17,8 +15,8 @@ public:
     {
     }
 
-    AttributeFlags                      attributeFlags() const { return attributes_; }
-    void                                setAttributeFlags(AttributeFlags attr) { attributes_ = attr; }
+    SwagAttributeFlags                  swagAttributeFlags() const { return swagAttributes_; }
+    void                                setSwagAttributeFlags(SwagAttributeFlags attr) { swagAttributes_ = attr; }
     const std::vector<SymbolVariable*>& parameters() const { return parameters_; }
     std::vector<SymbolVariable*>&       parameters() { return parameters_; }
     void                                addParameter(SymbolVariable* sym) { parameters_.push_back(sym); }
@@ -26,6 +24,7 @@ public:
 
 private:
     std::vector<SymbolVariable*> parameters_;
+    SwagAttributeFlags           swagAttributes_ = SwagAttributeFlagsE::Zero;
 };
 
 SWC_END_NAMESPACE();

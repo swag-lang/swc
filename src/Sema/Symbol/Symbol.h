@@ -45,9 +45,6 @@ enum class SymbolFlagsE : uint8_t
     Completed = 1 << 2,
     Ignored   = 1 << 3,
     Typed     = 1 << 4,
-
-    // Specific per symbol kind
-    EnumHasNextValue = 1 << 7,
 };
 
 using SymbolFlags = AtomicEnumFlags<SymbolFlagsE>;

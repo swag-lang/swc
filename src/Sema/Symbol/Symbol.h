@@ -122,7 +122,7 @@ public:
     bool isValueExpr() const noexcept { return isVariable() || isConst() || isEnumValue(); }
     bool isSwagNamespace(const TaskContext& ctx) const noexcept;
     bool acceptOverloads() const noexcept { return isFunction() || isAttribute(); }
-    bool isSameSignature(const Symbol* other) const noexcept;
+    bool deepCompare(const Symbol* other) const noexcept;
 
     Symbol* nextHomonym() const noexcept { return nextHomonym_; }
     void    setNextHomonym(Symbol* next) noexcept { nextHomonym_ = next; }

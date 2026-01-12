@@ -50,4 +50,29 @@ void SymbolFunction::setFuncFlags(EnumFlags<AstFunctionFlagsE> parserFlags)
         addFuncFlag(SymbolFunctionFlagsE::Const);
 }
 
+bool SymbolFunction::deepCompare(const SymbolFunction& otherFunc) const noexcept
+{
+    if (this == &otherFunc)
+        return true;
+
+    if (returnType() != otherFunc.returnType())
+        return false;
+
+    if (funcFlags() != otherFunc.funcFlags())
+        return false;
+
+    const auto& params1 = parameters();
+    const auto& params2 = otherFunc.parameters();
+    if (params1.size() != params2.size())
+        return false;
+
+    for (uint32_t i = 0; i < params1.size(); ++i)
+    {
+        if (params1[i]->typeRef() != params2[i]->typeRef())
+            return false;
+    }
+
+    return true;
+}
+
 SWC_END_NAMESPACE();

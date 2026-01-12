@@ -94,57 +94,16 @@ bool Symbol::isSwagNamespace(const TaskContext& ctx) const noexcept
     return isNamespace() && idRef() == ctx.idMgr().nameSwag();
 }
 
-bool Symbol::isSameSignature(const Symbol* other) const noexcept
+bool Symbol::deepCompare(const Symbol* other) const noexcept
 {
     if (this == other)
         return true;
     if (kind_ != other->kind_)
         return false;
-
     if (isFunction())
-    {
-        const auto& sym1 = cast<SymbolFunction>();
-        const auto& sym2 = other->cast<SymbolFunction>();
-
-        if (sym1.returnType() != sym2.returnType())
-            return false;
-
-        if (sym1.funcFlags() != sym2.funcFlags())
-            return false;
-
-        const auto& params1 = sym1.parameters();
-        const auto& params2 = sym2.parameters();
-        if (params1.size() != params2.size())
-            return false;
-
-        for (uint32_t i = 0; i < params1.size(); ++i)
-        {
-            if (params1[i]->typeRef() != params2[i]->typeRef())
-                return false;
-        }
-
-        return true;
-    }
-
+        return cast<SymbolFunction>().deepCompare(other->cast<SymbolFunction>());
     if (isAttribute())
-    {
-        const auto& sym1 = cast<SymbolAttribute>();
-        const auto& sym2 = other->cast<SymbolAttribute>();
-
-        const auto& params1 = sym1.parameters();
-        const auto& params2 = sym2.parameters();
-        if (params1.size() != params2.size())
-            return false;
-
-        for (uint32_t i = 0; i < params1.size(); ++i)
-        {
-            if (params1[i]->typeRef() != params2[i]->typeRef())
-                return false;
-        }
-
-        return true;
-    }
-
+        return cast<SymbolAttribute>().deepCompare(other->cast<SymbolAttribute>());
     return true;
 }
 

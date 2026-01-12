@@ -280,6 +280,7 @@
         <ClCompile Include="src\Sema\Symbol\IdentifierManager.cpp"/>
         <ClCompile Include="src\Sema\Symbol\MatchContext.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Match.cpp"/>
+        <ClCompile Include="src\Sema\Symbol\Symbol.Attribute.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Symbol.Enum.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Symbol.Function.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Symbol.Interface.cpp"/>

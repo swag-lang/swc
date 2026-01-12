@@ -181,7 +181,7 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
             SWC_ASSERT(sym.isTyped());
             if (!other->isTyped())
                 return sema.waitTyped(other, lookUpCxt.srcViewRef, lookUpCxt.tokRef);
-            if (!sym.isSameSignature(other))
+            if (!sym.deepCompare(other))
                 continue;
         }
 
@@ -198,7 +198,7 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
             SWC_ASSERT(sym.isTyped());
             if (!other->isTyped())
                 return sema.waitTyped(other, lookUpCxt.srcViewRef, lookUpCxt.tokRef);
-            if (!sym.isSameSignature(other))
+            if (!sym.deepCompare(other))
                 continue;
         }
 

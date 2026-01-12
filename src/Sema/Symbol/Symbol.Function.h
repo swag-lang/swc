@@ -33,6 +33,7 @@ public:
     std::vector<SymbolVariable*>&       parameters() { return parameters_; }
     void                                addParameter(SymbolVariable* sym) { parameters_.push_back(sym); }
     Utf8                                computeName(const TaskContext& ctx) const;
+    bool                                deepCompare(const SymbolFunction& otherFunc) const noexcept;
 
     SymbolFunctionFlags funcFlags() const noexcept { return funcFlags_; }
     bool                hasFuncFlag(SymbolFunctionFlagsE flag) const noexcept { return funcFlags_.has(flag); }

@@ -17,7 +17,7 @@ Result AstFunctionDecl::semaPreDecl(Sema& sema) const
 {
     SymbolFunction& sym = SemaHelpers::registerSymbol<SymbolFunction>(sema, *this, tokNameRef);
 
-    sym.setFuncFlags(flags());
+    sym.setExtraFlags(flags());
     if (nodeBodyRef.isInvalid())
         sym.addExtraFlag(SymbolFunctionFlagsE::Empty);
 

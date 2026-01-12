@@ -35,13 +35,12 @@ public:
     Utf8                                computeName(const TaskContext& ctx) const;
     bool                                deepCompare(const SymbolFunction& otherFunc) const noexcept;
 
-    SymbolFunctionFlags funcFlags() const noexcept { return extraFlags(); }
-    void                setFuncFlags(EnumFlags<AstFunctionFlagsE> parserFlags);
-    bool                isClosure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Closure); }
-    bool                isMethod() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Method); }
-    bool                isThrowable() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Throwable); }
-    bool                isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
-    bool                isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
+    void setExtraFlags(EnumFlags<AstFunctionFlagsE> parserFlags);
+    bool isClosure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Closure); }
+    bool isMethod() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Method); }
+    bool isThrowable() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Throwable); }
+    bool isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
+    bool isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
 
 private:
     std::vector<SymbolVariable*> parameters_;

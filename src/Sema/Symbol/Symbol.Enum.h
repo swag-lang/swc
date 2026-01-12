@@ -9,7 +9,7 @@ class SymbolImpl;
 
 enum class SymbolEnumFlagsE : uint8_t
 {
-    Zero        = 0,
+    Zero         = 0,
     HasNextValue = 1 << 0,
 };
 using SymbolEnumFlags = EnumFlags<SymbolEnumFlagsE>;

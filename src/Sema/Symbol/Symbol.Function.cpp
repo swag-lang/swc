@@ -38,7 +38,7 @@ Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
     return out;
 }
 
-void SymbolFunction::setFuncFlags(EnumFlags<AstFunctionFlagsE> parserFlags)
+void SymbolFunction::setExtraFlags(EnumFlags<AstFunctionFlagsE> parserFlags)
 {
     if (parserFlags.has(AstFunctionFlagsE::Method))
         addExtraFlag(SymbolFunctionFlagsE::Method);
@@ -59,7 +59,7 @@ bool SymbolFunction::deepCompare(const SymbolFunction& otherFunc) const noexcept
         return false;
     if (returnType() != otherFunc.returnType())
         return false;
-    if (funcFlags() != otherFunc.funcFlags())
+    if (extraFlags() != otherFunc.extraFlags())
         return false;
 
     const auto& params1 = parameters();

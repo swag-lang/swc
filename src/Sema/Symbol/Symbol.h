@@ -179,9 +179,6 @@ public:
         return ctx.compiler().allocate<T>(decl, tokRef, idRef, flags);
     }
 
-protected:
-    uint8_t extraFlags_ = 0;
-
 private:
     Symbol*        nextHomonym_ = nullptr;
     SymbolMap*     ownerSymMap_ = nullptr;
@@ -192,6 +189,9 @@ private:
     TokenRef       tokRef_  = TokenRef::invalid();
     SymbolKind     kind_    = SymbolKind::Invalid;
     SymbolFlags    flags_   = SymbolFlagsE::Zero;
+
+protected:
+    uint8_t extraFlags_ = 0;
 };
 
 template<SymbolKind K, typename E = void>

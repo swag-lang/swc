@@ -22,8 +22,8 @@ public:
     {
     }
 
-    uint32_t            offset() const { return offset_; }
-    void                setOffset(uint32_t offset) { offset_ = offset; }
+    uint32_t offset() const { return offset_; }
+    void     setOffset(uint32_t offset) { offset_ = offset; }
 
 private:
     uint32_t offset_ = 0;

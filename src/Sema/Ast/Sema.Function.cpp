@@ -106,6 +106,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 
         RESULT_VERIFY(SemaCheck::checkSignature(sema, sym.parameters(), false));
         sym.setTyped(sema.ctx());
+        RESULT_VERIFY(Match::ghosting(sema, sym));
         sema.popScope();
     }
     else if (childRef == nodeBodyRef)

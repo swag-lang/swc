@@ -1,12 +1,10 @@
 #include "pch.h"
-
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 #include "Sema/Core/Sema.h"
 #include "Sema/Symbol/IdentifierManager.h"
-#include "Sema/Symbol/Symbol.Alias.h"
-#include "Sema/Symbol/Symbol.h"
 #include "Sema/Symbol/SymbolMap.h"
+#include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -34,21 +32,24 @@ Utf8 Symbol::toFamily() const
 
 void Symbol::setTyped(TaskContext& ctx)
 {
-    SWC_ASSERT(flags_.hasNot(SymbolFlagsE::Typed));
+    if (flags_.has(SymbolFlagsE::Typed))
+        return;
     flags_.add(SymbolFlagsE::Typed);
     ctx.compiler().notifySymbolTyped();
 }
 
 void Symbol::setCompleted(TaskContext& ctx)
 {
-    SWC_ASSERT(flags_.hasNot(SymbolFlagsE::Completed));
+    if (flags_.has(SymbolFlagsE::Completed))
+        return;
     flags_.add(SymbolFlagsE::Completed);
     ctx.compiler().notifySymbolCompleted();
 }
 
 void Symbol::setDeclared(TaskContext& ctx)
 {
-    SWC_ASSERT(flags_.hasNot(SymbolFlagsE::Declared));
+    if (flags_.has(SymbolFlagsE::Declared))
+        return;
     flags_.add(SymbolFlagsE::Declared);
     ctx.compiler().notifySymbolDeclared();
 }
@@ -91,6 +92,65 @@ bool Symbol::isType() const
 bool Symbol::isSwagNamespace(const TaskContext& ctx) const noexcept
 {
     return isNamespace() && idRef() == ctx.idMgr().nameSwag();
+}
+
+bool Symbol::acceptOverloads() const noexcept
+{
+    return isFunction() || isAttribute();
+}
+
+bool Symbol::isSameSignature(const Symbol* other) const noexcept
+{
+    if (this == other)
+        return true;
+    if (kind_ != other->kind_)
+        return false;
+
+    if (isFunction())
+    {
+        const auto& sym1 = cast<SymbolFunction>();
+        const auto& sym2 = other->cast<SymbolFunction>();
+
+        if (sym1.returnType() != sym2.returnType())
+            return false;
+
+        if (sym1.funcFlags() != sym2.funcFlags())
+            return false;
+
+        const auto& params1 = sym1.parameters();
+        const auto& params2 = sym2.parameters();
+        if (params1.size() != params2.size())
+            return false;
+
+        for (uint32_t i = 0; i < params1.size(); ++i)
+        {
+            if (params1[i]->typeRef() != params2[i]->typeRef())
+                return false;
+        }
+
+        return true;
+    }
+
+    if (isAttribute())
+    {
+        const auto& sym1 = cast<SymbolAttribute>();
+        const auto& sym2 = other->cast<SymbolAttribute>();
+
+        const auto& params1 = sym1.parameters();
+        const auto& params2 = sym2.parameters();
+        if (params1.size() != params2.size())
+            return false;
+
+        for (uint32_t i = 0; i < params1.size(); ++i)
+        {
+            if (params1[i]->typeRef() != params2[i]->typeRef())
+                return false;
+        }
+
+        return true;
+    }
+
+    return true;
 }
 
 std::string_view Symbol::name(const TaskContext& ctx) const

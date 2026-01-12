@@ -17,10 +17,11 @@ public:
     {
     }
 
-    AttributeFlags                attributeFlags() const { return attributes_; }
-    void                          setAttributeFlags(AttributeFlags attr) { attributes_ = attr; }
-    std::vector<SymbolVariable*>& parameters() { return parameters_; }
-    void                          addParameter(SymbolVariable* sym) { parameters_.push_back(sym); }
+    AttributeFlags                      attributeFlags() const { return attributes_; }
+    void                                setAttributeFlags(AttributeFlags attr) { attributes_ = attr; }
+    const std::vector<SymbolVariable*>& parameters() const { return parameters_; }
+    std::vector<SymbolVariable*>&       parameters() { return parameters_; }
+    void                                addParameter(SymbolVariable* sym) { parameters_.push_back(sym); }
 
 private:
     std::vector<SymbolVariable*> parameters_;

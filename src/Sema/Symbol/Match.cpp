@@ -175,6 +175,17 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
             continue;
         if (other->symMap() != sym.symMap())
             continue;
+
+        if (sym.acceptOverloads() && other->acceptOverloads())
+        {
+            if (!sym.isTyped())
+                continue;
+            if (!other->isTyped())
+                return sema.waitTyped(other, lookUpCxt.srcViewRef, lookUpCxt.tokRef);
+            if (!sym.isSameSignature(other))
+                continue;
+        }
+
         return SemaError::raiseAlreadyDefined(sema, &sym, other);
     }
 
@@ -182,10 +193,21 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
     {
         if (other == &sym)
             continue;
+
+        if (sym.acceptOverloads() && other->acceptOverloads())
+        {
+            if (!sym.isTyped())
+                continue;
+            if (!other->isTyped())
+                return sema.waitTyped(other, lookUpCxt.srcViewRef, lookUpCxt.tokRef);
+            if (!sym.isSameSignature(other))
+                continue;
+        }
+
         return SemaError::raiseGhosting(sema, &sym, other);
     }
 
-    SWC_UNREACHABLE();
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

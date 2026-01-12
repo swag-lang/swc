@@ -103,7 +103,7 @@ Result AstAttrDecl::semaPostNode(Sema& sema)
     RESULT_VERIFY(SemaCheck::checkSignature(sema, sym.parameters(), true));
     sym.setTyped(sema.ctx());
     sym.setCompleted(sema.ctx());
-    return Result::Continue;
+    return Match::ghosting(sema, sym);
 }
 
 Result AstAttributeList::semaPreNode(Sema& sema)

@@ -73,8 +73,7 @@ Result AstAttrDecl::semaPreNode(Sema& sema) const
 {
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
-    const SymbolAttribute& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolAttribute>();
-    return Match::ghosting(sema, sym);
+    return Result::Continue;
 }
 
 Result AstAttrDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -102,8 +101,9 @@ Result AstAttrDecl::semaPostNode(Sema& sema)
     SymbolAttribute& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolAttribute>();
     RESULT_VERIFY(SemaCheck::checkSignature(sema, sym.parameters(), true));
     sym.setTyped(sema.ctx());
+    RESULT_VERIFY(Match::ghosting(sema, sym));
     sym.setCompleted(sema.ctx());
-    return Match::ghosting(sema, sym);
+    return Result::Continue;
 }
 
 Result AstAttributeList::semaPreNode(Sema& sema)

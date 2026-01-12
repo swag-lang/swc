@@ -40,9 +40,6 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     SemaFrame frame = sema.frame();
     frame.setFunction(&sym);
     sema.pushFrame(frame);
-
-    if (!sym.isEmpty())
-        return Match::ghosting(sema, sym);
     return Result::Continue;
 }
 
@@ -103,10 +100,11 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
         const TypeInfo ti      = TypeInfo::makeFunction(&sym, TypeInfoFlagsE::Zero);
         const TypeRef  typeRef = sema.typeMgr().addType(ti);
         sym.setTypeRef(typeRef);
+        sym.setTyped(sema.ctx());
 
         RESULT_VERIFY(SemaCheck::checkSignature(sema, sym.parameters(), false));
-        sym.setTyped(sema.ctx());
-        RESULT_VERIFY(Match::ghosting(sema, sym));
+        if (!sym.isEmpty())
+            RESULT_VERIFY(Match::ghosting(sema, sym));
         sema.popScope();
     }
     else if (childRef == nodeBodyRef)

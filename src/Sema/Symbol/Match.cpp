@@ -178,8 +178,7 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
 
         if (sym.acceptOverloads() && other->acceptOverloads())
         {
-            if (!sym.isTyped())
-                continue;
+            SWC_ASSERT(sym.isTyped());
             if (!other->isTyped())
                 return sema.waitTyped(other, lookUpCxt.srcViewRef, lookUpCxt.tokRef);
             if (!sym.isSameSignature(other))
@@ -196,8 +195,7 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
 
         if (sym.acceptOverloads() && other->acceptOverloads())
         {
-            if (!sym.isTyped())
-                continue;
+            SWC_ASSERT(sym.isTyped());
             if (!other->isTyped())
                 return sema.waitTyped(other, lookUpCxt.srcViewRef, lookUpCxt.tokRef);
             if (!sym.isSameSignature(other))

@@ -5,13 +5,13 @@ SWC_BEGIN_NAMESPACE();
 
 class SymbolFunction;
 
-class SymbolInterface : public SymbolMap
+class SymbolInterface : public SymbolMapT<SymbolKind::Interface>
 {
 public:
     static constexpr auto K = SymbolKind::Interface;
 
     explicit SymbolInterface(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
-        SymbolMap(decl, tokRef, K, idRef, flags)
+        SymbolMapT(decl, tokRef, idRef, flags)
     {
     }
 

@@ -19,7 +19,7 @@ Result AstFunctionDecl::semaPreDecl(Sema& sema) const
 
     sym.setFuncFlags(flags());
     if (nodeBodyRef.isInvalid())
-        sym.addFuncFlag(SymbolFunctionFlagsE::Empty);
+        sym.addExtraFlag(SymbolFunctionFlagsE::Empty);
 
     return Result::SkipChildren;
 }
@@ -54,7 +54,7 @@ namespace
             auto&             ctx       = sema.ctx();
             SymbolVariable*   symMe     = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), sema.idMgr().nameMe(), SymbolFlagsE::Zero);
             TypeInfoFlags     typeFlags = TypeInfoFlagsE::Zero;
-            if (sym.hasFuncFlag(SymbolFunctionFlagsE::Const))
+            if (sym.hasExtraFlag(SymbolFunctionFlagsE::Const))
                 typeFlags.add(TypeInfoFlagsE::Const);
             const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(ownerType, typeFlags));
             symMe->setTypeRef(typeRef);
@@ -164,7 +164,7 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
         }
         else
         {
-            if (!parameters[i]->hasVarFlag(SymbolVariableFlagsE::Initialized))
+            if (!parameters[i]->hasExtraFlag(SymbolVariableFlagsE::Initialized))
             {
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_too_few_arguments, sema.curNodeRef());
                 diag.addArgument(Diagnostic::ARG_COUNT, std::to_string(numParams));

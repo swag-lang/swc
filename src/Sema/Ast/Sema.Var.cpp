@@ -19,7 +19,7 @@ namespace
         for (auto* s : symbols)
         {
             if (const auto symVar = s->safeCast<SymbolVariable>())
-                symVar->addVarFlag(SymbolVariableFlagsE::ExplicitUndefined);
+                symVar->addExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
         }
     }
 
@@ -112,7 +112,7 @@ namespace
             for (auto* s : syms)
             {
                 if (const auto symVar = s->safeCast<SymbolVariable>())
-                    symVar->addVarFlag(SymbolVariableFlagsE::Initialized);
+                    symVar->addExtraFlag(SymbolVariableFlagsE::Initialized);
             }
         }
 
@@ -130,7 +130,7 @@ Result AstVarDecl::semaPreDecl(Sema& sema) const
         if (hasFlag(AstVarDeclFlagsE::Let))
         {
             SymbolVariable& symVar = sema.symbolOf(sema.curNodeRef()).cast<SymbolVariable>();
-            symVar.addVarFlag(SymbolVariableFlagsE::Let);
+            symVar.addExtraFlag(SymbolVariableFlagsE::Let);
         }
     }
 
@@ -174,7 +174,7 @@ Result AstVarDeclNameList::semaPreDecl(Sema& sema) const
             if (hasFlag(AstVarDeclFlagsE::Let))
             {
                 SymbolVariable& symVar = sema.symbolOf(sema.curNodeRef()).cast<SymbolVariable>();
-                symVar.addVarFlag(SymbolVariableFlagsE::Let);
+                symVar.addExtraFlag(SymbolVariableFlagsE::Let);
             }
         }
     }

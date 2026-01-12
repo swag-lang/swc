@@ -4,13 +4,13 @@
 
 SWC_BEGIN_NAMESPACE();
 
-class SymbolAlias : public Symbol
+class SymbolAlias : public SymbolT<SymbolKind::Alias>
 {
 public:
     static constexpr auto K = SymbolKind::Alias;
 
     explicit SymbolAlias(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
-        Symbol(decl, tokRef, K, idRef, flags)
+        SymbolT(decl, tokRef, idRef, flags)
     {
     }
 

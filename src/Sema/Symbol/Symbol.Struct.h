@@ -13,13 +13,13 @@ enum class SymbolStructFlagsE : uint8_t
 };
 using SymbolStructFlags = EnumFlags<SymbolStructFlagsE>;
 
-class SymbolStruct : public SymbolMap
+class SymbolStruct : public SymbolMapT<SymbolKind::Struct, SymbolStructFlagsE>
 {
 public:
     static constexpr auto K = SymbolKind::Struct;
 
     explicit SymbolStruct(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
-        SymbolMap(decl, tokRef, K, idRef, flags)
+        SymbolMapT(decl, tokRef, idRef, flags)
     {
     }
 
@@ -35,9 +35,7 @@ public:
     void                                addInterface(SymbolImpl& symImpl);
     Result                              addInterface(Sema& sema, SymbolImpl& symImpl);
     std::vector<SymbolImpl*>            interfaces() const;
-    SymbolStructFlags                   structFlags() const noexcept { return structFlags_; }
-    bool                                hasStructFlag(SymbolStructFlagsE flag) const noexcept { return structFlags_.has(flag); }
-    void                                addStructFlag(SymbolStructFlagsE fl) { structFlags_.add(fl); }
+    SymbolStructFlags                   structFlags() const noexcept { return extraFlags(); }
 
 private:
     std::vector<SymbolVariable*> fields_;
@@ -47,7 +45,6 @@ private:
     std::vector<SymbolImpl*>     interfaces_;
     uint64_t                     sizeInBytes_ = 0;
     uint32_t                     alignment_   = 0;
-    SymbolStructFlags            structFlags_ = SymbolStructFlagsE::Zero;
 };
 
 SWC_END_NAMESPACE();

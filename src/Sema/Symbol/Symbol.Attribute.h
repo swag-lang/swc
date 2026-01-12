@@ -5,7 +5,7 @@ SWC_BEGIN_NAMESPACE();
 
 class SymbolVariable;
 
-class SymbolAttribute : public SymbolMap
+class SymbolAttribute : public SymbolMapT<SymbolKind::Attribute>
 {
     AttributeFlags attributes_ = AttributeFlagsE::Zero;
 
@@ -13,7 +13,7 @@ public:
     static constexpr auto K = SymbolKind::Attribute;
 
     explicit SymbolAttribute(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
-        SymbolMap(decl, tokRef, K, idRef, flags)
+        SymbolMapT(decl, tokRef, idRef, flags)
     {
     }
 

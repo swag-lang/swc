@@ -828,17 +828,17 @@ Symbol* TypeInfo::getSymbolDependency(TaskContext& ctx) const
 
 bool TypeInfo::isLambdaClosure() const noexcept
 {
-    return isFunction() && asFunction.sym->hasFuncFlag(SymbolFunctionFlagsE::Closure);
+    return isFunction() && asFunction.sym->hasExtraFlag(SymbolFunctionFlagsE::Closure);
 }
 
 bool TypeInfo::isLambdaMethod() const noexcept
 {
-    return isFunction() && asFunction.sym->hasFuncFlag(SymbolFunctionFlagsE::Method);
+    return isFunction() && asFunction.sym->hasExtraFlag(SymbolFunctionFlagsE::Method);
 }
 
 bool TypeInfo::isLambdaThrowable() const noexcept
 {
-    return isFunction() && asFunction.sym->hasFuncFlag(SymbolFunctionFlagsE::Throwable);
+    return isFunction() && asFunction.sym->hasExtraFlag(SymbolFunctionFlagsE::Throwable);
 }
 
 bool TypeInfo::isConstPointerToRuntimeTypeInfo(TaskContext& ctx) const noexcept
@@ -850,7 +850,7 @@ bool TypeInfo::isConstPointerToRuntimeTypeInfo(TaskContext& ctx) const noexcept
     const TypeInfo& type = ctx.typeMgr().get(asTypeRef.typeRef);
     if (!type.isStruct())
         return false;
-    return type.symStruct().hasStructFlag(SymbolStructFlagsE::TypeInfo);
+    return type.symStruct().hasExtraFlag(SymbolStructFlagsE::TypeInfo);
 }
 
 TypeRef TypeInfo::underlyingTypeRef() const noexcept

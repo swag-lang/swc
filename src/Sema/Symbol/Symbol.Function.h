@@ -17,13 +17,13 @@ enum class SymbolFunctionFlagsE : uint8_t
 };
 using SymbolFunctionFlags = EnumFlags<SymbolFunctionFlagsE>;
 
-class SymbolFunction : public SymbolMap
+class SymbolFunction : public SymbolMapT<SymbolKind::Function, SymbolFunctionFlagsE>
 {
 public:
     static constexpr auto K = SymbolKind::Function;
 
     explicit SymbolFunction(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
-        SymbolMap(decl, tokRef, K, idRef, flags)
+        SymbolMapT(decl, tokRef, idRef, flags)
     {
     }
 
@@ -35,21 +35,17 @@ public:
     Utf8                                computeName(const TaskContext& ctx) const;
     bool                                deepCompare(const SymbolFunction& otherFunc) const noexcept;
 
-    SymbolFunctionFlags funcFlags() const noexcept { return funcFlags_; }
-    bool                hasFuncFlag(SymbolFunctionFlagsE flag) const noexcept { return funcFlags_.has(flag); }
-    void                addFuncFlag(SymbolFunctionFlagsE fl) { funcFlags_.add(fl); }
-    void                addFuncFlags(SymbolFunctionFlags fl) { funcFlags_.add(fl); }
+    SymbolFunctionFlags funcFlags() const noexcept { return extraFlags(); }
     void                setFuncFlags(EnumFlags<AstFunctionFlagsE> parserFlags);
-    bool                isClosure() const noexcept { return funcFlags_.has(SymbolFunctionFlagsE::Closure); }
-    bool                isMethod() const noexcept { return funcFlags_.has(SymbolFunctionFlagsE::Method); }
-    bool                isThrowable() const noexcept { return funcFlags_.has(SymbolFunctionFlagsE::Throwable); }
-    bool                isConst() const noexcept { return funcFlags_.has(SymbolFunctionFlagsE::Const); }
-    bool                isEmpty() const noexcept { return funcFlags_.has(SymbolFunctionFlagsE::Empty); }
+    bool                isClosure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Closure); }
+    bool                isMethod() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Method); }
+    bool                isThrowable() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Throwable); }
+    bool                isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
+    bool                isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
 
 private:
     std::vector<SymbolVariable*> parameters_;
     TypeRef                      returnType_ = TypeRef::invalid();
-    SymbolFunctionFlags          funcFlags_  = SymbolFunctionFlagsE::Zero;
 };
 
 SWC_END_NAMESPACE();

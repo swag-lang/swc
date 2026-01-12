@@ -4,7 +4,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-class SymbolConstant : public Symbol
+class SymbolConstant : public SymbolT<SymbolKind::Const>
 {
     ConstantRef cstRef_ = ConstantRef::invalid();
 
@@ -12,7 +12,7 @@ public:
     static constexpr auto K = SymbolKind::Const;
 
     explicit SymbolConstant(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
-        Symbol(decl, tokRef, K, idRef, flags)
+        SymbolT(decl, tokRef, idRef, flags)
     {
     }
 

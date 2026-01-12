@@ -87,6 +87,8 @@ public:
     bool isIgnored() const noexcept { return flags_.has(SymbolFlagsE::Ignored); }
     void setIgnored(TaskContext& ctx) noexcept;
 
+    uint8_t extraFlags() const noexcept { return extraFlags_; }
+
     const AttributeList& attributes() const { return attributes_; }
     AttributeList&       attributes() { return attributes_; }
     void                 setAttributes(const AttributeList& attrs) { attributes_ = attrs; }
@@ -177,6 +179,9 @@ public:
         return ctx.compiler().allocate<T>(decl, tokRef, idRef, flags);
     }
 
+protected:
+    uint8_t extraFlags_ = 0;
+
 private:
     Symbol*        nextHomonym_ = nullptr;
     SymbolMap*     ownerSymMap_ = nullptr;
@@ -187,6 +192,57 @@ private:
     TokenRef       tokRef_  = TokenRef::invalid();
     SymbolKind     kind_    = SymbolKind::Invalid;
     SymbolFlags    flags_   = SymbolFlagsE::Zero;
+};
+
+template<SymbolKind K, typename E = void>
+struct SymbolT : Symbol
+{
+    static constexpr auto K_ = K;
+    using FlagsE             = E;
+    using FlagsType          = std::conditional_t<std::is_void_v<E>, uint8_t, EnumFlags<E>>;
+
+    explicit SymbolT(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        Symbol(decl, tokRef, K, idRef, flags)
+    {
+    }
+
+    FlagsType& extraFlags()
+    {
+        if constexpr (!std::is_void_v<E>)
+            return *reinterpret_cast<FlagsType*>(&extraFlags_);
+        else
+            return extraFlags_;
+    }
+
+    const FlagsType& extraFlags() const
+    {
+        if constexpr (!std::is_void_v<E>)
+            return *reinterpret_cast<const FlagsType*>(&extraFlags_);
+        else
+            return extraFlags_;
+    }
+
+    template<typename T = E>
+    bool hasExtraFlag(T flag) const
+    {
+        if constexpr (!std::is_void_v<E>)
+            return extraFlags().has(flag);
+        return false;
+    }
+
+    template<typename T = E>
+    void addExtraFlag(T flag)
+    {
+        if constexpr (!std::is_void_v<E>)
+            extraFlags().add(flag);
+    }
+
+    template<typename T = E>
+    void removeExtraFlag(T flag)
+    {
+        if constexpr (!std::is_void_v<E>)
+            extraFlags().remove(flag);
+    }
 };
 
 SWC_END_NAMESPACE();

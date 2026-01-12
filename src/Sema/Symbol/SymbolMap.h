@@ -54,4 +54,55 @@ private:
     static Symbol*  insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool acceptHomonyms, bool notify);
 };
 
+template<SymbolKind K, typename E = void>
+struct SymbolMapT : SymbolMap
+{
+    static constexpr auto K_ = K;
+    using FlagsE             = E;
+    using FlagsType          = std::conditional_t<std::is_void_v<E>, uint8_t, EnumFlags<E>>;
+
+    explicit SymbolMapT(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        SymbolMap(decl, tokRef, K, idRef, flags)
+    {
+    }
+
+    FlagsType& extraFlags()
+    {
+        if constexpr (!std::is_void_v<E>)
+            return *reinterpret_cast<FlagsType*>(&extraFlags_);
+        else
+            return extraFlags_;
+    }
+
+    const FlagsType& extraFlags() const
+    {
+        if constexpr (!std::is_void_v<E>)
+            return *reinterpret_cast<const FlagsType*>(&extraFlags_);
+        else
+            return extraFlags_;
+    }
+
+    template<typename T = E>
+    bool hasExtraFlag(T flag) const
+    {
+        if constexpr (!std::is_void_v<E>)
+            return extraFlags().has(flag);
+        return false;
+    }
+
+    template<typename T = E>
+    void addExtraFlag(T flag)
+    {
+        if constexpr (!std::is_void_v<E>)
+            extraFlags().add(flag);
+    }
+
+    template<typename T = E>
+    void removeExtraFlag(T flag)
+    {
+        if constexpr (!std::is_void_v<E>)
+            extraFlags().remove(flag);
+    }
+};
+
 SWC_END_NAMESPACE();

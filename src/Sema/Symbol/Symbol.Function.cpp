@@ -8,8 +8,8 @@ SWC_BEGIN_NAMESPACE();
 Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
 {
     Utf8 out;
-    out += hasFuncFlag(SymbolFunctionFlagsE::Method) ? "mtd" : "func";
-    out += hasFuncFlag(SymbolFunctionFlagsE::Closure) ? "||" : "";
+    out += hasExtraFlag(SymbolFunctionFlagsE::Method) ? "mtd" : "func";
+    out += hasExtraFlag(SymbolFunctionFlagsE::Closure) ? "||" : "";
     out += "(";
     for (size_t i = 0; i < parameters_.size(); ++i)
     {
@@ -34,20 +34,20 @@ Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
         out += returnType.toName(ctx);
     }
 
-    out += hasFuncFlag(SymbolFunctionFlagsE::Throwable) ? " throw" : "";
+    out += hasExtraFlag(SymbolFunctionFlagsE::Throwable) ? " throw" : "";
     return out;
 }
 
 void SymbolFunction::setFuncFlags(EnumFlags<AstFunctionFlagsE> parserFlags)
 {
     if (parserFlags.has(AstFunctionFlagsE::Method))
-        addFuncFlag(SymbolFunctionFlagsE::Method);
+        addExtraFlag(SymbolFunctionFlagsE::Method);
     if (parserFlags.has(AstFunctionFlagsE::Throwable))
-        addFuncFlag(SymbolFunctionFlagsE::Throwable);
+        addExtraFlag(SymbolFunctionFlagsE::Throwable);
     if (parserFlags.has(AstFunctionFlagsE::Closure))
-        addFuncFlag(SymbolFunctionFlagsE::Closure);
+        addExtraFlag(SymbolFunctionFlagsE::Closure);
     if (parserFlags.has(AstFunctionFlagsE::Const))
-        addFuncFlag(SymbolFunctionFlagsE::Const);
+        addExtraFlag(SymbolFunctionFlagsE::Const);
 }
 
 bool SymbolFunction::deepCompare(const SymbolFunction& otherFunc) const noexcept

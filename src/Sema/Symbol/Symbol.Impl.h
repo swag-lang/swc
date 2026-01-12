@@ -12,42 +12,42 @@ enum class SymbolImplOwnerKind : uint8_t
     Enum,
 };
 
-class SymbolImpl : public SymbolMap
+class SymbolImpl : public SymbolMapT<SymbolKind::Impl>
 {
 public:
     static constexpr auto K = SymbolKind::Impl;
 
     explicit SymbolImpl(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
-        SymbolMap(decl, tokRef, K, idRef, flags)
+        SymbolMapT(decl, tokRef, idRef, flags)
     {
     }
 
-    SymbolImplOwnerKind ownerKind() const { return ownerKind_; }
-    bool                isForStruct() const { return ownerKind_ == SymbolImplOwnerKind::Struct; }
-    bool                isForEnum() const { return ownerKind_ == SymbolImplOwnerKind::Enum; }
+    SymbolImplOwnerKind ownerKind() const { return static_cast<SymbolImplOwnerKind>(extraFlags()); }
+    bool                isForStruct() const { return ownerKind() == SymbolImplOwnerKind::Struct; }
+    bool                isForEnum() const { return ownerKind() == SymbolImplOwnerKind::Enum; }
 
     SymbolStruct* symStruct() const
     {
-        SWC_ASSERT(ownerKind_ == SymbolImplOwnerKind::Struct);
+        SWC_ASSERT(ownerKind() == SymbolImplOwnerKind::Struct);
         return ownerStruct_;
     }
 
     void setSymStruct(SymbolStruct* sym)
     {
-        ownerKind_   = SymbolImplOwnerKind::Struct;
+        extraFlags() = static_cast<uint8_t>(SymbolImplOwnerKind::Struct);
         ownerStruct_ = sym;
     }
 
     SymbolEnum* symEnum() const
     {
-        SWC_ASSERT(ownerKind_ == SymbolImplOwnerKind::Enum);
+        SWC_ASSERT(ownerKind() == SymbolImplOwnerKind::Enum);
         return ownerEnum_;
     }
 
     void setSymEnum(SymbolEnum* sym)
     {
-        ownerKind_ = SymbolImplOwnerKind::Enum;
-        ownerEnum_ = sym;
+        extraFlags() = static_cast<uint8_t>(SymbolImplOwnerKind::Enum);
+        ownerEnum_   = sym;
     }
 
 private:
@@ -56,8 +56,6 @@ private:
         SymbolStruct* ownerStruct_ = nullptr;
         SymbolEnum*   ownerEnum_;
     };
-
-    SymbolImplOwnerKind ownerKind_ = SymbolImplOwnerKind::Struct;
 };
 
 SWC_END_NAMESPACE();

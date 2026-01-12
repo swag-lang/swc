@@ -33,7 +33,7 @@ Result AstStructDecl::semaPreDecl(Sema& sema) const
             idRef == idMgr.nameTypeInfoNamespace() ||
             idRef == idMgr.nameTypeInfoCodeBlock())
         {
-            sym.addStructFlag(SymbolStructFlagsE::TypeInfo);
+            sym.addExtraFlag(SymbolStructFlagsE::TypeInfo);
         }
     }
 

@@ -12,25 +12,21 @@ enum class SymbolVariableFlagsE : uint8_t
 };
 using SymbolVariableFlags = EnumFlags<SymbolVariableFlagsE>;
 
-class SymbolVariable : public Symbol
+class SymbolVariable : public SymbolT<SymbolKind::Variable, SymbolVariableFlagsE>
 {
 public:
     static constexpr auto K = SymbolKind::Variable;
 
     explicit SymbolVariable(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
-        Symbol(decl, tokRef, K, idRef, flags)
+        SymbolT(decl, tokRef, idRef, flags)
     {
     }
 
     uint32_t            offset() const { return offset_; }
     void                setOffset(uint32_t offset) { offset_ = offset; }
-    SymbolVariableFlags varFlags() const noexcept { return varFlags_; }
-    bool                hasVarFlag(SymbolVariableFlags flag) const noexcept { return varFlags_.has(flag); }
-    void                addVarFlag(SymbolVariableFlags fl) { varFlags_.add(fl); }
 
 private:
-    SymbolVariableFlags varFlags_ = SymbolVariableFlagsE::Zero;
-    uint32_t            offset_   = 0;
+    uint32_t offset_ = 0;
 };
 
 SWC_END_NAMESPACE();

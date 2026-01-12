@@ -107,6 +107,16 @@ namespace
             return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, owner.srcViewRef(), tokDiag);
 
         completeVar(sema, syms, nodeTypeView.typeRef.isValid() ? nodeTypeView.typeRef : nodeInitView.typeRef);
+
+        if (nodeInitRef.isValid())
+        {
+            for (auto* s : syms)
+            {
+                if (auto symVar = s->safeCast<SymbolVariable>())
+                    symVar->addVarFlag(SymbolVariableFlagsE::Initialized);
+            }
+        }
+
         return Result::Continue;
     }
 }
@@ -151,37 +161,22 @@ Result AstVarDeclNameList::semaPreDecl(Sema& sema) const
     sema.ast().tokens(tokNames, spanNamesRef);
 
     SmallVector<const Symbol*> symbols;
-    const SymbolFlags          symFlags  = sema.frame().flagsForCurrentAccess();
-    SymbolMap*                 symbolMap = SemaFrame::currentSymMap(sema);
-
     for (const auto& tokNameRef : tokNames)
     {
-        const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokNameRef);
-        Symbol*             sym;
-
         if (hasFlag(AstVarDeclFlagsE::Const))
-            sym = Symbol::make<SymbolConstant>(ctx, this, tokNameRef, idRef, symFlags);
+        {
+            Symbol& sym = SemaHelpers::registerSymbol<SymbolConstant>(sema, *this, tokNameRef);
+            symbols.push_back(&sym);
+        }
         else
         {
-            sym = Symbol::make<SymbolVariable>(ctx, this, tokNameRef, idRef, symFlags);
+            Symbol& sym = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
+            symbols.push_back(&sym);
             if (hasFlag(AstVarDeclFlagsE::Let))
-                sym->cast<SymbolVariable>().addVarFlag(SymbolVariableFlagsE::Let);
-        }
-
-        symbolMap->addSymbol(ctx, sym, true);
-        sym->registerCompilerIf(sema);
-        symbols.push_back(sym);
-
-        if (const auto symStruct = symbolMap->safeCast<SymbolStruct>())
-        {
-            if (sym->isVariable())
-                symStruct->addField(reinterpret_cast<SymbolVariable*>(sym));
-        }
-
-        if (const auto symAttr = symbolMap->safeCast<SymbolAttribute>())
-        {
-            if (sym->isVariable())
-                symAttr->addParameter(reinterpret_cast<SymbolVariable*>(sym));
+            {
+                SymbolVariable& symVar = sema.symbolOf(sema.curNodeRef()).cast<SymbolVariable>();
+                symVar.addVarFlag(SymbolVariableFlagsE::Let);
+            }
         }
     }
 

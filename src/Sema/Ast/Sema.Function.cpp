@@ -164,8 +164,7 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
         }
         else
         {
-            const auto paramDecl = parameters[i]->decl()->cast<AstVarDecl>();
-            if (!paramDecl->nodeInitRef.isValid())
+            if (!parameters[i]->hasVarFlag(SymbolVariableFlagsE::Initialized))
             {
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_too_few_arguments, sema.curNodeRef());
                 diag.addArgument(Diagnostic::ARG_COUNT, std::to_string(numParams));

@@ -6,35 +6,21 @@
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaHelpers.h"
+#include "Sema/Symbol/Match.h"
 #include "Sema/Symbol/Symbol.Impl.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/Cast.h"
 
 SWC_BEGIN_NAMESPACE();
 
-Result AstFunctionParamMe::semaPreNode(Sema& sema) const
-{
-    if (!sema.frame().impl())
-        return SemaError::raise(sema, DiagnosticId::sema_err_tok_outside_impl, sema.curNodeRef());
-
-    const SymbolImpl* symImpl   = sema.frame().impl()->symMap()->safeCast<SymbolImpl>();
-    const TypeRef     ownerType = symImpl->ownerKind() == SymbolImplOwnerKind::Struct ? symImpl->symStruct()->typeRef() : symImpl->symEnum()->typeRef();
-
-    auto& sym = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokRef());
-
-    TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
-    if (hasFlag(AstFunctionParamMeFlagsE::Const))
-        typeFlags.add(TypeInfoFlagsE::Const);
-    const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(ownerType, typeFlags));
-    sym.setTypeRef(typeRef);
-
-    return Result::Continue;
-}
-
 Result AstFunctionDecl::semaPreDecl(Sema& sema) const
 {
     SymbolFunction& sym = SemaHelpers::registerSymbol<SymbolFunction>(sema, *this, tokNameRef);
-    sym.setFuncFlags(this->flags());
+
+    sym.setFuncFlags(flags());
+    if (nodeBodyRef.isInvalid())
+        sym.addFuncFlag(SymbolFunctionFlagsE::Empty);
+
     return Result::SkipChildren;
 }
 
@@ -51,12 +37,12 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
         return SemaError::raise(sema, DiagnosticId::sema_err_method_outside_impl, srcViewRef(), mtdTokRef);
     }
 
-    // return SemaMatch::ghosting(sema, sym);
-
     SemaFrame frame = sema.frame();
     frame.setFunction(&sym);
     sema.pushFrame(frame);
 
+    if (!sym.isEmpty())
+        return Match::ghosting(sema, sym);
     return Result::Continue;
 }
 
@@ -193,6 +179,25 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
 
     sema.setType(sema.curNodeRef(), symFunc.returnType());
     SemaInfo::setIsValue(sema.node(sema.curNodeRef()));
+
+    return Result::Continue;
+}
+
+Result AstFunctionParamMe::semaPreNode(Sema& sema) const
+{
+    if (!sema.frame().impl())
+        return SemaError::raise(sema, DiagnosticId::sema_err_tok_outside_impl, sema.curNodeRef());
+
+    const SymbolImpl* symImpl   = sema.frame().impl()->symMap()->safeCast<SymbolImpl>();
+    const TypeRef     ownerType = symImpl->ownerKind() == SymbolImplOwnerKind::Struct ? symImpl->symStruct()->typeRef() : symImpl->symEnum()->typeRef();
+
+    auto& sym = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokRef());
+
+    TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
+    if (hasFlag(AstFunctionParamMeFlagsE::Const))
+        typeFlags.add(TypeInfoFlagsE::Const);
+    const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(ownerType, typeFlags));
+    sym.setTypeRef(typeRef);
 
     return Result::Continue;
 }

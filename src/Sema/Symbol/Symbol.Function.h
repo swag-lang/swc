@@ -13,6 +13,7 @@ enum class SymbolFunctionFlagsE : uint8_t
     Method    = 1 << 1,
     Throwable = 1 << 2,
     Const     = 1 << 3,
+    Empty     = 1 << 4,
 };
 using SymbolFunctionFlags = EnumFlags<SymbolFunctionFlagsE>;
 
@@ -41,6 +42,8 @@ public:
     bool                isClosure() const noexcept { return funcFlags_.has(SymbolFunctionFlagsE::Closure); }
     bool                isMethod() const noexcept { return funcFlags_.has(SymbolFunctionFlagsE::Method); }
     bool                isThrowable() const noexcept { return funcFlags_.has(SymbolFunctionFlagsE::Throwable); }
+    bool                isConst() const noexcept { return funcFlags_.has(SymbolFunctionFlagsE::Const); }
+    bool                isEmpty() const noexcept { return funcFlags_.has(SymbolFunctionFlagsE::Empty); }
 
 private:
     std::vector<SymbolVariable*> parameters_;

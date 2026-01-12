@@ -94,11 +94,6 @@ bool Symbol::isSwagNamespace(const TaskContext& ctx) const noexcept
     return isNamespace() && idRef() == ctx.idMgr().nameSwag();
 }
 
-bool Symbol::acceptOverloads() const noexcept
-{
-    return isFunction() || isAttribute();
-}
-
 bool Symbol::isSameSignature(const Symbol* other) const noexcept
 {
     if (this == other)

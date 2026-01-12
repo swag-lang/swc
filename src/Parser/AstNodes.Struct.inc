@@ -426,6 +426,11 @@ struct AstCallExpr : AstCompoundT<AstNodeId::CallExpr>
         AstCompoundT::collectChildren(out, ast);
     }
 
+    void collectArguments(SmallVector<AstNodeRef>& out, const Ast& ast) const
+    {
+        AstCompoundT::collectChildren(out, ast);
+    }
+
     Result semaPostNode(Sema& sema) const;
 };
 

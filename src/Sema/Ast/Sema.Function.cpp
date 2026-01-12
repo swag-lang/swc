@@ -80,7 +80,7 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
         sema.pushScope(SemaScopeFlagsE::Local);
         sema.curScope().setSymMap(&sym);
-        return Result::SkipChildren; // TODO
+        // return Result::SkipChildren; // TODO
     }
 
     return Result::Continue;
@@ -123,6 +123,25 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
+Result AstFunctionParamMe::semaPreNode(Sema& sema) const
+{
+    if (!sema.frame().impl())
+        return SemaError::raise(sema, DiagnosticId::sema_err_tok_outside_impl, sema.curNodeRef());
+
+    const SymbolImpl* symImpl   = sema.frame().impl()->symMap()->safeCast<SymbolImpl>();
+    const TypeRef     ownerType = symImpl->ownerKind() == SymbolImplOwnerKind::Struct ? symImpl->symStruct()->typeRef() : symImpl->symEnum()->typeRef();
+
+    auto& sym = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokRef());
+
+    TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
+    if (hasFlag(AstFunctionParamMeFlagsE::Const))
+        typeFlags.add(TypeInfoFlagsE::Const);
+    const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(ownerType, typeFlags));
+    sym.setTypeRef(typeRef);
+
+    return Result::Continue;
+}
+
 Result AstCallExpr::semaPostNode(Sema& sema) const
 {
     SemaNodeView nodeCallee(sema, nodeExprRef);
@@ -141,13 +160,13 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
     const auto& parameters = symFunc.parameters();
 
     SmallVector<AstNodeRef> children;
-    collectChildren(children, sema.ast());
-    const uint32_t numArgs   = static_cast<uint32_t>(children.size() - 1);
+    collectArguments(children, sema.ast());
+    const uint32_t numArgs   = static_cast<uint32_t>(children.size());
     const uint32_t numParams = static_cast<uint32_t>(parameters.size());
 
     if (numArgs > numParams)
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_too_many_arguments, sema.curNodeRef());
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_too_many_arguments, children[numParams]);
         diag.addArgument(Diagnostic::ARG_COUNT, std::to_string(numParams));
         diag.addArgument(Diagnostic::ARG_VALUE, std::to_string(numArgs));
         diag.report(sema.ctx());
@@ -158,7 +177,7 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
     {
         if (i < numArgs)
         {
-            const AstNodeRef argRef = children[i + 1];
+            const AstNodeRef argRef = children[i];
             SemaNodeView     argView(sema, argRef);
             RESULT_VERIFY(Cast::cast(sema, argView, parameters[i]->typeRef(), CastKind::Implicit));
         }
@@ -177,25 +196,6 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
 
     sema.setType(sema.curNodeRef(), symFunc.returnType());
     SemaInfo::setIsValue(sema.node(sema.curNodeRef()));
-
-    return Result::Continue;
-}
-
-Result AstFunctionParamMe::semaPreNode(Sema& sema) const
-{
-    if (!sema.frame().impl())
-        return SemaError::raise(sema, DiagnosticId::sema_err_tok_outside_impl, sema.curNodeRef());
-
-    const SymbolImpl* symImpl   = sema.frame().impl()->symMap()->safeCast<SymbolImpl>();
-    const TypeRef     ownerType = symImpl->ownerKind() == SymbolImplOwnerKind::Struct ? symImpl->symStruct()->typeRef() : symImpl->symEnum()->typeRef();
-
-    auto& sym = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokRef());
-
-    TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
-    if (hasFlag(AstFunctionParamMeFlagsE::Const))
-        typeFlags.add(TypeInfoFlagsE::Const);
-    const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(ownerType, typeFlags));
-    sym.setTypeRef(typeRef);
 
     return Result::Continue;
 }

@@ -39,7 +39,7 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
         diag.addNote(DiagnosticId::sema_note_other_definition);
         diag.last().addSpan(nodeFalseView.node->locationWithChildren(sema.ctx(), sema.ast()));
         diag.report(sema.ctx());
-        return Result::Stop;
+        return Result::Error;
     }
 
     sema.setType(sema.curNodeRef(), typeRef);

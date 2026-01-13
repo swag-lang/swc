@@ -61,7 +61,7 @@ namespace
             return Result::Continue;
         }
 
-        return Result::Stop;
+        return Result::Error;
     }
 
     Result constantFoldBang(Sema& sema, ConstantRef& result, const AstUnaryExpr&, const SemaNodeView& ops)
@@ -103,7 +103,7 @@ namespace
                 break;
         }
 
-        return Result::Stop;
+        return Result::Error;
     }
 
     Result reportInvalidType(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
@@ -111,7 +111,7 @@ namespace
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_unary_operand_type, expr.srcViewRef(), expr.tokRef());
         diag.addArgument(Diagnostic::ARG_TYPE, ops.typeRef);
         diag.report(sema.ctx());
-        return Result::Stop;
+        return Result::Error;
     }
 
     Result checkMinus(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
@@ -124,7 +124,7 @@ namespace
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_negate_unsigned, expr.srcViewRef(), expr.tokRef());
             diag.addArgument(Diagnostic::ARG_TYPE, ops.typeRef);
             diag.report(sema.ctx());
-            return Result::Stop;
+            return Result::Error;
         }
 
         return reportInvalidType(sema, expr, ops);
@@ -140,7 +140,7 @@ namespace
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_negate_unsigned, expr.srcViewRef(), expr.tokRef());
             diag.addArgument(Diagnostic::ARG_TYPE, ops.typeRef);
             diag.report(sema.ctx());
-            return Result::Stop;
+            return Result::Error;
         }
 
         return reportInvalidType(sema, expr, ops);
@@ -168,7 +168,7 @@ namespace
             const SourceCodeLocation loc  = sema.node(nodeView.nodeRef).locationWithChildren(sema.ctx(), sema.ast());
             diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
             diag.report(sema.ctx());
-            return Result::Stop;
+            return Result::Error;
         }
 
         if (!SemaInfo::isLValue(*nodeView.node))
@@ -177,7 +177,7 @@ namespace
             const SourceCodeLocation loc  = sema.node(nodeView.nodeRef).locationWithChildren(sema.ctx(), sema.ast());
             diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
             diag.report(sema.ctx());
-            return Result::Stop;
+            return Result::Error;
         }
 
         return Result::Continue;

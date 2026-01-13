@@ -39,7 +39,7 @@ namespace
                 auto              diag    = SemaError::report(sema, DiagnosticId::sema_err_modifier_only_integer, node.srcViewRef(), mdfRef);
                 diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
                 diag.report(sema.ctx());
-                return Result::Stop;
+                return Result::Error;
             }
         }
 
@@ -101,7 +101,7 @@ namespace
                     if (val2.isZero())
                     {
                         SemaError::raiseDivZero(sema, node, nodeRightView.nodeRef, leftCst.typeRef());
-                        return Result::Stop;
+                        return Result::Error;
                     }
 
                     val1.div(val2, overflow);
@@ -111,7 +111,7 @@ namespace
                     if (val2.isZero())
                     {
                         SemaError::raiseDivZero(sema, node, nodeRightView.nodeRef, leftCst.typeRef());
-                        return Result::Stop;
+                        return Result::Error;
                     }
 
                     val1.mod(val2, overflow);
@@ -133,7 +133,7 @@ namespace
                         auto diag = SemaError::report(sema, DiagnosticId::sema_err_negative_shift, node.nodeRightRef);
                         diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
                         diag.report(sema.ctx());
-                        return Result::Stop;
+                        return Result::Error;
                     }
 
                     if (!val2.fits64())
@@ -148,7 +148,7 @@ namespace
                         auto diag = SemaError::report(sema, DiagnosticId::sema_err_negative_shift, node.nodeRightRef);
                         diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
                         diag.report(sema.ctx());
-                        return Result::Stop;
+                        return Result::Error;
                     }
 
                     if (!val2.fits64())
@@ -169,14 +169,14 @@ namespace
                 diag.addArgument(Diagnostic::ARG_LEFT, leftCstRef);
                 diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
                 diag.report(sema.ctx());
-                return Result::Stop;
+                return Result::Error;
             }
 
             result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, val1, type.intBits(), type.intSign()));
             return Result::Continue;
         }
 
-        return Result::Stop;
+        return Result::Error;
     }
 
     Result constantFoldPlusPlus(Sema& sema, ConstantRef& result, const AstBinaryExpr&, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
@@ -212,7 +212,7 @@ namespace
                 break;
         }
 
-        return Result::Stop;
+        return Result::Error;
     }
 
     Result checkPlusPlus(Sema& sema, const AstBinaryExpr& node, const SemaNodeView&, const SemaNodeView&)

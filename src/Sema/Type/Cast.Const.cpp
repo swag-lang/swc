@@ -330,7 +330,7 @@ Result Cast::castConstant(Sema& sema, ConstantRef& result, CastContext& castCtx,
     const auto res = castAllowed(sema, castCtx, srcTypeRef, targetTypeRef);
     if (res != Result::Continue)
     {
-        if (res == Result::Stop)
+        if (res == Result::Error)
             return emitCastFailure(sema, castCtx.failure);
         return res;
     }

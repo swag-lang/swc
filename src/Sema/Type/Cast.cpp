@@ -75,7 +75,7 @@ namespace
                 castCtx.failure.optTypeRef = srcTypeRef;
             }
 
-            return Result::Stop;
+            return Result::Error;
         }
 
         const uint32_t sb = srcType->scalarNumericBits();
@@ -89,13 +89,13 @@ namespace
                 castCtx.failure.optTypeRef = srcTypeRef;
             }
 
-            return Result::Stop;
+            return Result::Error;
         }
 
         if (castCtx.isConstantFolding())
         {
             if (!Cast::foldConstantBitCast(sema, castCtx, dstTypeRef, dstType, *srcType))
-                return Result::Stop;
+                return Result::Error;
         }
 
         return Result::Continue;
@@ -106,13 +106,13 @@ namespace
         if (castCtx.kind != CastKind::Explicit)
         {
             castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            return Result::Stop;
+            return Result::Error;
         }
 
         if (castCtx.isConstantFolding())
         {
             if (!Cast::foldConstantBoolToIntLike(sema, castCtx, dstTypeRef))
-                return Result::Stop;
+                return Result::Error;
         }
 
         return Result::Continue;
@@ -123,7 +123,7 @@ namespace
         if (castCtx.kind != CastKind::Explicit && castCtx.kind != CastKind::Condition)
         {
             castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            return Result::Stop;
+            return Result::Error;
         }
 
         const auto&     typeMgr = sema.ctx().typeMgr();
@@ -135,7 +135,7 @@ namespace
             !srcType.isSlice())
         {
             castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            return Result::Stop;
+            return Result::Error;
         }
 
         if (castCtx.isConstantFolding())
@@ -143,7 +143,7 @@ namespace
             if (srcType.isIntLike())
             {
                 if (!Cast::foldConstantIntLikeToBool(sema, castCtx))
-                    return Result::Stop;
+                    return Result::Error;
             }
             else
                 SWC_UNREACHABLE();
@@ -166,7 +166,7 @@ namespace
                     if (!(dstType.isIntUnsigned() || dstType.isRune()))
                     {
                         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-                        return Result::Stop;
+                        return Result::Error;
                     }
                 }
                 else
@@ -174,7 +174,7 @@ namespace
                     if (!(srcType.isInt() && dstType.isInt()))
                     {
                         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-                        return Result::Stop;
+                        return Result::Error;
                     }
                 }
                 break;
@@ -192,7 +192,7 @@ namespace
         if (castCtx.isConstantFolding())
         {
             if (!Cast::foldConstantIntLikeToIntLike(sema, castCtx, srcTypeRef, dstTypeRef))
-                return Result::Stop;
+                return Result::Error;
         }
 
         return Result::Continue;
@@ -209,7 +209,7 @@ namespace
                 if (!srcType.isIntUnsized())
                 {
                     castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-                    return Result::Stop;
+                    return Result::Error;
                 }
                 break;
 
@@ -226,7 +226,7 @@ namespace
         if (castCtx.isConstantFolding())
         {
             if (!Cast::foldConstantIntLikeToFloat(sema, castCtx, srcTypeRef, dstTypeRef))
-                return Result::Stop;
+                return Result::Error;
         }
 
         return Result::Continue;
@@ -237,13 +237,13 @@ namespace
         if (castCtx.kind != CastKind::Explicit)
         {
             castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            return Result::Stop;
+            return Result::Error;
         }
 
         if (castCtx.isConstantFolding())
         {
             if (!Cast::foldConstantFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef))
-                return Result::Stop;
+                return Result::Error;
         }
 
         return Result::Continue;
@@ -272,7 +272,7 @@ namespace
                 if (narrowing)
                 {
                     castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-                    return Result::Stop;
+                    return Result::Error;
                 }
                 break;
 
@@ -286,7 +286,7 @@ namespace
         if (castCtx.isConstantFolding())
         {
             if (!Cast::foldConstantFloatToFloat(sema, castCtx, srcTypeRef, dstTypeRef))
-                return Result::Stop;
+                return Result::Error;
         }
 
         return Result::Continue;
@@ -297,7 +297,7 @@ namespace
         if (castCtx.kind != CastKind::Explicit)
         {
             castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            return Result::Stop;
+            return Result::Error;
         }
 
         const TypeInfo&   type    = sema.typeMgr().get(srcTypeRef);
@@ -332,7 +332,7 @@ namespace
         }
 
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-        return Result::Stop;
+        return Result::Error;
     }
 
     Result castFromUndefined(Sema&, CastContext& castCtx, TypeRef, TypeRef)
@@ -365,7 +365,7 @@ namespace
                     if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
                     {
                         castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
-                        return Result::Stop;
+                        return Result::Error;
                     }
 
                     if (castCtx.isConstantFolding())
@@ -392,7 +392,7 @@ namespace
                 if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
                 {
                     castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
-                    return Result::Stop;
+                    return Result::Error;
                 }
 
                 if (castCtx.isConstantFolding())
@@ -402,7 +402,7 @@ namespace
         }
 
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-        return Result::Stop;
+        return Result::Error;
     }
 
     Result castToFromTypeInfo(Sema&, CastContext& castCtx, TypeRef, TypeRef)
@@ -421,13 +421,13 @@ namespace
             if (castCtx.kind != CastKind::Explicit)
             {
                 castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-                return Result::Stop;
+                return Result::Error;
             }
 
             if (srcType.typeRef() != typeMgr.typeU8())
             {
                 castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-                return Result::Stop;
+                return Result::Error;
             }
 
             if (castCtx.isConstantFolding())
@@ -436,7 +436,7 @@ namespace
         }
 
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-        return Result::Stop;
+        return Result::Error;
     }
 }
 
@@ -454,11 +454,11 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
         if (castCtx.kind != CastKind::Explicit)
         {
             castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            return Result::Stop;
+            return Result::Error;
         }
     }
 
-    auto res = Result::Stop;
+    auto res = Result::Error;
     if (srcType.isAlias())
         res = castAllowed(sema, castCtx, srcType.symAlias().underlyingTypeRef(), dstTypeRef);
     else if (dstType.isAlias())
@@ -494,7 +494,7 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
     else
     {
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-        return Result::Stop;
+        return Result::Error;
     }
 
     if (res == Result::Continue && castCtx.isConstantFolding())
@@ -569,7 +569,7 @@ Result Cast::emitCastFailure(Sema& sema, const CastFailure& f)
     diag.addArgument(Diagnostic::ARG_VALUE, f.valueStr);
     diag.addNote(f.noteId);
     diag.report(sema.ctx());
-    return Result::Stop;
+    return Result::Error;
 }
 
 AstNodeRef Cast::createImplicitCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef)

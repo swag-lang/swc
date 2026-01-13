@@ -196,7 +196,7 @@ namespace
                 return constantFoldCompareEqual(sema, result, nodeLeftView, nodeRightView);
 
             default:
-                return Result::Stop;
+                return Result::Error;
         }
     }
 
@@ -217,7 +217,7 @@ namespace
         diag.addArgument(Diagnostic::ARG_LEFT, nodeLeftView.typeRef);
         diag.addArgument(Diagnostic::ARG_RIGHT, nodeRightView.typeRef);
         diag.report(sema.ctx());
-        return Result::Stop;
+        return Result::Error;
     }
 
     Result checkCompareEqual(Sema& sema, const AstRelationalExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
@@ -229,7 +229,7 @@ namespace
         diag.addArgument(Diagnostic::ARG_LEFT, nodeLeftView.typeRef);
         diag.addArgument(Diagnostic::ARG_RIGHT, nodeRightView.typeRef);
         diag.report(sema.ctx());
-        return Result::Stop;
+        return Result::Error;
     }
 
     Result promote(Sema& sema, TokenId op, const AstRelationalExpr&, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)

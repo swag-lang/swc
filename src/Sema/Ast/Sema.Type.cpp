@@ -134,7 +134,7 @@ Result AstSliceType::semaPostNode(Sema& sema) const
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_bad_slice_element_type, nodePointeeTypeRef);
         diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
         diag.report(sema.ctx());
-        return Result::Stop;
+        return Result::Error;
     }
 
     const TypeInfo ty      = TypeInfo::makeSlice(nodeView.typeRef);
@@ -163,7 +163,7 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
                 auto              diag        = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, srcViewRef(), constTokRef);
                 diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
                 diag.report(sema.ctx());
-                return Result::Stop;
+                return Result::Error;
         }
 
         typeFlags.add(TypeInfoFlagsE::Const);
@@ -186,7 +186,7 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
                 auto              diag        = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, srcViewRef(), constTokRef);
                 diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
                 diag.report(sema.ctx());
-                return Result::Stop;
+                return Result::Error;
         }
 
         typeFlags.add(TypeInfoFlagsE::Nullable);
@@ -234,7 +234,7 @@ Result AstNamedType::semaPostNode(Sema& sema)
         if (nodeQual)
             nodeRef = nodeQual->nodeRightRef;
         SemaError::raise(sema, DiagnosticId::sema_err_not_type, nodeRef);
-        return Result::Stop;
+        return Result::Error;
     }
 
     sema.inheritSema(*this, nodeIdentRef);
@@ -272,7 +272,7 @@ Result AstArrayType::semaPostNode(Sema& sema) const
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_not_int, dimRef);
             diag.addArgument(Diagnostic::ARG_TYPE, cst.typeRef());
             diag.report(ctx);
-            return Result::Stop;
+            return Result::Error;
         }
 
         if (cst.getInt().isNegative())
@@ -280,7 +280,7 @@ Result AstArrayType::semaPostNode(Sema& sema) const
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_negative, dimRef);
             diag.addArgument(Diagnostic::ARG_VALUE, cst.toString(ctx));
             diag.report(ctx);
-            return Result::Stop;
+            return Result::Error;
         }
 
         ConstantRef newCstRef;
@@ -335,7 +335,7 @@ Result AstAliasDecl::semaPostNode(Sema& sema) const
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_not_type, nodeExprRef);
         diag.addNote(DiagnosticId::sema_note_strict_alias);
         diag.report(sema.ctx());
-        return Result::Stop;
+        return Result::Error;
     }
 
     sym.setAliasedSymbol(nodeView.sym);

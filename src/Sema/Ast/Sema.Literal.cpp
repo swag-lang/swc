@@ -263,7 +263,7 @@ Result AstHexaLiteral::semaPreNode(Sema& sema) const
         if (over)
         {
             SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-            return Result::Stop;
+            return Result::Error;
         }
 
         const unsigned char h     = (c >= 'A' && c <= 'F') ? (c + 32) : c;
@@ -309,7 +309,7 @@ Result AstIntegerLiteral::semaPreNode(Sema& sema) const
         if (over)
         {
             SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-            return Result::Stop;
+            return Result::Error;
         }
 
         // add a digit
@@ -317,7 +317,7 @@ Result AstIntegerLiteral::semaPreNode(Sema& sema) const
         if (over)
         {
             SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-            return Result::Stop;
+            return Result::Error;
         }
     }
 
@@ -364,14 +364,14 @@ Result AstFloatLiteral::semaPreNode(Sema& sema) const
                 if (over)
                 {
                     SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-                    return Result::Stop;
+                    return Result::Error;
                 }
 
                 intValue.add(digit, over);
                 if (over)
                 {
                     SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-                    return Result::Stop;
+                    return Result::Error;
                 }
 
                 if (seenDot)
@@ -389,7 +389,7 @@ Result AstFloatLiteral::semaPreNode(Sema& sema) const
                 else
                 {
                     SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-                    return Result::Stop;
+                    return Result::Error;
                 }
             }
             continue;
@@ -438,7 +438,7 @@ Result AstFloatLiteral::semaPreNode(Sema& sema) const
         if (totalExp10 < (std::numeric_limits<int64_t>::min)() + static_cast<int64_t>(fracDigits))
         {
             SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, srcViewRef(), tokRef());
-            return Result::Stop;
+            return Result::Error;
         }
 
         totalExp10 -= static_cast<int64_t>(fracDigits);

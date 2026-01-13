@@ -7,7 +7,7 @@ enum class Result
     Continue,
     SkipChildren,
     Pause,
-    Stop
+    Error
 };
 
 #define RESULT_VERIFY(__expr)                                 \

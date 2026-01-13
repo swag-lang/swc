@@ -299,7 +299,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
     if (argc == 1)
     {
         printHelp(ctx);
-        return Result::Stop;
+        return Result::Error;
     }
 
     // Require a command as the first positional token (no leading '-').
@@ -308,7 +308,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
         // Missing command name
         const auto diag = Diagnostic::get(DiagnosticId::cmdline_err_missing_command);
         diag.report(ctx);
-        return Result::Stop;
+        return Result::Error;
     }
 
     // Validate and set the command
@@ -321,7 +321,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
             setReportArguments(diag, argv[1]);
             diag.addArgument(Diagnostic::ARG_VALUES, ALLOWED_COMMANDS);
             diag.report(ctx);
-            return Result::Stop;
+            return Result::Error;
         }
 
         command_ = candidate;
@@ -337,7 +337,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
         {
             if (!errorRaised_)
                 reportInvalidArgument(ctx, arg);
-            return Result::Stop;
+            return Result::Error;
         }
 
         if (!commandMatches(info.value().commands))
@@ -345,11 +345,11 @@ Result CommandLineParser::parse(int argc, char* argv[])
             auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_cmd_arg);
             setReportArguments(diag, info.value(), arg);
             diag.report(ctx);
-            return Result::Stop;
+            return Result::Error;
         }
 
         if (!processArgument(ctx, info.value(), arg, invertBoolean, i, argc, argv))
-            return Result::Stop;
+            return Result::Error;
     }
 
     return checkCommandLine(ctx);

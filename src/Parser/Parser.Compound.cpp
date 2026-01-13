@@ -74,7 +74,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
             {
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
                 skipTo(skipTokens);
-                return Result::Stop;
+                return Result::Error;
             }
             break;
 
@@ -83,7 +83,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
             {
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
                 skipTo(skipTokens);
-                return Result::Stop;
+                return Result::Error;
             }
             break;
 
@@ -92,7 +92,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
             {
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymSemiColon);
                 skipTo(skipTokens);
-                return Result::Stop;
+                return Result::Error;
             }
             break;
 
@@ -110,7 +110,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
             {
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
                 skipTo(skipTokens);
-                return Result::Stop;
+                return Result::Error;
             }
             break;
 
@@ -153,7 +153,7 @@ SpanRef Parser::parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openT
             childrenRefs.push_back(childRef);
 
         // Separator between statements
-        if (parseCompoundSeparator(blockNodeId, tokenEndId) == Result::Stop)
+        if (parseCompoundSeparator(blockNodeId, tokenEndId) == Result::Error)
         {
             if (depthParen_ && is(TokenId::SymRightParen))
                 break;

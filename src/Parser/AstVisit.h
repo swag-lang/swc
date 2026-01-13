@@ -10,9 +10,10 @@ struct AstNode;
 
 enum class AstVisitResult
 {
-    Continue, // normal flow
-    Pause,    // abort traversal immediately, but we are not finished
-    Stop      // abort traversal immediately
+    Continue,
+    Pause,
+    Error,
+    Stop,
 };
 
 class AstVisit

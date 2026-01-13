@@ -42,7 +42,7 @@ Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
             note.setSrcView(&sema.compiler().srcView(itf->srcViewRef()));
             note.addSpan(Diagnostic::tokenErrorLocation(sema.ctx(), sema.compiler().srcView(symImpl.srcViewRef()), symImpl.tokRef()), "");
             diag.report(sema.ctx());
-            return Result::Stop;
+            return Result::Error;
         }
     }
 

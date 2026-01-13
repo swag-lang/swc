@@ -314,11 +314,17 @@ JobResult Sema::exec()
             break;
         }
 
-        if (result == AstVisitResult::Stop)
+        if (result == AstVisitResult::Error)
         {
             jobResult = JobResult::Done;
             break;
         }
+        
+        if (result == AstVisitResult::Stop)
+        {
+            jobResult = JobResult::Done;
+            break;
+        }        
     }
 
     if (jobResult == JobResult::Done)

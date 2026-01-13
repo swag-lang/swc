@@ -236,7 +236,7 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
     {
         const auto diag = Diagnostic::get(DiagnosticId::cmd_err_no_input);
         diag.report(ctx);
-        return Result::Stop;
+        return Result::Error;
     }
 
     return Result::Continue;

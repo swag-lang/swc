@@ -25,7 +25,7 @@ void AstVisit::start(Ast& ast, AstNodeRef root)
 AstVisitResult AstVisit::step(const TaskContext& ctx)
 {
     if (stack_.empty())
-        return AstVisitResult::Stop;
+        return AstVisitResult::Error;
 
     Frame& fr = stack_.back();
 
@@ -60,8 +60,8 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
                 const Result result = preNodeVisitor_(*fr.node);
                 fr.firstPass        = false;
 
-                if (result == Result::Stop)
-                    return AstVisitResult::Stop;
+                if (result == Result::Error)
+                    return AstVisitResult::Error;
                 if (result == Result::Pause)
                     return AstVisitResult::Pause;
 
@@ -94,8 +94,8 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
                     {
                         AstNodeRef   lastChildRef = children_[fr.firstChildIx + fr.nextChildIx - 1];
                         const Result result       = postChildVisitor_(*fr.node, lastChildRef);
-                        if (result == Result::Stop)
-                            return AstVisitResult::Stop;
+                        if (result == Result::Error)
+                            return AstVisitResult::Error;
                         if (result == Result::Pause)
                             return AstVisitResult::Pause;
                     }
@@ -115,8 +115,8 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
                     const Result result = preChildVisitor_(*fr.node, childRef);
                     fr.firstPass        = false;
 
-                    if (result == Result::Stop)
-                        return AstVisitResult::Stop;
+                    if (result == Result::Error)
+                        return AstVisitResult::Error;
                     if (result == Result::Pause)
                         return AstVisitResult::Pause;
                     if (result == Result::SkipChildren)
@@ -157,8 +157,8 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
                 const Result result = postNodeVisitor_(*fr.node);
                 fr.firstPass        = false;
 
-                if (result == Result::Stop)
-                    return AstVisitResult::Stop;
+                if (result == Result::Error)
+                    return AstVisitResult::Error;
                 if (result == Result::Pause)
                     return AstVisitResult::Pause;
             }
@@ -166,6 +166,7 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
             stack_.pop_back();
             if (stack_.empty())
                 return AstVisitResult::Stop;
+
             return AstVisitResult::Continue;
         }
     }

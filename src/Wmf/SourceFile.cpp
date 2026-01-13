@@ -53,7 +53,7 @@ Result SourceFile::loadContent(TaskContext& ctx)
         diag.addArgument(Diagnostic::ARG_PATH, path_.string());
         diag.addArgument(Diagnostic::ARG_BECAUSE, Os::systemError(), false);
         diag.report(ctx);
-        return Result::Stop;
+        return Result::Error;
     }
 
     const auto fileSize = file.tellg();
@@ -67,7 +67,7 @@ Result SourceFile::loadContent(TaskContext& ctx)
         diag.addArgument(Diagnostic::ARG_PATH, path_.string());
         diag.addArgument(Diagnostic::ARG_BECAUSE, Os::systemError(), false);
         diag.report(ctx);
-        return Result::Stop;
+        return Result::Error;
     }
 
     // Ensure we have at least 4 characters in the buffer

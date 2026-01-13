@@ -18,7 +18,7 @@ Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
         diag.addArgument(Diagnostic::ARG_PATH, file.string());
         diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec), false);
         diag.report(ctx);
-        return Result::Stop;
+        return Result::Error;
     }
 
     // Normalize/symlink-resolve if possible (does not throw)
@@ -35,7 +35,7 @@ Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
         if (ec)
             diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec), false);
         diag.report(ctx);
-        return Result::Stop;
+        return Result::Error;
     }
     ec.clear();
 
@@ -47,7 +47,7 @@ Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
         if (ec)
             diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec), false);
         diag.report(ctx);
-        return Result::Stop;
+        return Result::Error;
     }
 
     file = resolved;
@@ -66,7 +66,7 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
         diag.addArgument(Diagnostic::ARG_PATH, folder.string());
         diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec), false);
         diag.report(ctx);
-        return Result::Stop;
+        return Result::Error;
     }
 
     // Normalize/symlink-resolve if possible (does not throw)
@@ -85,7 +85,7 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
         else
             diag.addArgument(Diagnostic::ARG_BECAUSE, "path does not exist", false);
         diag.report(ctx);
-        return Result::Stop;
+        return Result::Error;
     }
     ec.clear();
 
@@ -97,7 +97,7 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
         if (ec)
             diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec), false);
         diag.report(ctx);
-        return Result::Stop;
+        return Result::Error;
     }
 
     folder = resolved;

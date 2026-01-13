@@ -191,7 +191,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_not_int, nodeArgRef);
         diag.addArgument(Diagnostic::ARG_TYPE, nodeArgView.typeRef);
         diag.report(sema.ctx());
-        return Result::Stop;
+        return Result::Error;
     }
 
     if (nodeExprView.type->isArray())
@@ -262,7 +262,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
             diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(numExpected));
             diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(numGot));
             diag.report(sema.ctx());
-            return Result::Stop;
+            return Result::Error;
         }
 
         for (const AstNodeRef nodeRef : children)
@@ -273,7 +273,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_not_int, nodeRef);
                 diag.addArgument(Diagnostic::ARG_TYPE, nodeArgView.typeRef);
                 diag.report(sema.ctx());
-                return Result::Stop;
+                return Result::Error;
             }
         }
 
@@ -305,7 +305,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
             diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(1));
             diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(numGot));
             diag.report(sema.ctx());
-            return Result::Stop;
+            return Result::Error;
         }
 
         for (const AstNodeRef nodeRef : children)
@@ -316,7 +316,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_not_int, nodeRef);
                 diag.addArgument(Diagnostic::ARG_TYPE, nodeArgView.typeRef);
                 diag.report(sema.ctx());
-                return Result::Stop;
+                return Result::Error;
             }
         }
 

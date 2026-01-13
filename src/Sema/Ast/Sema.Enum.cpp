@@ -170,11 +170,11 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_missing_enum_value, srcViewRef(), tokRef());
             diag.addArgument(Diagnostic::ARG_TYPE, underlyingTypeRef);
             diag.report(ctx);
-            return Result::Stop;
+            return Result::Error;
         }
 
         if (symEnum.hasNextValue() && !symEnum.computeNextValue(sema, srcViewRef(), tokRef()))
-            return Result::Stop;
+            return Result::Error;
 
         ConstantValue val = ConstantValue::makeInt(ctx, symEnum.nextValue(), underlyingType.intBits(), underlyingType.intSign());
         valueCst          = sema.cstMgr().addConstant(ctx, val);
@@ -194,7 +194,7 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
     symValue->setTyped(ctx);
 
     if (!sema.curSymMap()->addSingleSymbolOrError(sema, symValue))
-        return Result::Stop;
+        return Result::Error;
 
     return Result::Continue;
 }

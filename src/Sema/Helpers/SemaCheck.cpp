@@ -48,7 +48,7 @@ Result SemaCheck::modifiers(Sema& sema, const AstNode& node, AstModifierFlags mo
         diag.report(sema.ctx());
     });
 
-    return Result::Stop;
+    return Result::Error;
 }
 
 Result SemaCheck::isValue(Sema& sema, AstNodeRef nodeRef)
@@ -58,7 +58,7 @@ Result SemaCheck::isValue(Sema& sema, AstNodeRef nodeRef)
         return Result::Continue;
     const auto diag = SemaError::report(sema, DiagnosticId::sema_err_not_value_expr, nodeRef);
     diag.report(sema.ctx());
-    return Result::Stop;
+    return Result::Error;
 }
 
 Result SemaCheck::isConstant(Sema& sema, AstNodeRef nodeRef)
@@ -66,7 +66,7 @@ Result SemaCheck::isConstant(Sema& sema, AstNodeRef nodeRef)
     if (!sema.hasConstant(nodeRef))
     {
         SemaError::raiseExprNotConst(sema, nodeRef);
-        return Result::Stop;
+        return Result::Error;
     }
 
     return Result::Continue;
@@ -106,7 +106,7 @@ Result SemaCheck::checkSignature(Sema& sema, const std::vector<SymbolVariable*>&
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_attribute_parameter_type, param.decl()->srcViewRef(), param.tokRef());
                 diag.addArgument(Diagnostic::ARG_TYPE, type.toName(sema.ctx()));
                 diag.report(sema.ctx());
-                return Result::Stop;
+                return Result::Error;
             }
         }
 

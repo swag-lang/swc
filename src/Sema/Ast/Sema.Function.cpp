@@ -90,7 +90,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 {
     if (childRef == nodeParamsRef)
         sema.popScope();
-    
+
     if (childRef == nodeReturnTypeRef || (childRef == nodeParamsRef && nodeReturnTypeRef.isInvalid()))
     {
         SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
@@ -155,7 +155,7 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
         diag.addArgument(Diagnostic::ARG_SYM, srcView.token(nodeCallee.node->tokRef()).string(srcView));
         diag.addArgument(Diagnostic::ARG_TYPE, nodeCallee.type ? nodeCallee.type->toName(sema.ctx()) : "invalid type");
         diag.report(sema.ctx());
-        return Result::Stop;
+        return Result::Error;
     }
 
     const auto& symFunc    = nodeCallee.type->symFunction();
@@ -172,7 +172,7 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
         diag.addArgument(Diagnostic::ARG_COUNT, std::to_string(numParams));
         diag.addArgument(Diagnostic::ARG_VALUE, std::to_string(numArgs));
         diag.report(sema.ctx());
-        return Result::Stop;
+        return Result::Error;
     }
 
     for (uint32_t i = 0; i < numParams; ++i)
@@ -191,7 +191,7 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
                 diag.addArgument(Diagnostic::ARG_COUNT, std::to_string(numParams));
                 diag.addArgument(Diagnostic::ARG_VALUE, std::to_string(numArgs));
                 diag.report(sema.ctx());
-                return Result::Stop;
+                return Result::Error;
             }
         }
     }

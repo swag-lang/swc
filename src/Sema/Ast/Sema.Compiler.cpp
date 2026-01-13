@@ -146,7 +146,7 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_compiler_error, srcViewRef(), tokRef());
             diag.addArgument(Diagnostic::ARG_BECAUSE, constant.getString(), false);
             diag.report(sema.ctx());
-            return Result::Stop;
+            return Result::Error;
         }
 
         case TokenId::CompilerWarning:
@@ -403,7 +403,7 @@ namespace
         if (nodeView.cst && (token.id == TokenId::CompilerNameOf || token.id == TokenId::CompilerFullNameOf))
             diag.addElement(DiagnosticId::sema_help_nameof_instruction);
         diag.report(ctx);
-        return Result::Stop;
+        return Result::Error;
     }
 
     Result semaCompilerFullNameOf(Sema& sema, const AstCompilerCallUnary& node)
@@ -503,7 +503,7 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
             note.setSeverity(DiagnosticSeverity::Note);
             note.addSpan(Diagnostic::tokenErrorLocation(ctx, ctx.compiler().mainFunc()->srcView(ctx), ctx.compiler().mainFunc()->tokRef()));
             diag.report(ctx);
-            return Result::Stop;
+            return Result::Error;
         }
     }
 

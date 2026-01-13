@@ -88,6 +88,22 @@ namespace
         SemaInfo::setIsValue(node);
         return Result::Continue;
     }
+
+    Result semaIntrinsicDataOf(Sema& sema, AstIntrinsicCallUnary& node)
+    {
+        // TODO
+        sema.setType(sema.curNodeRef(), sema.typeMgr().typePtrVoid());
+        SemaInfo::setIsValue(node);
+        return Result::Continue;
+    }
+
+    Result semaIntrinsicKindOf(Sema& sema, AstIntrinsicCallUnary& node)
+    {
+        // TODO
+        sema.setType(sema.curNodeRef(), sema.typeMgr().typePtrVoid());
+        SemaInfo::setIsValue(node);
+        return Result::Continue;
+    }
 }
 
 Result AstIntrinsicCallUnary::semaPostNode(Sema& sema)
@@ -97,13 +113,10 @@ Result AstIntrinsicCallUnary::semaPostNode(Sema& sema)
     {
         case TokenId::IntrinsicStrLen:
             return semaIntrinsicStrLen(sema, *this);
-
-        case TokenId::IntrinsicKindOf:
         case TokenId::IntrinsicDataOf:
-            // TODO
-            sema.setType(sema.curNodeRef(), sema.typeMgr().typePtrVoid());
-            SemaInfo::setIsValue(*this);
-            return Result::Continue;
+            return semaIntrinsicDataOf(sema, *this);
+        case TokenId::IntrinsicKindOf:
+            return semaIntrinsicKindOf(sema, *this);
 
         case TokenId::IntrinsicAssert:
         case TokenId::IntrinsicSetContext:

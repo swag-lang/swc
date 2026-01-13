@@ -111,6 +111,8 @@ private:
     Result postNode(AstNode& node);
     Result preNodeChild(AstNode& node, AstNodeRef& childRef);
     Result postNodeChild(AstNode& node, AstNodeRef& childRef);
+    void   pushDebugInfo();
+    void   popDebugInfo(const AstNode& node, Result result);
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;
     SymbolMap*                              startSymMap_ = nullptr;

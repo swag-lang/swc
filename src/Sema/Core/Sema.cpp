@@ -231,10 +231,7 @@ void Sema::setVisitors()
 
 Result Sema::preDecl(AstNode& node)
 {
-#if SWC_HAS_SEMA_DEBUG_INFO
-    nodeStack_.push_back({.scopeCount = scopes_.size(), .frameCount = frames_.size()});
-#endif
-
+    pushDebugInfo();
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     return info.semaPreDecl(*this, node);
 }
@@ -255,27 +252,13 @@ Result Sema::postDecl(AstNode& node)
 {
     const AstNodeIdInfo& info   = Ast::nodeIdInfos(node.id());
     const Result         result = info.semaPostDecl(*this, node);
-
-#if SWC_HAS_SEMA_DEBUG_INFO
-    if (result == Result::Continue && node.isNot(AstNodeId::File) && node.isNot(AstNodeId::CompilerGlobal))
-    {
-        SWC_ASSERT(!nodeStack_.empty());
-        const auto& last = nodeStack_.back();
-        SWC_ASSERT(scopes_.size() == last.scopeCount);
-        SWC_ASSERT(frames_.size() == last.frameCount);
-        nodeStack_.pop_back();
-    }
-#endif
-
+    popDebugInfo(node, result);
     return result;
 }
 
 Result Sema::preNode(AstNode& node)
 {
-#if SWC_HAS_SEMA_DEBUG_INFO
-    nodeStack_.push_back({.scopeCount = scopes_.size(), .frameCount = frames_.size()});
-#endif
-
+    pushDebugInfo();
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     return info.semaPreNode(*this, node);
 }
@@ -284,18 +267,7 @@ Result Sema::postNode(AstNode& node)
 {
     const AstNodeIdInfo& info   = Ast::nodeIdInfos(node.id());
     const Result         result = info.semaPostNode(*this, node);
-
-#if SWC_HAS_SEMA_DEBUG_INFO
-    if (result == Result::Continue && node.isNot(AstNodeId::File) && node.isNot(AstNodeId::CompilerGlobal))
-    {
-        SWC_ASSERT(!nodeStack_.empty());
-        const auto& last = nodeStack_.back();
-        SWC_ASSERT(scopes_.size() == last.scopeCount);
-        SWC_ASSERT(frames_.size() == last.frameCount);
-        nodeStack_.pop_back();
-    }
-#endif
-
+    popDebugInfo(node, result);
     return result;
 }
 
@@ -321,6 +293,27 @@ Result Sema::postNodeChild(AstNode& node, AstNodeRef& childRef)
 {
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     return info.semaPostNodeChild(*this, node, childRef);
+}
+
+void Sema::pushDebugInfo()
+{
+#if SWC_HAS_SEMA_DEBUG_INFO
+    nodeStack_.push_back({.scopeCount = scopes_.size(), .frameCount = frames_.size()});
+#endif
+}
+
+void Sema::popDebugInfo(const AstNode& node, Result result)
+{
+#if SWC_HAS_SEMA_DEBUG_INFO
+    if (result == Result::Continue && node.isNot(AstNodeId::File) && node.isNot(AstNodeId::CompilerGlobal))
+    {
+        SWC_ASSERT(!nodeStack_.empty());
+        const auto& last = nodeStack_.back();
+        SWC_ASSERT(scopes_.size() == last.scopeCount);
+        SWC_ASSERT(frames_.size() == last.frameCount);
+        nodeStack_.pop_back();
+    }
+#endif
 }
 
 JobResult Sema::exec()

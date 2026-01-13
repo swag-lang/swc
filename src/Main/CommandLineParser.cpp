@@ -239,6 +239,12 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
             *static_cast<int*>(info.target) = std::stoi(value);
             return true;
 
+        case CommandLineType::UnsignedInt:
+            if (!getNextValue(ctx, arg, index, argc, argv, value))
+                return false;
+            *static_cast<uint32_t*>(info.target) = std::stoul(value);
+            return true;
+
         case CommandLineType::String:
             if (!getNextValue(ctx, arg, index, argc, argv, value))
                 return false;
@@ -395,11 +401,11 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
 {
     addArg("all", "--silent", nullptr, CommandLineType::Bool, &cmdLine_->silent, nullptr, "Suppress all log output.");
     addArg("all", "--stats", nullptr, CommandLineType::Bool, &cmdLine_->stats, nullptr, "Display runtime statistics after execution.");
-    addArg("all", "--num-cores", nullptr, CommandLineType::Int, &cmdLine_->numCores, nullptr, "Set the maximum number of CPU cores to use (0 = auto-detect).");
+    addArg("all", "--num-cores", nullptr, CommandLineType::UnsignedInt, &cmdLine_->numCores, nullptr, "Set the maximum number of CPU cores to use (0 = auto-detect).");
     addArg("all", "--log-color", nullptr, CommandLineType::Bool, &cmdLine_->logColor, nullptr, "Enable colored log output for better readability.");
     addArg("all", "--log-ascii", nullptr, CommandLineType::Bool, &cmdLine_->logAscii, nullptr, "Restrict console output to ASCII characters (disable Unicode).");
     addArg("all", "--syntax-color", "-sc", CommandLineType::Bool, &cmdLine_->syntaxColor, nullptr, "Syntax color output code.");
-    addArg("all", "--syntax-color-lum", nullptr, CommandLineType::Int, &cmdLine_->syntaxColorLum, nullptr, "Syntax color luminosity factor [0-100].");
+    addArg("all", "--syntax-color-lum", nullptr, CommandLineType::UnsignedInt, &cmdLine_->syntaxColorLum, nullptr, "Syntax color luminosity factor [0-100].");
     addArg("all", "--diag-absolute", "-da", CommandLineType::Bool, &cmdLine_->diagAbsolute, nullptr, "Show absolute file paths in diagnostic messages.");
     addArg("all", "--diag-one-line", "-dl", CommandLineType::Bool, &cmdLine_->diagOneLine, nullptr, "Display diagnostics as a single line.");
     addArg("all", "--diag-id", "-did", CommandLineType::Bool, &cmdLine_->errorId, nullptr, "Show diagnostic identifiers.");
@@ -415,7 +421,7 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
 
 #if SWC_DEV_MODE
     addArg("all", "--randomize", nullptr, CommandLineType::Bool, &cmdLine_->randomize, nullptr, "Randomize behavior.");
-    addArg("all", "--seed", nullptr, CommandLineType::Int, &cmdLine_->randSeed, nullptr, "Set seed for randomize behavior.");
+    addArg("all", "--seed", nullptr, CommandLineType::UnsignedInt, &cmdLine_->randSeed, nullptr, "Set seed for randomize behavior.");
 #endif
 }
 

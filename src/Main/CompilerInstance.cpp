@@ -55,10 +55,13 @@ void CompilerInstance::logBefore()
     Logger::printHeaderCentered(ctx, LogColor::Magenta, "[Debug]", LogColor::Magenta, "ON");
 #elif SWC_DEV_MODE
     Logger::printHeaderCentered(ctx, LogColor::Blue, "[DevMode]", LogColor::Blue, "ON");
-    if (ctx.cmdLine().randomize)
-        Logger::printHeaderCentered(ctx, LogColor::Blue, "[DevMode]", LogColor::Blue, std::format("randomize seed is {}", ctx.global().jobMgr().randSeed()));
 #elif SWC_STATS
     Logger::printHeaderCentered(ctx, LogColor::Yellow, "[Stats]", LogColor::Yellow, "ON");
+#endif
+
+#if SWC_DEBUG || SWC_DEV_MODE
+    if (ctx.cmdLine().randomize)
+        Logger::printHeaderCentered(ctx, LogColor::Blue, "[Randomize]", LogColor::Blue, std::format("seed is {}", ctx.global().jobMgr().randSeed()));
 #endif
 
     ctx.global().logger().unlock();

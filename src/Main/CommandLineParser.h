@@ -13,6 +13,7 @@ enum class CommandLineType
 {
     Bool,
     Int,
+    UnsignedInt,
     String,
     Path,
     StringSet,

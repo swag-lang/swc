@@ -237,7 +237,7 @@ Result AstNamedType::semaPostNode(Sema& sema)
         return Result::Stop;
     }
 
-    sema.semaInherit(*this, nodeIdentRef);
+    sema.inheritSema(*this, nodeIdentRef);
     return Result::Continue;
 }
 

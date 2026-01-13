@@ -49,13 +49,6 @@ Sema::Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root) :
 
 Sema::~Sema() = default;
 
-void Sema::semaInherit(AstNode& nodeDst, AstNodeRef srcRef)
-{
-    const AstNode& nodeSrc = node(srcRef);
-    nodeDst.semaBits()     = nodeSrc.semaBits();
-    nodeDst.setSemaRef(nodeSrc.semaRef());
-}
-
 ConstantManager& Sema::cstMgr()
 {
     return compiler().cstMgr();

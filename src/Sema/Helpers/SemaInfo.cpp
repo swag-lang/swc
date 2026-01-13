@@ -319,4 +319,23 @@ void* SemaInfo::getPayload(AstNodeRef nodeRef) const
     return *shard.store.ptr<void*>(node.semaRef());
 }
 
+void SemaInfo::inheritSemaFlags(AstNode& nodeDst, const AstNode& nodeSrc)
+{
+    const uint16_t mask = ~(SEMA_KIND_MASK | SEMA_SHARD_MASK);
+    nodeDst.semaBits()  = (nodeDst.semaBits() & ~mask) | (nodeSrc.semaBits() & mask);
+}
+
+void SemaInfo::inheritSemaKindRef(AstNode& nodeDst, const AstNode& nodeSrc)
+{
+    const uint16_t mask = SEMA_KIND_MASK | SEMA_SHARD_MASK;
+    nodeDst.semaBits()  = (nodeDst.semaBits() & ~mask) | (nodeSrc.semaBits() & mask);
+    nodeDst.setSemaRef(nodeSrc.semaRef());
+}
+
+void SemaInfo::inheritSema(AstNode& nodeDst, const AstNode& nodeSrc)
+{
+    inheritSemaFlags(nodeDst, nodeSrc);
+    inheritSemaKindRef(nodeDst, nodeSrc);
+}
+
 SWC_END_NAMESPACE();

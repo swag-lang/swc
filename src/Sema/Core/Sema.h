@@ -37,7 +37,6 @@ public:
     const CompilerInstance& compiler() const { return ctx().compiler(); }
     const Token&            token(SourceViewRef srcViewRef, TokenRef tokRef) const { return srcView(srcViewRef).token(tokRef); }
 
-    void                     semaInherit(AstNode& nodeDst, AstNodeRef srcRef);
     ConstantManager&         cstMgr();
     const ConstantManager&   cstMgr() const;
     TypeManager&             typeMgr();
@@ -67,6 +66,9 @@ public:
     std::span<Symbol*>       getSymbolList(AstNodeRef n) { return semaInfo().getSymbolList(n); }
     bool                     hasPayload(AstNodeRef n) const { return semaInfo().hasPayload(n); }
     void                     setPayload(AstNodeRef n, void* payload) { semaInfo().setPayload(n, payload); }
+    void                     inheritSemaFlags(AstNode& nodeDst, AstNodeRef srcRef) { SemaInfo::inheritSemaFlags(nodeDst, node(srcRef)); }
+    void                     inheritSemaKindRef(AstNode& nodeDst, AstNodeRef srcRef) { SemaInfo::inheritSemaKindRef(nodeDst, node(srcRef)); }
+    void                     inheritSema(AstNode& nodeDst, AstNodeRef srcRef) { SemaInfo::inheritSema(nodeDst, node(srcRef)); }
 
     template<typename T>
     T* payload(AstNodeRef n) const

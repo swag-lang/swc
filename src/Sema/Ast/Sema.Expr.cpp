@@ -13,7 +13,7 @@ SWC_BEGIN_NAMESPACE();
 
 Result AstParenExpr::semaPostNode(Sema& sema)
 {
-    sema.semaInherit(*this, nodeExprRef);
+    sema.inheritSema(*this, nodeExprRef);
     return Result::Continue;
 }
 

@@ -12,6 +12,7 @@ class SemaScope;
 
 constexpr uint16_t        SEMA_KIND_MASK   = 0x000F;
 constexpr uint16_t        SEMA_SHARD_MASK  = 0x00F0;
+constexpr uint16_t        SEMA_FLAGS_MASK  = 0xFF00;
 constexpr uint16_t        SEMA_SHARD_SHIFT = 4;
 constexpr static uint32_t SEMA_SHARD_NUM   = 1 << SEMA_SHARD_SHIFT;
 
@@ -94,14 +95,17 @@ public:
     std::span<Symbol*>       getSymbolList(AstNodeRef nodeRef);
     void                     setSymbols(AstNodeRef nodeRef, std::span<const Symbol*> symbols);
 
-private:
-    std::span<const Symbol*> getSymbolListImpl(AstNodeRef nodeRef) const;
-    static void              updateSemaFlags(AstNode& node, std::span<const Symbol*> symbols);
-
-public:
     bool  hasPayload(AstNodeRef nodeRef) const;
     void  setPayload(AstNodeRef nodeRef, void* payload);
     void* getPayload(AstNodeRef nodeRef) const;
+
+    static void inheritSemaFlags(AstNode& nodeDst, const AstNode& nodeSrc);
+    static void inheritSemaKindRef(AstNode& nodeDst, const AstNode& nodeSrc);
+    static void inheritSema(AstNode& nodeDst, const AstNode& nodeSrc);
+
+private:
+    std::span<const Symbol*> getSymbolListImpl(AstNodeRef nodeRef) const;
+    static void              updateSemaFlags(AstNode& node, std::span<const Symbol*> symbols);
 };
 
 SWC_END_NAMESPACE();

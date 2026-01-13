@@ -73,7 +73,7 @@ Result AstExplicitCastExpr::semaPostNode(Sema& sema)
 
     SemaNodeView nodeExprView(sema, nodeExprRef);
     RESULT_VERIFY(Cast::cast(sema, nodeExprView, nodeTypeView.typeRef, CastKind::Explicit, castFlags));
-    sema.semaInherit(*this, nodeExprView.nodeRef);
+    sema.inheritSema(*this, nodeExprView.nodeRef);
     SemaInfo::setIsValue(*this);
 
     return Result::Continue;

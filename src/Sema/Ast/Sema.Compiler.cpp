@@ -22,7 +22,7 @@ SWC_BEGIN_NAMESPACE();
 Result AstCompilerExpression::semaPostNode(Sema& sema)
 {
     RESULT_VERIFY(SemaCheck::isConstant(sema, nodeExprRef));
-    sema.semaInherit(*this, nodeExprRef);
+    sema.inheritSema(*this, nodeExprRef);
     return Result::Continue;
 }
 

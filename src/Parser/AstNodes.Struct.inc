@@ -898,11 +898,11 @@ struct AstCompilerIf : AstNodeT<AstNodeId::CompilerIf>
     AstNodeRef nodeIfBlockRef;
     AstNodeRef nodeElseBlockRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeConditionRef, nodeIfBlockRef, nodeElseBlockRef}); }
-    Result semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result semaPostDecl(Sema& sema) const;
-    Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result semaPostNode(Sema& sema) const;
+    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeConditionRef, nodeIfBlockRef, nodeElseBlockRef}); }
+    Result        semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) const;
+    static Result semaPostDecl(Sema& sema);
+    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result        semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

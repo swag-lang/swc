@@ -27,8 +27,8 @@ public:
     bool                    isDeclPass() const { return declPass_; }
     SemaInfo&               semaInfo() { return *semaInfo_; }
     const SemaInfo&         semaInfo() const { return *semaInfo_; }
-    SemaFrame&              frame() { return frame_.back(); }
-    const SemaFrame&        frame() const { return frame_.back(); }
+    SemaFrame&              frame() { return frames_.back(); }
+    const SemaFrame&        frame() const { return frames_.back(); }
     AstVisit&               visit() { return visit_; }
     const AstVisit&         visit() const { return visit_; }
     AstNode&                node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
@@ -117,7 +117,16 @@ private:
     SemaScope*                              curScope_    = nullptr;
     bool                                    declPass_    = false;
 
-    std::vector<SemaFrame> frame_;
+    std::vector<SemaFrame> frames_;
+
+#if SWC_HAS_SEMA_DEBUG_INFO
+    struct NodeStackEntry
+    {
+        size_t scopeCount;
+        size_t frameCount;
+    };
+    std::vector<NodeStackEntry> nodeStack_;
+#endif
 };
 
 SWC_END_NAMESPACE();

@@ -63,10 +63,10 @@ Result AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) c
     return Result::Continue;
 }
 
-Result AstCompilerIf::semaPostDecl(Sema& sema) const
+Result AstCompilerIf::semaPostDecl(Sema& sema)
 {
-    if (nodeElseBlockRef.isValid())
-        sema.popFrame();
+    // Will pop the #if or the #else
+    sema.popFrame();
     return Result::Continue;
 }
 

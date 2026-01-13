@@ -123,13 +123,13 @@ void Sema::popScope()
 
 void Sema::pushFrame(const SemaFrame& frame)
 {
-    frame_.push_back(frame);
+    frames_.push_back(frame);
 }
 
 void Sema::popFrame()
 {
-    SWC_ASSERT(!frame_.empty());
-    frame_.pop_back();
+    SWC_ASSERT(!frames_.empty());
+    frames_.pop_back();
 }
 
 namespace
@@ -231,9 +231,12 @@ void Sema::setVisitors()
 
 Result Sema::preDecl(AstNode& node)
 {
-    const AstNodeIdInfo& info   = Ast::nodeIdInfos(node.id());
-    const Result         result = info.semaPreDecl(*this, node);
-    return result;
+#if SWC_HAS_SEMA_DEBUG_INFO
+    nodeStack_.push_back({.scopeCount = scopes_.size(), .frameCount = frames_.size()});
+#endif
+
+    const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
+    return info.semaPreDecl(*this, node);
 }
 
 Result Sema::preDeclChild(AstNode& node, AstNodeRef& childRef)
@@ -252,20 +255,47 @@ Result Sema::postDecl(AstNode& node)
 {
     const AstNodeIdInfo& info   = Ast::nodeIdInfos(node.id());
     const Result         result = info.semaPostDecl(*this, node);
+
+#if SWC_HAS_SEMA_DEBUG_INFO
+    if (result == Result::Continue && node.isNot(AstNodeId::File) && node.isNot(AstNodeId::CompilerGlobal))
+    {
+        SWC_ASSERT(!nodeStack_.empty());
+        const auto& last = nodeStack_.back();
+        SWC_ASSERT(scopes_.size() == last.scopeCount);
+        SWC_ASSERT(frames_.size() == last.frameCount);
+        nodeStack_.pop_back();
+    }
+#endif
+
     return result;
 }
 
 Result Sema::preNode(AstNode& node)
 {
-    const AstNodeIdInfo& info   = Ast::nodeIdInfos(node.id());
-    const Result         result = info.semaPreNode(*this, node);
-    return result;
+#if SWC_HAS_SEMA_DEBUG_INFO
+    nodeStack_.push_back({.scopeCount = scopes_.size(), .frameCount = frames_.size()});
+#endif
+
+    const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
+    return info.semaPreNode(*this, node);
 }
 
 Result Sema::postNode(AstNode& node)
 {
     const AstNodeIdInfo& info   = Ast::nodeIdInfos(node.id());
     const Result         result = info.semaPostNode(*this, node);
+
+#if SWC_HAS_SEMA_DEBUG_INFO
+    if (result == Result::Continue && node.isNot(AstNodeId::File) && node.isNot(AstNodeId::CompilerGlobal))
+    {
+        SWC_ASSERT(!nodeStack_.empty());
+        const auto& last = nodeStack_.back();
+        SWC_ASSERT(scopes_.size() == last.scopeCount);
+        SWC_ASSERT(frames_.size() == last.frameCount);
+        nodeStack_.pop_back();
+    }
+#endif
+
     return result;
 }
 
@@ -319,16 +349,17 @@ JobResult Sema::exec()
             jobResult = JobResult::Done;
             break;
         }
-        
+
         if (result == AstVisitResult::Stop)
         {
             jobResult = JobResult::Done;
             break;
-        }        
+        }
     }
 
     if (jobResult == JobResult::Done)
         scopes_.clear();
+
     return jobResult;
 }
 

@@ -321,14 +321,14 @@ void* SemaInfo::getPayload(AstNodeRef nodeRef) const
 
 void SemaInfo::inheritSemaFlags(AstNode& nodeDst, const AstNode& nodeSrc)
 {
-    const uint16_t mask = ~(SEMA_KIND_MASK | SEMA_SHARD_MASK);
-    nodeDst.semaBits()  = (nodeDst.semaBits() & ~mask) | (nodeSrc.semaBits() & mask);
+    constexpr uint16_t mask = SEMA_FLAGS_MASK;
+    nodeDst.semaBits()      = (nodeDst.semaBits() & ~mask) | (nodeSrc.semaBits() & mask);
 }
 
 void SemaInfo::inheritSemaKindRef(AstNode& nodeDst, const AstNode& nodeSrc)
 {
-    const uint16_t mask = SEMA_KIND_MASK | SEMA_SHARD_MASK;
-    nodeDst.semaBits()  = (nodeDst.semaBits() & ~mask) | (nodeSrc.semaBits() & mask);
+    constexpr uint16_t mask = SEMA_KIND_MASK | SEMA_SHARD_MASK;
+    nodeDst.semaBits()      = (nodeDst.semaBits() & ~mask) | (nodeSrc.semaBits() & mask);
     nodeDst.setSemaRef(nodeSrc.semaRef());
 }
 

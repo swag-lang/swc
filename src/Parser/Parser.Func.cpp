@@ -199,7 +199,10 @@ AstNodeRef Parser::parseFunctionDecl()
             consume();
     }
 
-    nodePtr->spanConstraintsRef = ast_->pushSpan(whereRefs.span());
+    if (whereRefs.empty())
+        nodePtr->spanConstraintsRef = SpanRef::invalid();
+    else
+        nodePtr->spanConstraintsRef = ast_->pushSpan(whereRefs.span());
 
     // Body
     if (consumeIf(TokenId::SymSemiColon).isValid())

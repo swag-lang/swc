@@ -80,7 +80,7 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
         sema.pushScope(SemaScopeFlagsE::Local);
         sema.curScope().setSymMap(&sym);
-        //return Result::SkipChildren; // TODO
+        return Result::SkipChildren; // TODO
     }
 
     return Result::Continue;

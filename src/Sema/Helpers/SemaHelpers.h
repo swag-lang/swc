@@ -12,6 +12,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace SemaHelpers
 {
+    void handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Symbol* sym);
+
     template<typename T>
     T& registerSymbol(Sema& sema, const AstNode& node, TokenRef tokNameRef)
     {
@@ -26,30 +28,7 @@ namespace SemaHelpers
         sym->registerCompilerIf(sema);
         sema.setSymbol(sema.curNodeRef(), sym);
 
-        if (const auto symStruct = symbolMap->safeCast<SymbolStruct>())
-        {
-            if (sym->isVariable())
-                symStruct->addField(reinterpret_cast<SymbolVariable*>(sym));
-        }
-
-        if (const auto symAttr = symbolMap->safeCast<SymbolAttribute>())
-        {
-            if (sym->isVariable())
-                symAttr->addParameter(reinterpret_cast<SymbolVariable*>(sym));
-        }
-
-        if (const auto symFunc = symbolMap->safeCast<SymbolFunction>())
-        {
-            if (sym->isVariable())
-                symFunc->addParameter(reinterpret_cast<SymbolVariable*>(sym));
-        }
-
-        if (const auto symInterface = symbolMap->safeCast<SymbolInterface>())
-        {
-            if (sym->isFunction())
-                symInterface->addMethod(reinterpret_cast<SymbolFunction*>(sym));
-        }
-
+        handleSymbolRegistration(sema, symbolMap, sym);
         return *sym;
     }
 

@@ -34,6 +34,8 @@ public:
     bool           isLocal() const { return hasFlag(SemaScopeFlagsE::Local); }
     bool           isImpl() const { return hasFlag(SemaScopeFlagsE::Impl); }
     bool           isInterface() const { return hasFlag(SemaScopeFlagsE::Interface); }
+    bool           isType() const { return hasFlag(SemaScopeFlagsE::Type); }
+    bool           isParameters() const { return hasFlag(SemaScopeFlagsE::Parameters); }
 
     void             setSymMap(SymbolMap* symMap) { symMap_ = symMap; }
     SymbolMap*       symMap() { return symMap_; }

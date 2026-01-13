@@ -197,7 +197,9 @@ Result AstVarDeclNameList::semaPreNode(Sema& sema) const
 
     const auto symbols = sema.getSymbolList(sema.curNodeRef());
     for (const auto sym : symbols)
+    {
         RESULT_VERIFY(Match::ghosting(sema, *sym));
+    }
 
     return Result::Continue;
 }

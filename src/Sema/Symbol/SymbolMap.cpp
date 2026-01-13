@@ -91,7 +91,7 @@ Symbol* SymbolMap::insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* s
     Symbol*& head = shard.map[idRef];
     prependSymbol(head, symbol);
     if (notify)
-        ctx.compiler().notifySymbolAdded();
+        ctx.compiler().notifyAlive();
     return symbol;
 }
 
@@ -188,7 +188,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
                 return e->head;
             symbol->setSymMap(this);
             prependSymbol(e->head, symbol);
-            ctx.compiler().notifySymbolAdded();
+            ctx.compiler().notifyAlive();
             return symbol;
         }
 
@@ -197,7 +197,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
             symbol->setSymMap(this);
             symbol->setNextHomonym(nullptr);
             small_[smallSize_++] = Entry{.head = symbol, .key = idRef};
-            ctx.compiler().notifySymbolAdded();
+            ctx.compiler().notifyAlive();
             return symbol;
         }
 
@@ -231,7 +231,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
     Symbol*& head = bigMap_[idRef];
     prependSymbol(head, symbol);
     symbol->setSymMap(this);
-    ctx.compiler().notifySymbolAdded();
+    ctx.compiler().notifyAlive();
     return symbol;
 }
 

@@ -35,7 +35,7 @@ public:
     void          setHasNextValue() { addExtraFlag(SymbolEnumFlagsE::HasNextValue); }
     bool          computeNextValue(Sema& sema, SourceViewRef srcViewRef, TokenRef tokRef);
 
-    void                     addImpl(SymbolImpl& symImpl);
+    void                     addImpl(Sema& sema, SymbolImpl& symImpl);
     std::vector<SymbolImpl*> impls() const;
 
     bool     isEnumFlags() const { return attributes().hasSwagFlag(SwagAttributeFlagsE::EnumFlags); }

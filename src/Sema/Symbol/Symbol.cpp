@@ -35,7 +35,7 @@ void Symbol::setTyped(TaskContext& ctx)
     if (flags_.has(SymbolFlagsE::Typed))
         return;
     flags_.add(SymbolFlagsE::Typed);
-    ctx.compiler().notifySymbolTyped();
+    ctx.compiler().notifyAlive();
 }
 
 void Symbol::setCompleted(TaskContext& ctx)
@@ -43,7 +43,7 @@ void Symbol::setCompleted(TaskContext& ctx)
     if (flags_.has(SymbolFlagsE::Completed))
         return;
     flags_.add(SymbolFlagsE::Completed);
-    ctx.compiler().notifySymbolCompleted();
+    ctx.compiler().notifyAlive();
 }
 
 void Symbol::setDeclared(TaskContext& ctx)
@@ -51,7 +51,7 @@ void Symbol::setDeclared(TaskContext& ctx)
     if (flags_.has(SymbolFlagsE::Declared))
         return;
     flags_.add(SymbolFlagsE::Declared);
-    ctx.compiler().notifySymbolDeclared();
+    ctx.compiler().notifyAlive();
 }
 
 void Symbol::setIgnored(TaskContext& ctx) noexcept
@@ -59,7 +59,7 @@ void Symbol::setIgnored(TaskContext& ctx) noexcept
     if (flags_.has(SymbolFlagsE::Ignored))
         return;
     flags_.add(SymbolFlagsE::Ignored);
-    ctx.compiler().notifySymbolIgnored();
+    ctx.compiler().notifyAlive();
 }
 
 void Symbol::registerCompilerIf(Sema& sema)

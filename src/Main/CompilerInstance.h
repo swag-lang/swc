@@ -41,11 +41,7 @@ public:
     const SymbolModule* symModule() const { return symModule_; }
 
     void                   setupSema(TaskContext& ctx);
-    void                   notifySymbolAdded() { changed_ = true; }
-    void                   notifySymbolTyped() { changed_ = true; }
-    void                   notifySymbolCompleted() { changed_ = true; }
-    void                   notifySymbolDeclared() { changed_ = true; }
-    void                   notifySymbolIgnored() { changed_ = true; }
+    void                   notifyAlive() { changed_ = true; }
     bool                   changed() const { return changed_; }
     void                   clearChanged() { changed_ = false; }
     std::atomic<uint32_t>& atomicId() const { return const_cast<CompilerInstance*>(this)->atomicId_; }

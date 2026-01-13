@@ -30,7 +30,7 @@ public:
     Result                              canBeCompleted(Sema& sema) const;
     void                                computeLayout(Sema& sema);
     void                                addField(SymbolVariable* sym) { fields_.push_back(sym); }
-    void                                addImpl(SymbolImpl& symImpl);
+    void                                addImpl(Sema& sema, SymbolImpl& symImpl);
     std::vector<SymbolImpl*>            impls() const;
     void                                addInterface(SymbolImpl& symImpl);
     Result                              addInterface(Sema& sema, SymbolImpl& symImpl);

@@ -32,6 +32,7 @@ enum class JobResult : std::uint8_t
 struct JobRecord
 {
     Job*        job      = nullptr;
+    uint32_t    index    = 0;
     JobPriority priority = JobPriority::Normal;
     JobClientId clientId = 0;
 
@@ -43,8 +44,7 @@ struct JobRecord
         Done     // completed
     };
 
-    State    state{State::Ready};
-    uint32_t index = 0;
+    State state{State::Ready};
 };
 
 class Job

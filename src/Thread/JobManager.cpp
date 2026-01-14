@@ -147,34 +147,28 @@ void JobManager::waitingJobs(std::vector<Job*>& waiting, JobClientId client) con
     waiting.clear();
 
     std::unique_lock lk(mtx_);
-
     if (liveRecs_.empty())
         return;
 
-    struct WaitRecord
-    {
-        Job*     job;
-        uint32_t index;
-    };
-
-    std::vector<WaitRecord> temp;
+    std::vector<const JobRecord*> temp;
+    temp.reserve(liveRecs_.size());
     for (const JobRecord* rec : liveRecs_)
     {
         if (!rec)
             continue;
         if (rec->clientId != client)
             continue;
-
-        if (rec->state == JobRecord::State::Waiting)
-            temp.push_back({.job = rec->job, .index = rec->index});
+        if (rec->state != JobRecord::State::Waiting)
+            continue;
+        temp.push_back(rec);
     }
 
-    std::ranges::sort(temp, [](const WaitRecord& a, const WaitRecord& b) {
-        return a.index < b.index;
+    std::ranges::sort(temp, [](const JobRecord* a, const JobRecord* b) {
+        return a->index < b->index;
     });
 
     for (const auto& t : temp)
-        waiting.push_back(t.job);
+        waiting.push_back(t->job);
 }
 
 JobRecord* JobManager::popReadyLocked()

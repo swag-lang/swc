@@ -6,38 +6,39 @@ SWC_BEGIN_NAMESPACE();
 
 AstNodeRef Parser::parseIntrinsicCallExpr()
 {
+    uint32_t numParams = 0;
     switch (id())
     {
         case TokenId::IntrinsicStrLen:
         case TokenId::IntrinsicAlloc:
         case TokenId::IntrinsicFree:
-            return parseIntrinsicCallExpr(1);
+            numParams = 1;
+            break;
 
         case TokenId::IntrinsicStrCmp:
-            return parseIntrinsicCallExpr(2);
+            numParams = 2;
+            break;
 
         case TokenId::IntrinsicMemCpy:
         case TokenId::IntrinsicMemMove:
         case TokenId::IntrinsicMemSet:
         case TokenId::IntrinsicMemCmp:
-            return parseIntrinsicCallExpr(3);
+            numParams = 3;
+            break;
 
         default:
             SWC_UNREACHABLE();
     }
-}
 
-AstNodeRef Parser::parseIntrinsicCallExpr(uint32_t numParams)
-{
     const auto tokRef       = consume();
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CallExpr>(tokRef);
     auto [idRef, idPtr]     = ast_->makeNode<AstNodeId::Identifier>(tokRef);
     nodePtr->nodeExprRef    = idRef;
 
-    const auto openRef = ref();
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-
+    const auto              openRef = ref();
     SmallVector<AstNodeRef> nodeArgs;
+
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
     for (uint32_t i = 0; i < numParams; i++)
     {
         if (i != 0)
@@ -45,73 +46,37 @@ AstNodeRef Parser::parseIntrinsicCallExpr(uint32_t numParams)
             if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
                 skipTo({TokenId::SymComma, TokenId::SymRightParen});
         }
-        
+
         nodeArgs.push_back(parseExpression());
     }
-
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
     nodePtr->spanChildrenRef = ast_->pushSpan(nodeArgs.span());
     return nodeRef;
 }
 
-AstNodeRef Parser::parseIntrinsicCallZero()
+AstNodeRef Parser::parseIntrinsicCall()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCallZero>(consume());
-
-    const auto openRef = ref();
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
-
-    return nodeRef;
-}
-
-AstNodeRef Parser::parseIntrinsicCallUnary()
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCallUnary>(consume());
-
-    const auto openRef = ref();
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    nodePtr->nodeArgRef = parseExpression();
-    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
-
-    return nodeRef;
-}
-
-AstNodeRef Parser::parseIntrinsicCallBinary()
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCallBinary>(consume());
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCall>(consume());
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
-    nodePtr->nodeArg1Ref = parseExpression();
-    if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
-        skipTo({TokenId::SymComma, TokenId::SymRightParen});
+    SmallVector<AstNodeRef> nodeArgs;
+    while (isNot(TokenId::SymRightParen) && isNot(TokenId::EndOfFile))
+    {
+        if (!nodeArgs.empty())
+        {
+            if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
+                skipTo({TokenId::SymComma, TokenId::SymRightParen});
+            if (is(TokenId::SymRightParen))
+                break;
+        }
 
-    nodePtr->nodeArg2Ref = parseExpression();
+        nodeArgs.push_back(parseExpression());
+    }
 
-    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
-    return nodeRef;
-}
-
-AstNodeRef Parser::parseIntrinsicCallTernary()
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCallTernary>(consume());
-
-    const auto openRef = ref();
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-
-    nodePtr->nodeArg1Ref = parseExpression();
-    if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
-        skipTo({TokenId::SymComma, TokenId::SymRightParen});
-
-    nodePtr->nodeArg2Ref = parseExpression();
-    if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
-        skipTo({TokenId::SymComma, TokenId::SymRightParen});
-
-    nodePtr->nodeArg3Ref = parseExpression();
-
+    nodePtr->spanChildrenRef = ast_->pushSpan(nodeArgs.span());
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
     return nodeRef;
 }
@@ -124,13 +89,17 @@ AstNodeRef Parser::parseIntrinsicCallVariadic()
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
     SmallVector<AstNodeRef> nodeArgs;
-    auto                    nodeArg = parseExpression();
-    nodeArgs.push_back(nodeArg);
-
-    while (consumeIf(TokenId::SymComma).isValid())
+    while (isNot(TokenId::SymRightParen) && isNot(TokenId::EndOfFile))
     {
-        nodeArg = parseExpression();
-        nodeArgs.push_back(nodeArg);
+        if (!nodeArgs.empty())
+        {
+            if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
+                skipTo({TokenId::SymComma, TokenId::SymRightParen});
+            if (is(TokenId::SymRightParen))
+                break;
+        }
+
+        nodeArgs.push_back(parseExpression());
     }
 
     nodePtr->spanChildrenRef = ast_->pushSpan(nodeArgs.span());

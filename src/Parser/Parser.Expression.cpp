@@ -644,8 +644,6 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicGetContext:
         case TokenId::IntrinsicDbgAlloc:
         case TokenId::IntrinsicSysAlloc:
-            return parseIntrinsicCallZero();
-
         case TokenId::IntrinsicKindOf:
         case TokenId::IntrinsicCountOf:
         case TokenId::IntrinsicDataOf:
@@ -676,8 +674,6 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicBitCountNz:
         case TokenId::IntrinsicBitCountTz:
         case TokenId::IntrinsicBitCountLz:
-            return parseIntrinsicCallUnary();
-
         case TokenId::IntrinsicMakeAny:
         case TokenId::IntrinsicMakeSlice:
         case TokenId::IntrinsicMakeString:
@@ -697,15 +693,13 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicAtomicOr:
         case TokenId::IntrinsicAtomicAnd:
         case TokenId::IntrinsicAtomicAdd:
-            return parseIntrinsicCallBinary();
-
         case TokenId::IntrinsicMakeInterface:
         case TokenId::IntrinsicAs:
         case TokenId::CompilerGetTag:
         case TokenId::IntrinsicAtomicCmpXchg:
         case TokenId::IntrinsicTypeCmp:
         case TokenId::IntrinsicMulAdd:
-            return parseIntrinsicCallTernary();
+            return parseIntrinsicCall();
 
         case TokenId::IntrinsicStrLen:
         case TokenId::IntrinsicAlloc:

@@ -193,10 +193,7 @@ SWC_NODE_DEF(IntrinsicDrop, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(IntrinsicPostCopy, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(IntrinsicPostMove, AstNodeIdFlagsE::Zero)
 
-SWC_NODE_DEF(IntrinsicCallZero, AstNodeIdFlagsE::Zero)
-SWC_NODE_DEF(IntrinsicCallUnary, AstNodeIdFlagsE::Zero)
-SWC_NODE_DEF(IntrinsicCallBinary, AstNodeIdFlagsE::Zero)
-SWC_NODE_DEF(IntrinsicCallTernary, AstNodeIdFlagsE::Zero)
+SWC_NODE_DEF(IntrinsicCall, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(IntrinsicCallVariadic, AstNodeIdFlagsE::Zero)
 
 // ============================================================================

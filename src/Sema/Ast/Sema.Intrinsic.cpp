@@ -42,43 +42,11 @@ Result AstIntrinsicValue::semaPostNode(Sema& sema)
 
 namespace
 {
-    Result semaIntrinsicContext(Sema& sema, AstIntrinsicCallZero& node)
+    Result semaIntrinsicDataOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& childs)
     {
-        const TypeRef typeRef = sema.typeMgr().structContext();
-        if (typeRef.isInvalid())
-            return sema.waitIdentifier(sema.idMgr().nameContext(), node.srcViewRef(), node.tokRef());
-        const TypeInfo ty = TypeInfo::makeValuePointer(typeRef, TypeInfoFlagsE::Const);
-        sema.setType(sema.curNodeRef(), sema.typeMgr().addType(ty));
-        SemaInfo::setIsValue(node);
-        return Result::Continue;
-    }
-}
-
-Result AstIntrinsicCallZero::semaPostNode(Sema& sema)
-{
-    const Token& tok = sema.token(srcViewRef(), tokRef());
-    switch (tok.id)
-    {
-        case TokenId::IntrinsicGetContext:
-            return semaIntrinsicContext(sema, *this);
-
-        case TokenId::IntrinsicDbgAlloc:
-        case TokenId::IntrinsicSysAlloc:
-        case TokenId::IntrinsicBcBreakpoint:
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
-            return Result::SkipChildren;
-        default:
-            return SemaError::raiseInternal(sema, *this);
-    }
-}
-
-namespace
-{
-
-    Result semaIntrinsicDataOf(Sema& sema, AstIntrinsicCallUnary& node)
-    {
-        RESULT_VERIFY(SemaCheck::isValue(sema, node.nodeArgRef));
-        const SemaNodeView nodeView(sema, node.nodeArgRef);
+        const auto nodeArgRef = childs[0];
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeArgRef));
+        const SemaNodeView nodeView(sema, nodeArgRef);
         const auto         type = nodeView.type;
 
         TypeRef resultTypeRef = TypeRef::invalid();
@@ -106,31 +74,93 @@ namespace
         }
 
         if (!resultTypeRef.isValid())
-            return SemaError::raiseInvalidType(sema, node.nodeArgRef, nodeView.typeRef, sema.typeMgr().typeBlockPtrVoid());
+            return SemaError::raiseInvalidType(sema, nodeArgRef, nodeView.typeRef, sema.typeMgr().typeBlockPtrVoid());
 
         sema.setType(sema.curNodeRef(), resultTypeRef);
         SemaInfo::setIsValue(node);
         return Result::Continue;
     }
 
-    Result semaIntrinsicKindOf(Sema& sema, AstIntrinsicCallUnary& node)
+    Result semaIntrinsicKindOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& childs)
     {
         // TODO
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeBlockPtrVoid());
         SemaInfo::setIsValue(node);
         return Result::Continue;
     }
+
+    Result semaIntrinsicMakeSlice(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& childs, bool forString)
+    {
+        auto nodeArg1Ref = childs[0];
+        auto nodeArg2Ref = childs[1];
+
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeArg1Ref));
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeArg2Ref));
+
+        const SemaNodeView nodeViewPtr(sema, nodeArg1Ref);
+        SemaNodeView       nodeViewSize(sema, nodeArg2Ref);
+
+        if (!nodeViewPtr.type->isPointer())
+            return SemaError::raiseRequestedTypeFam(sema, nodeArg1Ref, nodeViewPtr.typeRef, sema.typeMgr().typeBlockPtrVoid());
+
+        RESULT_VERIFY(Cast::cast(sema, nodeViewSize, sema.typeMgr().typeU64(), CastKind::Implicit));
+        // nodeArg2Ref = nodeViewSize.nodeRef; // Cannot update childs directly as it's a Span, but it doesn't matter for slice type determination
+
+        TypeRef typeRef;
+        if (forString)
+        {
+            TypeInfo ty = TypeInfo::makeString();
+            typeRef     = sema.typeMgr().addType(ty);
+        }
+        else
+        {
+            TypeInfo ty = TypeInfo::makeSlice(nodeViewPtr.type->typeRef());
+            if (nodeViewPtr.type->isConst())
+                ty.addFlag(TypeInfoFlagsE::Const);
+            typeRef = sema.typeMgr().addType(ty);
+        }
+
+        sema.setType(sema.curNodeRef(), typeRef);
+        SemaInfo::setIsValue(node);
+        return Result::Continue;
+    }
+
+    Result semaIntrinsicContext(Sema& sema, AstIntrinsicCall& node)
+    {
+        const TypeRef typeRef = sema.typeMgr().structContext();
+        if (typeRef.isInvalid())
+            return sema.waitIdentifier(sema.idMgr().nameContext(), node.srcViewRef(), node.tokRef());
+        const TypeInfo ty = TypeInfo::makeValuePointer(typeRef, TypeInfoFlagsE::Const);
+        sema.setType(sema.curNodeRef(), sema.typeMgr().addType(ty));
+        SemaInfo::setIsValue(node);
+        return Result::Continue;
+    }
 }
 
-Result AstIntrinsicCallUnary::semaPostNode(Sema& sema)
+Result AstIntrinsicCall::semaPostNode(Sema& sema)
 {
     const Token& tok = sema.token(srcViewRef(), tokRef());
     switch (tok.id)
     {
+        case TokenId::IntrinsicGetContext:
+            return semaIntrinsicContext(sema, *this);
+
+        case TokenId::IntrinsicDbgAlloc:
+        case TokenId::IntrinsicSysAlloc:
+        case TokenId::IntrinsicBcBreakpoint:
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
+            return Result::SkipChildren;
+    }
+
+    SmallVector<AstNodeRef> childs;
+    sema.ast().nodes(childs, spanChildrenRef);
+
+    switch (tok.id)
+    {
         case TokenId::IntrinsicDataOf:
-            return semaIntrinsicDataOf(sema, *this);
+            return semaIntrinsicDataOf(sema, *this, childs);
         case TokenId::IntrinsicKindOf:
-            return semaIntrinsicKindOf(sema, *this);
+            return semaIntrinsicKindOf(sema, *this, childs);
 
         case TokenId::IntrinsicAssert:
         case TokenId::IntrinsicSetContext:
@@ -167,57 +197,15 @@ Result AstIntrinsicCallUnary::semaPostNode(Sema& sema)
             // TODO
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
             return Result::Continue;
-
-        default:
-            return SemaError::raiseInternal(sema, *this);
     }
-}
 
-namespace
-{
-    Result semaIntrinsicMakeSlice(Sema& sema, AstIntrinsicCallBinary& node, bool forString)
-    {
-        RESULT_VERIFY(SemaCheck::isValue(sema, node.nodeArg1Ref));
-        RESULT_VERIFY(SemaCheck::isValue(sema, node.nodeArg2Ref));
-
-        const SemaNodeView nodeViewPtr(sema, node.nodeArg1Ref);
-        SemaNodeView       nodeViewSize(sema, node.nodeArg2Ref);
-
-        if (!nodeViewPtr.type->isPointer())
-            return SemaError::raiseRequestedTypeFam(sema, node.nodeArg1Ref, nodeViewPtr.typeRef, sema.typeMgr().typeBlockPtrVoid());
-
-        RESULT_VERIFY(Cast::cast(sema, nodeViewSize, sema.typeMgr().typeU64(), CastKind::Implicit));
-        node.nodeArg2Ref = nodeViewSize.nodeRef;
-
-        TypeRef typeRef;
-        if (forString)
-        {
-            TypeInfo ty = TypeInfo::makeString();
-            typeRef     = sema.typeMgr().addType(ty);
-        }
-        else
-        {
-            TypeInfo ty = TypeInfo::makeSlice(nodeViewPtr.type->typeRef());
-            if (nodeViewPtr.type->isConst())
-                ty.addFlag(TypeInfoFlagsE::Const);
-            typeRef = sema.typeMgr().addType(ty);
-        }
-
-        sema.setType(sema.curNodeRef(), typeRef);
-        SemaInfo::setIsValue(node);
-        return Result::Continue;
-    }
-}
-
-Result AstIntrinsicCallBinary::semaPostNode(Sema& sema)
-{
-    const Token& tok = sema.token(srcViewRef(), tokRef());
     switch (tok.id)
     {
         case TokenId::IntrinsicMakeSlice:
-            return semaIntrinsicMakeSlice(sema, *this, false);
+            return semaIntrinsicMakeSlice(sema, *this, childs, false);
         case TokenId::IntrinsicMakeString:
-            return semaIntrinsicMakeSlice(sema, *this, true);
+            return semaIntrinsicMakeSlice(sema, *this, childs, true);
+            
         case TokenId::IntrinsicMakeAny:
         case TokenId::IntrinsicCVaArg:
         case TokenId::IntrinsicRealloc:
@@ -242,15 +230,8 @@ Result AstIntrinsicCallBinary::semaPostNode(Sema& sema)
             // TODO
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
             return Result::Continue;
-
-        default:
-            return SemaError::raiseInternal(sema, *this);
     }
-}
 
-Result AstIntrinsicCallTernary::semaPostNode(Sema& sema) const
-{
-    const Token& tok = sema.token(srcViewRef(), tokRef());
     switch (tok.id)
     {
         case TokenId::IntrinsicMakeInterface:

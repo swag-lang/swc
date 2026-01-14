@@ -146,27 +146,9 @@ struct AstCompilerCallUnary : AstInternalCallUnaryT<AstNodeId::CompilerCallUnary
 };
 
 // -----------------------------------------------------------------------------
-struct AstIntrinsicCallZero : AstInternalCallZeroT<AstNodeId::IntrinsicCallZero>
+struct AstIntrinsicCall : AstCompoundT<AstNodeId::IntrinsicCall>
 {
     Result semaPostNode(Sema& sema);
-};
-
-// -----------------------------------------------------------------------------
-struct AstIntrinsicCallUnary : AstInternalCallUnaryT<AstNodeId::IntrinsicCallUnary>
-{
-    Result semaPostNode(Sema& sema);
-};
-
-// -----------------------------------------------------------------------------
-struct AstIntrinsicCallBinary : AstInternalCallBinaryT<AstNodeId::IntrinsicCallBinary>
-{
-    Result semaPostNode(Sema& sema);
-};
-
-// -----------------------------------------------------------------------------
-struct AstIntrinsicCallTernary : AstInternalCallTernaryT<AstNodeId::IntrinsicCallTernary>
-{
-    Result semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

@@ -168,13 +168,9 @@ private:
     AstNodeRef parseInitializerExpression();
     AstNodeRef parseInterfaceDecl();
     AstNodeRef parseInterfaceValue();
-    AstNodeRef parseIntrinsicCallBinary();
-    AstNodeRef parseIntrinsicCallTernary();
+    AstNodeRef parseIntrinsicCall();
     AstNodeRef parseIntrinsicCallVariadic();
-    AstNodeRef parseIntrinsicCallUnary();
     AstNodeRef parseIntrinsicCallExpr();
-    AstNodeRef parseIntrinsicCallExpr(uint32_t numParams);
-    AstNodeRef parseIntrinsicCallZero();
     AstNodeRef parseIntrinsicDrop();
     AstNodeRef parseIntrinsicInit();
     AstNodeRef parseIntrinsicPostCopy();

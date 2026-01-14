@@ -296,15 +296,41 @@ bool JobManager::wakeAll(JobClientId client)
 
     std::size_t woken = 0;
 
-    for (JobRecord* rec : liveRecs_)
+    // Sort by job index to be deterministic
+    if (singleThreaded_)
     {
-        if (!rec)
-            continue;
-        if (rec->clientId != client)
-            continue;
-
-        if (rec->state == JobRecord::State::Waiting)
+        std::vector<JobRecord*> temp;
+        temp.reserve(liveRecs_.size());
+        for (const JobRecord* rec : liveRecs_)
         {
+            if (!rec)
+                continue;
+            if (rec->clientId != client)
+                continue;
+            if (rec->state != JobRecord::State::Waiting)
+                continue;
+            temp.push_back(const_cast<JobRecord*>(rec));
+        }
+
+        std::ranges::sort(temp, [](const JobRecord* a, const JobRecord* b) { return a->index < b->index; });
+        for (JobRecord* rec : temp)
+        {
+            rec->state = JobRecord::State::Ready;
+            bumpClientCountLocked(rec->clientId, +1);
+            pushReady(rec, rec->priority);
+            ++woken;
+        }
+    }
+    else
+    {
+        for (JobRecord* rec : liveRecs_)
+        {
+            if (!rec)
+                continue;
+            if (rec->clientId != client)
+                continue;
+            if (rec->state != JobRecord::State::Waiting)
+                continue;
             rec->state = JobRecord::State::Ready;
             bumpClientCountLocked(rec->clientId, +1);
             pushReady(rec, rec->priority);

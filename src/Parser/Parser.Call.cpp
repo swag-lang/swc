@@ -4,7 +4,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-AstNodeRef Parser::parseIntrinsicCallExpr()
+AstNodeRef Parser::parseIntrinsicCallExpr(uint32_t numParams)
 {
     const auto tokRef       = consume();
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CallExpr>(tokRef);
@@ -14,11 +14,20 @@ AstNodeRef Parser::parseIntrinsicCallExpr()
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    const auto argRef = parseExpression();
-    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
     SmallVector<AstNodeRef> nodeArgs;
-    nodeArgs.push_back(argRef);
+    for (uint32_t i = 0; i < numParams; i++)
+    {
+        if (i != 0)
+        {
+            if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
+                skipTo({TokenId::SymComma, TokenId::SymRightParen});
+        }
+        nodeArgs.push_back(parseExpression());
+    }
+
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+
     nodePtr->spanChildrenRef = ast_->pushSpan(nodeArgs.span());
     return nodeRef;
 }

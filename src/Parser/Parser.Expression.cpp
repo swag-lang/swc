@@ -647,7 +647,9 @@ AstNodeRef Parser::parsePrimaryExpression()
             return parseIntrinsicCallZero();
 
         case TokenId::IntrinsicStrLen:
-            return parseIntrinsicCallExpr();
+        case TokenId::IntrinsicAlloc:
+        case TokenId::IntrinsicFree:
+            return parseIntrinsicCallExpr(1);
 
         case TokenId::IntrinsicKindOf:
         case TokenId::IntrinsicCountOf:
@@ -655,8 +657,6 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicCVaStart:
         case TokenId::IntrinsicCVaEnd:
         case TokenId::IntrinsicMakeCallback:
-        case TokenId::IntrinsicAlloc:
-        case TokenId::IntrinsicFree:
         case TokenId::IntrinsicAbs:
         case TokenId::IntrinsicSqrt:
         case TokenId::IntrinsicSin:

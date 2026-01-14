@@ -77,10 +77,10 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     }
     else if (childRef == nodeBodyRef)
     {
+        return Result::SkipChildren; // TODO
         SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
         sema.pushScope(SemaScopeFlagsE::Local);
         sema.curScope().setSymMap(&sym);
-        return Result::SkipChildren; // TODO
     }
 
     return Result::Continue;
@@ -88,7 +88,7 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
 
 Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef == nodeParamsRef)
+    if (childRef == nodeParamsRef && sema.enteringState())
         sema.popScope();
 
     if (childRef == nodeReturnTypeRef || (childRef == nodeParamsRef && nodeReturnTypeRef.isInvalid()))

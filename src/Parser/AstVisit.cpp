@@ -19,6 +19,18 @@ void AstVisit::start(Ast& ast, AstNodeRef root)
     Frame fr;
     fr.nodeRef = root;
     fr.stage   = Frame::Stage::Pre;
+
+    // Reset per-frame state (important if Frame is not POD-zeroed)
+    fr.firstPass = true;
+
+    fr.preNodeState  = Frame::CallState::NotCalled;
+    fr.postNodeState = Frame::CallState::NotCalled;
+
+    fr.pendingPostChild = false;
+    fr.postChildState   = Frame::CallState::NotCalled;
+
+    fr.preChildState = Frame::CallState::NotCalled;
+
     stack_.push_back(fr);
 }
 
@@ -54,33 +66,43 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
 #endif
             }
 
-            // Pre-order callback
-            if (preNodeVisitor_)
+            // Pre-order callback (may be called multiple times on Pause)
+            if (preNodeVisitor_ && fr.preNodeState != Frame::CallState::Done)
             {
+                fr.firstPass        = (fr.preNodeState == Frame::CallState::NotCalled);
                 const Result result = preNodeVisitor_(*fr.node);
-                fr.firstPass        = false;
 
                 if (result == Result::Error)
                     return AstVisitResult::Error;
                 if (result == Result::Pause)
+                {
+                    fr.preNodeState = Frame::CallState::Paused;
                     return AstVisitResult::Pause;
+                }
+
+                // Completed (Continue or SkipChildren)
+                fr.preNodeState = Frame::CallState::Done;
 
                 if (result == Result::SkipChildren)
                 {
-                    fr.stage     = Frame::Stage::Post;
-                    fr.firstPass = true;
+                    fr.stage = Frame::Stage::Post;
                     return AstVisitResult::Continue;
                 }
             }
 
+            // Collect children once we've completed preNode (or if no preNodeVisitor_)
             const auto& info = Ast::nodeIdInfos(fr.node->id());
             fr.firstChildIx  = children_.size32();
             info.collectChildren(children_, *ast_, *fr.node);
             fr.numChildren = children_.size32() - fr.firstChildIx;
             fr.nextChildIx = 0;
 
-            fr.stage     = Frame::Stage::Children;
-            fr.firstPass = true;
+            // Prepare child-site states for the first child
+            fr.preChildState    = Frame::CallState::NotCalled;
+            fr.pendingPostChild = false;
+            fr.postChildState   = Frame::CallState::NotCalled;
+
+            fr.stage = Frame::Stage::Children;
             return AstVisitResult::Continue;
         }
 
@@ -88,21 +110,38 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
         {
             while (true)
             {
-                if (fr.firstPass && fr.nextChildIx > 0)
+                // If we just returned from a child, we owe one postChild callback.
+                // It may Pause and be retried; firstPass must reflect first attempt vs retry.
+                if (fr.pendingPostChild)
                 {
-                    if (postChildVisitor_)
+                    if (postChildVisitor_ && fr.postChildState != Frame::CallState::Done)
                     {
-                        AstNodeRef   lastChildRef = children_[fr.firstChildIx + fr.nextChildIx - 1];
-                        const Result result       = postChildVisitor_(*fr.node, lastChildRef);
+                        SWC_ASSERT(fr.nextChildIx > 0);
+                        AstNodeRef lastChildRef = children_[fr.firstChildIx + fr.nextChildIx - 1];
+
+                        fr.firstPass        = (fr.postChildState == Frame::CallState::NotCalled);
+                        const Result result = postChildVisitor_(*fr.node, lastChildRef);
+
                         if (result == Result::Error)
                             return AstVisitResult::Error;
                         if (result == Result::Pause)
+                        {
+                            fr.postChildState = Frame::CallState::Paused;
                             return AstVisitResult::Pause;
+                        }
+
+                        fr.postChildState = Frame::CallState::Done;
                     }
 
-                    fr.firstPass = false;
+                    // postChild is completed (or no visitor)
+                    fr.pendingPostChild = false;
+                    fr.postChildState   = Frame::CallState::NotCalled;
+
+                    // continue to process next child
+                    continue;
                 }
 
+                // All children processed?
                 if (fr.nextChildIx >= fr.numChildren)
                     break;
 
@@ -110,57 +149,90 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
                 const uint32_t globalIx = fr.firstChildIx + localIdx;
 
                 AstNodeRef childRef = children_[globalIx];
-                if (preChildVisitor_)
+
+                // preChild callback for THIS child index (may be called multiple times on Pause)
+                if (preChildVisitor_ && fr.preChildState != Frame::CallState::Done)
                 {
+                    fr.firstPass        = (fr.preChildState == Frame::CallState::NotCalled);
                     const Result result = preChildVisitor_(*fr.node, childRef);
-                    fr.firstPass        = false;
 
                     if (result == Result::Error)
                         return AstVisitResult::Error;
                     if (result == Result::Pause)
+                    {
+                        fr.preChildState = Frame::CallState::Paused;
                         return AstVisitResult::Pause;
+                    }
+
+                    fr.preChildState = Frame::CallState::Done;
+
                     if (result == Result::SkipChildren)
                     {
+                        // Move to next child
                         fr.nextChildIx++;
-                        fr.firstPass = true;
+                        fr.preChildState = Frame::CallState::NotCalled;
                         continue;
                     }
                 }
 
+                // Invalid child ref => skip it (and advance)
                 if (childRef.isInvalid())
                 {
                     fr.nextChildIx++;
-                    fr.firstPass = true;
+                    fr.preChildState = Frame::CallState::NotCalled;
                     continue;
                 }
 
+                // Push child frame
                 Frame childFr;
                 childFr.nodeRef = childRef;
                 childFr.stage   = Frame::Stage::Pre;
 
+                childFr.firstPass = true;
+
+                childFr.preNodeState  = Frame::CallState::NotCalled;
+                childFr.postNodeState = Frame::CallState::NotCalled;
+
+                childFr.pendingPostChild = false;
+                childFr.postChildState   = Frame::CallState::NotCalled;
+
+                childFr.preChildState = Frame::CallState::NotCalled;
+
                 stack_.push_back(childFr);
+
+                // Mark that this child is now "the last visited child" once it completes,
+                // and that we owe exactly one postChild callback when we return here.
                 fr.nextChildIx++;
-                fr.firstPass = true;
+                fr.pendingPostChild = true;
+                fr.postChildState   = Frame::CallState::NotCalled;
+
+                // Next child index (when we get to it) should have its own fresh preChild state.
+                fr.preChildState = Frame::CallState::NotCalled;
+
                 return AstVisitResult::Continue;
             }
 
-            fr.stage     = Frame::Stage::Post;
-            fr.firstPass = true;
+            fr.stage = Frame::Stage::Post;
             return AstVisitResult::Continue;
         }
 
         case Frame::Stage::Post:
         {
-            // Post-order callback
-            if (postNodeVisitor_)
+            // Post-order callback (may be called multiple times on Pause)
+            if (postNodeVisitor_ && fr.postNodeState != Frame::CallState::Done)
             {
+                fr.firstPass        = (fr.postNodeState == Frame::CallState::NotCalled);
                 const Result result = postNodeVisitor_(*fr.node);
-                fr.firstPass        = false;
 
                 if (result == Result::Error)
                     return AstVisitResult::Error;
                 if (result == Result::Pause)
+                {
+                    fr.postNodeState = Frame::CallState::Paused;
                     return AstVisitResult::Pause;
+                }
+
+                fr.postNodeState = Frame::CallState::Done;
             }
 
             stack_.pop_back();

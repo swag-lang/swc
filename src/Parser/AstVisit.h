@@ -62,7 +62,16 @@ private:
         uint32_t   numChildren  = 0; // number of children in that range
         AstNodeRef nodeRef      = AstNodeRef::invalid();
         Stage      stage        = Stage::Pre;
-        bool       firstPass    = true;
+
+        enum class CallState
+        {
+            NotCalled,
+            Paused,
+            Done
+        };
+        CallState preNodeState, postNodeState, preChildState, postChildState;
+        bool      pendingPostChild = false;
+        bool      firstPass        = true;
     };
 
     Ast*                                         ast_     = nullptr;

@@ -81,7 +81,7 @@ namespace
 
         if (!nodeView.type->isPointer())
         {
-            return SemaError::raiseInvalidType(sema, node.nodeArgRef, sema.typeMgr().typePtrVoid(), nodeView.typeRef);
+            return SemaError::raiseInvalidType(sema, node.nodeArgRef, sema.typeMgr().typeBlockPtrVoid(), nodeView.typeRef);
         }
 
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeU64());
@@ -91,8 +91,38 @@ namespace
 
     Result semaIntrinsicDataOf(Sema& sema, AstIntrinsicCallUnary& node)
     {
-        // TODO
-        sema.setType(sema.curNodeRef(), sema.typeMgr().typePtrVoid());
+        RESULT_VERIFY(SemaCheck::isValue(sema, node.nodeArgRef));
+        const SemaNodeView nodeView(sema, node.nodeArgRef);
+        const auto         type = nodeView.type;
+
+        TypeRef resultTypeRef = TypeRef::invalid();
+        if (type->isString() || type->isCString())
+        {
+            resultTypeRef = sema.typeMgr().typeConstBlockPtrU8();
+        }
+        else if (type->isSlice())
+        {
+            const TypeInfo ty = TypeInfo::makeBlockPointer(type->underlyingTypeRef(), type->flags());
+            resultTypeRef     = sema.typeMgr().addType(ty);
+        }
+        else if (type->isArray())
+        {
+            const TypeInfo ty = TypeInfo::makeBlockPointer(type->arrayElemTypeRef(), type->flags());
+            resultTypeRef     = sema.typeMgr().addType(ty);
+        }
+        else if (type->isAny())
+        {
+            resultTypeRef = sema.typeMgr().typeBlockPtrVoid();
+        }
+        else if (type->isPointer())
+        {
+            resultTypeRef = nodeView.typeRef;
+        }
+
+        if (!resultTypeRef.isValid())
+            return SemaError::raiseInvalidType(sema, node.nodeArgRef, nodeView.typeRef, sema.typeMgr().typeBlockPtrVoid());
+
+        sema.setType(sema.curNodeRef(), resultTypeRef);
         SemaInfo::setIsValue(node);
         return Result::Continue;
     }
@@ -100,7 +130,7 @@ namespace
     Result semaIntrinsicKindOf(Sema& sema, AstIntrinsicCallUnary& node)
     {
         // TODO
-        sema.setType(sema.curNodeRef(), sema.typeMgr().typePtrVoid());
+        sema.setType(sema.curNodeRef(), sema.typeMgr().typeBlockPtrVoid());
         SemaInfo::setIsValue(node);
         return Result::Continue;
     }
@@ -170,7 +200,7 @@ namespace
         SemaNodeView       nodeViewSize(sema, node.nodeArg2Ref);
 
         if (!nodeViewPtr.type->isPointer())
-            return SemaError::raiseRequestedTypeFam(sema, node.nodeArg1Ref, nodeViewPtr.typeRef, sema.typeMgr().typePtrVoid());
+            return SemaError::raiseRequestedTypeFam(sema, node.nodeArg1Ref, nodeViewPtr.typeRef, sema.typeMgr().typeBlockPtrVoid());
 
         RESULT_VERIFY(Cast::cast(sema, nodeViewSize, sema.typeMgr().typeU64(), CastKind::Implicit));
         node.nodeArg2Ref = nodeViewSize.nodeRef;

@@ -38,8 +38,10 @@ void TypeManager::setup(TaskContext&)
     typeVariadic_  = addType(TypeInfo::makeVariadic());
     typeTypeInfo_  = addType(TypeInfo::makeTypeInfo());
 
-    typePtrVoid_      = addType(TypeInfo::makeBlockPointer(typeVoid_));
-    typeConstPtrVoid_ = addType(TypeInfo::makeBlockPointer(typeVoid_, TypeInfoFlagsE::Const));
+    typeBlockPtrVoid_      = addType(TypeInfo::makeBlockPointer(typeVoid_));
+    typeConstBlockPtrVoid_ = addType(TypeInfo::makeBlockPointer(typeVoid_, TypeInfoFlagsE::Const));
+    typeBlockPtrU8_        = addType(TypeInfo::makeBlockPointer(typeU8_));
+    typeConstBlockPtrU8_   = addType(TypeInfo::makeBlockPointer(typeU8_, TypeInfoFlagsE::Const));
 
     buildPromoteTable();
 }

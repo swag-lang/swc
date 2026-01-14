@@ -172,6 +172,7 @@ private:
     AstNodeRef parseIntrinsicCallTernary();
     AstNodeRef parseIntrinsicCallVariadic();
     AstNodeRef parseIntrinsicCallUnary();
+    AstNodeRef parseIntrinsicCallExpr();
     AstNodeRef parseIntrinsicCallExpr(uint32_t numParams);
     AstNodeRef parseIntrinsicCallZero();
     AstNodeRef parseIntrinsicDrop();

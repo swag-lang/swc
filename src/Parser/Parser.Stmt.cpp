@@ -788,11 +788,8 @@ AstNodeRef Parser::parseEmbeddedStmt()
     switch (id())
     {
         case TokenId::CompilerAssert:
-            return parseCompilerDiagnostic();
         case TokenId::CompilerError:
-            return parseCompilerDiagnostic();
         case TokenId::CompilerWarning:
-            return parseCompilerDiagnostic();
         case TokenId::CompilerPrint:
             return parseCompilerDiagnostic();
         case TokenId::CompilerIf:
@@ -819,7 +816,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
             return parseIntrinsicCallZero();
 
         case TokenId::IntrinsicAssert:
-        case TokenId::IntrinsicFree:
         case TokenId::IntrinsicCVaStart:
         case TokenId::IntrinsicCVaEnd:
         case TokenId::IntrinsicSetContext:
@@ -829,12 +825,14 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::IntrinsicPanic:
         case TokenId::IntrinsicAtomicAdd:
             return parseIntrinsicCallBinary();
+        case TokenId::IntrinsicPrint:
+            return parseIntrinsicCallVariadic();
+
+        case TokenId::IntrinsicFree:
         case TokenId::IntrinsicMemCpy:
         case TokenId::IntrinsicMemMove:
         case TokenId::IntrinsicMemSet:
-            return parseIntrinsicCallTernary();
-        case TokenId::IntrinsicPrint:
-            return parseIntrinsicCallVariadic();
+            return parseIntrinsicCallExpr();
 
         case TokenId::SymAttrStart:
             return parseAttributeList<AstNodeId::EmbeddedBlock>();

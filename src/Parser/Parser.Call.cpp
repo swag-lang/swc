@@ -4,6 +4,29 @@
 
 SWC_BEGIN_NAMESPACE();
 
+AstNodeRef Parser::parseIntrinsicCallExpr()
+{
+    switch (id())
+    {
+        case TokenId::IntrinsicStrLen:
+        case TokenId::IntrinsicAlloc:
+        case TokenId::IntrinsicFree:
+            return parseIntrinsicCallExpr(1);
+
+        case TokenId::IntrinsicStrCmp:
+            return parseIntrinsicCallExpr(2);
+
+        case TokenId::IntrinsicMemCpy:
+        case TokenId::IntrinsicMemMove:
+        case TokenId::IntrinsicMemSet:
+        case TokenId::IntrinsicMemCmp:
+            return parseIntrinsicCallExpr(3);
+
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
 AstNodeRef Parser::parseIntrinsicCallExpr(uint32_t numParams)
 {
     const auto tokRef       = consume();

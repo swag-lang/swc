@@ -1,5 +1,8 @@
 #include "pch.h"
 #include "Sema/Helpers/SemaHelpers.h"
+#include "Sema/Symbol/Symbol.Attribute.h"
+#include "Sema/Symbol/Symbol.Function.h"
+#include "Sema/Symbol/Symbol.Interface.h"
 
 SWC_BEGIN_NAMESPACE();
 

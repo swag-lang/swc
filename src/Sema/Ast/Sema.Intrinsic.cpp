@@ -74,20 +74,6 @@ Result AstIntrinsicCallZero::semaPostNode(Sema& sema)
 
 namespace
 {
-    Result semaIntrinsicStrLen(Sema& sema, AstIntrinsicCallUnary& node)
-    {
-        RESULT_VERIFY(SemaCheck::isValue(sema, node.nodeArgRef));
-        const SemaNodeView nodeView(sema, node.nodeArgRef);
-
-        if (!nodeView.type->isPointer())
-        {
-            return SemaError::raiseInvalidType(sema, node.nodeArgRef, sema.typeMgr().typeBlockPtrVoid(), nodeView.typeRef);
-        }
-
-        sema.setType(sema.curNodeRef(), sema.typeMgr().typeU64());
-        SemaInfo::setIsValue(node);
-        return Result::Continue;
-    }
 
     Result semaIntrinsicDataOf(Sema& sema, AstIntrinsicCallUnary& node)
     {
@@ -141,8 +127,6 @@ Result AstIntrinsicCallUnary::semaPostNode(Sema& sema)
     const Token& tok = sema.token(srcViewRef(), tokRef());
     switch (tok.id)
     {
-        case TokenId::IntrinsicStrLen:
-            return semaIntrinsicStrLen(sema, *this);
         case TokenId::IntrinsicDataOf:
             return semaIntrinsicDataOf(sema, *this);
         case TokenId::IntrinsicKindOf:

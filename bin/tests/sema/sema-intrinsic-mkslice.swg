@@ -3,7 +3,7 @@
 #test
 {
     var buf: [100] u8
-    let str = @mkslice(&buf[0], @strlen(&buf[0]))
+    let str = @mkslice(&buf[0], @strlen(@dataof(buf)))
     #assert(#typeof(str) == [..] u8)
 
     let str1 = @mkslice(&buf[0], 10)
@@ -19,7 +19,7 @@
 #test
 {
     var buf2: [100] u8
-    var str = @mkslice(0, @strlen(&buf2[0])) // swc-expected-error {{sema_err_expected_type_fam}}
+    var str = @mkslice(0, @strlen(@dataof(buf2))) // swc-expected-error {{sema_err_expected_type_fam}}
 }
 
 #test
@@ -31,6 +31,6 @@
 #test
 {
     var buf4: [100] u8
-    let str4 = cast(string) @mkslice(&buf4[0], @strlen(&buf4[0]))
+    let str4 = cast(string) @mkslice(&buf4[0], @strlen(@dataof(buf4)))
     #assert(#typeof(str4) == string)
 }

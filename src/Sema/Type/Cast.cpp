@@ -438,6 +438,25 @@ namespace
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
         return Result::Error;
     }
+
+    Result castToCString(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        const auto& typeMgr = sema.ctx().typeMgr();
+        const auto& srcType = typeMgr.get(srcTypeRef);
+
+        if (srcType.isBlockPointer())
+        {
+            if (srcType.typeRef() == sema.typeMgr().typeU8())
+            {
+                if (castCtx.isConstantFolding())
+                    castCtx.outConstRef = castCtx.srcConstRef;
+                return Result::Continue;
+            }
+        }
+
+        castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        return Result::Error;
+    }
 }
 
 Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
@@ -491,6 +510,20 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
         res = castToPointer(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (dstType.isString())
         res = castToString(sema, castCtx, srcTypeRef, dstTypeRef);
+    else if (dstType.isCString())
+        res = castToCString(sema, castCtx, srcTypeRef, dstTypeRef);
+    else if (srcType.isBlockPointer() && dstTypeRef == sema.typeMgr().typeU8())
+    {
+        if (castCtx.isConstantFolding())
+            castCtx.outConstRef = castCtx.srcConstRef;
+        return Result::Continue;
+    }
+    else if (srcType.isBlockPointer() && dstType.isVoid() && castCtx.kind == CastKind::Explicit)
+    {
+        if (castCtx.isConstantFolding())
+            castCtx.outConstRef = castCtx.srcConstRef;
+        return Result::Continue;
+    }
     else
     {
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);

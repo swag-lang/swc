@@ -22,6 +22,7 @@ public:
     IdentifierRef     addIdentifier(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef);
     IdentifierRef     addIdentifier(std::string_view name);
     IdentifierRef     addIdentifier(std::string_view name, uint32_t hash);
+    const Identifier& getNoLock(IdentifierRef idRef) const;
     const Identifier& get(IdentifierRef idRef) const;
 
     IdentifierRef nameSwag() const { return nameSwag_; }

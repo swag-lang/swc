@@ -91,19 +91,26 @@ IdentifierRef IdentifierManager::addIdentifier(std::string_view name, uint32_t h
 
     auto result = IdentifierRef{(shardIndex << LOCAL_BITS) | localIndex};
 #if SWC_HAS_REF_DEBUG_INFO
-    result.setDbgPtr(&get(result));
+    result.setDbgPtr(&getNoLock(result));
 #endif
 
     *it = result;
     return result;
 }
 
-const Identifier& IdentifierManager::get(IdentifierRef idRef) const
+const Identifier& IdentifierManager::getNoLock(IdentifierRef idRef) const
 {
     SWC_ASSERT(idRef.isValid());
     const auto shardIndex = idRef.get() >> LOCAL_BITS;
     const auto localIndex = idRef.get() & LOCAL_MASK;
     return *shards_[shardIndex].store.ptr<Identifier>(localIndex);
+}
+
+const Identifier& IdentifierManager::get(IdentifierRef idRef) const
+{
+    const auto       shardIndex = idRef.get() >> LOCAL_BITS;
+    std::shared_lock lk(shards_[shardIndex].mutex);
+    return getNoLock(idRef);
 }
 
 SWC_END_NAMESPACE();

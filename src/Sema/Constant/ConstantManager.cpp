@@ -80,7 +80,7 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
 #endif
 
 #if SWC_HAS_REF_DEBUG_INFO
-    result.setDbgPtr(&get(result));
+    result.setDbgPtr(&getNoLock(result));
 #endif
 
     return result;
@@ -101,12 +101,19 @@ ConstantRef ConstantManager::cstS32(int32_t value) const
     }
 }
 
-const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
+const ConstantValue& ConstantManager::getNoLock(ConstantRef constantRef) const
 {
     SWC_ASSERT(constantRef.isValid());
     const auto shardIndex = constantRef.get() >> LOCAL_BITS;
     const auto localIndex = constantRef.get() & LOCAL_MASK;
     return *shards_[shardIndex].store.ptr<ConstantValue>(localIndex);
+}
+
+const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
+{
+    const auto       shardIndex = constantRef.get() >> LOCAL_BITS;
+    std::shared_lock lk(shards_[shardIndex].mutex);
+    return getNoLock(constantRef);
 }
 
 Result ConstantManager::concretizeConstant(Sema& sema, ConstantRef& result, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign)

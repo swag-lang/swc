@@ -32,6 +32,7 @@ public:
     TypeRef typeU8() const { return typeU8_; }
 
     TypeRef         addType(const TypeInfo& typeInfo);
+    const TypeInfo& getNoLock(TypeRef typeRef) const;
     const TypeInfo& get(TypeRef typeRef) const;
 
     TypeRef         promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const;

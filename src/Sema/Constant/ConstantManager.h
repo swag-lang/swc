@@ -21,6 +21,7 @@ public:
     ConstantRef          cstFalse() const { return cstBool_false_; }
     ConstantRef          cstBool(bool value) const { return value ? cstBool_true_ : cstBool_false_; }
     ConstantRef          cstS32(int32_t value) const;
+    const ConstantValue& getNoLock(ConstantRef constantRef) const;
     ConstantRef          cstNegBool(ConstantRef cstRef) const { return cstRef == cstBool_true_ ? cstBool_false_ : cstBool_true_; }
     const ConstantValue& get(ConstantRef constantRef) const;
 

@@ -61,6 +61,8 @@ namespace
 
             sym.addParameter(symMe);
             sym.addSymbol(ctx, symMe, true);
+            symMe->setDeclared(ctx);
+            symMe->setTyped(ctx);
         }
     }
 }
@@ -77,7 +79,7 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     }
     else if (childRef == nodeBodyRef)
     {
-        return Result::SkipChildren; // TODO
+        //return Result::SkipChildren; // TODO
         SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
         sema.pushScope(SemaScopeFlagsE::Local);
         sema.curScope().setSymMap(&sym);

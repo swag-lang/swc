@@ -298,7 +298,10 @@ Result Sema::postNodeChild(AstNode& node, AstNodeRef& childRef)
 void Sema::pushDebugInfo()
 {
 #if SWC_HAS_SEMA_DEBUG_INFO
-    nodeStack_.push_back({.scopeCount = scopes_.size(), .frameCount = frames_.size()});
+    if (enteringState())
+    {
+        nodeStack_.push_back({.scopeCount = scopes_.size(), .frameCount = frames_.size()});
+    }
 #endif
 }
 

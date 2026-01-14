@@ -31,9 +31,8 @@ AstNodeRef Parser::parseIntrinsicCallExpr(uint32_t numParams)
 {
     const auto tokRef       = consume();
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CallExpr>(tokRef);
-
-    auto [idRef, idPtr]  = ast_->makeNode<AstNodeId::Identifier>(tokRef);
-    nodePtr->nodeExprRef = idRef;
+    auto [idRef, idPtr]     = ast_->makeNode<AstNodeId::Identifier>(tokRef);
+    nodePtr->nodeExprRef    = idRef;
 
     const auto openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
@@ -46,6 +45,7 @@ AstNodeRef Parser::parseIntrinsicCallExpr(uint32_t numParams)
             if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
                 skipTo({TokenId::SymComma, TokenId::SymRightParen});
         }
+        
         nodeArgs.push_back(parseExpression());
     }
 

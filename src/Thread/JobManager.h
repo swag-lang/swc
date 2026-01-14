@@ -66,6 +66,7 @@ private:
     // Per-client READY/RUNNING counters (protected by mtx_)
     std::atomic<JobClientId>                     nextClientId_{1}; // start at 1, 0 reserved as "default client"
     std::unordered_map<JobClientId, std::size_t> clientReadyRunning_;
+    std::atomic<uint32_t>                        nextIndex_{0};
 
     // All currently scheduled records (any state except free), to allow wakeAll scans.
     std::unordered_set<JobRecord*> liveRecs_;

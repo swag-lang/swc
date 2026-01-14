@@ -131,6 +131,7 @@ void JobManager::enqueue(Job& job, JobPriority priority, JobClientId client)
     rec->priority  = priority;
     rec->clientId  = client;
     rec->state     = JobRecord::State::Ready;
+    rec->index     = nextIndex_.fetch_add(1);
 
     job.setOwner(this);
     job.setRec(rec);
@@ -150,6 +151,13 @@ void JobManager::waitingJobs(std::vector<Job*>& waiting, JobClientId client) con
     if (liveRecs_.empty())
         return;
 
+    struct WaitRecord
+    {
+        Job*     job;
+        uint32_t index;
+    };
+
+    std::vector<WaitRecord> temp;
     for (const JobRecord* rec : liveRecs_)
     {
         if (!rec)
@@ -158,8 +166,15 @@ void JobManager::waitingJobs(std::vector<Job*>& waiting, JobClientId client) con
             continue;
 
         if (rec->state == JobRecord::State::Waiting)
-            waiting.push_back(rec->job);
+            temp.push_back({.job = rec->job, .index = rec->index});
     }
+
+    std::ranges::sort(temp, [](const WaitRecord& a, const WaitRecord& b) {
+        return a.index < b.index;
+    });
+
+    for (const auto& t : temp)
+        waiting.push_back(t.job);
 }
 
 JobRecord* JobManager::popReadyLocked()

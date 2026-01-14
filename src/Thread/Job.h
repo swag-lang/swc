@@ -43,7 +43,8 @@ struct JobRecord
         Done     // completed
     };
 
-    State state{State::Ready};
+    State    state{State::Ready};
+    uint32_t index = 0;
 };
 
 class Job

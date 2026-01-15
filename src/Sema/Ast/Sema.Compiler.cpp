@@ -307,9 +307,11 @@ Result AstCompilerGlobal::semaPostNode(Sema&) const
 
 namespace
 {
-    Result semaCompilerTypeOf(Sema& sema, const AstCompilerCallUnary& node)
+    Result semaCompilerTypeOf(Sema& sema, const AstCompilerCall& node)
     {
-        SemaNodeView nodeView(sema, node.nodeArgRef);
+        SmallVector<AstNodeRef> childs;
+        sema.ast().nodes(childs, node.spanChildrenRef);
+        SemaNodeView nodeView(sema, childs[0]);
         SWC_ASSERT(nodeView.typeRef.isValid());
 
         if (nodeView.cstRef.isValid())
@@ -324,9 +326,11 @@ namespace
         return Result::Continue;
     }
 
-    Result semaCompilerKindOf(Sema& sema, const AstCompilerCallUnary& node)
+    Result semaCompilerKindOf(Sema& sema, const AstCompilerCall& node)
     {
-        SemaNodeView nodeView(sema, node.nodeArgRef);
+        SmallVector<AstNodeRef> childs;
+        sema.ast().nodes(childs, node.spanChildrenRef);
+        SemaNodeView nodeView(sema, childs[0]);
         SWC_ASSERT(nodeView.typeRef.isValid());
 
         if (nodeView.type->isEnum())
@@ -341,46 +345,54 @@ namespace
         return semaCompilerTypeOf(sema, node);
     }
 
-    Result semaCompilerSizeOf(Sema& sema, const AstCompilerCallUnary& node)
+    Result semaCompilerSizeOf(Sema& sema, const AstCompilerCall& node)
     {
-        const SemaNodeView nodeView(sema, node.nodeArgRef);
+        SmallVector<AstNodeRef> childs;
+        sema.ast().nodes(childs, node.spanChildrenRef);
+        const SemaNodeView nodeView(sema, childs[0]);
         if (!nodeView.type)
-            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, node.nodeArgRef);
+            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, childs[0]);
         if (!nodeView.type->isCompleted(sema.ctx()))
-            return sema.waitCompleted(nodeView.type, node.nodeArgRef);
+            return sema.waitCompleted(nodeView.type, childs[0]);
 
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), nodeView.type->sizeOf(sema.ctx())));
         return Result::Continue;
     }
 
-    Result semaCompilerOffsetOf(Sema& sema, const AstCompilerCallUnary& node)
+    Result semaCompilerOffsetOf(Sema& sema, const AstCompilerCall& node)
     {
-        const SemaNodeView nodeView(sema, node.nodeArgRef);
+        SmallVector<AstNodeRef> childs;
+        sema.ast().nodes(childs, node.spanChildrenRef);
+        const SemaNodeView nodeView(sema, childs[0]);
         if (!nodeView.sym || !nodeView.sym->isVariable())
-            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_offsetof, node.nodeArgRef);
+            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_offsetof, childs[0]);
 
         const SymbolVariable& symVar = nodeView.sym->cast<SymbolVariable>();
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), symVar.offset()));
         return Result::Continue;
     }
 
-    Result semaCompilerAlignOf(Sema& sema, const AstCompilerCallUnary& node)
+    Result semaCompilerAlignOf(Sema& sema, const AstCompilerCall& node)
     {
-        const SemaNodeView nodeView(sema, node.nodeArgRef);
+        SmallVector<AstNodeRef> childs;
+        sema.ast().nodes(childs, node.spanChildrenRef);
+        const SemaNodeView nodeView(sema, childs[0]);
         if (!nodeView.type)
-            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, node.nodeArgRef);
+            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, childs[0]);
 
         if (!nodeView.type->isCompleted(sema.ctx()))
-            return sema.waitCompleted(nodeView.type, node.nodeArgRef);
+            return sema.waitCompleted(nodeView.type, childs[0]);
 
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), nodeView.type->alignOf(sema.ctx())));
         return Result::Continue;
     }
 
-    Result semaCompilerNameOf(Sema& sema, const AstCompilerCallUnary& node)
+    Result semaCompilerNameOf(Sema& sema, const AstCompilerCall& node)
     {
-        auto&              ctx = sema.ctx();
-        const SemaNodeView nodeView(sema, node.nodeArgRef);
+        auto&                   ctx = sema.ctx();
+        SmallVector<AstNodeRef> childs;
+        sema.ast().nodes(childs, node.spanChildrenRef);
+        const SemaNodeView nodeView(sema, childs[0]);
 
         if (nodeView.sym)
         {
@@ -398,7 +410,7 @@ namespace
             return Result::Continue;
         }
 
-        auto        diag  = SemaError::report(sema, DiagnosticId::sema_err_failed_nameof, node.nodeArgRef);
+        auto        diag  = SemaError::report(sema, DiagnosticId::sema_err_failed_nameof, childs[0]);
         const auto& token = sema.token(node.srcViewRef(), node.tokRef());
         if (nodeView.cst && (token.id == TokenId::CompilerNameOf || token.id == TokenId::CompilerFullNameOf))
             diag.addElement(DiagnosticId::sema_help_nameof_instruction);
@@ -406,10 +418,12 @@ namespace
         return Result::Error;
     }
 
-    Result semaCompilerFullNameOf(Sema& sema, const AstCompilerCallUnary& node)
+    Result semaCompilerFullNameOf(Sema& sema, const AstCompilerCall& node)
     {
-        const auto&        ctx = sema.ctx();
-        const SemaNodeView nodeView(sema, node.nodeArgRef);
+        const auto&             ctx = sema.ctx();
+        SmallVector<AstNodeRef> childs;
+        sema.ast().nodes(childs, node.spanChildrenRef);
+        const SemaNodeView nodeView(sema, childs[0]);
 
         if (nodeView.sym)
         {
@@ -422,10 +436,12 @@ namespace
         return semaCompilerNameOf(sema, node);
     }
 
-    Result semaCompilerStringOf(Sema& sema, const AstCompilerCallUnary& node)
+    Result semaCompilerStringOf(Sema& sema, const AstCompilerCall& node)
     {
-        const auto&        ctx = sema.ctx();
-        const SemaNodeView nodeView(sema, node.nodeArgRef);
+        const auto&             ctx = sema.ctx();
+        SmallVector<AstNodeRef> childs;
+        sema.ast().nodes(childs, node.spanChildrenRef);
+        const SemaNodeView nodeView(sema, childs[0]);
 
         if (nodeView.cst)
         {
@@ -438,10 +454,12 @@ namespace
         return semaCompilerNameOf(sema, node);
     }
 
-    Result semaCompilerDefined(Sema& sema, const AstCompilerCallUnary& node)
+    Result semaCompilerDefined(Sema& sema, const AstCompilerCall& node)
     {
-        const auto&         ctx = sema.ctx();
-        const SemaNodeView  nodeView(sema, node.nodeArgRef);
+        const auto&             ctx = sema.ctx();
+        SmallVector<AstNodeRef> childs;
+        sema.ast().nodes(childs, node.spanChildrenRef);
+        const SemaNodeView  nodeView(sema, childs[0]);
         const bool          isDefined = nodeView.sym != nullptr;
         const ConstantValue value     = ConstantValue::makeBool(ctx, isDefined);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
@@ -449,7 +467,7 @@ namespace
     }
 }
 
-Result AstCompilerCallUnary::semaPostNode(Sema& sema) const
+Result AstCompilerCall::semaPostNode(Sema& sema) const
 {
     const Token& tok = sema.token(srcViewRef(), tokRef());
     switch (tok.id)
@@ -473,6 +491,7 @@ Result AstCompilerCallUnary::semaPostNode(Sema& sema) const
         case TokenId::CompilerDefined:
             return semaCompilerDefined(sema, *this);
 
+        case TokenId::CompilerGetTag:
         case TokenId::CompilerDeclType:
         case TokenId::CompilerRunes:
         case TokenId::CompilerIsConstExpr:

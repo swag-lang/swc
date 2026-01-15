@@ -617,7 +617,10 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::CompilerHasTag:
         case TokenId::CompilerInject:
         case TokenId::CompilerLocation:
-            return parseCompilerCallUnary();
+            return parseCompilerCall(1);           
+
+        case TokenId::CompilerGetTag:
+            return parseCompilerCall(3);            
 
         case TokenId::CompilerRun:
             return parseCompilerRun();
@@ -666,7 +669,6 @@ AstNodeRef Parser::parsePrimaryExpression()
 
         case TokenId::IntrinsicMakeInterface:
         case TokenId::IntrinsicAs:
-        case TokenId::CompilerGetTag:
         case TokenId::IntrinsicTypeCmp:
         case TokenId::IntrinsicMulAdd:
             return parseIntrinsicCall(3);

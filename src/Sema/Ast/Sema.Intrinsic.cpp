@@ -175,7 +175,6 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
         case TokenId::IntrinsicPanic:
         case TokenId::IntrinsicMakeInterface:
         case TokenId::IntrinsicAs:
-        case TokenId::CompilerGetTag:
         case TokenId::IntrinsicTypeCmp:
         case TokenId::IntrinsicMulAdd:
             // TODO

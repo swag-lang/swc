@@ -763,7 +763,7 @@ AstNodeRef Parser::parseTopLevelStmt()
 
         case TokenId::CompilerLoad:
         case TokenId::CompilerForeignLib:
-            return parseCompilerCallUnary();
+            return parseCompilerCall(1);
 
         case TokenId::CompilerImport:
             return parseCompilerImport();

@@ -22,26 +22,33 @@ AstNodeRef Parser::parseCompilerDiagnostic()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseCompilerCallUnary()
+AstNodeRef Parser::parseCompilerCall(uint32_t numParams)
 {
     const auto token        = tok();
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCallUnary>(consume());
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCall>(consume());
 
-    const auto openRef = ref();
+    const auto              openRef = ref();
+    SmallVector<AstNodeRef> children;
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
-    if (token.id == TokenId::CompilerDefined)
+    for (uint32_t i = 0; i < numParams; i++)
     {
-        PushContextFlags context(this, ParserContextFlagsE::InCompilerDefined);
-        nodePtr->nodeArgRef = parseExpression();
-    }
-    else
-    {
-        nodePtr->nodeArgRef = parseExpression();
+        if (i != 0)
+            expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token_before);
+
+        if (token.id == TokenId::CompilerDefined)
+        {
+            PushContextFlags context(this, ParserContextFlagsE::InCompilerDefined);
+            children.push_back(parseExpression());
+        }
+        else
+        {
+            children.push_back(parseExpression());
+        }
     }
 
+    nodePtr->spanChildrenRef = ast_->pushSpan(children.span());
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
-
     return nodeRef;
 }
 
@@ -173,18 +180,20 @@ AstNodeRef Parser::parseCompilerDependencies()
 
 AstNodeRef Parser::parseCompilerTypeOf()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCallUnary>(consume());
+    const auto token        = tok();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCall>(consume());
 
-    const auto openRef = ref();
+    const auto              openRef = ref();
+    SmallVector<AstNodeRef> children;
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
     if (isAny(TokenId::KwdFunc, TokenId::KwdMtd))
-        nodePtr->nodeArgRef = parseType();
+        children.push_back(parseType());
     else
-        nodePtr->nodeArgRef = parseExpression();
+        children.push_back(parseExpression());
 
+    nodePtr->spanChildrenRef = ast_->pushSpan(children.span());
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
-
     return nodeRef;
 }
 

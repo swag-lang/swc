@@ -124,7 +124,7 @@ private:
     AstNodeRef parseClosureArg();
     AstNodeRef parseCompilerExpression();
     AstNodeRef parseCompilerDiagnostic();
-    AstNodeRef parseCompilerCallUnary();
+    AstNodeRef parseCompilerCall(uint32_t numParams);
     AstNodeRef parseCompilerDependencies();
     AstNodeRef parseCompilerRun();
     AstNodeRef parseCompilerCode();

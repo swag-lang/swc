@@ -652,6 +652,29 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicCVaStart:
         case TokenId::IntrinsicCVaEnd:
         case TokenId::IntrinsicMakeCallback:
+            return parseIntrinsicCall(1);
+
+        case TokenId::IntrinsicMakeAny:
+        case TokenId::IntrinsicMakeSlice:
+        case TokenId::IntrinsicMakeString:
+        case TokenId::IntrinsicCVaArg:
+        case TokenId::IntrinsicRealloc:
+        case TokenId::IntrinsicStringCmp:
+        case TokenId::IntrinsicIs:
+        case TokenId::IntrinsicTableOf:
+            return parseIntrinsicCall(2);
+
+        case TokenId::IntrinsicMakeInterface:
+        case TokenId::IntrinsicAs:
+        case TokenId::CompilerGetTag:
+        case TokenId::IntrinsicAtomicCmpXchg:
+        case TokenId::IntrinsicTypeCmp:
+        case TokenId::IntrinsicMulAdd:
+            return parseIntrinsicCall(3);
+
+        case TokenId::IntrinsicStrLen:
+        case TokenId::IntrinsicAlloc:
+        case TokenId::IntrinsicFree:
         case TokenId::IntrinsicAbs:
         case TokenId::IntrinsicSqrt:
         case TokenId::IntrinsicSin:
@@ -676,16 +699,9 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicBitCountNz:
         case TokenId::IntrinsicBitCountTz:
         case TokenId::IntrinsicBitCountLz:
-            return parseIntrinsicCall(1);
-
-        case TokenId::IntrinsicMakeAny:
-        case TokenId::IntrinsicMakeSlice:
-        case TokenId::IntrinsicMakeString:
-        case TokenId::IntrinsicCVaArg:
-        case TokenId::IntrinsicRealloc:
-        case TokenId::IntrinsicStringCmp:
-        case TokenId::IntrinsicIs:
-        case TokenId::IntrinsicTableOf:
+            return parseIntrinsicCallExpr(1);
+            
+        case TokenId::IntrinsicStrCmp:
         case TokenId::IntrinsicMin:
         case TokenId::IntrinsicMax:
         case TokenId::IntrinsicRol:
@@ -697,22 +713,8 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicAtomicOr:
         case TokenId::IntrinsicAtomicAnd:
         case TokenId::IntrinsicAtomicAdd:
-            return parseIntrinsicCall(2);
-
-        case TokenId::IntrinsicMakeInterface:
-        case TokenId::IntrinsicAs:
-        case TokenId::CompilerGetTag:
-        case TokenId::IntrinsicAtomicCmpXchg:
-        case TokenId::IntrinsicTypeCmp:
-        case TokenId::IntrinsicMulAdd:
-            return parseIntrinsicCall(3);
-
-        case TokenId::IntrinsicStrLen:
-        case TokenId::IntrinsicAlloc:
-        case TokenId::IntrinsicFree:
-            return parseIntrinsicCallExpr(1);
-        case TokenId::IntrinsicStrCmp:
             return parseIntrinsicCallExpr(2);
+            
         case TokenId::IntrinsicMemCmp:
             return parseIntrinsicCallExpr(3);
 

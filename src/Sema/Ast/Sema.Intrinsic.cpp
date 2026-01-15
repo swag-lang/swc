@@ -104,7 +104,6 @@ namespace
             return SemaError::raiseRequestedTypeFam(sema, nodeArg1Ref, nodeViewPtr.typeRef, sema.typeMgr().typeBlockPtrVoid());
 
         RESULT_VERIFY(Cast::cast(sema, nodeViewSize, sema.typeMgr().typeU64(), CastKind::Implicit));
-        // nodeArg2Ref = nodeViewSize.nodeRef; // Cannot update childs directly as it's a Span, but it doesn't matter for slice type determination
 
         TypeRef typeRef;
         if (forString)
@@ -140,97 +139,40 @@ namespace
 Result AstIntrinsicCall::semaPostNode(Sema& sema)
 {
     const Token& tok = sema.token(srcViewRef(), tokRef());
+    SmallVector<AstNodeRef> childs;
+    sema.ast().nodes(childs, spanChildrenRef);
+    
     switch (tok.id)
     {
         case TokenId::IntrinsicGetContext:
             return semaIntrinsicContext(sema, *this);
-
-        case TokenId::IntrinsicDbgAlloc:
-        case TokenId::IntrinsicSysAlloc:
-        case TokenId::IntrinsicBcBreakpoint:
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
-            return Result::SkipChildren;
-    }
-
-    SmallVector<AstNodeRef> childs;
-    sema.ast().nodes(childs, spanChildrenRef);
-
-    switch (tok.id)
-    {
         case TokenId::IntrinsicDataOf:
             return semaIntrinsicDataOf(sema, *this, childs);
         case TokenId::IntrinsicKindOf:
             return semaIntrinsicKindOf(sema, *this, childs);
+        case TokenId::IntrinsicMakeSlice:
+            return semaIntrinsicMakeSlice(sema, *this, childs, false);
+        case TokenId::IntrinsicMakeString:
+            return semaIntrinsicMakeSlice(sema, *this, childs, true);
 
+        case TokenId::IntrinsicDbgAlloc:
+        case TokenId::IntrinsicSysAlloc:
+        case TokenId::IntrinsicBcBreakpoint:
         case TokenId::IntrinsicAssert:
         case TokenId::IntrinsicSetContext:
         case TokenId::IntrinsicCountOf:
         case TokenId::IntrinsicCVaStart:
         case TokenId::IntrinsicCVaEnd:
         case TokenId::IntrinsicMakeCallback:
-        case TokenId::IntrinsicAbs:
-        case TokenId::IntrinsicSqrt:
-        case TokenId::IntrinsicSin:
-        case TokenId::IntrinsicCos:
-        case TokenId::IntrinsicTan:
-        case TokenId::IntrinsicSinh:
-        case TokenId::IntrinsicCosh:
-        case TokenId::IntrinsicTanh:
-        case TokenId::IntrinsicASin:
-        case TokenId::IntrinsicACos:
-        case TokenId::IntrinsicATan:
-        case TokenId::IntrinsicLog:
-        case TokenId::IntrinsicLog2:
-        case TokenId::IntrinsicLog10:
-        case TokenId::IntrinsicFloor:
-        case TokenId::IntrinsicCeil:
-        case TokenId::IntrinsicTrunc:
-        case TokenId::IntrinsicRound:
-        case TokenId::IntrinsicExp:
-        case TokenId::IntrinsicExp2:
-        case TokenId::IntrinsicByteSwap:
-        case TokenId::IntrinsicBitCountNz:
-        case TokenId::IntrinsicBitCountTz:
-        case TokenId::IntrinsicBitCountLz:
-            // TODO
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
-            return Result::Continue;
-    }
-
-    switch (tok.id)
-    {
-        case TokenId::IntrinsicMakeSlice:
-            return semaIntrinsicMakeSlice(sema, *this, childs, false);
-        case TokenId::IntrinsicMakeString:
-            return semaIntrinsicMakeSlice(sema, *this, childs, true);
-            
         case TokenId::IntrinsicMakeAny:
         case TokenId::IntrinsicCVaArg:
         case TokenId::IntrinsicRealloc:
         case TokenId::IntrinsicStringCmp:
         case TokenId::IntrinsicIs:
         case TokenId::IntrinsicTableOf:
-        case TokenId::IntrinsicMin:
-        case TokenId::IntrinsicMax:
-        case TokenId::IntrinsicRol:
-        case TokenId::IntrinsicRor:
-        case TokenId::IntrinsicPow:
-        case TokenId::IntrinsicATan2:
-        case TokenId::IntrinsicAtomicXchg:
-        case TokenId::IntrinsicAtomicXor:
-        case TokenId::IntrinsicAtomicOr:
-        case TokenId::IntrinsicAtomicAnd:
-        case TokenId::IntrinsicAtomicAdd:
         case TokenId::IntrinsicCompilerError:
         case TokenId::IntrinsicCompilerWarning:
         case TokenId::IntrinsicPanic:
-            // TODO
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
-            return Result::Continue;
-    }
-
-    switch (tok.id)
-    {
         case TokenId::IntrinsicMakeInterface:
         case TokenId::IntrinsicAs:
         case TokenId::CompilerGetTag:

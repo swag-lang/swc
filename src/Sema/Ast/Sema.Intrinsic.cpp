@@ -168,8 +168,6 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
         case TokenId::IntrinsicCVaStart:
         case TokenId::IntrinsicCVaEnd:
         case TokenId::IntrinsicMakeCallback:
-        case TokenId::IntrinsicAlloc:
-        case TokenId::IntrinsicFree:
         case TokenId::IntrinsicAbs:
         case TokenId::IntrinsicSqrt:
         case TokenId::IntrinsicSin:
@@ -209,7 +207,6 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
         case TokenId::IntrinsicMakeAny:
         case TokenId::IntrinsicCVaArg:
         case TokenId::IntrinsicRealloc:
-        case TokenId::IntrinsicStrCmp:
         case TokenId::IntrinsicStringCmp:
         case TokenId::IntrinsicIs:
         case TokenId::IntrinsicTableOf:
@@ -235,15 +232,11 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
     switch (tok.id)
     {
         case TokenId::IntrinsicMakeInterface:
-        case TokenId::IntrinsicMemCmp:
         case TokenId::IntrinsicAs:
         case TokenId::CompilerGetTag:
         case TokenId::IntrinsicAtomicCmpXchg:
         case TokenId::IntrinsicTypeCmp:
         case TokenId::IntrinsicMulAdd:
-        case TokenId::IntrinsicMemCpy:
-        case TokenId::IntrinsicMemMove:
-        case TokenId::IntrinsicMemSet:
             // TODO
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
             return Result::Continue;

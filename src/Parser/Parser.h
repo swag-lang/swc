@@ -169,8 +169,8 @@ private:
     AstNodeRef parseInterfaceDecl();
     AstNodeRef parseInterfaceValue();
     AstNodeRef parseIntrinsicCall();
-    AstNodeRef parseIntrinsicCallVariadic();
     AstNodeRef parseIntrinsicCallExpr();
+    AstNodeRef parseIntrinsicCallVariadic();
     AstNodeRef parseIntrinsicDrop();
     AstNodeRef parseIntrinsicInit();
     AstNodeRef parseIntrinsicPostCopy();

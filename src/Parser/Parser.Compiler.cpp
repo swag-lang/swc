@@ -22,32 +22,67 @@ AstNodeRef Parser::parseCompilerDiagnostic()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseCompilerCall(uint32_t numParams)
+AstNodeRef Parser::parseCompilerTypeOf()
 {
-    const auto token        = tok();
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCall>(consume());
 
     const auto              openRef = ref();
     SmallVector<AstNodeRef> children;
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
-    for (uint32_t i = 0; i < numParams; i++)
-    {
-        if (i != 0)
-            expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token_before);
-
-        if (token.id == TokenId::CompilerDefined)
-        {
-            PushContextFlags context(this, ParserContextFlagsE::InCompilerDefined);
-            children.push_back(parseExpression());
-        }
-        else
-        {
-            children.push_back(parseExpression());
-        }
-    }
+    if (isAny(TokenId::KwdFunc, TokenId::KwdMtd))
+        children.push_back(parseType());
+    else
+        children.push_back(parseExpression());
 
     nodePtr->spanChildrenRef = ast_->pushSpan(children.span());
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+    return nodeRef;
+}
+
+AstNodeRef Parser::parseCompilerCall(uint32_t numParams)
+{
+    const auto token        = tok();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCall>(consume());
+
+    const auto              openRef = ref();
+    SmallVector<AstNodeRef> nodeArgs;
+    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
+
+    auto parseFlags = ParserContextFlagsE::Zero;
+    if (token.id == TokenId::CompilerDefined)
+        parseFlags = ParserContextFlagsE::InCompilerDefined;
+    PushContextFlags context(this, parseFlags);
+
+    while (isNot(TokenId::SymRightParen) && isNot(TokenId::EndOfFile))
+    {
+        if (!nodeArgs.empty())
+        {
+            if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
+                skipTo({TokenId::SymComma, TokenId::SymRightParen});
+            if (is(TokenId::SymRightParen))
+                break;
+        }
+
+        nodeArgs.push_back(parseExpression());
+    }
+
+    if (nodeArgs.size() < numParams)
+    {
+        auto diag = reportError(DiagnosticId::parser_err_too_few_arguments, ref());
+        diag.addArgument(Diagnostic::ARG_COUNT, numParams);
+        diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
+        diag.report(*ctx_);
+    }
+    else if (nodeArgs.size() > numParams)
+    {
+        auto diag = reportError(DiagnosticId::parser_err_too_many_arguments, nodeArgs[numParams]);
+        diag.addArgument(Diagnostic::ARG_COUNT, numParams);
+        diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
+        diag.report(*ctx_);
+    }
+
+    nodePtr->spanChildrenRef = ast_->pushSpan(nodeArgs.span());
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
     return nodeRef;
 }
@@ -175,24 +210,6 @@ AstNodeRef Parser::parseCompilerDependencies()
 {
     auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::DependenciesBlock>(consume());
     nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
-    return nodeRef;
-}
-
-AstNodeRef Parser::parseCompilerTypeOf()
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCall>(consume());
-
-    const auto              openRef = ref();
-    SmallVector<AstNodeRef> children;
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-
-    if (isAny(TokenId::KwdFunc, TokenId::KwdMtd))
-        children.push_back(parseType());
-    else
-        children.push_back(parseExpression());
-
-    nodePtr->spanChildrenRef = ast_->pushSpan(children.span());
-    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
     return nodeRef;
 }
 

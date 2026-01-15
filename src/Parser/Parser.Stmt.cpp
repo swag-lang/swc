@@ -813,24 +813,27 @@ AstNodeRef Parser::parseEmbeddedStmt()
             return parseStructDecl();
 
         case TokenId::IntrinsicBcBreakpoint:
+            return parseIntrinsicCall(0);
         case TokenId::IntrinsicAssert:
         case TokenId::IntrinsicCVaStart:
         case TokenId::IntrinsicCVaEnd:
         case TokenId::IntrinsicSetContext:
+            return parseIntrinsicCall(1);
         case TokenId::IntrinsicCompilerError:
         case TokenId::IntrinsicCompilerWarning:
         case TokenId::IntrinsicPanic:
         case TokenId::IntrinsicAtomicAdd:
-            return parseIntrinsicCall();
+            return parseIntrinsicCall(2);
             
         case TokenId::IntrinsicPrint:
             return parseIntrinsicCallVariadic();
 
         case TokenId::IntrinsicFree:
+            return parseIntrinsicCallExpr(1);
         case TokenId::IntrinsicMemCpy:
         case TokenId::IntrinsicMemMove:
         case TokenId::IntrinsicMemSet:
-            return parseIntrinsicCallExpr();
+            return parseIntrinsicCallExpr(3);
 
         case TokenId::SymAttrStart:
             return parseAttributeList<AstNodeId::EmbeddedBlock>();

@@ -16,4 +16,5 @@ namespace NS {}
 {
     var a: string
     var b = @countof(a)
+    #assert(#typeof(b) == u64)
 }

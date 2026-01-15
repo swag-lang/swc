@@ -29,6 +29,9 @@ public:
     TypeRef typeConstBlockPtrU8() const { return typeConstBlockPtrU8_; }
 
     TypeRef typeInt(uint32_t bits, TypeInfo::Sign sign) const;
+    TypeRef typeInt() const { return typeInt_; }
+    TypeRef typeIntSigned() const { return typeIntSigned_; }
+    TypeRef typeIntUnsigned() const { return typeIntUnsigned_; }
     TypeRef typeFloat(uint32_t bits) const;
     TypeRef typeU8() const { return typeU8_; }
     TypeRef typeU64() const { return typeU64_; }

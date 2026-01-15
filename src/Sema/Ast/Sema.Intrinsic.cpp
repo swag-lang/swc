@@ -116,9 +116,9 @@ namespace
             return Result::Continue;
         }
 
-        if (nodeView.type->isString())
+        if (nodeView.type->isAnyString())
         {
-            sema.setType(sema.curNodeRef(), sema.typeMgr().typeInt(0, TypeInfo::Sign::Unsigned));
+            sema.setType(sema.curNodeRef(), sema.typeMgr().typeU64());
             SemaInfo::setIsValue(node);
             return Result::Continue;
         }

@@ -124,6 +124,7 @@ public:
     bool isIntLikeUnsigned() const noexcept { return isCharRune() || isIntUnsigned(); }
     bool isConcreteScalar() const noexcept { return isScalarNumeric() && !isIntUnsized() && !isFloatUnsized(); }
     bool isAnyVariadic() const noexcept { return isVariadic() || isTypedVariadic(); }
+    bool isAnyString() const noexcept { return isString() || isCString(); }
 
     bool isLambdaClosure() const noexcept;
     bool isLambdaMethod() const noexcept;

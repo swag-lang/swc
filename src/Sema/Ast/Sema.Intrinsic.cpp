@@ -6,6 +6,7 @@
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaInfo.h"
+#include "Sema/Symbol/Symbol.Enum.h"
 #include "Sema/Type/Cast.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -42,12 +43,13 @@ Result AstIntrinsicValue::semaPostNode(Sema& sema)
 
 namespace
 {
-    Result semaIntrinsicDataOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& childs)
+    Result semaIntrinsicDataOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
-        const auto nodeArgRef = childs[0];
+        const AstNodeRef nodeArgRef = children[0];
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeArgRef));
+
         const SemaNodeView nodeView(sema, nodeArgRef);
-        const auto         type = nodeView.type;
+        const TypeInfo*    type = nodeView.type;
 
         TypeRef resultTypeRef = TypeRef::invalid();
         if (type->isString() || type->isCString())
@@ -81,7 +83,7 @@ namespace
         return Result::Continue;
     }
 
-    Result semaIntrinsicKindOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& childs)
+    Result semaIntrinsicKindOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
         // TODO
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeBlockPtrVoid());
@@ -89,10 +91,39 @@ namespace
         return Result::Continue;
     }
 
-    Result semaIntrinsicMakeSlice(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& childs, bool forString)
+    Result semaIntrinsicCountOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
-        auto nodeArg1Ref = childs[0];
-        auto nodeArg2Ref = childs[1];
+        auto               ctx        = sema.ctx();
+        const AstNodeRef   nodeArgRef = children[0];
+        const SemaNodeView nodeView(sema, nodeArgRef);
+
+        if (!nodeView.type)
+            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_countof, nodeArgRef);
+
+        if (nodeView.type->isEnum())
+        {
+            if (!nodeView.type->isCompleted(ctx))
+                return sema.waitCompleted(nodeView.type, nodeArgRef);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(ctx, nodeView.type->symEnum().count()));
+            return Result::Continue;
+        }
+
+        if (nodeView.cst && nodeView.cst->isString())
+        {
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(ctx, nodeView.cst->getString().length()));
+            return Result::Continue;
+        }
+
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_countof_type, nodeArgRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    Result semaIntrinsicMakeSlice(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children, bool forString)
+    {
+        auto nodeArg1Ref = children[0];
+        auto nodeArg2Ref = children[1];
 
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeArg1Ref));
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeArg2Ref));
@@ -150,6 +181,8 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
             return semaIntrinsicDataOf(sema, *this, children);
         case TokenId::IntrinsicKindOf:
             return semaIntrinsicKindOf(sema, *this, children);
+        case TokenId::IntrinsicCountOf:
+            return semaIntrinsicCountOf(sema, *this, children);
         case TokenId::IntrinsicMakeSlice:
             return semaIntrinsicMakeSlice(sema, *this, children, false);
         case TokenId::IntrinsicMakeString:
@@ -160,7 +193,6 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
         case TokenId::IntrinsicBcBreakpoint:
         case TokenId::IntrinsicAssert:
         case TokenId::IntrinsicSetContext:
-        case TokenId::IntrinsicCountOf:
         case TokenId::IntrinsicCVaStart:
         case TokenId::IntrinsicCVaEnd:
         case TokenId::IntrinsicMakeCallback:

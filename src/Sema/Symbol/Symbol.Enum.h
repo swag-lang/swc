@@ -7,6 +7,22 @@ SWC_BEGIN_NAMESPACE();
 
 class SymbolImpl;
 
+class SymbolEnumValue : public SymbolT<SymbolKind::EnumValue>
+{
+    ConstantRef cstRef_ = ConstantRef::invalid();
+
+public:
+    static constexpr auto K = SymbolKind::EnumValue;
+
+    explicit SymbolEnumValue(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        SymbolT(decl, tokRef, idRef, flags)
+    {
+    }
+
+    ConstantRef cstRef() const { return cstRef_; }
+    void        setCstRef(ConstantRef cstRef) { cstRef_ = cstRef; }
+};
+
 enum class SymbolEnumFlagsE : uint8_t
 {
     Zero         = 0,
@@ -47,22 +63,6 @@ private:
 
     mutable std::shared_mutex mutexImpls_;
     std::vector<SymbolImpl*>  impls_;
-};
-
-class SymbolEnumValue : public SymbolT<SymbolKind::EnumValue>
-{
-    ConstantRef cstRef_ = ConstantRef::invalid();
-
-public:
-    static constexpr auto K = SymbolKind::EnumValue;
-
-    explicit SymbolEnumValue(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
-        SymbolT(decl, tokRef, idRef, flags)
-    {
-    }
-
-    ConstantRef cstRef() const { return cstRef_; }
-    void        setCstRef(ConstantRef cstRef) { cstRef_ = cstRef; }
 };
 
 SWC_END_NAMESPACE();

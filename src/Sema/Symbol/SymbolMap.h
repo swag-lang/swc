@@ -12,11 +12,12 @@ class SymbolMap : public Symbol
 public:
     explicit SymbolMap(const AstNode* decl, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags);
 
-    Symbol* addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms);
-    Symbol* addSingleSymbol(TaskContext& ctx, Symbol* symbol);
-    Symbol* addSingleSymbolOrError(Sema& sema, Symbol* symbol);
-    void    lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const;
-    bool    empty() const noexcept;
+    Symbol*  addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms);
+    Symbol*  addSingleSymbol(TaskContext& ctx, Symbol* symbol);
+    Symbol*  addSingleSymbolOrError(Sema& sema, Symbol* symbol);
+    void     lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const;
+    bool     empty() const noexcept;
+    uint32_t count() const noexcept { return count_; }
 
 protected:
     struct Entry
@@ -41,6 +42,7 @@ protected:
     std::atomic<Shard*>                        shards_ = nullptr;
     mutable std::shared_mutex                  mutex_;
     uint32_t                                   smallSize_ = 0;
+    uint32_t                                   count_     = 0;
 
     bool isBig() const noexcept { return smallSize_ > SMALL_CAP; }
     bool isSharded() const noexcept { return shards_.load(std::memory_order_acquire) != nullptr; }

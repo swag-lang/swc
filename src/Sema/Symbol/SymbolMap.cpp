@@ -164,7 +164,11 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
     {
         Symbol* insertedSym = insertIntoShard(shards, idRef, symbol, ctx, acceptHomonyms, true);
         if (insertedSym == symbol)
+        {
+            count_++;
             symbol->setSymMap(this);
+        }
+
         return insertedSym;
     }
 
@@ -176,7 +180,11 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
         lk.unlock();
         Symbol* insertedSym = insertIntoShard(shards, idRef, symbol, ctx, acceptHomonyms, true);
         if (insertedSym == symbol)
+        {
+            count_++;
             symbol->setSymMap(this);
+        }
+
         return insertedSym;
     }
 
@@ -186,6 +194,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
         {
             if (!acceptHomonyms)
                 return e->head;
+            count_++;
             symbol->setSymMap(this);
             prependSymbol(e->head, symbol);
             ctx.compiler().notifyAlive();
@@ -194,6 +203,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
 
         if (smallSize_ < SMALL_CAP)
         {
+            count_++;
             symbol->setSymMap(this);
             symbol->setNextHomonym(nullptr);
             small_[smallSize_++] = Entry{.head = symbol, .key = idRef};
@@ -216,7 +226,11 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
         lk.unlock();
         Symbol* insertedSym = insertIntoShard(shards, idRef, symbol, ctx, acceptHomonyms, true);
         if (insertedSym == symbol)
+        {
+            count_++;
             symbol->setSymMap(this);
+        }
+
         return insertedSym;
     }
 
@@ -230,6 +244,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
 
     Symbol*& head = bigMap_[idRef];
     prependSymbol(head, symbol);
+    count_++;
     symbol->setSymMap(this);
     ctx.compiler().notifyAlive();
     return symbol;

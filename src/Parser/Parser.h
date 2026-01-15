@@ -228,6 +228,7 @@ private:
     void        setReportArguments(Diagnostic& diag, TokenRef tokRef) const;
     static void setReportExpected(Diagnostic& diag, TokenId expectedTknId);
     Diagnostic  reportError(DiagnosticId id, TokenRef tknRef);
+    Diagnostic  reportError(DiagnosticId id, AstNodeRef nodeRef);
     void        raiseError(DiagnosticId id, TokenRef tknRef);
     void        raiseExpected(DiagnosticId id, TokenRef tknRef, TokenId tknExpected);
     bool        hasContextFlag(ParserContextFlags flags) const { return contextFlags_.has(flags); }

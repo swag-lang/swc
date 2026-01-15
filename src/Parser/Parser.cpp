@@ -60,6 +60,23 @@ Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
     return diag;
 }
 
+Diagnostic Parser::reportError(DiagnosticId id, AstNodeRef nodeRef)
+{
+    auto           diag   = Diagnostic::get(id, ast_->srcView().fileRef());
+    const AstNode& node   = ast_->node(nodeRef);
+    const TokenRef tknRef = node.tokRef();
+    setReportArguments(diag, tknRef);
+    const SourceCodeLocation loc = node.locationWithChildren(*ctx_, *ast_);
+    diag.last().addSpan(loc, "");
+    diag.last().addSpan(Diagnostic::tokenErrorLocation(*ctx_, ast_->srcView(), tknRef), "");
+
+    if (tknRef == lastErrorToken_)
+        diag.setSilent(true);
+    lastErrorToken_ = tknRef;
+
+    return diag;
+}
+
 void Parser::raiseError(DiagnosticId id, TokenRef tknRef)
 {
     const auto diag = reportError(id, tknRef);

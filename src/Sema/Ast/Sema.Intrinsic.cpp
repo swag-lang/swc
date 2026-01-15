@@ -1,7 +1,9 @@
 #include "pch.h"
-#include "Sema/Core/Sema.h"
+
+#include "Os/Os.h"
 #include "Parser/AstNodes.h"
 #include "Sema/Constant/ConstantManager.h"
+#include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
@@ -111,6 +113,13 @@ namespace
         if (nodeView.cst && nodeView.cst->isString())
         {
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(ctx, nodeView.cst->getString().length()));
+            return Result::Continue;
+        }
+
+        if (nodeView.type->isString())
+        {
+            sema.setType(sema.curNodeRef(), sema.typeMgr().typeInt(0, TypeInfo::Sign::Unsigned));
+            SemaInfo::setIsValue(node);
             return Result::Continue;
         }
 

@@ -11,3 +11,9 @@ const B = "XYZ"
 namespace NS {}
 #assert(@countof(NS) == 3) // swc-expected-error {{sema_err_invalid_countof}}
 #assert(@countof(true) == 1) // swc-expected-error {{sema_err_invalid_countof_type}}
+
+#test
+{
+    var a: string
+    var b = @countof(a)
+}

@@ -72,6 +72,8 @@ SWC_DIAG_DEF(parser_err_duplicate_modifier)
 SWC_DIAG_DEF(parser_err_duplicate_type_qualifier)
 SWC_DIAG_DEF(parser_err_misplace_type_qualifier)
 SWC_DIAG_DEF(parser_err_expected_type_or_symbol)
+SWC_DIAG_DEF(parser_err_too_many_arguments)
+SWC_DIAG_DEF(parser_err_too_few_arguments)
 
 // Sema Warnings
 SWC_DIAG_DEF(sema_warn_compiler_warning)

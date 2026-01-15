@@ -66,6 +66,8 @@ SWC_DIAG_DEF(parser_err_duplicate_modifier, Error, "Duplicated access modifier {
 SWC_DIAG_DEF(parser_err_duplicate_type_qualifier, Error, "Duplicated type qualifier {tok}")
 SWC_DIAG_DEF(parser_err_misplace_type_qualifier, Error, "Misplaced type qualifier {tok}")
 SWC_DIAG_DEF(parser_err_expected_type_or_symbol, Error, "Expected type or symbol name")
+SWC_DIAG_DEF(parser_err_too_many_arguments, Error, "Too many arguments for intrinsic {tok}; expected {count}, but got {value}")
+SWC_DIAG_DEF(parser_err_too_few_arguments, Error, "Too few arguments for intrinsic {tok}; expected {count}, but got {value}")
 
 SWC_DIAG_DEF(sema_warn_compiler_warning, Warning, "Compiler warning: {because}")
 

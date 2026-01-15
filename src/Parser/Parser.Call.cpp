@@ -17,21 +17,41 @@ AstNodeRef Parser::parseAttributeValue()
 
 AstNodeRef Parser::parseIntrinsicCall(uint32_t numParams)
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCall>(consume());
+    const auto tokRef       = consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCall>(tokRef);
 
     const auto              openRef = ref();
     SmallVector<AstNodeRef> nodeArgs;
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    for (uint32_t i = 0; i < numParams; i++)
+
+    while (isNot(TokenId::SymRightParen) && isNot(TokenId::EndOfFile))
     {
-        if (i != 0)
+        if (!nodeArgs.empty())
         {
             if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
                 skipTo({TokenId::SymComma, TokenId::SymRightParen});
+            if (is(TokenId::SymRightParen))
+                break;
         }
 
         nodeArgs.push_back(parseExpression());
     }
+
+    if (nodeArgs.size() < numParams)
+    {
+        auto diag = reportError(DiagnosticId::parser_err_too_few_arguments, tokRef);
+        diag.addArgument(Diagnostic::ARG_COUNT, numParams);
+        diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
+        diag.report(*ctx_);
+    }
+    else if (nodeArgs.size() > numParams)
+    {
+        auto diag = reportError(DiagnosticId::parser_err_too_many_arguments, tokRef);
+        diag.addArgument(Diagnostic::ARG_COUNT, numParams);
+        diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
+        diag.report(*ctx_);
+    }
+
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
     nodePtr->spanChildrenRef = ast_->pushSpan(nodeArgs.span());
@@ -74,16 +94,35 @@ AstNodeRef Parser::parseIntrinsicCallExpr(uint32_t numParams)
     const auto              openRef = ref();
     SmallVector<AstNodeRef> nodeArgs;
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    for (uint32_t i = 0; i < numParams; i++)
+
+    while (isNot(TokenId::SymRightParen) && isNot(TokenId::EndOfFile))
     {
-        if (i != 0)
+        if (!nodeArgs.empty())
         {
             if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
                 skipTo({TokenId::SymComma, TokenId::SymRightParen});
+            if (is(TokenId::SymRightParen))
+                break;
         }
 
         nodeArgs.push_back(parseExpression());
     }
+
+    if (nodeArgs.size() < numParams)
+    {
+        auto diag = reportError(DiagnosticId::parser_err_too_few_arguments, tokRef);
+        diag.addArgument(Diagnostic::ARG_COUNT, numParams);
+        diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
+        diag.report(*ctx_);
+    }
+    else if (nodeArgs.size() > numParams)
+    {
+        auto diag = reportError(DiagnosticId::parser_err_too_many_arguments, tokRef);
+        diag.addArgument(Diagnostic::ARG_COUNT, numParams);
+        diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
+        diag.report(*ctx_);
+    }
+
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
     nodePtr->spanChildrenRef = ast_->pushSpan(nodeArgs.span());

@@ -68,7 +68,6 @@ Diagnostic Parser::reportError(DiagnosticId id, AstNodeRef nodeRef)
     setReportArguments(diag, tknRef);
     const SourceCodeLocation loc = node.locationWithChildren(*ctx_, *ast_);
     diag.last().addSpan(loc, "");
-    diag.last().addSpan(Diagnostic::tokenErrorLocation(*ctx_, ast_->srcView(), tknRef), "");
 
     if (tknRef == lastErrorToken_)
         diag.setSilent(true);

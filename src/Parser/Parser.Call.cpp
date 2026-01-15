@@ -53,6 +53,16 @@ AstNodeRef Parser::parseIntrinsicCall(uint32_t numParams)
             diag.report(*ctx_);
         }
     }
+    else
+    {
+        if (nodeArgs.empty())
+        {
+            auto diag = reportError(DiagnosticId::parser_err_too_few_arguments, ref());
+            diag.addArgument(Diagnostic::ARG_COUNT, numParams);
+            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
+            diag.report(*ctx_);
+        }
+    }
 
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 

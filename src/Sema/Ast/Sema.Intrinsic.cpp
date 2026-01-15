@@ -138,22 +138,22 @@ namespace
 
 Result AstIntrinsicCall::semaPostNode(Sema& sema)
 {
-    const Token& tok = sema.token(srcViewRef(), tokRef());
-    SmallVector<AstNodeRef> childs;
-    sema.ast().nodes(childs, spanChildrenRef);
-    
+    const Token&            tok = sema.token(srcViewRef(), tokRef());
+    SmallVector<AstNodeRef> children;
+    sema.ast().nodes(children, spanChildrenRef);
+
     switch (tok.id)
     {
         case TokenId::IntrinsicGetContext:
             return semaIntrinsicContext(sema, *this);
         case TokenId::IntrinsicDataOf:
-            return semaIntrinsicDataOf(sema, *this, childs);
+            return semaIntrinsicDataOf(sema, *this, children);
         case TokenId::IntrinsicKindOf:
-            return semaIntrinsicKindOf(sema, *this, childs);
+            return semaIntrinsicKindOf(sema, *this, children);
         case TokenId::IntrinsicMakeSlice:
-            return semaIntrinsicMakeSlice(sema, *this, childs, false);
+            return semaIntrinsicMakeSlice(sema, *this, children, false);
         case TokenId::IntrinsicMakeString:
-            return semaIntrinsicMakeSlice(sema, *this, childs, true);
+            return semaIntrinsicMakeSlice(sema, *this, children, true);
 
         case TokenId::IntrinsicDbgAlloc:
         case TokenId::IntrinsicSysAlloc:
@@ -176,7 +176,6 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
         case TokenId::IntrinsicMakeInterface:
         case TokenId::IntrinsicAs:
         case TokenId::CompilerGetTag:
-        case TokenId::IntrinsicAtomicCmpXchg:
         case TokenId::IntrinsicTypeCmp:
         case TokenId::IntrinsicMulAdd:
             // TODO

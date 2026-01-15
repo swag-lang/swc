@@ -667,7 +667,6 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicMakeInterface:
         case TokenId::IntrinsicAs:
         case TokenId::CompilerGetTag:
-        case TokenId::IntrinsicAtomicCmpXchg:
         case TokenId::IntrinsicTypeCmp:
         case TokenId::IntrinsicMulAdd:
             return parseIntrinsicCall(3);
@@ -700,7 +699,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicBitCountTz:
         case TokenId::IntrinsicBitCountLz:
             return parseIntrinsicCallExpr(1);
-            
+
         case TokenId::IntrinsicStrCmp:
         case TokenId::IntrinsicMin:
         case TokenId::IntrinsicMax:
@@ -714,8 +713,9 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicAtomicAnd:
         case TokenId::IntrinsicAtomicAdd:
             return parseIntrinsicCallExpr(2);
-            
+
         case TokenId::IntrinsicMemCmp:
+        case TokenId::IntrinsicAtomicCmpXchg:
             return parseIntrinsicCallExpr(3);
 
         case TokenId::NumberInteger:

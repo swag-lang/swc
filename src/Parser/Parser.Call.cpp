@@ -36,50 +36,27 @@ AstNodeRef Parser::parseIntrinsicCall(uint32_t numParams)
         nodeArgs.push_back(parseExpression());
     }
 
-    if (nodeArgs.size() < numParams)
+    if (numParams != UINT32_MAX)
     {
-        auto diag = reportError(DiagnosticId::parser_err_too_few_arguments, ref());
-        diag.addArgument(Diagnostic::ARG_COUNT, numParams);
-        diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
-        diag.report(*ctx_);
-    }
-    else if (nodeArgs.size() > numParams)
-    {
-        auto diag = reportError(DiagnosticId::parser_err_too_many_arguments, nodeArgs[numParams]);
-        diag.addArgument(Diagnostic::ARG_COUNT, numParams);
-        diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
-        diag.report(*ctx_);
-    }
-
-    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
-
-    nodePtr->spanChildrenRef = ast_->pushSpan(nodeArgs.span());
-    return nodeRef;
-}
-
-AstNodeRef Parser::parseIntrinsicCallVariadic()
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCallVariadic>(consume());
-
-    const auto openRef = ref();
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-
-    SmallVector<AstNodeRef> nodeArgs;
-    while (isNot(TokenId::SymRightParen) && isNot(TokenId::EndOfFile))
-    {
-        if (!nodeArgs.empty())
+        if (nodeArgs.size() < numParams)
         {
-            if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
-                skipTo({TokenId::SymComma, TokenId::SymRightParen});
-            if (is(TokenId::SymRightParen))
-                break;
+            auto diag = reportError(DiagnosticId::parser_err_too_few_arguments, ref());
+            diag.addArgument(Diagnostic::ARG_COUNT, numParams);
+            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
+            diag.report(*ctx_);
         }
-
-        nodeArgs.push_back(parseExpression());
+        else if (nodeArgs.size() > numParams)
+        {
+            auto diag = reportError(DiagnosticId::parser_err_too_many_arguments, nodeArgs[numParams]);
+            diag.addArgument(Diagnostic::ARG_COUNT, numParams);
+            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
+            diag.report(*ctx_);
+        }
     }
 
-    nodePtr->spanChildrenRef = ast_->pushSpan(nodeArgs.span());
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+
+    nodePtr->spanChildrenRef = ast_->pushSpan(nodeArgs.span());
     return nodeRef;
 }
 

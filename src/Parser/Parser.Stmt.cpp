@@ -824,9 +824,9 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::IntrinsicPanic:
         case TokenId::IntrinsicAtomicAdd:
             return parseIntrinsicCall(2);
-            
+
         case TokenId::IntrinsicPrint:
-            return parseIntrinsicCallVariadic();
+            return parseIntrinsicCall(UINT32_MAX);
 
         case TokenId::IntrinsicFree:
             return parseIntrinsicCallExpr(1);

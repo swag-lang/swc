@@ -180,7 +180,6 @@ AstNodeRef Parser::parseCompilerDependencies()
 
 AstNodeRef Parser::parseCompilerTypeOf()
 {
-    const auto token        = tok();
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCall>(consume());
 
     const auto              openRef = ref();

@@ -309,9 +309,8 @@ namespace
 {
     Result semaCompilerTypeOf(Sema& sema, const AstCompilerCall& node)
     {
-        SmallVector<AstNodeRef> children;
-        sema.ast().nodes(children, node.spanChildrenRef);
-        SemaNodeView nodeView(sema, children[0]);
+        const AstNodeRef childRef = sema.ast().oneNode(node.spanChildrenRef);
+        SemaNodeView     nodeView(sema, childRef);
         SWC_ASSERT(nodeView.typeRef.isValid());
 
         if (nodeView.cstRef.isValid())
@@ -328,9 +327,8 @@ namespace
 
     Result semaCompilerKindOf(Sema& sema, const AstCompilerCall& node)
     {
-        SmallVector<AstNodeRef> children;
-        sema.ast().nodes(children, node.spanChildrenRef);
-        SemaNodeView nodeView(sema, children[0]);
+        const AstNodeRef childRef = sema.ast().oneNode(node.spanChildrenRef);
+        SemaNodeView     nodeView(sema, childRef);
         SWC_ASSERT(nodeView.typeRef.isValid());
 
         if (nodeView.type->isEnum())
@@ -347,14 +345,13 @@ namespace
 
     Result semaCompilerSizeOf(Sema& sema, const AstCompilerCall& node)
     {
-        SmallVector<AstNodeRef> children;
-        sema.ast().nodes(children, node.spanChildrenRef);
-        const SemaNodeView nodeView(sema, children[0]);
+        const AstNodeRef childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const SemaNodeView nodeView(sema, childRef);
         if (!nodeView.type)
-            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, children[0]);
+            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, childRef);
 
         if (!nodeView.type->isCompleted(sema.ctx()))
-            return sema.waitCompleted(nodeView.type, children[0]);
+            return sema.waitCompleted(nodeView.type, childRef);
 
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), nodeView.type->sizeOf(sema.ctx())));
         return Result::Continue;
@@ -362,11 +359,10 @@ namespace
 
     Result semaCompilerOffsetOf(Sema& sema, const AstCompilerCall& node)
     {
-        SmallVector<AstNodeRef> children;
-        sema.ast().nodes(children, node.spanChildrenRef);
-        const SemaNodeView nodeView(sema, children[0]);
+        const AstNodeRef childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const SemaNodeView nodeView(sema, childRef);
         if (!nodeView.sym || !nodeView.sym->isVariable())
-            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_offsetof, children[0]);
+            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_offsetof, childRef);
 
         const SymbolVariable& symVar = nodeView.sym->cast<SymbolVariable>();
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), symVar.offset()));
@@ -375,14 +371,13 @@ namespace
 
     Result semaCompilerAlignOf(Sema& sema, const AstCompilerCall& node)
     {
-        SmallVector<AstNodeRef> children;
-        sema.ast().nodes(children, node.spanChildrenRef);
-        const SemaNodeView nodeView(sema, children[0]);
+        const AstNodeRef childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const SemaNodeView nodeView(sema, childRef);
         if (!nodeView.type)
-            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, children[0]);
+            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, childRef);
 
         if (!nodeView.type->isCompleted(sema.ctx()))
-            return sema.waitCompleted(nodeView.type, children[0]);
+            return sema.waitCompleted(nodeView.type, childRef);
 
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), nodeView.type->alignOf(sema.ctx())));
         return Result::Continue;
@@ -390,10 +385,9 @@ namespace
 
     Result semaCompilerNameOf(Sema& sema, const AstCompilerCall& node)
     {
-        auto&                   ctx = sema.ctx();
-        SmallVector<AstNodeRef> children;
-        sema.ast().nodes(children, node.spanChildrenRef);
-        const SemaNodeView nodeView(sema, children[0]);
+        auto&            ctx      = sema.ctx();
+        const AstNodeRef childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const SemaNodeView nodeView(sema, childRef);
 
         if (nodeView.sym)
         {
@@ -411,7 +405,7 @@ namespace
             return Result::Continue;
         }
 
-        auto        diag  = SemaError::report(sema, DiagnosticId::sema_err_failed_nameof, children[0]);
+        auto        diag  = SemaError::report(sema, DiagnosticId::sema_err_failed_nameof, childRef);
         const auto& token = sema.token(node.srcViewRef(), node.tokRef());
         if (nodeView.cst && (token.id == TokenId::CompilerNameOf || token.id == TokenId::CompilerFullNameOf))
             diag.addElement(DiagnosticId::sema_help_nameof_instruction);
@@ -421,10 +415,9 @@ namespace
 
     Result semaCompilerFullNameOf(Sema& sema, const AstCompilerCall& node)
     {
-        const auto&             ctx = sema.ctx();
-        SmallVector<AstNodeRef> children;
-        sema.ast().nodes(children, node.spanChildrenRef);
-        const SemaNodeView nodeView(sema, children[0]);
+        const auto&      ctx      = sema.ctx();
+        const AstNodeRef childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const SemaNodeView nodeView(sema, childRef);
 
         if (nodeView.sym)
         {
@@ -439,10 +432,9 @@ namespace
 
     Result semaCompilerStringOf(Sema& sema, const AstCompilerCall& node)
     {
-        const auto&             ctx = sema.ctx();
-        SmallVector<AstNodeRef> children;
-        sema.ast().nodes(children, node.spanChildrenRef);
-        const SemaNodeView nodeView(sema, children[0]);
+        const auto&      ctx      = sema.ctx();
+        const AstNodeRef childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const SemaNodeView nodeView(sema, childRef);
 
         if (nodeView.cst)
         {
@@ -457,10 +449,9 @@ namespace
 
     Result semaCompilerDefined(Sema& sema, const AstCompilerCall& node)
     {
-        const auto&             ctx = sema.ctx();
-        SmallVector<AstNodeRef> children;
-        sema.ast().nodes(children, node.spanChildrenRef);
-        const SemaNodeView  nodeView(sema, children[0]);
+        const auto&      ctx      = sema.ctx();
+        const AstNodeRef childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const SemaNodeView  nodeView(sema, childRef);
         const bool          isDefined = nodeView.sym != nullptr;
         const ConstantValue value     = ConstantValue::makeBool(ctx, isDefined);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));

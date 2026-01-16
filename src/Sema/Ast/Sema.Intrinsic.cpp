@@ -193,7 +193,6 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
         case TokenId::IntrinsicMakeString:
             return semaIntrinsicMakeSlice(sema, *this, children, true);
 
-        case TokenId::IntrinsicRealloc:
         case TokenId::IntrinsicCVaStart:
         case TokenId::IntrinsicCVaEnd:
         case TokenId::IntrinsicCVaArg:

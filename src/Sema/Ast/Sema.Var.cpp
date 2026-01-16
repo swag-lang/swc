@@ -2,6 +2,7 @@
 #include "Sema/Core/Sema.h"
 #include "Parser/AstNodes.h"
 #include "Report/DiagnosticDef.h"
+#include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"

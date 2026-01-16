@@ -150,23 +150,87 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
 {
     SemaNodeView nodeCallee(sema, nodeExprRef);
 
-    if (!nodeCallee.type || !nodeCallee.type->isFunction())
-    {
-        auto        diag    = SemaError::report(sema, DiagnosticId::sema_err_not_callable, nodeExprRef);
-        const auto& srcView = sema.srcView(nodeCallee.node->srcViewRef());
-        diag.addArgument(Diagnostic::ARG_SYM, srcView.token(nodeCallee.node->tokRef()).string(srcView));
-        diag.addArgument(Diagnostic::ARG_TYPE, nodeCallee.type ? nodeCallee.type->toName(sema.ctx()) : "invalid type");
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
-
-    const auto& symFunc    = nodeCallee.type->symFunction();
-    const auto& parameters = symFunc.parameters();
-
     SmallVector<AstNodeRef> children;
     collectArguments(children, sema.ast());
-    const uint32_t numArgs   = static_cast<uint32_t>(children.size());
-    const uint32_t numParams = static_cast<uint32_t>(parameters.size());
+    const uint32_t numArgs = static_cast<uint32_t>(children.size());
+
+    SmallVector<Symbol*> candidates;
+    SmallVector<Symbol*> symbols;
+    if (!nodeCallee.symList.empty())
+    {
+        for (auto s : nodeCallee.symList)
+            symbols.push_back(s);
+    }
+    else if (nodeCallee.sym)
+    {
+        symbols.push_back(nodeCallee.sym);
+    }
+
+    for (auto s : symbols)
+    {
+        if (!s->isFunction())
+            continue;
+        auto& symFunc    = s->cast<SymbolFunction>();
+        auto& parameters = symFunc.parameters();
+
+        const uint32_t numParams = static_cast<uint32_t>(parameters.size());
+        if (numArgs > numParams)
+            continue;
+
+        bool ok = true;
+        for (uint32_t i = 0; i < numParams; ++i)
+        {
+            if (i < numArgs)
+            {
+                const AstNodeRef argRef  = children[i];
+                const TypeRef    argType = sema.typeRefOf(argRef);
+                if (argType != parameters[i]->typeRef())
+                {
+                    ok = false;
+                    break;
+                }
+            }
+            else
+            {
+                if (!parameters[i]->hasExtraFlag(SymbolVariableFlagsE::Initialized))
+                {
+                    ok = false;
+                    break;
+                }
+            }
+        }
+
+        if (ok)
+            candidates.push_back(s);
+    }
+
+    if (candidates.size() > 1)
+        return SemaError::raiseAmbiguousSymbol(sema, nodeExprRef, candidates);
+
+    SymbolFunction* selectedSym = nullptr;
+    if (candidates.size() == 1)
+    {
+        selectedSym = &candidates[0]->cast<SymbolFunction>();
+        sema.setSymbol(nodeExprRef, candidates[0]);
+    }
+
+    if (!selectedSym)
+    {
+        if (!nodeCallee.type || !nodeCallee.type->isFunction())
+        {
+            auto        diag    = SemaError::report(sema, DiagnosticId::sema_err_not_callable, nodeExprRef);
+            const auto& srcView = sema.srcView(nodeCallee.node->srcViewRef());
+            diag.addArgument(Diagnostic::ARG_SYM, srcView.token(nodeCallee.node->tokRef()).string(srcView));
+            diag.addArgument(Diagnostic::ARG_TYPE, nodeCallee.type ? nodeCallee.type->toName(sema.ctx()) : "invalid type");
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        selectedSym = &nodeCallee.type->symFunction();
+    }
+
+    const auto&    parameters = selectedSym->parameters();
+    const uint32_t numParams  = static_cast<uint32_t>(parameters.size());
 
     if (numArgs > numParams)
     {
@@ -198,7 +262,7 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
         }
     }
 
-    sema.setType(sema.curNodeRef(), symFunc.returnType());
+    sema.setType(sema.curNodeRef(), selectedSym->returnType());
     SemaInfo::setIsValue(sema.node(sema.curNodeRef()));
 
     return Result::Continue;

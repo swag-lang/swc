@@ -1,0 +1,55 @@
+#include "pch.h"
+#include "Sema/Core/SemaNodeView.h"
+#include "Sema/Constant/ConstantManager.h"
+#include "Sema/Helpers/SemaError.h"
+#include "Sema/Type/TypeManager.h"
+
+SWC_BEGIN_NAMESPACE();
+
+SemaNodeView::SemaNodeView(Sema& sema, AstNodeRef nodeRef)
+{
+    nodeRef       = sema.semaInfo().getSubstituteRef(nodeRef);
+    this->nodeRef = nodeRef;
+    if (!nodeRef.isValid())
+        return;
+
+    node    = &sema.node(nodeRef);
+    typeRef = sema.typeRefOf(nodeRef);
+    if (typeRef.isValid())
+        type = &sema.typeMgr().get(typeRef);
+    if (sema.hasConstant(nodeRef))
+        cstRef = sema.constantRefOf(nodeRef);
+    if (cstRef.isValid())
+        cst = &sema.cstMgr().get(cstRef);
+
+    if (sema.hasSymbolList(nodeRef))
+    {
+        symList = sema.getSymbolList(nodeRef);
+        sym     = symList.front();
+    }
+    else if (sema.hasSymbol(nodeRef))
+    {
+        sym = &sema.symbolOf(nodeRef);
+    }
+}
+
+void SemaNodeView::setCstRef(Sema& sema, ConstantRef cstRef)
+{
+    if (this->cstRef == cstRef)
+        return;
+    this->cstRef = cstRef;
+    cst          = &sema.cstMgr().get(cstRef);
+    typeRef      = cst->typeRef();
+    type         = &sema.typeMgr().get(typeRef);
+}
+
+Result SemaNodeView::verifyUniqueSymbol(Sema& sema) const
+{
+    if (symList.size() > 1)
+        return SemaError::raiseAmbiguousSymbol(sema, nodeRef, symList);
+    if (!sym)
+        return SemaError::raiseInternal(sema, *node);
+    return Result::Continue;
+}
+
+SWC_END_NAMESPACE();

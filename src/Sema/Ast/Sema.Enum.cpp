@@ -2,6 +2,7 @@
 #include "Sema/Core/Sema.h"
 #include "Lexer/LangSpec.h"
 #include "Parser/AstNodes.h"
+#include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaHelpers.h"

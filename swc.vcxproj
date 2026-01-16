@@ -272,6 +272,7 @@
         <ClCompile Include="src\Sema\Constant\ConstantValue.cpp"/>
         <ClCompile Include="src\Sema\Core\Sema.cpp"/>
         <ClCompile Include="src\Sema\Core\SemaFrame.cpp"/>
+        <ClCompile Include="src\Sema\Core\SemaNodeView.cpp"/>
         <ClCompile Include="src\Sema\Helpers\SemaCheck.cpp"/>
         <ClCompile Include="src\Sema\Helpers\SemaCycle.cpp"/>
         <ClCompile Include="src\Sema\Helpers\SemaError.cpp"/>

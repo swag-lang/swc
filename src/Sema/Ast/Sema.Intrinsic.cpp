@@ -123,6 +123,15 @@ namespace
             return Result::Continue;
         }
 
+        if (nodeView.type->isArray())
+        {
+            const uint64_t  sizeOf  = nodeView.type->sizeOf(ctx);
+            const TypeRef   typeRef = nodeView.type->ultimateTypeRef(ctx);
+            const TypeInfo& ty      = sema.typeMgr().get(typeRef);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(ctx, sizeOf / ty.sizeOf(ctx)));
+            return Result::Continue;
+        }
+
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_countof_type, nodeArgRef);
         diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
         diag.report(ctx);

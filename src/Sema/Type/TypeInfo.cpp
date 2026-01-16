@@ -859,7 +859,7 @@ TypeRef TypeInfo::underlyingTypeRef() const noexcept
         return asTypeRef.typeRef;
     if (isArray())
         return asArray.typeRef;
-    return {};
+    return TypeRef::invalid();
 }
 
 TypeRef TypeInfo::ultimateTypeRef(const TaskContext& ctx) const noexcept
@@ -870,7 +870,8 @@ TypeRef TypeInfo::ultimateTypeRef(const TaskContext& ctx) const noexcept
 
     while (true)
     {
-        TypeRef sub = ctx.typeMgr().get(result).underlyingTypeRef();
+        const TypeInfo& ty  = ctx.typeMgr().get(result);
+        TypeRef         sub = ty.underlyingTypeRef();
         if (!sub.isValid())
             break;
         result = sub;

@@ -10,10 +10,11 @@ class TypeInfo;
 
 struct SemaNodeView
 {
-    const AstNode*       node = nullptr;
-    const ConstantValue* cst  = nullptr;
-    const TypeInfo*      type = nullptr;
-    Symbol*              sym  = nullptr;
+    const AstNode*       node    = nullptr;
+    const ConstantValue* cst     = nullptr;
+    const TypeInfo*      type    = nullptr;
+    Symbol*              sym     = nullptr;
+    std::span<Symbol*>   symList = {};
 
     AstNodeRef  nodeRef = AstNodeRef::invalid();
     ConstantRef cstRef  = ConstantRef::invalid();
@@ -36,6 +37,11 @@ struct SemaNodeView
             cst = &sema.cstMgr().get(cstRef);
         if (sema.hasSymbol(nodeRef))
             sym = &sema.symbolOf(nodeRef);
+        if (sema.hasSymbolList(nodeRef))
+        {
+            symList = sema.getSymbolList(nodeRef);
+            sym     = symList.front();
+        }
     }
 
     void setCstRef(Sema& sema, ConstantRef cstRef)

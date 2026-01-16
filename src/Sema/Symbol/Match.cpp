@@ -143,9 +143,6 @@ Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
             return sema.waitTyped(other, lookUpCxt.srcViewRef, lookUpCxt.tokRef);
     }
 
-    if (lookUpCxt.count() > 1)
-        return SemaError::raiseAmbiguousSymbol(sema, lookUpCxt.srcViewRef, lookUpCxt.tokRef, lookUpCxt.symbols());
-
     return Result::Continue;
 }
 

@@ -2,6 +2,7 @@
 #include "Sema/Core/Sema.h"
 #include "Lexer/LangSpec.h"
 #include "Main/CompilerInstance.h"
+#include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/Symbol.h"
 #include "Sema/Symbol/Symbols.h"
@@ -113,13 +114,13 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
     sema.ast().nodes(nodeRefs, spanChildrenRef);
     for (const auto& nodeRef : nodeRefs)
     {
-        if (!sema.hasSymbol(nodeRef))
-            return SemaError::raiseInternal(sema, *this);
-        Symbol& sym = sema.symbolOf(nodeRef);
-
-        if (sym.isNamespace())
+        const SemaNodeView nodeView(sema, nodeRef);
+        if (nodeView.symList.size() > 1)
+            return SemaError::raiseAmbiguousSymbol(sema, nodeView.nodeRef, nodeView.symList);
+        SWC_ASSERT(nodeView.sym);
+        if (nodeView.sym->isNamespace())
         {
-            sema.curScope().addUsingSymMap(sym.asSymMap());
+            sema.curScope().addUsingSymMap(nodeView.sym->asSymMap());
             continue;
         }
 

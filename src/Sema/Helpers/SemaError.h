@@ -27,7 +27,7 @@ namespace SemaError
     Result raiseInternal(Sema& sema, const AstNode& node);
     Result raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);
     Result raiseGhosting(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);
-    Result raiseAmbiguousSymbol(Sema& sema, SourceViewRef srcViewRef, TokenRef tokRef, std::span<const Symbol*> symbols);
+    Result raiseAmbiguousSymbol(Sema& sema, AstNodeRef nodeRef, std::span<Symbol*> symbols);
     Result raiseLiteralTooBig(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal);
     Result raiseDivZero(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
     Result raisePointerArithmetic(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);

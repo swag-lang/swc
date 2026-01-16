@@ -35,7 +35,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
         return sema.waitCompilerDefined(idRef, srcViewRef(), tokRef());
     RESULT_VERIFY(ret);
 
-    sema.setSymbol(sema.curNodeRef(), lookUpCxt.first());
+    sema.setSymbolList(sema.curNodeRef(), lookUpCxt.symbols());
     return Result::Continue;
 }
 

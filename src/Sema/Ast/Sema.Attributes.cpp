@@ -2,6 +2,7 @@
 #include "Sema/Core/Sema.h"
 #include "Parser/AstNodes.h"
 #include "Sema/Core/SemaFrame.h"
+#include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaHelpers.h"
@@ -121,12 +122,16 @@ Result AstAttributeList::semaPostNode(Sema& sema)
 
 Result AstAttribute::semaPostNode(Sema& sema) const
 {
-    const Symbol& sym = sema.symbolOf(nodeIdentRef);
-    if (!sym.isAttribute())
+    const SemaNodeView identView(sema, nodeIdentRef);
+    if (identView.symList.size() > 1)
+        return SemaError::raiseAmbiguousSymbol(sema, identView.nodeRef, identView.symList);
+
+    SWC_ASSERT(identView.sym);
+    if (!identView.sym->isAttribute())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeIdentRef);
 
     // Predefined attributes
-    const SymbolAttribute&   attrSym   = sym.cast<SymbolAttribute>();
+    const SymbolAttribute&   attrSym   = identView.sym->cast<SymbolAttribute>();
     const SwagAttributeFlags attrFlags = attrSym.swagAttributeFlags();
     if (attrFlags != SwagAttributeFlagsE::Zero)
     {

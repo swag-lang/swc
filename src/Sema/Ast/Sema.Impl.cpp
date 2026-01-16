@@ -39,7 +39,12 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
     // After the first name
     if (childRef == nodeIdentRef)
     {
-        Symbol& sym = sema.symbolOf(nodeIdentRef);
+        const SemaNodeView identView(sema, nodeIdentRef);
+        if (identView.symList.size() > 1)
+            return SemaError::raiseAmbiguousSymbol(sema, identView.nodeRef, identView.symList);
+
+        SWC_ASSERT(identView.sym);
+        Symbol& sym = *identView.sym;
         if (hasFlag(AstImplFlagsE::Enum))
         {
             if (!sym.isEnum())
@@ -65,12 +70,14 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
     // After the 'for' name, if defined
     if (childRef == nodeForRef)
     {
-        Symbol& sym = sema.symbolOf(nodeForRef);
-        if (!sym.isStruct())
+        const SemaNodeView identView(sema, nodeForRef);
+        if (identView.symList.size() > 1)
+            return SemaError::raiseAmbiguousSymbol(sema, identView.nodeRef, identView.symList);
+
+        SWC_ASSERT(identView.sym);
+        if (!identView.sym->isStruct())
             return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_struct, nodeForRef);
-        const auto res = sym.cast<SymbolStruct>().addInterface(sema, symImpl);
-        if (res != Result::Continue)
-            return res;
+        RESULT_VERIFY(identView.sym->cast<SymbolStruct>().addInterface(sema, symImpl));
     }
 
     // Before the body

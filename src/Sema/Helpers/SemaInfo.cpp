@@ -16,16 +16,30 @@ bool SemaInfo::hasConstant(const TaskContext& ctx, AstNodeRef nodeRef) const
         return false;
 
     const AstNode& node = ast().node(nodeRef);
-
-    if (semaKind(node) == NodeSemaKind::ConstantRef)
-        return true;
-
-    if (semaKind(node) == NodeSemaKind::SymbolRef)
+    switch (semaKind(node))
     {
-        const Symbol& sym = getSymbol(ctx, nodeRef);
-        return sym.isConst() || sym.isEnumValue();
-    }
+        case NodeSemaKind::ConstantRef:
+            return true;
 
+        case NodeSemaKind::SymbolRef:
+        {
+            const Symbol& sym = getSymbol(ctx, nodeRef);
+            return sym.isConst() || sym.isEnumValue();
+        }
+
+        case NodeSemaKind::SymbolList:
+        {
+            const auto symbols = getSymbolList(nodeRef);
+            SWC_ASSERT(!symbols.empty());
+            if (symbols.size() == 1)
+                return symbols.front()->isConst() || symbols.front()->isEnumValue();
+            break;
+        }
+            
+        default:
+            break;
+    }
+    
     return false;
 }
 
@@ -45,23 +59,40 @@ ConstantRef SemaInfo::getConstantRef(const TaskContext& ctx, AstNodeRef nodeRef)
     SWC_ASSERT(hasConstant(ctx, nodeRef));
 
     const AstNode& node = ast().node(nodeRef);
-
-    if (semaKind(node) == NodeSemaKind::ConstantRef)
+    switch (semaKind(node))
     {
-        ConstantRef value{node.semaRef()};
+        case NodeSemaKind::ConstantRef:
+        {
+            ConstantRef value{node.semaRef()};
 #if SWC_HAS_REF_DEBUG_INFO
-        value.setDbgPtr(&ctx.cstMgr().get(value));
+            value.setDbgPtr(&ctx.cstMgr().get(value));
 #endif
-        return value;
-    }
+            return value;
+        }
 
-    if (semaKind(node) == NodeSemaKind::SymbolRef)
-    {
-        const Symbol& sym = getSymbol(ctx, nodeRef);
-        if (sym.isConst())
-            return sym.cast<SymbolConstant>().cstRef();
-        if (sym.isEnumValue())
-            return sym.cast<SymbolEnumValue>().cstRef();
+        case NodeSemaKind::SymbolRef:
+        {
+            const Symbol& sym = getSymbol(ctx, nodeRef);
+            if (sym.isConst())
+                return sym.cast<SymbolConstant>().cstRef();
+            if (sym.isEnumValue())
+                return sym.cast<SymbolEnumValue>().cstRef();
+            break;
+        }
+
+        case NodeSemaKind::SymbolList:
+        {
+            const std::span<const Symbol*> symList = getSymbolList(nodeRef);
+            SWC_ASSERT(symList.size() == 1);
+            if (symList.front()->isConst())
+                return symList.front()->cast<SymbolConstant>().cstRef();
+            if (symList.front()->isEnumValue())
+                return symList.front()->cast<SymbolEnumValue>().cstRef();
+            break;
+        }
+
+        default:
+            break;
     }
 
     SWC_UNREACHABLE();

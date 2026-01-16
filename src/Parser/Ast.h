@@ -26,15 +26,19 @@ public:
     static constexpr const AstNodeIdInfo& nodeIdInfos(AstNodeId id) { return AST_NODE_ID_INFOS[static_cast<size_t>(id)]; }
     static constexpr std::string_view     nodeIdName(AstNodeId id) { return nodeIdInfos(id).name; }
 
-    AstNodeRef root() const { return root_; }
-    void       setRoot(AstNodeRef root) { root_ = root; }
-
+    AstNodeRef        root() const { return root_; }
+    void              setRoot(AstNodeRef root) { root_ = root; }
     SourceView&       srcView() { return *srcView_; }
     const SourceView& srcView() const { return *srcView_; }
     void              setSourceView(SourceView& srcView) { srcView_ = &srcView; }
+    bool              hasFlag(AstFlags flag) const { return flags_.has(flag); }
+    void              addFlag(AstFlags flag) { flags_.add(flag); }
 
-    bool hasFlag(AstFlags flag) const { return flags_.has(flag); }
-    void addFlag(AstFlags flag) { flags_.add(flag); }
+    AstNode&       node(AstNodeRef nodeRef);
+    const AstNode& node(AstNodeRef nodeRef) const;
+    void           nodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const;
+    AstNodeRef     oneNode(SpanRef spanRef) const;
+    void           tokens(SmallVector<TokenRef>& out, SpanRef spanRef) const;
 
     template<AstNodeId ID>
     auto node(AstNodeRef nodeRef)
@@ -44,54 +48,6 @@ public:
 
         const uint32_t g = nodeRef.get();
         return shards_[refShard(g)].store.ptr<AstNode>(refLocal(g))->cast<NodeType>();
-    }
-
-    AstNode& node(AstNodeRef nodeRef)
-    {
-        SWC_ASSERT(nodeRef.isValid());
-        const uint32_t g = nodeRef.get();
-        return *shards_[refShard(g)].store.ptr<AstNode>(refLocal(g));
-    }
-
-    const AstNode& node(AstNodeRef nodeRef) const
-    {
-        SWC_ASSERT(nodeRef.isValid());
-        const uint32_t g = nodeRef.get();
-        return *shards_[refShard(g)].store.ptr<AstNode>(refLocal(g));
-    }
-
-    void nodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const
-    {
-        if (spanRef.isInvalid())
-            return;
-
-        const uint32_t g = spanRef.get();
-        const uint32_t s = refShard(g);
-        const uint32_t l = refLocal(g);
-
-        const Store::SpanView view = shards_[s].store.span<AstNodeRef>(l);
-        for (Store::SpanView::chunk_iterator it = view.chunks_begin(); it != view.chunks_end(); ++it)
-        {
-            const Store::SpanView::chunk& c = *it;
-            out.append(static_cast<const AstNodeRef*>(c.ptr), c.count);
-        }
-    }
-
-    void tokens(SmallVector<TokenRef>& out, SpanRef spanRef) const
-    {
-        if (spanRef.isInvalid())
-            return;
-
-        const uint32_t g = spanRef.get();
-        const uint32_t s = refShard(g);
-        const uint32_t l = refLocal(g);
-
-        const Store::SpanView view = shards_[s].store.span<AstNodeRef>(l);
-        for (Store::SpanView::chunk_iterator it = view.chunks_begin(); it != view.chunks_end(); ++it)
-        {
-            const Store::SpanView::chunk& c = *it;
-            out.append(static_cast<const TokenRef*>(c.ptr), c.count);
-        }
     }
 
     template<typename T>

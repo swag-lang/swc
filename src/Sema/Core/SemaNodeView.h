@@ -66,13 +66,6 @@ struct SemaNodeView
             return SemaError::raiseInternal(sema, *node);
         return Result::Continue;
     }
-
-    Result verifyNoneOrUniqueSymbol(Sema& sema) const
-    {
-        if (symList.size() > 1)
-            return SemaError::raiseAmbiguousSymbol(sema, nodeRef, symList);
-        return Result::Continue;
-    }
 };
 
 SWC_END_NAMESPACE();

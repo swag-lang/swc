@@ -345,7 +345,7 @@ namespace
 
     Result semaCompilerSizeOf(Sema& sema, const AstCompilerCall& node)
     {
-        const AstNodeRef childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const AstNodeRef   childRef = sema.ast().oneNode(node.spanChildrenRef);
         const SemaNodeView nodeView(sema, childRef);
         if (!nodeView.type)
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, childRef);
@@ -359,7 +359,7 @@ namespace
 
     Result semaCompilerOffsetOf(Sema& sema, const AstCompilerCall& node)
     {
-        const AstNodeRef childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const AstNodeRef   childRef = sema.ast().oneNode(node.spanChildrenRef);
         const SemaNodeView nodeView(sema, childRef);
         if (!nodeView.sym || !nodeView.sym->isVariable())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_offsetof, childRef);
@@ -371,7 +371,7 @@ namespace
 
     Result semaCompilerAlignOf(Sema& sema, const AstCompilerCall& node)
     {
-        const AstNodeRef childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const AstNodeRef   childRef = sema.ast().oneNode(node.spanChildrenRef);
         const SemaNodeView nodeView(sema, childRef);
         if (!nodeView.type)
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, childRef);
@@ -385,12 +385,13 @@ namespace
 
     Result semaCompilerNameOf(Sema& sema, const AstCompilerCall& node)
     {
-        auto&            ctx      = sema.ctx();
-        const AstNodeRef childRef = sema.ast().oneNode(node.spanChildrenRef);
+        auto&              ctx      = sema.ctx();
+        const AstNodeRef   childRef = sema.ast().oneNode(node.spanChildrenRef);
         const SemaNodeView nodeView(sema, childRef);
 
         if (nodeView.sym)
         {
+            RESULT_VERIFY(nodeView.verifyUniqueSymbol(sema));
             const std::string_view name  = nodeView.sym->name(ctx);
             const ConstantValue    value = ConstantValue::makeString(ctx, name);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
@@ -415,12 +416,13 @@ namespace
 
     Result semaCompilerFullNameOf(Sema& sema, const AstCompilerCall& node)
     {
-        const auto&      ctx      = sema.ctx();
-        const AstNodeRef childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const auto&        ctx      = sema.ctx();
+        const AstNodeRef   childRef = sema.ast().oneNode(node.spanChildrenRef);
         const SemaNodeView nodeView(sema, childRef);
 
         if (nodeView.sym)
         {
+            RESULT_VERIFY(nodeView.verifyUniqueSymbol(sema));
             const Utf8          name  = nodeView.sym->getFullScopedName(ctx);
             const ConstantValue value = ConstantValue::makeString(ctx, name);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
@@ -432,8 +434,8 @@ namespace
 
     Result semaCompilerStringOf(Sema& sema, const AstCompilerCall& node)
     {
-        const auto&      ctx      = sema.ctx();
-        const AstNodeRef childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const auto&        ctx      = sema.ctx();
+        const AstNodeRef   childRef = sema.ast().oneNode(node.spanChildrenRef);
         const SemaNodeView nodeView(sema, childRef);
 
         if (nodeView.cst)
@@ -449,8 +451,8 @@ namespace
 
     Result semaCompilerDefined(Sema& sema, const AstCompilerCall& node)
     {
-        const auto&      ctx      = sema.ctx();
-        const AstNodeRef childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const auto&         ctx      = sema.ctx();
+        const AstNodeRef    childRef = sema.ast().oneNode(node.spanChildrenRef);
         const SemaNodeView  nodeView(sema, childRef);
         const bool          isDefined = nodeView.sym != nullptr;
         const ConstantValue value     = ConstantValue::makeBool(ctx, isDefined);

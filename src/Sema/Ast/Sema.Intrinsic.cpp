@@ -172,17 +172,6 @@ namespace
         SemaInfo::setIsValue(node);
         return Result::Continue;
     }
-
-    Result semaIntrinsicContext(Sema& sema, AstIntrinsicCall& node)
-    {
-        const TypeRef typeRef = sema.typeMgr().structContext();
-        if (typeRef.isInvalid())
-            return sema.waitIdentifier(sema.idMgr().nameContext(), node.srcViewRef(), node.tokRef());
-        const TypeInfo ty = TypeInfo::makeValuePointer(typeRef, TypeInfoFlagsE::Const);
-        sema.setType(sema.curNodeRef(), sema.typeMgr().addType(ty));
-        SemaInfo::setIsValue(node);
-        return Result::Continue;
-    }
 }
 
 Result AstIntrinsicCall::semaPostNode(Sema& sema)
@@ -193,8 +182,6 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
 
     switch (tok.id)
     {
-        case TokenId::IntrinsicGetContext:
-            return semaIntrinsicContext(sema, *this);
         case TokenId::IntrinsicDataOf:
             return semaIntrinsicDataOf(sema, *this, children);
         case TokenId::IntrinsicKindOf:
@@ -206,24 +193,16 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
         case TokenId::IntrinsicMakeString:
             return semaIntrinsicMakeSlice(sema, *this, children, true);
 
-        case TokenId::IntrinsicDbgAlloc:
-        case TokenId::IntrinsicSysAlloc:
-        case TokenId::IntrinsicBcBreakpoint:
-        case TokenId::IntrinsicAssert:
-        case TokenId::IntrinsicSetContext:
+        case TokenId::IntrinsicRealloc:
         case TokenId::IntrinsicCVaStart:
         case TokenId::IntrinsicCVaEnd:
-        case TokenId::IntrinsicMakeCallback:
-        case TokenId::IntrinsicMakeAny:
         case TokenId::IntrinsicCVaArg:
-        case TokenId::IntrinsicRealloc:
-        case TokenId::IntrinsicStringCmp:
-        case TokenId::IntrinsicIs:
-        case TokenId::IntrinsicTableOf:
+        case TokenId::IntrinsicMakeCallback:
         case TokenId::IntrinsicMakeInterface:
+        case TokenId::IntrinsicMakeAny:
+        case TokenId::IntrinsicIs:
         case TokenId::IntrinsicAs:
-        case TokenId::IntrinsicTypeCmp:
-        case TokenId::IntrinsicMulAdd:
+        case TokenId::IntrinsicTableOf:
             // TODO
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
             return Result::Continue;

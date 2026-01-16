@@ -812,29 +812,28 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::KwdStruct:
             return parseStructDecl();
 
-        case TokenId::IntrinsicBcBreakpoint:
-            return parseIntrinsicCall(0);
-        case TokenId::IntrinsicAssert:
         case TokenId::IntrinsicCVaStart:
         case TokenId::IntrinsicCVaEnd:
-        case TokenId::IntrinsicSetContext:
             return parseIntrinsicCall(1);
-        case TokenId::IntrinsicAtomicAdd:
-            return parseIntrinsicCall(2);
 
+        case TokenId::IntrinsicBcBreakpoint:
+            return parseIntrinsicCallExpr(0);
         case TokenId::IntrinsicFree:
+        case TokenId::IntrinsicAssert:
+        case TokenId::IntrinsicSetContext:
             return parseIntrinsicCallExpr(1);
         case TokenId::IntrinsicCompilerError:
         case TokenId::IntrinsicCompilerWarning:
         case TokenId::IntrinsicPanic:
-            return parseIntrinsicCallExpr(2);            
+        case TokenId::IntrinsicAtomicAdd:
+            return parseIntrinsicCallExpr(2);
         case TokenId::IntrinsicMemCpy:
         case TokenId::IntrinsicMemMove:
         case TokenId::IntrinsicMemSet:
             return parseIntrinsicCallExpr(3);
         case TokenId::IntrinsicPrint:
             return parseIntrinsicCallExpr(UINT32_MAX);
-            
+
         case TokenId::SymAttrStart:
             return parseAttributeList<AstNodeId::EmbeddedBlock>();
 

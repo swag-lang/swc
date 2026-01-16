@@ -220,9 +220,6 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
         case TokenId::IntrinsicStringCmp:
         case TokenId::IntrinsicIs:
         case TokenId::IntrinsicTableOf:
-        case TokenId::IntrinsicCompilerError:
-        case TokenId::IntrinsicCompilerWarning:
-        case TokenId::IntrinsicPanic:
         case TokenId::IntrinsicMakeInterface:
         case TokenId::IntrinsicAs:
         case TokenId::IntrinsicTypeCmp:

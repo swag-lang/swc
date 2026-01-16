@@ -493,16 +493,17 @@ Result AstCompilerCall::semaPostNode(Sema& sema) const
             return semaCompilerDefined(sema, *this);
 
         case TokenId::CompilerGetTag:
+        case TokenId::CompilerHasTag:
         case TokenId::CompilerDeclType:
         case TokenId::CompilerRunes:
         case TokenId::CompilerIsConstExpr:
-        case TokenId::CompilerInclude:
         case TokenId::CompilerSafety:
-        case TokenId::CompilerHasTag:
         case TokenId::CompilerInject:
         case TokenId::CompilerLocation:
         case TokenId::CompilerForeignLib:
+        case TokenId::CompilerInclude:
         case TokenId::CompilerLoad:
+            // TODO
             return Result::SkipChildren;
 
         default:

@@ -105,3 +105,10 @@
     var a: [2] s32
     var p1: *void = a
 }
+
+#test
+{
+    var str1: string
+    let data1 = @dataof(str1)
+    let data2: const [*] void = data1
+}

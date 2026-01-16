@@ -451,9 +451,13 @@ namespace
 
     Result semaCompilerDefined(Sema& sema, const AstCompilerCall& node)
     {
-        const auto&         ctx      = sema.ctx();
-        const AstNodeRef    childRef = sema.ast().oneNode(node.spanChildrenRef);
-        const SemaNodeView  nodeView(sema, childRef);
+        const auto&        ctx      = sema.ctx();
+        const AstNodeRef   childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const SemaNodeView nodeView(sema, childRef);
+
+        if (nodeView.sym)
+            RESULT_VERIFY(nodeView.verifyUniqueSymbol(sema));
+
         const bool          isDefined = nodeView.sym != nullptr;
         const ConstantValue value     = ConstantValue::makeBool(ctx, isDefined);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));

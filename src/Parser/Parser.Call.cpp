@@ -36,32 +36,19 @@ AstNodeRef Parser::parseIntrinsicCall(uint32_t numParams)
         nodeArgs.push_back(parseExpression());
     }
 
-    if (numParams != UINT32_MAX)
+    if (nodeArgs.size() < numParams)
     {
-        if (nodeArgs.size() < numParams)
-        {
-            auto diag = reportError(DiagnosticId::parser_err_too_few_arguments, ref());
-            diag.addArgument(Diagnostic::ARG_COUNT, numParams);
-            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
-            diag.report(*ctx_);
-        }
-        else if (nodeArgs.size() > numParams)
-        {
-            auto diag = reportError(DiagnosticId::parser_err_too_many_arguments, nodeArgs[numParams]);
-            diag.addArgument(Diagnostic::ARG_COUNT, numParams);
-            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
-            diag.report(*ctx_);
-        }
+        auto diag = reportError(DiagnosticId::parser_err_too_few_arguments, ref());
+        diag.addArgument(Diagnostic::ARG_COUNT, numParams);
+        diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
+        diag.report(*ctx_);
     }
-    else
+    else if (nodeArgs.size() > numParams)
     {
-        if (nodeArgs.empty())
-        {
-            auto diag = reportError(DiagnosticId::parser_err_too_few_arguments, ref());
-            diag.addArgument(Diagnostic::ARG_COUNT, numParams);
-            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
-            diag.report(*ctx_);
-        }
+        auto diag = reportError(DiagnosticId::parser_err_too_many_arguments, nodeArgs[numParams]);
+        diag.addArgument(Diagnostic::ARG_COUNT, numParams);
+        diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
+        diag.report(*ctx_);
     }
 
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
@@ -94,19 +81,32 @@ AstNodeRef Parser::parseIntrinsicCallExpr(uint32_t numParams)
         nodeArgs.push_back(parseExpression());
     }
 
-    if (nodeArgs.size() < numParams)
+    if (numParams != UINT32_MAX)
     {
-        auto diag = reportError(DiagnosticId::parser_err_too_few_arguments, ref());
-        diag.addArgument(Diagnostic::ARG_COUNT, numParams);
-        diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
-        diag.report(*ctx_);
+        if (nodeArgs.size() < numParams)
+        {
+            auto diag = reportError(DiagnosticId::parser_err_too_few_arguments, ref());
+            diag.addArgument(Diagnostic::ARG_COUNT, numParams);
+            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
+            diag.report(*ctx_);
+        }
+        else if (nodeArgs.size() > numParams)
+        {
+            auto diag = reportError(DiagnosticId::parser_err_too_many_arguments, nodeArgs[numParams]);
+            diag.addArgument(Diagnostic::ARG_COUNT, numParams);
+            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
+            diag.report(*ctx_);
+        }
     }
-    else if (nodeArgs.size() > numParams)
+    else
     {
-        auto diag = reportError(DiagnosticId::parser_err_too_many_arguments, nodeArgs[numParams]);
-        diag.addArgument(Diagnostic::ARG_COUNT, numParams);
-        diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
-        diag.report(*ctx_);
+        if (nodeArgs.empty())
+        {
+            auto diag = reportError(DiagnosticId::parser_err_too_few_arguments, ref());
+            diag.addArgument(Diagnostic::ARG_COUNT, numParams);
+            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
+            diag.report(*ctx_);
+        }
     }
 
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);

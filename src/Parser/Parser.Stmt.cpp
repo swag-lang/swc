@@ -832,9 +832,8 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::IntrinsicMemMove:
         case TokenId::IntrinsicMemSet:
             return parseIntrinsicCallExpr(3);
-
         case TokenId::IntrinsicPrint:
-            return parseIntrinsicCall(UINT32_MAX);
+            return parseIntrinsicCallExpr(UINT32_MAX);
             
         case TokenId::SymAttrStart:
             return parseAttributeList<AstNodeId::EmbeddedBlock>();

@@ -115,9 +115,8 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
     for (const auto& nodeRef : nodeRefs)
     {
         const SemaNodeView nodeView(sema, nodeRef);
-        if (nodeView.symList.size() > 1)
-            return SemaError::raiseAmbiguousSymbol(sema, nodeView.nodeRef, nodeView.symList);
-        SWC_ASSERT(nodeView.sym);
+        RESULT_VERIFY(nodeView.verifyUniqueSymbol(sema));
+
         if (nodeView.sym->isNamespace())
         {
             sema.curScope().addUsingSymMap(nodeView.sym->asSymMap());

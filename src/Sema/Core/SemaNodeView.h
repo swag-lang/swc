@@ -1,6 +1,7 @@
 #pragma once
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/Sema.h"
+#include "Sema/Helpers/SemaError.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -35,12 +36,15 @@ struct SemaNodeView
             cstRef = sema.constantRefOf(nodeRef);
         if (cstRef.isValid())
             cst = &sema.cstMgr().get(cstRef);
-        if (sema.hasSymbol(nodeRef))
-            sym = &sema.symbolOf(nodeRef);
+
         if (sema.hasSymbolList(nodeRef))
         {
             symList = sema.getSymbolList(nodeRef);
             sym     = symList.front();
+        }
+        else if (sema.hasSymbol(nodeRef))
+        {
+            sym = &sema.symbolOf(nodeRef);
         }
     }
 
@@ -52,6 +56,22 @@ struct SemaNodeView
         cst          = &sema.cstMgr().get(cstRef);
         typeRef      = cst->typeRef();
         type         = &sema.typeMgr().get(typeRef);
+    }
+
+    Result verifyUniqueSymbol(Sema& sema) const
+    {
+        if (symList.size() > 1)
+            return SemaError::raiseAmbiguousSymbol(sema, nodeRef, symList);
+        if (!sym)
+            return SemaError::raiseInternal(sema, *node);
+        return Result::Continue;
+    }
+
+    Result verifyNoneOrUniqueSymbol(Sema& sema) const
+    {
+        if (symList.size() > 1)
+            return SemaError::raiseAmbiguousSymbol(sema, nodeRef, symList);
+        return Result::Continue;
     }
 };
 

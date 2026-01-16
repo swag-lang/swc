@@ -248,7 +248,7 @@ std::span<Symbol*> SemaInfo::getSymbolList(AstNodeRef nodeRef)
     return {const_cast<Symbol**>(res.data()), res.size()};
 }
 
-void SemaInfo::setSymbols(AstNodeRef nodeRef, std::span<const Symbol*> symbols)
+void SemaInfo::setSymbolList(AstNodeRef nodeRef, std::span<const Symbol*> symbols)
 {
     const uint32_t   shardIdx = nodeRef.get() % SEMA_SHARD_NUM;
     auto&            shard    = shards_[shardIdx];

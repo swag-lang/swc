@@ -80,7 +80,7 @@ Result AstAutoScopedIdentifier::semaPostNode(Sema& sema)
     RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
 
     const Symbol* symbols[2] = {symMe, lookUpCxt.first()};
-    sema.semaInfo().setSymbols(sema.curNodeRef(), symbols);
+    sema.semaInfo().setSymbolList(sema.curNodeRef(), symbols);
     return Result::Continue;
 }
 

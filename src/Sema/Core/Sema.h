@@ -61,6 +61,7 @@ public:
     bool                     hasType(AstNodeRef n) const { return semaInfo().hasType(n); }
     bool                     hasConstant(AstNodeRef n) const { return semaInfo().hasConstant(ctx(), n); }
     bool                     hasSymbol(AstNodeRef n) const { return semaInfo().hasSymbol(n); }
+    void                     setSymbolList(AstNodeRef n, std::span<const Symbol*> symbols) { semaInfo().setSymbolList(n, symbols); }
     bool                     hasSymbolList(AstNodeRef n) const { return semaInfo().hasSymbolList(n); }
     std::span<const Symbol*> getSymbolList(AstNodeRef n) const { return semaInfo().getSymbolList(n); }
     std::span<Symbol*>       getSymbolList(AstNodeRef n) { return semaInfo().getSymbolList(n); }

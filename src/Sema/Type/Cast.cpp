@@ -518,6 +518,12 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
         res = castToFromTypeInfo(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (dstType.isPointer())
         res = castToPointer(sema, castCtx, srcTypeRef, dstTypeRef);
+    else if (dstType.isAnyVariadic())
+    {
+        res = Result::Continue;
+        if (castCtx.isConstantFolding())
+            castCtx.outConstRef = castCtx.srcConstRef;
+    }
     else if (dstType.isString())
         res = castToString(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (dstType.isCString())

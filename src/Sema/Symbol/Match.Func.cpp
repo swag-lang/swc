@@ -79,8 +79,20 @@ namespace
         outCand.usedDefaults = 0;
         outCand.viable       = false;
 
-        // Too many args (no varargs support here)
-        if (numArgs > numParams)
+        auto& ctx = sema.ctx();
+
+        // Variadic?
+        bool isVariadic      = false;
+        bool isTypedVariadic = false;
+        if (numParams > 0)
+        {
+            const auto& lastParamTy = params.back()->type(ctx);
+            isVariadic              = lastParamTy.isVariadic();
+            isTypedVariadic         = lastParamTy.isTypedVariadic();
+        }
+
+        // Too many args
+        if (numArgs > numParams && !isVariadic && !isTypedVariadic)
         {
             outFail.kind          = MatchFailKind::TooManyArguments;
             outFail.expectedCount = numParams;
@@ -92,7 +104,8 @@ namespace
         }
 
         // Rank each provided argument
-        for (uint32_t i = 0; i < numArgs; ++i)
+        const uint32_t numCommon = isVariadic || isTypedVariadic ? numParams - 1 : numParams;
+        for (uint32_t i = 0; i < std::min(numArgs, numCommon); ++i)
         {
             const TypeRef argTy   = sema.typeRefOf(args[i]);
             const TypeRef paramTy = params[i]->typeRef();
@@ -110,8 +123,58 @@ namespace
             outCand.perArg.push_back(r);
         }
 
+        // Handle variadic tail
+        if (isVariadic || isTypedVariadic)
+        {
+            const uint32_t startVariadic = numParams - 1;
+            if (numArgs >= numParams)
+            {
+                TypeRef variadicTy = TypeRef::invalid();
+                if (isTypedVariadic)
+                    variadicTy = params.back()->type(ctx).typeRef();
+
+                for (uint32_t i = startVariadic; i < numArgs; ++i)
+                {
+                    if (isVariadic)
+                    {
+                        outCand.perArg.push_back(ConvRank::Ellipsis);
+                    }
+                    else
+                    {
+                        const TypeRef  argTy = sema.typeRefOf(args[i]);
+                        const ConvRank r     = probeImplicitConversion(sema, argTy, variadicTy);
+                        if (r == ConvRank::Bad)
+                        {
+                            outFail.kind        = MatchFailKind::InvalidArgumentType;
+                            outFail.argIndex    = i;
+                            outFail.paramIndex  = startVariadic;
+                            outFail.hasLocation = true;
+                            return false;
+                        }
+                        outCand.perArg.push_back(r);
+                    }
+                }
+            }
+            else if (numArgs == startVariadic)
+            {
+                // Variadic part is empty, which is fine
+            }
+            else
+            {
+                // Too few arguments even before variadic
+                outFail.kind          = MatchFailKind::TooFewArguments;
+                outFail.expectedCount = numParams; // At least numParams if no defaults, but wait
+                outFail.providedCount = numArgs;
+                outFail.argIndex      = numArgs;
+                outFail.paramIndex    = numArgs;
+                outFail.hasLocation   = false;
+                return false;
+            }
+        }
+
         // Remaining params must be defaulted/initialized
-        for (uint32_t i = numArgs; i < numParams; ++i)
+        const uint32_t startCheckDefaults = (isVariadic || isTypedVariadic) ? std::max(numArgs, numParams - 1) : numArgs;
+        for (uint32_t i = startCheckDefaults; i < numParams; ++i)
         {
             if (!params[i]->hasExtraFlag(SymbolVariableFlagsE::Initialized))
             {
@@ -134,12 +197,17 @@ namespace
     // Tie-breakers can include fewer defaults, non-template, more specialized, etc.
     int compareCandidates(const Candidate& a, const Candidate& b)
     {
-        const uint32_t n = static_cast<uint32_t>(a.perArg.size());
+        const uint32_t na = static_cast<uint32_t>(a.perArg.size());
+        const uint32_t nb = static_cast<uint32_t>(b.perArg.size());
+        const uint32_t n  = std::min(na, nb);
         for (uint32_t i = 0; i < n; ++i)
         {
             if (a.perArg[i] != b.perArg[i])
                 return (a.perArg[i] < b.perArg[i]) ? -1 : 1;
         }
+
+        if (na != nb)
+            return (na < nb) ? -1 : 1;
 
         // Tie-breaker: prefer fewer defaults used
         if (a.usedDefaults != b.usedDefaults)
@@ -344,13 +412,29 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     }
 
     // Apply implicit conversions + handle defaults (already validated by tryBuildCandidate)
-    const auto& params  = selectedFn->parameters();
-    const auto  numArgs = static_cast<uint32_t>(args.size());
+    const auto& params      = selectedFn->parameters();
+    const auto  numArgs     = static_cast<uint32_t>(args.size());
+    const auto  numParams   = static_cast<uint32_t>(params.size());
+    const auto& selectedFnT = selectedFn->type(sema.ctx());
 
-    for (uint32_t i = 0; i < numArgs; ++i)
+    const uint32_t numCommon = selectedFnT.isAnyVariadic() ? numParams - 1 : numParams;
+    for (uint32_t i = 0; i < std::min(numArgs, numCommon); ++i)
     {
         SemaNodeView argView(sema, args[i]);
         RESULT_VERIFY(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Implicit));
+        args[i] = argView.nodeRef;
+    }
+
+    if (selectedFnT.isTypedVariadic())
+    {
+        const uint32_t startVariadic = numParams - 1;
+        const TypeRef  variadicTy    = selectedFnT.typeRef();
+        for (uint32_t i = startVariadic; i < numArgs; ++i)
+        {
+            SemaNodeView argView(sema, args[i]);
+            RESULT_VERIFY(Cast::cast(sema, argView, variadicTy, CastKind::Implicit));
+            args[i] = argView.nodeRef;
+        }
     }
 
     sema.setType(sema.curNodeRef(), selectedFn->returnType());

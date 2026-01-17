@@ -1,6 +1,8 @@
 #global internal
 
+func titi(a: ...) {}
+
 #test
 {
-    @print("a", "b")
+    titi("a", "b")
 }

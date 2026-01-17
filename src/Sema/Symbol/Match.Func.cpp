@@ -352,45 +352,20 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
             emitBadMatch(sema, nodeCallee, *attempts.front().fn, attempts.front().fail, args);
             return Result::Error;
         }
-        
+
         // Multiple function symbols -> "no overload match" with per-overload failure notes
         emitNoOverloadMatch(sema, nodeCallee, attempts, args);
         return Result::Error;
     }
 
-    // Apply implicit conversions + handle defaults (should be consistent with the probe but keep real checks)
-    const auto&    params    = selectedFn->parameters();
-    const uint32_t numArgs   = static_cast<uint32_t>(args.size());
-    const uint32_t numParams = static_cast<uint32_t>(params.size());
+    // Apply implicit conversions + handle defaults (already validated by tryBuildCandidate)
+    const auto& params  = selectedFn->parameters();
+    const auto  numArgs = static_cast<uint32_t>(args.size());
 
-    // Still guard (selectedFn may come from callee function type)
-    if (numArgs > numParams)
+    for (uint32_t i = 0; i < numArgs; ++i)
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_too_many_arguments, args[numParams]);
-        diag.addArgument(Diagnostic::ARG_COUNT, std::to_string(numParams));
-        diag.addArgument(Diagnostic::ARG_VALUE, std::to_string(numArgs));
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
-
-    for (uint32_t i = 0; i < numParams; ++i)
-    {
-        if (i < numArgs)
-        {
-            SemaNodeView argView(sema, args[i]);
-            RESULT_VERIFY(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Implicit));
-        }
-        else
-        {
-            if (!params[i]->hasExtraFlag(SymbolVariableFlagsE::Initialized))
-            {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_too_few_arguments, sema.curNodeRef());
-                diag.addArgument(Diagnostic::ARG_COUNT, std::to_string(numParams));
-                diag.addArgument(Diagnostic::ARG_VALUE, std::to_string(numArgs));
-                diag.report(sema.ctx());
-                return Result::Error;
-            }
-        }
+        SemaNodeView argView(sema, args[i]);
+        RESULT_VERIFY(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Implicit));
     }
 
     sema.setType(sema.curNodeRef(), selectedFn->returnType());

@@ -23,6 +23,7 @@ struct SemaNodeView
     SemaNodeView(Sema& sema, AstNodeRef nodeRef);
     void   setCstRef(Sema& sema, ConstantRef cstRef);
     Result verifyUniqueSymbol(Sema& sema) const;
+    void   getSymbols(SmallVector<Symbol*>& symbols) const;
 };
 
 SWC_END_NAMESPACE();

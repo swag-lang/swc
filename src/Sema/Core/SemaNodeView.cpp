@@ -52,4 +52,17 @@ Result SemaNodeView::verifyUniqueSymbol(Sema& sema) const
     return Result::Continue;
 }
 
+void SemaNodeView::getSymbols(SmallVector<Symbol*>& symbols) const
+{
+    if (!symList.empty())
+    {
+        for (auto s : symList)
+            symbols.push_back(s);
+    }
+    else if (sym)
+    {
+        symbols.push_back(sym);
+    }
+}
+
 SWC_END_NAMESPACE();

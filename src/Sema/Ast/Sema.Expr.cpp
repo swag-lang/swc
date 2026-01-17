@@ -62,10 +62,7 @@ Result AstAutoMemberAccessExpr::semaPostNode(Sema& sema)
         symMapHint = &pointeeType.symStruct();
     else if (pointeeType.isEnum())
         symMapHint = &pointeeType.symEnum();
-    else if (pointeeType.isInterface())
-        symMapHint = &pointeeType.symInterface();
-
-    if (!symMapHint)
+    else
         return SemaError::raise(sema, DiagnosticId::sema_err_internal, sema.curNodeRef());
 
     const SemaNodeView  nodeRightView(sema, node->nodeIdentRef);

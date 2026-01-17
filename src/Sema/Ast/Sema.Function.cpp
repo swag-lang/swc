@@ -11,6 +11,9 @@
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/Cast.h"
 
+#include "Sema/Symbol/MatchContext.h"
+#include "Sema/Symbol/Symbols.h"
+
 SWC_BEGIN_NAMESPACE();
 
 Result AstFunctionDecl::semaPreDecl(Sema& sema) const
@@ -156,7 +159,16 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
     SmallVector<Symbol*> symbols;
     nodeCallee.getSymbols(symbols);
 
-    return Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args);
+    AstNodeRef ufcsArg      = AstNodeRef::invalid();
+    const auto memberAccess = nodeCallee.node->safeCast<AstMemberAccessExpr>();
+    if (memberAccess)
+    {
+        const SemaNodeView nodeLeftView(sema, memberAccess->nodeLeftRef);
+        if (SemaInfo::isValue(*nodeLeftView.node))
+            ufcsArg = memberAccess->nodeLeftRef;
+    }
+
+    return Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg);
 }
 
 SWC_END_NAMESPACE();

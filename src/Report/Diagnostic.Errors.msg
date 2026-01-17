@@ -146,6 +146,6 @@ SWC_DIAG_DEF(sema_err_impl_not_interface, Error, "expected an interface implemen
 SWC_DIAG_DEF(sema_err_interface_already_implemented, Error, "the interface {sym} is already implemented for struct {what}")
 SWC_DIAG_DEF(sema_err_too_many_arguments, Error, "too many arguments for function call; expected {count}, but got {value}")
 SWC_DIAG_DEF(sema_err_too_few_arguments, Error, "too few arguments for function call; expected {count}, but got {value}")
-SWC_DIAG_DEF(sema_err_not_callable, Error, "cannot call {sym} as a function")
+SWC_DIAG_DEF(sema_err_not_callable, Error, "expression is not callable like a function")
 SWC_DIAG_DEF(sema_err_bad_function_match, Error, "no matching call for {sym}")
 SWC_DIAG_DEF(sema_err_no_overload_match, Error, "no overload matches this call")

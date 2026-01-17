@@ -39,9 +39,9 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
-Result AstAutoScopedIdentifier::semaPostNode(Sema& sema)
+Result AstAutoMemberAccessExpr::semaPostNode(Sema& sema)
 {
-    const auto node = sema.node(sema.curNodeRef()).cast<AstAutoScopedIdentifier>();
+    const auto node = sema.node(sema.curNodeRef()).cast<AstAutoMemberAccessExpr>();
 
     const auto symFunc = sema.frame().function();
     if (!symFunc || symFunc->parameters().empty())
@@ -177,9 +177,9 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     {
         sema.setType(sema.curNodeRef(), nodeLeftView.type->typeRef());
         SemaInfo::setIsValue(*this);
-        return Result::SkipChildren;        
+        return Result::SkipChildren;
     }
-    
+
     // TODO
     sema.setType(sema.curNodeRef(), sema.typeMgr().typeInt(32, TypeInfo::Sign::Signed));
     SemaInfo::setIsValue(*this);
@@ -252,6 +252,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
 {
     const SemaNodeView nodeExprView(sema, nodeExprRef);
 
+    // Array
     if (nodeExprView.type->isArray())
     {
         SmallVector<AstNodeRef> children;
@@ -298,6 +299,8 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
         if (SemaInfo::isLValue(sema.node(nodeExprRef)))
             SemaInfo::setIsLValue(*this);
     }
+
+    // Slice
     else if (nodeExprView.type->isSlice())
     {
         SmallVector<AstNodeRef> children;

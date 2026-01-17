@@ -581,9 +581,9 @@ AstNodeRef Parser::parsePostFixExpression()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseAutoScopedIdentifier()
+AstNodeRef Parser::parseAutoMemberAccessExpr()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AutoScopedIdentifier>(consume());
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AutoMemberAccessExpr>(consume());
     nodePtr->nodeIdentRef   = parseQualifiedIdentifier();
     return nodeRef;
 }
@@ -593,7 +593,7 @@ AstNodeRef Parser::parsePrimaryExpression()
     switch (id())
     {
         case TokenId::SymDot:
-            return parseAutoScopedIdentifier();
+            return parseAutoMemberAccessExpr();
 
         case TokenId::CompilerUp:
             return parseCompilerUp();

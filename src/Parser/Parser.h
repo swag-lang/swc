@@ -191,7 +191,7 @@ private:
     AstNodeRef parsePostFixExpression();
     AstNodeRef parseIdentifierSuffixValue();
     AstNodeRef parseIdentifier();
-    AstNodeRef parseAutoScopedIdentifier();
+    AstNodeRef parseAutoMemberAccessExpr();
     AstNodeRef parsePrefixExpr();
     AstNodeRef parsePrimaryExpression();
     AstNodeRef parseQualifiedIdentifier();

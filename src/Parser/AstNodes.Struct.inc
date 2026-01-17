@@ -359,15 +359,6 @@ struct AstIdentifier : AstNodeT<AstNodeId::Identifier, AstIdentifierFlagsE>
 };
 
 // -----------------------------------------------------------------------------
-struct AstAutoScopedIdentifier : AstNodeT<AstNodeId::AutoScopedIdentifier>
-{
-    AstNodeRef nodeIdentRef;
-
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeIdentRef}); }
-    static Result semaPostNode(Sema& sema);
-};
-
-// -----------------------------------------------------------------------------
 struct AstAncestorIdentifier : AstNodeT<AstNodeId::AncestorIdentifier>
 {
     AstNodeRef nodeValueRef;
@@ -632,6 +623,16 @@ struct AstArrayLiteral : AstCompoundT<AstNodeId::ArrayLiteral>
 struct AstStructLiteral : AstCompoundT<AstNodeId::StructLiteral>
 {
 };
+
+// -----------------------------------------------------------------------------
+struct AstAutoMemberAccessExpr : AstNodeT<AstNodeId::AutoMemberAccessExpr>
+{
+    AstNodeRef nodeIdentRef;
+
+    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeIdentRef}); }
+    static Result semaPostNode(Sema& sema);
+};
+
 // -----------------------------------------------------------------------------
 struct AstMemberAccessExpr : AstNodeT<AstNodeId::MemberAccessExpr>
 {

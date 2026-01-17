@@ -467,6 +467,25 @@ namespace
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
         return Result::Error;
     }
+
+    Result castToVariadic(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        const auto& typeMgr = sema.ctx().typeMgr();
+        const auto& dstType = typeMgr.get(dstTypeRef);
+
+        if (dstType.isVariadic())
+        {
+            if (castCtx.isConstantFolding())
+                castCtx.outConstRef = castCtx.srcConstRef;
+            return Result::Continue;
+        }
+
+        if (dstType.isTypedVariadic())
+            return Cast::castAllowed(sema, castCtx, srcTypeRef, dstType.typeRef());
+
+        castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        return Result::Error;
+    }
 }
 
 Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
@@ -519,11 +538,7 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
     else if (dstType.isPointer())
         res = castToPointer(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (dstType.isAnyVariadic())
-    {
-        res = Result::Continue;
-        if (castCtx.isConstantFolding())
-            castCtx.outConstRef = castCtx.srcConstRef;
-    }
+        res = castToVariadic(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (dstType.isString())
         res = castToString(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (dstType.isCString())

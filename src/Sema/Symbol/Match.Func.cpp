@@ -246,23 +246,23 @@ namespace
             switch (a.fail.kind)
             {
                 case MatchFailKind::TooManyArguments:
-                    note.addArgument(Diagnostic::ARG_WHAT, "too many arguments");
+                    note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_too_many_arguments));
                     note.addArgument(Diagnostic::ARG_COUNT, std::to_string(a.fail.expectedCount));
                     note.addArgument(Diagnostic::ARG_VALUE, std::to_string(a.fail.providedCount));
                     break;
 
                 case MatchFailKind::TooFewArguments:
-                    note.addArgument(Diagnostic::ARG_WHAT, "too few arguments");
+                    note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_too_few_arguments));
                     note.addArgument(Diagnostic::ARG_COUNT, std::to_string(a.fail.expectedCount));
                     note.addArgument(Diagnostic::ARG_VALUE, std::to_string(a.fail.providedCount));
                     break;
 
                 case MatchFailKind::InvalidArgumentType:
-                    note.addArgument(Diagnostic::ARG_WHAT, "invalid argument type");
+                    note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_invalid_argument_type));
                     break;
 
                 default:
-                    note.addArgument(Diagnostic::ARG_WHAT, "not viable");
+                    note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_not_viable));
                     break;
             }
 

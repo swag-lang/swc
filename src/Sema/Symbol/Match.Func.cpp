@@ -54,7 +54,86 @@ namespace
         bool            viable    = false;
     };
 
-    ConvRank probeImplicitConversion(Sema& sema, TypeRef from, TypeRef to, CastFailure& castFailure)
+    struct VariadicInfo
+    {
+        bool isVariadic      = false;
+        bool isTypedVariadic = false;
+
+        bool any() const { return isVariadic || isTypedVariadic; }
+    };
+
+    VariadicInfo getVariadicInfo(Sema& sema, const SymbolFunction& fn)
+    {
+        VariadicInfo vi;
+        const auto&  params = fn.parameters();
+        if (params.empty())
+            return vi;
+
+        const auto& lastParamTy = params.back()->type(sema.ctx());
+        vi.isVariadic           = lastParamTy.isVariadic();
+        vi.isTypedVariadic      = lastParamTy.isTypedVariadic();
+        return vi;
+    }
+
+    void failTooMany(MatchFailure& f, uint32_t expected, uint32_t provided)
+    {
+        f.kind          = MatchFailKind::TooManyArguments;
+        f.expectedCount = expected;
+        f.providedCount = provided;
+        f.argIndex      = expected; // first extra
+        f.paramIndex    = expected;
+        f.hasLocation   = true;
+    }
+
+    void failTooFew(MatchFailure& f, uint32_t expectedMin, uint32_t provided, uint32_t missingParamIndex)
+    {
+        f.kind          = MatchFailKind::TooFewArguments;
+        f.expectedCount = expectedMin;
+        f.providedCount = provided;
+        f.argIndex      = provided; // first missing
+        f.paramIndex    = missingParamIndex;
+        f.hasLocation   = false;
+    }
+
+    void failBadType(MatchFailure& f, uint32_t argIndex, uint32_t paramIndex, const CastFailure& cf)
+    {
+        f.kind        = MatchFailKind::InvalidArgumentType;
+        f.argIndex    = argIndex;
+        f.paramIndex  = paramIndex;
+        f.castFailure = cf;
+        f.hasLocation = true;
+    }
+
+    uint32_t minRequiredArgs(const SymbolFunction& fn, bool ignoreVariadicTail)
+    {
+        const auto&    params = fn.parameters();
+        const uint32_t n      = static_cast<uint32_t>(params.size());
+        const uint32_t end    = (ignoreVariadicTail && n > 0) ? (n - 1) : n;
+
+        uint32_t required = 0;
+        for (uint32_t i = 0; i < end; ++i)
+        {
+            if (params[i]->hasExtraFlag(SymbolVariableFlagsE::Initialized))
+                break; // the first default => remaining are optional
+            ++required;
+        }
+
+        return required;
+    }
+
+    DiagnosticId addCastFailureArgs(DiagnosticElement& e, const CastFailure& cf)
+    {
+        if (cf.srcTypeRef.isValid())
+            e.addArgument(Diagnostic::ARG_TYPE, cf.srcTypeRef);
+        if (cf.dstTypeRef.isValid())
+            e.addArgument(Diagnostic::ARG_REQUESTED_TYPE, cf.dstTypeRef);
+        if (cf.optTypeRef.isValid())
+            e.addArgument(Diagnostic::ARG_OPT_TYPE, cf.optTypeRef);
+        e.addArgument(Diagnostic::ARG_VALUE, cf.valueStr);
+        return cf.noteId;
+    }
+
+    ConvRank probeImplicitConversion(Sema& sema, TypeRef from, TypeRef to, CastFailure& outCastFailure)
     {
         if (from == to)
             return ConvRank::Exact;
@@ -63,7 +142,7 @@ namespace
         if (Cast::castAllowed(sema, castCtx, from, to) == Result::Continue)
             return ConvRank::Standard;
 
-        castFailure = castCtx.failure;
+        outCastFailure = castCtx.failure;
         return ConvRank::Bad;
     }
 
@@ -79,76 +158,60 @@ namespace
         outCandidate.usedDefaults = 0;
         outCandidate.viable       = false;
 
-        auto& ctx = sema.ctx();
+        auto&              ctx = sema.ctx();
+        const VariadicInfo vi  = getVariadicInfo(sema, fn);
 
-        // Variadic?
-        bool isVariadic      = false;
-        bool isTypedVariadic = false;
-        if (numParams > 0)
+        // Too many args (non-variadic only)
+        if (numArgs > numParams && !vi.any())
         {
-            const auto& lastParamTy = params.back()->type(ctx);
-            isVariadic              = lastParamTy.isVariadic();
-            isTypedVariadic         = lastParamTy.isTypedVariadic();
-        }
-
-        // Too many args
-        if (numArgs > numParams && !isVariadic && !isTypedVariadic)
-        {
-            outFail.kind          = MatchFailKind::TooManyArguments;
-            outFail.expectedCount = numParams;
-            outFail.providedCount = numArgs;
-            outFail.argIndex      = numParams; // first "extra" argument
-            outFail.paramIndex    = numParams;
-            outFail.hasLocation   = true;
+            failTooMany(outFail, numParams, numArgs);
             return false;
         }
 
-        // Rank each provided argument
-        const uint32_t numCommon = isVariadic || isTypedVariadic ? numParams - 1 : numParams;
-        for (uint32_t i = 0; i < std::min(numArgs, numCommon); ++i)
+        // Rank each provided argument (excluding the variadic parameter itself when variadic)
+        const uint32_t numCommon = vi.any() && numParams > 0 ? (numParams - 1) : numParams;
+        const uint32_t upto      = std::min(numArgs, numCommon);
+
+        for (uint32_t i = 0; i < upto; ++i)
         {
             const TypeRef argTy   = sema.typeRefOf(args[i]);
             const TypeRef paramTy = params[i]->typeRef();
 
-            const ConvRank r = probeImplicitConversion(sema, argTy, paramTy, outFail.castFailure);
+            CastFailure    cf{};
+            const ConvRank r = probeImplicitConversion(sema, argTy, paramTy, cf);
             if (r == ConvRank::Bad)
             {
-                outFail.kind        = MatchFailKind::InvalidArgumentType;
-                outFail.argIndex    = i;
-                outFail.paramIndex  = i;
-                outFail.hasLocation = true;
+                failBadType(outFail, i, i, cf);
                 return false;
             }
-
             outCandidate.perArg.push_back(r);
         }
 
         // Handle variadic tail
-        if (isVariadic || isTypedVariadic)
+        if (vi.any() && numParams > 0)
         {
             const uint32_t startVariadic = numParams - 1;
             if (numArgs >= numParams)
             {
                 TypeRef variadicTy = TypeRef::invalid();
-                if (isTypedVariadic)
+                if (vi.isTypedVariadic)
                     variadicTy = params.back()->type(ctx).typeRef();
 
                 for (uint32_t i = startVariadic; i < numArgs; ++i)
                 {
-                    if (isVariadic)
+                    if (vi.isVariadic)
                     {
                         outCandidate.perArg.push_back(ConvRank::Ellipsis);
                     }
                     else
                     {
                         const TypeRef  argTy = sema.typeRefOf(args[i]);
-                        const ConvRank r     = probeImplicitConversion(sema, argTy, variadicTy, outFail.castFailure);
+                        CastFailure    cf{};
+                        const ConvRank r = probeImplicitConversion(sema, argTy, variadicTy, cf);
                         if (r == ConvRank::Bad)
                         {
-                            outFail.kind        = MatchFailKind::InvalidArgumentType;
-                            outFail.argIndex    = i;
-                            outFail.paramIndex  = startVariadic;
-                            outFail.hasLocation = true;
+                            // paramIndex points at the variadic parameter
+                            failBadType(outFail, i, startVariadic, cf);
                             return false;
                         }
                         outCandidate.perArg.push_back(r);
@@ -157,28 +220,14 @@ namespace
             }
         }
 
-        // Remaining params must be defaulted/initialized
-        const uint32_t numParamsToCheck = (isVariadic || isTypedVariadic) ? numParams - 1 : numParams;
+        // Remaining params must be defaulted/initialized (excluding the variadic parameter itself)
+        const uint32_t numParamsToCheck = vi.any() && numParams > 0 ? (numParams - 1) : numParams;
         for (uint32_t i = numArgs; i < numParamsToCheck; ++i)
         {
             if (!params[i]->hasExtraFlag(SymbolVariableFlagsE::Initialized))
             {
-                uint32_t minExpectedCount = 0;
-                for (uint32_t j = 0; j < numParams; j++)
-                {
-                    if ((isVariadic || isTypedVariadic) && j == numParams - 1)
-                        break;
-                    if (params[j]->hasExtraFlag(SymbolVariableFlagsE::Initialized))
-                        break;
-                    minExpectedCount++;
-                }
-
-                outFail.kind          = MatchFailKind::TooFewArguments;
-                outFail.expectedCount = minExpectedCount;
-                outFail.providedCount = numArgs;
-                outFail.argIndex      = numArgs; // first missing
-                outFail.paramIndex    = i;       // missing parameter index
-                outFail.hasLocation   = false;
+                const uint32_t minExpected = minRequiredArgs(fn, vi.any());
+                failTooFew(outFail, minExpected, numArgs, i);
                 return false;
             }
             outCandidate.usedDefaults++;
@@ -195,6 +244,7 @@ namespace
         const uint32_t na = static_cast<uint32_t>(a.perArg.size());
         const uint32_t nb = static_cast<uint32_t>(b.perArg.size());
         const uint32_t n  = std::min(na, nb);
+
         for (uint32_t i = 0; i < n; ++i)
         {
             if (a.perArg[i] != b.perArg[i])
@@ -207,6 +257,7 @@ namespace
         // Tie-breaker: prefer fewer defaults used
         if (a.usedDefaults != b.usedDefaults)
             return (a.usedDefaults < b.usedDefaults) ? -1 : 1;
+
         return 0;
     }
 
@@ -217,10 +268,7 @@ namespace
 
         for (Symbol* s : symbols)
         {
-            if (!s)
-                continue;
-
-            if (!s->isFunction())
+            if (!s || !s->isFunction())
                 continue;
 
             auto& fn = s->cast<SymbolFunction>();
@@ -279,14 +327,8 @@ namespace
                 if (fail.castFailure.diagId != DiagnosticId::None)
                 {
                     diag = SemaError::report(sema, fail.castFailure.diagId, nodeCallee.nodeRef);
-                    if (fail.castFailure.srcTypeRef.isValid())
-                        diag.addArgument(Diagnostic::ARG_TYPE, fail.castFailure.srcTypeRef);
-                    if (fail.castFailure.dstTypeRef.isValid())
-                        diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, fail.castFailure.dstTypeRef);
-                    if (fail.castFailure.optTypeRef.isValid())
-                        diag.addArgument(Diagnostic::ARG_OPT_TYPE, fail.castFailure.optTypeRef);
-                    diag.addArgument(Diagnostic::ARG_VALUE, fail.castFailure.valueStr);
-                    diag.addNote(fail.castFailure.noteId);
+                    if (const DiagnosticId nid = addCastFailureArgs(diag.last(), fail.castFailure); nid != DiagnosticId::None)
+                        diag.addNote(nid);
                 }
                 else
                 {
@@ -341,15 +383,8 @@ namespace
                     if (a.fail.castFailure.diagId != DiagnosticId::None)
                     {
                         note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(a.fail.castFailure.diagId));
-                        if (a.fail.castFailure.srcTypeRef.isValid())
-                            note.addArgument(Diagnostic::ARG_TYPE, a.fail.castFailure.srcTypeRef);
-                        if (a.fail.castFailure.dstTypeRef.isValid())
-                            note.addArgument(Diagnostic::ARG_REQUESTED_TYPE, a.fail.castFailure.dstTypeRef);
-                        if (a.fail.castFailure.optTypeRef.isValid())
-                            note.addArgument(Diagnostic::ARG_OPT_TYPE, a.fail.castFailure.optTypeRef);
-                        note.addArgument(Diagnostic::ARG_VALUE, a.fail.castFailure.valueStr);
-                        if (a.fail.castFailure.noteId != DiagnosticId::None)
-                            diag.addNote(a.fail.castFailure.noteId);
+                        if (const DiagnosticId nid = addCastFailureArgs(note, a.fail.castFailure); nid != DiagnosticId::None)
+                            diag.addNote(nid);
                     }
                     else
                     {
@@ -378,27 +413,27 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     collectAttempts(sema, attempts, functions, symbols, args);
 
     // Gather viable candidates
-    SmallVector<Candidate> viable;
+    SmallVector<const Attempt*> viable;
     viable.reserve(attempts.size());
     for (const Attempt& a : attempts)
     {
         if (a.viable)
-            viable.push_back(a.candidate);
+            viable.push_back(&a);
     }
 
     // If we have viable overload candidates: pick the best (or ambiguous)
     SymbolFunction* selectedFn = nullptr;
     if (!viable.empty())
     {
-        const Candidate* best = viable.data();
-        bool             tie  = false;
+        const Attempt* best = viable[0];
+        bool           tie  = false;
 
         for (uint32_t i = 1; i < static_cast<uint32_t>(viable.size()); ++i)
         {
-            const int cmp = compareCandidates(viable[i], *best);
+            const int cmp = compareCandidates(viable[i]->candidate, best->candidate);
             if (cmp < 0)
             {
-                best = &viable[i];
+                best = viable[i];
                 tie  = false;
             }
             else if (cmp == 0)
@@ -410,19 +445,19 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
         if (tie)
         {
             SmallVector<Symbol*> ambiguousSymbols;
-            for (auto& c : viable)
+            for (const Attempt* a : viable)
             {
-                if (compareCandidates(c, *best) == 0)
-                    ambiguousSymbols.push_back(c.fn);
+                if (compareCandidates(a->candidate, best->candidate) == 0)
+                    ambiguousSymbols.push_back(a->candidate.fn);
             }
 
             return SemaError::raiseAmbiguousSymbol(sema, nodeCallee.nodeRef, ambiguousSymbols);
         }
 
-        selectedFn = best->fn;
+        selectedFn = best->candidate.fn;
     }
 
-    // No viable overload selected -> decide which error to raise (or fallback to "callee is function type")
+    // No viable overload selected -> decide which error to raise
     if (!selectedFn)
     {
         // No function symbols at all in "symbols" -> "not callable"

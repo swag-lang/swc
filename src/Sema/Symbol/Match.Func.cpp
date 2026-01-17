@@ -52,7 +52,7 @@ namespace
         return ConvRank::Bad;
     }
 
-    bool buildCandidate(Sema& sema, SymbolFunction& fn, const SmallVector<AstNodeRef>& args, Candidate& out)
+    bool buildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, Candidate& out)
     {
         const auto&    params    = fn.parameters();
         const uint32_t numArgs   = static_cast<uint32_t>(args.size());
@@ -108,23 +108,21 @@ namespace
         return 0;
     }
 
-    void buildFunctionCandidates(Sema& sema, SmallVector<Candidate>& viable, const SmallVector<Symbol*>& symbols, const SmallVector<AstNodeRef>& args)
+    void buildFunctionCandidates(Sema& sema, SmallVector<Candidate>& viable, std::span<Symbol*> symbols, std::span<AstNodeRef> args)
     {
         for (Symbol* s : symbols)
         {
             if (!s->isFunction())
                 continue;
 
-            SymbolFunction& fn = s->cast<SymbolFunction>();
-
             Candidate c;
-            if (buildCandidate(sema, fn, args, c))
+            if (buildCandidate(sema, s->cast<SymbolFunction>(), args, c))
                 viable.push_back(std::move(c));
         }
     }
 }
 
-Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<Symbol*>& symbols, const SmallVector<AstNodeRef>& args)
+Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<AstNodeRef> args)
 {
     SmallVector<Candidate> viable;
     buildFunctionCandidates(sema, viable, symbols, args);

@@ -35,11 +35,11 @@ bool SemaInfo::hasConstant(const TaskContext& ctx, AstNodeRef nodeRef) const
                 return symbols.front()->isConst() || symbols.front()->isEnumValue();
             break;
         }
-            
+
         default:
             break;
     }
-    
+
     return false;
 }
 

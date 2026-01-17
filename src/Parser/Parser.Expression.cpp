@@ -663,7 +663,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicMakeInterface:
         case TokenId::IntrinsicAs:
             return parseIntrinsicCall(3);
-            
+
         case TokenId::IntrinsicDbgAlloc:
         case TokenId::IntrinsicSysAlloc:
         case TokenId::IntrinsicGetContext:

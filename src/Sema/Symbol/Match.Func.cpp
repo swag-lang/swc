@@ -22,12 +22,11 @@ namespace
         Bad      = 255
     };
 
-    enum class MatchFailKind : uint8_t
+    enum class MatchFailKind
     {
         TooManyArguments,
         TooFewArguments,
-        InvalidArgumentType, // cannot convert arg -> param
-        NotAFunction
+        InvalidArgumentType,
     };
 
     struct MatchFailure
@@ -56,7 +55,6 @@ namespace
         bool            viable    = false;
     };
 
-    // Probe: must NOT mutate AST, must NOT emit diagnostics.
     ConvRank probeImplicitConversion(Sema& sema, TypeRef from, TypeRef to)
     {
         if (from == to)

@@ -12,12 +12,12 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    enum class ConvRank : uint8_t
+    enum class ConvRank
     {
         Exact,    // same type (or identical canonical type)
         Standard, // safe numeric, pointer decay, etc.
         Ellipsis, // varargs fallback (if you support it)
-        Bad = 255
+        Bad,
     };
 
     enum class MatchFailKind

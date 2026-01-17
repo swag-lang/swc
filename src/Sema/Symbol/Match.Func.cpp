@@ -201,14 +201,14 @@ namespace
         {
             case MatchFailKind::TooManyArguments:
                 diag = SemaError::report(sema, DiagnosticId::sema_err_too_many_arguments, nodeCallee.nodeRef);
-                diag.addArgument(Diagnostic::ARG_COUNT, std::to_string(fail.expectedCount));
-                diag.addArgument(Diagnostic::ARG_VALUE, std::to_string(fail.providedCount));
+                diag.addArgument(Diagnostic::ARG_COUNT, fail.expectedCount);
+                diag.addArgument(Diagnostic::ARG_VALUE, fail.providedCount);
                 break;
 
             case MatchFailKind::TooFewArguments:
                 diag = SemaError::report(sema, DiagnosticId::sema_err_too_few_arguments, nodeCallee.nodeRef);
-                diag.addArgument(Diagnostic::ARG_COUNT, std::to_string(fail.expectedCount));
-                diag.addArgument(Diagnostic::ARG_VALUE, std::to_string(fail.providedCount));
+                diag.addArgument(Diagnostic::ARG_COUNT, fail.expectedCount);
+                diag.addArgument(Diagnostic::ARG_VALUE, fail.providedCount);
                 break;
 
             case MatchFailKind::InvalidArgumentType:
@@ -247,14 +247,14 @@ namespace
             {
                 case MatchFailKind::TooManyArguments:
                     note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_too_many_arguments));
-                    note.addArgument(Diagnostic::ARG_COUNT, std::to_string(a.fail.expectedCount));
-                    note.addArgument(Diagnostic::ARG_VALUE, std::to_string(a.fail.providedCount));
+                    note.addArgument(Diagnostic::ARG_COUNT, a.fail.expectedCount);
+                    note.addArgument(Diagnostic::ARG_VALUE, a.fail.providedCount);
                     break;
 
                 case MatchFailKind::TooFewArguments:
                     note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_too_few_arguments));
-                    note.addArgument(Diagnostic::ARG_COUNT, std::to_string(a.fail.expectedCount));
-                    note.addArgument(Diagnostic::ARG_VALUE, std::to_string(a.fail.providedCount));
+                    note.addArgument(Diagnostic::ARG_COUNT, a.fail.expectedCount);
+                    note.addArgument(Diagnostic::ARG_VALUE, a.fail.providedCount);
                     break;
 
                 case MatchFailKind::InvalidArgumentType:

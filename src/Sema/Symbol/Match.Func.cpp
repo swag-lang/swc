@@ -339,47 +339,23 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     // No viable overload selected -> decide which error to raise (or fallback to "callee is function type")
     if (!selectedFn)
     {
-        // No function symbols at all in "symbols" -> either fallback to callee function type, or "not callable"
+        // No function symbols at all in "symbols" -> "not callable"
         if (functionSyms.empty())
         {
-            if (!nodeCallee.type || !nodeCallee.type->isFunction())
-            {
-                emitNotCallable(sema, nodeCallee);
-                return Result::Error;
-            }
-
-            // Old behavior: direct call via function-typed callee.
-            selectedFn = &nodeCallee.type->symFunction();
-        }
-        else if (functionSyms.size() == 1)
-        {
-            // Exactly one function symbol -> "bad match" with reason
-            const Attempt* theAttempt = nullptr;
-            for (const Attempt& a : attempts)
-            {
-                if (a.fn == functionSyms[0])
-                {
-                    theAttempt = &a;
-                    break;
-                }
-            }
-
-            if (theAttempt && !theAttempt->viable)
-            {
-                emitBadMatch(sema, nodeCallee, *theAttempt->fn, theAttempt->fail, args);
-                return Result::Error;
-            }
-
-            // Defensive fallback: should not happen, but keep old behavior
             emitNotCallable(sema, nodeCallee);
             return Result::Error;
         }
-        else
+
+        // Exactly one function symbol -> "bad match" with reason
+        if (functionSyms.size() == 1)
         {
-            // Multiple function symbols -> "no overload match" with per-overload failure notes
-            emitNoOverloadMatch(sema, nodeCallee, attempts, args);
+            emitBadMatch(sema, nodeCallee, *attempts.front().fn, attempts.front().fail, args);
             return Result::Error;
         }
+        
+        // Multiple function symbols -> "no overload match" with per-overload failure notes
+        emitNoOverloadMatch(sema, nodeCallee, attempts, args);
+        return Result::Error;
     }
 
     // Apply implicit conversions + handle defaults (should be consistent with the probe but keep real checks)

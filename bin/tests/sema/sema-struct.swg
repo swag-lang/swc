@@ -67,4 +67,5 @@ struct S1 { y: S0 }
     }
 
     var st: AA
+    let x = st.x
 }

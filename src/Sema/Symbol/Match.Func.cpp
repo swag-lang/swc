@@ -32,6 +32,7 @@ namespace
     struct MatchFailure
     {
         MatchFailKind kind          = MatchFailKind::InvalidArgumentType;
+        CastFailure   castFailure   = {};
         uint32_t      argIndex      = 0; // where it failed (argument index)
         uint32_t      paramIndex    = 0; // where it failed (parameter index)
         uint32_t      expectedCount = 0; // for too many/few
@@ -55,7 +56,7 @@ namespace
         bool            viable    = false;
     };
 
-    ConvRank probeImplicitConversion(Sema& sema, TypeRef from, TypeRef to)
+    ConvRank probeImplicitConversion(Sema& sema, TypeRef from, TypeRef to, CastFailure& castFailure)
     {
         if (from == to)
             return ConvRank::Exact;
@@ -64,6 +65,7 @@ namespace
         if (Cast::castAllowed(sema, castCtx, from, to) == Result::Continue)
             return ConvRank::Standard;
 
+        castFailure = castCtx.failure;
         return ConvRank::Bad;
     }
 
@@ -110,7 +112,7 @@ namespace
             const TypeRef argTy   = sema.typeRefOf(args[i]);
             const TypeRef paramTy = params[i]->typeRef();
 
-            const ConvRank r = probeImplicitConversion(sema, argTy, paramTy);
+            const ConvRank r = probeImplicitConversion(sema, argTy, paramTy, outFail.castFailure);
             if (r == ConvRank::Bad)
             {
                 outFail.kind        = MatchFailKind::InvalidArgumentType;
@@ -142,7 +144,7 @@ namespace
                     else
                     {
                         const TypeRef  argTy = sema.typeRefOf(args[i]);
-                        const ConvRank r     = probeImplicitConversion(sema, argTy, variadicTy);
+                        const ConvRank r     = probeImplicitConversion(sema, argTy, variadicTy, outFail.castFailure);
                         if (r == ConvRank::Bad)
                         {
                             outFail.kind        = MatchFailKind::InvalidArgumentType;
@@ -281,8 +283,23 @@ namespace
                 break;
 
             case MatchFailKind::InvalidArgumentType:
-                diag = SemaError::report(sema, DiagnosticId::sema_err_bad_function_match, nodeCallee.nodeRef);
-                diag.addArgument(Diagnostic::ARG_SYM, fn.name(ctx));
+                if (fail.castFailure.diagId != DiagnosticId::None)
+                {
+                    diag = SemaError::report(sema, fail.castFailure.diagId, nodeCallee.nodeRef);
+                    if (fail.castFailure.srcTypeRef.isValid())
+                        diag.addArgument(Diagnostic::ARG_TYPE, fail.castFailure.srcTypeRef);
+                    if (fail.castFailure.dstTypeRef.isValid())
+                        diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, fail.castFailure.dstTypeRef);
+                    if (fail.castFailure.optTypeRef.isValid())
+                        diag.addArgument(Diagnostic::ARG_OPT_TYPE, fail.castFailure.optTypeRef);
+                    diag.addArgument(Diagnostic::ARG_VALUE, fail.castFailure.valueStr);
+                    diag.addNote(fail.castFailure.noteId);
+                }
+                else
+                {
+                    diag = SemaError::report(sema, DiagnosticId::sema_err_bad_function_match, nodeCallee.nodeRef);
+                    diag.addArgument(Diagnostic::ARG_SYM, fn.name(ctx));
+                }
                 break;
 
             default:
@@ -328,7 +345,23 @@ namespace
                     break;
 
                 case MatchFailKind::InvalidArgumentType:
-                    note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_invalid_argument_type));
+                    if (a.fail.castFailure.diagId != DiagnosticId::None)
+                    {
+                        note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(a.fail.castFailure.diagId));
+                        if (a.fail.castFailure.srcTypeRef.isValid())
+                            note.addArgument(Diagnostic::ARG_TYPE, a.fail.castFailure.srcTypeRef);
+                        if (a.fail.castFailure.dstTypeRef.isValid())
+                            note.addArgument(Diagnostic::ARG_REQUESTED_TYPE, a.fail.castFailure.dstTypeRef);
+                        if (a.fail.castFailure.optTypeRef.isValid())
+                            note.addArgument(Diagnostic::ARG_OPT_TYPE, a.fail.castFailure.optTypeRef);
+                        note.addArgument(Diagnostic::ARG_VALUE, a.fail.castFailure.valueStr);
+                        if (a.fail.castFailure.noteId != DiagnosticId::None)
+                            diag.addNote(a.fail.castFailure.noteId);
+                    }
+                    else
+                    {
+                        note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_invalid_argument_type));
+                    }
                     break;
 
                 default:

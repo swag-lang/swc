@@ -194,9 +194,8 @@ namespace
 
     void emitBadMatch(Sema& sema, const SemaNodeView& nodeCallee, const SymbolFunction& fn, const MatchFailure& fail, std::span<AstNodeRef> args)
     {
-        const auto ctx = sema.ctx();
+        const auto& ctx = sema.ctx();
 
-        // Main error
         Diagnostic diag;
         switch (fail.kind)
         {
@@ -204,8 +203,6 @@ namespace
                 diag = SemaError::report(sema, DiagnosticId::sema_err_too_many_arguments, nodeCallee.nodeRef);
                 diag.addArgument(Diagnostic::ARG_COUNT, std::to_string(fail.expectedCount));
                 diag.addArgument(Diagnostic::ARG_VALUE, std::to_string(fail.providedCount));
-                if (fail.hasLocation && fail.argIndex < args.size())
-                    diag.last().addSpan(sema.node(args[fail.argIndex]).location(ctx));
                 break;
 
             case MatchFailKind::TooFewArguments:
@@ -217,8 +214,6 @@ namespace
             case MatchFailKind::InvalidArgumentType:
                 diag = SemaError::report(sema, DiagnosticId::sema_err_bad_function_match, nodeCallee.nodeRef);
                 diag.addArgument(Diagnostic::ARG_SYM, fn.name(ctx));
-                if (fail.hasLocation && fail.argIndex < args.size())
-                    diag.last().addSpan(sema.node(args[fail.argIndex]).location(ctx));
                 break;
 
             default:
@@ -226,6 +221,9 @@ namespace
                 diag.addArgument(Diagnostic::ARG_SYM, fn.name(ctx));
                 break;
         }
+
+        if (fail.hasLocation && fail.argIndex < args.size())
+            diag.last().addSpan(sema.node(args[fail.argIndex]).location(ctx));
 
         diag.report(sema.ctx());
     }
@@ -268,13 +266,8 @@ namespace
                     break;
             }
 
-            // Extra pinpoint note, if we can point to a specific arg node.
             if (a.fail.hasLocation && a.fail.argIndex < args.size())
-            {
-                auto&       here    = diag.last();
-                const auto& argNode = sema.node(args[a.fail.argIndex]);
-                here.addSpan(argNode.location(sema.ctx()));
-            }
+                diag.last().addSpan(sema.node(args[a.fail.argIndex]).location(ctx));
         }
 
         diag.report(sema.ctx());

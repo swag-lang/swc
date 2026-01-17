@@ -23,7 +23,7 @@ func T1(a0, b0: s32)->s32
 namespace NS {}
 #test
 {
-    NS()
+    NS() // swc-expected-error {{sema_err_not_callable}}
 }
 
 #test

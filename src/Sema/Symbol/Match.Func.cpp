@@ -25,7 +25,7 @@ namespace
     struct Candidate
     {
         SymbolFunction*       fn = nullptr;
-        SmallVector<ConvRank> perArg; // one entry per provided arg
+        SmallVector<ConvRank> perArg;
         uint32_t              usedDefaults = 0;
         bool                  viable       = false;
     };
@@ -95,7 +95,7 @@ namespace
     // Tie-breakers can include fewer defaults, non-template, more specialized, etc.
     int compareCandidates(const Candidate& a, const Candidate& b)
     {
-        const uint32_t n = static_cast<uint32_t>(a.perArg.size()); // should equal b.perArg.size() for same call
+        const uint32_t n = static_cast<uint32_t>(a.perArg.size());
         for (uint32_t i = 0; i < n; ++i)
         {
             if (a.perArg[i] != b.perArg[i])
@@ -105,7 +105,6 @@ namespace
         // Tie-breaker: prefer fewer defaults used
         if (a.usedDefaults != b.usedDefaults)
             return (a.usedDefaults < b.usedDefaults) ? -1 : 1;
-
         return 0;
     }
 }
@@ -120,7 +119,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
         if (!s->isFunction())
             continue;
 
-        auto& fn = s->cast<SymbolFunction>();
+        SymbolFunction& fn = s->cast<SymbolFunction>();
 
         Candidate c;
         if (buildCandidate(sema, fn, args, c))
@@ -156,11 +155,11 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
                 if (compareCandidates(c, *best) == 0)
                     ambiguousSymbols.push_back(c.fn);
             }
+            
             return SemaError::raiseAmbiguousSymbol(sema, nodeCallee.nodeRef, ambiguousSymbols);
         }
 
         selectedFn = best->fn;
-        sema.setSymbol(nodeCallee.nodeRef, selectedFn);
     }
 
     // If no overload matches, fall back to the "callee is a function type" case as before

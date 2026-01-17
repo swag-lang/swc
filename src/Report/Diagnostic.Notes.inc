@@ -15,6 +15,5 @@ SWC_DIAG_DEF(sema_note_could_be)
 SWC_DIAG_DEF(sema_note_cyclic_dependency_link)
 SWC_DIAG_DEF(sema_note_strict_alias)
 SWC_DIAG_DEF(sema_note_overload_candidate_failed)
-SWC_DIAG_DEF(sema_note_candidate_failed_here)
 
 SWC_DIAG_DEF(sema_help_nameof_instruction)

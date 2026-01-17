@@ -147,7 +147,7 @@ namespace
         return 0;
     }
 
-    void collectAttempts(Sema& sema, std::span<Symbol*> symbols, std::span<AstNodeRef> args, SmallVector<Attempt>& outAttempts, SmallVector<SymbolFunction*>& outFunctionSyms)
+    void collectAttempts(Sema& sema, SmallVector<Attempt>& outAttempts, SmallVector<SymbolFunction*>& outFunctionSyms, std::span<Symbol*> symbols, std::span<AstNodeRef> args)
     {
         outAttempts.clear();
         outFunctionSyms.clear();
@@ -232,8 +232,8 @@ namespace
 
     void emitNoOverloadMatch(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<Attempt>& attempts, std::span<AstNodeRef> args)
     {
-        const auto& ctx  = sema.ctx();
-        auto        diag = SemaError::report(sema, DiagnosticId::sema_err_no_overload_match, nodeCallee.nodeRef);
+        auto& ctx  = sema.ctx();
+        auto  diag = SemaError::report(sema, DiagnosticId::sema_err_no_overload_match, nodeCallee.nodeRef);
 
         // One note per overload attempt describing why it failed (and where when possible).
         for (const Attempt& a : attempts)
@@ -243,7 +243,7 @@ namespace
 
             diag.addNote(DiagnosticId::sema_note_overload_candidate_failed);
             auto& note = diag.last();
-            note.addArgument(Diagnostic::ARG_SYM, a.fn->name(ctx));
+            note.addArgument(Diagnostic::ARG_SYM, a.fn->type(ctx).toName(ctx));
 
             switch (a.fail.kind)
             {
@@ -261,7 +261,6 @@ namespace
 
                 case MatchFailKind::InvalidArgumentType:
                     note.addArgument(Diagnostic::ARG_WHAT, "invalid argument type");
-                    // note.addArgument(Diagnostic::ARG_INDEX, std::to_string(a.fail.argIndex));
                     break;
 
                 default:
@@ -272,12 +271,9 @@ namespace
             // Extra pinpoint note, if we can point to a specific arg node.
             if (a.fail.hasLocation && a.fail.argIndex < args.size())
             {
-                diag.addNote(DiagnosticId::sema_note_candidate_failed_here);
-                auto& here = diag.last();
-
+                auto&       here    = diag.last();
                 const auto& argNode = sema.node(args[a.fail.argIndex]);
                 here.addSpan(argNode.location(sema.ctx()));
-                here.addArgument(Diagnostic::ARG_SYM, a.fn->name(ctx));
             }
         }
 
@@ -288,8 +284,8 @@ namespace
 Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<AstNodeRef> args)
 {
     SmallVector<Attempt>         attempts;
-    SmallVector<SymbolFunction*> functionSyms;
-    collectAttempts(sema, symbols, args, attempts, functionSyms);
+    SmallVector<SymbolFunction*> functions;
+    collectAttempts(sema, attempts, functions, symbols, args);
 
     // Gather viable candidates
     SmallVector<Candidate> viable;
@@ -304,8 +300,8 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     SymbolFunction* selectedFn = nullptr;
     if (!viable.empty())
     {
-        Candidate* best = viable.data();
-        bool       tie  = false;
+        const Candidate* best = viable.data();
+        bool             tie  = false;
 
         for (uint32_t i = 1; i < static_cast<uint32_t>(viable.size()); ++i)
         {
@@ -340,14 +336,14 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     if (!selectedFn)
     {
         // No function symbols at all in "symbols" -> "not callable"
-        if (functionSyms.empty())
+        if (functions.empty())
         {
             emitNotCallable(sema, nodeCallee);
             return Result::Error;
         }
 
         // Exactly one function symbol -> "bad match" with reason
-        if (functionSyms.size() == 1)
+        if (functions.size() == 1)
         {
             emitBadMatch(sema, nodeCallee, *attempts.front().fn, attempts.front().fail, args);
             return Result::Error;

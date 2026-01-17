@@ -12,16 +12,20 @@ enum class LogColor;
 enum class DiagnosticId;
 enum class TokenId : uint16_t;
 
+struct DiagnosticArgument
+{
+    std::string_view                                                                         name;
+    bool                                                                                     quoted;
+    std::variant<Utf8, TokenId, DiagnosticId, uint32_t, TypeRef, ConstantRef, IdentifierRef> val;
+};
+
+using DiagnosticArguments = std::vector<DiagnosticArgument>;
+
 class Diagnostic
 {
 public:
-    struct Argument
-    {
-        std::string_view name;
-        bool             quoted;
-
-        std::variant<Utf8, TokenId, DiagnosticId, uint32_t, TypeRef, ConstantRef, IdentifierRef> val;
-    };
+    using Argument  = DiagnosticArgument;
+    using Arguments = DiagnosticArguments;
 
     constexpr static std::string_view ARG_PATH                 = "{path}";
     constexpr static std::string_view ARG_ARG                  = "{arg}";

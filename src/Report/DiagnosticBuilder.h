@@ -71,8 +71,8 @@ private:
     void writeCodeTrunc(const DiagnosticElement& elToUse, const SourceCodeLocation& loc, const DiagnosticSpan& span, uint32_t tokenLenChars, const Utf8& currentFullCodeLine, uint32_t currentFullCharCount);
     void writeCodeBlock(const DiagnosticElement& el);
 
-    Utf8 buildMessage(const Utf8& msg) const;
-    Utf8 argumentToString(const Diagnostic::Argument& arg) const;
+    Utf8 buildMessage(const Utf8& msg, const DiagnosticElement* el = nullptr) const;
+    Utf8 argumentToString(const DiagnosticArgument& arg) const;
     void expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements) const;
 };
 

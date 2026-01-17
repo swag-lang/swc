@@ -42,18 +42,18 @@ namespace
 
     struct Candidate
     {
-        SymbolFunction*       fn = nullptr;
         SmallVector<ConvRank> perArg;
+        SymbolFunction*       fn           = nullptr;
         uint32_t              usedDefaults = 0;
         bool                  viable       = false;
     };
 
     struct Attempt
     {
-        SymbolFunction* fn     = nullptr;
-        Candidate       cand   = {};
-        bool            viable = false;
-        MatchFailure    fail   = {};
+        SymbolFunction* fn        = nullptr;
+        Candidate       candidate = {};
+        MatchFailure    fail      = {};
+        bool            viable    = false;
     };
 
     // Probe: must NOT mutate AST, must NOT emit diagnostics.
@@ -70,11 +70,7 @@ namespace
     }
 
     // Try to build a candidate; if it fails, fill out why + where.
-    bool tryBuildCandidate(Sema&                 sema,
-                           SymbolFunction&       fn,
-                           std::span<AstNodeRef> args,
-                           Candidate&            outCand,
-                           MatchFailure&         outFail)
+    bool tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, Candidate& outCand, MatchFailure& outFail)
     {
         const auto&    params    = fn.parameters();
         const uint32_t numArgs   = static_cast<uint32_t>(args.size());
@@ -153,11 +149,7 @@ namespace
         return 0;
     }
 
-    void collectAttempts(Sema&                         sema,
-                         std::span<Symbol*>            symbols,
-                         std::span<AstNodeRef>         args,
-                         SmallVector<Attempt>&         outAttempts,
-                         SmallVector<SymbolFunction*>& outFunctionSyms)
+    void collectAttempts(Sema& sema, std::span<Symbol*> symbols, std::span<AstNodeRef> args, SmallVector<Attempt>& outAttempts, SmallVector<SymbolFunction*>& outFunctionSyms)
     {
         outAttempts.clear();
         outFunctionSyms.clear();
@@ -181,8 +173,8 @@ namespace
 
             if (tryBuildCandidate(sema, fn, args, cand, fail))
             {
-                a.viable = true;
-                a.cand   = std::move(cand);
+                a.viable    = true;
+                a.candidate = std::move(cand);
             }
             else
             {
@@ -202,7 +194,7 @@ namespace
         diag.report(sema.ctx());
     }
 
-    void emitBadMatch(Sema& sema, const SemaNodeView& nodeCallee, SymbolFunction& fn, const MatchFailure& fail, std::span<AstNodeRef> args)
+    void emitBadMatch(Sema& sema, const SemaNodeView& nodeCallee, const SymbolFunction& fn, const MatchFailure& fail, std::span<AstNodeRef> args)
     {
         const auto ctx = sema.ctx();
 
@@ -214,6 +206,8 @@ namespace
                 diag = SemaError::report(sema, DiagnosticId::sema_err_too_many_arguments, nodeCallee.nodeRef);
                 diag.addArgument(Diagnostic::ARG_COUNT, std::to_string(fail.expectedCount));
                 diag.addArgument(Diagnostic::ARG_VALUE, std::to_string(fail.providedCount));
+                if (fail.hasLocation && fail.argIndex < args.size())
+                    diag.last().addSpan(sema.node(args[fail.argIndex]).location(ctx));
                 break;
 
             case MatchFailKind::TooFewArguments:
@@ -225,6 +219,8 @@ namespace
             case MatchFailKind::InvalidArgumentType:
                 diag = SemaError::report(sema, DiagnosticId::sema_err_bad_function_match, nodeCallee.nodeRef);
                 diag.addArgument(Diagnostic::ARG_SYM, fn.name(ctx));
+                if (fail.hasLocation && fail.argIndex < args.size())
+                    diag.last().addSpan(sema.node(args[fail.argIndex]).location(ctx));
                 break;
 
             default:
@@ -234,29 +230,12 @@ namespace
         }
 
         diag.report(sema.ctx());
-
-        // Optional pinpoint note to the argument node if we have it.
-        if (fail.kind == MatchFailKind::TooManyArguments && fail.hasLocation && fail.argIndex < args.size())
-        {
-            auto note = SemaError::report(sema, DiagnosticId::sema_note_candidate_failed_here, args[fail.argIndex]);
-            note.addArgument(Diagnostic::ARG_SYM, fn.name(ctx));
-            note.report(sema.ctx());
-        }
-        else if (fail.kind == MatchFailKind::InvalidArgumentType && fail.hasLocation && fail.argIndex < args.size())
-        {
-            auto note = SemaError::report(sema, DiagnosticId::sema_note_candidate_failed_here, args[fail.argIndex]);
-            note.addArgument(Diagnostic::ARG_SYM, fn.name(ctx));
-            // note.addArgument(Diagnostic::ARG_INDEX, std::to_string(fail.argIndex));
-            note.report(sema.ctx());
-        }
     }
 
     void emitNoOverloadMatch(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<Attempt>& attempts, std::span<AstNodeRef> args)
     {
-        const auto& ctx = sema.ctx();
-
-        const auto diag = SemaError::report(sema, DiagnosticId::sema_err_no_overload_match, nodeCallee.nodeRef);
-        diag.report(sema.ctx());
+        const auto& ctx  = sema.ctx();
+        auto        diag = SemaError::report(sema, DiagnosticId::sema_err_no_overload_match, nodeCallee.nodeRef);
 
         // One note per overload attempt describing why it failed (and where when possible).
         for (const Attempt& a : attempts)
@@ -264,7 +243,8 @@ namespace
             if (!a.fn || a.viable)
                 continue;
 
-            auto note = SemaError::report(sema, DiagnosticId::sema_note_overload_candidate_failed, nodeCallee.nodeRef);
+            diag.addNote(DiagnosticId::sema_note_overload_candidate_failed);
+            auto& note = diag.last();
             note.addArgument(Diagnostic::ARG_SYM, a.fn->name(ctx));
 
             switch (a.fail.kind)
@@ -291,16 +271,19 @@ namespace
                     break;
             }
 
-            note.report(sema.ctx());
-
             // Extra pinpoint note, if we can point to a specific arg node.
             if (a.fail.hasLocation && a.fail.argIndex < args.size())
             {
-                auto here = SemaError::report(sema, DiagnosticId::sema_note_candidate_failed_here, args[a.fail.argIndex]);
+                diag.addNote(DiagnosticId::sema_note_candidate_failed_here);
+                auto& here = diag.last();
+
+                const auto& argNode = sema.node(args[a.fail.argIndex]);
+                here.addSpan(argNode.location(sema.ctx()));
                 here.addArgument(Diagnostic::ARG_SYM, a.fn->name(ctx));
-                here.report(sema.ctx());
             }
         }
+
+        diag.report(sema.ctx());
     }
 }
 
@@ -316,7 +299,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     for (const Attempt& a : attempts)
     {
         if (a.viable)
-            viable.push_back(a.cand);
+            viable.push_back(a.candidate);
     }
 
     // If we have viable overload candidates: pick the best (or ambiguous)
@@ -348,7 +331,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
                 if (compareCandidates(c, *best) == 0)
                     ambiguousSymbols.push_back(c.fn);
             }
-            
+
             return SemaError::raiseAmbiguousSymbol(sema, nodeCallee.nodeRef, ambiguousSymbols);
         }
 

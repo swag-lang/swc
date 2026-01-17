@@ -170,7 +170,7 @@ void Diagnostic::addArgument(std::string_view name, std::string_view arg, bool q
         }
     }
 
-    arguments_.emplace_back(Argument{.name = name, .quoted = quoted, .val = std::move(sanitized)});
+    arguments_.emplace_back(DiagnosticArgument{.name = name, .quoted = quoted, .val = std::move(sanitized)});
 }
 
 Diagnostic Diagnostic::get(DiagnosticId id, FileRef file)

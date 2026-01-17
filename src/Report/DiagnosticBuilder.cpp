@@ -446,7 +446,7 @@ void DiagnosticBuilder::writeLabelMsg(const DiagnosticElement& el)
 
     // Message
     out_ += partStyle(DiagPart::LabelMsgText, el.severity());
-    writeHighlightedMessage(el.severity(), buildMessage(el.message()), partStyle(DiagPart::LabelMsgText, el.severity()));
+    writeHighlightedMessage(el.severity(), buildMessage(el.message(), &el), partStyle(DiagPart::LabelMsgText, el.severity()));
     out_ += partStyle(DiagPart::Reset);
     out_ += "\n";
 }
@@ -485,7 +485,7 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const Sm
 
         if (!msg.empty())
         {
-            msg                        = buildMessage(msg);
+            msg                        = buildMessage(msg, &el);
             const uint32_t msgStartPos = column + underlineLen + 1; // +1 for space before a message
             const uint32_t msgLength   = static_cast<uint32_t>(msg.length());
 
@@ -684,21 +684,29 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
     out_ += partStyle(DiagPart::Reset);
 }
 
-Utf8 DiagnosticBuilder::buildMessage(const Utf8& msg) const
+Utf8 DiagnosticBuilder::buildMessage(const Utf8& msg, const DiagnosticElement* el) const
 {
     auto result = msg;
 
-    // Replace placeholders
-    for (const auto& arg : diag_->arguments())
-    {
-        Utf8   replacement = argumentToString(arg);
-        size_t pos         = 0;
-        while ((pos = result.find(arg.name, pos)) != Utf8::npos)
+    auto replaceArgs = [&](const DiagnosticArguments& arguments) {
+        for (const auto& arg : arguments)
         {
-            result.replace(pos, arg.name.length(), replacement);
-            pos += replacement.length();
+            Utf8   replacement = argumentToString(arg);
+            size_t pos         = 0;
+            while ((pos = result.find(arg.name, pos)) != Utf8::npos)
+            {
+                result.replace(pos, arg.name.length(), replacement);
+                pos += replacement.length();
+            }
         }
-    }
+    };
+
+    // Replace placeholders from the element first
+    if (el)
+        replaceArgs(el->arguments());
+
+    // Then from the diagnostic
+    replaceArgs(diag_->arguments());
 
     // Clean some stuff
     result = std::regex_replace(result, std::regex{R"(\{\w+\})"}, "");
@@ -709,7 +717,7 @@ Utf8 DiagnosticBuilder::buildMessage(const Utf8& msg) const
 }
 
 // Helper function to convert variant argument to string
-Utf8 DiagnosticBuilder::argumentToString(const Diagnostic::Argument& arg) const
+Utf8 DiagnosticBuilder::argumentToString(const DiagnosticArgument& arg) const
 {
     auto toUtf8 = [&]<typename T0>(const T0& v) -> Utf8 {
         using T = std::decay_t<T0>;
@@ -753,7 +761,7 @@ void DiagnosticBuilder::expandMessageParts(SmallVector<std::unique_ptr<Diagnosti
     for (size_t idx = elements.size(); idx-- > 0;)
     {
         const auto element = elements[idx].get();
-        const Utf8 msg     = buildMessage(element->message());
+        const Utf8 msg     = buildMessage(element->message(), element);
         auto       parts   = parseParts(std::string_view(msg));
 
         // Base element keeps the first part

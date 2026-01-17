@@ -7,6 +7,8 @@ SWC_BEGIN_NAMESPACE();
 class SourceFile;
 class TaskContext;
 enum class DiagnosticId;
+struct DiagnosticArgument;
+using DiagnosticArguments = std::vector<DiagnosticArgument>;
 
 class DiagnosticElement
 {
@@ -36,12 +38,22 @@ public:
     void               setSeverity(DiagnosticSeverity sev) { severity_ = sev; }
     bool               isNoteOrHelp() const;
 
+    const DiagnosticArguments& arguments() const { return arguments_; }
+    void                       addArgument(std::string_view name, std::string_view arg, bool quoted = true);
+
+    template<typename T>
+    void addArgument(std::string_view name, T&& arg, bool quoted = true)
+    {
+        arguments_.emplace_back(DiagnosticArgument{name, quoted, std::forward<T>(arg)});
+    }
+
 private:
     Utf8                        message_;
     DiagnosticId                id_;
     DiagnosticSeverity          severity_;
     const SourceView*           srcView_ = nullptr;
     std::vector<DiagnosticSpan> spans_;
+    DiagnosticArguments         arguments_;
 };
 
 SWC_END_NAMESPACE();

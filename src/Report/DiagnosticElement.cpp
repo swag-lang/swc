@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "DiagnosticElement.h"
+#include "Core/Utf8Helper.h"
 #include "Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -83,6 +84,55 @@ std::string_view DiagnosticElement::idName() const
 bool DiagnosticElement::isNoteOrHelp() const
 {
     return severity_ == DiagnosticSeverity::Note || severity_ == DiagnosticSeverity::Help;
+}
+
+void DiagnosticElement::addArgument(std::string_view name, std::string_view arg, bool quoted)
+{
+    Utf8 sanitized;
+    sanitized.reserve(arg.size());
+
+    auto       ptr = reinterpret_cast<const char8_t*>(arg.data());
+    const auto end = ptr + arg.size();
+    while (ptr < end)
+    {
+        auto [buf, wc, eat] = Utf8Helper::decodeOneChar(ptr, end);
+        if (!buf)
+        {
+            ptr++;
+            continue;
+        }
+
+        if ((wc < 128 && !std::isprint(static_cast<int>(wc))) || wc >= 128)
+        {
+            char hex[10];
+            (void) std::snprintf(hex, sizeof(hex), "\\x%02X", static_cast<uint32_t>(wc));
+            sanitized += hex;
+            ptr = buf;
+        }
+        else if (wc == '\t' || wc == '\n' || wc == '\r')
+        {
+            sanitized += ' ';
+            ptr = buf;
+        }
+        else
+        {
+            while (ptr < buf)
+                sanitized += static_cast<char>(*ptr++);
+        }
+    }
+
+    // Replace it if the same argument already exists
+    for (auto& a : arguments_)
+    {
+        if (a.name == name)
+        {
+            a.val    = std::move(sanitized);
+            a.quoted = quoted;
+            return;
+        }
+    }
+
+    arguments_.emplace_back(DiagnosticArgument{.name = name, .quoted = quoted, .val = std::move(sanitized)});
 }
 
 // Format a string by replacing registered arguments

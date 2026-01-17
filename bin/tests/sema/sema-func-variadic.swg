@@ -23,4 +23,5 @@ func tutu(a: s32, b: s32...) {}
     tutu(1)
     tutu(1, 2)
     tutu(1, 2, 3)
+    @print("a", "b")
 }

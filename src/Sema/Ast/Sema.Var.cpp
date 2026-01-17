@@ -178,7 +178,7 @@ Result AstVarDeclNameList::semaPreDecl(Sema& sema) const
         }
     }
 
-    sema.semaInfo().setSymbolList(sema.curNodeRef(), symbols.span());
+    sema.setSymbolList(sema.curNodeRef(), symbols.span());
     return Result::SkipChildren;
 }
 

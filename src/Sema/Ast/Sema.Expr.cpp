@@ -79,8 +79,7 @@ Result AstAutoMemberAccessExpr::semaPostNode(Sema& sema)
 
     RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
 
-    const Symbol* symbols[2] = {symMe, lookUpCxt.first()};
-    sema.semaInfo().setSymbolList(sema.curNodeRef(), symbols);
+    sema.setSymbolList(sema.curNodeRef(), lookUpCxt.symbols());
     return Result::Continue;
 }
 
@@ -110,8 +109,8 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
 
         RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
 
-        sema.semaInfo().setSymbol(nodeRightRef, lookUpCxt.first());
-        sema.semaInfo().setSymbol(sema.curNodeRef(), lookUpCxt.first());
+        sema.setSymbol(nodeRightRef, lookUpCxt.first());
+        sema.setSymbol(sema.curNodeRef(), lookUpCxt.first());
         return Result::SkipChildren;
     }
 
@@ -132,8 +131,8 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
 
         RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
 
-        sema.semaInfo().setSymbol(nodeRightRef, lookUpCxt.first());
-        sema.semaInfo().setSymbol(sema.curNodeRef(), lookUpCxt.first());
+        sema.setSymbol(nodeRightRef, lookUpCxt.first());
+        sema.setSymbol(sema.curNodeRef(), lookUpCxt.first());
         return Result::SkipChildren;
     }
 
@@ -165,8 +164,8 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
 
         RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
 
-        sema.semaInfo().setSymbol(nodeRightRef, lookUpCxt.first());
-        sema.semaInfo().setSymbol(sema.curNodeRef(), lookUpCxt.first());
+        sema.setSymbol(nodeRightRef, lookUpCxt.first());
+        sema.setSymbol(sema.curNodeRef(), lookUpCxt.first());
         if (nodeLeftView.type->isPointer() || SemaInfo::isLValue(sema.node(nodeLeftRef)))
             SemaInfo::setIsLValue(*this);
         return Result::SkipChildren;

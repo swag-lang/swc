@@ -184,15 +184,16 @@ namespace
         }
     }
 
-    void emitNotCallable(Sema& sema, const SemaNodeView& nodeCallee)
+    Result emitNotCallable(Sema& sema, const SemaNodeView& nodeCallee)
     {
         auto        diag    = SemaError::report(sema, DiagnosticId::sema_err_not_callable, nodeCallee.nodeRef);
         const auto& srcView = sema.srcView(nodeCallee.node->srcViewRef());
         diag.addArgument(Diagnostic::ARG_SYM, srcView.token(nodeCallee.node->tokRef()).string(srcView));
         diag.report(sema.ctx());
+        return Result::Error;
     }
 
-    void emitBadMatch(Sema& sema, const SemaNodeView& nodeCallee, const SymbolFunction& fn, const MatchFailure& fail, std::span<AstNodeRef> args)
+    Result emitBadMatch(Sema& sema, const SemaNodeView& nodeCallee, const SymbolFunction& fn, const MatchFailure& fail, std::span<AstNodeRef> args)
     {
         const auto& ctx = sema.ctx();
 
@@ -226,9 +227,10 @@ namespace
             diag.last().addSpan(sema.node(args[fail.argIndex]).location(ctx));
 
         diag.report(sema.ctx());
+        return Result::Error;
     }
 
-    void emitNoOverloadMatch(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<Attempt>& attempts, std::span<AstNodeRef> args)
+    Result emitNoOverloadMatch(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<Attempt>& attempts, std::span<AstNodeRef> args)
     {
         auto& ctx  = sema.ctx();
         auto  diag = SemaError::report(sema, DiagnosticId::sema_err_no_overload_match, nodeCallee.nodeRef);
@@ -271,6 +273,7 @@ namespace
         }
 
         diag.report(sema.ctx());
+        return Result::Error;
     }
 }
 
@@ -330,21 +333,14 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     {
         // No function symbols at all in "symbols" -> "not callable"
         if (functions.empty())
-        {
-            emitNotCallable(sema, nodeCallee);
-            return Result::Error;
-        }
+            return emitNotCallable(sema, nodeCallee);
 
         // Exactly one function symbol -> "bad match" with reason
         if (functions.size() == 1)
-        {
-            emitBadMatch(sema, nodeCallee, *attempts.front().fn, attempts.front().fail, args);
-            return Result::Error;
-        }
+            return emitBadMatch(sema, nodeCallee, *attempts.front().fn, attempts.front().fail, args);
 
         // Multiple function symbols -> "no overload match" with per-overload failure notes
-        emitNoOverloadMatch(sema, nodeCallee, attempts, args);
-        return Result::Error;
+        return emitNoOverloadMatch(sema, nodeCallee, attempts, args);
     }
 
     // Apply implicit conversions + handle defaults (already validated by tryBuildCandidate)

@@ -20,6 +20,12 @@ func T1(a0, b0: s32)->s32
     return c
 }
 
+namespace NS {}
+#test
+{
+    NS()
+}
+
 #test
 {
     F0()

@@ -171,7 +171,6 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
             auto        diag    = SemaError::report(sema, DiagnosticId::sema_err_not_callable, nodeCallee.nodeRef);
             const auto& srcView = sema.srcView(nodeCallee.node->srcViewRef());
             diag.addArgument(Diagnostic::ARG_SYM, srcView.token(nodeCallee.node->tokRef()).string(srcView));
-            diag.addArgument(Diagnostic::ARG_TYPE, nodeCallee.type ? nodeCallee.type->toName(sema.ctx()) : "invalid type");
             diag.report(sema.ctx());
             return Result::Error;
         }

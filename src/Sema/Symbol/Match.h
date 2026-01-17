@@ -1,7 +1,11 @@
 #pragma once
+#include "Core/SmallVector.h"
+#include "Parser/AstNode.h"
 #include "Sema/Symbol/IdentifierManager.h"
 
 SWC_BEGIN_NAMESPACE();
+
+struct SemaNodeView;
 
 class Symbol;
 class Sema;
@@ -12,6 +16,8 @@ namespace Match
 {
     Result match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef);
     Result ghosting(Sema& sema, const Symbol& sym);
+
+    Result resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<AstNodeRef>& args, const SmallVector<Symbol*>& symbols);
 }
 
 SWC_END_NAMESPACE();

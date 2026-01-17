@@ -280,6 +280,7 @@
         <ClCompile Include="src\Sema\Helpers\SemaInfo.cpp"/>
         <ClCompile Include="src\Sema\Helpers\SemaJob.cpp"/>
         <ClCompile Include="src\Sema\Symbol\IdentifierManager.cpp"/>
+        <ClCompile Include="src\Sema\Symbol\Match.Func.cpp"/>
         <ClCompile Include="src\Sema\Symbol\MatchContext.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Match.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Symbol.Attribute.cpp"/>

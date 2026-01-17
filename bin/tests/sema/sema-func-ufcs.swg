@@ -11,4 +11,5 @@ impl A
 {
     var a: *A
     a.toto(1)
+    A.toto(a, 2)
 }

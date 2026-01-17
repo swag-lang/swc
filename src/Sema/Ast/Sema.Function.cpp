@@ -7,12 +7,10 @@
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaHelpers.h"
 #include "Sema/Symbol/Match.h"
+#include "Sema/Symbol/MatchContext.h"
 #include "Sema/Symbol/Symbol.Impl.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/Cast.h"
-
-#include "Sema/Symbol/MatchContext.h"
-#include "Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE();
 

@@ -14,12 +14,10 @@ namespace
 {
     enum class ConvRank : uint8_t
     {
-        Exact    = 0, // same type (or identical canonical type)
-        Promo    = 1, // e.g. smaller int -> bigger int, bool->int, etc.
-        Standard = 2, // safe numeric, pointer decay, etc.
-        User     = 3, // user-defined conversion (if you have it)
-        Ellipsis = 4, // varargs fallback (if you support it)
-        Bad      = 255
+        Exact,    // same type (or identical canonical type)
+        Standard, // safe numeric, pointer decay, etc.
+        Ellipsis, // varargs fallback (if you support it)
+        Bad = 255
     };
 
     enum class MatchFailKind
@@ -70,16 +68,16 @@ namespace
     }
 
     // Try to build a candidate; if it fails, fill out why + where.
-    bool tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, Candidate& outCand, MatchFailure& outFail)
+    bool tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, Candidate& outCandidate, MatchFailure& outFail)
     {
         const auto&    params    = fn.parameters();
         const uint32_t numArgs   = static_cast<uint32_t>(args.size());
         const uint32_t numParams = static_cast<uint32_t>(params.size());
 
-        outCand.fn = &fn;
-        outCand.perArg.clear();
-        outCand.usedDefaults = 0;
-        outCand.viable       = false;
+        outCandidate.fn = &fn;
+        outCandidate.perArg.clear();
+        outCandidate.usedDefaults = 0;
+        outCandidate.viable       = false;
 
         auto& ctx = sema.ctx();
 
@@ -122,7 +120,7 @@ namespace
                 return false;
             }
 
-            outCand.perArg.push_back(r);
+            outCandidate.perArg.push_back(r);
         }
 
         // Handle variadic tail
@@ -139,7 +137,7 @@ namespace
                 {
                     if (isVariadic)
                     {
-                        outCand.perArg.push_back(ConvRank::Ellipsis);
+                        outCandidate.perArg.push_back(ConvRank::Ellipsis);
                     }
                     else
                     {
@@ -153,45 +151,40 @@ namespace
                             outFail.hasLocation = true;
                             return false;
                         }
-                        outCand.perArg.push_back(r);
+                        outCandidate.perArg.push_back(r);
                     }
                 }
-            }
-            else if (numArgs == startVariadic)
-            {
-                // Variadic part is empty, which is fine
-            }
-            else
-            {
-                // Too few arguments even before variadic
-                outFail.kind          = MatchFailKind::TooFewArguments;
-                outFail.expectedCount = numParams; // At least numParams if no defaults, but wait
-                outFail.providedCount = numArgs;
-                outFail.argIndex      = numArgs;
-                outFail.paramIndex    = numArgs;
-                outFail.hasLocation   = false;
-                return false;
             }
         }
 
         // Remaining params must be defaulted/initialized
-        const uint32_t startCheckDefaults = (isVariadic || isTypedVariadic) ? std::max(numArgs, numParams - 1) : numArgs;
-        for (uint32_t i = startCheckDefaults; i < numParams; ++i)
+        const uint32_t numParamsToCheck = (isVariadic || isTypedVariadic) ? numParams - 1 : numParams;
+        for (uint32_t i = numArgs; i < numParamsToCheck; ++i)
         {
             if (!params[i]->hasExtraFlag(SymbolVariableFlagsE::Initialized))
             {
+                uint32_t minExpectedCount = 0;
+                for (uint32_t j = 0; j < numParams; j++)
+                {
+                    if ((isVariadic || isTypedVariadic) && j == numParams - 1)
+                        break;
+                    if (params[j]->hasExtraFlag(SymbolVariableFlagsE::Initialized))
+                        break;
+                    minExpectedCount++;
+                }
+
                 outFail.kind          = MatchFailKind::TooFewArguments;
-                outFail.expectedCount = numParams;
+                outFail.expectedCount = minExpectedCount;
                 outFail.providedCount = numArgs;
                 outFail.argIndex      = numArgs; // first missing
                 outFail.paramIndex    = i;       // missing parameter index
                 outFail.hasLocation   = false;
                 return false;
             }
-            outCand.usedDefaults++;
+            outCandidate.usedDefaults++;
         }
 
-        outCand.viable = true;
+        outCandidate.viable = true;
         return true;
     }
 
@@ -217,10 +210,10 @@ namespace
         return 0;
     }
 
-    void collectAttempts(Sema& sema, SmallVector<Attempt>& outAttempts, SmallVector<SymbolFunction*>& outFunctionSyms, std::span<Symbol*> symbols, std::span<AstNodeRef> args)
+    void collectAttempts(Sema& sema, SmallVector<Attempt>& outAttempts, SmallVector<SymbolFunction*>& outFunctionSymbols, std::span<Symbol*> symbols, std::span<AstNodeRef> args)
     {
         outAttempts.clear();
-        outFunctionSyms.clear();
+        outFunctionSymbols.clear();
 
         for (Symbol* s : symbols)
         {
@@ -231,7 +224,7 @@ namespace
                 continue;
 
             auto& fn = s->cast<SymbolFunction>();
-            outFunctionSyms.push_back(&fn);
+            outFunctionSymbols.push_back(&fn);
 
             Attempt a;
             a.fn = &fn;

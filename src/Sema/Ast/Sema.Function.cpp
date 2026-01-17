@@ -156,7 +156,7 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
     SmallVector<Symbol*> symbols;
     nodeCallee.getSymbols(symbols);
 
-    return Match::resolveFunctionCandidates(sema, nodeCallee, args, symbols);
+    return Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args);
 }
 
 SWC_END_NAMESPACE();

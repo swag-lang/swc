@@ -107,24 +107,27 @@ namespace
             return (a.usedDefaults < b.usedDefaults) ? -1 : 1;
         return 0;
     }
+
+    void buildFunctionCandidates(Sema& sema, SmallVector<Candidate>& viable, const SmallVector<Symbol*>& symbols, const SmallVector<AstNodeRef>& args)
+    {
+        for (Symbol* s : symbols)
+        {
+            if (!s->isFunction())
+                continue;
+
+            SymbolFunction& fn = s->cast<SymbolFunction>();
+
+            Candidate c;
+            if (buildCandidate(sema, fn, args, c))
+                viable.push_back(std::move(c));
+        }
+    }
 }
 
-Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<AstNodeRef>& args, const SmallVector<Symbol*>& symbols)
+Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<Symbol*>& symbols, const SmallVector<AstNodeRef>& args)
 {
     SmallVector<Candidate> viable;
-    SmallVector<Symbol*>   ambiguousSymbols;
-
-    for (Symbol* s : symbols)
-    {
-        if (!s->isFunction())
-            continue;
-
-        SymbolFunction& fn = s->cast<SymbolFunction>();
-
-        Candidate c;
-        if (buildCandidate(sema, fn, args, c))
-            viable.push_back(std::move(c));
-    }
+    buildFunctionCandidates(sema, viable, symbols, args);
 
     SymbolFunction* selectedFn = nullptr;
 
@@ -149,13 +152,12 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
 
         if (tie)
         {
-            // Gather all tied bests for diag
+            SmallVector<Symbol*> ambiguousSymbols;
             for (auto& c : viable)
             {
                 if (compareCandidates(c, *best) == 0)
                     ambiguousSymbols.push_back(c.fn);
             }
-            
             return SemaError::raiseAmbiguousSymbol(sema, nodeCallee.nodeRef, ambiguousSymbols);
         }
 

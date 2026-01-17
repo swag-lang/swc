@@ -172,11 +172,16 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         return Result::SkipChildren;
     }
 
-    // TODO
+    // Pointer
     if (nodeLeftView.type->isPointer())
+    {
         sema.setType(sema.curNodeRef(), nodeLeftView.type->typeRef());
-    else
-        sema.setType(sema.curNodeRef(), sema.typeMgr().typeInt(32, TypeInfo::Sign::Signed));
+        SemaInfo::setIsValue(*this);
+        return Result::SkipChildren;        
+    }
+    
+    // TODO
+    sema.setType(sema.curNodeRef(), sema.typeMgr().typeInt(32, TypeInfo::Sign::Signed));
     SemaInfo::setIsValue(*this);
     return Result::SkipChildren;
 }

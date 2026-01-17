@@ -157,9 +157,8 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
     SmallVector<Symbol*> symbols;
     nodeCallee.getSymbols(symbols);
 
-    AstNodeRef ufcsArg      = AstNodeRef::invalid();
-    const auto memberAccess = nodeCallee.node->safeCast<AstMemberAccessExpr>();
-    if (memberAccess)
+    AstNodeRef ufcsArg = AstNodeRef::invalid();
+    if (const auto memberAccess = nodeCallee.node->safeCast<AstMemberAccessExpr>())
     {
         const SemaNodeView nodeLeftView(sema, memberAccess->nodeLeftRef);
         if (SemaInfo::isValue(*nodeLeftView.node))

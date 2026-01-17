@@ -130,7 +130,7 @@ namespace
         return true;
     }
 
-    // Compare candidates: "best" is the one with better (smaller) rank for the first differing arg.
+    // Compare candidates: "best" is the one with the better (smaller) rank for the first differing arg.
     // Tie-breakers can include fewer defaults, non-template, more specialized, etc.
     int compareCandidates(const Candidate& a, const Candidate& b)
     {
@@ -167,12 +167,12 @@ namespace
             a.fn = &fn;
 
             MatchFailure fail;
-            Candidate    cand;
+            Candidate    candidate;
 
-            if (tryBuildCandidate(sema, fn, args, cand, fail))
+            if (tryBuildCandidate(sema, fn, args, candidate, fail))
             {
                 a.viable    = true;
-                a.candidate = std::move(cand);
+                a.candidate = std::move(candidate);
             }
             else
             {

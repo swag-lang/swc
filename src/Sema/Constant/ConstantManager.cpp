@@ -2,8 +2,8 @@
 #include "Sema/Constant/ConstantManager.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
+#include "Sema/Cast/Cast.h"
 #include "Sema/Helpers/SemaError.h"
-#include "Sema/Type/Cast.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE();

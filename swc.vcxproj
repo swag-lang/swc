@@ -268,6 +268,9 @@
         <ClCompile Include="src\Sema\Ast\Sema.Struct.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Type.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Var.cpp"/>
+        <ClCompile Include="src\Sema\Cast\Cast.Const.cpp"/>
+        <ClCompile Include="src\Sema\Cast\Cast.Convert.cpp"/>
+        <ClCompile Include="src\Sema\Cast\Cast.cpp"/>
         <ClCompile Include="src\Sema\Constant\ConstantManager.cpp"/>
         <ClCompile Include="src\Sema\Constant\ConstantValue.cpp"/>
         <ClCompile Include="src\Sema\Core\Sema.cpp"/>
@@ -290,9 +293,6 @@
         <ClCompile Include="src\Sema\Symbol\Symbol.Struct.cpp"/>
         <ClCompile Include="src\Sema\Symbol\SymbolMap.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Symbol.cpp"/>
-        <ClCompile Include="src\Sema\Type\Cast.Const.cpp"/>
-        <ClCompile Include="src\Sema\Type\Cast.Convert.cpp"/>
-        <ClCompile Include="src\Sema\Type\Cast.cpp"/>
         <ClCompile Include="src\Sema\Type\TypeInfo.cpp"/>
         <ClCompile Include="src\Sema\Type\TypeManager.cpp"/>
         <ClCompile Include="src\Thread\JobManager.cpp"/>
@@ -356,6 +356,7 @@
         <ClInclude Include="src\Report\Logger.h"/>
         <ClInclude Include="src\Report\LogSymbol.h"/>
         <ClInclude Include="src\Runtime\Runtime.h"/>
+        <ClInclude Include="src\Sema\Cast\Cast.h"/>
         <ClInclude Include="src\Sema\Constant\ConstantManager.h"/>
         <ClInclude Include="src\Sema\Constant\ConstantValue.h"/>
         <ClInclude Include="src\Sema\Core\AttributeList.h"/>
@@ -384,7 +385,6 @@
         <ClInclude Include="src\Sema\Symbol\Symbol.Variable.h"/>
         <ClInclude Include="src\Sema\Symbol\SymbolMap.h"/>
         <ClInclude Include="src\Sema\Symbol\Symbol.h"/>
-        <ClInclude Include="src\Sema\Type\Cast.h"/>
         <ClInclude Include="src\Sema\Type\TypeInfo.h"/>
         <ClInclude Include="src\Sema\Type\TypeManager.h"/>
         <ClInclude Include="src\Thread\Job.h"/>

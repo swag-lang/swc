@@ -2,13 +2,13 @@
 #include "Sema/Core/Sema.h"
 #include "Lexer/LangSpec.h"
 #include "Parser/AstNodes.h"
+#include "Sema/Cast/Cast.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaHelpers.h"
 #include "Sema/Match/Match.h"
 #include "Sema/Symbol/Symbols.h"
-#include "Sema/Type/Cast.h"
 
 SWC_BEGIN_NAMESPACE();
 

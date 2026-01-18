@@ -1,6 +1,6 @@
 // ReSharper disable CppClangTidyClangDiagnosticMissingDesignatedFieldInitializers
 #include "pch.h"
-#include "Sema/Type/Cast.h"
+#include "Sema/Cast/Cast.h"
 #include "Report/Diagnostic.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/Sema.h"

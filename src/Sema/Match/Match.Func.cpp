@@ -1,11 +1,11 @@
 #include "pch.h"
 #include "Sema/Match/Match.h"
+#include "Sema/Cast/Cast.h"
 #include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/Symbol.Function.h"
 #include "Sema/Symbol/Symbol.Variable.h"
-#include "Sema/Type/Cast.h"
 #include "Sema/Type/TypeInfo.h"
 
 SWC_BEGIN_NAMESPACE();

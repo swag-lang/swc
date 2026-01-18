@@ -128,7 +128,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
 
         RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
 
-        sema.setSymbolList(nodeRightRef, lookUpCxt.symbols());
+        sema.setSymbolList(nodeRightView.nodeRef, lookUpCxt.symbols());
         sema.setSymbolList(sema.curNodeRef(), lookUpCxt.symbols());
         return Result::SkipChildren;
     }
@@ -150,7 +150,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
 
         RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
 
-        sema.setSymbolList(nodeRightRef, lookUpCxt.symbols());
+        sema.setSymbolList(nodeRightView.nodeRef, lookUpCxt.symbols());
         sema.setSymbolList(sema.curNodeRef(), lookUpCxt.symbols());
         return Result::SkipChildren;
     }
@@ -188,7 +188,11 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
 
         // Constant struct member access
         if (nodeLeftView.cst && lookUpCxt.symbols().size() == 1 && lookUpCxt.symbols()[0]->isVariable())
-            SemaHelpers::extractConstantStructMember(sema, *nodeLeftView.cst, lookUpCxt.symbols()[0]->cast<SymbolVariable>(), sema.curNodeRef());
+        {
+            const SymbolVariable& symVar = lookUpCxt.symbols()[0]->cast<SymbolVariable>();
+            RESULT_VERIFY(SemaHelpers::extractConstantStructMember(sema, *nodeLeftView.cst, symVar, sema.curNodeRef(), nodeRightView.nodeRef));
+            return Result::SkipChildren;
+        }
 
         if (nodeLeftView.type->isAnyPointer() || SemaInfo::isLValue(sema.node(nodeLeftRef)))
             SemaInfo::setIsLValue(*this);

@@ -5,6 +5,7 @@
 #include "Main/TaskContext.h"
 #include "Runtime/Runtime.h"
 #include "Sema/Constant/ConstantManager.h"
+#include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/Symbol.Attribute.h"
 #include "Sema/Symbol/Symbol.Function.h"
 #include "Sema/Symbol/Symbol.Interface.h"
@@ -62,13 +63,13 @@ ConstantRef SemaHelpers::makeConstantLocation(Sema& sema, const AstNode& node)
     return sema.cstMgr().addConstant(ctx, cstVal);
 }
 
-void SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef)
+Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
 {
     const std::string_view bytes = cst.getStruct();
 
     const TypeInfo& typeField = symVar.typeInfo(sema.ctx());
     if (symVar.offset() + typeField.sizeOf(sema.ctx()) > bytes.size())
-        return;
+        return Result::Continue;
 
     const auto    fieldBytes = std::string_view(bytes.data() + symVar.offset(), typeField.sizeOf(sema.ctx()));
     ConstantValue cv;
@@ -96,12 +97,17 @@ void SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue& c
             apFloat.set(*reinterpret_cast<const double*>(fieldBytes.data()));
         cv = ConstantValue::makeFloat(sema.ctx(), apFloat, typeField.floatBits());
     }
-
-    if (cv.kind() != ConstantKind::Invalid)
+    else
     {
-        const auto cstRef = sema.cstMgr().addConstant(sema.ctx(), cv);
-        sema.setConstant(nodeRef, cstRef);
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_cst_struct_member_type, nodeMemberRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, symVar.typeRef());
+        diag.report(sema.ctx());
+        return Result::Error;
     }
+
+    const auto cstRef = sema.cstMgr().addConstant(sema.ctx(), cv);
+    sema.setConstant(nodeRef, cstRef);
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

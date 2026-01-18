@@ -242,6 +242,7 @@ namespace Runtime
     {
         TypeInfo base;
     };
+    
     struct SourceCodeLocation
     {
         String   fileName;

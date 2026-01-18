@@ -250,6 +250,15 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
             SemaInfo::setIsValue(*this);
             break;
         }
+        case TokenId::CompilerCurLocation:
+        {
+            TypeRef typeRef = sema.typeMgr().structSourceCodeLocation();
+            if (typeRef.isInvalid())
+                return sema.waitIdentifier(sema.idMgr().nameSourceCodeLocation(), srcViewRef(), tokRef());
+            // TODO
+            SemaInfo::setIsValue(*this);
+            break;
+        }
 
         case TokenId::CompilerArch:
         case TokenId::CompilerCpu:
@@ -258,7 +267,6 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
         case TokenId::CompilerSwagOs:
         case TokenId::CompilerBackend:
         case TokenId::CompilerScopeName:
-        case TokenId::CompilerCurLocation:
             // TODO
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
             break;

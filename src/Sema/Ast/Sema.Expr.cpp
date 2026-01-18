@@ -43,11 +43,11 @@ Result AstAutoMemberAccessExpr::semaPostNode(Sema& sema)
 {
     const auto node = sema.node(sema.curNodeRef()).cast<AstAutoMemberAccessExpr>();
 
-    const SymbolMap* symMapHint = nullptr;
-    const auto       symFunc    = sema.frame().function();
+    const SymbolMap*      symMapHint = nullptr;
+    const SymbolFunction* symFunc    = sema.frame().function();
     if (symFunc && !symFunc->parameters().empty())
     {
-        const auto symMe = symFunc->parameters()[0];
+        const SymbolVariable* symMe = symFunc->parameters()[0];
         if (symMe->idRef() == sema.idMgr().nameMe())
         {
             const auto      typeRef  = symMe->typeRef();

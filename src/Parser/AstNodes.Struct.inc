@@ -627,6 +627,7 @@ struct AstStructLiteral : AstCompoundT<AstNodeId::StructLiteral>
 // -----------------------------------------------------------------------------
 struct AstAutoMemberAccessExpr : AstNodeT<AstNodeId::AutoMemberAccessExpr>
 {
+    AstNodeRef resolvedRef;
     AstNodeRef nodeIdentRef;
 
     void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeIdentRef}); }

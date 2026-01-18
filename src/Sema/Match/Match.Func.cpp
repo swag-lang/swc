@@ -62,6 +62,17 @@ namespace
         bool any() const { return isVariadic || isTypedVariadic; }
     };
 
+    AstNodeRef getArg(uint32_t argIndex, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+    {
+        if (ufcsArg.isValid())
+        {
+            if (argIndex == 0)
+                return ufcsArg;
+            return args[argIndex - 1];
+        }
+        return args[argIndex];
+    }
+
     VariadicInfo getVariadicInfo(Sema& sema, const SymbolFunction& fn)
     {
         VariadicInfo vi;
@@ -177,21 +188,9 @@ namespace
 
         for (uint32_t i = 0; i < upto; ++i)
         {
-            AstNodeRef argRef;
-            if (ufcsArg.isValid())
-            {
-                if (i == 0)
-                    argRef = ufcsArg;
-                else
-                    argRef = args[i - 1];
-            }
-            else
-            {
-                argRef = args[i];
-            }
-
-            const TypeRef argTy   = sema.typeRefOf(argRef);
-            const TypeRef paramTy = params[i]->typeRef();
+            const AstNodeRef argRef = getArg(i, args, ufcsArg);
+            const TypeRef    argTy  = sema.typeRefOf(argRef);
+            const TypeRef    paramTy = params[i]->typeRef();
 
             CastFailure    cf{};
             const ConvRank r = probeImplicitConversion(sema, argTy, paramTy, cf);
@@ -221,15 +220,10 @@ namespace
                     }
                     else
                     {
-                        AstNodeRef argRef;
-                        if (ufcsArg.isValid())
-                            argRef = (i == 0) ? ufcsArg : args[i - 1];
-                        else
-                            argRef = args[i];
-
-                        const TypeRef  argTy = sema.typeRefOf(argRef);
-                        CastFailure    cf{};
-                        const ConvRank r = probeImplicitConversion(sema, argTy, variadicTy, cf);
+                        const AstNodeRef argRef = getArg(i, args, ufcsArg);
+                        const TypeRef    argTy  = sema.typeRefOf(argRef);
+                        CastFailure      cf{};
+                        const ConvRank   r = probeImplicitConversion(sema, argTy, variadicTy, cf);
                         if (r == ConvRank::Bad)
                         {
                             // paramIndex points at the variadic parameter
@@ -328,6 +322,10 @@ namespace
     {
         const auto& ctx = sema.ctx();
 
+        uint32_t numArgs = static_cast<uint32_t>(args.size());
+        if (ufcsArg.isValid())
+            numArgs++;
+
         Diagnostic diag;
         switch (fail.kind)
         {
@@ -363,19 +361,10 @@ namespace
                 break;
         }
 
-        if (fail.hasLocation)
+        if (fail.hasLocation && fail.argIndex < numArgs)
         {
-            if (ufcsArg.isValid())
-            {
-                if (fail.argIndex == 0)
-                    diag.last().addSpan(sema.node(ufcsArg).location(ctx));
-                else if (fail.argIndex - 1 < args.size())
-                    diag.last().addSpan(sema.node(args[fail.argIndex - 1]).location(ctx));
-            }
-            else if (fail.argIndex < args.size())
-            {
-                diag.last().addSpan(sema.node(args[fail.argIndex]).location(ctx));
-            }
+            const AstNodeRef argRef = getArg(fail.argIndex, args, ufcsArg);
+            diag.last().addSpan(sema.node(argRef).location(ctx));
         }
 
         diag.report(sema.ctx());
@@ -384,8 +373,13 @@ namespace
 
     Result emitNoOverloadMatch(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<Attempt>& attempts, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
     {
-        auto& ctx  = sema.ctx();
-        auto  diag = SemaError::report(sema, DiagnosticId::sema_err_no_overload_match, nodeCallee.nodeRef);
+        auto& ctx = sema.ctx();
+
+        uint32_t numArgs = static_cast<uint32_t>(args.size());
+        if (ufcsArg.isValid())
+            numArgs++;
+
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_no_overload_match, nodeCallee.nodeRef);
 
         // One note per overload attempt describing why it failed (and where when possible).
         for (const Attempt& a : attempts)
@@ -429,19 +423,10 @@ namespace
                     break;
             }
 
-            if (a.fail.hasLocation)
+            if (a.fail.hasLocation && a.fail.argIndex < numArgs)
             {
-                if (ufcsArg.isValid())
-                {
-                    if (a.fail.argIndex == 0)
-                        diag.last().addSpan(sema.node(ufcsArg).location(ctx));
-                    else if (a.fail.argIndex - 1 < args.size())
-                        diag.last().addSpan(sema.node(args[a.fail.argIndex - 1]).location(ctx));
-                }
-                else if (a.fail.argIndex < args.size())
-                {
-                    diag.last().addSpan(sema.node(args[a.fail.argIndex]).location(ctx));
-                }
+                const AstNodeRef argRef = getArg(a.fail.argIndex, args, ufcsArg);
+                diag.last().addSpan(sema.node(argRef).location(ctx));
             }
         }
 
@@ -529,13 +514,8 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     const uint32_t numCommon = selectedFnT.isAnyVariadic() ? numParams - 1 : numParams;
     for (uint32_t i = 0; i < std::min(numArgs, numCommon); ++i)
     {
-        AstNodeRef argRef;
-        if (ufcsArg.isValid())
-            argRef = (i == 0) ? ufcsArg : args[i - 1];
-        else
-            argRef = args[i];
-
-        SemaNodeView argView(sema, argRef);
+        const AstNodeRef argRef  = getArg(i, args, ufcsArg);
+        SemaNodeView     argView(sema, argRef);
         RESULT_VERIFY(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Implicit));
 
         if (ufcsArg.isValid() && i == 0)
@@ -556,13 +536,8 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
         const TypeRef  variadicTy    = selectedFnT.typeRef();
         for (uint32_t i = startVariadic; i < numArgs; ++i)
         {
-            AstNodeRef argRef;
-            if (ufcsArg.isValid())
-                argRef = (i == 0) ? ufcsArg : args[i - 1];
-            else
-                argRef = args[i];
-
-            SemaNodeView argView(sema, argRef);
+            const AstNodeRef argRef  = getArg(i, args, ufcsArg);
+            SemaNodeView     argView(sema, argRef);
             RESULT_VERIFY(Cast::cast(sema, argView, variadicTy, CastKind::Implicit));
 
             if (ufcsArg.isValid() && i == 0)

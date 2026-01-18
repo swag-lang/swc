@@ -4,18 +4,20 @@
 #include "Sema/Constant/ConstantValue.h"
 #include "Sema/Core/Sema.h"
 
+#include <deque>
+
 SWC_BEGIN_NAMESPACE();
 class CompilerInstance;
 
 class ConstantManager
 {
 public:
-    void        setup(const TaskContext& ctx);
-    ConstantRef addS32(const TaskContext& ctx, int32_t value);
-    ConstantRef addInt(const TaskContext& ctx, uint64_t value);
+    void             setup(const TaskContext& ctx);
+    ConstantRef      addS32(const TaskContext& ctx, int32_t value);
+    ConstantRef      addInt(const TaskContext& ctx, uint64_t value);
+    ConstantRef      addConstant(const TaskContext& ctx, const ConstantValue& value);
+    std::string_view addPayloadBuffer(std::string_view payload);
 
-    ConstantRef          addConstant(const TaskContext& ctx, const ConstantValue& value);
-    std::string_view     addStructBuffer(const ConstantValue& value);
     ConstantRef          cstNull() const { return cstNull_; }
     ConstantRef          cstUndefined() const { return cstUndefined_; }
     ConstantRef          cstTrue() const { return cstBool_true_; }
@@ -34,10 +36,12 @@ private:
     {
         Store                                                             store;
         std::unordered_map<ConstantValue, ConstantRef, ConstantValueHash> map;
-        std::unordered_set<std::string>                                   cacheStr;
-        std::vector<std::string>                                          cacheStruct;
-        mutable std::shared_mutex                                         mutex;
+        std::deque<std::string>                                           payload;
+
+        mutable std::shared_mutex mutex;
     };
+
+    static std::string_view addPayloadBufferNoLock(Shard& shard, std::string_view payload);
 
     static constexpr uint32_t SHARD_BITS  = 3;
     static constexpr uint32_t SHARD_COUNT = 1u << SHARD_BITS;

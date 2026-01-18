@@ -36,13 +36,14 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
     const uint32_t shardIndex = value.hash() & (SHARD_COUNT - 1);
     auto&          shard      = shards_[shardIndex];
 
-    // Struct constants: always copy payload into an internal buffer; no set/unification
+    // Struct constants: always copy payload into shard payload storage; no set/unification
     if (value.isStruct())
     {
-        const auto       view   = addStructBuffer(value);
-        const auto       stored = ConstantValue::makeStruct(ctx, value.typeRef(), view);
         std::unique_lock lk(shard.mutex);
-        const uint32_t   localIndex = shard.store.push_back(stored);
+        const auto       view   = addPayloadBufferNoLock(shard, value.getStruct());
+        const auto       stored = ConstantValue::makeStruct(ctx, value.typeRef(), view);
+
+        const uint32_t localIndex = shard.store.push_back(stored);
         SWC_ASSERT(localIndex < LOCAL_MASK);
         auto result = ConstantRef{(shardIndex << LOCAL_BITS) | localIndex};
 
@@ -65,7 +66,7 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
 
     std::unique_lock lk(shard.mutex);
 
-    ConstantRef result;
+    // For non-string constants, we can unify directly via the map
     if (!value.isString())
     {
         auto [it, inserted] = shard.map.try_emplace(value, ConstantRef{});
@@ -74,26 +75,31 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
 
         const uint32_t localIndex = shard.store.push_back(value);
         SWC_ASSERT(localIndex < LOCAL_MASK);
-        result     = ConstantRef{(shardIndex << LOCAL_BITS) | localIndex};
+        ConstantRef result{(shardIndex << LOCAL_BITS) | localIndex};
         it->second = result;
+
+#if SWC_HAS_STATS
+        Stats::get().numConstants.fetch_add(1);
+        Stats::get().memConstants.fetch_add(sizeof(ConstantValue), std::memory_order_relaxed);
+#endif
+
+#if SWC_HAS_REF_DEBUG_INFO
+        result.setDbgPtr(&getNoLock(result));
+#endif
+        return result;
     }
 
-    // For a string, we need to create a copy of the constant value so that it references the
-    // internal string constant store which will contain a copy of the input string_view
-    else
-    {
-        if (const auto it = shard.map.find(value); it != shard.map.end())
-            return it->second;
+    // String constants: copy string payload into shard payload storage, then store a ConstantValue
+    // referencing the stable view.
+    if (const auto it = shard.map.find(value); it != shard.map.end())
+        return it->second;
 
-        auto [itStr, _]     = shard.cacheStr.insert(std::string(value.getString()));
-        const auto view     = std::string_view(itStr->data(), itStr->size());
-        const auto strValue = ConstantValue::makeString(ctx, view);
-
-        const uint32_t localIndex = shard.store.push_back(strValue);
-        SWC_ASSERT(localIndex < LOCAL_MASK);
-        result = ConstantRef{(shardIndex << LOCAL_BITS) | localIndex};
-        shard.map.emplace(strValue, result);
-    }
+    const auto     view       = addPayloadBufferNoLock(shard, value.getString());
+    const auto     strValue   = ConstantValue::makeString(ctx, view);
+    const uint32_t localIndex = shard.store.push_back(strValue);
+    SWC_ASSERT(localIndex < LOCAL_MASK);
+    ConstantRef result{(shardIndex << LOCAL_BITS) | localIndex};
+    shard.map.emplace(strValue, result);
 
 #if SWC_HAS_STATS
     Stats::get().numConstants.fetch_add(1);
@@ -107,13 +113,18 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
     return result;
 }
 
-std::string_view ConstantManager::addStructBuffer(const ConstantValue& value)
+std::string_view ConstantManager::addPayloadBuffer(std::string_view payload)
 {
-    const uint32_t   shardIndex = value.hash() & (SHARD_COUNT - 1);
+    const uint32_t   shardIndex = JobManager::threadIndex() % SHARD_BITS;
     auto&            shard      = shards_[shardIndex];
     std::unique_lock lk(shard.mutex);
-    shard.cacheStruct.emplace_back(value.getStruct());
-    const auto& copied = shard.cacheStruct.back();
+    return addPayloadBufferNoLock(shard, payload);
+}
+
+std::string_view ConstantManager::addPayloadBufferNoLock(Shard& shard, std::string_view payload)
+{
+    shard.payload.emplace_back(payload);
+    const auto& copied = shard.payload.back();
     return {copied.data(), copied.size()};
 }
 

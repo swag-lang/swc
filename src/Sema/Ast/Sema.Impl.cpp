@@ -3,7 +3,7 @@
 #include "Parser/AstNodes.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
-#include "Sema/Symbol/Match.h"
+#include "Sema/Match/Match.h"
 #include "Sema/Symbol/Symbol.Impl.h"
 #include "Sema/Symbol/Symbol.h"
 #include "Sema/Symbol/Symbols.h"

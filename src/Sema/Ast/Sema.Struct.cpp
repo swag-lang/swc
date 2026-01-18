@@ -5,7 +5,7 @@
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaHelpers.h"
-#include "Sema/Symbol/Match.h"
+#include "Sema/Match/Match.h"
 
 SWC_BEGIN_NAMESPACE();
 

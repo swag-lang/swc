@@ -7,7 +7,7 @@
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaHelpers.h"
-#include "Sema/Symbol/Match.h"
+#include "Sema/Match/Match.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/Cast.h"
 

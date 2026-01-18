@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Sema/Symbol/MatchContext.h"
+#include "Sema/Match/MatchContext.h"
 
 SWC_BEGIN_NAMESPACE();
 

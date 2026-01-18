@@ -4,7 +4,7 @@
 #include "Main/TaskContext.h"
 #include "Sema/Core/Sema.h"
 #include "Sema/Helpers/SemaError.h"
-#include "Sema/Symbol/MatchContext.h"
+#include "Sema/Match/MatchContext.h"
 
 SWC_BEGIN_NAMESPACE();
 

@@ -279,10 +279,10 @@
         <ClCompile Include="src\Sema\Helpers\SemaCycle.cpp"/>
         <ClCompile Include="src\Sema\Helpers\SemaError.cpp"/>
         <ClCompile Include="src\Sema\Helpers\SemaHelpers.cpp"/>
+        <ClCompile Include="src\Sema\Match\Match.cpp"/>
+        <ClCompile Include="src\Sema\Match\Match.Func.cpp"/>
+        <ClCompile Include="src\Sema\Match\MatchContext.cpp"/>
         <ClCompile Include="src\Sema\Symbol\IdentifierManager.cpp"/>
-        <ClCompile Include="src\Sema\Symbol\Match.Func.cpp"/>
-        <ClCompile Include="src\Sema\Symbol\MatchContext.cpp"/>
-        <ClCompile Include="src\Sema\Symbol\Match.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Symbol.Attribute.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Symbol.Enum.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Symbol.Function.cpp"/>
@@ -369,9 +369,9 @@
         <ClInclude Include="src\Sema\Helpers\SemaCycle.h"/>
         <ClInclude Include="src\Sema\Helpers\SemaError.h"/>
         <ClInclude Include="src\Sema\Helpers\SemaHelpers.h"/>
+        <ClInclude Include="src\Sema\Match\Match.h"/>
+        <ClInclude Include="src\Sema\Match\MatchContext.h"/>
         <ClInclude Include="src\Sema\Symbol\IdentifierManager.h"/>
-        <ClInclude Include="src\Sema\Symbol\MatchContext.h"/>
-        <ClInclude Include="src\Sema\Symbol\Match.h"/>
         <ClInclude Include="src\Sema\Symbol\Symbol.Alias.h"/>
         <ClInclude Include="src\Sema\Symbol\Symbol.Attribute.h"/>
         <ClInclude Include="src\Sema\Symbol\Symbol.Constant.h"/>

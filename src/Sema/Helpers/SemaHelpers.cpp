@@ -44,10 +44,9 @@ ConstantRef SemaHelpers::makeConstantLocation(Sema& sema, const AstNode& node)
 
     Runtime::SourceCodeLocation rtLoc;
 
-    const std::string   fileNameStr = loc.srcView->file()->path().string();
-    const ConstantValue cstFileName = ConstantValue::makeString(ctx, fileNameStr);
-    rtLoc.fileName.ptr              = cstFileName.getString().data();
-    rtLoc.fileName.length           = cstFileName.getString().size();
+    const std::string_view nameView = sema.cstMgr().addString(ctx, loc.srcView->file()->path().string());
+    rtLoc.fileName.ptr              = nameView.data();
+    rtLoc.fileName.length           = nameView.size();
 
     rtLoc.funcName.ptr    = nullptr;
     rtLoc.funcName.length = 0;

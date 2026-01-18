@@ -113,6 +113,11 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
     return result;
 }
 
+std::string_view ConstantManager::addString(const TaskContext& ctx, std::string_view str)
+{
+    return get(addConstant(ctx, ConstantValue::makeString(ctx, str))).getString();
+}
+
 std::string_view ConstantManager::addPayloadBuffer(std::string_view payload)
 {
     const uint32_t   shardIndex = JobManager::threadIndex() % SHARD_BITS;

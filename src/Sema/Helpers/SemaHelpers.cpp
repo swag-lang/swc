@@ -84,8 +84,8 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
     {
         uint64_t val = 0;
         memcpy(&val, fieldBytes.data(), std::min((size_t) fieldBytes.size(), sizeof(val)));
-        const auto apsInt = ApsInt(val, typeField.intLikeBits(), typeField.isIntUnsigned());
-        cv                = ConstantValue::makeFromIntLike(sema.ctx(), apsInt, typeField);
+        const ApsInt apsInt(val, typeField.intLikeBits(), typeField.isIntUnsigned());
+        cv = ConstantValue::makeFromIntLike(sema.ctx(), apsInt, typeField);
     }
     else if (typeField.isFloat())
     {
@@ -95,6 +95,11 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
         else
             apFloat.set(*reinterpret_cast<const double*>(fieldBytes.data()));
         cv = ConstantValue::makeFloat(sema.ctx(), apFloat, typeField.floatBits());
+    }
+    else if (typeField.isString())
+    {
+        const auto str = reinterpret_cast<const Runtime::String*>(fieldBytes.data());
+        cv             = ConstantValue::makeString(sema.ctx(), std::string_view(str->ptr, str->length));
     }
     else
     {

@@ -6,3 +6,4 @@
 }
 
 const A = #curlocation
+#assert(A.lineStart == 8)

@@ -1,8 +1,6 @@
 #pragma once
 #include "Lexer/Token.h"
 #include "Report/DiagnosticElement.h"
-#include "Sema/Constant/ConstantValue.h"
-#include "Sema/Type/TypeInfo.h"
 #include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -11,15 +9,6 @@ class TaskContext;
 enum class LogColor;
 enum class DiagnosticId;
 enum class TokenId : uint16_t;
-
-struct DiagnosticArgument
-{
-    std::string_view                                                                         name;
-    bool                                                                                     quoted;
-    std::variant<Utf8, TokenId, DiagnosticId, uint32_t, TypeRef, ConstantRef, IdentifierRef> val;
-};
-
-using DiagnosticArguments = std::vector<DiagnosticArgument>;
 
 class Diagnostic
 {

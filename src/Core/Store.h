@@ -187,7 +187,6 @@ private:
 
     Page* newPage();
 
-private:
     const std::vector<std::unique_ptr<Page>>& pages() const { return pages_; }
     static Ref                                makeRef(uint32_t pageSize, uint32_t pageIndex, uint32_t offset) noexcept;
 

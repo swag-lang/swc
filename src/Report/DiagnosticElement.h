@@ -1,13 +1,30 @@
 #pragma once
 #include "Lexer/SourceCodeLocation.h"
 #include "Report/DiagnosticDef.h"
+#include "Sema/Constant/ConstantValue.h"
+#include "Sema/Type/TypeInfo.h"
 
 SWC_BEGIN_NAMESPACE();
 
 class SourceFile;
 class TaskContext;
 enum class DiagnosticId;
-struct DiagnosticArgument;
+
+struct DiagnosticArgument
+{
+    std::string_view name;
+    bool             quoted;
+
+    std::variant<Utf8,
+                 TokenId,
+                 DiagnosticId,
+                 uint32_t,
+                 TypeRef,
+                 ConstantRef,
+                 IdentifierRef>
+        val;
+};
+
 using DiagnosticArguments = std::vector<DiagnosticArgument>;
 
 class DiagnosticElement

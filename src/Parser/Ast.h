@@ -96,7 +96,6 @@ public:
 
     AstNodeRef findNodeRef(const AstNode* node) const;
 
-public:
     static constexpr uint32_t SHARD_BITS  = 3;
     static constexpr uint32_t SHARD_COUNT = 1u << SHARD_BITS;
     static constexpr uint32_t LOCAL_BITS  = 32u - SHARD_BITS;

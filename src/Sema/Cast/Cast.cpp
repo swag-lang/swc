@@ -384,13 +384,15 @@ namespace
 
         if (srcType.isAnyPointer())
             return castPointerToPointer(sema, castCtx, srcTypeRef, dstTypeRef);
-        else if (srcTypeRef == sema.ctx().typeMgr().typeU64())
+
+        if (srcTypeRef == sema.ctx().typeMgr().typeU64())
         {
             if (castCtx.isConstantFolding())
                 castCtx.outConstRef = castCtx.srcConstRef;
             return Result::Continue;
         }
-        else if (srcType.isArray())
+
+        if (srcType.isArray())
         {
             const auto srcElemTypeRef = srcType.arrayElemTypeRef();
             const auto dstElemTypeRef = dstType.typeRef();

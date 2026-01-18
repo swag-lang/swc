@@ -21,7 +21,7 @@ struct SemaNodeView
     TypeRef     typeRef = TypeRef::invalid();
 
     SemaNodeView(Sema& sema, AstNodeRef ref);
-    void   setCstRef(Sema& sema, ConstantRef cstRef);
+    void   setCstRef(Sema& sema, ConstantRef ref);
     Result verifyUniqueSymbol(Sema& sema) const;
     void   getSymbols(SmallVector<Symbol*>& symbols) const;
 };

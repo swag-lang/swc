@@ -28,9 +28,9 @@ ApFloat::ApFloat(const void* data, uint32_t bitWidth) :
 {
     SWC_ASSERT(bitWidth == 32 || bitWidth == 64);
     if (bitWidth == 32)
-        value_.f32 = *reinterpret_cast<const float*>(data);
+        value_.f32 = *static_cast<const float*>(data);
     else
-        value_.f64 = *reinterpret_cast<const double*>(data);
+        value_.f64 = *static_cast<const double*>(data);
 }
 
 void ApFloat::set(float value)

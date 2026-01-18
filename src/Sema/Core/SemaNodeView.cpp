@@ -32,14 +32,14 @@ SemaNodeView::SemaNodeView(Sema& sema, AstNodeRef ref)
     }
 }
 
-void SemaNodeView::setCstRef(Sema& sema, ConstantRef cstRef)
+void SemaNodeView::setCstRef(Sema& sema, ConstantRef ref)
 {
-    if (this->cstRef == cstRef)
+    if (cstRef == ref)
         return;
-    this->cstRef = cstRef;
-    cst          = &sema.cstMgr().get(cstRef);
-    typeRef      = cst->typeRef();
-    type         = &sema.typeMgr().get(typeRef);
+    cstRef  = ref;
+    cst     = &sema.cstMgr().get(cstRef);
+    typeRef = cst->typeRef();
+    type    = &sema.typeMgr().get(typeRef);
 }
 
 Result SemaNodeView::verifyUniqueSymbol(Sema& sema) const

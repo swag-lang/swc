@@ -1,10 +1,8 @@
 #include "pch.h"
-
-#include "Os/Os.h"
+#include "Sema/Core/Sema.h"
 #include "Parser/AstNodes.h"
 #include "Sema/Cast/Cast.h"
 #include "Sema/Constant/ConstantManager.h"
-#include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaInfo.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
@@ -86,7 +84,7 @@ namespace
         return Result::Continue;
     }
 
-    Result semaIntrinsicKindOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
+    Result semaIntrinsicKindOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>&)
     {
         // TODO
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeBlockPtrVoid());

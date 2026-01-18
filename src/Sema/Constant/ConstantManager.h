@@ -15,6 +15,7 @@ public:
     ConstantRef addInt(const TaskContext& ctx, uint64_t value);
 
     ConstantRef          addConstant(const TaskContext& ctx, const ConstantValue& value);
+    std::string_view     addStructBuffer(const ConstantValue& value);
     ConstantRef          cstNull() const { return cstNull_; }
     ConstantRef          cstUndefined() const { return cstUndefined_; }
     ConstantRef          cstTrue() const { return cstBool_true_; }

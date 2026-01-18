@@ -34,6 +34,7 @@ private:
         Store                                                             store;
         std::unordered_map<ConstantValue, ConstantRef, ConstantValueHash> map;
         std::unordered_set<std::string>                                   cacheStr;
+        std::vector<std::string>                                          cacheStruct;
         mutable std::shared_mutex                                         mutex;
     };
 

@@ -23,6 +23,7 @@ enum class ConstantKind
     Undefined,
     TypeValue,
     EnumValue,
+    Struct,
 };
 
 class ConstantValue
@@ -54,6 +55,8 @@ public:
     bool         isNull() const { return kind_ == ConstantKind::Null; }
     bool         isTypeValue() const { return kind_ == ConstantKind::TypeValue; }
     bool         isEnumValue() const { return kind_ == ConstantKind::EnumValue; }
+    bool         isStruct() const { return kind_ == ConstantKind::Struct; }
+    bool         isStruct(TypeRef typeRef) const { return kind_ == ConstantKind::Struct && typeRef_ == typeRef; }
 
     // clang-format off
     bool getBool() const { SWC_ASSERT(isBool()); return asBool.val; }
@@ -64,7 +67,15 @@ public:
     const ApFloat& getFloat() const { SWC_ASSERT(isFloat()); return asFloat.val; }
     TypeRef getTypeValue() const { SWC_ASSERT(isTypeValue()); return asTypeInfo.val; }
     ConstantRef getEnumValue() const { SWC_ASSERT(isEnumValue()); return asEnumValue.val; }
+    std::string_view getStruct() const { SWC_ASSERT(isStruct()); return asStruct.val; }
     // clang-format on
+
+    template<typename T>
+    const T* getStruct(TypeRef typeRef) const
+    {
+        SWC_ASSERT(isStruct(typeRef));
+        return reinterpret_cast<const T*>(asStruct.val.data());
+    }
 
     const TypeInfo& type(const TaskContext& ctx) const;
 
@@ -81,6 +92,7 @@ public:
     static ConstantValue makeFloatUnsized(const TaskContext& ctx, const ApFloat& value);
     static ConstantValue makeFromIntLike(const TaskContext& ctx, const ApsInt& v, const TypeInfo& ty);
     static ConstantValue makeEnumValue(const TaskContext& ctx, ConstantRef valueCst, TypeRef typeRef);
+    static ConstantValue makeStruct(const TaskContext& ctx, TypeRef typeRef, std::string_view bytes);
 
     uint32_t hash() const noexcept;
     ApsInt   getIntLike() const;
@@ -93,15 +105,45 @@ private:
 
     union
     {
-        // clang-format off
-        struct { std::string_view val; } asString;
-        struct { char32_t val; } asCharRune;
-        struct { bool val; } asBool;
-        struct { ApsInt val; } asInt;
-        struct { ApFloat val; } asFloat;
-        struct { TypeRef val; } asTypeInfo;
-        struct { ConstantRef val; } asEnumValue;
-        // clang-format on
+        struct
+        {
+            std::string_view val;
+        } asString;
+
+        struct
+        {
+            std::string_view val;
+        } asStruct;
+
+        struct
+        {
+            char32_t val;
+        } asCharRune;
+
+        struct
+        {
+            bool val;
+        } asBool;
+
+        struct
+        {
+            ApsInt val;
+        } asInt;
+
+        struct
+        {
+            ApFloat val;
+        } asFloat;
+
+        struct
+        {
+            TypeRef val;
+        } asTypeInfo;
+
+        struct
+        {
+            ConstantRef val;
+        } asEnumValue;
     };
 };
 

@@ -36,6 +36,32 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
     const uint32_t shardIndex = value.hash() & (SHARD_COUNT - 1);
     auto&          shard      = shards_[shardIndex];
 
+    // Struct constants: always copy payload into an internal buffer; no set/unification
+    if (value.isStruct())
+    {
+        std::unique_lock lk(shard.mutex);
+
+        shard.cacheStruct.emplace_back(std::string(value.getStruct()));
+        const auto& copied = shard.cacheStruct.back();
+        const auto  view   = std::string_view(copied.data(), copied.size());
+
+        const ConstantValue stored = ConstantValue::makeStruct(ctx, value.typeRef(), view);
+
+        const uint32_t localIndex = shard.store.push_back(stored);
+        SWC_ASSERT(localIndex < LOCAL_MASK);
+        ConstantRef result = ConstantRef{(shardIndex << LOCAL_BITS) | localIndex};
+
+#if SWC_HAS_STATS
+        Stats::get().numConstants.fetch_add(1);
+        Stats::get().memConstants.fetch_add(sizeof(ConstantValue), std::memory_order_relaxed);
+#endif
+
+#if SWC_HAS_REF_DEBUG_INFO
+        result.setDbgPtr(&getNoLock(result));
+#endif
+        return result;
+    }
+
     {
         std::shared_lock lk(shard.mutex);
         if (const auto it = shard.map.find(value); it != shard.map.end())

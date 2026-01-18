@@ -1,9 +1,8 @@
 #include "pch.h"
-
-#include "ConstantManager.h"
+#include "Sema/Constant/ConstantValue.h"
 #include "Main/TaskContext.h"
 #include "Math/Hash.h"
-#include "Sema/Constant/ConstantValue.h"
+#include "Sema/Constant/ConstantManager.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -25,6 +24,8 @@ bool ConstantValue::operator==(const ConstantValue& rhs) const noexcept
             return getRune() == rhs.getRune();
         case ConstantKind::String:
             return getString() == rhs.getString();
+        case ConstantKind::Struct:
+            return getStruct() == rhs.getStruct();
         case ConstantKind::TypeValue:
             return getTypeValue() == rhs.getTypeValue();
         case ConstantKind::EnumValue:
@@ -54,6 +55,8 @@ bool ConstantValue::eq(const ConstantValue& rhs) const noexcept
             return getRune() == rhs.getRune();
         case ConstantKind::String:
             return getString() == rhs.getString();
+        case ConstantKind::Struct:
+            return getStruct() == rhs.getStruct();
         case ConstantKind::Int:
             return getInt().eq(rhs.getInt());
         case ConstantKind::Float:
@@ -269,6 +272,16 @@ ConstantValue ConstantValue::makeEnumValue(const TaskContext&, ConstantRef value
     return cv;
 }
 
+ConstantValue ConstantValue::makeStruct(const TaskContext&, TypeRef typeRef, std::string_view bytes)
+{
+    ConstantValue cv;
+    cv.typeRef_     = typeRef;
+    cv.kind_        = ConstantKind::Struct;
+    cv.asStruct.val = bytes;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return cv;
+}
+
 uint32_t ConstantValue::hash() const noexcept
 {
     auto h = Math::hash(static_cast<uint32_t>(kind_));
@@ -284,6 +297,9 @@ uint32_t ConstantValue::hash() const noexcept
             break;
         case ConstantKind::String:
             h = Math::hashCombine(h, Math::hash(asString.val));
+            break;
+        case ConstantKind::Struct:
+            h = Math::hashCombine(h, Math::hash(asStruct.val));
             break;
         case ConstantKind::TypeValue:
             h = Math::hashCombine(h, asTypeInfo.val.get());
@@ -352,6 +368,8 @@ Utf8 ConstantValue::toString(const TaskContext& ctx) const
             return getRune();
         case ConstantKind::String:
             return getString();
+        case ConstantKind::Struct:
+            return "<struct>";
         case ConstantKind::Int:
             return getInt().toString();
         case ConstantKind::Float:

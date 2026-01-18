@@ -601,7 +601,7 @@ struct AstNullLiteral : AstLiteralT<AstNodeId::NullLiteral>
 // -----------------------------------------------------------------------------
 struct AstCompilerLiteral : AstLiteralT<AstNodeId::CompilerLiteral>
 {
-    Result semaPostNode(Sema& sema) const;
+    Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

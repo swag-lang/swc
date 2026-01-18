@@ -179,7 +179,7 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
-Result AstCompilerLiteral::semaPostNode(Sema& sema) const
+Result AstCompilerLiteral::semaPostNode(Sema& sema)
 {
     const auto&       ctx     = sema.ctx();
     const Token&      tok     = sema.token(srcViewRef(), tokRef());
@@ -236,19 +236,26 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema) const
             break;
         }
 
+        case TokenId::CompilerCallerFunction:
+            sema.setType(sema.curNodeRef(), sema.typeMgr().typeString());
+            SemaInfo::setIsValue(*this);
+            break;
+        case TokenId::CompilerCallerLocation:
+            sema.setType(sema.curNodeRef(), sema.typeMgr().typeString());
+            SemaInfo::setIsValue(*this);
+            break;
+
         case TokenId::CompilerArch:
         case TokenId::CompilerCpu:
         case TokenId::CompilerBuildCfg:
         case TokenId::CompilerModule:
-        case TokenId::CompilerCallerFunction:
-        case TokenId::CompilerCallerLocation:
         case TokenId::CompilerSwagOs:
         case TokenId::CompilerBackend:
         case TokenId::CompilerScopeName:
         case TokenId::CompilerCurLocation:
             // TODO
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
-            return Result::Continue;
+            break;
 
         default:
             SWC_UNREACHABLE();

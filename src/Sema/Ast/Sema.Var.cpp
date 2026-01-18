@@ -87,7 +87,7 @@ namespace
         if (nodeInitRef.isValid())
             RESULT_VERIFY(SemaCheck::isValue(sema, nodeInitView.nodeRef));
 
-        if (!sema.curScope().isLocal() && !isConst && nodeInitRef.isValid())
+        if (!sema.curScope().isLocal() && !sema.curScope().isParameters() && !isConst && nodeInitRef.isValid())
             RESULT_VERIFY(SemaCheck::isConstant(sema, nodeInitView.nodeRef));
 
         // Constant

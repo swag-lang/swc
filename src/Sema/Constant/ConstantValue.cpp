@@ -333,7 +333,7 @@ ApsInt ConstantValue::getIntLike() const
     if (isRune())
         return ApsInt(getRune(), 32, true);
     if (isNull())
-        return ApsInt(0, 64, true);
+        return ApsInt(static_cast<uint64_t>(0), 64, true);
     SWC_UNREACHABLE();
 }
 

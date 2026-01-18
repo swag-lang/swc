@@ -82,7 +82,7 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
     }
     else if (typeField.isIntLike())
     {
-        const ApsInt apsInt(fieldBytes.data(), static_cast<uint32_t>(fieldBytes.size()), typeField.intLikeBits(), typeField.isIntUnsigned());
+        const ApsInt apsInt(fieldBytes.data(), typeField.intLikeBits(), typeField.isIntUnsigned());
         cv = ConstantValue::makeFromIntLike(sema.ctx(), apsInt, typeField);
     }
     else if (typeField.isFloat())

@@ -8,7 +8,7 @@ public:
     ApInt();
     explicit ApInt(uint32_t bitWidth);
     explicit ApInt(uint64_t value, uint32_t bitWidth);
-    explicit ApInt(const void* data, uint32_t sizeInBytes, uint32_t bitWidth);
+    explicit ApInt(const void* data, uint32_t bitWidth);
 
     uint32_t        bitWidth() const { return bitWidth_; }
     static uint32_t maxBitWidth() { return MAX_BITS; }

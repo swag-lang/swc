@@ -20,8 +20,8 @@ public:
     {
     }
 
-    explicit ApsInt(const void* data, uint32_t sizeInBytes, uint32_t bitWidth, bool isUnsigned) :
-        ApInt(data, sizeInBytes, bitWidth),
+    explicit ApsInt(const void* data, uint32_t bitWidth, bool isUnsigned) :
+        ApInt(data, bitWidth),
         unsigned_(isUnsigned)
     {
     }

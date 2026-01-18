@@ -185,15 +185,13 @@ private:
     Page*    cur_        = nullptr;
     uint32_t curIndex_   = 0;
 
-    Page* newPage();
-
+    Page*                                     newPage();
     const std::vector<std::unique_ptr<Page>>& pages() const { return pages_; }
     static Ref                                makeRef(uint32_t pageSize, uint32_t pageIndex, uint32_t offset) noexcept;
-
-    static void                  decodeRef(uint32_t pageSize, Ref ref, uint32_t& pageIndex, uint32_t& offset) noexcept;
-    std::pair<Ref, void*>        allocate(uint32_t size, uint32_t align);
-    static constexpr uint32_t    align_up_u32(uint32_t v, uint32_t a) noexcept { return (v + (a - 1)) & ~(a - 1); }
-    std::pair<SpanRef, uint32_t> write_chunk_raw(const uint8_t* src, uint32_t elemSize, uint32_t elemAlign, uint32_t remaining, uint32_t totalElems);
+    static void                               decodeRef(uint32_t pageSize, Ref ref, uint32_t& pageIndex, uint32_t& offset) noexcept;
+    std::pair<Ref, void*>                     allocate(uint32_t size, uint32_t align);
+    static constexpr uint32_t                 align_up_u32(uint32_t v, uint32_t a) noexcept { return (v + (a - 1)) & ~(a - 1); }
+    std::pair<SpanRef, uint32_t>              write_chunk_raw(const uint8_t* src, uint32_t elemSize, uint32_t elemAlign, uint32_t remaining, uint32_t totalElems);
 
     template<class T>
     static T* ptr_impl(const std::vector<std::unique_ptr<Page>>& pages, uint32_t pageSize, Ref ref)

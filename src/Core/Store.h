@@ -153,6 +153,8 @@ public:
         return span_view(ref, static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)));
     }
 
+    Ref findRef(const void* ptr) const noexcept;
+
 private:
     static constexpr uint32_t kDefaultPageSize = 16u * 1024u;
 
@@ -177,13 +179,18 @@ private:
     };
 
     std::vector<std::unique_ptr<Page>> pages_;
-    uint64_t                           totalBytes_ = 0;
-    uint32_t                           pageSize_   = kDefaultPageSize;
-    Page*                              cur_        = nullptr;
-    uint32_t                           curIndex_   = 0;
 
-    Page*                        newPage();
-    static Ref                   makeRef(uint32_t pageSize, uint32_t pageIndex, uint32_t offset) noexcept;
+    uint64_t totalBytes_ = 0;
+    uint32_t pageSize_   = kDefaultPageSize;
+    Page*    cur_        = nullptr;
+    uint32_t curIndex_   = 0;
+
+    Page* newPage();
+
+private:
+    const std::vector<std::unique_ptr<Page>>& pages() const { return pages_; }
+    static Ref                                makeRef(uint32_t pageSize, uint32_t pageIndex, uint32_t offset) noexcept;
+
     static void                  decodeRef(uint32_t pageSize, Ref ref, uint32_t& pageIndex, uint32_t& offset) noexcept;
     std::pair<Ref, void*>        allocate(uint32_t size, uint32_t align);
     static constexpr uint32_t    align_up_u32(uint32_t v, uint32_t a) noexcept { return (v + (a - 1)) & ~(a - 1); }

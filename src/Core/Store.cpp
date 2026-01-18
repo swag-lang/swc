@@ -278,6 +278,22 @@ Store::Page* Store::newPage()
     return cur_;
 }
 
+Ref Store::findRef(const void* ptr) const noexcept
+{
+    const auto bPtr = static_cast<const uint8_t*>(ptr);
+    for (uint32_t j = 0; j < pages_.size(); j++)
+    {
+        const auto& page = pages_[j];
+        if (bPtr >= page->bytes() && bPtr < page->bytes() + pageSize_)
+        {
+            const auto offset = static_cast<uint32_t>(bPtr - page->bytes());
+            return makeRef(pageSize_, j, offset);
+        }
+    }
+
+    return std::numeric_limits<Ref>::max();
+}
+
 Ref Store::makeRef(uint32_t pageSize, uint32_t pageIndex, uint32_t offset) noexcept
 {
     const uint64_t r = static_cast<uint64_t>(pageIndex) * static_cast<uint64_t>(pageSize) + offset;

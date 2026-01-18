@@ -111,4 +111,9 @@ TokenRef AstNode::tokRefEnd(const Ast& ast) const
     return node.tokRefEnd(ast);
 }
 
+AstNodeRef AstNode::nodeRef(const Ast& ast) const
+{
+    return ast.findNodeRef(this);
+}
+
 SWC_END_NAMESPACE();

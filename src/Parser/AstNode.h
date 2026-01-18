@@ -85,6 +85,7 @@ struct AstNode
     SourceViewRef      srcViewRef() const { return srcViewRef_; }
     TokenRef           tokRef() const { return tokRef_; }
     TokenRef           tokRefEnd(const Ast& ast) const;
+    AstNodeRef         nodeRef(const Ast& ast) const;
 
     template<typename T>
     T* cast()

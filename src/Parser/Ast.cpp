@@ -59,4 +59,18 @@ void Ast::tokens(SmallVector<TokenRef>& out, SpanRef spanRef) const
     }
 }
 
+AstNodeRef Ast::findNodeRef(const AstNode* node) const
+{
+    for (uint32_t i = 0; i < SHARD_COUNT; i++)
+    {
+        std::shared_lock lk(shards_[i].mutex);
+        const Ref        local = shards_[i].store.findRef(node);
+        if (local != std::numeric_limits<Ref>::max())
+            return AstNodeRef{packRef(i, local)};
+    }
+
+    SWC_ASSERT(false);
+    return AstNodeRef::invalid();
+}
+
 SWC_END_NAMESPACE();

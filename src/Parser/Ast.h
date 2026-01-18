@@ -93,13 +93,9 @@ public:
         return value;
     }
 
-private:
-    struct Shard
-    {
-        Store              store;
-        mutable std::mutex mutex;
-    };
+    AstNodeRef findNodeRef(const AstNode* node) const;
 
+public:
     static constexpr uint32_t SHARD_BITS  = 3;
     static constexpr uint32_t SHARD_COUNT = 1u << SHARD_BITS;
     static constexpr uint32_t LOCAL_BITS  = 32u - SHARD_BITS;
@@ -113,7 +109,15 @@ private:
 
     static uint32_t refShard(uint32_t globalRef) { return globalRef >> LOCAL_BITS; }
     static uint32_t refLocal(uint32_t globalRef) { return globalRef & LOCAL_MASK; }
+
+private:
     static uint32_t chooseShard() { return JobManager::threadIndex() % SHARD_COUNT; }
+
+    struct Shard
+    {
+        Store                     store;
+        mutable std::shared_mutex mutex;
+    };
 
     Shard       shards_[SHARD_COUNT];
     SourceView* srcView_ = nullptr;

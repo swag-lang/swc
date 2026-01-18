@@ -45,9 +45,11 @@ Result AstAutoMemberAccessExpr::semaPostNode(Sema& sema)
 
     const SymbolMap*      symMapHint = nullptr;
     const SymbolFunction* symFunc    = sema.frame().function();
+    const SymbolVariable* symMe      = nullptr;
+
     if (symFunc && !symFunc->parameters().empty())
     {
-        const SymbolVariable* symMe = symFunc->parameters()[0];
+        symMe = symFunc->parameters()[0];
         if (symMe->idRef() == sema.idMgr().nameMe())
         {
             const auto      typeRef  = symMe->typeRef();
@@ -60,6 +62,10 @@ Result AstAutoMemberAccessExpr::semaPostNode(Sema& sema)
                 else if (pointeeType.isEnum())
                     symMapHint = &pointeeType.symEnum();
             }
+        }
+        else
+        {
+            symMe = nullptr;
         }
     }
 
@@ -77,7 +83,17 @@ Result AstAutoMemberAccessExpr::semaPostNode(Sema& sema)
 
     RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
 
-    sema.setSymbolList(sema.curNodeRef(), lookUpCxt.symbols());
+    // Substitute with an AstMemberAccessExpr
+    auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::MemberAccessExpr>(node->tokRef());
+    auto [meRef, mePtr]     = sema.ast().makeNode<AstNodeId::Identifier>(node->tokRef());
+    sema.setSymbol(meRef, symMe);
+
+    nodePtr->nodeLeftRef  = meRef;
+    nodePtr->nodeRightRef = node->nodeIdentRef;
+
+    sema.setSymbolList(nodeRef, lookUpCxt.symbols());
+    sema.semaInfo().setSubstitute(sema.curNodeRef(), nodeRef);
+
     return Result::Continue;
 }
 

@@ -584,7 +584,6 @@ AstNodeRef Parser::parsePostFixExpression()
 AstNodeRef Parser::parseAutoMemberAccessExpr()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AutoMemberAccessExpr>(consume());
-    nodePtr->resolvedRef    = AstNodeRef::invalid();
     nodePtr->nodeIdentRef   = parseQualifiedIdentifier();
     return nodeRef;
 }

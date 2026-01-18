@@ -5,6 +5,11 @@ struct A {}
 impl A
 {
     mtd toto(a: s32) {}
+
+    mtd titi()
+    {
+        me.toto(3)
+    }
 }
 
 #test

@@ -20,7 +20,7 @@ struct SemaNodeView
     ConstantRef cstRef  = ConstantRef::invalid();
     TypeRef     typeRef = TypeRef::invalid();
 
-    SemaNodeView(Sema& sema, AstNodeRef nodeRef);
+    SemaNodeView(Sema& sema, AstNodeRef ref);
     void   setCstRef(Sema& sema, ConstantRef cstRef);
     Result verifyUniqueSymbol(Sema& sema) const;
     void   getSymbols(SmallVector<Symbol*>& symbols) const;

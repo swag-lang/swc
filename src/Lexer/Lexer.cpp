@@ -1232,6 +1232,9 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
         token_.byteStart  = startTokenOffset_;
         token_.byteLength = 1;
         token_.flags      = TokenFlagsE::Zero;
+#if SWC_HAS_TOKEN_DEBUG_INFO
+        token_.setDbgPtr(startToken_);
+#endif
 
         // Check for null byte (invalid UTF-8)
         if (buffer_[0] == '\0')
@@ -1337,6 +1340,11 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
     token_.id        = TokenId::EndOfFile;
     startToken_      = buffer_++;
     token_.byteStart = static_cast<uint32_t>(startToken_ - startBuffer_);
+
+#if SWC_HAS_TOKEN_DEBUG_INFO
+    token_.setDbgPtr(startToken_);
+#endif
+
     pushToken();
 
     // Compute the start trivia of each token

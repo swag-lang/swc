@@ -632,6 +632,7 @@ AstNodeRef Cast::createImplicitCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef n
     substNodePtr->nodeExprRef         = nodeRef;
     semaInfo.setSubstitute(nodeRef, substNodeRef);
     semaInfo.setType(substNodeRef, dstTypeRef);
+    SemaInfo::setIsValue(*substNodePtr);
     return substNodeRef;
 }
 

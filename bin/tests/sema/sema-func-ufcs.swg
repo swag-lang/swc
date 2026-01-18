@@ -9,6 +9,7 @@ impl A
     mtd titi()
     {
         me.toto(3)
+        .toto(4)
     }
 }
 

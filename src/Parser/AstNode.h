@@ -117,6 +117,10 @@ struct AstNode
         return reinterpret_cast<const T*>(this);
     }
 
+#if SWC_HAS_REF_DEBUG_INFO
+    AstNodeRef dbgMyRef;
+#endif
+
 protected:
     uint16_t      semaBits_ = 0;
     AstNodeId     id_       = AstNodeId::Invalid;

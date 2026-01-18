@@ -58,8 +58,8 @@ Result AstLogicalExpr::semaPostNode(Sema& sema)
     const SemaNodeView nodeRightView(sema, nodeRightRef);
 
     // Value-check
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftRef));
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightRef));
+    RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftView.nodeRef));
+    RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef));
     SemaInfo::setIsValue(*this);
 
     // Type-check

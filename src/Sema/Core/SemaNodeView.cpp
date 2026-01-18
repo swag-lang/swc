@@ -6,10 +6,9 @@
 
 SWC_BEGIN_NAMESPACE();
 
-SemaNodeView::SemaNodeView(Sema& sema, AstNodeRef nodeRef)
+SemaNodeView::SemaNodeView(Sema& sema, AstNodeRef ref)
 {
-    nodeRef       = sema.semaInfo().getSubstituteRef(nodeRef);
-    this->nodeRef = nodeRef;
+    nodeRef = sema.semaInfo().getSubstituteRef(ref);
     if (!nodeRef.isValid())
         return;
 

@@ -44,6 +44,7 @@ namespace fs = std::filesystem;
 #define SWC_HAS_REF_DEBUG_INFO   1
 #define SWC_HAS_VISIT_DEBUG_INFO 1
 #define SWC_HAS_SEMA_DEBUG_INFO  1
+#define SWC_HAS_TOKEN_DEBUG_INFO 1
 #else
 #define SWC_HAS_ASSERT           0
 #define SWC_HAS_STATS            0
@@ -51,6 +52,7 @@ namespace fs = std::filesystem;
 #define SWC_HAS_REF_DEBUG_INFO   0
 #define SWC_HAS_VISIT_DEBUG_INFO 0
 #define SWC_HAS_SEMA_DEBUG_INFO  0
+#define SWC_HAS_TOKEN_DEBUG_INFO 0
 #endif
 
 #include "Core/Flags.h"

@@ -85,10 +85,10 @@ namespace
         }
 
         if (nodeInitRef.isValid())
-            RESULT_VERIFY(SemaCheck::isValue(sema, nodeInitRef));
+            RESULT_VERIFY(SemaCheck::isValue(sema, nodeInitView.nodeRef));
 
         if (!sema.curScope().isLocal() && !isConst && nodeInitRef.isValid())
-            RESULT_VERIFY(SemaCheck::isConstant(sema, nodeInitRef));
+            RESULT_VERIFY(SemaCheck::isConstant(sema, nodeInitView.nodeRef));
 
         // Constant
         if (isConst)
@@ -96,7 +96,7 @@ namespace
             if (nodeInitRef.isInvalid())
                 return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, owner.srcViewRef(), tokDiag);
             if (nodeInitView.cstRef.isInvalid())
-                return SemaError::raiseExprNotConst(sema, nodeInitRef);
+                return SemaError::raiseExprNotConst(sema, nodeInitView.nodeRef);
 
             completeConst(sema, syms, nodeInitView.cstRef, nodeInitView.typeRef);
             return Result::Continue;

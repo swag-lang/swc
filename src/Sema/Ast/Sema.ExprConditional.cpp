@@ -17,9 +17,9 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     const SemaNodeView nodeFalseView(sema, nodeFalseRef);
 
     // Value-check
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeCondRef));
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeTrueRef));
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeFalseRef));
+    RESULT_VERIFY(SemaCheck::isValue(sema, nodeCondView.nodeRef));
+    RESULT_VERIFY(SemaCheck::isValue(sema, nodeTrueView.nodeRef));
+    RESULT_VERIFY(SemaCheck::isValue(sema, nodeFalseView.nodeRef));
     SemaInfo::setIsValue(*this);
 
     // Condition must be bool

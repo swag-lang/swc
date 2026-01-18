@@ -110,6 +110,16 @@ struct Token
     static bool isModifier(TokenId id) { return toKind(id) == TokenIdKind::Modifier; }
     static bool isSpecialWord(TokenId id) { return isKeyword(id) || isCompiler(id) || isIntrinsic(id) || isType(id) || isModifier(id); }
     static bool isReserved(TokenId id) { return toKind(id) == TokenIdKind::Reserved; }
+
+#if SWC_HAS_TOKEN_DEBUG_INFO
+    void           setDbgPtr(const char8_t* ptr) { dbgPtr_ = ptr; }
+    const char8_t* dbgPtr() const { return dbgPtr_; }
+#endif
+
+private:
+#if SWC_HAS_TOKEN_DEBUG_INFO
+    const char8_t* dbgPtr_ = nullptr;
+#endif
 };
 
 SWC_END_NAMESPACE();

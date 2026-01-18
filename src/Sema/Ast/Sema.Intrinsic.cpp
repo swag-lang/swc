@@ -47,11 +47,12 @@ namespace
 {
     Result semaIntrinsicDataOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
-        const AstNodeRef nodeArgRef = children[0];
-        RESULT_VERIFY(SemaCheck::isValue(sema, nodeArgRef));
-
+        const AstNodeRef   nodeArgRef = children[0];
         const SemaNodeView nodeView(sema, nodeArgRef);
-        const TypeInfo*    type = nodeView.type;
+
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
+
+        const TypeInfo* type = nodeView.type;
 
         TypeRef resultTypeRef = TypeRef::invalid();
         if (type->isString() || type->isCString())
@@ -143,11 +144,11 @@ namespace
         auto nodeArg1Ref = children[0];
         auto nodeArg2Ref = children[1];
 
-        RESULT_VERIFY(SemaCheck::isValue(sema, nodeArg1Ref));
-        RESULT_VERIFY(SemaCheck::isValue(sema, nodeArg2Ref));
-
         const SemaNodeView nodeViewPtr(sema, nodeArg1Ref);
         SemaNodeView       nodeViewSize(sema, nodeArg2Ref);
+
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewPtr.nodeRef));
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewSize.nodeRef));
 
         if (!nodeViewPtr.type->isPointer())
             return SemaError::raiseRequestedTypeFam(sema, nodeArg1Ref, nodeViewPtr.typeRef, sema.typeMgr().typeBlockPtrVoid());

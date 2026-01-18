@@ -87,12 +87,14 @@ Result AstAutoMemberAccessExpr::semaPostNode(Sema& sema)
     auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::MemberAccessExpr>(node->tokRef());
     auto [meRef, mePtr]     = sema.ast().makeNode<AstNodeId::Identifier>(node->tokRef());
     sema.setSymbol(meRef, symMe);
+    SemaInfo::setIsValue(*mePtr);
 
     nodePtr->nodeLeftRef  = meRef;
     nodePtr->nodeRightRef = node->nodeIdentRef;
 
     sema.setSymbolList(nodeRef, lookUpCxt.symbols());
     sema.semaInfo().setSubstitute(sema.curNodeRef(), nodeRef);
+    SemaInfo::setIsValue(*nodePtr);
 
     return Result::Continue;
 }

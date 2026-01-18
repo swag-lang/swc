@@ -57,9 +57,10 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
 Result AstExplicitCastExpr::semaPostNode(Sema& sema)
 {
     const SemaNodeView nodeTypeView(sema, nodeTypeRef);
+    SemaNodeView       nodeExprView(sema, nodeExprRef);
 
     // Value-check
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprRef));
+    RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprView.nodeRef));
 
     // Check cast modifiers
     RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst));
@@ -71,7 +72,6 @@ Result AstExplicitCastExpr::semaPostNode(Sema& sema)
     if (modifierFlags.has(AstModifierFlagsE::UnConst))
         castFlags.add(CastFlagsE::UnConst);
 
-    SemaNodeView nodeExprView(sema, nodeExprRef);
     RESULT_VERIFY(Cast::cast(sema, nodeExprView, nodeTypeView.typeRef, CastKind::Explicit, castFlags));
     sema.inheritSema(*this, nodeExprView.nodeRef);
     SemaInfo::setIsValue(*this);

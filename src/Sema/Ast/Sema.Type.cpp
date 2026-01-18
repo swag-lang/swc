@@ -262,34 +262,34 @@ Result AstArrayType::semaPostNode(Sema& sema) const
     std::vector<uint64_t> dims;
     for (const auto& dimRef : out)
     {
-        RESULT_VERIFY(SemaCheck::isValue(sema, dimRef));
-        RESULT_VERIFY(SemaCheck::isConstant(sema, dimRef));
+        SemaNodeView dimView(sema, dimRef);
 
-        const ConstantRef    cstRef = sema.constantRefOf(dimRef);
-        const ConstantValue& cst    = sema.constantOf(dimRef);
-        if (!cst.isInt())
+        RESULT_VERIFY(SemaCheck::isValue(sema, dimView.nodeRef));
+        RESULT_VERIFY(SemaCheck::isConstant(sema, dimView.nodeRef));
+
+        if (!dimView.cst->isInt())
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_not_int, dimRef);
-            diag.addArgument(Diagnostic::ARG_TYPE, cst.typeRef());
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_not_int, dimView.nodeRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, dimView.cst->typeRef());
             diag.report(ctx);
             return Result::Error;
         }
 
-        if (cst.getInt().isNegative())
+        if (dimView.cst->getInt().isNegative())
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_negative, dimRef);
-            diag.addArgument(Diagnostic::ARG_VALUE, cst.toString(ctx));
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_negative, dimView.nodeRef);
+            diag.addArgument(Diagnostic::ARG_VALUE, dimView.cst->toString(ctx));
             diag.report(ctx);
             return Result::Error;
         }
 
         ConstantRef newCstRef;
-        RESULT_VERIFY(sema.cstMgr().concretizeConstant(sema, newCstRef, dimRef, cstRef, TypeInfo::Sign::Unsigned));
+        RESULT_VERIFY(sema.cstMgr().concretizeConstant(sema, newCstRef, dimView.nodeRef, dimView.cstRef, TypeInfo::Sign::Unsigned));
 
         const ConstantValue& newCst = sema.cstMgr().get(newCstRef);
         const uint64_t       dim    = newCst.getInt().as64();
         if (dim == 0)
-            return SemaError::raise(sema, DiagnosticId::sema_err_array_dim_zero, dimRef);
+            return SemaError::raise(sema, DiagnosticId::sema_err_array_dim_zero, dimView.nodeRef);
         dims.push_back(dim);
     }
 
@@ -384,7 +384,7 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
             symFunc->addSymbol(ctx, symVar, false);
     }
 
-    TypeRef returnType = TypeRef::invalid();
+    TypeRef returnType = ctx.typeMgr().typeVoid();
     if (nodeReturnTypeRef.isValid())
         returnType = sema.typeRefOf(nodeReturnTypeRef);
     symFunc->setReturnType(returnType);

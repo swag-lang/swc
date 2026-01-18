@@ -264,7 +264,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     const SemaNodeView nodeView(sema, nodeExprRef);
 
     // Value-check
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprRef));
+    RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
     SemaInfo::setIsValue(*this);
 
     // Type-check

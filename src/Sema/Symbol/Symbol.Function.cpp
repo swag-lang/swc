@@ -27,7 +27,7 @@ Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
     }
     out += ")";
 
-    if (returnType_.isValid())
+    if (returnType_ != ctx.typeMgr().typeVoid())
     {
         out += "->";
         const TypeInfo& returnType = ctx.typeMgr().get(returnType_);

@@ -4,8 +4,8 @@
 #include "Main/Global.h"
 #include "Report/DiagnosticDef.h"
 #include "Sema/Core/Sema.h"
+#include "Sema/Core/SemaJob.h"
 #include "Sema/Helpers/SemaError.h"
-#include "Sema/Helpers/SemaJob.h"
 #include "Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();

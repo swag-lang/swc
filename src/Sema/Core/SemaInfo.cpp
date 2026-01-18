@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Sema/Helpers/SemaInfo.h"
+#include "Sema/Core/SemaInfo.h"
 #include "Main/TaskContext.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Constant/ConstantValue.h"

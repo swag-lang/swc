@@ -5,7 +5,7 @@
 #include "Math/Hash.h"
 #include "Memory/Heap.h"
 #include "Parser/ParserJob.h"
-#include "Sema/Helpers/SemaJob.h"
+#include "Sema/Core/SemaJob.h"
 #include "Sema/Symbol/IdentifierManager.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Thread/Job.h"

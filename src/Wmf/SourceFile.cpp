@@ -6,7 +6,7 @@
 #include "Main/TaskContext.h"
 #include "Os/Os.h"
 #include "Report/Diagnostic.h"
-#include "Sema/Helpers/SemaInfo.h"
+#include "Sema/Core/SemaInfo.h"
 #include "Wmf/Verify.h"
 
 SWC_BEGIN_NAMESPACE();

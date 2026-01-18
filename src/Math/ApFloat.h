@@ -10,6 +10,7 @@ public:
     ApFloat();
     explicit ApFloat(double value);
     explicit ApFloat(float value);
+    explicit ApFloat(const void* data, uint32_t bitWidth);
 
     uint32_t        bitWidth() const { return bitWidth_; }
     static uint32_t maxBitWidth() { return MAX_BITS; }

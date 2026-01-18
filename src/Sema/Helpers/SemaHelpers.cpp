@@ -82,18 +82,12 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
     }
     else if (typeField.isIntLike())
     {
-        uint64_t val = 0;
-        memcpy(&val, fieldBytes.data(), std::min((size_t) fieldBytes.size(), sizeof(val)));
-        const ApsInt apsInt(val, typeField.intLikeBits(), typeField.isIntUnsigned());
+        const ApsInt apsInt(fieldBytes.data(), static_cast<uint32_t>(fieldBytes.size()), typeField.intLikeBits(), typeField.isIntUnsigned());
         cv = ConstantValue::makeFromIntLike(sema.ctx(), apsInt, typeField);
     }
     else if (typeField.isFloat())
     {
-        ApFloat apFloat;
-        if (typeField.floatBits() == 32)
-            apFloat.set(*reinterpret_cast<const float*>(fieldBytes.data()));
-        else
-            apFloat.set(*reinterpret_cast<const double*>(fieldBytes.data()));
+        const ApFloat apFloat(fieldBytes.data(), typeField.floatBits());
         cv = ConstantValue::makeFloat(sema.ctx(), apFloat, typeField.floatBits());
     }
     else if (typeField.isString())

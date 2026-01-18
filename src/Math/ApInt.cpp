@@ -29,6 +29,16 @@ ApInt::ApInt(uint64_t value, uint32_t bitWidth) :
     normalize();
 }
 
+ApInt::ApInt(const void* data, uint32_t sizeInBytes, uint32_t bitWidth) :
+    bitWidth_(bitWidth),
+    numWords_(computeNumWords(bitWidth))
+{
+    SWC_ASSERT(bitWidth <= MAX_BITS);
+    clearWords();
+    memcpy(words_, data, std::min(sizeInBytes, static_cast<uint32_t>(sizeof(words_))));
+    normalize();
+}
+
 uint64_t ApInt::as64() const
 {
     const uint32_t maxBits   = std::min<uint32_t>(bitWidth_, 64);

@@ -43,27 +43,28 @@ Result AstAutoMemberAccessExpr::semaPostNode(Sema& sema)
 {
     const auto node = sema.node(sema.curNodeRef()).cast<AstAutoMemberAccessExpr>();
 
-    const auto symFunc = sema.frame().function();
-    if (!symFunc || symFunc->parameters().empty())
-        return SemaError::raise(sema, DiagnosticId::sema_err_internal, sema.curNodeRef());
+    const SymbolMap* symMapHint = nullptr;
+    const auto       symFunc    = sema.frame().function();
+    if (symFunc && !symFunc->parameters().empty())
+    {
+        const auto symMe = symFunc->parameters()[0];
+        if (symMe->idRef() == sema.idMgr().nameMe())
+        {
+            const auto      typeRef  = symMe->typeRef();
+            const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+            if (typeInfo.isPointer())
+            {
+                const TypeInfo& pointeeType = sema.typeMgr().get(typeInfo.underlyingTypeRef());
+                if (pointeeType.isStruct())
+                    symMapHint = &pointeeType.symStruct();
+                else if (pointeeType.isEnum())
+                    symMapHint = &pointeeType.symEnum();
+            }
+        }
+    }
 
-    const auto symMe = symFunc->parameters()[0];
-    if (symMe->idRef() != sema.idMgr().nameMe())
-        return SemaError::raise(sema, DiagnosticId::sema_err_internal, sema.curNodeRef());
-
-    const auto      typeRef  = symMe->typeRef();
-    const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
-    if (!typeInfo.isPointer() || !typeInfo.underlyingTypeRef().isValid())
-        return SemaError::raise(sema, DiagnosticId::sema_err_internal, sema.curNodeRef());
-
-    const TypeInfo&  pointeeType = sema.typeMgr().get(typeInfo.underlyingTypeRef());
-    const SymbolMap* symMapHint  = nullptr;
-    if (pointeeType.isStruct())
-        symMapHint = &pointeeType.symStruct();
-    else if (pointeeType.isEnum())
-        symMapHint = &pointeeType.symEnum();
-    else
-        return SemaError::raise(sema, DiagnosticId::sema_err_internal, sema.curNodeRef());
+    if (!symMapHint)
+        return SemaError::raise(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, sema.curNodeRef());
 
     const SemaNodeView  nodeRightView(sema, node->nodeIdentRef);
     const TokenRef      tokNameRef = nodeRightView.node->tokRef();

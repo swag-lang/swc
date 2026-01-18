@@ -80,6 +80,7 @@ SWC_DIAG_DEF(sema_err_enum_underlying_cast, Error, "enum casts must use the unde
 SWC_DIAG_DEF(sema_err_compiler_error, Error, "compiler error: {because}")
 SWC_DIAG_DEF(sema_err_compiler_assert, Error, "compiler assertion failed")
 SWC_DIAG_DEF(sema_err_internal, Error, "internal error")
+SWC_DIAG_DEF(sema_err_cannot_compute_auto_scope, Error, "cannot compute auto scope")
 SWC_DIAG_DEF(sema_err_number_too_big, Error, "the number is too large to be represented on the target platform")
 SWC_DIAG_DEF(sema_err_literal_overflow, Error, "the value {value} cannot fit in type {requested-type}")
 SWC_DIAG_DEF(sema_err_literal_too_big, Error, "the value {value} cannot fit in a native type")

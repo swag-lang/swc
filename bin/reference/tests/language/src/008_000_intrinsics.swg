@@ -78,14 +78,14 @@ Essential operations related to type and memory management for low-level or perf
 Memory management operations for allocation, deallocation, and manipulation.
 */
 
-func @alloc(size: u64) -> *void;                         // Allocate a block of memory.
-func @realloc(ptr: *void, size: u64) -> *void;           // Reallocate a block of memory.
-func @free(ptr: *void);                                  // Free a previously allocated block.
-func @memset(dst: *void, value: u8, size: u64);          // Set a block of memory to a value.
-func @memcpy(dst: *void, src: const *void, size: u64);   // Copy a block of memory.
-func @memmove(dst: *void, src: const *void, size: u64);  // Move a block of memory (overlap-safe).
-func @memcmp(dst: const *void, src: const *void, size: u64) -> s32; // Compare two blocks of memory.
-func @strlen(value: const *u8) -> u64;                   // Length of a null-terminated string.
+func @alloc(size: u64) -> [*] void;                      // Allocate a block of memory.
+func @realloc(ptr: [*] void, size: u64) -> [*] void;           // Reallocate a block of memory.
+func @free(ptr: [*] void);                                  // Free a previously allocated block.
+func @memset(dst: [*] void, value: u8, size: u64);          // Set a block of memory to a value.
+func @memcpy(dst: [*] void, src: const [*] void, size: u64);   // Copy a block of memory.
+func @memmove(dst: [*] void, src: const [*] void, size: u64);  // Move a block of memory (overlap-safe).
+func @memcmp(dst: const [*] void, src: const [*] void, size: u64) -> s32; // Compare two blocks of memory.
+func @strlen(value: const [*] u8) -> u64;                   // Length of a null-terminated string.
 
 /**
 

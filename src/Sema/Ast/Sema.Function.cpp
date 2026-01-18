@@ -151,18 +151,23 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
 {
     const SemaNodeView nodeCallee(sema, nodeExprRef);
 
+    // Collect arguments: take care of sustitutions
     SmallVector<AstNodeRef> args;
     collectArguments(args, sema.ast());
+    for (auto& arg : args)
+        arg = sema.semaInfo().getSubstituteRef(arg);
 
+    // Collect overload set
     SmallVector<Symbol*> symbols;
     nodeCallee.getSymbols(symbols);
 
+    // Possible UFCS if we are inside a member access expression with a value on the left
     AstNodeRef ufcsArg = AstNodeRef::invalid();
     if (const auto memberAccess = nodeCallee.node->safeCast<AstMemberAccessExpr>())
     {
         const SemaNodeView nodeLeftView(sema, memberAccess->nodeLeftRef);
         if (SemaInfo::isValue(*nodeLeftView.node))
-            ufcsArg = memberAccess->nodeLeftRef;
+            ufcsArg = nodeLeftView.nodeRef;
     }
 
     return Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg);

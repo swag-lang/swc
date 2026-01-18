@@ -127,4 +127,11 @@ Result AstStructDecl::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
+Result AstAnonymousStructDecl::semaPreNode(Sema& sema)
+{
+    // TODO
+    sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
+    return Result::SkipChildren;
+}
+
 SWC_END_NAMESPACE();

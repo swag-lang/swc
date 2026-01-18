@@ -324,7 +324,7 @@ namespace
         return Result::Error;
     }
 
-    Result emitBadMatch(Sema& sema, const SemaNodeView& nodeCallee, const SymbolFunction& fn, const MatchFailure& fail, std::span<AstNodeRef> args)
+    Result emitBadMatch(Sema& sema, const SemaNodeView& nodeCallee, const SymbolFunction& fn, const MatchFailure& fail, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
     {
         const auto& ctx = sema.ctx();
 
@@ -363,14 +363,26 @@ namespace
                 break;
         }
 
-        if (fail.hasLocation && fail.argIndex < args.size())
-            diag.last().addSpan(sema.node(args[fail.argIndex]).location(ctx));
+        if (fail.hasLocation)
+        {
+            if (ufcsArg.isValid())
+            {
+                if (fail.argIndex == 0)
+                    diag.last().addSpan(sema.node(ufcsArg).location(ctx));
+                else if (fail.argIndex - 1 < args.size())
+                    diag.last().addSpan(sema.node(args[fail.argIndex - 1]).location(ctx));
+            }
+            else if (fail.argIndex < args.size())
+            {
+                diag.last().addSpan(sema.node(args[fail.argIndex]).location(ctx));
+            }
+        }
 
         diag.report(sema.ctx());
         return Result::Error;
     }
 
-    Result emitNoOverloadMatch(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<Attempt>& attempts, std::span<AstNodeRef> args)
+    Result emitNoOverloadMatch(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<Attempt>& attempts, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
     {
         auto& ctx  = sema.ctx();
         auto  diag = SemaError::report(sema, DiagnosticId::sema_err_no_overload_match, nodeCallee.nodeRef);
@@ -417,8 +429,20 @@ namespace
                     break;
             }
 
-            if (a.fail.hasLocation && a.fail.argIndex < args.size())
-                diag.last().addSpan(sema.node(args[a.fail.argIndex]).location(ctx));
+            if (a.fail.hasLocation)
+            {
+                if (ufcsArg.isValid())
+                {
+                    if (a.fail.argIndex == 0)
+                        diag.last().addSpan(sema.node(ufcsArg).location(ctx));
+                    else if (a.fail.argIndex - 1 < args.size())
+                        diag.last().addSpan(sema.node(args[a.fail.argIndex - 1]).location(ctx));
+                }
+                else if (a.fail.argIndex < args.size())
+                {
+                    diag.last().addSpan(sema.node(args[a.fail.argIndex]).location(ctx));
+                }
+            }
         }
 
         diag.report(sema.ctx());
@@ -486,10 +510,10 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
 
         // Exactly one function symbol -> "bad match" with reason
         if (functions.size() == 1)
-            return emitBadMatch(sema, nodeCallee, *attempts.front().fn, attempts.front().fail, args);
+            return emitBadMatch(sema, nodeCallee, *attempts.front().fn, attempts.front().fail, args, ufcsArg);
 
         // Multiple function symbols -> "no overload match" with per-overload failure notes
-        return emitNoOverloadMatch(sema, nodeCallee, attempts, args);
+        return emitNoOverloadMatch(sema, nodeCallee, attempts, args, ufcsArg);
     }
 
     // Apply implicit conversions + handle defaults (already validated by tryBuildCandidate)

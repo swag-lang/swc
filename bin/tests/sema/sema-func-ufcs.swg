@@ -18,4 +18,5 @@ impl A
     var a: *A
     a.toto(1)
     A.toto(a, 2)
+    a.toto("1") // swc-expected-error {{sema_err_cannot_cast}}
 }

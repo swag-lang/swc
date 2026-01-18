@@ -151,7 +151,7 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
 {
     const SemaNodeView nodeCallee(sema, nodeExprRef);
 
-    // Collect arguments: take care of sustitutions
+    // Collect arguments: take care of substitutions
     SmallVector<AstNodeRef> args;
     collectArguments(args, sema.ast());
     for (auto& arg : args)

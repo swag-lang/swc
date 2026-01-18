@@ -118,13 +118,13 @@ public:
     bool isIntUnsizedUnsigned() const noexcept { return isIntUnsized() && isIntUnsigned(); }
     bool isIntUnsizedUnknownSign() const noexcept { return isIntUnsized() && asInt.sign == Sign::Unknown; }
     bool isType() const noexcept { return isTypeValue() || isEnum() || isStruct() || isInterface() || isTypeInfo(); }
-    bool isPointer() const noexcept { return isValuePointer() || isBlockPointer(); }
     bool isCharRune() const noexcept { return isChar() || isRune(); }
     bool isIntLike() const noexcept { return isInt() || isCharRune(); }
-    bool isPointerLike() const noexcept { return isPointer() || isSlice() || isString() || isCString() || isAny() || isInterface() || isFunction(); }
+    bool isPointerLike() const noexcept { return isAnyPointer() || isSlice() || isString() || isCString() || isAny() || isInterface() || isFunction(); }
     bool isScalarNumeric() const noexcept { return isIntLike() || isFloat(); }
     bool isIntLikeUnsigned() const noexcept { return isCharRune() || isIntUnsigned(); }
     bool isConcreteScalar() const noexcept { return isScalarNumeric() && !isIntUnsized() && !isFloatUnsized(); }
+    bool isAnyPointer() const noexcept { return isValuePointer() || isBlockPointer(); }
     bool isAnyVariadic() const noexcept { return isVariadic() || isTypedVariadic(); }
     bool isAnyString() const noexcept { return isString() || isCString(); }
 
@@ -144,7 +144,7 @@ public:
     SymbolInterface&     symInterface() const noexcept { SWC_ASSERT(isInterface()); return *asInterface.sym; }
     SymbolAlias&         symAlias() const noexcept { SWC_ASSERT(isAlias()); return *asAlias.sym; }
     SymbolFunction&      symFunction() const noexcept { SWC_ASSERT(isFunction()); return *asFunction.sym; }
-    TypeRef              typeRef() const noexcept { SWC_ASSERT(isTypeValue() || isPointer() || isReference() || isSlice() || isAlias() || isTypedVariadic()); return asTypeRef.typeRef; }
+    TypeRef              typeRef() const noexcept { SWC_ASSERT(isTypeValue() || isAnyPointer() || isReference() || isSlice() || isAlias() || isTypedVariadic()); return asTypeRef.typeRef; }
     auto&                arrayDims() const noexcept { SWC_ASSERT(isArray()); return asArray.dims; }
     TypeRef              arrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return asArray.typeRef; }
     TypeRef              underlyingTypeRef() const noexcept;

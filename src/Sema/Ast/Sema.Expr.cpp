@@ -54,7 +54,7 @@ Result AstAutoMemberAccessExpr::semaPostNode(Sema& sema)
         {
             const auto      typeRef  = symMe->typeRef();
             const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
-            if (typeInfo.isPointer())
+            if (typeInfo.isAnyPointer())
             {
                 const TypeInfo& pointeeType = sema.typeMgr().get(typeInfo.underlyingTypeRef());
                 if (pointeeType.isStruct())
@@ -163,7 +163,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     }
 
     const TypeInfo* typeInfo = nodeLeftView.type;
-    if (typeInfo && typeInfo->isPointer())
+    if (typeInfo && typeInfo->isAnyPointer())
         typeInfo = &sema.typeMgr().get(typeInfo->typeRef());
 
     // Struct
@@ -182,13 +182,13 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
 
         sema.setSymbolList(nodeRightRef, lookUpCxt.symbols());
         sema.setSymbolList(sema.curNodeRef(), lookUpCxt.symbols());
-        if (nodeLeftView.type->isPointer() || SemaInfo::isLValue(sema.node(nodeLeftRef)))
+        if (nodeLeftView.type->isAnyPointer() || SemaInfo::isLValue(sema.node(nodeLeftRef)))
             SemaInfo::setIsLValue(*this);
         return Result::SkipChildren;
     }
 
     // Pointer
-    if (nodeLeftView.type->isPointer())
+    if (nodeLeftView.type->isAnyPointer())
     {
         sema.setType(sema.curNodeRef(), nodeLeftView.type->typeRef());
         SemaInfo::setIsValue(*this);

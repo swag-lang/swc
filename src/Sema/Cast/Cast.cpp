@@ -129,7 +129,7 @@ namespace
         const auto&     typeMgr = sema.ctx().typeMgr();
         const TypeInfo& srcType = typeMgr.get(srcTypeRef);
         if (!srcType.isIntLike() &&
-            !srcType.isPointer() &&
+            !srcType.isAnyPointer() &&
             !srcType.isInterface() &&
             !srcType.isLambdaClosure() &&
             !srcType.isSlice())
@@ -382,7 +382,7 @@ namespace
         const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
         const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
 
-        if (srcType.isPointer())
+        if (srcType.isAnyPointer())
             return castPointerToPointer(sema, castCtx, srcTypeRef, dstTypeRef);
         else if (srcTypeRef == sema.ctx().typeMgr().typeU64())
         {
@@ -535,7 +535,7 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
         res = castToFromTypeInfo(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isConstPointerToRuntimeTypeInfo(sema.ctx()) && dstType.isTypeInfo())
         res = castToFromTypeInfo(sema, castCtx, srcTypeRef, dstTypeRef);
-    else if (dstType.isPointer())
+    else if (dstType.isAnyPointer())
         res = castToPointer(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (dstType.isAnyVariadic())
         res = castToVariadic(sema, castCtx, srcTypeRef, dstTypeRef);

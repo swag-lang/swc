@@ -877,7 +877,7 @@ bool TypeInfo::isConstPointerToRuntimeTypeInfo(TaskContext& ctx) const noexcept
 
 TypeRef TypeInfo::underlyingTypeRef() const noexcept
 {
-    if (isPointer() || isSlice() || isAlias() || isTypedVariadic() || isTypeValue())
+    if (isAnyPointer() || isSlice() || isAlias() || isTypedVariadic() || isTypeValue())
         return asTypeRef.typeRef;
     if (isArray())
         return asArray.typeRef;

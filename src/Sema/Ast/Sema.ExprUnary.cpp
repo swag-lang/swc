@@ -210,7 +210,7 @@ namespace
 
     Result checkDRef(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& nodeView)
     {
-        if (!nodeView.type->isPointer())
+        if (!nodeView.type->isAnyPointer())
             return SemaError::raiseUnaryOperandType(sema, node, nodeView.nodeRef, nodeView.typeRef);
         return Result::Continue;
     }

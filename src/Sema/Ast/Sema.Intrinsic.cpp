@@ -73,7 +73,7 @@ namespace
         {
             resultTypeRef = sema.typeMgr().typeBlockPtrVoid();
         }
-        else if (type->isPointer())
+        else if (type->isAnyPointer())
         {
             resultTypeRef = nodeView.typeRef;
         }
@@ -150,7 +150,7 @@ namespace
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewPtr.nodeRef));
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewSize.nodeRef));
 
-        if (!nodeViewPtr.type->isPointer())
+        if (!nodeViewPtr.type->isAnyPointer())
             return SemaError::raiseRequestedTypeFam(sema, nodeArg1Ref, nodeViewPtr.typeRef, sema.typeMgr().typeBlockPtrVoid());
 
         RESULT_VERIFY(Cast::cast(sema, nodeViewSize, sema.typeMgr().typeU64(), CastKind::Implicit));

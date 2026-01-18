@@ -37,6 +37,7 @@ enum class TypeInfoKind : uint8_t
     Enum,
     ValuePointer,
     BlockPointer,
+    Reference,
     Slice,
     Array,
     Struct,
@@ -102,6 +103,7 @@ public:
     bool isTypeInfo() const noexcept { return kind_ == TypeInfoKind::TypeInfo; }
     bool isValuePointer() const noexcept { return kind_ == TypeInfoKind::ValuePointer; }
     bool isBlockPointer() const noexcept { return kind_ == TypeInfoKind::BlockPointer; }
+    bool isReference() const noexcept { return kind_ == TypeInfoKind::Reference; }
     bool isSlice() const noexcept { return kind_ == TypeInfoKind::Slice; }
     bool isArray() const noexcept { return kind_ == TypeInfoKind::Array; }
     bool isAlias() const noexcept { return kind_ == TypeInfoKind::Alias; }
@@ -142,7 +144,7 @@ public:
     SymbolInterface&     symInterface() const noexcept { SWC_ASSERT(isInterface()); return *asInterface.sym; }
     SymbolAlias&         symAlias() const noexcept { SWC_ASSERT(isAlias()); return *asAlias.sym; }
     SymbolFunction&      symFunction() const noexcept { SWC_ASSERT(isFunction()); return *asFunction.sym; }
-    TypeRef              typeRef() const noexcept { SWC_ASSERT(isTypeValue() || isPointer() || isSlice() || isAlias() || isTypedVariadic()); return asTypeRef.typeRef; }
+    TypeRef              typeRef() const noexcept { SWC_ASSERT(isTypeValue() || isPointer() || isReference() || isSlice() || isAlias() || isTypedVariadic()); return asTypeRef.typeRef; }
     auto&                arrayDims() const noexcept { SWC_ASSERT(isArray()); return asArray.dims; }
     TypeRef              arrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return asArray.typeRef; }
     TypeRef              underlyingTypeRef() const noexcept;
@@ -168,6 +170,7 @@ public:
     static TypeInfo makeAlias(SymbolAlias* sym);
     static TypeInfo makeValuePointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    static TypeInfo makeReference(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeArray(const std::vector<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeFunction(SymbolFunction* sym, TypeInfoFlags flags = TypeInfoFlagsE::Zero);

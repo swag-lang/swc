@@ -155,6 +155,7 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
         {
             case TypeInfoKind::ValuePointer:
             case TypeInfoKind::BlockPointer:
+            case TypeInfoKind::Reference:
             case TypeInfoKind::Slice:
                 break;
             default:
@@ -201,6 +202,9 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
             break;
         case TypeInfoKind::BlockPointer:
             typeRef = typeMgr.addType(TypeInfo::makeBlockPointer(nodeView.type->typeRef(), typeFlags));
+            break;
+        case TypeInfoKind::Reference:
+            typeRef = typeMgr.addType(TypeInfo::makeReference(nodeView.type->typeRef(), typeFlags));
             break;
         case TypeInfoKind::Slice:
             typeRef = typeMgr.addType(TypeInfo::makeSlice(nodeView.type->typeRef(), typeFlags));

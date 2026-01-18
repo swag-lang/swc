@@ -4,6 +4,7 @@
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
+#include "Sema/Helpers/SemaHelpers.h"
 #include "Sema/Match/Match.h"
 #include "Sema/Match/MatchContext.h"
 #include "Sema/Symbol/IdentifierManager.h"
@@ -187,48 +188,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
 
         // Constant struct member access
         if (nodeLeftView.cst && lookUpCxt.symbols().size() == 1 && lookUpCxt.symbols()[0]->isVariable())
-        {
-            const SymbolVariable&  symVar = lookUpCxt.symbols()[0]->cast<SymbolVariable>();
-            const ConstantValue&   cst    = *nodeLeftView.cst;
-            const std::string_view bytes  = cst.getStruct();
-
-            const TypeInfo& typeField = symVar.typeInfo(sema.ctx());
-            if (symVar.offset() + typeField.sizeOf(sema.ctx()) <= bytes.size())
-            {
-                const auto    fieldBytes = std::string_view(bytes.data() + symVar.offset(), typeField.sizeOf(sema.ctx()));
-                ConstantValue cv;
-                if (typeField.isStruct())
-                {
-                    cv = ConstantValue::makeStruct(sema.ctx(), typeField.typeRef(), fieldBytes);
-                }
-                else if (typeField.isBool())
-                {
-                    cv = ConstantValue::makeBool(sema.ctx(), *reinterpret_cast<const bool*>(fieldBytes.data()));
-                }
-                else if (typeField.isInt() || typeField.isChar() || typeField.isRune())
-                {
-                    uint64_t val = 0;
-                    memcpy(&val, fieldBytes.data(), std::min((size_t) fieldBytes.size(), sizeof(val)));
-                    const auto apsInt = ApsInt(val, typeField.intLikeBits(), typeField.isIntUnsigned());
-                    cv                = ConstantValue::makeFromIntLike(sema.ctx(), apsInt, typeField);
-                }
-                else if (typeField.isFloat())
-                {
-                    ApFloat apFloat;
-                    if (typeField.floatBits() == 32)
-                        apFloat.set(*reinterpret_cast<const float*>(fieldBytes.data()));
-                    else
-                        apFloat.set(*reinterpret_cast<const double*>(fieldBytes.data()));
-                    cv = ConstantValue::makeFloat(sema.ctx(), apFloat, typeField.floatBits());
-                }
-
-                if (cv.kind() != ConstantKind::Invalid)
-                {
-                    const auto cstRef = sema.cstMgr().addConstant(sema.ctx(), cv);
-                    sema.setConstant(sema.curNodeRef(), cstRef);
-                }
-            }
-        }
+            SemaHelpers::extractConstantStructMember(sema, *nodeLeftView.cst, lookUpCxt.symbols()[0]->cast<SymbolVariable>(), sema.curNodeRef());
 
         if (nodeLeftView.type->isAnyPointer() || SemaInfo::isLValue(sema.node(nodeLeftRef)))
             SemaInfo::setIsLValue(*this);

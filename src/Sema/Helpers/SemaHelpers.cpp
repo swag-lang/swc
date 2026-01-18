@@ -62,4 +62,46 @@ ConstantRef SemaHelpers::makeConstantLocation(Sema& sema, const AstNode& node)
     return sema.cstMgr().addConstant(ctx, cstVal);
 }
 
+void SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef)
+{
+    const std::string_view bytes = cst.getStruct();
+
+    const TypeInfo& typeField = symVar.typeInfo(sema.ctx());
+    if (symVar.offset() + typeField.sizeOf(sema.ctx()) > bytes.size())
+        return;
+
+    const auto    fieldBytes = std::string_view(bytes.data() + symVar.offset(), typeField.sizeOf(sema.ctx()));
+    ConstantValue cv;
+    if (typeField.isStruct())
+    {
+        cv = ConstantValue::makeStruct(sema.ctx(), typeField.typeRef(), fieldBytes);
+    }
+    else if (typeField.isBool())
+    {
+        cv = ConstantValue::makeBool(sema.ctx(), *reinterpret_cast<const bool*>(fieldBytes.data()));
+    }
+    else if (typeField.isInt() || typeField.isChar() || typeField.isRune())
+    {
+        uint64_t val = 0;
+        memcpy(&val, fieldBytes.data(), std::min((size_t) fieldBytes.size(), sizeof(val)));
+        const auto apsInt = ApsInt(val, typeField.intLikeBits(), typeField.isIntUnsigned());
+        cv                = ConstantValue::makeFromIntLike(sema.ctx(), apsInt, typeField);
+    }
+    else if (typeField.isFloat())
+    {
+        ApFloat apFloat;
+        if (typeField.floatBits() == 32)
+            apFloat.set(*reinterpret_cast<const float*>(fieldBytes.data()));
+        else
+            apFloat.set(*reinterpret_cast<const double*>(fieldBytes.data()));
+        cv = ConstantValue::makeFloat(sema.ctx(), apFloat, typeField.floatBits());
+    }
+
+    if (cv.kind() != ConstantKind::Invalid)
+    {
+        const auto cstRef = sema.cstMgr().addConstant(sema.ctx(), cv);
+        sema.setConstant(nodeRef, cstRef);
+    }
+}
+
 SWC_END_NAMESPACE();

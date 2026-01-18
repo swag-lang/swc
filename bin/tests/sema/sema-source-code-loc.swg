@@ -4,3 +4,5 @@
 {
     var a: Swag.SourceCodeLocation
 }
+
+const A = #curlocation

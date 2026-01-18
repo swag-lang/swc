@@ -39,12 +39,12 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
     // Struct constants: always copy payload into an internal buffer; no set/unification
     if (value.isStruct())
     {
-        const auto view    = addStructBuffer(value);
-        const auto stored  = ConstantValue::makeStruct(ctx, value.typeRef(), view);
+        const auto       view   = addStructBuffer(value);
+        const auto       stored = ConstantValue::makeStruct(ctx, value.typeRef(), view);
         std::unique_lock lk(shard.mutex);
         const uint32_t   localIndex = shard.store.push_back(stored);
         SWC_ASSERT(localIndex < LOCAL_MASK);
-        ConstantRef result = ConstantRef{(shardIndex << LOCAL_BITS) | localIndex};
+        auto result = ConstantRef{(shardIndex << LOCAL_BITS) | localIndex};
 
 #if SWC_HAS_STATS
         Stats::get().numConstants.fetch_add(1);
@@ -109,12 +109,12 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
 
 std::string_view ConstantManager::addStructBuffer(const ConstantValue& value)
 {
-    const uint32_t shardIndex = value.hash() & (SHARD_COUNT - 1);
-    auto&          shard      = shards_[shardIndex];
+    const uint32_t   shardIndex = value.hash() & (SHARD_COUNT - 1);
+    auto&            shard      = shards_[shardIndex];
     std::unique_lock lk(shard.mutex);
-    shard.cacheStruct.emplace_back(std::string(value.getStruct()));
+    shard.cacheStruct.emplace_back(value.getStruct());
     const auto& copied = shard.cacheStruct.back();
-    return std::string_view(copied.data(), copied.size());
+    return {copied.data(), copied.size()};
 }
 
 ConstantRef ConstantManager::cstS32(int32_t value) const

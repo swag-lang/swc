@@ -188,8 +188,8 @@ namespace
 
         for (uint32_t i = 0; i < upto; ++i)
         {
-            const AstNodeRef argRef = getArg(i, args, ufcsArg);
-            const TypeRef    argTy  = sema.typeRefOf(argRef);
+            const AstNodeRef argRef  = getArg(i, args, ufcsArg);
+            const TypeRef    argTy   = sema.typeRefOf(argRef);
             const TypeRef    paramTy = params[i]->typeRef();
 
             CastFailure    cf{};
@@ -514,7 +514,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     const uint32_t numCommon = selectedFnT.isAnyVariadic() ? numParams - 1 : numParams;
     for (uint32_t i = 0; i < std::min(numArgs, numCommon); ++i)
     {
-        const AstNodeRef argRef  = getArg(i, args, ufcsArg);
+        const AstNodeRef argRef = getArg(i, args, ufcsArg);
         SemaNodeView     argView(sema, argRef);
         RESULT_VERIFY(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Implicit));
 
@@ -536,7 +536,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
         const TypeRef  variadicTy    = selectedFnT.typeRef();
         for (uint32_t i = startVariadic; i < numArgs; ++i)
         {
-            const AstNodeRef argRef  = getArg(i, args, ufcsArg);
+            const AstNodeRef argRef = getArg(i, args, ufcsArg);
             SemaNodeView     argView(sema, argRef);
             RESULT_VERIFY(Cast::cast(sema, argView, variadicTy, CastKind::Implicit));
 

@@ -8,6 +8,34 @@
 
 SWC_BEGIN_NAMESPACE();
 
+void ConstantManager::setup(const TaskContext& ctx)
+{
+    cstBool_true_  = addConstant(ctx, ConstantValue::makeBool(ctx, true));
+    cstBool_false_ = addConstant(ctx, ConstantValue::makeBool(ctx, false));
+    cstS32_0_      = addS32(ctx, 0);
+    cstS32_1_      = addS32(ctx, 1);
+    cstS32_neg1_   = addS32(ctx, -1);
+    cstNull_       = addConstant(ctx, ConstantValue::makeNull(ctx));
+    cstUndefined_  = addConstant(ctx, ConstantValue::makeUndefined(ctx));
+}
+
+ConstantRef ConstantManager::addS32(const TaskContext& ctx, int32_t value)
+{
+    return addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(value, 32, false), 32, TypeInfo::Sign::Signed));
+}
+
+ConstantRef ConstantManager::addInt(const TaskContext& ctx, uint64_t value)
+{
+    const ApsInt        val{value, ApsInt::maxBitWidth()};
+    const ConstantValue cstVal = ConstantValue::makeIntUnsized(ctx, val, TypeInfo::Sign::Unknown);
+    return addConstant(ctx, cstVal);
+}
+
+std::string_view ConstantManager::addString(const TaskContext& ctx, std::string_view str)
+{
+    return get(addConstant(ctx, ConstantValue::makeString(ctx, str))).getString();
+}
+
 namespace
 {
     ConstantRef addCstFinalize(const ConstantManager& manager, ConstantRef cstRef)
@@ -77,29 +105,6 @@ namespace
     }
 }
 
-void ConstantManager::setup(const TaskContext& ctx)
-{
-    cstBool_true_  = addConstant(ctx, ConstantValue::makeBool(ctx, true));
-    cstBool_false_ = addConstant(ctx, ConstantValue::makeBool(ctx, false));
-    cstS32_0_      = addS32(ctx, 0);
-    cstS32_1_      = addS32(ctx, 1);
-    cstS32_neg1_   = addS32(ctx, -1);
-    cstNull_       = addConstant(ctx, ConstantValue::makeNull(ctx));
-    cstUndefined_  = addConstant(ctx, ConstantValue::makeUndefined(ctx));
-}
-
-ConstantRef ConstantManager::addS32(const TaskContext& ctx, int32_t value)
-{
-    return addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(value, 32, false), 32, TypeInfo::Sign::Signed));
-}
-
-ConstantRef ConstantManager::addInt(const TaskContext& ctx, uint64_t value)
-{
-    const ApsInt        val{value, ApsInt::maxBitWidth()};
-    const ConstantValue cstVal = ConstantValue::makeIntUnsized(ctx, val, TypeInfo::Sign::Unknown);
-    return addConstant(ctx, cstVal);
-}
-
 ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantValue& value)
 {
     const uint32_t shardIndex = value.hash() & (SHARD_COUNT - 1);
@@ -109,13 +114,8 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
         return addCstStruct(*this, shard, shardIndex, ctx, value);
     if (value.isString())
         return addCstString(*this, shard, shardIndex, ctx, value);
-    
-    return addCstOther(*this, shard, shardIndex, ctx, value);
-}
 
-std::string_view ConstantManager::addString(const TaskContext& ctx, std::string_view str)
-{
-    return get(addConstant(ctx, ConstantValue::makeString(ctx, str))).getString();
+    return addCstOther(*this, shard, shardIndex, ctx, value);
 }
 
 std::string_view ConstantManager::addPayloadBuffer(std::string_view payload)

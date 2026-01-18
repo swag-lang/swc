@@ -68,10 +68,9 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
     const std::string_view bytes = cst.getStruct();
 
     const TypeInfo& typeField = symVar.typeInfo(sema.ctx());
-    if (symVar.offset() + typeField.sizeOf(sema.ctx()) > bytes.size())
-        return Result::Continue;
+    SWC_ASSERT(symVar.offset() + typeField.sizeOf(sema.ctx()) <= bytes.size());
+    const auto fieldBytes = std::string_view(bytes.data() + symVar.offset(), typeField.sizeOf(sema.ctx()));
 
-    const auto    fieldBytes = std::string_view(bytes.data() + symVar.offset(), typeField.sizeOf(sema.ctx()));
     ConstantValue cv;
     if (typeField.isStruct())
     {
@@ -81,7 +80,7 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
     {
         cv = ConstantValue::makeBool(sema.ctx(), *reinterpret_cast<const bool*>(fieldBytes.data()));
     }
-    else if (typeField.isInt() || typeField.isChar() || typeField.isRune())
+    else if (typeField.isIntLike())
     {
         uint64_t val = 0;
         memcpy(&val, fieldBytes.data(), std::min((size_t) fieldBytes.size(), sizeof(val)));

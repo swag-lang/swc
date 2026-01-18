@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    ConstantRef addCstFinalize(const ConstantManager* manager, ConstantRef cstRef)
+    ConstantRef addCstFinalize(const ConstantManager& manager, ConstantRef cstRef)
     {
 #if SWC_HAS_STATS
         Stats::get().numConstants.fetch_add(1);
@@ -18,12 +18,12 @@ namespace
 #endif
 
 #if SWC_HAS_REF_DEBUG_INFO
-        cstRef.setDbgPtr(&manager->getNoLock(cstRef));
+        cstRef.setDbgPtr(&manager.getNoLock(cstRef));
 #endif
         return cstRef;
     }
 
-    ConstantRef addCstStruct(const ConstantManager* manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
+    ConstantRef addCstStruct(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
     {
         std::unique_lock lk(shard.mutex);
         const auto       view   = ConstantManager::addPayloadBufferNoLock(shard, value.getStruct());
@@ -35,7 +35,7 @@ namespace
         return addCstFinalize(manager, result);
     }
 
-    ConstantRef addCstOther(const ConstantManager* manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
+    ConstantRef addCstOther(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
     {
         {
             std::shared_lock lk(shard.mutex);
@@ -55,7 +55,7 @@ namespace
         return addCstFinalize(manager, result);
     }
 
-    ConstantRef addCstString(const ConstantManager* manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
+    ConstantRef addCstString(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
     {
         {
             std::shared_lock lk(shard.mutex);
@@ -106,10 +106,11 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
     auto&          shard      = shards_[shardIndex];
 
     if (value.isStruct())
-        return addCstStruct(this, shard, shardIndex, ctx, value);
+        return addCstStruct(*this, shard, shardIndex, ctx, value);
     if (value.isString())
-        return addCstString(this, shard, shardIndex, ctx, value);
-    return addCstOther(this, shard, shardIndex, ctx, value);
+        return addCstString(*this, shard, shardIndex, ctx, value);
+    
+    return addCstOther(*this, shard, shardIndex, ctx, value);
 }
 
 std::string_view ConstantManager::addString(const TaskContext& ctx, std::string_view str)

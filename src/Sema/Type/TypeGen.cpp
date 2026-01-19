@@ -163,53 +163,66 @@ namespace
         *ptrField      = storage.ptr<Runtime::TypeInfo>(targetOffset);
     }
 
-    // NOTE:
-    // - offsets: caches typeRef->offset
-    // - inProgress: indicates the runtime payload exists in storage but is not fully initialized yet.
-    //   We allow returning incomplete info ONLY for internal recursion wiring; never for the user-visible result.
-    Result makeTypeInfoRec(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGen::TypeGenResult& result, TypeGen::TypeGenCache& cache, bool userVisibleResult)
+    std::vector<uint32_t> computeDeps(const TypeManager& tm, const TaskContext& ctx, const TypeInfo& type, TypeRef structTypeRef)
+    {
+        std::vector<uint32_t> deps;
+        if (structTypeRef == tm.structTypeInfoPointer())
+        {
+            deps.push_back(type.typeRef().get());
+        }
+        else if (structTypeRef == tm.structTypeInfoSlice())
+        {
+            deps.push_back(type.typeRef().get());
+        }
+        else if (structTypeRef == tm.structTypeInfoArray())
+        {
+            const TypeRef elemTypeRef = type.arrayElemTypeRef();
+            deps.push_back(elemTypeRef.get());
+
+            const TypeRef finalTypeRef = tm.get(elemTypeRef).ultimateTypeRef(ctx);
+            if (finalTypeRef != elemTypeRef)
+                deps.push_back(finalTypeRef.get());
+        }
+        else if (structTypeRef == tm.structTypeInfoAlias())
+        {
+            deps.push_back(type.underlyingTypeRef().get());
+        }
+        else if (structTypeRef == tm.structTypeInfoVariadic())
+        {
+            if (type.isTypedVariadic())
+                deps.push_back(type.typeRef().get());
+        }
+
+        return deps;
+    }
+
+    Result makeTypeInfoReentrant(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGen::TypeGenResult& result, TypeGen::TypeGenCache& cache)
     {
         auto&              ctx  = sema.ctx();
         const TypeManager& tm   = ctx.typeMgr();
-        const TypeInfo&    type = tm.get(typeRef);
         const AstNode&     node = sema.node(ownerNodeRef);
 
-        const uint32_t key = typeRef.get();
+        std::vector<uint32_t>        stack;
+        std::unordered_set<uint32_t> inStack;
+        stack.push_back(typeRef.get());
+        inStack.insert(typeRef.get());
 
-        if (const auto it = cache.offsets.find(key); it != cache.offsets.end())
+        while (!stack.empty())
         {
-            result.offset        = it->second;
-            result.structTypeRef = selectTypeInfoStructType(tm, type);
-            RESULT_VERIFY(ensureTypeInfoStructReady(sema, tm, result.structTypeRef, node));
+            const uint32_t  key = stack.back();
+            const TypeRef   curRef{key};
+            const TypeInfo& type = tm.get(curRef);
 
-            // If this type is still being built, never hand a view back as a "finished" result.
-            // Internal recursion can still use the offset for relocations.
-            if (cache.inProgress.contains(key))
+            auto it = cache.entries.find(key);
+            if (it == cache.entries.end())
             {
-                if (userVisibleResult)
-                {
-                    printf("X");
-                    // This should not normally happen with the current locking model; treat as a hard safety check.
-                    // If you have a Result kind for "internal error" or diagnostics here, plug it in.
-                    //return Result::Error;
-                }
+                TypeGen::TypeGenCache::Entry entry;
+                entry.structTypeRef = selectTypeInfoStructType(tm, type);
+                RESULT_VERIFY(ensureTypeInfoStructReady(sema, tm, entry.structTypeRef, node));
 
-                result.view = {};
-                return Result::Continue;
-            }
-
-            const TypeInfo& structType = tm.get(result.structTypeRef);
-            result.view                = std::string_view{storage.ptr<char>(result.offset), structType.sizeOf(ctx)};
-            return Result::Continue;
-        }
-
-        // Pick and validate the "TypeInfo struct" layout used to serialize this type
-        result.structTypeRef = selectTypeInfoStructType(tm, type);
-        RESULT_VERIFY(ensureTypeInfoStructReady(sema, tm, result.structTypeRef, node));
-
-        // Allocate the correct runtime TypeInfo payload
-        uint32_t           offset = 0;
-        Runtime::TypeInfo* rt     = nullptr;
+                // Allocate the correct runtime TypeInfo payload
+                uint32_t           offset = 0;
+                Runtime::TypeInfo* rt     = nullptr;
 
 #define RESERVE_TYPE_INFO(T, K)                         \
     do                                                  \
@@ -221,115 +234,156 @@ namespace
         rt->kind       = K;                             \
     } while (0)
 
-        if (result.structTypeRef == tm.structTypeInfoNative())
-        {
-            RESERVE_TYPE_INFO(TypeInfoNative, Runtime::TypeInfoKind::Native);
-            initNative(*reinterpret_cast<Runtime::TypeInfoNative*>(rt), type);
-        }
-        else if (result.structTypeRef == tm.structTypeInfoEnum())
-        {
-            RESERVE_TYPE_INFO(TypeInfoEnum, Runtime::TypeInfoKind::Enum);
-        }
-        else if (result.structTypeRef == tm.structTypeInfoArray())
-        {
-            RESERVE_TYPE_INFO(TypeInfoArray, Runtime::TypeInfoKind::Array);
-            initArray(*reinterpret_cast<Runtime::TypeInfoArray*>(rt), type);
-        }
-        else if (result.structTypeRef == tm.structTypeInfoSlice())
-        {
-            RESERVE_TYPE_INFO(TypeInfoSlice, Runtime::TypeInfoKind::Slice);
-        }
-        else if (result.structTypeRef == tm.structTypeInfoPointer())
-        {
-            RESERVE_TYPE_INFO(TypeInfoPointer, Runtime::TypeInfoKind::Pointer);
-        }
-        else if (result.structTypeRef == tm.structTypeInfoStruct())
-        {
-            RESERVE_TYPE_INFO(TypeInfoStruct, Runtime::TypeInfoKind::Struct);
-            initStruct(sema, storage, *reinterpret_cast<Runtime::TypeInfoStruct*>(rt), offset, type);
-        }
-        else if (result.structTypeRef == tm.structTypeInfoAlias())
-        {
-            RESERVE_TYPE_INFO(TypeInfoAlias, Runtime::TypeInfoKind::Alias);
-        }
-        else if (result.structTypeRef == tm.structTypeInfoVariadic())
-        {
-            RESERVE_TYPE_INFO(TypeInfoVariadic, type.isTypedVariadic() ? Runtime::TypeInfoKind::TypedVariadic : Runtime::TypeInfoKind::Variadic);
-        }
-        else if (result.structTypeRef == tm.structTypeInfoFunc())
-        {
-            RESERVE_TYPE_INFO(TypeInfoFunc, Runtime::TypeInfoKind::Func);
-        }
-        else
-        {
-            const auto res = storage.reserve<Runtime::TypeInfo>();
-            offset         = res.first;
-            rt             = res.second;
-        }
+                if (entry.structTypeRef == tm.structTypeInfoNative())
+                {
+                    RESERVE_TYPE_INFO(TypeInfoNative, Runtime::TypeInfoKind::Native);
+                    initNative(*reinterpret_cast<Runtime::TypeInfoNative*>(rt), type);
+                }
+                else if (entry.structTypeRef == tm.structTypeInfoEnum())
+                {
+                    RESERVE_TYPE_INFO(TypeInfoEnum, Runtime::TypeInfoKind::Enum);
+                }
+                else if (entry.structTypeRef == tm.structTypeInfoArray())
+                {
+                    RESERVE_TYPE_INFO(TypeInfoArray, Runtime::TypeInfoKind::Array);
+                    initArray(*reinterpret_cast<Runtime::TypeInfoArray*>(rt), type);
+                }
+                else if (entry.structTypeRef == tm.structTypeInfoSlice())
+                {
+                    RESERVE_TYPE_INFO(TypeInfoSlice, Runtime::TypeInfoKind::Slice);
+                }
+                else if (entry.structTypeRef == tm.structTypeInfoPointer())
+                {
+                    RESERVE_TYPE_INFO(TypeInfoPointer, Runtime::TypeInfoKind::Pointer);
+                }
+                else if (entry.structTypeRef == tm.structTypeInfoStruct())
+                {
+                    RESERVE_TYPE_INFO(TypeInfoStruct, Runtime::TypeInfoKind::Struct);
+                    initStruct(sema, storage, *reinterpret_cast<Runtime::TypeInfoStruct*>(rt), offset, type);
+                }
+                else if (entry.structTypeRef == tm.structTypeInfoAlias())
+                {
+                    RESERVE_TYPE_INFO(TypeInfoAlias, Runtime::TypeInfoKind::Alias);
+                }
+                else if (entry.structTypeRef == tm.structTypeInfoVariadic())
+                {
+                    RESERVE_TYPE_INFO(TypeInfoVariadic, type.isTypedVariadic() ? Runtime::TypeInfoKind::TypedVariadic : Runtime::TypeInfoKind::Variadic);
+                }
+                else if (entry.structTypeRef == tm.structTypeInfoFunc())
+                {
+                    RESERVE_TYPE_INFO(TypeInfoFunc, Runtime::TypeInfoKind::Func);
+                }
+                else
+                {
+                    const auto res = storage.reserve<Runtime::TypeInfo>();
+                    offset         = res.first;
+                    rt             = res.second;
+                }
 
-        result.offset = offset;
+                entry.offset = offset;
 
-        // Mark as "in progress" before recursing so self-references (via pointers) can be wired.
-        cache.offsets[key] = offset;
-        cache.inProgress.insert(key);
+                // Fill common fields + strings
+                TypeGen::TypeGenResult tmp;
+                tmp.structTypeRef = entry.structTypeRef;
+                tmp.offset        = entry.offset;
+                initCommon(sema, storage, *rt, offset, type, tmp);
 
-        // Fill common fields + strings + view
-        initCommon(sema, storage, *rt, offset, type, result);
-
-        // Recursively populate dependent type pointers.
-        if (result.structTypeRef == tm.structTypeInfoPointer())
-        {
-            const TypeRef          pointedTypeRef = type.typeRef();
-            TypeGen::TypeGenResult pointedRes;
-            RESULT_VERIFY(makeTypeInfoRec(sema, storage, pointedTypeRef, ownerNodeRef, pointedRes, cache, /*userVisibleResult*/ false));
-            addTypeRelocation(storage, offset, offsetof(Runtime::TypeInfoPointer, pointedType), pointedRes.offset);
-        }
-        else if (result.structTypeRef == tm.structTypeInfoSlice())
-        {
-            const TypeRef          pointedTypeRef = type.typeRef();
-            TypeGen::TypeGenResult pointedRes;
-            RESULT_VERIFY(makeTypeInfoRec(sema, storage, pointedTypeRef, ownerNodeRef, pointedRes, cache, /*userVisibleResult*/ false));
-            addTypeRelocation(storage, offset, offsetof(Runtime::TypeInfoSlice, pointedType), pointedRes.offset);
-        }
-        else if (result.structTypeRef == tm.structTypeInfoArray())
-        {
-            const TypeRef          elemTypeRef = type.arrayElemTypeRef();
-            TypeGen::TypeGenResult elemRes;
-            RESULT_VERIFY(makeTypeInfoRec(sema, storage, elemTypeRef, ownerNodeRef, elemRes, cache, /*userVisibleResult*/ false));
-            addTypeRelocation(storage, offset, offsetof(Runtime::TypeInfoArray, pointedType), elemRes.offset);
-
-            // "finalType" is the ultimate (non-array) type.
-            const TypeRef finalTypeRef = tm.get(elemTypeRef).ultimateTypeRef(ctx);
-            if (finalTypeRef == elemTypeRef)
-            {
-                addTypeRelocation(storage, offset, offsetof(Runtime::TypeInfoArray, finalType), elemRes.offset);
+                entry.deps = computeDeps(tm, ctx, type, entry.structTypeRef);
+                it         = cache.entries.emplace(key, std::move(entry)).first;
             }
-            else
+
+            auto& entry = it->second;
+            if (entry.state == TypeGen::TypeGenCache::State::Done)
             {
-                TypeGen::TypeGenResult finalRes;
-                RESULT_VERIFY(makeTypeInfoRec(sema, storage, finalTypeRef, ownerNodeRef, finalRes, cache, /*userVisibleResult*/ false));
-                addTypeRelocation(storage, offset, offsetof(Runtime::TypeInfoArray, finalType), finalRes.offset);
+                stack.pop_back();
+                inStack.erase(key);
+                continue;
             }
-        }
-        else if (result.structTypeRef == tm.structTypeInfoAlias())
-        {
-            const TypeRef          rawTypeRef = type.underlyingTypeRef();
-            TypeGen::TypeGenResult rawRes;
-            RESULT_VERIFY(makeTypeInfoRec(sema, storage, rawTypeRef, ownerNodeRef, rawRes, cache, /*userVisibleResult*/ false));
-            addTypeRelocation(storage, offset, offsetof(Runtime::TypeInfoAlias, rawType), rawRes.offset);
-        }
-        else if (result.structTypeRef == tm.structTypeInfoVariadic())
-        {
-            if (type.isTypedVariadic())
+
+            // Ensure all dependencies are completed before wiring relocations and marking Done.
+            bool pushedDep = false;
+            for (const uint32_t depKey : entry.deps)
             {
-                const TypeRef          rawTypeRef = type.typeRef();
-                TypeGen::TypeGenResult rawRes;
-                RESULT_VERIFY(makeTypeInfoRec(sema, storage, rawTypeRef, ownerNodeRef, rawRes, cache, /*userVisibleResult*/ false));
-                addTypeRelocation(storage, offset, offsetof(Runtime::TypeInfoVariadic, rawType), rawRes.offset);
+                if (depKey == key)
+                    continue;
+
+                const auto depIt = cache.entries.find(depKey);
+                if (depIt != cache.entries.end() && depIt->second.state == TypeGen::TypeGenCache::State::Done)
+                    continue;
+
+                if (!inStack.contains(depKey))
+                {
+                    stack.push_back(depKey);
+                    inStack.insert(depKey);
+                }
+                pushedDep = true;
+                break;
             }
+
+            if (pushedDep)
+                continue;
+
+            // All deps are Done => we can now wire relocations.
+            if (entry.structTypeRef == tm.structTypeInfoPointer())
+            {
+                const uint32_t depKey = tm.get(curRef).typeRef().get();
+                const auto     depIt  = cache.entries.find(depKey);
+                if (depIt != cache.entries.end())
+                    addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoPointer, pointedType), depIt->second.offset);
+            }
+            else if (entry.structTypeRef == tm.structTypeInfoSlice())
+            {
+                const uint32_t depKey = tm.get(curRef).typeRef().get();
+                const auto     depIt  = cache.entries.find(depKey);
+                if (depIt != cache.entries.end())
+                    addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoSlice, pointedType), depIt->second.offset);
+            }
+            else if (entry.structTypeRef == tm.structTypeInfoArray())
+            {
+                const TypeRef  elemTypeRef = tm.get(curRef).arrayElemTypeRef();
+                const uint32_t elemKey     = elemTypeRef.get();
+                const auto     elemIt      = cache.entries.find(elemKey);
+                if (elemIt != cache.entries.end())
+                    addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoArray, pointedType), elemIt->second.offset);
+
+                const TypeRef  finalTypeRef = tm.get(elemTypeRef).ultimateTypeRef(ctx);
+                const uint32_t finalKey     = finalTypeRef.get();
+                const auto     finalIt      = cache.entries.find(finalKey);
+                if (finalIt != cache.entries.end())
+                    addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoArray, finalType), finalIt->second.offset);
+            }
+            else if (entry.structTypeRef == tm.structTypeInfoAlias())
+            {
+                const uint32_t depKey = tm.get(curRef).underlyingTypeRef().get();
+                const auto     depIt  = cache.entries.find(depKey);
+                if (depIt != cache.entries.end())
+                    addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoAlias, rawType), depIt->second.offset);
+            }
+            else if (entry.structTypeRef == tm.structTypeInfoVariadic())
+            {
+                const TypeInfo& curType = tm.get(curRef);
+                if (curType.isTypedVariadic())
+                {
+                    const uint32_t depKey = curType.typeRef().get();
+                    const auto     depIt  = cache.entries.find(depKey);
+                    if (depIt != cache.entries.end())
+                        addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoVariadic, rawType), depIt->second.offset);
+                }
+            }
+
+            entry.state = TypeGen::TypeGenCache::State::Done;
         }
 
-        cache.inProgress.erase(key);
+        const auto it = cache.entries.find(typeRef.get());
+        if (it == cache.entries.end() || it->second.state != TypeGen::TypeGenCache::State::Done)
+            return Result::Pause;
+
+        const auto& entry    = it->second;
+        result.offset        = entry.offset;
+        result.structTypeRef = entry.structTypeRef;
+
+        const TypeInfo& structType = tm.get(result.structTypeRef);
+        result.view                = std::string_view{storage.ptr<char>(result.offset), structType.sizeOf(ctx)};
         return Result::Continue;
     }
 }
@@ -348,19 +402,9 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
     auto&            cache = cacheFor(storage);
     std::scoped_lock lk(cache.mutex);
 
-    // User-visible result must never be returned while still in progress.
-    const Result res = makeTypeInfoRec(sema, storage, typeRef, ownerNodeRef, result, cache, /*userVisibleResult*/ true);
-    if (res != Result::Continue)
-        return res;
-
-    if (cache.inProgress.contains(typeRef.get()))
-        return Result::Error;
-
-    // Also ensure view was actually produced for the user-visible result.
-    if (result.view.data() == nullptr || result.view.size() == 0)
-        return Result::Error;
-
-    return Result::Continue;
+    // Reentrant: each call progresses as much as possible without relying on recursion.
+    // It returns Continue only when the requested type AND all its dependencies are fully done.
+    return makeTypeInfoReentrant(sema, storage, typeRef, ownerNodeRef, result, cache);
 }
 
 SWC_END_NAMESPACE();

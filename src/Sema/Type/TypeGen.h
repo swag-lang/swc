@@ -1,4 +1,9 @@
 #pragma once
+
+#include <mutex>
+#include <unordered_map>
+#include <vector>
+
 #include "Parser/AstNode.h"
 #include "Sema/Type/TypeInfo.h"
 
@@ -17,9 +22,24 @@ public:
 
     struct TypeGenCache
     {
-        std::recursive_mutex                   mutex;
-        std::unordered_map<uint32_t, uint32_t> offsets;
-        std::unordered_set<uint32_t>           inProgress;
+        enum class State : uint8_t
+        {
+            CommonInit,
+            Done,
+        };
+
+        struct Entry
+        {
+            uint32_t offset = 0;
+            TypeRef  structTypeRef;
+            State    state = State::CommonInit;
+
+            // Flattened list of dependencies that must be completed before this type can be marked as Done.
+            std::vector<uint32_t> deps;
+        };
+
+        std::mutex                          mutex;
+        std::unordered_map<uint32_t, Entry> entries;
     };
 
     Result makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result);

@@ -15,6 +15,7 @@
 #include "Report/Logger.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Symbol/IdentifierManager.h"
+#include "Sema/Type/TypeGen.h"
 #include "Sema/Type/TypeManager.h"
 #include "Thread/JobManager.h"
 #include "Wmf/SourceFile.h"
@@ -37,6 +38,7 @@ CompilerInstance::~CompilerInstance() = default;
 void CompilerInstance::setupSema(TaskContext& ctx)
 {
     typeMgr_ = std::make_unique<TypeManager>();
+    typeGen_ = std::make_unique<TypeGen>();
     cstMgr_  = std::make_unique<ConstantManager>();
     idMgr_   = std::make_unique<IdentifierManager>();
 

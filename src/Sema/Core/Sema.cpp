@@ -69,6 +69,16 @@ const TypeManager& Sema::typeMgr() const
     return compiler().typeMgr();
 }
 
+TypeGen& Sema::typeGen()
+{
+    return compiler().typeGen();
+}
+
+const TypeGen& Sema::typeGen() const
+{
+    return compiler().typeGen();
+}
+
 IdentifierManager& Sema::idMgr()
 {
     return compiler().idMgr();

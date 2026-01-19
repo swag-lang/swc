@@ -37,6 +37,16 @@ const TypeManager& TaskContext::typeMgr() const
     return compiler().typeMgr();
 }
 
+TypeGen& TaskContext::typeGen()
+{
+    return compiler().typeGen();
+}
+
+const TypeGen& TaskContext::typeGen() const
+{
+    return compiler().typeGen();
+}
+
 IdentifierManager& TaskContext::idMgr()
 {
     return compiler().idMgr();

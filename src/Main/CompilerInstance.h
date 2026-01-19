@@ -11,6 +11,7 @@ struct AstCompilerFunc;
 class SourceView;
 class TaskContext;
 class TypeManager;
+class TypeGen;
 class ConstantManager;
 class IdentifierManager;
 class SymbolModule;
@@ -31,6 +32,8 @@ public:
     JobClientId              jobClientId() const { return jobClientId_; }
     TypeManager&             typeMgr() { return *typeMgr_; }
     const TypeManager&       typeMgr() const { return *typeMgr_; }
+    TypeGen&                 typeGen() { return *typeGen_; }
+    const TypeGen&           typeGen() const { return *typeGen_; }
     ConstantManager&         cstMgr() { return *cstMgr_; }
     const ConstantManager&   cstMgr() const { return *cstMgr_; }
     IdentifierManager&       idMgr() { return *idMgr_; }
@@ -87,6 +90,7 @@ private:
     std::vector<std::unique_ptr<SourceFile>> files_;
     std::vector<std::unique_ptr<SourceView>> srcViews_;
     std::unique_ptr<TypeManager>             typeMgr_;
+    std::unique_ptr<TypeGen>                 typeGen_;
     std::unique_ptr<ConstantManager>         cstMgr_;
     std::unique_ptr<IdentifierManager>       idMgr_;
     SymbolModule*                            symModule_   = nullptr;

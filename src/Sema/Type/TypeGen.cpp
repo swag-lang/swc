@@ -166,12 +166,10 @@ namespace
 
     struct TypeGenRecContext
     {
-        // typeRef.get() -> offset in DataSegment where the Runtime::TypeInfo* blob starts
-        std::unordered_map<uint32_t, uint32_t> offsets;
-        std::unordered_set<uint32_t>           inProgress;
+        std::unordered_set<uint32_t> inProgress;
     };
 
-    Result makeTypeInfoRec(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGen::TypeGenResult& result, TypeGenRecContext& rec)
+    Result makeTypeInfoRec(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGen::TypeGenResult& result, std::unordered_map<uint32_t, uint32_t>& offsets, TypeGenRecContext& rec)
     {
         auto&              ctx  = sema.ctx();
         const TypeManager& tm   = ctx.typeMgr();
@@ -179,7 +177,7 @@ namespace
         const AstNode&     node = sema.node(ownerNodeRef);
 
         const uint32_t key = typeRef.get();
-        if (const auto it = rec.offsets.find(key); it != rec.offsets.end())
+        if (const auto it = offsets.find(key); it != offsets.end())
         {
             result.offset        = it->second;
             result.structTypeRef = selectTypeInfoStructType(tm, type);
@@ -256,7 +254,7 @@ namespace
         result.offset = offset;
 
         // Mark as "in progress" before recursing so self-references (via pointers) can be wired.
-        rec.offsets[key] = offset;
+        offsets[key] = offset;
         rec.inProgress.insert(key);
 
         // Fill common fields + strings + view
@@ -265,23 +263,23 @@ namespace
         // Recursively populate dependent type pointers.
         if (result.structTypeRef == tm.structTypeInfoPointer())
         {
-            const TypeRef pointedTypeRef = type.typeRef();
+            const TypeRef          pointedTypeRef = type.typeRef();
             TypeGen::TypeGenResult pointedRes;
-            RESULT_VERIFY(makeTypeInfoRec(sema, storage, pointedTypeRef, ownerNodeRef, pointedRes, rec));
+            RESULT_VERIFY(makeTypeInfoRec(sema, storage, pointedTypeRef, ownerNodeRef, pointedRes, offsets, rec));
             addTypeRelocation(storage, offset, offsetof(Runtime::TypeInfoPointer, pointedType), pointedRes.offset);
         }
         else if (result.structTypeRef == tm.structTypeInfoSlice())
         {
-            const TypeRef pointedTypeRef = type.typeRef();
+            const TypeRef          pointedTypeRef = type.typeRef();
             TypeGen::TypeGenResult pointedRes;
-            RESULT_VERIFY(makeTypeInfoRec(sema, storage, pointedTypeRef, ownerNodeRef, pointedRes, rec));
+            RESULT_VERIFY(makeTypeInfoRec(sema, storage, pointedTypeRef, ownerNodeRef, pointedRes, offsets, rec));
             addTypeRelocation(storage, offset, offsetof(Runtime::TypeInfoSlice, pointedType), pointedRes.offset);
         }
         else if (result.structTypeRef == tm.structTypeInfoArray())
         {
-            const TypeRef elemTypeRef = type.arrayElemTypeRef();
+            const TypeRef          elemTypeRef = type.arrayElemTypeRef();
             TypeGen::TypeGenResult elemRes;
-            RESULT_VERIFY(makeTypeInfoRec(sema, storage, elemTypeRef, ownerNodeRef, elemRes, rec));
+            RESULT_VERIFY(makeTypeInfoRec(sema, storage, elemTypeRef, ownerNodeRef, elemRes, offsets, rec));
             addTypeRelocation(storage, offset, offsetof(Runtime::TypeInfoArray, pointedType), elemRes.offset);
 
             // "finalType" is the ultimate (non-array) type.
@@ -293,24 +291,24 @@ namespace
             else
             {
                 TypeGen::TypeGenResult finalRes;
-                RESULT_VERIFY(makeTypeInfoRec(sema, storage, finalTypeRef, ownerNodeRef, finalRes, rec));
+                RESULT_VERIFY(makeTypeInfoRec(sema, storage, finalTypeRef, ownerNodeRef, finalRes, offsets, rec));
                 addTypeRelocation(storage, offset, offsetof(Runtime::TypeInfoArray, finalType), finalRes.offset);
             }
         }
         else if (result.structTypeRef == tm.structTypeInfoAlias())
         {
-            const TypeRef rawTypeRef = type.underlyingTypeRef();
+            const TypeRef          rawTypeRef = type.underlyingTypeRef();
             TypeGen::TypeGenResult rawRes;
-            RESULT_VERIFY(makeTypeInfoRec(sema, storage, rawTypeRef, ownerNodeRef, rawRes, rec));
+            RESULT_VERIFY(makeTypeInfoRec(sema, storage, rawTypeRef, ownerNodeRef, rawRes, offsets, rec));
             addTypeRelocation(storage, offset, offsetof(Runtime::TypeInfoAlias, rawType), rawRes.offset);
         }
         else if (result.structTypeRef == tm.structTypeInfoVariadic())
         {
             if (type.isTypedVariadic())
             {
-                const TypeRef rawTypeRef = type.typeRef();
+                const TypeRef          rawTypeRef = type.typeRef();
                 TypeGen::TypeGenResult rawRes;
-                RESULT_VERIFY(makeTypeInfoRec(sema, storage, rawTypeRef, ownerNodeRef, rawRes, rec));
+                RESULT_VERIFY(makeTypeInfoRec(sema, storage, rawTypeRef, ownerNodeRef, rawRes, offsets, rec));
                 addTypeRelocation(storage, offset, offsetof(Runtime::TypeInfoVariadic, rawType), rawRes.offset);
             }
         }
@@ -320,10 +318,22 @@ namespace
     }
 }
 
+TypeGen::StorageCache& TypeGen::cacheFor(const DataSegment& storage)
+{
+    std::lock_guard lk(cachesMutex_);
+    auto&           ptr = caches_[&storage];
+    if (!ptr)
+        ptr = std::make_unique<StorageCache>();
+    return *ptr;
+}
+
 Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result)
 {
+    auto&           cache = cacheFor(storage);
+    std::lock_guard lk(cache.mutex);
+
     TypeGenRecContext rec;
-    return makeTypeInfoRec(sema, storage, typeRef, ownerNodeRef, result, rec);
+    return makeTypeInfoRec(sema, storage, typeRef, ownerNodeRef, result, cache.offsets, rec);
 }
 
 SWC_END_NAMESPACE();

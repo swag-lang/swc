@@ -10,6 +10,7 @@ class ConstantManager;
 class Global;
 class SourceFile;
 class TypeManager;
+class TypeGen;
 class Symbol;
 struct CommandLine;
 
@@ -67,6 +68,8 @@ public:
     const ConstantManager&   cstMgr() const;
     TypeManager&             typeMgr();
     const TypeManager&       typeMgr() const;
+    TypeGen&                 typeGen();
+    const TypeGen&           typeGen() const;
     IdentifierManager&       idMgr();
     const IdentifierManager& idMgr() const;
 

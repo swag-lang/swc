@@ -219,7 +219,7 @@ Result ConstantManager::makeConstantTypeInfo(Sema& sema, ConstantRef& outRef, Ty
     std::unique_lock       lk(shard.mutex);
     RESULT_VERIFY(sema.typeGen().makeTypeInfo(sema, shard.dataSegment, typeRef, ownerNodeRef, infoResult));
 
-    const auto        value      = ConstantValue::makeStruct(ctx, infoResult.structTypeRef, infoResult.view);
+    const auto        value      = ConstantValue::makeStruct(ctx, infoResult.rtTypeRef, infoResult.view);
     const uint32_t    localIndex = shard.dataSegment.add(value);
     const ConstantRef result{(shardIndex << LOCAL_BITS) | localIndex};
     outRef = addCstFinalize(*this, result);

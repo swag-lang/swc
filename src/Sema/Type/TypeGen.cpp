@@ -10,49 +10,104 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    TypeRef selectTypeInfoStructType(const TypeManager& tm, const TypeInfo& type)
+    enum class LayoutKind
     {
-        if (type.isBool() || type.isInt() || type.isFloat() || type.isChar() || type.isString() ||
-            type.isCString() || type.isRune() || type.isAny() || type.isVoid() || type.isUndefined())
-            return tm.structTypeInfoNative();
+        Base,
+        Native,
+        Enum,
+        Array,
+        Slice,
+        Pointer,
+        Struct,
+        Alias,
+        Variadic,
+        TypedVariadic,
+        Func,
+    };
+
+    LayoutKind layoutKindOf(const TypeInfo& type)
+    {
+        if (type.isBool() || type.isInt() || type.isFloat() || type.isChar() || type.isString() || type.isCString() ||
+            type.isRune() || type.isAny() || type.isVoid() || type.isUndefined())
+            return LayoutKind::Native;
 
         if (type.isEnum())
-            return tm.structTypeInfoEnum();
+            return LayoutKind::Enum;
         if (type.isArray())
-            return tm.structTypeInfoArray();
+            return LayoutKind::Array;
         if (type.isSlice())
-            return tm.structTypeInfoSlice();
+            return LayoutKind::Slice;
         if (type.isAlias())
-            return tm.structTypeInfoAlias();
+            return LayoutKind::Alias;
         if (type.isAnyVariadic())
-            return tm.structTypeInfoVariadic();
+            return type.isTypedVariadic() ? LayoutKind::TypedVariadic : LayoutKind::Variadic;
         if (type.isFunction())
-            return tm.structTypeInfoFunc();
+            return LayoutKind::Func;
         if (type.isPointerLike())
-            return tm.structTypeInfoPointer();
+            return LayoutKind::Pointer;
         if (type.isStruct())
-            return tm.structTypeInfoStruct();
+            return LayoutKind::Struct;
+
+        return LayoutKind::Base;
+    }
+
+    TypeRef rtTypeRefFor(const TypeManager& tm, LayoutKind kind)
+    {
+        switch (kind)
+        {
+            case LayoutKind::Native: return tm.structTypeInfoNative();
+            case LayoutKind::Enum: return tm.structTypeInfoEnum();
+            case LayoutKind::Array: return tm.structTypeInfoArray();
+            case LayoutKind::Slice: return tm.structTypeInfoSlice();
+            case LayoutKind::Pointer: return tm.structTypeInfoPointer();
+            case LayoutKind::Struct: return tm.structTypeInfoStruct();
+            case LayoutKind::Alias: return tm.structTypeInfoAlias();
+            case LayoutKind::Variadic:
+            case LayoutKind::TypedVariadic: return tm.structTypeInfoVariadic();
+            case LayoutKind::Func: return tm.structTypeInfoFunc();
+            case LayoutKind::Base: return tm.structTypeInfo();
+        }
 
         return tm.structTypeInfo();
     }
 
-    Result ensureTypeInfoStructReady(Sema& sema, const TypeManager& tm, TypeRef structTypeRef, const AstNode& node)
+    Runtime::TypeInfoKind runtimeKindFor(LayoutKind kind)
     {
-        if (structTypeRef.isInvalid())
+        switch (kind)
+        {
+            case LayoutKind::Native: return Runtime::TypeInfoKind::Native;
+            case LayoutKind::Enum: return Runtime::TypeInfoKind::Enum;
+            case LayoutKind::Array: return Runtime::TypeInfoKind::Array;
+            case LayoutKind::Slice: return Runtime::TypeInfoKind::Slice;
+            case LayoutKind::Pointer: return Runtime::TypeInfoKind::Pointer;
+            case LayoutKind::Struct: return Runtime::TypeInfoKind::Struct;
+            case LayoutKind::Alias: return Runtime::TypeInfoKind::Alias;
+            case LayoutKind::Variadic: return Runtime::TypeInfoKind::Variadic;
+            case LayoutKind::TypedVariadic: return Runtime::TypeInfoKind::TypedVariadic;
+            case LayoutKind::Func: return Runtime::TypeInfoKind::Func;
+            case LayoutKind::Base: return Runtime::TypeInfoKind::Invalid;
+        }
+
+        return Runtime::TypeInfoKind::Invalid;
+    }
+
+    Result ensureTypeInfoStructReady(Sema& sema, const TypeManager& tm, TypeRef rtTypeRef, const AstNode& node)
+    {
+        if (rtTypeRef.isInvalid())
             return sema.waitIdentifier(sema.idMgr().nameTypeInfo(), node.srcViewRef(), node.tokRef());
 
-        const auto& structType = tm.get(structTypeRef);
+        const auto& structType = tm.get(rtTypeRef);
         if (!structType.isCompleted(sema.ctx()))
             return sema.waitCompleted(&structType.symStruct(), node.srcViewRef(), node.tokRef());
 
         return Result::Continue;
     }
 
-    template<typename EnumT>
-    constexpr EnumT enumOr(EnumT a, EnumT b)
+    template<typename T>
+    constexpr T enumOr(T a, T b)
     {
-        using U = std::underlying_type_t<EnumT>;
-        return static_cast<EnumT>(static_cast<U>(a) | static_cast<U>(b));
+        using U = std::underlying_type_t<T>;
+        return static_cast<T>(static_cast<U>(a) | static_cast<U>(b));
     }
 
     void addFlag(Runtime::TypeInfo& rt, Runtime::TypeInfoFlags f)
@@ -73,9 +128,11 @@ namespace
         if (type.isNullable())
             addFlag(rtType, Runtime::TypeInfoFlags::Nullable);
 
-        const TypeInfo& structType = sema.typeMgr().get(result.structTypeRef);
+        const TypeInfo& structType = sema.typeMgr().get(result.rtTypeRef);
         result.view                = std::string_view{storage.ptr<char>(offset), structType.sizeOf(ctx)};
 
+        // Note: fullname/name both use toName(ctx) in the original code. If the project differentiates
+        // short vs fully-qualified names, swap fullname to the appropriate API.
         const Utf8 name        = type.toName(ctx);
         rtType.fullname.length = storage.addString(offset, offsetof(Runtime::TypeInfo, fullname.ptr), name);
         rtType.name.length     = storage.addString(offset, offsetof(Runtime::TypeInfo, name.ptr), name);
@@ -182,171 +239,169 @@ namespace
         *ptrField      = storage.ptr<Runtime::TypeInfo>(targetOffset);
     }
 
-    SmallVector<TypeRef> computeDeps(const TypeManager& tm, const TaskContext& ctx, const TypeInfo& type, TypeRef structTypeRef)
+    SmallVector<TypeRef> computeDeps(const TypeManager& tm, const TaskContext& ctx, const TypeInfo& type, LayoutKind kind)
     {
         SmallVector<TypeRef> deps;
 
-        if (structTypeRef == tm.structTypeInfoPointer() || structTypeRef == tm.structTypeInfoSlice())
+        switch (kind)
         {
-            deps.push_back(type.typeRef());
-            return deps;
-        }
-
-        if (structTypeRef == tm.structTypeInfoArray())
-        {
-            const TypeRef elemTypeRef = type.arrayElemTypeRef();
-            deps.push_back(elemTypeRef);
-
-            const TypeRef finalTypeRef = tm.get(elemTypeRef).ultimateTypeRef(ctx);
-            if (finalTypeRef != elemTypeRef)
-                deps.push_back(finalTypeRef);
-
-            return deps;
-        }
-
-        if (structTypeRef == tm.structTypeInfoAlias())
-        {
-            deps.push_back(type.underlyingTypeRef());
-            return deps;
-        }
-
-        if (structTypeRef == tm.structTypeInfoVariadic())
-        {
-            if (type.isTypedVariadic())
+            case LayoutKind::Pointer:
+            case LayoutKind::Slice:
                 deps.push_back(type.typeRef());
-            return deps;
+                break;
+
+            case LayoutKind::Array:
+            {
+                const TypeRef elemTypeRef = type.arrayElemTypeRef();
+                deps.push_back(elemTypeRef);
+
+                const TypeRef finalTypeRef = tm.get(elemTypeRef).ultimateTypeRef(ctx);
+                if (finalTypeRef != elemTypeRef)
+                    deps.push_back(finalTypeRef);
+                break;
+            }
+
+            case LayoutKind::Alias:
+                deps.push_back(type.underlyingTypeRef());
+                break;
+
+            case LayoutKind::TypedVariadic:
+                deps.push_back(type.typeRef());
+                break;
+
+            default:
+                break;
         }
 
         return deps;
     }
 
-    std::pair<uint32_t, Runtime::TypeInfo*> reserveTypeInfoPayload(DataSegment& storage, TypeRef rtTypeRef, Runtime::TypeInfoKind& outKind, const TypeInfo& type, Sema& sema, uint32_t& outOffset)
+    template<typename T>
+    std::pair<uint32_t, Runtime::TypeInfo*> reservePayload(DataSegment& storage, Runtime::TypeInfoKind kind)
     {
-        uint32_t           offset = 0;
-        Runtime::TypeInfo* rtBase = nullptr;
-
-        auto reserveBase = [&]<typename T>(Runtime::TypeInfoKind kind) {
-            const auto res = storage.reserve<T>();
-            offset         = res.first;
-            auto* ptr      = res.second;
-            rtBase         = &ptr->base;
-            rtBase->kind   = kind;
-            outKind        = kind;
-        };
-
-        const TypeManager& tm = sema.ctx().typeMgr();
-
-        if (rtTypeRef == tm.structTypeInfoNative())
-        {
-            reserveBase.operator()<Runtime::TypeInfoNative>(Runtime::TypeInfoKind::Native);
-            initNative(*reinterpret_cast<Runtime::TypeInfoNative*>(rtBase), type);
-        }
-        else if (rtTypeRef == tm.structTypeInfoEnum())
-        {
-            reserveBase.operator()<Runtime::TypeInfoEnum>(Runtime::TypeInfoKind::Enum);
-        }
-        else if (rtTypeRef == tm.structTypeInfoArray())
-        {
-            reserveBase.operator()<Runtime::TypeInfoArray>(Runtime::TypeInfoKind::Array);
-            initArray(*reinterpret_cast<Runtime::TypeInfoArray*>(rtBase), type);
-        }
-        else if (rtTypeRef == tm.structTypeInfoSlice())
-        {
-            reserveBase.operator()<Runtime::TypeInfoSlice>(Runtime::TypeInfoKind::Slice);
-        }
-        else if (rtTypeRef == tm.structTypeInfoPointer())
-        {
-            reserveBase.operator()<Runtime::TypeInfoPointer>(Runtime::TypeInfoKind::Pointer);
-        }
-        else if (rtTypeRef == tm.structTypeInfoStruct())
-        {
-            reserveBase.operator()<Runtime::TypeInfoStruct>(Runtime::TypeInfoKind::Struct);
-            initStruct(sema, storage, *reinterpret_cast<Runtime::TypeInfoStruct*>(rtBase), offset, type);
-        }
-        else if (rtTypeRef == tm.structTypeInfoAlias())
-        {
-            reserveBase.operator()<Runtime::TypeInfoAlias>(Runtime::TypeInfoKind::Alias);
-        }
-        else if (rtTypeRef == tm.structTypeInfoVariadic())
-        {
-            const auto kind = type.isTypedVariadic() ? Runtime::TypeInfoKind::TypedVariadic : Runtime::TypeInfoKind::Variadic;
-            reserveBase.operator()<Runtime::TypeInfoVariadic>(kind);
-        }
-        else if (rtTypeRef == tm.structTypeInfoFunc())
-        {
-            reserveBase.operator()<Runtime::TypeInfoFunc>(Runtime::TypeInfoKind::Func);
-        }
-        else
-        {
-            const auto res = storage.reserve<Runtime::TypeInfo>();
-            offset         = res.first;
-            rtBase         = res.second;
-        }
-
-        outOffset = offset;
-        return {offset, rtBase};
+        const auto res = storage.reserve<T>();
+        const auto off = res.first;
+        auto*      ptr = res.second;
+        ptr->base.kind = kind;
+        return {off, &ptr->base};
     }
 
-    void wireRelocationsIfReady(Sema& sema, DataSegment& storage, TypeRef key, const TypeGen::TypeGenCache& cache, const TypeGen::TypeGenCache::Entry& entry)
+    std::pair<uint32_t, Runtime::TypeInfo*> allocateTypeInfoPayload(Sema& sema, DataSegment& storage, LayoutKind kind, const TypeInfo& type)
     {
-        const auto&        ctx = sema.ctx();
-        const TypeManager& tm  = sema.typeMgr();
-
-        if (entry.structTypeRef == tm.structTypeInfoPointer())
+        switch (kind)
         {
-            const TypeRef depKey = tm.get(key).typeRef();
-            const auto    depIt  = cache.entries.find(depKey);
-            if (depIt != cache.entries.end())
-                addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoPointer, pointedType), depIt->second.offset);
-            return;
+            case LayoutKind::Native:
+            {
+                auto [offset, base] = reservePayload<Runtime::TypeInfoNative>(storage, Runtime::TypeInfoKind::Native);
+                initNative(*reinterpret_cast<Runtime::TypeInfoNative*>(base), type);
+                return {offset, base};
+            }
+
+            case LayoutKind::Enum:
+                return reservePayload<Runtime::TypeInfoEnum>(storage, Runtime::TypeInfoKind::Enum);
+
+            case LayoutKind::Array:
+            {
+                auto [offset, base] = reservePayload<Runtime::TypeInfoArray>(storage, Runtime::TypeInfoKind::Array);
+                initArray(*reinterpret_cast<Runtime::TypeInfoArray*>(base), type);
+                return {offset, base};
+            }
+
+            case LayoutKind::Slice:
+                return reservePayload<Runtime::TypeInfoSlice>(storage, Runtime::TypeInfoKind::Slice);
+
+            case LayoutKind::Pointer:
+                return reservePayload<Runtime::TypeInfoPointer>(storage, Runtime::TypeInfoKind::Pointer);
+
+            case LayoutKind::Struct:
+            {
+                auto [offset, base] = reservePayload<Runtime::TypeInfoStruct>(storage, Runtime::TypeInfoKind::Struct);
+                initStruct(sema, storage, *reinterpret_cast<Runtime::TypeInfoStruct*>(base), offset, type);
+                return {offset, base};
+            }
+
+            case LayoutKind::Alias:
+                return reservePayload<Runtime::TypeInfoAlias>(storage, Runtime::TypeInfoKind::Alias);
+
+            case LayoutKind::Variadic:
+                return reservePayload<Runtime::TypeInfoVariadic>(storage, Runtime::TypeInfoKind::Variadic);
+
+            case LayoutKind::TypedVariadic:
+                return reservePayload<Runtime::TypeInfoVariadic>(storage, Runtime::TypeInfoKind::TypedVariadic);
+
+            case LayoutKind::Func:
+                return reservePayload<Runtime::TypeInfoFunc>(storage, Runtime::TypeInfoKind::Func);
+
+            case LayoutKind::Base:
+            default:
+            {
+                const auto res = storage.reserve<Runtime::TypeInfo>();
+                return {res.first, res.second};
+            }
         }
+    }
 
-        if (entry.structTypeRef == tm.structTypeInfoSlice())
+    const TypeGen::TypeGenCache::Entry& requireDone(const TypeGen::TypeGenCache& cache, TypeRef depKey)
+    {
+        const auto it = cache.entries.find(depKey);
+        SWC_ASSERT(it != cache.entries.end() && "Missing TypeInfo dependency in cache");
+        SWC_ASSERT(it->second.state == TypeGen::TypeGenCache::State::Done && "TypeInfo dependency not marked Done");
+        return it->second;
+    }
+
+    void wireRelocations(Sema& sema, const TypeGen::TypeGenCache& cache, DataSegment& storage, TypeRef key, const TypeGen::TypeGenCache::Entry& entry, LayoutKind kind)
+    {
+        const auto&        ctx     = sema.ctx();
+        const TypeManager& typeMgr = sema.typeMgr();
+
+        switch (kind)
         {
-            const TypeRef depKey = tm.get(key).typeRef();
-            const auto    depIt  = cache.entries.find(depKey);
-            if (depIt != cache.entries.end())
-                addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoSlice, pointedType), depIt->second.offset);
-            return;
-        }
+            case LayoutKind::Pointer:
+            {
+                const TypeRef depKey = typeMgr.get(key).typeRef();
+                const auto&   dep    = requireDone(cache, depKey);
+                addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoPointer, pointedType), dep.offset);
+                break;
+            }
 
-        if (entry.structTypeRef == tm.structTypeInfoArray())
-        {
-            const TypeRef elemTypeRef = tm.get(key).arrayElemTypeRef();
-            const auto    elemIt      = cache.entries.find(elemTypeRef);
-            if (elemIt != cache.entries.end())
-                addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoArray, pointedType), elemIt->second.offset);
+            case LayoutKind::Slice:
+            {
+                const TypeRef depKey = typeMgr.get(key).typeRef();
+                const auto&   dep    = requireDone(cache, depKey);
+                addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoSlice, pointedType), dep.offset);
+                break;
+            }
 
-            const TypeRef finalTypeRef = tm.get(elemTypeRef).ultimateTypeRef(ctx);
-            const auto    finalIt      = cache.entries.find(finalTypeRef);
-            if (finalIt != cache.entries.end())
-                addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoArray, finalType), finalIt->second.offset);
+            case LayoutKind::Array:
+            {
+                const TypeRef elemTypeRef = typeMgr.get(key).arrayElemTypeRef();
+                const auto&   dep         = requireDone(cache, elemTypeRef);
+                addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoArray, pointedType), dep.offset);
 
-            return;
-        }
+                const TypeRef finalTypeRef = typeMgr.get(elemTypeRef).ultimateTypeRef(ctx);
+                const auto&   fin          = requireDone(cache, finalTypeRef);
+                addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoArray, finalType), fin.offset);
+                break;
+            }
 
-        if (entry.structTypeRef == tm.structTypeInfoAlias())
-        {
-            const TypeRef depKey = tm.get(key).underlyingTypeRef();
-            const auto    depIt  = cache.entries.find(depKey);
-            if (depIt != cache.entries.end())
-                addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoAlias, rawType), depIt->second.offset);
+            case LayoutKind::Alias:
+            {
+                const TypeRef depKey = typeMgr.get(key).underlyingTypeRef();
+                const auto&   dep    = requireDone(cache, depKey);
+                addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoAlias, rawType), dep.offset);
+                break;
+            }
 
-            return;
-        }
+            case LayoutKind::TypedVariadic:
+            {
+                const TypeRef depKey = typeMgr.get(key).typeRef();
+                const auto&   dep    = requireDone(cache, depKey);
+                addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoVariadic, rawType), dep.offset);
+                break;
+            }
 
-        if (entry.structTypeRef == tm.structTypeInfoVariadic())
-        {
-            const TypeInfo& curType = tm.get(key);
-            if (!curType.isTypedVariadic())
-                return;
-
-            const TypeRef depKey = curType.typeRef();
-            const auto    depIt  = cache.entries.find(depKey);
-            if (depIt != cache.entries.end())
-                addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoVariadic, rawType), depIt->second.offset);
-
-            return;
+            default:
+                break;
         }
     }
 
@@ -371,21 +426,20 @@ namespace
             if (it == cache.entries.end())
             {
                 TypeGen::TypeGenCache::Entry entry;
-                entry.structTypeRef = selectTypeInfoStructType(tm, type);
-                RESULT_VERIFY(ensureTypeInfoStructReady(sema, tm, entry.structTypeRef, node));
 
-                auto     dummyKind = Runtime::TypeInfoKind::Invalid;
-                uint32_t offset    = 0;
+                const LayoutKind kind = layoutKindOf(type);
+                entry.rtTypeRef       = rtTypeRefFor(tm, kind);
+                RESULT_VERIFY(ensureTypeInfoStructReady(sema, tm, entry.rtTypeRef, node));
 
-                auto [_, rtBase] = reserveTypeInfoPayload(storage, entry.structTypeRef, dummyKind, type, sema, offset);
-                entry.offset     = offset;
+                auto [offset, rtBase] = allocateTypeInfoPayload(sema, storage, kind, type);
+                entry.offset          = offset;
 
                 TypeGen::TypeGenResult tmp;
-                tmp.structTypeRef = entry.structTypeRef;
-                tmp.offset        = entry.offset;
+                tmp.rtTypeRef = entry.rtTypeRef;
+                tmp.offset    = entry.offset;
                 initCommon(sema, storage, *rtBase, offset, type, tmp);
 
-                entry.deps = computeDeps(tm, ctx, type, entry.structTypeRef);
+                entry.deps = computeDeps(tm, ctx, type, kind);
                 it         = cache.entries.emplace(key, std::move(entry)).first;
             }
 
@@ -397,6 +451,9 @@ namespace
                 continue;
             }
 
+            const LayoutKind kind = layoutKindOf(type);
+
+            // Push the first unmet dependency.
             bool pushedDep = false;
             for (const TypeRef depKey : entry.deps)
             {
@@ -420,7 +477,8 @@ namespace
             if (pushedDep)
                 continue;
 
-            wireRelocationsIfReady(sema, storage, key, cache, entry);
+            // All deps are Done => wire relocations, then mark Done.
+            wireRelocations(sema, cache, storage, key, entry, kind);
             entry.state = TypeGen::TypeGenCache::State::Done;
         }
 
@@ -428,11 +486,11 @@ namespace
         if (it == cache.entries.end() || it->second.state != TypeGen::TypeGenCache::State::Done)
             return Result::Pause;
 
-        const auto& entry    = it->second;
-        result.offset        = entry.offset;
-        result.structTypeRef = entry.structTypeRef;
+        const auto& entry = it->second;
+        result.offset     = entry.offset;
+        result.rtTypeRef  = entry.rtTypeRef;
 
-        const TypeInfo& structType = tm.get(result.structTypeRef);
+        const TypeInfo& structType = tm.get(result.rtTypeRef);
         result.view                = std::string_view{storage.ptr<char>(result.offset), structType.sizeOf(ctx)};
         return Result::Continue;
     }

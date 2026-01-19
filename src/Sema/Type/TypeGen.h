@@ -11,7 +11,7 @@ public:
     struct TypeGenResult
     {
         std::string_view view;
-        TypeRef          structTypeRef;
+        TypeRef          rtTypeRef;
         uint32_t         offset = 0;
     };
 
@@ -26,7 +26,7 @@ public:
         struct Entry
         {
             uint32_t             offset = 0;
-            TypeRef              structTypeRef;
+            TypeRef              rtTypeRef;
             State                state = State::CommonInit;
             SmallVector<TypeRef> deps;
         };

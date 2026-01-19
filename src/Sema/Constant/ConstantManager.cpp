@@ -33,7 +33,9 @@ ConstantRef ConstantManager::addInt(const TaskContext& ctx, uint64_t value)
 
 std::string_view ConstantManager::addString(const TaskContext& ctx, std::string_view str)
 {
-    return get(addConstant(ctx, ConstantValue::makeString(ctx, str))).getString();
+    const uint32_t shardIndex = std::hash<std::string_view>{}(str) & (SHARD_COUNT - 1);
+    auto&          shard      = shards_[shardIndex];
+    return shard.dataSegment.addString(str);
 }
 
 namespace
@@ -95,7 +97,7 @@ namespace
         if (const auto it = shard.map.find(value); it != shard.map.end())
             return it->second;
 
-        const auto     view       = shard.dataSegment.addView(value.getString());
+        const auto     view       = shard.dataSegment.addString(value.getString());
         const auto     strValue   = ConstantValue::makeString(ctx, view);
         const uint32_t localIndex = shard.dataSegment.add(strValue);
         SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
@@ -120,10 +122,9 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
 
 std::string_view ConstantManager::addPayloadBuffer(std::string_view payload)
 {
-    const uint32_t   shardIndex = JobManager::threadIndex() % SHARD_BITS;
-    auto&            shard      = shards_[shardIndex];
-    std::unique_lock lk(shard.mutex);
-    return shard.dataSegment.addView(payload);
+    const uint32_t shardIndex = std::hash<std::string_view>{}(payload) & (SHARD_COUNT - 1);
+    auto&          shard      = shards_[shardIndex];
+    return shard.dataSegment.addString(payload);
 }
 
 ConstantRef ConstantManager::cstS32(int32_t value) const

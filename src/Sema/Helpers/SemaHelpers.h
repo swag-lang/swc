@@ -60,7 +60,6 @@ namespace SemaHelpers
     }
 
     ConstantRef makeConstantLocation(Sema& sema, const AstNode& node);
-    ConstantRef makeConstantTypeInfo(Sema& sema, TypeRef typeRef);
     Result      extractConstantStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef);
 }
 

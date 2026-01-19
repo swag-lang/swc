@@ -293,6 +293,7 @@
         <ClCompile Include="src\Sema\Symbol\Symbol.Struct.cpp"/>
         <ClCompile Include="src\Sema\Symbol\SymbolMap.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Symbol.cpp"/>
+        <ClCompile Include="src\Sema\Type\TypeGen.cpp" />
         <ClCompile Include="src\Sema\Type\TypeInfo.cpp"/>
         <ClCompile Include="src\Sema\Type\TypeManager.cpp"/>
         <ClCompile Include="src\Thread\JobManager.cpp"/>
@@ -385,6 +386,7 @@
         <ClInclude Include="src\Sema\Symbol\Symbol.Variable.h"/>
         <ClInclude Include="src\Sema\Symbol\SymbolMap.h"/>
         <ClInclude Include="src\Sema\Symbol\Symbol.h"/>
+        <ClInclude Include="src\Sema\Type\TypeGen.h" />
         <ClInclude Include="src\Sema\Type\TypeInfo.h"/>
         <ClInclude Include="src\Sema\Type\TypeManager.h"/>
         <ClInclude Include="src\Thread\Job.h"/>

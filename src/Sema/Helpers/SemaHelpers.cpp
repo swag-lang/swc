@@ -76,7 +76,8 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
         const TypeInfo& pointedType = sema.typeMgr().get(cstType.typeRef());
         SWC_ASSERT(pointedType.isStruct());
         const uint64_t ptr = cst.isValuePointer() ? cst.getValuePointer() : cst.getBlockPointer();
-        bytes              = std::string_view(reinterpret_cast<const char*>(static_cast<uintptr_t>(ptr)), pointedType.sizeOf(sema.ctx()));
+        SWC_ASSERT(ptr);
+        bytes = std::string_view(reinterpret_cast<const char*>(static_cast<uintptr_t>(ptr)), pointedType.sizeOf(sema.ctx()));
     }
     else if (cst.isSlice())
     {

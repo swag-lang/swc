@@ -46,7 +46,7 @@ namespace
 #endif
 
 #if SWC_HAS_REF_DEBUG_INFO
-        cstRef.setDbgPtr(&manager.getNoLock(cstRef));
+        cstRef.setDbgPtr(&manager.get(cstRef));
 #endif
         return cstRef;
     }
@@ -54,10 +54,10 @@ namespace
     ConstantRef addCstStruct(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
     {
         std::unique_lock lk(shard.mutex);
-        const auto       view   = shard.store.push_back(value.getStruct());
+        const auto       view   = shard.dataSegment.addView(value.getStruct());
         const auto       stored = ConstantValue::makeStruct(ctx, value.typeRef(), view);
 
-        const uint32_t localIndex = shard.store.push_back(stored);
+        const uint32_t localIndex = shard.dataSegment.add(stored);
         SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
         const ConstantRef result{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
         return addCstFinalize(manager, result);
@@ -76,7 +76,7 @@ namespace
         if (!inserted)
             return it->second;
 
-        const uint32_t localIndex = shard.store.push_back(value);
+        const uint32_t localIndex = shard.dataSegment.add(value);
         SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
         const ConstantRef result{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
         it->second = result;
@@ -95,9 +95,9 @@ namespace
         if (const auto it = shard.map.find(value); it != shard.map.end())
             return it->second;
 
-        const auto     view       = shard.store.push_back(value.getString());
+        const auto     view       = shard.dataSegment.addView(value.getString());
         const auto     strValue   = ConstantValue::makeString(ctx, view);
-        const uint32_t localIndex = shard.store.push_back(strValue);
+        const uint32_t localIndex = shard.dataSegment.add(strValue);
         SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
         ConstantRef result{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
         shard.map.emplace(strValue, result);
@@ -123,7 +123,7 @@ std::string_view ConstantManager::addPayloadBuffer(std::string_view payload)
     const uint32_t   shardIndex = JobManager::threadIndex() % SHARD_BITS;
     auto&            shard      = shards_[shardIndex];
     std::unique_lock lk(shard.mutex);
-    return shard.store.push_back(payload);
+    return shard.dataSegment.addView(payload);
 }
 
 ConstantRef ConstantManager::cstS32(int32_t value) const
@@ -141,19 +141,12 @@ ConstantRef ConstantManager::cstS32(int32_t value) const
     }
 }
 
-const ConstantValue& ConstantManager::getNoLock(ConstantRef constantRef) const
+const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
 {
     SWC_ASSERT(constantRef.isValid());
     const auto shardIndex = constantRef.get() >> LOCAL_BITS;
     const auto localIndex = constantRef.get() & LOCAL_MASK;
-    return *shards_[shardIndex].store.ptr<ConstantValue>(localIndex);
-}
-
-const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
-{
-    const auto       shardIndex = constantRef.get() >> LOCAL_BITS;
-    std::shared_lock lk(shards_[shardIndex].mutex);
-    return getNoLock(constantRef);
+    return *shards_[shardIndex].dataSegment.ptr<ConstantValue>(localIndex);
 }
 
 Result ConstantManager::concretizeConstant(Sema& sema, ConstantRef& result, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign)

@@ -186,6 +186,7 @@
         </Link>
     </ItemDefinitionGroup>
     <ItemGroup>
+        <ClCompile Include="src\Core\DataSegment.cpp"/>
         <ClCompile Include="src\Core\Store.cpp"/>
         <ClCompile Include="src\Core\Utf8.cpp"/>
         <ClCompile Include="src\Core\Utf8Helper.cpp"/>
@@ -293,7 +294,7 @@
         <ClCompile Include="src\Sema\Symbol\Symbol.Struct.cpp"/>
         <ClCompile Include="src\Sema\Symbol\SymbolMap.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Symbol.cpp"/>
-        <ClCompile Include="src\Sema\Type\TypeGen.cpp" />
+        <ClCompile Include="src\Sema\Type\TypeGen.cpp"/>
         <ClCompile Include="src\Sema\Type\TypeInfo.cpp"/>
         <ClCompile Include="src\Sema\Type\TypeManager.cpp"/>
         <ClCompile Include="src\Thread\JobManager.cpp"/>
@@ -302,6 +303,7 @@
         <ClCompile Include="src\Wmf\Verify.cpp"/>
     </ItemGroup>
     <ItemGroup>
+        <ClInclude Include="src\Core\DataSegment.h"/>
         <ClInclude Include="src\Core\Flags.h"/>
         <ClInclude Include="src\Core\Result.h"/>
         <ClInclude Include="src\Core\Store.h"/>
@@ -386,7 +388,7 @@
         <ClInclude Include="src\Sema\Symbol\Symbol.Variable.h"/>
         <ClInclude Include="src\Sema\Symbol\SymbolMap.h"/>
         <ClInclude Include="src\Sema\Symbol\Symbol.h"/>
-        <ClInclude Include="src\Sema\Type\TypeGen.h" />
+        <ClInclude Include="src\Sema\Type\TypeGen.h"/>
         <ClInclude Include="src\Sema\Type\TypeInfo.h"/>
         <ClInclude Include="src\Sema\Type\TypeManager.h"/>
         <ClInclude Include="src\Thread\Job.h"/>

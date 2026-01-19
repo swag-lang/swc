@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/Store.h"
+#include "Core/DataSegment.h"
 #include "Main/CompilerInstance.h"
 #include "Sema/Constant/ConstantValue.h"
 #include "Sema/Core/Sema.h"
@@ -25,7 +25,6 @@ public:
     ConstantRef          cstFalse() const { return cstBool_false_; }
     ConstantRef          cstBool(bool value) const { return value ? cstBool_true_ : cstBool_false_; }
     ConstantRef          cstS32(int32_t value) const;
-    const ConstantValue& getNoLock(ConstantRef constantRef) const;
     ConstantRef          cstNegBool(ConstantRef cstRef) const { return cstRef == cstBool_true_ ? cstBool_false_ : cstBool_true_; }
     const ConstantValue& get(ConstantRef constantRef) const;
 
@@ -34,7 +33,7 @@ public:
 
     struct Shard
     {
-        Store                                                             store;
+        DataSegment                                                       dataSegment;
         std::unordered_map<ConstantValue, ConstantRef, ConstantValueHash> map;
         mutable std::shared_mutex                                         mutex;
     };

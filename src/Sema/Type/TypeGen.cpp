@@ -50,11 +50,12 @@ namespace
                     Sema&                   sema,
                     DataSegment&            storage,
                     uint32_t                offset,
-                    const Utf8&             name,
-                    const Utf8&             fullname,
                     TypeGen::TypeGenResult& result)
     {
         auto& ctx = sema.ctx();
+
+        const Utf8 name     = type.toName(ctx);
+        const Utf8 fullname = name;
 
         rt.sizeofType = static_cast<uint32_t>(type.sizeOf(ctx));
         rt.crc        = type.hash();
@@ -209,13 +210,11 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
     }
     else
     {
-        offset = storage.reserve(&rt); // plain Runtime::TypeInfo
+        offset = storage.reserve(&rt);
     }
 
     // Fill common fields + strings + view
-    const Utf8 name     = type.toName(ctx);
-    const Utf8 fullname = name;
-    initCommon(*rt, type, tm, sema, storage, offset, name, fullname, result);
+    initCommon(*rt, type, tm, sema, storage, offset, result);
     return Result::Continue;
 }
 

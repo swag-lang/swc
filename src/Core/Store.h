@@ -55,6 +55,13 @@ public:
         return allocate(size, align);
     }
 
+    std::string_view push_back(std::string_view payload)
+    {
+        auto [ref, dst] = push_back_raw(static_cast<uint32_t>(payload.size()), alignof(char));
+        std::memcpy(dst, payload.data(), payload.size());
+        return {static_cast<char*>(dst), payload.size()};
+    }
+
     template<class T>
     T* ptr(Ref ref) noexcept
     {

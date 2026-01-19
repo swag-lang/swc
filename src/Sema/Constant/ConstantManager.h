@@ -39,8 +39,6 @@ public:
         mutable std::shared_mutex                                         mutex;
     };
 
-    static std::string_view addPayloadBufferNoLock(Shard& shard, std::string_view payload);
-
     static constexpr uint32_t SHARD_BITS  = 3;
     static constexpr uint32_t SHARD_COUNT = 1u << SHARD_BITS;
     static constexpr uint32_t LOCAL_BITS  = 32 - SHARD_BITS;

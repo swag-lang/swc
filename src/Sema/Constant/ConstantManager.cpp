@@ -54,7 +54,7 @@ namespace
     ConstantRef addCstStruct(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
     {
         std::unique_lock lk(shard.mutex);
-        const auto       view   = ConstantManager::addPayloadBufferNoLock(shard, value.getStruct());
+        const auto       view   = shard.store.push_back(value.getStruct());
         const auto       stored = ConstantValue::makeStruct(ctx, value.typeRef(), view);
 
         const uint32_t localIndex = shard.store.push_back(stored);
@@ -95,7 +95,7 @@ namespace
         if (const auto it = shard.map.find(value); it != shard.map.end())
             return it->second;
 
-        const auto     view       = ConstantManager::addPayloadBufferNoLock(shard, value.getString());
+        const auto     view       = shard.store.push_back(value.getString());
         const auto     strValue   = ConstantValue::makeString(ctx, view);
         const uint32_t localIndex = shard.store.push_back(strValue);
         SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
@@ -123,14 +123,7 @@ std::string_view ConstantManager::addPayloadBuffer(std::string_view payload)
     const uint32_t   shardIndex = JobManager::threadIndex() % SHARD_BITS;
     auto&            shard      = shards_[shardIndex];
     std::unique_lock lk(shard.mutex);
-    return addPayloadBufferNoLock(shard, payload);
-}
-
-std::string_view ConstantManager::addPayloadBufferNoLock(Shard& shard, std::string_view payload)
-{
-    auto [ref, dst] = shard.store.push_back_raw(static_cast<uint32_t>(payload.size()), alignof(char));
-    std::memcpy(dst, payload.data(), payload.size());
-    return {static_cast<char*>(dst), payload.size()};
+    return shard.store.push_back(payload);
 }
 
 ConstantRef ConstantManager::cstS32(int32_t value) const

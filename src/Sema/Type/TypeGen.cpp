@@ -3,11 +3,12 @@
 #include "Core/DataSegment.h"
 #include "Main/TaskContext.h"
 #include "Runtime/Runtime.h"
+#include "Sema/Core/Sema.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
-Result TypeGen::makeConstantTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, ConstantTypeInfoResult& result)
+Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result)
 {
     auto&          ctx     = sema.ctx();
     const auto&    typeMgr = ctx.typeMgr();
@@ -38,7 +39,7 @@ Result TypeGen::makeConstantTypeInfo(Sema& sema, DataSegment& storage, TypeRef t
 
     result.structTypeRef = structTypeRef;
 
-    uint32_t offset = 0;
+    uint32_t          offset = 0;
     Runtime::TypeInfo rtType;
     const Utf8        name           = type.toName(ctx);
     const Utf8        fullname       = name;
@@ -62,7 +63,7 @@ Result TypeGen::makeConstantTypeInfo(Sema& sema, DataSegment& storage, TypeRef t
         rtNative.base       = rtType;
         rtNative.base.kind  = Runtime::TypeInfoKind::Native;
         rtNative.nativeKind = Runtime::TypeInfoNativeKind::Bool;
-        offset = storage.add(rtNative);
+        offset              = storage.add(rtNative);
     }
     else if (type.isInt())
     {

@@ -1,5 +1,4 @@
 #pragma once
-#include "Core/StrongRef.h"
 #include "Memory/Arena.h"
 #include "Report/ExitCodes.h"
 #include "Thread/JobManager.h"

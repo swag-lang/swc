@@ -211,13 +211,13 @@ bool ConstantManager::concretizeConstant(Sema& sema, ConstantRef& result, Consta
 
 Result ConstantManager::makeConstantTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef)
 {
-    auto&          ctx        = sema.ctx();
+    const auto&    ctx        = sema.ctx();
     const uint32_t shardIndex = typeRef.get() & (SHARD_COUNT - 1);
     auto&          shard      = shards_[shardIndex];
 
-    TypeGen::ConstantTypeInfoResult infoResult;
+    TypeGen::TypeGenResult infoResult;
     std::unique_lock                lk(shard.mutex);
-    RESULT_VERIFY(TypeGen::makeConstantTypeInfo(sema, shard.dataSegment, typeRef, ownerNodeRef, infoResult));
+    RESULT_VERIFY(TypeGen::makeTypeInfo(sema, shard.dataSegment, typeRef, ownerNodeRef, infoResult));
 
     const auto        value      = ConstantValue::makeStruct(ctx, infoResult.structTypeRef, infoResult.view);
     const uint32_t    localIndex = shard.dataSegment.add(value);

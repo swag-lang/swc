@@ -33,7 +33,7 @@ uint32_t DataSegment::addString(uint32_t baseOffset, uint32_t fieldOffset, const
 void DataSegment::addRelocation(uint32_t offset, uint32_t targetOffset)
 {
     std::unique_lock lock(mutex_);
-    relocations_.emplace_back(offset, targetOffset);
+    relocations_.push_back({offset, targetOffset});
 }
 
 SWC_END_NAMESPACE();

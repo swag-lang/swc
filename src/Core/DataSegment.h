@@ -4,6 +4,12 @@
 
 SWC_BEGIN_NAMESPACE();
 
+struct DataSegmentRelocation
+{
+    uint32_t offset;
+    uint32_t targetOffset;
+};
+
 class DataSegment
 {
 public:
@@ -45,7 +51,7 @@ public:
 private:
     Store                                                                  store_;
     std::unordered_map<std::string, std::pair<std::string_view, uint32_t>> mapString_;
-    std::vector<std::pair<uint32_t, uint32_t>>                             relocations_;
+    std::vector<DataSegmentRelocation>                                     relocations_;
     mutable std::shared_mutex                                              mutex_;
 };
 

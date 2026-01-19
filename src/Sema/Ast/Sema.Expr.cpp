@@ -165,9 +165,19 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         return Result::SkipChildren;
     }
 
+    // Dereference pointer
     const TypeInfo* typeInfo = nodeLeftView.type;
-    if (typeInfo && typeInfo->isAnyPointer())
+    if (typeInfo->isTypeInfo())
+    {
+        TypeRef typeInfoRef = sema.typeMgr().structTypeInfo();
+        if (typeInfoRef.isInvalid())
+            return sema.waitIdentifier(sema.idMgr().nameTypeInfoStruct(), srcViewRef(), tokNameRef);
+        typeInfo = &sema.typeMgr().get(typeInfoRef);
+    }
+    else if (typeInfo->isAnyPointer())
+    {
         typeInfo = &sema.typeMgr().get(typeInfo->typeRef());
+    }
 
     // Struct
     if (typeInfo->isStruct())

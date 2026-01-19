@@ -4,3 +4,4 @@
 #assert(s32 == bool) // swc-expected-error {{sema_err_compiler_assert}}
 
 #assert((cast(const *Swag.TypeInfo) f32).name == "f32")
+#assert((cast(typeinfo) f32).name == "f32")

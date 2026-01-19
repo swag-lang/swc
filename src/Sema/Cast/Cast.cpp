@@ -421,7 +421,7 @@ namespace
     Result castFromTypeValue(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
         const auto& dstType = sema.typeMgr().get(dstTypeRef);
-        if (dstType.isTypeInfo() || dstType.isConstPointerToRuntimeTypeInfo(sema.ctx()))
+        if (dstType.isTypeInfo() || dstType.isConstPointerToAnyTypeInfo(sema.ctx()))
         {
             if (castCtx.isConstantFolding())
             {
@@ -554,9 +554,9 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
         res = castFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isTypeValue())
         res = castFromTypeValue(sema, castCtx, srcTypeRef, dstTypeRef);
-    else if (srcType.isTypeInfo() && dstType.isConstPointerToRuntimeTypeInfo(sema.ctx()))
+    else if (srcType.isTypeInfo() && dstType.isConstPointerToAnyTypeInfo(sema.ctx()))
         res = castToFromTypeInfo(sema, castCtx, srcTypeRef, dstTypeRef);
-    else if (srcType.isConstPointerToRuntimeTypeInfo(sema.ctx()) && dstType.isTypeInfo())
+    else if (srcType.isConstPointerToAnyTypeInfo(sema.ctx()) && dstType.isTypeInfo())
         res = castToFromTypeInfo(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (dstType.isAnyPointer())
         res = castToPointer(sema, castCtx, srcTypeRef, dstTypeRef);

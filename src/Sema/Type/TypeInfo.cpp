@@ -863,7 +863,7 @@ bool TypeInfo::isLambdaThrowable() const noexcept
     return isFunction() && asFunction.sym->hasExtraFlag(SymbolFunctionFlagsE::Throwable);
 }
 
-bool TypeInfo::isConstPointerToRuntimeTypeInfo(TaskContext& ctx) const noexcept
+bool TypeInfo::isConstPointerToAnyTypeInfo(TaskContext& ctx) const noexcept
 {
     if (!isConst())
         return false;

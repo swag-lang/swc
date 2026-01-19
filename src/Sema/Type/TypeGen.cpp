@@ -152,11 +152,10 @@ namespace
 
 Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result)
 {
-    auto&       ctx = sema.ctx();
-    const auto& tm  = ctx.typeMgr();
-
-    const auto& type = tm.get(typeRef);
-    const auto& node = sema.node(ownerNodeRef);
+    auto&              ctx  = sema.ctx();
+    const TypeManager& tm   = ctx.typeMgr();
+    const TypeInfo&    type = tm.get(typeRef);
+    const AstNode&     node = sema.node(ownerNodeRef);
 
     // Pick and validate the "TypeInfo struct" layout used to serialize this type
     result.structTypeRef = selectTypeInfoStructType(tm, type);

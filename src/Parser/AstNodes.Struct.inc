@@ -741,19 +741,20 @@ struct AstQualifiedType : AstNodeT<AstNodeId::QualifiedType, AstQualifiedTypeFla
 };
 
 // -----------------------------------------------------------------------------
-struct AstLRefType : AstNodeT<AstNodeId::LRefType>
+struct AstReferenceType : AstNodeT<AstNodeId::ReferenceType>
 {
-    AstNodeRef nodeTypeRef;
+    AstNodeRef nodePointeeTypeRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef}); }
+    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
+    Result semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstRRefType : AstNodeT<AstNodeId::RRefType>
 {
-    AstNodeRef nodeTypeRef;
+    AstNodeRef nodePointeeTypeRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
 };
 
 // -----------------------------------------------------------------------------

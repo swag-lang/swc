@@ -161,8 +161,8 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
         const auto child = parseType();
         if (child.isInvalid())
             return AstNodeRef::invalid();
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LRefType>(ref());
-        nodePtr->nodeTypeRef    = child;
+        auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::ReferenceType>(ref());
+        nodePtr->nodePointeeTypeRef = child;
         return nodeRef;
     }
 
@@ -172,8 +172,8 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
         const auto child = parseType();
         if (child.isInvalid())
             return AstNodeRef::invalid();
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::RRefType>(ref());
-        nodePtr->nodeTypeRef    = child;
+        auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::RRefType>(ref());
+        nodePtr->nodePointeeTypeRef = child;
         return nodeRef;
     }
 

@@ -124,6 +124,15 @@ Result AstBlockPointerType::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
+Result AstReferenceType::semaPostNode(Sema& sema) const
+{
+    const SemaNodeView nodeView(sema, nodePointeeTypeRef);
+    const TypeInfo     ty      = TypeInfo::makeReference(nodeView.typeRef);
+    const TypeRef      typeRef = sema.typeMgr().addType(ty);
+    sema.setType(sema.curNodeRef(), typeRef);
+    return Result::Continue;
+}
+
 Result AstSliceType::semaPostNode(Sema& sema) const
 {
     const SemaNodeView nodeView(sema, nodePointeeTypeRef);

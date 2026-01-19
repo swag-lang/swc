@@ -71,26 +71,6 @@ namespace
         return tm.structTypeInfo();
     }
 
-    Runtime::TypeInfoKind runtimeKindFor(LayoutKind kind)
-    {
-        switch (kind)
-        {
-            case LayoutKind::Native: return Runtime::TypeInfoKind::Native;
-            case LayoutKind::Enum: return Runtime::TypeInfoKind::Enum;
-            case LayoutKind::Array: return Runtime::TypeInfoKind::Array;
-            case LayoutKind::Slice: return Runtime::TypeInfoKind::Slice;
-            case LayoutKind::Pointer: return Runtime::TypeInfoKind::Pointer;
-            case LayoutKind::Struct: return Runtime::TypeInfoKind::Struct;
-            case LayoutKind::Alias: return Runtime::TypeInfoKind::Alias;
-            case LayoutKind::Variadic: return Runtime::TypeInfoKind::Variadic;
-            case LayoutKind::TypedVariadic: return Runtime::TypeInfoKind::TypedVariadic;
-            case LayoutKind::Func: return Runtime::TypeInfoKind::Func;
-            case LayoutKind::Base: return Runtime::TypeInfoKind::Invalid;
-        }
-
-        return Runtime::TypeInfoKind::Invalid;
-    }
-
     Result ensureTypeInfoStructReady(Sema& sema, const TypeManager& tm, TypeRef rtTypeRef, const AstNode& node)
     {
         if (rtTypeRef.isInvalid())
@@ -131,8 +111,6 @@ namespace
         const TypeInfo& structType = sema.typeMgr().get(result.rtTypeRef);
         result.view                = std::string_view{storage.ptr<char>(offset), structType.sizeOf(ctx)};
 
-        // Note: fullname/name both use toName(ctx) in the original code. If the project differentiates
-        // short vs fully-qualified names, swap fullname to the appropriate API.
         const Utf8 name        = type.toName(ctx);
         rtType.fullname.length = storage.addString(offset, offsetof(Runtime::TypeInfo, fullname.ptr), name);
         rtType.name.length     = storage.addString(offset, offsetof(Runtime::TypeInfo, name.ptr), name);

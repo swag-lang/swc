@@ -36,7 +36,7 @@ std::string_view ConstantManager::addString(const TaskContext& ctx, std::string_
 {
     const uint32_t shardIndex = std::hash<std::string_view>{}(str) & (SHARD_COUNT - 1);
     auto&          shard      = shards_[shardIndex];
-    return shard.dataSegment.addString(str);
+    return shard.dataSegment.addString(str).first;
 }
 
 namespace
@@ -57,8 +57,8 @@ namespace
     ConstantRef addCstStruct(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
     {
         std::unique_lock lk(shard.mutex);
-        const auto       view   = shard.dataSegment.addView(value.getStruct());
-        const auto       stored = ConstantValue::makeStruct(ctx, value.typeRef(), view);
+        const auto [view, ref] = shard.dataSegment.addView(value.getStruct());
+        const auto stored      = ConstantValue::makeStruct(ctx, value.typeRef(), view);
 
         const uint32_t localIndex = shard.dataSegment.add(stored);
         SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
@@ -98,8 +98,8 @@ namespace
         if (const auto it = shard.map.find(value); it != shard.map.end())
             return it->second;
 
-        const auto     view       = shard.dataSegment.addString(value.getString());
-        const auto     strValue   = ConstantValue::makeString(ctx, view);
+        const auto     res        = shard.dataSegment.addString(value.getString());
+        const auto     strValue   = ConstantValue::makeString(ctx, res.first);
         const uint32_t localIndex = shard.dataSegment.add(strValue);
         SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
         ConstantRef result{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
@@ -125,7 +125,7 @@ std::string_view ConstantManager::addPayloadBuffer(std::string_view payload)
 {
     const uint32_t shardIndex = std::hash<std::string_view>{}(payload) & (SHARD_COUNT - 1);
     auto&          shard      = shards_[shardIndex];
-    return shard.dataSegment.addString(payload);
+    return shard.dataSegment.addString(payload).first;
 }
 
 ConstantRef ConstantManager::cstS32(int32_t value) const
@@ -216,7 +216,7 @@ Result ConstantManager::makeConstantTypeInfo(Sema& sema, ConstantRef& outRef, Ty
     auto&          shard      = shards_[shardIndex];
 
     TypeGen::TypeGenResult infoResult;
-    std::unique_lock                lk(shard.mutex);
+    std::unique_lock       lk(shard.mutex);
     RESULT_VERIFY(TypeGen::makeTypeInfo(sema, shard.dataSegment, typeRef, ownerNodeRef, infoResult));
 
     const auto        value      = ConstantValue::makeStruct(ctx, infoResult.structTypeRef, infoResult.view);

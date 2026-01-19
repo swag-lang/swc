@@ -3,38 +3,31 @@
 
 SWC_BEGIN_NAMESPACE();
 
-std::string_view DataSegment::addView(std::string_view value)
+std::pair<std::string_view, Ref> DataSegment::addView(std::string_view value)
 {
     std::unique_lock lock(mutex_);
     return store_.push_copy_view(value);
 }
 
-std::string_view DataSegment::addString(const Utf8& value)
+std::pair<std::string_view, Ref> DataSegment::addString(const Utf8& value)
 {
     std::unique_lock lock(mutex_);
     if (const auto it = mapString_.find(value); it != mapString_.end())
         return it->second;
-    const auto view   = store_.push_copy_view(std::string_view(value));
-    mapString_[value] = view;
-    return view;
+    const auto res    = store_.push_copy_view(std::string_view(value));
+    mapString_[value] = res;
+    return res;
 }
 
 uint32_t DataSegment::addString(uint32_t baseOffset, uint32_t fieldOffset, const Utf8& value)
 {
-    const auto view = addString(value);
-    const auto off  = offset(view.data());
-    addRelocation(baseOffset + fieldOffset, off);
+    const auto res = addString(value);
+    addRelocation(baseOffset + fieldOffset, res.second);
 
     const auto ptrField = ptr<char*>(baseOffset + fieldOffset);
-    *ptrField           = const_cast<char*>(view.data());
+    *ptrField           = const_cast<char*>(res.first.data());
 
-    return static_cast<uint32_t>(view.size());
-}
-
-uint32_t DataSegment::offset(const void* ptr) const
-{
-    std::shared_lock lock(mutex_);
-    return store_.findRef(ptr);
+    return static_cast<uint32_t>(res.first.size());
 }
 
 void DataSegment::addRelocation(uint32_t offset, uint32_t targetOffset)

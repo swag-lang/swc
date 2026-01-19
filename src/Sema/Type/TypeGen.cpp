@@ -62,7 +62,7 @@ namespace
             case LayoutKind::Pointer: return tm.structTypeInfoPointer();
             case LayoutKind::Struct: return tm.structTypeInfoStruct();
             case LayoutKind::Alias: return tm.structTypeInfoAlias();
-            case LayoutKind::Variadic:
+            case LayoutKind::Variadic: return tm.structTypeInfoVariadic();
             case LayoutKind::TypedVariadic: return tm.structTypeInfoVariadic();
             case LayoutKind::Func: return tm.structTypeInfoFunc();
             case LayoutKind::Base: return tm.structTypeInfo();

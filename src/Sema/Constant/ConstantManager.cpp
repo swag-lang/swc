@@ -215,29 +215,11 @@ Result ConstantManager::makeConstantTypeInfo(Sema& sema, ConstantRef& outRef, Ty
     const uint32_t shardIndex = typeRef.get() & (SHARD_COUNT - 1);
     auto&          shard      = shards_[shardIndex];
 
-    std::string_view view;
-    std::unique_lock lk(shard.mutex);
-    RESULT_VERIFY(TypeGen::makeConstantTypeInfo(sema, shard.dataSegment, typeRef, ownerNodeRef, view));
+    TypeGen::ConstantTypeInfoResult infoResult;
+    std::unique_lock                lk(shard.mutex);
+    RESULT_VERIFY(TypeGen::makeConstantTypeInfo(sema, shard.dataSegment, typeRef, ownerNodeRef, infoResult));
 
-    auto&             typeMgr = ctx.typeMgr();
-    const auto&       type    = typeMgr.get(typeRef);
-    TypeRef           structTypeRef;
-    if (type.isBool() || type.isInt() || type.isFloat() || type.isString() || type.isRune() || type.isAny() || type.isVoid())
-        structTypeRef = typeMgr.structTypeInfoNative();
-    else if (type.isEnum())
-        structTypeRef = typeMgr.structTypeInfoEnum();
-    else if (type.isArray())
-        structTypeRef = typeMgr.structTypeInfoArray();
-    else if (type.isSlice())
-        structTypeRef = typeMgr.structTypeInfoSlice();
-    else if (type.isPointerLike())
-        structTypeRef = typeMgr.structTypeInfoPointer();
-    else if (type.isStruct())
-        structTypeRef = typeMgr.structTypeInfoStruct();
-    else
-        structTypeRef = typeMgr.structTypeInfo();
-
-    const auto        value      = ConstantValue::makeStruct(ctx, structTypeRef, view);
+    const auto        value      = ConstantValue::makeStruct(ctx, infoResult.structTypeRef, infoResult.view);
     const uint32_t    localIndex = shard.dataSegment.add(value);
     const ConstantRef result{(shardIndex << LOCAL_BITS) | localIndex};
     outRef = addCstFinalize(*this, result);

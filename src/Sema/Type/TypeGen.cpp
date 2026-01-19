@@ -7,7 +7,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-Result TypeGen::makeConstantTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, std::string_view& outView)
+Result TypeGen::makeConstantTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, ConstantTypeInfoResult& result)
 {
     auto&          ctx     = sema.ctx();
     const auto&    typeMgr = ctx.typeMgr();
@@ -35,6 +35,8 @@ Result TypeGen::makeConstantTypeInfo(Sema& sema, DataSegment& storage, TypeRef t
     const auto& structType = typeMgr.get(structTypeRef);
     if (!structType.isCompleted(ctx))
         return sema.waitCompleted(&structType.symStruct(), node.srcViewRef(), node.tokRef());
+
+    result.structTypeRef = structTypeRef;
 
     uint32_t offset = 0;
     Runtime::TypeInfo rtType;
@@ -197,7 +199,7 @@ Result TypeGen::makeConstantTypeInfo(Sema& sema, DataSegment& storage, TypeRef t
         offset = storage.add(rtType);
     }
 
-    outView = std::string_view{storage.ptr<char>(offset), structType.sizeOf(ctx)};
+    result.view = std::string_view{storage.ptr<char>(offset), structType.sizeOf(ctx)};
     return Result::Continue;
 }
 

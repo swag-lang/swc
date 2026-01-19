@@ -209,11 +209,12 @@ bool ConstantManager::concretizeConstant(Sema& sema, ConstantRef& result, Consta
     return true;
 }
 
-Result ConstantManager::makeConstantTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef typeRef)
+Result ConstantManager::makeConstantTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef)
 {
-    auto&       ctx     = sema.ctx();
-    const auto& typeMgr = ctx.typeMgr();
-    const auto& type    = typeMgr.get(typeRef);
+    auto&          ctx     = sema.ctx();
+    const auto&    typeMgr = ctx.typeMgr();
+    const auto&    type    = typeMgr.get(typeRef);
+    const AstNode& node    = sema.ast().node(ownerNodeRef);
 
     TypeRef structTypeRef;
     if (type.isBool() || type.isInt() || type.isFloat() || type.isString() || type.isRune() || type.isAny() || type.isVoid())
@@ -230,12 +231,12 @@ Result ConstantManager::makeConstantTypeInfo(Sema& sema, ConstantRef& outRef, Ty
         structTypeRef = typeMgr.structTypeInfoStruct();
     else
         structTypeRef = typeMgr.structTypeInfo();
-    if (structTypeRef.isInvalid())
-        return Result::Pause;
 
+    if (structTypeRef.isInvalid())
+        return sema.waitIdentifier(sema.idMgr().nameTypeInfo(), node.srcViewRef(), node.tokRef());
     const auto& structType = typeMgr.get(structTypeRef);
     if (!structType.isCompleted(ctx))
-        return Result::Pause;
+        return sema.waitCompleted(&structType.symStruct(), node.srcViewRef(), node.tokRef());
 
     const uint32_t shardIndex = typeRef.get() & (SHARD_COUNT - 1);
     auto&          shard      = shards_[shardIndex];

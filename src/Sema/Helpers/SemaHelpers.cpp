@@ -73,15 +73,9 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
         const TypeInfo& cstType = sema.typeMgr().get(cst.typeRef());
         SWC_ASSERT(cstType.isAnyPointer());
         const TypeInfo& pointedType = sema.typeMgr().get(cstType.typeRef());
-
-        if (!pointedType.isStruct())
-            return SemaError::raiseInternal(sema, sema.node(nodeMemberRef));
-
+        SWC_ASSERT(pointedType.isStruct());
         const uint64_t ptr = cst.isValuePointer() ? cst.getValuePointer() : cst.getBlockPointer();
-        if (!ptr)
-            return SemaError::raiseInternal(sema, sema.node(nodeMemberRef));
-
-        bytes = std::string_view(reinterpret_cast<const char*>(static_cast<uintptr_t>(ptr)), pointedType.sizeOf(sema.ctx()));
+        bytes              = std::string_view(reinterpret_cast<const char*>(static_cast<uintptr_t>(ptr)), pointedType.sizeOf(sema.ctx()));
     }
     else
     {

@@ -19,6 +19,9 @@ enum class ConstantKind
     String,
     Int,
     Float,
+    ValuePointer,
+    BlockPointer,
+    Slice,
     Null,
     Undefined,
     TypeValue,
@@ -52,6 +55,9 @@ public:
     bool         isString() const { return kind_ == ConstantKind::String; }
     bool         isInt() const { return kind_ == ConstantKind::Int; }
     bool         isFloat() const { return kind_ == ConstantKind::Float; }
+    bool         isValuePointer() const { return kind_ == ConstantKind::ValuePointer; }
+    bool         isBlockPointer() const { return kind_ == ConstantKind::BlockPointer; }
+    bool         isSlice() const { return kind_ == ConstantKind::Slice; }
     bool         isNull() const { return kind_ == ConstantKind::Null; }
     bool         isTypeValue() const { return kind_ == ConstantKind::TypeValue; }
     bool         isEnumValue() const { return kind_ == ConstantKind::EnumValue; }
@@ -65,6 +71,10 @@ public:
     std::string_view getString() const { SWC_ASSERT(isString()); return asString.val; }
     const ApsInt& getInt() const { SWC_ASSERT(isInt()); return asInt.val; }
     const ApFloat& getFloat() const { SWC_ASSERT(isFloat()); return asFloat.val; }
+    uint64_t getValuePointer() const { SWC_ASSERT(isValuePointer()); return asPointer.val; }
+    uint64_t getBlockPointer() const { SWC_ASSERT(isBlockPointer()); return asPointer.val; }
+    uint64_t getSlicePointer() const { SWC_ASSERT(isSlice()); return asSlice.ptr; }
+    uint64_t getSliceCount() const { SWC_ASSERT(isSlice()); return asSlice.count; }
     TypeRef getTypeValue() const { SWC_ASSERT(isTypeValue()); return asTypeInfo.val; }
     ConstantRef getEnumValue() const { SWC_ASSERT(isEnumValue()); return asEnumValue.val; }
     std::string_view getStruct() const { SWC_ASSERT(isStruct()); return asStruct.val; }
@@ -93,6 +103,9 @@ public:
     static ConstantValue makeFromIntLike(const TaskContext& ctx, const ApsInt& v, const TypeInfo& ty);
     static ConstantValue makeEnumValue(const TaskContext& ctx, ConstantRef valueCst, TypeRef typeRef);
     static ConstantValue makeStruct(const TaskContext& ctx, TypeRef typeRef, std::string_view bytes);
+    static ConstantValue makeValuePointer(const TaskContext& ctx, TypeRef typeRef, uint64_t value);
+    static ConstantValue makeBlockPointer(const TaskContext& ctx, TypeRef typeRef, uint64_t value);
+    static ConstantValue makeSlice(const TaskContext& ctx, TypeRef typeRef, uint64_t ptr, uint64_t count);
 
     uint32_t hash() const noexcept;
     ApsInt   getIntLike() const;
@@ -134,6 +147,17 @@ private:
         {
             ApFloat val;
         } asFloat;
+
+        struct
+        {
+            uint64_t val;
+        } asPointer;
+
+        struct
+        {
+            uint64_t ptr;
+            uint64_t count;
+        } asSlice;
 
         struct
         {

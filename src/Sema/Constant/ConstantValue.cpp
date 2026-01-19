@@ -34,7 +34,15 @@ bool ConstantValue::operator==(const ConstantValue& rhs) const noexcept
             return getInt().same(rhs.getInt());
         case ConstantKind::Float:
             return getFloat().same(rhs.getFloat());
+        case ConstantKind::ValuePointer:
+            return getValuePointer() == rhs.getValuePointer();
+        case ConstantKind::BlockPointer:
+            return getBlockPointer() == rhs.getBlockPointer();
+        case ConstantKind::Slice:
+            return getSlicePointer() == rhs.getSlicePointer() && getSliceCount() == rhs.getSliceCount();
         case ConstantKind::Null:
+            return true;
+        case ConstantKind::Undefined:
             return true;
 
         default:
@@ -65,6 +73,14 @@ bool ConstantValue::eq(const ConstantValue& rhs) const noexcept
             return getTypeValue() == rhs.getTypeValue();
         case ConstantKind::Null:
             return true;
+        case ConstantKind::Undefined:
+            return true;
+        case ConstantKind::ValuePointer:
+            return getValuePointer() == rhs.getValuePointer();
+        case ConstantKind::BlockPointer:
+            return getBlockPointer() == rhs.getBlockPointer();
+        case ConstantKind::Slice:
+            return getSlicePointer() == rhs.getSlicePointer() && getSliceCount() == rhs.getSliceCount();
 
         default:
             SWC_UNREACHABLE();
@@ -282,6 +298,37 @@ ConstantValue ConstantValue::makeStruct(const TaskContext&, TypeRef typeRef, std
     return cv;
 }
 
+ConstantValue ConstantValue::makeValuePointer(const TaskContext&, TypeRef typeRef, uint64_t value)
+{
+    ConstantValue cv;
+    cv.typeRef_        = typeRef;
+    cv.kind_           = ConstantKind::ValuePointer;
+    cv.asPointer.val   = value;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return cv;
+}
+
+ConstantValue ConstantValue::makeBlockPointer(const TaskContext&, TypeRef typeRef, uint64_t value)
+{
+    ConstantValue cv;
+    cv.typeRef_        = typeRef;
+    cv.kind_           = ConstantKind::BlockPointer;
+    cv.asPointer.val   = value;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return cv;
+}
+
+ConstantValue ConstantValue::makeSlice(const TaskContext&, TypeRef typeRef, uint64_t ptr, uint64_t count)
+{
+    ConstantValue cv;
+    cv.typeRef_      = typeRef;
+    cv.kind_         = ConstantKind::Slice;
+    cv.asSlice.ptr   = ptr;
+    cv.asSlice.count = count;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return cv;
+}
+
 uint32_t ConstantValue::hash() const noexcept
 {
     auto h = Math::hash(static_cast<uint32_t>(kind_));
@@ -310,6 +357,14 @@ uint32_t ConstantValue::hash() const noexcept
         case ConstantKind::Float:
             h = Math::hashCombine(h, asFloat.val.hash());
             break;
+        case ConstantKind::ValuePointer:
+        case ConstantKind::BlockPointer:
+            h = Math::hashCombine(h, asPointer.val);
+            break;
+        case ConstantKind::Slice:
+            h = Math::hashCombine(h, asSlice.ptr);
+            h = Math::hashCombine(h, asSlice.count);
+            break;
         case ConstantKind::Null:
         case ConstantKind::Undefined:
             break;
@@ -334,6 +389,10 @@ ApsInt ConstantValue::getIntLike() const
         return ApsInt(getRune(), 32, true);
     if (isNull())
         return ApsInt(static_cast<uint64_t>(0), 64, true);
+    if (isValuePointer())
+        return ApsInt(getValuePointer(), 64, true);
+    if (isBlockPointer())
+        return ApsInt(getBlockPointer(), 64, true);
     SWC_UNREACHABLE();
 }
 
@@ -378,6 +437,12 @@ Utf8 ConstantValue::toString(const TaskContext& ctx) const
             return ctx.typeMgr().get(getTypeValue()).toName(ctx);
         case ConstantKind::EnumValue:
             return ctx.cstMgr().get(asEnumValue.val).toString(ctx);
+        case ConstantKind::ValuePointer:
+            return std::format("*0x{:016X}", getValuePointer());
+        case ConstantKind::BlockPointer:
+            return std::format("[*] 0x{:016X}", getBlockPointer());
+        case ConstantKind::Slice:
+            return std::format("[..] (0x{:016X}, {})", getSlicePointer(), getSliceCount());
         case ConstantKind::Null:
             return "null";
         case ConstantKind::Undefined:

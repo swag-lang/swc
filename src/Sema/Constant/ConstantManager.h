@@ -37,8 +37,7 @@ public:
         Store                                                             store;
         std::unordered_map<ConstantValue, ConstantRef, ConstantValueHash> map;
         std::deque<std::string>                                           payload;
-
-        mutable std::shared_mutex mutex;
+        mutable std::shared_mutex                                         mutex;
     };
 
     static std::string_view addPayloadBufferNoLock(Shard& shard, std::string_view payload);

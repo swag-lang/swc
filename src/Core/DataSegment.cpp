@@ -19,6 +19,18 @@ std::string_view DataSegment::addString(const Utf8& value)
     return view;
 }
 
+uint32_t DataSegment::addString(uint32_t baseOffset, uint32_t fieldOffset, const Utf8& value)
+{
+    const auto view = addString(value);
+    const auto off  = offset(view.data());
+    addRelocation(baseOffset + fieldOffset, off);
+
+    const auto ptrField = ptr<char*>(baseOffset + fieldOffset);
+    *ptrField           = const_cast<char*>(view.data());
+
+    return static_cast<uint32_t>(view.size());
+}
+
 uint32_t DataSegment::offset(const void* ptr) const
 {
     std::shared_lock lock(mutex_);

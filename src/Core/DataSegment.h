@@ -9,8 +9,19 @@ class DataSegment
 public:
     std::string_view addView(std::string_view value);
     std::string_view addString(const Utf8& value);
+    uint32_t         addString(uint32_t baseOffset, uint32_t fieldOffset, const Utf8& value);
     uint32_t         offset(const void* ptr) const;
     void             addRelocation(uint32_t offset, uint32_t targetOffset);
+
+    template<typename T>
+    uint32_t reserve(T** ptrValue)
+    {
+        std::unique_lock lock(mutex_);
+        auto             res = store_.emplace_uninit<T>();
+        *ptrValue            = res.second;
+        memset(*ptrValue, 0, sizeof(T));
+        return res.first;
+    }
 
     template<typename T>
     uint32_t add(const T& value)

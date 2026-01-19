@@ -298,33 +298,36 @@ ConstantValue ConstantValue::makeStruct(const TaskContext&, TypeRef typeRef, std
     return cv;
 }
 
-ConstantValue ConstantValue::makeValuePointer(const TaskContext&, TypeRef typeRef, uint64_t value)
+ConstantValue ConstantValue::makeValuePointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlagsE flags)
 {
-    ConstantValue cv;
-    cv.typeRef_        = typeRef;
-    cv.kind_           = ConstantKind::ValuePointer;
-    cv.asPointer.val   = value;
+    ConstantValue  cv;
+    const TypeInfo ty = TypeInfo::makeValuePointer(typeRef, flags);
+    cv.typeRef_       = ctx.typeMgr().addType(ty);
+    cv.kind_          = ConstantKind::ValuePointer;
+    cv.asPointer.val  = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
 
-ConstantValue ConstantValue::makeBlockPointer(const TaskContext&, TypeRef typeRef, uint64_t value)
+ConstantValue ConstantValue::makeBlockPointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlagsE flags)
 {
-    ConstantValue cv;
-    cv.typeRef_        = typeRef;
-    cv.kind_           = ConstantKind::BlockPointer;
-    cv.asPointer.val   = value;
+    ConstantValue  cv;
+    const TypeInfo ty = TypeInfo::makeBlockPointer(typeRef, flags);
+    cv.typeRef_       = ctx.typeMgr().addType(ty);
+    cv.kind_          = ConstantKind::BlockPointer;
+    cv.asPointer.val  = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
 
-ConstantValue ConstantValue::makeSlice(const TaskContext&, TypeRef typeRef, uint64_t ptr, uint64_t count)
+ConstantValue ConstantValue::makeSlice(TaskContext& ctx, TypeRef typeRef, uint64_t ptr, uint64_t count, TypeInfoFlagsE flags)
 {
-    ConstantValue cv;
-    cv.typeRef_      = typeRef;
-    cv.kind_         = ConstantKind::Slice;
-    cv.asSlice.ptr   = ptr;
-    cv.asSlice.count = count;
+    ConstantValue  cv;
+    const TypeInfo ty = TypeInfo::makeSlice(typeRef, flags);
+    cv.typeRef_       = ctx.typeMgr().addType(ty);
+    cv.kind_          = ConstantKind::Slice;
+    cv.asSlice.ptr    = ptr;
+    cv.asSlice.count  = count;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -389,10 +392,6 @@ ApsInt ConstantValue::getIntLike() const
         return ApsInt(getRune(), 32, true);
     if (isNull())
         return ApsInt(static_cast<uint64_t>(0), 64, true);
-    if (isValuePointer())
-        return ApsInt(getValuePointer(), 64, true);
-    if (isBlockPointer())
-        return ApsInt(getBlockPointer(), 64, true);
     SWC_UNREACHABLE();
 }
 

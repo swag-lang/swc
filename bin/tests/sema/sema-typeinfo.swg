@@ -5,3 +5,5 @@
 
 #assert((cast(const *Swag.TypeInfo) f32).name == "f32")
 #assert((cast(typeinfo) f32).name == "f32")
+
+#assert((cast(const *Swag.TypeInfoPointer) *f32).pointedType.name == "f32")

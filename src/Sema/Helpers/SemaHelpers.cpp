@@ -63,7 +63,30 @@ ConstantRef SemaHelpers::makeConstantLocation(Sema& sema, const AstNode& node)
 
 Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
 {
-    const std::string_view bytes = cst.getStruct();
+    std::string_view bytes;
+    if (cst.isStruct())
+    {
+        bytes = cst.getStruct();
+    }
+    else if (cst.isValuePointer() || cst.isBlockPointer())
+    {
+        const TypeInfo& cstType = sema.typeMgr().get(cst.typeRef());
+        SWC_ASSERT(cstType.isAnyPointer());
+        const TypeInfo& pointedType = sema.typeMgr().get(cstType.typeRef());
+
+        if (!pointedType.isStruct())
+            return SemaError::raiseInternal(sema, sema.node(nodeMemberRef));
+
+        const uint64_t ptr = cst.isValuePointer() ? cst.getValuePointer() : cst.getBlockPointer();
+        if (!ptr)
+            return SemaError::raiseInternal(sema, sema.node(nodeMemberRef));
+
+        bytes = std::string_view(reinterpret_cast<const char*>(static_cast<uintptr_t>(ptr)), pointedType.sizeOf(sema.ctx()));
+    }
+    else
+    {
+        return SemaError::raiseInternal(sema, sema.node(nodeMemberRef));
+    }
 
     const TypeInfo& typeField = symVar.typeInfo(sema.ctx());
     SWC_ASSERT(symVar.offset() + typeField.sizeOf(sema.ctx()) <= bytes.size());
@@ -92,6 +115,11 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
     {
         const auto str = reinterpret_cast<const Runtime::String*>(fieldBytes.data());
         cv             = ConstantValue::makeString(sema.ctx(), std::string_view(str->ptr, str->length));
+    }
+    else if (typeField.isValuePointer())
+    {
+        const auto val = *reinterpret_cast<const uint64_t*>(fieldBytes.data());
+        cv             = ConstantValue::makeValuePointer(sema.ctx(), typeField.typeRef(), val);
     }
     else
     {

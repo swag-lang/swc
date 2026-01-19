@@ -167,42 +167,42 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
     uint32_t           offset = 0;
     Runtime::TypeInfo* rt     = nullptr;
 
-    if (type.isBool() || type.isInt() || type.isFloat() || type.isString() || type.isRune() || type.isAny() || type.isVoid())
+    if (result.structTypeRef == tm.structTypeInfoNative())
     {
         Runtime::TypeInfoNative* n;
         offset = storage.reserve(&n);
         rt     = &n->base;
         initNativeKind(*n, type);
     }
-    else if (type.isEnum())
+    else if (result.structTypeRef == tm.structTypeInfoEnum())
     {
         Runtime::TypeInfoEnum* e;
         offset       = storage.reserve(&e);
         rt           = &e->base;
         e->base.kind = Runtime::TypeInfoKind::Enum;
     }
-    else if (type.isArray())
+    else if (result.structTypeRef == tm.structTypeInfoArray())
     {
         Runtime::TypeInfoArray* a;
         offset = storage.reserve(&a);
         rt     = &a->base;
         initArray(*a, type);
     }
-    else if (type.isSlice())
+    else if (result.structTypeRef == tm.structTypeInfoSlice())
     {
         Runtime::TypeInfoSlice* s;
         offset       = storage.reserve(&s);
         rt           = &s->base;
         s->base.kind = Runtime::TypeInfoKind::Slice;
     }
-    else if (type.isPointerLike())
+    else if (result.structTypeRef == tm.structTypeInfoPointer())
     {
         Runtime::TypeInfoPointer* p;
         offset       = storage.reserve(&p);
         rt           = &p->base;
         p->base.kind = Runtime::TypeInfoKind::Pointer;
     }
-    else if (type.isStruct())
+    else if (result.structTypeRef == tm.structTypeInfoStruct())
     {
         Runtime::TypeInfoStruct* s;
         offset       = storage.reserve(&s);

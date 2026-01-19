@@ -320,8 +320,8 @@ namespace
 
 TypeGen::StorageCache& TypeGen::cacheFor(const DataSegment& storage)
 {
-    std::lock_guard lk(cachesMutex_);
-    auto&           ptr = caches_[&storage];
+    std::scoped_lock lk(cachesMutex_);
+    auto&            ptr = caches_[&storage];
     if (!ptr)
         ptr = std::make_unique<StorageCache>();
     return *ptr;
@@ -329,9 +329,8 @@ TypeGen::StorageCache& TypeGen::cacheFor(const DataSegment& storage)
 
 Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result)
 {
-    auto&           cache = cacheFor(storage);
-    std::lock_guard lk(cache.mutex);
-
+    auto&             cache = cacheFor(storage);
+    std::scoped_lock  lk(cache.mutex);
     TypeGenRecContext rec;
     return makeTypeInfoRec(sema, storage, typeRef, ownerNodeRef, result, cache.offsets, rec);
 }

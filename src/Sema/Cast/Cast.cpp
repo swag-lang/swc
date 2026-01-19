@@ -425,8 +425,8 @@ namespace
         {
             if (castCtx.isConstantFolding())
             {
-                const auto cst      = sema.cstMgr().get(castCtx.srcConstRef);
-                castCtx.outConstRef = TypeGen::makeConstantTypeInfo(sema, cst.getTypeValue());
+                const auto cst = sema.cstMgr().get(castCtx.srcConstRef);
+                RESULT_VERIFY(sema.cstMgr().makeConstantTypeInfo(sema, castCtx.outConstRef, cst.getTypeValue()));
             }
 
             return Result::Continue;
@@ -609,7 +609,12 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     castCtx.flags        = castFlags;
     castCtx.errorNodeRef = view.nodeRef;
     castCtx.setConstantFoldingSrc(view.cstRef);
-    if (castAllowed(sema, castCtx, view.typeRef, dstTypeRef) == Result::Continue)
+
+    const Result result = castAllowed(sema, castCtx, view.typeRef, dstTypeRef);
+    if (result == Result::Pause)
+        return result;
+
+    if (result == Result::Continue)
     {
         if (castCtx.constantFoldingResult().isInvalid())
             view.nodeRef = createImplicitCast(sema, dstTypeRef, view.nodeRef);
@@ -618,6 +623,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
             view.setCstRef(sema, castCtx.constantFoldingResult());
             sema.setConstant(view.nodeRef, castCtx.constantFoldingResult());
         }
+
         return Result::Continue;
     }
 

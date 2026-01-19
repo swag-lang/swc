@@ -1,29 +1,29 @@
 #include "pch.h"
 #include "Sema/Type/TypeGen.h"
+#include "Core/DataSegment.h"
+#include "Main/TaskContext.h"
 #include "Runtime/Runtime.h"
-#include "Sema/Constant/ConstantManager.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
-ConstantRef TypeGen::makeConstantTypeInfo(Sema& sema, TypeRef typeRef)
+uint32_t TypeGen::makeConstantTypeInfo(TaskContext& ctx, DataSegment& storage, TypeRef typeRef)
 {
-    auto&       ctx     = sema.ctx();
-    const auto& typeMgr = sema.typeMgr();
+    const auto& typeMgr = ctx.typeMgr();
     const auto& type    = typeMgr.get(typeRef);
 
     Runtime::TypeInfo rtType;
-    const Utf8        name        = type.toName(ctx);
-    const Utf8        fullname    = name;
-    const auto        cstFullname = sema.cstMgr().addString(ctx, fullname);
-    const auto        cstName     = sema.cstMgr().addString(ctx, name);
-    rtType.fullname.ptr           = cstFullname.data();
-    rtType.fullname.length        = cstFullname.size();
-    rtType.name.ptr               = cstName.data();
-    rtType.name.length            = cstName.size();
-    rtType.sizeofType             = static_cast<uint32_t>(type.sizeOf(ctx));
-    rtType.crc                    = type.hash();
-    rtType.flags                  = Runtime::TypeInfoFlags::Zero;
+    const Utf8        name           = type.toName(ctx);
+    const Utf8        fullname       = name;
+    const auto        cstFullnameStr = storage.addString(fullname);
+    const auto        cstNameStr     = storage.addString(name);
+    rtType.fullname.ptr              = cstFullnameStr.data();
+    rtType.fullname.length           = cstFullnameStr.size();
+    rtType.name.ptr                  = cstNameStr.data();
+    rtType.name.length               = cstNameStr.size();
+    rtType.sizeofType                = static_cast<uint32_t>(type.sizeOf(ctx));
+    rtType.crc                       = type.hash();
+    rtType.flags                     = Runtime::TypeInfoFlags::Zero;
     if (type.isConst())
         rtType.flags = static_cast<Runtime::TypeInfoFlags>(static_cast<uint32_t>(rtType.flags) | static_cast<uint32_t>(Runtime::TypeInfoFlags::Const));
     if (type.isNullable())
@@ -35,8 +35,7 @@ ConstantRef TypeGen::makeConstantTypeInfo(Sema& sema, TypeRef typeRef)
         rtNative.base       = rtType;
         rtNative.base.kind  = Runtime::TypeInfoKind::Native;
         rtNative.nativeKind = Runtime::TypeInfoNativeKind::Bool;
-        const auto view     = std::string_view(reinterpret_cast<const char*>(&rtNative), sizeof(rtNative));
-        return sema.cstMgr().addConstant(ctx, ConstantValue::makeStruct(ctx, typeMgr.structTypeInfoNative(), view));
+        return storage.add(rtNative);
     }
 
     if (type.isInt())
@@ -67,8 +66,7 @@ ConstantRef TypeGen::makeConstantTypeInfo(Sema& sema, TypeRef typeRef)
                 break;
         }
 
-        const auto view = std::string_view(reinterpret_cast<const char*>(&rtNative), sizeof(rtNative));
-        return sema.cstMgr().addConstant(ctx, ConstantValue::makeStruct(ctx, typeMgr.structTypeInfoNative(), view));
+        return storage.add(rtNative);
     }
 
     if (type.isFloat())
@@ -78,8 +76,7 @@ ConstantRef TypeGen::makeConstantTypeInfo(Sema& sema, TypeRef typeRef)
         rtNative.base.kind  = Runtime::TypeInfoKind::Native;
         rtNative.base.flags = static_cast<Runtime::TypeInfoFlags>(static_cast<uint32_t>(rtNative.base.flags) | static_cast<uint32_t>(Runtime::TypeInfoFlags::Float));
         rtNative.nativeKind = type.floatBits() == 32 ? Runtime::TypeInfoNativeKind::F32 : Runtime::TypeInfoNativeKind::F64;
-        const auto view     = std::string_view(reinterpret_cast<const char*>(&rtNative), sizeof(rtNative));
-        return sema.cstMgr().addConstant(ctx, ConstantValue::makeStruct(ctx, typeMgr.structTypeInfoNative(), view));
+        return storage.add(rtNative);
     }
 
     if (type.isString())
@@ -88,8 +85,7 @@ ConstantRef TypeGen::makeConstantTypeInfo(Sema& sema, TypeRef typeRef)
         rtNative.base       = rtType;
         rtNative.base.kind  = Runtime::TypeInfoKind::Native;
         rtNative.nativeKind = Runtime::TypeInfoNativeKind::String;
-        const auto view     = std::string_view(reinterpret_cast<const char*>(&rtNative), sizeof(rtNative));
-        return sema.cstMgr().addConstant(ctx, ConstantValue::makeStruct(ctx, typeMgr.structTypeInfoNative(), view));
+        return storage.add(rtNative);
     }
 
     if (type.isRune())
@@ -98,8 +94,7 @@ ConstantRef TypeGen::makeConstantTypeInfo(Sema& sema, TypeRef typeRef)
         rtNative.base       = rtType;
         rtNative.base.kind  = Runtime::TypeInfoKind::Native;
         rtNative.nativeKind = Runtime::TypeInfoNativeKind::Rune;
-        const auto view     = std::string_view(reinterpret_cast<const char*>(&rtNative), sizeof(rtNative));
-        return sema.cstMgr().addConstant(ctx, ConstantValue::makeStruct(ctx, typeMgr.structTypeInfoNative(), view));
+        return storage.add(rtNative);
     }
 
     if (type.isAny())
@@ -108,8 +103,7 @@ ConstantRef TypeGen::makeConstantTypeInfo(Sema& sema, TypeRef typeRef)
         rtNative.base       = rtType;
         rtNative.base.kind  = Runtime::TypeInfoKind::Native;
         rtNative.nativeKind = Runtime::TypeInfoNativeKind::Any;
-        const auto view     = std::string_view(reinterpret_cast<const char*>(&rtNative), sizeof(rtNative));
-        return sema.cstMgr().addConstant(ctx, ConstantValue::makeStruct(ctx, typeMgr.structTypeInfoNative(), view));
+        return storage.add(rtNative);
     }
 
     if (type.isVoid())
@@ -118,8 +112,7 @@ ConstantRef TypeGen::makeConstantTypeInfo(Sema& sema, TypeRef typeRef)
         rtNative.base       = rtType;
         rtNative.base.kind  = Runtime::TypeInfoKind::Native;
         rtNative.nativeKind = Runtime::TypeInfoNativeKind::Void;
-        const auto view     = std::string_view(reinterpret_cast<const char*>(&rtNative), sizeof(rtNative));
-        return sema.cstMgr().addConstant(ctx, ConstantValue::makeStruct(ctx, typeMgr.structTypeInfoNative(), view));
+        return storage.add(rtNative);
     }
 
     if (type.isEnum())
@@ -130,8 +123,7 @@ ConstantRef TypeGen::makeConstantTypeInfo(Sema& sema, TypeRef typeRef)
         rtEnum.rawType    = nullptr;
         rtEnum.values     = {nullptr, 0};
         rtEnum.attributes = {nullptr, 0};
-        const auto view   = std::string_view(reinterpret_cast<const char*>(&rtEnum), sizeof(rtEnum));
-        return sema.cstMgr().addConstant(ctx, ConstantValue::makeStruct(ctx, typeMgr.structTypeInfoEnum(), view));
+        return storage.add(rtEnum);
     }
 
     if (type.isArray())
@@ -145,8 +137,7 @@ ConstantRef TypeGen::makeConstantTypeInfo(Sema& sema, TypeRef typeRef)
             rtArray.totalCount *= type.arrayDims()[i];
         rtArray.pointedType = nullptr;
         rtArray.finalType   = nullptr;
-        const auto view     = std::string_view(reinterpret_cast<const char*>(&rtArray), sizeof(rtArray));
-        return sema.cstMgr().addConstant(ctx, ConstantValue::makeStruct(ctx, typeMgr.structTypeInfoArray(), view));
+        return storage.add(rtArray);
     }
 
     if (type.isSlice())
@@ -155,8 +146,7 @@ ConstantRef TypeGen::makeConstantTypeInfo(Sema& sema, TypeRef typeRef)
         rtSlice.base        = rtType;
         rtSlice.base.kind   = Runtime::TypeInfoKind::Slice;
         rtSlice.pointedType = nullptr;
-        const auto view     = std::string_view(reinterpret_cast<const char*>(&rtSlice), sizeof(rtSlice));
-        return sema.cstMgr().addConstant(ctx, ConstantValue::makeStruct(ctx, typeMgr.structTypeInfoSlice(), view));
+        return storage.add(rtSlice);
     }
 
     if (type.isPointerLike())
@@ -165,8 +155,7 @@ ConstantRef TypeGen::makeConstantTypeInfo(Sema& sema, TypeRef typeRef)
         rtPtr.base        = rtType;
         rtPtr.base.kind   = Runtime::TypeInfoKind::Pointer;
         rtPtr.pointedType = nullptr;
-        const auto view   = std::string_view(reinterpret_cast<const char*>(&rtPtr), sizeof(rtPtr));
-        return sema.cstMgr().addConstant(ctx, ConstantValue::makeStruct(ctx, typeMgr.structTypeInfoPointer(), view));
+        return storage.add(rtPtr);
     }
 
     if (type.isStruct())
@@ -186,13 +175,11 @@ ConstantRef TypeGen::makeConstantTypeInfo(Sema& sema, TypeRef typeRef)
         rtStruct.generics    = {nullptr, 0};
         rtStruct.attributes  = {nullptr, 0};
         rtStruct.fromGeneric = nullptr;
-        const auto view      = std::string_view(reinterpret_cast<const char*>(&rtStruct), sizeof(rtStruct));
-        return sema.cstMgr().addConstant(ctx, ConstantValue::makeStruct(ctx, typeMgr.structTypeInfoStruct(), view));
+        return storage.add(rtStruct);
     }
 
     // Default to base TypeInfo if specialized one not found/implemented
-    const auto view = std::string_view(reinterpret_cast<const char*>(&rtType), sizeof(rtType));
-    return sema.cstMgr().addConstant(ctx, ConstantValue::makeStruct(ctx, typeMgr.structTypeInfo(), view));
+    return storage.add(rtType);
 }
 
 SWC_END_NAMESPACE();

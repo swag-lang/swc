@@ -4,6 +4,7 @@
 #include "Main/TaskContext.h"
 #include "Sema/Cast/Cast.h"
 #include "Sema/Helpers/SemaError.h"
+#include "Sema/Type/TypeGen.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -206,6 +207,48 @@ bool ConstantManager::concretizeConstant(Sema& sema, ConstantRef& result, Consta
 
     result = cstRef;
     return true;
+}
+
+Result ConstantManager::makeConstantTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef typeRef)
+{
+    auto&       ctx     = sema.ctx();
+    const auto& typeMgr = ctx.typeMgr();
+    const auto& type    = typeMgr.get(typeRef);
+
+    TypeRef structTypeRef;
+    if (type.isBool() || type.isInt() || type.isFloat() || type.isString() || type.isRune() || type.isAny() || type.isVoid())
+        structTypeRef = typeMgr.structTypeInfoNative();
+    else if (type.isEnum())
+        structTypeRef = typeMgr.structTypeInfoEnum();
+    else if (type.isArray())
+        structTypeRef = typeMgr.structTypeInfoArray();
+    else if (type.isSlice())
+        structTypeRef = typeMgr.structTypeInfoSlice();
+    else if (type.isPointerLike())
+        structTypeRef = typeMgr.structTypeInfoPointer();
+    else if (type.isStruct())
+        structTypeRef = typeMgr.structTypeInfoStruct();
+    else
+        structTypeRef = typeMgr.structTypeInfo();
+    if (structTypeRef.isInvalid())
+        return Result::Pause;
+
+    const auto& structType = typeMgr.get(structTypeRef);
+    if (!structType.isCompleted(ctx))
+        return Result::Pause;
+
+    const uint32_t shardIndex = typeRef.get() & (SHARD_COUNT - 1);
+    auto&          shard      = shards_[shardIndex];
+
+    std::unique_lock lk(shard.mutex);
+    const auto       offset = TypeGen::makeConstantTypeInfo(ctx, shard.dataSegment, typeRef);
+
+    const auto        view       = std::string_view{shard.dataSegment.ptr<char>(offset), structType.sizeOf(ctx)};
+    const auto        value      = ConstantValue::makeStruct(ctx, structTypeRef, view);
+    const uint32_t    localIndex = shard.dataSegment.add(value);
+    const ConstantRef result{(shardIndex << LOCAL_BITS) | localIndex};
+    outRef = addCstFinalize(*this, result);
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

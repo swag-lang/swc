@@ -1,11 +1,15 @@
 #pragma once
-#include "Sema/Core/Sema.h"
+#include "Core/StrongRef.h"
 
 SWC_BEGIN_NAMESPACE();
+class TaskContext;
+class DataSegment;
+class TypeInfo;
+using TypeRef = StrongRef<TypeInfo>;
 
 namespace TypeGen
 {
-    ConstantRef makeConstantTypeInfo(Sema& sema, TypeRef typeRef);
+    uint32_t makeConstantTypeInfo(TaskContext& ctx, DataSegment& storage, TypeRef typeRef);
 }
 
 SWC_END_NAMESPACE();

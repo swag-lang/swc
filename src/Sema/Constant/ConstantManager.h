@@ -30,6 +30,7 @@ public:
 
     bool   concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRef, TypeInfo::Sign hintSign);
     Result concretizeConstant(Sema& sema, ConstantRef& result, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign);
+    Result makeConstantTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef typeRef);
 
     struct Shard
     {

@@ -101,17 +101,27 @@ namespace
         if (!nodeView.type)
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_countof, nodeArgRef);
 
+        // Compile time
+        if (nodeView.cst)
+        {
+            if (nodeView.cst->isString())
+            {
+                sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(ctx, nodeView.cst->getString().length()));
+                return Result::Continue;
+            }
+
+            if (nodeView.cst->isSlice())
+            {
+                sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(ctx, nodeView.cst->getSliceCount()));
+                return Result::Continue;
+            }
+        }
+
         if (nodeView.type->isEnum())
         {
             if (!nodeView.type->isCompleted(ctx))
                 return sema.waitCompleted(nodeView.type, nodeArgRef);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(ctx, nodeView.type->symEnum().count()));
-            return Result::Continue;
-        }
-
-        if (nodeView.cst && nodeView.cst->isString())
-        {
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(ctx, nodeView.cst->getString().length()));
             return Result::Continue;
         }
 
@@ -128,6 +138,13 @@ namespace
             const TypeRef   typeRef = nodeView.type->ultimateTypeRef(ctx);
             const TypeInfo& ty      = sema.typeMgr().get(typeRef);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(ctx, sizeOf / ty.sizeOf(ctx)));
+            return Result::Continue;
+        }
+
+        if (nodeView.type->isSlice())
+        {
+            sema.setType(sema.curNodeRef(), sema.typeMgr().typeU64());
+            SemaInfo::setIsValue(node);
             return Result::Continue;
         }
 

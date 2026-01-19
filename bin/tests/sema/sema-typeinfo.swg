@@ -1,3 +1,5 @@
+#global internal
+
 #assert(s32 == s32)
 #assert(s32 != u32)
 #assert(!(s8 == s32))
@@ -7,3 +9,6 @@
 #assert((cast(typeinfo) f32).name == "f32")
 
 #assert((cast(const *Swag.TypeInfoPointer) *f32).pointedType.name == "f32")
+
+struct A { R, G, B: s32 }
+#assert(@countof((cast(const *Swag.TypeInfoStruct) #typeof(A)).fields) == 3)

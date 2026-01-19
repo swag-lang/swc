@@ -736,11 +736,15 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
     switch (kind_)
     {
         case TypeInfoKind::Void:
+            return 0;
         case TypeInfoKind::Bool:
+            return 1;
         case TypeInfoKind::Char:
         case TypeInfoKind::Rune:
+            return 4;
         case TypeInfoKind::Int:
         case TypeInfoKind::Float:
+            return static_cast<uint32_t>(sizeOf(ctx));
         case TypeInfoKind::CString:
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
@@ -755,7 +759,7 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
         case TypeInfoKind::Variadic:
         case TypeInfoKind::TypedVariadic:
         case TypeInfoKind::TypeInfo:
-            return static_cast<uint32_t>(sizeOf(ctx));
+            return 8;
 
         case TypeInfoKind::Array:
             return ctx.typeMgr().get(asArray.typeRef).alignOf(ctx);

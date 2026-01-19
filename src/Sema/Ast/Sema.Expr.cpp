@@ -133,8 +133,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         return Result::SkipChildren;
     }
 
-    if (!nodeLeftView.type)
-        return SemaError::raiseInternal(sema, *this);
+    SWC_ASSERT(nodeLeftView.type);
 
     // Enum
     if (nodeLeftView.type->isEnum())

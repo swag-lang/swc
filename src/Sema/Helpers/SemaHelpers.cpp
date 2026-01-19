@@ -63,7 +63,8 @@ ConstantRef SemaHelpers::makeConstantLocation(Sema& sema, const AstNode& node)
 
 Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
 {
-    std::string_view bytes;
+    std::string_view        bytes;
+    Runtime::Slice<uint8_t> sliceHeader;
     if (cst.isStruct())
     {
         bytes = cst.getStruct();
@@ -77,9 +78,18 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
         const uint64_t ptr = cst.isValuePointer() ? cst.getValuePointer() : cst.getBlockPointer();
         bytes              = std::string_view(reinterpret_cast<const char*>(static_cast<uintptr_t>(ptr)), pointedType.sizeOf(sema.ctx()));
     }
+    else if (cst.isSlice())
+    {
+        sliceHeader.ptr   = reinterpret_cast<uint8_t*>(cst.getSlicePointer());
+        sliceHeader.count = cst.getSliceCount();
+        bytes             = std::string_view(reinterpret_cast<const char*>(&sliceHeader), sizeof(sliceHeader));
+    }
     else
     {
-        return SemaError::raiseInternal(sema, sema.node(nodeMemberRef));
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_cst_struct_member_type, nodeMemberRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, symVar.typeRef());
+        diag.report(sema.ctx());
+        return Result::Error;
     }
 
     const TypeInfo& typeField = symVar.typeInfo(sema.ctx());
@@ -114,6 +124,11 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
     {
         const auto val = *reinterpret_cast<const uint64_t*>(fieldBytes.data());
         cv             = ConstantValue::makeValuePointer(sema.ctx(), typeField.typeRef(), val);
+    }
+    else if (typeField.isSlice())
+    {
+        const auto slice = reinterpret_cast<const Runtime::Slice<uint8_t>*>(fieldBytes.data());
+        cv               = ConstantValue::makeSlice(sema.ctx(), typeField.typeRef(), reinterpret_cast<uint64_t>(slice->ptr), slice->count);
     }
     else
     {

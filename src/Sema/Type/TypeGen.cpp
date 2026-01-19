@@ -155,6 +155,7 @@ namespace
     {
         const Utf8 name          = type.toName(sema.ctx());
         rtType.structName.length = storage.addString(offset, offsetof(Runtime::TypeInfoStruct, structName.ptr), name);
+        rtType.fields.count      = type.symStruct().fields().size();
     }
 
     void addTypeRelocation(DataSegment& storage, uint32_t baseOffset, uint32_t fieldOffset, uint32_t targetOffset)
@@ -163,11 +164,6 @@ namespace
         auto* ptrField = storage.ptr<const Runtime::TypeInfo*>(baseOffset + fieldOffset);
         *ptrField      = storage.ptr<Runtime::TypeInfo>(targetOffset);
     }
-
-    struct TypeGenRecContext
-    {
-        std::unordered_set<uint32_t> inProgress;
-    };
 
     Result makeTypeInfoRec(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGen::TypeGenResult& result, std::unordered_map<uint32_t, uint32_t>& offsets, TypeGenRecContext& rec)
     {

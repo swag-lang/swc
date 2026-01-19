@@ -2,14 +2,13 @@
 #include "Parser/AstNode.h"
 #include "Sema/Type/TypeInfo.h"
 
-#include <memory>
-#include <mutex>
-#include <unordered_map>
-
 SWC_BEGIN_NAMESPACE();
 class DataSegment;
 
-class TypeGen;
+struct TypeGenRecContext
+{
+    std::unordered_set<uint32_t> inProgress;
+};
 
 class TypeGen
 {
@@ -32,7 +31,6 @@ private:
 
     StorageCache& cacheFor(const DataSegment& storage);
 
-private:
     std::mutex                                                            cachesMutex_;
     std::unordered_map<const DataSegment*, std::unique_ptr<StorageCache>> caches_;
 };

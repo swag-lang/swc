@@ -9,6 +9,8 @@ class DataSegment
 public:
     std::string_view addView(std::string_view value);
     std::string_view addString(const Utf8& value);
+    uint32_t         offset(const void* ptr) const;
+    void             addRelocation(uint32_t offset, uint32_t targetOffset);
 
     template<typename T>
     uint32_t add(const T& value)
@@ -34,6 +36,7 @@ public:
 private:
     Store                                             store_;
     std::unordered_map<std::string, std::string_view> mapString_;
+    std::vector<std::pair<uint32_t, uint32_t>>        relocations_;
     mutable std::shared_mutex                         mutex_;
 };
 

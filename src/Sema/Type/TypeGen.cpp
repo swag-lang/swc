@@ -1,4 +1,5 @@
 #include "pch.h"
+#include <cstddef>
 #include "Sema/Type/TypeGen.h"
 #include "Core/DataSegment.h"
 #include "Main/TaskContext.h"
@@ -45,9 +46,9 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
     const Utf8        fullname       = name;
     const auto        cstFullnameStr = storage.addString(fullname);
     const auto        cstNameStr     = storage.addString(name);
-    rtType.fullname.ptr              = cstFullnameStr.data();
+    rtType.fullname.ptr              = const_cast<char*>(cstFullnameStr.data());
     rtType.fullname.length           = cstFullnameStr.size();
-    rtType.name.ptr                  = cstNameStr.data();
+    rtType.name.ptr                  = const_cast<char*>(cstNameStr.data());
     rtType.name.length               = cstNameStr.size();
     rtType.sizeofType                = static_cast<uint32_t>(type.sizeOf(ctx));
     rtType.crc                       = type.hash();
@@ -201,6 +202,18 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
     }
 
     result.view = std::string_view{storage.ptr<char>(offset), structType.sizeOf(ctx)};
+
+    if (rtType.fullname.ptr)
+        storage.addRelocation(offset + offsetof(Runtime::TypeInfo, fullname.ptr), storage.offset(rtType.fullname.ptr));
+    if (rtType.name.ptr)
+        storage.addRelocation(offset + offsetof(Runtime::TypeInfo, name.ptr), storage.offset(rtType.name.ptr));
+
+    if (type.isStruct())
+    {
+        if (rtType.name.ptr)
+            storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, structName.ptr), storage.offset(rtType.name.ptr));
+    }
+
     return Result::Continue;
 }
 

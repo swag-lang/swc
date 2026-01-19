@@ -19,4 +19,16 @@ std::string_view DataSegment::addString(const Utf8& value)
     return view;
 }
 
+uint32_t DataSegment::offset(const void* ptr) const
+{
+    std::shared_lock lock(mutex_);
+    return store_.findRef(ptr);
+}
+
+void DataSegment::addRelocation(uint32_t offset, uint32_t targetOffset)
+{
+    std::unique_lock lock(mutex_);
+    relocations_.emplace_back(offset, targetOffset);
+}
+
 SWC_END_NAMESPACE();

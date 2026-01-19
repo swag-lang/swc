@@ -13,13 +13,12 @@ public:
     void                             addRelocation(uint32_t offset, uint32_t targetOffset);
 
     template<typename T>
-    uint32_t reserve(T** ptrValue)
+    std::pair<uint32_t, T*> reserve()
     {
         std::unique_lock lock(mutex_);
         auto             res = store_.emplace_uninit<T>();
-        *ptrValue            = res.second;
-        memset(*ptrValue, 0, sizeof(T));
-        return res.first;
+        memset(res.second, 0, sizeof(T));
+        return res;
     }
 
     template<typename T>

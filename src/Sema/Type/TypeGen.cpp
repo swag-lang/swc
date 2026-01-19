@@ -79,7 +79,7 @@ namespace
         }
     }
 
-    void initNativeKind(Runtime::TypeInfoNative& n, const TypeInfo& type)
+    void initNative(Runtime::TypeInfoNative& n, const TypeInfo& type)
     {
         n.base.kind  = Runtime::TypeInfoKind::Native;
         n.nativeKind = Runtime::TypeInfoNativeKind::Void;
@@ -165,51 +165,47 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
     uint32_t           offset = 0;
     Runtime::TypeInfo* rt     = nullptr;
 
+#define RESERVE_TYPE_INFO(T, K)                         \
+    do                                                  \
+    {                                                   \
+        const auto res = storage.reserve<Runtime::T>(); \
+        offset         = res.first;                     \
+        auto* ptr      = res.second;                    \
+        rt             = &ptr->base;                    \
+        rt->kind       = K;                             \
+    } while (0)
+
     if (result.structTypeRef == tm.structTypeInfoNative())
     {
-        Runtime::TypeInfoNative* n;
-        offset = storage.reserve(&n);
-        rt     = &n->base;
-        initNativeKind(*n, type);
+        RESERVE_TYPE_INFO(TypeInfoNative, Runtime::TypeInfoKind::Native);
+        initNative(*reinterpret_cast<Runtime::TypeInfoNative*>(rt), type);
     }
     else if (result.structTypeRef == tm.structTypeInfoEnum())
     {
-        Runtime::TypeInfoEnum* e;
-        offset       = storage.reserve(&e);
-        rt           = &e->base;
-        e->base.kind = Runtime::TypeInfoKind::Enum;
+        RESERVE_TYPE_INFO(TypeInfoEnum, Runtime::TypeInfoKind::Enum);
     }
     else if (result.structTypeRef == tm.structTypeInfoArray())
     {
-        Runtime::TypeInfoArray* a;
-        offset = storage.reserve(&a);
-        rt     = &a->base;
-        initArray(*a, type);
+        RESERVE_TYPE_INFO(TypeInfoArray, Runtime::TypeInfoKind::Array);
+        initArray(*reinterpret_cast<Runtime::TypeInfoArray*>(rt), type);
     }
     else if (result.structTypeRef == tm.structTypeInfoSlice())
     {
-        Runtime::TypeInfoSlice* s;
-        offset       = storage.reserve(&s);
-        rt           = &s->base;
-        s->base.kind = Runtime::TypeInfoKind::Slice;
+        RESERVE_TYPE_INFO(TypeInfoSlice, Runtime::TypeInfoKind::Slice);
     }
     else if (result.structTypeRef == tm.structTypeInfoPointer())
     {
-        Runtime::TypeInfoPointer* p;
-        offset       = storage.reserve(&p);
-        rt           = &p->base;
-        p->base.kind = Runtime::TypeInfoKind::Pointer;
+        RESERVE_TYPE_INFO(TypeInfoPointer, Runtime::TypeInfoKind::Pointer);
     }
     else if (result.structTypeRef == tm.structTypeInfoStruct())
     {
-        Runtime::TypeInfoStruct* s;
-        offset       = storage.reserve(&s);
-        rt           = &s->base;
-        s->base.kind = Runtime::TypeInfoKind::Struct;
+        RESERVE_TYPE_INFO(TypeInfoStruct, Runtime::TypeInfoKind::Struct);
     }
     else
     {
-        offset = storage.reserve(&rt);
+        const auto res = storage.reserve<Runtime::TypeInfo>();
+        offset         = res.first;
+        rt             = res.second;
     }
 
     // Fill common fields + strings + view

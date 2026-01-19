@@ -13,14 +13,14 @@ ConstantRef TypeGen::makeConstantTypeInfo(Sema& sema, TypeRef typeRef)
     const auto& type    = typeMgr.get(typeRef);
 
     Runtime::TypeInfo rtType;
-    const Utf8        fullname    = type.toName(ctx);
-    const Utf8        name        = type.toFamily(ctx);
-    const auto        cstFullname = ConstantValue::makeString(ctx, fullname);
-    const auto        cstName     = ConstantValue::makeString(ctx, name);
-    rtType.fullname.ptr           = cstFullname.getString().data();
-    rtType.fullname.length        = cstFullname.getString().size();
-    rtType.name.ptr               = cstName.getString().data();
-    rtType.name.length            = cstName.getString().size();
+    const Utf8        name        = type.toName(ctx);
+    const Utf8        fullname    = name;
+    const auto        cstFullname = sema.cstMgr().addString(ctx, fullname);
+    const auto        cstName     = sema.cstMgr().addString(ctx, name);
+    rtType.fullname.ptr           = cstFullname.data();
+    rtType.fullname.length        = cstFullname.size();
+    rtType.name.ptr               = cstName.data();
+    rtType.name.length            = cstName.size();
     rtType.sizeofType             = static_cast<uint32_t>(type.sizeOf(ctx));
     rtType.crc                    = type.hash();
     rtType.flags                  = Runtime::TypeInfoFlags::Zero;
@@ -42,13 +42,11 @@ ConstantRef TypeGen::makeConstantTypeInfo(Sema& sema, TypeRef typeRef)
     if (type.isInt())
     {
         Runtime::TypeInfoNative rtNative;
-        rtNative.base      = rtType;
-        rtNative.base.kind = Runtime::TypeInfoKind::Native;
-        rtNative.base.flags =
-            static_cast<Runtime::TypeInfoFlags>(static_cast<uint32_t>(rtNative.base.flags) | static_cast<uint32_t>(Runtime::TypeInfoFlags::Integer));
+        rtNative.base       = rtType;
+        rtNative.base.kind  = Runtime::TypeInfoKind::Native;
+        rtNative.base.flags = static_cast<Runtime::TypeInfoFlags>(static_cast<uint32_t>(rtNative.base.flags) | static_cast<uint32_t>(Runtime::TypeInfoFlags::Integer));
         if (type.isIntUnsigned())
-            rtNative.base.flags =
-                static_cast<Runtime::TypeInfoFlags>(static_cast<uint32_t>(rtNative.base.flags) | static_cast<uint32_t>(Runtime::TypeInfoFlags::Unsigned));
+            rtNative.base.flags = static_cast<Runtime::TypeInfoFlags>(static_cast<uint32_t>(rtNative.base.flags) | static_cast<uint32_t>(Runtime::TypeInfoFlags::Unsigned));
 
         switch (type.intBits())
         {

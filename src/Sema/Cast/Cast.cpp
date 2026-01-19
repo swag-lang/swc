@@ -7,6 +7,7 @@
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/Symbols.h"
+#include "Sema/Type/TypeGen.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -417,7 +418,25 @@ namespace
         return Result::Error;
     }
 
-    Result castToFromTypeInfo(Sema&, CastContext& castCtx, TypeRef, TypeRef)
+    Result castFromTypeValue(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        const auto& dstType = sema.typeMgr().get(dstTypeRef);
+        if (dstType.isTypeInfo() || dstType.isConstPointerToRuntimeTypeInfo(sema.ctx()))
+        {
+            if (castCtx.isConstantFolding())
+            {
+                const auto cst      = sema.cstMgr().get(castCtx.srcConstRef);
+                castCtx.outConstRef = TypeGen::makeConstantTypeInfo(sema, cst.getTypeValue());
+            }
+
+            return Result::Continue;
+        }
+
+        castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        return Result::Error;
+    }
+
+    Result castToFromTypeInfo(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
         if (castCtx.isConstantFolding())
             castCtx.outConstRef = castCtx.srcConstRef;
@@ -533,6 +552,8 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
         res = castFloatToFloat(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isFloat() && dstType.isIntLike())
         res = castFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
+    else if (srcType.isTypeValue())
+        res = castFromTypeValue(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isTypeInfo() && dstType.isConstPointerToRuntimeTypeInfo(sema.ctx()))
         res = castToFromTypeInfo(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isConstPointerToRuntimeTypeInfo(sema.ctx()) && dstType.isTypeInfo())

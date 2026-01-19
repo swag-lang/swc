@@ -196,7 +196,7 @@ namespace
         return deps;
     }
 
-    Result makeTypeInfoReentrant(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGen::TypeGenResult& result, TypeGen::TypeGenCache& cache)
+    Result processTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGen::TypeGenResult& result, TypeGen::TypeGenCache& cache)
     {
         auto&              ctx  = sema.ctx();
         const TypeManager& tm   = ctx.typeMgr();
@@ -400,9 +400,9 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
     auto&            cache = cacheFor(storage);
     std::scoped_lock lk(cache.mutex);
 
-    // Reentrant: each call progresses as much as possible without relying on recursion.
-    // It returns Continue only when the requested type AND all its dependencies are fully done.
-    return makeTypeInfoReentrant(sema, storage, typeRef, ownerNodeRef, result, cache);
+    // Each call progresses as much as possible without relying on recursion.
+    // It returns Result::Continue only when the requested type AND all its dependencies are fully done.
+    return processTypeInfo(sema, storage, typeRef, ownerNodeRef, result, cache);
 }
 
 SWC_END_NAMESPACE();

@@ -1,9 +1,4 @@
 #pragma once
-
-#include <mutex>
-#include <unordered_map>
-#include <vector>
-
 #include "Parser/AstNode.h"
 #include "Sema/Type/TypeInfo.h"
 
@@ -30,16 +25,14 @@ public:
 
         struct Entry
         {
-            uint32_t offset = 0;
-            TypeRef  structTypeRef;
-            State    state = State::CommonInit;
-
-            // Flattened list of dependencies that must be completed before this type can be marked as Done.
-            std::vector<uint32_t> deps;
+            uint32_t             offset = 0;
+            TypeRef              structTypeRef;
+            State                state = State::CommonInit;
+            SmallVector<TypeRef> deps;
         };
 
-        std::mutex                          mutex;
-        std::unordered_map<uint32_t, Entry> entries;
+        std::mutex                         mutex;
+        std::unordered_map<TypeRef, Entry> entries;
     };
 
     Result makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result);

@@ -1,4 +1,5 @@
 #pragma once
+#include "Math/Hash.h"
 #include "Sema/Symbol/IdentifierManager.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -246,3 +247,12 @@ struct TypeInfoHash
 };
 
 SWC_END_NAMESPACE();
+
+template<>
+struct std::hash<swc::TypeRef>
+{
+    size_t operator()(const swc::TypeRef& ref) const noexcept
+    {
+        return swc::Math::hash(ref.get());
+    }
+};

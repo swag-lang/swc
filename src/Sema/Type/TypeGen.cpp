@@ -39,10 +39,9 @@ namespace
         return Result::Continue;
     }
 
-    void setFlag(Runtime::TypeInfo& rt, Runtime::TypeInfoFlags f)
+    void addFlag(Runtime::TypeInfo& rt, Runtime::TypeInfoFlags f)
     {
-        rt.flags = static_cast<Runtime::TypeInfoFlags>(
-            static_cast<uint32_t>(rt.flags) | static_cast<uint32_t>(f));
+        rt.flags = static_cast<Runtime::TypeInfoFlags>(static_cast<uint32_t>(rt.flags) | static_cast<uint32_t>(f));
     }
 
     void initCommon(Runtime::TypeInfo&      rt,
@@ -62,9 +61,9 @@ namespace
         rt.flags      = Runtime::TypeInfoFlags::Zero;
 
         if (type.isConst())
-            setFlag(rt, Runtime::TypeInfoFlags::Const);
+            addFlag(rt, Runtime::TypeInfoFlags::Const);
         if (type.isNullable())
-            setFlag(rt, Runtime::TypeInfoFlags::Nullable);
+            addFlag(rt, Runtime::TypeInfoFlags::Nullable);
 
         const auto& structType = tm.get(result.structTypeRef);
         result.view            = std::string_view{storage.ptr<char>(offset), structType.sizeOf(ctx)};
@@ -92,9 +91,9 @@ namespace
 
         if (type.isInt())
         {
-            setFlag(n.base, Runtime::TypeInfoFlags::Integer);
+            addFlag(n.base, Runtime::TypeInfoFlags::Integer);
             if (type.isIntUnsigned())
-                setFlag(n.base, Runtime::TypeInfoFlags::Unsigned);
+                addFlag(n.base, Runtime::TypeInfoFlags::Unsigned);
 
             switch (type.intBits())
             {
@@ -108,7 +107,7 @@ namespace
 
         if (type.isFloat())
         {
-            setFlag(n.base, Runtime::TypeInfoFlags::Float);
+            addFlag(n.base, Runtime::TypeInfoFlags::Float);
             n.nativeKind = (type.floatBits() == 32) ? Runtime::TypeInfoNativeKind::F32 : Runtime::TypeInfoNativeKind::F64;
             return;
         }
@@ -118,16 +117,19 @@ namespace
             n.nativeKind = Runtime::TypeInfoNativeKind::String;
             return;
         }
+
         if (type.isRune())
         {
             n.nativeKind = Runtime::TypeInfoNativeKind::Rune;
             return;
         }
+
         if (type.isAny())
         {
             n.nativeKind = Runtime::TypeInfoNativeKind::Any;
             return;
         }
+
         if (type.isVoid())
         {
             n.nativeKind = Runtime::TypeInfoNativeKind::Void;
@@ -158,10 +160,6 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
     // Pick and validate the "TypeInfo struct" layout used to serialize this type
     result.structTypeRef = selectTypeInfoStructType(tm, type);
     RESULT_VERIFY(ensureTypeInfoStructReady(sema, tm, result.structTypeRef, node));
-
-    // Prepare strings
-    const Utf8 name     = type.toName(ctx);
-    const Utf8 fullname = name;
 
     // Allocate the correct runtime TypeInfo payload
     uint32_t           offset = 0;
@@ -215,6 +213,8 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
     }
 
     // Fill common fields + strings + view
+    const Utf8 name     = type.toName(ctx);
+    const Utf8 fullname = name;
     initCommon(*rt, type, tm, sema, storage, offset, name, fullname, result);
     return Result::Continue;
 }

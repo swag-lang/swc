@@ -36,7 +36,6 @@ public:
     {
         Store                                                             store;
         std::unordered_map<ConstantValue, ConstantRef, ConstantValueHash> map;
-        std::deque<std::string>                                           payload;
         mutable std::shared_mutex                                         mutex;
     };
 

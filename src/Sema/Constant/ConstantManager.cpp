@@ -128,9 +128,9 @@ std::string_view ConstantManager::addPayloadBuffer(std::string_view payload)
 
 std::string_view ConstantManager::addPayloadBufferNoLock(Shard& shard, std::string_view payload)
 {
-    shard.payload.emplace_back(payload);
-    const auto& copied = shard.payload.back();
-    return {copied.data(), copied.size()};
+    auto [ref, dst] = shard.store.push_back_raw(static_cast<uint32_t>(payload.size()), alignof(char));
+    std::memcpy(dst, payload.data(), payload.size());
+    return {static_cast<char*>(dst), payload.size()};
 }
 
 ConstantRef ConstantManager::cstS32(int32_t value) const

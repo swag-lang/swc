@@ -11,6 +11,7 @@ namespace TypeGen
     {
         std::string_view view;
         TypeRef          structTypeRef;
+        uint32_t         offset = 0;
     };
 
     Result makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result);

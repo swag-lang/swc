@@ -211,12 +211,17 @@ bool ConstantManager::concretizeConstant(Sema& sema, ConstantRef& result, Consta
 
 Result ConstantManager::makeConstantTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef)
 {
-    auto&          ctx     = sema.ctx();
-    const auto&    typeMgr = ctx.typeMgr();
-    const auto&    type    = typeMgr.get(typeRef);
-    const AstNode& node    = sema.ast().node(ownerNodeRef);
+    auto&          ctx        = sema.ctx();
+    const uint32_t shardIndex = typeRef.get() & (SHARD_COUNT - 1);
+    auto&          shard      = shards_[shardIndex];
 
-    TypeRef structTypeRef;
+    std::string_view view;
+    std::unique_lock lk(shard.mutex);
+    RESULT_VERIFY(TypeGen::makeConstantTypeInfo(sema, shard.dataSegment, typeRef, ownerNodeRef, view));
+
+    auto&             typeMgr = ctx.typeMgr();
+    const auto&       type    = typeMgr.get(typeRef);
+    TypeRef           structTypeRef;
     if (type.isBool() || type.isInt() || type.isFloat() || type.isString() || type.isRune() || type.isAny() || type.isVoid())
         structTypeRef = typeMgr.structTypeInfoNative();
     else if (type.isEnum())
@@ -232,19 +237,6 @@ Result ConstantManager::makeConstantTypeInfo(Sema& sema, ConstantRef& outRef, Ty
     else
         structTypeRef = typeMgr.structTypeInfo();
 
-    if (structTypeRef.isInvalid())
-        return sema.waitIdentifier(sema.idMgr().nameTypeInfo(), node.srcViewRef(), node.tokRef());
-    const auto& structType = typeMgr.get(structTypeRef);
-    if (!structType.isCompleted(ctx))
-        return sema.waitCompleted(&structType.symStruct(), node.srcViewRef(), node.tokRef());
-
-    const uint32_t shardIndex = typeRef.get() & (SHARD_COUNT - 1);
-    auto&          shard      = shards_[shardIndex];
-
-    std::unique_lock lk(shard.mutex);
-    const auto       offset = TypeGen::makeConstantTypeInfo(ctx, shard.dataSegment, typeRef);
-
-    const auto        view       = std::string_view{shard.dataSegment.ptr<char>(offset), structType.sizeOf(ctx)};
     const auto        value      = ConstantValue::makeStruct(ctx, structTypeRef, view);
     const uint32_t    localIndex = shard.dataSegment.add(value);
     const ConstantRef result{(shardIndex << LOCAL_BITS) | localIndex};

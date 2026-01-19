@@ -7,11 +7,36 @@
 
 SWC_BEGIN_NAMESPACE();
 
-uint32_t TypeGen::makeConstantTypeInfo(TaskContext& ctx, DataSegment& storage, TypeRef typeRef)
+Result TypeGen::makeConstantTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, std::string_view& outView)
 {
-    const auto& typeMgr = ctx.typeMgr();
-    const auto& type    = typeMgr.get(typeRef);
+    auto&          ctx     = sema.ctx();
+    const auto&    typeMgr = ctx.typeMgr();
+    const auto&    type    = typeMgr.get(typeRef);
+    const AstNode& node    = sema.node(ownerNodeRef);
 
+    TypeRef structTypeRef;
+    if (type.isBool() || type.isInt() || type.isFloat() || type.isString() || type.isRune() || type.isAny() || type.isVoid())
+        structTypeRef = typeMgr.structTypeInfoNative();
+    else if (type.isEnum())
+        structTypeRef = typeMgr.structTypeInfoEnum();
+    else if (type.isArray())
+        structTypeRef = typeMgr.structTypeInfoArray();
+    else if (type.isSlice())
+        structTypeRef = typeMgr.structTypeInfoSlice();
+    else if (type.isPointerLike())
+        structTypeRef = typeMgr.structTypeInfoPointer();
+    else if (type.isStruct())
+        structTypeRef = typeMgr.structTypeInfoStruct();
+    else
+        structTypeRef = typeMgr.structTypeInfo();
+
+    if (structTypeRef.isInvalid())
+        return sema.waitIdentifier(sema.idMgr().nameTypeInfo(), node.srcViewRef(), node.tokRef());
+    const auto& structType = typeMgr.get(structTypeRef);
+    if (!structType.isCompleted(ctx))
+        return sema.waitCompleted(&structType.symStruct(), node.srcViewRef(), node.tokRef());
+
+    uint32_t offset = 0;
     Runtime::TypeInfo rtType;
     const Utf8        name           = type.toName(ctx);
     const Utf8        fullname       = name;
@@ -35,10 +60,9 @@ uint32_t TypeGen::makeConstantTypeInfo(TaskContext& ctx, DataSegment& storage, T
         rtNative.base       = rtType;
         rtNative.base.kind  = Runtime::TypeInfoKind::Native;
         rtNative.nativeKind = Runtime::TypeInfoNativeKind::Bool;
-        return storage.add(rtNative);
+        offset = storage.add(rtNative);
     }
-
-    if (type.isInt())
+    else if (type.isInt())
     {
         Runtime::TypeInfoNative rtNative;
         rtNative.base       = rtType;
@@ -66,56 +90,50 @@ uint32_t TypeGen::makeConstantTypeInfo(TaskContext& ctx, DataSegment& storage, T
                 break;
         }
 
-        return storage.add(rtNative);
+        offset = storage.add(rtNative);
     }
-
-    if (type.isFloat())
+    else if (type.isFloat())
     {
         Runtime::TypeInfoNative rtNative;
         rtNative.base       = rtType;
         rtNative.base.kind  = Runtime::TypeInfoKind::Native;
         rtNative.base.flags = static_cast<Runtime::TypeInfoFlags>(static_cast<uint32_t>(rtNative.base.flags) | static_cast<uint32_t>(Runtime::TypeInfoFlags::Float));
         rtNative.nativeKind = type.floatBits() == 32 ? Runtime::TypeInfoNativeKind::F32 : Runtime::TypeInfoNativeKind::F64;
-        return storage.add(rtNative);
+        offset              = storage.add(rtNative);
     }
-
-    if (type.isString())
+    else if (type.isString())
     {
         Runtime::TypeInfoNative rtNative;
         rtNative.base       = rtType;
         rtNative.base.kind  = Runtime::TypeInfoKind::Native;
         rtNative.nativeKind = Runtime::TypeInfoNativeKind::String;
-        return storage.add(rtNative);
+        offset              = storage.add(rtNative);
     }
-
-    if (type.isRune())
+    else if (type.isRune())
     {
         Runtime::TypeInfoNative rtNative;
         rtNative.base       = rtType;
         rtNative.base.kind  = Runtime::TypeInfoKind::Native;
         rtNative.nativeKind = Runtime::TypeInfoNativeKind::Rune;
-        return storage.add(rtNative);
+        offset              = storage.add(rtNative);
     }
-
-    if (type.isAny())
+    else if (type.isAny())
     {
         Runtime::TypeInfoNative rtNative;
         rtNative.base       = rtType;
         rtNative.base.kind  = Runtime::TypeInfoKind::Native;
         rtNative.nativeKind = Runtime::TypeInfoNativeKind::Any;
-        return storage.add(rtNative);
+        offset              = storage.add(rtNative);
     }
-
-    if (type.isVoid())
+    else if (type.isVoid())
     {
         Runtime::TypeInfoNative rtNative;
         rtNative.base       = rtType;
         rtNative.base.kind  = Runtime::TypeInfoKind::Native;
         rtNative.nativeKind = Runtime::TypeInfoNativeKind::Void;
-        return storage.add(rtNative);
+        offset              = storage.add(rtNative);
     }
-
-    if (type.isEnum())
+    else if (type.isEnum())
     {
         Runtime::TypeInfoEnum rtEnum;
         rtEnum.base       = rtType;
@@ -123,10 +141,9 @@ uint32_t TypeGen::makeConstantTypeInfo(TaskContext& ctx, DataSegment& storage, T
         rtEnum.rawType    = nullptr;
         rtEnum.values     = {nullptr, 0};
         rtEnum.attributes = {nullptr, 0};
-        return storage.add(rtEnum);
+        offset            = storage.add(rtEnum);
     }
-
-    if (type.isArray())
+    else if (type.isArray())
     {
         Runtime::TypeInfoArray rtArray;
         rtArray.base       = rtType;
@@ -137,28 +154,25 @@ uint32_t TypeGen::makeConstantTypeInfo(TaskContext& ctx, DataSegment& storage, T
             rtArray.totalCount *= type.arrayDims()[i];
         rtArray.pointedType = nullptr;
         rtArray.finalType   = nullptr;
-        return storage.add(rtArray);
+        offset              = storage.add(rtArray);
     }
-
-    if (type.isSlice())
+    else if (type.isSlice())
     {
         Runtime::TypeInfoSlice rtSlice;
         rtSlice.base        = rtType;
         rtSlice.base.kind   = Runtime::TypeInfoKind::Slice;
         rtSlice.pointedType = nullptr;
-        return storage.add(rtSlice);
+        offset              = storage.add(rtSlice);
     }
-
-    if (type.isPointerLike())
+    else if (type.isPointerLike())
     {
         Runtime::TypeInfoPointer rtPtr;
         rtPtr.base        = rtType;
         rtPtr.base.kind   = Runtime::TypeInfoKind::Pointer;
         rtPtr.pointedType = nullptr;
-        return storage.add(rtPtr);
+        offset            = storage.add(rtPtr);
     }
-
-    if (type.isStruct())
+    else if (type.isStruct())
     {
         Runtime::TypeInfoStruct rtStruct;
         rtStruct.base        = rtType;
@@ -175,11 +189,16 @@ uint32_t TypeGen::makeConstantTypeInfo(TaskContext& ctx, DataSegment& storage, T
         rtStruct.generics    = {nullptr, 0};
         rtStruct.attributes  = {nullptr, 0};
         rtStruct.fromGeneric = nullptr;
-        return storage.add(rtStruct);
+        offset               = storage.add(rtStruct);
+    }
+    else
+    {
+        // Default to base TypeInfo if specialized one not found/implemented
+        offset = storage.add(rtType);
     }
 
-    // Default to base TypeInfo if specialized one not found/implemented
-    return storage.add(rtType);
+    outView = std::string_view{storage.ptr<char>(offset), structType.sizeOf(ctx)};
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

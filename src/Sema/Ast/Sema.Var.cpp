@@ -95,7 +95,6 @@ namespace
 
         const TypeRef finalTypeRef = nodeTypeView.typeRef.isValid() ? nodeTypeView.typeRef : nodeInitView.typeRef;
         const bool    isRefType    = finalTypeRef.isValid() && sema.typeMgr().get(finalTypeRef).isReference();
-
         if (isConst && isRefType)
             return SemaError::raise(sema, DiagnosticId::sema_err_const_ref_type, owner.srcViewRef(), tokDiag);
 

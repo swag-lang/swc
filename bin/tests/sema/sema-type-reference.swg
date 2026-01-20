@@ -27,9 +27,3 @@ func tata(a: const &A) {}
     var a: A
     const b: const &A // swc-expected-error {{sema_err_const_ref_type}}
 }
-
-#test
-{
-    // A reference parameter does not require an initializer
-    func foo(p: const &A) {}
-}

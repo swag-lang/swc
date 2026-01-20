@@ -455,29 +455,13 @@ namespace
         }
 
         // Value to const ref
-        if (srcType.isStruct() && dstType.isConst() && castCtx.kind == CastKind::Parameter)
+        if (srcType.isStruct() && dstType.isConst())
         {
             if (dstPointeeTypeRef == srcTypeRef)
             {
                 if (castCtx.isConstantFolding())
                     castCtx.outConstRef = castCtx.srcConstRef;
                 return Result::Continue;
-            }
-
-            // Struct value to interface ref
-            if (dstPointeeType.isInterface())
-            {
-                const auto& fromStruct = srcType.symStruct();
-                const auto& toItf      = dstPointeeType.symInterface();
-                for (const auto itfImpl : fromStruct.interfaces())
-                {
-                    if (itfImpl && itfImpl->idRef() == toItf.idRef())
-                    {
-                        if (castCtx.isConstantFolding())
-                            castCtx.outConstRef = castCtx.srcConstRef;
-                        return Result::Continue;
-                    }
-                }
             }
         }
 

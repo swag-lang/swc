@@ -465,6 +465,21 @@ namespace
             }
         }
 
+        // UFCS receiver: allow taking the address to bind a value to a reference.
+        // Whether the value is actually addressable (lvalue) is validated later by `Cast::cast`.
+        if (castCtx.flags.has(CastFlagsE::UfcsArgument) && dstPointeeTypeRef == srcTypeRef)
+        {
+            if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
+            {
+                castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+                return Result::Error;
+            }
+
+            if (castCtx.isConstantFolding())
+                castCtx.outConstRef = castCtx.srcConstRef;
+            return Result::Continue;
+        }
+
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
         return Result::Error;
     }
@@ -473,6 +488,21 @@ namespace
     {
         const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
         const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+
+        // UFCS receiver: allow taking the address to get a pointer.
+        // Whether the value is actually addressable (lvalue) is validated later by `Cast::cast`.
+        if (castCtx.flags.has(CastFlagsE::UfcsArgument) && dstType.typeRef() == srcTypeRef && !dstType.isNullable())
+        {
+            if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
+            {
+                castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+                return Result::Error;
+            }
+
+            if (castCtx.isConstantFolding())
+                castCtx.outConstRef = castCtx.srcConstRef;
+            return Result::Continue;
+        }
 
         if (srcType.isAnyPointer())
             return castPointerToPointer(sema, castCtx, srcTypeRef, dstTypeRef);

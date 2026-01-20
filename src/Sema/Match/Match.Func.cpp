@@ -144,12 +144,14 @@ namespace
         return cf.noteId;
     }
 
-    ConvRank probeImplicitConversion(Sema& sema, TypeRef from, TypeRef to, CastFailure& outCastFailure)
+    ConvRank probeImplicitConversion(Sema& sema, TypeRef from, TypeRef to, CastFailure& outCastFailure, bool isUfcsArgument)
     {
         if (from == to)
             return ConvRank::Exact;
 
         CastContext castCtx(CastKind::Parameter);
+        if (isUfcsArgument)
+            castCtx.flags.add(CastFlagsE::UfcsArgument);
         if (Cast::castAllowed(sema, castCtx, from, to) == Result::Continue)
             return ConvRank::Standard;
 
@@ -193,7 +195,8 @@ namespace
             const TypeRef    paramTy = params[i]->typeRef();
 
             CastFailure    cf{};
-            const ConvRank r = probeImplicitConversion(sema, argTy, paramTy, cf);
+            const bool     isUfcsArgument = ufcsArg.isValid() && i == 0;
+            const ConvRank r              = probeImplicitConversion(sema, argTy, paramTy, cf, isUfcsArgument);
             if (r == ConvRank::Bad)
             {
                 failBadType(outFail, i, i, cf);
@@ -223,7 +226,8 @@ namespace
                         const AstNodeRef argRef = getArg(i, args, ufcsArg);
                         const TypeRef    argTy  = sema.typeRefOf(argRef);
                         CastFailure      cf{};
-                        const ConvRank   r = probeImplicitConversion(sema, argTy, variadicTy, cf);
+                        const bool       isUfcsArgument = ufcsArg.isValid() && i == 0;
+                        const ConvRank   r              = probeImplicitConversion(sema, argTy, variadicTy, cf, isUfcsArgument);
                         if (r == ConvRank::Bad)
                         {
                             // paramIndex points at the variadic parameter
@@ -394,13 +398,13 @@ namespace
             switch (a.fail.kind)
             {
                 case MatchFailKind::TooManyArguments:
-                    note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_too_many_arguments));
+                    note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_too_many_arguments), false);
                     note.addArgument(Diagnostic::ARG_COUNT, a.fail.expectedCount);
                     note.addArgument(Diagnostic::ARG_VALUE, a.fail.providedCount);
                     break;
 
                 case MatchFailKind::TooFewArguments:
-                    note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_too_few_arguments));
+                    note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_too_few_arguments), false);
                     note.addArgument(Diagnostic::ARG_COUNT, a.fail.expectedCount);
                     note.addArgument(Diagnostic::ARG_VALUE, a.fail.providedCount);
                     break;
@@ -408,18 +412,18 @@ namespace
                 case MatchFailKind::InvalidArgumentType:
                     if (a.fail.castFailure.diagId != DiagnosticId::None)
                     {
-                        note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(a.fail.castFailure.diagId));
+                        note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(a.fail.castFailure.diagId), false);
                         if (const DiagnosticId nid = addCastFailureArgs(note, a.fail.castFailure); nid != DiagnosticId::None)
                             diag.addNote(nid);
                     }
                     else
                     {
-                        note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_invalid_argument_type));
+                        note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_invalid_argument_type), false);
                     }
                     break;
 
                 default:
-                    note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_not_viable));
+                    note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_not_viable), false);
                     break;
             }
 
@@ -516,7 +520,10 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     {
         const AstNodeRef argRef = getArg(i, args, ufcsArg);
         SemaNodeView     argView(sema, argRef);
-        RESULT_VERIFY(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Parameter));
+        CastFlags castFlags;
+        if (ufcsArg.isValid() && i == 0)
+            castFlags.add(CastFlagsE::UfcsArgument);
+        RESULT_VERIFY(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Parameter, castFlags));
 
         if (ufcsArg.isValid() && i == 0)
         {
@@ -538,7 +545,10 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
         {
             const AstNodeRef argRef = getArg(i, args, ufcsArg);
             SemaNodeView     argView(sema, argRef);
-            RESULT_VERIFY(Cast::cast(sema, argView, variadicTy, CastKind::Implicit));
+            CastFlags castFlags;
+            if (ufcsArg.isValid() && i == 0)
+                castFlags.add(CastFlagsE::UfcsArgument);
+            RESULT_VERIFY(Cast::cast(sema, argView, variadicTy, CastKind::Implicit, castFlags));
 
             if (ufcsArg.isValid() && i == 0)
             {

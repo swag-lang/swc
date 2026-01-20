@@ -21,9 +21,8 @@ namespace
         const Utf8&       tokStr  = Diagnostic::tokenErrorString(ctx, sema.ast().srcView(), tokRef);
 
         diag.addArgument(Diagnostic::ARG_TOK, tokStr);
-        diag.addArgument(Diagnostic::ARG_TOK_RAW, tokStr, false);
-        diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id), false);
-        diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(token.id)), false);
+        diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id));
+        diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(token.id)));
     }
 
     void setReportArguments(Sema& sema, Diagnostic& diag, const Symbol* sym)
@@ -32,8 +31,8 @@ namespace
             return;
 
         diag.addArgument(Diagnostic::ARG_SYM, sym->name(sema.ctx()));
-        diag.addArgument(Diagnostic::ARG_SYM_FAM, sym->toFamily(), false);
-        diag.addArgument(Diagnostic::ARG_A_SYM_FAM, Utf8Helper::addArticleAAn(sym->toFamily()), false);
+        diag.addArgument(Diagnostic::ARG_SYM_FAM, sym->toFamily());
+        diag.addArgument(Diagnostic::ARG_A_SYM_FAM, Utf8Helper::addArticleAAn(sym->toFamily()));
     }
 }
 
@@ -100,8 +99,8 @@ Result SemaError::raiseRequestedTypeFam(Sema& sema, AstNodeRef nodeRef, TypeRef 
     auto  diag = report(sema, DiagnosticId::sema_err_expected_type_fam, nodeRef);
     diag.addArgument(Diagnostic::ARG_TYPE, srcTypeRef);
     const TypeInfo& ty = sema.typeMgr().get(targetTypeRef);
-    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE_FAM, ty.toFamily(ctx), false);
-    diag.addArgument(Diagnostic::ARG_A_REQUESTED_TYPE_FAM, Utf8Helper::addArticleAAn(ty.toFamily(ctx)), false);
+    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE_FAM, ty.toFamily(ctx));
+    diag.addArgument(Diagnostic::ARG_A_REQUESTED_TYPE_FAM, Utf8Helper::addArticleAAn(ty.toFamily(ctx)));
     diag.report(ctx);
     return Result::Error;
 }

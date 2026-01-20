@@ -16,7 +16,7 @@ Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
     {
         auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
         diag.addArgument(Diagnostic::ARG_PATH, file.string());
-        diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec), false);
+        diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
         diag.report(ctx);
         return Result::Error;
     }
@@ -33,7 +33,7 @@ Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
         auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
         diag.addArgument(Diagnostic::ARG_PATH, file.string());
         if (ec)
-            diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec), false);
+            diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
         diag.report(ctx);
         return Result::Error;
     }
@@ -45,7 +45,7 @@ Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
         auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
         diag.addArgument(Diagnostic::ARG_PATH, file.string());
         if (ec)
-            diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec), false);
+            diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
         diag.report(ctx);
         return Result::Error;
     }
@@ -64,7 +64,7 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
     {
         auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
         diag.addArgument(Diagnostic::ARG_PATH, folder.string());
-        diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec), false);
+        diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
         diag.report(ctx);
         return Result::Error;
     }
@@ -81,9 +81,9 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
         auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
         diag.addArgument(Diagnostic::ARG_PATH, folder.string());
         if (ec)
-            diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec), false);
+            diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
         else
-            diag.addArgument(Diagnostic::ARG_BECAUSE, "path does not exist", false);
+            diag.addArgument(Diagnostic::ARG_BECAUSE, "path does not exist");
         diag.report(ctx);
         return Result::Error;
     }
@@ -95,7 +95,7 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
         auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
         diag.addArgument(Diagnostic::ARG_PATH, folder.string());
         if (ec)
-            diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec), false);
+            diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
         diag.report(ctx);
         return Result::Error;
     }

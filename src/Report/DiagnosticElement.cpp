@@ -86,7 +86,7 @@ bool DiagnosticElement::isNoteOrHelp() const
     return severity_ == DiagnosticSeverity::Note || severity_ == DiagnosticSeverity::Help;
 }
 
-void DiagnosticElement::addArgument(std::string_view name, std::string_view arg, bool quoted)
+void DiagnosticElement::addArgument(std::string_view name, std::string_view arg)
 {
     Utf8 sanitized;
     sanitized.reserve(arg.size());
@@ -127,12 +127,11 @@ void DiagnosticElement::addArgument(std::string_view name, std::string_view arg,
         if (a.name == name)
         {
             a.val    = std::move(sanitized);
-            a.quoted = quoted;
             return;
         }
     }
 
-    arguments_.emplace_back(DiagnosticArgument{.name = name, .quoted = quoted, .val = std::move(sanitized)});
+    arguments_.emplace_back(DiagnosticArgument{.name = name, .val = std::move(sanitized)});
 }
 
 // Format a string by replacing registered arguments

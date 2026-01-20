@@ -13,7 +13,6 @@ enum class DiagnosticId;
 struct DiagnosticArgument
 {
     std::string_view name;
-    bool             quoted;
 
     std::variant<Utf8,
                  TokenId,
@@ -56,12 +55,12 @@ public:
     bool               isNoteOrHelp() const;
 
     const DiagnosticArguments& arguments() const { return arguments_; }
-    void                       addArgument(std::string_view name, std::string_view arg, bool quoted = true);
+    void                       addArgument(std::string_view name, std::string_view arg);
 
     template<typename T>
-    void addArgument(std::string_view name, T&& arg, bool quoted = true)
+    void addArgument(std::string_view name, T&& arg)
     {
-        arguments_.emplace_back(DiagnosticArgument{name, quoted, std::forward<T>(arg)});
+        arguments_.emplace_back(DiagnosticArgument{name, std::forward<T>(arg)});
     }
 
 private:

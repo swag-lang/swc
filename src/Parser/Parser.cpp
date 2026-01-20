@@ -12,14 +12,14 @@ void Parser::setReportArguments(Diagnostic& diag, TokenRef tokRef) const
 
     if (token.is(TokenId::EndOfFile))
     {
-        diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id), false);
-        diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Token::toFamily(token.id), false);
+        diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id));
+        diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Token::toFamily(token.id));
     }
     else
     {
         diag.addArgument(Diagnostic::ARG_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokRef));
-        diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id), false);
-        diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(token.id)), false);
+        diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id));
+        diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(token.id)));
     }
 
     // Get the last non-trivia token
@@ -27,24 +27,24 @@ void Parser::setReportArguments(Diagnostic& diag, TokenRef tokRef) const
     {
         const auto& tokenPrev = ast_->srcView().token(tokRef.offset(-1));
         diag.addArgument(Diagnostic::ARG_PREV_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokRef.offset(-1)));
-        diag.addArgument(Diagnostic::ARG_PREV_TOK_FAM, Token::toFamily(tokenPrev.id), false);
-        diag.addArgument(Diagnostic::ARG_PREV_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(tokenPrev.id)), false);
+        diag.addArgument(Diagnostic::ARG_PREV_TOK_FAM, Token::toFamily(tokenPrev.id));
+        diag.addArgument(Diagnostic::ARG_PREV_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(tokenPrev.id)));
     }
 
     if (tokRef.get() < ast_->srcView().tokens().size() - 1)
     {
         const auto& tokenNext = ast_->srcView().token(tokRef.offset(1));
         diag.addArgument(Diagnostic::ARG_NEXT_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokRef.offset(1)));
-        diag.addArgument(Diagnostic::ARG_NEXT_TOK_FAM, Token::toFamily(tokenNext.id), false);
-        diag.addArgument(Diagnostic::ARG_NEXT_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(tokenNext.id)), false);
+        diag.addArgument(Diagnostic::ARG_NEXT_TOK_FAM, Token::toFamily(tokenNext.id));
+        diag.addArgument(Diagnostic::ARG_NEXT_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(tokenNext.id)));
     }
 }
 
 void Parser::setReportExpected(Diagnostic& diag, TokenId expectedTknId)
 {
     diag.addArgument(Diagnostic::ARG_EXPECT_TOK, Token::toName(expectedTknId));
-    diag.addArgument(Diagnostic::ARG_EXPECT_TOK_FAM, Token::toFamily(expectedTknId), false);
-    diag.addArgument(Diagnostic::ARG_EXPECT_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(expectedTknId)), false);
+    diag.addArgument(Diagnostic::ARG_EXPECT_TOK_FAM, Token::toFamily(expectedTknId));
+    diag.addArgument(Diagnostic::ARG_EXPECT_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(expectedTknId)));
 }
 
 Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)

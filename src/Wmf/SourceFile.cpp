@@ -51,7 +51,7 @@ Result SourceFile::loadContent(TaskContext& ctx)
     {
         auto diag = Diagnostic::get(DiagnosticId::io_err_open_file, ref());
         diag.addArgument(Diagnostic::ARG_PATH, path_.string());
-        diag.addArgument(Diagnostic::ARG_BECAUSE, Os::systemError(), false);
+        diag.addArgument(Diagnostic::ARG_BECAUSE, Os::systemError());
         diag.report(ctx);
         return Result::Error;
     }
@@ -65,7 +65,7 @@ Result SourceFile::loadContent(TaskContext& ctx)
     {
         auto diag = Diagnostic::get(DiagnosticId::io_err_read_file, ref());
         diag.addArgument(Diagnostic::ARG_PATH, path_.string());
-        diag.addArgument(Diagnostic::ARG_BECAUSE, Os::systemError(), false);
+        diag.addArgument(Diagnostic::ARG_BECAUSE, Os::systemError());
         diag.report(ctx);
         return Result::Error;
     }

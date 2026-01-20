@@ -26,7 +26,6 @@ public:
     constexpr static std::string_view ARG_BEFORE               = "{before}";
     constexpr static std::string_view ARG_BECAUSE              = "{because}";
     constexpr static std::string_view ARG_TOK                  = "{tok}";
-    constexpr static std::string_view ARG_TOK_RAW              = "{tok-raw}";
     constexpr static std::string_view ARG_TOK_FAM              = "{tok-fam}";
     constexpr static std::string_view ARG_A_TOK_FAM            = "{a-tok-fam}";
     constexpr static std::string_view ARG_EXPECT_TOK           = "{expect-tok}";
@@ -66,7 +65,7 @@ public:
     DiagnosticElement& addElement(DiagnosticId id);
     void               addNote(DiagnosticId id);
     DiagnosticElement& last() const { return *elements_.back(); }
-    void               addArgument(std::string_view name, std::string_view arg, bool quoted = true);
+    void               addArgument(std::string_view name, std::string_view arg);
 
     static Diagnostic         get(DiagnosticId id, FileRef file = FileRef::invalid());
     static std::string_view   diagIdMessage(DiagnosticId id);
@@ -77,9 +76,9 @@ public:
     static SourceCodeLocation tokenErrorLocation(const TaskContext& ctx, const SourceView& srcView, TokenRef tokRef);
 
     template<typename T>
-    void addArgument(std::string_view name, T&& arg, bool quoted = true)
+    void addArgument(std::string_view name, T&& arg)
     {
-        arguments_.emplace_back(Argument{name, quoted, std::forward<T>(arg)});
+        arguments_.emplace_back(Argument{name, std::forward<T>(arg)});
     }
 
     void report(TaskContext& ctx) const;

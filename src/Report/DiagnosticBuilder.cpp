@@ -691,12 +691,33 @@ Utf8 DiagnosticBuilder::buildMessage(const Utf8& msg, const DiagnosticElement* e
     auto replaceArgs = [&](const DiagnosticArguments& arguments) {
         for (const auto& arg : arguments)
         {
-            Utf8   replacement = argumentToString(arg);
-            size_t pos         = 0;
-            while ((pos = result.find(arg.name, pos)) != Utf8::npos)
+            const Utf8 raw = argumentToString(arg);
+
+            // 1) `{{name}}` => raw
             {
-                result.replace(pos, arg.name.length(), replacement);
-                pos += replacement.length();
+                const Utf8 placeholder = "{" + Utf8(arg.name) + "}";
+                size_t     pos         = 0;
+                while ((pos = result.find(placeholder, pos)) != Utf8::npos)
+                {
+                    result.replace(pos, placeholder.length(), raw);
+                    pos += raw.length();
+                }
+            }
+
+            // 2) `{name}` => quoted
+            {
+                Utf8 quoted;
+                quoted.reserve(raw.size() + 2);
+                quoted.push_back('\'');
+                quoted += raw;
+                quoted.push_back('\'');
+
+                size_t pos = 0;
+                while ((pos = result.find(arg.name, pos)) != Utf8::npos)
+                {
+                    result.replace(pos, arg.name.length(), quoted);
+                    pos += quoted.length();
+                }
             }
         }
     };
@@ -709,6 +730,7 @@ Utf8 DiagnosticBuilder::buildMessage(const Utf8& msg, const DiagnosticElement* e
     replaceArgs(diag_->arguments());
 
     // Clean some stuff
+    result = std::regex_replace(result, std::regex{R"(\{\{\w+\}\})"}, "");
     result = std::regex_replace(result, std::regex{R"(\{\w+\})"}, "");
     result.replace_loop(" , ", ", ");
     result.replace_loop("  ", " ", true);
@@ -739,16 +761,7 @@ Utf8 DiagnosticBuilder::argumentToString(const DiagnosticArgument& arg) const
             SWC_UNREACHABLE();
     };
 
-    Utf8 s = std::visit(toUtf8, arg.val);
-    if (!arg.quoted)
-        return s;
-
-    Utf8 result;
-    result.reserve(s.size() + 2);
-    result.push_back('\'');
-    result += s;
-    result.push_back('\'');
-    return result;
+    return std::visit(toUtf8, arg.val);
 }
 
 void DiagnosticBuilder::expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements) const

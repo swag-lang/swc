@@ -123,7 +123,7 @@ void Diagnostic::addNote(DiagnosticId id)
     elements_.emplace_back(std::move(ptr));
 }
 
-void Diagnostic::addArgument(std::string_view name, std::string_view arg, bool quoted)
+void Diagnostic::addArgument(std::string_view name, std::string_view arg)
 {
     Utf8 sanitized;
     sanitized.reserve(arg.size());
@@ -165,12 +165,11 @@ void Diagnostic::addArgument(std::string_view name, std::string_view arg, bool q
         if (a.name == name)
         {
             a.val    = std::move(sanitized);
-            a.quoted = quoted;
             return;
         }
     }
 
-    arguments_.emplace_back(DiagnosticArgument{.name = name, .quoted = quoted, .val = std::move(sanitized)});
+    arguments_.emplace_back(DiagnosticArgument{.name = name, .val = std::move(sanitized)});
 }
 
 Diagnostic Diagnostic::get(DiagnosticId id, FileRef file)

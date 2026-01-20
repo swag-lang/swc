@@ -398,13 +398,13 @@ namespace
             switch (a.fail.kind)
             {
                 case MatchFailKind::TooManyArguments:
-                    note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_too_many_arguments), false);
+                    note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_too_many_arguments));
                     note.addArgument(Diagnostic::ARG_COUNT, a.fail.expectedCount);
                     note.addArgument(Diagnostic::ARG_VALUE, a.fail.providedCount);
                     break;
 
                 case MatchFailKind::TooFewArguments:
-                    note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_too_few_arguments), false);
+                    note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_too_few_arguments));
                     note.addArgument(Diagnostic::ARG_COUNT, a.fail.expectedCount);
                     note.addArgument(Diagnostic::ARG_VALUE, a.fail.providedCount);
                     break;
@@ -412,18 +412,18 @@ namespace
                 case MatchFailKind::InvalidArgumentType:
                     if (a.fail.castFailure.diagId != DiagnosticId::None)
                     {
-                        note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(a.fail.castFailure.diagId), false);
+                        note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(a.fail.castFailure.diagId));
                         if (const DiagnosticId nid = addCastFailureArgs(note, a.fail.castFailure); nid != DiagnosticId::None)
                             diag.addNote(nid);
                     }
                     else
                     {
-                        note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_invalid_argument_type), false);
+                        note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_invalid_argument_type));
                     }
                     break;
 
                 default:
-                    note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_not_viable), false);
+                    note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_not_viable));
                     break;
             }
 

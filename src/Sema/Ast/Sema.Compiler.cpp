@@ -144,7 +144,7 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
         case TokenId::CompilerError:
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_compiler_error, srcViewRef(), tokRef());
-            diag.addArgument(Diagnostic::ARG_BECAUSE, constant.getString(), false);
+            diag.addArgument(Diagnostic::ARG_BECAUSE, constant.getString());
             diag.report(sema.ctx());
             return Result::Error;
         }
@@ -152,7 +152,7 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
         case TokenId::CompilerWarning:
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_warn_compiler_warning, srcViewRef(), tokRef());
-            diag.addArgument(Diagnostic::ARG_BECAUSE, constant.getString(), false);
+            diag.addArgument(Diagnostic::ARG_BECAUSE, constant.getString());
             diag.report(sema.ctx());
             return Result::Continue;
         }

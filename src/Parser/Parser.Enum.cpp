@@ -69,7 +69,7 @@ AstNodeRef Parser::parseEnumDecl()
         if (is(TokenId::SymLeftCurly))
         {
             auto diag = reportError(DiagnosticId::parser_err_expected_token_fam_before, ref());
-            diag.addArgument(Diagnostic::ARG_EXPECT_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(TokenId::TypeBool)), false);
+            diag.addArgument(Diagnostic::ARG_EXPECT_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(TokenId::TypeBool)));
             diag.report(*ctx_);
         }
         else

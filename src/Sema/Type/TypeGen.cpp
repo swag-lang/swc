@@ -470,6 +470,8 @@ namespace
 
         const TypeInfo& structType = tm.get(result.rtTypeRef);
         result.view                = std::string_view{storage.ptr<char>(result.offset), structType.sizeOf(ctx)};
+        
+        sema.compiler().notifyAlive();
         return Result::Continue;
     }
 }

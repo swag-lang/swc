@@ -6,6 +6,7 @@
 #include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
+#include "Sema/Symbol/Symbol.Impl.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/TypeGen.h"
 #include "Sema/Type/TypeManager.h"
@@ -378,6 +379,121 @@ namespace
         return Result::Error;
     }
 
+    Result castToReference(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
+        const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+
+        const auto dstPointeeTypeRef = dstType.typeRef();
+        const auto& dstPointeeType   = sema.typeMgr().get(dstPointeeTypeRef);
+
+        // Ref to ref
+        if (srcType.isReference())
+        {
+            if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
+            {
+                castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+                return Result::Error;
+            }
+
+            const auto srcPointeeTypeRef = srcType.typeRef();
+            const auto& srcPointeeType   = sema.typeMgr().get(srcPointeeTypeRef);
+
+            if (srcPointeeTypeRef == dstPointeeTypeRef)
+            {
+                if (castCtx.isConstantFolding())
+                    castCtx.outConstRef = castCtx.srcConstRef;
+                return Result::Continue;
+            }
+
+            // Struct ref to interface ref
+            if (srcPointeeType.isStruct() && dstPointeeType.isInterface())
+            {
+                const auto& fromStruct = srcPointeeType.symStruct();
+                const auto& toItf      = dstPointeeType.symInterface();
+                bool        ok         = false;
+                for (const auto itfImpl : fromStruct.interfaces())
+                {
+                    if (itfImpl && itfImpl->idRef() == toItf.idRef())
+                    {
+                        ok = true;
+                        break;
+                    }
+                }
+
+                if (ok)
+                {
+                    if (castCtx.isConstantFolding())
+                        castCtx.outConstRef = castCtx.srcConstRef;
+                    return Result::Continue;
+                }
+            }
+        }
+
+        // Pointer to ref
+        if (srcType.isAnyPointer())
+        {
+            if (srcType.isNullable())
+            {
+                castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                return Result::Error;
+            }
+
+            // Used for explicit casts and also for parameter passing.
+            // Function arguments are typically cast with `CastKind::Implicit`.
+            if (castCtx.kind != CastKind::Explicit &&
+                castCtx.kind != CastKind::Initialization &&
+                castCtx.kind != CastKind::Implicit)
+            {
+                castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                return Result::Error;
+            }
+
+            if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
+            {
+                castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+                return Result::Error;
+            }
+
+            if (srcType.typeRef() == dstPointeeTypeRef)
+            {
+                if (castCtx.isConstantFolding())
+                    castCtx.outConstRef = castCtx.srcConstRef;
+                return Result::Continue;
+            }
+        }
+
+        // Value to const ref (used for initialization / parameter passing)
+        if (dstType.isConst() && castCtx.kind == CastKind::Initialization)
+        {
+            if (dstPointeeTypeRef == srcTypeRef)
+            {
+                if (castCtx.isConstantFolding())
+                    castCtx.outConstRef = castCtx.srcConstRef;
+                return Result::Continue;
+            }
+
+            // Struct value to interface ref
+            if (srcType.isStruct() && dstPointeeType.isInterface())
+            {
+                const auto& fromStruct = srcType.symStruct();
+                const auto& toItf      = dstPointeeType.symInterface();
+                for (const auto itfImpl : fromStruct.interfaces())
+                {
+                    if (itfImpl && itfImpl->idRef() == toItf.idRef())
+                    {
+                        if (castCtx.isConstantFolding())
+                            castCtx.outConstRef = castCtx.srcConstRef;
+                        return Result::Continue;
+                    }
+                }
+            }
+        }
+
+        castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        return Result::Error;
+    }
+
     Result castToPointer(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
         const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
@@ -509,6 +625,21 @@ namespace
     }
 }
 
+TypeRef Cast::castAllowedBothWays(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+{
+    if (castAllowed(sema, castCtx, srcTypeRef, dstTypeRef) == Result::Continue)
+        return dstTypeRef;
+    if (castAllowed(sema, castCtx, dstTypeRef, srcTypeRef) == Result::Continue)
+        return srcTypeRef;
+    return TypeRef::invalid();
+}
+
+TypeRef Cast::castAllowedBothWays(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind)
+{
+    CastContext castCtx(castKind);
+    return castAllowedBothWays(sema, castCtx, srcTypeRef, dstTypeRef);
+}
+
 Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     if (srcTypeRef == dstTypeRef)
@@ -560,6 +691,8 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
         res = castToFromTypeInfo(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (dstType.isAnyPointer())
         res = castToPointer(sema, castCtx, srcTypeRef, dstTypeRef);
+    else if (dstType.isReference())
+        res = castToReference(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (dstType.isAnyVariadic())
         res = castToVariadic(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (dstType.isString())
@@ -583,21 +716,6 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
     }
 
     return res;
-}
-
-TypeRef Cast::castAllowedBothWays(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
-{
-    if (castAllowed(sema, castCtx, srcTypeRef, dstTypeRef) == Result::Continue)
-        return dstTypeRef;
-    if (castAllowed(sema, castCtx, dstTypeRef, srcTypeRef) == Result::Continue)
-        return srcTypeRef;
-    return TypeRef::invalid();
-}
-
-TypeRef Cast::castAllowedBothWays(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind)
-{
-    CastContext castCtx(castKind);
-    return castAllowedBothWays(sema, castCtx, srcTypeRef, dstTypeRef);
 }
 
 Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags)

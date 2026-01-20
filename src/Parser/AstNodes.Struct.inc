@@ -1028,6 +1028,7 @@ enum class AstVarDeclFlagsE : AstNode::ParserFlags
     Var   = 1 << 0,
     Const = 1 << 1,
     Let   = 1 << 2,
+    Parameter = 1 << 3,
 };
 
 struct AstVarDecl : AstNamedNodeT<AstNodeId::VarDecl, AstVarDeclFlagsE>

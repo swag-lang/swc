@@ -56,8 +56,7 @@ namespace
             TypeInfoFlags     typeFlags = TypeInfoFlagsE::Zero;
             if (sym.hasExtraFlag(SymbolFunctionFlagsE::Const))
                 typeFlags.add(TypeInfoFlagsE::Const);
-            const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(ownerType, typeFlags));
-            symMe->setTypeRef(typeRef);
+            symMe->setTypeRef(sema.typeMgr().addType(TypeInfo::makeReference(ownerType, typeFlags)));
 
             sym.addParameter(symMe);
             sym.addSymbol(ctx, symMe, true);
@@ -140,8 +139,7 @@ Result AstFunctionParamMe::semaPreNode(Sema& sema) const
     TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
     if (hasFlag(AstFunctionParamMeFlagsE::Const))
         typeFlags.add(TypeInfoFlagsE::Const);
-    const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(ownerType, typeFlags));
-    sym.setTypeRef(typeRef);
+    sym.setTypeRef(sema.typeMgr().addType(TypeInfo::makeReference(ownerType, typeFlags)));
 
     return Result::Continue;
 }

@@ -57,14 +57,12 @@ Result AstAutoMemberAccessExpr::semaPostNode(Sema& sema)
         {
             const auto      typeRef  = symMe->typeRef();
             const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
-            if (typeInfo.isAnyPointer())
-            {
-                const TypeInfo& pointeeType = sema.typeMgr().get(typeInfo.underlyingTypeRef());
-                if (pointeeType.isStruct())
-                    symMapHint = &pointeeType.symStruct();
-                else if (pointeeType.isEnum())
-                    symMapHint = &pointeeType.symEnum();
-            }
+            SWC_ASSERT(typeInfo.isReference());
+            const TypeInfo& pointeeType = sema.typeMgr().get(typeInfo.underlyingTypeRef());
+            if (pointeeType.isStruct())
+                symMapHint = &pointeeType.symStruct();
+            else if (pointeeType.isEnum())
+                symMapHint = &pointeeType.symEnum();
         }
         else
         {
@@ -174,9 +172,9 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         typeInfo = &sema.typeMgr().get(typeInfoRef);
     }
     else if (typeInfo->isAnyPointer())
-    {
         typeInfo = &sema.typeMgr().get(typeInfo->typeRef());
-    }
+    else if (typeInfo->isReference())
+        typeInfo = &sema.typeMgr().get(typeInfo->typeRef());
 
     // Struct
     if (typeInfo->isStruct())
@@ -203,13 +201,13 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
             return Result::SkipChildren;
         }
 
-        if (nodeLeftView.type->isAnyPointer() || SemaInfo::isLValue(sema.node(nodeLeftRef)))
+        if (nodeLeftView.type->isAnyPointer() || nodeLeftView.type->isReference() || SemaInfo::isLValue(sema.node(nodeLeftRef)))
             SemaInfo::setIsLValue(*this);
         return Result::SkipChildren;
     }
 
-    // Pointer
-    if (nodeLeftView.type->isAnyPointer())
+    // Pointer/Reference
+    if (nodeLeftView.type->isAnyPointer() || nodeLeftView.type->isReference())
     {
         sema.setType(sema.curNodeRef(), nodeLeftView.type->typeRef());
         SemaInfo::setIsValue(*this);

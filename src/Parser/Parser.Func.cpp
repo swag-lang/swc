@@ -246,40 +246,8 @@ AstNodeRef Parser::parseFunctionParam()
         return nodeRef;
     }
 
-    const auto nodeRef = parseVarDecl();
-    if (nodeRef.isValid())
-    {
-        SmallVector<AstNodeRef> toProcess;
-        toProcess.push_back(nodeRef);
-        while (!toProcess.empty())
-        {
-            const auto nref = toProcess.back();
-            toProcess.pop_back();
-            if (nref.isInvalid())
-                continue;
-
-            auto& n = ast_->node(nref);
-            if (n.is(AstNodeId::VarDecl))
-            {
-                ast_->node<AstNodeId::VarDecl>(nref)->addFlag(AstVarDeclFlagsE::Parameter);
-                continue;
-            }
-            if (n.is(AstNodeId::VarDeclNameList))
-            {
-                ast_->node<AstNodeId::VarDeclNameList>(nref)->addFlag(AstVarDeclFlagsE::Parameter);
-                continue;
-            }
-            if (n.is(AstNodeId::VarDeclList))
-            {
-                SmallVector<AstNodeRef> children;
-                ast_->nodes(children, ast_->node<AstNodeId::VarDeclList>(nref)->spanChildrenRef);
-                for (const auto c : children)
-                    toProcess.push_back(c);
-            }
-        }
-    }
-
-    return nodeRef;
+    PushContextFlags ctx(this, ParserContextFlagsE::InFunctionParam);
+    return parseVarDecl();
 }
 
 AstNodeRef Parser::parseFunctionParamList()

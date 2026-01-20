@@ -152,6 +152,8 @@ AstNodeRef Parser::parseVarDecl()
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDecl>(tokStart);
             nodePtr->flags()        = flags;
+            if (hasContextFlag(ParserContextFlagsE::InFunctionParam))
+                nodePtr->addFlag(AstVarDeclFlagsE::Parameter);
             nodePtr->tokNameRef     = tokNames[0];
             nodePtr->nodeTypeRef    = nodeType;
             nodePtr->nodeInitRef    = nodeInit;
@@ -161,6 +163,8 @@ AstNodeRef Parser::parseVarDecl()
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDeclNameList>(tokStart);
             nodePtr->flags()        = flags;
+            if (hasContextFlag(ParserContextFlagsE::InFunctionParam))
+                nodePtr->addFlag(AstVarDeclFlagsE::Parameter);
             nodePtr->spanNamesRef   = ast_->pushSpan(tokNames.span());
             nodePtr->nodeTypeRef    = nodeType;
             nodePtr->nodeInitRef    = nodeInit;

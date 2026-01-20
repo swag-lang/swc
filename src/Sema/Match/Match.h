@@ -1,5 +1,4 @@
 #pragma once
-#include "Core/SmallVector.h"
 #include "Parser/AstNode.h"
 #include "Sema/Symbol/IdentifierManager.h"
 

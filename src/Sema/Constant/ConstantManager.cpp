@@ -32,7 +32,7 @@ ConstantRef ConstantManager::addInt(const TaskContext& ctx, uint64_t value)
     return addConstant(ctx, cstVal);
 }
 
-std::string_view ConstantManager::addString(const TaskContext& ctx, std::string_view str)
+std::string_view ConstantManager::addString(const TaskContext&, std::string_view str)
 {
     const uint32_t shardIndex = std::hash<std::string_view>{}(str) & (SHARD_COUNT - 1);
     auto&          shard      = shards_[shardIndex];
@@ -66,7 +66,7 @@ namespace
         return addCstFinalize(manager, result);
     }
 
-    ConstantRef addCstOther(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
+    ConstantRef addCstOther(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext&, const ConstantValue& value)
     {
         {
             std::shared_lock lk(shard.mutex);

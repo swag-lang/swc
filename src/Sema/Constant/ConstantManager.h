@@ -1,10 +1,7 @@
 #pragma once
 #include "Core/DataSegment.h"
-#include "Main/CompilerInstance.h"
 #include "Sema/Constant/ConstantValue.h"
 #include "Sema/Core/Sema.h"
-
-#include <deque>
 
 SWC_BEGIN_NAMESPACE();
 class CompilerInstance;

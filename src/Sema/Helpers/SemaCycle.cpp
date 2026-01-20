@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Sema/Helpers/SemaCycle.h"
-#include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Report/DiagnosticDef.h"
 #include "Sema/Core/Sema.h"

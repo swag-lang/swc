@@ -1,4 +1,3 @@
-// ReSharper disable CppClangTidyClangDiagnosticMissingDesignatedFieldInitializers
 #include "pch.h"
 #include "Sema/Cast/Cast.h"
 #include "Report/Diagnostic.h"
@@ -8,7 +7,6 @@
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/Symbol.Impl.h"
 #include "Sema/Symbol/Symbols.h"
-#include "Sema/Type/TypeGen.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -183,6 +181,7 @@ namespace
 
             case CastKind::Promotion:
             case CastKind::Implicit:
+            case CastKind::Parameter:
             case CastKind::Initialization:
             case CastKind::Explicit:
                 break;
@@ -217,6 +216,7 @@ namespace
 
             case CastKind::Promotion:
             case CastKind::Implicit:
+            case CastKind::Parameter:
             case CastKind::Initialization:
             case CastKind::Explicit:
                 break;
@@ -270,6 +270,7 @@ namespace
                 break;
 
             case CastKind::Implicit:
+            case CastKind::Parameter:
             case CastKind::Initialization:
                 if (narrowing)
                 {
@@ -384,8 +385,8 @@ namespace
         const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
         const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
 
-        const auto dstPointeeTypeRef = dstType.typeRef();
-        const auto& dstPointeeType   = sema.typeMgr().get(dstPointeeTypeRef);
+        const auto  dstPointeeTypeRef = dstType.typeRef();
+        const auto& dstPointeeType    = sema.typeMgr().get(dstPointeeTypeRef);
 
         // Ref to ref
         if (srcType.isReference())
@@ -396,8 +397,8 @@ namespace
                 return Result::Error;
             }
 
-            const auto srcPointeeTypeRef = srcType.typeRef();
-            const auto& srcPointeeType   = sema.typeMgr().get(srcPointeeTypeRef);
+            const auto  srcPointeeTypeRef = srcType.typeRef();
+            const auto& srcPointeeType    = sema.typeMgr().get(srcPointeeTypeRef);
 
             if (srcPointeeTypeRef == dstPointeeTypeRef)
             {
@@ -439,16 +440,6 @@ namespace
                 return Result::Error;
             }
 
-            // Used for explicit casts and also for parameter passing.
-            // Function arguments are typically cast with `CastKind::Implicit`.
-            if (castCtx.kind != CastKind::Explicit &&
-                castCtx.kind != CastKind::Initialization &&
-                castCtx.kind != CastKind::Implicit)
-            {
-                castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-                return Result::Error;
-            }
-
             if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
             {
                 castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
@@ -463,8 +454,8 @@ namespace
             }
         }
 
-        // Value to const ref (used for initialization / parameter passing)
-        if (dstType.isConst() && castCtx.kind == CastKind::Initialization)
+        // Value to const ref
+        if (srcType.isStruct() && dstType.isConst() && castCtx.kind == CastKind::Parameter)
         {
             if (dstPointeeTypeRef == srcTypeRef)
             {
@@ -474,7 +465,7 @@ namespace
             }
 
             // Struct value to interface ref
-            if (srcType.isStruct() && dstPointeeType.isInterface())
+            if (dstPointeeType.isInterface())
             {
                 const auto& fromStruct = srcType.symStruct();
                 const auto& toItf      = dstPointeeType.symInterface();

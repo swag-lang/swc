@@ -12,6 +12,7 @@ enum class CastKind
 {
     LiteralSuffix,
     Implicit,
+    Parameter,
     Condition,
     Explicit,
     Promotion,

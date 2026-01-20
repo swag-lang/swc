@@ -149,7 +149,7 @@ namespace
         if (from == to)
             return ConvRank::Exact;
 
-        CastContext castCtx(CastKind::Implicit);
+        CastContext castCtx(CastKind::Parameter);
         if (Cast::castAllowed(sema, castCtx, from, to) == Result::Continue)
             return ConvRank::Standard;
 
@@ -516,7 +516,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     {
         const AstNodeRef argRef = getArg(i, args, ufcsArg);
         SemaNodeView     argView(sema, argRef);
-        RESULT_VERIFY(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Implicit));
+        RESULT_VERIFY(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Parameter));
 
         if (ufcsArg.isValid() && i == 0)
         {

@@ -93,6 +93,7 @@ SWC_DIAG_DEF(sema_err_const_missing_init, Error, "a constant must be initialized
 SWC_DIAG_DEF(sema_err_const_ref_type, Error, "a constant cannot have a reference type")
 SWC_DIAG_DEF(sema_err_let_missing_init, Error, "a 'let' variable must be initialized with a value")
 SWC_DIAG_DEF(sema_err_ref_missing_init, Error, "a reference must be initialized with a value")
+SWC_DIAG_DEF(sema_err_using_member_type, Error, "a 'using' member variable must have a struct type or a pointer to struct (got {type})")
 SWC_DIAG_DEF(sema_err_unknown_symbol, Error, "unknown symbol {sym}")
 SWC_DIAG_DEF(sema_err_wait_sym_declared, Error, "the symbol {sym} has not been declared")
 SWC_DIAG_DEF(sema_err_wait_sym_typed, Error, "the symbol {sym} has not been typed")

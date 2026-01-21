@@ -90,7 +90,7 @@ void SymbolStruct::computeLayout(Sema& sema)
     auto& ctx = sema.ctx();
 
     sizeInBytes_ = 0;
-    alignment_   = 0;
+    alignment_   = 1;
 
     for (const auto field : fields_)
     {

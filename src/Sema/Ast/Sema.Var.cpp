@@ -47,7 +47,16 @@ namespace
         }
     }
 
-    Result semaPostVarDeclCommon(Sema& sema, const AstNode& owner, TokenRef tokDiag, AstNodeRef nodeInitRef, AstNodeRef nodeTypeRef, bool isConst, bool isLet, bool isParameter, const std::span<Symbol*>& syms)
+    Result semaPostVarDeclCommon(Sema&                     sema,
+                                 const AstNode&            owner,
+                                 TokenRef                  tokDiag,
+                                 AstNodeRef                nodeInitRef,
+                                 AstNodeRef                nodeTypeRef,
+                                 bool                      isConst,
+                                 bool                      isLet,
+                                 bool                      isParameter,
+                                 bool                      isUsing,
+                                 const std::span<Symbol*>& syms)
     {
         auto&              ctx = sema.ctx();
         SemaNodeView       nodeInitView(sema, nodeInitRef);
@@ -97,6 +106,21 @@ namespace
         const bool    isRefType    = finalTypeRef.isValid() && sema.typeMgr().get(finalTypeRef).isReference();
         if (isConst && isRefType)
             return SemaError::raise(sema, DiagnosticId::sema_err_const_ref_type, owner.srcViewRef(), tokDiag);
+
+        if (isUsing && finalTypeRef.isValid())
+        {
+            const TypeInfo& ultimateType = sema.typeMgr().get(finalTypeRef);
+            if (!ultimateType.isStruct())
+            {
+                if (!ultimateType.isAnyPointer() || !sema.typeMgr().get(ultimateType.typeRef()).isStruct())
+                {
+                    auto diag = SemaError::report(sema, DiagnosticId::sema_err_using_member_type, owner.srcViewRef(), tokDiag);
+                    diag.addArgument(Diagnostic::ARG_TYPE, finalTypeRef);
+                    diag.report(ctx);
+                    return Result::Error;
+                }
+            }
+        }
 
         // Constant
         if (isConst)
@@ -161,7 +185,16 @@ Result AstVarDecl::semaPostNode(Sema& sema) const
 {
     Symbol& sym   = sema.symbolOf(sema.curNodeRef());
     Symbol* one[] = {&sym};
-    return semaPostVarDeclCommon(sema, *this, tokNameRef, nodeInitRef, nodeTypeRef, hasFlag(AstVarDeclFlagsE::Const), hasFlag(AstVarDeclFlagsE::Let), hasFlag(AstVarDeclFlagsE::Parameter), std::span<Symbol*>{one});
+    return semaPostVarDeclCommon(sema,
+                                 *this,
+                                 tokNameRef,
+                                 nodeInitRef,
+                                 nodeTypeRef,
+                                 hasFlag(AstVarDeclFlagsE::Const),
+                                 hasFlag(AstVarDeclFlagsE::Let),
+                                 hasFlag(AstVarDeclFlagsE::Parameter),
+                                 hasFlag(AstVarDeclFlagsE::Using),
+                                 std::span<Symbol*>{one});
 }
 
 Result AstVarDeclNameList::semaPreDecl(Sema& sema) const
@@ -219,7 +252,16 @@ Result AstVarDeclNameList::semaPreNode(Sema& sema) const
 Result AstVarDeclNameList::semaPostNode(Sema& sema) const
 {
     const auto symbols = sema.getSymbolList(sema.curNodeRef());
-    return semaPostVarDeclCommon(sema, *this, tokRef(), nodeInitRef, nodeTypeRef, hasFlag(AstVarDeclFlagsE::Const), hasFlag(AstVarDeclFlagsE::Let), hasFlag(AstVarDeclFlagsE::Parameter), symbols);
+    return semaPostVarDeclCommon(sema,
+                                 *this,
+                                 tokRef(),
+                                 nodeInitRef,
+                                 nodeTypeRef,
+                                 hasFlag(AstVarDeclFlagsE::Const),
+                                 hasFlag(AstVarDeclFlagsE::Let),
+                                 hasFlag(AstVarDeclFlagsE::Parameter),
+                                 hasFlag(AstVarDeclFlagsE::Using),
+                                 symbols);
 }
 
 SWC_END_NAMESPACE();

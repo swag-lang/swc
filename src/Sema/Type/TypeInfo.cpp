@@ -161,6 +161,67 @@ TypeInfo& TypeInfo::operator=(TypeInfo&& other) noexcept
     return *this;
 }
 
+uint32_t TypeInfo::hash() const
+{
+    auto h = Math::hash(static_cast<uint32_t>(kind_));
+    h      = Math::hashCombine(h, static_cast<uint32_t>(flags_.get()));
+
+    switch (kind_)
+    {
+        case TypeInfoKind::Bool:
+        case TypeInfoKind::Char:
+        case TypeInfoKind::String:
+        case TypeInfoKind::Void:
+        case TypeInfoKind::Any:
+        case TypeInfoKind::Rune:
+        case TypeInfoKind::CString:
+        case TypeInfoKind::Null:
+        case TypeInfoKind::Undefined:
+        case TypeInfoKind::Variadic:
+        case TypeInfoKind::TypeInfo:
+            return h;
+
+        case TypeInfoKind::Int:
+            h = Math::hashCombine(h, asInt.bits);
+            h = Math::hashCombine(h, static_cast<uint32_t>(asInt.sign));
+            return h;
+        case TypeInfoKind::Float:
+            h = Math::hashCombine(h, asFloat.bits);
+            return h;
+        case TypeInfoKind::ValuePointer:
+        case TypeInfoKind::BlockPointer:
+        case TypeInfoKind::Reference:
+        case TypeInfoKind::Slice:
+        case TypeInfoKind::TypeValue:
+        case TypeInfoKind::TypedVariadic:
+            h = Math::hashCombine(h, asTypeRef.typeRef.get());
+            return h;
+        case TypeInfoKind::Enum:
+            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asEnum.sym));
+            return h;
+        case TypeInfoKind::Struct:
+            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asStruct.sym));
+            return h;
+        case TypeInfoKind::Interface:
+            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asInterface.sym));
+            return h;
+        case TypeInfoKind::Alias:
+            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asAlias.sym));
+            return h;
+        case TypeInfoKind::Function:
+            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asFunction.sym));
+            return h;
+        case TypeInfoKind::Array:
+            h = Math::hashCombine(h, asArray.typeRef.get());
+            for (const auto dim : asArray.dims)
+                h = Math::hashCombine(h, dim);
+            return h;
+
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
 bool TypeInfo::operator==(const TypeInfo& other) const noexcept
 {
     if (kind_ != other.kind_)
@@ -604,67 +665,6 @@ TypeInfo TypeInfo::makeTypedVariadic(TypeRef typeRef)
     ti.asTypeRef = {.typeRef = typeRef};
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
-}
-
-uint32_t TypeInfo::hash() const
-{
-    auto h = Math::hash(static_cast<uint32_t>(kind_));
-    h      = Math::hashCombine(h, static_cast<uint32_t>(flags_.get()));
-
-    switch (kind_)
-    {
-        case TypeInfoKind::Bool:
-        case TypeInfoKind::Char:
-        case TypeInfoKind::String:
-        case TypeInfoKind::Void:
-        case TypeInfoKind::Any:
-        case TypeInfoKind::Rune:
-        case TypeInfoKind::CString:
-        case TypeInfoKind::Null:
-        case TypeInfoKind::Undefined:
-        case TypeInfoKind::Variadic:
-        case TypeInfoKind::TypeInfo:
-            return h;
-
-        case TypeInfoKind::Int:
-            h = Math::hashCombine(h, asInt.bits);
-            h = Math::hashCombine(h, static_cast<uint32_t>(asInt.sign));
-            return h;
-        case TypeInfoKind::Float:
-            h = Math::hashCombine(h, asFloat.bits);
-            return h;
-        case TypeInfoKind::ValuePointer:
-        case TypeInfoKind::BlockPointer:
-        case TypeInfoKind::Reference:
-        case TypeInfoKind::Slice:
-        case TypeInfoKind::TypeValue:
-        case TypeInfoKind::TypedVariadic:
-            h = Math::hashCombine(h, asTypeRef.typeRef.get());
-            return h;
-        case TypeInfoKind::Enum:
-            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asEnum.sym));
-            return h;
-        case TypeInfoKind::Struct:
-            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asStruct.sym));
-            return h;
-        case TypeInfoKind::Interface:
-            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asInterface.sym));
-            return h;
-        case TypeInfoKind::Alias:
-            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asAlias.sym));
-            return h;
-        case TypeInfoKind::Function:
-            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asFunction.sym));
-            return h;
-        case TypeInfoKind::Array:
-            h = Math::hashCombine(h, asArray.typeRef.get());
-            for (const auto dim : asArray.dims)
-                h = Math::hashCombine(h, dim);
-            return h;
-
-        default:
-            SWC_UNREACHABLE();
-    }
 }
 
 uint64_t TypeInfo::sizeOf(TaskContext& ctx) const

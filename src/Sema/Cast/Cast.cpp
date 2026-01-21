@@ -551,17 +551,34 @@ namespace
 
     Result castToSlice(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
+        auto&           ctx     = sema.ctx();
         const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
         const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+
+        // String -> const [..] u8
+        if (srcType.isString())
+        {
+            if (dstType.isConst() && dstType.typeRef() == sema.typeMgr().typeU8())
+            {
+                if (castCtx.isConstantFolding())
+                {
+                    const ConstantValue&   cst = sema.cstMgr().get(castCtx.srcConstRef);
+                    const std::string_view str = cst.getString();
+                    const uint64_t         ptr = reinterpret_cast<uint64_t>(str.data());
+                    const ConstantValue    cv  = ConstantValue::makeSlice(ctx, dstType.typeRef(), ptr, str.size(), TypeInfoFlagsE::Const);
+                    castCtx.outConstRef        = sema.cstMgr().addConstant(sema.ctx(), cv);
+                }
+
+                return Result::Continue;
+            }
+        }
 
         if (srcType.isArray())
         {
             const auto srcElemTypeRef = srcType.arrayElemTypeRef();
             const auto dstElemTypeRef = dstType.typeRef();
 
-            if (castCtx.kind == CastKind::Explicit ||
-                srcElemTypeRef == dstElemTypeRef ||
-                dstElemTypeRef == sema.typeMgr().typeVoid())
+            if (castCtx.kind == CastKind::Explicit || srcElemTypeRef == dstElemTypeRef)
             {
                 if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
                 {
@@ -569,6 +586,53 @@ namespace
                     return Result::Error;
                 }
 
+                if (srcElemTypeRef != dstElemTypeRef)
+                {
+                    const TypeInfo& dstElemType = sema.typeMgr().get(dstElemTypeRef);
+                    const uint64_t  s           = dstElemType.sizeOf(ctx);
+                    const uint64_t  d           = srcType.sizeOf(ctx);
+                    const bool      match       = s == 0 || (d / s * s == d);
+                    if (!match)
+                    {
+                        castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                        return Result::Error;
+                    }
+                }
+
+                if (castCtx.isConstantFolding())
+                    castCtx.outConstRef = castCtx.srcConstRef;
+                return Result::Continue;
+            }
+        }
+
+        // void* -> slice (explicit only)
+        if (srcType.isAnyPointer() && srcType.typeRef() == sema.typeMgr().typeVoid())
+        {
+            if (castCtx.kind == CastKind::Explicit)
+            {
+                if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
+                {
+                    castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+                    return Result::Error;
+                }
+
+                if (castCtx.isConstantFolding())
+                    castCtx.outConstRef = castCtx.srcConstRef;
+                return Result::Continue;
+            }
+        }
+
+        // slice -> slice
+        if (srcType.isSlice())
+        {
+            if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
+            {
+                castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+                return Result::Error;
+            }
+
+            if (castCtx.kind == CastKind::Explicit || srcType.typeRef() == dstType.typeRef())
+            {
                 if (castCtx.isConstantFolding())
                     castCtx.outConstRef = castCtx.srcConstRef;
                 return Result::Continue;

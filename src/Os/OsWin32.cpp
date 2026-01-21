@@ -3,6 +3,7 @@
 #include "Main/FileSystem.h"
 #include "Os/Os.h"
 #include "Report/ExitCodes.h"
+#include <print>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -26,6 +27,9 @@ namespace Os
 
     void assertBox(const char* expr, const char* file, int line)
     {
+        std::println(stderr, "Assertion failed: {} ({}:{})", expr ? expr : "<null>", file ? file : "<null>", line);
+        (void) std::fflush(stderr);
+
         char msg[2048];
         SWC_ASSERT(std::strlen(expr) < 1024);
 

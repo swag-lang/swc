@@ -411,7 +411,6 @@ namespace
 
         if (nodeView.sym)
         {
-            RESULT_VERIFY(nodeView.verifyUniqueSymbol(sema));
             const std::string_view name  = nodeView.sym->name(ctx);
             const ConstantValue    value = ConstantValue::makeString(ctx, name);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
@@ -442,7 +441,6 @@ namespace
 
         if (nodeView.sym)
         {
-            RESULT_VERIFY(nodeView.verifyUniqueSymbol(sema));
             const Utf8          name  = nodeView.sym->getFullScopedName(ctx);
             const ConstantValue value = ConstantValue::makeString(ctx, name);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
@@ -474,9 +472,6 @@ namespace
         const auto&        ctx      = sema.ctx();
         const AstNodeRef   childRef = sema.ast().oneNode(node.spanChildrenRef);
         const SemaNodeView nodeView(sema, childRef);
-
-        if (nodeView.sym)
-            RESULT_VERIFY(nodeView.verifyUniqueSymbol(sema));
 
         const bool          isDefined = nodeView.sym != nullptr;
         const ConstantValue value     = ConstantValue::makeBool(ctx, isDefined);

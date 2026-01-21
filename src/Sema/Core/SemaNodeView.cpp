@@ -42,15 +42,6 @@ void SemaNodeView::setCstRef(Sema& sema, ConstantRef ref)
     type    = &sema.typeMgr().get(typeRef);
 }
 
-Result SemaNodeView::verifyUniqueSymbol(Sema& sema) const
-{
-    if (symList.size() > 1)
-        return SemaError::raiseAmbiguousSymbol(sema, nodeRef, symList);
-    if (!sym)
-        return SemaError::raiseInternal(sema, *node);
-    return Result::Continue;
-}
-
 void SemaNodeView::getSymbols(SmallVector<Symbol*>& symbols) const
 {
     if (!symList.empty())

@@ -123,7 +123,8 @@ Result AstAttributeList::semaPostNode(Sema& sema)
 Result AstAttribute::semaPostNode(Sema& sema) const
 {
     const SemaNodeView identView(sema, nodeIdentRef);
-    RESULT_VERIFY(identView.verifyUniqueSymbol(sema));
+    if (!identView.sym)
+        return SemaError::raiseInternal(sema, *identView.node);
 
     if (!identView.sym->isAttribute())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeIdentRef);

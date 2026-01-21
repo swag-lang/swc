@@ -115,7 +115,8 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
     for (const auto& nodeRef : nodeRefs)
     {
         const SemaNodeView nodeView(sema, nodeRef);
-        RESULT_VERIFY(nodeView.verifyUniqueSymbol(sema));
+        if (!nodeView.sym)
+            return SemaError::raiseInternal(sema, *this);
 
         if (nodeView.sym->isNamespace())
         {

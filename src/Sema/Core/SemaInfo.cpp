@@ -279,6 +279,41 @@ std::span<Symbol*> SemaInfo::getSymbolList(AstNodeRef nodeRef)
     return {const_cast<Symbol**>(res.data()), res.size()};
 }
 
+void SemaInfo::setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*> symbols)
+{
+    const uint32_t   shardIdx = nodeRef.get() % SEMA_SHARD_NUM;
+    auto&            shard    = shards_[shardIdx];
+    std::unique_lock lock(shard.mutex);
+
+    AstNode& node = ast().node(nodeRef);
+    setSemaKind(node, NodeSemaKind::SymbolList);
+    setSemaShard(node, shardIdx);
+
+    const Ref value = shard.store.push_span(symbols).get();
+    node.setSemaRef(value);
+    updateSemaFlags(node, symbols);
+}
+
+void SemaInfo::setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbols)
+{
+    const uint32_t   shardIdx = nodeRef.get() % SEMA_SHARD_NUM;
+    auto&            shard    = shards_[shardIdx];
+    std::unique_lock lock(shard.mutex);
+
+    AstNode& node = ast().node(nodeRef);
+    setSemaKind(node, NodeSemaKind::SymbolList);
+    setSemaShard(node, shardIdx);
+
+    const Ref value = shard.store.push_span(symbols).get();
+    node.setSemaRef(value);
+
+    SmallVector<const Symbol*> tmp;
+    tmp.reserve(symbols.size());
+    for (auto* s : symbols)
+        tmp.push_back(s);
+    updateSemaFlags(node, std::span<const Symbol*>{tmp.data(), tmp.size()});
+}
+
 void SemaInfo::setSymbolList(AstNodeRef nodeRef, std::span<const Symbol*> symbols)
 {
     setSymbolListImpl(nodeRef, symbols);
@@ -287,6 +322,29 @@ void SemaInfo::setSymbolList(AstNodeRef nodeRef, std::span<const Symbol*> symbol
 void SemaInfo::setSymbolList(AstNodeRef nodeRef, std::span<Symbol*> symbols)
 {
     setSymbolListImpl(nodeRef, symbols);
+}
+
+void SemaInfo::updateSemaFlags(AstNode& node, std::span<const Symbol*> symbols)
+{
+    bool isValue  = true;
+    bool isLValue = true;
+    for (const auto* sym : symbols)
+    {
+        if (!sym->isValueExpr())
+            isValue = false;
+        if (!sym->isVariable() && !sym->isFunction())
+            isLValue = false;
+    }
+
+    if (isValue)
+        addSemaFlags(node, NodeSemaFlags::Value);
+    else
+        removeSemaFlags(node, NodeSemaFlags::Value);
+
+    if (isLValue)
+        addSemaFlags(node, NodeSemaFlags::LValue);
+    else
+        removeSemaFlags(node, NodeSemaFlags::LValue);
 }
 
 bool SemaInfo::hasPayload(AstNodeRef nodeRef) const

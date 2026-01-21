@@ -106,52 +106,9 @@ public:
 
 private:
     std::span<const Symbol*> getSymbolListImpl(AstNodeRef nodeRef) const;
-
-    template<typename T>
-    void setSymbolListImpl(AstNodeRef nodeRef, std::span<T> symbols);
-
-    template<typename T>
-    static void updateSemaFlags(AstNode& node, std::span<T> symbols);
+    void                     setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*> symbols);
+    void                     setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbols);
+    static void              updateSemaFlags(AstNode& node, std::span<const Symbol*> symbols);
 };
-
-template<typename T>
-void SemaInfo::setSymbolListImpl(AstNodeRef nodeRef, std::span<T> symbols)
-{
-    const uint32_t   shardIdx = nodeRef.get() % SEMA_SHARD_NUM;
-    auto&            shard    = shards_[shardIdx];
-    std::unique_lock lock(shard.mutex);
-
-    AstNode& node = ast().node(nodeRef);
-    setSemaKind(node, NodeSemaKind::SymbolList);
-    setSemaShard(node, shardIdx);
-
-    const Ref value = shard.store.push_span(symbols).get();
-    node.setSemaRef(value);
-    updateSemaFlags(node, symbols);
-}
-
-template<typename T>
-void SemaInfo::updateSemaFlags(AstNode& node, std::span<T> symbols)
-{
-    bool isValue  = true;
-    bool isLValue = true;
-    for (auto sym : symbols)
-    {
-        if (!sym->isValueExpr())
-            isValue = false;
-        if (!sym->isVariable() && !sym->isFunction())
-            isLValue = false;
-    }
-
-    if (isValue)
-        addSemaFlags(node, NodeSemaFlags::Value);
-    else
-        removeSemaFlags(node, NodeSemaFlags::Value);
-
-    if (isLValue)
-        addSemaFlags(node, NodeSemaFlags::LValue);
-    else
-        removeSemaFlags(node, NodeSemaFlags::LValue);
-}
 
 SWC_END_NAMESPACE();

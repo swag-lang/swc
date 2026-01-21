@@ -77,19 +77,13 @@ namespace Os
         LPWSTR          buf   = nullptr;
         constexpr DWORD flags = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_MAX_WIDTH_MASK;
 
-        auto formatWithLang = [&](DWORD lang) -> DWORD {
-            return FormatMessageW(flags, nullptr, id, lang,
-                                  reinterpret_cast<LPWSTR>(&buf),
-                                  0, nullptr);
-        };
-
-        // 1) Try English (US) if requested
+        // Try English (US) if requested
         constexpr DWORD enUs = MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US);
-        DWORD           len  = formatWithLang(enUs);
+        DWORD           len  = FormatMessageW(flags, nullptr, id, enUs, reinterpret_cast<LPWSTR>(&buf), 0, nullptr);
 
-        // 2) Fallback to "let the system pick"
+        // Fallback to "let the system pick"
         if (len == 0)
-            len = formatWithLang(0);
+            len = FormatMessageW(flags, nullptr, id, 0, reinterpret_cast<LPWSTR>(&buf), 0, nullptr);
         if (len == 0 || !buf)
             return {};
 

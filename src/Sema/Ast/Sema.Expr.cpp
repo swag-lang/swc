@@ -271,7 +271,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     }
     else if (nodeExprView.type->isValuePointer())
     {
-        return SemaError::raisePointerArithmetic(sema, sema.node(nodeExprRef), nodeExprRef, nodeExprView.typeRef);
+        return SemaError::raisePointerArithmeticValuePointer(sema, sema.node(nodeExprRef), nodeExprRef, nodeExprView.typeRef);
     }
     else
     {

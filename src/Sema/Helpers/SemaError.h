@@ -30,7 +30,8 @@ namespace SemaError
     Result raiseAmbiguousSymbol(Sema& sema, AstNodeRef nodeRef, std::span<Symbol*> symbols);
     Result raiseLiteralTooBig(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal);
     Result raiseDivZero(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
-    Result raisePointerArithmetic(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
+    Result raisePointerArithmeticValuePointer(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
+    Result raisePointerArithmeticVoidPointer(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
     Result raiseInvalidOpEnum(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
     Result raiseTypeNotIndexable(Sema& sema, AstNodeRef nodeRef, TypeRef typeRef);
 }

@@ -228,21 +228,39 @@ namespace
         switch (op)
         {
             case TokenId::SymPlus:
+                if (nodeLeftView.type->isValuePointer())
+                    return SemaError::raisePointerArithmeticValuePointer(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
+                if (nodeRightView.type->isValuePointer())
+                    return SemaError::raisePointerArithmeticValuePointer(sema, node, node.nodeRightRef, nodeRightView.typeRef);
+
+                if (nodeLeftView.type->isBlockPointer() && nodeLeftView.type->underlyingTypeRef() == sema.typeMgr().typeVoid())
+                    return SemaError::raisePointerArithmeticVoidPointer(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
+                if (nodeRightView.type->isBlockPointer() && nodeRightView.type->underlyingTypeRef() == sema.typeMgr().typeVoid())
+                    return SemaError::raisePointerArithmeticVoidPointer(sema, node, node.nodeRightRef, nodeRightView.typeRef);
+
                 if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isScalarNumeric())
                     return Result::Continue;
                 if (nodeLeftView.type->isScalarNumeric() && nodeRightView.type->isBlockPointer())
                     return Result::Continue;
-                if (nodeLeftView.type->isValuePointer() && nodeRightView.type->isScalarNumeric())
-                    return SemaError::raisePointerArithmetic(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
-                if (nodeLeftView.type->isScalarNumeric() && nodeRightView.type->isValuePointer())
-                    return SemaError::raisePointerArithmetic(sema, node, node.nodeRightRef, nodeRightView.typeRef);
+                if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isBlockPointer())
+                    return Result::Continue;
                 break;
 
             case TokenId::SymMinus:
+                if (nodeLeftView.type->isValuePointer())
+                    return SemaError::raisePointerArithmeticValuePointer(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
+                if (nodeRightView.type->isValuePointer())
+                    return SemaError::raisePointerArithmeticValuePointer(sema, node, node.nodeRightRef, nodeRightView.typeRef);
+
+                if (nodeLeftView.type->isBlockPointer() && nodeLeftView.type->underlyingTypeRef() == sema.typeMgr().typeVoid())
+                    return SemaError::raisePointerArithmeticVoidPointer(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
+                if (nodeRightView.type->isBlockPointer() && nodeRightView.type->underlyingTypeRef() == sema.typeMgr().typeVoid())
+                    return SemaError::raisePointerArithmeticVoidPointer(sema, node, node.nodeRightRef, nodeRightView.typeRef);
+
                 if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isScalarNumeric())
                     return Result::Continue;
-                if (nodeLeftView.type->isValuePointer() && nodeRightView.type->isScalarNumeric())
-                    return SemaError::raisePointerArithmetic(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
+                if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isBlockPointer())
+                    return Result::Continue;
                 break;
 
             default:
@@ -370,7 +388,19 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     RESULT_VERIFY(check(sema, tok.id, *this, nodeLeftView, nodeRightView));
 
     // Set the result type
-    sema.setType(sema.curNodeRef(), nodeLeftView.typeRef);
+    TypeRef resultTypeRef = nodeLeftView.typeRef;
+    if (tok.id == TokenId::SymPlus)
+    {
+        if (nodeLeftView.type->isScalarNumeric() && nodeRightView.type->isBlockPointer())
+            resultTypeRef = nodeRightView.typeRef;
+    }
+    else if (tok.id == TokenId::SymMinus)
+    {
+        if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isBlockPointer())
+            resultTypeRef = sema.typeMgr().typeInt(64, TypeInfo::Sign::Signed);
+    }
+
+    sema.setType(sema.curNodeRef(), resultTypeRef);
 
     // Constant folding
     if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())

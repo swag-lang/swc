@@ -261,4 +261,19 @@ AstNode* AstVisit::parentNodeInternal(size_t up) const
     return fr.node;
 }
 
+AstNodeRef AstVisit::parentNodeRefInternal(size_t up) const
+{
+    // stack_.back() is the current node's frame.
+    // Direct parent: up = 0 -> stack_[size-2]
+    if (stack_.size() <= 1) // root has no parent
+        return AstNodeRef::invalid();
+
+    const size_t selfIdx = stack_.size() - 1; // current frame index
+    if (up >= selfIdx)                        // going above root
+        return AstNodeRef::invalid();
+
+    const Frame& fr = stack_[selfIdx - 1 - up];
+    return fr.nodeRef;
+}
+
 SWC_END_NAMESPACE();

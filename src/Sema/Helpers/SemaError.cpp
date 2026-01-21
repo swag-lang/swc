@@ -181,6 +181,19 @@ Result SemaError::raiseAmbiguousSymbol(Sema& sema, AstNodeRef nodeRef, std::span
     return Result::Error;
 }
 
+Result SemaError::raiseAmbiguousSymbol(Sema& sema, AstNodeRef nodeRef, std::span<const Symbol*> symbols)
+{
+    auto& ctx  = sema.ctx();
+    auto  diag = report(sema, DiagnosticId::sema_err_ambiguous_symbol, nodeRef);
+    for (const auto other : symbols)
+    {
+        diag.addNote(DiagnosticId::sema_note_could_be);
+        diag.last().addSpan(other->loc(ctx));
+    }
+    diag.report(ctx);
+    return Result::Error;
+}
+
 Result SemaError::raiseLiteralTooBig(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal)
 {
     auto diag = report(sema, DiagnosticId::sema_err_literal_too_big, nodeRef);

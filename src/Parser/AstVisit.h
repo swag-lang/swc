@@ -28,6 +28,8 @@ public:
 
     AstNode*       parentNode(size_t up = 0) { return parentNodeInternal(up); }
     const AstNode* parentNode(size_t up = 0) const { return parentNodeInternal(up); }
+    AstNodeRef     parentNodeRef(size_t up = 0) const { return parentNodeRefInternal(up); }
+
     AstNode*       currentNode() { return stack_.back().node; }
     const AstNode* currentNode() const { return stack_.back().node; }
     AstNodeRef     currentNodeRef() const { return stack_.back().nodeRef; }
@@ -84,7 +86,8 @@ private:
     SmallVector<Frame, 64>  stack_;
     SmallVector<AstNodeRef> children_;
 
-    AstNode* parentNodeInternal(size_t up) const;
+    AstNode*   parentNodeInternal(size_t up) const;
+    AstNodeRef parentNodeRefInternal(size_t up) const;
 };
 
 SWC_END_NAMESPACE();

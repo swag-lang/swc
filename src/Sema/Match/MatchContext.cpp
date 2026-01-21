@@ -9,8 +9,6 @@ int MatchContext::Priority::compare(const Priority& a, const Priority& b)
         return (a.scopeDepth < b.scopeDepth) ? -1 : 1;
     if (a.visibility != b.visibility)
         return (static_cast<uint8_t>(a.visibility) < static_cast<uint8_t>(b.visibility)) ? -1 : 1;
-    if (a.searchOrder != b.searchOrder)
-        return (a.searchOrder < b.searchOrder) ? -1 : 1;
     return 0;
 }
 

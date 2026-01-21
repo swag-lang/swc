@@ -29,6 +29,30 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
 
     const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokRef());
 
+    // If this identifier is used as the callee of a function call, we allow an overload set.
+    // Otherwise, ambiguity can be reported immediately at lookup time.
+    bool allowOverloadSet = false;
+    if (const auto* parentNode = sema.visit().parentNode())
+    {
+        if (const auto* callExpr = parentNode->safeCast<AstCallExpr>())
+        {
+            allowOverloadSet = callExpr->nodeExprRef == sema.curNodeRef();
+        }
+        else if (parentNode->is(AstNodeId::MemberAccessExpr) || parentNode->is(AstNodeId::AutoMemberAccessExpr))
+        {
+            // Member-access callee: `a.foo(...)` -> identifier is the right side, but the call callee is the member-access expr.
+            // We need to check if the parent expression is the callee of the call.
+            if (const auto* grandParentNode = sema.visit().parentNode(1))
+            {
+                if (const auto* callExpr = grandParentNode->safeCast<AstCallExpr>())
+                {
+                    const AstNodeRef parentRef = sema.visit().parentNodeRef();
+                    allowOverloadSet           = callExpr->nodeExprRef == parentRef;
+                }
+            }
+        }
+    }
+
     MatchContext lookUpCxt;
     lookUpCxt.srcViewRef = srcViewRef();
     lookUpCxt.tokRef     = tokRef();
@@ -37,6 +61,9 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     if (ret == Result::Pause && hasFlag(AstIdentifierFlagsE::InCompilerDefined))
         return sema.waitCompilerDefined(idRef, srcViewRef(), tokRef());
     RESULT_VERIFY(ret);
+
+    if (!allowOverloadSet && lookUpCxt.symbols().size() > 1)
+        return SemaError::raiseAmbiguousSymbol(sema, sema.curNodeRef(), lookUpCxt.symbols());
 
     sema.setSymbolList(sema.curNodeRef(), lookUpCxt.symbols());
     return Result::Continue;
@@ -105,6 +132,15 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     if (childRef != nodeRightRef)
         return Result::Continue;
 
+    // If this member access expression is used as the callee of a function call, we allow an overload set.
+    // Otherwise, ambiguity can be reported immediately at lookup time.
+    bool allowOverloadSet = false;
+    if (const auto* parentNode = sema.visit().parentNode())
+    {
+        if (const auto* callExpr = parentNode->safeCast<AstCallExpr>())
+            allowOverloadSet = callExpr->nodeExprRef == sema.curNodeRef();
+    }
+
     const SemaNodeView nodeLeftView(sema, nodeLeftRef);
     const SemaNodeView nodeRightView(sema, nodeRightRef);
     TokenRef           tokNameRef;
@@ -126,6 +162,9 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
 
         RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
 
+        if (!allowOverloadSet && lookUpCxt.symbols().size() > 1)
+            return SemaError::raiseAmbiguousSymbol(sema, sema.curNodeRef(), lookUpCxt.symbols());
+
         sema.setSymbolList(nodeRightView.nodeRef, lookUpCxt.symbols());
         sema.setSymbolList(sema.curNodeRef(), lookUpCxt.symbols());
         return Result::SkipChildren;
@@ -146,6 +185,9 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         lookUpCxt.symMapHint = &enumSym;
 
         RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
+
+        if (!allowOverloadSet && lookUpCxt.symbols().size() > 1)
+            return SemaError::raiseAmbiguousSymbol(sema, sema.curNodeRef(), lookUpCxt.symbols());
 
         sema.setSymbolList(nodeRightView.nodeRef, lookUpCxt.symbols());
         sema.setSymbolList(sema.curNodeRef(), lookUpCxt.symbols());
@@ -189,6 +231,9 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         lookUpCxt.symMapHint = &symStruct;
 
         RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
+
+        if (!allowOverloadSet && lookUpCxt.symbols().size() > 1)
+            return SemaError::raiseAmbiguousSymbol(sema, sema.curNodeRef(), lookUpCxt.symbols());
 
         sema.setSymbolList(nodeRightRef, lookUpCxt.symbols());
         sema.setSymbolList(sema.curNodeRef(), lookUpCxt.symbols());

@@ -661,7 +661,7 @@ namespace
         return Result::Error;
     }
 
-    Result castToFromTypeInfo(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    Result castToFromTypeInfo(Sema&, CastContext& castCtx, TypeRef, TypeRef)
     {
         if (castCtx.isConstantFolding())
             castCtx.outConstRef = castCtx.srcConstRef;

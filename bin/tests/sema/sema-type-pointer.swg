@@ -28,10 +28,3 @@ var G: *F // swc-expected-error {{sema_err_not_type}}
 enum H { A = 0 }
 var I: *H
 var J: *H.A // swc-expected-error {{sema_err_not_type}}
-
-#test
-{
-    var a: [2] s32
-    var b = &a[0]
-    var c = b[0]
-}

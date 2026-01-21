@@ -201,6 +201,16 @@ namespace
         if (nodeView.type->isArray())
             blockPointer = true;
 
+        // Taking the address of an array element must yield a block pointer.
+        // Example: `&a[i]` where `a` is an array.
+        // TODO Should change
+        if (const auto* idxExpr = nodeView.node->safeCast<AstIndexExpr>())
+        {
+            const SemaNodeView baseView(sema, idxExpr->nodeExprRef);
+            if (baseView.type && baseView.type->isArray())
+                blockPointer = true;
+        }
+
         const TypeInfo& ty      = blockPointer ? TypeInfo::makeBlockPointer(nodeView.typeRef, flags) : TypeInfo::makeValuePointer(nodeView.typeRef, flags);
         const TypeRef   typeRef = sema.typeMgr().addType(ty);
         sema.setType(sema.curNodeRef(), typeRef);

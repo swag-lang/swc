@@ -7,7 +7,7 @@
     #assert(#typeof(a1) == s32)
 
     var ptr1 = &buf1[0]
-    #assert(#typeof(ptr1) == *s32)
+    #assert(#typeof(ptr1) == [*] s32)
 }
 
 #test

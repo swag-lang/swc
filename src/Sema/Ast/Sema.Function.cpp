@@ -128,13 +128,12 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
 
 Result AstFunctionParamMe::semaPreNode(Sema& sema) const
 {
-    if (!sema.frame().impl())
+    const SymbolImpl* symImpl = sema.frame().impl();
+    if (!symImpl)
         return SemaError::raise(sema, DiagnosticId::sema_err_tok_outside_impl, sema.curNodeRef());
 
-    const SymbolImpl* symImpl   = sema.frame().impl()->symMap()->safeCast<SymbolImpl>();
-    const TypeRef     ownerType = symImpl->ownerKind() == SymbolImplOwnerKind::Struct ? symImpl->symStruct()->typeRef() : symImpl->symEnum()->typeRef();
-
-    auto& sym = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokRef());
+    const TypeRef ownerType = symImpl->ownerKind() == SymbolImplOwnerKind::Struct ? symImpl->symStruct()->typeRef() : symImpl->symEnum()->typeRef();
+    auto&         sym       = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokRef());
 
     TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
     if (hasFlag(AstFunctionParamMeFlagsE::Const))

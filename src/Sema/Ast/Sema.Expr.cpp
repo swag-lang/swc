@@ -14,6 +14,55 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    // A call callee may legitimately bind to an overload set, but only for callable candidates.
+    // If at least one callable candidate exists, keep ONLY those callables (ignore non-callables for a call).
+    // If no callable candidates exist:
+    //   - if there are multiple candidates, it's ambiguous in value space (report here)
+    //   - if there is exactly one, bind it and let the call expression report "not callable".
+    bool filterCallCalleeCandidates(std::span<const Symbol*> inSymbols, SmallVector<const Symbol*>& outSymbols)
+    {
+        outSymbols.clear();
+
+        // Currently, "callable" means "function symbol".
+        // Extend here later for function pointers/delegates/call-operator types if needed.
+        for (const Symbol* s : inSymbols)
+        {
+            if (s && s->isFunction())
+                outSymbols.push_back(s);
+        }
+
+        return !outSymbols.empty();
+    }
+
+    Result checkAmbiguityAndBindSymbols(Sema& sema, AstNodeRef nodeRef, bool allowOverloadSetForCallCallee, std::span<const Symbol*> foundSymbols)
+    {
+        const size_t n = foundSymbols.size();
+
+        if (n <= 1)
+        {
+            sema.setSymbolList(nodeRef, foundSymbols);
+            return Result::Continue;
+        }
+
+        // Multiple candidates.
+        if (!allowOverloadSetForCallCallee)
+            return SemaError::raiseAmbiguousSymbol(sema, nodeRef, foundSymbols);
+
+        // Call-callee context: keep only callables if any exist.
+        SmallVector<const Symbol*> callables;
+        if (filterCallCalleeCandidates(foundSymbols, callables))
+        {
+            sema.setSymbolList(nodeRef, callables);
+            return Result::Continue;
+        }
+
+        // No callable candidates and multiple results => true ambiguity (e.g. multiple vars/namespaces/etc.).
+        return SemaError::raiseAmbiguousSymbol(sema, nodeRef, foundSymbols);
+    }
+}
+
 Result AstParenExpr::semaPostNode(Sema& sema)
 {
     sema.inheritSema(*this, nodeExprRef);
@@ -30,7 +79,6 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokRef());
 
     // Parser tags the callee expression when building a call: `foo()`.
-    // This avoids needing to walk parent nodes from sema.
     const bool allowOverloadSet = hasFlag(AstIdentifierFlagsE::CallCallee);
 
     MatchContext lookUpCxt;
@@ -42,11 +90,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
         return sema.waitCompilerDefined(idRef, srcViewRef(), tokRef());
     RESULT_VERIFY(ret);
 
-    if (!allowOverloadSet && lookUpCxt.symbols().size() > 1)
-        return SemaError::raiseAmbiguousSymbol(sema, sema.curNodeRef(), lookUpCxt.symbols());
-
-    sema.setSymbolList(sema.curNodeRef(), lookUpCxt.symbols());
-    return Result::Continue;
+    return checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols());
 }
 
 Result AstAutoMemberAccessExpr::semaPostNode(Sema& sema)
@@ -54,7 +98,6 @@ Result AstAutoMemberAccessExpr::semaPostNode(Sema& sema)
     const auto node = sema.node(sema.curNodeRef()).cast<AstAutoMemberAccessExpr>();
 
     // Parser tags the callee expression when building a call: `.foo()`.
-    // Otherwise ambiguity can be reported immediately.
     const bool allowOverloadSet = node->hasFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
 
     const SymbolMap*      symMapHint = nullptr;
@@ -95,8 +138,9 @@ Result AstAutoMemberAccessExpr::semaPostNode(Sema& sema)
 
     RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
 
-    if (!allowOverloadSet && lookUpCxt.symbols().size() > 1)
-        return SemaError::raiseAmbiguousSymbol(sema, sema.curNodeRef(), lookUpCxt.symbols());
+    // Bind the symbol list to the auto-member-access node (it gets substituted below).
+    const Result amb = checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols());
+    RESULT_VERIFY(amb);
 
     // Substitute with an AstMemberAccessExpr
     auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::MemberAccessExpr>(node->tokRef());
@@ -107,7 +151,10 @@ Result AstAutoMemberAccessExpr::semaPostNode(Sema& sema)
     nodePtr->nodeLeftRef  = meRef;
     nodePtr->nodeRightRef = node->nodeIdentRef;
 
-    sema.setSymbolList(nodeRef, lookUpCxt.symbols());
+    // Re-bind the resolved list to the substituted member-access node as well,
+    // so downstream passes can read from the final node.
+    sema.setSymbolList(nodeRef, sema.getSymbolList(sema.curNodeRef()));
+
     sema.semaInfo().setSubstitute(sema.curNodeRef(), nodeRef);
     SemaInfo::setIsValue(*nodePtr);
 
@@ -143,11 +190,25 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
 
         RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
 
-        if (!allowOverloadSet && lookUpCxt.symbols().size() > 1)
-            return SemaError::raiseAmbiguousSymbol(sema, sema.curNodeRef(), lookUpCxt.symbols());
+        // Bind both the RHS identifier and the member-access expr to the (possibly filtered) candidates.
+        // First bind for the member-access node (curNodeRef).
+        RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
 
-        sema.setSymbolList(nodeRightView.nodeRef, lookUpCxt.symbols());
-        sema.setSymbolList(sema.curNodeRef(), lookUpCxt.symbols());
+        // Then bind the same final list to the RHS identifier node.
+        // If you don't have a getter for the stored list, re-run filtering locally:
+        if (lookUpCxt.symbols().size() <= 1 || !allowOverloadSet)
+        {
+            sema.setSymbolList(nodeRightView.nodeRef, lookUpCxt.symbols());
+        }
+        else
+        {
+            SmallVector<const Symbol*> callables;
+            if (filterCallCalleeCandidates(lookUpCxt.symbols(), callables))
+                sema.setSymbolList(nodeRightView.nodeRef, callables);
+            else
+                sema.setSymbolList(nodeRightView.nodeRef, lookUpCxt.symbols());
+        }
+
         return Result::SkipChildren;
     }
 
@@ -166,12 +227,21 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         lookUpCxt.symMapHint = &enumSym;
 
         RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
+        RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
 
-        if (!allowOverloadSet && lookUpCxt.symbols().size() > 1)
-            return SemaError::raiseAmbiguousSymbol(sema, sema.curNodeRef(), lookUpCxt.symbols());
+        if (lookUpCxt.symbols().size() <= 1 || !allowOverloadSet)
+        {
+            sema.setSymbolList(nodeRightView.nodeRef, lookUpCxt.symbols());
+        }
+        else
+        {
+            SmallVector<const Symbol*> callables;
+            if (filterCallCalleeCandidates(lookUpCxt.symbols(), callables))
+                sema.setSymbolList(nodeRightView.nodeRef, callables);
+            else
+                sema.setSymbolList(nodeRightView.nodeRef, lookUpCxt.symbols());
+        }
 
-        sema.setSymbolList(nodeRightView.nodeRef, lookUpCxt.symbols());
-        sema.setSymbolList(sema.curNodeRef(), lookUpCxt.symbols());
         return Result::SkipChildren;
     }
 
@@ -213,16 +283,27 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
 
         RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
 
-        if (!allowOverloadSet && lookUpCxt.symbols().size() > 1)
-            return SemaError::raiseAmbiguousSymbol(sema, sema.curNodeRef(), lookUpCxt.symbols());
+        // Bind member-access node (curNodeRef) and RHS identifier.
+        RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
 
-        sema.setSymbolList(nodeRightRef, lookUpCxt.symbols());
-        sema.setSymbolList(sema.curNodeRef(), lookUpCxt.symbols());
+        if (lookUpCxt.symbols().size() <= 1 || !allowOverloadSet)
+        {
+            sema.setSymbolList(nodeRightRef, lookUpCxt.symbols());
+        }
+        else
+        {
+            SmallVector<const Symbol*> callables;
+            if (filterCallCalleeCandidates(lookUpCxt.symbols(), callables))
+                sema.setSymbolList(nodeRightRef, callables);
+            else
+                sema.setSymbolList(nodeRightRef, lookUpCxt.symbols());
+        }
 
         // Constant struct member access
-        if (nodeLeftView.cst && lookUpCxt.symbols().size() == 1 && lookUpCxt.symbols()[0]->isVariable())
+        const auto finalSymCount = sema.getSymbolList(nodeRightRef).size(); // if unavailable, see note below.
+        if (nodeLeftView.cst && finalSymCount == 1 && sema.getSymbolList(nodeRightRef)[0]->isVariable())
         {
-            const SymbolVariable& symVar = lookUpCxt.symbols()[0]->cast<SymbolVariable>();
+            const SymbolVariable& symVar = sema.getSymbolList(nodeRightRef)[0]->cast<SymbolVariable>();
             RESULT_VERIFY(SemaHelpers::extractConstantStructMember(sema, *nodeLeftView.cst, symVar, sema.curNodeRef(), nodeRightView.nodeRef));
             return Result::SkipChildren;
         }

@@ -79,4 +79,22 @@ Result AstExplicitCastExpr::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
+Result AstAutoCastExpr::semaPostNode(Sema& sema)
+{
+    const SemaNodeView nodeExprView(sema, nodeExprRef);
+
+    // Value-check
+    RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprView.nodeRef));
+
+    // Check cast modifiers
+    RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst));
+
+    // We do not know the destination type here (it comes from context).
+    // Keep the node and inherit the child sema; the cast will be applied later.
+    sema.inheritSema(*this, nodeExprView.nodeRef);
+    SemaInfo::setIsValue(*this);
+
+    return Result::Continue;
+}
+
 SWC_END_NAMESPACE();

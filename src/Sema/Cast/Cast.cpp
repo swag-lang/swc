@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Sema/Cast/Cast.h"
+#include "Parser/AstNodes.h"
 #include "Report/Diagnostic.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/Sema.h"
@@ -467,7 +468,7 @@ namespace
                 ok = true;
             // TODO
             // @compatibility
-            else if (sameUnderlying || dstIsVoid) // && (dstIsVoid || dstType.isStruct()))
+            else if (sameUnderlying && dstIsVoid)
                 ok = true;
 
             if (ok)
@@ -734,11 +735,26 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
 
 Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags)
 {
-    if (view.typeRef == dstTypeRef && castFlags == CastFlagsE::Zero)
+    CastKind  effectiveKind  = castKind;
+    CastFlags effectiveFlags = castFlags;
+
+    // `cast()` is an explicit user request to allow explicit casts later when the destination type becomes known.
+    // Therefore, when we are about to apply a contextual cast on an `AutoCastExpr`, force the cast to be explicit
+    // and apply its modifiers.
+    if (const auto* autoCast = sema.ast().node(view.nodeRef).safeCast<AstAutoCastExpr>())
+    {
+        effectiveKind = CastKind::Explicit;
+        if (autoCast->modifierFlags.has(AstModifierFlagsE::Bit))
+            effectiveFlags.add(CastFlagsE::BitCast);
+        if (autoCast->modifierFlags.has(AstModifierFlagsE::UnConst))
+            effectiveFlags.add(CastFlagsE::UnConst);
+    }
+
+    if (view.typeRef == dstTypeRef && effectiveFlags == CastFlagsE::Zero)
         return Result::Continue;
 
-    CastContext castCtx(castKind);
-    castCtx.flags        = castFlags;
+    CastContext castCtx(effectiveKind);
+    castCtx.flags        = effectiveFlags;
     castCtx.errorNodeRef = view.nodeRef;
     castCtx.setConstantFoldingSrc(view.cstRef);
 
@@ -759,7 +775,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
         return Result::Continue;
     }
 
-    if (castKind != CastKind::Explicit)
+    if (effectiveKind != CastKind::Explicit)
     {
         CastContext explicitCtx(CastKind::Explicit);
         explicitCtx.errorNodeRef = view.nodeRef;

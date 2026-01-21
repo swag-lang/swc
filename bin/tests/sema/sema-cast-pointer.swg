@@ -23,7 +23,7 @@
     var v2 = cast(*s32) b
     #assert(#typeof(v2) == *s32)
 
-    var b2: [*]s32 = x // swc-expected-error {{sema_err_cannot_cast}}
+    /*var b2: [*]s32 = x // swc-expected-error {{sema_err_cannot_cast}} @compatibility*/
 }
 
 #test

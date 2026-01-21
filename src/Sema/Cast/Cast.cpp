@@ -468,7 +468,7 @@ namespace
                 ok = true;
             // TODO
             // @compatibility
-            else if (sameUnderlying && dstIsVoid)
+            else if (sameUnderlying || dstIsVoid)
                 ok = true;
 
             if (ok)

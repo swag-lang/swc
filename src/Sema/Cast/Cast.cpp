@@ -549,6 +549,36 @@ namespace
         return Result::Error;
     }
 
+    Result castToSlice(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
+        const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+
+        if (srcType.isArray())
+        {
+            const auto srcElemTypeRef = srcType.arrayElemTypeRef();
+            const auto dstElemTypeRef = dstType.typeRef();
+
+            if (castCtx.kind == CastKind::Explicit ||
+                srcElemTypeRef == dstElemTypeRef ||
+                dstElemTypeRef == sema.typeMgr().typeVoid())
+            {
+                if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
+                {
+                    castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+                    return Result::Error;
+                }
+
+                if (castCtx.isConstantFolding())
+                    castCtx.outConstRef = castCtx.srcConstRef;
+                return Result::Continue;
+            }
+        }
+
+        castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        return Result::Error;
+    }
+
     Result castFromTypeValue(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
         const auto& dstType = sema.typeMgr().get(dstTypeRef);
@@ -704,6 +734,8 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
         res = castToFromTypeInfo(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isConstPointerToAnyTypeInfo(sema.ctx()) && dstType.isTypeInfo())
         res = castToFromTypeInfo(sema, castCtx, srcTypeRef, dstTypeRef);
+    else if (dstType.isSlice())
+        res = castToSlice(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (dstType.isAnyPointer())
         res = castToPointer(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (dstType.isReference())

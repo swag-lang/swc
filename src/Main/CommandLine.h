@@ -25,6 +25,7 @@ struct CommandLine
     bool diagOneLine  = false;
     bool errorId      = false;
     bool silent       = false;
+    bool automation   = false;
     bool stats        = false;
     bool dbgDevMode   = false;
     bool verboseDiag  = false;

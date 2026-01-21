@@ -161,6 +161,7 @@ TypeInfo& TypeInfo::operator=(TypeInfo&& other) noexcept
     return *this;
 }
 
+
 uint32_t TypeInfo::hash() const
 {
     auto h = Math::hash(static_cast<uint32_t>(kind_));

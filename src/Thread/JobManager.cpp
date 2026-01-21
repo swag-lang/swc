@@ -436,8 +436,11 @@ namespace
 
         if (Os::isDebuggerAttached() || ctx.cmdLine().dbgDevMode)
         {
-            Os::panicBox("Hardware exception raised!");
-            return SWC_EXCEPTION_CONTINUE_EXECUTION;
+            if (!ctx.cmdLine().automation)
+            {
+                Os::panicBox("Hardware EXCEPTION raised!");
+                return SWC_EXCEPTION_CONTINUE_EXECUTION;
+            }
         }
 
         exceptionMessage(job, args);

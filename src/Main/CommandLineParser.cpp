@@ -400,6 +400,7 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     global_(&global)
 {
     addArg("all", "--silent", nullptr, CommandLineType::Bool, &cmdLine_->silent, nullptr, "Suppress all log output.");
+    addArg("all", "--automation", nullptr, CommandLineType::Bool, &cmdLine_->automation, nullptr, "Suppress all devmode dialog boxes.");
     addArg("all", "--stats", nullptr, CommandLineType::Bool, &cmdLine_->stats, nullptr, "Display runtime statistics after execution.");
     addArg("all", "--num-cores", nullptr, CommandLineType::UnsignedInt, &cmdLine_->numCores, nullptr, "Set the maximum number of CPU cores to use (0 = auto-detect).");
     addArg("all", "--log-color", nullptr, CommandLineType::Bool, &cmdLine_->logColor, nullptr, "Enable colored log output for better readability.");

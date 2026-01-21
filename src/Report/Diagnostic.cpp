@@ -164,7 +164,7 @@ void Diagnostic::addArgument(std::string_view name, std::string_view arg)
     {
         if (a.name == name)
         {
-            a.val    = std::move(sanitized);
+            a.val = std::move(sanitized);
             return;
         }
     }
@@ -251,8 +251,8 @@ void Diagnostic::report(TaskContext& ctx) const
         Logger::print(ctx, msg);
         logger.unlock();
 
-        if (ctx.cmdLine().dbgDevMode && !orgDismissed)
-            Os::panicBox("[DevMode] Error raised!");
+        if (ctx.cmdLine().dbgDevMode && !ctx.cmdLine().automation && !orgDismissed)
+            Os::panicBox("[DevMode] ERROR raised!");
     }
 }
 

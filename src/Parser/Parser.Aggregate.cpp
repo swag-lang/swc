@@ -98,9 +98,9 @@ AstNodeRef Parser::parseAggregateValue()
 
         case TokenId::KwdUsing:
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingMemberDecl>(consume());
-            nodePtr->nodeVarRef     = parseVarDecl();
-            return nodeRef;
+            consume();
+            PushContextFlags _{this, ParserContextFlagsE::InUsingMemberDecl};
+            return parseVarDecl();
         }
 
         default:

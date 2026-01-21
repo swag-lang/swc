@@ -667,7 +667,7 @@ struct AstAutoCastExpr : AstNodeT<AstNodeId::AutoCastExpr>
     AstModifierFlags modifierFlags;
     AstNodeRef       nodeExprRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
     Result semaPostNode(Sema& sema);
 };
 
@@ -1025,11 +1025,12 @@ struct AstGenericParamType : AstGenericParamT<AstNodeId::GenericParamType>
 // -----------------------------------------------------------------------------
 enum class AstVarDeclFlagsE : AstNode::ParserFlags
 {
-    Zero  = 0,
-    Var   = 1 << 0,
-    Const = 1 << 1,
-    Let   = 1 << 2,
+    Zero      = 0,
+    Var       = 1 << 0,
+    Const     = 1 << 1,
+    Let       = 1 << 2,
     Parameter = 1 << 3,
+    Using     = 1 << 4,
 };
 
 struct AstVarDecl : AstNamedNodeT<AstNodeId::VarDecl, AstVarDeclFlagsE>
@@ -1076,15 +1077,6 @@ struct AstUndefinedExpr : AstNodeT<AstNodeId::UndefinedExpr>
     static Result semaPreNode(Sema& sema);
 };
 
-// -----------------------------------------------------------------------------
-struct AstUsingMemberDecl : AstNodeT<AstNodeId::UsingMemberDecl>
-{
-    AstNodeRef nodeVarRef;
-
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeVarRef}); }
-};
-
-// -----------------------------------------------------------------------------
 struct AstAliasDecl : AstNamedNodeT<AstNodeId::AliasDecl>
 {
     AstNodeRef nodeExprRef;

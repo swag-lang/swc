@@ -115,6 +115,9 @@ AstNodeRef Parser::parseVarDecl()
     else if (consumeIf(TokenId::KwdLet).isValid())
         flags.add(AstVarDeclFlagsE::Let);
 
+    if (hasContextFlag(ParserContextFlagsE::InUsingMemberDecl))
+        flags.add(AstVarDeclFlagsE::Using);
+
     SmallVector<AstNodeRef> vars;
     while (true)
     {

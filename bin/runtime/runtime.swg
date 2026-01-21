@@ -192,7 +192,7 @@ func @args()->const [..] string
 
 ////////////////////////////////////////////////////////////
 
-var __sysAlloc: Swag.SystemAllocator
+var __sysAlloc: SystemAllocator
 
 // Make a build configuration copy
 const __buildCfg = #run dref @compiler.getBuildCfg()

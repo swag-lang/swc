@@ -1,7 +1,5 @@
 namespace Swag
 {
-    // #[Swag.EnumFlags] is forced by the compiler for this enum because
-    // it's used in attribute definitions.
     enum AttributeUsage: u32
     {
         Enum              = 0x00000001     // Attribute can be used on an enum

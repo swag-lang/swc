@@ -112,9 +112,9 @@ impl DebugAllocator
         }
     }
 
-    mtd checkIsAllocated(ptrHeader: *DebugAllocatorHeader, callerLoc = #callerlocation)
+    mtd checkIsAllocated(ptrHeader: [*] DebugAllocatorHeader, callerLoc = #callerlocation)
     {
-        let ptrEnd    = cast([*] u8) (cast([*] DebugAllocatorHeader) ptrHeader + 1)
+        let ptrEnd    = cast([*] u8) (ptrHeader + 1)
         let ptrFooter = cast(*DebugAllocatorFooter) (ptrEnd + ptrHeader.userSize)
 
         if (ptrHeader.magic != MagicAlloc and ptrHeader.magic != MagicFree) or

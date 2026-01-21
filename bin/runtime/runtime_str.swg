@@ -150,7 +150,7 @@ func __printS64(value: s64)
 func __printF64(value: f64)
 {
     var buf: [100] u8
-    __ftoa(@dataof(buf), value)
+    __ftoa(&buf[0], value)
     let str = cast(string) @mkslice(&buf[0], @strlen(&buf[0]))
     __printString(str)
 }

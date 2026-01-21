@@ -84,10 +84,17 @@ namespace
         return Result::Continue;
     }
 
-    Result semaIntrinsicKindOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>&)
+    Result semaIntrinsicKindOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
-        // TODO
-        sema.setType(sema.curNodeRef(), sema.typeMgr().typeBlockPtrVoid());
+        const AstNodeRef   nodeArgRef = children[0];
+        const SemaNodeView nodeView(sema, nodeArgRef);
+
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
+
+        if (!nodeView.type || !nodeView.type->isAny())
+            return SemaError::raiseRequestedTypeFam(sema, nodeArgRef, nodeView.typeRef, sema.typeMgr().typeAny());
+
+        sema.setType(sema.curNodeRef(), sema.typeMgr().typeTypeInfo());
         SemaInfo::setIsValue(node);
         return Result::Continue;
     }

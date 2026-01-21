@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Sema/Match/Match.h"
+#include "Parser/AstNodes.h"
 #include "Sema/Core/Sema.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Match/MatchContext.h"
@@ -41,6 +42,77 @@ namespace
         }
     }
 
+    bool isUsingMemberDecl(const AstNode* decl)
+    {
+        if (!decl)
+            return false;
+        if (const auto* var = decl->safeCast<AstVarDecl>())
+            return var->hasFlag(AstVarDeclFlagsE::Using);
+        if (const auto* varList = decl->safeCast<AstVarDeclNameList>())
+            return varList->hasFlag(AstVarDeclFlagsE::Using);
+        return false;
+    }
+
+    const SymbolStruct* usingTargetStruct(Sema& sema, const SymbolVariable& symVar)
+    {
+        const auto& ctx     = sema.ctx();
+        const auto& typeMgr = sema.typeMgr();
+
+        // Resolve aliases so that `using v: AliasToStruct` works.
+        TypeRef ultimateTypeRef = typeMgr.get(symVar.typeRef()).ultimateTypeRef(ctx);
+        if (ultimateTypeRef.isInvalid())
+            ultimateTypeRef = symVar.typeRef();
+        const TypeInfo& ultimateType = typeMgr.get(ultimateTypeRef);
+
+        if (ultimateType.isStruct())
+            return &ultimateType.symStruct();
+
+        if (ultimateType.isAnyPointer())
+        {
+            TypeRef pointeeUltimateRef = typeMgr.get(ultimateType.typeRef()).ultimateTypeRef(ctx);
+            if (pointeeUltimateRef.isInvalid())
+                pointeeUltimateRef = ultimateType.typeRef();
+            const TypeInfo& pointeeUltimate = typeMgr.get(pointeeUltimateRef);
+            if (pointeeUltimate.isStruct())
+                return &pointeeUltimate.symStruct();
+        }
+
+        return nullptr;
+    }
+
+    void addUsingMemberSymMaps(Sema& sema, MatchContext& lookUpCxt, const SymbolStruct& symStruct, uint16_t& searchOrder, SmallVector<const SymbolStruct*>& visited)
+    {
+        for (const auto* s : visited)
+        {
+            if (s == &symStruct)
+                return;
+        }
+
+        visited.push_back(&symStruct);
+
+        for (const auto* field : symStruct.fields())
+        {
+            if (!field || field->isIgnored())
+                continue;
+
+            const auto& symVar = field->cast<SymbolVariable>();
+            if (!isUsingMemberDecl(symVar.decl()))
+                continue;
+
+            const SymbolStruct* target = usingTargetStruct(sema, symVar);
+            if (!target)
+                continue;
+
+            MatchContext::Priority priority;
+            priority.scopeDepth  = 0;
+            priority.visibility  = MatchContext::VisibilityTier::UsingDirective;
+            priority.searchOrder = searchOrder++;
+
+            addSymMap(lookUpCxt, target, priority);
+            addUsingMemberSymMaps(sema, lookUpCxt, *target, searchOrder, visited);
+        }
+    }
+
     void collect(Sema& sema, MatchContext& lookUpCxt)
     {
         lookUpCxt.symMaps.clear();
@@ -50,11 +122,20 @@ namespace
         // and give it top priority.
         if (lookUpCxt.symMapHint)
         {
+            uint16_t searchOrder = 0;
+
             MatchContext::Priority priority;
             priority.scopeDepth  = 0;
             priority.visibility  = MatchContext::VisibilityTier::LocalScope;
-            priority.searchOrder = 0;
+            priority.searchOrder = searchOrder++;
             addSymMap(lookUpCxt, lookUpCxt.symMapHint, priority);
+
+            // Struct member lookup must also see members of `using` fields.
+            if (const auto* structSym = lookUpCxt.symMapHint->safeCast<SymbolStruct>())
+            {
+                SmallVector<const SymbolStruct*> visited;
+                addUsingMemberSymMaps(sema, lookUpCxt, *structSym, searchOrder, visited);
+            }
             return;
         }
 

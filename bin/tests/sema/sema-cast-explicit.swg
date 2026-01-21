@@ -129,3 +129,10 @@
 #assert(cast(u16) -1.0'f64 == 0'u16)               // swc-expected-error {{sema_err_literal_overflow}}
 
 #assert(cast(u64) 18446744073709551615'u64 == 18446744073709551615)
+
+#test
+{
+    var a: [4] u8
+    var b = cast(string) a
+    var c = cast(cstring) a
+}

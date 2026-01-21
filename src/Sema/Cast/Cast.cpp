@@ -691,6 +691,16 @@ namespace
             return Result::Continue;
         }
 
+        if (srcType.isArray())
+        {
+            if (srcType.arrayElemTypeRef() == typeMgr.typeU8() && srcType.arrayDims().size() == 1)
+            {
+                if (castCtx.isConstantFolding())
+                    castCtx.outConstRef = castCtx.srcConstRef;
+                return Result::Continue;
+            }
+        }
+
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
         return Result::Error;
     }
@@ -703,6 +713,16 @@ namespace
         if (srcType.isBlockPointer())
         {
             if (srcType.typeRef() == sema.typeMgr().typeU8())
+            {
+                if (castCtx.isConstantFolding())
+                    castCtx.outConstRef = castCtx.srcConstRef;
+                return Result::Continue;
+            }
+        }
+
+        if (srcType.isArray())
+        {
+            if (srcType.arrayElemTypeRef() == typeMgr.typeU8() && srcType.arrayDims().size() == 1)
             {
                 if (castCtx.isConstantFolding())
                     castCtx.outConstRef = castCtx.srcConstRef;

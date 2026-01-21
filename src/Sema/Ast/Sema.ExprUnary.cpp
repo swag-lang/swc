@@ -201,9 +201,8 @@ namespace
         if (nodeView.type->isArray())
             blockPointer = true;
 
-        // Taking the address of an array element must yield a block pointer.
-        // Example: `&a[i]` where `a` is an array.
-        // TODO Should change
+        // TODO
+        // @compatibility
         if (const auto* idxExpr = nodeView.node->safeCast<AstIndexExpr>())
         {
             const SemaNodeView baseView(sema, idxExpr->nodeExprRef);

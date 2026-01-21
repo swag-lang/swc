@@ -192,8 +192,8 @@ namespace
         }
         else if (nodeView.sym && nodeView.sym->isVariable())
         {
-            const auto symVar = &nodeView.sym->cast<SymbolVariable>();
-            if (symVar->hasExtraFlag(SymbolVariableFlagsE::Let))
+            const SymbolVariable& symVar = nodeView.sym->cast<SymbolVariable>();
+            if (symVar.hasExtraFlag(SymbolVariableFlagsE::Let))
                 flags.add(TypeInfoFlagsE::Const);
         }
 

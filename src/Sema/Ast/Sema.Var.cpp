@@ -47,20 +47,22 @@ namespace
         }
     }
 
-    Result semaPostVarDeclCommon(Sema&                     sema,
-                                 const AstNode&            owner,
-                                 TokenRef                  tokDiag,
-                                 AstNodeRef                nodeInitRef,
-                                 AstNodeRef                nodeTypeRef,
-                                 bool                      isConst,
-                                 bool                      isLet,
-                                 bool                      isParameter,
-                                 bool                      isUsing,
-                                 const std::span<Symbol*>& syms)
+    Result semaPostVarDeclCommon(Sema&                       sema,
+                                 const AstNode&              owner,
+                                 TokenRef                    tokDiag,
+                                 AstNodeRef                  nodeInitRef,
+                                 AstNodeRef                  nodeTypeRef,
+                                 EnumFlags<AstVarDeclFlagsE> flags,
+                                 const std::span<Symbol*>&   symbols)
     {
         auto&              ctx = sema.ctx();
         SemaNodeView       nodeInitView(sema, nodeInitRef);
         const SemaNodeView nodeTypeView(sema, nodeTypeRef);
+
+        const bool isConst     = flags.has(AstVarDeclFlagsE::Const);
+        const bool isLet       = flags.has(AstVarDeclFlagsE::Let);
+        const bool isParameter = flags.has(AstVarDeclFlagsE::Parameter);
+        const bool isUsing     = flags.has(AstVarDeclFlagsE::Using);
 
         // Initialized to 'undefined'
         if (nodeInitRef.isValid() && nodeInitView.cstRef == sema.cstMgr().cstUndefined())
@@ -75,7 +77,7 @@ namespace
             if (!isParameter && nodeTypeView.typeRef.isValid() && nodeTypeView.type->isReference())
                 return SemaError::raise(sema, DiagnosticId::sema_err_ref_missing_init, owner.srcViewRef(), tokDiag);
 
-            markExplicitUndefined(syms);
+            markExplicitUndefined(symbols);
         }
 
         // Implicit cast from initializer to the specified type
@@ -130,7 +132,7 @@ namespace
             if (nodeInitView.cstRef.isInvalid())
                 return SemaError::raiseExprNotConst(sema, nodeInitView.nodeRef);
 
-            completeConst(sema, syms, nodeInitView.cstRef, nodeInitView.typeRef);
+            completeConst(sema, symbols, nodeInitView.cstRef, nodeInitView.typeRef);
             return Result::Continue;
         }
 
@@ -141,11 +143,11 @@ namespace
         if (!isLet && !isParameter && isRefType && nodeInitRef.isInvalid())
             return SemaError::raise(sema, DiagnosticId::sema_err_ref_missing_init, owner.srcViewRef(), tokDiag);
 
-        completeVar(sema, syms, nodeTypeView.typeRef.isValid() ? nodeTypeView.typeRef : nodeInitView.typeRef);
+        completeVar(sema, symbols, nodeTypeView.typeRef.isValid() ? nodeTypeView.typeRef : nodeInitView.typeRef);
 
         if (nodeInitRef.isValid())
         {
-            for (auto* s : syms)
+            for (auto* s : symbols)
             {
                 if (const auto symVar = s->safeCast<SymbolVariable>())
                     symVar->addExtraFlag(SymbolVariableFlagsE::Initialized);
@@ -190,10 +192,7 @@ Result AstVarDecl::semaPostNode(Sema& sema) const
                                  tokNameRef,
                                  nodeInitRef,
                                  nodeTypeRef,
-                                 hasFlag(AstVarDeclFlagsE::Const),
-                                 hasFlag(AstVarDeclFlagsE::Let),
-                                 hasFlag(AstVarDeclFlagsE::Parameter),
-                                 hasFlag(AstVarDeclFlagsE::Using),
+                                 flags(),
                                  std::span<Symbol*>{one});
 }
 
@@ -257,10 +256,7 @@ Result AstVarDeclNameList::semaPostNode(Sema& sema) const
                                  tokRef(),
                                  nodeInitRef,
                                  nodeTypeRef,
-                                 hasFlag(AstVarDeclFlagsE::Const),
-                                 hasFlag(AstVarDeclFlagsE::Let),
-                                 hasFlag(AstVarDeclFlagsE::Parameter),
-                                 hasFlag(AstVarDeclFlagsE::Using),
+                                 flags(),
                                  symbols);
 }
 

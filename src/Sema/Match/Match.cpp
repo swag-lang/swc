@@ -59,9 +59,7 @@ namespace
         const auto& typeMgr = sema.typeMgr();
 
         // Resolve aliases so that `using v: AliasToStruct` works.
-        TypeRef ultimateTypeRef = typeMgr.get(symVar.typeRef()).ultimateTypeRef(ctx);
-        if (ultimateTypeRef.isInvalid())
-            ultimateTypeRef = symVar.typeRef();
+        const TypeRef ultimateTypeRef = typeMgr.get(symVar.typeRef()).ultimateTypeRef(ctx, symVar.typeRef());
         const TypeInfo& ultimateType = typeMgr.get(ultimateTypeRef);
 
         if (ultimateType.isStruct())
@@ -69,9 +67,7 @@ namespace
 
         if (ultimateType.isAnyPointer())
         {
-            TypeRef pointeeUltimateRef = typeMgr.get(ultimateType.typeRef()).ultimateTypeRef(ctx);
-            if (pointeeUltimateRef.isInvalid())
-                pointeeUltimateRef = ultimateType.typeRef();
+            const TypeRef pointeeUltimateRef = typeMgr.get(ultimateType.typeRef()).ultimateTypeRef(ctx, ultimateType.typeRef());
             const TypeInfo& pointeeUltimate = typeMgr.get(pointeeUltimateRef);
             if (pointeeUltimate.isStruct())
                 return &pointeeUltimate.symStruct();

@@ -233,7 +233,7 @@ namespace
                 const TypeRef elemTypeRef = type.arrayElemTypeRef();
                 deps.push_back(elemTypeRef);
 
-                const TypeRef finalTypeRef = tm.get(elemTypeRef).ultimateTypeRef(ctx);
+                const TypeRef finalTypeRef = tm.get(elemTypeRef).ultimateTypeRef(ctx, elemTypeRef);
                 if (finalTypeRef != elemTypeRef)
                     deps.push_back(finalTypeRef);
                 break;
@@ -356,7 +356,7 @@ namespace
                 const auto&   dep         = requireDone(cache, elemTypeRef);
                 addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoArray, pointedType), dep.offset);
 
-                const TypeRef finalTypeRef = typeMgr.get(elemTypeRef).ultimateTypeRef(ctx);
+                const TypeRef finalTypeRef = typeMgr.get(elemTypeRef).ultimateTypeRef(ctx, elemTypeRef);
                 const auto&   fin          = requireDone(cache, finalTypeRef);
                 addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoArray, finalType), fin.offset);
                 break;

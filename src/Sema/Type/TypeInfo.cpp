@@ -889,11 +889,11 @@ TypeRef TypeInfo::underlyingTypeRef() const noexcept
     return TypeRef::invalid();
 }
 
-TypeRef TypeInfo::ultimateTypeRef(const TaskContext& ctx) const noexcept
+TypeRef TypeInfo::ultimateTypeRef(const TaskContext& ctx, TypeRef defaultTypeRef) const noexcept
 {
     TypeRef result = underlyingTypeRef();
     if (!result.isValid())
-        return TypeRef::invalid();
+        return defaultTypeRef;
 
     while (true)
     {

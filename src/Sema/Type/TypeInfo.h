@@ -149,7 +149,7 @@ public:
     auto&                arrayDims() const noexcept { SWC_ASSERT(isArray()); return asArray.dims; }
     TypeRef              arrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return asArray.typeRef; }
     TypeRef              underlyingTypeRef() const noexcept;
-    TypeRef              ultimateTypeRef(const TaskContext& ctx) const noexcept;
+    TypeRef              ultimateTypeRef(const TaskContext& ctx, TypeRef defaultTypeRef = TypeRef::invalid()) const noexcept;
     // clang-format on
 
     static TypeInfo makeBool();

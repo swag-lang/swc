@@ -29,29 +29,9 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
 
     const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokRef());
 
-    // If this identifier is used as the callee of a function call, we allow an overload set.
-    // Otherwise, ambiguity can be reported immediately at lookup time.
-    bool allowOverloadSet = false;
-    if (const auto* parentNode = sema.visit().parentNode())
-    {
-        if (const auto* callExpr = parentNode->safeCast<AstCallExpr>())
-        {
-            allowOverloadSet = callExpr->nodeExprRef == sema.curNodeRef();
-        }
-        else if (parentNode->is(AstNodeId::MemberAccessExpr) || parentNode->is(AstNodeId::AutoMemberAccessExpr))
-        {
-            // Member-access callee: `a.foo(...)` -> identifier is the right side, but the call callee is the member-access expr.
-            // We need to check if the parent expression is the callee of the call.
-            if (const auto* grandParentNode = sema.visit().parentNode(1))
-            {
-                if (const auto* callExpr = grandParentNode->safeCast<AstCallExpr>())
-                {
-                    const AstNodeRef parentRef = sema.visit().parentNodeRef();
-                    allowOverloadSet           = callExpr->nodeExprRef == parentRef;
-                }
-            }
-        }
-    }
+    // Parser tags the callee expression when building a call: `foo()`.
+    // This avoids needing to walk parent nodes from sema.
+    const bool allowOverloadSet = hasFlag(AstIdentifierFlagsE::CallCallee);
 
     MatchContext lookUpCxt;
     lookUpCxt.srcViewRef = srcViewRef();
@@ -72,6 +52,10 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
 Result AstAutoMemberAccessExpr::semaPostNode(Sema& sema)
 {
     const auto node = sema.node(sema.curNodeRef()).cast<AstAutoMemberAccessExpr>();
+
+    // Parser tags the callee expression when building a call: `.foo()`.
+    // Otherwise ambiguity can be reported immediately.
+    const bool allowOverloadSet = node->hasFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
 
     const SymbolMap*      symMapHint = nullptr;
     const SymbolFunction* symFunc    = sema.frame().function();
@@ -111,6 +95,9 @@ Result AstAutoMemberAccessExpr::semaPostNode(Sema& sema)
 
     RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
 
+    if (!allowOverloadSet && lookUpCxt.symbols().size() > 1)
+        return SemaError::raiseAmbiguousSymbol(sema, sema.curNodeRef(), lookUpCxt.symbols());
+
     // Substitute with an AstMemberAccessExpr
     auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::MemberAccessExpr>(node->tokRef());
     auto [meRef, mePtr]     = sema.ast().makeNode<AstNodeId::Identifier>(node->tokRef());
@@ -132,14 +119,8 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     if (childRef != nodeRightRef)
         return Result::Continue;
 
-    // If this member access expression is used as the callee of a function call, we allow an overload set.
-    // Otherwise, ambiguity can be reported immediately at lookup time.
-    bool allowOverloadSet = false;
-    if (const auto* parentNode = sema.visit().parentNode())
-    {
-        if (const auto* callExpr = parentNode->safeCast<AstCallExpr>())
-            allowOverloadSet = callExpr->nodeExprRef == sema.curNodeRef();
-    }
+    // Parser tags the callee expression when building a call: `a.foo()`.
+    const bool allowOverloadSet = hasFlag(AstMemberAccessExprFlagsE::CallCallee);
 
     const SemaNodeView nodeLeftView(sema, nodeLeftRef);
     const SemaNodeView nodeRightView(sema, nodeRightRef);

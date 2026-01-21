@@ -351,6 +351,7 @@ enum class AstIdentifierFlagsE : AstNode::ParserFlags
 {
     Zero              = 0,
     InCompilerDefined = 1 << 0,
+    CallCallee        = 1 << 1,
 };
 
 struct AstIdentifier : AstNodeT<AstNodeId::Identifier, AstIdentifierFlagsE>
@@ -625,7 +626,13 @@ struct AstStructLiteral : AstCompoundT<AstNodeId::StructLiteral>
 };
 
 // -----------------------------------------------------------------------------
-struct AstAutoMemberAccessExpr : AstNodeT<AstNodeId::AutoMemberAccessExpr>
+enum class AstAutoMemberAccessExprFlagsE : AstNode::ParserFlags
+{
+    Zero       = 0,
+    CallCallee = 1 << 0,
+};
+
+struct AstAutoMemberAccessExpr : AstNodeT<AstNodeId::AutoMemberAccessExpr, AstAutoMemberAccessExprFlagsE>
 {
     AstNodeRef nodeIdentRef;
 
@@ -634,7 +641,13 @@ struct AstAutoMemberAccessExpr : AstNodeT<AstNodeId::AutoMemberAccessExpr>
 };
 
 // -----------------------------------------------------------------------------
-struct AstMemberAccessExpr : AstNodeT<AstNodeId::MemberAccessExpr>
+enum class AstMemberAccessExprFlagsE : AstNode::ParserFlags
+{
+    Zero       = 0,
+    CallCallee = 1 << 0,
+};
+
+struct AstMemberAccessExpr : AstNodeT<AstNodeId::MemberAccessExpr, AstMemberAccessExprFlagsE>
 {
     AstNodeRef nodeLeftRef;
     AstNodeRef nodeRightRef;

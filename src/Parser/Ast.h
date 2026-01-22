@@ -88,7 +88,7 @@ public:
 
         auto value = std::pair<AstNodeRef, NodeType*>{globalRef, local.second};
 #if SWC_HAS_REF_DEBUG_INFO
-        value.first.setDbgPtr(value.second);
+        value.first.dbgPtr     = value.second;
         value.second->dbgMyRef = value.first;
 #endif
         return value;

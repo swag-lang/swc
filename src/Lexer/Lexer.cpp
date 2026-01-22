@@ -3,6 +3,7 @@
 #include "Core/Timer.h"
 #include "Core/Utf8Helper.h"
 #include "Lexer/LangSpec.h"
+#include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
@@ -1233,7 +1234,9 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
         token_.byteLength = 1;
         token_.flags      = TokenFlagsE::Zero;
 #if SWC_HAS_TOKEN_DEBUG_INFO
-        token_.setDbgPtr(startToken_);
+        token_.dbgPtr     = startToken_;
+        token_.dbgSrcView = &srcView;
+        token_.dbgLoc.fromOffset(ctx, srcView, token_.byteStart);
 #endif
 
         // Check for null byte (invalid UTF-8)
@@ -1340,11 +1343,6 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
     token_.id        = TokenId::EndOfFile;
     startToken_      = buffer_++;
     token_.byteStart = static_cast<uint32_t>(startToken_ - startBuffer_);
-
-#if SWC_HAS_TOKEN_DEBUG_INFO
-    token_.setDbgPtr(startToken_);
-#endif
-
     pushToken();
 
     // Compute the start trivia of each token

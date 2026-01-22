@@ -63,6 +63,7 @@ AstNodeRef Parser::parseIntrinsicCallExpr(uint32_t numParams)
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CallExpr>(tokRef);
     auto [idRef, idPtr]     = ast_->makeNode<AstNodeId::Identifier>(tokRef);
     nodePtr->nodeExprRef    = idRef;
+    idPtr->addFlag(AstIdentifierFlagsE::CallCallee);
 
     const auto              openRef = ref();
     SmallVector<AstNodeRef> nodeArgs;

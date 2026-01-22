@@ -49,7 +49,7 @@ namespace
 #endif
 
 #if SWC_HAS_REF_DEBUG_INFO
-        cstRef.setDbgPtr(&manager.get(cstRef));
+        cstRef.dbgPtr = &manager.get(cstRef);
 #endif
         return cstRef;
     }

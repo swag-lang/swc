@@ -130,7 +130,7 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
 
     auto result = TypeRef{(shardIndex << LOCAL_BITS) | localIndex};
 #if SWC_HAS_REF_DEBUG_INFO
-    result.setDbgPtr(&getNoLock(result));
+    result.dbgPtr = &getNoLock(result);
 #endif
 
     it->second = result;

@@ -112,13 +112,9 @@ struct Token
     static bool isReserved(TokenId id) { return toKind(id) == TokenIdKind::Reserved; }
 
 #if SWC_HAS_TOKEN_DEBUG_INFO
-    void           setDbgPtr(const char8_t* ptr) { dbgPtr_ = ptr; }
-    const char8_t* dbgPtr() const { return dbgPtr_; }
-#endif
-
-private:
-#if SWC_HAS_TOKEN_DEBUG_INFO
-    const char8_t* dbgPtr_ = nullptr;
+    const char8_t*     dbgPtr     = nullptr;
+    SourceView*        dbgSrcView = nullptr;
+    SourceCodeLocation dbgLoc;
 #endif
 };
 

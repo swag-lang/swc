@@ -300,7 +300,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     RESULT_VERIFY(check(sema, tok.id, *this, nodeView));
 
     // Constant folding
-    if (sema.hasConstant(nodeExprRef))
+    if (sema.hasConstant(nodeView.nodeRef))
     {
         ConstantRef result;
         RESULT_VERIFY(constantFold(sema, result, tok.id, *this, nodeView));

@@ -147,6 +147,8 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
     auto [leftRef, leftPtr] = sema.ast().makeNode<AstNodeId::Identifier>(tokRef());
     if (symMe)
         sema.setSymbol(leftRef, symMe);
+    else
+        sema.setSymbol(leftRef, symMapHint);
     SemaInfo::setIsValue(*leftPtr);
 
     nodePtr->nodeLeftRef  = leftRef;
@@ -155,6 +157,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
     // Re-bind the resolved list to the substituted member-access node as well,
     // so downstream passes can read from the final node.
     sema.setSymbolList(nodeRef, sema.getSymbolList(sema.curNodeRef()));
+    sema.setSymbolList(nodeIdentRef, sema.getSymbolList(nodeRef));
 
     sema.semaInfo().setSubstitute(sema.curNodeRef(), nodeRef);
     SemaInfo::setIsValue(*nodePtr);

@@ -101,11 +101,12 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
     const SymbolMap*      symMapHint = nullptr;
     const SymbolFunction* symFunc    = sema.frame().function();
 
+    const SymbolVariable* symMe = nullptr;
     if (symFunc && !symFunc->parameters().empty())
     {
-        const SymbolVariable* symMe = symFunc->parameters()[0];
-        if (symMe->idRef() == sema.idMgr().nameMe())
+        if (symFunc->parameters()[0]->idRef() == sema.idMgr().nameMe())
         {
+            symMe                    = symFunc->parameters()[0];
             const auto      typeRef  = symMe->typeRef();
             const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
             SWC_ASSERT(typeInfo.isReference());
@@ -144,7 +145,9 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
     // Substitute with an AstMemberAccessExpr
     auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::MemberAccessExpr>(tokRef());
     auto [leftRef, leftPtr] = sema.ast().makeNode<AstNodeId::Identifier>(tokRef());
-    sema.setSymbol(leftRef, symMapHint);
+    if (symMe)
+        sema.setSymbol(leftRef, symMe);
+    SemaInfo::setIsValue(*leftPtr);
 
     nodePtr->nodeLeftRef  = leftRef;
     nodePtr->nodeRightRef = nodeIdentRef;

@@ -2,6 +2,7 @@
 #include "Sema/Core/Sema.h"
 #include "Parser/AstNodes.h"
 #include "Report/Diagnostic.h"
+#include "Sema/Cast/Cast.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
@@ -244,6 +245,21 @@ namespace
         return Result::Continue;
     }
 
+    Result promote(Sema& sema, TokenId op, const AstUnaryExpr& node, SemaNodeView& nodeView)
+    {
+        if (op == TokenId::SymTilde)
+        {
+            if (nodeView.type->isEnum())
+            {
+                if (!nodeView.type->isEnumFlags())
+                    return SemaError::raiseInvalidOpEnum(sema, node, nodeView.nodeRef, nodeView.typeRef);
+                Cast::convertEnumToUnderlying(sema, nodeView);
+            }
+        }
+
+        return Result::Continue;
+    }
+
     Result check(Sema& sema, TokenId op, const AstUnaryExpr& node, const SemaNodeView& ops)
     {
         switch (op)
@@ -270,14 +286,17 @@ namespace
 
 Result AstUnaryExpr::semaPostNode(Sema& sema)
 {
-    const SemaNodeView nodeView(sema, nodeExprRef);
+    SemaNodeView nodeView(sema, nodeExprRef);
 
     // Value-check
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
     SemaInfo::setIsValue(*this);
 
+    // Force types
+    const Token& tok = sema.token(srcViewRef(), tokRef());
+    RESULT_VERIFY(promote(sema, tok.id, *this, nodeView));
+    
     // Type-check
-    const auto& tok = sema.token(srcViewRef(), tokRef());
     RESULT_VERIFY(check(sema, tok.id, *this, nodeView));
 
     // Constant folding

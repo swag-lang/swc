@@ -161,7 +161,6 @@ TypeInfo& TypeInfo::operator=(TypeInfo&& other) noexcept
     return *this;
 }
 
-
 uint32_t TypeInfo::hash() const
 {
     auto h = Math::hash(static_cast<uint32_t>(kind_));
@@ -851,6 +850,11 @@ Symbol* TypeInfo::getSymbolDependency(TaskContext& ctx) const
     }
 
     return nullptr;
+}
+
+bool TypeInfo::isEnumFlags() const noexcept
+{
+    return isEnum() && asEnum.sym->isEnumFlags();
 }
 
 bool TypeInfo::isLambdaClosure() const noexcept

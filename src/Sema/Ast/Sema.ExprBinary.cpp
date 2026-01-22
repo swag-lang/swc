@@ -329,14 +329,14 @@ namespace
         {
             if (nodeLeftView.type->isEnum())
             {
-                if (!nodeLeftView.type->symEnum().isEnumFlags())
+                if (!nodeLeftView.type->isEnumFlags())
                     return SemaError::raiseInvalidOpEnum(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
                 Cast::convertEnumToUnderlying(sema, nodeLeftView);
             }
 
             if (nodeRightView.type->isEnum())
             {
-                if (!nodeRightView.type->symEnum().isEnumFlags())
+                if (!nodeRightView.type->isEnumFlags())
                     return SemaError::raiseInvalidOpEnum(sema, node, node.nodeRightRef, nodeRightView.typeRef);
                 Cast::convertEnumToUnderlying(sema, nodeRightView);
             }

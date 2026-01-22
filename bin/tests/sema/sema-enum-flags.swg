@@ -148,3 +148,5 @@ const AND2 = 1 & JJ.A
 
 const XOR1 = JJ.A ^ 1
 const XOR2 = 1 ^ JJ.A
+
+const AA1 = ~JJ.A

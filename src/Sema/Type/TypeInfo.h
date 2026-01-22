@@ -129,6 +129,7 @@ public:
     bool isAnyVariadic() const noexcept { return isVariadic() || isTypedVariadic(); }
     bool isAnyString() const noexcept { return isString() || isCString(); }
 
+    bool isEnumFlags() const noexcept;
     bool isLambdaClosure() const noexcept;
     bool isLambdaMethod() const noexcept;
     bool isLambdaThrowable() const noexcept;

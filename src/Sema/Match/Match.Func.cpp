@@ -477,7 +477,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
 
         if (tie)
         {
-            SmallVector<Symbol*> ambiguousSymbols;
+            SmallVector<const Symbol*> ambiguousSymbols;
             for (const Attempt* a : viable)
             {
                 if (compareCandidates(a->candidate, best->candidate) == 0)

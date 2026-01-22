@@ -168,19 +168,6 @@ Result SemaError::raiseGhosting(Sema& sema, const Symbol* symbol, const Symbol* 
     return Result::Error;
 }
 
-Result SemaError::raiseAmbiguousSymbol(Sema& sema, AstNodeRef nodeRef, std::span<Symbol*> symbols)
-{
-    auto& ctx  = sema.ctx();
-    auto  diag = report(sema, DiagnosticId::sema_err_ambiguous_symbol, nodeRef);
-    for (const auto other : symbols)
-    {
-        diag.addNote(DiagnosticId::sema_note_could_be);
-        diag.last().addSpan(other->loc(ctx));
-    }
-    diag.report(ctx);
-    return Result::Error;
-}
-
 Result SemaError::raiseAmbiguousSymbol(Sema& sema, AstNodeRef nodeRef, std::span<const Symbol*> symbols)
 {
     auto& ctx  = sema.ctx();

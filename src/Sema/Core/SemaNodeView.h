@@ -21,8 +21,9 @@ struct SemaNodeView
     TypeRef     typeRef = TypeRef::invalid();
 
     SemaNodeView(Sema& sema, AstNodeRef ref);
-    void   setCstRef(Sema& sema, ConstantRef ref);
-    void   getSymbols(SmallVector<Symbol*>& symbols) const;
+    void compute(Sema& sema, AstNodeRef ref);
+    void setCstRef(Sema& sema, ConstantRef ref);
+    void getSymbols(SmallVector<Symbol*>& symbols) const;
 };
 
 SWC_END_NAMESPACE();

@@ -89,7 +89,6 @@ namespace Cast
 
     void convertEnumToUnderlying(Sema& sema, SemaNodeView& nodeView);
     void convertTypeToTypeValue(Sema& sema, SemaNodeView& nodeView);
-    void convertForEquality(Sema& sema, SemaNodeView& leftNodeView, SemaNodeView& rightNodeView);
 }
 
 SWC_END_NAMESPACE();

@@ -232,11 +232,50 @@ namespace
         return Result::Error;
     }
 
+    namespace
+    {
+        void typeToTypeValueForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
+        {
+            if (!self.type || !other.type)
+                return;
+            if (!self.type->isType())
+                return;
+            if (!other.type->isTypeValue())
+                return;
+            Cast::convertTypeToTypeValue(sema, self);
+        }
+
+        void enumForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
+        {
+            if (!self.type || !other.type)
+                return;
+            if (!self.type->isEnum())
+                return;
+            if (other.type->isEnum())
+                return;
+            Cast::convertEnumToUnderlying(sema, self);
+        }
+
+        void nullForEquality(Sema& sema, const SemaNodeView& self, const SemaNodeView& other)
+        {
+            if (!self.type || !other.type)
+                return;
+            if (!self.type->isNull())
+                return;
+            if (!other.type->isPointerLike())
+                return;
+            Cast::createImplicitCast(sema, other.typeRef, self.nodeRef);
+        }
+    }
+
     Result promote(Sema& sema, TokenId op, const AstRelationalExpr&, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
         if (op == TokenId::SymEqualEqual || op == TokenId::SymBangEqual)
         {
-            Cast::convertForEquality(sema, nodeLeftView, nodeRightView);
+            enumForEquality(sema, nodeLeftView, nodeRightView);
+            enumForEquality(sema, nodeRightView, nodeLeftView);
+            nullForEquality(sema, nodeLeftView, nodeRightView);
+            nullForEquality(sema, nodeRightView, nodeLeftView);
         }
 
         return Result::Continue;
@@ -269,13 +308,19 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
     SemaNodeView nodeRightView(sema, nodeRightRef);
     const auto&  tok = sema.token(srcViewRef(), tokRef());
 
-    // Force types
-    RESULT_VERIFY(promote(sema, tok.id, *this, nodeLeftView, nodeRightView));
+    if (tok.id == TokenId::SymEqualEqual || tok.id == TokenId::SymBangEqual)
+    {
+        typeToTypeValueForEquality(sema, nodeLeftView, nodeRightView);
+        typeToTypeValueForEquality(sema, nodeRightView, nodeLeftView);
+    }
 
     // Value-check
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftView.nodeRef));
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef));
     SemaInfo::setIsValue(*this);
+
+    // Force types
+    RESULT_VERIFY(promote(sema, tok.id, *this, nodeLeftView, nodeRightView));
 
     // Type-check
     RESULT_VERIFY(check(sema, tok.id, *this, nodeLeftView, nodeRightView));

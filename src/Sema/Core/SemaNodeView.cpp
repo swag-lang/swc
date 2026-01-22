@@ -8,6 +8,11 @@ SWC_BEGIN_NAMESPACE();
 
 SemaNodeView::SemaNodeView(Sema& sema, AstNodeRef ref)
 {
+    compute(sema, ref);
+}
+
+void SemaNodeView::compute(Sema& sema, AstNodeRef ref)
+{
     nodeRef = sema.semaInfo().getSubstituteRef(ref);
     if (!nodeRef.isValid())
         return;

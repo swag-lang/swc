@@ -39,6 +39,8 @@ public:
     void             setInterface(SymbolInterface* itf) { interface_ = itf; }
     SymbolFunction*  function() const { return function_; }
     void             setFunction(SymbolFunction* func) { function_ = func; }
+    TypeRef          typeHint() const { return typeHint_; }
+    void             setTypeHint(TypeRef type) { typeHint_ = type; }
 
     static SymbolMap* currentSymMap(Sema& sema);
     SymbolFlags       flagsForCurrentAccess() const;
@@ -51,6 +53,7 @@ private:
     SymbolImpl*                   impl_       = nullptr;
     SymbolInterface*              interface_  = nullptr;
     SymbolFunction*               function_   = nullptr;
+    TypeRef                       typeHint_   = TypeRef::invalid();
 };
 
 SWC_END_NAMESPACE();

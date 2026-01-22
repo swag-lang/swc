@@ -421,7 +421,7 @@ namespace
         logger.lock();
 
         Utf8 msg;
-        msg += LogColorHelper::toAnsi(ctx, LogColor::Red);
+        msg += LogColorHelper::toAnsi(ctx, LogColor::BrightRed);
         msg += "fatal error: hardware exception during job execution!\n";
         msg += std::format("exception code: 0x{}\n", args->ExceptionRecord->ExceptionCode);
         msg += LogColorHelper::toAnsi(ctx, LogColor::Reset);

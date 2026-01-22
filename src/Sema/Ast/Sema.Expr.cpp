@@ -100,11 +100,10 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
 
     const SymbolMap*      symMapHint = nullptr;
     const SymbolFunction* symFunc    = sema.frame().function();
-    const SymbolVariable* symMe      = nullptr;
 
     if (symFunc && !symFunc->parameters().empty())
     {
-        symMe = symFunc->parameters()[0];
+        const SymbolVariable* symMe = symFunc->parameters()[0];
         if (symMe->idRef() == sema.idMgr().nameMe())
         {
             const auto      typeRef  = symMe->typeRef();
@@ -116,10 +115,13 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
             else if (pointeeType.isEnum())
                 symMapHint = &pointeeType.symEnum();
         }
-        else
-        {
-            symMe = nullptr;
-        }
+    }
+
+    if (!symMapHint && sema.frame().typeHint().isValid())
+    {
+        const TypeInfo& typeInfo = sema.typeMgr().get(sema.frame().typeHint());
+        if (typeInfo.isEnum())
+            symMapHint = &typeInfo.symEnum();
     }
 
     if (!symMapHint)
@@ -141,11 +143,10 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
 
     // Substitute with an AstMemberAccessExpr
     auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::MemberAccessExpr>(tokRef());
-    auto [meRef, mePtr]     = sema.ast().makeNode<AstNodeId::Identifier>(tokRef());
-    sema.setSymbol(meRef, symMe);
-    SemaInfo::setIsValue(*mePtr);
+    auto [leftRef, leftPtr] = sema.ast().makeNode<AstNodeId::Identifier>(tokRef());
+    sema.setSymbol(leftRef, symMapHint);
 
-    nodePtr->nodeLeftRef  = meRef;
+    nodePtr->nodeLeftRef  = leftRef;
     nodePtr->nodeRightRef = nodeIdentRef;
 
     // Re-bind the resolved list to the substituted member-access node as well,

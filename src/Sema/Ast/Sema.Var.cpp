@@ -183,6 +183,17 @@ Result AstVarDecl::semaPreNode(Sema& sema) const
     return Match::ghosting(sema, sym);
 }
 
+Result AstVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeInitRef && nodeTypeRef.isValid())
+    {
+        const auto typeRef = sema.typeRefOf(nodeTypeRef);
+        if (typeRef.isValid())
+            sema.frame().setTypeHint(typeRef);
+    }
+    return Result::Continue;
+}
+
 Result AstVarDecl::semaPostNode(Sema& sema) const
 {
     Symbol& sym   = sema.symbolOf(sema.curNodeRef());
@@ -245,6 +256,17 @@ Result AstVarDeclNameList::semaPreNode(Sema& sema) const
         RESULT_VERIFY(Match::ghosting(sema, *sym));
     }
 
+    return Result::Continue;
+}
+
+Result AstVarDeclNameList::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeInitRef && nodeTypeRef.isValid())
+    {
+        const auto typeRef = sema.typeRefOf(nodeTypeRef);
+        if (typeRef.isValid())
+            sema.frame().setTypeHint(typeRef);
+    }
     return Result::Continue;
 }
 

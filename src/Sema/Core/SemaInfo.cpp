@@ -230,6 +230,7 @@ Symbol& SemaInfo::getSymbol(const TaskContext&, AstNodeRef nodeRef)
 
 void SemaInfo::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
 {
+    SWC_ASSERT(symbol);
     const uint32_t   shardIdx = nodeRef.get() % SEMA_SHARD_NUM;
     auto&            shard    = shards_[shardIdx];
     std::unique_lock lock(shard.mutex);

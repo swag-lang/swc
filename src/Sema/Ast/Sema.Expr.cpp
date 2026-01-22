@@ -93,12 +93,10 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     return checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols());
 }
 
-Result AstAutoMemberAccessExpr::semaPostNode(Sema& sema)
+Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) const
 {
-    const auto node = sema.node(sema.curNodeRef()).cast<AstAutoMemberAccessExpr>();
-
     // Parser tags the callee expression when building a call: `.foo()`.
-    const bool allowOverloadSet = node->hasFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
+    const bool allowOverloadSet = hasFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
 
     const SymbolMap*      symMapHint = nullptr;
     const SymbolFunction* symFunc    = sema.frame().function();
@@ -127,29 +125,28 @@ Result AstAutoMemberAccessExpr::semaPostNode(Sema& sema)
     if (!symMapHint)
         return SemaError::raise(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, sema.curNodeRef());
 
-    const SemaNodeView  nodeRightView(sema, node->nodeIdentRef);
+    const SemaNodeView  nodeRightView(sema, nodeIdentRef);
     const TokenRef      tokNameRef = nodeRightView.node->tokRef();
-    const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), node->srcViewRef(), tokNameRef);
+    const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
 
     MatchContext lookUpCxt;
-    lookUpCxt.srcViewRef = node->srcViewRef();
+    lookUpCxt.srcViewRef = srcViewRef();
     lookUpCxt.tokRef     = tokNameRef;
     lookUpCxt.symMapHint = symMapHint;
 
     RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
 
     // Bind the symbol list to the auto-member-access node (it gets substituted below).
-    const Result amb = checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols());
-    RESULT_VERIFY(amb);
+    RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
 
     // Substitute with an AstMemberAccessExpr
-    auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::MemberAccessExpr>(node->tokRef());
-    auto [meRef, mePtr]     = sema.ast().makeNode<AstNodeId::Identifier>(node->tokRef());
+    auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::MemberAccessExpr>(tokRef());
+    auto [meRef, mePtr]     = sema.ast().makeNode<AstNodeId::Identifier>(tokRef());
     sema.setSymbol(meRef, symMe);
     SemaInfo::setIsValue(*mePtr);
 
     nodePtr->nodeLeftRef  = meRef;
-    nodePtr->nodeRightRef = node->nodeIdentRef;
+    nodePtr->nodeRightRef = nodeIdentRef;
 
     // Re-bind the resolved list to the substituted member-access node as well,
     // so downstream passes can read from the final node.
@@ -158,7 +155,7 @@ Result AstAutoMemberAccessExpr::semaPostNode(Sema& sema)
     sema.semaInfo().setSubstitute(sema.curNodeRef(), nodeRef);
     SemaInfo::setIsValue(*nodePtr);
 
-    return Result::Continue;
+    return Result::SkipChildren;
 }
 
 Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)

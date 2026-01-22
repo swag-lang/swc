@@ -276,14 +276,8 @@ AstNodeRef Parser::parseFunctionArguments(AstNodeRef nodeExpr)
                 calleeNode.cast<AstMemberAccessExpr>()->addFlag(AstMemberAccessExprFlagsE::CallCallee);
                 break;
             case AstNodeId::AutoMemberAccessExpr:
-            {
-                const auto node = calleeNode.cast<AstAutoMemberAccessExpr>();
-                node->addFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
-                const auto child = ast_->node(node->nodeIdentRef).safeCast<AstIdentifier>();
-                if (child)
-                    child->addFlag(AstIdentifierFlagsE::CallCallee);
+                calleeNode.cast<AstAutoMemberAccessExpr>()->addFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
                 break;
-            }
             default:
                 break;
         }

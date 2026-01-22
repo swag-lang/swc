@@ -433,17 +433,14 @@ namespace
     int exceptionHandler(const Job& job, SWC_LP_EXCEPTION_POINTERS args)
     {
         const auto& ctx = job.ctx();
+        exceptionMessage(job, args);
 
-        if (Os::isDebuggerAttached() || ctx.cmdLine().dbgDevMode)
+        if (ctx.cmdLine().dbgDevMode)
         {
-            if (!ctx.cmdLine().automation)
-            {
-                Os::panicBox("Hardware EXCEPTION raised!");
-                return SWC_EXCEPTION_CONTINUE_EXECUTION;
-            }
+            Os::panicBox("Hardware EXCEPTION raised!");
+            return SWC_EXCEPTION_CONTINUE_EXECUTION;
         }
 
-        exceptionMessage(job, args);
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
 }

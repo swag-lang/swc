@@ -286,7 +286,7 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
 void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
 {
     ctx.global().logger().lock();
-    Logger::printDim(ctx, std::format("swag compiler 'swc' version {}.{}.{}\n", SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM));
+    Logger::printDim(ctx, std::format("swc: swag compiler version {}.{}.{}\n", SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM));
     Logger::printDim(ctx, "Usage:\n");
 
     if (command.empty())

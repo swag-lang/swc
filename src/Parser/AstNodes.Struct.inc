@@ -1147,7 +1147,8 @@ struct AstIfStmt : AstIfBaseT<AstNodeId::IfStmt>
         AstIfBaseT::collectChildren(out, ast);
     }
 
-    static Result semaPreNode(Sema&) { return Result::SkipChildren; }
+    Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1168,13 +1169,13 @@ struct AstIfVarDecl : AstIfBaseT<AstNodeId::IfVarDecl>
 // -----------------------------------------------------------------------------
 struct AstElseStmt : AstCompoundT<AstNodeId::ElseStmt>
 {
-    static Result semaPreNode(Sema&) { return Result::SkipChildren; }
+    static Result semaPreNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
 struct AstElseIfStmt : AstCompoundT<AstNodeId::ElseIfStmt>
 {
-    static Result semaPreNode(Sema&) { return Result::SkipChildren; }
+    static Result semaPreNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
@@ -1260,7 +1261,7 @@ struct AstForCStyleStmt : AstNodeT<AstNodeId::ForCStyleStmt>
     AstNodeRef nodePostStmtRef;
     AstNodeRef nodeBodyRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeVarDeclRef, nodeExprRef, nodePostStmtRef, nodeBodyRef}); }
+    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeVarDeclRef, nodeExprRef, nodePostStmtRef, nodeBodyRef}); }
     static Result semaPreNode(Sema&) { return Result::SkipChildren; }
 };
 
@@ -1272,7 +1273,7 @@ struct AstForStmt : AstNamedNodeT<AstNodeId::ForStmt>
     AstNodeRef       nodeWhereRef;
     AstNodeRef       nodeBodyRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeWhereRef, nodeBodyRef}); }
+    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeWhereRef, nodeBodyRef}); }
     static Result semaPreNode(Sema&) { return Result::SkipChildren; }
 };
 

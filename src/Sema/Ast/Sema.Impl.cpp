@@ -12,23 +12,17 @@ SWC_BEGIN_NAMESPACE();
 
 Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef != nodeIdentRef)
-        return Result::Continue;
+    if (childRef == nodeIdentRef)
+    {
+        const SemaNodeView  identView(sema, nodeIdentRef);
+        const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), identView.node->srcViewRef(), identView.node->tokRef());
+        SymbolImpl*         sym   = Symbol::make<SymbolImpl>(sema.ctx(), this, tokRef(), idRef, SymbolFlagsE::Zero);
+        sema.setSymbol(sema.curNodeRef(), sym);
 
-    const SemaNodeView  identView(sema, nodeIdentRef);
-    const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), identView.node->srcViewRef(), identView.node->tokRef());
-    SymbolImpl*         sym   = Symbol::make<SymbolImpl>(sema.ctx(), this, tokRef(), idRef, SymbolFlagsE::Zero);
-    sema.setSymbol(sema.curNodeRef(), sym);
+        sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::TopLevel | SemaScopeFlagsE::Impl);
+        sema.curScope().setSymMap(sym);
+    }
 
-    sema.pushScope(SemaScopeFlagsE::TopLevel | SemaScopeFlagsE::Impl);
-    sema.curScope().setSymMap(sym);
-
-    return Result::Continue;
-}
-
-Result AstImpl::semaPostDecl(Sema& sema)
-{
-    sema.popScope();
     return Result::Continue;
 }
 

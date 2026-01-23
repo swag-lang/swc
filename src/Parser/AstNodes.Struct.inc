@@ -50,9 +50,8 @@ struct AstImpl : AstCompoundT<AstNodeId::Impl, AstImplFlagsE>
         AstCompoundT::collectChildren(out, ast);
     }
 
-    Result        semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const;
-    static Result semaPostDecl(Sema& sema);
-    Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
 };
 
 // -----------------------------------------------------------------------------

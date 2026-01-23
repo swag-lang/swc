@@ -929,7 +929,6 @@ struct AstAttributeList : AstCompoundT<AstNodeId::AttributeList>
     }
 
     static Result semaPreNode(Sema& sema);
-    static Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

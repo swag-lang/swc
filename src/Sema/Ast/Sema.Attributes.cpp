@@ -104,13 +104,7 @@ Result AstAttrDecl::semaPostNode(Sema& sema)
 Result AstAttributeList::semaPreNode(Sema& sema)
 {
     const SemaFrame newFrame = sema.frame();
-    sema.pushFrame(newFrame);
-    return Result::Continue;
-}
-
-Result AstAttributeList::semaPostNode(Sema& sema)
-{
-    sema.popFrame();
+    sema.pushFrameAutoPopOnPostNode(newFrame);
     return Result::Continue;
 }
 

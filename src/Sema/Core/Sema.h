@@ -87,10 +87,6 @@ public:
 
     SemaScope&       curScope() { return *curScope_; }
     const SemaScope& curScope() const { return *curScope_; }
-    SemaScope*       pushScope(SemaScopeFlags flags);
-    void             popScope();
-    void             pushFrame(const SemaFrame& frame);
-    void             popFrame();
     void             pushFrameAutoPopOnPostChild(const SemaFrame& frame, AstNodeRef popAfterChildRef);
     void             pushFrameAutoPopOnPostNode(const SemaFrame& frame);
     SemaScope*       pushScopeAutoPopOnPostChild(SemaScopeFlags flags, AstNodeRef popAfterChildRef);
@@ -106,9 +102,10 @@ public:
     static void waitDone(TaskContext& ctx, JobClientId clientId);
 
 private:
-    TaskContext* ctx_      = nullptr;
-    SemaInfo*    semaInfo_ = nullptr;
-    AstVisit     visit_;
+    SemaScope* pushScope(SemaScopeFlags flags);
+    void       popScope();
+    void       pushFrame(const SemaFrame& frame);
+    void       popFrame();
 
     void   setVisitors();
     Result preDecl(AstNode& node);
@@ -122,8 +119,10 @@ private:
 
     void processDeferredPopsPostChild(AstNodeRef nodeRef, AstNodeRef childRef);
     void processDeferredPopsPostNode(AstNodeRef nodeRef);
-    void pushDebugInfo();
-    void popDebugInfo(const AstNode& node, Result result);
+
+    TaskContext* ctx_      = nullptr;
+    SemaInfo*    semaInfo_ = nullptr;
+    AstVisit     visit_;
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;
     SymbolMap*                              startSymMap_ = nullptr;
@@ -152,15 +151,6 @@ private:
 
     std::vector<DeferredPopFrame> deferredPopFrames_;
     std::vector<DeferredPopScope> deferredPopScopes_;
-
-#if SWC_HAS_SEMA_DEBUG_INFO
-    struct NodeStackEntry
-    {
-        size_t scopeCount;
-        size_t frameCount;
-    };
-    std::vector<NodeStackEntry> nodeStack_;
-#endif
 };
 
 SWC_END_NAMESPACE();

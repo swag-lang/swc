@@ -185,13 +185,13 @@ SemaScope* Sema::pushScopeAutoPopOnPostChild(SemaScopeFlags flags, AstNodeRef po
     return scope;
 }
 
-SemaScope* Sema::pushScopeAutoPopOnPostNode(SemaScopeFlags flags)
+SemaScope* Sema::pushScopeAutoPopOnPostNode(SemaScopeFlags flags, AstNodeRef popNodeRef)
 {
     SemaScope*   scope  = pushScope(flags);
     const size_t before = scopes_.size();
     SWC_ASSERT(before > 0);
     deferredPopScopes_.push_back({
-        .nodeRef                  = curNodeRef(),
+        .nodeRef                  = popNodeRef.isValid() ? popNodeRef : curNodeRef(),
         .childRef                 = AstNodeRef::invalid(),
         .onPostNode               = true,
         .expectedScopeCountBefore = before,

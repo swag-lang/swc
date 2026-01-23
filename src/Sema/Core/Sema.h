@@ -94,7 +94,7 @@ public:
     void             pushFrameAutoPopOnPostChild(const SemaFrame& frame, AstNodeRef popAfterChildRef);
     void             pushFrameAutoPopOnPostNode(const SemaFrame& frame);
     SemaScope*       pushScopeAutoPopOnPostChild(SemaScopeFlags flags, AstNodeRef popAfterChildRef);
-    SemaScope*       pushScopeAutoPopOnPostNode(SemaScopeFlags flags);
+    SemaScope*       pushScopeAutoPopOnPostNode(SemaScopeFlags flags, AstNodeRef popNodeRef = AstNodeRef::invalid());
     bool             enteringState() const { return visit_.enteringState(); }
 
     Result      waitIdentifier(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef);

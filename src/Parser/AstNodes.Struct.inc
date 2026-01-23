@@ -19,9 +19,7 @@ struct AstFile : AstCompoundT<AstNodeId::File>
     }
 
     Result        semaPreDecl(Sema& sema) const;
-    static Result semaPostDecl(Sema& sema);
     static Result semaPreNode(Sema& sema);
-    static Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

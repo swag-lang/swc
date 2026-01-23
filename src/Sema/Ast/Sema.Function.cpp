@@ -39,7 +39,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
 
     SemaFrame frame = sema.frame();
     frame.setFunction(&sym);
-    sema.pushFrame(frame);
+    sema.pushFrameAutoPopOnPostNode(frame);
     return Result::Continue;
 }
 
@@ -122,7 +122,6 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
 {
     SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
     sym.setCompleted(sema.ctx());
-    sema.popFrame();
     return Result::Continue;
 }
 

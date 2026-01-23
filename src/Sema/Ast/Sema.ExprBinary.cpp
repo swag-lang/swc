@@ -370,14 +370,15 @@ namespace
     }
 }
 
-Result AstBinaryExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+Result AstBinaryExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef == nodeRightRef)
+    if (childRef == nodeLeftRef)
     {
-        const auto typeRef = sema.typeRefOf(nodeLeftRef);
-        if (typeRef.isValid())
-            sema.frame().setTypeHint(typeRef);
+        const SemaNodeView nodeLeftView(sema, nodeLeftRef);
+        if (nodeLeftView.typeRef.isValid())
+            sema.frame().setTypeHint(nodeLeftView.typeRef);
     }
+
     return Result::Continue;
 }
 

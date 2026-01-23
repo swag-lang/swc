@@ -183,14 +183,15 @@ Result AstVarDecl::semaPreNode(Sema& sema) const
     return Match::ghosting(sema, sym);
 }
 
-Result AstVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+Result AstVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef == nodeInitRef && nodeTypeRef.isValid())
+    if (childRef == nodeTypeRef)
     {
-        const auto typeRef = sema.typeRefOf(nodeTypeRef);
-        if (typeRef.isValid())
-            sema.frame().setTypeHint(typeRef);
+        const SemaNodeView nodeTypeView(sema, nodeTypeRef);
+        if (nodeTypeView.typeRef.isValid())
+            sema.frame().setTypeHint(nodeTypeView.typeRef);
     }
+
     return Result::Continue;
 }
 
@@ -259,14 +260,15 @@ Result AstVarDeclNameList::semaPreNode(Sema& sema) const
     return Result::Continue;
 }
 
-Result AstVarDeclNameList::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+Result AstVarDeclNameList::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef == nodeInitRef && nodeTypeRef.isValid())
+    if (childRef == nodeTypeRef)
     {
-        const auto typeRef = sema.typeRefOf(nodeTypeRef);
-        if (typeRef.isValid())
-            sema.frame().setTypeHint(typeRef);
+        const SemaNodeView nodeTypeView(sema, nodeTypeRef);
+        if (nodeTypeView.typeRef.isValid())
+            sema.frame().setTypeHint(nodeTypeView.typeRef);
     }
+
     return Result::Continue;
 }
 

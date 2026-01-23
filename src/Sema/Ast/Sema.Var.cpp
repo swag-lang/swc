@@ -207,13 +207,7 @@ Result AstVarDecl::semaPostNode(Sema& sema) const
 {
     Symbol& sym   = sema.symbolOf(sema.curNodeRef());
     Symbol* one[] = {&sym};
-    return semaPostVarDeclCommon(sema,
-                                 *this,
-                                 tokNameRef,
-                                 nodeInitRef,
-                                 nodeTypeRef,
-                                 flags(),
-                                 std::span<Symbol*>{one});
+    return semaPostVarDeclCommon(sema, *this, tokNameRef, nodeInitRef, nodeTypeRef, flags(), std::span<Symbol*>{one});
 }
 
 Result AstVarDeclNameList::semaPreDecl(Sema& sema) const
@@ -291,13 +285,7 @@ Result AstVarDeclNameList::semaPostNodeChild(Sema& sema, const AstNodeRef& child
 Result AstVarDeclNameList::semaPostNode(Sema& sema) const
 {
     const auto symbols = sema.getSymbolList(sema.curNodeRef());
-    return semaPostVarDeclCommon(sema,
-                                 *this,
-                                 tokRef(),
-                                 nodeInitRef,
-                                 nodeTypeRef,
-                                 flags(),
-                                 symbols);
+    return semaPostVarDeclCommon(sema, *this, tokRef(), nodeInitRef, nodeTypeRef, flags(), symbols);
 }
 
 SWC_END_NAMESPACE();

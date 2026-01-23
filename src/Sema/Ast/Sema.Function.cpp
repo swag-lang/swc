@@ -71,7 +71,7 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     if (childRef == nodeParamsRef)
     {
         SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
-        sema.pushScope(SemaScopeFlagsE::Parameters);
+        sema.pushScopeAutoPopOnPostChild(SemaScopeFlagsE::Parameters, childRef);
         sema.curScope().setSymMap(&sym);
         if (sym.isMethod())
             addMeParameter(sema, sym);
@@ -80,7 +80,7 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     {
         return Result::SkipChildren; // TODO
         SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
-        sema.pushScope(SemaScopeFlagsE::Local);
+        sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::Local);
         sema.curScope().setSymMap(&sym);
     }
 
@@ -89,9 +89,6 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
 
 Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef == nodeParamsRef && sema.enteringState())
-        sema.popScope();
-
     if (childRef == nodeReturnTypeRef || (childRef == nodeParamsRef && nodeReturnTypeRef.isInvalid()))
     {
         SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
@@ -109,10 +106,6 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
         RESULT_VERIFY(SemaCheck::checkSignature(sema, sym.parameters(), false));
         if (!sym.isEmpty())
             RESULT_VERIFY(Match::ghosting(sema, sym));
-    }
-    else if (childRef == nodeBodyRef)
-    {
-        sema.popScope();
     }
 
     return Result::Continue;

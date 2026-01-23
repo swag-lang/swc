@@ -577,14 +577,8 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
 Result AstCompilerFunc::semaPreNode(Sema& sema)
 {
     SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
-    sema.pushScope(SemaScopeFlagsE::Local);
+    sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::Local);
     sema.curScope().setSymMap(&sym);
-    return Result::Continue;
-}
-
-Result AstCompilerFunc::semaPostNode(Sema& sema)
-{
-    sema.popScope();
     return Result::Continue;
 }
 

@@ -53,7 +53,7 @@ Result AstAttrDecl::semaPreDecl(Sema& sema) const
     SymbolAttribute& sym = SemaHelpers::registerSymbol<SymbolAttribute>(sema, *this, tokNameRef);
 
     // Predefined attributes
-    if (sym.symMap()->isSwagNamespace(sema.ctx()))
+    if (sym.inSwagNamespace(sema.ctx()))
     {
         if (sym.idRef() == sema.idMgr().nameEnumFlags())
             sym.setSwagAttributeFlags(SwagAttributeFlagsE::EnumFlags);

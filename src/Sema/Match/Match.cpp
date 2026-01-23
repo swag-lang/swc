@@ -151,6 +151,15 @@ namespace
                 addSymMap(lookUpCxt, symMap, priority);
             }
 
+            for (const auto* symbol : scope->symbols())
+            {
+                MatchContext::Priority priority;
+                priority.scopeDepth  = scopeDepth;
+                priority.visibility  = MatchContext::VisibilityTier::LocalScope;
+                priority.searchOrder = searchOrder++;
+                lookUpCxt.localSymbols.push_back({symbol, priority});
+            }
+
             // Namespaces imported via "using" in this scope:
             for (const auto* usingSymMap : scope->usingSymMaps())
             {
@@ -202,6 +211,12 @@ namespace
             // for each matching symbol it finds.
             symMap->lookupAppend(idRef, lookUpCxt);
         }
+
+        for (const auto& local : lookUpCxt.localSymbols)
+        {
+            if (local.symbol->idRef() == idRef)
+                lookUpCxt.addSymbol(local.symbol, local.priority);
+        }
     }
 }
 
@@ -243,11 +258,16 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
     if (lookUpCxt.count() == 1)
         return Result::Continue;
 
+    const auto* symMapOfSym = sym.ownerSymMap();
+
     for (const auto* other : lookUpCxt.symbols())
     {
         if (other == &sym)
             continue;
-        if (other->symMap() != sym.symMap())
+
+        // If it's a "local" symbol in SemaScope::symbols_, it doesn't have a symMap (it's null).
+        // So if BOTH are null, they are in the same scope.
+        if (other->ownerSymMap() != symMapOfSym)
             continue;
 
         if (sym.acceptOverloads() && other->acceptOverloads())

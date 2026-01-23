@@ -89,9 +89,12 @@ bool Symbol::isType() const
     return false;
 }
 
-bool Symbol::isSwagNamespace(const TaskContext& ctx) const noexcept
+bool Symbol::inSwagNamespace(const TaskContext& ctx) const noexcept
 {
-    return isNamespace() && idRef() == ctx.idMgr().nameSwag();
+    const SymbolMap* const map = ownerSymMap();
+    if (!map)
+        return false;
+    return map->isNamespace() && map->idRef() == ctx.idMgr().nameSwag();
 }
 
 bool Symbol::deepCompare(const Symbol* other) const noexcept
@@ -135,7 +138,7 @@ void Symbol::appendFullScopedName(const TaskContext& ctx, Utf8& out) const
     while (map)
     {
         scopeChain.push_back(map);
-        map = map->symMap();
+        map = map->ownerSymMap();
     }
 
     // Emit in reverse (outer to inner)

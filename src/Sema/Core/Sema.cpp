@@ -18,7 +18,7 @@ SWC_BEGIN_NAMESPACE();
 Sema::Sema(TaskContext& ctx, SemaInfo& semInfo, bool declPass) :
     ctx_(&ctx),
     semaInfo_(&semInfo),
-    startSymMap_(semaInfo().moduleNamespace().symMap()),
+    startSymMap_(semaInfo().moduleNamespace().ownerSymMap()),
     declPass_(declPass)
 {
     visit_.start(semaInfo_->ast(), semaInfo_->ast().root());

@@ -14,16 +14,21 @@ namespace SemaHelpers
     {
         auto& ctx = sema.ctx();
 
-        const IdentifierRef idRef     = sema.idMgr().addIdentifier(ctx, node.srcViewRef(), tokNameRef);
-        const SymbolFlags   flags     = sema.frame().flagsForCurrentAccess();
-        SymbolMap*          symbolMap = SemaFrame::currentSymMap(sema);
+        const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, node.srcViewRef(), tokNameRef);
+        const SymbolFlags   flags = sema.frame().flagsForCurrentAccess();
 
-        T* sym = Symbol::make<T>(ctx, &node, tokNameRef, idRef, flags);
-        symbolMap->addSymbol(ctx, sym, true);
+        T*         sym       = Symbol::make<T>(ctx, &node, tokNameRef, idRef, flags);
+        SymbolMap* symbolMap = SemaFrame::currentSymMap(sema);
+
+        if (sema.curScope().isLocal())
+            sema.curScope().addSymbol(sym);
+        else
+            symbolMap->addSymbol(ctx, sym, true);
+
+        handleSymbolRegistration(sema, symbolMap, sym);
         sym->registerCompilerIf(sema);
         sema.setSymbol(sema.curNodeRef(), sym);
 
-        handleSymbolRegistration(sema, symbolMap, sym);
         return *sym;
     }
 
@@ -36,13 +41,22 @@ namespace SemaHelpers
     template<typename T>
     T& registerUniqueSymbol(Sema& sema, const AstNode& node, const std::string_view& name)
     {
-        auto&               ctx    = sema.ctx();
-        const IdentifierRef idRef  = getUniqueIdentifier(sema, name);
-        const SymbolFlags   flags  = sema.frame().flagsForCurrentAccess();
-        SymbolMap*          symMap = SemaFrame::currentSymMap(sema);
+        auto&               ctx   = sema.ctx();
+        const IdentifierRef idRef = getUniqueIdentifier(sema, name);
+        const SymbolFlags   flags = sema.frame().flagsForCurrentAccess();
 
         T* sym = Symbol::make<T>(ctx, &node, node.tokRef(), idRef, flags);
-        symMap->addSymbol(ctx, sym, true);
+
+        if (sema.curScope().isLocal() && !sema.curScope().symMap())
+        {
+            sema.curScope().addSymbol(sym);
+        }
+        else
+        {
+            SymbolMap* symMap = SemaFrame::currentSymMap(sema);
+            symMap->addSymbol(ctx, sym, true);
+        }
+
         sema.setSymbol(sema.curNodeRef(), sym);
 
         return *sym;

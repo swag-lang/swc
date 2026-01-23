@@ -166,7 +166,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
         if (insertedSym == symbol)
         {
             count_++;
-            symbol->setSymMap(this);
+            symbol->setOwnerSymMap(this);
         }
 
         return insertedSym;
@@ -182,7 +182,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
         if (insertedSym == symbol)
         {
             count_++;
-            symbol->setSymMap(this);
+            symbol->setOwnerSymMap(this);
         }
 
         return insertedSym;
@@ -195,7 +195,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
             if (!acceptHomonyms)
                 return e->head;
             count_++;
-            symbol->setSymMap(this);
+            symbol->setOwnerSymMap(this);
             prependSymbol(e->head, symbol);
             ctx.compiler().notifyAlive();
             return symbol;
@@ -204,7 +204,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
         if (smallSize_ < SMALL_CAP)
         {
             count_++;
-            symbol->setSymMap(this);
+            symbol->setOwnerSymMap(this);
             symbol->setNextHomonym(nullptr);
             small_[smallSize_++] = Entry{.head = symbol, .key = idRef};
             ctx.compiler().notifyAlive();
@@ -228,7 +228,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
         if (insertedSym == symbol)
         {
             count_++;
-            symbol->setSymMap(this);
+            symbol->setOwnerSymMap(this);
         }
 
         return insertedSym;
@@ -245,7 +245,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
     Symbol*& head = bigMap_[idRef];
     prependSymbol(head, symbol);
     count_++;
-    symbol->setSymMap(this);
+    symbol->setOwnerSymMap(this);
     ctx.compiler().notifyAlive();
     return symbol;
 }

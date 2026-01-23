@@ -28,11 +28,10 @@
 {
     if true
     {
-        var x = 0;
+        var x = 0
     }
 
-    // x should not be visible here
-    var y = x
+    var y = x // swc-expected-error {{sema_err_unknown_symbol}}
 }
 
 #test
@@ -53,7 +52,7 @@
     {
         if true
         {
-            var x = 0;
+            var x = 0
         }
     }
 }

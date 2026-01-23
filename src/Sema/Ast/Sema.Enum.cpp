@@ -27,7 +27,7 @@ Result AstEnumDecl::semaPreNode(Sema& sema) const
         // Runtime: enum 'AttributeUsage' is forced to be in flag mode.
         // (we can't rely on #[Swag.EnumFlags] as attributes are constructed there)
         Symbol& sym = sema.symbolOf(sema.curNodeRef());
-        if (sym.symMap()->isSwagNamespace(sema.ctx()))
+        if (sym.inSwagNamespace(sema.ctx()))
         {
             if (sym.idRef() == sema.idMgr().nameAttributeUsage())
                 sym.attributes().addSwagFlag(SwagAttributeFlagsE::EnumFlags);
@@ -115,7 +115,7 @@ Result AstEnumDecl::semaPostNode(Sema& sema) const
         return SemaError::raise(sema, DiagnosticId::sema_err_empty_enum, srcViewRef(), tokNameRef);
 
     // Runtime enum
-    if (sym.symMap()->isSwagNamespace(sema.ctx()))
+    if (sym.inSwagNamespace(sema.ctx()))
     {
         const auto& idMgr   = sema.idMgr();
         auto&       typeMgr = sema.typeMgr();

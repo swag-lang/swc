@@ -26,8 +26,9 @@ public:
     {
     }
 
-    SemaScope*     parent() const { return parent_; }
-    void           setParent(SemaScope* parent) { parent_ = parent; }
+    SemaScope* parent() const { return parent_; }
+    void       setParent(SemaScope* parent) { parent_ = parent; }
+
     SemaScopeFlags flags() const { return flags_; }
     bool           hasFlag(SemaScopeFlags flag) const { return flags_.has(flag); }
     bool           isTopLevel() const { return hasFlag(SemaScopeFlagsE::TopLevel); }
@@ -44,11 +45,15 @@ public:
     void                           addUsingSymMap(SymbolMap* symMap) { usingSymMaps_.push_back(symMap); }
     const SmallVector<SymbolMap*>& usingSymMaps() const { return usingSymMaps_; }
 
+    void                        addSymbol(Symbol* symbol) { symbols_.push_back(symbol); }
+    const SmallVector<Symbol*>& symbols() const { return symbols_; }
+
 private:
     SemaScope*              parent_ = nullptr;
     SemaScopeFlags          flags_  = SemaScopeFlagsE::Zero;
     SymbolMap*              symMap_ = nullptr;
     SmallVector<SymbolMap*> usingSymMaps_;
+    SmallVector<Symbol*>    symbols_;
 };
 
 SWC_END_NAMESPACE();

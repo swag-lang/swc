@@ -14,7 +14,7 @@ Result AstStructDecl::semaPreDecl(Sema& sema) const
     auto& sym = SemaHelpers::registerSymbol<SymbolStruct>(sema, *this, tokNameRef);
 
     // Runtime struct
-    if (sym.symMap()->isSwagNamespace(sema.ctx()))
+    if (sym.inSwagNamespace(sema.ctx()))
     {
         const auto&         idMgr = sema.idMgr();
         const IdentifierRef idRef = sym.idRef();
@@ -73,7 +73,7 @@ Result AstStructDecl::semaPostNode(Sema& sema)
     SymbolStruct& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolStruct>();
 
     // Runtime struct
-    if (sym.symMap()->isSwagNamespace(sema.ctx()))
+    if (sym.inSwagNamespace(sema.ctx()))
     {
         const auto&         idMgr   = sema.idMgr();
         auto&               typeMgr = sema.typeMgr();

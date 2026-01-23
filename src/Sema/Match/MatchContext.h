@@ -41,6 +41,13 @@ public:
     void beginSymMapLookup(const Priority& priority);
     void addSymbol(const Symbol* symbol, const Priority& priority);
 
+    struct LocalSymbol
+    {
+        const Symbol* symbol;
+        Priority      priority;
+    };
+    SmallVector<LocalSymbol> localSymbols;
+
     void addSymbol(const Symbol* symbol)
     {
         SWC_ASSERT(hasCurrentPriority_);

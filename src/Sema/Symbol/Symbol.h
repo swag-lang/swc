@@ -96,10 +96,9 @@ public:
     void registerCompilerIf(Sema& sema);
     void registerAttributes(Sema& sema);
 
-    SymbolMap*       symMap() noexcept { return ownerSymMap_; }
-    const SymbolMap* symMap() const noexcept { return ownerSymMap_; }
-    void             setSymMap(SymbolMap* symMap) noexcept { ownerSymMap_ = symMap; }
-    bool             isTopLevel() const noexcept { return ownerSymMap_ == nullptr; }
+    SymbolMap*       ownerSymMap() noexcept { return ownerSymMap_; }
+    const SymbolMap* ownerSymMap() const noexcept { return ownerSymMap_; }
+    void             setOwnerSymMap(SymbolMap* symMap) noexcept { ownerSymMap_ = symMap; }
 
     bool is(SymbolKind kind) const noexcept { return kind_ == kind; }
     bool isNamespace() const noexcept { return kind_ == SymbolKind::Namespace; }
@@ -118,7 +117,7 @@ public:
     bool isSymMap() const noexcept { return isNamespace() || isModule() || isEnum() || isStruct() || isInterface() || isImpl(); }
     bool isType() const;
     bool isValueExpr() const noexcept { return isVariable() || isConst() || isEnumValue(); }
-    bool isSwagNamespace(const TaskContext& ctx) const noexcept;
+    bool inSwagNamespace(const TaskContext& ctx) const noexcept;
     bool acceptOverloads() const noexcept { return isFunction() || isAttribute(); }
     bool deepCompare(const Symbol* other) const noexcept;
 

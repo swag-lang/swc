@@ -3,7 +3,6 @@
 #include "Core/Timer.h"
 #include "Core/Utf8Helper.h"
 #include "Lexer/LangSpec.h"
-#include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"

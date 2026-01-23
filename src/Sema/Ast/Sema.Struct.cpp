@@ -50,20 +50,20 @@ Result AstStructDecl::semaPreNode(Sema& sema) const
 
 Result AstStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef != nodeBodyRef)
-        return Result::Continue;
+    if (childRef == nodeBodyRef)
+    {
+        auto& ctx = sema.ctx();
 
-    auto& ctx = sema.ctx();
+        // Creates symbol with type
+        SymbolStruct&  sym           = sema.symbolOf(sema.curNodeRef()).cast<SymbolStruct>();
+        const TypeInfo structType    = TypeInfo::makeStruct(&sym);
+        const TypeRef  structTypeRef = ctx.typeMgr().addType(structType);
+        sym.setTypeRef(structTypeRef);
+        sym.setTyped(sema.ctx());
 
-    // Creates symbol with type
-    SymbolStruct&  sym           = sema.symbolOf(sema.curNodeRef()).cast<SymbolStruct>();
-    const TypeInfo structType    = TypeInfo::makeStruct(&sym);
-    const TypeRef  structTypeRef = ctx.typeMgr().addType(structType);
-    sym.setTypeRef(structTypeRef);
-    sym.setTyped(sema.ctx());
-
-    sema.pushScope(SemaScopeFlagsE::Type);
-    sema.curScope().setSymMap(&sym);
+        sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::Type);
+        sema.curScope().setSymMap(&sym);
+    }
 
     return Result::Continue;
 }
@@ -123,7 +123,6 @@ Result AstStructDecl::semaPostNode(Sema& sema)
     RESULT_VERIFY(sym.canBeCompleted(sema));
     sym.computeLayout(sema);
     sym.setCompleted(sema.ctx());
-    sema.popScope();
     return Result::Continue;
 }
 

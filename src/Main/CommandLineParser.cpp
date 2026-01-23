@@ -369,7 +369,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
     {
         const Utf8        command = argc >= 3 ? argv[2] : "";
         CommandLineParser parser(*global_, *cmdLine_);
-        if (!command.empty() && parser.isAllowedCommand(command) == CommandKind::Invalid)
+        if (!command.empty() && isAllowedCommand(command) == CommandKind::Invalid)
         {
             auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_command);
             parser.setReportArguments(diag, command);

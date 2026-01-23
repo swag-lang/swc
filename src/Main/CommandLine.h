@@ -12,20 +12,18 @@ struct CommandInfo
 
 inline constexpr CommandInfo G_COMMANDS[] = {
     {"syntax", "Check the syntax of the source code without generating any IR or backend code."},
-    {"format", "Format the source code according to the style guide."},
     {"sema", "Perform semantic analysis on the source code, including type checking."},
 };
 enum class CommandKind
 {
-    Syntax  = 0,
-    Format  = 1,
-    Sema    = 2,
+    Syntax,
+    Sema,
     Invalid = -1,
 };
 
 struct CommandLine
 {
-    CommandKind command = CommandKind::Format;
+    CommandKind command = CommandKind::Syntax;
 
     Runtime::TargetOs targetOs = Runtime::TargetOs::Windows;
 

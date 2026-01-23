@@ -105,9 +105,6 @@ void CompilerInstance::processCommand()
         case CommandKind::Syntax:
             Command::syntax(*this);
             break;
-        case CommandKind::Format:
-            Command::format(*this);
-            break;
         case CommandKind::Sema:
             Command::sema(*this);
             break;

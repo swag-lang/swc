@@ -23,19 +23,27 @@ constexpr size_t SHORT_NO_PREFIX_LEN = 4;
 // Adjust to match your tool's commands.
 CommandKind CommandLineParser::isAllowedCommand(const Utf8& cmd)
 {
-    const Utf8         ac = ALLOWED_COMMANDS;
-    std::istringstream iss(ac);
-
-    Utf8 allowed;
-    int  index = 0;
-    while (std::getline(iss, allowed, '|'))
+    int index = 0;
+    for (const auto& allowed : COMMANDS)
     {
-        if (allowed == cmd)
+        if (allowed.name == cmd)
             return static_cast<CommandKind>(index);
         index++;
     }
 
     return CommandKind::Invalid;
+}
+
+Utf8 CommandLineParser::getAllowedCommands()
+{
+    Utf8 result;
+    for (const auto& cmd : COMMANDS)
+    {
+        if (!result.empty())
+            result += "|";
+        result += cmd.name;
+    }
+    return result;
 }
 
 void CommandLineParser::setReportArguments(Diagnostic& diag, const Utf8& arg)
@@ -296,13 +304,10 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
 
         Logger::printDim(ctx, "Commands:\n");
         size_t maxLen = 0;
-        for (const auto& cmd : G_COMMANDS)
+        for (const auto& cmd : COMMANDS)
             maxLen = std::max(maxLen, strlen(cmd.name));
-
-        for (const auto& cmd : G_COMMANDS)
-        {
+        for (const auto& cmd : COMMANDS)
             Logger::printDim(ctx, std::format("    {:<{}}    {}\n", cmd.name, maxLen, cmd.description));
-        }
     }
     else
     {
@@ -373,7 +378,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
         {
             auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_command);
             parser.setReportArguments(diag, command);
-            diag.addArgument(Diagnostic::ARG_VALUES, ALLOWED_COMMANDS);
+            diag.addArgument(Diagnostic::ARG_VALUES, getAllowedCommands());
             diag.report(ctx);
             return Result::Error;
         }
@@ -399,7 +404,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
         {
             auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_command);
             setReportArguments(diag, argv[1]);
-            diag.addArgument(Diagnostic::ARG_VALUES, ALLOWED_COMMANDS);
+            diag.addArgument(Diagnostic::ARG_VALUES, getAllowedCommands());
             diag.report(ctx);
             return Result::Error;
         }

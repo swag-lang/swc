@@ -57,6 +57,7 @@ private:
 
     void                   printHelp(const TaskContext& ctx, const Utf8& command = "");
     static CommandKind     isAllowedCommand(const Utf8& cmd);
+    static Utf8            getAllowedCommands();
     void                   setReportArguments(Diagnostic& diag, const Utf8& arg);
     void                   setReportArguments(Diagnostic& diag, const ArgInfo& info, const Utf8& arg);
     bool                   getNextValue(TaskContext& ctx, const Utf8& arg, int& index, int argc, char* argv[], Utf8& value);

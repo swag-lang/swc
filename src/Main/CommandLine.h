@@ -3,14 +3,13 @@
 
 SWC_BEGIN_NAMESPACE();
 
-inline constexpr auto ALLOWED_COMMANDS = "syntax|format|sema";
 struct CommandInfo
 {
     const char* name;
     const char* description;
 };
 
-inline constexpr CommandInfo G_COMMANDS[] = {
+inline constexpr CommandInfo COMMANDS[] = {
     {"syntax", "Check the syntax of the source code without generating any IR or backend code."},
     {"sema", "Perform semantic analysis on the source code, including type checking."},
 };

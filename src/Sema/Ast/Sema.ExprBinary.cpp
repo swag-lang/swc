@@ -375,8 +375,14 @@ Result AstBinaryExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
     if (childRef == nodeLeftRef)
     {
         const SemaNodeView nodeLeftView(sema, nodeLeftRef);
-        if (nodeLeftView.typeRef.isValid())
-            sema.frame().setTypeHint(nodeLeftView.typeRef);
+        auto               frame = sema.frame();
+        frame.setTypeHint(nodeLeftView.typeRef);
+        sema.pushFrame(frame);
+    }
+
+    if (childRef == nodeRightRef)
+    {
+        sema.popFrame();
     }
 
     return Result::Continue;

@@ -354,6 +354,7 @@ Result semaPreNode(Sema& sema, AstNode& node)
 template<AstNodeId ID>
 Result semaPreNodeChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
 {
+    SWC_ASSERT(childRef.isValid());
     using NodeType = AstTypeOf<ID>::type;
     return node.cast<NodeType>()->semaPreNodeChild(sema, childRef);
 }
@@ -361,6 +362,7 @@ Result semaPreNodeChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
 template<AstNodeId ID>
 Result semaPostNodeChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
 {
+    SWC_ASSERT(childRef.isValid());
     using NodeType = AstTypeOf<ID>::type;
     return node.cast<NodeType>()->semaPostNodeChild(sema, childRef);
 }

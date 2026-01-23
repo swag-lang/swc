@@ -219,7 +219,6 @@ struct AstAttrDecl : AstNamedNodeT<AstNodeId::AttrDecl>
     Result        semaPreDecl(Sema& sema) const;
     Result        semaPreNode(Sema& sema) const;
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     static Result semaPostNode(Sema& sema);
 };
 

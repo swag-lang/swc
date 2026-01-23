@@ -77,17 +77,8 @@ Result AstAttrDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
         return Result::Continue;
 
     SymbolAttribute& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolAttribute>();
-    sema.pushScope(SemaScopeFlagsE::Parameters);
+    sema.pushScopeAutoPopOnPostChild(SemaScopeFlagsE::Parameters, nodeParamsRef);
     sema.curScope().setSymMap(&sym);
-    return Result::Continue;
-}
-
-Result AstAttrDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
-{
-    if (childRef != nodeParamsRef)
-        return Result::Continue;
-
-    sema.popScope();
     return Result::Continue;
 }
 

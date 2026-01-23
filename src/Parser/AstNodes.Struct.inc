@@ -996,7 +996,6 @@ struct AstAccessModifier : AstNodeT<AstNodeId::AccessModifier>
 
     void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeWhatRef}); }
     Result        semaPreDecl(Sema& sema) const;
-    static Result semaPostDecl(Sema& sema);
     Result        semaPreNode(Sema& sema) const;
     static Result semaPostNode(Sema& sema);
 };

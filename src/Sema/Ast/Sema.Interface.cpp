@@ -40,9 +40,8 @@ Result AstInterfaceDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
 
     SemaFrame frame = sema.frame();
     frame.setInterface(&symItf);
-    sema.pushFrame(frame);
-
-    sema.pushScope(SemaScopeFlagsE::Type | SemaScopeFlagsE::Interface);
+    sema.pushFrameAutoPopOnPostNode(frame);
+    sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::Type | SemaScopeFlagsE::Interface);
     sema.curScope().setSymMap(&symItf);
 
     return Result::Continue;
@@ -51,13 +50,8 @@ Result AstInterfaceDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
 Result AstInterfaceDecl::semaPostNode(Sema& sema)
 {
     auto& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolInterface>();
-
     RESULT_VERIFY(sym.canBeCompleted(sema));
     sym.setCompleted(sema.ctx());
-
-    sema.popScope();
-    sema.popFrame();
-
     return Result::Continue;
 }
 

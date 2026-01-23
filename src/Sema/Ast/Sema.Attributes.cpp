@@ -33,14 +33,8 @@ Result AstAccessModifier::semaPreDecl(Sema& sema) const
 
     SemaFrame newFrame = sema.frame();
     newFrame.setAccess(access);
-    sema.pushFrame(newFrame);
+    sema.pushFrameAutoPopOnPostNode(newFrame);
 
-    return Result::Continue;
-}
-
-Result AstAccessModifier::semaPostDecl(Sema& sema)
-{
-    sema.popFrame();
     return Result::Continue;
 }
 

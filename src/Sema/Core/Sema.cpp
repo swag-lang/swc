@@ -142,6 +142,64 @@ void Sema::popFrame()
     frames_.pop_back();
 }
 
+void Sema::pushFrameAutoPopOnPostChild(const SemaFrame& frame, AstNodeRef popAfterChildRef)
+{
+    pushFrame(frame);
+    const size_t before = frames_.size();
+    SWC_ASSERT(before > 0);
+    deferredPopFrames_.push_back({
+        .nodeRef                  = curNodeRef(),
+        .childRef                 = popAfterChildRef,
+        .onPostNode               = false,
+        .expectedFrameCountBefore = before,
+        .expectedFrameCountAfter  = before - 1,
+    });
+}
+
+void Sema::pushFrameAutoPopOnPostNode(const SemaFrame& frame)
+{
+    pushFrame(frame);
+    const size_t before = frames_.size();
+    SWC_ASSERT(before > 0);
+    deferredPopFrames_.push_back({
+        .nodeRef                  = curNodeRef(),
+        .childRef                 = AstNodeRef::invalid(),
+        .onPostNode               = true,
+        .expectedFrameCountBefore = before,
+        .expectedFrameCountAfter  = before - 1,
+    });
+}
+
+SemaScope* Sema::pushScopeAutoPopOnPostChild(SemaScopeFlags flags, AstNodeRef popAfterChildRef)
+{
+    SemaScope*   scope  = pushScope(flags);
+    const size_t before = scopes_.size();
+    SWC_ASSERT(before > 0);
+    deferredPopScopes_.push_back({
+        .nodeRef                  = curNodeRef(),
+        .childRef                 = popAfterChildRef,
+        .onPostNode               = false,
+        .expectedScopeCountBefore = before,
+        .expectedScopeCountAfter  = before - 1,
+    });
+    return scope;
+}
+
+SemaScope* Sema::pushScopeAutoPopOnPostNode(SemaScopeFlags flags)
+{
+    SemaScope*   scope  = pushScope(flags);
+    const size_t before = scopes_.size();
+    SWC_ASSERT(before > 0);
+    deferredPopScopes_.push_back({
+        .nodeRef                  = curNodeRef(),
+        .childRef                 = AstNodeRef::invalid(),
+        .onPostNode               = true,
+        .expectedScopeCountBefore = before,
+        .expectedScopeCountAfter  = before - 1,
+    });
+    return scope;
+}
+
 namespace
 {
     const Symbol* guessCurrentSymbol(Sema& sema)
@@ -254,14 +312,19 @@ Result Sema::preDeclChild(AstNode& node, AstNodeRef& childRef)
 
 Result Sema::postDeclChild(AstNode& node, AstNodeRef& childRef)
 {
-    const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
-    return info.semaPostDeclChild(*this, node, childRef);
+    const AstNodeIdInfo& info   = Ast::nodeIdInfos(node.id());
+    const Result         result = info.semaPostDeclChild(*this, node, childRef);
+    if (result == Result::Continue)
+        processDeferredPopsPostChild(curNodeRef(), childRef);
+    return result;
 }
 
 Result Sema::postDecl(AstNode& node)
 {
     const AstNodeIdInfo& info   = Ast::nodeIdInfos(node.id());
     const Result         result = info.semaPostDecl(*this, node);
+    if (result == Result::Continue)
+        processDeferredPopsPostNode(curNodeRef());
     popDebugInfo(node, result);
     return result;
 }
@@ -277,6 +340,8 @@ Result Sema::postNode(AstNode& node)
 {
     const AstNodeIdInfo& info   = Ast::nodeIdInfos(node.id());
     const Result         result = info.semaPostNode(*this, node);
+    if (result == Result::Continue)
+        processDeferredPopsPostNode(curNodeRef());
     popDebugInfo(node, result);
     return result;
 }
@@ -301,8 +366,64 @@ Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
 
 Result Sema::postNodeChild(AstNode& node, AstNodeRef& childRef)
 {
-    const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
-    return info.semaPostNodeChild(*this, node, childRef);
+    const AstNodeIdInfo& info   = Ast::nodeIdInfos(node.id());
+    const Result         result = info.semaPostNodeChild(*this, node, childRef);
+    if (result == Result::Continue)
+        processDeferredPopsPostChild(curNodeRef(), childRef);
+    return result;
+}
+
+void Sema::processDeferredPopsPostChild(AstNodeRef nodeRef, AstNodeRef childRef)
+{
+    // Process in reverse order (stack-like) so nested registrations are handled correctly.
+    while (!deferredPopFrames_.empty())
+    {
+        const auto& last = deferredPopFrames_.back();
+        if (last.onPostNode || last.nodeRef != nodeRef || last.childRef != childRef)
+            break;
+        SWC_ASSERT(frames_.size() == last.expectedFrameCountBefore);
+        SWC_ASSERT(last.expectedFrameCountAfter + 1 == last.expectedFrameCountBefore);
+        popFrame();
+        SWC_ASSERT(frames_.size() == last.expectedFrameCountAfter);
+        deferredPopFrames_.pop_back();
+    }
+
+    while (!deferredPopScopes_.empty())
+    {
+        const auto& last = deferredPopScopes_.back();
+        if (last.onPostNode || last.nodeRef != nodeRef || last.childRef != childRef)
+            break;
+        SWC_ASSERT(scopes_.size() == last.expectedScopeCountBefore);
+        SWC_ASSERT(last.expectedScopeCountAfter + 1 == last.expectedScopeCountBefore);
+        popScope();
+        SWC_ASSERT(scopes_.size() == last.expectedScopeCountAfter);
+        deferredPopScopes_.pop_back();
+    }
+}
+
+void Sema::processDeferredPopsPostNode(AstNodeRef nodeRef)
+{
+    while (!deferredPopFrames_.empty())
+    {
+        const auto& last = deferredPopFrames_.back();
+        if (!last.onPostNode || last.nodeRef != nodeRef)
+            break;
+        SWC_ASSERT(frames_.size() == last.expectedFrameCountBefore);
+        popFrame();
+        SWC_ASSERT(frames_.size() == last.expectedFrameCountAfter);
+        deferredPopFrames_.pop_back();
+    }
+
+    while (!deferredPopScopes_.empty())
+    {
+        const auto& last = deferredPopScopes_.back();
+        if (!last.onPostNode || last.nodeRef != nodeRef)
+            break;
+        SWC_ASSERT(scopes_.size() == last.expectedScopeCountBefore);
+        popScope();
+        SWC_ASSERT(scopes_.size() == last.expectedScopeCountAfter);
+        deferredPopScopes_.pop_back();
+    }
 }
 
 void Sema::pushDebugInfo()

@@ -91,6 +91,10 @@ public:
     void             popScope();
     void             pushFrame(const SemaFrame& frame);
     void             popFrame();
+    void             pushFrameAutoPopOnPostChild(const SemaFrame& frame, AstNodeRef popAfterChildRef);
+    void             pushFrameAutoPopOnPostNode(const SemaFrame& frame);
+    SemaScope*       pushScopeAutoPopOnPostChild(SemaScopeFlags flags, AstNodeRef popAfterChildRef);
+    SemaScope*       pushScopeAutoPopOnPostNode(SemaScopeFlags flags);
     bool             enteringState() const { return visit_.enteringState(); }
 
     Result      waitIdentifier(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef);
@@ -115,8 +119,11 @@ private:
     Result postNode(AstNode& node);
     Result preNodeChild(AstNode& node, AstNodeRef& childRef);
     Result postNodeChild(AstNode& node, AstNodeRef& childRef);
-    void   pushDebugInfo();
-    void   popDebugInfo(const AstNode& node, Result result);
+
+    void processDeferredPopsPostChild(AstNodeRef nodeRef, AstNodeRef childRef);
+    void processDeferredPopsPostNode(AstNodeRef nodeRef);
+    void pushDebugInfo();
+    void popDebugInfo(const AstNode& node, Result result);
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;
     SymbolMap*                              startSymMap_ = nullptr;
@@ -124,6 +131,27 @@ private:
     bool                                    declPass_    = false;
 
     std::vector<SemaFrame> frames_;
+
+    struct DeferredPopFrame
+    {
+        AstNodeRef nodeRef;
+        AstNodeRef childRef;
+        bool       onPostNode = false;
+        size_t     expectedFrameCountBefore;
+        size_t     expectedFrameCountAfter;
+    };
+
+    struct DeferredPopScope
+    {
+        AstNodeRef nodeRef;
+        AstNodeRef childRef;
+        bool       onPostNode = false;
+        size_t     expectedScopeCountBefore;
+        size_t     expectedScopeCountAfter;
+    };
+
+    std::vector<DeferredPopFrame> deferredPopFrames_;
+    std::vector<DeferredPopScope> deferredPopScopes_;
 
 #if SWC_HAS_SEMA_DEBUG_INFO
     struct NodeStackEntry

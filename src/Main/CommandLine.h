@@ -4,6 +4,17 @@
 SWC_BEGIN_NAMESPACE();
 
 inline constexpr auto ALLOWED_COMMANDS = "syntax|format|sema";
+struct CommandInfo
+{
+    const char* name;
+    const char* description;
+};
+
+inline constexpr CommandInfo G_COMMANDS[] = {
+    {"syntax", "Check the syntax of the source code without generating any IR or backend code."},
+    {"format", "Format the source code according to the style guide."},
+    {"sema", "Perform semantic analysis on the source code, including type checking."},
+};
 enum class CommandKind
 {
     Syntax  = 0,

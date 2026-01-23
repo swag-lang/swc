@@ -283,12 +283,74 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
     return false;
 }
 
-void CommandLineParser::printHelp(const TaskContext& ctx)
+void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
 {
     ctx.global().logger().lock();
-    Logger::printDim(ctx, std::format("swag compiler version {}.{}.{}\n", SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM));
+    Logger::printDim(ctx, std::format("swag compiler 'swc' version {}.{}.{}\n", SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM));
     Logger::printDim(ctx, "Usage:\n");
-    Logger::printDim(ctx, "    swag <command> [options]\n");
+
+    if (command.empty())
+    {
+        Logger::printDim(ctx, "    swc <command> [options]\n");
+        Logger::printDim(ctx, "    swc help <command>\n\n");
+
+        Logger::printDim(ctx, "Commands:\n");
+        size_t maxLen = 0;
+        for (const auto& cmd : G_COMMANDS)
+            maxLen = std::max(maxLen, strlen(cmd.name));
+
+        for (const auto& cmd : G_COMMANDS)
+        {
+            Logger::printDim(ctx, std::format("    {:<{}}    {}\n", cmd.name, maxLen, cmd.description));
+        }
+    }
+    else
+    {
+        Logger::printDim(ctx, std::format("    swc {} [options]\n\n", command));
+        Logger::printDim(ctx, "Options:\n");
+
+        size_t maxLen = 0;
+        for (const auto& arg : args_)
+        {
+            command_ = command; // Temporarily set command_ to use commandMatches
+            if (!commandMatches(arg.commands))
+                continue;
+
+            Utf8 name = arg.longForm;
+            if (!arg.shortForm.empty())
+            {
+                name += ", ";
+                name += arg.shortForm;
+            }
+            maxLen = std::max(maxLen, name.length());
+        }
+
+        for (const auto& arg : args_)
+        {
+            command_ = command;
+            if (!commandMatches(arg.commands))
+                continue;
+
+            Utf8 name = arg.longForm;
+            if (!arg.shortForm.empty())
+            {
+                name += ", ";
+                name += arg.shortForm;
+            }
+
+            Utf8 line = std::format("    {:<{}}    {}", name, maxLen, arg.description);
+            if (!arg.enumValues.empty())
+            {
+                line += " (";
+                line += arg.enumValues;
+                line += ")";
+            }
+
+            Logger::printDim(ctx, line);
+            Logger::printDim(ctx, "\n");
+        }
+    }
+
     ctx.global().logger().unlock();
 }
 
@@ -296,9 +358,27 @@ Result CommandLineParser::parse(int argc, char* argv[])
 {
     TaskContext ctx(*global_, *cmdLine_);
 
-    if (argc == 1)
+    if (argc == 1 || (argc == 2 && (Utf8(argv[1]) == "--help" || Utf8(argv[1]) == "help")))
     {
-        printHelp(ctx);
+        CommandLineParser parser(*global_, *cmdLine_);
+        parser.printHelp(ctx);
+        return Result::Error;
+    }
+
+    if (argc >= 2 && Utf8(argv[1]) == "help")
+    {
+        const Utf8        command = argc >= 3 ? argv[2] : "";
+        CommandLineParser parser(*global_, *cmdLine_);
+        if (!command.empty() && parser.isAllowedCommand(command) == CommandKind::Invalid)
+        {
+            auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_command);
+            parser.setReportArguments(diag, command);
+            diag.addArgument(Diagnostic::ARG_VALUES, ALLOWED_COMMANDS);
+            diag.report(ctx);
+            return Result::Error;
+        }
+
+        parser.printHelp(ctx, command);
         return Result::Error;
     }
 

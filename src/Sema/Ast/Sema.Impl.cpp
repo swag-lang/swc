@@ -83,19 +83,11 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
     {
         auto frame = sema.frame();
         frame.setImpl(&symImpl);
-        sema.pushFrame(frame);
-
-        sema.pushScope(SemaScopeFlagsE::TopLevel | SemaScopeFlagsE::Impl);
+        sema.pushFrameAutoPopOnPostNode(frame);
+        sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::TopLevel | SemaScopeFlagsE::Impl);
         sema.curScope().setSymMap(symImpl.asSymMap());
     }
 
-    return Result::Continue;
-}
-
-Result AstImpl::semaPostNode(Sema& sema)
-{
-    sema.popScope();
-    sema.popFrame();
     return Result::Continue;
 }
 

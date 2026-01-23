@@ -310,9 +310,9 @@ void SemaInfo::setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbols)
 
     SmallVector<const Symbol*> tmp;
     tmp.reserve(symbols.size());
-    for (auto* s : symbols)
+    for (const auto* s : symbols)
         tmp.push_back(s);
-    updateSemaFlags(node, std::span<const Symbol*>{tmp.data(), tmp.size()});
+    updateSemaFlags(node, std::span{tmp.data(), tmp.size()});
 }
 
 void SemaInfo::setSymbolList(AstNodeRef nodeRef, std::span<const Symbol*> symbols)

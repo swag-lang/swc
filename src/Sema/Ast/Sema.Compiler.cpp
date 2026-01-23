@@ -40,12 +40,9 @@ Result AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) c
 
         frame.setCompilerIf(ifFrame);
         sema.setPayload(nodeIfBlockRef, ifFrame);
-        sema.pushFrame(frame);
+        sema.pushFrameAutoPopOnPostChild(frame, childRef);
         return Result::Continue;
     }
-
-    // Leaving the 'if' block
-    sema.popFrame();
 
     SWC_ASSERT(childRef == nodeElseBlockRef);
     if (nodeElseBlockRef.isValid())
@@ -57,16 +54,9 @@ Result AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) c
 
         frame.setCompilerIf(elseFrame);
         sema.setPayload(nodeElseBlockRef, elseFrame);
-        sema.pushFrame(frame);
+        sema.pushFrameAutoPopOnPostChild(frame, childRef);
     }
 
-    return Result::Continue;
-}
-
-Result AstCompilerIf::semaPostDecl(Sema& sema)
-{
-    // Will pop the #if or the #else
-    sema.popFrame();
     return Result::Continue;
 }
 

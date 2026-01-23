@@ -295,7 +295,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     // Force types
     const Token& tok = sema.token(srcViewRef(), tokRef());
     RESULT_VERIFY(promote(sema, tok.id, *this, nodeView));
-    
+
     // Type-check
     RESULT_VERIFY(check(sema, tok.id, *this, nodeView));
 

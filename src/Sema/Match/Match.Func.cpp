@@ -520,7 +520,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     {
         const AstNodeRef argRef = getArg(i, args, ufcsArg);
         SemaNodeView     argView(sema, argRef);
-        CastFlags castFlags;
+        CastFlags        castFlags;
         if (ufcsArg.isValid() && i == 0)
             castFlags.add(CastFlagsE::UfcsArgument);
         RESULT_VERIFY(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Parameter, castFlags));
@@ -545,7 +545,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
         {
             const AstNodeRef argRef = getArg(i, args, ufcsArg);
             SemaNodeView     argView(sema, argRef);
-            CastFlags castFlags;
+            CastFlags        castFlags;
             if (ufcsArg.isValid() && i == 0)
                 castFlags.add(CastFlagsE::UfcsArgument);
             RESULT_VERIFY(Cast::cast(sema, argView, variadicTy, CastKind::Implicit, castFlags));

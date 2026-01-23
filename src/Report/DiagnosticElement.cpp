@@ -126,7 +126,7 @@ void DiagnosticElement::addArgument(std::string_view name, std::string_view arg)
     {
         if (a.name == name)
         {
-            a.val    = std::move(sanitized);
+            a.val = std::move(sanitized);
             return;
         }
     }

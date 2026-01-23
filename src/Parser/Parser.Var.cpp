@@ -157,9 +157,9 @@ AstNodeRef Parser::parseVarDecl()
             nodePtr->flags()        = flags;
             if (hasContextFlag(ParserContextFlagsE::InFunctionParam))
                 nodePtr->addFlag(AstVarDeclFlagsE::Parameter);
-            nodePtr->tokNameRef     = tokNames[0];
-            nodePtr->nodeTypeRef    = nodeType;
-            nodePtr->nodeInitRef    = nodeInit;
+            nodePtr->tokNameRef  = tokNames[0];
+            nodePtr->nodeTypeRef = nodeType;
+            nodePtr->nodeInitRef = nodeInit;
             vars.push_back(nodeRef);
         }
         else
@@ -168,9 +168,9 @@ AstNodeRef Parser::parseVarDecl()
             nodePtr->flags()        = flags;
             if (hasContextFlag(ParserContextFlagsE::InFunctionParam))
                 nodePtr->addFlag(AstVarDeclFlagsE::Parameter);
-            nodePtr->spanNamesRef   = ast_->pushSpan(tokNames.span());
-            nodePtr->nodeTypeRef    = nodeType;
-            nodePtr->nodeInitRef    = nodeInit;
+            nodePtr->spanNamesRef = ast_->pushSpan(tokNames.span());
+            nodePtr->nodeTypeRef  = nodeType;
+            nodePtr->nodeInitRef  = nodeInit;
             vars.push_back(nodeRef);
         }
 

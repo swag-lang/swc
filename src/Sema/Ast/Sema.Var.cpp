@@ -193,11 +193,9 @@ Result AstVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
         sema.pushFrame(frame);
     }
 
-    if (childRef == nodeInitRef)
+    if (childRef == nodeInitRef && nodeTypeRef.isValid())
     {
-        const SemaNodeView nodeTypeView(sema, nodeTypeRef);
-        if (nodeTypeView.typeRef.isValid())
-            sema.popFrame();
+        sema.popFrame();
     }
 
     return Result::Continue;
@@ -272,11 +270,9 @@ Result AstVarDeclNameList::semaPostNodeChild(Sema& sema, const AstNodeRef& child
         sema.pushFrame(frame);
     }
 
-    if (childRef == nodeInitRef)
+    if (childRef == nodeInitRef && nodeTypeRef.isValid())
     {
-        const SemaNodeView nodeTypeView(sema, nodeTypeRef);
-        if (nodeTypeView.typeRef.isValid())
-            sema.popFrame();
+        sema.popFrame();
     }
 
     return Result::Continue;

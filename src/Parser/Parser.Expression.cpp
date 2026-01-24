@@ -585,6 +585,8 @@ AstNodeRef Parser::parseAutoMemberAccessExpr()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AutoMemberAccessExpr>(consume());
     nodePtr->nodeIdentRef = parseIdentifier();
+    if (hasContextFlag(ParserContextFlagsE::InCallArgument))
+        nodePtr->addFlag(AstAutoMemberAccessExprFlagsE::CallArgument);
     return nodeRef;
 }
 

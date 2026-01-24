@@ -15,27 +15,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool isInCallArgumentContext(Sema& sema)
-    {
-        const AstNodeRef curRef = sema.curNodeRef();
-
-        for (size_t up = 0;; ++up)
-        {
-            const AstNode* parent = sema.visit().parentNode(up);
-            if (!parent)
-                break;
-
-            if (parent->is(AstNodeId::CallExpr))
-            {
-                const auto* callNode = parent->cast<AstCallExpr>();
-                const AstNodeRef childOfCall = up == 0 ? curRef : sema.visit().parentNodeRef(up - 1);
-                return childOfCall != callNode->nodeExprRef;
-            }
-        }
-
-        return false;
-    }
-
     struct AutoMemberCandidate
     {
         const SymbolMap*      symMap = nullptr;
@@ -211,7 +190,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
         // In a call-argument position, `.EnumValue` might need the selected overload's
         // parameter type (enum scope) to be resolved. Defer resolution until overload
         // resolution can provide that context.
-        if (isInCallArgumentContext(sema))
+        if (hasFlag(AstAutoMemberAccessExprFlagsE::CallArgument))
             return Result::SkipChildren;
         return SemaError::raise(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, sema.curNodeRef());
     }

@@ -33,7 +33,10 @@ AstNodeRef Parser::parseIntrinsicCall(uint32_t numParams)
                 break;
         }
 
-        nodeArgs.push_back(parseExpression());
+        {
+            PushContextFlags ctxFlags(this, ParserContextFlagsE::InCallArgument);
+            nodeArgs.push_back(parseExpression());
+        }
     }
 
     if (nodeArgs.size() < numParams)
@@ -90,7 +93,10 @@ AstNodeRef Parser::parseIntrinsicCallExpr(uint32_t numParams)
                 break;
         }
 
-        nodeArgs.push_back(parseExpression());
+        {
+            PushContextFlags ctxFlags(this, ParserContextFlagsE::InCallArgument);
+            nodeArgs.push_back(parseExpression());
+        }
     }
 
     if (numParams != UINT32_MAX)

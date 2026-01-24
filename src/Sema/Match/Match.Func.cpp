@@ -4,8 +4,10 @@
 #include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
+#include "Sema/Match/MatchContext.h"
 #include "Sema/Symbol/Symbol.Function.h"
 #include "Sema/Symbol/Symbol.Variable.h"
+#include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/TypeInfo.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -159,8 +161,104 @@ namespace
         return ConvRank::Bad;
     }
 
+    struct AutoEnumArgProbe
+    {
+        bool    matched = false;
+        TypeRef typeRef = TypeRef::invalid();
+    };
+
+    Result probeAutoEnumArg(Sema& sema, AstNodeRef argRef, TypeRef paramTy, AutoEnumArgProbe& out)
+    {
+        out = {};
+
+        // Only handle `.EnumValue` (auto-member) using the overload's parameter enum scope.
+        const AstNodeRef argSubRef = sema.semaInfo().getSubstituteRef(argRef);
+        const AstNodeRef finalArgRef = argSubRef.isValid() ? argSubRef : argRef;
+        const AstNode&   argNode     = sema.node(finalArgRef);
+        const auto*      autoMem     = argNode.safeCast<AstAutoMemberAccessExpr>();
+        if (!autoMem)
+            return Result::Continue;
+
+        const TypeInfo& paramTypeInfo = sema.typeMgr().get(paramTy);
+        if (!paramTypeInfo.isEnum())
+            return Result::Continue;
+
+        const SymbolEnum& enumSym = paramTypeInfo.symEnum();
+        if (!enumSym.isCompleted())
+            return sema.waitCompleted(&enumSym, argNode.srcViewRef(), argNode.tokRef());
+
+        const SemaNodeView nodeRightView(sema, autoMem->nodeIdentRef);
+        const TokenRef     tokNameRef = nodeRightView.node->tokRef();
+        const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), argNode.srcViewRef(), tokNameRef);
+
+        MatchContext lookUpCxt;
+        lookUpCxt.srcViewRef    = argNode.srcViewRef();
+        lookUpCxt.tokRef        = tokNameRef;
+        lookUpCxt.symMapHint    = &enumSym;
+        lookUpCxt.noWaitOnEmpty = true;
+
+        RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
+        if (!lookUpCxt.empty())
+        {
+            out.matched = true;
+            out.typeRef = paramTy;
+        }
+
+        return Result::Continue;
+    }
+
+    Result resolveAutoEnumArgFinal(Sema& sema, AstNodeRef argRef, TypeRef paramTy)
+    {
+        const AstNodeRef argSubRef = sema.semaInfo().getSubstituteRef(argRef);
+        const AstNodeRef finalArgRef = argSubRef.isValid() ? argSubRef : argRef;
+        const AstNode&   argNode     = sema.node(finalArgRef);
+        const auto*      autoMem     = argNode.safeCast<AstAutoMemberAccessExpr>();
+        if (!autoMem)
+            return Result::Continue;
+
+        const TypeInfo& paramTypeInfo = sema.typeMgr().get(paramTy);
+        if (!paramTypeInfo.isEnum())
+            return Result::Continue;
+
+        const SymbolEnum& enumSym = paramTypeInfo.symEnum();
+        if (!enumSym.isCompleted())
+            return sema.waitCompleted(&enumSym, argNode.srcViewRef(), argNode.tokRef());
+
+        const SemaNodeView  nodeRightView(sema, autoMem->nodeIdentRef);
+        const TokenRef      tokNameRef = nodeRightView.node->tokRef();
+        const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), argNode.srcViewRef(), tokNameRef);
+
+        MatchContext lookUpCxt;
+        lookUpCxt.srcViewRef = argNode.srcViewRef();
+        lookUpCxt.tokRef     = tokNameRef;
+        lookUpCxt.symMapHint = &enumSym;
+
+        // Keep normal wait semantics here (noWaitOnEmpty = false) to behave like `Enum.Value`.
+        RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
+        if (lookUpCxt.empty())
+            return SemaError::raise(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, argRef);
+
+        // Substitute `.Value` -> `Enum.Value` for downstream codegen / semantic checks.
+        auto [memberRef, memberPtr] = sema.ast().makeNode<AstNodeId::MemberAccessExpr>(argNode.tokRef());
+        auto [leftRef, leftPtr]     = sema.ast().makeNode<AstNodeId::Identifier>(argNode.tokRef());
+        sema.setSymbol(leftRef, &enumSym);
+        SemaInfo::setIsValue(*leftPtr);
+
+        memberPtr->nodeLeftRef  = leftRef;
+        memberPtr->nodeRightRef = autoMem->nodeIdentRef;
+
+        sema.setSymbolList(memberRef, lookUpCxt.symbols());
+        sema.setSymbolList(autoMem->nodeIdentRef, lookUpCxt.symbols());
+        sema.setType(memberRef, paramTy);
+        sema.setType(argRef, paramTy);
+        sema.semaInfo().setSubstitute(argRef, memberRef);
+        SemaInfo::setIsValue(*memberPtr);
+
+        return Result::Continue;
+    }
+
     // Try to build a candidate; if it fails, fill out why + where.
-    bool tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Candidate& outCandidate, MatchFailure& outFail)
+    Result tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Candidate& outCandidate, MatchFailure& outFail)
     {
         const auto&    params    = fn.parameters();
         const uint32_t numParams = static_cast<uint32_t>(params.size());
@@ -181,7 +279,7 @@ namespace
         if (numArgs > numParams && !vi.any())
         {
             failTooMany(outFail, numParams, numArgs);
-            return false;
+            return Result::Continue;
         }
 
         // Rank each provided argument (excluding the variadic parameter itself when variadic)
@@ -191,8 +289,24 @@ namespace
         for (uint32_t i = 0; i < upto; ++i)
         {
             const AstNodeRef argRef  = getArg(i, args, ufcsArg);
-            const TypeRef    argTy   = sema.typeRefOf(argRef);
             const TypeRef    paramTy = params[i]->typeRef();
+
+            TypeRef argTy = sema.typeRefOf(argRef);
+            if (argTy.isInvalid())
+            {
+                AutoEnumArgProbe probe;
+                RESULT_VERIFY(probeAutoEnumArg(sema, argRef, paramTy, probe));
+                if (probe.matched)
+                    argTy = probe.typeRef;
+            }
+
+            if (argTy.isInvalid())
+            {
+                // Likely an unresolved auto-member (`.Value`) without a type hint.
+                // Consider it not viable for this overload.
+                failBadType(outFail, i, i, CastFailure{});
+                return Result::Continue;
+            }
 
             CastFailure    cf{};
             const bool     isUfcsArgument = ufcsArg.isValid() && i == 0;
@@ -200,7 +314,7 @@ namespace
             if (r == ConvRank::Bad)
             {
                 failBadType(outFail, i, i, cf);
-                return false;
+                return Result::Continue;
             }
             outCandidate.perArg.push_back(r);
         }
@@ -232,7 +346,7 @@ namespace
                         {
                             // paramIndex points at the variadic parameter
                             failBadType(outFail, i, startVariadic, cf);
-                            return false;
+                            return Result::Continue;
                         }
                         outCandidate.perArg.push_back(r);
                     }
@@ -248,13 +362,13 @@ namespace
             {
                 const uint32_t minExpected = minRequiredArgs(fn, vi.any());
                 failTooFew(outFail, minExpected, numArgs, i);
-                return false;
+                return Result::Continue;
             }
             outCandidate.usedDefaults++;
         }
 
         outCandidate.viable = true;
-        return true;
+        return Result::Continue;
     }
 
     // Compare candidates: "best" is the one with the better (smaller) rank for the first differing arg.
@@ -281,7 +395,7 @@ namespace
         return 0;
     }
 
-    void collectAttempts(Sema& sema, SmallVector<Attempt>& outAttempts, SmallVector<SymbolFunction*>& outFunctionSymbols, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+    Result collectAttempts(Sema& sema, SmallVector<Attempt>& outAttempts, SmallVector<SymbolFunction*>& outFunctionSymbols, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
     {
         outAttempts.clear();
         outFunctionSymbols.clear();
@@ -314,15 +428,27 @@ namespace
             MatchFailure fail;
             Candidate    candidate;
 
-            if (tryBuildCandidate(sema, *fn, args, AstNodeRef::invalid(), candidate, fail))
+            RESULT_VERIFY(tryBuildCandidate(sema, *fn, args, AstNodeRef::invalid(), candidate, fail));
+            if (candidate.viable)
             {
                 a.viable    = true;
                 a.candidate = std::move(candidate);
             }
-            else if (ufcsArg.isValid() && tryBuildCandidate(sema, *fn, args, ufcsArg, candidate, fail))
+            else if (ufcsArg.isValid())
             {
-                a.viable    = true;
-                a.candidate = std::move(candidate);
+                candidate = {};
+                fail      = {};
+                RESULT_VERIFY(tryBuildCandidate(sema, *fn, args, ufcsArg, candidate, fail));
+                if (candidate.viable)
+                {
+                    a.viable    = true;
+                    a.candidate = std::move(candidate);
+                }
+                else
+                {
+                    a.viable = false;
+                    a.fail   = fail;
+                }
             }
             else
             {
@@ -332,6 +458,8 @@ namespace
 
             outAttempts.push_back(std::move(a));
         }
+
+        return Result::Continue;
     }
 
     Result errorNotCallable(Sema& sema, const SemaNodeView& nodeCallee)
@@ -462,7 +590,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
 {
     SmallVector<Attempt>         attempts;
     SmallVector<SymbolFunction*> functions;
-    collectAttempts(sema, attempts, functions, symbols, args, ufcsArg);
+    RESULT_VERIFY(collectAttempts(sema, attempts, functions, symbols, args, ufcsArg));
 
     // Gather viable candidates
     SmallVector<const Attempt*> viable;
@@ -533,6 +661,16 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
         numArgs++;
 
     const auto& selectedFnT = selectedFn->type(sema.ctx());
+
+    // Finalize deferred enum auto-member arguments (`.Value`) now that we have the selected overload.
+    // This makes argument expressions fully typed and ensures downstream casts/codegen see the resolved member.
+    const uint32_t numCommonForFinalize = selectedFnT.isAnyVariadic() ? (numParams > 0 ? numParams - 1 : 0) : numParams;
+    for (uint32_t i = 0; i < std::min(numArgs, numCommonForFinalize); ++i)
+    {
+        const AstNodeRef argRef   = getArg(i, args, ufcsArg);
+        const TypeRef    paramTy  = params[i]->typeRef();
+        RESULT_VERIFY(resolveAutoEnumArgFinal(sema, argRef, paramTy));
+    }
 
     const uint32_t numCommon = selectedFnT.isAnyVariadic() ? numParams - 1 : numParams;
     for (uint32_t i = 0; i < std::min(numArgs, numCommon); ++i)

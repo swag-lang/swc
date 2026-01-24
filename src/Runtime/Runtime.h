@@ -252,6 +252,26 @@ namespace Runtime
         uint32_t lineEnd;
         uint32_t colEnd;
     };
+
+    struct Module
+    {
+        String          name;
+        Slice<TypeInfo> types;
+    };
+
+    struct ProcessInfos
+    {
+        Slice<Module> types;
+        String        args;
+    };
+
+    struct Gvtd
+    {
+        void* ptr;
+        void (*opDrop)(void*);
+        uint32_t sizeOf;
+        uint32_t count;
+    };
 }
 
 SWC_END_NAMESPACE();

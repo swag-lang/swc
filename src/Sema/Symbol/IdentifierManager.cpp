@@ -44,6 +44,9 @@ void IdentifierManager::setup(TaskContext&)
     nameInterface_          = addIdentifier("Interface");
     nameSourceCodeLocation_ = addIdentifier("SourceCodeLocation");
     nameContext_            = addIdentifier("Context");
+    nameModule_             = addIdentifier("Module");
+    nameProcessInfos_       = addIdentifier("ProcessInfos");
+    nameGvtd_               = addIdentifier("Gvtd");
 }
 
 IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef)

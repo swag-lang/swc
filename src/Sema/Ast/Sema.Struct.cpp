@@ -118,6 +118,12 @@ Result AstStructDecl::semaPostNode(Sema& sema)
             typeMgr.setStructSourceCodeLocation(typeRef);
         else if (idRef == idMgr.nameContext())
             typeMgr.setStructContext(typeRef);
+        else if (idRef == idMgr.nameModule())
+            typeMgr.setStructModule(typeRef);
+        else if (idRef == idMgr.nameProcessInfos())
+            typeMgr.setStructProcessInfos(typeRef);
+        else if (idRef == idMgr.nameGvtd())
+            typeMgr.setStructGvtd(typeRef);
     }
 
     RESULT_VERIFY(sym.canBeCompleted(sema));

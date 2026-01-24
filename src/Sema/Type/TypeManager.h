@@ -93,6 +93,12 @@ public:
     void    setStructSourceCodeLocation(TypeRef typeRef)    { std::unique_lock lk(mutexRt_); structSourceCodeLocation_ = typeRef; }
     TypeRef structContext() const                { std::shared_lock lk(mutexRt_); return structContext_; }
     void    setStructContext(TypeRef typeRef)    { std::unique_lock lk(mutexRt_); structContext_ = typeRef; }
+    TypeRef structModule() const                { std::shared_lock lk(mutexRt_); return structModule_; }
+    void    setStructModule(TypeRef typeRef)    { std::unique_lock lk(mutexRt_); structModule_ = typeRef; }
+    TypeRef structProcessInfos() const                { std::shared_lock lk(mutexRt_); return structProcessInfos_; }
+    void    setStructProcessInfos(TypeRef typeRef)    { std::unique_lock lk(mutexRt_); structProcessInfos_ = typeRef; }
+    TypeRef structGvtd() const                { std::shared_lock lk(mutexRt_); return structGvtd_; }
+    void    setStructGvtd(TypeRef typeRef)    { std::unique_lock lk(mutexRt_); structGvtd_ = typeRef; }
     // clang-format on
 
 private:
@@ -135,6 +141,9 @@ private:
     TypeRef                   structInterface_          = TypeRef::invalid();
     TypeRef                   structSourceCodeLocation_ = TypeRef::invalid();
     TypeRef                   structContext_            = TypeRef::invalid();
+    TypeRef                   structModule_             = TypeRef::invalid();
+    TypeRef                   structProcessInfos_       = TypeRef::invalid();
+    TypeRef                   structGvtd_               = TypeRef::invalid();
 
     // Predefined types
     TypeRef typeBool_              = TypeRef::invalid();

@@ -495,6 +495,7 @@ struct AstLogicalExpr : AstBinaryT<AstNodeId::LogicalExpr>
 // -----------------------------------------------------------------------------
 struct AstRelationalExpr : AstBinaryT<AstNodeId::RelationalExpr>
 {
+    Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result semaPostNode(Sema& sema);
 };
 
@@ -1319,6 +1320,8 @@ struct AstSwitchStmt : AstCompoundT<AstNodeId::SwitchStmt>
         AstNode::collectChildren(out, {nodeExprRef});
         AstCompoundT::collectChildren(out, ast);
     }
+
+    static Result semaPreNode(Sema&) { return Result::SkipChildren; }
 };
 
 // -----------------------------------------------------------------------------
@@ -1375,7 +1378,8 @@ struct AstAssignStmt : AstNodeT<AstNodeId::AssignStmt>
     AstNodeRef       nodeLeftRef;
     AstNodeRef       nodeRightRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
+    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
+    static Result semaPreNode(Sema&) { return Result::SkipChildren; }
 };
 
 // -----------------------------------------------------------------------------

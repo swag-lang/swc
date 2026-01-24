@@ -213,7 +213,7 @@ namespace
         if (nodeLeftView.type->isPointerLike() && nodeRightView.type->isNull())
             return Result::Continue;
         if (nodeLeftView.type->isAnyPointer() && nodeRightView.type->isAnyPointer())
-            return Result::Continue;        
+            return Result::Continue;
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.srcViewRef(), node.tokRef());
         diag.addArgument(Diagnostic::ARG_LEFT, nodeLeftView.typeRef);
@@ -302,6 +302,19 @@ namespace
                 SWC_UNREACHABLE();
         }
     }
+}
+
+Result AstRelationalExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeLeftRef)
+    {
+        const SemaNodeView nodeLeftView(sema, nodeLeftRef);
+        auto               frame = sema.frame();
+        frame.setTypeHint(nodeLeftView.typeRef);
+        sema.pushFrameAutoPopOnPostChild(frame, nodeRightRef);
+    }
+
+    return Result::Continue;
 }
 
 Result AstRelationalExpr::semaPostNode(Sema& sema)

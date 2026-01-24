@@ -8,3 +8,9 @@ const C = A.R | .G
 #assert(C == 3)
 
 const D = A.R & ~.G
+
+#test
+{
+    var request: *Swag.AllocatorRequest
+    if request.mode == .Realloc {}
+}

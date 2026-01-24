@@ -627,17 +627,6 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::CompilerCode:
             return parseCompilerCode();
 
-        case TokenId::IntrinsicErr:
-        case TokenId::IntrinsicArgs:
-        case TokenId::IntrinsicByteCode:
-        case TokenId::IntrinsicProcessInfos:
-        case TokenId::IntrinsicIndex:
-        case TokenId::IntrinsicRtFlags:
-        case TokenId::IntrinsicModules:
-        case TokenId::IntrinsicGvtd:
-        case TokenId::IntrinsicCompiler:
-            return parseIntrinsicValue();
-
         case TokenId::KwdTry:
         case TokenId::KwdCatch:
         case TokenId::KwdTryCatch:
@@ -663,6 +652,19 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicMakeInterface:
         case TokenId::IntrinsicAs:
             return parseIntrinsicCall(3);
+
+        case TokenId::IntrinsicIndex:
+            return parseIntrinsicValue();
+
+        case TokenId::IntrinsicCompiler:
+        case TokenId::IntrinsicRtFlags:
+        case TokenId::IntrinsicErr:
+        case TokenId::IntrinsicProcessInfos:
+        case TokenId::IntrinsicArgs:
+        case TokenId::IntrinsicModules:
+        case TokenId::IntrinsicGvtd:
+        case TokenId::IntrinsicByteCode:
+            return parseIntrinsicCallConstantExpr();
 
         case TokenId::IntrinsicDbgAlloc:
         case TokenId::IntrinsicSysAlloc:

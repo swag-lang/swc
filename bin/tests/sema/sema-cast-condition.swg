@@ -14,5 +14,12 @@
     if !e {}
 }
 
+#test
+{
+    var a: *s32
+    var b: *s32
+    if !a or !b {}
+}
+
 const A = ""
 #assert(!A == false)

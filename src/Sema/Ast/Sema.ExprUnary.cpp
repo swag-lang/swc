@@ -243,7 +243,7 @@ namespace
     Result semaBang(Sema& sema, const AstUnaryExpr&, SemaNodeView& nodeView)
     {
         RESULT_VERIFY(Cast::cast(sema, nodeView, sema.ctx().typeMgr().typeBool(), CastKind::Condition));
-        sema.setType(sema.curNodeRef(), nodeView.typeRef);
+        sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
         return Result::Continue;
     }
 

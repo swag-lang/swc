@@ -148,6 +148,7 @@ namespace
             e.addArgument(Diagnostic::ARG_REQUESTED_TYPE, cf.dstTypeRef);
         if (cf.optTypeRef.isValid())
             e.addArgument(Diagnostic::ARG_OPT_TYPE, cf.optTypeRef);
+
         e.addArgument(Diagnostic::ARG_VALUE, cf.valueStr);
         return cf.noteId;
     }
@@ -167,7 +168,7 @@ namespace
         return ConvRank::Bad;
     }
 
-    Result probeAutoEnumArg(Sema& sema, AstNodeRef argRef, TypeRef paramTy, AutoEnumArgProbe& out)
+    Result probeAutoEnumArg(Sema& sema, AstNodeRef argRef, TypeRef paramTy, AutoEnumArgProbe& out, CastFailure& cf)
     {
         out = {};
 
@@ -202,6 +203,14 @@ namespace
         {
             out.matched = true;
             out.typeRef = paramTy;
+        }
+        else
+        {
+            cf.diagId     = DiagnosticId::sema_err_auto_scope_missing_value;
+            cf.srcTypeRef = TypeRef::invalid();
+            cf.dstTypeRef = paramTy;
+            cf.valueStr   = Utf8{sema.idMgr().get(idRef).name};
+            cf.noteId     = DiagnosticId::None;
         }
 
         return Result::Continue;
@@ -291,11 +300,12 @@ namespace
             const AstNodeRef argRef  = getArg(i, args, ufcsArg);
             const TypeRef    paramTy = params[i]->typeRef();
 
-            TypeRef argTy = sema.typeRefOf(argRef);
+            CastFailure cf{};
+            TypeRef     argTy = sema.typeRefOf(argRef);
             if (argTy.isInvalid())
             {
                 AutoEnumArgProbe probe;
-                RESULT_VERIFY(probeAutoEnumArg(sema, argRef, paramTy, probe));
+                RESULT_VERIFY(probeAutoEnumArg(sema, argRef, paramTy, probe, cf));
                 if (probe.matched)
                     argTy = probe.typeRef;
             }
@@ -304,11 +314,10 @@ namespace
             {
                 // Likely an unresolved auto-member (`.Value`) without a type hint.
                 // Consider it not viable for this overload.
-                failBadType(outFail, i, i, CastFailure{});
+                failBadType(outFail, i, i, cf);
                 return Result::Continue;
             }
 
-            CastFailure    cf{};
             const bool     isUfcsArgument = ufcsArg.isValid() && i == 0;
             const ConvRank r              = probeImplicitConversion(sema, argTy, paramTy, cf, isUfcsArgument);
             if (r == ConvRank::Bad)
@@ -498,6 +507,12 @@ namespace
                     diag = SemaError::report(sema, fail.castFailure.diagId, nodeCallee.nodeRef);
                     if (const DiagnosticId nid = addCastFailureArgs(diag.last(), fail.castFailure); nid != DiagnosticId::None)
                         diag.addNote(nid);
+
+                    if (fail.castFailure.diagId == DiagnosticId::sema_err_auto_scope_missing_value)
+                    {
+                        const AstNodeRef argRef = getArg(fail.argIndex, args, ufcsArg);
+                        diag.last().addSpan(sema.node(argRef).location(ctx));
+                    }
                 }
                 else
                 {
@@ -512,7 +527,7 @@ namespace
                 break;
         }
 
-        if (fail.hasLocation && fail.argIndex < numArgs)
+        if (fail.hasLocation && fail.argIndex < numArgs && fail.castFailure.diagId != DiagnosticId::sema_err_auto_scope_missing_value)
         {
             const AstNodeRef argRef = getArg(fail.argIndex, args, ufcsArg);
             diag.last().addSpan(sema.node(argRef).location(ctx));
@@ -562,6 +577,12 @@ namespace
                         note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(a.fail.castFailure.diagId));
                         if (const DiagnosticId nid = addCastFailureArgs(note, a.fail.castFailure); nid != DiagnosticId::None)
                             diag.addNote(nid);
+
+                        if (a.fail.castFailure.diagId == DiagnosticId::sema_err_auto_scope_missing_value)
+                        {
+                            const AstNodeRef argRef = getArg(a.fail.argIndex, args, ufcsArg);
+                            diag.last().addSpan(sema.node(argRef).location(ctx));
+                        }
                     }
                     else
                     {
@@ -574,7 +595,7 @@ namespace
                     break;
             }
 
-            if (a.fail.hasLocation && a.fail.argIndex < numArgs)
+            if (a.fail.hasLocation && a.fail.argIndex < numArgs && a.fail.castFailure.diagId != DiagnosticId::sema_err_auto_scope_missing_value)
             {
                 const AstNodeRef argRef = getArg(a.fail.argIndex, args, ufcsArg);
                 diag.last().addSpan(sema.node(argRef).location(ctx));

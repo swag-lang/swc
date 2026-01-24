@@ -100,9 +100,8 @@ namespace
                 continue;
 
             MatchContext::Priority priority;
-            priority.scopeDepth  = 0;
-            priority.visibility  = MatchContext::VisibilityTier::UsingDirective;
-            priority.searchOrder = searchOrder++;
+            priority.scopeDepth = 0;
+            priority.visibility = MatchContext::VisibilityTier::UsingDirective;
 
             addSymMap(lookUpCxt, target, priority);
             addUsingMemberSymMaps(sema, lookUpCxt, *target, searchOrder, visited);
@@ -121,9 +120,8 @@ namespace
             uint16_t searchOrder = 0;
 
             MatchContext::Priority priority;
-            priority.scopeDepth  = 0;
-            priority.visibility  = MatchContext::VisibilityTier::LocalScope;
-            priority.searchOrder = searchOrder++;
+            priority.scopeDepth = 0;
+            priority.visibility = MatchContext::VisibilityTier::LocalScope;
             addSymMap(lookUpCxt, lookUpCxt.symMapHint, priority);
 
             // Struct member lookup must also see members of `using` fields.
@@ -135,8 +133,7 @@ namespace
             return;
         }
 
-        uint16_t scopeDepth  = 0;
-        uint16_t searchOrder = 0;
+        uint16_t scopeDepth = 0;
 
         // Walk lexical scopes from innermost to outermost.
         const SemaScope* scope = &sema.curScope();
@@ -145,18 +142,16 @@ namespace
             if (const auto* symMap = scope->symMap())
             {
                 MatchContext::Priority priority;
-                priority.scopeDepth  = scopeDepth;
-                priority.visibility  = MatchContext::VisibilityTier::LocalScope;
-                priority.searchOrder = searchOrder++;
+                priority.scopeDepth = scopeDepth;
+                priority.visibility = MatchContext::VisibilityTier::LocalScope;
                 addSymMap(lookUpCxt, symMap, priority);
             }
 
             for (const auto* symbol : scope->symbols())
             {
                 MatchContext::Priority priority;
-                priority.scopeDepth  = scopeDepth;
-                priority.visibility  = MatchContext::VisibilityTier::LocalScope;
-                priority.searchOrder = searchOrder++;
+                priority.scopeDepth = scopeDepth;
+                priority.visibility = MatchContext::VisibilityTier::LocalScope;
                 lookUpCxt.localSymbols.push_back({.symbol = symbol, .priority = priority});
             }
 
@@ -164,9 +159,8 @@ namespace
             for (const auto* usingSymMap : scope->usingSymMaps())
             {
                 MatchContext::Priority priority;
-                priority.scopeDepth  = scopeDepth;
-                priority.visibility  = MatchContext::VisibilityTier::UsingDirective;
-                priority.searchOrder = searchOrder++;
+                priority.scopeDepth = scopeDepth;
+                priority.visibility = MatchContext::VisibilityTier::UsingDirective;
                 addSymMap(lookUpCxt, usingSymMap, priority);
             }
 
@@ -177,18 +171,16 @@ namespace
         // File-level namespace: conceptually outer than lexical scopes.
         {
             MatchContext::Priority priority;
-            priority.scopeDepth  = scopeDepth;
-            priority.visibility  = MatchContext::VisibilityTier::FileNamespace;
-            priority.searchOrder = searchOrder++;
+            priority.scopeDepth = scopeDepth;
+            priority.visibility = MatchContext::VisibilityTier::FileNamespace;
             addSymMap(lookUpCxt, &sema.semaInfo().fileNamespace(), priority);
         }
 
         // Module-level namespace: outer than file-level.
         {
             MatchContext::Priority priority;
-            priority.scopeDepth  = static_cast<uint16_t>(scopeDepth + 1);
-            priority.visibility  = MatchContext::VisibilityTier::ModuleNamespace;
-            priority.searchOrder = searchOrder;
+            priority.scopeDepth = static_cast<uint16_t>(scopeDepth + 1);
+            priority.visibility = MatchContext::VisibilityTier::ModuleNamespace;
             addSymMap(lookUpCxt, &sema.semaInfo().moduleNamespace(), priority);
         }
     }

@@ -23,11 +23,9 @@ public:
     // Priority key for a symbol / symMap. Lower is better in each dimension.
     struct Priority
     {
-        uint16_t       scopeDepth  = 0; // 0 = innermost, increases as we go outward
-        VisibilityTier visibility  = VisibilityTier::LocalScope;
-        uint16_t       searchOrder = 0; // deterministic tie-breaker
-
-        static int compare(const Priority& a, const Priority& b);
+        uint16_t       scopeDepth = 0; // 0 = innermost, increases as we go outward
+        VisibilityTier visibility = VisibilityTier::LocalScope;
+        static int     compare(const Priority& a, const Priority& b);
     };
 
     SourceViewRef srcViewRef = SourceViewRef::invalid();

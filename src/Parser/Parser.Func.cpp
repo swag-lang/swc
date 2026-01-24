@@ -208,7 +208,10 @@ AstNodeRef Parser::parseFunctionDecl()
     if (consumeIf(TokenId::SymSemiColon).isValid())
         nodePtr->nodeBodyRef = AstNodeRef::invalid();
     else if (consumeIf(TokenId::SymEqualGreater).isValid())
+    {
+        nodePtr->addFlag(AstFunctionFlagsE::Short);
         nodePtr->nodeBodyRef = parseExpression();
+    }
     else
         nodePtr->nodeBodyRef = parseFunctionBody();
     return nodeRef;

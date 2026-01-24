@@ -167,6 +167,7 @@ enum class AstFunctionFlagsE : AstNode::ParserFlags
     Closure   = 1 << 2,
     Const     = 1 << 3,
     Impl      = 1 << 4,
+    Short     = 1 << 5,
 };
 
 struct AstFunctionExpr : AstLambdaExprT<AstNodeId::FunctionExpr, AstFunctionFlagsE>

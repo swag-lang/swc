@@ -14,3 +14,14 @@ const D = A.R & ~.G
     var request: *Swag.AllocatorRequest
     if request.mode == .Realloc {}
 }
+
+func toto()->A { return .R }
+#test
+{
+    if(toto() == .R) {}
+}
+
+#test
+{
+    if !(@rtflags & .FromCompiler) {}
+}

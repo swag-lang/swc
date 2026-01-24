@@ -269,6 +269,7 @@
         <ClCompile Include="src\Sema\Ast\Sema.Struct.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Type.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Var.cpp"/>
+        <ClCompile Include="src\Sema\Cast\Cast.Cast.cpp"/>
         <ClCompile Include="src\Sema\Cast\Cast.Const.cpp"/>
         <ClCompile Include="src\Sema\Cast\Cast.Convert.cpp"/>
         <ClCompile Include="src\Sema\Cast\Cast.cpp"/>

@@ -112,3 +112,9 @@
     let data1 = @dataof(str1)
     let data2: const [*] void = data1
 }
+
+#test
+{
+    var a: typeinfo
+    var b = cast(const *u8) a
+}

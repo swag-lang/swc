@@ -73,7 +73,7 @@ namespace
         return SemaError::raiseAmbiguousSymbol(sema, nodeRef, foundSymbols);
     }
 
-    void collectAutoMemberCandidates(Sema& sema, SmallVector<AutoMemberCandidate, 4>& outCandidates)
+    Result collectAutoMemberCandidates(Sema& sema, SmallVector<AutoMemberCandidate, 4>& outCandidates)
     {
         outCandidates.clear();
 
@@ -88,9 +88,17 @@ namespace
 
                 const TypeInfo& pointeeType = sema.typeMgr().get(typeInfo.underlyingTypeRef());
                 if (pointeeType.isStruct())
+                {
+                    if (!pointeeType.isCompleted(sema.ctx()))
+                        return sema.waitCompleted(&pointeeType, sema.curNodeRef());
                     outCandidates.push_back({.symMap = &pointeeType.symStruct(), .symVar = symVar});
+                }
                 else if (pointeeType.isEnum())
+                {
+                    if (!pointeeType.isCompleted(sema.ctx()))
+                        return sema.waitCompleted(&pointeeType, sema.curNodeRef());
                     outCandidates.push_back({.symMap = &pointeeType.symEnum(), .symVar = symVar});
+                }
             }
 
             // Binding types.
@@ -101,9 +109,17 @@ namespace
 
                 const TypeInfo& typeInfo = sema.typeMgr().get(hintType);
                 if (typeInfo.isStruct())
+                {
+                    if (!typeInfo.isCompleted(sema.ctx()))
+                        return sema.waitCompleted(&typeInfo, sema.curNodeRef());
                     outCandidates.push_back({.symMap = &typeInfo.symStruct(), .symVar = nullptr});
+                }
                 else if (typeInfo.isEnum())
+                {
+                    if (!typeInfo.isCompleted(sema.ctx()))
+                        return sema.waitCompleted(&typeInfo, sema.curNodeRef());
                     outCandidates.push_back({.symMap = &typeInfo.symEnum(), .symVar = nullptr});
+                }
             }
         }
 
@@ -118,6 +134,8 @@ namespace
                     ++j;
             }
         }
+
+        return Result::Continue;
     }
 
     Result probeAutoMemberCandidates(Sema&                                sema,
@@ -128,21 +146,19 @@ namespace
                                      SmallVector<AutoMemberMatch, 2>&     outMatches)
     {
         outMatches.clear();
-        for (const AutoMemberCandidate& cand : candidates)
+        for (const AutoMemberCandidate& candidate : candidates)
         {
             MatchContext lookUpCxt;
             lookUpCxt.srcViewRef    = srcViewRef;
             lookUpCxt.tokRef        = tokNameRef;
-            lookUpCxt.symMapHint    = cand.symMap;
+            lookUpCxt.symMapHint    = candidate.symMap;
             lookUpCxt.noWaitOnEmpty = true;
 
-            const Result ret = Match::match(sema, lookUpCxt, idRef);
-            RESULT_VERIFY(ret);
-
+            RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
             if (!lookUpCxt.empty())
             {
                 AutoMemberMatch m;
-                m.candidate = cand;
+                m.candidate = candidate;
                 m.symbols   = lookUpCxt.symbols();
                 outMatches.push_back(std::move(m));
             }
@@ -184,7 +200,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
     const bool allowOverloadSet = hasFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
 
     SmallVector<AutoMemberCandidate, 4> candidates;
-    collectAutoMemberCandidates(sema, candidates);
+    RESULT_VERIFY(collectAutoMemberCandidates(sema, candidates));
     if (candidates.empty())
     {
         // In a call-argument position, `.EnumValue` might need the selected overload's

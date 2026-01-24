@@ -78,7 +78,9 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     }
     else if (childRef == nodeBodyRef)
     {
-        return Result::SkipChildren; // TODO
+        if (!hasFlag(AstFunctionFlagsE::Short))
+            return Result::SkipChildren; // TODO
+
         SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
         sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::Local);
         sema.curScope().setSymMap(&sym);
@@ -89,10 +91,10 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
 
 Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
+    SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+
     if (childRef == nodeReturnTypeRef || (childRef == nodeParamsRef && nodeReturnTypeRef.isInvalid()))
     {
-        SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
-
         TypeRef returnType = sema.typeMgr().typeVoid();
         if (nodeReturnTypeRef.isValid())
             returnType = sema.typeRefOf(nodeReturnTypeRef);
@@ -101,11 +103,26 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
         const TypeInfo ti      = TypeInfo::makeFunction(&sym, TypeInfoFlagsE::Zero);
         const TypeRef  typeRef = sema.typeMgr().addType(ti);
         sym.setTypeRef(typeRef);
-        sym.setTyped(sema.ctx());
+
+        if (!hasFlag(AstFunctionFlagsE::Short))
+            sym.setTyped(sema.ctx());
 
         RESULT_VERIFY(SemaCheck::checkSignature(sema, sym.parameters(), false));
         if (!sym.isEmpty())
             RESULT_VERIFY(Match::ghosting(sema, sym));
+    }
+    else if (childRef == nodeBodyRef)
+    {
+        if (hasFlag(AstFunctionFlagsE::Short))
+        {
+            sym.setReturnType(sema.typeRefOf(nodeBodyRef));
+
+            const TypeInfo ti      = TypeInfo::makeFunction(&sym, TypeInfoFlagsE::Zero);
+            const TypeRef  typeRef = sema.typeMgr().addType(ti);
+            sym.setTypeRef(typeRef);
+
+            sym.setTyped(sema.ctx());
+        }
     }
 
     return Result::Continue;

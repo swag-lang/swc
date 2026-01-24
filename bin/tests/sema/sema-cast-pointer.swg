@@ -119,3 +119,11 @@
     var b = cast(const *u8) a
     var c = cast(const *void) a
 }
+/*
+#test
+{
+    var a: [*] u8
+    var b: *void
+    var c = a == b
+}
+*/

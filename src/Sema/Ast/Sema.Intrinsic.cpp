@@ -126,10 +126,12 @@ namespace
 
         if (nodeView.type->isArray())
         {
-            const uint64_t  sizeOf  = nodeView.type->sizeOf(ctx);
-            const TypeRef   typeRef = nodeView.type->ultimateTypeRef(ctx);
-            const TypeInfo& ty      = sema.typeMgr().get(typeRef);
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(ctx, sizeOf / ty.sizeOf(ctx)));
+            const uint64_t  sizeOf     = nodeView.type->sizeOf(ctx);
+            const TypeRef   typeRef    = nodeView.type->arrayElemTypeRef();
+            const TypeInfo& ty         = sema.typeMgr().get(typeRef);
+            const uint64_t  sizeOfElem = ty.sizeOf(ctx);
+            SWC_ASSERT(sizeOfElem > 0);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(ctx, sizeOf / sizeOfElem));
             return Result::Continue;
         }
 

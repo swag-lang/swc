@@ -81,10 +81,16 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         if (!hasFlag(AstFunctionFlagsE::Short) && sema.file() && sema.file()->isRuntime())
             return Result::SkipChildren; // TODO
 
-        SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+        SymbolFunction& sym   = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+        auto            frame = sema.frame();
+        if (sym.isMethod())
+        {
+            const auto& params = sym.parameters();
+            if (!params.empty() && params[0]->idRef() == sema.idMgr().nameMe())
+                frame.pushBindingVar(params[0]);
+        }
 
-        auto frame = sema.frame();
-        frame.pushTypeHint(sym.returnTypeRef());
+        frame.pushBindingType(sym.returnTypeRef());
         sema.pushFrameAutoPopOnPostNode(frame);
 
         sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::Local);

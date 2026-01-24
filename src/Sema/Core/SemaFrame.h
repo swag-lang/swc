@@ -31,40 +31,34 @@ public:
     AttributeList&       attributes() { return attributes_; }
     const AttributeList& attributes() const { return attributes_; }
 
-    SemaCompilerIf*  compilerIf() const { return compilerIf_; }
-    void             setCompilerIf(SemaCompilerIf* ifc) { compilerIf_ = ifc; }
-    SymbolImpl*      impl() const { return impl_; }
-    void             setImpl(SymbolImpl* impl) { impl_ = impl; }
-    SymbolInterface* interface() const { return interface_; }
-    void             setInterface(SymbolInterface* itf) { interface_ = itf; }
-    SymbolFunction*  function() const { return function_; }
-    void             setFunction(SymbolFunction* func) { function_ = func; }
-
-    std::span<const TypeRef> typeHints() const { return typeHints_.span(); }
-    TypeRef                  topTypeHint() const { return typeHints_.empty() ? TypeRef::invalid() : typeHints_.back(); }
-    void                     pushTypeHint(TypeRef type)
-    {
-        if (type.isValid())
-            typeHints_.push_back(type);
-    }
-    void popTypeHint()
-    {
-        if (!typeHints_.empty())
-            typeHints_.pop_back();
-    }
+    SemaCompilerIf*                  compilerIf() const { return compilerIf_; }
+    void                             setCompilerIf(SemaCompilerIf* ifc) { compilerIf_ = ifc; }
+    SymbolImpl*                      impl() const { return impl_; }
+    void                             setImpl(SymbolImpl* impl) { impl_ = impl; }
+    SymbolInterface*                 interface() const { return interface_; }
+    void                             setInterface(SymbolInterface* itf) { interface_ = itf; }
+    SymbolFunction*                  function() const { return function_; }
+    void                             setFunction(SymbolFunction* func) { function_ = func; }
+    std::span<const TypeRef>         bindingTypes() const { return bindingTypes_.span(); }
+    void                             pushBindingType(TypeRef type);
+    void                             popBindingType();
+    std::span<SymbolVariable* const> bindingVars() const { return bindingVars_.span(); }
+    void                             pushBindingVar(SymbolVariable* sym);
+    void                             popBindingVar();
 
     static SymbolMap* currentSymMap(Sema& sema);
     SymbolFlags       flagsForCurrentAccess() const;
 
 private:
-    SymbolAccess                  access_ = SymbolAccess::Private;
-    AttributeList                 attributes_;
-    SmallVector<IdentifierRef, 8> nsPath_;
-    SemaCompilerIf*               compilerIf_ = nullptr;
-    SymbolImpl*                   impl_       = nullptr;
-    SymbolInterface*              interface_  = nullptr;
-    SymbolFunction*               function_   = nullptr;
-    SmallVector<TypeRef, 2>       typeHints_;
+    SymbolAccess                    access_ = SymbolAccess::Private;
+    AttributeList                   attributes_;
+    SmallVector<IdentifierRef, 8>   nsPath_;
+    SemaCompilerIf*                 compilerIf_ = nullptr;
+    SymbolImpl*                     impl_       = nullptr;
+    SymbolInterface*                interface_  = nullptr;
+    SymbolFunction*                 function_   = nullptr;
+    SmallVector<TypeRef, 2>         bindingTypes_;
+    SmallVector<SymbolVariable*, 2> bindingVars_;
 };
 
 SWC_END_NAMESPACE();

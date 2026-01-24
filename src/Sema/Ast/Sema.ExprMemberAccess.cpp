@@ -77,26 +77,24 @@ namespace
     {
         outCandidates.clear();
 
-        // Method context: `me` parameter.
-        if (const SymbolFunction* symFunc = sema.frame().function())
-        {
-            if (!symFunc->parameters().empty() && symFunc->parameters()[0]->idRef() == sema.idMgr().nameMe())
-            {
-                const SymbolVariable* symMe    = symFunc->parameters()[0];
-                const TypeInfo&       typeInfo = sema.typeMgr().get(symMe->typeRef());
-                SWC_ASSERT(typeInfo.isReference());
-                const TypeInfo& pointeeType = sema.typeMgr().get(typeInfo.underlyingTypeRef());
-                if (pointeeType.isStruct())
-                    outCandidates.push_back({&pointeeType.symStruct(), symMe});
-                else if (pointeeType.isEnum())
-                    outCandidates.push_back({&pointeeType.symEnum(), symMe});
-            }
-        }
-
-        // Type-hints from the hierarchy of frames.
         for (const SemaFrame& frame : sema.frames())
         {
-            for (const TypeRef hintType : frame.typeHints())
+            // Binding variables (e.g. `me` parameter).
+            for (const SymbolVariable* symVar : frame.bindingVars())
+            {
+                const TypeInfo& typeInfo = sema.typeMgr().get(symVar->typeRef());
+                if (!typeInfo.isReference())
+                    continue;
+
+                const TypeInfo& pointeeType = sema.typeMgr().get(typeInfo.underlyingTypeRef());
+                if (pointeeType.isStruct())
+                    outCandidates.push_back({&pointeeType.symStruct(), symVar});
+                else if (pointeeType.isEnum())
+                    outCandidates.push_back({&pointeeType.symEnum(), symVar});
+            }
+
+            // Type-hints.
+            for (const TypeRef hintType : frame.bindingTypes())
             {
                 if (!hintType.isValid())
                     continue;

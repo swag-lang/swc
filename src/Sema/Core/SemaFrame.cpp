@@ -23,6 +23,30 @@ namespace
     }
 }
 
+void SemaFrame::pushBindingType(TypeRef type)
+{
+    if (type.isValid())
+        bindingTypes_.push_back(type);
+}
+
+void SemaFrame::popBindingType()
+{
+    if (!bindingTypes_.empty())
+        bindingTypes_.pop_back();
+}
+
+void SemaFrame::pushBindingVar(SymbolVariable* sym)
+{
+    if (sym)
+        bindingVars_.push_back(sym);
+}
+
+void SemaFrame::popBindingVar()
+{
+    if (!bindingVars_.empty())
+        bindingVars_.pop_back();
+}
+
 SymbolMap* SemaFrame::currentSymMap(Sema& sema)
 {
     SymbolMap* symbolMap = sema.curSymMap();

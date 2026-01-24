@@ -1,12 +1,48 @@
 #include "pch.h"
 #include "Sema/Type/TypeManager.h"
 #include "Main/Stats.h"
-#include "Sema/Symbol/Symbols.h"
+#include "Sema/Core/Sema.h"
+#include "Sema/Symbol/IdentifierManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
-void TypeManager::setup(TaskContext&)
+void TypeManager::setup(TaskContext& ctx)
 {
+    const auto& idMgr                          = ctx.idMgr();
+    mapRtKind_[idMgr.nameTargetOs()]           = RuntimeTypeKind::TargetOs;
+    mapRtKind_[idMgr.nameTypeInfoKind()]       = RuntimeTypeKind::TypeInfoKind;
+    mapRtKind_[idMgr.nameTypeInfoNativeKind()] = RuntimeTypeKind::TypeInfoNativeKind;
+    mapRtKind_[idMgr.nameTypeInfoFlags()]      = RuntimeTypeKind::TypeInfoFlags;
+    mapRtKind_[idMgr.nameTypeValueFlags()]     = RuntimeTypeKind::TypeValueFlags;
+    mapRtKind_[idMgr.nameTypeInfo()]           = RuntimeTypeKind::TypeInfo;
+    mapRtKind_[idMgr.nameTypeInfoNative()]     = RuntimeTypeKind::TypeInfoNative;
+    mapRtKind_[idMgr.nameTypeInfoPointer()]    = RuntimeTypeKind::TypeInfoPointer;
+    mapRtKind_[idMgr.nameTypeInfoStruct()]     = RuntimeTypeKind::TypeInfoStruct;
+    mapRtKind_[idMgr.nameTypeInfoFunc()]       = RuntimeTypeKind::TypeInfoFunc;
+    mapRtKind_[idMgr.nameTypeInfoEnum()]       = RuntimeTypeKind::TypeInfoEnum;
+    mapRtKind_[idMgr.nameTypeInfoArray()]      = RuntimeTypeKind::TypeInfoArray;
+    mapRtKind_[idMgr.nameTypeInfoSlice()]      = RuntimeTypeKind::TypeInfoSlice;
+    mapRtKind_[idMgr.nameTypeInfoAlias()]      = RuntimeTypeKind::TypeInfoAlias;
+    mapRtKind_[idMgr.nameTypeInfoVariadic()]   = RuntimeTypeKind::TypeInfoVariadic;
+    mapRtKind_[idMgr.nameTypeInfoGeneric()]    = RuntimeTypeKind::TypeInfoGeneric;
+    mapRtKind_[idMgr.nameTypeInfoNamespace()]  = RuntimeTypeKind::TypeInfoNamespace;
+    mapRtKind_[idMgr.nameTypeInfoCodeBlock()]  = RuntimeTypeKind::TypeInfoCodeBlock;
+    mapRtKind_[idMgr.nameTypeValue()]          = RuntimeTypeKind::TypeValue;
+    mapRtKind_[idMgr.nameAttribute()]          = RuntimeTypeKind::Attribute;
+    mapRtKind_[idMgr.nameAttributeParam()]     = RuntimeTypeKind::AttributeParam;
+    mapRtKind_[idMgr.nameInterface()]          = RuntimeTypeKind::Interface;
+    mapRtKind_[idMgr.nameSourceCodeLocation()] = RuntimeTypeKind::SourceCodeLocation;
+    mapRtKind_[idMgr.nameErrorValue()]         = RuntimeTypeKind::ErrorValue;
+    mapRtKind_[idMgr.nameScratchAllocator()]   = RuntimeTypeKind::ScratchAllocator;
+    mapRtKind_[idMgr.nameContext()]            = RuntimeTypeKind::Context;
+    mapRtKind_[idMgr.nameContextFlags()]       = RuntimeTypeKind::ContextFlags;
+    mapRtKind_[idMgr.nameModule()]             = RuntimeTypeKind::Module;
+    mapRtKind_[idMgr.nameProcessInfos()]       = RuntimeTypeKind::ProcessInfos;
+    mapRtKind_[idMgr.nameGvtd()]               = RuntimeTypeKind::Gvtd;
+
+    for (auto& rt : runtimeTypes_)
+        rt = TypeRef::invalid();
+
     typeIntUnsigned_ = addType(TypeInfo::makeInt(0, TypeInfo::Sign::Unsigned));
     typeIntSigned_   = addType(TypeInfo::makeInt(0, TypeInfo::Sign::Signed));
     typeInt_         = addType(TypeInfo::makeInt(0, TypeInfo::Sign::Unknown));
@@ -300,6 +336,21 @@ void TypeManager::buildPromoteTable()
             promoteTable_[i][j] = computePromotion(lhs, rhs);
         }
     }
+}
+
+void TypeManager::registerRuntimeType(IdentifierRef idRef, TypeRef typeRef)
+{
+    std::unique_lock lk(mutexRt_);
+    const auto       it = mapRtKind_.find(idRef);
+    if (it == mapRtKind_.end())
+        return;
+    runtimeTypes_[static_cast<uint32_t>(it->second)] = typeRef;
+}
+
+TypeRef TypeManager::runtimeType(RuntimeTypeKind kind) const
+{
+    std::shared_lock lk(mutexRt_);
+    return runtimeTypes_[static_cast<uint32_t>(kind)];
 }
 
 SWC_END_NAMESPACE();

@@ -116,24 +116,7 @@ Result AstEnumDecl::semaPostNode(Sema& sema) const
 
     // Runtime enum
     if (sym.inSwagNamespace(sema.ctx()))
-    {
-        const auto& idMgr   = sema.idMgr();
-        auto&       typeMgr = sema.typeMgr();
-        const auto  idRef   = sym.idRef();
-
-        if (idRef == idMgr.nameTargetOs())
-            typeMgr.setEnumTargetOs(sym.typeRef());
-        else if (idRef == idMgr.nameTypeInfoKind())
-            typeMgr.setEnumTypeInfoKind(sym.typeRef());
-        else if (idRef == idMgr.nameTypeInfoNativeKind())
-            typeMgr.setEnumTypeInfoNativeKind(sym.typeRef());
-        else if (idRef == idMgr.nameTypeInfoFlags())
-            typeMgr.setEnumTypeInfoFlags(sym.typeRef());
-        else if (idRef == idMgr.nameTypeValueFlags())
-            typeMgr.setEnumTypeValueFlags(sym.typeRef());
-        else if (idRef == idMgr.nameContextFlags())
-            typeMgr.setEnumContextFlags(sym.typeRef());
-    }
+        sema.typeMgr().registerRuntimeType(sym.idRef(), sym.typeRef());
 
     sym.setCompleted(sema.ctx());
     return Result::Continue;

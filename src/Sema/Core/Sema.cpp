@@ -109,6 +109,11 @@ Utf8 Sema::fileName() const
     return ast().srcView().file()->path().string();
 }
 
+const SourceFile* Sema::file() const
+{
+    return ast().srcView().file();
+}
+
 const Ast& Sema::ast() const
 {
     return semaInfo_->ast();

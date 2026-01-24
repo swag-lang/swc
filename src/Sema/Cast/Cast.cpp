@@ -129,11 +129,7 @@ namespace
 
         const auto&     typeMgr = sema.ctx().typeMgr();
         const TypeInfo& srcType = typeMgr.get(srcTypeRef);
-        if (!srcType.isIntLike() &&
-            !srcType.isAnyPointer() &&
-            !srcType.isInterface() &&
-            !srcType.isLambdaClosure() &&
-            !srcType.isSlice())
+        if (!srcType.isPointerLike() && !srcType.isIntLike())
         {
             castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             return Result::Error;
@@ -145,6 +141,10 @@ namespace
             {
                 if (!Cast::foldConstantIntLikeToBool(sema, castCtx))
                     return Result::Error;
+            }
+            else if (srcType.isString())
+            {
+                castCtx.setConstantFoldingResult(sema.cstMgr().cstFalse());
             }
             else
                 SWC_UNREACHABLE();

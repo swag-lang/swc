@@ -49,4 +49,3 @@
 #assert(!("1" == "2"))
 #assert(!1 == false)
 #assert(!0 == true)
-#assert(!"string")           // swc-expected-error {{sema_err_unary_operand_type}}

@@ -65,7 +65,7 @@ namespace
         return Result::Error;
     }
 
-    Result constantFoldBang(Sema& sema, ConstantRef& result, const AstUnaryExpr&, const SemaNodeView& ops)
+    Result constantFoldBang(Sema& sema, ConstantRef& result, const AstUnaryExpr& node, const SemaNodeView& ops)
     {
         if (ops.cst->isBool())
         {
@@ -73,9 +73,31 @@ namespace
             return Result::Continue;
         }
 
-        SWC_ASSERT(ops.cst->isInt());
-        result = sema.cstMgr().cstBool(ops.cst->getInt().isZero());
-        return Result::Continue;
+        if (ops.cst->isInt())
+        {
+            result = sema.cstMgr().cstBool(ops.cst->getInt().isZero());
+            return Result::Continue;
+        }
+
+        if (ops.cst->isChar())
+        {
+            result = sema.cstMgr().cstBool(ops.cst->getChar());
+            return Result::Continue;
+        }
+
+        if (ops.cst->isRune())
+        {
+            result = sema.cstMgr().cstBool(ops.cst->getRune());
+            return Result::Continue;
+        }
+
+        if (ops.cst->isString())
+        {
+            result = sema.cstMgr().cstFalse();
+            return Result::Continue;
+        }
+
+        return SemaError::raiseInternal(sema, node);
     }
 
     Result constantFoldTilde(Sema& sema, ConstantRef& result, const AstUnaryExpr&, const SemaNodeView& ops)
@@ -149,7 +171,7 @@ namespace
 
     Result checkBang(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
     {
-        if (ops.type->isBool() || ops.type->isInt())
+        if (ops.type->isBool() || ops.type->isIntLike() || ops.type->isPointerLike())
             return Result::Continue;
         return reportInvalidType(sema, expr, ops);
     }
@@ -215,6 +237,13 @@ namespace
         const TypeRef   typeRef = sema.typeMgr().addType(ty);
         sema.setType(sema.curNodeRef(), typeRef);
 
+        return Result::Continue;
+    }
+
+    Result semaBang(Sema& sema, const AstUnaryExpr&, SemaNodeView& nodeView)
+    {
+        RESULT_VERIFY(Cast::cast(sema, nodeView, sema.ctx().typeMgr().typeBool(), CastKind::Condition));
+        sema.setType(sema.curNodeRef(), nodeView.typeRef);
         return Result::Continue;
     }
 
@@ -312,15 +341,17 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     {
         case TokenId::KwdDRef:
             return semaDRef(sema, *this, nodeView);
+        case TokenId::SymAmpersand:
+            return semaTakeAddress(sema, *this, nodeView);
+        case TokenId::SymBang:
+            return semaBang(sema, *this, nodeView);
+
         case TokenId::KwdMoveRef:
             // TODO
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
             break;
-
-        case TokenId::SymAmpersand:
-            return semaTakeAddress(sema, *this, nodeView);
-
         default:
+            // TODO
             sema.setType(sema.curNodeRef(), nodeView.typeRef);
             break;
     }

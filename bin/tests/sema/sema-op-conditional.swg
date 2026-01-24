@@ -26,7 +26,6 @@
 // Condition must be bool
 #test { var a = 0 ? 1 : 2 }
 #test { var b = 1.0 ? 1 : 2 }   // swc-expected-error {{sema_err_cannot_cast}}
-const C0 = "true" ? 1 : 2       // swc-expected-error {{sema_err_cannot_cast}}
 
 // Incompatible types
 #test { var a = true ? 10 : "string" }  // swc-expected-error {{sema_err_binary_operand_type}}

@@ -64,6 +64,12 @@ namespace
         bool any() const { return isVariadic || isTypedVariadic; }
     };
 
+    struct AutoEnumArgProbe
+    {
+        bool    matched = false;
+        TypeRef typeRef = TypeRef::invalid();
+    };
+
     AstNodeRef getArg(uint32_t argIndex, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
     {
         if (ufcsArg.isValid())
@@ -161,18 +167,12 @@ namespace
         return ConvRank::Bad;
     }
 
-    struct AutoEnumArgProbe
-    {
-        bool    matched = false;
-        TypeRef typeRef = TypeRef::invalid();
-    };
-
     Result probeAutoEnumArg(Sema& sema, AstNodeRef argRef, TypeRef paramTy, AutoEnumArgProbe& out)
     {
         out = {};
 
         // Only handle `.EnumValue` (auto-member) using the overload's parameter enum scope.
-        const AstNodeRef argSubRef = sema.semaInfo().getSubstituteRef(argRef);
+        const AstNodeRef argSubRef   = sema.semaInfo().getSubstituteRef(argRef);
         const AstNodeRef finalArgRef = argSubRef.isValid() ? argSubRef : argRef;
         const AstNode&   argNode     = sema.node(finalArgRef);
         const auto*      autoMem     = argNode.safeCast<AstAutoMemberAccessExpr>();
@@ -187,9 +187,9 @@ namespace
         if (!enumSym.isCompleted())
             return sema.waitCompleted(&enumSym, argNode.srcViewRef(), argNode.tokRef());
 
-        const SemaNodeView nodeRightView(sema, autoMem->nodeIdentRef);
-        const TokenRef     tokNameRef = nodeRightView.node->tokRef();
-        const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), argNode.srcViewRef(), tokNameRef);
+        const SemaNodeView  nodeRightView(sema, autoMem->nodeIdentRef);
+        const TokenRef      tokNameRef = nodeRightView.node->tokRef();
+        const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), argNode.srcViewRef(), tokNameRef);
 
         MatchContext lookUpCxt;
         lookUpCxt.srcViewRef    = argNode.srcViewRef();
@@ -209,7 +209,7 @@ namespace
 
     Result resolveAutoEnumArgFinal(Sema& sema, AstNodeRef argRef, TypeRef paramTy)
     {
-        const AstNodeRef argSubRef = sema.semaInfo().getSubstituteRef(argRef);
+        const AstNodeRef argSubRef   = sema.semaInfo().getSubstituteRef(argRef);
         const AstNodeRef finalArgRef = argSubRef.isValid() ? argSubRef : argRef;
         const AstNode&   argNode     = sema.node(finalArgRef);
         const auto*      autoMem     = argNode.safeCast<AstAutoMemberAccessExpr>();
@@ -667,8 +667,8 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     const uint32_t numCommonForFinalize = selectedFnT.isAnyVariadic() ? (numParams > 0 ? numParams - 1 : 0) : numParams;
     for (uint32_t i = 0; i < std::min(numArgs, numCommonForFinalize); ++i)
     {
-        const AstNodeRef argRef   = getArg(i, args, ufcsArg);
-        const TypeRef    paramTy  = params[i]->typeRef();
+        const AstNodeRef argRef  = getArg(i, args, ufcsArg);
+        const TypeRef    paramTy = params[i]->typeRef();
         RESULT_VERIFY(resolveAutoEnumArgFinal(sema, argRef, paramTy));
     }
 

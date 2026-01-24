@@ -314,7 +314,12 @@ namespace
             MatchFailure fail;
             Candidate    candidate;
 
-            if (tryBuildCandidate(sema, *fn, args, ufcsArg, candidate, fail))
+            if (tryBuildCandidate(sema, *fn, args, AstNodeRef::invalid(), candidate, fail))
+            {
+                a.viable    = true;
+                a.candidate = std::move(candidate);
+            }
+            else if (ufcsArg.isValid() && tryBuildCandidate(sema, *fn, args, ufcsArg, candidate, fail))
             {
                 a.viable    = true;
                 a.candidate = std::move(candidate);

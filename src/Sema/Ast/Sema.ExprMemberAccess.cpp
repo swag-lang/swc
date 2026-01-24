@@ -162,6 +162,22 @@ namespace
                 outSymbols.push_back(s);
         }
     }
+
+    void bindMemberSymbols(Sema& sema, AstNodeRef nodeRef, bool allowOverloadSet, std::span<const Symbol*> symbols)
+    {
+        if (symbols.size() <= 1 || !allowOverloadSet)
+        {
+            sema.setSymbolList(nodeRef, symbols);
+        }
+        else
+        {
+            SmallVector<const Symbol*> callables;
+            if (filterCallCalleeCandidates(symbols, callables))
+                sema.setSymbolList(nodeRef, callables);
+            else
+                sema.setSymbolList(nodeRef, symbols);
+        }
+    }
 }
 
 Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) const
@@ -236,6 +252,84 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
     return Result::SkipChildren;
 }
 
+namespace
+{
+    Result semaNamespace(Sema& sema, const AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
+    {
+        const SymbolNamespace& namespaceSym = nodeLeftView.sym->cast<SymbolNamespace>();
+
+        MatchContext lookUpCxt;
+        lookUpCxt.srcViewRef = node->srcViewRef();
+        lookUpCxt.tokRef     = tokNameRef;
+        lookUpCxt.symMapHint = &namespaceSym;
+
+        RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
+
+        RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
+        bindMemberSymbols(sema, node->nodeRightRef, allowOverloadSet, lookUpCxt.symbols());
+
+        return Result::SkipChildren;
+    }
+
+    Result semaEnum(Sema& sema, const AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
+    {
+        const SymbolEnum& enumSym = nodeLeftView.type->symEnum();
+        if (!enumSym.isCompleted())
+            return sema.waitCompleted(&enumSym, node->srcViewRef(), tokNameRef);
+
+        MatchContext lookUpCxt;
+        lookUpCxt.srcViewRef = node->srcViewRef();
+        lookUpCxt.tokRef     = tokNameRef;
+        lookUpCxt.symMapHint = &enumSym;
+
+        RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
+        RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
+        bindMemberSymbols(sema, node->nodeRightRef, allowOverloadSet, lookUpCxt.symbols());
+
+        return Result::SkipChildren;
+    }
+
+    Result semaInterface(Sema& sema, const AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, TokenRef tokNameRef)
+    {
+        const SymbolInterface& symInterface = nodeLeftView.type->symInterface();
+        if (!symInterface.isCompleted())
+            return sema.waitCompleted(&symInterface, node->srcViewRef(), tokNameRef);
+        // TODO
+        return Result::SkipChildren;
+    }
+
+    Result semaStruct(Sema& sema, AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet, const TypeInfo* typeInfo)
+    {
+        const SymbolStruct& symStruct = typeInfo->symStruct();
+        if (!symStruct.isCompleted())
+            return sema.waitCompleted(&symStruct, node->srcViewRef(), tokNameRef);
+
+        MatchContext lookUpCxt;
+        lookUpCxt.srcViewRef = node->srcViewRef();
+        lookUpCxt.tokRef     = tokNameRef;
+        lookUpCxt.symMapHint = &symStruct;
+
+        RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
+
+        // Bind member-access node (curNodeRef) and RHS identifier.
+        RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
+        bindMemberSymbols(sema, node->nodeRightRef, allowOverloadSet, lookUpCxt.symbols());
+
+        // Constant struct member access
+        const auto finalSymCount = sema.getSymbolList(node->nodeRightRef).size();
+        if (nodeLeftView.cst && finalSymCount == 1 && sema.getSymbolList(node->nodeRightRef)[0]->isVariable())
+        {
+            const SymbolVariable& symVar = sema.getSymbolList(node->nodeRightRef)[0]->cast<SymbolVariable>();
+            RESULT_VERIFY(SemaHelpers::extractConstantStructMember(sema, *nodeLeftView.cst, symVar, sema.curNodeRef(), node->nodeRightRef));
+            return Result::SkipChildren;
+        }
+
+        if (nodeLeftView.type->isAnyPointer() || nodeLeftView.type->isReference() || SemaInfo::isLValue(sema.node(node->nodeLeftRef)))
+            SemaInfo::setIsLValue(*node);
+        return Result::SkipChildren;
+    }
+}
+
 Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
 {
     if (childRef != nodeRightRef)
@@ -246,95 +340,30 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
 
     const SemaNodeView nodeLeftView(sema, nodeLeftRef);
     const SemaNodeView nodeRightView(sema, nodeRightRef);
-    TokenRef           tokNameRef;
 
     SWC_ASSERT(nodeRightView.node->is(AstNodeId::Identifier));
-    tokNameRef = nodeRightView.node->tokRef();
-
-    const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
+    const TokenRef      tokNameRef = nodeRightView.node->tokRef();
+    const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
 
     // Namespace
     if (nodeLeftView.sym && nodeLeftView.sym->isNamespace())
-    {
-        const SymbolNamespace& namespaceSym = nodeLeftView.sym->cast<SymbolNamespace>();
-
-        MatchContext lookUpCxt;
-        lookUpCxt.srcViewRef = srcViewRef();
-        lookUpCxt.tokRef     = tokNameRef;
-        lookUpCxt.symMapHint = &namespaceSym;
-
-        RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
-
-        // Bind both the RHS identifier and the member-access expr to the (possibly filtered) candidates.
-        // First bind for the member-access node (curNodeRef).
-        RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
-
-        // Then bind the same final list to the RHS identifier node.
-        // If you don't have a getter for the stored list, re-run filtering locally:
-        if (lookUpCxt.symbols().size() <= 1 || !allowOverloadSet)
-        {
-            sema.setSymbolList(nodeRightView.nodeRef, lookUpCxt.symbols());
-        }
-        else
-        {
-            SmallVector<const Symbol*> callables;
-            if (filterCallCalleeCandidates(lookUpCxt.symbols(), callables))
-                sema.setSymbolList(nodeRightView.nodeRef, callables);
-            else
-                sema.setSymbolList(nodeRightView.nodeRef, lookUpCxt.symbols());
-        }
-
-        return Result::SkipChildren;
-    }
+        return semaNamespace(sema, this, nodeLeftView, idRef, tokNameRef, allowOverloadSet);
 
     SWC_ASSERT(nodeLeftView.type);
 
     // Enum
     if (nodeLeftView.type->isEnum())
-    {
-        const SymbolEnum& enumSym = nodeLeftView.type->symEnum();
-        if (!enumSym.isCompleted())
-            return sema.waitCompleted(&enumSym, srcViewRef(), tokNameRef);
-
-        MatchContext lookUpCxt;
-        lookUpCxt.srcViewRef = srcViewRef();
-        lookUpCxt.tokRef     = tokNameRef;
-        lookUpCxt.symMapHint = &enumSym;
-
-        RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
-        RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
-
-        if (lookUpCxt.symbols().size() <= 1 || !allowOverloadSet)
-        {
-            sema.setSymbolList(nodeRightView.nodeRef, lookUpCxt.symbols());
-        }
-        else
-        {
-            SmallVector<const Symbol*> callables;
-            if (filterCallCalleeCandidates(lookUpCxt.symbols(), callables))
-                sema.setSymbolList(nodeRightView.nodeRef, callables);
-            else
-                sema.setSymbolList(nodeRightView.nodeRef, lookUpCxt.symbols());
-        }
-
-        return Result::SkipChildren;
-    }
+        return semaEnum(sema, this, nodeLeftView, idRef, tokNameRef, allowOverloadSet);
 
     // Interface
     if (nodeLeftView.type->isInterface())
-    {
-        const SymbolInterface& symInterface = nodeLeftView.type->symInterface();
-        if (!symInterface.isCompleted())
-            return sema.waitCompleted(&symInterface, srcViewRef(), tokNameRef);
-        // TODO
-        return Result::SkipChildren;
-    }
+        return semaInterface(sema, this, nodeLeftView, tokNameRef);
 
     // Dereference pointer
     const TypeInfo* typeInfo = nodeLeftView.type;
     if (typeInfo->isTypeInfo())
     {
-        TypeRef typeInfoRef = sema.typeMgr().structTypeInfo();
+        const TypeRef typeInfoRef = sema.typeMgr().structTypeInfo();
         if (typeInfoRef.isInvalid())
             return sema.waitIdentifier(sema.idMgr().nameTypeInfoStruct(), srcViewRef(), tokNameRef);
         typeInfo = &sema.typeMgr().get(typeInfoRef);
@@ -346,47 +375,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
 
     // Struct
     if (typeInfo->isStruct())
-    {
-        const SymbolStruct& symStruct = typeInfo->symStruct();
-        if (!symStruct.isCompleted())
-            return sema.waitCompleted(&symStruct, srcViewRef(), tokNameRef);
-
-        MatchContext lookUpCxt;
-        lookUpCxt.srcViewRef = srcViewRef();
-        lookUpCxt.tokRef     = tokNameRef;
-        lookUpCxt.symMapHint = &symStruct;
-
-        RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
-
-        // Bind member-access node (curNodeRef) and RHS identifier.
-        RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
-
-        if (lookUpCxt.symbols().size() <= 1 || !allowOverloadSet)
-        {
-            sema.setSymbolList(nodeRightRef, lookUpCxt.symbols());
-        }
-        else
-        {
-            SmallVector<const Symbol*> callables;
-            if (filterCallCalleeCandidates(lookUpCxt.symbols(), callables))
-                sema.setSymbolList(nodeRightRef, callables);
-            else
-                sema.setSymbolList(nodeRightRef, lookUpCxt.symbols());
-        }
-
-        // Constant struct member access
-        const auto finalSymCount = sema.getSymbolList(nodeRightRef).size(); // if unavailable, see note below.
-        if (nodeLeftView.cst && finalSymCount == 1 && sema.getSymbolList(nodeRightRef)[0]->isVariable())
-        {
-            const SymbolVariable& symVar = sema.getSymbolList(nodeRightRef)[0]->cast<SymbolVariable>();
-            RESULT_VERIFY(SemaHelpers::extractConstantStructMember(sema, *nodeLeftView.cst, symVar, sema.curNodeRef(), nodeRightView.nodeRef));
-            return Result::SkipChildren;
-        }
-
-        if (nodeLeftView.type->isAnyPointer() || nodeLeftView.type->isReference() || SemaInfo::isLValue(sema.node(nodeLeftRef)))
-            SemaInfo::setIsLValue(*this);
-        return Result::SkipChildren;
-    }
+        return semaStruct(sema, this, nodeLeftView, idRef, tokNameRef, allowOverloadSet, typeInfo);
 
     // Pointer/Reference
     if (nodeLeftView.type->isAnyPointer() || nodeLeftView.type->isReference())

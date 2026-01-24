@@ -18,5 +18,28 @@ func overload(x: f32, e: OverB)->f32 { return 20.0 }
 func fct(x: f32, e: OverB)->f32 { return 20.0 }
 #test
 {
-    let r1 = fct(1.0, .C) // swc-expected-error {{sema_err_auto_scope_missing_value}}
+    let r1 = fct(1.0, .C) // swc-expected-error {{sema_err_auto_scope_missing_enum_value}}
+}
+
+struct Vec2
+{
+    x: f32
+    y: f32
+}
+
+impl Vec2
+{
+    func set_axis(axis: OverA, value: f32)
+    {
+        if axis == .A {
+            .x = value
+        } elif axis == .B {
+            .y = value
+        }
+    }
+
+    mtd toto()
+    {
+        if .z > 0.0 {} // swc-expected-error {{sema_err_auto_scope_missing_struct_member}}
+    }
 }

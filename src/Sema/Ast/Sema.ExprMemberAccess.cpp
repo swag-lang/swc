@@ -219,9 +219,15 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
     {
         if (candidates.size() == 1)
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_auto_scope_missing_value, sema.curNodeRef());
+            const auto& cand     = candidates.front();
+            const auto& typeInfo = sema.typeMgr().get(cand.symMap->typeRef());
+            auto        diagId   = DiagnosticId::sema_err_auto_scope_missing_enum_value;
+            if (typeInfo.isStruct())
+                diagId = DiagnosticId::sema_err_auto_scope_missing_struct_member;
+
+            auto diag = SemaError::report(sema, diagId, sema.curNodeRef());
             diag.addArgument(Diagnostic::ARG_VALUE, sema.idMgr().get(idRef).name);
-            diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, candidates.front().symMap->typeRef());
+            diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, cand.symMap->typeRef());
             diag.last().addSpan(sema.node(nodeIdentRef).location(sema.ctx()));
             diag.report(sema.ctx());
             return Result::Error;

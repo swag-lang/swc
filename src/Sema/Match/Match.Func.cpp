@@ -624,13 +624,6 @@ namespace
                         note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(a.fail.castFailure.diagId));
                         if (const DiagnosticId nid = addCastFailureArgs(note, a.fail.castFailure); nid != DiagnosticId::None)
                             diag.addNote(nid);
-
-                        if (a.fail.castFailure.diagId == DiagnosticId::sema_err_auto_scope_missing_enum_value ||
-                            a.fail.castFailure.diagId == DiagnosticId::sema_err_auto_scope_missing_struct_member)
-                        {
-                            const AstNodeRef argRef = getArg(a.fail.argIndex, args, ufcsArg);
-                            diag.last().addSpan(sema.node(argRef).location(ctx));
-                        }
                     }
                     else
                     {
@@ -643,12 +636,10 @@ namespace
                     break;
             }
 
-            if (a.fail.hasLocation && a.fail.argIndex < numArgs &&
-                a.fail.castFailure.diagId != DiagnosticId::sema_err_auto_scope_missing_enum_value &&
-                a.fail.castFailure.diagId != DiagnosticId::sema_err_auto_scope_missing_struct_member)
+            if (a.fail.hasLocation && a.fail.argIndex < numArgs)
             {
                 const AstNodeRef argRef = getArg(a.fail.argIndex, args, ufcsArg);
-                diag.last().addSpan(sema.node(argRef).location(ctx));
+                diag.last().addSpan(sema.node(argRef).locationWithChildren(ctx, sema.ast()));
             }
         }
 

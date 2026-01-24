@@ -46,5 +46,5 @@ impl Vec2
 
 #test
 {
-    let r1 = overload(1.0, .C)
+    let r1 = overload(1.0, .C) // swc-expected-error {{sema_err_no_overload_match}}
 }

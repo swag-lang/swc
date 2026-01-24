@@ -285,8 +285,6 @@ public:
         --_size;
     }
 
-    // NEW: append count elements from raw memory [data, data + count)
-    // data must not overlap the storage of this SmallVector.
     void append(const T* data, size_type count)
     {
         if (count == 0)

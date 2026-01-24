@@ -77,6 +77,22 @@ namespace
     {
         outCandidates.clear();
 
+        auto addCandidate = [&](const TypeInfo* typeInfo, const SymbolVariable* symVar) -> Result {
+            if (typeInfo->isStruct())
+            {
+                if (!typeInfo->isCompleted(sema.ctx()))
+                    return sema.waitCompleted(typeInfo, sema.curNodeRef());
+                outCandidates.push_back({.symMap = &typeInfo->symStruct(), .symVar = symVar});
+            }
+            else if (typeInfo->isEnum())
+            {
+                if (!typeInfo->isCompleted(sema.ctx()))
+                    return sema.waitCompleted(typeInfo, sema.curNodeRef());
+                outCandidates.push_back({.symMap = &typeInfo->symEnum(), .symVar = symVar});
+            }
+            return Result::Continue;
+        };
+
         for (const SemaFrame& frame : sema.frames())
         {
             // Binding variables.
@@ -87,18 +103,7 @@ namespace
                     continue;
 
                 const TypeInfo& pointeeType = sema.typeMgr().get(typeInfo.underlyingTypeRef());
-                if (pointeeType.isStruct())
-                {
-                    if (!pointeeType.isCompleted(sema.ctx()))
-                        return sema.waitCompleted(&pointeeType, sema.curNodeRef());
-                    outCandidates.push_back({.symMap = &pointeeType.symStruct(), .symVar = symVar});
-                }
-                else if (pointeeType.isEnum())
-                {
-                    if (!pointeeType.isCompleted(sema.ctx()))
-                        return sema.waitCompleted(&pointeeType, sema.curNodeRef());
-                    outCandidates.push_back({.symMap = &pointeeType.symEnum(), .symVar = symVar});
-                }
+                RESULT_VERIFY(addCandidate(&pointeeType, symVar));
             }
 
             // Binding types.
@@ -108,18 +113,7 @@ namespace
                     continue;
 
                 const TypeInfo& typeInfo = sema.typeMgr().get(hintType);
-                if (typeInfo.isStruct())
-                {
-                    if (!typeInfo.isCompleted(sema.ctx()))
-                        return sema.waitCompleted(&typeInfo, sema.curNodeRef());
-                    outCandidates.push_back({.symMap = &typeInfo.symStruct(), .symVar = nullptr});
-                }
-                else if (typeInfo.isEnum())
-                {
-                    if (!typeInfo.isCompleted(sema.ctx()))
-                        return sema.waitCompleted(&typeInfo, sema.curNodeRef());
-                    outCandidates.push_back({.symMap = &typeInfo.symEnum(), .symVar = nullptr});
-                }
+                RESULT_VERIFY(addCandidate(&typeInfo, nullptr));
             }
         }
 

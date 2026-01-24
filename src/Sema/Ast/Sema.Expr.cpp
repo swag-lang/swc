@@ -61,6 +61,108 @@ namespace
         // No callable candidates and multiple results => true ambiguity (e.g. multiple vars/namespaces/etc.).
         return SemaError::raiseAmbiguousSymbol(sema, nodeRef, foundSymbols);
     }
+
+    struct AutoMemberCandidate
+    {
+        const SymbolMap*      symMap = nullptr;
+        const SymbolVariable* symMe  = nullptr; // if set, we substitute `.foo` -> `me.foo`
+    };
+
+    struct AutoMemberMatch
+    {
+        AutoMemberCandidate      candidate;
+        SmallVector<const Symbol*> symbols;
+    };
+
+    void collectAutoMemberCandidates(Sema& sema, SmallVector<AutoMemberCandidate, 4>& outCandidates)
+    {
+        outCandidates.clear();
+
+        // 1) Method context: `me` parameter.
+        if (const SymbolFunction* symFunc = sema.frame().function())
+        {
+            if (!symFunc->parameters().empty() && symFunc->parameters()[0]->idRef() == sema.idMgr().nameMe())
+            {
+                const SymbolVariable* symMe    = symFunc->parameters()[0];
+                const TypeInfo&       typeInfo = sema.typeMgr().get(symMe->typeRef());
+                SWC_ASSERT(typeInfo.isReference());
+                const TypeInfo& pointeeType = sema.typeMgr().get(typeInfo.underlyingTypeRef());
+                if (pointeeType.isStruct())
+                    outCandidates.push_back({&pointeeType.symStruct(), symMe});
+                else if (pointeeType.isEnum())
+                    outCandidates.push_back({&pointeeType.symEnum(), symMe});
+            }
+        }
+
+        // 2) Type-hints from the hierarchy of frames.
+        for (const SemaFrame& frame : sema.frames())
+        {
+            for (const TypeRef hintType : frame.typeHints())
+            {
+                if (!hintType.isValid())
+                    continue;
+
+                const TypeInfo& typeInfo = sema.typeMgr().get(hintType);
+                if (typeInfo.isStruct())
+                    outCandidates.push_back({&typeInfo.symStruct(), nullptr});
+                else if (typeInfo.isEnum())
+                    outCandidates.push_back({&typeInfo.symEnum(), nullptr});
+            }
+        }
+
+        // Remove duplicates by symMap.
+        for (size_t i = 0; i < outCandidates.size(); ++i)
+        {
+            for (size_t j = i + 1; j < outCandidates.size();)
+            {
+                if (outCandidates[i].symMap == outCandidates[j].symMap)
+                    outCandidates.erase(outCandidates.begin() + j);
+                else
+                    ++j;
+            }
+        }
+    }
+
+    Result probeAutoMemberCandidates(Sema& sema,
+                                    SourceViewRef srcViewRef,
+                                    TokenRef tokNameRef,
+                                    IdentifierRef idRef,
+                                    std::span<const AutoMemberCandidate> candidates,
+                                    SmallVector<AutoMemberMatch, 2>& outMatches)
+    {
+        outMatches.clear();
+        for (const AutoMemberCandidate& cand : candidates)
+        {
+            MatchContext lookUpCxt;
+            lookUpCxt.srcViewRef    = srcViewRef;
+            lookUpCxt.tokRef        = tokNameRef;
+            lookUpCxt.symMapHint    = cand.symMap;
+            lookUpCxt.noWaitOnEmpty = true;
+
+            const Result ret = Match::match(sema, lookUpCxt, idRef);
+            RESULT_VERIFY(ret);
+
+            if (!lookUpCxt.empty())
+            {
+                AutoMemberMatch m;
+                m.candidate = cand;
+                m.symbols   = lookUpCxt.symbols();
+                outMatches.push_back(std::move(m));
+            }
+        }
+
+        return Result::Continue;
+    }
+
+    void mergeAutoMemberMatches(std::span<const AutoMemberMatch> matches, SmallVector<const Symbol*>& outSymbols)
+    {
+        outSymbols.clear();
+        for (const auto& m : matches)
+        {
+            for (const Symbol* s : m.symbols)
+                outSymbols.push_back(s);
+        }
+    }
 }
 
 Result AstParenExpr::semaPostNode(Sema& sema)
@@ -98,61 +200,8 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
     // Parser tags the callee expression when building a call: `.foo()`.
     const bool allowOverloadSet = hasFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
 
-    struct Candidate
-    {
-        const SymbolMap*      symMap = nullptr;
-        const SymbolVariable* symMe  = nullptr; // if set, we substitute `.foo` -> `me.foo`
-    };
-
-    SmallVector<Candidate, 4> candidates;
-
-    // 1) Method context: `me` parameter.
-    const SymbolFunction* symFunc = sema.frame().function();
-    if (symFunc && !symFunc->parameters().empty())
-    {
-        if (symFunc->parameters()[0]->idRef() == sema.idMgr().nameMe())
-        {
-            const SymbolVariable* symMe    = symFunc->parameters()[0];
-            const auto            typeRef  = symMe->typeRef();
-            const TypeInfo&       typeInfo = sema.typeMgr().get(typeRef);
-            SWC_ASSERT(typeInfo.isReference());
-
-            const TypeInfo& pointeeType = sema.typeMgr().get(typeInfo.underlyingTypeRef());
-            if (pointeeType.isStruct())
-                candidates.push_back({&pointeeType.symStruct(), symMe});
-            else if (pointeeType.isEnum())
-                candidates.push_back({&pointeeType.symEnum(), symMe});
-        }
-    }
-
-    // 2) Type-hints from the hierarchy of frames.
-    for (const SemaFrame& frame : sema.frames())
-    {
-        for (const TypeRef hintType : frame.typeHints())
-        {
-            if (!hintType.isValid())
-                continue;
-
-            const TypeInfo& typeInfo = sema.typeMgr().get(hintType);
-            if (typeInfo.isStruct())
-                candidates.push_back({&typeInfo.symStruct(), nullptr});
-            else if (typeInfo.isEnum())
-                candidates.push_back({&typeInfo.symEnum(), nullptr});
-        }
-    }
-
-    // Remove duplicates.
-    for (size_t i = 0; i < candidates.size(); ++i)
-    {
-        for (size_t j = i + 1; j < candidates.size();)
-        {
-            if (candidates[i].symMap == candidates[j].symMap)
-                candidates.erase(candidates.begin() + j);
-            else
-                ++j;
-        }
-    }
-
+    SmallVector<AutoMemberCandidate, 4> candidates;
+    collectAutoMemberCandidates(sema, candidates);
     if (candidates.empty())
         return SemaError::raise(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, sema.curNodeRef());
 
@@ -161,32 +210,8 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
     const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
 
     // Probe candidates without pausing on empty results.
-    struct MatchResult
-    {
-        Candidate                  candidate;
-        SmallVector<const Symbol*> symbols;
-    };
-
-    SmallVector<MatchResult, 2> matches;
-    for (const Candidate& cand : candidates)
-    {
-        MatchContext lookUpCxt;
-        lookUpCxt.srcViewRef    = srcViewRef();
-        lookUpCxt.tokRef        = tokNameRef;
-        lookUpCxt.symMapHint    = cand.symMap;
-        lookUpCxt.noWaitOnEmpty = true;
-
-        const Result ret = Match::match(sema, lookUpCxt, idRef);
-        RESULT_VERIFY(ret);
-
-        if (!lookUpCxt.empty())
-        {
-            MatchResult mr;
-            mr.candidate = cand;
-            mr.symbols   = lookUpCxt.symbols();
-            matches.push_back(std::move(mr));
-        }
-    }
+    SmallVector<AutoMemberMatch, 2> matches;
+    RESULT_VERIFY(probeAutoMemberCandidates(sema, srcViewRef(), tokNameRef, idRef, candidates, matches));
 
     // If nothing matched, retry with the first candidate in normal mode to keep "wait" semantics.
     if (matches.empty())
@@ -200,21 +225,20 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
         // Bind the symbol list to the auto-member-access node (it gets substituted below).
         RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
 
-        matches.push_back({candidates.front(), lookUpCxt.symbols()});
+        AutoMemberMatch mr;
+        mr.candidate = candidates.front();
+        mr.symbols   = lookUpCxt.symbols();
+        matches.push_back(std::move(mr));
     }
 
     if (matches.size() > 1)
     {
         SmallVector<const Symbol*> all;
-        for (const auto& m : matches)
-        {
-            for (const Symbol* s : m.symbols)
-                all.push_back(s);
-        }
+        mergeAutoMemberMatches(matches, all);
         return SemaError::raiseAmbiguousSymbol(sema, sema.curNodeRef(), all);
     }
 
-    const Candidate&               selected     = matches.front().candidate;
+    const AutoMemberCandidate&      selected     = matches.front().candidate;
     const std::span<const Symbol*> foundSymbols = matches.front().symbols;
 
     // Bind the symbol list to the auto-member-access node (it gets substituted below).

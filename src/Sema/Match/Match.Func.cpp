@@ -548,13 +548,57 @@ namespace
         if (ufcsArg.isValid())
             numArgs++;
 
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_no_overload_match, nodeCallee.nodeRef);
+        struct SortedAttempt
+        {
+            const Attempt* a;
+            uint32_t       rank;
+        };
 
-        // One note per overload attempt describing why it failed (and where when possible).
+        SmallVector<SortedAttempt> sorted;
         for (const Attempt& a : attempts)
         {
             if (!a.fn || a.viable)
                 continue;
+
+            uint32_t rank = 0;
+            switch (a.fail.kind)
+            {
+                case MatchFailKind::InvalidArgumentType:
+                    rank = 2000 + a.fail.argIndex;
+                    break;
+                case MatchFailKind::TooFewArguments:
+                    rank = 1000 + a.fail.providedCount;
+                    break;
+                case MatchFailKind::TooManyArguments:
+                    rank = 500 + a.fail.expectedCount;
+                    break;
+                default:
+                    rank = 0;
+                    break;
+            }
+
+            sorted.push_back({.a = &a, .rank = rank});
+        }
+
+        std::ranges::sort(sorted, [](const SortedAttempt& a, const SortedAttempt& b) {
+            return a.rank > b.rank;
+        });
+
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_no_overload_match, nodeCallee.nodeRef);
+
+        // One note per overload attempt describing why it failed (and where when possible).
+        int count = 0;
+        for (const auto& sa : sorted)
+        {
+            if (count >= 5)
+            {
+                diag.addNote(DiagnosticId::sema_note_too_many_overloads);
+                diag.last().addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(sorted.size() - count));
+                break;
+            }
+
+            count++;
+            const Attempt& a = *sa.a;
 
             diag.addNote(DiagnosticId::sema_note_overload_candidate_failed);
             auto& note = diag.last();

@@ -219,8 +219,8 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
     {
         if (candidates.size() == 1)
         {
-            const auto& candidate = candidates.front();
-            const auto& typeInfo  = sema.typeMgr().get(candidate.symMap->typeRef());
+            const AutoMemberCandidate& candidate = candidates.front();
+            const TypeInfo&            typeInfo  = sema.typeMgr().get(candidate.symMap->typeRef());
 
             auto diagId = DiagnosticId::sema_err_auto_scope_missing_enum_value;
             if (typeInfo.isStruct())
@@ -234,10 +234,10 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
         }
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, sema.curNodeRef());
-        for (const auto& cand : candidates)
+        for (const auto& candidate : candidates)
         {
             diag.addNote(DiagnosticId::sema_note_auto_scope_hint);
-            diag.last().addArgument(Diagnostic::ARG_TYPE, cand.symMap->typeRef());
+            diag.last().addArgument(Diagnostic::ARG_TYPE, candidate.symMap->typeRef());
         }
         diag.report(sema.ctx());
         return Result::Error;

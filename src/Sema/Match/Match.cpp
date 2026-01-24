@@ -157,7 +157,7 @@ namespace
                 priority.scopeDepth  = scopeDepth;
                 priority.visibility  = MatchContext::VisibilityTier::LocalScope;
                 priority.searchOrder = searchOrder++;
-                lookUpCxt.localSymbols.push_back({symbol, priority});
+                lookUpCxt.localSymbols.push_back({.symbol = symbol, .priority = priority});
             }
 
             // Namespaces imported via "using" in this scope:

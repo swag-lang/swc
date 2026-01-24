@@ -606,7 +606,7 @@ namespace
         return Result::Error;
     }
 
-    Result castToFromTypeInfo(Sema&, CastContext& castCtx, TypeRef, TypeRef)
+    Result castToFromTypeInfo(Sema&, CastContext&, TypeRef, TypeRef)
     {
         return Result::Continue;
     }

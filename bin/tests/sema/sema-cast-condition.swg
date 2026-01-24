@@ -12,6 +12,8 @@
     if !d {}
     var e: func()
     if !e {}
+    var f: typeinfo
+    if !f {}
 }
 
 #test

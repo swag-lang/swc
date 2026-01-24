@@ -193,6 +193,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
     const SemaNodeView  nodeRightView(sema, nodeIdentRef);
     const TokenRef      tokNameRef = nodeRightView.node->tokRef();
     const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
+    SWC_ASSERT(nodeRightView.node->is(AstNodeId::Identifier));
 
     // Probe candidates without pausing on empty results.
     SmallVector<AutoMemberMatch, 2> matches;
@@ -338,12 +339,11 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     // Parser tags the callee expression when building a call: `a.foo()`.
     const bool allowOverloadSet = hasFlag(AstMemberAccessExprFlagsE::CallCallee);
 
-    const SemaNodeView nodeLeftView(sema, nodeLeftRef);
-    const SemaNodeView nodeRightView(sema, nodeRightRef);
-
-    SWC_ASSERT(nodeRightView.node->is(AstNodeId::Identifier));
+    const SemaNodeView  nodeLeftView(sema, nodeLeftRef);
+    const SemaNodeView  nodeRightView(sema, nodeRightRef);
     const TokenRef      tokNameRef = nodeRightView.node->tokRef();
     const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
+    SWC_ASSERT(nodeRightView.node->is(AstNodeId::Identifier));
 
     // Namespace
     if (nodeLeftView.sym && nodeLeftView.sym->isNamespace())

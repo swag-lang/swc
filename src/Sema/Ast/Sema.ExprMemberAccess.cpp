@@ -18,7 +18,7 @@ namespace
     struct AutoMemberCandidate
     {
         const SymbolMap*      symMap = nullptr;
-        const SymbolVariable* symMe  = nullptr; // if set, we substitute `.foo` -> `me.foo`
+        const SymbolVariable* symVar = nullptr; // if set, we substitute `.foo` -> `me.foo`
     };
 
     struct AutoMemberMatch
@@ -79,7 +79,7 @@ namespace
 
         for (const SemaFrame& frame : sema.frames())
         {
-            // Binding variables (e.g. `me` parameter).
+            // Binding variables.
             for (const SymbolVariable* symVar : frame.bindingVars())
             {
                 const TypeInfo& typeInfo = sema.typeMgr().get(symVar->typeRef());
@@ -88,12 +88,12 @@ namespace
 
                 const TypeInfo& pointeeType = sema.typeMgr().get(typeInfo.underlyingTypeRef());
                 if (pointeeType.isStruct())
-                    outCandidates.push_back({&pointeeType.symStruct(), symVar});
+                    outCandidates.push_back({.symMap = &pointeeType.symStruct(), .symVar = symVar});
                 else if (pointeeType.isEnum())
-                    outCandidates.push_back({&pointeeType.symEnum(), symVar});
+                    outCandidates.push_back({.symMap = &pointeeType.symEnum(), .symVar = symVar});
             }
 
-            // Type-hints.
+            // Binding types.
             for (const TypeRef hintType : frame.bindingTypes())
             {
                 if (!hintType.isValid())
@@ -101,9 +101,9 @@ namespace
 
                 const TypeInfo& typeInfo = sema.typeMgr().get(hintType);
                 if (typeInfo.isStruct())
-                    outCandidates.push_back({&typeInfo.symStruct(), nullptr});
+                    outCandidates.push_back({.symMap = &typeInfo.symStruct(), .symVar = nullptr});
                 else if (typeInfo.isEnum())
-                    outCandidates.push_back({&typeInfo.symEnum(), nullptr});
+                    outCandidates.push_back({.symMap = &typeInfo.symEnum(), .symVar = nullptr});
             }
         }
 
@@ -231,8 +231,8 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
     // Substitute with an AstMemberAccessExpr
     auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::MemberAccessExpr>(tokRef());
     auto [leftRef, leftPtr] = sema.ast().makeNode<AstNodeId::Identifier>(tokRef());
-    if (selected.symMe)
-        sema.setSymbol(leftRef, selected.symMe);
+    if (selected.symVar)
+        sema.setSymbol(leftRef, selected.symVar);
     else
         sema.setSymbol(leftRef, selected.symMap);
     SemaInfo::setIsValue(*leftPtr);

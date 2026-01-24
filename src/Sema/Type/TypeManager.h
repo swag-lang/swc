@@ -27,6 +27,10 @@ public:
     TypeRef typeConstBlockPtrVoid() const { return typeConstBlockPtrVoid_; }
     TypeRef typeBlockPtrU8() const { return typeBlockPtrU8_; }
     TypeRef typeConstBlockPtrU8() const { return typeConstBlockPtrU8_; }
+    TypeRef typeValuePtrVoid() const { return typeValuePtrVoid_; }
+    TypeRef typeConstValuePtrVoid() const { return typeConstValuePtrVoid_; }
+    TypeRef typeValuePtrU8() const { return typeValuePtrU8_; }
+    TypeRef typeConstValuePtrU8() const { return typeConstValuePtrU8_; }
 
     TypeRef typeInt(uint32_t bits, TypeInfo::Sign sign) const;
     TypeRef typeInt() const { return typeInt_; }
@@ -173,6 +177,10 @@ private:
     TypeRef typeConstBlockPtrVoid_ = TypeRef::invalid();
     TypeRef typeBlockPtrU8_        = TypeRef::invalid();
     TypeRef typeConstBlockPtrU8_   = TypeRef::invalid();
+    TypeRef typeValuePtrVoid_      = TypeRef::invalid();
+    TypeRef typeConstValuePtrVoid_ = TypeRef::invalid();
+    TypeRef typeValuePtrU8_        = TypeRef::invalid();
+    TypeRef typeConstValuePtrU8_   = TypeRef::invalid();
     TypeRef typeVariadic_          = TypeRef::invalid();
     TypeRef typeTypeInfo_          = TypeRef::invalid();
 

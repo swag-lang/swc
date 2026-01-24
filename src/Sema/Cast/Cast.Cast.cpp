@@ -498,11 +498,28 @@ namespace
             return castPointerToPointer(sema, castCtx, srcTypeRef, dstTypeRef);
         }
 
+        if (srcType.isTypeInfo())
+        {
+            if (castCtx.kind == CastKind::Explicit)
+            {
+                if (dstTypeRef == sema.typeMgr().typeConstValuePtrU8() ||
+                    dstTypeRef == sema.typeMgr().typeConstValuePtrVoid())
+                {
+                    if (castCtx.isConstantFolding())
+                        castCtx.outConstRef = castCtx.srcConstRef;
+                    return Result::Continue;
+                }
+            }
+        }
+
         if (srcTypeRef == sema.ctx().typeMgr().typeU64())
         {
-            if (castCtx.isConstantFolding())
-                castCtx.outConstRef = castCtx.srcConstRef;
-            return Result::Continue;
+            if (castCtx.kind == CastKind::Explicit)
+            {
+                if (castCtx.isConstantFolding())
+                    castCtx.outConstRef = castCtx.srcConstRef;
+                return Result::Continue;
+            }
         }
 
         if (srcType.isArray())

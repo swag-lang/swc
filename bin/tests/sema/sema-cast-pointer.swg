@@ -117,4 +117,5 @@
 {
     var a: typeinfo
     var b = cast(const *u8) a
+    var c = cast(const *void) a
 }

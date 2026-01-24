@@ -43,6 +43,11 @@ void TypeManager::setup(TaskContext&)
     typeBlockPtrU8_        = addType(TypeInfo::makeBlockPointer(typeU8_));
     typeConstBlockPtrU8_   = addType(TypeInfo::makeBlockPointer(typeU8_, TypeInfoFlagsE::Const));
 
+    typeValuePtrVoid_      = addType(TypeInfo::makeValuePointer(typeVoid_));
+    typeConstValuePtrVoid_ = addType(TypeInfo::makeValuePointer(typeVoid_, TypeInfoFlagsE::Const));
+    typeValuePtrU8_        = addType(TypeInfo::makeValuePointer(typeU8_));
+    typeConstValuePtrU8_   = addType(TypeInfo::makeValuePointer(typeU8_, TypeInfoFlagsE::Const));
+
     buildPromoteTable();
 }
 

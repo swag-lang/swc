@@ -204,22 +204,27 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
     SmallVector<AutoMemberMatch, 2> matches;
     RESULT_VERIFY(probeAutoMemberCandidates(sema, srcViewRef(), tokNameRef, idRef, candidates, matches));
 
-    // If nothing matched, retry with the first candidate in normal mode to keep "wait" semantics.
+    // If nothing matched, report a smart error.
     if (matches.empty())
     {
-        MatchContext lookUpCxt;
-        lookUpCxt.srcViewRef = srcViewRef();
-        lookUpCxt.tokRef     = tokNameRef;
-        lookUpCxt.symMapHint = candidates.front().symMap;
-        RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
+        if (candidates.size() == 1)
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_auto_scope_missing_value, sema.curNodeRef());
+            diag.addArgument(Diagnostic::ARG_VALUE, sema.idMgr().get(idRef).name);
+            diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, candidates.front().symMap->typeRef());
+            diag.last().addSpan(sema.node(nodeIdentRef).location(sema.ctx()));
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
 
-        // Bind the symbol list to the auto-member-access node (it gets substituted below).
-        RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
-
-        AutoMemberMatch mr;
-        mr.candidate = candidates.front();
-        mr.symbols   = lookUpCxt.symbols();
-        matches.push_back(std::move(mr));
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, sema.curNodeRef());
+        for (const auto& cand : candidates)
+        {
+            diag.addNote(DiagnosticId::sema_note_auto_scope_hint);
+            diag.last().addArgument(Diagnostic::ARG_TYPE, cand.symMap->typeRef());
+        }
+        diag.report(sema.ctx());
+        return Result::Error;
     }
 
     if (matches.size() > 1)

@@ -310,7 +310,7 @@ Result AstRelationalExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
     {
         const SemaNodeView nodeLeftView(sema, nodeLeftRef);
         auto               frame = sema.frame();
-        frame.setTypeHint(nodeLeftView.typeRef);
+        frame.pushTypeHint(nodeLeftView.typeRef);
         sema.pushFrameAutoPopOnPostChild(frame, nodeRightRef);
     }
 

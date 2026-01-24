@@ -30,3 +30,18 @@ func toto()->A { return .R }
     var v2 = v1 & .ByteCode
 
 }
+
+enum AA { R = 1, G = 2, B = 4 }
+struct E {}
+struct F
+{
+    x: AA
+}
+
+impl E
+{
+    mtd foo(f: *F)
+    {
+        let a = f.x == .R
+    }
+}

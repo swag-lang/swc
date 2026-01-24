@@ -217,7 +217,11 @@ Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
     collect(sema, lookUpCxt);
     lookup(lookUpCxt, idRef);
     if (lookUpCxt.empty())
+    {
+        if (lookUpCxt.noWaitOnEmpty)
+            return Result::Continue;
         return sema.waitIdentifier(idRef, lookUpCxt.srcViewRef, lookUpCxt.tokRef);
+    }
 
     for (const Symbol* other : lookUpCxt.symbols())
     {

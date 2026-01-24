@@ -39,8 +39,19 @@ public:
     void             setInterface(SymbolInterface* itf) { interface_ = itf; }
     SymbolFunction*  function() const { return function_; }
     void             setFunction(SymbolFunction* func) { function_ = func; }
-    TypeRef          typeHint() const { return typeHint_; }
-    void             setTypeHint(TypeRef type) { typeHint_ = type; }
+
+    std::span<const TypeRef> typeHints() const { return typeHints_.span(); }
+    TypeRef                  topTypeHint() const { return typeHints_.empty() ? TypeRef::invalid() : typeHints_.back(); }
+    void                     pushTypeHint(TypeRef type)
+    {
+        if (type.isValid())
+            typeHints_.push_back(type);
+    }
+    void popTypeHint()
+    {
+        if (!typeHints_.empty())
+            typeHints_.pop_back();
+    }
 
     static SymbolMap* currentSymMap(Sema& sema);
     SymbolFlags       flagsForCurrentAccess() const;
@@ -53,7 +64,7 @@ private:
     SymbolImpl*                   impl_       = nullptr;
     SymbolInterface*              interface_  = nullptr;
     SymbolFunction*               function_   = nullptr;
-    TypeRef                       typeHint_   = TypeRef::invalid();
+    SmallVector<TypeRef, 2>       typeHints_;
 };
 
 SWC_END_NAMESPACE();

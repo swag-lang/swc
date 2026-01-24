@@ -84,7 +84,7 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
 
         auto frame = sema.frame();
-        frame.setTypeHint(sym.returnTypeRef());
+        frame.pushTypeHint(sym.returnTypeRef());
         sema.pushFrameAutoPopOnPostNode(frame);
 
         sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::Local);

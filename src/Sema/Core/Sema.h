@@ -22,20 +22,21 @@ public:
     ~Sema();
     JobResult exec();
 
-    TaskContext&            ctx() { return *ctx_; }
-    const TaskContext&      ctx() const { return *ctx_; }
-    bool                    isDeclPass() const { return declPass_; }
-    SemaInfo&               semaInfo() { return *semaInfo_; }
-    const SemaInfo&         semaInfo() const { return *semaInfo_; }
-    SemaFrame&              frame() { return frames_.back(); }
-    const SemaFrame&        frame() const { return frames_.back(); }
-    AstVisit&               visit() { return visit_; }
-    const AstVisit&         visit() const { return visit_; }
-    AstNode&                node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
-    const AstNode&          node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
-    CompilerInstance&       compiler() { return ctx().compiler(); }
-    const CompilerInstance& compiler() const { return ctx().compiler(); }
-    const Token&            token(SourceViewRef srcViewRef, TokenRef tokRef) const { return srcView(srcViewRef).token(tokRef); }
+    TaskContext&               ctx() { return *ctx_; }
+    const TaskContext&         ctx() const { return *ctx_; }
+    bool                       isDeclPass() const { return declPass_; }
+    SemaInfo&                  semaInfo() { return *semaInfo_; }
+    const SemaInfo&            semaInfo() const { return *semaInfo_; }
+    SemaFrame&                 frame() { return frames_.back(); }
+    const SemaFrame&           frame() const { return frames_.back(); }
+    std::span<const SemaFrame> frames() const { return frames_; }
+    AstVisit&                  visit() { return visit_; }
+    const AstVisit&            visit() const { return visit_; }
+    AstNode&                   node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
+    const AstNode&             node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
+    CompilerInstance&          compiler() { return ctx().compiler(); }
+    const CompilerInstance&    compiler() const { return ctx().compiler(); }
+    const Token&               token(SourceViewRef srcViewRef, TokenRef tokRef) const { return srcView(srcViewRef).token(tokRef); }
 
     ConstantManager&         cstMgr();
     const ConstantManager&   cstMgr() const;

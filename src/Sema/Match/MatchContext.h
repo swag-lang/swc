@@ -34,6 +34,10 @@ public:
     // Optional hint: if set, we only look in this symMap (high precision lookup).
     const SymbolMap* symMapHint = nullptr;
 
+    // When true, `Match::match` will not return `Pause` on empty results.
+    // This is useful for speculative/probing lookups where the caller will try other strategies.
+    bool noWaitOnEmpty = false;
+
     void clear();
     void resetCandidates();
     void beginSymMapLookup(const Priority& priority);

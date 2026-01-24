@@ -98,57 +98,135 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
     // Parser tags the callee expression when building a call: `.foo()`.
     const bool allowOverloadSet = hasFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
 
-    const SymbolMap*      symMapHint = nullptr;
-    const SymbolFunction* symFunc    = sema.frame().function();
+    struct Candidate
+    {
+        const SymbolMap*      symMap = nullptr;
+        const SymbolVariable* symMe  = nullptr; // if set, we substitute `.foo` -> `me.foo`
+    };
 
-    const SymbolVariable* symMe = nullptr;
+    SmallVector<Candidate, 4> candidates;
+
+    // 1) Method context: `me` parameter.
+    const SymbolFunction* symFunc = sema.frame().function();
     if (symFunc && !symFunc->parameters().empty())
     {
         if (symFunc->parameters()[0]->idRef() == sema.idMgr().nameMe())
         {
-            symMe                    = symFunc->parameters()[0];
-            const auto      typeRef  = symMe->typeRef();
-            const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+            const SymbolVariable* symMe    = symFunc->parameters()[0];
+            const auto            typeRef  = symMe->typeRef();
+            const TypeInfo&       typeInfo = sema.typeMgr().get(typeRef);
             SWC_ASSERT(typeInfo.isReference());
+
             const TypeInfo& pointeeType = sema.typeMgr().get(typeInfo.underlyingTypeRef());
             if (pointeeType.isStruct())
-                symMapHint = &pointeeType.symStruct();
+                candidates.push_back({&pointeeType.symStruct(), symMe});
             else if (pointeeType.isEnum())
-                symMapHint = &pointeeType.symEnum();
+                candidates.push_back({&pointeeType.symEnum(), symMe});
         }
     }
 
-    if (!symMapHint && sema.frame().typeHint().isValid())
+    // 2) Type-hints from the hierarchy of frames.
+    for (const SemaFrame& frame : sema.frames())
     {
-        const TypeInfo& typeInfo = sema.typeMgr().get(sema.frame().typeHint());
-        if (typeInfo.isEnum())
-            symMapHint = &typeInfo.symEnum();
+        for (const TypeRef hintType : frame.typeHints())
+        {
+            if (!hintType.isValid())
+                continue;
+
+            const TypeInfo& typeInfo = sema.typeMgr().get(hintType);
+            if (typeInfo.isStruct())
+                candidates.push_back({&typeInfo.symStruct(), nullptr});
+            else if (typeInfo.isEnum())
+                candidates.push_back({&typeInfo.symEnum(), nullptr});
+        }
     }
 
-    if (!symMapHint)
+    // Remove duplicates.
+    for (size_t i = 0; i < candidates.size(); ++i)
+    {
+        for (size_t j = i + 1; j < candidates.size();)
+        {
+            if (candidates[i].symMap == candidates[j].symMap)
+                candidates.erase(candidates.begin() + j);
+            else
+                ++j;
+        }
+    }
+
+    if (candidates.empty())
         return SemaError::raise(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, sema.curNodeRef());
 
     const SemaNodeView  nodeRightView(sema, nodeIdentRef);
     const TokenRef      tokNameRef = nodeRightView.node->tokRef();
     const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
 
-    MatchContext lookUpCxt;
-    lookUpCxt.srcViewRef = srcViewRef();
-    lookUpCxt.tokRef     = tokNameRef;
-    lookUpCxt.symMapHint = symMapHint;
+    // Probe candidates without pausing on empty results.
+    struct MatchResult
+    {
+        Candidate                  candidate;
+        SmallVector<const Symbol*> symbols;
+    };
 
-    RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
+    SmallVector<MatchResult, 2> matches;
+    for (const Candidate& cand : candidates)
+    {
+        MatchContext lookUpCxt;
+        lookUpCxt.srcViewRef    = srcViewRef();
+        lookUpCxt.tokRef        = tokNameRef;
+        lookUpCxt.symMapHint    = cand.symMap;
+        lookUpCxt.noWaitOnEmpty = true;
+
+        const Result ret = Match::match(sema, lookUpCxt, idRef);
+        RESULT_VERIFY(ret);
+
+        if (!lookUpCxt.empty())
+        {
+            MatchResult mr;
+            mr.candidate = cand;
+            mr.symbols   = lookUpCxt.symbols();
+            matches.push_back(std::move(mr));
+        }
+    }
+
+    // If nothing matched, retry with the first candidate in normal mode to keep "wait" semantics.
+    if (matches.empty())
+    {
+        MatchContext lookUpCxt;
+        lookUpCxt.srcViewRef = srcViewRef();
+        lookUpCxt.tokRef     = tokNameRef;
+        lookUpCxt.symMapHint = candidates.front().symMap;
+        RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
+
+        // Bind the symbol list to the auto-member-access node (it gets substituted below).
+        RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
+
+        matches.push_back({candidates.front(), lookUpCxt.symbols()});
+    }
+
+    if (matches.size() > 1)
+    {
+        SmallVector<const Symbol*> all;
+        for (const auto& m : matches)
+        {
+            for (const Symbol* s : m.symbols)
+                all.push_back(s);
+        }
+        return SemaError::raiseAmbiguousSymbol(sema, sema.curNodeRef(), all);
+    }
+
+    const Candidate&               selected     = matches.front().candidate;
+    const std::span<const Symbol*> foundSymbols = matches.front().symbols;
 
     // Bind the symbol list to the auto-member-access node (it gets substituted below).
-    RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
+    RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, foundSymbols));
 
     // Substitute with an AstMemberAccessExpr
     auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::MemberAccessExpr>(tokRef());
     auto [leftRef, leftPtr] = sema.ast().makeNode<AstNodeId::Identifier>(tokRef());
-    if (symMe)
-        sema.setSymbol(leftRef, symMe);
+    if (selected.symMe)
+        sema.setSymbol(leftRef, selected.symMe);
     else
-        sema.setSymbol(leftRef, symMapHint);
+        sema.setSymbol(leftRef, selected.symMap);
     SemaInfo::setIsValue(*leftPtr);
 
     nodePtr->nodeLeftRef  = leftRef;

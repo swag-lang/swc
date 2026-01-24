@@ -93,36 +93,34 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 {
     SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
 
-    if (childRef == nodeReturnTypeRef || (childRef == nodeParamsRef && nodeReturnTypeRef.isInvalid()))
+    bool setIsTyped = false;
+    if (hasFlag(AstFunctionFlagsE::Short))
+    {
+        if (childRef == nodeBodyRef)
+        {
+            sym.setReturnType(sema.typeRefOf(nodeBodyRef));
+            setIsTyped = true;
+        }
+    }
+    else if (childRef == nodeReturnTypeRef || (childRef == nodeParamsRef && nodeReturnTypeRef.isInvalid()))
     {
         TypeRef returnType = sema.typeMgr().typeVoid();
         if (nodeReturnTypeRef.isValid())
             returnType = sema.typeRefOf(nodeReturnTypeRef);
         sym.setReturnType(returnType);
+        setIsTyped = true;
+    }
 
+    if (setIsTyped)
+    {
         const TypeInfo ti      = TypeInfo::makeFunction(&sym, TypeInfoFlagsE::Zero);
         const TypeRef  typeRef = sema.typeMgr().addType(ti);
         sym.setTypeRef(typeRef);
-
-        if (!hasFlag(AstFunctionFlagsE::Short))
-            sym.setTyped(sema.ctx());
+        sym.setTyped(sema.ctx());
 
         RESULT_VERIFY(SemaCheck::checkSignature(sema, sym.parameters(), false));
         if (!sym.isEmpty())
             RESULT_VERIFY(Match::ghosting(sema, sym));
-    }
-    else if (childRef == nodeBodyRef)
-    {
-        if (hasFlag(AstFunctionFlagsE::Short))
-        {
-            sym.setReturnType(sema.typeRefOf(nodeBodyRef));
-
-            const TypeInfo ti      = TypeInfo::makeFunction(&sym, TypeInfoFlagsE::Zero);
-            const TypeRef  typeRef = sema.typeMgr().addType(ti);
-            sym.setTypeRef(typeRef);
-
-            sym.setTyped(sema.ctx());
-        }
     }
 
     return Result::Continue;

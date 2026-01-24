@@ -59,8 +59,17 @@ struct CastContext
     bool        isConstantFolding() const { return srcConstRef.isValid(); }
     ConstantRef constantFoldingSrc() const { return srcConstRef; }
     ConstantRef constantFoldingResult() const { return outConstRef; }
-    void        setConstantFoldingSrc(ConstantRef v) { srcConstRef = v; }
-    void        setConstantFoldingResult(ConstantRef v) { outConstRef = v; }
+
+    void setConstantFoldingSrc(ConstantRef v)
+    {
+        srcConstRef = v;
+        outConstRef = v;
+    }
+
+    void setConstantFoldingResult(ConstantRef v)
+    {
+        outConstRef = v;
+    }
 };
 
 namespace Cast

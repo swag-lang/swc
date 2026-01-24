@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Sema/Core/Sema.h"
 #include "Parser/AstNodes.h"
+#include "Sema/Cast/Cast.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
@@ -10,7 +11,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result constantFold(Sema& sema, ConstantRef& result, TokenId op, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    Result constantFold(Sema& sema, ConstantRef& result, TokenId op, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
         const ConstantRef leftCstRef  = nodeLeftView.cstRef;
         const ConstantRef rightCstRef = nodeRightView.cstRef;
@@ -44,9 +45,9 @@ namespace
 
     Result check(Sema& sema, const AstLogicalExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        if (!nodeLeftView.type->isBool())
+        if (!nodeLeftView.type->isConvertibleToBool())
             return SemaError::raiseBinaryOperandType(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
-        if (!nodeRightView.type->isBool())
+        if (!nodeRightView.type->isConvertibleToBool())
             return SemaError::raiseBinaryOperandType(sema, node, node.nodeRightRef, nodeRightView.typeRef);
         return Result::Continue;
     }
@@ -54,8 +55,8 @@ namespace
 
 Result AstLogicalExpr::semaPostNode(Sema& sema)
 {
-    const SemaNodeView nodeLeftView(sema, nodeLeftRef);
-    const SemaNodeView nodeRightView(sema, nodeRightRef);
+    SemaNodeView nodeLeftView(sema, nodeLeftRef);
+    SemaNodeView nodeRightView(sema, nodeRightRef);
 
     // Value-check
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftView.nodeRef));
@@ -67,6 +68,8 @@ Result AstLogicalExpr::semaPostNode(Sema& sema)
     RESULT_VERIFY(check(sema, *this, nodeLeftView, nodeRightView));
 
     // Set the result type
+    RESULT_VERIFY(Cast::cast(sema, nodeLeftView, sema.ctx().typeMgr().typeBool(), CastKind::Condition));
+    RESULT_VERIFY(Cast::cast(sema, nodeRightView, sema.ctx().typeMgr().typeBool(), CastKind::Condition));
     sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
 
     // Constant folding

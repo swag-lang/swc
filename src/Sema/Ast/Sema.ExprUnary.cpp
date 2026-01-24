@@ -171,7 +171,7 @@ namespace
 
     Result checkBang(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
     {
-        if (ops.type->isBool() || ops.type->isIntLike() || ops.type->isPointerLike())
+        if (ops.type->isConvertibleToBool())
             return Result::Continue;
         return reportInvalidType(sema, expr, ops);
     }

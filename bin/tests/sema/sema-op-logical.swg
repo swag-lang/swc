@@ -37,12 +37,11 @@
 
 #assert(0 and true == 0 and true) // swc-expected-error {{sema_err_compare_operand_type}}
 
-#assert(1 and 2)      // swc-expected-error {{sema_err_binary_operand_type}}
-#assert(true and 1)   // swc-expected-error {{sema_err_binary_operand_type}}
-#assert(1 or false)   // swc-expected-error {{sema_err_binary_operand_type}}
-#assert(1 or 0)       // swc-expected-error {{sema_err_binary_operand_type}}
-#assert(false and 0)  // swc-expected-error {{sema_err_binary_operand_type}}
-#assert(0 or true)    // swc-expected-error {{sema_err_binary_operand_type}}
+#assert(1 and 2)
+#assert(true and 1)
+#assert(1 or false)
+#assert(1 or 0)
+#assert(0 or true)
 
 #assert(true and false == true)     // swc-expected-error {{sema_err_compiler_assert}}
 #assert(false or false == true)     // swc-expected-error {{sema_err_compiler_assert}}

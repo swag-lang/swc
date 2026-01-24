@@ -25,3 +25,9 @@
 
 const A = ""
 #assert(!A == false)
+
+#test
+{
+    var a: s32
+    if a and a {}
+}

@@ -132,9 +132,9 @@ private:
     Shard                     shards_[SHARD_COUNT];
 
     // Runtime types
-    mutable std::shared_mutex                              mutexRt_;
-    std::unordered_map<IdentifierRef, RuntimeTypeKind>     mapRtKind_;
-    std::array<TypeRef, (uint32_t) RuntimeTypeKind::Count> runtimeTypes_;
+    mutable std::shared_mutex                                          mutexRt_;
+    std::unordered_map<IdentifierRef, RuntimeTypeKind>                 mapRtKind_;
+    std::array<TypeRef, static_cast<uint32_t>(RuntimeTypeKind::Count)> runtimeTypes_;
 
     // Predefined types
     TypeRef typeBool_              = TypeRef::invalid();

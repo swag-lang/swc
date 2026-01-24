@@ -15,6 +15,18 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    struct AutoMemberCandidate
+    {
+        const SymbolMap*      symMap = nullptr;
+        const SymbolVariable* symMe  = nullptr; // if set, we substitute `.foo` -> `me.foo`
+    };
+
+    struct AutoMemberMatch
+    {
+        AutoMemberCandidate        candidate;
+        SmallVector<const Symbol*> symbols;
+    };
+
     // A call callee may legitimately bind to an overload set, but only for callable candidates.
     // If at least one callable candidate exists, keep ONLY those callables (ignore non-callables for a call).
     // If no callable candidates exist:
@@ -61,23 +73,11 @@ namespace
         return SemaError::raiseAmbiguousSymbol(sema, nodeRef, foundSymbols);
     }
 
-    struct AutoMemberCandidate
-    {
-        const SymbolMap*      symMap = nullptr;
-        const SymbolVariable* symMe  = nullptr; // if set, we substitute `.foo` -> `me.foo`
-    };
-
-    struct AutoMemberMatch
-    {
-        AutoMemberCandidate      candidate;
-        SmallVector<const Symbol*> symbols;
-    };
-
     void collectAutoMemberCandidates(Sema& sema, SmallVector<AutoMemberCandidate, 4>& outCandidates)
     {
         outCandidates.clear();
 
-        // 1) Method context: `me` parameter.
+        // Method context: `me` parameter.
         if (const SymbolFunction* symFunc = sema.frame().function())
         {
             if (!symFunc->parameters().empty() && symFunc->parameters()[0]->idRef() == sema.idMgr().nameMe())
@@ -93,7 +93,7 @@ namespace
             }
         }
 
-        // 2) Type-hints from the hierarchy of frames.
+        // Type-hints from the hierarchy of frames.
         for (const SemaFrame& frame : sema.frames())
         {
             for (const TypeRef hintType : frame.typeHints())
@@ -122,12 +122,12 @@ namespace
         }
     }
 
-    Result probeAutoMemberCandidates(Sema& sema,
-                                    SourceViewRef srcViewRef,
-                                    TokenRef tokNameRef,
-                                    IdentifierRef idRef,
-                                    std::span<const AutoMemberCandidate> candidates,
-                                    SmallVector<AutoMemberMatch, 2>& outMatches)
+    Result probeAutoMemberCandidates(Sema&                                sema,
+                                     SourceViewRef                        srcViewRef,
+                                     TokenRef                             tokNameRef,
+                                     IdentifierRef                        idRef,
+                                     std::span<const AutoMemberCandidate> candidates,
+                                     SmallVector<AutoMemberMatch, 2>&     outMatches)
     {
         outMatches.clear();
         for (const AutoMemberCandidate& cand : candidates)
@@ -207,8 +207,8 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
         return SemaError::raiseAmbiguousSymbol(sema, sema.curNodeRef(), all);
     }
 
-    const AutoMemberCandidate&      selected     = matches.front().candidate;
-    const std::span<const Symbol*> foundSymbols = matches.front().symbols;
+    const AutoMemberCandidate& selected     = matches.front().candidate;
+    const std::span            foundSymbols = matches.front().symbols;
 
     // Bind the symbol list to the auto-member-access node (it gets substituted below).
     RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, foundSymbols));

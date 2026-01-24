@@ -258,6 +258,7 @@
         <ClCompile Include="src\Sema\Ast\Sema.ExprBinary.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.ExprConditional.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.ExprLogical.cpp"/>
+        <ClCompile Include="src\Sema\Ast\Sema.ExprMemberAccess.cpp" />
         <ClCompile Include="src\Sema\Ast\Sema.ExprRelational.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.ExprUnary.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Function.cpp"/>

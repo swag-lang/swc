@@ -10,7 +10,7 @@ enum A { R, G, B }
 #test
 {
     let x: A = .R
-    let y = x == .C // swc1-expected-error {{sema_err_auto_scope_missing_enum_value}}
+    let y = x == .C // swc-expected-error {{sema_err_auto_scope_missing_enum_value}}
 }
 
 #test

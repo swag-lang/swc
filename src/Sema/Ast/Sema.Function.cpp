@@ -82,6 +82,11 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
             return Result::SkipChildren; // TODO
 
         SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+
+        auto frame = sema.frame();
+        frame.setTypeHint(sym.returnTypeRef());
+        sema.pushFrameAutoPopOnPostNode(frame);
+
         sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::Local);
         sema.curScope().setSymMap(&sym);
     }

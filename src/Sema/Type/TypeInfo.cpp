@@ -796,7 +796,7 @@ bool TypeInfo::isCompleted(TaskContext& ctx) const
             return ctx.typeMgr().get(asArray.typeRef).isCompleted(ctx);
         case TypeInfoKind::Function:
         {
-            if (asFunction.sym->returnType().isValid() && !ctx.typeMgr().get(asFunction.sym->returnType()).isCompleted(ctx))
+            if (asFunction.sym->returnTypeRef().isValid() && !ctx.typeMgr().get(asFunction.sym->returnTypeRef()).isCompleted(ctx))
                 return false;
             for (const auto& param : asFunction.sym->parameters())
                 if (!ctx.typeMgr().get(param->typeRef()).isCompleted(ctx))
@@ -831,9 +831,9 @@ Symbol* TypeInfo::getSymbolDependency(TaskContext& ctx) const
             return ctx.typeMgr().get(asArray.typeRef).getSymbolDependency(ctx);
         case TypeInfoKind::Function:
         {
-            if (asFunction.sym->returnType().isValid())
+            if (asFunction.sym->returnTypeRef().isValid())
             {
-                if (const auto sym = ctx.typeMgr().get(asFunction.sym->returnType()).getSymbolDependency(ctx))
+                if (const auto sym = ctx.typeMgr().get(asFunction.sym->returnTypeRef()).getSymbolDependency(ctx))
                     return sym;
             }
             for (const auto& param : asFunction.sym->parameters())

@@ -562,7 +562,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
         }
     }
 
-    sema.setType(sema.curNodeRef(), selectedFn->returnType());
+    sema.setType(sema.curNodeRef(), selectedFn->returnTypeRef());
     SemaInfo::setIsValue(sema.node(sema.curNodeRef()));
     return Result::Continue;
 }

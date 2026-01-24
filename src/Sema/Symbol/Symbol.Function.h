@@ -27,7 +27,7 @@ public:
     {
     }
 
-    TypeRef                             returnType() const { return returnType_; }
+    TypeRef                             returnTypeRef() const { return returnType_; }
     void                                setReturnType(TypeRef typeRef) { returnType_ = typeRef; }
     const std::vector<SymbolVariable*>& parameters() const { return parameters_; }
     std::vector<SymbolVariable*>&       parameters() { return parameters_; }

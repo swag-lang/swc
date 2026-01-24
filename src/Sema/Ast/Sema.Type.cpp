@@ -404,6 +404,7 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
 
     const TypeInfo ti      = TypeInfo::makeFunction(symFunc, TypeInfoFlagsE::Zero);
     const TypeRef  typeRef = sema.typeMgr().addType(ti);
+    symFunc->setTypeRef(typeRef);
     sema.setType(sema.curNodeRef(), typeRef);
     return Result::Continue;
 }

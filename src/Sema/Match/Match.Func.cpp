@@ -288,19 +288,33 @@ namespace
 
         for (Symbol* s : symbols)
         {
-            if (!s || !s->isFunction())
+            if (!s)
                 continue;
 
-            auto& fn = s->cast<SymbolFunction>();
-            outFunctionSymbols.push_back(&fn);
+            SymbolFunction* fn = nullptr;
+            if (s->isFunction())
+            {
+                fn = &s->cast<SymbolFunction>();
+            }
+            else if (s->isVariable())
+            {
+                const auto& type = s->type(sema.ctx());
+                if (type.isFunction())
+                    fn = &type.symFunction();
+            }
+
+            if (!fn)
+                continue;
+
+            outFunctionSymbols.push_back(fn);
 
             Attempt a;
-            a.fn = &fn;
+            a.fn = fn;
 
             MatchFailure fail;
             Candidate    candidate;
 
-            if (tryBuildCandidate(sema, fn, args, ufcsArg, candidate, fail))
+            if (tryBuildCandidate(sema, *fn, args, ufcsArg, candidate, fail))
             {
                 a.viable    = true;
                 a.candidate = std::move(candidate);
@@ -315,14 +329,14 @@ namespace
         }
     }
 
-    Result emitNotCallable(Sema& sema, const SemaNodeView& nodeCallee)
+    Result errorNotCallable(Sema& sema, const SemaNodeView& nodeCallee)
     {
         const auto diag = SemaError::report(sema, DiagnosticId::sema_err_not_callable, nodeCallee.nodeRef);
         diag.report(sema.ctx());
         return Result::Error;
     }
 
-    Result emitBadMatch(Sema& sema, const SemaNodeView& nodeCallee, const SymbolFunction& fn, const MatchFailure& fail, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+    Result errorBadMatch(Sema& sema, const SemaNodeView& nodeCallee, const SymbolFunction& fn, const MatchFailure& fail, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
     {
         const auto& ctx = sema.ctx();
 
@@ -375,7 +389,7 @@ namespace
         return Result::Error;
     }
 
-    Result emitNoOverloadMatch(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<Attempt>& attempts, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+    Result errorNoOverloadMatch(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<Attempt>& attempts, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
     {
         auto& ctx = sema.ctx();
 
@@ -495,14 +509,14 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     {
         // No function symbols at all in "symbols" -> "not callable"
         if (functions.empty())
-            return emitNotCallable(sema, nodeCallee);
+            return errorNotCallable(sema, nodeCallee);
 
         // Exactly one function symbol -> "bad match" with reason
         if (functions.size() == 1)
-            return emitBadMatch(sema, nodeCallee, *attempts.front().fn, attempts.front().fail, args, ufcsArg);
+            return errorBadMatch(sema, nodeCallee, *attempts.front().fn, attempts.front().fail, args, ufcsArg);
 
         // Multiple function symbols -> "no overload match" with per-overload failure notes
-        return emitNoOverloadMatch(sema, nodeCallee, attempts, args, ufcsArg);
+        return errorNoOverloadMatch(sema, nodeCallee, attempts, args, ufcsArg);
     }
 
     // Apply implicit conversions + handle defaults (already validated by tryBuildCandidate)

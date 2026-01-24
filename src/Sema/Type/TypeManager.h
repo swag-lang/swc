@@ -95,6 +95,10 @@ public:
     void    setStructInterface(TypeRef typeRef)    { std::unique_lock lk(mutexRt_); structInterface_ = typeRef; }
     TypeRef structSourceCodeLocation() const                { std::shared_lock lk(mutexRt_); return structSourceCodeLocation_; }
     void    setStructSourceCodeLocation(TypeRef typeRef)    { std::unique_lock lk(mutexRt_); structSourceCodeLocation_ = typeRef; }
+    TypeRef structErrorValue() const                { std::shared_lock lk(mutexRt_); return structErrorValue_; }
+    void    setStructErrorValue(TypeRef typeRef)    { std::unique_lock lk(mutexRt_); structErrorValue_ = typeRef; }
+    TypeRef structScratchAllocator() const                { std::shared_lock lk(mutexRt_); return structScratchAllocator_; }
+    void    setStructScratchAllocator(TypeRef typeRef)    { std::unique_lock lk(mutexRt_); structScratchAllocator_ = typeRef; }
     TypeRef structContext() const                { std::shared_lock lk(mutexRt_); return structContext_; }
     void    setStructContext(TypeRef typeRef)    { std::unique_lock lk(mutexRt_); structContext_ = typeRef; }
     TypeRef structModule() const                { std::shared_lock lk(mutexRt_); return structModule_; }
@@ -103,6 +107,9 @@ public:
     void    setStructProcessInfos(TypeRef typeRef)    { std::unique_lock lk(mutexRt_); structProcessInfos_ = typeRef; }
     TypeRef structGvtd() const                { std::shared_lock lk(mutexRt_); return structGvtd_; }
     void    setStructGvtd(TypeRef typeRef)    { std::unique_lock lk(mutexRt_); structGvtd_ = typeRef; }
+
+    TypeRef enumContextFlags() const                { std::shared_lock lk(mutexRt_); return enumContextFlags_; }
+    void    setEnumContextFlags(TypeRef typeRef)    { std::unique_lock lk(mutexRt_); enumContextFlags_ = typeRef; }
     // clang-format on
 
 private:
@@ -144,10 +151,13 @@ private:
     TypeRef                   structAttributeParam_     = TypeRef::invalid();
     TypeRef                   structInterface_          = TypeRef::invalid();
     TypeRef                   structSourceCodeLocation_ = TypeRef::invalid();
+    TypeRef                   structErrorValue_         = TypeRef::invalid();
+    TypeRef                   structScratchAllocator_   = TypeRef::invalid();
     TypeRef                   structContext_            = TypeRef::invalid();
     TypeRef                   structModule_             = TypeRef::invalid();
     TypeRef                   structProcessInfos_       = TypeRef::invalid();
     TypeRef                   structGvtd_               = TypeRef::invalid();
+    TypeRef                   enumContextFlags_         = TypeRef::invalid();
 
     // Predefined types
     TypeRef typeBool_              = TypeRef::invalid();

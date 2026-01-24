@@ -272,6 +272,57 @@ namespace Runtime
         uint32_t sizeOf;
         uint32_t count;
     };
+
+    enum class ContextFlags : uint64_t
+    {
+        None     = 0,
+        Test     = 1,
+        ByteCode = 2,
+    };
+
+    struct ErrorValue
+    {
+        Any      value;
+        uint32_t pushUsedAlloc;
+        uint32_t pushTraceIndex;
+        uint32_t pushHasError;
+        uint32_t padding;
+    };
+
+    struct ScratchAllocator
+    {
+        Interface allocator;
+        uint8_t*  block;
+        uint64_t  capacity;
+        uint64_t  used;
+        uint64_t  maxUsed;
+        void*     firstLeak;
+        uint64_t  totalLeak;
+        uint64_t  maxLeak;
+    };
+
+    struct Context
+    {
+        Interface          allocator;
+        ContextFlags       flags = ContextFlags::None;
+        ScratchAllocator   tempAllocator;
+        ScratchAllocator   errorAllocator;
+        void*              debugAllocator;
+        RuntimeFlags       runtimeFlags;
+        uint64_t           user0;
+        uint64_t           user1;
+        uint64_t           user2;
+        uint64_t           user3;
+        SourceCodeLocation traces[32];
+        ErrorValue         errors[32];
+        SourceCodeLocation exceptionLoc;
+        const void*        exceptionParams[4];
+        void (*panic)(String, SourceCodeLocation);
+        Any      curError;
+        uint32_t errorIndex;
+        uint32_t traceIndex;
+        uint32_t hasError;
+    };
 }
 
 SWC_END_NAMESPACE();

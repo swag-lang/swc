@@ -120,6 +120,7 @@ Result AstEnumDecl::semaPostNode(Sema& sema) const
         const auto& idMgr   = sema.idMgr();
         auto&       typeMgr = sema.typeMgr();
         const auto  idRef   = sym.idRef();
+
         if (idRef == idMgr.nameTargetOs())
             typeMgr.setEnumTargetOs(sym.typeRef());
         else if (idRef == idMgr.nameTypeInfoKind())
@@ -130,6 +131,8 @@ Result AstEnumDecl::semaPostNode(Sema& sema) const
             typeMgr.setEnumTypeInfoFlags(sym.typeRef());
         else if (idRef == idMgr.nameTypeValueFlags())
             typeMgr.setEnumTypeValueFlags(sym.typeRef());
+        else if (idRef == idMgr.nameContextFlags())
+            typeMgr.setEnumContextFlags(sym.typeRef());
     }
 
     sym.setCompleted(sema.ctx());

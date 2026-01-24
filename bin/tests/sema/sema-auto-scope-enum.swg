@@ -24,4 +24,9 @@ func toto()->A { return .R }
 #test
 {
     if !(@rtflags & .FromCompiler) {}
+
+    var v = @getcontext()
+    var v1 = v.flags
+    var v2 = v1 & .ByteCode
+
 }

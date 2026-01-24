@@ -43,7 +43,10 @@ void IdentifierManager::setup(TaskContext&)
     nameAttributeParam_     = addIdentifier("AttributeParam");
     nameInterface_          = addIdentifier("Interface");
     nameSourceCodeLocation_ = addIdentifier("SourceCodeLocation");
+    nameErrorValue_         = addIdentifier("ErrorValue");
+    nameScratchAllocator_   = addIdentifier("ScratchAllocator");
     nameContext_            = addIdentifier("Context");
+    nameContextFlags_       = addIdentifier("ContextFlags");
     nameModule_             = addIdentifier("Module");
     nameProcessInfos_       = addIdentifier("ProcessInfos");
     nameGvtd_               = addIdentifier("Gvtd");

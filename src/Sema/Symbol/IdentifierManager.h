@@ -53,7 +53,10 @@ public:
     IdentifierRef nameAttributeParam() const { return nameAttributeParam_; }
     IdentifierRef nameInterface() const { return nameInterface_; }
     IdentifierRef nameSourceCodeLocation() const { return nameSourceCodeLocation_; }
+    IdentifierRef nameErrorValue() const { return nameErrorValue_; }
+    IdentifierRef nameScratchAllocator() const { return nameScratchAllocator_; }
     IdentifierRef nameContext() const { return nameContext_; }
+    IdentifierRef nameContextFlags() const { return nameContextFlags_; }
     IdentifierRef nameModule() const { return nameModule_; }
     IdentifierRef nameProcessInfos() const { return nameProcessInfos_; }
     IdentifierRef nameGvtd() const { return nameGvtd_; }
@@ -100,7 +103,10 @@ private:
     IdentifierRef nameAttributeParam_     = IdentifierRef::invalid();
     IdentifierRef nameInterface_          = IdentifierRef::invalid();
     IdentifierRef nameSourceCodeLocation_ = IdentifierRef::invalid();
+    IdentifierRef nameErrorValue_         = IdentifierRef::invalid();
+    IdentifierRef nameScratchAllocator_   = IdentifierRef::invalid();
     IdentifierRef nameContext_            = IdentifierRef::invalid();
+    IdentifierRef nameContextFlags_       = IdentifierRef::invalid();
     IdentifierRef nameModule_             = IdentifierRef::invalid();
     IdentifierRef nameProcessInfos_       = IdentifierRef::invalid();
     IdentifierRef nameGvtd_               = IdentifierRef::invalid();

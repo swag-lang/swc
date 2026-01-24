@@ -116,6 +116,10 @@ Result AstStructDecl::semaPostNode(Sema& sema)
             typeMgr.setStructInterface(typeRef);
         else if (idRef == idMgr.nameSourceCodeLocation())
             typeMgr.setStructSourceCodeLocation(typeRef);
+        else if (idRef == idMgr.nameErrorValue())
+            typeMgr.setStructErrorValue(typeRef);
+        else if (idRef == idMgr.nameScratchAllocator())
+            typeMgr.setStructScratchAllocator(typeRef);
         else if (idRef == idMgr.nameContext())
             typeMgr.setStructContext(typeRef);
         else if (idRef == idMgr.nameModule())

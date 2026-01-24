@@ -226,6 +226,8 @@ namespace
     {
         if (nodeLeftView.type->isScalarNumeric() && nodeRightView.type->isScalarNumeric())
             return Result::Continue;
+        if (nodeLeftView.type->isAnyPointer() && nodeRightView.type->isAnyPointer())
+            return Result::Continue;        
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.srcViewRef(), node.tokRef());
         diag.addArgument(Diagnostic::ARG_LEFT, nodeLeftView.typeRef);

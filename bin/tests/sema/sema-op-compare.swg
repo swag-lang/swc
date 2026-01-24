@@ -5,4 +5,5 @@
     var a: *s32
     var b: *s8
     let c = a == b
+    let d = a <= b
 }

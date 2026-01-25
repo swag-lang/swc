@@ -684,27 +684,25 @@ namespace
     }
 }
 
-Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+namespace
 {
-    SmallVector<Attempt>         attempts;
-    SmallVector<SymbolFunction*> functions;
-    RESULT_VERIFY(collectAttempts(sema, attempts, functions, symbols, args, ufcsArg));
-
-    // Gather viable candidates
-    SmallVector<const Attempt*> viable;
-    viable.reserve(attempts.size());
-    for (const Attempt& a : attempts)
+    void gatherViableAttempts(const SmallVector<Attempt>& attempts, SmallVector<const Attempt*>& outViable)
     {
-        if (a.viable)
-            viable.push_back(&a);
+        outViable.clear();
+        outViable.reserve(attempts.size());
+        for (const Attempt& a : attempts)
+        {
+            if (a.viable)
+                outViable.push_back(&a);
+        }
     }
 
-    // If we have viable overload candidates: pick the best (or ambiguous)
-    const Attempt*  selectedAttempt = nullptr;
-    SymbolFunction* selectedFn      = nullptr;
-
-    if (!viable.empty())
+    const Attempt* selectBestAttempt(const SmallVector<const Attempt*>& viable, bool& outTie)
     {
+        outTie = false;
+        if (viable.empty())
+            return nullptr;
+
         const Attempt* best = viable[0];
         bool           tie  = false;
 
@@ -722,79 +720,139 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
             }
         }
 
-        if (tie)
-        {
-            SmallVector<const Symbol*> ambiguousSymbols;
-            for (const Attempt* a : viable)
-            {
-                if (compareCandidates(a->candidate, best->candidate) == 0)
-                    ambiguousSymbols.push_back(a->candidate.fn);
-            }
-
-            return SemaError::raiseAmbiguousSymbol(sema, nodeCallee.nodeRef, ambiguousSymbols);
-        }
-
-        selectedAttempt = best;
-        selectedFn      = best->candidate.fn;
+        outTie = tie;
+        return best;
     }
 
-    // No viable overload selected -> decide which error to raise
-    if (!selectedFn)
+    Result raiseAmbiguousBest(Sema& sema, AstNodeRef calleeRef, const SmallVector<const Attempt*>& viable, const Candidate& best)
     {
-        // No function symbols at all in "symbols" -> "not callable"
+        SmallVector<const Symbol*> ambiguousSymbols;
+        for (const Attempt* a : viable)
+        {
+            if (compareCandidates(a->candidate, best) == 0)
+                ambiguousSymbols.push_back(a->candidate.fn);
+        }
+        return SemaError::raiseAmbiguousSymbol(sema, calleeRef, ambiguousSymbols);
+    }
+
+    Result raiseNoSelectionError(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<SymbolFunction*>& functions, const SmallVector<Attempt>& attempts, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+    {
         if (functions.empty())
             return errorNotCallable(sema, nodeCallee);
 
-        // Exactly one function symbol -> "bad match" with reason
         if (functions.size() == 1)
             return errorBadMatch(sema, nodeCallee, *attempts.front().fn, attempts.front().fail, args, ufcsArg);
 
-        // Multiple function symbols -> "no overload match" with per-overload failure notes
         return errorNoOverloadMatch(sema, nodeCallee, attempts, args, ufcsArg);
     }
 
-    // IMPORTANT: casting/finalization must follow the *selected candidate shape*.
-    // If the best candidate was NOT chosen using UFCS, we must NOT treat arg0 as UFCS later.
-    const AstNodeRef appliedUfcsArg = (selectedAttempt && selectedAttempt->candidate.ufcsUsed) ? ufcsArg : AstNodeRef::invalid();
-
-    // Apply implicit conversions + handle defaults (already validated by tryBuildCandidate)
-    const auto&    params    = selectedFn->parameters();
-    const uint32_t numParams = static_cast<uint32_t>(params.size());
-
-    const uint32_t  numCallArgs = countCallArgs(args, appliedUfcsArg);
-    const TypeInfo& selectedFnT = selectedFn->type(sema.ctx());
-
-    // Finalize deferred enum auto-member arguments (`.Value`) now that we have the selected overload.
-    // This makes argument expressions fully typed and ensures downstream casts/codegen see the resolved member.
-    const uint32_t numCommonForFinalize =
-        selectedFnT.isAnyVariadic() ? (numParams > 0 ? numParams - 1 : 0) : numParams;
-
-    for (uint32_t i = 0; i < std::min(numCallArgs, numCommonForFinalize); ++i)
+    AstNodeRef appliedUfcsArgFromSelection(const Attempt* selectedAttempt, AstNodeRef ufcsArg)
     {
-        const AstNodeRef argRef  = getCallArg(i, args, appliedUfcsArg);
-        const TypeRef    paramTy = params[i]->typeRef();
-        RESULT_VERIFY(resolveAutoEnumArgFinal(sema, argRef, paramTy));
+        if (selectedAttempt && selectedAttempt->candidate.ufcsUsed)
+            return ufcsArg;
+        return AstNodeRef::invalid();
     }
 
-    // Common (non-variadic-tail) args: Parameter cast
-    const uint32_t numCommon = selectedFnT.isAnyVariadic() ? (numParams - 1) : numParams;
-    const uint32_t endCommon = std::min(numCallArgs, numCommon);
-
-    for (uint32_t i = 0; i < endCommon; ++i)
+    uint32_t numCommonParamsForFinalize(const TypeInfo& fnType, uint32_t numParams)
     {
-        RESULT_VERIFY(castCallArgAndStore(sema, args, appliedUfcsArg, i, params[i]->typeRef(), CastKind::Parameter));
+        if (!fnType.isAnyVariadic())
+            return numParams;
+        if (numParams == 0)
+            return 0;
+        return numParams - 1;
     }
 
-    // Typed variadic tail: Implicit cast
-    if (selectedFnT.isTypedVariadic())
+    Result finalizeAutoEnumArgs(Sema& sema, const SymbolFunction& selectedFn, const TypeInfo& selectedFnType, std::span<AstNodeRef> args, AstNodeRef appliedUfcsArg)
     {
+        const auto&    params    = selectedFn.parameters();
+        const uint32_t numParams = static_cast<uint32_t>(params.size());
+        const uint32_t numArgs   = countCallArgs(args, appliedUfcsArg);
+
+        const uint32_t commonParams = numCommonParamsForFinalize(selectedFnType, numParams);
+        const uint32_t end          = std::min(numArgs, commonParams);
+
+        for (uint32_t i = 0; i < end; ++i)
+        {
+            const AstNodeRef argRef  = getCallArg(i, args, appliedUfcsArg);
+            const TypeRef    paramTy = params[i]->typeRef();
+            RESULT_VERIFY(resolveAutoEnumArgFinal(sema, argRef, paramTy));
+        }
+
+        return Result::Continue;
+    }
+
+    Result applyParameterCasts(Sema& sema, const SymbolFunction& selectedFn, const TypeInfo& selectedFnType, std::span<AstNodeRef> args, AstNodeRef appliedUfcsArg)
+    {
+        const auto&    params    = selectedFn.parameters();
+        const uint32_t numParams = static_cast<uint32_t>(params.size());
+        const uint32_t numArgs   = countCallArgs(args, appliedUfcsArg);
+        const uint32_t numCommon = selectedFnType.isAnyVariadic() ? (numParams - 1) : numParams;
+        const uint32_t endCommon = std::min(numArgs, numCommon);
+
+        for (uint32_t i = 0; i < endCommon; ++i)
+        {
+            RESULT_VERIFY(castCallArgAndStore(sema, args, appliedUfcsArg, i, params[i]->typeRef(), CastKind::Parameter));
+        }
+
+        return Result::Continue;
+    }
+
+    Result applyTypedVariadicCasts(Sema& sema, const TypeInfo& selectedFnType, uint32_t numParams, std::span<AstNodeRef> args, AstNodeRef appliedUfcsArg)
+    {
+        if (!selectedFnType.isTypedVariadic())
+            return Result::Continue;
+
+        const uint32_t numArgs = countCallArgs(args, appliedUfcsArg);
+        if (numParams == 0)
+            return Result::Continue;
+
         const uint32_t startVariadic = numParams - 1;
-        const TypeRef  variadicTy    = selectedFnT.typeRef();
-        for (uint32_t i = startVariadic; i < numCallArgs; ++i)
+        const TypeRef  variadicTy    = selectedFnType.typeRef();
+
+        for (uint32_t i = startVariadic; i < numArgs; ++i)
         {
             RESULT_VERIFY(castCallArgAndStore(sema, args, appliedUfcsArg, i, variadicTy, CastKind::Implicit));
         }
+
+        return Result::Continue;
     }
+}
+
+Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+{
+    SmallVector<Attempt>         attempts;
+    SmallVector<SymbolFunction*> functions;
+    RESULT_VERIFY(collectAttempts(sema, attempts, functions, symbols, args, ufcsArg));
+
+    SmallVector<const Attempt*> viable;
+    gatherViableAttempts(attempts, viable);
+
+    const Attempt*  selectedAttempt = nullptr;
+    SymbolFunction* selectedFn      = nullptr;
+
+    if (!viable.empty())
+    {
+        bool           tie  = false;
+        const Attempt* best = selectBestAttempt(viable, tie);
+        if (best)
+        {
+            if (tie)
+                return raiseAmbiguousBest(sema, nodeCallee.nodeRef, viable, best->candidate);
+            selectedAttempt = best;
+            selectedFn      = best->candidate.fn;
+        }
+    }
+
+    if (!selectedFn)
+        return raiseNoSelectionError(sema, nodeCallee, functions, attempts, args, ufcsArg);
+
+    const AstNodeRef appliedUfcsArg = appliedUfcsArgFromSelection(selectedAttempt, ufcsArg);
+    const TypeInfo&  selectedFnType = selectedFn->type(sema.ctx());
+    const uint32_t   numParams      = static_cast<uint32_t>(selectedFn->parameters().size());
+
+    RESULT_VERIFY(finalizeAutoEnumArgs(sema, *selectedFn, selectedFnType, args, appliedUfcsArg));
+    RESULT_VERIFY(applyParameterCasts(sema, *selectedFn, selectedFnType, args, appliedUfcsArg));
+    RESULT_VERIFY(applyTypedVariadicCasts(sema, selectedFnType, numParams, args, appliedUfcsArg));
 
     sema.setType(sema.curNodeRef(), selectedFn->returnTypeRef());
     SemaInfo::setIsValue(sema.node(sema.curNodeRef()));

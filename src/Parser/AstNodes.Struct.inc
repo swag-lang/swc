@@ -1067,7 +1067,8 @@ struct AstVarDeclDecomposition : AstNodeT<AstNodeId::VarDeclDecomposition, AstVa
     SpanRef    spanNamesRef;
     AstNodeRef nodeInitRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeInitRef}); }
+    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeInitRef}); }
+    Result semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

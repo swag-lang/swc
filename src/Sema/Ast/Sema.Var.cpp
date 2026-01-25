@@ -274,4 +274,63 @@ Result AstVarDeclNameList::semaPostNode(Sema& sema) const
     return semaPostVarDeclCommon(sema, *this, tokRef(), nodeInitRef, nodeTypeRef, flags(), symbols);
 }
 
+Result AstVarDeclDecomposition::semaPostNode(Sema& sema) const
+{
+    const SemaNodeView nodeInitView(sema, nodeInitRef);
+    if (!nodeInitView.type->isStruct())
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_struct, nodeInitView.nodeRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, nodeInitView.typeRef);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    const SymbolStruct& symStruct = nodeInitView.type->symStruct();
+    const auto&         fields    = symStruct.fields();
+
+    SmallVector<TokenRef> tokNames;
+    sema.ast().tokens(tokNames, spanNamesRef);
+
+    if (tokNames.size() > fields.size())
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_too_many_names, nodeRef(sema.ast()));
+        diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fields.size()));
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    if (tokNames.size() < fields.size())
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_enough_names, nodeRef(sema.ast()));
+        diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fields.size()));
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    SmallVector<Symbol*> symbols;
+    for (size_t i = 0; i < tokNames.size(); i++)
+    {
+        const auto& tokNameRef = tokNames[i];
+        if (tokNameRef.isInvalid())
+            continue;
+
+        SymbolVariable& sym = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
+        if (hasFlag(AstVarDeclFlagsE::Let))
+            sym.addExtraFlag(SymbolVariableFlagsE::Let);
+        sym.setDeclared(sema.ctx());
+
+        symbols.push_back(&sym);
+
+        const SymbolVariable* field = fields[i];
+        sym.setTypeRef(field->typeRef());
+        sym.setTyped(sema.ctx());
+        sym.setCompleted(sema.ctx());
+
+        RESULT_VERIFY(Match::ghosting(sema, sym));
+    }
+
+    sema.setSymbolList(sema.curNodeRef(), symbols.span());
+    return semaPostVarDeclCommon(sema, *this, tokRef(), nodeInitRef, AstNodeRef::invalid(), flags(), symbols.span());
+}
+
 SWC_END_NAMESPACE();

@@ -507,13 +507,6 @@ namespace
                     diag = SemaError::report(sema, fail.castFailure.diagId, nodeCallee.nodeRef);
                     if (const DiagnosticId nid = addCastFailureArgs(diag.last(), fail.castFailure); nid != DiagnosticId::None)
                         diag.addNote(nid);
-
-                    if (fail.castFailure.diagId == DiagnosticId::sema_err_auto_scope_missing_enum_value ||
-                        fail.castFailure.diagId == DiagnosticId::sema_err_auto_scope_missing_struct_member)
-                    {
-                        const AstNodeRef argRef = getArg(fail.argIndex, args, ufcsArg);
-                        diag.last().addSpan(sema.node(argRef).locationWithChildren(ctx, sema.ast()));
-                    }
                 }
                 else
                 {
@@ -528,12 +521,10 @@ namespace
                 break;
         }
 
-        if (fail.hasLocation && fail.argIndex < numArgs &&
-            fail.castFailure.diagId != DiagnosticId::sema_err_auto_scope_missing_enum_value &&
-            fail.castFailure.diagId != DiagnosticId::sema_err_auto_scope_missing_struct_member)
+        if (fail.hasLocation && fail.argIndex < numArgs)
         {
             const AstNodeRef argRef = getArg(fail.argIndex, args, ufcsArg);
-            diag.last().addSpan(sema.node(argRef).location(ctx));
+            diag.last().addSpan(sema.node(argRef).locationWithChildren(ctx, sema.ast()));
         }
 
         diag.report(sema.ctx());

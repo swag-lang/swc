@@ -19,3 +19,9 @@ struct A
     var a: A
     a.fn()
 }
+
+func toto(message: string, loc: Swag.SourceCodeLocation)
+{
+    let cxt = @getcontext()
+    //cxt.panic(message, loc)
+}

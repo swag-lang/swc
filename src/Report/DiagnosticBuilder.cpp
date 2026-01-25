@@ -692,32 +692,11 @@ Utf8 DiagnosticBuilder::buildMessage(const Utf8& msg, const DiagnosticElement* e
         for (const auto& arg : arguments)
         {
             const Utf8 raw = argumentToString(arg);
-
-            // 1) `{{name}}` => raw
+            size_t     pos = 0;
+            while ((pos = result.find(arg.name, pos)) != Utf8::npos)
             {
-                const Utf8 placeholder = "{" + Utf8(arg.name) + "}";
-                size_t     pos         = 0;
-                while ((pos = result.find(placeholder, pos)) != Utf8::npos)
-                {
-                    result.replace(pos, placeholder.length(), raw);
-                    pos += raw.length();
-                }
-            }
-
-            // 2) `{name}` => quoted
-            {
-                Utf8 quoted;
-                quoted.reserve(raw.size() + 2);
-                quoted.push_back('\'');
-                quoted += raw;
-                quoted.push_back('\'');
-
-                size_t pos = 0;
-                while ((pos = result.find(arg.name, pos)) != Utf8::npos)
-                {
-                    result.replace(pos, arg.name.length(), quoted);
-                    pos += quoted.length();
-                }
+                result.replace(pos, arg.name.length(), raw);
+                pos += raw.length();
             }
         }
     };
@@ -730,8 +709,8 @@ Utf8 DiagnosticBuilder::buildMessage(const Utf8& msg, const DiagnosticElement* e
     replaceArgs(diag_->arguments());
 
     // Clean some stuff
-    result = std::regex_replace(result, std::regex{R"(\{\{\w+\}\})"}, "");
     result = std::regex_replace(result, std::regex{R"(\{\w+\})"}, "");
+    result = std::regex_replace(result, std::regex{R"(\'\')"}, "");
     result.replace_loop(" , ", ", ");
     result.replace_loop("  ", " ", true);
 

@@ -30,7 +30,8 @@ namespace
         {
             auto& symCst = s->cast<SymbolConstant>();
             symCst.setCstRef(cstRef);
-            symCst.setTypeRef(typeRef);
+            if (symCst.typeRef().isInvalid())
+                symCst.setTypeRef(typeRef);
             symCst.setTyped(sema.ctx());
             symCst.setCompleted(sema.ctx());
         }
@@ -41,7 +42,8 @@ namespace
         for (auto* s : symbols)
         {
             auto& symVar = s->cast<SymbolVariable>();
-            symVar.setTypeRef(typeRef);
+            if (symVar.typeRef().isInvalid())
+                symVar.setTypeRef(typeRef);
             symVar.setTyped(sema.ctx());
             symVar.setCompleted(sema.ctx());
         }

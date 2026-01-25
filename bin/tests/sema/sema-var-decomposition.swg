@@ -10,7 +10,8 @@ func toto()->{x: s32, y: bool}
     let s = toto()
     #assert(#typeof(s).kind == .Struct)
     let (a, b) = s
-    #print(#typeof(a))
+    #assert(#typeof(a) == s32)
+    #assert(#typeof(b) == bool)
 }
 
 #test

@@ -177,53 +177,80 @@ namespace
         return Result::Error;
     }
 
-    Result errorBadMatch(Sema& sema, const SemaNodeView& nodeCallee, const SymbolFunction& fn, const MatchFailure& fail, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+    void fillMatchDiagnostic(Sema& sema, DiagnosticElement& diagElement, Diagnostic& diag, const SymbolFunction& fn, const MatchFailure& fail, std::span<AstNodeRef> args, AstNodeRef ufcsArg, bool isNote)
     {
-        const auto& ctx = sema.ctx();
-
+        const auto&    ctx     = sema.ctx();
         const uint32_t numArgs = countCallArgs(args, ufcsArg);
 
-        Diagnostic diag;
         switch (fail.kind)
         {
             case MatchFailKind::TooManyArguments:
-                diag = SemaError::report(sema, DiagnosticId::sema_err_too_many_arguments, nodeCallee.nodeRef);
-                diag.addArgument(Diagnostic::ARG_COUNT, fail.expectedCount);
-                diag.addArgument(Diagnostic::ARG_VALUE, fail.providedCount);
+                if (isNote)
+                    diagElement.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_too_many_arguments));
+                diagElement.addArgument(Diagnostic::ARG_COUNT, fail.expectedCount);
+                diagElement.addArgument(Diagnostic::ARG_VALUE, fail.providedCount);
                 break;
 
             case MatchFailKind::TooFewArguments:
-                diag = SemaError::report(sema, DiagnosticId::sema_err_too_few_arguments, nodeCallee.nodeRef);
-                diag.addArgument(Diagnostic::ARG_COUNT, fail.expectedCount);
-                diag.addArgument(Diagnostic::ARG_VALUE, fail.providedCount);
+                if (isNote)
+                    diagElement.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_too_few_arguments));
+                diagElement.addArgument(Diagnostic::ARG_COUNT, fail.expectedCount);
+                diagElement.addArgument(Diagnostic::ARG_VALUE, fail.providedCount);
                 break;
 
             case MatchFailKind::InvalidArgumentType:
                 if (fail.castFailure.diagId != DiagnosticId::None)
                 {
-                    diag = SemaError::report(sema, fail.castFailure.diagId, nodeCallee.nodeRef);
-                    if (const DiagnosticId nid = addCastFailureArgs(diag.last(), fail.castFailure); nid != DiagnosticId::None)
+                    if (isNote)
+                        diagElement.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(fail.castFailure.diagId));
+                    if (const DiagnosticId nid = addCastFailureArgs(diagElement, fail.castFailure); nid != DiagnosticId::None)
                         diag.addNote(nid);
                 }
                 else
                 {
-                    diag = SemaError::report(sema, DiagnosticId::sema_err_bad_function_match, nodeCallee.nodeRef);
-                    diag.addArgument(Diagnostic::ARG_SYM, fn.name(ctx));
+                    if (isNote)
+                        diagElement.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_invalid_argument_type));
+                    else
+                        diagElement.addArgument(Diagnostic::ARG_SYM, fn.name(ctx));
                 }
                 break;
 
             default:
-                diag = SemaError::report(sema, DiagnosticId::sema_err_bad_function_match, nodeCallee.nodeRef);
-                diag.addArgument(Diagnostic::ARG_SYM, fn.name(ctx));
+                if (isNote)
+                    diagElement.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_not_viable));
+                else
+                    diagElement.addArgument(Diagnostic::ARG_SYM, fn.name(ctx));
                 break;
         }
 
         if (fail.hasLocation && fail.argIndex < numArgs)
         {
             const AstNodeRef argRef = getCallArg(fail.argIndex, args, ufcsArg);
-            diag.last().addSpan(sema.node(argRef).locationWithChildren(ctx, sema.ast()));
+            diagElement.addSpan(sema.node(argRef).locationWithChildren(ctx, sema.ast()));
+        }
+    }
+
+    Result errorBadMatch(Sema& sema, const SemaNodeView& nodeCallee, const SymbolFunction& fn, const MatchFailure& fail, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+    {
+        DiagnosticId id;
+        switch (fail.kind)
+        {
+            case MatchFailKind::TooManyArguments:
+                id = DiagnosticId::sema_err_too_many_arguments;
+                break;
+            case MatchFailKind::TooFewArguments:
+                id = DiagnosticId::sema_err_too_few_arguments;
+                break;
+            case MatchFailKind::InvalidArgumentType:
+                id = fail.castFailure.diagId != DiagnosticId::None ? fail.castFailure.diagId : DiagnosticId::sema_err_bad_function_match;
+                break;
+            default:
+                id = DiagnosticId::sema_err_bad_function_match;
+                break;
         }
 
+        auto diag = SemaError::report(sema, id, nodeCallee.nodeRef);
+        fillMatchDiagnostic(sema, diag.last(), diag, fn, fail, args, ufcsArg, false);
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -292,46 +319,8 @@ namespace
             const Attempt& a = *sa.a;
 
             diag.addNote(DiagnosticId::sema_note_overload_candidate_failed);
-            auto& note = diag.last();
-            note.addArgument(Diagnostic::ARG_SYM, a.fn->type(ctx).toName(ctx));
-
-            switch (a.fail.kind)
-            {
-                case MatchFailKind::TooManyArguments:
-                    note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_too_many_arguments));
-                    note.addArgument(Diagnostic::ARG_COUNT, a.fail.expectedCount);
-                    note.addArgument(Diagnostic::ARG_VALUE, a.fail.providedCount);
-                    break;
-
-                case MatchFailKind::TooFewArguments:
-                    note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_too_few_arguments));
-                    note.addArgument(Diagnostic::ARG_COUNT, a.fail.expectedCount);
-                    note.addArgument(Diagnostic::ARG_VALUE, a.fail.providedCount);
-                    break;
-
-                case MatchFailKind::InvalidArgumentType:
-                    if (a.fail.castFailure.diagId != DiagnosticId::None)
-                    {
-                        note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(a.fail.castFailure.diagId));
-                        if (const DiagnosticId nid = addCastFailureArgs(note, a.fail.castFailure); nid != DiagnosticId::None)
-                            diag.addNote(nid);
-                    }
-                    else
-                    {
-                        note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_invalid_argument_type));
-                    }
-                    break;
-
-                default:
-                    note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_not_viable));
-                    break;
-            }
-
-            if (a.fail.hasLocation && a.fail.argIndex < numArgs)
-            {
-                const AstNodeRef argRef = getCallArg(a.fail.argIndex, args, ufcsArg);
-                diag.last().addSpan(sema.node(argRef).locationWithChildren(ctx, sema.ast()));
-            }
+            diag.last().addArgument(Diagnostic::ARG_SYM, a.fn->type(ctx).toName(ctx));
+            fillMatchDiagnostic(sema, diag.last(), diag, *a.fn, a.fail, args, ufcsArg, true);
         }
 
         diag.report(sema.ctx());

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Sema/Core/Sema.h"
 #include "Parser/AstNodes.h"
+#include "Sema/Cast/Cast.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Helpers/SemaHelpers.h"
@@ -365,7 +366,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     // Parser tags the callee expression when building a call: `a.foo()`.
     const bool allowOverloadSet = hasFlag(AstMemberAccessExprFlagsE::CallCallee);
 
-    const SemaNodeView  nodeLeftView(sema, nodeLeftRef);
+    SemaNodeView        nodeLeftView(sema, nodeLeftRef);
     const SemaNodeView  nodeRightView(sema, nodeRightRef);
     const TokenRef      tokNameRef = nodeRightView.node->tokRef();
     const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
@@ -387,11 +388,17 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
 
     // Dereference pointer
     const TypeInfo* typeInfo = nodeLeftView.type;
-    if (typeInfo->isTypeInfo())
+    if (typeInfo->isTypeValue())
+    {
+        const TypeRef typeInfoRef = sema.typeMgr().typeTypeInfo();
+        RESULT_VERIFY(Cast::cast(sema, nodeLeftView, typeInfoRef, CastKind::Explicit));
+        typeInfo = &sema.typeMgr().get(sema.typeMgr().structTypeInfo());
+    }
+    else if (typeInfo->isTypeInfo())
     {
         const TypeRef typeInfoRef = sema.typeMgr().structTypeInfo();
         if (typeInfoRef.isInvalid())
-            return sema.waitIdentifier(sema.idMgr().nameTypeInfoStruct(), srcViewRef(), tokNameRef);
+            return sema.waitIdentifier(sema.idMgr().nameTypeInfo(), srcViewRef(), tokNameRef);
         typeInfo = &sema.typeMgr().get(typeInfoRef);
     }
     else if (typeInfo->isAnyPointer())

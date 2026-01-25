@@ -890,6 +890,8 @@ TypeRef TypeInfo::underlyingTypeRef() const noexcept
         return asTypeRef.typeRef;
     if (isArray())
         return asArray.typeRef;
+    if (isEnum())
+        return asEnum.sym->underlyingTypeRef();
     return TypeRef::invalid();
 }
 

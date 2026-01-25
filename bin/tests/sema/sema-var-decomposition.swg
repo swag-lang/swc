@@ -12,6 +12,10 @@ func toto()->{x: s32, y: bool}
     let (a, b) = s
     #assert(#typeof(a) == s32)
     #assert(#typeof(b) == bool)
+    let (c, ?) = s
+    #assert(#typeof(c) == s32)
+    let (?, d) = s
+    #assert(#typeof(d) == bool)
 }
 
 #test

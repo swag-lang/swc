@@ -28,3 +28,10 @@ func toto()->{x: s32, y: bool}
 {
     let (a) = toto() // swc-expected-error {{sema_err_decomposition_not_enough_names}}
 }
+
+#test
+{
+    let s = toto()
+    let (a, b) = s
+    let (a, b) = s // swc-expected-error {{sema_err_already_defined}}
+}

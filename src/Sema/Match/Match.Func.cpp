@@ -729,18 +729,16 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
         const AstNodeRef argRef = getArg(i, args, ufcsArg);
         SemaNodeView     argView(sema, argRef);
         CastFlags        castFlags;
-        if (ufcsArg.isValid() && i == 0)
-            castFlags.add(CastFlagsE::UfcsArgument);
-        RESULT_VERIFY(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Parameter, castFlags));
+        bool             isUfcsArgument = ufcsArg.isValid() && i == 0;
 
-        if (ufcsArg.isValid() && i == 0)
+        if (isUfcsArgument)
         {
-            // Note: ufcsArg is currently just a potential first argument.
-            // If it matches, it might need to be explicitly handled by the caller or somehow integrated.
-            // For now, we follow the logic that it's treated as the first argument.
+            castFlags.add(CastFlagsE::UfcsArgument);
+            RESULT_VERIFY(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Parameter, castFlags));
         }
         else
         {
+            RESULT_VERIFY(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Parameter, castFlags));
             args[ufcsArg.isValid() ? i - 1 : i] = argView.nodeRef;
         }
     }

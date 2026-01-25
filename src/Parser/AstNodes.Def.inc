@@ -43,7 +43,6 @@ SWC_NODE_DEF(RetValType, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(CodeType, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(VariadicType, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(TypedVariadicType, AstNodeIdFlagsE::Zero)
-SWC_NODE_DEF(ValueType, AstNodeIdFlagsE::Zero)
 
 // ============================================================================
 //  Attributes & Constraints

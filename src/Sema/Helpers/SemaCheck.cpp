@@ -2,7 +2,9 @@
 #include "Sema/Helpers/SemaCheck.h"
 #include "Main/CompilerInstance.h"
 #include "Parser/AstNodes.h"
+#include "Sema/Cast/Cast.h"
 #include "Sema/Core/Sema.h"
+#include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/Symbols.h"
 
@@ -59,6 +61,15 @@ Result SemaCheck::isValue(Sema& sema, AstNodeRef nodeRef)
     const auto diag = SemaError::report(sema, DiagnosticId::sema_err_not_value_expr, nodeRef);
     diag.report(sema.ctx());
     return Result::Error;
+}
+
+Result SemaCheck::isValueOrType(Sema& sema, SemaNodeView& nodeView)
+{
+    if (SemaInfo::isValue(*nodeView.node))
+        return Result::Continue;
+    if (nodeView.type)
+        Cast::convertTypeToTypeValue(sema, nodeView);
+    return isValue(sema, nodeView.nodeRef);
 }
 
 Result SemaCheck::isConstant(Sema& sema, AstNodeRef nodeRef)

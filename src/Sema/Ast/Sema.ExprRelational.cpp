@@ -227,7 +227,7 @@ namespace
         if (nodeLeftView.type->isScalarNumeric() && nodeRightView.type->isScalarNumeric())
             return Result::Continue;
         if (nodeLeftView.type->isAnyPointer() && nodeRightView.type->isAnyPointer())
-            return Result::Continue;        
+            return Result::Continue;
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.srcViewRef(), node.tokRef());
         diag.addArgument(Diagnostic::ARG_LEFT, nodeLeftView.typeRef);
@@ -238,17 +238,6 @@ namespace
 
     namespace
     {
-        void typeToTypeValueForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
-        {
-            if (!self.type || !other.type)
-                return;
-            if (!self.type->isType())
-                return;
-            if (!other.type->isTypeValue())
-                return;
-            Cast::convertTypeToTypeValue(sema, self);
-        }
-
         void enumForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
         {
             if (!self.type || !other.type)
@@ -325,15 +314,8 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
     SemaNodeView nodeRightView(sema, nodeRightRef);
     const auto&  tok = sema.token(srcViewRef(), tokRef());
 
-    if (tok.id == TokenId::SymEqualEqual || tok.id == TokenId::SymBangEqual)
-    {
-        typeToTypeValueForEquality(sema, nodeLeftView, nodeRightView);
-        typeToTypeValueForEquality(sema, nodeRightView, nodeLeftView);
-    }
-
-    // Value-check
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftView.nodeRef));
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef));
+    RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeLeftView));
+    RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeRightView));
     SemaInfo::setIsValue(*this);
 
     // Force types

@@ -584,7 +584,7 @@ AstNodeRef Parser::parsePostFixExpression()
 AstNodeRef Parser::parseAutoMemberAccessExpr()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AutoMemberAccessExpr>(consume());
-    nodePtr->nodeIdentRef = parseIdentifier();
+    nodePtr->nodeIdentRef   = parseIdentifier();
     if (hasContextFlag(ParserContextFlagsE::InCallArgument))
         nodePtr->addFlag(AstAutoMemberAccessExprFlagsE::CallArgument);
     return nodeRef;
@@ -765,7 +765,7 @@ AstNodeRef Parser::parsePrimaryExpression()
 
         case TokenId::SymLeftBracket:
             if (nextIs(TokenId::SymDotDot) || nextIs(TokenId::SymQuestion) || nextIs(TokenId::SymAsterisk))
-                return parseTypeValue();
+                return parseType();
             return parseLiteralArray();
 
         case TokenId::TypeAny:
@@ -792,7 +792,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::SymAsterisk:
         case TokenId::SymAmpersand:
         case TokenId::ModifierNullable:
-            return parseTypeValue();
+            return parseType();
 
         case TokenId::CompilerType:
             return parseCompilerTypeExpr();

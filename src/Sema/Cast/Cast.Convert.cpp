@@ -24,9 +24,6 @@ void Cast::convertEnumToUnderlying(Sema& sema, SemaNodeView& nodeView)
 
 void Cast::convertTypeToTypeValue(Sema& sema, SemaNodeView& nodeView)
 {
-    if (!nodeView.type->isType())
-        return;
-
     TaskContext&      ctx    = sema.ctx();
     const ConstantRef cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeTypeValue(ctx, nodeView.typeRef));
     nodeView.setCstRef(sema, cstRef);

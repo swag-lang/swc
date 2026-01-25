@@ -32,8 +32,8 @@
 const C1 = true ? 10 : true             // swc-expected-error {{sema_err_binary_operand_type}}
 
 // Branches must be values
-#test { var a = true ? s32 : s16 }  // swc-expected-error {{sema_err_binary_operand_type}}
-const C2 = true ? 10 : s16          // swc-expected-error {{sema_err_binary_operand_type}}
+#test { var a = true ? s32 : s16 }  // swc-expected-error {{sema_err_not_value_expr}}
+const C2 = true ? 10 : s16          // swc-expected-error {{sema_err_not_value_expr}}
 
 // Condition must be a value
 namespace NC{}

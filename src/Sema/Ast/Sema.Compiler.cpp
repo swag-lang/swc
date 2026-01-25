@@ -395,9 +395,9 @@ namespace
 
     Result semaCompilerNameOf(Sema& sema, const AstCompilerCall& node)
     {
-        auto&              ctx      = sema.ctx();
-        const AstNodeRef   childRef = sema.ast().oneNode(node.spanChildrenRef);
-        const SemaNodeView nodeView(sema, childRef);
+        auto&            ctx      = sema.ctx();
+        const AstNodeRef childRef = sema.ast().oneNode(node.spanChildrenRef);
+        SemaNodeView     nodeView(sema, childRef);
 
         if (nodeView.sym)
         {
@@ -407,6 +407,7 @@ namespace
             return Result::Continue;
         }
 
+        RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeView));
         if (nodeView.type && nodeView.type->isTypeValue())
         {
             const Utf8          name  = sema.typeMgr().get(nodeView.type->typeRef()).toName(ctx);

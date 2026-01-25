@@ -879,15 +879,6 @@ struct AstTypedVariadicType : AstNodeT<AstNodeId::TypedVariadicType>
 };
 
 // -----------------------------------------------------------------------------
-struct AstValueType : AstNodeT<AstNodeId::ValueType>
-{
-    AstNodeRef nodeTypeRef;
-
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef}); }
-    Result semaPostNode(Sema& sema) const;
-};
-
-// -----------------------------------------------------------------------------
 struct AstCompilerIf : AstNodeT<AstNodeId::CompilerIf>
 {
     AstNodeRef nodeConditionRef;

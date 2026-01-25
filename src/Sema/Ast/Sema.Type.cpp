@@ -97,15 +97,6 @@ Result AstTypedVariadicType::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
-Result AstValueType::semaPostNode(Sema& sema) const
-{
-    auto&               ctx     = sema.ctx();
-    const TypeRef       typeRef = sema.typeRefOf(nodeTypeRef);
-    const ConstantValue cst     = ConstantValue::makeTypeValue(ctx, typeRef);
-    sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, cst));
-    return Result::Continue;
-}
-
 Result AstValuePointerType::semaPostNode(Sema& sema) const
 {
     const SemaNodeView nodeView(sema, nodePointeeTypeRef);

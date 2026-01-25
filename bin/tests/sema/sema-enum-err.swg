@@ -45,8 +45,8 @@ enum J: any {} // swc-expected-error {{sema_err_invalid_enum_type}}
 enum K: cstring {} // swc-expected-error {{sema_err_invalid_enum_type}}
 
 enum L { A }
-#assert(L == 1) // swc-expected-error {{sema_err_not_value_expr}}
-#assert(L >= 1) // swc-expected-error {{sema_err_not_value_expr}}
+#assert(L == 1) // swc-expected-error {{sema_err_compare_operand_type}}
+#assert(L >= 1) // swc-expected-error {{sema_err_compare_operand_type}}
 #assert(!L) // swc-expected-error {{sema_err_not_value_expr}}
 
 var YY: s32

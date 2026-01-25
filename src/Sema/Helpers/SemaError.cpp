@@ -172,11 +172,14 @@ Result SemaError::raiseAmbiguousSymbol(Sema& sema, AstNodeRef nodeRef, std::span
 {
     auto& ctx  = sema.ctx();
     auto  diag = report(sema, DiagnosticId::sema_err_ambiguous_symbol, nodeRef);
+    diag.addArgument(Diagnostic::ARG_SYM, symbols.front()->name(ctx));
+
     for (const auto other : symbols)
     {
         diag.addNote(DiagnosticId::sema_note_could_be);
         diag.last().addSpan(other->loc(ctx));
     }
+    
     diag.report(ctx);
     return Result::Error;
 }

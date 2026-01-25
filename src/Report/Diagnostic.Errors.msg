@@ -115,7 +115,7 @@ SWC_DIAG_DEF(sema_err_invalid_enum_type, Error, "invalid enum underlying type '{
 SWC_DIAG_DEF(sema_err_invalid_enum_flags_type, Error, "invalid enum flags underlying type '{type}'; only unsigned integer types are allowed")
 SWC_DIAG_DEF(sema_err_already_defined, Error, "the symbol '{tok}' is already defined")
 SWC_DIAG_DEF(sema_err_ghosting, Error, "the symbol '{tok}' is ghosting an existing definition")
-SWC_DIAG_DEF(sema_err_ambiguous_symbol, Error, "ambiguous symbol '{tok}'")
+SWC_DIAG_DEF(sema_err_ambiguous_symbol, Error, "ambiguous symbol '{sym}'")
 SWC_DIAG_DEF(sema_err_missing_enum_value, Error, "missing initializer for the enum value '{tok}'; an enum value of type '{type}' must be initialized with a constant expression")
 SWC_DIAG_DEF(sema_err_empty_enum, Error, "empty enum")
 SWC_DIAG_DEF(sema_err_failed_nameof, Error, "cannot get the name of the expression")

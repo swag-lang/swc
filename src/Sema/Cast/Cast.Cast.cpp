@@ -404,8 +404,9 @@ namespace
         const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
 
         const bool sameUnderlying = srcType.typeRef() == dstType.typeRef();
+        const bool srcIsVoid      = srcType.typeRef() == sema.typeMgr().typeVoid();
         const bool dstIsVoid      = dstType.typeRef() == sema.typeMgr().typeVoid();
-        if (sameUnderlying || dstIsVoid || castCtx.kind == CastKind::Explicit)
+        if (sameUnderlying || srcIsVoid || dstIsVoid || castCtx.kind == CastKind::Explicit)
         {
             bool ok = false;
             if (srcType.kind() == dstType.kind())
@@ -416,7 +417,7 @@ namespace
                 ok = true;
             // TODO
             // @compatibility
-            else if (sameUnderlying || dstIsVoid)
+            else if (sameUnderlying || srcIsVoid || dstIsVoid)
                 ok = true;
 
             if (ok)

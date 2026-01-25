@@ -710,9 +710,8 @@ namespace
         const auto&     params         = selectedFn.parameters();
         const uint32_t  numParams      = static_cast<uint32_t>(params.size());
         const uint32_t  numArgs        = countCallArgs(args, appliedUfcsArg);
-
-        const uint32_t commonParams = numCommonParamsForFinalize(selectedFnType, numParams);
-        const uint32_t end          = std::min(numArgs, commonParams);
+        const uint32_t  commonParams   = numCommonParamsForFinalize(selectedFnType, numParams);
+        const uint32_t  end            = std::min(numArgs, commonParams);
 
         for (uint32_t i = 0; i < end; ++i)
         {
@@ -732,17 +731,16 @@ namespace
             if (compareCandidates(a->candidate, best) == 0)
                 ambiguousSymbols.push_back(a->candidate.fn);
         }
+
         return SemaError::raiseAmbiguousSymbol(sema, calleeRef, ambiguousSymbols);
     }
 
-    Result raiseNoSelectionError(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<SymbolFunction*>& functions, const SmallVector<Attempt>& attempts, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+    Result raiseNoSelection(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<SymbolFunction*>& functions, const SmallVector<Attempt>& attempts, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
     {
         if (functions.empty())
             return errorNotCallable(sema, nodeCallee);
-
         if (functions.size() == 1)
             return errorBadMatch(sema, nodeCallee, *attempts.front().fn, attempts.front().fail, args, ufcsArg);
-
         return errorNoOverloadMatch(sema, nodeCallee, attempts, args, ufcsArg);
     }
 
@@ -751,20 +749,19 @@ namespace
     // it raises the appropriate error.
     Result selectBestAttempt(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<const Attempt*>& viable, const SmallVector<SymbolFunction*>& functions, const SmallVector<Attempt>& attempts, std::span<AstNodeRef> args, AstNodeRef ufcsArg, const Attempt*& outSelected)
     {
-        outSelected = nullptr;
         if (viable.empty())
-            return raiseNoSelectionError(sema, nodeCallee, functions, attempts, args, ufcsArg);
+            return raiseNoSelection(sema, nodeCallee, functions, attempts, args, ufcsArg);
 
-        const Attempt* best      = viable[0];
-        bool           ambiguous = false;
+        outSelected    = viable[0];
+        bool ambiguous = false;
 
-        for (uint32_t i = 1; i < static_cast<uint32_t>(viable.size()); ++i)
+        for (size_t i = 1; i < viable.size(); ++i)
         {
-            const int cmp = compareCandidates(viable[i]->candidate, best->candidate);
+            const int cmp = compareCandidates(viable[i]->candidate, outSelected->candidate);
             if (cmp < 0)
             {
-                best      = viable[i];
-                ambiguous = false;
+                outSelected = viable[i];
+                ambiguous   = false;
             }
             else if (cmp == 0)
             {
@@ -773,9 +770,8 @@ namespace
         }
 
         if (ambiguous)
-            return raiseAmbiguousBest(sema, nodeCallee.nodeRef, viable, best->candidate);
+            return raiseAmbiguousBest(sema, nodeCallee.nodeRef, viable, outSelected->candidate);
 
-        outSelected = best;
         return Result::Continue;
     }
 
@@ -803,7 +799,6 @@ namespace
     Result applyTypedVariadicCasts(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args, AstNodeRef appliedUfcsArg)
     {
         const TypeInfo& selectedFnType = selectedFn.type(sema.ctx());
-
         if (!selectedFnType.isTypedVariadic())
             return Result::Continue;
 

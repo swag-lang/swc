@@ -754,17 +754,16 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
             const AstNodeRef argRef = getArg(i, args, ufcsArg);
             SemaNodeView     argView(sema, argRef);
             CastFlags        castFlags;
-            if (ufcsArg.isValid() && i == 0)
-                castFlags.add(CastFlagsE::UfcsArgument);
-            RESULT_VERIFY(Cast::cast(sema, argView, variadicTy, CastKind::Implicit, castFlags));
+            bool             isUfcsArgument = ufcsArg.isValid() && i == 0;
 
-            if (ufcsArg.isValid() && i == 0)
+            if (isUfcsArgument)
             {
-                // Should not happen for typed variadic usually (variadic is at the end),
-                // unless it's a very strange function with only one variadic param.
+                castFlags.add(CastFlagsE::UfcsArgument);
+                RESULT_VERIFY(Cast::cast(sema, argView, variadicTy, CastKind::Implicit, castFlags));
             }
             else
             {
+                RESULT_VERIFY(Cast::cast(sema, argView, variadicTy, CastKind::Implicit, castFlags));
                 args[ufcsArg.isValid() ? i - 1 : i] = argView.nodeRef;
             }
         }

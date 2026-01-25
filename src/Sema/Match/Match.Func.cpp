@@ -762,11 +762,12 @@ namespace
         return numParams - 1;
     }
 
-    Result finalizeAutoEnumArgs(Sema& sema, const SymbolFunction& selectedFn, const TypeInfo& selectedFnType, std::span<AstNodeRef> args, AstNodeRef appliedUfcsArg)
+    Result finalizeAutoEnumArgs(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args, AstNodeRef appliedUfcsArg)
     {
-        const auto&    params    = selectedFn.parameters();
-        const uint32_t numParams = static_cast<uint32_t>(params.size());
-        const uint32_t numArgs   = countCallArgs(args, appliedUfcsArg);
+        const TypeInfo& selectedFnType = selectedFn.type(sema.ctx());
+        const auto&     params         = selectedFn.parameters();
+        const uint32_t  numParams      = static_cast<uint32_t>(params.size());
+        const uint32_t  numArgs        = countCallArgs(args, appliedUfcsArg);
 
         const uint32_t commonParams = numCommonParamsForFinalize(selectedFnType, numParams);
         const uint32_t end          = std::min(numArgs, commonParams);
@@ -781,13 +782,14 @@ namespace
         return Result::Continue;
     }
 
-    Result applyParameterCasts(Sema& sema, const SymbolFunction& selectedFn, const TypeInfo& selectedFnType, std::span<AstNodeRef> args, AstNodeRef appliedUfcsArg)
+    Result applyParameterCasts(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args, AstNodeRef appliedUfcsArg)
     {
-        const auto&    params    = selectedFn.parameters();
-        const uint32_t numParams = static_cast<uint32_t>(params.size());
-        const uint32_t numArgs   = countCallArgs(args, appliedUfcsArg);
-        const uint32_t numCommon = selectedFnType.isAnyVariadic() ? (numParams - 1) : numParams;
-        const uint32_t endCommon = std::min(numArgs, numCommon);
+        const TypeInfo& selectedFnType = selectedFn.type(sema.ctx());
+        const auto&     params         = selectedFn.parameters();
+        const uint32_t  numParams      = static_cast<uint32_t>(params.size());
+        const uint32_t  numArgs        = countCallArgs(args, appliedUfcsArg);
+        const uint32_t  numCommon      = selectedFnType.isAnyVariadic() ? (numParams - 1) : numParams;
+        const uint32_t  endCommon      = std::min(numArgs, numCommon);
 
         for (uint32_t i = 0; i < endCommon; ++i)
         {
@@ -797,12 +799,15 @@ namespace
         return Result::Continue;
     }
 
-    Result applyTypedVariadicCasts(Sema& sema, const TypeInfo& selectedFnType, uint32_t numParams, std::span<AstNodeRef> args, AstNodeRef appliedUfcsArg)
+    Result applyTypedVariadicCasts(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args, AstNodeRef appliedUfcsArg)
     {
+        const TypeInfo& selectedFnType = selectedFn.type(sema.ctx());
+
         if (!selectedFnType.isTypedVariadic())
             return Result::Continue;
 
-        const uint32_t numArgs = countCallArgs(args, appliedUfcsArg);
+        const uint32_t numArgs   = countCallArgs(args, appliedUfcsArg);
+        const uint32_t numParams = static_cast<uint32_t>(selectedFn.parameters().size());
         if (numParams == 0)
             return Result::Continue;
 
@@ -827,9 +832,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     SmallVector<const Attempt*> viable;
     gatherViableAttempts(attempts, viable);
 
-    const Attempt*  selectedAttempt = nullptr;
-    SymbolFunction* selectedFn      = nullptr;
-
+    const Attempt* selectedAttempt = nullptr;
     if (!viable.empty())
     {
         bool           tie  = false;
@@ -839,20 +842,17 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
             if (tie)
                 return raiseAmbiguousBest(sema, nodeCallee.nodeRef, viable, best->candidate);
             selectedAttempt = best;
-            selectedFn      = best->candidate.fn;
         }
     }
 
-    if (!selectedFn)
+    if (!selectedAttempt)
         return raiseNoSelectionError(sema, nodeCallee, functions, attempts, args, ufcsArg);
 
-    const AstNodeRef appliedUfcsArg = appliedUfcsArgFromSelection(selectedAttempt, ufcsArg);
-    const TypeInfo&  selectedFnType = selectedFn->type(sema.ctx());
-    const uint32_t   numParams      = static_cast<uint32_t>(selectedFn->parameters().size());
-
-    RESULT_VERIFY(finalizeAutoEnumArgs(sema, *selectedFn, selectedFnType, args, appliedUfcsArg));
-    RESULT_VERIFY(applyParameterCasts(sema, *selectedFn, selectedFnType, args, appliedUfcsArg));
-    RESULT_VERIFY(applyTypedVariadicCasts(sema, selectedFnType, numParams, args, appliedUfcsArg));
+    const SymbolFunction* selectedFn     = selectedAttempt->candidate.fn;
+    const AstNodeRef      appliedUfcsArg = appliedUfcsArgFromSelection(selectedAttempt, ufcsArg);
+    RESULT_VERIFY(finalizeAutoEnumArgs(sema, *selectedFn, args, appliedUfcsArg));
+    RESULT_VERIFY(applyParameterCasts(sema, *selectedFn, args, appliedUfcsArg));
+    RESULT_VERIFY(applyTypedVariadicCasts(sema, *selectedFn, args, appliedUfcsArg));
 
     sema.setType(sema.curNodeRef(), selectedFn->returnTypeRef());
     SemaInfo::setIsValue(sema.node(sema.curNodeRef()));

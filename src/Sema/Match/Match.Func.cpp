@@ -46,6 +46,7 @@ namespace
         SymbolFunction*       fn           = nullptr;
         uint32_t              usedDefaults = 0;
         bool                  viable       = false;
+        bool                  ufcsUsed     = false;
     };
 
     struct Attempt
@@ -70,15 +71,53 @@ namespace
         TypeRef typeRef = TypeRef::invalid();
     };
 
-    AstNodeRef getArg(uint32_t argIndex, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+    AstNodeRef getCallArg(uint32_t callArgIndex, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
     {
         if (ufcsArg.isValid())
         {
-            if (argIndex == 0)
+            if (callArgIndex == 0)
                 return ufcsArg;
-            return args[argIndex - 1];
+            return args[callArgIndex - 1];
         }
-        return args[argIndex];
+        return args[callArgIndex];
+    }
+
+    uint32_t countCallArgs(std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+    {
+        uint32_t n = static_cast<uint32_t>(args.size());
+        if (ufcsArg.isValid())
+            ++n;
+        return n;
+    }
+
+    uint32_t userArgIndexFromCallIndex(uint32_t callArgIndex, AstNodeRef ufcsArg)
+    {
+        // Only valid when callArgIndex is NOT the implicit UFCS arg (i.e. callArgIndex != 0 when ufcsArg is valid).
+        return ufcsArg.isValid() ? (callArgIndex - 1) : callArgIndex;
+    }
+
+    Result castCallArgAndStore(Sema&                 sema,
+                               std::span<AstNodeRef> args,
+                               AstNodeRef            ufcsArg,
+                               uint32_t              callArgIndex,
+                               TypeRef               dstTy,
+                               CastKind              castKind)
+    {
+        const AstNodeRef argRef = getCallArg(callArgIndex, args, ufcsArg);
+        SemaNodeView     argView(sema, argRef);
+
+        CastFlags  flags;
+        const bool isUfcsImplicitArg = ufcsArg.isValid() && callArgIndex == 0;
+        if (isUfcsImplicitArg)
+            flags.add(CastFlagsE::UfcsArgument);
+
+        RESULT_VERIFY(Cast::cast(sema, argView, dstTy, castKind, flags));
+
+        // Only rewrite the user-provided args array when it's not the implicit UFCS arg.
+        if (!isUfcsImplicitArg)
+            args[userArgIndexFromCallIndex(callArgIndex, ufcsArg)] = argView.nodeRef;
+
+        return Result::Continue;
     }
 
     VariadicInfo getVariadicInfo(Sema& sema, const SymbolFunction& fn)
@@ -143,13 +182,16 @@ namespace
         return Result::Error;
     }
 
-    Result errorBadMatch(Sema& sema, const SemaNodeView& nodeCallee, const SymbolFunction& fn, const MatchFailure& fail, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+    Result errorBadMatch(Sema&                 sema,
+                         const SemaNodeView&   nodeCallee,
+                         const SymbolFunction& fn,
+                         const MatchFailure&   fail,
+                         std::span<AstNodeRef> args,
+                         AstNodeRef            ufcsArg)
     {
         const auto& ctx = sema.ctx();
 
-        uint32_t numArgs = static_cast<uint32_t>(args.size());
-        if (ufcsArg.isValid())
-            numArgs++;
+        const uint32_t numArgs = countCallArgs(args, ufcsArg);
 
         Diagnostic diag;
         switch (fail.kind)
@@ -188,7 +230,7 @@ namespace
 
         if (fail.hasLocation && fail.argIndex < numArgs)
         {
-            const AstNodeRef argRef = getArg(fail.argIndex, args, ufcsArg);
+            const AstNodeRef argRef = getCallArg(fail.argIndex, args, ufcsArg);
             diag.last().addSpan(sema.node(argRef).locationWithChildren(ctx, sema.ast()));
         }
 
@@ -200,14 +242,18 @@ namespace
     {
         auto& ctx = sema.ctx();
 
-        uint32_t numArgs = static_cast<uint32_t>(args.size());
-        if (ufcsArg.isValid())
-            numArgs++;
-
         struct SortedAttempt
         {
             const Attempt* a;
             uint32_t       rank;
+        };
+
+        struct SortedAttemptByRankDesc
+        {
+            bool operator()(const SortedAttempt& a, const SortedAttempt& b) const
+            {
+                return a.rank > b.rank;
+            }
         };
 
         SmallVector<SortedAttempt> sorted;
@@ -236,14 +282,13 @@ namespace
             sorted.push_back({.a = &a, .rank = rank});
         }
 
-        std::ranges::sort(sorted, [](const SortedAttempt& a, const SortedAttempt& b) {
-            return a.rank > b.rank;
-        });
+        std::ranges::sort(sorted, SortedAttemptByRankDesc{});
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_no_overload_match, nodeCallee.nodeRef);
 
         // One note per overload attempt describing why it failed (and where when possible).
-        int count = 0;
+        const uint32_t numArgs = countCallArgs(args, ufcsArg);
+        int            count   = 0;
         for (const auto& sa : sorted)
         {
             if (count >= 5)
@@ -282,7 +327,9 @@ namespace
                             diag.addNote(nid);
                     }
                     else
+                    {
                         note.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_invalid_argument_type));
+                    }
                     break;
 
                 default:
@@ -292,7 +339,7 @@ namespace
 
             if (a.fail.hasLocation && a.fail.argIndex < numArgs)
             {
-                const AstNodeRef argRef = getArg(a.fail.argIndex, args, ufcsArg);
+                const AstNodeRef argRef = getCallArg(a.fail.argIndex, args, ufcsArg);
                 diag.last().addSpan(sema.node(argRef).locationWithChildren(ctx, sema.ast()));
             }
         }
@@ -436,15 +483,13 @@ namespace
     {
         const auto&    params    = fn.parameters();
         const uint32_t numParams = static_cast<uint32_t>(params.size());
-
-        uint32_t numArgs = static_cast<uint32_t>(args.size());
-        if (ufcsArg.isValid())
-            numArgs++;
+        const uint32_t numArgs   = countCallArgs(args, ufcsArg);
 
         outCandidate.fn = &fn;
         outCandidate.perArg.clear();
         outCandidate.usedDefaults = 0;
         outCandidate.viable       = false;
+        outCandidate.ufcsUsed     = ufcsArg.isValid();
 
         auto&              ctx = sema.ctx();
         const VariadicInfo vi  = getVariadicInfo(sema, fn);
@@ -457,12 +502,12 @@ namespace
         }
 
         // Rank each provided argument (excluding the variadic parameter itself when variadic)
-        const uint32_t numCommon = vi.any() && numParams > 0 ? (numParams - 1) : numParams;
+        const uint32_t numCommon = (vi.any() && numParams > 0) ? (numParams - 1) : numParams;
         const uint32_t upto      = std::min(numArgs, numCommon);
 
         for (uint32_t i = 0; i < upto; ++i)
         {
-            const AstNodeRef argRef  = getArg(i, args, ufcsArg);
+            const AstNodeRef argRef  = getCallArg(i, args, ufcsArg);
             const TypeRef    paramTy = params[i]->typeRef();
 
             CastFailure cf{};
@@ -511,7 +556,7 @@ namespace
                     }
                     else
                     {
-                        const AstNodeRef argRef = getArg(i, args, ufcsArg);
+                        const AstNodeRef argRef = getCallArg(i, args, ufcsArg);
                         const TypeRef    argTy  = sema.typeRefOf(argRef);
                         CastFailure      cf{};
                         const bool       isUfcsArgument = ufcsArg.isValid() && i == 0;
@@ -529,7 +574,7 @@ namespace
         }
 
         // Remaining params must be defaulted/initialized (excluding the variadic parameter itself)
-        const uint32_t numParamsToCheck = vi.any() && numParams > 0 ? (numParams - 1) : numParams;
+        const uint32_t numParamsToCheck = (vi.any() && numParams > 0) ? (numParams - 1) : numParams;
         for (uint32_t i = numArgs; i < numParamsToCheck; ++i)
         {
             if (!params[i]->hasExtraFlag(SymbolVariableFlagsE::Initialized))
@@ -602,6 +647,7 @@ namespace
             MatchFailure fail;
             Candidate    candidate;
 
+            // First: non-UFCS call shape.
             RESULT_VERIFY(tryBuildCandidate(sema, *fn, args, AstNodeRef::invalid(), candidate, fail));
             if (candidate.viable)
             {
@@ -610,6 +656,7 @@ namespace
             }
             else if (ufcsArg.isValid())
             {
+                // Second: UFCS call shape (implicit arg0).
                 candidate = {};
                 fail      = {};
                 RESULT_VERIFY(tryBuildCandidate(sema, *fn, args, ufcsArg, candidate, fail));
@@ -653,7 +700,9 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     }
 
     // If we have viable overload candidates: pick the best (or ambiguous)
-    SymbolFunction* selectedFn = nullptr;
+    const Attempt*  selectedAttempt = nullptr;
+    SymbolFunction* selectedFn      = nullptr;
+
     if (!viable.empty())
     {
         const Attempt* best = viable[0];
@@ -685,7 +734,8 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
             return SemaError::raiseAmbiguousSymbol(sema, nodeCallee.nodeRef, ambiguousSymbols);
         }
 
-        selectedFn = best->candidate.fn;
+        selectedAttempt = best;
+        selectedFn      = best->candidate.fn;
     }
 
     // No viable overload selected -> decide which error to raise
@@ -703,67 +753,46 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
         return errorNoOverloadMatch(sema, nodeCallee, attempts, args, ufcsArg);
     }
 
+    // IMPORTANT: casting/finalization must follow the *selected candidate shape*.
+    // If the best candidate was NOT chosen using UFCS, we must NOT treat arg0 as UFCS later.
+    const AstNodeRef appliedUfcsArg = (selectedAttempt && selectedAttempt->candidate.ufcsUsed) ? ufcsArg : AstNodeRef::invalid();
+
     // Apply implicit conversions + handle defaults (already validated by tryBuildCandidate)
-    const auto& params    = selectedFn->parameters();
-    const auto  numParams = static_cast<uint32_t>(params.size());
+    const auto&    params    = selectedFn->parameters();
+    const uint32_t numParams = static_cast<uint32_t>(params.size());
 
-    uint32_t numArgs = static_cast<uint32_t>(args.size());
-    if (ufcsArg.isValid())
-        numArgs++;
-
-    const auto& selectedFnT = selectedFn->type(sema.ctx());
+    const uint32_t  numCallArgs = countCallArgs(args, appliedUfcsArg);
+    const TypeInfo& selectedFnT = selectedFn->type(sema.ctx());
 
     // Finalize deferred enum auto-member arguments (`.Value`) now that we have the selected overload.
     // This makes argument expressions fully typed and ensures downstream casts/codegen see the resolved member.
-    const uint32_t numCommonForFinalize = selectedFnT.isAnyVariadic() ? (numParams > 0 ? numParams - 1 : 0) : numParams;
-    for (uint32_t i = 0; i < std::min(numArgs, numCommonForFinalize); ++i)
+    const uint32_t numCommonForFinalize =
+        selectedFnT.isAnyVariadic() ? (numParams > 0 ? numParams - 1 : 0) : numParams;
+
+    for (uint32_t i = 0; i < std::min(numCallArgs, numCommonForFinalize); ++i)
     {
-        const AstNodeRef argRef  = getArg(i, args, ufcsArg);
+        const AstNodeRef argRef  = getCallArg(i, args, appliedUfcsArg);
         const TypeRef    paramTy = params[i]->typeRef();
         RESULT_VERIFY(resolveAutoEnumArgFinal(sema, argRef, paramTy));
     }
 
-    const uint32_t numCommon = selectedFnT.isAnyVariadic() ? numParams - 1 : numParams;
-    for (uint32_t i = 0; i < std::min(numArgs, numCommon); ++i)
-    {
-        const AstNodeRef argRef = getArg(i, args, ufcsArg);
-        SemaNodeView     argView(sema, argRef);
-        CastFlags        castFlags;
-        bool             isUfcsArgument = ufcsArg.isValid() && i == 0;
+    // Common (non-variadic-tail) args: Parameter cast
+    const uint32_t numCommon = selectedFnT.isAnyVariadic() ? (numParams - 1) : numParams;
+    const uint32_t endCommon = std::min(numCallArgs, numCommon);
 
-        if (isUfcsArgument)
-        {
-            castFlags.add(CastFlagsE::UfcsArgument);
-            RESULT_VERIFY(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Parameter, castFlags));
-        }
-        else
-        {
-            RESULT_VERIFY(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Parameter, castFlags));
-            args[ufcsArg.isValid() ? i - 1 : i] = argView.nodeRef;
-        }
+    for (uint32_t i = 0; i < endCommon; ++i)
+    {
+        RESULT_VERIFY(castCallArgAndStore(sema, args, appliedUfcsArg, i, params[i]->typeRef(), CastKind::Parameter));
     }
 
+    // Typed variadic tail: Implicit cast
     if (selectedFnT.isTypedVariadic())
     {
         const uint32_t startVariadic = numParams - 1;
         const TypeRef  variadicTy    = selectedFnT.typeRef();
-        for (uint32_t i = startVariadic; i < numArgs; ++i)
+        for (uint32_t i = startVariadic; i < numCallArgs; ++i)
         {
-            const AstNodeRef argRef = getArg(i, args, ufcsArg);
-            SemaNodeView     argView(sema, argRef);
-            CastFlags        castFlags;
-            bool             isUfcsArgument = ufcsArg.isValid() && i == 0;
-
-            if (isUfcsArgument)
-            {
-                castFlags.add(CastFlagsE::UfcsArgument);
-                RESULT_VERIFY(Cast::cast(sema, argView, variadicTy, CastKind::Implicit, castFlags));
-            }
-            else
-            {
-                RESULT_VERIFY(Cast::cast(sema, argView, variadicTy, CastKind::Implicit, castFlags));
-                args[ufcsArg.isValid() ? i - 1 : i] = argView.nodeRef;
-            }
+            RESULT_VERIFY(castCallArgAndStore(sema, args, appliedUfcsArg, i, variadicTy, CastKind::Implicit));
         }
     }
 

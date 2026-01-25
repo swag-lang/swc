@@ -23,5 +23,5 @@ struct A
 func toto(message: string, loc: Swag.SourceCodeLocation)
 {
     let cxt = @getcontext()
-    //cxt.panic(message, loc)
+    cxt.panic(message, loc)
 }

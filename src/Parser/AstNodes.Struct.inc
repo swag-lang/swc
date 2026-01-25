@@ -957,7 +957,10 @@ struct AstUnionDecl : AstAggregateDeclT<AstNodeId::UnionDecl>
 // -----------------------------------------------------------------------------
 struct AstAnonymousStructDecl : AstAnonymousAggregateDeclT<AstNodeId::AnonymousStructDecl>
 {
-    static Result semaPreNode(Sema& sema);
+    Result        semaPreDecl(Sema& sema) const;
+    Result        semaPreNode(Sema& sema) const;
+    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    static Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

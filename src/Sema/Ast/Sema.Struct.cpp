@@ -82,11 +82,48 @@ Result AstStructDecl::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
-Result AstAnonymousStructDecl::semaPreNode(Sema& sema)
+Result AstAnonymousStructDecl::semaPreDecl(Sema& sema) const
 {
-    // TODO
-    sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
+    SemaHelpers::registerUniqueSymbol<SymbolStruct>(sema, *this, "AnonymousStruct");
     return Result::SkipChildren;
+}
+
+Result AstAnonymousStructDecl::semaPreNode(Sema& sema) const
+{
+    if (sema.enteringState())
+        SemaHelpers::declareSymbol(sema, *this);
+    const Symbol& sym = sema.symbolOf(sema.curNodeRef());
+    return Match::ghosting(sema, sym);
+}
+
+Result AstAnonymousStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeBodyRef)
+    {
+        auto& ctx = sema.ctx();
+
+        // Creates symbol with type
+        SymbolStruct&  sym           = sema.symbolOf(sema.curNodeRef()).cast<SymbolStruct>();
+        const TypeInfo structType    = TypeInfo::makeStruct(&sym);
+        const TypeRef  structTypeRef = ctx.typeMgr().addType(structType);
+        sym.setTypeRef(structTypeRef);
+        sym.setTyped(sema.ctx());
+
+        sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::Type);
+        sema.curScope().setSymMap(&sym);
+    }
+
+    return Result::Continue;
+}
+
+Result AstAnonymousStructDecl::semaPostNode(Sema& sema)
+{
+    SymbolStruct& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolStruct>();
+    RESULT_VERIFY(sym.canBeCompleted(sema));
+    sym.computeLayout(sema);
+    sym.setCompleted(sema.ctx());
+    sema.setType(sema.curNodeRef(), sym.typeRef());
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

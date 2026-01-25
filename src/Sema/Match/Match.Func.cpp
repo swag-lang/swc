@@ -697,55 +697,6 @@ namespace
         }
     }
 
-    const Attempt* selectBestAttempt(const SmallVector<const Attempt*>& viable, bool& outTie)
-    {
-        outTie = false;
-        if (viable.empty())
-            return nullptr;
-
-        const Attempt* best = viable[0];
-        bool           tie  = false;
-
-        for (uint32_t i = 1; i < static_cast<uint32_t>(viable.size()); ++i)
-        {
-            const int cmp = compareCandidates(viable[i]->candidate, best->candidate);
-            if (cmp < 0)
-            {
-                best = viable[i];
-                tie  = false;
-            }
-            else if (cmp == 0)
-            {
-                tie = true;
-            }
-        }
-
-        outTie = tie;
-        return best;
-    }
-
-    Result raiseAmbiguousBest(Sema& sema, AstNodeRef calleeRef, const SmallVector<const Attempt*>& viable, const Candidate& best)
-    {
-        SmallVector<const Symbol*> ambiguousSymbols;
-        for (const Attempt* a : viable)
-        {
-            if (compareCandidates(a->candidate, best) == 0)
-                ambiguousSymbols.push_back(a->candidate.fn);
-        }
-        return SemaError::raiseAmbiguousSymbol(sema, calleeRef, ambiguousSymbols);
-    }
-
-    Result raiseNoSelectionError(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<SymbolFunction*>& functions, const SmallVector<Attempt>& attempts, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
-    {
-        if (functions.empty())
-            return errorNotCallable(sema, nodeCallee);
-
-        if (functions.size() == 1)
-            return errorBadMatch(sema, nodeCallee, *attempts.front().fn, attempts.front().fail, args, ufcsArg);
-
-        return errorNoOverloadMatch(sema, nodeCallee, attempts, args, ufcsArg);
-    }
-
     AstNodeRef appliedUfcsArgFromSelection(const Attempt* selectedAttempt, AstNodeRef ufcsArg)
     {
         if (selectedAttempt && selectedAttempt->candidate.ufcsUsed)
@@ -779,6 +730,58 @@ namespace
             RESULT_VERIFY(resolveAutoEnumArgFinal(sema, argRef, paramTy));
         }
 
+        return Result::Continue;
+    }
+
+    Result raiseAmbiguousBest(Sema& sema, AstNodeRef calleeRef, const SmallVector<const Attempt*>& viable, const Candidate& best)
+    {
+        SmallVector<const Symbol*> ambiguousSymbols;
+        for (const Attempt* a : viable)
+        {
+            if (compareCandidates(a->candidate, best) == 0)
+                ambiguousSymbols.push_back(a->candidate.fn);
+        }
+        return SemaError::raiseAmbiguousSymbol(sema, calleeRef, ambiguousSymbols);
+    }
+
+    Result raiseNoSelectionError(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<SymbolFunction*>& functions, const SmallVector<Attempt>& attempts, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+    {
+        if (functions.empty())
+            return errorNotCallable(sema, nodeCallee);
+
+        if (functions.size() == 1)
+            return errorBadMatch(sema, nodeCallee, *attempts.front().fn, attempts.front().fail, args, ufcsArg);
+
+        return errorNoOverloadMatch(sema, nodeCallee, attempts, args, ufcsArg);
+    }
+
+    Result selectBestAttempt(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<const Attempt*>& viable, const SmallVector<SymbolFunction*>& functions, const SmallVector<Attempt>& attempts, std::span<AstNodeRef> args, AstNodeRef ufcsArg, const Attempt*& outSelected)
+    {
+        outSelected = nullptr;
+        if (viable.empty())
+            return raiseNoSelectionError(sema, nodeCallee, functions, attempts, args, ufcsArg);
+
+        const Attempt* best      = viable[0];
+        bool           ambiguous = false;
+
+        for (uint32_t i = 1; i < static_cast<uint32_t>(viable.size()); ++i)
+        {
+            const int cmp = compareCandidates(viable[i]->candidate, best->candidate);
+            if (cmp < 0)
+            {
+                best      = viable[i];
+                ambiguous = false;
+            }
+            else if (cmp == 0)
+            {
+                ambiguous = true;
+            }
+        }
+
+        if (ambiguous)
+            return raiseAmbiguousBest(sema, nodeCallee.nodeRef, viable, best->candidate);
+
+        outSelected = best;
         return Result::Continue;
     }
 
@@ -833,23 +836,10 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     gatherViableAttempts(attempts, viable);
 
     const Attempt* selectedAttempt = nullptr;
-    if (!viable.empty())
-    {
-        bool           tie  = false;
-        const Attempt* best = selectBestAttempt(viable, tie);
-        if (best)
-        {
-            if (tie)
-                return raiseAmbiguousBest(sema, nodeCallee.nodeRef, viable, best->candidate);
-            selectedAttempt = best;
-        }
-    }
+    RESULT_VERIFY(selectBestAttempt(sema, nodeCallee, viable, functions, attempts, args, ufcsArg, selectedAttempt));
 
-    if (!selectedAttempt)
-        return raiseNoSelectionError(sema, nodeCallee, functions, attempts, args, ufcsArg);
-
-    const SymbolFunction* selectedFn     = selectedAttempt->candidate.fn;
     const AstNodeRef      appliedUfcsArg = appliedUfcsArgFromSelection(selectedAttempt, ufcsArg);
+    const SymbolFunction* selectedFn     = selectedAttempt->candidate.fn;
     RESULT_VERIFY(finalizeAutoEnumArgs(sema, *selectedFn, args, appliedUfcsArg));
     RESULT_VERIFY(applyParameterCasts(sema, *selectedFn, args, appliedUfcsArg));
     RESULT_VERIFY(applyTypedVariadicCasts(sema, *selectedFn, args, appliedUfcsArg));

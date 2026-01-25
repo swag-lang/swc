@@ -84,7 +84,7 @@ Result AstStructDecl::semaPostNode(Sema& sema)
 
 Result AstAnonymousStructDecl::semaPreDecl(Sema& sema) const
 {
-    SemaHelpers::registerUniqueSymbol<SymbolStruct>(sema, *this, "AnonymousStruct");
+    SemaHelpers::registerUniqueSymbol<SymbolStruct>(sema, *this, "anonymous_struct");
     return Result::SkipChildren;
 }
 

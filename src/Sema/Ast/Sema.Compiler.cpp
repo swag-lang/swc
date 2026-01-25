@@ -536,28 +536,28 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
     {
         case TokenId::CompilerRun:
         case TokenId::CompilerAst:
-            name = "__run";
+            name = "run";
             break;
         case TokenId::CompilerFuncTest:
-            name = "__test";
+            name = "test";
             break;
         case TokenId::CompilerFuncInit:
-            name = "__init";
+            name = "init";
             break;
         case TokenId::CompilerFuncDrop:
-            name = "__drop";
+            name = "drop";
             break;
         case TokenId::CompilerFuncMain:
-            name = "__main";
+            name = "main";
             break;
         case TokenId::CompilerFuncPreMain:
-            name = "__premain";
+            name = "premain";
             break;
         case TokenId::CompilerFuncMessage:
-            name = "__message";
+            name = "message";
             break;
         default:
-            name = "__func";
+            name = "func";
             break;
     }
 

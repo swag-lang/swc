@@ -41,9 +41,10 @@ namespace SemaHelpers
     template<typename T>
     T& registerUniqueSymbol(Sema& sema, const AstNode& node, const std::string_view& name)
     {
-        auto&               ctx   = sema.ctx();
-        const IdentifierRef idRef = getUniqueIdentifier(sema, name);
-        const SymbolFlags   flags = sema.frame().flagsForCurrentAccess();
+        auto&               ctx         = sema.ctx();
+        const Utf8          privateName = Utf8("__") + Utf8(name);
+        const IdentifierRef idRef       = getUniqueIdentifier(sema, privateName);
+        const SymbolFlags   flags       = sema.frame().flagsForCurrentAccess();
 
         T* sym = Symbol::make<T>(ctx, &node, node.tokRef(), idRef, flags);
 

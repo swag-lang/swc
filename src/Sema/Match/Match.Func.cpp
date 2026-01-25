@@ -96,12 +96,7 @@ namespace
         return ufcsArg.isValid() ? (callArgIndex - 1) : callArgIndex;
     }
 
-    Result castCallArgAndStore(Sema&                 sema,
-                               std::span<AstNodeRef> args,
-                               AstNodeRef            ufcsArg,
-                               uint32_t              callArgIndex,
-                               TypeRef               dstTy,
-                               CastKind              castKind)
+    Result castCallArgAndStore(Sema& sema, std::span<AstNodeRef> args, AstNodeRef ufcsArg, uint32_t callArgIndex, TypeRef dstTy, CastKind castKind)
     {
         const AstNodeRef argRef = getCallArg(callArgIndex, args, ufcsArg);
         SemaNodeView     argView(sema, argRef);
@@ -182,12 +177,7 @@ namespace
         return Result::Error;
     }
 
-    Result errorBadMatch(Sema&                 sema,
-                         const SemaNodeView&   nodeCallee,
-                         const SymbolFunction& fn,
-                         const MatchFailure&   fail,
-                         std::span<AstNodeRef> args,
-                         AstNodeRef            ufcsArg)
+    Result errorBadMatch(Sema& sema, const SemaNodeView& nodeCallee, const SymbolFunction& fn, const MatchFailure& fail, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
     {
         const auto& ctx = sema.ctx();
 
@@ -348,6 +338,7 @@ namespace
         return Result::Error;
     }
 
+    // Probes if an implicit conversion from 'from' to 'to' is possible, and returns its rank.
     ConvRank probeImplicitConversion(Sema& sema, TypeRef from, TypeRef to, CastFailure& outCastFailure, bool isUfcsArgument)
     {
         if (from == to)
@@ -479,6 +470,8 @@ namespace
     }
 
     // Try to build a candidate; if it fails, fill out why + where.
+    // Evaluate a single function symbol against the provided arguments to see if it's a valid match.
+    // It determines conversion ranks, UFCS usage, and handles variadic arguments.
     Result tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Candidate& outCandidate, MatchFailure& outFail)
     {
         const auto&    params    = fn.parameters();
@@ -590,8 +583,11 @@ namespace
         return Result::Continue;
     }
 
-    // Compare candidates: "best" is the one with the better (smaller) rank for the first differing arg.
-    // Tie-breakers can include fewer defaults, non-template, more specialized, etc.
+    // Compares two candidates and returns -1 if 'a' is better than 'b', 1 if 'b' is better, or 0 if they are equivalent.
+    // Selection is based on:
+    // 1. Better conversion ranks (Exact > Standard > Bad)
+    // 2. UFCS usage (non-UFCS is generally preferred)
+    // 3. Number of default arguments used (fewer is better)
     int compareCandidates(const Candidate& a, const Candidate& b)
     {
         const uint32_t na = static_cast<uint32_t>(a.perArg.size());
@@ -614,6 +610,8 @@ namespace
         return 0;
     }
 
+    // Evaluate each function symbol to see how well it matches the given arguments.
+    // This includes checking the number of parameters, types, and potential UFCS usage.
     Result collectAttempts(Sema& sema, SmallVector<Attempt>& outAttempts, SmallVector<SymbolFunction*>& outFunctionSymbols, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
     {
         outAttempts.clear();
@@ -755,6 +753,9 @@ namespace
         return errorNoOverloadMatch(sema, nodeCallee, attempts, args, ufcsArg);
     }
 
+    // From a list of viable candidates, select the single best one based on conversion ranks
+    // and other criteria. If there's no clear winner (ambiguity), or no viable candidate,
+    // it raises the appropriate error.
     Result selectBestAttempt(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<const Attempt*>& viable, const SmallVector<SymbolFunction*>& functions, const SmallVector<Attempt>& attempts, std::span<AstNodeRef> args, AstNodeRef ufcsArg, const Attempt*& outSelected)
     {
         outSelected = nullptr;
@@ -785,6 +786,8 @@ namespace
         return Result::Continue;
     }
 
+    // For each argument, perform the required cast to the destination parameter type.
+    // The casted value is then stored back in the argument node.
     Result applyParameterCasts(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args, AstNodeRef appliedUfcsArg)
     {
         const TypeInfo& selectedFnType = selectedFn.type(sema.ctx());
@@ -802,6 +805,8 @@ namespace
         return Result::Continue;
     }
 
+    // For typed variadic functions (e.g., `func(x: ...int)`), each extra argument
+    // must be casted to the underlying variadic type.
     Result applyTypedVariadicCasts(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args, AstNodeRef appliedUfcsArg)
     {
         const TypeInfo& selectedFnType = selectedFn.type(sema.ctx());
@@ -828,22 +833,28 @@ namespace
 
 Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
 {
+    // Collect all function candidates and evaluate their match quality
     SmallVector<Attempt>         attempts;
     SmallVector<SymbolFunction*> functions;
     RESULT_VERIFY(collectAttempts(sema, attempts, functions, symbols, args, ufcsArg));
 
+    // Filter to keep only those that are compatible (viable)
     SmallVector<const Attempt*> viable;
     gatherViableAttempts(attempts, viable);
 
+    // From the viable ones, find the single best candidate.
+    // This will raise an error if there are no viable candidates or if the best choice is ambiguous.
     const Attempt* selectedAttempt = nullptr;
     RESULT_VERIFY(selectBestAttempt(sema, nodeCallee, viable, functions, attempts, args, ufcsArg, selectedAttempt));
 
+    // Finalize the selection by applying required casts and conversions to the arguments
     const AstNodeRef      appliedUfcsArg = appliedUfcsArgFromSelection(selectedAttempt, ufcsArg);
     const SymbolFunction* selectedFn     = selectedAttempt->candidate.fn;
     RESULT_VERIFY(finalizeAutoEnumArgs(sema, *selectedFn, args, appliedUfcsArg));
     RESULT_VERIFY(applyParameterCasts(sema, *selectedFn, args, appliedUfcsArg));
     RESULT_VERIFY(applyTypedVariadicCasts(sema, *selectedFn, args, appliedUfcsArg));
 
+    // Set the call node type to the return type of the selected function
     sema.setType(sema.curNodeRef(), selectedFn->returnTypeRef());
     SemaInfo::setIsValue(sema.node(sema.curNodeRef()));
     return Result::Continue;

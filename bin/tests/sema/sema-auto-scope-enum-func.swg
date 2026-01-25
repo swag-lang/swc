@@ -42,6 +42,12 @@ impl Vec2
     {
         if .z > 0.0 {} // swc-expected-error {{sema_err_auto_scope_missing_struct_member}}
     }
+
+    func titi()->Vec2
+    {
+        set_axis(.A, 1.0)
+        return {}
+    }
 }
 
 #test

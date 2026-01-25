@@ -218,6 +218,14 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
     // If nothing matched, report a smart error.
     if (matches.empty())
     {
+        if (hasFlag(AstAutoMemberAccessExprFlagsE::CallArgument))
+        {
+            // If we have candidates but none matched, we still want to try to defer if this is a function argument.
+            // This is because another candidate (the function argument type itself) might be available later
+            // during overload resolution.
+            return Result::SkipChildren;
+        }
+
         if (candidates.size() == 1)
         {
             const AutoMemberCandidate& candidate = candidates.front();

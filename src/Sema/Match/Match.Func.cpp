@@ -695,13 +695,6 @@ namespace
         }
     }
 
-    AstNodeRef appliedUfcsArgFromSelection(const Attempt* selectedAttempt, AstNodeRef ufcsArg)
-    {
-        if (selectedAttempt && selectedAttempt->candidate.ufcsUsed)
-            return ufcsArg;
-        return AstNodeRef::invalid();
-    }
-
     uint32_t numCommonParamsForFinalize(const TypeInfo& fnType, uint32_t numParams)
     {
         if (!fnType.isAnyVariadic())
@@ -787,7 +780,7 @@ namespace
     }
 
     // For each argument, perform the required cast to the destination parameter type.
-    // The casted value is then stored back in the argument node.
+    // The cast value is then stored back in the argument node.
     Result applyParameterCasts(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args, AstNodeRef appliedUfcsArg)
     {
         const TypeInfo& selectedFnType = selectedFn.type(sema.ctx());
@@ -806,7 +799,7 @@ namespace
     }
 
     // For typed variadic functions (e.g., `func(x: ...int)`), each extra argument
-    // must be casted to the underlying variadic type.
+    // must be cast to the underlying variadic type.
     Result applyTypedVariadicCasts(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args, AstNodeRef appliedUfcsArg)
     {
         const TypeInfo& selectedFnType = selectedFn.type(sema.ctx());
@@ -848,7 +841,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     RESULT_VERIFY(selectBestAttempt(sema, nodeCallee, viable, functions, attempts, args, ufcsArg, selectedAttempt));
 
     // Finalize the selection by applying required casts and conversions to the arguments
-    const AstNodeRef      appliedUfcsArg = appliedUfcsArgFromSelection(selectedAttempt, ufcsArg);
+    const AstNodeRef      appliedUfcsArg = selectedAttempt->candidate.ufcsUsed ? ufcsArg : AstNodeRef::invalid();
     const SymbolFunction* selectedFn     = selectedAttempt->candidate.fn;
     RESULT_VERIFY(finalizeAutoEnumArgs(sema, *selectedFn, args, appliedUfcsArg));
     RESULT_VERIFY(applyParameterCasts(sema, *selectedFn, args, appliedUfcsArg));

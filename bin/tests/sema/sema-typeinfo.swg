@@ -25,7 +25,7 @@ struct A { R, G, B: s32 }
     var b = cast(const *Swag.TypeInfoPointer)(a)
     var c = b.pointedType == f32
 }
-/*
+
 #test
 {
     const a = #typeof(s32)
@@ -41,4 +41,4 @@ struct A { R, G, B: s32 }
     const e = #typeof(f32)
     #assert(a != e)
     #assert(e != s32)
-}*/
+}

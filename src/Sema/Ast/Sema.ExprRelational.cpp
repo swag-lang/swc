@@ -222,11 +222,7 @@ namespace
             return Result::Continue;
         if (nodeLeftView.type->isAnyPointer() && nodeRightView.type->isAnyPointer())
             return Result::Continue;
-        if (nodeLeftView.type->isConstPointerToAnyTypeInfo(sema.ctx()) && nodeRightView.type->isTypeInfo())
-            return Result::Continue;
-        if (nodeLeftView.type->isTypeInfo() && nodeRightView.type->isConstPointerToAnyTypeInfo(sema.ctx()))
-            return Result::Continue;
-        if (nodeLeftView.type->isTypeInfo() && nodeRightView.type->isTypeInfo())
+        if (nodeLeftView.type->isAnyTypeInfo(sema.ctx()) && nodeRightView.type->isAnyTypeInfo(sema.ctx()))
             return Result::Continue;
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.srcViewRef(), node.tokRef());
@@ -272,18 +268,12 @@ namespace
         {
             if (!self.type || !other.type)
                 return Result::Continue;
-            if (!self.type->isTypeInfo() && !self.type->isTypeValue())
-                return Result::Continue;
-            if (!other.type->isConstPointerToAnyTypeInfo(sema.ctx()))
-                return Result::Continue;
-
-            if (self.type->isTypeValue())
+            if (self.type->isTypeValue() && other.type->isAnyTypeInfo(sema.ctx()))
             {
                 RESULT_VERIFY(Cast::cast(sema, self, sema.typeMgr().typeTypeInfo(), CastKind::Implicit));
                 return Result::Continue;
             }
 
-            Cast::cast(sema, self, other.typeRef, CastKind::Implicit);
             return Result::Continue;
         }
     }

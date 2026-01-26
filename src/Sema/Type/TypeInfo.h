@@ -134,7 +134,7 @@ public:
     bool isLambdaClosure() const noexcept;
     bool isLambdaMethod() const noexcept;
     bool isLambdaThrowable() const noexcept;
-    bool isConstPointerToAnyTypeInfo(TaskContext& ctx) const noexcept;
+    bool isAnyTypeInfo(TaskContext& ctx) const noexcept;
 
     // clang-format off
     Sign                 intSign() const noexcept { SWC_ASSERT(isInt()); return asInt.sign; }

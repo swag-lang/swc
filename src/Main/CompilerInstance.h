@@ -47,23 +47,9 @@ public:
     bool changed() const { return changed_; }
     void clearChanged() { changed_ = false; }
 
-    uint32_t pendingImplRegistrations() const
-    {
-        return pendingImplRegistrations_.load(std::memory_order_relaxed);
-    }
-
-    void incPendingImplRegistrations()
-    {
-        pendingImplRegistrations_.fetch_add(1, std::memory_order_relaxed);
-        notifyAlive();
-    }
-
-    void decPendingImplRegistrations()
-    {
-        SWC_ASSERT(pendingImplRegistrations_.load(std::memory_order_relaxed) > 0);
-        pendingImplRegistrations_.fetch_sub(1, std::memory_order_relaxed);
-        notifyAlive();
-    }
+    uint32_t pendingImplRegistrations() const;
+    void     incPendingImplRegistrations();
+    void     decPendingImplRegistrations();
 
     std::atomic<uint32_t>& atomicId() const { return const_cast<CompilerInstance*>(this)->atomicId_; }
     bool                   setMainFunc(AstCompilerFunc* node);

@@ -47,6 +47,24 @@ void CompilerInstance::setupSema(TaskContext& ctx)
     cstMgr_->setup(ctx);
 }
 
+uint32_t CompilerInstance::pendingImplRegistrations() const
+{
+    return pendingImplRegistrations_.load(std::memory_order_relaxed);
+}
+
+void CompilerInstance::incPendingImplRegistrations()
+{
+    pendingImplRegistrations_.fetch_add(1, std::memory_order_relaxed);
+    notifyAlive();
+}
+
+void CompilerInstance::decPendingImplRegistrations()
+{
+    SWC_ASSERT(pendingImplRegistrations_.load(std::memory_order_relaxed) > 0);
+    pendingImplRegistrations_.fetch_sub(1, std::memory_order_relaxed);
+    notifyAlive();
+}
+
 void CompilerInstance::logBefore()
 {
     const TaskContext ctx(*this);

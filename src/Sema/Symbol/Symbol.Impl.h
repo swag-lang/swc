@@ -30,31 +30,10 @@ public:
     bool isPendingRegistrationResolved() const noexcept { return hasExtraFlag(SymbolImplFlagsE::PendingRegistrationResolved); }
     void setPendingRegistrationResolved() noexcept { addExtraFlag(SymbolImplFlagsE::PendingRegistrationResolved); }
 
-    SymbolStruct* symStruct() const
-    {
-        SWC_ASSERT(isForStruct());
-        return ownerStruct_;
-    }
-
-    void setSymStruct(SymbolStruct* sym)
-    {
-        removeExtraFlag(SymbolImplFlagsE::ForEnum);
-        addExtraFlag(SymbolImplFlagsE::ForStruct);
-        ownerStruct_ = sym;
-    }
-
-    SymbolEnum* symEnum() const
-    {
-        SWC_ASSERT(isForEnum());
-        return ownerEnum_;
-    }
-
-    void setSymEnum(SymbolEnum* sym)
-    {
-        removeExtraFlag(SymbolImplFlagsE::ForStruct);
-        addExtraFlag(SymbolImplFlagsE::ForEnum);
-        ownerEnum_ = sym;
-    }
+    SymbolStruct* symStruct() const;
+    void          setSymStruct(SymbolStruct* sym);
+    SymbolEnum*   symEnum() const;
+    void          setSymEnum(SymbolEnum* sym);
 
 private:
     union

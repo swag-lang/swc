@@ -255,12 +255,12 @@
         <ClCompile Include="src\Sema\Ast\Sema.Compiler.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Enum.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Expr.cpp"/>
-        <ClCompile Include="src\Sema\Ast\Sema.Binary.cpp" />
-        <ClCompile Include="src\Sema\Ast\Sema.Conditional.cpp" />
-        <ClCompile Include="src\Sema\Ast\Sema.Logical.cpp" />
-        <ClCompile Include="src\Sema\Ast\Sema.MemberAccess.cpp" />
-        <ClCompile Include="src\Sema\Ast\Sema.Relational.cpp" />
-        <ClCompile Include="src\Sema\Ast\Sema.Unary.cpp" />
+        <ClCompile Include="src\Sema\Ast\Sema.Binary.cpp"/>
+        <ClCompile Include="src\Sema\Ast\Sema.Conditional.cpp"/>
+        <ClCompile Include="src\Sema\Ast\Sema.Logical.cpp"/>
+        <ClCompile Include="src\Sema\Ast\Sema.MemberAccess.cpp"/>
+        <ClCompile Include="src\Sema\Ast\Sema.Relational.cpp"/>
+        <ClCompile Include="src\Sema\Ast\Sema.Unary.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Function.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.If.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Impl.cpp"/>
@@ -292,6 +292,7 @@
         <ClCompile Include="src\Sema\Symbol\Symbol.Attribute.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Symbol.Enum.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Symbol.Function.cpp"/>
+        <ClCompile Include="src\Sema\Symbol\Symbol.Impl.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Symbol.Interface.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Symbol.Struct.cpp"/>
         <ClCompile Include="src\Sema\Symbol\SymbolMap.cpp"/>

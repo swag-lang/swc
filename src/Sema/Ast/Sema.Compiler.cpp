@@ -231,18 +231,9 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
             SemaInfo::setIsValue(*this);
             break;
         case TokenId::CompilerCallerLocation:
-        {
-            TypeRef typeRef = sema.typeMgr().structSourceCodeLocation();
-            if (typeRef.isInvalid())
-                return sema.waitIdentifier(sema.idMgr().nameSourceCodeLocation(), srcViewRef(), tokRef());
-            const TypeInfo ty = TypeInfo::makeReference(typeRef, TypeInfoFlagsE::Const);
-            sema.setType(sema.curNodeRef(), sema.typeMgr().addType(ty));
-            SemaInfo::setIsValue(*this);
-            break;
-        }
         case TokenId::CompilerCurLocation:
         {
-            TypeRef typeRef = sema.typeMgr().structSourceCodeLocation();
+            const TypeRef typeRef = sema.typeMgr().structSourceCodeLocation();
             if (typeRef.isInvalid())
                 return sema.waitIdentifier(sema.idMgr().nameSourceCodeLocation(), srcViewRef(), tokRef());
             sema.setConstant(sema.curNodeRef(), SemaHelpers::makeConstantLocation(sema, *this));

@@ -6,13 +6,16 @@ SWC_BEGIN_NAMESPACE();
 class SymbolStruct;
 class SymbolEnum;
 
-enum class SymbolImplOwnerKind : uint8_t
+enum class SymbolImplFlagsE : uint8_t
 {
-    Struct,
-    Enum,
+    Zero                        = 0,
+    ForStruct                   = 1 << 0,
+    ForEnum                     = 1 << 1,
+    PendingRegistrationResolved = 1 << 7,
 };
+using SymbolImplFlags = EnumFlags<SymbolImplFlagsE>;
 
-class SymbolImpl : public SymbolMapT<SymbolKind::Impl>
+class SymbolImpl : public SymbolMapT<SymbolKind::Impl, SymbolImplFlagsE>
 {
 public:
     static constexpr auto K = SymbolKind::Impl;
@@ -22,39 +25,36 @@ public:
     {
     }
 
-    static constexpr uint8_t OwnerKindMask             = 0x01;
-    static constexpr uint8_t PendingRegistrationBit    = 0x80;
-
-    SymbolImplOwnerKind ownerKind() const { return static_cast<SymbolImplOwnerKind>(extraFlags() & OwnerKindMask); }
-    bool                isForStruct() const { return ownerKind() == SymbolImplOwnerKind::Struct; }
-    bool                isForEnum() const { return ownerKind() == SymbolImplOwnerKind::Enum; }
+    bool isForStruct() const noexcept { return hasExtraFlag(SymbolImplFlagsE::ForStruct); }
+    bool isForEnum() const noexcept { return hasExtraFlag(SymbolImplFlagsE::ForEnum); }
+    bool isPendingRegistrationResolved() const noexcept { return hasExtraFlag(SymbolImplFlagsE::PendingRegistrationResolved); }
+    void setPendingRegistrationResolved() noexcept { addExtraFlag(SymbolImplFlagsE::PendingRegistrationResolved); }
 
     SymbolStruct* symStruct() const
     {
-        SWC_ASSERT(ownerKind() == SymbolImplOwnerKind::Struct);
+        SWC_ASSERT(isForStruct());
         return ownerStruct_;
     }
 
     void setSymStruct(SymbolStruct* sym)
     {
-        extraFlags() = (extraFlags() & ~OwnerKindMask) | static_cast<uint8_t>(SymbolImplOwnerKind::Struct);
+        removeExtraFlag(SymbolImplFlagsE::ForEnum);
+        addExtraFlag(SymbolImplFlagsE::ForStruct);
         ownerStruct_ = sym;
     }
 
     SymbolEnum* symEnum() const
     {
-        SWC_ASSERT(ownerKind() == SymbolImplOwnerKind::Enum);
+        SWC_ASSERT(isForEnum());
         return ownerEnum_;
     }
 
     void setSymEnum(SymbolEnum* sym)
     {
-        extraFlags() = (extraFlags() & ~OwnerKindMask) | static_cast<uint8_t>(SymbolImplOwnerKind::Enum);
-        ownerEnum_   = sym;
+        removeExtraFlag(SymbolImplFlagsE::ForStruct);
+        addExtraFlag(SymbolImplFlagsE::ForEnum);
+        ownerEnum_ = sym;
     }
-
-    bool isPendingRegistrationResolved() const { return (extraFlags() & PendingRegistrationBit) != 0; }
-    void setPendingRegistrationResolved() { extraFlags() |= PendingRegistrationBit; }
 
 private:
     union

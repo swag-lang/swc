@@ -150,7 +150,7 @@ Result AstFunctionParamMe::semaPreNode(Sema& sema) const
     if (!symImpl)
         return SemaError::raise(sema, DiagnosticId::sema_err_tok_outside_impl, sema.curNodeRef());
 
-    const TypeRef ownerType = symImpl->ownerKind() == SymbolImplOwnerKind::Struct ? symImpl->symStruct()->typeRef() : symImpl->symEnum()->typeRef();
+    const TypeRef ownerType = symImpl->isForStruct() ? symImpl->symStruct()->typeRef() : symImpl->symEnum()->typeRef();
     auto&         sym       = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokRef());
 
     TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;

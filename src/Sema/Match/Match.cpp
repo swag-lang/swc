@@ -35,7 +35,7 @@ namespace
         }
         else if (const auto* implSym = symMap->safeCast<SymbolImpl>())
         {
-            if (implSym->ownerKind() == SymbolImplOwnerKind::Struct)
+            if (implSym->isForStruct())
                 addSymMap(lookUpCxt, implSym->symStruct(), priority);
             else
                 addSymMap(lookUpCxt, implSym->symEnum(), priority);

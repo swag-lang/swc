@@ -133,7 +133,6 @@ public:
     bool isEnumFlags() const noexcept;
     bool isLambdaClosure() const noexcept;
     bool isLambdaMethod() const noexcept;
-    bool isLambdaThrowable() const noexcept;
     bool isAnyTypeInfo(TaskContext& ctx) const noexcept;
 
     // clang-format off

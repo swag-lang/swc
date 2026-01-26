@@ -867,11 +867,6 @@ bool TypeInfo::isLambdaMethod() const noexcept
     return isFunction() && asFunction.sym->hasExtraFlag(SymbolFunctionFlagsE::Method);
 }
 
-bool TypeInfo::isLambdaThrowable() const noexcept
-{
-    return isFunction() && asFunction.sym->hasExtraFlag(SymbolFunctionFlagsE::Throwable);
-}
-
 bool TypeInfo::isAnyTypeInfo(TaskContext& ctx) const noexcept
 {
     if (isTypeInfo())

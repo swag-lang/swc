@@ -26,6 +26,14 @@ namespace
             return Result::Continue;
         }
 
+        if (nodeLeftView.type->isTypeInfo() && nodeRightView.type->isTypeInfo())
+        {
+            const auto& leftCst  = sema.cstMgr().get(nodeLeftView.cstRef);
+            const auto& rightCst = sema.cstMgr().get(nodeRightView.cstRef);
+            result               = sema.cstMgr().cstBool(leftCst.getStruct() == rightCst.getStruct());
+            return Result::Continue;
+        }
+
         if (nodeLeftView.cst->isNull() || nodeRightView.cst->isNull())
         {
             result = sema.cstMgr().cstBool(nodeLeftView.cst->isNull() && nodeRightView.cst->isNull());
@@ -214,6 +222,12 @@ namespace
             return Result::Continue;
         if (nodeLeftView.type->isAnyPointer() && nodeRightView.type->isAnyPointer())
             return Result::Continue;
+        if (nodeLeftView.type->isConstPointerToAnyTypeInfo(sema.ctx()) && nodeRightView.type->isTypeInfo())
+            return Result::Continue;
+        if (nodeLeftView.type->isTypeInfo() && nodeRightView.type->isConstPointerToAnyTypeInfo(sema.ctx()))
+            return Result::Continue;
+        if (nodeLeftView.type->isTypeInfo() && nodeRightView.type->isTypeInfo())
+            return Result::Continue;
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.srcViewRef(), node.tokRef());
         diag.addArgument(Diagnostic::ARG_LEFT, nodeLeftView.typeRef);
@@ -242,22 +256,35 @@ namespace
         {
             if (!self.type || !other.type)
                 return;
-            if (!self.type->isEnum())
-                return;
-            if (other.type->isEnum())
-                return;
-            Cast::convertEnumToUnderlying(sema, self);
+            if (self.type->isEnum() && !other.type->isEnum())
+                Cast::convertEnumToUnderlying(sema, self);
         }
 
         void nullForEquality(Sema& sema, const SemaNodeView& self, const SemaNodeView& other)
         {
             if (!self.type || !other.type)
                 return;
-            if (!self.type->isNull())
-                return;
-            if (!other.type->isPointerLike())
-                return;
-            Cast::createImplicitCast(sema, other.typeRef, self.nodeRef);
+            if (self.type->isNull() && other.type->isPointerLike())
+                Cast::createImplicitCast(sema, other.typeRef, self.nodeRef);
+        }
+
+        Result typeInfoForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
+        {
+            if (!self.type || !other.type)
+                return Result::Continue;
+            if (!self.type->isTypeInfo() && !self.type->isTypeValue())
+                return Result::Continue;
+            if (!other.type->isConstPointerToAnyTypeInfo(sema.ctx()))
+                return Result::Continue;
+
+            if (self.type->isTypeValue())
+            {
+                RESULT_VERIFY(Cast::cast(sema, self, sema.typeMgr().typeTypeInfo(), CastKind::Implicit));
+                return Result::Continue;
+            }
+
+            Cast::cast(sema, self, other.typeRef, CastKind::Implicit);
+            return Result::Continue;
         }
     }
 
@@ -269,6 +296,8 @@ namespace
             enumForEquality(sema, nodeRightView, nodeLeftView);
             nullForEquality(sema, nodeLeftView, nodeRightView);
             nullForEquality(sema, nodeRightView, nodeLeftView);
+            RESULT_VERIFY(typeInfoForEquality(sema, nodeLeftView, nodeRightView));
+            RESULT_VERIFY(typeInfoForEquality(sema, nodeRightView, nodeLeftView));
         }
 
         return Result::Continue;

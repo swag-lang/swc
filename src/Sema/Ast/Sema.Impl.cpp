@@ -19,6 +19,11 @@ Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
         SymbolImpl*         sym   = Symbol::make<SymbolImpl>(sema.ctx(), this, tokRef(), idRef, SymbolFlagsE::Zero);
         sema.setSymbol(sema.curNodeRef(), sym);
 
+        // An `impl` block will be registered to its target (struct/enum/interface) only in the
+        // second pass, once name lookup has run. Track pending registrations so completion of
+        // structs can't happen before all impls are attached.
+        sema.compiler().incPendingImplRegistrations();
+
         sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::TopLevel | SemaScopeFlagsE::Impl);
         sema.curScope().setSymMap(sym);
     }
@@ -66,15 +71,23 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
         const SemaNodeView identView(sema, nodeForRef);
         if (!identView.sym)
             return SemaError::raiseInternal(sema, *identView.node);
-
         if (!identView.sym->isStruct())
             return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_struct, nodeForRef);
+        
         RESULT_VERIFY(identView.sym->cast<SymbolStruct>().addInterface(sema, symImpl));
     }
 
     // Before the body
     if ((childRef == nodeIdentRef && nodeForRef.isInvalid()) || childRef == nodeForRef)
     {
+        // The target has been resolved and the impl has been attached at this point.
+        // Only resolve pending registrations when there is no error.
+        if (!symImpl.isPendingRegistrationResolved())
+        {
+            symImpl.setPendingRegistrationResolved();
+            sema.compiler().decPendingImplRegistrations();
+        }
+
         auto frame = sema.frame();
         frame.setImpl(&symImpl);
         sema.pushFrameAutoPopOnPostNode(frame);

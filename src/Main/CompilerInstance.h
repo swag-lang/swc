@@ -42,10 +42,29 @@ public:
     SymbolModule*       symModule() { return symModule_; }
     const SymbolModule* symModule() const { return symModule_; }
 
-    void                   setupSema(TaskContext& ctx);
-    void                   notifyAlive() { changed_ = true; }
-    bool                   changed() const { return changed_; }
-    void                   clearChanged() { changed_ = false; }
+    void setupSema(TaskContext& ctx);
+    void notifyAlive() { changed_ = true; }
+    bool changed() const { return changed_; }
+    void clearChanged() { changed_ = false; }
+
+    uint32_t pendingImplRegistrations() const
+    {
+        return pendingImplRegistrations_.load(std::memory_order_relaxed);
+    }
+
+    void incPendingImplRegistrations()
+    {
+        pendingImplRegistrations_.fetch_add(1, std::memory_order_relaxed);
+        notifyAlive();
+    }
+
+    void decPendingImplRegistrations()
+    {
+        SWC_ASSERT(pendingImplRegistrations_.load(std::memory_order_relaxed) > 0);
+        pendingImplRegistrations_.fetch_sub(1, std::memory_order_relaxed);
+        notifyAlive();
+    }
+
     std::atomic<uint32_t>& atomicId() const { return const_cast<CompilerInstance*>(this)->atomicId_; }
     bool                   setMainFunc(AstCompilerFunc* node);
     AstCompilerFunc*       mainFunc() const { return mainFunc_; }
@@ -107,8 +126,9 @@ private:
     };
 
     std::vector<PerThreadData> perThreadData_;
-    std::atomic<uint32_t>      atomicId_ = 0;
-    AstCompilerFunc*           mainFunc_ = nullptr;
+    std::atomic<uint32_t>      atomicId_                 = 0;
+    std::atomic<uint32_t>      pendingImplRegistrations_ = 0;
+    AstCompilerFunc*           mainFunc_                 = nullptr;
 
     SWC_RACE_CONDITION_INSTANCE(rcFiles_);
 

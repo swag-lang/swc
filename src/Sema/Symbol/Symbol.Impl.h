@@ -22,7 +22,10 @@ public:
     {
     }
 
-    SymbolImplOwnerKind ownerKind() const { return static_cast<SymbolImplOwnerKind>(extraFlags()); }
+    static constexpr uint8_t OwnerKindMask             = 0x01;
+    static constexpr uint8_t PendingRegistrationBit    = 0x80;
+
+    SymbolImplOwnerKind ownerKind() const { return static_cast<SymbolImplOwnerKind>(extraFlags() & OwnerKindMask); }
     bool                isForStruct() const { return ownerKind() == SymbolImplOwnerKind::Struct; }
     bool                isForEnum() const { return ownerKind() == SymbolImplOwnerKind::Enum; }
 
@@ -34,7 +37,7 @@ public:
 
     void setSymStruct(SymbolStruct* sym)
     {
-        extraFlags() = static_cast<uint8_t>(SymbolImplOwnerKind::Struct);
+        extraFlags() = (extraFlags() & ~OwnerKindMask) | static_cast<uint8_t>(SymbolImplOwnerKind::Struct);
         ownerStruct_ = sym;
     }
 
@@ -46,9 +49,12 @@ public:
 
     void setSymEnum(SymbolEnum* sym)
     {
-        extraFlags() = static_cast<uint8_t>(SymbolImplOwnerKind::Enum);
+        extraFlags() = (extraFlags() & ~OwnerKindMask) | static_cast<uint8_t>(SymbolImplOwnerKind::Enum);
         ownerEnum_   = sym;
     }
+
+    bool isPendingRegistrationResolved() const { return (extraFlags() & PendingRegistrationBit) != 0; }
+    void setPendingRegistrationResolved() { extraFlags() |= PendingRegistrationBit; }
 
 private:
     union

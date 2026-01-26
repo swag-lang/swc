@@ -238,6 +238,16 @@ Result Sema::waitCompilerDefined(IdentifierRef idRef, SourceViewRef srcViewRef, 
     return Result::Pause;
 }
 
+Result Sema::waitImplRegistrations(SourceViewRef srcViewRef, TokenRef tokRef)
+{
+    TaskState& wait = ctx().state();
+    wait.kind       = TaskStateKind::SemaWaitImplRegistrations;
+    wait.nodeRef    = curNodeRef();
+    wait.srcViewRef = srcViewRef;
+    wait.tokRef     = tokRef;
+    return Result::Pause;
+}
+
 Result Sema::waitDeclared(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef)
 {
     TaskState& wait   = ctx().state();

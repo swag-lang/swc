@@ -97,6 +97,7 @@ public:
 
     Result      waitIdentifier(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef);
     Result      waitCompilerDefined(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef);
+    Result      waitImplRegistrations(SourceViewRef srcViewRef, TokenRef tokRef);
     Result      waitCompleted(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef);
     Result      waitDeclared(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef);
     Result      waitTyped(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef);

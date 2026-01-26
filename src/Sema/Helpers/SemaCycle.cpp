@@ -143,6 +143,16 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                 break;
             }
 
+            case TaskStateKind::SemaWaitImplRegistrations:
+            {
+                // This is a global barrier wait (no symbol dependency). If it reaches cycle detection,
+                // something prevented impl registrations from completing.
+                auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_internal, state.srcViewRef, state.tokRef);
+                diag.addArgument(Diagnostic::ARG_SYM, "waiting for impl registrations");
+                diag.report(ctx);
+                break;
+            }
+
             case TaskStateKind::SemaWaitSymDeclared:
             {
                 SWC_ASSERT(state.symbol);

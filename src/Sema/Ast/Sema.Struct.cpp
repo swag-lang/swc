@@ -72,6 +72,11 @@ Result AstStructDecl::semaPostNode(Sema& sema)
 {
     SymbolStruct& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolStruct>();
 
+    // Ensure all `impl` blocks (including interface implementations) have been registered
+    // before a struct can be marked as completed.
+    if (sema.compiler().pendingImplRegistrations() != 0)
+        return sema.waitImplRegistrations(sym.srcViewRef(), sym.tokRef());
+
     // Runtime struct
     if (sym.inSwagNamespace(sema.ctx()))
         sema.typeMgr().registerRuntimeType(sym.idRef(), sym.typeRef());
@@ -119,6 +124,12 @@ Result AstAnonymousStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& ch
 Result AstAnonymousStructDecl::semaPostNode(Sema& sema)
 {
     SymbolStruct& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolStruct>();
+
+    // Ensure all `impl` blocks (including interface implementations) have been registered
+    // before a struct can be marked as completed.
+    if (sema.compiler().pendingImplRegistrations() != 0)
+        return sema.waitImplRegistrations(sym.srcViewRef(), sym.tokRef());
+
     RESULT_VERIFY(sym.canBeCompleted(sema));
     sym.computeLayout(sema);
     sym.setCompleted(sema.ctx());

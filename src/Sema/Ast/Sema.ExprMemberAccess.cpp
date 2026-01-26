@@ -325,12 +325,21 @@ namespace
         return Result::SkipChildren;
     }
 
-    Result semaInterface(Sema& sema, const AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, TokenRef tokNameRef)
+    Result semaInterface(Sema& sema, const AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
     {
         const SymbolInterface& symInterface = nodeLeftView.type->symInterface();
         if (!symInterface.isCompleted())
             return sema.waitCompleted(&symInterface, node->srcViewRef(), tokNameRef);
-        // TODO
+
+        MatchContext lookUpCxt;
+        lookUpCxt.srcViewRef = node->srcViewRef();
+        lookUpCxt.tokRef     = tokNameRef;
+        lookUpCxt.symMapHint = &symInterface;
+
+        RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
+        RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
+        bindMemberSymbols(sema, node->nodeRightRef, allowOverloadSet, lookUpCxt.symbols());
+
         return Result::SkipChildren;
     }
 
@@ -392,7 +401,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
 
     // Interface
     if (nodeLeftView.type->isInterface())
-        return semaInterface(sema, this, nodeLeftView, tokNameRef);
+        return semaInterface(sema, this, nodeLeftView, idRef, tokNameRef, allowOverloadSet);
 
     // Dereference pointer
     const TypeInfo* typeInfo = nodeLeftView.type;
@@ -409,10 +418,10 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
             return sema.waitIdentifier(sema.idMgr().nameTypeInfo(), srcViewRef(), tokNameRef);
         typeInfo = &sema.typeMgr().get(typeInfoRef);
     }
-    else if (typeInfo->isAnyPointer())
+    else if (typeInfo->isAnyPointer() || typeInfo->isReference())
+    {
         typeInfo = &sema.typeMgr().get(typeInfo->typeRef());
-    else if (typeInfo->isReference())
-        typeInfo = &sema.typeMgr().get(typeInfo->typeRef());
+    }
 
     // Struct
     if (typeInfo->isStruct())

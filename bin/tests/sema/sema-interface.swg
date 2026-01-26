@@ -29,3 +29,9 @@ struct S0 {}
 // swc-expected-error@(+1,+2) {{sema_err_interface_already_implemented}}
 impl I0 for S0 { mtd impl toto() {} }
 impl I0 for S0 { mtd impl toto() {} }
+
+#test
+{
+    var a: I0
+    a.toto()
+}

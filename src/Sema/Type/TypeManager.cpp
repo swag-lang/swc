@@ -338,6 +338,18 @@ void TypeManager::buildPromoteTable()
     }
 }
 
+bool TypeManager::isTypeInfoRuntimeStruct(IdentifierRef idRef) const
+{
+    const auto it = mapRtKind_.find(idRef);
+    if (it == mapRtKind_.end())
+        return false;
+
+    const auto     kind  = it->second;
+    const uint32_t uKind = static_cast<uint32_t>(kind);
+    return uKind >= static_cast<uint32_t>(RuntimeTypeKind::TypeInfo) &&
+           uKind <= static_cast<uint32_t>(RuntimeTypeKind::TypeInfoCodeBlock);
+}
+
 void TypeManager::registerRuntimeType(IdentifierRef idRef, TypeRef typeRef)
 {
     std::unique_lock lk(mutexRt_);

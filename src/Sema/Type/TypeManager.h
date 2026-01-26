@@ -82,6 +82,7 @@ public:
     TypeRef         promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const;
     static uint32_t chooseConcreteScalarWidth(uint32_t minRequiredBits, bool& overflow);
 
+    bool    isTypeInfoRuntimeStruct(IdentifierRef idRef) const;
     void    registerRuntimeType(IdentifierRef idRef, TypeRef typeRef);
     TypeRef runtimeType(RuntimeTypeKind kind) const;
 

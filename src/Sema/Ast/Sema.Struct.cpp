@@ -14,28 +14,8 @@ Result AstStructDecl::semaPreDecl(Sema& sema) const
     auto& sym = SemaHelpers::registerSymbol<SymbolStruct>(sema, *this, tokNameRef);
 
     // Runtime struct
-    if (sym.inSwagNamespace(sema.ctx()))
-    {
-        const auto&         idMgr = sema.idMgr();
-        const IdentifierRef idRef = sym.idRef();
-
-        if (idRef == idMgr.nameTypeInfo() ||
-            idRef == idMgr.nameTypeInfoNative() ||
-            idRef == idMgr.nameTypeInfoPointer() ||
-            idRef == idMgr.nameTypeInfoStruct() ||
-            idRef == idMgr.nameTypeInfoFunc() ||
-            idRef == idMgr.nameTypeInfoEnum() ||
-            idRef == idMgr.nameTypeInfoArray() ||
-            idRef == idMgr.nameTypeInfoSlice() ||
-            idRef == idMgr.nameTypeInfoAlias() ||
-            idRef == idMgr.nameTypeInfoVariadic() ||
-            idRef == idMgr.nameTypeInfoGeneric() ||
-            idRef == idMgr.nameTypeInfoNamespace() ||
-            idRef == idMgr.nameTypeInfoCodeBlock())
-        {
-            sym.addExtraFlag(SymbolStructFlagsE::TypeInfo);
-        }
-    }
+    if (sym.inSwagNamespace(sema.ctx()) && sema.typeMgr().isTypeInfoRuntimeStruct(sym.idRef()))
+        sym.addExtraFlag(SymbolStructFlagsE::TypeInfo);
 
     return Result::SkipChildren;
 }
@@ -59,7 +39,7 @@ Result AstStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
         const TypeInfo structType    = TypeInfo::makeStruct(&sym);
         const TypeRef  structTypeRef = ctx.typeMgr().addType(structType);
         sym.setTypeRef(structTypeRef);
-        sym.setTyped(sema.ctx());
+        sym.setTyped(ctx);
 
         sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::Type);
         sema.curScope().setSymMap(&sym);
@@ -112,7 +92,7 @@ Result AstAnonymousStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& ch
         const TypeInfo structType    = TypeInfo::makeStruct(&sym);
         const TypeRef  structTypeRef = ctx.typeMgr().addType(structType);
         sym.setTypeRef(structTypeRef);
-        sym.setTyped(sema.ctx());
+        sym.setTyped(ctx);
 
         sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::Type);
         sema.curScope().setSymMap(&sym);

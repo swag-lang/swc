@@ -45,15 +45,10 @@ impl T
 impl I1 for T
 {
     mtd impl toto() {}
-    mtd titi()
-    {
-        //me.toto()
-    }
+    func titi() {}
 }
 
 #test
 {
-    var u: U
-    var a: T = u.t
-    //T.I1.toto(a)
+    T.I1.titi()
 }

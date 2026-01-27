@@ -68,13 +68,18 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
     // After the 'for' name, if defined
     if (childRef == nodeForRef)
     {
-        const SemaNodeView identView(sema, nodeForRef);
-        if (!identView.sym)
-            return SemaError::raiseInternal(sema, *identView.node);
-        if (!identView.sym->isStruct())
+        const SemaNodeView identView(sema, nodeIdentRef);
+        const SemaNodeView forView(sema, nodeForRef);
+        if (!forView.sym)
+            return SemaError::raiseInternal(sema, *forView.node);
+        if (!forView.sym->isStruct())
             return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_struct, nodeForRef);
-        
-        RESULT_VERIFY(identView.sym->cast<SymbolStruct>().addInterface(sema, symImpl));
+
+        RESULT_VERIFY(forView.sym->cast<SymbolStruct>().addInterface(sema, symImpl));
+
+        symImpl.setTypeRef(identView.typeRef);
+        symImpl.setDeclared(sema.ctx());
+        symImpl.setTyped(sema.ctx());
     }
 
     // Before the body

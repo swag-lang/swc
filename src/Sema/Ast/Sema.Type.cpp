@@ -227,9 +227,17 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
 
 Result AstNamedType::semaPostNode(Sema& sema)
 {
-    const SemaNodeView nodeView(sema, nodeIdentRef);
-
+    SemaNodeView nodeView(sema, nodeIdentRef);
     SWC_ASSERT(nodeView.sym);
+
+    // If we matched against the interface implementation block in a struct,
+    // then we replace it with the corresponding interface type 
+    if (nodeView.sym->isImpl() && nodeView.type->isInterface())
+    {
+        sema.setSymbol(nodeIdentRef, &nodeView.type->symInterface());
+        nodeView.compute(sema, nodeIdentRef);
+    }
+
     if (!nodeView.sym->isType())
     {
         AstNodeRef nodeRef  = nodeIdentRef;

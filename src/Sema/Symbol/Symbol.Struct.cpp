@@ -46,6 +46,11 @@ Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
         }
     }
 
+    // Expose the interface implementation scope under the struct symbol map so we can resolve
+    // `StructName.InterfaceName.Symbol`.
+    if (const auto* inserted = addSingleSymbol(sema.ctx(), &symImpl); inserted != &symImpl)
+        return SemaError::raiseAlreadyDefined(sema, &symImpl, inserted);
+
     symImpl.setSymStruct(this);
     interfaces_.push_back(&symImpl);
     sema.ctx().compiler().notifyAlive();

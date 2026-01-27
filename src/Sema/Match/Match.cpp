@@ -122,6 +122,20 @@ namespace
             MatchContext::Priority priority;
             priority.scopeDepth = 0;
             priority.visibility = MatchContext::VisibilityTier::LocalScope;
+
+            // If the caller hints a struct scope, but we're currently inside an `impl Interface for Struct`
+            // block for that same struct, member lookup must also consider the current impl scope.
+            // This keeps the rule centralized (all lookups benefit), instead of having ad-hoc fixes
+            // in member-access/auto-member-access.
+            if (const auto* structSym = lookUpCxt.symMapHint->safeCast<SymbolStruct>())
+            {
+                if (const SymbolImpl* symImpl = sema.frame().impl())
+                {
+                    if (symImpl->isForStruct() && symImpl->symStruct() == structSym && symImpl->idRef() != structSym->idRef())
+                        addSymMap(lookUpCxt, symImpl->asSymMap(), priority);
+                }
+            }
+            
             addSymMap(lookUpCxt, lookUpCxt.symMapHint, priority);
 
             // Struct member lookup must also see members of `using` fields.
@@ -130,6 +144,7 @@ namespace
                 SmallVector<const SymbolStruct*> visited;
                 addUsingMemberSymMaps(sema, lookUpCxt, *structSym, searchOrder, visited);
             }
+            
             return;
         }
 

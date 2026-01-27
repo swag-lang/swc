@@ -8,7 +8,6 @@
 #include "Sema/Match/Match.h"
 #include "Sema/Match/MatchContext.h"
 #include "Sema/Symbol/IdentifierManager.h"
-#include "Sema/Symbol/Symbol.Impl.h"
 #include "Sema/Symbol/Symbol.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/TypeManager.h"
@@ -148,19 +147,7 @@ namespace
             lookUpCxt.srcViewRef    = srcViewRef;
             lookUpCxt.tokRef        = tokNameRef;
             lookUpCxt.noWaitOnEmpty = true;
-
-            // The same rationale as in `semaStruct`: if we're inside an `impl Interface for Struct`
-            // scope and a candidate points to that struct, member lookup must also see symbols
-            // declared in the interface-impl block.
-            lookUpCxt.symMapHint = candidate.symMap;
-            if (const auto* structSym = candidate.symMap->safeCast<SymbolStruct>())
-            {
-                if (const SymbolImpl* symImpl = sema.frame().impl())
-                {
-                    if (symImpl->isForStruct() && symImpl->symStruct() == structSym && symImpl->idRef() != structSym->idRef())
-                        lookUpCxt.symMapHint = symImpl->asSymMap();
-                }
-            }
+            lookUpCxt.symMapHint    = candidate.symMap;
 
             RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
             if (!lookUpCxt.empty())
@@ -365,19 +352,7 @@ namespace
         MatchContext lookUpCxt;
         lookUpCxt.srcViewRef = node->srcViewRef();
         lookUpCxt.tokRef     = tokNameRef;
-
-        // When resolving members on a struct while we are *inside* an `impl Interface for Struct`
-        // block, we must also consider the current interface-impl scope, otherwise we won't find
-        // `mtd impl ...` symbols declared there (ex: `me.toto()` inside the impl).
-        //
-        // Note: we only use the impl scope as the hint when it targets the same struct and
-        // doesn't look like a regular `impl Struct` (where `Match` already sees `struct.impls()`).
         lookUpCxt.symMapHint = &symStruct;
-        if (const SymbolImpl* symImpl = sema.frame().impl())
-        {
-            if (symImpl->isForStruct() && symImpl->symStruct() == &symStruct && symImpl->idRef() != symStruct.idRef())
-                lookUpCxt.symMapHint = symImpl->asSymMap();
-        }
 
         RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
 

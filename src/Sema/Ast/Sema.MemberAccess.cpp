@@ -9,6 +9,7 @@
 #include "Sema/Match/MatchContext.h"
 #include "Sema/Symbol/IdentifierManager.h"
 #include "Sema/Symbol/Symbol.h"
+#include "Sema/Symbol/Symbol.Impl.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/TypeManager.h"
 
@@ -352,7 +353,24 @@ namespace
         MatchContext lookUpCxt;
         lookUpCxt.srcViewRef = node->srcViewRef();
         lookUpCxt.tokRef     = tokNameRef;
-        lookUpCxt.symMapHint = &symStruct;
+        
+        // When resolving members on a struct while we are *inside* an `impl Interface for Struct`
+        // block, we must also consider the current interface-impl scope, otherwise we won't find
+        // `mtd impl ...` symbols declared there (ex: `me.toto()` inside the impl).
+        //
+        // Note: we only use the impl scope as the hint when it targets the same struct and
+        // doesn't look like a regular `impl Struct` (where `Match` already sees `struct.impls()`).
+        if (const SymbolImpl* symImpl = sema.frame().impl())
+        {
+            if (symImpl->isForStruct() && symImpl->symStruct() == &symStruct && symImpl->idRef() != symStruct.idRef())
+                lookUpCxt.symMapHint = symImpl->asSymMap();
+            else
+                lookUpCxt.symMapHint = &symStruct;
+        }
+        else
+        {
+            lookUpCxt.symMapHint = &symStruct;
+        }
 
         RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
 

@@ -7,22 +7,14 @@ AstNode& Ast::node(AstNodeRef nodeRef)
 {
     SWC_ASSERT(nodeRef.isValid());
     const uint32_t g = nodeRef.get();
-    const uint32_t s = refShard(g);
-    const uint32_t l = refLocal(g);
-
-    std::shared_lock lk(shards_[s].mutex);
-    return *shards_[s].store.ptr<AstNode>(l);
+    return *nodePtr(g);
 }
 
 const AstNode& Ast::node(AstNodeRef nodeRef) const
 {
     SWC_ASSERT(nodeRef.isValid());
     const uint32_t g = nodeRef.get();
-    const uint32_t s = refShard(g);
-    const uint32_t l = refLocal(g);
-
-    std::shared_lock lk(shards_[s].mutex);
-    return *shards_[s].store.ptr<AstNode>(l);
+    return *nodePtr(g);
 }
 
 void Ast::nodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const

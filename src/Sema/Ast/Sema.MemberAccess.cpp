@@ -334,7 +334,11 @@ namespace
         MatchContext lookUpCxt;
         lookUpCxt.srcViewRef = node->srcViewRef();
         lookUpCxt.tokRef     = tokNameRef;
-        lookUpCxt.symMapHint = nodeLeftView.sym->asSymMap();
+
+        if (nodeLeftView.sym->isImpl())
+            lookUpCxt.symMapHint = nodeLeftView.sym->asSymMap();
+        else
+            lookUpCxt.symMapHint = &symInterface;
 
         RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
         RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));

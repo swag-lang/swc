@@ -78,9 +78,6 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     }
     else if (childRef == nodeBodyRef)
     {
-        if (!hasFlag(AstFunctionFlagsE::Short) && sema.file() && sema.file()->isRuntime())
-            return Result::SkipChildren; // TODO
-
         SymbolFunction& sym   = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
         auto            frame = sema.frame();
         if (sym.isMethod())

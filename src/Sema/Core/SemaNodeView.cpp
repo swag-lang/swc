@@ -45,6 +45,8 @@ void SemaNodeView::setCstRef(Sema& sema, ConstantRef ref)
     cst     = &sema.cstMgr().get(cstRef);
     typeRef = cst->typeRef();
     type    = &sema.typeMgr().get(typeRef);
+    sym     = nullptr;
+    symList = {};
 }
 
 void SemaNodeView::getSymbols(SmallVector<Symbol*>& symbols) const

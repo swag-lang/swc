@@ -7,14 +7,22 @@ AstNode& Ast::node(AstNodeRef nodeRef)
 {
     SWC_ASSERT(nodeRef.isValid());
     const uint32_t g = nodeRef.get();
-    return *shards_[refShard(g)].store.ptr<AstNode>(refLocal(g));
+    const uint32_t s = refShard(g);
+    const uint32_t l = refLocal(g);
+
+    std::shared_lock lk(shards_[s].mutex);
+    return *shards_[s].store.ptr<AstNode>(l);
 }
 
 const AstNode& Ast::node(AstNodeRef nodeRef) const
 {
     SWC_ASSERT(nodeRef.isValid());
     const uint32_t g = nodeRef.get();
-    return *shards_[refShard(g)].store.ptr<AstNode>(refLocal(g));
+    const uint32_t s = refShard(g);
+    const uint32_t l = refLocal(g);
+
+    std::shared_lock lk(shards_[s].mutex);
+    return *shards_[s].store.ptr<AstNode>(l);
 }
 
 void Ast::nodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const
@@ -26,6 +34,7 @@ void Ast::nodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const
     const uint32_t s = refShard(g);
     const uint32_t l = refLocal(g);
 
+    std::shared_lock lk(shards_[s].mutex);
     const Store::SpanView view = shards_[s].store.span<AstNodeRef>(l);
     for (Store::SpanView::chunk_iterator it = view.chunks_begin(); it != view.chunks_end(); ++it)
     {
@@ -51,6 +60,7 @@ void Ast::tokens(SmallVector<TokenRef>& out, SpanRef spanRef) const
     const uint32_t s = refShard(g);
     const uint32_t l = refLocal(g);
 
+    std::shared_lock lk(shards_[s].mutex);
     const Store::SpanView view = shards_[s].store.span<AstNodeRef>(l);
     for (Store::SpanView::chunk_iterator it = view.chunks_begin(); it != view.chunks_end(); ++it)
     {

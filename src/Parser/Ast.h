@@ -47,7 +47,10 @@ public:
         using NodeType = AstTypeOf<ID>::type;
 
         const uint32_t g = nodeRef.get();
-        return shards_[refShard(g)].store.ptr<AstNode>(refLocal(g))->cast<NodeType>();
+        const uint32_t s = refShard(g);
+        const uint32_t l = refLocal(g);
+        std::shared_lock lk(shards_[s].mutex);
+        return shards_[s].store.ptr<AstNode>(l)->cast<NodeType>();
     }
 
     template<typename T>
@@ -71,16 +74,16 @@ public:
 
         const uint32_t            shard = chooseShard();
         std::pair<Ref, NodeType*> local;
+        AstNodeRef                globalRef;
 
         {
             std::unique_lock lock(shards_[shard].mutex);
             local = shards_[shard].store.emplace_uninit<NodeType>();
+
+            const uint32_t localByteRef = local.first;
+            globalRef                  = AstNodeRef{packRef(shard, localByteRef)};
+            ::new (local.second) AstNode(ID, srcView_->ref(), tokRef);
         }
-
-        const uint32_t localByteRef = local.first;
-
-        AstNodeRef globalRef{packRef(shard, localByteRef)};
-        ::new (local.second) AstNode(ID, srcView_->ref(), tokRef);
 
 #if SWC_HAS_STATS
         Stats::get().numAstNodes.fetch_add(1, std::memory_order_relaxed);

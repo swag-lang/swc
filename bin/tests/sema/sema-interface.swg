@@ -46,6 +46,8 @@ impl I1 for T
 {
     mtd impl toto() {}
     func titi() {}
+    mtd tata() { me.toto() }
+    mtd tonton() { .toto() }
 }
 
 #test

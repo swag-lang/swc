@@ -13,6 +13,16 @@ SemaNodeView::SemaNodeView(Sema& sema, AstNodeRef ref)
 
 void SemaNodeView::compute(Sema& sema, AstNodeRef ref)
 {
+    // Reset everything first, as compute() can be called multiple times on the same view.
+    node    = nullptr;
+    cst     = nullptr;
+    type    = nullptr;
+    sym     = nullptr;
+    symList = {};
+    nodeRef = AstNodeRef::invalid();
+    cstRef  = ConstantRef::invalid();
+    typeRef = TypeRef::invalid();
+
     nodeRef = sema.semaInfo().getSubstituteRef(ref);
     if (!nodeRef.isValid())
         return;
@@ -41,12 +51,22 @@ void SemaNodeView::setCstRef(Sema& sema, ConstantRef ref)
 {
     if (cstRef == ref)
         return;
+
     cstRef  = ref;
-    cst     = &sema.cstMgr().get(cstRef);
-    typeRef = cst->typeRef();
-    type    = &sema.typeMgr().get(typeRef);
     sym     = nullptr;
     symList = {};
+
+    if (cstRef.isInvalid())
+    {
+        cst     = nullptr;
+        type    = nullptr;
+        typeRef = TypeRef::invalid();
+        return;
+    }
+
+    cst     = &sema.cstMgr().get(cstRef);
+    typeRef = cst->typeRef();
+    type    = typeRef.isValid() ? &sema.typeMgr().get(typeRef) : nullptr;
 }
 
 void SemaNodeView::getSymbols(SmallVector<Symbol*>& symbols) const

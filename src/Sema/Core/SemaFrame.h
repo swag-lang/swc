@@ -68,6 +68,10 @@ public:
     AstNodeRef currentSwitch() const { return currentSwitch_; }
     void       setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
 
+    // Active switch case statement (used by `fallthrough` semantic analysis).
+    AstNodeRef currentSwitchCase() const { return currentSwitchCase_; }
+    void       setCurrentSwitchCase(AstNodeRef nodeRef) { currentSwitchCase_ = nodeRef; }
+
     // Per-switch semantic payload (used to track case values across all `case` blocks).
     void* switchPayload() const { return switchPayload_; }
     void  setSwitchPayload(void* payload) { switchPayload_ = payload; }
@@ -85,6 +89,7 @@ private:
     SymbolFunction*                 function_   = nullptr;
     Breakable                       breakable_;
     AstNodeRef                      currentSwitch_ = AstNodeRef::invalid();
+    AstNodeRef                      currentSwitchCase_ = AstNodeRef::invalid();
     void*                           switchPayload_ = nullptr;
     SmallVector<TypeRef, 2>         bindingTypes_;
     SmallVector<SymbolVariable*, 2> bindingVars_;

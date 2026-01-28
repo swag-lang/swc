@@ -1125,6 +1125,7 @@ struct AstScopedBreakStmt : AstNamedNodeT<AstNodeId::ScopedBreakStmt>
 // -----------------------------------------------------------------------------
 struct AstFallThroughStmt : AstNodeT<AstNodeId::FallThroughStmt>
 {
+    static Result semaPreNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

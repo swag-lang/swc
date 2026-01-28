@@ -2,6 +2,7 @@
 #include "Sema/Core/Sema.h"
 #include "Parser/AstNodes.h"
 #include "Sema/Cast/Cast.h"
+#include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
 
@@ -13,7 +14,7 @@ namespace
     {
         // Track constant identities (not their string representation).
         // `ConstantRef` is a `StrongRef` (no `std::hash`), so store the underlying id.
-        std::unordered_set<ConstantRef> seen;
+        std::unordered_map<ConstantRef, SourceCodeLocation> seen;
     };
 }
 
@@ -205,9 +206,22 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
             // Duplicate constant value check (value-switch only).
             if (sema.frame().switchPayload())
             {
-                auto* seenSet = static_cast<SwitchCaseConstSet*>(sema.frame().switchPayload());
-                if (!seenSet->seen.insert(exprView.cstRef).second)
-                    return SemaError::raise(sema, DiagnosticId::sema_err_switch_case_duplicate, childRef);
+                auto*                    seenSet = static_cast<SwitchCaseConstSet*>(sema.frame().switchPayload());
+                const SourceCodeLocation curLoc  = sema.node(childRef).locationWithChildren(sema.ctx(), sema.ast());
+                const auto               it      = seenSet->seen.find(exprView.cstRef);
+                if (it == seenSet->seen.end())
+                {
+                    seenSet->seen.emplace(exprView.cstRef, curLoc);
+                }
+                else
+                {
+                    auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_case_duplicate, childRef);
+                    diag.addArgument(Diagnostic::ARG_VALUE, sema.cstMgr().get(exprView.cstRef).toString(sema.ctx()));
+                    diag.addNote(DiagnosticId::sema_note_previous_case_value);
+                    diag.last().addSpan(it->second);
+                    diag.report(sema.ctx());
+                    return Result::Error;
+                }
             }
             return Result::Continue;
         }

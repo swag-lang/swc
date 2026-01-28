@@ -10,6 +10,7 @@ SWC_DIAG_DEF(sema_note_signed_unsigned, Note, "the value is negative, but the ta
 SWC_DIAG_DEF(sema_note_unsigned_signed, Note, "the value exceeds the maximum value of the signed target type")
 SWC_DIAG_DEF(sema_note_cast_explicit, Note, "you could cast the value explicitly")
 SWC_DIAG_DEF(sema_note_other_definition, Note, "the other definition of '{tok}' is here")
+SWC_DIAG_DEF(sema_note_previous_case_value, Note, "previous case value is here")
 SWC_DIAG_DEF(sema_note_other_implementation, Note, "the other implementation is here")
 SWC_DIAG_DEF(sema_note_could_be, Note, "could be")
 SWC_DIAG_DEF(sema_note_cyclic_dependency_link, Note, "waiting ...")

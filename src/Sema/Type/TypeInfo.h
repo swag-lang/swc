@@ -103,9 +103,9 @@ public:
     bool isChar() const noexcept { return kind_ == TypeInfoKind::Char; }
     bool isString() const noexcept { return kind_ == TypeInfoKind::String; }
     bool isInt() const noexcept { return kind_ == TypeInfoKind::Int; }
-    bool isIntUnsized() const noexcept { return kind_ == TypeInfoKind::Int && asInt.bits == 0; }
+    bool isIntUnsized() const noexcept { return kind_ == TypeInfoKind::Int && payloadInt_.bits == 0; }
     bool isFloat() const noexcept { return kind_ == TypeInfoKind::Float; }
-    bool isFloatUnsized() const noexcept { return kind_ == TypeInfoKind::Float && asFloat.bits == 0; }
+    bool isFloatUnsized() const noexcept { return kind_ == TypeInfoKind::Float && payloadFloat_.bits == 0; }
     bool isTypeValue() const noexcept { return kind_ == TypeInfoKind::TypeValue; }
     bool isRune() const noexcept { return kind_ == TypeInfoKind::Rune; }
     bool isAny() const noexcept { return kind_ == TypeInfoKind::Any; }
@@ -127,12 +127,12 @@ public:
     bool isVariadic() const noexcept { return kind_ == TypeInfoKind::Variadic; }
     bool isTypedVariadic() const noexcept { return kind_ == TypeInfoKind::TypedVariadic; }
 
-    bool isIntUnsigned() const noexcept { return isInt() && asInt.sign == Sign::Unsigned; }
-    bool isIntSigned() const noexcept { return isInt() && asInt.sign == Sign::Signed; }
-    bool isIntSignKnown() const noexcept { return isInt() && asInt.sign != Sign::Unknown; }
+    bool isIntUnsigned() const noexcept { return isInt() && payloadInt_.sign == Sign::Unsigned; }
+    bool isIntSigned() const noexcept { return isInt() && payloadInt_.sign == Sign::Signed; }
+    bool isIntSignKnown() const noexcept { return isInt() && payloadInt_.sign != Sign::Unknown; }
     bool isIntUnsizedSigned() const noexcept { return isIntUnsized() && isIntSigned(); }
     bool isIntUnsizedUnsigned() const noexcept { return isIntUnsized() && isIntUnsigned(); }
-    bool isIntUnsizedUnknownSign() const noexcept { return isIntUnsized() && asInt.sign == Sign::Unknown; }
+    bool isIntUnsizedUnknownSign() const noexcept { return isIntUnsized() && payloadInt_.sign == Sign::Unknown; }
     bool isType() const noexcept { return isTypeValue() || isEnum() || isStruct() || isInterface() || isTypeInfo(); }
     bool isCharRune() const noexcept { return isChar() || isRune(); }
     bool isIntLike() const noexcept { return isInt() || isCharRune(); }
@@ -151,19 +151,19 @@ public:
     bool isAnyTypeInfo(TaskContext& ctx) const noexcept;
 
     // clang-format off
-    Sign                 payloadIntSign() const noexcept { SWC_ASSERT(isInt()); return asInt.sign; }
-    uint32_t             payloadIntBits() const noexcept { SWC_ASSERT(isInt()); return asInt.bits; }
-    uint32_t             payloadIntLikeBits() const noexcept { SWC_ASSERT(isIntLike()); return isCharRune() ? 32 : asInt.bits; }
+    Sign                 payloadIntSign() const noexcept { SWC_ASSERT(isInt()); return payloadInt_.sign; }
+    uint32_t             payloadIntBits() const noexcept { SWC_ASSERT(isInt()); return payloadInt_.bits; }
+    uint32_t             payloadIntLikeBits() const noexcept { SWC_ASSERT(isIntLike()); return isCharRune() ? 32 : payloadInt_.bits; }
     uint32_t             payloadScalarNumericBits() const noexcept { SWC_ASSERT(isScalarNumeric()); return isIntLike() ? payloadIntLikeBits() : payloadFloatBits(); }
-    uint32_t             payloadFloatBits() const noexcept { SWC_ASSERT(isFloat()); return asFloat.bits; }
-    SymbolEnum&          payloadSymEnum() const noexcept { SWC_ASSERT(isEnum()); return *asEnum.sym; }
-    SymbolStruct&        payloadSymStruct() const noexcept { SWC_ASSERT(isStruct()); return *asStruct.sym; }
-    SymbolInterface&     payloadSymInterface() const noexcept { SWC_ASSERT(isInterface()); return *asInterface.sym; }
-    SymbolAlias&         payloadSymAlias() const noexcept { SWC_ASSERT(isAlias()); return *asAlias.sym; }
-    SymbolFunction&      payloadSymFunction() const noexcept { SWC_ASSERT(isFunction()); return *asFunction.sym; }
-    TypeRef              payloadTypeRef() const noexcept { SWC_ASSERT(isTypeValue() || isAnyPointer() || isReference() || isSlice() || isAlias() || isTypedVariadic()); return asTypeRef.typeRef; }
-    auto&                payloadArrayDims() const noexcept { SWC_ASSERT(isArray()); return asArray.dims; }
-    TypeRef              payloadArrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return asArray.typeRef; }
+    uint32_t             payloadFloatBits() const noexcept { SWC_ASSERT(isFloat()); return payloadFloat_.bits; }
+    SymbolEnum&          payloadSymEnum() const noexcept { SWC_ASSERT(isEnum()); return *payloadEnum_.sym; }
+    SymbolStruct&        payloadSymStruct() const noexcept { SWC_ASSERT(isStruct()); return *payloadStruct_.sym; }
+    SymbolInterface&     payloadSymInterface() const noexcept { SWC_ASSERT(isInterface()); return *payloadInterface_.sym; }
+    SymbolAlias&         payloadSymAlias() const noexcept { SWC_ASSERT(isAlias()); return *payloadAlias_.sym; }
+    SymbolFunction&      payloadSymFunction() const noexcept { SWC_ASSERT(isFunction()); return *payloadFunction_.sym; }
+    TypeRef              payloadTypeRef() const noexcept { SWC_ASSERT(isTypeValue() || isAnyPointer() || isReference() || isSlice() || isAlias() || isTypedVariadic()); return payloadTypeRef_.typeRef; }
+    auto&                payloadArrayDims() const noexcept { SWC_ASSERT(isArray()); return payloadArray_.dims; }
+    TypeRef              payloadArrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return payloadArray_.typeRef; }
     // clang-format on
 
     TypeRef unwrap(const TaskContext& ctx, TypeRef defaultTypeRef = TypeRef::invalid(), TypeExpand expandFlags = TypeExpandE::All) const noexcept;
@@ -213,48 +213,48 @@ private:
         {
             uint32_t bits;
             Sign     sign;
-        } asInt;
+        } payloadInt_;
 
         struct
         {
             uint32_t bits;
-        } asFloat;
+        } payloadFloat_;
 
         struct
         {
             TypeRef typeRef;
-        } asTypeRef;
+        } payloadTypeRef_;
 
         struct
         {
             SymbolEnum* sym;
-        } asEnum;
+        } payloadEnum_;
 
         struct
         {
             SymbolStruct* sym;
-        } asStruct;
+        } payloadStruct_;
 
         struct
         {
             SymbolInterface* sym;
-        } asInterface;
+        } payloadInterface_;
 
         struct
         {
             SymbolAlias* sym;
-        } asAlias;
+        } payloadAlias_;
 
         struct
         {
             std::vector<uint64_t> dims;
             TypeRef               typeRef;
-        } asArray;
+        } payloadArray_;
 
         struct
         {
             SymbolFunction* sym;
-        } asFunction;
+        } payloadFunction_;
     };
 };
 

@@ -12,7 +12,7 @@ TypeInfo::~TypeInfo()
     switch (kind_)
     {
         case TypeInfoKind::Array:
-            std::destroy_at(&asArray.dims);
+            std::destroy_at(&payloadArray_.dims);
             break;
         default:
             break;
@@ -39,11 +39,11 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
             break;
 
         case TypeInfoKind::Int:
-            asInt = other.asInt;
+            payloadInt_ = other.payloadInt_;
             break;
 
         case TypeInfoKind::Float:
-            asFloat = other.asFloat;
+            payloadFloat_ = other.payloadFloat_;
             break;
 
         case TypeInfoKind::ValuePointer:
@@ -52,28 +52,28 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
         case TypeInfoKind::TypedVariadic:
-            asTypeRef = other.asTypeRef;
+            payloadTypeRef_ = other.payloadTypeRef_;
             break;
 
         case TypeInfoKind::Enum:
-            asEnum = other.asEnum;
+            payloadEnum_ = other.payloadEnum_;
             break;
         case TypeInfoKind::Struct:
-            asStruct = other.asStruct;
+            payloadStruct_ = other.payloadStruct_;
             break;
         case TypeInfoKind::Interface:
-            asInterface = other.asInterface;
+            payloadInterface_ = other.payloadInterface_;
             break;
         case TypeInfoKind::Alias:
-            asAlias = other.asAlias;
+            payloadAlias_ = other.payloadAlias_;
             break;
 
         case TypeInfoKind::Array:
-            std::construct_at(&asArray.dims, other.asArray.dims);
-            asArray.typeRef = other.asArray.typeRef;
+            std::construct_at(&payloadArray_.dims, other.payloadArray_.dims);
+            payloadArray_.typeRef = other.payloadArray_.typeRef;
             break;
         case TypeInfoKind::Function:
-            asFunction = other.asFunction;
+            payloadFunction_ = other.payloadFunction_;
             break;
 
         default:
@@ -101,11 +101,11 @@ TypeInfo::TypeInfo(TypeInfo&& other) noexcept :
             break;
 
         case TypeInfoKind::Int:
-            asInt = other.asInt;
+            payloadInt_ = other.payloadInt_;
             break;
 
         case TypeInfoKind::Float:
-            asFloat = other.asFloat;
+            payloadFloat_ = other.payloadFloat_;
             break;
 
         case TypeInfoKind::ValuePointer:
@@ -114,28 +114,28 @@ TypeInfo::TypeInfo(TypeInfo&& other) noexcept :
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
         case TypeInfoKind::TypedVariadic:
-            asTypeRef = other.asTypeRef;
+            payloadTypeRef_ = other.payloadTypeRef_;
             break;
 
         case TypeInfoKind::Enum:
-            asEnum = other.asEnum;
+            payloadEnum_ = other.payloadEnum_;
             break;
         case TypeInfoKind::Struct:
-            asStruct = other.asStruct;
+            payloadStruct_ = other.payloadStruct_;
             break;
         case TypeInfoKind::Interface:
-            asInterface = other.asInterface;
+            payloadInterface_ = other.payloadInterface_;
             break;
         case TypeInfoKind::Alias:
-            asAlias = other.asAlias;
+            payloadAlias_ = other.payloadAlias_;
             break;
 
         case TypeInfoKind::Array:
-            std::construct_at(&asArray.dims, std::move(other.asArray.dims));
-            asArray.typeRef = other.asArray.typeRef;
+            std::construct_at(&payloadArray_.dims, std::move(other.payloadArray_.dims));
+            payloadArray_.typeRef = other.payloadArray_.typeRef;
             break;
         case TypeInfoKind::Function:
-            asFunction = other.asFunction;
+            payloadFunction_ = other.payloadFunction_;
             break;
 
         default:
@@ -182,11 +182,11 @@ uint32_t TypeInfo::hash() const
             return h;
 
         case TypeInfoKind::Int:
-            h = Math::hashCombine(h, asInt.bits);
-            h = Math::hashCombine(h, static_cast<uint32_t>(asInt.sign));
+            h = Math::hashCombine(h, payloadInt_.bits);
+            h = Math::hashCombine(h, static_cast<uint32_t>(payloadInt_.sign));
             return h;
         case TypeInfoKind::Float:
-            h = Math::hashCombine(h, asFloat.bits);
+            h = Math::hashCombine(h, payloadFloat_.bits);
             return h;
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
@@ -194,26 +194,26 @@ uint32_t TypeInfo::hash() const
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
         case TypeInfoKind::TypedVariadic:
-            h = Math::hashCombine(h, asTypeRef.typeRef.get());
+            h = Math::hashCombine(h, payloadTypeRef_.typeRef.get());
             return h;
         case TypeInfoKind::Enum:
-            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asEnum.sym));
+            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(payloadEnum_.sym));
             return h;
         case TypeInfoKind::Struct:
-            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asStruct.sym));
+            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(payloadStruct_.sym));
             return h;
         case TypeInfoKind::Interface:
-            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asInterface.sym));
+            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(payloadInterface_.sym));
             return h;
         case TypeInfoKind::Alias:
-            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asAlias.sym));
+            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(payloadAlias_.sym));
             return h;
         case TypeInfoKind::Function:
-            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(asFunction.sym));
+            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(payloadFunction_.sym));
             return h;
         case TypeInfoKind::Array:
-            h = Math::hashCombine(h, asArray.typeRef.get());
-            for (const auto dim : asArray.dims)
+            h = Math::hashCombine(h, payloadArray_.typeRef.get());
+            for (const auto dim : payloadArray_.dims)
                 h = Math::hashCombine(h, dim);
             return h;
 
@@ -243,9 +243,9 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
             return true;
 
         case TypeInfoKind::Int:
-            return asInt.bits == other.asInt.bits && asInt.sign == other.asInt.sign;
+            return payloadInt_.bits == other.payloadInt_.bits && payloadInt_.sign == other.payloadInt_.sign;
         case TypeInfoKind::Float:
-            return asFloat.bits == other.asFloat.bits;
+            return payloadFloat_.bits == other.payloadFloat_.bits;
 
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
@@ -253,26 +253,26 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
         case TypeInfoKind::TypedVariadic:
-            return asTypeRef.typeRef == other.asTypeRef.typeRef;
+            return payloadTypeRef_.typeRef == other.payloadTypeRef_.typeRef;
 
         case TypeInfoKind::Enum:
-            return asEnum.sym == other.asEnum.sym;
+            return payloadEnum_.sym == other.payloadEnum_.sym;
         case TypeInfoKind::Struct:
-            return asStruct.sym == other.asStruct.sym;
+            return payloadStruct_.sym == other.payloadStruct_.sym;
         case TypeInfoKind::Interface:
-            return asInterface.sym == other.asInterface.sym;
+            return payloadInterface_.sym == other.payloadInterface_.sym;
         case TypeInfoKind::Alias:
-            return asAlias.sym == other.asAlias.sym;
+            return payloadAlias_.sym == other.payloadAlias_.sym;
         case TypeInfoKind::Function:
-            return asFunction.sym == other.asFunction.sym;
+            return payloadFunction_.sym == other.payloadFunction_.sym;
 
         case TypeInfoKind::Array:
-            if (asArray.dims.size() != other.asArray.dims.size())
+            if (payloadArray_.dims.size() != other.payloadArray_.dims.size())
                 return false;
-            if (asArray.typeRef != other.asArray.typeRef)
+            if (payloadArray_.typeRef != other.payloadArray_.typeRef)
                 return false;
-            for (uint32_t i = 0; i < asArray.dims.size(); ++i)
-                if (asArray.dims[i] != other.asArray.dims[i])
+            for (uint32_t i = 0; i < payloadArray_.dims.size(); ++i)
+                if (payloadArray_.dims[i] != other.payloadArray_.dims[i])
                     return false;
             return true;
 
@@ -320,19 +320,19 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
             out += "cstring";
             break;
         case TypeInfoKind::Enum:
-            out += asEnum.sym->name(ctx);
+            out += payloadEnum_.sym->name(ctx);
             break;
         case TypeInfoKind::Struct:
-            out += asStruct.sym->name(ctx);
+            out += payloadStruct_.sym->name(ctx);
             break;
         case TypeInfoKind::Interface:
-            out += asInterface.sym->name(ctx);
+            out += payloadInterface_.sym->name(ctx);
             break;
         case TypeInfoKind::Alias:
-            out += asAlias.sym->name(ctx);
+            out += payloadAlias_.sym->name(ctx);
             break;
         case TypeInfoKind::Function:
-            out += asFunction.sym->computeName(ctx);
+            out += payloadFunction_.sym->computeName(ctx);
             break;
 
         case TypeInfoKind::TypeInfo:
@@ -340,81 +340,81 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
             break;
         case TypeInfoKind::TypeValue:
         {
-            const TypeInfo& type = ctx.typeMgr().get(asTypeRef.typeRef);
+            const TypeInfo& type = ctx.typeMgr().get(payloadTypeRef_.typeRef);
             out += std::format("typeinfo({})", type.toName(ctx));
             break;
         }
 
         case TypeInfoKind::ValuePointer:
         {
-            const TypeInfo& type = ctx.typeMgr().get(asTypeRef.typeRef);
+            const TypeInfo& type = ctx.typeMgr().get(payloadTypeRef_.typeRef);
             out += std::format("*{}", type.toName(ctx));
             break;
         }
         case TypeInfoKind::BlockPointer:
         {
-            const TypeInfo& type = ctx.typeMgr().get(asTypeRef.typeRef);
+            const TypeInfo& type = ctx.typeMgr().get(payloadTypeRef_.typeRef);
             out += std::format("[*] {}", type.toName(ctx));
             break;
         }
         case TypeInfoKind::Reference:
         {
-            const TypeInfo& type = ctx.typeMgr().get(asTypeRef.typeRef);
+            const TypeInfo& type = ctx.typeMgr().get(payloadTypeRef_.typeRef);
             out += std::format("&{}", type.toName(ctx));
             break;
         }
 
         case TypeInfoKind::Int:
-            if (asInt.bits == 0)
+            if (payloadInt_.bits == 0)
             {
-                if (asInt.sign == Sign::Unsigned)
+                if (payloadInt_.sign == Sign::Unsigned)
                     out += "unsigned integer"; // keep qualifiers
-                else if (asInt.sign == Sign::Signed)
+                else if (payloadInt_.sign == Sign::Signed)
                     out += "signed integer";
                 else
                     out += "integer";
             }
             else
             {
-                SWC_ASSERT(asInt.sign != Sign::Unknown);
-                out += asInt.sign == Sign::Unsigned ? "u" : "s";
-                out += std::to_string(asInt.bits);
+                SWC_ASSERT(payloadInt_.sign != Sign::Unknown);
+                out += payloadInt_.sign == Sign::Unsigned ? "u" : "s";
+                out += std::to_string(payloadInt_.bits);
             }
             break;
 
         case TypeInfoKind::Float:
-            if (asFloat.bits == 0)
+            if (payloadFloat_.bits == 0)
                 out += "float"; // keep qualifiers
             else
             {
                 out += "f";
-                out += std::to_string(asFloat.bits);
+                out += std::to_string(payloadFloat_.bits);
             }
             break;
 
         case TypeInfoKind::Slice:
         {
-            const TypeInfo& type = ctx.typeMgr().get(asTypeRef.typeRef);
+            const TypeInfo& type = ctx.typeMgr().get(payloadTypeRef_.typeRef);
             out += std::format("[..] {}", type.toName(ctx));
             break;
         }
 
         case TypeInfoKind::Array:
         {
-            if (asArray.dims.empty())
+            if (payloadArray_.dims.empty())
                 out += "[?]";
             else
             {
                 out += "[";
-                for (size_t i = 0; i < asArray.dims.size(); ++i)
+                for (size_t i = 0; i < payloadArray_.dims.size(); ++i)
                 {
                     if (i != 0)
                         out += ", ";
-                    out += std::to_string(asArray.dims[i]);
+                    out += std::to_string(payloadArray_.dims[i]);
                 }
                 out += "]";
             }
-            const TypeInfo& elemType = ctx.typeMgr().get(asArray.typeRef);
+            const TypeInfo& elemType = ctx.typeMgr().get(payloadArray_.typeRef);
             if (!elemType.isArray())
                 out += " ";
             out += elemType.toName(ctx);
@@ -426,7 +426,7 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
             break;
         case TypeInfoKind::TypedVariadic:
         {
-            const TypeInfo& type = ctx.typeMgr().get(asTypeRef.typeRef);
+            const TypeInfo& type = ctx.typeMgr().get(payloadTypeRef_.typeRef);
             out += std::format("{}...", type.toName(ctx));
             break;
         }
@@ -517,7 +517,7 @@ TypeInfo TypeInfo::makeString(TypeInfoFlags flags)
 TypeInfo TypeInfo::makeInt(uint32_t bits, Sign sign)
 {
     TypeInfo ti{TypeInfoKind::Int};
-    ti.asInt = {.bits = bits, .sign = sign};
+    ti.payloadInt_ = {.bits = bits, .sign = sign};
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -525,7 +525,7 @@ TypeInfo TypeInfo::makeInt(uint32_t bits, Sign sign)
 TypeInfo TypeInfo::makeFloat(uint32_t bits)
 {
     TypeInfo ti{TypeInfoKind::Float};
-    ti.asFloat = {.bits = bits};
+    ti.payloadFloat_ = {.bits = bits};
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -533,7 +533,7 @@ TypeInfo TypeInfo::makeFloat(uint32_t bits)
 TypeInfo TypeInfo::makeTypeValue(TypeRef typeRef)
 {
     TypeInfo ti{TypeInfoKind::TypeValue};
-    ti.asTypeRef = {.typeRef = typeRef};
+    ti.payloadTypeRef_ = {.typeRef = typeRef};
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -576,7 +576,7 @@ TypeInfo TypeInfo::makeTypeInfo()
 TypeInfo TypeInfo::makeEnum(SymbolEnum* sym)
 {
     TypeInfo ti{TypeInfoKind::Enum};
-    ti.asEnum.sym = sym;
+    ti.payloadEnum_.sym = sym;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -584,7 +584,7 @@ TypeInfo TypeInfo::makeEnum(SymbolEnum* sym)
 TypeInfo TypeInfo::makeStruct(SymbolStruct* sym)
 {
     TypeInfo ti{TypeInfoKind::Struct};
-    ti.asStruct.sym = sym;
+    ti.payloadStruct_.sym = sym;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -592,7 +592,7 @@ TypeInfo TypeInfo::makeStruct(SymbolStruct* sym)
 TypeInfo TypeInfo::makeInterface(SymbolInterface* sym)
 {
     TypeInfo ti{TypeInfoKind::Interface};
-    ti.asInterface.sym = sym;
+    ti.payloadInterface_.sym = sym;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -600,7 +600,7 @@ TypeInfo TypeInfo::makeInterface(SymbolInterface* sym)
 TypeInfo TypeInfo::makeAlias(SymbolAlias* sym)
 {
     TypeInfo ti{TypeInfoKind::Alias};
-    ti.asAlias.sym = sym;
+    ti.payloadAlias_.sym = sym;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -608,7 +608,7 @@ TypeInfo TypeInfo::makeAlias(SymbolAlias* sym)
 TypeInfo TypeInfo::makeValuePointer(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 {
     TypeInfo ti{TypeInfoKind::ValuePointer, flags};
-    ti.asTypeRef.typeRef = pointeeTypeRef;
+    ti.payloadTypeRef_.typeRef = pointeeTypeRef;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -616,7 +616,7 @@ TypeInfo TypeInfo::makeValuePointer(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 TypeInfo TypeInfo::makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 {
     TypeInfo ti{TypeInfoKind::BlockPointer, flags};
-    ti.asTypeRef.typeRef = pointeeTypeRef;
+    ti.payloadTypeRef_.typeRef = pointeeTypeRef;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -624,7 +624,7 @@ TypeInfo TypeInfo::makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 TypeInfo TypeInfo::makeReference(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 {
     TypeInfo ti{TypeInfoKind::Reference, flags};
-    ti.asTypeRef.typeRef = pointeeTypeRef;
+    ti.payloadTypeRef_.typeRef = pointeeTypeRef;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -632,7 +632,7 @@ TypeInfo TypeInfo::makeReference(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 TypeInfo TypeInfo::makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 {
     TypeInfo ti{TypeInfoKind::Slice, flags};
-    ti.asTypeRef.typeRef = pointeeTypeRef;
+    ti.payloadTypeRef_.typeRef = pointeeTypeRef;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -640,8 +640,8 @@ TypeInfo TypeInfo::makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 TypeInfo TypeInfo::makeArray(const std::vector<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags)
 {
     TypeInfo ti{TypeInfoKind::Array, flags};
-    std::construct_at(&ti.asArray.dims, dims);
-    ti.asArray.typeRef = elementTypeRef;
+    std::construct_at(&ti.payloadArray_.dims, dims);
+    ti.payloadArray_.typeRef = elementTypeRef;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -649,7 +649,7 @@ TypeInfo TypeInfo::makeArray(const std::vector<uint64_t>& dims, TypeRef elementT
 TypeInfo TypeInfo::makeFunction(SymbolFunction* sym, TypeInfoFlags flags)
 {
     TypeInfo ti{TypeInfoKind::Function, flags};
-    ti.asFunction.sym = sym;
+    ti.payloadFunction_.sym = sym;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -662,7 +662,7 @@ TypeInfo TypeInfo::makeVariadic()
 TypeInfo TypeInfo::makeTypedVariadic(TypeRef typeRef)
 {
     TypeInfo ti{TypeInfoKind::TypedVariadic};
-    ti.asTypeRef = {.typeRef = typeRef};
+    ti.payloadTypeRef_ = {.typeRef = typeRef};
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -683,9 +683,9 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
             return 4;
 
         case TypeInfoKind::Int:
-            return asInt.bits / 8;
+            return payloadInt_.bits / 8;
         case TypeInfoKind::Float:
-            return asFloat.bits / 8;
+            return payloadFloat_.bits / 8;
 
         case TypeInfoKind::CString:
         case TypeInfoKind::ValuePointer:
@@ -706,8 +706,8 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
 
         case TypeInfoKind::Array:
         {
-            uint64_t count = ctx.typeMgr().get(asArray.typeRef).sizeOf(ctx);
-            for (const uint64_t d : asArray.dims)
+            uint64_t count = ctx.typeMgr().get(payloadArray_.typeRef).sizeOf(ctx);
+            for (const uint64_t d : payloadArray_.dims)
                 count *= d;
             return count;
         }
@@ -724,7 +724,7 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
             return 0;
 
         case TypeInfoKind::TypeValue:
-            return ctx.typeMgr().get(asTypeRef.typeRef).sizeOf(ctx);
+            return ctx.typeMgr().get(payloadTypeRef_.typeRef).sizeOf(ctx);
 
         default:
             SWC_UNREACHABLE();
@@ -762,7 +762,7 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
             return 8;
 
         case TypeInfoKind::Array:
-            return ctx.typeMgr().get(asArray.typeRef).alignOf(ctx);
+            return ctx.typeMgr().get(payloadArray_.typeRef).alignOf(ctx);
 
         case TypeInfoKind::Struct:
             return payloadSymStruct().alignment();
@@ -772,7 +772,7 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
             return payloadSymAlias().type(ctx).alignOf(ctx);
 
         case TypeInfoKind::TypeValue:
-            return ctx.typeMgr().get(asTypeRef.typeRef).alignOf(ctx);
+            return ctx.typeMgr().get(payloadTypeRef_.typeRef).alignOf(ctx);
 
         default:
             SWC_UNREACHABLE();
@@ -793,20 +793,20 @@ bool TypeInfo::isCompleted(TaskContext& ctx) const
             return payloadSymAlias().isCompleted();
 
         case TypeInfoKind::Array:
-            return ctx.typeMgr().get(asArray.typeRef).isCompleted(ctx);
+            return ctx.typeMgr().get(payloadArray_.typeRef).isCompleted(ctx);
         case TypeInfoKind::Function:
         {
-            if (asFunction.sym->returnTypeRef().isValid() && !ctx.typeMgr().get(asFunction.sym->returnTypeRef()).isCompleted(ctx))
+            if (payloadFunction_.sym->returnTypeRef().isValid() && !ctx.typeMgr().get(payloadFunction_.sym->returnTypeRef()).isCompleted(ctx))
                 return false;
-            for (const auto& param : asFunction.sym->parameters())
+            for (const auto& param : payloadFunction_.sym->parameters())
                 if (!ctx.typeMgr().get(param->typeRef()).isCompleted(ctx))
                     return false;
             return true;
         }
         case TypeInfoKind::TypeValue:
-            return ctx.typeMgr().get(asTypeRef.typeRef).isCompleted(ctx);
+            return ctx.typeMgr().get(payloadTypeRef_.typeRef).isCompleted(ctx);
         case TypeInfoKind::TypedVariadic:
-            return ctx.typeMgr().get(asTypeRef.typeRef).isCompleted(ctx);
+            return ctx.typeMgr().get(payloadTypeRef_.typeRef).isCompleted(ctx);
         default:
             break;
     }
@@ -828,15 +828,15 @@ Symbol* TypeInfo::getSymbolDependency(TaskContext& ctx) const
             return &payloadSymAlias();
 
         case TypeInfoKind::Array:
-            return ctx.typeMgr().get(asArray.typeRef).getSymbolDependency(ctx);
+            return ctx.typeMgr().get(payloadArray_.typeRef).getSymbolDependency(ctx);
         case TypeInfoKind::Function:
         {
-            if (asFunction.sym->returnTypeRef().isValid())
+            if (payloadFunction_.sym->returnTypeRef().isValid())
             {
-                if (const auto sym = ctx.typeMgr().get(asFunction.sym->returnTypeRef()).getSymbolDependency(ctx))
+                if (const auto sym = ctx.typeMgr().get(payloadFunction_.sym->returnTypeRef()).getSymbolDependency(ctx))
                     return sym;
             }
-            for (const auto& param : asFunction.sym->parameters())
+            for (const auto& param : payloadFunction_.sym->parameters())
             {
                 if (const auto sym = ctx.typeMgr().get(param->typeRef()).getSymbolDependency(ctx))
                     return sym;
@@ -844,7 +844,7 @@ Symbol* TypeInfo::getSymbolDependency(TaskContext& ctx) const
             return nullptr;
         }
         case TypeInfoKind::TypeValue:
-            return ctx.typeMgr().get(asTypeRef.typeRef).getSymbolDependency(ctx);
+            return ctx.typeMgr().get(payloadTypeRef_.typeRef).getSymbolDependency(ctx);
         default:
             break;
     }
@@ -854,17 +854,17 @@ Symbol* TypeInfo::getSymbolDependency(TaskContext& ctx) const
 
 bool TypeInfo::isEnumFlags() const noexcept
 {
-    return isEnum() && asEnum.sym->isEnumFlags();
+    return isEnum() && payloadEnum_.sym->isEnumFlags();
 }
 
 bool TypeInfo::isLambdaClosure() const noexcept
 {
-    return isFunction() && asFunction.sym->hasExtraFlag(SymbolFunctionFlagsE::Closure);
+    return isFunction() && payloadFunction_.sym->hasExtraFlag(SymbolFunctionFlagsE::Closure);
 }
 
 bool TypeInfo::isLambdaMethod() const noexcept
 {
-    return isFunction() && asFunction.sym->hasExtraFlag(SymbolFunctionFlagsE::Method);
+    return isFunction() && payloadFunction_.sym->hasExtraFlag(SymbolFunctionFlagsE::Method);
 }
 
 bool TypeInfo::isAnyTypeInfo(TaskContext& ctx) const noexcept
@@ -875,7 +875,7 @@ bool TypeInfo::isAnyTypeInfo(TaskContext& ctx) const noexcept
         return false;
     if (!isValuePointer())
         return false;
-    const TypeInfo& type = ctx.typeMgr().get(asTypeRef.typeRef);
+    const TypeInfo& type = ctx.typeMgr().get(payloadTypeRef_.typeRef);
     if (!type.isStruct())
         return false;
     return type.payloadSymStruct().hasExtraFlag(SymbolStructFlagsE::TypeInfo);
@@ -891,19 +891,19 @@ TypeRef TypeInfo::unwrap(const TaskContext& ctx, TypeRef defaultTypeRef, TypeExp
         TypeRef         sub = TypeRef::invalid();
 
         if (expandFlags.has(TypeExpandE::Alias) && ty.isAlias())
-            sub = ty.asAlias.sym->underlyingTypeRef();
+            sub = ty.payloadAlias_.sym->underlyingTypeRef();
         else if (expandFlags.has(TypeExpandE::Enum) && ty.isEnum())
-            sub = ty.asEnum.sym->underlyingTypeRef();
+            sub = ty.payloadEnum_.sym->underlyingTypeRef();
         else if (expandFlags.has(TypeExpandE::Pointer) && ty.isAnyPointer())
-            sub = ty.asTypeRef.typeRef;
+            sub = ty.payloadTypeRef_.typeRef;
         else if (expandFlags.has(TypeExpandE::Array) && ty.isArray())
-            sub = ty.asArray.typeRef;
+            sub = ty.payloadArray_.typeRef;
         else if (expandFlags.has(TypeExpandE::Slice) && ty.isSlice())
-            sub = ty.asTypeRef.typeRef;
+            sub = ty.payloadTypeRef_.typeRef;
         else if (expandFlags.has(TypeExpandE::Variadic) && ty.isTypedVariadic())
-            sub = ty.asTypeRef.typeRef;
+            sub = ty.payloadTypeRef_.typeRef;
         else if (expandFlags.has(TypeExpandE::Function) && ty.isFunction())
-            sub = ty.asFunction.sym->returnTypeRef();
+            sub = ty.payloadFunction_.sym->returnTypeRef();
 
         if (sub.isInvalid())
             break;

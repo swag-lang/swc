@@ -153,6 +153,8 @@ SWC_DIAG_DEF(sema_err_tok_outside_impl, Error, "'{tok}' can only be used inside 
 SWC_DIAG_DEF(sema_err_break_outside_breakable, Error, "'break' can only be used inside a loop or switch statement")
 SWC_DIAG_DEF(sema_err_continue_outside_breakable, Error, "'continue' can only be used inside a loop statement")
 SWC_DIAG_DEF(sema_err_continue_not_in_loop, Error, "'continue' cannot be used inside a switch statement")
+SWC_DIAG_DEF(sema_err_switch_invalid_type, Error, "invalid switch expression type '{type}'; expected int-like, float, bool, or string")
+SWC_DIAG_DEF(sema_err_switch_range_invalid_type, Error, "range case is only supported for numeric switch expressions (got '{type}')")
 SWC_DIAG_DEF(sema_err_impl_not_struct, Error, "expected a struct implementation block, but '{sym}' is {a-sym-fam}")
 SWC_DIAG_DEF(sema_err_impl_not_enum, Error, "expected an enum implementation block, but '{sym}' is {a-sym-fam}")
 SWC_DIAG_DEF(sema_err_impl_not_interface, Error, "expected an interface implementation block, but '{sym}' is {a-sym-fam}")

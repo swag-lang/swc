@@ -64,6 +64,10 @@ public:
     BreakableKind    breakableKind() const { return breakable_.kind; }
     void             setBreakable(AstNodeRef nodeRef, BreakableKind kind);
 
+    // Active switch statement (used by `case` semantic analysis).
+    AstNodeRef currentSwitch() const { return currentSwitch_; }
+    void       setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
+
     static SymbolMap* currentSymMap(Sema& sema);
     SymbolFlags       flagsForCurrentAccess() const;
 
@@ -76,6 +80,7 @@ private:
     SymbolInterface*                interface_  = nullptr;
     SymbolFunction*                 function_   = nullptr;
     Breakable                       breakable_;
+    AstNodeRef                      currentSwitch_ = AstNodeRef::invalid();
     SmallVector<TypeRef, 2>         bindingTypes_;
     SmallVector<SymbolVariable*, 2> bindingVars_;
 };

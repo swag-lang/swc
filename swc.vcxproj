@@ -260,6 +260,7 @@
         <ClCompile Include="src\Sema\Ast\Sema.Logical.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.MemberAccess.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Relational.cpp"/>
+        <ClCompile Include="src\Sema\Ast\Sema.Switch.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Unary.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Function.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.If.cpp"/>
@@ -270,7 +271,7 @@
         <ClCompile Include="src\Sema\Ast\Sema.Struct.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Type.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Var.cpp"/>
-        <ClCompile Include="src\Sema\Ast\Sema.Loop.cpp" />
+        <ClCompile Include="src\Sema\Ast\Sema.Loop.cpp"/>
         <ClCompile Include="src\Sema\Cast\Cast.Cast.cpp"/>
         <ClCompile Include="src\Sema\Cast\Cast.Const.cpp"/>
         <ClCompile Include="src\Sema\Cast\Cast.Convert.cpp"/>

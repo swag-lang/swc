@@ -1322,7 +1322,8 @@ struct AstSwitchStmt : AstCompoundT<AstNodeId::SwitchStmt>
         AstCompoundT::collectChildren(out, ast);
     }
 
-    static Result semaPreNode(Sema&) { return Result::SkipChildren; }
+    static Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef);
+    Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1337,6 +1338,9 @@ struct AstSwitchCaseStmt : AstCompoundT<AstNodeId::SwitchCaseStmt>
         AstNode::collectChildren(out, {nodeWhereRef});
         AstCompoundT::collectChildren(out, ast);
     }
+
+    static Result semaPreNode(Sema& sema);
+    Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
 };
 
 // -----------------------------------------------------------------------------

@@ -2,8 +2,11 @@
 #include "Sema/Core/Sema.h"
 #include "Parser/AstNodes.h"
 #include "Sema/Cast/Cast.h"
+#include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
+
+#include <unordered_set>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -32,6 +35,12 @@ namespace
             return result;
         return TypeRef::invalid();
     }
+
+    struct SwitchCaseConstSet
+    {
+        // Use `std::string` as key because `Utf8` is a custom type without `std::hash`.
+        std::unordered_set<std::string> seen;
+    };
 }
 
 Result AstSwitchStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
@@ -45,6 +54,15 @@ Result AstSwitchStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         const auto* switchStmt = switchNode.cast<AstSwitchStmt>();
         if (switchStmt && !switchStmt->nodeExprRef.isValid())
             sema.setType(sema.curNodeRef(), sema.ctx().typeMgr().typeBool());
+
+        // For value-switches, track duplicate constant case values across all cases.
+        // The set must be unique per switch statement.
+        if (switchStmt && switchStmt->nodeExprRef.isValid() &&
+            (sema.frame().currentSwitch() != sema.curNodeRef() || !sema.frame().switchPayload()))
+        {
+            sema.frame().setCurrentSwitch(sema.curNodeRef());
+            sema.frame().setSwitchPayload(sema.compiler().allocate<SwitchCaseConstSet>());
+        }
 
         SemaFrame frame = sema.frame();
         frame.setBreakable(sema.curNodeRef(), SemaFrame::BreakableKind::Switch);
@@ -204,8 +222,21 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
             }
 
             RESULT_VERIFY(castToSwitchType(sema, childRef, switchTypeRef));
-            if (SemaNodeView(sema, childRef).cstRef.isInvalid())
+            const SemaNodeView exprView(sema, childRef);
+            if (exprView.cstRef.isInvalid())
                 return SemaError::raise(sema, DiagnosticId::sema_err_switch_case_not_const, childRef);
+
+            // Duplicate constant value check (value-switch only).
+            if (sema.frame().switchPayload())
+            {
+                auto* seenSet = static_cast<SwitchCaseConstSet*>(sema.frame().switchPayload());
+                const ConstantValue& cst = sema.cstMgr().get(exprView.cstRef);
+                std::string key = std::to_string(static_cast<int>(cst.kind()));
+                key += ':';
+                key += std::string(cst.toString(sema.ctx()));
+                if (!seenSet->seen.insert(key).second)
+                    return SemaError::raise(sema, DiagnosticId::sema_err_switch_case_duplicate, childRef);
+            }
             return Result::Continue;
         }
     }

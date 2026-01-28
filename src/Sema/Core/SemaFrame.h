@@ -68,6 +68,10 @@ public:
     AstNodeRef currentSwitch() const { return currentSwitch_; }
     void       setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
 
+    // Per-switch semantic payload (used to track case values across all `case` blocks).
+    void* switchPayload() const { return switchPayload_; }
+    void  setSwitchPayload(void* payload) { switchPayload_ = payload; }
+
     static SymbolMap* currentSymMap(Sema& sema);
     SymbolFlags       flagsForCurrentAccess() const;
 
@@ -81,6 +85,7 @@ private:
     SymbolFunction*                 function_   = nullptr;
     Breakable                       breakable_;
     AstNodeRef                      currentSwitch_ = AstNodeRef::invalid();
+    void*                           switchPayload_ = nullptr;
     SmallVector<TypeRef, 2>         bindingTypes_;
     SmallVector<SymbolVariable*, 2> bindingVars_;
 };

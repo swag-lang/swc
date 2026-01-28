@@ -15,6 +15,20 @@
 
 #test
 {
+    // A constant case value can only appear once in a value-switch
+    switch 1
+    {
+        case 1:
+            break
+        case 1: // swc-expected-error {{sema_err_switch_case_duplicate}}
+            break
+        default:
+            break
+    }
+}
+
+#test
+{
     // Range case bounds must also be constant
     var v = 2
     switch v

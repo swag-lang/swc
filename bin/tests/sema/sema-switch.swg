@@ -28,13 +28,34 @@
     {
         case E.A:
             break
-        case A:
-            break
+        //case A:
+            //break
         case .B:
             break
-        case E.B:
+        //case E.B:
+            //break
+        case .C: // swc-expected-error {{sema_err_auto_scope_missing_enum_value}}
             break
-        case A, .C: // swc-expected-error {{sema_err_auto_scope_missing_enum_value}}
+        default:
+            break
+    }
+}
+
+#test
+{
+    // enum is valid if its underlying type is supported
+    enum E : s32
+    {
+        A = 1,
+        B = 2,
+    }
+
+    var v : E = E.B
+    switch v
+    {
+        case E.A:
+            break
+        case A: // swc-expected-error {{sema_err_switch_case_duplicate}}
             break
         default:
             break

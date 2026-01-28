@@ -122,10 +122,90 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
 
 namespace
 {
+    bool isChildOfSpanExprRef(Sema& sema, const SpanRef& spanExprRef, const AstNodeRef& childRef)
+    {
+        if (!spanExprRef.isValid())
+            return false;
+
+        SmallVector<AstNodeRef> expressions;
+        sema.ast().nodes(expressions, spanExprRef);
+        return std::ranges::find(expressions, childRef) != expressions.end();
+    }
+
     Result castToSwitchType(Sema& sema, AstNodeRef nodeRef, TypeRef switchTypeRef)
     {
         SemaNodeView view(sema, nodeRef);
         return Cast::cast(sema, view, switchTypeRef, CastKind::Implicit);
+    }
+
+    Result castCaseExprToBoolForConditionSwitch(Sema& sema, const AstNodeRef& exprRef)
+    {
+        SemaNodeView  nodeView(sema, exprRef);
+        const TypeRef boolTypeRef = sema.ctx().typeMgr().typeBool();
+
+        CastContext castCtx(CastKind::Condition);
+        castCtx.errorNodeRef = exprRef;
+        if (Cast::castAllowed(sema, castCtx, nodeView.typeRef, boolTypeRef) != Result::Continue)
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_case_not_bool, exprRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        return Cast::cast(sema, nodeView, boolTypeRef, CastKind::Condition);
+    }
+
+    Result checkCaseExprIsConst(Sema& sema, const AstNodeRef& exprRef)
+    {
+        const SemaNodeView exprView(sema, exprRef);
+        if (exprView.cstRef.isInvalid())
+            return SemaError::raise(sema, DiagnosticId::sema_err_switch_case_not_const, exprRef);
+        return Result::Continue;
+    }
+
+    Result handleRangeCaseExpr(Sema& sema, const AstNodeRef& rangeRef, TypeRef switchTypeRef)
+    {
+        const TypeRef   ultimateSwitchTypeRef = sema.typeMgr().get(switchTypeRef).unwrap(sema.ctx(), switchTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeInfo& switchType            = sema.typeMgr().get(ultimateSwitchTypeRef);
+        if (!switchType.isScalarNumeric())
+            return SemaError::raise(sema, DiagnosticId::sema_err_switch_range_invalid_type, rangeRef);
+
+        const auto* range = sema.node(rangeRef).cast<AstRangeExpr>();
+        if (range->nodeExprDownRef.isValid())
+            RESULT_VERIFY(castToSwitchType(sema, range->nodeExprDownRef, switchTypeRef));
+        if (range->nodeExprUpRef.isValid())
+            RESULT_VERIFY(castToSwitchType(sema, range->nodeExprUpRef, switchTypeRef));
+
+        if (range->nodeExprDownRef.isValid())
+            RESULT_VERIFY(checkCaseExprIsConst(sema, range->nodeExprDownRef));
+        if (range->nodeExprUpRef.isValid())
+            RESULT_VERIFY(checkCaseExprIsConst(sema, range->nodeExprUpRef));
+
+        return Result::Continue;
+    }
+
+    Result checkDuplicateConstCaseValue(Sema& sema, const AstNodeRef& switchRef, const AstNodeRef& caseExprRef)
+    {
+        auto* seenSet = sema.payload<SwitchPayload>(switchRef);
+        SWC_ASSERT(seenSet);
+
+        const SemaNodeView       exprView(sema, caseExprRef);
+        const SourceCodeLocation curLoc = sema.node(caseExprRef).locationWithChildren(sema.ctx(), sema.ast());
+
+        const auto it = seenSet->seen.find(exprView.cstRef);
+        if (it == seenSet->seen.end())
+        {
+            seenSet->seen.emplace(exprView.cstRef, curLoc);
+            return Result::Continue;
+        }
+
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_case_duplicate, caseExprRef);
+        diag.addArgument(Diagnostic::ARG_VALUE, sema.cstMgr().get(exprView.cstRef).toString(sema.ctx()));
+        diag.addNote(DiagnosticId::sema_note_previous_case_value);
+        diag.last().addSpan(it->second);
+        diag.report(sema.ctx());
+        return Result::Error;
     }
 }
 
@@ -140,103 +220,32 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
     const AstNodeRef switchRef = sema.frame().currentSwitch();
     SWC_ASSERT(switchRef.isValid());
 
-    const auto& switchNode    = sema.node(switchRef);
-    const auto* switchStmt    = switchNode.cast<AstSwitchStmt>();
-    const bool  hasSwitchExpr = switchStmt && switchStmt->nodeExprRef.isValid();
+    const AstNode&       switchNode    = sema.node(switchRef);
+    const AstSwitchStmt* switchStmt    = switchNode.cast<AstSwitchStmt>();
+    const bool           hasSwitchExpr = switchStmt->nodeExprRef.isValid();
 
-    auto*         payload       = sema.payload<SwitchPayload>(switchRef);
-    const TypeRef switchTypeRef = payload->exprTypeRef;
+    const SwitchPayload* payload       = sema.payload<SwitchPayload>(switchRef);
+    const TypeRef        switchTypeRef = payload->exprTypeRef;
 
     // Only cast case expressions (not the statements in the case body).
     // `childRef` can be one of the expressions in `spanExprRef`.
-    if (spanExprRef.isValid())
+    if (!isChildOfSpanExprRef(sema, spanExprRef, childRef))
+        return Result::Continue;
+
+    // Condition-switch: each `case <expr>` must be bool-compatible.
+    if (!hasSwitchExpr)
     {
-        SmallVector<AstNodeRef> expressions;
-        sema.ast().nodes(expressions, spanExprRef);
-        const bool isExprChild = std::ranges::find(expressions, childRef) != expressions.end();
-
-        if (isExprChild)
-        {
-            // Condition-switch: each `case <expr>` must be bool-compatible.
-            if (!hasSwitchExpr)
-            {
-                SemaNodeView  nodeView(sema, childRef);
-                const TypeRef boolTypeRef = sema.ctx().typeMgr().typeBool();
-
-                CastContext castCtx(CastKind::Condition);
-                castCtx.errorNodeRef = childRef;
-                if (Cast::castAllowed(sema, castCtx, nodeView.typeRef, boolTypeRef) != Result::Continue)
-                {
-                    auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_case_not_bool, childRef);
-                    diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
-                    diag.report(sema.ctx());
-                    return Result::Error;
-                }
-
-                RESULT_VERIFY(Cast::cast(sema, nodeView, boolTypeRef, CastKind::Condition));
-                return Result::Continue;
-            }
-
-            // Range expression
-            if (sema.node(childRef).is(AstNodeId::RangeExpr))
-            {
-                const TypeRef   ultimateSwitchTypeRef = sema.typeMgr().get(switchTypeRef).unwrap(sema.ctx(), switchTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-                const TypeInfo& switchType            = sema.typeMgr().get(ultimateSwitchTypeRef);
-                if (!switchType.isScalarNumeric())
-                    return SemaError::raise(sema, DiagnosticId::sema_err_switch_range_invalid_type, childRef);
-
-                const auto* range = sema.node(childRef).cast<AstRangeExpr>();
-                if (range->nodeExprDownRef.isValid())
-                    RESULT_VERIFY(castToSwitchType(sema, range->nodeExprDownRef, switchTypeRef));
-                if (range->nodeExprUpRef.isValid())
-                    RESULT_VERIFY(castToSwitchType(sema, range->nodeExprUpRef, switchTypeRef));
-
-                if (range->nodeExprDownRef.isValid())
-                {
-                    const SemaNodeView downView(sema, range->nodeExprDownRef);
-                    if (downView.cstRef.isInvalid())
-                        return SemaError::raise(sema, DiagnosticId::sema_err_switch_case_not_const, range->nodeExprDownRef);
-                }
-
-                if (range->nodeExprUpRef.isValid())
-                {
-                    const SemaNodeView upView(sema, range->nodeExprUpRef);
-                    if (upView.cstRef.isInvalid())
-                        return SemaError::raise(sema, DiagnosticId::sema_err_switch_case_not_const, range->nodeExprUpRef);
-                }
-
-                return Result::Continue;
-            }
-
-            RESULT_VERIFY(castToSwitchType(sema, childRef, switchTypeRef));
-            const SemaNodeView exprView(sema, childRef);
-            if (exprView.cstRef.isInvalid())
-                return SemaError::raise(sema, DiagnosticId::sema_err_switch_case_not_const, childRef);
-
-            // Duplicate constant value check (value-switch only).
-            if (hasSwitchExpr)
-            {
-                auto* seenSet = sema.payload<SwitchPayload>(switchRef);
-                SWC_ASSERT(seenSet);
-                const SourceCodeLocation curLoc = sema.node(childRef).locationWithChildren(sema.ctx(), sema.ast());
-                const auto               it     = seenSet->seen.find(exprView.cstRef);
-                if (it == seenSet->seen.end())
-                {
-                    seenSet->seen.emplace(exprView.cstRef, curLoc);
-                }
-                else
-                {
-                    auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_case_duplicate, childRef);
-                    diag.addArgument(Diagnostic::ARG_VALUE, sema.cstMgr().get(exprView.cstRef).toString(sema.ctx()));
-                    diag.addNote(DiagnosticId::sema_note_previous_case_value);
-                    diag.last().addSpan(it->second);
-                    diag.report(sema.ctx());
-                    return Result::Error;
-                }
-            }
-            return Result::Continue;
-        }
+        RESULT_VERIFY(castCaseExprToBoolForConditionSwitch(sema, childRef));
+        return Result::Continue;
     }
+
+    // Range expression
+    if (sema.node(childRef).is(AstNodeId::RangeExpr))
+        return handleRangeCaseExpr(sema, childRef, switchTypeRef);
+
+    RESULT_VERIFY(castToSwitchType(sema, childRef, switchTypeRef));
+    RESULT_VERIFY(checkCaseExprIsConst(sema, childRef));
+    RESULT_VERIFY(checkDuplicateConstCaseValue(sema, switchRef, childRef));
 
     return Result::Continue;
 }

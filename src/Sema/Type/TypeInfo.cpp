@@ -881,17 +881,6 @@ bool TypeInfo::isAnyTypeInfo(TaskContext& ctx) const noexcept
     return type.symStruct().hasExtraFlag(SymbolStructFlagsE::TypeInfo);
 }
 
-TypeRef TypeInfo::underlyingTypeRef() const noexcept
-{
-    if (isAnyPointer() || isReference() || isSlice() || isAlias() || isTypedVariadic() || isTypeValue())
-        return asTypeRef.typeRef;
-    if (isArray())
-        return asArray.typeRef;
-    if (isEnum())
-        return asEnum.sym->underlyingTypeRef();
-    return TypeRef::invalid();
-}
-
 TypeRef TypeInfo::unwrap(const TaskContext& ctx, TypeRef defaultTypeRef, TypeExpand expandFlags) const noexcept
 {
     auto result = typeRef_;

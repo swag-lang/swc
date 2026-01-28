@@ -233,9 +233,9 @@ namespace
                 if (nodeRightView.type->isValuePointer())
                     return SemaError::raisePointerArithmeticValuePointer(sema, node, node.nodeRightRef, nodeRightView.typeRef);
 
-                if (nodeLeftView.type->isBlockPointer() && nodeLeftView.type->underlyingTypeRef() == sema.typeMgr().typeVoid())
+                if (nodeLeftView.type->isBlockPointer() && nodeLeftView.type->nestedTypeRef() == sema.typeMgr().typeVoid())
                     return SemaError::raisePointerArithmeticVoidPointer(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
-                if (nodeRightView.type->isBlockPointer() && nodeRightView.type->underlyingTypeRef() == sema.typeMgr().typeVoid())
+                if (nodeRightView.type->isBlockPointer() && nodeRightView.type->nestedTypeRef() == sema.typeMgr().typeVoid())
                     return SemaError::raisePointerArithmeticVoidPointer(sema, node, node.nodeRightRef, nodeRightView.typeRef);
 
                 if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isScalarNumeric())
@@ -252,9 +252,9 @@ namespace
                 if (nodeRightView.type->isValuePointer())
                     return SemaError::raisePointerArithmeticValuePointer(sema, node, node.nodeRightRef, nodeRightView.typeRef);
 
-                if (nodeLeftView.type->isBlockPointer() && nodeLeftView.type->underlyingTypeRef() == sema.typeMgr().typeVoid())
+                if (nodeLeftView.type->isBlockPointer() && nodeLeftView.type->nestedTypeRef() == sema.typeMgr().typeVoid())
                     return SemaError::raisePointerArithmeticVoidPointer(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
-                if (nodeRightView.type->isBlockPointer() && nodeRightView.type->underlyingTypeRef() == sema.typeMgr().typeVoid())
+                if (nodeRightView.type->isBlockPointer() && nodeRightView.type->nestedTypeRef() == sema.typeMgr().typeVoid())
                     return SemaError::raisePointerArithmeticVoidPointer(sema, node, node.nodeRightRef, nodeRightView.typeRef);
 
                 if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isScalarNumeric())

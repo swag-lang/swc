@@ -44,7 +44,7 @@ namespace
         }
         else if (type->isSlice())
         {
-            const TypeInfo ty = TypeInfo::makeBlockPointer(type->underlyingTypeRef(), type->flags());
+            const TypeInfo ty = TypeInfo::makeBlockPointer(type->nestedTypeRef(), type->flags());
             resultTypeRef     = sema.typeMgr().addType(ty);
         }
         else if (type->isArray())

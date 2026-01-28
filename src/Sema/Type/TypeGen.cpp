@@ -240,7 +240,7 @@ namespace
             }
 
             case LayoutKind::Alias:
-                deps.push_back(type.underlyingTypeRef());
+                deps.push_back(type.nestedTypeRef());
                 break;
 
             case LayoutKind::TypedVariadic:
@@ -364,7 +364,7 @@ namespace
 
             case LayoutKind::Alias:
             {
-                const TypeRef depKey = typeMgr.get(key).underlyingTypeRef();
+                const TypeRef depKey = typeMgr.get(key).nestedTypeRef();
                 const auto&   dep    = requireDone(cache, depKey);
                 addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoAlias, rawType), dep.offset);
                 break;

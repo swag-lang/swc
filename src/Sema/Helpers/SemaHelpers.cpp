@@ -6,6 +6,7 @@
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/Symbol.Attribute.h"
+#include "Sema/Symbol/Symbol.Enum.h"
 #include "Sema/Symbol/Symbol.Function.h"
 #include "Sema/Symbol/Symbol.Interface.h"
 #include "Sema/Type/TypeManager.h"
@@ -100,7 +101,7 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
     const auto fieldBytes = std::string_view(bytes.data() + symVar.offset(), typeField->sizeOf(ctx));
 
     if (typeField->isEnum())
-        typeField = &sema.typeMgr().get(typeField->underlyingTypeRef());
+        typeField = &sema.typeMgr().get(typeField->symEnum().underlyingTypeRef());
 
     ConstantValue cv;
     if (typeField->isStruct())
@@ -148,7 +149,7 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
 
     if (typeVar.isEnum())
     {
-        cv = ConstantValue::makeEnumValue(ctx, cstRef, typeVar.underlyingTypeRef());
+        cv = ConstantValue::makeEnumValue(ctx, cstRef, typeVar.symEnum().underlyingTypeRef());
         cv.setTypeRef(symVar.typeRef());
         cstRef = sema.cstMgr().addConstant(ctx, cv);
     }

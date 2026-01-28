@@ -103,7 +103,7 @@ namespace
                 if (!typeInfo.isReference())
                     continue;
 
-                const TypeInfo& pointeeType = sema.typeMgr().get(typeInfo.underlyingTypeRef());
+                const TypeInfo& pointeeType = sema.typeMgr().get(typeInfo.nestedTypeRef());
                 RESULT_VERIFY(addCandidate(&pointeeType, symVar));
             }
 

@@ -39,7 +39,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
 
     SemaFrame frame = sema.frame();
     frame.setFunction(&sym);
-    sema.pushFrameAutoPopOnPostNode(frame);
+    sema.pushFramePopOnPostNode(frame);
     return Result::Continue;
 }
 
@@ -71,7 +71,7 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     if (childRef == nodeParamsRef)
     {
         SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
-        sema.pushScopeAutoPopOnPostChild(SemaScopeFlagsE::Parameters, childRef);
+        sema.pushScopePopOnPostChild(SemaScopeFlagsE::Parameters, childRef);
         sema.curScope().setSymMap(&sym);
         if (sym.isMethod())
             addMeParameter(sema, sym);
@@ -88,9 +88,9 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         }
 
         frame.pushBindingType(sym.returnTypeRef());
-        sema.pushFrameAutoPopOnPostNode(frame);
+        sema.pushFramePopOnPostNode(frame);
 
-        sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::Local);
+        sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
         sema.curScope().setSymMap(&sym);
     }
 

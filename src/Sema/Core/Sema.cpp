@@ -147,7 +147,7 @@ void Sema::popFrame()
     frames_.pop_back();
 }
 
-void Sema::pushFrameAutoPopOnPostChild(const SemaFrame& frame, AstNodeRef popAfterChildRef)
+void Sema::pushFramePopOnPostChild(const SemaFrame& frame, AstNodeRef popAfterChildRef)
 {
     pushFrame(frame);
     const size_t before = frames_.size();
@@ -161,7 +161,7 @@ void Sema::pushFrameAutoPopOnPostChild(const SemaFrame& frame, AstNodeRef popAft
     });
 }
 
-void Sema::pushFrameAutoPopOnPostNode(const SemaFrame& frame)
+void Sema::pushFramePopOnPostNode(const SemaFrame& frame)
 {
     pushFrame(frame);
     const size_t before = frames_.size();
@@ -175,7 +175,7 @@ void Sema::pushFrameAutoPopOnPostNode(const SemaFrame& frame)
     });
 }
 
-SemaScope* Sema::pushScopeAutoPopOnPostChild(SemaScopeFlags flags, AstNodeRef popAfterChildRef)
+SemaScope* Sema::pushScopePopOnPostChild(SemaScopeFlags flags, AstNodeRef popAfterChildRef)
 {
     SemaScope*   scope  = pushScope(flags);
     const size_t before = scopes_.size();
@@ -190,7 +190,7 @@ SemaScope* Sema::pushScopeAutoPopOnPostChild(SemaScopeFlags flags, AstNodeRef po
     return scope;
 }
 
-SemaScope* Sema::pushScopeAutoPopOnPostNode(SemaScopeFlags flags, AstNodeRef popNodeRef)
+SemaScope* Sema::pushScopePopOnPostNode(SemaScopeFlags flags, AstNodeRef popNodeRef)
 {
     SemaScope*   scope  = pushScope(flags);
     const size_t before = scopes_.size();

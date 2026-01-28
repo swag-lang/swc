@@ -40,7 +40,7 @@ Result AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) c
 
         frame.setCompilerIf(ifFrame);
         sema.setPayload(nodeIfBlockRef, ifFrame);
-        sema.pushFrameAutoPopOnPostChild(frame, childRef);
+        sema.pushFramePopOnPostChild(frame, childRef);
         return Result::Continue;
     }
 
@@ -54,7 +54,7 @@ Result AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) c
 
         frame.setCompilerIf(elseFrame);
         sema.setPayload(nodeElseBlockRef, elseFrame);
-        sema.pushFrameAutoPopOnPostChild(frame, childRef);
+        sema.pushFramePopOnPostChild(frame, childRef);
     }
 
     return Result::Continue;
@@ -559,7 +559,7 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
 Result AstCompilerFunc::semaPreNode(Sema& sema)
 {
     SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
-    sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::Local);
+    sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
     sema.curScope().setSymMap(&sym);
     return Result::Continue;
 }

@@ -102,7 +102,7 @@ Result AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
 
     initEnumNextValue(sym, *typeView.type);
 
-    sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::Type);
+    sema.pushScopePopOnPostNode(SemaScopeFlagsE::Type);
     sema.curScope().setSymMap(&sym);
 
     return Result::Continue;

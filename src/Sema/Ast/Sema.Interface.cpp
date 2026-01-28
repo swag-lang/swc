@@ -40,8 +40,8 @@ Result AstInterfaceDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
 
     SemaFrame frame = sema.frame();
     frame.setInterface(&symItf);
-    sema.pushFrameAutoPopOnPostNode(frame);
-    sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::Type | SemaScopeFlagsE::Interface);
+    sema.pushFramePopOnPostNode(frame);
+    sema.pushScopePopOnPostNode(SemaScopeFlagsE::Type | SemaScopeFlagsE::Interface);
     sema.curScope().setSymMap(&symItf);
 
     return Result::Continue;

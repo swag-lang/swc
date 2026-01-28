@@ -14,8 +14,8 @@ Result AstWhileStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) co
     {
         SemaFrame frame = sema.frame();
         frame.setBreakable(sema.curNodeRef(), SemaFrame::BreakableKind::Loop);
-        sema.pushFrameAutoPopOnPostChild(frame, childRef);
-        sema.pushScopeAutoPopOnPostChild(SemaScopeFlagsE::Local, childRef);
+        sema.pushFramePopOnPostChild(frame, childRef);
+        sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
     }
 
     return Result::Continue;
@@ -28,8 +28,8 @@ Result AstInfiniteLoopStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     {
         SemaFrame frame = sema.frame();
         frame.setBreakable(sema.curNodeRef(), SemaFrame::BreakableKind::Loop);
-        sema.pushFrameAutoPopOnPostChild(frame, childRef);
-        sema.pushScopeAutoPopOnPostChild(SemaScopeFlagsE::Local, childRef);
+        sema.pushFramePopOnPostChild(frame, childRef);
+        sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
     }
 
     return Result::Continue;

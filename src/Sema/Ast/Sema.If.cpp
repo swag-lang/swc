@@ -11,7 +11,7 @@ SWC_BEGIN_NAMESPACE();
 Result AstIfStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeIfBlockRef || childRef == nodeElseBlockRef)
-        sema.pushScopeAutoPopOnPostChild(SemaScopeFlagsE::Local, childRef);
+        sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
 
     return Result::Continue;
 }
@@ -29,13 +29,13 @@ Result AstIfStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) cons
 
 Result AstElseStmt::semaPreNode(Sema& sema)
 {
-    sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::Local);
+    sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
     return Result::Continue;
 }
 
 Result AstElseIfStmt::semaPreNode(Sema& sema)
 {
-    sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::Local);
+    sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
     return Result::Continue;
 }
 

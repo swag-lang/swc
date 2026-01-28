@@ -41,7 +41,7 @@ Result AstStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
         sym.setTypeRef(structTypeRef);
         sym.setTyped(ctx);
 
-        sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::Type);
+        sema.pushScopePopOnPostNode(SemaScopeFlagsE::Type);
         sema.curScope().setSymMap(&sym);
     }
 
@@ -94,7 +94,7 @@ Result AstAnonymousStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& ch
         sym.setTypeRef(structTypeRef);
         sym.setTyped(ctx);
 
-        sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::Type);
+        sema.pushScopePopOnPostNode(SemaScopeFlagsE::Type);
         sema.curScope().setSymMap(&sym);
     }
 

@@ -33,7 +33,7 @@ Result AstAccessModifier::semaPreDecl(Sema& sema) const
 
     SemaFrame newFrame = sema.frame();
     newFrame.setAccess(access);
-    sema.pushFrameAutoPopOnPostNode(newFrame);
+    sema.pushFramePopOnPostNode(newFrame);
 
     return Result::Continue;
 }
@@ -77,7 +77,7 @@ Result AstAttrDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
         return Result::Continue;
 
     SymbolAttribute& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolAttribute>();
-    sema.pushScopeAutoPopOnPostChild(SemaScopeFlagsE::Parameters, nodeParamsRef);
+    sema.pushScopePopOnPostChild(SemaScopeFlagsE::Parameters, nodeParamsRef);
     sema.curScope().setSymMap(&sym);
     return Result::Continue;
 }
@@ -95,7 +95,7 @@ Result AstAttrDecl::semaPostNode(Sema& sema)
 Result AstAttributeList::semaPreNode(Sema& sema)
 {
     const SemaFrame newFrame = sema.frame();
-    sema.pushFrameAutoPopOnPostNode(newFrame);
+    sema.pushFramePopOnPostNode(newFrame);
     return Result::Continue;
 }
 

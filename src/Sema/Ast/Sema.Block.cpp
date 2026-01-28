@@ -13,14 +13,14 @@ Result AstFile::semaPreDecl(Sema& sema) const
 {
     SymbolNamespace* fileNamespace = Symbol::make<SymbolNamespace>(sema.ctx(), this, tokRef(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
     sema.semaInfo().setFileNamespace(*fileNamespace);
-    sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::TopLevel);
+    sema.pushScopePopOnPostNode(SemaScopeFlagsE::TopLevel);
     sema.curScope().setSymMap(&sema.semaInfo().moduleNamespace());
     return Result::Continue;
 }
 
 Result AstFile::semaPreNode(Sema& sema)
 {
-    sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::TopLevel);
+    sema.pushScopePopOnPostNode(SemaScopeFlagsE::TopLevel);
     sema.curScope().setSymMap(&sema.semaInfo().moduleNamespace());
     return Result::Continue;
 }
@@ -61,9 +61,9 @@ Result AstNamespaceDecl::pushNamespace(Sema& sema, const AstNode* node, SpanRef 
     }
 
     if (node->is(AstNodeId::CompilerGlobal))
-        sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::TopLevel, sema.visit().parentNodeRef(0));
+        sema.pushScopePopOnPostNode(SemaScopeFlagsE::TopLevel, sema.visit().parentNodeRef(0));
     else
-        sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::TopLevel);
+        sema.pushScopePopOnPostNode(SemaScopeFlagsE::TopLevel);
 
     sema.curScope().setSymMap(symMap);
     return Result::Continue;

@@ -24,7 +24,7 @@ Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
         // structs can't happen before all impls are attached.
         sema.compiler().incPendingImplRegistrations();
 
-        sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::TopLevel | SemaScopeFlagsE::Impl);
+        sema.pushScopePopOnPostNode(SemaScopeFlagsE::TopLevel | SemaScopeFlagsE::Impl);
         sema.curScope().setSymMap(sym);
     }
 
@@ -95,8 +95,8 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 
         auto frame = sema.frame();
         frame.setImpl(&symImpl);
-        sema.pushFrameAutoPopOnPostNode(frame);
-        sema.pushScopeAutoPopOnPostNode(SemaScopeFlagsE::TopLevel | SemaScopeFlagsE::Impl);
+        sema.pushFramePopOnPostNode(frame);
+        sema.pushScopePopOnPostNode(SemaScopeFlagsE::TopLevel | SemaScopeFlagsE::Impl);
         sema.curScope().setSymMap(symImpl.asSymMap());
     }
 

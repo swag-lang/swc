@@ -158,6 +158,8 @@ SWC_DIAG_DEF(sema_err_switch_range_invalid_type, Error, "range case is only supp
 SWC_DIAG_DEF(sema_err_switch_case_not_const, Error, "a switch with an expression must have a constant for each case value")
 SWC_DIAG_DEF(sema_err_switch_case_not_bool, Error, "a switch without an expression must have a bool compatible value as an expression")
 SWC_DIAG_DEF(sema_err_switch_case_duplicate, Error, "duplicated constant case value '{value}'")
+SWC_DIAG_DEF(sema_err_switch_complete_no_expr, Error, "a switch without an expression cannot be marked with the 'Complete' attribute")
+SWC_DIAG_DEF(sema_err_switch_incomplete_no_expr, Error, "a switch without an expression cannot be marked with the 'Incomplete' attribute")
 SWC_DIAG_DEF(sema_err_impl_not_struct, Error, "expected a struct implementation block, but '{sym}' is {a-sym-fam}")
 SWC_DIAG_DEF(sema_err_impl_not_enum, Error, "expected an enum implementation block, but '{sym}' is {a-sym-fam}")
 SWC_DIAG_DEF(sema_err_impl_not_interface, Error, "expected an interface implementation block, but '{sym}' is {a-sym-fam}")

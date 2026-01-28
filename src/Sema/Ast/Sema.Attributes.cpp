@@ -57,6 +57,10 @@ Result AstAttrDecl::semaPreDecl(Sema& sema) const
     {
         if (sym.idRef() == sema.idMgr().nameEnumFlags())
             sym.setSwagAttributeFlags(SwagAttributeFlagsE::EnumFlags);
+        else if (sym.idRef() == sema.idMgr().nameComplete())
+            sym.setSwagAttributeFlags(SwagAttributeFlagsE::Complete);
+        else if (sym.idRef() == sema.idMgr().nameIncomplete())
+            sym.setSwagAttributeFlags(SwagAttributeFlagsE::Incomplete);
         else if (sym.idRef() == sema.idMgr().nameStrict())
             sym.setSwagAttributeFlags(SwagAttributeFlagsE::Strict);
     }

@@ -15,6 +15,8 @@ void IdentifierManager::setup(TaskContext&)
 
     nameAttributeUsage_ = addIdentifier("AttributeUsage");
     nameEnumFlags_      = addIdentifier("EnumFlags");
+    nameComplete_       = addIdentifier("Complete");
+    nameIncomplete_     = addIdentifier("Incomplete");
     nameStrict_         = addIdentifier("Strict");
     nameMe_             = addIdentifier("me");
 

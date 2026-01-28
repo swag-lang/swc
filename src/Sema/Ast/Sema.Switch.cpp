@@ -72,6 +72,20 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
         }
     }
 
+    // A switch can be marked with the 'Complete' attribute, except if it does not have an expression.
+    if (sema.frame().attributes().hasSwagFlag(SwagAttributeFlagsE::Complete))
+    {
+        if (!nodeExprRef.isValid())
+            return SemaError::raise(sema, DiagnosticId::sema_err_switch_complete_no_expr, sema.curNodeRef());
+    }
+
+    // A switch can be marked with the 'Incomplete' attribute, except if it does not have an expression.
+    if (sema.frame().attributes().hasSwagFlag(SwagAttributeFlagsE::Incomplete))
+    {
+        if (!nodeExprRef.isValid())
+            return SemaError::raise(sema, DiagnosticId::sema_err_switch_incomplete_no_expr, sema.curNodeRef());
+    }
+
     return Result::Continue;
 }
 

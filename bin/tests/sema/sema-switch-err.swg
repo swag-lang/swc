@@ -52,3 +52,25 @@
             break
     }
 }
+
+#test
+{
+    // Invalid switch expr type
+    var a : [4] s32
+    switch a // swc-expected-error {{sema_err_switch_invalid_type}}
+    {
+    }
+}
+
+#test
+{
+    // Invalid range type
+    var b = "hello"
+    switch b
+    {
+        case "a" to "z": // swc-expected-error {{sema_err_switch_range_invalid_type}}
+            break
+        default:
+            break
+    }
+}

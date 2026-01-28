@@ -132,20 +132,11 @@
 
 #test
 {
-    // Invalid switch expr type
-    var a : [4] s32
-    switch a // swc-expected-error {{sema_err_switch_invalid_type}}
+    var v = 2
+    #[Swag.Complete]
+    switch v
     {
-    }
-}
-
-#test
-{
-    // Invalid range type
-    var b = "hello"
-    switch b
-    {
-        case "a" to "z": // swc-expected-error {{sema_err_switch_range_invalid_type}}
+        case 1 to 3:
             break
         default:
             break

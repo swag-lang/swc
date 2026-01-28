@@ -11,6 +11,8 @@ enum class SwagAttributeFlagsE : uint64_t
     Zero      = 0,
     EnumFlags = 1 << 0,
     Strict    = 1 << 1,
+    Complete   = 1 << 2,
+    Incomplete = 1 << 3,
 };
 using SwagAttributeFlags = EnumFlags<SwagAttributeFlagsE>;
 

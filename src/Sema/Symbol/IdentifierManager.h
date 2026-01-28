@@ -28,6 +28,8 @@ public:
     IdentifierRef nameSwag() const { return nameSwag_; }
     IdentifierRef nameAttributeUsage() const { return nameAttributeUsage_; }
     IdentifierRef nameEnumFlags() const { return nameEnumFlags_; }
+    IdentifierRef nameComplete() const { return nameComplete_; }
+    IdentifierRef nameIncomplete() const { return nameIncomplete_; }
     IdentifierRef nameStrict() const { return nameStrict_; }
     IdentifierRef nameMe() const { return nameMe_; }
     IdentifierRef nameTargetOs() const { return nameTargetOs_; }
@@ -78,6 +80,8 @@ private:
     IdentifierRef nameSwag_               = IdentifierRef::invalid();
     IdentifierRef nameAttributeUsage_     = IdentifierRef::invalid();
     IdentifierRef nameEnumFlags_          = IdentifierRef::invalid();
+    IdentifierRef nameComplete_           = IdentifierRef::invalid();
+    IdentifierRef nameIncomplete_         = IdentifierRef::invalid();
     IdentifierRef nameStrict_             = IdentifierRef::invalid();
     IdentifierRef nameMe_                 = IdentifierRef::invalid();
     IdentifierRef nameTargetOs_           = IdentifierRef::invalid();

@@ -256,7 +256,7 @@ namespace
 
     Result semaDRef(Sema& sema, AstUnaryExpr& node, const SemaNodeView& nodeView)
     {
-        TypeRef resultTypeRef = nodeView.type->typeRef();
+        TypeRef resultTypeRef = nodeView.type->nestedTypeRef();
         if (nodeView.type->isConst())
         {
             const TypeInfo ty = sema.typeMgr().get(resultTypeRef);

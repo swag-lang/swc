@@ -225,7 +225,7 @@ namespace
         {
             case LayoutKind::Pointer:
             case LayoutKind::Slice:
-                deps.push_back(type.typeRef());
+                deps.push_back(type.nestedTypeRef());
                 break;
 
             case LayoutKind::Array:
@@ -233,7 +233,7 @@ namespace
                 const TypeRef elemTypeRef = type.arrayElemTypeRef();
                 deps.push_back(elemTypeRef);
 
-                const TypeRef finalTypeRef = tm.get(elemTypeRef).expand(ctx, elemTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+                const TypeRef finalTypeRef = tm.get(elemTypeRef).unwrap(ctx, elemTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
                 if (finalTypeRef != elemTypeRef)
                     deps.push_back(finalTypeRef);
                 break;
@@ -244,7 +244,7 @@ namespace
                 break;
 
             case LayoutKind::TypedVariadic:
-                deps.push_back(type.typeRef());
+                deps.push_back(type.nestedTypeRef());
                 break;
 
             default:
@@ -336,7 +336,7 @@ namespace
         {
             case LayoutKind::Pointer:
             {
-                const TypeRef depKey = typeMgr.get(key).typeRef();
+                const TypeRef depKey = typeMgr.get(key).nestedTypeRef();
                 const auto&   dep    = requireDone(cache, depKey);
                 addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoPointer, pointedType), dep.offset);
                 break;
@@ -344,7 +344,7 @@ namespace
 
             case LayoutKind::Slice:
             {
-                const TypeRef depKey = typeMgr.get(key).typeRef();
+                const TypeRef depKey = typeMgr.get(key).nestedTypeRef();
                 const auto&   dep    = requireDone(cache, depKey);
                 addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoSlice, pointedType), dep.offset);
                 break;
@@ -356,7 +356,7 @@ namespace
                 const auto&   dep         = requireDone(cache, elemTypeRef);
                 addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoArray, pointedType), dep.offset);
 
-                const TypeRef finalTypeRef = typeMgr.get(elemTypeRef).expand(ctx, elemTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+                const TypeRef finalTypeRef = typeMgr.get(elemTypeRef).unwrap(ctx, elemTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
                 const auto&   fin          = requireDone(cache, finalTypeRef);
                 addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoArray, finalType), fin.offset);
                 break;
@@ -372,7 +372,7 @@ namespace
 
             case LayoutKind::TypedVariadic:
             {
-                const TypeRef depKey = typeMgr.get(key).typeRef();
+                const TypeRef depKey = typeMgr.get(key).nestedTypeRef();
                 const auto&   dep    = requireDone(cache, depKey);
                 addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoVariadic, rawType), dep.offset);
                 break;

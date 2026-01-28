@@ -63,7 +63,7 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 
         const auto&     typeMgr   = sema.ctx().typeMgr();
         const TypeInfo& type      = typeMgr.get(exprView.typeRef);
-        const TypeRef   ultimate  = type.expand(sema.ctx(), exprView.typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeRef   ultimate  = type.unwrap(sema.ctx(), exprView.typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
         const TypeInfo& finalType = typeMgr.get(ultimate);
         if (!finalType.isIntLike() && !finalType.isFloat() && !finalType.isBool() && !finalType.isString())
             return SemaError::raise(sema, DiagnosticId::sema_err_switch_invalid_type, nodeExprRef);
@@ -149,7 +149,7 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
             // Range expression
             if (sema.node(childRef).is(AstNodeId::RangeExpr))
             {
-                const TypeRef   ultimateSwitchTypeRef = sema.typeMgr().get(switchTypeRef).expand(sema.ctx(), switchTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+                const TypeRef   ultimateSwitchTypeRef = sema.typeMgr().get(switchTypeRef).unwrap(sema.ctx(), switchTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
                 const TypeInfo& switchType            = sema.typeMgr().get(ultimateSwitchTypeRef);
                 if (!switchType.isScalarNumeric())
                     return SemaError::raise(sema, DiagnosticId::sema_err_switch_range_invalid_type, childRef);

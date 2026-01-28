@@ -172,7 +172,7 @@ namespace
         }
         else
         {
-            TypeInfo ty = TypeInfo::makeSlice(nodeViewPtr.type->typeRef());
+            TypeInfo ty = TypeInfo::makeSlice(nodeViewPtr.type->nestedTypeRef());
             if (nodeViewPtr.type->isConst())
                 ty.addFlag(TypeInfoFlagsE::Const);
             typeRef = sema.typeMgr().addType(ty);

@@ -126,12 +126,12 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     }
     else if (nodeExprView.type->isBlockPointer())
     {
-        sema.setType(sema.curNodeRef(), nodeExprView.type->typeRef());
+        sema.setType(sema.curNodeRef(), nodeExprView.type->nestedTypeRef());
         SemaInfo::setIsLValue(*this);
     }
     else if (nodeExprView.type->isSlice())
     {
-        sema.setType(sema.curNodeRef(), nodeExprView.type->typeRef());
+        sema.setType(sema.curNodeRef(), nodeExprView.type->nestedTypeRef());
         SemaInfo::setIsLValue(*this);
     }
     else if (nodeExprView.type->isString() || nodeExprView.type->isCString())

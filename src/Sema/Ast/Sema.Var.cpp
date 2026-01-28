@@ -116,7 +116,7 @@ namespace
             const TypeInfo& ultimateType = sema.typeMgr().get(finalTypeRef);
             if (!ultimateType.isStruct())
             {
-                if (!ultimateType.isAnyPointer() || !sema.typeMgr().get(ultimateType.typeRef()).isStruct())
+                if (!ultimateType.isAnyPointer() || !sema.typeMgr().get(ultimateType.nestedTypeRef()).isStruct())
                 {
                     auto diag = SemaError::report(sema, DiagnosticId::sema_err_using_member_type, owner.srcViewRef(), tokDiag);
                     diag.addArgument(Diagnostic::ARG_TYPE, finalTypeRef);

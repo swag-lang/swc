@@ -197,16 +197,16 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
     switch (nodeView.type->kind())
     {
         case TypeInfoKind::ValuePointer:
-            typeRef = typeMgr.addType(TypeInfo::makeValuePointer(nodeView.type->typeRef(), typeFlags));
+            typeRef = typeMgr.addType(TypeInfo::makeValuePointer(nodeView.type->nestedTypeRef(), typeFlags));
             break;
         case TypeInfoKind::BlockPointer:
-            typeRef = typeMgr.addType(TypeInfo::makeBlockPointer(nodeView.type->typeRef(), typeFlags));
+            typeRef = typeMgr.addType(TypeInfo::makeBlockPointer(nodeView.type->nestedTypeRef(), typeFlags));
             break;
         case TypeInfoKind::Reference:
-            typeRef = typeMgr.addType(TypeInfo::makeReference(nodeView.type->typeRef(), typeFlags));
+            typeRef = typeMgr.addType(TypeInfo::makeReference(nodeView.type->nestedTypeRef(), typeFlags));
             break;
         case TypeInfoKind::Slice:
-            typeRef = typeMgr.addType(TypeInfo::makeSlice(nodeView.type->typeRef(), typeFlags));
+            typeRef = typeMgr.addType(TypeInfo::makeSlice(nodeView.type->nestedTypeRef(), typeFlags));
             break;
         case TypeInfoKind::String:
             typeRef = typeMgr.addType(TypeInfo::makeString(typeFlags));

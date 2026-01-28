@@ -528,7 +528,7 @@ namespace
             {
                 TypeRef variadicTy = TypeRef::invalid();
                 if (vi.isTypedVariadic)
-                    variadicTy = params.back()->type(ctx).typeRef();
+                    variadicTy = params.back()->type(ctx).nestedTypeRef();
 
                 for (uint32_t i = startVariadic; i < numArgs; ++i)
                 {
@@ -797,7 +797,7 @@ namespace
             return Result::Continue;
 
         const uint32_t startVariadic = numParams - 1;
-        const TypeRef  variadicTy    = selectedFnType.typeRef();
+        const TypeRef  variadicTy    = selectedFnType.nestedTypeRef();
 
         for (uint32_t i = startVariadic; i < numArgs; ++i)
         {

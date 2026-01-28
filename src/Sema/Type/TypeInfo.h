@@ -160,14 +160,14 @@ public:
     SymbolInterface&     symInterface() const noexcept { SWC_ASSERT(isInterface()); return *asInterface.sym; }
     SymbolAlias&         symAlias() const noexcept { SWC_ASSERT(isAlias()); return *asAlias.sym; }
     SymbolFunction&      symFunction() const noexcept { SWC_ASSERT(isFunction()); return *asFunction.sym; }
-    TypeRef              typeRef() const noexcept { SWC_ASSERT(isTypeValue() || isAnyPointer() || isReference() || isSlice() || isAlias() || isTypedVariadic()); return asTypeRef.typeRef; }
-    TypeRef              computeTypeRef() const noexcept { return typeRef_; }
+    TypeRef              nestedTypeRef() const noexcept { SWC_ASSERT(isTypeValue() || isAnyPointer() || isReference() || isSlice() || isAlias() || isTypedVariadic()); return asTypeRef.typeRef; }
+    TypeRef              selfTypeRef() const noexcept { return typeRef_; }
     auto&                arrayDims() const noexcept { SWC_ASSERT(isArray()); return asArray.dims; }
     TypeRef              arrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return asArray.typeRef; }
     // clang-format on
 
     TypeRef underlyingTypeRef() const noexcept;
-    TypeRef expand(const TaskContext& ctx, TypeRef defaultTypeRef = TypeRef::invalid(), TypeExpand expandFlags = TypeExpandE::All) const noexcept;
+    TypeRef unwrap(const TaskContext& ctx, TypeRef defaultTypeRef = TypeRef::invalid(), TypeExpand expandFlags = TypeExpandE::All) const noexcept;
 
     static TypeInfo makeBool();
     static TypeInfo makeChar();

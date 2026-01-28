@@ -74,7 +74,7 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
     {
         const TypeInfo& cstType = sema.typeMgr().get(cst.typeRef());
         SWC_ASSERT(cstType.isAnyPointer());
-        const TypeInfo& pointedType = sema.typeMgr().get(cstType.typeRef());
+        const TypeInfo& pointedType = sema.typeMgr().get(cstType.nestedTypeRef());
         SWC_ASSERT(pointedType.isStruct());
         const uint64_t ptr = cst.isValuePointer() ? cst.getValuePointer() : cst.getBlockPointer();
         SWC_ASSERT(ptr);
@@ -105,7 +105,7 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
     ConstantValue cv;
     if (typeField->isStruct())
     {
-        cv = ConstantValue::makeStruct(ctx, typeField->typeRef(), fieldBytes);
+        cv = ConstantValue::makeStruct(ctx, typeField->nestedTypeRef(), fieldBytes);
     }
     else if (typeField->isBool())
     {
@@ -129,12 +129,12 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
     else if (typeField->isValuePointer())
     {
         const auto val = *reinterpret_cast<const uint64_t*>(fieldBytes.data());
-        cv             = ConstantValue::makeValuePointer(ctx, typeField->typeRef(), val);
+        cv             = ConstantValue::makeValuePointer(ctx, typeField->nestedTypeRef(), val);
     }
     else if (typeField->isSlice())
     {
         const auto slice = reinterpret_cast<const Runtime::Slice<uint8_t>*>(fieldBytes.data());
-        cv               = ConstantValue::makeSlice(ctx, typeField->typeRef(), reinterpret_cast<uint64_t>(slice->ptr), slice->count);
+        cv               = ConstantValue::makeSlice(ctx, typeField->nestedTypeRef(), reinterpret_cast<uint64_t>(slice->ptr), slice->count);
     }
     else
     {

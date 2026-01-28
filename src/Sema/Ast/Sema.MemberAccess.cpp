@@ -424,7 +424,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     }
     else if (typeInfo->isAnyPointer() || typeInfo->isReference())
     {
-        typeInfo = &sema.typeMgr().get(typeInfo->typeRef());
+        typeInfo = &sema.typeMgr().get(typeInfo->nestedTypeRef());
     }
 
     // Struct
@@ -434,7 +434,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     // Pointer/Reference
     if (nodeLeftView.type->isAnyPointer() || nodeLeftView.type->isReference())
     {
-        sema.setType(sema.curNodeRef(), nodeLeftView.type->typeRef());
+        sema.setType(sema.curNodeRef(), nodeLeftView.type->nestedTypeRef());
         SemaInfo::setIsValue(*this);
         return Result::SkipChildren;
     }

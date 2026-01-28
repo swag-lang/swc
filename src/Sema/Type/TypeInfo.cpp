@@ -892,7 +892,7 @@ TypeRef TypeInfo::underlyingTypeRef() const noexcept
     return TypeRef::invalid();
 }
 
-TypeRef TypeInfo::expand(const TaskContext& ctx, TypeRef defaultTypeRef, TypeExpand expandFlags) const noexcept
+TypeRef TypeInfo::unwrap(const TaskContext& ctx, TypeRef defaultTypeRef, TypeExpand expandFlags) const noexcept
 {
     auto result = typeRef_;
 

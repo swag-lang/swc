@@ -424,7 +424,7 @@ namespace
             {
                 // TODO
                 // @compatibility
-                if (dstType.ultimateTypeRef(sema.ctx()) == sema.typeMgr().typeVoid())
+                if (dstType.expand(sema.ctx(), TypeRef::invalid(), TypeExpandE::Pointer) == sema.typeMgr().typeVoid())
                 {
                 }
                 else if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))

@@ -892,21 +892,37 @@ TypeRef TypeInfo::underlyingTypeRef() const noexcept
     return TypeRef::invalid();
 }
 
-TypeRef TypeInfo::ultimateTypeRef(const TaskContext& ctx, TypeRef defaultTypeRef) const noexcept
+TypeRef TypeInfo::expand(const TaskContext& ctx, TypeRef defaultTypeRef, TypeExpand expandFlags) const noexcept
 {
-    TypeRef result = underlyingTypeRef();
-    if (!result.isValid())
-        return defaultTypeRef;
+    auto result = typeRef_;
 
     while (true)
     {
         const TypeInfo& ty  = ctx.typeMgr().get(result);
-        TypeRef         sub = ty.underlyingTypeRef();
-        if (!sub.isValid())
+        TypeRef         sub = TypeRef::invalid();
+
+        if (expandFlags.has(TypeExpandE::Alias) && ty.isAlias())
+            sub = ty.asAlias.sym->underlyingTypeRef();
+        else if (expandFlags.has(TypeExpandE::Enum) && ty.isEnum())
+            sub = ty.asEnum.sym->underlyingTypeRef();
+        else if (expandFlags.has(TypeExpandE::Pointer) && ty.isAnyPointer())
+            sub = ty.asTypeRef.typeRef;
+        else if (expandFlags.has(TypeExpandE::Array) && ty.isArray())
+            sub = ty.asArray.typeRef;
+        else if (expandFlags.has(TypeExpandE::Slice) && ty.isSlice())
+            sub = ty.asTypeRef.typeRef;
+        else if (expandFlags.has(TypeExpandE::Variadic) && ty.isTypedVariadic())
+            sub = ty.asTypeRef.typeRef;
+        else if (expandFlags.has(TypeExpandE::Function) && ty.isFunction())
+            sub = ty.asFunction.sym->returnTypeRef();
+
+        if (sub.isInvalid())
             break;
         result = sub;
     }
 
+    if (result == typeRef_)
+        return defaultTypeRef;
     return result;
 }
 

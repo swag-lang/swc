@@ -53,6 +53,20 @@ enum class TypeInfoKind : uint8_t
 class TypeInfo;
 using TypeRef = StrongRef<TypeInfo>;
 
+enum class TypeExpandE : uint32_t
+{
+    None     = 0,
+    Alias    = 1 << 0,
+    Enum     = 1 << 1,
+    Pointer  = 1 << 2,
+    Function = 1 << 3,
+    Array    = 1 << 4,
+    Slice    = 1 << 5,
+    Variadic = 1 << 6,
+    All      = 0xFFFFFFFF,
+};
+using TypeExpand = EnumFlags<TypeExpandE>;
+
 class TypeInfo
 {
     friend struct TypeInfoHash;
@@ -147,11 +161,13 @@ public:
     SymbolAlias&         symAlias() const noexcept { SWC_ASSERT(isAlias()); return *asAlias.sym; }
     SymbolFunction&      symFunction() const noexcept { SWC_ASSERT(isFunction()); return *asFunction.sym; }
     TypeRef              typeRef() const noexcept { SWC_ASSERT(isTypeValue() || isAnyPointer() || isReference() || isSlice() || isAlias() || isTypedVariadic()); return asTypeRef.typeRef; }
+    TypeRef              computeTypeRef() const noexcept { return typeRef_; }
     auto&                arrayDims() const noexcept { SWC_ASSERT(isArray()); return asArray.dims; }
     TypeRef              arrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return asArray.typeRef; }
-    TypeRef              underlyingTypeRef() const noexcept;
-    TypeRef              ultimateTypeRef(const TaskContext& ctx, TypeRef defaultTypeRef = TypeRef::invalid()) const noexcept;
     // clang-format on
+
+    TypeRef underlyingTypeRef() const noexcept;
+    TypeRef expand(const TaskContext& ctx, TypeRef defaultTypeRef = TypeRef::invalid(), TypeExpand expandFlags = TypeExpandE::All) const noexcept;
 
     static TypeInfo makeBool();
     static TypeInfo makeChar();
@@ -188,8 +204,9 @@ public:
 private:
     explicit TypeInfo(TypeInfoKind kind, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
 
-    TypeInfoKind  kind_  = TypeInfoKind::Invalid;
-    TypeInfoFlags flags_ = TypeInfoFlagsE::Zero;
+    TypeInfoKind  kind_    = TypeInfoKind::Invalid;
+    TypeInfoFlags flags_   = TypeInfoFlagsE::Zero;
+    TypeRef       typeRef_ = TypeRef::invalid();
 
     union
     {

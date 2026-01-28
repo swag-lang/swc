@@ -169,9 +169,12 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
     const uint32_t localIndex = shard.store.push_back(typeInfo);
     SWC_ASSERT(localIndex < LOCAL_MASK);
 
-    auto result = TypeRef{(shardIndex << LOCAL_BITS) | localIndex};
+    auto ptr      = shard.store.ptr<TypeInfo>(localIndex);
+    auto result   = TypeRef{(shardIndex << LOCAL_BITS) | localIndex};
+    ptr->typeRef_ = result;
+
 #if SWC_HAS_REF_DEBUG_INFO
-    result.dbgPtr = &getNoLock(result);
+    result.dbgPtr = ptr;
 #endif
 
     it->second = result;

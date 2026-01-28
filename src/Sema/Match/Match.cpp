@@ -59,7 +59,7 @@ namespace
         const auto& typeMgr = sema.typeMgr();
 
         // Resolve aliases so that `using v: AliasToStruct` works.
-        const TypeRef   ultimateTypeRef = typeMgr.get(symVar.typeRef()).ultimateTypeRef(ctx, symVar.typeRef());
+        const TypeRef   ultimateTypeRef = typeMgr.get(symVar.typeRef()).expand(ctx, symVar.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
         const TypeInfo& ultimateType    = typeMgr.get(ultimateTypeRef);
 
         if (ultimateType.isStruct())
@@ -67,7 +67,7 @@ namespace
 
         if (ultimateType.isAnyPointer())
         {
-            const TypeRef   pointeeUltimateRef = typeMgr.get(ultimateType.typeRef()).ultimateTypeRef(ctx, ultimateType.typeRef());
+            const TypeRef   pointeeUltimateRef = typeMgr.get(ultimateType.typeRef()).expand(ctx, ultimateType.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
             const TypeInfo& pointeeUltimate    = typeMgr.get(pointeeUltimateRef);
             if (pointeeUltimate.isStruct())
                 return &pointeeUltimate.symStruct();
@@ -135,7 +135,7 @@ namespace
                         addSymMap(lookUpCxt, symImpl->asSymMap(), priority);
                 }
             }
-            
+
             addSymMap(lookUpCxt, lookUpCxt.symMapHint, priority);
 
             // Struct member lookup must also see members of `using` fields.
@@ -144,7 +144,7 @@ namespace
                 SmallVector<const SymbolStruct*> visited;
                 addUsingMemberSymMaps(sema, lookUpCxt, *structSym, searchOrder, visited);
             }
-            
+
             return;
         }
 

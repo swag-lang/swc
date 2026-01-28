@@ -156,7 +156,7 @@ SWC_DIAG_DEF(sema_err_continue_not_in_loop, Error, "'continue' cannot be used in
 SWC_DIAG_DEF(sema_err_switch_invalid_type, Error, "invalid switch expression type '{type}'; expected int-like, float, bool, or string")
 SWC_DIAG_DEF(sema_err_switch_range_invalid_type, Error, "range case is only supported for numeric switch expressions (got '{type}')")
 SWC_DIAG_DEF(sema_err_switch_case_not_const, Error, "a switch with an expression must have a constant for each case value")
-SWC_DIAG_DEF(sema_err_switch_case_not_bool, Error, "a switch without an expression must have a bool compatible value as an expression")
+SWC_DIAG_DEF(sema_err_switch_case_not_bool, Error, "a switch without an expression must have a bool compatible value as an expression (type is '{type}')")
 SWC_DIAG_DEF(sema_err_switch_case_duplicate, Error, "duplicated constant case value '{value}'")
 SWC_DIAG_DEF(sema_err_switch_complete_no_expr, Error, "a switch without an expression cannot be marked with the 'Complete' attribute")
 SWC_DIAG_DEF(sema_err_switch_incomplete_no_expr, Error, "a switch without an expression cannot be marked with the 'Incomplete' attribute")

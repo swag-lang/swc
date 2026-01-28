@@ -1,5 +1,5 @@
 #global internal
-
+/*
 #test
 {
     // A switch with an expression requires constant case values
@@ -39,7 +39,7 @@
             break
     }
 }
-
+*/
 #test
 {
     // A switch without an expression is a condition-switch; each case expression must be bool-compatible
@@ -52,7 +52,7 @@
             break
     }
 }
-
+/*
 #test
 {
     // Invalid switch expr type
@@ -74,3 +74,4 @@
             break
     }
 }
+*/

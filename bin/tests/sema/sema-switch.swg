@@ -16,6 +16,26 @@
 
 #test
 {
+    // Duplicate-case tracking must be per-switch (no leakage across switches).
+    switch 1
+    {
+        case 1:
+            break
+        default:
+            break
+    }
+
+    switch 1
+    {
+        case 1:
+            break
+        default:
+            break
+    }
+}
+
+#test
+{
     // enum is valid if its underlying type is supported
     enum E : s32
     {

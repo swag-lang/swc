@@ -1228,7 +1228,8 @@ struct AstWhileStmt : AstNodeT<AstNodeId::WhileStmt>
     AstNodeRef nodeBodyRef;
 
     void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeBodyRef}); }
-    static Result semaPreNode(Sema&) { return Result::SkipChildren; }
+    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
 };
 
 // -----------------------------------------------------------------------------

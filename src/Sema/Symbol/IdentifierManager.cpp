@@ -11,72 +11,84 @@ SWC_BEGIN_NAMESPACE();
 
 void IdentifierManager::setup(TaskContext&)
 {
-    nameSwag_ = addIdentifier("Swag");
+    predefined_.fill(IdentifierRef::invalid());
 
-    nameAttributeUsage_ = addIdentifier("AttributeUsage");
+    struct PredefinedEntry
+    {
+        PredefinedName  name;
+        std::string_view str;
+    };
 
-    nameAttrMulti_    = addIdentifier("AttrMulti");
-    nameConstExpr_    = addIdentifier("ConstExpr");
-    namePrintBc_      = addIdentifier("PrintBc");
-    namePrintBcGen_   = addIdentifier("PrintBcGen");
-    namePrintAsm_     = addIdentifier("PrintAsm");
-    nameCompiler_     = addIdentifier("Compiler");
-    nameInline_       = addIdentifier("Inline");
-    nameNoInline_     = addIdentifier("NoInline");
-    namePlaceHolder_  = addIdentifier("PlaceHolder");
-    nameNoPrint_      = addIdentifier("NoPrint");
-    nameMacro_        = addIdentifier("Macro");
-    nameMixin_        = addIdentifier("Mixin");
-    nameImplicit_     = addIdentifier("Implicit");
-    nameEnumFlags_    = addIdentifier("EnumFlags");
-    nameEnumIndex_    = addIdentifier("EnumIndex");
-    nameNoDuplicate_  = addIdentifier("NoDuplicate");
-    nameComplete_     = addIdentifier("Complete");
-    nameOverload_     = addIdentifier("Overload");
-    nameCalleeReturn_ = addIdentifier("CalleeReturn");
-    nameDiscardable_  = addIdentifier("Discardable");
-    nameNotGeneric_   = addIdentifier("NotGeneric");
-    nameTls_          = addIdentifier("Tls");
-    nameNoCopy_       = addIdentifier("NoCopy");
-    nameOpaque_       = addIdentifier("Opaque");
-    nameIncomplete_   = addIdentifier("Incomplete");
-    nameStrict_       = addIdentifier("Strict");
-    nameNoDoc_        = addIdentifier("NoDoc");
-    nameGlobal_       = addIdentifier("Global");
-    nameMe_           = addIdentifier("me");
+    static constexpr PredefinedEntry PREDEFINED_NAMES[] = {
+        {.name = PredefinedName::Swag, .str = "Swag"},
+        {.name = PredefinedName::AttributeUsage, .str = "AttributeUsage"},
 
-    nameTargetOs_ = addIdentifier("TargetOs");
+        {.name = PredefinedName::AttrMulti, .str = "AttrMulti"},
+        {.name = PredefinedName::ConstExpr, .str = "ConstExpr"},
+        {.name = PredefinedName::PrintBc, .str = "PrintBc"},
+        {.name = PredefinedName::PrintBcGen, .str = "PrintBcGen"},
+        {.name = PredefinedName::PrintAsm, .str = "PrintAsm"},
+        {.name = PredefinedName::Compiler, .str = "Compiler"},
+        {.name = PredefinedName::Inline, .str = "Inline"},
+        {.name = PredefinedName::NoInline, .str = "NoInline"},
+        {.name = PredefinedName::PlaceHolder, .str = "PlaceHolder"},
+        {.name = PredefinedName::NoPrint, .str = "NoPrint"},
+        {.name = PredefinedName::Macro, .str = "Macro"},
+        {.name = PredefinedName::Mixin, .str = "Mixin"},
+        {.name = PredefinedName::Implicit, .str = "Implicit"},
+        {.name = PredefinedName::EnumFlags, .str = "EnumFlags"},
+        {.name = PredefinedName::EnumIndex, .str = "EnumIndex"},
+        {.name = PredefinedName::NoDuplicate, .str = "NoDuplicate"},
+        {.name = PredefinedName::Complete, .str = "Complete"},
+        {.name = PredefinedName::Overload, .str = "Overload"},
+        {.name = PredefinedName::CalleeReturn, .str = "CalleeReturn"},
+        {.name = PredefinedName::Discardable, .str = "Discardable"},
+        {.name = PredefinedName::NotGeneric, .str = "NotGeneric"},
+        {.name = PredefinedName::Tls, .str = "Tls"},
+        {.name = PredefinedName::NoCopy, .str = "NoCopy"},
+        {.name = PredefinedName::Opaque, .str = "Opaque"},
+        {.name = PredefinedName::Incomplete, .str = "Incomplete"},
+        {.name = PredefinedName::NoDoc, .str = "NoDoc"},
+        {.name = PredefinedName::Strict, .str = "Strict"},
+        {.name = PredefinedName::Global, .str = "Global"},
+        {.name = PredefinedName::Me, .str = "me"},
 
-    nameTypeInfo_           = addIdentifier("TypeInfo");
-    nameTypeInfoNative_     = addIdentifier("TypeInfoNative");
-    nameTypeInfoPointer_    = addIdentifier("TypeInfoPointer");
-    nameTypeInfoStruct_     = addIdentifier("TypeInfoStruct");
-    nameTypeInfoFunc_       = addIdentifier("TypeInfoFunc");
-    nameTypeInfoEnum_       = addIdentifier("TypeInfoEnum");
-    nameTypeInfoArray_      = addIdentifier("TypeInfoArray");
-    nameTypeInfoSlice_      = addIdentifier("TypeInfoSlice");
-    nameTypeInfoAlias_      = addIdentifier("TypeInfoAlias");
-    nameTypeInfoVariadic_   = addIdentifier("TypeInfoVariadic");
-    nameTypeInfoGeneric_    = addIdentifier("TypeInfoGeneric");
-    nameTypeInfoNamespace_  = addIdentifier("TypeInfoNamespace");
-    nameTypeInfoCodeBlock_  = addIdentifier("TypeInfoCodeBlock");
-    nameTypeInfoKind_       = addIdentifier("TypeInfoKind");
-    nameTypeInfoNativeKind_ = addIdentifier("TypeInfoNativeKind");
-    nameTypeInfoFlags_      = addIdentifier("TypeInfoFlags");
+        {.name = PredefinedName::TargetOs, .str = "TargetOs"},
 
-    nameTypeValue_          = addIdentifier("TypeValue");
-    nameTypeValueFlags_     = addIdentifier("TypeValueFlags");
-    nameAttribute_          = addIdentifier("Attribute");
-    nameAttributeParam_     = addIdentifier("AttributeParam");
-    nameInterface_          = addIdentifier("Interface");
-    nameSourceCodeLocation_ = addIdentifier("SourceCodeLocation");
-    nameErrorValue_         = addIdentifier("ErrorValue");
-    nameScratchAllocator_   = addIdentifier("ScratchAllocator");
-    nameContext_            = addIdentifier("Context");
-    nameContextFlags_       = addIdentifier("ContextFlags");
-    nameModule_             = addIdentifier("Module");
-    nameProcessInfos_       = addIdentifier("ProcessInfos");
-    nameGvtd_               = addIdentifier("Gvtd");
+        {.name = PredefinedName::TypeInfo, .str = "TypeInfo"},
+        {.name = PredefinedName::TypeInfoNative, .str = "TypeInfoNative"},
+        {.name = PredefinedName::TypeInfoPointer, .str = "TypeInfoPointer"},
+        {.name = PredefinedName::TypeInfoStruct, .str = "TypeInfoStruct"},
+        {.name = PredefinedName::TypeInfoFunc, .str = "TypeInfoFunc"},
+        {.name = PredefinedName::TypeInfoEnum, .str = "TypeInfoEnum"},
+        {.name = PredefinedName::TypeInfoArray, .str = "TypeInfoArray"},
+        {.name = PredefinedName::TypeInfoSlice, .str = "TypeInfoSlice"},
+        {.name = PredefinedName::TypeInfoAlias, .str = "TypeInfoAlias"},
+        {.name = PredefinedName::TypeInfoVariadic, .str = "TypeInfoVariadic"},
+        {.name = PredefinedName::TypeInfoGeneric, .str = "TypeInfoGeneric"},
+        {.name = PredefinedName::TypeInfoNamespace, .str = "TypeInfoNamespace"},
+        {.name = PredefinedName::TypeInfoCodeBlock, .str = "TypeInfoCodeBlock"},
+        {.name = PredefinedName::TypeInfoKind, .str = "TypeInfoKind"},
+        {.name = PredefinedName::TypeInfoNativeKind, .str = "TypeInfoNativeKind"},
+        {.name = PredefinedName::TypeInfoFlags, .str = "TypeInfoFlags"},
+
+        {.name = PredefinedName::TypeValue, .str = "TypeValue"},
+        {.name = PredefinedName::TypeValueFlags, .str = "TypeValueFlags"},
+        {.name = PredefinedName::Attribute, .str = "Attribute"},
+        {.name = PredefinedName::AttributeParam, .str = "AttributeParam"},
+        {.name = PredefinedName::Interface, .str = "Interface"},
+        {.name = PredefinedName::SourceCodeLocation, .str = "SourceCodeLocation"},
+        {.name = PredefinedName::ErrorValue, .str = "ErrorValue"},
+        {.name = PredefinedName::ScratchAllocator, .str = "ScratchAllocator"},
+        {.name = PredefinedName::Context, .str = "Context"},
+        {.name = PredefinedName::ContextFlags, .str = "ContextFlags"},
+        {.name = PredefinedName::Module, .str = "Module"},
+        {.name = PredefinedName::ProcessInfos, .str = "ProcessInfos"},
+        {.name = PredefinedName::Gvtd, .str = "Gvtd"},
+    };
+
+    for (const auto& it : PREDEFINED_NAMES)
+        predefined_[static_cast<size_t>(it.name)] = addIdentifier(it.str);
 }
 
 IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef)

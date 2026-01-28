@@ -94,7 +94,7 @@ bool Symbol::inSwagNamespace(const TaskContext& ctx) const noexcept
     const SymbolMap* const map = ownerSymMap();
     if (!map)
         return false;
-    return map->isNamespace() && map->idRef() == ctx.idMgr().nameSwag();
+    return map->isNamespace() && map->idRef() == ctx.idMgr().predefined(IdentifierManager::PredefinedName::Swag);
 }
 
 bool Symbol::deepCompare(const Symbol* other) const noexcept

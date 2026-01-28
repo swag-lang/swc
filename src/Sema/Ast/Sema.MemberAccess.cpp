@@ -419,7 +419,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     {
         const TypeRef typeInfoRef = sema.typeMgr().structTypeInfo();
         if (typeInfoRef.isInvalid())
-            return sema.waitIdentifier(sema.idMgr().nameTypeInfo(), srcViewRef(), tokNameRef);
+            return sema.waitIdentifier(sema.idMgr().predefined(IdentifierManager::PredefinedName::TypeInfo), srcViewRef(), tokNameRef);
         typeInfo = &sema.typeMgr().get(typeInfoRef);
     }
     else if (typeInfo->isAnyPointer() || typeInfo->isReference())

@@ -52,7 +52,7 @@ namespace
             const SymbolImpl* symImpl   = sema.frame().impl()->asSymMap()->safeCast<SymbolImpl>();
             const TypeRef     ownerType = symImpl->symStruct()->typeRef();
             auto&             ctx       = sema.ctx();
-            SymbolVariable*   symMe     = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), sema.idMgr().nameMe(), SymbolFlagsE::Zero);
+            SymbolVariable*   symMe     = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), sema.idMgr().predefined(IdentifierManager::PredefinedName::Me), SymbolFlagsE::Zero);
             TypeInfoFlags     typeFlags = TypeInfoFlagsE::Zero;
             if (sym.hasExtraFlag(SymbolFunctionFlagsE::Const))
                 typeFlags.add(TypeInfoFlagsE::Const);
@@ -83,7 +83,7 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         if (sym.isMethod())
         {
             const auto& params = sym.parameters();
-            if (!params.empty() && params[0]->idRef() == sema.idMgr().nameMe())
+            if (!params.empty() && params[0]->idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::Me))
                 frame.pushBindingVar(params[0]);
         }
 

@@ -218,7 +218,7 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
         {
             const TypeRef typeRef = sema.typeMgr().enumTargetOs();
             if (typeRef.isInvalid())
-                return sema.waitIdentifier(sema.idMgr().nameTargetOs(), srcViewRef(), tokRef());
+                return sema.waitIdentifier(sema.idMgr().predefined(IdentifierManager::PredefinedName::TargetOs), srcViewRef(), tokRef());
             const ConstantRef   valueCst     = sema.cstMgr().addS32(ctx, static_cast<int32_t>(sema.ctx().cmdLine().targetOs));
             const ConstantValue enumValue    = ConstantValue::makeEnumValue(ctx, valueCst, typeRef);
             const ConstantRef   enumValueRef = sema.cstMgr().addConstant(ctx, enumValue);
@@ -235,7 +235,7 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
         {
             const TypeRef typeRef = sema.typeMgr().structSourceCodeLocation();
             if (typeRef.isInvalid())
-                return sema.waitIdentifier(sema.idMgr().nameSourceCodeLocation(), srcViewRef(), tokRef());
+                return sema.waitIdentifier(sema.idMgr().predefined(IdentifierManager::PredefinedName::SourceCodeLocation), srcViewRef(), tokRef());
             sema.setConstant(sema.curNodeRef(), SemaHelpers::makeConstantLocation(sema, *this));
             break;
         }

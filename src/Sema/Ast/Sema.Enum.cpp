@@ -29,7 +29,7 @@ Result AstEnumDecl::semaPreNode(Sema& sema) const
         Symbol& sym = sema.symbolOf(sema.curNodeRef());
         if (sym.inSwagNamespace(sema.ctx()))
         {
-            if (sym.idRef() == sema.idMgr().nameAttributeUsage())
+            if (sym.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::AttributeUsage))
                 sym.attributes().addSwagFlag(SwagAttributeFlagsE::EnumFlags);
         }
     }

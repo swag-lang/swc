@@ -38,8 +38,9 @@ namespace
 
     struct SwitchCaseConstSet
     {
-        // Use `std::string` as key because `Utf8` is a custom type without `std::hash`.
-        std::unordered_set<std::string> seen;
+        // Track constant identities (not their string representation).
+        // `ConstantRef` is a `StrongRef` (no `std::hash`), so store the underlying id.
+        std::unordered_set<uint32_t> seen;
     };
 }
 
@@ -54,15 +55,6 @@ Result AstSwitchStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         const auto* switchStmt = switchNode.cast<AstSwitchStmt>();
         if (switchStmt && !switchStmt->nodeExprRef.isValid())
             sema.setType(sema.curNodeRef(), sema.ctx().typeMgr().typeBool());
-
-        // For value-switches, track duplicate constant case values across all cases.
-        // The set must be unique per switch statement.
-        if (switchStmt && switchStmt->nodeExprRef.isValid() &&
-            (sema.frame().currentSwitch() != sema.curNodeRef() || !sema.frame().switchPayload()))
-        {
-            sema.frame().setCurrentSwitch(sema.curNodeRef());
-            sema.frame().setSwitchPayload(sema.compiler().allocate<SwitchCaseConstSet>());
-        }
 
         SemaFrame frame = sema.frame();
         frame.setBreakable(sema.curNodeRef(), SemaFrame::BreakableKind::Switch);
@@ -94,6 +86,14 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
             return SemaError::raise(sema, DiagnosticId::sema_err_switch_invalid_type, nodeExprRef);
 
         sema.setType(sema.curNodeRef(), exprView.typeRef);
+
+        // For value-switches, track duplicate constant case values across all cases.
+        // Initialize this once per switch (after the switch expression is type-checked).
+        if (sema.frame().currentSwitch() != sema.curNodeRef() || !sema.frame().switchPayload())
+        {
+            sema.frame().setCurrentSwitch(sema.curNodeRef());
+            sema.frame().setSwitchPayload(sema.compiler().allocate<SwitchCaseConstSet>());
+        }
     }
 
     return Result::Continue;
@@ -230,11 +230,7 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
             if (sema.frame().switchPayload())
             {
                 auto* seenSet = static_cast<SwitchCaseConstSet*>(sema.frame().switchPayload());
-                const ConstantValue& cst = sema.cstMgr().get(exprView.cstRef);
-                std::string key = std::to_string(static_cast<int>(cst.kind()));
-                key += ':';
-                key += std::string(cst.toString(sema.ctx()));
-                if (!seenSet->seen.insert(key).second)
+                if (!seenSet->seen.insert(exprView.cstRef.get()).second)
                     return SemaError::raise(sema, DiagnosticId::sema_err_switch_case_duplicate, childRef);
             }
             return Result::Continue;

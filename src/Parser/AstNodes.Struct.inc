@@ -1340,6 +1340,7 @@ struct AstSwitchCaseStmt : AstCompoundT<AstNodeId::SwitchCaseStmt>
     }
 
     static Result semaPreNode(Sema& sema);
+    Result        semaPreNodeChild(Sema& sema, AstNodeRef& childRef) const;
     Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
 };
 

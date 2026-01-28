@@ -28,7 +28,13 @@
     {
         case E.A:
             break
+        case A:
+            break
+        case .B:
+            break
         case E.B:
+            break
+        case .C: // swc-expected-error {{sema_err_auto_scope_missing_enum_value}}
             break
         default:
             break
@@ -102,7 +108,7 @@
             break
     }
 }
-
+/*
 #test
 {
     // Invalid switch expr type
@@ -113,7 +119,7 @@
             break
     }
 }
-
+*/
 #test
 {
     // Invalid range type

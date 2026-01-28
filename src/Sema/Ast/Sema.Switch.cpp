@@ -126,16 +126,6 @@ namespace
         SemaNodeView view(sema, nodeRef);
         return Cast::cast(sema, view, switchTypeRef, CastKind::Implicit);
     }
-
-    AstNodeRef resolveSubstituteChain(Sema& sema, AstNodeRef nodeRef)
-    {
-        // Some semantic passes (casts, member access rewrites, …) substitute the original node
-        // with another one (e.g. `ImplicitCastExpr`). Constants are usually attached to the
-        // substitute node, so follow the chain before querying `hasConstant`.
-        while (nodeRef.isValid() && sema.semaInfo().hasSubstitute(nodeRef))
-            nodeRef = sema.semaInfo().getSubstituteRef(nodeRef);
-        return nodeRef;
-    }
 }
 
 Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -196,23 +186,23 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
                 if (range->nodeExprUpRef.isValid())
                     RESULT_VERIFY(castToSwitchType(sema, range->nodeExprUpRef, switchTypeRef));
 
-                if (range->nodeExprDownRef.isValid() && !sema.hasConstant(range->nodeExprDownRef))
+                if (range->nodeExprDownRef.isValid())
                 {
-                    const AstNodeRef downRef = resolveSubstituteChain(sema, range->nodeExprDownRef);
-                    if (!sema.hasConstant(downRef))
+                    const SemaNodeView downView(sema, range->nodeExprDownRef);
+                    if (downView.cstRef.isInvalid())
                         return SemaError::raise(sema, DiagnosticId::sema_err_switch_case_not_const, range->nodeExprDownRef);
                 }
                 if (range->nodeExprUpRef.isValid())
                 {
-                    const AstNodeRef upRef = resolveSubstituteChain(sema, range->nodeExprUpRef);
-                    if (!sema.hasConstant(upRef))
+                    const SemaNodeView upView(sema, range->nodeExprUpRef);
+                    if (upView.cstRef.isInvalid())
                         return SemaError::raise(sema, DiagnosticId::sema_err_switch_case_not_const, range->nodeExprUpRef);
                 }
                 return Result::Continue;
             }
 
             RESULT_VERIFY(castToSwitchType(sema, childRef, switchTypeRef));
-            if (!sema.hasConstant(resolveSubstituteChain(sema, childRef)))
+            if (SemaNodeView(sema, childRef).cstRef.isInvalid())
                 return SemaError::raise(sema, DiagnosticId::sema_err_switch_case_not_const, childRef);
             return Result::Continue;
         }

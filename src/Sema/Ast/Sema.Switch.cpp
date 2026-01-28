@@ -2,11 +2,8 @@
 #include "Sema/Core/Sema.h"
 #include "Parser/AstNodes.h"
 #include "Sema/Cast/Cast.h"
-#include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
-
-#include <unordered_set>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -40,7 +37,7 @@ namespace
     {
         // Track constant identities (not their string representation).
         // `ConstantRef` is a `StrongRef` (no `std::hash`), so store the underlying id.
-        std::unordered_set<uint32_t> seen;
+        std::unordered_set<ConstantRef> seen;
     };
 }
 
@@ -157,8 +154,8 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
     const AstNodeRef switchRef = sema.frame().currentSwitch();
     SWC_ASSERT(switchRef.isValid());
 
-    const auto& switchNode = sema.node(switchRef);
-    const auto* switchStmt = switchNode.cast<AstSwitchStmt>();
+    const auto& switchNode    = sema.node(switchRef);
+    const auto* switchStmt    = switchNode.cast<AstSwitchStmt>();
     const bool  hasSwitchExpr = switchStmt && switchStmt->nodeExprRef.isValid();
 
     const TypeRef switchTypeRef = sema.typeRefOf(switchRef);
@@ -178,7 +175,7 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
             // Condition-switch: each `case <expr>` must be bool-compatible.
             if (!hasSwitchExpr)
             {
-                SemaNodeView nodeView(sema, childRef);
+                SemaNodeView  nodeView(sema, childRef);
                 const TypeRef boolTypeRef = sema.ctx().typeMgr().typeBool();
 
                 CastContext castCtx(CastKind::Condition);
@@ -210,14 +207,14 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
                     if (downView.cstRef.isInvalid())
                         return SemaError::raise(sema, DiagnosticId::sema_err_switch_case_not_const, range->nodeExprDownRef);
                 }
-                
+
                 if (range->nodeExprUpRef.isValid())
                 {
                     const SemaNodeView upView(sema, range->nodeExprUpRef);
                     if (upView.cstRef.isInvalid())
                         return SemaError::raise(sema, DiagnosticId::sema_err_switch_case_not_const, range->nodeExprUpRef);
                 }
-                
+
                 return Result::Continue;
             }
 
@@ -230,7 +227,7 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
             if (sema.frame().switchPayload())
             {
                 auto* seenSet = static_cast<SwitchCaseConstSet*>(sema.frame().switchPayload());
-                if (!seenSet->seen.insert(exprView.cstRef.get()).second)
+                if (!seenSet->seen.insert(exprView.cstRef).second)
                     return SemaError::raise(sema, DiagnosticId::sema_err_switch_case_duplicate, childRef);
             }
             return Result::Continue;

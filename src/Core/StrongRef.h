@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 SWC_BEGIN_NAMESPACE();
 
 // Base template for strong type wrappers
@@ -45,3 +47,12 @@ private:
 };
 
 SWC_END_NAMESPACE();
+
+template<typename T>
+struct std::hash<swc::StrongRef<T>>
+{
+    size_t operator()(const swc::StrongRef<T>& v) const noexcept
+    {
+        return std::hash<uint32_t>{}(v.get());
+    }
+};

@@ -27,10 +27,34 @@ public:
 
     IdentifierRef nameSwag() const { return nameSwag_; }
     IdentifierRef nameAttributeUsage() const { return nameAttributeUsage_; }
+    IdentifierRef nameAttrMulti() const { return nameAttrMulti_; }
+    IdentifierRef nameConstExpr() const { return nameConstExpr_; }
+    IdentifierRef namePrintBc() const { return namePrintBc_; }
+    IdentifierRef namePrintBcGen() const { return namePrintBcGen_; }
+    IdentifierRef namePrintAsm() const { return namePrintAsm_; }
+    IdentifierRef nameCompiler() const { return nameCompiler_; }
+    IdentifierRef nameInline() const { return nameInline_; }
+    IdentifierRef nameNoInline() const { return nameNoInline_; }
+    IdentifierRef namePlaceHolder() const { return namePlaceHolder_; }
+    IdentifierRef nameNoPrint() const { return nameNoPrint_; }
+    IdentifierRef nameMacro() const { return nameMacro_; }
+    IdentifierRef nameMixin() const { return nameMixin_; }
+    IdentifierRef nameImplicit() const { return nameImplicit_; }
     IdentifierRef nameEnumFlags() const { return nameEnumFlags_; }
+    IdentifierRef nameEnumIndex() const { return nameEnumIndex_; }
+    IdentifierRef nameNoDuplicate() const { return nameNoDuplicate_; }
     IdentifierRef nameComplete() const { return nameComplete_; }
+    IdentifierRef nameOverload() const { return nameOverload_; }
+    IdentifierRef nameCalleeReturn() const { return nameCalleeReturn_; }
+    IdentifierRef nameDiscardable() const { return nameDiscardable_; }
+    IdentifierRef nameNotGeneric() const { return nameNotGeneric_; }
+    IdentifierRef nameTls() const { return nameTls_; }
+    IdentifierRef nameNoCopy() const { return nameNoCopy_; }
+    IdentifierRef nameOpaque() const { return nameOpaque_; }
     IdentifierRef nameIncomplete() const { return nameIncomplete_; }
+    IdentifierRef nameNoDoc() const { return nameNoDoc_; }
     IdentifierRef nameStrict() const { return nameStrict_; }
+    IdentifierRef nameGlobal() const { return nameGlobal_; }
     IdentifierRef nameMe() const { return nameMe_; }
     IdentifierRef nameTargetOs() const { return nameTargetOs_; }
     IdentifierRef nameTypeInfo() const { return nameTypeInfo_; }
@@ -77,12 +101,39 @@ private:
     static constexpr uint32_t LOCAL_MASK  = (1u << LOCAL_BITS) - 1;
     Shard                     shards_[SHARD_COUNT];
 
-    IdentifierRef nameSwag_               = IdentifierRef::invalid();
-    IdentifierRef nameAttributeUsage_     = IdentifierRef::invalid();
+    IdentifierRef nameSwag_           = IdentifierRef::invalid();
+    IdentifierRef nameAttributeUsage_ = IdentifierRef::invalid();
+
+    // Predefined Swag attributes (bootstrap.swg) with no parameters
+    IdentifierRef nameAttrMulti_   = IdentifierRef::invalid();
+    IdentifierRef nameConstExpr_   = IdentifierRef::invalid();
+    IdentifierRef namePrintBc_     = IdentifierRef::invalid();
+    IdentifierRef namePrintBcGen_  = IdentifierRef::invalid();
+    IdentifierRef namePrintAsm_    = IdentifierRef::invalid();
+    IdentifierRef nameCompiler_    = IdentifierRef::invalid();
+    IdentifierRef nameInline_      = IdentifierRef::invalid();
+    IdentifierRef nameNoInline_    = IdentifierRef::invalid();
+    IdentifierRef namePlaceHolder_ = IdentifierRef::invalid();
+    IdentifierRef nameNoPrint_     = IdentifierRef::invalid();
+    IdentifierRef nameMacro_       = IdentifierRef::invalid();
+    IdentifierRef nameMixin_       = IdentifierRef::invalid();
+    IdentifierRef nameImplicit_    = IdentifierRef::invalid();
+
     IdentifierRef nameEnumFlags_          = IdentifierRef::invalid();
+    IdentifierRef nameEnumIndex_          = IdentifierRef::invalid();
+    IdentifierRef nameNoDuplicate_        = IdentifierRef::invalid();
     IdentifierRef nameComplete_           = IdentifierRef::invalid();
+    IdentifierRef nameOverload_           = IdentifierRef::invalid();
+    IdentifierRef nameCalleeReturn_       = IdentifierRef::invalid();
+    IdentifierRef nameDiscardable_        = IdentifierRef::invalid();
+    IdentifierRef nameNotGeneric_         = IdentifierRef::invalid();
+    IdentifierRef nameTls_                = IdentifierRef::invalid();
+    IdentifierRef nameNoCopy_             = IdentifierRef::invalid();
+    IdentifierRef nameOpaque_             = IdentifierRef::invalid();
     IdentifierRef nameIncomplete_         = IdentifierRef::invalid();
     IdentifierRef nameStrict_             = IdentifierRef::invalid();
+    IdentifierRef nameNoDoc_              = IdentifierRef::invalid();
+    IdentifierRef nameGlobal_             = IdentifierRef::invalid();
     IdentifierRef nameMe_                 = IdentifierRef::invalid();
     IdentifierRef nameTargetOs_           = IdentifierRef::invalid();
     IdentifierRef nameTypeInfo_           = IdentifierRef::invalid();

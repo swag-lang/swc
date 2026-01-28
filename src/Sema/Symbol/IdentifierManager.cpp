@@ -14,11 +14,36 @@ void IdentifierManager::setup(TaskContext&)
     nameSwag_ = addIdentifier("Swag");
 
     nameAttributeUsage_ = addIdentifier("AttributeUsage");
-    nameEnumFlags_      = addIdentifier("EnumFlags");
-    nameComplete_       = addIdentifier("Complete");
-    nameIncomplete_     = addIdentifier("Incomplete");
-    nameStrict_         = addIdentifier("Strict");
-    nameMe_             = addIdentifier("me");
+
+    nameAttrMulti_    = addIdentifier("AttrMulti");
+    nameConstExpr_    = addIdentifier("ConstExpr");
+    namePrintBc_      = addIdentifier("PrintBc");
+    namePrintBcGen_   = addIdentifier("PrintBcGen");
+    namePrintAsm_     = addIdentifier("PrintAsm");
+    nameCompiler_     = addIdentifier("Compiler");
+    nameInline_       = addIdentifier("Inline");
+    nameNoInline_     = addIdentifier("NoInline");
+    namePlaceHolder_  = addIdentifier("PlaceHolder");
+    nameNoPrint_      = addIdentifier("NoPrint");
+    nameMacro_        = addIdentifier("Macro");
+    nameMixin_        = addIdentifier("Mixin");
+    nameImplicit_     = addIdentifier("Implicit");
+    nameEnumFlags_    = addIdentifier("EnumFlags");
+    nameEnumIndex_    = addIdentifier("EnumIndex");
+    nameNoDuplicate_  = addIdentifier("NoDuplicate");
+    nameComplete_     = addIdentifier("Complete");
+    nameOverload_     = addIdentifier("Overload");
+    nameCalleeReturn_ = addIdentifier("CalleeReturn");
+    nameDiscardable_  = addIdentifier("Discardable");
+    nameNotGeneric_   = addIdentifier("NotGeneric");
+    nameTls_          = addIdentifier("Tls");
+    nameNoCopy_       = addIdentifier("NoCopy");
+    nameOpaque_       = addIdentifier("Opaque");
+    nameIncomplete_   = addIdentifier("Incomplete");
+    nameStrict_       = addIdentifier("Strict");
+    nameNoDoc_        = addIdentifier("NoDoc");
+    nameGlobal_       = addIdentifier("Global");
+    nameMe_           = addIdentifier("me");
 
     nameTargetOs_ = addIdentifier("TargetOs");
 

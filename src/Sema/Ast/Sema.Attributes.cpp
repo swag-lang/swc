@@ -64,10 +64,34 @@ Result AstAttrDecl::semaPreDecl(Sema& sema) const
         const auto& idMgr = sema.idMgr();
 
         const PredefinedAttr predefined[] = {
+            {.id = idMgr.nameAttrMulti(), .fl = SwagAttributeFlagsE::AttrMulti},
+            {.id = idMgr.nameConstExpr(), .fl = SwagAttributeFlagsE::ConstExpr},
+            {.id = idMgr.namePrintBc(), .fl = SwagAttributeFlagsE::PrintBc},
+            {.id = idMgr.namePrintBcGen(), .fl = SwagAttributeFlagsE::PrintBcGen},
+            {.id = idMgr.namePrintAsm(), .fl = SwagAttributeFlagsE::PrintAsm},
+            {.id = idMgr.nameCompiler(), .fl = SwagAttributeFlagsE::Compiler},
+            {.id = idMgr.nameInline(), .fl = SwagAttributeFlagsE::Inline},
+            {.id = idMgr.nameNoInline(), .fl = SwagAttributeFlagsE::NoInline},
+            {.id = idMgr.namePlaceHolder(), .fl = SwagAttributeFlagsE::PlaceHolder},
+            {.id = idMgr.nameNoPrint(), .fl = SwagAttributeFlagsE::NoPrint},
+            {.id = idMgr.nameMacro(), .fl = SwagAttributeFlagsE::Macro},
+            {.id = idMgr.nameMixin(), .fl = SwagAttributeFlagsE::Mixin},
+            {.id = idMgr.nameImplicit(), .fl = SwagAttributeFlagsE::Implicit},
             {.id = idMgr.nameEnumFlags(), .fl = SwagAttributeFlagsE::EnumFlags},
+            {.id = idMgr.nameEnumIndex(), .fl = SwagAttributeFlagsE::EnumIndex},
+            {.id = idMgr.nameNoDuplicate(), .fl = SwagAttributeFlagsE::NoDuplicate},
             {.id = idMgr.nameComplete(), .fl = SwagAttributeFlagsE::Complete},
+            {.id = idMgr.nameOverload(), .fl = SwagAttributeFlagsE::Overload},
+            {.id = idMgr.nameCalleeReturn(), .fl = SwagAttributeFlagsE::CalleeReturn},
+            {.id = idMgr.nameDiscardable(), .fl = SwagAttributeFlagsE::Discardable},
+            {.id = idMgr.nameNotGeneric(), .fl = SwagAttributeFlagsE::NotGeneric},
+            {.id = idMgr.nameTls(), .fl = SwagAttributeFlagsE::Tls},
+            {.id = idMgr.nameNoCopy(), .fl = SwagAttributeFlagsE::NoCopy},
+            {.id = idMgr.nameOpaque(), .fl = SwagAttributeFlagsE::Opaque},
             {.id = idMgr.nameIncomplete(), .fl = SwagAttributeFlagsE::Incomplete},
+            {.id = idMgr.nameNoDoc(), .fl = SwagAttributeFlagsE::NoDoc},
             {.id = idMgr.nameStrict(), .fl = SwagAttributeFlagsE::Strict},
+            {.id = idMgr.nameGlobal(), .fl = SwagAttributeFlagsE::Global},
         };
 
         const IdentifierRef idRef = sym.idRef();

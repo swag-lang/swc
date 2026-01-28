@@ -1,4 +1,5 @@
 #pragma once
+#include "Parser/AstNode.h"
 #include "Sema/Core/AttributeList.h"
 #include "Sema/Symbol/Symbol.Struct.h"
 #include "Sema/Symbol/Symbol.h"
@@ -22,6 +23,19 @@ struct SemaCompilerIf
 class SemaFrame
 {
 public:
+    enum class BreakableKind : uint8_t
+    {
+        None,
+        Loop,
+        Switch,
+    };
+
+    struct Breakable
+    {
+        AstNodeRef    nodeRef = AstNodeRef::invalid();
+        BreakableKind kind    = BreakableKind::None;
+    };
+
     std::span<const IdentifierRef> nsPath() const { return nsPath_; }
     void                           pushNs(IdentifierRef id) { nsPath_.push_back(id); }
     void                           popNs() { nsPath_.pop_back(); }
@@ -46,6 +60,10 @@ public:
     void                             pushBindingVar(SymbolVariable* sym);
     void                             popBindingVar();
 
+    const Breakable& breakable() const { return breakable_; }
+    BreakableKind    breakableKind() const { return breakable_.kind; }
+    void             setBreakable(AstNodeRef nodeRef, BreakableKind kind);
+
     static SymbolMap* currentSymMap(Sema& sema);
     SymbolFlags       flagsForCurrentAccess() const;
 
@@ -57,6 +75,7 @@ private:
     SymbolImpl*                     impl_       = nullptr;
     SymbolInterface*                interface_  = nullptr;
     SymbolFunction*                 function_   = nullptr;
+    Breakable                       breakable_;
     SmallVector<TypeRef, 2>         bindingTypes_;
     SmallVector<SymbolVariable*, 2> bindingVars_;
 };

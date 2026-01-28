@@ -47,6 +47,12 @@ void SemaFrame::popBindingVar()
         bindingVars_.pop_back();
 }
 
+void SemaFrame::setBreakable(AstNodeRef nodeRef, BreakableKind kind)
+{
+    breakable_.nodeRef = nodeRef;
+    breakable_.kind    = kind;
+}
+
 SymbolMap* SemaFrame::currentSymMap(Sema& sema)
 {
     SymbolMap* symbolMap = sema.curSymMap();

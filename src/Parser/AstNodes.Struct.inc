@@ -1108,11 +1108,13 @@ struct AstUnreachableStmt : AstNodeT<AstNodeId::UnreachableStmt>
 // -----------------------------------------------------------------------------
 struct AstContinueStmt : AstNodeT<AstNodeId::ContinueStmt>
 {
+    static Result semaPreNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
 struct AstBreakStmt : AstNodeT<AstNodeId::BreakStmt>
 {
+    static Result semaPreNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
@@ -1227,9 +1229,9 @@ struct AstWhileStmt : AstNodeT<AstNodeId::WhileStmt>
     AstNodeRef nodeExprRef;
     AstNodeRef nodeBodyRef;
 
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeBodyRef}); }
-    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeBodyRef}); }
+    Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
 };
 
 // -----------------------------------------------------------------------------

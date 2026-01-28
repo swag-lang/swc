@@ -60,7 +60,7 @@ Result AstFallThroughStmt::semaPreNode(Sema& sema)
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());
 
     const auto* caseStmt = sema.node(caseRef).cast<AstSwitchCaseStmt>();
-    if (!caseStmt || !caseStmt->spanChildrenRef.isValid())
+    if (!caseStmt->spanChildrenRef.isValid())
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());
 
     SmallVector<AstNodeRef> stmts;
@@ -72,7 +72,7 @@ Result AstFallThroughStmt::semaPreNode(Sema& sema)
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_not_last_stmt, sema.curNodeRef());
 
     const auto* switchStmt = sema.node(switchRef).cast<AstSwitchStmt>();
-    if (!switchStmt || !switchStmt->spanChildrenRef.isValid())
+    if (!switchStmt->spanChildrenRef.isValid())
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());
 
     SmallVector<AstNodeRef> cases;

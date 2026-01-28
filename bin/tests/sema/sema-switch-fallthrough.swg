@@ -17,13 +17,11 @@
 
 #test
 {
-    // Error: fallthrough outside of a switch case
     fallthrough // swc-expected-error {{sema_err_fallthrough_outside_switch_case}}
 }
 
 #test
 {
-    // Error: fallthrough must be the last statement in a case
     var v = 1
     switch v
     {
@@ -37,7 +35,6 @@
 
 #test
 {
-    // Error: fallthrough cannot be used in the last case
     var v = 1
     switch v
     {

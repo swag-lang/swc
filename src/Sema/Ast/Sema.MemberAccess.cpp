@@ -83,13 +83,13 @@ namespace
             {
                 if (!typeInfo->isCompleted(sema.ctx()))
                     return sema.waitCompleted(typeInfo, sema.curNodeRef());
-                outCandidates.push_back({.symMap = &typeInfo->symStruct(), .symVar = symVar});
+                outCandidates.push_back({.symMap = &typeInfo->payloadSymStruct(), .symVar = symVar});
             }
             else if (typeInfo->isEnum())
             {
                 if (!typeInfo->isCompleted(sema.ctx()))
                     return sema.waitCompleted(typeInfo, sema.curNodeRef());
-                outCandidates.push_back({.symMap = &typeInfo->symEnum(), .symVar = symVar});
+                outCandidates.push_back({.symMap = &typeInfo->payloadSymEnum(), .symVar = symVar});
             }
             return Result::Continue;
         };
@@ -103,7 +103,7 @@ namespace
                 if (!typeInfo.isReference())
                     continue;
 
-                const TypeInfo& pointeeType = sema.typeMgr().get(typeInfo.nestedTypeRef());
+                const TypeInfo& pointeeType = sema.typeMgr().get(typeInfo.payloadTypeRef());
                 RESULT_VERIFY(addCandidate(&pointeeType, symVar));
             }
 
@@ -309,7 +309,7 @@ namespace
 
     Result semaEnum(Sema& sema, const AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
     {
-        const SymbolEnum& enumSym = nodeLeftView.type->symEnum();
+        const SymbolEnum& enumSym = nodeLeftView.type->payloadSymEnum();
         if (!enumSym.isCompleted())
             return sema.waitCompleted(&enumSym, node->srcViewRef(), tokNameRef);
 
@@ -327,7 +327,7 @@ namespace
 
     Result semaInterface(Sema& sema, const AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
     {
-        const SymbolInterface& symInterface = nodeLeftView.type->symInterface();
+        const SymbolInterface& symInterface = nodeLeftView.type->payloadSymInterface();
         if (!symInterface.isCompleted())
             return sema.waitCompleted(&symInterface, node->srcViewRef(), tokNameRef);
 
@@ -349,7 +349,7 @@ namespace
 
     Result semaStruct(Sema& sema, AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet, const TypeInfo* typeInfo)
     {
-        const SymbolStruct& symStruct = typeInfo->symStruct();
+        const SymbolStruct& symStruct = typeInfo->payloadSymStruct();
         if (!symStruct.isCompleted())
             return sema.waitCompleted(&symStruct, node->srcViewRef(), tokNameRef);
 
@@ -424,7 +424,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     }
     else if (typeInfo->isAnyPointer() || typeInfo->isReference())
     {
-        typeInfo = &sema.typeMgr().get(typeInfo->nestedTypeRef());
+        typeInfo = &sema.typeMgr().get(typeInfo->payloadTypeRef());
     }
 
     // Struct
@@ -434,7 +434,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     // Pointer/Reference
     if (nodeLeftView.type->isAnyPointer() || nodeLeftView.type->isReference())
     {
-        sema.setType(sema.curNodeRef(), nodeLeftView.type->nestedTypeRef());
+        sema.setType(sema.curNodeRef(), nodeLeftView.type->payloadTypeRef());
         SemaInfo::setIsValue(*this);
         return Result::SkipChildren;
     }

@@ -78,7 +78,7 @@ namespace
 
         const auto& structType = tm.get(rtTypeRef);
         if (!structType.isCompleted(sema.ctx()))
-            return sema.waitCompleted(&structType.symStruct(), node.srcViewRef(), node.tokRef());
+            return sema.waitCompleted(&structType.payloadSymStruct(), node.srcViewRef(), node.tokRef());
 
         return Result::Continue;
     }
@@ -132,7 +132,7 @@ namespace
             if (type.isIntUnsigned())
                 addFlag(rtType.base, Runtime::TypeInfoFlags::Unsigned);
 
-            switch (type.intBits())
+            switch (type.payloadIntBits())
             {
                 case 8: rtType.nativeKind = type.isIntUnsigned() ? Runtime::TypeInfoNativeKind::U8 : Runtime::TypeInfoNativeKind::S8; return;
                 case 16: rtType.nativeKind = type.isIntUnsigned() ? Runtime::TypeInfoNativeKind::U16 : Runtime::TypeInfoNativeKind::S16; return;
@@ -145,7 +145,7 @@ namespace
         if (type.isFloat())
         {
             addFlag(rtType.base, Runtime::TypeInfoFlags::Float);
-            rtType.nativeKind = (type.floatBits() == 32) ? Runtime::TypeInfoNativeKind::F32 : Runtime::TypeInfoNativeKind::F64;
+            rtType.nativeKind = (type.payloadFloatBits() == 32) ? Runtime::TypeInfoNativeKind::F32 : Runtime::TypeInfoNativeKind::F64;
             return;
         }
 
@@ -188,7 +188,7 @@ namespace
 
     void initArray(Runtime::TypeInfoArray& rtType, const TypeInfo& type)
     {
-        const auto& dims = type.arrayDims();
+        const auto& dims = type.payloadArrayDims();
         if (dims.empty())
         {
             rtType.count      = 0;
@@ -206,7 +206,7 @@ namespace
     {
         const Utf8 name          = type.toName(sema.ctx());
         rtType.structName.length = storage.addString(offset, offsetof(Runtime::TypeInfoStruct, structName.ptr), name);
-        rtType.fields.count      = type.symStruct().fields().size();
+        rtType.fields.count      = type.payloadSymStruct().fields().size();
     }
 
     void addTypeRelocation(DataSegment& storage, uint32_t baseOffset, uint32_t fieldOffset, uint32_t targetOffset)
@@ -225,12 +225,12 @@ namespace
         {
             case LayoutKind::Pointer:
             case LayoutKind::Slice:
-                deps.push_back(type.nestedTypeRef());
+                deps.push_back(type.payloadTypeRef());
                 break;
 
             case LayoutKind::Array:
             {
-                const TypeRef elemTypeRef = type.arrayElemTypeRef();
+                const TypeRef elemTypeRef = type.payloadArrayElemTypeRef();
                 deps.push_back(elemTypeRef);
 
                 const TypeRef finalTypeRef = tm.get(elemTypeRef).unwrap(ctx, elemTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
@@ -240,11 +240,11 @@ namespace
             }
 
             case LayoutKind::Alias:
-                deps.push_back(type.nestedTypeRef());
+                deps.push_back(type.payloadTypeRef());
                 break;
 
             case LayoutKind::TypedVariadic:
-                deps.push_back(type.nestedTypeRef());
+                deps.push_back(type.payloadTypeRef());
                 break;
 
             default:
@@ -336,7 +336,7 @@ namespace
         {
             case LayoutKind::Pointer:
             {
-                const TypeRef depKey = typeMgr.get(key).nestedTypeRef();
+                const TypeRef depKey = typeMgr.get(key).payloadTypeRef();
                 const auto&   dep    = requireDone(cache, depKey);
                 addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoPointer, pointedType), dep.offset);
                 break;
@@ -344,7 +344,7 @@ namespace
 
             case LayoutKind::Slice:
             {
-                const TypeRef depKey = typeMgr.get(key).nestedTypeRef();
+                const TypeRef depKey = typeMgr.get(key).payloadTypeRef();
                 const auto&   dep    = requireDone(cache, depKey);
                 addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoSlice, pointedType), dep.offset);
                 break;
@@ -352,7 +352,7 @@ namespace
 
             case LayoutKind::Array:
             {
-                const TypeRef elemTypeRef = typeMgr.get(key).arrayElemTypeRef();
+                const TypeRef elemTypeRef = typeMgr.get(key).payloadArrayElemTypeRef();
                 const auto&   dep         = requireDone(cache, elemTypeRef);
                 addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoArray, pointedType), dep.offset);
 
@@ -364,7 +364,7 @@ namespace
 
             case LayoutKind::Alias:
             {
-                const TypeRef depKey = typeMgr.get(key).nestedTypeRef();
+                const TypeRef depKey = typeMgr.get(key).payloadTypeRef();
                 const auto&   dep    = requireDone(cache, depKey);
                 addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoAlias, rawType), dep.offset);
                 break;
@@ -372,7 +372,7 @@ namespace
 
             case LayoutKind::TypedVariadic:
             {
-                const TypeRef depKey = typeMgr.get(key).nestedTypeRef();
+                const TypeRef depKey = typeMgr.get(key).payloadTypeRef();
                 const auto&   dep    = requireDone(cache, depKey);
                 addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoVariadic, rawType), dep.offset);
                 break;

@@ -35,13 +35,13 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
                 if (overflow)
                     return SemaError::raiseLiteralOverflow(sema, nodeLiteralRef, cst, cst.typeRef());
                 cpy.setUnsigned(false);
-                cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, cpy, cst.type(ctx).intBits(), TypeInfo::Sign::Signed));
+                cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, cpy, cst.type(ctx).payloadIntBits(), TypeInfo::Sign::Signed));
             }
             else if (type.isFloat())
             {
                 ApFloat cpy = cst.getFloat();
                 cpy.negate();
-                cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, cpy, cst.type(ctx).floatBits()));
+                cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, cpy, cst.type(ctx).payloadFloatBits()));
             }
         }
     }

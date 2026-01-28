@@ -359,7 +359,7 @@ namespace
         if (!paramTypeInfo.isEnum())
             return Result::Continue;
 
-        const SymbolEnum& enumSym = paramTypeInfo.symEnum();
+        const SymbolEnum& enumSym = paramTypeInfo.payloadSymEnum();
         if (!enumSym.isCompleted())
             return sema.waitCompleted(&enumSym, argNode.srcViewRef(), argNode.tokRef());
 
@@ -404,7 +404,7 @@ namespace
         if (!paramTypeInfo.isEnum())
             return Result::Continue;
 
-        const SymbolEnum& enumSym = paramTypeInfo.symEnum();
+        const SymbolEnum& enumSym = paramTypeInfo.payloadSymEnum();
         if (!enumSym.isCompleted())
             return sema.waitCompleted(&enumSym, argNode.srcViewRef(), argNode.tokRef());
 
@@ -528,7 +528,7 @@ namespace
             {
                 TypeRef variadicTy = TypeRef::invalid();
                 if (vi.isTypedVariadic)
-                    variadicTy = params.back()->type(ctx).nestedTypeRef();
+                    variadicTy = params.back()->type(ctx).payloadTypeRef();
 
                 for (uint32_t i = startVariadic; i < numArgs; ++i)
                 {
@@ -620,7 +620,7 @@ namespace
             {
                 const auto& type = s->type(sema.ctx());
                 if (type.isFunction())
-                    fn = &type.symFunction();
+                    fn = &type.payloadSymFunction();
             }
 
             if (!fn)
@@ -797,7 +797,7 @@ namespace
             return Result::Continue;
 
         const uint32_t startVariadic = numParams - 1;
-        const TypeRef  variadicTy    = selectedFnType.nestedTypeRef();
+        const TypeRef  variadicTy    = selectedFnType.payloadTypeRef();
 
         for (uint32_t i = startVariadic; i < numArgs; ++i)
         {

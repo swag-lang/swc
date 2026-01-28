@@ -116,7 +116,7 @@ namespace
             const TypeInfo& ultimateType = sema.typeMgr().get(finalTypeRef);
             if (!ultimateType.isStruct())
             {
-                if (!ultimateType.isAnyPointer() || !sema.typeMgr().get(ultimateType.nestedTypeRef()).isStruct())
+                if (!ultimateType.isAnyPointer() || !sema.typeMgr().get(ultimateType.payloadTypeRef()).isStruct())
                 {
                     auto diag = SemaError::report(sema, DiagnosticId::sema_err_using_member_type, owner.srcViewRef(), tokDiag);
                     diag.addArgument(Diagnostic::ARG_TYPE, finalTypeRef);
@@ -287,7 +287,7 @@ Result AstVarDeclDecomposition::semaPostNode(Sema& sema) const
         return Result::Error;
     }
 
-    const SymbolStruct& symStruct = nodeInitView.type->symStruct();
+    const SymbolStruct& symStruct = nodeInitView.type->payloadSymStruct();
     const auto&         fields    = symStruct.fields();
 
     SmallVector<TokenRef> tokNames;

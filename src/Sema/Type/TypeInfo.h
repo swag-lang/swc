@@ -151,19 +151,19 @@ public:
     bool isAnyTypeInfo(TaskContext& ctx) const noexcept;
 
     // clang-format off
-    Sign                 intSign() const noexcept { SWC_ASSERT(isInt()); return asInt.sign; }
-    uint32_t             intBits() const noexcept { SWC_ASSERT(isInt()); return asInt.bits; }
-    uint32_t             intLikeBits() const noexcept { SWC_ASSERT(isIntLike()); return isCharRune() ? 32 : asInt.bits; }
-    uint32_t             scalarNumericBits() const noexcept { SWC_ASSERT(isScalarNumeric()); return isIntLike() ? intLikeBits() : floatBits(); }
-    uint32_t             floatBits() const noexcept { SWC_ASSERT(isFloat()); return asFloat.bits; }
-    SymbolEnum&          symEnum() const noexcept { SWC_ASSERT(isEnum()); return *asEnum.sym; }
-    SymbolStruct&        symStruct() const noexcept { SWC_ASSERT(isStruct()); return *asStruct.sym; }
-    SymbolInterface&     symInterface() const noexcept { SWC_ASSERT(isInterface()); return *asInterface.sym; }
-    SymbolAlias&         symAlias() const noexcept { SWC_ASSERT(isAlias()); return *asAlias.sym; }
-    SymbolFunction&      symFunction() const noexcept { SWC_ASSERT(isFunction()); return *asFunction.sym; }
-    TypeRef              nestedTypeRef() const noexcept { SWC_ASSERT(isTypeValue() || isAnyPointer() || isReference() || isSlice() || isAlias() || isTypedVariadic()); return asTypeRef.typeRef; }
-    auto&                arrayDims() const noexcept { SWC_ASSERT(isArray()); return asArray.dims; }
-    TypeRef              arrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return asArray.typeRef; }
+    Sign                 payloadIntSign() const noexcept { SWC_ASSERT(isInt()); return asInt.sign; }
+    uint32_t             payloadIntBits() const noexcept { SWC_ASSERT(isInt()); return asInt.bits; }
+    uint32_t             payloadIntLikeBits() const noexcept { SWC_ASSERT(isIntLike()); return isCharRune() ? 32 : asInt.bits; }
+    uint32_t             payloadScalarNumericBits() const noexcept { SWC_ASSERT(isScalarNumeric()); return isIntLike() ? payloadIntLikeBits() : payloadFloatBits(); }
+    uint32_t             payloadFloatBits() const noexcept { SWC_ASSERT(isFloat()); return asFloat.bits; }
+    SymbolEnum&          payloadSymEnum() const noexcept { SWC_ASSERT(isEnum()); return *asEnum.sym; }
+    SymbolStruct&        payloadSymStruct() const noexcept { SWC_ASSERT(isStruct()); return *asStruct.sym; }
+    SymbolInterface&     payloadSymInterface() const noexcept { SWC_ASSERT(isInterface()); return *asInterface.sym; }
+    SymbolAlias&         payloadSymAlias() const noexcept { SWC_ASSERT(isAlias()); return *asAlias.sym; }
+    SymbolFunction&      payloadSymFunction() const noexcept { SWC_ASSERT(isFunction()); return *asFunction.sym; }
+    TypeRef              payloadTypeRef() const noexcept { SWC_ASSERT(isTypeValue() || isAnyPointer() || isReference() || isSlice() || isAlias() || isTypedVariadic()); return asTypeRef.typeRef; }
+    auto&                payloadArrayDims() const noexcept { SWC_ASSERT(isArray()); return asArray.dims; }
+    TypeRef              payloadArrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return asArray.typeRef; }
     // clang-format on
 
     TypeRef unwrap(const TaskContext& ctx, TypeRef defaultTypeRef = TypeRef::invalid(), TypeExpand expandFlags = TypeExpandE::All) const noexcept;

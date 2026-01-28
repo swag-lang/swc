@@ -71,7 +71,7 @@ namespace
             return;
 
         const bool isUnsigned = underlyingType.isIntUnsigned();
-        const auto bits       = underlyingType.intBits();
+        const auto bits       = underlyingType.payloadIntBits();
 
         if (sym.isEnumFlags())
             sym.setNextValue(ApsInt{1, bits, isUnsigned});
@@ -162,7 +162,7 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
         if (symEnum.hasNextValue() && !symEnum.computeNextValue(sema, srcViewRef(), tokRef()))
             return Result::Error;
 
-        ConstantValue val = ConstantValue::makeInt(ctx, symEnum.nextValue(), underlyingType.intBits(), underlyingType.intSign());
+        ConstantValue val = ConstantValue::makeInt(ctx, symEnum.nextValue(), underlyingType.payloadIntBits(), underlyingType.payloadIntSign());
         valueCst          = sema.cstMgr().addConstant(ctx, val);
         symEnum.setHasNextValue();
     }

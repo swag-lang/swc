@@ -75,7 +75,7 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
     {
         const TypeInfo& cstType = sema.typeMgr().get(cst.typeRef());
         SWC_ASSERT(cstType.isAnyPointer());
-        const TypeInfo& pointedType = sema.typeMgr().get(cstType.nestedTypeRef());
+        const TypeInfo& pointedType = sema.typeMgr().get(cstType.payloadTypeRef());
         SWC_ASSERT(pointedType.isStruct());
         const uint64_t ptr = cst.isValuePointer() ? cst.getValuePointer() : cst.getBlockPointer();
         SWC_ASSERT(ptr);
@@ -101,12 +101,12 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
     const auto fieldBytes = std::string_view(bytes.data() + symVar.offset(), typeField->sizeOf(ctx));
 
     if (typeField->isEnum())
-        typeField = &sema.typeMgr().get(typeField->symEnum().underlyingTypeRef());
+        typeField = &sema.typeMgr().get(typeField->payloadSymEnum().underlyingTypeRef());
 
     ConstantValue cv;
     if (typeField->isStruct())
     {
-        cv = ConstantValue::makeStruct(ctx, typeField->nestedTypeRef(), fieldBytes);
+        cv = ConstantValue::makeStruct(ctx, typeField->payloadTypeRef(), fieldBytes);
     }
     else if (typeField->isBool())
     {
@@ -114,13 +114,13 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
     }
     else if (typeField->isIntLike())
     {
-        const ApsInt apsInt(fieldBytes.data(), typeField->intLikeBits(), typeField->isIntUnsigned());
+        const ApsInt apsInt(fieldBytes.data(), typeField->payloadIntLikeBits(), typeField->isIntUnsigned());
         cv = ConstantValue::makeFromIntLike(ctx, apsInt, *typeField);
     }
     else if (typeField->isFloat())
     {
-        const ApFloat apFloat(fieldBytes.data(), typeField->floatBits());
-        cv = ConstantValue::makeFloat(ctx, apFloat, typeField->floatBits());
+        const ApFloat apFloat(fieldBytes.data(), typeField->payloadFloatBits());
+        cv = ConstantValue::makeFloat(ctx, apFloat, typeField->payloadFloatBits());
     }
     else if (typeField->isString())
     {
@@ -130,12 +130,12 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
     else if (typeField->isValuePointer())
     {
         const auto val = *reinterpret_cast<const uint64_t*>(fieldBytes.data());
-        cv             = ConstantValue::makeValuePointer(ctx, typeField->nestedTypeRef(), val);
+        cv             = ConstantValue::makeValuePointer(ctx, typeField->payloadTypeRef(), val);
     }
     else if (typeField->isSlice())
     {
         const auto slice = reinterpret_cast<const Runtime::Slice<uint8_t>*>(fieldBytes.data());
-        cv               = ConstantValue::makeSlice(ctx, typeField->nestedTypeRef(), reinterpret_cast<uint64_t>(slice->ptr), slice->count);
+        cv               = ConstantValue::makeSlice(ctx, typeField->payloadTypeRef(), reinterpret_cast<uint64_t>(slice->ptr), slice->count);
     }
     else
     {
@@ -149,7 +149,7 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
 
     if (typeVar.isEnum())
     {
-        cv = ConstantValue::makeEnumValue(ctx, cstRef, typeVar.symEnum().underlyingTypeRef());
+        cv = ConstantValue::makeEnumValue(ctx, cstRef, typeVar.payloadSymEnum().underlyingTypeRef());
         cv.setTypeRef(symVar.typeRef());
         cstRef = sema.cstMgr().addConstant(ctx, cv);
     }

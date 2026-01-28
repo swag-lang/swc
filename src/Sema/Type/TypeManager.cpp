@@ -217,7 +217,7 @@ TypeRef TypeManager::promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) cons
     if (!t.isInt())
         return result;
 
-    const uint32_t bits = t.intBits();
+    const uint32_t bits = t.payloadIntBits();
     if (bits != 8 && bits != 16)
         return result;
 
@@ -250,8 +250,8 @@ TypeRef TypeManager::computePromotion(TypeRef lhsRef, TypeRef rhsRef) const
         // Both floats: pick the wider float
         if (lhsFloat && rhsFloat)
         {
-            const uint32_t lhsBits = lhs.floatBits();
-            const uint32_t rhsBits = rhs.floatBits();
+            const uint32_t lhsBits = lhs.payloadFloatBits();
+            const uint32_t rhsBits = rhs.payloadFloatBits();
             return (lhsBits >= rhsBits) ? lhsRef : rhsRef;
         }
 
@@ -262,8 +262,8 @@ TypeRef TypeManager::computePromotion(TypeRef lhsRef, TypeRef rhsRef) const
         const TypeInfo& fInfo = get(floatRef);
         const TypeInfo& iInfo = get(intRef);
 
-        const uint32_t fBits = fInfo.floatBits();
-        const uint32_t iBits = iInfo.intLikeBits();
+        const uint32_t fBits = fInfo.payloadFloatBits();
+        const uint32_t iBits = iInfo.payloadIntLikeBits();
 
         uint32_t resultBits = std::max(fBits, iBits);
         if (resultBits)
@@ -272,8 +272,8 @@ TypeRef TypeManager::computePromotion(TypeRef lhsRef, TypeRef rhsRef) const
     }
 
     // Integer promotions
-    const uint32_t lhsBits = lhs.intLikeBits();
-    const uint32_t rhsBits = rhs.intLikeBits();
+    const uint32_t lhsBits = lhs.payloadIntLikeBits();
+    const uint32_t rhsBits = rhs.payloadIntLikeBits();
 
     const bool lhsUnsigned = lhs.isIntLikeUnsigned();
     const bool rhsUnsigned = rhs.isIntLikeUnsigned();

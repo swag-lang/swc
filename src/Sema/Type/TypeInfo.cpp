@@ -713,11 +713,11 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
         }
 
         case TypeInfoKind::Struct:
-            return symStruct().sizeOf();
+            return payloadSymStruct().sizeOf();
         case TypeInfoKind::Enum:
-            return symEnum().sizeOf(ctx);
+            return payloadSymEnum().sizeOf(ctx);
         case TypeInfoKind::Alias:
-            return symAlias().sizeOf(ctx);
+            return payloadSymAlias().sizeOf(ctx);
 
         case TypeInfoKind::Variadic:
         case TypeInfoKind::TypedVariadic:
@@ -765,11 +765,11 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
             return ctx.typeMgr().get(asArray.typeRef).alignOf(ctx);
 
         case TypeInfoKind::Struct:
-            return symStruct().alignment();
+            return payloadSymStruct().alignment();
         case TypeInfoKind::Enum:
-            return symEnum().underlyingType(ctx).alignOf(ctx);
+            return payloadSymEnum().underlyingType(ctx).alignOf(ctx);
         case TypeInfoKind::Alias:
-            return symAlias().type(ctx).alignOf(ctx);
+            return payloadSymAlias().type(ctx).alignOf(ctx);
 
         case TypeInfoKind::TypeValue:
             return ctx.typeMgr().get(asTypeRef.typeRef).alignOf(ctx);
@@ -784,13 +784,13 @@ bool TypeInfo::isCompleted(TaskContext& ctx) const
     switch (kind_)
     {
         case TypeInfoKind::Struct:
-            return symStruct().isCompleted();
+            return payloadSymStruct().isCompleted();
         case TypeInfoKind::Enum:
-            return symEnum().isCompleted();
+            return payloadSymEnum().isCompleted();
         case TypeInfoKind::Interface:
-            return symInterface().isCompleted();
+            return payloadSymInterface().isCompleted();
         case TypeInfoKind::Alias:
-            return symAlias().isCompleted();
+            return payloadSymAlias().isCompleted();
 
         case TypeInfoKind::Array:
             return ctx.typeMgr().get(asArray.typeRef).isCompleted(ctx);
@@ -819,13 +819,13 @@ Symbol* TypeInfo::getSymbolDependency(TaskContext& ctx) const
     switch (kind_)
     {
         case TypeInfoKind::Struct:
-            return &symStruct();
+            return &payloadSymStruct();
         case TypeInfoKind::Enum:
-            return &symEnum();
+            return &payloadSymEnum();
         case TypeInfoKind::Interface:
-            return &symInterface();
+            return &payloadSymInterface();
         case TypeInfoKind::Alias:
-            return &symAlias();
+            return &payloadSymAlias();
 
         case TypeInfoKind::Array:
             return ctx.typeMgr().get(asArray.typeRef).getSymbolDependency(ctx);
@@ -878,7 +878,7 @@ bool TypeInfo::isAnyTypeInfo(TaskContext& ctx) const noexcept
     const TypeInfo& type = ctx.typeMgr().get(asTypeRef.typeRef);
     if (!type.isStruct())
         return false;
-    return type.symStruct().hasExtraFlag(SymbolStructFlagsE::TypeInfo);
+    return type.payloadSymStruct().hasExtraFlag(SymbolStructFlagsE::TypeInfo);
 }
 
 TypeRef TypeInfo::unwrap(const TaskContext& ctx, TypeRef defaultTypeRef, TypeExpand expandFlags) const noexcept

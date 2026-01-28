@@ -35,7 +35,7 @@ namespace
         const TypeRef orgSrcTypeRef = srcTypeRef;
         if (isEnum)
         {
-            srcTypeRef = srcType->symEnum().underlyingTypeRef();
+            srcTypeRef = srcType->payloadSymEnum().underlyingTypeRef();
             srcType    = &typeMgr.get(srcTypeRef);
             if (castCtx.isConstantFolding())
             {
@@ -58,8 +58,8 @@ namespace
             return Result::Error;
         }
 
-        const uint32_t sb = srcType->scalarNumericBits();
-        const uint32_t db = dstType.scalarNumericBits();
+        const uint32_t sb = srcType->payloadScalarNumericBits();
+        const uint32_t db = dstType.payloadScalarNumericBits();
         if (!(sb == db || !sb))
         {
             castCtx.fail(DiagnosticId::sema_err_bit_cast_size, orgSrcTypeRef, dstTypeRef);
@@ -237,8 +237,8 @@ namespace
         const TypeInfo& srcType = typeMgr.get(srcTypeRef);
         const TypeInfo& dstType = typeMgr.get(dstTypeRef);
 
-        const uint32_t sb        = srcType.floatBits();
-        const uint32_t db        = dstType.floatBits();
+        const uint32_t sb        = srcType.payloadFloatBits();
+        const uint32_t db        = dstType.payloadFloatBits();
         const bool     narrowing = db < sb;
 
         switch (castCtx.kind)
@@ -284,7 +284,7 @@ namespace
         }
 
         const TypeInfo&   type    = sema.typeMgr().get(srcTypeRef);
-        const SymbolEnum& enumSym = type.symEnum();
+        const SymbolEnum& enumSym = type.payloadSymEnum();
 
         if (castCtx.isConstantFolding())
         {
@@ -324,7 +324,7 @@ namespace
         const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
         const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
 
-        const auto  dstPointeeTypeRef = dstType.nestedTypeRef();
+        const auto  dstPointeeTypeRef = dstType.payloadTypeRef();
         const auto& dstPointeeType    = sema.typeMgr().get(dstPointeeTypeRef);
 
         // Ref to ref
@@ -336,7 +336,7 @@ namespace
                 return Result::Error;
             }
 
-            const auto  srcPointeeTypeRef = srcType.nestedTypeRef();
+            const auto  srcPointeeTypeRef = srcType.payloadTypeRef();
             const auto& srcPointeeType    = sema.typeMgr().get(srcPointeeTypeRef);
 
             if (srcPointeeTypeRef == dstPointeeTypeRef)
@@ -345,8 +345,8 @@ namespace
             // Struct ref to interface ref
             if (srcPointeeType.isStruct() && dstPointeeType.isInterface())
             {
-                const auto& fromStruct = srcPointeeType.symStruct();
-                const auto& toItf      = dstPointeeType.symInterface();
+                const auto& fromStruct = srcPointeeType.payloadSymStruct();
+                const auto& toItf      = dstPointeeType.payloadSymInterface();
                 for (const auto itfImpl : fromStruct.interfaces())
                 {
                     if (itfImpl && itfImpl->idRef() == toItf.idRef())
@@ -370,7 +370,7 @@ namespace
                 return Result::Error;
             }
 
-            if (srcType.nestedTypeRef() == dstPointeeTypeRef)
+            if (srcType.payloadTypeRef() == dstPointeeTypeRef)
                 return Result::Continue;
         }
 
@@ -403,9 +403,9 @@ namespace
         const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
         const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
 
-        const bool sameUnderlying = srcType.nestedTypeRef() == dstType.nestedTypeRef();
-        const bool srcIsVoid      = srcType.nestedTypeRef() == sema.typeMgr().typeVoid();
-        const bool dstIsVoid      = dstType.nestedTypeRef() == sema.typeMgr().typeVoid();
+        const bool sameUnderlying = srcType.payloadTypeRef() == dstType.payloadTypeRef();
+        const bool srcIsVoid      = srcType.payloadTypeRef() == sema.typeMgr().typeVoid();
+        const bool dstIsVoid      = dstType.payloadTypeRef() == sema.typeMgr().typeVoid();
         if (sameUnderlying || srcIsVoid || dstIsVoid || castCtx.kind == CastKind::Explicit)
         {
             bool ok = false;
@@ -448,7 +448,7 @@ namespace
 
         // UFCS receiver: allow taking the address to get a pointer.
         // Whether the value is actually addressable (lvalue) is validated later by `Cast::cast`.
-        if (castCtx.flags.has(CastFlagsE::UfcsArgument) && dstType.nestedTypeRef() == srcTypeRef && !dstType.isNullable())
+        if (castCtx.flags.has(CastFlagsE::UfcsArgument) && dstType.payloadTypeRef() == srcTypeRef && !dstType.isNullable())
         {
             if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
             {
@@ -482,8 +482,8 @@ namespace
 
         if (srcType.isArray())
         {
-            const auto srcElemTypeRef = srcType.arrayElemTypeRef();
-            const auto dstElemTypeRef = dstType.nestedTypeRef();
+            const auto srcElemTypeRef = srcType.payloadArrayElemTypeRef();
+            const auto dstElemTypeRef = dstType.payloadTypeRef();
 
             if (castCtx.kind == CastKind::Explicit ||
                 srcElemTypeRef == dstElemTypeRef ||
@@ -512,14 +512,14 @@ namespace
         // String -> const [..] u8
         if (srcType.isString())
         {
-            if (dstType.isConst() && dstType.nestedTypeRef() == sema.typeMgr().typeU8())
+            if (dstType.isConst() && dstType.payloadTypeRef() == sema.typeMgr().typeU8())
             {
                 if (castCtx.isConstantFolding())
                 {
                     const ConstantValue&   cst = sema.cstMgr().get(castCtx.srcConstRef);
                     const std::string_view str = cst.getString();
                     const uint64_t         ptr = reinterpret_cast<uint64_t>(str.data());
-                    const ConstantValue    cv  = ConstantValue::makeSlice(ctx, dstType.nestedTypeRef(), ptr, str.size(), TypeInfoFlagsE::Const);
+                    const ConstantValue    cv  = ConstantValue::makeSlice(ctx, dstType.payloadTypeRef(), ptr, str.size(), TypeInfoFlagsE::Const);
                     castCtx.outConstRef        = sema.cstMgr().addConstant(sema.ctx(), cv);
                 }
 
@@ -529,8 +529,8 @@ namespace
 
         if (srcType.isArray())
         {
-            const auto srcElemTypeRef = srcType.arrayElemTypeRef();
-            const auto dstElemTypeRef = dstType.nestedTypeRef();
+            const auto srcElemTypeRef = srcType.payloadArrayElemTypeRef();
+            const auto dstElemTypeRef = dstType.payloadTypeRef();
 
             if (castCtx.kind == CastKind::Explicit || srcElemTypeRef == dstElemTypeRef)
             {
@@ -558,7 +558,7 @@ namespace
         }
 
         // void* -> slice (explicit only)
-        if (srcType.isAnyPointer() && srcType.nestedTypeRef() == sema.typeMgr().typeVoid())
+        if (srcType.isAnyPointer() && srcType.payloadTypeRef() == sema.typeMgr().typeVoid())
         {
             if (castCtx.kind == CastKind::Explicit)
             {
@@ -581,7 +581,7 @@ namespace
                 return Result::Error;
             }
 
-            if (castCtx.kind == CastKind::Explicit || srcType.nestedTypeRef() == dstType.nestedTypeRef())
+            if (castCtx.kind == CastKind::Explicit || srcType.payloadTypeRef() == dstType.payloadTypeRef())
                 return Result::Continue;
         }
 
@@ -624,7 +624,7 @@ namespace
                 return Result::Error;
             }
 
-            if (srcType.nestedTypeRef() != typeMgr.typeU8())
+            if (srcType.payloadTypeRef() != typeMgr.typeU8())
             {
                 castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
                 return Result::Error;
@@ -635,7 +635,7 @@ namespace
 
         if (srcType.isArray())
         {
-            if (srcType.arrayElemTypeRef() == typeMgr.typeU8() && srcType.arrayDims().size() == 1)
+            if (srcType.payloadArrayElemTypeRef() == typeMgr.typeU8() && srcType.payloadArrayDims().size() == 1)
                 return Result::Continue;
         }
 
@@ -650,13 +650,13 @@ namespace
 
         if (srcType.isBlockPointer())
         {
-            if (srcType.nestedTypeRef() == sema.typeMgr().typeU8())
+            if (srcType.payloadTypeRef() == sema.typeMgr().typeU8())
                 return Result::Continue;
         }
 
         if (srcType.isArray())
         {
-            if (srcType.arrayElemTypeRef() == typeMgr.typeU8() && srcType.arrayDims().size() == 1)
+            if (srcType.payloadArrayElemTypeRef() == typeMgr.typeU8() && srcType.payloadArrayDims().size() == 1)
                 return Result::Continue;
         }
 
@@ -673,7 +673,7 @@ namespace
             return Result::Continue;
 
         if (dstType.isTypedVariadic())
-            return Cast::castAllowed(sema, castCtx, srcTypeRef, dstType.nestedTypeRef());
+            return Cast::castAllowed(sema, castCtx, srcTypeRef, dstType.payloadTypeRef());
 
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
         return Result::Error;
@@ -715,9 +715,9 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
 
     auto res = Result::Error;
     if (srcType.isAlias())
-        res = castAllowed(sema, castCtx, srcType.symAlias().underlyingTypeRef(), dstTypeRef);
+        res = castAllowed(sema, castCtx, srcType.payloadSymAlias().underlyingTypeRef(), dstTypeRef);
     else if (dstType.isAlias())
-        res = castAllowed(sema, castCtx, srcTypeRef, dstType.symAlias().underlyingTypeRef());
+        res = castAllowed(sema, castCtx, srcTypeRef, dstType.payloadSymAlias().underlyingTypeRef());
     else if (castCtx.flags.has(CastFlagsE::BitCast))
         res = castBit(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isEnum() && !dstType.isEnum())

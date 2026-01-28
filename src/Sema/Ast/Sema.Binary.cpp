@@ -67,7 +67,7 @@ namespace
                     SWC_UNREACHABLE();
             }
 
-            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, val1, type.floatBits()));
+            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, val1, type.payloadFloatBits()));
             return Result::Continue;
         }
 
@@ -162,7 +162,7 @@ namespace
                     SWC_UNREACHABLE();
             }
 
-            if (!wrap && type.intBits() != 0 && overflow)
+            if (!wrap && type.payloadIntBits() != 0 && overflow)
             {
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_integer_overflow, node.srcViewRef(), node.tokRef());
                 diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
@@ -172,7 +172,7 @@ namespace
                 return Result::Error;
             }
 
-            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, val1, type.intBits(), type.intSign()));
+            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, val1, type.payloadIntBits(), type.payloadIntSign()));
             return Result::Continue;
         }
 
@@ -233,9 +233,9 @@ namespace
                 if (nodeRightView.type->isValuePointer())
                     return SemaError::raisePointerArithmeticValuePointer(sema, node, node.nodeRightRef, nodeRightView.typeRef);
 
-                if (nodeLeftView.type->isBlockPointer() && nodeLeftView.type->nestedTypeRef() == sema.typeMgr().typeVoid())
+                if (nodeLeftView.type->isBlockPointer() && nodeLeftView.type->payloadTypeRef() == sema.typeMgr().typeVoid())
                     return SemaError::raisePointerArithmeticVoidPointer(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
-                if (nodeRightView.type->isBlockPointer() && nodeRightView.type->nestedTypeRef() == sema.typeMgr().typeVoid())
+                if (nodeRightView.type->isBlockPointer() && nodeRightView.type->payloadTypeRef() == sema.typeMgr().typeVoid())
                     return SemaError::raisePointerArithmeticVoidPointer(sema, node, node.nodeRightRef, nodeRightView.typeRef);
 
                 if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isScalarNumeric())
@@ -252,9 +252,9 @@ namespace
                 if (nodeRightView.type->isValuePointer())
                     return SemaError::raisePointerArithmeticValuePointer(sema, node, node.nodeRightRef, nodeRightView.typeRef);
 
-                if (nodeLeftView.type->isBlockPointer() && nodeLeftView.type->nestedTypeRef() == sema.typeMgr().typeVoid())
+                if (nodeLeftView.type->isBlockPointer() && nodeLeftView.type->payloadTypeRef() == sema.typeMgr().typeVoid())
                     return SemaError::raisePointerArithmeticVoidPointer(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
-                if (nodeRightView.type->isBlockPointer() && nodeRightView.type->nestedTypeRef() == sema.typeMgr().typeVoid())
+                if (nodeRightView.type->isBlockPointer() && nodeRightView.type->payloadTypeRef() == sema.typeMgr().typeVoid())
                     return SemaError::raisePointerArithmeticVoidPointer(sema, node, node.nodeRightRef, nodeRightView.typeRef);
 
                 if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isScalarNumeric())

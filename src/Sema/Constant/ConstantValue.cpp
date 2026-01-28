@@ -275,7 +275,7 @@ ConstantValue ConstantValue::makeFromIntLike(const TaskContext& ctx, const ApsIn
         return makeChar(ctx, static_cast<uint32_t>(v.asI64()));
     if (ty.isRune())
         return makeRune(ctx, static_cast<uint32_t>(v.asI64()));
-    return makeInt(ctx, v, ty.intBits(), ty.intSign());
+    return makeInt(ctx, v, ty.payloadIntBits(), ty.payloadIntSign());
 }
 
 ConstantValue ConstantValue::makeEnumValue(const TaskContext&, ConstantRef valueCst, TypeRef typeRef)

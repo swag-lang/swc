@@ -33,7 +33,7 @@ bool Cast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstType
     if (dstType.isInt())
     {
         ConstantRef newCstRef;
-        if (!concretizeConstant(sema, newCstRef, castCtx, castCtx.constantFoldingSrc(), dstType.intSign()))
+        if (!concretizeConstant(sema, newCstRef, castCtx, castCtx.constantFoldingSrc(), dstType.payloadIntSign()))
             return false;
         castCtx.setConstantFoldingSrc(newCstRef);
     }
@@ -55,8 +55,8 @@ bool Cast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstType
     SWC_ASSERT(srcInt || srcFloat);
     SWC_ASSERT(dstInt || dstFloat);
 
-    const uint32_t srcBits = srcType.scalarNumericBits();
-    const uint32_t dstBits = dstType.scalarNumericBits();
+    const uint32_t srcBits = srcType.payloadScalarNumericBits();
+    const uint32_t dstBits = dstType.payloadScalarNumericBits();
     SWC_ASSERT(srcBits == dstBits || !srcBits);
 
     if (srcInt && dstInt)
@@ -106,7 +106,7 @@ bool Cast::foldConstantBoolToIntLike(Sema& sema, CastContext& castCtx, TypeRef d
     const TypeInfo&      dstType        = sema.typeMgr().get(dstTypeRef);
     const ConstantValue& src            = sema.cstMgr().get(castCtx.constantFoldingSrc());
     const bool           b              = src.getBool();
-    const auto           targetBits     = dstType.intLikeBits();
+    const auto           targetBits     = dstType.payloadIntLikeBits();
     const bool           targetUnsigned = dstType.isIntLikeUnsigned();
 
     const ApsInt        value(b ? 1 : 0, targetBits, targetUnsigned);
@@ -138,7 +138,7 @@ bool Cast::foldConstantIntLikeToIntLike(Sema& sema, CastContext& castCtx, TypeRe
     const ConstantValue& src     = sema.cstMgr().get(castCtx.constantFoldingSrc());
     ApsInt               value   = src.getIntLike();
 
-    const uint32_t targetBits     = dstType.intLikeBits();
+    const uint32_t targetBits     = dstType.payloadIntLikeBits();
     const bool     targetUnsigned = dstType.isIntLikeUnsigned();
     const uint32_t valueBits      = value.bitWidth();
 
@@ -253,7 +253,7 @@ bool Cast::foldConstantIntLikeToFloat(Sema& sema, CastContext& castCtx, TypeRef 
     const TypeInfo&      dstType    = sema.typeMgr().get(dstTypeRef);
     const ConstantValue& src        = sema.cstMgr().get(castCtx.constantFoldingSrc());
     const ApsInt         intVal     = src.getIntLike();
-    const uint32_t       targetBits = dstType.floatBits();
+    const uint32_t       targetBits = dstType.payloadFloatBits();
 
     ApFloat value;
     bool    isExact  = false;
@@ -279,7 +279,7 @@ bool Cast::foldConstantFloatToIntLike(Sema& sema, CastContext& castCtx, TypeRef 
     const ConstantValue& src     = sema.cstMgr().get(castCtx.constantFoldingSrc());
     const ApFloat&       srcVal  = src.getFloat();
 
-    const uint32_t targetBits = dstType.intLikeBits();
+    const uint32_t targetBits = dstType.payloadIntLikeBits();
     const bool     isUnsigned = dstType.isIntLikeUnsigned();
 
     bool         isExact  = false;
@@ -304,7 +304,7 @@ bool Cast::foldConstantFloatToFloat(Sema& sema, CastContext& castCtx, TypeRef sr
     const TypeInfo&      dstType    = sema.typeMgr().get(dstTypeRef);
     const ConstantValue& src        = sema.cstMgr().get(castCtx.constantFoldingSrc());
     const ApFloat&       floatVal   = src.getFloat();
-    const uint32_t       targetBits = dstType.floatBits();
+    const uint32_t       targetBits = dstType.payloadFloatBits();
 
     bool          isExact  = false;
     bool          overflow = false;
@@ -369,13 +369,13 @@ Result Cast::promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, cons
     {
         if (!leftConcrete)
         {
-            const TypeInfo::Sign hintSign = rightType->isInt() ? rightType->intSign() : TypeInfo::Sign::Signed;
+            const TypeInfo::Sign hintSign = rightType->isInt() ? rightType->payloadIntSign() : TypeInfo::Sign::Signed;
             RESULT_VERIFY(sema.cstMgr().concretizeConstant(sema, leftCstRef, nodeLeftView.nodeRef, leftCstRef, hintSign));
             leftTypeRef = sema.cstMgr().get(leftCstRef).typeRef();
         }
         else if (!rightConcrete)
         {
-            const TypeInfo::Sign hintSign = leftType->isInt() ? leftType->intSign() : TypeInfo::Sign::Signed;
+            const TypeInfo::Sign hintSign = leftType->isInt() ? leftType->payloadIntSign() : TypeInfo::Sign::Signed;
             RESULT_VERIFY(sema.cstMgr().concretizeConstant(sema, rightCstRef, nodeRightView.nodeRef, rightCstRef, hintSign));
             rightTypeRef = sema.cstMgr().get(rightCstRef).typeRef();
         }

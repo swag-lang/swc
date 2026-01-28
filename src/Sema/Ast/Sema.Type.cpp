@@ -197,16 +197,16 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
     switch (nodeView.type->kind())
     {
         case TypeInfoKind::ValuePointer:
-            typeRef = typeMgr.addType(TypeInfo::makeValuePointer(nodeView.type->nestedTypeRef(), typeFlags));
+            typeRef = typeMgr.addType(TypeInfo::makeValuePointer(nodeView.type->payloadTypeRef(), typeFlags));
             break;
         case TypeInfoKind::BlockPointer:
-            typeRef = typeMgr.addType(TypeInfo::makeBlockPointer(nodeView.type->nestedTypeRef(), typeFlags));
+            typeRef = typeMgr.addType(TypeInfo::makeBlockPointer(nodeView.type->payloadTypeRef(), typeFlags));
             break;
         case TypeInfoKind::Reference:
-            typeRef = typeMgr.addType(TypeInfo::makeReference(nodeView.type->nestedTypeRef(), typeFlags));
+            typeRef = typeMgr.addType(TypeInfo::makeReference(nodeView.type->payloadTypeRef(), typeFlags));
             break;
         case TypeInfoKind::Slice:
-            typeRef = typeMgr.addType(TypeInfo::makeSlice(nodeView.type->nestedTypeRef(), typeFlags));
+            typeRef = typeMgr.addType(TypeInfo::makeSlice(nodeView.type->payloadTypeRef(), typeFlags));
             break;
         case TypeInfoKind::String:
             typeRef = typeMgr.addType(TypeInfo::makeString(typeFlags));
@@ -234,7 +234,7 @@ Result AstNamedType::semaPostNode(Sema& sema)
     // then we replace it with the corresponding interface type 
     if (nodeView.sym->isImpl() && nodeView.type->isInterface())
     {
-        sema.setSymbol(nodeIdentRef, &nodeView.type->symInterface());
+        sema.setSymbol(nodeIdentRef, &nodeView.type->payloadSymInterface());
         nodeView.compute(sema, nodeIdentRef);
     }
 

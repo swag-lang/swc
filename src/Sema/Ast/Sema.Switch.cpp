@@ -22,7 +22,7 @@ namespace
             const TypeInfo& type = sema.typeMgr().get(result);
             if (!type.isAlias())
                 break;
-            const TypeRef next = type.nestedTypeRef();
+            const TypeRef next = type.payloadTypeRef();
             if (next.isInvalid())
                 break;
             result = next;

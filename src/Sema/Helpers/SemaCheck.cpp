@@ -96,7 +96,7 @@ Result SemaCheck::checkSignature(Sema& sema, const std::vector<SymbolVariable*>&
         {
             const TypeInfo* baseType = &type;
             if (type.isTypedVariadic())
-                baseType = &sema.ctx().typeMgr().get(type.nestedTypeRef());
+                baseType = &sema.ctx().typeMgr().get(type.payloadTypeRef());
 
             bool allowed = false;
             if (baseType->isBool() ||

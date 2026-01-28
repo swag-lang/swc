@@ -105,7 +105,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
 
     if (nodeExprView.type->isArray())
     {
-        const auto& arrayDims   = nodeExprView.type->arrayDims();
+        const auto& arrayDims   = nodeExprView.type->payloadArrayDims();
         const auto  numExpected = arrayDims.size();
 
         if (numExpected > 1)
@@ -113,12 +113,12 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
             std::vector<uint64_t> dims;
             for (size_t i = 1; i < numExpected; i++)
                 dims.push_back(arrayDims[i]);
-            const auto typeArray = TypeInfo::makeArray(dims, nodeExprView.type->arrayElemTypeRef(), nodeExprView.type->flags());
+            const auto typeArray = TypeInfo::makeArray(dims, nodeExprView.type->payloadArrayElemTypeRef(), nodeExprView.type->flags());
             sema.setType(sema.curNodeRef(), sema.typeMgr().addType(typeArray));
         }
         else
         {
-            sema.setType(sema.curNodeRef(), nodeExprView.type->arrayElemTypeRef());
+            sema.setType(sema.curNodeRef(), nodeExprView.type->payloadArrayElemTypeRef());
         }
 
         if (SemaInfo::isLValue(sema.node(nodeExprRef)))
@@ -126,12 +126,12 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     }
     else if (nodeExprView.type->isBlockPointer())
     {
-        sema.setType(sema.curNodeRef(), nodeExprView.type->nestedTypeRef());
+        sema.setType(sema.curNodeRef(), nodeExprView.type->payloadTypeRef());
         SemaInfo::setIsLValue(*this);
     }
     else if (nodeExprView.type->isSlice())
     {
-        sema.setType(sema.curNodeRef(), nodeExprView.type->nestedTypeRef());
+        sema.setType(sema.curNodeRef(), nodeExprView.type->payloadTypeRef());
         SemaInfo::setIsLValue(*this);
     }
     else if (nodeExprView.type->isString() || nodeExprView.type->isCString())
@@ -162,7 +162,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
         SmallVector<AstNodeRef> children;
         sema.ast().nodes(children, spanChildrenRef);
 
-        const auto&    arrayDims   = nodeExprView.type->arrayDims();
+        const auto&    arrayDims   = nodeExprView.type->payloadArrayDims();
         const uint64_t numExpected = arrayDims.size();
         const size_t   numGot      = children.size();
 
@@ -192,12 +192,12 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
             std::vector<uint64_t> dims;
             for (size_t i = numGot; i < numExpected; i++)
                 dims.push_back(arrayDims[i]);
-            const auto typeArray = TypeInfo::makeArray(dims, nodeExprView.type->arrayElemTypeRef(), nodeExprView.type->flags());
+            const auto typeArray = TypeInfo::makeArray(dims, nodeExprView.type->payloadArrayElemTypeRef(), nodeExprView.type->flags());
             sema.setType(sema.curNodeRef(), sema.typeMgr().addType(typeArray));
         }
         else
         {
-            sema.setType(sema.curNodeRef(), nodeExprView.type->arrayElemTypeRef());
+            sema.setType(sema.curNodeRef(), nodeExprView.type->payloadArrayElemTypeRef());
         }
 
         if (SemaInfo::isLValue(sema.node(nodeExprRef)))
@@ -232,7 +232,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
             }
         }
 
-        sema.setType(sema.curNodeRef(), nodeExprView.type->arrayElemTypeRef());
+        sema.setType(sema.curNodeRef(), nodeExprView.type->payloadArrayElemTypeRef());
         if (SemaInfo::isLValue(sema.node(nodeExprRef)))
             SemaInfo::setIsLValue(*this);
     }

@@ -63,14 +63,14 @@ namespace
         const TypeInfo& ultimateType    = typeMgr.get(ultimateTypeRef);
 
         if (ultimateType.isStruct())
-            return &ultimateType.symStruct();
+            return &ultimateType.payloadSymStruct();
 
         if (ultimateType.isAnyPointer())
         {
-            const TypeRef   pointeeUltimateRef = typeMgr.get(ultimateType.nestedTypeRef()).unwrap(ctx, ultimateType.nestedTypeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
+            const TypeRef   pointeeUltimateRef = typeMgr.get(ultimateType.payloadTypeRef()).unwrap(ctx, ultimateType.payloadTypeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
             const TypeInfo& pointeeUltimate    = typeMgr.get(pointeeUltimateRef);
             if (pointeeUltimate.isStruct())
-                return &pointeeUltimate.symStruct();
+                return &pointeeUltimate.payloadSymStruct();
         }
 
         return nullptr;

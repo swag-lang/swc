@@ -44,12 +44,12 @@ namespace
         }
         else if (type->isSlice())
         {
-            const TypeInfo ty = TypeInfo::makeBlockPointer(type->nestedTypeRef(), type->flags());
+            const TypeInfo ty = TypeInfo::makeBlockPointer(type->payloadTypeRef(), type->flags());
             resultTypeRef     = sema.typeMgr().addType(ty);
         }
         else if (type->isArray())
         {
-            const TypeInfo ty = TypeInfo::makeBlockPointer(type->arrayElemTypeRef(), type->flags());
+            const TypeInfo ty = TypeInfo::makeBlockPointer(type->payloadArrayElemTypeRef(), type->flags());
             resultTypeRef     = sema.typeMgr().addType(ty);
         }
         else if (type->isAny())
@@ -113,7 +113,7 @@ namespace
         {
             if (!nodeView.type->isCompleted(ctx))
                 return sema.waitCompleted(nodeView.type, nodeArgRef);
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(ctx, nodeView.type->symEnum().count()));
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(ctx, nodeView.type->payloadSymEnum().count()));
             return Result::Continue;
         }
 
@@ -127,7 +127,7 @@ namespace
         if (nodeView.type->isArray())
         {
             const uint64_t  sizeOf     = nodeView.type->sizeOf(ctx);
-            const TypeRef   typeRef    = nodeView.type->arrayElemTypeRef();
+            const TypeRef   typeRef    = nodeView.type->payloadArrayElemTypeRef();
             const TypeInfo& ty         = sema.typeMgr().get(typeRef);
             const uint64_t  sizeOfElem = ty.sizeOf(ctx);
             SWC_ASSERT(sizeOfElem > 0);
@@ -172,7 +172,7 @@ namespace
         }
         else
         {
-            TypeInfo ty = TypeInfo::makeSlice(nodeViewPtr.type->nestedTypeRef());
+            TypeInfo ty = TypeInfo::makeSlice(nodeViewPtr.type->payloadTypeRef());
             if (nodeViewPtr.type->isConst())
                 ty.addFlag(TypeInfoFlagsE::Const);
             typeRef = sema.typeMgr().addType(ty);

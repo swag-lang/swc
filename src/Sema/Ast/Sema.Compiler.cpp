@@ -334,7 +334,7 @@ namespace
 
         if (nodeView.type->isEnum())
         {
-            const TypeRef     typeRef = nodeView.type->symEnum().underlyingTypeRef();
+            const TypeRef     typeRef = nodeView.type->payloadSymEnum().underlyingTypeRef();
             const ConstantRef cstRef  = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), typeRef));
             nodeView.setCstRef(sema, cstRef);
             sema.setConstant(sema.curNodeRef(), cstRef);
@@ -401,7 +401,7 @@ namespace
         RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeView));
         if (nodeView.type && nodeView.type->isTypeValue())
         {
-            const Utf8          name  = sema.typeMgr().get(nodeView.type->nestedTypeRef()).toName(ctx);
+            const Utf8          name  = sema.typeMgr().get(nodeView.type->payloadTypeRef()).toName(ctx);
             const ConstantValue value = ConstantValue::makeString(ctx, name);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
             return Result::Continue;

@@ -167,7 +167,7 @@ bool ConstantManager::concretizeConstant(Sema& sema, ConstantRef& result, Consta
 
     if (ty.isIntUnsized())
     {
-        TypeInfo::Sign sign = ty.intSign();
+        TypeInfo::Sign sign = ty.payloadIntSign();
         if (sign == TypeInfo::Sign::Unknown)
             sign = hintSign;
         if (sign == TypeInfo::Sign::Unknown)

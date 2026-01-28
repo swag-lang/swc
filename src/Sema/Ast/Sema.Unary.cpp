@@ -21,7 +21,7 @@ namespace
         {
             ApsInt value = ops.cst->getInt();
             value.setUnsigned(true);
-            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.type->intBits(), TypeInfo::Sign::Unsigned));
+            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.type->payloadIntBits(), TypeInfo::Sign::Unsigned));
             return Result::Continue;
         }
 
@@ -50,7 +50,7 @@ namespace
                 return SemaError::raiseLiteralOverflow(sema, ops.nodeRef, *ops.cst, ops.typeRef);
 
             value.setUnsigned(false);
-            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.type->intBits(), TypeInfo::Sign::Signed));
+            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.type->payloadIntBits(), TypeInfo::Sign::Signed));
             return Result::Continue;
         }
 
@@ -58,7 +58,7 @@ namespace
         {
             ApFloat value = ops.cst->getFloat();
             value.negate();
-            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, value, ops.type->floatBits()));
+            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, value, ops.type->payloadFloatBits()));
             return Result::Continue;
         }
 
@@ -106,7 +106,7 @@ namespace
 
         ApsInt value = ops.cst->getInt();
         value.invertAllBits();
-        result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.type->intBits(), ops.type->intSign()));
+        result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.type->payloadIntBits(), ops.type->payloadIntSign()));
         return Result::Continue;
     }
 
@@ -256,7 +256,7 @@ namespace
 
     Result semaDRef(Sema& sema, AstUnaryExpr& node, const SemaNodeView& nodeView)
     {
-        TypeRef resultTypeRef = nodeView.type->nestedTypeRef();
+        TypeRef resultTypeRef = nodeView.type->payloadTypeRef();
         if (nodeView.type->isConst())
         {
             const TypeInfo ty = sema.typeMgr().get(resultTypeRef);

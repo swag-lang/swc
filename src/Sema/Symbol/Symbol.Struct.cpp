@@ -73,7 +73,7 @@ Result SymbolStruct::canBeCompleted(Sema& sema) const
 
         auto& type = symVar.typeInfo(sema.ctx());
 
-        if (type.isStruct() && &type.symStruct() == this)
+        if (type.isStruct() && &type.payloadSymStruct() == this)
         {
             const AstVarDecl* var = symVar.decl()->cast<AstVarDecl>();
             return SemaError::raise(sema, DiagnosticId::sema_err_struct_circular_reference, var->nodeTypeRef.isValid() ? var->nodeTypeRef : var->nodeInitRef);

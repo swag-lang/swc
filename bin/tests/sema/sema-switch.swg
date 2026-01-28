@@ -162,3 +162,16 @@
             break
     }
 }
+
+func toto()->s32 => 1
+#test
+{
+    #[Swag.Complete]
+    switch toto()
+    {
+        case 1 to 3:
+            break
+        default:
+            break
+    }
+}

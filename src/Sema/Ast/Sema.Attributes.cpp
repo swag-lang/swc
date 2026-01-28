@@ -55,14 +55,30 @@ Result AstAttrDecl::semaPreDecl(Sema& sema) const
     // Predefined attributes
     if (sym.inSwagNamespace(sema.ctx()))
     {
-        if (sym.idRef() == sema.idMgr().nameEnumFlags())
-            sym.setSwagAttributeFlags(SwagAttributeFlagsE::EnumFlags);
-        else if (sym.idRef() == sema.idMgr().nameComplete())
-            sym.setSwagAttributeFlags(SwagAttributeFlagsE::Complete);
-        else if (sym.idRef() == sema.idMgr().nameIncomplete())
-            sym.setSwagAttributeFlags(SwagAttributeFlagsE::Incomplete);
-        else if (sym.idRef() == sema.idMgr().nameStrict())
-            sym.setSwagAttributeFlags(SwagAttributeFlagsE::Strict);
+        struct PredefinedAttr
+        {
+            IdentifierRef      id;
+            SwagAttributeFlags fl;
+        };
+
+        const auto& idMgr = sema.idMgr();
+
+        const PredefinedAttr predefined[] = {
+            {.id = idMgr.nameEnumFlags(), .fl = SwagAttributeFlagsE::EnumFlags},
+            {.id = idMgr.nameComplete(), .fl = SwagAttributeFlagsE::Complete},
+            {.id = idMgr.nameIncomplete(), .fl = SwagAttributeFlagsE::Incomplete},
+            {.id = idMgr.nameStrict(), .fl = SwagAttributeFlagsE::Strict},
+        };
+
+        const IdentifierRef idRef = sym.idRef();
+        for (const auto& it : predefined)
+        {
+            if (idRef == it.id)
+            {
+                sym.setRtAttributeFlags(it.fl);
+                break;
+            }
+        }
     }
 
     return Result::SkipChildren;
@@ -114,7 +130,7 @@ Result AstAttribute::semaPostNode(Sema& sema) const
 
     // Predefined attributes
     const SymbolAttribute&   attrSym   = identView.sym->cast<SymbolAttribute>();
-    const SwagAttributeFlags attrFlags = attrSym.swagAttributeFlags();
+    const SwagAttributeFlags attrFlags = attrSym.rtAttributeFlags();
     if (attrFlags != SwagAttributeFlagsE::Zero)
     {
         sema.frame().attributes().addSwagFlag(attrFlags);

@@ -192,12 +192,14 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
                     if (downView.cstRef.isInvalid())
                         return SemaError::raise(sema, DiagnosticId::sema_err_switch_case_not_const, range->nodeExprDownRef);
                 }
+                
                 if (range->nodeExprUpRef.isValid())
                 {
                     const SemaNodeView upView(sema, range->nodeExprUpRef);
                     if (upView.cstRef.isInvalid())
                         return SemaError::raise(sema, DiagnosticId::sema_err_switch_case_not_const, range->nodeExprUpRef);
                 }
+                
                 return Result::Continue;
             }
 

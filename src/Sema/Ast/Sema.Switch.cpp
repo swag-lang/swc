@@ -39,6 +39,13 @@ Result AstSwitchStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     // Each case has its own breakable frame.
     if (sema.node(childRef).is(AstNodeId::SwitchCaseStmt))
     {
+        // A switch without an expression behaves like a condition-switch.
+        // Give it a `bool` type so case expressions can be validated/cast accordingly.
+        const auto& switchNode = sema.node(sema.curNodeRef());
+        const auto* switchStmt = switchNode.cast<AstSwitchStmt>();
+        if (switchStmt && !switchStmt->nodeExprRef.isValid())
+            sema.setType(sema.curNodeRef(), sema.ctx().typeMgr().typeBool());
+
         SemaFrame frame = sema.frame();
         frame.setBreakable(sema.curNodeRef(), SemaFrame::BreakableKind::Switch);
         frame.setCurrentSwitch(sema.curNodeRef());
@@ -99,7 +106,7 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
     if (!isExprChild)
         return Result::Continue;
 
-    // If the switch is on an enum, allow shorthand `case Value:` by rewriting it to an
+    // If the switch is on an enum, allow shorthand by rewriting it to an
     // auto-member-access expression (equivalent to `.Value`), which will resolve in the
     // enum scope provided by the binding type pushed from the parent switch.
     if (enumTypeRefFromSwitchType(sema, switchTypeRef).isValid() && sema.node(childRef).is(AstNodeId::Identifier))
@@ -119,6 +126,16 @@ namespace
         SemaNodeView view(sema, nodeRef);
         return Cast::cast(sema, view, switchTypeRef, CastKind::Implicit);
     }
+
+    AstNodeRef resolveSubstituteChain(Sema& sema, AstNodeRef nodeRef)
+    {
+        // Some semantic passes (casts, member access rewrites, …) substitute the original node
+        // with another one (e.g. `ImplicitCastExpr`). Constants are usually attached to the
+        // substitute node, so follow the chain before querying `hasConstant`.
+        while (nodeRef.isValid() && sema.semaInfo().hasSubstitute(nodeRef))
+            nodeRef = sema.semaInfo().getSubstituteRef(nodeRef);
+        return nodeRef;
+    }
 }
 
 Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -131,6 +148,10 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
 
     const AstNodeRef switchRef = sema.frame().currentSwitch();
     SWC_ASSERT(switchRef.isValid());
+
+    const auto& switchNode = sema.node(switchRef);
+    const auto* switchStmt = switchNode.cast<AstSwitchStmt>();
+    const bool  hasSwitchExpr = switchStmt && switchStmt->nodeExprRef.isValid();
 
     const TypeRef switchTypeRef = sema.typeRefOf(switchRef);
     if (switchTypeRef.isInvalid())
@@ -146,6 +167,21 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
 
         if (isExprChild)
         {
+            // Condition-switch: each `case <expr>` must be bool-compatible.
+            if (!hasSwitchExpr)
+            {
+                SemaNodeView nodeView(sema, childRef);
+                const TypeRef boolTypeRef = sema.ctx().typeMgr().typeBool();
+
+                CastContext castCtx(CastKind::Condition);
+                castCtx.errorNodeRef = childRef;
+                if (Cast::castAllowed(sema, castCtx, nodeView.typeRef, boolTypeRef) != Result::Continue)
+                    return SemaError::raise(sema, DiagnosticId::sema_err_switch_case_not_bool, childRef);
+
+                RESULT_VERIFY(Cast::cast(sema, nodeView, boolTypeRef, CastKind::Condition));
+                return Result::Continue;
+            }
+
             // Range expression
             if (sema.node(childRef).is(AstNodeId::RangeExpr))
             {
@@ -159,10 +195,26 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
                     RESULT_VERIFY(castToSwitchType(sema, range->nodeExprDownRef, switchTypeRef));
                 if (range->nodeExprUpRef.isValid())
                     RESULT_VERIFY(castToSwitchType(sema, range->nodeExprUpRef, switchTypeRef));
+
+                if (range->nodeExprDownRef.isValid() && !sema.hasConstant(range->nodeExprDownRef))
+                {
+                    const AstNodeRef downRef = resolveSubstituteChain(sema, range->nodeExprDownRef);
+                    if (!sema.hasConstant(downRef))
+                        return SemaError::raise(sema, DiagnosticId::sema_err_switch_case_not_const, range->nodeExprDownRef);
+                }
+                if (range->nodeExprUpRef.isValid())
+                {
+                    const AstNodeRef upRef = resolveSubstituteChain(sema, range->nodeExprUpRef);
+                    if (!sema.hasConstant(upRef))
+                        return SemaError::raise(sema, DiagnosticId::sema_err_switch_case_not_const, range->nodeExprUpRef);
+                }
                 return Result::Continue;
             }
 
-            return castToSwitchType(sema, childRef, switchTypeRef);
+            RESULT_VERIFY(castToSwitchType(sema, childRef, switchTypeRef));
+            if (!sema.hasConstant(resolveSubstituteChain(sema, childRef)))
+                return SemaError::raise(sema, DiagnosticId::sema_err_switch_case_not_const, childRef);
+            return Result::Continue;
         }
     }
 

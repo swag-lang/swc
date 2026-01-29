@@ -14,5 +14,3 @@ SWC_DIAG_DEF(sema_note_invalid_argument_type)
 SWC_DIAG_DEF(sema_note_not_viable)
 SWC_DIAG_DEF(sema_note_auto_scope_hint)
 SWC_DIAG_DEF(sema_note_too_many_overloads)
-
-SWC_DIAG_DEF(sema_help_nameof_instruction)

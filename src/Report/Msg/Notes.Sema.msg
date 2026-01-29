@@ -14,5 +14,3 @@ SWC_DIAG_DEF(sema_note_invalid_argument_type, Note, "invalid argument type")
 SWC_DIAG_DEF(sema_note_not_viable, Note, "not viable")
 SWC_DIAG_DEF(sema_note_auto_scope_hint, Note, "possible auto scope type: '{type}'")
 SWC_DIAG_DEF(sema_note_too_many_overloads, Note, "... and {value} more overloads")
-
-SWC_DIAG_DEF(sema_help_nameof_instruction, Help, "use '#stringof' to convert a constant expression to a string")

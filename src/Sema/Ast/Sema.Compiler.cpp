@@ -407,12 +407,7 @@ namespace
             return Result::Continue;
         }
 
-        auto        diag  = SemaError::report(sema, DiagnosticId::sema_err_failed_nameof, childRef);
-        const auto& token = sema.token(node.srcViewRef(), node.tokRef());
-        if (nodeView.cst && (token.id == TokenId::CompilerNameOf || token.id == TokenId::CompilerFullNameOf))
-            diag.addElement(DiagnosticId::sema_help_nameof_instruction);
-        diag.report(ctx);
-        return Result::Error;
+        return SemaError::raise(sema, DiagnosticId::sema_err_failed_nameof, childRef);
     }
 
     Result semaCompilerFullNameOf(Sema& sema, const AstCompilerCall& node)

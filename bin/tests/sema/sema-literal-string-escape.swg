@@ -1,3 +1,5 @@
+#global internal
+
 #assert('\x41' == 'A')
 #assert('\x61' == 'a')
 #assert('\x30' == '0')

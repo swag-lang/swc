@@ -1,3 +1,5 @@
+#global internal
+
 #assert(1.0 + 2.5 == 3.5)
 #assert(1.0'f32 + 2.5'f32 == 3.5'f32)
 #assert(1.0'f64 + 2.5'f64 == 3.5'f64)

@@ -171,3 +171,16 @@ func toto()->s32 => 1
             break
     }
 }
+
+#test
+{
+    var a = 2
+    var b = 1
+    switch a
+    {
+    case 1 where b == 1:
+        break
+    case 1 where b == 2:
+        break
+    }
+}

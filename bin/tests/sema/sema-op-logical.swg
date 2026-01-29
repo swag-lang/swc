@@ -1,3 +1,5 @@
+#global internal
+
 #assert(true and true == true)
 #assert(true and false == false)
 #assert(!(false and true == false))

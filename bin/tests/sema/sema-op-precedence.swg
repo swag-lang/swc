@@ -1,3 +1,5 @@
+#global internal
+
 #assert(1 + 2 * 3 == 7)
 #assert(1 * 2 + 3 == 5)
 #assert(4 + 10 / 2 == 9)

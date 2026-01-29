@@ -1,3 +1,5 @@
+#global internal
+
 // --- Unary Plus (+) ---
 #assert(+1 == 1)
 #assert(+1 == +1)

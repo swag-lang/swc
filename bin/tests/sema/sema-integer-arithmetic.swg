@@ -1,3 +1,5 @@
+#global internal
+
 #assert(1 + 1 == 2)
 #assert(1's32 + 1 == 2)
 #assert(1's8 + 1 == 2)

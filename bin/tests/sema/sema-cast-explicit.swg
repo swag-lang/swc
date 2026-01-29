@@ -1,3 +1,5 @@
+#global internal
+
 #assert(cast(s8) 1 == 1)
 #assert(cast(s8) -1 == -1)
 #assert(cast(s16) 0 == 0)

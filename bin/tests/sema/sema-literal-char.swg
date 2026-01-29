@@ -1,3 +1,5 @@
+#global internal
+
 #assert('\n''u8 == 10)
 #assert('\n''u16 == 10)
 #assert('\n''u32 == 10)

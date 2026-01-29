@@ -1,3 +1,5 @@
+#global internal
+
 #assert(12's8 == 12's8)
 #assert(12's16 == 12's16)
 #assert(12's32 == 12's32)

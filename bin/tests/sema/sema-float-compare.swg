@@ -1,3 +1,5 @@
+#global internal
+
 #assert(1.5575 == 1.5575)
 #assert(-1.5575 == -1.5575)
 #assert(1.5575'f32 == 1.5575'f32)

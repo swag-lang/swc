@@ -1,3 +1,5 @@
+#global internal
+
 #assert("truetrue" == "true" ++ "true")
 #assert("truetrue" == "true" ++ true)
 #assert("truefalse" == "true" ++ false)

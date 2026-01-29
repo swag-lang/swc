@@ -1,3 +1,5 @@
+#global internal
+
 #assert(0b11 == 0b0000000000011)
 #assert(0b0 == 0b0000)
 #assert(0b1 == 0b0001)

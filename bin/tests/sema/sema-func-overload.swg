@@ -1,4 +1,5 @@
 #global internal
+
 func A() {}
 func A(a: s32) {}
 

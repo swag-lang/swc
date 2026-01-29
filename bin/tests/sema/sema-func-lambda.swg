@@ -1,6 +1,5 @@
 #global internal
 
-
 #test
 {
     var fn: func()

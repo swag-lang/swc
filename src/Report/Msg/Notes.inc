@@ -1,26 +1,2 @@
-SWC_DIAG_DEF(parser_note_reserved_identifier)
-SWC_DIAG_DEF(parser_note_other_def)
-SWC_DIAG_DEF(parser_note_opening)
-SWC_DIAG_DEF(parser_note_gen_param_type)
-
-SWC_DIAG_DEF(parser_help_empty_array_dim)
-SWC_DIAG_DEF(parser_help_gen_param_type)
-
-SWC_DIAG_DEF(sema_note_signed_unsigned)
-SWC_DIAG_DEF(sema_note_unsigned_signed)
-SWC_DIAG_DEF(sema_note_cast_explicit)
-SWC_DIAG_DEF(sema_note_other_definition)
-SWC_DIAG_DEF(sema_note_previous_case_value)
-SWC_DIAG_DEF(sema_note_other_implementation)
-SWC_DIAG_DEF(sema_note_could_be)
-SWC_DIAG_DEF(sema_note_cyclic_dependency_link)
-SWC_DIAG_DEF(sema_note_strict_alias)
-SWC_DIAG_DEF(sema_note_overload_candidate_failed)
-SWC_DIAG_DEF(sema_note_too_many_arguments)
-SWC_DIAG_DEF(sema_note_too_few_arguments)
-SWC_DIAG_DEF(sema_note_invalid_argument_type)
-SWC_DIAG_DEF(sema_note_not_viable)
-SWC_DIAG_DEF(sema_note_auto_scope_hint)
-SWC_DIAG_DEF(sema_note_too_many_overloads)
-
-SWC_DIAG_DEF(sema_help_nameof_instruction)
+#include "Notes.Parser.inc"
+#include "Notes.Sema.inc"

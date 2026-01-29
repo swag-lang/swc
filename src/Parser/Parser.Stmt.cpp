@@ -502,6 +502,13 @@ AstNodeRef Parser::parseSwitch()
 
             default:
             {
+                if (!currentCase)
+                {
+                    raiseError(DiagnosticId::parser_err_switch_expected_case, ref());
+                    skipTo({TokenId::KwdCase, TokenId::KwdDefault, TokenId::SymRightCurly});
+                    break;
+                }
+
                 auto stmtRef = parseEmbeddedStmt();
                 nodeStmts.push_back(stmtRef);
                 break;
@@ -510,7 +517,15 @@ AstNodeRef Parser::parseSwitch()
     }
 
     if (currentCase)
+    {
+        if (nodeStmts.empty())
+            raiseError(DiagnosticId::parser_err_empty_case, currentCase->tokRef());
         currentBody->spanChildrenRef = ast_->pushSpan(nodeStmts.span());
+    }
+    else
+    {
+        raiseError(DiagnosticId::parser_err_switch_missing_case, openRef);
+    }
 
     nodePtr->spanChildrenRef = ast_->pushSpan(nodeChildren.span());
     expectAndConsumeClosing(TokenId::SymRightCurly, openRef);

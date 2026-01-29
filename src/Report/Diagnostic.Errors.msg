@@ -69,6 +69,8 @@ SWC_DIAG_DEF(parser_err_expected_type_or_symbol, Error, "expected type or symbol
 SWC_DIAG_DEF(parser_err_too_many_arguments, Error, "too many arguments for intrinsic '{tok}'; expected {count}, but got {value}")
 SWC_DIAG_DEF(parser_err_too_few_arguments, Error, "too few arguments for intrinsic '{tok}'; expected {count}, but got {value}")
 SWC_DIAG_DEF(parser_err_empty_case, Error, "empty case statement; add 'break' or 'fallthrough'")
+SWC_DIAG_DEF(parser_err_switch_expected_case, Error, "expected 'case' or 'default' in switch body")
+SWC_DIAG_DEF(parser_err_switch_missing_case, Error, "a switch must have at least one 'case' or 'default' label")
 
 SWC_DIAG_DEF(sema_warn_compiler_warning, Warning, "compiler warning: {because}")
 

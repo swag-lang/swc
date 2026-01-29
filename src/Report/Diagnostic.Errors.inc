@@ -75,6 +75,8 @@ SWC_DIAG_DEF(parser_err_expected_type_or_symbol)
 SWC_DIAG_DEF(parser_err_too_many_arguments)
 SWC_DIAG_DEF(parser_err_too_few_arguments)
 SWC_DIAG_DEF(parser_err_empty_case)
+SWC_DIAG_DEF(parser_err_switch_expected_case)
+SWC_DIAG_DEF(parser_err_switch_missing_case)
 
 // Sema Warnings
 SWC_DIAG_DEF(sema_warn_compiler_warning)

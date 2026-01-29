@@ -128,24 +128,6 @@ namespace
         return Cast::cast(sema, view, switchTypeRef, CastKind::Implicit);
     }
 
-    Result castCaseToBool(Sema& sema, const AstNodeRef& exprRef)
-    {
-        SemaNodeView  nodeView(sema, exprRef);
-        const TypeRef boolTypeRef = sema.ctx().typeMgr().typeBool();
-
-        CastContext castCtx(CastKind::Condition);
-        castCtx.errorNodeRef = exprRef;
-        if (Cast::castAllowed(sema, castCtx, nodeView.typeRef, boolTypeRef) != Result::Continue)
-        {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_case_not_bool, exprRef);
-            diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
-            diag.report(sema.ctx());
-            return Result::Error;
-        }
-
-        return Cast::cast(sema, nodeView, boolTypeRef, CastKind::Condition);
-    }
-
     Result checkCaseExprIsConst(Sema& sema, const AstNodeRef& exprRef)
     {
         const SemaNodeView exprView(sema, exprRef);
@@ -237,7 +219,8 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
     // This is a switch without an expression
     if (switchTypeRef.isInvalid())
     {
-        RESULT_VERIFY(castCaseToBool(sema, childRef));
+        SemaNodeView nodeView(sema, childRef);
+        RESULT_VERIFY(Cast::cast(sema, nodeView, sema.ctx().typeMgr().typeBool(), CastKind::Condition));
         return Result::Continue;
     }
 

@@ -46,7 +46,7 @@
     var a : [4] s32
     switch
     {
-        case a: // swc-expected-error {{sema_err_switch_case_not_bool}}
+        case a: // swc-expected-error {{sema_err_cannot_cast}}
             break
         default:
             break
